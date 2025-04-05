@@ -29,7 +29,7 @@ export default async function Dashboard() {
     return (
         <div>
             <h1>{welcome_messages[dayOfTheWeek]}</h1>
-            <p>Hei!</p>
+            <p>Hei! Her kommer det noe kult!</p>
         </div>
     );
 }
