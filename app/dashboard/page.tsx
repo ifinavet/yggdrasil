@@ -1,5 +1,4 @@
-import { createClient } from '@/utils/supabase/server';
-import { redirect } from 'next/navigation';
+import TitleUpdater from "./TitleUpdater";
 
 const welcome_messages: { [key: number]: string } = {
     0: 'God søndag!',
@@ -12,22 +11,12 @@ const welcome_messages: { [key: number]: string } = {
 };
 
 export default async function Dashboard() {
-    const supabase = await createClient();
-
-    const {
-        data: { user },
-    } = await supabase.auth.getUser();
-
-    const { data: member, error } = await supabase.from('member').select('id').eq('id', user?.id);
-
-    if (!user && !member) {
-        return redirect('/sign-in');
-    }
-
     const dayOfTheWeek = new Date().getDay();
+
 
     return (
         <div>
+            <TitleUpdater title="Velkommen naver, til dashbordet"/>
             <h1>{welcome_messages[dayOfTheWeek]}</h1>
             <p>Hei! Her kommer det noe kult!</p>
         </div>
