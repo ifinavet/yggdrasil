@@ -4,38 +4,44 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="95e3c59d-3773-4d5e-9f8f-33f1dab81806" name="Changes" comment="Upgraded to tailwind 4">
-      <change afterPath="$PROJECT_DIR$/app/(frontend)/layout.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/contexts/TitleContext.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/dashboard/TitleUpdater.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/dashboard/layout.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/components/(frontend)/layout-components/header.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/components/dashboard/header.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/components/dashboard/navigation/nav-sidebar.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/components/dashboard/navigation/nav-user.tsx" afterDir="false" />
+    <list default="true" id="95e3c59d-3773-4d5e-9f8f-33f1dab81806" name="Changes" comment="Add initial components and configuration for sidebar, tooltip, and avatar">
+      <change afterPath="$PROJECT_DIR$/app/dashboard/events/actions.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/dashboard/events/events-grid.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/dashboard/events/page.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/assets/simple_logo_hvit.webp" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/components/dashboard/events/event-card.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/components/theme-provider.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/components/ui/loading-spinner.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/(auth-pages)/forgot-password/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(frontend)/(auth-pages)/forgot-password/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/(auth-pages)/layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(frontend)/(auth-pages)/layout.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/(auth-pages)/sign-in/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(frontend)/(auth-pages)/sign-in/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/(auth-pages)/sign-up/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(frontend)/(auth-pages)/sign-up/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/(auth-pages)/smtp-message.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(frontend)/(auth-pages)/smtp-message.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/actions.ts" beforeDir="false" afterPath="$PROJECT_DIR$/app/(frontend)/actions.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/auth/callback/route.ts" beforeDir="false" afterPath="$PROJECT_DIR$/app/(frontend)/auth/callback/route.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(frontend)/(auth-pages)/sign-in/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(frontend)/(auth-pages)/sign-in/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(frontend)/actions.ts" beforeDir="false" afterPath="$PROJECT_DIR$/app/(frontend)/actions.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(frontend)/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(frontend)/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(frontend)/protected/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(frontend)/protected/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/dashboard/TitleUpdater.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/dashboard/TitleUpdater.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/dashboard/layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/dashboard/layout.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/dashboard/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/dashboard/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/events/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(frontend)/events/page.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/globals.css" beforeDir="false" afterPath="$PROJECT_DIR$/app/globals.css" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/layout.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(frontend)/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/protected/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(frontend)/protected/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/protected/reset-password/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(frontend)/protected/reset-password/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/header-auth.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/header-auth.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/ui/button.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/ui/button.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/ui/input.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/ui/input.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/utils.ts" beforeDir="false" afterPath="$PROJECT_DIR$/lib/utils.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/dashboard/header.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/dashboard/header.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/dashboard/navigation/nav-sidebar.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/dashboard/navigation/nav-sidebar.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/dashboard/navigation/nav-user.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/dashboard/navigation/nav-user.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/deploy-button.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/env-var-warning.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/header-auth.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/hero.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/next-logo.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/submit-button.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/submit-button.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/supabase-logo.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/tutorial/code-block.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/tutorial/connect-supabase-steps.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/tutorial/fetch-data-steps.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/tutorial/sign-up-user-steps.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/tutorial/tutorial-step.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/typography/inline-code.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/utils/supabase/client.ts" beforeDir="false" afterPath="$PROJECT_DIR$/utils/supabase/client.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils/utils.ts" beforeDir="false" afterPath="$PROJECT_DIR$/utils/utils.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -49,9 +55,6 @@
         <option value="TypeScript JSX File" />
       </list>
     </option>
-  </component>
-  <component name="FormatOnSaveOptions">
-    <option name="myRunOnSave" value="true" />
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -70,6 +73,9 @@
 }</component>
   <component name="OptimizeOnSaveOptions">
     <option name="myRunOnSave" value="true" />
+  </component>
+  <component name="ProblemsViewState">
+    <option name="selectedTabId" value="ProjectErrors" />
   </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 0
@@ -97,13 +103,14 @@
     "nodejs_package_manager_path": "npm",
     "npm.Next.js: server-side.executor": "Run",
     "rearrange.code.on.save": "true",
-    "settings.editor.selected.configurable": "reference.idesettings.emmet",
+    "settings.editor.selected.configurable": "preferences.sourceCode.JavaScript",
     "ts.external.directory.path": "/Users/christofferhennie/Developer/project-unagi/node_modules/typescript/lib",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/assets" />
       <recent name="$PROJECT_DIR$/app" />
       <recent name="$PROJECT_DIR$/app/(backend)" />
       <recent name="$PROJECT_DIR$/app/(frontend)" />
@@ -139,7 +146,9 @@
       <option name="presentableId" value="Default" />
       <updated>1744905186055</updated>
       <workItem from="1744905187163" duration="2371000" />
-      <workItem from="1744907608865" duration="16307000" />
+      <workItem from="1744907608865" duration="16608000" />
+      <workItem from="1744967510165" duration="546000" />
+      <workItem from="1744968103094" duration="22411000" />
     </task>
     <task id="LOCAL-00001" summary="Upgraded to tailwind 4">
       <option name="closed" value="true" />
@@ -149,7 +158,23 @@
       <option name="project" value="LOCAL" />
       <updated>1744907547013</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="Refactor project structure and add TitleContext for dynamic page titles">
+      <option name="closed" value="true" />
+      <created>1744928797376</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1744928797376</updated>
+    </task>
+    <task id="LOCAL-00003" summary="Add initial components and configuration for sidebar, tooltip, and avatar">
+      <option name="closed" value="true" />
+      <created>1744928843185</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1744928843185</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -157,6 +182,8 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Upgraded to tailwind 4" />
-    <option name="LAST_COMMIT_MESSAGE" value="Upgraded to tailwind 4" />
+    <MESSAGE value="Refactor project structure and add TitleContext for dynamic page titles" />
+    <MESSAGE value="Add initial components and configuration for sidebar, tooltip, and avatar" />
+    <option name="LAST_COMMIT_MESSAGE" value="Add initial components and configuration for sidebar, tooltip, and avatar" />
   </component>
 </project>
