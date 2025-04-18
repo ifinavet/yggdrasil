@@ -1,3 +1,5 @@
+import type {User} from "@/app/dashboard/layout";
+import {NavUser} from "@/components/dashboard/navigation/nav-user";
 import {
     Sidebar,
     SidebarContent,
@@ -7,65 +9,73 @@ import {
     SidebarHeader,
     SidebarMenu,
     SidebarMenuButton,
-    SidebarMenuItem
+    SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import {BriefcaseIcon, BuildingIcon, CalendarIcon, UsersIcon} from "lucide-react";
-import {NavUser} from "@/components/dashboard/navigation/nav-user";
-import {User} from "@/app/dashboard/layout";
 import Image from "next/image";
-import logoBlaa from '/assets/simple_logo_blaa.webp';
 import Link from "next/link";
+import LogoBlue from "/assets/simple_logo_blaa.webp";
 
 const paths = {
     main: [
         {
             title: "Arrangementer",
-            url: "dashboard/events",
-            icon: CalendarIcon
+            url: "/dashboard/events",
+            icon: CalendarIcon,
         },
         {
             title: "Stillingsannonser",
-            url: "dashboard/listings",
-            icon: BriefcaseIcon
+            url: "/dashboard/job-listings",
+            icon: BriefcaseIcon,
         },
     ],
     secondary: [
         {
             title: "Studenter",
-            url: "dashboard/students",
-            icon: UsersIcon
+            url: "/dashboard/students",
+            icon: UsersIcon,
         },
         {
             title: "Bedrifter",
-            url: "dashboard/companies",
-            icon: BuildingIcon
+            url: "/dashboard/companies",
+            icon: BuildingIcon,
         },
-    ]
-}
+    ],
+};
 
 interface NavSidebarProps {
-    user: User
+    user: User;
 }
 
-export function NavSidebar({user}: NavSidebarProps) {
+export function NavSidebar({ user }: NavSidebarProps) {
     return (
-        <Sidebar collapsible="offcanvas" variant="sidebar">
+        <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
                 <SidebarMenu>
-                    <SidebarMenuItem className="px-8 py-4">
-                        <Image src={logoBlaa} alt="IFI-Navet logo"/>
+                    <SidebarMenuItem className="px-8 py-4 max-h-md">
+                        <Link href="/dashboard">
+                            <Image
+                                src={LogoBlue}
+                                alt="Ifi-navet Logo"
+                                className="dark:grayscale dark:invert dark:brightness-0"
+                            />
+                        </Link>
                     </SidebarMenuItem>
                 </SidebarMenu>
             </SidebarHeader>
             <SidebarContent>
-                <SidebarGroup className="group-data-[collapsible=icon]:hidden">
+                <SidebarGroup>
                     <SidebarGroupLabel>Produkter</SidebarGroupLabel>
                     <SidebarMenu>
                         {paths.main.map((item) => (
                             <SidebarMenuItem key={item.title}>
-                                <SidebarMenuButton tooltip={item.title} asChild>
+                                <SidebarMenuButton
+                                    tooltip={item.title}
+                                    asChild
+                                    className="hover:bg-navet-500 hover:text-white"
+                                >
                                     <Link href={item.url}>
-                                        {item.icon && <item.icon/>}
+                                        {item.icon && <item.icon />}
                                         <span>{item.title}</span>
                                     </Link>
                                 </SidebarMenuButton>
@@ -78,9 +88,13 @@ export function NavSidebar({user}: NavSidebarProps) {
                     <SidebarMenu>
                         {paths.secondary.map((item) => (
                             <SidebarMenuItem key={item.title}>
-                                <SidebarMenuButton tooltip={item.title} asChild>
+                                <SidebarMenuButton
+                                    tooltip={item.title}
+                                    asChild
+                                    className="hover:bg-navet-500 hover:text-white"
+                                >
                                     <Link href={item.url}>
-                                        {item.icon && <item.icon/>}
+                                        {item.icon && <item.icon />}
                                         <span>{item.title}</span>
                                     </Link>
                                 </SidebarMenuButton>
@@ -92,10 +106,10 @@ export function NavSidebar({user}: NavSidebarProps) {
             <SidebarFooter>
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <NavUser user={user}/>
+                        <NavUser user={user} />
                     </SidebarMenuItem>
                 </SidebarMenu>
             </SidebarFooter>
         </Sidebar>
-    )
+    );
 }

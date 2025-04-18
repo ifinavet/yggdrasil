@@ -1,14 +1,14 @@
-'use client'
+"use client";
 
-import {useEffect} from 'react';
-import {useTitle} from "@/app/contexts/TitleContext";
+import { useEffect } from "react";
+import { useTitle } from "@/app/contexts/TitleContext";
 
-export default function TitleUpdater({title}: { title: string }) {
-    const {setTitle} = useTitle();
+export default function TitleUpdater({ title }: { title: string }) {
+  const { setTitle } = useTitle();
 
-    useEffect(() => {
-        setTitle(title);
-    }, [title, setTitle]);
+  useEffect(() => {
+    setTitle(title);
+  }, [title, setTitle]);
 
-    return null;
+  return null;
 }
