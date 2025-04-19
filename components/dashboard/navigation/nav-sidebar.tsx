@@ -49,15 +49,16 @@ interface NavSidebarProps {
 
 export function NavSidebar({ user }: NavSidebarProps) {
     return (
-        <Sidebar collapsible="icon" variant="inset">
+        <Sidebar collapsible='icon' variant='inset'>
             <SidebarHeader>
                 <SidebarMenu>
-                    <SidebarMenuItem className="px-8 py-4 max-h-md">
-                        <Link href="/dashboard">
+                    <SidebarMenuItem className='px-8 py-4 max-h-md'>
+                        <Link href='/dashboard'>
                             <Image
                                 src={LogoBlue}
-                                alt="Ifi-navet Logo"
-                                className="dark:grayscale dark:invert dark:brightness-0"
+                                alt='Ifi-navet Logo'
+                                className='dark:grayscale dark:invert dark:brightness-0'
+                                priority
                             />
                         </Link>
                     </SidebarMenuItem>
@@ -72,7 +73,7 @@ export function NavSidebar({ user }: NavSidebarProps) {
                                 <SidebarMenuButton
                                     tooltip={item.title}
                                     asChild
-                                    className="hover:bg-navet-500 hover:text-white"
+                                    className='hover:bg-navet-500 hover:text-white'
                                 >
                                     <Link href={item.url}>
                                         {item.icon && <item.icon />}
@@ -91,7 +92,7 @@ export function NavSidebar({ user }: NavSidebarProps) {
                                 <SidebarMenuButton
                                     tooltip={item.title}
                                     asChild
-                                    className="hover:bg-navet-500 hover:text-white"
+                                    className='hover:bg-navet-500 hover:text-white'
                                 >
                                     <Link href={item.url}>
                                         {item.icon && <item.icon />}

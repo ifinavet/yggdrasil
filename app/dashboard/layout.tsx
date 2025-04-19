@@ -1,4 +1,5 @@
 import {TitleProvider} from "@/app/contexts/TitleContext";
+import {getInternalMemberImage} from "@/app/dashboard/(actions)/member-image";
 import Header from "@/components/dashboard/header";
 import {NavSidebar} from "@/components/dashboard/navigation/nav-sidebar";
 import {ThemeProvider} from "@/components/theme-provider";
@@ -29,18 +30,19 @@ export default async function Layout({
 
     const { data: internal_member, error } = await supabase
         .from("internal_member")
-        .select("id, user (id, firstname, lastname)")
+        .select("id, profile_image_id, user (id, firstname, lastname)")
         .single()
         .overrideTypes<{
             id: string;
+            profile_image_id: string;
             user: { id: string; firstname: string; lastname: string };
         }>();
 
-    if (!user && !internal_member) {
+    if (!user && !internal_member && !error) {
         return redirect("/sign-in");
     }
 
-    console.log(internal_member);
+    const imageUrl = await getInternalMemberImage(internal_member?.profile_image_id ?? "");
 
     const currentUser: User = {
         id: user?.id ?? "",
@@ -48,15 +50,14 @@ export default async function Layout({
         firstname: internal_member?.user.firstname ?? "",
         lastname: internal_member?.user.lastname ?? "",
         name: `${internal_member?.user.firstname ?? ""} ${internal_member?.user.lastname ?? ""}`,
-        initials: `${internal_member?.user.firstname[0] ?? ""}${internal_member?.user.lastname[0] ?? ""}`,
-        avatar_url:
-            "https://kafxocampazsiggitdvg.supabase.co/storage/v1/object/sign/member-pictures/christoffer_hennie.jpg?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InN0b3JhZ2UtdXJsLXNpZ25pbmcta2V5X2Y2OTE5YzQwLTlhNmUtNDdiNC04NTEyLTdkM2E2M2JiOGViOSJ9.eyJ1cmwiOiJtZW1iZXItcGljdHVyZXMvY2hyaXN0b2ZmZXJfaGVubmllLmpwZyIsImlhdCI6MTc0NDk3MzEzMywiZXhwIjoxNzQ1NTc3OTMzfQ.eojTP9Y2KdRPkLg_FWOe7VYDuf7BlImZhXimVq37GaY",
+        initials: `${internal_member?.user.firstname?.[0] ?? ""}${internal_member?.user.lastname?.[0] ?? ""}`,
+        avatar_url: imageUrl ?? "",
     };
 
     return (
         <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
+            attribute='class'
+            defaultTheme='system'
             enableSystem
             disableTransitionOnChange
         >
@@ -65,7 +66,7 @@ export default async function Layout({
                     <NavSidebar user={currentUser} />
                     <SidebarInset>
                         <Header />
-                        <main className="p-4">{children}</main>
+                        <main className='p-4'>{children}</main>
                     </SidebarInset>
                 </SidebarProvider>
             </TitleProvider>
