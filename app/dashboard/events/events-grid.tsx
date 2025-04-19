@@ -4,6 +4,7 @@ import {type EventQuickView, getEvents, getPossibleSemesters,} from "@/app/dashb
 import EventCard from "@/components/dashboard/events/event-card";
 import {Button} from "@/components/ui/button";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select";
+import {PlusIcon} from "lucide-react";
 import Link from "next/link";
 import {useEffect, useState} from "react";
 
@@ -45,7 +46,7 @@ export default function EventsGrid() {
 
     return (
         <>
-            <div className='flex w-full gap-4'>
+            <div className='flex w-full justify-between'>
                 <Select value={selectedSemester} onValueChange={setSelectedSemester}>
                     <SelectTrigger className='w-[180px]'>
                         <SelectValue placeholder='Semester' />
@@ -61,7 +62,10 @@ export default function EventsGrid() {
                     </SelectContent>
                 </Select>
                 <Button className='bg-gray-800 text-white hover:bg-navet-500'>
-                    <Link href='#'>Lag et arrangement</Link>
+                    <Link href='events/create-event' className='flex gap-2 items-center'>
+                        <PlusIcon size={18} />
+                        <span>Lag et arrangement</span>
+                    </Link>
                 </Button>
             </div>
             <div className='grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-4 mt-4'>
