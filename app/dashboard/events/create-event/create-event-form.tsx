@@ -550,7 +550,7 @@ export function CreateEventForm() {
                 <FormField
                     control={form.control}
                     name='description'
-                    render={({ field }) => (
+                    render={() => (
                         <FormItem className='flex flex-col'>
                             <FormLabel>Beskrivelse</FormLabel>
                             <FormControl>

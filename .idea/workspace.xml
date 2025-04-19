@@ -4,30 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="95e3c59d-3773-4d5e-9f8f-33f1dab81806" name="Changes" comment="Add event management components and data fetching logic; implement EventsGrid and EventCard">
-      <change afterPath="$PROJECT_DIR$/app/api/set-profile-image/route.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/dashboard/(actions)/member-image.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/dashboard/events/create-event/actions.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/dashboard/events/create-event/create-event-form.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/dashboard/events/create-event/editor.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/dashboard/events/create-event/page.tsx" afterDir="false" />
+    <list default="true" id="95e3c59d-3773-4d5e-9f8f-33f1dab81806" name="Changes" comment="Add create event form and company fetching logic; implement form validation and editor functionality">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/(frontend)/(auth-pages)/forgot-password/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(auth-pages)/forgot-password/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/(frontend)/(auth-pages)/layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(auth-pages)/layout.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/(frontend)/(auth-pages)/sign-in/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(auth-pages)/sign-in/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/(frontend)/(auth-pages)/sign-up/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(auth-pages)/sign-up/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/(frontend)/(auth-pages)/smtp-message.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(auth-pages)/smtp-message.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/(frontend)/actions.ts" beforeDir="false" afterPath="$PROJECT_DIR$/app/actions.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/(frontend)/auth/callback/route.ts" beforeDir="false" afterPath="$PROJECT_DIR$/app/auth/callback/route.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/(frontend)/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(frontend)/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/(frontend)/protected/reset-password/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(frontend)/protected/reset-password/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/dashboard/events/create-event/create-event-form.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/dashboard/events/create-event/create-event-form.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/dashboard/events/create-event/editor.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/dashboard/events/create-event/editor.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/dashboard/events/events-grid.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/dashboard/events/events-grid.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/dashboard/layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/dashboard/layout.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/globals.css" beforeDir="false" afterPath="$PROJECT_DIR$/app/globals.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/dashboard/navigation/nav-sidebar.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/dashboard/navigation/nav-sidebar.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/dashboard/navigation/nav-user.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/dashboard/navigation/nav-user.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pnpm-lock.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/pnpm-lock.yaml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -139,7 +120,7 @@
       <workItem from="1744905187163" duration="2371000" />
       <workItem from="1744907608865" duration="16608000" />
       <workItem from="1744967510165" duration="546000" />
-      <workItem from="1744968103094" duration="57955000" />
+      <workItem from="1744968103094" duration="58852000" />
     </task>
     <task id="LOCAL-00001" summary="Upgraded to tailwind 4">
       <option name="closed" value="true" />
@@ -253,7 +234,63 @@
       <option name="project" value="LOCAL" />
       <updated>1745015991252</updated>
     </task>
-    <option name="localTasksCounter" value="15" />
+    <task id="LOCAL-00015" summary="Refactor authentication pages and actions; simplify import paths and enhance code readability">
+      <option name="closed" value="true" />
+      <created>1745096328038</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1745096328038</updated>
+    </task>
+    <task id="LOCAL-00016" summary="Add event creation and management components; implement CreateEventForm and Calendar, and enhance user interface with new UI elements">
+      <option name="closed" value="true" />
+      <created>1745096343355</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1745096343355</updated>
+    </task>
+    <task id="LOCAL-00017" summary="Refactor authentication pages and actions; simplify import paths and enhance code readability">
+      <option name="closed" value="true" />
+      <created>1745096361538</created>
+      <option name="number" value="00017" />
+      <option name="presentableId" value="LOCAL-00017" />
+      <option name="project" value="LOCAL" />
+      <updated>1745096361538</updated>
+    </task>
+    <task id="LOCAL-00018" summary="Update package dependencies; add @hookform/resolvers, @radix-ui/react-popover, and @tiptap packages">
+      <option name="closed" value="true" />
+      <created>1745096376672</created>
+      <option name="number" value="00018" />
+      <option name="presentableId" value="LOCAL-00018" />
+      <option name="project" value="LOCAL" />
+      <updated>1745096376672</updated>
+    </task>
+    <task id="LOCAL-00019" summary="Add internal member image fetching logic; update layout and sidebar components">
+      <option name="closed" value="true" />
+      <created>1745096422878</created>
+      <option name="number" value="00019" />
+      <option name="presentableId" value="LOCAL-00019" />
+      <option name="project" value="LOCAL" />
+      <updated>1745096422878</updated>
+    </task>
+    <task id="LOCAL-00020" summary="Refactor password reset form; simplify import paths and enhance code formatting">
+      <option name="closed" value="true" />
+      <created>1745096431749</created>
+      <option name="number" value="00020" />
+      <option name="presentableId" value="LOCAL-00020" />
+      <option name="project" value="LOCAL" />
+      <updated>1745096431749</updated>
+    </task>
+    <task id="LOCAL-00021" summary="Add create event form and company fetching logic; implement form validation and editor functionality">
+      <option name="closed" value="true" />
+      <created>1745096443763</created>
+      <option name="number" value="00021" />
+      <option name="presentableId" value="LOCAL-00021" />
+      <option name="project" value="LOCAL" />
+      <updated>1745096443763</updated>
+    </task>
+    <option name="localTasksCounter" value="22" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -274,6 +311,12 @@
     <MESSAGE value="Add events page and grid components; update dark theme colors in globals.css" />
     <MESSAGE value="Refactor header and layout components for improved structure and readability; add ThemeSwitcher to header" />
     <MESSAGE value="Add event management components and data fetching logic; implement EventsGrid and EventCard" />
-    <option name="LAST_COMMIT_MESSAGE" value="Add event management components and data fetching logic; implement EventsGrid and EventCard" />
+    <MESSAGE value="Add event creation and management components; implement CreateEventForm and Calendar, and enhance user interface with new UI elements" />
+    <MESSAGE value="Refactor authentication pages and actions; simplify import paths and enhance code readability" />
+    <MESSAGE value="Update package dependencies; add @hookform/resolvers, @radix-ui/react-popover, and @tiptap packages" />
+    <MESSAGE value="Add internal member image fetching logic; update layout and sidebar components" />
+    <MESSAGE value="Refactor password reset form; simplify import paths and enhance code formatting" />
+    <MESSAGE value="Add create event form and company fetching logic; implement form validation and editor functionality" />
+    <option name="LAST_COMMIT_MESSAGE" value="Add create event form and company fetching logic; implement form validation and editor functionality" />
   </component>
 </project>
