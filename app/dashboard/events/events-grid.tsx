@@ -62,7 +62,7 @@ export default function EventsGrid() {
                     </SelectContent>
                 </Select>
                 <Button className='bg-gray-800 text-white hover:bg-navet-500'>
-                    <Link href='events/create-event' className='flex gap-2 items-center'>
+                    <Link href='/dashboard/events/create-event' className='flex gap-2 items-center'>
                         <PlusIcon size={18} />
                         <span>Lag et arrangement</span>
                     </Link>

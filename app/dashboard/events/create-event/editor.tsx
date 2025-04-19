@@ -22,7 +22,7 @@ function ToolButton({
                 e.preventDefault();
                 onButtonClick();
             }}
-            className={`rounded-sm hover:bg-zinc-100 p-1 ${isActive ? "bg-zinc-200" : ""} ${buttonProps.className}`}
+            className={`rounded-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 p-1 ${isActive ? "bg-zinc-200 dark:bg-zinc-950" : ""} ${buttonProps.className}`}
         >
             {children}
         </button>
@@ -35,7 +35,7 @@ function EditorMenu({ editor }: { editor: Editor | null }) {
     }
 
     return (
-        <div className='flex gap-4 p-2 bg-zinc-50 flex-wrap'>
+        <div className='flex gap-4 p-2 bg-zinc-50 dark:bg-zinc-900 flex-wrap'>
             <div className='flex gap-2'>
                 <ToolButton
                     editor={editor}
@@ -117,7 +117,7 @@ export default function ContentEditor({ editor }: { editor: Editor | null }) {
     }
 
     return (
-        <div className='flex flex-col max-w-full border  border-gray rounded-lg overflow-hidden'>
+        <div className='flex flex-col max-w-full border border-gray rounded-lg overflow-hidden'>
             <EditorMenu editor={editor} />
             <Separator />
             <div className='mb-2 h-96 scroll-auto overflow-scroll'>
