@@ -1,6 +1,6 @@
-import type {formSchema} from "@/app/(bifrost)/bifrost/events/create-event/create-event-form";
-import {createClient} from "@/utils/supabase/client";
-import type {z} from "zod";
+import type { formSchema } from "@/app/(bifrost)/bifrost/events/create-event/create-event-form";
+import { createClient } from "@/utils/supabase/client";
+import type { z } from "zod";
 
 export async function getCompanies() {
     const supabase = createClient();
@@ -20,8 +20,6 @@ export async function getInternalMembers() {
             }[]
         >();
 
-    console.log(internal_members);
-
     const mappedMembers = internal_members?.map((member) => ({
         id: member.id,
         firstname: member.user.firstname,
@@ -32,7 +30,7 @@ export async function getInternalMembers() {
     return mappedMembers ?? [];
 }
 
-export async function submitEvent(formValues: z.infer<typeof formSchema>) {
+export async function submitEvent(formValues: z.infer<typeof formSchema>): Promise<boolean> {
     const supabase = createClient();
     const { data: event_res, error: event_err_res } = await supabase
         .from("event")
@@ -77,6 +75,5 @@ export async function submitEvent(formValues: z.infer<typeof formSchema>) {
         throw organizers_err_res;
     }
 
-    console.log("Event data", event_res);
-    console.log("Organizers data", organizers_res);
+    return true;
 }

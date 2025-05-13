@@ -1,31 +1,65 @@
 "use client";
 
-import DateTimePicker from "@/app/(bifrost)/bifrost/events/create-event/DateTimePicker";
-import {getCompanies, getInternalMembers, submitEvent,} from "@/app/(bifrost)/bifrost/events/create-event/actions";
+import {
+    getCompanies,
+    getInternalMembers,
+    submitEvent,
+} from "@/app/(bifrost)/bifrost/events/create-event/actions";
+import DateTimePicker from "@/app/(bifrost)/bifrost/events/create-event/date-time-picker";
 import ContentEditor from "@/app/(bifrost)/bifrost/events/create-event/editor";
-import {Button} from "@/components/ui/button";
-import {Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,} from "@/components/ui/command";
-import {Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage,} from "@/components/ui/form";
-import {Input} from "@/components/ui/input";
-import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover";
-import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select";
-import {Separator} from "@/components/ui/separator";
-import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow,} from "@/components/ui/table";
-import {Textarea} from "@/components/ui/textarea";
-import {cn} from "@/lib/utils";
-import {zodResolver} from "@hookform/resolvers/zod";
-import {Placeholder} from "@tiptap/extension-placeholder";
-import {Underline} from "@tiptap/extension-underline";
-import {useEditor} from "@tiptap/react";
-import {StarterKit} from "@tiptap/starter-kit";
-import {Check, ChevronsUpDown} from "lucide-react";
-import React, {useEffect} from "react";
-import {useForm} from "react-hook-form";
-import {z} from "zod";
+import { Button } from "@/components/ui/button";
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from "@/components/ui/command";
+import {
+    Form,
+    FormControl,
+    FormDescription,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Placeholder } from "@tiptap/extension-placeholder";
+import { Underline } from "@tiptap/extension-underline";
+import { useEditor } from "@tiptap/react";
+import { StarterKit } from "@tiptap/starter-kit";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { redirect } from "next/navigation";
+import React, { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 
 export const formSchema = z.object({
     title: z.string().min(10, {
-        message: "Titelen må være minst 10 tegn",
+        message: "Tittelen må være minst 10 tegn",
     }),
     teaser: z
         .string()
@@ -90,7 +124,6 @@ export function CreateEventForm() {
     const [companies, setCompanies] = React.useState<{ name: string; id: string }[]>([]);
     const [openBedrift, setOpenBedrift] = React.useState(false);
     const [valueBedrift, setValueBedrift] = React.useState("");
-
     const [internalMembers, setInternalMembers] = React.useState<
         {
             id: string;
@@ -116,9 +149,15 @@ export function CreateEventForm() {
     const [selectedOrganizerType, setSelectedOrganizerType] =
         React.useState<keyof typeof OrganizerType>("Organizer");
     const [eventType, setEventType] = React.useState("internal_event");
+
     function onSubmit(values: z.infer<typeof formSchema>) {
         console.log(values);
-        submitEvent(values);
+        submitEvent(values).then((r) => {
+            if (r) {
+                toast("Arrangement laget!");
+                redirect("/bifrost/events");
+            }
+        });
     }
 
     useEffect(() => {
@@ -148,7 +187,7 @@ export function CreateEventForm() {
         ],
         editorProps: {
             attributes: {
-                class: "prose prose-sm prose-base sm:prose-sm m-5 focus:outline-none dark:text-white",
+                class: "prose prose-sm prose-base max-w-none sm:prose-sm m-5 focus:outline-none dark:prose-invert",
             },
         },
         onUpdate({ editor }) {
@@ -160,7 +199,7 @@ export function CreateEventForm() {
 
     return (
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-8'>
+            <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-8 xl:max-w-5/6'>
                 <FormField
                     control={form.control}
                     name='title'
@@ -325,12 +364,14 @@ export function CreateEventForm() {
                     <DateTimePicker
                         form={form}
                         formField='eventDate'
-                        label='Velg dato og tid for arrangementet'
+                        label='Dato og tid for arrangements start'
+                        description='Velg dato og tid for når arrangementet starter'
                     />
                     <DateTimePicker
                         form={form}
                         formField='registrationDate'
-                        label='Velg dato of tid for åpning av påmeldingen av arrangementet'
+                        label='Dato og til for påmelding'
+                        description='Velg dato og tid for åpning av påmeldingen av arrangementet'
                     />
                 </div>
                 <Separator />
@@ -480,24 +521,26 @@ export function CreateEventForm() {
                             </SelectContent>
                         </Select>
                     </div>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Navn på ansvarlig</TableHead>
-                                <TableHead>Type</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {selectedOrganizers.map((organizer, index) => (
-                                <TableRow key={`${index}-${organizer.organizer.id}`}>
-                                    <TableCell className='font-medium'>
-                                        {organizer.organizer.fullname}
-                                    </TableCell>
-                                    <TableCell>{OrganizerType[organizer.type]}</TableCell>
+                    {selectedOrganizers.length > 0 && (
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Navn på ansvarlig</TableHead>
+                                    <TableHead>Type</TableHead>
                                 </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
+                            </TableHeader>
+                            <TableBody>
+                                {selectedOrganizers.map((organizer, index) => (
+                                    <TableRow key={`${index}-${organizer.organizer.id}`}>
+                                        <TableCell className='font-medium'>
+                                            {organizer.organizer.fullname}
+                                        </TableCell>
+                                        <TableCell>{OrganizerType[organizer.type]}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    )}
                 </div>
                 <Separator />
                 <FormField
@@ -505,7 +548,7 @@ export function CreateEventForm() {
                     name='eventType'
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Arrangementstype</FormLabel>
+                            <FormLabel>Arrangementtype</FormLabel>
                             <FormControl>
                                 <Select
                                     onValueChange={(value: string) => {
@@ -515,7 +558,7 @@ export function CreateEventForm() {
                                     defaultValue={field.value}
                                 >
                                     <SelectTrigger className='w-[180px]'>
-                                        <SelectValue placeholder='Velg arrangementstype' />
+                                        <SelectValue placeholder='Velg arrangementtype' />
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value='internal_event'>Internt</SelectItem>
