@@ -1,6 +1,6 @@
-import type {User} from "@/app/(bifrost)/bifrost/layout";
+import type { User } from "@/app/(bifrost)/bifrost/layout";
 import LogoBlue from "@/assets/simple_logo_blaa.webp";
-import {NavUser} from "@/components/dashboard/navigation/nav-user";
+import { NavUser } from "@/components/bifrost/navigation/nav-user";
 import {
     Sidebar,
     SidebarContent,
@@ -12,7 +12,7 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import {BriefcaseIcon, BuildingIcon, CalendarIcon, UsersIcon} from "lucide-react";
+import { BriefcaseIcon, BuildingIcon, CalendarIcon, UsersIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -20,24 +20,24 @@ const paths = {
     main: [
         {
             title: "Arrangementer",
-            url: "/dashboard/events",
+            url: "/bifrost/events",
             icon: CalendarIcon,
         },
         {
             title: "Stillingsannonser",
-            url: "/dashboard/job-listings",
+            url: "/bifrost/job-listings",
             icon: BriefcaseIcon,
         },
     ],
     secondary: [
         {
             title: "Studenter",
-            url: "/dashboard/students",
+            url: "/bifrost/students",
             icon: UsersIcon,
         },
         {
             title: "Bedrifter",
-            url: "/dashboard/companies",
+            url: "/bifrost/companies",
             icon: BuildingIcon,
         },
     ],
@@ -53,7 +53,7 @@ export function NavSidebar({ user }: NavSidebarProps) {
             <SidebarHeader>
                 <SidebarMenu>
                     <SidebarMenuItem className='px-8 py-4 max-h-md'>
-                        <Link href='/dashboard'>
+                        <Link href='/bifrost'>
                             <Image
                                 src={LogoBlue}
                                 alt='Ifi-navet Logo'

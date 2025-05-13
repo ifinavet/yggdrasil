@@ -1,10 +1,10 @@
-import {getInternalMemberImage} from "@/app/(bifrost)/bifrost/(actions)/member-image";
-import Header from "@/components/dashboard/header";
-import {NavSidebar} from "@/components/dashboard/navigation/nav-sidebar";
-import {SidebarInset, SidebarProvider} from "@/components/ui/sidebar";
-import {TitleProvider} from "@/contexts/TitleContext";
-import {createClient} from "@/utils/supabase/server";
-import {redirect} from "next/navigation";
+import { getInternalMemberImage } from "@/app/(bifrost)/bifrost/(actions)/member-image";
+import Header from "@/components/bifrost/header";
+import { NavSidebar } from "@/components/bifrost/navigation/nav-sidebar";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { TitleProvider } from "@/contexts/TitleContext";
+import { createClient } from "@/utils/supabase/server";
+import { redirect } from "next/navigation";
 
 export interface User {
     id: string;

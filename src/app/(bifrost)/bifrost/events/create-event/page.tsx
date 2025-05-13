@@ -1,5 +1,5 @@
-import TitleUpdater from "@/app/(bifrost)/bifrost/TitleUpdater";
-import {CreateEventForm} from "@/app/(bifrost)/bifrost/events/create-event/create-event-form";
+import { CreateEventForm } from "@/app/(bifrost)/bifrost/events/create-event/create-event-form";
+import TitleUpdater from "@/app/(bifrost)/bifrost/title-updater";
 import {
     Breadcrumb,
     BreadcrumbItem,
@@ -16,13 +16,11 @@ export default function CreateEvent() {
             <Breadcrumb>
                 <BreadcrumbList>
                     <BreadcrumbItem>
-                        <BreadcrumbLink href='/dashboard'>Hjem</BreadcrumbLink>
+                        <BreadcrumbLink href='/bifrost'>Hjem</BreadcrumbLink>
                     </BreadcrumbItem>
                     <BreadcrumbSeparator />
                     <BreadcrumbItem>
-                        <BreadcrumbLink href='/src/app/(bifrost)/bifrost/events'>
-                            Arrangementer
-                        </BreadcrumbLink>
+                        <BreadcrumbLink href='/bifrost/events'>Arrangementer</BreadcrumbLink>
                     </BreadcrumbItem>
                     <BreadcrumbSeparator />
                     <BreadcrumbItem>

@@ -1,4 +1,4 @@
-import TitleUpdater from "./TitleUpdater";
+import TitleUpdater from "./title-updater";
 
 const welcome_messages: { [key: number]: string } = {
     0: "God søndag!",
@@ -10,7 +10,7 @@ const welcome_messages: { [key: number]: string } = {
     6: "God lørdag!",
 };
 
-export default async function Dashboard() {
+export default async function Bifrost() {
     const dayOfTheWeek = new Date().getDay();
 
     return (
