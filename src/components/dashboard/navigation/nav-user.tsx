@@ -1,7 +1,7 @@
 "use client";
 
-import {signOutAction} from "@/app/actions";
-import type {User} from "@/app/dashboard/layout";
+import {signOutAction} from "@/app/(auth-pages)/actions";
+import type {User} from "@/app/(bifrost)/bifrost/layout";
 import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar";
 import {
     DropdownMenu,

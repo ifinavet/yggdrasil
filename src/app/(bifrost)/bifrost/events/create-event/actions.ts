@@ -1,4 +1,4 @@
-import type {formSchema} from "@/app/dashboard/events/create-event/create-event-form";
+import type {formSchema} from "@/app/(bifrost)/bifrost/events/create-event/create-event-form";
 import {createClient} from "@/utils/supabase/client";
 import type {z} from "zod";
 

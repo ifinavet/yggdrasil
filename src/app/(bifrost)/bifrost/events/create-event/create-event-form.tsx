@@ -1,8 +1,8 @@
 "use client";
 
-import DateTimePicker from "@/app/dashboard/events/create-event/DateTimePicker";
-import {getCompanies, getInternalMembers, submitEvent,} from "@/app/dashboard/events/create-event/actions";
-import ContentEditor from "@/app/dashboard/events/create-event/editor";
+import DateTimePicker from "@/app/(bifrost)/bifrost/events/create-event/DateTimePicker";
+import {getCompanies, getInternalMembers, submitEvent,} from "@/app/(bifrost)/bifrost/events/create-event/actions";
+import ContentEditor from "@/app/(bifrost)/bifrost/events/create-event/editor";
 import {Button} from "@/components/ui/button";
 import {Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,} from "@/components/ui/command";
 import {Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage,} from "@/components/ui/form";

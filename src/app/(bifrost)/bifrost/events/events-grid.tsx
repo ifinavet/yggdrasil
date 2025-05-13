@@ -1,6 +1,6 @@
 "use client";
 
-import {type EventQuickView, getEvents, getPossibleSemesters,} from "@/app/dashboard/events/actions";
+import {type EventQuickView, getEvents, getPossibleSemesters,} from "@/app/(bifrost)/bifrost/events/actions";
 import EventCard from "@/components/dashboard/events/event-card";
 import {Button} from "@/components/ui/button";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select";
@@ -62,7 +62,10 @@ export default function EventsGrid() {
                     </SelectContent>
                 </Select>
                 <Button className='bg-gray-800 text-white hover:bg-navet-500'>
-                    <Link href='/dashboard/events/create-event' className='flex gap-2 items-center'>
+                    <Link
+                        href='/src/app/(bifrost)/bifrost/events/create-event'
+                        className='flex gap-2 items-center'
+                    >
                         <PlusIcon size={18} />
                         <span>Lag et arrangement</span>
                     </Link>

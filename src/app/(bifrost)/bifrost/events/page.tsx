@@ -1,18 +1,16 @@
-import TitleUpdater from "@/app/dashboard/TitleUpdater";
-import {CreateEventForm} from "@/app/dashboard/events/create-event/create-event-form";
+import EventsGrid from "@/app/(bifrost)/bifrost/events/events-grid";
 import {
     Breadcrumb,
     BreadcrumbItem,
     BreadcrumbLink,
     BreadcrumbList,
     BreadcrumbPage,
-    BreadcrumbSeparator
+    BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 
-export default function CreateEvent() {
+export default async function Events() {
     return (
         <div className='flex flex-col gap-4'>
-            <TitleUpdater title='Opprett et helt magisk arrangement' />
             <Breadcrumb>
                 <BreadcrumbList>
                     <BreadcrumbItem>
@@ -20,15 +18,11 @@ export default function CreateEvent() {
                     </BreadcrumbItem>
                     <BreadcrumbSeparator />
                     <BreadcrumbItem>
-                        <BreadcrumbLink href='/dashboard/events'>Arrangementer</BreadcrumbLink>
-                    </BreadcrumbItem>
-                    <BreadcrumbSeparator />
-                    <BreadcrumbItem>
-                        <BreadcrumbPage>Opprett et arrangement</BreadcrumbPage>
+                        <BreadcrumbPage>Arrangementer</BreadcrumbPage>
                     </BreadcrumbItem>
                 </BreadcrumbList>
             </Breadcrumb>
-            <CreateEventForm />
+            <EventsGrid />
         </div>
     );
 }
