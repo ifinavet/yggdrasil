@@ -1,4 +1,4 @@
-import type {EventQuickView} from "@/app/dashboard/events/actions";
+import type {EventQuickView} from "@/app/(bifrost)/bifrost/events/actions";
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card";
 
 export default function EventCard({ event }: { event: EventQuickView }) {

@@ -1,4 +1,5 @@
-import type {User} from "@/app/dashboard/layout";
+import type {User} from "@/app/(bifrost)/bifrost/layout";
+import LogoBlue from "@/assets/simple_logo_blaa.webp";
 import {NavUser} from "@/components/dashboard/navigation/nav-user";
 import {
     Sidebar,
@@ -14,7 +15,6 @@ import {
 import {BriefcaseIcon, BuildingIcon, CalendarIcon, UsersIcon} from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import LogoBlue from "/assets/simple_logo_blaa.webp";
 
 const paths = {
     main: [
