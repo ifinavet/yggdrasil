@@ -2,7 +2,6 @@ import {TitleProvider} from "@/app/contexts/TitleContext";
 import {getInternalMemberImage} from "@/app/dashboard/(actions)/member-image";
 import Header from "@/components/dashboard/header";
 import {NavSidebar} from "@/components/dashboard/navigation/nav-sidebar";
-import {ThemeProvider} from "@/components/theme-provider";
 import {SidebarInset, SidebarProvider} from "@/components/ui/sidebar";
 import {createClient} from "@/utils/supabase/server";
 import {redirect} from "next/navigation";
@@ -55,21 +54,14 @@ export default async function Layout({
     };
 
     return (
-        <ThemeProvider
-            attribute='class'
-            defaultTheme='system'
-            enableSystem
-            disableTransitionOnChange
-        >
-            <TitleProvider>
-                <SidebarProvider>
-                    <NavSidebar user={currentUser} />
-                    <SidebarInset>
-                        <Header />
-                        <main className='p-4'>{children}</main>
-                    </SidebarInset>
-                </SidebarProvider>
-            </TitleProvider>
-        </ThemeProvider>
+        <TitleProvider>
+            <SidebarProvider>
+                <NavSidebar user={currentUser} />
+                <SidebarInset>
+                    <Header />
+                    <main className='p-4'>{children}</main>
+                </SidebarInset>
+            </SidebarProvider>
+        </TitleProvider>
     );
 }

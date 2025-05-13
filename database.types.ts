@@ -73,7 +73,15 @@ export type Database = {
           logo?: string
           name?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "company_logo_fkey"
+            columns: ["logo"]
+            isOneToOne: false
+            referencedRelation: "member_images"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       contact_info: {
         Row: {
@@ -106,10 +114,10 @@ export type Database = {
           event_type: string
           external_url: string | null
           food: string | null
-          hosting_compant: string | null
+          hosting_company: string | null
           id: number
+          language: string | null
           location: string | null
-          organizers: number | null
           participation_limit: number
           registration_date: string
           teaser: string | null
@@ -124,10 +132,10 @@ export type Database = {
           event_type: string
           external_url?: string | null
           food?: string | null
-          hosting_compant?: string | null
+          hosting_company?: string | null
           id?: number
+          language?: string | null
           location?: string | null
-          organizers?: number | null
           participation_limit?: number
           registration_date?: string
           teaser?: string | null
@@ -142,10 +150,10 @@ export type Database = {
           event_type?: string
           external_url?: string | null
           food?: string | null
-          hosting_compant?: string | null
+          hosting_company?: string | null
           id?: number
+          language?: string | null
           location?: string | null
-          organizers?: number | null
           participation_limit?: number
           registration_date?: string
           teaser?: string | null
@@ -160,17 +168,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "event_hosting_compant_fkey"
-            columns: ["hosting_compant"]
+            foreignKeyName: "event_hosting_company_fkey"
+            columns: ["hosting_company"]
             isOneToOne: false
             referencedRelation: "company"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "event_organizers_fkey"
-            columns: ["organizers"]
-            isOneToOne: false
-            referencedRelation: "event_organizers"
             referencedColumns: ["id"]
           },
         ]
@@ -201,7 +202,7 @@ export type Database = {
           {
             foreignKeyName: "event_organizers_event_fkey"
             columns: ["event"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "event"
             referencedColumns: ["id"]
           },
@@ -219,30 +220,37 @@ export type Database = {
           created_at: string
           group: string | null
           id: string
-          member_image: string | null
           navet_email: string
           permissions: number | null
           position: string
+          profile_image_id: string | null
         }
         Insert: {
           created_at?: string
           group?: string | null
           id?: string
-          member_image?: string | null
           navet_email: string
           permissions?: number | null
           position: string
+          profile_image_id?: string | null
         }
         Update: {
           created_at?: string
           group?: string | null
           id?: string
-          member_image?: string | null
           navet_email?: string
           permissions?: number | null
           position?: string
+          profile_image_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "internal_member_profile_image_id_fkey"
+            columns: ["profile_image_id"]
+            isOneToOne: false
+            referencedRelation: "member_images"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "member_id_fkey3"
             columns: ["id"]
@@ -430,7 +438,14 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      member_images: {
+        Row: {
+          bucket_id: string | null
+          id: string | null
+          name: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never
