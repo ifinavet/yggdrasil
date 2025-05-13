@@ -14,7 +14,7 @@ export default async function Events() {
             <Breadcrumb>
                 <BreadcrumbList>
                     <BreadcrumbItem>
-                        <BreadcrumbLink href='/dashboard'>Hjem</BreadcrumbLink>
+                        <BreadcrumbLink href='/bifrost'>Hjem</BreadcrumbLink>
                     </BreadcrumbItem>
                     <BreadcrumbSeparator />
                     <BreadcrumbItem>
