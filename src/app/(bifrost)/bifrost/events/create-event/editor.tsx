@@ -1,6 +1,16 @@
-import {Separator} from "@/components/ui/separator";
-import {type Editor, EditorContent} from "@tiptap/react";
-import {Bold, CodeXml, Heading1, Heading2, Heading3, Italic, List, Strikethrough, Underline} from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { type Editor, EditorContent } from "@tiptap/react";
+import {
+    Bold,
+    CodeXml,
+    Heading1,
+    Heading2,
+    Heading3,
+    Italic,
+    List,
+    Strikethrough,
+    Underline,
+} from "lucide-react";
 import type React from "react";
 
 function ToolButton({
@@ -117,9 +127,12 @@ export default function ContentEditor({ editor }: { editor: Editor | null }) {
     }
 
     return (
-        <div className='flex flex-col-reverse max-w-full border border-gray rounded-lg overflow-hidden'>
+        <div className='flex flex-col-reverse border border-gray rounded-lg overflow-hidden max-w-full'>
             <div className='mb-2 h-96 w-full wrap-break-word scroll-auto overflow-scroll overflow-x-hidden horizontal no-scrollbar'>
-                <EditorContent editor={editor} className='sm:p-2 scroll-auto max-h-12' />
+                <EditorContent
+                    editor={editor}
+                    className='sm:p-2 scroll-auto max-h-24 dark:text-white'
+                />
             </div>
             <Separator />
             <EditorMenu editor={editor} />
