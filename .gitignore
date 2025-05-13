@@ -39,3 +39,37 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# IDEs and editors
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# logs
+logs
+*.log
+pnpm-debug.log*
+
+# next.js build output
+.next/
+out/
+build/
+
+# testing
+coverage/
+*.lcov
+
+# turbo
+.turbo/
+
+# eslint
+.eslintcache
+
+# Mac system files
+.AppleDouble
+.LSOverride
+
+# Windows system files
+Thumbs.db
+ehthumbs.db
