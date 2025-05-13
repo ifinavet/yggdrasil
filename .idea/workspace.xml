@@ -4,15 +4,87 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="95e3c59d-3773-4d5e-9f8f-33f1dab81806" name="Changes" comment="Closes IFI-15&#10;&#10;A internal member can now create an event.&#10;&#10;Todo! Better error handling, and perhaps look into a possibility of logging activity">
-      <change afterPath="$PROJECT_DIR$/assets/logo_n_blaa.webp" afterDir="false" />
+    <list default="true" id="95e3c59d-3773-4d5e-9f8f-33f1dab81806" name="Changes" comment="Refactor event fetching logic; improve error handling and return unique semesters">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/dashboard/events/actions.ts" beforeDir="false" afterPath="$PROJECT_DIR$/app/dashboard/events/actions.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/dashboard/events/create-event/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/dashboard/events/create-event/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/dashboard/layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/dashboard/layout.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/dashboard/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/dashboard/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/dashboard/navigation/nav-user.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/dashboard/navigation/nav-user.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/ui/sidebar.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/ui/sidebar.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(auth-pages)/forgot-password/page.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(auth-pages)/layout.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(auth-pages)/sign-in/page.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(auth-pages)/sign-up/page.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(auth-pages)/smtp-message.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(frontend)/events/page.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(frontend)/layout.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(frontend)/page.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(frontend)/protected/page.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(frontend)/protected/reset-password/page.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/actions.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/api/set-profile-image/route.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/auth/callback/route.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/contexts/TitleContext.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/dashboard/(actions)/member-image.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/dashboard/TitleUpdater.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/dashboard/companies/page.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/dashboard/events/actions.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/dashboard/events/create-event/DateTimePicker.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/dashboard/events/create-event/actions.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/dashboard/events/create-event/create-event-form.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/dashboard/events/create-event/editor.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/dashboard/events/create-event/page.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/dashboard/events/events-grid.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/dashboard/events/page.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/dashboard/job-listings/page.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/dashboard/layout.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/dashboard/page.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/dashboard/students/page.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/favicon.ico" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/globals.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/layout.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/assets/logo_n_blaa.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/assets/simple_logo_blaa.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/assets/simple_logo_hvit.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/(frontend)/layout-components/header.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/dashboard/events/event-card.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/dashboard/header.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/dashboard/navigation/nav-sidebar.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/dashboard/navigation/nav-user.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/form-message.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/submit-button.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/theme-provider.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/theme-switcher.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/ui/avatar.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/ui/badge.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/ui/breadcrumb.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/ui/button.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/ui/calendar.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/ui/card.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/ui/checkbox.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/ui/command.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/ui/dialog.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/ui/dropdown-menu.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/ui/form.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/ui/input.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/ui/label.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/ui/loading-spinner.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/ui/popover.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/ui/scroll-area.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/ui/select.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/ui/separator.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/ui/sheet.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/ui/sidebar.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/ui/skeleton.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/ui/sonner.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/ui/table.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/ui/textarea.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/ui/tooltip.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/hooks/use-mobile.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/utils.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/supabase/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/supabase/config.toml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tsconfig.json" beforeDir="false" afterPath="$PROJECT_DIR$/tsconfig.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils/supabase/check-env-vars.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils/supabase/client.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils/supabase/middleware.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils/supabase/server.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils/utils.ts" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -86,6 +158,7 @@
 }]]></component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/src" />
       <recent name="$PROJECT_DIR$/assets" />
       <recent name="$PROJECT_DIR$/app" />
       <recent name="$PROJECT_DIR$/app/(backend)" />
@@ -131,7 +204,7 @@
       <workItem from="1746537805132" duration="9070000" />
       <workItem from="1747053176436" duration="40000" />
       <workItem from="1747053239331" duration="7450000" />
-      <workItem from="1747119336869" duration="6333000" />
+      <workItem from="1747119336869" duration="7065000" />
     </task>
     <task id="LOCAL-00001" summary="Upgraded to tailwind 4">
       <option name="closed" value="true" />
@@ -317,7 +390,15 @@
       <option name="project" value="LOCAL" />
       <updated>1747120434797</updated>
     </task>
-    <option name="localTasksCounter" value="24" />
+    <task id="LOCAL-00024" summary="Refactor event fetching logic; improve error handling and return unique semesters">
+      <option name="closed" value="true" />
+      <created>1747127919017</created>
+      <option name="number" value="00024" />
+      <option name="presentableId" value="LOCAL-00024" />
+      <option name="project" value="LOCAL" />
+      <updated>1747127919017</updated>
+    </task>
+    <option name="localTasksCounter" value="25" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -346,6 +427,7 @@
     <MESSAGE value="Add create event form and company fetching logic; implement form validation and editor functionality" />
     <MESSAGE value="Enhance create event form and editor; update styles for dark mode and improve link paths" />
     <MESSAGE value="Closes IFI-15&#10;&#10;A internal member can now create an event.&#10;&#10;Todo! Better error handling, and perhaps look into a possibility of logging activity" />
-    <option name="LAST_COMMIT_MESSAGE" value="Closes IFI-15&#10;&#10;A internal member can now create an event.&#10;&#10;Todo! Better error handling, and perhaps look into a possibility of logging activity" />
+    <MESSAGE value="Refactor event fetching logic; improve error handling and return unique semesters" />
+    <option name="LAST_COMMIT_MESSAGE" value="Refactor event fetching logic; improve error handling and return unique semesters" />
   </component>
 </project>
