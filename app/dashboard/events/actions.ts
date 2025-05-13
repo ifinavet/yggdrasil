@@ -21,7 +21,6 @@ export interface EventQuickView {
 export async function getEvents(semester?: string): Promise<EventQuickView[]> {
     const supabase = createClient();
 
-    // Build query with filters based on semester
     let query = supabase
         .from("event")
         .select(
@@ -68,7 +67,7 @@ export async function getEvents(semester?: string): Promise<EventQuickView[]> {
 
     if (error) {
         console.error("Error fetching events:", error);
-        return [];
+        throw error;
     }
 
     // Process event data
@@ -125,16 +124,17 @@ export async function getPossibleSemesters() {
 
     if (error) {
         console.error("Error fetching semesters:", error);
-        return [];
+        throw error;
     }
 
-    return events
+    const semesters = events
         .filter((event) => event.event_date)
         .map((event) => {
             const date = new Date(event.event_date);
             if (Number.isNaN(date.getTime())) return null;
-
             return `${date.getMonth() < 6 ? "V" : "H"}${date.getFullYear().toString().substring(2, 4)}`;
         })
         .filter((semester): semester is string => semester !== null);
+
+    return Array.from(new Set(semesters));
 }

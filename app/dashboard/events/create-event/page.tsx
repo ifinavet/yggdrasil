@@ -1,3 +1,5 @@
+import TitleUpdater from "@/app/dashboard/TitleUpdater";
+import {CreateEventForm} from "@/app/dashboard/events/create-event/create-event-form";
 import {
     Breadcrumb,
     BreadcrumbItem,
@@ -6,11 +8,11 @@ import {
     BreadcrumbPage,
     BreadcrumbSeparator
 } from "@/components/ui/breadcrumb";
-import {CreateEventForm} from "@/app/dashboard/events/create-event/create-event-form";
 
 export default function CreateEvent() {
     return (
         <div className='flex flex-col gap-4'>
+            <TitleUpdater title='Opprett et helt magisk arrangement' />
             <Breadcrumb>
                 <BreadcrumbList>
                     <BreadcrumbItem>

@@ -15,7 +15,7 @@ export default async function Dashboard() {
 
     return (
         <div>
-            <TitleUpdater title="Velkommen naver, til Unagi" />
+            <TitleUpdater title='Velkommen naver, til bifrost' />
             <h1>{welcome_messages[dayOfTheWeek]}</h1>
             <p>Hei! Her kommer det noe kult!</p>
         </div>

@@ -27,9 +27,15 @@ export default async function Layout({
         data: { user },
     } = await supabase.auth.getUser();
 
+    if (!user) {
+        console.warn("User not found");
+        return redirect("/sign-in");
+    }
+
     const { data: internal_member, error } = await supabase
         .from("internal_member")
         .select("id, profile_image_id, user (id, firstname, lastname)")
+        .eq("id", user?.id)
         .single()
         .overrideTypes<{
             id: string;
@@ -37,19 +43,20 @@ export default async function Layout({
             user: { id: string; firstname: string; lastname: string };
         }>();
 
-    if (!user && !internal_member && !error) {
+    if (internal_member == null && error != null) {
+        console.warn(`Error fetching internal member: ${error}`);
         return redirect("/sign-in");
     }
 
     const imageUrl = await getInternalMemberImage(internal_member?.profile_image_id ?? "");
 
     const currentUser: User = {
-        id: user?.id ?? "",
-        email: user?.email ?? "",
-        firstname: internal_member?.user.firstname ?? "",
-        lastname: internal_member?.user.lastname ?? "",
-        name: `${internal_member?.user.firstname ?? ""} ${internal_member?.user.lastname ?? ""}`,
-        initials: `${internal_member?.user.firstname?.[0] ?? ""}${internal_member?.user.lastname?.[0] ?? ""}`,
+        id: user.id,
+        email: user.email ?? "",
+        firstname: internal_member.user.firstname,
+        lastname: internal_member.user.lastname,
+        name: `${internal_member.user.firstname} ${internal_member?.user.lastname}`,
+        initials: `${internal_member.user.firstname?.[0] ?? ""}${internal_member.user.lastname?.[0]}`,
         avatar_url: imageUrl ?? "",
     };
 
