@@ -1,6 +1,6 @@
 import {Separator} from "@/components/ui/separator";
 import {type Editor, EditorContent} from "@tiptap/react";
-import {Bold, CodeXml, Heading1, Heading2, Heading3, Italic, List, Strikethrough} from "lucide-react";
+import {Bold, CodeXml, Heading1, Heading2, Heading3, Italic, List, Strikethrough, Underline} from "lucide-react";
 import type React from "react";
 
 function ToolButton({
@@ -92,9 +92,9 @@ function EditorMenu({ editor }: { editor: Editor | null }) {
                 <ToolButton
                     editor={editor}
                     onButtonClick={() => editor.chain().focus().toggleUnderline().run()}
-                    isActive={editor.isActive("codeBlock")}
+                    isActive={editor.isActive("underline")}
                 >
-                    <CodeXml size={18} />
+                    <Underline size={18} />
                 </ToolButton>
             </div>
             <Separator orientation='vertical' className='data-[orientation=vertical]:h-8' />
@@ -117,12 +117,12 @@ export default function ContentEditor({ editor }: { editor: Editor | null }) {
     }
 
     return (
-        <div className='flex flex-col max-w-full border border-gray rounded-lg overflow-hidden'>
-            <EditorMenu editor={editor} />
-            <Separator />
-            <div className='mb-2 h-96 scroll-auto overflow-scroll'>
+        <div className='flex flex-col-reverse max-w-full border border-gray rounded-lg overflow-hidden'>
+            <div className='mb-2 h-96 w-full wrap-break-word scroll-auto overflow-scroll overflow-x-hidden horizontal no-scrollbar'>
                 <EditorContent editor={editor} className='sm:p-2 scroll-auto max-h-12' />
             </div>
+            <Separator />
+            <EditorMenu editor={editor} />
         </div>
     );
 }

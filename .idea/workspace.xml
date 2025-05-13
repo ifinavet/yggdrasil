@@ -4,11 +4,23 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="95e3c59d-3773-4d5e-9f8f-33f1dab81806" name="Changes" comment="Add create event form and company fetching logic; implement form validation and editor functionality">
+    <list default="true" id="95e3c59d-3773-4d5e-9f8f-33f1dab81806" name="Changes" comment="Enhance create event form and editor; update styles for dark mode and improve link paths">
+      <change afterPath="$PROJECT_DIR$/app/dashboard/events/create-event/DateTimePicker.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/assets/logo_n_blaa.webp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/dashboard/events/create-event/actions.ts" beforeDir="false" afterPath="$PROJECT_DIR$/app/dashboard/events/create-event/actions.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/dashboard/events/create-event/create-event-form.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/dashboard/events/create-event/create-event-form.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/dashboard/events/create-event/editor.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/dashboard/events/create-event/editor.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/dashboard/events/events-grid.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/dashboard/events/events-grid.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/dashboard/layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/dashboard/layout.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/dashboard/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/dashboard/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/globals.css" beforeDir="false" afterPath="$PROJECT_DIR$/app/globals.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/layout.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/dashboard/navigation/nav-sidebar.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/dashboard/navigation/nav-sidebar.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/dashboard/navigation/nav-user.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/dashboard/navigation/nav-user.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/ui/sidebar.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/ui/sidebar.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/database.types.ts" beforeDir="false" afterPath="$PROJECT_DIR$/database.types.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pnpm-lock.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/pnpm-lock.yaml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -18,8 +30,8 @@
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
-        <option value="TypeScript JSX File" />
         <option value="TypeScript File" />
+        <option value="TypeScript JSX File" />
       </list>
     </option>
   </component>
@@ -52,38 +64,38 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "code.cleanup.on.save": "true",
-    "git-widget-placeholder": "main",
-    "js.debugger.nextJs.config.created.client": "true",
-    "js.debugger.nextJs.config.created.server": "true",
-    "last_opened_file_path": "/Users/christofferhennie/Developer/project-unagi",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "npm.Next.js: server-side.executor": "Run",
-    "rearrange.code.on.save": "true",
-    "settings.editor.selected.configurable": "preferences.keymap",
-    "ts.external.directory.path": "/Users/christofferhennie/Developer/project-unagi/node_modules/typescript/lib",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ASKED_SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;code.cleanup.on.save&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;js.debugger.nextJs.config.created.client&quot;: &quot;true&quot;,
+    &quot;js.debugger.nextJs.config.created.server&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/Users/christofferhennie/Developer/project-unagi&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;npm.Next.js: server-side.executor&quot;: &quot;Run&quot;,
+    &quot;rearrange.code.on.save&quot;: &quot;true&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.keymap&quot;,
+    &quot;ts.external.directory.path&quot;: &quot;/Users/christofferhennie/Developer/project-unagi/node_modules/typescript/lib&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   },
-  "keyToStringList": {
-    "com.intellij.ide.scratch.ScratchImplUtil$2/New Scratch File": [
-      "TypeScript JSX"
+  &quot;keyToStringList&quot;: {
+    &quot;com.intellij.ide.scratch.ScratchImplUtil$2/New Scratch File&quot;: [
+      &quot;TypeScript JSX&quot;
     ]
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
-      <recent name="$PROJECT_DIR$/app" />
       <recent name="$PROJECT_DIR$/assets" />
+      <recent name="$PROJECT_DIR$/app" />
       <recent name="$PROJECT_DIR$/app/(backend)" />
       <recent name="$PROJECT_DIR$/app/(frontend)" />
     </key>
@@ -120,7 +132,14 @@
       <workItem from="1744905187163" duration="2371000" />
       <workItem from="1744907608865" duration="16608000" />
       <workItem from="1744967510165" duration="546000" />
-      <workItem from="1744968103094" duration="58852000" />
+      <workItem from="1744968103094" duration="59039000" />
+      <workItem from="1745244097612" duration="7714000" />
+      <workItem from="1746265392747" duration="70000" />
+      <workItem from="1746265746092" duration="8924000" />
+      <workItem from="1746537805132" duration="9070000" />
+      <workItem from="1747053176436" duration="40000" />
+      <workItem from="1747053239331" duration="7450000" />
+      <workItem from="1747119336869" duration="905000" />
     </task>
     <task id="LOCAL-00001" summary="Upgraded to tailwind 4">
       <option name="closed" value="true" />
@@ -290,7 +309,15 @@
       <option name="project" value="LOCAL" />
       <updated>1745096443763</updated>
     </task>
-    <option name="localTasksCounter" value="22" />
+    <task id="LOCAL-00022" summary="Enhance create event form and editor; update styles for dark mode and improve link paths">
+      <option name="closed" value="true" />
+      <created>1745097255846</created>
+      <option name="number" value="00022" />
+      <option name="presentableId" value="LOCAL-00022" />
+      <option name="project" value="LOCAL" />
+      <updated>1745097255846</updated>
+    </task>
+    <option name="localTasksCounter" value="23" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -317,6 +344,7 @@
     <MESSAGE value="Add internal member image fetching logic; update layout and sidebar components" />
     <MESSAGE value="Refactor password reset form; simplify import paths and enhance code formatting" />
     <MESSAGE value="Add create event form and company fetching logic; implement form validation and editor functionality" />
-    <option name="LAST_COMMIT_MESSAGE" value="Add create event form and company fetching logic; implement form validation and editor functionality" />
+    <MESSAGE value="Enhance create event form and editor; update styles for dark mode and improve link paths" />
+    <option name="LAST_COMMIT_MESSAGE" value="Enhance create event form and editor; update styles for dark mode and improve link paths" />
   </component>
 </project>

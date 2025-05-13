@@ -1,15 +1,16 @@
 "use client";
 
-import {getCompanies} from "@/app/dashboard/events/create-event/actions";
+import DateTimePicker from "@/app/dashboard/events/create-event/DateTimePicker";
+import {getCompanies, getInternalMembers, submitEvent,} from "@/app/dashboard/events/create-event/actions";
 import ContentEditor from "@/app/dashboard/events/create-event/editor";
 import {Button} from "@/components/ui/button";
-import {Calendar} from "@/components/ui/calendar";
 import {Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,} from "@/components/ui/command";
 import {Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage,} from "@/components/ui/form";
 import {Input} from "@/components/ui/input";
 import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover";
-import {ScrollArea, ScrollBar} from "@/components/ui/scroll-area";
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select";
 import {Separator} from "@/components/ui/separator";
+import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow,} from "@/components/ui/table";
 import {Textarea} from "@/components/ui/textarea";
 import {cn} from "@/lib/utils";
 import {zodResolver} from "@hookform/resolvers/zod";
@@ -17,13 +18,12 @@ import {Placeholder} from "@tiptap/extension-placeholder";
 import {Underline} from "@tiptap/extension-underline";
 import {useEditor} from "@tiptap/react";
 import {StarterKit} from "@tiptap/starter-kit";
-import {format} from "date-fns";
-import {CalendarIcon, Check, ChevronsUpDown} from "lucide-react";
+import {Check, ChevronsUpDown} from "lucide-react";
 import React, {useEffect} from "react";
 import {useForm} from "react-hook-form";
 import {z} from "zod";
 
-const formSchema = z.object({
+export const formSchema = z.object({
     title: z.string().min(10, {
         message: "Titelen må være minst 10 tegn",
     }),
@@ -48,11 +48,17 @@ const formSchema = z.object({
     language: z.string(),
     participantsLimit: z
         .number({ required_error: "Deltakergrense er påkrevd" })
-        .min(1, { message: "Deltakergrense må være minst 1" }),
+        .min(0, { message: "Deltakergrense må være minst 0" }),
     eventType: z.enum(["internal_event", "external_event"]),
     hostingCompany: z.object({ name: z.string(), id: z.string() }),
-    organizers: z.array(z.string()),
+    organizers: z.array(z.object({ id: z.string(), role: z.string() })),
+    externalUrl: z.string().optional(),
 });
+
+enum OrganizerType {
+    Organizer = "Ansvarlig",
+    MainOrganizer = "Hovedansvarlig",
+}
 
 export function CreateEventForm() {
     const form = useForm<z.infer<typeof formSchema>>({
@@ -82,10 +88,37 @@ export function CreateEventForm() {
         },
     });
     const [companies, setCompanies] = React.useState<{ name: string; id: string }[]>([]);
-    const [open, setOpen] = React.useState(false);
-    const [value, setValue] = React.useState("");
+    const [openBedrift, setOpenBedrift] = React.useState(false);
+    const [valueBedrift, setValueBedrift] = React.useState("");
+
+    const [internalMembers, setInternalMembers] = React.useState<
+        {
+            id: string;
+            firstname: string;
+            lastname: string;
+            fullname: string;
+        }[]
+    >([]);
+    const [selectedOrganizers, setSelectedOrganizers] = React.useState<
+        {
+            type: keyof typeof OrganizerType;
+            organizer: {
+                id: string;
+                firstname: string;
+                lastname: string;
+                fullname: string;
+            };
+        }[]
+    >([]);
+
+    const [openMember, setOpenMember] = React.useState(false);
+    const [valueMember, setValueMember] = React.useState("");
+    const [selectedOrganizerType, setSelectedOrganizerType] =
+        React.useState<keyof typeof OrganizerType>("Organizer");
+    const [eventType, setEventType] = React.useState("internal_event");
     function onSubmit(values: z.infer<typeof formSchema>) {
         console.log(values);
+        submitEvent(values);
     }
 
     useEffect(() => {
@@ -94,48 +127,14 @@ export function CreateEventForm() {
             setCompanies(companies);
         }
 
+        async function fetchInternalMembers() {
+            const members = await getInternalMembers();
+            setInternalMembers(members);
+        }
+
         fetchCompanies();
+        fetchInternalMembers();
     }, []);
-
-    function handleDateSelectEventDate(date: Date | undefined) {
-        if (date) {
-            form.setValue("eventDate", date);
-        }
-    }
-
-    function handleTimeChangeEventDate(type: "hour" | "minute", value: string) {
-        const currentDate = form.getValues("eventDate") || new Date();
-        const newDate = new Date(currentDate);
-
-        if (type === "hour") {
-            const hour = Number.parseInt(value, 10);
-            newDate.setHours(hour);
-        } else if (type === "minute") {
-            newDate.setMinutes(Number.parseInt(value, 10));
-        }
-
-        form.setValue("eventDate", newDate);
-    }
-
-    function handleDateSelectRegistrationDate(date: Date | undefined) {
-        if (date) {
-            form.setValue("registrationDate", date);
-        }
-    }
-
-    function handleTimeChangeRegistrationDate(type: "hour" | "minute", value: string) {
-        const currentDate = form.getValues("registrationDate") || new Date();
-        const newDate = new Date(currentDate);
-
-        if (type === "hour") {
-            const hour = Number.parseInt(value, 10);
-            newDate.setHours(hour);
-        } else if (type === "minute") {
-            newDate.setMinutes(Number.parseInt(value, 10));
-        }
-
-        form.setValue("registrationDate", newDate);
-    }
 
     const editor = useEditor({
         extensions: [
@@ -149,7 +148,7 @@ export function CreateEventForm() {
         ],
         editorProps: {
             attributes: {
-                class: "prose prose-sm prose-base sm:prose-sm m-5 focus:outline-none",
+                class: "prose prose-sm prose-base sm:prose-sm m-5 focus:outline-none dark:text-white",
             },
         },
         onUpdate({ editor }) {
@@ -211,7 +210,24 @@ export function CreateEventForm() {
                             <FormItem>
                                 <FormLabel>Deltaker grense</FormLabel>
                                 <FormControl>
-                                    <Input placeholder='40' {...field} type='number' />
+                                    <Input
+                                        placeholder='40'
+                                        type='number'
+                                        value={field.value === 0 ? "" : field.value}
+                                        onChange={(e) => {
+                                            const inputValue = e.target.value;
+                                            if (inputValue === "") {
+                                                field.onChange(0);
+                                            } else {
+                                                const numValue = Number.parseInt(inputValue, 10);
+                                                field.onChange(
+                                                    Number.isNaN(numValue) ? 0 : numValue,
+                                                );
+                                            }
+                                        }}
+                                        name={field.name}
+                                        min='0'
+                                    />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -249,16 +265,16 @@ export function CreateEventForm() {
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Velg arrangerende bedrift</FormLabel>
-                                <Popover open={open} onOpenChange={setOpen}>
+                                <Popover open={openBedrift} onOpenChange={setOpenBedrift}>
                                     <PopoverTrigger asChild>
                                         <Button
                                             variant='outline'
-                                            aria-expanded={open}
+                                            aria-expanded={openBedrift}
                                             className='w-[200px] justify-between'
                                         >
-                                            {value
+                                            {valueBedrift
                                                 ? companies.find(
-                                                      (company) => company.name === value,
+                                                      (company) => company.name === valueBedrift,
                                                   )?.name
                                                 : "Velg en bedrift..."}
                                             <ChevronsUpDown className='ml-2 h-4 w-4 shrink-0 opacity-50' />
@@ -275,18 +291,19 @@ export function CreateEventForm() {
                                                             key={company.id}
                                                             value={company.name}
                                                             onSelect={(currentValue) => {
-                                                                setValue(
-                                                                    currentValue === value
+                                                                setValueBedrift(
+                                                                    currentValue === valueBedrift
                                                                         ? ""
                                                                         : currentValue,
                                                                 );
-                                                                setOpen(false);
+                                                                field.onChange(company);
+                                                                setOpenBedrift(false);
                                                             }}
                                                         >
                                                             <Check
                                                                 className={cn(
                                                                     "mr-2 h-4 w-4",
-                                                                    value === company.name
+                                                                    valueBedrift === company.name
                                                                         ? "opacity-100"
                                                                         : "opacity-0",
                                                                 )}
@@ -305,225 +322,15 @@ export function CreateEventForm() {
                 </div>
                 <Separator />
                 <div className='grid sm:grid-cols-2 gap-4'>
-                    <FormField
-                        control={form.control}
-                        name='eventDate'
-                        render={({ field }) => (
-                            <FormItem className='flex flex-col'>
-                                <FormLabel>Velg dato og tid for arrangementet</FormLabel>
-                                <Popover>
-                                    <PopoverTrigger asChild>
-                                        <FormControl>
-                                            <Button
-                                                variant={"outline"}
-                                                className={cn(
-                                                    "w-full pl-3 text-left font-normal",
-                                                    !field.value && "text-muted-foreground",
-                                                )}
-                                            >
-                                                {field.value ? (
-                                                    format(field.value, "MM/dd/yyyy HH:mm")
-                                                ) : (
-                                                    <span>MM/DD/YYYY HH:mm</span>
-                                                )}
-                                                <CalendarIcon className='ml-auto h-4 w-4 opacity-50' />
-                                            </Button>
-                                        </FormControl>
-                                    </PopoverTrigger>
-                                    <PopoverContent className='w-auto p-0'>
-                                        <div className='sm:flex'>
-                                            <Calendar
-                                                mode='single'
-                                                selected={field.value}
-                                                onSelect={handleDateSelectEventDate}
-                                                initialFocus
-                                            />
-                                            <div className='flex flex-col sm:flex-row sm:h-[300px] divide-y sm:divide-y-0 sm:divide-x'>
-                                                <ScrollArea className='w-64 sm:w-auto'>
-                                                    <div className='flex sm:flex-col p-2'>
-                                                        {Array.from({ length: 24 }, (_, i) => i)
-                                                            .reverse()
-                                                            .map((hour) => (
-                                                                <Button
-                                                                    key={hour}
-                                                                    size='icon'
-                                                                    variant={
-                                                                        field.value &&
-                                                                        field.value.getHours() ===
-                                                                            hour
-                                                                            ? "default"
-                                                                            : "ghost"
-                                                                    }
-                                                                    className='sm:w-full shrink-0 aspect-square'
-                                                                    onClick={() =>
-                                                                        handleTimeChangeEventDate(
-                                                                            "hour",
-                                                                            hour.toString(),
-                                                                        )
-                                                                    }
-                                                                >
-                                                                    {hour}
-                                                                </Button>
-                                                            ))}
-                                                    </div>
-                                                    <ScrollBar
-                                                        orientation='horizontal'
-                                                        className='sm:hidden'
-                                                    />
-                                                </ScrollArea>
-                                                <ScrollArea className='w-64 sm:w-auto'>
-                                                    <div className='flex sm:flex-col p-2'>
-                                                        {Array.from(
-                                                            { length: 12 },
-                                                            (_, i) => i * 5,
-                                                        ).map((minute) => (
-                                                            <Button
-                                                                key={minute}
-                                                                size='icon'
-                                                                variant={
-                                                                    field.value &&
-                                                                    field.value.getMinutes() ===
-                                                                        minute
-                                                                        ? "default"
-                                                                        : "ghost"
-                                                                }
-                                                                className='sm:w-full shrink-0 aspect-square'
-                                                                onClick={() =>
-                                                                    handleTimeChangeEventDate(
-                                                                        "minute",
-                                                                        minute.toString(),
-                                                                    )
-                                                                }
-                                                            >
-                                                                {minute.toString().padStart(2, "0")}
-                                                            </Button>
-                                                        ))}
-                                                    </div>
-                                                    <ScrollBar
-                                                        orientation='horizontal'
-                                                        className='sm:hidden'
-                                                    />
-                                                </ScrollArea>
-                                            </div>
-                                        </div>
-                                    </PopoverContent>
-                                </Popover>
-                                <FormDescription>
-                                    Velg nå arrangementet skal begynne.
-                                </FormDescription>
-                                <FormMessage />
-                            </FormItem>
-                        )}
+                    <DateTimePicker
+                        form={form}
+                        formField='eventDate'
+                        label='Velg dato og tid for arrangementet'
                     />
-                    <FormField
-                        control={form.control}
-                        name='registrationDate'
-                        render={({ field }) => (
-                            <FormItem className='flex flex-col'>
-                                <FormLabel>Velg dato og tid for åpning av påmelding</FormLabel>
-                                <Popover>
-                                    <PopoverTrigger asChild>
-                                        <FormControl>
-                                            <Button
-                                                variant={"outline"}
-                                                className={cn(
-                                                    "w-full pl-3 text-left font-normal",
-                                                    !field.value && "text-muted-foreground",
-                                                )}
-                                            >
-                                                {field.value ? (
-                                                    format(field.value, "MM/dd/yyyy HH:mm")
-                                                ) : (
-                                                    <span>MM/DD/YYYY HH:mm</span>
-                                                )}
-                                                <CalendarIcon className='ml-auto h-4 w-4 opacity-50' />
-                                            </Button>
-                                        </FormControl>
-                                    </PopoverTrigger>
-                                    <PopoverContent className='w-auto p-0'>
-                                        <div className='sm:flex'>
-                                            <Calendar
-                                                mode='single'
-                                                selected={field.value}
-                                                onSelect={handleDateSelectRegistrationDate}
-                                                initialFocus
-                                            />
-                                            <div className='flex flex-col sm:flex-row sm:h-[300px] divide-y sm:divide-y-0 sm:divide-x'>
-                                                <ScrollArea className='w-64 sm:w-auto'>
-                                                    <div className='flex sm:flex-col p-2'>
-                                                        {Array.from({ length: 24 }, (_, i) => i)
-                                                            .reverse()
-                                                            .map((hour) => (
-                                                                <Button
-                                                                    key={hour}
-                                                                    size='icon'
-                                                                    variant={
-                                                                        field.value &&
-                                                                        field.value.getHours() ===
-                                                                            hour
-                                                                            ? "default"
-                                                                            : "ghost"
-                                                                    }
-                                                                    className='sm:w-full shrink-0 aspect-square'
-                                                                    onClick={() =>
-                                                                        handleTimeChangeRegistrationDate(
-                                                                            "hour",
-                                                                            hour.toString(),
-                                                                        )
-                                                                    }
-                                                                >
-                                                                    {hour}
-                                                                </Button>
-                                                            ))}
-                                                    </div>
-                                                    <ScrollBar
-                                                        orientation='horizontal'
-                                                        className='sm:hidden'
-                                                    />
-                                                </ScrollArea>
-                                                <ScrollArea className='w-64 sm:w-auto'>
-                                                    <div className='flex sm:flex-col p-2'>
-                                                        {Array.from(
-                                                            { length: 12 },
-                                                            (_, i) => i * 5,
-                                                        ).map((minute) => (
-                                                            <Button
-                                                                key={minute}
-                                                                size='icon'
-                                                                variant={
-                                                                    field.value &&
-                                                                    field.value.getMinutes() ===
-                                                                        minute
-                                                                        ? "default"
-                                                                        : "ghost"
-                                                                }
-                                                                className='sm:w-full shrink-0 aspect-square'
-                                                                onClick={() =>
-                                                                    handleTimeChangeRegistrationDate(
-                                                                        "minute",
-                                                                        minute.toString(),
-                                                                    )
-                                                                }
-                                                            >
-                                                                {minute.toString().padStart(2, "0")}
-                                                            </Button>
-                                                        ))}
-                                                    </div>
-                                                    <ScrollBar
-                                                        orientation='horizontal'
-                                                        className='sm:hidden'
-                                                    />
-                                                </ScrollArea>
-                                            </div>
-                                        </div>
-                                    </PopoverContent>
-                                </Popover>
-                                <FormDescription>
-                                    Velg når påmeldingen åpner for arrangementet.
-                                </FormDescription>
-                                <FormMessage />
-                            </FormItem>
-                        )}
+                    <DateTimePicker
+                        form={form}
+                        formField='registrationDate'
+                        label='Velg dato of tid for åpning av påmeldingen av arrangementet'
                     />
                 </div>
                 <Separator />
@@ -563,6 +370,182 @@ export function CreateEventForm() {
                         </FormItem>
                     )}
                 />
+                <Separator />
+                <div className='flex flex-col gap-4'>
+                    <div className='flex gap-4 flex-wrap'>
+                        <Button
+                            type='button'
+                            onClick={() => {
+                                if (!valueMember && !selectedOrganizerType) return;
+
+                                const organizerToAdd = internalMembers.find(
+                                    (internalMember) => internalMember.fullname === valueMember,
+                                );
+
+                                if (organizerToAdd) {
+                                    setSelectedOrganizers([
+                                        ...selectedOrganizers,
+                                        {
+                                            type: selectedOrganizerType || "organizer",
+                                            organizer: organizerToAdd,
+                                        },
+                                    ]);
+
+                                    const currentOrganizers = form.getValues("organizers");
+                                    if (
+                                        !currentOrganizers.includes({
+                                            id: organizerToAdd.id,
+                                            role: selectedOrganizerType,
+                                        })
+                                    ) {
+                                        form.setValue("organizers", [
+                                            ...currentOrganizers,
+                                            { id: organizerToAdd.id, role: selectedOrganizerType },
+                                        ]);
+                                    }
+
+                                    setValueMember("");
+                                    setSelectedOrganizerType("Organizer");
+                                }
+                            }}
+                        >
+                            Legg til ansvarlig
+                        </Button>
+                        <Popover open={openMember} onOpenChange={setOpenMember}>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant='outline'
+                                    aria-expanded={openMember}
+                                    className='w-[200px] justify-between'
+                                >
+                                    {valueMember
+                                        ? internalMembers.find(
+                                              (internalMember) =>
+                                                  internalMember.fullname === valueMember,
+                                          )?.fullname
+                                        : "Velg et medlem..."}
+                                    <ChevronsUpDown className='ml-2 h-4 w-4 shrink-0 opacity-50' />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className='w-[200px] p-0'>
+                                <Command>
+                                    <CommandInput placeholder='Søk etter et medlem...' />
+                                    <CommandList>
+                                        <CommandEmpty>Fant ingen ansvarlige(er).</CommandEmpty>
+                                        <CommandGroup>
+                                            {internalMembers.map((internalMember) => (
+                                                <CommandItem
+                                                    key={internalMember.id}
+                                                    value={internalMember.fullname}
+                                                    onSelect={(currentValue) => {
+                                                        setValueMember(
+                                                            currentValue === valueMember
+                                                                ? ""
+                                                                : currentValue,
+                                                        );
+                                                        setOpenMember(false);
+                                                    }}
+                                                >
+                                                    <Check
+                                                        className={cn(
+                                                            "mr-2 h-4 w-4",
+                                                            valueMember === internalMember.fullname
+                                                                ? "opacity-100"
+                                                                : "opacity-0",
+                                                        )}
+                                                    />
+                                                    {internalMember.fullname}
+                                                </CommandItem>
+                                            ))}
+                                        </CommandGroup>
+                                    </CommandList>
+                                </Command>
+                            </PopoverContent>
+                        </Popover>
+                        <Select
+                            onValueChange={(value: string) => {
+                                setSelectedOrganizerType(value as keyof typeof OrganizerType);
+                            }}
+                            defaultValue={selectedOrganizerType}
+                        >
+                            <SelectTrigger className='w-[180px]'>
+                                <SelectValue placeholder='Ansvarlig type' />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {Object.entries(OrganizerType).map(([key, value]) => (
+                                    <SelectItem key={key} value={key}>
+                                        {value}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Navn på ansvarlig</TableHead>
+                                <TableHead>Type</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {selectedOrganizers.map((organizer, index) => (
+                                <TableRow key={`${index}-${organizer.organizer.id}`}>
+                                    <TableCell className='font-medium'>
+                                        {organizer.organizer.fullname}
+                                    </TableCell>
+                                    <TableCell>{OrganizerType[organizer.type]}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
+                <Separator />
+                <FormField
+                    control={form.control}
+                    name='eventType'
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Arrangementstype</FormLabel>
+                            <FormControl>
+                                <Select
+                                    onValueChange={(value: string) => {
+                                        field.onChange(value);
+                                        setEventType(value);
+                                    }}
+                                    defaultValue={field.value}
+                                >
+                                    <SelectTrigger className='w-[180px]'>
+                                        <SelectValue placeholder='Velg arrangementstype' />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value='internal_event'>Internt</SelectItem>
+                                        <SelectItem value='external_event'>Eksternt</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                {eventType === "external_event" && (
+                    <FormField
+                        control={form.control}
+                        name='externalUrl'
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Link til arrangementet</FormLabel>
+                                <FormControl>
+                                    <Input placeholder='https://www.navet.no' {...field} />
+                                </FormControl>
+                                <FormDescription>
+                                    Legg til en url til det eksterne arrangementet
+                                </FormDescription>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                )}
+                <Separator />
                 <Button type='submit'>Submit</Button>
             </form>
         </Form>

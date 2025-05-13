@@ -1,5 +1,7 @@
 import {Inter} from "next/font/google";
 import "./globals.css";
+import {ThemeProvider} from "@/components/theme-provider";
+import {Toaster} from "@/components/ui/sonner";
 
 const defaultUrl = process.env.VERCEL_URL
     ? `https://${process.env.VERCEL_URL}`
@@ -17,14 +19,24 @@ const interSans = Inter({
     subsets: ["latin"],
 });
 
-export default function RootLayout({
+export default async function RootLayout({
     children,
 }: Readonly<{
     children: React.ReactNode;
 }>) {
     return (
-        <html lang="no" className={interSans.className} suppressHydrationWarning>
-            <body>{children}</body>
+        <html lang='no' className={interSans.className} suppressHydrationWarning>
+            <body>
+                <ThemeProvider
+                    attribute='class'
+                    defaultTheme='system'
+                    enableSystem
+                    disableTransitionOnChange
+                >
+                    {children}
+                    <Toaster />
+                </ThemeProvider>
+            </body>
         </html>
     );
 }
