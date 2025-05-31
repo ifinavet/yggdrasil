@@ -1,104 +1,273 @@
-<a href="https://demo-nextjs-with-supabase.vercel.app/">
-  <img alt="Next.js and Supabase Starter Kit - the fastest way to build apps with Next.js and Supabase" src="https://demo-nextjs-with-supabase.vercel.app/opengraph-image.png">
-  <h1 align="center">Next.js and Supabase Starter Kit</h1>
-</a>
+# Navet - Project Unagi 🌉
 
-<p align="center">
- The fastest way to build apps with Next.js and Supabase
-</p>
+**Bindeledd mellom studenter og næringslivet for studentene på institutt for informatikk ved UiO**
+
+A modern web application built with Next.js and Supabase that connects computer science students at the University of Oslo with industry opportunities. The project uses Norse mythology naming conventions, with Yggdrasil as the world tree that connects all realms.
+
+> [!WARNING]
+> This project is under active development and not yet in production. We aim for a stable release in the near future.
+> If you want to contribute please contact Webansvarlig at IFI-Navet via email at <web@ifinavet.no>.
 
 <p align="center">
   <a href="#features"><strong>Features</strong></a> ·
-  <a href="#demo"><strong>Demo</strong></a> ·
-  <a href="#deploy-to-vercel"><strong>Deploy to Vercel</strong></a> ·
-  <a href="#clone-and-run-locally"><strong>Clone and run locally</strong></a> ·
-  <a href="#feedback-and-issues"><strong>Feedback and issues</strong></a>
-  <a href="#more-supabase-examples"><strong>More Examples</strong></a>
+  <a href="#quick-start"><strong>Quick Start</strong></a> ·
+  <a href="#development"><strong>Development</strong></a> ·
+  <a href="#project-structure"><strong>Project Structure</strong></a> ·
+  <a href="#testing"><strong>Testing</strong></a> ·
+  <a href="#contributing"><strong>Contributing</strong></a> ·
+  <a href="#deployment"><strong>Deployment</strong></a>
 </p>
-<br/>
+
+### Environment Variables
+
+Required for production:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
 
 ## Features
 
-- Works across the entire [Next.js](https://nextjs.org) stack
-  - App Router
-  - Pages Router
-  - Middleware
-  - Client
-  - Server
-  - It just works!
-- supabase-ssr. A package to configure Supabase Auth to use cookies
-- Styling with [Tailwind CSS](https://tailwindcss.com)
-- Components with [shadcn/ui](https://ui.shadcn.com/)
-- Optional deployment with [Supabase Vercel Integration and Vercel deploy](#deploy-your-own)
-  - Environment variables automatically assigned to Vercel project
+### 🚀 **Core Stack**
+- **Next.js 15** with App Router and React 19
+- **Supabase** for authentication and database
+- **TypeScript** for type safety
+- **Tailwind CSS** for styling
+- **shadcn/ui** components
 
-## Demo
+### 🎨 **UI/UX**
+- Modern, responsive design
+- Dark/light theme support with `next-themes`
+- Toast notifications with `sonner`
+- Rich text editing with TipTap
+- Accessible components with Radix UI
 
-You can view a fully working demo at [demo-nextjs-with-supabase.vercel.app](https://demo-nextjs-with-supabase.vercel.app/).
+### 🔐 **Authentication**
+- Cookie-based authentication with `@supabase/ssr`
+- Secure session management across all Next.js features
+- Sign up, sign in, and password reset flows
+- Protected routes and middleware
 
-## Deploy to Vercel
+### 🧪 **Testing**
+- **Unit tests** with Jest and React Testing Library
+- **Integration tests** for API routes and database operations
+- **End-to-end tests** with Playwright
+- **Database tests** for Supabase interactions
+- Comprehensive test coverage reporting
 
-Vercel deployment will guide you through creating a Supabase account and project.
+### 📱 **Realms (App Sections)**
+- **Midgard** - Main application area
+- **Bifrost** - Bridge/connection features
+- **Auth Pages** - Authentication flows
 
-After installation of the Supabase integration, all relevant environment variables will be assigned to the project so the deployment is fully functioning.
+## Quick Start
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel%2Fnext.js%2Ftree%2Fcanary%2Fexamples%2Fwith-supabase&project-name=nextjs-with-supabase&repository-name=nextjs-with-supabase&demo-title=nextjs-with-supabase&demo-description=This+starter+configures+Supabase+Auth+to+use+cookies%2C+making+the+user%27s+session+available+throughout+the+entire+Next.js+app+-+Client+Components%2C+Server+Components%2C+Route+Handlers%2C+Server+Actions+and+Middleware.&demo-url=https%3A%2F%2Fdemo-nextjs-with-supabase.vercel.app%2F&external-id=https%3A%2F%2Fgithub.com%2Fvercel%2Fnext.js%2Ftree%2Fcanary%2Fexamples%2Fwith-supabase&demo-image=https%3A%2F%2Fdemo-nextjs-with-supabase.vercel.app%2Fopengraph-image.png)
+### Prerequisites
 
-The above will also clone the Starter kit to your GitHub, you can clone that locally and develop locally.
+- Node.js 18+
+- pnpm (recommended) or npm/yarn
+- Supabase account
 
-If you wish to just develop locally and not deploy to Vercel, [follow the steps below](#clone-and-run-locally).
+### 1. Clone and Install
 
-## Clone and run locally
+```bash
+git clone <repository-url>
+cd Yggdrasil
+pnpm install
+```
 
-1. You'll first need a Supabase project which can be made [via the Supabase dashboard](https://database.new)
+### 2. Environment Setup
 
-2. Create a Next.js app using the Supabase Starter template npx command
+Create a `.env.local` file in the root directory:
 
-   ```bash
-   npx create-next-app --example with-supabase with-supabase-app
-   ```
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
 
-   ```bash
-   yarn create next-app --example with-supabase with-supabase-app
-   ```
+Get these values from your [Supabase project dashboard](https://app.supabase.com/project/_/settings/api).
 
-   ```bash
-   pnpm create next-app --example with-supabase with-supabase-app
-   ```
+### 4. Start Development
 
-3. Use `cd` to change into the app's directory
+```bash
+pnpm dev
+```
 
-   ```bash
-   cd with-supabase-app
-   ```
+Visit [http://localhost:3000](http://localhost:3000) to see your application.
 
-4. Rename `.env.example` to `.env.local` and update the following:
+## Development
 
-   ```
-   NEXT_PUBLIC_SUPABASE_URL=[INSERT SUPABASE PROJECT URL]
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=[INSERT SUPABASE PROJECT API ANON KEY]
-   ```
+### Available Scripts
 
-   Both `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` can be found in [your Supabase project's API settings](https://app.supabase.com/project/_/settings/api)
+```bash
+# Development
+pnpm dev                    # Start development server
+pnpm build                  # Build for production
+pnpm start                  # Start production server
 
-5. You can now run the Next.js local development server:
+# Testing
+pnpm test                   # Run unit tests
+pnpm test:e2e               # Run end-to-end tests
+pnpm test:all               # Run all tests
 
-   ```bash
-   npm run dev
-   ```
+# Code Quality
+npx biome check --apply     # Lint and format
+```
 
-   The starter kit should now be running on [localhost:3000](http://localhost:3000/).
+### Development Workflow
 
-6. This template comes with the default shadcn/ui style initialized. If you instead want other ui.shadcn styles, delete `components.json` and [re-install shadcn/ui](https://ui.shadcn.com/docs/installation/next)
+1. **Feature Development**: Work in feature branches
+2. **Code Quality**: Use Biome for linting and formatting
+3. **Testing**: Write tests for new features
+4. **Type Safety**: Leverage TypeScript and Supabase types
+5. **UI Components**: Use shadcn/ui and maintain design consistency
 
-> Check out [the docs for Local Development](https://supabase.com/docs/guides/getting-started/local-development) to also run Supabase locally.
+## Project Structure
 
-## Feedback and issues
+```
+Yggdrasil/
+├── src/
+│   ├── app/                     # Next.js App Router
+│   │   ├── (auth-pages)/       # Sign in, sign up, forgot password
+│   │   ├── (bifrost)/          # Bridge/connection features
+│   │   └── (midgard)/          # Main application (events, protected pages)
+│   ├── components/             # Reusable UI components
+│   │   └── ui/                 # shadcn/ui components
+│   ├── supabase/               # Database configuration
+│   ├── lib/                    # Utility libraries
+│   └── hooks/                  # Custom React hooks
+├── __tests__/                  # All test files
+└── playwright-tests/           # End-to-end tests
+```
 
-Please file feedback and issues over on the [Supabase GitHub org](https://github.com/supabase/supabase/issues/new/choose).
+### Key Concepts
 
-## More Supabase examples
+#### Route Groups
+- `(auth-pages)` - Authentication-related pages
+- `(bifrost)` - Bridge/connection functionality
+- `(midgard)` - Main application content
 
-- [Next.js Subscription Payments Starter](https://github.com/vercel/nextjs-subscription-payments)
-- [Cookie-based Auth and the Next.js 13 App Router (free course)](https://youtube.com/playlist?list=PL5S4mPUpp4OtMhpnp93EFSo42iQ40XjbF)
-- [Supabase Auth and the Next.js App Router](https://github.com/supabase/supabase/tree/master/examples/auth/nextjs)
+#### Component Organization
+- **UI Components**: Located in `components/ui/` (shadcn/ui)
+- **Feature Components**: Organized by feature/realm
+- **Shared Components**: Root-level components for common use
+
+#### Testing Strategy
+- **Unit Tests**: Individual component and function testing
+- **Integration Tests**: Feature-level testing with mocked dependencies
+- **Database Tests**: Supabase interaction testing
+- **E2E Tests**: Full user flow testing with Playwright
+
+## Testing
+
+### Running Tests
+
+```bash
+# Quick test run
+pnpm test
+
+# Watch mode for development
+pnpm test:watch
+
+# Coverage report
+pnpm test:coverage
+
+# Specific test types
+pnpm test:unit
+pnpm test:integration
+pnpm test:db
+pnpm test:e2e
+```
+
+### Test Structure
+
+```
+__tests__/
+├── unit/                    # Component and utility tests
+├── integration/             # Feature integration tests
+├── database/                # Supabase/database tests
+├── helpers/                 # Test helper functions
+├── mocks/                   # Mock implementations
+└── utils/                   # Test utilities
+```
+
+### Writing Tests
+
+1. **Unit Tests**: Test individual components and functions
+2. **Integration Tests**: Test feature workflows
+3. **Database Tests**: Test Supabase operations
+4. **E2E Tests**: Test complete user journeys
+
+### Environment Variables
+
+Required for production:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+
+## Contributing 🤝
+
+We'd love your help to make this project even better! To contribute, please follow these steps:
+
+1. **Clone** the repository
+2. **Create** a new branch (`git checkout -b feature-branch`)
+3. **Make** your changes
+4. **Write** tests for your changes
+5. **Commit** your changes (`git commit -m 'Add new feature'`)
+6. **Push** to the branch (`git push origin feature-branch`)
+7. **Open** a pull request
+
+Please make sure your code follows our coding standards and includes appropriate tests.
+
+### Code Standards
+
+- Use TypeScript for type safety
+- Follow the existing code style (Biome)
+- Write tests for new features
+- Use semantic commit messages
+- Update documentation as needed
+- Provide as much detail as possible in pull requests
+
+## Technology Stack
+
+| Category | Technology |
+|----------|------------|
+| **Framework** | Next.js 15 with App Router |
+| **Language** | TypeScript |
+| **Styling** | Tailwind CSS |
+| **Components** | shadcn/ui + Radix UI |
+| **Database** | Supabase |
+| **Authentication** | Supabase Auth |
+| **Testing** | Jest, RTL, Playwright |
+| **Code Quality** | Biome |
+| **Package Manager** | pnpm |
+
+## Reporting Bugs 🐛
+
+If you find a bug, please let us know by creating an issue in the repository. We would love to check it out and find a solution. Provide as much detail as you can (the more the merrier), including steps to reproduce the bug, the expected behavior, and any relevant screenshots or logs.
+
+## License 📄
+
+This project is licensed under the GNU Affero General Public License. See the [`LICENSE`](LICENSE) file for more details.
+
+## Contact 📧
+
+For any inquiries, please contact us:
+
+**E-mail**: <web@ifinavet.no>
+
+**Website**: <https://ifinavet.no>
+
+For questions, issues, or contributions:
+- 🐛 Report bugs via GitHub issues
+- 💡 Suggest features via GitHub discussions
+- 📖 Check the documentation
+
+---
+
+This project is developed and maintained by the Student association **IFI-Navet** at the University of Oslo, Department of Informatics.
+
+Made with ❤️ by the IFI-Navet team.
