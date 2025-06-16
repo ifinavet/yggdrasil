@@ -37,6 +37,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { zodv4Resolver } from "@/lib/zod-v4-resolver";
+import { OrganizerType } from "@/shared/enums";
 import { Separator } from "@radix-ui/react-separator";
 import { useQuery } from "@tanstack/react-query";
 import { Placeholder } from "@tiptap/extension-placeholder";
@@ -44,43 +45,47 @@ import { Underline } from "@tiptap/extension-underline";
 import { useEditor } from "@tiptap/react";
 import { StarterKit } from "@tiptap/starter-kit";
 import { Check, ChevronsUpDown } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import z from "zod/v4";
-import { columns } from "./_organizeers-table/columns";
-import OrganizersTable from "./_organizeers-table/data-table";
+import { columns } from "./columns";
+import OrganizersTable from "./data-table";
 
 export const formSchema = z.object({
-  title: z.string().min(10, {
-    message: "Tittelen må være minst 10 tegn",
-  }),
+  title: z
+    .string("")
+    .min(1, "Tittel er påkrevd")
+    .min(10, "Tittelen må være minst 10 tegn"),
   teaser: z
     .string()
-    .min(10, {
-      message: "Teaser må være minst 10 tegn",
-    })
-    .max(250, {
-      message: "Teaser kan være maks 250 tegn",
-    }),
+    .min(1, "Vi trenger en liten teaser!")
+    .min(10, "Teaser må være minst 10 tegn")
+    .max(250, "Teaser kan være maks 250 tegn"),
   eventDate: z.date("Dato og tid for arrangementet er påkrevd"),
   registrationDate: z.date("Dato og tid for åpning av påmelding er påkrevd"),
-  description: z.string(),
-  food: z.string(),
-  location: z.string(),
-  ageRestrictions: z.string(),
-  language: z.string(),
-  participantsLimit: z
-    .number("Deltakergrense er påkrevd")
-    .min(0, { message: "Deltakergrense må være minst 0" }),
+  description: z
+    .string()
+    .min(1, "Det er veldig med en beskrivelse av arrangementet"),
+  food: z.string().min(1, "Skulle vi hatt noe mat kanskje?"),
+  location: z.string().min(1, "Hvor skal arrangementet foregå?"),
+  ageRestrictions: z
+    .string()
+    .min(1, "Hvem alle få lov til å være på arrangementet?"),
+  language: z.string().min(1, "Husk å spesifisere språk"),
+  participantsLimit: z.number("Deltakergrense er påkrevd"),
   eventType: z.enum(["internal_event", "external_event"]),
-  hostingCompany: z.object({ name: z.string(), id: z.string() }),
-  organizers: z.array(
-    z.object({
-      id: z.string(),
-      name: z.string(),
-      role: z.enum(["main", "assistant"]),
-    }),
+  hostingCompany: z.object(
+    { company_name: z.string(), company_id: z.number() },
+    "Hvem skal arrangere arrangementet?",
   ),
+  organizers: z
+    .array(
+      z.object({
+        id: z.string(),
+        role: z.enum(["main", "assistant"]),
+      }),
+    )
+    .min(1, { message: "Må ha minst en arrangør" }),
   externalUrl: z.string().optional(),
 });
 
@@ -96,11 +101,12 @@ export default function CreateEventForm({ orgId }: { orgId: string }) {
       food: "",
       location: "",
       ageRestrictions: "",
-      participantsLimit: 40,
       language: "Norsk",
-      eventType: "internal_event",
-      hostingCompany: { name: "", id: "" },
+      participantsLimit: 40,
       organizers: [],
+      eventType: "internal_event",
+      hostingCompany: undefined,
+      externalUrl: "",
     },
   });
 
@@ -125,17 +131,26 @@ export default function CreateEventForm({ orgId }: { orgId: string }) {
     },
     immediatelyRender: false,
     content: "",
+    onCreate({ editor }) {
+      form.setValue("description", editor.getHTML());
+    },
   });
 
   const watchedEventType = form.watch("eventType");
 
   const [openCompanies, setOpenCompanies] = useState(false);
   const [companyValue, setCompanyValue] = useState("");
-  const [organizers] = useState<
+
+  const [openMembers, setOpenMembers] = useState(false);
+  const selectedMember = useRef("");
+
+  const selectedOrganizerType = useRef<"main" | "assistant">("assistant");
+
+  const [selectedOrganizers, setSelectedOrganizers] = useState<
     {
       id: string;
       name: string;
-      role: "main" | "assistant";
+      role: "Hovedansvarlig" | "Assisterende";
     }[]
   >([]);
 
@@ -157,6 +172,7 @@ export default function CreateEventForm({ orgId }: { orgId: string }) {
   console.log(internalMembers);
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
+    console.log("Form submitted");
     console.log(values);
   };
 
@@ -321,6 +337,7 @@ export default function CreateEventForm({ orgId }: { orgId: string }) {
                     </Command>
                   </PopoverContent>
                 </Popover>
+                <FormMessage />
               </FormItem>
             )}
           />
@@ -364,7 +381,154 @@ export default function CreateEventForm({ orgId }: { orgId: string }) {
           )}
         />
         <Separator />
-        <OrganizersTable columns={columns} data={organizers} />
+        <FormField
+          control={form.control}
+          name="organizers"
+          render={({ field }) => (
+            <FormItem className="flex flex-col">
+              <FormLabel>Arrangtører</FormLabel>
+              <FormControl>
+                <div className="flex flex-col gap-4">
+                  <div className="flex gap-4 flex-wrap">
+                    <Popover open={openMembers} onOpenChange={setOpenMembers}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          aria-expanded={openCompanies}
+                          className="w-[200px] justify-between"
+                        >
+                          {selectedMember.current
+                            ? internalMembers?.find(
+                                (internalMember) =>
+                                  internalMember.fullname ===
+                                  selectedMember.current,
+                              )?.fullname
+                            : "Velg et medlem..."}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[200px] p-0">
+                        <Command>
+                          <CommandInput placeholder="Søk etter et medlem..." />
+                          <CommandList>
+                            <CommandEmpty>
+                              Fant ingen ansvarlige(er).
+                            </CommandEmpty>
+                            <CommandGroup>
+                              {internalMembers?.map((internalMember) => (
+                                <CommandItem
+                                  key={internalMember.id}
+                                  value={internalMember.fullname ?? "Ukjent"}
+                                  onSelect={(currentValue) => {
+                                    selectedMember.current =
+                                      currentValue === selectedMember.current
+                                        ? ""
+                                        : currentValue;
+                                    setOpenMembers(false);
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      selectedMember.current ===
+                                        internalMember.fullname
+                                        ? "opacity-100"
+                                        : "opacity-0",
+                                    )}
+                                  />
+                                  {internalMember.fullname}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    <Select
+                      onValueChange={(value: string) => {
+                        selectedOrganizerType.current =
+                          value as keyof typeof OrganizerType;
+                      }}
+                      defaultValue={selectedOrganizerType.current}
+                    >
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Ansvarlig type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(OrganizerType).map(([key, value]) => (
+                          <SelectItem key={key} value={key}>
+                            {value}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        if (!selectedMember && !selectedOrganizers) return;
+
+                        const organizerToAdd = internalMembers?.find(
+                          (internalMember) =>
+                            internalMember.fullname === selectedMember.current,
+                        );
+
+                        if (organizerToAdd) {
+                          setSelectedOrganizers([
+                            ...selectedOrganizers,
+                            {
+                              id: organizerToAdd.id,
+                              name: organizerToAdd.fullname ?? "ukjent",
+                              role:
+                                OrganizerType[selectedOrganizerType.current] ||
+                                "Assisterende",
+                            },
+                          ]);
+
+                          const currentOrganizers = field.value;
+                          if (
+                            !currentOrganizers.includes({
+                              id: organizerToAdd.id,
+                              role:
+                                selectedOrganizerType.current || "assistant",
+                            })
+                          ) {
+                            field.onChange({
+                              target: {
+                                name: "organizers",
+                                value: [
+                                  ...currentOrganizers,
+                                  {
+                                    id: organizerToAdd.id,
+                                    role:
+                                      selectedOrganizerType.current ||
+                                      "assistant",
+                                  },
+                                ],
+                              },
+                            });
+                          }
+
+                          selectedMember.current = "";
+                          selectedOrganizerType.current = "assistant";
+                        }
+                      }}
+                    >
+                      Legg til ansvarlig
+                    </Button>
+                  </div>
+                  <OrganizersTable
+                    columns={columns}
+                    data={selectedOrganizers}
+                  />
+                </div>
+              </FormControl>
+              <FormDescription>
+                Velg hvem som skal planlegge og arrangere arrangementet.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <Separator />
         <FormField
           control={form.control}
@@ -409,7 +573,9 @@ export default function CreateEventForm({ orgId }: { orgId: string }) {
           />
         )}
         <Separator />
-        <Button type="submit">Submit</Button>
+        <Button type="submit" disabled={form.formState.isSubmitting}>
+          {form.formState.isSubmitting ? "Submitting..." : "Submit"}
+        </Button>
       </form>
     </Form>
   );

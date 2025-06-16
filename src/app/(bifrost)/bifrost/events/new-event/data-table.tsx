@@ -66,7 +66,7 @@ export default function OrganizersTable<TData, TValue>({
           ) : (
             <TableRow>
               <TableCell colSpan={columns.length} className="h-24 text-center">
-                Ingen organisatorer lagt til.
+                Ingen arrangører/planleggere er lagt til.
               </TableCell>
             </TableRow>
           )}
