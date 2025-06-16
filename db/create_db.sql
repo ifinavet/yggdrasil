@@ -4,7 +4,7 @@
 -- All timestamps stored in UTC
 -- =============================================================================
 
-Drop existing tables in reverse dependency order (uncomment if recreating)
+-- Drop existing tables in reverse dependency order (uncomment if recreating)
 DROP TABLE IF EXISTS points CASCADE;
 DROP TABLE IF EXISTS registrations CASCADE;
 DROP TABLE IF EXISTS event_organizers CASCADE;
@@ -22,7 +22,7 @@ DROP TABLE IF EXISTS internal_groups CASCADE;
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
-    NEW.updated_at = NOW() AT TIME ZONE 'UTC';
+    NEW.updated_at = NOW();
     RETURN NEW;
 END;
 $$ LANGUAGE 'plpgsql';
@@ -36,17 +36,17 @@ CREATE TABLE IF NOT EXISTS internal_groups (
     group_id SERIAL PRIMARY KEY,
     group_name TEXT NOT NULL UNIQUE,
     description TEXT,
-    created_at TIMESTAMP DEFAULT (NOW() AT TIME ZONE 'UTC'),
-    updated_at TIMESTAMP DEFAULT (NOW() AT TIME ZONE 'UTC')
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Companies (Independent table)
 CREATE TABLE IF NOT EXISTS companies (
     company_id SERIAL PRIMARY KEY,
     company_name TEXT NOT NULL,
-    address TEXT,
-    created_at TIMESTAMP DEFAULT (NOW() AT TIME ZONE 'UTC'),
-    updated_at TIMESTAMP DEFAULT (NOW() AT TIME ZONE 'UTC')
+    org_number TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Students (Clerk user references)
@@ -55,8 +55,8 @@ CREATE TABLE IF NOT EXISTS students (
     study_program TEXT NOT NULL,
     degree TEXT NOT NULL,
     semester INTEGER NOT NULL CHECK (semester > 0),
-    created_at TIMESTAMP DEFAULT (NOW() AT TIME ZONE 'UTC'),
-    updated_at TIMESTAMP DEFAULT (NOW() AT TIME ZONE 'UTC')
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Internal users (Clerk user references)
@@ -64,8 +64,8 @@ CREATE TABLE IF NOT EXISTS internals (
     user_id TEXT NOT NULL DEFAULT auth.jwt()->>'sub' PRIMARY KEY,
     internal_email TEXT NOT NULL UNIQUE,
     internal_group_id INTEGER NOT NULL,
-    created_at TIMESTAMP DEFAULT (NOW() AT TIME ZONE 'UTC'),
-    updated_at TIMESTAMP DEFAULT (NOW() AT TIME ZONE 'UTC'),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
 
     CONSTRAINT fk_internals_group
         FOREIGN KEY (internal_group_id)
@@ -79,16 +79,17 @@ CREATE TABLE IF NOT EXISTS events (
     title TEXT NOT NULL,
     teaser TEXT,
     description TEXT,
-    event_start TIMESTAMP NOT NULL,
-    registration_opens TIMESTAMP NOT NULL,
+    event_start TIMESTAMPTZ NOT NULL,
+    registration_opens TIMESTAMPTZ NOT NULL,
     participants_limit INTEGER NOT NULL CHECK (participants_limit > 0),
     location TEXT NOT NULL,
-    food_served TEXT,
-    language TEXT NOT NULL DEFAULT 'English',
+    food TEXT NOT NULL,
+    language TEXT NOT NULL DEFAULT 'Norsk',
     age_restrictions TEXT,
+    external_url TEXT,
     company_id INTEGER NOT NULL,
-    created_at TIMESTAMP DEFAULT (NOW() AT TIME ZONE 'UTC'),
-    updated_at TIMESTAMP DEFAULT (NOW() AT TIME ZONE 'UTC'),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
 
     CONSTRAINT fk_events_company
         FOREIGN KEY (company_id)
@@ -107,7 +108,7 @@ CREATE TABLE IF NOT EXISTS event_organizers (
     event_id INTEGER NOT NULL,
     user_id TEXT NOT NULL,
     role TEXT NOT NULL DEFAULT 'assistant',
-    created_at TIMESTAMP DEFAULT (NOW() AT TIME ZONE 'UTC'),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
 
     PRIMARY KEY (event_id, user_id),
 
@@ -129,11 +130,11 @@ CREATE TABLE IF NOT EXISTS registrations (
     event_id INTEGER NOT NULL,
     user_id TEXT NOT NULL DEFAULT auth.jwt()->>'sub',
     status TEXT NOT NULL DEFAULT 'registered',
-    registration_time TIMESTAMP DEFAULT (NOW() AT TIME ZONE 'UTC'),
+    registration_time TIMESTAMPTZ DEFAULT NOW(),
     attendance_status TEXT DEFAULT NULL,
-    attendance_time TIMESTAMP DEFAULT NULL,
-    created_at TIMESTAMP DEFAULT (NOW() AT TIME ZONE 'UTC'),
-    updated_at TIMESTAMP DEFAULT (NOW() AT TIME ZONE 'UTC'),
+    attendance_time TIMESTAMPTZ DEFAULT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
 
     UNIQUE (event_id, user_id),
 
@@ -154,8 +155,8 @@ CREATE TABLE IF NOT EXISTS points (
     user_id TEXT NOT NULL DEFAULT auth.jwt()->>'sub',
     reason TEXT NOT NULL,
     severity INTEGER NOT NULL CHECK (severity > 0 AND severity <= 10),
-    awarded_time TIMESTAMP DEFAULT (NOW() AT TIME ZONE 'UTC'),
-    created_at TIMESTAMP DEFAULT (NOW() AT TIME ZONE 'UTC')
+    awarded_time TIMESTAMPTZ DEFAULT NOW(),
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- =============================================================================
@@ -215,6 +216,14 @@ CREATE TRIGGER update_events_updated_at
 CREATE TRIGGER update_registrations_updated_at
     BEFORE UPDATE ON registrations
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- =============================================================================
+-- INITIAL DATA
+-- =============================================================================
+
+-- Insert IFI-Navet company
+INSERT INTO companies (company_name)
+VALUES ('IFI-Navet');
 
 -- =============================================================================
 -- SCRIPT COMPLETE
