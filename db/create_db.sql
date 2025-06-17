@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS companies (
     company_id SERIAL PRIMARY KEY,
     company_name TEXT NOT NULL,
     org_number TEXT,
+    description TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
