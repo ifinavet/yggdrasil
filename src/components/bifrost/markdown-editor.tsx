@@ -12,8 +12,9 @@ import {
   Underline,
 } from "lucide-react";
 import type React from "react";
+import { memo, useCallback } from "react";
 
-function ToolButton({
+const ToolButton = memo(function ToolButton({
   children,
   editor,
   onButtonClick,
@@ -25,21 +26,66 @@ function ToolButton({
   isActive?: boolean;
   onButtonClick: () => void;
 }) {
+  const handleClick = useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      onButtonClick();
+    },
+    [onButtonClick],
+  );
+
   return (
     <button
       {...buttonProps}
-      onClick={(e) => {
-        e.preventDefault();
-        onButtonClick();
-      }}
+      onClick={handleClick}
       className={`rounded-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 p-1 ${isActive ? "bg-zinc-200 dark:bg-zinc-950" : ""} ${buttonProps.className}`}
     >
       {children}
     </button>
   );
-}
+});
 
-function EditorMenu({ editor }: { editor: Editor | null }) {
+const EditorMenu = memo(function EditorMenu({
+  editor,
+}: {
+  editor: Editor | null;
+}) {
+  const toggleHeading1 = useCallback(() => {
+    editor?.chain().focus().toggleHeading({ level: 1 }).run();
+  }, [editor]);
+
+  const toggleHeading2 = useCallback(() => {
+    editor?.chain().focus().toggleHeading({ level: 2 }).run();
+  }, [editor]);
+
+  const toggleHeading3 = useCallback(() => {
+    editor?.chain().focus().toggleHeading({ level: 3 }).run();
+  }, [editor]);
+
+  const toggleBold = useCallback(() => {
+    editor?.chain().focus().toggleBold().run();
+  }, [editor]);
+
+  const toggleItalic = useCallback(() => {
+    editor?.chain().focus().toggleItalic().run();
+  }, [editor]);
+
+  const toggleStrike = useCallback(() => {
+    editor?.chain().focus().toggleStrike().run();
+  }, [editor]);
+
+  const toggleCodeBlock = useCallback(() => {
+    editor?.chain().focus().toggleCodeBlock().run();
+  }, [editor]);
+
+  const toggleUnderline = useCallback(() => {
+    editor?.chain().focus().toggleUnderline().run();
+  }, [editor]);
+
+  const toggleBulletList = useCallback(() => {
+    editor?.chain().focus().toggleBulletList().run();
+  }, [editor]);
+
   if (!editor) {
     return null;
   }
@@ -49,27 +95,21 @@ function EditorMenu({ editor }: { editor: Editor | null }) {
       <div className="flex gap-2">
         <ToolButton
           editor={editor}
-          onButtonClick={() =>
-            editor.chain().focus().toggleHeading({ level: 1 }).run()
-          }
+          onButtonClick={toggleHeading1}
           isActive={editor.isActive("heading", { level: 1 })}
         >
           <Heading1 size={18} />
         </ToolButton>
         <ToolButton
           editor={editor}
-          onButtonClick={() =>
-            editor.chain().focus().toggleHeading({ level: 2 }).run()
-          }
+          onButtonClick={toggleHeading2}
           isActive={editor.isActive("heading", { level: 2 })}
         >
           <Heading2 size={18} />
         </ToolButton>
         <ToolButton
           editor={editor}
-          onButtonClick={() =>
-            editor.chain().focus().toggleHeading({ level: 3 }).run()
-          }
+          onButtonClick={toggleHeading3}
           isActive={editor.isActive("heading", { level: 3 })}
         >
           <Heading3 size={18} />
@@ -82,35 +122,35 @@ function EditorMenu({ editor }: { editor: Editor | null }) {
       <div className="flex gap-2">
         <ToolButton
           editor={editor}
-          onButtonClick={() => editor.chain().focus().toggleBold().run()}
+          onButtonClick={toggleBold}
           isActive={editor.isActive("bold")}
         >
           <Bold size={18} />
         </ToolButton>
         <ToolButton
           editor={editor}
-          onButtonClick={() => editor.chain().focus().toggleItalic().run()}
+          onButtonClick={toggleItalic}
           isActive={editor.isActive("italic")}
         >
           <Italic size={18} />
         </ToolButton>
         <ToolButton
           editor={editor}
-          onButtonClick={() => editor.chain().focus().toggleStrike().run()}
+          onButtonClick={toggleStrike}
           isActive={editor.isActive("strike")}
         >
           <Strikethrough size={18} />
         </ToolButton>
         <ToolButton
           editor={editor}
-          onButtonClick={() => editor.chain().focus().toggleCodeBlock().run()}
+          onButtonClick={toggleCodeBlock}
           isActive={editor.isActive("codeBlock")}
         >
           <CodeXml size={18} />
         </ToolButton>
         <ToolButton
           editor={editor}
-          onButtonClick={() => editor.chain().focus().toggleUnderline().run()}
+          onButtonClick={toggleUnderline}
           isActive={editor.isActive("underline")}
         >
           <Underline size={18} />
@@ -123,7 +163,7 @@ function EditorMenu({ editor }: { editor: Editor | null }) {
       <div className="flex gap-2">
         <ToolButton
           editor={editor}
-          onButtonClick={() => editor.chain().focus().toggleBulletList().run()}
+          onButtonClick={toggleBulletList}
           isActive={editor.isActive("bulletList")}
         >
           <List size={18} />
@@ -131,9 +171,13 @@ function EditorMenu({ editor }: { editor: Editor | null }) {
       </div>
     </div>
   );
-}
+});
 
-export default function ContentEditor({ editor }: { editor: Editor | null }) {
+const ContentEditor = memo(function ContentEditor({
+  editor,
+}: {
+  editor: Editor | null;
+}) {
   if (!editor) {
     return null;
   }
@@ -150,4 +194,6 @@ export default function ContentEditor({ editor }: { editor: Editor | null }) {
       <EditorMenu editor={editor} />
     </div>
   );
-}
+});
+
+export default ContentEditor;
