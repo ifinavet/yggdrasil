@@ -1,5 +1,3 @@
-import getCompanies from "@/app/(bifrost)/_queries/getCompanies";
-import getInternalMembers from "@/app/(bifrost)/_queries/getInternalMembers";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -8,6 +6,8 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import getCompanies from "@/lib/queries/bifrost/getCompanies";
+import getInternalMembers from "@/lib/queries/bifrost/getInternalMembers";
 import { auth } from "@clerk/nextjs/server";
 import {
   dehydrate,

@@ -1,7 +1,7 @@
 "use server";
 
 import { createServerClient } from "@/utils/supabase/server";
-import { EventFormValues } from "../bifrost/events/schemas/event-form-schema";
+import { EventFormValues } from "../../../utils/bifrost/schemas/event-form-schema";
 
 export default async function createEvent(values: EventFormValues) {
   const supabase = createServerClient();
