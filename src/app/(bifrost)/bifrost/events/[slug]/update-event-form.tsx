@@ -38,6 +38,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import createEvent from "@/lib/queries/bifrost/createEvent";
 import getCompanies from "@/lib/queries/bifrost/getCompanies";
+import getEvent from "@/lib/queries/bifrost/getEvent";
 import getInternalMembers from "@/lib/queries/bifrost/getInternalMembers";
 import { cn } from "@/lib/utils";
 import { zodv4Resolver } from "@/lib/zod-v4-resolver";
@@ -58,24 +59,50 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
-export default function CreateEventForm({ orgId }: { orgId: string }) {
+export default function UpdateEventForm({
+  event_id,
+  orgId,
+}: {
+  event_id: number;
+  orgId: string;
+}) {
+  const {
+    isPending,
+    error,
+    data: event,
+  } = useQuery({
+    queryKey: ["event", event_id],
+    queryFn: () => getEvent(event_id),
+    staleTime: Infinity,
+    enabled: !!orgId,
+  });
+
+  if (isPending || !event) {
+    return <div>Loading...</div>;
+  }
+
+  if (error) {
+    toast.error("Failed to load event");
+    return <div>Error</div>;
+  }
+
   const form = useForm<EventFormValues>({
     resolver: zodv4Resolver(formSchema),
     defaultValues: {
-      title: "",
-      teaser: "",
-      eventDate: new Date(new Date().setHours(16, 0, 0, 0)),
-      registrationDate: new Date(new Date().setHours(12, 0, 0, 0)),
-      description: "",
-      food: "",
-      location: "",
-      ageRestrictions: "",
-      language: "Norsk",
-      participantsLimit: 40,
+      title: event.title,
+      teaser: event.teaser || "",
+      eventDate: new Date(event.event_start),
+      registrationDate: new Date(event.registration_opens),
+      description: event.description || "",
+      food: event.food || "",
+      location: event.location || "",
+      ageRestrictions: event.age_restrictions || "",
+      language: event.language,
+      participantsLimit: event.participants_limit,
       organizers: [],
-      eventType: "internal_event",
-      hostingCompany: undefined,
-      externalUrl: "",
+      eventType: event.external_url ? "external_event" : "internal_event",
+      hostingCompany: event.companies,
+      externalUrl: event.external_url || "",
     },
   });
 
