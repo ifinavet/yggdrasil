@@ -9,10 +9,9 @@ DROP TABLE IF EXISTS points CASCADE;
 DROP TABLE IF EXISTS registrations CASCADE;
 DROP TABLE IF EXISTS event_organizers CASCADE;
 DROP TABLE IF EXISTS events CASCADE;
-DROP TABLE IF EXISTS internals CASCADE;
 DROP TABLE IF EXISTS students CASCADE;
 DROP TABLE IF EXISTS companies CASCADE;
-DROP TABLE IF EXISTS internal_groups CASCADE;
+
 
 -- =============================================================================
 -- CONFIGURATION & FUNCTIONS
@@ -30,15 +29,6 @@ $$ LANGUAGE 'plpgsql';
 -- =============================================================================
 -- CORE TABLES
 -- =============================================================================
-
--- Internal Groups (Independent table)
-CREATE TABLE IF NOT EXISTS internal_groups (
-    group_id SERIAL PRIMARY KEY,
-    group_name TEXT NOT NULL UNIQUE,
-    description TEXT,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-);
 
 -- Companies (Independent table)
 CREATE TABLE IF NOT EXISTS companies (
@@ -59,20 +49,6 @@ CREATE TABLE IF NOT EXISTS students (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Internal users (Clerk user references)
-CREATE TABLE IF NOT EXISTS internals (
-    user_id TEXT NOT NULL DEFAULT auth.jwt()->>'sub' PRIMARY KEY,
-    internal_email TEXT NOT NULL UNIQUE,
-    internal_group_id INTEGER NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW(),
-
-    CONSTRAINT fk_internals_group
-        FOREIGN KEY (internal_group_id)
-        REFERENCES internal_groups(group_id)
-        ON DELETE RESTRICT
-);
-
 -- Events
 CREATE TABLE IF NOT EXISTS events (
     event_id SERIAL PRIMARY KEY,
@@ -88,6 +64,7 @@ CREATE TABLE IF NOT EXISTS events (
     age_restrictions TEXT,
     external_url TEXT,
     company_id INTEGER NOT NULL,
+    visible BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
 
@@ -115,10 +92,6 @@ CREATE TABLE IF NOT EXISTS event_organizers (
     CONSTRAINT fk_event_organizers_event
         FOREIGN KEY (event_id)
         REFERENCES events(event_id)
-        ON DELETE CASCADE,
-    CONSTRAINT fk_event_organizers_user
-        FOREIGN KEY (user_id)
-        REFERENCES internals(user_id)
         ON DELETE CASCADE,
     CONSTRAINT chk_organizer_role
         CHECK (role IN ('main', 'assistant'))
@@ -177,25 +150,20 @@ CREATE INDEX IF NOT EXISTS idx_registrations_status ON registrations(status);
 CREATE INDEX IF NOT EXISTS idx_points_user ON points(user_id);
 CREATE INDEX IF NOT EXISTS idx_points_awarded_time ON points(awarded_time);
 
--- Internal users index
-CREATE INDEX IF NOT EXISTS idx_internals_group ON internals(internal_group_id);
-
 -- =============================================================================
 -- TRIGGERS FOR AUTO-UPDATING TIMESTAMPS
 -- =============================================================================
 
 -- Drop existing triggers (in case of recreation)
-DROP TRIGGER IF EXISTS update_internal_groups_updated_at ON internal_groups;
+
 DROP TRIGGER IF EXISTS update_companies_updated_at ON companies;
 DROP TRIGGER IF EXISTS update_students_updated_at ON students;
-DROP TRIGGER IF EXISTS update_internals_updated_at ON internals;
+
 DROP TRIGGER IF EXISTS update_events_updated_at ON events;
 DROP TRIGGER IF EXISTS update_registrations_updated_at ON registrations;
 
 -- Create triggers
-CREATE TRIGGER update_internal_groups_updated_at
-    BEFORE UPDATE ON internal_groups
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
 
 CREATE TRIGGER update_companies_updated_at
     BEFORE UPDATE ON companies
@@ -205,9 +173,6 @@ CREATE TRIGGER update_students_updated_at
     BEFORE UPDATE ON students
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_internals_updated_at
-    BEFORE UPDATE ON internals
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_events_updated_at
     BEFORE UPDATE ON events
