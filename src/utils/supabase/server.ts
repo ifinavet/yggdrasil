@@ -1,29 +1,18 @@
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { auth } from "@clerk/nextjs/server";
+import { createClient } from "@supabase/supabase-js";
+import type { Database } from "./database.types";
 
-export const createClient = async () => {
-  const cookieStore = await cookies();
+export function createServerClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options);
-            });
-          } catch (error) {
-            // The `set` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
-          }
-        },
-      },
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error("Missing required Supabase environment variables");
+  }
+
+  return createClient<Database>(supabaseUrl, supabaseAnonKey, {
+    async accessToken() {
+      return (await auth()).getToken();
     },
-  );
-};
+  });
+}

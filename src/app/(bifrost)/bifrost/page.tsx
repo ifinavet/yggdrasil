@@ -1,23 +1,14 @@
-import TitleUpdater from "./title-updater";
+import { auth } from "@clerk/nextjs/server";
 
-const welcome_messages: { [key: number]: string } = {
-    0: "God søndag!",
-    1: "God mandag!",
-    2: "God tirsdag!",
-    3: "God onsdag!",
-    4: "God torsdag!",
-    5: "God fredag!",
-    6: "God lørdag!",
-};
+export default async function Page() {
+  const { userId, redirectToSignIn } = await auth();
 
-export default async function Bifrost() {
-    const dayOfTheWeek = new Date().getDay();
+  if (!userId) return redirectToSignIn();
 
-    return (
-        <div>
-            <TitleUpdater title='Velkommen naver, til bifrost' />
-            <h1>{welcome_messages[dayOfTheWeek]}</h1>
-            <p>Hei! Her kommer det noe kult!</p>
-        </div>
-    );
+  return (
+    <div>
+      <h1>Welcome to Bifrost!</h1>
+      <p>This is the home page of Bifrost.</p>
+    </div>
+  );
 }
