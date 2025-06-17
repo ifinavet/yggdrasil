@@ -1,8 +1,5 @@
 "use client";
 
-import createEvent from "@/app/(bifrost)/_queries/createEvent";
-import getCompanies from "@/app/(bifrost)/_queries/getCompanies";
-import getInternalMembers from "@/app/(bifrost)/_queries/getInternalMembers";
 import ContentEditor from "@/components/bifrost/markdown-editor";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,6 +33,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import createEvent from "@/lib/queries/bifrost/createEvent";
+import getCompanies from "@/lib/queries/bifrost/getCompanies";
+import getInternalMembers from "@/lib/queries/bifrost/getInternalMembers";
 import { cn } from "@/lib/utils";
 import { zodv4Resolver } from "@/lib/zod-v4-resolver";
 import { OrganizerType } from "@/shared/enums";
@@ -50,7 +50,10 @@ import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { EventFormValues, formSchema } from "../schemas/event-form-schema";
+import {
+  EventFormValues,
+  formSchema,
+} from "../../../../../utils/bifrost/schemas/event-form-schema";
 import { createColumns } from "./columns";
 import OrganizersTable from "./data-table";
 import DateTimePicker from "./date-time-picker";
