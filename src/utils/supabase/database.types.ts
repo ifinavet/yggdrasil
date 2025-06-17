@@ -11,24 +11,24 @@ export type Database = {
     Tables: {
       companies: {
         Row: {
-          address: string | null
           company_id: number
           company_name: string
           created_at: string | null
+          org_number: string | null
           updated_at: string | null
         }
         Insert: {
-          address?: string | null
           company_id?: number
           company_name: string
           created_at?: string | null
+          org_number?: string | null
           updated_at?: string | null
         }
         Update: {
-          address?: string | null
           company_id?: number
           company_name?: string
           created_at?: string | null
+          org_number?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -77,7 +77,8 @@ export type Database = {
           description: string | null
           event_id: number
           event_start: string
-          food_served: string | null
+          external_url: string | null
+          food: string
           language: string
           location: string
           participants_limit: number
@@ -85,6 +86,7 @@ export type Database = {
           teaser: string | null
           title: string
           updated_at: string | null
+          visible: boolean
         }
         Insert: {
           age_restrictions?: string | null
@@ -93,7 +95,8 @@ export type Database = {
           description?: string | null
           event_id?: number
           event_start: string
-          food_served?: string | null
+          external_url?: string | null
+          food: string
           language?: string
           location: string
           participants_limit: number
@@ -101,6 +104,7 @@ export type Database = {
           teaser?: string | null
           title: string
           updated_at?: string | null
+          visible?: boolean
         }
         Update: {
           age_restrictions?: string | null
@@ -109,7 +113,8 @@ export type Database = {
           description?: string | null
           event_id?: number
           event_start?: string
-          food_served?: string | null
+          external_url?: string | null
+          food?: string
           language?: string
           location?: string
           participants_limit?: number
@@ -117,6 +122,7 @@ export type Database = {
           teaser?: string | null
           title?: string
           updated_at?: string | null
+          visible?: boolean
         }
         Relationships: [
           {

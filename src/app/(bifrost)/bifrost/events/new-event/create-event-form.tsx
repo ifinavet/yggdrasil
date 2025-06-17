@@ -1,5 +1,6 @@
 "use client";
 
+import createEvent from "@/app/(bifrost)/_queries/createEvent";
 import getCompanies from "@/app/(bifrost)/_queries/getCompanies";
 import getInternalMembers from "@/app/(bifrost)/_queries/getInternalMembers";
 import ContentEditor from "@/components/bifrost/markdown-editor";
@@ -39,58 +40,23 @@ import { cn } from "@/lib/utils";
 import { zodv4Resolver } from "@/lib/zod-v4-resolver";
 import { OrganizerType } from "@/shared/enums";
 import { Separator } from "@radix-ui/react-separator";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Placeholder } from "@tiptap/extension-placeholder";
 import { Underline } from "@tiptap/extension-underline";
 import { useEditor } from "@tiptap/react";
 import { StarterKit } from "@tiptap/starter-kit";
 import { Check, ChevronsUpDown } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
-import z from "zod/v4";
-import { columns } from "./columns";
+import { toast } from "sonner";
+import { EventFormValues, formSchema } from "../schemas/event-form-schema";
+import { createColumns } from "./columns";
 import OrganizersTable from "./data-table";
-
-export const formSchema = z.object({
-  title: z
-    .string("")
-    .min(1, "Tittel er påkrevd")
-    .min(10, "Tittelen må være minst 10 tegn"),
-  teaser: z
-    .string()
-    .min(1, "Vi trenger en liten teaser!")
-    .min(10, "Teaser må være minst 10 tegn")
-    .max(250, "Teaser kan være maks 250 tegn"),
-  eventDate: z.date("Dato og tid for arrangementet er påkrevd"),
-  registrationDate: z.date("Dato og tid for åpning av påmelding er påkrevd"),
-  description: z
-    .string()
-    .min(1, "Det er veldig med en beskrivelse av arrangementet"),
-  food: z.string().min(1, "Skulle vi hatt noe mat kanskje?"),
-  location: z.string().min(1, "Hvor skal arrangementet foregå?"),
-  ageRestrictions: z
-    .string()
-    .min(1, "Hvem alle få lov til å være på arrangementet?"),
-  language: z.string().min(1, "Husk å spesifisere språk"),
-  participantsLimit: z.number("Deltakergrense er påkrevd"),
-  eventType: z.enum(["internal_event", "external_event"]),
-  hostingCompany: z.object(
-    { company_name: z.string(), company_id: z.number() },
-    "Hvem skal arrangere arrangementet?",
-  ),
-  organizers: z
-    .array(
-      z.object({
-        id: z.string(),
-        role: z.enum(["main", "assistant"]),
-      }),
-    )
-    .min(1, { message: "Må ha minst en arrangør" }),
-  externalUrl: z.string().optional(),
-});
+import DateTimePicker from "./date-time-picker";
 
 export default function CreateEventForm({ orgId }: { orgId: string }) {
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<EventFormValues>({
     resolver: zodv4Resolver(formSchema),
     defaultValues: {
       title: "",
@@ -110,8 +76,22 @@ export default function CreateEventForm({ orgId }: { orgId: string }) {
     },
   });
 
-  const editor = useEditor({
-    extensions: [
+  const handleEditorUpdate = useCallback(
+    ({ editor }: { editor: { getHTML: () => string } }) => {
+      form.setValue("description", editor.getHTML());
+    },
+    [form],
+  );
+
+  const handleEditorCreate = useCallback(
+    ({ editor }: { editor: { getHTML: () => string } }) => {
+      form.setValue("description", editor.getHTML());
+    },
+    [form],
+  );
+
+  const editorExtensions = useMemo(
+    () => [
       StarterKit,
       Placeholder.configure({
         emptyEditorClass:
@@ -120,20 +100,26 @@ export default function CreateEventForm({ orgId }: { orgId: string }) {
       }),
       Underline,
     ],
-    editorProps: {
+    [],
+  );
+
+  const editorProps = useMemo(
+    () => ({
       attributes: {
         class:
           "prose prose-sm prose-base max-w-none sm:prose-sm m-5 focus:outline-none dark:prose-invert",
       },
-    },
-    onUpdate({ editor }) {
-      form.setValue("description", editor.getHTML());
-    },
+    }),
+    [],
+  );
+
+  const editor = useEditor({
+    extensions: editorExtensions,
+    editorProps: editorProps,
+    onUpdate: handleEditorUpdate,
     immediatelyRender: false,
     content: "",
-    onCreate({ editor }) {
-      form.setValue("description", editor.getHTML());
-    },
+    onCreate: handleEditorCreate,
   });
 
   const watchedEventType = form.watch("eventType");
@@ -144,13 +130,15 @@ export default function CreateEventForm({ orgId }: { orgId: string }) {
   const [openMembers, setOpenMembers] = useState(false);
   const selectedMember = useRef("");
 
-  const selectedOrganizerType = useRef<"main" | "assistant">("assistant");
+  const [selectedOrganizerType, setSelectedOrganizerType] = useState<
+    "main" | "assistant"
+  >("assistant");
 
   const [selectedOrganizers, setSelectedOrganizers] = useState<
     {
       id: string;
       name: string;
-      role: "Hovedansvarlig" | "Assisterende";
+      role: "main" | "assistant";
     }[]
   >([]);
 
@@ -169,11 +157,65 @@ export default function CreateEventForm({ orgId }: { orgId: string }) {
     queryFn: () => getInternalMembers(orgId),
   });
 
-  console.log(internalMembers);
+  const handleRoleChange = (
+    organizerId: string,
+    newRole: keyof typeof OrganizerType,
+  ) => {
+    // Update selectedOrganizers state
+    setSelectedOrganizers((prev) =>
+      prev.map((organizer) =>
+        organizer.id === organizerId
+          ? { ...organizer, role: newRole }
+          : organizer,
+      ),
+    );
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
-    console.log("Form submitted");
-    console.log(values);
+    // Update form field
+    const currentOrganizers = form.getValues("organizers");
+    const updatedOrganizers = currentOrganizers.map((organizer) =>
+      organizer.id === organizerId
+        ? { ...organizer, role: newRole }
+        : organizer,
+    );
+    form.setValue("organizers", updatedOrganizers);
+  };
+
+  const handleDeleteOrganizer = (organizerId: string) => {
+    // Remove from selectedOrganizers state
+    setSelectedOrganizers((prev) =>
+      prev.filter((organizer) => organizer.id !== organizerId),
+    );
+
+    // Remove from form field
+    const currentOrganizers = form.getValues("organizers");
+    const updatedOrganizers = currentOrganizers.filter(
+      (organizer) => organizer.id !== organizerId,
+    );
+    form.setValue("organizers", updatedOrganizers);
+  };
+
+  const columns = createColumns(handleRoleChange, handleDeleteOrganizer);
+
+  const router = useRouter();
+  const { mutate } = useMutation({
+    mutationFn: (values: EventFormValues) => createEvent(values),
+    onSuccess: () => {
+      toast.success("Arrangementet ble opprettet!", {
+        description: `Arrangement opprettet, ${new Date().toLocaleDateString()}`,
+      });
+      router.push("/bifrost/events");
+    },
+    onError: (error) => {
+      console.error(error);
+      console.error("Noe gikk galt!");
+      toast.error("Noe gikk galt!", {
+        description: error.message,
+      });
+    },
+  });
+
+  const onSubmit = async (values: EventFormValues) => {
+    mutate(values);
   };
 
   return (
@@ -343,6 +385,20 @@ export default function CreateEventForm({ orgId }: { orgId: string }) {
           />
         </div>
         <Separator />
+        <div className="grid sm:grid-cols-2 gap-4">
+          <DateTimePicker
+            form={form}
+            formField="eventDate"
+            label="Dato og tid for arrangements start"
+            description="Velg dato og tid for når arrangementet starter"
+          />
+          <DateTimePicker
+            form={form}
+            formField="registrationDate"
+            label="Dato og til for påmelding"
+            description="Velg dato og tid for åpning av påmeldingen av arrangementet"
+          />
+        </div>
         <Separator />
         <FormField
           control={form.control}
@@ -446,10 +502,11 @@ export default function CreateEventForm({ orgId }: { orgId: string }) {
                     </Popover>
                     <Select
                       onValueChange={(value: string) => {
-                        selectedOrganizerType.current =
-                          value as keyof typeof OrganizerType;
+                        setSelectedOrganizerType(
+                          value as keyof typeof OrganizerType,
+                        );
                       }}
-                      defaultValue={selectedOrganizerType.current}
+                      value={selectedOrganizerType}
                     >
                       <SelectTrigger className="w-[180px]">
                         <SelectValue placeholder="Ansvarlig type" />
@@ -478,9 +535,7 @@ export default function CreateEventForm({ orgId }: { orgId: string }) {
                             {
                               id: organizerToAdd.id,
                               name: organizerToAdd.fullname ?? "ukjent",
-                              role:
-                                OrganizerType[selectedOrganizerType.current] ||
-                                "Assisterende",
+                              role: selectedOrganizerType || "assistant",
                             },
                           ]);
 
@@ -488,8 +543,7 @@ export default function CreateEventForm({ orgId }: { orgId: string }) {
                           if (
                             !currentOrganizers.includes({
                               id: organizerToAdd.id,
-                              role:
-                                selectedOrganizerType.current || "assistant",
+                              role: selectedOrganizerType || "assistant",
                             })
                           ) {
                             field.onChange({
@@ -499,9 +553,7 @@ export default function CreateEventForm({ orgId }: { orgId: string }) {
                                   ...currentOrganizers,
                                   {
                                     id: organizerToAdd.id,
-                                    role:
-                                      selectedOrganizerType.current ||
-                                      "assistant",
+                                    role: selectedOrganizerType || "assistant",
                                   },
                                 ],
                               },
@@ -509,7 +561,7 @@ export default function CreateEventForm({ orgId }: { orgId: string }) {
                           }
 
                           selectedMember.current = "";
-                          selectedOrganizerType.current = "assistant";
+                          setSelectedOrganizerType("assistant");
                         }
                       }}
                     >
