@@ -13,7 +13,6 @@ A modern web application built with Next.js and Supabase that connects computer 
   <a href="#quick-start"><strong>Quick Start</strong></a> ·
   <a href="#development"><strong>Development</strong></a> ·
   <a href="#project-structure"><strong>Project Structure</strong></a> ·
-  <a href="#testing"><strong>Testing</strong></a> ·
   <a href="#contributing"><strong>Contributing</strong></a> ·
   <a href="#deployment"><strong>Deployment</strong></a>
 </p>
@@ -25,55 +24,55 @@ Required for production:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
+CLERK_SECRET_KEY=your_clerk_secret_key
 ```
 
 ## Features
 
 ### 🚀 **Core Stack**
+
 - **Next.js 15** with App Router and React 19
-- **Supabase** for authentication and database
+- **Clerk** for authentication and user management
+- **Supabase** for database with Clerk integration
 - **TypeScript** for type safety
-- **Tailwind CSS** for styling
+- **Tailwind CSS v4** for styling
 - **shadcn/ui** components
 
 ### 🎨 **UI/UX**
+
 - Modern, responsive design
 - Dark/light theme support with `next-themes`
-- Toast notifications with `sonner`
-- Rich text editing with TipTap
 - Accessible components with Radix UI
+- Lucide React icons
 
 ### 🔐 **Authentication**
-- Cookie-based authentication with `@supabase/ssr`
-- Secure session management across all Next.js features
-- Sign up, sign in, and password reset flows
-- Protected routes and middleware
 
-### 🧪 **Testing**
-- **Unit tests** with Jest and React Testing Library
-- **Integration tests** for API routes and database operations
-- **End-to-end tests** with Playwright
-- **Database tests** for Supabase interactions
-- Comprehensive test coverage reporting
+- **Clerk** for complete authentication solution
+- Secure session management across all Next.js features
+- Sign up, sign in, and user management flows
+- Protected routes with middleware
+- Integration with Supabase using Clerk tokens
 
 ### 📱 **Realms (App Sections)**
-- **Midgard** - Main application area
-- **Bifrost** - Bridge/connection features
-- **Auth Pages** - Authentication flows
+
+- **Midgard** - Main application area with protected routes
+- **Bifrost** - Bridge/connection features and admin tools
 
 ## Quick Start
 
 ### Prerequisites
 
 - Node.js 18+
-- pnpm (recommended) or npm/yarn
+- pnpm
 - Supabase account
+- Clerk account
 
 ### 1. Clone and Install
 
 ```bash
 git clone <repository-url>
-cd Yggdrasil
+cd yggdrasil
 pnpm install
 ```
 
@@ -84,11 +83,14 @@ Create a `.env.local` file in the root directory:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
+CLERK_SECRET_KEY=your_clerk_secret_key
 ```
 
-Get these values from your [Supabase project dashboard](https://app.supabase.com/project/_/settings/api).
+Get Supabase values from your [Supabase project dashboard](https://app.supabase.com/project/_/settings/api).
+Get Clerk values from your [Clerk dashboard](https://dashboard.clerk.com/).
 
-### 4. Start Development
+### 3. Start Development
 
 ```bash
 pnpm dev
@@ -106,21 +108,16 @@ pnpm dev                    # Start development server
 pnpm build                  # Build for production
 pnpm start                  # Start production server
 
-# Testing
-pnpm test                   # Run unit tests
-pnpm test:e2e               # Run end-to-end tests
-pnpm test:all               # Run all tests
-
 # Code Quality
-npx biome check --apply     # Lint and format
+pnpm lint                   # Run Next.js linting
 ```
 
 ### Development Workflow
 
 1. **Feature Development**: Work in feature branches
-2. **Code Quality**: Use Biome for linting and formatting
-3. **Testing**: Write tests for new features
-4. **Type Safety**: Leverage TypeScript and Supabase types
+2. **Code Quality**: Use Next.js built-in linting
+3. **Type Safety**: Leverage TypeScript and Supabase types
+4. **Authentication**: Utilize Clerk for user management
 5. **UI Components**: Use shadcn/ui and maintain design consistency
 
 ## Project Structure
@@ -129,121 +126,79 @@ npx biome check --apply     # Lint and format
 Yggdrasil/
 ├── src/
 │   ├── app/                     # Next.js App Router
-│   │   ├── (auth-pages)/       # Sign in, sign up, forgot password
-│   │   ├── (bifrost)/          # Bridge/connection features
-│   │   └── (midgard)/          # Main application (events, protected pages)
+│   │   ├── (bifrost)/          # Bridge/connection features & admin tools
+│   │   ├── (midgard)/          # Main application
+│   │   │   ├── (protected)/    # Protected routes requiring authentication
+│   │   │   └── login/          # Login page
+│   │   └── api/                # API routes
 │   ├── components/             # Reusable UI components
 │   │   └── ui/                 # shadcn/ui components
-│   ├── supabase/               # Database configuration
-│   ├── lib/                    # Utility libraries
-│   └── hooks/                  # Custom React hooks
-├── __tests__/                  # All test files
-└── playwright-tests/           # End-to-end tests
+│   ├── utils/                  # Utility functions
+│   │   └── supabase/          # Supabase client configuration with Clerk
+│   ├── hooks/                  # Custom React hooks
+│   ├── lib/                    # Core libraries and configurations
+│   └── assets/                 # Static assets
+├── middleware.ts               # Clerk middleware for route protection
+└── db/                         # Database related files
 ```
 
 ### Key Concepts
 
+#### Authentication Flow
+
+- **Clerk Integration**: Complete authentication solution with Supabase database
+- **Protected Routes**: Middleware-based route protection
+- **Token Integration**: Clerk tokens used for Supabase RLS
+
 #### Route Groups
-- `(auth-pages)` - Authentication-related pages
-- `(bifrost)` - Bridge/connection functionality
+
+- `(bifrost)` - Bridge/connection functionality and admin tools
 - `(midgard)` - Main application content
+  - `(protected)` - Routes requiring authentication
+  - `login` - Authentication entry point
 
 #### Component Organization
+
 - **UI Components**: Located in `components/ui/` (shadcn/ui)
 - **Feature Components**: Organized by feature/realm
 - **Shared Components**: Root-level components for common use
 
-#### Testing Strategy
-- **Unit Tests**: Individual component and function testing
-- **Integration Tests**: Feature-level testing with mocked dependencies
-- **Database Tests**: Supabase interaction testing
-- **E2E Tests**: Full user flow testing with Playwright
+## Technology Stack
 
-## Testing
-
-### Running Tests
-
-```bash
-# Quick test run
-pnpm test
-
-# Watch mode for development
-pnpm test:watch
-
-# Coverage report
-pnpm test:coverage
-
-# Specific test types
-pnpm test:unit
-pnpm test:integration
-pnpm test:db
-pnpm test:e2e
-```
-
-### Test Structure
-
-```
-__tests__/
-├── unit/                    # Component and utility tests
-├── integration/             # Feature integration tests
-├── database/                # Supabase/database tests
-├── helpers/                 # Test helper functions
-├── mocks/                   # Mock implementations
-└── utils/                   # Test utilities
-```
-
-### Writing Tests
-
-1. **Unit Tests**: Test individual components and functions
-2. **Integration Tests**: Test feature workflows
-3. **Database Tests**: Test Supabase operations
-4. **E2E Tests**: Test complete user journeys
-
-### Environment Variables
-
-Required for production:
-
-```env
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-```
+| Category            | Technology                 |
+| ------------------- | -------------------------- |
+| **Framework**       | Next.js 15 with App Router |
+| **Language**        | TypeScript                 |
+| **Styling**         | Tailwind CSS v4            |
+| **Components**      | shadcn/ui + Radix UI       |
+| **Database**        | Supabase                   |
+| **Authentication**  | Clerk                      |
+| **Icons**           | Lucide React               |
+| **Themes**          | next-themes                |
+| **Notifications**   | Sonner                     |
+| **Package Manager** | pnpm                       |
 
 ## Contributing 🤝
 
-We'd love your help to make this project even better! To contribute, please follow these steps:
+We'd love your help to make this project even better! To contribute, use github flow and please follow these steps:
 
 1. **Clone** the repository
 2. **Create** a new branch (`git checkout -b feature-branch`)
 3. **Make** your changes
-4. **Write** tests for your changes
+4. **Test** your changes thoroughly
 5. **Commit** your changes (`git commit -m 'Add new feature'`)
 6. **Push** to the branch (`git push origin feature-branch`)
 7. **Open** a pull request
 
-Please make sure your code follows our coding standards and includes appropriate tests.
+Please make sure your code follows our coding standards.
 
 ### Code Standards
 
 - Use TypeScript for type safety
-- Follow the existing code style (Biome)
-- Write tests for new features
+- Follow the existing code style
 - Use semantic commit messages
 - Update documentation as needed
-- Provide as much detail as possible in pull requests
-
-## Technology Stack
-
-| Category | Technology |
-|----------|------------|
-| **Framework** | Next.js 15 with App Router |
-| **Language** | TypeScript |
-| **Styling** | Tailwind CSS |
-| **Components** | shadcn/ui + Radix UI |
-| **Database** | Supabase |
-| **Authentication** | Supabase Auth |
-| **Testing** | Jest, RTL, Playwright |
-| **Code Quality** | Biome |
-| **Package Manager** | pnpm |
+- Provide detailed descriptions in pull requests
 
 ## Reporting Bugs 🐛
 
@@ -262,6 +217,7 @@ For any inquiries, please contact us:
 **Website**: <https://ifinavet.no>
 
 For questions, issues, or contributions:
+
 - 🐛 Report bugs via GitHub issues
 - 💡 Suggest features via GitHub discussions
 - 📖 Check the documentation

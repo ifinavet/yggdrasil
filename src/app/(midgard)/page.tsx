@@ -1,12 +1,15 @@
-import Link from "next/link";
+"use client";
 
-export default async function Home() {
-    return (
-        <>
-            <main className='flex-1 flex flex-col gap-6 px-4'>
-                <h1>Welcome to Navet</h1>
-                <Link href='/sign-in'>Logg inn</Link>
-            </main>
-        </>
-    );
+import { useUser } from "@clerk/nextjs";
+
+export default function Page() {
+  const { user } = useUser();
+
+  console.log(user?.imageUrl);
+  return (
+    <div>
+      <h1>Welcome to Midgard!</h1>
+      <p>This is the home page of Midgard.</p>
+    </div>
+  );
 }
