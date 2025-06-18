@@ -1,5 +1,16 @@
 "use client";
 
+import { Separator } from "@radix-ui/react-separator";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { Placeholder } from "@tiptap/extension-placeholder";
+import { Underline } from "@tiptap/extension-underline";
+import { useEditor } from "@tiptap/react";
+import { StarterKit } from "@tiptap/starter-kit";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { createColumns } from "@/components/bifrost/columns";
 import OrganizersTable from "@/components/bifrost/data-table";
 import DateTimePicker from "@/components/bifrost/date-time-picker";
@@ -43,20 +54,9 @@ import { cn } from "@/lib/utils";
 import { zodv4Resolver } from "@/lib/zod-v4-resolver";
 import { OrganizerType } from "@/shared/enums";
 import {
-  EventFormValues,
+  type EventFormValues,
   formSchema,
 } from "@/utils/bifrost/schemas/event-form-schema";
-import { Separator } from "@radix-ui/react-separator";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { Placeholder } from "@tiptap/extension-placeholder";
-import { Underline } from "@tiptap/extension-underline";
-import { useEditor } from "@tiptap/react";
-import { StarterKit } from "@tiptap/starter-kit";
-import { Check, ChevronsUpDown } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useCallback, useMemo, useRef, useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
 
 export default function CreateEventForm({ orgId }: { orgId: string }) {
   const form = useForm<EventFormValues>({

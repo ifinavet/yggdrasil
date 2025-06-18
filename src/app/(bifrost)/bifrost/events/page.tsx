@@ -1,67 +1,58 @@
+import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query";
+import Link from "next/link";
 import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
+	Breadcrumb,
+	BreadcrumbItem,
+	BreadcrumbLink,
+	BreadcrumbList,
+	BreadcrumbPage,
+	BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
-import {
-  getEvents,
-  getPossibleSemestes,
-} from "@/lib/queries/bifrost/getEvents";
-import {
-  dehydrate,
-  HydrationBoundary,
-  QueryClient,
-} from "@tanstack/react-query";
-import Link from "next/link";
+import { getEvents, getPossibleSemestes } from "@/lib/queries/bifrost/getEvents";
 import EventsGrid from "./events";
 import SelectSemester from "./select-semester";
 
 export default async function Events() {
-  const queryClient = new QueryClient();
+	const queryClient = new QueryClient();
 
-  const year = new Date().getFullYear();
-  const semester = new Date().getMonth() < 6 ? "vår" : "høst";
+	const year = new Date().getFullYear();
+	const semester = new Date().getMonth() < 6 ? "vår" : "høst";
 
-  await queryClient.prefetchQuery({
-    queryKey: ["possible_semesters"],
-    queryFn: getPossibleSemestes,
-  });
+	await queryClient.prefetchQuery({
+		queryKey: ["possible_semesters"],
+		queryFn: getPossibleSemestes,
+	});
 
-  await queryClient.prefetchQuery({
-    queryKey: ["events", { year, semester }],
-    queryFn: () => getEvents({ year, semester }),
-  });
+	await queryClient.prefetchQuery({
+		queryKey: ["events", { year, semester }],
+		queryFn: () => getEvents({ year, semester }),
+	});
 
-  return (
-    <HydrationBoundary state={dehydrate(queryClient)}>
-      <>
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink href="/bifrost">Hjem</BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>Arrangementer</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
+	return (
+		<HydrationBoundary state={dehydrate(queryClient)}>
+			<>
+				<Breadcrumb>
+					<BreadcrumbList>
+						<BreadcrumbItem>
+							<BreadcrumbLink href='/bifrost'>Hjem</BreadcrumbLink>
+						</BreadcrumbItem>
+						<BreadcrumbSeparator />
+						<BreadcrumbItem>
+							<BreadcrumbPage>Arrangementer</BreadcrumbPage>
+						</BreadcrumbItem>
+					</BreadcrumbList>
+				</Breadcrumb>
 
-        <div className="flex justify-between">
-          <SelectSemester />
-          <Button asChild>
-            <Link href="/bifrost/events/new-event">
-              Lag et nytt arrangement
-            </Link>
-          </Button>
-        </div>
+				<div className='flex justify-between'>
+					<SelectSemester />
+					<Button asChild>
+						<Link href='/bifrost/events/new-event'>Lag et nytt arrangement</Link>
+					</Button>
+				</div>
 
-        <EventsGrid />
-      </>
-    </HydrationBoundary>
-  );
+				<EventsGrid />
+			</>
+		</HydrationBoundary>
+	);
 }
