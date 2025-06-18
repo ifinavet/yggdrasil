@@ -1,12 +1,25 @@
-import { clerkMiddleware } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { NextRequest, NextResponse } from "next/server";
 
-export const middleware = clerkMiddleware((auth, req) => {
+const searchParamsMiddleware = (request: NextRequest) => {
   return NextResponse.next({
     headers: {
-      "x-pathname": req.nextUrl.searchParams.toString(),
+      "x-searchParams": request.nextUrl.searchParams.toString(),
     },
   });
+};
+
+const isProtectedRoute = createRouteMatcher(["/bifrost(.*)"]);
+
+export const middleware = clerkMiddleware(async (auth, req) => {
+  const { orgId } = await auth();
+
+  if (isProtectedRoute(req) && orgId !== process.env.NAVET_ORG_ID) {
+    // User is not in the allowed organization
+    return new Response("Forbidden", { status: 403 });
+  }
+
+  return searchParamsMiddleware(req);
 });
 
 export const config = {
