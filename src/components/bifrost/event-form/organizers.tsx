@@ -148,7 +148,7 @@ export default function Organizers({
                   </PopoverTrigger>
                   <PopoverContent className="w-[200px] p-0">
                     <Command>
-                      <CommandInput placeholder="Søk etter et medlem..." />
+                      <CommandInput placeholder="Søk etter en ansvarlig..." />
                       <CommandList>
                         <CommandEmpty>Fant ingen ansvarlige(er).</CommandEmpty>
                         <CommandGroup>
@@ -253,7 +253,8 @@ export default function Organizers({
             </div>
           </FormControl>
           <FormDescription>
-            Velg hvem som skal planlegge og arrangere arrangementet.
+            Velg hvem som er ansvarlig for og skal organisere/planlegge
+            arrangementet.
           </FormDescription>
           <FormMessage />
         </FormItem>
