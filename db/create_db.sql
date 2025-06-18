@@ -103,6 +103,7 @@ CREATE TABLE IF NOT EXISTS registrations (
     registration_id SERIAL PRIMARY KEY,
     event_id INTEGER NOT NULL,
     user_id TEXT NOT NULL DEFAULT auth.jwt()->>'sub',
+    note TEXT DEFAULT NULL,
     status TEXT NOT NULL DEFAULT 'registered',
     registration_time TIMESTAMPTZ DEFAULT NOW(),
     attendance_status TEXT DEFAULT NULL,
