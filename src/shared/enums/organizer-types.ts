@@ -1,4 +1,4 @@
 export enum OrganizerType {
-  "assistant" = "Assisterende",
-  "main" = "Hovedansvarlig",
+	assistant = "Assisterende",
+	main = "Hovedansvarlig",
 }

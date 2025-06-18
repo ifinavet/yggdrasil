@@ -3,16 +3,16 @@
 import { SignedIn, UserButton, useUser } from "@clerk/nextjs";
 
 export default function Page() {
-  const { user } = useUser();
+	const { user } = useUser();
 
-  console.log(user?.imageUrl);
-  return (
-    <div>
-      <h1>Welcome to Midgard!</h1>
-      <p>This is the home page of Midgard.</p>
-      <SignedIn>
-        <UserButton />
-      </SignedIn>
-    </div>
-  );
+	console.log(user?.imageUrl);
+	return (
+		<div>
+			<h1>Welcome to Midgard!</h1>
+			<p>This is the home page of Midgard.</p>
+			<SignedIn>
+				<UserButton />
+			</SignedIn>
+		</div>
+	);
 }
