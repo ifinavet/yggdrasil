@@ -63,7 +63,7 @@ export default function CreateEventForm() {
   return (
     <EventForm
       onDefaultSubmitAction={onDefaultSubmit}
-      onHiddenSubmitAction={onHiddenSubmit}
+      onSecondarySubmitAction={onHiddenSubmit}
       defaultValues={defaultValues}
     />
   );

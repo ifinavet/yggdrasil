@@ -35,6 +35,18 @@ export default async function updateEvent(
     throw event_err_res;
   }
 
+  const organizersToKeep = values.organizers.map((organizer) => organizer.id);
+  const { error: delete_err } = await supabase
+    .from("event_organizers")
+    .delete()
+    .eq("event_id", event_res.event_id)
+    .not("user_id", "in", `(${organizersToKeep.join(",")})`);
+
+  if (delete_err) {
+    console.error("Error deleting event organizers:", delete_err);
+    throw delete_err;
+  }
+
   const { data: organizers_res, error: organizers_err_res } = await supabase
     .from("event_organizers")
     .upsert(

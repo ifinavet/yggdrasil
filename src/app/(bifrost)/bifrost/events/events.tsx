@@ -45,7 +45,7 @@ export default async function EventsGrid() {
                 company_id={event.companies.company_id}
                 date={event.event_start}
                 is_visible={event.visible}
-                is_external={event.external_url !== null}
+                external_url={event.external_url ?? ""}
               />
             ))}
           </div>
@@ -61,7 +61,7 @@ export default async function EventsGrid() {
                 company_id={event.companies.company_id}
                 date={event.event_start}
                 is_visible={event.visible}
-                is_external={event.external_url !== null}
+                external_url={event.external_url ?? ""}
               />
             ))}
           </div>
@@ -79,14 +79,14 @@ async function EventCard({
   company_id,
   date,
   is_visible,
-  is_external,
+  external_url,
 }: {
   title: string;
   event_id: number;
   company_id: number;
   date: string;
   is_visible: boolean;
-  is_external: boolean;
+  external_url?: string;
 }) {
   const supabase = createServerClient();
   const clerk = await clerkClient();
@@ -116,6 +116,8 @@ async function EventCard({
     }) || [],
   );
 
+  const is_external = !(external_url === undefined || external_url === "");
+
   return (
     <Link href={`/bifrost/events/${event_id}`} className="flex flex-col gap-6">
       <Card className="h-full">
@@ -133,7 +135,7 @@ async function EventCard({
             )}
           </div>
           <div className="flex gap-2 flex-wrap">
-            {!is_external && <Badge>Externt arrangement</Badge>}
+            {is_external && <Badge>Externt arrangement</Badge>}
             {!is_visible && <Badge variant="secondary">Avpublisert</Badge>}
           </div>
         </CardContent>
