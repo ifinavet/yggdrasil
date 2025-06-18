@@ -11,6 +11,7 @@ DROP TABLE IF EXISTS event_organizers CASCADE;
 DROP TABLE IF EXISTS events CASCADE;
 DROP TABLE IF EXISTS students CASCADE;
 DROP TABLE IF EXISTS companies CASCADE;
+DROP TABLE IF EXISTS resources CASCADE;
 
 
 -- =============================================================================
@@ -36,6 +37,15 @@ CREATE TABLE IF NOT EXISTS companies (
     company_name TEXT NOT NULL,
     org_number TEXT,
     description TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Resources
+CREATE TABLE IF NOT EXISTS resources (
+    resource_id SERIAL PRIMARY KEY,
+    title TEXT NOT NULL,
+    content TEXT NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -152,6 +162,10 @@ CREATE INDEX IF NOT EXISTS idx_registrations_status ON registrations(status);
 CREATE INDEX IF NOT EXISTS idx_points_user ON points(user_id);
 CREATE INDEX IF NOT EXISTS idx_points_awarded_time ON points(awarded_time);
 
+-- Resources indexes
+CREATE INDEX IF NOT EXISTS idx_resources_title ON resources(title);
+CREATE INDEX IF NOT EXISTS idx_resources_created_at ON resources(created_at);
+
 -- =============================================================================
 -- TRIGGERS FOR AUTO-UPDATING TIMESTAMPS
 -- =============================================================================
@@ -160,6 +174,7 @@ CREATE INDEX IF NOT EXISTS idx_points_awarded_time ON points(awarded_time);
 
 DROP TRIGGER IF EXISTS update_companies_updated_at ON companies;
 DROP TRIGGER IF EXISTS update_students_updated_at ON students;
+DROP TRIGGER IF EXISTS update_resources_updated_at ON resources;
 
 DROP TRIGGER IF EXISTS update_events_updated_at ON events;
 DROP TRIGGER IF EXISTS update_registrations_updated_at ON registrations;
@@ -173,6 +188,10 @@ CREATE TRIGGER update_companies_updated_at
 
 CREATE TRIGGER update_students_updated_at
     BEFORE UPDATE ON students
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_resources_updated_at
+    BEFORE UPDATE ON resources
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 
@@ -191,6 +210,68 @@ CREATE TRIGGER update_registrations_updated_at
 -- Insert IFI-Navet company
 INSERT INTO companies (company_name)
 VALUES ('IFI-Navet');
+
+-- Insert sample event
+INSERT INTO events (
+    title,
+    teaser,
+    description,
+    event_start,
+    registration_opens,
+    participants_limit,
+    location,
+    food,
+    language,
+    age_restrictions,
+    external_url,
+    company_id,
+    visible
+) VALUES (
+    'Teknologiforelesning: Introduksjon til Maskinlæring',
+    'Bli med på en spennende introduksjon til maskinlæringskonsepter og anvendelser i moderne programvareutvikling.',
+    'Denne omfattende teknologiforelesningen vil dekke grunnleggende prinsipper for maskinlæring, inkludert overvåket og uovervåket læring, nevrale nettverk, og praktiske anvendelser innen webutvikling. Perfekt for studenter som ønsker å utvide sin kunnskap innen AI og datavitenskap. Vi vil også diskutere karrieremuligheter innen feltet og gi praktiske eksempler.',
+    '2025-02-15 18:00:00+00',
+    '2025-01-20 09:00:00+00',
+    50,
+    'IFI-bygget, Rom 423',
+    'Pizza og brus blir servert',
+    'Norsk',
+    'Åpent for alle studenter',
+    'https://www.ifi.uio.no/arrangementer/ml-teknologiforelesning',
+    1,
+    true
+);
+
+-- Insert internal sample event
+INSERT INTO events (
+    title,
+    teaser,
+    description,
+    event_start,
+    registration_opens,
+    participants_limit,
+    location,
+    food,
+    language,
+    age_restrictions,
+    external_url,
+    company_id,
+    visible
+) VALUES (
+    'IFI-Navet inviterer til et fantastisk semester!',
+    'Velkommen til IFI-Navet!',
+    '<h2>Vi øsnker å invitere alle IFI studenter til en hyggelig kveld med pizza og sushi og en rekke spennende aktiviteter for å bli kjent med oss!</h2>',
+    '2025-02-08 17:00:00+00',
+    '2025-01-15 08:00:00+00',
+    40,
+    'IFI-bygget, Styrerom 101',
+    'Pizza og sushi',
+    'Norsk',
+    'Kun for IFI studenter',
+    NULL,
+    1,
+    false
+);
 
 -- =============================================================================
 -- SCRIPT COMPLETE
