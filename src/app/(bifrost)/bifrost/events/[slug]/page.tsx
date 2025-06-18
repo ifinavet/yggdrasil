@@ -9,11 +9,12 @@ import {
 } from "@tanstack/react-query";
 import UpdateEventForm from "./update-event-form";
 
-export default async function EventPage({
-  params,
-}: {
-  params: { slug: string };
-}) {
+export default async function EventPage(
+  props: {
+    params: Promise<{ slug: string }>;
+  }
+) {
+  const params = await props.params;
   const event_id = parseInt(params.slug);
   const { orgId, redirectToSignIn } = await auth();
   if (!orgId) return redirectToSignIn();

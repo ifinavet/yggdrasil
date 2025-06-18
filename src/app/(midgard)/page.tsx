@@ -1,6 +1,6 @@
 "use client";
 
-import { useUser } from "@clerk/nextjs";
+import { SignedIn, UserButton, useUser } from "@clerk/nextjs";
 
 export default function Page() {
   const { user } = useUser();
@@ -10,6 +10,9 @@ export default function Page() {
     <div>
       <h1>Welcome to Midgard!</h1>
       <p>This is the home page of Midgard.</p>
+      <SignedIn>
+        <UserButton />
+      </SignedIn>
     </div>
   );
 }

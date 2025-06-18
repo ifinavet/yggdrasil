@@ -1,3 +1,4 @@
+import { OrganizerType } from "@/shared/enums";
 import z from "zod/v4";
 
 export const formSchema = z.object({
@@ -25,14 +26,14 @@ export const formSchema = z.object({
   eventType: z.enum(["internal_event", "external_event"]),
   hostingCompany: z.object(
     { company_name: z.string(), company_id: z.number() },
-    "Hvem skal arrangere arrangementet?"
+    "Hvem skal arrangere arrangementet?",
   ),
   organizers: z
     .array(
       z.object({
         id: z.string(),
-        role: z.enum(["main", "assistant"]),
-      })
+        role: z.custom<keyof typeof OrganizerType>(),
+      }),
     )
     .min(1, { message: "Må ha minst en arrangør" }),
   externalUrl: z.string().optional(),

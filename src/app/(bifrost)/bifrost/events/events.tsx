@@ -18,7 +18,7 @@ import Link from "next/link";
 import { URLSearchParams } from "url";
 
 export default async function EventsGrid() {
-  const pathname = (await headers()).get("x-pathname");
+  const pathname = (await headers()).get("x-searchParams");
   let searchParams: URLSearchParams | undefined;
   if (pathname) searchParams = new URLSearchParams(pathname);
 
