@@ -41,7 +41,7 @@ export default function DescriptionEditor({
       StarterKit,
       Placeholder.configure({
         emptyEditorClass:
-          "before:content-[attr(data-placeholder)] before:float-left before:text-slate-200 before:h-0 before:pointer-events-none",
+          "before:content-[attr(data-placeholder)] before:float-left before:text-muted-foreground before:h-0 before:pointer-events-none",
         placeholder: "Skriv en kjempe kul beskrivelse av arrangementet...",
       }),
       Underline,
