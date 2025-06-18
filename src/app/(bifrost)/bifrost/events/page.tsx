@@ -16,6 +16,7 @@ import {
   HydrationBoundary,
   QueryClient,
 } from "@tanstack/react-query";
+import { Plus } from "lucide-react";
 import Link from "next/link";
 import EventsGrid from "./events";
 import SelectSemester from "./select-semester";
@@ -53,7 +54,9 @@ export default async function Events() {
       <div className="flex justify-between">
         <SelectSemester />
         <Button asChild>
-          <Link href="/bifrost/events/new-event">Lag et nytt arrangement</Link>
+          <Link href="/bifrost/events/new-event">
+            <Plus className="size-4" /> Lag et nytt arrangement
+          </Link>
         </Button>
       </div>
 
