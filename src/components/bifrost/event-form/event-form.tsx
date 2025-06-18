@@ -41,7 +41,7 @@ import {
   formSchema,
 } from "@/utils/bifrost/schemas/event-form-schema";
 import { useQuery } from "@tanstack/react-query";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Check, ChevronsUpDown, EyeOff, Save, Send } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import DateTimePicker from "./date-time-picker";
@@ -50,11 +50,13 @@ import Organizers from "./organizers";
 
 export default function EventForm({
   onDefaultSubmitAction,
-  onHiddenSubmitAction,
+  onSecondarySubmitAction,
+  onTertiarySubmitAction,
   defaultValues,
 }: {
   onDefaultSubmitAction: (values: EventFormValues) => void;
-  onHiddenSubmitAction: (values: EventFormValues) => void;
+  onSecondarySubmitAction: (values: EventFormValues) => void;
+  onTertiarySubmitAction?: (values: EventFormValues) => void;
   defaultValues: EventFormValues;
 }) {
   const form = useForm<EventFormValues>({
@@ -200,7 +202,7 @@ export default function EventForm({
                     <Button
                       variant="outline"
                       aria-expanded={openCompanies}
-                      className="w-[200px] justify-between"
+                      className="justify-between"
                     >
                       {companyValue
                         ? companies?.find(
@@ -210,7 +212,7 @@ export default function EventForm({
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-[200px] p-0">
+                  <PopoverContent className="w-[200px] p-0" align="start">
                     <Command>
                       <CommandInput placeholder="Søk etter bedrift..." />
                       <CommandList>
@@ -264,7 +266,7 @@ export default function EventForm({
           <DateTimePicker
             form={form}
             formField="registrationDate"
-            label="Dato og til for påmelding"
+            label="Dato og tid for åpning av påmelding"
             description="Velg dato og tid for åpning av påmeldingen av arrangementet"
           />
         </div>
@@ -345,22 +347,36 @@ export default function EventForm({
         <Separator />
 
         {/* Submit form */}
-        <div className="flex gap-4">
+        <div className="flex gap-4 mb-4">
           <Button
             type="submit"
             disabled={form.formState.isSubmitting}
             onClick={form.handleSubmit(onDefaultSubmitAction)}
           >
+            <Send />{" "}
             {form.formState.isSubmitting ? "Jobber..." : "Lagre og publiser"}
           </Button>
           <Button
             type="submit"
             disabled={form.formState.isSubmitting}
             variant="secondary"
-            onClick={form.handleSubmit(onHiddenSubmitAction)}
+            onClick={form.handleSubmit(onSecondarySubmitAction)}
           >
-            {form.formState.isSubmitting ? "Jobber..." : "Lagre"}
+            <Save /> {form.formState.isSubmitting ? "Jobber..." : "Lagre"}
           </Button>
+          {onTertiarySubmitAction && (
+            <Button
+              type="submit"
+              disabled={form.formState.isSubmitting}
+              variant="destructive"
+              onClick={form.handleSubmit(onTertiarySubmitAction)}
+            >
+              <EyeOff />{" "}
+              {form.formState.isSubmitting
+                ? "Jobber..."
+                : "Lagre og avpubliser"}
+            </Button>
+          )}
         </div>
       </form>
     </Form>

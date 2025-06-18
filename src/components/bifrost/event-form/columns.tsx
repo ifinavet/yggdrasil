@@ -61,12 +61,12 @@ export const createColumns = (
       return (
         <div className="text-right">
           <Button
-            variant="ghost"
-            size="sm"
+            variant="destructive"
+            size="icon"
             onClick={() => onDelete(row.original.id)}
             title={`Fjern ${row.original.name} som arrangør`}
           >
-            <Trash2 className="h-4 w-4 text-red-500" />
+            <Trash2 className="size-4" />
           </Button>
         </div>
       );

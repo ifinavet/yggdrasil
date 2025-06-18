@@ -125,7 +125,7 @@ export default function Organizers({
       name="organizers"
       render={({ field }) => (
         <FormItem className="flex flex-col">
-          <FormLabel>Arrangtører</FormLabel>
+          <FormLabel>Ansvarlige</FormLabel>
           <FormControl>
             <div className="flex flex-col gap-4">
               <div className="flex gap-4">

@@ -4,7 +4,7 @@ import EventForm from "@/components/bifrost/event-form/event-form";
 import getEvent from "@/lib/queries/bifrost/getEvent";
 import updateEvent from "@/lib/queries/bifrost/updateEvent";
 import { type EventFormValues } from "@/utils/bifrost/schemas/event-form-schema";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -22,7 +22,6 @@ export default function UpdateEventForm({
   } = useQuery({
     queryKey: ["event", event_id],
     queryFn: () => getEvent(event_id),
-    staleTime: Infinity,
     enabled: !!orgId,
   });
 
@@ -56,6 +55,7 @@ export default function UpdateEventForm({
   };
 
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { mutate } = useMutation({
     mutationFn: ({
       values,
@@ -65,6 +65,8 @@ export default function UpdateEventForm({
       visible: boolean;
     }) => updateEvent(event_id, values, visible),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["event", event_id] });
+
       toast.success("Arrangementet ble oppdatert!", {
         description: `Arrangement oppdatert, ${new Date().toLocaleDateString()}`,
       });
@@ -83,14 +85,19 @@ export default function UpdateEventForm({
     mutate({ values, visible: true });
   };
 
-  const onHiddenSubmit = (values: EventFormValues) => {
+  const onSubmit = (values: EventFormValues) => {
+    mutate({ values, visible: event.visible });
+  };
+
+  const onHideSubmit = (values: EventFormValues) => {
     mutate({ values, visible: false });
   };
 
   return (
     <EventForm
       onDefaultSubmitAction={onDefaultSubmit}
-      onHiddenSubmitAction={onHiddenSubmit}
+      onSecondarySubmitAction={onSubmit}
+      onTertiarySubmitAction={onHideSubmit}
       defaultValues={defaultValues}
     />
   );
