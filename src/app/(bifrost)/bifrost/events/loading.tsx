@@ -44,7 +44,7 @@ export default function EventsLoading() {
         </h2>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {Array.from({ length: 6 }).map((_, index) => (
-            <EventCardSkeleton key={`visible-skeleton-${index}`} />
+            <EventCardSkeleton key={`visible-skeleton-${index + 1}`} />
           ))}
         </div>
         <h2 className="scroll-m-20 border-b pb-2 text-2xl font-semibold tracking-tight first:mt-0">
@@ -52,7 +52,7 @@ export default function EventsLoading() {
         </h2>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {Array.from({ length: 3 }).map((_, index) => (
-            <EventCardSkeleton key={`hidden-skeleton-${index}`} />
+            <EventCardSkeleton key={`hidden-skeleton-${index + 1}`} />
           ))}
         </div>
       </div>
