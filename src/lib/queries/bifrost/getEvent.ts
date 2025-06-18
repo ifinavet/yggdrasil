@@ -1,9 +1,12 @@
 "use server";
 
+import { OrganizerType } from "@/shared/enums";
 import { createServerClient } from "@/utils/supabase/server";
+import { clerkClient } from "@clerk/nextjs/server";
 
 export default async function getEvent(id: number) {
   const client = createServerClient();
+  const clerk = await clerkClient();
 
   const { data: event, error } = await client
     .from("events")
@@ -16,5 +19,23 @@ export default async function getEvent(id: number) {
     throw new Error("Failed to fetch event", error);
   }
 
-  return event;
+  const { data: organizers, error: organizersError } = await client
+    .from("event_organizers")
+    .select("user_id, role")
+    .eq("event_id", id);
+
+  if (organizersError) {
+    console.error(organizersError);
+    throw new Error("Failed to fetch organizers", organizersError);
+  }
+
+  const mapped_organizers = await Promise.all(
+    organizers.map(async (organizer) => ({
+      id: organizer.user_id,
+      name: (await clerk.users.getUser(organizer.user_id)).fullName || "Ukjent",
+      role: organizer.role as keyof typeof OrganizerType,
+    })),
+  );
+
+  return { ...event, organizers: mapped_organizers };
 }

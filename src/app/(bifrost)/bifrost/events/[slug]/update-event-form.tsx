@@ -36,10 +36,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import createEvent from "@/lib/queries/bifrost/createEvent";
 import getCompanies from "@/lib/queries/bifrost/getCompanies";
 import getEvent from "@/lib/queries/bifrost/getEvent";
 import getInternalMembers from "@/lib/queries/bifrost/getInternalMembers";
+import updateEvent from "@/lib/queries/bifrost/updateEvent";
 import { cn } from "@/lib/utils";
 import { zodv4Resolver } from "@/lib/zod-v4-resolver";
 import { OrganizerType } from "@/shared/enums";
@@ -99,7 +99,10 @@ export default function UpdateEventForm({
       ageRestrictions: event.age_restrictions || "",
       language: event.language,
       participantsLimit: event.participants_limit,
-      organizers: [],
+      organizers: event.organizers.map((organizer) => ({
+        id: organizer.id,
+        role: organizer.role,
+      })),
       eventType: event.external_url ? "external_event" : "internal_event",
       hostingCompany: event.companies,
       externalUrl: event.external_url || "",
@@ -148,14 +151,16 @@ export default function UpdateEventForm({
     editorProps: editorProps,
     onUpdate: handleEditorUpdate,
     immediatelyRender: false,
-    content: "",
+    content: event.description,
     onCreate: handleEditorCreate,
   });
 
   const watchedEventType = form.watch("eventType");
 
   const [openCompanies, setOpenCompanies] = useState(false);
-  const [companyValue, setCompanyValue] = useState("");
+  const [companyValue, setCompanyValue] = useState(
+    form.watch("hostingCompany").company_name,
+  );
 
   const [openMembers, setOpenMembers] = useState(false);
   const selectedMember = useRef("");
@@ -164,13 +169,9 @@ export default function UpdateEventForm({
     "main" | "assistant"
   >("assistant");
 
-  const [selectedOrganizers, setSelectedOrganizers] = useState<
-    {
-      id: string;
-      name: string;
-      role: "main" | "assistant";
-    }[]
-  >([]);
+  const [selectedOrganizers, setSelectedOrganizers] = useState(
+    event.organizers,
+  );
 
   const isExternalEvent = useMemo(
     () => watchedEventType === "external_event",
@@ -189,7 +190,7 @@ export default function UpdateEventForm({
 
   const handleRoleChange = (
     organizerId: string,
-    newRole: keyof typeof OrganizerType,
+    newRole: "main" | "assistant",
   ) => {
     // Update selectedOrganizers state
     setSelectedOrganizers((prev) =>
@@ -228,10 +229,10 @@ export default function UpdateEventForm({
 
   const router = useRouter();
   const { mutate } = useMutation({
-    mutationFn: (values: EventFormValues) => createEvent(values),
+    mutationFn: (values: EventFormValues) => updateEvent(event_id, values),
     onSuccess: () => {
-      toast.success("Arrangementet ble opprettet!", {
-        description: `Arrangement opprettet, ${new Date().toLocaleDateString()}`,
+      toast.success("Arrangementet ble oppdatert!", {
+        description: `Arrangement oppdatert, ${new Date().toLocaleDateString()}`,
       });
       router.push("/bifrost/events");
     },
@@ -244,7 +245,7 @@ export default function UpdateEventForm({
     },
   });
 
-  const onSubmit = async (values: EventFormValues) => {
+  const onSubmit = (values: EventFormValues) => {
     mutate(values);
   };
 
@@ -480,7 +481,7 @@ export default function UpdateEventForm({
                       <PopoverTrigger asChild>
                         <Button
                           variant="outline"
-                          aria-expanded={openCompanies}
+                          aria-expanded={openMembers}
                           className="w-[200px] justify-between"
                         >
                           {selectedMember.current
@@ -532,9 +533,7 @@ export default function UpdateEventForm({
                     </Popover>
                     <Select
                       onValueChange={(value: string) => {
-                        setSelectedOrganizerType(
-                          value as keyof typeof OrganizerType,
-                        );
+                        setSelectedOrganizerType(value as "main" | "assistant");
                       }}
                       value={selectedOrganizerType}
                     >
@@ -552,7 +551,7 @@ export default function UpdateEventForm({
                     <Button
                       type="button"
                       onClick={() => {
-                        if (!selectedMember && !selectedOrganizers) return;
+                        if (!selectedMember.current) return;
 
                         const organizerToAdd = internalMembers?.find(
                           (internalMember) =>
@@ -570,25 +569,13 @@ export default function UpdateEventForm({
                           ]);
 
                           const currentOrganizers = field.value;
-                          if (
-                            !currentOrganizers.includes({
+                          field.onChange([
+                            ...currentOrganizers,
+                            {
                               id: organizerToAdd.id,
                               role: selectedOrganizerType || "assistant",
-                            })
-                          ) {
-                            field.onChange({
-                              target: {
-                                name: "organizers",
-                                value: [
-                                  ...currentOrganizers,
-                                  {
-                                    id: organizerToAdd.id,
-                                    role: selectedOrganizerType || "assistant",
-                                  },
-                                ],
-                              },
-                            });
-                          }
+                            },
+                          ]);
 
                           selectedMember.current = "";
                           setSelectedOrganizerType("assistant");
