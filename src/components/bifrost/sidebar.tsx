@@ -1,5 +1,3 @@
-import LogoNBlue from "@/assets/navet/logo_n_blaa.webp";
-import LogoBlue from "@/assets/navet/simple_logo_blaa.webp";
 import { SignOutButton } from "@clerk/nextjs";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import {
@@ -18,6 +16,8 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import LogoNBlue from "@/assets/navet/logo_n_blaa.webp";
+import LogoBlue from "@/assets/navet/simple_logo_blaa.webp";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import {
   DropdownMenu,
@@ -33,6 +33,7 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
+  SidebarGroupContent,
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
@@ -124,67 +125,79 @@ export default async function BifrostSidebar() {
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>Tjenester</SidebarGroupLabel>
-          {paths.main.map((item) => (
-            <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton tooltip={item.title} asChild>
-                <Link href={item.path}>
-                  {item.icon && <item.icon />}
-                  <span>{item.title}</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ))}
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {paths.main.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton tooltip={item.title} asChild>
+                    <Link href={item.path}>
+                      {item.icon && <item.icon />}
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
         </SidebarGroup>
         <SidebarGroup>
           <SidebarGroupLabel>Resurser</SidebarGroupLabel>
-          {paths.resources.map((item) => (
-            <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton tooltip={item.title} asChild>
-                <Link href={item.path}>
-                  {item.icon && <item.icon />}
-                  <span>{item.title}</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ))}
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {paths.resources.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton tooltip={item.title} asChild>
+                    <Link href={item.path}>
+                      {item.icon && <item.icon />}
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
         </SidebarGroup>
         {orgRole === "org:admin" && (
           <>
             <SidebarGroup>
-              <SidebarGroupLabel>Administrator sider</SidebarGroupLabel>
-              {paths.admin.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton tooltip={item.title} asChild>
-                    <a
-                      href={item.path}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {item.icon && <item.icon />}
-                      <span>{item.title}</span>
-                    </a>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarGroupLabel>Administrator sider</SidebarGroupLabel>
+                  {paths.admin.map((item) => (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton tooltip={item.title} asChild>
+                        <Link href={item.path}>
+                          {item.icon && <item.icon />}
+                          <span>{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
             </SidebarGroup>
             <SidebarGroup>
               <SidebarGroupLabel>
                 Eksterne tjenester <ExternalLink className="ml-1" />
               </SidebarGroupLabel>
-              {paths.external.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton tooltip={item.title} asChild>
-                    <a
-                      href={item.path}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {item.icon && <item.icon />}
-                      <span>{item.title}</span>
-                    </a>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {paths.external.map((item) => (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton tooltip={item.title} asChild>
+                        <a
+                          href={item.path}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {item.icon && <item.icon />}
+                          <span>{item.title}</span>
+                        </a>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
             </SidebarGroup>
           </>
         )}
