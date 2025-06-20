@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import ResourceForm from "@/components/bifrost/resource-form/resource-form";
-import type { ResourceSchemaValues } from "@/utils/bifrost/schemas/resource-form-schema";
+import type { ResourceFormValues } from "@/utils/bifrost/schemas/resource-form-schema";
 import updateResource from "@/lib/queries/bifrost/resource/updateResource";
 import getResource from "@/lib/queries/bifrost/resource/getResource";
 
@@ -20,7 +20,7 @@ export default function EditResourceForm({ id }: { id: number }) {
 
   if (!resource) return null;
 
-  const defaultValues: ResourceSchemaValues = {
+  const defaultValues: ResourceFormValues = {
     title: resource.title,
     content: resource.content,
     excerpt: resource.excerpt || "",
@@ -32,7 +32,7 @@ export default function EditResourceForm({ id }: { id: number }) {
       values,
       published,
     }: {
-      values: ResourceSchemaValues;
+      values: ResourceFormValues;
       published: boolean;
     }) => updateResource(id, values, published),
     onSuccess: () => {
@@ -52,11 +52,11 @@ export default function EditResourceForm({ id }: { id: number }) {
     },
   });
 
-  const onSubmitAndPublish = (values: ResourceSchemaValues) => {
+  const onSubmitAndPublish = (values: ResourceFormValues) => {
     mutate({ values, published: true });
   };
 
-  const onSubmitAndSave = (values: ResourceSchemaValues) => {
+  const onSubmitAndSave = (values: ResourceFormValues) => {
     mutate({ values, published: resource.published });
   };
 

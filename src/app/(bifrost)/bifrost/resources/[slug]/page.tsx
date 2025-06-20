@@ -18,7 +18,6 @@ export default async function ResourcePage({
   params: { slug: number };
 }) {
   const { orgRole } = await auth();
-  console.log(orgRole);
   const resource = await getResource(params.slug);
 
   return (

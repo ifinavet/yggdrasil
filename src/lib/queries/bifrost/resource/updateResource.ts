@@ -1,11 +1,11 @@
 "use server";
 
-import type { ResourceSchemaValues } from "@/utils/bifrost/schemas/resource-form-schema";
+import type { ResourceFormValues } from "@/utils/bifrost/schemas/resource-form-schema";
 import { createServerClient } from "@/utils/supabase/server";
 
 export default async function updateResource(
   resource_id: number,
-  values: ResourceSchemaValues,
+  values: ResourceFormValues,
   published: boolean,
 ) {
   const supabase = createServerClient();

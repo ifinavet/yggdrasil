@@ -1,3 +1,9 @@
+import { auth } from "@clerk/nextjs/server";
+import {
+  dehydrate,
+  HydrationBoundary,
+  QueryClient,
+} from "@tanstack/react-query";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -6,14 +12,8 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import getCompanies from "@/lib/queries/bifrost/getCompanies";
+import getCompanies from "@/lib/queries/bifrost/company/getCompanies";
 import getInternalMembers from "@/lib/queries/bifrost/getInternalMembers";
-import { auth } from "@clerk/nextjs/server";
-import {
-  dehydrate,
-  HydrationBoundary,
-  QueryClient,
-} from "@tanstack/react-query";
 import CreateEventForm from "./create-event-form";
 
 export default async function NewEvent() {

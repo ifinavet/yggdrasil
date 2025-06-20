@@ -1,5 +1,9 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
+import { Check, ChevronsUpDown, EyeOff, Save, Send } from "lucide-react";
+import { useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import {
   Command,
@@ -33,17 +37,13 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import getCompanies from "@/lib/queries/bifrost/getCompanies";
+import getCompanies from "@/lib/queries/bifrost/company/getCompanies";
 import { cn } from "@/lib/utils";
 import { zodv4Resolver } from "@/lib/zod-v4-resolver";
 import {
   type EventFormValues,
   formSchema,
 } from "@/utils/bifrost/schemas/event-form-schema";
-import { useQuery } from "@tanstack/react-query";
-import { Check, ChevronsUpDown, EyeOff, Save, Send } from "lucide-react";
-import { useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
 import DateTimePicker from "./date-time-picker";
 import DescriptionEditor from "./description-editor";
 import Organizers from "./organizers";
