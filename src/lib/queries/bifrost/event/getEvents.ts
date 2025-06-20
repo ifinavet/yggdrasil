@@ -30,7 +30,7 @@ export async function getEvents({
   const { data: events, error } = await client
     .from("events")
     .select(
-      "event_id, title, event_start, visible, external_url, companies (company_id, company_name)",
+      "event_id, title, event_start, published, external_url, companies (company_id, company_name)",
     )
     .gte("event_start", range_start.toISOString())
     .lte("event_start", range_end.toISOString());
@@ -40,10 +40,10 @@ export async function getEvents({
     throw new Error("No data found");
   }
 
-  const visible = events.filter((event) => event.visible);
-  const hidden = events.filter((event) => !event.visible);
+  const published = events.filter((event) => event.published);
+  const unpublished = events.filter((event) => !event.published);
 
-  return { visible, hidden };
+  return { published, unpublished };
 }
 
 export async function getPossibleSemestes() {

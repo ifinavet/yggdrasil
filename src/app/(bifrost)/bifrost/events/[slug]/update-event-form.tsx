@@ -1,8 +1,8 @@
 "use client";
 
 import EventForm from "@/components/bifrost/event-form/event-form";
-import getEvent from "@/lib/queries/bifrost/getEvent";
-import updateEvent from "@/lib/queries/bifrost/updateEvent";
+import getEvent from "@/lib/queries/bifrost/event/getEvent";
+import updateEvent from "@/lib/queries/bifrost/event/updateEvent";
 import { type EventFormValues } from "@/utils/bifrost/schemas/event-form-schema";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
@@ -59,11 +59,11 @@ export default function UpdateEventForm({
   const { mutate } = useMutation({
     mutationFn: ({
       values,
-      visible,
+      published,
     }: {
       values: EventFormValues;
-      visible: boolean;
-    }) => updateEvent(event_id, values, visible),
+      published: boolean;
+    }) => updateEvent(event_id, values, published),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["event", event_id] });
 
@@ -82,15 +82,15 @@ export default function UpdateEventForm({
   });
 
   const onDefaultSubmit = (values: EventFormValues) => {
-    mutate({ values, visible: true });
+    mutate({ values, published: true });
   };
 
   const onSubmit = (values: EventFormValues) => {
-    mutate({ values, visible: event.visible });
+    mutate({ values, published: event.published });
   };
 
   const onHideSubmit = (values: EventFormValues) => {
-    mutate({ values, visible: false });
+    mutate({ values, published: false });
   };
 
   return (

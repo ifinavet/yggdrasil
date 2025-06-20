@@ -1,5 +1,8 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useCallback } from "react";
 import {
   Select,
   SelectContent,
@@ -7,10 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getPossibleSemestes } from "@/lib/queries/bifrost/getEvents";
-import { useQuery } from "@tanstack/react-query";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useCallback } from "react";
+import { getPossibleSemestes } from "@/lib/queries/bifrost/event/getEvents";
 
 export default function SelectSemester() {
   const router = useRouter();
