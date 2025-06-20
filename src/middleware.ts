@@ -15,9 +15,12 @@ const isProtectedRoute = createRouteMatcher(["/bifrost(.*)"]);
 export const middleware = clerkMiddleware(async (auth, req) => {
   const { orgId } = await auth();
 
-  if (isProtectedRoute(req) && orgId !== process.env.NAVET_ORG_ID) {
-    // User is not in the allowed organization
-    return new Response("Forbidden", { status: 403 });
+  if (isProtectedRoute(req)) {
+    await auth.protect();
+
+    if (orgId !== process.env.NAVET_ORG_ID) {
+      return new Response("Forbidden", { status: 403 });
+    }
   }
 
   return searchParamsMiddleware(req);
