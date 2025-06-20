@@ -191,7 +191,7 @@ const ContentEditor = memo(function ContentEditor({
       <div className="mb-2 h-96 w-full wrap-break-word scroll-auto overflow-scroll overflow-x-hidden horizontal no-scrollbar">
         <EditorContent
           editor={editor}
-          className="sm:p-2 scroll-auto max-h-24 dark:text-white"
+          className="sm:p-2 scroll-auto max-h-24 text-black dark:text-white max-w-[80ch]"
         />
       </div>
       <Separator />
