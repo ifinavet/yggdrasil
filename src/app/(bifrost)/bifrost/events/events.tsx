@@ -1,3 +1,8 @@
+import { URLSearchParams } from "node:url";
+import { clerkClient } from "@clerk/nextjs/server";
+import { Users } from "lucide-react";
+import { headers } from "next/headers";
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -7,15 +12,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { getEvents } from "@/lib/queries/bifrost/getEvents";
+import { getEvents } from "@/lib/queries/bifrost/event/getEvents";
 import { humanReadableDate } from "@/lib/utils";
 import { OrganizerType } from "@/shared/enums";
 import { createServerClient } from "@/utils/supabase/server";
-import { clerkClient } from "@clerk/nextjs/server";
-import { Users } from "lucide-react";
-import { headers } from "next/headers";
-import Link from "next/link";
-import { URLSearchParams } from "node:url";
 
 export default async function EventsGrid() {
   const pathname = (await headers()).get("x-searchParams");
@@ -31,20 +31,20 @@ export default async function EventsGrid() {
 
   return (
     <div className="grid  gap-6">
-      {events?.visible?.length || events?.hidden?.length ? (
+      {events?.published?.length || events?.unpublished?.length ? (
         <>
           <h2 className="scroll-m-20 border-b pb-2 text-2xl font-semibold tracking-tight first:mt-0">
             Publiserte arrangementer
           </h2>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {events?.visible?.map((event) => (
+            {events?.published?.map((event) => (
               <EventCard
                 key={event.event_id}
                 event_id={event.event_id}
                 title={event.title}
                 company_id={event.companies.company_id}
                 date={event.event_start}
-                is_visible={event.visible}
+                is_published={event.published}
                 external_url={event.external_url ?? ""}
               />
             ))}
@@ -53,14 +53,14 @@ export default async function EventsGrid() {
             Skjulte/Påbegynte arrangementer
           </h2>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {events?.hidden?.map((event) => (
+            {events?.unpublished?.map((event) => (
               <EventCard
                 key={event.event_id}
                 event_id={event.event_id}
                 title={event.title}
                 company_id={event.companies.company_id}
                 date={event.event_start}
-                is_visible={event.visible}
+                is_published={event.published}
                 external_url={event.external_url ?? ""}
               />
             ))}
@@ -78,14 +78,14 @@ async function EventCard({
   event_id,
   company_id,
   date,
-  is_visible,
+  is_published,
   external_url,
 }: {
   title: string;
   event_id: number;
   company_id: number;
   date: string;
-  is_visible: boolean;
+  is_published: boolean;
   external_url?: string;
 }) {
   const supabase = createServerClient();
@@ -136,7 +136,7 @@ async function EventCard({
           </div>
           <div className="flex gap-2 flex-wrap">
             {is_external && <Badge>Externt arrangement</Badge>}
-            {!is_visible && <Badge variant="secondary">Avpublisert</Badge>}
+            {!is_published && <Badge variant="secondary">Avpublisert</Badge>}
           </div>
         </CardContent>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">

@@ -1,11 +1,11 @@
 "use client";
 
-import EventForm from "@/components/bifrost/event-form/event-form";
-import createEvent from "@/lib/queries/bifrost/createEvent";
-import type { EventFormValues } from "@/utils/bifrost/schemas/event-form-schema";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import EventForm from "@/components/bifrost/event-form/event-form";
+import createEvent from "@/lib/queries/bifrost/event/createEvent";
+import type { EventFormValues } from "@/utils/bifrost/schemas/event-form-schema";
 
 export default function CreateEventForm() {
   const defaultValues: EventFormValues = {
@@ -32,11 +32,11 @@ export default function CreateEventForm() {
   const { mutate } = useMutation({
     mutationFn: ({
       values,
-      visible,
+      published,
     }: {
       values: EventFormValues;
-      visible: boolean;
-    }) => createEvent(values, visible),
+      published: boolean;
+    }) => createEvent(values, published),
     onSuccess: () => {
       toast.success("Arrangementet ble opprettet!", {
         description: `Arrangement opprettet, ${new Date().toLocaleDateString()}`,
@@ -53,11 +53,11 @@ export default function CreateEventForm() {
   });
 
   const onDefaultSubmit = async (values: EventFormValues) => {
-    mutate({ values, visible: true });
+    mutate({ values, published: true });
   };
 
   const onHiddenSubmit = async (values: EventFormValues) => {
-    mutate({ values, visible: false });
+    mutate({ values, published: false });
   };
 
   return (

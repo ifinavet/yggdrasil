@@ -1,16 +1,17 @@
 "use server";
 
+import type { EventFormValues } from "@/utils/bifrost/schemas/event-form-schema";
 import { createServerClient } from "@/utils/supabase/server";
-import type { EventFormValues } from "../../../utils/bifrost/schemas/event-form-schema";
 
-export default async function createEvent(
+export default async function updateEvent(
+  event_id: number,
   values: EventFormValues,
-  visible: boolean,
+  published: boolean,
 ) {
   const supabase = createServerClient();
   const { data: event_res, error: event_err_res } = await supabase
     .from("events")
-    .insert({
+    .update({
       title: values.title,
       teaser: values.teaser,
       description: values.description,
@@ -23,8 +24,9 @@ export default async function createEvent(
       external_url: values.externalUrl,
       company_id: values.hostingCompany.company_id,
       participants_limit: values.participantsLimit,
-      visible: visible,
+      published,
     })
+    .eq("event_id", event_id)
     .select("event_id")
     .single();
 
@@ -33,9 +35,21 @@ export default async function createEvent(
     throw event_err_res;
   }
 
+  const organizersToKeep = values.organizers.map((organizer) => organizer.id);
+  const { error: delete_err } = await supabase
+    .from("event_organizers")
+    .delete()
+    .eq("event_id", event_res.event_id)
+    .not("user_id", "in", `(${organizersToKeep.join(",")})`);
+
+  if (delete_err) {
+    console.error("Error deleting event organizers:", delete_err);
+    throw delete_err;
+  }
+
   const { data: organizers_res, error: organizers_err_res } = await supabase
     .from("event_organizers")
-    .insert(
+    .upsert(
       values.organizers.map((organizer) => ({
         event_id: event_res.event_id,
         user_id: organizer.id,

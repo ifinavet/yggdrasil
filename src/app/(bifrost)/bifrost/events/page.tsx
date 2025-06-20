@@ -1,4 +1,11 @@
 import {
+  dehydrate,
+  HydrationBoundary,
+  QueryClient,
+} from "@tanstack/react-query";
+import { Plus } from "lucide-react";
+import Link from "next/link";
+import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbLink,
@@ -10,14 +17,7 @@ import { Button } from "@/components/ui/button";
 import {
   getEvents,
   getPossibleSemestes,
-} from "@/lib/queries/bifrost/getEvents";
-import {
-  dehydrate,
-  HydrationBoundary,
-  QueryClient,
-} from "@tanstack/react-query";
-import { Plus } from "lucide-react";
-import Link from "next/link";
+} from "@/lib/queries/bifrost/event/getEvents";
 import EventsGrid from "./events";
 import SelectSemester from "./select-semester";
 
