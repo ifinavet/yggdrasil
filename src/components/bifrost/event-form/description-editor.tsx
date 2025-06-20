@@ -1,5 +1,12 @@
 "use client";
 
+import Link from "@tiptap/extension-link";
+import Placeholder from "@tiptap/extension-placeholder";
+import Underline from "@tiptap/extension-underline";
+import { useEditor } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import { useCallback, useMemo } from "react";
+import type { UseFormReturn } from "react-hook-form";
 import {
   FormControl,
   FormDescription,
@@ -9,12 +16,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import type { EventFormValues } from "@/utils/bifrost/schemas/event-form-schema";
-import Placeholder from "@tiptap/extension-placeholder";
-import Underline from "@tiptap/extension-underline";
-import { useEditor } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import { useCallback, useMemo } from "react";
-import type { UseFormReturn } from "react-hook-form";
 import ContentEditor from "../markdown-editor";
 
 export default function DescriptionEditor({
@@ -45,6 +46,12 @@ export default function DescriptionEditor({
         placeholder: "Skriv en kjempe kul beskrivelse av arrangementet...",
       }),
       Underline,
+      Link.configure({
+        openOnClick: true,
+        defaultProtocol: "https",
+        protocols: ["https", "mailto", "tel"],
+        autolink: true,
+      }),
     ],
     [],
   );
