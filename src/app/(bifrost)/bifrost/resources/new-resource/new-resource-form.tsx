@@ -5,12 +5,12 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import ResourceForm from "@/components/bifrost/resource-form/resource-form";
 import createResource from "@/lib/queries/bifrost/resource/createResource";
-import type { ResourceSchemaValues } from "@/utils/bifrost/schemas/resource-form-schema";
+import type { ResourceFormValues } from "@/utils/bifrost/schemas/resource-form-schema";
 
 export default function NewResourceForm() {
   const router = useRouter();
 
-  const defaultValues: ResourceSchemaValues = {
+  const defaultValues: ResourceFormValues = {
     title: "",
     content: "",
     excerpt: "",
@@ -22,7 +22,7 @@ export default function NewResourceForm() {
       values,
       published,
     }: {
-      values: ResourceSchemaValues;
+      values: ResourceFormValues;
       published: boolean;
     }) => createResource(values, published),
     onSuccess: () => {
@@ -40,11 +40,11 @@ export default function NewResourceForm() {
     },
   });
 
-  const onSubmitAndPublish = (values: ResourceSchemaValues) => {
+  const onSubmitAndPublish = (values: ResourceFormValues) => {
     mutate({ values, published: true });
   };
 
-  const onSubmitAndSave = (values: ResourceSchemaValues) => {
+  const onSubmitAndSave = (values: ResourceFormValues) => {
     mutate({ values, published: false });
   };
 

@@ -1,4 +1,4 @@
-import getCompanies from "@/lib/queries/bifrost/getCompanies";
+import getCompanies from "@/lib/queries/bifrost/company/getCompanies";
 import getEvent from "@/lib/queries/bifrost/event/getEvent";
 import getInternalMembers from "@/lib/queries/bifrost/getInternalMembers";
 import { auth } from "@clerk/nextjs/server";

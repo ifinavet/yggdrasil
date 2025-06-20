@@ -7,4 +7,4 @@ export const resourceSchema = z.object({
   tag: z.optional(z.string()),
 });
 
-export type ResourceSchemaValues = z.infer<typeof resourceSchema>;
+export type ResourceFormValues = z.infer<typeof resourceSchema>;

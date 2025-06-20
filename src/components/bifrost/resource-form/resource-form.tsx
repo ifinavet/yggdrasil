@@ -23,7 +23,7 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { zodv4Resolver } from "@/lib/zod-v4-resolver";
 import {
-  type ResourceSchemaValues,
+  type ResourceFormValues,
   resourceSchema,
 } from "@/utils/bifrost/schemas/resource-form-schema";
 import { EditorMenu } from "../markdown-editor";
@@ -34,12 +34,12 @@ export default function ResourceForm({
   onSecondarySubmitAction,
   onTertiarySubmitAction,
 }: {
-  defaultValues: ResourceSchemaValues;
-  onPrimarySubmitAction: (values: ResourceSchemaValues) => void;
-  onSecondarySubmitAction: (values: ResourceSchemaValues) => void;
-  onTertiarySubmitAction?: (values: ResourceSchemaValues) => void;
+  defaultValues: ResourceFormValues;
+  onPrimarySubmitAction: (values: ResourceFormValues) => void;
+  onSecondarySubmitAction: (values: ResourceFormValues) => void;
+  onTertiarySubmitAction?: (values: ResourceFormValues) => void;
 }) {
-  const form = useForm<ResourceSchemaValues>({
+  const form = useForm<ResourceFormValues>({
     resolver: zodv4Resolver(resourceSchema),
     defaultValues,
   });
