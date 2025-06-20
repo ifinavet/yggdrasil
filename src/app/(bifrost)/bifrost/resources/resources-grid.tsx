@@ -15,7 +15,7 @@ export default async function ResourcesGrid() {
   const { orgRole } = await auth();
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 mx-4">
       {Object.entries(resources.groupedResources).map(([tag, resources]) => (
         <div key={tag} className="flex flex-col gap-4">
           <h4 className="scroll-m-20 text-xl font-semibold tracking-tight capitalize">
@@ -33,18 +33,18 @@ export default async function ResourcesGrid() {
                 >
                   <div className="h-28 bg-gradient-to-r from-sky-400 to-blue-800 relative">
                     <div className="absolute -bottom-4 left-6">
-                      <div className="w-12 h-12 bg-gray-900 rounded-xl flex items-center justify-center shadow-lg">
-                        <Pencil className="w-6 h-6 text-white" />
+                      <div className="size-12 bg-gray-600 dark:bg-gray-200 rounded-xl flex items-center justify-center shadow-lg">
+                        <Pencil className="size-6 text-white dark:text-black" />
                       </div>
                     </div>
                   </div>
-                  <CardHeader className="pt-8 pb-2">
-                    <CardTitle className="text-xl font-semibold text-gray-900">
+                  <CardHeader className="pt-6">
+                    <CardTitle className="text-xl font-semibold text-accent-foreground">
                       {resource.title}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <CardDescription className="text-gray-600 leading-relaxed">
+                    <CardDescription className="text-primary leading-relaxed">
                       {resource.excerpt}
                     </CardDescription>
                   </CardContent>
