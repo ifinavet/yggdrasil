@@ -37,15 +37,31 @@ CREATE TABLE IF NOT EXISTS companies (
     company_name TEXT NOT NULL,
     org_number TEXT,
     description TEXT,
+    company_image uuid,
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    CONSTRAINT companies_company_image_fkey FOREIGN KEY (company_image) REFERENCES storage.objects(id)
 );
+
+CREATE OR REPLACE VIEW company_images AS
+SELECT
+    c.company_id,
+    o.name
+FROM
+    public.companies c
+INNER JOIN
+    storage.objects o ON c.company_image = o.id;
+
+ALTER VIEW company_images SET (security_invoker = on);
 
 -- Resources
 CREATE TABLE IF NOT EXISTS resources (
     resource_id SERIAL PRIMARY KEY,
     title TEXT NOT NULL,
     content TEXT NOT NULL,
+    excerpt TEXT,
+    tag TEXT,
+    published BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -75,7 +91,7 @@ CREATE TABLE IF NOT EXISTS events (
     age_restrictions TEXT,
     external_url TEXT,
     company_id INTEGER NOT NULL,
-    visible BOOLEAN NOT NULL DEFAULT FALSE,
+    published BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
 
@@ -128,7 +144,7 @@ CREATE TABLE IF NOT EXISTS registrations (
         REFERENCES events(event_id)
         ON DELETE CASCADE,
     CONSTRAINT chk_registration_status
-        CHECK (status IN ('registered', 'waitlist')),
+        CHECK (status IN ('registered','transfer', 'waitlist')),
     CONSTRAINT chk_attendance_status
         CHECK (attendance_status IS NULL OR
                attendance_status IN ('attended', 'no_show', 'late'))
@@ -225,7 +241,7 @@ INSERT INTO events (
     age_restrictions,
     external_url,
     company_id,
-    visible
+    published
 ) VALUES (
     'Teknologiforelesning: Introduksjon til Maskinlæring',
     'Bli med på en spennende introduksjon til maskinlæringskonsepter og anvendelser i moderne programvareutvikling.',
@@ -256,7 +272,7 @@ INSERT INTO events (
     age_restrictions,
     external_url,
     company_id,
-    visible
+    published
 ) VALUES (
     'IFI-Navet inviterer til et fantastisk semester!',
     'Velkommen til IFI-Navet!',

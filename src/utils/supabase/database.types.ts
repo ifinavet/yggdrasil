@@ -12,6 +12,7 @@ export type Database = {
       companies: {
         Row: {
           company_id: number
+          company_image: string | null
           company_name: string
           created_at: string | null
           description: string | null
@@ -20,6 +21,7 @@ export type Database = {
         }
         Insert: {
           company_id?: number
+          company_image?: string | null
           company_name: string
           created_at?: string | null
           description?: string | null
@@ -28,6 +30,7 @@ export type Database = {
         }
         Update: {
           company_id?: number
+          company_image?: string | null
           company_name?: string
           created_at?: string | null
           description?: string | null
@@ -78,11 +81,11 @@ export type Database = {
           language: string
           location: string
           participants_limit: number
+          published: boolean
           registration_opens: string
           teaser: string | null
           title: string
           updated_at: string | null
-          visible: boolean
         }
         Insert: {
           age_restrictions?: string | null
@@ -96,11 +99,11 @@ export type Database = {
           language?: string
           location: string
           participants_limit: number
+          published?: boolean
           registration_opens: string
           teaser?: string | null
           title: string
           updated_at?: string | null
-          visible?: boolean
         }
         Update: {
           age_restrictions?: string | null
@@ -114,11 +117,11 @@ export type Database = {
           language?: string
           location?: string
           participants_limit?: number
+          published?: boolean
           registration_opens?: string
           teaser?: string | null
           title?: string
           updated_at?: string | null
-          visible?: boolean
         }
         Relationships: [
           {
@@ -126,6 +129,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "fk_events_company"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_images"
             referencedColumns: ["company_id"]
           },
         ]
@@ -204,6 +214,39 @@ export type Database = {
           },
         ]
       }
+      resources: {
+        Row: {
+          content: string
+          created_at: string | null
+          excerpt: string | null
+          published: boolean
+          resource_id: number
+          tag: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          excerpt?: string | null
+          published?: boolean
+          resource_id?: number
+          tag?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          excerpt?: string | null
+          published?: boolean
+          resource_id?: number
+          tag?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       students: {
         Row: {
           created_at: string | null
@@ -233,7 +276,13 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      company_images: {
+        Row: {
+          company_id: number | null
+          name: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never
