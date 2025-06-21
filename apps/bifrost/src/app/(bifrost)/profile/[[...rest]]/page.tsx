@@ -1,0 +1,22 @@
+import { SignOutButton } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
+import { Button } from "@workspace/ui/components//button";
+import { DynamicOrganizationProfile, DynamicUserProfile } from "./dynamic-clerk-components";
+
+export default async function Profile() {
+	const { orgRole } = await auth();
+
+	return (
+		<div className='flex flex-col gap-4 justify-start'>
+			<div className='flex flex-wrap gap-4'>
+				<DynamicUserProfile />
+				{orgRole === "org:admin" && <DynamicOrganizationProfile />}
+			</div>
+			<div>
+				<Button asChild variant='destructive'>
+					<SignOutButton>Logg ut</SignOutButton>
+				</Button>
+			</div>
+		</div>
+	);
+}
