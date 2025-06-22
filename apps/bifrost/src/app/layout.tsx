@@ -37,11 +37,6 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const path = (await headers()).get("x-pathname")?.split("/");
-  if (!path) {
-    throw new Error("Invalid path");
-  }
-
   const { orgId } = await auth();
 
   if (!orgId) {

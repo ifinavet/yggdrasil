@@ -18,7 +18,7 @@ export async function updateJobListing(listing_id: number, formData: JobListingF
       application_url: formData.applicationUrl,
       published,
     })
-    .eq("id", listing_id);
+    .eq("listing_id", listing_id);
 
   if (updateError) {
     throw new Error(updateError.message);

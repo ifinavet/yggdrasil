@@ -19,7 +19,7 @@ export const formSchema = z.object({
       z.object({
         contact_id: z.number().optional(),
         name: z.string().min(1, "Navn er påkrevd"),
-        email: z.email().optional(),
+        email: z.string().optional(),
         phone: z.string().optional(),
       }),
     )
