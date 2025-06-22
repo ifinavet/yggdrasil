@@ -1,17 +1,17 @@
 "use server";
 
-import type { ResourceFormValues } from "@/utils/schemas/resource-form-schema";
+import type { ResourceFormValues } from "@/constants/schemas/resource-form-schema";
 import { createServerClient } from "@/utils/supabase/server";
 
 export default async function createResource(formData: ResourceFormValues, published: boolean) {
-	const supabase = createServerClient();
+  const supabase = createServerClient();
 
-	const { error } = await supabase.from("resources").insert({
-		...formData,
-		published,
-	});
+  const { error } = await supabase.from("resources").insert({
+    ...formData,
+    published,
+  });
 
-	if (error) {
-		throw new Error(error.message);
-	}
+  if (error) {
+    throw new Error(error.message);
+  }
 }
