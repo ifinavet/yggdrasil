@@ -1,1 +1,3 @@
-export { default } from "@workspace/ui/postcss.config";
+import config from '../../packages/ui/postcss.config.mjs';
+
+export default config;
