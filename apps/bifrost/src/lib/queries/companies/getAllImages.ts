@@ -1,5 +1,6 @@
 "use server";
 
+import { getRange } from "@/utils/paginate";
 import { createServerClient } from "@/utils/supabase/server";
 
 interface FileObject {
@@ -11,21 +12,27 @@ interface FileObject {
   metadata: Record<string, unknown>;
 }
 
-export default async function getAllCompanyImages(offset: number): Promise<FileObject[]> {
+export default async function getAllCompanyImages({ pageParam }: { pageParam: number }): Promise<{ data: FileObject[], nextPage: number | null }> {
   const client = createServerClient();
+
+  const pageSize = 20;
 
   const { data: company_images, error: company_images_error } = await client.storage
     .from("companies")
     .list("company_images", {
-      limit: 20,
-      offset: offset || 0,
+      limit: pageSize,
+      offset: pageParam,
       sortBy: { column: "created_at", order: "asc" },
     });
 
   if (company_images_error) {
     console.error("Error fetching company images:", company_images_error);
-    return [];
+    return { data: [], nextPage: null };
   }
 
-  return company_images;
+  if (company_images.length === 0) {
+    return { data: [], nextPage: null };
+  }
+
+  return { data: company_images || [], nextPage: pageParam + pageSize };
 }

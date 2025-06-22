@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS companies (
 CREATE OR REPLACE VIEW company_images AS
 SELECT
     c.company_id,
+    o.id,
     o.name
 FROM
     public.companies c

@@ -8,11 +8,14 @@ import type { CompanyFormValues } from "@/constants/schemas/companies-form-schem
 import { createCompany } from "@/lib/queries/companies";
 
 export default function CreateCompanyForm() {
-  const defautlValues: CompanyFormValues = {
+  const defaultValues: CompanyFormValues = {
     company_name: "",
     description: "",
     org_number: "",
-    company_image: "",
+    company_image: {
+      id: "",
+      name: "",
+    },
   };
 
   const router = useRouter();
@@ -39,5 +42,5 @@ export default function CreateCompanyForm() {
     mutate(values);
   };
 
-  return <CompanyForm defaultValues={defautlValues} onPrimarySubmitAction={handleSubmit} />;
+  return <CompanyForm defaultValues={defaultValues} onPrimarySubmitAction={handleSubmit} />;
 }

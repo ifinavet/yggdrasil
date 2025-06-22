@@ -75,19 +75,21 @@ export default function CompanyForm({
 
         <DescriptionEditor form={form} />
 
-        <Button type='submit' disabled={form.formState.isSubmitting}>
-          <Send /> {form.formState.isSubmitting ? "Jobber..." : "Lagre og publiser"}
-        </Button>
-        {onSecondarySubmitAction && (
-          <Button
-            type='button'
-            disabled={form.formState.isSubmitting}
-            variant='destructive'
-            onClick={form.handleSubmit(onSecondarySubmitAction)}
-          >
-            <Trash /> {form.formState.isSubmitting ? "Jobber..." : "Slett Bedrift"}
+        <div className="flex gap-4 mb-4">
+          <Button type='submit' disabled={form.formState.isSubmitting}>
+            <Send /> {form.formState.isSubmitting ? "Jobber..." : "Lagre og publiser"}
           </Button>
-        )}
+          {onSecondarySubmitAction && (
+            <Button
+              type='button'
+              disabled={form.formState.isSubmitting}
+              variant='destructive'
+              onClick={form.handleSubmit(onSecondarySubmitAction)}
+            >
+              <Trash /> {form.formState.isSubmitting ? "Jobber..." : "Slett Bedrift"}
+            </Button>
+          )}
+        </div>
       </form>
     </Form>
   );
