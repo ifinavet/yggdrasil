@@ -11,6 +11,7 @@ import deleteJobListing from "@/lib/queries/job-listings/delete";
 import getJobListingById from "@/lib/queries/job-listings/getById";
 import { getCompanyById } from "@/lib/queries/companies";
 import JobListingFormSkeleton from "@/components/job-listings/job-listing-form-skeleton";
+import { updateJobListing } from "@/lib/queries/job-listings/update";
 
 export default function EditJobListingForm({ listing_id }: { listing_id: number }) {
 
@@ -31,7 +32,7 @@ export default function EditJobListingForm({ listing_id }: { listing_id: number 
   const { mutate } = useMutation({
     mutationKey: ["createJobListing"],
     mutationFn: ({ values, published }: { values: JobListingFormValues; published: boolean }) =>
-      createJobListing(values, published),
+      updateJobListing(joblisting!.listing_id, values, published),
     onSuccess: () => {
       toast.success("Stillingsannonse opprettet!", {
         description: `Annonse opprettet ${humanReadableDate(new Date())}`,

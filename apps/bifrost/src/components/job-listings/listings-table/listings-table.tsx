@@ -1,6 +1,12 @@
 "use client";
 
-import { type ColumnDef, flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table";
+import {
+  type ColumnDef,
+  flexRender,
+  getCoreRowModel,
+  type Row,
+  useReactTable,
+} from "@tanstack/react-table";
 import {
   Table,
   TableBody,
@@ -30,14 +36,14 @@ export function ListingsTable<TData, TValue>({
     getCoreRowModel: getCoreRowModel(),
   });
 
-  const handleRowClick = (row: any) => {
-    if (row.original?.listing_id) {
-      router.push(`/job-listings/${row.original.listing_id}`);
+  const handleRowClick = (row: Row<TData>) => {
+    if ((row.original as any)?.listing_id) {
+      router.push(`/job-listings/${(row.original as any).listing_id}`);
     }
   };
 
   return (
-    <div className="rounded-md">
+    <div className='rounded-md'>
       <Table>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
@@ -58,7 +64,7 @@ export function ListingsTable<TData, TValue>({
               <TableRow
                 key={row.id}
                 data-state={row.getIsSelected() && "selected"}
-                className="cursor-pointer hover:bg-muted/50"
+                className='cursor-pointer hover:bg-muted/50'
                 onClick={() => handleRowClick(row)}
               >
                 {row.getVisibleCells().map((cell) => (

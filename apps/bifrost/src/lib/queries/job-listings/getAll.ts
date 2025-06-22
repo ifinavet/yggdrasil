@@ -7,7 +7,8 @@ export default async function getAllJobListings() {
 
   const { data: jobListings, error: errorOnFetch } = await supabase
     .from("job_listings")
-    .select("*").order("deadline", { ascending: false });
+    .select("listing_id, title, type, deadline, published, companies (company_id, company_name)")
+    .order("deadline", { ascending: false });
 
   if (errorOnFetch || !jobListings) {
     throw new Error(errorOnFetch.message || "Failed to fetch job listings");
