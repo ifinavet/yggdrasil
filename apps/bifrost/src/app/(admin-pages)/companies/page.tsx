@@ -1,4 +1,3 @@
-import { auth } from "@clerk/nextjs/server";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -13,7 +12,6 @@ import Link from "next/link";
 import CompaniesGrid from "@/components/companies/companies-grid";
 
 export default async function Companies() {
-  const { orgRole } = await auth();
 
   return (
     <div>
@@ -29,15 +27,13 @@ export default async function Companies() {
         </BreadcrumbList>
       </Breadcrumb>
 
-      {orgRole === "org:admin" && (
-        <div className='flex justify-end'>
-          <Button asChild>
-            <Link href='/companies/create-company'>
-              <Plus className='size-4' /> Legg til en ny bedrift
-            </Link>
-          </Button>
-        </div>
-      )}
+      <div className='flex justify-end'>
+        <Button asChild>
+          <Link href='/companies/create-company'>
+            <Plus className='size-4' /> Legg til en ny bedrift
+          </Link>
+        </Button>
+      </div>
 
       <CompaniesGrid />
     </div>
