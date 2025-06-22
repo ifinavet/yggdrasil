@@ -4,9 +4,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import EventForm from "@/components/events/event-form/event-form";
-import getEvent from "@/lib/queries/event/getEvent";
-import updateEvent from "@/lib/queries/event/updateEvent";
-import type { EventFormValues } from "@/utils/schemas/event-form-schema";
+import { getEventById, updateEvent } from "@/lib/queries/events";
+import { EventFormValues } from "@/constants/schemas/event-form-schema";
 
 export default function UpdateEventForm({ event_id, orgId }: { event_id: number; orgId: string }) {
   const {
@@ -15,7 +14,7 @@ export default function UpdateEventForm({ event_id, orgId }: { event_id: number;
     data: event,
   } = useQuery({
     queryKey: ["event", event_id],
-    queryFn: () => getEvent(event_id),
+    queryFn: () => getEventById(event_id),
     enabled: !!orgId,
   });
 

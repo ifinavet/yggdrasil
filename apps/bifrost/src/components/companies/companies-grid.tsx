@@ -10,10 +10,10 @@ import {
 import { Pencil } from "lucide-react";
 import Link from "next/link";
 import SafeHtml from "@/components/common/sanitize-html";
-import getCompanies from "@/lib/queries/company/getCompanies";
+import { getAllCompanies } from "@/lib/queries/companies";
 
 export default async function CompaniesGrid() {
-  const companies = await getCompanies();
+  const companies = await getAllCompanies();
 
   return (
     <div className='grid grid-cols-3 gap-4'>

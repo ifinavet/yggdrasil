@@ -12,8 +12,8 @@ import {
 import { Users } from "lucide-react";
 import { headers } from "next/headers";
 import Link from "next/link";
-import { getEvents } from "@/lib/queries/event/getEvents";
-import { OrganizerType } from "@/shared/enums";
+import { OrganizerType } from "@/constants/organizer-types";
+import { getAllEvents } from "@/lib/queries/events";
 import { createServerClient } from "@/utils/supabase/server";
 import { humanReadableDate } from "@/utils/utils";
 
@@ -25,7 +25,7 @@ export default async function EventsGrid() {
   const year = searchParams?.get("year") || new Date().getFullYear().toString();
   const semester = searchParams?.get("semester") || (new Date().getMonth() < 6 ? "vår" : "høst");
 
-  const events = await getEvents({ year: Number.parseInt(year), semester });
+  const events = await getAllEvents({ year: Number.parseInt(year), semester });
 
   return (
     <div className='grid  gap-6'>

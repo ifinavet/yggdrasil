@@ -21,9 +21,9 @@ import { Textarea } from "@workspace/ui/components//textarea";
 import { EyeOff, Save, Send } from "lucide-react";
 import { useCallback, useMemo } from "react";
 import { useForm } from "react-hook-form";
-import { zodv4Resolver } from "@/utils/zod-v4-resolver";
-import { type ResourceFormValues, resourceSchema } from "@/utils/schemas/resource-form-schema";
 import { EditorMenu } from "@/components/common/markdown-editor/markdown-editor";
+import { type ResourceFormValues, resourceSchema } from "@/constants/schemas/resource-form-schema";
+import { zodv4Resolver } from "@/utils/zod-v4-resolver";
 
 export default function ResourceForm({
   defaultValues,

@@ -3,7 +3,7 @@
 import { clerkClient } from "@clerk/nextjs/server";
 import { createServerClient } from "@/utils/supabase/server";
 
-export default async function getRegistrations(event_id: number) {
+export default async function getAllRegistrations(event_id: number) {
   const supabase = createServerClient();
   const clerk = await clerkClient();
 
@@ -37,32 +37,4 @@ export default async function getRegistrations(event_id: number) {
     registered,
     waitlist,
   };
-}
-
-export async function deleteRegistration(event_id: number, user_id: string) {
-  const supabase = createServerClient();
-
-  const { error } = await supabase
-    .from("registrations")
-    .delete()
-    .eq("event_id", event_id)
-    .eq("user_id", user_id);
-
-  if (error) {
-    throw new Error(error.message);
-  }
-}
-
-export async function updateRegistration(event_id: number, user_id: string, status: string) {
-  const supabase = createServerClient();
-
-  const { error } = await supabase
-    .from("registrations")
-    .update({ attendance_status: status })
-    .eq("event_id", event_id)
-    .eq("user_id", user_id);
-
-  if (error) {
-    throw new Error(error.message);
-  }
 }

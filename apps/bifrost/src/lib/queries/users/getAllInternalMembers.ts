@@ -2,7 +2,7 @@
 
 import { clerkClient } from "@clerk/nextjs/server";
 
-export default async function getInternalMembers(orgId: string) {
+export default async function getAllInternalMembers(orgId: string) {
   const client = await clerkClient();
   const { data } = await client.users.getUserList({
     orderBy: "last_name",

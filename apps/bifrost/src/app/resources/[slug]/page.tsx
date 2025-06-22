@@ -11,11 +11,11 @@ import { Button } from "@workspace/ui/components//button";
 import { Separator } from "@workspace/ui/components//separator";
 import Link from "next/link";
 import SafeHtml from "@/components/common/sanitize-html";
-import getResource from "@/lib/queries/resource/getResource";
+import { getResourceById } from "@/lib/queries/resources";
 
 export default async function ResourcePage({ params }: { params: { slug: number } }) {
   const { orgRole } = await auth();
-  const resource = await getResource(params.slug);
+  const resource = await getResourceById(params.slug);
 
   return (
     <>

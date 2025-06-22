@@ -11,7 +11,7 @@ import { Button } from "@workspace/ui/components//button";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import SelectSemester from "@/components/events/select-semester";
-import { getEvents, getPossibleSemestes } from "@/lib/queries/event/getEvents";
+import { getAllEvents, getPossibleSemestes } from "@/lib/queries/events";
 import EventsGrid from "./events";
 
 export default async function Events() {
@@ -27,7 +27,7 @@ export default async function Events() {
 
   await queryClient.prefetchQuery({
     queryKey: ["events", { year, semester }],
-    queryFn: () => getEvents({ year, semester }),
+    queryFn: () => getAllEvents({ year, semester }),
   });
 
   return (
