@@ -16,31 +16,31 @@ export default async function CompaniesGrid() {
   const companies = await getAllCompanies();
 
   return (
-    <div className='grid grid-cols-3 gap-4'>
+    <div className='grid grid-cols-3 gap-4 max-w-7xl'>
       {companies.map((company) => (
-        <Card key={company.company_id}>
-          <CardHeader>
-            <CardTitle>{company.company_name}</CardTitle>
-            <CardAction>
-              <Button variant='outline' size='icon' asChild>
-                <Link href={`/companies/${company.company_id}`}>
+        <Link key={company.company_id} href={`/companies/${company.company_id}`}>
+          <Card>
+            <CardHeader>
+              <CardTitle>{company.company_name}</CardTitle>
+              <CardAction>
+                <Button variant='outline' size='icon'>
                   <Pencil />
-                </Link>
-              </Button>
-            </CardAction>
-          </CardHeader>
-          <CardContent>
-            {company.description && (
-              <SafeHtml
-                html={company.description}
-                className='h-24 *:text-ellipsis overflow-ellipsis overflow-hidden prose dark:prose-invert'
-              />
-            )}
-          </CardContent>
-          <CardFooter>
-            <p>Org. nr: {company.org_number ?? "N/A"}</p>
-          </CardFooter>
-        </Card>
+                </Button>
+              </CardAction>
+            </CardHeader>
+            <CardContent>
+              {company.description && (
+                <SafeHtml
+                  html={company.description}
+                  className='h-24 *:text-ellipsis overflow-ellipsis overflow-hidden prose dark:prose-invert'
+                />
+              )}
+            </CardContent>
+            <CardFooter>
+              <p>Org. nr: {company.org_number ?? "N/A"}</p>
+            </CardFooter>
+          </Card>
+        </Link>
       ))}
     </div>
   );

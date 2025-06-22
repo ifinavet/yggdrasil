@@ -56,7 +56,7 @@ export default function DescriptionEditor({ form }: { form: UseFormReturn<EventF
     () => ({
       attributes: {
         class:
-          "prose prose-sm prose-base max-w-none sm:prose-sm m-5 focus:outline-none dark:prose-invert text-black",
+          "prose prose-sm prose-base max-w-none sm:prose-sm m-5 focus:outline-none dark:prose-invert text-black dark:text-white",
       },
     }),
     [],

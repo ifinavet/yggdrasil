@@ -10,9 +10,9 @@ import {
 import { Button } from "@workspace/ui/components//button";
 import { Plus } from "lucide-react";
 import Link from "next/link";
+import EventsGrid from "@/components/events/events-grid";
 import SelectSemester from "@/components/events/select-semester";
 import { getAllEvents, getPossibleSemestes } from "@/lib/queries/events";
-import EventsGrid from "./events";
 
 export default async function Events() {
   const queryClient = new QueryClient();

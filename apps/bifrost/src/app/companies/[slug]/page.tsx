@@ -8,15 +8,21 @@ import {
 } from "@workspace/ui/components/breadcrumb";
 import Link from "next/link";
 import EditCompanyForm from "./edit-company-form";
-import { getCompanyImageById } from "@/lib/queries/companies";
+import { getCompanyById, getCompanyImageById } from "@/lib/queries/companies";
 
-export default async function CreateCompany({ params }: { params: { slug: number } }) {
+export default async function CreateCompany({ params }: { params: Promise<{ slug: number }> }) {
   const { orgRole } = await auth();
+  const resolvedParams = await params;
   const queryClient = new QueryClient();
 
   await queryClient.prefetchQuery({
-    queryKey: ["company-image", params.slug],
-    queryFn: () => getCompanyImageById(params.slug),
+    queryKey: ["company-image", resolvedParams.slug],
+    queryFn: () => getCompanyImageById(resolvedParams.slug),
+  });
+
+  await queryClient.prefetchQuery({
+    queryKey: ["company", resolvedParams.slug],
+    queryFn: () => getCompanyById(resolvedParams.slug),
   });
 
   if (orgRole !== "org:admin") throw new Response("Forbidden", { status: 403 });
@@ -36,7 +42,7 @@ export default async function CreateCompany({ params }: { params: { slug: number
           <BreadcrumbItem>Administrer bedrift</BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
-      <EditCompanyForm company_id={params.slug} />
+      <EditCompanyForm company_id={resolvedParams.slug} />
     </HydrationBoundary>
   );
 }

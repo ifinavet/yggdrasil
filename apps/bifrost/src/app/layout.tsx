@@ -2,13 +2,13 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { Inter } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import "@workspace/ui/globals.css";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { Toaster } from "@workspace/ui/components/sonner";
-import ReactQueryProvider from "@/providers/react-query-provider";
-import { SidebarInset, SidebarProvider } from "@workspace/ui/components/sidebar";
-import BifrostSidebar from "@/components/common/sidebar";
-import Header from "@/components/common/header";
 import { auth } from "@clerk/nextjs/server";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { SidebarInset, SidebarProvider } from "@workspace/ui/components/sidebar";
+import { Toaster } from "@workspace/ui/components/sonner";
+import Header from "@/components/common/header";
+import BifrostSidebar from "@/components/common/sidebar";
+import ReactQueryProvider from "@/providers/react-query-provider";
 import UnauthorizedPage from "./unauthorized";
 
 const defaultUrl = process.env.VERCEL_URL
@@ -38,33 +38,33 @@ export default async function RootLayout({
   const { orgId } = await auth();
 
   if (!orgId) {
-    return <UnauthorizedPage />
+    return <UnauthorizedPage />;
   }
 
   return (
     <ClerkProvider>
-      <html lang="no" suppressHydrationWarning>
+      <html lang='no' suppressHydrationWarning>
         <body className={`antialiased ${interSans.className}`}>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
-            <ReactQueryProvider>
-              <SidebarProvider>
+          <SidebarProvider>
+            <ThemeProvider
+              attribute='class'
+              defaultTheme='system'
+              enableSystem
+              disableTransitionOnChange
+            >
+              <ReactQueryProvider>
                 <BifrostSidebar />
                 <SidebarInset>
                   <Header />
                   <main className='p-4 flex flex-col gap-4'>{children}</main>
                 </SidebarInset>
-              </SidebarProvider>
-              <Toaster richColors position="top-center" />
-              {process.env.NODE_ENV === "development" && (
-                <ReactQueryDevtools initialIsOpen={false} />
-              )}
-            </ReactQueryProvider>
-          </ThemeProvider>
+                <Toaster richColors position='top-center' />
+                {process.env.NODE_ENV === "development" && (
+                  <ReactQueryDevtools initialIsOpen={false} />
+                )}
+              </ReactQueryProvider>
+            </ThemeProvider>
+          </SidebarProvider>
         </body>
       </html>
     </ClerkProvider>
