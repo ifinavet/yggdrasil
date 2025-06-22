@@ -37,7 +37,9 @@ export function ListingsTable<TData, TValue>({
   });
 
   const handleRowClick = (row: Row<TData>) => {
+    // biome-ignore lint: Artifact of being an generic type
     if ((row.original as any)?.listing_id) {
+      // biome-ignore lint: Artifact of being an generic type
       router.push(`/job-listings/${(row.original as any).listing_id}`);
     }
   };

@@ -16,7 +16,7 @@ export default async function CreateCompany() {
 
   await queryClient.prefetchQuery({
     queryKey: ["company-images", 0],
-    queryFn: () => getAllCompanyImages(0),
+    queryFn: () => getAllCompanyImages({ pageParam: 0 }),
   });
 
   if (orgRole !== "org:admin") throw new Response("Forbidden", { status: 403 });
