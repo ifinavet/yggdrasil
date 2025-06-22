@@ -8,6 +8,8 @@
 DROP TABLE IF EXISTS points CASCADE;
 DROP TABLE IF EXISTS registrations CASCADE;
 DROP TABLE IF EXISTS event_organizers CASCADE;
+DROP TABLE IF EXISTS job_listing_contacts CASCADE;
+DROP TABLE IF EXISTS job_listings CASCADE;
 DROP TABLE IF EXISTS events CASCADE;
 DROP TABLE IF EXISTS students CASCADE;
 DROP TABLE IF EXISTS companies CASCADE;
@@ -108,6 +110,45 @@ CREATE TABLE IF NOT EXISTS events (
 -- JUNCTION & RELATIONSHIP TABLES
 -- =============================================================================
 
+-- Job Listings (Listings of job opportunities)
+CREATE TABLE IF NOT EXISTS job_listings (
+    listing_id SERIAL PRIMARY KEY,
+    title TEXT NOT NULL,
+    type TEXT NOT NULL,
+    teaser TEXT NOT NULL,
+    description TEXT NOT NULL,
+    application_url TEXT NOT NULL,
+    published BOOLEAN NOT NULL DEFAULT FALSE,
+    company_id INTEGER NOT NULL,
+    deadline TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    CONSTRAINT fk_job_listings_company
+        FOREIGN KEY (company_id)
+        REFERENCES companies(company_id)
+        ON DELETE RESTRICT
+);
+
+-- Job Listing Contacts (Contact persons for job listings)
+CREATE TABLE IF NOT EXISTS job_listing_contacts (
+    contact_id SERIAL PRIMARY KEY,
+    listing_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    email TEXT,
+    phone TEXT,
+    CONSTRAINT chk_job_listing_contacts_contact_method CHECK (email IS NOT NULL OR phone IS NOT NULL),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    CONSTRAINT fk_job_listing_contacts_listing
+        FOREIGN KEY (listing_id)
+        REFERENCES job_listings(listing_id)
+        ON DELETE CASCADE
+);
+
+-- =============================================================================
+-- END Job Listings
+-- =============================================================================
+
 -- Event Organizers (Many-to-Many: Events <-> Internal Users)
 CREATE TABLE IF NOT EXISTS event_organizers (
     event_id INTEGER NOT NULL,
@@ -183,6 +224,12 @@ CREATE INDEX IF NOT EXISTS idx_points_awarded_time ON points(awarded_time);
 CREATE INDEX IF NOT EXISTS idx_resources_title ON resources(title);
 CREATE INDEX IF NOT EXISTS idx_resources_created_at ON resources(created_at);
 
+-- Job Listing indexes
+CREATE INDEX IF NOT EXISTS idx_job_listings_deadline ON job_listings(deadline);
+CREATE INDEX IF NOT EXISTS idx_job_listings_company ON job_listings(company_id);
+
+CREATE INDEX IF NOT EXISTS idx_job_listing_contacts_listing ON job_listing_contacts(listing_id);
+
 -- =============================================================================
 -- TRIGGERS FOR AUTO-UPDATING TIMESTAMPS
 -- =============================================================================
@@ -190,6 +237,8 @@ CREATE INDEX IF NOT EXISTS idx_resources_created_at ON resources(created_at);
 -- Drop existing triggers (in case of recreation)
 
 DROP TRIGGER IF EXISTS update_companies_updated_at ON companies;
+DROP TRIGGER IF EXISTS update_job_listings_updated_at ON job_listings;
+DROP TRIGGER IF EXISTS update_job_listing_contacts_updated_at ON job_listing_contacts;
 DROP TRIGGER IF EXISTS update_students_updated_at ON students;
 DROP TRIGGER IF EXISTS update_resources_updated_at ON resources;
 
@@ -218,6 +267,13 @@ CREATE TRIGGER update_events_updated_at
 
 CREATE TRIGGER update_registrations_updated_at
     BEFORE UPDATE ON registrations
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_job_listings_updated_at
+    BEFORE UPDATE ON job_listings
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_job_listing_contacts_updated_at
+    BEFORE UPDATE ON job_listing_contacts
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- =============================================================================

@@ -9,12 +9,14 @@ import {
 } from "@workspace/ui/components//breadcrumb";
 import { Button } from "@workspace/ui/components//button";
 import { Plus } from "lucide-react";
+import { headers } from "next/headers";
 import Link from "next/link";
 import EventsGrid from "@/components/events/events-grid";
 import SelectSemester from "@/components/events/select-semester";
 import { getAllEvents, getPossibleSemestes } from "@/lib/queries/events";
 
 export default async function Events() {
+
   const queryClient = new QueryClient();
 
   const year = new Date().getFullYear();

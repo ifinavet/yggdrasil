@@ -14,32 +14,30 @@ import { format } from "date-fns";
 import { nb } from "date-fns/locale";
 import { CalendarIcon } from "lucide-react";
 import type { UseFormReturn } from "react-hook-form";
-import type { EventFormValues } from "@/constants/schemas/event-form-schema";
+import type { JobListingFormValues } from "@/constants/schemas/job-listing-form-schema";
 import { cn } from "@/utils/utils";
 
 export default function DateTimePicker({
   form,
-  formField,
   label,
   description,
 }: {
-  form: UseFormReturn<EventFormValues>;
-  formField: "eventDate" | "registrationDate";
+  form: UseFormReturn<JobListingFormValues>;
   label: string;
   description: string;
 }) {
   function handleDateSelectEventDate(date: Date | undefined) {
-    const currentDate = form.getValues(formField) || new Date();
+    const currentDate = form.getValues("deadline") || new Date();
     const newDate = date;
 
     if (newDate) {
       newDate.setHours(currentDate.getHours());
       newDate.setMinutes(currentDate.getMinutes());
-      form.setValue(formField, newDate);
+      form.setValue("deadline", newDate);
     }
   }
   function handleTimeChangeEventDate(type: "hour" | "minute", value: string) {
-    const currentDate = form.getValues(formField) || new Date();
+    const currentDate = form.getValues("deadline") || new Date();
     const newDate = new Date(currentDate);
 
     if (type === "hour") {
@@ -49,13 +47,13 @@ export default function DateTimePicker({
       newDate.setMinutes(Number.parseInt(value, 10));
     }
 
-    form.setValue(formField, newDate);
+    form.setValue("deadline", newDate);
   }
 
   return (
     <FormField
       control={form.control}
-      name={formField}
+      name="deadline"
       render={({ field }) => (
         <FormItem className='flex flex-col'>
           <FormLabel>{label}</FormLabel>
