@@ -28,9 +28,12 @@ import {
   BriefcaseIcon,
   BuildingIcon,
   CalendarIcon,
+  ChartScatterIcon,
   ChevronsUpDown,
   DatabaseIcon,
   ExternalLink,
+  GitGraphIcon,
+  GithubIcon,
   LogOut,
   ServerCogIcon,
   UserCogIcon,
@@ -88,6 +91,16 @@ const paths = {
       title: "Vercel",
       icon: ServerCogIcon,
       path: "https://vercel.com/webansvarlig-ifi-navets-projects",
+    },
+    {
+      title: "PostHog",
+      icon: ChartScatterIcon,
+      path: "https://eu.posthog.com/project/54712"
+    },
+    {
+      title: "GitHub",
+      icon: GitGraphIcon,
+      path: "https://github.com/ifinavet/project-yggdrasil"
     },
   ],
 };
