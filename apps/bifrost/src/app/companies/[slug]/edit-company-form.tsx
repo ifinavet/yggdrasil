@@ -1,31 +1,31 @@
 "use client";
 
+import { getCompanyImageById } from "@/lib/queries/companies";
 import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
-import { getCompanyImage } from "@/lib/queries/company/getCompanyImage";
 
 export default function EditCompanyForm({ company_id }: { company_id: number }) {
-	const { data: company_image } = useQuery({
-		queryKey: ["company_image", company_id],
-		queryFn: () => getCompanyImage(company_id),
-	});
+  const { data: company_image } = useQuery({
+    queryKey: ["company_image", company_id],
+    queryFn: () => getCompanyImageById(company_id),
+  });
 
-	console.log(company_image);
+  console.log(company_image);
 
-	if (!company_image) {
-		return <div>Loading...</div>;
-	}
+  if (!company_image) {
+    return <div>Loading...</div>;
+  }
 
-	return (
-		<div>
-			<h1>Edit Company Form</h1>
-			<Image
-				src={company_image.publicUrl}
-				alt='Company Logo'
-				width={100}
-				height={100}
-				className='w-auto h-auto'
-			/>
-		</div>
-	);
+  return (
+    <div>
+      <h1>Edit Company Form</h1>
+      <Image
+        src={company_image.publicUrl}
+        alt='Company Logo'
+        width={100}
+        height={100}
+        className='w-auto h-auto'
+      />
+    </div>
+  );
 }

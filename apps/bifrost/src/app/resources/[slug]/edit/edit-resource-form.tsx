@@ -4,9 +4,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import ResourceForm from "@/components/resources/resource-form/resource-form";
-import getResource from "@/lib/queries/resource/getResource";
-import updateResource from "@/lib/queries/resource/updateResource";
-import type { ResourceFormValues } from "@/utils/schemas/resource-form-schema";
+import { getResourceById, updateResource } from "@/lib/queries/resources";
+import { ResourceFormValues } from "@/constants/schemas/resource-form-schema";
 
 export default function EditResourceForm({ id }: { id: number }) {
   const router = useRouter();
@@ -14,7 +13,7 @@ export default function EditResourceForm({ id }: { id: number }) {
 
   const { data: resource } = useQuery({
     queryKey: ["resource", id],
-    queryFn: () => getResource(id),
+    queryFn: () => getResourceById(id),
     enabled: !!id,
   });
 

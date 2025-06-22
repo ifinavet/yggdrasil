@@ -5,18 +5,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/componen
 import { toast } from "sonner";
 import { createColumns, type Registration } from "@/components/events/registrations/columns";
 import { RegistrationsTable } from "@/components/events/registrations/registrations-table";
-import getRegistrations, {
-  deleteRegistration,
-  updateRegistration,
-} from "@/lib/queries/registrations";
 import { humanReadableDate } from "@/utils/utils";
+import { deleteRegistration, getAllRegistrations, updateRegistration } from "@/lib/queries/registrations";
 
 export function Registrations({ event_id }: { event_id: number }) {
   const queryClient = useQueryClient();
 
   const { data: registrations } = useQuery({
     queryKey: ["registrations", event_id],
-    queryFn: () => getRegistrations(event_id),
+    queryFn: () => getAllRegistrations(event_id),
   });
 
   const { mutate: deleteRegistrationMutation } = useMutation({

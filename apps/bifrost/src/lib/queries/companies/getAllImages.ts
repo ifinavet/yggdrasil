@@ -8,10 +8,10 @@ interface FileObject {
   updated_at: string;
   created_at: string;
   last_accessed_at: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
-export default async function getCompanyImages(offset: number): Promise<FileObject[]> {
+export default async function getAllCompanyImages(offset: number): Promise<FileObject[]> {
   const client = createServerClient();
 
   const { data: company_images, error: company_images_error } = await client.storage

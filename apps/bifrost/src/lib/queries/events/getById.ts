@@ -4,7 +4,7 @@ import { clerkClient } from "@clerk/nextjs/server";
 import type { OrganizerType } from "@/constants/organizer-types";
 import { createServerClient } from "@/utils/supabase/server";
 
-export default async function getEvent(id: number) {
+export default async function getEventById(id: number) {
   const client = createServerClient();
   const clerk = await clerkClient();
 

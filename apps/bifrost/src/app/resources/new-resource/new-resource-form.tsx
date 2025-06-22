@@ -4,8 +4,8 @@ import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import ResourceForm from "@/components/resources/resource-form/resource-form";
-import createResource from "@/lib/queries/resource/createResource";
-import type { ResourceFormValues } from "@/utils/schemas/resource-form-schema";
+import type { ResourceFormValues } from "@/constants/schemas/resource-form-schema";
+import { createResource } from "@/lib/queries/resources";
 
 export default function NewResourceForm() {
   const router = useRouter();
