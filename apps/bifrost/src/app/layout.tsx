@@ -4,8 +4,10 @@ import { ThemeProvider } from "next-themes";
 import "@workspace/ui/globals.css";
 import { auth } from "@clerk/nextjs/server";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@workspace/ui/components/breadcrumb";
 import { SidebarInset, SidebarProvider } from "@workspace/ui/components/sidebar";
 import { Toaster } from "@workspace/ui/components/sonner";
+import { headers } from "next/headers";
 import Header from "@/components/common/header";
 import BifrostSidebar from "@/components/common/sidebar";
 import ReactQueryProvider from "@/providers/react-query-provider";
@@ -35,6 +37,11 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const path = (await headers()).get("x-pathname")?.split("/");
+  if (!path) {
+    throw new Error("Invalid path");
+  }
+
   const { orgId } = await auth();
 
   if (!orgId) {

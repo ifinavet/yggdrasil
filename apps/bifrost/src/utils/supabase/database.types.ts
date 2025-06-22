@@ -148,6 +148,101 @@ export type Database = {
           },
         ]
       }
+      job_listing_contacts: {
+        Row: {
+          contact_id: number
+          created_at: string | null
+          email: string | null
+          listing_id: number
+          name: string
+          phone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          contact_id?: number
+          created_at?: string | null
+          email?: string | null
+          listing_id: number
+          name: string
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          contact_id?: number
+          created_at?: string | null
+          email?: string | null
+          listing_id?: number
+          name?: string
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_job_listing_contacts_listing"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "job_listings"
+            referencedColumns: ["listing_id"]
+          },
+        ]
+      }
+      job_listings: {
+        Row: {
+          application_url: string
+          company_id: number
+          created_at: string | null
+          deadline: string
+          description: string
+          listing_id: number
+          published: boolean
+          teaser: string
+          title: string
+          type: string
+          updated_at: string | null
+        }
+        Insert: {
+          application_url: string
+          company_id: number
+          created_at?: string | null
+          deadline: string
+          description: string
+          listing_id?: number
+          published?: boolean
+          teaser: string
+          title: string
+          type: string
+          updated_at?: string | null
+        }
+        Update: {
+          application_url?: string
+          company_id?: number
+          created_at?: string | null
+          deadline?: string
+          description?: string
+          listing_id?: number
+          published?: boolean
+          teaser?: string
+          title?: string
+          type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_job_listings_company"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "fk_job_listings_company"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_images"
+            referencedColumns: ["company_id"]
+          },
+        ]
+      }
       points: {
         Row: {
           awarded_time: string | null
