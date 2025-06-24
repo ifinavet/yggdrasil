@@ -1,9 +1,9 @@
 import { auth } from "@clerk/nextjs/server";
 import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query";
 import UpdateEventForm from "./update-event-form";
-import { getAllCompanies } from "@/lib/queries/companies";
 import { getAllInternalMembers } from "@/lib/queries/users";
 import { getEventById } from "@/lib/queries/events";
+import { getAllCompanies } from "@workspace/db/companies";
 
 export default async function EventPage(props: { params: Promise<{ slug: string }> }) {
   const params = await props.params;

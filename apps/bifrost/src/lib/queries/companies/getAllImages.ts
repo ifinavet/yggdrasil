@@ -1,6 +1,5 @@
 "use server";
 
-import { getRange } from "@/utils/paginate";
 import { createServerClient } from "@/utils/supabase/server";
 
 interface FileObject {

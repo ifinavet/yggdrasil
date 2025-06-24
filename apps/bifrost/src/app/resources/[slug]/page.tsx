@@ -13,9 +13,9 @@ import Link from "next/link";
 import SafeHtml from "@/components/common/sanitize-html";
 import { getResourceById } from "@/lib/queries/resources";
 
-export default async function ResourcePage({ params }: { params: { slug: number } }) {
+export default async function ResourcePage({ params }: { params: Promise<{ slug: number }> }) {
   const { orgRole } = await auth();
-  const resource = await getResourceById(params.slug);
+  const resource = await getResourceById((await params).slug);
 
   return (
     <>

@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query";
+import { getAllCompanies } from "@workspace/db/companies";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -8,7 +9,6 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@workspace/ui/components//breadcrumb";
-import { getAllCompanies } from "@/lib/queries/companies";
 import { getAllInternalMembers } from "@/lib/queries/users";
 import CreateEventForm from "./create-event-form";
 

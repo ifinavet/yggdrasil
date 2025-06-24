@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { getAllCompanies } from "@workspace/db/companies";
 import { Button } from "@workspace/ui/components//button";
 import {
   Command,
@@ -34,7 +35,6 @@ import { Check, ChevronsUpDown, EyeOff, Save, Send } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { type EventFormValues, formSchema } from "@/constants/schemas/event-form-schema";
-import { getAllCompanies } from "@/lib/queries/companies";
 import { cn } from "@/utils/utils";
 import { zodv4Resolver } from "@/utils/zod-v4-resolver";
 import DateTimePicker from "./date-time-picker";
@@ -185,8 +185,8 @@ export default function EventForm({
                       className='justify-between'
                     >
                       {companyValue
-                        ? companies?.find((company) => company.company_name === companyValue)
-                          ?.company_name
+                        ? companies?.find((company) => company.companyName === companyValue)
+                          ?.companyName
                         : "Velg en bedrift..."}
                       <ChevronsUpDown className='ml-2 h-4 w-4 shrink-0 opacity-50' />
                     </Button>
@@ -199,8 +199,8 @@ export default function EventForm({
                         <CommandGroup>
                           {companies?.map((company) => (
                             <CommandItem
-                              key={company.company_id}
-                              value={company.company_name}
+                              key={company.companyId}
+                              value={company.companyName}
                               onSelect={(currentValue) => {
                                 setCompanyValue(currentValue === companyValue ? "" : currentValue);
                                 field.onChange(company);
@@ -210,12 +210,12 @@ export default function EventForm({
                               <Check
                                 className={cn(
                                   "mr-2 h-4 w-4",
-                                  companyValue === company.company_name
+                                  companyValue === company.companyName
                                     ? "opacity-100"
                                     : "opacity-0",
                                 )}
                               />
-                              {company.company_name}
+                              {company.companyName}
                             </CommandItem>
                           ))}
                         </CommandGroup>

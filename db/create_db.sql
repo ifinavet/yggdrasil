@@ -136,7 +136,6 @@ CREATE TABLE IF NOT EXISTS job_listing_contacts (
     name TEXT NOT NULL,
     email TEXT,
     phone TEXT,
-    CONSTRAINT chk_job_listing_contacts_contact_method CHECK (email IS NOT NULL OR phone IS NOT NULL),
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
     CONSTRAINT fk_job_listing_contacts_listing
@@ -185,11 +184,6 @@ CREATE TABLE IF NOT EXISTS registrations (
         FOREIGN KEY (event_id)
         REFERENCES events(event_id)
         ON DELETE CASCADE,
-    CONSTRAINT chk_registration_status
-        CHECK (status IN ('registered','transfer', 'waitlist')),
-    CONSTRAINT chk_attendance_status
-        CHECK (attendance_status IS NULL OR
-               attendance_status IN ('attended', 'no_show', 'late'))
 );
 
 -- Points (Penalty system for any Clerk user) - No FK to user tables
@@ -259,7 +253,6 @@ CREATE TRIGGER update_students_updated_at
 CREATE TRIGGER update_resources_updated_at
     BEFORE UPDATE ON resources
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
 
 CREATE TRIGGER update_events_updated_at
     BEFORE UPDATE ON events

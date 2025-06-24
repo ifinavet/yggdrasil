@@ -1,5 +1,5 @@
 import EditJobListingForm from "./edit-job-listing-form";
 
-export default function EditJobListingPage({ params }: { params: { slug: number } }) {
-  return <EditJobListingForm listing_id={params.slug} />;
+export default async function EditJobListingPage({ params }: { params: Promise<{ slug: number }> }) {
+  return <EditJobListingForm listing_id={(await params).slug} />;
 }
