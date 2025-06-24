@@ -1,7 +1,7 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import { Inter } from "next/font/google";
 import { ThemeProvider } from "next-themes";
-import "@workspace/ui/globals.css";
+import "./globals.css";
 import { auth } from "@clerk/nextjs/server";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { SidebarInset, SidebarProvider } from "@workspace/ui/components/sidebar";

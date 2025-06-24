@@ -11,10 +11,10 @@ import {
 import EditResourceForm from "./edit-resource-form";
 import { getResourceById } from "@/lib/queries/resources";
 
-export default async function EditResourcePage({ params }: { params: { slug: number } }) {
+export default async function EditResourcePage({ params }: { params: Promise<{ slug: number }> }) {
   const { orgRole } = await auth();
   const queryClient = new QueryClient();
-  const id = params.slug;
+  const id = (await params).slug;
 
   if (!(orgRole === "org:admin" || orgRole === "org:editor")) {
     throw new Error("Forbidden");
