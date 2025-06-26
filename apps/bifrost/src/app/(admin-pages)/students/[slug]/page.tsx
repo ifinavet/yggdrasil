@@ -1,10 +1,18 @@
-import { clerkClient } from "@clerk/nextjs/server";
+import { clerkClient, currentUser, User } from "@clerk/nextjs/server";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@workspace/ui/components/breadcrumb";
-import UpdateStudentForm from "./update-student-form";
+import UpdateStudentForm from "../../../../components/students/update-student-form";
 import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query";
 import { getStudentById } from "@/lib/queries/users/students";
+import { Separator } from "@workspace/ui/components/separator";
 
 export default async function StudentPage({ params }: { params: Promise<{ slug: string }> }) {
+  const user = await currentUser();
+  if (!user) {
+    return <div>Not logged in</div>;
+  }
+
+  const clerk = await clerkClient();
+
   const user_id = await params.then(params => params.slug);
 
   const queryClient = new QueryClient();
