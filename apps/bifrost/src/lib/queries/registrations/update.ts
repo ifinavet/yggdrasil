@@ -1,6 +1,6 @@
 "use server";
 
-import { createServerClient } from "@/utils/supabase/server";
+import { createServerClient } from "@/lib/supabase/server";
 
 export default async function updateRegistration(event_id: number, user_id: string, status: string) {
   const supabase = createServerClient();

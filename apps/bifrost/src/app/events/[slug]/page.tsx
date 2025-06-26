@@ -3,7 +3,7 @@ import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query
 import UpdateEventForm from "./update-event-form";
 import { getAllInternalMembers } from "@/lib/queries/users";
 import { getEventById } from "@/lib/queries/events";
-import { getAllCompanies } from "@workspace/db/companies";
+import { getAllCompanies } from "@/lib/queries/companies";
 
 export default async function EventPage(props: { params: Promise<{ slug: string }> }) {
   const params = await props.params;

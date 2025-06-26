@@ -1,7 +1,7 @@
 "use server";
 
 import type { JobListingFormValues } from "@/constants/schemas/job-listing-form-schema";
-import { createServerClient } from "@/utils/supabase/server";
+import { createServerClient } from "@/lib/supabase/server";
 
 export async function updateJobListing(listing_id: number, formData: JobListingFormValues, published: boolean) {
   const supabase = createServerClient();

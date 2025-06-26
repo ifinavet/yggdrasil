@@ -1,7 +1,7 @@
 "use server";
 
 import type { EventFormValues } from "@/constants/schemas/event-form-schema";
-import { createServerClient } from "@/utils/supabase/server";
+import { createServerClient } from "@/lib/supabase/server";
 
 export default async function createEvent(values: EventFormValues, published: boolean) {
   const supabase = createServerClient();

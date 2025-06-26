@@ -14,7 +14,7 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { OrganizerType } from "@/constants/organizer-types";
 import { getAllEvents } from "@/lib/queries/events";
-import { createServerClient } from "@/utils/supabase/server";
+import { createServerClient } from "@/lib/supabase/server";
 import { humanReadableDate } from "@/utils/utils";
 
 export default async function EventsGrid() {

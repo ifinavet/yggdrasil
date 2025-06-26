@@ -1,7 +1,7 @@
 "use server";
 
 import type { ResourceFormValues } from "@/constants/schemas/resource-form-schema";
-import { createServerClient } from "@/utils/supabase/server";
+import { createServerClient } from "@/lib/supabase/server";
 
 export default async function updateResource(
   resource_id: number,

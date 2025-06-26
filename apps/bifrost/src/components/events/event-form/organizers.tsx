@@ -27,13 +27,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@workspace/ui/components//select";
+import { cn } from "@workspace/ui/lib/utils";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { useRef, useState } from "react";
 import type { UseFormReturn } from "react-hook-form";
 import { OrganizerType } from "@/constants/organizer-types";
 import type { EventFormValues } from "@/constants/schemas/event-form-schema";
 import { getAllInternalMembers } from "@/lib/queries/users";
-import { cn } from "@/utils/utils";
 import { createColumns } from "./columns";
 import OrganizersTable from "./data-table";
 

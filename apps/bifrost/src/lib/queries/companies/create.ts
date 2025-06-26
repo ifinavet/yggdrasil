@@ -1,7 +1,7 @@
 "use server";
 
 import type { CompanyFormValues } from "@/constants/schemas/companies-form-schema";
-import { createServerClient } from "@/utils/supabase/server";
+import { createServerClient } from "@/lib/supabase/server";
 
 export default async function createCompany(formData: CompanyFormValues) {
   const supabase = createServerClient();

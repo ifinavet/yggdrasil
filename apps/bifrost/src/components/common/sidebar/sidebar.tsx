@@ -24,58 +24,22 @@ import {
 } from "@workspace/ui/components/sidebar";
 import {
   BadgeCheck,
-  BookOpenIcon,
-  BriefcaseIcon,
-  BuildingIcon,
-  CalendarIcon,
   ChartScatterIcon,
   ChevronsUpDown,
   DatabaseIcon,
   ExternalLink,
   GitGraphIcon,
-  GithubIcon,
   LogOut,
   ServerCogIcon,
   UserCogIcon,
-  UsersIcon,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import LogoNBlue from "@/assets/navet/logo_n_blaa.webp";
 import LogoBlue from "@/assets/navet/simple_logo_blaa.webp";
+import { SidebarContentGroup } from "./sidebar-content-group";
 
-const paths = {
-  main: [
-    {
-      title: "Arrangementer",
-      icon: CalendarIcon,
-      path: "/events",
-    },
-    {
-      title: "Stillingsannonser",
-      icon: BriefcaseIcon,
-      path: "/job-listings",
-    },
-  ],
-  resources: [
-    {
-      title: "Resurser",
-      icon: BookOpenIcon,
-      path: "/resources",
-    },
-  ],
-  admin: [
-    {
-      title: "Studenter",
-      icon: UsersIcon,
-      path: "/students",
-    },
-    {
-      title: "Bedrifter",
-      icon: BuildingIcon,
-      path: "/companies",
-    },
-  ],
+const externalPaths = {
   external: [
     {
       title: "Clerk",
@@ -95,15 +59,15 @@ const paths = {
     {
       title: "PostHog",
       icon: ChartScatterIcon,
-      path: "https://eu.posthog.com/project/54712"
+      path: "https://eu.posthog.com/project/54712",
     },
     {
       title: "GitHub",
       icon: GitGraphIcon,
-      path: "https://github.com/ifinavet/project-yggdrasil"
+      path: "https://github.com/ifinavet/project-yggdrasil",
     },
   ],
-};
+}
 
 export default async function BifrostSidebar() {
   const { userId, orgRole } = await auth();
@@ -136,66 +100,18 @@ export default async function BifrostSidebar() {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Tjenester</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {paths.main.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton tooltip={item.title} asChild>
-                    <Link href={item.path}>
-                      {item.icon && <item.icon />}
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-        <SidebarGroup>
-          <SidebarGroupLabel>Resurser</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {paths.resources.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton tooltip={item.title} asChild>
-                    <Link href={item.path}>
-                      {item.icon && <item.icon />}
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        <SidebarContentGroup title="Tjenester" items="main" />
+        <SidebarContentGroup title="Resurser" items="resources" />
         {orgRole === "org:admin" && (
           <>
-            <SidebarGroup>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  <SidebarGroupLabel>Administrator sider</SidebarGroupLabel>
-                  {paths.admin.map((item) => (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton tooltip={item.title} asChild>
-                        <Link href={item.path}>
-                          {item.icon && <item.icon />}
-                          <span>{item.title}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
+            <SidebarContentGroup title="Administrator sider" items="admin" />
             <SidebarGroup>
               <SidebarGroupLabel>
                 Eksterne tjenester <ExternalLink className='ml-1' />
               </SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {paths.external.map((item) => (
+                  {externalPaths.external.map((item) => (
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton tooltip={item.title} asChild>
                         <a href={item.path} target='_blank' rel='noopener noreferrer'>
@@ -246,7 +162,7 @@ export default async function BifrostSidebar() {
                     <div className='grid flex-1 text-left text-sm leading-tight'>
                       <span className='truncate font-semibold'>{user.fullName ?? "Ukjent"}</span>
                       <span className='truncate text-xs'>
-                        {user.emailAddresses[0]?.emailAddress}
+                        {user.primaryEmailAddress?.emailAddress}
                       </span>
                     </div>
                   </div>

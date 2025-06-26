@@ -1,5 +1,5 @@
 {
-  "name": "yggdrasil",
+  "name": "bifrost",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -42,7 +42,6 @@
     "@tiptap/react": "^2.14.0",
     "@tiptap/starter-kit": "^2.14.0",
     "@workspace/ui": "workspace:*",
-    "@workspace/db": "workspace:*",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
@@ -68,10 +67,10 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@workspace/typescript-config": "workspace:*",
     "sass": "^1.89.2",
     "tailwindcss": "^4",
     "tw-animate-css": "^1.3.4",
-    "typescript": "^5",
-    "@workspace/typescript-config": "workspace:*"
+    "typescript": "^5"
   }
 }
