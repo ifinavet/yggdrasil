@@ -17,7 +17,7 @@ export async function updateStudent(
     const supabase = createServerClient();
     const clerk = await clerkClient();
 
-    const updatedUser = await clerk.users.updateUser(user_id, {
+    await clerk.users.updateUser(user_id, {
       firstName: fields.firstName,
       lastName: fields.lastName,
     });
@@ -32,7 +32,7 @@ export async function updateStudent(
       throw new Error(error.message);
     }
 
-    return updatedUser;
+    return;
   } catch (error) {
     console.error(error);
     throw new Error((error as Error).message);

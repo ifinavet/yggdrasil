@@ -1,4 +1,4 @@
-export const studyProgramTypes = [
+export const STUDY_PROGRAMS = [
   "Informatikk: programmering og systemarkitektur",
   "Informatikk: design, bruk og interaksjon",
   "Informatikk: digital økonomi og ledelse",
