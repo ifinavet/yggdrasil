@@ -1,4 +1,3 @@
-import { getAllCompanies } from "@workspace/db/companies";
 import { Button } from "@workspace/ui/components//button";
 import {
   Card,
@@ -11,6 +10,7 @@ import {
 import { Pencil } from "lucide-react";
 import Link from "next/link";
 import SafeHtml from "@/components/common/sanitize-html";
+import { getAllCompanies } from "@/lib/queries/companies";
 
 export default async function CompaniesGrid() {
   const companies = await getAllCompanies();
@@ -18,10 +18,10 @@ export default async function CompaniesGrid() {
   return (
     <div className='grid grid-cols-3 gap-4 max-w-7xl'>
       {companies.map((company) => (
-        <Link key={company.companyId} href={`/companies/${company.companyId}`}>
+        <Link key={company.company_id} href={`/companies/${company.company_id}`}>
           <Card>
             <CardHeader>
-              <CardTitle>{company.companyName}</CardTitle>
+              <CardTitle>{company.company_name}</CardTitle>
               <CardAction>
                 <Button variant='outline' size='icon'>
                   <Pencil />
@@ -37,7 +37,7 @@ export default async function CompaniesGrid() {
               )}
             </CardContent>
             <CardFooter>
-              <p>Org. nr: {company.orgNumber ?? "N/A"}</p>
+              <p>Org. nr: {company.org_number ?? "N/A"}</p>
             </CardFooter>
           </Card>
         </Link>

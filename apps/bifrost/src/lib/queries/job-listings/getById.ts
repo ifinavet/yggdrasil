@@ -1,6 +1,6 @@
 "use server";
 
-import { createServerClient } from "@/utils/supabase/server";
+import { createServerClient } from "@/lib/supabase/server";
 
 export default async function getJobListingById(
   listing_id: number,

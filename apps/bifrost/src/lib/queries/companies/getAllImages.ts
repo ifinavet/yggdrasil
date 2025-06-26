@@ -1,6 +1,6 @@
 "use server";
 
-import { createServerClient } from "@/utils/supabase/server";
+import { createServerClient } from "@/lib/supabase/server";
 
 interface FileObject {
   name: string;

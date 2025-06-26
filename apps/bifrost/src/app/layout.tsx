@@ -7,7 +7,7 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { SidebarInset, SidebarProvider } from "@workspace/ui/components/sidebar";
 import { Toaster } from "@workspace/ui/components/sonner";
 import Header from "@/components/common/header";
-import BifrostSidebar from "@/components/common/sidebar";
+import BifrostSidebar from "@/components/common/sidebar/sidebar";
 import ReactQueryProvider from "@/providers/react-query-provider";
 import UnauthorizedPage from "./unauthorized";
 
@@ -56,7 +56,7 @@ export default async function RootLayout({
                 <BifrostSidebar />
                 <SidebarInset>
                   <Header />
-                  <main className='p-4 flex flex-col gap-4'>{children}</main>
+                  <main className='p-4 flex flex-col gap-4 h-full'>{children}</main>
                 </SidebarInset>
                 <Toaster richColors position='top-center' />
                 {process.env.NODE_ENV === "development" && (

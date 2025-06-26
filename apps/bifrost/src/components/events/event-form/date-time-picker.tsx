@@ -10,12 +10,12 @@ import {
 } from "@workspace/ui/components//form";
 import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui/components//popover";
 import { ScrollArea, ScrollBar } from "@workspace/ui/components//scroll-area";
+import { cn } from "@workspace/ui/lib/utils";
 import { format } from "date-fns";
 import { nb } from "date-fns/locale";
 import { CalendarIcon } from "lucide-react";
 import type { UseFormReturn } from "react-hook-form";
 import type { EventFormValues } from "@/constants/schemas/event-form-schema";
-import { cn } from "@/utils/utils";
 
 export default function DateTimePicker({
   form,

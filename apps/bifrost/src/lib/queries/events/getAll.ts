@@ -1,6 +1,6 @@
 "use server";
 
-import { createServerClient } from "@/utils/supabase/server";
+import { createServerClient } from "@/lib/supabase/server";
 
 export async function getAllEvents({ year, semester }: { year: number; semester: string }) {
   const client = createServerClient();

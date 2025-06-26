@@ -119,9 +119,6 @@ importers:
       '@tiptap/starter-kit':
         specifier: ^2.14.0
         version: 2.22.2
-      '@workspace/db':
-        specifier: workspace:*
-        version: link:../../packages/db
       '@workspace/ui':
         specifier: workspace:*
         version: link:../../packages/ui

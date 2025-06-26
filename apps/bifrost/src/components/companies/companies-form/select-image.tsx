@@ -16,7 +16,7 @@ import React, { useCallback, useRef, useState } from "react";
 import type { UseFormReturn } from "react-hook-form";
 import type { CompanyFormValues } from "@/constants/schemas/companies-form-schema";
 import getAllCompanyImages from "@/lib/queries/companies/getAllImages";
-import { createClient } from "@/utils/supabase/client";
+import { createClient } from "@/lib/supabase/client";
 
 export default function SelectImage({ form }: { form: UseFormReturn<CompanyFormValues> }) {
   const supabase = createClient();
