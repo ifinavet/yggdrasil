@@ -1,96 +1,128 @@
-# Yggdrasil Monorepo
+# 🌳 Yggdrasil Monorepo
 
 A modern, full-stack monorepo developed and maintained by the Student Association IFI-Navet at the University of Oslo, Department of Informatics.
 
 ---
 
-## Project Overview
+## 🚀 Project Overview
 
-Yggdrasil is a modular, scalable monorepo designed to accelerate development of web applications and internal tools for IFI-Navet. It leverages modern frameworks, a shared UI library, and robust database tooling to ensure consistency, maintainability, and developer happiness across projects.
+Yggdrasil is a modular, scalable monorepo designed to accelerate the development of web applications and internal tools for IFI-Navet. It leverages modern frameworks, a shared UI library, and robust database tooling to ensure consistency, maintainability, and developer happiness across projects. It is primarly focused on the devlopment of IFI-Navet's web site and backend tooling.
 
 ---
 
-## Project Structure
+## 🏗️ Project Structure
 
 ```
-yggdrasil/
-├── apps/
-│   ├── bifrost/      # Main Next.js application (full-stack)
-│   └── midgard/      # Secondary Next.js application
-├── packages/
-│   ├── typescript-config/ # Shared TypeScript configuration
-│   └── ui/           # Shared React component library
-├── db/               # Database-related files (migrations, seeds, etc.)
-├── package.json      # Monorepo-level scripts and dependencies
-├── pnpm-workspace.yaml # Workspace configuration
+🌳 yggdrasil/
+├── 📁 apps/
+│   ├── 🌈 bifrost/      # Main Next.js application (full-stack)
+│   └── 🌍 midgard/      # Secondary Next.js application
+├── 📦 packages/
+│   ├── 🔧 typescript-config/ # Shared TypeScript configuration
+│   └── 🎨 ui/           # Shared React component library
+├── 🗃️ db/               # Database-related files (migrations, seeds, etc.)
+├── 📜 package.json      # Monorepo-level scripts and dependencies
+├── 📜 pnpm-workspace.yaml # Workspace configuration
 └── ...
 ```
 
 ---
 
-## Tech Stack & Key Packages
+## 🛠️ Tech Stack & Key Packages
 
-- **Monorepo Management:** [Turborepo](https://turbo.build/), [pnpm](https://pnpm.io/)
-- **Frontend:** [Next.js](https://nextjs.org/) (React 19), [TypeScript](https://www.typescriptlang.org/)
-- **UI Library:** [@workspace/ui](packages/ui) (React, Radix UI, Tailwind CSS, CVA, lucide-react)
-- **Auth & Cloud:** [Clerk](https://clerk.com/), [Supabase](https://supabase.com/)
-- **State & Forms:** [React Hook Form](https://react-hook-form.com/), [TanStack Query](https://tanstack.com/query)
-- **Utilities:** [zod](https://zod.dev/), [date-fns](https://date-fns.org/), [clsx](https://github.com/lukeed/clsx)
-- **Linting & Formatting:** [Biome](https://biomejs.dev/), [ESLint](https://eslint.org/), [Tailwind CSS](https://tailwindcss.com/)
+### Core Technologies
 
----
+-   **Monorepo Management:** [Turborepo](https://turbo.build/) & [pnpm](https://pnpm.io/)
+-   **Framework:** [Next.js](https://nextjs.org/) (React 19)
+-   **Language:** [TypeScript](https://www.typescriptlang.org/)
+-   **Styling:** [Tailwind CSS](https.tailwindcss.com/)
 
-## Getting Started
+### UI & Frontend
 
-1. **Install dependencies:**
-   ```sh
-   pnpm install
-   ```
+-   **Component Library:** [@workspace/ui (based on Shadcn/ui)](packages/ui)
+-   **UI Primitives:** [Radix UI](https://www.radix-ui.com/)
+-   **Icons:** [Lucide React](https://lucide.dev/guide/packages/lucide-react)
+-   **Class Merging:** [clsx](https://github.com/lukeed/clsx) & [tailwind-merge](https://github.com/dcastil/tailwind-merge)
+-   **Animation:** [tw-animate-css](https://github.com/tuchfarber/tw-animate-css)
 
-2. **Run the main app (Bifrost):**
-   ```sh
-   pnpm dev --filter apps/bifrost
-   # or, from the root:
-   cd apps/bifrost
-   pnpm dev
-   ```
+### State Management & Forms
 
-3. **Build all packages and apps:**
-   ```sh
-   pnpm build
-   ```
+-   **Data Fetching:** [TanStack Query](https://tanstack.com/query)
+-   **Forms:** [React Hook Form](https://react-hook-form.com/)
+-   **Schema Validation:** [Zod](https://zod.dev/)
 
-4. **Lint and format code:**
-   ```sh
-   pnpm lint
-   pnpm format-and-lint
-   ```
----
+### Backend & Database
 
-## Contribution Guide
+-   **Authentication:** [Clerk](https://clerk.com/)
+-   **Database:** [Supabase](https://supabase.com/)
 
-We welcome contributions from all IFI-Navet collaborators!
+### Tooling & DX
 
-- **Branching:** Use feature branches and descriptive names.
-- **Commits:** Write clear, conventional commit messages.
-- **Linting:** Run `pnpm lint` and `pnpm format-and-lint` before pushing.
-- **Type Safety & Accessibility:** Ensure all code is fully typed and UI components are accessible.
-- **Documentation:** Document new features, components, or utilities.
-- **Pull Requests:** Open a PR for review. All changes are subject to code review and CI checks.
+-   **Linting & Formatting:** [Biome](https://biomejs.dev/)
+-   **Utilities:** [date-fns](https://date-fns.org/)
 
 ---
 
-## License
+## 🏁 Getting Started
 
-Private. For internal use within the IFI-Navet Yggdrasil monorepo only.
+1.  **Install dependencies:**
+    ```sh
+    pnpm install
+    ```
+
+2.  **Run the main app (Bifrost):**
+    ```sh
+    turbo dev --filter=bifrost
+    ```
+    Alternatively, from the root of the `bifrost` app:
+    ```sh
+    cd apps/bifrost
+    pnpm dev
+    ```
+
+3.  **Build all packages and apps:**
+    ```sh
+    turbo build
+    ```
 
 ---
 
-## Credits & Maintainers
+## 🤝 How to Contribute
 
-Made with ❤️ by the IFI-Navet team
-Department of Informatics, University of Oslo
+We welcome contributions from all IFI-Navet collaborators! To ensure a smooth development process, please follow these guidelines:
 
-For questions, suggestions, or to get involved, reach out to the IFI-Navet maintainers.
+-   **🌿 Branching:** Create a new feature branch for every new feature or bug fix (e.g., `feature/add-new-component` or `fix/login-bug`).
+-   **✍️ Commits:** Write clear, concise, and conventional commit messages. This helps us understand the changes and automatically generate changelogs.
+-   **🎨 Code Style:** Run `pnpm format-and-lint` before pushing to ensure your code adheres to our style guidelines.
+-   **✅ Type Safety & Accessibility:** Ensure all code is fully typed and that UI components are accessible.
+-   **📚 Documentation:** Document new features, components, or utilities to make them understandable for others.
+-   **🚀 Pull Requests:** Open a Pull Request for review. All changes are subject to code review and CI checks.
 
 ---
+
+## Reporting Bugs 🐛
+
+If you find a bug, please let us know by creating an issue in the repository. We would love to check it out and find a solution. Provide as much detail as you can (the more the merrier), including steps to reproduce the bug, the expected behavior, and any relevant screenshots or logs.
+
+## License 📄
+
+This project is licensed under the GNU Affero General Public License. See the [`LICENSE`](LICENSE) file for more details.
+
+## Contact 📧
+
+For any inquiries, please contact us:
+
+**E-mail**: <web@ifinavet.no>
+
+**Website**: <https://ifinavet.no>
+
+For questions, issues, or contributions:
+- 🐛 Report bugs via GitHub issues
+- 💡 Suggest features via GitHub discussions
+- 📖 Check the documentation
+
+---
+
+This project is developed and maintained by the Student association **IFI-Navet** at the University of Oslo, Department of Informatics.
+
+Made with ❤️ by the IFI-Navet team.
