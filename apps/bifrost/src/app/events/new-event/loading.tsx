@@ -1,11 +1,3 @@
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@workspace/ui/components//breadcrumb";
 import { Button } from "@workspace/ui/components//button";
 import { Separator } from "@workspace/ui/components//separator";
 import { Skeleton } from "@workspace/ui/components//skeleton";
@@ -14,22 +6,6 @@ import { Save, Send } from "lucide-react";
 export default function NewEventLoading() {
   return (
     <>
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink href='/'>Hjem</BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbLink href='/events'>Arrangementer</BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>Opprett et arrangement</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-
       <div className='space-y-8'>
         {/* Title */}
         <div>

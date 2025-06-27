@@ -1,11 +1,3 @@
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@workspace/ui/components//breadcrumb";
 import { Button } from "@workspace/ui/components//button";
 import { Card, CardContent, CardFooter, CardHeader } from "@workspace/ui/components//card";
 import { Skeleton } from "@workspace/ui/components//skeleton";
@@ -14,18 +6,6 @@ import { Plus, Users } from "lucide-react";
 export default function EventsLoading() {
   return (
     <>
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink href='/'>Hjem</BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>Arrangementer</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-
       <div className='flex justify-between'>
         <Skeleton className='h-9 w-48' />
         <Button>

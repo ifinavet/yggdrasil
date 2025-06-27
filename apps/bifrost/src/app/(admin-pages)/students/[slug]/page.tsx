@@ -2,6 +2,10 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbP
 import UpdateStudentForm from "../../../../components/students/update-student-form";
 import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query";
 import { getStudentById } from "@/lib/queries/users/students";
+import StudentPoints from "@/components/students/student-points";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@workspace/ui/components/dialog";
+import StudentPointsForm from "@/components/students/student-points-form";
+import { Button } from "@workspace/ui/components/button";
 
 export default async function StudentPage({ params }: { params: Promise<{ slug: string }> }) {
   const user_id = await params.then(params => params.slug);
@@ -31,9 +35,38 @@ export default async function StudentPage({ params }: { params: Promise<{ slug: 
         </BreadcrumbList>
       </Breadcrumb>
 
+      <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">
+        Administer student
+      </h3>
+
       <UpdateStudentForm user_id={user_id} />
 
       <p className="text-muted-foreground text-sm">NB! Dersom du trenger å låse opp studenten, eller endre noen andre ting som ikke er her gå til clerk dashboardet.</p>
+
+      <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">
+        Prikker
+      </h3>
+      <div className="flex flex-col">
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button className="self-end" variant="outline">
+              Gi prikk(er)
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Fyll ut infromasjonen for å gi studenten prikker</DialogTitle>
+              <DialogDescription>
+                Prikker skal kun gis manuelt dersom det har skjedd noe alvorlig eller ekstra ordinært hvor det å gi prikk er riktig staff. Under normale forhold så skal prikkene som gis automatisk være tilstrekelig.
+              </DialogDescription>
+            </DialogHeader>
+            <StudentPointsForm user_id={user_id} />
+          </DialogContent>
+        </Dialog>
+
+        <StudentPoints user_id={user_id} />
+      </div>
+
     </HydrationBoundary>
   );
 }
