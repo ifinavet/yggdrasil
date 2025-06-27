@@ -7,14 +7,14 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@workspace/ui/components/breadcrumb";
+import StudentsOverview from "@/components/students/students-overview";
 import { getAllStudentsPaged } from "@/lib/queries/users/students";
-import StudentsOverview from "./students-overview";
 
 export default async function StudentsPage() {
   const queryClient = new QueryClient();
 
   await queryClient.prefetchQuery({
-    queryKey: ["students", 0],
+    queryKey: ["students", { pageIndex: 0, pageSize: 25 }],
     queryFn: () => getAllStudentsPaged({ pageIndex: 0, pageSize: 25 }),
   });
 

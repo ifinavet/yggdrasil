@@ -23,3 +23,13 @@ export async function getStudentById(id: string) {
     studyProgram: student.study_program,
   }
 }
+
+export async function getStudentsPointsById(id: string) {
+  const supabase = createServerClient();
+
+  const { data: points, error } = await supabase.from("points").select("*").eq("user_id", id);
+
+  if (!points || error) throw new Error("Student not found", { cause: error });
+
+  return points
+}

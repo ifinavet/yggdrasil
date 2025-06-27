@@ -6,7 +6,6 @@ export const formSchema = z.object({
   teaser: z
     .string()
     .min(1, "Vi trenger en liten teaser!")
-    .min(10, "Teaser må være minst 10 tegn")
     .max(250, "Teaser kan være maks 250 tegn"),
   eventDate: z.date("Dato og tid for arrangementet er påkrevd"),
   registrationDate: z.date("Dato og tid for åpning av påmelding er påkrevd"),

@@ -1,6 +1,13 @@
+import { giveStudentPoints } from "./create";
 import { getAllStudentsPaged, getStudentsTableMetadata } from "./getAll";
-import { getStudentById } from "./getById";
+import { getStudentById, getStudentsPointsById } from "./getById";
 import { updateStudent } from "./update";
 
-
-export { getStudentById, getAllStudentsPaged, getStudentsTableMetadata, updateStudent };
+export {
+  getStudentById,
+  getStudentsPointsById,
+  getAllStudentsPaged,
+  getStudentsTableMetadata,
+  updateStudent,
+  giveStudentPoints,
+};
