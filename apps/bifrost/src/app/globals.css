@@ -8,3 +8,9 @@
     --primary-foreground: oklch(0.97 0.01 255);
     --primary: oklch(0.62 0.19 260);
 }
+
+@layer base {
+    html {
+        @apply bg-sidebar;
+    }
+}

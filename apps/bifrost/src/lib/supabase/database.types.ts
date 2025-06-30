@@ -243,6 +243,33 @@ export type Database = {
           },
         ]
       }
+      pages: {
+        Row: {
+          content: string
+          created_at: string | null
+          page_id: number
+          published: boolean
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          page_id?: number
+          published?: boolean
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          page_id?: number
+          published?: boolean
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       points: {
         Row: {
           awarded_time: string | null

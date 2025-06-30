@@ -10,7 +10,7 @@ const searchParamsMiddleware = (request: NextRequest) => {
   });
 };
 
-const publicRoute = createRouteMatcher(["/"]);
+const publicRoute = createRouteMatcher(["/", "/api(.*)"]);
 
 export const middleware = clerkMiddleware(async (auth, req) => {
   const { orgId } = await auth();
