@@ -101,6 +101,9 @@ export default async function BifrostSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarContentGroup title="Tjenester" items="main" />
+        {orgRole && ["org:admin", "org:editor"].includes(orgRole) && (
+          <SidebarContentGroup title="Sider" items="pages" />
+        )}
         <SidebarContentGroup title="Resurser" items="resources" />
         {orgRole === "org:admin" && (
           <>

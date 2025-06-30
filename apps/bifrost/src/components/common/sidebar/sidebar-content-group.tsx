@@ -13,6 +13,7 @@ import {
   BriefcaseIcon,
   BuildingIcon,
   CalendarIcon,
+  FileIcon,
   UsersIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -36,6 +37,13 @@ const paths = {
       title: "Resurser",
       icon: BookOpenIcon,
       path: "/resources",
+    },
+  ],
+  pages: [
+    {
+      title: "Sider",
+      icon: FileIcon,
+      path: "/pages",
     },
   ],
   admin: [

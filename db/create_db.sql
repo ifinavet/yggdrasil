@@ -106,6 +106,16 @@ CREATE TABLE IF NOT EXISTS events (
         CHECK (registration_opens < event_start)
 );
 
+-- Pages
+CREATE TABLE IF NOT EXISTS pages (
+    page_id SERIAL PRIMARY KEY,
+    title TEXT NOT NULL,
+    content TEXT NOT NULL,
+    published BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- =============================================================================
 -- JUNCTION & RELATIONSHIP TABLES
 -- =============================================================================
@@ -183,7 +193,7 @@ CREATE TABLE IF NOT EXISTS registrations (
     CONSTRAINT fk_registrations_event
         FOREIGN KEY (event_id)
         REFERENCES events(event_id)
-        ON DELETE CASCADE,
+        ON DELETE CASCADE
 );
 
 -- Points (Penalty system for any Clerk user) - No FK to user tables
@@ -238,9 +248,13 @@ DROP TRIGGER IF EXISTS update_resources_updated_at ON resources;
 
 DROP TRIGGER IF EXISTS update_events_updated_at ON events;
 DROP TRIGGER IF EXISTS update_registrations_updated_at ON registrations;
+DROP TRIGGER IF EXISTS update_pages_updated_at ON pages;
 
 -- Create triggers
 
+CREATE TRIGGER update_pages_updated_at
+    BEFORE UPDATE ON pages
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_companies_updated_at
     BEFORE UPDATE ON companies
