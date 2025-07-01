@@ -1,11 +1,3 @@
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@workspace/ui/components//breadcrumb";
 import { Button } from "@workspace/ui/components//button";
 import { Separator } from "@workspace/ui/components//separator";
 import { Skeleton } from "@workspace/ui/components//skeleton";
@@ -15,22 +7,6 @@ export default function EventPageLoading() {
   return (
     <>
       <div className='flex justify-between flex-wrap'>
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink href='/'>Hjem</BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbLink href='/events'>Arrangementer</BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>Administrer arrangementet</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
-
         <div className='flex gap-4'>
           <Button variant='link' disabled>
             <Pencil className='sie-4' /> Rediger og Administer
