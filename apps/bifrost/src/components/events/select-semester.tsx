@@ -33,7 +33,7 @@ export default function SelectSemester() {
   );
 
   const year = searchParams.get("year") || new Date().getFullYear();
-  const semester = searchParams.get("semester") || (new Date().getMonth() < 6 ? "vår" : "høst");
+  const semester = searchParams.get("semester") || (new Date().getMonth() < 7 ? "vår" : "høst");
 
   return (
     <Select
