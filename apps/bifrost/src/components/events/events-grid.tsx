@@ -23,7 +23,7 @@ export default async function EventsGrid() {
   if (pathname) searchParams = new URLSearchParams(pathname);
 
   const year = searchParams?.get("year") || new Date().getFullYear().toString();
-  const semester = searchParams?.get("semester") || (new Date().getMonth() < 6 ? "vår" : "høst");
+  const semester = searchParams?.get("semester") || (new Date().getMonth() < 7 ? "vår" : "høst");
 
   const events = await getAllEvents({ year: Number.parseInt(year), semester });
 

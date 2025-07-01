@@ -10,12 +10,12 @@ import {
 } from "@workspace/ui/components//form";
 import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui/components//popover";
 import { ScrollArea, ScrollBar } from "@workspace/ui/components//scroll-area";
+import { cn } from "@workspace/ui/lib/utils";
 import { format } from "date-fns";
 import { nb } from "date-fns/locale";
 import { CalendarIcon } from "lucide-react";
 import type { UseFormReturn } from "react-hook-form";
 import type { JobListingFormValues } from "@/constants/schemas/job-listing-form-schema";
-import { cn } from "@/utils/utils";
 
 export default function DateTimePicker({
   form,
@@ -53,7 +53,7 @@ export default function DateTimePicker({
   return (
     <FormField
       control={form.control}
-      name="deadline"
+      name='deadline'
       render={({ field }) => (
         <FormItem className='flex flex-col'>
           <FormLabel>{label}</FormLabel>

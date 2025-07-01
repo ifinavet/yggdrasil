@@ -18,7 +18,7 @@ export default async function Events() {
   const queryClient = new QueryClient();
 
   const year = new Date().getFullYear();
-  const semester = new Date().getMonth() < 6 ? "vår" : "høst";
+  const semester = new Date().getMonth() < 7 ? "vår" : "høst";
 
   await queryClient.prefetchQuery({
     queryKey: ["possible_semesters"],

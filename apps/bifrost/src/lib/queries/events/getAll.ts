@@ -56,7 +56,7 @@ export async function getPossibleSemestes() {
     const date = new Date(event_date.event_start);
     const year = date.getFullYear();
     const month = date.getMonth();
-    const semester = month < 6 ? "vår" : "høst";
+    const semester = month < 7 ? "vår" : "høst";
     return { year, semester };
   });
 
