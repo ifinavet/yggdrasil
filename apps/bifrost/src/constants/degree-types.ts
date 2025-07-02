@@ -1,1 +1,1 @@
-export const DEGREE_TYPES = ['Bachelor', 'Master', 'PhD'];
+export const DEGREE_TYPES = ["Bachelor", "Master", "PhD"];

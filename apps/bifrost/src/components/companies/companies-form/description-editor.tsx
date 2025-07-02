@@ -6,12 +6,12 @@ import Underline from "@tiptap/extension-underline";
 import { useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import {
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
+	FormControl,
+	FormDescription,
+	FormField,
+	FormItem,
+	FormLabel,
+	FormMessage,
 } from "@workspace/ui/components//form";
 import { useCallback, useMemo } from "react";
 import type { UseFormReturn } from "react-hook-form";
@@ -19,72 +19,72 @@ import ContentEditor from "@/components/common/markdown-editor/markdown-editor";
 import type { CompanyFormValues } from "@/constants/schemas/companies-form-schema";
 
 export default function DescriptionEditor({ form }: { form: UseFormReturn<CompanyFormValues> }) {
-  const handleEditorUpdate = useCallback(
-    ({ editor }: { editor: { getHTML: () => string } }) => {
-      form.setValue("description", editor.getHTML());
-    },
-    [form],
-  );
+	const handleEditorUpdate = useCallback(
+		({ editor }: { editor: { getHTML: () => string } }) => {
+			form.setValue("description", editor.getHTML());
+		},
+		[form],
+	);
 
-  const handleEditorCreate = useCallback(
-    ({ editor }: { editor: { getHTML: () => string } }) => {
-      form.setValue("description", editor.getHTML());
-    },
-    [form],
-  );
+	const handleEditorCreate = useCallback(
+		({ editor }: { editor: { getHTML: () => string } }) => {
+			form.setValue("description", editor.getHTML());
+		},
+		[form],
+	);
 
-  const editorExtensions = useMemo(
-    () => [
-      StarterKit,
-      Placeholder.configure({
-        emptyEditorClass:
-          "before:content-[attr(data-placeholder)] before:float-left before:text-muted-foreground before:h-0 before:pointer-events-none",
-        placeholder: "Skriv en engasjerende og beskrivende beskrivelse av bedriften...",
-      }),
-      Underline,
-      Link.configure({
-        openOnClick: true,
-        defaultProtocol: "https",
-        protocols: ["https", "mailto", "tel"],
-        autolink: true,
-      }),
-    ],
-    [],
-  );
+	const editorExtensions = useMemo(
+		() => [
+			StarterKit,
+			Placeholder.configure({
+				emptyEditorClass:
+					"before:content-[attr(data-placeholder)] before:float-left before:text-muted-foreground before:h-0 before:pointer-events-none",
+				placeholder: "Skriv en engasjerende og beskrivende beskrivelse av bedriften...",
+			}),
+			Underline,
+			Link.configure({
+				openOnClick: true,
+				defaultProtocol: "https",
+				protocols: ["https", "mailto", "tel"],
+				autolink: true,
+			}),
+		],
+		[],
+	);
 
-  const editorProps = useMemo(
-    () => ({
-      attributes: {
-        class:
-          "prose prose-sm prose-base max-w-none sm:prose-sm m-5 focus:outline-none dark:prose-invert text-black dark:text-white",
-      },
-    }),
-    [],
-  );
+	const editorProps = useMemo(
+		() => ({
+			attributes: {
+				class:
+					"prose prose-sm prose-base max-w-none sm:prose-sm m-5 focus:outline-none dark:prose-invert text-black dark:text-white",
+			},
+		}),
+		[],
+	);
 
-  const editor = useEditor({
-    extensions: editorExtensions,
-    editorProps: editorProps,
-    onUpdate: handleEditorUpdate,
-    immediatelyRender: false,
-    content: form.watch("description"),
-    onCreate: handleEditorCreate,
-  });
+	const editor = useEditor({
+		extensions: editorExtensions,
+		editorProps: editorProps,
+		onUpdate: handleEditorUpdate,
+		immediatelyRender: false,
+		content: form.watch("description"),
+		onCreate: handleEditorCreate,
+	});
 
-  return (
-    <FormField
-      control={form.control}
-      name='description'
-      render={() => (
-        <FormItem className='flex flex-col'>
-          <FormLabel>Beskrivelse</FormLabel>
-          <FormControl>
-            <ContentEditor editor={editor} />
-          </FormControl>
-          <FormDescription>Dette er beskrivelsen av bedriften.</FormDescription>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-  );
+	return (
+		<FormField
+			control={form.control}
+			name='description'
+			render={() => (
+				<FormItem className='flex flex-col'>
+					<FormLabel>Beskrivelse</FormLabel>
+					<FormControl>
+						<ContentEditor editor={editor} />
+					</FormControl>
+					<FormDescription>Dette er beskrivelsen av bedriften.</FormDescription>
+					<FormMessage />
+				</FormItem>
+			)}
+		/>
+	);
 }

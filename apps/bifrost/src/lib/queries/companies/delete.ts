@@ -3,11 +3,11 @@
 import { createServerClient } from "@/lib/supabase/server";
 
 export default async function deleteCompany(id: number) {
-  const client = createServerClient();
+	const client = createServerClient();
 
-  const { error } = await client.from("companies").delete().eq("company_id", id);
+	const { error } = await client.from("companies").delete().eq("company_id", id);
 
-  if (error) {
-    throw new Error(error.message);
-  }
+	if (error) {
+		throw new Error(error.message);
+	}
 }

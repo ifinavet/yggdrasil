@@ -4,10 +4,10 @@ import { getStudentById, getStudentsPointsById } from "./getById";
 import { updateStudent } from "./update";
 
 export {
-  getStudentById,
-  getStudentsPointsById,
-  getAllStudentsPaged,
-  getStudentsTableMetadata,
-  updateStudent,
-  giveStudentPoints,
+	getStudentById,
+	getStudentsPointsById,
+	getAllStudentsPaged,
+	getStudentsTableMetadata,
+	updateStudent,
+	giveStudentPoints,
 };
