@@ -4,14 +4,14 @@ import type { ResourceFormValues } from "@/constants/schemas/resource-form-schem
 import { createServerClient } from "@/lib/supabase/server";
 
 export default async function createResource(formData: ResourceFormValues, published: boolean) {
-  const supabase = createServerClient();
+	const supabase = createServerClient();
 
-  const { error } = await supabase.from("resources").insert({
-    ...formData,
-    published,
-  });
+	const { error } = await supabase.from("resources").insert({
+		...formData,
+		published,
+	});
 
-  if (error) {
-    throw new Error(error.message);
-  }
+	if (error) {
+		throw new Error(error.message);
+	}
 }

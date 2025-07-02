@@ -1,16 +1,16 @@
 @import "@workspace/ui/globals.css";
 
 :root {
-    --primary: oklch(0.42 0.18 266);
+	--primary: oklch(0.42 0.18 266);
 }
 
 .dark {
-    --primary-foreground: oklch(0.97 0.01 255);
-    --primary: oklch(0.62 0.19 260);
+	--primary-foreground: oklch(0.97 0.01 255);
+	--primary: oklch(0.62 0.19 260);
 }
 
 @layer base {
-    html {
-        @apply bg-sidebar;
-    }
+	html {
+		@apply bg-sidebar;
+	}
 }

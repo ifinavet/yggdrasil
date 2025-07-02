@@ -7,11 +7,11 @@ import getCompanyImageById from "./getImageById";
 import updateCompany from "./update";
 
 export {
-  createCompany,
-  deleteCompany,
-  getCompanyById,
-  getAllCompanies,
-  getCompanyImageById,
-  getCompanyImages,
-  updateCompany
+	createCompany,
+	deleteCompany,
+	getCompanyById,
+	getAllCompanies,
+	getCompanyImageById,
+	getCompanyImages,
+	updateCompany,
 };

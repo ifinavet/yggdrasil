@@ -4,4 +4,11 @@ import getEventById from "./getById";
 import { getLatestEvents } from "./getLatest";
 import updateEvent from "./update";
 
-export { createEvent, getAllEvents, getPossibleSemestes, updateEvent, getEventById, getLatestEvents };
+export {
+	createEvent,
+	getAllEvents,
+	getPossibleSemestes,
+	updateEvent,
+	getEventById,
+	getLatestEvents,
+};

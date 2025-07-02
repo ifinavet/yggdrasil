@@ -1,12 +1,18 @@
 import { Card, CardContent } from "@workspace/ui/components/card";
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@workspace/ui/components/carousel";
+import {
+	Carousel,
+	CarouselContent,
+	CarouselItem,
+	CarouselNext,
+	CarouselPrevious,
+} from "@workspace/ui/components/carousel";
 
 export default function MainPage() {
-  const items = Array.from({ length: 5 }, (_, i) => i + 1);
+	const items = Array.from({ length: 5 }, (_, i) => i + 1);
 
-  return (
-    <div className="flex justify-center">
-      {/* <Carousel className="w-full max-w-xs">
+	return (
+		<div className='flex justify-center'>
+			{/* <Carousel className="w-full max-w-xs">
       <CarouselContent>
         {items.map((item) => (
           <CarouselItem key={item}>
@@ -23,6 +29,6 @@ export default function MainPage() {
       <CarouselPrevious />
       <CarouselNext />
     </Carousel> */}
-    </div>
-  )
+		</div>
+	);
 }

@@ -1,5 +1,3 @@
 import getAllInternalMembers from "./getAllInternalMembers";
 
-export {
-  getAllInternalMembers,
-}
+export { getAllInternalMembers };

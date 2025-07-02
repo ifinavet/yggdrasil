@@ -1,39 +1,39 @@
 {
-  "name": "midgard",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
-  },
-  "dependencies": {
-    "@clerk/nextjs": "^6.22.0",
-    "@radix-ui/react-navigation-menu": "^1.2.13",
-    "@supabase/ssr": "^0.6.1",
-    "@supabase/supabase-js": "^2.50.0",
-    "@tanstack/react-query": "^5.81.0",
-    "@workspace/ui": "workspace:*",
-    "dompurify": "^3.2.6",
-    "isomorphic-dompurify": "^2.25.0",
-    "lucide-react": "^0.525.0",
-    "next": "15.3.4",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "react-hook-form": "^7.58.1",
-    "sonner": "^2.0.5",
-    "zod": "^3.25.67"
-  },
-  "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@tailwindcss/typography": "^0.5.16",
-    "@types/dompurify": "^3.2.0",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "@workspace/typescript-config": "workspace:*",
-    "tailwindcss": "^4",
-    "typescript": "^5"
-  }
+	"name": "midgard",
+	"version": "0.1.0",
+	"private": true,
+	"scripts": {
+		"dev": "next dev",
+		"build": "next build",
+		"start": "next start",
+		"lint": "next lint"
+	},
+	"dependencies": {
+		"@clerk/nextjs": "^6.22.0",
+		"@radix-ui/react-navigation-menu": "^1.2.13",
+		"@supabase/ssr": "^0.6.1",
+		"@supabase/supabase-js": "^2.50.0",
+		"@tanstack/react-query": "^5.81.0",
+		"@workspace/ui": "workspace:*",
+		"dompurify": "^3.2.6",
+		"isomorphic-dompurify": "^2.25.0",
+		"lucide-react": "^0.525.0",
+		"next": "15.3.4",
+		"react": "^19.0.0",
+		"react-dom": "^19.0.0",
+		"react-hook-form": "^7.58.1",
+		"sonner": "^2.0.5",
+		"zod": "^3.25.67"
+	},
+	"devDependencies": {
+		"@tailwindcss/postcss": "^4",
+		"@tailwindcss/typography": "^0.5.16",
+		"@types/dompurify": "^3.2.0",
+		"@types/node": "^20",
+		"@types/react": "^19",
+		"@types/react-dom": "^19",
+		"@workspace/typescript-config": "workspace:*",
+		"tailwindcss": "^4",
+		"typescript": "^5"
+	}
 }
