@@ -39,7 +39,9 @@ export default async function EventsPage() {
       </div>
 
       <MonthSelector activeMonth={activeMonthAndEvents?.[0] || "ukjent"} months={months} />
-      <EventsList events={activeMonthAndEvents?.[1] as Tables<"published_events_with_participation_count">[]} isExternal={isExternalEvents} />
+      <div className='bg-[url(/Ns.svg)] h-full'>
+        <EventsList events={activeMonthAndEvents?.[1] as Tables<"published_events_with_participation_count">[]} isExternal={isExternalEvents} />
+      </div>
     </>
   );
 }

@@ -1,4 +1,5 @@
-import { SignedIn, SignedOut, SignInButton, SignOutButton, useUser } from "@clerk/nextjs";
+import { SignedIn, SignedOut, SignInButton, SignOutButton } from "@clerk/nextjs";
+import { currentUser } from "@clerk/nextjs/server";
 import { Button } from "@workspace/ui/components/button";
 import { DialogClose, DialogTitle } from "@workspace/ui/components/dialog";
 import {
@@ -10,20 +11,26 @@ import {
 } from "@workspace/ui/components/drawer";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
 import { Separator } from "@workspace/ui/components/separator";
+import { cn } from "@workspace/ui/lib/utils";
 import { Menu, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import LogoBlue from "@/assets/navet/simple_logo_blaa.webp";
 
-export default function MobileHeader() {
-  const { isLoaded, user } = useUser();
+export default async function MobileHeader({ className }: { className?: string }) {
+  const user = await currentUser();
 
   return (
-    <header className='grid place-items-center align-middle justify-center bg-primary mb-6'>
+    <header
+      className={cn(
+        "grid place-items-center align-middle justify-center bg-primary mb-6",
+        className,
+      )}
+    >
       <Drawer direction='top'>
         <DrawerTrigger asChild>
           <div className='flex items-center justify-between py-6 px-6'>
-            <Link href='/' className="w-1/4">
+            <Link href='/' className='w-1/4'>
               <Image
                 src={LogoBlue}
                 alt='IFI-Navet'
@@ -32,7 +39,7 @@ export default function MobileHeader() {
               />
             </Link>
             <div>
-              <Menu className="size-6 text-primary-foreground" />
+              <Menu className='size-6 text-primary-foreground' />
             </div>
           </div>
         </DrawerTrigger>
@@ -40,7 +47,7 @@ export default function MobileHeader() {
           <DrawerOverlay />
           <DrawerContent className='bg-primary w-full fixed'>
             <DialogTitle className='flex justify-between py-4 px-6'>
-              <Link href='/' className="w-1/4">
+              <Link href='/' className='w-1/4'>
                 <Image
                   src={LogoBlue}
                   alt='IFI-Navet'
@@ -49,24 +56,24 @@ export default function MobileHeader() {
                 />
               </Link>
               <DialogClose>
-                <X className="size-6 text-primary-foreground" />
+                <X className='size-6 text-primary-foreground' />
               </DialogClose>
             </DialogTitle>
             <ScrollArea>
               <ul className='flex flex-col items-end mx-6'>
                 <li>
                   <Button type='button' variant='link' className='text-primary-foreground' asChild>
-                    <Link href='/'>Arrangementer</Link>
+                    <Link href='/events'>Arrangementer</Link>
                   </Button>
                 </li>
                 <li>
                   <Button type='button' variant='link' className='text-primary-foreground' asChild>
-                    <Link href='/'>Stillingsannonser</Link>
+                    <Link href='/job-listings'>Stillingsannonser</Link>
                   </Button>
                 </li>
                 <li>
                   <Button type='button' variant='link' className='text-primary-foreground' asChild>
-                    <Link href='/'>Eksterne arrangementer</Link>
+                    <Link href='/events?external=true'>Eksterne arrangementer</Link>
                   </Button>
                 </li>
                 <li>
@@ -85,23 +92,38 @@ export default function MobileHeader() {
                   </Button>
                 </li>
               </ul>
-              <Separator className="text-primary-foreground/50" />
-              <ul className="flex flex-col items-end mx-6">
+              <Separator className='text-primary-foreground/50' />
+              <ul className='flex flex-col items-end mx-6'>
                 <SignedIn>
                   <li>
-                    <Button type='button' variant='link' className='text-primary-foreground' asChild>
-                      <Link href='/'>{isLoaded ? user?.fullName : "Laster..."}</Link>
+                    <Button
+                      type='button'
+                      variant='link'
+                      className='text-primary-foreground'
+                      asChild
+                    >
+                      <Link href='/'>{user?.fullName || "User"}</Link>
                     </Button>
                   </li>
                   <li>
-                    <Button type='button' variant='link' className='text-primary-foreground' asChild>
+                    <Button
+                      type='button'
+                      variant='link'
+                      className='text-primary-foreground'
+                      asChild
+                    >
                       <SignOutButton>Logg ut</SignOutButton>
                     </Button>
                   </li>
                 </SignedIn>
                 <SignedOut>
                   <li>
-                    <Button type='button' variant='link' className='text-primary-foreground' asChild>
+                    <Button
+                      type='button'
+                      variant='link'
+                      className='text-primary-foreground'
+                      asChild
+                    >
                       <SignInButton>Logg inn</SignInButton>
                     </Button>
                   </li>

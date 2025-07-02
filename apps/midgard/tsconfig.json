@@ -7,7 +7,7 @@
         "./src/*"
       ],
       "@public/*": [
-        "./src/public/*"
+        "public/*"
       ],
       "@workspace/ui/*": [
         "../../packages/ui/src/*"
