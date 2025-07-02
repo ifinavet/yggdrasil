@@ -231,6 +231,9 @@ importers:
       '@workspace/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      dompurify:
+        specifier: ^3.2.6
+        version: 3.2.6
       isomorphic-dompurify:
         specifier: ^2.25.0
         version: 2.25.0
