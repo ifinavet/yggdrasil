@@ -1,6 +1,5 @@
-"use client";
-
-import { SignedIn, SignedOut, SignInButton, SignOutButton, useUser } from "@clerk/nextjs";
+import { SignedIn, SignedOut, SignInButton, SignOutButton } from "@clerk/nextjs";
+import { currentUser } from "@clerk/nextjs/server";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -9,15 +8,21 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from "@workspace/ui/components/navigation-menu";
+import { cn } from "@workspace/ui/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
 import LogoBlue from "@/assets/navet/simple_logo_blaa.webp";
 
-export default function DesktopHeader() {
-  const { isLoaded, user } = useUser();
+export default async function DesktopHeader({ className }: { className?: string }) {
+  const user = await currentUser();
 
   return (
-    <header className='grid place-items-center align-middle justify-center bg-primary pb-6 mb-6'>
+    <header
+      className={cn(
+        "place-items-center align-middle justify-center bg-primary pb-6 mb-6",
+        className,
+      )}
+    >
       <Link href='/' className='block w-1/10 pt-8 pb-6'>
         <Image src={LogoBlue} alt='IFI-Navet' className='grayscale invert brightness-0' priority />
       </Link>
@@ -49,7 +54,7 @@ export default function DesktopHeader() {
           <NavigationMenuItem>
             <NavigationMenuTrigger className='bg-primary hover:bg-primary hover:text-primary-foreground text-primary-foreground text-base data-[state=open]:hover:bg-primary data-[state=open]:hover:underline data-[state=open]:hover:text-primary-foreground data-[state=open]:bg-primary data-[state=open]:text-primary-foreground'>
               <SignedIn>
-                <Link href='/profile'>{(isLoaded || !user) ? user?.fullName : 'Loading...'}</Link>
+                <Link href='/profile'>{user?.fullName || "User"}</Link>
               </SignedIn>
               <SignedOut>
                 <SignInButton>Logg inn</SignInButton>
