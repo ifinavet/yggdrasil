@@ -112,7 +112,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: nu
                         <img
                           src={organizer.user.imageUrl}
                           alt={organizer.user.fullName || "ukjent"}
-                          className='h-full w-full rounded-full'
+                          className='rounded-full h-36 w-36'
                         />
                       </div>
                     </div>
