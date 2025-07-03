@@ -1,6 +1,7 @@
 import { Button } from "@workspace/ui/components/button";
 import { headers } from "next/headers";
 import Link from "next/link";
+import { Title } from "@/components/common/title";
 import JobListingBanner from "@/components/job-listings/job-listing-banner";
 import JobListingCard from "@/components/job-listings/job-listing-card";
 import { getAllJobListings } from "@/lib/query/job-listings";
@@ -19,9 +20,7 @@ export default async function JobListingsPage() {
   return (
     <div className='grid gap-6'>
       <div className='-mt-8 grid gap-4 bg-slate-300 py-8'>
-        <h1 className='scroll-m-20 text-balance text-center font-extrabold text-4xl text-primary tracking-tight md:text-5xl'>
-          Stillingsannonser
-        </h1>
+        <Title className="!border-b-0">Stillingsannonser</Title>
         <div className='flex flex-wrap justify-center gap-4'>
           <Button asChild className='md:min-w-32'>
             <Link href={`/job-listings`}>Alle</Link>
@@ -46,7 +45,7 @@ export default async function JobListingsPage() {
           />
         ))}
       </div>
-      <JobListingBanner className="mt-12" />
+      <JobListingBanner className='mt-12' />
     </div>
   );
 }

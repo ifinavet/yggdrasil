@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { Button } from "@workspace/ui/components/button";
-import { CalendarDays, Globe, IdCard, MapPin, Users, Utensils } from "lucide-react";
+import { CalendarDays, Globe, IdCard, MapPin, Users, Utensils, Clock } from "lucide-react";
 import Image from "next/image";
 import SanitizeHtml from "@/components/common/sanitize-html";
 import RegistrationButton from "@/components/events/registration/registration-button";
@@ -8,6 +8,7 @@ import getCompanyImageById from "@/lib/query/companies/getById";
 import { getEventById } from "@/lib/query/events";
 import { humanReadableDateTime } from "@/uitls/dateFormatting";
 import Link from "next/link";
+import { Title } from "@/components/common/title";
 
 export default async function EventPage({ params }: { params: Promise<{ slug: number }> }) {
   const { userId, orgId } = await auth();
@@ -31,14 +32,12 @@ export default async function EventPage({ params }: { params: Promise<{ slug: nu
 
   return (
     <div className='mx-6 md:mx-auto md:w-5/6 lg:w-4/5 xl:w-8/14'>
-      <h1 className='mb-4 scroll-m-20 text-balance border-primary border-b-2 pb-2 text-center font-extrabold text-4xl text-primary tracking-tight md:text-5xl'>
-        {event.title}
-      </h1>
+      <Title>{event.title}</Title>
       <div className='grid grid-cols-1 gap-6 md:grid-cols-5'>
         <main className='gap-4 md:col-span-3'>
           <div>
-            <div className='grid h-80 grid-cols-2 grid-rows-3 items-center justify-start rounded-xl bg-primary px-10 py-6 text-primary-foreground md:px-16 md:py-8'>
-              <p className='flex items-center gap-2 font-semibold md:text-lg'>
+            <div className='grid h-80 grid-cols-2 gap-4 grid-rows-3 items-center justify-start rounded-xl bg-primary px-10 py-6 text-primary-foreground md:px-16 md:py-8'>
+              <p className='flex items-center gap-2 font-semibold md:text-lg text-pretty'>
                 <CalendarDays className='size-8' />{" "}
                 {humanReadableDateTime(new Date(event?.event_start || ""))}
               </p>
@@ -59,11 +58,30 @@ export default async function EventPage({ params }: { params: Promise<{ slug: nu
               </p>
             </div>
             <div className='-mt-8 mb-8 flex justify-center'>
-              <RegistrationButton
-                event_id={event.event_id}
-                userRegistration={userRegistration}
-                availableSpots={availableSpots}
-              />
+              {typeof event.external_url === "string" && event.external_url.length > 0 ? (
+                <Button
+                  type='button'
+                  className='w-3/5 rounded-xl bg-orange-500 text-lg py-8 hover:cursor-pointer hover:bg-orange-600'
+                  asChild
+                >
+                  <a href={event.external_url ?? undefined} target="_blank" rel="noopener noreferrer">
+                    Gå til arrangementets nettsted
+                  </a>
+                </Button>
+              ) : event.registration_opens > new Date().toISOString() ? (
+                <Button
+                  type='button'
+                  className='w-3/4 rounded-xl bg-zinc-500 text-lg py-8 hover:cursor-pointer hover:bg-zinc-500'
+                >
+                  Påmelding åpner {humanReadableDateTime(new Date(event.registration_opens))}
+                </Button>
+              ) : (
+                <RegistrationButton
+                  event_id={event.event_id}
+                  userRegistration={userRegistration}
+                  availableSpots={availableSpots}
+                />
+              )}
             </div>
           </div>
           <div className='flex flex-col gap-4 rounded-xl bg-zinc-100 px-10 py-8 md:px-12'>
@@ -157,14 +175,14 @@ export default async function EventPage({ params }: { params: Promise<{ slug: nu
               )}
           </div>
           {orgId === process.env.NAVET_ORG_ID && (
-            <Button variant={"outline"} type="button" className="h-18 rounded-xl" asChild>
+            <Button variant={"outline"} type="button" className="h-18 rounded-xl text-lg font-semibold border-primary text-primary" asChild>
               <Link href={`/events/${event_id}/admin`}>
                 Administer arrangementet
               </Link>
             </Button>
           )}
         </aside>
-      </div>
-    </div>
+      </div >
+    </div >
   );
 }
