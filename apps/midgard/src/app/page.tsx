@@ -1,34 +1,34 @@
-import { Card, CardContent } from "@workspace/ui/components/card";
 import {
-	Carousel,
-	CarouselContent,
-	CarouselItem,
-	CarouselNext,
-	CarouselPrevious,
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
 } from "@workspace/ui/components/carousel";
+import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
+import EventCard from "@/components/events/event-card";
+import { getNLatesEvents } from "@/lib/query/events";
 
-export default function MainPage() {
-	const items = Array.from({ length: 5 }, (_, i) => i + 1);
+export default async function MainPage() {
+  const latestEvents = await getNLatesEvents(3);
 
-	return (
-		<div className='flex justify-center'>
-			{/* <Carousel className="w-full max-w-xs">
-      <CarouselContent>
-        {items.map((item) => (
-          <CarouselItem key={item}>
-            <div className="p-1">
-              <Card>
-                <CardContent className="flex aspect-square items-center justify-center p-6">
-                  <span className="text-4xl font-semibold">{item}</span>
-                </CardContent>
-              </Card>
-            </div>
-          </CarouselItem>
-        ))}
-      </CarouselContent>
-      <CarouselPrevious />
-      <CarouselNext />
-    </Carousel> */}
-		</div>
-	);
+  return (
+    <ResponsiveCenterContainer>
+      <div className="grid justify-center">
+        <Carousel className='w-full max-w-64 md:max-w-96'>
+          <CarouselContent>
+            {latestEvents.map((event) => (
+              <CarouselItem key={event.event_id}>
+                <div className='p-1'>
+                  <EventCard event={event} />
+                </div>
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+          <CarouselPrevious />
+          <CarouselNext />
+        </Carousel>
+      </div>
+    </ResponsiveCenterContainer>
+  );
 }
