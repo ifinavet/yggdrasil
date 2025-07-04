@@ -9,6 +9,7 @@ import { getEventById } from "@/lib/query/events";
 import { humanReadableDateTime } from "@/uitls/dateFormatting";
 import Link from "next/link";
 import { Title } from "@/components/common/title";
+import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
 
 export default async function EventPage({ params }: { params: Promise<{ slug: number }> }) {
   const { userId, orgId } = await auth();
@@ -31,7 +32,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: nu
   const availableSpots = participantsLimit - participants;
 
   return (
-    <div className='mx-6 md:mx-auto md:w-5/6 lg:w-4/5 xl:w-8/14'>
+    <ResponsiveCenterContainer>
       <Title>{event.title}</Title>
       <div className='grid grid-cols-1 gap-6 md:grid-cols-5'>
         <main className='gap-4 md:col-span-3'>
@@ -183,6 +184,6 @@ export default async function EventPage({ params }: { params: Promise<{ slug: nu
           )}
         </aside>
       </div >
-    </div >
+    </ResponsiveCenterContainer>
   );
 }
