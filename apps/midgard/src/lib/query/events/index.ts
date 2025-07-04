@@ -1,4 +1,4 @@
-import { getAllEventsCurrentSemester } from "./getAll";
+import { getAllEventsCurrentSemester, getNLatesEvents } from "./getAll";
 import { getEventById } from "./getById";
 
-export { getAllEventsCurrentSemester, getEventById };
+export { getAllEventsCurrentSemester, getEventById, getNLatesEvents };
