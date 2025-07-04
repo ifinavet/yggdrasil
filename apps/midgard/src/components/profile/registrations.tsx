@@ -8,11 +8,18 @@ import {
   CardTitle,
 } from "@workspace/ui/components/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/components/tabs";
+import { cn } from "@workspace/ui/lib/utils";
 import Link from "next/link";
 import { getRegistrationsById } from "@/lib/query/profile";
 import { humanReadableDateTime } from "@/uitls/dateFormatting";
 
-export default async function Registrations({ userId }: { userId: string }) {
+export default async function Registrations({
+  userId,
+  className,
+}: {
+  userId: string;
+  className?: string;
+}) {
   const registrations = await getRegistrationsById(userId);
 
   const previousEvents = registrations.filter(
@@ -23,13 +30,13 @@ export default async function Registrations({ userId }: { userId: string }) {
   );
 
   return (
-    <Tabs defaultValue='upcoming' className="mt-4">
-      <TabsList>
-        <TabsTrigger value='upcoming'>Kommende arrangementer</TabsTrigger>
-        <TabsTrigger value='previous'>Tidligere arrangementer</TabsTrigger>
+    <Tabs defaultValue='upcoming' className={cn(className, "max-w-full overflow-scroll")}>
+      <TabsList className="w-full">
+        <TabsTrigger value='upcoming'>Kommende</TabsTrigger>
+        <TabsTrigger value='previous'>Tidligere</TabsTrigger>
       </TabsList>
       <TabsContent value='upcoming'>
-        <div className="grid gap-4">
+        <div className='grid gap-4'>
           {upcomingEvents.map((registration) => (
             <Card key={registration.registration_id}>
               <CardHeader>
@@ -40,14 +47,14 @@ export default async function Registrations({ userId }: { userId: string }) {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <p className='font-semibold tracking-normal'>
+                <p className='text-balance font-semibold tracking-normal'>
                   Du er{" "}
                   {registration.status === "registerd"
                     ? "påmeldt dette arrangementet"
                     : "på venteliste til dette arrangementet"}
                   .
                 </p>
-                <p>
+                <p className='text-balance'>
                   Arragnementet starter{" "}
                   {humanReadableDateTime(new Date(registration.events.event_start))}
                 </p>
@@ -62,7 +69,7 @@ export default async function Registrations({ userId }: { userId: string }) {
         </div>
       </TabsContent>
       <TabsContent value='previous'>
-        <div className="grid grid-cols-1 gap-4">
+        <div className='grid grid-cols-1 gap-4'>
           {previousEvents.map((registration) => (
             <Card key={registration.registration_id}>
               <CardHeader>
@@ -72,19 +79,19 @@ export default async function Registrations({ userId }: { userId: string }) {
                   {humanReadableDateTime(new Date(registration.registration_time ?? ""))}.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="grid gap-2">
-                <p className='font-semibold tracking-normal'>
+              <CardContent className='grid gap-2'>
+                <p className='text-balance font-semibold tracking-normal'>
                   Du var{" "}
                   {registration.status === "registerd"
                     ? "påmeldt dette arrangementet"
                     : "på venteliste til dette arrangementet"}
                   .
                 </p>
-                <p>
+                <p className='text-balance'>
                   Arragnementet startet{" "}
                   {humanReadableDateTime(new Date(registration.events.event_start))}
                 </p>
-                <p>
+                <p className='text-balance'>
                   {registration.status === "waitlist"
                     ? "Du var på venteliste"
                     : registration.attendance_status === "registered"

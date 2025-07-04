@@ -1,12 +1,24 @@
+import { cn } from "@workspace/ui/lib/utils";
 import { getPointsById } from "@/lib/query/profile";
 
-export default async function Points({ userId }: { userId: string }) {
+export default async function Points({
+  userId,
+  className,
+}: {
+  userId: string;
+  className?: string;
+}) {
   const points = await getPointsById(userId);
 
   const numberOfPoints = points.reduce((acc, point) => acc + point.severity, 0);
 
   return (
-    <div className='mt-4 grid gap-4 rounded-lg border border-primary/50 px-8 py-10 shadow-sm'>
+    <div
+      className={cn(
+        "grid gap-4 rounded-lg border border-primary/20 px-8 py-10 shadow-sm",
+        className,
+      )}
+    >
       <div className='grid gap-6'>
         <div className='flex w-full justify-center gap-4'>
           {Array.from({ length: 3 }).map((_, index) => {
@@ -58,7 +70,7 @@ export default async function Points({ userId }: { userId: string }) {
         Ved spørsmål kan du sende en epost til:{" "}
         <a
           href='mailto:arrangement@ifinavet.no'
-          className="cursor-pointer text-primary hover:underline"
+          className='cursor-pointer text-primary hover:underline'
         >
           arrangement@ifinavet.no
         </a>

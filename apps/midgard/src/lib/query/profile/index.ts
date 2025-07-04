@@ -1,3 +1,4 @@
-import { getPointsById, getRegistrationsById } from './getById';
+import { getPointsById, getRegistrationsById, getStudentById } from './getById';
+import { updateStudentProfile } from './update';
 
-export { getPointsById, getRegistrationsById };
+export { getPointsById, getRegistrationsById, getStudentById, updateStudentProfile };
