@@ -50,7 +50,7 @@ export default async function DesktopHeader({ className }: { className?: string 
           <NavigationItem href='/job-listings'>Stillingsannonser</NavigationItem>
           <NavigationItem href='/companies'>For Bedifter</NavigationItem>
           <NavigationItem href='/students'>For Studenter</NavigationItem>
-          <NavigationItem href='/si-ifra'>Si ifra</NavigationItem>
+          <NavigationItem href='/contact'>Si ifra</NavigationItem>
           <NavigationMenuItem>
             <NavigationMenuTrigger className="bg-primary text-base text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground focus:underline data-[state=open]:bg-primary data-[state=open]:text-primary-foreground data-[state=open]:focus:bg-primary data-[state=open]:focus:text-primary-foreground data-[state=open]:hover:bg-primary data-[state=open]:hover:text-primary-foreground data-[state=open]:hover:underline">
               <SignedIn>

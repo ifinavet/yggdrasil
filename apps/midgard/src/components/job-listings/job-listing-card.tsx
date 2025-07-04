@@ -30,7 +30,7 @@ export default function JobListingCard({
   return (
     <div
       key={listingId}
-      className='flex h-100 w-80 flex-col overflow-clip rounded-lg bg-zinc-50 shadow-md'
+      className='flex h-100 w-80 flex-col overflow-clip rounded-lg bg-white shadow-md'
     >
       <div
         className={`py-4 text-center ${typeColors[type] ?? "bg-gray-400"} font-semibold text-lg text-white`}
