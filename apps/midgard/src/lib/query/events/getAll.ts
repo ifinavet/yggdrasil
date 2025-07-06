@@ -1,6 +1,5 @@
 "use server";
 
-import type { QueryData } from "@supabase/supabase-js";
 import type { Tables } from "@/lib/supabase/database.types";
 import { createServerClient } from "@/lib/supabase/server";
 

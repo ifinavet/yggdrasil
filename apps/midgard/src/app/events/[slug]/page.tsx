@@ -152,12 +152,12 @@ export default async function EventPage({ params }: { params: Promise<{ slug: nu
                 ) : (
                   <div
                     key={organizer.user_id}
-                    className='flex flex-wrap gap-4 rounded-xl bg-zinc-100 px-6 py-4'
+                    className='flex flex-wrap items-center gap-4 rounded-xl bg-zinc-100 px-6 py-4'
                   >
                     <img
                       src={organizer.user.imageUrl}
                       alt={organizer.user.fullName || "ukjent"}
-                      className='aspect-square max-h-24 max-w-24 rounded-full'
+                      className='aspect-square max-h-16 max-w-16 rounded-full'
                       loading="lazy"
                     />
                     <div className='flex flex-col justify-between'>
