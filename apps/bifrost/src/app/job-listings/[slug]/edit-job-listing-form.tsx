@@ -7,7 +7,6 @@ import JobListingFormSkeleton from "@/components/job-listings/job-listing-form-s
 import JobListingForm from "@/components/job-listings/job-listings-form/job-listing-form";
 import type { JobListingFormValues } from "@/constants/schemas/job-listing-form-schema";
 import { getCompanyById } from "@/lib/queries/companies";
-import { createJobListing } from "@/lib/queries/job-listings/create";
 import deleteJobListing from "@/lib/queries/job-listings/delete";
 import getJobListingById from "@/lib/queries/job-listings/getById";
 import { updateJobListing } from "@/lib/queries/job-listings/update";
