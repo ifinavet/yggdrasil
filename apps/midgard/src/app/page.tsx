@@ -16,6 +16,8 @@ import { getMainSponsor } from "@/lib/query/companies";
 import { getNLatesEvents } from "@/lib/query/events";
 import { getAllJobListings } from "@/lib/query/job-listings";
 
+export const dynamic = "force-dynamic";
+
 export default async function MainPage() {
   const latestEvents = await getNLatesEvents(3);
   const mainSponsor = await getMainSponsor();
