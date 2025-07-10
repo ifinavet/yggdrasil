@@ -14,7 +14,7 @@ DROP TABLE IF EXISTS events CASCADE;
 DROP TABLE IF EXISTS students CASCADE;
 DROP TABLE IF EXISTS companies CASCADE;
 DROP TABLE IF EXISTS resources CASCADE;
-
+DROP TABLE IF EXISTS organization CASCADE;
 
 -- =============================================================================
 -- CONFIGURATION & FUNCTIONS
@@ -77,6 +77,17 @@ CREATE TABLE IF NOT EXISTS students (
     semester INTEGER NOT NULL CHECK (semester > 0),
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Organization (Internal organization members)
+CREATE TABLE IF NOT EXISTS organization (
+    organization_id SERIAL PRIMARY KEY,
+    user_id TEXT NOT NULL DEFAULT auth.jwt()->>'sub',
+    position TEXT NOT NULL,
+    group_name TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE (user_id)
 );
 
 -- Events
@@ -224,6 +235,10 @@ CREATE INDEX IF NOT EXISTS idx_registrations_status ON registrations(status);
 CREATE INDEX IF NOT EXISTS idx_points_user ON points(user_id);
 CREATE INDEX IF NOT EXISTS idx_points_awarded_time ON points(awarded_time);
 
+-- Organization indexes
+CREATE INDEX IF NOT EXISTS idx_organization_user ON organization(user_id);
+CREATE INDEX IF NOT EXISTS idx_organization_group ON organization(group_name);
+
 -- Resources indexes
 CREATE INDEX IF NOT EXISTS idx_resources_title ON resources(title);
 CREATE INDEX IF NOT EXISTS idx_resources_created_at ON resources(created_at);
@@ -245,6 +260,7 @@ DROP TRIGGER IF EXISTS update_job_listings_updated_at ON job_listings;
 DROP TRIGGER IF EXISTS update_job_listing_contacts_updated_at ON job_listing_contacts;
 DROP TRIGGER IF EXISTS update_students_updated_at ON students;
 DROP TRIGGER IF EXISTS update_resources_updated_at ON resources;
+DROP TRIGGER IF EXISTS update_organization_updated_at ON organization;
 
 DROP TRIGGER IF EXISTS update_events_updated_at ON events;
 DROP TRIGGER IF EXISTS update_registrations_updated_at ON registrations;
@@ -262,6 +278,10 @@ CREATE TRIGGER update_companies_updated_at
 
 CREATE TRIGGER update_students_updated_at
     BEFORE UPDATE ON students
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_organization_updated_at
+    BEFORE UPDATE ON organization
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_resources_updated_at
