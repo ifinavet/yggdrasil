@@ -1,6 +1,6 @@
 import { cn } from "@workspace/ui/lib/utils";
 import Image from "next/image";
-import NavetNCircle from "@/assets/navet/navet-n-circle.png";
+import NavetNCircle from "@/assets/navet/navet-n-circle.webp";
 
 export default function InformationGrid({ className }: { className?: string }) {
   return (
@@ -31,7 +31,7 @@ export default function InformationGrid({ className }: { className?: string }) {
 function GridEntry({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex items-center gap-4">
-      <Image src={NavetNCircle} alt='Navet Logo' className='aspect-square size-6' />
+      <Image src={NavetNCircle} alt='Navet Logo' className='aspect-square size-8' />
       <p className='text-balance leading-7'>{children}</p>
     </div>
   );
