@@ -1,4 +1,4 @@
-import { getMainSponsor } from "./get";
+import { getCompanyImageById, getMainSponsor } from "./get";
 import { getCompanyImageByImageName } from "./getImage";
 
-export { getMainSponsor, getCompanyImageByImageName };
+export { getMainSponsor, getCompanyImageByImageName, getCompanyImageById };

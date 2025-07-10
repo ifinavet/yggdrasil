@@ -1,7 +1,7 @@
 import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
 import SanitizeHtml from "@/components/common/sanitize-html";
 import { Title } from "@/components/common/title";
-import getCompanyImageById from "@/lib/query/companies/getById";
+import { getCompanyImageById } from "@/lib/query/companies";
 import { getListingById } from "@/lib/query/job-listings";
 import { humanReadableDateTime } from "@/uitls/dateFormatting";
 import { Button } from "@workspace/ui/components/button";
@@ -20,7 +20,7 @@ export default async function JobListingPage({ params }: { params: Promise<{ slu
       <div className='grid grid-cols-1 gap-6 md:grid-cols-5'>
         <main className='gap-4 md:col-span-3'>
           <div>
-            <div className='grid h-fit grid-cols-2 gap-4 items-center justify-start rounded-xl bg-primary px-10 pt-6 pb-12 text-primary-foreground md:px-16 md:pt-8'>
+            <div className='grid h-fit grid-cols-2 gap-4 items-center justify-between rounded-xl bg-primary px-10 pt-6 pb-12 text-primary-foreground md:px-16 md:pt-8'>
               <p className='flex items-center gap-2 font-semibold md:text-lg text-pretty'>
                 <CalendarDays className='size-8' />{" "}
                 {humanReadableDateTime(new Date(listing.deadline))}
