@@ -26,7 +26,7 @@ export default function Footer() {
             className='text-base text-primary-foreground'
             asChild
           >
-            <Link href='/info'>Rettningslinjer</Link>
+            <Link href='/info/2'>Rettningslinjer</Link>
           </Button>
         </div>
       </div>
