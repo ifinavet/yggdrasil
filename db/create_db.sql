@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS companies (
     org_number TEXT,
     description TEXT,
     company_image uuid,
+    main_sponsor BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
     CONSTRAINT companies_company_image_fkey FOREIGN KEY (company_image) REFERENCES storage.objects(id)

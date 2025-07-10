@@ -4,7 +4,6 @@ import { CalendarDays, Globe, IdCard, MapPin, Users, Utensils, Clock } from "luc
 import Image from "next/image";
 import SanitizeHtml from "@/components/common/sanitize-html";
 import RegistrationButton from "@/components/events/registration/registration-button";
-import getCompanyImageById from "@/lib/query/companies/getById";
 import { getEventById } from "@/lib/query/events";
 import { humanReadableDateTime } from "@/uitls/dateFormatting";
 import Link from "next/link";
@@ -12,6 +11,7 @@ import { Title } from "@/components/common/title";
 import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
 import LargeUserCard from "@/components/cards/large-user";
 import ContainerCard from "@/components/cards/container-card";
+import getCompanyImageById from "@/lib/query/companies/get";
 
 export default async function EventPage({ params }: { params: Promise<{ slug: number }> }) {
   const { userId, orgId } = await auth();

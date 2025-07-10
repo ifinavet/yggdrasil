@@ -1,3 +1,5 @@
+"use server";
+
 import { createServerClient } from "@/lib/supabase/server";
 
 export default async function getCompanyImageById(company_id: number) {
@@ -23,11 +25,35 @@ export default async function getCompanyImageById(company_id: number) {
   };
 }
 
-export function getCompanyImageByImageName(imageName: string) {
+
+export async function getMainSponsor() {
   const supabase = createServerClient();
 
+  const { data: main_sponsor, error } = await supabase
+    .from("companies")
+    .select("*")
+    .eq("main_sponsor", true)
+    .single();
 
-  const { data: image_url } = supabase.storage.from("companies").getPublicUrl(imageName);
+  if (error) {
+    console.error("Error fetching main sponsor:", error);
+    throw new Error("Failed to fetch main sponsor");
+  }
 
-  return image_url.publicUrl;
+  if (!main_sponsor) {
+    console.error("Main sponsor not found");
+    return null;
+  }
+
+  const sponsor_image = await getCompanyImageById(main_sponsor.company_id);
+
+  if (!sponsor_image) {
+    console.error("Error fetching sponsor image");
+    return null;
+  }
+
+  return {
+    ...main_sponsor,
+    company_image: sponsor_image.url,
+  };
 }
