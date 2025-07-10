@@ -2,7 +2,7 @@
 
 import { createServerClient } from "@/lib/supabase/server";
 
-export default async function getCompanyImageById(company_id: number) {
+export async function getCompanyImageById(company_id: number) {
   const supabase = createServerClient();
 
   const { data: image_name, error: image_name_error } = await supabase

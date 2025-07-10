@@ -11,7 +11,7 @@ import { Title } from "@/components/common/title";
 import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
 import LargeUserCard from "@/components/cards/large-user";
 import ContainerCard from "@/components/cards/container-card";
-import getCompanyImageById from "@/lib/query/companies/get";
+import { getCompanyImageById } from "@/lib/query/companies";
 
 export default async function EventPage({ params }: { params: Promise<{ slug: number }> }) {
   const { userId, orgId } = await auth();

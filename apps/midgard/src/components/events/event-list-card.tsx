@@ -1,7 +1,7 @@
 import { CalendarDays, Clock, Users } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import getCompanyImageById from "@/lib/query/companies/getById";
+import { getCompanyImageById } from "@/lib/query/companies";
 import type { Tables } from "@/lib/supabase/database.types";
 import {
   humanReadableDate,
