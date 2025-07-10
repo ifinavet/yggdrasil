@@ -10,6 +10,8 @@ import { humanReadableDateTime } from "@/uitls/dateFormatting";
 import Link from "next/link";
 import { Title } from "@/components/common/title";
 import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
+import LargeUserCard from "@/components/cards/large-user";
+import ContainerCard from "@/components/cards/container-card";
 
 export default async function EventPage({ params }: { params: Promise<{ slug: number }> }) {
   const { userId, orgId } = await auth();
@@ -85,12 +87,12 @@ export default async function EventPage({ params }: { params: Promise<{ slug: nu
               )}
             </div>
           </div>
-          <div className='flex flex-col gap-4 rounded-xl bg-zinc-100 px-10 py-8 md:px-12'>
+          <ContainerCard>
             <h1 className='scroll-m-20 text-balance pb-2 font-bold text-3xl tracking-normal'>
               {event.teaser}
             </h1>
             <SanitizeHtml html={event.description ?? ""} className='prose' />
-          </div>
+          </ContainerCard>
         </main>
         <aside className='flex flex-col gap-8 md:col-span-2'>
           <div>
@@ -123,32 +125,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: nu
               })
               .map((organizer) =>
                 organizer.role === "main" ? (
-                  <div key={organizer.user_id}>
-                    <div className='relative aspect-square max-h-36 w-full'>
-                      <div className='absolute top-0 left-0 h-1/2 w-full bg-transparent'></div>
-                      <div className='absolute bottom-0 left-0 h-1/2 w-full rounded-t-xl bg-zinc-100'></div>
-                      <div className='absolute inset-8 grid place-content-center rounded-full bg-transparent'>
-                        <img
-                          src={organizer.user.imageUrl}
-                          alt={organizer.user.fullName || "ukjent"}
-                          className='rounded-full h-36 w-36'
-                        />
-                      </div>
-                    </div>
-                    <div className='rounded-b-xl bg-zinc-100 px-8 pt-2 pb-8'>
-                      <div className='flex flex-col items-center gap-4'>
-                        <div>
-                          <p className='font-semibold text-lg'>Hovedansvarlig</p>
-                          <p>{organizer.user.fullName}</p>
-                        </div>
-                        <Button asChild className='w-1/2'>
-                          <a href={`mailto:${organizer.user.primaryEmailAddress?.emailAddress}`}>
-                            Ta kontakt
-                          </a>
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
+                  <LargeUserCard title="Hovedansvarlig" key={organizer.user_id} fullName={organizer.user.fullName ?? "Ukjent"} imageUrl={organizer.user.imageUrl} email={organizer.user.primaryEmailAddress?.emailAddress ?? "styret@ifinavet.no"} />
                 ) : (
                   <div
                     key={organizer.user_id}
