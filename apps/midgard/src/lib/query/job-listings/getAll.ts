@@ -2,24 +2,30 @@
 
 import { createServerClient } from "@/lib/supabase/server";
 
-export async function getAllJobListings(type?: string) {
+export async function getAllJobListings(type?: string, n?: number) {
   const supabase = createServerClient();
 
-  if (!type) {
-    const { data: jobListings, error } = await supabase.from("job_listings").select("*, companies (company_id, company_name), company_images (company_id, id, name)").eq("published", true).gte("deadline", new Date().toISOString());
+  let query = supabase
+    .from("job_listings")
+    .select("*, companies (company_id, company_name), company_images (company_id, id, name)")
+    .eq("published", true)
+    .gte("deadline", new Date().toISOString())
+    .order("deadline", { ascending: false });
 
-    if (error) {
-      throw new Error(error.message);
-    }
-
-    return jobListings;
+  if (n) {
+    query = query.limit(n);
   }
 
-  const { data: jobListings, error } = await supabase.from("job_listings").select("*, companies (company_id, company_name), company_images (company_id, id, name)").eq("type", type).eq("published", true).gte("deadline", new Date().toISOString());
+  if (type) {
+    query = query.eq("type", type);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
-    throw new Error(error.message);
+    console.error(error);
+    return [];
   }
 
-  return jobListings;
+  return data;
 }

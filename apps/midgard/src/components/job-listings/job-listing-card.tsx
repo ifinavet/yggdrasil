@@ -1,7 +1,7 @@
 import { Button } from "@workspace/ui/components/button";
 import Image from "next/image";
 import Link from "next/link";
-import { getCompanyImageByImageName } from "@/lib/query/companies/getById";
+import { getCompanyImageByImageName } from "@/lib/query/companies";
 
 export default function JobListingCard({
   listingId,
@@ -13,12 +13,12 @@ export default function JobListingCard({
 }: {
   listingId: number;
   type: string;
-  imageName?: string;
+  imageName: string;
   companyName: string;
   title: string;
   teaser: string;
 }) {
-  const image = getCompanyImageByImageName(imageName ?? "");
+  const image = getCompanyImageByImageName(imageName);
 
   const typeColors: Record<string, string> = {
     Sommerjobb: "bg-orange-400",
@@ -45,7 +45,7 @@ export default function JobListingCard({
           <h4 className='scroll-m-20 text-center font-semibold text-primary text-xl tracking-tight'>
             {title}
           </h4>
-          <p className="mt-2 line-clamp-3">{teaser}</p>
+          <p className='mt-2 line-clamp-3'>{teaser}</p>
         </div>
         <Button asChild className='mt-4'>
           <Link href={`/job-listings/${listingId}`}>Les mer</Link>
