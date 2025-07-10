@@ -6,6 +6,7 @@ import { eina } from "@/components/common/eina-font";
 import Footer from "@/components/common/footer";
 import Header from "@/components/common/header/header";
 import ReactQueryProvider from "@/providers/react-query-provider";
+import { ThemeProvider } from "@/providers/theme-provider";
 
 export const metadata: Metadata = {
   title: "IFI-Navet",
@@ -20,12 +21,16 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <ReactQueryProvider>
-        <html lang='no'>
-          <body className={`${eina.className} flex h-screen flex-col antialiased`}>
-            <Header />
-            <main className='mb-12 flex-1'>{children}</main>
-            <Footer />
-            <Toaster richColors />
+        <html lang='no' suppressHydrationWarning>
+          <body className={`${eina.className} antialiased`}>
+            <ThemeProvider attribute="class" defaultTheme="light" disableTransitionOnChange>
+              <div className="flex h-screen flex-col">
+                <Header />
+                <main className='mb-12 flex-1'>{children}</main>
+                <Footer />
+                <Toaster richColors />
+              </div>
+            </ThemeProvider>
           </body>
         </html>
       </ReactQueryProvider>

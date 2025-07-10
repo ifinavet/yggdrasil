@@ -243,6 +243,9 @@ importers:
       next:
         specifier: 15.3.4
         version: 15.3.4(react-dom@19.0.0(react@19.0.0))(react@19.0.0)(sass@1.89.2)
+      next-themes:
+        specifier: ^0.4.6
+        version: 0.4.6(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       react:
         specifier: ^19.0.0
         version: 19.0.0
