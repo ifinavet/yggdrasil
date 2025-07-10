@@ -4,16 +4,16 @@ import type { CompanyFormValues } from "@/constants/schemas/companies-form-schem
 import { createServerClient } from "@/lib/supabase/server";
 
 export default async function createCompany(formData: CompanyFormValues) {
-	const supabase = createServerClient();
+  const supabase = createServerClient();
 
-	const { error } = await supabase.from("companies").insert({
-		company_name: formData.company_name,
-		description: formData.description,
-		org_number: formData.org_number,
-		company_image: formData.company_image.id,
-	});
+  const { error } = await supabase.from("companies").insert({
+    company_name: formData.company_name,
+    description: formData.description,
+    org_number: formData.org_number,
+    company_image: formData.company_image.id,
+  });
 
-	if (error) {
-		throw new Error(error.message);
-	}
+  if (error) {
+    throw new Error(error.message);
+  }
 }
