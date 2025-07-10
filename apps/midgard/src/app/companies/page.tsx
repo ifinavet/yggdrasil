@@ -81,7 +81,7 @@ export default async function CompaniesPage() {
                 className='bg-primary py-6 text-base text-primary-foreground'
                 asChild
               >
-                <a href='/'>Skjema for stillingsannonser</a>
+                <a href='/' rel='noopener' target='_blank'>Skjema for stillingsannonser</a>
               </Button>
             </ContainerCard>
           </div>
