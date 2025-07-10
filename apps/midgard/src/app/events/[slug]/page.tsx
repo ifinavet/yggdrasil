@@ -143,7 +143,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: nu
                         <p>{organizer.user.fullName}</p>
                       </div>
                       <Button asChild>
-                        <a href={`mailto:${organizer.user.primaryEmailAddress?.emailAddress}`}>
+                        <a href={`mailto:${organizer.user.primaryEmailAddress?.emailAddress}`} rel='noopener' target='_blank' >
                           Ta kontakt
                         </a>
                       </Button>
