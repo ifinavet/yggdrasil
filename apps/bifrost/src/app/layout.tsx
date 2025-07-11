@@ -12,61 +12,59 @@ import ReactQueryProvider from "@/providers/react-query-provider";
 import UnauthorizedPage from "./unauthorized";
 
 const defaultUrl = process.env.VERCEL_URL
-	? `https://${process.env.VERCEL_URL}`
-	: "http://localhost:3000";
+  ? `https://${process.env.VERCEL_URL}`
+  : "http://localhost:3000";
 
 export const metadata = {
-	metadataBase: new URL(defaultUrl),
-	title: {
-		template: "%s | Navet - Bifrost",
-		default: "Navet - Bifrost",
-	},
-	description:
-		"Bindeledd mellom studenter og næringslivet for studentene på institutt for informatikk ved UiO.",
+  metadataBase: new URL(defaultUrl),
+  title: {
+    template: "%s | Navet - Bifrost",
+    default: "Navet - Bifrost",
+  },
 };
 
 const interSans = Inter({
-	display: "swap",
-	subsets: ["latin"],
+  display: "swap",
+  subsets: ["latin"],
 });
 
 export default async function RootLayout({
-	children,
+  children,
 }: Readonly<{
-	children: React.ReactNode;
+  children: React.ReactNode;
 }>) {
-	const { orgId } = await auth();
+  const { orgId } = await auth();
 
-	if (!orgId) {
-		return <UnauthorizedPage />;
-	}
+  if (!orgId) {
+    return <UnauthorizedPage />;
+  }
 
-	return (
-		<ClerkProvider>
-			<html lang='no' suppressHydrationWarning>
-				<body className={`antialiased ${interSans.className}`}>
-					<SidebarProvider>
-						<ThemeProvider
-							attribute='class'
-							defaultTheme='system'
-							enableSystem
-							disableTransitionOnChange
-						>
-							<ReactQueryProvider>
-								<BifrostSidebar />
-								<SidebarInset>
-									<Header />
-									<main className='flex h-full flex-col gap-4 p-4'>{children}</main>
-								</SidebarInset>
-								<Toaster richColors position='top-center' />
-								{process.env.NODE_ENV === "development" && (
-									<ReactQueryDevtools initialIsOpen={false} />
-								)}
-							</ReactQueryProvider>
-						</ThemeProvider>
-					</SidebarProvider>
-				</body>
-			</html>
-		</ClerkProvider>
-	);
+  return (
+    <ClerkProvider>
+      <html lang='no' suppressHydrationWarning>
+        <body className={`antialiased ${interSans.className}`}>
+          <SidebarProvider>
+            <ThemeProvider
+              attribute='class'
+              defaultTheme='system'
+              enableSystem
+              disableTransitionOnChange
+            >
+              <ReactQueryProvider>
+                <BifrostSidebar />
+                <SidebarInset>
+                  <Header />
+                  <main className='flex h-full flex-col gap-4 p-4'>{children}</main>
+                </SidebarInset>
+                <Toaster richColors position='top-center' />
+                {process.env.NODE_ENV === "development" && (
+                  <ReactQueryDevtools initialIsOpen={false} />
+                )}
+              </ReactQueryProvider>
+            </ThemeProvider>
+          </SidebarProvider>
+        </body>
+      </html>
+    </ClerkProvider>
+  );
 }
