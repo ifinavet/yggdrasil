@@ -1,22 +1,26 @@
 {
-  "name": "shadcn-ui-monorepo",
-  "version": "0.0.1",
-  "private": true,
-  "scripts": {
-    "build": "turbo build",
-    "dev": "turbo dev",
-    "lint": "turbo lint",
-    "format-and-lint": "biome check .",
-    "format-and-lint:fix": "biome check . --write"
-  },
-  "devDependencies": {
-    "@biomejs/biome": "2.0.0",
-    "@workspace/typescript-config": "workspace:*",
-    "turbo": "^2.5.4",
-    "typescript": "5.7.3"
-  },
-  "packageManager": "pnpm@10.13.1",
-  "engines": {
-    "node": ">=20"
-  }
+	"name": "shadcn-ui-monorepo",
+	"version": "0.0.1",
+	"private": true,
+	"scripts": {
+		"build": "turbo build",
+		"dev": "turbo dev",
+		"lint": "turbo lint",
+		"check": "turbo check",
+		"check:fix": "turbo check:fix",
+		"check:all": "biome check .",
+		"check:all:fix": "biome check . --write",
+		"format-and-lint": "biome check .",
+		"format-and-lint:fix": "biome check . --write"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.0.0",
+		"@workspace/typescript-config": "workspace:*",
+		"turbo": "^2.5.4",
+		"typescript": "5.7.3"
+	},
+	"packageManager": "pnpm@10.13.1",
+	"engines": {
+		"node": ">=20"
+	}
 }

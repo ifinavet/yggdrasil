@@ -6,7 +6,9 @@
 		"dev": "next dev",
 		"build": "next build",
 		"start": "next start",
-		"lint": "next lint"
+		"lint": "next lint",
+		"check": "biome check .",
+		"check:fix": "biome check . --write"
 	},
 	"dependencies": {
 		"@clerk/nextjs": "^6.22.0",
@@ -27,6 +29,7 @@
 		"zod": "^3.25.67"
 	},
 	"devDependencies": {
+		"@biomejs/biome": "2.0.0",
 		"@tailwindcss/postcss": "^4",
 		"@tailwindcss/typography": "^0.5.16",
 		"@types/dompurify": "^3.2.0",

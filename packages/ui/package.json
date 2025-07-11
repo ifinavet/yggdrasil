@@ -4,7 +4,9 @@
 	"type": "module",
 	"private": true,
 	"scripts": {
-		"lint": "eslint . --max-warnings 0"
+		"lint": "eslint . --max-warnings 0",
+		"check": "biome check .",
+		"check:fix": "biome check . --write"
 	},
 	"dependencies": {
 		"@hookform/resolvers": "^5.1.1",
@@ -40,6 +42,7 @@
 		"zod": "^3.24.2"
 	},
 	"devDependencies": {
+		"@biomejs/biome": "2.0.0",
 		"@tailwindcss/postcss": "^4.0.8",
 		"@tailwindcss/typography": "^0.5.16",
 		"@turbo/gen": "^2.4.2",
