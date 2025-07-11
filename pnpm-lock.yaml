@@ -262,6 +262,9 @@ importers:
         specifier: ^3.25.67
         version: 3.25.67
     devDependencies:
+      '@biomejs/biome':
+        specifier: 2.0.0
+        version: 2.0.0
       '@tailwindcss/postcss':
         specifier: ^4
         version: 4.0.8
@@ -388,6 +391,9 @@ importers:
         specifier: ^3.24.2
         version: 3.24.2
     devDependencies:
+      '@biomejs/biome':
+        specifier: 2.0.0
+        version: 2.0.0
       '@tailwindcss/postcss':
         specifier: ^4.0.8
         version: 4.0.8

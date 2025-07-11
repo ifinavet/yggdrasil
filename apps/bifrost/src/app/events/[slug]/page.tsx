@@ -6,32 +6,32 @@ import { getAllInternalMembers } from "@/lib/queries/organization";
 import UpdateEventForm from "./update-event-form";
 
 export default async function EventPage(props: { params: Promise<{ slug: string }> }) {
-  const params = await props.params;
-  const event_id = parseInt(params.slug);
+	const params = await props.params;
+	const event_id = parseInt(params.slug);
 
-  const { orgId, redirectToSignIn } = await auth();
-  if (!orgId) return redirectToSignIn();
+	const { orgId, redirectToSignIn } = await auth();
+	if (!orgId) return redirectToSignIn();
 
-  const queryClient = new QueryClient();
+	const queryClient = new QueryClient();
 
-  await queryClient.prefetchQuery({
-    queryKey: ["companies"],
-    queryFn: getAllCompanies,
-  });
+	await queryClient.prefetchQuery({
+		queryKey: ["companies"],
+		queryFn: getAllCompanies,
+	});
 
-  await queryClient.prefetchQuery({
-    queryKey: ["internalMembers", orgId],
-    queryFn: () => getAllInternalMembers(orgId),
-  });
+	await queryClient.prefetchQuery({
+		queryKey: ["internalMembers", orgId],
+		queryFn: () => getAllInternalMembers(orgId),
+	});
 
-  await queryClient.prefetchQuery({
-    queryKey: ["event", event_id],
-    queryFn: () => getEventById(event_id),
-  });
+	await queryClient.prefetchQuery({
+		queryKey: ["event", event_id],
+		queryFn: () => getEventById(event_id),
+	});
 
-  return (
-    <HydrationBoundary state={dehydrate(queryClient)}>
-      <UpdateEventForm orgId={orgId} event_id={event_id} />
-    </HydrationBoundary>
-  );
+	return (
+		<HydrationBoundary state={dehydrate(queryClient)}>
+			<UpdateEventForm orgId={orgId} event_id={event_id} />
+		</HydrationBoundary>
+	);
 }
