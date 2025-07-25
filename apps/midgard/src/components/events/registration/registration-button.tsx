@@ -22,12 +22,12 @@ export default async function RegistrationButton({
         {!userRegistration ? (
           <SignUpForm
             event_id={event_id}
-            user_id={userId}
+            user_id={userId!}
             className={`w-1/2 rounded-xl bg-emerald-600 py-8 text-center font-semibold text-lg hover:cursor-pointer hover:bg-emerald-700`}
             waitlist={availableSpots === 0}
           />
         ) : (
-          <Unregister user_id={userId} event_id={event_id} />
+          <Unregister user_id={userId!} event_id={event_id} />
         )}
       </SignedIn>
       <SignedOut>
