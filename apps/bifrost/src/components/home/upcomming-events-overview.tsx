@@ -1,3 +1,4 @@
+import { api } from "@workspace/backend/convex/api";
 import {
   Card,
   CardContent,
@@ -8,12 +9,42 @@ import {
 } from "@workspace/ui/components/card";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
 import { Separator } from "@workspace/ui/components/separator";
+import { fetchQuery } from "convex/nextjs";
 import Link from "next/link";
-import { getLatestEvents } from "@/lib/queries/events";
+
+type Event = {
+  _id: string;
+  title: string;
+  organizers: { role: string; name: string }[];
+  teaser: string;
+  participationLimit: number;
+};
+
+function EventCard({ event }: { event: Event }) {
+  return (
+    <Link href={`/events/${event._id}`}>
+      <Card className='mb-4'>
+        <CardHeader>
+          <CardTitle>{event.title}</CardTitle>
+          <CardDescription>
+            Hovedansvarlig:{" "}
+            {event.organizers.find((organizer) => organizer.role === "hovedansvarlig")
+              ?.name || "Mangler..."}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p>{event.teaser}</p>
+        </CardContent>
+        <CardFooter>Størrelse: {event.participationLimit} plasser</CardFooter>
+      </Card>
+    </Link>
+  );
+}
 
 export default async function UpcomingEventsOverview() {
   try {
-    const events = await getLatestEvents();
+    const events = await fetchQuery(api.events.getLatest, {});
+
     const now = new Date();
 
     // Start of week (Monday)
@@ -27,12 +58,12 @@ export default async function UpcomingEventsOverview() {
     endOfWeek.setHours(23, 59, 59, 999);
 
     const thisWeeksEvents = events.filter((event) => {
-      const eventDate = new Date(event.event_start);
+      const eventDate = new Date(event.eventStart);
       return eventDate >= startOfWeek && eventDate <= endOfWeek;
     });
 
     const restOfEvents = events.filter((event) => {
-      const eventDate = new Date(event.event_start);
+      const eventDate = new Date(event.eventStart);
       return eventDate > endOfWeek;
     });
 
@@ -42,24 +73,13 @@ export default async function UpcomingEventsOverview() {
           <h3 className='scroll-m-20 font-semibold text-2xl tracking-tight'>
             Denne ukens arrangementer
           </h3>
-          {thisWeeksEvents.map((event) => (
-            <Link href={`/events/${event.event_id}`}>
-              <Card key={event.event_id} className='mb-4'>
-                <CardHeader>
-                  <CardTitle>{event.title}</CardTitle>
-                  <CardDescription>
-                    Hovedansvarlig:{" "}
-                    {event.organizers.find((organizer) => organizer.role === "main")?.name ||
-                      "Mangler..."}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p>{event.teaser}</p>
-                </CardContent>
-                <CardFooter>Størrelse: {event.participants_limit} plasser</CardFooter>
-              </Card>
-            </Link>
-          ))}
+          {thisWeeksEvents.length > 0 ? (
+            thisWeeksEvents.map((event) => (
+              <EventCard key={event._id} event={event} />
+            ))
+          ) : (
+            <p>Ingen arrangementer denne uken.</p>
+          )}
         </div>
         <Separator />
         <div className='space-y-2'>
@@ -67,31 +87,23 @@ export default async function UpcomingEventsOverview() {
             Kommende arrangementer
           </h3>
           <ScrollArea>
-            {restOfEvents.map((event) => (
-              <Card key={event.event_id} className='mb-4'>
-                <CardHeader>
-                  <CardTitle>{event.title}</CardTitle>
-                  <CardDescription>
-                    Hovedansvarlig:{" "}
-                    {event.organizers.find((organizer) => organizer.role === "main")?.name ||
-                      "Mangler..."}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p>{event.teaser}</p>
-                </CardContent>
-                <CardFooter>Størrelse: {event.participants_limit} plasser</CardFooter>
-              </Card>
-            ))}
+            {restOfEvents.length > 0 ? (
+              restOfEvents.map((event) => (
+                <EventCard key={event._id} event={event} />
+              ))
+            ) : (
+              <p>Ingen kommende arrangementer.</p>
+            )}
           </ScrollArea>
         </div>
       </div>
     );
-  } catch (error) {
-    console.error("Error fetching events:", error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Ukjent feil';
     return (
       <>
         <p>Det oppstod en feil ved henting av hendelser.</p>
+        <small>Feilmelding: {errorMessage}</small>
       </>
     );
   }

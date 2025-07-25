@@ -8,7 +8,7 @@ import { SidebarInset, SidebarProvider } from "@workspace/ui/components/sidebar"
 import { Toaster } from "@workspace/ui/components/sonner";
 import Header from "@/components/common/header";
 import BifrostSidebar from "@/components/common/sidebar/sidebar";
-import ReactQueryProvider from "@/providers/react-query-provider";
+import Providers from "@/providers/providers";
 import UnauthorizedPage from "./unauthorized";
 
 const defaultUrl = process.env.VERCEL_URL
@@ -40,9 +40,9 @@ export default async function RootLayout({
   }
 
   return (
-    <ClerkProvider>
-      <html lang='no' suppressHydrationWarning>
-        <body className={`antialiased ${interSans.className}`}>
+    <html lang='no' suppressHydrationWarning>
+      <body className={`antialiased ${interSans.className}`}>
+        <ClerkProvider>
           <SidebarProvider>
             <ThemeProvider
               attribute='class'
@@ -50,7 +50,7 @@ export default async function RootLayout({
               enableSystem
               disableTransitionOnChange
             >
-              <ReactQueryProvider>
+              <Providers>
                 <BifrostSidebar />
                 <SidebarInset>
                   <Header />
@@ -60,11 +60,11 @@ export default async function RootLayout({
                 {process.env.NODE_ENV === "development" && (
                   <ReactQueryDevtools initialIsOpen={false} />
                 )}
-              </ReactQueryProvider>
+              </Providers>
             </ThemeProvider>
           </SidebarProvider>
-        </body>
-      </html>
-    </ClerkProvider>
+        </ClerkProvider>
+      </body>
+    </html>
   );
 }
