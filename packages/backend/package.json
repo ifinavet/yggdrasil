@@ -1,0 +1,33 @@
+{
+  "name": "@workspace/backend",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "check": "biome check .",
+    "check:fik": "biome check . --write",
+    "dev": "convex dev",
+    "setup": "convex dev --until-success"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.13.1",
+  "dependencies": {
+    "@clerk/backend": "^2.5.0",
+    "convex": "^1.25.4",
+    "svix": "^1.69.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.19"
+  },
+  "exports": {
+    "./convex/api": {
+      "types": "./convex/_generated/api.d.ts",
+      "default": "./convex/_generated/api.js"
+    },
+    "./convex/dataModel": {
+      "types": "./convex/_generated/dataModel.d.ts"
+    }
+  }
+}
