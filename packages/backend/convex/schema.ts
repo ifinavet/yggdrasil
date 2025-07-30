@@ -23,9 +23,10 @@ export default defineSchema({
     email: v.string(),
     firstName: v.string(),
     lastName: v.string(),
+    image: v.string(),
     externalId: v.string(),
     locked: v.boolean(),
-  }).index("byExternalId", ["externalId"]),
+  }).index("by_ExternalId", ["externalId"]),
 
   students: defineTable({
     userId: v.id("users"),
@@ -43,10 +44,11 @@ export default defineSchema({
   }).index("by_studentId", ["studentId"]),
 
   internals: defineTable({
-    userId: v.string(),
+    userId: v.id("users"),
     position: v.string(),
     group: v.string(),
-  }),
+    postionEmail: v.optional(v.string()),
+  }).index("by_position", ["position"]),
 
   events: defineTable({
     title: v.string(),
