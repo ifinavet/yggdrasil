@@ -17,6 +17,7 @@ export const upsertFromClerk = internalMutation({
       email: email ?? data.email_addresses[0].email_address,
       firstName: data.first_name ?? "",
       lastName: data.last_name ?? "",
+      image: data.image_url ?? "",
       externalId: data.id,
       locked: data.locked
     };
@@ -60,6 +61,6 @@ export async function getCurrentUser(ctx: QueryCtx) {
 export async function userByExternalId(ctx: QueryCtx, externalId: string) {
   return await ctx.db
     .query("users")
-    .withIndex("byExternalId", (q) => q.eq("externalId", externalId))
+    .withIndex("by_ExternalId", (q) => q.eq("externalId", externalId))
     .unique();
 }

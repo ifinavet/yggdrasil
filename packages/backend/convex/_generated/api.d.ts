@@ -17,6 +17,7 @@ import type * as companies from "../companies.js";
 import type * as events from "../events.js";
 import type * as externalPages from "../externalPages.js";
 import type * as http from "../http.js";
+import type * as internals from "../internals.js";
 import type * as listings from "../listings.js";
 import type * as points from "../points.js";
 import type * as resources from "../resources.js";
@@ -36,6 +37,7 @@ declare const fullApi: ApiFromModules<{
   events: typeof events;
   externalPages: typeof externalPages;
   http: typeof http;
+  internals: typeof internals;
   listings: typeof listings;
   points: typeof points;
   resources: typeof resources;
