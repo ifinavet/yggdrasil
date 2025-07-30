@@ -61,7 +61,7 @@ export default function EventForm({
 
   const [openCompanies, setOpenCompanies] = useState(false);
 
-  const companies = useQuery(api.companies.allCompanies);
+  const companies = useQuery(api.companies.getAll);
 
   // Get the current hostingCompany object from form
   const selectedHostingCompany = form.watch("hostingCompany");

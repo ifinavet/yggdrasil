@@ -26,7 +26,7 @@ export default async function NewEvent() {
 
   await queryClient.prefetchQuery({
     queryKey: ["companies", orgId],
-    queryFn: () => fetchQuery(api.companies.allCompanies, {}),
+    queryFn: () => fetchQuery(api.companies.getAll, {}),
   });
 
   return (
