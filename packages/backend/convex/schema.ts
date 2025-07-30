@@ -3,11 +3,16 @@ import { v } from "convex/values";
 
 export default defineSchema({
   companies: defineTable({
-    org_number: v.number(),
+    orgNumber: v.number(),
     name: v.string(),
     description: v.string(),
     mainSponsor: v.boolean(),
-    logo: v.id("_storage"),
+    logo: v.id("companyLogos"),
+  }),
+
+  companyLogos: defineTable({
+    name: v.string(),
+    image: v.id("_storage"),
   }),
 
   resources: defineTable({

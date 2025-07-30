@@ -1,5 +1,4 @@
 import { auth } from "@clerk/nextjs/server";
-import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -7,28 +6,17 @@ import {
   BreadcrumbSeparator,
 } from "@workspace/ui/components/breadcrumb";
 import Link from "next/link";
-import { getById, getCompanyImageById } from "@/lib/queries/companies";
 import EditCompanyForm from "./edit-company-form";
+import { Id } from "@workspace/backend/convex/dataModel";
 
-export default async function CreateCompany({ params }: { params: Promise<{ slug: number }> }) {
+export default async function CreateCompany({ params }: { params: Promise<{ slug: Id<"companies"> }> }) {
   const { orgRole } = await auth();
   const resolvedParams = await params;
-  const queryClient = new QueryClient();
-
-  await queryClient.prefetchQuery({
-    queryKey: ["company-image", resolvedParams.slug],
-    queryFn: () => getCompanyImageById(resolvedParams.slug),
-  });
-
-  await queryClient.prefetchQuery({
-    queryKey: ["company", resolvedParams.slug],
-    queryFn: () => getById(resolvedParams.slug),
-  });
 
   if (orgRole !== "org:admin") throw new Response("Forbidden", { status: 403 });
 
   return (
-    <HydrationBoundary state={dehydrate(queryClient)}>
+    <>
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
@@ -43,6 +31,6 @@ export default async function CreateCompany({ params }: { params: Promise<{ slug
         </BreadcrumbList>
       </Breadcrumb>
       <EditCompanyForm company_id={resolvedParams.slug} />
-    </HydrationBoundary>
+    </>
   );
 }
