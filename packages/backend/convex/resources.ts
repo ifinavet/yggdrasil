@@ -41,6 +41,11 @@ export const create = mutation({
     published: v.boolean(),
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (identity === null) {
+      throw new Error("Unauthenticated call to mutation");
+    }
+
     await ctx.db.insert("resources", {
       title: args.title,
       excerpt: args.excerpt,
@@ -62,6 +67,11 @@ export const update = mutation({
     published: v.boolean(),
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (identity === null) {
+      throw new Error("Unauthenticated call to mutation");
+    }
+
     await ctx.db.patch(args.id, {
       title: args.title,
       excerpt: args.excerpt,

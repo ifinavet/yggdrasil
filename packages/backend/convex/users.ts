@@ -18,6 +18,7 @@ export const upsertFromClerk = internalMutation({
       firstName: data.first_name ?? "",
       lastName: data.last_name ?? "",
       externalId: data.id,
+      locked: data.locked
     };
 
     const user = await userByExternalId(ctx, data.id);
