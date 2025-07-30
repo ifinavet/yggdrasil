@@ -24,21 +24,23 @@ export default defineSchema({
     firstName: v.string(),
     lastName: v.string(),
     externalId: v.string(),
+    locked: v.boolean(),
   }).index("byExternalId", ["externalId"]),
 
   students: defineTable({
-    userId: v.string(),
+    userId: v.id("users"),
     name: v.string(),
     email: v.string(),
     studyProgram: v.string(),
     semester: v.number(),
+    degree: v.union(v.literal("bachelor"), v.literal("master"), v.literal("phd")),
   }).index("by_studyProgram", ["studyProgram"]),
 
   points: defineTable({
-    userId: v.string(),
+    studentId: v.id("students"),
     reason: v.string(),
     severity: v.number(),
-  }),
+  }).index("by_studentId", ["studentId"]),
 
   internals: defineTable({
     userId: v.string(),

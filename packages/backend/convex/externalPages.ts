@@ -29,6 +29,11 @@ export const update = mutation({
     published: v.boolean(),
   },
   handler: async (ctx, { id, title, content, published }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (identity === null) {
+      throw new Error("Unauthenticated call to mutation");
+    }
+
     const page = await ctx.db.get(id);
     if (!page) {
       throw new Error("Page not found");
@@ -51,6 +56,11 @@ export const create = mutation({
     published: v.boolean(),
   },
   handler: async (ctx, { title, content, published }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (identity === null) {
+      throw new Error("Unauthenticated call to mutation");
+    }
+
     await ctx.db.insert("externalPages", {
       title,
       content,

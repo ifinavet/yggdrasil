@@ -18,7 +18,9 @@ import type * as events from "../events.js";
 import type * as externalPages from "../externalPages.js";
 import type * as http from "../http.js";
 import type * as listings from "../listings.js";
+import type * as points from "../points.js";
 import type * as resources from "../resources.js";
+import type * as students from "../students.js";
 import type * as users from "../users.js";
 
 /**
@@ -35,7 +37,9 @@ declare const fullApi: ApiFromModules<{
   externalPages: typeof externalPages;
   http: typeof http;
   listings: typeof listings;
+  points: typeof points;
   resources: typeof resources;
+  students: typeof students;
   users: typeof users;
 }>;
 export declare const api: FilterApi<

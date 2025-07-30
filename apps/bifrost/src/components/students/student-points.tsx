@@ -1,29 +1,27 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { getStudentsPointsById } from "@/lib/queries/students";
+import { api } from "@workspace/backend/convex/api";
+import type { Id } from "@workspace/backend/convex/dataModel";
+import { useQuery } from "convex/react";
 import { humanReadableDate } from "@/utils/utils";
 
-export default function StudentPoints({ user_id }: { user_id: string }) {
-	const { data: points, isLoading } = useQuery({
-		queryKey: ["studentPoints", user_id],
-		queryFn: () => getStudentsPointsById(user_id),
-	});
+export default function StudentPoints({ student_id }: { student_id: Id<"students"> }) {
+  const points = useQuery(api.points.getByStudentId, { id: student_id });
 
-	if (!points || isLoading) {
-		return <div>Loading...</div>;
-	}
+  if (!points) {
+    return <div>Loading...</div>;
+  }
 
-	return (
-		<div>
-			<ul>
-				{points?.map((point) => (
-					<li key={point.point_id}>
-						{humanReadableDate(new Date(point?.awarded_time || ""))}: {point.reason} (
-						{point.severity})
-					</li>
-				))}
-			</ul>
-		</div>
-	);
+  return (
+    <div>
+      <ul>
+        {points?.map((point) => (
+          <li key={point._id}>
+            {humanReadableDate(new Date(point._creationTime))}: {point.reason} (
+            {point.severity})
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
 }
