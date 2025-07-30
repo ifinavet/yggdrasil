@@ -15,8 +15,10 @@ import type {
 } from "convex/server";
 import type * as companies from "../companies.js";
 import type * as events from "../events.js";
+import type * as externalPages from "../externalPages.js";
 import type * as http from "../http.js";
 import type * as listings from "../listings.js";
+import type * as resources from "../resources.js";
 import type * as users from "../users.js";
 
 /**
@@ -30,8 +32,10 @@ import type * as users from "../users.js";
 declare const fullApi: ApiFromModules<{
   companies: typeof companies;
   events: typeof events;
+  externalPages: typeof externalPages;
   http: typeof http;
   listings: typeof listings;
+  resources: typeof resources;
   users: typeof users;
 }>;
 export declare const api: FilterApi<

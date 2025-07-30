@@ -12,9 +12,9 @@ export default defineSchema({
 
   resources: defineTable({
     title: v.string(),
-    description: v.string(),
     content: v.string(),
-    tag: v.string(),
+    excerpt: v.string(),
+    tag: v.optional(v.string()),
     published: v.boolean(),
     updatedAt: v.number(),
   }),
@@ -82,6 +82,7 @@ export default defineSchema({
     title: v.string(),
     content: v.string(),
     published: v.boolean(),
+    updatedAt: v.number(),
   }),
 
   jobListings: defineTable({
