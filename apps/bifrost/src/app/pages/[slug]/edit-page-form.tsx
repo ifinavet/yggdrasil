@@ -1,67 +1,58 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import PageForm from "@/components/pages/page-form";
 import type { PageFormValues } from "@/constants/schemas/page-form-schema";
-import { getPageById, updatePage } from "@/lib/queries/pages";
+import { useMutation, useQuery } from "convex/react";
+import { api } from "@workspace/backend/convex/api";
+import { Id } from "@workspace/backend/convex/dataModel";
 
-export default function EditPageForm({ id }: { id: number }) {
-	const router = useRouter();
-	const queryClient = useQueryClient();
+export default function EditPageForm({ id }: { id: string }) {
+  const router = useRouter();
 
-	const { data: resource } = useQuery({
-		queryKey: ["page", id],
-		queryFn: () => getPageById(id),
-		enabled: !!id,
-	});
+  const page = useQuery(api.externalPages.getById, { id: id as Id<"externalPages"> })
 
-	if (!resource) return null;
+  if (!page) return null;
 
-	const defaultValues: PageFormValues = {
-		title: resource.title,
-		content: resource.content,
-	};
+  const defaultValues: PageFormValues = {
+    title: page.title,
+    content: page.content,
+  };
 
-	const { mutate } = useMutation({
-		mutationFn: ({ values, published }: { values: PageFormValues; published: boolean }) =>
-			updatePage(id, values, published),
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["page", id] });
+  const updatePage = useMutation(api.externalPages.update)
+  const hanldeUpdatePage = async (values: PageFormValues, published: boolean) => {
+    updatePage({
+      id: id as Id<"externalPages">,
+      title: values.title,
+      content: values.content,
+      published: published,
+    }).then(() => {
+      toast.success("Siden ble oppdatert!", {
+        description: `Side oppdatert, ${new Date().toLocaleDateString()}`,
+      });
+      router.push("/pages");
+    }).catch(error => {
+      console.error(error);
+      console.error("Noe gikk galt!");
+      toast.error("Noe gikk galt!", {
+        description: error.message,
+      });
+    })
+  }
 
-			toast.success("Siden ble oppdatert!", {
-				description: `Side oppdatert, ${new Date().toLocaleDateString()}`,
-			});
-			router.push("/pages");
-		},
-		onError: (error) => {
-			console.error(error);
-			console.error("Noe gikk galt!");
-			toast.error("Noe gikk galt!", {
-				description: error.message,
-			});
-		},
-	});
+  const onSubmitAndPublish = (values: PageFormValues) => hanldeUpdatePage(values, true)
 
-	const onSubmitAndPublish = (values: PageFormValues) => {
-		mutate({ values, published: true });
-	};
+  const onSubmitAndSave = (values: PageFormValues) => hanldeUpdatePage(values, page.published)
 
-	const onSubmitAndSave = (values: PageFormValues) => {
-		mutate({ values, published: resource.published });
-	};
+  const onSubmitAndUnpublish = () => hanldeUpdatePage(defaultValues, false);
 
-	const onSubmitAndUnpublish = () => {
-		mutate({ values: defaultValues, published: false });
-	};
-
-	return (
-		<PageForm
-			defaultValues={defaultValues}
-			onPrimarySubmitAction={onSubmitAndPublish}
-			onSecondarySubmitAction={onSubmitAndSave}
-			onTertiarySubmitAction={onSubmitAndUnpublish}
-		/>
-	);
+  return (
+    <PageForm
+      defaultValues={defaultValues}
+      onPrimarySubmitAction={onSubmitAndPublish}
+      onSecondarySubmitAction={onSubmitAndSave}
+      onTertiarySubmitAction={onSubmitAndUnpublish}
+    />
+  );
 }
