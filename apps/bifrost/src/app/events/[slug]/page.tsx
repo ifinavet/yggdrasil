@@ -37,7 +37,7 @@ export default async function EventPage(props: { params: Promise<{ slug: string 
     // Prefetch companies
     await queryClient.prefetchQuery({
       queryKey: ["companies", orgId],
-      queryFn: () => fetchQuery(api.companies.allCompanies, {}),
+      queryFn: () => fetchQuery(api.companies.getAll, {}),
     });
 
     // Prefetch event
