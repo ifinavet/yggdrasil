@@ -1,44 +1,41 @@
-import { auth } from "@clerk/nextjs/server";
 import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query";
 import {
-	Breadcrumb,
-	BreadcrumbItem,
-	BreadcrumbLink,
-	BreadcrumbList,
-	BreadcrumbPage,
-	BreadcrumbSeparator,
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
 } from "@workspace/ui/components//breadcrumb";
-import { getPageById } from "@/lib/queries/pages";
 import EditPageForm from "./edit-page-form";
+import { preloadQuery } from "convex/nextjs";
+import { api } from "@workspace/backend/convex/api";
+import { Id } from "@workspace/backend/convex/dataModel";
 
-export default async function EditResourcePage({ params }: { params: Promise<{ slug: number }> }) {
-	const queryClient = new QueryClient();
-	const id = (await params).slug;
+export default async function EditResourcePage({ params }: { params: Promise<{ slug: Id<"externalPages"> }> }) {
+  const id = (await params).slug;
 
-	await queryClient.prefetchQuery({
-		queryKey: ["page", id],
-		queryFn: () => getPageById(id),
-	});
+  const preloadedPage = await preloadQuery(api.externalPages.getById, { id })
 
-	return (
-		<HydrationBoundary state={dehydrate(queryClient)}>
-			<Breadcrumb>
-				<BreadcrumbList>
-					<BreadcrumbItem>
-						<BreadcrumbLink href='/'>Hjem</BreadcrumbLink>
-					</BreadcrumbItem>
-					<BreadcrumbSeparator />
-					<BreadcrumbItem>
-						<BreadcrumbLink href='/pages'>Sider</BreadcrumbLink>
-					</BreadcrumbItem>
-					<BreadcrumbSeparator />
-					<BreadcrumbItem>
-						<BreadcrumbPage>Redigerer side</BreadcrumbPage>
-					</BreadcrumbItem>
-				</BreadcrumbList>
-			</Breadcrumb>
+  return (
+    <>
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink href='/'>Hjem</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink href='/pages'>Sider</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>Redigerer side</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
 
-			<EditPageForm id={id} />
-		</HydrationBoundary>
-	);
+      <EditPageForm preloadedPage={preloadedPage} />
+    </>
+  );
 }

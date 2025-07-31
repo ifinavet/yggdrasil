@@ -130,8 +130,8 @@ function EventMetadata({
 // Company image component
 function CompanyImage({ imageUrl, title }: { imageUrl: string; title: string }) {
   return (
-    <div className='col-span-2 grid h-full place-content-center rounded-r-md bg-zinc-50 px-6 py-4'>
-      <Image src={imageUrl} alt={title} className='max-h-36 object-contain' fill />
+    <div className='relative col-span-2 grid h-full place-content-center rounded-r-md bg-zinc-50 px-6 py-4'>
+      <Image src={imageUrl} alt={title} className="object-contain" fill />
     </div>
   );
 }
