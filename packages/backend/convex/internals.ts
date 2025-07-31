@@ -79,8 +79,8 @@ export const update = mutation({
     externalId: v.string(),
     position: v.string(),
     group: v.string(),
-    postionEmail: v.optional(v.string()),
-  }, handler: async (ctx, { id, externalId, position, group, postionEmail }) => {
+    positionEmail: v.optional(v.string()),
+  }, handler: async (ctx, { id, externalId, position, group, positionEmail }) => {
     const user = await userByExternalId(ctx, externalId);
     if (!user) {
       throw new Error(`User not found for external ID: ${externalId}`);
