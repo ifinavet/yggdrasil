@@ -20,6 +20,7 @@ import type * as http from "../http.js";
 import type * as internals from "../internals.js";
 import type * as listings from "../listings.js";
 import type * as points from "../points.js";
+import type * as registration from "../registration.js";
 import type * as resources from "../resources.js";
 import type * as students from "../students.js";
 import type * as users from "../users.js";
@@ -40,6 +41,7 @@ declare const fullApi: ApiFromModules<{
   internals: typeof internals;
   listings: typeof listings;
   points: typeof points;
+  registration: typeof registration;
   resources: typeof resources;
   students: typeof students;
   users: typeof users;
