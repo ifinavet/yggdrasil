@@ -1,69 +1,65 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import ResourceForm from "@/components/resources/resource-form/resource-form";
 import type { ResourceFormValues } from "@/constants/schemas/resource-form-schema";
-import { getResourceById, updateResource } from "@/lib/queries/resources";
+import { useMutation, useQuery } from "convex/react";
+import { Id } from "@workspace/backend/convex/dataModel";
+import { api } from "@workspace/backend/convex/api";
 
-export default function EditResourceForm({ id }: { id: number }) {
-	const router = useRouter();
-	const queryClient = useQueryClient();
+export default function EditResourceForm({ id }: { id: Id<"resources"> }) {
+  const router = useRouter();
 
-	const { data: resource } = useQuery({
-		queryKey: ["resource", id],
-		queryFn: () => getResourceById(id),
-		enabled: !!id,
-	});
+  const resource = useQuery(api.resources.getById, { id: id })
+  const updateResource = useMutation(api.resources.update)
 
-	if (!resource) return null;
+  if (!resource) {
+    return null;
+  }
 
-	const defaultValues: ResourceFormValues = {
-		title: resource.title,
-		content: resource.content,
-		excerpt: resource.excerpt || "",
-		tag: resource.tag || "",
-	};
+  const defaultValues: ResourceFormValues = {
+    title: resource.title,
+    content: resource.content,
+    excerpt: resource.excerpt,
+    tag: resource.tag || "",
+  };
+  const handleUpdateResource = async (
+    values: ResourceFormValues,
+    published: boolean
+  ) => {
+    await updateResource({
+      id,
+      title: values.title,
+      excerpt: values.excerpt,
+      content: values.content,
+      tag: values.tag,
+      published,
+    }).then(() => {
+      toast.success("Ressurs opprettet!", {
+        description: `Ressurs opprettet, ${new Date().toLocaleDateString()}`,
+      });
+      router.push("/resources");
+    }).catch(error => {
+      console.error("Noe gikk galt!", error);
+      toast.error("Noe gikk galt!", {
+        description: error.message,
+      });
+    });
+  }
 
-	const { mutate } = useMutation({
-		mutationFn: ({ values, published }: { values: ResourceFormValues; published: boolean }) =>
-			updateResource(id, values, published),
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["resource", id] });
+  const onSubmitAndPublish = (values: ResourceFormValues) => handleUpdateResource(values, true);
 
-			toast.success("Ressurs opprettet!", {
-				description: `Ressurs opprettet, ${new Date().toLocaleDateString()}`,
-			});
-			router.push("/resources");
-		},
-		onError: (error) => {
-			console.error(error);
-			console.error("Noe gikk galt!");
-			toast.error("Noe gikk galt!", {
-				description: error.message,
-			});
-		},
-	});
+  const onSubmitAndSave = (values: ResourceFormValues) => handleUpdateResource(values, resource.published)
 
-	const onSubmitAndPublish = (values: ResourceFormValues) => {
-		mutate({ values, published: true });
-	};
+  const onSubmitAndUnpublish = () => handleUpdateResource(defaultValues, false);
 
-	const onSubmitAndSave = (values: ResourceFormValues) => {
-		mutate({ values, published: resource.published });
-	};
-
-	const onSubmitAndUnpublish = () => {
-		mutate({ values: defaultValues, published: false });
-	};
-
-	return (
-		<ResourceForm
-			defaultValues={defaultValues}
-			onPrimarySubmitAction={onSubmitAndPublish}
-			onSecondarySubmitAction={onSubmitAndSave}
-			onTertiarySubmitAction={onSubmitAndUnpublish}
-		/>
-	);
+  return (
+    <ResourceForm
+      defaultValues={defaultValues}
+      onPrimarySubmitAction={onSubmitAndPublish}
+      onSecondarySubmitAction={onSubmitAndSave}
+      onTertiarySubmitAction={onSubmitAndUnpublish}
+    />
+  );
 }

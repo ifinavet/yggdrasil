@@ -1,116 +1,66 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import CompanyForm from "@/components/companies/companies-form/company-form";
 import type { CompanyFormValues } from "@/constants/schemas/companies-form-schema";
-import {
-	deleteCompany,
-	getCompanyById,
-	getCompanyImageById,
-	updateCompany,
-} from "@/lib/queries/companies";
+import { api } from "@workspace/backend/convex/api";
+import { Id } from "@workspace/backend/convex/dataModel";
+import { useMutation, useQuery } from "convex/react";
 
-export default function EditCompanyForm({ company_id }: { company_id: number }) {
-	const { data: company_image, isLoading: isLoadingImage } = useQuery({
-		queryKey: ["company_image", company_id],
-		queryFn: () => getCompanyImageById(company_id),
-	});
+export default function EditCompanyForm({ company_id }: { company_id: Id<"companies"> }) {
+  const company = useQuery(api.companies.getById, { id: company_id });
 
-	const { data: company, isLoading: isLoadingCompany } = useQuery({
-		queryKey: ["company", company_id],
-		queryFn: () => getCompanyById(company_id),
-	});
+  const router = useRouter();
 
-	const router = useRouter();
+  const updateCompany = useMutation(api.companies.update);
+  const handleSubmit = (values: CompanyFormValues) => updateCompany({
+    id: company_id,
+    orgNumber: Number.parseInt(values.orgNumber),
+    name: values.name,
+    description: values.description,
+    logo: values.image as Id<"companyLogos">,
+  }).then(() => {
+    toast.success("Bedriften ble oppdatert!", {
+      description: `Bedrift oppdatert, ${new Date().toLocaleDateString()}`,
+    });
+    router.push("/companies");
+  }).catch(error => {
+    console.error("Noe gikk galt!", error);
+    toast.error("Noe gikk galt!", {
+      description: error.message,
+    });
+  })
 
-	const queryClient = useQueryClient();
+  const deleteCompany = useMutation(api.companies.remove);
+  const handleDelete = () => deleteCompany({ id: company_id }).then(() => {
+    toast.success("Bediften ble slettet suksessfullt!", {
+      description: `Bedrift slettet, ${new Date().toLocaleDateString()}`,
+    });
+    router.push("/companies");
+  }).catch(error => {
+    console.error("Noe gikk galt!", error);
+    toast.error("Noe gikk galt!", {
+      description: error.message,
+    });
+  });
 
-	const { mutate } = useMutation({
-		mutationFn: (values: CompanyFormValues) => updateCompany(company_id, values),
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["company", company_id] });
-			queryClient.invalidateQueries({ queryKey: ["company_image", company_id] });
-			toast.success("Bedriften ble oppdatert!", {
-				description: `Bedrift oppdatert, ${new Date().toLocaleDateString()}`,
-			});
-			router.push("/companies");
-		},
-		onError: (error) => {
-			console.error(error);
-			console.error("Noe gikk galt!");
-			toast.error("Noe gikk galt!", {
-				description: error.message,
-			});
-		},
-	});
+  if (!company) {
+    return <div>Loading...</div>;
+  }
 
-	const { mutate: delete_company } = useMutation({
-		mutationFn: () => deleteCompany(company_id),
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["company", company_id] });
-			queryClient.invalidateQueries({ queryKey: ["company_image", company_id] });
-			toast.success("Bediften ble slettet suksessfullt!", {
-				description: `Bedrift slettet, ${new Date().toLocaleDateString()}`,
-			});
-			router.push("/companies");
-		},
-		onError: (error) => {
-			console.error(error);
-			console.error("Noe gikk galt!");
-			toast.error("Noe gikk galt!", {
-				description: error.message,
-			});
-		},
-	});
+  const defaultValues: CompanyFormValues = {
+    name: company.name,
+    description: company.description,
+    orgNumber: company.orgNumber.toString(),
+    image: company.logo as Id<"companyLogos">,
+  };
 
-	const { mutate: delete_image } = useMutation({
-		mutationFn: (values: CompanyFormValues) => updateCompany(company_id, values),
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["company", company_id] });
-			queryClient.invalidateQueries({ queryKey: ["company_image", company_id] });
-			toast.success("Bedriften ble oppdatert!", {
-				description: `Bedrift oppdatert, ${new Date().toLocaleDateString()}`,
-			});
-			router.push("/companies");
-		},
-		onError: (error) => {
-			console.error(error);
-			console.error("Noe gikk galt!");
-			toast.error("Noe gikk galt!", {
-				description: error.message,
-			});
-		},
-	});
-
-	const handleSubmit = (values: CompanyFormValues) => {
-		mutate(values);
-	};
-
-	const handleDelete = () => {
-		delete_company();
-	};
-
-	if (isLoadingCompany || isLoadingImage) {
-		return <div>Loading...</div>;
-	}
-
-	const defaultValues: CompanyFormValues = {
-		company_name: company?.company_name || "",
-		description: company?.description || "",
-		org_number: company?.org_number || "",
-		company_image: {
-			id: company_image?.image_id || "",
-			name: company_image?.name || "",
-		},
-	};
-
-	return (
-		<CompanyForm
-			defaultValues={defaultValues}
-			onPrimarySubmitAction={handleSubmit}
-			onSecondarySubmitAction={handleDelete}
-		/>
-	);
+  return (
+    <CompanyForm
+      defaultValues={defaultValues}
+      onPrimarySubmitAction={handleSubmit}
+      onSecondarySubmitAction={handleDelete}
+    />
+  );
 }

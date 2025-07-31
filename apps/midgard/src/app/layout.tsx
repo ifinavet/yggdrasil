@@ -5,7 +5,7 @@ import { Toaster } from "@workspace/ui/components/sonner";
 import { eina } from "@/components/common/eina-font";
 import Footer from "@/components/common/footer";
 import Header from "@/components/common/header/header";
-import ReactQueryProvider from "@/providers/react-query-provider";
+import Providers from "@/providers/providers";
 import { ThemeProvider } from "@/providers/theme-provider";
 
 const defaultUrl = process.env.VERCEL_URL
@@ -18,7 +18,8 @@ export const metadata: Metadata = {
     default: "Navet",
     template: "%s | Navet",
   },
-  description: "Navet er bedriftskontakten ved Institutt for Informatikk. Vi er binneleddet mellom studenene og bedriftene.",
+  description:
+    "Navet er bedriftskontakten ved Institutt for Informatikk. Vi er binneleddet mellom studenene og bedriftene.",
 };
 
 export default function RootLayout({
@@ -28,7 +29,7 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider>
-      <ReactQueryProvider>
+      <Providers>
         <html lang='no' suppressHydrationWarning>
           <body className={`${eina.className} antialiased`}>
             <ThemeProvider attribute='class' defaultTheme='light' disableTransitionOnChange>
@@ -41,7 +42,7 @@ export default function RootLayout({
             </ThemeProvider>
           </body>
         </html>
-      </ReactQueryProvider>
+      </Providers>
     </ClerkProvider>
   );
 }
