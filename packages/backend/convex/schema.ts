@@ -82,10 +82,10 @@ export default defineSchema({
     eventId: v.id("events"),
     userId: v.id("users"),
     status: v.union(v.literal("registered"), v.literal("pending"), v.literal("waitlist")),
-    note: v.string(),
+    note: v.optional(v.string()),
     registrationTime: v.number(),
-    attendanceStatus: v.union(v.literal("confirmed"), v.literal("late"), v.literal("no_show")),
-    attendanceTime: v.number(),
+    attendanceStatus: v.optional(v.union(v.literal("confirmed"), v.literal("late"), v.literal("no_show"))),
+    attendanceTime: v.optional(v.number()),
   }).index("by_eventId", ["eventId"])
     .index("by_userId", ["userId"]),
 
