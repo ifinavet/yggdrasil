@@ -28,7 +28,7 @@ export default function EditBoardMember({
       externalId: data.userID,
       position: data.role,
       group: data.group,
-      postionEmail: data.positionEmail,
+      positionEmail: data.positionEmail,
     }).then(() => {
       toast.success("Styremedlemmet ble oppdatert!");
       setOpenDialog(false);
@@ -51,7 +51,7 @@ export default function EditBoardMember({
         userID: boardMember.externalId,
         role: boardMember.position,
         group: boardMember.group,
-        positionEmail: boardMember.postionEmail,
+        positionEmail: boardMember.positionEmail,
       }}
       onSubmitAction={onSubmit}
       title='Rediger styremedlem'

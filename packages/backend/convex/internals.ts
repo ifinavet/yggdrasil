@@ -90,7 +90,7 @@ export const update = mutation({
       userId: user._id,
       position,
       group,
-      postionEmail,
+      positionEmail,
     })
   }
 })
@@ -112,7 +112,7 @@ export const createBoardMember = mutation({
       userId: user._id,
       position,
       group,
-      postionEmail,
+      positionEmail,
     };
 
     await ctx.db.insert("internals", newMember);

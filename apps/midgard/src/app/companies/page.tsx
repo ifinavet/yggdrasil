@@ -65,7 +65,7 @@ export default async function CompaniesPage() {
             <LargeUserCard
               title='Bedriftskontakt'
               fullName={`${companyContact.firstName} ${companyContact.lastName}`}
-              email={companyContact.postionEmail ?? companyContact.email}
+              email={companyContact.positionEmail ?? companyContact.email}
               imageUrl={companyContact.image}
             />
             <ContainerCard className='h-fit bg-primary-light'>

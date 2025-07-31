@@ -41,7 +41,7 @@ export default function ListBoardMembers({
               </Avatar>
               <div>
                 <p>{member.fullName}</p>
-                <a href={`mailto:${member.postionEmail ?? member.email}`} className='text-balance text-muted-foreground'>
+                <a href={`mailto:${member.positionEmail ?? member.email}`} className='text-balance text-muted-foreground'>
                   {member.email}
                 </a>
               </div>

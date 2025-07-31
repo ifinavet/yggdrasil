@@ -23,7 +23,7 @@ export default function AddBoardMember({ className }: { className?: string }) {
       externalId: data.userID,
       position: data.role,
       group: data.group,
-      postionEmail: data.positionEmail,
+      positionEmail: data.positionEmail,
     }).then(() => {
       toast.success("Styremedlemmet ble lagt til!");
       setOpenDialog(false);
