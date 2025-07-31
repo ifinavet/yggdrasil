@@ -91,11 +91,11 @@ export const register = mutation({
       throw new Error(`Event with ID ${eventId} not found`);
     }
 
-    const regisrations = await ctx.db.query("registrations")
+    const registrations = await ctx.db.query("registrations")
       .withIndex("by_eventId", (q) => q.eq("eventId", eventId))
       .collect()
 
-    const registrationCount = regisrations.filter(reg => reg.status === "registered").length;
+    const registrationCount = registrations.filter(reg => reg.status === "registered").length;
 
     const status = registrationCount < event.participationLimit ? "registered" : "waitlist";
 
