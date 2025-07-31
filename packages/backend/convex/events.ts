@@ -1,11 +1,12 @@
 import { v } from "convex/values";
-import type { Id } from "./_generated/dataModel";
-import { mutation, type QueryCtx, query } from "./_generated/server";
+import { internal } from "./_generated/api";
+import type { Doc, Id } from "./_generated/dataModel";
+import { internalQuery, mutation, type QueryCtx, query } from "./_generated/server";
 import { userByExternalId } from "./users";
 
 // Shared validator for organizer roles
 const organizerRoleValidator = v.union(v.literal("hovedansvarlig"), v.literal("medhjelper"));
-type OrganizerRole = "hovedansvarlig" | "medhjelper"
+type OrganizerRole = "hovedansvarlig" | "medhjelper";
 
 export const getLatest = query({
   args: {
@@ -34,19 +35,17 @@ export const getLatest = query({
   },
 });
 
-export const getAll = query({
-  args: { semester: v.string(), year: v.number() },
+export const getAllEvents = internalQuery({
+  args: { semester: v.number(), year: v.number() },
   handler: async (ctx, { semester, year }) => {
     let range_start: Date;
     let range_end: Date;
-    if (semester.toLowerCase() === "vår") {
+    if (!semester) {
       range_start = new Date(year, 0, 1);
       range_end = new Date(year, 6, 30);
-    } else if (semester.toLowerCase() === "høst") {
+    } else {
       range_start = new Date(year, 7, 1);
       range_end = new Date(year, 11, 31);
-    } else {
-      throw new Error("Invalid semester");
     }
 
     const events = await ctx.db
@@ -62,9 +61,77 @@ export const getAll = query({
       }),
     );
 
-    const published = eventsWithCompany.filter((event) => event.published);
-    const unpublished = eventsWithCompany.filter((event) => !event.published);
+    return eventsWithCompany;
+  },
+});
+
+export const getAll = query({
+  args: {
+    semester: v.string(),
+    year: v.number(),
+  },
+  handler: async (ctx, { semester, year }) => {
+    const semesterNumber = semester === "vår" ? 0 : 1; // 0 for spring, 1 for fall
+
+    const events: Array<Doc<"events"> & { hostingCompanyName: string }> = await ctx.runQuery(internal.events.getAllEvents, {
+      semester: semesterNumber,
+      year,
+    })
+
+    const published = events.filter((event) => event.published);
+    const unpublished = events.filter((event) => !event.published);
     return { published, unpublished };
+  },
+});
+
+export const getCurrentSemester = query({
+  args: {
+    isExternal: v.boolean(),
+  },
+  handler: async (ctx, { isExternal }) => {
+    const semester = Date.now() < new Date().setMonth(7) ? 0 : 1; // 0 for spring, 1 for fall
+
+    const events: Array<Doc<"events"> & { hostingCompanyName: string }> = await ctx.runQuery(internal.events.getAllEvents, {
+      semester,
+      year: new Date().getFullYear(),
+    });
+
+    const filteredEvents = isExternal
+      ? events.filter((event) => event.externalUrl && event.externalUrl.length > 0)
+      : events.filter((event) => event.externalUrl === undefined || event.externalUrl.length === 0);
+
+    const eventsWithParticipationCount = await Promise.all(
+      filteredEvents.map(async (event) => {
+        const participationCount = (
+          await ctx.db
+            .query("registrations")
+            .withIndex("by_eventId", (q) => q.eq("eventId", event._id))
+            .filter((q) => q.eq(q.field("status"), "registered"))
+            .collect()
+        ).length;
+
+        return { ...event, participationCount };
+      }),
+    );
+
+    const monthNames = [
+      "januar", "februar", "mars", "april", "mai", "juni",
+      "juli", "august", "september", "oktober", "november", "desember"
+    ];
+
+    const eventsByMonth: Record<string, typeof eventsWithParticipationCount> = {};
+
+    eventsWithParticipationCount.forEach(event => {
+      const eventDate = new Date(event.eventStart);
+      const monthName = monthNames[eventDate.getMonth()];
+
+      if (!eventsByMonth[monthName]) {
+        eventsByMonth[monthName] = [];
+      }
+      eventsByMonth[monthName].push(event);
+    });
+
+    return eventsByMonth;
   },
 });
 
@@ -102,14 +169,18 @@ async function getOrganizers(ctx: QueryCtx, eventId: Id<"events">) {
           id: organizer._id,
           name: "Ukjent ansvarlig",
           role: "medhjelper" as OrganizerRole,
-          externalId: ""
+          externalId: "",
+          imageUrl: "",
+          email: "",
         };
 
       return {
         id: organizer._id,
         name: `${user.firstName} ${user.lastName}`,
         role: organizer.role,
-        externalId: user.externalId
+        externalId: user.externalId,
+        imageUrl: user.image,
+        email: user.email,
       };
     }),
   );

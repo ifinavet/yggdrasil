@@ -56,7 +56,6 @@ export const getCurrentUser = query({
   }
 });
 
-
 export const remove = mutation({
   args: {
     id: v.id("registrations"),
@@ -75,5 +74,50 @@ export const updateAttendance = mutation({
     await ctx.db.patch(id, {
       attendanceStatus: newStatus,
     });
+  },
+});
+
+export const register = mutation({
+  args: {
+    eventId: v.id("events"),
+    note: v.optional(v.string()),
+  },
+  handler: async (ctx, { eventId, note }) => {
+    const user = await getCurrentUserOrThrow(ctx);
+
+    const event = await ctx.db.get(eventId);
+
+    if (!event) {
+      throw new Error(`Event with ID ${eventId} not found`);
+    }
+
+    const regisrations = await ctx.db.query("registrations")
+      .withIndex("by_eventId", (q) => q.eq("eventId", eventId))
+      .collect()
+
+    const registrationCount = regisrations.filter(reg => reg.status === "registered").length;
+
+    const status = registrationCount < event.participationLimit ? "registered" : "waitlist";
+
+    await ctx.db.insert("registrations", {
+      eventId,
+      userId: user._id,
+      status,
+      note: note,
+      registrationTime: Date.now(),
+    })
+
+    return status;
+  },
+})
+
+export const unregister = mutation({
+  args: {
+    id: v.id("registrations"),
+  },
+  handler: async (ctx, { id }) => {
+    await getCurrentUserOrThrow(ctx);
+
+    await ctx.db.delete(id);
   },
 });
