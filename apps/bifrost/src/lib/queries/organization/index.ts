@@ -1,12 +1,19 @@
-import { createBoardmember } from "./create";
-import { getAllInternalMembers, getBoardMembers } from "./getAll";
-import { getBoardMember } from "./getById";
-import { updateBoardMember } from "./update";
+"use server";
 
-export {
-	getAllInternalMembers,
-	createBoardmember,
-	getBoardMembers,
-	getBoardMember,
-	updateBoardMember,
-};
+import { clerkClient } from "@clerk/nextjs/server";
+
+export async function getAllInternalMembers(orgId: string) {
+  const client = await clerkClient();
+  const { data } = await client.users.getUserList({
+    orderBy: "last_name",
+    organizationId: [orgId],
+    limit: 100,
+  });
+
+  return data.map((user) => {
+    return {
+      id: user.id,
+      fullname: user.fullName,
+    };
+  });
+}

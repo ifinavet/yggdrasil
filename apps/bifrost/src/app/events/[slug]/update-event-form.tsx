@@ -1,92 +1,93 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import EventForm from "@/components/events/event-form/event-form";
 import type { EventFormValues } from "@/constants/schemas/event-form-schema";
-import { getEventById, updateEvent } from "@/lib/queries/events";
+import type { OrganizerRole } from "@/constants/types";
+import { Id } from "@workspace/backend/convex/dataModel";
+import { api } from "@workspace/backend/convex/api";
+import { useMutation, useQuery } from "convex/react";
 
-export default function UpdateEventForm({ event_id, orgId }: { event_id: number; orgId: string }) {
-	const {
-		isPending,
-		error,
-		data: event,
-	} = useQuery({
-		queryKey: ["event", event_id],
-		queryFn: () => getEventById(event_id),
-		enabled: !!orgId,
-	});
+export default function UpdateEventForm({ eventId }: { eventId: string }) {
+  const event = useQuery(api.events.getById, { id: eventId as Id<"events"> });
+  const router = useRouter();
+  const updateEventMutation = useMutation(api.events.update);
 
-	if (isPending || !event) {
-		return <div>Loading...</div>;
-	}
+  if (!event) {
+    return <div>Loading...</div>;
+  }
 
-	if (error) {
-		toast.error("Failed to load event");
-		return <div>Error</div>;
-	}
+  const defaultValues: EventFormValues = {
+    title: event.title,
+    teaser: event.teaser,
+    eventDate: new Date(event.eventStart),
+    registrationDate: new Date(event.registrationOpens),
+    description: event.description,
+    food: event.food,
+    location: event.location,
+    ageRestrictions: event.ageRestriction,
+    language: event.language,
+    participantsLimit: event.participationLimit,
+    organizers: event.organizers.map((organizer) => ({
+      id: organizer.externalId,
+      role: organizer.role as OrganizerRole,
+    })),
+    eventType: event.externalUrl ? "external_event" : "internal_event",
+    hostingCompany: {
+      id: event.hostingCompany,
+      name: event.hostingCompanyName,
+    },
+    externalUrl: event.externalUrl || "",
+  };
 
-	const defaultValues: EventFormValues = {
-		title: event.title,
-		teaser: event.teaser || "",
-		eventDate: new Date(event.event_start),
-		registrationDate: new Date(event.registration_opens),
-		description: event.description || "",
-		food: event.food || "",
-		location: event.location || "",
-		ageRestrictions: event.age_restrictions || "",
-		language: event.language,
-		participantsLimit: event.participants_limit,
-		organizers: event.organizers.map((organizer) => ({
-			id: organizer.id,
-			role: organizer.role,
-		})),
-		eventType: event.external_url ? "external_event" : "internal_event",
-		hostingCompany: event.companies,
-		externalUrl: event.external_url || "",
-	};
 
-	const router = useRouter();
-	const queryClient = useQueryClient();
-	const { mutate } = useMutation({
-		mutationFn: ({ values, published }: { values: EventFormValues; published: boolean }) =>
-			updateEvent(event_id, values, published),
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["event", event_id] });
+  const handleSubmit = (values: EventFormValues, published: boolean) => {
+    updateEventMutation({
+      id: eventId as Id<"events">,
+      title: values.title,
+      teaser: values.teaser,
+      description: values.description,
+      eventStart: values.eventDate.getTime(),
+      registrationOpens: values.registrationDate.getTime(),
+      participationLimit: values.participantsLimit,
+      location: values.location,
+      food: values.food,
+      language: values.language,
+      ageRestriction: values.ageRestrictions,
+      externalUrl: values.externalUrl,
+      hostingCompany: values.hostingCompany.id as Id<"companies">,
+      organizers: values.organizers.map((organizer) => ({
+        externalUserId: organizer.id,
+        role: organizer.role as OrganizerRole,
+      })),
+      published
+    }).then(() => {
+      toast.success("Arrangement oppdatert!", {
+        description: `Arrangement oppdatert, ${new Date().toLocaleDateString()}`,
+      });
+      router.push("/events");
+    }).catch((error: any) => {
+      console.error(error);
+      console.error("Noe gikk galt!");
+      toast.error("Noe gikk galt!", {
+        description: error.message,
+      });
+    })
+  };
 
-			toast.success("Arrangementet ble oppdatert!", {
-				description: `Arrangement oppdatert, ${new Date().toLocaleDateString()}`,
-			});
-			router.push("/events");
-		},
-		onError: (error) => {
-			console.error(error);
-			console.error("Noe gikk galt!");
-			toast.error("Noe gikk galt!", {
-				description: error.message,
-			});
-		},
-	});
+  const onDefaultSubmit = (values: EventFormValues) => handleSubmit(values, true);
 
-	const onDefaultSubmit = (values: EventFormValues) => {
-		mutate({ values, published: true });
-	};
+  const onSubmit = (values: EventFormValues) => handleSubmit(values, event.published);
 
-	const onSubmit = (values: EventFormValues) => {
-		mutate({ values, published: event.published });
-	};
+  const onHideSubmit = (values: EventFormValues) => handleSubmit(values, false);
 
-	const onHideSubmit = (values: EventFormValues) => {
-		mutate({ values, published: false });
-	};
-
-	return (
-		<EventForm
-			onDefaultSubmitAction={onDefaultSubmit}
-			onSecondarySubmitAction={onSubmit}
-			onTertiarySubmitAction={onHideSubmit}
-			defaultValues={defaultValues}
-		/>
-	);
+  return (
+    <EventForm
+      onDefaultSubmitAction={onDefaultSubmit}
+      onSecondarySubmitAction={onSubmit}
+      onTertiarySubmitAction={onHideSubmit}
+      defaultValues={defaultValues}
+    />
+  );
 }

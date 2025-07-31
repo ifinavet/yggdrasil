@@ -1,81 +1,69 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { api } from "@workspace/backend/convex/api";
+import type { Id } from "@workspace/backend/convex/dataModel";
 import { Button } from "@workspace/ui/components/button";
+import { useMutation, useQuery } from "convex/react";
 import { Pencil } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import type { boardMemberSchema } from "@/constants/schemas/boardmember-form-schema";
-import { getBoardMember, updateBoardMember } from "@/lib/queries/organization";
 import BoardMemberForm from "./board-member-form";
 
 export default function EditBoardMember({
-	className,
-	organisationId,
+  className,
+  internalId,
 }: {
-	organisationId: number;
-	className?: string;
+  internalId: Id<"internals">;
+  className?: string;
 }) {
-	const { data: boardMember, isLoading } = useQuery({
-		queryKey: ["boardMember", organisationId],
-		queryFn: () => getBoardMember(organisationId),
-		enabled: !!organisationId,
-	});
+  const [openDialog, setOpenDialog] = useState(false);
 
-	const [openDialog, setOpenDialog] = useState(false);
+  const boardMember = useQuery(api.internals.getById, { id: internalId });
 
-	const queryClient = useQueryClient();
-	const { mutate } = useMutation({
-		mutationKey: ["addBoardMember"],
-		mutationFn: (data: boardMemberSchema) => updateBoardMember(organisationId, data),
-		onSuccess: () => {
-			toast.success("Styremedlemmet ble lagt til!");
-			queryClient.invalidateQueries({ queryKey: ["boardMembers"] });
-			queryClient.invalidateQueries({ queryKey: ["boardMember", organisationId] });
-			setOpenDialog(false);
-		},
-		onError: (error) => {
-			console.error(error);
-			toast.error("Hmm... Det skjedde en feil. Prøv igjen senere.");
-		},
-	});
+  const updateBoardMember = useMutation(api.internals.update)
+  const onSubmit = (data: boardMemberSchema) => {
+    updateBoardMember({
+      id: internalId,
+      externalId: data.userID,
+      position: data.role,
+      group: data.group,
+      positionEmail: data.positionEmail,
+    }).then(() => {
+      toast.success("Styremedlemmet ble oppdatert!");
+      setOpenDialog(false);
+    }).catch((error) => {
+      console.error(error);
+      toast.error("Hmm... Det skjedde en feil. Prøv igjen senere.");
+    })
+  };
 
-	const onSubmit = (data: boardMemberSchema) => {
-		mutate(data);
-	};
+  if (!boardMember)
+    return (
+      <Button variant='outline' size='sm' className={className} disabled>
+        <Pencil /> Rediger
+      </Button>
+    );
 
-	if (isLoading)
-		return (
-			<Button variant='outline' size='sm' className={className} disabled>
-				<Pencil /> Rediger
-			</Button>
-		);
-
-	if (!boardMember)
-		return (
-			<Button variant='outline' size='sm' className={className} disabled>
-				<Pencil /> Rediger
-			</Button>
-		);
-
-	return (
-		<BoardMemberForm
-			defaultValues={{
-				userID: boardMember.user_id,
-				role: boardMember.position,
-				group: boardMember.group_name,
-			}}
-			onSubmit={onSubmit}
-			title='Rediger styremedlem'
-			description='Gjør endringer på styremedlemet'
-			openDialog={openDialog}
-			setOpenDialog={setOpenDialog}
-			button={
-				<>
-					<Pencil /> Rediger
-				</>
-			}
-			className={className}
-		/>
-	);
+  return (
+    <BoardMemberForm
+      defaultValues={{
+        userID: boardMember.externalId,
+        role: boardMember.position,
+        group: boardMember.group,
+        positionEmail: boardMember.positionEmail,
+      }}
+      onSubmitAction={onSubmit}
+      title='Rediger styremedlem'
+      description='Gjør endringer på styremedlemet'
+      openDialog={openDialog}
+      setOpenDialogAction={setOpenDialog}
+      button={
+        <>
+          <Pencil /> Rediger
+        </>
+      }
+      className={className}
+    />
+  );
 }
