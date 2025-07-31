@@ -1,17 +1,20 @@
+import { api } from "@workspace/backend/convex/api";
+import { fetchQuery } from "convex/nextjs";
 import ContainerCard from "@/components/cards/container-card";
 import LargeUserCard from "@/components/cards/large-user";
 import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
 import { Title } from "@/components/common/title";
 import TwoColumns from "@/components/common/two-columns";
 import FAQGrid from "@/components/students/faq-grid";
-import { getBoardMemberByPosition } from "@/lib/query/organization";
 
 export const metadata = {
   title: "For studenter",
 };
 
 export default async function StudentsPage() {
-  const { user } = await getBoardMemberByPosition("Koordinator");
+  const coordinator = await fetchQuery(api.internals.getBoardMemberByPosition, {
+    position: "Koordinator",
+  });
 
   return (
     <ResponsiveCenterContainer>
@@ -52,9 +55,9 @@ export default async function StudentsPage() {
           <div className='grid gap-6'>
             <LargeUserCard
               title='Koordinator'
-              fullName={user.fullName ?? "Ukjent"}
-              email={user.primaryEmailAddress?.emailAddress ?? "Ukjent"}
-              imageUrl={user.imageUrl}
+              fullName={`${coordinator.firstName} ${coordinator.lastName}`}
+              email={coordinator.postionEmail ?? coordinator.email}
+              imageUrl={coordinator.image}
             />
             <ContainerCard>
               <h3 className='scroll-m-20 text-center font-semibold text-4xl text-primary tracking-tight'>

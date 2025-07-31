@@ -24,6 +24,30 @@ export const getBoardMembers = query({
   },
 })
 
+export const getBoardMemberByPosition = query({
+  args: {
+    position: v.string(),
+  },
+  handler: async (ctx, { position }) => {
+    const member = await ctx.db.query("internals")
+      .withIndex("by_position", (q) => q.eq("position", position))
+      .first();
+
+    if (!member) {
+      throw new Error(`No board member found with position: ${position}`);
+    }
+
+    const user = await ctx.db.get(member.userId);
+    if (!user) {
+      throw new Error(`User not found for board member with ID: ${member._id}`);
+    }
+
+    return {
+      ...member, ...user
+    };
+  }
+});
+
 export const getById = query({
   args: {
     id: v.id("internals"),
@@ -47,7 +71,7 @@ export const getById = query({
       externalId: user.externalId,
     };
   },
-})
+});
 
 export const update = mutation({
   args: {
