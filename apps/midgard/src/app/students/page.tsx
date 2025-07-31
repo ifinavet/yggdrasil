@@ -56,7 +56,7 @@ export default async function StudentsPage() {
             <LargeUserCard
               title='Koordinator'
               fullName={`${coordinator.firstName} ${coordinator.lastName}`}
-              email={coordinator.postionEmail ?? coordinator.email}
+              email={coordinator.positionEmail ?? coordinator.email}
               imageUrl={coordinator.image}
             />
             <ContainerCard>

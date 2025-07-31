@@ -58,7 +58,7 @@ export default async function ContactPage() {
           <LargeUserCard
             title='Studentkontakt'
             fullName={`${studentContact.firstName} ${studentContact.lastName}`}
-            email={studentContact.postionEmail ?? studentContact.email}
+            email={studentContact.positionEmail ?? studentContact.email}
             imageUrl={studentContact.image}
           />
         }
