@@ -103,7 +103,8 @@ export default defineSchema({
     published: v.boolean(),
     company: v.id("companies"),
     deadline: v.number(),
-  }).index("by_deadline", ["deadline"]),
+  }).index("by_deadline", ["deadline"])
+    .index("by_deadlineAndType", ["type", "deadline"]),
 
   jobListingContacts: defineTable({
     listingId: v.id("jobListings"),
