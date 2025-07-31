@@ -8,7 +8,10 @@ const organizerRoleValidator = v.union(v.literal("hovedansvarlig"), v.literal("m
 type OrganizerRole = "hovedansvarlig" | "medhjelper"
 
 export const getLatest = query({
-  handler: async (ctx, _) => {
+  args: {
+    n: v.number(),
+  },
+  handler: async (ctx, { n }) => {
     const firstDayOfThisWeek = new Date(
       new Date().setDate(new Date().getDate() - new Date().getDay()),
     );
@@ -17,7 +20,7 @@ export const getLatest = query({
       .query("events")
       .filter((q) => q.eq(q.field("published"), true))
       .filter((q) => q.gte(q.field("eventStart"), firstDayOfThisWeek.getTime()))
-      .take(7);
+      .take(n);
 
     const eventWithOrganizers = await Promise.all(
       events.map(async (event) => {
