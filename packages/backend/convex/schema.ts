@@ -53,7 +53,7 @@ export default defineSchema({
     userId: v.id("users"),
     position: v.string(),
     group: v.string(),
-    postionEmail: v.optional(v.string()),
+    positionEmail: v.optional(v.string()),
   }).index("by_position", ["position"]),
 
   events: defineTable({
