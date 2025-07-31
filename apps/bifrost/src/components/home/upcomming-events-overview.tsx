@@ -43,7 +43,7 @@ function EventCard({ event }: { event: Event }) {
 
 export default async function UpcomingEventsOverview() {
   try {
-    const events = await fetchQuery(api.events.getLatest, {});
+    const events = await fetchQuery(api.events.getLatest, { n: 7 });
 
     const now = new Date();
 

@@ -2,26 +2,42 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
 export const getAll = query({
-  handler: async (ctx, _) => {
-    const listings = await ctx.db
-      .query("jobListings")
-      .withIndex("by_deadline")
-      .order("desc")
-      .collect();
+  args: {
+    n: v.optional(v.number()),
+  },
+  handler: async (ctx, { n }) => {
+    const query = ctx.db.query("jobListings").withIndex("by_deadline").order("desc");
+
+    const listings = n ? await query.take(n) : await query.collect();
 
     const listingsWithCompany = await Promise.all(
       listings.map(async (listing) => {
         const company = await ctx.db.get(listing.company);
+        if (!company) {
+          throw new Error(`Company with ID ${listing.company} not found`);
+        }
+
+        const logo = await ctx.db.get(company?.logo);
+        if (!logo) {
+          throw new Error(`Company logo with ID ${company.logo} not found`);
+        }
+
+        const imageUrl = await ctx.storage.getUrl(logo.image);
+        if (!imageUrl) {
+          throw new Error(`Image URL for logo with ID ${logo.image} not found`);
+        }
+
         return {
           ...listing,
           companyName: company?.name || "Ukjent bedrift",
+          companyLogo: imageUrl
         };
       }),
-    )
+    );
 
-    return listingsWithCompany
-  }
-})
+    return listingsWithCompany;
+  },
+});
 
 export const getById = query({
   args: {
@@ -66,7 +82,7 @@ export const create = mutation({
         email: v.optional(v.string()),
         phone: v.optional(v.string()),
       }),
-    )
+    ),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -94,7 +110,7 @@ export const create = mutation({
 
     return listing;
   },
-})
+});
 
 export const update = mutation({
   args: {
@@ -113,7 +129,7 @@ export const update = mutation({
         email: v.optional(v.string()),
         phone: v.optional(v.string()),
       }),
-    )
+    ),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -150,7 +166,7 @@ export const update = mutation({
 
     return listing;
   },
-})
+});
 
 export const remove = mutation({
   args: {
@@ -174,5 +190,5 @@ export const remove = mutation({
     await ctx.db.delete(id);
 
     return id;
-  }
-})
+  },
+});

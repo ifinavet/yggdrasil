@@ -17,6 +17,28 @@ export const getAll = query({
   },
 });
 
+export const getMainSponsor = query({
+  handler: async (ctx) => {
+    const mainSponsor = await ctx.db.query("companies")
+      .filter((q) => q.eq(q.field("mainSponsor"), true))
+      .first();
+
+    if (!mainSponsor) return null;
+
+    const companyImage = await ctx.db.get(mainSponsor.logo);
+    if (!companyImage) {
+      throw new Error(`Company logo with ID ${mainSponsor.logo} not found`);
+    }
+
+    const imageUrl = await ctx.storage.getUrl(companyImage.image);
+    if (!imageUrl) {
+      throw new Error(`Image URL for logo with ID ${companyImage.image} not found`);
+    }
+
+    return { ...mainSponsor, imageUrl };
+  },
+});
+
 export const getById = query({
   args: {
     id: v.id("companies"),
