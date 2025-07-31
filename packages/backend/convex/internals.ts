@@ -100,9 +100,9 @@ export const createBoardMember = mutation({
     externalId: v.string(),
     position: v.string(),
     group: v.string(),
-    postionEmail: v.optional(v.string()),
+    positionEmail: v.optional(v.string()),
   },
-  handler: async (ctx, { externalId, position, group, postionEmail }) => {
+  handler: async (ctx, { externalId, position, group, positionEmail }) => {
     const user = await userByExternalId(ctx, externalId)
     if (!user) {
       throw new Error(`User not found for external ID: ${externalId}`);
