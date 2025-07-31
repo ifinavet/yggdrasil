@@ -123,7 +123,7 @@ export const getCurrentSemester = query({
 
     eventsWithParticipationCount.forEach(event => {
       const eventDate = new Date(event.eventStart);
-      const monthName = monthNames[eventDate.getMonth()];
+      const monthName = monthNames[eventDate.getMonth()] as string;
 
       if (!eventsByMonth[monthName]) {
         eventsByMonth[monthName] = [];

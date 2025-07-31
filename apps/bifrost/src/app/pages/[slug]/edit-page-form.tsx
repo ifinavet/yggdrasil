@@ -4,16 +4,14 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import PageForm from "@/components/pages/page-form";
 import type { PageFormValues } from "@/constants/schemas/page-form-schema";
-import { useMutation, useQuery } from "convex/react";
+import { Preloaded, useMutation, usePreloadedQuery, useQuery } from "convex/react";
 import { api } from "@workspace/backend/convex/api";
-import { Id } from "@workspace/backend/convex/dataModel";
 
-export default function EditPageForm({ id }: { id: string }) {
+export default function EditPageForm({ preloadedPage }: { preloadedPage: Preloaded<typeof api.externalPages.getById> }) {
   const router = useRouter();
 
-  const page = useQuery(api.externalPages.getById, { id: id as Id<"externalPages"> })
+  const page = usePreloadedQuery(preloadedPage)
 
-  if (!page) return null;
 
   const defaultValues: PageFormValues = {
     title: page.title,
@@ -23,7 +21,7 @@ export default function EditPageForm({ id }: { id: string }) {
   const updatePage = useMutation(api.externalPages.update)
   const hanldeUpdatePage = async (values: PageFormValues, published: boolean) => {
     updatePage({
-      id: id as Id<"externalPages">,
+      id: page._id,
       title: values.title,
       content: values.content,
       published: published,
