@@ -1,6 +1,7 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { getCurrentUserOrThrow } from "./users";
 
 export const getAllPaged = query({
   args: { paginationOpts: paginationOptsValidator },
@@ -21,6 +22,25 @@ export const getAllPaged = query({
       ...students,
       page: studentsWithLockedStatus,
     };
+  },
+});
+
+export const getCurrent = query({
+  handler: async (ctx) => {
+    const user = await getCurrentUserOrThrow(ctx);
+
+    const student = await ctx.db
+      .query("students")
+      .withIndex("by_userId", (q) => q.eq("userId", user._id))
+      .first();
+
+    if (!student) {
+      throw new Error("Student not found for the user");
+    }
+
+    return {
+      ...student, ...user,
+    }
   },
 });
 
@@ -47,6 +67,32 @@ export const getById = query({
       degree: student.degree,
     };
   },
+});
+
+export const updateCurrent = mutation({
+  args: {
+    semester: v.number(),
+    studyProgram: v.string(),
+    degree: v.union(v.literal("bachelor"), v.literal("master"), v.literal("phd")),
+  },
+  handler: async (ctx, { semester, studyProgram, degree }) => {
+    const user = await getCurrentUserOrThrow(ctx);
+
+    const student = await ctx.db
+      .query("students")
+      .withIndex("by_userId", (q) => q.eq("userId", user._id))
+      .first();
+
+    if (!student) {
+      throw new Error("Student not found for the user");
+    }
+
+    await ctx.db.patch(student._id, {
+      semester,
+      studyProgram,
+      degree,
+    });
+  }
 });
 
 export const update = mutation({
