@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "check": "biome check .",
-    "check:fik": "biome check . --write",
+    "check:fix": "biome check . --write",
     "dev": "convex dev",
     "setup": "convex dev --until-success"
   },
