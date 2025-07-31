@@ -1,4 +1,6 @@
+import { api } from "@workspace/backend/convex/api";
 import { Button } from "@workspace/ui/components/button";
+import { fetchQuery } from "convex/nextjs";
 import ContainerCard from "@/components/cards/container-card";
 import LargeUserCard from "@/components/cards/large-user";
 import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
@@ -6,14 +8,15 @@ import { Title } from "@/components/common/title";
 import InformationGrid from "@/components/companies/information-grid";
 import OfferGrid from "@/components/companies/offer-grid";
 import JobListingBanner from "@/components/job-listings/job-listing-banner";
-import { getBoardMemberByPosition } from "@/lib/query/organization";
 
 export const metadata = {
   title: "For bedrifter",
 };
 
 export default async function CompaniesPage() {
-  const { user } = await getBoardMemberByPosition("Bedriftskontakt");
+  const companyContact = await fetchQuery(api.internals.getBoardMemberByPosition, {
+    position: "Bedriftskontakt",
+  });
 
   return (
     <>
@@ -61,9 +64,9 @@ export default async function CompaniesPage() {
           <div className='grid gap-6 md:col-span-2'>
             <LargeUserCard
               title='Bedriftskontakt'
-              fullName={user?.fullName ?? "Ukjent"}
-              email={user?.primaryEmailAddress?.emailAddress ?? "Ukjent"}
-              imageUrl={user?.imageUrl ?? "Ukjent"}
+              fullName={`${companyContact.firstName} ${companyContact.lastName}`}
+              email={companyContact.postionEmail ?? companyContact.email}
+              imageUrl={companyContact.image}
             />
             <ContainerCard className='h-fit bg-primary-light'>
               <h2 className='scroll-m-10 pb-2 font-semibold text-3xl tracking-tight first:mt-0'>

@@ -1,15 +1,18 @@
+import { api } from "@workspace/backend/convex/api";
+import { fetchQuery } from "convex/nextjs";
 import ContainerCard from "@/components/cards/container-card";
 import LargeUserCard from "@/components/cards/large-user";
 import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
 import TwoColumns from "@/components/common/two-columns";
-import { getBoardMemberByPosition } from "@/lib/query/organization";
 
 export const metadata = {
   title: "Si ifra",
 };
 
 export default async function ContactPage() {
-  const { user } = await getBoardMemberByPosition("Studentkontakt");
+  const studentContact = await fetchQuery(api.internals.getBoardMemberByPosition, {
+    position: "Studentkontakt",
+  });
 
   return (
     <ResponsiveCenterContainer>
@@ -54,9 +57,9 @@ export default async function ContactPage() {
         aside={
           <LargeUserCard
             title='Studentkontakt'
-            fullName={user.fullName ?? "ukjent"}
-            email={user.primaryEmailAddress?.emailAddress ?? "styret@ifinavet.no"}
-            imageUrl={user.imageUrl ?? ""}
+            fullName={`${studentContact.firstName} ${studentContact.lastName}`}
+            email={studentContact.postionEmail ?? studentContact.email}
+            imageUrl={studentContact.image}
           />
         }
       />
