@@ -4,9 +4,15 @@ import { mutation, query } from "./_generated/server";
 export const getAll = query({
   args: {
     n: v.optional(v.number()),
+    type: v.optional(v.string()),
   },
-  handler: async (ctx, { n }) => {
-    const query = ctx.db.query("jobListings").withIndex("by_deadline").order("desc");
+  handler: async (ctx, { n, type }) => {
+    const query = type
+      ? ctx.db
+        .query("jobListings")
+        .withIndex("by_deadlineAndType", (q) => q.eq("type", type))
+        .order("desc")
+      : ctx.db.query("jobListings").withIndex("by_deadline").order("desc");
 
     const listings = n ? await query.take(n) : await query.collect();
 

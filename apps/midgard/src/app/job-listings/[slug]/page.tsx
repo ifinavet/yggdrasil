@@ -4,15 +4,16 @@ import Image from "next/image";
 import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
 import SanitizeHtml from "@/components/common/sanitize-html";
 import { Title } from "@/components/common/title";
-import { getCompanyImageById } from "@/lib/query/companies";
-import { getListingById } from "@/lib/query/job-listings";
 import { humanReadableDateTime } from "@/uitls/dateFormatting";
+import { Id } from "@workspace/backend/convex/dataModel";
+import { fetchQuery } from "convex/nextjs";
+import { api } from "@workspace/backend/convex/api";
 
-export default async function JobListingPage({ params }: { params: Promise<{ slug: number }> }) {
+export default async function JobListingPage({ params }: { params: Promise<{ slug: Id<"jobListings"> }> }) {
   const listingId = await params.then((params) => params.slug);
 
-  const listing = await getListingById(listingId);
-  const companyImage = await getCompanyImageById(listing.company_id);
+  const listing = await fetchQuery(api.listings.getById, { id: listingId })
+  const company = await fetchQuery(api.companies.getById, { id: listing.company });
 
   return (
     <ResponsiveCenterContainer>
@@ -35,7 +36,7 @@ export default async function JobListingPage({ params }: { params: Promise<{ slu
                 className={`w-3/4 rounded-xl bg-emerald-600 py-8 text-center font-semibold text-lg hover:cursor-pointer hover:bg-emerald-700`}
                 asChild
               >
-                <a href={listing.application_url} target='_blank' rel='noopener noreferrer'>
+                <a href={listing.applicationUrl} target='_blank' rel='noopener noreferrer'>
                   Søk her
                 </a>
               </Button>
@@ -54,26 +55,24 @@ export default async function JobListingPage({ params }: { params: Promise<{ slu
               <div className='absolute top-0 left-0 h-1/2 w-full bg-transparent'></div>
               <div className='absolute bottom-0 left-0 h-1/2 w-full rounded-t-xl bg-zinc-100'></div>
               <div className='absolute inset-12 grid place-content-center rounded-full border-2 border-neutral-300 bg-white'>
-                {companyImage?.url && (
-                  <Image
-                    src={companyImage.url}
-                    alt={listing.companies.company_name}
-                    width={200}
-                    height={200}
-                    className='p-4'
-                    loading='eager'
-                  />
-                )}
+                <Image
+                  src={company.imageUrl}
+                  alt={company.name}
+                  width={200}
+                  height={200}
+                  className='p-4'
+                  loading='eager'
+                />
               </div>
             </div>
             <div className='rounded-b-xl bg-zinc-100 px-8 pb-8'>
-              <SanitizeHtml html={listing.companies.description ?? ""} className='prose-lg' />
+              <SanitizeHtml html={company.description} className='prose-lg' />
             </div>
           </div>
           <div className='grid grid-cols-1 gap-4'>
-            {listing.job_listing_contacts.map((contact) => (
+            {listing.contacts.map((contact) => (
               <div
-                key={contact.contact_id}
+                key={contact.id}
                 className='flex flex-wrap gap-4 rounded-xl bg-zinc-100 px-6 py-4'
               >
                 <div className='flex flex-col justify-between'>

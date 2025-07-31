@@ -1,10 +1,11 @@
+import { api } from "@workspace/backend/convex/api";
 import { Button } from "@workspace/ui/components/button";
+import { fetchQuery } from "convex/nextjs";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { Title } from "@/components/common/title";
 import JobListingBanner from "@/components/job-listings/job-listing-banner";
 import JobListingCard from "@/components/job-listings/job-listing-card";
-import { getAllJobListings } from "@/lib/query/job-listings";
 
 export const metadata = {
   title: "Stillingsannonser",
@@ -17,7 +18,7 @@ export default async function JobListingsPage() {
 
   const type = xSearchParams?.get("type") || undefined;
 
-  const jobListings = await getAllJobListings(type);
+  const jobListings = await fetchQuery(api.listings.getAll, { type });
 
   const types = Array.from(new Set<string>(jobListings.map((job) => job.type)));
 
@@ -39,13 +40,13 @@ export default async function JobListingsPage() {
       <div className='mx-auto grid w-full max-w-5xl grid-cols-1 justify-items-center gap-6 sm:grid-cols-2 lg:grid-cols-3'>
         {jobListings.map((job) => (
           <JobListingCard
-            listingId={job.listing_id}
+            listingId={job._id}
             type={job.type}
             teaser={job.teaser}
-            companyName={job.companies.company_name}
-            imageName={job.company_images.name ?? ""}
+            companyName={job.companyName}
+            image={job.companyLogo}
             title={job.title}
-            key={job.listing_id}
+            key={job._id}
           />
         ))}
       </div>
