@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { getCurrentUserOrThrow } from "./users";
 
 export const getByEventId = query({
   args: {
@@ -28,6 +29,33 @@ export const getByEventId = query({
     };
   },
 })
+
+export const getCurrentUser = query({
+  handler: async (ctx) => {
+    const user = await getCurrentUserOrThrow(ctx);
+
+    const registrations = await ctx.db
+      .query("registrations")
+      .withIndex("by_userId", (q) => q.eq("userId", user._id))
+      .collect();
+
+    const registrationsWithEvents = await Promise.all(registrations.map(async (reg) => {
+      const event = await ctx.db.get(reg.eventId);
+      if (!event) {
+        throw new Error(`Event with ID ${reg.eventId} not found`);
+      }
+
+      return {
+        ...reg,
+        eventTitle: event.title,
+        eventStart: event.eventStart,
+      };
+    }));
+
+    return registrationsWithEvents
+  }
+});
+
 
 export const remove = mutation({
   args: {

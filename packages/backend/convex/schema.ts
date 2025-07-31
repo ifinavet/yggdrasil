@@ -40,7 +40,8 @@ export default defineSchema({
     studyProgram: v.string(),
     semester: v.number(),
     degree: v.union(v.literal("bachelor"), v.literal("master"), v.literal("phd")),
-  }).index("by_studyProgram", ["studyProgram"]),
+  }).index("by_studyProgram", ["studyProgram"])
+    .index("by_userId", ["userId"]),
 
   points: defineTable({
     studentId: v.id("students"),
@@ -85,7 +86,8 @@ export default defineSchema({
     registrationTime: v.number(),
     attendanceStatus: v.union(v.literal("confirmed"), v.literal("late"), v.literal("no_show")),
     attendanceTime: v.number(),
-  }).index("by_eventId", ["eventId"]),
+  }).index("by_eventId", ["eventId"])
+    .index("by_userId", ["userId"]),
 
   externalPages: defineTable({
     title: v.string(),
