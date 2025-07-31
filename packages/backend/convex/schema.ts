@@ -79,13 +79,13 @@ export default defineSchema({
 
   registrations: defineTable({
     eventId: v.id("events"),
-    userId: v.string(),
+    userId: v.id("users"),
     status: v.union(v.literal("registered"), v.literal("pending"), v.literal("waitlist")),
     note: v.string(),
     registrationTime: v.number(),
     attendanceStatus: v.union(v.literal("confirmed"), v.literal("late"), v.literal("no_show")),
     attendanceTime: v.number(),
-  }),
+  }).index("by_eventId", ["eventId"]),
 
   externalPages: defineTable({
     title: v.string(),

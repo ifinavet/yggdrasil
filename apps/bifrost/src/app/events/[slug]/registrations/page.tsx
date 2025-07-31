@@ -1,20 +1,14 @@
-import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query";
-import { getAllRegistrations } from "@/lib/queries/registrations";
+import { preloadQuery } from "convex/nextjs";
 import { Registrations } from "./registrations";
+import { Id } from "@workspace/backend/convex/dataModel";
+import { api } from "@workspace/backend/convex/api";
 
-export default async function registrations(props: { params: Promise<{ slug: number }> }) {
-	const { slug: event_id } = await props.params;
+export default async function registrations(props: { params: Promise<{ slug: Id<"events"> }> }) {
+  const { slug: eventId } = await props.params;
 
-	const queryClient = new QueryClient();
+  const preloadedRegistrations = await preloadQuery(api.registration.getByEventId, { eventId })
 
-	await queryClient.prefetchQuery({
-		queryKey: ["registrations", event_id],
-		queryFn: () => getAllRegistrations(event_id),
-	});
-
-	return (
-		<HydrationBoundary state={dehydrate(queryClient)}>
-			<Registrations event_id={event_id} />
-		</HydrationBoundary>
-	);
+  return (
+    <Registrations eventId={eventId} preloadedRegistrations={preloadedRegistrations} />
+  );
 }
