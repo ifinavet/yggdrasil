@@ -1,12 +1,17 @@
 import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
+import { api } from "@workspace/backend/convex/api";
+import { Id } from "@workspace/backend/convex/dataModel";
+import { preloadQuery } from "convex/nextjs";
+import { Registrations } from "./registrations";
 
-export default async function AdminPage({ params }: { params: Promise<{ slug: number }> }) {
-  const event_id = await params.then(({ slug }) => slug);
+export default async function AdminPage({ params }: { params: Promise<{ slug: Id<"events"> }> }) {
+  const { slug: eventId } = await params;
+
+  const preloadedRegistrations = await preloadQuery(api.registration.getByEventId, { eventId });
 
   return (
     <ResponsiveCenterContainer>
-      <h1>Hei!</h1>
-      <p>{event_id}</p>
+      <Registrations preloadedRegistrations={preloadedRegistrations} />
     </ResponsiveCenterContainer>
   );
 }

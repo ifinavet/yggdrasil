@@ -225,6 +225,9 @@ importers:
       '@tanstack/react-query':
         specifier: ^5.81.0
         version: 5.81.0(react@19.0.0)
+      '@tanstack/react-table':
+        specifier: ^8.21.3
+        version: 8.21.3(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       '@workspace/backend':
         specifier: workspace:*
         version: link:../../packages/backend

@@ -20,12 +20,12 @@ export const getByEventId = query({
       };
     }))
 
-    const registered = registrationsWithUsers.filter(reg => reg.status === "registered");
-    const waitlistPending = registrationsWithUsers.filter(reg => reg.status === "pending" || reg.status === "waitlist");
+    const registeredPending = registrationsWithUsers.filter(reg => reg.status === "pending" || reg.status === "registered");
+    const waitlist = registrationsWithUsers.filter(reg => reg.status === "waitlist");
 
     return {
-      registered,
-      waitlist: waitlistPending,
+      registered: registeredPending,
+      waitlist: waitlist,
     };
   },
 })
@@ -42,7 +42,7 @@ export const getCurrentUser = query({
     const registrationsWithEvents = await Promise.all(registrations.map(async (reg) => {
       const event = await ctx.db.get(reg.eventId);
       if (!event) {
-        throw new Error(`Event with ID ${reg.eventId} not found`);
+        throw new Error(`Arrangemenetet med ID ${reg.eventId} ikke funnet. Kan ikke hente registrering.`);
       }
 
       return {
@@ -56,23 +56,17 @@ export const getCurrentUser = query({
   }
 });
 
-export const remove = mutation({
-  args: {
-    id: v.id("registrations"),
-  },
-  handler: async (ctx, { id }) => {
-    await ctx.db.delete(id);
-  },
-})
-
 export const updateAttendance = mutation({
   args: {
     id: v.id("registrations"),
     newStatus: v.union(v.literal("confirmed"), v.literal("late"), v.literal("no_show")),
   },
   handler: async (ctx, { id, newStatus }) => {
+    await getCurrentUserOrThrow(ctx);
+
     await ctx.db.patch(id, {
       attendanceStatus: newStatus,
+      attendanceTime: Date.now(),
     });
   },
 });
@@ -88,7 +82,7 @@ export const register = mutation({
     const event = await ctx.db.get(eventId);
 
     if (!event) {
-      throw new Error(`Event with ID ${eventId} not found`);
+      throw new Error(`Arrangemenetet med ID ${eventId} ikke funnet. Kan ikke registrere.`);
     }
 
     const registrations = await ctx.db.query("registrations")
@@ -118,6 +112,37 @@ export const unregister = mutation({
   handler: async (ctx, { id }) => {
     await getCurrentUserOrThrow(ctx);
 
+    const registration = await ctx.db.get(id);
+    if (!registration) {
+      throw new Error(`Registreing med ID ${id} ble ikke funnet. Avbryter avregistrering.`);
+    }
+
+    const event = await ctx.db.get(registration.eventId);
+    if (!event) {
+      throw new Error(`Arrangement med ID ${registration.eventId} ble ikke funnet. Kan ikke behandle ventelisten.`);
+    }
+
     await ctx.db.delete(id);
+
+    if (registration.status === "waitlist") return;
+
+    const registrations = await ctx.db
+      .query("registrations")
+      .withIndex("by_eventId", (q) => q.eq("eventId", registration.eventId))
+      .collect();
+
+    const nextRegistration = registrations
+      .filter(reg => reg.status === "waitlist")
+      .sort((a, b) => a._creationTime - b._creationTime)[0];
+
+    if (!nextRegistration) {
+      console.log(`No waitlist registrations found for event ${event.title}.`);
+      return;
+    };
+
+    await ctx.db.patch(nextRegistration._id, {
+      status: "pending",
+      registrationTime: Date.now(),
+    });
   },
 });
