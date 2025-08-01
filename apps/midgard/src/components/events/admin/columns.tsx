@@ -20,6 +20,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@workspace/ui/components/alert-dialog";
+import { Badge } from "@workspace/ui/components/badge";
 import { Trash } from "lucide-react";
 import { humanReadableDateTime } from "@/uitls/dateFormatting";
 
@@ -44,16 +45,25 @@ export const createColumns = (
       accessorKey: "status",
       header: "Status",
       cell: ({ row }) => {
-        return <>{row.original.status}</>
+        const norwegian: Record<string, string> = {
+          "registered": "Registrert",
+          "pending": "Venter",
+          "waitlist": "På venteliste",
+        };
+
+        if (row.original.status === "pending") {
+          return <Badge variant="secondary" className="bg-amber-400">Venter</Badge>;
+        }
+        return <Badge variant="default">{norwegian[row.original.status] ?? row.original.status}</Badge>;
       }
     },
     {
       accessorKey: "note",
-      header: "Bemærkninger",
+      header: "Bemerkninger",
     },
     {
       accessorKey: "registrationTime",
-      header: "Påmeldings tidspunkt",
+      header: "Påmeldingstidspunkt",
       cell: ({ row }) => {
         return <>{humanReadableDateTime(row.original.registrationTime)}</>;
       },
@@ -68,7 +78,7 @@ export const createColumns = (
             onValueChange={(value) => onRegister(row.original.registrationId, value)}
           >
             <SelectTrigger className='w-[180px]'>
-              <SelectValue placeholder='Registrer påmeldte' />
+              <SelectValue placeholder='Registrert påmeldte' />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value='confirmed'>Oppmøtt</SelectItem>

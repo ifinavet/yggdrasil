@@ -30,6 +30,21 @@ export const getByEventId = query({
   },
 })
 
+export const getById = query({
+  args: {
+    id: v.id("registrations"),
+  },
+  handler: async (ctx, { id }) => {
+    const registration = await ctx.db.get(id);
+
+    if (!registration) {
+      throw new Error(`Registrering med ID ${id} ikke funnet.`);
+    }
+
+    return registration;
+  }
+});
+
 export const getCurrentUser = query({
   handler: async (ctx) => {
     const user = await getCurrentUserOrThrow(ctx);
@@ -39,21 +54,39 @@ export const getCurrentUser = query({
       .withIndex("by_userId", (q) => q.eq("userId", user._id))
       .collect();
 
-    const registrationsWithEvents = await Promise.all(registrations.map(async (reg) => {
-      const event = await ctx.db.get(reg.eventId);
-      if (!event) {
-        throw new Error(`Arrangemenetet med ID ${reg.eventId} ikke funnet. Kan ikke hente registrering.`);
-      }
+    const registrationsWithEvents = await Promise.all(
+      registrations.map(async (reg) => {
+        const event = await ctx.db.get(reg.eventId);
+        if (!event) {
+          throw new Error(
+            `Arrangemenetet med ID ${reg.eventId} ikke funnet. Kan ikke hente registrering.`,
+          );
+        }
 
-      return {
-        ...reg,
-        eventTitle: event.title,
-        eventStart: event.eventStart,
-      };
-    }));
+        return {
+          ...reg,
+          eventTitle: event.title,
+          eventStart: event.eventStart,
+        };
+      }),
+    );
 
-    return registrationsWithEvents
-  }
+    return registrationsWithEvents;
+  },
+});
+
+export const acceptPendingRegistration = mutation({
+  args: {
+    id: v.id("registrations"),
+  },
+  handler: async (ctx, { id }) => {
+    await getCurrentUserOrThrow(ctx);
+
+    await ctx.db.patch(id, {
+      status: "registered",
+      registrationTime: Date.now(),
+    })
+  },
 });
 
 export const updateAttendance = mutation({

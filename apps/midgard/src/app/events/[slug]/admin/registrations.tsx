@@ -8,6 +8,9 @@ import { Id } from "@workspace/backend/convex/dataModel";
 import { humanReadableDate } from "@/uitls/dateFormatting";
 import { createColumns, Registration } from "@/components/events/admin/columns";
 import { RegistrationsTable } from "@/components/events/admin/registrations-table";
+import { Button } from "@workspace/ui/components/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui/components/popover";
+import { Mails } from "lucide-react";
 
 export function Registrations({ preloadedRegistrations }: { preloadedRegistrations: Preloaded<typeof api.registration.getByEventId>; }) {
   const registrations = usePreloadedQuery(preloadedRegistrations)
@@ -41,6 +44,28 @@ export function Registrations({ preloadedRegistrations }: { preloadedRegistratio
         description: error.name + ": " + error.message,
       });
     })
+  }
+
+  const handleSendEmail = (registerd: boolean, copy: boolean) => {
+    const registrationsToUse = registerd ? registrations.registered : registrations.waitlist;
+    const emails = registrationsToUse.map(reg => {
+      if (reg.status === "pending") return;
+      return reg.userEmail;
+    }).filter(r => r)
+
+    if (copy) {
+      navigator.clipboard.writeText(emails.join('\n'));
+      toast.success("E-postlisten er kopiert til utklippstavlen");
+      return;
+    }
+
+    if (emails.length === 0) {
+      toast.error("Ingen e-poster å sende til");
+      return;
+    }
+
+    const mailto = `mailto:?bcc=${encodeURIComponent(emails.join(','))}`;
+    window.open(mailto, '_blank', 'noopener,noreferrer');
   }
 
   const columns = createColumns(
@@ -83,9 +108,26 @@ export function Registrations({ preloadedRegistrations }: { preloadedRegistratio
         </TabsTrigger>
       </TabsList>
       <TabsContent value='registered'>
-        <h2 className='scroll-m-20 border-b pb-2 font-semibold text-2xl tracking-tight first:mt-0'>
-          Påmeldte
-        </h2>
+        <div className="flex justify-between border-b items-center border-primary">
+          <h2 className='scroll-m-20 font-semibold text-2xl tracking-tight first:mt-0'>
+            Påmeldte
+          </h2>
+
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="mb-3">
+                <Mails size={4} /> Send e-post
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent>
+              <div className="flex flex-col gap-4">
+                <Button onClick={() => handleSendEmail(true, false)} type="button" variant="default">Send epost til deltakerne</Button>
+                <Button onClick={() => handleSendEmail(true, true)}>Kopier epost listen</Button>
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
+
         <RegistrationsTable columns={columns} data={registeredData} />
       </TabsContent>
 
@@ -93,6 +135,7 @@ export function Registrations({ preloadedRegistrations }: { preloadedRegistratio
         <h2 className='scroll-m-20 border-b pb-2 font-semibold text-2xl tracking-tight first:mt-0'>
           Venteliste
         </h2>
+
         <RegistrationsTable
           columns={columns}
           data={waitlistData}

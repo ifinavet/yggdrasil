@@ -45,9 +45,8 @@ export default async function EventPage({ params }: { params: Promise<{ slug: Id
                 <Image
                   src={company.imageUrl}
                   alt={event.hostingCompanyName}
-                  width={200}
-                  height={200}
-                  className='p-4'
+                  fill
+                  className='object-contain p-8 sm:p-18 md:p-10 lg:p-16'
                   loading='eager'
                 />
               </div>
