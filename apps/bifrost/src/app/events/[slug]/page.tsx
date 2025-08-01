@@ -8,9 +8,8 @@ import { fetchQuery } from "convex/nextjs";
 import Link from "next/link";
 import { Button } from "@workspace/ui/components/button";
 
-export default async function EventPage(props: { params: Promise<{ slug: string }> }) {
-  const params = await props.params;
-  const eventId = params.slug;
+export default async function EventPage({ params }: { params: Promise<{ slug: Id<"events"> }> }) {
+  const { slug: eventId } = await params;
 
   if (!eventId || typeof eventId !== 'string' || eventId.length < 10) {
     return (
@@ -43,7 +42,7 @@ export default async function EventPage(props: { params: Promise<{ slug: string 
     // Prefetch event
     await queryClient.prefetchQuery({
       queryKey: ["event", eventId],
-      queryFn: () => fetchQuery(api.events.getById, { id: eventId as Id<"events"> }),
+      queryFn: () => fetchQuery(api.events.getById, { id: eventId }),
     });
 
     // Prefetch internal members

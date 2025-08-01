@@ -15,9 +15,10 @@ import { fetchQuery } from "convex/nextjs";
 import { api } from "@workspace/backend/convex/api";
 import { Id } from "@workspace/backend/convex/dataModel";
 
-export default async function ResourcePage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function ResourcePage({ params }: { params: Promise<{ slug: Id<"resources"> }> }) {
   const { orgRole } = await auth();
-  const id = (await params).slug as Id<"resources">;
+
+  const { slug: id } = await params;
   const resource = await fetchQuery(api.resources.getById, { id: id });
 
   return (

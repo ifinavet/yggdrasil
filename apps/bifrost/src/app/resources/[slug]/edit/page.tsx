@@ -10,9 +10,9 @@ import {
 import EditResourceForm from "./edit-resource-form";
 import { Id } from "@workspace/backend/convex/dataModel";
 
-export default async function EditResourcePage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function EditResourcePage({ params }: { params: Promise<{ slug: Id<"resources"> }> }) {
   const { orgRole } = await auth();
-  const id = (await params).slug as Id<"resources">;
+  const { slug: id } = await params;
 
   if (!(orgRole === "org:admin" || orgRole === "org:editor")) {
     throw new Error("Forbidden");
