@@ -1,6 +1,7 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { getCurrentUserOrThrow } from "./users";
 
 export const getAllPaged = query({
   args: { paginationOpts: paginationOptsValidator },
@@ -109,6 +110,33 @@ export const getCompanyLogoById = query({
     }
 
     return { ...logo, imageUrl };
+  },
+});
+
+export const generateUploadUrl = mutation({
+  handler: async (ctx) => {
+    await getCurrentUserOrThrow(ctx);
+
+    const uploadUrl = await ctx.storage.generateUploadUrl();
+
+    return uploadUrl;
+  },
+});
+
+export const uploadCompanyLogo = mutation({
+  args: {
+    id: v.id("_storage"),
+    name: v.string(),
+  },
+  handler: async (ctx, { id, name }) => {
+    await getCurrentUserOrThrow(ctx);
+
+    const logoId = await ctx.db.insert("companyLogos", {
+      name,
+      image: id,
+    });
+
+    return logoId;
   },
 });
 
