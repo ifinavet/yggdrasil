@@ -198,7 +198,13 @@ export const getPossibleSemesters = query({
     const lastEvent = await ctx.db.query("events").withIndex("by_eventStart").order("desc").first();
 
     if (!firstEvent || !lastEvent) {
-      throw new Error("No events found");
+      const today = new Date();
+      const currentYear = today.getFullYear();
+      const currentMonth = today.getMonth();
+
+      return [
+        { year: currentYear, semester: currentMonth < 6 ? "vår" : "høst" },
+      ]
     }
 
     const firstYear = new Date(firstEvent.eventStart).getFullYear();
