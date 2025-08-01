@@ -1,7 +1,8 @@
+
 import type { NextConfig } from "next";
 
-if (!process.env.CONVEX_HOSTNAME) {
-  throw new Error("CONVEX_HOSTNAME environment variable is not set.");
+if (!process.env.NEXT_PUBLIC_CONVEX_HOSTNAME) {
+  throw new Error("NEXT_PUBLIC_CONVEX_HOSTNAME environment variable is not set.");
 }
 
 const nextConfig: NextConfig = {
@@ -11,7 +12,7 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: process.env.CONVEX_HOSTNAME,
+        hostname: process.env.NEXT_PUBLIC_CONVEX_HOSTNAME,
         port: "",
         pathname: "**",
       },
