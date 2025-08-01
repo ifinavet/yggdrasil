@@ -7,12 +7,15 @@ import {
   BreadcrumbSeparator,
 } from "@workspace/ui/components/breadcrumb";
 import EditJobListingForm from "./edit-job-listing-form";
+import { Id } from "@workspace/backend/convex/dataModel";
 
 export default async function EditJobListingPage({
   params,
 }: {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ slug: Id<"jobListings"> }>;
 }) {
+  const { slug: listingId } = await params;
+
   return (
     <>
       <Breadcrumb>
@@ -31,7 +34,7 @@ export default async function EditJobListingPage({
         </BreadcrumbList>
       </Breadcrumb>
 
-      <EditJobListingForm listing_id={(await params).slug} />
+      <EditJobListingForm listingId={listingId} />
     </>
   );
 }

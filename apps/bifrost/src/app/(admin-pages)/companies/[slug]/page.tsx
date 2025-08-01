@@ -11,7 +11,7 @@ import { Id } from "@workspace/backend/convex/dataModel";
 
 export default async function CreateCompany({ params }: { params: Promise<{ slug: Id<"companies"> }> }) {
   const { orgRole } = await auth();
-  const resolvedParams = await params;
+  const { slug: id } = await params;
 
   if (orgRole !== "org:admin") throw new Response("Forbidden", { status: 403 });
 
@@ -30,7 +30,7 @@ export default async function CreateCompany({ params }: { params: Promise<{ slug
           <BreadcrumbItem>Administrer bedrift</BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
-      <EditCompanyForm company_id={resolvedParams.slug} />
+      <EditCompanyForm company_id={id} />
     </>
   );
 }

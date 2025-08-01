@@ -12,10 +12,10 @@ import { Id } from "@workspace/backend/convex/dataModel";
 import { useQuery } from "@tanstack/react-query";
 import { useMutation } from "convex/react";
 
-export default function EditJobListingForm({ listing_id }: { listing_id: string }) {
+export default function EditJobListingForm({ listingId }: { listingId: Id<"jobListings"> }) {
   const { data: joblisting, isLoading } = useQuery({
-    ...convexQuery(api.listings.getById, { id: listing_id as Id<"jobListings"> }),
-    enabled: !!listing_id,
+    ...convexQuery(api.listings.getById, { id: listingId as Id<"jobListings"> }),
+    enabled: !!listingId,
   });
 
   const { data: company, isLoading: isCompanyLoading } = useQuery({

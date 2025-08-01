@@ -13,7 +13,7 @@ import { api } from "@workspace/backend/convex/api";
 import { Id } from "@workspace/backend/convex/dataModel";
 
 export default async function EditResourcePage({ params }: { params: Promise<{ slug: Id<"externalPages"> }> }) {
-  const id = (await params).slug;
+  const { slug: id } = await params;
 
   const preloadedPage = await preloadQuery(api.externalPages.getById, { id })
 
