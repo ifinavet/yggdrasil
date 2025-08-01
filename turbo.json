@@ -17,6 +17,7 @@
         "CLERK_SECRET_KEY",
         "NAVET_ORG_ID",
         "NEXT_PUBLIC_CONVEX_URL",
+        "CONVEX_HOSTNAME",
         "RESEND_API_KEY"
       ],
       "outputs": [
