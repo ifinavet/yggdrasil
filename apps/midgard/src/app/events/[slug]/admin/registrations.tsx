@@ -2,14 +2,14 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/components//tabs";
 import { toast } from "sonner";
-import { createColumns, type Registration } from "@/components/events/registrations/columns";
-import { RegistrationsTable } from "@/components/events/registrations/registrations-table";
-import { humanReadableDate } from "@/utils/utils";
-import { Preloaded, useMutation, usePreloadedQuery, useQuery } from "convex/react";
+import { Preloaded, useMutation, usePreloadedQuery } from "convex/react";
 import { api } from "@workspace/backend/convex/api";
 import { Id } from "@workspace/backend/convex/dataModel";
+import { humanReadableDate } from "@/uitls/dateFormatting";
+import { createColumns, Registration } from "@/components/events/admin/columns";
+import { RegistrationsTable } from "@/components/events/admin/registrations-table";
 
-export function Registrations({ eventId, preloadedRegistrations }: { eventId: Id<"events">, preloadedRegistrations: Preloaded<typeof api.registration.getByEventId>; }) {
+export function Registrations({ preloadedRegistrations }: { preloadedRegistrations: Preloaded<typeof api.registration.getByEventId>; }) {
   const registrations = usePreloadedQuery(preloadedRegistrations)
 
   const deleteRegistration = useMutation(api.registration.unregister)
@@ -55,6 +55,7 @@ export function Registrations({ eventId, preloadedRegistrations }: { eventId: Id
           registrationId: registration._id,
           userName: registration.userName,
           note: registration.note,
+          status: registration.status,
           registrationTime: new Date(registration.registrationTime),
           attendanceStatus: registration.attendanceStatus,
         }) as Registration,
@@ -67,6 +68,7 @@ export function Registrations({ eventId, preloadedRegistrations }: { eventId: Id
           registrationId: registration._id,
           userName: registration.userName,
           note: registration.note,
+          status: registration.status,
           registrationTime: new Date(registration.registrationTime),
           attendanceStatus: registration.attendanceStatus,
         }) as Registration,

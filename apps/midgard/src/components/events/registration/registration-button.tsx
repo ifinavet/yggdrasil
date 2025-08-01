@@ -22,6 +22,9 @@ export default function RegistrationButton({
   const currentUsersRegistration = registrations.registered.find(
     (registration) => registration.userId === currentUser?._id
   );
+  const currentUsersWaitlistRegistration = registrations.waitlist.find(
+    (registration) => registration.userId === currentUser?._id
+  );
 
   if (!currentUser) {
     return (
@@ -35,14 +38,26 @@ export default function RegistrationButton({
     );
   }
 
-  return !currentUsersRegistration ? (
-    <SignUpForm
-      eventId={eventId}
-      userId={currentUser._id}
-      className={`w-1/2 rounded-xl bg-emerald-600 py-8 text-center font-semibold text-lg hover:cursor-pointer hover:bg-emerald-700`}
-      waitlist={availableSpots === 0}
-    />
-  ) : (
-    <Unregister registrationId={currentUsersRegistration._id} />
+  if (!currentUsersRegistration && !currentUsersWaitlistRegistration) {
+    return (
+      <SignUpForm
+        eventId={eventId}
+        userId={currentUser._id}
+        className={`w-1/2 rounded-xl bg-emerald-600 py-8 text-center font-semibold text-lg hover:cursor-pointer hover:bg-emerald-700`}
+        waitlist={availableSpots === 0}
+      />
+    );
+  }
+
+  const registrationId =
+    currentUsersRegistration?._id || currentUsersWaitlistRegistration?._id;
+
+  if (!registrationId) {
+    // This should never happen, but handle just in case
+    return null;
+  }
+
+  return (
+    <Unregister registrationId={registrationId} />
   );
 }
