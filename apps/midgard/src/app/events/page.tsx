@@ -25,8 +25,9 @@ export default async function EventsPage() {
 
   const eventEntries = Object.entries(events);
   const activeMonthAndEvents = eventEntries.find(
-    ([month]) => month === selectedMonth || month === currentMonth,
-  ) ?? eventEntries[0] ?? ["Januar", []];
+    ([month]) => month === selectedMonth
+  ) ?? eventEntries.find(([month]) => month === currentMonth)
+    ?? eventEntries[0] ?? ["Januar", []];
 
   return (
     <>

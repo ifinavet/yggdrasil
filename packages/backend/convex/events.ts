@@ -19,8 +19,10 @@ export const getLatest = query({
 
     const events = await ctx.db
       .query("events")
+      .withIndex("by_eventStart")
       .filter((q) => q.eq(q.field("published"), true))
       .filter((q) => q.gte(q.field("eventStart"), firstDayOfThisWeek.getTime()))
+      .order("asc")
       .take(n);
 
     const eventWithOrganizers = await Promise.all(
@@ -50,8 +52,10 @@ export const getAllEvents = internalQuery({
 
     const events = await ctx.db
       .query("events")
+      .withIndex("by_eventStart")
       .filter((q) => q.gte(q.field("eventStart"), range_start.getTime()))
       .filter((q) => q.lte(q.field("eventStart"), range_end.getTime()))
+      .order("asc")
       .collect();
 
     const eventsWithCompany = await Promise.all(

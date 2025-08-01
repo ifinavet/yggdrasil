@@ -130,8 +130,8 @@ function EventMetadata({
 // Company image component
 function CompanyImage({ imageUrl, title }: { imageUrl: string; title: string }) {
   return (
-    <div className='relative col-span-2 grid h-full place-content-center rounded-r-md bg-zinc-50 px-6 py-4'>
-      <Image src={imageUrl} alt={title} className="object-contain" fill />
+    <div className='relative col-span-2 grid h-full min-h-32 place-content-center rounded-r-md bg-zinc-50 px-6 py-4'>
+      <Image src={imageUrl} alt={title} className='object-contain py-8' fill />
     </div>
   );
 }
@@ -160,7 +160,7 @@ export default async function EventCard({
         />
       )}
       <div
-        className={`h-52 overflow-hidden rounded-md border-3 ${cardColor} grid gap-4 md:grid-cols-7`}
+        className={`overflow-hidden rounded-md border-3 md:h-52 ${cardColor} grid gap-4 md:grid-cols-7`}
       >
         <CompanyImage imageUrl={image.imageUrl} title={event.title} />
         <EventDetails event={event} />
