@@ -95,10 +95,12 @@ export const getCurrentSemester = query({
   handler: async (ctx, { isExternal }) => {
     const semester = Date.now() < new Date().setMonth(7) ? 0 : 1; // 0 for spring, 1 for fall
 
-    const events: Array<Doc<"events"> & { hostingCompanyName: string }> = await ctx.runQuery(internal.events.getAllEvents, {
-      semester,
-      year: new Date().getFullYear(),
-    });
+    const events: Array<Doc<"events"> & { hostingCompanyName: string }> = (
+      await ctx.runQuery(internal.events.getAllEvents, {
+        semester,
+        year: new Date().getFullYear(),
+      }))
+      .filter(q => q.published === true);
 
     const filteredEvents = isExternal
       ? events.filter((event) => event.externalUrl && event.externalUrl.length > 0)

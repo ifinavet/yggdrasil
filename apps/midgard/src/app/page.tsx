@@ -27,7 +27,7 @@ export default async function MainPage() {
       <ResponsiveCenterContainer>
         <div className='grid gap-8 md:grid-cols-2'>
           {mainSponsor && (
-            <div className='lg:-ml-24 order-2 space-y-6 md:order-1'>
+            <div className={`${latestEvents.length > 0 ? "lg:-ml-24 order-2 md:order-1" : "col-span-full mx-auto max-w-3xl"} space-y-6`}>
               <h1 className='hyphens-manual text-balance font-bold text-4xl text-primary tracking-tight'>
                 Hoved&shy;samarbeids&shy;partner
               </h1>
@@ -73,32 +73,34 @@ export default async function MainPage() {
           )}
         </div>
       </ResponsiveCenterContainer>
-      <div className='h-full bg-[url(/Ns.svg)] py-16'>
-        <ResponsiveCenterContainer className='space-y-6'>
-          <h1 className='font-bold text-4xl text-primary'>Stillingsannonser</h1>
-          <div className='flex flex-col items-center justify-evenly gap-6 md:flex-row'>
-            {jobListings.map((listing) => (
-              <JobListingCard
-                key={listing._id}
-                title={listing.title}
-                listingId={listing._id}
-                type={listing.type}
-                companyName={listing.companyName}
-                teaser={listing.teaser}
-                image={listing.companyLogo}
-              />
-            ))}
-          </div>
-          <div className='flex justify-center'>
-            <Button
-              asChild
-              className='mx-8 bg-emerald-600 py-6 font-semibold hover:bg-emerald-700 md:w-1/3'
-            >
-              <Link href={"/job-listings"}>Se alle stillingsannonser</Link>
-            </Button>
-          </div>
-        </ResponsiveCenterContainer>
-      </div>
+      {jobListings.length > 0 && (
+        <div className='h-full bg-[url(/Ns.svg)] py-16'>
+          <ResponsiveCenterContainer className='space-y-6'>
+            <h1 className='font-bold text-4xl text-primary'>Stillingsannonser</h1>
+            <div className='flex flex-col items-center justify-evenly gap-6 md:flex-row'>
+              {jobListings.map((listing) => (
+                <JobListingCard
+                  key={listing._id}
+                  title={listing.title}
+                  listingId={listing._id}
+                  type={listing.type}
+                  companyName={listing.companyName}
+                  teaser={listing.teaser}
+                  image={listing.companyLogo}
+                />
+              ))}
+            </div>
+            <div className='flex justify-center'>
+              <Button
+                asChild
+                className='mx-8 bg-emerald-600 py-6 font-semibold hover:bg-emerald-700 md:w-1/3'
+              >
+                <Link href={"/job-listings"}>Se alle stillingsannonser</Link>
+              </Button>
+            </div>
+          </ResponsiveCenterContainer>
+        </div>
+      )}
     </div>
   );
 }
