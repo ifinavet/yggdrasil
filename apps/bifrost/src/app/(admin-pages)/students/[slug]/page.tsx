@@ -1,4 +1,3 @@
-import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -16,7 +15,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@workspace/ui/components/dialog";
-import StudentPoints from "@/components/students/student-points";
+import StudentPoints from "@/components/students/points-table/student-points";
 import StudentPointsForm from "@/components/students/student-points-form";
 import UpdateStudentForm from "@/components/students/update-student-form";
 import { Id } from "@workspace/backend/convex/dataModel";
@@ -56,7 +55,7 @@ export default async function StudentPage({ params }: { params: Promise<{ slug: 
       </p>
 
       <h3 className='scroll-m-20 font-semibold text-2xl tracking-tight'>Prikker</h3>
-      <div className='flex flex-col'>
+      <div className='flex flex-col gap-4'>
         <Dialog>
           <DialogTrigger asChild>
             <Button className='self-end' variant='outline'>
