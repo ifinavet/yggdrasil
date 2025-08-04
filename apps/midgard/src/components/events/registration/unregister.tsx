@@ -29,7 +29,7 @@ export default function Unregister({ registrationId }: { registrationId: Id<"reg
       <AlertDialogTrigger asChild>
         <Button
           type='button'
-          className='w-1/2 rounded-xl bg-zinc-500 py-8 text-lg hover:cursor-pointer hover:bg-zinc-700'
+          variant='destructive'
         >
           Meld meg av
         </Button>
