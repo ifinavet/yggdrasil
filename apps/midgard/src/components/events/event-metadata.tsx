@@ -62,7 +62,7 @@ export function EventMetadata({
         ) : (
           <RegistrationButton
             eventId={event._id}
-            registrations={registrations}
+            registration={registrations}
             availableSpots={availableSpots} />
         )}
       </div>

@@ -6,15 +6,15 @@ import type { Id } from "@workspace/backend/convex/dataModel";
 import { Button } from "@workspace/ui/components/button";
 import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
+import EditRegistration from "./edit-registration";
 import SignUpForm from "./sign-up-form";
-import Unregister from "./unregister";
 
 export default function RegistrationButton({
-  registrations,
+  registration,
   eventId,
   availableSpots,
 }: {
-  registrations: FunctionReturnType<typeof api.registration.getByEventId>;
+  registration: FunctionReturnType<typeof api.registration.getByEventId>;
   eventId: Id<"events">;
   availableSpots: number;
 }) {
@@ -22,10 +22,10 @@ export default function RegistrationButton({
   const currentUsersPoints = useQuery(api.points.getCurrentStudentsPoints);
   const numberOfPoints = currentUsersPoints?.reduce((acc, curr) => acc + curr.severity, 0) || 0;
 
-  const currentUsersRegistration = registrations.registered.find(
+  const currentUsersRegistration = registration.registered.find(
     (registration) => registration.userId === currentUser?._id,
   );
-  const currentUsersWaitlistRegistration = registrations.waitlist.find(
+  const currentUsersWaitlistRegistration = registration.waitlist.find(
     (registration) => registration.userId === currentUser?._id,
   );
 
@@ -45,7 +45,7 @@ export default function RegistrationButton({
     return (
       <Button
         type='button'
-        className="!opacity-100 w-fit rounded-xl bg-amber-600 py-8 text-lg hover:cursor-pointer hover:bg-zinc-700"
+        className='!opacity-100 w-fit rounded-xl bg-amber-600 py-8 text-lg hover:cursor-pointer hover:bg-zinc-700'
         disabled
       >
         For mange prikker til å kunne melde deg på.
@@ -64,12 +64,12 @@ export default function RegistrationButton({
     );
   }
 
-  const registrationId = currentUsersRegistration?._id || currentUsersWaitlistRegistration?._id;
+  const registrationToEdit =
+    currentUsersRegistration ?? currentUsersWaitlistRegistration;
 
-  if (!registrationId) {
-    // This should never happen, but handle just in case
+  if (!registrationToEdit) {
     return null;
   }
 
-  return <Unregister registrationId={registrationId} />;
+  return <EditRegistration registration={registrationToEdit} />;
 }

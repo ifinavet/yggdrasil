@@ -145,6 +145,18 @@ export const register = mutation({
   },
 });
 
+export const updateNote = mutation({
+  args: {
+    id: v.id("registrations"),
+    note: v.optional(v.string()),
+  },
+  handler: async (ctx, { id, note }) => {
+    await getCurrentUserOrThrow(ctx);
+
+    await ctx.db.patch(id, { note });
+  }
+})
+
 export const unregister = mutation({
   args: {
     id: v.id("registrations"),
