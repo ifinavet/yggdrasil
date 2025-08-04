@@ -78,7 +78,7 @@ export default async function UpcomingEventsOverview() {
               <EventCard key={event._id} event={event} />
             ))
           ) : (
-            <p>Ingen arrangementer denne uken.</p>
+            <p>Ingen flere arrangementer denne uken.</p>
           )}
         </div>
         <Separator />
