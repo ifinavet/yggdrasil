@@ -19,11 +19,14 @@ export default function RegistrationButton({
   availableSpots: number;
 }) {
   const currentUser = useQuery(api.users.current);
+  const currentUsersPoints = useQuery(api.points.getCurrentStudentsPoints);
+  const numberOfPoints = currentUsersPoints?.reduce((acc, curr) => acc + curr.severity, 0) || 0;
+
   const currentUsersRegistration = registrations.registered.find(
-    (registration) => registration.userId === currentUser?._id
+    (registration) => registration.userId === currentUser?._id,
   );
   const currentUsersWaitlistRegistration = registrations.waitlist.find(
-    (registration) => registration.userId === currentUser?._id
+    (registration) => registration.userId === currentUser?._id,
   );
 
   if (!currentUser) {
@@ -34,6 +37,18 @@ export default function RegistrationButton({
         asChild
       >
         <SignInButton>Logg inn</SignInButton>
+      </Button>
+    );
+  }
+
+  if (numberOfPoints >= 3) {
+    return (
+      <Button
+        type='button'
+        className="!opacity-100 w-fit rounded-xl bg-amber-600 py-8 text-lg hover:cursor-pointer hover:bg-zinc-700"
+        disabled
+      >
+        For mange prikker til å kunne melde deg på.
       </Button>
     );
   }
@@ -49,15 +64,12 @@ export default function RegistrationButton({
     );
   }
 
-  const registrationId =
-    currentUsersRegistration?._id || currentUsersWaitlistRegistration?._id;
+  const registrationId = currentUsersRegistration?._id || currentUsersWaitlistRegistration?._id;
 
   if (!registrationId) {
     // This should never happen, but handle just in case
     return null;
   }
 
-  return (
-    <Unregister registrationId={registrationId} />
-  );
+  return <Unregister registrationId={registrationId} />;
 }

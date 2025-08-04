@@ -9,10 +9,10 @@ export default async function Page() {
 
   return (
     <>
-      <h2 className='scroll-m-20 border-b pb-2 font-semibold text-2xl tracking-tight first:mt-0'>
+      <h2 className='scroll-m-20 border-b pb-2 font-semibold text-3xl tracking-tight first:mt-0'>
         {WELCOME_MESSAGES[new Date().getDay()]}
       </h2>
-      <div className='grid grid-cols-1 gap-6 md:grid-cols-3'>
+      <div className="grid max-w-5xl grid-cols-1 gap-6 lg:grid-cols-2">
         <UpcomingEventsOverview />
       </div>
     </>

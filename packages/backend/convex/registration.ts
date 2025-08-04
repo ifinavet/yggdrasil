@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 import { mutation, query } from "./_generated/server";
 import { getCurrentUserOrThrow } from "./users";
 
@@ -7,28 +8,33 @@ export const getByEventId = query({
     eventId: v.id("events"),
   },
   handler: async (ctx, { eventId }) => {
-    const registrations = await ctx.db.query("registrations")
+    const registrations = await ctx.db
+      .query("registrations")
       .withIndex("by_eventId", (q) => q.eq("eventId", eventId))
       .collect();
 
-    const registrationsWithUsers = await Promise.all(registrations.map(async (registration) => {
-      const user = await ctx.db.get(registration.userId);
-      return {
-        ...registration,
-        userName: user ? `${user.firstName} ${user.lastName}` : "Ukjent bruker",
-        userEmail: user ? user.email : "Ukjent e-post",
-      };
-    }))
+    const registrationsWithUsers = await Promise.all(
+      registrations.map(async (registration) => {
+        const user = await ctx.db.get(registration.userId);
+        return {
+          ...registration,
+          userName: user ? `${user.firstName} ${user.lastName}` : "Ukjent bruker",
+          userEmail: user ? user.email : "Ukjent e-post",
+        };
+      }),
+    );
 
-    const registeredPending = registrationsWithUsers.filter(reg => reg.status === "pending" || reg.status === "registered");
-    const waitlist = registrationsWithUsers.filter(reg => reg.status === "waitlist");
+    const registeredPending = registrationsWithUsers.filter(
+      (reg) => reg.status === "pending" || reg.status === "registered",
+    );
+    const waitlist = registrationsWithUsers.filter((reg) => reg.status === "waitlist");
 
     return {
       registered: registeredPending,
       waitlist: waitlist,
     };
   },
-})
+});
 
 export const getById = query({
   args: {
@@ -42,7 +48,7 @@ export const getById = query({
     }
 
     return registration;
-  }
+  },
 });
 
 export const getCurrentUser = query({
@@ -85,7 +91,7 @@ export const acceptPendingRegistration = mutation({
     await ctx.db.patch(id, {
       status: "registered",
       registrationTime: Date.now(),
-    })
+    });
   },
 });
 
@@ -118,11 +124,12 @@ export const register = mutation({
       throw new Error(`Arrangemenetet med ID ${eventId} ikke funnet. Kan ikke registrere.`);
     }
 
-    const registrations = await ctx.db.query("registrations")
+    const registrations = await ctx.db
+      .query("registrations")
       .withIndex("by_eventId", (q) => q.eq("eventId", eventId))
-      .collect()
+      .collect();
 
-    const registrationCount = registrations.filter(reg => reg.status === "registered").length;
+    const registrationCount = registrations.filter((reg) => reg.status === "registered").length;
 
     const status = registrationCount < event.participationLimit ? "registered" : "waitlist";
 
@@ -132,11 +139,11 @@ export const register = mutation({
       status,
       note: note,
       registrationTime: Date.now(),
-    })
+    });
 
     return status;
   },
-})
+});
 
 export const unregister = mutation({
   args: {
@@ -152,10 +159,27 @@ export const unregister = mutation({
 
     const event = await ctx.db.get(registration.eventId);
     if (!event) {
-      throw new Error(`Arrangement med ID ${registration.eventId} ble ikke funnet. Kan ikke behandle ventelisten.`);
+      throw new Error(
+        `Arrangement med ID ${registration.eventId} ble ikke funnet. Kan ikke behandle ventelisten.`,
+      );
     }
 
     await ctx.db.delete(id);
+
+    if (event.eventStart - Date.now() < 24 * 60 * 60 * 1000) {
+      const student = await ctx.db.query("students").withIndex("by_userId", q => q.eq("userId", registration.userId)).first()
+      if (!student) {
+        throw new Error(`Studentent med bruker-ID ${registration.userId} ble ikke funnet.`);
+      }
+
+      await ctx.runMutation(internal.points.givePointsInternal, {
+        id: student._id,
+        severity: 1,
+        reason: `Avregistrering fra arrangement ${event.title} mindre enn 24 timer før start.`,
+      });
+
+      console.log(`Points given to ${student.name}`)
+    }
 
     if (registration.status === "waitlist") return;
 
@@ -165,13 +189,13 @@ export const unregister = mutation({
       .collect();
 
     const nextRegistration = registrations
-      .filter(reg => reg.status === "waitlist")
+      .filter((reg) => reg.status === "waitlist")
       .sort((a, b) => a._creationTime - b._creationTime)[0];
 
     if (!nextRegistration) {
       console.log(`No waitlist registrations found for event ${event.title}.`);
       return;
-    };
+    }
 
     await ctx.db.patch(nextRegistration._id, {
       status: "pending",
