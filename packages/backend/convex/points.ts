@@ -70,3 +70,14 @@ export const givePointsInternal = internalMutation({
     });
   },
 });
+
+export const remove = mutation({
+  args: {
+    id: v.id("points"),
+  },
+  handler: async (ctx, { id }) => {
+    await getCurrentUserOrThrow(ctx);
+
+    await ctx.db.delete(id);
+  }
+})
