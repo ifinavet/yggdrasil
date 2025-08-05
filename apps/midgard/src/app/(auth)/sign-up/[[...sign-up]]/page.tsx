@@ -24,7 +24,7 @@ import { api } from "@workspace/backend/convex/api";
 const signUpFormSchema = z.object({
   firstName: z.string().min(1, "Fornavn er påkrevd"),
   lastName: z.string().min(1, "Etternavn er påkrevd"),
-  email: z.string().email().regex(/^[A-Za-z0-9._%+-]+@(?:[A-Za-z0-9-]+\.)*uio$|^[A-Za-z0-9._%+-]+@ifinavet\.no$/, "E-post må være en gyldig uio e-postadresse"),
+  email: z.email().regex(/^[A-Za-z0-9._%+-]+@(?:[A-Za-z0-9-]+\.)*uio\.no$|^[A-Za-z0-9._%+-]+@ifinavet\.no$/, "E-post må være en gyldig uio e-postadresse"),
   password: z.string().min(6, "Passord må være minst 8 tegn"),
   confirmPassword: z.string().min(6, "Bekreft passord må være minst 8 tegn"),
   studyProgram: z.enum(STUDY_PROGRAMS),
