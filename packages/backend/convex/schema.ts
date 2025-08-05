@@ -36,8 +36,8 @@ export default defineSchema({
   students: defineTable({
     userId: v.id("users"),
     name: v.string(),
-    email: v.string(),
     studyProgram: v.string(),
+    email: v.optional(v.string()),
     semester: v.number(),
     degree: v.union(v.literal("bachelor"), v.literal("master"), v.literal("phd")),
   }).index("by_studyProgram", ["studyProgram"])
