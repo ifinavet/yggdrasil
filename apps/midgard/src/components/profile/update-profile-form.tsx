@@ -30,8 +30,8 @@ import { zodv4Resolver } from "@/uitls/zod-v4-resolver";
 const formSchema = z.object({
   firstname: z.string().min(2, "Vennligst oppgi fornavnet ditt."),
   lastname: z.string().min(2, "Vennligst oppgi etternavnet ditt."),
-  studyProgram: z.enum(STUDY_PROGRAMS as [string, ...string[]]),
-  degree: z.enum(DEGREE_TYPES as [string, ...string[]]),
+  studyProgram: z.enum(STUDY_PROGRAMS),
+  degree: z.enum(DEGREE_TYPES),
   semester: z.number().min(1).max(10),
 });
 export type ProfileFormSchema = z.infer<typeof formSchema>;
@@ -45,42 +45,49 @@ export default function UpdateProfileForm({
 }) {
   const student = usePreloadedQuery(preloadedStudent);
 
+  // Fix: Use correct property names from backend (firstName, lastName)
   const form = useForm<ProfileFormSchema>({
     resolver: zodv4Resolver(formSchema),
     defaultValues: {
       firstname: student.firstName,
       lastname: student.lastName,
-      studyProgram: student.studyProgram,
-      degree: student.degree,
+      studyProgram: student.studyProgram as ProfileFormSchema["studyProgram"],
+      degree: student.degree as ProfileFormSchema["degree"],
       semester: student.semester,
     },
   });
 
   const updateProfile = useMutation(api.students.updateCurrent);
-  const onSubmit = async (values: ProfileFormSchema) => updateProfile({
-    semester: values.semester,
-    studyProgram: values.studyProgram,
-    degree: values.degree as "bachelor" | "master" | "phd",
-  }).then(() => {
-    toast.success("Profilen ble oppdatert!");
-  }).catch(() => {
-    toast.error("Oi! Det oppstod en feil! Prøv igjen senere.");
-  })
+  const onSubmit = async (values: ProfileFormSchema) =>
+    updateProfile({
+      semester: values.semester,
+      studyProgram: values.studyProgram,
+      degree: values.degree as "bachelor" | "master" | "phd",
+    })
+      .then(() => {
+        toast.success("Profilen ble oppdatert!");
+      })
+      .catch(() => {
+        toast.error("Oi! Det oppstod en feil! Prøv igjen senere.");
+      });
 
   if (!student) return <div>Loading...</div>;
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className={cn(className, "space-y-8")}>
-        <div className='flex flex-col gap-4 md:flex-row'>
+      <form
+        onSubmit={form.handleSubmit(onSubmit)}
+        className={cn(className, "space-y-8")}
+      >
+        <div className="flex flex-col gap-4 md:flex-row">
           <FormField
             control={form.control}
-            name='firstname'
+            name="firstname"
             render={({ field }) => (
-              <FormItem className='w-full'>
+              <FormItem className="w-full">
                 <FormLabel>Fornavn</FormLabel>
                 <FormControl>
-                  <Input placeholder='Ola' {...field} disabled />
+                  <Input placeholder="Ola" {...field} disabled />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -88,12 +95,12 @@ export default function UpdateProfileForm({
           />
           <FormField
             control={form.control}
-            name='lastname'
+            name="lastname"
             render={({ field }) => (
-              <FormItem className='w-full'>
+              <FormItem className="w-full">
                 <FormLabel>Etternavn</FormLabel>
                 <FormControl>
-                  <Input placeholder='Nordmann' {...field} disabled />
+                  <Input placeholder="Nordmann" {...field} disabled />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -103,14 +110,17 @@ export default function UpdateProfileForm({
 
         <FormField
           control={form.control}
-          name='studyProgram'
+          name="studyProgram"
           render={({ field }) => (
-            <FormItem className='w-full'>
+            <FormItem className="w-full">
               <FormLabel>Studieprogram</FormLabel>
               <FormControl>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <SelectTrigger className='w-full'>
-                    <SelectValue placeholder='Velg et studieprogram' />
+                <Select
+                  onValueChange={field.onChange}
+                  value={field.value}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Velg et studieprogram" />
                   </SelectTrigger>
                   <SelectContent>
                     {STUDY_PROGRAMS.map((program) => (
@@ -126,17 +136,20 @@ export default function UpdateProfileForm({
           )}
         />
 
-        <div className='flex w-full flex-col gap-4 md:flex-row'>
+        <div className="flex w-full flex-col gap-4 md:flex-row">
           <FormField
             control={form.control}
-            name='degree'
+            name="degree"
             render={({ field }) => (
-              <FormItem className='w-full'>
+              <FormItem className="w-full">
                 <FormLabel>Studiegrad</FormLabel>
                 <FormControl>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <SelectTrigger className='w-full'>
-                      <SelectValue placeholder='Velg studie grad' />
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Velg studie grad" />
                     </SelectTrigger>
                     <SelectContent>
                       {DEGREE_TYPES.map((degree) => (
@@ -154,19 +167,19 @@ export default function UpdateProfileForm({
 
           <FormField
             control={form.control}
-            name='semester'
+            name="semester"
             render={({ field }) => (
-              <FormItem className='w-full'>
+              <FormItem className="w-full">
                 <FormLabel>Semester</FormLabel>
                 <FormControl>
-                  <Input type='number' min={1} max={10} {...field} />
+                  <Input type="number" min={1} max={10} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
         </div>
-        <Button type='submit'>Oppdater profil</Button>
+        <Button type="submit">Oppdater profil</Button>
       </form>
     </Form>
   );
