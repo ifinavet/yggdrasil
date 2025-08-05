@@ -13,8 +13,9 @@ import { api } from "@workspace/backend/convex/api";
 import { EventMetadata } from "@/components/events/event-metadata";
 
 export default async function EventPage({ params }: { params: Promise<{ slug: Id<"events"> }> }) {
-  const { orgId } = await auth();
   const eventId = (await params).slug;
+
+  const { orgId } = await auth();
 
   const preloadedEvent = await preloadQuery(api.events.getById, { id: eventId })
   const event = preloadedQueryResult(preloadedEvent)
@@ -42,13 +43,15 @@ export default async function EventPage({ params }: { params: Promise<{ slug: Id
               <div className='absolute top-0 left-0 h-1/2 w-full bg-transparent'></div>
               <div className='absolute bottom-0 left-0 h-1/2 w-full rounded-t-xl bg-zinc-100'></div>
               <div className='absolute inset-12 grid place-content-center rounded-full border-2 border-neutral-300 bg-white'>
-                <Image
-                  src={company.imageUrl}
-                  alt={event.hostingCompanyName}
-                  fill
-                  className='object-contain p-8 sm:p-18 md:p-10 lg:p-16'
-                  loading='eager'
-                />
+                {company.imageUrl && (
+                  <Image
+                    src={company.imageUrl}
+                    alt={event.hostingCompanyName}
+                    fill
+                    sizes="50vw"
+                    className='object-contain p-8 sm:p-18 md:p-10 lg:p-16'
+                    loading='eager'
+                  />)}
               </div>
             </div>
             <div className='rounded-b-xl bg-zinc-100 px-8 pb-8'>

@@ -41,8 +41,10 @@ const verifyingSchema = z.object({
 
 export default function SignUpPage() {
   const { isLoaded, signUp, setActive } = useSignUp();
+
   const [errors, setErrors] = useState<ClerkAPIError[]>([]);
   const [verifying, setVerifying] = useState(false);
+
   const router = useRouter();
 
   const signUpForm = useForm<z.infer<typeof signUpFormSchema>>({
@@ -98,7 +100,11 @@ export default function SignUpPage() {
       });
 
       if (signUpAttempt.status === "complete") {
-        await setActive({ session: signUpAttempt.createdSessionId });
+
+        await setActive({
+          session: signUpAttempt.createdSessionId,
+        });
+
         if (signUpAttempt.createdUserId === null) {
           setErrors([
             {

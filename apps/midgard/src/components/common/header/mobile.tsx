@@ -1,4 +1,4 @@
-import { SignedIn, SignedOut, SignOutButton } from "@clerk/nextjs";
+import { SignedIn, SignedOut, SignInButton, SignOutButton } from "@clerk/nextjs";
 import { currentUser } from "@clerk/nextjs/server";
 import { Button } from "@workspace/ui/components/button";
 import { DialogClose, DialogTitle } from "@workspace/ui/components/dialog";
@@ -124,7 +124,7 @@ export default async function MobileHeader({ className }: { className?: string }
                       className='text-primary-foreground'
                       asChild
                     >
-                      <Link href='/sign-in'>Logg inn</Link>
+                      <SignInButton>Logg inn</SignInButton>
                     </Button>
                   </li>
                 </SignedOut>

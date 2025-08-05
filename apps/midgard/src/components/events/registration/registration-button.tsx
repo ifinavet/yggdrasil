@@ -4,7 +4,7 @@ import { SignInButton } from "@clerk/nextjs";
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { Button } from "@workspace/ui/components/button";
-import { useQuery } from "convex/react";
+import { useConvexAuth, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import EditRegistration from "./edit-registration";
 import SignUpForm from "./sign-up-form";
@@ -18,8 +18,12 @@ export default function RegistrationButton({
   eventId: Id<"events">;
   availableSpots: number;
 }) {
-  const currentUser = useQuery(api.users.current);
-  const currentUsersPoints = useQuery(api.points.getCurrentStudentsPoints);
+  const { isAuthenticated } = useConvexAuth();
+  const currentUser = useQuery(api.users.current, isAuthenticated ? undefined : "skip");
+  const currentUsersPoints = useQuery(
+    api.points.getCurrentStudentsPoints,
+    isAuthenticated ? undefined : "skip",
+  );
   const numberOfPoints = currentUsersPoints?.reduce((acc, curr) => acc + curr.severity, 0) || 0;
 
   const currentUsersRegistration = registration.registered.find(
@@ -29,7 +33,7 @@ export default function RegistrationButton({
     (registration) => registration.userId === currentUser?._id,
   );
 
-  if (!currentUser) {
+  if (!currentUser || !isAuthenticated) {
     return (
       <Button
         type='button'
@@ -64,8 +68,7 @@ export default function RegistrationButton({
     );
   }
 
-  const registrationToEdit =
-    currentUsersRegistration ?? currentUsersWaitlistRegistration;
+  const registrationToEdit = currentUsersRegistration ?? currentUsersWaitlistRegistration;
 
   if (!registrationToEdit) {
     return null;
