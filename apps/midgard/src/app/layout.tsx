@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { nbNO } from "@clerk/localizations";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "@workspace/ui/components/sonner";
 import { eina } from "@/components/common/eina-font";
@@ -28,7 +29,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider>
+    <ClerkProvider localization={nbNO}>
       <Providers>
         <html lang='no' suppressHydrationWarning>
           <body className={`${eina.className} antialiased`}>

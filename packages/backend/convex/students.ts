@@ -59,13 +59,38 @@ export const getById = query({
     return {
       id: student._id,
       userId: student.userId,
-      email: student.email,
+      email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
       studyProgram: student.studyProgram,
       semester: student.semester,
       degree: student.degree,
     };
+  },
+});
+
+export const createByExternalId = mutation({
+  args: {
+    externalId: v.string(),
+    degree: v.union(v.literal("bachelor"), v.literal("master"), v.literal("phd")),
+    semester: v.number(),
+    studyProgram: v.string(),
+    name: v.string(),
+  },
+  handler: async (ctx, { externalId, degree, semester, studyProgram, name }) => {
+    const user = await ctx.db.query("users").withIndex("by_ExternalId", q => q.eq("externalId", externalId)).first();
+
+    if (!user) {
+      throw new Error("Bruker ikke funnet!");
+    }
+
+    await ctx.db.insert("students", {
+      userId: user._id,
+      degree,
+      semester,
+      studyProgram,
+      name,
+    });
   },
 });
 

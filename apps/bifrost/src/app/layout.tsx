@@ -35,10 +35,6 @@ export default async function RootLayout({
 }>) {
   const { orgId } = await auth();
 
-  if (!orgId) {
-    return <UnauthorizedPage />;
-  }
-
   return (
     <html lang='no' suppressHydrationWarning>
       <body className={`antialiased ${interSans.className}`}>
@@ -51,15 +47,17 @@ export default async function RootLayout({
               disableTransitionOnChange
             >
               <Providers>
-                <BifrostSidebar />
-                <SidebarInset>
-                  <Header />
-                  <main className='flex h-full flex-col gap-4 p-4'>{children}</main>
-                </SidebarInset>
-                <Toaster richColors position='top-center' />
-                {process.env.NODE_ENV === "development" && (
-                  <ReactQueryDevtools initialIsOpen={false} />
-                )}
+                {!orgId ? <UnauthorizedPage /> : <>
+                  <BifrostSidebar />
+                  <SidebarInset>
+                    <Header />
+                    <main className='flex h-full flex-col gap-4 p-4'>{children}</main>
+                  </SidebarInset>
+                  <Toaster richColors position='top-center' />
+                  {process.env.NODE_ENV === "development" && (
+                    <ReactQueryDevtools initialIsOpen={false} />
+                  )}
+                </>}
               </Providers>
             </ThemeProvider>
           </SidebarProvider>
