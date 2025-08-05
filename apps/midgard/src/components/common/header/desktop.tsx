@@ -1,4 +1,4 @@
-import { SignedIn, SignedOut, SignOutButton } from "@clerk/nextjs";
+import { SignedIn, SignedOut, SignInButton, SignOutButton } from "@clerk/nextjs";
 import { currentUser } from "@clerk/nextjs/server";
 import {
   NavigationMenu,
@@ -74,9 +74,14 @@ export default async function DesktopHeader({ className }: { className?: string 
             </NavigationMenuItem>
           </SignedIn>
           <SignedOut>
-            <NavigationItem href="/sign-in">
-              Logg inn
-            </NavigationItem>
+            <NavigationMenuItem>
+              <NavigationMenuLink
+                asChild
+                className='px-4 py-2 text-base text-primary-foreground hover:bg-primary hover:text-primary-foreground hover:underline focus:bg-primary focus:text-primary-foreground focus:underline'
+              >
+                <SignInButton>Logg inn</SignInButton>
+              </NavigationMenuLink>
+            </NavigationMenuItem>
           </SignedOut>
         </NavigationMenuList>
       </NavigationMenu>

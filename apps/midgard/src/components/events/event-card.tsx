@@ -17,6 +17,7 @@ export default async function EventCard({ event }: { event: Doc<"events"> }) {
             src={company.imageUrl}
             alt={event.title}
             className="object-contain p-6"
+            sizes="50vw"
             fill
           />
         </div>
