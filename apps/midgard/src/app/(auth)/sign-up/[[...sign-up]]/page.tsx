@@ -56,7 +56,7 @@ export default function SignUpPage() {
       password: "",
       confirmPassword: "",
       studyProgram: STUDY_PROGRAMS[0],
-      degree: DEGREE_TYPES[0] as (typeof DEGREE_TYPES)[number],
+      degree: DEGREE_TYPES[0],
       semester: 1,
     }
   })
@@ -94,7 +94,6 @@ export default function SignUpPage() {
     if (!isLoaded) return;
 
     try {
-      console.log("code", data.code)
       const signUpAttempt = await signUp.attemptEmailAddressVerification({
         code: data.code,
       });
@@ -119,7 +118,7 @@ export default function SignUpPage() {
         await createStudent({
           externalId: signUpAttempt.createdUserId,
           studyProgram: signUpForm.getValues("studyProgram"),
-          degree: signUpForm.getValues("degree").toLowerCase() as 'bachelor' | 'master' | 'phd',
+          degree: signUpForm.getValues("degree"),
           semester: signUpForm.getValues("semester"),
           name: `${signUpForm.getValues("firstName")} ${signUpForm.getValues("lastName")}`,
         });

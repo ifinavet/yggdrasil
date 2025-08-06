@@ -30,9 +30,9 @@ const formSchema = z.object({
   firstName: z.string().min(2, "Studenten må ha et fornavn"),
   lastName: z.string().min(2, "Studenten må ha et etternavn"),
   email: z.email("Studenten må ha en gyldig e-postadresse"),
-  studyProgram: z.string().min(2, "Studenten må ha et studieprogram"),
-  semester: z.number().min(1, "Studenten må ha et semester"),
-  degree: z.string().min(2, "Studenten må ha en assosiert grad"),
+  studyProgram: z.enum(STUDY_PROGRAMS, "Studenten må ha et studieprogram"),
+  semester: z.coerce.number().min(1, "Studenten må ha et semester"),
+  degree: z.enum(DEGREE_TYPES, "Studenten må ha en gyldig grad"),
 });
 
 export default function UpdateStudentForm({
@@ -59,8 +59,8 @@ export default function UpdateStudentForm({
     updateStudent({
       id: student.id,
       semester: values.semester,
-      studyProgram: values.studyProgram,
-      degree: values.degree as "bachelor" | "master" | "phd",
+      studyProgram: values.studyProgram as (typeof STUDY_PROGRAMS)[number],
+      degree: values.degree as (typeof DEGREE_TYPES)[number],
     })
       .then(() => {
         toast.success("Student updated successfully");
@@ -72,7 +72,7 @@ export default function UpdateStudentForm({
 
   return (
     <Form {...form}>
-      <form className='space-y-8' onSubmit={form.handleSubmit(handleSubmit)}>
+      <form className="max-w-5xl space-y-8" onSubmit={form.handleSubmit(handleSubmit)}>
         <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
           <FormField
             control={form.control}
@@ -116,21 +116,26 @@ export default function UpdateStudentForm({
           )}
         />
 
-        <FormField
-          control={form.control}
-          name='semester'
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Semester</FormLabel>
-              <FormControl>
-                <Input type='number' min={1} max={10} {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className='flex flex-wrap gap-4'>
+          <FormField
+            control={form.control}
+            name='semester'
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Semester</FormLabel>
+                <FormControl>
+                  <Input
+                    type='number'
+                    min={1}
+                    max={10}
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
           <FormField
             control={form.control}
             name='studyProgram'
@@ -161,7 +166,7 @@ export default function UpdateStudentForm({
             name='degree'
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Studieprogram</FormLabel>
+                <FormLabel>Studiegrad</FormLabel>
                 <FormControl>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <SelectTrigger>
@@ -169,7 +174,7 @@ export default function UpdateStudentForm({
                     </SelectTrigger>
                     <SelectContent>
                       {DEGREE_TYPES.map((degree) => (
-                        <SelectItem key={degree} value={degree.toLowerCase()}>
+                        <SelectItem key={degree} value={degree}>
                           {degree}
                         </SelectItem>
                       ))}
