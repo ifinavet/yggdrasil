@@ -1,11 +1,12 @@
 "use client";
 
-import { SignInButton } from "@clerk/nextjs";
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { Button } from "@workspace/ui/components/button";
 import { useConvexAuth, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import EditRegistration from "./edit-registration";
 import SignUpForm from "./sign-up-form";
 
@@ -18,6 +19,8 @@ export default function RegistrationButton({
   eventId: Id<"events">;
   availableSpots: number;
 }) {
+  const path = usePathname();
+
   const { isAuthenticated } = useConvexAuth();
   const currentUser = useQuery(api.users.current, isAuthenticated ? undefined : "skip");
   const currentUsersPoints = useQuery(
@@ -40,7 +43,7 @@ export default function RegistrationButton({
         className='w-1/2 rounded-xl bg-zinc-800 py-8 text-lg hover:cursor-pointer hover:bg-zinc-700'
         asChild
       >
-        <SignInButton>Logg inn</SignInButton>
+        <Link href={`/sign-in?redirect=${path}`}>Logg inn</Link>
       </Button>
     );
   }
