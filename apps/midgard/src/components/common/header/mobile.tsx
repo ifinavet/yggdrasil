@@ -1,4 +1,4 @@
-import { SignedIn, SignedOut, SignInButton, SignOutButton } from "@clerk/nextjs";
+import { SignedIn, SignedOut, SignOutButton } from "@clerk/nextjs";
 import { currentUser } from "@clerk/nextjs/server";
 import { Button } from "@workspace/ui/components/button";
 import { DialogClose, DialogTitle } from "@workspace/ui/components/dialog";
@@ -13,12 +13,16 @@ import { ScrollArea } from "@workspace/ui/components/scroll-area";
 import { Separator } from "@workspace/ui/components/separator";
 import { cn } from "@workspace/ui/lib/utils";
 import { Menu, X } from "lucide-react";
+import { headers } from "next/headers";
 import Image from "next/image";
 import Link from "next/link";
 import LogoBlue from "@/assets/navet/simple_logo_blaa.webp";
 
 export default async function MobileHeader({ className }: { className?: string }) {
   const user = await currentUser();
+
+  const headerList = await headers();
+  const pathname = headerList.get("x-pathname") || "/";
 
   return (
     <header
@@ -124,7 +128,7 @@ export default async function MobileHeader({ className }: { className?: string }
                       className='text-primary-foreground'
                       asChild
                     >
-                      <SignInButton>Logg inn</SignInButton>
+                      <Link href={`/sign-in?redirect=${pathname}`}>Logg inn</Link>
                     </Button>
                   </li>
                 </SignedOut>

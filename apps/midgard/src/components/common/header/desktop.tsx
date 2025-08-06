@@ -1,4 +1,4 @@
-import { SignedIn, SignedOut, SignInButton, SignOutButton } from "@clerk/nextjs";
+import { SignedIn, SignedOut, SignOutButton } from "@clerk/nextjs";
 import { currentUser } from "@clerk/nextjs/server";
 import {
   NavigationMenu,
@@ -9,12 +9,16 @@ import {
   NavigationMenuTrigger,
 } from "@workspace/ui/components/navigation-menu";
 import { cn } from "@workspace/ui/lib/utils";
+import { headers } from "next/headers";
 import Image from "next/image";
 import Link from "next/link";
 import LogoBlue from "@/assets/navet/simple_logo_blaa.webp";
 
 export default async function DesktopHeader({ className }: { className?: string }) {
   const user = await currentUser();
+
+  const headerList = await headers();
+  const pathname = headerList.get("x-pathname") || "/";
 
   return (
     <header
@@ -27,7 +31,7 @@ export default async function DesktopHeader({ className }: { className?: string 
         <Image src={LogoBlue} alt='IFI-Navet' className='brightness-0 grayscale invert' priority />
       </Link>
       <NavigationMenu viewport={false}>
-        <NavigationMenuList className="flex-wrap">
+        <NavigationMenuList className='flex-wrap'>
           <NavigationMenuItem>
             <NavigationMenuTrigger className='bg-primary text-base text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground focus:underline data-[state=open]:bg-primary data-[state=open]:text-primary-foreground data-[state=open]:focus:bg-primary data-[state=open]:focus:text-primary-foreground data-[state=open]:hover:bg-primary data-[state=open]:hover:text-primary-foreground data-[state=open]:hover:underline'>
               <Link href='/events'>Arrangementer</Link>
@@ -79,7 +83,7 @@ export default async function DesktopHeader({ className }: { className?: string 
                 asChild
                 className='px-4 py-2 text-base text-primary-foreground hover:bg-primary hover:text-primary-foreground hover:underline focus:bg-primary focus:text-primary-foreground focus:underline'
               >
-                <SignInButton>Logg inn</SignInButton>
+                <Link href={`/sign-in?redirect=${pathname}`}>Logg inn</Link>
               </NavigationMenuLink>
             </NavigationMenuItem>
           </SignedOut>
