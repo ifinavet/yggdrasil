@@ -55,9 +55,10 @@ export default async function StudentsPage() {
           <div className='grid gap-6'>
             <LargeUserCard
               title='Koordinator'
-              fullName={`${coordinator.firstName} ${coordinator.lastName}`}
-              email={coordinator.positionEmail ?? coordinator.email}
-              imageUrl={coordinator.image}
+              fullName={(coordinator && `${coordinator.firstName} ${coordinator.lastName}`) ?? 'Koordinator'}
+              email={coordinator?.positionEmail ?? coordinator?.email ?? "styret@ifinavet.no"}
+              imageUrl={coordinator?.image}
+              initials="KO"
             />
             <ContainerCard className="bg-primary-light">
               <h3 className='scroll-m-20 text-center font-semibold text-4xl text-primary tracking-tight'>

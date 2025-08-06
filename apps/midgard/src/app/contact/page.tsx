@@ -57,9 +57,14 @@ export default async function ContactPage() {
         aside={
           <LargeUserCard
             title='Studentkontakt'
-            fullName={`${studentContact.firstName} ${studentContact.lastName}`}
-            email={studentContact.positionEmail ?? studentContact.email}
-            imageUrl={studentContact.image}
+            fullName={(studentContact && `${studentContact.firstName ?? ""} ${studentContact.lastName ?? ""}`.trim()) ?? "Studentkontakt"}
+            email={
+              studentContact
+                ? studentContact.positionEmail ?? studentContact.email ?? "styret@ifinavet.no"
+                : "styret@ifinavet.no"
+            }
+            imageUrl={studentContact?.image}
+            initials="SK"
           />
         }
       />
