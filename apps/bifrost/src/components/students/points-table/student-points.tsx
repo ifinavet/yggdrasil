@@ -10,12 +10,12 @@ import { PointsTable } from "./points-table";
 
 export default function StudentPoints({ student_id }: { student_id: Id<"students"> }) {
   const points = useQuery(api.points.getByStudentId, { id: student_id });
+  const deletePoint = useMutation(api.points.remove);
 
   if (!points) {
     return <div>Loading...</div>;
   }
 
-  const deletePoint = useMutation(api.points.remove);
   const handleDeletePoint = async (pointId: Id<"points">) =>
     deletePoint({ id: pointId }).then(() => {
       toast.success("Prikk fjernet vellykket", {

@@ -39,7 +39,7 @@ export default defineSchema({
     studyProgram: v.string(),
     email: v.optional(v.string()),
     semester: v.number(),
-    degree: v.union(v.literal("bachelor"), v.literal("master"), v.literal("phd")),
+    degree: v.union(v.literal("Bachelor"), v.literal("Master"), v.literal("PhD")),
   }).index("by_studyProgram", ["studyProgram"])
     .index("by_userId", ["userId"]),
 

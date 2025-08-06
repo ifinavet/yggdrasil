@@ -32,7 +32,7 @@ const formSchema = z.object({
   lastname: z.string().min(2, "Vennligst oppgi etternavnet ditt."),
   studyProgram: z.enum(STUDY_PROGRAMS),
   degree: z.enum(DEGREE_TYPES),
-  semester: z.number().min(1).max(10),
+  semester: z.coerce.number().min(1, "Vennligst oppgi semesteret du går").max(10, "10 er maks, går du på 11. semster eller høyere bare sett 10."),
 });
 export type ProfileFormSchema = z.infer<typeof formSchema>;
 
@@ -62,7 +62,7 @@ export default function UpdateProfileForm({
     updateProfile({
       semester: values.semester,
       studyProgram: values.studyProgram,
-      degree: values.degree as "bachelor" | "master" | "phd",
+      degree: values.degree
     })
       .then(() => {
         toast.success("Profilen ble oppdatert!");
@@ -153,7 +153,7 @@ export default function UpdateProfileForm({
                     </SelectTrigger>
                     <SelectContent>
                       {DEGREE_TYPES.map((degree) => (
-                        <SelectItem key={degree} value={degree.toLowerCase()}>
+                        <SelectItem key={degree} value={degree}>
                           {degree}
                         </SelectItem>
                       ))}
