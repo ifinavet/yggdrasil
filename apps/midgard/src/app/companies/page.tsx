@@ -64,9 +64,10 @@ export default async function CompaniesPage() {
           <div className='grid gap-6 md:col-span-2'>
             <LargeUserCard
               title='Bedriftskontakt'
-              fullName={`${companyContact.firstName} ${companyContact.lastName}`}
-              email={companyContact.positionEmail ?? companyContact.email}
-              imageUrl={companyContact.image}
+              fullName={(companyContact && `${companyContact.firstName} ${companyContact.lastName}`) ?? "Bedriftskontakt"}
+              email={companyContact?.positionEmail ?? companyContact?.email ?? "styret@ifinavet.no"}
+              imageUrl={companyContact?.image}
+              initials="BK"
             />
             <ContainerCard className='h-fit bg-primary-light'>
               <h2 className='scroll-m-10 pb-2 font-semibold text-3xl tracking-tight first:mt-0'>

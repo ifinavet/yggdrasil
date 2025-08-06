@@ -34,7 +34,7 @@ export const getBoardMemberByPosition = query({
       .first();
 
     if (!member) {
-      throw new Error(`No board member found with position: ${position}`);
+      return null;
     }
 
     const user = await ctx.db.get(member.userId);
