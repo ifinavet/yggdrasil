@@ -29,7 +29,7 @@ const signUpFormSchema = z.object({
   confirmPassword: z.string().min(6, "Bekreft passord må være minst 8 tegn"),
   studyProgram: z.enum(STUDY_PROGRAMS),
   degree: z.enum(DEGREE_TYPES),
-  semester: z.number().min(1).max(10),
+  semester: z.coerce.number().min(1).max(10),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passordene må være like",
   path: ["confirmPassword"],
@@ -333,7 +333,6 @@ export default function SignUpPage() {
                     min={1}
                     max={10}
                     {...field}
-                    onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
                   />
                 </FormControl>
                 <FormMessage />

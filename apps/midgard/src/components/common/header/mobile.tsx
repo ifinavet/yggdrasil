@@ -92,6 +92,11 @@ export default async function MobileHeader({ className }: { className?: string }
                 </li>
                 <li>
                   <Button type='button' variant='link' className='text-primary-foreground' asChild>
+                    <Link href='/organisation'>Foreningen</Link>
+                  </Button>
+                </li>
+                <li>
+                  <Button type='button' variant='link' className='text-primary-foreground' asChild>
                     <Link href='/contact'>Si ifra</Link>
                   </Button>
                 </li>

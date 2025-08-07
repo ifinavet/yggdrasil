@@ -64,7 +64,7 @@ export default async function DesktopHeader({ className }: { className?: string 
               <NavigationMenuContent className='z-10'>
                 <ul className='grid w-[200px] gap-4'>
                   <li>
-                    <NavigationMenuLink asChild className='w-full text-base'>
+                    <NavigationMenuLink asChild className='w-full text-left text-base'>
                       <Link href='/profile'>Profil</Link>
                     </NavigationMenuLink>
                   </li>
