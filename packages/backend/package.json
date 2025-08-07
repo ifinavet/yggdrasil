@@ -14,7 +14,7 @@
   "license": "ISC",
   "packageManager": "pnpm@10.13.1",
   "dependencies": {
-    "@clerk/backend": "^2.5.0",
+    "@clerk/backend": "^2.6.3",
     "convex": "^1.25.4",
     "svix": "^1.69.0"
   },
