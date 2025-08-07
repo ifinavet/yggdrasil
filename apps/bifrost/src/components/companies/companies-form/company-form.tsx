@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@workspace/ui/components//button";
+import { Input } from "@workspace/ui/components//input";
 import {
   Form,
   FormDescription,
@@ -8,8 +9,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@workspace/ui/components//form";
-import { Input } from "@workspace/ui/components//input";
+} from "@workspace/ui/components/form";
 import { Send, Trash } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { type CompanyFormValues, formSchema } from "@/constants/schemas/companies-form-schema";
