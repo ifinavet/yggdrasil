@@ -65,6 +65,24 @@ export const getTheBoard = query({
       }),
     );
 
+    // Sort by rank (lowest first), members without rank come last
+    boardMembers.sort((a, b) => {
+      // If both have rank, sort by rank ascending
+      if (a.rank !== undefined && b.rank !== undefined) {
+        return a.rank - b.rank;
+      }
+      // If only a has rank, a comes first
+      if (a.rank !== undefined && b.rank === undefined) {
+        return -1;
+      }
+      // If only b has rank, b comes first
+      if (a.rank === undefined && b.rank !== undefined) {
+        return 1;
+      }
+      // If neither has rank, maintain original order
+      return 0;
+    });
+
     return boardMembers;
   },
 });

@@ -55,6 +55,7 @@ export default defineSchema({
     position: v.string(),
     group: v.string(),
     positionEmail: v.optional(v.string()),
+    rank: v.optional(v.number()),
   }).index("by_position", ["position"]),
 
   internalGroups: defineTable({
