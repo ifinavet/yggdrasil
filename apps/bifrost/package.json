@@ -11,8 +11,8 @@
     "check:fix": "biome check . --write"
   },
   "dependencies": {
-    "@clerk/nextjs": "^6.22.0",
-    "@clerk/themes": "^2.2.50",
+    "@clerk/nextjs": "^6.29.0",
+    "@clerk/themes": "^2.4.5",
     "@convex-dev/react-query": "0.0.0-alpha.11",
     "@floating-ui/react": "^0.27.12",
     "@hookform/resolvers": "^5.1.1",
