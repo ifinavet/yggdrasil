@@ -125,8 +125,8 @@ export default async function MainPage() {
 
               <ul className='my-6 ml-6 list-disc [&>li]:mt-2'>
                 <li>
-                  et sentralt kontakt- og koordineringspunkt for alle bedriftsrelaterte aktiviteter
-                  ved instituttet.
+                  et sentralt kontakt- og koordineringspunkt for alle bedriftsrelaterte
+                  aktiviteter ved instituttet.
                 </li>
                 <li>
                   praktisk hjelp ved bedriftspresentasjoner og andre typer arrangementer
@@ -137,8 +137,8 @@ export default async function MainPage() {
             </div>
           }
           aside={
-            <div className='relative h-[200px] w-[200px] sm:h-[250px] sm:w-[250px] md:h-[300px] md:w-[300px]'>
-              <div className='absolute top-0 left-0 z-10 size-32 translate-x-2 translate-y-4 transform overflow-hidden rounded-full sm:size-40 md:size-48'>
+            <div className='relative mx-auto h-[280px] w-[280px] sm:h-[350px] sm:w-[350px] md:h-[420px] md:w-[420px]'>
+              <div className='absolute top-0 left-0 z-10 size-40 translate-x-4 translate-y-8 transform overflow-hidden rounded-full sm:size-48 md:size-56'>
                 <Image
                   src={Navet}
                   alt='Vi alle elsker Navet'
@@ -146,7 +146,7 @@ export default async function MainPage() {
                 />
               </div>
 
-              <div className='-translate-x-2 -translate-y-4 absolute right-0 bottom-0 z-0 size-32 transform overflow-hidden rounded-full sm:size-40 md:size-48'>
+              <div className='-translate-x-4 -translate-y-8 absolute right-0 bottom-0 z-0 size-40 transform overflow-hidden rounded-full sm:size-48 md:size-56'>
                 <Image
                   src={Navet_Logo}
                   alt='Vi alle elsker Navet'

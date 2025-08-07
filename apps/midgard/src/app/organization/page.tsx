@@ -20,9 +20,7 @@ export default async function OrganizationPage() {
         <TwoColumns
           main={
             <div>
-              <h3 className='scroll-m-20 font-semibold text-4xl text-primary tracking-tight'>
-                Hvem er vi?
-              </h3>
+              <h3 className='scroll-m-20 font-semibold text-4xl text-primary tracking-tight'>Hvem er vi?</h3>
               <p className='leading-7 [&:not(:first-child)]:mt-6'>
                 Navet er bedriftskontakten ved Institutt for informatikk ved Universitetet i Oslo.
                 Hensikten med Navet er å gjøre det enkelt for bedrifter å komme i kontakt med
@@ -50,7 +48,7 @@ export default async function OrganizationPage() {
                     href='https://www.instagram.com/ifinavet/'
                     rel='nofollow noopener noreferrer external'
                     target='_blank'
-                    className='text-primary hover:underline'
+                    className='text-primary underline'
                   >
                     Instagram
                   </a>
@@ -60,7 +58,7 @@ export default async function OrganizationPage() {
                     href='https://ie.linkedin.com/company/ifinavet'
                     rel='nofollow noopener noreferrer external'
                     target='_blank'
-                    className='text-primary hover:underline'
+                    className='text-primary underline'
                   >
                     Linkedin
                   </a>
@@ -70,7 +68,7 @@ export default async function OrganizationPage() {
                     href='https://github.com/ifinavet'
                     rel='nofollow noopener noreferrer external'
                     target='_blank'
-                    className='text-primary hover:underline'
+                    className='text-primary underline'
                   >
                     Github
                   </a>
@@ -79,9 +77,7 @@ export default async function OrganizationPage() {
             </div>
           }
           aside={
-            <div>
-              <Image src={Navet} alt='Navet Logo' className='rounded-lg' />
-            </div>
+            <Image src={Navet} alt='Navet Logo' className="h-full rounded-lg object-cover" />
           }
         />
         <FlowyLine className='w-full stroke-[8] text-primary' curveHeight={-300} />
@@ -179,7 +175,7 @@ export default async function OrganizationPage() {
 }
 
 function FlowyLine({
-  className = "text-sky-500 stroke-[6]", // Tailwind color + thickness
+  className = "text-sky-500 stroke-[6]",
   curveHeight = 160, // wave height
   baseHeight = 160, // vertical center
 }: {
@@ -191,7 +187,7 @@ function FlowyLine({
     } 1440,${baseHeight}`;
 
   return (
-    <div className="flex h-32 w-full items-center justify-center">
+    <div className='flex h-32 w-full items-center justify-center'>
       <svg
         className={`h-full w-full ${className}`}
         viewBox='0 0 1440 320'
