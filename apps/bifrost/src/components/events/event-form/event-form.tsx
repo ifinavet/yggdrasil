@@ -72,8 +72,6 @@ export default function EventForm({
 
   const isExternalEvent = useMemo(() => watchedEventType === "external_event", [watchedEventType]);
 
-  console.log(form.formState.errors)
-
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onDefaultSubmitAction)} className='space-y-8'>

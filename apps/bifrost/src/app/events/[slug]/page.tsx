@@ -52,7 +52,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: Id
     });
 
   } catch (error) {
-    console.error("Error prefetching data:", error);
+
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] text-center p-8">
         <h1 className="text-2xl font-bold mb-4">Kunne ikke laste arrangement</h1>
