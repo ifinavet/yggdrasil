@@ -8,10 +8,14 @@ import {
   CarouselPrevious,
 } from "@workspace/ui/components/carousel";
 import { fetchQuery } from "convex/nextjs";
+import { Info } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import Navet_Logo from "@/assets/navet/logo_n_blaa.webp";
+import Navet from "@/assets/promo_images/navet.webp";
 import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
 import SafeHtml from "@/components/common/sanitize-html";
+import TwoColumns from "@/components/common/two-columns";
 import EventCard from "@/components/events/event-card";
 import JobListingCard from "@/components/job-listings/job-listing-card";
 
@@ -27,7 +31,9 @@ export default async function MainPage() {
       <ResponsiveCenterContainer>
         <div className='grid gap-8 md:grid-cols-2'>
           {mainSponsor && (
-            <div className={`${latestEvents.length > 0 ? "lg:-ml-24 order-2 md:order-1" : "col-span-full mx-auto max-w-3xl"} space-y-6`}>
+            <div
+              className={`${latestEvents.length > 0 ? "lg:-ml-24 order-2 md:order-1" : "col-span-full mx-auto max-w-3xl"} space-y-6`}
+            >
               <h1 className='hyphens-manual text-balance font-bold text-4xl text-primary tracking-tight'>
                 Hoved&shy;samarbeids&shy;partner
               </h1>
@@ -66,7 +72,10 @@ export default async function MainPage() {
                 <CarouselPrevious />
                 <CarouselNext />
               </Carousel>
-              <Button asChild className='mx-8 bg-emerald-600 py-6 font-semibold hover:bg-emerald-700'>
+              <Button
+                asChild
+                className='mx-8 bg-emerald-600 py-6 font-semibold hover:bg-emerald-700'
+              >
                 <Link href={"/events"}>Se alle arrangementer</Link>
               </Button>
             </div>
@@ -101,6 +110,59 @@ export default async function MainPage() {
           </ResponsiveCenterContainer>
         </div>
       )}
+      <ResponsiveCenterContainer>
+        <TwoColumns
+          main={
+            <div>
+              <h3 className='scroll-m-20 font-semibold text-3xl text-primary tracking-tight'>
+                Hvem er vi?
+              </h3>
+              <p className='leading-7 [&:not(:first-child)]:mt-6'>
+                Navet er bedriftskontakten ved Institutt for informatikk ved Universitetet i Oslo.
+                Hensikten med Navet er å gjøre det enkelt for bedrifter å komme i kontakt med
+                studentene ved instituttet, ved å tilby:
+              </p>
+
+              <ul className='my-6 ml-6 list-disc [&>li]:mt-2'>
+                <li>
+                  et sentralt kontakt- og koordineringspunkt for alle bedriftsrelaterte aktiviteter
+                  ved instituttet.
+                </li>
+                <li>
+                  praktisk hjelp ved bedriftspresentasjoner og andre typer arrangementer
+                  (romreservasjon, matbestilling, mm.)
+                </li>
+                <li>oversikt over bredriftsrelaterte aktiviteter for studenter.</li>
+              </ul>
+            </div>
+          }
+          aside={
+            <div className='relative h-[200px] w-[200px] sm:h-[250px] sm:w-[250px] md:h-[300px] md:w-[300px]'>
+              <div className='absolute top-0 left-0 z-10 size-32 translate-x-2 translate-y-4 transform overflow-hidden rounded-full sm:size-40 md:size-48'>
+                <Image
+                  src={Navet}
+                  alt='Vi alle elsker Navet'
+                  className='h-full w-full bg-gray-200 object-cover'
+                />
+              </div>
+
+              <div className='-translate-x-2 -translate-y-4 absolute right-0 bottom-0 z-0 size-32 transform overflow-hidden rounded-full sm:size-40 md:size-48'>
+                <Image
+                  src={Navet_Logo}
+                  alt='Vi alle elsker Navet'
+                  className='h-full w-full bg-gray-100 object-contain p-8'
+                />
+              </div>
+            </div>
+          }
+        />
+        <Button variant='outline' asChild>
+          <Link href='/organization'>
+            <Info />
+            Les mer om Navet
+          </Link>
+        </Button>
+      </ResponsiveCenterContainer>
     </div>
   );
 }

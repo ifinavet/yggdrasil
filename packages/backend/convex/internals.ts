@@ -48,6 +48,27 @@ export const getBoardMemberByPosition = query({
   }
 });
 
+export const getTheBoard = query({
+  handler: async (ctx) => {
+    const members = await ctx.db.query("internals").filter(q => q.neq("position", "intern"))
+      .collect();
+
+    const boardMembers = await Promise.all(
+      members.map(async (member) => {
+        const user = await ctx.db.get(member.userId);
+        return {
+          ...member,
+          fullName: (user && `${user.firstName} ${user.lastName}`) ?? "Styremedlem",
+          email: user?.email ?? "styret@ifinavet.no",
+          image: user?.image,
+        };
+      }),
+    );
+
+    return boardMembers;
+  },
+});
+
 export const getById = query({
   args: {
     id: v.id("internals"),

@@ -40,7 +40,8 @@ export default defineSchema({
     email: v.optional(v.string()),
     semester: v.number(),
     degree: v.union(v.literal("Bachelor"), v.literal("Master"), v.literal("PhD")),
-  }).index("by_studyProgram", ["studyProgram"])
+  })
+    .index("by_studyProgram", ["studyProgram"])
     .index("by_userId", ["userId"]),
 
   points: defineTable({
@@ -55,6 +56,12 @@ export default defineSchema({
     group: v.string(),
     positionEmail: v.optional(v.string()),
   }).index("by_position", ["position"]),
+
+  internalGroups: defineTable({
+    name: v.string(),
+    description: v.string(),
+    leader: v.id("users"),
+  }),
 
   events: defineTable({
     title: v.string(),
@@ -75,7 +82,7 @@ export default defineSchema({
   eventOrganizers: defineTable({
     eventId: v.id("events"),
     userId: v.id("users"),
-    role: v.union(v.literal("hovedansvarlig"), v.literal("medhjelper"))
+    role: v.union(v.literal("hovedansvarlig"), v.literal("medhjelper")),
   }).index("by_eventId", ["eventId"]),
 
   registrations: defineTable({
@@ -84,9 +91,12 @@ export default defineSchema({
     status: v.union(v.literal("registered"), v.literal("pending"), v.literal("waitlist")),
     note: v.optional(v.string()),
     registrationTime: v.number(),
-    attendanceStatus: v.optional(v.union(v.literal("confirmed"), v.literal("late"), v.literal("no_show"))),
+    attendanceStatus: v.optional(
+      v.union(v.literal("confirmed"), v.literal("late"), v.literal("no_show")),
+    ),
     attendanceTime: v.optional(v.number()),
-  }).index("by_eventId", ["eventId"])
+  })
+    .index("by_eventId", ["eventId"])
     .index("by_userId", ["userId"]),
 
   externalPages: defineTable({
@@ -105,7 +115,8 @@ export default defineSchema({
     published: v.boolean(),
     company: v.id("companies"),
     deadline: v.number(),
-  }).index("by_deadline", ["deadline"])
+  })
+    .index("by_deadline", ["deadline"])
     .index("by_deadlineAndType", ["type", "deadline"]),
 
   jobListingContacts: defineTable({
@@ -113,5 +124,5 @@ export default defineSchema({
     name: v.string(),
     email: v.optional(v.string()),
     phone: v.optional(v.string()),
-  }).index("by_listingId", ["listingId"])
+  }).index("by_listingId", ["listingId"]),
 });
