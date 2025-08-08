@@ -1,13 +1,14 @@
 import { api } from "@workspace/backend/convex/api";
 import { Button } from "@workspace/ui/components/button";
 import { fetchQuery } from "convex/nextjs";
+import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { Title } from "@/components/common/title";
 import JobListingBanner from "@/components/job-listings/job-listing-banner";
 import JobListingCard from "@/components/job-listings/job-listing-card";
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "Stillingsannonser",
 };
 
