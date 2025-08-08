@@ -43,6 +43,7 @@ export default function SignUpPage() {
   const { isLoaded, signUp, setActive } = useSignUp();
 
   const [errors, setErrors] = useState<ClerkAPIError[]>([]);
+  const [loading, setLoading] = useState(false);
   const [verifying, setVerifying] = useState(false);
 
   const router = useRouter();
@@ -72,6 +73,7 @@ export default function SignUpPage() {
     if (!isLoaded) return;
 
     try {
+      setLoading(true);
       await signUp.create({
         firstName: data.firstName,
         lastName: data.lastName,
@@ -86,6 +88,8 @@ export default function SignUpPage() {
       setVerifying(true);
     } catch (error) {
       if (isClerkAPIResponseError(error)) setErrors(error.errors);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -94,6 +98,7 @@ export default function SignUpPage() {
     if (!isLoaded) return;
 
     try {
+      setLoading(true);
       const signUpAttempt = await signUp.attemptEmailAddressVerification({
         code: data.code,
       });
@@ -114,12 +119,14 @@ export default function SignUpPage() {
           ]);
           return;
         }
+        const semesterRaw = signUpForm.getValues("semester");
+        const semester = typeof semesterRaw === "string" ? Number(semesterRaw) : semesterRaw;
 
         await createStudent({
           externalId: signUpAttempt.createdUserId,
           studyProgram: signUpForm.getValues("studyProgram"),
           degree: signUpForm.getValues("degree"),
-          semester: signUpForm.getValues("semester"),
+          semester,
           name: `${signUpForm.getValues("firstName")} ${signUpForm.getValues("lastName")}`,
         });
 
@@ -136,6 +143,8 @@ export default function SignUpPage() {
       }
     } catch (error) {
       if (isClerkAPIResponseError(error)) setErrors(error.errors);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -174,7 +183,7 @@ export default function SignUpPage() {
                       <FormMessage />
                     </FormItem>
                   )} />
-                <Button type="submit">
+                <Button type="submit" disabled={loading}>
                   Fullfør oppretting
                 </Button>
               </form>
@@ -356,7 +365,7 @@ export default function SignUpPage() {
             Når du registrerer en bruker på ifinavet.no så godtar du IFI-Navets <a href="/info/personvernerklaering" className="underline text-primary">personvernerklæring</a>.
           </small>
 
-          <Button type="submit">
+          <Button type="submit" disabled={loading}>
             Opprett ny bruker
           </Button>
         </form>
