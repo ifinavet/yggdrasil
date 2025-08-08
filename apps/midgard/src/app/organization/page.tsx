@@ -5,6 +5,7 @@ import { Separator } from "@workspace/ui/components/separator";
 import { cn } from "@workspace/ui/lib/utils";
 import { fetchQuery } from "convex/nextjs";
 import Image from "next/image";
+import NavetN from "@/assets/navet/logo_n_blaa.webp";
 import Navet from "@/assets/promo_images/navet.webp";
 import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
 import { Title } from "@/components/common/title";
@@ -20,7 +21,9 @@ export default async function OrganizationPage() {
         <TwoColumns
           main={
             <div>
-              <h3 className='scroll-m-20 font-semibold text-4xl text-primary tracking-tight'>Hvem er vi?</h3>
+              <h3 className='scroll-m-20 font-semibold text-4xl text-primary tracking-tight'>
+                Hvem er vi?
+              </h3>
               <p className='leading-7 [&:not(:first-child)]:mt-6'>
                 Navet er bedriftskontakten ved Institutt for informatikk ved Universitetet i Oslo.
                 Hensikten med Navet er å gjøre det enkelt for bedrifter å komme i kontakt med
@@ -76,52 +79,58 @@ export default async function OrganizationPage() {
               </ul>
             </div>
           }
-          aside={
-            <Image src={Navet} alt='Navet Logo' className="h-full rounded-lg object-cover" />
-          }
+          aside={<Image src={Navet} alt='Navet Logo' className='h-full rounded-lg object-cover' />}
         />
         <FlowyLine className='w-full stroke-[8] text-primary' curveHeight={-300} />
         <div aria-description='Livet som intern'>
           <h3 className='scroll-m-20 font-semibold text-4xl text-primary tracking-tight'>
             Livet som intern
           </h3>
-          <p className='mb-4 leading-7 [&:not(:first-child)]:mt-6'>
-            Lorem ipsum dolor, sit amet consectetur adipisicing elit. Laboriosam voluptate numquam
-            ullam nam sint non saepe iste hic reiciendis. Mollitia totam in beatae. Corrupti
-            accusamus alias harum laborum, unde similique mollitia doloribus fugit a laboriosam
-            repellat eos sunt asperiores ullam? Totam eos incidunt consequatur cupiditate velit
-            optio ducimus itaque repudiandae!
-          </p>
+          <div className="flex h-fit flex-wrap items-start gap-6">
+            <p className='mb-4 max-w-[80ch] leading-7 [&:not(:first-child)]:mt-6'>
+              Som intern i Navet er du en viktig del av driften i foreningen. Gjennom et semester
+              vil du som regel være ansvarlig eller medansvarlig for 2–3 bedriftspresentasjoner. I
+              tillegg bidrar interne til styrets arbeid gjennom å være med i en av arbeidsgruppene.
+              Mer informasjon om arbeidsgruppene finner du under. En gang i måneden har vi
+              internmøte, der hele foreningen samles for oppdateringer om aktuelle saker. Det er
+              viktig å være engasjert og hjelpe til ved behov. Det er viktig å huske at det ikke
+              bare er arbeid, men mye sosialt også! Etter hvert internmøte er det internkveld, som
+              er sponset av foreningen. Foreningen har mye sosialt å by på, somutenlandstur,
+              julebord, sommerfest og mange andre små og store aktiviteter gjennom året.
+            </p>
+            <div className='grid h-full flex-1 place-content-center'>
+              <Image src={NavetN} alt='N logo' className='h-32 w-auto rotate-12 object-contain' />
+            </div>
+          </div>
           <div className='grid justify-center gap-6 sm:grid-cols-2 lg:grid-cols-3'>
-            <InternGroup name='Interngruppa'>
+            <InternGroup name='Interngruppen'>
               <p className='leading-7 [&:not(:first-child)]:mt-4'>
                 Hjelp webasnvarlig med å vedlikeholde, teste, og utvikle nye funksjoner for Navets
                 webplatform. Dette er en unik mulighet til å jobbe med et større system som brukes
                 av mange ifi-studenter daglig.
               </p>
             </InternGroup>
-            <InternGroup name='Bedriftsgruppa'>
+            <InternGroup name='Bedriftsgruppen'>
               <p className='leading-7 [&:not(:first-child)]:mt-4'>
                 Hjelp webasnvarlig med å vedlikeholde, teste, og utvikle nye funksjoner for Navets
                 webplatform. Dette er en unik mulighet til å jobbe med et større system som brukes
                 av mange ifi-studenter daglig.
               </p>
             </InternGroup>
-            <InternGroup name='Organiseringsgruppa'>
+            <InternGroup name='Organiseringsgruppen'>
               <p className='leading-7 [&:not(:first-child)]:mt-4'>
                 Hjelp webasnvarlig med å vedlikeholde, teste, og utvikle nye funksjoner for Navets
                 webplatform. Dette er en unik mulighet til å jobbe med et større system som brukes
                 av mange ifi-studenter daglig.
               </p>
             </InternGroup>
-            <InternGroup name='Økonomigruppa'>
+            <InternGroup name='Økonomigruppen'>
               <p className='leading-7 [&:not(:first-child)]:mt-4'>
-                Hjelp webasnvarlig med å vedlikeholde, teste, og utvikle nye funksjoner for Navets
-                webplatform. Dette er en unik mulighet til å jobbe med et større system som brukes
-                av mange ifi-studenter daglig.
+                I økonomigruppen får du innsikt i hvordan Navets økonomi drives. Som intern bidrar
+                du til både regnskapsføring og budsjettering for en større forening.
               </p>
             </InternGroup>
-            <InternGroup name='Promoteringsgruppa'>
+            <InternGroup name='Promoteringsgruppen'>
               <p className='leading-7 [&:not(:first-child)]:mt-4'>
                 Hjelp webasnvarlig med å vedlikeholde, teste, og utvikle nye funksjoner for Navets
                 webplatform. Dette er en unik mulighet til å jobbe med et større system som brukes
@@ -135,14 +144,14 @@ export default async function OrganizationPage() {
                 av mange ifi-studenter daglig.
               </p>
             </InternGroup>
-            <InternGroup name='Arrangementsgruppa'>
+            <InternGroup name='Arrangementsgruppen'>
               <p className='leading-7 [&:not(:first-child)]:mt-4'>
                 Hjelp webasnvarlig med å vedlikeholde, teste, og utvikle nye funksjoner for Navets
                 webplatform. Dette er en unik mulighet til å jobbe med et større system som brukes
                 av mange ifi-studenter daglig.
               </p>
             </InternGroup>
-            <InternGroup name='Koordineringsgruppa'>
+            <InternGroup name='Koordineringsgruppen'>
               <p className='leading-7 [&:not(:first-child)]:mt-4'>
                 Hjelp webasnvarlig med å vedlikeholde, teste, og utvikle nye funksjoner for Navets
                 webplatform. Dette er en unik mulighet til å jobbe med et større system som brukes
