@@ -1,11 +1,12 @@
 import { api } from "@workspace/backend/convex/api";
 import { fetchQuery } from "convex/nextjs";
+import type { Metadata } from "next";
 import ContainerCard from "@/components/cards/container-card";
 import LargeUserCard from "@/components/cards/large-user";
 import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
 import TwoColumns from "@/components/common/two-columns";
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "Si ifra",
 };
 
@@ -57,14 +58,18 @@ export default async function ContactPage() {
         aside={
           <LargeUserCard
             title='Studentkontakt'
-            fullName={(studentContact && `${studentContact.firstName ?? ""} ${studentContact.lastName ?? ""}`.trim()) ?? "Studentkontakt"}
+            fullName={
+              (studentContact &&
+                `${studentContact.firstName ?? ""} ${studentContact.lastName ?? ""}`.trim()) ??
+              "Studentkontakt"
+            }
             email={
               studentContact
-                ? studentContact.positionEmail ?? studentContact.email ?? "styret@ifinavet.no"
+                ? (studentContact.positionEmail ?? studentContact.email ?? "styret@ifinavet.no")
                 : "styret@ifinavet.no"
             }
             imageUrl={studentContact?.image}
-            initials="SK"
+            initials='SK'
           />
         }
       />

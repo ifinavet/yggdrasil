@@ -11,6 +11,26 @@ import { Id } from "@workspace/backend/convex/dataModel";
 import { fetchQuery, preloadedQueryResult, preloadQuery } from "convex/nextjs";
 import { api } from "@workspace/backend/convex/api";
 import { EventMetadata } from "@/components/events/event-metadata";
+import { Metadata } from "next";
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: Id<"events"> }> }): Promise<Metadata> {
+  const { slug: eventId } = await params;
+  const event = await fetchQuery(api.events.getById, { id: eventId })
+  const company = await fetchQuery(api.companies.getById, { id: event.hostingCompany })
+
+  return {
+    openGraph: {
+      images: [
+        {
+          url: company.imageUrl,
+          alt: company.name,
+        }
+      ]
+    },
+    title: event.title,
+    description: event.teaser,
+  }
+}
 
 export default async function EventPage({ params }: { params: Promise<{ slug: Id<"events"> }> }) {
   const eventId = (await params).slug;
