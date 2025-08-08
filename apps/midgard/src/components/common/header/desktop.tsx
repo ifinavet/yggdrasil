@@ -55,7 +55,7 @@ export default async function DesktopHeader({ className }: { className?: string 
             </NavigationMenuContent>
           </NavigationMenuItem>
           <NavigationItem href="/job-listings">Stillingsannonser</NavigationItem>
-          <NavigationItem href="/companies">For Bedifter</NavigationItem>
+          <NavigationItem href="/companies">For Bedrifter</NavigationItem>
           <NavigationItem href="/students">For Studenter</NavigationItem>
           <NavigationItem href="/organization">Foreningen</NavigationItem>
           <NavigationItem href="/contact">Si ifra</NavigationItem>
