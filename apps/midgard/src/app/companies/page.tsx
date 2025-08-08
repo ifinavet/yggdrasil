@@ -1,6 +1,7 @@
 import { api } from "@workspace/backend/convex/api";
 import { Button } from "@workspace/ui/components/button";
 import { fetchQuery } from "convex/nextjs";
+import type { Metadata } from "next";
 import ContainerCard from "@/components/cards/container-card";
 import LargeUserCard from "@/components/cards/large-user";
 import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
@@ -9,7 +10,7 @@ import InformationGrid from "@/components/companies/information-grid";
 import OfferGrid from "@/components/companies/offer-grid";
 import JobListingBanner from "@/components/job-listings/job-listing-banner";
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "For bedrifter",
 };
 
@@ -64,10 +65,13 @@ export default async function CompaniesPage() {
           <div className='grid gap-6 md:col-span-2'>
             <LargeUserCard
               title='Bedriftskontakt'
-              fullName={(companyContact && `${companyContact.firstName} ${companyContact.lastName}`) ?? "Bedriftskontakt"}
+              fullName={
+                (companyContact && `${companyContact.firstName} ${companyContact.lastName}`) ??
+                "Bedriftskontakt"
+              }
               email={companyContact?.positionEmail ?? companyContact?.email ?? "styret@ifinavet.no"}
               imageUrl={companyContact?.image}
-              initials="BK"
+              initials='BK'
             />
             <ContainerCard className='h-fit bg-primary-light'>
               <h2 className='scroll-m-10 pb-2 font-semibold text-3xl tracking-tight first:mt-0'>
@@ -76,10 +80,10 @@ export default async function CompaniesPage() {
               <p className='leading-7'>
                 Navet tilbyr publisering av stillingsannonser på våre hjemmesider. Dette gjelder
                 både interships, deltid-, og fulltidsstillinger. Ved forespørsel om annonser for
-                sommerjobb er det viktig at de følger FIFs retningslinjer.
+                sommerjobb er det viktig at de følger FIFs retningslinjer.
                 <br />
                 <br />
-                Alle annonser er nødt til å følge Navet's retningslinjer. Stillingsannonser må
+                Alle annonser er nødt til å følge Navet's retningslinjer. Stillingsannonser må
                 inneholde en søknadsfrist og stillingen må være relatert til informatikk. Nye
                 annonser publiseres ukentlig. Følg linken for å opprette stillingsannonse:
               </p>
