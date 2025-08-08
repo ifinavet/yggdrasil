@@ -86,7 +86,7 @@ export default async function OrganizationPage() {
           <h3 className='scroll-m-20 font-semibold text-4xl text-primary tracking-tight'>
             Livet som intern
           </h3>
-          <div className="flex h-fit flex-wrap items-start gap-6">
+          <div className="flex h-fit flex-wrap items-start gap-8">
             <p className='mb-4 max-w-[80ch] leading-7 [&:not(:first-child)]:mt-6'>
               Som intern i Navet er du en viktig del av driften i foreningen. Gjennom et semester
               vil du som regel være ansvarlig eller medansvarlig for 2–3 bedriftspresentasjoner. I
@@ -132,9 +132,10 @@ export default async function OrganizationPage() {
             </InternGroup>
             <InternGroup name='Promoteringsgruppen'>
               <p className='leading-7 [&:not(:first-child)]:mt-4'>
-                Hjelp webasnvarlig med å vedlikeholde, teste, og utvikle nye funksjoner for Navets
-                webplatform. Dette er en unik mulighet til å jobbe med et større system som brukes
-                av mange ifi-studenter daglig.
+                Som del av promoteringsgruppen vil du hjelpe promoteringsansvarlig med synligheten
+                og kommunikasjonen til Navet, slik at vi kan nå ut til studenter og bedrifter.
+                Vi har ansvar for å formidle hva Navet driver med,
+                skape engasjement rundt arrangementene våre og bygge et positivt inntrykk av foreningen.
               </p>
             </InternGroup>
             <InternGroup name='Webgruppa'>
@@ -165,7 +166,7 @@ export default async function OrganizationPage() {
           <h3 className='mb-4 scroll-m-20 font-semibold text-4xl text-primary tracking-tight'>
             Styret
           </h3>
-          <div className='flex flex-wrap justify-center gap-4'>
+          <div className='flex flex-wrap justify-center gap-12'>
             {theBoard.map((member) => (
               <BoardMember
                 key={member._id}
