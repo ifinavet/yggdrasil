@@ -352,6 +352,10 @@ export default function SignUpPage() {
             </ul>
           )}
 
+          <small className="text-sm leading-none font-medium block">
+            Når du registrerer en bruker på ifinavet.no så godtar du IFI-Navets <a href="/info/personvernerklaering" className="underline text-primary">personvernerklæring</a>.
+          </small>
+
           <Button type="submit">
             Opprett ny bruker
           </Button>
