@@ -21,6 +21,24 @@ export const getById = query({
   },
 });
 
+export const getByIdentifier = query({
+  args: {
+    identifier: v.string(),
+  },
+  handler: async (ctx, { identifier }) => {
+    const page = await ctx.db
+      .query("externalPages")
+      .withIndex("by_identifier", (q) => q.eq("identifier", identifier))
+      .first();
+
+    if (!page) {
+      throw new Error("Page not found");
+    }
+
+    return page;
+  },
+});
+
 export const update = mutation({
   args: {
     id: v.id("externalPages"),
@@ -34,14 +52,18 @@ export const update = mutation({
       throw new Error("Unauthenticated call to mutation");
     }
 
-    const page = await ctx.db.get(id);
-    if (!page) {
-      throw new Error("Page not found");
-    }
+    const identifier = title.toLowerCase().replace(/[æøå]/g, (match) => {
+      switch (match) {
+        case 'æ': return 'ae';
+        case 'ø': return 'o';
+        case 'å': return 'a';
+        default: return match;
+      }
+    }).replace(/\s+/g, '-');
 
     await ctx.db.patch(id, {
-      ...page,
       title,
+      identifier,
       content,
       published,
       updatedAt: Date.now(),
@@ -61,7 +83,17 @@ export const create = mutation({
       throw new Error("Unauthenticated call to mutation");
     }
 
+    const identifier = title.toLowerCase().replace(/[æøå]/g, (match) => {
+      switch (match) {
+        case 'æ': return 'ae';
+        case 'ø': return 'o';
+        case 'å': return 'a';
+        default: return match;
+      }
+    }).replace(/\s+/g, '-');
+
     await ctx.db.insert("externalPages", {
+      identifier,
       title,
       content,
       published,

@@ -2,13 +2,12 @@ import ResponsiveCenterContainer from "@/components/common/responsive-center-con
 import SanitizeHtml from "@/components/common/sanitize-html";
 import { Title } from "@/components/common/title";
 import { api } from "@workspace/backend/convex/api";
-import { Id } from "@workspace/backend/convex/dataModel";
 import { fetchQuery } from "convex/nextjs";
 
-export default async function Page({ params }: { params: Promise<{ slug: Id<"externalPages"> }> }) {
-  const id = (await params).slug;
+export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug: identifier } = await params;
 
-  const page = await fetchQuery(api.externalPages.getById, { id })
+  const page = await fetchQuery(api.externalPages.getByIdentifier, { identifier })
 
   return (
     <ResponsiveCenterContainer>

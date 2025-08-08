@@ -101,11 +101,12 @@ export default defineSchema({
     .index("by_userId", ["userId"]),
 
   externalPages: defineTable({
+    identifier: v.string(),
     title: v.string(),
     content: v.string(),
     published: v.boolean(),
     updatedAt: v.number(),
-  }),
+  }).index("by_identifier", ["identifier"]),
 
   jobListings: defineTable({
     title: v.string(),

@@ -1,5 +1,5 @@
-import { SignedIn, SignedOut, SignOutButton } from "@clerk/nextjs";
-import { currentUser } from "@clerk/nextjs/server";
+import { SignOutButton } from "@clerk/nextjs";
+import { api } from "@workspace/backend/convex/api";
 import { Button } from "@workspace/ui/components/button";
 import { DialogClose, DialogTitle } from "@workspace/ui/components/dialog";
 import {
@@ -12,14 +12,17 @@ import {
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
 import { Separator } from "@workspace/ui/components/separator";
 import { cn } from "@workspace/ui/lib/utils";
+import { fetchQuery } from "convex/nextjs";
 import { Menu, X } from "lucide-react";
 import { headers } from "next/headers";
 import Image from "next/image";
 import Link from "next/link";
 import LogoBlue from "@/assets/navet/simple_logo_blaa.webp";
+import { getAuthToken } from "@/uitls/authToken";
 
 export default async function MobileHeader({ className }: { className?: string }) {
-  const user = await currentUser();
+  const token = await getAuthToken();
+  const user = await fetchQuery(api.users.current, {}, { token });
 
   const headerList = await headers();
   const pathname = headerList.get("x-pathname") || "/";
@@ -103,29 +106,30 @@ export default async function MobileHeader({ className }: { className?: string }
               </ul>
               <Separator className='text-primary-foreground/50' />
               <ul className='mx-6 flex flex-col items-end'>
-                <SignedIn>
-                  <li>
-                    <Button
-                      type='button'
-                      variant='link'
-                      className='text-primary-foreground'
-                      asChild
-                    >
-                      <Link href='/profile'>{user?.fullName || "Pofil"}</Link>
-                    </Button>
-                  </li>
-                  <li>
-                    <Button
-                      type='button'
-                      variant='link'
-                      className='text-primary-foreground'
-                      asChild
-                    >
-                      <SignOutButton>Logg ut</SignOutButton>
-                    </Button>
-                  </li>
-                </SignedIn>
-                <SignedOut>
+                {user ? (
+                  <>
+                    <li>
+                      <Button
+                        type='button'
+                        variant='link'
+                        className='text-primary-foreground'
+                        asChild
+                      >
+                        <Link href='/profile'>{user.firstName}</Link>
+                      </Button>
+                    </li>
+                    <li>
+                      <Button
+                        type='button'
+                        variant='link'
+                        className='text-primary-foreground'
+                        asChild
+                      >
+                        <SignOutButton>Logg ut</SignOutButton>
+                      </Button>
+                    </li>
+                  </>
+                ) : (
                   <li>
                     <Button
                       type='button'
@@ -136,7 +140,7 @@ export default async function MobileHeader({ className }: { className?: string }
                       <Link href={`/sign-in?redirect=${pathname}`}>Logg inn</Link>
                     </Button>
                   </li>
-                </SignedOut>
+                )}
               </ul>
             </ScrollArea>
           </DrawerContent>
