@@ -17,7 +17,7 @@ export default function JobListingBanner({ className }: { className?: string }) 
 					Navet tilbyr publisering av stillingsannonser på våre hjemmesider. Dette gjelder både
 					interships, deltid-, og fulltidsstillinger. Ved forespørsel om annonser for sommerjobb er
 					det viktig at de følger FIFs retningslinjer. Alle annonser er nødt til å følge Navet's
-					ngslinjer.
+					retningslinjer.
 					<br />
 					<br />
 					Stillingsannonser må inneholde en søknadsfrist og stillingen må være relatert til
