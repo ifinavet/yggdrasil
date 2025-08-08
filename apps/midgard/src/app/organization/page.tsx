@@ -102,7 +102,7 @@ export default async function OrganizationPage() {
               <Image src={NavetN} alt='N logo' className='h-32 w-auto rotate-12 object-contain' />
             </div>
           </div>
-          <div className='grid justify-center gap-6 sm:grid-cols-2 lg:grid-cols-3'>
+          <div className='grid justify-center gap-12 sm:grid-cols-2 lg:grid-cols-3'>
             <InternGroup name='Interngruppen'>
               <p className='leading-7 [&:not(:first-child)]:mt-4'>
                 Hjelp webasnvarlig med å vedlikeholde, teste, og utvikle nye funksjoner for Navets
@@ -119,9 +119,9 @@ export default async function OrganizationPage() {
             </InternGroup>
             <InternGroup name='Organiseringsgruppen'>
               <p className='leading-7 [&:not(:first-child)]:mt-4'>
-                Hjelp webasnvarlig med å vedlikeholde, teste, og utvikle nye funksjoner for Navets
-                webplatform. Dette er en unik mulighet til å jobbe med et større system som brukes
-                av mange ifi-studenter daglig.
+                Organiseringsteamet har ansvar for å sikre den praktiske gjennomføringen av Navets arrangementer.
+                Vi tar oss av booking av rom, bestilling av mat og sørger for at alt er på plass før arrangementet starter.
+                Vi gjør vårt beste for  at alt det praktiske går sømløst.
               </p>
             </InternGroup>
             <InternGroup name='Økonomigruppen'>
@@ -166,7 +166,7 @@ export default async function OrganizationPage() {
           <h3 className='mb-4 scroll-m-20 font-semibold text-4xl text-primary tracking-tight'>
             Styret
           </h3>
-          <div className='flex flex-wrap justify-center gap-12'>
+          <div className='flex flex-wrap justify-center gap-6'>
             {theBoard.map((member) => (
               <BoardMember
                 key={member._id}
