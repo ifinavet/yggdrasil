@@ -86,7 +86,7 @@ export default async function OrganizationPage() {
           <h3 className='scroll-m-20 font-semibold text-4xl text-primary tracking-tight'>
             Livet som intern
           </h3>
-          <div className="flex h-fit flex-wrap items-start gap-8">
+          <div className='flex h-fit flex-wrap items-start gap-8'>
             <p className='mb-4 max-w-[80ch] leading-7 [&:not(:first-child)]:mt-6'>
               Som intern i Navet er du en viktig del av driften i foreningen. Gjennom et semester
               vil du som regel være ansvarlig eller medansvarlig for 2–3 bedriftspresentasjoner. I
@@ -119,9 +119,10 @@ export default async function OrganizationPage() {
             </InternGroup>
             <InternGroup name='Organiseringsgruppen'>
               <p className='leading-7 [&:not(:first-child)]:mt-4'>
-                Organiseringsteamet har ansvar for å sikre den praktiske gjennomføringen av Navets arrangementer.
-                Vi tar oss av booking av rom, bestilling av mat og sørger for at alt er på plass før arrangementet starter.
-                Vi gjør vårt beste for  at alt det praktiske går sømløst.
+                Organiseringsteamet har ansvar for å sikre den praktiske gjennomføringen av Navets
+                arrangementer. Vi tar oss av booking av rom, bestilling av mat og sørger for at alt
+                er på plass før arrangementet starter. Vi gjør vårt beste for at alt det praktiske
+                går sømløst.
               </p>
             </InternGroup>
             <InternGroup name='Økonomigruppen'>
@@ -133,9 +134,9 @@ export default async function OrganizationPage() {
             <InternGroup name='Promoteringsgruppen'>
               <p className='leading-7 [&:not(:first-child)]:mt-4'>
                 Som del av promoteringsgruppen vil du hjelpe promoteringsansvarlig med synligheten
-                og kommunikasjonen til Navet, slik at vi kan nå ut til studenter og bedrifter.
-                Vi har ansvar for å formidle hva Navet driver med,
-                skape engasjement rundt arrangementene våre og bygge et positivt inntrykk av foreningen.
+                og kommunikasjonen til Navet, slik at vi kan nå ut til studenter og bedrifter. Vi
+                har ansvar for å formidle hva Navet driver med, skape engasjement rundt
+                arrangementene våre og bygge et positivt inntrykk av foreningen.
               </p>
             </InternGroup>
             <InternGroup name='Webgruppa'>
@@ -166,7 +167,7 @@ export default async function OrganizationPage() {
           <h3 className='mb-4 scroll-m-20 font-semibold text-4xl text-primary tracking-tight'>
             Styret
           </h3>
-          <div className='flex flex-wrap justify-center gap-4'>
+          <div className='flex flex-wrap justify-center gap-6'>
             {theBoard.map((member) => (
               <BoardMember
                 key={member._id}
@@ -252,9 +253,11 @@ function BoardMember({
       <h2 className='font-semibold text-2xl text-primary'>{position}</h2>
       <Separator className='rounded-lg border-1 border-primary' />
       <div className='flex flex-col items-center'>
-        <h3 className='font-semibold text-lg'>{name}</h3>
+        <h3 className='text-pretty text-center font-semibold text-lg'>{name}</h3>
         <Button variant='link'>
-          <a href={`mailto:${email}`}>{email}</a>
+          <a href={`mailto:${email}`} className="text-balance text-center">
+            {email}
+          </a>
         </Button>
       </div>
     </div>
