@@ -26,9 +26,8 @@ The Bifrost application is a [Next.js](https://nextjs.org/) project bootstrapped
 │   ├── components          # Reusable React components
 │   ├── constants           # Schemas and constants
 │   ├── hooks               # Custom React hooks
-│   ├── lib                 # Core logic, queries, and Supabase client
+│   ├── lib                 # Core logic and queries
 │   └── utils               # Utility functions
-├── supabase                # Supabase migrations and configuration
 └── ...
 ```
 
@@ -75,7 +74,7 @@ Bifrost is built with a modern tech stack, including:
 -   **[Next.js](https://nextjs.org/):** The React framework for production.
 -   **[React](https://react.dev/):** A JavaScript library for building user interfaces.
 -   **[TypeScript](https://www.typescriptlang.org/):** A typed superset of JavaScript.
--   **[Supabase](https://supabase.com/):** The open-source Firebase alternative for the database and authentication.
+-   **[Convex](https://www.convex.dev/):** The backend for the application.
 -   **[Clerk](https://clerk.com/):** User management and authentication.
 -   **[Tailwind CSS](https://tailwindcss.com/):** A utility-first CSS framework.
 -   **[Shadcn/ui](https://ui.shadcn.com/):** Re-usable components built using Radix UI and Tailwind CSS.
@@ -98,7 +97,3 @@ This project is maintained by both novice and experienced developers, mostly stu
 5.  **Open a Pull Request:** Go to the repository on GitHub and click 'New pull request'.
 
 Please make sure your code adheres to the project's coding standards and that you have tested your changes thoroughly.
-
-## 📄 License
-
-This project is licensed under the MIT License - see the `LICENSE` file for details.
