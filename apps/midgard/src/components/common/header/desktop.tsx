@@ -44,7 +44,7 @@ export default async function DesktopHeader({ className }: { className?: string 
                 <li className="-m-4 hidden"></li>
                 <li>
                   <NavigationMenuLink asChild className='text-base'>
-                    <Link href='/events'>Arrangementer</Link>
+                    <Link href='/events '>Arrangementer</Link>
                   </NavigationMenuLink>
                 </li>
                 <li>
@@ -70,7 +70,7 @@ export default async function DesktopHeader({ className }: { className?: string 
                   <li className="-m-4 hidden"></li>
                   <li>
                     <NavigationMenuLink asChild className='h-fit w-full text-left text-base'>
-                      <Link href='/profile'>Profil</Link>
+                      <Link href='/profile '>Profil</Link>
                     </NavigationMenuLink>
                   </li>
                   <li>
