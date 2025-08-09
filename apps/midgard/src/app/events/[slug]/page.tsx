@@ -23,6 +23,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: Id<
       images: [
         {
           url: company.imageUrl,
+          secureUrl: company.imageUrl,
+          type: "image/*",
           alt: company.name,
         }
       ]
