@@ -11,22 +11,30 @@ import { RegistrationsTable } from "@/components/events/admin/registrations-tabl
 import { Button } from "@workspace/ui/components/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui/components/popover";
 import { Mails } from "lucide-react";
+import { usePostHog } from "posthog-js/react";
 
 export function Registrations({ preloadedRegistrations }: { preloadedRegistrations: Preloaded<typeof api.registration.getByEventId>; }) {
   const registrations = usePreloadedQuery(preloadedRegistrations)
+  const posthog = usePostHog();
 
   const deleteRegistration = useMutation(api.registration.unregister)
   const handleDeleteRegistration = async (registrationId: Id<"registrations">) => {
     deleteRegistration({
       id: registrationId,
-    }).then(() => {
+    }).then((deletedRegistration) => {
       toast.success("Registreringen ble slettet", {
         description: humanReadableDate(new Date()),
       });
+
+      posthog.capture("midgard-intern-delete-registration", { ...deletedRegistration });
     }).catch(error => {
       toast.error("Det oppsto en feil ved sletting av registreringen", {
         description: error.name + ": " + error.message,
       });
+
+      posthog.captureException(error, {
+        event: "midgard-intern-delete-registration-error",
+      })
     })
   }
 
@@ -43,6 +51,10 @@ export function Registrations({ preloadedRegistrations }: { preloadedRegistratio
       toast.error("Det oppsto en feil ved oppdatering av registreringen", {
         description: error.name + ": " + error.message,
       });
+
+      posthog.captureException(error, {
+        event: "midgard-intern-update-registration-error",
+      })
     })
   }
 

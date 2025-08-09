@@ -23,6 +23,7 @@ import {
 } from "@workspace/ui/components/form";
 import { Input } from "@workspace/ui/components/input";
 import { useMutation } from "convex/react";
+import { usePostHog } from "posthog-js/react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -44,6 +45,7 @@ export default function SignUpForm({
   waitlist: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const posthog = usePostHog();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodv4Resolver(formSchema),
@@ -54,14 +56,22 @@ export default function SignUpForm({
 
   const signUp = useMutation(api.registration.register);
   const onSubmit = (data: z.infer<typeof formSchema>) =>
-    signUp({ note: data.notes, eventId }).then((status) => {
-      if (status === "waitlist" && waitlist === false) {
-        toast.warning("Her gikk det unna! Du står nå på ventelisten og vil få en epost dersom det skulle bli en ledig plass til deg")
-      }
-      setOpen(false);
-    }).catch(() => {
-      toast.error("Oops! Noe gikk galt! Prøv igjen senere.");
-    })
+    signUp({ note: data.notes, eventId })
+      .then((status) => {
+        if (status === "waitlist" && waitlist === false) {
+          toast.warning(
+            "Her gikk det unna! Du står nå på ventelisten og vil få en epost dersom det skulle bli en ledig plass til deg",
+          );
+        }
+        posthog.capture("midgard-student-sign-up", {
+          eventId,
+          status: status,
+        });
+        setOpen(false);
+      })
+      .catch(() => {
+        toast.error("Oops! Noe gikk galt! Prøv igjen senere.");
+      });
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

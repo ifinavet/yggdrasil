@@ -193,7 +193,9 @@ export const unregister = mutation({
       console.log(`Points given to ${student.name}`)
     }
 
-    if (registration.status === "waitlist") return;
+    if (registration.status === "waitlist") return {
+      deletedRegistration: registration
+    }
 
     const registrations = await ctx.db
       .query("registrations")
@@ -206,12 +208,19 @@ export const unregister = mutation({
 
     if (!nextRegistration) {
       console.log(`No waitlist registrations found for event ${event.title}.`);
-      return;
+
+      return {
+        deletedRegistration: registration
+      }
     }
 
     await ctx.db.patch(nextRegistration._id, {
       status: "pending",
       registrationTime: Date.now(),
     });
+
+    return {
+      deletedRegistration: registration
+    }
   },
 });

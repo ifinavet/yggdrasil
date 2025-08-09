@@ -77,5 +77,5 @@ export default function RegistrationButton({
     return null;
   }
 
-  return <EditRegistration registration={registrationToEdit} />;
+  return <EditRegistration registration={registrationToEdit} eventId={eventId} />;
 }

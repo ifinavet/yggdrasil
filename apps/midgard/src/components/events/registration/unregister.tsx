@@ -15,12 +15,14 @@ import {
 } from "@workspace/ui/components/alert-dialog";
 import { Button } from "@workspace/ui/components/button";
 import { useMutation } from "convex/react";
+import { usePostHog } from "posthog-js/react";
 import { toast } from "sonner";
 
-export default function Unregister({ registrationId }: { registrationId: Id<"registrations"> }) {
+export default function Unregister({ eventId, registrationId }: { eventId: Id<"events">, registrationId: Id<"registrations"> }) {
+  const posthog = usePostHog();
 
   const unregister = useMutation(api.registration.unregister)
-  const onUnregister = () => unregister({ id: registrationId }).catch(() => {
+  const onUnregister = () => unregister({ id: registrationId }).then(() => posthog.capture("midgard-student-unregister", { eventId })).catch(() => {
     toast.error("O! Noe gikk galt! Prøv igjen senere")
   })
 

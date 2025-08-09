@@ -21,6 +21,7 @@ import {
 } from "@workspace/ui/components/form";
 import { Input } from "@workspace/ui/components/input";
 import { useMutation } from "convex/react";
+import type { Id } from "node_modules/convex/dist/esm-types/values/value";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -34,8 +35,10 @@ const formSchema = z.object({
 });
 
 export default function EditRegistration({
+  eventId,
   registration,
 }: {
+  eventId: Id<"events">;
   registration: Doc<"registrations">;
 }) {
   const [open, setOpen] = useState(false);
@@ -95,7 +98,7 @@ export default function EditRegistration({
         </Form>
         <DialogFooter>
           <div className='flex w-full justify-between'>
-            <Unregister registrationId={registration._id} />
+            <Unregister registrationId={registration._id} eventId={eventId} />
             <Button type='submit' onClick={form.handleSubmit(onSubmit)}>
               Lagre Endringer
             </Button>
