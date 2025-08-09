@@ -34,7 +34,7 @@ import {
 import { Input } from "@workspace/ui/components/input";
 import { cn } from "@workspace/ui/lib/utils";
 import { Check, ChevronsUpDown } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { type boardMemberSchema, formSchema } from "@/constants/schemas/boardmember-form-schema";
 import { getAllInternalMembers } from "@/lib/queries/organization";
@@ -73,6 +73,12 @@ export default function BoardMemberForm({
   });
 
   const [openMembers, setOpenMembers] = useState(false);
+
+  useEffect(() => {
+    if (!openDialog) {
+      form.reset(defaultValues);
+    }
+  }, [openDialog, form]);
 
   if (!isLoaded || isLoading || !orgId)
     return (
@@ -207,7 +213,7 @@ export default function BoardMemberForm({
             <Button variant='outline'>Avbryt</Button>
           </DialogClose>
           <Button type='submit' onClick={form.handleSubmit(onSubmitAction)}>
-            Lagre.
+            Lagre
           </Button>
         </DialogFooter>
       </DialogContent>

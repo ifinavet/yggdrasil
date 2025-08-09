@@ -5,6 +5,7 @@ import type { Id } from "@workspace/backend/convex/dataModel";
 import { Button } from "@workspace/ui/components/button";
 import { useMutation, useQuery } from "convex/react";
 import { Pencil } from "lucide-react";
+import { usePostHog } from "posthog-js/react";
 import { useState } from "react";
 import { toast } from "sonner";
 import type { boardMemberSchema } from "@/constants/schemas/boardmember-form-schema";
@@ -18,10 +19,11 @@ export default function EditBoardMember({
   className?: string;
 }) {
   const [openDialog, setOpenDialog] = useState(false);
+  const posthog = usePostHog();
 
   const boardMember = useQuery(api.internals.getById, { id: internalId });
 
-  const updateBoardMember = useMutation(api.internals.update)
+  const updateBoardMember = useMutation(api.internals.update);
   const onSubmit = (data: boardMemberSchema) => {
     updateBoardMember({
       id: internalId,
@@ -29,13 +31,20 @@ export default function EditBoardMember({
       position: data.role,
       group: data.group,
       positionEmail: data.positionEmail,
-    }).then(() => {
-      toast.success("Styremedlemmet ble oppdatert!");
-      setOpenDialog(false);
-    }).catch((error) => {
-      console.error(error);
-      toast.error("Hmm... Det skjedde en feil. Prøv igjen senere.");
     })
+      .then(() => {
+        toast.success("Styremedlemmet ble oppdatert!");
+        setOpenDialog(false);
+      })
+      .catch((error) => {
+        console.error(error);
+        toast.error("Hmm... Det skjedde en feil. Prøv igjen senere.");
+
+        posthog.captureException("bifrost-boardmember_update_error", {
+          site: "bifrost",
+          error,
+        });
+      });
   };
 
   if (!boardMember)

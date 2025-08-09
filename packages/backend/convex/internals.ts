@@ -2,28 +2,6 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { userByExternalId } from "./users";
 
-export const getBoardMembers = query({
-  handler: async (ctx) => {
-    const members = await ctx.db.query("internals").filter(q => q.neq("position", "intern")).collect();
-    const membersWithUserData = await Promise.all(
-      members.map(async (member) => {
-        const user = await ctx.db.get(member.userId);
-        if (!user) {
-          throw new Error(`User not found for member with ID: ${member._id}`);
-        }
-        return {
-          ...member,
-          fullName: `${user.firstName} ${user.lastName}`,
-          email: user.email,
-          image: user.image
-        };
-      }),
-    );
-
-    return membersWithUserData;
-  },
-})
-
 export const getBoardMemberByPosition = query({
   args: {
     position: v.string(),

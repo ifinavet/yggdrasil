@@ -15,7 +15,7 @@ import EditBoardMember from "./edit-boardmember";
 export default function ListBoardMembers({
   preloadedBoardMembers,
 }: {
-  preloadedBoardMembers: Preloaded<typeof api.internals.getBoardMembers>;
+  preloadedBoardMembers: Preloaded<typeof api.internals.getTheBoard>;
 }) {
   const boardMembers = usePreloadedQuery(preloadedBoardMembers);
 
