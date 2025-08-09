@@ -210,7 +210,8 @@ export const unregister = mutation({
       console.log(`No waitlist registrations found for event ${event.title}.`);
 
       return {
-        deletedRegistration: registration
+        deletedRegistration: registration,
+        event: event,
       }
     }
 
@@ -220,7 +221,8 @@ export const unregister = mutation({
     });
 
     return {
-      deletedRegistration: registration
+      deletedRegistration: registration,
+      event: event,
     }
   },
 });

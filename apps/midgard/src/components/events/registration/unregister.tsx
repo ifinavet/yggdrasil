@@ -23,7 +23,7 @@ export default function Unregister({ eventId, registrationId }: { eventId: Id<"e
 
   const unregister = useMutation(api.registration.unregister)
   const onUnregister = () => unregister({ id: registrationId })
-    .then(() => posthog.capture("midgard-student_unregister", { eventId }))
+    .then(({ deletedRegistration, event }) => posthog.capture("midgard-student_unregister", { deletedRegistration, event }))
     .catch(() => {
       toast.error("O! Noe gikk galt! Prøv igjen senere")
       posthog.captureException("midgard-student_unregister_error", {
