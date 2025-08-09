@@ -43,12 +43,12 @@ export default async function DesktopHeader({ className }: { className?: string 
               <ul className='grid w-[300px] gap-4'>
                 <li className="-m-4 hidden"></li>
                 <li>
-                  <NavigationMenuLink asChild className='text-base'>
+                  <NavigationMenuLink className='text-base'>
                     <Link href='/events '>Arrangementer</Link>
                   </NavigationMenuLink>
                 </li>
                 <li>
-                  <NavigationMenuLink asChild className='text-base'>
+                  <NavigationMenuLink className='text-base'>
                     <Link href='/events?external=true'>Eksterne Arrangementer</Link>
                   </NavigationMenuLink>
                 </li>
@@ -69,12 +69,12 @@ export default async function DesktopHeader({ className }: { className?: string 
                 <ul className='grid w-[200px] gap-4'>
                   <li className="-m-4 hidden"></li>
                   <li>
-                    <NavigationMenuLink asChild className='h-fit w-full text-left text-base'>
+                    <NavigationMenuLink className='h-fit w-full text-left text-base'>
                       <Link href='/profile '>Profil</Link>
                     </NavigationMenuLink>
                   </li>
                   <li>
-                    <NavigationMenuLink asChild className='w-full text-left text-base'>
+                    <NavigationMenuLink className='w-full text-left text-base'>
                       <SignOutButton>Logg ut</SignOutButton>
                     </NavigationMenuLink>
                   </li>
