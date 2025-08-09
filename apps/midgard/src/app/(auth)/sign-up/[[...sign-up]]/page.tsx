@@ -20,6 +20,7 @@ import { Title } from "@/components/common/title";
 import { useRouter } from "next/navigation";
 import { useMutation } from "convex/react";
 import { api } from "@workspace/backend/convex/api";
+import { usePostHog } from "posthog-js/react";
 
 const signUpFormSchema = z.object({
   firstName: z.string().min(1, "Fornavn er påkrevd"),
@@ -41,6 +42,7 @@ const verifyingSchema = z.object({
 
 export default function SignUpPage() {
   const { isLoaded, signUp, setActive } = useSignUp();
+  const posthog = usePostHog();
 
   const [errors, setErrors] = useState<ClerkAPIError[]>([]);
   const [loading, setLoading] = useState(false);
@@ -129,6 +131,14 @@ export default function SignUpPage() {
           semester,
           name: `${signUpForm.getValues("firstName")} ${signUpForm.getValues("lastName")}`,
         });
+
+        posthog.capture("midgard-student-sign-up", {
+          name: `${signUpForm.getValues("firstName")} ${signUpForm.getValues("lastName")}`,
+          email: signUpForm.getValues("email"),
+          studyProgram: signUpForm.getValues("studyProgram"),
+          degree: signUpForm.getValues("degree"),
+          semester,
+        })
 
         router.push("/")
       } else {

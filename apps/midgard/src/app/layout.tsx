@@ -8,6 +8,7 @@ import Footer from "@/components/common/footer";
 import Header from "@/components/common/header/header";
 import Providers from "@/providers/providers";
 import { ThemeProvider } from "@/providers/theme-provider";
+import PostHogPageView from "./PostHogPageView";
 
 const defaultUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
@@ -40,6 +41,7 @@ export default function RootLayout({
                 <Footer />
                 <Toaster richColors />
               </div>
+              <PostHogPageView />
             </ThemeProvider>
           </body>
         </html>

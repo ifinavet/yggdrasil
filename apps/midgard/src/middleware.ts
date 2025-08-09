@@ -10,7 +10,7 @@ const searchParamsMiddleware = (request: NextRequest) => {
   });
 };
 
-export default clerkMiddleware(async (auth: ClerkMiddlewareAuth, req: NextRequest) => {
+export default clerkMiddleware(async (_auth: ClerkMiddlewareAuth, req: NextRequest) => {
   return searchParamsMiddleware(req);
 });
 

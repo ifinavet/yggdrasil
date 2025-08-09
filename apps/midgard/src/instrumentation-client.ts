@@ -5,6 +5,7 @@ if (!process.env.NEXT_PUBLIC_POSTHOG_KEY || !process.env.NEXT_PUBLIC_POSTHOG_HOS
 }
 
 posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY, {
-  api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
+  api_host: "/relay-aXgZ",
+  ui_host: "https://eu.posthog.com",
   defaults: '2025-05-24'
 });

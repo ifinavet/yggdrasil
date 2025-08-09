@@ -24,6 +24,23 @@ const nextConfig: NextConfig = {
     ],
     dangerouslyAllowSVG: true,
   },
+  async rewrites() {
+    return [
+      {
+        source: "/relay-aXgZ/static/:path*",
+        destination: "https://eu-assets.i.posthog.com/static/:path*",
+      },
+      {
+        source: "/relay-aXgZ/:path*",
+        destination: "https://eu.i.posthog.com/:path*",
+      },
+      {
+        source: "/relay-aXgZ/flags",
+        destination: "https://eu.i.posthog.com/flags",
+      },
+    ];
+  },
+  skipTrailingSlashRedirect: true,
 };
 
 export default nextConfig;
