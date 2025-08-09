@@ -31,6 +31,7 @@ export default function PostHogPageView(): null {
       posthog.identify(userId, {
         email: user.primaryEmailAddress?.emailAddress,
         username: user.username,
+        site: "bifrost"
       });
     }
 
