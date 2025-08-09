@@ -10,6 +10,8 @@ import {
 } from "@workspace/ui/components/card";
 import { AlertTriangle, Bug, Home, RefreshCw } from "lucide-react";
 import Link from "next/link";
+import posthog from "posthog-js";
+import { useEffect } from "react";
 
 interface ErrorProps {
   error: Error & { digest?: string };
@@ -17,6 +19,10 @@ interface ErrorProps {
 }
 
 export default function ErrorPage({ error, reset }: ErrorProps) {
+  useEffect(() => {
+    posthog.captureException(error, { site: "bifrost" });
+  }, [error]);
+
   return (
     <div className="grid h-full place-content-center bg-background p-4">
       <div className='w-full max-w-2xl space-y-6'>

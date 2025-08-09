@@ -6,12 +6,14 @@ import PageForm from "@/components/pages/page-form";
 import type { PageFormValues } from "@/constants/schemas/page-form-schema";
 import { Preloaded, useMutation, usePreloadedQuery, useQuery } from "convex/react";
 import { api } from "@workspace/backend/convex/api";
+import { usePostHog } from "posthog-js/react";
 
 export default function EditPageForm({ preloadedPage }: { preloadedPage: Preloaded<typeof api.externalPages.getById> }) {
   const router = useRouter();
 
-  const page = usePreloadedQuery(preloadedPage)
+  const posthog = usePostHog();
 
+  const page = usePreloadedQuery(preloadedPage)
 
   const defaultValues: PageFormValues = {
     title: page.title,
@@ -29,13 +31,21 @@ export default function EditPageForm({ preloadedPage }: { preloadedPage: Preload
       toast.success("Siden ble oppdatert!", {
         description: `Side oppdatert, ${new Date().toLocaleDateString()}`,
       });
+
+      posthog.capture("bifrost-page_updated", {
+        page_id: page._id,
+        page_published: published,
+      });
+
       router.push("/pages");
     }).catch(error => {
-      console.error(error);
-      console.error("Noe gikk galt!");
+      console.error(error, "Noe gikk galt!");
+
       toast.error("Noe gikk galt!", {
         description: error.message,
       });
+
+      posthog.captureException("bifrost-page_update_error", { site: "bifrost", error });
     })
   }
 

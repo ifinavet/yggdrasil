@@ -8,21 +8,34 @@ import { humanReadableDate } from "@/utils/utils";
 import { Preloaded, useMutation, usePreloadedQuery, useQuery } from "convex/react";
 import { api } from "@workspace/backend/convex/api";
 import { Id } from "@workspace/backend/convex/dataModel";
+import { usePostHog } from "posthog-js/react";
 
 export function Registrations({ eventId, preloadedRegistrations }: { eventId: Id<"events">, preloadedRegistrations: Preloaded<typeof api.registration.getByEventId>; }) {
   const registrations = usePreloadedQuery(preloadedRegistrations)
+
+  const posthog = usePostHog();
 
   const deleteRegistration = useMutation(api.registration.unregister)
   const handleDeleteRegistration = async (registrationId: Id<"registrations">) => {
     deleteRegistration({
       id: registrationId,
-    }).then(() => {
+    }).then(({ deletedRegistration }) => {
       toast.success("Registreringen ble slettet", {
         description: humanReadableDate(new Date()),
+      });
+
+      posthog.capture("bifrost-registration_deleted", {
+        ...deletedRegistration
       });
     }).catch(error => {
       toast.error("Det oppsto en feil ved sletting av registreringen", {
         description: error.name + ": " + error.message,
+      });
+
+      posthog.captureException("bifrost-registration_delete_error", {
+        site: "bifrost",
+        error,
+        registrationId,
       });
     })
   }
@@ -39,6 +52,13 @@ export function Registrations({ eventId, preloadedRegistrations }: { eventId: Id
     }).catch(error => {
       toast.error("Det oppsto en feil ved oppdatering av registreringen", {
         description: error.name + ": " + error.message,
+      });
+
+      posthog.captureException("bifrost-registration_update_error", {
+        site: "bifrost",
+        error,
+        registrationId,
+        newStatus,
       });
     })
   }
