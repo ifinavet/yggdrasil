@@ -24,34 +24,32 @@ function getRegistrationStatus(event: EventWithParticipationCount) {
 
   const registrationOpensDate = new Date(event.registrationOpens);
   const eventStartDate = new Date(event.eventStart);
+
   const participants = event.participationCount;
   const participantsLimit = event.participationLimit;
 
-  const registrationOpen = registrationOpensDate <= now;
-  const eventActive = registrationOpensDate < now && eventStartDate > now;
+  const registrationIsOpen = registrationOpensDate <= now;
+  const eventActive =
+    now.getTime() - eventStartDate.getTime() <= 24 * 60 * 60 * 1000;
 
   const registrationOpenToday =
-    registrationOpensDate.getFullYear() === now.getFullYear() &&
-    registrationOpensDate.getMonth() === now.getMonth() &&
-    registrationOpensDate.getDate() === now.getDate() &&
-    registrationOpensDate.getHours() === now.getHours();
+    registrationIsOpen &&
+    event.registrationOpens >= now.setHours(0, 0, 0, 0) &&
+    event.registrationOpens < now.setHours(24, 0, 0, 0);
 
-  let statusMessage = "";
-  if (participants === participantsLimit) {
-    statusMessage = "Påmeldingen er full";
-  } else if (participants < participantsLimit) {
-    statusMessage = "Det er fortsatt ledige plasser";
-  } else if (registrationOpenToday) {
-    statusMessage = "Påmeldingen er åpen";
-  } else {
-    statusMessage = `Påmeldingen åpner ${humanReadableDateTime(registrationOpensDate)}`;
-  }
+  const statusMessage = !registrationIsOpen
+    ? `Påmeldingen åpner ${humanReadableDateTime(registrationOpensDate)}`
+    : participants >= participantsLimit
+      ? "Påmeldingen er full, sett deg på venteliste!"
+      : registrationOpenToday
+        ? "Påmeldingen er åpen"
+        : "Det er fortsatt ledige plasser";
 
   return {
-    registrationOpen,
+    registrationOpen: registrationIsOpen,
     eventActive,
     statusMessage,
-    cardColor: registrationOpen
+    cardColor: registrationIsOpen
       ? "border-emerald-700 bg-emerald-700"
       : "border-zinc-400 bg-zinc-400",
   };
