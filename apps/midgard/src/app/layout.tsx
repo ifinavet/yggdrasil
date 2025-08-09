@@ -8,7 +8,7 @@ import Footer from "@/components/common/footer";
 import Header from "@/components/common/header/header";
 import Providers from "@/providers/providers";
 import { ThemeProvider } from "@/providers/theme-provider";
-import PostHogPageView from "./PostHogPageView";
+import PostHogPageView from "./posthog-page-view";
 
 const defaultUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`

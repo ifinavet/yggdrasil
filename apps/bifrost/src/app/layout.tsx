@@ -9,6 +9,7 @@ import { Toaster } from "@workspace/ui/components/sonner";
 import Header from "@/components/common/header";
 import BifrostSidebar from "@/components/common/sidebar/sidebar";
 import Providers from "@/providers/providers";
+import PostHogPageView from "./posthog-page-view";
 import UnauthorizedPage from "./unauthorized";
 
 const defaultUrl = process.env.VERCEL_URL
@@ -47,17 +48,22 @@ export default async function RootLayout({
               disableTransitionOnChange
             >
               <Providers>
-                {!orgId ? <UnauthorizedPage /> : <>
-                  <BifrostSidebar />
-                  <SidebarInset>
-                    <Header />
-                    <main className='flex h-full flex-col gap-4 p-4'>{children}</main>
-                  </SidebarInset>
-                  <Toaster richColors position='top-center' />
-                  {process.env.NODE_ENV === "development" && (
-                    <ReactQueryDevtools initialIsOpen={false} />
-                  )}
-                </>}
+                {!orgId ? (
+                  <UnauthorizedPage />
+                ) : (
+                  <>
+                    <BifrostSidebar />
+                    <SidebarInset>
+                      <Header />
+                      <main className='flex h-full flex-col gap-4 p-4'>{children}</main>
+                    </SidebarInset>
+                    <Toaster richColors position='top-center' />
+                    <PostHogPageView />
+                    {process.env.NODE_ENV === "development" && (
+                      <ReactQueryDevtools initialIsOpen={false} />
+                    )}
+                  </>
+                )}
               </Providers>
             </ThemeProvider>
           </SidebarProvider>
