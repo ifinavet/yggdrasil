@@ -11,6 +11,7 @@ import { fetchQuery } from "convex/nextjs";
 import { Info } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { FacebookIcon, InstagramIcon, LinkedinIcon } from "@/assets/icons/social";
 import Navet_Logo from "@/assets/navet/logo_n_blaa.webp";
 import Navet from "@/assets/promo_images/navet.webp";
 import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
@@ -125,8 +126,8 @@ export default async function MainPage() {
 
               <ul className='my-6 ml-6 list-disc [&>li]:mt-2'>
                 <li>
-                  et sentralt kontakt- og koordineringspunkt for alle bedriftsrelaterte
-                  aktiviteter ved instituttet.
+                  et sentralt kontakt- og koordineringspunkt for alle bedriftsrelaterte aktiviteter
+                  ved instituttet.
                 </li>
                 <li>
                   praktisk hjelp ved bedriftspresentasjoner og andre typer arrangementer
@@ -134,6 +135,37 @@ export default async function MainPage() {
                 </li>
                 <li>oversikt over bredriftsrelaterte aktiviteter for studenter.</li>
               </ul>
+
+              <h4 className='scroll-m-20 font-semibold text-xl tracking-tight'>
+                Følg oss på sosiale medier!
+              </h4>
+              <div className='mt-4 flex gap-4'>
+                <a
+                  href='https://www.instagram.com/ifinavet/'
+                  rel='nofollow noopener noreferrer external'
+                  target='_blank'
+                  className='flex items-center gap-2 text-lg text-primary underline'
+                >
+                  <InstagramIcon className='size-4 fill-primary' /> Instagram
+                </a>
+                <a
+                  href='https://www.facebook.com/share/1C1q1rEvmL/?mibextid=wwXIfr'
+                  rel='nofollow noopener noreferrer external'
+                  target='_blank'
+                  className='flex items-center gap-2 text-lg text-primary underline'
+                >
+                  <FacebookIcon className='size-4 fill-primary' /> Facebook
+                </a>
+                <a
+                  href='https://ie.linkedin.com/company/ifinavet'
+                  rel='nofollow noopener noreferrer external'
+                  target='_blank'
+                  className='flex items-center gap-2 text-lg text-primary underline'
+                >
+                  <LinkedinIcon className='size-4 text-primary' />
+                  Linkedin
+                </a>
+              </div>
             </div>
           }
           aside={
