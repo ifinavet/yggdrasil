@@ -20,7 +20,7 @@ function getErrorMessage(error: unknown): string {
 
 export default function GlobalError({ error, reset }: { error: unknown; reset: () => void }) {
   useEffect(() => {
-    posthog.captureException(error);
+    posthog.captureException(error, { site: "midgard" });
   }, [error]);
 
   const message = useMemo(() => getErrorMessage(error), [error]);

@@ -33,7 +33,8 @@ export function Registrations({ preloadedRegistrations }: { preloadedRegistratio
       });
 
       posthog.captureException(error, {
-        event: "midgard-intern-delete-registration-error",
+        site: "midgard",
+        event: "midgard-delete_registration_error",
       })
     })
   }
@@ -53,7 +54,8 @@ export function Registrations({ preloadedRegistrations }: { preloadedRegistratio
       });
 
       posthog.captureException(error, {
-        event: "midgard-intern-update-registration-error",
+        site: "midgard",
+        event: "midgard-update_registration_error",
       })
     })
   }
