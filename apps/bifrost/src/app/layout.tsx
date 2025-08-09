@@ -6,6 +6,7 @@ import { auth } from "@clerk/nextjs/server";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { SidebarInset, SidebarProvider } from "@workspace/ui/components/sidebar";
 import { Toaster } from "@workspace/ui/components/sonner";
+import { Suspense } from "react";
 import Header from "@/components/common/header";
 import BifrostSidebar from "@/components/common/sidebar/sidebar";
 import Providers from "@/providers/providers";
@@ -58,7 +59,9 @@ export default async function RootLayout({
                       <main className='flex h-full flex-col gap-4 p-4'>{children}</main>
                     </SidebarInset>
                     <Toaster richColors position='top-center' />
-                    <PostHogPageView />
+                    <Suspense fallback={null}>
+                      <PostHogPageView />
+                    </Suspense>
                     {process.env.NODE_ENV === "development" && (
                       <ReactQueryDevtools initialIsOpen={false} />
                     )}
