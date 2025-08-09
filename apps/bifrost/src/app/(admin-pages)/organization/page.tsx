@@ -13,7 +13,7 @@ import AddBoardMember from "@/components/organization/add-boardmember";
 import ListBoardMembers from "@/components/organization/list-board-members";
 
 export default async function OrganizationPage() {
-  const preloadedBoardMembers = await preloadQuery(api.internals.getBoardMembers);
+  const preloadedBoardMembers = await preloadQuery(api.internals.getTheBoard);
 
   return (
     <>
