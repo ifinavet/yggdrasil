@@ -166,7 +166,7 @@ export default async function OrganizationPage() {
           <h3 className='mb-4 scroll-m-20 font-semibold text-4xl text-primary tracking-tight'>
             Styret
           </h3>
-          <div className='flex flex-wrap justify-center gap-6'>
+          <div className='flex flex-wrap justify-center gap-4'>
             {theBoard.map((member) => (
               <BoardMember
                 key={member._id}

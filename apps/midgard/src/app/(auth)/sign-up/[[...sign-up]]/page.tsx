@@ -242,6 +242,9 @@ export default function SignUpPage() {
                   placeholder="eks. olanor@uio.no"
                   className="w-full"
                 />
+                <FormDescription>
+                  Oppgi din UIO e-post adresse. Denne må være en gyldig (ifi.)uio.no e-post.
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )} />
@@ -259,6 +262,9 @@ export default function SignUpPage() {
                     type="password"
                     className="w-full"
                   />
+                  <FormDescription>
+                    Passordet må være minst 8 tegn langt.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )} />
@@ -275,6 +281,9 @@ export default function SignUpPage() {
                     type="password"
                     className="w-full"
                   />
+                  <FormDescription>
+                    Bekreft passordet ditt. Passordene må være like.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )} />
@@ -300,6 +309,9 @@ export default function SignUpPage() {
                     </SelectContent>
                   </Select>
                 </FormControl>
+                <FormDescription>
+                  Oppgi hvilket studieprogram du studerer.
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -325,6 +337,9 @@ export default function SignUpPage() {
                     </SelectContent>
                   </Select>
                 </FormControl>
+                <FormDescription>
+                  Oppgi hvilken grad du studerer. (Bachelor, Master, etc.)
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -344,6 +359,9 @@ export default function SignUpPage() {
                     {...field}
                   />
                 </FormControl>
+                <FormDescription>
+                  Oppi hvilket semester du er på. (7. semester er 1. semster for master)
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
