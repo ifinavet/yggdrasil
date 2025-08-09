@@ -45,7 +45,7 @@ export default async function OrganizationPage() {
               <p>
                 Følg oss på våre sosiale medier for å holde deg oppdatert på hva som skjer i Navet:
               </p>
-              <ul className='my-6 ml-6 list-disc [&>li]:mt-2'>
+              <ul className="my-6 ml-6 grid w-fit list-disc gap-2 md:grid-cols-2 [&>li]:mt-2 [&>li]:pr-8">
                 <li>
                   <a
                     href='https://www.instagram.com/ifinavet/'
@@ -115,16 +115,17 @@ export default async function OrganizationPage() {
           <div className='grid justify-center gap-12 sm:grid-cols-2 lg:grid-cols-3'>
             <InternGroup name='Interngruppen'>
               <p className='leading-7 [&:not(:first-child)]:mt-4'>
-                Hjelp webasnvarlig med å vedlikeholde, teste, og utvikle nye funksjoner for Navets
-                webplatform. Dette er en unik mulighet til å jobbe med et større system som brukes
-                av mange ifi-studenter daglig.
+                I interngruppen så organiserer vi alle Navets interne arrangementer. Vi planlegger
+                internkveldene og de større avsluttningene på slutten av hvert semester. Vi jobber
+                på for at alle i Navet skal ha det så bra som mulig (og gøy som mulig).
               </p>
             </InternGroup>
             <InternGroup name='Bedriftsgruppen'>
               <p className='leading-7 [&:not(:first-child)]:mt-4'>
-                Hjelp webasnvarlig med å vedlikeholde, teste, og utvikle nye funksjoner for Navets
-                webplatform. Dette er en unik mulighet til å jobbe med et større system som brukes
-                av mange ifi-studenter daglig.
+                Vi i bedriftsgruppen gjør kanskje Navets viktigste jobb, vi finner bedriftene som
+                skal ha bedriftspresentasjoner. Bedriftsgruppen jobber kontinuerlig med å finne
+                bedrifter for studentene. Uten oss så får vi ingen bedrifter som kan lære og
+                informere studente om arbeidslivet.
               </p>
             </InternGroup>
             <InternGroup name='Organiseringsgruppen'>
@@ -158,16 +159,16 @@ export default async function OrganizationPage() {
             </InternGroup>
             <InternGroup name='Arrangementsgruppen'>
               <p className='leading-7 [&:not(:first-child)]:mt-4'>
-                Hjelp webasnvarlig med å vedlikeholde, teste, og utvikle nye funksjoner for Navets
-                webplatform. Dette er en unik mulighet til å jobbe med et større system som brukes
-                av mange ifi-studenter daglig.
+                I arrangementsgruppen så passer vi på at alle navets arrangementer går på skinner.
+                Vi har ansvaret for prikke systemet og assisterer de andre gruppene i sine oppgaver,
+                og samhandler med andre foreninger ved større arrangementer.
               </p>
             </InternGroup>
             <InternGroup name='Koordineringsgruppen'>
               <p className='leading-7 [&:not(:first-child)]:mt-4'>
-                Hjelp webasnvarlig med å vedlikeholde, teste, og utvikle nye funksjoner for Navets
-                webplatform. Dette er en unik mulighet til å jobbe med et større system som brukes
-                av mange ifi-studenter daglig.
+                Hjelp koordinator i sine oppgaver. Vi gjør et variert utvalg med oppgaver, men
+                kjernen er stillingsannonser. Vi legger ut og passer på at alt er i orden med
+                stillingsannonsene.
               </p>
             </InternGroup>
           </div>
@@ -265,7 +266,7 @@ function BoardMember({
       <div className='flex flex-col items-center'>
         <h3 className='text-pretty text-center font-semibold text-lg'>{name}</h3>
         <Button variant='link'>
-          <a href={`mailto:${email}`} className="text-balance text-center">
+          <a href={`mailto:${email}`} className='text-balance text-center'>
             {email}
           </a>
         </Button>
