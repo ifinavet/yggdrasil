@@ -67,7 +67,7 @@ export default function EditRegistration({
       <DialogTrigger asChild>
         <Button
           type='button'
-          className='w-1/2 rounded-xl bg-zinc-500 py-8 text-lg hover:cursor-pointer hover:bg-zinc-700'
+          className='w-1/2 rounded-xl bg-violet-400 py-8 text-lg hover:cursor-pointer hover:bg-violet-500'
           onClick={() => setOpen(true)}
         >
           Rediger din påmelding

@@ -63,7 +63,7 @@ export default async function OrganizationPage() {
                     target='_blank'
                     className='text-primary underline'
                   >
-                    Instagram
+                    Facebook
                   </a>
                 </li>
                 <li>

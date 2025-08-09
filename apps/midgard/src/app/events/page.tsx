@@ -1,10 +1,11 @@
 import { api } from "@workspace/backend/convex/api";
 import { fetchQuery } from "convex/nextjs";
+import type { Metadata } from "next";
 import { headers } from "next/headers";
 import EventsList from "@/components/events/events-list";
 import MonthSelector from "@/components/events/month-selector";
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "Arrangementer",
 };
 
@@ -24,10 +25,9 @@ export default async function EventsPage() {
   const selectedMonth = searchParams?.get("month");
 
   const eventEntries = Object.entries(events);
-  const activeMonthAndEvents = eventEntries.find(
-    ([month]) => month === selectedMonth
-  ) ?? eventEntries.find(([month]) => month === currentMonth)
-    ?? eventEntries[0] ?? ["Januar", []];
+  const activeMonthAndEvents = eventEntries.find(([month]) => month === selectedMonth) ??
+    eventEntries.find(([month]) => month === currentMonth) ??
+    eventEntries[0] ?? ["Januar", []];
 
   return (
     <>
