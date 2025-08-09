@@ -22,9 +22,16 @@ export default function Unregister({ eventId, registrationId }: { eventId: Id<"e
   const posthog = usePostHog();
 
   const unregister = useMutation(api.registration.unregister)
-  const onUnregister = () => unregister({ id: registrationId }).then(() => posthog.capture("midgard-student-unregister", { eventId })).catch(() => {
-    toast.error("O! Noe gikk galt! Prøv igjen senere")
-  })
+  const onUnregister = () => unregister({ id: registrationId })
+    .then(() => posthog.capture("midgard-student_unregister", { eventId }))
+    .catch(() => {
+      toast.error("O! Noe gikk galt! Prøv igjen senere")
+      posthog.captureException("midgard-student_unregister_error", {
+        site: "midgard",
+        eventId,
+        registrationId,
+      });
+    })
 
   return (
     <AlertDialog>
