@@ -74,7 +74,7 @@ export default async function DesktopHeader({ className }: { className?: string 
                     </NavigationMenuLink>
                   </li>
                   <li>
-                    <NavigationMenuLink className='w-full text-left text-base'>
+                    <NavigationMenuLink asChild className='w-full text-left text-base'>
                       <SignOutButton>Logg ut</SignOutButton>
                     </NavigationMenuLink>
                   </li>
