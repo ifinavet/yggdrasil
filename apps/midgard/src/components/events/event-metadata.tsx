@@ -55,7 +55,7 @@ export function EventMetadata({
         ) : event.registrationOpens > Date.now() ? (
           <Button
             type='button'
-            className='w-3/4 rounded-xl bg-zinc-500 py-8 text-lg hover:cursor-pointer hover:bg-zinc-500'
+            className="w-3/4 whitespace-normal text-balance rounded-xl bg-zinc-500 py-8 text-lg hover:cursor-pointer hover:bg-zinc-500"
           >
             Påmelding åpner {humanReadableDateTime(new Date(event.registrationOpens))}
           </Button>
@@ -63,7 +63,8 @@ export function EventMetadata({
           <RegistrationButton
             eventId={event._id}
             registration={registrations}
-            availableSpots={availableSpots} />
+            availableSpots={availableSpots}
+          />
         )}
       </div>
     </div>
