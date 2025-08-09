@@ -29,8 +29,7 @@ function getRegistrationStatus(event: EventWithParticipationCount) {
   const participantsLimit = event.participationLimit;
 
   const registrationIsOpen = registrationOpensDate <= now;
-  const eventActive =
-    now.getTime() - eventStartDate.getTime() <= 24 * 60 * 60 * 1000;
+  const eventActive = now.getTime() - eventStartDate.getTime() <= 24 * 60 * 60 * 1000;
 
   const registrationOpenToday =
     registrationIsOpen &&
