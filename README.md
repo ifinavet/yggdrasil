@@ -15,12 +15,13 @@ Yggdrasil is a modular, scalable monorepo designed to accelerate the development
 ```
 🌳 yggdrasil/
 ├── 📁 apps/
-│   ├── 🌈 bifrost/      # Main Next.js application (full-stack)
-│   └── 🌍 midgard/      # Secondary Next.js application
+│   ├── 🌈 bifrost/      # Admin dashboard and backend
+│   └── 🌍 midgard/      # Main website for ifinavet.no
 ├── 📦 packages/
+│   ├── ጀ backend/         # Convex backend logic
 │   ├── 🔧 typescript-config/ # Shared TypeScript configuration
 │   └── 🎨 ui/           # Shared React component library
-├── 🗃️ db/               # Database-related files (migrations, seeds, etc.)
+├── 📁 documentation/      # Documentation files
 ├── 📜 package.json      # Monorepo-level scripts and dependencies
 ├── 📜 pnpm-workspace.yaml # Workspace configuration
 └── ...
@@ -54,7 +55,7 @@ Yggdrasil is a modular, scalable monorepo designed to accelerate the development
 ### Backend & Database
 
 -   **Authentication:** [Clerk](https://clerk.com/)
--   **Database:** [Supabase](https://supabase.com/)
+-   **Backend:** [Convex](https://www.convex.dev/)
 
 ### Tooling & DX
 
