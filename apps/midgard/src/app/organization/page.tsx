@@ -150,7 +150,7 @@ export default async function OrganizationPage() {
                 arrangementene våre og bygge et positivt inntrykk av foreningen.
               </p>
             </InternGroup>
-            <InternGroup name='Webgruppa'>
+            <InternGroup name='Webteamet'>
               <p className='leading-7 [&:not(:first-child)]:mt-4'>
                 Hjelp webasnvarlig med å vedlikeholde, teste, og utvikle nye funksjoner for Navets
                 webplatform. Dette er en unik mulighet til å jobbe med et større system som brukes
