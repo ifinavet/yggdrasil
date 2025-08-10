@@ -1,12 +1,14 @@
 import { SignOutButton } from "@clerk/nextjs";
 import { api } from "@workspace/backend/convex/api";
 import { Button } from "@workspace/ui/components/button";
-import { DialogClose, DialogTitle } from "@workspace/ui/components/dialog";
+
 import {
   Drawer,
+  DrawerClose,
   DrawerContent,
   DrawerOverlay,
   DrawerPortal,
+  DrawerTitle,
   DrawerTrigger,
 } from "@workspace/ui/components/drawer";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
@@ -53,55 +55,106 @@ export default async function MobileHeader({ className }: { className?: string }
         <DrawerPortal>
           <DrawerOverlay />
           <DrawerContent className='fixed w-full bg-primary'>
-            <DialogTitle className='flex justify-between px-6 py-4'>
-              <Link href='/' className='w-1/4'>
-                <Image
-                  src={LogoBlue}
-                  alt='IFI-Navet'
-                  className='brightness-0 grayscale invert'
-                  priority
-                />
-              </Link>
-              <DialogClose>
+            <DrawerTitle className='flex justify-between px-6 py-4'>
+              <DrawerClose asChild>
+                <Link href='/' className='w-1/4'>
+                  <Image
+                    src={LogoBlue}
+                    alt='IFI-Navet'
+                    className='brightness-0 grayscale invert'
+                    priority
+                  />
+                </Link>
+              </DrawerClose>
+              <DrawerClose>
                 <X className='size-6 text-primary-foreground' />
-              </DialogClose>
-            </DialogTitle>
+              </DrawerClose>
+            </DrawerTitle>
             <ScrollArea>
               <ul className='mx-6 flex flex-col items-end'>
                 <li>
-                  <Button type='button' variant='link' className='text-primary-foreground' asChild>
-                    <Link href='/events'>Arrangementer</Link>
-                  </Button>
+                  <DrawerClose asChild>
+                    <Button
+                      type='button'
+                      variant='link'
+                      className='text-primary-foreground'
+                      asChild
+                    >
+                      <Link href='/events'>Arrangementer</Link>
+                    </Button>
+                  </DrawerClose>
                 </li>
                 <li>
-                  <Button type='button' variant='link' className='text-primary-foreground' asChild>
-                    <Link href='/job-listings'>Stillingsannonser</Link>
-                  </Button>
+                  <DrawerClose asChild>
+                    <Button
+                      type='button'
+                      variant='link'
+                      className='text-primary-foreground'
+                      asChild
+                    >
+                      <Link href='/job-listings'>Stillingsannonser</Link>
+                    </Button>
+                  </DrawerClose>
                 </li>
                 <li>
-                  <Button type='button' variant='link' className='text-primary-foreground' asChild>
-                    <Link href='/events?external=true'>Eksterne arrangementer</Link>
-                  </Button>
+                  <DrawerClose asChild>
+                    <Button
+                      type='button'
+                      variant='link'
+                      className='text-primary-foreground'
+                      asChild
+                    >
+                      <Link href='/events?external=true'>Eksterne arrangementer</Link>
+                    </Button>
+                  </DrawerClose>
                 </li>
                 <li>
-                  <Button type='button' variant='link' className='text-primary-foreground' asChild>
-                    <Link href='/companies'>For bedrifter</Link>
-                  </Button>
+                  <DrawerClose asChild>
+                    <Button
+                      type='button'
+                      variant='link'
+                      className='text-primary-foreground'
+                      asChild
+                    >
+                      <Link href='/companies'>For bedrifter</Link>
+                    </Button>
+                  </DrawerClose>
                 </li>
                 <li>
-                  <Button type='button' variant='link' className='text-primary-foreground' asChild>
-                    <Link href='/students'>For studenter</Link>
-                  </Button>
+                  <DrawerClose asChild>
+                    <Button
+                      type='button'
+                      variant='link'
+                      className='text-primary-foreground'
+                      asChild
+                    >
+                      <Link href='/students'>For studenter</Link>
+                    </Button>
+                  </DrawerClose>
                 </li>
                 <li>
-                  <Button type='button' variant='link' className='text-primary-foreground' asChild>
-                    <Link href='/organisation'>Foreningen</Link>
-                  </Button>
+                  <DrawerClose asChild>
+                    <Button
+                      type='button'
+                      variant='link'
+                      className='text-primary-foreground'
+                      asChild
+                    >
+                      <Link href='/organization'>Foreningen</Link>
+                    </Button>
+                  </DrawerClose>
                 </li>
                 <li>
-                  <Button type='button' variant='link' className='text-primary-foreground' asChild>
-                    <Link href='/contact'>Si ifra</Link>
-                  </Button>
+                  <DrawerClose asChild>
+                    <Button
+                      type='button'
+                      variant='link'
+                      className='text-primary-foreground'
+                      asChild
+                    >
+                      <Link href='/contact'>Si ifra</Link>
+                    </Button>
+                  </DrawerClose>
                 </li>
               </ul>
               <Separator className='text-primary-foreground/50' />
@@ -109,36 +162,42 @@ export default async function MobileHeader({ className }: { className?: string }
                 {user ? (
                   <>
                     <li>
-                      <Button
-                        type='button'
-                        variant='link'
-                        className='text-primary-foreground'
-                        asChild
-                      >
-                        <Link href='/profile'>{user.firstName}</Link>
-                      </Button>
+                      <DrawerClose asChild>
+                        <Button
+                          type='button'
+                          variant='link'
+                          className='text-primary-foreground'
+                          asChild
+                        >
+                          <Link href='/profile'>{user.firstName}</Link>
+                        </Button>
+                      </DrawerClose>
                     </li>
                     <li>
-                      <Button
-                        type='button'
-                        variant='link'
-                        className='text-primary-foreground'
-                        asChild
-                      >
-                        <SignOutButton>Logg ut</SignOutButton>
-                      </Button>
+                      <DrawerClose asChild>
+                        <Button
+                          type='button'
+                          variant='link'
+                          className='text-primary-foreground'
+                          asChild
+                        >
+                          <SignOutButton>Logg ut</SignOutButton>
+                        </Button>
+                      </DrawerClose>
                     </li>
                   </>
                 ) : (
                   <li>
-                    <Button
-                      type='button'
-                      variant='link'
-                      className='text-primary-foreground'
-                      asChild
-                    >
-                      <Link href={`/sign-in?redirect=${pathname}`}>Logg inn</Link>
-                    </Button>
+                    <DrawerClose asChild>
+                      <Button
+                        type='button'
+                        variant='link'
+                        className='text-primary-foreground'
+                        asChild
+                      >
+                        <Link href={`/sign-in?redirect=${pathname}`}>Logg inn</Link>
+                      </Button>
+                    </DrawerClose>
                   </li>
                 )}
               </ul>

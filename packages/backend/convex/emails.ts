@@ -2,6 +2,7 @@
 
 import { Resend } from "@convex-dev/resend";
 import { pretty, render } from "@react-email/render";
+import AvailableSeatEmail from "@workspace/emails/available-seat-email";
 import LockedOutEmail from "@workspace/emails/locked-out-email";
 import PointsEmail from "@workspace/emails/point-email";
 import { v } from "convex/values";
@@ -48,6 +49,35 @@ export const sendTooManyPointsEmail = internalAction({
       replyTo: ["arrangement@ifinavet.no"],
       to: participantEmail,
       subject: "Du har fått for mange prikker.",
+      html,
+    });
+  },
+});
+
+export const sendAvailableSeatEmail = internalAction({
+  args: {
+    participantEmail: v.string(),
+    eventId: v.id("events"),
+    eventTitle: v.string(),
+    registrationId: v.id("registrations"),
+  },
+  handler: async (ctx, { participantEmail, eventId, eventTitle, registrationId }) => {
+    const url = `https://ifinavet.no/events/${eventId}/registration/${registrationId}`;
+
+    const html = await pretty(
+      await render(
+        AvailableSeatEmail({
+          event: eventTitle,
+          url
+        }),
+      ),
+    );
+
+    await resend.sendEmail(ctx, {
+      from: "Navet <info@ifinavet.no>",
+      replyTo: ["arrangement@ifinavet.no"],
+      to: participantEmail,
+      subject: "Du har fått plass på arrangementet!",
       html,
     });
   },
