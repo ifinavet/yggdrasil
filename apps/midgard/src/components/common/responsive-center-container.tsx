@@ -8,7 +8,12 @@ export default function ResponsiveCenterContainer({
   className?: string;
 }) {
   return (
-    <div className={cn(className, "mx-6 max-w-5xl md:mx-auto md:w-5/6 lg:w-4/5 xl:w-8/14")}>
+    <div
+      className={cn(
+        className,
+        "mx-6 min-w-0 max-w-5xl whitespace-normal text-balance break-words md:mx-auto md:w-5/6 lg:w-4/5 xl:w-8/14",
+      )}
+    >
       {children}
     </div>
   );
