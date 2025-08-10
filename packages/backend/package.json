@@ -11,10 +11,12 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
   "packageManager": "pnpm@10.13.1",
   "dependencies": {
     "@clerk/backend": "^2.6.3",
+    "@convex-dev/resend": "^0.1.9",
+    "@react-email/render": "^1.2.0",
+    "@workspace/emails": "workspace:*",
     "convex": "^1.25.4",
     "svix": "^1.69.0"
   },

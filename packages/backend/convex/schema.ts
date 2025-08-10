@@ -78,7 +78,8 @@ export default defineSchema({
     externalUrl: v.optional(v.string()),
     hostingCompany: v.id("companies"),
     published: v.boolean(),
-  }).index("by_eventStart", ["eventStart"]),
+  }).index("by_eventStart", ["eventStart"])
+    .index("by_registrationOpens", ["registrationOpens"]),
 
   eventOrganizers: defineTable({
     eventId: v.id("events"),
