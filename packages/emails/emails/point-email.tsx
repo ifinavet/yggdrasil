@@ -28,9 +28,7 @@ export default function PointsEmail({
         <Font fontFamily='Helvetica' fallbackFontFamily='sans-serif' />
       </Head>
 
-      <Preview>
-        Du har fått {severity} {pointsPlural}.
-      </Preview>
+      <Preview>{`Du har fått ${severity} ${pointsPlural}.`}</Preview>
 
       <Tailwind
         config={{
@@ -76,7 +74,7 @@ export default function PointsEmail({
 
           <Text className='py-4 text-gray-700 text-sm'>
             Dersom du mener at dette er en feil kan du svare på eposten, eller sende en epost til{" "}
-            <a href='mailto:arrangement@ifinavet.no'>arrangement@finavet.no</a>
+            <a href='mailto:arrangement@ifinavet.no'>arrangement@ifinavet.no</a>
           </Text>
 
           <Text className='pt-16 text-center text-gray-400 text-lg leading-[18px]'>
