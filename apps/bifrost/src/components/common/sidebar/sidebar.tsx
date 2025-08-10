@@ -30,6 +30,8 @@ import {
   ExternalLink,
   GitGraphIcon,
   LogOut,
+  MailsIcon,
+  ScrollTextIcon,
   ServerCogIcon,
   UserCogIcon,
 } from "lucide-react";
@@ -60,6 +62,16 @@ const externalPaths = {
       title: "PostHog",
       icon: ChartScatterIcon,
       path: "https://eu.posthog.com/project/54712",
+    },
+    {
+      title: "Axiom",
+      icon: ScrollTextIcon,
+      path: "https://app.axiom.co/ifi-navet-admq/datasets/yggdrasil"
+    },
+    {
+      title: "Resend",
+      icon: MailsIcon,
+      path: "https://resend.com/metrics"
     },
     {
       title: "GitHub",
