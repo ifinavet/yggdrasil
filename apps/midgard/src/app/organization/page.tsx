@@ -105,7 +105,7 @@ export default async function OrganizationPage() {
               internmøte, der hele foreningen samles for oppdateringer om aktuelle saker. Det er
               viktig å være engasjert og hjelpe til ved behov. Det er viktig å huske at det ikke
               bare er arbeid, men mye sosialt også! Etter hvert internmøte er det internkveld, som
-              er sponset av foreningen. Foreningen har mye sosialt å by på, somutenlandstur,
+              er sponset av foreningen. Foreningen har mye sosialt å by på, som utenlandstur,
               julebord, sommerfest og mange andre små og store aktiviteter gjennom året.
             </p>
             <div className='grid h-full flex-1 place-content-center'>
