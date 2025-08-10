@@ -4,6 +4,7 @@ import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
+import { usePostHog } from "posthog-js/react";
 import { toast } from "sonner";
 import JobListingForm from "@/components/job-listings/job-listings-form/job-listing-form";
 import type { JobListingFormValues } from "@/constants/schemas/job-listing-form-schema";
@@ -25,8 +26,10 @@ export default function NewJobListingForm() {
   };
 
   const router = useRouter();
-  const createJobListingMutation = useMutation(api.listings.create);
 
+  const posthog = usePostHog();
+
+  const createJobListingMutation = useMutation(api.listings.create);
   const handleSubmit = async (values: JobListingFormValues, published: boolean) => {
     createJobListingMutation({
       title: values.title,
@@ -50,17 +53,18 @@ export default function NewJobListingForm() {
         router.push("/job-listings");
       })
       .catch((error) => {
-        console.error(error);
         toast.error("Det har skjedd en feil!");
+
+        posthog.captureException(error, { site: "bifrost" })
       });
   };
 
   const handlePrimaryFormSubmit = (values: JobListingFormValues) => {
-    handleSubmit(values, true)
+    handleSubmit(values, true);
   };
 
   const handleSecondaryFormSubmit = (values: JobListingFormValues) => {
-    handleSubmit(values, false)
+    handleSubmit(values, false);
   };
 
   return (
