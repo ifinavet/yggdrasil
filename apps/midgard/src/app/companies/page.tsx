@@ -26,7 +26,7 @@ export default async function CompaniesPage() {
         <div className='grid grid-cols-1 gap-6 md:grid-cols-5'>
           <div className='grid gap-6 md:col-span-3'>
             <ContainerCard className='bg-primary'>
-              <h2 className='scroll-m-10 pb-2 font-semibold text-3xl text-primary-foreground tracking-tight first:mt-0'>
+              <h2 className='scroll-m-10 hyphens-auto pb-2 font-semibold text-3xl text-primary-foreground tracking-tight first:mt-0'>
                 Navets formål
               </h2>
               <p className='text-primary-foreground leading-7'>
@@ -48,7 +48,7 @@ export default async function CompaniesPage() {
               </p>
             </ContainerCard>
             <ContainerCard>
-              <h2 className='scroll-m-10 pb-2 font-semibold text-3xl tracking-tight first:mt-0'>
+              <h2 className="scroll-m-10 hyphens-auto pb-2 font-semibold text-3xl tracking-tight first:mt-0">
                 Bedriftspresentasjon, kurs og foredrag
               </h2>
               <p className='leading-7'>
