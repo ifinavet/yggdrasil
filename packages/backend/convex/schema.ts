@@ -98,6 +98,8 @@ export default defineSchema({
     attendanceTime: v.optional(v.number()),
   })
     .index("by_eventId", ["eventId"])
+    .index("by_eventIdAndRegistrationTime", ["eventId", "registrationTime"])
+    .index("by_eventIdStatusAndRegistrationTime", ["eventId", "status", "registrationTime"])
     .index("by_userId", ["userId"]),
 
   externalPages: defineTable({
