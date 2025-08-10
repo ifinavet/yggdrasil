@@ -10,7 +10,7 @@ import { createColumns, Registration } from "@/components/events/admin/columns";
 import { RegistrationsTable } from "@/components/events/admin/registrations-table";
 import { Button } from "@workspace/ui/components/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui/components/popover";
-import { Mails } from "lucide-react";
+import { Copy, Mails } from "lucide-react";
 import { usePostHog } from "posthog-js/react";
 
 export function Registrations({ preloadedRegistrations }: { preloadedRegistrations: Preloaded<typeof api.registration.getByEventId>; }) {
@@ -87,6 +87,14 @@ export function Registrations({ preloadedRegistrations }: { preloadedRegistratio
     (registrationId, newStatus) => handleUpdateRegistration(registrationId, newStatus),
   );
 
+  const handleCopyParticipantList = () => {
+    const participantList = registrations.registered.map(registration => {
+      return `${registration.userName}\t${registration.userEmail.split("@")[0]}`;
+    }).join('\n');
+
+    navigator.clipboard.writeText(participantList);
+  }
+
   const registeredData =
     registrations?.registered?.map(
       (registration) =>
@@ -122,24 +130,29 @@ export function Registrations({ preloadedRegistrations }: { preloadedRegistratio
         </TabsTrigger>
       </TabsList>
       <TabsContent value='registered'>
-        <div className="flex justify-between border-b items-center border-primary">
+        <div className="flex justify-between border-b items-center border-primary flex-wrap">
           <h2 className='scroll-m-20 font-semibold text-2xl tracking-tight first:mt-0'>
             Påmeldte
           </h2>
 
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" className="mb-3">
-                <Mails size={4} /> Send e-post
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent>
-              <div className="flex flex-col gap-4">
-                <Button onClick={() => handleSendEmail(true, false)} type="button" variant="default">Send epost til deltakerne</Button>
-                <Button onClick={() => handleSendEmail(true, true)}>Kopier epost listen</Button>
-              </div>
-            </PopoverContent>
-          </Popover>
+          <div className="flex gap-2 md:gap-4 flex-wrap">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="mb-3">
+                  <Mails size={4} /> Send e-post
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent>
+                <div className="flex flex-col gap-4">
+                  <Button onClick={() => handleSendEmail(true, false)} type="button" variant="default">Send epost til deltakerne</Button>
+                  <Button onClick={() => handleSendEmail(true, true)}>Kopier epost listen</Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+            <Button variant="outline" className="mb-3" onClick={handleCopyParticipantList}>
+              <Copy size={4} /> Kopier deltakerliste
+            </Button>
+          </div>
         </div>
 
         <RegistrationsTable columns={columns} data={registeredData} />
