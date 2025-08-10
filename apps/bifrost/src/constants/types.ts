@@ -1,3 +1,5 @@
+import type { Id } from "@workspace/backend/convex/dataModel";
+
 export type Organizer = {
   _id: string;
   role: string;
@@ -5,7 +7,7 @@ export type Organizer = {
 };
 
 export type Event = {
-  _id: string;
+  _id: Id<"events">;
   title: string;
   hostingCompanyName: string;
   eventStart: number;

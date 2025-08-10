@@ -13,9 +13,9 @@ import { Plus } from "lucide-react";
 import Link from "next/link";
 import EventsGrid from "@/components/events/events-grid";
 import SelectSemester from "@/components/events/select-semester";
+import SelectedEvents from "@/components/events/selected-events";
 
 export default async function Events() {
-
   const preloadedPossibleSemesters = await preloadQuery(api.events.getPossibleSemesters);
 
   return (
@@ -32,8 +32,13 @@ export default async function Events() {
         </BreadcrumbList>
       </Breadcrumb>
 
-      <div className='flex justify-between'>
-        <SelectSemester preloadedPossibleSemesters={preloadedPossibleSemesters} />
+      <div className='flex flex-wrap justify-between'>
+        <div className="flex flex-wrap gap-6">
+          <SelectSemester preloadedPossibleSemesters={preloadedPossibleSemesters} />
+
+          <SelectedEvents />
+        </div>
+
         <Button asChild>
           <Link href='/events/new-event'>
             <Plus className='size-4' /> Lag et nytt arrangement

@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { internalQuery, mutation, type QueryCtx, query } from "./_generated/server";
-import { userByExternalId } from "./users";
+import { getCurrentUserOrThrow, userByExternalId } from "./users";
 
 // Shared validator for organizer roles
 const organizerRoleValidator = v.union(v.literal("hovedansvarlig"), v.literal("medhjelper"));
@@ -360,6 +360,20 @@ export const update = mutation({
       });
 
     await Promise.all([...organizersToDelete, ...organizersToUpdate, ...organizersToCreate]);
+  },
+});
+
+export const updatePublishedStatus = mutation({
+  args: {
+    ids: v.array(v.id("events")),
+    newPublishedStatus: v.boolean(),
+  },
+  handler: async (ctx, { ids, newPublishedStatus }) => {
+    await getCurrentUserOrThrow(ctx);
+
+    await Promise.all(ids.map(async (id) => {
+      await ctx.db.patch(id, { published: newPublishedStatus });
+    }))
   },
 });
 
