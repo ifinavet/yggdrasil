@@ -18,7 +18,6 @@ import { groupJobListings, type JobListing } from "@/utils/job-listings";
 
 export default async function JobListingsPage() {
   const listings = await fetchQuery(api.listings.getAll, {});
-  console.log(listings)
 
   const data: JobListing[] = listings.map((listing) => ({
     listingId: listing._id,

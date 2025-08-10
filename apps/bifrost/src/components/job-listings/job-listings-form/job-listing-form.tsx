@@ -62,8 +62,6 @@ export default function EventForm({
 
   const companies = useQuery(api.companies.getAll);
 
-  console.log(form.formState.errors)
-
   return (
     <Form {...form}>
       <form className='space-y-8'>
