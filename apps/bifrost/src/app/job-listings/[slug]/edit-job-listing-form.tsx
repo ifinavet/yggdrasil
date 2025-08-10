@@ -11,6 +11,7 @@ import { api } from "@workspace/backend/convex/api";
 import { Id } from "@workspace/backend/convex/dataModel";
 import { useQuery } from "@tanstack/react-query";
 import { useMutation } from "convex/react";
+import { usePostHog } from "posthog-js/react";
 
 export default function EditJobListingForm({ listingId }: { listingId: Id<"jobListings"> }) {
   const { data: joblisting, isLoading } = useQuery({
@@ -22,6 +23,8 @@ export default function EditJobListingForm({ listingId }: { listingId: Id<"jobLi
     ...convexQuery(api.companies.getById, { id: joblisting?.company as Id<"companies"> }),
     enabled: !!joblisting?.company,
   });
+
+  const posthog = usePostHog();
 
   const router = useRouter();
 
@@ -51,7 +54,8 @@ export default function EditJobListingForm({ listingId }: { listingId: Id<"jobLi
       router.push("/job-listings");
     }).catch(error => {
       toast.error("Det har skjedd en feil!");
-      console.error(error);
+
+      posthog.captureException(error, { site: "bifrost" })
     });
 
   const handleDelete = (id: Id<"jobListings">) =>
@@ -62,7 +66,8 @@ export default function EditJobListingForm({ listingId }: { listingId: Id<"jobLi
       router.push("/job-listings");
     }).catch(error => {
       toast.error("Det har skjedd en feil!");
-      console.error(error);
+
+      posthog.captureException(error, { site: "bifrost" })
     });
 
   if (isLoading || !joblisting || isCompanyLoading || !company) {
