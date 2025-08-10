@@ -16,6 +16,7 @@ import { Input } from "@workspace/ui/components/input";
 import { Label } from "@workspace/ui/components/label";
 import { RadioGroup, RadioGroupItem } from "@workspace/ui/components/radio-group";
 import { useMutation } from "convex/react";
+import { usePostHog } from "posthog-js/react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import z from "zod/v4";
@@ -40,18 +41,29 @@ export default function StudentPointsForm({ student_id }: { student_id: Id<"stud
     },
   });
 
+  const posthog = usePostHog();
+
   const giveStudentPoints = useMutation(api.points.givePoints);
   const onSubmit = (values: z.Infer<typeof pointsSchema>) => {
     giveStudentPoints({
       id: student_id,
       reason: values.reason,
       severity: values.severity,
-    }).then(() => {
-      toast.success("Prikken(e) vellykket gitt");
-      form.reset();
-    }).catch(() => {
-      toast.error("Noe gikk galt. Vennligst prøv igjen senere.");
-    });
+    })
+      .then(() => {
+        toast.success("Prikken(e) vellykket gitt");
+
+        posthog.capture("bifrost-student_points_given", {
+          student_id: student_id,
+          reason: values.reason,
+          severity: values.severity,
+        });
+
+        form.reset();
+      })
+      .catch(() => {
+        toast.error("Noe gikk galt. Vennligst prøv igjen senere.");
+      });
   };
 
   return (
