@@ -4,6 +4,7 @@ import { nbNO } from "@clerk/localizations";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "@workspace/ui/components/sonner";
 import { Suspense } from "react";
+import { Consent } from "@/components/common/consent";
 import { eina } from "@/components/common/eina-font";
 import Footer from "@/components/common/footer";
 import Header from "@/components/common/header/header";
@@ -42,6 +43,7 @@ export default function RootLayout({
                 <Footer />
                 <Toaster richColors />
               </div>
+              <Consent />
               <Suspense fallback={null}>
                 <PostHogPageView />
               </Suspense>
