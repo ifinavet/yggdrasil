@@ -48,6 +48,17 @@ export const givePoints = mutation({
       reason,
       severity,
     });
+
+    const student = await ctx.db.get(id);
+    if (!student) {
+      throw new Error(`Student with ID ${id} not found.`);
+    }
+
+    await ctx.scheduler.runAfter(0, internal.points.givePointsEmail, {
+      userId: student.userId,
+      severity,
+      reason,
+    });
   },
 });
 
