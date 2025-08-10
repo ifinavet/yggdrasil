@@ -77,7 +77,7 @@ export default function SignUpForm({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button className={className} type='button' onClick={() => setOpen(true)}>
-          {waitlist ? "Det er fult! Meld deg på ventelisten" : "Meld deg på"}
+          {waitlist ? "Det er fult! Meld deg på venteliste" : "Meld deg på"}
         </Button>
       </DialogTrigger>
       <DialogContent className='sm:max-w-[425px]'>

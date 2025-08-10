@@ -65,7 +65,7 @@ export default function RegistrationButton({
       <SignUpForm
         eventId={eventId}
         userId={currentUser._id}
-        className={`w-1/2 rounded-xl bg-emerald-600 py-8 text-center font-semibold text-lg hover:cursor-pointer hover:bg-emerald-700`}
+        className={`w-3/4 whitespace-normal text-balance rounded-xl bg-emerald-600 px-6 py-8 text-center font-semibold text-lg hover:cursor-pointer hover:bg-emerald-700 md:w-1/2`}
         waitlist={availableSpots === 0}
       />
     );
@@ -73,9 +73,7 @@ export default function RegistrationButton({
 
   const registrationToEdit = currentUsersRegistration ?? currentUsersWaitlistRegistration;
 
-  if (!registrationToEdit) {
-    return null;
-  }
+  if (!registrationToEdit) return null;
 
   return <EditRegistration registration={registrationToEdit} eventId={eventId} />;
 }

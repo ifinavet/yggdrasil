@@ -70,13 +70,13 @@ export default function EditRegistration({
       <DialogTrigger asChild>
         <Button
           type='button'
-          className='w-1/2 rounded-xl bg-violet-400 py-8 text-lg hover:cursor-pointer hover:bg-violet-500'
+          className="w-3/4 whitespace-normal text-balance rounded-xl bg-violet-400 py-8 text-lg hover:cursor-pointer hover:bg-violet-500 md:w-1/2"
           onClick={() => setOpen(true)}
         >
           Rediger din påmelding
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent aria-description='Rediger påmelding'>
         <DialogHeader>
           <DialogTitle>Rediger din påmelding</DialogTitle>
         </DialogHeader>

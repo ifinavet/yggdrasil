@@ -6,6 +6,7 @@ import { type Preloaded, usePreloadedQuery } from "convex/react";
 import { CalendarDays, Globe, IdCard, MapPin, Users, Utensils } from "lucide-react";
 import { humanReadableDateTime } from "@/uitls/dateFormatting";
 import RegistrationButton from "./registration/registration-button";
+import WaitlistPosition from "./registration/waitlist-position";
 
 export function EventMetadata({
   preloadedEvent,
@@ -41,7 +42,7 @@ export function EventMetadata({
           <IdCard className='size-8' /> {event.ageRestriction}
         </p>
       </div>
-      <div className='-mt-8 mb-8 flex justify-center'>
+      <div className='-mt-8 mb-6 flex justify-center'>
         {typeof event.externalUrl === "string" && event.externalUrl.length > 0 ? (
           <Button
             type='button'
@@ -55,7 +56,7 @@ export function EventMetadata({
         ) : event.registrationOpens > Date.now() ? (
           <Button
             type='button'
-            className="w-3/4 whitespace-normal text-balance rounded-xl bg-zinc-500 py-8 text-lg hover:cursor-pointer hover:bg-zinc-500"
+            className='w-3/4 whitespace-normal text-balance rounded-xl bg-zinc-500 py-8 text-lg hover:cursor-pointer hover:bg-zinc-500'
           >
             Påmelding åpner {humanReadableDateTime(new Date(event.registrationOpens))}
           </Button>
@@ -67,6 +68,7 @@ export function EventMetadata({
           />
         )}
       </div>
+      <WaitlistPosition className='mb-6' registrations={registrations} />
     </div>
   );
 }

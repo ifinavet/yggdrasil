@@ -10,7 +10,7 @@ export const getByEventId = query({
   handler: async (ctx, { eventId }) => {
     const registrations = await ctx.db
       .query("registrations")
-      .withIndex("by_eventId", (q) => q.eq("eventId", eventId))
+      .withIndex("by_eventIdAndRegistrationTime", (q) => q.eq("eventId", eventId))
       .collect();
 
     const registrationsWithUsers = await Promise.all(
@@ -197,14 +197,10 @@ export const unregister = mutation({
       deletedRegistration: registration
     }
 
-    const registrations = await ctx.db
+    const nextRegistration = await ctx.db
       .query("registrations")
-      .withIndex("by_eventId", (q) => q.eq("eventId", registration.eventId))
-      .collect();
-
-    const nextRegistration = registrations
-      .filter((reg) => reg.status === "waitlist")
-      .sort((a, b) => a._creationTime - b._creationTime)[0];
+      .withIndex("by_eventIdStatusAndRegistrationTime", (q) => q.eq("eventId", registration.eventId).eq("status", "waitlist"))
+      .first();
 
     if (!nextRegistration) {
       console.log(`No waitlist registrations found for event ${event.title}.`);
