@@ -3,8 +3,8 @@ import Link from "next/link";
 
 export default function Footer() {
   return (
-    <footer className='flex w-full justify-center bg-primary py-8 text-primary-foreground'>
-      <div className='grid w-full max-w-sm grid-cols-1 justify-between gap-4 px-4 sm:grid-cols-2 md:max-w-md lg:max-w-xl xl:max-w-6xl'>
+    <footer className='flex w-full justify-center bg-primary py-10 text-primary-foreground'>
+      <div className="flex h-fit w-full max-w-6xl flex-wrap justify-between gap-8 px-8">
         <div className='flex flex-col gap-2 px-4 sm:px-0'>
           <div className='font-semibold text-lg'>IFI-Navet</div>
           <p className='leading-none'>Postboks 1080 Blindern </p>
