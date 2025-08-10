@@ -48,11 +48,11 @@ export default function RegistrationButton({
     );
   }
 
-  if (numberOfPoints >= 3) {
+  if (numberOfPoints >= 3 && !currentUsersRegistration && !currentUsersWaitlistRegistration) {
     return (
       <Button
         type='button'
-        className='!opacity-100 w-fit rounded-xl bg-amber-600 py-8 text-lg hover:cursor-pointer hover:bg-zinc-700'
+        className="!opacity-100 w-3/4 whitespace-normal text-balance rounded-xl bg-amber-600 py-10 text-lg hover:cursor-pointer hover:bg-zinc-700"
         disabled
       >
         For mange prikker til å kunne melde deg på.
