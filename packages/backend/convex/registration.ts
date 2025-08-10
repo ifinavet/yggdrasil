@@ -259,9 +259,21 @@ export const unregister = mutation({
       }
     }
 
+    const user = await ctx.db.get(nextRegistration.userId);
+    if (!user) {
+      throw new Error(`Bruker med ID ${nextRegistration.userId} ikke funnet. Kan ikke oppdatere registrering.`);
+    }
+
     await ctx.db.patch(nextRegistration._id, {
       status: "pending",
       registrationTime: Date.now(),
+    });
+
+    await ctx.scheduler.runAfter(0, internal.emails.sendAvailableSeatEmail, {
+      participantEmail: user.email,
+      eventTitle: event.title,
+      eventId: event._id,
+      registrationId: nextRegistration._id,
     });
 
     return {
