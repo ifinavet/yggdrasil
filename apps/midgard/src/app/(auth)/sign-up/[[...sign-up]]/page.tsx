@@ -4,7 +4,7 @@ import ResponsiveCenterContainer from "@/components/common/responsive-center-con
 import { DEGREE_TYPES } from "@/constants/degree-types";
 import { STUDY_PROGRAMS } from "@/constants/study-program-types";
 import { zodv4Resolver } from "@/uitls/zod-v4-resolver";
-import { useSignUp } from "@clerk/nextjs";
+import { useAuth, useSignUp } from "@clerk/nextjs";
 import { isClerkAPIResponseError } from "@clerk/nextjs/errors";
 import { ClerkAPIError } from "@clerk/types";
 import { Button } from "@workspace/ui/components/button";
@@ -41,6 +41,7 @@ const verifyingSchema = z.object({
 });
 
 export default function SignUpPage() {
+  const { isSignedIn } = useAuth();
   const { isLoaded, signUp, setActive } = useSignUp();
   const posthog = usePostHog();
 
@@ -157,6 +158,11 @@ export default function SignUpPage() {
       setLoading(false);
     }
   };
+
+  if (isSignedIn) {
+    router.push("/");
+    return null;
+  }
 
   if (verifying) {
     return (
