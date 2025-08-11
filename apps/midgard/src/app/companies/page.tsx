@@ -93,7 +93,7 @@ export default async function CompaniesPage() {
                 className='bg-primary py-6 text-base text-primary-foreground'
                 asChild
               >
-                <a href='/' rel='noopener' target='_blank'>
+                <a href='https://docs.google.com/forms/d/1pyPhN0eod6g3iwmHLfUycz1CI2KplwZRSbozwrJdaR4/edit' target='_blank' rel='noopener noreferrer'>
                   Skjema for stillingsannonser
                 </a>
               </Button>

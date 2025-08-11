@@ -214,7 +214,7 @@ export const unregister = mutation({
 
     const registration = await ctx.db.get(id);
     if (!registration) {
-      throw new Error(`Registreing med ID ${id} ble ikke funnet.Avbryter avregistrering.`);
+      throw new Error(`Registreing med ID ${id} ble ikke funnet. Avbryter avregistrering.`);
     }
 
     const event = await ctx.db.get(registration.eventId);
@@ -227,7 +227,10 @@ export const unregister = mutation({
     await ctx.db.delete(id);
 
     if (event.eventStart - Date.now() < 24 * 60 * 60 * 1000) {
-      const student = await ctx.db.query("students").withIndex("by_userId", q => q.eq("userId", registration.userId)).first()
+      const student = await ctx.db.query("students")
+        .withIndex("by_userId", q => q.eq("userId", registration.userId))
+        .first()
+
       if (!student) {
         throw new Error(`Studentent med bruker - ID ${registration.userId} ble ikke funnet.`);
       }
@@ -237,8 +240,6 @@ export const unregister = mutation({
         severity: 1,
         reason: `Avregistrering fra arrangement ${event.title} mindre enn 24 timer før start.`,
       });
-
-      console.log(`Points given to ${student.name}`)
     }
 
     if (registration.status === "waitlist") return {
@@ -250,13 +251,9 @@ export const unregister = mutation({
       .withIndex("by_eventIdStatusAndRegistrationTime", (q) => q.eq("eventId", registration.eventId).eq("status", "waitlist"))
       .first();
 
-    if (!nextRegistration) {
-      console.log(`No waitlist registrations found for event ${event.title}.`);
-
-      return {
-        deletedRegistration: registration,
-        event: event,
-      }
+    if (!nextRegistration) return {
+      deletedRegistration: registration,
+      event: event,
     }
 
     const user = await ctx.db.get(nextRegistration.userId);
