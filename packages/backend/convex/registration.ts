@@ -87,7 +87,18 @@ export const acceptPendingRegistration = mutation({
     id: v.id("registrations"),
   },
   handler: async (ctx, { id }) => {
-    await getCurrentUserOrThrow(ctx);
+    const user = await getCurrentUserOrThrow(ctx);
+
+    const registration = await ctx.db.get(id);
+    if (!registration) {
+      throw new Error(`Registrering med ID ${id} ikke funnet. Kan ikke godtå registrering.`);
+    }
+
+    if (registration.userId !== user._id) {
+      throw new Error(
+        `Registrering med ID ${id} tilhører ikke brukeren. Kan ikke godtå. Utført av id ${user._id}, ${user.firstName} ${user.lastName}`,
+      );
+    }
 
     await ctx.db.patch(id, {
       status: "registered",
