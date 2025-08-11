@@ -19,15 +19,20 @@ export default async function EventsPage() {
   const today = new Date();
   const semester = today.getMonth() < 7 ? "Vår" : "Høst";
 
-  const months = Object.keys(events);
+  const monthOrder = ["januar", "februar", "mars", "april", "mai", "juni", "juli", "august", "september", "oktober", "november", "desember"];
+  const months = Object.keys(events).sort((a, b) => monthOrder.indexOf(a.toLowerCase()) - monthOrder.indexOf(b.toLowerCase()));
 
-  const currentMonth = today.toLocaleString("no", { month: "long" });
-  const selectedMonth = searchParams?.get("month");
+  const currentMonth = today.toLocaleString("no", { month: "long" }).toLowerCase();
+  const selectedMonth = searchParams?.get("month")?.toLowerCase();
 
-  const eventEntries = Object.entries(events);
-  const activeMonthAndEvents = eventEntries.find(([month]) => month === selectedMonth) ??
-    eventEntries.find(([month]) => month === currentMonth) ??
-    eventEntries[0] ?? ["Januar", []];
+  const activeMonth =
+    selectedMonth && months.includes(selectedMonth)
+      ? selectedMonth
+      : months.includes(currentMonth)
+        ? currentMonth
+        : months[0] ?? "januar";
+
+  const activeMonthEvents = events[activeMonth] ?? [];
 
   return (
     <>
@@ -40,9 +45,9 @@ export default async function EventsPage() {
         </h3>
       </div>
 
-      <MonthSelector activeMonth={activeMonthAndEvents[0]} months={months} />
+      <MonthSelector activeMonth={activeMonth} months={months} />
       <div className='h-full bg-[url(/Ns.svg)]'>
-        <EventsList events={activeMonthAndEvents[1]} isExternal={isExternalEvents} />
+        <EventsList events={activeMonthEvents} isExternal={isExternalEvents} />
       </div>
     </>
   );
