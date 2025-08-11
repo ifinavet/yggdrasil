@@ -8,6 +8,7 @@ import {
   type QueryCtx,
   query,
 } from "./_generated/server";
+import { makeStatusPending } from "./registration";
 import { getCurrentUserOrThrow, userByExternalId } from "./users";
 
 // Shared validator for organizer roles
@@ -43,7 +44,7 @@ export const getLatest = query({
 });
 
 export const getAllEvents = internalQuery({
-  args: { semester: v.number(), year: v.number() },
+  args: { semester: v.number(), year: v.number(), status: v.optional(v.string()) },
   handler: async (ctx, { semester, year }) => {
     let range_start: Date;
     let range_end: Date;
@@ -119,10 +120,9 @@ export const getCurrentSemester = query({
         const participationCount = (
           await ctx.db
             .query("registrations")
-            .withIndex("by_eventId", (q) => q.eq("eventId", event._id))
-            .filter((q) => q.eq(q.field("status"), "registered"))
+            .withIndex("by_eventIdStatusAndRegistrationTime", (q) => q.eq("eventId", event._id))
             .collect()
-        ).length;
+        ).filter((q) => q.status === "registered" || q.status === "pending").length;
 
         return { ...event, participationCount };
       }),
@@ -398,30 +398,15 @@ export const updateWaitlist = async (
     .order("asc")
     .collect();
 
+  const event = await ctx.db.get(eventId);
+  if (!event) {
+    throw new Error(`Event not for eventId: ${eventId}`);
+  }
+
   await Promise.all(
-    waitlistRegistrations.slice(0, numOfNewPlaces).map(async (registration) => {
-      await ctx.db.patch(registration._id, {
-        status: "pending",
-        registrationTime: Date.now(),
-      });
-
-      const event = await ctx.db.get(eventId);
-      if (!event) {
-        throw new Error(`Event not for eventId: ${eventId}`);
-      }
-
-      const user = await ctx.db.get(registration.userId);
-      if (!user) {
-        throw new Error(`User not found for registration: ${registration._id}`);
-      }
-
-      await ctx.scheduler.runAfter(0, internal.emails.sendAvailableSeatEmail, {
-        participantEmail: user.email,
-        eventId: eventId,
-        eventTitle: event.title,
-        registrationId: registration._id,
-      });
-    }),
+    waitlistRegistrations
+      .slice(0, numOfNewPlaces)
+      .map(async (registration) => await makeStatusPending(ctx, registration, event)),
   );
 };
 
@@ -509,6 +494,7 @@ export const create = mutation({
         if (!user) {
           throw new Error(`User not found: ${externalUserId}`);
         }
+
         return ctx.db.insert("eventOrganizers", {
           eventId,
           userId: user._id,
