@@ -127,8 +127,8 @@ function EventMetadata({
 // Company image component
 function CompanyImage({ imageUrl, title }: { imageUrl: string; title: string }) {
   return (
-    <div className='relative col-span-2 grid h-full min-h-32 place-content-center rounded-r-md bg-zinc-50 px-6 py-4'>
-      <Image src={imageUrl} alt={title} className='object-contain py-8' fill />
+    <div className='relative col-span-2 grid h-full min-h-32 place-content-center rounded-r-md bg-white px-6 py-4'>
+      <Image src={imageUrl} alt={title} className="object-contain px-4 py-6 md:px-6 md:py-4" fill />
     </div>
   );
 }
