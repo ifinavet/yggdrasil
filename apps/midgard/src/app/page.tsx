@@ -25,7 +25,7 @@ export const dynamic = "force-dynamic";
 export default async function MainPage() {
   const latestEvents = await fetchQuery(api.events.getLatest, { n: 3 });
   const mainSponsor = await fetchQuery(api.companies.getMainSponsor);
-  const jobListings = await fetchQuery(api.listings.getAll, { n: 3 });
+  const jobListings = await fetchQuery(api.listings.getAllPublishedAndActive, { n: 3 });
 
   return (
     <div className='grid gap-8'>
