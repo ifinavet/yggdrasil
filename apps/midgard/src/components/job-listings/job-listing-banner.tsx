@@ -26,7 +26,7 @@ export default function JobListingBanner({ className }: { className?: string }) 
         </p>
       </div>
       <Button className='px-18 py-6' asChild>
-        <a href='/' target='_blank' rel='noopener noreferrer'>
+        <a href='https://docs.google.com/forms/d/1pyPhN0eod6g3iwmHLfUycz1CI2KplwZRSbozwrJdaR4/edit' target='_blank' rel='noopener noreferrer'>
           Skjema for stillingsannonse
         </a>
       </Button>
