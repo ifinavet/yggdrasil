@@ -1,7 +1,13 @@
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
-import { internalQuery, mutation, type QueryCtx, query } from "./_generated/server";
+import {
+  internalQuery,
+  type MutationCtx,
+  mutation,
+  type QueryCtx,
+  query,
+} from "./_generated/server";
 import { getCurrentUserOrThrow, userByExternalId } from "./users";
 
 // Shared validator for organizer roles
@@ -19,9 +25,8 @@ export const getLatest = query({
 
     const events = await ctx.db
       .query("events")
-      .withIndex("by_eventStart")
+      .withIndex("by_eventStart", (q) => q.gte("eventStart", firstDayOfThisWeek.getTime()))
       .filter((q) => q.eq(q.field("published"), true))
-      .filter((q) => q.gte(q.field("eventStart"), firstDayOfThisWeek.getTime()))
       .order("asc")
       .take(n);
 
@@ -52,9 +57,9 @@ export const getAllEvents = internalQuery({
 
     const events = await ctx.db
       .query("events")
-      .withIndex("by_eventStart")
-      .filter((q) => q.gte(q.field("eventStart"), range_start.getTime()))
-      .filter((q) => q.lte(q.field("eventStart"), range_end.getTime()))
+      .withIndex("by_eventStart", (q) =>
+        q.gte("eventStart", range_start.getTime()).lte("eventStart", range_end.getTime()),
+      )
       .order("asc")
       .collect();
 
@@ -77,10 +82,13 @@ export const getAll = query({
   handler: async (ctx, { semester, year }) => {
     const semesterNumber = semester === "vår" ? 0 : 1; // 0 for spring, 1 for fall
 
-    const events: Array<Doc<"events"> & { hostingCompanyName: string }> = await ctx.runQuery(internal.events.getAllEvents, {
-      semester: semesterNumber,
-      year,
-    })
+    const events: Array<Doc<"events"> & { hostingCompanyName: string }> = await ctx.runQuery(
+      internal.events.getAllEvents,
+      {
+        semester: semesterNumber,
+        year,
+      },
+    );
 
     const published = events.filter((event) => event.published);
     const unpublished = events.filter((event) => !event.published);
@@ -99,8 +107,8 @@ export const getCurrentSemester = query({
       await ctx.runQuery(internal.events.getAllEvents, {
         semester,
         year: new Date().getFullYear(),
-      }))
-      .filter(q => q.published === true);
+      })
+    ).filter((q) => q.published === true);
 
     const filteredEvents = isExternal
       ? events.filter((event) => event.externalUrl && event.externalUrl.length > 0)
@@ -121,13 +129,23 @@ export const getCurrentSemester = query({
     );
 
     const monthNames = [
-      "januar", "februar", "mars", "april", "mai", "juni",
-      "juli", "august", "september", "oktober", "november", "desember"
+      "januar",
+      "februar",
+      "mars",
+      "april",
+      "mai",
+      "juni",
+      "juli",
+      "august",
+      "september",
+      "oktober",
+      "november",
+      "desember",
     ];
 
     const eventsByMonth: Record<string, typeof eventsWithParticipationCount> = {};
 
-    eventsWithParticipationCount.forEach(event => {
+    eventsWithParticipationCount.forEach((event) => {
       const eventDate = new Date(event.eventStart);
       const monthName = monthNames[eventDate.getMonth()] as string;
 
@@ -150,6 +168,7 @@ export const getById = query({
     if (!event) {
       throw new Error("Event not found");
     }
+
     const company = await ctx.db.get(event.hostingCompany);
     if (!company) {
       throw new Error("Company not found");
@@ -204,9 +223,7 @@ export const getPossibleSemesters = query({
       const currentYear = today.getFullYear();
       const currentMonth = today.getMonth();
 
-      return [
-        { year: currentYear, semester: currentMonth < 6 ? "vår" : "høst" },
-      ]
+      return [{ year: currentYear, semester: currentMonth < 6 ? "vår" : "høst" }];
     }
 
     const firstYear = new Date(firstEvent.eventStart).getFullYear();
@@ -230,6 +247,7 @@ export const getOrganizersByEventId = query({
       .query("eventOrganizers")
       .withIndex("by_eventId", (q) => q.eq("eventId", id))
       .collect();
+
     const organizersWithName = await Promise.all(
       organizers.map(async (organizer) => {
         const user = await ctx.db.get(organizer.userId);
@@ -239,6 +257,7 @@ export const getOrganizersByEventId = query({
         };
       }),
     );
+
     return organizersWithName;
   },
 });
@@ -360,8 +379,51 @@ export const update = mutation({
       });
 
     await Promise.all([...organizersToDelete, ...organizersToUpdate, ...organizersToCreate]);
+
+    if (participationLimit - event.participationLimit > 0)
+      await updateWaitlist(ctx, event._id, participationLimit - event.participationLimit);
   },
 });
+
+export const updateWaitlist = async (
+  ctx: MutationCtx,
+  eventId: Id<"events">,
+  numOfNewPlaces: number,
+) => {
+  const waitlistRegistrations = await ctx.db
+    .query("registrations")
+    .withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
+      q.eq("eventId", eventId).eq("status", "waitlist"),
+    )
+    .order("asc")
+    .collect();
+
+  await Promise.all(
+    waitlistRegistrations.slice(0, numOfNewPlaces).map(async (registration) => {
+      await ctx.db.patch(registration._id, {
+        status: "pending",
+        registrationTime: Date.now(),
+      });
+
+      const event = await ctx.db.get(eventId);
+      if (!event) {
+        throw new Error(`Event not for eventId: ${eventId}`);
+      }
+
+      const user = await ctx.db.get(registration.userId);
+      if (!user) {
+        throw new Error(`User not found for registration: ${registration._id}`);
+      }
+
+      await ctx.scheduler.runAfter(0, internal.emails.sendAvailableSeatEmail, {
+        participantEmail: user.email,
+        eventId: eventId,
+        eventTitle: event.title,
+        registrationId: registration._id,
+      });
+    }),
+  );
+};
 
 export const updatePublishedStatus = mutation({
   args: {
@@ -371,9 +433,11 @@ export const updatePublishedStatus = mutation({
   handler: async (ctx, { ids, newPublishedStatus }) => {
     await getCurrentUserOrThrow(ctx);
 
-    await Promise.all(ids.map(async (id) => {
-      await ctx.db.patch(id, { published: newPublishedStatus });
-    }))
+    await Promise.all(
+      ids.map(async (id) => {
+        await ctx.db.patch(id, { published: newPublishedStatus });
+      }),
+    );
   },
 });
 
