@@ -1,5 +1,6 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import type { Doc } from "./_generated/dataModel";
+import { mutation, type QueryCtx, query } from "./_generated/server";
 
 export const getAll = query({
   args: {
@@ -16,34 +17,59 @@ export const getAll = query({
 
     const listings = n ? await query.take(n) : await query.collect();
 
-    const listingsWithCompany = await Promise.all(
-      listings.map(async (listing) => {
-        const company = await ctx.db.get(listing.company);
-        if (!company) {
-          throw new Error(`Company with ID ${listing.company} not found`);
-        }
-
-        const logo = await ctx.db.get(company?.logo);
-        if (!logo) {
-          throw new Error(`Company logo with ID ${company.logo} not found`);
-        }
-
-        const imageUrl = await ctx.storage.getUrl(logo.image);
-        if (!imageUrl) {
-          throw new Error(`Image URL for logo with ID ${logo.image} not found`);
-        }
-
-        return {
-          ...listing,
-          companyName: company?.name || "Ukjent bedrift",
-          companyLogo: imageUrl
-        };
-      }),
-    );
+    const listingsWithCompany = await addCompanyToListings(ctx, listings);
 
     return listingsWithCompany;
   },
 });
+
+export const getAllPublishedAndActive = query({
+  args: {
+    n: v.optional(v.number()),
+    type: v.optional(v.string()),
+  },
+  handler: async (ctx, { n, type }) => {
+    const query = ctx.db.query("jobListings").withIndex("by_deadlineAndPublished", q => q.eq("published", true).gte("deadline", Date.now())).order("desc");
+
+    const queryTypeFiltered = type ? query.filter((q) => q.eq("type", type))
+      : query;
+
+    const listings = n ? await queryTypeFiltered.take(n) : await queryTypeFiltered.collect();
+
+    const listingsWithCompany = await addCompanyToListings(ctx, listings);
+
+    return listingsWithCompany;
+  },
+});
+
+async function addCompanyToListings(ctx: QueryCtx, listings: Doc<"jobListings">[]) {
+  const listingsWithCompany = await Promise.all(
+    listings.map(async (listing) => {
+      const company = await ctx.db.get(listing.company);
+      if (!company) {
+        throw new Error(`Company with ID ${listing.company} not found`);
+      }
+
+      const logo = await ctx.db.get(company?.logo);
+      if (!logo) {
+        throw new Error(`Company logo with ID ${company.logo} not found`);
+      }
+
+      const imageUrl = await ctx.storage.getUrl(logo.image);
+      if (!imageUrl) {
+        throw new Error(`Image URL for logo with ID ${logo.image} not found`);
+      }
+
+      return {
+        ...listing,
+        companyName: company?.name || "Ukjent bedrift",
+        companyLogo: imageUrl,
+      };
+    }),
+  );
+
+  return listingsWithCompany;
+}
 
 export const getById = query({
   args: {

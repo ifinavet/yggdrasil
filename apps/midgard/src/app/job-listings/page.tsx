@@ -19,7 +19,7 @@ export default async function JobListingsPage() {
 
   const type = xSearchParams?.get("type") || undefined;
 
-  const jobListings = await fetchQuery(api.listings.getAll, { type });
+  const jobListings = await fetchQuery(api.listings.getAllPublishedAndActive, { type });
 
   const types = Array.from(new Set<string>(jobListings.map((job) => job.type)));
 
