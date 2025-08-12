@@ -2,7 +2,7 @@ import z from "zod/v4";
 import type { OrganizerRole } from "../types";
 
 export const formSchema = z.object({
-  title: z.string("").min(1, "Tittel er påkrevd").min(10, "Tittelen må være minst 10 tegn"),
+  title: z.string("").min(1, "Tittel er påkrevd"),
   teaser: z
     .string()
     .min(1, "Vi trenger en liten teaser!")
