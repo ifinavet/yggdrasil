@@ -3,134 +3,139 @@ import { mutation, query } from "./_generated/server";
 import { userByExternalId } from "./users";
 
 export const getBoardMemberByPosition = query({
-  args: {
-    position: v.string(),
-  },
-  handler: async (ctx, { position }) => {
-    const member = await ctx.db.query("internals")
-      .withIndex("by_position", (q) => q.eq("position", position))
-      .first();
+	args: {
+		position: v.string(),
+	},
+	handler: async (ctx, { position }) => {
+		const member = await ctx.db
+			.query("internals")
+			.withIndex("by_position", (q) => q.eq("position", position))
+			.first();
 
-    if (!member) {
-      return null;
-    }
+		if (!member) {
+			return null;
+		}
 
-    const user = await ctx.db.get(member.userId);
-    if (!user) {
-      throw new Error(`User not found for board member with ID: ${member._id}`);
-    }
+		const user = await ctx.db.get(member.userId);
+		if (!user) {
+			throw new Error(`User not found for board member with ID: ${member._id}`);
+		}
 
-    return {
-      ...member, ...user
-    };
-  }
+		return {
+			...member,
+			...user,
+		};
+	},
 });
 
 export const getTheBoard = query({
-  handler: async (ctx) => {
-    const members = await ctx.db.query("internals").filter(q => q.neq("position", "intern"))
-      .collect();
+	handler: async (ctx) => {
+		const members = await ctx.db
+			.query("internals")
+			.filter((q) => q.neq("position", "intern"))
+			.collect();
 
-    const boardMembers = await Promise.all(
-      members.map(async (member) => {
-        const user = await ctx.db.get(member.userId);
-        return {
-          ...member,
-          fullName: (user && `${user.firstName} ${user.lastName}`) ?? "Styremedlem",
-          email: user?.email ?? "styret@ifinavet.no",
-          image: user?.image,
-        };
-      }),
-    );
+		const boardMembers = await Promise.all(
+			members.map(async (member) => {
+				const user = await ctx.db.get(member.userId);
+				return {
+					...member,
+					fullName: (user && `${user.firstName} ${user.lastName}`) ?? "Styremedlem",
+					email: user?.email ?? "styret@ifinavet.no",
+					image: user?.image,
+				};
+			}),
+		);
 
-    // Sort board members by rank, if defined
-    boardMembers.sort((a, b) => {
-      if (a.rank !== undefined && b.rank !== undefined) {
-        return a.rank - b.rank;
-      }
+		// Sort board members by rank, if defined
+		boardMembers.sort((a, b) => {
+			if (a.rank !== undefined && b.rank !== undefined) {
+				return a.rank - b.rank;
+			}
 
-      if (a.rank !== undefined && b.rank === undefined) {
-        return -1;
-      }
+			if (a.rank !== undefined && b.rank === undefined) {
+				return -1;
+			}
 
-      if (a.rank === undefined && b.rank !== undefined) {
-        return 1;
-      }
+			if (a.rank === undefined && b.rank !== undefined) {
+				return 1;
+			}
 
-      return 0;
-    });
+			return 0;
+		});
 
-    return boardMembers;
-  },
+		return boardMembers;
+	},
 });
 
 export const getById = query({
-  args: {
-    id: v.id("internals"),
-  },
-  handler: async (ctx, { id }) => {
-    const internal = await ctx.db.get(id);
-    if (!internal) {
-      throw new Error(`Internal record not found for ID: ${id}`);
-    }
+	args: {
+		id: v.id("internals"),
+	},
+	handler: async (ctx, { id }) => {
+		const internal = await ctx.db.get(id);
+		if (!internal) {
+			throw new Error(`Internal record not found for ID: ${id}`);
+		}
 
-    const user = await ctx.db.get(internal.userId);
-    if (!user) {
-      throw new Error(`User not found for internal record with ID: ${id}`);
-    }
+		const user = await ctx.db.get(internal.userId);
+		if (!user) {
+			throw new Error(`User not found for internal record with ID: ${id}`);
+		}
 
-    return {
-      ...internal,
-      fullName: `${user.firstName} ${user.lastName}`,
-      email: user.email,
-      image: user.image,
-      externalId: user.externalId,
-    };
-  },
+		return {
+			...internal,
+			fullName: `${user.firstName} ${user.lastName}`,
+			email: user.email,
+			image: user.image,
+			externalId: user.externalId,
+		};
+	},
 });
 
 export const update = mutation({
-  args: {
-    id: v.id("internals"),
-    externalId: v.string(),
-    position: v.string(),
-    group: v.string(),
-    positionEmail: v.optional(v.string()),
-  }, handler: async (ctx, { id, externalId, position, group, positionEmail }) => {
-    const user = await userByExternalId(ctx, externalId);
-    if (!user) {
-      throw new Error(`User not found for external ID: ${externalId}`);
-    }
+	args: {
+		id: v.id("internals"),
+		externalId: v.string(),
+		position: v.string(),
+		group: v.string(),
+		positionEmail: v.optional(v.string()),
+	},
+	handler: async (ctx, { id, externalId, position, group, positionEmail }) => {
+		const user = await userByExternalId(ctx, externalId);
+		if (!user) {
+			throw new Error(`User not found for external ID: ${externalId}`);
+		}
 
-    await ctx.db.patch(id, {
-      userId: user._id,
-      position,
-      group,
-      positionEmail,
-    })
-  }
-})
+		await ctx.db.patch(id, {
+			userId: user._id,
+			position,
+			group,
+			positionEmail,
+		});
+	},
+});
 
 export const createBoardMember = mutation({
-  args: {
-    externalId: v.string(),
-    position: v.string(),
-    group: v.string(),
-    positionEmail: v.optional(v.string()),
-  },
-  handler: async (ctx, { externalId, position, group, positionEmail }) => {
-    const user = await userByExternalId(ctx, externalId)
-    if (!user) {
-      throw new Error(`User not found for external ID: ${externalId}`);
-    }
+	args: {
+		externalId: v.string(),
+		position: v.string(),
+		group: v.string(),
+		positionEmail: v.optional(v.string()),
+	},
+	handler: async (ctx, { externalId, position, group, positionEmail }) => {
+		const user = await userByExternalId(ctx, externalId);
+		if (!user) {
+			throw new Error(`User not found for external ID: ${externalId}`);
+		}
 
-    const newMember = {
-      userId: user._id,
-      position,
-      group,
-      positionEmail,
-    };
+		const newMember = {
+			userId: user._id,
+			position,
+			group,
+			positionEmail,
+		};
 
-    await ctx.db.insert("internals", newMember);
-  },
-})
+		await ctx.db.insert("internals", newMember);
+	},
+});

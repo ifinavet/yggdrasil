@@ -3,20 +3,20 @@
 import { api } from "@workspace/backend/convex/api";
 import { Button } from "@workspace/ui/components/button";
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
+	Form,
+	FormControl,
+	FormField,
+	FormItem,
+	FormLabel,
+	FormMessage,
 } from "@workspace/ui/components/form";
 import { Input } from "@workspace/ui/components/input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
 } from "@workspace/ui/components/select";
 import { cn } from "@workspace/ui/lib/utils";
 import { type Preloaded, useMutation, usePreloadedQuery } from "convex/react";
@@ -28,153 +28,153 @@ import { STUDY_PROGRAMS } from "@/constants/study-program-types";
 import { zodv4Resolver } from "@/uitls/zod-v4-resolver";
 
 const formSchema = z.object({
-  firstname: z.string().min(2, "Vennligst oppgi fornavnet ditt."),
-  lastname: z.string().min(2, "Vennligst oppgi etternavnet ditt."),
-  studyProgram: z.enum(STUDY_PROGRAMS),
-  degree: z.enum(DEGREE_TYPES),
-  semester: z.coerce
-    .number()
-    .min(1, "Vennligst oppgi semesteret du går")
-    .max(10, "10 er maks, går du på 11. semster eller høyere bare sett 10."),
+	firstname: z.string().min(2, "Vennligst oppgi fornavnet ditt."),
+	lastname: z.string().min(2, "Vennligst oppgi etternavnet ditt."),
+	studyProgram: z.enum(STUDY_PROGRAMS),
+	degree: z.enum(DEGREE_TYPES),
+	semester: z.coerce
+		.number()
+		.min(1, "Vennligst oppgi semesteret du går")
+		.max(10, "10 er maks, går du på 11. semster eller høyere bare sett 10."),
 });
 export type ProfileFormSchema = z.infer<typeof formSchema>;
 
 export default function UpdateProfileForm({
-  preloadedStudent,
-  className,
+	preloadedStudent,
+	className,
 }: {
-  preloadedStudent: Preloaded<typeof api.students.getCurrent>;
-  className?: string;
+	preloadedStudent: Preloaded<typeof api.students.getCurrent>;
+	className?: string;
 }) {
-  const student = usePreloadedQuery(preloadedStudent);
+	const student = usePreloadedQuery(preloadedStudent);
 
-  // Fix: Use correct property names from backend (firstName, lastName)
-  const form = useForm<ProfileFormSchema>({
-    resolver: zodv4Resolver(formSchema),
-    defaultValues: {
-      firstname: student.firstName,
-      lastname: student.lastName,
-      studyProgram: student.studyProgram as ProfileFormSchema["studyProgram"],
-      degree: student.degree as ProfileFormSchema["degree"],
-      semester: student.semester,
-    },
-  });
+	// Fix: Use correct property names from backend (firstName, lastName)
+	const form = useForm<ProfileFormSchema>({
+		resolver: zodv4Resolver(formSchema),
+		defaultValues: {
+			firstname: student.firstName,
+			lastname: student.lastName,
+			studyProgram: student.studyProgram as ProfileFormSchema["studyProgram"],
+			degree: student.degree as ProfileFormSchema["degree"],
+			semester: student.semester,
+		},
+	});
 
-  const updateProfile = useMutation(api.students.updateCurrent);
-  const onSubmit = async (values: ProfileFormSchema) =>
-    updateProfile({
-      semester: values.semester,
-      studyProgram: values.studyProgram,
-      degree: values.degree,
-    })
-      .then(() => {
-        toast.success("Profilen ble oppdatert!");
-      })
-      .catch(() => {
-        toast.error("Oi! Det oppstod en feil! Prøv igjen senere.");
-      });
+	const updateProfile = useMutation(api.students.updateCurrent);
+	const onSubmit = async (values: ProfileFormSchema) =>
+		updateProfile({
+			semester: values.semester,
+			studyProgram: values.studyProgram,
+			degree: values.degree,
+		})
+			.then(() => {
+				toast.success("Profilen ble oppdatert!");
+			})
+			.catch(() => {
+				toast.error("Oi! Det oppstod en feil! Prøv igjen senere.");
+			});
 
-  if (!student) return <div>Loading...</div>;
+	if (!student) return <div>Loading...</div>;
 
-  return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className={cn(className, "space-y-8")}>
-        <div className='flex flex-col gap-4 md:flex-row'>
-          <FormField
-            control={form.control}
-            name='firstname'
-            render={({ field }) => (
-              <FormItem className="min-w-0 md:w-full">
-                <FormLabel>Fornavn</FormLabel>
-                <FormControl>
-                  <Input placeholder='Ola' {...field} disabled className='truncate' />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name='lastname'
-            render={({ field }) => (
-              <FormItem className="min-w-0 md:w-full">
-                <FormLabel>Etternavn</FormLabel>
-                <FormControl>
-                  <Input placeholder='Nordmann' {...field} disabled className='truncate' />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+	return (
+		<Form {...form}>
+			<form onSubmit={form.handleSubmit(onSubmit)} className={cn(className, "space-y-8")}>
+				<div className='flex flex-col gap-4 md:flex-row'>
+					<FormField
+						control={form.control}
+						name='firstname'
+						render={({ field }) => (
+							<FormItem className='min-w-0 md:w-full'>
+								<FormLabel>Fornavn</FormLabel>
+								<FormControl>
+									<Input placeholder='Ola' {...field} disabled className='truncate' />
+								</FormControl>
+								<FormMessage />
+							</FormItem>
+						)}
+					/>
+					<FormField
+						control={form.control}
+						name='lastname'
+						render={({ field }) => (
+							<FormItem className='min-w-0 md:w-full'>
+								<FormLabel>Etternavn</FormLabel>
+								<FormControl>
+									<Input placeholder='Nordmann' {...field} disabled className='truncate' />
+								</FormControl>
+								<FormMessage />
+							</FormItem>
+						)}
+					/>
+				</div>
 
-        <FormField
-          control={form.control}
-          name='studyProgram'
-          render={({ field }) => (
-            <FormItem className='w-full'>
-              <FormLabel>Studieprogram</FormLabel>
-              <FormControl>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <SelectTrigger className='w-full truncate'>
-                    <SelectValue placeholder='Velg et studieprogram' className='truncate' />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {STUDY_PROGRAMS.map((program) => (
-                      <SelectItem key={program} value={program}>
-                        {program}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+				<FormField
+					control={form.control}
+					name='studyProgram'
+					render={({ field }) => (
+						<FormItem className='w-full'>
+							<FormLabel>Studieprogram</FormLabel>
+							<FormControl>
+								<Select onValueChange={field.onChange} value={field.value}>
+									<SelectTrigger className='w-full truncate'>
+										<SelectValue placeholder='Velg et studieprogram' className='truncate' />
+									</SelectTrigger>
+									<SelectContent>
+										{STUDY_PROGRAMS.map((program) => (
+											<SelectItem key={program} value={program}>
+												{program}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+							</FormControl>
+							<FormMessage />
+						</FormItem>
+					)}
+				/>
 
-        <div className='flex w-full flex-col gap-4 md:flex-row'>
-          <FormField
-            control={form.control}
-            name='degree'
-            render={({ field }) => (
-              <FormItem className='w-full min-w-0'>
-                <FormLabel>Studiegrad</FormLabel>
-                <FormControl>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <SelectTrigger className='w-full truncate'>
-                      <SelectValue placeholder='Velg studie grad' className='truncate' />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {DEGREE_TYPES.map((degree) => (
-                        <SelectItem key={degree} value={degree}>
-                          {degree}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+				<div className='flex w-full flex-col gap-4 md:flex-row'>
+					<FormField
+						control={form.control}
+						name='degree'
+						render={({ field }) => (
+							<FormItem className='w-full min-w-0'>
+								<FormLabel>Studiegrad</FormLabel>
+								<FormControl>
+									<Select onValueChange={field.onChange} value={field.value}>
+										<SelectTrigger className='w-full truncate'>
+											<SelectValue placeholder='Velg studie grad' className='truncate' />
+										</SelectTrigger>
+										<SelectContent>
+											{DEGREE_TYPES.map((degree) => (
+												<SelectItem key={degree} value={degree}>
+													{degree}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+								</FormControl>
+								<FormMessage />
+							</FormItem>
+						)}
+					/>
 
-          <FormField
-            control={form.control}
-            name='semester'
-            render={({ field }) => (
-              <FormItem className='w-full min-w-0'>
-                <FormLabel>Semester</FormLabel>
-                <FormControl>
-                  <Input type='number' min={1} max={10} {...field} className='truncate' />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-        <Button type='submit'>Oppdater profil</Button>
-      </form>
-    </Form>
-  );
+					<FormField
+						control={form.control}
+						name='semester'
+						render={({ field }) => (
+							<FormItem className='w-full min-w-0'>
+								<FormLabel>Semester</FormLabel>
+								<FormControl>
+									<Input type='number' min={1} max={10} {...field} className='truncate' />
+								</FormControl>
+								<FormMessage />
+							</FormItem>
+						)}
+					/>
+				</div>
+				<Button type='submit'>Oppdater profil</Button>
+			</form>
+		</Form>
+	);
 }

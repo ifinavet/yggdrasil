@@ -4,9 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "lint": "eslint . --max-warnings 0",
-    "check": "biome check .",
-    "check:fix": "biome check . --write"
+    "lint": "eslint . --max-warnings 0"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.1.1",
