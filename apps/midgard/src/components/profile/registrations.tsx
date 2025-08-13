@@ -27,7 +27,7 @@ export default async function Registrations({ className }: { className?: string 
   );
 
   return (
-    <Tabs defaultValue='upcoming' className={cn(className, "max-w-full overflow-scroll")}>
+    <Tabs defaultValue='upcoming' className={cn(className, "max-w-full overflow-y-scroll")}>
       <TabsList className='w-full'>
         <TabsTrigger value='upcoming'>Kommende</TabsTrigger>
         <TabsTrigger value='previous'>Tidligere</TabsTrigger>

@@ -24,7 +24,6 @@ export default async function RegistrationPage({ params }: { params: Promise<{ s
   const preloadedRegistration = await preloadQuery(api.registration.getById, { id: registrationId });
   const registration = preloadedQueryResult(preloadedRegistration);
 
-
   return (
     <ResponsiveCenterContainer>
       <Title>Det har blitt en ledig plass til deg!</Title>
