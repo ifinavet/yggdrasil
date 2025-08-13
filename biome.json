@@ -20,6 +20,7 @@
       "!**/coverage/**",
       "!**/*.min.js",
       "!**/*.min.css",
+      "!**/convex/_generated/**",
       "!**/pnpm-lock.yaml"
     ]
   },

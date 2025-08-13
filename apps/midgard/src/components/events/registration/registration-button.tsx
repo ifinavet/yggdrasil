@@ -11,69 +11,69 @@ import EditRegistration from "./edit-registration";
 import SignUpForm from "./sign-up-form";
 
 export default function RegistrationButton({
-  registration,
-  eventId,
-  availableSpots,
+	registration,
+	eventId,
+	availableSpots,
 }: {
-  registration: FunctionReturnType<typeof api.registration.getByEventId>;
-  eventId: Id<"events">;
-  availableSpots: number;
+	registration: FunctionReturnType<typeof api.registration.getByEventId>;
+	eventId: Id<"events">;
+	availableSpots: number;
 }) {
-  const path = usePathname();
+	const path = usePathname();
 
-  const { isAuthenticated } = useConvexAuth();
-  const currentUser = useQuery(api.users.current, isAuthenticated ? undefined : "skip");
-  const currentUsersPoints = useQuery(
-    api.points.getCurrentStudentsPoints,
-    isAuthenticated ? undefined : "skip",
-  );
-  const numberOfPoints = currentUsersPoints?.reduce((acc, curr) => acc + curr.severity, 0) || 0;
+	const { isAuthenticated } = useConvexAuth();
+	const currentUser = useQuery(api.users.current, isAuthenticated ? undefined : "skip");
+	const currentUsersPoints = useQuery(
+		api.points.getCurrentStudentsPoints,
+		isAuthenticated ? undefined : "skip",
+	);
+	const numberOfPoints = currentUsersPoints?.reduce((acc, curr) => acc + curr.severity, 0) || 0;
 
-  const currentUsersRegistration = registration.registered.find(
-    (registration) => registration.userId === currentUser?._id,
-  );
-  const currentUsersWaitlistRegistration = registration.waitlist.find(
-    (registration) => registration.userId === currentUser?._id,
-  );
+	const currentUsersRegistration = registration.registered.find(
+		(registration) => registration.userId === currentUser?._id,
+	);
+	const currentUsersWaitlistRegistration = registration.waitlist.find(
+		(registration) => registration.userId === currentUser?._id,
+	);
 
-  if (!currentUser || !isAuthenticated) {
-    return (
-      <Button
-        type='button'
-        className='w-1/2 rounded-xl bg-zinc-800 py-8 text-lg hover:cursor-pointer hover:bg-zinc-700'
-        asChild
-      >
-        <Link href={`/sign-in?redirect=${path}`}>Logg inn</Link>
-      </Button>
-    );
-  }
+	if (!currentUser || !isAuthenticated) {
+		return (
+			<Button
+				type='button'
+				className='w-1/2 rounded-xl bg-zinc-800 py-8 text-lg hover:cursor-pointer hover:bg-zinc-700'
+				asChild
+			>
+				<Link href={`/sign-in?redirect=${path}`}>Logg inn</Link>
+			</Button>
+		);
+	}
 
-  if (numberOfPoints >= 3 && !currentUsersRegistration && !currentUsersWaitlistRegistration) {
-    return (
-      <Button
-        type='button'
-        className="!opacity-100 w-3/4 whitespace-normal text-balance rounded-xl bg-amber-600 py-10 text-lg hover:cursor-pointer hover:bg-zinc-700"
-        disabled
-      >
-        For mange prikker til å kunne melde deg på.
-      </Button>
-    );
-  }
+	if (numberOfPoints >= 3 && !currentUsersRegistration && !currentUsersWaitlistRegistration) {
+		return (
+			<Button
+				type='button'
+				className='!opacity-100 w-3/4 whitespace-normal text-balance rounded-xl bg-amber-600 py-10 text-lg hover:cursor-pointer hover:bg-zinc-700'
+				disabled
+			>
+				For mange prikker til å kunne melde deg på.
+			</Button>
+		);
+	}
 
-  if (!currentUsersRegistration && !currentUsersWaitlistRegistration) {
-    return (
-      <SignUpForm
-        eventId={eventId}
-        userId={currentUser._id}
-        className={`w-3/4 whitespace-normal text-balance rounded-xl bg-emerald-600 px-6 py-8 text-center font-semibold text-lg hover:cursor-pointer hover:bg-emerald-700 md:w-1/2`}
-        waitlist={availableSpots === 0}
-      />
-    );
-  }
+	if (!currentUsersRegistration && !currentUsersWaitlistRegistration) {
+		return (
+			<SignUpForm
+				eventId={eventId}
+				userId={currentUser._id}
+				className={`w-3/4 whitespace-normal text-balance rounded-xl bg-emerald-600 px-6 py-8 text-center font-semibold text-lg hover:cursor-pointer hover:bg-emerald-700 md:w-1/2`}
+				waitlist={availableSpots === 0}
+			/>
+		);
+	}
 
-  const registrationToEdit = currentUsersRegistration ?? currentUsersWaitlistRegistration;
+	const registrationToEdit = currentUsersRegistration ?? currentUsersWaitlistRegistration;
 
-  if (!registrationToEdit) return null;
+	if (!registrationToEdit) return null;
 
-  return <EditRegistration registration={registrationToEdit} eventId={eventId} />;
+	return <EditRegistration registration={registrationToEdit} eventId={eventId} />;
 }
