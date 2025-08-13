@@ -24,8 +24,8 @@ export default async function JobListingsPage() {
   const types = Array.from(new Set<string>(jobListings.map((job) => job.type)));
 
   return (
-    <div className='grid gap-6'>
-      <div className='-mt-8 grid gap-4 bg-zinc-100 py-8'>
+    <div className='grid h-full gap-6'>
+      <div className="-mt-8 grid h-fit gap-4 bg-zinc-100 py-8">
         <Title className='!border-b-0'>Stillingsannonser</Title>
         <div className='flex flex-wrap justify-center gap-4'>
           <Button asChild className='md:min-w-32'>

@@ -33,23 +33,23 @@ export default async function MainPage() {
       <div className='-mt-8 text-pretty bg-primary-light py-4 text-center font-semibold text-lg text-primary'>
         <Link
           href='/info/velkommen-til-den-nye-navet-siden!'
-          className="whitespace-normal text-pretty hover:cursor-pointer hover:underline"
+          className='whitespace-normal text-pretty hover:cursor-pointer hover:underline'
         >
-          Velkommen til Navets ny nettside! For mer informasjon, trykk her!
+          Velkommen til Navets nye nettside! For mer informasjon, trykk her!
         </Link>
       </div>
       {/* Welcome banner for the new website, remove at the end of august. */}
       <ResponsiveCenterContainer>
-        <div className='grid gap-8 md:grid-cols-2'>
+        <div className='grid justify-center gap-8 md:grid-cols-2'>
           {mainSponsor && (
             <div
-              className={`${latestEvents.length > 0 ? "lg:-ml-24 order-2 md:order-1" : "col-span-full mx-auto max-w-3xl"} space-y-6`}
+              className={`${latestEvents.length > 0 ? "xl:-ml-24 order-2 max-w-xl md:order-1" : "col-span-full mx-auto max-w-3xl"} space-y-6`}
             >
               <h1 className='hyphens-manual text-balance font-bold text-4xl text-primary tracking-tight'>
                 Hoved&shy;samarbeids&shy;partner
               </h1>
-              <div className='flex flex-col items-center gap-6 rounded-xl bg-primary-light px-4 py-16 md:flex-row md:px-8'>
-                <div className='grid aspect-square h-32 place-content-center rounded-full border-2 border-neutral-300 bg-white'>
+              <div className='flex flex-col items-center gap-6 rounded-xl bg-primary-light px-4 py-16 md:px-8 lg:flex-row'>
+                <div className='grid aspect-square size-32 place-content-center rounded-full border-2 border-neutral-300 bg-white'>
                   {mainSponsor?.imageUrl && (
                     <Image
                       src={mainSponsor.imageUrl}
@@ -69,8 +69,8 @@ export default async function MainPage() {
             </div>
           )}
           {latestEvents.length > 0 && (
-            <div className='order-1 grid justify-center gap-2 md:order-2'>
-              <Carousel className='w-full max-w-64 md:max-w-96'>
+            <div className='items-end-safe order-1 grid justify-center gap-2 md:order-2'>
+              <Carousel className='mx-6 w-full max-w-64 sm:max-w-80 md:max-w-96'>
                 <CarouselContent>
                   {latestEvents.map((event) => (
                     <CarouselItem key={event._id}>
@@ -123,6 +123,7 @@ export default async function MainPage() {
       )}
       <ResponsiveCenterContainer>
         <TwoColumns
+          className='!gap-2'
           main={
             <div>
               <h3 className='scroll-m-20 font-semibold text-3xl text-primary tracking-tight'>
@@ -179,7 +180,7 @@ export default async function MainPage() {
             </div>
           }
           aside={
-            <div className='relative mx-auto h-[280px] w-[280px] sm:h-[350px] sm:w-[350px] md:h-[420px] md:w-[420px]'>
+            <div className="relative mx-auto h-[280px] w-[280px] max-w-full sm:h-[350px] sm:w-[350px] md:h-[420px] md:w-[420px]">
               <div className='absolute top-0 left-0 z-10 size-40 translate-x-4 translate-y-8 transform overflow-hidden rounded-full sm:size-48 md:size-56'>
                 <Image
                   src={Navet}

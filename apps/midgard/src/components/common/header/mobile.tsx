@@ -140,7 +140,7 @@ export default async function MobileHeader({ className }: { className?: string }
                       className='text-primary-foreground'
                       asChild
                     >
-                      <Link href='/organization'>Foreningen</Link>
+                      <Link href='/organization'>Om Foreningen</Link>
                     </Button>
                   </DrawerClose>
                 </li>
@@ -152,7 +152,7 @@ export default async function MobileHeader({ className }: { className?: string }
                       className='text-primary-foreground'
                       asChild
                     >
-                      <Link href='/contact'>Si ifra</Link>
+                      <Link href='/contact'>Si Ifra</Link>
                     </Button>
                   </DrawerClose>
                 </li>

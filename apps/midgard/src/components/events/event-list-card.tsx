@@ -157,7 +157,7 @@ export default async function EventCard({
         />
       )}
       <div
-        className={`overflow-hidden rounded-md border-3 md:h-52 ${cardColor} grid gap-4 md:grid-cols-7`}
+        className={`overflow-hidden rounded-lg border-3 md:h-56 ${cardColor} grid gap-4 md:grid-cols-7`}
       >
         <CompanyImage imageUrl={image.imageUrl} title={event.title} />
         <EventDetails event={event} />

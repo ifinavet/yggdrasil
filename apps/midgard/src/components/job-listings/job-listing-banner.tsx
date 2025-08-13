@@ -6,10 +6,10 @@ export default function JobListingBanner({ className }: { className?: string }) 
     <div
       className={cn(
         className,
-        "-mb-12 flex flex-col items-center justify-between gap-6 bg-[url(/Ns.svg)] px-8 py-12 md:flex-row lg:px-16 xl:px-64",
+        "-mb-12 flex flex-col items-center justify-between bg-[url(/Ns.svg)] px-8 py-12 md:gap-12 lg:mx-auto lg:flex-row",
       )}
     >
-      <div className='flex max-w-[80ch] flex-col gap-4 md:w-3/5'>
+      <div className='flex max-w-[70ch] flex-col gap-4'>
         <h3 className='scroll-m-20 font-semibold text-2xl text-primary tracking-tight'>
           Ønsker du å legge ut stillingsannonser på våre nettsider?
         </h3>
@@ -26,7 +26,11 @@ export default function JobListingBanner({ className }: { className?: string }) 
         </p>
       </div>
       <Button className='px-18 py-6' asChild>
-        <a href='https://docs.google.com/forms/d/1pyPhN0eod6g3iwmHLfUycz1CI2KplwZRSbozwrJdaR4/edit' target='_blank' rel='noopener noreferrer'>
+        <a
+          href='https://docs.google.com/forms/d/1pyPhN0eod6g3iwmHLfUycz1CI2KplwZRSbozwrJdaR4/edit'
+          target='_blank'
+          rel='noopener noreferrer'
+        >
           Skjema for stillingsannonse
         </a>
       </Button>

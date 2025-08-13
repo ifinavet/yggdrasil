@@ -57,8 +57,8 @@ export default async function DesktopHeader({ className }: { className?: string 
           <NavigationItem href='/job-listings'>Stillingsannonser</NavigationItem>
           <NavigationItem href='/companies'>For Bedrifter</NavigationItem>
           <NavigationItem href='/students'>For Studenter</NavigationItem>
-          <NavigationItem href='/organization'>Foreningen</NavigationItem>
-          <NavigationItem href='/contact'>Si ifra</NavigationItem>
+          <NavigationItem href='/organization'>Om Foreningen</NavigationItem>
+          <NavigationItem href='/contact'>Si Ifra</NavigationItem>
           {user ? (
             <NavigationMenuItem>
               <NavigationMenuTrigger className='bg-primary text-base text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground focus:underline data-[state=open]:bg-primary data-[state=open]:text-primary-foreground data-[state=open]:focus:bg-primary data-[state=open]:focus:text-primary-foreground data-[state=open]:hover:bg-primary data-[state=open]:hover:text-primary-foreground data-[state=open]:hover:underline'>
@@ -67,8 +67,8 @@ export default async function DesktopHeader({ className }: { className?: string 
               <NavigationMenuContent className='z-10'>
                 <ul className='grid w-[200px] gap-4'>
                   <li>
-                    <NavigationMenuLink className='h-fit w-full text-left text-base'>
-                      <Link href='/profile '>Profil</Link>
+                    <NavigationMenuLink className='h-fit w-full text-left text-base' asChild>
+                      <Link href='/profile' className="flex flex-col gap-1 rounded-sm p-2 outline-none">Profil</Link>
                     </NavigationMenuLink>
                   </li>
                   <li>
