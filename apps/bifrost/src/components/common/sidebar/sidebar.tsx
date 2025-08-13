@@ -24,6 +24,7 @@ import {
 } from "@workspace/ui/components/sidebar";
 import {
   BadgeCheck,
+  BugIcon,
   ChartScatterIcon,
   ChevronsUpDown,
   DatabaseIcon,
@@ -52,6 +53,11 @@ const externalPaths = {
       title: "Convex",
       icon: DatabaseIcon,
       path: "https://dashboard.convex.dev/t/ifinavet",
+    },
+    {
+      title: "Sentry",
+      icon: BugIcon,
+      path: "https://ifi-navet.sentry.io/"
     },
     {
       title: "Vercel",
