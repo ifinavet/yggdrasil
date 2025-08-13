@@ -71,7 +71,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: Id
                     alt={event.hostingCompanyName}
                     fill
                     sizes="50vw"
-                    className='object-contain p-8 sm:p-18 md:p-10 lg:p-16'
+                    className='object-contain p-10 sm:p-18 md:p-10 lg:p-16'
                     loading='eager'
                   />)}
               </div>
