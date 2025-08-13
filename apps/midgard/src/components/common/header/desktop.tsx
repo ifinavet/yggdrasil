@@ -40,18 +40,14 @@ export default async function DesktopHeader({ className }: { className?: string 
               <Link href='/events'>Arrangementer</Link>
             </NavigationMenuTrigger>
             <NavigationMenuContent className='z-10'>
-              <ul className='grid w-[300px] gap-4'>
-                <li>
-                  <NavigationMenuLink className='text-base'>
-                    <Link href='/events '>Arrangementer</Link>
-                  </NavigationMenuLink>
-                </li>
-                <li>
-                  <NavigationMenuLink className='text-base'>
-                    <Link href='/events?external=true'>Eksterne Arrangementer</Link>
-                  </NavigationMenuLink>
-                </li>
-              </ul>
+              <div className='grid w-[300px] gap-4'>
+                <NavigationMenuLink className='text-base' asChild>
+                  <Link href='/events '>Arrangementer</Link>
+                </NavigationMenuLink>
+                <NavigationMenuLink className='text-base' asChild>
+                  <Link href='/events?external=true'>Eksterne Arrangementer</Link>
+                </NavigationMenuLink>
+              </div>
             </NavigationMenuContent>
           </NavigationMenuItem>
           <NavigationItem href='/job-listings'>Stillingsannonser</NavigationItem>
@@ -65,18 +61,16 @@ export default async function DesktopHeader({ className }: { className?: string 
                 <Link href='/profile'>{user?.firstName || "User"}</Link>
               </NavigationMenuTrigger>
               <NavigationMenuContent className='z-10'>
-                <ul className='grid w-[200px] gap-4'>
-                  <li>
-                    <NavigationMenuLink className='h-fit w-full text-left text-base' asChild>
-                      <Link href='/profile' className="flex flex-col gap-1 rounded-sm p-2 outline-none">Profil</Link>
-                    </NavigationMenuLink>
-                  </li>
-                  <li>
-                    <NavigationMenuLink asChild className='w-full text-left text-base'>
-                      <SignOutButton>Logg ut</SignOutButton>
-                    </NavigationMenuLink>
-                  </li>
-                </ul>
+                <div className='grid w-[200px] gap-4'>
+                  <NavigationMenuLink className='h-fit w-full text-left text-base' asChild>
+                    <Link href="/profile">
+                      Profil
+                    </Link>
+                  </NavigationMenuLink>
+                  <NavigationMenuLink asChild className='w-full text-left text-base'>
+                    <SignOutButton>Logg ut</SignOutButton>
+                  </NavigationMenuLink>
+                </div>
               </NavigationMenuContent>
             </NavigationMenuItem>
           ) : (
