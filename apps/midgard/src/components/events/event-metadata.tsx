@@ -22,7 +22,7 @@ export function EventMetadata({
 
   return (
     <div>
-      <div className="grid h-80 grid-cols-2 grid-rows-3 items-center justify-start gap-4 hyphens-auto rounded-xl bg-primary px-10 py-6 text-primary-foreground md:px-16 md:py-8">
+      <div className='grid h-80 grid-cols-2 grid-rows-3 items-center justify-start gap-4 hyphens-auto rounded-xl bg-primary px-10 py-6 text-primary-foreground md:px-16 md:py-8'>
         <p className='flex items-center gap-2 text-pretty font-semibold md:text-lg'>
           <CalendarDays className='size-6 min-w-6 md:size-8' />{" "}
           {humanReadableDateTime(new Date(event.eventStart))}
@@ -43,11 +43,11 @@ export function EventMetadata({
           <IdCard className='size-6 min-w-6 md:size-8' /> {event.ageRestriction}
         </p>
       </div>
-      <div className='-mt-8 mb-6 flex justify-center'>
+      <div className='-mt-6 mb-6 flex justify-center'>
         {typeof event.externalUrl === "string" && event.externalUrl.length > 0 ? (
           <Button
             type='button'
-            className='w-3/5 rounded-xl bg-orange-500 py-8 text-lg hover:cursor-pointer hover:bg-orange-600'
+            className="w-3/5 whitespace-normal text-balance rounded-xl bg-orange-500 py-8 text-lg hover:cursor-pointer hover:bg-orange-600"
             asChild
           >
             <a href={event.externalUrl} target='_blank' rel='noopener noreferrer'>
