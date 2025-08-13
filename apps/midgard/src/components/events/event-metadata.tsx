@@ -22,9 +22,10 @@ export function EventMetadata({
 
   return (
     <div>
-      <div className='grid h-80 grid-cols-2 grid-rows-3 items-center justify-start gap-4 rounded-xl bg-primary px-10 py-6 text-primary-foreground md:px-16 md:py-8'>
-        <p className="flex items-center gap-2 text-pretty font-semibold md:text-lg">
-          <CalendarDays className='size-6 min-w-6 md:size-8' /> <span className="whitespace-normal break-words">{humanReadableDateTime(new Date(event.eventStart))}</span>
+      <div className="grid h-80 grid-cols-2 grid-rows-3 items-center justify-start gap-4 hyphens-auto rounded-xl bg-primary px-10 py-6 text-primary-foreground md:px-16 md:py-8">
+        <p className='flex items-center gap-2 text-pretty font-semibold md:text-lg'>
+          <CalendarDays className='size-6 min-w-6 md:size-8' />{" "}
+          {humanReadableDateTime(new Date(event.eventStart))}
         </p>
         <p className='flex items-center gap-2 font-semibold md:text-lg'>
           <MapPin className='size-6 min-w-6 md:size-8' /> {event.location}
