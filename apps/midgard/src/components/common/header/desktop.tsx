@@ -61,13 +61,13 @@ export default async function DesktopHeader({ className }: { className?: string 
                 <Link href='/profile'>{user?.firstName || "User"}</Link>
               </NavigationMenuTrigger>
               <NavigationMenuContent className='z-10'>
-                <div className='grid w-[200px] gap-4'>
-                  <NavigationMenuLink className='h-fit w-full text-left text-base' asChild>
-                    <Link href="/profile">
+                <div className='grid w-[300px] gap-4'>
+                  <NavigationMenuLink className='w-full text-left text-base' asChild>
+                    <a href={"/profile"}>
                       Profil
-                    </Link>
+                    </a>
                   </NavigationMenuLink>
-                  <NavigationMenuLink asChild className='w-full text-left text-base'>
+                  <NavigationMenuLink asChild className='w-full text-left text-base hover:cursor-pointer'>
                     <SignOutButton>Logg ut</SignOutButton>
                   </NavigationMenuLink>
                 </div>
