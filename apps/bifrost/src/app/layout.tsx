@@ -6,6 +6,7 @@ import { auth } from "@clerk/nextjs/server";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { SidebarInset, SidebarProvider } from "@workspace/ui/components/sidebar";
 import { Toaster } from "@workspace/ui/components/sonner";
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import Header from "@/components/common/header";
 import BifrostSidebar from "@/components/common/sidebar/sidebar";
@@ -17,7 +18,7 @@ const defaultUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
   : "http://localhost:3000";
 
-export const metadata = {
+export const metadata: Metadata = {
   metadataBase: new URL(defaultUrl),
   title: {
     template: "%s | Navet - Bifrost",
