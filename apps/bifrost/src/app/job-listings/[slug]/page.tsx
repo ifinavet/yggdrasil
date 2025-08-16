@@ -1,40 +1,40 @@
+import type { Id } from "@workspace/backend/convex/dataModel";
 import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
+	Breadcrumb,
+	BreadcrumbItem,
+	BreadcrumbLink,
+	BreadcrumbList,
+	BreadcrumbPage,
+	BreadcrumbSeparator,
 } from "@workspace/ui/components/breadcrumb";
 import EditJobListingForm from "./edit-job-listing-form";
-import { Id } from "@workspace/backend/convex/dataModel";
 
 export default async function EditJobListingPage({
-  params,
+	params,
 }: {
-  params: Promise<{ slug: Id<"jobListings"> }>;
+	params: Promise<{ slug: Id<"jobListings"> }>;
 }) {
-  const { slug: listingId } = await params;
+	const { slug: listingId } = await params;
 
-  return (
-    <>
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink href='/'>Hjem</BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbLink href='/job-listings'>Stillingsannonser</BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>Rediger stillingsannonse</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
+	return (
+		<>
+			<Breadcrumb>
+				<BreadcrumbList>
+					<BreadcrumbItem>
+						<BreadcrumbLink href='/'>Hjem</BreadcrumbLink>
+					</BreadcrumbItem>
+					<BreadcrumbSeparator />
+					<BreadcrumbItem>
+						<BreadcrumbLink href='/job-listings'>Stillingsannonser</BreadcrumbLink>
+					</BreadcrumbItem>
+					<BreadcrumbSeparator />
+					<BreadcrumbItem>
+						<BreadcrumbPage>Rediger stillingsannonse</BreadcrumbPage>
+					</BreadcrumbItem>
+				</BreadcrumbList>
+			</Breadcrumb>
 
-      <EditJobListingForm listingId={listingId} />
-    </>
-  );
+			<EditJobListingForm listingId={listingId} />
+		</>
+	);
 }

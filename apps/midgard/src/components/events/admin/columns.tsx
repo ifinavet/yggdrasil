@@ -22,7 +22,7 @@ import {
 } from "@workspace/ui/components/alert-dialog";
 import { Badge } from "@workspace/ui/components/badge";
 import { Trash } from "lucide-react";
-import { humanReadableDateTime } from "@/uitls/dateFormatting";
+import { humanReadableDateTime } from "@/utils/dateFormatting";
 
 export type Registration = {
 	registrationId: Id<"registrations">;

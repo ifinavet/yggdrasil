@@ -11,7 +11,7 @@ import { usePostHog } from "posthog-js/react";
 import { toast } from "sonner";
 import { createColumns, type Registration } from "@/components/events/admin/columns";
 import { RegistrationsTable } from "@/components/events/admin/registrations-table";
-import { humanReadableDate } from "@/uitls/dateFormatting";
+import { humanReadableDate } from "@/utils/dateFormatting";
 
 export function Registrations({
 	preloadedRegistrations,

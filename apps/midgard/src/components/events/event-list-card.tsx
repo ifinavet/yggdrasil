@@ -8,7 +8,7 @@ import {
 	humanReadableDate,
 	humanReadableDateTime,
 	humanReadableTime,
-} from "@/uitls/dateFormatting";
+} from "@/utils/dateFormatting";
 
 function getRegistrationStatus(event: EventWithParticipationCount) {
 	const now = new Date();

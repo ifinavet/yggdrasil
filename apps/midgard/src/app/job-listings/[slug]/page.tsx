@@ -7,7 +7,7 @@ import Image from "next/image";
 import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
 import SanitizeHtml from "@/components/common/sanitize-html";
 import { Title } from "@/components/common/title";
-import { humanReadableDateTime } from "@/uitls/dateFormatting";
+import { humanReadableDateTime } from "@/utils/dateFormatting";
 
 export default async function JobListingPage({
 	params,

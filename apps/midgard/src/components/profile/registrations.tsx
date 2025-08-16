@@ -12,8 +12,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/componen
 import { cn } from "@workspace/ui/lib/utils";
 import { fetchQuery } from "convex/nextjs";
 import Link from "next/link";
-import { getAuthToken } from "@/uitls/authToken";
-import { humanReadableDateTime } from "@/uitls/dateFormatting";
+import { getAuthToken } from "@/utils/authToken";
+import { humanReadableDateTime } from "@/utils/dateFormatting";
 
 export default async function Registrations({ className }: { className?: string }) {
 	const token = await getAuthToken();

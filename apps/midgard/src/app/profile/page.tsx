@@ -6,7 +6,7 @@ import { Title } from "@/components/common/title";
 import Points from "@/components/profile/points";
 import Registrations from "@/components/profile/registrations";
 import UpdateProfileForm from "@/components/profile/update-profile-form";
-import { getAuthToken } from "@/uitls/authToken";
+import { getAuthToken } from "@/utils/authToken";
 
 export const metadata = {
 	title: "Profil",
