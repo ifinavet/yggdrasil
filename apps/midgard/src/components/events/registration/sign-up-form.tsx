@@ -28,7 +28,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import z from "zod/v4";
-import { zodv4Resolver } from "@/uitls/zod-v4-resolver";
+import { zodV4Resolver } from "@/utils/zod-v4-resolver";
 
 const formSchema = z.object({
 	notes: z.optional(z.string()),
@@ -48,7 +48,7 @@ export default function SignUpForm({
 	const posthog = usePostHog();
 
 	const form = useForm<z.infer<typeof formSchema>>({
-		resolver: zodv4Resolver(formSchema),
+		resolver: zodV4Resolver(formSchema),
 		defaultValues: {
 			notes: "",
 		},
@@ -77,7 +77,7 @@ export default function SignUpForm({
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger asChild>
 				<Button className={className} type='button' onClick={() => setOpen(true)}>
-					{waitlist ? "Det er fult! Meld deg på venteliste" : "Meld deg på"}
+					{waitlist ? "Det er fullt! Meld deg på venteliste" : "Meld deg på"}
 				</Button>
 			</DialogTrigger>
 			<DialogContent className='sm:max-w-[425px]'>

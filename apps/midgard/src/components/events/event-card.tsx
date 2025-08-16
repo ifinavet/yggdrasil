@@ -4,7 +4,7 @@ import { fetchQuery } from "convex/nextjs";
 import { CalendarDays, Users } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { humanReadableDate } from "@/uitls/dateFormatting";
+import { humanReadableDate } from "@/utils/dateFormatting";
 
 export default async function EventCard({ event }: { event: Doc<"events"> }) {
 	const company = await fetchQuery(api.companies.getById, { id: event.hostingCompany });

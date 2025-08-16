@@ -5,22 +5,17 @@ import { ThemeProvider } from "next-themes";
 import type { ReactNode } from "react";
 
 interface UIProvidersProps {
-  children: ReactNode;
-  sidebar: ReactNode;
+	children: ReactNode;
+	sidebar: ReactNode;
 }
 
 export default function UIProviders({ children, sidebar }: UIProvidersProps) {
-  return (
-    <SidebarProvider>
-      <ThemeProvider
-        attribute="class"
-        defaultTheme="system"
-        enableSystem
-        disableTransitionOnChange
-      >
-        {sidebar}
-        {children}
-      </ThemeProvider>
-    </SidebarProvider>
-  );
+	return (
+		<SidebarProvider>
+			<ThemeProvider attribute='class' defaultTheme='system' enableSystem disableTransitionOnChange>
+				{sidebar}
+				{children}
+			</ThemeProvider>
+		</SidebarProvider>
+	);
 }

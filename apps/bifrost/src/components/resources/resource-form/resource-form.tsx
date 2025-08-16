@@ -23,7 +23,7 @@ import { useCallback, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { EditorMenu } from "@/components/common/markdown-editor/markdown-editor";
 import { type ResourceFormValues, resourceSchema } from "@/constants/schemas/resource-form-schema";
-import { zodv4Resolver } from "@/utils/zod-v4-resolver";
+import { zodV4Resolver } from "@/utils/zod-v4-resolver";
 
 export default function ResourceForm({
 	defaultValues,
@@ -37,7 +37,7 @@ export default function ResourceForm({
 	onTertiarySubmitAction?: (values: ResourceFormValues) => void;
 }) {
 	const form = useForm<ResourceFormValues>({
-		resolver: zodv4Resolver(resourceSchema),
+		resolver: zodV4Resolver(resourceSchema),
 		defaultValues,
 	});
 

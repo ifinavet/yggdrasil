@@ -15,64 +15,64 @@ import PostHogPageView from "./posthog-page-view";
 import UnauthorizedPage from "./unauthorized";
 
 const defaultUrl = process.env.VERCEL_URL
-  ? `https://${process.env.VERCEL_URL}`
-  : "http://localhost:3000";
+	? `https://${process.env.VERCEL_URL}`
+	: "http://localhost:3000";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(defaultUrl),
-  title: {
-    template: "%s | Navet - Bifrost",
-    default: "Navet - Bifrost",
-  },
+	metadataBase: new URL(defaultUrl),
+	title: {
+		template: "%s | Navet - Bifrost",
+		default: "Navet - Bifrost",
+	},
 };
 
 const interSans = Inter({
-  display: "swap",
-  subsets: ["latin"],
+	display: "swap",
+	subsets: ["latin"],
 });
 
 export default async function RootLayout({
-  children,
+	children,
 }: Readonly<{
-  children: React.ReactNode;
+	children: React.ReactNode;
 }>) {
-  const { orgId } = await auth();
+	const { orgId } = await auth();
 
-  return (
-    <html lang='no' suppressHydrationWarning>
-      <body className={`antialiased ${interSans.className}`}>
-        <ClerkProvider>
-          <SidebarProvider>
-            <ThemeProvider
-              attribute='class'
-              defaultTheme='system'
-              enableSystem
-              disableTransitionOnChange
-            >
-              <Providers>
-                {!orgId ? (
-                  <UnauthorizedPage />
-                ) : (
-                  <>
-                    <BifrostSidebar />
-                    <SidebarInset>
-                      <Header />
-                      <main className='flex h-full flex-col gap-4 p-4'>{children}</main>
-                    </SidebarInset>
-                    <Toaster richColors position='top-center' />
-                    <Suspense fallback={null}>
-                      <PostHogPageView />
-                    </Suspense>
-                    {process.env.NODE_ENV === "development" && (
-                      <ReactQueryDevtools initialIsOpen={false} />
-                    )}
-                  </>
-                )}
-              </Providers>
-            </ThemeProvider>
-          </SidebarProvider>
-        </ClerkProvider>
-      </body>
-    </html>
-  );
+	return (
+		<html lang='no' suppressHydrationWarning>
+			<body className={`antialiased ${interSans.className}`}>
+				<ClerkProvider>
+					<SidebarProvider>
+						<ThemeProvider
+							attribute='class'
+							defaultTheme='system'
+							enableSystem
+							disableTransitionOnChange
+						>
+							<Providers>
+								{!orgId ? (
+									<UnauthorizedPage />
+								) : (
+									<>
+										<BifrostSidebar />
+										<SidebarInset>
+											<Header />
+											<main className='flex h-full flex-col gap-4 p-4'>{children}</main>
+										</SidebarInset>
+										<Toaster richColors position='top-center' />
+										<Suspense fallback={null}>
+											<PostHogPageView />
+										</Suspense>
+										{process.env.NODE_ENV === "development" && (
+											<ReactQueryDevtools initialIsOpen={false} />
+										)}
+									</>
+								)}
+							</Providers>
+						</ThemeProvider>
+					</SidebarProvider>
+				</ClerkProvider>
+			</body>
+		</html>
+	);
 }

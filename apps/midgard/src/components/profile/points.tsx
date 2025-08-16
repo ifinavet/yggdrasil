@@ -1,7 +1,7 @@
 import { api } from "@workspace/backend/convex/api";
 import { cn } from "@workspace/ui/lib/utils";
 import { fetchQuery } from "convex/nextjs";
-import { getAuthToken } from "@/uitls/authToken";
+import { getAuthToken } from "@/utils/authToken";
 
 export default async function Points({ className }: { className?: string }) {
 	const token = await getAuthToken();

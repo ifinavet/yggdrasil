@@ -25,7 +25,7 @@ import { toast } from "sonner";
 import { z } from "zod/v4";
 import { DEGREE_TYPES } from "@/constants/degree-types";
 import { STUDY_PROGRAMS } from "@/constants/study-program-types";
-import { zodv4Resolver } from "@/uitls/zod-v4-resolver";
+import { zodV4Resolver } from "@/utils/zod-v4-resolver";
 
 const formSchema = z.object({
 	firstname: z.string().min(2, "Vennligst oppgi fornavnet ditt."),
@@ -50,7 +50,7 @@ export default function UpdateProfileForm({
 
 	// Fix: Use correct property names from backend (firstName, lastName)
 	const form = useForm<ProfileFormSchema>({
-		resolver: zodv4Resolver(formSchema),
+		resolver: zodV4Resolver(formSchema),
 		defaultValues: {
 			firstname: student.firstName,
 			lastname: student.lastName,

@@ -14,7 +14,7 @@ import { headers } from "next/headers";
 import Image from "next/image";
 import Link from "next/link";
 import LogoBlue from "@/assets/navet/simple_logo_blaa.webp";
-import { getAuthToken } from "@/uitls/authToken";
+import { getAuthToken } from "@/utils/authToken";
 
 export default async function DesktopHeader({ className }: { className?: string }) {
 	const token = await getAuthToken();

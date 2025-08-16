@@ -22,7 +22,7 @@ import { useCallback, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { EditorMenu } from "@/components/common/markdown-editor/markdown-editor";
 import { type PageFormValues, pageSchema } from "@/constants/schemas/page-form-schema";
-import { zodv4Resolver } from "@/utils/zod-v4-resolver";
+import { zodV4Resolver } from "@/utils/zod-v4-resolver";
 
 export default function PageForm({
 	defaultValues,
@@ -36,7 +36,7 @@ export default function PageForm({
 	onTertiarySubmitAction?: (values: PageFormValues) => void;
 }) {
 	const form = useForm<PageFormValues>({
-		resolver: zodv4Resolver(pageSchema),
+		resolver: zodV4Resolver(pageSchema),
 		defaultValues,
 	});
 

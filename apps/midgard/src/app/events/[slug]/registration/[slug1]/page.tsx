@@ -6,7 +6,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
 import { Title } from "@/components/common/title";
-import { humanReadableDate } from "@/uitls/dateFormatting";
+import { humanReadableDate } from "@/utils/dateFormatting";
 import Register from "./register";
 
 export default async function RegistrationPage({
