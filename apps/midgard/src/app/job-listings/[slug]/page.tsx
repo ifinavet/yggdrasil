@@ -14,6 +14,7 @@ export default async function JobListingPage({
 }: {
 	params: Promise<{ slug: Id<"jobListings"> }>;
 }) {
+	await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate loading delay
 	const listingId = await params.then((params) => params.slug);
 
 	const listing = await fetchQuery(api.listings.getById, { id: listingId });
