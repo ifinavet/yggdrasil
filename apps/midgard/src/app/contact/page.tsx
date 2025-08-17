@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import ContainerCard from "@/components/cards/container-card";
 import LargeUserCard from "@/components/cards/large-user";
 import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
+import { Title } from "@/components/common/title";
 import TwoColumns from "@/components/common/two-columns";
 
 export const metadata: Metadata = {
@@ -17,6 +18,7 @@ export default async function ContactPage() {
 
 	return (
 		<ResponsiveCenterContainer>
+			<Title>Si Ifra</Title>
 			<TwoColumns
 				main={
 					<ContainerCard>

@@ -20,8 +20,6 @@ import TwoColumns from "@/components/common/two-columns";
 import EventCard from "@/components/events/event-card";
 import JobListingCard from "@/components/job-listings/job-listing-card";
 
-export const dynamic = "force-dynamic";
-
 export default async function MainPage() {
 	const latestEvents = await fetchQuery(api.events.getLatest, { n: 3 });
 	const mainSponsor = await fetchQuery(api.companies.getMainSponsor);
