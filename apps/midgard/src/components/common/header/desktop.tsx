@@ -1,3 +1,5 @@
+"use client";
+
 import { SignOutButton } from "@clerk/nextjs";
 import { api } from "@workspace/backend/convex/api";
 import {
@@ -9,19 +11,15 @@ import {
 	NavigationMenuTrigger,
 } from "@workspace/ui/components/navigation-menu";
 import { cn } from "@workspace/ui/lib/utils";
-import { fetchQuery } from "convex/nextjs";
-import { headers } from "next/headers";
+import { Authenticated, Unauthenticated, useQuery } from "convex/react";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import LogoBlue from "@/assets/navet/simple_logo_blaa.webp";
-import { getAuthToken } from "@/utils/authToken";
 
-export default async function DesktopHeader({ className }: { className?: string }) {
-	const token = await getAuthToken();
-	const user = await fetchQuery(api.users.current, {}, { token });
-
-	const headerList = await headers();
-	const pathname = headerList.get("x-pathname") || "/";
+export default function DesktopHeader({ className }: { className?: string }) {
+	const pathname = usePathname();
+	const user = useQuery(api.users.current);
 
 	return (
 		<header
@@ -55,15 +53,15 @@ export default async function DesktopHeader({ className }: { className?: string 
 					<NavigationItem href='/students'>For Studenter</NavigationItem>
 					<NavigationItem href='/organization'>Om Foreningen</NavigationItem>
 					<NavigationItem href='/contact'>Si Ifra</NavigationItem>
-					{user ? (
+					<Authenticated>
 						<NavigationMenuItem>
 							<NavigationMenuTrigger className='bg-primary text-base text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground focus:underline data-[state=open]:bg-primary data-[state=open]:text-primary-foreground data-[state=open]:focus:bg-primary data-[state=open]:focus:text-primary-foreground data-[state=open]:hover:bg-primary data-[state=open]:hover:text-primary-foreground data-[state=open]:hover:underline'>
 								<Link href='/profile'>{user?.firstName || "User"}</Link>
 							</NavigationMenuTrigger>
 							<NavigationMenuContent className='z-10'>
-								<div className='grid w-[300px] gap-4'>
+								<div className='grid w-[200px] gap-4'>
 									<NavigationMenuLink className='w-full text-left text-base' asChild>
-										<a href={"/profile"}>Profil</a>
+										<Link href={"/profile"}>Profil</Link>
 									</NavigationMenuLink>
 									<NavigationMenuLink
 										asChild
@@ -74,7 +72,8 @@ export default async function DesktopHeader({ className }: { className?: string 
 								</div>
 							</NavigationMenuContent>
 						</NavigationMenuItem>
-					) : (
+					</Authenticated>
+					<Unauthenticated>
 						<NavigationMenuItem>
 							<NavigationMenuLink
 								asChild
@@ -83,7 +82,7 @@ export default async function DesktopHeader({ className }: { className?: string 
 								<Link href={`/sign-in?redirect=${pathname}`}>Logg inn</Link>
 							</NavigationMenuLink>
 						</NavigationMenuItem>
-					)}
+					</Unauthenticated>
 				</NavigationMenuList>
 			</NavigationMenu>
 		</header>

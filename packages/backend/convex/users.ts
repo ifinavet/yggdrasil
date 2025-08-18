@@ -33,6 +33,33 @@ export const upsertFromClerk = internalMutation({
 	},
 });
 
+export const createIfNotExists = internalMutation({
+	args: {
+		externalId: v.string(),
+		firstName: v.string(),
+		lastName: v.string(),
+		email: v.string(),
+		image: v.string(),
+	},
+	handler: async (ctx, { externalId, firstName, lastName, email, image }) => {
+		const user = await userByExternalId(ctx, externalId);
+
+		if (user === null) {
+			const id = await ctx.db.insert("users", {
+				externalId,
+				email,
+				firstName,
+				lastName,
+				image,
+				locked: false,
+			});
+			return id;
+		}
+
+		return user._id;
+	},
+});
+
 export const deleteFromClerk = internalMutation({
 	args: { clerkUserId: v.string() },
 	async handler(ctx, { clerkUserId }) {

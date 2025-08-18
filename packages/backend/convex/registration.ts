@@ -66,7 +66,7 @@ export const getCurrentUser = query({
 				const event = await ctx.db.get(reg.eventId);
 				if (!event) {
 					throw new Error(
-						`Arrangemenetet med ID ${reg.eventId} ikke funnet. Kan ikke hente registrering.`,
+						`Arrangementet med ID ${reg.eventId} ikke funnet. Kan ikke hente registrering.`,
 					);
 				}
 
@@ -91,12 +91,12 @@ export const acceptPendingRegistration = mutation({
 
 		const registration = await ctx.db.get(id);
 		if (!registration) {
-			throw new Error(`Registrering med ID ${id} ikke funnet. Kan ikke godtå registrering.`);
+			throw new Error(`Registrering med ID ${id} ikke funnet. Kan ikke godta registrering.`);
 		}
 
 		if (registration.userId !== user._id) {
 			throw new Error(
-				`Registrering med ID ${id} tilhører ikke brukeren. Kan ikke godtå. Utført av id ${user._id}, ${user.firstName} ${user.lastName}`,
+				`Registrering med ID ${id} tilhører ikke brukeren. Kan ikke godta. Utført av id ${user._id}, ${user.firstName} ${user.lastName}`,
 			);
 		}
 
@@ -123,7 +123,7 @@ export const updateAttendance = mutation({
 		const registration = await ctx.db.get(id);
 		if (!registration) {
 			throw new Error(
-				`Registrering med ID ${id} ikke funnet. Kan ikke oppdatere deltakelsesstatus.`,
+				`Registrering med ID ${id} ikke funnet. Kan ikke oppdatere deltakelsestatus.`,
 			);
 		}
 
@@ -135,7 +135,7 @@ export const updateAttendance = mutation({
 
 		if (!user || !student) {
 			throw new Error(
-				`Bruker med ID ${registration.userId} ikke funnet. Kan ikke oppdatere deltakelsesstatus.`,
+				`Bruker med ID ${registration.userId} ikke funnet. Kan ikke oppdatere deltakelsestatus.`,
 			);
 		}
 
@@ -173,7 +173,7 @@ export const register = mutation({
 
 		const event = await ctx.db.get(eventId);
 		if (!event) {
-			throw new Error(`Arrangemenetet med ID ${eventId} ikke funnet.Kan ikke registrere.`);
+			throw new Error(`Arrangementet med ID ${eventId} ikke funnet.Kan ikke registrere.`);
 		}
 
 		const registrations = await ctx.db
@@ -220,7 +220,7 @@ export const unregister = mutation({
 
 		const registration = await ctx.db.get(id);
 		if (!registration) {
-			throw new Error(`Registreing med ID ${id} ble ikke funnet. Avbryter avregistrering.`);
+			throw new Error(`Registrering med ID ${id} ble ikke funnet. Avbryter avregistrering.`);
 		}
 
 		const event = await ctx.db.get(registration.eventId);
@@ -239,7 +239,7 @@ export const unregister = mutation({
 				.first();
 
 			if (!student) {
-				throw new Error(`Studentent med bruker - ID ${registration.userId} ble ikke funnet.`);
+				throw new Error(`Studenten med bruker - ID ${registration.userId} ble ikke funnet.`);
 			}
 
 			await ctx.runMutation(internal.points.givePointsInternal, {

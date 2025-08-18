@@ -1,7 +1,8 @@
+"use client";
+
 import { SignOutButton } from "@clerk/nextjs";
 import { api } from "@workspace/backend/convex/api";
 import { Button } from "@workspace/ui/components/button";
-
 import {
 	Drawer,
 	DrawerClose,
@@ -14,20 +15,16 @@ import {
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
 import { Separator } from "@workspace/ui/components/separator";
 import { cn } from "@workspace/ui/lib/utils";
-import { fetchQuery } from "convex/nextjs";
+import { Authenticated, Unauthenticated, useQuery } from "convex/react";
 import { Menu, X } from "lucide-react";
-import { headers } from "next/headers";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import LogoBlue from "@/assets/navet/simple_logo_blaa.webp";
-import { getAuthToken } from "@/utils/authToken";
 
-export default async function MobileHeader({ className }: { className?: string }) {
-	const token = await getAuthToken();
-	const user = await fetchQuery(api.users.current, {}, { token });
-
-	const headerList = await headers();
-	const pathname = headerList.get("x-pathname") || "/";
+export default function MobileHeader({ className }: { className?: string }) {
+	const pathname = usePathname();
+	const user = useQuery(api.users.current);
 
 	return (
 		<header
@@ -159,34 +156,33 @@ export default async function MobileHeader({ className }: { className?: string }
 							</ul>
 							<Separator className='text-primary-foreground/50' />
 							<ul className='mx-6 flex flex-col items-end'>
-								{user ? (
-									<>
-										<li>
-											<DrawerClose asChild>
-												<Button
-													type='button'
-													variant='link'
-													className='text-primary-foreground'
-													asChild
-												>
-													<Link href='/profile'>{user.firstName}</Link>
-												</Button>
-											</DrawerClose>
-										</li>
-										<li>
-											<DrawerClose asChild>
-												<Button
-													type='button'
-													variant='link'
-													className='text-primary-foreground'
-													asChild
-												>
-													<SignOutButton>Logg ut</SignOutButton>
-												</Button>
-											</DrawerClose>
-										</li>
-									</>
-								) : (
+								<Authenticated>
+									<li>
+										<DrawerClose asChild>
+											<Button
+												type='button'
+												variant='link'
+												className='text-primary-foreground'
+												asChild
+											>
+												<Link href='/profile'>{user?.firstName ?? "Profil"}</Link>
+											</Button>
+										</DrawerClose>
+									</li>
+									<li>
+										<DrawerClose asChild>
+											<Button
+												type='button'
+												variant='link'
+												className='text-primary-foreground'
+												asChild
+											>
+												<SignOutButton>Logg ut</SignOutButton>
+											</Button>
+										</DrawerClose>
+									</li>
+								</Authenticated>
+								<Unauthenticated>
 									<li>
 										<DrawerClose asChild>
 											<Button
@@ -199,7 +195,7 @@ export default async function MobileHeader({ className }: { className?: string }
 											</Button>
 										</DrawerClose>
 									</li>
-								)}
+								</Unauthenticated>
 							</ul>
 						</ScrollArea>
 					</DrawerContent>
