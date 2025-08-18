@@ -20,7 +20,7 @@ export default function LargeUserCard({
 				<div className='absolute bottom-0 left-0 h-1/2 w-full rounded-t-xl bg-zinc-100'></div>
 				<div className='absolute inset-0 grid place-content-center rounded-full bg-transparent'>
 					{(imageUrl && (
-						<img src={imageUrl} alt={fullName} className='h-36 w-36 rounded-full' />
+						<img src={imageUrl} alt={fullName} className='h-36 w-36 rounded-full object-cover' />
 					)) ?? (
 						<div className='grid h-36 w-36 place-content-center rounded-full bg-gradient-to-br from-primary via-sky-800 to-emerald-800 font-bold text-5xl text-primary-foreground'>
 							<span className='m-0 leading-0 '>{initials}</span>
