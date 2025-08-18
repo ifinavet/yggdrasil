@@ -80,12 +80,29 @@ export default async function CompaniesPage() {
 							<p className='leading-7'>
 								Navet tilbyr publisering av stillingsannonser på våre hjemmesider. Dette gjelder
 								både interships, deltid-, og fulltidsstillinger. Ved forespørsel om annonser for
-								sommerjobb er det viktig at de følger FIFs retningslinjer.
+								sommerjobb er det viktig at de følger{" "}
+								<a
+									href='https://drive.google.com/file/d/1wW0356QeoPGtKQruSlP8eBXI7qqn8eHm/view?usp=sharing'
+									rel='nofollow noopener noreferrer external'
+									target='_blank'
+									className='hover:cursor underline'
+								>
+									FIFs retningslinjer.
+								</a>
 								<br />
 								<br />
-								Alle annonser er nødt til å følge Navet's retningslinjer. Stillingsannonser må
-								inneholde en søknadsfrist og stillingen må være relatert til informatikk. Nye
-								annonser publiseres ukentlig. Følg linken for å opprette stillingsannonse:
+								Alle annonser er nødt til å følge{" "}
+								<a
+									href='https://drive.google.com/file/d/1h4AuNXJ4LFfrrCAdN_anFu7o1F56Q1hx/view'
+									rel='nofollow noopener noreferrer external'
+									target='_blank'
+									className='hover:cursor underline'
+								>
+									Navet's retningslinjer.
+								</a>{" "}
+								Stillingsannonser må inneholde en søknadsfrist og stillingen må være relatert til
+								informatikk. Nye annonser publiseres ukentlig. Følg linken for å opprette
+								stillingsannonse:
 							</p>
 							<Button
 								variant='default'
