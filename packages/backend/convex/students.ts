@@ -1,5 +1,7 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
 import { mutation, query } from "./_generated/server";
 import { getCurrentUserOrThrow } from "./users";
 
@@ -84,12 +86,29 @@ export const createByExternalId = mutation({
 			.withIndex("by_ExternalId", (q) => q.eq("externalId", externalId))
 			.first();
 
+		let userId: Id<"users">;
+
 		if (!user) {
-			throw new Error("Bruker ikke funnet!");
+			const identity = await ctx.auth.getUserIdentity();
+			if (!identity) {
+				throw new Error("Bruker identiteteten er ikke tilgjengelig. Kan ikke opprette bruker.");
+			}
+
+			const { familyName, givenName, email, pictureUrl } = identity;
+
+			userId = await ctx.runMutation(internal.users.createIfNotExists, {
+				externalId,
+				firstName: givenName ?? "",
+				lastName: familyName ?? "",
+				email: email ?? "",
+				image: pictureUrl ?? "",
+			});
+		} else {
+			userId = user._id;
 		}
 
 		await ctx.db.insert("students", {
-			userId: user._id,
+			userId,
 			degree,
 			semester,
 			studyProgram,

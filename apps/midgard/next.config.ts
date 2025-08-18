@@ -9,7 +9,7 @@ const nextConfig: NextConfig = {
 	/* config options here */
 	transpilePackages: ["@workspace/ui"],
 	experimental: {
-		ppr: "incremental"
+		ppr: "incremental",
 	},
 	images: {
 		remotePatterns: [
