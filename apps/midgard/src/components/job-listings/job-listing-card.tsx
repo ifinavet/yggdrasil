@@ -36,7 +36,7 @@ export default function JobListingCard({
 				{type}
 			</div>
 			<div className='relative h-32 min-h-32 px-10'>
-				<Image src={image} alt={companyName} fill className='object-contain' />
+				<Image src={image} alt={companyName} fill className='object-contain px-4' />
 			</div>
 			<div className='flex flex-1 flex-col justify-between gap-6 px-8 pb-6'>
 				<div className='pt-4'>
