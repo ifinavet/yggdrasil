@@ -1,30 +1,23 @@
-import { api } from "@workspace/backend/convex/api";
 import { Button } from "@workspace/ui/components/button";
-import {
-	Carousel,
-	CarouselContent,
-	CarouselItem,
-	CarouselNext,
-	CarouselPrevious,
-} from "@workspace/ui/components/carousel";
-import { fetchQuery } from "convex/nextjs";
 import { Info } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { Suspense } from "react";
 import { FacebookIcon, InstagramIcon, LinkedinIcon } from "@/assets/icons/social";
 import Navet_Logo from "@/assets/navet/logo_n_blaa.webp";
 import Navet from "@/assets/promo_images/navet.webp";
 import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
-import SafeHtml from "@/components/common/sanitize-html";
 import TwoColumns from "@/components/common/two-columns";
-import EventCard from "@/components/events/event-card";
-import JobListingCard from "@/components/job-listings/job-listing-card";
+import EventsCarousel from "@/components/home/events-carousel";
+import JobListings from "@/components/home/job-listings";
+import MainSponsorCard from "@/components/home/main-sponsor";
+import EventsCarouselSkeleton from "@/components/loaders/home/events-carousel-skeleton";
+import JobListingsSkeleton from "@/components/loaders/home/job-listings-skeleton";
+import MainSponsorCardSkeleton from "@/components/loaders/home/main-sponsor-skeleton";
 
-export default async function MainPage() {
-	const latestEvents = await fetchQuery(api.events.getLatest, { n: 3 });
-	const mainSponsor = await fetchQuery(api.companies.getMainSponsor);
-	const jobListings = await fetchQuery(api.listings.getAllPublishedAndActive, { n: 3 });
+export const experimental_ppr = true;
 
+export default function HomePage() {
 	return (
 		<div className='grid gap-8'>
 			{/* Welcome banner for the new website, remove at the end of august. */}
@@ -37,88 +30,22 @@ export default async function MainPage() {
 				</Link>
 			</div>
 			{/* Welcome banner for the new website, remove at the end of august. */}
+
 			<ResponsiveCenterContainer>
 				<div className='grid justify-center gap-8 md:grid-cols-2'>
-					{mainSponsor && (
-						<div
-							className={`${latestEvents.length > 0 ? "xl:-ml-24 order-2 max-w-xl md:order-1" : "col-span-full mx-auto max-w-3xl"} space-y-6`}
-						>
-							<h1 className='hyphens-manual text-balance font-bold text-4xl text-primary tracking-tight'>
-								Hoved&shy;samarbeids&shy;partner
-							</h1>
-							<div className='flex flex-col items-center gap-6 rounded-xl bg-primary-light px-4 py-16 md:px-8 lg:flex-row'>
-								<div className='grid aspect-square size-32 place-content-center rounded-full border-2 border-neutral-300 bg-white'>
-									{mainSponsor?.imageUrl && (
-										<Image
-											src={mainSponsor.imageUrl}
-											alt={mainSponsor.name}
-											width={200}
-											height={200}
-											className='h-auto p-8'
-											loading='eager'
-										/>
-									)}
-								</div>
-								<div className='flex h-full flex-col justify-start gap-2'>
-									<h1 className='font-bold text-4xl text-primary'>{mainSponsor?.name}</h1>
-									<SafeHtml html={mainSponsor?.description || ""} className='prose text-primary' />
-								</div>
-							</div>
-						</div>
-					)}
-					{latestEvents.length > 0 && (
-						<div className='items-end-safe order-1 grid justify-center gap-2 md:order-2'>
-							<Carousel className='mx-6 w-full max-w-64 sm:max-w-80 md:max-w-96'>
-								<CarouselContent>
-									{latestEvents.map((event) => (
-										<CarouselItem key={event._id}>
-											<div className='p-1'>
-												<EventCard event={event} />
-											</div>
-										</CarouselItem>
-									))}
-								</CarouselContent>
-								<CarouselPrevious />
-								<CarouselNext />
-							</Carousel>
-							<Button
-								asChild
-								className='mx-8 bg-emerald-600 py-6 font-semibold hover:bg-emerald-700'
-							>
-								<Link href={"/events"}>Se alle arrangementer</Link>
-							</Button>
-						</div>
-					)}
+					<Suspense fallback={<MainSponsorCardSkeleton />}>
+						<MainSponsorCard />
+					</Suspense>
+					<Suspense fallback={<EventsCarouselSkeleton />}>
+						<EventsCarousel />
+					</Suspense>
 				</div>
 			</ResponsiveCenterContainer>
-			{jobListings.length > 0 && (
-				<div className='h-full bg-[url(/Ns.svg)] py-16'>
-					<ResponsiveCenterContainer className='space-y-6'>
-						<h1 className='font-bold text-4xl text-primary'>Stillingsannonser</h1>
-						<div className='flex flex-col items-center justify-evenly gap-6 md:flex-row'>
-							{jobListings.map((listing) => (
-								<JobListingCard
-									key={listing._id}
-									title={listing.title}
-									listingId={listing._id}
-									type={listing.type}
-									companyName={listing.companyName}
-									teaser={listing.teaser}
-									image={listing.companyLogo}
-								/>
-							))}
-						</div>
-						<div className='flex justify-center'>
-							<Button
-								asChild
-								className='mx-8 bg-emerald-600 py-6 font-semibold hover:bg-emerald-700 md:w-1/3'
-							>
-								<Link href={"/job-listings"}>Se alle stillingsannonser</Link>
-							</Button>
-						</div>
-					</ResponsiveCenterContainer>
-				</div>
-			)}
+
+			<Suspense fallback={<JobListingsSkeleton />}>
+				<JobListings />
+			</Suspense>
+
 			<ResponsiveCenterContainer>
 				<TwoColumns
 					className='!gap-2'

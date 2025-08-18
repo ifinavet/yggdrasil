@@ -8,6 +8,9 @@ if (!process.env.NEXT_PUBLIC_CONVEX_HOSTNAME) {
 const nextConfig: NextConfig = {
 	/* config options here */
 	transpilePackages: ["@workspace/ui"],
+	experimental: {
+		ppr: "incremental"
+	},
 	images: {
 		remotePatterns: [
 			{
