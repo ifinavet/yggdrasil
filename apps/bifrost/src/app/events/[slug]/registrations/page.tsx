@@ -8,5 +8,5 @@ export default async function registrations(props: { params: Promise<{ slug: Id<
 
 	const preloadedRegistrations = await preloadQuery(api.registration.getByEventId, { eventId });
 
-	return <Registrations eventId={eventId} preloadedRegistrations={preloadedRegistrations} />;
+	return <Registrations preloadedRegistrations={preloadedRegistrations} />;
 }

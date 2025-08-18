@@ -3,7 +3,7 @@
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/components//tabs";
-import { type Preloaded, useMutation, usePreloadedQuery, useQuery } from "convex/react";
+import { type Preloaded, useMutation, usePreloadedQuery } from "convex/react";
 import { usePostHog } from "posthog-js/react";
 import { toast } from "sonner";
 import { createColumns, type Registration } from "@/components/events/registrations/columns";
@@ -11,10 +11,8 @@ import { RegistrationsTable } from "@/components/events/registrations/registrati
 import { humanReadableDate } from "@/utils/utils";
 
 export function Registrations({
-	eventId,
 	preloadedRegistrations,
 }: {
-	eventId: Id<"events">;
 	preloadedRegistrations: Preloaded<typeof api.registration.getByEventId>;
 }) {
 	const registrations = usePreloadedQuery(preloadedRegistrations);
@@ -37,7 +35,7 @@ export function Registrations({
 			})
 			.catch((error) => {
 				toast.error("Det oppsto en feil ved sletting av registreringen", {
-					description: error.name + ": " + error.message,
+					description: `${error.name}: ${error.message}`,
 				});
 
 				posthog.captureException("bifrost-registration_delete_error", {
@@ -64,7 +62,7 @@ export function Registrations({
 			})
 			.catch((error) => {
 				toast.error("Det oppsto en feil ved oppdatering av registreringen", {
-					description: error.name + ": " + error.message,
+					description: `${error.name}: ${error.message}`,
 				});
 
 				posthog.captureException("bifrost-registration_update_error", {
