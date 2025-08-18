@@ -1,7 +1,12 @@
 "use client";
 
-import type { ColumnDef } from "@tanstack/react-table";
-import { flexRender, getCoreRowModel, type Row, useReactTable } from "@tanstack/react-table";
+import {
+	type ColumnDef,
+	flexRender,
+	getCoreRowModel,
+	type Row,
+	useReactTable,
+} from "@tanstack/react-table";
 import { api } from "@workspace/backend/convex/api";
 import type { Doc } from "@workspace/backend/convex/dataModel";
 import { Button } from "@workspace/ui/components/button";

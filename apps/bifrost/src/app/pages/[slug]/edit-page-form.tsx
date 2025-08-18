@@ -1,7 +1,7 @@
 "use client";
 
 import { api } from "@workspace/backend/convex/api";
-import { type Preloaded, useMutation, usePreloadedQuery, useQuery } from "convex/react";
+import { type Preloaded, useMutation, usePreloadedQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import { usePostHog } from "posthog-js/react";
 import { toast } from "sonner";
