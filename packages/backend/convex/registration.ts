@@ -232,7 +232,7 @@ export const unregister = mutation({
 
 		await ctx.db.delete(id);
 
-		if (event.eventStart - Date.now() < 24 * 60 * 60 * 1000) {
+		if (event.eventStart - Date.now() < 24 * 60 * 60 * 1000 && registration.status !== "waitlist") { //sjekker nå for at brukere som melder seg av ventelisten 24t før ikke får prikk
 			const student = await ctx.db
 				.query("students")
 				.withIndex("by_userId", (q) => q.eq("userId", registration.userId))
