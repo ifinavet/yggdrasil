@@ -1,98 +1,99 @@
-import { Button } from "@workspace/ui/components//button";
-import { Separator } from "@workspace/ui/components//separator";
 import { Skeleton } from "@workspace/ui/components//skeleton";
-import { EyeOff, Pencil, Save, Send, Users } from "lucide-react";
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from "@workspace/ui/components//table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/components//tabs";
 
-export default function EventPageLoading() {
+export default function RegistrationsLoading() {
 	return (
-		<>
-			<div className='space-y-8'>
-				{/* Title */}
-				<div>
-					<Skeleton className='mb-2 h-4 w-12' />
-					<Skeleton className='h-10 w-full' />
-					<Skeleton className='mt-2 h-4 w-64' />
-				</div>
-				<Separator />
+		<Tabs defaultValue='registered'>
+			<TabsList>
+				<TabsTrigger value='registered'>Påmeldte</TabsTrigger>
+				<TabsTrigger value='waitlist' disabled>
+					Venteliste
+				</TabsTrigger>
+			</TabsList>
 
-				{/* Event metadata */}
-				<div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
-					{Array.from({ length: 6 }).map((_, index) => (
-						<div key={index}>
-							<Skeleton className='mb-2 h-4 w-16' />
-							<Skeleton className='h-10 w-full' />
-						</div>
-					))}
-				</div>
-				<Separator />
+			<TabsContent value='registered'>
+				<h2 className='scroll-m-20 border-b pb-2 font-semibold text-2xl tracking-tight first:mt-0'>
+					Påmeldte
+				</h2>
+				<Table>
+					<TableHeader>
+						<TableRow>
+							<TableHead>Navn</TableHead>
+							<TableHead>Bemærkninger</TableHead>
+							<TableHead>Påmeldings tidspunkt</TableHead>
+							<TableHead>Status</TableHead>
+							<TableHead></TableHead>
+						</TableRow>
+					</TableHeader>
+					<TableBody>
+						{Array.from({ length: 8 }).map((_, index) => (
+							<TableRow key={index}>
+								<TableCell>
+									<Skeleton className='h-4 w-32' />
+								</TableCell>
+								<TableCell>
+									<Skeleton className='h-4 w-24' />
+								</TableCell>
+								<TableCell>
+									<Skeleton className='h-4 w-36' />
+								</TableCell>
+								<TableCell>
+									<Skeleton className='h-10 w-44' />
+								</TableCell>
+								<TableCell>
+									<Skeleton className='h-10 w-10' />
+								</TableCell>
+							</TableRow>
+						))}
+					</TableBody>
+				</Table>
+			</TabsContent>
 
-				{/* Event time and date pickers */}
-				<div className='grid gap-4 sm:grid-cols-2'>
-					<div>
-						<Skeleton className='mb-2 h-4 w-48' />
-						<Skeleton className='h-10 w-full' />
-						<Skeleton className='mt-2 h-4 w-56' />
-					</div>
-					<div>
-						<Skeleton className='mb-2 h-4 w-52' />
-						<Skeleton className='h-10 w-full' />
-						<Skeleton className='mt-2 h-4 w-64' />
-					</div>
-				</div>
-				<Separator />
-
-				{/* Teaser */}
-				<div>
-					<Skeleton className='mb-2 h-4 w-12' />
-					<Skeleton className='h-24 w-full' />
-					<Skeleton className='mt-2 h-4 w-56' />
-				</div>
-
-				{/* Description */}
-				<div>
-					<Skeleton className='mb-2 h-4 w-20' />
-					<Skeleton className='h-40 w-full rounded-md border' />
-					<Skeleton className='mt-2 h-4 w-48' />
-				</div>
-				<Separator />
-
-				{/* Organizers */}
-				<div>
-					<Skeleton className='mb-2 h-4 w-16' />
-					<div className='mb-4 flex gap-4'>
-						<Skeleton className='h-10 w-48' />
-						<Skeleton className='h-10 w-44' />
-						<Skeleton className='h-10 w-32' />
-					</div>
-					<div className='rounded-md border'>
-						<div className='p-4'>
-							<Skeleton className='h-12 w-full' />
-						</div>
-					</div>
-					<Skeleton className='mt-2 h-4 w-72' />
-				</div>
-				<Separator />
-
-				{/* Event type */}
-				<div>
-					<Skeleton className='mb-2 h-4 w-32' />
-					<Skeleton className='h-10 w-44' />
-				</div>
-				<Separator />
-
-				{/* Submit buttons */}
-				<div className='mb-4 flex gap-4'>
-					<Button disabled>
-						<Send /> Lagre og publiser
-					</Button>
-					<Button variant='secondary' disabled>
-						<Save /> Lagre
-					</Button>
-					<Button variant='destructive' disabled>
-						<EyeOff /> Lagre og avpubliser
-					</Button>
-				</div>
-			</div>
-		</>
+			<TabsContent value='waitlist'>
+				<h2 className='scroll-m-20 border-b pb-2 font-semibold text-2xl tracking-tight first:mt-0'>
+					Venteliste
+				</h2>
+				<Table>
+					<TableHeader>
+						<TableRow>
+							<TableHead>Navn</TableHead>
+							<TableHead>Bemærkninger</TableHead>
+							<TableHead>Påmeldings tidspunkt</TableHead>
+							<TableHead>Status</TableHead>
+							<TableHead></TableHead>
+						</TableRow>
+					</TableHeader>
+					<TableBody>
+						{Array.from({ length: 3 }).map((_, index) => (
+							<TableRow key={index}>
+								<TableCell>
+									<Skeleton className='h-4 w-32' />
+								</TableCell>
+								<TableCell>
+									<Skeleton className='h-4 w-24' />
+								</TableCell>
+								<TableCell>
+									<Skeleton className='h-4 w-36' />
+								</TableCell>
+								<TableCell>
+									<Skeleton className='h-10 w-44' />
+								</TableCell>
+								<TableCell>
+									<Skeleton className='h-10 w-10' />
+								</TableCell>
+							</TableRow>
+						))}
+					</TableBody>
+				</Table>
+			</TabsContent>
+		</Tabs>
 	);
 }
