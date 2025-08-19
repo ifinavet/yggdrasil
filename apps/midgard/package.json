@@ -1,48 +1,54 @@
 {
-	"name": "midgard",
-	"version": "0.1.0",
-	"private": true,
-	"scripts": {
-		"dev": "next dev",
-		"build": "next build",
-		"start": "next start",
-		"lint": "next lint",
-		"check": "biome check .",
-		"check:fix": "biome check . --write"
-	},
-	"dependencies": {
-		"@clerk/localizations": "^3.20.7",
-		"@clerk/nextjs": "^6.29.0",
-		"@clerk/types": "^4.73.0",
-		"@convex-dev/react-query": "0.0.0-alpha.11",
-		"@radix-ui/react-navigation-menu": "^1.2.13",
-		"@sentry/nextjs": "^10.5.0",
-		"@tanstack/react-query": "^5.81.0",
-		"@tanstack/react-table": "^8.21.3",
-		"@workspace/backend": "workspace:*",
-		"@workspace/ui": "workspace:*",
-		"convex": "^1.25.4",
-		"dompurify": "^3.2.6",
-		"isomorphic-dompurify": "^2.25.0",
-		"lucide-react": "^0.525.0",
-		"next": "15.4.2-canary.52",
-		"next-themes": "^0.4.6",
-		"posthog-js": "^1.259.0",
-		"react": "19.1.1",
-		"react-dom": "19.1.1",
-		"react-hook-form": "^7.58.1",
-		"sonner": "^2.0.5",
-		"zod": "^3.25.67"
-	},
-	"devDependencies": {
-		"@biomejs/biome": "2.0.0",
-		"@tailwindcss/postcss": "^4",
-		"@tailwindcss/typography": "^0.5.16",
-		"@types/node": "^20",
-		"@types/react": "19.1.9",
-		"@types/react-dom": "19.1.7",
-		"@workspace/typescript-config": "workspace:*",
-		"tailwindcss": "^4",
-		"typescript": "^5"
-	}
+  "name": "midgard",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "check": "biome check .",
+    "check:fix": "biome check . --write"
+  },
+  "dependencies": {
+    "@clerk/localizations": "^3.20.7",
+    "@clerk/nextjs": "^6.29.0",
+    "@clerk/types": "^4.73.0",
+    "@convex-dev/react-query": "0.0.0-alpha.11",
+    "@radix-ui/react-navigation-menu": "^1.2.13",
+    "@sentry/nextjs": "^10.5.0",
+    "@tanstack/react-query": "^5.81.0",
+    "@tanstack/react-table": "^8.21.3",
+    "@workspace/backend": "workspace:*",
+    "@workspace/ui": "workspace:*",
+    "convex": "^1.25.4",
+    "dompurify": "^3.2.6",
+    "isomorphic-dompurify": "^2.25.0",
+    "lucide-react": "^0.525.0",
+    "next": "15.4.7",
+    "next-themes": "^0.4.6",
+    "posthog-js": "^1.259.0",
+    "react": "19.1.1",
+    "react-dom": "19.1.1",
+    "react-hook-form": "^7.58.1",
+    "sonner": "^2.0.5",
+    "zod": "^3.25.67"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.0.0",
+    "@tailwindcss/postcss": "^4",
+    "@tailwindcss/typography": "^0.5.16",
+    "@types/node": "^20",
+    "@types/react": "19.1.10",
+    "@types/react-dom": "19.1.7",
+    "@workspace/typescript-config": "workspace:*",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  },
+  "pnpm": {
+    "overrides": {
+      "@types/react": "19.1.10",
+      "@types/react-dom": "19.1.7"
+    }
+  }
 }
