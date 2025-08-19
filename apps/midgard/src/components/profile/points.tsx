@@ -8,10 +8,10 @@ function getPointsText(points: number) {
 		return "Du er kjempe flink! Du har ingen prikker. Fortsett slik.";
 
 	if (points === 1)
-		return "Hmm, du har ett prikker, men, men det er sånt som skjer, vi må bare ikke la det fortsette slik."
+		return "Hmm, du har 1 prikk, men, men det er sånt som skjer, vi må bare ikke la det fortsette slik."
 
-	if (points === 3)
-		return "Huff! Dette er virkelig ikke bra, du har 2 prikker. Ett prikker til og du vil ikke ha muligheten til å melde deg på bedriftspresentasjoner igjen!"
+	if (points === 2)
+		return "Huff! Dette er virkelig ikke bra, du har 2 prikker. En prikk til og du vil ikke ha muligheten til å melde deg på bedriftspresentasjoner igjen!"
 
 	return `Uff! Dette er vrikelig ikke bra. Du har fått ${points} prikker. Dette vil medføre at du ikke kan melde deg på arrangementer.`
 }
