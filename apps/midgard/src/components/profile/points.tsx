@@ -3,7 +3,20 @@ import { cn } from "@workspace/ui/lib/utils";
 import { fetchQuery } from "convex/nextjs";
 import { getAuthToken } from "@/utils/authToken";
 
-export default async function Points({ className }: { className?: string }) {
+function getPointsText(points: number) {
+	if (points === 0)
+		return "Du er kjempe flink! Du har ingen prikker. Fortsett slik.";
+
+	if (points === 1)
+		return "Hmm, du har ett prikker, men, men det er sånt som skjer, vi må bare ikke la det fortsette slik."
+
+	if (points === 3)
+		return "Huff! Dette er virkelig ikke bra, du har 2 prikker. Ett prikker til og du vil ikke ha muligheten til å melde deg på bedriftspresentasjoner igjen!"
+
+	return `Uff! Dette er vrikelig ikke bra. Du har fått ${points} prikker. Dette vil medføre at du ikke kan melde deg på arrangementer.`
+}
+
+export default async function Points({ className }: Readonly<{ className?: string }>) {
 	const token = await getAuthToken();
 	const points = await fetchQuery(api.points.getCurrentStudentsPoints, {}, { token });
 
@@ -29,13 +42,7 @@ export default async function Points({ className }: { className?: string }) {
 					})}
 				</div>
 				<p className='text-sm text-zinc-600 tracking-normal'>
-					{numberOfPoints === 0
-						? "Du er kjempe flink! Du har ingen poeng. Fortsett slik."
-						: numberOfPoints === 1
-							? "Hmm, du har ett poeng, men, men det er sånt som skjer, vi må bare ikke la det fortsette slik."
-							: numberOfPoints === 2
-								? "Huff! Dette er virkelig ikke bra, du har 2 poeng. Ett poeng til og du vil ikke ha muligheten til å melde deg på bedriftspresentasjoner igjen!"
-								: `Uff! Dette er vrikelig ikke bra. Du har fått ${numberOfPoints} poeng. Dette vil medføre at du ikke kan melde deg på arrangementer.`}
+					{getPointsText(numberOfPoints)}
 				</p>
 			</div>
 			<p className='text-balance font-semibold text-lg text-primary tracking-tight'>
