@@ -181,6 +181,8 @@ export const register = mutation({
 			.withIndex("by_eventIdStatusAndRegistrationTime", (q) => q.eq("eventId", eventId))
 			.collect();
 
+		if (registrations.some(registration => registration.userId === user._id)) return;
+
 		const registrationCount = registrations.filter(
 			(reg) => reg.status === "registered" || reg.status === "pending",
 		).length;
