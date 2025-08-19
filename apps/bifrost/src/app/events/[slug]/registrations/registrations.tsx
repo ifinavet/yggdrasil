@@ -153,7 +153,7 @@ export function Registrations({
 				</TabsTrigger>
 			</TabsList>
 			<TabsContent value='registered'>
-				<div className='flex flex-wrap items-center justify-between border-b mt-2'>
+				<div className='flex flex-wrap items-center justify-between border-b my-2'>
 					<h2 className='scroll-m-20 font-semibold text-2xl tracking-tight first:mt-0'>Påmeldte</h2>
 
 					<div className='flex flex-wrap gap-2 md:gap-4'>
@@ -181,20 +181,21 @@ export function Registrations({
 						</Button>
 					</div>
 				</div>
-				<RegistrationsTable columns={columns} data={registeredData} />
+				<RegistrationsTable columns={columns} data={registeredData} className="overflow-clip rounded-lg" />
 			</TabsContent>
 
 			<TabsContent value='waitlist'>
-				<div className="mt-4">
+				<div className="mt-4 mb-2">
 					<h2 className='scroll-m-20 border-b pb-2 font-semibold text-2xl tracking-tight first:mt-0'>
 						Venteliste
 					</h2>
-					<RegistrationsTable
-						columns={columns}
-						data={waitlistData}
-						empty_message='Ingen på venteliste'
-					/>
 				</div>
+				<RegistrationsTable
+					columns={columns}
+					data={waitlistData}
+					empty_message='Ingen på venteliste'
+					className="overflow-clip rounded-lg"
+				/>
 			</TabsContent>
 		</Tabs>
 	);
