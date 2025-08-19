@@ -232,6 +232,13 @@ export const unregister = mutation({
 
 		await ctx.db.delete(id);
 
+		const returnData = {
+			deletedRegistration: registration,
+			event: event,
+		};
+
+		if (registration.status === "waitlist") return returnData;
+
 		if (event.eventStart - Date.now() < 24 * 60 * 60 * 1000) {
 			const student = await ctx.db
 				.query("students")
@@ -248,13 +255,6 @@ export const unregister = mutation({
 				reason: `Avregistrering fra arrangement ${event.title} mindre enn 24 timer før start.`,
 			});
 		}
-
-		const returnData = {
-			deletedRegistration: registration,
-			event: event,
-		};
-
-		if (registration.status === "waitlist") return returnData;
 
 		const nextRegistration = await ctx.db
 			.query("registrations")
