@@ -11,12 +11,14 @@ import {
 } from "@workspace/ui/components//table";
 
 interface RegistrationsTableProps<TData, TValue> {
+	className?: string;
 	columns: ColumnDef<TData, TValue>[];
 	data: TData[];
 	empty_message?: string;
 }
 
 export function RegistrationsTable<TData, TValue>({
+	className,
 	columns,
 	data,
 	empty_message = "Ingen påmeldinger funnet",
@@ -28,12 +30,12 @@ export function RegistrationsTable<TData, TValue>({
 	});
 
 	return (
-		<Table>
-			<TableHeader>
+		<Table className={className}>
+			<TableHeader className='bg-accent font-bold'>
 				{table.getHeaderGroups().map((headerGroup) => (
 					<TableRow key={headerGroup.id}>
 						{headerGroup.headers.map((header) => (
-							<TableHead key={header.id}>
+							<TableHead key={header.id} className='text-bold'>
 								{header.isPlaceholder
 									? null
 									: flexRender(header.column.columnDef.header, header.getContext())}
