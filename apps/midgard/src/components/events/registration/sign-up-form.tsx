@@ -80,12 +80,16 @@ export default function SignUpForm({
 					{waitlist ? "Det er fullt! Meld deg på venteliste" : "Meld deg på"}
 				</Button>
 			</DialogTrigger>
-			<DialogContent className='sm:max-w-[425px]'>
+			<DialogContent className='sm:min-w-[50ch] sm:max-w-[425px]'>
 				<DialogHeader>
 					<DialogTitle>Meld meg på</DialogTitle>
-					<DialogDescription>
+					<DialogDescription className=''>
 						Meld deg på bedriftspresentasjonen! Dersom du har noen algerier eller andre ting vi
-						burde vite om, ber vi deg vennligst oppi dem nå.
+						burde vite om, ber vi deg vennligst oppi dem nå.{" "}
+						<span className='font-bold'>
+							NB! Dersom du melder deg på sent, eller blir flyttet fra ventelisten sent, så er det
+							ikke sikker at vi kan ta hensyn til allergener.
+						</span>
 					</DialogDescription>
 				</DialogHeader>
 				<Form {...form}>
