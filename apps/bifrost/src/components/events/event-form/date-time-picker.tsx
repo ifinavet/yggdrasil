@@ -101,6 +101,7 @@ export default function DateTimePicker({
 						</Popover>
 						<Input
 							type='time'
+							pattern='[0-9]{2}:[0-9]{2}'
 							value={field.value ? format(field.value, "HH:mm") : ""}
 							onChange={(e) => handleTimeChange(e.target.value, field.value, field.onChange)}
 							className='w-fit appearance-none bg-background [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none'
