@@ -1,12 +1,8 @@
-import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import { hasAdminRights } from "@/utils/auth";
 
 export default async function Layout({ children }: { children: React.ReactNode }) {
-	const { orgRole } = await auth();
+	const hasRight = await hasAdminRights();
 
-	if (orgRole !== "org:admin") {
-		return redirect("/");
-	}
-
-	return children;
+	return hasRight ? children : redirect("/");
 }

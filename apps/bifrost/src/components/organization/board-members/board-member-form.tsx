@@ -1,8 +1,7 @@
 "use client";
 
-import { useAuth } from "@clerk/nextjs";
 import { Popover, PopoverContent, PopoverTrigger } from "@radix-ui/react-popover";
-import { useQuery } from "@tanstack/react-query";
+import { api } from "@workspace/backend/convex/api";
 import { Button } from "@workspace/ui/components/button";
 import {
 	Command,
@@ -33,11 +32,11 @@ import {
 } from "@workspace/ui/components/form";
 import { Input } from "@workspace/ui/components/input";
 import { cn } from "@workspace/ui/lib/utils";
+import { useQuery } from "convex/react";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { type boardMemberSchema, formSchema } from "@/constants/schemas/boardmember-form-schema";
-import { getAllInternalMembers } from "@/lib/queries/organization";
 import { zodV4Resolver } from "@/utils/zod-v4-resolver";
 
 export default function BoardMemberForm({
@@ -59,13 +58,7 @@ export default function BoardMemberForm({
 	button: React.ReactNode;
 	className?: string;
 }) {
-	const { orgId, isLoaded } = useAuth();
-
-	const { data: internalMembers, isLoading } = useQuery({
-		queryKey: ["internalMembers", orgId],
-		queryFn: () => getAllInternalMembers(orgId as string),
-		enabled: isLoaded && !!orgId,
-	});
+	const internalMembers = useQuery(api.internals.getAll);
 
 	const form = useForm<boardMemberSchema>({
 		resolver: zodV4Resolver(formSchema),
@@ -80,7 +73,7 @@ export default function BoardMemberForm({
 		}
 	}, [openDialog, form]);
 
-	if (!isLoaded || isLoading || !orgId)
+	if (!internalMembers)
 		return (
 			<Button variant='outline' size='sm' className={className} disabled>
 				{button}
@@ -103,7 +96,7 @@ export default function BoardMemberForm({
 					<form onSubmit={form.handleSubmit(onSubmitAction)} className='space-y-8'>
 						<FormField
 							control={form.control}
-							name='userID'
+							name='userId'
 							render={({ field }) => (
 								<FormItem className='flex flex-col'>
 									<FormLabel>Ansvarlige</FormLabel>
@@ -118,8 +111,8 @@ export default function BoardMemberForm({
 												>
 													{field.value
 														? internalMembers?.find(
-																(internalMember) => internalMember.id === field.value,
-															)?.fullname
+															(internalMember) => internalMember.userId === field.value,
+														)?.fullName
 														: "Velg et medlem..."}
 													<ChevronsUpDown className='ml-2 h-4 w-4 shrink-0 opacity-50' />
 												</Button>
@@ -132,24 +125,25 @@ export default function BoardMemberForm({
 														<CommandGroup>
 															{internalMembers?.map((internalMember) => (
 																<CommandItem
-																	key={internalMember.id}
-																	value={internalMember.id ?? "Ukjent"}
+																	key={internalMember.userId}
+																	value={internalMember.userId ?? "Ukjent"}
 																	onSelect={(currentValue) => {
 																		field.onChange(
 																			currentValue === field.value ? "" : currentValue,
 																		);
+																		form.setValue("internalId", internalMember._id);
 																		setOpenMembers(false);
 																	}}
 																>
 																	<Check
 																		className={cn(
 																			"mr-2 h-4 w-4",
-																			field.value === internalMember.id
+																			field.value === internalMember.userId
 																				? "opacity-100"
 																				: "opacity-0",
 																		)}
 																	/>
-																	{internalMember.fullname}
+																	{internalMember.fullName}
 																</CommandItem>
 															))}
 														</CommandGroup>

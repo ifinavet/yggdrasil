@@ -23,7 +23,7 @@ export const formSchema = z.object({
 	organizers: z
 		.array(
 			z.object({
-				id: z.string(),
+				userId: z.string(),
 				role: z.custom<OrganizerRole>(),
 			}),
 		)

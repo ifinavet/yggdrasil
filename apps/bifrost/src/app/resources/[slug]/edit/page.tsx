@@ -1,4 +1,3 @@
-import { auth } from "@clerk/nextjs/server";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import {
 	Breadcrumb,
@@ -9,18 +8,17 @@ import {
 	BreadcrumbSeparator,
 } from "@workspace/ui/components//breadcrumb";
 import EditResourceForm from "./edit-resource-form";
+import { hasEditRights } from "@/utils/auth";
+import { redirect } from "next/navigation";
 
 export default async function EditResourcePage({
 	params,
 }: {
 	params: Promise<{ slug: Id<"resources"> }>;
 }) {
-	const { orgRole } = await auth();
 	const { slug: id } = await params;
 
-	if (!(orgRole === "org:admin" || orgRole === "org:editor")) {
-		throw new Error("Forbidden");
-	}
+	if (!(await hasEditRights())) redirect("/");
 
 	return (
 		<>

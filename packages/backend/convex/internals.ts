@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { userByExternalId } from "./users";
+import { getCurrentUserOrThrow } from "./users";
 
 export const getBoardMemberByPosition = query({
 	args: {
@@ -32,7 +32,7 @@ export const getTheBoard = query({
 	handler: async (ctx) => {
 		const members = await ctx.db
 			.query("internals")
-			.filter((q) => q.neq("position", "intern"))
+			.filter((q) => q.neq(q.field("position"), "Intern"))
 			.collect();
 
 		const boardMembers = await Promise.all(
@@ -88,54 +88,134 @@ export const getById = query({
 			fullName: `${user.firstName} ${user.lastName}`,
 			email: user.email,
 			image: user.image,
-			externalId: user.externalId,
 		};
 	},
 });
 
-export const update = mutation({
+export const upsertBoardMember = mutation({
 	args: {
 		id: v.id("internals"),
-		externalId: v.string(),
+		userId: v.id("users"),
 		position: v.string(),
 		group: v.string(),
 		positionEmail: v.optional(v.string()),
 	},
-	handler: async (ctx, { id, externalId, position, group, positionEmail }) => {
-		const user = await userByExternalId(ctx, externalId);
-		if (!user) {
-			throw new Error(`User not found for external ID: ${externalId}`);
-		}
+	handler: async (ctx, { id, userId, position, group, positionEmail }) => {
+		const currentBoardMember = await ctx.db.get(id);
+		if (!currentBoardMember) throw new Error(`Board member not found for ID: ${id}`);
 
-		await ctx.db.patch(id, {
-			userId: user._id,
-			position,
-			group,
-			positionEmail,
-		});
+		if (currentBoardMember.userId !== userId) {
+			await ctx.db.patch(id, {
+				group: "",
+				positionEmail: "",
+				position: "Intern",
+			});
+
+			const newBoardMember = await ctx.db.query("internals").withIndex("by_userId", q => q.eq("userId", userId)).first();
+			if (!newBoardMember) throw new Error(`New board member not found for user ID: ${userId}`);
+
+			await ctx.db.patch(newBoardMember._id, {
+				group,
+				positionEmail,
+				position,
+			});
+		} else {
+			await ctx.db.patch(id, {
+				position,
+				group,
+				positionEmail,
+			});
+		}
 	},
 });
 
-export const createBoardMember = mutation({
+export const getAll = query({
+	handler: async (ctx) => {
+		const internals = await ctx.db.query("internals").collect();
+
+		return await Promise.all(internals.map(async (internal) => {
+			const user = await ctx.db.get(internal.userId);
+			if (!user) return {
+				...internal,
+				fullName: "Ukjent, Error"
+			}
+
+			return {
+				...internal,
+				fullName: `${user.firstName} ${user.lastName}`
+			}
+		}));
+	}
+})
+
+export const getAllInternals = query({
+	handler: async (ctx) => {
+		const internals = await ctx.db.query("internals").withIndex("by_position", q => q.eq("position", "Intern")).collect();
+
+		return await Promise.all(internals.map(async (internal) => {
+			const user = await ctx.db.get(internal.userId);
+
+			const rights = await ctx.db.query("accessRights").withIndex("by_userId", q => q.eq("userId", internal.userId)).first();
+
+			if (!user) return {
+				...internal,
+				fullName: "Ukjent, Error",
+				email: "Ukjent, Error",
+				image: null,
+				role: rights?.role
+			}
+
+			return {
+				...internal,
+				fullName: `${user.firstName} ${user.lastName}`,
+				email: user.email,
+				image: user.image,
+				role: rights?.role
+			}
+		}));
+	}
+})
+
+export const createInternal = mutation({
 	args: {
-		externalId: v.string(),
-		position: v.string(),
+		userId: v.id("users"),
 		group: v.string(),
-		positionEmail: v.optional(v.string()),
 	},
-	handler: async (ctx, { externalId, position, group, positionEmail }) => {
-		const user = await userByExternalId(ctx, externalId);
-		if (!user) {
-			throw new Error(`User not found for external ID: ${externalId}`);
+	handler: async (ctx, { userId, group }) => {
+		await getCurrentUserOrThrow(ctx);
+
+		const existingInternal = await ctx.db.query("internals").withIndex("by_userId", q => q.eq("userId", userId)).first();
+		if (existingInternal) {
+			throw new Error(`Internal member already exists for user ID: ${userId}`);
 		}
 
-		const newMember = {
-			userId: user._id,
-			position,
+		await ctx.db.insert("internals", {
+			userId,
 			group,
-			positionEmail,
-		};
+			position: "Intern",
+		});
+	}
+})
 
-		await ctx.db.insert("internals", newMember);
+export const removeInternal = mutation({
+	args: {
+		id: v.id("internals"),
+	},
+	handler: async (ctx, { id }) => {
+		await getCurrentUserOrThrow(ctx);
+
+		await ctx.db.delete(id);
+	}
+})
+
+export const updateInternal = mutation({
+	args: {
+		id: v.id("internals"),
+		group: v.string(),
+	},
+	handler: async (ctx, { id, group }) => {
+		await getCurrentUserOrThrow(ctx);
+
+		await ctx.db.patch(id, { group });
 	},
 });
