@@ -380,7 +380,21 @@ export const update = mutation({
 
 		await Promise.all([...organizersToDelete, ...organizersToUpdate, ...organizersToCreate]);
 
-		if (participationLimit - event.participationLimit > 0)
+		const registeredCount = (await ctx.db
+			.query("registrations")
+			.withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
+				q.eq("eventId", eventId).eq("status", "registered"),
+			)
+			.collect()).length;
+
+		const pendingCount = (await ctx.db
+			.query("registrations")
+			.withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
+				q.eq("eventId", eventId).eq("status", "pending"),
+			)
+			.collect()).length;
+
+		if (((participationLimit - event.participationLimit) > 0) && (registeredCount + pendingCount) === event.participationLimit)
 			await updateWaitlist(ctx, event._id, participationLimit - event.participationLimit);
 	},
 });
