@@ -14,6 +14,7 @@ import { Separator } from "@workspace/ui/components//separator";
 import { fetchQuery } from "convex/nextjs";
 import Link from "next/link";
 import SafeHtml from "@/components/common/sanitize-html";
+import { hasEditRights } from "@/utils/auth";
 
 export default async function ResourcePage({
 	params,
@@ -24,6 +25,8 @@ export default async function ResourcePage({
 
 	const { slug: id } = await params;
 	const resource = await fetchQuery(api.resources.getById, { id: id });
+
+	const hasEditRight = await hasEditRights();
 
 	return (
 		<>
@@ -47,7 +50,7 @@ export default async function ResourcePage({
 				<h1 className='flex-1 scroll-m-20 text-balance text-center font-extrabold text-4xl tracking-tight'>
 					{resource.title}
 				</h1>
-				{(orgRole === "org:admin" || orgRole === "org:editor") && (
+				{hasEditRight && (
 					<Button variant='outline' asChild className='w-fit self-end md:self-auto'>
 						<Link href={`/resources/${resource._id}/edit`}>Rediger</Link>
 					</Button>

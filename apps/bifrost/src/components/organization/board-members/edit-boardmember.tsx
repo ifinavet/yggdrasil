@@ -23,11 +23,11 @@ export default function EditBoardMember({
 
 	const boardMember = useQuery(api.internals.getById, { id: internalId });
 
-	const updateBoardMember = useMutation(api.internals.update);
+	const updateBoardMember = useMutation(api.internals.upsertBoardMember);
 	const onSubmit = (data: boardMemberSchema) => {
 		updateBoardMember({
 			id: internalId,
-			externalId: data.userID,
+			userId: data.userId as Id<"users">,
 			position: data.role,
 			group: data.group,
 			positionEmail: data.positionEmail,
@@ -57,7 +57,8 @@ export default function EditBoardMember({
 	return (
 		<BoardMemberForm
 			defaultValues={{
-				userID: boardMember.externalId,
+				internalId: boardMember._id,
+				userId: boardMember.userId,
 				role: boardMember.position,
 				group: boardMember.group,
 				positionEmail: boardMember.positionEmail,

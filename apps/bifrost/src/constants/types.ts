@@ -17,3 +17,5 @@ export type Event = {
 };
 
 export type OrganizerRole = "hovedansvarlig" | "medhjelper";
+
+export const accessRights = ["super-admin", "admin", "editor", "internal"] as const;

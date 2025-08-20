@@ -1,6 +1,7 @@
 "use client";
 
 import { api } from "@workspace/backend/convex/api";
+import type { Id } from "@workspace/backend/convex/dataModel";
 import { useMutation } from "convex/react";
 import { Plus } from "lucide-react";
 import { useState } from "react";
@@ -10,17 +11,19 @@ import BoardMemberForm from "./board-member-form";
 
 export default function AddBoardMember({ className }: { className?: string }) {
 	const defaultValues = {
-		userID: "",
+		internalId: "",
+		userId: "",
 		role: "",
 		group: "",
 	};
 
 	const [openDialog, setOpenDialog] = useState(false);
 
-	const createBoardMember = useMutation(api.internals.createBoardMember);
+	const createBoardMember = useMutation(api.internals.upsertBoardMember);
 	const onSubmit = (data: boardMemberSchema) => {
 		createBoardMember({
-			externalId: data.userID,
+			id: data.internalId as Id<"internals">,
+			userId: data.userId as Id<"users">,
 			position: data.role,
 			group: data.group,
 			positionEmail: data.positionEmail,

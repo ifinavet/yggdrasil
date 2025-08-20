@@ -30,7 +30,7 @@ export default function UpdateEventForm({ eventId }: { eventId: string }) {
 		language: event.language,
 		participantsLimit: event.participationLimit,
 		organizers: event.organizers.map((organizer) => ({
-			id: organizer.externalId,
+			userId: organizer.userId,
 			role: organizer.role as OrganizerRole,
 		})),
 		eventType: event.externalUrl ? "external_event" : "internal_event",
@@ -57,7 +57,7 @@ export default function UpdateEventForm({ eventId }: { eventId: string }) {
 			externalUrl: values.externalUrl,
 			hostingCompany: values.hostingCompany.id as Id<"companies">,
 			organizers: values.organizers.map((organizer) => ({
-				externalUserId: organizer.id,
+				userId: organizer.userId as Id<"users">,
 				role: organizer.role as OrganizerRole,
 			})),
 			published,
