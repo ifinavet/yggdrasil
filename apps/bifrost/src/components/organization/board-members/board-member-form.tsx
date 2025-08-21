@@ -31,12 +31,20 @@ import {
 	FormMessage,
 } from "@workspace/ui/components/form";
 import { Input } from "@workspace/ui/components/input";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@workspace/ui/components/select";
 import { cn } from "@workspace/ui/lib/utils";
 import { useQuery } from "convex/react";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { type boardMemberSchema, formSchema } from "@/constants/schemas/boardmember-form-schema";
+import { accessRights } from "@/constants/types";
 import { zodV4Resolver } from "@/utils/zod-v4-resolver";
 
 export default function BoardMemberForm({
@@ -171,6 +179,7 @@ export default function BoardMemberForm({
 								</FormItem>
 							)}
 						/>
+
 						<FormField
 							control={form.control}
 							name='group'
@@ -197,6 +206,34 @@ export default function BoardMemberForm({
 									</FormControl>
 									<FormDescription>
 										En valgri epost som bli brukt isteden for rolle inhaver sin egen.
+									</FormDescription>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+
+						<FormField
+							control={form.control}
+							name='accessRole'
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Tilgangsrolle</FormLabel>
+									<FormControl>
+										<Select onValueChange={field.onChange} defaultValue={field.value}>
+											<SelectTrigger>
+												<SelectValue placeholder='Velg tilgangsrolle' className="capitalize" />
+											</SelectTrigger>
+											<SelectContent>
+												{accessRights.map((accessRight) => (
+													<SelectItem value={accessRight} key={accessRight} className='capitalize'>
+														{accessRight}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
+									</FormControl>
+									<FormDescription>
+										Hva slags tilgangsrolle skal denne personen ha?
 									</FormDescription>
 									<FormMessage />
 								</FormItem>

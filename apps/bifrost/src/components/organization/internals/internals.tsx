@@ -57,10 +57,10 @@ export default function Internals({
 		});
 
 	const upsertRole = useMutation(api.accsessRights.upsertAccessRights);
-	const upsertRoleAction = (userId: Id<"users">, role: typeOf accessRights) =>
+	const upsertRoleAction = (userId: Id<"users">, role: typeof accessRights[number]) =>
 		upsertRole({
 			userId,
-			role: role as "super-admin" | "admin" | "editor" | "internal",
+			role,
 		});
 
 	const columns = createColumns(deleteInternalAction, updateGroupAction, upsertRoleAction);
@@ -71,7 +71,7 @@ export default function Internals({
 		fullName: internal.fullName,
 		email: internal.email,
 		group: internal.group,
-		role: internal.role as string as typeof accessRights,
+		role: internal.role as typeof accessRights[number],
 	}));
 
 	return (

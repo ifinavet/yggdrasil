@@ -18,7 +18,8 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@workspace/ui/components/select";
-import { useRef } from "react";
+import { LockKeyhole } from "lucide-react";
+import { useState } from "react";
 import { accessRights } from "@/constants/types";
 
 export default function UpsertInternalRole({
@@ -28,12 +29,14 @@ export default function UpsertInternalRole({
 	role?: string;
 	setSelectedRoleAction: (role: string) => void;
 }) {
-	const selectedRole = useRef<string>("");
+	const [selectedRole, setSelectedRole] = useState<string>(role ?? "");
 
 	return (
 		<Dialog>
 			<DialogTrigger asChild>
-				<Button variant='secondary'>{role ?? "Sett rolle"}</Button>
+				<Button variant='secondary'>
+					<LockKeyhole className="size-4" /> {role ?? "Sett rolle"}
+				</Button>
 			</DialogTrigger>
 			<DialogContent>
 				<DialogHeader>
@@ -45,20 +48,16 @@ export default function UpsertInternalRole({
 				</DialogHeader>
 
 				<div>
-					<Select
-						value={role}
-						onValueChange={(value: string) => {
-							selectedRole.current = value;
-						}}
-					>
+					<Select defaultValue={role} onValueChange={(value: string) => setSelectedRole(value)}>
 						<SelectTrigger>
 							<SelectValue placeholder='Velg tilgangsrolle' />
 						</SelectTrigger>
 						<SelectContent>
-							{accessRights.map(accessRight => <SelectItem value='admin'>Admin</SelectItem>)}
-							<SelectItem value='super-admin'>Super-admin</SelectItem>
-							<SelectItem value='editor'>Editor</SelectItem>
-							<SelectItem value='internal'>Internal</SelectItem>
+							{accessRights.map((accessRight) => (
+								<SelectItem value={accessRight} key={accessRight} className='capitalize'>
+									{accessRight}
+								</SelectItem>
+							))}
 						</SelectContent>
 					</Select>
 				</div>
@@ -66,7 +65,7 @@ export default function UpsertInternalRole({
 				<DialogFooter>
 					<div className='flex w-full justify-start gap-4'>
 						<DialogClose asChild>
-							<Button type='submit' onClick={() => setSelectedRoleAction(selectedRole.current)}>
+							<Button type='submit' onClick={() => setSelectedRoleAction(selectedRole)}>
 								Lagre rolle
 							</Button>
 						</DialogClose>

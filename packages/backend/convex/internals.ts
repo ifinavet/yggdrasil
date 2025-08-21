@@ -1,5 +1,7 @@
 import { v } from "convex/values";
+import { api } from "./_generated/api";
 import { mutation, query } from "./_generated/server";
+import { accessRoles } from "./schema";
 import { getCurrentUserOrThrow } from "./users";
 
 export const getBoardMemberByPosition = query({
@@ -83,11 +85,17 @@ export const getById = query({
 			throw new Error(`User not found for internal record with ID: ${id}`);
 		}
 
+		const rights = await ctx.db
+			.query("accessRights")
+			.withIndex("by_userId", (q) => q.eq("userId", internal.userId))
+			.first();
+
 		return {
 			...internal,
 			fullName: `${user.firstName} ${user.lastName}`,
 			email: user.email,
 			image: user.image,
+			accessRights: rights?.role,
 		};
 	},
 });
@@ -99,10 +107,16 @@ export const upsertBoardMember = mutation({
 		position: v.string(),
 		group: v.string(),
 		positionEmail: v.optional(v.string()),
+		role: accessRoles,
 	},
-	handler: async (ctx, { id, userId, position, group, positionEmail }) => {
+	handler: async (ctx, { id, userId, position, group, positionEmail, role }) => {
 		const currentBoardMember = await ctx.db.get(id);
 		if (!currentBoardMember) throw new Error(`Board member not found for ID: ${id}`);
+
+		await ctx.runMutation(api.accsessRights.upsertAccessRights, {
+			userId,
+			role
+		})
 
 		if (currentBoardMember.userId !== userId) {
 			await ctx.db.patch(id, {
@@ -111,7 +125,10 @@ export const upsertBoardMember = mutation({
 				position: "Intern",
 			});
 
-			const newBoardMember = await ctx.db.query("internals").withIndex("by_userId", q => q.eq("userId", userId)).first();
+			const newBoardMember = await ctx.db
+				.query("internals")
+				.withIndex("by_userId", (q) => q.eq("userId", userId))
+				.first();
 			if (!newBoardMember) throw new Error(`New board member not found for user ID: ${userId}`);
 
 			await ctx.db.patch(newBoardMember._id, {
@@ -133,48 +150,60 @@ export const getAll = query({
 	handler: async (ctx) => {
 		const internals = await ctx.db.query("internals").collect();
 
-		return await Promise.all(internals.map(async (internal) => {
-			const user = await ctx.db.get(internal.userId);
-			if (!user) return {
-				...internal,
-				fullName: "Ukjent, Error"
-			}
+		return await Promise.all(
+			internals.map(async (internal) => {
+				const user = await ctx.db.get(internal.userId);
+				if (!user)
+					return {
+						...internal,
+						fullName: "Ukjent, Error",
+					};
 
-			return {
-				...internal,
-				fullName: `${user.firstName} ${user.lastName}`
-			}
-		}));
-	}
-})
+				return {
+					...internal,
+					fullName: `${user.firstName} ${user.lastName}`,
+				};
+			}),
+		);
+	},
+});
 
 export const getAllInternals = query({
 	handler: async (ctx) => {
-		const internals = await ctx.db.query("internals").withIndex("by_position", q => q.eq("position", "Intern")).collect();
+		const internals = await ctx.db
+			.query("internals")
+			.withIndex("by_position", (q) => q.eq("position", "Intern"))
+			.collect();
 
-		return await Promise.all(internals.map(async (internal) => {
-			const user = await ctx.db.get(internal.userId);
+		return await Promise.all(
+			internals.map(async (internal) => {
+				const user = await ctx.db.get(internal.userId);
 
-			const rights = await ctx.db.query("accessRights").withIndex("by_userId", q => q.eq("userId", internal.userId)).first();
+				const rights = await ctx.db
+					.query("accessRights")
+					.withIndex("by_userId", (q) => q.eq("userId", internal.userId))
+					.first();
 
-			if (!user) return {
-				...internal,
-				fullName: "Ukjent, Error",
-				email: "Ukjent, Error",
-				image: null,
-				role: rights?.role
-			}
+				if (!user)
+					return {
+						...internal,
+						fullName: "Ukjent, Error",
+						email: "Ukjent, Error",
+						image: null,
+						role: rights?.role,
+					};
 
-			return {
-				...internal,
-				fullName: `${user.firstName} ${user.lastName}`,
-				email: user.email,
-				image: user.image,
-				role: rights?.role
-			}
-		}));
-	}
-})
+				return {
+					...internal,
+					fullName: `${user.firstName} ${user.lastName}`,
+					email: user.email,
+					image: user.image,
+					role: rights?.role,
+				};
+			}),
+		);
+	},
+});
 
 export const createInternal = mutation({
 	args: {
@@ -184,7 +213,10 @@ export const createInternal = mutation({
 	handler: async (ctx, { userId, group }) => {
 		await getCurrentUserOrThrow(ctx);
 
-		const existingInternal = await ctx.db.query("internals").withIndex("by_userId", q => q.eq("userId", userId)).first();
+		const existingInternal = await ctx.db
+			.query("internals")
+			.withIndex("by_userId", (q) => q.eq("userId", userId))
+			.first();
 		if (existingInternal) {
 			throw new Error(`Internal member already exists for user ID: ${userId}`);
 		}
@@ -194,8 +226,13 @@ export const createInternal = mutation({
 			group,
 			position: "Intern",
 		});
-	}
-})
+
+		await ctx.runMutation(api.accsessRights.upsertAccessRights, {
+			userId,
+			role: "internal",
+		});
+	},
+});
 
 export const removeInternal = mutation({
 	args: {
@@ -205,8 +242,8 @@ export const removeInternal = mutation({
 		await getCurrentUserOrThrow(ctx);
 
 		await ctx.db.delete(id);
-	}
-})
+	},
+});
 
 export const updateInternal = mutation({
 	args: {

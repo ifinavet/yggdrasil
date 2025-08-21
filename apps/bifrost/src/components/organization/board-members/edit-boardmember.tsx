@@ -31,6 +31,7 @@ export default function EditBoardMember({
 			position: data.role,
 			group: data.group,
 			positionEmail: data.positionEmail,
+			role: data.accessRole ?? "admin"
 		})
 			.then(() => {
 				toast.success("Styremedlemmet ble oppdatert!");
@@ -62,6 +63,7 @@ export default function EditBoardMember({
 				role: boardMember.position,
 				group: boardMember.group,
 				positionEmail: boardMember.positionEmail,
+				accessRole: boardMember.accessRights,
 			}}
 			onSubmitAction={onSubmit}
 			title='Rediger styremedlem'

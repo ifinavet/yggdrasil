@@ -13,13 +13,13 @@ export type InternalsTable = {
 	fullName: string;
 	email: string;
 	group: string;
-	role: typeof accessRights;
+	role: typeof accessRights[number];
 };
 
 export const createColumns = (
 	onDelete: (internalsId: Id<"internals">) => void,
 	onUpdateGroup: (internalsId: Id<"internals">, group: string) => void,
-	onSetRole: (userId: Id<"users">, role: typeof accessRights) => void,
+	onSetRole: (userId: Id<"users">, role: typeof accessRights[number]) => void,
 ): ColumnDef<InternalsTable>[] => [
 		{
 			accessorKey: "fullName",
@@ -45,6 +45,7 @@ export const createColumns = (
 
 				return (
 					<Input
+						className='md:w-1/2'
 						type='text'
 						placeholder='eks. webgruppen 🦖'
 						value={localGroup}
@@ -65,8 +66,8 @@ export const createColumns = (
 			cell: ({ row }) => {
 				return (
 					<UpsertInternalRole
-						role={row.original.role}
-						setSelectedRoleAction={(newRole) => onSetRole(row.original.userId, newRole as unknown as typeof accessRights)}
+						role={row.original.role as unknown as string}
+						setSelectedRoleAction={(newRole) => onSetRole(row.original.userId, newRole as typeof accessRights[number])}
 					/>
 				);
 			},
