@@ -81,7 +81,7 @@ export const searchAfterUsers = query({
 	},
 	handler: async (ctx, { searchInput, paginationOpts }) => {
 		const users =
-			await ctx.db.query("users").withSearchIndex("search_name", q => q.search("lastName", searchInput)).paginate(paginationOpts);
+			await ctx.db.query("users").withSearchIndex("search_email", q => q.search("email", searchInput)).paginate(paginationOpts);
 
 		return users
 	},
