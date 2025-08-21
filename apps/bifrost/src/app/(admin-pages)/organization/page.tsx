@@ -9,11 +9,13 @@ import {
 } from "@workspace/ui/components/breadcrumb";
 import { Separator } from "@workspace/ui/components/separator";
 import { preloadQuery } from "convex/nextjs";
-import AddBoardMember from "@/components/organization/add-boardmember";
-import ListBoardMembers from "@/components/organization/list-board-members";
+import AddBoardMember from "@/components/organization/board-members/add-boardmember";
+import ListBoardMembers from "@/components/organization/board-members/list-board-members";
+import Internals from "@/components/organization/internals/internals";
 
 export default async function OrganizationPage() {
 	const preloadedBoardMembers = await preloadQuery(api.internals.getTheBoard);
+	const preloadedInternals = await preloadQuery(api.internals.getAllInternals);
 
 	return (
 		<>
@@ -39,6 +41,11 @@ export default async function OrganizationPage() {
 				<h2 className='scroll-m-20 border-b pb-2 font-semibold text-3xl tracking-tight first:mt-0'>
 					Hovedsamarbeidspartner
 				</h2>
+				<Separator />
+				<h2 className='scroll-m-20 border-b pb-2 font-semibold text-3xl tracking-tight first:mt-0'>
+					Interne
+				</h2>
+				<Internals preloadedInternals={preloadedInternals} />
 			</div>
 		</>
 	);

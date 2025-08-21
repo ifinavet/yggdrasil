@@ -1,5 +1,5 @@
 import { SignOutButton } from "@clerk/nextjs";
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { currentUser } from "@clerk/nextjs/server";
 import { Avatar, AvatarFallback, AvatarImage } from "@workspace/ui/components/avatar";
 import {
 	DropdownMenu,
@@ -40,6 +40,7 @@ import Image from "next/image";
 import Link from "next/link";
 import LogoNBlue from "@/assets/navet/logo_n_blaa.webp";
 import LogoBlue from "@/assets/navet/simple_logo_blaa.webp";
+import { hasAdminRights, hasAllRights, hasEditRights } from "@/utils/auth";
 import { SidebarContentGroup } from "./sidebar-content-group";
 
 const externalPaths = {
@@ -88,10 +89,13 @@ const externalPaths = {
 };
 
 export default async function BifrostSidebar() {
-	const { userId, orgRole } = await auth();
 	const user = await currentUser();
 
-	if (!userId || !user) {
+	const adminRights = await hasAdminRights();
+	const editRights = await hasEditRights();
+	const superAdminRights = await hasAllRights();
+
+	if (!user) {
 		throw new Error("User not found");
 	}
 
@@ -119,32 +123,30 @@ export default async function BifrostSidebar() {
 			</SidebarHeader>
 			<SidebarContent>
 				<SidebarContentGroup title='Tjenester' items='main' />
-				{orgRole && ["org:admin", "org:editor"].includes(orgRole) && (
-					<SidebarContentGroup title='Offentlige Sider' items='pages' />
-				)}
-				{orgRole === "org:admin" && (
-					<>
-						<SidebarContentGroup title='Administrator sider' items='admin' />
-						<SidebarGroup>
-							<SidebarGroupLabel>
-								Eksterne tjenester <ExternalLink className='ml-1' />
-							</SidebarGroupLabel>
-							<SidebarGroupContent>
-								<SidebarMenu>
-									{externalPaths.external.map((item) => (
-										<SidebarMenuItem key={item.title}>
-											<SidebarMenuButton tooltip={item.title} asChild>
-												<a href={item.path} target='_blank' rel='noopener noreferrer'>
-													{item.icon && <item.icon />}
-													<span>{item.title}</span>
-												</a>
-											</SidebarMenuButton>
-										</SidebarMenuItem>
-									))}
-								</SidebarMenu>
-							</SidebarGroupContent>
-						</SidebarGroup>
-					</>
+				{editRights && <SidebarContentGroup title='Offentlige Sider' items='pages' />}
+
+				{adminRights && <SidebarContentGroup title='Administrator sider' items='admin' />}
+
+				{superAdminRights && (
+					<SidebarGroup>
+						<SidebarGroupLabel>
+							Eksterne tjenester <ExternalLink className='ml-1' />
+						</SidebarGroupLabel>
+						<SidebarGroupContent>
+							<SidebarMenu>
+								{externalPaths.external.map((item) => (
+									<SidebarMenuItem key={item.title}>
+										<SidebarMenuButton tooltip={item.title} asChild>
+											<a href={item.path} target='_blank' rel='noopener noreferrer'>
+												{item.icon && <item.icon />}
+												<span>{item.title}</span>
+											</a>
+										</SidebarMenuButton>
+									</SidebarMenuItem>
+								))}
+							</SidebarMenu>
+						</SidebarGroupContent>
+					</SidebarGroup>
 				)}
 			</SidebarContent>
 			<SidebarFooter>

@@ -1,4 +1,5 @@
 import type { UserJSON } from "@clerk/backend";
+import { paginationOptsValidator } from "convex/server";
 import { type Validator, v } from "convex/values";
 import { internalMutation, type QueryCtx, query } from "./_generated/server";
 
@@ -70,6 +71,19 @@ export const deleteFromClerk = internalMutation({
 		} else {
 			console.warn(`Can't delete user, there is none for Clerk user ID: ${clerkUserId}`);
 		}
+	},
+});
+
+export const searchAfterUsers = query({
+	args: {
+		searchInput: v.string(),
+		paginationOpts: paginationOptsValidator,
+	},
+	handler: async (ctx, { searchInput, paginationOpts }) => {
+		const users =
+			await ctx.db.query("users").withSearchIndex("search_email", q => q.search("email", searchInput)).paginate(paginationOpts);
+
+		return users
 	},
 });
 
