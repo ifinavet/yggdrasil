@@ -1,7 +1,6 @@
 "use client";
 
-import { useAuth } from "@clerk/nextjs";
-import { useQuery } from "@tanstack/react-query";
+import { api } from "@workspace/backend/convex/api";
 import { Button } from "@workspace/ui/components//button";
 import {
 	Command,
@@ -28,23 +27,18 @@ import {
 	SelectValue,
 } from "@workspace/ui/components//select";
 import { cn } from "@workspace/ui/lib/utils";
+import { useQuery } from "convex/react";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import type { UseFormReturn } from "react-hook-form";
 import type { EventFormValues } from "@/constants/schemas/event-form-schema";
 import type { OrganizerRole } from "@/constants/types";
-import { getAllInternalMembers } from "@/lib/queries/organization";
 import { createColumns } from "./columns";
 import OrganizersTable from "./data-table";
 
 export default function Organizers({ form }: { form: UseFormReturn<EventFormValues> }) {
-	const { orgId, isLoaded } = useAuth();
 
-	const { data: internalMembers } = useQuery({
-		queryKey: ["internalMembers", orgId],
-		queryFn: () => getAllInternalMembers(orgId as string),
-		enabled: isLoaded && !!orgId,
-	});
+	const internalMembers = useQuery(api.internals.getAll);
 
 	const [openMembers, setOpenMembers] = useState(false);
 	const selectedMember = useRef("");
@@ -55,27 +49,25 @@ export default function Organizers({ form }: { form: UseFormReturn<EventFormValu
 		if (!internalMembers) return [];
 
 		return form.watch("organizers").map((organizer) => ({
-			id: organizer.id,
-			name: internalMembers.find((member) => member.id === organizer.id)?.fullname || "Ukjent",
+			id: organizer.userId,
+			name: internalMembers.find((member) => member.userId === organizer.userId)?.fullName || "Ukjent",
 			role: organizer.role,
 		}));
 	}, [internalMembers, form.watch("organizers")]);
 
-	if (!isLoaded) return <div>Loading...</div>;
-	if (!orgId) throw new Error("User is not logged in");
 	if (!internalMembers) return <div>Loading members...</div>;
 
 	const handleRoleChange = (organizerId: string, newRole: OrganizerRole) => {
 		const currentOrganizers = form.getValues("organizers");
 		const updatedOrganizers = currentOrganizers.map((organizer) =>
-			organizer.id === organizerId ? { ...organizer, role: newRole } : organizer,
+			organizer.userId === organizerId ? { ...organizer, role: newRole } : organizer,
 		);
 		form.setValue("organizers", updatedOrganizers);
 	};
 
 	const handleDeleteOrganizer = (organizerId: string) => {
 		const currentOrganizers = form.getValues("organizers");
-		const updatedOrganizers = currentOrganizers.filter((organizer) => organizer.id !== organizerId);
+		const updatedOrganizers = currentOrganizers.filter((organizer) => organizer.userId !== organizerId);
 		form.setValue("organizers", updatedOrganizers);
 	};
 
@@ -100,8 +92,8 @@ export default function Organizers({ form }: { form: UseFormReturn<EventFormValu
 										>
 											{selectedMember.current
 												? internalMembers.find(
-														(internalMember) => internalMember.fullname === selectedMember.current,
-													)?.fullname
+													(internalMember) => internalMember.fullName === selectedMember.current,
+												)?.fullName
 												: "Velg et medlem..."}
 											<ChevronsUpDown className='ml-2 h-4 w-4 shrink-0 opacity-50' />
 										</Button>
@@ -114,8 +106,8 @@ export default function Organizers({ form }: { form: UseFormReturn<EventFormValu
 												<CommandGroup>
 													{internalMembers.map((internalMember) => (
 														<CommandItem
-															key={internalMember.id}
-															value={internalMember.fullname ?? "Ukjent"}
+															key={internalMember.userId}
+															value={internalMember.fullName ?? "Ukjent"}
 															onSelect={(currentValue) => {
 																selectedMember.current =
 																	currentValue === selectedMember.current ? "" : currentValue;
@@ -125,12 +117,12 @@ export default function Organizers({ form }: { form: UseFormReturn<EventFormValu
 															<Check
 																className={cn(
 																	"mr-2 h-4 w-4",
-																	selectedMember.current === internalMember.fullname
+																	selectedMember.current === internalMember.fullName
 																		? "opacity-100"
 																		: "opacity-0",
 																)}
 															/>
-															{internalMember.fullname}
+															{internalMember.fullName}
 														</CommandItem>
 													))}
 												</CommandGroup>
@@ -158,21 +150,21 @@ export default function Organizers({ form }: { form: UseFormReturn<EventFormValu
 										if (!selectedMember.current) return;
 
 										const organizerToAdd = internalMembers.find(
-											(internalMember) => internalMember.fullname === selectedMember.current,
+											(internalMember) => internalMember.fullName === selectedMember.current,
 										);
 
 										if (organizerToAdd) {
 											// Check if organizer is already added
 											const currentOrganizers = field.value;
 											const isAlreadyAdded = currentOrganizers.some(
-												(organizer) => organizer.id === organizerToAdd.id,
+												(organizer) => organizer.userId === organizerToAdd.userId,
 											);
 
 											if (!isAlreadyAdded) {
 												field.onChange([
 													...currentOrganizers,
 													{
-														id: organizerToAdd.id,
+														id: organizerToAdd.userId,
 														role: selectedOrganizerType || "medhjelper",
 													},
 												]);

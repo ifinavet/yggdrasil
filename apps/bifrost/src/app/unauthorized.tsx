@@ -1,4 +1,4 @@
-import { OrganizationList, SignOutButton } from "@clerk/nextjs";
+import { SignOutButton } from "@clerk/nextjs";
 import { auth } from "@clerk/nextjs/server";
 import { Button } from "@workspace/ui/components/button";
 import {
@@ -9,14 +9,11 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@workspace/ui/components/card";
-import { redirect } from "next/navigation";
 
 export default async function UnauthorizedPage() {
-	const { userId, redirectToSignIn, orgId } = await auth();
+	const { userId, redirectToSignIn } = await auth();
 
 	if (!userId) return redirectToSignIn();
-
-	if (orgId === process.env.NAVET_ORG_ID) redirect("/");
 
 	return (
 		<main className='grid h-screen w-full place-items-center'>
@@ -30,7 +27,6 @@ export default async function UnauthorizedPage() {
 						Dersom du har kommet hit, men er et internt medlem i IFI-Navet, send en slack melding
 						til webansvarlig.
 					</p>
-					{!orgId && <OrganizationList hidePersonal={true} />}
 				</CardContent>
 				<CardFooter>
 					<Button variant='destructive' asChild>

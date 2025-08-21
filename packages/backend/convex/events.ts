@@ -9,7 +9,7 @@ import {
 	query,
 } from "./_generated/server";
 import { makeStatusPending } from "./registration";
-import { getCurrentUserOrThrow, userByExternalId } from "./users";
+import { getCurrentUserOrThrow } from "./users";
 
 // Shared validator for organizer roles
 const organizerRoleValidator = v.union(v.literal("hovedansvarlig"), v.literal("medhjelper"));
@@ -194,7 +194,7 @@ async function getOrganizers(ctx: QueryCtx, eventId: Id<"events">) {
 					id: organizer._id,
 					name: "Ukjent ansvarlig",
 					role: "medhjelper" as OrganizerRole,
-					externalId: "",
+					userId: organizer.userId,
 					imageUrl: "",
 					email: "",
 				};
@@ -203,7 +203,7 @@ async function getOrganizers(ctx: QueryCtx, eventId: Id<"events">) {
 				id: organizer._id,
 				name: `${user.firstName} ${user.lastName}`,
 				role: organizer.role,
-				externalId: user.externalId,
+				userId: organizer.userId,
 				imageUrl: user.image,
 				email: user.email,
 			};
@@ -280,7 +280,7 @@ export const update = mutation({
 		published: v.boolean(),
 		organizers: v.array(
 			v.object({
-				externalUserId: v.string(),
+				userId: v.id("users"),
 				role: organizerRoleValidator,
 			}),
 		),
@@ -337,48 +337,33 @@ export const update = mutation({
 			.withIndex("by_eventId", (q) => q.eq("eventId", eventId))
 			.collect();
 
-		const inputUserIdToRole = new Map<Id<"users">, OrganizerRole>();
-		for (const { externalUserId, role } of organizers) {
-			const user = await userByExternalId(ctx, externalUserId);
-			if (!user) {
-				throw new Error(`User not found: ${externalUserId}`);
-			}
-			inputUserIdToRole.set(user._id, role);
-		}
-
-		const currentOrganizersByUserId = new Map(currentOrganizers.map((org) => [org.userId, org]));
-
-		// Remove organizers that are no longer in the input
-		const organizersToDelete = currentOrganizers
-			.filter((org) => !inputUserIdToRole.has(org.userId))
+		// Remove organizers who are no longer attached to the event
+		const organizersToRemove = currentOrganizers
+			.filter((org) => !organizers.some((inputOrg) => inputOrg.userId === org.userId))
 			.map((org) => ctx.db.delete(org._id));
 
-		// Update existing organizers with role changes
+		// Organizers to update
 		const organizersToUpdate = currentOrganizers
 			.filter((org) => {
-				const newRole = inputUserIdToRole.get(org.userId);
-				return newRole !== undefined && newRole !== org.role;
+				const inputOrg = organizers.find((input) => input.userId === org.userId);
+				return inputOrg && inputOrg.role !== org.role;
 			})
 			.map((org) => {
-				const newRole = inputUserIdToRole.get(org.userId);
-				if (newRole === undefined) {
-					return Promise.resolve();
-				}
-				return ctx.db.patch(org._id, { role: newRole });
+				const inputOrg = organizers.find((input) => input.userId === org.userId);
+				if (!inputOrg) return Promise.resolve();
+				return ctx.db.patch(org._id, { role: inputOrg.role });
 			});
 
-		// Create new organizers for users not currently organizing the event
-		const organizersToCreate = Array.from(inputUserIdToRole.entries())
-			.filter(([userId]) => !currentOrganizersByUserId.has(userId))
-			.map(([userId, role]) => {
-				return ctx.db.insert("eventOrganizers", {
-					eventId: eventId,
-					userId: userId,
-					role,
-				});
-			});
+		// Organizers to create
+		const organizersToCreate = organizers.map(({ userId, role }) =>
+			ctx.db.insert("eventOrganizers", {
+				eventId: eventId,
+				userId,
+				role
+			}),
+		);
 
-		await Promise.all([...organizersToDelete, ...organizersToUpdate, ...organizersToCreate]);
+		await Promise.all([...organizersToRemove, ...organizersToUpdate, ...organizersToCreate]);
 
 		const registeredCount = (await ctx.db
 			.query("registrations")
@@ -457,7 +442,7 @@ export const create = mutation({
 		published: v.boolean(),
 		organizers: v.array(
 			v.object({
-				externalUserId: v.string(),
+				userId: v.id("users"),
 				role: organizerRoleValidator,
 			}),
 		),
@@ -503,18 +488,13 @@ export const create = mutation({
 		});
 
 		await Promise.all(
-			organizers.map(async ({ externalUserId, role }) => {
-				const user = await userByExternalId(ctx, externalUserId);
-				if (!user) {
-					throw new Error(`User not found: ${externalUserId}`);
-				}
-
-				return ctx.db.insert("eventOrganizers", {
+			organizers.map(async ({ userId, role }) =>
+				await ctx.db.insert("eventOrganizers", {
 					eventId,
-					userId: user._id,
+					userId,
 					role,
-				});
-			}),
+				}),
+			),
 		);
 	},
 });
