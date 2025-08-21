@@ -64,7 +64,7 @@ export default function CreateEventForm() {
 			externalUrl: values.externalUrl,
 			hostingCompany: values.hostingCompany.id as Id<"companies">,
 			organizers: values.organizers.map((organizer) => ({
-				externalUserId: organizer.id,
+				userId: organizer.userId as Id<"users">,
 				role: organizer.role as OrganizerRole,
 			})),
 			published,

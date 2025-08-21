@@ -1,11 +1,9 @@
-import { auth } from "@clerk/nextjs/server";
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { Button } from "@workspace/ui/components/button";
 import { fetchQuery, preloadedQueryResult, preloadQuery } from "convex/nextjs";
 import type { Metadata } from "next";
 import Image from "next/image";
-import Link from "next/link";
 import ContainerCard from "@/components/cards/container-card";
 import LargeUserCard from "@/components/cards/large-user";
 import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
