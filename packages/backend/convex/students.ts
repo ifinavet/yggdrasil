@@ -6,9 +6,21 @@ import { mutation, query } from "./_generated/server";
 import { getCurrentUserOrThrow } from "./users";
 
 export const getAllPaged = query({
-	args: { paginationOpts: paginationOptsValidator },
-	handler: async (ctx, { paginationOpts }) => {
-		const students = await ctx.db.query("students").paginate(paginationOpts);
+	args: {
+		search: v.optional(v.string()),
+		paginationOpts: paginationOptsValidator
+	},
+	handler: async (ctx, { search, paginationOpts }) => {
+		const students = await (
+			(search && search.length > 0) ?
+				ctx.db
+					.query("students")
+					.withSearchIndex("search_name", (q) => q.search("name", search))
+					.paginate(paginationOpts)
+				: ctx.db
+					.query("students")
+					.paginate(paginationOpts)
+		);
 
 		const studentsWithLockedStatus = await Promise.all(
 			students.page.map(async (student) => {
