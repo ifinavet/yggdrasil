@@ -10,11 +10,12 @@ import type { boardMemberSchema } from "@/constants/schemas/boardmember-form-sch
 import BoardMemberForm from "./board-member-form";
 
 export default function AddBoardMember({ className }: { className?: string }) {
-	const defaultValues = {
+	const defaultValues: boardMemberSchema = {
 		internalId: "",
 		userId: "",
 		role: "",
 		group: "",
+		accessRole: "admin"
 	};
 
 	const [openDialog, setOpenDialog] = useState(false);
@@ -27,6 +28,7 @@ export default function AddBoardMember({ className }: { className?: string }) {
 			position: data.role,
 			group: data.group,
 			positionEmail: data.positionEmail,
+			role: data.accessRole ?? "admin",
 		})
 			.then(() => {
 				toast.success("Styremedlemmet ble lagt til!");

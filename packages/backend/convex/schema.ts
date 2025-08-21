@@ -1,6 +1,13 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
+export const accessRoles = v.union(
+	v.literal("super-admin"),
+	v.literal("admin"),
+	v.literal("editor"),
+	v.literal("internal"),
+);
+
 export default defineSchema({
 	companies: defineTable({
 		orgNumber: v.number(),
@@ -66,7 +73,7 @@ export default defineSchema({
 
 	accessRights: defineTable({
 		userId: v.id("users"),
-		role: v.union(v.literal("super-admin"), v.literal("admin"), v.literal("editor"), v.literal("internal"))
+		role: accessRoles,
 	}).index("by_userId", ["userId"])
 		.index("by_role", ["role"]),
 

@@ -12,6 +12,7 @@ import ResponsiveCenterContainer from "@/components/common/responsive-center-con
 import SanitizeHtml from "@/components/common/sanitize-html";
 import { Title } from "@/components/common/title";
 import { EventMetadata } from "@/components/events/event-metadata";
+import { getAuthToken } from "@/utils/authToken";
 
 export async function generateMetadata({
 	params,
@@ -41,7 +42,12 @@ export async function generateMetadata({
 export default async function EventPage({ params }: { params: Promise<{ slug: Id<"events"> }> }) {
 	const eventId = (await params).slug;
 
-	const { orgId } = await auth();
+	const token = await getAuthToken();
+	const hasAdminAccess = await fetchQuery(
+		api.accsessRights.checkRights,
+		{ right: ["internal", "editor", "admin", "super-admin"], },
+		{ token }
+	);
 
 	const preloadedEvent = await preloadQuery(api.events.getById, { id: eventId });
 	const event = preloadedQueryResult(preloadedEvent);
@@ -49,6 +55,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: Id
 	const company = await fetchQuery(api.companies.getById, { id: event.hostingCompany });
 
 	const preloadedRegistrations = await preloadQuery(api.registration.getByEventId, { eventId });
+
 
 	return (
 		<ResponsiveCenterContainer>
@@ -130,7 +137,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: Id
 								),
 							)}
 					</div>
-					{orgId === process.env.NAVET_ORG_ID && (
+					{hasAdminAccess && (
 						<Button
 							variant={"outline"}
 							type="button"

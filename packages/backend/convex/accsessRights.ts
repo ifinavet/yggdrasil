@@ -1,14 +1,8 @@
 import { v } from "convex/values";
 import { api } from "./_generated/api";
 import { mutation, query } from "./_generated/server";
+import { accessRoles } from "./schema";
 import { getCurrentUser } from "./users";
-
-const accessRoles = v.union(
-	v.literal("super-admin"),
-	v.literal("admin"),
-	v.literal("editor"),
-	v.literal("internal"),
-);
 
 export const checkRights = query({
 	args: {
@@ -37,8 +31,11 @@ export const upsertAccessRights = mutation({
 		const currentUser = await getCurrentUser(ctx);
 		if (!currentUser) throw new Error("Unauthorized");
 
-		const isSuperAdmin = await ctx.runQuery(api.accsessRights.checkRights, { right: ["super-admin"] });
-		if (!isSuperAdmin) throw new Error("Unauthorized: You do not have permission to change access rights");
+		const isSuperAdmin = await ctx.runQuery(api.accsessRights.checkRights, {
+			right: ["super-admin"],
+		});
+		if (!isSuperAdmin)
+			throw new Error("Unauthorized: You do not have permission to change access rights");
 
 		const usersRights = await ctx.db
 			.query("accessRights")
@@ -51,4 +48,4 @@ export const upsertAccessRights = mutation({
 			await ctx.db.insert("accessRights", { userId, role });
 		}
 	},
-});;
+});
