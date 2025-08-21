@@ -42,11 +42,11 @@ export default function NewInternalSearch({
 				<DialogHeader>
 					<DialogTitle>Søk etter en bruker</DialogTitle>
 					<DialogDescription>
-						Søk etter etternavnet til en bruker for å velge vedkomende til å bli intern.
+						Søk etter eposten til en bruker for å velge vedkomende til å bli intern.
 					</DialogDescription>
 					<div className='space-y-6'>
 						<Input
-							placeholder='eks. Nordmann'
+							placeholder='eks. olanord@uio.no'
 							type='text'
 							onChange={(e) => {
 								setSearchInput(e.target.value);

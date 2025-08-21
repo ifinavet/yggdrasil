@@ -40,9 +40,8 @@ export default defineSchema({
 		externalId: v.string(),
 		locked: v.boolean(),
 	}).index("by_ExternalId", ["externalId"])
-		.searchIndex("search_name", {
-			searchField: "lastName",
-			filterFields: ["firstName"]
+		.searchIndex("search_email", {
+			searchField: "email",
 		}),
 
 	students: defineTable({
