@@ -22,6 +22,13 @@ export const createColumns = (
 	onSetRole: (userId: Id<"users">, role: typeof accessRights[number]) => void,
 ): ColumnDef<InternalsTable>[] => [
 		{
+			id: "index",
+			header: "#",
+			cell: ({ row }) => {
+				return <span>{row.index + 1}</span>;
+			}
+		},
+		{
 			accessorKey: "fullName",
 			header: "Navn",
 		},

@@ -38,6 +38,13 @@ export const createColumns = (
 	onRegister: (registrationId: Id<"registrations">, newStatus: string) => void,
 ): ColumnDef<Registration>[] => [
 		{
+			id: "index",
+			header: "#",
+			cell: ({ row }) => {
+				return <span>{row.index + 1}</span>;
+			}
+		},
+		{
 			accessorKey: "userName",
 			header: "Navn",
 		},

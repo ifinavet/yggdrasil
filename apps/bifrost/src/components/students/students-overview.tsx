@@ -10,6 +10,8 @@ import {
 import { api } from "@workspace/backend/convex/api";
 import type { Doc } from "@workspace/backend/convex/dataModel";
 import { Button } from "@workspace/ui/components/button";
+import { Input } from "@workspace/ui/components/input";
+import { Label } from "@workspace/ui/components/label";
 import {
 	Table,
 	TableBody,
@@ -20,7 +22,7 @@ import {
 } from "@workspace/ui/components/table";
 import { usePaginatedQuery } from "convex/react";
 import { useRouter } from "next/navigation";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 type StudentColumns = Doc<"students"> & {
 	status: "Aktiv" | "Ukjent" | "Ikke registrert";
@@ -28,14 +30,16 @@ type StudentColumns = Doc<"students"> & {
 
 const createColumns: ColumnDef<StudentColumns>[] = [
 	{
+		id: "index",
+		header: "#",
+		cell: ({ row }) => {
+			return <span>{row.index + 1}</span>;
+		}
+	},
+	{
 		id: "name",
 		accessorKey: "name",
 		header: "Navn",
-	},
-	{
-		id: "email",
-		accessorKey: "email",
-		header: "E-post",
 	},
 	{
 		id: "status",
@@ -64,11 +68,13 @@ const createColumns: ColumnDef<StudentColumns>[] = [
 ];
 
 export default function StudentsOverview() {
+	const [search, setSearch] = useState("");
+
 	const {
 		results: students,
 		status,
 		loadMore,
-	} = usePaginatedQuery(api.students.getAllPaged, {}, { initialNumItems: 25 });
+	} = usePaginatedQuery(api.students.getAllPaged, { search }, { initialNumItems: 25 });
 
 	const columns = createColumns as ColumnDef<Doc<"students"> & { status: string }>[];
 
@@ -91,8 +97,13 @@ export default function StudentsOverview() {
 		[router],
 	);
 
+
 	return (
 		<div className='flex flex-col gap-4'>
+			<div className="space-y-2">
+				<Label htmlFor="search">Søk etter student</Label>
+				<Input type="text" id="search" value={search} onChange={e => setSearch(e.target.value)} placeholder="eks. Ola nordmann..." className='max-w-[80ch]' />
+			</div>
 			<div className='overflow-clip rounded-md border'>
 				<Table>
 					<TableHeader className='bg-accent'>

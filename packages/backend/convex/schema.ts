@@ -53,7 +53,10 @@ export default defineSchema({
 		degree: v.union(v.literal("Bachelor"), v.literal("Master"), v.literal("PhD")),
 	})
 		.index("by_studyProgram", ["studyProgram"])
-		.index("by_userId", ["userId"]),
+		.index("by_userId", ["userId"])
+		.searchIndex("search_name", {
+			searchField: "name",
+		}),
 
 	points: defineTable({
 		studentId: v.id("students"),
