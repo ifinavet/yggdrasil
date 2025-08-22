@@ -31,7 +31,7 @@ export default function OfferGrid({ className }: { className?: string }) {
 					gjennomføre i søknaden deres. Maks 40 studenter.
 				</li>
 			</OfferCard>
-			<OfferCard title='Eksterne arrangementer' cost='20.000'>
+			<OfferCard title='Eksterne arrangementer' cost='15.000'>
 				<li>
 					Eksterne arrangementer er aktiviteter gjennomført og organisert av bedriften uavhengig av
 					Navet. Promotering vil skje via ifinavet.no under fanen "Eksterne arrangementer" og på

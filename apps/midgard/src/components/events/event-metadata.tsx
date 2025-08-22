@@ -47,7 +47,7 @@ export function EventMetadata({
 				{typeof event.externalUrl === "string" && event.externalUrl.length > 0 ? (
 					<Button
 						type='button'
-						className='w-3/5 whitespace-normal text-balance rounded-xl bg-orange-500 py-8 text-lg hover:cursor-pointer hover:bg-orange-600'
+						className='min-h-fit w-4/5 whitespace-normal text-balance rounded-xl bg-orange-500 py-4 text-center text-lg hover:cursor-pointer hover:bg-orange-600 sm:w-3/5 sm:py-8'
 						asChild
 					>
 						<a href={event.externalUrl} target='_blank' rel='noopener noreferrer'>
@@ -57,7 +57,7 @@ export function EventMetadata({
 				) : event.registrationOpens > Date.now() ? (
 					<Button
 						type='button'
-						className='w-3/4 whitespace-normal text-balance rounded-xl bg-zinc-500 py-8 text-lg hover:cursor-pointer hover:bg-zinc-500'
+						className="min-h-fit w-3/4 whitespace-normal text-balance rounded-xl bg-zinc-500 text-lg hover:cursor-pointer hover:bg-zinc-500 sm:py-6 md:py-8"
 					>
 						Påmelding åpner {humanReadableDateTime(new Date(event.registrationOpens))}
 					</Button>
