@@ -1,3 +1,4 @@
+import type { Id } from "@workspace/backend/convex/dataModel";
 import z from "zod/v4";
 import type { OrganizerRole } from "../types";
 
@@ -23,7 +24,7 @@ export const formSchema = z.object({
 	organizers: z
 		.array(
 			z.object({
-				userId: z.string(),
+				userId: z.custom<Id<"users">>(),
 				role: z.custom<OrganizerRole>(),
 			}),
 		)

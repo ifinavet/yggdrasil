@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import {
+	internalMutation,
 	internalQuery,
 	type MutationCtx,
 	mutation,
@@ -332,55 +333,78 @@ export const update = mutation({
 			published,
 		});
 
-		const currentOrganizers = await ctx.db
+		await ctx.runMutation(internal.events.upsertEventOrganizer, {
+			id: eventId,
+			updatedOrganizers: organizers,
+		});
+
+		const registeredCount = (
+			await ctx.db
+				.query("registrations")
+				.withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
+					q.eq("eventId", eventId).eq("status", "registered"),
+				)
+				.collect()
+		).length;
+
+		const pendingCount = (
+			await ctx.db
+				.query("registrations")
+				.withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
+					q.eq("eventId", eventId).eq("status", "pending"),
+				)
+				.collect()
+		).length;
+
+		if (
+			participationLimit - event.participationLimit > 0 &&
+			registeredCount + pendingCount === event.participationLimit
+		)
+			await updateWaitlist(ctx, event._id, participationLimit - event.participationLimit);
+	},
+});
+
+export const upsertEventOrganizer = internalMutation({
+	args: {
+		id: v.id("events"),
+		updatedOrganizers: v.array(
+			v.object({
+				userId: v.id("users"),
+				role: organizerRoleValidator,
+			}),
+		),
+	},
+	handler: async (ctx, { id, updatedOrganizers }) => {
+		await getCurrentUserOrThrow(ctx);
+
+		const eventOrganizers = await ctx.db
 			.query("eventOrganizers")
-			.withIndex("by_eventId", (q) => q.eq("eventId", eventId))
+			.withIndex("by_eventId", (q) => q.eq("eventId", id))
 			.collect();
 
-		// Remove organizers who are no longer attached to the event
-		const organizersToRemove = currentOrganizers
-			.filter((org) => !organizers.some((inputOrg) => inputOrg.userId === org.userId))
-			.map((org) => ctx.db.delete(org._id));
+		const organizersToRemove = eventOrganizers
+			.filter(org => !updatedOrganizers.some(({ userId }) => userId === org.userId))
+			.map(org => ctx.db.delete(org._id));
 
-		// Organizers to update
-		const organizersToUpdate = currentOrganizers
-			.filter((org) => {
-				const inputOrg = organizers.find((input) => input.userId === org.userId);
-				return inputOrg && inputOrg.role !== org.role;
-			})
-			.map((org) => {
-				const inputOrg = organizers.find((input) => input.userId === org.userId);
-				if (!inputOrg) return Promise.resolve();
-				return ctx.db.patch(org._id, { role: inputOrg.role });
-			});
+		const organizersToAdd = updatedOrganizers.filter(
+			({ userId }) => !eventOrganizers.some((org) => org.userId === userId),
+		).map(org => ctx.db.insert("eventOrganizers", {
+			eventId: id,
+			userId: org.userId,
+			role: org.role,
+		}));
 
-		// Organizers to create
-		const organizersToCreate = organizers.map(({ userId, role }) =>
-			ctx.db.insert("eventOrganizers", {
-				eventId: eventId,
-				userId,
-				role
-			}),
-		);
+		const organizersToUpdate = updatedOrganizers.filter(({ userId, role }) => {
+			const existing = eventOrganizers.find((org) => org.userId === userId);
+			return existing && existing.role !== role;
+		}).map(org => {
+			const existing = eventOrganizers.find((eOrg) => eOrg.userId === org.userId);
+			if (existing) {
+				ctx.db.patch(existing._id, { role: org.role });
+			}
+		});
 
-		await Promise.all([...organizersToRemove, ...organizersToUpdate, ...organizersToCreate]);
-
-		const registeredCount = (await ctx.db
-			.query("registrations")
-			.withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
-				q.eq("eventId", eventId).eq("status", "registered"),
-			)
-			.collect()).length;
-
-		const pendingCount = (await ctx.db
-			.query("registrations")
-			.withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
-				q.eq("eventId", eventId).eq("status", "pending"),
-			)
-			.collect()).length;
-
-		if (((participationLimit - event.participationLimit) > 0) && (registeredCount + pendingCount) === event.participationLimit)
-			await updateWaitlist(ctx, event._id, participationLimit - event.participationLimit);
+		await Promise.all([...organizersToRemove, ...organizersToAdd, ...organizersToUpdate]);
 	},
 });
 
@@ -488,12 +512,13 @@ export const create = mutation({
 		});
 
 		await Promise.all(
-			organizers.map(async ({ userId, role }) =>
-				await ctx.db.insert("eventOrganizers", {
-					eventId,
-					userId,
-					role,
-				}),
+			organizers.map(
+				async ({ userId, role }) =>
+					await ctx.db.insert("eventOrganizers", {
+						eventId,
+						userId,
+						role,
+					}),
 			),
 		);
 	},
