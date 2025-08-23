@@ -1,6 +1,7 @@
 "use client";
 
 import { api } from "@workspace/backend/convex/api";
+import type { Id } from "@workspace/backend/convex/dataModel";
 import { Button } from "@workspace/ui/components//button";
 import {
 	Command,
@@ -37,7 +38,6 @@ import { createColumns } from "./columns";
 import OrganizersTable from "./data-table";
 
 export default function Organizers({ form }: { form: UseFormReturn<EventFormValues> }) {
-
 	const internalMembers = useQuery(api.internals.getAll);
 
 	const [openMembers, setOpenMembers] = useState(false);
@@ -50,28 +50,33 @@ export default function Organizers({ form }: { form: UseFormReturn<EventFormValu
 
 		return form.watch("organizers").map((organizer) => ({
 			id: organizer.userId,
-			name: internalMembers.find((member) => member.userId === organizer.userId)?.fullName || "Ukjent",
+			name:
+				internalMembers.find((member) => member.userId === organizer.userId)?.fullName || "Ukjent",
 			role: organizer.role,
 		}));
 	}, [internalMembers, form.watch("organizers")]);
 
 	if (!internalMembers) return <div>Loading members...</div>;
 
-	const handleRoleChange = (organizerId: string, newRole: OrganizerRole) => {
+	const handleRoleChange = (userId: Id<"users">, newRole: OrganizerRole) => {
 		const currentOrganizers = form.getValues("organizers");
 		const updatedOrganizers = currentOrganizers.map((organizer) =>
-			organizer.userId === organizerId ? { ...organizer, role: newRole } : organizer,
+			organizer.userId === userId ? { ...organizer, role: newRole } : organizer,
 		);
 		form.setValue("organizers", updatedOrganizers);
 	};
 
 	const handleDeleteOrganizer = (organizerId: string) => {
 		const currentOrganizers = form.getValues("organizers");
-		const updatedOrganizers = currentOrganizers.filter((organizer) => organizer.userId !== organizerId);
+		const updatedOrganizers = currentOrganizers.filter(
+			(organizer) => organizer.userId !== organizerId,
+		);
 		form.setValue("organizers", updatedOrganizers);
 	};
 
 	const columns = createColumns(handleRoleChange, handleDeleteOrganizer);
+
+	form.formState.errors && console.log(form.formState.errors);
 
 	return (
 		<FormField
@@ -164,7 +169,7 @@ export default function Organizers({ form }: { form: UseFormReturn<EventFormValu
 												field.onChange([
 													...currentOrganizers,
 													{
-														id: organizerToAdd.userId,
+														userId: organizerToAdd.userId,
 														role: selectedOrganizerType || "medhjelper",
 													},
 												]);
