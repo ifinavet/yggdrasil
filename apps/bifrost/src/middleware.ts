@@ -1,5 +1,6 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { type NextRequest, NextResponse } from "next/server";
+import { hasBasicRights } from "./utils/auth";
 
 const searchParamsMiddleware = (request: NextRequest) => {
 	return NextResponse.next({
@@ -13,12 +14,12 @@ const searchParamsMiddleware = (request: NextRequest) => {
 const publicRoute = createRouteMatcher(["/", "/api(.*)"]);
 
 export const middleware = clerkMiddleware(async (auth, req) => {
-	const { orgId } = await auth();
-
 	if (!publicRoute(req)) {
 		await auth.protect();
 
-		if (orgId !== process.env.NAVET_ORG_ID) {
+		const hasRights = await hasBasicRights();
+
+		if (hasRights) {
 			return NextResponse.redirect(new URL("/", req.url));
 		}
 	}
