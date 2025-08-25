@@ -1,6 +1,5 @@
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { clerkMiddleware } from "@clerk/nextjs/server";
 import { type NextRequest, NextResponse } from "next/server";
-import { hasBasicRights } from "./utils/auth";
 
 const searchParamsMiddleware = (request: NextRequest) => {
 	return NextResponse.next({
@@ -11,19 +10,8 @@ const searchParamsMiddleware = (request: NextRequest) => {
 	});
 };
 
-const publicRoute = createRouteMatcher(["/", "/api(.*)"]);
 
 export const middleware = clerkMiddleware(async (auth, req) => {
-	if (!publicRoute(req)) {
-		await auth.protect();
-
-		const hasRights = await hasBasicRights();
-
-		if (hasRights) {
-			return NextResponse.redirect(new URL("/", req.url));
-		}
-	}
-
 	return searchParamsMiddleware(req);
 });
 
