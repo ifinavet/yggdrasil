@@ -1,4 +1,3 @@
-import { auth } from "@clerk/nextjs/server";
 import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query";
 import { api } from "@workspace/backend/convex/api";
 import {

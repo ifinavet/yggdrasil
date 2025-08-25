@@ -11,7 +11,7 @@ const searchParamsMiddleware = (request: NextRequest) => {
 };
 
 
-export const middleware = clerkMiddleware(async (auth, req) => {
+export const middleware = clerkMiddleware(async (_, req) => {
 	return searchParamsMiddleware(req);
 });
 
