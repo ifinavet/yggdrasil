@@ -10,22 +10,13 @@ import {
 	BreadcrumbSeparator,
 } from "@workspace/ui/components//breadcrumb";
 import { fetchQuery } from "convex/nextjs";
-import { getAllInternalMembers } from "@/lib/queries/organization";
 import CreateEventForm from "./create-event-form";
 
 export default async function NewEvent() {
-	const { orgId, redirectToSignIn } = await auth();
-	if (!orgId) return redirectToSignIn();
-
 	const queryClient = new QueryClient();
 
 	await queryClient.prefetchQuery({
-		queryKey: ["internalMembers", orgId],
-		queryFn: () => getAllInternalMembers(orgId),
-	});
-
-	await queryClient.prefetchQuery({
-		queryKey: ["companies", orgId],
+		queryKey: ["companies"],
 		queryFn: () => fetchQuery(api.companies.getAll, {}),
 	});
 

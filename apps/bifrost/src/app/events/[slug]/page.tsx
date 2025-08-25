@@ -5,7 +5,6 @@ import type { Id } from "@workspace/backend/convex/dataModel";
 import { Button } from "@workspace/ui/components/button";
 import { fetchQuery } from "convex/nextjs";
 import Link from "next/link";
-import { getAllInternalMembers } from "@/lib/queries/organization";
 import UpdateEventForm from "./update-event-form";
 
 export default async function EventPage({ params }: { params: Promise<{ slug: Id<"events"> }> }) {
@@ -23,28 +22,20 @@ export default async function EventPage({ params }: { params: Promise<{ slug: Id
 		);
 	}
 
-	const { orgId, redirectToSignIn } = await auth();
-	if (!orgId) return redirectToSignIn();
-
 	const queryClient = new QueryClient();
 
 	try {
 		// Prefetch companies
 		await queryClient.prefetchQuery({
-			queryKey: ["companies", orgId],
+			queryKey: ["companies"],
 			queryFn: () => fetchQuery(api.companies.getAll, {}),
 		});
 
 		// Prefetch event
+		// Prefetch event
 		await queryClient.prefetchQuery({
 			queryKey: ["event", eventId],
 			queryFn: () => fetchQuery(api.events.getById, { id: eventId }),
-		});
-
-		// Prefetch internal members
-		await queryClient.prefetchQuery({
-			queryKey: ["internalMembers", orgId],
-			queryFn: () => getAllInternalMembers(orgId),
 		});
 	} catch (error) {
 		return (
