@@ -1,7 +1,7 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import type { Id } from "./_generated/dataModel";
+
 import { mutation, query } from "./_generated/server";
 import { getCurrentUserOrThrow } from "./users";
 
@@ -93,38 +93,31 @@ export const createByExternalId = mutation({
 		name: v.string(),
 	},
 	handler: async (ctx, { externalId, degree, semester, studyProgram, name }) => {
-		const user = await ctx.db
-			.query("users")
-			.withIndex("by_ExternalId", (q) => q.eq("externalId", externalId))
-			.first();
 
-		let userId: Id<"users">;
 
-		if (!user) {
-			const identity = await ctx.auth.getUserIdentity();
-			if (!identity) {
-				throw new Error("Bruker identiteteten er ikke tilgjengelig. Kan ikke opprette bruker.");
-			}
+		const identity = await ctx.auth.getUserIdentity();
+		console.log("Identity from auth:", identity);
 
-			const { familyName, givenName, email, pictureUrl } = identity;
-
-			userId = await ctx.runMutation(internal.users.createIfNotExists, {
-				externalId,
-				firstName: givenName ?? "",
-				lastName: familyName ?? "",
-				email: email ?? "",
-				image: pictureUrl ?? "",
-			});
-		} else {
-			userId = user._id;
+		if (!identity) {
+			throw new Error("Bruker identiteteten er ikke tilgjengelig. Kan ikke opprette bruker.");
 		}
+
+		const { familyName, givenName, email, pictureUrl } = identity;
+
+		const userId = await ctx.runMutation(internal.users.createIfNotExists, {
+			externalId,
+			firstName: givenName ?? "",
+			lastName: familyName ?? "",
+			email: email ?? "",
+			image: pictureUrl ?? "",
+		});
 
 		await ctx.db.insert("students", {
 			userId,
 			degree,
 			semester,
-			studyProgram,
-			name,
+			studyProgram: studyProgram.trim(),
+			name: name.trim(),
 		});
 	},
 });

@@ -45,7 +45,9 @@ export const createIfNotExists = internalMutation({
 	handler: async (ctx, { externalId, firstName, lastName, email, image }) => {
 		const user = await userByExternalId(ctx, externalId);
 
-		if (user === null) {
+		if (!user) {
+			console.warn(`User for externalId ${externalId} not found, creating... \n { firstName: ${firstName}, lastName: ${lastName}, email: ${email}, image: ${image}}`);
+			// Create user
 			const id = await ctx.db.insert("users", {
 				externalId,
 				email,
@@ -54,6 +56,7 @@ export const createIfNotExists = internalMutation({
 				image,
 				locked: false,
 			});
+
 			return id;
 		}
 
