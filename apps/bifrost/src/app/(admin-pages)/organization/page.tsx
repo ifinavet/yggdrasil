@@ -12,10 +12,12 @@ import { preloadQuery } from "convex/nextjs";
 import AddBoardMember from "@/components/organization/board-members/add-boardmember";
 import ListBoardMembers from "@/components/organization/board-members/list-board-members";
 import Internals from "@/components/organization/internals/internals";
+import UpdateMainSponsor from "@/components/organization/main-sponsor/update-main-sponsor";
 
 export default async function OrganizationPage() {
 	const preloadedBoardMembers = await preloadQuery(api.internals.getTheBoard);
 	const preloadedInternals = await preloadQuery(api.internals.getAllInternals);
+	const preloadedMainSponsor = await preloadQuery(api.companies.getMainSponsor);
 
 	return (
 		<>
@@ -39,13 +41,16 @@ export default async function OrganizationPage() {
 
 				<Separator />
 				<h2 className='scroll-m-20 border-b pb-2 font-semibold text-3xl tracking-tight first:mt-0'>
-					Hovedsamarbeidspartner
-				</h2>
-				<Separator />
-				<h2 className='scroll-m-20 border-b pb-2 font-semibold text-3xl tracking-tight first:mt-0'>
 					Interne
 				</h2>
 				<Internals preloadedInternals={preloadedInternals} />
+
+				<Separator />
+				<h2 className='scroll-m-20 border-b pb-2 font-semibold text-3xl tracking-tight first:mt-0'>
+					Hovedsamarbeidspartner
+				</h2>
+				<UpdateMainSponsor preloadedMainSponsor={preloadedMainSponsor} />
+
 			</div>
 		</>
 	);
