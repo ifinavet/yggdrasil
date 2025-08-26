@@ -408,6 +408,16 @@ export const upsertEventOrganizer = internalMutation({
 	},
 });
 
+export const updateWaitlistMutation = internalMutation({
+	args: {
+		eventId: v.id("events"),
+		numOfNewPlaces: v.number(),
+	},
+	handler: async (ctx, { eventId, numOfNewPlaces }) => {
+		await updateWaitlist(ctx, eventId, numOfNewPlaces);
+	},
+})
+
 export const updateWaitlist = async (
 	ctx: MutationCtx,
 	eventId: Id<"events">,
