@@ -1,4 +1,3 @@
-import { auth } from "@clerk/nextjs/server";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -9,10 +8,6 @@ import Link from "next/link";
 import CreateCompanyForm from "./create-company-form";
 
 export default async function CreateCompany() {
-	const { orgRole } = await auth();
-
-	if (orgRole !== "org:admin") throw new Response("Forbidden", { status: 403 });
-
 	return (
 		<>
 			<Breadcrumb>

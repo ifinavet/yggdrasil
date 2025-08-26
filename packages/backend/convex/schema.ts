@@ -15,6 +15,8 @@ export default defineSchema({
 		description: v.string(),
 		mainSponsor: v.boolean(),
 		logo: v.id("companyLogos"),
+	}).searchIndex("search_name", {
+		searchField: "name",
 	}),
 
 	companyLogos: defineTable({

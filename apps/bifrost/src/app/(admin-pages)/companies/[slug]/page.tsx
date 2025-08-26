@@ -1,4 +1,3 @@
-import { auth } from "@clerk/nextjs/server";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import {
 	Breadcrumb,
@@ -14,10 +13,7 @@ export default async function CreateCompany({
 }: {
 	params: Promise<{ slug: Id<"companies"> }>;
 }) {
-	const { orgRole } = await auth();
 	const { slug: id } = await params;
-
-	if (orgRole !== "org:admin") throw new Response("Forbidden", { status: 403 });
 
 	return (
 		<>
