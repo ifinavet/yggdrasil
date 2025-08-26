@@ -65,6 +65,15 @@ export const getById = query({
 	},
 });
 
+export const searchByName = query({
+	args: {
+		searchQuery: v.string(),
+	},
+	handler: async (ctx, { searchQuery }) => {
+		return await ctx.db.query("companies").withSearchIndex("search_name", q => q.search("name", searchQuery)).take(10);
+	},
+});
+
 export const getCompanyLogosPaged = query({
 	args: { paginationOpts: paginationOptsValidator },
 	handler: async (ctx, { paginationOpts }) => {
@@ -184,6 +193,28 @@ export const update = mutation({
 			description,
 			logo,
 		});
+	},
+});
+
+export const updateMainSponsor = mutation({
+	args: {
+		companyId: v.id("companies"),
+	},
+	handler: async (ctx, { companyId: id }) => {
+		await getCurrentUserOrThrow(ctx);
+
+		// Unset previous main sponsor
+		const previousMainSponsor = await ctx.db
+			.query("companies")
+			.filter((q) => q.eq(q.field("mainSponsor"), true))
+			.first();
+
+		if (previousMainSponsor) {
+			await ctx.db.patch(previousMainSponsor._id, { mainSponsor: false });
+		}
+
+		// Set new main sponsor
+		await ctx.db.patch(id, { mainSponsor: true });
 	},
 });
 
