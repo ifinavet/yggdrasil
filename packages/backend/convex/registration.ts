@@ -265,6 +265,8 @@ export const unregister = mutation({
 			)
 			.first();
 
+		console.log("Next registration:", nextRegistration);
+
 		if (!nextRegistration) return returnData;
 
 		await makeStatusPending(ctx, nextRegistration, event);
@@ -276,15 +278,22 @@ export const unregister = mutation({
 export const checkPendingRegistrations = internalMutation({
 	handler: async (ctx) => {
 		const now = Date.now();
+		const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+		const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+
+		// Find all events that are currently active (open for registration and not yet started (with a 2 hour buffer))
 		const activeEvents = (
 			await ctx.db
 				.query("events")
-				.withIndex("by_registrationOpens", (q) => q.lte("registrationOpens", now))
+				.withIndex("by_registrationOpens", (q) =>
+					q.lte("registrationOpens", now),
+				)
 				.collect()
-		).filter((e) => e.eventStart > now + 2 * 60 * 60 * 1000);
+		).filter((e) => e.eventStart >= now - TWO_HOURS_MS);
 
 		await Promise.all(
 			activeEvents.map(async (event) => {
+				// Find all pending registrations for this event
 				const pendingRegistrations = await ctx.db
 					.query("registrations")
 					.withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
@@ -292,28 +301,32 @@ export const checkPendingRegistrations = internalMutation({
 					)
 					.collect();
 
-				if (pendingRegistrations.length > 0) {
-					await Promise.all(
-						pendingRegistrations.map(async (registration) => {
-							if (registration.registrationTime >= now - 24 * 60 * 60 * 1000) {
-								await ctx.db.patch(registration._id, {
-									status: "waitlist",
-									registrationTime: Date.now(),
-								});
+				await Promise.all(
+					pendingRegistrations.map(async (registration) => {
+						const pendingForMs = now - registration.registrationTime;
 
-								const nextRegistration = await ctx.db
-									.query("registrations")
-									.withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
-										q.eq("eventId", event._id).eq("status", "waitlist"),
-									)
-									.first();
+						// Check all pending registrations,
+						// if they have been pending for more than 24 hours,
+						// move them to waitlist and make the next in line pending
+						if (pendingForMs > TWENTY_FOUR_HOURS_MS) {
+							await ctx.db.patch(registration._id, {
+								status: "waitlist",
+								registrationTime: Date.now(),
+							});
 
-								if (!nextRegistration) return;
-								await makeStatusPending(ctx, nextRegistration, event);
-							}
-						}),
-					);
-				}
+							// Get next pending registration (if any)
+							const nextRegistration = await ctx.db
+								.query("registrations")
+								.withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
+									q.eq("eventId", event._id).eq("status", "waitlist"),
+								)
+								.first();
+
+							if (!nextRegistration) return;
+							await makeStatusPending(ctx, nextRegistration, event);
+						}
+					}),
+				);
 			}),
 		);
 	},

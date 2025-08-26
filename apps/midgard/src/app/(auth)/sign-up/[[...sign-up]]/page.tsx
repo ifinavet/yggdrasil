@@ -70,7 +70,7 @@ const verifyingSchema = z.object({
 export default function SignUpPage() {
 	const { isSignedIn } = useAuth();
 	const { isLoaded, signUp, setActive } = useSignUp();
-	const posthog = usePostHog();
+	const postHog = usePostHog();
 
 	const [errors, setErrors] = useState<ClerkAPIError[]>([]);
 	const [loading, setLoading] = useState(false);
@@ -159,7 +159,7 @@ export default function SignUpPage() {
 					name: `${signUpForm.getValues("firstName")} ${signUpForm.getValues("lastName")}`,
 				});
 
-				posthog.capture("midgard-student-sign-up", {
+				postHog.capture("midgard-student-sign-up", {
 					name: `${signUpForm.getValues("firstName")} ${signUpForm.getValues("lastName")}`,
 					email: signUpForm.getValues("email"),
 					studyProgram: signUpForm.getValues("studyProgram"),
