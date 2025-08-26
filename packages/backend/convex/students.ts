@@ -93,23 +93,15 @@ export const createByExternalId = mutation({
 		name: v.string(),
 	},
 	handler: async (ctx, { externalId, degree, semester, studyProgram, name }) => {
-
-
 		const identity = await ctx.auth.getUserIdentity();
 		console.log("Identity from auth:", identity);
 
-		if (!identity) {
-			throw new Error("Bruker identiteteten er ikke tilgjengelig. Kan ikke opprette bruker.");
-		}
-
-		const { familyName, givenName, email, pictureUrl } = identity;
-
 		const userId = await ctx.runMutation(internal.users.createIfNotExists, {
 			externalId,
-			firstName: givenName ?? "",
-			lastName: familyName ?? "",
-			email: email ?? "",
-			image: pictureUrl ?? "",
+			firstName: identity?.givenName ?? "Pending...",
+			lastName: identity?.familyName ?? "Pending...",
+			email: identity?.email ?? "Pending...",
+			image: identity?.profileUrl ?? "Pending...",
 		});
 
 		await ctx.db.insert("students", {
