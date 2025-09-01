@@ -21,14 +21,14 @@ export default function HomePage() {
 	return (
 		<div className='grid gap-8'>
 			{/* Welcome banner for the new website, remove at the end of august. */}
-			<div className='-mt-8 text-pretty bg-primary-light py-4 text-center font-semibold text-lg text-primary'>
+            {/*<div className='-mt-8 text-pretty bg-primary-light py-4 text-center font-semibold text-lg text-primary'>
 				<Link
 					href='/info/velkommen-til-den-nye-navet-siden!'
 					className='whitespace-normal text-pretty hover:cursor-pointer hover:underline'
 				>
 					Velkommen til Navets nye nettside! For mer informasjon, trykk her!
 				</Link>
-			</div>
+			</div>/*}
 			{/* Welcome banner for the new website, remove at the end of august. */}
 
 			<ResponsiveCenterContainer>

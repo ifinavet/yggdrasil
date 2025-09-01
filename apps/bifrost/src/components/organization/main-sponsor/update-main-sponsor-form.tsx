@@ -28,7 +28,7 @@ const schema = z.object({
 	),
 });
 
-export default function UpdateMainSponsorForm({ companyId }: { companyId: Id<"companies"> }) {
+export default function UpdateMainSponsorForm({ companyId }: Readonly<{ companyId: Id<"companies"> }>) {
 	const form = useForm<z.infer<typeof schema>>({
 		resolver: zodV4Resolver(schema),
 		defaultValues: {
