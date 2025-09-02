@@ -165,7 +165,7 @@ export default function MobileHeader({ className }: { className?: string }) {
 												className='text-primary-foreground'
 												asChild
 											>
-												<Link href='/profile'>"Profil"</Link>
+												<Link href='/profile'>Profil</Link>
 											</Button>
 										</DrawerClose>
 									</li>

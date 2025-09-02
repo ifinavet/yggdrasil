@@ -91,7 +91,7 @@ export const getUserByRegistrationId = query({
 		if (!registration) return null;
 
 		const user = await ctx.db.get(registration.userId);
-		if (!registration) return null;
+		if (!user) return null;
 
 		return { ...registration, ...user };
 	},
