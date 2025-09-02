@@ -8,5 +8,9 @@ export default async function registrations(props: { params: Promise<{ slug: Id<
 
 	const preloadedRegistrations = await preloadQuery(api.registration.getByEventId, { eventId });
 
-	return <Registrations preloadedRegistrations={preloadedRegistrations} />;
+	return (
+		<div className="space-y-4">
+			<Registrations preloadedRegistrations={preloadedRegistrations} />
+		</div>
+	)
 }

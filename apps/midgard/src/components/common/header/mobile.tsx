@@ -15,7 +15,7 @@ import {
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
 import { Separator } from "@workspace/ui/components/separator";
 import { cn } from "@workspace/ui/lib/utils";
-import { Authenticated, Unauthenticated, useQuery } from "convex/react";
+import { Authenticated, AuthLoading, Unauthenticated, useQuery } from "convex/react";
 import { Menu, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -156,6 +156,20 @@ export default function MobileHeader({ className }: { className?: string }) {
 							</ul>
 							<Separator className='text-primary-foreground/50' />
 							<ul className='mx-6 flex flex-col items-end'>
+								<AuthLoading>
+									<li>
+										<DrawerClose asChild>
+											<Button
+												type='button'
+												variant='link'
+												className='text-primary-foreground'
+												asChild
+											>
+												<Link href='/profile'>"Profil"</Link>
+											</Button>
+										</DrawerClose>
+									</li>
+								</AuthLoading>
 								<Authenticated>
 									<li>
 										<DrawerClose asChild>

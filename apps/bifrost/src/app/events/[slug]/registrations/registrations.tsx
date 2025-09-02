@@ -12,6 +12,7 @@ import { humanReadableDate } from "@/utils/utils";
 import { Mails, Copy } from "lucide-react";
 import { Button } from "@workspace/ui/components/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui/components/popover";
+import QRScannerDialog from "@/components/events/registration-scanner/qr-scanner-dialog";
 
 export function Registrations({
 	preloadedRegistrations,
@@ -146,12 +147,15 @@ export function Registrations({
 
 	return (
 		<Tabs defaultValue='registered'>
-			<TabsList>
-				<TabsTrigger value='registered'>Påmeldte</TabsTrigger>
-				<TabsTrigger value='waitlist' disabled={waitlistData.length === 0}>
-					Venteliste
-				</TabsTrigger>
-			</TabsList>
+			<div className="flex justify-between w-full">
+				<TabsList>
+					<TabsTrigger value='registered'>Påmeldte</TabsTrigger>
+					<TabsTrigger value='waitlist' disabled={waitlistData.length === 0}>
+						Venteliste
+					</TabsTrigger>
+				</TabsList>
+				<QRScannerDialog />
+			</div>
 			<TabsContent value='registered'>
 				<div className='flex flex-wrap items-center justify-between border-b my-2'>
 					<h2 className='scroll-m-20 font-semibold text-2xl tracking-tight first:mt-0'>Påmeldte</h2>

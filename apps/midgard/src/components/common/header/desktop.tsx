@@ -11,7 +11,7 @@ import {
 	NavigationMenuTrigger,
 } from "@workspace/ui/components/navigation-menu";
 import { cn } from "@workspace/ui/lib/utils";
-import { Authenticated, Unauthenticated, useQuery } from "convex/react";
+import { Authenticated, AuthLoading, Unauthenticated, useQuery } from "convex/react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -53,6 +53,9 @@ export default function DesktopHeader({ className }: { className?: string }) {
 					<NavigationItem href='/students'>For Studenter</NavigationItem>
 					<NavigationItem href='/organization'>Om Foreningen</NavigationItem>
 					<NavigationItem href='/contact'>Si Ifra</NavigationItem>
+					<AuthLoading>
+						<NavigationItem href='/profile'>Profil</NavigationItem>
+					</AuthLoading>
 					<Authenticated>
 						<NavigationMenuItem>
 							<NavigationMenuTrigger className='bg-primary text-base text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground focus:underline data-[state=open]:bg-primary data-[state=open]:text-primary-foreground data-[state=open]:focus:bg-primary data-[state=open]:focus:text-primary-foreground data-[state=open]:hover:bg-primary data-[state=open]:hover:text-primary-foreground data-[state=open]:hover:underline'>
