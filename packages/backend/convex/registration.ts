@@ -82,6 +82,21 @@ export const getCurrentUser = query({
 	},
 });
 
+export const getUserByRegistrationId = query({
+	args: {
+		id: v.id("registrations"),
+	},
+	handler: async (ctx, { id }) => {
+		const registration = await ctx.db.get(id);
+		if (!registration) return null;
+
+		const user = await ctx.db.get(registration.userId);
+		if (!registration) return null;
+
+		return { ...registration, ...user };
+	},
+});
+
 export const acceptPendingRegistration = mutation({
 	args: {
 		id: v.id("registrations"),
@@ -181,7 +196,7 @@ export const register = mutation({
 			.withIndex("by_eventIdStatusAndRegistrationTime", (q) => q.eq("eventId", eventId))
 			.collect();
 
-		if (registrations.some(registration => registration.userId === user._id)) return;
+		if (registrations.some((registration) => registration.userId === user._id)) return;
 
 		const registrationCount = registrations.filter(
 			(reg) => reg.status === "registered" || reg.status === "pending",
@@ -285,9 +300,7 @@ export const checkPendingRegistrations = internalMutation({
 		const activeEvents = (
 			await ctx.db
 				.query("events")
-				.withIndex("by_registrationOpens", (q) =>
-					q.lte("registrationOpens", now),
-				)
+				.withIndex("by_registrationOpens", (q) => q.lte("registrationOpens", now))
 				.collect()
 		).filter((e) => e.eventStart >= now - TWO_HOURS_MS);
 

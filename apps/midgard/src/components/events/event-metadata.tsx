@@ -5,6 +5,7 @@ import { Button } from "@workspace/ui/components/button";
 import { type Preloaded, usePreloadedQuery } from "convex/react";
 import { CalendarDays, Globe, IdCard, MapPin, Users, Utensils } from "lucide-react";
 import { humanReadableDateTime } from "@/utils/dateFormatting";
+import QRCode from "./registration/qr-code";
 import RegistrationButton from "./registration/registration-button";
 import WaitlistPosition from "./registration/waitlist-position";
 
@@ -57,7 +58,7 @@ export function EventMetadata({
 				) : event.registrationOpens > Date.now() ? (
 					<Button
 						type='button'
-						className="min-h-fit w-3/4 whitespace-normal text-balance rounded-xl bg-zinc-500 text-lg hover:cursor-pointer hover:bg-zinc-500 sm:py-6 md:py-8"
+						className='min-h-fit w-3/4 whitespace-normal text-balance rounded-xl bg-zinc-500 text-lg hover:cursor-pointer hover:bg-zinc-500 sm:py-6 md:py-8'
 					>
 						Påmelding åpner {humanReadableDateTime(new Date(event.registrationOpens))}
 					</Button>
@@ -70,6 +71,7 @@ export function EventMetadata({
 				)}
 			</div>
 			<WaitlistPosition className='mb-6' registrations={registrations} />
+			{(event.eventStart - Date.now() < 60 * 60 * 1000) && <QRCode className="mb-6" registrations={registrations} />}
 		</div>
 	);
 }
