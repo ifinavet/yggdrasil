@@ -10,9 +10,9 @@ export const getAll = query({
 	handler: async (ctx, { n, type }) => {
 		const query = type
 			? ctx.db
-					.query("jobListings")
-					.withIndex("by_deadlineAndType", (q) => q.eq("type", type))
-					.order("desc")
+				.query("jobListings")
+				.withIndex("by_deadlineAndType", (q) => q.eq("type", type))
+				.order("desc")
 			: ctx.db.query("jobListings").withIndex("by_deadline").order("desc");
 
 		const listings = n ? await query.take(n) : await query.collect();
@@ -34,7 +34,7 @@ export const getAllPublishedAndActive = query({
 			.withIndex("by_deadlineAndPublished", (q) =>
 				q.eq("published", true).gte("deadline", Date.now()),
 			)
-			.order("desc");
+			.order("asc");
 
 		const queryTypeFiltered = type ? query.filter((q) => q.eq("type", type)) : query;
 
