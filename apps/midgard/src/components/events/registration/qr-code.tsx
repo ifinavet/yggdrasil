@@ -2,7 +2,6 @@ import { api } from "@workspace/backend/convex/api";
 import { useConvexAuth, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { QRCodeSVG } from "qrcode.react";
-import NavetLogo from "@/assets/navet/navet-n-circle.webp";
 import ContainerCard from "@/components/cards/container-card";
 
 export default function QRCode({
@@ -26,12 +25,7 @@ export default function QRCode({
 						value={currentUsersRegistration._id}
 						size={256}
 						fgColor='#2f3e5f'
-						imageSettings={{
-							src: NavetLogo.src,
-							height: 128,
-							width: 128,
-							excavate: true,
-						}}
+						bgColor='#f4f4f5'
 					/>
 				</div>
 			</ContainerCard>
