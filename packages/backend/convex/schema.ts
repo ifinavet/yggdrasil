@@ -30,6 +30,8 @@ export default defineSchema({
 		excerpt: v.string(),
 		tag: v.optional(v.string()),
 		favorite: v.optional(v.boolean()),
+		icon: v.optional(v.string()),
+		gradient: v.optional(v.string()),
 		published: v.boolean(),
 		updatedAt: v.number(),
 	}).index("by_favoriteAndUpdated", ["favorite", "updatedAt"]),

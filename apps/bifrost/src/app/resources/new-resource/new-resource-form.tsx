@@ -5,43 +5,51 @@ import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import ResourceForm from "@/components/resources/resource-form/resource-form";
+import { cardColors } from "@/constants/resource-constants";
 import type { ResourceFormValues } from "@/constants/schemas/resource-form-schema";
 
 export default function NewResourceForm() {
 	const router = useRouter();
+
+	const cardColorKeys = Object.keys(cardColors) as Array<keyof typeof cardColors>;
+	const randomKey = cardColorKeys[Math.floor(Math.random() * cardColorKeys.length)];
 
 	const defaultValues: ResourceFormValues = {
 		title: "",
 		content: "",
 		excerpt: "",
 		tag: "",
+		gradient: cardColors[randomKey ?? "blue"],
+		icon: "pencil",
 	};
 
 	const createResource = useMutation(api.resources.create);
-	const hanldeCreateResource = async (values: ResourceFormValues, published: boolean) => {
+	const handleCreateResource = async (values: ResourceFormValues, published: boolean) => {
 		createResource({
 			title: values.title,
 			excerpt: values.excerpt,
 			content: values.content,
 			tag: values.tag,
+			gradient: randomKey ?? "slate",
+			icon: values.icon,
 			published,
 		})
 			.then(() => {
-				toast.success("Ressurs opprettet!", {
-					description: `Ressurs opprettet, ${new Date().toLocaleDateString()}`,
+				toast.success("Resource created!", {
+					description: `Resource created, ${new Date().toLocaleDateString()}`,
 				});
 				router.push("/resources");
 			})
 			.catch((error) => {
 				console.error("Error creating resource:", error);
-				toast.error("Noe gikk galt!", {
+				toast.error("Something went wrong!", {
 					description: error.message,
 				});
 			});
 	};
 
-	const onSubmitAndPublish = (values: ResourceFormValues) => hanldeCreateResource(values, true);
-	const onSubmitAndSave = (values: ResourceFormValues) => hanldeCreateResource(values, false);
+	const onSubmitAndPublish = (values: ResourceFormValues) => handleCreateResource(values, true);
+	const onSubmitAndSave = (values: ResourceFormValues) => handleCreateResource(values, false);
 
 	return (
 		<ResourceForm

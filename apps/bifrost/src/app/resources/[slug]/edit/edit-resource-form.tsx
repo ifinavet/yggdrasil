@@ -25,7 +25,9 @@ export default function EditResourceForm({ id }: { id: Id<"resources"> }) {
 		title: resource.title,
 		content: resource.content,
 		excerpt: resource.excerpt,
-		tag: resource.tag || "",
+		tag: resource.tag ?? "",
+		icon: resource.icon ?? "",
+		gradient: resource.gradient ?? ""
 	};
 	const handleUpdateResource = async (values: ResourceFormValues, published: boolean) => {
 		await updateResource({
@@ -34,6 +36,7 @@ export default function EditResourceForm({ id }: { id: Id<"resources"> }) {
 			excerpt: values.excerpt,
 			content: values.content,
 			tag: values.tag,
+			icon: values.icon,
 			published,
 		})
 			.then(() => {

@@ -3,16 +3,16 @@
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/components//tabs";
+import { Button } from "@workspace/ui/components/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui/components/popover";
 import { type Preloaded, useMutation, usePreloadedQuery } from "convex/react";
+import { Copy, Mails } from "lucide-react";
 import { usePostHog } from "posthog-js/react";
 import { toast } from "sonner";
+import QRScannerDialog from "@/components/events/registration-scanner/qr-scanner-dialog";
 import { createColumns, type Registration } from "@/components/events/registrations/columns";
 import { RegistrationsTable } from "@/components/events/registrations/registrations-table";
 import { humanReadableDate } from "@/utils/utils";
-import { Mails, Copy } from "lucide-react";
-import { Button } from "@workspace/ui/components/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui/components/popover";
-import QRScannerDialog from "@/components/events/registration-scanner/qr-scanner-dialog";
 
 export function Registrations({
 	preloadedRegistrations,
@@ -147,7 +147,7 @@ export function Registrations({
 
 	return (
 		<Tabs defaultValue='registered'>
-			<div className="flex justify-between w-full">
+			<div className="flex w-full justify-between">
 				<TabsList>
 					<TabsTrigger value='registered'>Påmeldte</TabsTrigger>
 					<TabsTrigger value='waitlist' disabled={waitlistData.length === 0}>
@@ -157,7 +157,7 @@ export function Registrations({
 				<QRScannerDialog />
 			</div>
 			<TabsContent value='registered'>
-				<div className='flex flex-wrap items-center justify-between border-b my-2'>
+				<div className="my-2 flex flex-wrap items-center justify-between border-b">
 					<h2 className='scroll-m-20 font-semibold text-2xl tracking-tight first:mt-0'>Påmeldte</h2>
 
 					<div className='flex flex-wrap gap-2 md:gap-4'>
@@ -185,11 +185,15 @@ export function Registrations({
 						</Button>
 					</div>
 				</div>
-				<RegistrationsTable columns={columns} data={registeredData} className="overflow-clip rounded-lg" />
+				<RegistrationsTable
+					columns={columns}
+					data={registeredData}
+					className='overflow-clip rounded-lg'
+				/>
 			</TabsContent>
 
 			<TabsContent value='waitlist'>
-				<div className="mt-4 mb-2">
+				<div className='mt-4 mb-2'>
 					<h2 className='scroll-m-20 border-b pb-2 font-semibold text-2xl tracking-tight first:mt-0'>
 						Venteliste
 					</h2>
@@ -198,7 +202,7 @@ export function Registrations({
 					columns={columns}
 					data={waitlistData}
 					empty_message='Ingen på venteliste'
-					className="overflow-clip rounded-lg"
+					className='overflow-clip rounded-lg'
 				/>
 			</TabsContent>
 		</Tabs>
