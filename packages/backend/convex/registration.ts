@@ -388,7 +388,6 @@ export const fixWaitlist = internalMutation({
 			const waitlist = await ctx.db.query("registrations").withIndex("by_eventIdStatusAndRegistrationTime", q => q.eq("eventId", eventId).eq("status", "waitlist")).collect();
 
 			await Promise.all(waitlist.slice(0, event.participationLimit - numRegisteredAndPending).map(async (reg) => {
-				console.log(reg)
 
 				await makeStatusPending(ctx, reg, event);
 			}))
