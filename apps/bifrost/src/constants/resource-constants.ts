@@ -1,4 +1,14 @@
-import { HeartIcon, MessageCircleQuestionIcon, PencilIcon } from "lucide-react"
+import {
+	BookOpenIcon,
+	BrainIcon,
+	BuildingIcon,
+	ClipboardListIcon,
+	HeartIcon,
+	MessageCircleQuestionIcon,
+	PencilIcon,
+	RocketIcon,
+	TurtleIcon
+} from "lucide-react"
 
 export const cardColors = {
 	blue: "from-sky-200 to-blue-800",
@@ -16,4 +26,10 @@ export const cardIcons = {
 	pencil: PencilIcon,
 	heart: HeartIcon,
 	question: MessageCircleQuestionIcon,
+	book: BookOpenIcon,
+	Brain: BrainIcon,
+	company: BuildingIcon,
+	list: ClipboardListIcon,
+	rocket: RocketIcon,
+	turtle: TurtleIcon
 }

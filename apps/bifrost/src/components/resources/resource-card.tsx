@@ -13,7 +13,7 @@ import { cardColors, cardIcons } from "@/constants/resource-constants";
 export default function ResourceCard({
 	resource,
 	className,
-}: Readonly<{ resource: Doc<"resources">; className: string }>) {
+}: Readonly<{ resource: Doc<"resources">; className?: string }>) {
 	const gradientKey = (resource.gradient ?? "blue") as keyof typeof cardColors;
 
 	const iconKey = (typeof resource.icon === "string" && resource.icon in cardIcons)

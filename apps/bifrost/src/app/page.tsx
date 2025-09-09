@@ -3,7 +3,6 @@ import { api } from "@workspace/backend/convex/api";
 import { preloadQuery } from "convex/nextjs";
 import FavoriteResources from "@/components/home/favorited-resources";
 import UpcomingEventsOverview from "@/components/home/upcomming-events-overview";
-import Updates from "@/components/home/updates";
 import { WELCOME_MESSAGES } from "@/constants/welcome-messages";
 
 export default async function Page() {
@@ -32,11 +31,6 @@ export default async function Page() {
 						Nyttige ressurser
 					</h3>
 					<FavoriteResources />
-				</div>
-
-				<div>
-					<h3 className='mb-2 scroll-m-20 font-semibold text-2xl tracking-tight'>Oppdateringer</h3>
-					<Updates />
 				</div>
 			</div>
 		</div>
