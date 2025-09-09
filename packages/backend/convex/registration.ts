@@ -369,3 +369,28 @@ export const makeStatusPending = async (
 		registrationId: registrationToMakePending._id,
 	});
 };
+
+export const fixWaitlist = internalMutation({
+	args: {
+		eventId: v.id("events")
+	},
+	handler: async (ctx, { eventId }) => {
+		const event = await ctx.db.get(eventId)
+		if (!event) return "No event found";
+
+		const registrations = await ctx.db.query("registrations").withIndex("by_eventIdStatusAndRegistrationTime", q => q.eq("eventId", eventId).eq("status", "registered")).collect();
+		const pending = await ctx.db.query("registrations").withIndex("by_eventIdStatusAndRegistrationTime", q => q.eq("eventId", eventId).eq("status", "pending")).collect();
+
+		console.log(registrations.length + pending.length, event.participationLimit);
+
+		const numRegisteredAndPending = (registrations.length + pending.length)
+		if (numRegisteredAndPending < event.participationLimit) {
+			const waitlist = await ctx.db.query("registrations").withIndex("by_eventIdStatusAndRegistrationTime", q => q.eq("eventId", eventId).eq("status", "waitlist")).collect();
+
+			await Promise.all(waitlist.slice(0, event.participationLimit - numRegisteredAndPending).map(async (reg) => {
+
+				await makeStatusPending(ctx, reg, event);
+			}))
+		}
+	}
+})

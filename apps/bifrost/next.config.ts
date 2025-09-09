@@ -25,6 +25,7 @@ const nextConfig: NextConfig = {
 		],
 		dangerouslyAllowSVG: true,
 	},
+	devIndicators: false,
 	async rewrites() {
 		return [
 			{

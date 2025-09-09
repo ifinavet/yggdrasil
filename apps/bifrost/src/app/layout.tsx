@@ -55,9 +55,9 @@ export default async function RootLayout({
 								) : (
 									<>
 										<BifrostSidebar />
-										<SidebarInset>
+										<SidebarInset className="max-h-full">
 											<Header />
-											<main className='flex h-full flex-col gap-4 p-4'>{children}</main>
+											<main className='flex max-h-full flex-col gap-4 p-4'>{children}</main>
 										</SidebarInset>
 										<Toaster richColors position='top-center' />
 										<Suspense fallback={null}>

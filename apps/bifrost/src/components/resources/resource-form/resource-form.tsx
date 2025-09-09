@@ -16,12 +16,20 @@ import {
 	FormMessage,
 } from "@workspace/ui/components//form";
 import { Input } from "@workspace/ui/components//input";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@workspace/ui/components//select";
 import { Separator } from "@workspace/ui/components//separator";
 import { Textarea } from "@workspace/ui/components//textarea";
 import { EyeOff, Save, Send } from "lucide-react";
 import { useCallback, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { EditorMenu } from "@/components/common/markdown-editor/markdown-editor";
+import { cardIcons } from "@/constants/resource-constants";
 import { type ResourceFormValues, resourceSchema } from "@/constants/schemas/resource-form-schema";
 import { zodV4Resolver } from "@/utils/zod-v4-resolver";
 
@@ -96,7 +104,7 @@ export default function ResourceForm({
 	return (
 		<Form {...form}>
 			<form onSubmit={form.handleSubmit(onPrimarySubmitAction)} className='space-y-4'>
-				<div className='flex w-full flex-wrap gap-2'>
+				<div className='flex w-full flex-wrap gap-4'>
 					<FormField
 						control={form.control}
 						name='title'
@@ -127,6 +135,39 @@ export default function ResourceForm({
 								<FormMessage />
 							</FormItem>
 						)}
+					/>
+
+					<FormField
+						control={form.control}
+						name='icon'
+						render={({ field }) => {
+							return (
+								<FormItem>
+									<FormLabel>Icon</FormLabel>
+									<FormControl>
+										<div className='flex items-center gap-2'>
+											<Select onValueChange={field.onChange} value={field.value}>
+												<SelectTrigger className='w-[160px]'>
+													<SelectValue placeholder='Velg ikon' />
+												</SelectTrigger>
+												<SelectContent>
+													{Object.entries(cardIcons).map(([key, Icon]) => (
+														<SelectItem key={key} value={key}>
+															<>
+																<Icon className='h-4 w-4' />
+																<span className='capitalize'>{key}</span>
+															</>
+														</SelectItem>
+													))}
+												</SelectContent>
+											</Select>
+										</div>
+									</FormControl>
+									<FormDescription>Velg et icon.</FormDescription>
+									<FormMessage />
+								</FormItem>
+							);
+						}}
 					/>
 				</div>
 
