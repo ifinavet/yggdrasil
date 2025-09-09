@@ -153,8 +153,10 @@ export default function ResourceForm({
 												<SelectContent>
 													{Object.entries(cardIcons).map(([key, Icon]) => (
 														<SelectItem key={key} value={key}>
-															<Icon className='h-4 w-4' />
-															<span className='capitalize'>{key}</span>
+															<>
+																<Icon className='h-4 w-4' />
+																<span className='capitalize'>{key}</span>
+															</>
 														</SelectItem>
 													))}
 												</SelectContent>
