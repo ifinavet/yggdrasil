@@ -3,6 +3,7 @@
 import { Resend } from "@convex-dev/resend";
 import { pretty, render } from "@react-email/render";
 import AvailableSeatEmail from "@workspace/emails/available-seat-email";
+import FreeForAllEmail from "@workspace/emails/free-for-all-email";
 import LockedOutEmail from "@workspace/emails/locked-out-email";
 import PointsEmail from "@workspace/emails/point-email";
 import { v } from "convex/values";
@@ -77,7 +78,33 @@ export const sendAvailableSeatEmail = internalAction({
 			from: "Navet <info@ifinavet.no>",
 			replyTo: ["arrangement@ifinavet.no"],
 			to: participantEmail,
-			subject: "Du har fått plass på arrangementet!",
+			subject: `Godta plass på ${eventTitle}`,
+			html,
+		});
+	},
+});
+
+export const sendFreeForAll = internalAction({
+	args: {
+		participantEmail: v.string(),
+		eventId: v.id("events"),
+		eventTitle: v.string(),
+		availableSeats: v.number(),
+	},
+	handler: async (ctx, { participantEmail, eventId, eventTitle, availableSeats }) => {
+		const url = `https://ifinavet.no/events/${eventId}`;
+
+		const html = await pretty(await render(FreeForAllEmail({
+			event: eventTitle,
+			url,
+			availableSeats
+		})));
+
+		await resend.sendEmail(ctx, {
+			from: "Navet <info@ifinavet.no>",
+			replyTo: ["arrangement@ifinavet.no"],
+			to: participantEmail,
+			subject: `Det er ${availableSeats} ledige plasser, første mann til mølla!`,
 			html,
 		});
 	},

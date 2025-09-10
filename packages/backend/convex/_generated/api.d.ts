@@ -22,6 +22,7 @@ import type * as registration from "../registration.js";
 import type * as resources from "../resources.js";
 import type * as students from "../students.js";
 import type * as users from "../users.js";
+import type * as waitlist from "../waitlist.js";
 
 import type {
   ApiFromModules,
@@ -52,6 +53,7 @@ declare const fullApi: ApiFromModules<{
   resources: typeof resources;
   students: typeof students;
   users: typeof users;
+  waitlist: typeof waitlist;
 }>;
 declare const fullApiWithMounts: typeof fullApi;
 
@@ -84,6 +86,18 @@ export declare const components: {
         "internal",
         { olderThan?: number },
         null
+      >;
+      createManualEmail: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          from: string;
+          headers?: Array<{ name: string; value: string }>;
+          replyTo?: Array<string>;
+          subject: string;
+          to: string;
+        },
+        string
       >;
       get: FunctionReference<
         "query",
@@ -160,6 +174,25 @@ export declare const components: {
           to: string;
         },
         string
+      >;
+      updateManualEmail: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          emailId: string;
+          errorMessage?: string;
+          resendId?: string;
+          status:
+            | "waiting"
+            | "queued"
+            | "cancelled"
+            | "sent"
+            | "delivered"
+            | "delivery_delayed"
+            | "bounced"
+            | "failed";
+        },
+        null
       >;
     };
   };

@@ -12,7 +12,7 @@ import {
 	Text,
 } from "@react-email/components";
 
-export default function AvailableSeatEmail({ event, url }: Readonly<{ event: string, url: string }>) {
+export default function FreeForAllEmail({ event, url, availableSeats }: Readonly<{ event: string, url: string, availableSeats: number }>) {
 	return (
 		<Html lang='no'>
 			<Head>
@@ -20,7 +20,7 @@ export default function AvailableSeatEmail({ event, url }: Readonly<{ event: str
 			</Head>
 
 			<Preview>
-				Det er blitt en ledig plass på {event}, vennligst bekreft din deltagelse
+				Det er er {`${availableSeats}`} ledige plasser!
 			</Preview>
 
 			<Tailwind
@@ -44,19 +44,23 @@ export default function AvailableSeatEmail({ event, url }: Readonly<{ event: str
 					/>
 
 					<Heading as='h1' className='text-primary'>
-						Du har fått mulighet til å bli med på "{event}", vennligst bekreft til deltagelse!
+						Det er {availableSeats} ledige plasser på "{event}"!
 					</Heading>
 
 					<Text className='text-lg'>
-						Du har nå 16 timer på deg til å godta tilbudet om plass. Hvis ikke så vil du bli flyttet tilbake på venstelisten, og havne nederst.
+						Det er første mann til mølla, dersom plassene er tatt så kan du sette deg på venteliste.
 					</Text>
 
 					<Text className='pt-4'>
-						<a href={url}>Trykker her for å godta eller avslå tilbudet om plass</a>
+						<a href={url}>Trykker her for å gå til arrangementet</a>
 						<br />
 						<br />
 						Dersom det ikke funker å trykke på lenken, kan du kopiere og lime inn denne lenken i nettleseren din: <br />
 						{url}
+					</Text>
+
+					<Text className='pt-4'>
+						Hvis du ikke ønsker å delta, kan du ignorere denne eposten.
 					</Text>
 
 					<Hr />

@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
-import { internalMutation, type MutationCtx, mutation, query } from "./_generated/server";
+import { type MutationCtx, mutation, query } from "./_generated/server";
 import { getCurrentUserOrThrow } from "./users";
 
 export const getByEventId = query({
@@ -130,11 +130,6 @@ export const updateAttendance = mutation({
 	handler: async (ctx, { id, newStatus }) => {
 		await getCurrentUserOrThrow(ctx);
 
-		await ctx.db.patch(id, {
-			attendanceStatus: newStatus,
-			attendanceTime: Date.now(),
-		});
-
 		const registration = await ctx.db.get(id);
 		if (!registration) {
 			throw new Error(
@@ -142,13 +137,20 @@ export const updateAttendance = mutation({
 			);
 		}
 
-		const user = await ctx.db.get(registration.userId);
+		await ctx.db.patch(id, {
+			attendanceStatus: newStatus,
+			attendanceTime: Date.now(),
+			status: registration.status === "pending" ? "registered" : registration.status
+		});
+
+		if (registration.status !== "registered") return;
+
 		const student = await ctx.db
 			.query("students")
 			.withIndex("by_userId", (q) => q.eq("userId", registration.userId))
 			.first();
 
-		if (!user || !student) {
+		if (!student) {
 			throw new Error(
 				`Bruker med ID ${registration.userId} ikke funnet. Kan ikke oppdatere deltakelsestatus.`,
 			);
@@ -170,7 +172,7 @@ export const updateAttendance = mutation({
 			});
 
 			await ctx.runMutation(internal.points.givePointsEmail, {
-				userId: user._id,
+				userId: student.userId,
 				severity,
 				reason,
 			});
@@ -242,9 +244,7 @@ export const unregister = mutation({
 
 		const event = await ctx.db.get(registration.eventId);
 		if (!event) {
-			throw new Error(
-				`Arrangement med ID ${registration.eventId} ble ikke funnet.Kan ikke behandle ventelisten.`,
-			);
+			throw new Error(`Arrangement med ID ${registration.eventId} ble ikke funnet.Kan ikke behandle ventelisten.`);
 		}
 
 		await ctx.db.delete(id);
@@ -256,7 +256,7 @@ export const unregister = mutation({
 
 		if (registration.status === "waitlist") return returnData;
 
-		if (event.eventStart - Date.now() < 24 * 60 * 60 * 1000) {
+		if (event.eventStart - Date.now() < 24 * 60 * 60 * 1000 && registration.status === "registered") {
 			const student = await ctx.db
 				.query("students")
 				.withIndex("by_userId", (q) => q.eq("userId", registration.userId))
@@ -290,61 +290,6 @@ export const unregister = mutation({
 	},
 });
 
-export const checkPendingRegistrations = internalMutation({
-	handler: async (ctx) => {
-		const now = Date.now();
-		const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
-		const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
-
-		// Find all events that are currently active (open for registration and not yet started (with a 2 hour buffer))
-		const activeEvents = (
-			await ctx.db
-				.query("events")
-				.withIndex("by_registrationOpens", (q) => q.lte("registrationOpens", now))
-				.collect()
-		).filter((e) => e.eventStart >= now - TWO_HOURS_MS);
-
-		await Promise.all(
-			activeEvents.map(async (event) => {
-				// Find all pending registrations for this event
-				const pendingRegistrations = await ctx.db
-					.query("registrations")
-					.withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
-						q.eq("eventId", event._id).eq("status", "pending"),
-					)
-					.collect();
-
-				await Promise.all(
-					pendingRegistrations.map(async (registration) => {
-						const pendingForMs = now - registration.registrationTime;
-
-						// Check all pending registrations,
-						// if they have been pending for more than 24 hours,
-						// move them to waitlist and make the next in line pending
-						if (pendingForMs > TWENTY_FOUR_HOURS_MS) {
-							await ctx.db.patch(registration._id, {
-								status: "waitlist",
-								registrationTime: Date.now(),
-							});
-
-							// Get next pending registration (if any)
-							const nextRegistration = await ctx.db
-								.query("registrations")
-								.withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
-									q.eq("eventId", event._id).eq("status", "waitlist"),
-								)
-								.first();
-
-							if (!nextRegistration) return;
-							await makeStatusPending(ctx, nextRegistration, event);
-						}
-					}),
-				);
-			}),
-		);
-	},
-});
-
 export const makeStatusPending = async (
 	ctx: MutationCtx,
 	registrationToMakePending: Doc<"registrations">,
@@ -369,28 +314,3 @@ export const makeStatusPending = async (
 		registrationId: registrationToMakePending._id,
 	});
 };
-
-export const fixWaitlist = internalMutation({
-	args: {
-		eventId: v.id("events")
-	},
-	handler: async (ctx, { eventId }) => {
-		const event = await ctx.db.get(eventId)
-		if (!event) return "No event found";
-
-		const registrations = await ctx.db.query("registrations").withIndex("by_eventIdStatusAndRegistrationTime", q => q.eq("eventId", eventId).eq("status", "registered")).collect();
-		const pending = await ctx.db.query("registrations").withIndex("by_eventIdStatusAndRegistrationTime", q => q.eq("eventId", eventId).eq("status", "pending")).collect();
-
-		console.log(registrations.length + pending.length, event.participationLimit);
-
-		const numRegisteredAndPending = (registrations.length + pending.length)
-		if (numRegisteredAndPending < event.participationLimit) {
-			const waitlist = await ctx.db.query("registrations").withIndex("by_eventIdStatusAndRegistrationTime", q => q.eq("eventId", eventId).eq("status", "waitlist")).collect();
-
-			await Promise.all(waitlist.slice(0, event.participationLimit - numRegisteredAndPending).map(async (reg) => {
-
-				await makeStatusPending(ctx, reg, event);
-			}))
-		}
-	}
-})
