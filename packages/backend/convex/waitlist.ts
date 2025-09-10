@@ -100,31 +100,32 @@ export const clearWaitlistAndPending = internalMutation({
 
 		console.log(registrationsForEvents)
 
-		await Promise.all(registrationsForEvents.map(({ event, registrations }) => {
-			const availablePlaces = event.participationLimit - registrations.filter(reg => reg.status === "registered").length;
+		await Promise.all(registrationsForEvents.map(async ({ event, registrations }) => {
+			const availablePlaces = event.participationLimit - registrations.filter((reg) => reg.status === "registered").length;
 			if (availablePlaces === 0) return;
 
 			// Delete and notify the students on the waitlist
-			registrations
-				.filter(reg => reg.status !== "registered")
-				.map(async (reg) => {
-					const user = await ctx.db.get(reg.userId);
-					if (!user) {
+			await Promise.all(
+				registrations
+					.filter((reg) => reg.status !== "registered")
+					.map(async (reg) => {
+						const user = await ctx.db.get(reg.userId);
+						if (!user) {
+							await ctx.db.delete(reg._id);
+							return;
+						}
+
+						// Notify registrant of the free-for all
+						await ctx.scheduler.runAfter(0, internal.emails.sendFreeForAll, {
+							participantEmail: user.email,
+							eventId: event._id,
+							eventTitle: event.title,
+							availableSeats: availablePlaces,
+						});
+
+						// Delete registrations
 						await ctx.db.delete(reg._id);
-						return;
-					};
-
-					// Notify registrant of the free-for all
-					await ctx.scheduler.runAfter(0, internal.emails.sendFreeForAll, {
-						participantEmail: user.email,
-						eventId: event._id,
-						eventTitle: event.title,
-						availableSeats: availablePlaces
-					})
-
-					// Delete registrations
-					await ctx.db.delete(reg._id);
-				});
+					}));
 		}));
 	},
 });
