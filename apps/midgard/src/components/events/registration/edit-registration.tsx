@@ -36,10 +36,12 @@ const formSchema = z.object({
 export default function EditRegistration({
 	eventId,
 	registration,
-}: {
+	disabled,
+}: Readonly<{
 	eventId: Id<"events">;
 	registration: Doc<"registrations">;
-}) {
+	disabled: boolean;
+}>) {
 	const [open, setOpen] = useState(false);
 
 	const form = useForm<z.infer<typeof formSchema>>({
@@ -69,8 +71,9 @@ export default function EditRegistration({
 			<DialogTrigger asChild>
 				<Button
 					type='button'
-					className='w-3/4 whitespace-normal text-balance rounded-xl bg-violet-400 py-8 text-lg hover:cursor-pointer hover:bg-violet-500 md:w-1/2'
+					className="!opacity-100 w-3/4 whitespace-normal text-balance rounded-xl bg-violet-400 py-8 text-lg hover:cursor-pointer hover:bg-violet-500 md:w-1/2"
 					onClick={() => setOpen(true)}
+					disabled={disabled}
 				>
 					Rediger din påmelding
 				</Button>

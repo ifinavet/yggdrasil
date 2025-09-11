@@ -1,8 +1,10 @@
 "use client";
 
 import type { api } from "@workspace/backend/convex/api";
+import type { Doc } from "@workspace/backend/convex/dataModel";
 import { Button } from "@workspace/ui/components/button";
 import { type Preloaded, usePreloadedQuery } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { CalendarDays, Globe, IdCard, MapPin, Users, Utensils } from "lucide-react";
 import { humanReadableDateTime } from "@/utils/dateFormatting";
 import QRCode from "./registration/qr-code";
@@ -12,10 +14,10 @@ import WaitlistPosition from "./registration/waitlist-position";
 export function EventMetadata({
 	preloadedEvent,
 	preloadedRegistrations,
-}: {
+}: Readonly<{
 	preloadedEvent: Preloaded<typeof api.events.getById>;
 	preloadedRegistrations: Preloaded<typeof api.registration.getByEventId>;
-}) {
+}>) {
 	const event = usePreloadedQuery(preloadedEvent);
 	const registrations = usePreloadedQuery(preloadedRegistrations);
 
@@ -35,7 +37,7 @@ export function EventMetadata({
 					<Utensils className='size-6 min-w-6 md:size-8' /> {event.food}
 				</p>
 				<p className='flex items-center gap-2 font-semibold md:text-lg'>
-					<Users className='size-6 min-w-6 md:size-8' /> {availableSpots === 0 ? `${registrations.waitlist.length} på venteliste` : `${availableSpots} plasser igjen`}
+					<Users className='size-6 min-w-6 md:size-8' /> {`${availableSpots} plasser igjen`}
 				</p>
 				<p className='flex items-center gap-2 font-semibold md:text-lg'>
 					<Globe className='size-6 min-w-6 md:size-8' /> {event.language}
@@ -44,34 +46,62 @@ export function EventMetadata({
 					<IdCard className='size-6 min-w-6 md:size-8' /> {event.ageRestriction}
 				</p>
 			</div>
+
 			<div className='-mt-6 mb-6 flex justify-center'>
-				{typeof event.externalUrl === "string" && event.externalUrl.length > 0 ? (
-					<Button
-						type='button'
-						className='min-h-fit w-4/5 whitespace-normal text-balance rounded-xl bg-orange-500 py-4 text-center text-lg hover:cursor-pointer hover:bg-orange-600 sm:w-3/5 sm:py-8'
-						asChild
-					>
-						<a href={event.externalUrl} target='_blank' rel='noopener noreferrer'>
-							Gå til arrangementets nettsted
-						</a>
-					</Button>
-				) : event.registrationOpens > Date.now() ? (
-					<Button
-						type='button'
-						className='min-h-fit w-3/4 whitespace-normal text-balance rounded-xl bg-zinc-500 text-lg hover:cursor-pointer hover:bg-zinc-500 sm:py-6 md:py-8'
-					>
-						Påmelding åpner {humanReadableDateTime(new Date(event.registrationOpens))}
-					</Button>
-				) : (
-					<RegistrationButton
-						eventId={event._id}
-						registration={registrations}
-						availableSpots={availableSpots}
-					/>
-				)}
+				<EventActionButton event={event} registrations={registrations} />
 			</div>
+
 			<WaitlistPosition className='mb-6' registrations={registrations} />
-			{(event.eventStart - Date.now() < 60 * 60 * 1000) && <QRCode className="mb-6" registrations={registrations} />}
+
+			{
+				event.eventStart - Date.now() < 60 * 60 * 1000 &&
+				Date.now() - event.eventStart < 60 * 60 * 1000 &&
+				<QRCode className="mb-6" registrations={registrations} />
+			}
 		</div>
+	);
+}
+
+export function EventActionButton({
+	event,
+	registrations,
+}: Readonly<{
+	event: Doc<"events">;
+	registrations: FunctionReturnType<typeof api.registration.getByEventId>;
+}>) {
+	const availableSpots = event.participationLimit - (registrations.registered.length || 0);
+
+	if (event.externalUrl && event.externalUrl.length > 0) {
+		return (
+			<Button
+				type='button'
+				className='min-h-fit w-4/5 whitespace-normal text-balance rounded-xl bg-orange-500 py-4 text-center text-lg hover:cursor-pointer hover:bg-orange-600 sm:w-3/5 sm:py-8'
+				asChild
+			>
+				<a href={event.externalUrl} target='_blank' rel='noopener noreferrer'>
+					Gå til arrangementets nettsted
+				</a>
+			</Button>
+		);
+	}
+
+	if (event.registrationOpens > Date.now()) {
+		return (
+			<Button
+				type='button'
+				className='min-h-fit w-3/4 whitespace-normal text-balance rounded-xl bg-zinc-500 text-lg hover:cursor-pointer hover:bg-zinc-500 sm:py-6 md:py-8'
+			>
+				Påmelding åpner {humanReadableDateTime(new Date(event.registrationOpens))}
+			</Button>
+		);
+	}
+
+	return (
+		<RegistrationButton
+			eventId={event._id}
+			registration={registrations}
+			availableSpots={availableSpots}
+			editRegistrationDisabled={Date.now() - event.eventStart >= 60 * 60 * 1000}
+		/>
 	);
 }
