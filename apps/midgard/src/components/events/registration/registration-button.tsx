@@ -14,11 +14,13 @@ export default function RegistrationButton({
 	registration,
 	eventId,
 	availableSpots,
-}: {
+	editRegistrationDisabled
+}: Readonly<{
 	registration: FunctionReturnType<typeof api.registration.getByEventId>;
 	eventId: Id<"events">;
 	availableSpots: number;
-}) {
+	editRegistrationDisabled: boolean
+}>) {
 	const path = usePathname();
 
 	const { isAuthenticated } = useConvexAuth();
@@ -75,5 +77,5 @@ export default function RegistrationButton({
 
 	if (!registrationToEdit) return null;
 
-	return <EditRegistration registration={registrationToEdit} eventId={eventId} />;
+	return <EditRegistration registration={registrationToEdit} eventId={eventId} disabled={editRegistrationDisabled} />;
 }
