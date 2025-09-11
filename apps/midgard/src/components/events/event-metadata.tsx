@@ -101,7 +101,7 @@ export function EventActionButton({
 			eventId={event._id}
 			registration={registrations}
 			availableSpots={availableSpots}
-			editRegistrationDisabled={!(Date.now() - event.eventStart < 60 * 60 * 1000)}
+			editRegistrationDisabled={Date.now() - event.eventStart >= 60 * 60 * 1000}
 		/>
 	);
 }
