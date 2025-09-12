@@ -17,7 +17,6 @@
     "@convex-dev/react-query": "0.0.0-alpha.11",
     "@radix-ui/react-navigation-menu": "^1.2.13",
     "@sentry/nextjs": "^10.5.0",
-    "@tanstack/react-query": "^5.81.0",
     "@tanstack/react-table": "^8.21.3",
     "@workspace/backend": "workspace:*",
     "@workspace/ui": "workspace:*",

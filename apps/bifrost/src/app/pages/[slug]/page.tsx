@@ -1,4 +1,3 @@
-import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query";
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import {
@@ -14,9 +13,7 @@ import EditPageForm from "./edit-page-form";
 
 export default async function EditResourcePage({
 	params,
-}: {
-	params: Promise<{ slug: Id<"externalPages"> }>;
-}) {
+}: Readonly<{ params: Promise<{ slug: Id<"externalPages"> }> }>) {
 	const { slug: id } = await params;
 
 	const preloadedPage = await preloadQuery(api.externalPages.getById, { id });
@@ -26,11 +23,11 @@ export default async function EditResourcePage({
 			<Breadcrumb>
 				<BreadcrumbList>
 					<BreadcrumbItem>
-						<BreadcrumbLink href='/'>Hjem</BreadcrumbLink>
+						<BreadcrumbLink href="/">Hjem</BreadcrumbLink>
 					</BreadcrumbItem>
 					<BreadcrumbSeparator />
 					<BreadcrumbItem>
-						<BreadcrumbLink href='/pages'>Sider</BreadcrumbLink>
+						<BreadcrumbLink href="/pages">Sider</BreadcrumbLink>
 					</BreadcrumbItem>
 					<BreadcrumbSeparator />
 					<BreadcrumbItem>

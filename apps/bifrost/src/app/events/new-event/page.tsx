@@ -1,5 +1,3 @@
-import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query";
-import { api } from "@workspace/backend/convex/api";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -7,20 +5,12 @@ import {
 	BreadcrumbList,
 	BreadcrumbPage,
 	BreadcrumbSeparator,
-} from "@workspace/ui/components//breadcrumb";
-import { fetchQuery } from "convex/nextjs";
+} from "@workspace/ui/components/breadcrumb";
 import CreateEventForm from "./create-event-form";
 
 export default async function NewEvent() {
-	const queryClient = new QueryClient();
-
-	await queryClient.prefetchQuery({
-		queryKey: ["companies"],
-		queryFn: () => fetchQuery(api.companies.getAll, {}),
-	});
-
 	return (
-		<HydrationBoundary state={dehydrate(queryClient)}>
+		<>
 			<Breadcrumb>
 				<BreadcrumbList>
 					<BreadcrumbItem>
@@ -37,6 +27,6 @@ export default async function NewEvent() {
 				</BreadcrumbList>
 			</Breadcrumb>
 			<CreateEventForm />
-		</HydrationBoundary>
+		</>
 	);
 }

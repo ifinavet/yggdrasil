@@ -89,12 +89,6 @@ importers:
       '@sentry/nextjs':
         specifier: ^10.5.0
         version: 10.5.0(@opentelemetry/context-async-hooks@2.0.1(@opentelemetry/api@1.9.0))(@opentelemetry/core@2.0.1(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(next@15.5.2(@opentelemetry/api@1.9.0)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(sass@1.90.0))(react@19.1.1)(webpack@5.101.0)
-      '@tanstack/react-query':
-        specifier: ^5.80.7
-        version: 5.84.1(react@19.1.1)
-      '@tanstack/react-query-devtools':
-        specifier: ^5.80.7
-        version: 5.84.1(@tanstack/react-query@5.84.1(react@19.1.1))(react@19.1.1)
       '@tanstack/react-table':
         specifier: ^8.21.3
         version: 8.21.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
@@ -246,9 +240,6 @@ importers:
       '@sentry/nextjs':
         specifier: ^10.5.0
         version: 10.5.0(@opentelemetry/context-async-hooks@2.0.1(@opentelemetry/api@1.9.0))(@opentelemetry/core@2.0.1(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(next@15.5.2(@opentelemetry/api@1.9.0)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(sass@1.90.0))(react@19.1.1)(webpack@5.101.0)
-      '@tanstack/react-query':
-        specifier: ^5.81.0
-        version: 5.84.1(react@19.1.1)
       '@tanstack/react-table':
         specifier: ^8.21.3
         version: 8.21.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
@@ -3252,15 +3243,6 @@ packages:
 
   '@tanstack/query-core@5.83.1':
     resolution: {integrity: sha512-OG69LQgT7jSp+5pPuCfzltq/+7l2xoweggjme9vlbCPa/d7D7zaqv5vN/S82SzSYZ4EDLTxNO1PWrv49RAS64Q==}
-
-  '@tanstack/query-devtools@5.84.0':
-    resolution: {integrity: sha512-fbF3n+z1rqhvd9EoGp5knHkv3p5B2Zml1yNRjh7sNXklngYI5RVIWUrUjZ1RIcEoscarUb0+bOvIs5x9dwzOXQ==}
-
-  '@tanstack/react-query-devtools@5.84.1':
-    resolution: {integrity: sha512-nle+OQ9B3Z3EG2R3ixvaNcJ6OeqGwmAc5iMDW6Vj+emLZkWRrN3BDsrzZQu414n34lpxplnC7z1jmKuU/scHCQ==}
-    peerDependencies:
-      '@tanstack/react-query': ^5.84.1
-      react: 19.1.1
 
   '@tanstack/react-query@5.84.1':
     resolution: {integrity: sha512-zo7EUygcWJMQfFNWDSG7CBhy8irje/XY0RDVKKV4IQJAysb+ZJkkJPcnQi+KboyGUgT+SQebRFoTqLuTtfoDLw==}
@@ -8792,7 +8774,7 @@ snapshots:
       '@sentry/bundler-plugin-core': 4.1.0
       unplugin: 1.0.1
       uuid: 9.0.1
-      webpack: 5.101.0(esbuild@0.25.0)
+      webpack: 5.101.0
     transitivePeerDependencies:
       - encoding
       - supports-color
@@ -8888,14 +8870,6 @@ snapshots:
       tailwindcss: 4.1.11
 
   '@tanstack/query-core@5.83.1': {}
-
-  '@tanstack/query-devtools@5.84.0': {}
-
-  '@tanstack/react-query-devtools@5.84.1(@tanstack/react-query@5.84.1(react@19.1.1))(react@19.1.1)':
-    dependencies:
-      '@tanstack/query-devtools': 5.84.0
-      '@tanstack/react-query': 5.84.1(react@19.1.1)
-      react: 19.1.1
 
   '@tanstack/react-query@5.84.1(react@19.1.1)':
     dependencies:
@@ -10369,7 +10343,7 @@ snapshots:
 
   jest-worker@27.5.1:
     dependencies:
-      '@types/node': 22.14.1
+      '@types/node': 20.19.13
       merge-stream: 2.0.0
       supports-color: 8.1.1
 
@@ -11752,6 +11726,15 @@ snapshots:
     optionalDependencies:
       esbuild: 0.25.0
 
+  terser-webpack-plugin@5.3.14(webpack@5.101.0):
+    dependencies:
+      '@jridgewell/trace-mapping': 0.3.29
+      jest-worker: 27.5.1
+      schema-utils: 4.3.2
+      serialize-javascript: 6.0.2
+      terser: 5.43.1
+      webpack: 5.101.0
+
   terser@5.43.1:
     dependencies:
       '@jridgewell/source-map': 0.3.10
@@ -12007,6 +11990,38 @@ snapshots:
   webpack-sources@3.3.3: {}
 
   webpack-virtual-modules@0.5.0: {}
+
+  webpack@5.101.0:
+    dependencies:
+      '@types/eslint-scope': 3.7.7
+      '@types/estree': 1.0.8
+      '@types/json-schema': 7.0.15
+      '@webassemblyjs/ast': 1.14.1
+      '@webassemblyjs/wasm-edit': 1.14.1
+      '@webassemblyjs/wasm-parser': 1.14.1
+      acorn: 8.15.0
+      acorn-import-phases: 1.0.4(acorn@8.15.0)
+      browserslist: 4.25.2
+      chrome-trace-event: 1.0.4
+      enhanced-resolve: 5.18.3
+      es-module-lexer: 1.7.0
+      eslint-scope: 5.1.1
+      events: 3.3.0
+      glob-to-regexp: 0.4.1
+      graceful-fs: 4.2.11
+      json-parse-even-better-errors: 2.3.1
+      loader-runner: 4.3.0
+      mime-types: 2.1.35
+      neo-async: 2.6.2
+      schema-utils: 4.3.2
+      tapable: 2.2.2
+      terser-webpack-plugin: 5.3.14(webpack@5.101.0)
+      watchpack: 2.4.4
+      webpack-sources: 3.3.3
+    transitivePeerDependencies:
+      - '@swc/core'
+      - esbuild
+      - uglify-js
 
   webpack@5.101.0(esbuild@0.25.0):
     dependencies:

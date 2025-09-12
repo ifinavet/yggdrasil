@@ -8,7 +8,7 @@ import { Consent } from "@/components/common/consent";
 import { eina } from "@/components/common/eina-font";
 import Footer from "@/components/common/footer";
 import Header from "@/components/common/header/header";
-import Providers from "@/providers/providers";
+import ConvexClientProvider from "@/providers/convex-clerk-provider";
 import { ThemeProvider } from "@/providers/theme-provider";
 import PostHogPageView from "./posthog-page-view";
 
@@ -32,10 +32,10 @@ export default function RootLayout({
 	children: React.ReactNode;
 }>) {
 	return (
-		<ClerkProvider localization={nbNO}>
-			<Providers>
-				<html lang='no' suppressHydrationWarning>
-					<body className={`${eina.className} antialiased`}>
+		<html lang='no' suppressHydrationWarning>
+			<body className={`${eina.className} antialiased`}>
+				<ClerkProvider localization={nbNO}>
+					<ConvexClientProvider>
 						<ThemeProvider attribute='class' defaultTheme='light' disableTransitionOnChange>
 							<div className='flex h-screen flex-col'>
 								<Header />
@@ -48,9 +48,9 @@ export default function RootLayout({
 								<PostHogPageView />
 							</Suspense>
 						</ThemeProvider>
-					</body>
-				</html>
-			</Providers>
-		</ClerkProvider>
+					</ConvexClientProvider>
+				</ClerkProvider>
+			</body>
+		</html>
 	);
 }

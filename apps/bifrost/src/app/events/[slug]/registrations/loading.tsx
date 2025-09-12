@@ -35,6 +35,7 @@ export default function RegistrationsLoading() {
 					</TableHeader>
 					<TableBody>
 						{Array.from({ length: 8 }).map((_, index) => (
+							// biome-ignore lint: Its a loading file
 							<TableRow key={index}>
 								<TableCell>
 									<Skeleton className='h-4 w-32' />
@@ -73,6 +74,7 @@ export default function RegistrationsLoading() {
 					</TableHeader>
 					<TableBody>
 						{Array.from({ length: 3 }).map((_, index) => (
+							// biome-ignore lint: Its a loading file
 							<TableRow key={index}>
 								<TableCell>
 									<Skeleton className='h-4 w-32' />
