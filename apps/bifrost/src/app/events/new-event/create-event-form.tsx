@@ -1,9 +1,8 @@
 "use client";
 
-import { useConvexMutation } from "@convex-dev/react-query";
-import { useMutation } from "@tanstack/react-query";
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
+import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import EventForm from "@/components/events/event-form/event-form";
@@ -32,25 +31,9 @@ export default function CreateEventForm() {
 	};
 
 	const router = useRouter();
-	const { mutate } = useMutation({
-		mutationFn: useConvexMutation(api.events.create),
-		onSuccess: () => {
-			toast.success("Arrangementet ble opprettet!", {
-				description: `Arrangement opprettet, ${new Date().toLocaleDateString()}`,
-			});
-			router.push("/events");
-		},
-		onError: (error) => {
-			console.error(error);
-			console.error("Noe gikk galt!");
-			toast.error("Noe gikk galt!", {
-				description: error.message,
-			});
-		},
-	});
-
-	const handleSubmit = async (values: EventFormValues, published: boolean) => {
-		mutate({
+	const createEventMutation = useMutation(api.events.create);
+	const handleSubmit = (values: EventFormValues, published: boolean) =>
+		createEventMutation({
 			title: values.title,
 			teaser: values.teaser,
 			description: values.description,
@@ -68,8 +51,20 @@ export default function CreateEventForm() {
 				role: organizer.role as OrganizerRole,
 			})),
 			published,
-		});
-	};
+		})
+			.then(() => {
+				toast.success("Arrangementet ble opprettet!", {
+					description: `Arrangement opprettet, ${new Date().toLocaleDateString()}`,
+				});
+				router.push("/events");
+			})
+			.catch((error) => {
+				console.error(error);
+				console.error("Noe gikk galt!");
+				toast.error("Noe gikk galt!", {
+					description: error.message,
+				});
+			});
 
 	const onDefaultSubmit = async (values: EventFormValues) => handleSubmit(values, true);
 

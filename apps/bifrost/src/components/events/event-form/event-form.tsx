@@ -1,26 +1,6 @@
 "use client";
 
 import { api } from "@workspace/backend/convex/api";
-import { Button } from "@workspace/ui/components//button";
-import {
-	Command,
-	CommandEmpty,
-	CommandGroup,
-	CommandInput,
-	CommandItem,
-	CommandList,
-} from "@workspace/ui/components//command";
-import {
-	Form,
-	FormControl,
-	FormDescription,
-	FormField,
-	FormItem,
-	FormLabel,
-	FormMessage,
-} from "@workspace/ui/components//form";
-import { Input } from "@workspace/ui/components//input";
-import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui/components//popover";
 import {
 	Select,
 	SelectContent,
@@ -30,6 +10,26 @@ import {
 } from "@workspace/ui/components//select";
 import { Separator } from "@workspace/ui/components//separator";
 import { Textarea } from "@workspace/ui/components//textarea";
+import { Button } from "@workspace/ui/components/button";
+import {
+	Command,
+	CommandEmpty,
+	CommandGroup,
+	CommandInput,
+	CommandItem,
+	CommandList,
+} from "@workspace/ui/components/command";
+import {
+	Form,
+	FormControl,
+	FormDescription,
+	FormField,
+	FormItem,
+	FormLabel,
+	FormMessage,
+} from "@workspace/ui/components/form";
+import { Input } from "@workspace/ui/components/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui/components/popover";
 import { cn } from "@workspace/ui/lib/utils";
 import { useQuery } from "convex/react";
 import { Check, ChevronsUpDown, EyeOff, Save, Send } from "lucide-react";

@@ -1,10 +1,8 @@
 "use client";
 
-import { convexQuery } from "@convex-dev/react-query";
-import { useQuery } from "@tanstack/react-query";
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import { usePostHog } from "posthog-js/react";
 import { toast } from "sonner";
@@ -13,27 +11,18 @@ import JobListingForm from "@/components/job-listings/job-listings-form/job-list
 import type { JobListingFormValues } from "@/constants/schemas/job-listing-form-schema";
 import { humanReadableDate } from "@/utils/utils";
 
-export default function EditJobListingForm({ listingId }: { listingId: Id<"jobListings"> }) {
-	const { data: joblisting, isLoading } = useQuery({
-		...convexQuery(api.listings.getById, { id: listingId as Id<"jobListings"> }),
-		enabled: !!listingId,
-	});
+export default function EditJobListingForm({ listingId }: Readonly<{ listingId: Id<"jobListings"> }>) {
+	const jobListing = useQuery(api.listings.getById, { id: listingId })
+	const company = useQuery(api.companies.getById, jobListing ? { id: jobListing.company } : "skip")
 
-	const { data: company, isLoading: isCompanyLoading } = useQuery({
-		...convexQuery(api.companies.getById, { id: joblisting?.company as Id<"companies"> }),
-		enabled: !!joblisting?.company,
-	});
-
-	const posthog = usePostHog();
+	const postHog = usePostHog();
 
 	const router = useRouter();
 
 	const updateJobListing = useMutation(api.listings.update);
-	const deleteJobListing = useMutation(api.listings.remove);
-
 	const handleUpdate = (values: JobListingFormValues, published: boolean) =>
 		updateJobListing({
-			id: joblisting!._id as Id<"jobListings">,
+			id: listingId,
 			title: values.title,
 			teaser: values.teaser,
 			description: values.description,
@@ -57,9 +46,10 @@ export default function EditJobListingForm({ listingId }: { listingId: Id<"jobLi
 			.catch((error) => {
 				toast.error("Det har skjedd en feil!");
 
-				posthog.captureException(error, { site: "bifrost" });
+				postHog.captureException(error, { site: "bifrost" });
 			});
 
+	const deleteJobListing = useMutation(api.listings.remove);
 	const handleDelete = (id: Id<"jobListings">) =>
 		deleteJobListing({ id })
 			.then(() => {
@@ -71,37 +61,37 @@ export default function EditJobListingForm({ listingId }: { listingId: Id<"jobLi
 			.catch((error) => {
 				toast.error("Det har skjedd en feil!");
 
-				posthog.captureException(error, { site: "bifrost" });
+				postHog.captureException(error, { site: "bifrost" });
 			});
 
-	if (isLoading || !joblisting || isCompanyLoading || !company) {
+	if (!jobListing || !company) {
 		return <JobListingFormSkeleton showDeleteButton={true} />;
 	}
 
 	const defaultValues: JobListingFormValues = {
-		title: joblisting.title,
-		teaser: joblisting.teaser,
-		description: joblisting.description,
-		deadline: new Date(joblisting.deadline),
-		type: joblisting.type as "Fulltid" | "Deltid" | "Internship" | "Sommerjobb",
+		title: jobListing.title,
+		teaser: jobListing.teaser,
+		description: jobListing.description,
+		deadline: new Date(jobListing.deadline),
+		type: jobListing.type as "Fulltid" | "Deltid" | "Internship" | "Sommerjobb",
 		company: {
-			id: joblisting.company,
+			id: jobListing.company,
 			name: company.name,
 		},
-		contacts: joblisting.contacts.map((contact) => ({
+		contacts: jobListing.contacts.map((contact) => ({
 			id: contact.id,
 			name: contact.name,
 			email: contact.email ?? undefined,
 			phone: contact.phone ?? undefined,
 		})),
-		applicationUrl: joblisting.applicationUrl,
+		applicationUrl: jobListing.applicationUrl,
 	};
 
 	const handlePrimaryFormSubmit = (values: JobListingFormValues) => handleUpdate(values, true);
 
 	const handleSecondaryFormSubmit = (values: JobListingFormValues) => handleUpdate(values, false);
 
-	const handleTertiaryFormSubmit = () => handleDelete(joblisting._id);
+	const handleTertiaryFormSubmit = () => handleDelete(jobListing._id);
 
 	return (
 		<JobListingForm

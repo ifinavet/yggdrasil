@@ -2,21 +2,19 @@
 
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
-import { useMutation, useQuery } from "convex/react";
+import { type Preloaded, useMutation, usePreloadedQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import EventForm from "@/components/events/event-form/event-form";
 import type { EventFormValues } from "@/constants/schemas/event-form-schema";
 import type { OrganizerRole } from "@/constants/types";
 
-export default function UpdateEventForm({ eventId }: { eventId: string }) {
-	const event = useQuery(api.events.getById, { id: eventId as Id<"events"> });
+export default function UpdateEventForm({
+	preloadedEvent,
+}: Readonly<{ preloadedEvent: Preloaded<typeof api.events.getById> }>) {
+	const event = usePreloadedQuery(preloadedEvent)
 	const router = useRouter();
 	const updateEventMutation = useMutation(api.events.update);
-
-	if (!event) {
-		return <div>Loading...</div>;
-	}
 
 	const defaultValues: EventFormValues = {
 		title: event.title,
@@ -43,7 +41,7 @@ export default function UpdateEventForm({ eventId }: { eventId: string }) {
 
 	const handleSubmit = (values: EventFormValues, published: boolean) => {
 		updateEventMutation({
-			id: eventId as Id<"events">,
+			id: event._id,
 			title: values.title,
 			teaser: values.teaser,
 			description: values.description,
@@ -68,7 +66,7 @@ export default function UpdateEventForm({ eventId }: { eventId: string }) {
 				});
 				router.push("/events");
 			})
-			.catch((error: any) => {
+			.catch((error) => {
 				console.error(error);
 				console.error("Noe gikk galt!");
 				toast.error("Noe gikk galt!", {
