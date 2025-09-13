@@ -21,7 +21,7 @@ export function Registrations({
 }) {
 	const registrations = usePreloadedQuery(preloadedRegistrations);
 
-	const posthog = usePostHog();
+	const postHog = usePostHog();
 
 	const deleteRegistration = useMutation(api.registration.unregister);
 	const handleDeleteRegistration = async (registrationId: Id<"registrations">) => {
@@ -33,7 +33,7 @@ export function Registrations({
 					description: humanReadableDate(new Date()),
 				});
 
-				posthog.capture("bifrost-registration_deleted", {
+				postHog.capture("bifrost-registration_deleted", {
 					...deletedRegistration,
 				});
 			})
@@ -42,7 +42,7 @@ export function Registrations({
 					description: `${error.name}: ${error.message}`,
 				});
 
-				posthog.captureException("bifrost-registration_delete_error", {
+				postHog.captureException("bifrost-registration_delete_error", {
 					site: "bifrost",
 					error,
 					registrationId,
@@ -60,6 +60,12 @@ export function Registrations({
 			newStatus: newStatus as "confirmed" | "late" | "no_show",
 		})
 			.then(() => {
+				postHog.capture("bifrost-attendance_updated", {
+					site: "bifrost",
+					newStatus,
+					registrationId,
+				});
+
 				toast.success("Registreringen ble oppdatert", {
 					description: humanReadableDate(new Date()),
 				});
@@ -69,7 +75,7 @@ export function Registrations({
 					description: `${error.name}: ${error.message}`,
 				});
 
-				posthog.captureException("bifrost-registration_update_error", {
+				postHog.captureException("bifrost-registration_update_error", {
 					site: "bifrost",
 					error,
 					registrationId,
@@ -78,8 +84,8 @@ export function Registrations({
 			});
 	};
 
-	const handleSendEmail = (registerd: boolean, copy: boolean) => {
-		const registrationsToUse = registerd ? registrations.registered : registrations.waitlist;
+	const handleSendEmail = (registered: boolean, copy: boolean) => {
+		const registrationsToUse = registered ? registrations.registered : registrations.waitlist;
 		const emails = registrationsToUse
 			.map((reg) => {
 				if (reg.status === "pending") return;

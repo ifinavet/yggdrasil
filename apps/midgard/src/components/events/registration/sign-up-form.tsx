@@ -34,7 +34,7 @@ const formSchema = z.object({
 	notes: z.optional(z.string()),
 });
 
-export default function SignUpForm({
+export default function RegisterForm({
 	eventId,
 	className,
 	waitlist,
@@ -45,7 +45,7 @@ export default function SignUpForm({
 	waitlist: boolean;
 }) {
 	const [open, setOpen] = useState(false);
-	const posthog = usePostHog();
+	const postHog = usePostHog();
 
 	const form = useForm<z.infer<typeof formSchema>>({
 		resolver: zodV4Resolver(formSchema),
@@ -63,7 +63,7 @@ export default function SignUpForm({
 						"Her gikk det unna! Du står nå på ventelisten og vil få en epost dersom det skulle bli en ledig plass til deg",
 					);
 				}
-				posthog.capture("midgard-student-sign-up", {
+				postHog.capture("midgard-student_register", {
 					eventId,
 					status: status,
 				});
