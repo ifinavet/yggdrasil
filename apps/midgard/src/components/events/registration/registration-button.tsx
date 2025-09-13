@@ -8,7 +8,7 @@ import type { FunctionReturnType } from "convex/server";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import EditRegistration from "./edit-registration";
-import SignUpForm from "./sign-up-form";
+import RegisterForm from "./register-form";
 
 export default function RegistrationButton({
 	registration,
@@ -64,7 +64,7 @@ export default function RegistrationButton({
 
 	if (!currentUsersRegistration && !currentUsersWaitlistRegistration) {
 		return (
-			<SignUpForm
+			<RegisterForm
 				eventId={eventId}
 				userId={currentUser._id}
 				className={`w-3/4 whitespace-normal text-balance rounded-xl bg-emerald-600 px-6 py-8 text-center font-semibold text-lg hover:cursor-pointer hover:bg-emerald-700 md:w-1/2`}
