@@ -38,12 +38,12 @@ export default function RegisterForm({
 	eventId,
 	className,
 	waitlist,
-}: {
+}: Readonly<{
 	className?: string;
 	eventId: Id<"events">;
 	userId: Id<"users">;
 	waitlist: boolean;
-}) {
+}>) {
 	const [open, setOpen] = useState(false);
 	const postHog = usePostHog();
 
