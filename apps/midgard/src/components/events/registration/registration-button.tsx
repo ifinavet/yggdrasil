@@ -8,7 +8,7 @@ import type { FunctionReturnType } from "convex/server";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import EditRegistration from "./edit-registration";
-import RegisterForm from "./sign-up-form";
+import RegisterForm from "./register-form";
 
 export default function RegistrationButton({
 	registration,
