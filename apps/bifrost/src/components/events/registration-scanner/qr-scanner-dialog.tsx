@@ -95,7 +95,7 @@ export default function QRScannerDialog({
 		<Dialog open={open} defaultOpen={defaultOpen} onOpenChange={onOpenChangeAction}>
 			<DialogTrigger asChild>
 				{trigger ?? (
-					<Button {...triggerButtonProps}>
+					<Button {...triggerButtonProps} className="text-white">
 						<QrCode className="size-4" /> Scan QR
 					</Button>
 				)}

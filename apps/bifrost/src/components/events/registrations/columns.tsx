@@ -60,16 +60,16 @@ export const createColumns = (
 
 				if (row.original.status === "pending") {
 					return (
-						<Badge variant='secondary' className='bg-amber-400'>
+						<Badge variant='secondary' className='bg-amber-400 text-white'>
 							Venter
 						</Badge>
 					);
 				}
 				if (row.original.status === "waitlist") {
-					return <Badge variant='default' className="bg-pink-500">{norwegian[row.original.status]}</Badge>;
+					return <Badge variant='default' className="bg-pink-500 text-white">{norwegian[row.original.status]}</Badge>;
 				}
 
-				return <Badge variant='default'>{norwegian[row.original.status]}</Badge>;
+				return <Badge variant='default' className="text-white">{norwegian[row.original.status]}</Badge>;
 			},
 		},
 		{
