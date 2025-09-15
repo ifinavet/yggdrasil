@@ -76,7 +76,7 @@ export default function UpdateMainSponsorForm({
 												variant='ghost'
 												onClick={() => field.onChange(company._id)}
 												className={`mb-2 flex w-full justify-start ${field.value === company._id
-													? "bg-primary text-primary hover:bg-primary/90 dark:text-primary-light-foreground"
+													? "bg-primary text-primary hover:bg-primary/90 dark:text-primary-foreground"
 													: ""
 													}`}
 											>
