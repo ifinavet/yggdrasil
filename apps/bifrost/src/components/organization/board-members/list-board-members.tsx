@@ -42,7 +42,7 @@ export default function ListBoardMembers({
 							<div>
 								<p>{member.fullName}</p>
 								<a
-									href={`mailto:${member.positionEmail ?? member.email}`}
+									href={`mailto:${member.email}`}
 									className='text-balance text-muted-foreground'
 								>
 									{member.email}
