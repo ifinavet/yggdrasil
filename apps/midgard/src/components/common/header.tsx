@@ -242,7 +242,7 @@ function NavigationTrigger({
 	);
 }
 
-function NavigationItem({ href, children }: { href: string; children: React.ReactNode }) {
+function NavigationItem({ href, children }: Readonly<{ href: string; children: React.ReactNode }>) {
 	return (
 		<NavigationMenuItem>
 			<NavigationMenuLink
