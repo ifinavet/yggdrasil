@@ -71,10 +71,17 @@ export default function QRScannerDialog({
 			id: registrationId as Id<"registrations">,
 			newStatus: newStatus,
 		})
-			.then(() =>
+			.then(() => {
 				toast.success("Registration successful", {
 					description: humanReadableDate(new Date()),
-				}),
+				});
+
+				postHog.capture("bifrost-attendance_updated", {
+					site: "bifrost",
+					newStatus,
+					registrationId,
+				});
+			}
 			)
 			.catch((e) => {
 				toast.error("An error occurred, please try again or register manually.", {
