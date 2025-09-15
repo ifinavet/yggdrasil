@@ -84,7 +84,7 @@ function EventHeader({ title, teaser }: { title: string | null; teaser: string |
 	return (
 		<div className='grid w-full gap-2'>
 			<h2 className='font-bold text-2xl tracking-tight'>{title}</h2>
-			<p className='line-clamp-2 scroll-m-20 text-ellipsis font-medium text-lg tracking-tight'>
+			<p className='line-clamp-2 scroll-m-20 font-medium text-lg tracking-tight'>
 				{teaser}
 			</p>
 		</div>
