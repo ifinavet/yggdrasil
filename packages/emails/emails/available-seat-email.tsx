@@ -43,7 +43,7 @@ export default function AvailableSeatEmail({ event, url }: Readonly<{ event: str
 						className='pb-4'
 					/>
 
-					<Heading as='h1' className='text-primary'>
+					<Heading as='h1' className='text-primary dark:text-primary-light'>
 						Du har fått mulighet til å bli med på "{event}", vennligst bekreft til deltagelse!
 					</Heading>
 

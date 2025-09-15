@@ -29,7 +29,10 @@ export default async function EventsCarousel() {
 				<CarouselPrevious />
 				<CarouselNext />
 			</Carousel>
-			<Button asChild className='mx-8 bg-emerald-600 py-6 font-semibold hover:bg-emerald-700'>
+			<Button
+				asChild
+				className="mx-8 bg-emerald-600 py-6 font-semibold text-primary-foreground hover:bg-emerald-700"
+			>
 				<Link href={"/events"}>Se alle arrangementer</Link>
 			</Button>
 		</div>

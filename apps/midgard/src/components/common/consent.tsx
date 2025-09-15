@@ -63,7 +63,7 @@ export function Consent() {
 						</p>
 					</CardContent>
 					<CardFooter className='flex flex-wrap gap-4'>
-						<Button onClick={handleAcceptCookies}>Godta bruk av cookies</Button>
+						<Button onClick={handleAcceptCookies} className="text-primary-foreground">Godta bruk av cookies</Button>
 						<Button onClick={handleDeclineCookies} variant='secondary'>
 							Avslå bruk av cookies
 						</Button>

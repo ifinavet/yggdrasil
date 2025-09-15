@@ -25,14 +25,14 @@ export default async function JobListingsPage() {
 
 	return (
 		<div className='grid h-full gap-6'>
-			<div className='-mt-8 grid h-fit gap-4 bg-zinc-100 py-8'>
+			<div className='grid h-fit gap-4 bg-zinc-100 py-8 dark:bg-zinc-800'>
 				<Title className='!border-b-0'>Stillingsannonser</Title>
 				<div className='flex flex-wrap justify-center gap-4'>
-					<Button asChild className='md:min-w-32'>
+					<Button asChild className='text-primary-foreground md:min-w-32 dark:bg-primary-light dark:text-primary'>
 						<Link href={`/job-listings`}>Alle</Link>
 					</Button>
 					{Object.values(types).map((type) => (
-						<Button key={type} className='md:min-w-32'>
+						<Button key={type} className="text-primary-foreground md:min-w-32 dark:bg-primary-light dark:text-primary">
 							<Link href={`/job-listings/?type=${type}`}>{type}</Link>
 						</Button>
 					))}

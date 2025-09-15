@@ -61,7 +61,7 @@ export default function NotFound() {
 								Kan ikke finne det du leter etter?{" "}
 								<a
 									href='mailto:web@ifinavet.no'
-									className='inline-flex items-center gap-1 text-primary hover:underline'
+									className="inline-flex items-center gap-1 text-primary hover:underline dark:text-primary-light"
 								>
 									<Mail className='h-3 w-3' />
 									Kontakt webansvarlig

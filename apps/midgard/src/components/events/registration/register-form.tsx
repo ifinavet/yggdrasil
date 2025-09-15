@@ -112,11 +112,11 @@ export default function RegisterForm({
 					<DialogClose asChild>
 						<Button variant='outline'>Avbryt</Button>
 					</DialogClose>
-					<Button type='submit' onClick={form.handleSubmit(onSubmit)}>
+					<Button type='submit' onClick={form.handleSubmit(onSubmit)} className="text-primary-foreground">
 						Meld meg på {waitlist && "ventelisten"}!
 					</Button>
 				</DialogFooter>
 			</DialogContent>
-		</Dialog>
+		</Dialog >
 	);
 }

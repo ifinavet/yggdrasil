@@ -1,5 +1,6 @@
 import { api } from "@workspace/backend/convex/api";
 import { fetchQuery } from "convex/nextjs";
+import type { Metadata } from "next";
 import ContainerCard from "@/components/cards/container-card";
 import LargeUserCard from "@/components/cards/large-user";
 import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
@@ -7,7 +8,7 @@ import { Title } from "@/components/common/title";
 import TwoColumns from "@/components/common/two-columns";
 import FAQGrid from "@/components/students/faq-grid";
 
-export const metadata = {
+export const metadata: Metadata = {
 	title: "For studenter",
 };
 
@@ -22,7 +23,7 @@ export default async function StudentsPage() {
 			<TwoColumns
 				main={
 					<div className='grid gap-6'>
-						<ContainerCard className='bg-primary text-primary-foreground'>
+						<ContainerCard className='bg-primary text-primary-foreground dark:bg-primary'>
 							<h2 className='scroll-m-20 pb-2 font-semibold text-3xl tracking-tight first:mt-0'>
 								Hei IFI-Student! 👋
 							</h2>
@@ -63,7 +64,7 @@ export default async function StudentsPage() {
 							initials='KO'
 						/>
 						<ContainerCard className='bg-primary-light'>
-							<h3 className='scroll-m-20 text-center font-semibold text-4xl text-primary tracking-tight'>
+							<h3 className='scroll-m-20 text-center font-semibold text-4xl text-primary tracking-tight dark:text-primary-foreground'>
 								Ny student?
 							</h3>
 							<p className='leading-7 [&:not(:first-child)]:mt-6'>

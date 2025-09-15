@@ -173,7 +173,7 @@ export default function UpdateProfileForm({
 						)}
 					/>
 				</div>
-				<Button type='submit'>Oppdater profil</Button>
+				<Button type='submit' className="text-primary-foreground">Oppdater profil</Button>
 			</form>
 		</Form>
 	);

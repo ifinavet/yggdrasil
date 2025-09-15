@@ -16,9 +16,10 @@ export default function ResourceCard({
 }: Readonly<{ resource: Doc<"resources">; className?: string }>) {
 	const gradientKey = (resource.gradient ?? "blue") as keyof typeof cardColors;
 
-	const iconKey = (typeof resource.icon === "string" && resource.icon in cardIcons)
-		? (resource.icon as keyof typeof cardIcons)
-		: "pencil";
+	const iconKey =
+		typeof resource.icon === "string" && resource.icon in cardIcons
+			? (resource.icon as keyof typeof cardIcons)
+			: "pencil";
 	const IconComponent = cardIcons[iconKey];
 
 	return (
@@ -43,7 +44,7 @@ export default function ResourceCard({
 					</CardTitle>
 				</CardHeader>
 				<CardContent>
-					<CardDescription className='text-primary leading-relaxed'>
+					<CardDescription className="text-primary leading-relaxed dark:text-primary-light">
 						{resource.excerpt}
 					</CardDescription>
 				</CardContent>

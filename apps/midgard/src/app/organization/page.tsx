@@ -21,7 +21,7 @@ export default async function OrganizationPage() {
 				<TwoColumns
 					main={
 						<div>
-							<h3 className='scroll-m-20 font-semibold text-4xl text-primary tracking-tight'>
+							<h3 className='scroll-m-20 font-semibold text-4xl text-primary tracking-tight dark:text-primary-foreground'>
 								Hvem er vi?
 							</h3>
 							<p className='leading-7 [&:not(:first-child)]:mt-6'>
@@ -51,7 +51,7 @@ export default async function OrganizationPage() {
 										href='https://www.instagram.com/ifinavet/'
 										rel='nofollow noopener noreferrer external'
 										target='_blank'
-										className='text-primary underline'
+										className='text-primary underline dark:text-primary-foreground'
 									>
 										Instagram
 									</a>
@@ -61,7 +61,7 @@ export default async function OrganizationPage() {
 										href='https://www.facebook.com/share/1C1q1rEvmL/?mibextid=wwXIfr'
 										rel='nofollow noopener noreferrer external'
 										target='_blank'
-										className='text-primary underline'
+										className='text-primary underline dark:text-primary-foreground'
 									>
 										Facebook
 									</a>
@@ -71,7 +71,7 @@ export default async function OrganizationPage() {
 										href='https://ie.linkedin.com/company/ifinavet'
 										rel='nofollow noopener noreferrer external'
 										target='_blank'
-										className='text-primary underline'
+										className='text-primary underline dark:text-primary-foreground'
 									>
 										Linkedin
 									</a>
@@ -81,7 +81,7 @@ export default async function OrganizationPage() {
 										href='https://github.com/ifinavet'
 										rel='nofollow noopener noreferrer external'
 										target='_blank'
-										className='text-primary underline'
+										className='text-primary underline dark:text-primary-foreground'
 									>
 										Github
 									</a>
@@ -91,9 +91,12 @@ export default async function OrganizationPage() {
 					}
 					aside={<Image src={Navet} alt='Navet Logo' className='h-full rounded-lg object-cover' />}
 				/>
-				<FlowyLine className='w-full stroke-[8] text-primary' curveHeight={-300} />
+				<FlowyLine
+					className='w-full stroke-[8] text-primary dark:text-primary-foreground'
+					curveHeight={-300}
+				/>
 				<div aria-description='Livet som intern'>
-					<h3 className='scroll-m-20 font-semibold text-4xl text-primary tracking-tight'>
+					<h3 className='scroll-m-20 font-semibold text-4xl text-primary tracking-tight dark:text-primary-foreground'>
 						Livet som intern
 					</h3>
 					<div className='flex h-fit flex-wrap items-start gap-8'>
@@ -109,7 +112,11 @@ export default async function OrganizationPage() {
 							julebord, sommerfest og mange andre små og store aktiviteter gjennom året.
 						</p>
 						<div className='grid h-full flex-1 place-content-center'>
-							<Image src={NavetN} alt='N logo' className='h-32 w-auto rotate-12 object-contain' />
+							<Image
+								src={NavetN}
+								alt='N logo'
+								className='h-32 w-auto rotate-12 object-contain dark:grayscale dark:invert'
+							/>
 						</div>
 					</div>
 					<div className='grid justify-center gap-12 sm:grid-cols-2 lg:grid-cols-3'>
@@ -173,9 +180,12 @@ export default async function OrganizationPage() {
 						</InternGroup>
 					</div>
 				</div>
-				<FlowyLine className='w-full stroke-[8] text-primary' curveHeight={250} />
+				<FlowyLine
+					className='w-full stroke-[8] text-primary dark:text-primary-foreground'
+					curveHeight={250}
+				/>
 				<div aria-description='Styret'>
-					<h3 className='mb-4 scroll-m-20 font-semibold text-4xl text-primary tracking-tight'>
+					<h3 className='mb-4 scroll-m-20 font-semibold text-4xl text-primary tracking-tight dark:text-primary-foreground'>
 						Styret
 					</h3>
 					<div className='flex flex-wrap justify-center gap-4'>
@@ -205,9 +215,8 @@ function FlowyLine({
 	curveHeight?: number;
 	baseHeight?: number;
 }) {
-	const pathData = `M0,${baseHeight} C360,${baseHeight + curveHeight} 1080,${
-		baseHeight - curveHeight
-	} 1440,${baseHeight}`;
+	const pathData = `M0,${baseHeight} C360,${baseHeight + curveHeight} 1080,${baseHeight - curveHeight
+		} 1440,${baseHeight}`;
 
 	return (
 		<div className='flex h-32 w-full items-center justify-center'>
@@ -235,7 +244,7 @@ function InternGroup({
 }) {
 	return (
 		<div className={cn("flex min-w-48 flex-col", className)}>
-			<h4 className='scroll-m-20 border-primary border-b-2 font-semibold text-2xl text-primary tracking-tight'>
+			<h4 className="scroll-m-20 border-primary border-b-2 font-semibold text-2xl text-primary tracking-tight dark:border-primary-foreground dark:text-primary-foreground">
 				{name}
 			</h4>
 			{children}
@@ -262,8 +271,10 @@ function BoardMember({
 				<AvatarImage src={image} />
 				<AvatarFallback>{position.slice(0, 1).toUpperCase()}</AvatarFallback>
 			</Avatar>
-			<h2 className='font-semibold text-2xl text-primary'>{position}</h2>
-			<Separator className='rounded-lg border-1 border-primary' />
+			<h2 className='font-semibold text-2xl text-primary dark:text-primary-foreground'>
+				{position}
+			</h2>
+			<Separator className='rounded-lg border-1 border-primary dark:border-primary-foreground' />
 			<div className='flex flex-col items-center'>
 				<h3 className='text-pretty text-center font-semibold text-lg'>{name}</h3>
 				<Button variant='link'>

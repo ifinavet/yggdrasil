@@ -10,7 +10,7 @@ export default function ContainerCard({
 	return (
 		<div
 			className={cn(
-				"flex flex-col gap-4 whitespace-normal text-balance break-words rounded-xl bg-zinc-100 px-10 py-8 md:px-12",
+				"flex flex-col gap-4 whitespace-normal text-balance break-words rounded-xl bg-zinc-100 px-10 py-8 md:px-12 dark:bg-zinc-800",
 				className,
 			)}
 		>

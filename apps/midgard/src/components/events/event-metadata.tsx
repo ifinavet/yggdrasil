@@ -25,7 +25,7 @@ export function EventMetadata({
 
 	return (
 		<div>
-			<div className='grid h-80 grid-cols-2 grid-rows-3 items-center justify-start gap-4 hyphens-auto rounded-xl bg-primary px-10 py-6 text-primary-foreground md:px-16 md:py-8'>
+			<div className='grid h-80 grid-cols-2 grid-rows-3 items-center justify-start gap-4 hyphens-auto rounded-xl bg-primary px-10 py-6 text-primary-foreground md:px-16 md:py-8 dark:text-primary-foreground'>
 				<p className='flex items-center gap-2 text-pretty font-semibold md:text-lg'>
 					<CalendarDays className='size-6 min-w-6 md:size-8' />{" "}
 					{humanReadableDateTime(new Date(event.eventStart))}
@@ -53,11 +53,10 @@ export function EventMetadata({
 
 			<WaitlistPosition className='mb-6' registrations={registrations} />
 
-			{
-				event.eventStart - Date.now() < 60 * 60 * 1000 &&
-				Date.now() - event.eventStart < 60 * 60 * 1000 &&
-				<QRCode className="mb-6" registrations={registrations} />
-			}
+			{event.eventStart - Date.now() < 60 * 60 * 1000 &&
+				Date.now() - event.eventStart < 60 * 60 * 1000 && (
+					<QRCode className='mb-6' registrations={registrations} />
+				)}
 		</div>
 	);
 }
@@ -75,7 +74,7 @@ export function EventActionButton({
 		return (
 			<Button
 				type='button'
-				className='min-h-fit w-4/5 whitespace-normal text-balance rounded-xl bg-orange-500 py-4 text-center text-lg hover:cursor-pointer hover:bg-orange-600 sm:w-3/5 sm:py-8'
+				className="min-h-fit w-4/5 whitespace-normal text-balance rounded-xl bg-orange-500 py-4 text-center text-lg hover:cursor-pointer hover:bg-orange-600 sm:w-3/5 sm:py-6 dark:bg-orange-400"
 				asChild
 			>
 				<a href={event.externalUrl} target='_blank' rel='noopener noreferrer'>
@@ -89,7 +88,7 @@ export function EventActionButton({
 		return (
 			<Button
 				type='button'
-				className='min-h-fit w-3/4 whitespace-normal text-balance rounded-xl bg-zinc-500 text-lg hover:cursor-pointer hover:bg-zinc-500 sm:py-6 md:py-8'
+				className='min-h-fit w-3/4 whitespace-normal text-balance rounded-xl bg-zinc-500 text-lg hover:cursor-pointer hover:bg-zinc-500 sm:py-6 md:py-8 dark:bg-zinc-700 dark:text-primary-foreground'
 			>
 				Påmelding åpner {humanReadableDateTime(new Date(event.registrationOpens))}
 			</Button>

@@ -1,9 +1,10 @@
 import { Button } from "@workspace/ui/components/button";
 import Link from "next/link";
+import ThemeSwitcher from "./theme-switcher";
 
 export default function Footer() {
 	return (
-		<footer className='flex w-full justify-center bg-primary py-10 text-primary-foreground'>
+		<footer className="z-20 flex w-full justify-center bg-primary py-10 text-primary-foreground dark:bg-zinc-800">
 			<div className='flex h-fit w-full max-w-6xl flex-wrap justify-between gap-8 px-8'>
 				<div className='flex flex-col gap-2 px-4 sm:px-0'>
 					<div className='font-semibold text-lg'>IFI-Navet</div>
@@ -28,6 +29,7 @@ export default function Footer() {
 					>
 						<Link href='/info/retningslinjer'>Retningslinjer</Link>
 					</Button>
+					<ThemeSwitcher />
 				</div>
 			</div>
 		</footer>

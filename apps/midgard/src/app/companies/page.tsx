@@ -25,7 +25,7 @@ export default async function CompaniesPage() {
 				<Title>For bedrifter</Title>
 				<div className='grid grid-cols-1 gap-6 md:grid-cols-5'>
 					<div className='grid gap-6 md:col-span-3'>
-						<ContainerCard className='bg-primary'>
+						<ContainerCard className='bg-primary dark:bg-primary'>
 							<h2 className='scroll-m-10 hyphens-auto pb-2 font-semibold text-3xl text-primary-foreground tracking-tight first:mt-0'>
 								Navets formål
 							</h2>
@@ -39,7 +39,7 @@ export default async function CompaniesPage() {
 							<h2 className='scroll-m-20 pb-2 font-semibold text-3xl text-primary-foreground tracking-tight first:mt-0'>
 								Om instituttet
 							</h2>
-							<p className='text-primary-foreground leading-7'>
+							<p className="text-primary-foreground leading-7">
 								Institutt for Informatikk er det største instituttet ved Universitetet i Oslo målt i
 								antall studenter og inneholder mange ulike studieprogrammer og studentforeninger.
 								Dette kan gjøre det utfordende å komme i kontakt med riktig studentgrupper. Navet
@@ -107,7 +107,7 @@ export default async function CompaniesPage() {
 							<Button
 								variant='default'
 								size='lg'
-								className='bg-primary py-6 text-base text-primary-foreground'
+								className='bg-primary py-6 text-base text-primary-foreground dark:bg-primary-light dark:text-primary'
 								asChild
 							>
 								<a

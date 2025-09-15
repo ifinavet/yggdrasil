@@ -7,7 +7,7 @@ import { Suspense } from "react";
 import { Consent } from "@/components/common/consent";
 import { eina } from "@/components/common/eina-font";
 import Footer from "@/components/common/footer";
-import Header from "@/components/common/header/header";
+import Header from "@/components/common/header";
 import ConvexClientProvider from "@/providers/convex-clerk-provider";
 import { ThemeProvider } from "@/providers/theme-provider";
 import PostHogPageView from "./posthog-page-view";
@@ -37,7 +37,7 @@ export default function RootLayout({
 				<ClerkProvider localization={nbNO}>
 					<ConvexClientProvider>
 						<ThemeProvider attribute='class' defaultTheme='light' disableTransitionOnChange>
-							<div className='flex h-screen flex-col'>
+							<div className='flex h-screen flex-col overflow-y-auto'>
 								<Header />
 								<main className='mb-12 flex-1'>{children}</main>
 								<Footer />

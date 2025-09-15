@@ -43,7 +43,7 @@ export default function FreeForAllEmail({ event, url, availableSeats }: Readonly
 						className='pb-4'
 					/>
 
-					<Heading as='h1' className='text-primary'>
+					<Heading as='h1' className='text-primary dark:text-primary-light'>
 						Det er {availableSeats} ledige plasser på "{event}"!
 					</Heading>
 

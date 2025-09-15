@@ -49,7 +49,7 @@ export default async function ContactPage() {
 									rel='noopener'
 									target='_blank'
 									title='Skjema'
-									className='text-primary underline'
+									className="text-primary underline dark:text-primary-foreground"
 								>
 									https://nettskjema.no/a/528318#/page/1
 								</a>

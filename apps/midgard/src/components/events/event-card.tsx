@@ -12,7 +12,7 @@ export default async function EventCard({ event }: { event: Doc<"events"> }) {
 	return (
 		<Link href={`/events/${event._id}`} className='h-full'>
 			<div className='flex h-100 flex-col overflow-clip rounded-lg border border-primary/10 shadow-md'>
-				<div className='relative grid h-32 place-content-center px-8 py-6 md:h-48 lg:h-52'>
+				<div className='relative grid h-32 place-content-center px-8 py-6 md:h-48 lg:h-52 dark:bg-white/95'>
 					<Image
 						src={company.imageUrl}
 						alt={event.title}
@@ -21,7 +21,7 @@ export default async function EventCard({ event }: { event: Doc<"events"> }) {
 						fill
 					/>
 				</div>
-				<div className='flex flex-1 flex-col justify-between bg-primary p-6 text-primary-foreground'>
+				<div className="flex flex-1 flex-col justify-between bg-primary p-6 text-primary-foreground dark:bg-gray-800">
 					<div className='flex flex-col gap-4'>
 						<h2 className='font-bold text-xl tracking-tight'>{event.title}</h2>
 						<p className='line-clamp-2 truncate whitespace-normal'>{event.teaser}</p>
