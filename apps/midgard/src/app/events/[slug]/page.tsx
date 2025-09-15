@@ -112,7 +112,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: Id
 								) : (
 									<div
 										key={organizer.id}
-										className="flex flex-wrap items-center gap-4 rounded-xl bg-zinc-100 px-6 py-4"
+										className="flex flex-wrap items-center gap-4 rounded-xl bg-zinc-100 px-6 py-4 dark:bg-zinc-800"
 									>
 										<img
 											src={organizer.imageUrl}
@@ -125,7 +125,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: Id
 												<p className="font-semibold text-lg">Medhjelper</p>
 												<p>{organizer.name}</p>
 											</div>
-											<Button asChild>
+											<Button asChild className="dark:bg-primary-light dark:text-primary">
 												<a href={`mailto:${organizer.email}`} rel="noopener" target="_blank">
 													Ta kontakt
 												</a>
