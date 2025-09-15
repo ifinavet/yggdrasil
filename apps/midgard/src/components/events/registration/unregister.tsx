@@ -60,7 +60,7 @@ export default function Unregister({
 				</AlertDialogHeader>
 				<AlertDialogFooter>
 					<AlertDialogCancel>Avbryt</AlertDialogCancel>
-					<AlertDialogAction onClick={onUnregister}>
+					<AlertDialogAction onClick={onUnregister} className="text-primary-foreground">
 						Jeg er helt sikker, meld meg av.
 					</AlertDialogAction>
 				</AlertDialogFooter>

@@ -26,13 +26,13 @@ export default function MonthSelector({
 
 	return (
 		<div className='my-6 flex justify-center'>
-			<div className='mx-6 flex w-full flex-wrap justify-center gap-4 border-primary border-b-2 md:mx-0 md:w-3/5'>
+			<div className='mx-6 flex w-full flex-wrap justify-center gap-4 border-primary border-b-2 md:mx-0 md:w-3/5 dark:border-primary-foreground'>
 				{months.map((month) => (
 					<Button
 						type='button'
 						variant='link'
 						key={month}
-						className={`${activeMonth === month ? "text-primary" : "text-zinc-400"} scroll-m-20 font-semibold text-3xl capitalize tracking-tight hover:cursor-pointer hover:text-zinc-600 hover:no-underline`}
+						className={`${activeMonth === month ? "dark:text-primary-foreground" : "text-zinc-400 dark:text-gray-500"} scroll-m-20 font-semibold text-3xl capitalize tracking-tight hover:cursor-pointer hover:text-zinc-600 hover:no-underline`}
 						onClick={() => router.push(`${path}?${updateSemester(month)}`)}
 					>
 						{month}

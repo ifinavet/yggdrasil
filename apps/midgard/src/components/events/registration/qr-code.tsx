@@ -20,7 +20,7 @@ export default function QRCode({
 	return (
 		currentUsersRegistration && (
 			<ContainerCard className={className}>
-				<div className="mx-auto overflow-clip rounded-lg">
+				<div className="mx-auto overflow-clip rounded-lg bg-zinc-100 p-4">
 					<QRCodeSVG
 						value={currentUsersRegistration._id}
 						size={256}

@@ -52,7 +52,7 @@ export default function GlobalError({ error, reset }: { error: unknown; reset: (
 				</div>
 
 				<div className='flex flex-col items-center justify-center gap-3 sm:flex-row'>
-					<Button asChild>
+					<Button asChild className="text-primary-foreground">
 						<Link href='/'>
 							<Home className='mr-2 size-4' />
 							Gå til forsiden

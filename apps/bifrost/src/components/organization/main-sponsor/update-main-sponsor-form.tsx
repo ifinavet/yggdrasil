@@ -28,7 +28,9 @@ const schema = z.object({
 	),
 });
 
-export default function UpdateMainSponsorForm({ companyId }: Readonly<{ companyId: Id<"companies"> }>) {
+export default function UpdateMainSponsorForm({
+	companyId,
+}: Readonly<{ companyId: Id<"companies"> }>) {
 	const form = useForm<z.infer<typeof schema>>({
 		resolver: zodV4Resolver(schema),
 		defaultValues: {
@@ -42,10 +44,11 @@ export default function UpdateMainSponsorForm({ companyId }: Readonly<{ companyI
 
 	const updateMainSponsor = useMutation(api.companies.updateMainSponsor);
 	const handleUpdateMainSponsor = ({ companyId }: z.infer<typeof schema>) =>
-		updateMainSponsor({ companyId })
-			.catch(() => toast.error("Oi! Det oppstod en feil!", {
-				description: "Skulle feilen vedvare kontakt webansvarlig."
-			}));
+		updateMainSponsor({ companyId }).catch(() =>
+			toast.error("Oi! Det oppstod en feil!", {
+				description: "Skulle feilen vedvare kontakt webansvarlig.",
+			}),
+		);
 
 	return (
 		<Form {...form}>
@@ -57,9 +60,9 @@ export default function UpdateMainSponsorForm({ companyId }: Readonly<{ companyI
 						<FormItem className='flex flex-col'>
 							<FormLabel>Endre hovedsamarbeidspartner</FormLabel>
 							<FormControl>
-								<div className="space-y-2">
+								<div className='space-y-2'>
 									<Input
-										placeholder="Søk eks. ifi-navet"
+										placeholder='Søk eks. ifi-navet'
 										type='text'
 										onChange={(e) => {
 											setSearchInput(e.target.value);
@@ -73,7 +76,7 @@ export default function UpdateMainSponsorForm({ companyId }: Readonly<{ companyI
 												variant='ghost'
 												onClick={() => field.onChange(company._id)}
 												className={`mb-2 flex w-full justify-start ${field.value === company._id
-													? "bg-primary text-primary-foreground hover:bg-primary/90"
+													? "bg-primary text-primary hover:bg-primary/90 dark:text-primary-light-foreground"
 													: ""
 													}`}
 											>

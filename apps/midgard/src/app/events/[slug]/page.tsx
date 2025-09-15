@@ -68,15 +68,15 @@ export default async function EventPage({ params }: { params: Promise<{ slug: Id
 						<h1 className="scroll-m-20 text-balance pb-2 font-bold text-3xl tracking-normal">
 							{event.teaser}
 						</h1>
-						<SanitizeHtml html={event.description} className="prose" />
+						<SanitizeHtml html={event.description} className="prose dark:prose-invert" />
 					</ContainerCard>
 				</main>
 				<aside className="flex flex-col gap-8 md:col-span-2">
 					<div>
 						<div className="relative aspect-square w-full">
 							<div className="absolute top-0 left-0 h-1/2 w-full bg-transparent"></div>
-							<div className="absolute bottom-0 left-0 h-1/2 w-full rounded-t-xl bg-zinc-100"></div>
-							<div className="absolute inset-12 grid place-content-center rounded-full border-2 border-neutral-300 bg-white">
+							<div className="absolute bottom-0 left-0 h-1/2 w-full rounded-t-xl bg-zinc-100 dark:bg-zinc-800"></div>
+							<div className="absolute inset-12 grid place-content-center rounded-full border-2 border-neutral-300 bg-white dark:bg-white/90">
 								{company.imageUrl && (
 									<Image
 										src={company.imageUrl}
@@ -89,8 +89,8 @@ export default async function EventPage({ params }: { params: Promise<{ slug: Id
 								)}
 							</div>
 						</div>
-						<div className="rounded-b-xl bg-zinc-100 px-8 pb-8">
-							<SanitizeHtml html={company.description} className="prose-lg" />
+						<div className="rounded-b-xl bg-zinc-100 px-8 pb-8 dark:bg-zinc-800">
+							<SanitizeHtml html={company.description} className="prose-lg dark:prose-invert" />
 						</div>
 					</div>
 					<div className="grid grid-cols-1 gap-4">
@@ -139,7 +139,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: Id
 						<Button
 							variant={"outline"}
 							type="button"
-							className="h-18 rounded-xl border-primary font-semibold text-lg text-primary"
+							className="h-18 rounded-xl border-primary font-semibold text-lg text-primary dark:text-primary-foreground"
 							asChild
 						>
 							<a

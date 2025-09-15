@@ -10,7 +10,7 @@ export default function LoadingInfoPage() {
 				<TitleSkeleton className='h-12 w-96' />
 			</Title>
 
-			<div className='mx-auto rounded-xl bg-zinc-100 px-10 py-8 md:px-12'>
+			<div className='mx-auto rounded-xl bg-zinc-100 px-10 py-8 md:px-12 dark:bg-zinc-800'>
 				<div className='prose max-w-[80ch] space-y-6'>
 					<ParagraphSkeleton lines={3} />
 					<ParagraphSkeleton lines={3} />

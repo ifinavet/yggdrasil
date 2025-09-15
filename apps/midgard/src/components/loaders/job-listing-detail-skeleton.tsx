@@ -7,7 +7,7 @@ export default function JobListingDetailSkeleton() {
 			<main className='gap-4 md:col-span-3'>
 				<div>
 					{/* Header section with deadline and type */}
-					<div className='grid h-fit grid-cols-2 items-center justify-between gap-4 rounded-xl bg-primary px-10 pt-6 pb-12 text-primary-foreground md:px-16 md:pt-8'>
+					<div className="grid h-fit grid-cols-2 items-center justify-between gap-4 rounded-xl bg-primary px-10 pt-6 pb-12 text-primary md:px-16 md:pt-8 dark:text-primary-foreground">
 						<Skeleton className='h-8 w-32 rounded-md bg-primary-foreground/20' />
 						<Skeleton className='h-8 w-32 rounded-md bg-primary-foreground/20' />
 					</div>
@@ -19,7 +19,7 @@ export default function JobListingDetailSkeleton() {
 				</div>
 
 				{/* Main content skeleton */}
-				<div className='flex flex-col gap-4 rounded-xl bg-zinc-100 px-10 py-8 md:px-12'>
+				<div className='flex flex-col gap-4 rounded-xl bg-zinc-100 px-10 py-8 md:px-12 dark:bg-zinc-800'>
 					{/* Teaser skeleton */}
 					<Skeleton className='h-9 w-3/4 rounded-md' />
 
@@ -45,12 +45,12 @@ export default function JobListingDetailSkeleton() {
 				<div>
 					<div className='relative aspect-square w-full'>
 						<div className='absolute top-0 left-0 h-1/2 w-full bg-transparent'></div>
-						<div className='absolute bottom-0 left-0 h-1/2 w-full rounded-t-xl bg-zinc-100'></div>
-						<div className='absolute inset-12 grid place-content-center rounded-full border-2 border-neutral-300 bg-white'>
+						<div className='absolute bottom-0 left-0 h-1/2 w-full rounded-t-xl bg-zinc-100 dark:bg-zinc-800'></div>
+						<div className='absolute inset-12 grid place-content-center rounded-full border-2 border-neutral-300 bg-white dark:bg-zinc-100/80'>
 							<Skeleton className='h-32 w-32 rounded-full' />
 						</div>
 					</div>
-					<div className='rounded-b-xl bg-zinc-100 px-8 pb-8'>
+					<div className='rounded-b-xl bg-zinc-100 px-8 pb-8 dark:bg-zinc-800'>
 						<div className='pt-4'>
 							<ParagraphSkeleton lines={3} />
 						</div>
@@ -59,7 +59,7 @@ export default function JobListingDetailSkeleton() {
 
 				{/* Contact sections skeleton */}
 				<div className='grid grid-cols-1 gap-4'>
-					<div className='flex flex-wrap gap-4 rounded-xl bg-zinc-100 px-6 py-4'>
+					<div className='flex flex-wrap gap-4 rounded-xl bg-zinc-100 px-6 py-4 dark:bg-zinc-800'>
 						<div className='flex w-full flex-col justify-between'>
 							<div className='space-y-2'>
 								<Skeleton className='h-6 w-32 rounded-md' />
@@ -71,7 +71,7 @@ export default function JobListingDetailSkeleton() {
 							</div>
 						</div>
 					</div>
-					<div className='flex flex-wrap gap-4 rounded-xl bg-zinc-100 px-6 py-4'>
+					<div className='flex flex-wrap gap-4 rounded-xl bg-zinc-100 px-6 py-4 dark:bg-zinc-800'>
 						<div className='flex w-full flex-col justify-between'>
 							<div className='space-y-2'>
 								<Skeleton className='h-6 w-32 rounded-md' />

@@ -11,9 +11,9 @@ export default function LoadingHomePage() {
 	return (
 		<div className='grid gap-8'>
 			{/* Welcome banner skeleton */}
-			<div className='-mt-8 bg-primary-light py-4 text-center'>
+			{/*<div className='-mt-8 bg-primary-light py-4 text-center'>
 				<Skeleton className='mx-auto h-6 w-96' />
-			</div>
+			</div>*/}
 
 			<ResponsiveCenterContainer>
 				<div className='grid justify-center gap-8 md:grid-cols-2'>

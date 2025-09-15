@@ -8,10 +8,10 @@ export default async function MainSponsorCard() {
 
 	return (
 		<div className='xl:-ml-24 order-2 max-w-xl space-y-6 md:order-1'>
-			<h1 className='hyphens-manual text-balance font-bold text-4xl text-primary tracking-tight'>
+			<h1 className='hyphens-manual text-balance font-bold text-4xl text-primary tracking-tight dark:text-primary-foreground'>
 				Hoved&shy;samarbeids&shy;partner
 			</h1>
-			<div className='flex flex-col items-center gap-6 rounded-xl bg-primary-light px-4 py-16 md:px-8 lg:flex-row'>
+			<div className="flex flex-col items-center gap-6 rounded-xl bg-primary-light px-4 py-16 md:px-8 lg:flex-row dark:bg-gray-800">
 				<div className='grid aspect-square size-32 place-content-center rounded-full border-2 border-neutral-300 bg-white'>
 					{mainSponsor?.imageUrl && (
 						<Image
@@ -25,8 +25,13 @@ export default async function MainSponsorCard() {
 					)}
 				</div>
 				<div className='flex h-full flex-col justify-start gap-2'>
-					<h1 className='font-bold text-4xl text-primary'>{mainSponsor?.name}</h1>
-					<SafeHtml html={mainSponsor?.description || ""} className='prose text-primary' />
+					<h1 className='font-bold text-4xl text-primary dark:text-primary-foreground'>
+						{mainSponsor?.name}
+					</h1>
+					<SafeHtml
+						html={mainSponsor?.description || ""}
+						className='prose text-primary dark:text-primary-foreground'
+					/>
 				</div>
 			</div>
 		</div>

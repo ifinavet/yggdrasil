@@ -23,7 +23,7 @@ import NavetLogo from "@/assets/navet/logo_n_blaa.webp";
 export default function Header() {
 	return (
 		<header className='sticky top-0 z-100 w-screen min-w-0 max-w-[1200px] px-4 md:px-6 lg:mx-auto'>
-			<div className='my-6 flex h-20 w-full items-center justify-between rounded-xl bg-primary px-8 py-6 shadow-xl'>
+			<div className='my-6 flex h-20 w-full items-center justify-between rounded-xl bg-primary px-8 py-6 shadow-xl dark:bg-gray-800'>
 				<Link href='/' className='flex h-full justify-center'>
 					<div className='h-full'>
 						<Image
@@ -48,9 +48,7 @@ function MediumNavigation({ className }: Readonly<{ className?: string }>) {
 				<NavigationMenu viewport={false}>
 					<NavigationMenuList>
 						<NavigationMenuItem>
-							<NavigationMenuTrigger className='bg-primary text-base text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground focus:underline data-[state=open]:bg-primary data-[state=open]:text-primary-foreground data-[state=open]:focus:bg-primary data-[state=open]:focus:text-primary-foreground data-[state=open]:hover:bg-primary data-[state=open]:hover:text-primary-foreground data-[state=open]:hover:underline'>
-								<Link href='/event'>Arrangementer</Link>
-							</NavigationMenuTrigger>
+							<NavigationTrigger href='/events'>Arrangementer</NavigationTrigger>
 							<NavigationMenuContent className='z-10'>
 								<div className='grid w-[300px] gap-4'>
 									<NavigationMenuLink asChild>
@@ -90,7 +88,7 @@ function DropdownNavigation({ className }: Readonly<{ className?: string }>) {
 	return (
 		<Popover open={open} onOpenChange={setOpen}>
 			<PopoverTrigger asChild className={className}>
-				<Button size='icon'>
+				<Button size='icon' className="text-primary-foreground" variant="link">
 					<Menu className='size-6' />
 				</Button>
 			</PopoverTrigger>
@@ -122,12 +120,22 @@ function DropdownNavigation({ className }: Readonly<{ className?: string }>) {
 						Om oss
 					</Link>
 					<Separator />
-					<Link href='/profile' onClick={() => setOpen(false)}>
-						{user?.firstName?.split(" ")[0] ?? "profil"}
-					</Link>
-					<div className='text-left'>
-						<SignOutButton>Logg ut</SignOutButton>
-					</div>
+					<AuthLoading>
+						<Link href="/profile">Profil</Link>
+					</AuthLoading>
+					<Authenticated>
+						<Link href='/profile' onClick={() => setOpen(false)}>
+							{user?.firstName?.split(" ")[0] ?? "profil"}
+						</Link>
+						<div className='text-left'>
+							<SignOutButton>Logg ut</SignOutButton>
+						</div>
+					</Authenticated>
+					<Unauthenticated>
+						<Link href='/sign-in' className='hover:underline' onClick={() => setOpen(false)}>
+							Logg inn
+						</Link>
+					</Unauthenticated>
 				</div>
 			</PopoverContent>
 		</Popover>
@@ -143,9 +151,7 @@ function LargeNavigation({ className }: Readonly<{ className?: string }>) {
 				<NavigationMenu viewport={false}>
 					<NavigationMenuList>
 						<NavigationMenuItem>
-							<NavigationMenuTrigger className='bg-primary text-base text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground focus:underline data-[state=open]:bg-primary data-[state=open]:text-primary-foreground data-[state=open]:focus:bg-primary data-[state=open]:focus:text-primary-foreground data-[state=open]:hover:bg-primary data-[state=open]:hover:text-primary-foreground data-[state=open]:hover:underline'>
-								<Link href='/event'>Arrangementer</Link>
-							</NavigationMenuTrigger>
+							<NavigationTrigger href='/events'>Arrangementer</NavigationTrigger>
 							<NavigationMenuContent className='z-10'>
 								<div className='grid w-[300px] gap-4'>
 									<NavigationMenuLink asChild>
@@ -173,9 +179,7 @@ function LargeNavigation({ className }: Readonly<{ className?: string }>) {
 						<NavigationItem href='/companies'>For Bedrifter</NavigationItem>
 
 						<NavigationMenuItem>
-							<NavigationMenuTrigger className='bg-primary text-base text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground focus:underline data-[state=open]:bg-primary data-[state=open]:text-primary-foreground data-[state=open]:focus:bg-primary data-[state=open]:focus:text-primary-foreground data-[state=open]:hover:bg-primary data-[state=open]:hover:text-primary-foreground data-[state=open]:hover:underline'>
-								<Link href='/students'>For studenter</Link>
-							</NavigationMenuTrigger>
+							<NavigationTrigger href='/students'>For studenter</NavigationTrigger>
 							<NavigationMenuContent className='z-10'>
 								<div className='grid w-[300px] gap-4'>
 									<NavigationMenuLink asChild>
@@ -202,9 +206,9 @@ function LargeNavigation({ className }: Readonly<{ className?: string }>) {
 						</AuthLoading>
 						<Authenticated>
 							<NavigationMenuItem>
-								<NavigationMenuTrigger className='bg-primary text-base text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground focus:underline data-[state=open]:bg-primary data-[state=open]:text-primary-foreground data-[state=open]:focus:bg-primary data-[state=open]:focus:text-primary-foreground data-[state=open]:hover:bg-primary data-[state=open]:hover:text-primary-foreground data-[state=open]:hover:underline'>
-									<Link href='/profile'>{user?.firstName?.split(" ")[0] ?? "profil"}</Link>
-								</NavigationMenuTrigger>
+								<NavigationTrigger href='/profile'>
+									{user?.firstName?.split(" ")[0] ?? "profil"}
+								</NavigationTrigger>
 								<NavigationMenuContent className='z-10'>
 									<div className='grid w-[100px] gap-4'>
 										<NavigationMenuLink className='text-left text-base' asChild>
@@ -218,7 +222,7 @@ function LargeNavigation({ className }: Readonly<{ className?: string }>) {
 							</NavigationMenuItem>
 						</Authenticated>
 						<Unauthenticated>
-							<NavigationItem href='sign-in'>Log inn</NavigationItem>
+							<NavigationItem href='/sign-in'>Logg inn</NavigationItem>
 						</Unauthenticated>
 					</NavigationMenuList>
 				</NavigationMenu>
@@ -227,12 +231,23 @@ function LargeNavigation({ className }: Readonly<{ className?: string }>) {
 	);
 }
 
+function NavigationTrigger({
+	href,
+	children,
+}: Readonly<{ href: string; children: React.ReactNode }>) {
+	return (
+		<NavigationMenuTrigger className='bg-primary text-base text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground focus:underline data-[state=open]:bg-primary data-[state=open]:text-primary-foreground data-[state=open]:focus:bg-primary data-[state=open]:focus:text-primary-foreground data-[state=open]:hover:bg-primary data-[state=open]:hover:text-primary-foreground data-[state=open]:hover:underline dark:bg-gray-800 dark:text-primary-foreground data-[state=open]:dark:bg-gray-800 focus:dark:bg-gray-800 hover:dark:bg-gray-800 hover:dark:text-primary-foreground'>
+			<Link href={href}>{children}</Link>
+		</NavigationMenuTrigger>
+	);
+}
+
 function NavigationItem({ href, children }: { href: string; children: React.ReactNode }) {
 	return (
 		<NavigationMenuItem>
 			<NavigationMenuLink
 				asChild
-				className='px-4 py-2 text-base text-primary-foreground hover:bg-primary hover:text-primary-foreground hover:underline focus:bg-primary focus:text-primary-foreground focus:underline'
+				className="px-4 py-2 text-base text-primary-foreground hover:bg-primary hover:text-primary-foreground hover:underline focus:bg-primary focus:text-primary-foreground focus:underline dark:bg-gray-800 dark:text-primary-foreground focus:dark:bg-gray-800 hover:dark:bg-gray-800"
 			>
 				<Link href={href}>{children}</Link>
 			</NavigationMenuLink>

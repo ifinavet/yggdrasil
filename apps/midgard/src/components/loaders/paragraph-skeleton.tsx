@@ -12,7 +12,7 @@ export default function ParagraphSkeleton({ lines = 3, className }: ParagraphSke
 		<div className={`space-y-2 ${className || ""}`}>
 			{Array.from({ length: lines }).map((_, index) => {
 				const widthClass = widthVariations[index % widthVariations.length];
-				return <Skeleton key={`paragraph-line-${index + 1}`} className={`h-4 ${widthClass}`} />;
+				return <Skeleton key={`paragraph-line-${index + 1}`} className={`h-4 ${widthClass} dark:bg-primary-foreground/80`} />;
 			})}
 		</div>
 	);

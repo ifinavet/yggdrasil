@@ -15,13 +15,11 @@ import EventsCarouselSkeleton from "@/components/loaders/home/events-carousel-sk
 import JobListingsSkeleton from "@/components/loaders/home/job-listings-skeleton";
 import MainSponsorCardSkeleton from "@/components/loaders/home/main-sponsor-skeleton";
 
-export const experimental_ppr = true;
-
 export default function HomePage() {
 	return (
 		<div className='grid gap-8'>
 			{/* Welcome banner for the new website, remove at the end of august. */}
-            {/*<div className='-mt-8 text-pretty bg-primary-light py-4 text-center font-semibold text-lg text-primary'>
+			{/*<div className='-mt-8 text-pretty bg-primary-light py-4 text-center font-semibold text-lg text-primary dark:text-primary-foreground'>
 				<Link
 					href='/info/velkommen-til-den-nye-navet-siden!'
 					className='whitespace-normal text-pretty hover:cursor-pointer hover:underline'
@@ -51,7 +49,7 @@ export default function HomePage() {
 					className='!gap-2'
 					main={
 						<div>
-							<h3 className='scroll-m-20 font-semibold text-3xl text-primary tracking-tight'>
+							<h3 className='scroll-m-20 font-semibold text-3xl text-primary tracking-tight dark:text-primary-foreground'>
 								Hvem er vi?
 							</h3>
 							<p className='leading-7 [&:not(:first-child)]:mt-6'>
@@ -80,25 +78,27 @@ export default function HomePage() {
 									href='https://www.instagram.com/ifinavet/'
 									rel='nofollow noopener noreferrer external'
 									target='_blank'
-									className='flex items-center gap-2 text-lg text-primary underline'
+									className='flex items-center gap-2 text-lg text-primary underline dark:text-primary-foreground'
 								>
-									<InstagramIcon className='size-4 fill-primary' /> Instagram
+									<InstagramIcon className='size-4 fill-primary dark:fill-primary-foreground' />{" "}
+									Instagram
 								</a>
 								<a
 									href='https://www.facebook.com/share/1C1q1rEvmL/?mibextid=wwXIfr'
 									rel='nofollow noopener noreferrer external'
 									target='_blank'
-									className='flex items-center gap-2 text-lg text-primary underline'
+									className='flex items-center gap-2 text-lg text-primary underline dark:text-primary-foreground'
 								>
-									<FacebookIcon className='size-4 fill-primary' /> Facebook
+									<FacebookIcon className='size-4 fill-primary dark:fill-primary-foreground' />{" "}
+									Facebook
 								</a>
 								<a
 									href='https://ie.linkedin.com/company/ifinavet'
 									rel='nofollow noopener noreferrer external'
 									target='_blank'
-									className='flex items-center gap-2 text-lg text-primary underline'
+									className='flex items-center gap-2 text-lg text-primary underline dark:text-primary-foreground'
 								>
-									<LinkedinIcon className='size-4 text-primary' />
+									<LinkedinIcon className="size-4 text-primary dark:fill-primary" />
 									Linkedin
 								</a>
 							</div>

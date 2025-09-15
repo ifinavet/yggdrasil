@@ -92,7 +92,10 @@ export default function ErrorPage({ error, reset }: ErrorProps) {
 						<div className='border-t pt-4'>
 							<p className='text-muted-foreground text-sm'>
 								Hvis problemet vedvarer, vennligst{" "}
-								<a href='mailto:web@ifinavet.no' className='text-primary hover:underline'>
+								<a
+									href='mailto:web@ifinavet.no'
+									className="text-primary-foreground hover:underline"
+								>
 									kontakt webansvarlig
 								</a>
 								{error.digest && (

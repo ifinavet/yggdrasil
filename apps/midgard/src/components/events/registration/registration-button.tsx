@@ -14,12 +14,12 @@ export default function RegistrationButton({
 	registration,
 	eventId,
 	availableSpots,
-	editRegistrationDisabled
+	editRegistrationDisabled,
 }: Readonly<{
 	registration: FunctionReturnType<typeof api.registration.getByEventId>;
 	eventId: Id<"events">;
 	availableSpots: number;
-	editRegistrationDisabled: boolean
+	editRegistrationDisabled: boolean;
 }>) {
 	const path = usePathname();
 
@@ -42,7 +42,7 @@ export default function RegistrationButton({
 		return (
 			<Button
 				type='button'
-				className='w-1/2 rounded-xl bg-zinc-800 py-8 text-lg hover:cursor-pointer hover:bg-zinc-700'
+				className='w-1/2 rounded-xl bg-zinc-800 py-8 text-lg text-primary-foreground hover:cursor-pointer hover:bg-zinc-700'
 				asChild
 			>
 				<Link href={`/sign-in?redirect=${path}`}>Logg inn</Link>
@@ -54,7 +54,7 @@ export default function RegistrationButton({
 		return (
 			<Button
 				type='button'
-				className='!opacity-100 w-3/4 whitespace-normal text-balance rounded-xl bg-amber-600 py-10 text-lg hover:cursor-pointer hover:bg-zinc-700'
+				className='!opacity-100 w-3/4 whitespace-normal text-balance rounded-xl bg-amber-600 py-8 text-lg hover:cursor-pointer hover:bg-zinc-700'
 				disabled
 			>
 				For mange prikker til å kunne melde deg på.
@@ -67,7 +67,7 @@ export default function RegistrationButton({
 			<RegisterForm
 				eventId={eventId}
 				userId={currentUser._id}
-				className={`w-3/4 whitespace-normal text-balance rounded-xl bg-emerald-600 px-6 py-8 text-center font-semibold text-lg hover:cursor-pointer hover:bg-emerald-700 md:w-1/2`}
+				className={`w-3/4 whitespace-normal text-balance rounded-xl bg-emerald-600 px-6 py-8 text-center font-semibold text-lg text-primary-foreground hover:cursor-pointer hover:bg-emerald-700 md:w-1/2`}
 				waitlist={availableSpots === 0}
 			/>
 		);
@@ -77,5 +77,11 @@ export default function RegistrationButton({
 
 	if (!registrationToEdit) return null;
 
-	return <EditRegistration registration={registrationToEdit} eventId={eventId} disabled={editRegistrationDisabled} />;
+	return (
+		<EditRegistration
+			registration={registrationToEdit}
+			eventId={eventId}
+			disabled={editRegistrationDisabled}
+		/>
+	);
 }

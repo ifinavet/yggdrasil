@@ -62,7 +62,7 @@ function OfferCard({
 	children: React.ReactNode;
 }) {
 	return (
-		<div className='overflow-clip rounded-lg bg-white shadow-md'>
+		<div className='overflow-clip rounded-lg bg-white shadow-md dark:bg-zinc-800'>
 			<div className='flex h-48 flex-col justify-between bg-primary p-8 text-primary-foreground'>
 				<h3 className='max-w-3/4 font-semibold text-2xl'>{title}</h3>
 				<p className=''>Kostnad: {cost} NOK eks. mva.</p>

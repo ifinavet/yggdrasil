@@ -71,7 +71,7 @@ export default function EditRegistration({
 			<DialogTrigger asChild>
 				<Button
 					type='button'
-					className="!opacity-100 w-3/4 whitespace-normal text-balance rounded-xl bg-violet-400 py-8 text-lg hover:cursor-pointer hover:bg-violet-500 md:w-1/2"
+					className="!opacity-100 w-3/4 whitespace-normal text-balance rounded-xl bg-violet-400 py-8 text-lg text-primary-foreground hover:cursor-pointer hover:bg-violet-500 md:w-1/2 dark:bg-violet-300 dark:text-zinc-800"
 					onClick={() => setOpen(true)}
 					disabled={disabled}
 				>
@@ -101,7 +101,7 @@ export default function EditRegistration({
 				<DialogFooter>
 					<div className='flex w-full justify-between'>
 						<Unregister registrationId={registration._id} eventId={eventId} />
-						<Button type='submit' onClick={form.handleSubmit(onSubmit)}>
+						<Button type='submit' className="text-primary-foreground" onClick={form.handleSubmit(onSubmit)}>
 							Lagre Endringer
 						</Button>
 					</div>

@@ -52,17 +52,23 @@ export default async function EventsPage() {
 	return (
 		<>
 			<div className='grid gap-4'>
-				<h1 className='scroll-m-20 text-balance text-center font-extrabold text-5xl text-primary tracking-tight'>
+				<h1 className='scroll-m-20 text-balance text-center font-extrabold text-5xl text-primary tracking-tight dark:text-primary-foreground'>
 					Arrangementer
 				</h1>
-				<h3 className='scroll-m-20 text-center font-semibold text-2xl text-zinc-700 tracking-tight'>
+				<h3 className='scroll-m-20 text-center font-semibold text-2xl text-zinc-700 tracking-tight dark:text-zinc-300'>
 					{semester} {today.getFullYear()}
 				</h3>
 			</div>
 
 			<MonthSelector activeMonth={activeMonth} months={months} />
-			<div className='h-full bg-[url(/Ns.svg)]'>
-				<EventsList events={activeMonthEvents} isExternal={isExternalEvents} />
+			<div className='relative h-full'>
+				<div
+					className="pointer-events-none absolute inset-0 bg-[url(/Ns.svg)] bg-center bg-cover dark:opacity-30"
+					aria-hidden='true'
+				/>
+				<div className='relative z-10 py-4'>
+					<EventsList events={activeMonthEvents} isExternal={isExternalEvents} />
+				</div>
 			</div>
 		</>
 	);

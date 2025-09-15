@@ -2,7 +2,7 @@ import { Skeleton } from "@workspace/ui/components/skeleton";
 
 export default function JobListingCardSkeleton() {
 	return (
-		<div className='flex h-[450px] w-80 flex-col overflow-clip rounded-lg bg-white shadow-md'>
+		<div className='flex h-[450px] w-80 flex-col overflow-clip rounded-lg bg-white shadow-md dark:bg-primary'>
 			{/* Type badge skeleton */}
 			<Skeleton className='mb-6 h-12 w-full rounded-none' />
 

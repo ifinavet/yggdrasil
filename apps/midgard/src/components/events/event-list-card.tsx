@@ -59,7 +59,7 @@ function RegistrationStatusBanner({
 	return (
 		<div className='flex justify-end'>
 			<p
-				className={`w-fit ${cardColor} -mb-2 rounded-t-md px-4 pt-4 pb-4 text-primary-foreground md:pb-0`}
+				className={`w-fit ${cardColor} -mb-2 rounded-t-md px-4 pt-4 pb-4 text-primary-foreground md:pb-0 dark:text-primary-foreground`}
 			>
 				{statusMessage}
 			</p>
@@ -84,7 +84,9 @@ function EventHeader({ title, teaser }: { title: string | null; teaser: string |
 	return (
 		<div className='grid w-full gap-2'>
 			<h2 className='font-bold text-2xl tracking-tight'>{title}</h2>
-			<p className='scroll-m-20 font-medium text-lg tracking-tight'>{teaser}</p>
+			<p className='line-clamp-2 scroll-m-20 text-ellipsis font-medium text-lg tracking-tight'>
+				{teaser}
+			</p>
 		</div>
 	);
 }
@@ -118,7 +120,7 @@ function EventMetadata({
 // Company image component
 function CompanyImage({ imageUrl, title }: { imageUrl: string; title: string }) {
 	return (
-		<div className='relative col-span-2 grid h-full min-h-32 place-content-center rounded-r-md bg-white px-6 py-4'>
+		<div className="relative col-span-2 grid h-full min-h-32 place-content-center rounded-r-md bg-white px-6 py-4 dark:bg-zinc-100/95">
 			<Image src={imageUrl} alt={title} className='object-contain px-4 py-6 md:px-6' fill />
 		</div>
 	);
