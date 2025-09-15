@@ -86,12 +86,12 @@ export default async function JobListingPage({
 										<p>Kontakt: {contact.name}</p>
 									</div>
 									{contact.email && (
-										<Button variant='link' className="px-0" asChild>
+										<Button variant='link' className='justify-start px-0' asChild>
 											<a href={`mailto:${contact.email}`}>Send epost til {contact.email}</a>
 										</Button>
 									)}
 									{contact.phone && (
-										<Button variant='link' className="px-0" asChild>
+										<Button variant='link' className="justify-start px-0" asChild>
 											<a href={`tel:${contact.phone}`}>Ring {contact.phone}</a>
 										</Button>
 									)}
