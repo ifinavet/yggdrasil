@@ -101,7 +101,7 @@ export default function EditRegistration({
 					</form>
 				</Form>
 				<DialogFooter>
-					<div className='flex w-full justify-between'>
+					<div className="flex w-full flex-wrap justify-between gap-2">
 						<div>
 							<Button
 								variant='outline'
