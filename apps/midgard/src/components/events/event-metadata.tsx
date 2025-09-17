@@ -74,7 +74,7 @@ export function EventActionButton({
 		return (
 			<Button
 				type='button'
-				className="min-h-fit w-4/5 whitespace-normal text-balance rounded-xl bg-orange-500 py-4 text-center text-lg hover:cursor-pointer hover:bg-orange-600 sm:w-3/5 sm:py-6 dark:bg-orange-400"
+				className="min-h-fit w-4/5 whitespace-normal text-balance rounded-xl bg-orange-500 py-4 text-center text-lg text-primary-foreground hover:cursor-pointer hover:bg-orange-600 sm:w-3/5 sm:py-6 dark:bg-orange-400"
 				asChild
 			>
 				<a href={event.externalUrl} target='_blank' rel='noopener noreferrer'>
@@ -88,7 +88,7 @@ export function EventActionButton({
 		return (
 			<Button
 				type='button'
-				className='min-h-fit w-3/4 whitespace-normal text-balance rounded-xl bg-zinc-500 text-lg hover:cursor-pointer hover:bg-zinc-500 sm:py-6 md:py-8 dark:bg-zinc-700 dark:text-primary-foreground'
+				className='min-h-fit w-3/4 whitespace-normal text-balance rounded-xl bg-zinc-500 text-lg text-primary-foreground hover:cursor-pointer hover:bg-zinc-500 sm:py-6 md:py-8 dark:bg-zinc-700'
 			>
 				Påmelding åpner {humanReadableDateTime(new Date(event.registrationOpens))}
 			</Button>
@@ -97,10 +97,10 @@ export function EventActionButton({
 
 	return (
 		<RegistrationButton
-			eventId={event._id}
 			registration={registrations}
 			availableSpots={availableSpots}
 			editRegistrationDisabled={Date.now() - event.eventStart >= 60 * 60 * 1000}
+			event={event}
 		/>
 	);
 }

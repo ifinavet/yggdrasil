@@ -1,7 +1,7 @@
 "use client";
 
 import { api } from "@workspace/backend/convex/api";
-import type { Doc, Id } from "@workspace/backend/convex/dataModel";
+import type { Doc } from "@workspace/backend/convex/dataModel";
 import { Button } from "@workspace/ui/components/button";
 import {
 	Dialog,
@@ -21,11 +21,13 @@ import {
 } from "@workspace/ui/components/form";
 import { Input } from "@workspace/ui/components/input";
 import { useMutation } from "convex/react";
+import { CalendarPlus } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import z from "zod/v4";
 import { humanReadableDateTime } from "@/utils/dateFormatting";
+import createCalendarEventIcs from "@/utils/icsCalendarEvent";
 import { zodV4Resolver } from "@/utils/zod-v4-resolver";
 import Unregister from "./unregister";
 
@@ -34,13 +36,13 @@ const formSchema = z.object({
 });
 
 export default function EditRegistration({
-	eventId,
 	registration,
 	disabled,
+	event,
 }: Readonly<{
-	eventId: Id<"events">;
 	registration: Doc<"registrations">;
 	disabled: boolean;
+	event: Doc<"events">;
 }>) {
 	const [open, setOpen] = useState(false);
 
@@ -71,7 +73,7 @@ export default function EditRegistration({
 			<DialogTrigger asChild>
 				<Button
 					type='button'
-					className="!opacity-100 w-3/4 whitespace-normal text-balance rounded-xl bg-violet-400 py-8 text-lg text-primary-foreground hover:cursor-pointer hover:bg-violet-500 md:w-1/2 dark:bg-violet-300 dark:text-zinc-800"
+					className='!opacity-100 w-3/4 whitespace-normal text-balance rounded-xl bg-violet-400 py-8 text-lg text-primary-foreground hover:cursor-pointer hover:bg-violet-500 md:w-1/2 dark:bg-violet-300 dark:text-zinc-800'
 					onClick={() => setOpen(true)}
 					disabled={disabled}
 				>
@@ -100,10 +102,32 @@ export default function EditRegistration({
 				</Form>
 				<DialogFooter>
 					<div className='flex w-full justify-between'>
-						<Unregister registrationId={registration._id} eventId={eventId} />
-						<Button type='submit' className="text-primary-foreground" onClick={form.handleSubmit(onSubmit)}>
-							Lagre Endringer
-						</Button>
+						<div>
+							<Button
+								variant='outline'
+								onClick={() =>
+									createCalendarEventIcs(
+										event.title,
+										event.description,
+										event.location,
+										event.eventStart,
+									)
+								}
+							>
+								<CalendarPlus />
+								Legg til i kalenderen
+							</Button>
+						</div>
+						<div className='flex gap-2'>
+							<Unregister registrationId={registration._id} eventId={event._id} />
+							<Button
+								type='submit'
+								className='text-primary-foreground'
+								onClick={form.handleSubmit(onSubmit)}
+							>
+								Lagre Endringer
+							</Button>
+						</div>
 					</div>
 				</DialogFooter>
 			</DialogContent>
