@@ -34,13 +34,13 @@ export default function createCalendarEventIcs(
 
 	const icsContent = `BEGIN:VCALENDAR
 VERSION:2.0
-PRODID:-//MyApp//EN
+PRODID:-//IFI-Navet//NO
 BEGIN:VEVENT
 UID:${uid}
 DTSTAMP:${dtstamp}
-SUMMARY:${title}
-DESCRIPTION:${plainDescription}
-LOCATION:${location}
+SUMMARY:${escapeICSText(title)}
+DESCRIPTION:${escapeICSText(`${plainDescription}\n\nNB! Slutt tid kan avike fra det som står.`)}
+LOCATION:${escapeICSText(location)}
 DTSTART:${startTime}
 DTEND:${endTime}
 END:VEVENT
@@ -60,4 +60,5 @@ END:VCALENDAR`;
 	document.body.appendChild(link);
 	link.click();
 	document.body.removeChild(link);
+	URL.revokeObjectURL(url);
 }
