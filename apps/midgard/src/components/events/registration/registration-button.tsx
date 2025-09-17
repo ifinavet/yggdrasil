@@ -1,7 +1,7 @@
 "use client";
 
 import { api } from "@workspace/backend/convex/api";
-import type { Id } from "@workspace/backend/convex/dataModel";
+import type { Doc } from "@workspace/backend/convex/dataModel";
 import { Button } from "@workspace/ui/components/button";
 import { useConvexAuth, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
@@ -12,14 +12,14 @@ import RegisterForm from "./register-form";
 
 export default function RegistrationButton({
 	registration,
-	eventId,
 	availableSpots,
 	editRegistrationDisabled,
+	event,
 }: Readonly<{
 	registration: FunctionReturnType<typeof api.registration.getByEventId>;
-	eventId: Id<"events">;
 	availableSpots: number;
 	editRegistrationDisabled: boolean;
+	event: Doc<"events">;
 }>) {
 	const path = usePathname();
 
@@ -54,7 +54,7 @@ export default function RegistrationButton({
 		return (
 			<Button
 				type='button'
-				className='!opacity-100 w-3/4 whitespace-normal text-balance rounded-xl bg-amber-600 py-8 text-lg hover:cursor-pointer hover:bg-zinc-700'
+				className="!opacity-100 w-3/4 whitespace-normal text-balance rounded-xl bg-amber-600 py-8 text-lg text-primary-foreground hover:cursor-pointer hover:bg-zinc-700"
 				disabled
 			>
 				For mange prikker til å kunne melde deg på.
@@ -65,7 +65,7 @@ export default function RegistrationButton({
 	if (!currentUsersRegistration && !currentUsersWaitlistRegistration) {
 		return (
 			<RegisterForm
-				eventId={eventId}
+				eventId={event._id}
 				userId={currentUser._id}
 				className={`w-3/4 whitespace-normal text-balance rounded-xl bg-emerald-600 px-6 py-8 text-center font-semibold text-lg text-primary-foreground hover:cursor-pointer hover:bg-emerald-700 md:w-1/2`}
 				waitlist={availableSpots === 0}
@@ -80,8 +80,8 @@ export default function RegistrationButton({
 	return (
 		<EditRegistration
 			registration={registrationToEdit}
-			eventId={eventId}
 			disabled={editRegistrationDisabled}
+			event={event}
 		/>
 	);
 }
