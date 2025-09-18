@@ -36,7 +36,7 @@ export const getAllPublishedAndActive = query({
 			)
 			.order("asc");
 
-		const queryTypeFiltered = type ? query.filter((q) => q.eq("type", type)) : query;
+		const queryTypeFiltered = type ? query.filter((q) => q.eq(q.field("type"), type)) : query;
 
 		const listings = n ? await queryTypeFiltered.take(n) : await queryTypeFiltered.collect();
 
