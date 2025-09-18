@@ -1,7 +1,7 @@
 import { api } from "@workspace/backend/convex/api";
+import type { Id } from "@workspace/backend/convex/dataModel";
 import { useMutation } from "convex/react";
 import { Plus } from "lucide-react";
-import type { Id } from "node_modules/convex/dist/esm-types/values/value";
 import { usePostHog } from "posthog-js/react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -24,20 +24,22 @@ export function NewInternal() {
 		createInernalMember({
 			userId: data.userId as Id<"users">,
 			group: data.group,
-		}).then(() => {
-			setOpenDialog(false);
-			toast.success("Intern medlem opprettet");
-		}).catch((error) => {
-			toast.error(`Kunne ikke opprette intern medlem`,
-				{ description: "Denne hendelsen er logget. Skulle den vedvare ta kontakt med webansvarlig" }
-			);
+		})
+			.then(() => {
+				setOpenDialog(false);
+				toast.success("Intern medlem opprettet");
+			})
+			.catch((error) => {
+				toast.error(`Kunne ikke opprette intern medlem`, {
+					description: "Denne hendelsen er logget. Skulle den vedvare ta kontakt med webansvarlig",
+				});
 
-			posthog.capture("create-internal-member-error", {
-				error: error,
-				userId: data.userId,
-				group: data.group,
+				posthog.capture("create-internal-member-error", {
+					error: error,
+					userId: data.userId,
+					group: data.group,
+				});
 			});
-		});
 
 	return (
 		<InternalMemberForm

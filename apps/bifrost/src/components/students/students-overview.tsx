@@ -28,13 +28,18 @@ type StudentColumns = Doc<"students"> & {
 	status: "Aktiv" | "Ukjent" | "Ikke registrert";
 };
 
+const statusColors = {
+	Ukjent: "bg-yellow-100 text-yellow-800",
+	Aktiv: "bg-green-100 text-green-800",
+};
+
 const createColumns: ColumnDef<StudentColumns>[] = [
 	{
 		id: "index",
 		header: "#",
 		cell: ({ row }) => {
 			return <span>{row.index + 1}</span>;
-		}
+		},
 	},
 	{
 		id: "name",
@@ -46,12 +51,7 @@ const createColumns: ColumnDef<StudentColumns>[] = [
 		header: "Status",
 		cell: ({ row }) => {
 			const status = row.original.status;
-			const color =
-				status === "Ukjent"
-					? "bg-yellow-100 text-yellow-800"
-					: status === "Aktiv"
-						? "bg-green-100 text-green-800"
-						: "bg-red-100 text-red-800";
+			const color = statusColors[status as keyof typeof statusColors] ?? "bg-red-100 text-red-800";
 			return (
 				<span className={`rounded-full px-2 py-1 font-medium text-xs ${color}`}>{status}</span>
 			);
@@ -97,16 +97,22 @@ export default function StudentsOverview() {
 		[router],
 	);
 
-
 	return (
-		<div className='flex flex-col gap-4'>
+		<div className="flex flex-col gap-4">
 			<div className="space-y-2">
 				<Label htmlFor="search">Søk etter student</Label>
-				<Input type="text" id="search" value={search} onChange={e => setSearch(e.target.value)} placeholder="eks. Ola nordmann..." className='max-w-[80ch]' />
+				<Input
+					type="text"
+					id="search"
+					value={search}
+					onChange={(e) => setSearch(e.target.value)}
+					placeholder="eks. Ola nordmann..."
+					className="max-w-[80ch]"
+				/>
 			</div>
-			<div className='overflow-clip rounded-md border'>
+			<div className="overflow-clip rounded-md border">
 				<Table>
-					<TableHeader className='bg-accent'>
+					<TableHeader className="bg-accent">
 						{table.getHeaderGroups().map((headerGroup) => (
 							<TableRow key={headerGroup.id}>
 								{headerGroup.headers.map((header) => (
@@ -124,7 +130,7 @@ export default function StudentsOverview() {
 							<TableRow
 								key={row.id}
 								data-state={row.getIsSelected() && "selected"}
-								className='cursor-pointer hover:bg-muted/50'
+								className="cursor-pointer hover:bg-muted/50"
 								onClick={() => handleRowClick(row)}
 							>
 								{row.getVisibleCells().map((cell) => (
@@ -140,7 +146,7 @@ export default function StudentsOverview() {
 			<Button
 				onClick={() => loadMore(25)}
 				disabled={status !== "CanLoadMore"}
-				className='w-fit self-center'
+				className="w-fit self-center"
 			>
 				Last inn flere studenter
 			</Button>
