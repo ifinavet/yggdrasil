@@ -1,8 +1,8 @@
 "use client";
 
-import { Separator } from "@workspace/ui/components//separator";
 import { SidebarTrigger } from "@workspace/ui/components//sidebar";
-import ThemeSwitcher from "@/components/common/theme-switcher";
+import { Separator } from "@workspace/ui/components/separator";
+import ThemeSwitcher from "@workspace/ui/components/theme-switcher";
 
 export default function Header() {
 	return (

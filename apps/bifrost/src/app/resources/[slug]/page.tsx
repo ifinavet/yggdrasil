@@ -1,4 +1,3 @@
-import { auth } from "@clerk/nextjs/server";
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import {
@@ -21,8 +20,6 @@ export default async function ResourcePage({
 }: {
 	params: Promise<{ slug: Id<"resources"> }>;
 }) {
-	const { orgRole } = await auth();
-
 	const { slug: id } = await params;
 	const resource = await fetchQuery(api.resources.getById, { id: id });
 
@@ -33,11 +30,11 @@ export default async function ResourcePage({
 			<Breadcrumb>
 				<BreadcrumbList>
 					<BreadcrumbItem>
-						<BreadcrumbLink href='/'>Hjem</BreadcrumbLink>
+						<BreadcrumbLink href="/">Hjem</BreadcrumbLink>
 					</BreadcrumbItem>
 					<BreadcrumbSeparator />
 					<BreadcrumbItem>
-						<BreadcrumbLink href='/resources'>Ressurser</BreadcrumbLink>
+						<BreadcrumbLink href="/resources">Ressurser</BreadcrumbLink>
 					</BreadcrumbItem>
 					<BreadcrumbSeparator />
 					<BreadcrumbItem>
@@ -46,19 +43,19 @@ export default async function ResourcePage({
 				</BreadcrumbList>
 			</Breadcrumb>
 
-			<div className='flex flex-col-reverse gap-4 md:flex-row'>
-				<h1 className='flex-1 scroll-m-20 text-balance text-center font-extrabold text-4xl tracking-tight'>
+			<div className="flex flex-col-reverse gap-4 md:flex-row">
+				<h1 className="flex-1 scroll-m-20 text-balance text-center font-extrabold text-4xl tracking-tight">
 					{resource.title}
 				</h1>
 				{hasEditRight && (
-					<Button variant='outline' asChild className='w-fit self-end md:self-auto'>
+					<Button variant="outline" asChild className="w-fit self-end md:self-auto">
 						<Link href={`/resources/${resource._id}/edit`}>Rediger</Link>
 					</Button>
 				)}
 			</div>
-			<Separator className='my-4' />
+			<Separator className="my-4" />
 			<SafeHtml
-				className='prose dark:prose-invert mx-auto mt-8 max-w-[80ch] px-4'
+				className="prose dark:prose-invert mx-auto mt-8 max-w-[80ch] px-4"
 				html={resource.content}
 			/>
 		</>

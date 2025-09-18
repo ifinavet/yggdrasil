@@ -25,7 +25,9 @@
 		]
 	},
 	"formatter": {
-		"includes": ["**"],
+		"includes": [
+			"**"
+		],
 		"enabled": true,
 		"indentStyle": "tab",
 		"indentWidth": 2,
@@ -49,6 +51,7 @@
 			"arrowParentheses": "always",
 			"bracketSameLine": false,
 			"bracketSpacing": true,
+			"quoteStyle": "double",
 			"jsxQuoteStyle": "single",
 			"quoteProperties": "asNeeded",
 			"semicolons": "always",
