@@ -26,7 +26,7 @@ export default async function JobListingPage({
 			<div className='grid grid-cols-1 gap-6 md:grid-cols-5'>
 				<main className='gap-4 md:col-span-3'>
 					<div>
-						<div className='grid h-fit grid-cols-2 items-center justify-between gap-4 rounded-xl bg-primary px-10 pt-6 pb-12 text-primary md:px-16 md:pt-8 dark:text-primary-foreground'>
+						<div className="grid h-fit grid-cols-2 items-center justify-between gap-4 rounded-xl bg-primary px-10 pt-6 pb-12 text-primary-foreground md:px-16 md:pt-8">
 							<p className='flex items-center gap-2 text-pretty font-semibold md:text-lg'>
 								<CalendarDays className='size-8' />{" "}
 								{humanReadableDateTime(new Date(listing.deadline))}
@@ -91,7 +91,7 @@ export default async function JobListingPage({
 										</Button>
 									)}
 									{contact.phone && (
-										<Button variant='link' className="justify-start px-0" asChild>
+										<Button variant='link' className='justify-start px-0' asChild>
 											<a href={`tel:${contact.phone}`}>Ring {contact.phone}</a>
 										</Button>
 									)}
