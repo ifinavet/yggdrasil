@@ -13,9 +13,9 @@ import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 
 const Icon = {
-	'light': Sun,
-	'dark': Moon,
-	'system': Laptop
+	"light": Sun,
+	"dark": Moon,
+	"system": Laptop
 }
 
 export default function ThemeSwitcher() {
