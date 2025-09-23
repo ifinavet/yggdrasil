@@ -15,7 +15,7 @@ export default function NewJobListingForm() {
 		title: "",
 		teaser: "",
 		description: "",
-		deadline: new Date(),
+		deadline: new Date(new Date().setHours(23, 59, 0, 0)),
 		type: "Sommerjobb",
 		company: {
 			id: "",
