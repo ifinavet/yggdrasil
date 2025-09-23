@@ -17,7 +17,7 @@ import MainSponsorCardSkeleton from "@/components/loaders/home/main-sponsor-skel
 
 export default function HomePage() {
 	return (
-		<div className='grid gap-8'>
+		<div className="grid gap-8">
 			{/* Welcome banner for the new website, remove at the end of august. */}
 			{/*<div className='-mt-8 text-pretty bg-primary-light py-4 text-center font-semibold text-lg text-primary dark:text-primary-foreground'>
 				<Link
@@ -29,16 +29,14 @@ export default function HomePage() {
 			</div>/*}
 			{/* Welcome banner for the new website, remove at the end of august. */}
 
-			<ResponsiveCenterContainer>
-				<div className='grid justify-center gap-8 md:grid-cols-2'>
-					<Suspense fallback={<MainSponsorCardSkeleton />}>
-						<MainSponsorCard />
-					</Suspense>
-					<Suspense fallback={<EventsCarouselSkeleton />}>
-						<EventsCarousel />
-					</Suspense>
-				</div>
-			</ResponsiveCenterContainer>
+			<div className="mx-4 flex max-w-6xl flex-col items-center justify-center gap-6 sm:mx-auto sm:px-6 md:grid md:grid-cols-12 md:items-end">
+				<Suspense fallback={<MainSponsorCardSkeleton />}>
+					<MainSponsorCard className="order-1 col-start-1 col-end-7 md:order-none xl:col-end-8" />
+				</Suspense>
+				<Suspense fallback={<EventsCarouselSkeleton />}>
+					<EventsCarousel className="col-start-7 col-end-12 mx-6 md:justify-self-start xl:col-start-8" />
+				</Suspense>
+			</div>
 
 			<Suspense fallback={<JobListingsSkeleton />}>
 				<JobListings />
@@ -46,19 +44,19 @@ export default function HomePage() {
 
 			<ResponsiveCenterContainer>
 				<TwoColumns
-					className='!gap-2'
+					className="!gap-2"
 					main={
 						<div>
-							<h3 className='scroll-m-20 font-semibold text-3xl text-primary tracking-tight dark:text-primary-foreground'>
+							<h3 className="scroll-m-20 font-semibold text-3xl text-primary tracking-tight dark:text-primary-foreground">
 								Hvem er vi?
 							</h3>
-							<p className='leading-7 [&:not(:first-child)]:mt-6'>
+							<p className="leading-7 [&:not(:first-child)]:mt-6">
 								Navet er bedriftskontakten ved Institutt for informatikk ved Universitetet i Oslo.
 								Hensikten med Navet er å gjøre det enkelt for bedrifter å komme i kontakt med
 								studentene ved instituttet, ved å tilby:
 							</p>
 
-							<ul className='my-6 ml-6 list-disc [&>li]:mt-2'>
+							<ul className="my-6 ml-6 list-disc [&>li]:mt-2">
 								<li>
 									et sentralt kontakt- og koordineringspunkt for alle bedriftsrelaterte aktiviteter
 									ved instituttet.
@@ -70,33 +68,33 @@ export default function HomePage() {
 								<li>oversikt over bredriftsrelaterte aktiviteter for studenter.</li>
 							</ul>
 
-							<h4 className='scroll-m-20 font-semibold text-xl tracking-tight'>
+							<h4 className="scroll-m-20 font-semibold text-xl tracking-tight">
 								Følg oss på sosiale medier!
 							</h4>
-							<div className='mt-4 flex gap-4'>
+							<div className="mt-4 flex gap-4">
 								<a
-									href='https://www.instagram.com/ifinavet/'
-									rel='nofollow noopener noreferrer external'
-									target='_blank'
-									className='flex items-center gap-2 text-lg text-primary underline dark:text-primary-foreground'
+									href="https://www.instagram.com/ifinavet/"
+									rel="nofollow noopener noreferrer external"
+									target="_blank"
+									className="flex items-center gap-2 text-lg text-primary underline dark:text-primary-foreground"
 								>
-									<InstagramIcon className='size-4 fill-primary dark:fill-primary-foreground' />{" "}
+									<InstagramIcon className="size-4 fill-primary dark:fill-primary-foreground" />{" "}
 									Instagram
 								</a>
 								<a
-									href='https://www.facebook.com/share/1C1q1rEvmL/?mibextid=wwXIfr'
-									rel='nofollow noopener noreferrer external'
-									target='_blank'
-									className='flex items-center gap-2 text-lg text-primary underline dark:text-primary-foreground'
+									href="https://www.facebook.com/share/1C1q1rEvmL/?mibextid=wwXIfr"
+									rel="nofollow noopener noreferrer external"
+									target="_blank"
+									className="flex items-center gap-2 text-lg text-primary underline dark:text-primary-foreground"
 								>
-									<FacebookIcon className='size-4 fill-primary dark:fill-primary-foreground' />{" "}
+									<FacebookIcon className="size-4 fill-primary dark:fill-primary-foreground" />{" "}
 									Facebook
 								</a>
 								<a
-									href='https://ie.linkedin.com/company/ifinavet'
-									rel='nofollow noopener noreferrer external'
-									target='_blank'
-									className='flex items-center gap-2 text-lg text-primary underline dark:text-primary-foreground'
+									href="https://ie.linkedin.com/company/ifinavet"
+									rel="nofollow noopener noreferrer external"
+									target="_blank"
+									className="flex items-center gap-2 text-lg text-primary underline dark:text-primary-foreground"
 								>
 									<LinkedinIcon className="size-4 text-primary dark:fill-primary" />
 									Linkedin
@@ -105,27 +103,27 @@ export default function HomePage() {
 						</div>
 					}
 					aside={
-						<div className='relative mx-auto h-[280px] w-[280px] max-w-full sm:h-[350px] sm:w-[350px] md:h-[420px] md:w-[420px]'>
-							<div className='absolute top-0 left-0 z-10 size-40 translate-x-4 translate-y-8 transform overflow-hidden rounded-full sm:size-48 md:size-56'>
+						<div className="relative mx-auto h-[280px] w-[280px] max-w-full sm:h-[350px] sm:w-[350px] md:h-[420px] md:w-[420px]">
+							<div className="absolute top-0 left-0 z-10 size-40 translate-x-4 translate-y-8 transform overflow-hidden rounded-full sm:size-48 md:size-56">
 								<Image
 									src={Navet}
-									alt='Vi alle elsker Navet'
-									className='h-full w-full bg-gray-200 object-cover'
+									alt="Vi alle elsker Navet"
+									className="h-full w-full bg-gray-200 object-cover"
 								/>
 							</div>
 
-							<div className='-translate-x-4 -translate-y-8 absolute right-0 bottom-0 z-0 size-40 transform overflow-hidden rounded-full sm:size-48 md:size-56'>
+							<div className="-translate-x-4 -translate-y-8 absolute right-0 bottom-0 z-0 size-40 transform overflow-hidden rounded-full sm:size-48 md:size-56">
 								<Image
 									src={Navet_Logo}
-									alt='Vi alle elsker Navet'
-									className='h-full w-full bg-gray-100 object-contain p-8'
+									alt="Vi alle elsker Navet"
+									className="h-full w-full bg-gray-100 object-contain p-8"
 								/>
 							</div>
 						</div>
 					}
 				/>
-				<Button variant='outline' asChild>
-					<Link href='/organization'>
+				<Button variant="outline" asChild>
+					<Link href="/organization">
 						<Info />
 						Les mer om Navet
 					</Link>

@@ -10,17 +10,17 @@ export default async function JobListings() {
 
 	return (
 		jobListings.length > 0 && (
-			<div className='relative h-full py-4'>
+			<div className="relative h-full max-w-screen py-4">
 				<div
-					className='pointer-events-none absolute inset-0 bg-[url(/Ns.svg)] bg-center bg-cover opacity-30'
-					aria-hidden='true'
+					className="pointer-events-none absolute inset-0 bg-[url(/Ns.svg)] bg-center bg-cover opacity-30"
+					aria-hidden="true"
 				/>
-				<div className='relative z-10'>
-					<ResponsiveCenterContainer className='space-y-6'>
-						<h1 className='font-bold text-4xl text-primary dark:text-primary-foreground'>
+				<div className="relative z-10">
+					<ResponsiveCenterContainer className="space-y-6">
+						<h1 className="font-bold text-4xl text-primary dark:text-primary-foreground">
 							Stillingsannonser
 						</h1>
-						<div className='flex flex-col items-center justify-evenly gap-6 md:flex-row'>
+						<div className="flex flex-col items-center justify-evenly gap-6 md:flex-row">
 							{jobListings.map((listing) => (
 								<JobListingCard
 									key={listing._id}
@@ -33,7 +33,7 @@ export default async function JobListings() {
 								/>
 							))}
 						</div>
-						<div className='flex justify-center'>
+						<div className="flex justify-center">
 							<Button
 								asChild
 								className="mx-8 bg-emerald-600 py-6 font-semibold text-primary-foreground hover:bg-emerald-700 md:w-1/3"

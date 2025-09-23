@@ -1,5 +1,6 @@
+import type { OrderedQuery } from "convex/server";
 import { v } from "convex/values";
-import type { Doc } from "./_generated/dataModel";
+import type { DataModel, Doc } from "./_generated/dataModel";
 import { mutation, type QueryCtx, query } from "./_generated/server";
 
 export const getAll = query({
@@ -10,9 +11,9 @@ export const getAll = query({
 	handler: async (ctx, { n, type }) => {
 		const query = type
 			? ctx.db
-				.query("jobListings")
-				.withIndex("by_deadlineAndType", (q) => q.eq("type", type))
-				.order("desc")
+					.query("jobListings")
+					.withIndex("by_deadlineAndType", (q) => q.eq("type", type))
+					.order("desc")
 			: ctx.db.query("jobListings").withIndex("by_deadline").order("desc");
 
 		const listings = n ? await query.take(n) : await query.collect();
@@ -26,21 +27,40 @@ export const getAll = query({
 export const getAllPublishedAndActive = query({
 	args: {
 		n: v.optional(v.number()),
-		type: v.optional(v.string()),
+		listingType: v.optional(v.string()),
+		sorting: v.optional(v.string()),
+		company: v.optional(v.id("companies")),
 	},
-	handler: async (ctx, { n, type }) => {
-		const query = ctx.db
+	handler: async (ctx, { n, listingType, sorting, company }) => {
+		let query: OrderedQuery<DataModel["jobListings"]> = ctx.db
 			.query("jobListings")
 			.withIndex("by_deadlineAndPublished", (q) =>
 				q.eq("published", true).gte("deadline", Date.now()),
 			)
 			.order("asc");
 
-		const queryTypeFiltered = type ? query.filter((q) => q.eq(q.field("type"), type)) : query;
+		if (listingType) {
+			query = query.filter((q) => q.eq(q.field("type"), listingType));
+		}
 
-		const listings = n ? await queryTypeFiltered.take(n) : await queryTypeFiltered.collect();
+		if (company) {
+			query = query.filter((q) => q.eq(q.field("company"), company));
+		}
+
+		const listings = n ? await query.take(n) : await query.collect();
 
 		const listingsWithCompany = await addCompanyToListings(ctx, listings);
+
+		if (sorting) {
+			switch (sorting) {
+				case "title":
+					return listingsWithCompany.sort((a, b) => a.title.localeCompare(b.title));
+				case "deadline_desc":
+					return listingsWithCompany.sort((a, b) => b.deadline - a.deadline);
+				case "deadline_asc":
+					return listingsWithCompany.sort((a, b) => a.deadline - b.deadline);
+			}
+		}
 
 		return listingsWithCompany;
 	},

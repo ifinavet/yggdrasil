@@ -3,7 +3,7 @@ import { cn } from "@workspace/ui/lib/utils";
 
 export default function JobListingBanner({ className }: { className?: string }) {
 	return (
-		<div className={cn(className, "-mb-12 relative w-full")}>
+		<div className={cn(className, "-mb-12 relative w-full text-pretty")}>
 			<div
 				className="pointer-events-none absolute inset-0 bg-[url(/Ns.svg)] bg-center bg-cover dark:opacity-30"
 				aria-hidden="true"
