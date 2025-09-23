@@ -11,11 +11,14 @@ import type { JobListingFormValues } from "@/constants/schemas/job-listing-form-
 import { humanReadableDate } from "@/utils/utils";
 
 export default function NewJobListingForm() {
+	const todayMidnight: Date = new Date();
+	todayMidnight.setHours(23, 59, 0, 0);
+
 	const defaultValues: JobListingFormValues = {
 		title: "",
 		teaser: "",
 		description: "",
-		deadline: new Date(),
+		deadline: todayMidnight,
 		type: "Sommerjobb",
 		company: {
 			id: "",
