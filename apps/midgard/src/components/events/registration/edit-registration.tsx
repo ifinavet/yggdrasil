@@ -22,6 +22,7 @@ import {
 import { Input } from "@workspace/ui/components/input";
 import { useMutation } from "convex/react";
 import { CalendarPlus } from "lucide-react";
+import { usePostHog } from "posthog-js/react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -53,6 +54,8 @@ export default function EditRegistration({
 		},
 	});
 
+	const postHog = usePostHog();
+
 	const updateNote = useMutation(api.registration.updateNote);
 	const onSubmit = async (data: z.infer<typeof formSchema>) =>
 		updateNote({ id: registration._id, note: data.notes })
@@ -72,15 +75,15 @@ export default function EditRegistration({
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger asChild>
 				<Button
-					type='button'
-					className='!opacity-100 w-3/4 whitespace-normal text-balance rounded-xl bg-violet-400 py-8 text-lg text-primary-foreground hover:cursor-pointer hover:bg-violet-500 md:w-1/2 dark:bg-violet-300 dark:text-zinc-800'
+					type="button"
+					className="!opacity-100 w-3/4 whitespace-normal text-balance rounded-xl bg-violet-400 py-8 text-lg text-primary-foreground hover:cursor-pointer hover:bg-violet-500 md:w-1/2 dark:bg-violet-300 dark:text-zinc-800"
 					onClick={() => setOpen(true)}
 					disabled={disabled}
 				>
 					Rediger din påmelding
 				</Button>
 			</DialogTrigger>
-			<DialogContent aria-description='Rediger påmelding'>
+			<DialogContent aria-description="Rediger påmelding">
 				<DialogHeader>
 					<DialogTitle>Rediger din påmelding</DialogTitle>
 				</DialogHeader>
@@ -88,7 +91,7 @@ export default function EditRegistration({
 					<form onSubmit={form.handleSubmit(onSubmit)}>
 						<FormField
 							control={form.control}
-							name='notes'
+							name="notes"
 							render={({ field }) => (
 								<FormItem>
 									<FormLabel>Allergier eller andre merknader</FormLabel>
@@ -104,25 +107,31 @@ export default function EditRegistration({
 					<div className="flex w-full flex-wrap justify-between gap-2">
 						<div>
 							<Button
-								variant='outline'
-								onClick={() =>
+								variant="outline"
+								onClick={() => {
 									createCalendarEventIcs(
 										event.title,
 										event.description,
 										event.location,
 										event.eventStart,
-									)
-								}
+									);
+
+									postHog.capture("midgard_added-event-to-calendar", {
+										site: "midgard",
+										eventId: event._id,
+										eventTitle: event.title,
+									});
+								}}
 							>
 								<CalendarPlus />
 								Legg til i kalenderen
 							</Button>
 						</div>
-						<div className='flex gap-2'>
+						<div className="flex gap-2">
 							<Unregister registrationId={registration._id} eventId={event._id} />
 							<Button
-								type='submit'
-								className='text-primary-foreground'
+								type="submit"
+								className="text-primary-foreground"
 								onClick={form.handleSubmit(onSubmit)}
 							>
 								Lagre Endringer
