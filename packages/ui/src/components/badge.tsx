@@ -8,8 +8,7 @@ const badgeVariants = cva(
 	{
 		variants: {
 			variant: {
-				default:
-					"border-transparent bg-primary text-primary dark:text-primary-foreground [a&]:hover:bg-primary/90",
+				default: "border-transparent bg-primary text-primary-foreground [a&]:hover:bg-primary/90",
 				secondary:
 					"border-transparent bg-secondary text-secondary-foreground [a&]:hover:bg-secondary/90",
 				destructive:
@@ -32,7 +31,7 @@ function Badge({
 	const Comp = asChild ? Slot : "span";
 
 	return (
-		<Comp data-slot='badge' className={cn(badgeVariants({ variant }), className)} {...props} />
+		<Comp data-slot="badge" className={cn(badgeVariants({ variant }), className)} {...props} />
 	);
 }
 

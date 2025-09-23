@@ -64,16 +64,16 @@ export default function EventForm({
 
 	return (
 		<Form {...form}>
-			<form className='space-y-8'>
+			<form className="space-y-8">
 				{/* Title */}
 				<FormField
 					control={form.control}
-					name='title'
+					name="title"
 					render={({ field }) => (
 						<FormItem>
 							<FormLabel>Tittel</FormLabel>
 							<FormControl>
-								<Input placeholder='Stillingsanonse med Navet' {...field} />
+								<Input placeholder="Stillingsanonse med Navet" {...field} />
 							</FormControl>
 							<FormDescription>Dette er hva stillingsannonsen skal hete.</FormDescription>
 							<FormMessage />
@@ -83,29 +83,29 @@ export default function EventForm({
 				<Separator />
 
 				{/* Company, deadline and listing type */}
-				<div className='flex gap-4'>
+				<div className="flex gap-4">
 					<FormField
 						control={form.control}
-						name='company'
+						name="company"
 						render={({ field }) => (
 							<FormItem>
 								<FormLabel>Velg arrangerende bedrift</FormLabel>
 								<Popover open={openCompanies} onOpenChange={setOpenCompanies}>
 									<PopoverTrigger asChild>
 										<Button
-											variant='outline'
+											variant="outline"
 											aria-expanded={openCompanies}
-											className='justify-between'
+											className="justify-between"
 										>
 											{companyValue
 												? companies?.find((company) => company.name === companyValue)?.name
 												: "Velg en bedrift..."}
-											<ChevronsUpDown className='ml-2 h-4 w-4 shrink-0 opacity-50' />
+											<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 										</Button>
 									</PopoverTrigger>
-									<PopoverContent className='w-[200px] p-0' align='start'>
+									<PopoverContent className="w-[200px] p-0" align="start">
 										<Command>
-											<CommandInput placeholder='Søk etter bedrift...' />
+											<CommandInput placeholder="Søk etter bedrift..." />
 											<CommandList>
 												<CommandEmpty>Fant ingen bedrift(er).</CommandEmpty>
 												<CommandGroup>
@@ -143,26 +143,26 @@ export default function EventForm({
 
 					<DateTimePicker
 						form={form}
-						label='Dato og tid for annonsen sin deadline'
-						description='Velg dato og tid for når annonsen løper ut'
+						label="Dato og tid for annonsen sin deadline"
+						description="Velg dato og tid for når annonsen løper ut"
 					/>
 
 					<FormField
 						control={form.control}
-						name='type'
+						name="type"
 						render={({ field }) => (
 							<FormItem>
 								<FormLabel>Type</FormLabel>
 								<FormControl>
 									<Select onValueChange={field.onChange} value={field.value}>
 										<SelectTrigger>
-											<SelectValue placeholder='Velg type' />
+											<SelectValue placeholder="Velg type" />
 										</SelectTrigger>
 										<SelectContent>
-											<SelectItem value='Fulltid'>Fulltid</SelectItem>
-											<SelectItem value='Deltid'>Deltid</SelectItem>
-											<SelectItem value='Internship'>Internship</SelectItem>
-											<SelectItem value='Sommerjobb'>Sommerjobb</SelectItem>
+											<SelectItem value="Fulltid">Fulltid</SelectItem>
+											<SelectItem value="Deltid">Deltid</SelectItem>
+											<SelectItem value="Internship">Internship</SelectItem>
+											<SelectItem value="Sommerjobb">Sommerjobb</SelectItem>
 										</SelectContent>
 									</Select>
 								</FormControl>
@@ -177,12 +177,12 @@ export default function EventForm({
 				{/* Teaser */}
 				<FormField
 					control={form.control}
-					name='teaser'
+					name="teaser"
 					render={({ field }) => (
 						<FormItem>
 							<FormLabel>Teaser</FormLabel>
 							<FormControl>
-								<Textarea placeholder='eks. Har du lyst til å jobbe med Navet?' {...field} />
+								<Textarea placeholder="eks. Har du lyst til å jobbe med Navet?" {...field} />
 							</FormControl>
 							<FormDescription>Dette er en liten teaser av stillingsannonsen.</FormDescription>
 							<FormMessage />
@@ -205,12 +205,12 @@ export default function EventForm({
 				{/* Application URL */}
 				<FormField
 					control={form.control}
-					name='applicationUrl'
+					name="applicationUrl"
 					render={({ field }) => (
 						<FormItem>
 							<FormLabel>Ansøkningslenke</FormLabel>
 							<FormControl>
-								<Input placeholder='eks. https://ifinavet.no/ny-intern' {...field} />
+								<Input placeholder="eks. https://ifinavet.no/ny-intern" {...field} />
 							</FormControl>
 							<FormDescription>Legg inn lenken til stillingsannonsen.</FormDescription>
 							<FormMessage />
@@ -219,27 +219,27 @@ export default function EventForm({
 				/>
 
 				{/* Submit form */}
-				<div className='mb-4 flex gap-4'>
+				<div className="mb-4 flex gap-4">
 					<Button
-						type='button'
+						type="button"
 						disabled={form.formState.isSubmitting}
 						onClick={form.handleSubmit(onPrimarySubmitAction)}
 					>
 						<Send /> {form.formState.isSubmitting ? "Jobber..." : "Lagre og publiser"}
 					</Button>
 					<Button
-						type='button'
+						type="button"
 						disabled={form.formState.isSubmitting}
-						variant='secondary'
+						variant="secondary"
 						onClick={form.handleSubmit(onSecondarySubmitAction)}
 					>
 						<Save /> {form.formState.isSubmitting ? "Jobber..." : "Lagre og avpubliser"}
 					</Button>
 					{onTertiarySubmitAction && (
 						<Button
-							type='button'
+							type="button"
 							disabled={form.formState.isSubmitting}
-							variant='destructive'
+							variant="destructive"
 							onClick={form.handleSubmit(onTertiarySubmitAction)}
 						>
 							<Trash2 /> {form.formState.isSubmitting ? "Jobber..." : "Slett"}
