@@ -32,14 +32,14 @@ export default function RootLayout({
 	children: React.ReactNode;
 }>) {
 	return (
-		<html lang='no' suppressHydrationWarning>
+		<html lang="no" suppressHydrationWarning>
 			<body className={`${eina.className} antialiased`}>
 				<ClerkProvider localization={nbNO}>
 					<ConvexClientProvider>
 						<ThemeProvider attribute='class' defaultTheme='light' disableTransitionOnChange>
 							<div className='flex h-screen flex-col overflow-y-auto'>
 								<Header />
-								<main className='mb-12 flex-1'>{children}</main>
+								<main className="mb-12 flex-1">{children}</main>
 								<Footer />
 								<Toaster richColors />
 							</div>

@@ -62,11 +62,11 @@ export default function DateTimePicker({
 	return (
 		<FormField
 			control={form.control}
-			name='deadline'
+			name="deadline"
 			render={({ field }) => (
 				<FormItem>
 					<FormLabel>{label}</FormLabel>
-					<div className='flex gap-6'>
+					<div className="flex gap-6">
 						<Popover>
 							<PopoverTrigger asChild>
 								<FormControl>
@@ -82,26 +82,26 @@ export default function DateTimePicker({
 										) : (
 											<span>Pick a date</span>
 										)}
-										<CalendarIcon className='ml-auto h-4 w-4 opacity-50' />
+										<CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
 									</Button>
 								</FormControl>
 							</PopoverTrigger>
-							<PopoverContent className='w-auto p-0' align='start'>
+							<PopoverContent className="w-auto p-0" align="start">
 								<Calendar
-									mode='single'
+									mode="single"
 									ISOWeek={true}
 									locale={nb}
 									selected={field.value}
 									onSelect={(date) => handleDateChange(date, field.value, field.onChange)}
-									captionLayout='dropdown'
+									captionLayout="dropdown"
 								/>
 							</PopoverContent>
 						</Popover>
 						<Input
-							type='time'
+							type="time"
 							value={field.value ? format(field.value, "HH:mm") : ""}
 							onChange={(e) => handleTimeChange(e.target.value, field.value, field.onChange)}
-							className='w-fit appearance-none bg-background [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none'
+							className="w-fit appearance-none bg-background [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
 						/>
 					</div>
 					<FormDescription>{description}</FormDescription>

@@ -1,11 +1,11 @@
 import { ClerkProvider } from "@clerk/nextjs";
-import { Inter } from "next/font/google";
-import { ThemeProvider } from "next-themes";
-import "./globals.css";
 import { SidebarInset, SidebarProvider } from "@workspace/ui/components/sidebar";
 import { Toaster } from "@workspace/ui/components/sonner";
 import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import { ThemeProvider } from "next-themes";
 import { Suspense } from "react";
+import "./globals.css";
 import Header from "@/components/common/header";
 import BifrostSidebar from "@/components/common/sidebar/sidebar";
 import Providers from "@/providers/convex-client-provider";
@@ -39,14 +39,14 @@ export default async function RootLayout({
 	const hasRights = await hasBasicRights();
 
 	return (
-		<html lang='no' suppressHydrationWarning>
+		<html lang="no" suppressHydrationWarning>
 			<body className={`antialiased ${interSans.className}`}>
 				<ClerkProvider>
 					<ConvexClientProvider>
 						<SidebarProvider>
 							<ThemeProvider
-								attribute='class'
-								defaultTheme='system'
+								attribute="class"
+								defaultTheme="system"
 								enableSystem
 								disableTransitionOnChange
 							>
@@ -56,11 +56,11 @@ export default async function RootLayout({
 									) : (
 										<>
 											<BifrostSidebar />
-											<SidebarInset className='max-h-full'>
+											<SidebarInset className="max-h-full">
 												<Header />
-												<main className='flex max-h-full flex-col gap-4 p-4'>{children}</main>
+												<main className="flex max-h-full flex-col gap-4 p-4">{children}</main>
 											</SidebarInset>
-											<Toaster richColors position='top-center' />
+											<Toaster richColors position="top-center" />
 											<Suspense fallback={null}>
 												<PostHogPageView />
 											</Suspense>

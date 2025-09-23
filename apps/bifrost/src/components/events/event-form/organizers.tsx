@@ -81,31 +81,31 @@ export default function Organizers({ form }: { form: UseFormReturn<EventFormValu
 	return (
 		<FormField
 			control={form.control}
-			name='organizers'
+			name="organizers"
 			render={({ field }) => (
-				<FormItem className='flex flex-col'>
+				<FormItem className="flex flex-col">
 					<FormLabel>Ansvarlige</FormLabel>
 					<FormControl>
-						<div className='flex flex-col gap-4'>
-							<div className='flex gap-4'>
+						<div className="flex flex-col gap-4">
+							<div className="flex gap-4">
 								<Popover open={openMembers} onOpenChange={setOpenMembers}>
 									<PopoverTrigger asChild>
 										<Button
-											variant='outline'
+											variant="outline"
 											aria-expanded={openMembers}
-											className='w-[200px] justify-between'
+											className="w-[200px] justify-between"
 										>
 											{selectedMember.current
 												? internalMembers.find(
-													(internalMember) => internalMember.fullName === selectedMember.current,
-												)?.fullName
+														(internalMember) => internalMember.fullName === selectedMember.current,
+													)?.fullName
 												: "Velg et medlem..."}
-											<ChevronsUpDown className='ml-2 h-4 w-4 shrink-0 opacity-50' />
+											<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 										</Button>
 									</PopoverTrigger>
-									<PopoverContent className='w-[200px] p-0'>
+									<PopoverContent className="w-[200px] p-0">
 										<Command>
-											<CommandInput placeholder='Søk etter en ansvarlig...' />
+											<CommandInput placeholder="Søk etter en ansvarlig..." />
 											<CommandList>
 												<CommandEmpty>Fant ingen ansvarlige(er).</CommandEmpty>
 												<CommandGroup>
@@ -141,16 +141,16 @@ export default function Organizers({ form }: { form: UseFormReturn<EventFormValu
 									}}
 									value={selectedOrganizerType}
 								>
-									<SelectTrigger className='w-[180px]'>
-										<SelectValue placeholder='Ansvarlig type' />
+									<SelectTrigger className="w-[180px]">
+										<SelectValue placeholder="Ansvarlig type" />
 									</SelectTrigger>
 									<SelectContent>
-										<SelectItem value='medhjelper'>Medhjelper</SelectItem>
-										<SelectItem value='hovedansvarlig'>Hovedansvarlig</SelectItem>
+										<SelectItem value="medhjelper">Medhjelper</SelectItem>
+										<SelectItem value="hovedansvarlig">Hovedansvarlig</SelectItem>
 									</SelectContent>
 								</Select>
 								<Button
-									type='button'
+									type="button"
 									onClick={() => {
 										if (!selectedMember.current) return;
 
