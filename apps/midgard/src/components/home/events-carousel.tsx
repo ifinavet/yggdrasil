@@ -32,7 +32,7 @@ export default async function EventsCarousel({ className }: Readonly<{ className
 			</Carousel>
 			<Button
 				asChild
-				className="mx-8 bg-emerald-600 py-6 font-semibold text-primary-foreground hover:bg-emerald-700"
+				className="mx-8 bg-emerald-600 py-6 font-semibold text-primary-foreground hover:bg-emerald-700 md:mx-16"
 			>
 				<Link href={"/events"}>Se alle arrangementer</Link>
 			</Button>
