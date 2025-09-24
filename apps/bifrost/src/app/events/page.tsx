@@ -23,7 +23,7 @@ export default async function Events() {
 			<Breadcrumb>
 				<BreadcrumbList>
 					<BreadcrumbItem>
-						<BreadcrumbLink href='/'>Hjem</BreadcrumbLink>
+						<BreadcrumbLink href="/">Hjem</BreadcrumbLink>
 					</BreadcrumbItem>
 					<BreadcrumbSeparator />
 					<BreadcrumbItem>
@@ -32,16 +32,16 @@ export default async function Events() {
 				</BreadcrumbList>
 			</Breadcrumb>
 
-			<div className='flex flex-wrap justify-between'>
-				<div className='flex flex-wrap gap-6'>
+			<div className="flex flex-wrap justify-between">
+				<div className="flex flex-wrap gap-6">
 					<SelectSemester preloadedPossibleSemesters={preloadedPossibleSemesters} />
 
 					<SelectedEvents />
 				</div>
 
 				<Button asChild>
-					<Link href='/events/new-event'>
-						<Plus className='size-4' /> Lag et nytt arrangement
+					<Link href="/events/new-event">
+						<Plus className="size-4" /> Lag et nytt arrangement
 					</Link>
 				</Button>
 			</div>

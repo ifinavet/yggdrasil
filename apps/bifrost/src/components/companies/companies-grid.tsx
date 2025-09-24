@@ -30,24 +30,24 @@ export default function CompaniesGrid() {
 	);
 
 	return (
-		<div className='space-y-6'>
-			<div className='grid max-w-7xl grid-cols-3 gap-4'>
+		<div className="space-y-6">
+			<div className="grid max-w-7xl grid-cols-3 gap-4">
 				{companies.map((company) => (
 					<Link key={company._id} href={`/companies/${company._id}`}>
 						<Card>
 							<CardHeader>
 								<CardTitle>{company.name}</CardTitle>
 								<CardAction>
-									<Button variant='outline' size='icon'>
+									<Button variant="outline" size="icon">
 										<Pencil />
 									</Button>
 								</CardAction>
 							</CardHeader>
-							<CardContent>
+							<CardContent className="line-clamp-3 h-24">
 								{company.description && (
 									<SafeHtml
 										html={company.description}
-										className='prose dark:prose-invert h-24 overflow-hidden overflow-ellipsis *:text-ellipsis'
+										className="prose dark:prose-invert overflow-clip"
 									/>
 								)}
 							</CardContent>
