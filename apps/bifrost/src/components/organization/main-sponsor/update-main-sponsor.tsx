@@ -23,32 +23,34 @@ export default function UpdateMainSponsor({
 }) {
 	const mainSponsor = usePreloadedQuery(preloadedMainSponsor);
 
-	return mainSponsor && (
-		<div className="flex flex-wrap gap-4">
-			<UpdateMainSponsorForm companyId={mainSponsor._id} />
-			<Link href={`/companies/${mainSponsor._id}`} className="max-w-lg">
-				<Card>
-					<CardHeader>
-						<CardTitle>{mainSponsor.name}</CardTitle>
-						<CardAction>
-							<Button variant='outline' size='icon'>
-								<Pencil />
-							</Button>
-						</CardAction>
-					</CardHeader>
-					<CardContent>
-						{mainSponsor.description && (
-							<SafeHtml
-								html={mainSponsor.description}
-								className='prose dark:prose-invert h-32 overflow-hidden overflow-ellipsis *:text-ellipsis'
-							/>
-						)}
-					</CardContent>
-					<CardFooter>
-						<p>Org. nr: {mainSponsor.orgNumber ?? "N/A"}</p>
-					</CardFooter>
-				</Card>
-			</Link>
-		</div>
+	return (
+		mainSponsor && (
+			<div className="flex flex-wrap gap-4">
+				<UpdateMainSponsorForm companyId={mainSponsor._id} />
+				<Link href={`/companies/${mainSponsor._id}`} className="max-w-lg">
+					<Card>
+						<CardHeader>
+							<CardTitle>{mainSponsor.name}</CardTitle>
+							<CardAction>
+								<Button variant="outline" size="icon">
+									<Pencil />
+								</Button>
+							</CardAction>
+						</CardHeader>
+						<CardContent className="line-clamp-5">
+							{mainSponsor.description && (
+								<SafeHtml
+									html={mainSponsor.description}
+									className="prose dark:prose-invert overflow-clip"
+								/>
+							)}
+						</CardContent>
+						<CardFooter>
+							<p>Org. nr: {mainSponsor.orgNumber ?? "N/A"}</p>
+						</CardFooter>
+					</Card>
+				</Link>
+			</div>
+		)
 	);
 }

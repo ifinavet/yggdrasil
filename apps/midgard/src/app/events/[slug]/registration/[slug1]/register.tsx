@@ -45,17 +45,17 @@ export default function Register({
 			});
 
 	return (
-		<div className='mx-auto flex w-3/4 flex-col gap-4'>
-			<h3 className='scroll-m-10 font-semibold text-2xl tracking-tight'>
+		<div className="mx-auto flex w-3/4 flex-col gap-4">
+			<h3 className="scroll-m-10 font-semibold text-2xl tracking-tight">
 				Du har fått tilbud om plass til arrangementet
 			</h3>
 
-			<p className='leading-7 [&:not(:first-child)]:mt-2'>
+			<p className="leading-7 [&:not(:first-child)]:mt-2">
 				Du har fått muligheten til å delta på arrangementet. Hvis du godtar, vil du bli registrert
 				som deltaker. Hvis du ikke ønsker å delta, kan du avregistrere deg.
 			</p>
 
-			<div className='flex gap-4'>
+			<div className="flex gap-4">
 				<Button onClick={handleAccept}>Godta tilbudet</Button>
 				<Button onClick={handleUnregister} variant={"destructive"}>
 					Avregistrer deg

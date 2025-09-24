@@ -13,7 +13,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
 		<ResponsiveCenterContainer>
 			<Title>{page.title}</Title>
 
-			<div className='mx-auto rounded-xl bg-zinc-100 px-10 py-8 md:px-12 dark:bg-zinc-800'>
+			<div className="mx-auto rounded-xl bg-zinc-100 px-10 py-8 md:px-12 dark:bg-zinc-800">
 				<SanitizeHtml html={page.content} className="prose dark:prose-invert max-w-[80ch]" />
 			</div>
 		</ResponsiveCenterContainer>

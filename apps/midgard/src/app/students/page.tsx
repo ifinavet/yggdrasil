@@ -22,23 +22,23 @@ export default async function StudentsPage() {
 			<Title>For studenter</Title>
 			<TwoColumns
 				main={
-					<div className='grid gap-6'>
-						<ContainerCard className='bg-primary text-primary-foreground dark:bg-primary'>
-							<h2 className='scroll-m-20 pb-2 font-semibold text-3xl tracking-tight first:mt-0'>
+					<div className="grid gap-6">
+						<ContainerCard className="bg-primary text-primary-foreground dark:bg-primary">
+							<h2 className="scroll-m-20 pb-2 font-semibold text-3xl tracking-tight first:mt-0">
 								Hei IFI-Student! 👋
 							</h2>
-							<p className='leading-7 [&:not(:first-child)]:mt-6'>
+							<p className="leading-7 [&:not(:first-child)]:mt-6">
 								Her har vi forsøkt å samle de mest vanlige spørsmålene om Navet. Hvis du har et
 								spørsmål du ikke finner svar på her, kontakt oss gjerne på våre SoMe-kanaler eller
 								send en mail til{" "}
-								<a href='mailto:koordinator@ifinavet.no' className='underline'>
+								<a href="mailto:koordinator@ifinavet.no" className="underline">
 									koordinator@ifinavet.no
 								</a>
 								!
 								<br />
 								<br />
 								Dersom du opplever problemer med nettsiden send mail til{" "}
-								<a href='mailto:web@ifinavet.no' className='underline'>
+								<a href="mailto:web@ifinavet.no" className="underline">
 									web@ifinavet.no
 								</a>
 								<br />
@@ -53,21 +53,21 @@ export default async function StudentsPage() {
 					</div>
 				}
 				aside={
-					<div className='grid gap-6'>
+					<div className="grid gap-6">
 						<LargeUserCard
-							title='Koordinator'
+							title="Koordinator"
 							fullName={
 								(coordinator && `${coordinator.firstName} ${coordinator.lastName}`) ?? "Koordinator"
 							}
 							email={coordinator?.positionEmail ?? coordinator?.email ?? "styret@ifinavet.no"}
 							imageUrl={coordinator?.image}
-							initials='KO'
+							initials="KO"
 						/>
-						<ContainerCard className='bg-primary-light'>
-							<h3 className='scroll-m-20 text-center font-semibold text-4xl text-primary tracking-tight dark:text-primary-foreground'>
+						<ContainerCard className="bg-primary-light">
+							<h3 className="scroll-m-20 text-center font-semibold text-4xl text-primary tracking-tight dark:text-primary-foreground">
 								Ny student?
 							</h3>
-							<p className='leading-7 [&:not(:first-child)]:mt-6'>
+							<p className="leading-7 [&:not(:first-child)]:mt-6">
 								For deg som ny student er det bare å opprette en ny bruker.
 								<br />
 								Brukeren registreres med ditt UiO brukernavn eller epost. Ved førstegangs

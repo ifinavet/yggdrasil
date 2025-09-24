@@ -57,7 +57,7 @@ function RegistrationStatusBanner({
 	if (!show) return null;
 
 	return (
-		<div className='flex justify-end'>
+		<div className="flex justify-end">
 			<p
 				className={`w-fit ${cardColor} -mb-2 rounded-t-md px-4 pt-4 pb-4 text-primary-foreground md:pb-0 dark:text-primary-foreground`}
 			>
@@ -72,7 +72,7 @@ function EventDetails({ event }: { event: EventWithParticipationCount }) {
 	const participantsLimit = event.participationLimit;
 
 	return (
-		<div className='flex w-full flex-col justify-between gap-6 px-4 py-4 text-zinc-100 sm:pr-4 md:col-span-5 md:px-0 lg:pr-32'>
+		<div className="flex w-full flex-col justify-between gap-6 px-4 py-4 text-zinc-100 sm:pr-4 md:col-span-5 md:px-0 lg:pr-32">
 			<EventHeader title={event.title} teaser={event.teaser} />
 			<EventMetadata eventStart={event.eventStart} participantsLimit={participantsLimit} />
 		</div>
@@ -82,11 +82,9 @@ function EventDetails({ event }: { event: EventWithParticipationCount }) {
 // Event header component
 function EventHeader({ title, teaser }: { title: string | null; teaser: string | null }) {
 	return (
-		<div className='grid w-full gap-2'>
-			<h2 className='font-bold text-2xl tracking-tight'>{title}</h2>
-			<p className='line-clamp-2 scroll-m-20 font-medium text-lg tracking-tight'>
-				{teaser}
-			</p>
+		<div className="grid w-full gap-2">
+			<h2 className="font-bold text-2xl tracking-tight">{title}</h2>
+			<p className="line-clamp-2 scroll-m-20 font-medium text-lg tracking-tight">{teaser}</p>
 		</div>
 	);
 }
@@ -100,17 +98,17 @@ function EventMetadata({
 	participantsLimit: number;
 }) {
 	return (
-		<div className='flex w-full flex-col justify-between gap-2 pb-2 font-semibold text-lg sm:flex-row'>
-			<div className='flex items-center gap-2'>
-				<CalendarDays className='size-6' />
+		<div className="flex w-full flex-col justify-between gap-2 pb-2 font-semibold text-lg sm:flex-row">
+			<div className="flex items-center gap-2">
+				<CalendarDays className="size-6" />
 				{humanReadableDate(new Date(eventStart))}
 			</div>
-			<div className='flex items-center gap-2'>
-				<Clock className='size-6' />
+			<div className="flex items-center gap-2">
+				<Clock className="size-6" />
 				{humanReadableTime(new Date(eventStart))}
 			</div>
-			<div className='flex items-center gap-2'>
-				<Users className='size-6' />
+			<div className="flex items-center gap-2">
+				<Users className="size-6" />
 				{participantsLimit}
 			</div>
 		</div>
@@ -121,7 +119,7 @@ function EventMetadata({
 function CompanyImage({ imageUrl, title }: { imageUrl: string; title: string }) {
 	return (
 		<div className="relative col-span-2 grid h-full min-h-32 place-content-center rounded-r-md bg-white px-6 py-4 dark:bg-zinc-100/95">
-			<Image src={imageUrl} alt={title} className='object-contain px-4 py-6 md:px-6' fill />
+			<Image src={imageUrl} alt={title} className="object-contain px-4 py-6 md:px-6" fill />
 		</div>
 	);
 }

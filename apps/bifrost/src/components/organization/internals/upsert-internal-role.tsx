@@ -34,7 +34,7 @@ export default function UpsertInternalRole({
 	return (
 		<Dialog>
 			<DialogTrigger asChild>
-				<Button variant='secondary'>
+				<Button variant="secondary" className="capitalize">
 					<LockKeyhole className="size-4" /> {role ?? "Sett rolle"}
 				</Button>
 			</DialogTrigger>
@@ -49,12 +49,12 @@ export default function UpsertInternalRole({
 
 				<div>
 					<Select defaultValue={role} onValueChange={(value: string) => setSelectedRole(value)}>
-						<SelectTrigger>
-							<SelectValue placeholder='Velg tilgangsrolle' />
+						<SelectTrigger className="capitalize">
+							<SelectValue placeholder="Velg tilgangsrolle" />
 						</SelectTrigger>
 						<SelectContent>
 							{accessRights.map((accessRight) => (
-								<SelectItem value={accessRight} key={accessRight} className='capitalize'>
+								<SelectItem value={accessRight} key={accessRight} className="capitalize">
 									{accessRight}
 								</SelectItem>
 							))}
@@ -63,14 +63,14 @@ export default function UpsertInternalRole({
 				</div>
 
 				<DialogFooter>
-					<div className='flex w-full justify-start gap-4'>
+					<div className="flex w-full justify-start gap-4">
 						<DialogClose asChild>
-							<Button type='submit' onClick={() => setSelectedRoleAction(selectedRole)}>
+							<Button type="submit" onClick={() => setSelectedRoleAction(selectedRole)}>
 								Lagre rolle
 							</Button>
 						</DialogClose>
 						<DialogClose asChild>
-							<Button type='submit' variant='secondary'>
+							<Button type="submit" variant="secondary">
 								Avbryt
 							</Button>
 						</DialogClose>

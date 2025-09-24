@@ -15,22 +15,22 @@ export default async function OrganizationPage() {
 	const theBoard = await fetchQuery(api.internals.getTheBoard);
 
 	return (
-		<ResponsiveCenterContainer className='!max-w-6xl'>
+		<ResponsiveCenterContainer className="!max-w-6xl">
 			<Title>Foreningen IFI-Navet</Title>
-			<div className='flex flex-col gap-6'>
+			<div className="flex flex-col gap-6">
 				<TwoColumns
 					main={
 						<div>
-							<h3 className='scroll-m-20 font-semibold text-4xl text-primary tracking-tight dark:text-primary-foreground'>
+							<h3 className="scroll-m-20 font-semibold text-4xl text-primary tracking-tight dark:text-primary-foreground">
 								Hvem er vi?
 							</h3>
-							<p className='leading-7 [&:not(:first-child)]:mt-6'>
+							<p className="leading-7 [&:not(:first-child)]:mt-6">
 								Navet er bedriftskontakten ved Institutt for informatikk ved Universitetet i Oslo.
 								Hensikten med Navet er å gjøre det enkelt for bedrifter å komme i kontakt med
 								studentene ved instituttet, ved å tilby:
 							</p>
 
-							<ul className='my-6 ml-6 list-disc [&>li]:mt-2'>
+							<ul className="my-6 ml-6 list-disc [&>li]:mt-2">
 								<li>
 									et sentralt kontakt- og koordineringspunkt for alle bedriftsrelaterte aktiviteter
 									ved instituttet.
@@ -45,43 +45,43 @@ export default async function OrganizationPage() {
 							<p>
 								Følg oss på våre sosiale medier for å holde deg oppdatert på hva som skjer i Navet:
 							</p>
-							<ul className='my-6 ml-6 grid w-fit list-disc gap-2 md:grid-cols-2 [&>li]:mt-2 [&>li]:pr-8'>
+							<ul className="my-6 ml-6 grid w-fit list-disc gap-2 md:grid-cols-2 [&>li]:mt-2 [&>li]:pr-8">
 								<li>
 									<a
-										href='https://www.instagram.com/ifinavet/'
-										rel='nofollow noopener noreferrer external'
-										target='_blank'
-										className='text-primary underline dark:text-primary-foreground'
+										href="https://www.instagram.com/ifinavet/"
+										rel="nofollow noopener noreferrer external"
+										target="_blank"
+										className="text-primary underline dark:text-primary-foreground"
 									>
 										Instagram
 									</a>
 								</li>
 								<li>
 									<a
-										href='https://www.facebook.com/share/1C1q1rEvmL/?mibextid=wwXIfr'
-										rel='nofollow noopener noreferrer external'
-										target='_blank'
-										className='text-primary underline dark:text-primary-foreground'
+										href="https://www.facebook.com/share/1C1q1rEvmL/?mibextid=wwXIfr"
+										rel="nofollow noopener noreferrer external"
+										target="_blank"
+										className="text-primary underline dark:text-primary-foreground"
 									>
 										Facebook
 									</a>
 								</li>
 								<li>
 									<a
-										href='https://ie.linkedin.com/company/ifinavet'
-										rel='nofollow noopener noreferrer external'
-										target='_blank'
-										className='text-primary underline dark:text-primary-foreground'
+										href="https://ie.linkedin.com/company/ifinavet"
+										rel="nofollow noopener noreferrer external"
+										target="_blank"
+										className="text-primary underline dark:text-primary-foreground"
 									>
 										Linkedin
 									</a>
 								</li>
 								<li>
 									<a
-										href='https://github.com/ifinavet'
-										rel='nofollow noopener noreferrer external'
-										target='_blank'
-										className='text-primary underline dark:text-primary-foreground'
+										href="https://github.com/ifinavet"
+										rel="nofollow noopener noreferrer external"
+										target="_blank"
+										className="text-primary underline dark:text-primary-foreground"
 									>
 										Github
 									</a>
@@ -89,18 +89,18 @@ export default async function OrganizationPage() {
 							</ul>
 						</div>
 					}
-					aside={<Image src={Navet} alt='Navet Logo' className='h-full rounded-lg object-cover' />}
+					aside={<Image src={Navet} alt="Navet Logo" className="h-full rounded-lg object-cover" />}
 				/>
 				<FlowyLine
-					className='w-full stroke-[8] text-primary dark:text-primary-foreground'
+					className="w-full stroke-[8] text-primary dark:text-primary-foreground"
 					curveHeight={-300}
 				/>
-				<div aria-description='Livet som intern'>
-					<h3 className='scroll-m-20 font-semibold text-4xl text-primary tracking-tight dark:text-primary-foreground'>
+				<div aria-description="Livet som intern">
+					<h3 className="scroll-m-20 font-semibold text-4xl text-primary tracking-tight dark:text-primary-foreground">
 						Livet som intern
 					</h3>
-					<div className='flex h-fit flex-wrap items-start gap-8'>
-						<p className='mb-4 max-w-[80ch] leading-7 [&:not(:first-child)]:mt-6'>
+					<div className="flex h-fit flex-wrap items-start gap-8">
+						<p className="mb-4 max-w-[80ch] leading-7 [&:not(:first-child)]:mt-6">
 							Som intern i Navet er du en viktig del av driften i foreningen. Gjennom et semester
 							vil du som regel være ansvarlig eller medansvarlig for 2–3 bedriftspresentasjoner. I
 							tillegg bidrar interne til styrets arbeid gjennom å være med i en av arbeidsgruppene.
@@ -111,68 +111,68 @@ export default async function OrganizationPage() {
 							er sponset av foreningen. Foreningen har mye sosialt å by på, som utenlandstur,
 							julebord, sommerfest og mange andre små og store aktiviteter gjennom året.
 						</p>
-						<div className='grid h-full flex-1 place-content-center'>
+						<div className="grid h-full flex-1 place-content-center">
 							<Image
 								src={NavetN}
-								alt='N logo'
-								className='h-32 w-auto rotate-12 object-contain dark:grayscale dark:invert'
+								alt="N logo"
+								className="h-32 w-auto rotate-12 object-contain dark:grayscale dark:invert"
 							/>
 						</div>
 					</div>
-					<div className='grid justify-center gap-12 sm:grid-cols-2 lg:grid-cols-3'>
-						<InternGroup name='Interngruppen'>
-							<p className='leading-7 [&:not(:first-child)]:mt-4'>
+					<div className="grid justify-center gap-12 sm:grid-cols-2 lg:grid-cols-3">
+						<InternGroup name="Interngruppen">
+							<p className="leading-7 [&:not(:first-child)]:mt-4">
 								I interngruppen så organiserer vi alle Navets interne arrangementer. Vi planlegger
 								internkveldene og de større avsluttningene på slutten av hvert semester. Vi jobber
 								på for at alle i Navet skal ha det så bra som mulig (og gøy som mulig).
 							</p>
 						</InternGroup>
-						<InternGroup name='Bedriftsgruppen'>
-							<p className='leading-7 [&:not(:first-child)]:mt-4'>
+						<InternGroup name="Bedriftsgruppen">
+							<p className="leading-7 [&:not(:first-child)]:mt-4">
 								Vi i bedriftsgruppen gjør kanskje Navets viktigste jobb, vi finner bedriftene som
 								skal ha bedriftspresentasjoner. Bedriftsgruppen jobber kontinuerlig med å finne
 								bedrifter for studentene. Uten oss så får vi ingen bedrifter som kan lære og
 								informere studente om arbeidslivet.
 							</p>
 						</InternGroup>
-						<InternGroup name='Organiseringsgruppen'>
-							<p className='leading-7 [&:not(:first-child)]:mt-4'>
+						<InternGroup name="Organiseringsgruppen">
+							<p className="leading-7 [&:not(:first-child)]:mt-4">
 								Organiseringsteamet har ansvar for å sikre den praktiske gjennomføringen av Navets
 								arrangementer. Vi tar oss av booking av rom, bestilling av mat og sørger for at alt
 								er på plass før arrangementet starter. Vi gjør vårt beste for at alt det praktiske
 								går sømløst.
 							</p>
 						</InternGroup>
-						<InternGroup name='Økonomigruppen'>
-							<p className='leading-7 [&:not(:first-child)]:mt-4'>
+						<InternGroup name="Økonomigruppen">
+							<p className="leading-7 [&:not(:first-child)]:mt-4">
 								I økonomigruppen får du innsikt i hvordan Navets økonomi drives. Som intern bidrar
 								du til både regnskapsføring og budsjettering for en større forening.
 							</p>
 						</InternGroup>
-						<InternGroup name='Promoteringsgruppen'>
-							<p className='leading-7 [&:not(:first-child)]:mt-4'>
+						<InternGroup name="Promoteringsgruppen">
+							<p className="leading-7 [&:not(:first-child)]:mt-4">
 								Som del av promoteringsgruppen vil du hjelpe promoteringsansvarlig med synligheten
 								og kommunikasjonen til Navet, slik at vi kan nå ut til studenter og bedrifter. Vi
 								har ansvar for å formidle hva Navet driver med, skape engasjement rundt
 								arrangementene våre og bygge et positivt inntrykk av foreningen.
 							</p>
 						</InternGroup>
-						<InternGroup name='Webteamet'>
-							<p className='leading-7 [&:not(:first-child)]:mt-4'>
+						<InternGroup name="Webteamet">
+							<p className="leading-7 [&:not(:first-child)]:mt-4">
 								Hjelp webasnvarlig med å vedlikeholde, teste, og utvikle nye funksjoner for Navets
 								webplatform. Dette er en unik mulighet til å jobbe med et større system som brukes
 								av mange ifi-studenter daglig.
 							</p>
 						</InternGroup>
-						<InternGroup name='Arrangementsgruppen'>
-							<p className='leading-7 [&:not(:first-child)]:mt-4'>
+						<InternGroup name="Arrangementsgruppen">
+							<p className="leading-7 [&:not(:first-child)]:mt-4">
 								I arrangementsgruppen så passer vi på at alle navets arrangementer går på skinner.
 								Vi har ansvaret for prikke systemet og assisterer de andre gruppene i sine oppgaver,
 								og samhandler med andre foreninger ved større arrangementer.
 							</p>
 						</InternGroup>
-						<InternGroup name='Koordineringsgruppen'>
-							<p className='leading-7 [&:not(:first-child)]:mt-4'>
+						<InternGroup name="Koordineringsgruppen">
+							<p className="leading-7 [&:not(:first-child)]:mt-4">
 								Hjelp koordinator i sine oppgaver. Vi gjør et variert utvalg med oppgaver, men
 								kjernen er stillingsannonser. Vi legger ut og passer på at alt er i orden med
 								stillingsannonsene.
@@ -181,18 +181,18 @@ export default async function OrganizationPage() {
 					</div>
 				</div>
 				<FlowyLine
-					className='w-full stroke-[8] text-primary dark:text-primary-foreground'
+					className="w-full stroke-[8] text-primary dark:text-primary-foreground"
 					curveHeight={250}
 				/>
-				<div aria-description='Styret'>
-					<h3 className='mb-4 scroll-m-20 font-semibold text-4xl text-primary tracking-tight dark:text-primary-foreground'>
+				<div aria-description="Styret">
+					<h3 className="mb-4 scroll-m-20 font-semibold text-4xl text-primary tracking-tight dark:text-primary-foreground">
 						Styret
 					</h3>
-					<div className='flex flex-wrap justify-center gap-4'>
+					<div className="flex flex-wrap justify-center gap-4">
 						{theBoard.map((member) => (
 							<BoardMember
 								key={member._id}
-								className='min-w-48 basis-[calc(25%-0.75rem)]'
+								className="min-w-48 basis-[calc(25%-0.75rem)]"
 								position={member.position}
 								name={member.fullName}
 								email={member.positionEmail ?? member.email}
@@ -215,19 +215,20 @@ function FlowyLine({
 	curveHeight?: number;
 	baseHeight?: number;
 }) {
-	const pathData = `M0,${baseHeight} C360,${baseHeight + curveHeight} 1080,${baseHeight - curveHeight
-		} 1440,${baseHeight}`;
+	const pathData = `M0,${baseHeight} C360,${baseHeight + curveHeight} 1080,${
+		baseHeight - curveHeight
+	} 1440,${baseHeight}`;
 
 	return (
-		<div className='flex h-32 w-full items-center justify-center'>
+		<div className="flex h-32 w-full items-center justify-center">
 			<svg
 				className={`h-full w-full ${className}`}
-				viewBox='0 0 1440 320'
-				preserveAspectRatio='none'
-				xmlns='http://www.w3.org/2000/svg'
+				viewBox="0 0 1440 320"
+				preserveAspectRatio="none"
+				xmlns="http://www.w3.org/2000/svg"
 			>
 				<title>Flowy Line</title>
-				<path fill='none' stroke='currentColor' d={pathData} />
+				<path fill="none" stroke="currentColor" d={pathData} />
 			</svg>
 		</div>
 	);
@@ -267,18 +268,18 @@ function BoardMember({
 }) {
 	return (
 		<div className={cn(className, "flex flex-col items-center gap-2")}>
-			<Avatar className='size-28'>
+			<Avatar className="size-28">
 				<AvatarImage src={image} />
 				<AvatarFallback>{position.slice(0, 1).toUpperCase()}</AvatarFallback>
 			</Avatar>
-			<h2 className='font-semibold text-2xl text-primary dark:text-primary-foreground'>
+			<h2 className="font-semibold text-2xl text-primary dark:text-primary-foreground">
 				{position}
 			</h2>
-			<Separator className='rounded-lg border-1 border-primary dark:border-primary-foreground' />
-			<div className='flex flex-col items-center'>
-				<h3 className='text-pretty text-center font-semibold text-lg'>{name}</h3>
-				<Button variant='link'>
-					<a href={`mailto:${email}`} className='text-balance text-center'>
+			<Separator className="rounded-lg border-1 border-primary dark:border-primary-foreground" />
+			<div className="flex flex-col items-center">
+				<h3 className="text-pretty text-center font-semibold text-lg">{name}</h3>
+				<Button variant="link">
+					<a href={`mailto:${email}`} className="text-balance text-center">
 						{email}
 					</a>
 				</Button>

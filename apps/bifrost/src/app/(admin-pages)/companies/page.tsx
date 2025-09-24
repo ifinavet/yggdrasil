@@ -17,7 +17,7 @@ export default async function Companies() {
 			<Breadcrumb>
 				<BreadcrumbList>
 					<BreadcrumbItem>
-						<BreadcrumbLink href='/'>Hjem</BreadcrumbLink>
+						<BreadcrumbLink href="/">Hjem</BreadcrumbLink>
 					</BreadcrumbItem>
 					<BreadcrumbSeparator />
 					<BreadcrumbItem>
@@ -26,10 +26,10 @@ export default async function Companies() {
 				</BreadcrumbList>
 			</Breadcrumb>
 
-			<div className='flex justify-end'>
+			<div className="mb-4 flex justify-end">
 				<Button asChild>
-					<Link href='/companies/create-company'>
-						<Plus className='size-4' /> Legg til en ny bedrift
+					<Link href="/companies/create-company">
+						<Plus className="size-4" /> Legg til en ny bedrift
 					</Link>
 				</Button>
 			</div>

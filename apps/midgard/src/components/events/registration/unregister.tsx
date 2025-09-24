@@ -45,7 +45,7 @@ export default function Unregister({
 	return (
 		<AlertDialog>
 			<AlertDialogTrigger asChild>
-				<Button type='button' variant='destructive'>
+				<Button type="button" variant="destructive">
 					Meld meg av
 				</Button>
 			</AlertDialogTrigger>

@@ -36,8 +36,8 @@ export default function RootLayout({
 			<body className={`${eina.className} antialiased`}>
 				<ClerkProvider localization={nbNO}>
 					<ConvexClientProvider>
-						<ThemeProvider attribute='class' defaultTheme='light' disableTransitionOnChange>
-							<div className='flex h-screen flex-col overflow-y-auto'>
+						<ThemeProvider attribute="class" defaultTheme="light" disableTransitionOnChange>
+							<div className="flex h-screen flex-col overflow-y-auto">
 								<Header />
 								<main className="mb-12 flex-1">{children}</main>
 								<Footer />

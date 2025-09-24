@@ -20,12 +20,12 @@ export default function WaitlistPosition({
 		isAuthenticated &&
 		waitlistPosition !== 0 && (
 			<ContainerCard className={className}>
-				<p className='leading-7 [&:not(:first-child)]:mt-6'>
+				<p className="leading-7 [&:not(:first-child)]:mt-6">
 					Du står på venteliste for dette arrangementet. Dersom det blir en ledig plass til deg så
 					vil du mota en e-post, du har da 24 timer på å godta tilbudet om å bli med på
 					arrangementet.
 				</p>
-				<p className='font-semibold text-lg'>Du er nr. {waitlistPosition} på ventelisten.</p>
+				<p className="font-semibold text-lg">Du er nr. {waitlistPosition} på ventelisten.</p>
 			</ContainerCard>
 		)
 	);
