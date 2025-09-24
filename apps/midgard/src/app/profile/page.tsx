@@ -24,24 +24,24 @@ export default async function ProfilePage() {
 	return (
 		<ResponsiveCenterContainer>
 			<Title>Din Profil</Title>
-			<div className='grid max-w-full gap-6 align-top lg:grid-cols-2'>
+			<div className="grid max-w-full gap-6 align-top lg:grid-cols-2">
 				<div>
-					<h2 className='scroll-m-20 border-b pb-2 font-semibold text-3xl text-primary tracking-tight first:mt-0 dark:text-primary-foreground'>
+					<h2 className="scroll-m-20 border-b pb-2 font-semibold text-3xl text-primary tracking-tight first:mt-0 dark:text-primary-foreground">
 						Din profil
 					</h2>
-					<UpdateProfileForm preloadedStudent={preloadedStudent} className='mt-4' />
+					<UpdateProfileForm preloadedStudent={preloadedStudent} className="mt-4" />
 				</div>
-				<div className='row-span-2'>
-					<h2 className='scroll-m-20 border-b pb-2 font-semibold text-3xl text-primary tracking-tight first:mt-0 dark:text-primary-foreground'>
+				<div className="row-span-2">
+					<h2 className="scroll-m-20 border-b pb-2 font-semibold text-3xl text-primary tracking-tight first:mt-0 dark:text-primary-foreground">
 						Dine prikker
 					</h2>
-					<Points className='mt-4' />
+					<Points className="mt-4" />
 				</div>
-				<div className='h-full'>
-					<h2 className='scroll-m-20 border-b pb-2 font-semibold text-3xl text-primary tracking-tight first:mt-0 dark:text-primary-foreground'>
+				<div className="h-full">
+					<h2 className="scroll-m-20 border-b pb-2 font-semibold text-3xl text-primary tracking-tight first:mt-0 dark:text-primary-foreground">
 						Dine kommende bedriftspresentasjoner
 					</h2>
-					<Registrations className='mt-4' />
+					<Registrations className="mt-4" />
 				</div>
 			</div>
 		</ResponsiveCenterContainer>

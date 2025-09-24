@@ -17,9 +17,9 @@ export default async function SignInPage() {
 
 	return (
 		<ResponsiveCenterContainer>
-			<div className='flex w-full justify-center py-10'>
+			<div className="flex w-full justify-center py-10">
 				<SignIn
-					signUpUrl='/sign-up'
+					signUpUrl="/sign-up"
 					fallbackRedirectUrl={redirectUrl}
 					forceRedirectUrl={redirectUrl}
 				/>

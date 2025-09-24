@@ -23,20 +23,20 @@ export default async function CompaniesPage() {
 		<>
 			<ResponsiveCenterContainer>
 				<Title>For bedrifter</Title>
-				<div className='grid grid-cols-1 gap-6 md:grid-cols-5'>
-					<div className='grid gap-6 md:col-span-3'>
-						<ContainerCard className='bg-primary dark:bg-primary'>
-							<h2 className='scroll-m-10 hyphens-auto pb-2 font-semibold text-3xl text-primary-foreground tracking-tight first:mt-0'>
+				<div className="grid grid-cols-1 gap-6 md:grid-cols-5">
+					<div className="grid gap-6 md:col-span-3">
+						<ContainerCard className="bg-primary dark:bg-primary">
+							<h2 className="scroll-m-10 hyphens-auto pb-2 font-semibold text-3xl text-primary-foreground tracking-tight first:mt-0">
 								Navets formål
 							</h2>
-							<p className='text-primary-foreground leading-7'>
+							<p className="text-primary-foreground leading-7">
 								Navets formål er å gjøre det enklere for bedrifter å komme i kontakt med studentene
 								ved Institutt for informatikk, UiO. Vi fungerer derfor som instituttets
 								koordinerings- og kommunikasjonssentral for bedrifter, ved å blant annet arrangere
 								bedriftspresentasjoner og tilby en plattform for stillingsannonser.
 							</p>
 
-							<h2 className='scroll-m-20 pb-2 font-semibold text-3xl text-primary-foreground tracking-tight first:mt-0'>
+							<h2 className="scroll-m-20 pb-2 font-semibold text-3xl text-primary-foreground tracking-tight first:mt-0">
 								Om instituttet
 							</h2>
 							<p className="text-primary-foreground leading-7">
@@ -48,10 +48,10 @@ export default async function CompaniesPage() {
 							</p>
 						</ContainerCard>
 						<ContainerCard>
-							<h2 className='scroll-m-10 hyphens-auto pb-2 font-semibold text-3xl tracking-tight first:mt-0'>
+							<h2 className="scroll-m-10 hyphens-auto pb-2 font-semibold text-3xl tracking-tight first:mt-0">
 								Bedriftspresentasjon, kurs og foredrag
 							</h2>
-							<p className='leading-7'>
+							<p className="leading-7">
 								Navet sender i slutten av hvert semester ut en invitasjon der vi oppfordrer
 								bedrifter til å søke om og holde bedriftspresentasjon det påfølgende semesteret.
 								<br />
@@ -62,30 +62,30 @@ export default async function CompaniesPage() {
 							</p>
 						</ContainerCard>
 					</div>
-					<div className='grid gap-6 md:col-span-2'>
+					<div className="grid gap-6 md:col-span-2">
 						<LargeUserCard
-							title='Bedriftskontakt'
+							title="Bedriftskontakt"
 							fullName={
 								(companyContact && `${companyContact.firstName} ${companyContact.lastName}`) ??
 								"Bedriftskontakt"
 							}
 							email={companyContact?.positionEmail ?? companyContact?.email ?? "styret@ifinavet.no"}
 							imageUrl={companyContact?.image}
-							initials='BK'
+							initials="BK"
 						/>
-						<ContainerCard className='h-fit bg-primary-light'>
-							<h2 className='scroll-m-10 pb-2 font-semibold text-3xl tracking-tight first:mt-0'>
+						<ContainerCard className="h-fit bg-primary-light">
+							<h2 className="scroll-m-10 pb-2 font-semibold text-3xl tracking-tight first:mt-0">
 								Stillingsanonnser
 							</h2>
-							<p className='leading-7'>
+							<p className="leading-7">
 								Navet tilbyr publisering av stillingsannonser på våre hjemmesider. Dette gjelder
 								både interships, deltid-, og fulltidsstillinger. Ved forespørsel om annonser for
 								sommerjobb er det viktig at de følger{" "}
 								<a
-									href='https://drive.google.com/file/d/1wW0356QeoPGtKQruSlP8eBXI7qqn8eHm/view?usp=sharing'
-									rel='nofollow noopener noreferrer external'
-									target='_blank'
-									className='hover:cursor underline'
+									href="https://drive.google.com/file/d/1wW0356QeoPGtKQruSlP8eBXI7qqn8eHm/view?usp=sharing"
+									rel="nofollow noopener noreferrer external"
+									target="_blank"
+									className="hover:cursor underline"
 								>
 									FIFs retningslinjer.
 								</a>
@@ -93,10 +93,10 @@ export default async function CompaniesPage() {
 								<br />
 								Alle annonser er nødt til å følge{" "}
 								<a
-									href='https://drive.google.com/file/d/1h4AuNXJ4LFfrrCAdN_anFu7o1F56Q1hx/view'
-									rel='nofollow noopener noreferrer external'
-									target='_blank'
-									className='hover:cursor underline'
+									href="https://drive.google.com/file/d/1h4AuNXJ4LFfrrCAdN_anFu7o1F56Q1hx/view"
+									rel="nofollow noopener noreferrer external"
+									target="_blank"
+									className="hover:cursor underline"
 								>
 									Navet's retningslinjer.
 								</a>{" "}
@@ -105,33 +105,33 @@ export default async function CompaniesPage() {
 								stillingsannonse:
 							</p>
 							<Button
-								variant='default'
-								size='lg'
-								className='bg-primary py-6 text-base text-primary-foreground dark:bg-primary-light dark:text-primary'
+								variant="default"
+								size="lg"
+								className="bg-primary py-6 text-base text-primary-foreground dark:bg-primary-light dark:text-primary"
 								asChild
 							>
 								<a
-									href='https://docs.google.com/forms/d/1pyPhN0eod6g3iwmHLfUycz1CI2KplwZRSbozwrJdaR4/edit'
-									target='_blank'
-									rel='noopener noreferrer'
+									href="https://docs.google.com/forms/d/1pyPhN0eod6g3iwmHLfUycz1CI2KplwZRSbozwrJdaR4/edit"
+									target="_blank"
+									rel="noopener noreferrer"
 								>
 									Skjema for stillingsannonser
 								</a>
 							</Button>
 						</ContainerCard>
 					</div>
-					<ContainerCard className='col-span-full'>
-						<h2 className='scroll-m-10 pb-2 font-semibold text-3xl tracking-tight first:mt-0'>
+					<ContainerCard className="col-span-full">
+						<h2 className="scroll-m-10 pb-2 font-semibold text-3xl tracking-tight first:mt-0">
 							Felles informasjon om arrangementer
 						</h2>
 						<InformationGrid />
 					</ContainerCard>
-					<div className='col-span-full'>
+					<div className="col-span-full">
 						<OfferGrid />
 					</div>
 				</div>
 			</ResponsiveCenterContainer>
-			<JobListingBanner className='mt-8' />
+			<JobListingBanner className="mt-8" />
 		</>
 	);
 }

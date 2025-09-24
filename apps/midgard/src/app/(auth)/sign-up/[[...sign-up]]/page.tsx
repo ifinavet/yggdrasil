@@ -192,18 +192,18 @@ export default function SignUpPage() {
 
 	if (verifying) {
 		return (
-			<ResponsiveCenterContainer className='!max-w-3xl h-full'>
+			<ResponsiveCenterContainer className="!max-w-3xl h-full">
 				<Title>Opprett ny Bruker</Title>
-				<div className='grid h-3/5 place-content-center'>
-					<Card className='w-fit p-8'>
+				<div className="grid h-3/5 place-content-center">
+					<Card className="w-fit p-8">
 						<Form {...verifyingForm}>
 							<form
 								onSubmit={verifyingForm.handleSubmit(onVerifyingSubmit)}
-								className='w-full space-y-6'
+								className="w-full space-y-6"
 							>
 								<FormField
 									control={verifyingForm.control}
-									name='code'
+									name="code"
 									render={({ field }) => (
 										<FormItem>
 											<FormLabel>Verifiserings kode</FormLabel>
@@ -229,7 +229,7 @@ export default function SignUpPage() {
 										</FormItem>
 									)}
 								/>
-								<Button type='submit' disabled={loading}>
+								<Button type="submit" disabled={loading}>
 									Fullfør oppretting
 								</Button>
 							</form>
@@ -241,21 +241,21 @@ export default function SignUpPage() {
 	}
 
 	return (
-		<ResponsiveCenterContainer className=''>
+		<ResponsiveCenterContainer className="">
 			<Title>Opprett ny Bruker</Title>
 			<Form {...signUpForm}>
 				<form
 					onSubmit={signUpForm.handleSubmit(onSignUpSubmit)}
-					className='!max-w-3xl mx-auto space-y-8'
+					className="!max-w-3xl mx-auto space-y-8"
 				>
-					<div className='grid gap-4 md:grid-cols-2'>
+					<div className="grid gap-4 md:grid-cols-2">
 						<FormField
 							control={signUpForm.control}
-							name='firstName'
+							name="firstName"
 							render={({ field }) => (
 								<FormItem>
 									<FormLabel>Fornavn</FormLabel>
-									<Input {...field} placeholder='Fornavn' className='w-full' />
+									<Input {...field} placeholder="Fornavn" className="w-full" />
 									<FormMessage />
 								</FormItem>
 							)}
@@ -263,11 +263,11 @@ export default function SignUpPage() {
 
 						<FormField
 							control={signUpForm.control}
-							name='lastName'
+							name="lastName"
 							render={({ field }) => (
 								<FormItem>
 									<FormLabel>Etternavn</FormLabel>
-									<Input {...field} placeholder='Etternavn' className='w-full' />
+									<Input {...field} placeholder="Etternavn" className="w-full" />
 									<FormMessage />
 								</FormItem>
 							)}
@@ -276,11 +276,11 @@ export default function SignUpPage() {
 
 					<FormField
 						control={signUpForm.control}
-						name='email'
+						name="email"
 						render={({ field }) => (
 							<FormItem>
 								<FormLabel>Epost</FormLabel>
-								<Input {...field} placeholder='eks. olanor@uio.no' className='w-full' />
+								<Input {...field} placeholder="eks. olanor@uio.no" className="w-full" />
 								<FormDescription>
 									Oppgi din UIO e-post adresse. Denne må være en gyldig (ifi.)uio.no e-post.
 								</FormDescription>
@@ -289,14 +289,14 @@ export default function SignUpPage() {
 						)}
 					/>
 
-					<div className='grid gap-4 md:grid-cols-2'>
+					<div className="grid gap-4 md:grid-cols-2">
 						<FormField
 							control={signUpForm.control}
-							name='password'
+							name="password"
 							render={({ field }) => (
 								<FormItem>
 									<FormLabel>Passord</FormLabel>
-									<Input {...field} placeholder='Passord' type='password' className='w-full' />
+									<Input {...field} placeholder="Passord" type="password" className="w-full" />
 									<FormDescription>Passordet må være minst 8 tegn langt.</FormDescription>
 									<FormMessage />
 								</FormItem>
@@ -305,15 +305,15 @@ export default function SignUpPage() {
 
 						<FormField
 							control={signUpForm.control}
-							name='confirmPassword'
+							name="confirmPassword"
 							render={({ field }) => (
 								<FormItem>
 									<FormLabel>Bekreft passord</FormLabel>
 									<Input
 										{...field}
-										placeholder='Bekreft passord'
-										type='password'
-										className='w-full'
+										placeholder="Bekreft passord"
+										type="password"
+										className="w-full"
 									/>
 									<FormDescription>
 										Bekreft passordet ditt. Passordene må være like.
@@ -326,14 +326,14 @@ export default function SignUpPage() {
 
 					<FormField
 						control={signUpForm.control}
-						name='studyProgram'
+						name="studyProgram"
 						render={({ field }) => (
-							<FormItem className='w-full'>
+							<FormItem className="w-full">
 								<FormLabel>Studieprogram</FormLabel>
 								<FormControl>
 									<Select onValueChange={field.onChange} value={field.value}>
-										<SelectTrigger className='w-full'>
-											<SelectValue placeholder='Velg et studieprogram' />
+										<SelectTrigger className="w-full">
+											<SelectValue placeholder="Velg et studieprogram" />
 										</SelectTrigger>
 										<SelectContent>
 											{STUDY_PROGRAMS.map((program) => (
@@ -352,14 +352,14 @@ export default function SignUpPage() {
 
 					<FormField
 						control={signUpForm.control}
-						name='degree'
+						name="degree"
 						render={({ field }) => (
-							<FormItem className='w-full'>
+							<FormItem className="w-full">
 								<FormLabel>Studiegrad</FormLabel>
 								<FormControl>
 									<Select onValueChange={field.onChange} value={field.value}>
-										<SelectTrigger className='w-full'>
-											<SelectValue placeholder='Velg studie grad' />
+										<SelectTrigger className="w-full">
+											<SelectValue placeholder="Velg studie grad" />
 										</SelectTrigger>
 										<SelectContent>
 											{DEGREE_TYPES.map((degree) => (
@@ -380,12 +380,12 @@ export default function SignUpPage() {
 
 					<FormField
 						control={signUpForm.control}
-						name='semester'
+						name="semester"
 						render={({ field }) => (
-							<FormItem className='w-full'>
+							<FormItem className="w-full">
 								<FormLabel>Semester</FormLabel>
 								<FormControl>
-									<Input type='number' min={1} max={10} {...field} />
+									<Input type="number" min={1} max={10} {...field} />
 								</FormControl>
 								<FormDescription>
 									Oppi hvilket semester du er på. (7. semester er 1. semester for master)
@@ -395,27 +395,27 @@ export default function SignUpPage() {
 						)}
 					/>
 
-					<div id='clerk-captcha'></div>
+					<div id="clerk-captcha"></div>
 
 					{errors && errors.length > 0 && (
-						<ul className='list-disc space-y-1 pl-5 text-destructive text-sm'>
+						<ul className="list-disc space-y-1 pl-5 text-destructive text-sm">
 							{errors.map((error) => (
 								<li key={error.code}>{error.longMessage}</li>
 							))}
 						</ul>
 					)}
 
-					<small className='block font-medium text-sm leading-none'>
+					<small className="block font-medium text-sm leading-none">
 						Når du registrerer en bruker på ifinavet.no så godtar du IFI-Navets{" "}
 						<a
-							href='/info/personvernerklaering'
+							href="/info/personvernerklaering"
 							className="text-primary underline dark:text-primary-foreground"
 						>
 							personvernerklæring.
 						</a>
 					</small>
 
-					<Button type='submit' className="text-primary-foreground" disabled={loading}>
+					<Button type="submit" className="text-primary-foreground" disabled={loading}>
 						Opprett ny bruker
 					</Button>
 				</form>

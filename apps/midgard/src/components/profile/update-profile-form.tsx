@@ -79,15 +79,15 @@ export default function UpdateProfileForm({
 	return (
 		<Form {...form}>
 			<form onSubmit={form.handleSubmit(onSubmit)} className={cn(className, "space-y-8")}>
-				<div className='flex flex-col gap-4 md:flex-row'>
+				<div className="flex flex-col gap-4 md:flex-row">
 					<FormField
 						control={form.control}
-						name='firstname'
+						name="firstname"
 						render={({ field }) => (
-							<FormItem className='min-w-0 md:w-full'>
+							<FormItem className="min-w-0 md:w-full">
 								<FormLabel>Fornavn</FormLabel>
 								<FormControl>
-									<Input placeholder='Ola' {...field} disabled className='truncate' />
+									<Input placeholder="Ola" {...field} disabled className="truncate" />
 								</FormControl>
 								<FormMessage />
 							</FormItem>
@@ -95,12 +95,12 @@ export default function UpdateProfileForm({
 					/>
 					<FormField
 						control={form.control}
-						name='lastname'
+						name="lastname"
 						render={({ field }) => (
-							<FormItem className='min-w-0 md:w-full'>
+							<FormItem className="min-w-0 md:w-full">
 								<FormLabel>Etternavn</FormLabel>
 								<FormControl>
-									<Input placeholder='Nordmann' {...field} disabled className='truncate' />
+									<Input placeholder="Nordmann" {...field} disabled className="truncate" />
 								</FormControl>
 								<FormMessage />
 							</FormItem>
@@ -110,14 +110,14 @@ export default function UpdateProfileForm({
 
 				<FormField
 					control={form.control}
-					name='studyProgram'
+					name="studyProgram"
 					render={({ field }) => (
-						<FormItem className='w-full'>
+						<FormItem className="w-full">
 							<FormLabel>Studieprogram</FormLabel>
 							<FormControl>
 								<Select onValueChange={field.onChange} value={field.value}>
-									<SelectTrigger className='w-full truncate'>
-										<SelectValue placeholder='Velg et studieprogram' className='truncate' />
+									<SelectTrigger className="w-full truncate">
+										<SelectValue placeholder="Velg et studieprogram" className="truncate" />
 									</SelectTrigger>
 									<SelectContent>
 										{STUDY_PROGRAMS.map((program) => (
@@ -133,17 +133,17 @@ export default function UpdateProfileForm({
 					)}
 				/>
 
-				<div className='flex w-full flex-col gap-4 md:flex-row'>
+				<div className="flex w-full flex-col gap-4 md:flex-row">
 					<FormField
 						control={form.control}
-						name='degree'
+						name="degree"
 						render={({ field }) => (
-							<FormItem className='w-full min-w-0'>
+							<FormItem className="w-full min-w-0">
 								<FormLabel>Studiegrad</FormLabel>
 								<FormControl>
 									<Select onValueChange={field.onChange} value={field.value}>
-										<SelectTrigger className='w-full truncate'>
-											<SelectValue placeholder='Velg studie grad' className='truncate' />
+										<SelectTrigger className="w-full truncate">
+											<SelectValue placeholder="Velg studie grad" className="truncate" />
 										</SelectTrigger>
 										<SelectContent>
 											{DEGREE_TYPES.map((degree) => (
@@ -161,19 +161,21 @@ export default function UpdateProfileForm({
 
 					<FormField
 						control={form.control}
-						name='semester'
+						name="semester"
 						render={({ field }) => (
-							<FormItem className='w-full min-w-0'>
+							<FormItem className="w-full min-w-0">
 								<FormLabel>Semester</FormLabel>
 								<FormControl>
-									<Input type='number' min={1} max={10} {...field} className='truncate' />
+									<Input type="number" min={1} max={10} {...field} className="truncate" />
 								</FormControl>
 								<FormMessage />
 							</FormItem>
 						)}
 					/>
 				</div>
-				<Button type='submit' className="text-primary-foreground">Oppdater profil</Button>
+				<Button type="submit" className="text-primary-foreground">
+					Oppdater profil
+				</Button>
 			</form>
 		</Form>
 	);

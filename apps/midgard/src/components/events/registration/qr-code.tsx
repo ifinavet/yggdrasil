@@ -24,8 +24,8 @@ export default function QRCode({
 					<QRCodeSVG
 						value={currentUsersRegistration._id}
 						size={256}
-						fgColor='#2f3e5f'
-						bgColor='#f4f4f5'
+						fgColor="#2f3e5f"
+						bgColor="#f4f4f5"
 					/>
 				</div>
 			</ContainerCard>

@@ -19,7 +19,7 @@ export default function InformationGrid({ className }: { className?: string }) {
 			</GridEntry>
 			<GridEntry>
 				Det er anbefalt å inkludere noe å drikke og spise på under arrangementet.{""}
-				<span className='block text-muted-foreground'>
+				<span className="block text-muted-foreground">
 					Obs! Det er ikke tillatt å servere alkohol på instituttets område, med unntak av
 					studentpuben Escape.
 				</span>
@@ -30,9 +30,9 @@ export default function InformationGrid({ className }: { className?: string }) {
 
 function GridEntry({ children }: { children: React.ReactNode }) {
 	return (
-		<div className='flex items-center gap-4'>
-			<Image src={NavetNCircle} alt='Navet Logo' className='aspect-square size-8' />
-			<p className='text-balance leading-7'>{children}</p>
+		<div className="flex items-center gap-4">
+			<Image src={NavetNCircle} alt="Navet Logo" className="aspect-square size-8" />
+			<p className="text-balance leading-7">{children}</p>
 		</div>
 	);
 }

@@ -41,8 +41,8 @@ export default function RegistrationButton({
 	if (!currentUser || !isAuthenticated) {
 		return (
 			<Button
-				type='button'
-				className='w-1/2 rounded-xl bg-zinc-800 py-8 text-lg text-primary-foreground hover:cursor-pointer hover:bg-zinc-700'
+				type="button"
+				className="w-1/2 rounded-xl bg-zinc-800 py-8 text-lg text-primary-foreground hover:cursor-pointer hover:bg-zinc-700"
 				asChild
 			>
 				<Link href={`/sign-in?redirect=${path}`}>Logg inn</Link>
@@ -53,7 +53,7 @@ export default function RegistrationButton({
 	if (numberOfPoints >= 3 && !currentUsersRegistration && !currentUsersWaitlistRegistration) {
 		return (
 			<Button
-				type='button'
+				type="button"
 				className="!opacity-100 w-3/4 whitespace-normal text-balance rounded-xl bg-amber-600 py-8 text-lg text-primary-foreground hover:cursor-pointer hover:bg-zinc-700"
 				disabled
 			>

@@ -28,8 +28,8 @@ export default async function Points({ className }: Readonly<{ className?: strin
 				className,
 			)}
 		>
-			<div className='grid gap-6'>
-				<div className='flex w-full justify-center gap-4'>
+			<div className="grid gap-6">
+				<div className="flex w-full justify-center gap-4">
 					{Array.from({ length: 3 }).map((_, index) => {
 						const idx = index + 1;
 						return (
@@ -40,7 +40,9 @@ export default async function Points({ className }: Readonly<{ className?: strin
 						);
 					})}
 				</div>
-				<p className='text-sm text-zinc-600 tracking-normal dark:text-muted-foreground'>{getPointsText(numberOfPoints)}</p>
+				<p className="text-sm text-zinc-600 tracking-normal dark:text-muted-foreground">
+					{getPointsText(numberOfPoints)}
+				</p>
 			</div>
 			<p className="text-balance font-semibold text-lg text-primary tracking-tight dark:text-primary-foreground">
 				Ved tre prikker får du ikke mulighet til å melde deg på bedriftspresentasjoner i en måned
@@ -49,15 +51,15 @@ export default async function Points({ className }: Readonly<{ className?: strin
 				Navet har innført et prikksystem fordi sen eller manglende avmelding kan hindre andre
 				studenter i å delta på bedriftspresentasjoner.
 			</p>
-			<div className='grid gap-4'>
-				<p className='text-pretty font-semibold text-primary dark:text-primary-foreground'>
+			<div className="grid gap-4">
+				<p className="text-pretty font-semibold text-primary dark:text-primary-foreground">
 					Slik fungerer systemet:
 				</p>
 				<p>Avmedlingsfrist er 24 timer før arrangemenet starter.</p>
 
 				<div>
 					<p>Automatiske prikker:</p>
-					<ul className='grid gap-2'>
+					<ul className="grid gap-2">
 						<li>1. prikk - Sen avmelding</li>
 						<li>1. prikk - Sen oppmøte til arrangmenetet</li>
 						<li>2. prikker - Ikke møtt opp uten å melde seg av.</li>
@@ -72,7 +74,7 @@ export default async function Points({ className }: Readonly<{ className?: strin
 			<p>
 				Ved spørsmål kan du sende en epost til:{" "}
 				<a
-					href='mailto:arrangement@ifinavet.no'
+					href="mailto:arrangement@ifinavet.no"
 					className="cursor-pointer text-primary hover:underline dark:text-primary-foreground"
 				>
 					arrangement@ifinavet.no

@@ -33,18 +33,18 @@ export default async function RegistrationPage({
 	return (
 		<ResponsiveCenterContainer>
 			<Title>Det har blitt en ledig plass til deg!</Title>
-			<h2 className='mb-4 scroll-m-20 pb-2 text-center font-semibold text-3xl tracking-tight first:mt-0'>
+			<h2 className="mb-4 scroll-m-20 pb-2 text-center font-semibold text-3xl tracking-tight first:mt-0">
 				Arrangement: {event.title} den {humanReadableDate(new Date(event.eventStart))}
 			</h2>
 
 			{registration.status === "pending" ? (
 				<Register preloadedRegistration={preloadedRegistration} eventId={eventId} />
 			) : registration.status === "registered" ? (
-				<div className='text-center'>
+				<div className="text-center">
 					<p>Du er allerede registrert</p>
 				</div>
 			) : (
-				<div className='text-center'>
+				<div className="text-center">
 					<p>Du er på venteliste</p>
 				</div>
 			)}

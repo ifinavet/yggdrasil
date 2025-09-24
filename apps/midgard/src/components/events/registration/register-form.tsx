@@ -76,17 +76,17 @@ export default function RegisterForm({
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger asChild>
-				<Button className={className} type='button' onClick={() => setOpen(true)}>
+				<Button className={className} type="button" onClick={() => setOpen(true)}>
 					{waitlist ? "Det er fullt! Meld deg på venteliste" : "Meld deg på"}
 				</Button>
 			</DialogTrigger>
-			<DialogContent className='sm:min-w-[50ch] sm:max-w-[425px]'>
+			<DialogContent className="sm:min-w-[50ch] sm:max-w-[425px]">
 				<DialogHeader>
 					<DialogTitle>Meld meg på</DialogTitle>
-					<DialogDescription className=''>
+					<DialogDescription className="">
 						Meld deg på bedriftspresentasjonen! Dersom du har noen algerier eller andre ting vi
 						burde vite om, ber vi deg vennligst oppi dem nå.{" "}
-						<span className='font-bold'>
+						<span className="font-bold">
 							NB! Dersom du melder deg på sent, eller blir flyttet fra ventelisten sent, så er det
 							ikke sikker at vi kan ta hensyn til allergener.
 						</span>
@@ -96,7 +96,7 @@ export default function RegisterForm({
 					<form onSubmit={form.handleSubmit(onSubmit)}>
 						<FormField
 							control={form.control}
-							name='notes'
+							name="notes"
 							render={({ field }) => (
 								<FormItem>
 									<FormLabel>Allergier eller andre merknader</FormLabel>
@@ -110,13 +110,17 @@ export default function RegisterForm({
 				</Form>
 				<DialogFooter>
 					<DialogClose asChild>
-						<Button variant='outline'>Avbryt</Button>
+						<Button variant="outline">Avbryt</Button>
 					</DialogClose>
-					<Button type='submit' onClick={form.handleSubmit(onSubmit)} className="text-primary-foreground">
+					<Button
+						type="submit"
+						onClick={form.handleSubmit(onSubmit)}
+						className="text-primary-foreground"
+					>
 						Meld meg på {waitlist && "ventelisten"}!
 					</Button>
 				</DialogFooter>
 			</DialogContent>
-		</Dialog >
+		</Dialog>
 	);
 }
