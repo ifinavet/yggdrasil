@@ -24,15 +24,15 @@ export default async function Layout({ children }: { children: React.ReactNode }
 
 	return (
 		<>
-			<div className='flex flex-wrap justify-between'>
+			<div className="flex flex-wrap justify-between">
 				<Breadcrumb>
 					<BreadcrumbList>
 						<BreadcrumbItem>
-							<BreadcrumbLink href='/'>Hjem</BreadcrumbLink>
+							<BreadcrumbLink href="/">Hjem</BreadcrumbLink>
 						</BreadcrumbItem>
 						<BreadcrumbSeparator />
 						<BreadcrumbItem>
-							<BreadcrumbLink href='/events'>Arrangementer</BreadcrumbLink>
+							<BreadcrumbLink href="/events">Arrangementer</BreadcrumbLink>
 						</BreadcrumbItem>
 						<BreadcrumbSeparator />
 						<BreadcrumbItem>
@@ -41,15 +41,15 @@ export default async function Layout({ children }: { children: React.ReactNode }
 					</BreadcrumbList>
 				</Breadcrumb>
 
-				<div className='flex gap-4'>
-					<Button asChild variant='link'>
+				<div className="flex gap-4">
+					<Button asChild variant="link" className="dark:text-primary-foreground">
 						<Link href={`/events/${event_id}`}>
-							<Pencil className='sie-4' /> Rediger og Administer
+							<Pencil className="sie-4" /> Rediger og Administer
 						</Link>
 					</Button>
-					<Button asChild variant='link'>
+					<Button asChild variant="link" className="dark:text-primary-foreground">
 						<Link href={`/events/${event_id}/registrations`}>
-							<Users className='sie-4' /> Påmeldte
+							<Users className="sie-4" /> Påmeldte
 						</Link>
 					</Button>
 				</div>

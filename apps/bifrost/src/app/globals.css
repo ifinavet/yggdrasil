@@ -5,6 +5,7 @@
 }
 
 .dark {
+	--primary: oklch(0.3667 0.0606 264.93);
 	--primary-foreground: var(--color-slate-100);
 }
 
