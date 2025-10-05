@@ -159,7 +159,7 @@ export default async function OrganizationPage() {
 						</InternGroup>
 						<InternGroup name="Webteamet">
 							<p className="leading-7 [&:not(:first-child)]:mt-4">
-								Hjelp webasnvarlig med å vedlikeholde, teste, og utvikle nye funksjoner for Navets
+								Hjelp webansvarlig med å vedlikeholde, teste, og utvikle nye funksjoner for Navets
 								webplatform. Dette er en unik mulighet til å jobbe med et større system som brukes
 								av mange ifi-studenter daglig.
 							</p>
@@ -279,7 +279,10 @@ function BoardMember({
 			<div className="flex flex-col items-center">
 				<h3 className="text-pretty text-center font-semibold text-lg">{name}</h3>
 				<Button variant="link">
-					<a href={`mailto:${email}`} className="text-balance text-center">
+					<a
+						href={`mailto:${email}`}
+						className="text-balance text-center dark:text-primary-foreground"
+					>
 						{email}
 					</a>
 				</Button>

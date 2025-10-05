@@ -48,7 +48,7 @@ export default async function Points({ className }: Readonly<{ className?: strin
 				Ved tre prikker får du ikke mulighet til å melde deg på bedriftspresentasjoner i en måned
 			</p>
 			<p className="text-balance font-semibold text-lg text-primary tracking-tight dark:text-primary-foreground">
-				Navet har innført et prikksystem fordi sen eller manglende avmelding kan hindre andre
+				Navet har innført et prikksystem, der sen eller manglende avmelding kan hindre andre
 				studenter i å delta på bedriftspresentasjoner.
 			</p>
 			<div className="grid gap-4">

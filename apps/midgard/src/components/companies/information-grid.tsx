@@ -19,7 +19,7 @@ export default function InformationGrid({ className }: { className?: string }) {
 			</GridEntry>
 			<GridEntry>
 				Det er anbefalt å inkludere noe å drikke og spise på under arrangementet.{""}
-				<span className="block text-muted-foreground">
+				<span className="block italic">
 					Obs! Det er ikke tillatt å servere alkohol på instituttets område, med unntak av
 					studentpuben Escape.
 				</span>

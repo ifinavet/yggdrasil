@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 		template: "%s | Navet",
 	},
 	description:
-		"Navet er bedriftskontakten ved Institutt for Informatikk. Vi er binneleddet mellom studenene og bedriftene.",
+		"Navet er bedriftskontakten ved Institutt for Informatikk. Vi er binneleddet mellom studentene og bedriftene.",
 };
 
 export default function RootLayout({
