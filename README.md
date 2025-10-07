@@ -90,14 +90,9 @@ Yggdrasil is a modular, scalable monorepo designed to accelerate the development
 
 ## 🤝 How to Contribute
 
-We welcome contributions from all IFI-Navet collaborators! To ensure a smooth development process, please follow these guidelines:
+We welcome contributions from all IFI-Navet collaborators! 
 
--   **🌿 Branching:** Create a new feature branch for every new feature or bug fix (e.g., `feature/add-new-component` or `fix/login-bug`).
--   **✍️ Commits:** Write clear, concise, and conventional commit messages. This helps us understand the changes and automatically generate changelogs.
--   **🎨 Code Style:** Run `pnpm format-and-lint` before pushing to ensure your code adheres to our style guidelines.
--   **✅ Type Safety & Accessibility:** Ensure all code is fully typed and that UI components are accessible.
--   **📚 Documentation:** Document new features, components, or utilities to make them understandable for others.
--   **🚀 Pull Requests:** Open a Pull Request for review. All changes are subject to code review and CI checks.
+*We are currently working on a new set of guides to help contributors get the best possible experience when developing on our platform.*
 
 ---
 
