@@ -183,6 +183,12 @@ function LargeNavigation({ className }: Readonly<{ className?: string }>) {
 							<NavigationMenuContent className="z-10">
 								<div className="grid w-[300px] gap-4">
 									<NavigationMenuLink asChild>
+										<Link href="/students">
+											<div className="font-medium">For studenter</div>
+											<div className="text-muted-foreground">Nyttig informasjon for studenter!</div>
+										</Link>
+									</NavigationMenuLink>
+									<NavigationMenuLink asChild>
 										<Link href="/contact">
 											<div className="font-medium">Si Ifra</div>
 											<div className="text-muted-foreground">
