@@ -101,6 +101,6 @@ export const getFavorites = query({
 			.order("desc")
 			.collect();
 
-		return resources
+		return resources;
 	},
 });

@@ -81,76 +81,98 @@ export const clearWaitlistAndPending = internalMutation({
 		const eventsToClear = await ctx.db
 			.query("events")
 			.withIndex("by_eventStart", (q) =>
-				q.gte("eventStart", startOfDay.getTime()).lte("eventStart", endOfDay.getTime()))
+				q.gte("eventStart", startOfDay.getTime()).lte("eventStart", endOfDay.getTime()),
+			)
 			.collect();
 
 		const registrationsForEvents = await Promise.all(
 			eventsToClear.map(async (event) => {
 				const registrations = await ctx.db
 					.query("registrations")
-					.withIndex("by_eventId", q => q.eq("eventId", event._id))
+					.withIndex("by_eventId", (q) => q.eq("eventId", event._id))
 					.collect();
 
 				return {
 					event,
-					registrations
+					registrations,
 				};
 			}),
 		);
 
-		console.log(registrationsForEvents)
+		console.log(registrationsForEvents);
 
-		await Promise.all(registrationsForEvents.map(async ({ event, registrations }) => {
-			const availablePlaces = event.participationLimit - registrations.filter((reg) => reg.status === "registered").length;
-			if (availablePlaces === 0) return;
+		await Promise.all(
+			registrationsForEvents.map(async ({ event, registrations }) => {
+				const availablePlaces =
+					event.participationLimit -
+					registrations.filter((reg) => reg.status === "registered").length;
+				if (availablePlaces === 0) return;
 
-			// Delete and notify the students on the waitlist
-			await Promise.all(
-				registrations
-					.filter((reg) => reg.status !== "registered")
-					.map(async (reg) => {
-						const user = await ctx.db.get(reg.userId);
-						if (!user) {
+				// Delete and notify the students on the waitlist
+				await Promise.all(
+					registrations
+						.filter((reg) => reg.status !== "registered")
+						.map(async (reg) => {
+							const user = await ctx.db.get(reg.userId);
+							if (!user) {
+								await ctx.db.delete(reg._id);
+								return;
+							}
+
+							// Notify registrant of the free-for all
+							await ctx.scheduler.runAfter(0, internal.emails.sendFreeForAll, {
+								participantEmail: user.email,
+								eventId: event._id,
+								eventTitle: event.title,
+								availableSeats: availablePlaces,
+							});
+
+							// Delete registrations
 							await ctx.db.delete(reg._id);
-							return;
-						}
-
-						// Notify registrant of the free-for all
-						await ctx.scheduler.runAfter(0, internal.emails.sendFreeForAll, {
-							participantEmail: user.email,
-							eventId: event._id,
-							eventTitle: event.title,
-							availableSeats: availablePlaces,
-						});
-
-						// Delete registrations
-						await ctx.db.delete(reg._id);
-					}));
-		}));
+						}),
+				);
+			}),
+		);
 	},
 });
 
 export const fixWaitlist = internalMutation({
 	args: {
-		eventId: v.id("events")
+		eventId: v.id("events"),
 	},
 	handler: async (ctx, { eventId }) => {
-		const event = await ctx.db.get(eventId)
+		const event = await ctx.db.get(eventId);
 		if (!event) return "No event found";
 
-		const registrations = await ctx.db.query("registrations").withIndex("by_eventIdStatusAndRegistrationTime", q => q.eq("eventId", eventId).eq("status", "registered")).collect();
-		const pending = await ctx.db.query("registrations").withIndex("by_eventIdStatusAndRegistrationTime", q => q.eq("eventId", eventId).eq("status", "pending")).collect();
+		const registrations = await ctx.db
+			.query("registrations")
+			.withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
+				q.eq("eventId", eventId).eq("status", "registered"),
+			)
+			.collect();
+		const pending = await ctx.db
+			.query("registrations")
+			.withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
+				q.eq("eventId", eventId).eq("status", "pending"),
+			)
+			.collect();
 
 		console.log(registrations.length + pending.length, event.participationLimit);
 
-		const numRegisteredAndPending = (registrations.length + pending.length)
+		const numRegisteredAndPending = registrations.length + pending.length;
 		if (numRegisteredAndPending < event.participationLimit) {
-			const waitlist = await ctx.db.query("registrations").withIndex("by_eventIdStatusAndRegistrationTime", q => q.eq("eventId", eventId).eq("status", "waitlist")).collect();
+			const waitlist = await ctx.db
+				.query("registrations")
+				.withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
+					q.eq("eventId", eventId).eq("status", "waitlist"),
+				)
+				.collect();
 
-			await Promise.all(waitlist.slice(0, event.participationLimit - numRegisteredAndPending).map(async (reg) => {
-
-				await makeStatusPending(ctx, reg, event);
-			}))
+			await Promise.all(
+				waitlist.slice(0, event.participationLimit - numRegisteredAndPending).map(async (reg) => {
+					await makeStatusPending(ctx, reg, event);
+				}),
+			);
 		}
-	}
-})
+	},
+});

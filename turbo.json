@@ -1,17 +1,11 @@
 {
 	"$schema": "https://turbo.build/schema.json",
 	"ui": "tui",
-	"globalDependencies": [
-		".env"
-	],
+	"globalDependencies": [".env"],
 	"tasks": {
 		"build": {
-			"dependsOn": [
-				"^build"
-			],
-			"inputs": [
-				"$TURBO_DEFAULT$"
-			],
+			"dependsOn": ["^build"],
+			"inputs": ["$TURBO_DEFAULT$"],
 			"env": [
 				"NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
 				"CLERK_SECRET_KEY",
@@ -21,29 +15,18 @@
 				"SENTRY_AUTH_TOKEN",
 				"CONVEX_DEPLOY_KEY"
 			],
-			"outputs": [
-				".next/**",
-				"!.next/cache/**"
-			]
+			"outputs": [".next/**", "!.next/cache/**"]
 		},
 		"lint": {
-			"dependsOn": [
-				"^lint"
-			]
+			"dependsOn": ["^lint"]
 		},
 		"check-types": {
-			"dependsOn": [
-				"^check-types"
-			]
+			"dependsOn": ["^check-types"]
 		},
 		"dev": {
 			"cache": false,
 			"persistent": true,
-			"inputs": [
-				"$TURBO_DEFAULT$",
-				".env",
-				".env.local"
-			]
+			"inputs": ["$TURBO_DEFAULT$", ".env", ".env.local"]
 		},
 		"//#format-and-lint": {},
 		"//#format-and-lint:fix": {
@@ -54,14 +37,10 @@
 			"cache": false
 		},
 		"check": {
-			"dependsOn": [
-				"^check"
-			]
+			"dependsOn": ["^check"]
 		},
 		"check:fix": {
-			"dependsOn": [
-				"^check:fix"
-			],
+			"dependsOn": ["^check:fix"],
 			"cache": false
 		}
 	}

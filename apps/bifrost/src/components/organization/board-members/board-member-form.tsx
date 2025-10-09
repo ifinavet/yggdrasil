@@ -83,7 +83,7 @@ export default function BoardMemberForm({
 
 	if (!internalMembers)
 		return (
-			<Button variant='outline' size='sm' className={className} disabled>
+			<Button variant="outline" size="sm" className={className} disabled>
 				{button}
 			</Button>
 		);
@@ -91,7 +91,7 @@ export default function BoardMemberForm({
 	return (
 		<Dialog open={openDialog} onOpenChange={setOpenDialogAction}>
 			<DialogTrigger asChild>
-				<Button variant='outline' size='sm' className={className}>
+				<Button variant="outline" size="sm" className={className}>
 					{button}
 				</Button>
 			</DialogTrigger>
@@ -101,33 +101,33 @@ export default function BoardMemberForm({
 					<DialogDescription>{description}</DialogDescription>
 				</DialogHeader>
 				<Form {...form}>
-					<form onSubmit={form.handleSubmit(onSubmitAction)} className='space-y-8'>
+					<form onSubmit={form.handleSubmit(onSubmitAction)} className="space-y-8">
 						<FormField
 							control={form.control}
-							name='userId'
+							name="userId"
 							render={({ field }) => (
-								<FormItem className='flex flex-col'>
+								<FormItem className="flex flex-col">
 									<FormLabel>Ansvarlige</FormLabel>
 									<FormControl>
 										<Popover open={openMembers} onOpenChange={setOpenMembers}>
 											<PopoverTrigger asChild>
 												<Button
-													variant='outline'
+													variant="outline"
 													aria-expanded={openMembers}
-													className='w-[200px] justify-between'
-													type='button'
+													className="w-[200px] justify-between"
+													type="button"
 												>
 													{field.value
 														? internalMembers?.find(
-															(internalMember) => internalMember.userId === field.value,
-														)?.fullName
+																(internalMember) => internalMember.userId === field.value,
+															)?.fullName
 														: "Velg et medlem..."}
-													<ChevronsUpDown className='ml-2 h-4 w-4 shrink-0 opacity-50' />
+													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 												</Button>
 											</PopoverTrigger>
-											<PopoverContent className='w-[200px] p-0'>
+											<PopoverContent className="w-[200px] p-0">
 												<Command>
-													<CommandInput placeholder='Søk etter en ansvarlig...' />
+													<CommandInput placeholder="Søk etter en ansvarlig..." />
 													<CommandList>
 														<CommandEmpty>Fant ingen ansvarlige(er).</CommandEmpty>
 														<CommandGroup>
@@ -167,12 +167,12 @@ export default function BoardMemberForm({
 						/>
 						<FormField
 							control={form.control}
-							name='role'
+							name="role"
 							render={({ field }) => (
 								<FormItem>
 									<FormLabel>Rolle</FormLabel>
 									<FormControl>
-										<Input {...field} placeholder='f.eks. Leder' />
+										<Input {...field} placeholder="f.eks. Leder" />
 									</FormControl>
 									<FormDescription>Hva skal vervet hete?</FormDescription>
 									<FormMessage />
@@ -182,12 +182,12 @@ export default function BoardMemberForm({
 
 						<FormField
 							control={form.control}
-							name='group'
+							name="group"
 							render={({ field }) => (
 								<FormItem>
 									<FormLabel>Gruppe</FormLabel>
 									<FormControl>
-										<Input {...field} placeholder='f.eks. Webgruppen' />
+										<Input {...field} placeholder="f.eks. Webgruppen" />
 									</FormControl>
 									<FormDescription>Hva skal gruppen til vervet hete?</FormDescription>
 									<FormMessage />
@@ -197,12 +197,12 @@ export default function BoardMemberForm({
 
 						<FormField
 							control={form.control}
-							name='positionEmail'
+							name="positionEmail"
 							render={({ field }) => (
 								<FormItem>
 									<FormLabel>Rolle epost</FormLabel>
 									<FormControl>
-										<Input {...field} placeholder='f.eks. leder@ifinavet.no' />
+										<Input {...field} placeholder="f.eks. leder@ifinavet.no" />
 									</FormControl>
 									<FormDescription>
 										En valgri epost som bli brukt isteden for rolle inhaver sin egen.
@@ -214,27 +214,25 @@ export default function BoardMemberForm({
 
 						<FormField
 							control={form.control}
-							name='accessRole'
+							name="accessRole"
 							render={({ field }) => (
 								<FormItem>
 									<FormLabel>Tilgangsrolle</FormLabel>
 									<FormControl>
 										<Select onValueChange={field.onChange} defaultValue={field.value}>
 											<SelectTrigger>
-												<SelectValue placeholder='Velg tilgangsrolle' className="capitalize" />
+												<SelectValue placeholder="Velg tilgangsrolle" className="capitalize" />
 											</SelectTrigger>
 											<SelectContent>
 												{accessRights.map((accessRight) => (
-													<SelectItem value={accessRight} key={accessRight} className='capitalize'>
+													<SelectItem value={accessRight} key={accessRight} className="capitalize">
 														{accessRight}
 													</SelectItem>
 												))}
 											</SelectContent>
 										</Select>
 									</FormControl>
-									<FormDescription>
-										Hva slags tilgangsrolle skal denne personen ha?
-									</FormDescription>
+									<FormDescription>Hva slags tilgangsrolle skal denne personen ha?</FormDescription>
 									<FormMessage />
 								</FormItem>
 							)}
@@ -243,9 +241,9 @@ export default function BoardMemberForm({
 				</Form>
 				<DialogFooter>
 					<DialogClose asChild>
-						<Button variant='outline'>Avbryt</Button>
+						<Button variant="outline">Avbryt</Button>
 					</DialogClose>
-					<Button type='submit' onClick={form.handleSubmit(onSubmitAction)}>
+					<Button type="submit" onClick={form.handleSubmit(onSubmitAction)}>
 						Lagre
 					</Button>
 				</DialogFooter>

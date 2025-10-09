@@ -14,7 +14,7 @@ export default async function StudentsPage() {
 			<Breadcrumb>
 				<BreadcrumbList>
 					<BreadcrumbItem>
-						<BreadcrumbLink href='/'>Hjem</BreadcrumbLink>
+						<BreadcrumbLink href="/">Hjem</BreadcrumbLink>
 					</BreadcrumbItem>
 					<BreadcrumbSeparator />
 					<BreadcrumbItem>

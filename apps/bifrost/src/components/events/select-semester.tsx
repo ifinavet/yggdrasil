@@ -53,7 +53,7 @@ export default function SelectSemester(props: {
 			}}
 		>
 			<SelectTrigger>
-				<SelectValue placeholder='Velg et semester' />
+				<SelectValue placeholder="Velg et semester" />
 			</SelectTrigger>
 			<SelectContent>
 				{semesters?.map(({ year, semester }) => (

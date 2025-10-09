@@ -14,11 +14,11 @@ export default async function NewEvent() {
 			<Breadcrumb>
 				<BreadcrumbList>
 					<BreadcrumbItem>
-						<BreadcrumbLink href='/'>Hjem</BreadcrumbLink>
+						<BreadcrumbLink href="/">Hjem</BreadcrumbLink>
 					</BreadcrumbItem>
 					<BreadcrumbSeparator />
 					<BreadcrumbItem>
-						<BreadcrumbLink href='/events'>Arrangementer</BreadcrumbLink>
+						<BreadcrumbLink href="/events">Arrangementer</BreadcrumbLink>
 					</BreadcrumbItem>
 					<BreadcrumbSeparator />
 					<BreadcrumbItem>

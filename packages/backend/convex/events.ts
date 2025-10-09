@@ -383,26 +383,30 @@ export const upsertEventOrganizer = internalMutation({
 			.collect();
 
 		const organizersToRemove = eventOrganizers
-			.filter(org => !updatedOrganizers.some(({ userId }) => userId === org.userId))
-			.map(org => ctx.db.delete(org._id));
+			.filter((org) => !updatedOrganizers.some(({ userId }) => userId === org.userId))
+			.map((org) => ctx.db.delete(org._id));
 
-		const organizersToAdd = updatedOrganizers.filter(
-			({ userId }) => !eventOrganizers.some((org) => org.userId === userId),
-		).map(org => ctx.db.insert("eventOrganizers", {
-			eventId: id,
-			userId: org.userId,
-			role: org.role,
-		}));
+		const organizersToAdd = updatedOrganizers
+			.filter(({ userId }) => !eventOrganizers.some((org) => org.userId === userId))
+			.map((org) =>
+				ctx.db.insert("eventOrganizers", {
+					eventId: id,
+					userId: org.userId,
+					role: org.role,
+				}),
+			);
 
-		const organizersToUpdate = updatedOrganizers.filter(({ userId, role }) => {
-			const existing = eventOrganizers.find((org) => org.userId === userId);
-			return existing && existing.role !== role;
-		}).map(org => {
-			const existing = eventOrganizers.find((eOrg) => eOrg.userId === org.userId);
-			if (existing) {
-				ctx.db.patch(existing._id, { role: org.role });
-			}
-		});
+		const organizersToUpdate = updatedOrganizers
+			.filter(({ userId, role }) => {
+				const existing = eventOrganizers.find((org) => org.userId === userId);
+				return existing && existing.role !== role;
+			})
+			.map((org) => {
+				const existing = eventOrganizers.find((eOrg) => eOrg.userId === org.userId);
+				if (existing) {
+					ctx.db.patch(existing._id, { role: org.role });
+				}
+			});
 
 		await Promise.all([...organizersToRemove, ...organizersToAdd, ...organizersToUpdate]);
 	},
@@ -416,7 +420,7 @@ export const updateWaitlistMutation = internalMutation({
 	handler: async (ctx, { eventId, numOfNewPlaces }) => {
 		await updateWaitlist(ctx, eventId, numOfNewPlaces);
 	},
-})
+});
 
 export const updateWaitlist = async (
 	ctx: MutationCtx,

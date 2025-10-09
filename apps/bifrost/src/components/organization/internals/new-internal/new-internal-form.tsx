@@ -65,13 +65,13 @@ export default function InternalMemberForm({
 
 	const handleUserSelect = (user: Doc<"users"> | null) => {
 		setSelectedUser(user);
-		form.setValue('userId', user?._id || '');
+		form.setValue("userId", user?._id || "");
 	};
 
 	return (
 		<Dialog open={openDialog} onOpenChange={setOpenDialogAction}>
 			<DialogTrigger asChild>
-				<Button variant='default' size='sm' className={className}>
+				<Button variant="default" size="sm" className={className}>
 					{button}
 				</Button>
 			</DialogTrigger>
@@ -81,12 +81,12 @@ export default function InternalMemberForm({
 					<DialogDescription>{description}</DialogDescription>
 				</DialogHeader>
 				<Form {...form}>
-					<form onSubmit={form.handleSubmit(onSubmitAction)} className='space-y-8'>
+					<form onSubmit={form.handleSubmit(onSubmitAction)} className="space-y-8">
 						<FormField
 							control={form.control}
-							name='userId'
+							name="userId"
 							render={() => (
-								<FormItem className='flex flex-col'>
+								<FormItem className="flex flex-col">
 									<FormLabel>Velg bruker</FormLabel>
 									<FormControl>
 										<NewInternalSearch
@@ -99,12 +99,12 @@ export default function InternalMemberForm({
 						/>
 						<FormField
 							control={form.control}
-							name='group'
+							name="group"
 							render={({ field }) => (
 								<FormItem>
 									<FormLabel>Gruppe</FormLabel>
 									<FormControl>
-										<Input {...field} placeholder='f.eks. Webgruppen' />
+										<Input {...field} placeholder="f.eks. Webgruppen" />
 									</FormControl>
 									<FormDescription>Hva skal gruppen til vervet hete?</FormDescription>
 									<FormMessage />
@@ -115,9 +115,9 @@ export default function InternalMemberForm({
 				</Form>
 				<DialogFooter>
 					<DialogClose asChild>
-						<Button variant='outline'>Avbryt</Button>
+						<Button variant="outline">Avbryt</Button>
 					</DialogClose>
-					<Button type='submit' onClick={form.handleSubmit(onSubmitAction)}>
+					<Button type="submit" onClick={form.handleSubmit(onSubmitAction)}>
 						Lagre
 					</Button>
 				</DialogFooter>

@@ -26,52 +26,52 @@ export type Registration = {
 export const createColumns = (
 	onDelete: (pointId: Id<"points">) => void,
 ): ColumnDef<Registration>[] => [
-		{
-			id: "index",
-			header: "#",
-			cell: ({ row }) => {
-				return <span>{row.index + 1}</span>;
-			}
+	{
+		id: "index",
+		header: "#",
+		cell: ({ row }) => {
+			return <span>{row.index + 1}</span>;
 		},
-		{
-			accessorKey: "awaredTime",
-			header: "Tildelt tidspunkt",
-			cell: ({ row }) => {
-				return <>{humanReadableDate(row.original.awardedTime)}</>;
-			},
+	},
+	{
+		accessorKey: "awaredTime",
+		header: "Tildelt tidspunkt",
+		cell: ({ row }) => {
+			return <>{humanReadableDate(row.original.awardedTime)}</>;
 		},
-		{
-			accessorKey: "reason",
-			header: "Årsak",
+	},
+	{
+		accessorKey: "reason",
+		header: "Årsak",
+	},
+	{
+		accessorKey: "severity",
+		header: "Alvorlighet",
+	},
+	{
+		id: "actions",
+		cell: ({ row }) => {
+			return (
+				<AlertDialog>
+					<AlertDialogTrigger asChild>
+						<Button variant="destructive" size="icon">
+							<Trash className="size-4" />
+						</Button>
+					</AlertDialogTrigger>
+					<AlertDialogContent>
+						<AlertDialogTitle>Er du sikker?</AlertDialogTitle>
+						<AlertDialogDescription>
+							Du vil slette denne prikken? Dette er en irreversibel handling, og vil bli loggført.
+						</AlertDialogDescription>
+						<AlertDialogFooter>
+							<AlertDialogCancel>Avbryt</AlertDialogCancel>
+							<AlertDialogAction onClick={() => onDelete(row.original.pointId)}>
+								Slett
+							</AlertDialogAction>
+						</AlertDialogFooter>
+					</AlertDialogContent>
+				</AlertDialog>
+			);
 		},
-		{
-			accessorKey: "severity",
-			header: "Alvorlighet",
-		},
-		{
-			id: "actions",
-			cell: ({ row }) => {
-				return (
-					<AlertDialog>
-						<AlertDialogTrigger asChild>
-							<Button variant='destructive' size='icon'>
-								<Trash className='size-4' />
-							</Button>
-						</AlertDialogTrigger>
-						<AlertDialogContent>
-							<AlertDialogTitle>Er du sikker?</AlertDialogTitle>
-							<AlertDialogDescription>
-								Du vil slette denne prikken? Dette er en irreversibel handling, og vil bli loggført.
-							</AlertDialogDescription>
-							<AlertDialogFooter>
-								<AlertDialogCancel>Avbryt</AlertDialogCancel>
-								<AlertDialogAction onClick={() => onDelete(row.original.pointId)}>
-									Slett
-								</AlertDialogAction>
-							</AlertDialogFooter>
-						</AlertDialogContent>
-					</AlertDialog>
-				);
-			},
-		},
-	];
+	},
+];

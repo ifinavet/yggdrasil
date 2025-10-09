@@ -50,13 +50,13 @@ function EventsGridContent({
 	unpublishedEvents: Event[];
 }) {
 	return (
-		<div className='grid gap-6'>
+		<div className="grid gap-6">
 			{publishedEvents.length > 0 || unpublishedEvents.length > 0 ? (
 				<>
-					<h2 className='scroll-m-20 border-b pb-2 font-semibold text-2xl tracking-tight first:mt-0'>
+					<h2 className="scroll-m-20 border-b pb-2 font-semibold text-2xl tracking-tight first:mt-0">
 						Publiserte arrangementer
 					</h2>
-					<div className='grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
+					<div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
 						{publishedEvents.map((event) => (
 							<EventCard
 								key={event._id}
@@ -70,10 +70,10 @@ function EventsGridContent({
 							/>
 						))}
 					</div>
-					<h2 className='scroll-m-20 border-b pb-2 font-semibold text-2xl tracking-tight first:mt-0'>
+					<h2 className="scroll-m-20 border-b pb-2 font-semibold text-2xl tracking-tight first:mt-0">
 						Skjulte/Påbegynte arrangementer
 					</h2>
-					<div className='grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
+					<div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
 						{unpublishedEvents.map((event) => (
 							<EventCard
 								key={event._id}

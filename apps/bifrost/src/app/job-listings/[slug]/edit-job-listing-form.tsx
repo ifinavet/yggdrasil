@@ -11,9 +11,11 @@ import JobListingForm from "@/components/job-listings/job-listings-form/job-list
 import type { JobListingFormValues } from "@/constants/schemas/job-listing-form-schema";
 import { humanReadableDate } from "@/utils/utils";
 
-export default function EditJobListingForm({ listingId }: Readonly<{ listingId: Id<"jobListings"> }>) {
-	const jobListing = useQuery(api.listings.getById, { id: listingId })
-	const company = useQuery(api.companies.getById, jobListing ? { id: jobListing.company } : "skip")
+export default function EditJobListingForm({
+	listingId,
+}: Readonly<{ listingId: Id<"jobListings"> }>) {
+	const jobListing = useQuery(api.listings.getById, { id: listingId });
+	const company = useQuery(api.companies.getById, jobListing ? { id: jobListing.company } : "skip");
 
 	const postHog = usePostHog();
 

@@ -8,19 +8,15 @@ import { getCurrentUserOrThrow } from "./users";
 export const getAllPaged = query({
 	args: {
 		search: v.optional(v.string()),
-		paginationOpts: paginationOptsValidator
+		paginationOpts: paginationOptsValidator,
 	},
 	handler: async (ctx, { search, paginationOpts }) => {
-		const students = await (
-			(search && search.length > 0) ?
-				ctx.db
+		const students = await (search && search.length > 0
+			? ctx.db
 					.query("students")
 					.withSearchIndex("search_name", (q) => q.search("name", search))
 					.paginate(paginationOpts)
-				: ctx.db
-					.query("students")
-					.paginate(paginationOpts)
-		);
+			: ctx.db.query("students").paginate(paginationOpts));
 
 		const studentsWithLockedStatus = await Promise.all(
 			students.page.map(async (student) => {

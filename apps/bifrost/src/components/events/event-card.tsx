@@ -52,13 +52,13 @@ export default function EventCard({
 	}
 
 	return (
-		<div className='relative flex flex-col gap-6'>
+		<div className="relative flex flex-col gap-6">
 			<Card className={`h-full ${selected ? "outline-2 outline-primary" : ""}`}>
 				<CardHeader>
 					<CardTitle>{title}</CardTitle>
 					<CardDescription>{humanReadableDate(new Date(date))}</CardDescription>
 					<CardAction>
-						<div className='relative z-20'>
+						<div className="relative z-20">
 							<Checkbox
 								checked={selected}
 								onCheckedChange={(checked) => handleCheckboxChange(!!checked)}
@@ -66,25 +66,25 @@ export default function EventCard({
 						</div>
 					</CardAction>
 				</CardHeader>
-				<CardContent className='flex flex-1 flex-col gap-4'>
-					<div className='flex flex-row flex-wrap gap-2'>
+				<CardContent className="flex flex-1 flex-col gap-4">
+					<div className="flex flex-row flex-wrap gap-2">
 						<h3>
-							<span className='font-semibold'>Bedrift:</span> {companyName}
+							<span className="font-semibold">Bedrift:</span> {companyName}
 						</h3>
 					</div>
-					<div className='flex flex-wrap gap-2'>
+					<div className="flex flex-wrap gap-2">
 						{isExternal && <Badge>Externt arrangement</Badge>}
-						{!isPublished && <Badge variant='secondary'>Avpublisert</Badge>}
+						{!isPublished && <Badge variant="secondary">Avpublisert</Badge>}
 					</div>
 				</CardContent>
-				<CardFooter className='flex-col items-start gap-1.5 text-sm'>
-					<div className='line-clamp-1 flex gap-2 font-medium'>
-						<Users className='size-4' /> Ansvarlige
+				<CardFooter className="flex-col items-start gap-1.5 text-sm">
+					<div className="line-clamp-1 flex gap-2 font-medium">
+						<Users className="size-4" /> Ansvarlige
 					</div>
-					<div className='text-muted-foreground'>
+					<div className="text-muted-foreground">
 						{organizers.map((organizer) => (
 							<h3 key={organizer._id}>
-								<span className='font-semibold capitalize'>{organizer.role}: </span>
+								<span className="font-semibold capitalize">{organizer.role}: </span>
 								{organizer.name}
 							</h3>
 						))}
@@ -94,9 +94,9 @@ export default function EventCard({
 			<Link
 				href={`/events/${eventId}`}
 				aria-label={`Open event ${title}`}
-				className='absolute inset-0 z-10'
+				className="absolute inset-0 z-10"
 			>
-				<span className='sr-only'>Open event</span>
+				<span className="sr-only">Open event</span>
 			</Link>
 		</div>
 	);

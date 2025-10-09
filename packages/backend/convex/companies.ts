@@ -70,7 +70,10 @@ export const searchByName = query({
 		searchQuery: v.string(),
 	},
 	handler: async (ctx, { searchQuery }) => {
-		return await ctx.db.query("companies").withSearchIndex("search_name", q => q.search("name", searchQuery)).take(10);
+		return await ctx.db
+			.query("companies")
+			.withSearchIndex("search_name", (q) => q.search("name", searchQuery))
+			.take(10);
 	},
 });
 

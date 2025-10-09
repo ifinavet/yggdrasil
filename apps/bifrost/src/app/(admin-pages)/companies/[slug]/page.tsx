@@ -20,11 +20,11 @@ export default async function CreateCompany({
 			<Breadcrumb>
 				<BreadcrumbList>
 					<BreadcrumbItem>
-						<Link href='/'>Hjem</Link>
+						<Link href="/">Hjem</Link>
 					</BreadcrumbItem>
 					<BreadcrumbSeparator />
 					<BreadcrumbItem>
-						<Link href='/companies'>Bedrifter</Link>
+						<Link href="/companies">Bedrifter</Link>
 					</BreadcrumbItem>
 					<BreadcrumbSeparator />
 					<BreadcrumbItem>Administrer bedrift</BreadcrumbItem>

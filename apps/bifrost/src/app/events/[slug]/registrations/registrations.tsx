@@ -152,33 +152,33 @@ export function Registrations({
 		) ?? [];
 
 	return (
-		<Tabs defaultValue='registered'>
+		<Tabs defaultValue="registered">
 			<div className="flex w-full justify-between">
 				<TabsList>
-					<TabsTrigger value='registered'>Påmeldte</TabsTrigger>
-					<TabsTrigger value='waitlist' disabled={waitlistData.length === 0}>
+					<TabsTrigger value="registered">Påmeldte</TabsTrigger>
+					<TabsTrigger value="waitlist" disabled={waitlistData.length === 0}>
 						Venteliste
 					</TabsTrigger>
 				</TabsList>
 				<QRScannerDialog />
 			</div>
-			<TabsContent value='registered'>
+			<TabsContent value="registered">
 				<div className="my-2 flex flex-wrap items-center justify-between border-b">
-					<h2 className='scroll-m-20 font-semibold text-2xl tracking-tight first:mt-0'>Påmeldte</h2>
+					<h2 className="scroll-m-20 font-semibold text-2xl tracking-tight first:mt-0">Påmeldte</h2>
 
-					<div className='flex flex-wrap gap-2 md:gap-4'>
+					<div className="flex flex-wrap gap-2 md:gap-4">
 						<Popover>
 							<PopoverTrigger asChild>
-								<Button variant='outline' className='mb-3'>
+								<Button variant="outline" className="mb-3">
 									<Mails size={4} /> Send e-post
 								</Button>
 							</PopoverTrigger>
 							<PopoverContent>
-								<div className='flex flex-col gap-4'>
+								<div className="flex flex-col gap-4">
 									<Button
 										onClick={() => handleSendEmail(true, false)}
-										type='button'
-										variant='default'
+										type="button"
+										variant="default"
 									>
 										Send epost til deltakerne
 									</Button>
@@ -186,7 +186,7 @@ export function Registrations({
 								</div>
 							</PopoverContent>
 						</Popover>
-						<Button variant='outline' className='mb-3' onClick={handleCopyParticipantList}>
+						<Button variant="outline" className="mb-3" onClick={handleCopyParticipantList}>
 							<Copy size={4} /> Kopier deltakerliste
 						</Button>
 					</div>
@@ -194,21 +194,21 @@ export function Registrations({
 				<RegistrationsTable
 					columns={columns}
 					data={registeredData}
-					className='overflow-clip rounded-lg'
+					className="overflow-clip rounded-lg"
 				/>
 			</TabsContent>
 
-			<TabsContent value='waitlist'>
-				<div className='mt-4 mb-2'>
-					<h2 className='scroll-m-20 border-b pb-2 font-semibold text-2xl tracking-tight first:mt-0'>
+			<TabsContent value="waitlist">
+				<div className="mt-4 mb-2">
+					<h2 className="scroll-m-20 border-b pb-2 font-semibold text-2xl tracking-tight first:mt-0">
 						Venteliste
 					</h2>
 				</div>
 				<RegistrationsTable
 					columns={columns}
 					data={waitlistData}
-					empty_message='Ingen på venteliste'
-					className='overflow-clip rounded-lg'
+					empty_message="Ingen på venteliste"
+					className="overflow-clip rounded-lg"
 				/>
 			</TabsContent>
 		</Tabs>

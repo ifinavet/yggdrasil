@@ -37,98 +37,106 @@ export const createColumns = (
 	onDelete: (registrationId: Id<"registrations">) => void,
 	onRegister: (registrationId: Id<"registrations">, newStatus: string) => void,
 ): ColumnDef<Registration>[] => [
-		{
-			id: "index",
-			header: "#",
-			cell: ({ row }) => {
-				return <span>{row.index + 1}</span>;
+	{
+		id: "index",
+		header: "#",
+		cell: ({ row }) => {
+			return <span>{row.index + 1}</span>;
+		},
+	},
+	{
+		accessorKey: "userName",
+		header: "Navn",
+	},
+	{
+		accessorKey: "status",
+		header: "Status",
+		cell: ({ row }) => {
+			const norwegian: Record<string, string> = {
+				registered: "Registrert",
+				pending: "Venter",
+				waitlist: "På venteliste",
+			};
+
+			if (row.original.status === "pending") {
+				return (
+					<Badge variant="secondary" className="bg-amber-400 text-white">
+						Venter
+					</Badge>
+				);
 			}
-		},
-		{
-			accessorKey: "userName",
-			header: "Navn",
-		},
-		{
-			accessorKey: "status",
-			header: "Status",
-			cell: ({ row }) => {
-				const norwegian: Record<string, string> = {
-					registered: "Registrert",
-					pending: "Venter",
-					waitlist: "På venteliste",
-				};
-
-				if (row.original.status === "pending") {
-					return (
-						<Badge variant='secondary' className='bg-amber-400 text-white'>
-							Venter
-						</Badge>
-					);
-				}
-				if (row.original.status === "waitlist") {
-					return <Badge variant='default' className="bg-pink-500 text-white">{norwegian[row.original.status]}</Badge>;
-				}
-
-				return <Badge variant='default' className="text-white">{norwegian[row.original.status]}</Badge>;
-			},
-		},
-		{
-			accessorKey: "note",
-			header: "Bemærkninger",
-		},
-		{
-			accessorKey: "registrationTime",
-			header: "Påmeldings tidspunkt",
-			cell: ({ row }) => {
-				return <>{humanReadableDate(row.original.registrationTime)}</>;
-			},
-		},
-		{
-			accessorKey: "attendanceStatus",
-			header: "Status",
-			cell: ({ row }) => {
+			if (row.original.status === "waitlist") {
 				return (
-					<Select
-						defaultValue={row.original.attendanceStatus ?? ""}
-						onValueChange={(value) => onRegister(row.original.registrationId, value)}
-					>
-						<SelectTrigger className='w-[180px]'>
-							<SelectValue placeholder='Registrer påmeldte' />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value='confirmed'>Oppmøtt</SelectItem>
-							<SelectItem value='late'>Møtt sent</SelectItem>
-							<SelectItem value='no_show'>Ikke møtt</SelectItem>
-						</SelectContent>
-					</Select>
+					<Badge variant="default" className="bg-pink-500 text-white">
+						{norwegian[row.original.status]}
+					</Badge>
 				);
-			},
+			}
+
+			return (
+				<Badge variant="default" className="text-white">
+					{norwegian[row.original.status]}
+				</Badge>
+			);
 		},
-		{
-			id: "actions",
-			cell: ({ row }) => {
-				return (
-					<AlertDialog>
-						<AlertDialogTrigger asChild>
-							<Button variant='destructive' size='icon' >
-								<Trash className='size-4' />
-							</Button>
-						</AlertDialogTrigger>
-						<AlertDialogContent>
-							<AlertDialogTitle>Er du sikker?</AlertDialogTitle>
-							<AlertDialogDescription>
-								Du vil slette denne påmeldingen? Dette er en irreversibel handling, og vil bli
-								loggført.
-							</AlertDialogDescription>
-							<AlertDialogFooter>
-								<AlertDialogCancel>Avbryt</AlertDialogCancel>
-								<AlertDialogAction onClick={() => onDelete(row.original.registrationId)}>
-									Slett
-								</AlertDialogAction>
-							</AlertDialogFooter>
-						</AlertDialogContent>
-					</AlertDialog>
-				);
-			},
+	},
+	{
+		accessorKey: "note",
+		header: "Bemærkninger",
+	},
+	{
+		accessorKey: "registrationTime",
+		header: "Påmeldings tidspunkt",
+		cell: ({ row }) => {
+			return <>{humanReadableDate(row.original.registrationTime)}</>;
 		},
-	];
+	},
+	{
+		accessorKey: "attendanceStatus",
+		header: "Status",
+		cell: ({ row }) => {
+			return (
+				<Select
+					defaultValue={row.original.attendanceStatus ?? ""}
+					onValueChange={(value) => onRegister(row.original.registrationId, value)}
+				>
+					<SelectTrigger className="w-[180px]">
+						<SelectValue placeholder="Registrer påmeldte" />
+					</SelectTrigger>
+					<SelectContent>
+						<SelectItem value="confirmed">Oppmøtt</SelectItem>
+						<SelectItem value="late">Møtt sent</SelectItem>
+						<SelectItem value="no_show">Ikke møtt</SelectItem>
+					</SelectContent>
+				</Select>
+			);
+		},
+	},
+	{
+		id: "actions",
+		cell: ({ row }) => {
+			return (
+				<AlertDialog>
+					<AlertDialogTrigger asChild>
+						<Button variant="destructive" size="icon">
+							<Trash className="size-4" />
+						</Button>
+					</AlertDialogTrigger>
+					<AlertDialogContent>
+						<AlertDialogTitle>Er du sikker?</AlertDialogTitle>
+						<AlertDialogDescription>
+							Du vil slette denne påmeldingen? Dette er en irreversibel handling, og vil bli
+							loggført.
+						</AlertDialogDescription>
+						<AlertDialogFooter>
+							<AlertDialogCancel>Avbryt</AlertDialogCancel>
+							<AlertDialogAction onClick={() => onDelete(row.original.registrationId)}>
+								Slett
+							</AlertDialogAction>
+						</AlertDialogFooter>
+					</AlertDialogContent>
+				</AlertDialog>
+			);
+		},
+	},
+];

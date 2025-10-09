@@ -17,7 +17,7 @@ export default async function Resources() {
 			<Breadcrumb>
 				<BreadcrumbList>
 					<BreadcrumbItem>
-						<BreadcrumbLink href='/'>Hjem</BreadcrumbLink>
+						<BreadcrumbLink href="/">Hjem</BreadcrumbLink>
 					</BreadcrumbItem>
 					<BreadcrumbSeparator />
 					<BreadcrumbItem>
@@ -26,10 +26,10 @@ export default async function Resources() {
 				</BreadcrumbList>
 			</Breadcrumb>
 
-			<div className='flex justify-end'>
+			<div className="flex justify-end">
 				<Button asChild>
-					<Link href='/resources/new-resource'>
-						<Plus className='size-4' /> Lag en ny ressurs
+					<Link href="/resources/new-resource">
+						<Plus className="size-4" /> Lag en ny ressurs
 					</Link>
 				</Button>
 			</div>

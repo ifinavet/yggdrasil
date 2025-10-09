@@ -28,7 +28,7 @@ export function PointsTable<TData, TValue>({
 	});
 
 	return (
-		<div className='overflow-clip rounded-md border'>
+		<div className="overflow-clip rounded-md border">
 			<Table>
 				<TableHeader>
 					{table.getHeaderGroups().map((headerGroup) => (
@@ -56,7 +56,7 @@ export function PointsTable<TData, TValue>({
 						))
 					) : (
 						<TableRow>
-							<TableCell colSpan={columns.length} className='text-center'>
+							<TableCell colSpan={columns.length} className="text-center">
 								{empty_message}
 							</TableCell>
 						</TableRow>

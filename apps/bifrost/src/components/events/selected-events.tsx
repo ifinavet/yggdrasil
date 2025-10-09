@@ -63,12 +63,12 @@ export default function SelectedEvents() {
 
 	return (
 		selectedEvents.length > 0 && (
-			<div className='flex gap-4'>
+			<div className="flex gap-4">
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
-						<Button variant='outline' className='group'>
+						<Button variant="outline" className="group">
 							Oppdater {selectedEvents.length} valgte arrangementer
-							<ChevronDown className='ml-2 h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180' />
+							<ChevronDown className="ml-2 h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
 						</Button>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent>

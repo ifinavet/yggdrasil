@@ -115,8 +115,8 @@ export const upsertBoardMember = mutation({
 
 		await ctx.runMutation(api.accsessRights.upsertAccessRights, {
 			userId,
-			role
-		})
+			role,
+		});
 
 		if (currentBoardMember.userId !== userId) {
 			await ctx.db.patch(id, {

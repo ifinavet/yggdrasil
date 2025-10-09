@@ -25,7 +25,7 @@ export default function JobListingsLoading() {
 			<Breadcrumb>
 				<BreadcrumbList>
 					<BreadcrumbItem>
-						<BreadcrumbLink href='/'>Hjem</BreadcrumbLink>
+						<BreadcrumbLink href="/">Hjem</BreadcrumbLink>
 					</BreadcrumbItem>
 					<BreadcrumbSeparator />
 					<BreadcrumbItem>
@@ -34,36 +34,36 @@ export default function JobListingsLoading() {
 				</BreadcrumbList>
 			</Breadcrumb>
 
-			<div className='flex justify-end'>
+			<div className="flex justify-end">
 				<Button asChild>
 					<span>
-						<Plus className='size-4' /> Opprett en ny stillingsannonse
+						<Plus className="size-4" /> Opprett en ny stillingsannonse
 					</span>
 				</Button>
 			</div>
 
-			<Tabs defaultValue='published' className='w-full'>
-				<TabsList className='grid w-full grid-cols-2'>
-					<TabsTrigger value='published'>
-						<Skeleton className='h-4 w-24' />
+			<Tabs defaultValue="published" className="w-full">
+				<TabsList className="grid w-full grid-cols-2">
+					<TabsTrigger value="published">
+						<Skeleton className="h-4 w-24" />
 					</TabsTrigger>
-					<TabsTrigger value='unpublished'>
-						<Skeleton className='h-4 w-24' />
+					<TabsTrigger value="unpublished">
+						<Skeleton className="h-4 w-24" />
 					</TabsTrigger>
 				</TabsList>
 
-				<TabsContent value='published' className='mt-6'>
+				<TabsContent value="published" className="mt-6">
 					<Table>
 						<TableHeader>
 							<TableRow>
 								<TableHead>
-									<Skeleton className='h-4 w-16' />
+									<Skeleton className="h-4 w-16" />
 								</TableHead>
 								<TableHead>
-									<Skeleton className='h-4 w-20' />
+									<Skeleton className="h-4 w-20" />
 								</TableHead>
 								<TableHead>
-									<Skeleton className='h-4 w-12' />
+									<Skeleton className="h-4 w-12" />
 								</TableHead>
 							</TableRow>
 						</TableHeader>
@@ -71,13 +71,13 @@ export default function JobListingsLoading() {
 							{Array.from({ length: 3 }).map(() => (
 								<TableRow key={`published-skeleton-row-${Math.random()}`}>
 									<TableCell>
-										<Skeleton className='h-4 w-48' />
+										<Skeleton className="h-4 w-48" />
 									</TableCell>
 									<TableCell>
-										<Skeleton className='h-4 w-24' />
+										<Skeleton className="h-4 w-24" />
 									</TableCell>
 									<TableCell>
-										<Skeleton className='h-8 w-16 rounded-md' />
+										<Skeleton className="h-8 w-16 rounded-md" />
 									</TableCell>
 								</TableRow>
 							))}
@@ -85,21 +85,21 @@ export default function JobListingsLoading() {
 					</Table>
 				</TabsContent>
 
-				<TabsContent value='unpublished' className='mt-6'>
-					<div className='space-y-8'>
+				<TabsContent value="unpublished" className="mt-6">
+					<div className="space-y-8">
 						<div>
-							<Skeleton className='mb-4 h-6 w-64' />
+							<Skeleton className="mb-4 h-6 w-64" />
 							<Table>
 								<TableHeader>
 									<TableRow>
 										<TableHead>
-											<Skeleton className='h-4 w-16' />
+											<Skeleton className="h-4 w-16" />
 										</TableHead>
 										<TableHead>
-											<Skeleton className='h-4 w-20' />
+											<Skeleton className="h-4 w-20" />
 										</TableHead>
 										<TableHead>
-											<Skeleton className='h-4 w-12' />
+											<Skeleton className="h-4 w-12" />
 										</TableHead>
 									</TableRow>
 								</TableHeader>
@@ -107,13 +107,13 @@ export default function JobListingsLoading() {
 									{Array.from({ length: 2 }).map(() => (
 										<TableRow key={`active-skeleton-row-${Math.random()}`}>
 											<TableCell>
-												<Skeleton className='h-4 w-48' />
+												<Skeleton className="h-4 w-48" />
 											</TableCell>
 											<TableCell>
-												<Skeleton className='h-4 w-24' />
+												<Skeleton className="h-4 w-24" />
 											</TableCell>
 											<TableCell>
-												<Skeleton className='h-8 w-16 rounded-md' />
+												<Skeleton className="h-8 w-16 rounded-md" />
 											</TableCell>
 										</TableRow>
 									))}
@@ -122,18 +122,18 @@ export default function JobListingsLoading() {
 						</div>
 
 						<div>
-							<Skeleton className='mb-4 h-6 w-72' />
+							<Skeleton className="mb-4 h-6 w-72" />
 							<Table>
 								<TableHeader>
 									<TableRow>
 										<TableHead>
-											<Skeleton className='h-4 w-16' />
+											<Skeleton className="h-4 w-16" />
 										</TableHead>
 										<TableHead>
-											<Skeleton className='h-4 w-20' />
+											<Skeleton className="h-4 w-20" />
 										</TableHead>
 										<TableHead>
-											<Skeleton className='h-4 w-12' />
+											<Skeleton className="h-4 w-12" />
 										</TableHead>
 									</TableRow>
 								</TableHeader>
@@ -141,13 +141,13 @@ export default function JobListingsLoading() {
 									{Array.from({ length: 1 }).map(() => (
 										<TableRow key={`expired-skeleton-row-${Math.random()}`}>
 											<TableCell>
-												<Skeleton className='h-4 w-48' />
+												<Skeleton className="h-4 w-48" />
 											</TableCell>
 											<TableCell>
-												<Skeleton className='h-4 w-24' />
+												<Skeleton className="h-4 w-24" />
 											</TableCell>
 											<TableCell>
-												<Skeleton className='h-8 w-16 rounded-md' />
+												<Skeleton className="h-8 w-16 rounded-md" />
 											</TableCell>
 										</TableRow>
 									))}

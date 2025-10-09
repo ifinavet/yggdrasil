@@ -44,20 +44,20 @@ export default function NewInternalSearch({
 					<DialogDescription>
 						Søk etter eposten til en bruker for å velge vedkomende til å bli intern.
 					</DialogDescription>
-					<div className='space-y-6'>
+					<div className="space-y-6">
 						<Input
-							placeholder='eks. olanord@uio.no'
-							type='text'
+							placeholder="eks. olanord@uio.no"
+							type="text"
 							onChange={(e) => {
 								setSearchInput(e.target.value);
 							}}
 						/>
-						<ScrollArea className='max-h-40'>
+						<ScrollArea className="max-h-40">
 							{users.results.map((user) => (
 								<DialogClose key={user._id} asChild>
 									<Button
-										type='button'
-										variant='ghost'
+										type="button"
+										variant="ghost"
 										onClick={() => setSelectedUserAction(user)}
 										className="mb-2 flex w-full justify-start"
 									>
@@ -66,10 +66,11 @@ export default function NewInternalSearch({
 								</DialogClose>
 							))}
 						</ScrollArea>
-						<Button disabled={users.status !== "CanLoadMore"}>{
-							users.status === "LoadingFirstPage" || users.status === "LoadingMore"
+						<Button disabled={users.status !== "CanLoadMore"}>
+							{users.status === "LoadingFirstPage" || users.status === "LoadingMore"
 								? "Laster..."
-								: "Last inn flere"}</Button>
+								: "Last inn flere"}
+						</Button>
 					</div>
 				</DialogHeader>
 			</DialogContent>

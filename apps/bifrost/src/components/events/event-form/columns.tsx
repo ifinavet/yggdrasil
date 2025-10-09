@@ -23,46 +23,46 @@ export const createColumns = (
 	onRoleChange: (userId: Id<"users">, newRole: OrganizerRole) => void,
 	onDelete: (userId: Id<"users">) => void,
 ): ColumnDef<Organizer>[] => [
-		{
-			accessorKey: "name",
-			header: "Navn",
+	{
+		accessorKey: "name",
+		header: "Navn",
+	},
+	{
+		id: "role",
+		accessorKey: "role",
+		header: "Rolle",
+		cell: ({ row }) => {
+			return (
+				<Select
+					defaultValue={row.original.role}
+					onValueChange={(value) => onRoleChange(row.original.id, value as OrganizerRole)}
+				>
+					<SelectTrigger className="w-[180px]">
+						<SelectValue placeholder="Ansvarlig type" />
+					</SelectTrigger>
+					<SelectContent>
+						<SelectItem value="medhjelper">Medhjelper</SelectItem>
+						<SelectItem value="hovedansvarlig">Hovedansvarlig</SelectItem>
+					</SelectContent>
+				</Select>
+			);
 		},
-		{
-			id: "role",
-			accessorKey: "role",
-			header: "Rolle",
-			cell: ({ row }) => {
-				return (
-					<Select
-						defaultValue={row.original.role}
-						onValueChange={(value) => onRoleChange(row.original.id, value as OrganizerRole)}
+	},
+	{
+		id: "actions",
+		cell: ({ row }) => {
+			return (
+				<div className="text-right">
+					<Button
+						variant="destructive"
+						size="icon"
+						onClick={() => onDelete(row.original.id)}
+						title={`Fjern ${row.original.name} som arrangør`}
 					>
-						<SelectTrigger className='w-[180px]'>
-							<SelectValue placeholder='Ansvarlig type' />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value='medhjelper'>Medhjelper</SelectItem>
-							<SelectItem value='hovedansvarlig'>Hovedansvarlig</SelectItem>
-						</SelectContent>
-					</Select>
-				);
-			},
+						<Trash2 className="size-4" />
+					</Button>
+				</div>
+			);
 		},
-		{
-			id: "actions",
-			cell: ({ row }) => {
-				return (
-					<div className='text-right'>
-						<Button
-							variant='destructive'
-							size='icon'
-							onClick={() => onDelete(row.original.id)}
-							title={`Fjern ${row.original.name} som arrangør`}
-						>
-							<Trash2 className='size-4' />
-						</Button>
-					</div>
-				);
-			},
-		},
-	];
+	},
+];

@@ -122,50 +122,50 @@ const LinkMain: React.FC<LinkMainProps> = ({ url, setUrl, setLink, removeLink, i
 	};
 
 	return (
-		<div className='flex gap-2'>
+		<div className="flex gap-2">
 			<Input
-				type='url'
-				placeholder='Paste a link...'
+				type="url"
+				placeholder="Paste a link..."
 				value={url}
 				onChange={(e) => setUrl(e.target.value)}
 				onKeyDown={handleKeyDown}
-				autoComplete='off'
-				autoCorrect='off'
-				autoCapitalize='off'
-				className='min-w-[200px]'
+				autoComplete="off"
+				autoCorrect="off"
+				autoCapitalize="off"
+				className="min-w-[200px]"
 			/>
 
-			<div className='tiptap-button-group' data-orientation='horizontal'>
+			<div className="tiptap-button-group" data-orientation="horizontal">
 				<Button
-					type='button'
+					type="button"
 					onClick={setLink}
-					title='Apply link'
+					title="Apply link"
 					disabled={!url && !isActive}
-					variant='ghost'
+					variant="ghost"
 				>
 					<CornerDownLeft size={18} />
 				</Button>
 			</div>
 
-			<Separator orientation='vertical' className='data-[orientation=vertical]:h-8' />
+			<Separator orientation="vertical" className="data-[orientation=vertical]:h-8" />
 
-			<div className='flex gap-2'>
+			<div className="flex gap-2">
 				<Button
-					type='button'
+					type="button"
 					onClick={() => window.open(url, "_blank")}
-					title='Open in new window'
+					title="Open in new window"
 					disabled={!url && !isActive}
-					variant='ghost'
+					variant="ghost"
 				>
 					<ExternalLink size={18} />
 				</Button>
 
 				<Button
-					type='button'
+					type="button"
 					onClick={removeLink}
-					title='Remove link'
+					title="Remove link"
 					disabled={!url && !isActive}
-					variant='ghost'
+					variant="ghost"
 				>
 					<Trash size={18} />
 				</Button>
@@ -266,20 +266,20 @@ export function LinkPopover({
 		<Popover open={isOpen} onOpenChange={handleOnOpenChange}>
 			<PopoverTrigger asChild>
 				<Button
-					type='button'
-					variant='ghost'
+					type="button"
+					variant="ghost"
 					tabIndex={-1}
-					aria-label='Link'
+					aria-label="Link"
 					disabled={isDisabled}
 					data-active-state={isActive ? "on" : "off"}
 					data-disabled={isDisabled}
-					className='p-1'
+					className="p-1"
 				>
 					<Link size={18} />
 				</Button>
 			</PopoverTrigger>
 
-			<PopoverContent className='w-fit'>
+			<PopoverContent className="w-fit">
 				<LinkMain {...linkHandler} />
 			</PopoverContent>
 		</Popover>

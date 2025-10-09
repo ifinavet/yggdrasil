@@ -88,8 +88,8 @@ export const EditorMenu = memo(function EditorMenu({ editor }: { editor: Editor 
 	}
 
 	return (
-		<div className='flex flex-wrap gap-4 bg-zinc-50 p-2 dark:bg-zinc-900'>
-			<div className='flex gap-2'>
+		<div className="flex flex-wrap gap-4 bg-zinc-50 p-2 dark:bg-zinc-900">
+			<div className="flex gap-2">
 				<ToolButton
 					editor={editor}
 					onButtonClick={toggleHeading1}
@@ -112,8 +112,8 @@ export const EditorMenu = memo(function EditorMenu({ editor }: { editor: Editor 
 					<Heading3 size={18} />
 				</ToolButton>
 			</div>
-			<Separator orientation='vertical' className='data-[orientation=vertical]:h-8' />
-			<div className='flex gap-2'>
+			<Separator orientation="vertical" className="data-[orientation=vertical]:h-8" />
+			<div className="flex gap-2">
 				<ToolButton editor={editor} onButtonClick={toggleBold} isActive={editor.isActive("bold")}>
 					<Bold size={18} />
 				</ToolButton>
@@ -149,8 +149,8 @@ export const EditorMenu = memo(function EditorMenu({ editor }: { editor: Editor 
 					<Underline size={18} />
 				</ToolButton>
 			</div>
-			<Separator orientation='vertical' className='data-[orientation=vertical]:h-8' />
-			<div className='flex gap-2'>
+			<Separator orientation="vertical" className="data-[orientation=vertical]:h-8" />
+			<div className="flex gap-2">
 				<ToolButton
 					editor={editor}
 					onButtonClick={toggleBulletList}
@@ -169,11 +169,11 @@ const ContentEditor = memo(function ContentEditor({ editor }: { editor: Editor |
 	}
 
 	return (
-		<div className='flex max-w-full flex-col-reverse overflow-hidden rounded-lg border border-gray'>
-			<div className='wrap-break-word horizontal no-scrollbar mb-2 h-96 w-full overflow-scroll overflow-x-hidden scroll-auto'>
+		<div className="flex max-w-full flex-col-reverse overflow-hidden rounded-lg border border-gray">
+			<div className="wrap-break-word horizontal no-scrollbar mb-2 h-96 w-full overflow-scroll overflow-x-hidden scroll-auto">
 				<EditorContent
 					editor={editor}
-					className='max-h-24 max-w-[80ch] scroll-auto text-black sm:p-2 dark:text-white'
+					className="max-h-24 max-w-[80ch] scroll-auto text-black sm:p-2 dark:text-white"
 				/>
 			</div>
 			<Separator />

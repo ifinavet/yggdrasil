@@ -81,8 +81,7 @@ export default function QRScannerDialog({
 					newStatus,
 					registrationId,
 				});
-			}
-			)
+			})
 			.catch((e) => {
 				toast.error("An error occurred, please try again or register manually.", {
 					description:

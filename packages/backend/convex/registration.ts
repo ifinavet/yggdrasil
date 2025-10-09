@@ -140,7 +140,7 @@ export const updateAttendance = mutation({
 		await ctx.db.patch(id, {
 			attendanceStatus: newStatus,
 			attendanceTime: Date.now(),
-			status: registration.status === "pending" ? "registered" : registration.status
+			status: registration.status === "pending" ? "registered" : registration.status,
 		});
 
 		if (registration.status !== "registered") return;
@@ -244,7 +244,9 @@ export const unregister = mutation({
 
 		const event = await ctx.db.get(registration.eventId);
 		if (!event) {
-			throw new Error(`Arrangement med ID ${registration.eventId} ble ikke funnet.Kan ikke behandle ventelisten.`);
+			throw new Error(
+				`Arrangement med ID ${registration.eventId} ble ikke funnet.Kan ikke behandle ventelisten.`,
+			);
 		}
 
 		await ctx.db.delete(id);
@@ -256,7 +258,10 @@ export const unregister = mutation({
 
 		if (registration.status === "waitlist") return returnData;
 
-		if (event.eventStart - Date.now() < 24 * 60 * 60 * 1000 && registration.status === "registered") {
+		if (
+			event.eventStart - Date.now() < 24 * 60 * 60 * 1000 &&
+			registration.status === "registered"
+		) {
 			const student = await ctx.db
 				.query("students")
 				.withIndex("by_userId", (q) => q.eq("userId", registration.userId))

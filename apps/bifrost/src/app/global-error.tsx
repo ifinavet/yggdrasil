@@ -10,7 +10,7 @@ export default function GlobalError({ error }: { error: Error & { digest?: strin
 	}, [error]);
 
 	return (
-		<html lang='no'>
+		<html lang="no">
 			<body>
 				<NextError statusCode={0} />
 			</body>

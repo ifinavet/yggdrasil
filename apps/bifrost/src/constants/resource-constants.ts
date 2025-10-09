@@ -7,8 +7,8 @@ import {
 	MessageCircleQuestionIcon,
 	PencilIcon,
 	RocketIcon,
-	TurtleIcon
-} from "lucide-react"
+	TurtleIcon,
+} from "lucide-react";
 
 export const cardColors = {
 	blue: "from-sky-200 to-blue-800",
@@ -20,7 +20,7 @@ export const cardColors = {
 	orange: "from-amber-200 to-orange-600",
 	pink: "from-rose-200 to-pink-600",
 	slate: "from-slate-200 to-slate-600",
-}
+};
 
 export const cardIcons = {
 	pencil: PencilIcon,
@@ -31,5 +31,5 @@ export const cardIcons = {
 	company: BuildingIcon,
 	list: ClipboardListIcon,
 	rocket: RocketIcon,
-	turtle: TurtleIcon
-}
+	turtle: TurtleIcon,
+};

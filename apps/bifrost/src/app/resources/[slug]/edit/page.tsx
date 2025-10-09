@@ -7,9 +7,9 @@ import {
 	BreadcrumbPage,
 	BreadcrumbSeparator,
 } from "@workspace/ui/components//breadcrumb";
-import EditResourceForm from "./edit-resource-form";
-import { hasEditRights } from "@/utils/auth";
 import { redirect } from "next/navigation";
+import { hasEditRights } from "@/utils/auth";
+import EditResourceForm from "./edit-resource-form";
 
 export default async function EditResourcePage({
 	params,
@@ -25,11 +25,11 @@ export default async function EditResourcePage({
 			<Breadcrumb>
 				<BreadcrumbList>
 					<BreadcrumbItem>
-						<BreadcrumbLink href='/'>Hjem</BreadcrumbLink>
+						<BreadcrumbLink href="/">Hjem</BreadcrumbLink>
 					</BreadcrumbItem>
 					<BreadcrumbSeparator />
 					<BreadcrumbItem>
-						<BreadcrumbLink href='/resources'>Ressurser</BreadcrumbLink>
+						<BreadcrumbLink href="/resources">Ressurser</BreadcrumbLink>
 					</BreadcrumbItem>
 					<BreadcrumbSeparator />
 					<BreadcrumbItem>

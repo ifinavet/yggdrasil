@@ -36,11 +36,11 @@ export default async function StudentPage({
 			<Breadcrumb>
 				<BreadcrumbList>
 					<BreadcrumbItem>
-						<BreadcrumbLink href='/'>Hjem</BreadcrumbLink>
+						<BreadcrumbLink href="/">Hjem</BreadcrumbLink>
 					</BreadcrumbItem>
 					<BreadcrumbSeparator />
 					<BreadcrumbItem>
-						<BreadcrumbLink href='/students'>Studenter</BreadcrumbLink>
+						<BreadcrumbLink href="/students">Studenter</BreadcrumbLink>
 					</BreadcrumbItem>
 					<BreadcrumbSeparator />
 					<BreadcrumbItem>
@@ -49,20 +49,20 @@ export default async function StudentPage({
 				</BreadcrumbList>
 			</Breadcrumb>
 
-			<h3 className='scroll-m-20 font-semibold text-2xl tracking-tight'>Administer student</h3>
+			<h3 className="scroll-m-20 font-semibold text-2xl tracking-tight">Administer student</h3>
 
 			<UpdateStudentForm preloadedStudent={preloadedStudent} />
 
-			<p className='text-muted-foreground text-sm'>
+			<p className="text-muted-foreground text-sm">
 				NB! Dersom du trenger å låse opp studenten, eller endre noen andre ting som ikke er her gå
 				til clerk dashboardet.
 			</p>
 
-			<h3 className='scroll-m-20 font-semibold text-2xl tracking-tight'>Prikker</h3>
-			<div className='flex flex-col gap-4'>
+			<h3 className="scroll-m-20 font-semibold text-2xl tracking-tight">Prikker</h3>
+			<div className="flex flex-col gap-4">
 				<Dialog>
 					<DialogTrigger asChild>
-						<Button className='self-end' variant='outline'>
+						<Button className="self-end" variant="outline">
 							Gi prikk(er)
 						</Button>
 					</DialogTrigger>

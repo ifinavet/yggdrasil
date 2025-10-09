@@ -6,7 +6,7 @@ import UpdateEventForm from "./update-event-form";
 export default async function EventPage({ params }: { params: Promise<{ slug: Id<"events"> }> }) {
 	const { slug: eventId } = await params;
 
-	const event = await preloadQuery(api.events.getById, { id: eventId })
+	const event = await preloadQuery(api.events.getById, { id: eventId });
 
-	return <UpdateEventForm preloadedEvent={event} />
+	return <UpdateEventForm preloadedEvent={event} />;
 }

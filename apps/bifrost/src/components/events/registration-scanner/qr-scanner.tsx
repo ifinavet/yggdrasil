@@ -170,23 +170,23 @@ export default function QRScannerControlled({
 
 	return (
 		<div className="grid max-w-[480px] gap-2">
-			<div className='relative aspect-square w-full overflow-hidden rounded-lg bg-black'>
+			<div className="relative aspect-square w-full overflow-hidden rounded-lg bg-black">
 				<video
 					ref={videoRef}
 					playsInline
-					className='absolute inset-0 z-0 h-full w-full object-cover'
-					aria-label='QR scanner camera preview'
+					className="absolute inset-0 z-0 h-full w-full object-cover"
+					aria-label="QR scanner camera preview"
 					muted
 				>
-					<track kind='captions' src='' label='captions' />
+					<track kind="captions" src="" label="captions" />
 				</video>
 				{(!running || paused) && (
-					<div className='pointer-events-none absolute inset-0 z-20 grid place-items-center bg-gradient-to-br from-muted/40 to-muted/10'>
-						<div className='flex flex-col items-center gap-3 text-muted-foreground'>
-							<div className='rounded-xl border border-border border-dashed bg-background/60 p-6 shadow-sm'>
-								<QrCode className='h-16 w-16' />
+					<div className="pointer-events-none absolute inset-0 z-20 grid place-items-center bg-gradient-to-br from-muted/40 to-muted/10">
+						<div className="flex flex-col items-center gap-3 text-muted-foreground">
+							<div className="rounded-xl border border-border border-dashed bg-background/60 p-6 shadow-sm">
+								<QrCode className="h-16 w-16" />
 							</div>
-							<div className='text-sm'>
+							<div className="text-sm">
 								{paused
 									? "Skanneren er på pause - trykk Forsett for å fortsette"
 									: "Klar - trykk Start for å skanne QR-kode"}
@@ -197,53 +197,53 @@ export default function QRScannerControlled({
 				{paused && snapshot && (
 					<img
 						src={snapshot}
-						alt='Paused snapshot'
-						className='pointer-events-none absolute inset-0 z-10 h-full w-full object-cover'
+						alt="Paused snapshot"
+						className="pointer-events-none absolute inset-0 z-10 h-full w-full object-cover"
 					/>
 				)}
 			</div>
 
-			<div className='grid w-full grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center'>
+			<div className="grid w-full grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
 				<Button
-					type='button'
-					size='lg'
+					type="button"
+					size="lg"
 					onClick={running ? stop : start}
-					className='w-full sm:w-auto'
+					className="w-full sm:w-auto"
 				>
 					{running ? (
 						<>
-							<Square className='size-4' /> Stopp
+							<Square className="size-4" /> Stopp
 						</>
 					) : (
 						<>
-							<Play className='size-4' /> Start
+							<Play className="size-4" /> Start
 						</>
 					)}
 				</Button>
 				<Button
-					type='button'
-					size='lg'
+					type="button"
+					size="lg"
 					onClick={paused ? resume : pause}
 					disabled={!running}
-					variant='outline'
-					className='w-full sm:w-auto'
+					variant="outline"
+					className="w-full sm:w-auto"
 				>
 					{paused ? (
 						<>
-							<Play className='size-4' /> Forsett
+							<Play className="size-4" /> Forsett
 						</>
 					) : (
 						<>
-							<PauseIcon className='size-4' /> Pause
+							<PauseIcon className="size-4" /> Pause
 						</>
 					)}
 				</Button>
 				<Select value={selectedCam} onValueChange={switchCam}>
 					<SelectTrigger
-						className='h-11 w-full sm:w-[16rem]'
+						className="h-11 w-full sm:w-[16rem]"
 						disabled={cams.length <= 1 && running}
 					>
-						<SelectValue placeholder='Velg kamera' />
+						<SelectValue placeholder="Velg kamera" />
 					</SelectTrigger>
 					<SelectContent>
 						{cams.map((c, i) => (
@@ -254,13 +254,13 @@ export default function QRScannerControlled({
 					</SelectContent>
 				</Select>
 				<Button
-					type='button'
-					size='icon'
+					type="button"
+					size="icon"
 					onClick={loadCameras}
-					variant='secondary'
-					className='w-full sm:w-auto'
+					variant="secondary"
+					className="w-full sm:w-auto"
 				>
-					<RefreshCw className='size-4' /> Oppdater
+					<RefreshCw className="size-4" /> Oppdater
 				</Button>
 			</div>
 		</div>

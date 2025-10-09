@@ -74,16 +74,16 @@ export default function EventForm({
 
 	return (
 		<Form {...form}>
-			<form onSubmit={form.handleSubmit(onDefaultSubmitAction)} className='space-y-8'>
+			<form onSubmit={form.handleSubmit(onDefaultSubmitAction)} className="space-y-8">
 				{/* Title */}
 				<FormField
 					control={form.control}
-					name='title'
+					name="title"
 					render={({ field }) => (
 						<FormItem>
 							<FormLabel>Tittel</FormLabel>
 							<FormControl>
-								<Input placeholder='Bedriftspresentasjon med Navet' {...field} />
+								<Input placeholder="Bedriftspresentasjon med Navet" {...field} />
 							</FormControl>
 							<FormDescription>Dette er hva arrangementet skal hete.</FormDescription>
 							<FormMessage />
@@ -93,15 +93,15 @@ export default function EventForm({
 				<Separator />
 
 				{/* Event metadata */}
-				<div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
+				<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
 					<FormField
 						control={form.control}
-						name='food'
+						name="food"
 						render={({ field }) => (
 							<FormItem>
 								<FormLabel>Mat</FormLabel>
 								<FormControl>
-									<Input placeholder='Sushi' {...field} />
+									<Input placeholder="Sushi" {...field} />
 								</FormControl>
 								<FormMessage />
 							</FormItem>
@@ -109,12 +109,12 @@ export default function EventForm({
 					/>
 					<FormField
 						control={form.control}
-						name='location'
+						name="location"
 						render={({ field }) => (
 							<FormItem>
 								<FormLabel>Sted</FormLabel>
 								<FormControl>
-									<Input placeholder='Månen' {...field} />
+									<Input placeholder="Månen" {...field} />
 								</FormControl>
 								<FormMessage />
 							</FormItem>
@@ -122,14 +122,14 @@ export default function EventForm({
 					/>
 					<FormField
 						control={form.control}
-						name='participantsLimit'
+						name="participantsLimit"
 						render={({ field }) => (
 							<FormItem>
 								<FormLabel>Deltaker grense</FormLabel>
 								<FormControl>
 									<Input
-										placeholder='40'
-										type='number'
+										placeholder="40"
+										type="number"
 										value={field.value === 0 ? "" : field.value}
 										onChange={(e) => {
 											const inputValue = e.target.value;
@@ -141,7 +141,7 @@ export default function EventForm({
 											}
 										}}
 										name={field.name}
-										min='0'
+										min="0"
 									/>
 								</FormControl>
 								<FormMessage />
@@ -150,12 +150,12 @@ export default function EventForm({
 					/>
 					<FormField
 						control={form.control}
-						name='ageRestrictions'
+						name="ageRestrictions"
 						render={({ field }) => (
 							<FormItem>
 								<FormLabel>Aldersbegrensninger</FormLabel>
 								<FormControl>
-									<Input placeholder='18 års aldersgrense' {...field} />
+									<Input placeholder="18 års aldersgrense" {...field} />
 								</FormControl>
 								<FormMessage />
 							</FormItem>
@@ -163,12 +163,12 @@ export default function EventForm({
 					/>
 					<FormField
 						control={form.control}
-						name='language'
+						name="language"
 						render={({ field }) => (
 							<FormItem>
 								<FormLabel>Språk</FormLabel>
 								<FormControl>
-									<Input placeholder='Norsk' {...field} />
+									<Input placeholder="Norsk" {...field} />
 								</FormControl>
 								<FormMessage />
 							</FormItem>
@@ -176,24 +176,24 @@ export default function EventForm({
 					/>
 					<FormField
 						control={form.control}
-						name='hostingCompany'
+						name="hostingCompany"
 						render={({ field }) => (
 							<FormItem>
 								<FormLabel>Velg arrangerende bedrift</FormLabel>
 								<Popover open={openCompanies} onOpenChange={setOpenCompanies}>
 									<PopoverTrigger asChild>
 										<Button
-											variant='outline'
+											variant="outline"
 											aria-expanded={openCompanies}
-											className='justify-between'
+											className="justify-between"
 										>
 											{selectedCompany?.name || "Velg en bedrift..."}
-											<ChevronsUpDown className='ml-2 h-4 w-4 shrink-0 opacity-50' />
+											<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 										</Button>
 									</PopoverTrigger>
-									<PopoverContent className='w-[200px] p-0' align='start'>
+									<PopoverContent className="w-[200px] p-0" align="start">
 										<Command>
-											<CommandInput placeholder='Søk etter bedrift...' />
+											<CommandInput placeholder="Søk etter bedrift..." />
 											<CommandList>
 												<CommandEmpty>Fant ingen bedrift(er).</CommandEmpty>
 												<CommandGroup>
@@ -234,18 +234,18 @@ export default function EventForm({
 				<Separator />
 
 				{/* Event time and date pickers */}
-				<div className='grid gap-4 sm:grid-cols-2'>
+				<div className="grid gap-4 sm:grid-cols-2">
 					<DateTimePicker
 						form={form}
-						formField='eventDate'
-						label='Dato og tid for arrangements start'
-						description='Velg dato og tid for når arrangementet starter'
+						formField="eventDate"
+						label="Dato og tid for arrangements start"
+						description="Velg dato og tid for når arrangementet starter"
 					/>
 					<DateTimePicker
 						form={form}
-						formField='registrationDate'
-						label='Dato og tid for åpning av påmelding'
-						description='Velg dato og tid for åpning av påmeldingen av arrangementet'
+						formField="registrationDate"
+						label="Dato og tid for åpning av påmelding"
+						description="Velg dato og tid for åpning av påmeldingen av arrangementet"
 					/>
 				</div>
 				<Separator />
@@ -253,12 +253,12 @@ export default function EventForm({
 				{/* Teaser */}
 				<FormField
 					control={form.control}
-					name='teaser'
+					name="teaser"
 					render={({ field }) => (
 						<FormItem>
 							<FormLabel>Teaser</FormLabel>
 							<FormControl>
-								<Textarea placeholder='Velkommen til en magisk aften med Navet' {...field} />
+								<Textarea placeholder="Velkommen til en magisk aften med Navet" {...field} />
 							</FormControl>
 							<FormDescription>Dette er en liten teaser av arrangementet.</FormDescription>
 							<FormMessage />
@@ -277,7 +277,7 @@ export default function EventForm({
 				{/* External event */}
 				<FormField
 					control={form.control}
-					name='eventType'
+					name="eventType"
 					render={({ field }) => (
 						<FormItem>
 							<FormLabel>Arrangementtype</FormLabel>
@@ -289,12 +289,12 @@ export default function EventForm({
 									}}
 									defaultValue={field.value}
 								>
-									<SelectTrigger className='w-[180px]'>
-										<SelectValue placeholder='Velg arrangementtype' />
+									<SelectTrigger className="w-[180px]">
+										<SelectValue placeholder="Velg arrangementtype" />
 									</SelectTrigger>
 									<SelectContent>
-										<SelectItem value='internal_event'>Internt</SelectItem>
-										<SelectItem value='external_event'>Eksternt</SelectItem>
+										<SelectItem value="internal_event">Internt</SelectItem>
+										<SelectItem value="external_event">Eksternt</SelectItem>
 									</SelectContent>
 								</Select>
 							</FormControl>
@@ -305,12 +305,12 @@ export default function EventForm({
 				{isExternalEvent && (
 					<FormField
 						control={form.control}
-						name='externalUrl'
+						name="externalUrl"
 						render={({ field }) => (
 							<FormItem>
 								<FormLabel>Link til arrangementet</FormLabel>
 								<FormControl>
-									<Input placeholder='f.eks. https://ifinavet.no/' {...field} />
+									<Input placeholder="f.eks. https://ifinavet.no/" {...field} />
 								</FormControl>
 								<FormDescription>Legg til en url til det eksterne arrangementet</FormDescription>
 								<FormMessage />
@@ -321,27 +321,27 @@ export default function EventForm({
 				<Separator />
 
 				{/* Submit form */}
-				<div className='mb-4 flex gap-4'>
+				<div className="mb-4 flex gap-4">
 					<Button
-						type='submit'
+						type="submit"
 						disabled={form.formState.isSubmitting}
 						onClick={form.handleSubmit(onDefaultSubmitAction)}
 					>
 						<Send /> {form.formState.isSubmitting ? "Jobber..." : "Lagre og publiser"}
 					</Button>
 					<Button
-						type='submit'
+						type="submit"
 						disabled={form.formState.isSubmitting}
-						variant='secondary'
+						variant="secondary"
 						onClick={form.handleSubmit(onSecondarySubmitAction)}
 					>
 						<Save /> {form.formState.isSubmitting ? "Jobber..." : "Lagre"}
 					</Button>
 					{onTertiarySubmitAction && (
 						<Button
-							type='submit'
+							type="submit"
 							disabled={form.formState.isSubmitting}
-							variant='destructive'
+							variant="destructive"
 							onClick={form.handleSubmit(onTertiarySubmitAction)}
 						>
 							<EyeOff /> {form.formState.isSubmitting ? "Jobber..." : "Lagre og avpubliser"}

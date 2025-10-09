@@ -26,7 +26,7 @@ export default function OrganizersTable<TData, TValue>({
 	});
 
 	return (
-		<div className='rounded-md border'>
+		<div className="rounded-md border">
 			<Table>
 				<TableHeader>
 					{table.getHeaderGroups().map((headerGroup) => (
@@ -54,7 +54,7 @@ export default function OrganizersTable<TData, TValue>({
 						))
 					) : (
 						<TableRow>
-							<TableCell colSpan={columns.length} className='h-24 text-center'>
+							<TableCell colSpan={columns.length} className="h-24 text-center">
 								Ingen ansvarlige er lagt til.
 							</TableCell>
 						</TableRow>

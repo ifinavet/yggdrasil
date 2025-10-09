@@ -11,16 +11,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/componen
 
 export default function RegistrationsLoading() {
 	return (
-		<Tabs defaultValue='registered'>
+		<Tabs defaultValue="registered">
 			<TabsList>
-				<TabsTrigger value='registered'>Påmeldte</TabsTrigger>
-				<TabsTrigger value='waitlist' disabled>
+				<TabsTrigger value="registered">Påmeldte</TabsTrigger>
+				<TabsTrigger value="waitlist" disabled>
 					Venteliste
 				</TabsTrigger>
 			</TabsList>
 
-			<TabsContent value='registered'>
-				<h2 className='scroll-m-20 border-b pb-2 font-semibold text-2xl tracking-tight first:mt-0'>
+			<TabsContent value="registered">
+				<h2 className="scroll-m-20 border-b pb-2 font-semibold text-2xl tracking-tight first:mt-0">
 					Påmeldte
 				</h2>
 				<Table>
@@ -38,19 +38,19 @@ export default function RegistrationsLoading() {
 							// biome-ignore lint: Its a loading file
 							<TableRow key={index}>
 								<TableCell>
-									<Skeleton className='h-4 w-32' />
+									<Skeleton className="h-4 w-32" />
 								</TableCell>
 								<TableCell>
-									<Skeleton className='h-4 w-24' />
+									<Skeleton className="h-4 w-24" />
 								</TableCell>
 								<TableCell>
-									<Skeleton className='h-4 w-36' />
+									<Skeleton className="h-4 w-36" />
 								</TableCell>
 								<TableCell>
-									<Skeleton className='h-10 w-44' />
+									<Skeleton className="h-10 w-44" />
 								</TableCell>
 								<TableCell>
-									<Skeleton className='h-10 w-10' />
+									<Skeleton className="h-10 w-10" />
 								</TableCell>
 							</TableRow>
 						))}
@@ -58,8 +58,8 @@ export default function RegistrationsLoading() {
 				</Table>
 			</TabsContent>
 
-			<TabsContent value='waitlist'>
-				<h2 className='scroll-m-20 border-b pb-2 font-semibold text-2xl tracking-tight first:mt-0'>
+			<TabsContent value="waitlist">
+				<h2 className="scroll-m-20 border-b pb-2 font-semibold text-2xl tracking-tight first:mt-0">
 					Venteliste
 				</h2>
 				<Table>
@@ -77,19 +77,19 @@ export default function RegistrationsLoading() {
 							// biome-ignore lint: Its a loading file
 							<TableRow key={index}>
 								<TableCell>
-									<Skeleton className='h-4 w-32' />
+									<Skeleton className="h-4 w-32" />
 								</TableCell>
 								<TableCell>
-									<Skeleton className='h-4 w-24' />
+									<Skeleton className="h-4 w-24" />
 								</TableCell>
 								<TableCell>
-									<Skeleton className='h-4 w-36' />
+									<Skeleton className="h-4 w-36" />
 								</TableCell>
 								<TableCell>
-									<Skeleton className='h-10 w-44' />
+									<Skeleton className="h-10 w-44" />
 								</TableCell>
 								<TableCell>
-									<Skeleton className='h-10 w-10' />
+									<Skeleton className="h-10 w-10" />
 								</TableCell>
 							</TableRow>
 						))}

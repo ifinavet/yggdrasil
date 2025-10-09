@@ -12,5 +12,5 @@ export default async function registrations(props: { params: Promise<{ slug: Id<
 		<div className="space-y-4">
 			<Registrations preloadedRegistrations={preloadedRegistrations} />
 		</div>
-	)
+	);
 }

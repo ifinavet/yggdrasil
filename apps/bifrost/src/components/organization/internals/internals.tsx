@@ -57,7 +57,7 @@ export default function Internals({
 		});
 
 	const upsertRole = useMutation(api.accsessRights.upsertAccessRights);
-	const upsertRoleAction = (userId: Id<"users">, role: typeof accessRights[number]) =>
+	const upsertRoleAction = (userId: Id<"users">, role: (typeof accessRights)[number]) =>
 		upsertRole({
 			userId,
 			role,
@@ -71,13 +71,13 @@ export default function Internals({
 		fullName: internal.fullName,
 		email: internal.email,
 		group: internal.group,
-		role: internal.role as typeof accessRights[number],
+		role: internal.role as (typeof accessRights)[number],
 	}));
 
 	return (
-		<div className='space-y-4'>
+		<div className="space-y-4">
 			<NewInternal />
-			<InternalsTable columns={columns} data={data} className='overflow-clip rounded-lg' />
+			<InternalsTable columns={columns} data={data} className="overflow-clip rounded-lg" />
 		</div>
 	);
 }

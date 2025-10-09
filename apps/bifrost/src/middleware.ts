@@ -10,7 +10,6 @@ const searchParamsMiddleware = (request: NextRequest) => {
 	});
 };
 
-
 export const middleware = clerkMiddleware(async (_, req) => {
 	return searchParamsMiddleware(req);
 });

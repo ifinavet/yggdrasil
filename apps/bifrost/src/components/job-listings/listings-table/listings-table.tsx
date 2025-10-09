@@ -45,7 +45,7 @@ export function ListingsTable<TData, TValue>({
 	};
 
 	return (
-		<div className='rounded-md'>
+		<div className="rounded-md">
 			<Table>
 				<TableHeader>
 					{table.getHeaderGroups().map((headerGroup) => (
@@ -66,7 +66,7 @@ export function ListingsTable<TData, TValue>({
 							<TableRow
 								key={row.id}
 								data-state={row.getIsSelected() && "selected"}
-								className='cursor-pointer hover:bg-muted/50'
+								className="cursor-pointer hover:bg-muted/50"
 								onClick={() => handleRowClick(row)}
 							>
 								{row.getVisibleCells().map((cell) => (
@@ -78,7 +78,7 @@ export function ListingsTable<TData, TValue>({
 						))
 					) : (
 						<TableRow>
-							<TableCell colSpan={columns.length} className='text-center'>
+							<TableCell colSpan={columns.length} className="text-center">
 								{empty_message}
 							</TableCell>
 						</TableRow>

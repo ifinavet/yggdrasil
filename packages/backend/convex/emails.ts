@@ -94,11 +94,15 @@ export const sendFreeForAll = internalAction({
 	handler: async (ctx, { participantEmail, eventId, eventTitle, availableSeats }) => {
 		const url = `https://ifinavet.no/events/${eventId}`;
 
-		const html = await pretty(await render(FreeForAllEmail({
-			event: eventTitle,
-			url,
-			availableSeats
-		})));
+		const html = await pretty(
+			await render(
+				FreeForAllEmail({
+					event: eventTitle,
+					url,
+					availableSeats,
+				}),
+			),
+		);
 
 		await resend.sendEmail(ctx, {
 			from: "Navet <info@ifinavet.no>",

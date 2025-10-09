@@ -74,9 +74,9 @@ export default function DescriptionEditor({ form }: { form: UseFormReturn<Compan
 	return (
 		<FormField
 			control={form.control}
-			name='description'
+			name="description"
 			render={() => (
-				<FormItem className='flex flex-col'>
+				<FormItem className="flex flex-col">
 					<FormLabel>Beskrivelse</FormLabel>
 					<FormControl>
 						<ContentEditor editor={editor} />

@@ -43,7 +43,8 @@ export default defineSchema({
 		image: v.string(),
 		externalId: v.string(),
 		locked: v.boolean(),
-	}).index("by_ExternalId", ["externalId"])
+	})
+		.index("by_ExternalId", ["externalId"])
 		.searchIndex("search_email", {
 			searchField: "email",
 		}),
@@ -74,13 +75,15 @@ export default defineSchema({
 		group: v.string(),
 		positionEmail: v.optional(v.string()),
 		rank: v.optional(v.number()),
-	}).index("by_position", ["position"])
+	})
+		.index("by_position", ["position"])
 		.index("by_userId", ["userId"]),
 
 	accessRights: defineTable({
 		userId: v.id("users"),
 		role: accessRoles,
-	}).index("by_userId", ["userId"])
+	})
+		.index("by_userId", ["userId"])
 		.index("by_role", ["role"]),
 
 	internalGroups: defineTable({

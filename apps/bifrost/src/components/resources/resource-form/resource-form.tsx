@@ -103,16 +103,16 @@ export default function ResourceForm({
 
 	return (
 		<Form {...form}>
-			<form onSubmit={form.handleSubmit(onPrimarySubmitAction)} className='space-y-4'>
-				<div className='flex w-full flex-wrap gap-4'>
+			<form onSubmit={form.handleSubmit(onPrimarySubmitAction)} className="space-y-4">
+				<div className="flex w-full flex-wrap gap-4">
 					<FormField
 						control={form.control}
-						name='title'
+						name="title"
 						render={({ field }) => (
-							<FormItem className='flex-1'>
+							<FormItem className="flex-1">
 								<FormLabel>Tittel</FormLabel>
 								<FormControl>
-									<Input placeholder='Tittel' {...field} />
+									<Input placeholder="Tittel" {...field} />
 								</FormControl>
 								<FormDescription>En kort informativ tittel som beskriver ressursen</FormDescription>
 								<FormMessage />
@@ -122,12 +122,12 @@ export default function ResourceForm({
 
 					<FormField
 						control={form.control}
-						name='tag'
+						name="tag"
 						render={({ field }) => (
 							<FormItem>
 								<FormLabel>Tag</FormLabel>
 								<FormControl>
-									<Input placeholder='f.eks how-to-bedpress' {...field} />
+									<Input placeholder="f.eks how-to-bedpress" {...field} />
 								</FormControl>
 								<FormDescription>
 									En tag for å grupere ressurser med samme tema eller fokus
@@ -139,23 +139,23 @@ export default function ResourceForm({
 
 					<FormField
 						control={form.control}
-						name='icon'
+						name="icon"
 						render={({ field }) => {
 							return (
 								<FormItem>
 									<FormLabel>Icon</FormLabel>
 									<FormControl>
-										<div className='flex items-center gap-2'>
+										<div className="flex items-center gap-2">
 											<Select onValueChange={field.onChange} value={field.value}>
-												<SelectTrigger className='w-[160px]'>
-													<SelectValue placeholder='Velg ikon' />
+												<SelectTrigger className="w-[160px]">
+													<SelectValue placeholder="Velg ikon" />
 												</SelectTrigger>
 												<SelectContent>
 													{Object.entries(cardIcons).map(([key, Icon]) => (
 														<SelectItem key={key} value={key}>
 															<>
-																<Icon className='h-4 w-4' />
-																<span className='capitalize'>{key}</span>
+																<Icon className="h-4 w-4" />
+																<span className="capitalize">{key}</span>
 															</>
 														</SelectItem>
 													))}
@@ -173,27 +173,27 @@ export default function ResourceForm({
 
 				<FormField
 					control={form.control}
-					name='excerpt'
+					name="excerpt"
 					render={({ field }) => (
 						<FormItem>
 							<FormLabel>Sammendrag</FormLabel>
 							<FormControl>
-								<Textarea {...field} placeholder='Et kort beskrivende sammendrag av ressursen' />
+								<Textarea {...field} placeholder="Et kort beskrivende sammendrag av ressursen" />
 							</FormControl>
 							<FormDescription>En kort beskrivelse/sammendrag av ressursen</FormDescription>
 							<FormMessage />
 						</FormItem>
 					)}
 				/>
-				<Separator className='my-4' />
+				<Separator className="my-4" />
 				<FormField
 					control={form.control}
-					name='content'
+					name="content"
 					render={() => (
 						<FormItem>
 							<FormLabel>Innhold</FormLabel>
 							<FormControl>
-								<div className='min-h-[50vh] overflow-clip rounded-md border'>
+								<div className="min-h-[50vh] overflow-clip rounded-md border">
 									<EditorMenu editor={editor} />
 									<EditorContent editor={editor} />
 								</div>
@@ -203,27 +203,27 @@ export default function ResourceForm({
 						</FormItem>
 					)}
 				/>
-				<div className='flex flex-wrap gap-4'>
+				<div className="flex flex-wrap gap-4">
 					<Button
-						type='submit'
+						type="submit"
 						disabled={form.formState.isSubmitting}
 						onClick={form.handleSubmit(onPrimarySubmitAction)}
 					>
 						<Send /> {form.formState.isSubmitting ? "Jobber..." : "Lagre og publiser"}
 					</Button>
 					<Button
-						type='submit'
+						type="submit"
 						disabled={form.formState.isSubmitting}
-						variant='secondary'
+						variant="secondary"
 						onClick={form.handleSubmit(onSecondarySubmitAction)}
 					>
 						<Save /> {form.formState.isSubmitting ? "Jobber..." : "Lagre"}
 					</Button>
 					{onTertiarySubmitAction && (
 						<Button
-							type='submit'
+							type="submit"
 							disabled={form.formState.isSubmitting}
-							variant='destructive'
+							variant="destructive"
 							onClick={form.handleSubmit(onTertiarySubmitAction)}
 						>
 							<EyeOff /> {form.formState.isSubmitting ? "Jobber..." : "Lagre og avpubliser"}

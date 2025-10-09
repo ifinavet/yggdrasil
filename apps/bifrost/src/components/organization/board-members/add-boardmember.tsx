@@ -15,7 +15,7 @@ export default function AddBoardMember({ className }: { className?: string }) {
 		userId: "",
 		role: "",
 		group: "",
-		accessRole: "admin"
+		accessRole: "admin",
 	};
 
 	const [openDialog, setOpenDialog] = useState(false);
@@ -44,8 +44,8 @@ export default function AddBoardMember({ className }: { className?: string }) {
 		<BoardMemberForm
 			defaultValues={defaultValues}
 			onSubmitAction={onSubmit}
-			title='Legg til et nytt styremedlem'
-			description='Velg et medlem som skal være det nye styremedlemet, og hva rollen skal være, samt hva gruppen deres heter.'
+			title="Legg til et nytt styremedlem"
+			description="Velg et medlem som skal være det nye styremedlemet, og hva rollen skal være, samt hva gruppen deres heter."
 			openDialog={openDialog}
 			setOpenDialogAction={setOpenDialog}
 			button={

@@ -29,7 +29,7 @@ export default async function pagesPage() {
 				<Breadcrumb>
 					<BreadcrumbList>
 						<BreadcrumbItem>
-							<BreadcrumbLink href='/'>Hjem</BreadcrumbLink>
+							<BreadcrumbLink href="/">Hjem</BreadcrumbLink>
 						</BreadcrumbItem>
 						<BreadcrumbSeparator />
 						<BreadcrumbItem>
@@ -38,17 +38,17 @@ export default async function pagesPage() {
 					</BreadcrumbList>
 				</Breadcrumb>
 
-				<div className='flex justify-end'>
+				<div className="flex justify-end">
 					<Button asChild>
-						<Link href='/pages/new-page'>
-							<Plus className='size-4' /> Opprett en ny side
+						<Link href="/pages/new-page">
+							<Plus className="size-4" /> Opprett en ny side
 						</Link>
 					</Button>
 				</div>
 
-				<div className='flex flex-wrap gap-4'>
+				<div className="flex flex-wrap gap-4">
 					{pages.map((page) => (
-						<Link href={`/pages/${page._id}`} className='flex flex-col gap-6' key={page._id}>
+						<Link href={`/pages/${page._id}`} className="flex flex-col gap-6" key={page._id}>
 							<Card>
 								<CardHeader>
 									<CardTitle>{page.title}</CardTitle>
@@ -71,7 +71,7 @@ export default async function pagesPage() {
 				<Breadcrumb>
 					<BreadcrumbList>
 						<BreadcrumbItem>
-							<BreadcrumbLink href='/'>Hjem</BreadcrumbLink>
+							<BreadcrumbLink href="/">Hjem</BreadcrumbLink>
 						</BreadcrumbItem>
 						<BreadcrumbSeparator />
 						<BreadcrumbItem>
@@ -80,17 +80,17 @@ export default async function pagesPage() {
 					</BreadcrumbList>
 				</Breadcrumb>
 
-				<div className='flex justify-end'>
+				<div className="flex justify-end">
 					<Button asChild>
-						<Link href='/pages/new-page'>
-							<Plus className='size-4' /> Opprett en ny side
+						<Link href="/pages/new-page">
+							<Plus className="size-4" /> Opprett en ny side
 						</Link>
 					</Button>
 				</div>
 
 				<h1>Error</h1>
 				<p>Failed to fetch pages</p>
-				<small className='font-medium text-sm leading-none'>{(error as Error).message}</small>
+				<small className="font-medium text-sm leading-none">{(error as Error).message}</small>
 			</>
 		);
 	}

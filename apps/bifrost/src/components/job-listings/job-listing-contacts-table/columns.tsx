@@ -28,7 +28,7 @@ export const createColumns = (
 	{
 		id: "actions",
 		cell: ({ row }) => (
-			<Button variant='destructive' size='icon' onClick={() => onDelete(row.index)}>
+			<Button variant="destructive" size="icon" onClick={() => onDelete(row.index)}>
 				<Trash2 />
 			</Button>
 		),

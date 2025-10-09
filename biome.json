@@ -10,7 +10,7 @@
 		"ignoreUnknown": false,
 		"includes": [
 			"**",
-			"!src/components/ui/**",
+			"!packages/ui/**",
 			"!**/node_modules/**",
 			"!**/.next/**",
 			"!**/.turbo/**",

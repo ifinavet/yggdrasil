@@ -12,7 +12,7 @@ import type { OrganizerRole } from "@/constants/types";
 export default function UpdateEventForm({
 	preloadedEvent,
 }: Readonly<{ preloadedEvent: Preloaded<typeof api.events.getById> }>) {
-	const event = usePreloadedQuery(preloadedEvent)
+	const event = usePreloadedQuery(preloadedEvent);
 	const router = useRouter();
 	const updateEventMutation = useMutation(api.events.update);
 

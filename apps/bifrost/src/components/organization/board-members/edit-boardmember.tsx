@@ -31,7 +31,7 @@ export default function EditBoardMember({
 			position: data.role,
 			group: data.group,
 			positionEmail: data.positionEmail,
-			role: data.accessRole ?? "admin"
+			role: data.accessRole ?? "admin",
 		})
 			.then(() => {
 				toast.success("Styremedlemmet ble oppdatert!");
@@ -50,7 +50,7 @@ export default function EditBoardMember({
 
 	if (!boardMember)
 		return (
-			<Button variant='outline' size='sm' className={className} disabled>
+			<Button variant="outline" size="sm" className={className} disabled>
 				<Pencil /> Rediger
 			</Button>
 		);
@@ -66,8 +66,8 @@ export default function EditBoardMember({
 				accessRole: boardMember.accessRights,
 			}}
 			onSubmitAction={onSubmit}
-			title='Rediger styremedlem'
-			description='Gjør endringer på styremedlemet'
+			title="Rediger styremedlem"
+			description="Gjør endringer på styremedlemet"
 			openDialog={openDialog}
 			setOpenDialogAction={setOpenDialog}
 			button={

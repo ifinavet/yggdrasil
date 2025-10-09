@@ -46,7 +46,9 @@ export const createIfNotExists = internalMutation({
 		const user = await userByExternalId(ctx, externalId);
 
 		if (!user) {
-			console.warn(`User for externalId ${externalId} not found, creating... \n { firstName: ${firstName}, lastName: ${lastName}, email: ${email}, image: ${image}}`);
+			console.warn(
+				`User for externalId ${externalId} not found, creating... \n { firstName: ${firstName}, lastName: ${lastName}, email: ${email}, image: ${image}}`,
+			);
 			// Create user
 			const id = await ctx.db.insert("users", {
 				externalId,
@@ -83,10 +85,12 @@ export const searchAfterUsers = query({
 		paginationOpts: paginationOptsValidator,
 	},
 	handler: async (ctx, { searchInput, paginationOpts }) => {
-		const users =
-			await ctx.db.query("users").withSearchIndex("search_email", q => q.search("email", searchInput)).paginate(paginationOpts);
+		const users = await ctx.db
+			.query("users")
+			.withSearchIndex("search_email", (q) => q.search("email", searchInput))
+			.paginate(paginationOpts);
 
-		return users
+		return users;
 	},
 });
 

@@ -52,33 +52,34 @@ export default function UpdateMainSponsorForm({
 
 	return (
 		<Form {...form}>
-			<form onSubmit={form.handleSubmit(handleUpdateMainSponsor)} className='space-y-6'>
+			<form onSubmit={form.handleSubmit(handleUpdateMainSponsor)} className="space-y-6">
 				<FormField
 					control={form.control}
-					name='companyId'
+					name="companyId"
 					render={({ field }) => (
-						<FormItem className='flex flex-col'>
+						<FormItem className="flex flex-col">
 							<FormLabel>Endre hovedsamarbeidspartner</FormLabel>
 							<FormControl>
-								<div className='space-y-2'>
+								<div className="space-y-2">
 									<Input
-										placeholder='Søk eks. ifi-navet'
-										type='text'
+										placeholder="Søk eks. ifi-navet"
+										type="text"
 										onChange={(e) => {
 											setSearchInput(e.target.value);
 										}}
 									/>
-									<ScrollArea className='max-h-20'>
+									<ScrollArea className="max-h-20">
 										{companies?.map((company) => (
 											<Button
 												key={company._id}
-												type='button'
-												variant='ghost'
+												type="button"
+												variant="ghost"
 												onClick={() => field.onChange(company._id)}
-												className={`mb-2 flex w-full justify-start ${field.value === company._id
-													? "bg-primary text-primary hover:bg-primary/90 dark:text-primary-foreground"
-													: ""
-													}`}
+												className={`mb-2 flex w-full justify-start ${
+													field.value === company._id
+														? "bg-primary text-primary hover:bg-primary/90 dark:text-primary-foreground"
+														: ""
+												}`}
 											>
 												{company.name}
 											</Button>
@@ -94,7 +95,7 @@ export default function UpdateMainSponsorForm({
 					)}
 				/>
 
-				<Button type='submit'>Oppdater hovedsamarbeidspartner</Button>
+				<Button type="submit">Oppdater hovedsamarbeidspartner</Button>
 			</form>
 		</Form>
 	);

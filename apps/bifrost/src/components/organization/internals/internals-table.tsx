@@ -31,11 +31,11 @@ export function InternalsTable<TData, TValue>({
 
 	return (
 		<Table className={className}>
-			<TableHeader className='bg-accent font-bold'>
+			<TableHeader className="bg-accent font-bold">
 				{table.getHeaderGroups().map((headerGroup) => (
 					<TableRow key={headerGroup.id}>
 						{headerGroup.headers.map((header) => (
-							<TableHead key={header.id} className='text-bold'>
+							<TableHead key={header.id} className="text-bold">
 								{header.isPlaceholder
 									? null
 									: flexRender(header.column.columnDef.header, header.getContext())}
@@ -57,7 +57,7 @@ export function InternalsTable<TData, TValue>({
 					))
 				) : (
 					<TableRow>
-						<TableCell colSpan={columns.length} className='text-center'>
+						<TableCell colSpan={columns.length} className="text-center">
 							{empty_message}
 						</TableCell>
 					</TableRow>

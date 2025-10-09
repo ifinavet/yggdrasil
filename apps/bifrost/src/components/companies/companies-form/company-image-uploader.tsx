@@ -74,15 +74,15 @@ export default function CompanyImageUploader({
 
 	return (
 		<Form {...form}>
-			<form className='space-y-8' onSubmit={handleFormSubmit}>
+			<form className="space-y-8" onSubmit={handleFormSubmit}>
 				<FormField
 					control={form.control}
-					name='image'
+					name="image"
 					render={({ field }) => (
 						<FormItem>
 							<FormLabel>Velg bilde som skal lastes opp.</FormLabel>
 							<Input
-								type='file'
+								type="file"
 								name={field.name}
 								ref={field.ref}
 								onBlur={field.onBlur}
@@ -97,24 +97,24 @@ export default function CompanyImageUploader({
 				/>
 				<FormField
 					control={form.control}
-					name='name'
+					name="name"
 					render={({ field }) => (
 						<FormItem>
 							<FormLabel>Navn på bildet</FormLabel>
-							<Input type='text' placeholder='Skriv inn navnet på selskapet' {...field} />
+							<Input type="text" placeholder="Skriv inn navnet på selskapet" {...field} />
 							<FormMessage />
 						</FormItem>
 					)}
 				/>
 
-				<div className='flex gap-4'>
-					<Button type='submit' disabled={form.formState.isSubmitting}>
+				<div className="flex gap-4">
+					<Button type="submit" disabled={form.formState.isSubmitting}>
 						<Send />
 						{form.formState.isSubmitting ? "Laster opp..." : "Last opp"}
 					</Button>
 					<Button
-						type='button'
-						variant='outline'
+						type="button"
+						variant="outline"
 						onClick={onDismissAction}
 						disabled={form.formState.isSubmitting}
 					>

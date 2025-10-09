@@ -24,7 +24,7 @@ export default async function OrganizationPage() {
 			<Breadcrumb>
 				<BreadcrumbList>
 					<BreadcrumbItem>
-						<BreadcrumbLink href='/'>Hjem</BreadcrumbLink>
+						<BreadcrumbLink href="/">Hjem</BreadcrumbLink>
 					</BreadcrumbItem>
 					<BreadcrumbSeparator />
 					<BreadcrumbItem>
@@ -32,25 +32,24 @@ export default async function OrganizationPage() {
 					</BreadcrumbItem>
 				</BreadcrumbList>
 			</Breadcrumb>
-			<div className='grid gap-6'>
-				<h2 className='scroll-m-20 border-b pb-2 font-semibold text-3xl tracking-tight first:mt-0'>
+			<div className="grid gap-6">
+				<h2 className="scroll-m-20 border-b pb-2 font-semibold text-3xl tracking-tight first:mt-0">
 					Styret
 				</h2>
-				<AddBoardMember className='w-fit justify-self-end' />
+				<AddBoardMember className="w-fit justify-self-end" />
 				<ListBoardMembers preloadedBoardMembers={preloadedBoardMembers} />
 
 				<Separator />
-				<h2 className='scroll-m-20 border-b pb-2 font-semibold text-3xl tracking-tight first:mt-0'>
+				<h2 className="scroll-m-20 border-b pb-2 font-semibold text-3xl tracking-tight first:mt-0">
 					Interne
 				</h2>
 				<Internals preloadedInternals={preloadedInternals} />
 
 				<Separator />
-				<h2 className='scroll-m-20 border-b pb-2 font-semibold text-3xl tracking-tight first:mt-0'>
+				<h2 className="scroll-m-20 border-b pb-2 font-semibold text-3xl tracking-tight first:mt-0">
 					Hovedsamarbeidspartner
 				</h2>
 				<UpdateMainSponsor preloadedMainSponsor={preloadedMainSponsor} />
-
 			</div>
 		</>
 	);

@@ -23,7 +23,7 @@ export function ContactsTable<TData, TValue>({ columns, data }: ContactsTablePro
 	});
 
 	return (
-		<div className='rounded-md border'>
+		<div className="rounded-md border">
 			<Table>
 				<TableHeader>
 					{table.getHeaderGroups().map((headerGroup) => (
@@ -51,7 +51,7 @@ export function ContactsTable<TData, TValue>({ columns, data }: ContactsTablePro
 						))
 					) : (
 						<TableRow>
-							<TableCell colSpan={columns.length} className='text-center'>
+							<TableCell colSpan={columns.length} className="text-center">
 								Ingen kontakter lagt til.
 							</TableCell>
 						</TableRow>

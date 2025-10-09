@@ -9,7 +9,7 @@ export const resourceSchema = z.object({
 		.max(200, "Beskrivelsen kan kan være maks 200 tegn."),
 	tag: z.optional(z.string()),
 	icon: z.string(),
-	gradient: z.string()
+	gradient: z.string(),
 });
 
 export type ResourceFormValues = z.infer<typeof resourceSchema>;

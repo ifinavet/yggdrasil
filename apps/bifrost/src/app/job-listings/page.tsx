@@ -35,7 +35,7 @@ export default async function JobListingsPage() {
 			<Breadcrumb>
 				<BreadcrumbList>
 					<BreadcrumbItem>
-						<BreadcrumbLink href='/'>Hjem</BreadcrumbLink>
+						<BreadcrumbLink href="/">Hjem</BreadcrumbLink>
 					</BreadcrumbItem>
 					<BreadcrumbSeparator />
 					<BreadcrumbItem>
@@ -44,33 +44,33 @@ export default async function JobListingsPage() {
 				</BreadcrumbList>
 			</Breadcrumb>
 
-			<div className='flex justify-end'>
+			<div className="flex justify-end">
 				<Button asChild>
-					<Link href='/job-listings/new-listing'>
-						<Plus className='size-4' /> Opprett en ny stillingsannonse
+					<Link href="/job-listings/new-listing">
+						<Plus className="size-4" /> Opprett en ny stillingsannonse
 					</Link>
 				</Button>
 			</div>
 
-			<Tabs defaultValue='published' className='w-full'>
-				<TabsList className='grid w-full grid-cols-2'>
-					<TabsTrigger value='published'>
+			<Tabs defaultValue="published" className="w-full">
+				<TabsList className="grid w-full grid-cols-2">
+					<TabsTrigger value="published">
 						Publiserte ({groupedListings.published.deadlineNotPassed.length})
 					</TabsTrigger>
-					<TabsTrigger value='unpublished'>
+					<TabsTrigger value="unpublished">
 						Upubliserte ({groupedListings.unpublished.deadlineNotPassed.length})
 					</TabsTrigger>
 				</TabsList>
 
-				<TabsContent value='published' className='mt-6'>
-					<div className='space-y-8'>
+				<TabsContent value="published" className="mt-6">
+					<div className="space-y-8">
 						{groupedListings.published.deadlineNotPassed.length > 0 && (
 							<div>
-								<h3 className='mb-4 font-semibold text-lg'>Aktive publiserte stillingsannonser</h3>
+								<h3 className="mb-4 font-semibold text-lg">Aktive publiserte stillingsannonser</h3>
 								<ListingsTable
 									data={groupedListings.published.deadlineNotPassed}
 									columns={createColumns}
-									empty_message='Ingen aktive Publiserte stillingsannonser funnet'
+									empty_message="Ingen aktive Publiserte stillingsannonser funnet"
 								/>
 							</div>
 						)}
@@ -78,27 +78,27 @@ export default async function JobListingsPage() {
 						{/* Unpublished Listings - Deadline Passed */}
 						{groupedListings.published.deadlinePassed.length > 0 && (
 							<div>
-								<h3 className='mb-4 font-semibold text-lg'>Utløpte publiserte stillingsannonser</h3>
+								<h3 className="mb-4 font-semibold text-lg">Utløpte publiserte stillingsannonser</h3>
 								<ListingsTable
 									data={groupedListings.published.deadlinePassed}
 									columns={createColumns}
-									empty_message='Ingen utløpte Publiserte stillingsannonser funnet'
+									empty_message="Ingen utløpte Publiserte stillingsannonser funnet"
 								/>
 							</div>
 						)}
 					</div>
 				</TabsContent>
 
-				<TabsContent value='unpublished' className='mt-6'>
-					<div className='space-y-8'>
+				<TabsContent value="unpublished" className="mt-6">
+					<div className="space-y-8">
 						{/* Unpublished Listings - Deadline Not Passed */}
 						{groupedListings.unpublished.deadlineNotPassed.length > 0 && (
 							<div>
-								<h3 className='mb-4 font-semibold text-lg'>Aktive upubliserte stillingsannonser</h3>
+								<h3 className="mb-4 font-semibold text-lg">Aktive upubliserte stillingsannonser</h3>
 								<ListingsTable
 									data={groupedListings.unpublished.deadlineNotPassed}
 									columns={createColumns}
-									empty_message='Ingen aktive upubliserte stillingsannonser funnet'
+									empty_message="Ingen aktive upubliserte stillingsannonser funnet"
 								/>
 							</div>
 						)}
@@ -106,13 +106,13 @@ export default async function JobListingsPage() {
 						{/* Unpublished Listings - Deadline Passed */}
 						{groupedListings.unpublished.deadlinePassed.length > 0 && (
 							<div>
-								<h3 className='mb-4 font-semibold text-lg'>
+								<h3 className="mb-4 font-semibold text-lg">
 									Utløpte upubliserte stillingsannonser
 								</h3>
 								<ListingsTable
 									data={groupedListings.unpublished.deadlinePassed}
 									columns={createColumns}
-									empty_message='Ingen utløpte upubliserte stillingsannonser funnet'
+									empty_message="Ingen utløpte upubliserte stillingsannonser funnet"
 								/>
 							</div>
 						)}
@@ -120,8 +120,8 @@ export default async function JobListingsPage() {
 						{/* Show message if no unpublished listings */}
 						{groupedListings.unpublished.deadlineNotPassed.length === 0 &&
 							groupedListings.unpublished.deadlinePassed.length === 0 && (
-								<div className='py-8 text-center'>
-									<p className='text-muted-foreground'>
+								<div className="py-8 text-center">
+									<p className="text-muted-foreground">
 										Ingen upubliserte stillingsannonser funnet
 									</p>
 								</div>

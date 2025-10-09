@@ -72,16 +72,16 @@ export default function UpdateStudentForm({
 
 	return (
 		<Form {...form}>
-			<form className='max-w-5xl space-y-8' onSubmit={form.handleSubmit(handleSubmit)}>
-				<div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
+			<form className="max-w-5xl space-y-8" onSubmit={form.handleSubmit(handleSubmit)}>
+				<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
 					<FormField
 						control={form.control}
-						name='firstName'
+						name="firstName"
 						render={({ field }) => (
 							<FormItem>
 								<FormLabel>Fornavn</FormLabel>
 								<FormControl>
-									<Input placeholder='Ola' {...field} disabled />
+									<Input placeholder="Ola" {...field} disabled />
 								</FormControl>
 								<FormMessage />
 							</FormItem>
@@ -89,12 +89,12 @@ export default function UpdateStudentForm({
 					/>
 					<FormField
 						control={form.control}
-						name='lastName'
+						name="lastName"
 						render={({ field }) => (
 							<FormItem>
 								<FormLabel>Etternavn</FormLabel>
 								<FormControl>
-									<Input placeholder='Nordmann' {...field} disabled />
+									<Input placeholder="Nordmann" {...field} disabled />
 								</FormControl>
 								<FormMessage />
 							</FormItem>
@@ -104,27 +104,27 @@ export default function UpdateStudentForm({
 
 				<FormField
 					control={form.control}
-					name='email'
+					name="email"
 					render={({ field }) => (
 						<FormItem>
 							<FormLabel>E-post</FormLabel>
 							<FormControl>
-								<Input placeholder='eks. olanord@uio.no' disabled {...field} />
+								<Input placeholder="eks. olanord@uio.no" disabled {...field} />
 							</FormControl>
 							<FormMessage />
 						</FormItem>
 					)}
 				/>
 
-				<div className='flex flex-wrap gap-4'>
+				<div className="flex flex-wrap gap-4">
 					<FormField
 						control={form.control}
-						name='semester'
+						name="semester"
 						render={({ field }) => (
 							<FormItem>
 								<FormLabel>Semester</FormLabel>
 								<FormControl>
-									<Input type='number' min={1} max={10} {...field} />
+									<Input type="number" min={1} max={10} {...field} />
 								</FormControl>
 								<FormMessage />
 							</FormItem>
@@ -133,14 +133,14 @@ export default function UpdateStudentForm({
 
 					<FormField
 						control={form.control}
-						name='studyProgram'
+						name="studyProgram"
 						render={({ field }) => (
 							<FormItem>
 								<FormLabel>Studieprogram</FormLabel>
 								<FormControl>
 									<Select onValueChange={field.onChange} value={field.value}>
 										<SelectTrigger>
-											<SelectValue placeholder='Velg et studieprogram' />
+											<SelectValue placeholder="Velg et studieprogram" />
 										</SelectTrigger>
 										<SelectContent>
 											{STUDY_PROGRAMS.map((program) => (
@@ -158,14 +158,14 @@ export default function UpdateStudentForm({
 
 					<FormField
 						control={form.control}
-						name='degree'
+						name="degree"
 						render={({ field }) => (
 							<FormItem>
 								<FormLabel>Studiegrad</FormLabel>
 								<FormControl>
 									<Select onValueChange={field.onChange} value={field.value}>
 										<SelectTrigger>
-											<SelectValue placeholder='Velg studie grad' />
+											<SelectValue placeholder="Velg studie grad" />
 										</SelectTrigger>
 										<SelectContent>
 											{DEGREE_TYPES.map((degree) => (
@@ -182,7 +182,7 @@ export default function UpdateStudentForm({
 					/>
 				</div>
 
-				<Button type='submit' className='mt-4'>
+				<Button type="submit" className="mt-4">
 					Oppdater
 				</Button>
 			</form>

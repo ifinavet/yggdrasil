@@ -24,9 +24,9 @@ export default function ListBoardMembers({
 	}
 
 	return (
-		<div className='flex max-w-8xl flex-wrap gap-4'>
+		<div className="flex max-w-8xl flex-wrap gap-4">
 			{boardMembers?.map((member) => (
-				<Card key={member._id} className='w-96'>
+				<Card key={member._id} className="w-96">
 					<CardHeader>
 						<CardTitle>{member.position}</CardTitle>
 						<CardAction>
@@ -34,17 +34,14 @@ export default function ListBoardMembers({
 						</CardAction>
 					</CardHeader>
 					<CardContent>
-						<div className='flex items-center justify-between gap-4'>
-							<Avatar className='h-16 w-16 rounded-lg'>
+						<div className="flex items-center justify-between gap-4">
+							<Avatar className="h-16 w-16 rounded-lg">
 								<AvatarImage src={member.image} />
 								<AvatarFallback>{member.fullName.slice(0, 1)}</AvatarFallback>
 							</Avatar>
 							<div>
 								<p>{member.fullName}</p>
-								<a
-									href={`mailto:${member.email}`}
-									className='text-balance text-muted-foreground'
-								>
+								<a href={`mailto:${member.email}`} className="text-balance text-muted-foreground">
 									{member.email}
 								</a>
 							</div>

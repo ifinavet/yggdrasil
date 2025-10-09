@@ -15,16 +15,16 @@ export default function EditJobListingLoading() {
 			<Breadcrumb>
 				<BreadcrumbList>
 					<BreadcrumbItem>
-						<BreadcrumbLink href='/'>Hjem</BreadcrumbLink>
+						<BreadcrumbLink href="/">Hjem</BreadcrumbLink>
 					</BreadcrumbItem>
 					<BreadcrumbSeparator />
 					<BreadcrumbItem>
-						<BreadcrumbLink href='/job-listings'>Stillingsannonser</BreadcrumbLink>
+						<BreadcrumbLink href="/job-listings">Stillingsannonser</BreadcrumbLink>
 					</BreadcrumbItem>
 					<BreadcrumbSeparator />
 					<BreadcrumbItem>
 						<BreadcrumbPage>
-							<Skeleton className='h-4 w-32' />
+							<Skeleton className="h-4 w-32" />
 						</BreadcrumbPage>
 					</BreadcrumbItem>
 				</BreadcrumbList>

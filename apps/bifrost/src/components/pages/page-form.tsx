@@ -94,15 +94,15 @@ export default function PageForm({
 
 	return (
 		<Form {...form}>
-			<form onSubmit={form.handleSubmit(onPrimarySubmitAction)} className='space-y-4'>
+			<form onSubmit={form.handleSubmit(onPrimarySubmitAction)} className="space-y-4">
 				<FormField
 					control={form.control}
-					name='title'
+					name="title"
 					render={({ field }) => (
-						<FormItem className='flex-1'>
+						<FormItem className="flex-1">
 							<FormLabel>Tittel</FormLabel>
 							<FormControl>
-								<Input placeholder='Tittel' {...field} />
+								<Input placeholder="Tittel" {...field} />
 							</FormControl>
 							<FormDescription>En kort informativ tittel som beskriver siden</FormDescription>
 							<FormMessage />
@@ -110,15 +110,15 @@ export default function PageForm({
 					)}
 				/>
 
-				<Separator className='my-4' />
+				<Separator className="my-4" />
 				<FormField
 					control={form.control}
-					name='content'
+					name="content"
 					render={() => (
 						<FormItem>
 							<FormLabel>Innhold</FormLabel>
 							<FormControl>
-								<div className='min-h-[60vh] overflow-clip rounded-md border'>
+								<div className="min-h-[60vh] overflow-clip rounded-md border">
 									<EditorMenu editor={editor} />
 									<EditorContent editor={editor} />
 								</div>
@@ -129,27 +129,27 @@ export default function PageForm({
 					)}
 				/>
 
-				<div className='flex flex-wrap gap-4'>
+				<div className="flex flex-wrap gap-4">
 					<Button
-						type='submit'
+						type="submit"
 						disabled={form.formState.isSubmitting}
 						onClick={form.handleSubmit(onPrimarySubmitAction)}
 					>
 						<Send /> {form.formState.isSubmitting ? "Jobber..." : "Lagre og publiser"}
 					</Button>
 					<Button
-						type='submit'
+						type="submit"
 						disabled={form.formState.isSubmitting}
-						variant='secondary'
+						variant="secondary"
 						onClick={form.handleSubmit(onSecondarySubmitAction)}
 					>
 						<Save /> {form.formState.isSubmitting ? "Jobber..." : "Lagre"}
 					</Button>
 					{onTertiarySubmitAction && (
 						<Button
-							type='submit'
+							type="submit"
 							disabled={form.formState.isSubmitting}
-							variant='destructive'
+							variant="destructive"
 							onClick={form.handleSubmit(onTertiarySubmitAction)}
 						>
 							<EyeOff /> {form.formState.isSubmitting ? "Jobber..." : "Lagre og avpubliser"}

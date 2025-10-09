@@ -87,34 +87,34 @@ export default function ContactsSection({
 	return (
 		<FormField
 			control={control}
-			name='contacts'
+			name="contacts"
 			render={() => (
 				<FormItem>
 					<FormLabel>Kontakter</FormLabel>
 					<FormControl>
-						<div className='flex flex-col gap-4'>
-							<div className='flex gap-4'>
+						<div className="flex flex-col gap-4">
+							<div className="flex gap-4">
 								<Input
-									placeholder='eks. Ole Hansen'
+									placeholder="eks. Ole Hansen"
 									value={contactName}
 									onChange={(e) => setContactName(e.target.value)}
 									onKeyDown={handleKeyDown}
 								/>
 								<Input
-									type='email'
-									placeholder='eks. ole@hansen.no'
+									type="email"
+									placeholder="eks. ole@hansen.no"
 									value={contactEmail}
 									onChange={(e) => setContactEmail(e.target.value)}
 									onKeyDown={handleKeyDown}
 								/>
 								<Input
-									type='tel'
-									placeholder='eks. +47 123 456 789'
+									type="tel"
+									placeholder="eks. +47 123 456 789"
 									value={contactPhone}
 									onChange={(e) => setContactPhone(e.target.value)}
 									onKeyDown={handleKeyDown}
 								/>
-								<Button type='button' onClick={addContact}>
+								<Button type="button" onClick={addContact}>
 									Legg til
 								</Button>
 							</div>

@@ -33,10 +33,10 @@ export default function CompanyForm({
 
 	return (
 		<Form {...form}>
-			<form onSubmit={form.handleSubmit(onPrimarySubmitAction)} className='space-y-8'>
+			<form onSubmit={form.handleSubmit(onPrimarySubmitAction)} className="space-y-8">
 				<FormField
 					control={form.control}
-					name='name'
+					name="name"
 					render={({ field }) => (
 						<FormItem>
 							<FormLabel>Bedrifts navn</FormLabel>
@@ -49,7 +49,7 @@ export default function CompanyForm({
 
 				<FormField
 					control={form.control}
-					name='orgNumber'
+					name="orgNumber"
 					render={({ field }) => (
 						<FormItem>
 							<FormLabel>Org. nr.</FormLabel>
@@ -62,7 +62,7 @@ export default function CompanyForm({
 
 				<FormField
 					control={form.control}
-					name='image'
+					name="image"
 					render={() => (
 						<FormItem>
 							<FormLabel>Bedrifts bilde</FormLabel>
@@ -75,15 +75,15 @@ export default function CompanyForm({
 
 				<DescriptionEditor form={form} />
 
-				<div className='mb-4 flex gap-4'>
-					<Button type='submit' disabled={form.formState.isSubmitting}>
+				<div className="mb-4 flex gap-4">
+					<Button type="submit" disabled={form.formState.isSubmitting}>
 						<Send /> {form.formState.isSubmitting ? "Jobber..." : "Lagre og publiser"}
 					</Button>
 					{onSecondarySubmitAction && (
 						<Button
-							type='button'
+							type="button"
 							disabled={form.formState.isSubmitting}
-							variant='destructive'
+							variant="destructive"
 							onClick={form.handleSubmit(onSecondarySubmitAction)}
 						>
 							<Trash /> {form.formState.isSubmitting ? "Jobber..." : "Slett Bedrift"}
