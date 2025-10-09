@@ -13,7 +13,7 @@ export default function OfferGrid({ className }: { className?: string }) {
 					presentasjon i 45-60 minutter, før vi går videre til mingling, mat og drikke.
 				</li>
 			</OfferCard>
-			<OfferCard title="Ordniær bedriftspresentasjon" cost="30.000">
+			<OfferCard title="Ordinær bedriftspresentasjon" cost="30.000">
 				<li>
 					Her gjelder samme vilkår som ved stor bedriftspresentasjon, men med en antallsbegrensing
 					på 40 studenter.
@@ -45,7 +45,10 @@ export default function OfferGrid({ className }: { className?: string }) {
 				</li>
 				<li>
 					Navet forebeholder seg retten til å avslå alle forespørsler om promotering av eksterne
-					arrangementer. Skjema for eksterne arrangementer
+					arrangementer.{" "}
+					<a href="https://forms.gle/WYjKsepiBVYddSTG7" target="_blank" rel="noopener noreferrer">
+						Skjema for eksterne arrangementer
+					</a>
 				</li>
 			</OfferCard>
 		</div>
