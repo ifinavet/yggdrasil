@@ -46,7 +46,12 @@ export default function OfferGrid({ className }: { className?: string }) {
 				<li>
 					Navet forebeholder seg retten til å avslå alle forespørsler om promotering av eksterne
 					arrangementer.{" "}
-					<a href="https://forms.gle/WYjKsepiBVYddSTG7" target="_blank" rel="noopener noreferrer">
+					<a
+						href="https://forms.gle/WYjKsepiBVYddSTG7"
+						target="_blank"
+						rel="noopener noreferrer"
+						className="underline"
+					>
 						Skjema for eksterne arrangementer
 					</a>
 				</li>
