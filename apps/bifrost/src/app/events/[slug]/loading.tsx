@@ -7,7 +7,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@workspace/ui/components//table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/components//tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/components/tabs";
 
 export default function RegistrationsLoading() {
 	return (

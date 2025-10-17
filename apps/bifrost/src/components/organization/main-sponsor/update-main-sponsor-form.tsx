@@ -40,7 +40,9 @@ export default function UpdateMainSponsorForm({
 
 	const [searchInput, setSearchInput] = useState<string>("");
 
-	const companies = useQuery(api.companies.searchByName, { searchQuery: searchInput });
+	const companies = useQuery(api.companies.searchByName, {
+		searchQuery: searchInput,
+	});
 
 	const updateMainSponsor = useMutation(api.companies.updateMainSponsor);
 	const handleUpdateMainSponsor = ({ companyId }: z.infer<typeof schema>) =>

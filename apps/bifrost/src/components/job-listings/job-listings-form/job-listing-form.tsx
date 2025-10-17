@@ -115,7 +115,10 @@ export default function EventForm({
 															value={company.name}
 															onSelect={(currentValue) => {
 																setCompanyValue(currentValue === companyValue ? "" : currentValue);
-																field.onChange({ name: currentValue, id: company._id });
+																field.onChange({
+																	name: currentValue,
+																	id: company._id,
+																});
 																setOpenCompanies(false);
 															}}
 														>

@@ -205,7 +205,10 @@ export default function EventForm({
 																if (currentValue === companyValue) {
 																	field.onChange({ name: "", id: "" });
 																} else {
-																	field.onChange({ name: company.name, id: company._id });
+																	field.onChange({
+																		name: company.name,
+																		id: company._id,
+																	});
 																}
 																setOpenCompanies(false);
 															}}

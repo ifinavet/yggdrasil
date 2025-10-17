@@ -83,7 +83,9 @@ export function EventCard({
 	event,
 	className,
 }: Readonly<{ event: Doc<"events">; className?: string }>) {
-	const mainOrganizer = useQuery(api.events.getOrganizersByEventId, { id: event._id });
+	const mainOrganizer = useQuery(api.events.getOrganizersByEventId, {
+		id: event._id,
+	});
 
 	return (
 		<Link href={`events/${event._id}`}>

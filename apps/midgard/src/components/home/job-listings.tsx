@@ -6,7 +6,9 @@ import ResponsiveCenterContainer from "../common/responsive-center-container";
 import JobListingCard from "../job-listings/job-listing-card";
 
 export default async function JobListings() {
-	const jobListings = await fetchQuery(api.listings.getAllPublishedAndActive, { n: 3 });
+	const jobListings = await fetchQuery(api.listings.getAllPublishedAndActive, {
+		n: 3,
+	});
 
 	return (
 		jobListings.length > 0 && (

@@ -51,7 +51,10 @@ export default function EditPageForm({
 					description: error.message,
 				});
 
-				posthog.captureException("bifrost-page_update_error", { site: "bifrost", error });
+				posthog.captureException("bifrost-page_update_error", {
+					site: "bifrost",
+					error,
+				});
 			});
 	};
 

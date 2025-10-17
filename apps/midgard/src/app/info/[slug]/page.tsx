@@ -7,7 +7,9 @@ import { Title } from "@/components/common/title";
 export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
 	const { slug: identifier } = await params;
 
-	const page = await fetchQuery(api.externalPages.getByIdentifier, { identifier });
+	const page = await fetchQuery(api.externalPages.getByIdentifier, {
+		identifier,
+	});
 
 	return (
 		<ResponsiveCenterContainer>

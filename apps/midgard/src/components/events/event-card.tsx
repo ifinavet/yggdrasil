@@ -7,7 +7,9 @@ import Link from "next/link";
 import { humanReadableDate } from "@/utils/dateFormatting";
 
 export default async function EventCard({ event }: { event: Doc<"events"> }) {
-	const company = await fetchQuery(api.companies.getById, { id: event.hostingCompany });
+	const company = await fetchQuery(api.companies.getById, {
+		id: event.hostingCompany,
+	});
 
 	return (
 		<Link href={`/events/${event._id}`} className="h-full">

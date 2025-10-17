@@ -31,7 +31,10 @@ export default function Unregister({
 	const onUnregister = () =>
 		unregister({ id: registrationId })
 			.then(({ deletedRegistration, event }) =>
-				posthog.capture("midgard-student_unregister", { deletedRegistration, event }),
+				posthog.capture("midgard-student_unregister", {
+					deletedRegistration,
+					event,
+				}),
 			)
 			.catch(() => {
 				toast.error("O! Noe gikk galt! Prøv igjen senere");

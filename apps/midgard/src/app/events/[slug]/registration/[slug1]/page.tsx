@@ -22,7 +22,9 @@ export default async function RegistrationPage({
 
 	if (!isAuthenticated) return redirect(`/sign-in/?redirect=${pathname}`);
 
-	const preloadedEvent = await preloadQuery(api.events.getById, { id: eventId });
+	const preloadedEvent = await preloadQuery(api.events.getById, {
+		id: eventId,
+	});
 	const event = preloadedQueryResult(preloadedEvent);
 
 	const preloadedRegistration = await preloadQuery(api.registration.getById, {

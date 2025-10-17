@@ -58,7 +58,10 @@ export default function EditResourceForm({ id }: { id: Id<"resources"> }) {
 					description: error.message,
 				});
 
-				posthog.captureException("bifrost-resource_update_error", { site: "bifrost", error });
+				posthog.captureException("bifrost-resource_update_error", {
+					site: "bifrost",
+					error,
+				});
 			});
 	};
 

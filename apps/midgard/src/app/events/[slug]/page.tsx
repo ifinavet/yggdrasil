@@ -19,7 +19,9 @@ export async function generateMetadata({
 }): Promise<Metadata> {
 	const { slug: eventId } = await params;
 	const event = await fetchQuery(api.events.getById, { id: eventId });
-	const company = await fetchQuery(api.companies.getById, { id: event.hostingCompany });
+	const company = await fetchQuery(api.companies.getById, {
+		id: event.hostingCompany,
+	});
 
 	return {
 		openGraph: {
@@ -47,10 +49,14 @@ export default async function EventPage({ params }: { params: Promise<{ slug: Id
 		{ token },
 	);
 
-	const preloadedEvent = await preloadQuery(api.events.getById, { id: eventId });
+	const preloadedEvent = await preloadQuery(api.events.getById, {
+		id: eventId,
+	});
 	const event = preloadedQueryResult(preloadedEvent);
 
-	const company = await fetchQuery(api.companies.getById, { id: event.hostingCompany });
+	const company = await fetchQuery(api.companies.getById, {
+		id: event.hostingCompany,
+	});
 
 	const preloadedRegistrations = await preloadQuery(api.registration.getByEventId, { eventId });
 

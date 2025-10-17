@@ -45,7 +45,11 @@ export const getLatest = query({
 });
 
 export const getAllEvents = internalQuery({
-	args: { semester: v.number(), year: v.number(), status: v.optional(v.string()) },
+	args: {
+		semester: v.number(),
+		year: v.number(),
+		status: v.optional(v.string()),
+	},
 	handler: async (ctx, { semester, year }) => {
 		let range_start: Date;
 		let range_end: Date;
@@ -177,7 +181,11 @@ export const getById = query({
 
 		const organizers = await getOrganizers(ctx, event._id);
 
-		return { ...event, hostingCompanyName: company?.name ?? "Ukjent", organizers };
+		return {
+			...event,
+			hostingCompanyName: company?.name ?? "Ukjent",
+			organizers,
+		};
 	},
 });
 
