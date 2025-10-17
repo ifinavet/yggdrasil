@@ -36,41 +36,14 @@ export default defineSchema({
 		updatedAt: v.number(),
 	}).index("by_favoriteAndUpdated", ["favorite", "updatedAt"]),
 
-	users: defineTable({
-		email: v.string(),
-		firstName: v.string(),
-		lastName: v.string(),
-		image: v.string(),
-		externalId: v.string(),
-		locked: v.boolean(),
-	})
-		.index("by_ExternalId", ["externalId"])
-		.searchIndex("search_email", {
-			searchField: "email",
-		}),
-
-	students: defineTable({
-		userId: v.id("users"),
-		name: v.string(),
-		studyProgram: v.string(),
-		email: v.optional(v.string()),
-		semester: v.number(),
-		degree: v.union(v.literal("Bachelor"), v.literal("Master"), v.literal("PhD")),
-	})
-		.index("by_studyProgram", ["studyProgram"])
-		.index("by_userId", ["userId"])
-		.searchIndex("search_name", {
-			searchField: "name",
-		}),
-
 	points: defineTable({
-		studentId: v.id("students"),
+		studentId: v.string(),
 		reason: v.string(),
 		severity: v.number(),
 	}).index("by_studentId", ["studentId"]),
 
 	internals: defineTable({
-		userId: v.id("users"),
+		userId: v.string(),
 		position: v.string(),
 		group: v.string(),
 		positionEmail: v.optional(v.string()),
@@ -80,7 +53,7 @@ export default defineSchema({
 		.index("by_userId", ["userId"]),
 
 	accessRights: defineTable({
-		userId: v.id("users"),
+		userId: v.string(),
 		role: accessRoles,
 	})
 		.index("by_userId", ["userId"])
@@ -89,8 +62,8 @@ export default defineSchema({
 	internalGroups: defineTable({
 		name: v.string(),
 		description: v.string(),
-		leader: v.id("users"),
-	}),
+		leader: v.string(),
+	}).index("by_leader", ["leader"]),
 
 	events: defineTable({
 		title: v.string(),
@@ -112,14 +85,20 @@ export default defineSchema({
 
 	eventOrganizers: defineTable({
 		eventId: v.id("events"),
-		userId: v.id("users"),
+		userId: v.string(),
 		role: v.union(v.literal("hovedansvarlig"), v.literal("medhjelper")),
-	}).index("by_eventId", ["eventId"]),
+	})
+		.index("by_eventId", ["eventId"])
+		.index("by_userId", ["userId"]),
 
 	registrations: defineTable({
 		eventId: v.id("events"),
-		userId: v.id("users"),
-		status: v.union(v.literal("registered"), v.literal("pending"), v.literal("waitlist")),
+		userId: v.string(),
+		status: v.union(
+			v.literal("registered"),
+			v.literal("pending"),
+			v.literal("waitlist"),
+		),
 		note: v.optional(v.string()),
 		registrationTime: v.number(),
 		attendanceStatus: v.optional(
@@ -129,7 +108,11 @@ export default defineSchema({
 	})
 		.index("by_eventId", ["eventId"])
 		.index("by_eventIdAndRegistrationTime", ["eventId", "registrationTime"])
-		.index("by_eventIdStatusAndRegistrationTime", ["eventId", "status", "registrationTime"])
+		.index("by_eventIdStatusAndRegistrationTime", [
+			"eventId",
+			"status",
+			"registrationTime",
+		])
 		.index("by_userId", ["userId"]),
 
 	externalPages: defineTable({

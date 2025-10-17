@@ -1,6 +1,5 @@
 "use client";
 
-import { SignOutButton, useUser } from "@clerk/nextjs";
 import { Button } from "@workspace/ui/components/button";
 import {
 	NavigationMenu,
@@ -10,7 +9,11 @@ import {
 	NavigationMenuList,
 	NavigationMenuTrigger,
 } from "@workspace/ui/components/navigation-menu";
-import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui/components/popover";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@workspace/ui/components/popover";
 import { Separator } from "@workspace/ui/components/separator";
 import { cn } from "@workspace/ui/lib/utils";
 import { Authenticated, AuthLoading, Unauthenticated } from "convex/react";
@@ -19,6 +22,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import NavetLogo from "@/assets/navet/logo_n_blaa.webp";
+import { authClient } from "@/lib/auth/auth-client";
+import SignOut from "./sign-out";
 
 export default function Header() {
 	return (
@@ -48,14 +53,17 @@ function MediumNavigation({ className }: Readonly<{ className?: string }>) {
 				<NavigationMenu viewport={false}>
 					<NavigationMenuList>
 						<NavigationMenuItem>
-							<NavigationTrigger href="/events">Arrangementer</NavigationTrigger>
+							<NavigationTrigger href="/events">
+								Arrangementer
+							</NavigationTrigger>
 							<NavigationMenuContent className="z-10">
 								<div className="grid w-[300px] gap-4">
 									<NavigationMenuLink asChild>
 										<Link href="/events">
 											<div className="font-medium">Arrangementer</div>
 											<div className="text-muted-foreground">
-												Se alle bedriftspresentasjonene og faglige arrangementene for semesteret.
+												Se alle bedriftspresentasjonene og faglige
+												arrangementene for semesteret.
 											</div>
 										</Link>
 									</NavigationMenuLink>
@@ -71,7 +79,9 @@ function MediumNavigation({ className }: Readonly<{ className?: string }>) {
 							</NavigationMenuContent>
 						</NavigationMenuItem>
 
-						<NavigationItem href="/job-listings">Stillingsannonser</NavigationItem>
+						<NavigationItem href="/job-listings">
+							Stillingsannonser
+						</NavigationItem>
 					</NavigationMenuList>
 				</NavigationMenu>
 			</div>
@@ -83,7 +93,9 @@ function MediumNavigation({ className }: Readonly<{ className?: string }>) {
 }
 
 function DropdownNavigation({ className }: Readonly<{ className?: string }>) {
-	const { user } = useUser();
+	const session = authClient.useSession();
+	const user = session.data?.user;
+
 	const [open, setOpen] = useState(false);
 	return (
 		<Popover open={open} onOpenChange={setOpen}>
@@ -94,10 +106,18 @@ function DropdownNavigation({ className }: Readonly<{ className?: string }>) {
 			</PopoverTrigger>
 			<PopoverContent className={cn("z-120", className)} align="end">
 				<div className="grid gap-4">
-					<Link href="/events" className="hover:underline" onClick={() => setOpen(false)}>
+					<Link
+						href="/events"
+						className="hover:underline"
+						onClick={() => setOpen(false)}
+					>
 						Arrangementer
 					</Link>
-					<Link href="/job-listings" className="hover:underline" onClick={() => setOpen(false)}>
+					<Link
+						href="/job-listings"
+						className="hover:underline"
+						onClick={() => setOpen(false)}
+					>
 						Stillingsannonser
 					</Link>
 					<Link
@@ -107,16 +127,32 @@ function DropdownNavigation({ className }: Readonly<{ className?: string }>) {
 					>
 						Eksterne Arrangementer
 					</Link>
-					<Link href="/students" className="hover:underline" onClick={() => setOpen(false)}>
+					<Link
+						href="/students"
+						className="hover:underline"
+						onClick={() => setOpen(false)}
+					>
 						For studenter
 					</Link>
-					<Link href="/contact" className="hover:underline" onClick={() => setOpen(false)}>
+					<Link
+						href="/contact"
+						className="hover:underline"
+						onClick={() => setOpen(false)}
+					>
 						Si Ifra
 					</Link>
-					<Link href="/companies" className="hover:underline" onClick={() => setOpen(false)}>
+					<Link
+						href="/companies"
+						className="hover:underline"
+						onClick={() => setOpen(false)}
+					>
 						For bedrifter
 					</Link>
-					<Link href="/organization" className="hover:underline" onClick={() => setOpen(false)}>
+					<Link
+						href="/organization"
+						className="hover:underline"
+						onClick={() => setOpen(false)}
+					>
 						Om oss
 					</Link>
 					<Separator />
@@ -124,15 +160,25 @@ function DropdownNavigation({ className }: Readonly<{ className?: string }>) {
 						<Link href="/profile">Profil</Link>
 					</AuthLoading>
 					<Authenticated>
-						<Link href="/profile" onClick={() => setOpen(false)}>
-							{user?.firstName?.split(" ")[0] ?? "profil"}
+						<Link
+							href="/profile"
+							onClick={() => setOpen(false)}
+							className="hover:underline"
+						>
+							{user?.name.split(" ")[0] ?? "profil"}
 						</Link>
 						<div className="text-left">
-							<SignOutButton>Logg ut</SignOutButton>
+							<SignOut className="cursor-pointer hover:underline">
+								Logg ut
+							</SignOut>
 						</div>
 					</Authenticated>
 					<Unauthenticated>
-						<Link href="/sign-in" className="hover:underline" onClick={() => setOpen(false)}>
+						<Link
+							href="/sign-in"
+							className="hover:underline"
+							onClick={() => setOpen(false)}
+						>
 							Logg inn
 						</Link>
 					</Unauthenticated>
@@ -143,7 +189,8 @@ function DropdownNavigation({ className }: Readonly<{ className?: string }>) {
 }
 
 function LargeNavigation({ className }: Readonly<{ className?: string }>) {
-	const { user } = useUser();
+	const session = authClient.useSession();
+	const user = session.data?.user;
 
 	return (
 		<>
@@ -151,14 +198,17 @@ function LargeNavigation({ className }: Readonly<{ className?: string }>) {
 				<NavigationMenu viewport={false}>
 					<NavigationMenuList>
 						<NavigationMenuItem>
-							<NavigationTrigger href="/events">Arrangementer</NavigationTrigger>
+							<NavigationTrigger href="/events">
+								Arrangementer
+							</NavigationTrigger>
 							<NavigationMenuContent className="z-10">
 								<div className="grid w-[300px] gap-4">
 									<NavigationMenuLink asChild>
 										<Link href="/events">
 											<div className="font-medium">Arrangementer</div>
 											<div className="text-muted-foreground">
-												Se alle bedriftspresentasjonene og faglige arrangementene for semesteret.
+												Se alle bedriftspresentasjonene og faglige
+												arrangementene for semesteret.
 											</div>
 										</Link>
 									</NavigationMenuLink>
@@ -174,25 +224,32 @@ function LargeNavigation({ className }: Readonly<{ className?: string }>) {
 							</NavigationMenuContent>
 						</NavigationMenuItem>
 
-						<NavigationItem href="/job-listings">Stillingsannonser</NavigationItem>
+						<NavigationItem href="/job-listings">
+							Stillingsannonser
+						</NavigationItem>
 
 						<NavigationItem href="/companies">For Bedrifter</NavigationItem>
 
 						<NavigationMenuItem>
-							<NavigationTrigger href="/students">For studenter</NavigationTrigger>
+							<NavigationTrigger href="/students">
+								For studenter
+							</NavigationTrigger>
 							<NavigationMenuContent className="z-10">
 								<div className="grid w-[300px] gap-4">
 									<NavigationMenuLink asChild>
 										<Link href="/students">
 											<div className="font-medium">For studenter</div>
-											<div className="text-muted-foreground">Nyttig informasjon for studenter!</div>
+											<div className="text-muted-foreground">
+												Nyttig informasjon for studenter!
+											</div>
 										</Link>
 									</NavigationMenuLink>
 									<NavigationMenuLink asChild>
 										<Link href="/contact">
 											<div className="font-medium">Si Ifra</div>
 											<div className="text-muted-foreground">
-												Har det skjedd noe ubehalig på et av våre arrangementer? Si ifra!
+												Har det skjedd noe ubehalig på et av våre arrangementer?
+												Si ifra!
 											</div>
 										</Link>
 									</NavigationMenuLink>
@@ -213,7 +270,7 @@ function LargeNavigation({ className }: Readonly<{ className?: string }>) {
 						<Authenticated>
 							<NavigationMenuItem>
 								<NavigationTrigger href="/profile">
-									{user?.firstName?.split(" ")[0] ?? "profil"}
+									{user?.name.split(" ")[0] ?? "profil"}
 								</NavigationTrigger>
 								<NavigationMenuContent className="z-10">
 									<div className="grid w-[100px] gap-4">
@@ -221,7 +278,7 @@ function LargeNavigation({ className }: Readonly<{ className?: string }>) {
 											<Link href="/profile">Profil</Link>
 										</NavigationMenuLink>
 										<NavigationMenuLink className="text-left text-base" asChild>
-											<SignOutButton>Logg ut</SignOutButton>
+											<SignOut>Logg ut</SignOut>
 										</NavigationMenuLink>
 									</div>
 								</NavigationMenuContent>
@@ -248,7 +305,10 @@ function NavigationTrigger({
 	);
 }
 
-function NavigationItem({ href, children }: Readonly<{ href: string; children: React.ReactNode }>) {
+function NavigationItem({
+	href,
+	children,
+}: Readonly<{ href: string; children: React.ReactNode }>) {
 	return (
 		<NavigationMenuItem>
 			<NavigationMenuLink

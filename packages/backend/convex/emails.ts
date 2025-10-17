@@ -64,7 +64,10 @@ export const sendAvailableSeatEmail = internalAction({
 		eventTitle: v.string(),
 		registrationId: v.id("registrations"),
 	},
-	handler: async (ctx, { participantEmail, eventId, eventTitle, registrationId }) => {
+	handler: async (
+		ctx,
+		{ participantEmail, eventId, eventTitle, registrationId },
+	) => {
 		const url = `https://ifinavet.no/events/${eventId}/registration/${registrationId}`;
 
 		const html = await pretty(
@@ -93,7 +96,10 @@ export const sendFreeForAll = internalAction({
 		eventTitle: v.string(),
 		availableSeats: v.number(),
 	},
-	handler: async (ctx, { participantEmail, eventId, eventTitle, availableSeats }) => {
+	handler: async (
+		ctx,
+		{ participantEmail, eventId, eventTitle, availableSeats },
+	) => {
 		const url = `https://ifinavet.no/events/${eventId}`;
 
 		const html = await pretty(

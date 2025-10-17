@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { internalMutation, mutation, query } from "./_generated/server";
-import { getCurrentUserOrThrow } from "./users";
+import { authComponent, getCurrentUserOrThrow } from "./auth";
 
 export const getByStudentId = query({
 	args: { id: v.id("students") },
@@ -18,18 +18,9 @@ export const getCurrentStudentsPoints = query({
 	handler: async (ctx) => {
 		const user = await getCurrentUserOrThrow(ctx);
 
-		const student = await ctx.db
-			.query("students")
-			.withIndex("by_userId", (q) => q.eq("userId", user._id))
-			.first();
-
-		if (!student) {
-			throw new Error("Student not found for the user");
-		}
-
 		const points = await ctx.db
 			.query("points")
-			.withIndex("by_studentId", (q) => q.eq("studentId", student._id))
+			.withIndex("by_studentId", (q) => q.eq("studentId", user._id))
 			.collect();
 
 		return points;
@@ -49,13 +40,13 @@ export const givePoints = mutation({
 			severity,
 		});
 
-		const student = await ctx.db.get(id);
+		const student = await authComponent.getAnyUserById(ctx, id);
 		if (!student) {
 			throw new Error(`Student with ID ${id} not found.`);
 		}
 
 		await ctx.scheduler.runAfter(0, internal.points.givePointsEmail, {
-			userId: student.userId,
+			userId: student._id,
 			severity,
 			reason,
 		});
@@ -64,7 +55,7 @@ export const givePoints = mutation({
 
 export const givePointsInternal = internalMutation({
 	args: {
-		id: v.id("students"),
+		id: v.string(),
 		reason: v.string(),
 		severity: v.number(),
 	},
@@ -95,12 +86,12 @@ export const givePointsInternal = internalMutation({
 
 export const givePointsEmail = internalMutation({
 	args: {
-		userId: v.id("users"),
+		userId: v.string(),
 		severity: v.number(),
 		reason: v.string(),
 	},
 	handler: async (ctx, { userId, severity, reason }) => {
-		const user = await ctx.db.get(userId);
+		const user = await authComponent.getAnyUserById(ctx, userId);
 
 		if (!user) {
 			throw new Error(`User with ID ${userId} not found.`);
@@ -116,21 +107,16 @@ export const givePointsEmail = internalMutation({
 
 export const tooManyPointsEmail = internalMutation({
 	args: {
-		studentsId: v.id("students"),
+		studentsId: v.string(),
 	},
 	handler: async (ctx, { studentsId }) => {
-		const student = await ctx.db.get(studentsId);
+		const student = await authComponent.getAnyUserById(ctx, studentsId);
 		if (!student) {
 			throw new Error(`Student with ID ${studentsId} not found.`);
 		}
 
-		const user = await ctx.db.get(student.userId);
-		if (!user) {
-			throw new Error(`User with ID ${student.userId} not found.`);
-		}
-
 		await ctx.scheduler.runAfter(0, internal.emails.sendTooManyPointsEmail, {
-			participantEmail: user.email,
+			participantEmail: student.email,
 		});
 	},
 });

@@ -1,7 +1,7 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { getCurrentUserOrThrow } from "./users";
+import { getCurrentUserOrThrow } from "./auth";
 
 export const getAllPaged = query({
 	args: { paginationOpts: paginationOptsValidator },
@@ -34,7 +34,9 @@ export const getMainSponsor = query({
 
 		const imageUrl = await ctx.storage.getUrl(companyImage.image);
 		if (!imageUrl) {
-			throw new Error(`Image URL for logo with ID ${companyImage.image} not found`);
+			throw new Error(
+				`Image URL for logo with ID ${companyImage.image} not found`,
+			);
 		}
 
 		return { ...mainSponsor, imageUrl };
@@ -58,7 +60,9 @@ export const getById = query({
 
 		const imageUrl = await ctx.storage.getUrl(companyImage.image);
 		if (!imageUrl) {
-			throw new Error(`Image URL for logo with ID ${companyImage.image} not found`);
+			throw new Error(
+				`Image URL for logo with ID ${companyImage.image} not found`,
+			);
 		}
 
 		return { ...company, imageUrl };

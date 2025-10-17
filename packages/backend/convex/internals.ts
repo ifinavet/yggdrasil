@@ -1,8 +1,8 @@
 import { v } from "convex/values";
 import { api } from "./_generated/api";
 import { mutation, query } from "./_generated/server";
+import { authComponent, getCurrentUserOrThrow } from "./auth";
 import { accessRoles } from "./schema";
-import { getCurrentUserOrThrow } from "./users";
 
 export const getBoardMemberByPosition = query({
 	args: {
@@ -18,7 +18,7 @@ export const getBoardMemberByPosition = query({
 			return null;
 		}
 
-		const user = await ctx.db.get(member.userId);
+		const user = await authComponent.getAnyUserById(ctx, member.userId);
 		if (!user) {
 			throw new Error(`User not found for board member with ID: ${member._id}`);
 		}
@@ -39,10 +39,10 @@ export const getTheBoard = query({
 
 		const boardMembers = await Promise.all(
 			members.map(async (member) => {
-				const user = await ctx.db.get(member.userId);
+				const user = await authComponent.getAnyUserById(ctx, member.userId);
 				return {
 					...member,
-					fullName: (user && `${user.firstName} ${user.lastName}`) ?? "Styremedlem",
+					fullName: (user && `${user.name}`) ?? "Styremedlem",
 					email: user?.email ?? "styret@ifinavet.no",
 					image: user?.image,
 				};
@@ -80,7 +80,7 @@ export const getById = query({
 			throw new Error(`Internal record not found for ID: ${id}`);
 		}
 
-		const user = await ctx.db.get(internal.userId);
+		const user = await authComponent.getAnyUserById(ctx, internal.userId);
 		if (!user) {
 			throw new Error(`User not found for internal record with ID: ${id}`);
 		}
@@ -92,7 +92,7 @@ export const getById = query({
 
 		return {
 			...internal,
-			fullName: `${user.firstName} ${user.lastName}`,
+			fullName: `${user.name}`,
 			email: user.email,
 			image: user.image,
 			accessRights: rights?.role,
@@ -109,9 +109,13 @@ export const upsertBoardMember = mutation({
 		positionEmail: v.optional(v.string()),
 		role: accessRoles,
 	},
-	handler: async (ctx, { id, userId, position, group, positionEmail, role }) => {
+	handler: async (
+		ctx,
+		{ id, userId, position, group, positionEmail, role },
+	) => {
 		const currentBoardMember = await ctx.db.get(id);
-		if (!currentBoardMember) throw new Error(`Board member not found for ID: ${id}`);
+		if (!currentBoardMember)
+			throw new Error(`Board member not found for ID: ${id}`);
 
 		await ctx.runMutation(api.accsessRights.upsertAccessRights, {
 			userId,
@@ -129,7 +133,8 @@ export const upsertBoardMember = mutation({
 				.query("internals")
 				.withIndex("by_userId", (q) => q.eq("userId", userId))
 				.first();
-			if (!newBoardMember) throw new Error(`New board member not found for user ID: ${userId}`);
+			if (!newBoardMember)
+				throw new Error(`New board member not found for user ID: ${userId}`);
 
 			await ctx.db.patch(newBoardMember._id, {
 				group,
@@ -152,7 +157,7 @@ export const getAll = query({
 
 		return await Promise.all(
 			internals.map(async (internal) => {
-				const user = await ctx.db.get(internal.userId);
+				const user = await authComponent.getAnyUserById(ctx, internal.userId);
 				if (!user)
 					return {
 						...internal,
@@ -161,7 +166,7 @@ export const getAll = query({
 
 				return {
 					...internal,
-					fullName: `${user.firstName} ${user.lastName}`,
+					fullName: `${user.name}`,
 				};
 			}),
 		);
@@ -177,7 +182,7 @@ export const getAllInternals = query({
 
 		return await Promise.all(
 			internals.map(async (internal) => {
-				const user = await ctx.db.get(internal.userId);
+				const user = await authComponent.getAnyUserById(ctx, internal.userId);
 
 				const rights = await ctx.db
 					.query("accessRights")
@@ -195,7 +200,7 @@ export const getAllInternals = query({
 
 				return {
 					...internal,
-					fullName: `${user.firstName} ${user.lastName}`,
+					fullName: `${user.name}`,
 					email: user.email,
 					image: user.image,
 					role: rights?.role,

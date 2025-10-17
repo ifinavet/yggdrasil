@@ -1,4 +1,3 @@
-import { auth } from "@clerk/nextjs/server";
 import { api } from "@workspace/backend/convex/api";
 import { preloadQuery } from "convex/nextjs";
 import type { Metadata } from "next";
@@ -7,19 +6,23 @@ import { Title } from "@/components/common/title";
 import Points from "@/components/profile/points";
 import Registrations from "@/components/profile/registrations";
 import UpdateProfileForm from "@/components/profile/update-profile-form";
-import { getAuthToken } from "@/utils/authToken";
+import { getToken } from "@/lib/auth/auth-server";
+import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
 	title: "Profil",
 };
 
 export default async function ProfilePage() {
-	const { userId, redirectToSignIn } = await auth();
-	const token = await getAuthToken();
+	const token = await getToken();
 
-	if (!userId) return redirectToSignIn();
+	if (!token) return redirect("/sign-in");
 
-	const preloadedStudent = await preloadQuery(api.students.getCurrent, {}, { token });
+	const preloadedStudent = await preloadQuery(
+		api.students.getCurrent,
+		{},
+		{ token },
+	);
 
 	return (
 		<ResponsiveCenterContainer>
@@ -29,7 +32,10 @@ export default async function ProfilePage() {
 					<h2 className="scroll-m-20 border-b pb-2 font-semibold text-3xl text-primary tracking-tight first:mt-0 dark:text-primary-foreground">
 						Din profil
 					</h2>
-					<UpdateProfileForm preloadedStudent={preloadedStudent} className="mt-4" />
+					<UpdateProfileForm
+						preloadedStudent={preloadedStudent}
+						className="mt-4"
+					/>
 				</div>
 				<div className="row-span-2">
 					<h2 className="scroll-m-20 border-b pb-2 font-semibold text-3xl text-primary tracking-tight first:mt-0 dark:text-primary-foreground">

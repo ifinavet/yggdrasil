@@ -4,7 +4,7 @@
 	"type": "module",
 	"private": true,
 	"scripts": {
-		"dev": "email dev"
+		"dev": "email dev -p 3002"
 	},
 	"keywords": [],
 	"author": "",

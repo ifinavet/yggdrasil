@@ -1,17 +1,16 @@
 "use client";
 
-import { useAuth, useUser } from "@clerk/nextjs";
 import { usePathname, useSearchParams } from "next/navigation";
 import { usePostHog } from "posthog-js/react";
 import { useEffect } from "react";
+import { authClient } from "@/lib/auth/auth-client";
 
 export default function PostHogPageView(): null {
 	const pathname = usePathname();
 	const searchParams = useSearchParams();
 	const posthog = usePostHog();
 
-	const { isSignedIn, userId } = useAuth();
-	const { user } = useUser();
+	const { data } = authClient.useSession();
 
 	// Track pageviews
 	useEffect(() => {
@@ -27,18 +26,19 @@ export default function PostHogPageView(): null {
 	}, [pathname, searchParams, posthog]);
 
 	useEffect(() => {
-		if (isSignedIn && userId && user && !posthog._isIdentified()) {
-			posthog.identify(userId, {
-				email: user.primaryEmailAddress?.emailAddress,
-				username: user.username,
+		const user = data?.user;
+		if (data && user && user?.id && !posthog._isIdentified()) {
+			posthog.identify(user.id, {
+				email: user.email,
+				username: user.name,
 				site: "bifrost",
 			});
 		}
 
-		if (!isSignedIn && posthog._isIdentified()) {
+		if (!data && posthog._isIdentified()) {
 			posthog.reset();
 		}
-	}, [posthog, user]);
+	}, [posthog, data]);
 
 	return null;
 }

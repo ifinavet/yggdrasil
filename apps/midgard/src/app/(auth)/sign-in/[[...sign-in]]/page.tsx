@@ -1,28 +1,159 @@
-import { SignIn } from "@clerk/nextjs";
-import { auth } from "@clerk/nextjs/server";
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useForm } from "@tanstack/react-form";
+import z from "zod/v4";
 import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
+import { authClient } from "@/lib/auth/auth-client";
+import { useState } from "react";
+import { Button } from "@workspace/ui/components/button";
+import { Input } from "@workspace/ui/components/input";
+import {
+	Field,
+	FieldError,
+	FieldGroup,
+	FieldLabel,
+	FieldLegend,
+	FieldSeparator,
+	FieldSet,
+} from "@workspace/ui/components/field";
+import Link from "next/link";
 
-export default async function SignInPage() {
-	const { isAuthenticated } = await auth();
-	const headerList = await headers();
-	const searchParam = headerList.get("x-searchParams") || "/";
+const schema = z.object({
+	email: z.email("Vennligst oppgi en gyldig e-postadresse"),
+	password: z
+		.string()
+		.min(8, "Vennligst oppgi et passord som er minst 8 tegn langt"),
+});
 
-	const redirectUrl = searchParam.includes("=")
-		? decodeURIComponent(searchParam.split("=")[1] || "/")
-		: "/";
+const translations = {
+	email: "E-postadresse",
+	password: "Passord",
+};
 
-	if (isAuthenticated) return redirect("/");
+export default function SignInPage() {
+	const [error, setError] = useState<string | null>(null);
+	const { data } = authClient.useSession();
+	const router = useRouter();
+	if (data) router.push("/");
 
+	const signInForm = useForm({
+		defaultValues: {
+			email: "",
+			password: "",
+		},
+		validators: {
+			onBlur: schema,
+			onSubmit: schema,
+		},
+		onSubmit: async ({ value }) => {
+			const { error } = await authClient.signIn.email({
+				email: value.email,
+				password: value.password,
+			});
+
+			if (error) {
+				setError(`Feil! - ${error.message}`);
+			}
+
+			const organizations = await authClient.organization.list();
+
+			if (organizations.error) {
+				throw new Error("Failed to fetch organizations");
+			}
+
+			if (organizations.data.length >= 1 && organizations.data[0]) {
+				await authClient.organization.setActive({
+					organizationId: organizations.data[0].id,
+					organizationSlug: organizations.data[0].slug,
+				});
+			}
+
+			router.push("/");
+		},
+	});
 	return (
 		<ResponsiveCenterContainer>
 			<div className="flex w-full justify-center py-10">
-				<SignIn
-					signUpUrl="/sign-up"
-					fallbackRedirectUrl={redirectUrl}
-					forceRedirectUrl={redirectUrl}
-				/>
+				<form
+					className="w-full max-w-md"
+					onSubmit={(e) => {
+						e.preventDefault();
+						signInForm.handleSubmit();
+					}}
+				>
+					<FieldGroup>
+						<FieldSet>
+							<FieldLegend>Logg inn</FieldLegend>
+							<FieldGroup>
+								<signInForm.Field name="email">
+									{(field) => {
+										const isInvalid =
+											field.state.meta.isTouched && !field.state.meta.isValid;
+										return (
+											<Field data-invalid={isInvalid}>
+												<FieldLabel htmlFor={field.name}>
+													{translations[field.name]}
+												</FieldLabel>
+												<Input
+													id={field.name}
+													name={field.name}
+													value={field.state.value}
+													onBlur={field.handleBlur}
+													onChange={(e) => field.handleChange(e.target.value)}
+													aria-invalid={isInvalid}
+													autoComplete="off"
+												/>
+												{isInvalid && (
+													<FieldError errors={field.state.meta.errors} />
+												)}
+											</Field>
+										);
+									}}
+								</signInForm.Field>
+								<signInForm.Field name="password">
+									{(field) => {
+										const isInvalid =
+											field.state.meta.isTouched && !field.state.meta.isValid;
+										return (
+											<Field data-invalid={isInvalid}>
+												<FieldLabel htmlFor={field.name}>
+													{translations[field.name]}
+												</FieldLabel>
+												<Input
+													type="password"
+													id={field.name}
+													name={field.name}
+													value={field.state.value}
+													onBlur={field.handleBlur}
+													onChange={(e) => field.handleChange(e.target.value)}
+													aria-invalid={isInvalid}
+													autoComplete="off"
+												/>
+												{isInvalid && (
+													<FieldError errors={field.state.meta.errors} />
+												)}
+											</Field>
+										);
+									}}
+								</signInForm.Field>
+							</FieldGroup>
+						</FieldSet>
+						<FieldSeparator />
+						<FieldSet>
+							<Button variant="link" asChild className="justify-start px-0">
+								<Link href="/sign-up">
+									Har du ikke en bruker? Registrer deg her
+								</Link>
+							</Button>
+						</FieldSet>
+
+						<Field>
+							<Button type="submit">sign in</Button>
+							{error && <FieldError>{error}</FieldError>}
+						</Field>
+					</FieldGroup>
+				</form>
 			</div>
 		</ResponsiveCenterContainer>
 	);

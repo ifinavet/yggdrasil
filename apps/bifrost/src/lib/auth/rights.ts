@@ -1,9 +1,10 @@
 import { api } from "@workspace/backend/convex/api";
 import { fetchQuery } from "convex/nextjs";
-import { getAuthToken } from "./authToken";
+import { getToken } from "./auth-server";
 
 export async function hasBasicRights() {
-	const token = await getAuthToken();
+	const token = await getToken();
+
 	return await fetchQuery(
 		api.accsessRights.checkRights,
 		{ right: ["internal", "editor", "admin", "super-admin"] },
@@ -12,7 +13,7 @@ export async function hasBasicRights() {
 }
 
 export async function hasAdminRights() {
-	const token = await getAuthToken();
+	const token = await getToken();
 
 	return await fetchQuery(
 		api.accsessRights.checkRights,
@@ -22,7 +23,7 @@ export async function hasAdminRights() {
 }
 
 export async function hasEditRights() {
-	const token = await getAuthToken();
+	const token = await getToken();
 
 	return await fetchQuery(
 		api.accsessRights.checkRights,
@@ -32,7 +33,11 @@ export async function hasEditRights() {
 }
 
 export async function hasAllRights() {
-	const token = await getAuthToken();
+	const token = await getToken();
 
-	return await fetchQuery(api.accsessRights.checkRights, { right: ["super-admin"] }, { token });
+	return await fetchQuery(
+		api.accsessRights.checkRights,
+		{ right: ["super-admin"] },
+		{ token },
+	);
 }

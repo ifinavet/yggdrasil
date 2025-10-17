@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { nbNO } from "@clerk/localizations";
-import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "@workspace/ui/components/sonner";
 import { Suspense } from "react";
 import { Consent } from "@/components/common/consent";
@@ -34,22 +32,24 @@ export default function RootLayout({
 	return (
 		<html lang="no" suppressHydrationWarning>
 			<body className={`${eina.className} antialiased`}>
-				<ClerkProvider localization={nbNO}>
-					<ConvexClientProvider>
-						<ThemeProvider attribute="class" defaultTheme="light" disableTransitionOnChange>
-							<div className="flex h-screen flex-col overflow-y-auto">
-								<Header />
-								<main className="mb-12 flex-1">{children}</main>
-								<Footer />
-								<Toaster richColors />
-							</div>
-							<Consent />
-							<Suspense fallback={null}>
-								<PostHogPageView />
-							</Suspense>
-						</ThemeProvider>
-					</ConvexClientProvider>
-				</ClerkProvider>
+				<ConvexClientProvider>
+					<ThemeProvider
+						attribute="class"
+						defaultTheme="light"
+						disableTransitionOnChange
+					>
+						<div className="flex h-screen flex-col overflow-y-auto">
+							<Header />
+							<main className="mb-12 flex-1">{children}</main>
+							<Footer />
+							<Toaster richColors />
+						</div>
+						<Consent />
+						<Suspense fallback={null}>
+							<PostHogPageView />
+						</Suspense>
+					</ThemeProvider>
+				</ConvexClientProvider>
 			</body>
 		</html>
 	);

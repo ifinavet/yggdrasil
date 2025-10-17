@@ -1,9 +1,15 @@
 import { withSentryConfig } from "@sentry/nextjs";
 import type { NextConfig } from "next";
 
-if (!process.env.NEXT_PUBLIC_CONVEX_HOSTNAME) {
-	throw new Error("NEXT_PUBLIC_CONVEX_HOSTNAME environment variable is not set.");
+if (!process.env.NEXT_PUBLIC_CONVEX_URL) {
+	throw new Error("NEXT_PUBLIC_CONVEX_URL environment variable is not set.");
 }
+
+// Remove http(s):// protocol if present
+const convexSite = process.env.NEXT_PUBLIC_CONVEX_URL.replace(
+	/^https?:\/\//,
+	"",
+);
 
 const nextConfig: NextConfig = {
 	/* config options here */
@@ -12,7 +18,7 @@ const nextConfig: NextConfig = {
 		remotePatterns: [
 			{
 				protocol: "https",
-				hostname: process.env.NEXT_PUBLIC_CONVEX_HOSTNAME,
+				hostname: convexSite,
 				port: "",
 				pathname: "**",
 			},

@@ -1,10 +1,11 @@
 import { api } from "@workspace/backend/convex/api";
 import { cn } from "@workspace/ui/lib/utils";
 import { fetchQuery } from "convex/nextjs";
-import { getAuthToken } from "@/utils/authToken";
+import { getToken } from "@/lib/auth/auth-server";
 
 function getPointsText(points: number) {
-	if (points === 0) return "Du er kjempe flink! Du har ingen prikker. Fortsett slik.";
+	if (points === 0)
+		return "Du er kjempe flink! Du har ingen prikker. Fortsett slik.";
 
 	if (points === 1)
 		return "Hmm, du har 1 prikk, men, men det er sånt som skjer, vi må bare ikke la det fortsette slik.";
@@ -15,9 +16,15 @@ function getPointsText(points: number) {
 	return `Uff! Dette er vrikelig ikke bra. Du har fått ${points} prikker. Dette vil medføre at du ikke kan melde deg på arrangementer.`;
 }
 
-export default async function Points({ className }: Readonly<{ className?: string }>) {
-	const token = await getAuthToken();
-	const points = await fetchQuery(api.points.getCurrentStudentsPoints, {}, { token });
+export default async function Points({
+	className,
+}: Readonly<{ className?: string }>) {
+	const token = await getToken();
+	const points = await fetchQuery(
+		api.points.getCurrentStudentsPoints,
+		{},
+		{ token },
+	);
 
 	const numberOfPoints = points.reduce((acc, point) => acc + point.severity, 0);
 
@@ -45,11 +52,12 @@ export default async function Points({ className }: Readonly<{ className?: strin
 				</p>
 			</div>
 			<p className="text-balance font-semibold text-lg text-primary tracking-tight dark:text-primary-foreground">
-				Ved tre prikker får du ikke mulighet til å melde deg på bedriftspresentasjoner i en måned
+				Ved tre prikker får du ikke mulighet til å melde deg på
+				bedriftspresentasjoner i en måned
 			</p>
 			<p className="text-balance font-semibold text-lg text-primary tracking-tight dark:text-primary-foreground">
-				Navet har innført et prikksystem, der sen eller manglende avmelding kan hindre andre
-				studenter i å delta på bedriftspresentasjoner.
+				Navet har innført et prikksystem, der sen eller manglende avmelding kan
+				hindre andre studenter i å delta på bedriftspresentasjoner.
 			</p>
 			<div className="grid gap-4">
 				<p className="text-pretty font-semibold text-primary dark:text-primary-foreground">
@@ -67,8 +75,8 @@ export default async function Points({ className }: Readonly<{ className?: strin
 				</div>
 			</div>
 			<p className="text-balance font-semibold text-lg text-primary tracking-tight dark:text-primary-foreground">
-				Du er selv ansvarlig for å forsikre deg om at du har blitt oppmøte registrert på
-				arrangementene til Navet.
+				Du er selv ansvarlig for å forsikre deg om at du har blitt oppmøte
+				registrert på arrangementene til Navet.
 			</p>
 
 			<p>

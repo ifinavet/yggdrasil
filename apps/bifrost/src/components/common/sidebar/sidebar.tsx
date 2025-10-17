@@ -1,6 +1,10 @@
-import { SignOutButton } from "@clerk/nextjs";
-import { currentUser } from "@clerk/nextjs/server";
-import { Avatar, AvatarFallback, AvatarImage } from "@workspace/ui/components/avatar";
+import { api } from "@workspace/backend/convex/api";
+import {
+	Avatar,
+	AvatarFallback,
+	AvatarImage,
+} from "@workspace/ui/components/avatar";
+import { Button } from "@workspace/ui/components/button";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -22,6 +26,7 @@ import {
 	SidebarMenuButton,
 	SidebarMenuItem,
 } from "@workspace/ui/components/sidebar";
+import { fetchQuery } from "convex/nextjs";
 import {
 	BadgeCheck,
 	BugIcon,
@@ -40,7 +45,9 @@ import Image from "next/image";
 import Link from "next/link";
 import LogoNBlue from "@/assets/navet/logo_n_blaa.webp";
 import LogoBlue from "@/assets/navet/simple_logo_blaa.webp";
-import { hasAdminRights, hasAllRights, hasEditRights } from "@/utils/auth";
+import { getToken } from "@/lib/auth/auth-server";
+import { hasAdminRights, hasAllRights, hasEditRights } from "@/lib/auth/rights";
+import SignOut from "../sign-out";
 import { SidebarContentGroup } from "./sidebar-content-group";
 
 const externalPaths = {
@@ -89,7 +96,8 @@ const externalPaths = {
 };
 
 export default async function BifrostSidebar() {
-	const user = await currentUser();
+	const token = await getToken();
+	const user = await fetchQuery(api.auth.getCurrentUser, {}, { token });
 
 	const adminRights = await hasAdminRights();
 	const editRights = await hasEditRights();
@@ -123,9 +131,13 @@ export default async function BifrostSidebar() {
 			</SidebarHeader>
 			<SidebarContent>
 				<SidebarContentGroup title="Tjenester" items="main" />
-				{editRights && <SidebarContentGroup title="Offentlige Sider" items="pages" />}
+				{editRights && (
+					<SidebarContentGroup title="Offentlige Sider" items="pages" />
+				)}
 
-				{adminRights && <SidebarContentGroup title="Administrator sider" items="admin" />}
+				{adminRights && (
+					<SidebarContentGroup title="Administrator sider" items="admin" />
+				)}
 
 				{superAdminRights && (
 					<SidebarGroup>
@@ -137,7 +149,11 @@ export default async function BifrostSidebar() {
 								{externalPaths.external.map((item) => (
 									<SidebarMenuItem key={item.title}>
 										<SidebarMenuButton tooltip={item.title} asChild>
-											<a href={item.path} target="_blank" rel="noopener noreferrer">
+											<a
+												href={item.path}
+												target="_blank"
+												rel="noopener noreferrer"
+											>
 												{item.icon && <item.icon />}
 												<span>{item.title}</span>
 											</a>
@@ -159,12 +175,17 @@ export default async function BifrostSidebar() {
 									className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground group-data-[collapsible=icon]:p-0!"
 								>
 									<Avatar className="h-8 w-8 rounded-lg">
-										<AvatarImage src={user.imageUrl} alt={user.fullName ?? "Ukjent"} />
+										<AvatarImage
+											src={user.image ?? undefined}
+											alt={user.name ?? "Ukjent"}
+										/>
 										<AvatarFallback className="rounded-lg">NA</AvatarFallback>
 									</Avatar>
 									<div className="grid flex-1 text-left text-sm leading-tight">
-										<span className="truncate font-semibold">{user.fullName ?? "Ukjent"}</span>
-										<span className="truncate text-xs">{user.emailAddresses[0]?.emailAddress}</span>
+										<span className="truncate font-semibold">
+											{user.name ?? "Ukjent"}
+										</span>
+										<span className="truncate text-xs">{user.email}</span>
 									</div>
 									<ChevronsUpDown className="ml-auto size-4" />
 								</SidebarMenuButton>
@@ -178,14 +199,17 @@ export default async function BifrostSidebar() {
 								<DropdownMenuLabel className="p-0 font-normal">
 									<div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
 										<Avatar className="h-8 w-8 rounded-lg">
-											<AvatarImage src={user.imageUrl} alt={user.fullName ?? "Ukjent"} />
+											<AvatarImage
+												src={user.image ?? undefined}
+												alt={user.name ?? "Ukjent"}
+											/>
 											<AvatarFallback className="rounded-lg">NA</AvatarFallback>
 										</Avatar>
 										<div className="grid flex-1 text-left text-sm leading-tight">
-											<span className="truncate font-semibold">{user.fullName ?? "Ukjent"}</span>
-											<span className="truncate text-xs">
-												{user.primaryEmailAddress?.emailAddress}
+											<span className="truncate font-semibold">
+												{user.name ?? "Ukjent"}
 											</span>
+											<span className="truncate text-xs">{user.email}</span>
 										</div>
 									</div>
 								</DropdownMenuLabel>
@@ -197,14 +221,14 @@ export default async function BifrostSidebar() {
 											Account
 										</DropdownMenuItem>
 									</Link>
+									<Button variant="link" asChild>
+										<SignOut>
+											<LogOut size={18} />
+											Logg ut
+										</SignOut>
+									</Button>
 								</DropdownMenuGroup>
 								<DropdownMenuSeparator />
-								<SignOutButton>
-									<DropdownMenuItem className="flex cursor-pointer gap-2">
-										<LogOut size={18} />
-										Logg ut
-									</DropdownMenuItem>
-								</SignOutButton>
 							</DropdownMenuContent>
 						</DropdownMenu>
 					</SidebarMenuItem>

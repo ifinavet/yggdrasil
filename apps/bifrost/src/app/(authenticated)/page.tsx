@@ -1,16 +1,18 @@
-import { auth } from "@clerk/nextjs/server";
 import { api } from "@workspace/backend/convex/api";
 import { preloadQuery } from "convex/nextjs";
 import FavoriteResources from "@/components/home/favorited-resources";
 import UpcomingEventsOverview from "@/components/home/upcomming-events-overview";
 import { WELCOME_MESSAGES } from "@/constants/welcome-messages";
+import { getToken } from "@/lib/auth/auth-server";
 
 export default async function Page() {
-	const { userId, redirectToSignIn } = await auth();
+	const token = await getToken();
 
-	if (!userId) return redirectToSignIn();
-
-	const preloadedEvents = await preloadQuery(api.events.getLatest, { n: 7 });
+	const preloadedEvents = await preloadQuery(
+		api.events.getLatest,
+		{ n: 7 },
+		{ token },
+	);
 
 	return (
 		<div className="flex max-h-full flex-col gap-4 overflow-clip">
