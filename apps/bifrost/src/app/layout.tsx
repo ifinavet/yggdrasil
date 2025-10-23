@@ -1,5 +1,8 @@
 import { ClerkProvider } from "@clerk/nextjs";
-import { SidebarInset, SidebarProvider } from "@workspace/ui/components/sidebar";
+import {
+	SidebarInset,
+	SidebarProvider,
+} from "@workspace/ui/components/sidebar";
 import { Toaster } from "@workspace/ui/components/sonner";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
@@ -16,7 +19,7 @@ import UnauthorizedPage from "./unauthorized";
 
 const defaultUrl = process.env.VERCEL_URL
 	? `https://${process.env.VERCEL_URL}`
-	: "http://localhost:3000";
+	: "http://localhost:3001";
 
 export const metadata: Metadata = {
 	metadataBase: new URL(defaultUrl),
@@ -58,7 +61,9 @@ export default async function RootLayout({
 											<BifrostSidebar />
 											<SidebarInset className="max-h-full">
 												<Header />
-												<main className="flex max-h-full flex-col gap-4 p-4">{children}</main>
+												<main className="flex max-h-full flex-col gap-4 p-4">
+													{children}
+												</main>
 											</SidebarInset>
 											<Toaster richColors position="top-center" />
 											<Suspense fallback={null}>
