@@ -14,7 +14,6 @@ export default async function JobListingPage({
 }: {
 	params: Promise<{ slug: Id<"jobListings"> }>;
 }) {
-	await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate loading delay
 	const listingId = await params.then((params) => params.slug);
 
 	const listing = await fetchQuery(api.listings.getById, { id: listingId });
@@ -43,7 +42,11 @@ export default async function JobListingPage({
 								className={`w-3/4 rounded-xl bg-emerald-600 py-8 text-center font-semibold text-lg text-primary-foreground hover:cursor-pointer hover:bg-emerald-700`}
 								asChild
 							>
-								<a href={listing.applicationUrl} target="_blank" rel="noopener noreferrer">
+								<a
+									href={listing.applicationUrl}
+									target="_blank"
+									rel="noopener noreferrer"
+								>
 									Søk her
 								</a>
 							</Button>
@@ -53,7 +56,10 @@ export default async function JobListingPage({
 						<h1 className="scroll-m-20 text-balance pb-2 font-bold text-3xl tracking-normal">
 							{listing.teaser}
 						</h1>
-						<SanitizeHtml html={listing.description} className="prose dark:prose-invert" />
+						<SanitizeHtml
+							html={listing.description}
+							className="prose dark:prose-invert"
+						/>
 					</div>
 				</main>
 				<aside className="flex flex-col gap-8 md:col-span-2">
@@ -73,7 +79,10 @@ export default async function JobListingPage({
 							</div>
 						</div>
 						<div className="rounded-b-xl bg-zinc-100 px-8 pb-8 dark:bg-zinc-800">
-							<SanitizeHtml html={company.description} className="prose-lg dark:prose-invert" />
+							<SanitizeHtml
+								html={company.description}
+								className="prose-lg dark:prose-invert"
+							/>
 						</div>
 					</div>
 					<div className="grid grid-cols-1 gap-4">
@@ -88,12 +97,22 @@ export default async function JobListingPage({
 										<p>Kontakt: {contact.name}</p>
 									</div>
 									{contact.email && (
-										<Button variant="link" className="justify-start px-0" asChild>
-											<a href={`mailto:${contact.email}`}>Send epost til {contact.email}</a>
+										<Button
+											variant="link"
+											className="justify-start px-0 dark:text-primary-foreground"
+											asChild
+										>
+											<a href={`mailto:${contact.email}`}>
+												Send epost til {contact.email}
+											</a>
 										</Button>
 									)}
 									{contact.phone && (
-										<Button variant="link" className="justify-start px-0" asChild>
+										<Button
+											variant="link"
+											className="justify-start px-0 dark:text-primary-foreground"
+											asChild
+										>
 											<a href={`tel:${contact.phone}`}>Ring {contact.phone}</a>
 										</Button>
 									)}
