@@ -9,9 +9,32 @@ Midgard is the official website for [ifinavet.no](https://ifinavet.no), the stud
 -   **Company Profiles:** Information about IFI-Navet's partner companies.
 -   **Student Resources:** A collection of useful resources for students at the Department of Informatics.
 
+## Project Structure
+
+```
+.
+├── src
+│   ├── app
+│   │   ├── (auth)   				# Sign-in and registration pages
+│   │   ├── (home)   				# Home page
+│   │   ├── companies       # Information about IFI-Navet for companies.
+│   │   ├── students        # Information about IFI-Navet for students.
+│   │   ├── contact         # Contact Page
+│   │   ├── job-listings    # Job listing pages
+│   │   ├── profile         # User profile pages
+│   │   ├── events          # Event pages
+│   │   ├── info            # Event details pages
+│   │   └── organization    # Information about IFI-Navet's organization.
+│   ├── components          # Reusable React components
+│   ├── constants           # constants
+│   ├── provider            # Application providers
+│   ├── utils               # Utility functions
+└── ...
+```
+
 ## 🚀 Getting Started
 
-To get a local copy up and running, follow these simple steps.
+To get a local copy up and running, follow these steps.
 
 ### Prerequisites
 
@@ -23,7 +46,7 @@ To get a local copy up and running, follow these simple steps.
 1.  **Clone the repository:**
 
     ```bash
-    git clone https://github.com/your-repo/yggdrasil.git
+    git clone https://github.com/ifinavet/yggdrasil.git
     cd yggdrasil/apps/midgard
     ```
 
@@ -33,9 +56,11 @@ To get a local copy up and running, follow these simple steps.
     pnpm install
     ```
 
-3.  **Set up environment variables:**
+3. **Set up environment variables:**
 
-    Create a `.env.local` file in the root of the `midgard` directory and add the necessary environment variables. You can get these from a project administrator.
+   Create a `.env.local` file in the root of the `midgard` directory and add the necessary environment variables. Look at the .env.example to get an idea of what you need.
+
+   *Unfortunately our setup requires that you have an clerk account. Without it the auth won't work. We are assesing the options to move to a new solution but as of now you need to use clerk*
 
 4.  **Run the development server:**
 
@@ -47,7 +72,7 @@ To get a local copy up and running, follow these simple steps.
 
 ## 🛠️ Technologies & Packages
 
-Midgard is built with a modern tech stack, including:
+Bifrost is built with a modern tech stack, including:
 
 -   **[Next.js](https://nextjs.org/):** The React framework for production.
 -   **[React](https://react.dev/):** A JavaScript library for building user interfaces.
@@ -55,20 +80,10 @@ Midgard is built with a modern tech stack, including:
 -   **[Convex](https://www.convex.dev/):** The backend for the application.
 -   **[Clerk](https://clerk.com/):** User management and authentication.
 -   **[Tailwind CSS](https://tailwindcss.com/):** A utility-first CSS framework.
--   **[@workspace/ui](https://github.com/your-repo/yggdrasil/tree/main/packages/ui):** The shared component library.
+-   **[Shadcn/ui](https://ui.shadcn.com/):** Re-usable components built using Radix UI and Tailwind CSS.
+-   **[Tiptap](https://tiptap.dev/):** A headless wrapper around ProseMirror for building rich text editors.
+-   **[Zod](https://zod.dev/):** A TypeScript-first schema declaration and validation library.
 
 ## 🙌 Contributing
 
-Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
-
-This project is maintained by both novice and experienced developers, mostly students. We encourage a collaborative and supportive environment.
-
-### How to Contribute
-
-1.  **Fork the Project:** Click the 'Fork' button at the top right of the page.
-2.  **Create your Feature Branch:** `git checkout -b feature/AmazingFeature`
-3.  **Commit your Changes:** `git commit -m 'Add some AmazingFeature'`
-4.  **Push to the Branch:** `git push origin feature/AmazingFeature`
-5.  **Open a Pull Request:** Go to the repository on GitHub and click 'New pull request'.
-
-Please make sure your code adheres to the project's coding standards and that you have tested your changes thoroughly.
+Read the [README.md](README.md) at the root of the project.

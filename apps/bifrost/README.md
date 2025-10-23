@@ -12,8 +12,6 @@ Bifrost is the official admin dashboard and backend for [ifinavet.no](https://if
 
 ## Project Structure
 
-The Bifrost application is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
-
 ```
 .
 ├── src
@@ -26,14 +24,14 @@ The Bifrost application is a [Next.js](https://nextjs.org/) project bootstrapped
 │   ├── components          # Reusable React components
 │   ├── constants           # Schemas and constants
 │   ├── hooks               # Custom React hooks
-│   ├── lib                 # Core logic and queries
+│   ├── lib                 # Core logic and zustand
 │   └── utils               # Utility functions
 └── ...
 ```
 
 ## 🚀 Getting Started
 
-To get a local copy up and running, follow these simple steps.
+To get a local copy up and running, follow these steps.
 
 ### Prerequisites
 
@@ -45,7 +43,7 @@ To get a local copy up and running, follow these simple steps.
 1.  **Clone the repository:**
 
     ```bash
-    git clone https://github.com/your-repo/yggdrasil.git
+    git clone https://github.com/ifinavet/yggdrasil.git
     cd yggdrasil/apps/bifrost
     ```
 
@@ -55,9 +53,11 @@ To get a local copy up and running, follow these simple steps.
     pnpm install
     ```
 
-3.  **Set up environment variables:**
+3. **Set up environment variables:**
 
-    Create a `.env.local` file in the root of the `bifrost` directory and add the necessary environment variables. You can get these from a project administrator.
+   Create a `.env.local` file in the root of the `bifrost` directory and add the necessary environment variables. Look at the .env.example to get an idea of what you need.
+
+   *Unfortunately our setup requires that you have an clerk account. Without it the auth won't work. We are assesing the options to move to a new solution but as of now you need to use clerk*
 
 4.  **Run the development server:**
 
@@ -78,22 +78,9 @@ Bifrost is built with a modern tech stack, including:
 -   **[Clerk](https://clerk.com/):** User management and authentication.
 -   **[Tailwind CSS](https://tailwindcss.com/):** A utility-first CSS framework.
 -   **[Shadcn/ui](https://ui.shadcn.com/):** Re-usable components built using Radix UI and Tailwind CSS.
--   **[TanStack Query](https://tanstack.com/query/latest):** A powerful data-fetching and state management library.
 -   **[Tiptap](https://tiptap.dev/):** A headless wrapper around ProseMirror for building rich text editors.
 -   **[Zod](https://zod.dev/):** A TypeScript-first schema declaration and validation library.
 
 ## 🙌 Contributing
 
-Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
-
-This project is maintained by both novice and experienced developers, mostly students. We encourage a collaborative and supportive environment.
-
-### How to Contribute
-
-1.  **Fork the Project:** Click the 'Fork' button at the top right of the page.
-2.  **Create your Feature Branch:** `git checkout -b feature/AmazingFeature`
-3.  **Commit your Changes:** `git commit -m 'Add some AmazingFeature'`
-4.  **Push to the Branch:** `git push origin feature/AmazingFeature`
-5.  **Open a Pull Request:** Go to the repository on GitHub and click 'New pull request'.
-
-Please make sure your code adheres to the project's coding standards and that you have tested your changes thoroughly.
+Read the [README.md](README.md) at the root of the project.
