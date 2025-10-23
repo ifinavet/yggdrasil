@@ -1,0 +1,55 @@
+"use client";
+import { api } from "@workspace/backend/convex/api";
+import { useAction } from "convex/react";
+
+function getCookie(name: string) {
+	return document.cookie
+		.split("; ")
+		.find((row) => row.startsWith(name + "="))
+		?.split("=")[1];
+}
+
+export function MigrateButton({
+	cookieName = "better-auth.session", // adjust if your config uses a different name
+}: {
+	cookieName?: string;
+}) {
+	const migrate = useAction(api.clerkMigration.migrateFromClerk);
+
+	return (
+		<button
+			type="button"
+			onClick={async () => {
+				try {
+					const sessionCookieValue = getCookie(cookieName);
+					const cookieHeader = sessionCookieValue
+						? `${cookieName}=${sessionCookieValue}`
+						: undefined;
+
+					const res = await migrate({
+						clerkSecretKey:
+							"sk_test_svlFRa0a8uPoBkp6IshSnpGJ4hEw2UwhIs8uoG0klq",
+						csvData: `id,first_name,last_name,username,primary_email_address,primary_phone_number,verified_email_addresses,unverified_email_addresses,verified_phone_numbers,unverified_phone_numbers,totp_secret,password_digest,password_hasher
+user_2yaRkSY0jSk33ZI3201E1kxk7ZA,Ola,Nordmann,,your_email+clerk_test@example.com,,your_email+clerk_test@example.com,,,,,$2a$10$7OOxfaoQzU4UmEYwe9XxlOiYK0UWkGYih4OUOD6/ceJq5Em4ANfZi,bcrypt
+user_2ygIMgAtaOFpfhu8Y4S01McayxN,lise,olasdatter,,lise.olasdatter+clerk_test@eksempel.no,,lise.olasdatter+clerk_test@eksempel.no,,,,,$2a$10$zbPxG1kzxR9kiKFICzFJfeNlyIt4P1HbasuJWKMaDIo364ydrlIQW,bcrypt
+user_2zGyOIwEA7XXR9OXdNV6h2CG8Gf,Halvor,Kirkhus,,halvor.kirkhus@ifinavet.no,,halvoki@uio.no|halvor.kirkhus@ifinavet.no,,,,,$2a$10$zb4xy8kffhQKlh.NxZ0i2uzBe/owJPUeVwoyWIzZF5yxaNK5gdyDS,bcrypt
+user_2zHfjm2JqZuwresZpQyUBXBwmQC,Anniken,Ditlefsen,,annikedi@uio.no,,annikedi@uio.no,,,,,$2a$10$Cmgtd9Nk6v130WKI.7z.jeg8ClAGvHdFl5gfSomzRybIfEeijZJNS,bcrypt
+user_2zfumMacac8HwRyC12MsYlK8Mfs,Henning,Norhagen,,henning.norhagen@ifinavet.no,,henning.norhagen@ifinavet.no,,,,,$2a$10$pzKFSuXg3jCkLmMNl8QlrOPqFcFP2bNBHYwYKlOdk/ZdSoYINFySm,bcrypt
+user_2zfv22pNd79WXejH4ZBdfJnrWSF,Victor,Uhnger,,victor.uhnger@ifinavet.no,,victor.uhnger@ifinavet.no,,,,,$2a$10$c0C9GB2CnoFv0TM39rWQuehd4.IQfS5Gn3ZFwWzqcGQ/nXifaiDpG,bcrypt
+user_2zfvBoft1bPD6GPxhoa0eM4JoQQ,Jonas,Nyvold,,jonas.nyvold@ifinavet.no,,jonas.nyvold@ifinavet.no,,,,,$2a$10$QlEpaboQRL6yftLNBBZwSemsOIO/IIxMBb1./dhPLWPVOn6zQhsRi,bcrypt
+user_30riXQdM5yVXiF9NSUxfE0f6LVe,Web,Test,,web@ifinavet.no,,web@ifinavet.no,,,,,$2a$10$9.nc6ZkHSk.kL2I3/DuBleekkfC.oG9RUgTC1Wy3gVm1vku9Fc6Ua,bcrypt
+user_34CBcAYVwcuBCXOcYjRSLZEw8rT,Christoffer,Hennie,,christoffer.hennie@ifinavet.no,,christoffer.hennie@ifinavet.no,,,,,$2a$10$0aJyroT8wwpv4fSCbcSQmODVJmcvK7vvirl5NqVy/7d8MJ.IUfu6i,bcrypt`,
+						cookie: cookieHeader,
+					});
+
+					alert(`Migrated ${res.migratedUsers} users.`);
+				} catch (e) {
+					console.error(e);
+					alert("Migration failed — see console for details.");
+				}
+			}}
+		>
+			Migrate from Clerk
+		</button>
+	);
+}

@@ -12,9 +12,16 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@workspace/ui/components/card";
-import { type Preloaded, usePreloadedQuery, useQuery } from "convex/react";
+import {
+	type Preloaded,
+	useAction,
+	useMutation,
+	usePreloadedQuery,
+	useQuery,
+} from "convex/react";
 import Link from "next/link";
 import { humanReadableDate } from "@/utils/utils";
+import { Button } from "@workspace/ui/components/button";
 
 export default function UpcomingEventsOverview({
 	preloadedEvents,
@@ -30,6 +37,7 @@ export default function UpcomingEventsOverview({
 
 	const thisWeek: Doc<"events">[] = [];
 	const upcoming: Doc<"events">[] = [];
+	const migrate = useAction(api.clerkMigration.migrateFromClerk);
 
 	for (const ev of events) {
 		const start = new Date(ev.eventStart);
@@ -41,7 +49,12 @@ export default function UpcomingEventsOverview({
 	}
 
 	if (thisWeek.length === 0 && upcoming.length === 0) {
-		return <p className="text-muted-foreground">Ingen kommende arrangementer.</p>;
+		return (
+			<>
+				<Button onClick={() => migrate({})}>Migrate</Button>
+				<p className="text-muted-foreground">Ingen kommende arrangementer.</p>
+			</>
+		);
 	}
 
 	return (
@@ -93,7 +106,8 @@ export function EventCard({
 				<CardHeader>
 					<CardTitle>{event.title}</CardTitle>
 					<CardDescription>
-						Registrering åpner: {humanReadableDate(new Date(event.registrationOpens))}
+						Registrering åpner:{" "}
+						{humanReadableDate(new Date(event.registrationOpens))}
 					</CardDescription>
 					{event.registrationOpens < Date.now() &&
 						event.eventStart > Date.now() &&
@@ -109,7 +123,8 @@ export function EventCard({
 				<CardFooter>
 					Hovedansvarlig:{" "}
 					<span className="ml-1 font-semibold">
-						{mainOrganizer?.find((org) => org.role === "hovedansvarlig")?.name ?? ""}
+						{mainOrganizer?.find((org) => org.role === "hovedansvarlig")
+							?.name ?? ""}
 					</span>
 				</CardFooter>
 			</Card>

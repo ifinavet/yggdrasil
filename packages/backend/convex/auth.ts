@@ -6,6 +6,7 @@ import { components } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
 import { query } from "./_generated/server";
 import authSchema from "./betterAuth/schema";
+import { nextCookies } from "better-auth/next-js";
 
 const siteUrl = process.env.SITE_URL!;
 
@@ -57,7 +58,7 @@ export const createAuth = (
 				},
 			},
 		},
-		plugins: [admin(), organization(), convex()],
+		plugins: [admin(), organization(), convex(), nextCookies()],
 	});
 };
 

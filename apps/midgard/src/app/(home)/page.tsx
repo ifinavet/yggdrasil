@@ -3,7 +3,11 @@ import { Info } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
-import { FacebookIcon, InstagramIcon, LinkedinIcon } from "@/assets/icons/social";
+import {
+	FacebookIcon,
+	InstagramIcon,
+	LinkedinIcon,
+} from "@/assets/icons/social";
 import Navet_Logo from "@/assets/navet/logo_n_blaa.webp";
 import Navet from "@/assets/promo_images/navet.webp";
 import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
@@ -14,6 +18,7 @@ import MainSponsorCard from "@/components/home/main-sponsor";
 import EventsCarouselSkeleton from "@/components/loaders/home/events-carousel-skeleton";
 import JobListingsSkeleton from "@/components/loaders/home/job-listings-skeleton";
 import MainSponsorCardSkeleton from "@/components/loaders/home/main-sponsor-skeleton";
+import { MigrateButton } from "@/components/migration";
 
 export default function HomePage() {
 	return (
@@ -28,6 +33,8 @@ export default function HomePage() {
 				</Link>
 			</div>/*}
 			{/* Welcome banner for the new website, remove at the end of august. */}
+
+			<MigrateButton />
 
 			<div className="mx-4 flex max-w-6xl flex-col items-center justify-center gap-6 sm:mx-auto sm:px-6 md:grid md:grid-cols-12 md:items-end">
 				<Suspense fallback={<MainSponsorCardSkeleton />}>
@@ -51,21 +58,24 @@ export default function HomePage() {
 								Hvem er vi?
 							</h3>
 							<p className="leading-7 [&:not(:first-child)]:mt-6">
-								Navet er bedriftskontakten ved Institutt for informatikk ved Universitetet i Oslo.
-								Hensikten med Navet er å gjøre det enkelt for bedrifter å komme i kontakt med
-								studentene ved instituttet, ved å tilby:
+								Navet er bedriftskontakten ved Institutt for informatikk ved
+								Universitetet i Oslo. Hensikten med Navet er å gjøre det enkelt
+								for bedrifter å komme i kontakt med studentene ved instituttet,
+								ved å tilby:
 							</p>
 
 							<ul className="my-6 ml-6 list-disc [&>li]:mt-2">
 								<li>
-									et sentralt kontakt- og koordineringspunkt for alle bedriftsrelaterte aktiviteter
-									ved instituttet.
+									et sentralt kontakt- og koordineringspunkt for alle
+									bedriftsrelaterte aktiviteter ved instituttet.
 								</li>
 								<li>
-									praktisk hjelp ved bedriftspresentasjoner og andre typer arrangementer
-									(romreservasjon, matbestilling, mm.)
+									praktisk hjelp ved bedriftspresentasjoner og andre typer
+									arrangementer (romreservasjon, matbestilling, mm.)
 								</li>
-								<li>oversikt over bredriftsrelaterte aktiviteter for studenter.</li>
+								<li>
+									oversikt over bredriftsrelaterte aktiviteter for studenter.
+								</li>
 							</ul>
 
 							<h4 className="scroll-m-20 font-semibold text-xl tracking-tight">
