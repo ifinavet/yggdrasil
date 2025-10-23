@@ -11,7 +11,9 @@ export const getByEventId = query({
 	handler: async (ctx, { eventId }) => {
 		const registrations = await ctx.db
 			.query("registrations")
-			.withIndex("by_eventIdAndRegistrationTime", (q) => q.eq("eventId", eventId))
+			.withIndex("by_eventIdAndRegistrationTime", (q) =>
+				q.eq("eventId", eventId),
+			)
 			.collect();
 
 		const registrationsWithUsers = await Promise.all(
@@ -19,7 +21,9 @@ export const getByEventId = query({
 				const user = await ctx.db.get(registration.userId);
 				return {
 					...registration,
-					userName: user ? `${user.firstName} ${user.lastName}` : "Ukjent bruker",
+					userName: user
+						? `${user.firstName} ${user.lastName}`
+						: "Ukjent bruker",
 					userEmail: user ? user.email : "Ukjent e-post",
 				};
 			}),
@@ -28,7 +32,9 @@ export const getByEventId = query({
 		const registeredPending = registrationsWithUsers.filter(
 			(reg) => reg.status === "pending" || reg.status === "registered",
 		);
-		const waitlist = registrationsWithUsers.filter((reg) => reg.status === "waitlist");
+		const waitlist = registrationsWithUsers.filter(
+			(reg) => reg.status === "waitlist",
+		);
 
 		return {
 			registered: registeredPending,
@@ -106,7 +112,9 @@ export const acceptPendingRegistration = mutation({
 
 		const registration = await ctx.db.get(id);
 		if (!registration) {
-			throw new Error(`Registrering med ID ${id} ikke funnet. Kan ikke godta registrering.`);
+			throw new Error(
+				`Registrering med ID ${id} ikke funnet. Kan ikke godta registrering.`,
+			);
 		}
 
 		if (registration.userId !== user._id) {
@@ -125,7 +133,11 @@ export const acceptPendingRegistration = mutation({
 export const updateAttendance = mutation({
 	args: {
 		id: v.id("registrations"),
-		newStatus: v.union(v.literal("confirmed"), v.literal("late"), v.literal("no_show")),
+		newStatus: v.union(
+			v.literal("confirmed"),
+			v.literal("late"),
+			v.literal("no_show"),
+		),
 	},
 	handler: async (ctx, { id, newStatus }) => {
 		await getCurrentUserOrThrow(ctx);
@@ -140,7 +152,8 @@ export const updateAttendance = mutation({
 		await ctx.db.patch(id, {
 			attendanceStatus: newStatus,
 			attendanceTime: Date.now(),
-			status: registration.status === "pending" ? "registered" : registration.status,
+			status:
+				registration.status === "pending" ? "registered" : registration.status,
 		});
 
 		if (registration.status !== "registered") return;
@@ -190,21 +203,27 @@ export const register = mutation({
 
 		const event = await ctx.db.get(eventId);
 		if (!event) {
-			throw new Error(`Arrangementet med ID ${eventId} ikke funnet.Kan ikke registrere.`);
+			throw new Error(
+				`Arrangementet med ID ${eventId} ikke funnet.Kan ikke registrere.`,
+			);
 		}
 
 		const registrations = await ctx.db
 			.query("registrations")
-			.withIndex("by_eventIdStatusAndRegistrationTime", (q) => q.eq("eventId", eventId))
+			.withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
+				q.eq("eventId", eventId),
+			)
 			.collect();
 
-		if (registrations.some((registration) => registration.userId === user._id)) return;
+		if (registrations.some((registration) => registration.userId === user._id))
+			return;
 
 		const registrationCount = registrations.filter(
 			(reg) => reg.status === "registered" || reg.status === "pending",
 		).length;
 
-		const status = registrationCount < event.participationLimit ? "registered" : "waitlist";
+		const status =
+			registrationCount < event.participationLimit ? "registered" : "waitlist";
 
 		await ctx.db.insert("registrations", {
 			eventId,
@@ -239,7 +258,9 @@ export const unregister = mutation({
 
 		const registration = await ctx.db.get(id);
 		if (!registration) {
-			throw new Error(`Registrering med ID ${id} ble ikke funnet. Avbryter avregistrering.`);
+			throw new Error(
+				`Registrering med ID ${id} ble ikke funnet. Avbryter avregistrering.`,
+			);
 		}
 
 		const event = await ctx.db.get(registration.eventId);
@@ -258,38 +279,41 @@ export const unregister = mutation({
 
 		if (registration.status === "waitlist") return returnData;
 
-		if (
-			event.eventStart - Date.now() < 24 * 60 * 60 * 1000 &&
-			registration.status === "registered"
-		) {
-			const student = await ctx.db
-				.query("students")
-				.withIndex("by_userId", (q) => q.eq("userId", registration.userId))
-				.first();
-
-			if (!student) {
-				throw new Error(`Studenten med bruker - ID ${registration.userId} ble ikke funnet.`);
-			}
-
-			await ctx.runMutation(internal.points.givePointsInternal, {
-				id: student._id,
-				severity: 1,
-				reason: `Avregistrering fra arrangement ${event.title} mindre enn 24 timer før start.`,
-			});
-		}
-
 		const nextRegistration = await ctx.db
 			.query("registrations")
 			.withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
 				q.eq("eventId", registration.eventId).eq("status", "waitlist"),
 			)
+			.order("asc")
 			.first();
 
-		console.log("Next registration:", nextRegistration);
+		if (nextRegistration) {
+			await makeStatusPending(ctx, nextRegistration, event);
+		}
 
-		if (!nextRegistration) return returnData;
+		const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
 
-		await makeStatusPending(ctx, nextRegistration, event);
+		if (
+			event.eventStart - Date.now() < TWENTY_FOUR_HOURS &&
+			registration.status === "registered"
+		) {
+			try {
+				const student = await ctx.db
+					.query("students")
+					.withIndex("by_userId", (q) => q.eq("userId", registration.userId))
+					.first();
+
+				if (student) {
+					await ctx.runMutation(internal.points.givePointsInternal, {
+						id: student._id,
+						severity: 1,
+						reason: `Avregistrering fra arrangement ${event.title} mindre enn 24 timer før start.`,
+					});
+				}
+			} catch (e) {
+				console.error("Failed to apply late unregister penalty:", e);
+			}
+		}
 
 		return returnData;
 	},
