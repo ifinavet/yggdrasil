@@ -83,4 +83,4 @@ Bifrost is built with a modern tech stack, including:
 
 ## 🙌 Contributing
 
-Read the [README.md](README.md) at the root of the project.
+Read the [README.md](/README.md) at the root of the project.
