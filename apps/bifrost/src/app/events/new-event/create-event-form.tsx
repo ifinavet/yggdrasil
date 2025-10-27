@@ -66,10 +66,10 @@ export default function CreateEventForm() {
 				});
 			});
 
-	const onDefaultSubmit = async (values: EventFormValues) =>
+	const onDefaultSubmit = (values: EventFormValues) =>
 		handleSubmit(values, true);
 
-	const onHiddenSubmit = async (values: EventFormValues) =>
+	const onHiddenSubmit = (values: EventFormValues) =>
 		handleSubmit(values, false);
 
 	return (

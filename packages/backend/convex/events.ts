@@ -363,7 +363,7 @@ export const update = mutation({
 		}
 
 		// Create a slug if it doesn't exist
-		const slug = event.slug || slugify(title, new Date(event.eventStart));
+		const slug = event.slug || slugify(title, new Date(eventStart));
 
 		// Update the event details
 		await ctx.db.replace(eventId, {
