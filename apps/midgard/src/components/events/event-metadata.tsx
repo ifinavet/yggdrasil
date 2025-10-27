@@ -5,7 +5,14 @@ import type { Doc } from "@workspace/backend/convex/dataModel";
 import { Button } from "@workspace/ui/components/button";
 import { type Preloaded, usePreloadedQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { CalendarDays, Globe, IdCard, MapPin, Users, Utensils } from "lucide-react";
+import {
+	CalendarDays,
+	Globe,
+	IdCard,
+	MapPin,
+	Users,
+	Utensils,
+} from "lucide-react";
 import { humanReadableDateTime } from "@/utils/dateFormatting";
 import QRCode from "./registration/qr-code";
 import RegistrationButton from "./registration/registration-button";
@@ -21,7 +28,8 @@ export function EventMetadata({
 	const event = usePreloadedQuery(preloadedEvent);
 	const registrations = usePreloadedQuery(preloadedRegistrations);
 
-	const availableSpots = event.participationLimit - (registrations.registered.length || 0);
+	const availableSpots =
+		event.participationLimit - (registrations.registered.length || 0);
 
 	return (
 		<div>
@@ -37,7 +45,8 @@ export function EventMetadata({
 					<Utensils className="size-6 min-w-6 md:size-8" /> {event.food}
 				</p>
 				<p className="flex items-center gap-2 font-semibold md:text-lg">
-					<Users className="size-6 min-w-6 md:size-8" /> {`${availableSpots} plasser igjen`}
+					<Users className="size-6 min-w-6 md:size-8" />{" "}
+					{`${availableSpots} plasser igjen`}
 				</p>
 				<p className="flex items-center gap-2 font-semibold md:text-lg">
 					<Globe className="size-6 min-w-6 md:size-8" /> {event.language}
@@ -68,7 +77,8 @@ export function EventActionButton({
 	event: Doc<"events">;
 	registrations: FunctionReturnType<typeof api.registration.getByEventId>;
 }>) {
-	const availableSpots = event.participationLimit - (registrations.registered.length || 0);
+	const availableSpots =
+		event.participationLimit - (registrations.registered.length || 0);
 
 	if (event.externalUrl && event.externalUrl.length > 0) {
 		return (
@@ -90,16 +100,20 @@ export function EventActionButton({
 				type="button"
 				className="min-h-fit w-3/4 whitespace-normal text-balance rounded-xl bg-zinc-500 text-lg text-primary-foreground hover:cursor-pointer hover:bg-zinc-500 sm:py-6 md:py-8 dark:bg-zinc-700"
 			>
-				Påmelding åpner {humanReadableDateTime(new Date(event.registrationOpens))}
+				Påmelding åpner{" "}
+				{humanReadableDateTime(new Date(event.registrationOpens))}
 			</Button>
 		);
 	}
+
+	const HALF_HOUR = 30 * 60 * 1000;
+	const disabledButtons = Date.now() - event.eventStart >= HALF_HOUR;
 
 	return (
 		<RegistrationButton
 			registration={registrations}
 			availableSpots={availableSpots}
-			editRegistrationDisabled={Date.now() - event.eventStart >= 60 * 60 * 1000}
+			disabled={disabledButtons}
 			event={event}
 		/>
 	);
