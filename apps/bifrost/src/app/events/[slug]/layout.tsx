@@ -11,7 +11,11 @@ import { Pencil, Users } from "lucide-react";
 import { headers } from "next/headers";
 import Link from "next/link";
 
-export default async function Layout({ children }: { children: React.ReactNode }) {
+export default async function Layout({
+	children,
+}: {
+	children: React.ReactNode;
+}) {
 	const path = (await headers()).get("x-pathname")?.split("/");
 	if (!path) {
 		throw new Error("Invalid path");
@@ -42,12 +46,12 @@ export default async function Layout({ children }: { children: React.ReactNode }
 				</Breadcrumb>
 
 				<div className="flex gap-4">
-					<Button asChild variant="link" className="dark:text-primary-foreground">
+					<Button asChild variant="link" className="text-primary-foreground">
 						<Link href={`/events/${event_id}`}>
 							<Pencil className="sie-4" /> Rediger og Administer
 						</Link>
 					</Button>
-					<Button asChild variant="link" className="dark:text-primary-foreground">
+					<Button asChild variant="link" className="text-primary-foreground">
 						<Link href={`/events/${event_id}/registrations`}>
 							<Users className="sie-4" /> Påmeldte
 						</Link>

@@ -343,3 +343,46 @@ export const makeStatusPending = async (
 		registrationId: registrationToMakePending._id,
 	});
 };
+
+export const getRegistrantsInfo = query({
+	args: {
+		eventId: v.id("events"),
+	},
+	handler: async (ctx, { eventId }) => {
+		const registrations = await ctx.db
+			.query("registrations")
+			.withIndex("by_eventId", (q) => q.eq("eventId", eventId))
+			.filter((r) => r.eq(r.field("status"), "registered"))
+			.collect();
+
+		const studentsInfo = await Promise.all(
+			registrations.map(async (registration) => {
+				const student = await ctx.db
+					.query("students")
+					.withIndex("by_userId", (q) => q.eq("userId", registration.userId))
+					.first();
+
+				return {
+					semester: student?.semester ?? -1,
+					program: student?.studyProgram ?? "Ukjent",
+					degree: student?.degree ?? "Ukjent",
+				};
+			}),
+		);
+
+		const result: Record<string, Record<string, Record<number, number>>> = {};
+		for (const info of studentsInfo) {
+			const { degree, program, semester } = info;
+			if (!result[degree]) result[degree] = {};
+
+			if (!result[degree][program]) result[degree][program] = {};
+
+			if (result[degree][program][semester] === undefined)
+				result[degree][program][semester] = 0;
+
+			result[degree][program][semester]++;
+		}
+
+		return result;
+	},
+});
