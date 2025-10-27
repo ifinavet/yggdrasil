@@ -533,7 +533,7 @@ export const updatePublishedStatus = mutation({
 // Not meant for security purposes
 function simpleHash(str: string): string {
 	const hash = Math.abs(
-		str.split("").reduce((a, b) => (a << 5) - a + b.charCodeAt(0), 0),
+		str.split("").reduce((a, b) => (a << 5) - a + (b.codePointAt(0) || 0), 0),
 	);
 	const result = hash.toString(36).toUpperCase();
 	return result.length < 4
@@ -542,7 +542,7 @@ function simpleHash(str: string): string {
 }
 
 function slugify(title: string, eventDate: Date): string {
-	const slugTitle = title.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+	const slugTitle = title.toLowerCase().replaceAll(/[^a-z0-9]+/g, "-");
 	const semester = eventDate.getMonth() > 6 ? "v" : "h";
 
 	return `${semester}${eventDate.getFullYear().toString().slice(2)}-${slugTitle}-${simpleHash(title)}`;

@@ -87,10 +87,10 @@ function EventDetails({ event }: { event: EventWithParticipationCount }) {
 function EventHeader({
 	title,
 	teaser,
-}: {
+}: Readonly<{
 	title: string | null;
 	teaser: string | null;
-}) {
+}>) {
 	return (
 		<div className="grid w-full gap-2">
 			<h2 className="font-bold text-2xl tracking-tight">{title}</h2>
@@ -131,10 +131,10 @@ function EventMetadata({
 function CompanyImage({
 	imageUrl,
 	title,
-}: {
+}: Readonly<{
 	imageUrl: string;
 	title: string;
-}) {
+}>) {
 	return (
 		<div className="relative col-span-2 grid h-full min-h-32 place-content-center rounded-r-md bg-white px-6 py-4 dark:bg-zinc-100/95">
 			<Image
