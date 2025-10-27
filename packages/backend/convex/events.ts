@@ -542,8 +542,19 @@ function simpleHash(str: string): string {
 }
 
 function slugify(title: string, eventDate: Date): string {
-	const slugTitle = title.toLowerCase().replaceAll(/[^a-z0-9]+/g, "-");
-	const semester = eventDate.getMonth() > 6 ? "v" : "h";
+	const normalized = title
+		.normalize("NFD")
+		.replace(/[\u0300-\u036f]/g, "")
+		.toLowerCase();
+
+	let slugTitle = normalized
+		.replace(/[^a-z0-9]+/g, "-")
+		.replace(/-+/g, "-")
+		.replace(/^-+|-+$/g, "");
+
+	if (slugTitle.length === 0) slugTitle = simpleHash(title).toLowerCase();
+
+	const semester = eventDate.getMonth() >= 7 ? "h" : "v";
 
 	return `${semester}${eventDate.getFullYear().toString().slice(2)}-${slugTitle}-${simpleHash(title)}`;
 }

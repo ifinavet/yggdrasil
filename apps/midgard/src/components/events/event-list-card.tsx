@@ -21,6 +21,7 @@ function getRegistrationStatus(event: EventWithParticipationCount) {
 
 	const registrationIsOpen = registrationOpensDate <= now;
 	const eventActive =
+		now.getTime() >= eventStartDate.getTime() &&
 		now.getTime() - eventStartDate.getTime() <= 2 * 60 * 60 * 1000;
 
 	const registrationOpenToday =

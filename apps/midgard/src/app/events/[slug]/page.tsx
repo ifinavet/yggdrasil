@@ -58,6 +58,9 @@ export default async function EventPage({
 	});
 	const event = preloadedQueryResult(preloadedEvent);
 
+	if (!hasAdminAccess && !event.published)
+		return (await import("next/navigation")).notFound();
+
 	const company = await fetchQuery(api.companies.getById, {
 		id: event.hostingCompany,
 	});
