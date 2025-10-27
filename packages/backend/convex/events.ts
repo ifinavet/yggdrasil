@@ -545,7 +545,7 @@ function slugify(title: string, eventDate: Date): string {
 	let slugTitle = title
 		.normalize("NFD")
 		.toLowerCase()
-		.replace(/[^a-z0-9]+/g, "-");
+		.replaceAll(/[^a-z0-9]+/g, "-");
 
 	if (slugTitle.length === 0) slugTitle = simpleHash(title).toLowerCase();
 
