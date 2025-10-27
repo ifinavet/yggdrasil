@@ -1,5 +1,4 @@
 import { api } from "@workspace/backend/convex/api";
-import type { Id } from "@workspace/backend/convex/dataModel";
 import { Button } from "@workspace/ui/components/button";
 import { fetchQuery, preloadedQueryResult, preloadQuery } from "convex/nextjs";
 import type { Metadata } from "next";
@@ -15,10 +14,11 @@ import { getAuthToken } from "@/utils/authToken";
 export async function generateMetadata({
 	params,
 }: {
-	params: Promise<{ slug: Id<"events"> }>;
+	params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
-	const { slug: eventId } = await params;
-	const event = await fetchQuery(api.events.getById, { id: eventId });
+	const { slug: identifier } = await params;
+
+	const event = await fetchQuery(api.events.getEvent, { identifier });
 	const company = await fetchQuery(api.companies.getById, {
 		id: event.hostingCompany,
 	});
@@ -42,9 +42,9 @@ export async function generateMetadata({
 export default async function EventPage({
 	params,
 }: {
-	params: Promise<{ slug: Id<"events"> }>;
+	params: Promise<{ slug: string }>;
 }) {
-	const eventId = (await params).slug;
+	const { slug: identifier } = await params;
 
 	const token = await getAuthToken();
 	const hasAdminAccess = await fetchQuery(
@@ -53,8 +53,8 @@ export default async function EventPage({
 		{ token },
 	);
 
-	const preloadedEvent = await preloadQuery(api.events.getById, {
-		id: eventId,
+	const preloadedEvent = await preloadQuery(api.events.getEvent, {
+		identifier,
 	});
 	const event = preloadedQueryResult(preloadedEvent);
 
@@ -64,7 +64,9 @@ export default async function EventPage({
 
 	const preloadedRegistrations = await preloadQuery(
 		api.registration.getByEventId,
-		{ eventId },
+		{
+			eventId: event._id,
+		},
 	);
 
 	return (
@@ -170,7 +172,7 @@ export default async function EventPage({
 							asChild
 						>
 							<a
-								href={`https://bifrost.ifinavet.no/events/${eventId}/registrations`}
+								href={`https://bifrost.ifinavet.no/events/${event._id}/registrations`}
 								rel="nofollow noopener noreferrer external"
 								target="_blank"
 							>

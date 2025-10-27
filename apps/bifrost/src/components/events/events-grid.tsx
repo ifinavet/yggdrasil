@@ -12,7 +12,9 @@ export default async function EventsGrid() {
 	if (pathname) searchParams = new URLSearchParams(pathname);
 
 	const year = searchParams?.get("year") || new Date().getFullYear().toString();
-	const semester = searchParams?.get("semester") || (new Date().getMonth() < 7 ? "vår" : "høst");
+	const semester =
+		searchParams?.get("semester") ||
+		(new Date().getMonth() < 7 ? "vår" : "høst");
 
 	const events = await fetchQuery(api.events.getAll, {
 		year: Number.parseInt(year),
@@ -38,7 +40,10 @@ export default async function EventsGrid() {
 	);
 
 	return (
-		<EventsGridContent publishedEvents={publishedEvents} unpublishedEvents={unpublishedEvents} />
+		<EventsGridContent
+			publishedEvents={publishedEvents}
+			unpublishedEvents={unpublishedEvents}
+		/>
 	);
 }
 

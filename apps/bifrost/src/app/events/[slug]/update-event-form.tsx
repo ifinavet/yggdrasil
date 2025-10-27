@@ -11,7 +11,7 @@ import type { OrganizerRole } from "@/constants/types";
 
 export default function UpdateEventForm({
 	preloadedEvent,
-}: Readonly<{ preloadedEvent: Preloaded<typeof api.events.getById> }>) {
+}: Readonly<{ preloadedEvent: Preloaded<typeof api.events.getEvent> }>) {
 	const event = usePreloadedQuery(preloadedEvent);
 	const router = useRouter();
 	const updateEventMutation = useMutation(api.events.update);
@@ -75,9 +75,11 @@ export default function UpdateEventForm({
 			});
 	};
 
-	const onDefaultSubmit = (values: EventFormValues) => handleSubmit(values, true);
+	const onDefaultSubmit = (values: EventFormValues) =>
+		handleSubmit(values, true);
 
-	const onSubmit = (values: EventFormValues) => handleSubmit(values, event.published);
+	const onSubmit = (values: EventFormValues) =>
+		handleSubmit(values, event.published);
 
 	const onHideSubmit = (values: EventFormValues) => handleSubmit(values, false);
 

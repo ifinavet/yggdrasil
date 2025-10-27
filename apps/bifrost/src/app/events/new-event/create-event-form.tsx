@@ -66,9 +66,11 @@ export default function CreateEventForm() {
 				});
 			});
 
-	const onDefaultSubmit = async (values: EventFormValues) => handleSubmit(values, true);
+	const onDefaultSubmit = async (values: EventFormValues) =>
+		handleSubmit(values, true);
 
-	const onHiddenSubmit = async (values: EventFormValues) => handleSubmit(values, false);
+	const onHiddenSubmit = async (values: EventFormValues) =>
+		handleSubmit(values, false);
 
 	return (
 		<EventForm
