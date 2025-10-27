@@ -38,11 +38,13 @@ export default function RegisterForm({
 	eventId,
 	className,
 	waitlist,
+	disabled,
 }: Readonly<{
 	className?: string;
 	eventId: Id<"events">;
 	userId: Id<"users">;
 	waitlist: boolean;
+	disabled: boolean;
 }>) {
 	const [open, setOpen] = useState(false);
 	const postHog = usePostHog();
@@ -76,7 +78,12 @@ export default function RegisterForm({
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger asChild>
-				<Button className={className} type="button" onClick={() => setOpen(true)}>
+				<Button
+					className={className}
+					type="button"
+					onClick={() => setOpen(true)}
+					disabled={disabled}
+				>
 					{waitlist ? "Det er fullt! Meld deg på venteliste" : "Meld deg på"}
 				</Button>
 			</DialogTrigger>
@@ -84,11 +91,12 @@ export default function RegisterForm({
 				<DialogHeader>
 					<DialogTitle>Meld meg på</DialogTitle>
 					<DialogDescription className="">
-						Meld deg på bedriftspresentasjonen! Dersom du har noen algerier eller andre ting vi
-						burde vite om, ber vi deg vennligst oppi dem nå.{" "}
+						Meld deg på bedriftspresentasjonen! Dersom du har noen algerier
+						eller andre ting vi burde vite om, ber vi deg vennligst oppi dem nå.{" "}
 						<span className="font-bold">
-							NB! Dersom du melder deg på sent, eller blir flyttet fra ventelisten sent, så er det
-							ikke sikker at vi kan ta hensyn til allergener.
+							NB! Dersom du melder deg på sent, eller blir flyttet fra
+							ventelisten sent, så er det ikke sikker at vi kan ta hensyn til
+							allergener.
 						</span>
 					</DialogDescription>
 				</DialogHeader>
@@ -101,7 +109,9 @@ export default function RegisterForm({
 								<FormItem>
 									<FormLabel>Allergier eller andre merknader</FormLabel>
 									<Input {...field} />
-									<FormDescription>Har du noen allergier, eller andre merknader?</FormDescription>
+									<FormDescription>
+										Har du noen allergier, eller andre merknader?
+									</FormDescription>
 									<FormMessage />
 								</FormItem>
 							)}

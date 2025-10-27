@@ -39,7 +39,11 @@ export async function generateMetadata({
 	};
 }
 
-export default async function EventPage({ params }: { params: Promise<{ slug: Id<"events"> }> }) {
+export default async function EventPage({
+	params,
+}: {
+	params: Promise<{ slug: Id<"events"> }>;
+}) {
 	const eventId = (await params).slug;
 
 	const token = await getAuthToken();
@@ -58,7 +62,10 @@ export default async function EventPage({ params }: { params: Promise<{ slug: Id
 		id: event.hostingCompany,
 	});
 
-	const preloadedRegistrations = await preloadQuery(api.registration.getByEventId, { eventId });
+	const preloadedRegistrations = await preloadQuery(
+		api.registration.getByEventId,
+		{ eventId },
+	);
 
 	return (
 		<ResponsiveCenterContainer>
@@ -73,7 +80,10 @@ export default async function EventPage({ params }: { params: Promise<{ slug: Id
 						<h1 className="scroll-m-20 text-balance pb-2 font-bold text-3xl tracking-normal">
 							{event.teaser}
 						</h1>
-						<SanitizeHtml html={event.description} className="prose dark:prose-invert" />
+						<SanitizeHtml
+							html={event.description}
+							className="prose dark:prose-invert"
+						/>
 					</ContainerCard>
 				</main>
 				<aside className="flex flex-col gap-8 md:col-span-2">
@@ -95,14 +105,19 @@ export default async function EventPage({ params }: { params: Promise<{ slug: Id
 							</div>
 						</div>
 						<div className="rounded-b-xl bg-zinc-100 px-8 pb-8 dark:bg-zinc-800">
-							<SanitizeHtml html={company.description} className="prose-lg dark:prose-invert" />
+							<SanitizeHtml
+								html={company.description}
+								className="prose-lg dark:prose-invert"
+							/>
 						</div>
 					</div>
 					<div className="grid grid-cols-1 gap-4">
 						{event.organizers
 							.sort((a, b) => {
-								if (a.role === "hovedansvarlig" && b.role !== "hovedansvarlig") return -1;
-								if (a.role !== "hovedansvarlig" && b.role === "hovedansvarlig") return 1;
+								if (a.role === "hovedansvarlig" && b.role !== "hovedansvarlig")
+									return -1;
+								if (a.role !== "hovedansvarlig" && b.role === "hovedansvarlig")
+									return 1;
 								return 0;
 							})
 							.map((organizer) =>
@@ -134,7 +149,11 @@ export default async function EventPage({ params }: { params: Promise<{ slug: Id
 												asChild
 												className="text-primary-foreground dark:bg-primary-light dark:text-primary"
 											>
-												<a href={`mailto:${organizer.email}`} rel="noopener" target="_blank">
+												<a
+													href={`mailto:${organizer.email}`}
+													rel="noopener"
+													target="_blank"
+												>
 													Ta kontakt
 												</a>
 											</Button>
