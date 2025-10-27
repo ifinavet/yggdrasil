@@ -55,7 +55,11 @@ export default defineSchema({
 		studyProgram: v.string(),
 		email: v.optional(v.string()),
 		semester: v.number(),
-		degree: v.union(v.literal("Bachelor"), v.literal("Master"), v.literal("PhD")),
+		degree: v.union(
+			v.literal("Bachelor"),
+			v.literal("Master"),
+			v.literal("PhD"),
+		),
 	})
 		.index("by_studyProgram", ["studyProgram"])
 		.index("by_userId", ["userId"])
@@ -106,9 +110,11 @@ export default defineSchema({
 		externalUrl: v.optional(v.string()),
 		hostingCompany: v.id("companies"),
 		published: v.boolean(),
+		slug: v.optional(v.string()),
 	})
 		.index("by_eventStart", ["eventStart"])
-		.index("by_registrationOpens", ["registrationOpens"]),
+		.index("by_registrationOpens", ["registrationOpens"])
+		.index("by_slug", ["slug"]),
 
 	eventOrganizers: defineTable({
 		eventId: v.id("events"),
@@ -119,7 +125,11 @@ export default defineSchema({
 	registrations: defineTable({
 		eventId: v.id("events"),
 		userId: v.id("users"),
-		status: v.union(v.literal("registered"), v.literal("pending"), v.literal("waitlist")),
+		status: v.union(
+			v.literal("registered"),
+			v.literal("pending"),
+			v.literal("waitlist"),
+		),
 		note: v.optional(v.string()),
 		registrationTime: v.number(),
 		attendanceStatus: v.optional(
@@ -129,7 +139,11 @@ export default defineSchema({
 	})
 		.index("by_eventId", ["eventId"])
 		.index("by_eventIdAndRegistrationTime", ["eventId", "registrationTime"])
-		.index("by_eventIdStatusAndRegistrationTime", ["eventId", "status", "registrationTime"])
+		.index("by_eventIdStatusAndRegistrationTime", [
+			"eventId",
+			"status",
+			"registrationTime",
+		])
 		.index("by_userId", ["userId"]),
 
 	externalPages: defineTable({

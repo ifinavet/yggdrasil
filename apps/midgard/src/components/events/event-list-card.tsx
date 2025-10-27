@@ -20,7 +20,9 @@ function getRegistrationStatus(event: EventWithParticipationCount) {
 	const participantsLimit = event.participationLimit;
 
 	const registrationIsOpen = registrationOpensDate <= now;
-	const eventActive = now.getTime() - eventStartDate.getTime() <= 2 * 60 * 60 * 1000;
+	const eventActive =
+		now.getTime() >= eventStartDate.getTime() &&
+		now.getTime() - eventStartDate.getTime() <= 2 * 60 * 60 * 1000;
 
 	const registrationOpenToday =
 		registrationIsOpen &&
@@ -74,17 +76,28 @@ function EventDetails({ event }: { event: EventWithParticipationCount }) {
 	return (
 		<div className="flex w-full flex-col justify-between gap-6 px-4 py-4 text-zinc-100 sm:pr-4 md:col-span-5 md:px-0 lg:pr-32">
 			<EventHeader title={event.title} teaser={event.teaser} />
-			<EventMetadata eventStart={event.eventStart} participantsLimit={participantsLimit} />
+			<EventMetadata
+				eventStart={event.eventStart}
+				participantsLimit={participantsLimit}
+			/>
 		</div>
 	);
 }
 
 // Event header component
-function EventHeader({ title, teaser }: { title: string | null; teaser: string | null }) {
+function EventHeader({
+	title,
+	teaser,
+}: Readonly<{
+	title: string | null;
+	teaser: string | null;
+}>) {
 	return (
 		<div className="grid w-full gap-2">
 			<h2 className="font-bold text-2xl tracking-tight">{title}</h2>
-			<p className="line-clamp-2 scroll-m-20 font-medium text-lg tracking-tight">{teaser}</p>
+			<p className="line-clamp-2 scroll-m-20 font-medium text-lg tracking-tight">
+				{teaser}
+			</p>
 		</div>
 	);
 }
@@ -116,10 +129,21 @@ function EventMetadata({
 }
 
 // Company image component
-function CompanyImage({ imageUrl, title }: { imageUrl: string; title: string }) {
+function CompanyImage({
+	imageUrl,
+	title,
+}: Readonly<{
+	imageUrl: string;
+	title: string;
+}>) {
 	return (
 		<div className="relative col-span-2 grid h-full min-h-32 place-content-center rounded-r-md bg-white px-6 py-4 dark:bg-zinc-100/95">
-			<Image src={imageUrl} alt={title} className="object-contain px-4 py-6 md:px-6" fill />
+			<Image
+				src={imageUrl}
+				alt={title}
+				className="object-contain px-4 py-6 md:px-6"
+				fill
+			/>
 		</div>
 	);
 }
@@ -136,10 +160,11 @@ export default async function EventCard({
 		id: event.hostingCompany,
 	});
 
-	const { eventActive, statusMessage, cardColor } = getRegistrationStatus(event);
+	const { eventActive, statusMessage, cardColor } =
+		getRegistrationStatus(event);
 
 	return (
-		<Link href={`/events/${event._id}`}>
+		<Link href={`/events/${event.slug ?? event._id}`}>
 			{!isExternal && (
 				<RegistrationStatusBanner
 					show={eventActive}

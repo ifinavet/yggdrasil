@@ -18,7 +18,9 @@ export default function Register({
 
 	const router = useRouter();
 
-	const acceptRegistration = useMutation(api.registration.acceptPendingRegistration);
+	const acceptRegistration = useMutation(
+		api.registration.acceptPendingRegistration,
+	);
 	const handleAccept = async () =>
 		acceptRegistration({ id: registration._id })
 			.then(() => {
@@ -51,8 +53,9 @@ export default function Register({
 			</h3>
 
 			<p className="leading-7 [&:not(:first-child)]:mt-2">
-				Du har fått muligheten til å delta på arrangementet. Hvis du godtar, vil du bli registrert
-				som deltaker. Hvis du ikke ønsker å delta, kan du avregistrere deg.
+				Du har fått muligheten til å delta på arrangementet. Hvis du godtar, vil
+				du bli registrert som deltaker. Hvis du ikke ønsker å delta, kan du
+				avregistrere deg.
 			</p>
 
 			<div className="flex gap-4">

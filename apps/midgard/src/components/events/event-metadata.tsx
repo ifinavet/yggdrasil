@@ -22,7 +22,7 @@ export function EventMetadata({
 	preloadedEvent,
 	preloadedRegistrations,
 }: Readonly<{
-	preloadedEvent: Preloaded<typeof api.events.getById>;
+	preloadedEvent: Preloaded<typeof api.events.getEvent>;
 	preloadedRegistrations: Preloaded<typeof api.registration.getByEventId>;
 }>) {
 	const event = usePreloadedQuery(preloadedEvent);
