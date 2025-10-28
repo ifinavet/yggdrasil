@@ -370,17 +370,31 @@ export const getRegistrantsInfo = query({
 			}),
 		);
 
-		const result: Record<string, Record<string, Record<number, number>>> = {};
+		const result: {
+			[degree: string]: {
+				[program: string]: {
+					[semester: number]: number;
+				};
+			};
+		} = {};
+
 		for (const info of studentsInfo) {
 			const { degree, program, semester } = info;
+			const cleanProgram = program
+				.replaceAll(/æ/g, "ae")
+				.replaceAll(/ø/g, "oe")
+				.replaceAll(/å/g, "aa")
+				.replaceAll(/Æ/g, "AE")
+				.replaceAll(/Ø/g, "OE")
+				.replaceAll(/Å/g, "AA");
 			if (!result[degree]) result[degree] = {};
 
-			if (!result[degree][program]) result[degree][program] = {};
+			if (!result[degree][cleanProgram]) result[degree][cleanProgram] = {};
 
-			if (result[degree][program][semester] === undefined)
-				result[degree][program][semester] = 0;
+			if (result[degree][cleanProgram][semester] === undefined)
+				result[degree][cleanProgram][semester] = 0;
 
-			result[degree][program][semester]++;
+			result[degree][cleanProgram][semester]++;
 		}
 
 		return result;
