@@ -102,17 +102,18 @@ export default function DegreeChart({
 					className="mx-auto aspect-square max-h-[320px] pb-0 [&_.recharts-pie-label-text]:fill-foreground"
 				>
 					<PieChart>
-						<ChartTooltip content={<ChartTooltipContent />} />
-						<ChartLegend
-							content={
-								<ChartLegendContent
-									verticalAlign="top"
-									className="flex-wrap gap-1"
-								/>
-							}
-						/>
-						<Pie data={chartData} dataKey="num" label nameKey="program" />
-					</PieChart>
+					<ChartTooltip content={<ChartTooltipContent />} />
+					<ChartLegend
+						content={
+							<ChartLegendContent
+								nameKey="value"
+								verticalAlign="top"
+								className="flex-wrap gap-1"
+							/>
+						}
+					/>
+					<Pie data={chartData} dataKey="num" label nameKey="program" />
+				</PieChart>
 				</ChartContainer>
 			</CardContent>
 		</Card>
