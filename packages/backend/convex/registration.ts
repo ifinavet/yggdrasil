@@ -3,7 +3,6 @@ import { internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
 import { type MutationCtx, mutation, query } from "./_generated/server";
 import { getCurrentUserOrThrow } from "./users";
-
 export const getByEventId = query({
 	args: {
 		eventId: v.id("events"),

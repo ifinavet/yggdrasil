@@ -44,11 +44,11 @@ const chartConfig = {
 		label: "Robotikk",
 		color: "var(--chart-1)",
 	},
-	ilektronikk_informatikk_og_teknologi: {
+	elektronikk_informatikk_og_teknologi: {
 		label: "Elektronikk, informatikk og teknologi",
 		color: "var(--chart-2)",
 	},
-	iatematikk_med_informatikk: {
+	matematikk_med_informatikk: {
 		label: "Matematikk med informatikk",
 		color: "var(--chart-3)",
 	},
