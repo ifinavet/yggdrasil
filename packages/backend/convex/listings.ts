@@ -198,7 +198,7 @@ export const update = mutation({
 			throw new Error("Unauthenticated call to mutation");
 		}
 
-		const listing = await ctx.db.replaceAll(args.id, {
+		const listing = await ctx.db.replace(args.id, {
 			title: args.title,
 			type: args.type,
 			teaser: args.teaser,

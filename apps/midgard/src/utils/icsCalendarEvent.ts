@@ -51,7 +51,7 @@ END:VCALENDAR`;
 	});
 	const url = URL.createObjectURL(blob);
 
-	const safeTitle = title.replaceAll(/[^a-z0-9]/gi, "_").toLowerCase();
+	const safeTitle = title.replace(/[^a-z0-9]/gi, "_").toLowerCase();
 	const filename = `${safeTitle || "event"}.ics`;
 
 	const link = document.createElement("a");

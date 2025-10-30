@@ -6,7 +6,7 @@ if (!process.env.NEXT_PUBLIC_CONVEX_URL) {
 }
 
 // Remove http(s):// protocol if present
-const convexSite = process.env.NEXT_PUBLIC_CONVEX_URL.replaceAll(
+const convexSite = process.env.NEXT_PUBLIC_CONVEX_URL.replace(
 	/^https?:\/\//,
 	"",
 );

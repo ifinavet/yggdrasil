@@ -366,7 +366,7 @@ export const update = mutation({
 		const slug = event.slug || slugify(title, new Date(eventStart));
 
 		// Update the event details
-		await ctx.db.replaceAll(eventId, {
+		await ctx.db.replace(eventId, {
 			title,
 			teaser,
 			description,
