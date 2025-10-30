@@ -54,7 +54,9 @@ export const getAllPublishedAndActive = query({
 		if (sorting) {
 			switch (sorting) {
 				case "title":
-					return listingsWithCompany.sort((a, b) => a.title.localeCompare(b.title));
+					return listingsWithCompany.sort((a, b) =>
+						a.title.localeCompare(b.title),
+					);
 				case "deadline_desc":
 					return listingsWithCompany.sort((a, b) => b.deadline - a.deadline);
 				case "deadline_asc":
@@ -66,7 +68,10 @@ export const getAllPublishedAndActive = query({
 	},
 });
 
-async function addCompanyToListings(ctx: QueryCtx, listings: Doc<"jobListings">[]) {
+async function addCompanyToListings(
+	ctx: QueryCtx,
+	listings: Doc<"jobListings">[],
+) {
 	const listingsWithCompany = await Promise.all(
 		listings.map(async (listing) => {
 			const company = await ctx.db.get(listing.company);
@@ -193,7 +198,7 @@ export const update = mutation({
 			throw new Error("Unauthenticated call to mutation");
 		}
 
-		const listing = await ctx.db.replace(args.id, {
+		const listing = await ctx.db.replaceAll(args.id, {
 			title: args.title,
 			type: args.type,
 			teaser: args.teaser,

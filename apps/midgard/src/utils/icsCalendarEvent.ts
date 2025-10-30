@@ -1,21 +1,21 @@
 "use client";
 
 function formatToICSDate(epochMillis: number) {
-	return new Date(epochMillis).toISOString().replace(/-|:|\.\d+/g, "");
+	return new Date(epochMillis).toISOString().replaceAll(/-|:|\.\d+/g, "");
 }
 function htmlToPlainText(html: string): string {
 	const el = document.createElement("div");
 	el.innerHTML = html;
 	const text = el.innerText || el.textContent || "";
-	return text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim();
+	return text.replaceAll(/\r\n/g, "\n").replaceAll(/\r/g, "\n").trim();
 }
 
 function escapeICSText(text: string): string {
 	return text
-		.replace(/\\/g, "\\\\")
-		.replace(/\r\n|\n|\r/g, "\\n")
-		.replace(/,/g, "\\,")
-		.replace(/;/g, "\\;");
+		.replaceAll(/\\/g, "\\\\")
+		.replaceAll(/\r\n|\n|\r/g, "\\n")
+		.replaceAll(/,/g, "\\,")
+		.replaceAll(/;/g, "\\;");
 }
 
 const DEFAULT_EVENT_DURATION_MS = 4 * 60 * 60 * 1000; // 4 hours
@@ -51,7 +51,7 @@ END:VCALENDAR`;
 	});
 	const url = URL.createObjectURL(blob);
 
-	const safeTitle = title.replace(/[^a-z0-9]/gi, "_").toLowerCase();
+	const safeTitle = title.replaceAll(/[^a-z0-9]/gi, "_").toLowerCase();
 	const filename = `${safeTitle || "event"}.ics`;
 
 	const link = document.createElement("a");

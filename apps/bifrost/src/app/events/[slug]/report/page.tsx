@@ -44,7 +44,7 @@ export default async function RapportPage({
 		.map(([program, num]) => {
 			const programSlug = program
 				.replaceAll(/[^A-Za-z0-9 ]+/g, "")
-				.replace(/ +/g, "_")
+				.replaceAll(/ +/g, "_")
 				.toLowerCase();
 			return {
 				program: programSlug,
