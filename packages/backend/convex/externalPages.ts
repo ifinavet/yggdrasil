@@ -54,7 +54,7 @@ export const update = mutation({
 
 		const identifier = title
 			.toLowerCase()
-			.replace(/[æøå]/g, (match) => {
+			.replaceAll(/[æøå]/g, (match) => {
 				switch (match) {
 					case "æ":
 						return "ae";
@@ -66,7 +66,7 @@ export const update = mutation({
 						return match;
 				}
 			})
-			.replace(/\s+/g, "-");
+			.replaceAll(/\s+/g, "-");
 
 		await ctx.db.patch(id, {
 			title,
@@ -92,7 +92,7 @@ export const create = mutation({
 
 		const identifier = title
 			.toLowerCase()
-			.replace(/[æøå]/g, (match) => {
+			.replaceAll(/[æøå]/g, (match) => {
 				switch (match) {
 					case "æ":
 						return "ae";
@@ -104,7 +104,7 @@ export const create = mutation({
 						return match;
 				}
 			})
-			.replace(/\s+/g, "-");
+			.replaceAll(/\s+/g, "-");
 
 		await ctx.db.insert("externalPages", {
 			identifier,
