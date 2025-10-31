@@ -54,7 +54,7 @@ export default defineSchema({
 		name: v.string(),
 		studyProgram: v.string(),
 		semester: v.optional(v.number()),
-		year: v.optional(v.number()),
+		year: v.number(),
 		degree: v.union(
 			v.literal("Årsstudium"),
 			v.literal("Bachelor"),

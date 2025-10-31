@@ -172,20 +172,6 @@ export const update = mutation({
 	},
 });
 
-export const updateToYear = internalMutation({
-	handler: async (ctx) => {
-		const students = await ctx.db.query("students").collect();
-		await Promise.all(
-			students.map(async (student) => {
-				const year = Math.ceil((student.semester ?? 1) / 2);
-				return await ctx.db.patch(student._id, {
-					year,
-				});
-			}),
-		);
-	},
-});
-
 export const updateYear = internalMutation({
 	handler: async (ctx) => {
 		const students = await ctx.db.query("students").collect();
@@ -193,7 +179,7 @@ export const updateYear = internalMutation({
 		await Promise.all(
 			students.map(async (student) => {
 				return await ctx.db.patch(student._id, {
-					year: (student.year ?? 1) + 1,
+					year: Math.min((student.year ?? 1) + 1, 5),
 				});
 			}),
 		);
