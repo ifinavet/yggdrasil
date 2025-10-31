@@ -9,25 +9,28 @@ import {
 	FormMessage,
 } from "@workspace/ui/components/form";
 import { Input } from "@workspace/ui/components/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui/components/popover";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@workspace/ui/components/popover";
 import { cn } from "@workspace/ui/lib/utils";
 import { format } from "date-fns";
 import { nb } from "date-fns/locale";
 import { CalendarIcon } from "lucide-react";
-import type { UseFormReturn } from "react-hook-form";
-import type { EventFormValues } from "@/constants/schemas/event-form-schema";
+import type { FieldValues, Path, UseFormReturn } from "react-hook-form";
 
-export default function DateTimePicker({
+export default function DateTimePicker<TFieldValues extends FieldValues>({
 	form,
-	formField,
+	fieldName,
 	label,
 	description,
-}: {
-	form: UseFormReturn<EventFormValues>;
-	formField: "eventDate" | "registrationDate";
+}: Readonly<{
+	form: UseFormReturn<TFieldValues>;
+	fieldName: Path<TFieldValues>;
 	label: string;
 	description: string;
-}) {
+}>) {
 	const handleDateChange = (
 		date: Date | undefined,
 		currentValue: Date | undefined,
@@ -64,7 +67,7 @@ export default function DateTimePicker({
 	return (
 		<FormField
 			control={form.control}
-			name={formField}
+			name={fieldName}
 			render={({ field }) => (
 				<FormItem>
 					<FormLabel>{label}</FormLabel>
@@ -94,16 +97,20 @@ export default function DateTimePicker({
 									ISOWeek={true}
 									locale={nb}
 									selected={field.value}
-									onSelect={(date) => handleDateChange(date, field.value, field.onChange)}
+									onSelect={(date) =>
+										handleDateChange(date, field.value, field.onChange)
+									}
 									captionLayout="dropdown"
 								/>
 							</PopoverContent>
 						</Popover>
 						<Input
 							type="time"
-							pattern="[0-9]{2}:[0-9]{2}"
+							lang="nb"
 							value={field.value ? format(field.value, "HH:mm") : ""}
-							onChange={(e) => handleTimeChange(e.target.value, field.value, field.onChange)}
+							onChange={(e) =>
+								handleTimeChange(e.target.value, field.value, field.onChange)
+							}
 							className="w-fit appearance-none bg-background [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
 						/>
 					</div>

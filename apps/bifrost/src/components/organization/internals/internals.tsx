@@ -7,8 +7,8 @@ import { type Preloaded, useMutation, usePreloadedQuery } from "convex/react";
 import { usePostHog } from "posthog-js/react";
 import { toast } from "sonner";
 import { createColumns } from "./columns";
-import { InternalsTable } from "./internals-table";
 import { NewInternal } from "./new-internal/new-internal";
+import { DataTable } from "@/components/common/tables/table";
 
 export default function Internals({
 	preloadedInternals,
@@ -86,7 +86,7 @@ export default function Internals({
 	return (
 		<div className="space-y-4">
 			<NewInternal />
-			<InternalsTable
+			<DataTable
 				columns={columns}
 				data={data}
 				className="overflow-clip rounded-lg"

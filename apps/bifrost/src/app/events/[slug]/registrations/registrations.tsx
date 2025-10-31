@@ -2,16 +2,28 @@
 
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/components//tabs";
+import {
+	Tabs,
+	TabsContent,
+	TabsList,
+	TabsTrigger,
+} from "@workspace/ui/components//tabs";
 import { Button } from "@workspace/ui/components/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui/components/popover";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@workspace/ui/components/popover";
 import { type Preloaded, useMutation, usePreloadedQuery } from "convex/react";
 import { Copy, Mails } from "lucide-react";
 import { usePostHog } from "posthog-js/react";
 import { toast } from "sonner";
+import { DataTable } from "@/components/common/tables/table";
 import QRScannerDialog from "@/components/events/registration-scanner/qr-scanner-dialog";
-import { createColumns, type Registration } from "@/components/events/registrations/columns";
-import { RegistrationsTable } from "@/components/events/registrations/registrations-table";
+import {
+	createColumns,
+	type Registration,
+} from "@/components/events/registrations/columns";
 import { humanReadableDate } from "@/utils/utils";
 
 export function Registrations({
@@ -24,7 +36,9 @@ export function Registrations({
 	const postHog = usePostHog();
 
 	const deleteRegistration = useMutation(api.registration.unregister);
-	const handleDeleteRegistration = async (registrationId: Id<"registrations">) => {
+	const handleDeleteRegistration = async (
+		registrationId: Id<"registrations">,
+	) => {
 		deleteRegistration({
 			id: registrationId,
 		})
@@ -85,7 +99,9 @@ export function Registrations({
 	};
 
 	const handleSendEmail = (registered: boolean, copy: boolean) => {
-		const registrationsToUse = registered ? registrations.registered : registrations.waitlist;
+		const registrationsToUse = registered
+			? registrations.registered
+			: registrations.waitlist;
 		const emails = registrationsToUse
 			.map((reg) => {
 				if (reg.status === "pending") return;
@@ -122,7 +138,8 @@ export function Registrations({
 
 	const columns = createColumns(
 		(registrationId) => handleDeleteRegistration(registrationId),
-		(registrationId, newStatus) => handleUpdateRegistration(registrationId, newStatus),
+		(registrationId, newStatus) =>
+			handleUpdateRegistration(registrationId, newStatus),
 	);
 
 	const registeredData =
@@ -164,7 +181,9 @@ export function Registrations({
 			</div>
 			<TabsContent value="registered">
 				<div className="my-2 flex flex-wrap items-center justify-between border-b">
-					<h2 className="scroll-m-20 font-semibold text-2xl tracking-tight first:mt-0">Påmeldte</h2>
+					<h2 className="scroll-m-20 font-semibold text-2xl tracking-tight first:mt-0">
+						Påmeldte
+					</h2>
 
 					<div className="flex flex-wrap gap-2 md:gap-4">
 						<Popover>
@@ -182,18 +201,25 @@ export function Registrations({
 									>
 										Send epost til deltakerne
 									</Button>
-									<Button onClick={() => handleSendEmail(true, true)}>Kopier epost listen</Button>
+									<Button onClick={() => handleSendEmail(true, true)}>
+										Kopier epost listen
+									</Button>
 								</div>
 							</PopoverContent>
 						</Popover>
-						<Button variant="outline" className="mb-3" onClick={handleCopyParticipantList}>
+						<Button
+							variant="outline"
+							className="mb-3"
+							onClick={handleCopyParticipantList}
+						>
 							<Copy size={4} /> Kopier deltakerliste
 						</Button>
 					</div>
 				</div>
-				<RegistrationsTable
+				<DataTable
 					columns={columns}
 					data={registeredData}
+					empty_message="Fant ingen påmeldte"
 					className="overflow-clip rounded-lg"
 				/>
 			</TabsContent>
@@ -204,7 +230,7 @@ export function Registrations({
 						Venteliste
 					</h2>
 				</div>
-				<RegistrationsTable
+				<DataTable
 					columns={columns}
 					data={waitlistData}
 					empty_message="Ingen på venteliste"

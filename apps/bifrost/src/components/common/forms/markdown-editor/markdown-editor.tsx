@@ -46,7 +46,11 @@ const ToolButton = memo(function ToolButton({
 	);
 });
 
-export const EditorMenu = memo(function EditorMenu({ editor }: { editor: Editor | null }) {
+export const EditorMenu = memo(function EditorMenu({
+	editor,
+}: {
+	editor: Editor | null;
+}) {
 	const toggleHeading1 = useCallback(() => {
 		editor?.chain().focus().toggleHeading({ level: 1 }).run();
 	}, [editor]);
@@ -112,9 +116,16 @@ export const EditorMenu = memo(function EditorMenu({ editor }: { editor: Editor 
 					<Heading3 size={18} />
 				</ToolButton>
 			</div>
-			<Separator orientation="vertical" className="data-[orientation=vertical]:h-8" />
+			<Separator
+				orientation="vertical"
+				className="data-[orientation=vertical]:h-8"
+			/>
 			<div className="flex gap-2">
-				<ToolButton editor={editor} onButtonClick={toggleBold} isActive={editor.isActive("bold")}>
+				<ToolButton
+					editor={editor}
+					onButtonClick={toggleBold}
+					isActive={editor.isActive("bold")}
+				>
 					<Bold size={18} />
 				</ToolButton>
 				<ToolButton
@@ -149,7 +160,10 @@ export const EditorMenu = memo(function EditorMenu({ editor }: { editor: Editor 
 					<Underline size={18} />
 				</ToolButton>
 			</div>
-			<Separator orientation="vertical" className="data-[orientation=vertical]:h-8" />
+			<Separator
+				orientation="vertical"
+				className="data-[orientation=vertical]:h-8"
+			/>
 			<div className="flex gap-2">
 				<ToolButton
 					editor={editor}
@@ -163,7 +177,11 @@ export const EditorMenu = memo(function EditorMenu({ editor }: { editor: Editor 
 	);
 });
 
-const ContentEditor = memo(function ContentEditor({ editor }: { editor: Editor | null }) {
+const ContentEditor = memo(function ContentEditor({
+	editor,
+}: {
+	editor: Editor | null;
+}) {
 	if (!editor) {
 		return null;
 	}

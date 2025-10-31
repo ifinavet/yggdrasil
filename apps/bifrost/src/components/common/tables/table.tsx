@@ -1,6 +1,11 @@
 "use client";
 
-import { type ColumnDef, flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table";
+import {
+	type ColumnDef,
+	flexRender,
+	getCoreRowModel,
+	useReactTable,
+} from "@tanstack/react-table";
 import {
 	Table,
 	TableBody,
@@ -10,19 +15,19 @@ import {
 	TableRow,
 } from "@workspace/ui/components//table";
 
-interface InternalsTableProps<TData, TValue> {
+interface DataTableProps<TData, TValue> {
 	className?: string;
 	columns: ColumnDef<TData, TValue>[];
 	data: TData[];
 	empty_message?: string;
 }
 
-export function InternalsTable<TData, TValue>({
+export function DataTable<TData, TValue>({
 	className,
 	columns,
 	data,
-	empty_message = "Ingen interne funnet",
-}: InternalsTableProps<TData, TValue>) {
+	empty_message = "Ingen data funnet.",
+}: Readonly<DataTableProps<TData, TValue>>) {
 	const table = useReactTable({
 		data,
 		columns,
@@ -38,7 +43,10 @@ export function InternalsTable<TData, TValue>({
 							<TableHead key={header.id} className="text-bold">
 								{header.isPlaceholder
 									? null
-									: flexRender(header.column.columnDef.header, header.getContext())}
+									: flexRender(
+											header.column.columnDef.header,
+											header.getContext(),
+										)}
 							</TableHead>
 						))}
 					</TableRow>
@@ -47,7 +55,10 @@ export function InternalsTable<TData, TValue>({
 			<TableBody>
 				{table.getCoreRowModel().rows?.length ? (
 					table.getCoreRowModel().rows.map((row) => (
-						<TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+						<TableRow
+							key={row.id}
+							data-state={row.getIsSelected() && "selected"}
+						>
 							{row.getVisibleCells().map((cell) => (
 								<TableCell key={cell.id}>
 									{flexRender(cell.column.columnDef.cell, cell.getContext())}

@@ -14,23 +14,43 @@ import {
 	FormMessage,
 } from "@workspace/ui/components//form";
 import { useCallback, useMemo } from "react";
-import type { UseFormReturn } from "react-hook-form";
-import ContentEditor from "@/components/common/markdown-editor/markdown-editor";
-import type { JobListingFormValues } from "@/constants/schemas/job-listing-form-schema";
+import type {
+	FieldValues,
+	Path,
+	PathValue,
+	UseFormReturn,
+} from "react-hook-form";
+import ContentEditor from "@/components/common/forms/markdown-editor/markdown-editor";
 
-export default function DescriptionEditor({ form }: { form: UseFormReturn<JobListingFormValues> }) {
+export default function DescriptionEditor<TFieldValues extends FieldValues>({
+	title = "Beskrivelse",
+	description = "Dette er beskrivelsen.",
+	form,
+	fieldName = "description" as Path<TFieldValues>,
+}: Readonly<{
+	title: string;
+	description: string;
+	form: UseFormReturn<TFieldValues>;
+	fieldName?: Path<TFieldValues>;
+}>) {
 	const handleEditorUpdate = useCallback(
 		({ editor }: { editor: { getHTML: () => string } }) => {
-			form.setValue("description", editor.getHTML());
+			form.setValue(
+				fieldName,
+				editor.getHTML() as PathValue<TFieldValues, Path<TFieldValues>>,
+			);
 		},
-		[form],
+		[form, fieldName],
 	);
 
 	const handleEditorCreate = useCallback(
 		({ editor }: { editor: { getHTML: () => string } }) => {
-			form.setValue("description", editor.getHTML());
+			form.setValue(
+				fieldName,
+				editor.getHTML() as PathValue<TFieldValues, Path<TFieldValues>>,
+			);
 		},
-		[form],
+		[form, fieldName],
 	);
 
 	const editorExtensions = useMemo(
@@ -39,7 +59,7 @@ export default function DescriptionEditor({ form }: { form: UseFormReturn<JobLis
 			Placeholder.configure({
 				emptyEditorClass:
 					"before:content-[attr(data-placeholder)] before:float-left before:text-muted-foreground before:h-0 before:pointer-events-none",
-				placeholder: "Skriv en interessant annonse for at flest mulig vil søke på den...",
+				placeholder: "Skriv en kjempe kul beskrivelse av arrangementet...",
 			}),
 			Underline,
 			Link.configure({
@@ -67,21 +87,21 @@ export default function DescriptionEditor({ form }: { form: UseFormReturn<JobLis
 		editorProps: editorProps,
 		onUpdate: handleEditorUpdate,
 		immediatelyRender: false,
-		content: form.watch("description"),
+		content: form.watch(fieldName),
 		onCreate: handleEditorCreate,
 	});
 
 	return (
 		<FormField
 			control={form.control}
-			name="description"
+			name={fieldName}
 			render={() => (
 				<FormItem className="flex flex-col">
-					<FormLabel>Beskrivelse</FormLabel>
+					<FormLabel>{title} </FormLabel>
 					<FormControl>
 						<ContentEditor editor={editor} />
 					</FormControl>
-					<FormDescription>Dette er beskrivelsen av stillingen.</FormDescription>
+					<FormDescription>{description}</FormDescription>
 					<FormMessage />
 				</FormItem>
 			)}

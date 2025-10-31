@@ -42,7 +42,7 @@ export default async function RootLayout({
 	const hasRights = await hasBasicRights();
 
 	return (
-		<html lang="no" suppressHydrationWarning>
+		<html lang="nb" suppressHydrationWarning>
 			<body className={`antialiased ${interSans.className}`}>
 				<ClerkProvider>
 					<ConvexClientProvider>

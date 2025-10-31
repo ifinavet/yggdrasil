@@ -29,17 +29,24 @@ import {
 	FormMessage,
 } from "@workspace/ui/components/form";
 import { Input } from "@workspace/ui/components/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui/components/popover";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@workspace/ui/components/popover";
 import { cn } from "@workspace/ui/lib/utils";
 import { useQuery } from "convex/react";
 import { Check, ChevronsUpDown, EyeOff, Save, Send } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
-import { type EventFormValues, formSchema } from "@/constants/schemas/event-form-schema";
+import {
+	type EventFormValues,
+	formSchema,
+} from "@/constants/schemas/event-form-schema";
 import { zodV4Resolver } from "@/utils/zod-v4-resolver";
-import DateTimePicker from "./date-time-picker";
-import DescriptionEditor from "./description-editor";
 import Organizers from "./organizers";
+import DescriptionEditor from "@/components/common/forms/markdown-editor/editor";
+import DateTimePicker from "@/components/common/forms/date-time-picker";
 
 export default function EventForm({
 	onDefaultSubmitAction,
@@ -65,16 +72,24 @@ export default function EventForm({
 
 	// Get the current hostingCompany object from form
 	const selectedHostingCompany = form.watch("hostingCompany");
-	const selectedCompany = companies?.find((company) => company._id === selectedHostingCompany?.id);
+	const selectedCompany = companies?.find(
+		(company) => company._id === selectedHostingCompany?.id,
+	);
 
 	// Derive companyValue directly from form data
 	const companyValue = selectedCompany?.name || "";
 
-	const isExternalEvent = useMemo(() => watchedEventType === "external_event", [watchedEventType]);
+	const isExternalEvent = useMemo(
+		() => watchedEventType === "external_event",
+		[watchedEventType],
+	);
 
 	return (
 		<Form {...form}>
-			<form onSubmit={form.handleSubmit(onDefaultSubmitAction)} className="space-y-8">
+			<form
+				onSubmit={form.handleSubmit(onDefaultSubmitAction)}
+				className="space-y-8"
+			>
 				{/* Title */}
 				<FormField
 					control={form.control}
@@ -83,9 +98,14 @@ export default function EventForm({
 						<FormItem>
 							<FormLabel>Tittel</FormLabel>
 							<FormControl>
-								<Input placeholder="Bedriftspresentasjon med Navet" {...field} />
+								<Input
+									placeholder="Bedriftspresentasjon med Navet"
+									{...field}
+								/>
 							</FormControl>
-							<FormDescription>Dette er hva arrangementet skal hete.</FormDescription>
+							<FormDescription>
+								Dette er hva arrangementet skal hete.
+							</FormDescription>
 							<FormMessage />
 						</FormItem>
 					)}
@@ -240,13 +260,13 @@ export default function EventForm({
 				<div className="grid gap-4 sm:grid-cols-2">
 					<DateTimePicker
 						form={form}
-						formField="eventDate"
+						fieldName="eventDate"
 						label="Dato og tid for arrangements start"
 						description="Velg dato og tid for når arrangementet starter"
 					/>
 					<DateTimePicker
 						form={form}
-						formField="registrationDate"
+						fieldName="registrationDate"
 						label="Dato og tid for åpning av påmelding"
 						description="Velg dato og tid for åpning av påmeldingen av arrangementet"
 					/>
@@ -261,16 +281,26 @@ export default function EventForm({
 						<FormItem>
 							<FormLabel>Teaser</FormLabel>
 							<FormControl>
-								<Textarea placeholder="Velkommen til en magisk aften med Navet" {...field} />
+								<Textarea
+									placeholder="Velkommen til en magisk aften med Navet"
+									{...field}
+								/>
 							</FormControl>
-							<FormDescription>Dette er en liten teaser av arrangementet.</FormDescription>
+							<FormDescription>
+								Dette er en liten teaser av arrangementet.
+							</FormDescription>
 							<FormMessage />
 						</FormItem>
 					)}
 				/>
 
 				{/* Description */}
-				<DescriptionEditor form={form} />
+				<DescriptionEditor
+					description="Dette er beskrivelsen for arrangementet."
+					title="Beskrivelse"
+					form={form}
+					fieldName="description"
+				/>
 				<Separator />
 
 				{/* Organizsers */}
@@ -288,7 +318,8 @@ export default function EventForm({
 								<Select
 									onValueChange={(value) => {
 										field.onChange(value);
-										if (value === "internal_event") form.setValue("externalUrl", "");
+										if (value === "internal_event")
+											form.setValue("externalUrl", "");
 									}}
 									defaultValue={field.value}
 								>
@@ -315,7 +346,9 @@ export default function EventForm({
 								<FormControl>
 									<Input placeholder="f.eks. https://ifinavet.no/" {...field} />
 								</FormControl>
-								<FormDescription>Legg til en url til det eksterne arrangementet</FormDescription>
+								<FormDescription>
+									Legg til en url til det eksterne arrangementet
+								</FormDescription>
 								<FormMessage />
 							</FormItem>
 						)}
@@ -330,7 +363,8 @@ export default function EventForm({
 						disabled={form.formState.isSubmitting}
 						onClick={form.handleSubmit(onDefaultSubmitAction)}
 					>
-						<Send /> {form.formState.isSubmitting ? "Jobber..." : "Lagre og publiser"}
+						<Send />{" "}
+						{form.formState.isSubmitting ? "Jobber..." : "Lagre og publiser"}
 					</Button>
 					<Button
 						type="submit"
@@ -347,7 +381,10 @@ export default function EventForm({
 							variant="destructive"
 							onClick={form.handleSubmit(onTertiarySubmitAction)}
 						>
-							<EyeOff /> {form.formState.isSubmitting ? "Jobber..." : "Lagre og avpubliser"}
+							<EyeOff />{" "}
+							{form.formState.isSubmitting
+								? "Jobber..."
+								: "Lagre og avpubliser"}
 						</Button>
 					)}
 				</div>
