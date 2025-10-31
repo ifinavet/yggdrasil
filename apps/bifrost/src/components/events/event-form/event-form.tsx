@@ -44,9 +44,9 @@ import {
 	formSchema,
 } from "@/constants/schemas/event-form-schema";
 import { zodV4Resolver } from "@/utils/zod-v4-resolver";
-import DateTimePicker from "./date-time-picker";
 import Organizers from "./organizers";
-import DescriptionEditor from "@/components/common/markdown-editor/editor";
+import DescriptionEditor from "@/components/common/forms/markdown-editor/editor";
+import DateTimePicker from "@/components/common/forms/date-time-picker";
 
 export default function EventForm({
 	onDefaultSubmitAction,
@@ -260,13 +260,13 @@ export default function EventForm({
 				<div className="grid gap-4 sm:grid-cols-2">
 					<DateTimePicker
 						form={form}
-						formField="eventDate"
+						fieldName="eventDate"
 						label="Dato og tid for arrangements start"
 						description="Velg dato og tid for når arrangementet starter"
 					/>
 					<DateTimePicker
 						form={form}
-						formField="registrationDate"
+						fieldName="registrationDate"
 						label="Dato og tid for åpning av påmelding"
 						description="Velg dato og tid for åpning av påmeldingen av arrangementet"
 					/>

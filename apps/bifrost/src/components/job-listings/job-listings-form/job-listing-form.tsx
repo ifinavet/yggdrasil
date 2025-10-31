@@ -39,14 +39,14 @@ import { useQuery } from "convex/react";
 import { Check, ChevronsUpDown, Save, Send, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import DescriptionEditor from "@/components/common/forms/markdown-editor/editor";
 import {
 	formSchema,
 	type JobListingFormValues,
 } from "@/constants/schemas/job-listing-form-schema";
 import { zodV4Resolver } from "@/utils/zod-v4-resolver";
 import ContactsSection from "./contacts-section";
-import DateTimePicker from "./deadline-picker";
-import DescriptionEditor from "@/components/common/markdown-editor/editor";
+import DateTimePicker from "@/components/common/forms/date-time-picker";
 
 export default function EventForm({
 	onPrimarySubmitAction,
@@ -163,6 +163,7 @@ export default function EventForm({
 
 					<DateTimePicker
 						form={form}
+						fieldName="deadline"
 						label="Dato og tid for annonsen sin deadline"
 						description="Velg dato og tid for når annonsen løper ut"
 					/>

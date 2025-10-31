@@ -20,7 +20,7 @@ import type {
 	PathValue,
 	UseFormReturn,
 } from "react-hook-form";
-import ContentEditor from "@/components/common/markdown-editor/markdown-editor";
+import ContentEditor from "@/components/common/forms/markdown-editor/markdown-editor";
 
 export default function DescriptionEditor<TFieldValues extends FieldValues>({
 	title = "Beskrivelse",
