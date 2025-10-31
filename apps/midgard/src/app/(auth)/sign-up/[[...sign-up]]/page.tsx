@@ -58,7 +58,7 @@ const signUpFormSchema = z
 			.trim(),
 		studyProgram: z.enum(STUDY_PROGRAMS),
 		degree: z.enum(DEGREE_TYPES),
-		semester: z.coerce.number().min(1).max(10),
+		year: z.coerce.number().min(1).max(5),
 	})
 	.refine((data) => data.password === data.confirmPassword, {
 		message: "Passordene må være like",
@@ -90,7 +90,7 @@ export default function SignUpPage() {
 			confirmPassword: "",
 			studyProgram: STUDY_PROGRAMS[0],
 			degree: DEGREE_TYPES[1],
-			semester: 1,
+			year: 1,
 		},
 	});
 
@@ -150,15 +150,14 @@ export default function SignUpPage() {
 					]);
 					return;
 				}
-				const semesterRaw = signUpForm.getValues("semester");
-				const semester =
-					typeof semesterRaw === "string" ? Number(semesterRaw) : semesterRaw;
+				const yearRaw = signUpForm.getValues("year");
+				const year = typeof yearRaw === "string" ? Number(yearRaw) : yearRaw;
 
 				await createStudent({
 					externalId: signUpAttempt.createdUserId,
 					studyProgram: signUpForm.getValues("studyProgram"),
 					degree: signUpForm.getValues("degree"),
-					semester,
+					year: year,
 					name: `${signUpForm.getValues("firstName")} ${signUpForm.getValues("lastName")}`,
 				});
 
@@ -167,7 +166,7 @@ export default function SignUpPage() {
 					email: signUpForm.getValues("email"),
 					studyProgram: signUpForm.getValues("studyProgram"),
 					degree: signUpForm.getValues("degree"),
-					semester,
+					year: year,
 				});
 
 				router.push("/");
@@ -402,16 +401,15 @@ export default function SignUpPage() {
 
 					<FormField
 						control={signUpForm.control}
-						name="semester"
+						name="year"
 						render={({ field }) => (
 							<FormItem className="w-full">
-								<FormLabel>Semester</FormLabel>
+								<FormLabel>År</FormLabel>
 								<FormControl>
-									<Input type="number" min={1} max={10} {...field} />
+									<Input type="number" min={1} max={5} {...field} />
 								</FormControl>
 								<FormDescription>
-									Oppi hvilket semester du er på. (7. semester er 1. semester
-									for master)
+									Oppgi hvilket år du er på. (4. året er 1. året på master)
 								</FormDescription>
 								<FormMessage />
 							</FormItem>

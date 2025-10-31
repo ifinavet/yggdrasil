@@ -21,4 +21,10 @@ crons.cron(
 	internal.waitlist.clearWaitlistAndPending,
 );
 
+crons.cron(
+	"Update the year of each student",
+	"0 0 1 8 *",
+	internal.students.updateYear,
+);
+
 export default crons;
