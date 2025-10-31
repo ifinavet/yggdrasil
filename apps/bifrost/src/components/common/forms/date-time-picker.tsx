@@ -25,12 +25,12 @@ export default function DateTimePicker<TFieldValues extends FieldValues>({
 	fieldName,
 	label,
 	description,
-}: {
+}: Readonly<{
 	form: UseFormReturn<TFieldValues>;
 	fieldName: Path<TFieldValues>;
 	label: string;
 	description: string;
-}) {
+}>) {
 	const handleDateChange = (
 		date: Date | undefined,
 		currentValue: Date | undefined,
