@@ -31,10 +31,10 @@ const formSchema = z.object({
 	lastname: z.string().min(2, "Vennligst oppgi etternavnet ditt."),
 	studyProgram: z.enum(STUDY_PROGRAMS),
 	degree: z.enum(DEGREE_TYPES),
-	semester: z.coerce
+	year: z.coerce
 		.number()
-		.min(1, "Vennligst oppgi semesteret du går")
-		.max(10, "10 er maks, går du på 11. semster eller høyere bare sett 10."),
+		.min(1, "Vennligst oppgi året du går")
+		.max(5, "5. året er maks, går du høyre en siste år master sett 5."),
 });
 export type ProfileFormSchema = z.infer<typeof formSchema>;
 
@@ -47,7 +47,6 @@ export default function UpdateProfileForm({
 }) {
 	const student = usePreloadedQuery(preloadedStudent);
 
-	// Fix: Use correct property names from backend (firstName, lastName)
 	const form = useForm<ProfileFormSchema>({
 		resolver: zodV4Resolver(formSchema),
 		defaultValues: {
@@ -55,14 +54,14 @@ export default function UpdateProfileForm({
 			lastname: student.lastName,
 			studyProgram: student.studyProgram as ProfileFormSchema["studyProgram"],
 			degree: student.degree as ProfileFormSchema["degree"],
-			semester: student.semester,
+			year: student.year,
 		},
 	});
 
 	const updateProfile = useMutation(api.students.updateCurrent);
 	const onSubmit = async (values: ProfileFormSchema) =>
 		updateProfile({
-			semester: values.semester,
+			year: values.year,
 			studyProgram: values.studyProgram,
 			degree: values.degree,
 		})
@@ -179,15 +178,15 @@ export default function UpdateProfileForm({
 
 					<FormField
 						control={form.control}
-						name="semester"
+						name="year"
 						render={({ field }) => (
 							<FormItem className="w-full min-w-0">
-								<FormLabel>Semester</FormLabel>
+								<FormLabel>År</FormLabel>
 								<FormControl>
 									<Input
 										type="number"
 										min={1}
-										max={10}
+										max={5}
 										{...field}
 										className="truncate"
 									/>

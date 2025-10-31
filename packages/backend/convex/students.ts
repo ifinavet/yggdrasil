@@ -2,7 +2,7 @@ import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 import { getCurrentUserOrThrow } from "./users";
 
 export const getAllPaged = query({
@@ -74,7 +74,7 @@ export const getById = query({
 			firstName: user.firstName,
 			lastName: user.lastName,
 			studyProgram: student.studyProgram,
-			semester: student.semester,
+			year: student.year,
 			degree: student.degree,
 		};
 	},
@@ -89,14 +89,11 @@ export const createByExternalId = mutation({
 			v.literal("Master"),
 			v.literal("PhD"),
 		),
-		semester: v.number(),
+		year: v.number(),
 		studyProgram: v.string(),
 		name: v.string(),
 	},
-	handler: async (
-		ctx,
-		{ externalId, degree, semester, studyProgram, name },
-	) => {
+	handler: async (ctx, { externalId, degree, year, studyProgram, name }) => {
 		const identity = await ctx.auth.getUserIdentity();
 		console.log("Identity from auth:", identity);
 
@@ -111,7 +108,7 @@ export const createByExternalId = mutation({
 		await ctx.db.insert("students", {
 			userId,
 			degree,
-			semester,
+			year,
 			studyProgram: studyProgram.trim(),
 			name: name.trim(),
 		});
@@ -120,7 +117,7 @@ export const createByExternalId = mutation({
 
 export const updateCurrent = mutation({
 	args: {
-		semester: v.number(),
+		year: v.number(),
 		studyProgram: v.string(),
 		degree: v.union(
 			v.literal("Årsstudium"),
@@ -129,7 +126,7 @@ export const updateCurrent = mutation({
 			v.literal("PhD"),
 		),
 	},
-	handler: async (ctx, { semester, studyProgram, degree }) => {
+	handler: async (ctx, { year, studyProgram, degree }) => {
 		const user = await getCurrentUserOrThrow(ctx);
 
 		const student = await ctx.db
@@ -142,7 +139,7 @@ export const updateCurrent = mutation({
 		}
 
 		await ctx.db.patch(student._id, {
-			semester,
+			year,
 			studyProgram,
 			degree,
 		});
@@ -152,7 +149,7 @@ export const updateCurrent = mutation({
 export const update = mutation({
 	args: {
 		id: v.id("students"),
-		semester: v.number(),
+		year: v.number(),
 		studyProgram: v.string(),
 		degree: v.union(
 			v.literal("Årsstudium"),
@@ -161,16 +158,44 @@ export const update = mutation({
 			v.literal("PhD"),
 		),
 	},
-	handler: async (ctx, { id, semester, studyProgram, degree }) => {
+	handler: async (ctx, { id, year, studyProgram, degree }) => {
 		const identity = await ctx.auth.getUserIdentity();
 		if (identity === null) {
 			throw new Error("Unauthenticated call to mutation");
 		}
 
 		await ctx.db.patch(id, {
-			semester,
+			year,
 			studyProgram,
 			degree,
 		});
+	},
+});
+
+export const updateToYear = internalMutation({
+	handler: async (ctx) => {
+		const students = await ctx.db.query("students").collect();
+		await Promise.all(
+			students.map(async (student) => {
+				const year = Math.ceil((student.semester ?? 1) / 2);
+				return await ctx.db.patch(student._id, {
+					year,
+				});
+			}),
+		);
+	},
+});
+
+export const updateYear = internalMutation({
+	handler: async (ctx) => {
+		const students = await ctx.db.query("students").collect();
+
+		await Promise.all(
+			students.map(async (student) => {
+				return await ctx.db.patch(student._id, {
+					year: (student.year ?? 1) + 1,
+				});
+			}),
+		);
 	},
 });

@@ -53,8 +53,8 @@ export default defineSchema({
 		userId: v.id("users"),
 		name: v.string(),
 		studyProgram: v.string(),
-		email: v.optional(v.string()),
-		semester: v.number(),
+		semester: v.optional(v.number()),
+		year: v.optional(v.number()),
 		degree: v.union(
 			v.literal("Årsstudium"),
 			v.literal("Bachelor"),

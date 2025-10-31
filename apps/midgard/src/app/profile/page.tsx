@@ -19,7 +19,11 @@ export default async function ProfilePage() {
 
 	if (!userId) return redirectToSignIn();
 
-	const preloadedStudent = await preloadQuery(api.students.getCurrent, {}, { token });
+	const preloadedStudent = await preloadQuery(
+		api.students.getCurrent,
+		{},
+		{ token },
+	);
 
 	return (
 		<ResponsiveCenterContainer>
@@ -29,7 +33,10 @@ export default async function ProfilePage() {
 					<h2 className="scroll-m-20 border-b pb-2 font-semibold text-3xl text-primary tracking-tight first:mt-0 dark:text-primary-foreground">
 						Din profil
 					</h2>
-					<UpdateProfileForm preloadedStudent={preloadedStudent} className="mt-4" />
+					<UpdateProfileForm
+						preloadedStudent={preloadedStudent}
+						className="mt-4"
+					/>
 				</div>
 				<div className="row-span-2">
 					<h2 className="scroll-m-20 border-b pb-2 font-semibold text-3xl text-primary tracking-tight first:mt-0 dark:text-primary-foreground">

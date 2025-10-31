@@ -30,7 +30,7 @@ const formSchema = z.object({
 	lastName: z.string().min(2, "Studenten må ha et etternavn"),
 	email: z.email("Studenten må ha en gyldig e-postadresse"),
 	studyProgram: z.enum(STUDY_PROGRAMS, "Studenten må ha et studieprogram"),
-	semester: z.coerce.number().min(1, "Studenten må ha et semester"),
+	year: z.coerce.number().min(1, "Studenten må gå hvertfall 1. året"),
 	degree: z.enum(DEGREE_TYPES, "Studenten må ha en gyldig grad"),
 });
 
@@ -48,7 +48,7 @@ export default function UpdateStudentForm({
 		defaultValues: {
 			firstName: student.firstName,
 			lastName: student.lastName,
-			semester: student.semester,
+			year: student.year,
 			email: student.email,
 			studyProgram: student.studyProgram as (typeof STUDY_PROGRAMS)[number],
 			degree: student.degree as (typeof DEGREE_TYPES)[number],
@@ -59,7 +59,7 @@ export default function UpdateStudentForm({
 	const handleSubmit = (values: FormSchema) => {
 		updateStudent({
 			id: student.id,
-			semester: values.semester,
+			year: values.year,
 			studyProgram: values.studyProgram as (typeof STUDY_PROGRAMS)[number],
 			degree: values.degree as (typeof DEGREE_TYPES)[number],
 		})
@@ -123,12 +123,12 @@ export default function UpdateStudentForm({
 				<div className="flex flex-wrap gap-4">
 					<FormField
 						control={form.control}
-						name="semester"
+						name="year"
 						render={({ field }) => (
 							<FormItem>
-								<FormLabel>Semester</FormLabel>
+								<FormLabel>År</FormLabel>
 								<FormControl>
-									<Input type="number" min={1} max={10} {...field} />
+									<Input type="number" min={1} max={5} {...field} />
 								</FormControl>
 								<FormMessage />
 							</FormItem>

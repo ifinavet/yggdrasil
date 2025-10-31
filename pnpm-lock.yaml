@@ -331,6 +331,9 @@ importers:
       '@clerk/backend':
         specifier: ^2.13.0
         version: 2.13.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      '@convex-dev/migrations':
+        specifier: ^0.2.9
+        version: 0.2.9(convex@1.27.0(@clerk/clerk-react@5.39.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react@19.1.1))
       '@convex-dev/resend':
         specifier: ^0.1.12
         version: 0.1.12(convex-helpers@0.1.101(convex@1.27.0(@clerk/clerk-react@5.39.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react@19.1.1))(react@19.1.1)(typescript@5.7.3)(zod@3.25.76))(convex@1.27.0(@clerk/clerk-react@5.39.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react@19.1.1))(react@19.1.1)
@@ -768,6 +771,11 @@ packages:
     peerDependenciesMeta:
       react:
         optional: true
+
+  '@convex-dev/migrations@0.2.9':
+    resolution: {integrity: sha512-HfIv6/F8VbtJ1NVT2bQRTumJGdaqROl/+s5IOnubHm7vvgie0RjcfO6YiB7JoLFWwS19vjDQDKl63ihoA08zOA==}
+    peerDependencies:
+      convex: ~1.16.5 || >=1.17.0 <1.35.0
 
   '@convex-dev/rate-limiter@0.2.12':
     resolution: {integrity: sha512-Z7YXDSPa28/8eqVJYUWQBwK9hTiJcXfWY2qZ44Im3VpuBFJZCqYjem7QWjvoTlBjVGqK7FKw26xRneei09hm2w==}
@@ -6685,6 +6693,10 @@ snapshots:
     optionalDependencies:
       react: 19.1.1
 
+  '@convex-dev/migrations@0.2.9(convex@1.27.0(@clerk/clerk-react@5.39.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react@19.1.1))':
+    dependencies:
+      convex: 1.27.0(@clerk/clerk-react@5.39.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react@19.1.1)
+
   '@convex-dev/rate-limiter@0.2.12(convex@1.27.0(@clerk/clerk-react@5.39.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react@19.1.1))(react@19.1.1)':
     dependencies:
       convex: 1.27.0(@clerk/clerk-react@5.39.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(react@19.1.1)
@@ -8941,7 +8953,7 @@ snapshots:
       '@sentry/bundler-plugin-core': 4.1.0
       unplugin: 1.0.1
       uuid: 9.0.1
-      webpack: 5.101.0
+      webpack: 5.101.0(esbuild@0.25.0)
     transitivePeerDependencies:
       - encoding
       - supports-color
@@ -12021,15 +12033,6 @@ snapshots:
     optionalDependencies:
       esbuild: 0.25.0
 
-  terser-webpack-plugin@5.3.14(webpack@5.101.0):
-    dependencies:
-      '@jridgewell/trace-mapping': 0.3.29
-      jest-worker: 27.5.1
-      schema-utils: 4.3.2
-      serialize-javascript: 6.0.2
-      terser: 5.43.1
-      webpack: 5.101.0
-
   terser@5.43.1:
     dependencies:
       '@jridgewell/source-map': 0.3.10
@@ -12304,38 +12307,6 @@ snapshots:
   webpack-sources@3.3.3: {}
 
   webpack-virtual-modules@0.5.0: {}
-
-  webpack@5.101.0:
-    dependencies:
-      '@types/eslint-scope': 3.7.7
-      '@types/estree': 1.0.8
-      '@types/json-schema': 7.0.15
-      '@webassemblyjs/ast': 1.14.1
-      '@webassemblyjs/wasm-edit': 1.14.1
-      '@webassemblyjs/wasm-parser': 1.14.1
-      acorn: 8.15.0
-      acorn-import-phases: 1.0.4(acorn@8.15.0)
-      browserslist: 4.25.2
-      chrome-trace-event: 1.0.4
-      enhanced-resolve: 5.18.3
-      es-module-lexer: 1.7.0
-      eslint-scope: 5.1.1
-      events: 3.3.0
-      glob-to-regexp: 0.4.1
-      graceful-fs: 4.2.11
-      json-parse-even-better-errors: 2.3.1
-      loader-runner: 4.3.0
-      mime-types: 2.1.35
-      neo-async: 2.6.2
-      schema-utils: 4.3.2
-      tapable: 2.2.2
-      terser-webpack-plugin: 5.3.14(webpack@5.101.0)
-      watchpack: 2.4.4
-      webpack-sources: 3.3.3
-    transitivePeerDependencies:
-      - '@swc/core'
-      - esbuild
-      - uglify-js
 
   webpack@5.101.0(esbuild@0.25.0):
     dependencies:
