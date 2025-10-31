@@ -41,7 +41,9 @@ export default function UpdateStudentForm({
 }) {
 	const student = usePreloadedQuery(preloadedStudent);
 
-	const form = useForm<z.infer<typeof formSchema>>({
+	type FormSchema = z.infer<typeof formSchema>;
+
+	const form = useForm<FormSchema>({
 		resolver: zodV4Resolver(formSchema),
 		defaultValues: {
 			firstName: student.firstName,
@@ -54,7 +56,7 @@ export default function UpdateStudentForm({
 	});
 
 	const updateStudent = useMutation(api.students.update);
-	const handleSubmit = (values: z.infer<typeof formSchema>) => {
+	const handleSubmit = (values: FormSchema) => {
 		updateStudent({
 			id: student.id,
 			semester: values.semester,

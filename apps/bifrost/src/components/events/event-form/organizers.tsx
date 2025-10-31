@@ -43,9 +43,9 @@ import OrganizersTable from "./data-table";
 
 export default function Organizers({
 	form,
-}: {
+}: Readonly<{
 	form: UseFormReturn<EventFormValues>;
-}) {
+}>) {
 	const internalMembers = useQuery(api.internals.getAll);
 
 	const [openMembers, setOpenMembers] = useState(false);

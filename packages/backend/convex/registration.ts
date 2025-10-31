@@ -386,8 +386,7 @@ export const getRegistrantsInfo = query({
 
 			if (!result[degree][programBase]) result[degree][programBase] = {};
 
-			if (result[degree][programBase][semester] === undefined)
-				result[degree][programBase][semester] = 0;
+			result[degree][programBase][semester] ??= 0;
 
 			result[degree][programBase][semester]++;
 		}

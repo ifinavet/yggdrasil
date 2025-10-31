@@ -1,3 +1,3 @@
 export function toVariableName(name: string): string {
-	return name.replace(/[^a-zA-ZæøåÆØÅ0-9]/g, "_");
+	return name.replaceAll(/[^a-zA-ZæøåÆØÅ0-9]/g, "_");
 }
