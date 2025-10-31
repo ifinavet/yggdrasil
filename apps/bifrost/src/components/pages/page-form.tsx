@@ -5,7 +5,6 @@ import Placeholder from "@tiptap/extension-placeholder";
 import Underline from "@tiptap/extension-underline";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { Button } from "@workspace/ui/components//button";
 import {
 	Form,
 	FormControl,
@@ -17,11 +16,15 @@ import {
 } from "@workspace/ui/components//form";
 import { Input } from "@workspace/ui/components//input";
 import { Separator } from "@workspace/ui/components//separator";
+import { Button } from "@workspace/ui/components/button";
 import { EyeOff, Save, Send } from "lucide-react";
 import { useCallback, useMemo } from "react";
 import { useForm } from "react-hook-form";
-import { EditorMenu } from "@/components/common/markdown-editor/markdown-editor";
-import { type PageFormValues, pageSchema } from "@/constants/schemas/page-form-schema";
+import { EditorMenu } from "@/components/common/forms/markdown-editor/markdown-editor";
+import {
+	type PageFormValues,
+	pageSchema,
+} from "@/constants/schemas/page-form-schema";
 import { zodV4Resolver } from "@/utils/zod-v4-resolver";
 
 export default function PageForm({
@@ -94,7 +97,10 @@ export default function PageForm({
 
 	return (
 		<Form {...form}>
-			<form onSubmit={form.handleSubmit(onPrimarySubmitAction)} className="space-y-4">
+			<form
+				onSubmit={form.handleSubmit(onPrimarySubmitAction)}
+				className="space-y-4"
+			>
 				<FormField
 					control={form.control}
 					name="title"
@@ -104,7 +110,9 @@ export default function PageForm({
 							<FormControl>
 								<Input placeholder="Tittel" {...field} />
 							</FormControl>
-							<FormDescription>En kort informativ tittel som beskriver siden</FormDescription>
+							<FormDescription>
+								En kort informativ tittel som beskriver siden
+							</FormDescription>
 							<FormMessage />
 						</FormItem>
 					)}
@@ -135,7 +143,8 @@ export default function PageForm({
 						disabled={form.formState.isSubmitting}
 						onClick={form.handleSubmit(onPrimarySubmitAction)}
 					>
-						<Send /> {form.formState.isSubmitting ? "Jobber..." : "Lagre og publiser"}
+						<Send />{" "}
+						{form.formState.isSubmitting ? "Jobber..." : "Lagre og publiser"}
 					</Button>
 					<Button
 						type="submit"
@@ -152,7 +161,10 @@ export default function PageForm({
 							variant="destructive"
 							onClick={form.handleSubmit(onTertiarySubmitAction)}
 						>
-							<EyeOff /> {form.formState.isSubmitting ? "Jobber..." : "Lagre og avpubliser"}
+							<EyeOff />{" "}
+							{form.formState.isSubmitting
+								? "Jobber..."
+								: "Lagre og avpubliser"}
 						</Button>
 					)}
 				</div>

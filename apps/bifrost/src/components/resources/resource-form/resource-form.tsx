@@ -23,14 +23,17 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@workspace/ui/components//select";
-import { Separator } from "@workspace/ui/components//separator";
-import { Textarea } from "@workspace/ui/components//textarea";
+import { Separator } from "@workspace/ui/components/separator";
+import { Textarea } from "@workspace/ui/components/textarea";
 import { EyeOff, Save, Send } from "lucide-react";
 import { useCallback, useMemo } from "react";
 import { useForm } from "react-hook-form";
-import { EditorMenu } from "@/components/common/markdown-editor/markdown-editor";
+import { EditorMenu } from "@/components/common/forms/markdown-editor/markdown-editor";
 import { cardIcons } from "@/constants/resource-constants";
-import { type ResourceFormValues, resourceSchema } from "@/constants/schemas/resource-form-schema";
+import {
+	type ResourceFormValues,
+	resourceSchema,
+} from "@/constants/schemas/resource-form-schema";
 import { zodV4Resolver } from "@/utils/zod-v4-resolver";
 
 export default function ResourceForm({
@@ -69,7 +72,8 @@ export default function ResourceForm({
 			Placeholder.configure({
 				emptyEditorClass:
 					"before:content-[attr(data-placeholder)] before:float-left before:text-muted-foreground before:h-0 before:pointer-events-none",
-				placeholder: "Skriv en helt fantaskisk ressurs som alle i Navet kan ha glede av å lese!",
+				placeholder:
+					"Skriv en helt fantaskisk ressurs som alle i Navet kan ha glede av å lese!",
 			}),
 			Underline,
 			Link.configure({
@@ -103,7 +107,10 @@ export default function ResourceForm({
 
 	return (
 		<Form {...form}>
-			<form onSubmit={form.handleSubmit(onPrimarySubmitAction)} className="space-y-4">
+			<form
+				onSubmit={form.handleSubmit(onPrimarySubmitAction)}
+				className="space-y-4"
+			>
 				<div className="flex w-full flex-wrap gap-4">
 					<FormField
 						control={form.control}
@@ -114,7 +121,9 @@ export default function ResourceForm({
 								<FormControl>
 									<Input placeholder="Tittel" {...field} />
 								</FormControl>
-								<FormDescription>En kort informativ tittel som beskriver ressursen</FormDescription>
+								<FormDescription>
+									En kort informativ tittel som beskriver ressursen
+								</FormDescription>
 								<FormMessage />
 							</FormItem>
 						)}
@@ -146,7 +155,10 @@ export default function ResourceForm({
 									<FormLabel>Icon</FormLabel>
 									<FormControl>
 										<div className="flex items-center gap-2">
-											<Select onValueChange={field.onChange} value={field.value}>
+											<Select
+												onValueChange={field.onChange}
+												value={field.value}
+											>
 												<SelectTrigger className="w-[160px]">
 													<SelectValue placeholder="Velg ikon" />
 												</SelectTrigger>
@@ -178,9 +190,14 @@ export default function ResourceForm({
 						<FormItem>
 							<FormLabel>Sammendrag</FormLabel>
 							<FormControl>
-								<Textarea {...field} placeholder="Et kort beskrivende sammendrag av ressursen" />
+								<Textarea
+									{...field}
+									placeholder="Et kort beskrivende sammendrag av ressursen"
+								/>
 							</FormControl>
-							<FormDescription>En kort beskrivelse/sammendrag av ressursen</FormDescription>
+							<FormDescription>
+								En kort beskrivelse/sammendrag av ressursen
+							</FormDescription>
 							<FormMessage />
 						</FormItem>
 					)}
@@ -209,7 +226,8 @@ export default function ResourceForm({
 						disabled={form.formState.isSubmitting}
 						onClick={form.handleSubmit(onPrimarySubmitAction)}
 					>
-						<Send /> {form.formState.isSubmitting ? "Jobber..." : "Lagre og publiser"}
+						<Send />{" "}
+						{form.formState.isSubmitting ? "Jobber..." : "Lagre og publiser"}
 					</Button>
 					<Button
 						type="submit"
@@ -226,7 +244,10 @@ export default function ResourceForm({
 							variant="destructive"
 							onClick={form.handleSubmit(onTertiarySubmitAction)}
 						>
-							<EyeOff /> {form.formState.isSubmitting ? "Jobber..." : "Lagre og avpubliser"}
+							<EyeOff />{" "}
+							{form.formState.isSubmitting
+								? "Jobber..."
+								: "Lagre og avpubliser"}
 						</Button>
 					)}
 				</div>

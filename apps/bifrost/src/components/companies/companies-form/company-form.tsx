@@ -1,7 +1,6 @@
 "use client";
 
-import { Button } from "@workspace/ui/components//button";
-import { Input } from "@workspace/ui/components//input";
+import { Button } from "@workspace/ui/components/button";
 import {
 	Form,
 	FormDescription,
@@ -10,15 +9,16 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@workspace/ui/components/form";
+import { Input } from "@workspace/ui/components/input";
 import { Send, Trash } from "lucide-react";
 import { useForm } from "react-hook-form";
+import DescriptionEditor from "@/components/common/forms/markdown-editor/editor";
 import {
 	type CompanyFormValues,
 	formSchema,
 } from "@/constants/schemas/companies-form-schema";
 import { zodV4Resolver } from "@/utils/zod-v4-resolver";
 import SelectImage from "./select-image";
-import DescriptionEditor from "@/components/common/markdown-editor/editor";
 
 export default function CompanyForm({
 	defaultValues,
