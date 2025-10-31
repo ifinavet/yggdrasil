@@ -89,7 +89,7 @@ export default function SignUpPage() {
 			password: "",
 			confirmPassword: "",
 			studyProgram: STUDY_PROGRAMS[0],
-			degree: "Bachelor",
+			degree: DEGREE_TYPES[1],
 			semester: 1,
 		},
 	});
