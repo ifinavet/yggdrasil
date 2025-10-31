@@ -20,7 +20,11 @@ import {
 	FormMessage,
 } from "@workspace/ui/components//form";
 import { Input } from "@workspace/ui/components//input";
-import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui/components//popover";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@workspace/ui/components//popover";
 import { Separator } from "@workspace/ui/components//separator";
 import { Textarea } from "@workspace/ui/components//textarea";
 import {
@@ -35,11 +39,14 @@ import { useQuery } from "convex/react";
 import { Check, ChevronsUpDown, Save, Send, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { formSchema, type JobListingFormValues } from "@/constants/schemas/job-listing-form-schema";
+import {
+	formSchema,
+	type JobListingFormValues,
+} from "@/constants/schemas/job-listing-form-schema";
 import { zodV4Resolver } from "@/utils/zod-v4-resolver";
 import ContactsSection from "./contacts-section";
 import DateTimePicker from "./deadline-picker";
-import DescriptionEditor from "./description-editor";
+import DescriptionEditor from "@/components/common/form/editor";
 
 export default function EventForm({
 	onPrimarySubmitAction,
@@ -75,7 +82,9 @@ export default function EventForm({
 							<FormControl>
 								<Input placeholder="Stillingsanonse med Navet" {...field} />
 							</FormControl>
-							<FormDescription>Dette er hva stillingsannonsen skal hete.</FormDescription>
+							<FormDescription>
+								Dette er hva stillingsannonsen skal hete.
+							</FormDescription>
 							<FormMessage />
 						</FormItem>
 					)}
@@ -98,7 +107,9 @@ export default function EventForm({
 											className="justify-between"
 										>
 											{companyValue
-												? companies?.find((company) => company.name === companyValue)?.name
+												? companies?.find(
+														(company) => company.name === companyValue,
+													)?.name
 												: "Velg en bedrift..."}
 											<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 										</Button>
@@ -114,7 +125,11 @@ export default function EventForm({
 															key={company._id}
 															value={company.name}
 															onSelect={(currentValue) => {
-																setCompanyValue(currentValue === companyValue ? "" : currentValue);
+																setCompanyValue(
+																	currentValue === companyValue
+																		? ""
+																		: currentValue,
+																);
 																field.onChange({
 																	name: currentValue,
 																	id: company._id,
@@ -125,7 +140,9 @@ export default function EventForm({
 															<Check
 																className={cn(
 																	"mr-2 h-4 w-4",
-																	companyValue === company.name ? "opacity-100" : "opacity-0",
+																	companyValue === company.name
+																		? "opacity-100"
+																		: "opacity-0",
 																)}
 															/>
 															{company.name}
@@ -185,23 +202,35 @@ export default function EventForm({
 						<FormItem>
 							<FormLabel>Teaser</FormLabel>
 							<FormControl>
-								<Textarea placeholder="eks. Har du lyst til å jobbe med Navet?" {...field} />
+								<Textarea
+									placeholder="eks. Har du lyst til å jobbe med Navet?"
+									{...field}
+								/>
 							</FormControl>
-							<FormDescription>Dette er en liten teaser av stillingsannonsen.</FormDescription>
+							<FormDescription>
+								Dette er en liten teaser av stillingsannonsen.
+							</FormDescription>
 							<FormMessage />
 						</FormItem>
 					)}
 				/>
 
 				{/* Description */}
-				<DescriptionEditor form={form} />
+				<DescriptionEditor
+					description="Dette er beskrivelsen av stillingen."
+					title="Beskrivelse"
+					form={form}
+					fieldName="description"
+				/>
 				<Separator />
 
 				{/* Contacts */}
 				<ContactsSection
 					control={form.control}
 					contacts={form.watch("contacts")}
-					onContactsChangeAction={(contacts) => form.setValue("contacts", contacts)}
+					onContactsChangeAction={(contacts) =>
+						form.setValue("contacts", contacts)
+					}
 				/>
 				<Separator />
 
@@ -213,9 +242,14 @@ export default function EventForm({
 						<FormItem>
 							<FormLabel>Ansøkningslenke</FormLabel>
 							<FormControl>
-								<Input placeholder="eks. https://ifinavet.no/ny-intern" {...field} />
+								<Input
+									placeholder="eks. https://ifinavet.no/ny-intern"
+									{...field}
+								/>
 							</FormControl>
-							<FormDescription>Legg inn lenken til stillingsannonsen.</FormDescription>
+							<FormDescription>
+								Legg inn lenken til stillingsannonsen.
+							</FormDescription>
 							<FormMessage />
 						</FormItem>
 					)}
@@ -228,7 +262,8 @@ export default function EventForm({
 						disabled={form.formState.isSubmitting}
 						onClick={form.handleSubmit(onPrimarySubmitAction)}
 					>
-						<Send /> {form.formState.isSubmitting ? "Jobber..." : "Lagre og publiser"}
+						<Send />{" "}
+						{form.formState.isSubmitting ? "Jobber..." : "Lagre og publiser"}
 					</Button>
 					<Button
 						type="button"
@@ -236,7 +271,8 @@ export default function EventForm({
 						variant="secondary"
 						onClick={form.handleSubmit(onSecondarySubmitAction)}
 					>
-						<Save /> {form.formState.isSubmitting ? "Jobber..." : "Lagre og avpubliser"}
+						<Save />{" "}
+						{form.formState.isSubmitting ? "Jobber..." : "Lagre og avpubliser"}
 					</Button>
 					{onTertiarySubmitAction && (
 						<Button
