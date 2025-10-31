@@ -51,10 +51,10 @@ const signUpFormSchema = z
 				"E-post må være en gyldig uio e-postadresse",
 			)
 			.trim(),
-		password: z.string().min(6, "Passord må være minst 8 tegn").trim(),
+		password: z.string().min(8, "Passord må være minst 8 tegn").trim(),
 		confirmPassword: z
 			.string()
-			.min(6, "Bekreft passord må være minst 8 tegn")
+			.min(8, "Bekreft passord må være minst 8 tegn")
 			.trim(),
 		studyProgram: z.enum(STUDY_PROGRAMS),
 		degree: z.enum(DEGREE_TYPES),
