@@ -1,0 +1,15 @@
+{
+	"name": "@workspace/shared",
+	"version": "0.0.0",
+	"type": "module",
+	"private": true,
+	"packageManager": "pnpm@10.15.1",
+	"devDependencies": {
+		"@workspace/typescript-config": "workspace:*",
+		"typescript": "^5.7.3"
+	},
+	"exports": {
+		"./constants": "./constants/index.ts",
+		"./utils": "./utils/index.ts"
+	}
+}

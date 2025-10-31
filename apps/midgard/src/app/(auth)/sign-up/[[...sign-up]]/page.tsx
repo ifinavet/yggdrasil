@@ -37,9 +37,8 @@ import { useForm } from "react-hook-form";
 import z from "zod/v4";
 import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
 import { Title } from "@/components/common/title";
-import { DEGREE_TYPES } from "@/constants/degree-types";
-import { STUDY_PROGRAMS } from "@/constants/study-program-types";
 import { zodV4Resolver } from "@/utils/zod-v4-resolver";
+import { DEGREE_TYPES, STUDY_PROGRAMS } from "@workspace/shared/constants";
 
 const signUpFormSchema = z
 	.object({
@@ -53,7 +52,10 @@ const signUpFormSchema = z
 			)
 			.trim(),
 		password: z.string().min(6, "Passord må være minst 8 tegn").trim(),
-		confirmPassword: z.string().min(6, "Bekreft passord må være minst 8 tegn").trim(),
+		confirmPassword: z
+			.string()
+			.min(6, "Bekreft passord må være minst 8 tegn")
+			.trim(),
 		studyProgram: z.enum(STUDY_PROGRAMS),
 		degree: z.enum(DEGREE_TYPES),
 		semester: z.coerce.number().min(1).max(10),
@@ -87,7 +89,7 @@ export default function SignUpPage() {
 			password: "",
 			confirmPassword: "",
 			studyProgram: STUDY_PROGRAMS[0],
-			degree: DEGREE_TYPES[0],
+			degree: "Bachelor",
 			semester: 1,
 		},
 	});
@@ -149,7 +151,8 @@ export default function SignUpPage() {
 					return;
 				}
 				const semesterRaw = signUpForm.getValues("semester");
-				const semester = typeof semesterRaw === "string" ? Number(semesterRaw) : semesterRaw;
+				const semester =
+					typeof semesterRaw === "string" ? Number(semesterRaw) : semesterRaw;
 
 				await createStudent({
 					externalId: signUpAttempt.createdUserId,
@@ -223,7 +226,8 @@ export default function SignUpPage() {
 												</InputOTP>
 											</FormControl>
 											<FormDescription>
-												Skriv in koden du har fått på e-post for å verifisere brukeren din.
+												Skriv in koden du har fått på e-post for å verifisere
+												brukeren din.
 											</FormDescription>
 											<FormMessage />
 										</FormItem>
@@ -267,7 +271,11 @@ export default function SignUpPage() {
 							render={({ field }) => (
 								<FormItem>
 									<FormLabel>Etternavn</FormLabel>
-									<Input {...field} placeholder="Etternavn" className="w-full" />
+									<Input
+										{...field}
+										placeholder="Etternavn"
+										className="w-full"
+									/>
 									<FormMessage />
 								</FormItem>
 							)}
@@ -280,9 +288,14 @@ export default function SignUpPage() {
 						render={({ field }) => (
 							<FormItem>
 								<FormLabel>Epost</FormLabel>
-								<Input {...field} placeholder="eks. olanor@uio.no" className="w-full" />
+								<Input
+									{...field}
+									placeholder="eks. olanor@uio.no"
+									className="w-full"
+								/>
 								<FormDescription>
-									Oppgi din UIO e-post adresse. Denne må være en gyldig (ifi.)uio.no e-post.
+									Oppgi din UIO e-post adresse. Denne må være en gyldig
+									(ifi.)uio.no e-post.
 								</FormDescription>
 								<FormMessage />
 							</FormItem>
@@ -296,8 +309,15 @@ export default function SignUpPage() {
 							render={({ field }) => (
 								<FormItem>
 									<FormLabel>Passord</FormLabel>
-									<Input {...field} placeholder="Passord" type="password" className="w-full" />
-									<FormDescription>Passordet må være minst 8 tegn langt.</FormDescription>
+									<Input
+										{...field}
+										placeholder="Passord"
+										type="password"
+										className="w-full"
+									/>
+									<FormDescription>
+										Passordet må være minst 8 tegn langt.
+									</FormDescription>
 									<FormMessage />
 								</FormItem>
 							)}
@@ -344,7 +364,9 @@ export default function SignUpPage() {
 										</SelectContent>
 									</Select>
 								</FormControl>
-								<FormDescription>Oppgi hvilket studieprogram du studerer.</FormDescription>
+								<FormDescription>
+									Oppgi hvilket studieprogram du studerer.
+								</FormDescription>
 								<FormMessage />
 							</FormItem>
 						)}
@@ -388,7 +410,8 @@ export default function SignUpPage() {
 									<Input type="number" min={1} max={10} {...field} />
 								</FormControl>
 								<FormDescription>
-									Oppi hvilket semester du er på. (7. semester er 1. semester for master)
+									Oppi hvilket semester du er på. (7. semester er 1. semester
+									for master)
 								</FormDescription>
 								<FormMessage />
 							</FormItem>
@@ -415,7 +438,11 @@ export default function SignUpPage() {
 						</a>
 					</small>
 
-					<Button type="submit" className="text-primary-foreground" disabled={loading}>
+					<Button
+						type="submit"
+						className="text-primary-foreground"
+						disabled={loading}
+					>
 						Opprett ny bruker
 					</Button>
 				</form>

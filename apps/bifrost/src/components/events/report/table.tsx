@@ -1,6 +1,6 @@
 "use client";
 
-import { downloadCSV } from "@/utils/csv-creator";
+import { fromBase64 } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
 import {
 	Table,
@@ -17,6 +17,7 @@ import {
 	TabsTrigger,
 } from "@workspace/ui/components/tabs";
 import React, { useState } from "react";
+import { downloadCSV } from "@/utils/csv-creator";
 
 type DegreeTablesProps = {
 	data: Record<string, Record<string, Record<number, number>>>;
@@ -56,7 +57,7 @@ export default function DegreeTables({ data }: Readonly<DegreeTablesProps>) {
 								([program, semesters]) => (
 									<React.Fragment key={program}>
 										<TableRow>
-											<TableCell colSpan={3}>{program}</TableCell>
+											<TableCell colSpan={3}>{fromBase64(program)}</TableCell>
 										</TableRow>
 										{Object.entries(semesters).map(([semester, count]) => (
 											<TableRow key={semester}>

@@ -56,6 +56,7 @@ export default defineSchema({
 		email: v.optional(v.string()),
 		semester: v.number(),
 		degree: v.union(
+			v.literal("Årsstudium"),
 			v.literal("Bachelor"),
 			v.literal("Master"),
 			v.literal("PhD"),

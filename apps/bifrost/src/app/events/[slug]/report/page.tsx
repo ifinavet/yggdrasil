@@ -1,5 +1,6 @@
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
+import { fromBase64, toVariableName } from "@workspace/shared/utils";
 import { fetchQuery } from "convex/nextjs";
 import DegreeChart from "@/components/events/report/degree-chart";
 import ProgramsChart from "@/components/events/report/programs-chart";
@@ -41,15 +42,11 @@ export default async function RapportPage({
 			{},
 		),
 	)
-		.map(([program, num]) => {
-			const programSlug = program
-				.replaceAll(/[^A-Za-z0-9 ]+/g, "")
-				.replaceAll(/ +/g, "_")
-				.toLowerCase();
+		.map(([baseProgram, num]) => {
 			return {
-				program: programSlug,
+				program: toVariableName(fromBase64(baseProgram)),
 				num,
-				fill: `var(--color-${programSlug})`,
+				fill: `var(--color-${toVariableName(fromBase64(baseProgram))})`,
 			};
 		})
 		.sort((a, b) => b.num - a.num);

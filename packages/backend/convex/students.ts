@@ -83,12 +83,20 @@ export const getById = query({
 export const createByExternalId = mutation({
 	args: {
 		externalId: v.string(),
-		degree: v.union(v.literal("Bachelor"), v.literal("Master"), v.literal("PhD")),
+		degree: v.union(
+			v.literal("Årsstudium"),
+			v.literal("Bachelor"),
+			v.literal("Master"),
+			v.literal("PhD"),
+		),
 		semester: v.number(),
 		studyProgram: v.string(),
 		name: v.string(),
 	},
-	handler: async (ctx, { externalId, degree, semester, studyProgram, name }) => {
+	handler: async (
+		ctx,
+		{ externalId, degree, semester, studyProgram, name },
+	) => {
 		const identity = await ctx.auth.getUserIdentity();
 		console.log("Identity from auth:", identity);
 
@@ -114,7 +122,12 @@ export const updateCurrent = mutation({
 	args: {
 		semester: v.number(),
 		studyProgram: v.string(),
-		degree: v.union(v.literal("Bachelor"), v.literal("Master"), v.literal("PhD")),
+		degree: v.union(
+			v.literal("Årsstudium"),
+			v.literal("Bachelor"),
+			v.literal("Master"),
+			v.literal("PhD"),
+		),
 	},
 	handler: async (ctx, { semester, studyProgram, degree }) => {
 		const user = await getCurrentUserOrThrow(ctx);
@@ -141,7 +154,12 @@ export const update = mutation({
 		id: v.id("students"),
 		semester: v.number(),
 		studyProgram: v.string(),
-		degree: v.union(v.literal("Bachelor"), v.literal("Master"), v.literal("PhD")),
+		degree: v.union(
+			v.literal("Årsstudium"),
+			v.literal("Bachelor"),
+			v.literal("Master"),
+			v.literal("PhD"),
+		),
 	},
 	handler: async (ctx, { id, semester, studyProgram, degree }) => {
 		const identity = await ctx.auth.getUserIdentity();

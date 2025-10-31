@@ -35,7 +35,9 @@ export const upsertAccessRights = mutation({
 			right: ["super-admin"],
 		});
 		if (!isSuperAdmin)
-			throw new Error("Unauthorized: You do not have permission to change access rights");
+			throw new Error(
+				"Unauthorized: You do not have permission to change access rights",
+			);
 
 		const usersRights = await ctx.db
 			.query("accessRights")

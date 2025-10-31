@@ -1,6 +1,7 @@
 "use client";
 
 import { api } from "@workspace/backend/convex/api";
+import { DEGREE_TYPES, STUDY_PROGRAMS } from "@workspace/shared/constants";
 import { Button } from "@workspace/ui/components/button";
 import {
 	Form,
@@ -22,8 +23,6 @@ import { type Preloaded, useMutation, usePreloadedQuery } from "convex/react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod/v4";
-import { DEGREE_TYPES } from "@/constants/degree-types";
-import { STUDY_PROGRAMS } from "@/constants/study-program-types";
 import { zodV4Resolver } from "@/utils/zod-v4-resolver";
 
 const formSchema = z.object({
@@ -49,8 +48,8 @@ export default function UpdateStudentForm({
 			lastName: student.lastName,
 			semester: student.semester,
 			email: student.email,
-			studyProgram: student.studyProgram,
-			degree: student.degree,
+			studyProgram: student.studyProgram as (typeof STUDY_PROGRAMS)[number],
+			degree: student.degree as (typeof DEGREE_TYPES)[number],
 		},
 	});
 
@@ -72,7 +71,10 @@ export default function UpdateStudentForm({
 
 	return (
 		<Form {...form}>
-			<form className="max-w-5xl space-y-8" onSubmit={form.handleSubmit(handleSubmit)}>
+			<form
+				className="max-w-5xl space-y-8"
+				onSubmit={form.handleSubmit(handleSubmit)}
+			>
 				<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
 					<FormField
 						control={form.control}

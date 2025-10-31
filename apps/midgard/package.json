@@ -20,6 +20,7 @@
 		"@tanstack/react-table": "^8.21.3",
 		"@workspace/backend": "workspace:*",
 		"@workspace/ui": "workspace:*",
+		"@workspace/shared": "workspace:*",
 		"convex": "^1.25.4",
 		"dompurify": "^3.2.6",
 		"isomorphic-dompurify": "^2.25.0",
