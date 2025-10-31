@@ -8,7 +8,11 @@ import { toast } from "sonner";
 import CompanyForm from "@/components/companies/companies-form/company-form";
 import type { CompanyFormValues } from "@/constants/schemas/companies-form-schema";
 
-export default function EditCompanyForm({ company_id }: { company_id: Id<"companies"> }) {
+export default function EditCompanyForm({
+	company_id,
+}: {
+	company_id: Id<"companies">;
+}) {
 	const company = useQuery(api.companies.getById, { id: company_id });
 
 	const router = useRouter();

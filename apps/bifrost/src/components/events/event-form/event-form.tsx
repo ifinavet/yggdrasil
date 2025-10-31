@@ -46,7 +46,7 @@ import {
 import { zodV4Resolver } from "@/utils/zod-v4-resolver";
 import DateTimePicker from "./date-time-picker";
 import Organizers from "./organizers";
-import DescriptionEditor from "@/components/common/form/editor";
+import DescriptionEditor from "@/components/common/markdown-editor/editor";
 
 export default function EventForm({
 	onDefaultSubmitAction,

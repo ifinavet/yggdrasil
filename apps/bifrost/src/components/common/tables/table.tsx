@@ -27,7 +27,7 @@ export function DataTable<TData, TValue>({
 	columns,
 	data,
 	empty_message = "Ingen data funnet.",
-}: DataTableProps<TData, TValue>) {
+}: Readonly<DataTableProps<TData, TValue>>) {
 	const table = useReactTable({
 		data,
 		columns,

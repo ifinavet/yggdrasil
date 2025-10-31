@@ -18,7 +18,7 @@ import {
 } from "@/constants/schemas/companies-form-schema";
 import { zodV4Resolver } from "@/utils/zod-v4-resolver";
 import SelectImage from "./select-image";
-import DescriptionEditor from "@/components/common/form/editor";
+import DescriptionEditor from "@/components/common/markdown-editor/editor";
 
 export default function CompanyForm({
 	defaultValues,

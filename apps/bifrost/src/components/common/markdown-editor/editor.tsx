@@ -27,16 +27,16 @@ export default function DescriptionEditor<TFieldValues extends FieldValues>({
 	description = "Dette er beskrivelsen.",
 	form,
 	fieldName = "description" as Path<TFieldValues>,
-}: {
+}: Readonly<{
 	title: string;
 	description: string;
 	form: UseFormReturn<TFieldValues>;
 	fieldName?: Path<TFieldValues>;
-}) {
+}>) {
 	const handleEditorUpdate = useCallback(
 		({ editor }: { editor: { getHTML: () => string } }) => {
 			form.setValue(
-				fieldName as Path<TFieldValues>,
+				fieldName,
 				editor.getHTML() as PathValue<TFieldValues, Path<TFieldValues>>,
 			);
 		},
@@ -46,7 +46,7 @@ export default function DescriptionEditor<TFieldValues extends FieldValues>({
 	const handleEditorCreate = useCallback(
 		({ editor }: { editor: { getHTML: () => string } }) => {
 			form.setValue(
-				fieldName as Path<TFieldValues>,
+				fieldName,
 				editor.getHTML() as PathValue<TFieldValues, Path<TFieldValues>>,
 			);
 		},
@@ -87,14 +87,14 @@ export default function DescriptionEditor<TFieldValues extends FieldValues>({
 		editorProps: editorProps,
 		onUpdate: handleEditorUpdate,
 		immediatelyRender: false,
-		content: form.watch(fieldName as Path<TFieldValues>),
+		content: form.watch(fieldName),
 		onCreate: handleEditorCreate,
 	});
 
 	return (
 		<FormField
 			control={form.control}
-			name={fieldName as Path<TFieldValues>}
+			name={fieldName}
 			render={() => (
 				<FormItem className="flex flex-col">
 					<FormLabel>{title} </FormLabel>
