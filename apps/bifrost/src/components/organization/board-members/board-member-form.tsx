@@ -6,6 +6,7 @@ import {
 	PopoverTrigger,
 } from "@radix-ui/react-popover";
 import { api } from "@workspace/backend/convex/api";
+import { ACCESS_RIGHTS } from "@workspace/shared/constants";
 import { Button } from "@workspace/ui/components/button";
 import {
 	Command,
@@ -52,7 +53,6 @@ import {
 	formSchema,
 } from "@/constants/schemas/boardmember-form-schema";
 import { zodV4Resolver } from "@/utils/zod-v4-resolver";
-import { ACCESS_RIGHTS } from "@workspace/shared/constants";
 
 export default function BoardMemberForm({
 	defaultValues,
@@ -153,10 +153,6 @@ export default function BoardMemberForm({
 																			currentValue === field.value
 																				? ""
 																				: currentValue,
-																		);
-																		form.setValue(
-																			"internalId",
-																			internalMember._id,
 																		);
 																		setOpenMembers(false);
 																	}}

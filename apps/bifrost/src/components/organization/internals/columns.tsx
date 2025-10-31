@@ -1,10 +1,10 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import type { Id } from "@workspace/backend/convex/dataModel";
+import type { ACCESS_RIGHTS } from "@workspace/shared/constants";
 import { Button } from "@workspace/ui/components/button";
 import { Input } from "@workspace/ui/components/input";
 import { Trash } from "lucide-react";
 import { useState } from "react";
-import type { accessRights } from "@/constants/types";
 import UpsertInternalRole from "./upsert-internal-role";
 
 export type InternalsTable = {
@@ -13,13 +13,16 @@ export type InternalsTable = {
 	fullName: string;
 	email: string;
 	group: string;
-	role: (typeof accessRights)[number];
+	role: (typeof ACCESS_RIGHTS)[number];
 };
 
 export const createColumns = (
 	onDelete: (internalsId: Id<"internals">) => void,
 	onUpdateGroup: (internalsId: Id<"internals">, group: string) => void,
-	onSetRole: (userId: Id<"users">, role: (typeof accessRights)[number]) => void,
+	onSetRole: (
+		userId: Id<"users">,
+		role: (typeof ACCESS_RIGHTS)[number],
+	) => void,
 ): ColumnDef<InternalsTable>[] => [
 	{
 		id: "index",
@@ -75,7 +78,10 @@ export const createColumns = (
 				<UpsertInternalRole
 					role={row.original.role as unknown as string}
 					setSelectedRoleAction={(newRole) =>
-						onSetRole(row.original.userId, newRole as (typeof accessRights)[number])
+						onSetRole(
+							row.original.userId,
+							newRole as (typeof ACCESS_RIGHTS)[number],
+						)
 					}
 				/>
 			);
@@ -85,7 +91,11 @@ export const createColumns = (
 		id: "actions",
 		cell: ({ row }) => (
 			<div className="flex gap-2">
-				<Button variant="destructive" size="icon" onClick={() => onDelete(row.original.internalId)}>
+				<Button
+					variant="destructive"
+					size="icon"
+					onClick={() => onDelete(row.original.internalId)}
+				>
 					<Trash className="size-4" />
 				</Button>
 			</div>

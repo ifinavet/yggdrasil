@@ -2,6 +2,7 @@
 
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
+import type { ORGANIZER_ROLE } from "@workspace/shared/constants";
 import { Button } from "@workspace/ui/components//button";
 import {
 	Command,
@@ -19,7 +20,11 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@workspace/ui/components//form";
-import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui/components//popover";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@workspace/ui/components//popover";
 import {
 	Select,
 	SelectContent,
@@ -33,17 +38,21 @@ import { Check, ChevronsUpDown } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import type { UseFormReturn } from "react-hook-form";
 import type { EventFormValues } from "@/constants/schemas/event-form-schema";
-import type { OrganizerRole } from "@/constants/types";
 import { createColumns } from "./columns";
 import OrganizersTable from "./data-table";
 
-export default function Organizers({ form }: { form: UseFormReturn<EventFormValues> }) {
+export default function Organizers({
+	form,
+}: {
+	form: UseFormReturn<EventFormValues>;
+}) {
 	const internalMembers = useQuery(api.internals.getAll);
 
 	const [openMembers, setOpenMembers] = useState(false);
 	const selectedMember = useRef("");
 
-	const [selectedOrganizerType, setSelectedOrganizerType] = useState<OrganizerRole>("medhjelper");
+	const [selectedOrganizerType, setSelectedOrganizerType] =
+		useState<ORGANIZER_ROLE>("medhjelper");
 
 	const selectedOrganizers = useMemo(() => {
 		if (!internalMembers) return [];
@@ -51,14 +60,15 @@ export default function Organizers({ form }: { form: UseFormReturn<EventFormValu
 		return form.watch("organizers").map((organizer) => ({
 			id: organizer.userId,
 			name:
-				internalMembers.find((member) => member.userId === organizer.userId)?.fullName || "Ukjent",
+				internalMembers.find((member) => member.userId === organizer.userId)
+					?.fullName || "Ukjent",
 			role: organizer.role,
 		}));
 	}, [internalMembers, form.watch("organizers")]);
 
 	if (!internalMembers) return <div>Loading members...</div>;
 
-	const handleRoleChange = (userId: Id<"users">, newRole: OrganizerRole) => {
+	const handleRoleChange = (userId: Id<"users">, newRole: ORGANIZER_ROLE) => {
 		const currentOrganizers = form.getValues("organizers");
 		const updatedOrganizers = currentOrganizers.map((organizer) =>
 			organizer.userId === userId ? { ...organizer, role: newRole } : organizer,
@@ -97,7 +107,9 @@ export default function Organizers({ form }: { form: UseFormReturn<EventFormValu
 										>
 											{selectedMember.current
 												? internalMembers.find(
-														(internalMember) => internalMember.fullName === selectedMember.current,
+														(internalMember) =>
+															internalMember.fullName ===
+															selectedMember.current,
 													)?.fullName
 												: "Velg et medlem..."}
 											<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -115,14 +127,17 @@ export default function Organizers({ form }: { form: UseFormReturn<EventFormValu
 															value={internalMember.fullName ?? "Ukjent"}
 															onSelect={(currentValue) => {
 																selectedMember.current =
-																	currentValue === selectedMember.current ? "" : currentValue;
+																	currentValue === selectedMember.current
+																		? ""
+																		: currentValue;
 																setOpenMembers(false);
 															}}
 														>
 															<Check
 																className={cn(
 																	"mr-2 h-4 w-4",
-																	selectedMember.current === internalMember.fullName
+																	selectedMember.current ===
+																		internalMember.fullName
 																		? "opacity-100"
 																		: "opacity-0",
 																)}
@@ -137,7 +152,7 @@ export default function Organizers({ form }: { form: UseFormReturn<EventFormValu
 								</Popover>
 								<Select
 									onValueChange={(value: string) => {
-										setSelectedOrganizerType(value as OrganizerRole);
+										setSelectedOrganizerType(value as ORGANIZER_ROLE);
 									}}
 									value={selectedOrganizerType}
 								>
@@ -146,7 +161,9 @@ export default function Organizers({ form }: { form: UseFormReturn<EventFormValu
 									</SelectTrigger>
 									<SelectContent>
 										<SelectItem value="medhjelper">Medhjelper</SelectItem>
-										<SelectItem value="hovedansvarlig">Hovedansvarlig</SelectItem>
+										<SelectItem value="hovedansvarlig">
+											Hovedansvarlig
+										</SelectItem>
 									</SelectContent>
 								</Select>
 								<Button
@@ -155,14 +172,16 @@ export default function Organizers({ form }: { form: UseFormReturn<EventFormValu
 										if (!selectedMember.current) return;
 
 										const organizerToAdd = internalMembers.find(
-											(internalMember) => internalMember.fullName === selectedMember.current,
+											(internalMember) =>
+												internalMember.fullName === selectedMember.current,
 										);
 
 										if (organizerToAdd) {
 											// Check if organizer is already added
 											const currentOrganizers = field.value;
 											const isAlreadyAdded = currentOrganizers.some(
-												(organizer) => organizer.userId === organizerToAdd.userId,
+												(organizer) =>
+													organizer.userId === organizerToAdd.userId,
 											);
 
 											if (!isAlreadyAdded) {
@@ -187,7 +206,8 @@ export default function Organizers({ form }: { form: UseFormReturn<EventFormValu
 						</div>
 					</FormControl>
 					<FormDescription>
-						Velg hvem som er ansvarlig for og skal organisere/planlegge arrangementet.
+						Velg hvem som er ansvarlig for og skal organisere/planlegge
+						arrangementet.
 					</FormDescription>
 					<FormMessage />
 				</FormItem>

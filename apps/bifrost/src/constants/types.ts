@@ -15,5 +15,3 @@ export type Event = {
 	externalUrl?: string;
 	organizers: Organizer[];
 };
-
-export type OrganizerRole = "hovedansvarlig" | "medhjelper";
