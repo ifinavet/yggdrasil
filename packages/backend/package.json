@@ -17,6 +17,7 @@
 		"@convex-dev/resend": "^0.1.12",
 		"@react-email/render": "^1.2.3",
 		"@workspace/emails": "workspace:*",
+		"@workspace/shared": "workspace:*",
 		"convex": "^1.27.0",
 		"svix": "^1.76.1"
 	},

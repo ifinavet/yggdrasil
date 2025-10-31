@@ -2,12 +2,12 @@
 
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
+import type { ORGANIZER_ROLE } from "@workspace/shared/constants";
 import { type Preloaded, useMutation, usePreloadedQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import EventForm from "@/components/events/event-form/event-form";
 import type { EventFormValues } from "@/constants/schemas/event-form-schema";
-import type { OrganizerRole } from "@/constants/types";
 
 export default function UpdateEventForm({
 	preloadedEvent,
@@ -29,7 +29,7 @@ export default function UpdateEventForm({
 		participantsLimit: event.participationLimit,
 		organizers: event.organizers.map((organizer) => ({
 			userId: organizer.userId,
-			role: organizer.role as OrganizerRole,
+			role: organizer.role as ORGANIZER_ROLE,
 		})),
 		eventType: event.externalUrl ? "external_event" : "internal_event",
 		hostingCompany: {
@@ -56,7 +56,7 @@ export default function UpdateEventForm({
 			hostingCompany: values.hostingCompany.id as Id<"companies">,
 			organizers: values.organizers.map((organizer) => ({
 				userId: organizer.userId as Id<"users">,
-				role: organizer.role as OrganizerRole,
+				role: organizer.role as ORGANIZER_ROLE,
 			})),
 			published,
 		})

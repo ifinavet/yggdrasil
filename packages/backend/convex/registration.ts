@@ -1,8 +1,10 @@
+import { toBase64 } from "@workspace/shared/utils";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
 import { type MutationCtx, mutation, query } from "./_generated/server";
 import { getCurrentUserOrThrow } from "./users";
+
 export const getByEventId = query({
 	args: {
 		eventId: v.id("events"),
@@ -379,21 +381,14 @@ export const getRegistrantsInfo = query({
 
 		for (const info of studentsInfo) {
 			const { degree, program, semester } = info;
-			const cleanProgram = program
-				.replaceAll(/æ/g, "ae")
-				.replaceAll(/ø/g, "oe")
-				.replaceAll(/å/g, "aa")
-				.replaceAll(/Æ/g, "AE")
-				.replaceAll(/Ø/g, "OE")
-				.replaceAll(/Å/g, "AA");
+			const programBase = toBase64(program);
 			if (!result[degree]) result[degree] = {};
 
-			if (!result[degree][cleanProgram]) result[degree][cleanProgram] = {};
+			if (!result[degree][programBase]) result[degree][programBase] = {};
 
-			if (result[degree][cleanProgram][semester] === undefined)
-				result[degree][cleanProgram][semester] = 0;
+			result[degree][programBase][semester] ??= 0;
 
-			result[degree][cleanProgram][semester]++;
+			result[degree][programBase][semester]++;
 		}
 
 		return result;

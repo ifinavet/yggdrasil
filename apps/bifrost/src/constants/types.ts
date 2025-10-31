@@ -15,7 +15,3 @@ export type Event = {
 	externalUrl?: string;
 	organizers: Organizer[];
 };
-
-export type OrganizerRole = "hovedansvarlig" | "medhjelper";
-
-export const accessRights = ["super-admin", "admin", "editor", "internal"] as const;

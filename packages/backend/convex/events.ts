@@ -1,3 +1,4 @@
+import type { ORGANIZER_ROLE } from "@workspace/shared/constants";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
@@ -17,7 +18,6 @@ const organizerRoleValidator = v.union(
 	v.literal("hovedansvarlig"),
 	v.literal("medhjelper"),
 );
-type OrganizerRole = "hovedansvarlig" | "medhjelper";
 
 export const getLatest = query({
 	args: {
@@ -227,7 +227,7 @@ async function getOrganizers(ctx: QueryCtx, eventId: Id<"events">) {
 				return {
 					id: organizer._id,
 					name: "Ukjent ansvarlig",
-					role: "medhjelper" as OrganizerRole,
+					role: "medhjelper" as ORGANIZER_ROLE,
 					userId: organizer.userId,
 					imageUrl: "",
 					email: "",

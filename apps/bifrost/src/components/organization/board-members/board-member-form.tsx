@@ -1,7 +1,12 @@
 "use client";
 
-import { Popover, PopoverContent, PopoverTrigger } from "@radix-ui/react-popover";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@radix-ui/react-popover";
 import { api } from "@workspace/backend/convex/api";
+import { ACCESS_RIGHTS } from "@workspace/shared/constants";
 import { Button } from "@workspace/ui/components/button";
 import {
 	Command,
@@ -43,8 +48,10 @@ import { useQuery } from "convex/react";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { type boardMemberSchema, formSchema } from "@/constants/schemas/boardmember-form-schema";
-import { accessRights } from "@/constants/types";
+import {
+	type boardMemberSchema,
+	formSchema,
+} from "@/constants/schemas/boardmember-form-schema";
 import { zodV4Resolver } from "@/utils/zod-v4-resolver";
 
 export default function BoardMemberForm({
@@ -101,7 +108,10 @@ export default function BoardMemberForm({
 					<DialogDescription>{description}</DialogDescription>
 				</DialogHeader>
 				<Form {...form}>
-					<form onSubmit={form.handleSubmit(onSubmitAction)} className="space-y-8">
+					<form
+						onSubmit={form.handleSubmit(onSubmitAction)}
+						className="space-y-8"
+					>
 						<FormField
 							control={form.control}
 							name="userId"
@@ -119,7 +129,8 @@ export default function BoardMemberForm({
 												>
 													{field.value
 														? internalMembers?.find(
-																(internalMember) => internalMember.userId === field.value,
+																(internalMember) =>
+																	internalMember.userId === field.value,
 															)?.fullName
 														: "Velg et medlem..."}
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -129,7 +140,9 @@ export default function BoardMemberForm({
 												<Command>
 													<CommandInput placeholder="Søk etter en ansvarlig..." />
 													<CommandList>
-														<CommandEmpty>Fant ingen ansvarlige(er).</CommandEmpty>
+														<CommandEmpty>
+															Fant ingen ansvarlige(er).
+														</CommandEmpty>
 														<CommandGroup>
 															{internalMembers?.map((internalMember) => (
 																<CommandItem
@@ -137,9 +150,10 @@ export default function BoardMemberForm({
 																	value={internalMember.userId ?? "Ukjent"}
 																	onSelect={(currentValue) => {
 																		field.onChange(
-																			currentValue === field.value ? "" : currentValue,
+																			currentValue === field.value
+																				? ""
+																				: currentValue,
 																		);
-																		form.setValue("internalId", internalMember._id);
 																		setOpenMembers(false);
 																	}}
 																>
@@ -189,7 +203,9 @@ export default function BoardMemberForm({
 									<FormControl>
 										<Input {...field} placeholder="f.eks. Webgruppen" />
 									</FormControl>
-									<FormDescription>Hva skal gruppen til vervet hete?</FormDescription>
+									<FormDescription>
+										Hva skal gruppen til vervet hete?
+									</FormDescription>
 									<FormMessage />
 								</FormItem>
 							)}
@@ -205,7 +221,8 @@ export default function BoardMemberForm({
 										<Input {...field} placeholder="f.eks. leder@ifinavet.no" />
 									</FormControl>
 									<FormDescription>
-										En valgri epost som bli brukt isteden for rolle inhaver sin egen.
+										En valgri epost som bli brukt isteden for rolle inhaver sin
+										egen.
 									</FormDescription>
 									<FormMessage />
 								</FormItem>
@@ -219,20 +236,32 @@ export default function BoardMemberForm({
 								<FormItem>
 									<FormLabel>Tilgangsrolle</FormLabel>
 									<FormControl>
-										<Select onValueChange={field.onChange} defaultValue={field.value}>
+										<Select
+											onValueChange={field.onChange}
+											defaultValue={field.value}
+										>
 											<SelectTrigger>
-												<SelectValue placeholder="Velg tilgangsrolle" className="capitalize" />
+												<SelectValue
+													placeholder="Velg tilgangsrolle"
+													className="capitalize"
+												/>
 											</SelectTrigger>
 											<SelectContent>
-												{accessRights.map((accessRight) => (
-													<SelectItem value={accessRight} key={accessRight} className="capitalize">
+												{ACCESS_RIGHTS.map((accessRight) => (
+													<SelectItem
+														value={accessRight}
+														key={accessRight}
+														className="capitalize"
+													>
 														{accessRight}
 													</SelectItem>
 												))}
 											</SelectContent>
 										</Select>
 									</FormControl>
-									<FormDescription>Hva slags tilgangsrolle skal denne personen ha?</FormDescription>
+									<FormDescription>
+										Hva slags tilgangsrolle skal denne personen ha?
+									</FormDescription>
 									<FormMessage />
 								</FormItem>
 							)}

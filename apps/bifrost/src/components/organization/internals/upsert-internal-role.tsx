@@ -1,5 +1,6 @@
 "use client";
 
+import { ACCESS_RIGHTS } from "@workspace/shared/constants";
 import { Button } from "@workspace/ui/components/button";
 import {
 	Dialog,
@@ -20,7 +21,6 @@ import {
 } from "@workspace/ui/components/select";
 import { LockKeyhole } from "lucide-react";
 import { useState } from "react";
-import { accessRights } from "@/constants/types";
 
 export default function UpsertInternalRole({
 	role,
@@ -42,19 +42,26 @@ export default function UpsertInternalRole({
 				<DialogHeader>
 					<DialogTitle>Velg tilgangsrolle</DialogTitle>
 					<DialogDescription>
-						Velg en tilgangsrolle for denne intern medlemmet. Dette vil bestemme hvilke ressurser og
-						funksjoner de har tilgang til.
+						Velg en tilgangsrolle for denne intern medlemmet. Dette vil bestemme
+						hvilke ressurser og funksjoner de har tilgang til.
 					</DialogDescription>
 				</DialogHeader>
 
 				<div>
-					<Select defaultValue={role} onValueChange={(value: string) => setSelectedRole(value)}>
+					<Select
+						defaultValue={role}
+						onValueChange={(value: string) => setSelectedRole(value)}
+					>
 						<SelectTrigger className="capitalize">
 							<SelectValue placeholder="Velg tilgangsrolle" />
 						</SelectTrigger>
 						<SelectContent>
-							{accessRights.map((accessRight) => (
-								<SelectItem value={accessRight} key={accessRight} className="capitalize">
+							{ACCESS_RIGHTS.map((accessRight) => (
+								<SelectItem
+									value={accessRight}
+									key={accessRight}
+									className="capitalize"
+								>
 									{accessRight}
 								</SelectItem>
 							))}
@@ -65,7 +72,10 @@ export default function UpsertInternalRole({
 				<DialogFooter>
 					<div className="flex w-full justify-start gap-4">
 						<DialogClose asChild>
-							<Button type="submit" onClick={() => setSelectedRoleAction(selectedRole)}>
+							<Button
+								type="submit"
+								onClick={() => setSelectedRoleAction(selectedRole)}
+							>
 								Lagre rolle
 							</Button>
 						</DialogClose>

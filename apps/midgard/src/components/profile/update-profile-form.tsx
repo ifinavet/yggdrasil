@@ -23,8 +23,7 @@ import { type Preloaded, useMutation, usePreloadedQuery } from "convex/react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod/v4";
-import { DEGREE_TYPES } from "@/constants/degree-types";
-import { STUDY_PROGRAMS } from "@/constants/study-program-types";
+import { STUDY_PROGRAMS, DEGREE_TYPES } from "@workspace/shared/constants";
 import { zodV4Resolver } from "@/utils/zod-v4-resolver";
 
 const formSchema = z.object({
@@ -78,7 +77,10 @@ export default function UpdateProfileForm({
 
 	return (
 		<Form {...form}>
-			<form onSubmit={form.handleSubmit(onSubmit)} className={cn(className, "space-y-8")}>
+			<form
+				onSubmit={form.handleSubmit(onSubmit)}
+				className={cn(className, "space-y-8")}
+			>
 				<div className="flex flex-col gap-4 md:flex-row">
 					<FormField
 						control={form.control}
@@ -87,7 +89,12 @@ export default function UpdateProfileForm({
 							<FormItem className="min-w-0 md:w-full">
 								<FormLabel>Fornavn</FormLabel>
 								<FormControl>
-									<Input placeholder="Ola" {...field} disabled className="truncate" />
+									<Input
+										placeholder="Ola"
+										{...field}
+										disabled
+										className="truncate"
+									/>
 								</FormControl>
 								<FormMessage />
 							</FormItem>
@@ -100,7 +107,12 @@ export default function UpdateProfileForm({
 							<FormItem className="min-w-0 md:w-full">
 								<FormLabel>Etternavn</FormLabel>
 								<FormControl>
-									<Input placeholder="Nordmann" {...field} disabled className="truncate" />
+									<Input
+										placeholder="Nordmann"
+										{...field}
+										disabled
+										className="truncate"
+									/>
 								</FormControl>
 								<FormMessage />
 							</FormItem>
@@ -117,7 +129,10 @@ export default function UpdateProfileForm({
 							<FormControl>
 								<Select onValueChange={field.onChange} value={field.value}>
 									<SelectTrigger className="w-full truncate">
-										<SelectValue placeholder="Velg et studieprogram" className="truncate" />
+										<SelectValue
+											placeholder="Velg et studieprogram"
+											className="truncate"
+										/>
 									</SelectTrigger>
 									<SelectContent>
 										{STUDY_PROGRAMS.map((program) => (
@@ -143,7 +158,10 @@ export default function UpdateProfileForm({
 								<FormControl>
 									<Select onValueChange={field.onChange} value={field.value}>
 										<SelectTrigger className="w-full truncate">
-											<SelectValue placeholder="Velg studie grad" className="truncate" />
+											<SelectValue
+												placeholder="Velg studie grad"
+												className="truncate"
+											/>
 										</SelectTrigger>
 										<SelectContent>
 											{DEGREE_TYPES.map((degree) => (
@@ -166,7 +184,13 @@ export default function UpdateProfileForm({
 							<FormItem className="w-full min-w-0">
 								<FormLabel>Semester</FormLabel>
 								<FormControl>
-									<Input type="number" min={1} max={10} {...field} className="truncate" />
+									<Input
+										type="number"
+										min={1}
+										max={10}
+										{...field}
+										className="truncate"
+									/>
 								</FormControl>
 								<FormMessage />
 							</FormItem>

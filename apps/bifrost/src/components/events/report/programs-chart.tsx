@@ -20,69 +20,69 @@ const chartConfig = {
 	antall: {
 		label: "Antall",
 	},
-	informatikk_programmering_og_systemarkitektur: {
+	Informatikk__programmering_og_systemarkitektur: {
 		label: "Prosa",
 		color: "var(--chart-1)",
 	},
-	informatikk_design_bruk_og_interaksjon: {
+	Informatikk__design__bruk_og_interaksjon: {
 		label: "Design",
 		color: "var(--chart-2)",
 	},
-	informatikk_digital_oekonomi_og_ledelse: {
+	Informatikk__digital_økonomi_og_ledelse: {
 		label: "Digøk",
 		color: "var(--chart-3)",
 	},
-	informatikk_spraakteknologi: {
+	Informatikk__språkteknologi: {
 		label: "Språktek",
 		color: "var(--chart-4)",
 	},
-	informatikk_maskinlaering_og_kunstig_intelligens: {
+	Informatikk__maskinlæring_og_kunstig_intelligens: {
 		label: "Maki",
 		color: "var(--chart-5)",
 	},
-	informatikk_robotikk_og_intelligente_systemer: {
+	Informatikk__robotikk_og_intelligente_systemer: {
 		label: "Robotikk",
 		color: "var(--chart-1)",
 	},
-	elektronikk_informatikk_og_teknologi: {
+	Elektronikk_informatikk_og_teknologi: {
 		label: "Elektronikk, informatikk og teknologi",
 		color: "var(--chart-2)",
 	},
-	matematikk_med_informatikk: {
+	Matematikk_med_informatikk: {
 		label: "Matematikk med informatikk",
 		color: "var(--chart-3)",
 	},
-	informasjonssikkerhet: {
+	Informasjonssikkerhet: {
 		label: "Infosek",
 		color: "var(--chart-4)",
 	},
-	iomputational_Science: {
+	Computational_science: {
 		label: "Computational Science",
 		color: "var(--chart-5)",
 	},
-	data_Science: {
+	Data_Science: {
 		label: "Data Science",
 		color: "var(--chart-1)",
 	},
-	entreprenoerskap_og_innovasjonsledelse: {
+	Entreprenørskap_og_innovasjonsledelse: {
 		label: "Entreprenørskap og innovasjonsledelse",
 		color: "var(--chart-2)",
 	},
-	digitalisering_i_helsesektoren: {
+	Digitalisering_i_helsesektoren: {
 		label: "Dighel",
 		color: "var(--chart-3)",
 	},
-	informatikk_aarsenhet: {
+	Informatikk__årsenhet_: {
 		label: "Informatikk (årsenhet)",
-		color: "var(--chart-4)",
-	},
-	it_arkitektur_årsenhet: {
-		label: "IT-arkitektur (årsenhet)",
 		color: "var(--chart-5)",
+	},
+	It_arkitektur_årsenhet: {
+		label: "IT-arkitektur (årsenhet)",
+		color: "var(--chart-4)",
 	},
 } satisfies ChartConfig;
 
-export default function DegreeChart({
+export default function ProgramsChart({
 	chartData,
 }: Readonly<{
 	chartData: {
@@ -102,18 +102,18 @@ export default function DegreeChart({
 					className="mx-auto aspect-square max-h-[320px] pb-0 [&_.recharts-pie-label-text]:fill-foreground"
 				>
 					<PieChart>
-					<ChartTooltip content={<ChartTooltipContent />} />
-					<ChartLegend
-						content={
-							<ChartLegendContent
-								nameKey="value"
-								verticalAlign="top"
-								className="flex-wrap gap-1"
-							/>
-						}
-					/>
-					<Pie data={chartData} dataKey="num" label nameKey="program" />
-				</PieChart>
+						<ChartTooltip content={<ChartTooltipContent />} />
+						<ChartLegend
+							content={
+								<ChartLegendContent
+									nameKey="value"
+									verticalAlign="top"
+									className="flex-wrap gap-1"
+								/>
+							}
+						/>
+						<Pie data={chartData} dataKey="num" label nameKey="program" />
+					</PieChart>
 				</ChartContainer>
 			</CardContent>
 		</Card>
