@@ -1,28 +1,15 @@
 "use client";
 
-import {
-	type ColumnDef,
-	flexRender,
-	getCoreRowModel,
-	type Row,
-	useReactTable,
-} from "@tanstack/react-table";
+import type { ColumnDef, Row } from "@tanstack/react-table";
 import { api } from "@workspace/backend/convex/api";
 import type { Doc } from "@workspace/backend/convex/dataModel";
 import { Button } from "@workspace/ui/components/button";
 import { Input } from "@workspace/ui/components/input";
 import { Label } from "@workspace/ui/components/label";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@workspace/ui/components/table";
 import { usePaginatedQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
+import { DataTable } from "../common/tables/table";
 
 type StudentColumns = Doc<"students"> & {
 	status: "Aktiv" | "Ukjent" | "Ikke registrert";
@@ -90,12 +77,6 @@ export default function StudentsOverview() {
 
 	const defaultData = useMemo(() => [], []);
 
-	const table = useReactTable({
-		data: students ?? defaultData,
-		columns,
-		getCoreRowModel: getCoreRowModel(),
-	});
-
 	const router = useRouter();
 
 	const handleRowClick = useCallback(
@@ -121,40 +102,11 @@ export default function StudentsOverview() {
 				/>
 			</div>
 			<div className="overflow-clip rounded-md border">
-				<Table>
-					<TableHeader className="bg-accent">
-						{table.getHeaderGroups().map((headerGroup) => (
-							<TableRow key={headerGroup.id}>
-								{headerGroup.headers.map((header) => (
-									<TableHead key={header.id}>
-										{header.isPlaceholder
-											? null
-											: flexRender(
-													header.column.columnDef.header,
-													header.getContext(),
-												)}
-									</TableHead>
-								))}
-							</TableRow>
-						))}
-					</TableHeader>
-					<TableBody>
-						{table.getCoreRowModel().rows?.map((row) => (
-							<TableRow
-								key={row.id}
-								data-state={row.getIsSelected() && "selected"}
-								className="cursor-pointer hover:bg-muted/50"
-								onClick={() => handleRowClick(row)}
-							>
-								{row.getVisibleCells().map((cell) => (
-									<TableCell key={cell.id}>
-										{flexRender(cell.column.columnDef.cell, cell.getContext())}
-									</TableCell>
-								))}
-							</TableRow>
-						))}
-					</TableBody>
-				</Table>
+				<DataTable
+					columns={columns}
+					data={students ?? defaultData}
+					onRowClick={handleRowClick}
+				/>
 			</div>
 			<Button
 				onClick={() => loadMore(25)}
