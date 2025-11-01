@@ -1,7 +1,7 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-
+import type { Doc, Id } from "./_generated/dataModel";
 import { internalMutation, mutation, query } from "./_generated/server";
 import { getCurrentUserOrThrow } from "./users";
 
@@ -32,6 +32,42 @@ export const getAllPaged = query({
 			...students,
 			page: studentsWithLockedStatus,
 		};
+	},
+});
+
+export const getAllWithPoints = query({
+	handler: async (ctx) => {
+		const points = await ctx.db.query("points").collect();
+		const students = new Map<Id<"students">, Doc<"points">[]>();
+
+		for (const point of points) {
+			if (!students.has(point.studentId)) {
+				students.set(point.studentId, []);
+			}
+			students.get(point.studentId)?.push(point);
+		}
+
+		const studentsWithPoints: {
+			id: Id<"students">;
+			name: string;
+			points: number;
+		}[] = [];
+
+		for (const [studentId, points] of students.entries()) {
+			const student = await ctx.db.get(studentId);
+			if (!student) {
+				throw new Error("User not found");
+			}
+
+			studentsWithPoints.push({
+				id: student._id,
+				name: student.name,
+				points: points.reduce((acc, point) => acc + point.severity, 0),
+			});
+		}
+
+		studentsWithPoints.sort((a, b) => b.points - a.points);
+		return studentsWithPoints;
 	},
 });
 
