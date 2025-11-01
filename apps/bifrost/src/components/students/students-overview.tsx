@@ -51,9 +51,13 @@ const createColumns: ColumnDef<StudentColumns>[] = [
 		header: "Status",
 		cell: ({ row }) => {
 			const status = row.original.status;
-			const color = statusColors[status as keyof typeof statusColors] ?? "bg-red-100 text-red-800";
+			const color =
+				statusColors[status as keyof typeof statusColors] ??
+				"bg-red-100 text-red-800";
 			return (
-				<span className={`rounded-full px-2 py-1 font-medium text-xs ${color}`}>{status}</span>
+				<span className={`rounded-full px-2 py-1 font-medium text-xs ${color}`}>
+					{status}
+				</span>
 			);
 		},
 	},
@@ -62,8 +66,8 @@ const createColumns: ColumnDef<StudentColumns>[] = [
 		header: "Studieprogram",
 	},
 	{
-		accessorKey: "semester",
-		header: "Semester",
+		accessorKey: "year",
+		header: "År",
 	},
 ];
 
@@ -74,9 +78,15 @@ export default function StudentsOverview() {
 		results: students,
 		status,
 		loadMore,
-	} = usePaginatedQuery(api.students.getAllPaged, { search }, { initialNumItems: 25 });
+	} = usePaginatedQuery(
+		api.students.getAllPaged,
+		{ search },
+		{ initialNumItems: 25 },
+	);
 
-	const columns = createColumns as ColumnDef<Doc<"students"> & { status: string }>[];
+	const columns = createColumns as ColumnDef<
+		Doc<"students"> & { status: string }
+	>[];
 
 	const defaultData = useMemo(() => [], []);
 
@@ -119,7 +129,10 @@ export default function StudentsOverview() {
 									<TableHead key={header.id}>
 										{header.isPlaceholder
 											? null
-											: flexRender(header.column.columnDef.header, header.getContext())}
+											: flexRender(
+													header.column.columnDef.header,
+													header.getContext(),
+												)}
 									</TableHead>
 								))}
 							</TableRow>
