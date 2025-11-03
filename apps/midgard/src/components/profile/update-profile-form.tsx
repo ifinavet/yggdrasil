@@ -219,7 +219,7 @@ export default function UpdateProfileForm({
 										value={field.state.value}
 										onBlur={field.handleBlur}
 										onChange={(e) => {
-											const numeric = e.target.value.replace(/\D/g, "");
+											const numeric = e.target.value.replaceAll(/\D/g, "");
 											field.handleChange(Number.parseInt(numeric));
 										}}
 										type="number"
