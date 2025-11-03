@@ -1,6 +1,11 @@
 "use client";
 
-import { type ColumnDef, flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table";
+import {
+	type ColumnDef,
+	flexRender,
+	getCoreRowModel,
+	useReactTable,
+} from "@tanstack/react-table";
 import {
 	Table,
 	TableBody,
@@ -11,14 +16,14 @@ import {
 } from "@workspace/ui/components//table";
 
 interface DataTableProps<TData, TValue> {
-	columns: ColumnDef<TData, TValue>[];
-	data: TData[];
+	readonly columns: ColumnDef<TData, TValue>[];
+	readonly data: TData[];
 }
 
 export default function OrganizersTable<TData, TValue>({
 	columns,
 	data,
-}: DataTableProps<TData, TValue>) {
+}: Readonly<DataTableProps<TData, TValue>>) {
 	const table = useReactTable({
 		data,
 		columns,
@@ -35,7 +40,10 @@ export default function OrganizersTable<TData, TValue>({
 								<TableHead key={header.id}>
 									{header.isPlaceholder
 										? null
-										: flexRender(header.column.columnDef.header, header.getContext())}
+										: flexRender(
+												header.column.columnDef.header,
+												header.getContext(),
+											)}
 								</TableHead>
 							))}
 						</TableRow>
@@ -44,7 +52,10 @@ export default function OrganizersTable<TData, TValue>({
 				<TableBody>
 					{table.getRowModel().rows?.length ? (
 						table.getRowModel().rows.map((row) => (
-							<TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+							<TableRow
+								key={row.id}
+								data-state={row.getIsSelected() && "selected"}
+							>
 								{row.getVisibleCells().map((cell) => (
 									<TableCell key={cell.id}>
 										{flexRender(cell.column.columnDef.cell, cell.getContext())}

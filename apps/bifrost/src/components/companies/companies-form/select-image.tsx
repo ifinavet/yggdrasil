@@ -19,7 +19,9 @@ import type { UseFormReturn } from "react-hook-form";
 import type { CompanyFormValues } from "@/constants/schemas/companies-form-schema";
 import CompanyImageUploader from "./company-image-uploader";
 
-export default function SelectImage({ form }: { form: UseFormReturn<CompanyFormValues> }) {
+export default function SelectImage({
+	form,
+}: Readonly<{ form: UseFormReturn<CompanyFormValues> }>) {
 	const { results, isLoading, status, loadMore } = usePaginatedQuery(
 		api.companies.getCompanyLogosPaged,
 		{},
@@ -29,7 +31,8 @@ export default function SelectImage({ form }: { form: UseFormReturn<CompanyFormV
 	);
 
 	const formImageValue = form.getValues("image") as Id<"companyLogos">;
-	const [selectedImageId, setSelectedImageId] = useState<Id<"companyLogos"> | null>(formImageValue);
+	const [selectedImageId, setSelectedImageId] =
+		useState<Id<"companyLogos"> | null>(formImageValue);
 	const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
 	const selectedImageName = useRef<string>("");
 
@@ -70,7 +73,10 @@ export default function SelectImage({ form }: { form: UseFormReturn<CompanyFormV
 			<div className="flex flex-col gap-2">
 				<Dialog>
 					<DialogTrigger asChild>
-						<Button variant="outline" className={`flex w-full justify-between px-4`}>
+						<Button
+							variant="outline"
+							className={`flex w-full justify-between px-4`}
+						>
 							<LImage />
 							Velg et bilde
 						</Button>
@@ -78,7 +84,9 @@ export default function SelectImage({ form }: { form: UseFormReturn<CompanyFormV
 					<DialogContent>
 						<DialogHeader>
 							<DialogTitle> Velg et bilde</DialogTitle>
-							<DialogDescription>Velg et bilde som skal vises på nettsiden.</DialogDescription>
+							<DialogDescription>
+								Velg et bilde som skal vises på nettsiden.
+							</DialogDescription>
 						</DialogHeader>
 						<div className="flex flex-col">
 							<div className="grid max-h-96 flex-1 grid-cols-4 items-center gap-4 overflow-scroll rounded-md bg-zinc-300 p-4">
@@ -111,12 +119,20 @@ export default function SelectImage({ form }: { form: UseFormReturn<CompanyFormV
 
 							<div className="flex gap-4">
 								<DialogClose asChild>
-									<Button type="button" variant="default" onClick={handleSelectedImage}>
+									<Button
+										type="button"
+										variant="default"
+										onClick={handleSelectedImage}
+									>
 										<Check /> Bekreft
 									</Button>
 								</DialogClose>
 								<DialogClose asChild>
-									<Button type="button" variant="secondary" onClick={handleCancel}>
+									<Button
+										type="button"
+										variant="secondary"
+										onClick={handleCancel}
+									>
 										<X /> Avbryt
 									</Button>
 								</DialogClose>
@@ -127,7 +143,10 @@ export default function SelectImage({ form }: { form: UseFormReturn<CompanyFormV
 
 				<Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
 					<DialogTrigger asChild>
-						<Button variant="outline" className="flex w-fit justify-between px-4">
+						<Button
+							variant="outline"
+							className="flex w-fit justify-between px-4"
+						>
 							<Upload className="mr-2 h-4 w-4" />
 							Last opp bilde
 						</Button>

@@ -14,20 +14,25 @@ import { useCallback, useMemo, useState } from "react";
 import type { Control } from "react-hook-form";
 import { toast } from "sonner";
 import type { JobListingFormValues } from "@/constants/schemas/job-listing-form-schema";
-import { createColumns, type JobListingContact } from "../job-listing-contacts-table/columns";
+import {
+	createColumns,
+	type JobListingContact,
+} from "../job-listing-contacts-table/columns";
 import { ContactsTable } from "../job-listing-contacts-table/contacts-table";
 
 interface ContactsSectionProps {
-	control: Control<JobListingFormValues>;
-	contacts: JobListingFormValues["contacts"];
-	onContactsChangeAction: (contacts: JobListingFormValues["contacts"]) => void;
+	readonly control: Control<JobListingFormValues>;
+	readonly contacts: JobListingFormValues["contacts"];
+	readonly onContactsChangeAction: (
+		contacts: JobListingFormValues["contacts"],
+	) => void;
 }
 
 export default function ContactsSection({
 	control,
 	contacts,
 	onContactsChangeAction,
-}: ContactsSectionProps) {
+}: Readonly<ContactsSectionProps>) {
 	const [contactName, setContactName] = useState("");
 	const [contactEmail, setContactEmail] = useState("");
 	const [contactPhone, setContactPhone] = useState("");
@@ -49,7 +54,9 @@ export default function ContactsSection({
 		}
 
 		if (!contactEmail.trim() && !contactPhone.trim()) {
-			toast.error("Enten e-post eller telefon til kontaktpersonen må fylles ut");
+			toast.error(
+				"Enten e-post eller telefon til kontaktpersonen må fylles ut",
+			);
 			return;
 		}
 
@@ -121,7 +128,9 @@ export default function ContactsSection({
 							<ContactsTable columns={columns} data={contactsData} />
 						</div>
 					</FormControl>
-					<FormDescription>Dette er en liste over kontakter for stillingsannonsen.</FormDescription>
+					<FormDescription>
+						Dette er en liste over kontakter for stillingsannonsen.
+					</FormDescription>
 					<FormMessage />
 				</FormItem>
 			)}

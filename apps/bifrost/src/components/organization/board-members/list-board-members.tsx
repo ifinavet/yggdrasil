@@ -1,7 +1,11 @@
 "use client";
 
 import type { api } from "@workspace/backend/convex/api";
-import { Avatar, AvatarFallback, AvatarImage } from "@workspace/ui/components/avatar";
+import {
+	Avatar,
+	AvatarFallback,
+	AvatarImage,
+} from "@workspace/ui/components/avatar";
 import {
 	Card,
 	CardAction,
@@ -14,9 +18,9 @@ import EditBoardMember from "./edit-boardmember";
 
 export default function ListBoardMembers({
 	preloadedBoardMembers,
-}: {
+}: Readonly<{
 	preloadedBoardMembers: Preloaded<typeof api.internals.getTheBoard>;
-}) {
+}>) {
 	const boardMembers = usePreloadedQuery(preloadedBoardMembers);
 
 	if (!boardMembers) {
@@ -41,7 +45,10 @@ export default function ListBoardMembers({
 							</Avatar>
 							<div>
 								<p>{member.fullName}</p>
-								<a href={`mailto:${member.email}`} className="text-balance text-muted-foreground">
+								<a
+									href={`mailto:${member.email}`}
+									className="text-balance text-muted-foreground"
+								>
 									{member.email}
 								</a>
 							</div>

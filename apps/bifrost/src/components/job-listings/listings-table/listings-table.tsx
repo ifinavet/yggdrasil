@@ -18,16 +18,16 @@ import {
 import { useRouter } from "next/navigation";
 
 interface RegistrationsTableProps<TData, TValue> {
-	columns: ColumnDef<TData, TValue>[];
-	data: TData[];
-	empty_message?: string;
+	readonly columns: ColumnDef<TData, TValue>[];
+	readonly data: TData[];
+	readonly empty_message?: string;
 }
 
 export function ListingsTable<TData, TValue>({
 	columns,
 	data,
 	empty_message = "Ingen aktive stillingsannonser funnet",
-}: RegistrationsTableProps<TData, TValue>) {
+}: Readonly<RegistrationsTableProps<TData, TValue>>) {
 	const router = useRouter();
 
 	const table = useReactTable({
@@ -54,7 +54,10 @@ export function ListingsTable<TData, TValue>({
 								<TableHead key={header.id}>
 									{header.isPlaceholder
 										? null
-										: flexRender(header.column.columnDef.header, header.getContext())}
+										: flexRender(
+												header.column.columnDef.header,
+												header.getContext(),
+											)}
 								</TableHead>
 							))}
 						</TableRow>
