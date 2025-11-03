@@ -10,9 +10,9 @@ import EditCompanyForm from "./edit-company-form";
 
 export default async function CreateCompany({
 	params,
-}: {
+}: Readonly<{
 	params: Promise<{ slug: Id<"companies"> }>;
-}) {
+}>) {
 	const { slug: id } = await params;
 
 	return (

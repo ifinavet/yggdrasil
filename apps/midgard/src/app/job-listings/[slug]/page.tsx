@@ -11,9 +11,9 @@ import { humanReadableDateTime } from "@/utils/dateFormatting";
 
 export default async function JobListingPage({
 	params,
-}: {
+}: Readonly<{
 	params: Promise<{ slug: Id<"jobListings"> }>;
-}) {
+}>) {
 	const listingId = await params.then((params) => params.slug);
 
 	const listing = await fetchQuery(api.listings.getById, { id: listingId });

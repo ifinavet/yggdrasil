@@ -13,9 +13,9 @@ import EditResourceForm from "./edit-resource-form";
 
 export default async function EditResourcePage({
 	params,
-}: {
+}: Readonly<{
 	params: Promise<{ slug: Id<"resources"> }>;
-}) {
+}>) {
 	const { slug: id } = await params;
 
 	if (!(await hasEditRights())) redirect("/");

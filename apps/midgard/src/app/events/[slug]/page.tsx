@@ -13,9 +13,9 @@ import { getAuthToken } from "@/utils/authToken";
 
 export async function generateMetadata({
 	params,
-}: {
+}: Readonly<{
 	params: Promise<{ slug: string }>;
-}): Promise<Metadata> {
+}>): Promise<Metadata> {
 	const { slug: identifier } = await params;
 
 	const event = await fetchQuery(api.events.getEvent, { identifier });
@@ -41,9 +41,9 @@ export async function generateMetadata({
 
 export default async function EventPage({
 	params,
-}: {
+}: Readonly<{
 	params: Promise<{ slug: string }>;
-}) {
+}>) {
 	const { slug: identifier } = await params;
 
 	const token = await getAuthToken();

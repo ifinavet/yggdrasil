@@ -5,9 +5,11 @@ import { preloadQuery } from "convex/nextjs";
 import Link from "next/link";
 import { Registrations } from "./registrations";
 
-export default async function registrations(props: {
-	params: Promise<{ slug: Id<"events"> }>;
-}) {
+export default async function registrations(
+	props: Readonly<{
+		params: Promise<{ slug: Id<"events"> }>;
+	}>,
+) {
 	const { slug: eventId } = await props.params;
 
 	const preloadedRegistrations = await preloadQuery(

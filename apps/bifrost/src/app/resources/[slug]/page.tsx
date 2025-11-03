@@ -17,9 +17,9 @@ import { hasEditRights } from "@/utils/auth";
 
 export default async function ResourcePage({
 	params,
-}: {
+}: Readonly<{
 	params: Promise<{ slug: Id<"resources"> }>;
-}) {
+}>) {
 	const { slug: id } = await params;
 	const resource = await fetchQuery(api.resources.getById, { id: id });
 
@@ -48,7 +48,11 @@ export default async function ResourcePage({
 					{resource.title}
 				</h1>
 				{hasEditRight && (
-					<Button variant="outline" asChild className="w-fit self-end md:self-auto">
+					<Button
+						variant="outline"
+						asChild
+						className="w-fit self-end md:self-auto"
+					>
 						<Link href={`/resources/${resource._id}/edit`}>Rediger</Link>
 					</Button>
 				)}

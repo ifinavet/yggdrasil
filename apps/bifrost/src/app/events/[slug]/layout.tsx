@@ -13,9 +13,9 @@ import Link from "next/link";
 
 export default async function Layout({
 	children,
-}: {
-	children: React.ReactNode;
-}) {
+}: Readonly<{
+	readonly children: React.ReactNode;
+}>) {
 	const path = (await headers()).get("x-pathname")?.split("/");
 	if (!path) {
 		throw new Error("Invalid path");

@@ -14,11 +14,11 @@ import posthog from "posthog-js";
 import { useEffect } from "react";
 
 interface ErrorProps {
-	error: Error & { digest?: string };
-	reset: () => void;
+	readonly error: Error & { digest?: string };
+	readonly reset: () => void;
 }
 
-export default function ErrorPage({ error, reset }: ErrorProps) {
+export default function ErrorPage({ error, reset }: Readonly<ErrorProps>) {
 	useEffect(() => {
 		posthog.captureException(error, { site: "bifrost" });
 	}, [error]);
@@ -32,11 +32,14 @@ export default function ErrorPage({ error, reset }: ErrorProps) {
 							<AlertTriangle className="h-8 w-8 text-destructive" />
 						</div>
 						<CardTitle className="font-bold text-3xl">500</CardTitle>
-						<CardDescription className="text-xl">Intern serverfeil</CardDescription>
+						<CardDescription className="text-xl">
+							Intern serverfeil
+						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-6 text-center">
 						<p className="text-lg text-muted-foreground">
-							Beklager, det oppstod en uventet feil. Vi jobber med å løse problemet.
+							Beklager, det oppstod en uventet feil. Vi jobber med å løse
+							problemet.
 						</p>
 
 						<Card className="bg-muted/50 text-left">
@@ -77,11 +80,19 @@ export default function ErrorPage({ error, reset }: ErrorProps) {
 						</Card>
 
 						<div className="flex flex-col justify-center gap-3 sm:flex-row">
-							<Button variant="default" onClick={reset} className="flex items-center gap-2">
+							<Button
+								variant="default"
+								onClick={reset}
+								className="flex items-center gap-2"
+							>
 								<RefreshCw className="h-4 w-4" />
 								Prøv igjen
 							</Button>
-							<Button variant="outline" asChild className="flex items-center gap-2">
+							<Button
+								variant="outline"
+								asChild
+								className="flex items-center gap-2"
+							>
 								<Link href="/">
 									<Home className="h-4 w-4" />
 									Tilbake til forsiden
@@ -102,7 +113,9 @@ export default function ErrorPage({ error, reset }: ErrorProps) {
 									<>
 										{" "}
 										og oppgi feil-ID:{" "}
-										<code className="rounded bg-muted px-1 py-0.5 text-xs">{error.digest}</code>
+										<code className="rounded bg-muted px-1 py-0.5 text-xs">
+											{error.digest}
+										</code>
 									</>
 								)}
 							</p>

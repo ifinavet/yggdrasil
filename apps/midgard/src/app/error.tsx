@@ -18,7 +18,13 @@ function getErrorMessage(error: unknown): string {
 	}
 }
 
-export default function GlobalError({ error, reset }: { error: unknown; reset: () => void }) {
+export default function GlobalError({
+	error,
+	reset,
+}: Readonly<{
+	readonly error: unknown;
+	readonly reset: () => void;
+}>) {
 	useEffect(() => {
 		posthog.captureException(error, { site: "midgard" });
 	}, [error]);
@@ -29,7 +35,8 @@ export default function GlobalError({ error, reset }: { error: unknown; reset: (
 		<ResponsiveCenterContainer className="text-center">
 			<div className="mx-auto w-full max-w-xl">
 				<div className="mb-6 inline-flex items-center rounded-full border px-3 py-1 text-muted-foreground text-xs">
-					<span className="mr-2 inline-flex h-2 w-2 rounded-full bg-destructive" /> Feil 500
+					<span className="mr-2 inline-flex h-2 w-2 rounded-full bg-destructive" />{" "}
+					Feil 500
 				</div>
 
 				<h1 className="mb-3 font-bold text-4xl tracking-tight sm:text-5xl">
@@ -37,8 +44,8 @@ export default function GlobalError({ error, reset }: { error: unknown; reset: (
 				</h1>
 
 				<p className="mb-6 text-balance text-muted-foreground">
-					Det oppstod en intern feil. Prøv igjen om litt, eller gå tilbake til forsiden. Hvis
-					problemet vedvarer, kontakt oss gjerne.
+					Det oppstod en intern feil. Prøv igjen om litt, eller gå tilbake til
+					forsiden. Hvis problemet vedvarer, kontakt oss gjerne.
 				</p>
 
 				<div className="mx-auto mb-8 max-w-xl text-left">
@@ -83,7 +90,10 @@ export default function GlobalError({ error, reset }: { error: unknown; reset: (
 						<p className="text-muted-foreground text-sm">
 							Trenger du hjelp? Ta kontakt med support hvis problemet vedvarer.
 						</p>
-						<a className="text-muted-foreground text-sm italic" href="mailto:web@ifinavet.no">
+						<a
+							className="text-muted-foreground text-sm italic"
+							href="mailto:web@ifinavet.no"
+						>
 							Send oss en mail
 						</a>
 					</div>

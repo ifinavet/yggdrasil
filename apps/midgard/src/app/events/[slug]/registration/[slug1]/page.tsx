@@ -11,9 +11,9 @@ import Register from "./register";
 
 export default async function RegistrationPage({
 	params,
-}: {
+}: Readonly<{
 	params: Promise<{ slug: Id<"events">; slug1: Id<"registrations"> }>;
-}) {
+}>) {
 	const { isAuthenticated } = await auth();
 	const { slug: eventId, slug1: registrationId } = await params;
 
