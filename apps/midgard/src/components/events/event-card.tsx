@@ -11,7 +11,9 @@ export type EventCardType = {
 	eventDate?: Date;
 };
 
-export default function EventCard({ event }: { event: EventCardType }) {
+export default function EventCard({
+	event,
+}: Readonly<{ event: EventCardType }>) {
 	return (
 		<div className="flex h-100 flex-col overflow-clip rounded-lg border border-primary/10 shadow-md">
 			<div className="relative grid h-32 place-content-center px-8 py-6 md:h-48 lg:h-52 dark:bg-white/95">
@@ -30,7 +32,7 @@ export default function EventCard({ event }: { event: EventCardType }) {
 						{event.teaser}
 					</p>
 				</div>
-				{event.eventDate && event.participationLimit && (
+				{!!(event.eventDate && event.participationLimit) && (
 					<div className="flex flex-col justify-center gap-4 sm:flex-row">
 						<p className="flex gap-2">
 							<Users /> {event.participationLimit}

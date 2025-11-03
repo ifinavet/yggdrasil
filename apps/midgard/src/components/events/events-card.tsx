@@ -4,7 +4,9 @@ import { fetchQuery } from "convex/nextjs";
 import Link from "next/link";
 import EventCard, { type EventCardType } from "./event-card";
 
-export default async function EventsCard({ event }: { event: Doc<"events"> }) {
+export default async function EventsCard({
+	event,
+}: Readonly<{ event: Doc<"events"> }>) {
 	const company = await fetchQuery(api.companies.getById, {
 		id: event.hostingCompany,
 	});

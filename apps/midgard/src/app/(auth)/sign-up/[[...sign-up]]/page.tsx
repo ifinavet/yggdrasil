@@ -495,7 +495,7 @@ export default function SignUpPage() {
 											value={field.state.value}
 											onBlur={field.handleBlur}
 											onChange={(e) =>
-												field.handleChange(parseInt(e.target.value))
+												field.handleChange(Number.parseInt(e.target.value))
 											}
 											type="number"
 											min={1}

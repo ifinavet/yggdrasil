@@ -7,9 +7,9 @@ import { Title } from "@/components/common/title";
 
 export default async function Page({
 	params,
-}: {
+}: Readonly<{
 	params: Promise<{ slug: string }>;
-}) {
+}>) {
 	"use cache";
 	cacheLife("max");
 

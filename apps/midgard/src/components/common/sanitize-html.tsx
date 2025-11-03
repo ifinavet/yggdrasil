@@ -3,10 +3,10 @@ import sanitizeHtml from "sanitize-html";
 export default function SafeHtml({
 	html,
 	className,
-}: {
+}: Readonly<{
 	html: string;
 	className?: string;
-}) {
+}>) {
 	const cleanHtml = sanitizeHtml(html);
 
 	return (

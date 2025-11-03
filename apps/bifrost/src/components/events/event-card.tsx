@@ -84,7 +84,9 @@ export default function EventCard({
 					<div className="text-muted-foreground">
 						{organizers.map((organizer) => (
 							<h3 key={organizer._id}>
-								<span className="font-semibold capitalize">{organizer.role}: </span>
+								<span className="font-semibold capitalize">
+									{organizer.role}:{" "}
+								</span>
 								{organizer.name}
 							</h3>
 						))}
