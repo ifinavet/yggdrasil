@@ -1,6 +1,11 @@
 "use client";
 
-import { type ColumnDef, flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table";
+import {
+	type ColumnDef,
+	flexRender,
+	getCoreRowModel,
+	useReactTable,
+} from "@tanstack/react-table";
 import {
 	Table,
 	TableBody,
@@ -11,16 +16,16 @@ import {
 } from "@workspace/ui/components//table";
 
 interface PointsTableProps<TData, TValue> {
-	columns: ColumnDef<TData, TValue>[];
-	data: TData[];
-	empty_message?: string;
+	readonly columns: ColumnDef<TData, TValue>[];
+	readonly data: TData[];
+	readonly empty_message?: string;
 }
 
 export function PointsTable<TData, TValue>({
 	columns,
 	data,
 	empty_message = "Ingen prikker funnet",
-}: PointsTableProps<TData, TValue>) {
+}: Readonly<PointsTableProps<TData, TValue>>) {
 	const table = useReactTable({
 		data,
 		columns,
@@ -37,7 +42,10 @@ export function PointsTable<TData, TValue>({
 								<TableHead key={header.id}>
 									{header.isPlaceholder
 										? null
-										: flexRender(header.column.columnDef.header, header.getContext())}
+										: flexRender(
+												header.column.columnDef.header,
+												header.getContext(),
+											)}
 								</TableHead>
 							))}
 						</TableRow>
@@ -46,7 +54,10 @@ export function PointsTable<TData, TValue>({
 				<TableBody>
 					{table.getCoreRowModel().rows?.length ? (
 						table.getCoreRowModel().rows.map((row) => (
-							<TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+							<TableRow
+								key={row.id}
+								data-state={row.getIsSelected() && "selected"}
+							>
 								{row.getVisibleCells().map((cell) => (
 									<TableCell key={cell.id}>
 										{flexRender(cell.column.columnDef.cell, cell.getContext())}

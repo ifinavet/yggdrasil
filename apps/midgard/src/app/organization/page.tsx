@@ -23,7 +23,7 @@ export default async function OrganizationPage() {
 	const theBoard = await fetchQuery(api.internals.getTheBoard);
 
 	return (
-		<ResponsiveCenterContainer className="!max-w-6xl">
+		<ResponsiveCenterContainer className="max-w-6xl!">
 			<Title>Foreningen IFI-Navet</Title>
 			<div className="flex flex-col gap-6">
 				<TwoColumns
@@ -32,7 +32,7 @@ export default async function OrganizationPage() {
 							<h3 className="scroll-m-20 font-semibold text-4xl text-primary tracking-tight dark:text-primary-foreground">
 								Hvem er vi?
 							</h3>
-							<p className="leading-7 [&:not(:first-child)]:mt-6">
+							<p className="not-first:mt-6 leading-7">
 								Navet er bedriftskontakten ved Institutt for informatikk ved
 								Universitetet i Oslo. Hensikten med Navet er å gjøre det enkelt
 								for bedrifter å komme i kontakt med studentene ved instituttet,
@@ -110,7 +110,7 @@ export default async function OrganizationPage() {
 					}
 				/>
 				<FlowyLine
-					className="w-full stroke-[8] text-primary dark:text-primary-foreground"
+					className="w-full stroke-8 text-primary dark:text-primary-foreground"
 					curveHeight={-300}
 				/>
 				<div aria-description="Livet som intern">
@@ -118,7 +118,7 @@ export default async function OrganizationPage() {
 						Livet som intern
 					</h3>
 					<div className="flex h-fit flex-wrap items-start gap-8">
-						<p className="mb-4 max-w-[80ch] leading-7 [&:not(:first-child)]:mt-6">
+						<p className="not-first:mt-6 mb-4 max-w-[80ch] leading-7">
 							Som intern i Navet er du en viktig del av driften i foreningen.
 							Gjennom et semester vil du som regel være ansvarlig eller
 							medansvarlig for 2–3 bedriftspresentasjoner. I tillegg bidrar
@@ -142,7 +142,7 @@ export default async function OrganizationPage() {
 					</div>
 					<div className="grid justify-center gap-12 sm:grid-cols-2 lg:grid-cols-3">
 						<InternGroup name="Interngruppen">
-							<p className="leading-7 [&:not(:first-child)]:mt-4">
+							<p className="not-first:mt-4 leading-7">
 								I interngruppen så organiserer vi alle Navets interne
 								arrangementer. Vi planlegger internkveldene og de større
 								avsluttningene på slutten av hvert semester. Vi jobber på for at
@@ -150,7 +150,7 @@ export default async function OrganizationPage() {
 							</p>
 						</InternGroup>
 						<InternGroup name="Bedriftsgruppen">
-							<p className="leading-7 [&:not(:first-child)]:mt-4">
+							<p className="not-first:mt-4 leading-7">
 								Vi i bedriftsgruppen gjør kanskje Navets viktigste jobb, vi
 								finner bedriftene som skal ha bedriftspresentasjoner.
 								Bedriftsgruppen jobber kontinuerlig med å finne bedrifter for
@@ -159,7 +159,7 @@ export default async function OrganizationPage() {
 							</p>
 						</InternGroup>
 						<InternGroup name="Organiseringsgruppen">
-							<p className="leading-7 [&:not(:first-child)]:mt-4">
+							<p className="not-first:mt-4 leading-7">
 								Organiseringsteamet har ansvar for å sikre den praktiske
 								gjennomføringen av Navets arrangementer. Vi tar oss av booking
 								av rom, bestilling av mat og sørger for at alt er på plass før
@@ -168,14 +168,14 @@ export default async function OrganizationPage() {
 							</p>
 						</InternGroup>
 						<InternGroup name="Økonomigruppen">
-							<p className="leading-7 [&:not(:first-child)]:mt-4">
+							<p className="not-first:mt-4 leading-7">
 								I økonomigruppen får du innsikt i hvordan Navets økonomi drives.
 								Som intern bidrar du til både regnskapsføring og budsjettering
 								for en større forening.
 							</p>
 						</InternGroup>
 						<InternGroup name="Promoteringsgruppen">
-							<p className="leading-7 [&:not(:first-child)]:mt-4">
+							<p className="not-first:mt-4 leading-7">
 								Som del av promoteringsgruppen vil du hjelpe
 								promoteringsansvarlig med synligheten og kommunikasjonen til
 								Navet, slik at vi kan nå ut til studenter og bedrifter. Vi har
@@ -185,7 +185,7 @@ export default async function OrganizationPage() {
 							</p>
 						</InternGroup>
 						<InternGroup name="Webteamet">
-							<p className="leading-7 [&:not(:first-child)]:mt-4">
+							<p className="not-first:mt-4 leading-7">
 								Hjelp webansvarlig med å vedlikeholde, teste, og utvikle nye
 								funksjoner for Navets webplatform. Dette er en unik mulighet til
 								å jobbe med et større system som brukes av mange ifi-studenter
@@ -193,7 +193,7 @@ export default async function OrganizationPage() {
 							</p>
 						</InternGroup>
 						<InternGroup name="Arrangementsgruppen">
-							<p className="leading-7 [&:not(:first-child)]:mt-4">
+							<p className="not-first:mt-4 leading-7">
 								I arrangementsgruppen så passer vi på at alle navets
 								arrangementer går på skinner. Vi har ansvaret for prikke
 								systemet og assisterer de andre gruppene i sine oppgaver, og
@@ -201,7 +201,7 @@ export default async function OrganizationPage() {
 							</p>
 						</InternGroup>
 						<InternGroup name="Koordineringsgruppen">
-							<p className="leading-7 [&:not(:first-child)]:mt-4">
+							<p className="not-first:mt-4 leading-7">
 								Hjelp koordinator i sine oppgaver. Vi gjør et variert utvalg med
 								oppgaver, men kjernen er stillingsannonser. Vi legger ut og
 								passer på at alt er i orden med stillingsannonsene.
@@ -210,7 +210,7 @@ export default async function OrganizationPage() {
 					</div>
 				</div>
 				<FlowyLine
-					className="w-full stroke-[8] text-primary dark:text-primary-foreground"
+					className="w-full stroke-8 text-primary dark:text-primary-foreground"
 					curveHeight={250}
 				/>
 				<div aria-description="Styret">
@@ -236,7 +236,7 @@ export default async function OrganizationPage() {
 }
 
 function FlowyLine({
-	className = "text-sky-500 stroke-[6]",
+	className = "text-sky-500 stroke-6",
 	curveHeight = 160, // wave height
 	baseHeight = 160, // vertical center
 }: {
@@ -304,7 +304,7 @@ function BoardMember({
 			<h2 className="font-semibold text-2xl text-primary dark:text-primary-foreground">
 				{position}
 			</h2>
-			<Separator className="rounded-lg border-1 border-primary dark:border-primary-foreground" />
+			<Separator className="rounded-lg border border-primary dark:border-primary-foreground" />
 			<div className="flex flex-col items-center">
 				<h3 className="text-pretty text-center font-semibold text-lg">
 					{name}

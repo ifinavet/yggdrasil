@@ -67,10 +67,10 @@ const paths = {
 export function SidebarContentGroup({
 	title,
 	items,
-}: {
+}: Readonly<{
 	title: string;
 	items: keyof typeof paths;
-}) {
+}>) {
 	const rootPathSegment = usePathname().split("/")[1];
 
 	return (

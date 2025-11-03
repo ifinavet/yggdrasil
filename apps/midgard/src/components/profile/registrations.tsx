@@ -8,16 +8,27 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@workspace/ui/components/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/components/tabs";
+import {
+	Tabs,
+	TabsContent,
+	TabsList,
+	TabsTrigger,
+} from "@workspace/ui/components/tabs";
 import { cn } from "@workspace/ui/lib/utils";
 import { fetchQuery } from "convex/nextjs";
 import Link from "next/link";
 import { getAuthToken } from "@/utils/authToken";
 import { humanReadableDateTime } from "@/utils/dateFormatting";
 
-export default async function Registrations({ className }: { className?: string }) {
+export default async function Registrations({
+	className,
+}: Readonly<{ className?: string }>) {
 	const token = await getAuthToken();
-	const registrations = await fetchQuery(api.registration.getCurrentUser, {}, { token });
+	const registrations = await fetchQuery(
+		api.registration.getCurrentUser,
+		{},
+		{ token },
+	);
 
 	const previousEvents = registrations.filter(
 		(registration) => registration.eventStart < Date.now(),
@@ -27,7 +38,10 @@ export default async function Registrations({ className }: { className?: string 
 	);
 
 	return (
-		<Tabs defaultValue="upcoming" className={cn(className, "max-w-full overflow-y-scroll")}>
+		<Tabs
+			defaultValue="upcoming"
+			className={cn(className, "max-w-full overflow-y-scroll")}
+		>
 			<TabsList className="w-full">
 				<TabsTrigger value="upcoming">Kommende</TabsTrigger>
 				<TabsTrigger value="previous">Tidligere</TabsTrigger>
@@ -40,7 +54,10 @@ export default async function Registrations({ className }: { className?: string 
 								<CardTitle>{registration.eventTitle}</CardTitle>
 								<CardDescription>
 									Du registrerte deg til arrangementet{" "}
-									{humanReadableDateTime(new Date(registration.registrationTime))}.
+									{humanReadableDateTime(
+										new Date(registration.registrationTime),
+									)}
+									.
 								</CardDescription>
 							</CardHeader>
 							<CardContent>
@@ -52,12 +69,15 @@ export default async function Registrations({ className }: { className?: string 
 									.
 								</p>
 								<p className="text-balance">
-									Arragnementet starter {humanReadableDateTime(new Date(registration.eventStart))}
+									Arragnementet starter{" "}
+									{humanReadableDateTime(new Date(registration.eventStart))}
 								</p>
 							</CardContent>
 							<CardFooter>
 								<Button asChild className="text-primary-foreground">
-									<Link href={`/events/${registration.eventId}`}>Gå til arrangementet</Link>
+									<Link href={`/events/${registration.eventId}`}>
+										Gå til arrangementet
+									</Link>
 								</Button>
 							</CardFooter>
 						</Card>
@@ -72,7 +92,10 @@ export default async function Registrations({ className }: { className?: string 
 								<CardTitle>{registration.eventTitle}</CardTitle>
 								<CardDescription>
 									Du registrerte deg til arrangementet{" "}
-									{humanReadableDateTime(new Date(registration.registrationTime))}.
+									{humanReadableDateTime(
+										new Date(registration.registrationTime),
+									)}
+									.
 								</CardDescription>
 							</CardHeader>
 							<CardContent className="grid gap-2">
@@ -84,7 +107,8 @@ export default async function Registrations({ className }: { className?: string 
 									.
 								</p>
 								<p className="text-balance">
-									Arragnementet startet {humanReadableDateTime(new Date(registration.eventStart))}
+									Arragnementet startet{" "}
+									{humanReadableDateTime(new Date(registration.eventStart))}
 								</p>
 								<p className="text-balance">
 									{registration.status === "waitlist"
@@ -99,7 +123,9 @@ export default async function Registrations({ className }: { className?: string 
 							</CardContent>
 							<CardFooter>
 								<Button asChild className="text-primary-foreground">
-									<Link href={`/events/${registration.eventId}`}>Gå til arrangementet</Link>
+									<Link href={`/events/${registration.eventId}`}>
+										Gå til arrangementet
+									</Link>
 								</Button>
 							</CardFooter>
 						</Card>

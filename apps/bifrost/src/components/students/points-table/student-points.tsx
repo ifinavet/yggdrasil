@@ -9,7 +9,9 @@ import { humanReadableDate } from "@/utils/utils";
 import { createColumns } from "./columns";
 import { PointsTable } from "./points-table";
 
-export default function StudentPoints({ student_id }: { student_id: Id<"students"> }) {
+export default function StudentPoints({
+	student_id,
+}: Readonly<{ student_id: Id<"students"> }>) {
 	const points = useQuery(api.points.getByStudentId, { id: student_id });
 	const deletePoint = useMutation(api.points.remove);
 

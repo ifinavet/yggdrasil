@@ -50,10 +50,10 @@ export default async function EventsGrid() {
 function EventsGridContent({
 	publishedEvents,
 	unpublishedEvents,
-}: {
+}: Readonly<{
 	publishedEvents: Event[];
 	unpublishedEvents: Event[];
-}) {
+}>) {
 	return (
 		<div className="grid gap-6">
 			{publishedEvents.length > 0 || unpublishedEvents.length > 0 ? (

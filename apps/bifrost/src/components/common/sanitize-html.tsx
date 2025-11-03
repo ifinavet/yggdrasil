@@ -5,10 +5,10 @@ import DOMPurify from "isomorphic-dompurify";
 export default function SafeHtml({
 	html,
 	className,
-}: {
+}: Readonly<{
 	html: string;
 	className?: string;
-}) {
+}>) {
 	const cleanHtml = DOMPurify.sanitize(html);
 
 	return (

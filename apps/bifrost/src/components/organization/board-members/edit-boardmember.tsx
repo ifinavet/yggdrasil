@@ -14,10 +14,10 @@ import BoardMemberForm from "./board-member-form";
 export default function EditBoardMember({
 	className,
 	internalId,
-}: {
+}: Readonly<{
 	internalId: Id<"internals">;
 	className?: string;
-}) {
+}>) {
 	const [openDialog, setOpenDialog] = useState(false);
 	const posthog = usePostHog();
 

@@ -13,9 +13,13 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
 import { useSelectedEventsStore } from "@/lib/stores/selected-events";
 
-export default function SelectSemester(props: {
-	preloadedPossibleSemesters: Preloaded<typeof api.events.getPossibleSemesters>;
-}) {
+export default function SelectSemester(
+	props: Readonly<{
+		preloadedPossibleSemesters: Preloaded<
+			typeof api.events.getPossibleSemesters
+		>;
+	}>,
+) {
 	const router = useRouter();
 	const path = usePathname();
 	const searchParams = useSearchParams();
@@ -35,7 +39,9 @@ export default function SelectSemester(props: {
 	);
 
 	const year = searchParams.get("year") || new Date().getFullYear();
-	const semester = searchParams.get("semester") || (new Date().getMonth() < 7 ? "vår" : "høst");
+	const semester =
+		searchParams.get("semester") ||
+		(new Date().getMonth() < 7 ? "vår" : "høst");
 
 	return (
 		<Select
@@ -48,7 +54,9 @@ export default function SelectSemester(props: {
 				clearEvents();
 
 				if (semesterPart && yearPart) {
-					router.push(`${path}?${updateSemester(semesterPart, parseInt(yearPart))}`);
+					router.push(
+						`${path}?${updateSemester(semesterPart, Number.parseInt(yearPart))}`,
+					);
 				}
 			}}
 		>

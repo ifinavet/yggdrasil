@@ -7,10 +7,10 @@ import { useCallback } from "react";
 export default function MonthSelector({
 	months,
 	activeMonth,
-}: {
+}: Readonly<{
 	months: string[];
 	activeMonth: string;
-}) {
+}>) {
 	const router = useRouter();
 	const path = usePathname();
 	const searchParams = useSearchParams();

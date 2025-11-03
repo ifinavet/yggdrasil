@@ -4,7 +4,11 @@ import { type Editor, isNodeSelection } from "@tiptap/react";
 // --- Styles ---
 import { Button } from "@workspace/ui/components//button";
 import { Input } from "@workspace/ui/components//input";
-import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui/components//popover";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@workspace/ui/components//popover";
 import { Separator } from "@workspace/ui/components//separator";
 import { CornerDownLeft, ExternalLink, Link, Trash } from "lucide-react";
 import * as React from "react";
@@ -14,20 +18,20 @@ import { useTiptapEditor } from "@/hooks/use-tiptap-editor";
 import { isMarkInSchema } from "@/utils/tiptap-utils";
 
 export interface LinkHandlerProps {
-	editor: Editor | null;
-	onSetLink?: () => void;
-	onLinkActive?: () => void;
+	readonly editor: Editor | null;
+	readonly onSetLink?: () => void;
+	readonly onLinkActive?: () => void;
 }
 
 export interface LinkMainProps {
-	url: string;
-	setUrl: React.Dispatch<React.SetStateAction<string>>;
-	setLink: () => void;
-	removeLink: () => void;
-	isActive: boolean;
+	readonly url: string;
+	readonly setUrl: React.Dispatch<React.SetStateAction<string>>;
+	readonly setLink: () => void;
+	readonly removeLink: () => void;
+	readonly isActive: boolean;
 }
 
-export const useLinkHandler = (props: LinkHandlerProps) => {
+export const useLinkHandler = (props: Readonly<LinkHandlerProps>) => {
 	const { editor, onSetLink, onLinkActive } = props;
 	const [url, setUrl] = React.useState<string>("");
 
@@ -101,9 +105,11 @@ export const useLinkHandler = (props: LinkHandlerProps) => {
 	};
 };
 
-export const LinkContent: React.FC<{
-	editor?: Editor | null;
-}> = ({ editor: providedEditor }) => {
+export const LinkContent: React.FC<
+	Readonly<{
+		editor?: Editor | null;
+	}>
+> = ({ editor: providedEditor }) => {
 	const editor = useTiptapEditor(providedEditor);
 
 	const linkHandler = useLinkHandler({
@@ -113,7 +119,13 @@ export const LinkContent: React.FC<{
 	return <LinkMain {...linkHandler} />;
 };
 
-const LinkMain: React.FC<LinkMainProps> = ({ url, setUrl, setLink, removeLink, isActive }) => {
+const LinkMain: React.FC<Readonly<LinkMainProps>> = ({
+	url,
+	setUrl,
+	setLink,
+	removeLink,
+	isActive,
+}) => {
 	const handleKeyDown = (event: React.KeyboardEvent) => {
 		if (event.key === "Enter") {
 			event.preventDefault();
@@ -147,7 +159,10 @@ const LinkMain: React.FC<LinkMainProps> = ({ url, setUrl, setLink, removeLink, i
 				</Button>
 			</div>
 
-			<Separator orientation="vertical" className="data-[orientation=vertical]:h-8" />
+			<Separator
+				orientation="vertical"
+				className="data-[orientation=vertical]:h-8"
+			/>
 
 			<div className="flex gap-2">
 				<Button
@@ -178,21 +193,21 @@ export interface LinkPopoverProps {
 	/**
 	 * The TipTap editor instance.
 	 */
-	editor?: Editor | null;
+	readonly editor?: Editor | null;
 	/**
 	 * Whether to hide the link popover.
 	 * @default false
 	 */
-	hideWhenUnavailable?: boolean;
+	readonly hideWhenUnavailable?: boolean;
 	/**
 	 * Callback for when the popover opens or closes.
 	 */
-	onOpenChange?: (isOpen: boolean) => void;
+	readonly onOpenChange?: (isOpen: boolean) => void;
 	/**
 	 * Whether to automatically open the popover when a link is active.
 	 * @default true
 	 */
-	autoOpenOnLinkActive?: boolean;
+	readonly autoOpenOnLinkActive?: boolean;
 }
 
 export function LinkPopover({
@@ -200,7 +215,7 @@ export function LinkPopover({
 	hideWhenUnavailable = false,
 	onOpenChange,
 	autoOpenOnLinkActive = true,
-}: LinkPopoverProps) {
+}: Readonly<LinkPopoverProps>) {
 	const editor = useTiptapEditor(providedEditor);
 
 	const linkInSchema = isMarkInSchema("link", editor);

@@ -1,6 +1,9 @@
 "use client";
 
-import { BrowserMultiFormatReader, type IScannerControls } from "@zxing/browser";
+import {
+	BrowserMultiFormatReader,
+	type IScannerControls,
+} from "@zxing/browser";
 
 type Result = { getText(): string };
 
@@ -12,7 +15,13 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@workspace/ui/components/select";
-import { Pause as PauseIcon, Play, QrCode, RefreshCw, Square } from "lucide-react";
+import {
+	Pause as PauseIcon,
+	Play,
+	QrCode,
+	RefreshCw,
+	Square,
+} from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -20,9 +29,9 @@ type Cam = { deviceId: string; label: string };
 
 export default function QRScannerControlled({
 	onDecodedAction,
-}: {
+}: Readonly<{
 	onDecodedAction: (text: string) => void;
-}) {
+}>) {
 	const videoRef = useRef<HTMLVideoElement>(null);
 	const controlsRef = useRef<IScannerControls | null>(null);
 	const streamRef = useRef<MediaStream | null>(null);

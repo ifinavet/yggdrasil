@@ -27,7 +27,7 @@ export default function EventCard({
 	isPublished,
 	externalUrl,
 	organizers,
-}: {
+}: Readonly<{
 	title: string;
 	eventId: Id<"events">;
 	companyName: string;
@@ -35,7 +35,7 @@ export default function EventCard({
 	isPublished: boolean;
 	externalUrl?: string;
 	organizers: Organizer[];
-}) {
+}>) {
 	const [selected, setSelected] = useState(false);
 	const addEvent = useSelectedEventsStore((state) => state.addEvent);
 	const removeEvent = useSelectedEventsStore((state) => state.removeEvent);

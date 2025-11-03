@@ -41,10 +41,10 @@ export type ProfileFormSchema = z.infer<typeof formSchema>;
 export default function UpdateProfileForm({
 	preloadedStudent,
 	className,
-}: {
+}: Readonly<{
 	preloadedStudent: Preloaded<typeof api.students.getCurrent>;
 	className?: string;
-}) {
+}>) {
 	const student = usePreloadedQuery(preloadedStudent);
 
 	const updateProfile = useMutation(api.students.updateCurrent);

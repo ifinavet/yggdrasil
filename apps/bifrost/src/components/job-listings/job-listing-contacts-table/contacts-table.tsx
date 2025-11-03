@@ -1,6 +1,11 @@
 "use client";
 
-import { type ColumnDef, flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table";
+import {
+	type ColumnDef,
+	flexRender,
+	getCoreRowModel,
+	useReactTable,
+} from "@tanstack/react-table";
 import {
 	Table,
 	TableBody,
@@ -11,11 +16,14 @@ import {
 } from "@workspace/ui/components//table";
 
 interface ContactsTableProps<TData, TValue> {
-	columns: ColumnDef<TData, TValue>[];
-	data: TData[];
+	readonly columns: ColumnDef<TData, TValue>[];
+	readonly data: TData[];
 }
 
-export function ContactsTable<TData, TValue>({ columns, data }: ContactsTableProps<TData, TValue>) {
+export function ContactsTable<TData, TValue>({
+	columns,
+	data,
+}: Readonly<ContactsTableProps<TData, TValue>>) {
 	const table = useReactTable({
 		data,
 		columns,
@@ -32,7 +40,10 @@ export function ContactsTable<TData, TValue>({ columns, data }: ContactsTablePro
 								<TableHead key={header.id}>
 									{header.isPlaceholder
 										? null
-										: flexRender(header.column.columnDef.header, header.getContext())}
+										: flexRender(
+												header.column.columnDef.header,
+												header.getContext(),
+											)}
 								</TableHead>
 							))}
 						</TableRow>
@@ -41,7 +52,10 @@ export function ContactsTable<TData, TValue>({ columns, data }: ContactsTablePro
 				<TableBody>
 					{table.getCoreRowModel().rows?.length ? (
 						table.getCoreRowModel().rows.map((row) => (
-							<TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+							<TableRow
+								key={row.id}
+								data-state={row.getIsSelected() && "selected"}
+							>
 								{row.getVisibleCells().map((cell) => (
 									<TableCell key={cell.id}>
 										{flexRender(cell.column.columnDef.cell, cell.getContext())}

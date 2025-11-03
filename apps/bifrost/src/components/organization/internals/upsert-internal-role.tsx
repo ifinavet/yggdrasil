@@ -25,10 +25,10 @@ import { useState } from "react";
 export default function UpsertInternalRole({
 	role,
 	setSelectedRoleAction,
-}: {
+}: Readonly<{
 	role?: string;
 	setSelectedRoleAction: (role: string) => void;
-}) {
+}>) {
 	const [selectedRole, setSelectedRole] = useState<string>(role ?? "");
 
 	return (

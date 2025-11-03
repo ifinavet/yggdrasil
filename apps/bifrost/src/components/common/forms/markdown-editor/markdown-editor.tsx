@@ -21,12 +21,14 @@ const ToolButton = memo(function ToolButton({
 	onButtonClick,
 	isActive,
 	...buttonProps
-}: React.ButtonHTMLAttributes<HTMLButtonElement> & {
-	children: React.ReactNode;
-	editor: Editor;
-	isActive?: boolean;
-	onButtonClick: () => void;
-}) {
+}: Readonly<
+	React.ButtonHTMLAttributes<HTMLButtonElement> & {
+		children: React.ReactNode;
+		editor: Editor;
+		isActive?: boolean;
+		onButtonClick: () => void;
+	}
+>) {
 	const handleClick = useCallback(
 		(e: React.MouseEvent<HTMLButtonElement>) => {
 			e.preventDefault();
@@ -48,9 +50,9 @@ const ToolButton = memo(function ToolButton({
 
 export const EditorMenu = memo(function EditorMenu({
 	editor,
-}: {
+}: Readonly<{
 	editor: Editor | null;
-}) {
+}>) {
 	const toggleHeading1 = useCallback(() => {
 		editor?.chain().focus().toggleHeading({ level: 1 }).run();
 	}, [editor]);
@@ -179,9 +181,9 @@ export const EditorMenu = memo(function EditorMenu({
 
 const ContentEditor = memo(function ContentEditor({
 	editor,
-}: {
+}: Readonly<{
 	editor: Editor | null;
-}) {
+}>) {
 	if (!editor) {
 		return null;
 	}

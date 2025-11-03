@@ -7,12 +7,15 @@ import ContainerCard from "@/components/cards/container-card";
 export default function QRCode({
 	className,
 	registrations,
-}: {
+}: Readonly<{
 	className?: string;
 	registrations: FunctionReturnType<typeof api.registration.getByEventId>;
-}) {
+}>) {
 	const { isAuthenticated } = useConvexAuth();
-	const currentUser = useQuery(api.users.current, isAuthenticated ? undefined : "skip");
+	const currentUser = useQuery(
+		api.users.current,
+		isAuthenticated ? undefined : "skip",
+	);
 	const currentUsersRegistration = registrations.registered.find(
 		(registration) => registration.userId === currentUser?._id,
 	);

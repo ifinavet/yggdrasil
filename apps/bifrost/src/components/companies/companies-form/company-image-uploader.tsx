@@ -3,7 +3,13 @@
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { Button } from "@workspace/ui/components/button";
-import { Form, FormField, FormItem, FormLabel, FormMessage } from "@workspace/ui/components/form";
+import {
+	Form,
+	FormField,
+	FormItem,
+	FormLabel,
+	FormMessage,
+} from "@workspace/ui/components/form";
 import { Input } from "@workspace/ui/components/input";
 import { useMutation } from "convex/react";
 import { Send, X } from "lucide-react";
@@ -13,17 +19,22 @@ import z from "zod/v4";
 import { zodV4Resolver } from "@/utils/zod-v4-resolver";
 
 const schema = z.object({
-	image: z.file().mime(["image/jpeg", "image/svg+xml", "image/webp", "image/png"]),
+	image: z
+		.file()
+		.mime(["image/jpeg", "image/svg+xml", "image/webp", "image/png"]),
 	name: z.string().min(1, "Navn er påkrevd"),
 });
 
 export default function CompanyImageUploader({
 	onImageUploadedAction,
 	onDismissAction,
-}: {
-	onImageUploadedAction: (imageId: Id<"companyLogos">, imageName: string) => void;
+}: Readonly<{
+	onImageUploadedAction: (
+		imageId: Id<"companyLogos">,
+		imageName: string,
+	) => void;
 	onDismissAction: () => void;
-}) {
+}>) {
 	const form = useForm<z.infer<typeof schema>>({
 		resolver: zodV4Resolver(schema),
 		defaultValues: {
@@ -61,7 +72,9 @@ export default function CompanyImageUploader({
 			}
 		} catch (error) {
 			console.error("Error uploading image:", error);
-			toast.error("Noe gikk galt under opplastingen av bildet. Vennligst prøv igjen.");
+			toast.error(
+				"Noe gikk galt under opplastingen av bildet. Vennligst prøv igjen.",
+			);
 		}
 	};
 
@@ -101,7 +114,11 @@ export default function CompanyImageUploader({
 					render={({ field }) => (
 						<FormItem>
 							<FormLabel>Navn på bildet</FormLabel>
-							<Input type="text" placeholder="Skriv inn navnet på selskapet" {...field} />
+							<Input
+								type="text"
+								placeholder="Skriv inn navnet på selskapet"
+								{...field}
+							/>
 							<FormMessage />
 						</FormItem>
 					)}

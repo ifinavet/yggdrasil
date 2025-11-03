@@ -4,15 +4,19 @@ import { Button } from "@workspace/ui/components/button";
 
 export default function RegisterAttendanceByQr({
 	onRegisterAction,
-}: {
+}: Readonly<{
 	onRegisterAction: (newStatus: "confirmed" | "late") => void;
-}) {
+}>) {
 	return (
 		<div className="flex flex-wrap gap-2">
 			<Button type="submit" onClick={() => onRegisterAction("confirmed")}>
 				Oppmøtt
 			</Button>
-			<Button type="submit" variant="outline" onClick={() => onRegisterAction("late")}>
+			<Button
+				type="submit"
+				variant="outline"
+				onClick={() => onRegisterAction("late")}
+			>
 				Møtt sent
 			</Button>
 		</div>
