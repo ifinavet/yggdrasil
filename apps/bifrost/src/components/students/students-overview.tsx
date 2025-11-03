@@ -39,9 +39,7 @@ const createColumns: ColumnDef<StudentColumns>[] = [
 		header: "Status",
 		cell: ({ row }) => {
 			const status = row.original.status;
-			const color =
-				statusColors[status as keyof typeof statusColors] ??
-				"bg-red-100 text-red-800";
+			const color = statusColors[status as keyof typeof statusColors];
 			return (
 				<span className={`rounded-full px-2 py-1 font-medium text-xs ${color}`}>
 					{status}
@@ -72,9 +70,7 @@ export default function StudentsOverview() {
 		{ initialNumItems: 25 },
 	);
 
-	const columns = createColumns as ColumnDef<
-		Doc<"students"> & { status: string }
-	>[];
+	const columns = createColumns as ColumnDef<StudentColumns>[];
 
 	const defaultData = useMemo(() => [], []);
 
