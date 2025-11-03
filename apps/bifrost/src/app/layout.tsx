@@ -42,6 +42,7 @@ export default async function RootLayout({
 	const hasRights = await hasBasicRights();
 
 	return (
+		// biome-ignore lint: This is a valid html attribute
 		<html lang="nb" suppressHydrationWarning>
 			<body className={`antialiased ${interSans.className}`}>
 				<ClerkProvider>

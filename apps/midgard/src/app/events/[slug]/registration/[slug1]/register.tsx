@@ -52,7 +52,7 @@ export default function Register({
 				Du har fått tilbud om plass til arrangementet
 			</h3>
 
-			<p className="leading-7 [&:not(:first-child)]:mt-2">
+			<p className="not-first:mt-2 leading-7">
 				Du har fått muligheten til å delta på arrangementet. Hvis du godtar, vil
 				du bli registrert som deltaker. Hvis du ikke ønsker å delta, kan du
 				avregistrere deg.
