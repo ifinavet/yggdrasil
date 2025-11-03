@@ -49,7 +49,7 @@ export default async function OrganizationPage() {
 									arrangementer (romreservasjon, matbestilling, mm.)
 								</li>
 								<li>
-									oversikt over bredriftsrelaterte aktiviteter for studenter.
+									oversikt over bedriftsrelaterte aktiviteter for studenter.
 								</li>
 							</ul>
 

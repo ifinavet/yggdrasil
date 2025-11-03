@@ -54,7 +54,7 @@ export default function EditRegistration({
 						description: humanReadableDateTime(new Date()),
 						position: "top-center",
 					});
-					form.reset();
+					form.reset({ notes: value.notes });
 					setOpen(false);
 				})
 				.catch(() => {

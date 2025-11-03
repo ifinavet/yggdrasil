@@ -28,9 +28,7 @@ export default function EventCard({
 			<div className="flex flex-1 flex-col justify-between gap-4 bg-primary p-6 text-primary-foreground dark:bg-gray-800">
 				<div className="flex flex-col gap-4">
 					<h2 className="font-bold text-xl tracking-tight">{event.title}</h2>
-					<p className="line-clamp-2 truncate whitespace-normal">
-						{event.teaser}
-					</p>
+					<p className="line-clamp-2 whitespace-normal">{event.teaser}</p>
 				</div>
 				{!!(event.eventDate && event.participationLimit) && (
 					<div className="flex flex-col justify-center gap-4 sm:flex-row">

@@ -103,7 +103,9 @@ export default function RegisterForm({
 								return (
 									<Field>
 										<FieldContent>
-											<FieldLabel>Allergier eller andre merknader</FieldLabel>
+											<FieldLabel htmlFor={field.name}>
+												Allergier eller andre merknader
+											</FieldLabel>
 											<FieldDescription>
 												Har du noen allergier, eller andre merknader?
 											</FieldDescription>

@@ -23,7 +23,7 @@ import {
 import { cn } from "@workspace/ui/lib/utils";
 import { type Preloaded, useMutation, usePreloadedQuery } from "convex/react";
 import { toast } from "sonner";
-import { z } from "zod/v4";
+import { z } from "zod";
 
 const formSchema = z.object({
 	firstname: z.string().min(2, "Vennligst oppgi fornavnet ditt."),
@@ -218,9 +218,10 @@ export default function UpdateProfileForm({
 										name={field.name}
 										value={field.state.value}
 										onBlur={field.handleBlur}
-										onChange={(e) =>
-											field.handleChange(Number.parseInt(e.target.value))
-										}
+										onChange={(e) => {
+											const numeric = e.target.value.replace(/\D/g, "");
+											field.handleChange(Number.parseInt(numeric));
+										}}
 										type="number"
 										min={1}
 										max={5}

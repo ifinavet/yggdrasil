@@ -39,22 +39,28 @@ import z from "zod/v4";
 import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
 import { Title } from "@/components/common/title";
 
-const signUpFormSchema = z.object({
-	firstName: z.string().min(1, "Fornavn er påkrevd"),
-	lastName: z.string().min(1, "Etternavn er påkrevd"),
-	email: z
-		.email()
-		.regex(
-			/^[A-Za-z0-9._%+-]+@(?:[A-Za-z0-9-]+\.)*uio\.no$|^[A-Za-z0-9._%+-]+@ifinavet\.no$/,
-			"E-post må være en gyldig uio e-postadresse",
-		)
-		.trim(),
-	password: z.string().min(8, "Passord må være minst 8 tegn"),
-	confirmPassword: z.string().min(8, "Bekreft passord må være minst 8 tegn"),
-	studyProgram: z.enum(STUDY_PROGRAMS),
-	degree: z.enum(DEGREE_TYPES),
-	year: z.number().int().min(1).max(5),
-});
+const signUpFormSchema = z
+	.object({
+		firstName: z.string().min(1, "Fornavn er påkrevd"),
+		lastName: z.string().min(1, "Etternavn er påkrevd"),
+		email: z
+			.email()
+			.regex(
+				/^[A-Za-z0-9._%+-]+@(?:[A-Za-z0-9-]+\.)*uio\.no$|^[A-Za-z0-9._%+-]+@ifinavet\.no$/,
+				"E-post må være en gyldig uio e-postadresse",
+			)
+			.trim(),
+		password: z.string().min(8, "Passord må være minst 8 tegn"),
+		confirmPassword: z.string().min(8, "Bekreft passord må være minst 8 tegn"),
+		studyProgram: z.enum(STUDY_PROGRAMS),
+		degree: z.enum(DEGREE_TYPES),
+		year: z.number().int().min(1).max(5),
+	})
+	.refine((data) => data.password === data.confirmPassword, {
+		path: ["confirmPassword"],
+		message: "Passordene må være like",
+	});
+
 type SignUpFormSchema = z.infer<typeof signUpFormSchema>;
 
 const verifyingSchema = z.object({
@@ -362,7 +368,7 @@ export default function SignUpPage() {
 											onChange={(e) => field.handleChange(e.target.value)}
 											aria-invalid={isInvalid}
 											placeholder="••••••••"
-											autoComplete="email"
+											autoComplete="new-password"
 										/>
 										<FieldDescription>
 											Passordet må være minst 8 tegn langt.
@@ -393,7 +399,7 @@ export default function SignUpPage() {
 											onChange={(e) => field.handleChange(e.target.value)}
 											aria-invalid={isInvalid}
 											placeholder="••••••••"
-											autoComplete="email"
+											autoComplete="new-password"
 										/>
 										<FieldDescription>Bekreft passordet ditt.</FieldDescription>
 										{isInvalid && (
