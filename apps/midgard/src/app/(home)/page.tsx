@@ -3,7 +3,11 @@ import { Info } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
-import { FacebookIcon, InstagramIcon, LinkedinIcon } from "@/assets/icons/social";
+import {
+	FacebookIcon,
+	InstagramIcon,
+	LinkedinIcon,
+} from "@/assets/icons/social";
 import Navet_Logo from "@/assets/navet/logo_n_blaa.webp";
 import Navet from "@/assets/promo_images/navet.webp";
 import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
@@ -31,7 +35,7 @@ export default function HomePage() {
 
 			<div className="mx-4 flex max-w-6xl flex-col items-center justify-center gap-6 sm:mx-auto sm:px-6 md:grid md:grid-cols-12 md:items-end">
 				<Suspense fallback={<MainSponsorCardSkeleton />}>
-					<MainSponsorCard className="order-1 col-start-1 col-end-7 md:order-none xl:col-end-8" />
+					<MainSponsorCard className="order-1 col-start-1 col-end-7 md:order-0 xl:col-end-8" />
 				</Suspense>
 				<Suspense fallback={<EventsCarouselSkeleton />}>
 					<EventsCarousel className="col-start-7 col-end-12 mx-6 md:justify-self-start xl:col-start-8" />
@@ -44,28 +48,31 @@ export default function HomePage() {
 
 			<ResponsiveCenterContainer>
 				<TwoColumns
-					className="!gap-2"
+					className="gap-2!"
 					main={
 						<div>
 							<h3 className="scroll-m-20 font-semibold text-3xl text-primary tracking-tight dark:text-primary-foreground">
 								Hvem er vi?
 							</h3>
-							<p className="leading-7 [&:not(:first-child)]:mt-6">
-								Navet er bedriftskontakten ved Institutt for informatikk ved Universitetet i Oslo.
-								Hensikten med Navet er å gjøre det enkelt for bedrifter å komme i kontakt med
-								studentene ved instituttet, ved å tilby:
+							<p className="not-first:mt-6 leading-7">
+								Navet er bedriftskontakten ved Institutt for informatikk ved
+								Universitetet i Oslo. Hensikten med Navet er å gjøre det enkelt
+								for bedrifter å komme i kontakt med studentene ved instituttet,
+								ved å tilby:
 							</p>
 
 							<ul className="my-6 ml-6 list-disc [&>li]:mt-2">
 								<li>
-									et sentralt kontakt- og koordineringspunkt for alle bedriftsrelaterte aktiviteter
-									ved instituttet.
+									et sentralt kontakt- og koordineringspunkt for alle
+									bedriftsrelaterte aktiviteter ved instituttet.
 								</li>
 								<li>
-									praktisk hjelp ved bedriftspresentasjoner og andre typer arrangementer
-									(romreservasjon, matbestilling, mm.)
+									praktisk hjelp ved bedriftspresentasjoner og andre typer
+									arrangementer (romreservasjon, matbestilling, mm.)
 								</li>
-								<li>oversikt over bredriftsrelaterte aktiviteter for studenter.</li>
+								<li>
+									oversikt over bedriftsrelaterte aktiviteter for studenter.
+								</li>
 							</ul>
 
 							<h4 className="scroll-m-20 font-semibold text-xl tracking-tight">

@@ -1,15 +1,17 @@
 "use client";
 
+import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
+import { DEGREE_TYPES, STUDY_PROGRAMS } from "@workspace/shared/constants";
 import { Button } from "@workspace/ui/components/button";
 import {
-	Form,
-	FormControl,
-	FormField,
-	FormItem,
-	FormLabel,
-	FormMessage,
-} from "@workspace/ui/components/form";
+	Field,
+	FieldContent,
+	FieldError,
+	FieldGroup,
+	FieldLabel,
+	FieldSet,
+} from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
 import {
 	Select,
@@ -20,19 +22,17 @@ import {
 } from "@workspace/ui/components/select";
 import { cn } from "@workspace/ui/lib/utils";
 import { type Preloaded, useMutation, usePreloadedQuery } from "convex/react";
-import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { z } from "zod/v4";
-import { STUDY_PROGRAMS, DEGREE_TYPES } from "@workspace/shared/constants";
-import { zodV4Resolver } from "@/utils/zod-v4-resolver";
+import { z } from "zod";
 
 const formSchema = z.object({
 	firstname: z.string().min(2, "Vennligst oppgi fornavnet ditt."),
 	lastname: z.string().min(2, "Vennligst oppgi etternavnet ditt."),
 	studyProgram: z.enum(STUDY_PROGRAMS),
 	degree: z.enum(DEGREE_TYPES),
-	year: z.coerce
+	year: z
 		.number()
+		.int()
 		.min(1, "Vennligst oppgi året du går")
 		.max(5, "5. året er maks, går du høyre en siste år master sett 5."),
 });
@@ -47,8 +47,8 @@ export default function UpdateProfileForm({
 }) {
 	const student = usePreloadedQuery(preloadedStudent);
 
-	const form = useForm<ProfileFormSchema>({
-		resolver: zodV4Resolver(formSchema),
+	const updateProfile = useMutation(api.students.updateCurrent);
+	const form = useForm({
 		defaultValues: {
 			firstname: student.firstName,
 			lastname: student.lastName,
@@ -56,107 +56,141 @@ export default function UpdateProfileForm({
 			degree: student.degree as ProfileFormSchema["degree"],
 			year: student.year,
 		},
+		validators: {
+			onSubmit: formSchema,
+		},
+		onSubmit: async ({ value }) =>
+			updateProfile({
+				studyProgram: value.studyProgram,
+				degree: value.degree,
+				year: value.year,
+			})
+				.then(() => {
+					toast.success("Profilen ble oppdatert!");
+				})
+				.catch(() => {
+					toast.error("Oi! Det oppstod en feil! Prøv igjen senere.");
+				}),
 	});
 
-	const updateProfile = useMutation(api.students.updateCurrent);
-	const onSubmit = async (values: ProfileFormSchema) =>
-		updateProfile({
-			year: values.year,
-			studyProgram: values.studyProgram,
-			degree: values.degree,
-		})
-			.then(() => {
-				toast.success("Profilen ble oppdatert!");
-			})
-			.catch(() => {
-				toast.error("Oi! Det oppstod en feil! Prøv igjen senere.");
-			});
-
-	if (!student) return <div>Loading...</div>;
-
 	return (
-		<Form {...form}>
-			<form
-				onSubmit={form.handleSubmit(onSubmit)}
-				className={cn(className, "space-y-8")}
-			>
-				<div className="flex flex-col gap-4 md:flex-row">
-					<FormField
-						control={form.control}
-						name="firstname"
-						render={({ field }) => (
-							<FormItem className="min-w-0 md:w-full">
-								<FormLabel>Fornavn</FormLabel>
-								<FormControl>
+		<form
+			onSubmit={(e) => {
+				e.preventDefault();
+				form.handleSubmit();
+			}}
+			className={cn(className, "space-y-8")}
+		>
+			<FieldSet>
+				<FieldGroup className="flex flex-col gap-4 md:flex-row">
+					<form.Field name="firstname">
+						{(field) => {
+							return (
+								<Field className="min-w-0 md:w-full">
+									<FieldLabel htmlFor={field.name}>Fornavn</FieldLabel>
 									<Input
+										id={field.name}
+										name={field.name}
+										value={field.state.value}
+										onBlur={field.handleBlur}
 										placeholder="Ola"
-										{...field}
 										disabled
 										className="truncate"
+										autoComplete="off"
 									/>
-								</FormControl>
-								<FormMessage />
-							</FormItem>
-						)}
-					/>
-					<FormField
-						control={form.control}
-						name="lastname"
-						render={({ field }) => (
-							<FormItem className="min-w-0 md:w-full">
-								<FormLabel>Etternavn</FormLabel>
-								<FormControl>
+								</Field>
+							);
+						}}
+					</form.Field>
+					<form.Field name="lastname">
+						{(field) => {
+							return (
+								<Field className="min-w-0 md:w-full">
+									<FieldLabel htmlFor={field.name}>Etternavn</FieldLabel>
 									<Input
+										id={field.name}
+										name={field.name}
+										value={field.state.value}
+										onBlur={field.handleBlur}
 										placeholder="Nordmann"
-										{...field}
 										disabled
 										className="truncate"
+										autoComplete="off"
 									/>
-								</FormControl>
-								<FormMessage />
-							</FormItem>
-						)}
-					/>
-				</div>
+								</Field>
+							);
+						}}
+					</form.Field>
+				</FieldGroup>
 
-				<FormField
-					control={form.control}
-					name="studyProgram"
-					render={({ field }) => (
-						<FormItem className="w-full">
-							<FormLabel>Studieprogram</FormLabel>
-							<FormControl>
-								<Select onValueChange={field.onChange} value={field.value}>
-									<SelectTrigger className="w-full truncate">
-										<SelectValue
-											placeholder="Velg et studieprogram"
-											className="truncate"
-										/>
-									</SelectTrigger>
-									<SelectContent>
-										{STUDY_PROGRAMS.map((program) => (
-											<SelectItem key={program} value={program}>
-												{program}
-											</SelectItem>
-										))}
-									</SelectContent>
-								</Select>
-							</FormControl>
-							<FormMessage />
-						</FormItem>
-					)}
-				/>
+				<FieldGroup>
+					<form.Field name="studyProgram">
+						{(field) => {
+							const isInvalid =
+								field.state.meta.isTouched && !field.state.meta.isValid;
 
-				<div className="flex w-full flex-col gap-4 md:flex-row">
-					<FormField
-						control={form.control}
-						name="degree"
-						render={({ field }) => (
-							<FormItem className="w-full min-w-0">
-								<FormLabel>Studiegrad</FormLabel>
-								<FormControl>
-									<Select onValueChange={field.onChange} value={field.value}>
-										<SelectTrigger className="w-full truncate">
+							return (
+								<Field className="w-full" data-invalid={isInvalid}>
+									<FieldContent>
+										<FieldLabel htmlFor={field.name}>Studieprogram</FieldLabel>
+										{isInvalid && (
+											<FieldError errors={field.state.meta.errors} />
+										)}
+									</FieldContent>
+									<Select
+										onValueChange={(value) =>
+											field.handleChange(
+												value as ProfileFormSchema["studyProgram"],
+											)
+										}
+										value={field.state.value}
+									>
+										<SelectTrigger
+											className="w-full truncate"
+											aria-invalid={isInvalid}
+										>
+											<SelectValue
+												placeholder="Velg et studieprogram"
+												className="truncate"
+											/>
+										</SelectTrigger>
+										<SelectContent>
+											{STUDY_PROGRAMS.map((program) => (
+												<SelectItem key={program} value={program}>
+													{program}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+								</Field>
+							);
+						}}
+					</form.Field>
+				</FieldGroup>
+				<FieldGroup className="flex w-full flex-col gap-4 md:flex-row">
+					<form.Field name="degree">
+						{(field) => {
+							const isInvalid =
+								field.state.meta.isTouched && !field.state.meta.isValid;
+
+							return (
+								<Field className="w-full" data-invalid={isInvalid}>
+									<FieldContent>
+										<FieldLabel htmlFor={field.name}>Grad</FieldLabel>
+										{isInvalid && (
+											<FieldError errors={field.state.meta.errors} />
+										)}
+									</FieldContent>
+									<Select
+										onValueChange={(value) =>
+											field.handleChange(value as ProfileFormSchema["degree"])
+										}
+										value={field.state.value}
+									>
+										<SelectTrigger
+											className="w-full truncate"
+											aria-invalid={isInvalid}
+										>
 											<SelectValue
 												placeholder="Velg studie grad"
 												className="truncate"
@@ -170,36 +204,39 @@ export default function UpdateProfileForm({
 											))}
 										</SelectContent>
 									</Select>
-								</FormControl>
-								<FormMessage />
-							</FormItem>
-						)}
-					/>
-
-					<FormField
-						control={form.control}
-						name="year"
-						render={({ field }) => (
-							<FormItem className="w-full min-w-0">
-								<FormLabel>År</FormLabel>
-								<FormControl>
+								</Field>
+							);
+						}}
+					</form.Field>
+					<form.Field name="year">
+						{(field) => {
+							return (
+								<Field className="w-full min-w-0">
+									<FieldLabel htmlFor={field.name}>År</FieldLabel>
 									<Input
+										id={field.name}
+										name={field.name}
+										value={field.state.value}
+										onBlur={field.handleBlur}
+										onChange={(e) => {
+											const numeric = e.target.value.replaceAll(/\D/g, "");
+											field.handleChange(Number.parseInt(numeric));
+										}}
 										type="number"
 										min={1}
 										max={5}
-										{...field}
 										className="truncate"
+										autoComplete="off"
 									/>
-								</FormControl>
-								<FormMessage />
-							</FormItem>
-						)}
-					/>
-				</div>
-				<Button type="submit" className="text-primary-foreground">
-					Oppdater profil
-				</Button>
-			</form>
-		</Form>
+								</Field>
+							);
+						}}
+					</form.Field>
+				</FieldGroup>
+			</FieldSet>
+			<Button type="submit" className="text-primary-foreground">
+				Oppdater profil
+			</Button>
+		</form>
 	);
 }

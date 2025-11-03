@@ -1,4 +1,7 @@
-import { type ClerkMiddlewareAuth, clerkMiddleware } from "@clerk/nextjs/server";
+import {
+	type ClerkMiddlewareAuth,
+	clerkMiddleware,
+} from "@clerk/nextjs/server";
 import { type NextRequest, NextResponse } from "next/server";
 
 const searchParamsMiddleware = (request: NextRequest) => {
@@ -10,9 +13,11 @@ const searchParamsMiddleware = (request: NextRequest) => {
 	});
 };
 
-export default clerkMiddleware(async (_auth: ClerkMiddlewareAuth, req: NextRequest) => {
-	return searchParamsMiddleware(req);
-});
+export default clerkMiddleware(
+	async (_auth: ClerkMiddlewareAuth, req: NextRequest) => {
+		return searchParamsMiddleware(req);
+	},
+);
 
 export const config = {
 	matcher: [

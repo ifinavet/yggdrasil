@@ -1,7 +1,7 @@
 export const humanReadableDate = (date: Date): string =>
 	date.toLocaleDateString("no", {
 		weekday: "long",
-		month: "long",
+		month: "short",
 		day: "numeric",
 		timeZone: "Europe/Oslo",
 	});

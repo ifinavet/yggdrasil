@@ -1,11 +1,15 @@
 import { api } from "@workspace/backend/convex/api";
 import { Button } from "@workspace/ui/components/button";
 import { fetchQuery } from "convex/nextjs";
+import { cacheLife } from "next/cache";
 import Link from "next/link";
 import ResponsiveCenterContainer from "../common/responsive-center-container";
 import JobListingCard from "../job-listings/job-listing-card";
 
 export default async function JobListings() {
+	"use cache";
+	cacheLife("hours");
+
 	const jobListings = await fetchQuery(api.listings.getAllPublishedAndActive, {
 		n: 3,
 	});
@@ -14,7 +18,7 @@ export default async function JobListings() {
 		jobListings.length > 0 && (
 			<div className="relative h-full max-w-screen py-4">
 				<div
-					className="pointer-events-none absolute inset-0 bg-[url(/Ns.svg)] bg-center bg-cover opacity-30"
+					className="pointer-events-none absolute inset-0 bg-[url(/Ns.svg)] bg-center bg-cover dark:opacity-50"
 					aria-hidden="true"
 				/>
 				<div className="relative z-10">

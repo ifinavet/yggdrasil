@@ -1,6 +1,7 @@
 import { api } from "@workspace/backend/convex/api";
 import { fetchQuery } from "convex/nextjs";
 import type { Metadata } from "next";
+import { cacheLife } from "next/cache";
 import ContainerCard from "@/components/cards/container-card";
 import LargeUserCard from "@/components/cards/large-user";
 import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
@@ -13,6 +14,9 @@ export const metadata: Metadata = {
 };
 
 export default async function StudentsPage() {
+	"use cache";
+	cacheLife("max");
+
 	const coordinator = await fetchQuery(api.internals.getBoardMemberByPosition, {
 		position: "Koordinator",
 	});
@@ -27,10 +31,10 @@ export default async function StudentsPage() {
 							<h2 className="scroll-m-20 pb-2 font-semibold text-3xl tracking-tight first:mt-0">
 								Hei IFI-Student! 👋
 							</h2>
-							<p className="leading-7 [&:not(:first-child)]:mt-6">
-								Her har vi forsøkt å samle de mest vanlige spørsmålene om Navet. Hvis du har et
-								spørsmål du ikke finner svar på her, kontakt oss gjerne på våre SoMe-kanaler eller
-								send en mail til{" "}
+							<p className="not-first:mt-6 leading-7">
+								Her har vi forsøkt å samle de mest vanlige spørsmålene om Navet.
+								Hvis du har et spørsmål du ikke finner svar på her, kontakt oss
+								gjerne på våre SoMe-kanaler eller send en mail til{" "}
 								<a href="mailto:koordinator@ifinavet.no" className="underline">
 									koordinator@ifinavet.no
 								</a>
@@ -57,9 +61,15 @@ export default async function StudentsPage() {
 						<LargeUserCard
 							title="Koordinator"
 							fullName={
-								(coordinator && `${coordinator.firstName} ${coordinator.lastName}`) ?? "Koordinator"
+								(coordinator &&
+									`${coordinator.firstName} ${coordinator.lastName}`) ??
+								"Koordinator"
 							}
-							email={coordinator?.positionEmail ?? coordinator?.email ?? "styret@ifinavet.no"}
+							email={
+								coordinator?.positionEmail ??
+								coordinator?.email ??
+								"styret@ifinavet.no"
+							}
 							imageUrl={coordinator?.image}
 							initials="KO"
 						/>
@@ -67,14 +77,14 @@ export default async function StudentsPage() {
 							<h3 className="scroll-m-20 text-center font-semibold text-4xl text-primary tracking-tight dark:text-primary-foreground">
 								Ny student?
 							</h3>
-							<p className="leading-7 [&:not(:first-child)]:mt-6">
+							<p className="not-first:mt-6 leading-7">
 								For deg som ny student er det bare å opprette en ny bruker.
 								<br />
-								Brukeren registreres med ditt UiO brukernavn eller epost. Ved førstegangs
-								registrering vil du få passord på mail.
+								Brukeren registreres med ditt UiO brukernavn eller epost. Ved
+								førstegangs registrering vil du få passord på mail.
 								<br />
-								Når du har opprettet en ny bruker kan du selv redigere og legge til informasjon på
-								din brukerprofil.
+								Når du har opprettet en ny bruker kan du selv redigere og legge
+								til informasjon på din brukerprofil.
 							</p>
 						</ContainerCard>
 					</div>

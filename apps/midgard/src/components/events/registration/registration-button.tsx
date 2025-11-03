@@ -62,7 +62,7 @@ export default function RegistrationButton({
 		return (
 			<Button
 				type="button"
-				className="!opacity-100 w-3/4 whitespace-normal text-balance rounded-xl bg-amber-600 py-8 text-lg text-primary-foreground hover:cursor-pointer hover:bg-zinc-700"
+				className="w-3/4 whitespace-normal text-balance rounded-xl bg-amber-600 py-8 text-lg text-primary-foreground opacity-100! hover:cursor-pointer hover:bg-zinc-700"
 				disabled
 			>
 				For mange prikker til å kunne melde deg på.
@@ -74,7 +74,6 @@ export default function RegistrationButton({
 		return (
 			<RegisterForm
 				eventId={event._id}
-				userId={currentUser._id}
 				className={`w-3/4 whitespace-normal text-balance rounded-xl bg-emerald-600 px-6 py-8 text-center font-semibold text-lg text-primary-foreground hover:cursor-pointer hover:bg-emerald-700 md:w-1/2`}
 				disabled={disabled}
 				waitlist={availableSpots === 0}

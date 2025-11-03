@@ -34,26 +34,28 @@ export default function RootLayout({
 	return (
 		<html lang="no" suppressHydrationWarning>
 			<body className={`${eina.className} antialiased`}>
-				<ClerkProvider localization={nbNO}>
-					<ConvexClientProvider>
-						<ThemeProvider
-							attribute="class"
-							defaultTheme="light"
-							disableTransitionOnChange
-						>
-							<div className="flex h-screen flex-col overflow-y-auto">
-								<Header />
-								<main className="mb-12 flex-1">{children}</main>
-								<Footer />
-								<Toaster richColors />
-							</div>
-							<Consent />
-							<Suspense fallback={null}>
-								<PostHogPageView />
-							</Suspense>
-						</ThemeProvider>
-					</ConvexClientProvider>
-				</ClerkProvider>
+				<Suspense fallback={null}>
+					<ClerkProvider localization={nbNO}>
+						<ConvexClientProvider>
+							<ThemeProvider
+								attribute="class"
+								defaultTheme="light"
+								disableTransitionOnChange
+							>
+								<div className="flex h-screen flex-col overflow-y-auto">
+									<Header />
+									<main className="mb-12 flex-1">{children}</main>
+									<Footer />
+									<Toaster richColors />
+								</div>
+								<Consent />
+								<Suspense fallback={null}>
+									<PostHogPageView />
+								</Suspense>
+							</ThemeProvider>
+						</ConvexClientProvider>
+					</ClerkProvider>
+				</Suspense>
 			</body>
 		</html>
 	);
