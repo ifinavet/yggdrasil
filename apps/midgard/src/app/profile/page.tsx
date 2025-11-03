@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { api } from "@workspace/backend/convex/api";
 import { preloadQuery } from "convex/nextjs";
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
 import { Title } from "@/components/common/title";
 import Points from "@/components/profile/points";
@@ -19,7 +20,7 @@ export default async function ProfilePage() {
 
 	if (!userId) return redirectToSignIn();
 
-	const preloadedStudent = await preloadQuery(
+	const preloadStudent = await preloadQuery(
 		api.students.getCurrent,
 		{},
 		{ token },
@@ -33,10 +34,12 @@ export default async function ProfilePage() {
 					<h2 className="scroll-m-20 border-b pb-2 font-semibold text-3xl text-primary tracking-tight first:mt-0 dark:text-primary-foreground">
 						Din profil
 					</h2>
-					<UpdateProfileForm
-						preloadedStudent={preloadedStudent}
-						className="mt-4"
-					/>
+					<Suspense>
+						<UpdateProfileForm
+							preloadedStudent={preloadStudent}
+							className="mt-4"
+						/>
+					</Suspense>
 				</div>
 				<div className="row-span-2">
 					<h2 className="scroll-m-20 border-b pb-2 font-semibold text-3xl text-primary tracking-tight first:mt-0 dark:text-primary-foreground">

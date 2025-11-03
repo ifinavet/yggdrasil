@@ -1,5 +1,6 @@
 "use client";
 
+import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
 import type { Doc } from "@workspace/backend/convex/dataModel";
 import { Button } from "@workspace/ui/components/button";
@@ -12,29 +13,21 @@ import {
 	DialogTrigger,
 } from "@workspace/ui/components/dialog";
 import {
-	Form,
-	FormDescription,
-	FormField,
-	FormItem,
-	FormLabel,
-	FormMessage,
-} from "@workspace/ui/components/form";
+	Field,
+	FieldContent,
+	FieldDescription,
+	FieldGroup,
+	FieldLabel,
+} from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
 import { useMutation } from "convex/react";
 import { CalendarPlus } from "lucide-react";
 import { usePostHog } from "posthog-js/react";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import z from "zod/v4";
 import { humanReadableDateTime } from "@/utils/dateFormatting";
 import createCalendarEventIcs from "@/utils/icsCalendarEvent";
-import { zodV4Resolver } from "@/utils/zod-v4-resolver";
 import Unregister from "./unregister";
-
-const formSchema = z.object({
-	notes: z.optional(z.string()),
-});
 
 export default function EditRegistration({
 	registration,
@@ -47,36 +40,34 @@ export default function EditRegistration({
 }>) {
 	const [open, setOpen] = useState(false);
 
-	const form = useForm<z.infer<typeof formSchema>>({
-		resolver: zodV4Resolver(formSchema),
-		defaultValues: {
-			notes: registration.note,
-		},
-	});
-
 	const postHog = usePostHog();
 
 	const updateNote = useMutation(api.registration.updateNote);
-	const onSubmit = async (data: z.infer<typeof formSchema>) =>
-		updateNote({ id: registration._id, note: data.notes })
-			.then(() => {
-				toast("Din endring ble lagret", {
-					description: humanReadableDateTime(new Date()),
-					position: "top-center",
-				});
-				form.reset();
-				setOpen(false);
-			})
-			.catch(() => {
-				toast.error("Oi! Det oppstod en feil! Prøv igjen senere");
-			});
+	const form = useForm({
+		defaultValues: {
+			notes: registration.note,
+		},
+		onSubmit: async ({ value }) =>
+			updateNote({ id: registration._id, note: value.notes })
+				.then(() => {
+					toast("Din endring ble lagret", {
+						description: humanReadableDateTime(new Date()),
+						position: "top-center",
+					});
+					form.reset();
+					setOpen(false);
+				})
+				.catch(() => {
+					toast.error("Oi! Det oppstod en feil! Prøv igjen senere");
+				}),
+	});
 
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger asChild>
 				<Button
 					type="button"
-					className="!opacity-100 w-3/4 whitespace-normal text-balance rounded-xl bg-violet-400 py-8 text-lg text-primary-foreground hover:cursor-pointer hover:bg-violet-500 md:w-1/2 dark:bg-violet-300 dark:text-zinc-800"
+					className="w-3/4 whitespace-normal text-balance rounded-xl bg-violet-400 py-8 text-lg text-primary-foreground opacity-100! hover:cursor-pointer hover:bg-violet-500 md:w-1/2 dark:bg-violet-300 dark:text-zinc-800"
 					onClick={() => setOpen(true)}
 					disabled={disabled}
 				>
@@ -87,22 +78,39 @@ export default function EditRegistration({
 				<DialogHeader>
 					<DialogTitle>Rediger din påmelding</DialogTitle>
 				</DialogHeader>
-				<Form {...form}>
-					<form onSubmit={form.handleSubmit(onSubmit)}>
-						<FormField
-							control={form.control}
-							name="notes"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Allergier eller andre merknader</FormLabel>
-									<Input {...field} />
-									<FormDescription>Har du noen allergier, eller andre merknader?</FormDescription>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-					</form>
-				</Form>
+				<form
+					id="update-registration-form"
+					onSubmit={(e) => {
+						e.preventDefault();
+						form.handleSubmit();
+					}}
+				>
+					<FieldGroup>
+						<form.Field name="notes">
+							{(field) => {
+								return (
+									<Field>
+										<FieldContent>
+											<FieldLabel>Allergier eller andre merknader</FieldLabel>
+											<FieldDescription>
+												Har du noen allergier, eller andre merknader?
+											</FieldDescription>
+										</FieldContent>
+										<Input
+											id={field.name}
+											name={field.name}
+											value={field.state.value}
+											onBlur={field.handleBlur}
+											onChange={(e) => field.handleChange(e.target.value)}
+											placeholder="eks. Nøtter"
+											autoComplete="off"
+										/>
+									</Field>
+								);
+							}}
+						</form.Field>
+					</FieldGroup>
+				</form>
 				<DialogFooter>
 					<div className="flex w-full flex-wrap justify-between gap-2">
 						<div>
@@ -128,11 +136,14 @@ export default function EditRegistration({
 							</Button>
 						</div>
 						<div className="flex gap-2">
-							<Unregister registrationId={registration._id} eventId={event._id} />
+							<Unregister
+								registrationId={registration._id}
+								eventId={event._id}
+							/>
 							<Button
 								type="submit"
+								form="update-registration-form"
 								className="text-primary-foreground"
-								onClick={form.handleSubmit(onSubmit)}
 							>
 								Lagre Endringer
 							</Button>

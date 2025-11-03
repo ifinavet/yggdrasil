@@ -1,8 +1,19 @@
-import DOMPurify from "isomorphic-dompurify";
+import sanitizeHtml from "sanitize-html";
 
-export default function SafeHtml({ html, className }: { html: string; className?: string }) {
-	const cleanHtml = DOMPurify.sanitize(html);
+export default function SafeHtml({
+	html,
+	className,
+}: {
+	html: string;
+	className?: string;
+}) {
+	const cleanHtml = sanitizeHtml(html);
 
-	// biome-ignore lint: The html is sanitized by DOMPurify
-	return <div className={className} dangerouslySetInnerHTML={{ __html: cleanHtml }} />;
+	return (
+		<div
+			className={className}
+			// biome-ignore lint/security/noDangerouslySetInnerHtml: The html is sanitized by DOMPurify
+			dangerouslySetInnerHTML={{ __html: cleanHtml }}
+		/>
+	);
 }
