@@ -40,7 +40,7 @@ export default function InternalMemberForm({
 	setOpenDialogAction,
 	button,
 	className,
-}: {
+}: Readonly<{
 	defaultValues: InternalMemberFormValues;
 	onSubmitAction: (values: InternalMemberFormValues) => void;
 	description: string;
@@ -49,7 +49,7 @@ export default function InternalMemberForm({
 	setOpenDialogAction: (open: boolean) => void;
 	button: React.ReactNode;
 	className?: string;
-}) {
+}>) {
 	const form = useForm<InternalMemberFormValues>({
 		resolver: zodV4Resolver(internalMemberFormSchema),
 		defaultValues,
@@ -81,7 +81,10 @@ export default function InternalMemberForm({
 					<DialogDescription>{description}</DialogDescription>
 				</DialogHeader>
 				<Form {...form}>
-					<form onSubmit={form.handleSubmit(onSubmitAction)} className="space-y-8">
+					<form
+						onSubmit={form.handleSubmit(onSubmitAction)}
+						className="space-y-8"
+					>
 						<FormField
 							control={form.control}
 							name="userId"
@@ -106,7 +109,9 @@ export default function InternalMemberForm({
 									<FormControl>
 										<Input {...field} placeholder="f.eks. Webgruppen" />
 									</FormControl>
-									<FormDescription>Hva skal gruppen til vervet hete?</FormDescription>
+									<FormDescription>
+										Hva skal gruppen til vervet hete?
+									</FormDescription>
 									<FormMessage />
 								</FormItem>
 							)}

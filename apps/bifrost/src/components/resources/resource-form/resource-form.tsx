@@ -41,12 +41,12 @@ export default function ResourceForm({
 	onPrimarySubmitAction,
 	onSecondarySubmitAction,
 	onTertiarySubmitAction,
-}: {
+}: Readonly<{
 	defaultValues: ResourceFormValues;
 	onPrimarySubmitAction: (values: ResourceFormValues) => void;
 	onSecondarySubmitAction: (values: ResourceFormValues) => void;
 	onTertiarySubmitAction?: (values: ResourceFormValues) => void;
-}) {
+}>) {
 	const form = useForm<ResourceFormValues>({
 		resolver: zodV4Resolver(resourceSchema),
 		defaultValues,

@@ -36,9 +36,9 @@ const formSchema = z.object({
 
 export default function UpdateStudentForm({
 	preloadedStudent,
-}: {
+}: Readonly<{
 	preloadedStudent: Preloaded<typeof api.students.getById>;
-}) {
+}>) {
 	const student = usePreloadedQuery(preloadedStudent);
 
 	type FormSchema = z.infer<typeof formSchema>;

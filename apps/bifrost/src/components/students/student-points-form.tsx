@@ -14,7 +14,10 @@ import {
 } from "@workspace/ui/components/form";
 import { Input } from "@workspace/ui/components/input";
 import { Label } from "@workspace/ui/components/label";
-import { RadioGroup, RadioGroupItem } from "@workspace/ui/components/radio-group";
+import {
+	RadioGroup,
+	RadioGroupItem,
+} from "@workspace/ui/components/radio-group";
 import { useMutation } from "convex/react";
 import { usePostHog } from "posthog-js/react";
 import { useForm } from "react-hook-form";
@@ -32,7 +35,11 @@ const pointsSchema = z.object({
 		),
 });
 
-export default function StudentPointsForm({ student_id }: { student_id: Id<"students"> }) {
+export default function StudentPointsForm({
+	student_id,
+}: Readonly<{
+	student_id: Id<"students">;
+}>) {
 	const form = useForm<z.Infer<typeof pointsSchema>>({
 		resolver: zodV4Resolver(pointsSchema),
 		defaultValues: {
@@ -79,8 +86,8 @@ export default function StudentPointsForm({ student_id }: { student_id: Id<"stud
 								<Input {...field} />
 							</FormControl>
 							<FormDescription>
-								Beskriv hvorfor studenten har fått prikken(e). Denne beskrivelsen vil være synlig
-								for studenten.
+								Beskriv hvorfor studenten har fått prikken(e). Denne
+								beskrivelsen vil være synlig for studenten.
 							</FormDescription>
 							<FormMessage />
 						</FormItem>
@@ -165,7 +172,11 @@ export default function StudentPointsForm({ student_id }: { student_id: Id<"stud
 					)}
 				/>
 
-				<Button type="submit" className="mt-4" onClick={form.handleSubmit(onSubmit)}>
+				<Button
+					type="submit"
+					className="mt-4"
+					onClick={form.handleSubmit(onSubmit)}
+				>
 					Send inn
 				</Button>
 			</form>

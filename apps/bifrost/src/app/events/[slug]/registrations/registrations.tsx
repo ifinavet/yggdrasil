@@ -28,9 +28,9 @@ import { humanReadableDate } from "@/utils/utils";
 
 export function Registrations({
 	preloadedRegistrations,
-}: {
+}: Readonly<{
 	preloadedRegistrations: Preloaded<typeof api.registration.getByEventId>;
-}) {
+}>) {
 	const registrations = usePreloadedQuery(preloadedRegistrations);
 
 	const postHog = usePostHog();

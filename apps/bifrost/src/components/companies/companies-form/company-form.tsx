@@ -24,11 +24,11 @@ export default function CompanyForm({
 	defaultValues,
 	onPrimarySubmitAction,
 	onSecondarySubmitAction,
-}: {
+}: Readonly<{
 	defaultValues: CompanyFormValues;
 	onPrimarySubmitAction: (values: CompanyFormValues) => void;
 	onSecondarySubmitAction?: (values: CompanyFormValues) => void;
-}) {
+}>) {
 	const form = useForm<CompanyFormValues>({
 		resolver: zodV4Resolver(formSchema),
 		defaultValues,

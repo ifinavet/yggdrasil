@@ -63,7 +63,7 @@ export default function BoardMemberForm({
 	setOpenDialogAction,
 	button,
 	className,
-}: {
+}: Readonly<{
 	defaultValues: boardMemberSchema;
 	onSubmitAction: (values: boardMemberSchema) => void;
 	description: string;
@@ -72,7 +72,7 @@ export default function BoardMemberForm({
 	setOpenDialogAction: (open: boolean) => void;
 	button: React.ReactNode;
 	className?: string;
-}) {
+}>) {
 	const internalMembers = useQuery(api.internals.getAll);
 
 	const form = useForm<boardMemberSchema>({

@@ -10,10 +10,10 @@ import { toast } from "sonner";
 export default function Register({
 	preloadedRegistration,
 	eventId,
-}: {
+}: Readonly<{
 	preloadedRegistration: Preloaded<typeof api.registration.getById>;
 	eventId: Id<"events">;
-}) {
+}>) {
 	const registration = usePreloadedQuery(preloadedRegistration);
 
 	const router = useRouter();

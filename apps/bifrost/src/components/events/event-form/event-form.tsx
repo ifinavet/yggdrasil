@@ -53,12 +53,12 @@ export default function EventForm({
 	onSecondarySubmitAction,
 	onTertiarySubmitAction,
 	defaultValues,
-}: {
+}: Readonly<{
 	onDefaultSubmitAction: (values: EventFormValues) => void;
 	onSecondarySubmitAction: (values: EventFormValues) => void;
 	onTertiarySubmitAction?: (values: EventFormValues) => void;
 	defaultValues: EventFormValues;
-}) {
+}>) {
 	const form = useForm<EventFormValues>({
 		resolver: zodV4Resolver(formSchema),
 		defaultValues: defaultValues,

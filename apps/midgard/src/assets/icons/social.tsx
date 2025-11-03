@@ -1,5 +1,5 @@
 export type IconProps = {
-	className?: string;
+	readonly className?: string;
 };
 
 export function FacebookIcon({ className }: IconProps) {

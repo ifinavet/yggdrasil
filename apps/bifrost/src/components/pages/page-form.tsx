@@ -32,12 +32,12 @@ export default function PageForm({
 	onPrimarySubmitAction,
 	onSecondarySubmitAction,
 	onTertiarySubmitAction,
-}: {
+}: Readonly<{
 	defaultValues: PageFormValues;
 	onPrimarySubmitAction: (values: PageFormValues) => void;
 	onSecondarySubmitAction: (values: PageFormValues) => void;
 	onTertiarySubmitAction?: (values: PageFormValues) => void;
-}) {
+}>) {
 	const form = useForm<PageFormValues>({
 		resolver: zodV4Resolver(pageSchema),
 		defaultValues,

@@ -239,11 +239,11 @@ function FlowyLine({
 	className = "text-sky-500 stroke-6",
 	curveHeight = 160, // wave height
 	baseHeight = 160, // vertical center
-}: {
+}: Readonly<{
 	className?: string;
 	curveHeight?: number;
 	baseHeight?: number;
-}) {
+}>) {
 	const pathData = `M0,${baseHeight} C360,${baseHeight + curveHeight} 1080,${
 		baseHeight - curveHeight
 	} 1440,${baseHeight}`;
@@ -267,11 +267,11 @@ function InternGroup({
 	name,
 	className,
 	children,
-}: {
+}: Readonly<{
 	name: string;
 	className?: string;
 	children: React.ReactNode;
-}) {
+}>) {
 	return (
 		<div className={cn("flex min-w-48 flex-col", className)}>
 			<h4 className="scroll-m-20 border-primary border-b-2 font-semibold text-2xl text-primary tracking-tight dark:border-primary-foreground dark:text-primary-foreground">
@@ -288,13 +288,13 @@ function BoardMember({
 	email,
 	image,
 	className,
-}: {
+}: Readonly<{
 	position: string;
 	name: string;
 	email: string;
 	image?: string;
 	className?: string;
-}) {
+}>) {
 	return (
 		<div className={cn(className, "flex flex-col items-center gap-2")}>
 			<Avatar className="size-28">

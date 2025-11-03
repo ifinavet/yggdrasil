@@ -10,9 +10,9 @@ import type { CompanyFormValues } from "@/constants/schemas/companies-form-schem
 
 export default function EditCompanyForm({
 	company_id,
-}: {
-	company_id: Id<"companies">;
-}) {
+}: Readonly<{
+	readonly company_id: Id<"companies">;
+}>) {
 	const company = useQuery(api.companies.getById, { id: company_id });
 
 	const router = useRouter();

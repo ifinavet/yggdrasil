@@ -48,17 +48,17 @@ import { zodV4Resolver } from "@/utils/zod-v4-resolver";
 import ContactsSection from "./contacts-section";
 import DateTimePicker from "@/components/common/forms/date-time-picker";
 
-export default function EventForm({
+export default function JobListingForm({
 	onPrimarySubmitAction,
 	onSecondarySubmitAction,
 	onTertiarySubmitAction,
 	defaultValues,
-}: {
+}: Readonly<{
 	onPrimarySubmitAction: (values: JobListingFormValues) => void;
 	onSecondarySubmitAction: (values: JobListingFormValues) => void;
 	onTertiarySubmitAction?: (values: JobListingFormValues) => void;
 	defaultValues: JobListingFormValues;
-}) {
+}>) {
 	const form = useForm<JobListingFormValues>({
 		resolver: zodV4Resolver(formSchema),
 		defaultValues: defaultValues,
