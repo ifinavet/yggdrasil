@@ -11,7 +11,6 @@ import { Suspense } from "react";
 import "./globals.css";
 import Header from "@/components/common/header";
 import BifrostSidebar from "@/components/common/sidebar/sidebar";
-import Providers from "@/providers/convex-client-provider";
 import ConvexClientProvider from "@/providers/convex-client-provider";
 import { hasBasicRights } from "@/utils/auth";
 import PostHogPageView from "./posthog-page-view";
@@ -54,25 +53,23 @@ export default async function RootLayout({
 								enableSystem
 								disableTransitionOnChange
 							>
-								<Providers>
-									{!hasRights ? (
-										<UnauthorizedPage />
-									) : (
-										<>
-											<BifrostSidebar />
-											<SidebarInset className="max-h-full">
-												<Header />
-												<main className="flex max-h-full flex-col gap-4 p-4">
-													{children}
-												</main>
-											</SidebarInset>
-											<Toaster richColors position="top-center" />
-											<Suspense fallback={null}>
-												<PostHogPageView />
-											</Suspense>
-										</>
-									)}
-								</Providers>
+								{!hasRights ? (
+									<UnauthorizedPage />
+								) : (
+									<>
+										<BifrostSidebar />
+										<SidebarInset className="max-h-full">
+											<Header />
+											<main className="flex max-h-full flex-col gap-4 p-4">
+												{children}
+											</main>
+										</SidebarInset>
+										<Toaster richColors position="top-center" />
+										<Suspense fallback={null}>
+											<PostHogPageView />
+										</Suspense>
+									</>
+								)}
 							</ThemeProvider>
 						</SidebarProvider>
 					</ConvexClientProvider>

@@ -59,8 +59,11 @@ export default function CompaniesGrid() {
 				))}
 			</div>
 
-			<Button onClick={() => loadMore(25)} disabled={status !== "CanLoadMore" || isLoading}>
-				{!isLoading ? "Last inn flere bedrifter" : "Laster..."}
+			<Button
+				onClick={() => loadMore(25)}
+				disabled={status !== "CanLoadMore" || isLoading}
+			>
+				{isLoading ? "Laster..." : "Last inn flere bedrifter"}
 			</Button>
 		</div>
 	);

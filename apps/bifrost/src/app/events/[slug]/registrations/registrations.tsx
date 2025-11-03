@@ -107,7 +107,7 @@ export function Registrations({
 				if (reg.status === "pending") return;
 				return reg.userEmail;
 			})
-			.filter((r) => r);
+			.filter(Boolean);
 
 		if (copy) {
 			navigator.clipboard.writeText(emails.join("\n"));
