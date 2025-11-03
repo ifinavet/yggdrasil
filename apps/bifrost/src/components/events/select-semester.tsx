@@ -55,7 +55,7 @@ export default function SelectSemester(
 
 				if (semesterPart && yearPart) {
 					router.push(
-						`${path}?${updateSemester(semesterPart, parseInt(yearPart))}`,
+						`${path}?${updateSemester(semesterPart, Number.parseInt(yearPart))}`,
 					);
 				}
 			}}
