@@ -14,7 +14,7 @@ type StudentColumns = {
 	points: number;
 };
 
-const createColumns: ColumnDef<StudentColumns>[] = [
+const columns: ColumnDef<StudentColumns>[] = [
 	{
 		id: "index",
 		header: "#",
@@ -52,7 +52,7 @@ export default function StudentsWithPointsOverview() {
 	return (
 		<div className="overflow-clip rounded-md border">
 			<DataTable
-				columns={createColumns}
+				columns={columns}
 				data={students ?? defaultData}
 				onRowClick={handleRowClick}
 			/>

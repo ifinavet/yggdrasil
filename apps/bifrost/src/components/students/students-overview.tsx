@@ -7,7 +7,7 @@ import { Input } from "@workspace/ui/components/input";
 import { Label } from "@workspace/ui/components/label";
 import { usePaginatedQuery } from "convex/react";
 import { useRouter } from "next/navigation";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import { DataTable } from "../common/tables/table";
 
 type StudentColumns = {
@@ -24,7 +24,7 @@ const statusColors = {
 	Låst: "bg-red-100 text-red-800",
 } as const;
 
-const createColumns: ColumnDef<StudentColumns>[] = [
+const columns: ColumnDef<StudentColumns>[] = [
 	{
 		id: "index",
 		header: "#",
@@ -77,7 +77,6 @@ export default function StudentsOverview() {
 
 	const router = useRouter();
 
-	const defaultData = useMemo(() => [], []);
 	const data = students.map((student) => ({
 		id: student._id,
 		name: student.name,
@@ -109,11 +108,7 @@ export default function StudentsOverview() {
 				/>
 			</div>
 			<div className="overflow-clip rounded-md border">
-				<DataTable
-					columns={createColumns}
-					data={data ?? defaultData}
-					onRowClick={handleRowClick}
-				/>
+				<DataTable columns={columns} data={data} onRowClick={handleRowClick} />
 			</div>
 			<Button
 				onClick={() => loadMore(25)}
