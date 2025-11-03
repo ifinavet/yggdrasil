@@ -4,11 +4,11 @@ export default function TwoColumns({
 	main,
 	aside,
 	className,
-}: {
+}: Readonly<{
 	main: React.ReactNode;
 	aside: React.ReactNode;
 	className?: string;
-}) {
+}>) {
 	return (
 		<div className={cn(className, "grid grid-cols-1 gap-6 md:grid-cols-5")}>
 			<main className="gap-4 md:col-span-3">{main}</main>

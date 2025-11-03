@@ -6,13 +6,13 @@ export default function LargeUserCard({
 	fullName,
 	email,
 	title,
-}: {
+}: Readonly<{
 	initials?: string;
 	imageUrl?: string;
 	fullName: string;
 	email: string;
 	title: string;
-}) {
+}>) {
 	return (
 		<div>
 			<div className="relative aspect-square max-h-36 w-full">
@@ -20,7 +20,11 @@ export default function LargeUserCard({
 				<div className="absolute bottom-0 left-0 h-1/2 w-full rounded-t-xl bg-zinc-100 dark:bg-zinc-800"></div>
 				<div className="absolute inset-0 grid place-content-center rounded-full bg-transparent">
 					{(imageUrl && (
-						<img src={imageUrl} alt={fullName} className="h-36 w-36 rounded-full" />
+						<img
+							src={imageUrl}
+							alt={fullName}
+							className="h-36 w-36 rounded-full"
+						/>
 					)) ?? (
 						<div className="m-0 grid h-36 w-36 place-content-center rounded-full bg-gradient-to-br from-primary via-sky-800 to-emerald-800 p-0 font-bold text-5xl text-primary-foreground">
 							<span className="m-0 leading-0 ">{initials}</span>

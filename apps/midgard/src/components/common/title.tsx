@@ -1,7 +1,10 @@
 import { cn } from "@workspace/ui/lib/utils";
 import type { ReactNode } from "react";
 
-export function Title({ children, className }: { children: ReactNode; className?: string }) {
+export function Title({
+	children,
+	className,
+}: Readonly<{ children: ReactNode; className?: string }>) {
 	return (
 		<h1
 			className={cn(

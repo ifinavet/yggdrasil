@@ -51,11 +51,11 @@ function RegistrationStatusBanner({
 	show,
 	statusMessage,
 	cardColor,
-}: {
+}: Readonly<{
 	show: boolean;
 	statusMessage: string;
 	cardColor: string;
-}) {
+}>) {
 	if (!show) return null;
 
 	return (
@@ -70,7 +70,9 @@ function RegistrationStatusBanner({
 }
 
 // Event details component
-function EventDetails({ event }: { event: EventWithParticipationCount }) {
+function EventDetails({
+	event,
+}: Readonly<{ event: EventWithParticipationCount }>) {
 	const participantsLimit = event.participationLimit;
 
 	return (
@@ -106,10 +108,10 @@ function EventHeader({
 function EventMetadata({
 	eventStart,
 	participantsLimit,
-}: {
+}: Readonly<{
 	eventStart: number;
 	participantsLimit: number;
-}) {
+}>) {
 	return (
 		<div className="flex w-full flex-col justify-between gap-2 pb-2 font-semibold text-lg sm:flex-row">
 			<div className="flex items-center gap-2">
@@ -152,10 +154,10 @@ function CompanyImage({
 export default async function EventCard({
 	event,
 	isExternal,
-}: {
+}: Readonly<{
 	event: EventWithParticipationCount;
 	isExternal: boolean;
-}) {
+}>) {
 	const image = await fetchQuery(api.companies.getById, {
 		id: event.hostingCompany,
 	});

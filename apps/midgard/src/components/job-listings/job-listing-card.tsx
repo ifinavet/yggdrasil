@@ -10,14 +10,14 @@ export default function JobListingCard({
 	companyName,
 	title,
 	teaser,
-}: {
+}: Readonly<{
 	listingId: Id<"jobListings">;
 	type: string;
 	image: string;
 	companyName: string;
 	title: string;
 	teaser: string;
-}) {
+}>) {
 	const typeColors: Record<string, string> = {
 		Sommerjobb: "bg-orange-400",
 		Fulltid: "bg-indigo-400",
@@ -36,7 +36,12 @@ export default function JobListingCard({
 				{type}
 			</div>
 			<div className="relative h-32 min-h-32 px-10 pt-4 dark:bg-zinc-100/95">
-				<Image src={image} alt={companyName} fill className=" object-contain px-4 py-2" />
+				<Image
+					src={image}
+					alt={companyName}
+					fill
+					className=" object-contain px-4 py-2"
+				/>
 			</div>
 			<div className="flex flex-1 flex-col justify-between gap-6 px-8 pb-6">
 				<div className="pt-4">

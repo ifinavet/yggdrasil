@@ -1,7 +1,9 @@
 import { Button } from "@workspace/ui/components/button";
 import { cn } from "@workspace/ui/lib/utils";
 
-export default function JobListingBanner({ className }: { className?: string }) {
+export default function JobListingBanner({
+	className,
+}: Readonly<{ className?: string }>) {
 	return (
 		<div className={cn(className, "-mb-12 relative w-full text-pretty")}>
 			<div
@@ -15,9 +17,9 @@ export default function JobListingBanner({ className }: { className?: string }) 
 							Ønsker du å legge ut stillingsannonser på våre nettsider?
 						</h3>
 						<p className="text-primary dark:text-primary-foreground">
-							Navet tilbyr publisering av stillingsannonser på våre hjemmesider. Dette gjelder både
-							interships, deltid-, og fulltidsstillinger. Ved forespørsel om annonser for sommerjobb
-							er det viktig at de følger{" "}
+							Navet tilbyr publisering av stillingsannonser på våre hjemmesider.
+							Dette gjelder både interships, deltid-, og fulltidsstillinger. Ved
+							forespørsel om annonser for sommerjobb er det viktig at de følger{" "}
 							<a
 								href="https://drive.google.com/file/d/1wW0356QeoPGtKQruSlP8eBXI7qqn8eHm/view?usp=sharing"
 								rel="nofollow noopener noreferrer external"
@@ -37,9 +39,9 @@ export default function JobListingBanner({ className }: { className?: string }) 
 							</a>
 							<br />
 							<br />
-							Stillingsannonser må inneholde en søknadsfrist og stillingen må være relatert til
-							informatikk. Nye annonser publiseres ukentlig. Følg linken for å opprette
-							stillingsannonse:
+							Stillingsannonser må inneholde en søknadsfrist og stillingen må
+							være relatert til informatikk. Nye annonser publiseres ukentlig.
+							Følg linken for å opprette stillingsannonse:
 						</p>
 					</div>
 					<Button

@@ -3,10 +3,10 @@ import { cn } from "@workspace/ui/lib/utils";
 export default function ContainerCard({
 	children,
 	className,
-}: {
+}: Readonly<{
 	children: React.ReactNode;
 	className?: string;
-}) {
+}>) {
 	return (
 		<div
 			className={cn(
