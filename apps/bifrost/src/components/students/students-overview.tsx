@@ -2,7 +2,6 @@
 
 import type { ColumnDef, Row } from "@tanstack/react-table";
 import { api } from "@workspace/backend/convex/api";
-import type { Doc } from "@workspace/backend/convex/dataModel";
 import { Button } from "@workspace/ui/components/button";
 import { Input } from "@workspace/ui/components/input";
 import { Label } from "@workspace/ui/components/label";
@@ -11,14 +10,18 @@ import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
 import { DataTable } from "../common/tables/table";
 
-type StudentColumns = Doc<"students"> & {
-	status: "Aktiv" | "Ukjent" | "Ikke registrert";
+type StudentColumns = {
+	id: string;
+	name: string;
+	status: "Aktiv" | "Låst" | "Ikke registrert";
+	program: string;
+	year: number;
 };
 
 const statusColors = {
-	Ukjent: "bg-yellow-100 text-yellow-800",
+	"Ikke registrert": "bg-yellow-100 text-yellow-800",
 	Aktiv: "bg-green-100 text-green-800",
-	"Ikke registrert": "bg-red-100 text-red-800",
+	Låst: "bg-red-100 text-red-800",
 } as const;
 
 const createColumns: ColumnDef<StudentColumns>[] = [
@@ -39,7 +42,9 @@ const createColumns: ColumnDef<StudentColumns>[] = [
 		header: "Status",
 		cell: ({ row }) => {
 			const status = row.original.status;
-			const color = statusColors[status as keyof typeof statusColors];
+			const color =
+				statusColors[status as keyof typeof statusColors] ||
+				"bg-gray-100 text-gray-800";
 			return (
 				<span className={`rounded-full px-2 py-1 font-medium text-xs ${color}`}>
 					{status}
@@ -48,7 +53,7 @@ const createColumns: ColumnDef<StudentColumns>[] = [
 		},
 	},
 	{
-		accessorKey: "studyProgram",
+		accessorKey: "program",
 		header: "Studieprogram",
 	},
 	{
@@ -70,16 +75,21 @@ export default function StudentsOverview() {
 		{ initialNumItems: 25 },
 	);
 
-	const columns = createColumns as ColumnDef<StudentColumns>[];
-
-	const defaultData = useMemo(() => [], []);
-
 	const router = useRouter();
 
+	const defaultData = useMemo(() => [], []);
+	const data = students.map((student) => ({
+		id: student._id,
+		name: student.name,
+		status: student.status,
+		program: student.studyProgram,
+		year: student.year,
+	})) as StudentColumns[];
+
 	const handleRowClick = useCallback(
-		(row: Row<Doc<"students">>) => {
-			if (row.original._id) {
-				router.push(`/students/${row.original._id}`);
+		(row: Row<StudentColumns>) => {
+			if (row.original.id) {
+				router.push(`/students/${row.original.id}`);
 			}
 		},
 		[router],
@@ -100,8 +110,8 @@ export default function StudentsOverview() {
 			</div>
 			<div className="overflow-clip rounded-md border">
 				<DataTable
-					columns={columns}
-					data={students ?? defaultData}
+					columns={createColumns}
+					data={data ?? defaultData}
 					onRowClick={handleRowClick}
 				/>
 			</div>

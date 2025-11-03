@@ -36,8 +36,6 @@ const createColumns: ColumnDef<StudentColumns>[] = [
 export default function StudentsWithPointsOverview() {
 	const students = useQuery(api.students.getAllWithPoints);
 
-	const columns = createColumns as ColumnDef<StudentColumns>[];
-
 	const defaultData = useMemo(() => [], []);
 
 	const router = useRouter();
@@ -54,7 +52,7 @@ export default function StudentsWithPointsOverview() {
 	return (
 		<div className="overflow-clip rounded-md border">
 			<DataTable
-				columns={columns}
+				columns={createColumns}
 				data={students ?? defaultData}
 				onRowClick={handleRowClick}
 			/>
