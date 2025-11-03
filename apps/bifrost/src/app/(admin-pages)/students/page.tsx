@@ -6,7 +6,14 @@ import {
 	BreadcrumbPage,
 	BreadcrumbSeparator,
 } from "@workspace/ui/components/breadcrumb";
+import {
+	Tabs,
+	TabsContent,
+	TabsList,
+	TabsTrigger,
+} from "@workspace/ui/components/tabs";
 import StudentsOverview from "@/components/students/students-overview";
+import StudentsWithPointsOverview from "@/components/students/students-with-points-overview";
 
 export default async function StudentsPage() {
 	return (
@@ -23,7 +30,18 @@ export default async function StudentsPage() {
 				</BreadcrumbList>
 			</Breadcrumb>
 
-			<StudentsOverview />
+			<Tabs defaultValue="all">
+				<TabsList>
+					<TabsTrigger value="all">Alle studenter</TabsTrigger>
+					<TabsTrigger value="points">Studenter som har prikker</TabsTrigger>
+				</TabsList>
+				<TabsContent value="all">
+					<StudentsOverview />
+				</TabsContent>
+				<TabsContent value="points">
+					<StudentsWithPointsOverview />
+				</TabsContent>
+			</Tabs>
 		</>
 	);
 }
