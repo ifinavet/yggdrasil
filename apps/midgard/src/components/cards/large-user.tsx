@@ -26,7 +26,7 @@ export default function LargeUserCard({
 							className="h-36 w-36 rounded-full"
 						/>
 					)) ?? (
-						<div className="m-0 grid h-36 w-36 place-content-center rounded-full bg-gradient-to-br from-primary via-sky-800 to-emerald-800 p-0 font-bold text-5xl text-primary-foreground">
+						<div className="m-0 grid h-36 w-36 place-content-center rounded-full bg-linear-to-br from-primary via-sky-800 to-emerald-800 p-0 font-bold text-5xl text-primary-foreground">
 							<span className="m-0 leading-0 ">{initials}</span>
 						</div>
 					)}

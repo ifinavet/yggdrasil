@@ -47,23 +47,28 @@ export function Consent() {
 
 	return (
 		consentGiven === "undecided" && (
-			<div className={`fixed right-0 bottom-2 left-0 z-50 px-2 md:bottom-6 md:px-6`}>
-				<Card className="max-h-[90svh] w-full max-w-xl overflow-y-auto text-pretty break-words border-primary shadow-lg">
+			<div
+				className={`fixed right-0 bottom-2 left-0 z-50 px-2 md:bottom-6 md:px-6`}
+			>
+				<Card className="wrap-break-word max-h-[90svh] w-full max-w-xl overflow-y-auto text-pretty border-primary shadow-lg">
 					<CardHeader>
 						<CardTitle>Hjelp oss med å gjøre ifinavet.no best mulig</CardTitle>
 						<CardDescription>
-							Vi bruker informasjonskapsler (cookies) til å forbedre og forstå hvordan nettsiden vår
-							brukes.
+							Vi bruker informasjonskapsler (cookies) til å forbedre og forstå
+							hvordan nettsiden vår brukes.
 						</CardDescription>
 					</CardHeader>
 					<CardContent>
 						<p className="text-sm">
-							Venligst godta bruk av informasjonskapsler, vi bruker kunn infromasjonen lokalt, og
-							deler den aldri med noen tredjeparter
+							Venligst godta bruk av informasjonskapsler, vi bruker kunn
+							infromasjonen lokalt, og deler den aldri med noen tredjeparter
 						</p>
 					</CardContent>
 					<CardFooter className="flex flex-wrap gap-4">
-						<Button onClick={handleAcceptCookies} className="text-primary-foreground">
+						<Button
+							onClick={handleAcceptCookies}
+							className="text-primary-foreground"
+						>
 							Godta bruk av cookies
 						</Button>
 						<Button onClick={handleDeclineCookies} variant="secondary">

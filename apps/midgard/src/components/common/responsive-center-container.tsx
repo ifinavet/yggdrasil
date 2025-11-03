@@ -12,7 +12,7 @@ export default function ResponsiveCenterContainer({
 			className={cn(
 				className,
 				// "mx-6 min-w-0 max-w-5xl whitespace-normal text-balance break-words md:mx-auto md:w-5/6 lg:w-4/5 xl:w-8/14",
-				"mx-6 min-w-0 max-w-5xl whitespace-normal text-balance break-words lg:mx-auto",
+				"wrap-break-word mx-6 min-w-0 max-w-5xl whitespace-normal text-balance lg:mx-auto",
 			)}
 		>
 			{children}

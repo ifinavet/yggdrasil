@@ -51,7 +51,7 @@ export function EventMetadata({
 				<p className="flex items-center gap-2 font-semibold md:text-lg">
 					<Globe className="size-6 min-w-6 md:size-8" /> {event.language}
 				</p>
-				<p className="flex items-center gap-2 break-words font-semibold md:text-lg">
+				<p className="wrap-break-word flex items-center gap-2 font-semibold md:text-lg">
 					<IdCard className="size-6 min-w-6 md:size-8" /> {event.ageRestriction}
 				</p>
 			</div>
