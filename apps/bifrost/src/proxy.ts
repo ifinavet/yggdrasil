@@ -10,7 +10,7 @@ const searchParamsMiddleware = (request: NextRequest) => {
 	});
 };
 
-export const middleware = clerkMiddleware(async (_, req) => {
+export const proxy = clerkMiddleware(async (_, req) => {
 	return searchParamsMiddleware(req);
 });
 
