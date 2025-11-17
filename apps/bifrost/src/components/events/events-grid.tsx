@@ -2,7 +2,7 @@ import { URLSearchParams } from "node:url";
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { fetchQuery } from "convex/nextjs";
-import { headers } from "next/headers";
+
 import type { Event } from "@/constants/types";
 import EventCard from "./event-card";
 
