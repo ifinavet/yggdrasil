@@ -66,14 +66,14 @@ export default function PageForm({
 
 	const handleEditorUpdate = useCallback(
 		({ editor }: { editor: { getHTML: () => string } }) => {
-			form.state.values.content = editor.getHTML();
+			form.setFieldValue("content", editor.getHTML());
 		},
 		[form],
 	);
 
 	const handleEditorCreate = useCallback(
 		({ editor }: { editor: { getHTML: () => string } }) => {
-			form.state.values.content = editor.getHTML();
+			form.setFieldValue("content", editor.getHTML());
 		},
 		[form],
 	);
@@ -160,7 +160,7 @@ export default function PageForm({
 							field.state.meta.isTouched && !field.state.meta.isValid;
 						return (
 							<Field data-invalid={isInvalid} className="min-w-0 md:w-full">
-								<FieldLabel htmlFor={field.name}>Tittel</FieldLabel>
+								<FieldLabel htmlFor={field.name}>Innhold</FieldLabel>
 								<div className="min-h-[60vh] overflow-clip rounded-md border">
 									<EditorMenu editor={editor} />
 									<EditorContent editor={editor} />

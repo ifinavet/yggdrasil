@@ -3,7 +3,7 @@
 import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
 import type { JOB_TYPES } from "@workspace/shared/constants";
-import { Button } from "@workspace/ui/components//button";
+import { Button } from "@workspace/ui/components/button";
 import {
 	Command,
 	CommandEmpty,
@@ -95,7 +95,13 @@ export default function JobListingForm({
 	const companies = useQuery(api.companies.getAll);
 
 	return (
-		<form>
+		<form
+			onSubmit={(e) => {
+				e.preventDefault();
+				e.stopPropagation();
+				form.handleSubmit({ submitAction: "primary" });
+			}}
+		>
 			<FieldSet>
 				<FieldGroup>
 					<form.Field name="title">
@@ -104,7 +110,7 @@ export default function JobListingForm({
 								field.state.meta.isTouched && !field.state.meta.isValid;
 							return (
 								<Field>
-									<FieldLabel htmlFor={field.name}>Tittle</FieldLabel>
+									<FieldLabel htmlFor={field.name}>Tittel</FieldLabel>
 									<Input
 										id={field.name}
 										name={field.name}

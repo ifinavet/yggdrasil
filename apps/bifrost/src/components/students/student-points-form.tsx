@@ -55,7 +55,7 @@ export default function StudentPointsForm({
 				severity: value.severity,
 			})
 				.then(() => {
-					toast.success("Prikken(e) vellykket gitt");
+					toast.success("Prikken(e) ble vellykket gitt");
 
 					posthog.capture("bifrost-student_points_given", {
 						student_id: student_id,
@@ -87,7 +87,7 @@ export default function StudentPointsForm({
 							field.state.meta.isTouched && !field.state.meta.isValid;
 						return (
 							<Field>
-								<FieldLabel htmlFor={field.name}>Begunnelse</FieldLabel>
+								<FieldLabel htmlFor={field.name}>Begrunnelse</FieldLabel>
 								<Input
 									id={field.name}
 									name={field.name}
@@ -152,7 +152,7 @@ export default function StudentPointsForm({
 											<div className="grid gap-1 font-normal">
 												<div className="font-medium">2 prikker</div>
 												<div className="text-balance pr-2 text-muted-foreground text-xs leading-snug">
-													Større brudd på rettningslinjer
+													Større brudd på retningslinjer
 												</div>
 											</div>
 										</Label>
@@ -170,7 +170,7 @@ export default function StudentPointsForm({
 											<div className="grid gap-1 font-normal">
 												<div className="font-medium">3 prikker</div>
 												<div className="text-balance pr-2 text-muted-foreground text-xs leading-snug">
-													Alvorlige brudd, vil medføre påmeldings nekt.
+													Alvorlige brudd, vil medføre påmeldingsnekt.
 												</div>
 											</div>
 										</Label>

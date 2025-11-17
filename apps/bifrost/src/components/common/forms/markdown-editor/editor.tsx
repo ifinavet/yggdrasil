@@ -14,28 +14,6 @@ import {
 import { useCallback, useMemo } from "react";
 import ContentEditor from "@/components/common/forms/markdown-editor/markdown-editor";
 
-/**
- * DescriptionEditor component for TanStack Form with TipTap rich text editor
- *
- * @example
- * ```tsx
- * import { useForm } from "@tanstack/react-form";
- * import DescriptionEditor from "@/components/common/forms/markdown-editor/editor";
- *
- * function MyForm() {
- *   const form = useForm({
- *     defaultValues: {
- *       description: "",
- *     },
- *   });
- *
- *   return (
- *     <form>
- *     </form>
- *   );
- * }
- * ```
- */
 export default function DescriptionEditor({
 	title = "Beskrivelse",
 	description = "Dette er beskrivelsen.",

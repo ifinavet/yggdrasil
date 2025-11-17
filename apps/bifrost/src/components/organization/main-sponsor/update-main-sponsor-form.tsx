@@ -44,11 +44,12 @@ export default function UpdateMainSponsorForm({
 			onSubmit: schema,
 		},
 		onSubmit: async ({ value }) => {
-			updateMainSponsor({ companyId: value.companyId }).catch(() =>
+			updateMainSponsor({ companyId: value.companyId }).catch((err) => {
 				toast.error("Oi! Det oppstod en feil!", {
 					description: "Skulle feilen vedvare kontakt webansvarlig.",
-				}),
-			);
+				});
+				throw err;
+			});
 		},
 	});
 

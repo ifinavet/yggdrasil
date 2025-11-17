@@ -76,14 +76,14 @@ export default function ResourceForm({
 
 	const handleEditorUpdate = useCallback(
 		({ editor }: { editor: { getHTML: () => string } }) => {
-			form.state.values.content = editor.getHTML();
+			form.setFieldValue("content", editor.getHTML());
 		},
 		[form],
 	);
 
 	const handleEditorCreate = useCallback(
 		({ editor }: { editor: { getHTML: () => string } }) => {
-			form.state.values.content = editor.getHTML();
+			form.setFieldValue("content", editor.getHTML());
 		},
 		[form],
 	);
