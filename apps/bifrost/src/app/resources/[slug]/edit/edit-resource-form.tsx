@@ -6,7 +6,7 @@ import { useMutation, useQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import { usePostHog } from "posthog-js/react";
 import { toast } from "sonner";
-import ResourceForm from "@/components/resources/resource-form/resource-form";
+import ResourceForm from "@/components/resources/resource-form";
 import type { ResourceFormValues } from "@/constants/schemas/resource-form-schema";
 
 export default function EditResourceForm({

@@ -15,13 +15,25 @@ import { usePaginatedQuery, useQuery } from "convex/react";
 import { Check, Image as LImage, Upload, X } from "lucide-react";
 import Image from "next/image";
 import { useCallback, useRef, useState } from "react";
-import type { UseFormReturn } from "react-hook-form";
-import type { CompanyFormValues } from "@/constants/schemas/companies-form-schema";
 import CompanyImageUploader from "./company-image-uploader";
 
+type ImageField = {
+	name: string;
+	state: {
+		value: string;
+		meta: {
+			isTouched: boolean;
+			isValid: boolean;
+			errors: Array<{ message?: string } | undefined>;
+		};
+	};
+	handleChange: (value: string) => void;
+	handleBlur: () => void;
+};
+
 export default function SelectImage({
-	form,
-}: Readonly<{ form: UseFormReturn<CompanyFormValues> }>) {
+	field,
+}: Readonly<{ field: ImageField }>) {
 	const { results, isLoading, status, loadMore } = usePaginatedQuery(
 		api.companies.getCompanyLogosPaged,
 		{},
@@ -30,7 +42,7 @@ export default function SelectImage({
 		},
 	);
 
-	const formImageValue = form.getValues("image") as Id<"companyLogos">;
+	const formImageValue = field.state.value as Id<"companyLogos">;
 	const [selectedImageId, setSelectedImageId] =
 		useState<Id<"companyLogos"> | null>(formImageValue);
 	const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
@@ -47,25 +59,25 @@ export default function SelectImage({
 
 	const handleSelectedImage = useCallback(() => {
 		if (selectedImageId) {
-			form.setValue("image", selectedImageId);
+			field.handleChange(selectedImageId);
 		}
-	}, [form, selectedImageId]);
+	}, [field, selectedImageId]);
 
 	const handleCancel = useCallback(() => {
 		setSelectedImageId(null);
-		selectedImageName.current = form.watch("image") || "";
-	}, [form]);
+		selectedImageName.current = field.state.value || "";
+	}, [field.state.value]);
 
 	const handleImageUploaded = useCallback(
 		(uploadedImageId: Id<"companyLogos">, imageName: string) => {
 			setSelectedImageId(uploadedImageId);
 			selectedImageName.current = imageName;
 
-			form.setValue("image", uploadedImageId);
+			field.handleChange(uploadedImageId);
 
 			setIsUploadDialogOpen(false);
 		},
-		[form],
+		[field],
 	);
 
 	return (
@@ -108,7 +120,7 @@ export default function SelectImage({
 								))}
 							</div>
 						</div>
-						<DialogFooter className="!justify-between w-full">
+						<DialogFooter className="justify-between! w-full">
 							<Button
 								variant="outline"
 								onClick={() => loadMore(25)}

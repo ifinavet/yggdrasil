@@ -5,8 +5,8 @@ import {
 	BreadcrumbList,
 	BreadcrumbPage,
 	BreadcrumbSeparator,
-} from "@workspace/ui/components//breadcrumb";
-import { Button } from "@workspace/ui/components//button";
+} from "@workspace/ui/components/breadcrumb";
+import { Button } from "@workspace/ui/components/button";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import ResourcesGrid from "@/components/resources/resources-grid";

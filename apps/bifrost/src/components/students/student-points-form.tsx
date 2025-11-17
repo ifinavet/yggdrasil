@@ -1,17 +1,16 @@
 "use client";
 
+import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { Button } from "@workspace/ui/components/button";
 import {
-	Form,
-	FormControl,
-	FormDescription,
-	FormField,
-	FormItem,
-	FormLabel,
-	FormMessage,
-} from "@workspace/ui/components/form";
+	Field,
+	FieldDescription,
+	FieldError,
+	FieldLabel,
+	FieldSet,
+} from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
 import { Label } from "@workspace/ui/components/label";
 import {
@@ -20,10 +19,8 @@ import {
 } from "@workspace/ui/components/radio-group";
 import { useMutation } from "convex/react";
 import { usePostHog } from "posthog-js/react";
-import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import z from "zod/v4";
-import { zodV4Resolver } from "@/utils/zod-v4-resolver";
 
 const pointsSchema = z.object({
 	severity: z.number().min(1).max(3),
@@ -40,76 +37,93 @@ export default function StudentPointsForm({
 }: Readonly<{
 	student_id: Id<"students">;
 }>) {
-	const form = useForm<z.Infer<typeof pointsSchema>>({
-		resolver: zodV4Resolver(pointsSchema),
+	const posthog = usePostHog();
+	const giveStudentPoints = useMutation(api.points.givePoints);
+
+	const form = useForm({
 		defaultValues: {
 			severity: 1,
 			reason: "",
 		},
+		validators: {
+			onSubmit: pointsSchema,
+		},
+		onSubmit: async ({ value }) => {
+			giveStudentPoints({
+				id: student_id,
+				reason: value.reason,
+				severity: value.severity,
+			})
+				.then(() => {
+					toast.success("Prikken(e) vellykket gitt");
+
+					posthog.capture("bifrost-student_points_given", {
+						student_id: student_id,
+						reason: value.reason,
+						severity: value.severity,
+					});
+
+					form.reset();
+				})
+				.catch(() => {
+					toast.error("Noe gikk galt. Vennligst prøv igjen senere.");
+				});
+		},
 	});
 
-	const posthog = usePostHog();
-
-	const giveStudentPoints = useMutation(api.points.givePoints);
-	const onSubmit = (values: z.Infer<typeof pointsSchema>) => {
-		giveStudentPoints({
-			id: student_id,
-			reason: values.reason,
-			severity: values.severity,
-		})
-			.then(() => {
-				toast.success("Prikken(e) vellykket gitt");
-
-				posthog.capture("bifrost-student_points_given", {
-					student_id: student_id,
-					reason: values.reason,
-					severity: values.severity,
-				});
-
-				form.reset();
-			})
-			.catch(() => {
-				toast.error("Noe gikk galt. Vennligst prøv igjen senere.");
-			});
-	};
-
 	return (
-		<Form {...form}>
-			<form className="space-y-8" onSubmit={form.handleSubmit(onSubmit)}>
-				<FormField
-					control={form.control}
-					name="reason"
-					render={({ field }) => (
-						<FormItem>
-							<FormLabel>Begunnelse</FormLabel>
-							<FormControl>
-								<Input {...field} />
-							</FormControl>
-							<FormDescription>
-								Beskriv hvorfor studenten har fått prikken(e). Denne
-								beskrivelsen vil være synlig for studenten.
-							</FormDescription>
-							<FormMessage />
-						</FormItem>
-					)}
-				/>
+		<form
+			className="space-y-8"
+			onSubmit={(e) => {
+				e.preventDefault();
+				e.stopPropagation();
+				form.handleSubmit();
+			}}
+		>
+			<FieldSet>
+				<form.Field name="reason">
+					{(field) => {
+						const isInvalid =
+							field.state.meta.isTouched && !field.state.meta.isValid;
+						return (
+							<Field>
+								<FieldLabel htmlFor={field.name}>Begunnelse</FieldLabel>
+								<Input
+									id={field.name}
+									name={field.name}
+									value={field.state.value}
+									onChange={(e) => field.handleChange(e.target.value)}
+									onBlur={field.handleBlur}
+									aria-invalid={isInvalid}
+								/>
+								<FieldDescription>
+									Beskriv hvorfor studenten har fått prikken(e). Denne
+									beskrivelsen vil være synlig for studenten.
+								</FieldDescription>
+								{isInvalid && <FieldError errors={field.state.meta.errors} />}
+							</Field>
+						);
+					}}
+				</form.Field>
 
-				<FormField
-					control={form.control}
-					name="severity"
-					render={({ field }) => (
-						<FormItem className="">
-							<FormLabel>Velg antall runder</FormLabel>
-							<RadioGroup
-								value={field.value.toString()}
-								onValueChange={(e) => field.onChange(Number.parseInt(e))}
-								defaultValue="1"
-								className="grid grid-cols-1 gap-4 md:grid-cols-3"
-							>
-								<FormControl>
+				<form.Field name="severity">
+					{(field) => {
+						const isInvalid =
+							field.state.meta.isTouched && !field.state.meta.isValid;
+						return (
+							<Field>
+								<FieldLabel>Velg antall runder</FieldLabel>
+								<RadioGroup
+									value={field.state.value.toString()}
+									onValueChange={(e) =>
+										field.handleChange(Number.parseInt(e, 10))
+									}
+									defaultValue="1"
+									className="grid grid-cols-1 gap-4 md:grid-cols-3"
+								>
 									<div className="flex h-full items-center space-x-2">
 										<Label
-											className="flex h-full cursor-pointer items-start gap-3 rounded-lg border p-3 has-[[data-state=checked]]:border-ring has-[[data-state=checked]]:bg-primary/5"
+											className="flex h-full cursor-pointer items-start gap-3 rounded-lg border p-3 has-data-[state=checked]:border-ring has-data-[state=checked]:bg-primary/5"
 											htmlFor="1"
 										>
 											<RadioGroupItem
@@ -125,11 +139,9 @@ export default function StudentPointsForm({
 											</div>
 										</Label>
 									</div>
-								</FormControl>
-								<FormControl>
 									<div className="flex h-full items-center space-x-2">
 										<Label
-											className="flex h-full cursor-pointer items-start gap-3 rounded-lg border p-3 has-[[data-state=checked]]:border-ring has-[[data-state=checked]]:bg-primary/5"
+											className="flex h-full cursor-pointer items-start gap-3 rounded-lg border p-3 has-data-[state=checked]:border-ring has-data-[state=checked]:bg-primary/5"
 											htmlFor="2"
 										>
 											<RadioGroupItem
@@ -145,11 +157,9 @@ export default function StudentPointsForm({
 											</div>
 										</Label>
 									</div>
-								</FormControl>
-								<FormControl>
 									<div className="flex h-full items-center space-x-2">
 										<Label
-											className="flex h-full cursor-pointer items-start gap-3 rounded-lg border p-3 has-[[data-state=checked]]:border-ring has-[[data-state=checked]]:bg-primary/5"
+											className="flex h-full cursor-pointer items-start gap-3 rounded-lg border p-3 has-data-[state=checked]:border-ring has-data-[state=checked]:bg-primary/5"
 											htmlFor="3"
 										>
 											<RadioGroupItem
@@ -165,21 +175,17 @@ export default function StudentPointsForm({
 											</div>
 										</Label>
 									</div>
-								</FormControl>
-							</RadioGroup>
-							<FormMessage />
-						</FormItem>
-					)}
-				/>
+								</RadioGroup>
+								{isInvalid && <FieldError errors={field.state.meta.errors} />}
+							</Field>
+						);
+					}}
+				</form.Field>
+			</FieldSet>
 
-				<Button
-					type="submit"
-					className="mt-4"
-					onClick={form.handleSubmit(onSubmit)}
-				>
-					Send inn
-				</Button>
-			</form>
-		</Form>
+			<Button type="submit" className="mt-4" disabled={form.state.isSubmitting}>
+				{form.state.isSubmitting ? "Sender..." : "Send inn"}
+			</Button>
+		</form>
 	);
 }

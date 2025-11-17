@@ -190,7 +190,7 @@ export default function QRScannerControlled({
 					<track kind="captions" src="" label="captions" />
 				</video>
 				{(!running || paused) && (
-					<div className="pointer-events-none absolute inset-0 z-20 grid place-items-center bg-gradient-to-br from-muted/40 to-muted/10">
+					<div className="pointer-events-none absolute inset-0 z-20 grid place-items-center bg-linear-to-br from-muted/40 to-muted/10">
 						<div className="flex flex-col items-center gap-3 text-muted-foreground">
 							<div className="rounded-xl border border-border border-dashed bg-background/60 p-6 shadow-sm">
 								<QrCode className="h-16 w-16" />

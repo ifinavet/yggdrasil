@@ -116,7 +116,7 @@ export default function QRScannerDialog({
 			</DialogTrigger>
 			<DialogContent
 				className={cn(
-					"mx-auto sm:max-w-[28rem] md:max-w-xl xl:w-auto",
+					"mx-auto sm:max-w-md md:max-w-xl xl:w-auto",
 					contentClassName,
 				)}
 				showCloseButton={showCloseButton}

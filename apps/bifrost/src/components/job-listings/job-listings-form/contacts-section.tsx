@@ -1,17 +1,14 @@
 "use client";
 
-import { Button } from "@workspace/ui/components//button";
+import { Button } from "@workspace/ui/components/button";
 import {
-	FormControl,
-	FormDescription,
-	FormField,
-	FormItem,
-	FormLabel,
-	FormMessage,
-} from "@workspace/ui/components//form";
-import { Input } from "@workspace/ui/components//input";
+	Field,
+	FieldDescription,
+	FieldError,
+	FieldLabel,
+} from "@workspace/ui/components/field";
+import { Input } from "@workspace/ui/components/input";
 import { useCallback, useMemo, useState } from "react";
-import type { Control } from "react-hook-form";
 import { toast } from "sonner";
 import type { JobListingFormValues } from "@/constants/schemas/job-listing-form-schema";
 import {
@@ -21,30 +18,38 @@ import {
 import { ContactsTable } from "../job-listing-contacts-table/contacts-table";
 
 interface ContactsSectionProps {
-	readonly control: Control<JobListingFormValues>;
-	readonly contacts: JobListingFormValues["contacts"];
-	readonly onContactsChangeAction: (
-		contacts: JobListingFormValues["contacts"],
-	) => void;
+	readonly field: {
+		name: string;
+		state: {
+			value: JobListingFormValues["contacts"];
+			meta: {
+				isTouched: boolean;
+				isValid: boolean;
+				errors: Array<{ message?: string } | undefined>;
+			};
+		};
+		handleChange: (value: JobListingFormValues["contacts"]) => void;
+		handleBlur: () => void;
+	};
 }
 
 export default function ContactsSection({
-	control,
-	contacts,
-	onContactsChangeAction,
+	field,
 }: Readonly<ContactsSectionProps>) {
 	const [contactName, setContactName] = useState("");
 	const [contactEmail, setContactEmail] = useState("");
 	const [contactPhone, setContactPhone] = useState("");
 
+	const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+
 	const contactsData: JobListingContact[] = useMemo(
 		() =>
-			contacts.map((contact) => ({
+			field.state.value.map((contact) => ({
 				name: contact.name,
 				email: contact.email || "",
 				phone: contact.phone || "",
 			})),
-		[contacts],
+		[field.state.value],
 	);
 
 	const addContact = () => {
@@ -66,7 +71,7 @@ export default function ContactsSection({
 			phone: contactPhone,
 		};
 
-		onContactsChangeAction([...contacts, newContact]);
+		field.handleChange([...field.state.value, newContact]);
 
 		// Reset form fields
 		setContactName("");
@@ -76,10 +81,10 @@ export default function ContactsSection({
 
 	const deleteContact = useCallback(
 		(index: number) => {
-			const updatedContacts = contacts.filter((_, i) => i !== index);
-			onContactsChangeAction(updatedContacts);
+			const updatedContacts = field.state.value.filter((_, i) => i !== index);
+			field.handleChange(updatedContacts);
 		},
-		[contacts, onContactsChangeAction],
+		[field],
 	);
 
 	const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -92,48 +97,40 @@ export default function ContactsSection({
 	const columns = useMemo(() => createColumns(deleteContact), [deleteContact]);
 
 	return (
-		<FormField
-			control={control}
-			name="contacts"
-			render={() => (
-				<FormItem>
-					<FormLabel>Kontakter</FormLabel>
-					<FormControl>
-						<div className="flex flex-col gap-4">
-							<div className="flex gap-4">
-								<Input
-									placeholder="eks. Ole Hansen"
-									value={contactName}
-									onChange={(e) => setContactName(e.target.value)}
-									onKeyDown={handleKeyDown}
-								/>
-								<Input
-									type="email"
-									placeholder="eks. ole@hansen.no"
-									value={contactEmail}
-									onChange={(e) => setContactEmail(e.target.value)}
-									onKeyDown={handleKeyDown}
-								/>
-								<Input
-									type="tel"
-									placeholder="eks. +47 123 456 789"
-									value={contactPhone}
-									onChange={(e) => setContactPhone(e.target.value)}
-									onKeyDown={handleKeyDown}
-								/>
-								<Button type="button" onClick={addContact}>
-									Legg til
-								</Button>
-							</div>
-							<ContactsTable columns={columns} data={contactsData} />
-						</div>
-					</FormControl>
-					<FormDescription>
-						Dette er en liste over kontakter for stillingsannonsen.
-					</FormDescription>
-					<FormMessage />
-				</FormItem>
-			)}
-		/>
+		<Field data-invalid={isInvalid}>
+			<FieldLabel htmlFor={field.name}>Kontakter</FieldLabel>
+			<div className="flex flex-col gap-4">
+				<div className="flex gap-4">
+					<Input
+						placeholder="eks. Ole Hansen"
+						value={contactName}
+						onChange={(e) => setContactName(e.target.value)}
+						onKeyDown={handleKeyDown}
+					/>
+					<Input
+						type="email"
+						placeholder="eks. ole@hansen.no"
+						value={contactEmail}
+						onChange={(e) => setContactEmail(e.target.value)}
+						onKeyDown={handleKeyDown}
+					/>
+					<Input
+						type="tel"
+						placeholder="eks. +47 123 456 789"
+						value={contactPhone}
+						onChange={(e) => setContactPhone(e.target.value)}
+						onKeyDown={handleKeyDown}
+					/>
+					<Button type="button" onClick={addContact}>
+						Legg til
+					</Button>
+				</div>
+				<ContactsTable columns={columns} data={contactsData} />
+			</div>
+			<FieldDescription>
+				Dette er en liste over kontakter for stillingsannonsen.
+			</FieldDescription>
+			{isInvalid && <FieldError errors={field.state.meta.errors} />}
+		</Field>
 	);
 }

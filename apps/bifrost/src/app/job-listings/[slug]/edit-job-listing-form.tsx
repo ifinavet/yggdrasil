@@ -15,7 +15,10 @@ export default function EditJobListingForm({
 	listingId,
 }: Readonly<{ listingId: Id<"jobListings"> }>) {
 	const jobListing = useQuery(api.listings.getById, { id: listingId });
-	const company = useQuery(api.companies.getById, jobListing ? { id: jobListing.company } : "skip");
+	const company = useQuery(
+		api.companies.getById,
+		jobListing ? { id: jobListing.company } : "skip",
+	);
 
 	const postHog = usePostHog();
 
@@ -89,9 +92,11 @@ export default function EditJobListingForm({
 		applicationUrl: jobListing.applicationUrl,
 	};
 
-	const handlePrimaryFormSubmit = (values: JobListingFormValues) => handleUpdate(values, true);
+	const handlePrimaryFormSubmit = (values: JobListingFormValues) =>
+		handleUpdate(values, true);
 
-	const handleSecondaryFormSubmit = (values: JobListingFormValues) => handleUpdate(values, false);
+	const handleSecondaryFormSubmit = (values: JobListingFormValues) =>
+		handleUpdate(values, false);
 
 	const handleTertiaryFormSubmit = () => handleDelete(jobListing._id);
 

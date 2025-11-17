@@ -1,5 +1,10 @@
 import { Button } from "@workspace/ui/components//button";
-import { Card, CardContent, CardFooter, CardHeader } from "@workspace/ui/components//card";
+import {
+	Card,
+	CardContent,
+	CardFooter,
+	CardHeader,
+} from "@workspace/ui/components//card";
 import { Skeleton } from "@workspace/ui/components//skeleton";
 import { Plus, Users } from "lucide-react";
 

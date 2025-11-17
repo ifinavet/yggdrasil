@@ -16,7 +16,12 @@ import {
 	TableHeader,
 	TableRow,
 } from "@workspace/ui/components/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/components/tabs";
+import {
+	Tabs,
+	TabsContent,
+	TabsList,
+	TabsTrigger,
+} from "@workspace/ui/components/tabs";
 import { Plus } from "lucide-react";
 
 export default function JobListingsLoading() {
@@ -68,8 +73,8 @@ export default function JobListingsLoading() {
 							</TableRow>
 						</TableHeader>
 						<TableBody>
-							{Array.from({ length: 3 }).map(() => (
-								<TableRow key={`published-skeleton-row-${Math.random()}`}>
+							{Array.from({ length: 3 }).map((_, index) => (
+								<TableRow key={`published-skeleton-row-${index * 2}`}>
 									<TableCell>
 										<Skeleton className="h-4 w-48" />
 									</TableCell>
@@ -104,8 +109,8 @@ export default function JobListingsLoading() {
 									</TableRow>
 								</TableHeader>
 								<TableBody>
-									{Array.from({ length: 2 }).map(() => (
-										<TableRow key={`active-skeleton-row-${Math.random()}`}>
+									{Array.from({ length: 2 }).map((_, index) => (
+										<TableRow key={`active-skeleton-row-${index * 2}`}>
 											<TableCell>
 												<Skeleton className="h-4 w-48" />
 											</TableCell>
@@ -138,8 +143,8 @@ export default function JobListingsLoading() {
 									</TableRow>
 								</TableHeader>
 								<TableBody>
-									{Array.from({ length: 1 }).map(() => (
-										<TableRow key={`expired-skeleton-row-${Math.random()}`}>
+									{Array.from({ length: 1 }).map((_, index) => (
+										<TableRow key={`expired-skeleton-row-${index * 2}`}>
 											<TableCell>
 												<Skeleton className="h-4 w-48" />
 											</TableCell>

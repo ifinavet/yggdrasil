@@ -1,5 +1,6 @@
 "use client";
 
+import { useForm } from "@tanstack/react-form";
 import {
 	Popover,
 	PopoverContent,
@@ -27,14 +28,12 @@ import {
 	DialogTrigger,
 } from "@workspace/ui/components/dialog";
 import {
-	Form,
-	FormControl,
-	FormDescription,
-	FormField,
-	FormItem,
-	FormLabel,
-	FormMessage,
-} from "@workspace/ui/components/form";
+	Field,
+	FieldDescription,
+	FieldError,
+	FieldLabel,
+	FieldSet,
+} from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
 import {
 	Select,
@@ -47,12 +46,10 @@ import { cn } from "@workspace/ui/lib/utils";
 import { useQuery } from "convex/react";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
 import {
 	type boardMemberSchema,
 	formSchema,
 } from "@/constants/schemas/boardmember-form-schema";
-import { zodV4Resolver } from "@/utils/zod-v4-resolver";
 
 export default function BoardMemberForm({
 	defaultValues,
@@ -74,17 +71,21 @@ export default function BoardMemberForm({
 	className?: string;
 }>) {
 	const internalMembers = useQuery(api.internals.getAll);
-
-	const form = useForm<boardMemberSchema>({
-		resolver: zodV4Resolver(formSchema),
-		defaultValues,
-	});
-
 	const [openMembers, setOpenMembers] = useState(false);
+
+	const form = useForm({
+		defaultValues,
+		validators: {
+			onSubmit: formSchema,
+		},
+		onSubmit: async ({ value }) => {
+			onSubmitAction(value);
+		},
+	});
 
 	useEffect(() => {
 		if (!openDialog) {
-			form.reset(defaultValues);
+			form.reset();
 		}
 	}, [openDialog, form]);
 
@@ -107,18 +108,22 @@ export default function BoardMemberForm({
 					<DialogTitle>{title}</DialogTitle>
 					<DialogDescription>{description}</DialogDescription>
 				</DialogHeader>
-				<Form {...form}>
-					<form
-						onSubmit={form.handleSubmit(onSubmitAction)}
-						className="space-y-8"
-					>
-						<FormField
-							control={form.control}
-							name="userId"
-							render={({ field }) => (
-								<FormItem className="flex flex-col">
-									<FormLabel>Ansvarlige</FormLabel>
-									<FormControl>
+				<form
+					onSubmit={(e) => {
+						e.preventDefault();
+						e.stopPropagation();
+						form.handleSubmit();
+					}}
+					className="space-y-8"
+				>
+					<FieldSet>
+						<form.Field name="userId">
+							{(field) => {
+								const isInvalid =
+									field.state.meta.isTouched && !field.state.meta.isValid;
+								return (
+									<Field className="flex flex-col">
+										<FieldLabel>Ansvarlige</FieldLabel>
 										<Popover open={openMembers} onOpenChange={setOpenMembers}>
 											<PopoverTrigger asChild>
 												<Button
@@ -127,10 +132,10 @@ export default function BoardMemberForm({
 													className="w-[200px] justify-between"
 													type="button"
 												>
-													{field.value
+													{field.state.value
 														? internalMembers?.find(
 																(internalMember) =>
-																	internalMember.userId === field.value,
+																	internalMember.userId === field.state.value,
 															)?.fullName
 														: "Velg et medlem..."}
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -149,8 +154,8 @@ export default function BoardMemberForm({
 																	key={internalMember.userId}
 																	value={internalMember.userId ?? "Ukjent"}
 																	onSelect={(currentValue) => {
-																		field.onChange(
-																			currentValue === field.value
+																		field.handleChange(
+																			currentValue === field.state.value
 																				? ""
 																				: currentValue,
 																		);
@@ -160,7 +165,8 @@ export default function BoardMemberForm({
 																	<Check
 																		className={cn(
 																			"mr-2 h-4 w-4",
-																			field.value === internalMember.userId
+																			field.state.value ===
+																				internalMember.userId
 																				? "opacity-100"
 																				: "opacity-0",
 																		)}
@@ -173,72 +179,111 @@ export default function BoardMemberForm({
 												</Command>
 											</PopoverContent>
 										</Popover>
-									</FormControl>
-									<FormDescription>Velg hvem som har vervet.</FormDescription>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="role"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Rolle</FormLabel>
-									<FormControl>
-										<Input {...field} placeholder="f.eks. Leder" />
-									</FormControl>
-									<FormDescription>Hva skal vervet hete?</FormDescription>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
+										<FieldDescription>
+											Velg hvem som har vervet.
+										</FieldDescription>
+										{isInvalid && (
+											<FieldError errors={field.state.meta.errors} />
+										)}
+									</Field>
+								);
+							}}
+						</form.Field>
 
-						<FormField
-							control={form.control}
-							name="group"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Gruppe</FormLabel>
-									<FormControl>
-										<Input {...field} placeholder="f.eks. Webgruppen" />
-									</FormControl>
-									<FormDescription>
-										Hva skal gruppen til vervet hete?
-									</FormDescription>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
+						<form.Field name="role">
+							{(field) => {
+								const isInvalid =
+									field.state.meta.isTouched && !field.state.meta.isValid;
+								return (
+									<Field>
+										<FieldLabel htmlFor={field.name}>Rolle</FieldLabel>
+										<Input
+											id={field.name}
+											name={field.name}
+											value={field.state.value}
+											onChange={(e) => field.handleChange(e.target.value)}
+											onBlur={field.handleBlur}
+											aria-invalid={isInvalid}
+											placeholder="f.eks. Leder"
+										/>
+										<FieldDescription>Hva skal vervet hete?</FieldDescription>
+										{isInvalid && (
+											<FieldError errors={field.state.meta.errors} />
+										)}
+									</Field>
+								);
+							}}
+						</form.Field>
 
-						<FormField
-							control={form.control}
-							name="positionEmail"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Rolle epost</FormLabel>
-									<FormControl>
-										<Input {...field} placeholder="f.eks. leder@ifinavet.no" />
-									</FormControl>
-									<FormDescription>
-										En valgri epost som bli brukt isteden for rolle inhaver sin
-										egen.
-									</FormDescription>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
+						<form.Field name="group">
+							{(field) => {
+								const isInvalid =
+									field.state.meta.isTouched && !field.state.meta.isValid;
+								return (
+									<Field>
+										<FieldLabel htmlFor={field.name}>Gruppe</FieldLabel>
+										<Input
+											id={field.name}
+											name={field.name}
+											value={field.state.value}
+											onChange={(e) => field.handleChange(e.target.value)}
+											onBlur={field.handleBlur}
+											aria-invalid={isInvalid}
+											placeholder="f.eks. Webgruppen"
+										/>
+										<FieldDescription>
+											Hva skal gruppen til vervet hete?
+										</FieldDescription>
+										{isInvalid && (
+											<FieldError errors={field.state.meta.errors} />
+										)}
+									</Field>
+								);
+							}}
+						</form.Field>
 
-						<FormField
-							control={form.control}
-							name="accessRole"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Tilgangsrolle</FormLabel>
-									<FormControl>
+						<form.Field name="positionEmail">
+							{(field) => {
+								const isInvalid =
+									field.state.meta.isTouched && !field.state.meta.isValid;
+								return (
+									<Field>
+										<FieldLabel htmlFor={field.name}>Rolle epost</FieldLabel>
+										<Input
+											id={field.name}
+											name={field.name}
+											value={field.state.value || ""}
+											onChange={(e) => field.handleChange(e.target.value)}
+											onBlur={field.handleBlur}
+											aria-invalid={isInvalid}
+											placeholder="f.eks. leder@ifinavet.no"
+										/>
+										<FieldDescription>
+											En valgri epost som bli brukt isteden for rolle inhaver
+											sin egen.
+										</FieldDescription>
+										{isInvalid && (
+											<FieldError errors={field.state.meta.errors} />
+										)}
+									</Field>
+								);
+							}}
+						</form.Field>
+
+						<form.Field name="accessRole">
+							{(field) => {
+								const isInvalid =
+									field.state.meta.isTouched && !field.state.meta.isValid;
+								return (
+									<Field>
+										<FieldLabel htmlFor={field.name}>Tilgangsrolle</FieldLabel>
 										<Select
-											onValueChange={field.onChange}
-											defaultValue={field.value}
+											onValueChange={(value) =>
+												field.handleChange(
+													value as (typeof ACCESS_RIGHTS)[number],
+												)
+											}
+											defaultValue={field.state.value}
 										>
 											<SelectTrigger>
 												<SelectValue
@@ -258,22 +303,28 @@ export default function BoardMemberForm({
 												))}
 											</SelectContent>
 										</Select>
-									</FormControl>
-									<FormDescription>
-										Hva slags tilgangsrolle skal denne personen ha?
-									</FormDescription>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-					</form>
-				</Form>
+										<FieldDescription>
+											Hva slags tilgangsrolle skal denne personen ha?
+										</FieldDescription>
+										{isInvalid && (
+											<FieldError errors={field.state.meta.errors} />
+										)}
+									</Field>
+								);
+							}}
+						</form.Field>
+					</FieldSet>
+				</form>
 				<DialogFooter>
 					<DialogClose asChild>
 						<Button variant="outline">Avbryt</Button>
 					</DialogClose>
-					<Button type="submit" onClick={form.handleSubmit(onSubmitAction)}>
-						Lagre
+					<Button
+						type="submit"
+						disabled={form.state.isSubmitting}
+						onClick={() => form.handleSubmit()}
+					>
+						{form.state.isSubmitting ? "Lagrer..." : "Lagre"}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

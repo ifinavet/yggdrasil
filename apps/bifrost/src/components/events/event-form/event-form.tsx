@@ -1,5 +1,6 @@
 "use client";
 
+import { useForm, useStore } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
 import {
 	Select,
@@ -7,9 +8,8 @@ import {
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
-} from "@workspace/ui/components//select";
-import { Separator } from "@workspace/ui/components//separator";
-import { Textarea } from "@workspace/ui/components//textarea";
+} from "@workspace/ui/components/select";
+import { Textarea } from "@workspace/ui/components/textarea";
 import { Button } from "@workspace/ui/components/button";
 import {
 	Command,
@@ -20,14 +20,14 @@ import {
 	CommandList,
 } from "@workspace/ui/components/command";
 import {
-	Form,
-	FormControl,
-	FormDescription,
-	FormField,
-	FormItem,
-	FormLabel,
-	FormMessage,
-} from "@workspace/ui/components/form";
+	Field,
+	FieldDescription,
+	FieldError,
+	FieldLabel,
+	FieldSeparator,
+	FieldSet,
+	FieldGroup,
+} from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
 import {
 	Popover,
@@ -37,16 +37,18 @@ import {
 import { cn } from "@workspace/ui/lib/utils";
 import { useQuery } from "convex/react";
 import { Check, ChevronsUpDown, EyeOff, Save, Send } from "lucide-react";
-import { useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useState } from "react";
 import {
 	type EventFormValues,
 	formSchema,
 } from "@/constants/schemas/event-form-schema";
-import { zodV4Resolver } from "@/utils/zod-v4-resolver";
 import Organizers from "./organizers";
 import DescriptionEditor from "@/components/common/forms/markdown-editor/editor";
 import DateTimePicker from "@/components/common/forms/date-time-picker";
+
+type FormMeta = {
+	submitAction: "primary" | "secondary" | "tertiary";
+};
 
 export default function EventForm({
 	onDefaultSubmitAction,
@@ -59,269 +61,359 @@ export default function EventForm({
 	onTertiarySubmitAction?: (values: EventFormValues) => void;
 	defaultValues: EventFormValues;
 }>) {
-	const form = useForm<EventFormValues>({
-		resolver: zodV4Resolver(formSchema),
-		defaultValues: defaultValues,
+	const form = useForm({
+		defaultValues,
+		validators: {
+			onSubmit: formSchema,
+		},
+		onSubmitMeta: {
+			submitAction: "primary",
+		} as FormMeta,
+		onSubmit: async ({ value, meta }) => {
+			switch (meta.submitAction) {
+				case "primary":
+					onDefaultSubmitAction(value);
+					break;
+				case "secondary":
+					onSecondarySubmitAction(value);
+					break;
+				case "tertiary":
+					onTertiarySubmitAction?.(value);
+					break;
+				default:
+					break;
+			}
+		},
 	});
 
-	const watchedEventType = form.watch("eventType");
-
 	const [openCompanies, setOpenCompanies] = useState(false);
+	const [companyValue, setCompanyValue] = useState(
+		form.state.values.hostingCompany.name,
+	);
+
+	const isExternal = useStore(form.store, (state) => state.values.eventType);
 
 	const companies = useQuery(api.companies.getAll);
 
-	// Get the current hostingCompany object from form
-	const selectedHostingCompany = form.watch("hostingCompany");
-	const selectedCompany = companies?.find(
-		(company) => company._id === selectedHostingCompany?.id,
-	);
-
-	// Derive companyValue directly from form data
-	const companyValue = selectedCompany?.name || "";
-
-	const isExternalEvent = useMemo(
-		() => watchedEventType === "external_event",
-		[watchedEventType],
-	);
-
 	return (
-		<Form {...form}>
-			<form
-				onSubmit={form.handleSubmit(onDefaultSubmitAction)}
-				className="space-y-8"
-			>
-				{/* Title */}
-				<FormField
-					control={form.control}
-					name="title"
-					render={({ field }) => (
-						<FormItem>
-							<FormLabel>Tittel</FormLabel>
-							<FormControl>
-								<Input
-									placeholder="Bedriftspresentasjon med Navet"
-									{...field}
-								/>
-							</FormControl>
-							<FormDescription>
-								Dette er hva arrangementet skal hete.
-							</FormDescription>
-							<FormMessage />
-						</FormItem>
-					)}
-				/>
-				<Separator />
-
-				{/* Event metadata */}
-				<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-					<FormField
-						control={form.control}
-						name="food"
-						render={({ field }) => (
-							<FormItem>
-								<FormLabel>Mat</FormLabel>
-								<FormControl>
-									<Input placeholder="Sushi" {...field} />
-								</FormControl>
-								<FormMessage />
-							</FormItem>
-						)}
-					/>
-					<FormField
-						control={form.control}
-						name="location"
-						render={({ field }) => (
-							<FormItem>
-								<FormLabel>Sted</FormLabel>
-								<FormControl>
-									<Input placeholder="Månen" {...field} />
-								</FormControl>
-								<FormMessage />
-							</FormItem>
-						)}
-					/>
-					<FormField
-						control={form.control}
-						name="participantsLimit"
-						render={({ field }) => (
-							<FormItem>
-								<FormLabel>Deltaker grense</FormLabel>
-								<FormControl>
+		<form className="space-y-4">
+			<FieldSet>
+				<FieldGroup>
+					<form.Field name="title">
+						{(field) => {
+							const isInvalid =
+								field.state.meta.isTouched && !field.state.meta.isValid;
+							return (
+								<Field>
+									<FieldLabel htmlFor={field.name}>Tittel</FieldLabel>
 									<Input
-										placeholder="40"
+										id={field.name}
+										name={field.name}
+										value={field.state.value}
+										onChange={(e) => field.handleChange(e.target.value)}
+										onBlur={field.handleBlur}
+										aria-invalid={isInvalid}
+										placeholder="Bedriftspresentasjon med Navet"
+										className="truncate"
+									/>
+									{isInvalid && <FieldError errors={field.state.meta.errors} />}
+									<FieldDescription>
+										Dette er hva arrangementet skal hete.
+									</FieldDescription>
+								</Field>
+							);
+						}}
+					</form.Field>
+				</FieldGroup>
+
+				<FieldSeparator />
+
+				<FieldGroup className="grid grid-cols-1 gap-4 md:grid-cols-2">
+					<form.Field name="food">
+						{(field) => {
+							const isInvalid =
+								field.state.meta.isTouched && !field.state.meta.isValid;
+							return (
+								<Field>
+									<FieldLabel htmlFor={field.name}>Mat</FieldLabel>
+									<Input
+										id={field.name}
+										name={field.name}
+										value={field.state.value}
+										onChange={(e) => field.handleChange(e.target.value)}
+										onBlur={field.handleBlur}
+										aria-invalid={isInvalid}
+										placeholder="Sushi"
+									/>
+									{isInvalid && <FieldError errors={field.state.meta.errors} />}
+								</Field>
+							);
+						}}
+					</form.Field>
+
+					<form.Field name="location">
+						{(field) => {
+							const isInvalid =
+								field.state.meta.isTouched && !field.state.meta.isValid;
+							return (
+								<Field>
+									<FieldLabel htmlFor={field.name}>Sted</FieldLabel>
+									<Input
+										id={field.name}
+										name={field.name}
+										value={field.state.value}
+										onChange={(e) => field.handleChange(e.target.value)}
+										onBlur={field.handleBlur}
+										aria-invalid={isInvalid}
+										placeholder="Månen"
+									/>
+									{isInvalid && <FieldError errors={field.state.meta.errors} />}
+								</Field>
+							);
+						}}
+					</form.Field>
+
+					<form.Field name="participantsLimit">
+						{(field) => {
+							const isInvalid =
+								field.state.meta.isTouched && !field.state.meta.isValid;
+							return (
+								<Field>
+									<FieldLabel htmlFor={field.name}>Deltaker grense</FieldLabel>
+									<Input
+										id={field.name}
+										name={field.name}
 										type="number"
-										value={field.value === 0 ? "" : field.value}
+										value={field.state.value === 0 ? "" : field.state.value}
 										onChange={(e) => {
 											const inputValue = e.target.value;
 											if (inputValue === "") {
-												field.onChange(0);
+												field.handleChange(0);
 											} else {
 												const numValue = Number.parseInt(inputValue, 10);
-												field.onChange(Number.isNaN(numValue) ? 0 : numValue);
+												field.handleChange(
+													Number.isNaN(numValue) ? 0 : numValue,
+												);
 											}
 										}}
-										name={field.name}
+										onBlur={field.handleBlur}
+										aria-invalid={isInvalid}
+										placeholder="40"
 										min="0"
 									/>
-								</FormControl>
-								<FormMessage />
-							</FormItem>
-						)}
-					/>
-					<FormField
-						control={form.control}
-						name="ageRestrictions"
-						render={({ field }) => (
-							<FormItem>
-								<FormLabel>Aldersbegrensninger</FormLabel>
-								<FormControl>
-									<Input placeholder="18 års aldersgrense" {...field} />
-								</FormControl>
-								<FormMessage />
-							</FormItem>
-						)}
-					/>
-					<FormField
-						control={form.control}
-						name="language"
-						render={({ field }) => (
-							<FormItem>
-								<FormLabel>Språk</FormLabel>
-								<FormControl>
-									<Input placeholder="Norsk" {...field} />
-								</FormControl>
-								<FormMessage />
-							</FormItem>
-						)}
-					/>
-					<FormField
-						control={form.control}
-						name="hostingCompany"
-						render={({ field }) => (
-							<FormItem>
-								<FormLabel>Velg arrangerende bedrift</FormLabel>
-								<Popover open={openCompanies} onOpenChange={setOpenCompanies}>
-									<PopoverTrigger asChild>
-										<Button
-											variant="outline"
-											aria-expanded={openCompanies}
-											className="justify-between"
-										>
-											{selectedCompany?.name || "Velg en bedrift..."}
-											<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-										</Button>
-									</PopoverTrigger>
-									<PopoverContent className="w-[200px] p-0" align="start">
-										<Command>
-											<CommandInput placeholder="Søk etter bedrift..." />
-											<CommandList>
-												<CommandEmpty>Fant ingen bedrift(er).</CommandEmpty>
-												<CommandGroup>
-													{companies?.map((company) => (
-														<CommandItem
-															key={company._id}
-															value={company.name}
-															onSelect={(currentValue) => {
-																if (currentValue === companyValue) {
-																	field.onChange({ name: "", id: "" });
-																} else {
-																	field.onChange({
-																		name: company.name,
+									{isInvalid && <FieldError errors={field.state.meta.errors} />}
+								</Field>
+							);
+						}}
+					</form.Field>
+
+					<form.Field name="ageRestrictions">
+						{(field) => {
+							const isInvalid =
+								field.state.meta.isTouched && !field.state.meta.isValid;
+							return (
+								<Field>
+									<FieldLabel htmlFor={field.name}>
+										Aldersbegrensninger
+									</FieldLabel>
+									<Input
+										id={field.name}
+										name={field.name}
+										value={field.state.value}
+										onChange={(e) => field.handleChange(e.target.value)}
+										onBlur={field.handleBlur}
+										aria-invalid={isInvalid}
+										placeholder="18 års aldersgrense"
+									/>
+									{isInvalid && <FieldError errors={field.state.meta.errors} />}
+								</Field>
+							);
+						}}
+					</form.Field>
+
+					<form.Field name="language">
+						{(field) => {
+							const isInvalid =
+								field.state.meta.isTouched && !field.state.meta.isValid;
+							return (
+								<Field>
+									<FieldLabel htmlFor={field.name}>Språk</FieldLabel>
+									<Input
+										id={field.name}
+										name={field.name}
+										value={field.state.value}
+										onChange={(e) => field.handleChange(e.target.value)}
+										onBlur={field.handleBlur}
+										aria-invalid={isInvalid}
+										placeholder="Norsk"
+									/>
+									{isInvalid && <FieldError errors={field.state.meta.errors} />}
+								</Field>
+							);
+						}}
+					</form.Field>
+
+					<form.Field name="hostingCompany">
+						{(field) => {
+							const isInvalid =
+								field.state.meta.isTouched && !field.state.meta.isValid;
+
+							return (
+								<Field className="min-w-0 md:w-full">
+									<FieldLabel>Velg arrangerende bedrift</FieldLabel>
+									<Popover open={openCompanies} onOpenChange={setOpenCompanies}>
+										<PopoverTrigger asChild>
+											<Button
+												variant="outline"
+												aria-expanded={openCompanies}
+												className="justify-between truncate"
+											>
+												{companyValue
+													? companies?.find(
+															(company) => company.name === companyValue,
+														)?.name
+													: "Velg en bedrift..."}
+												<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+											</Button>
+										</PopoverTrigger>
+										<PopoverContent className="w-[200px] p-0" align="start">
+											<Command>
+												<CommandInput placeholder="Søk etter bedrift..." />
+												<CommandList>
+													<CommandEmpty>Fant ingen bedrift(er).</CommandEmpty>
+													<CommandGroup>
+														{companies?.map((company) => (
+															<CommandItem
+																key={company._id}
+																value={company.name}
+																onSelect={(currentValue) => {
+																	setCompanyValue(
+																		currentValue === companyValue
+																			? ""
+																			: currentValue,
+																	);
+																	field.handleChange({
+																		name: currentValue,
 																		id: company._id,
 																	});
-																}
-																setOpenCompanies(false);
-															}}
-														>
-															<Check
-																className={cn(
-																	"mr-2 h-4 w-4",
-																	selectedHostingCompany?.id === company._id
-																		? "opacity-100"
-																		: "opacity-0",
-																)}
-															/>
-															{company.name}
-														</CommandItem>
-													))}
-												</CommandGroup>
-											</CommandList>
-										</Command>
-									</PopoverContent>
-								</Popover>
-								<FormMessage />
-							</FormItem>
+																	setOpenCompanies(false);
+																}}
+															>
+																<Check
+																	className={cn(
+																		"mr-2 h-4 w-4",
+																		companyValue === company.name
+																			? "opacity-100"
+																			: "opacity-0",
+																	)}
+																/>
+																{company.name}
+															</CommandItem>
+														))}
+													</CommandGroup>
+												</CommandList>
+											</Command>
+										</PopoverContent>
+									</Popover>
+									{isInvalid && <FieldError errors={field.state.meta.errors} />}
+									<FieldDescription>
+										Velg hvilken bedrift annonsen skal være knyttet til
+									</FieldDescription>
+								</Field>
+							);
+						}}
+					</form.Field>
+				</FieldGroup>
+
+				<FieldSeparator />
+
+				<FieldGroup className="grid gap-4 sm:grid-cols-2">
+					<form.Field name="eventDate">
+						{(field) => (
+							<DateTimePicker
+								field={field}
+								label="Dato og tid for arrangements start"
+								description="Velg dato og tid for når arrangementet starter"
+							/>
 						)}
-					/>
-				</div>
-				<Separator />
+					</form.Field>
 
-				{/* Event time and date pickers */}
-				<div className="grid gap-4 sm:grid-cols-2">
-					<DateTimePicker
-						form={form}
-						fieldName="eventDate"
-						label="Dato og tid for arrangements start"
-						description="Velg dato og tid for når arrangementet starter"
-					/>
-					<DateTimePicker
-						form={form}
-						fieldName="registrationDate"
-						label="Dato og tid for åpning av påmelding"
-						description="Velg dato og tid for åpning av påmeldingen av arrangementet"
-					/>
-				</div>
-				<Separator />
+					<form.Field name="registrationDate">
+						{(field) => (
+							<DateTimePicker
+								field={field}
+								label="Dato og tid for åpning av påmelding"
+								description="Velg dato og tid for åpning av påmeldingen av arrangementet"
+							/>
+						)}
+					</form.Field>
+				</FieldGroup>
 
-				{/* Teaser */}
-				<FormField
-					control={form.control}
-					name="teaser"
-					render={({ field }) => (
-						<FormItem>
-							<FormLabel>Teaser</FormLabel>
-							<FormControl>
+				<FieldSeparator />
+
+				<form.Field name="teaser">
+					{(field) => {
+						const isInvalid =
+							field.state.meta.isTouched && !field.state.meta.isValid;
+
+						return (
+							<Field>
+								<FieldLabel htmlFor={field.name}>Teaser</FieldLabel>
 								<Textarea
+									id={field.name}
+									name={field.name}
+									value={field.state.value}
+									onChange={(e) => field.handleChange(e.target.value)}
+									onBlur={field.handleBlur}
+									aria-invalid={isInvalid}
+									className="truncate"
 									placeholder="Velkommen til en magisk aften med Navet"
-									{...field}
 								/>
-							</FormControl>
-							<FormDescription>
-								Dette er en liten teaser av arrangementet.
-							</FormDescription>
-							<FormMessage />
-						</FormItem>
+								{isInvalid && <FieldError errors={field.state.meta.errors} />}
+								<FieldDescription>
+									Dette er en liten teaser av arrangementet.
+								</FieldDescription>
+							</Field>
+						);
+					}}
+				</form.Field>
+
+				<form.Field name="description">
+					{(field) => (
+						<DescriptionEditor
+							field={field}
+							title="Beskrivelse"
+							description="Dette er beskrivelsen for arrangementet."
+						/>
 					)}
-				/>
+				</form.Field>
 
-				{/* Description */}
-				<DescriptionEditor
-					description="Dette er beskrivelsen for arrangementet."
-					title="Beskrivelse"
-					form={form}
-					fieldName="description"
-				/>
-				<Separator />
+				<FieldSeparator />
 
-				{/* Organizsers */}
-				<Organizers form={form} />
-				<Separator />
+				<form.Field name="organizers">
+					{(field) => <Organizers field={field} />}
+				</form.Field>
 
-				{/* External event */}
-				<FormField
-					control={form.control}
-					name="eventType"
-					render={({ field }) => (
-						<FormItem>
-							<FormLabel>Arrangementtype</FormLabel>
-							<FormControl>
+				<FieldSeparator />
+
+				<form.Field name="eventType">
+					{(field) => {
+						const isInvalid =
+							field.state.meta.isTouched && !field.state.meta.isValid;
+
+						return (
+							<Field>
+								<FieldLabel htmlFor={field.name}>Arrangementtype</FieldLabel>
 								<Select
 									onValueChange={(value) => {
-										field.onChange(value);
-										if (value === "internal_event")
-											form.setValue("externalUrl", "");
+										field.handleChange(
+											value as "internal_event" | "external_event",
+										);
+										if (value === "internal_event") {
+											form.setFieldValue("externalUrl", "");
+										}
 									}}
-									defaultValue={field.value}
+									value={field.state.value}
 								>
 									<SelectTrigger className="w-[180px]">
 										<SelectValue placeholder="Velg arrangementtype" />
@@ -331,64 +423,71 @@ export default function EventForm({
 										<SelectItem value="external_event">Eksternt</SelectItem>
 									</SelectContent>
 								</Select>
-							</FormControl>
-							<FormMessage />
-						</FormItem>
-					)}
-				/>
-				{isExternalEvent && (
-					<FormField
-						control={form.control}
-						name="externalUrl"
-						render={({ field }) => (
-							<FormItem>
-								<FormLabel>Link til arrangementet</FormLabel>
-								<FormControl>
-									<Input placeholder="f.eks. https://ifinavet.no/" {...field} />
-								</FormControl>
-								<FormDescription>
-									Legg til en url til det eksterne arrangementet
-								</FormDescription>
-								<FormMessage />
-							</FormItem>
-						)}
-					/>
-				)}
-				<Separator />
+								{isInvalid && <FieldError errors={field.state.meta.errors} />}
+							</Field>
+						);
+					}}
+				</form.Field>
 
-				{/* Submit form */}
-				<div className="mb-4 flex gap-4">
+				{isExternal === "external_event" && (
+					<form.Field name="externalUrl">
+						{(field) => {
+							const isInvalid =
+								field.state.meta.isTouched && !field.state.meta.isValid;
+							return (
+								<Field>
+									<FieldLabel htmlFor={field.name}>
+										Link til arrangementet
+									</FieldLabel>
+									<Input
+										id={field.name}
+										name={field.name}
+										value={field.state.value || ""}
+										onChange={(e) => field.handleChange(e.target.value)}
+										onBlur={field.handleBlur}
+										aria-invalid={isInvalid}
+										placeholder="f.eks. https://ifinavet.no/"
+										className="truncate"
+									/>
+									{isInvalid && <FieldError errors={field.state.meta.errors} />}
+									<FieldDescription>
+										Legg til en url til det eksterne arrangementet
+									</FieldDescription>
+								</Field>
+							);
+						}}
+					</form.Field>
+				)}
+			</FieldSet>
+
+			<div className="mb-4 flex gap-4">
+				<Button
+					type="button"
+					disabled={form.state.isSubmitting}
+					onClick={() => form.handleSubmit({ submitAction: "primary" })}
+				>
+					<Send /> {form.state.isSubmitting ? "Jobber..." : "Lagre og publiser"}
+				</Button>
+				<Button
+					type="button"
+					disabled={form.state.isSubmitting}
+					variant="secondary"
+					onClick={() => form.handleSubmit({ submitAction: "secondary" })}
+				>
+					<Save /> {form.state.isSubmitting ? "Jobber..." : "Lagre"}
+				</Button>
+				{onTertiarySubmitAction && (
 					<Button
-						type="submit"
-						disabled={form.formState.isSubmitting}
-						onClick={form.handleSubmit(onDefaultSubmitAction)}
+						type="button"
+						disabled={form.state.isSubmitting}
+						variant="destructive"
+						onClick={() => form.handleSubmit({ submitAction: "tertiary" })}
 					>
-						<Send />{" "}
-						{form.formState.isSubmitting ? "Jobber..." : "Lagre og publiser"}
+						<EyeOff />{" "}
+						{form.state.isSubmitting ? "Jobber..." : "Lagre og avpubliser"}
 					</Button>
-					<Button
-						type="submit"
-						disabled={form.formState.isSubmitting}
-						variant="secondary"
-						onClick={form.handleSubmit(onSecondarySubmitAction)}
-					>
-						<Save /> {form.formState.isSubmitting ? "Jobber..." : "Lagre"}
-					</Button>
-					{onTertiarySubmitAction && (
-						<Button
-							type="submit"
-							disabled={form.formState.isSubmitting}
-							variant="destructive"
-							onClick={form.handleSubmit(onTertiarySubmitAction)}
-						>
-							<EyeOff />{" "}
-							{form.formState.isSubmitting
-								? "Jobber..."
-								: "Lagre og avpubliser"}
-						</Button>
-					)}
-				</div>
-			</form>
-		</Form>
+				)}
+			</div>
+		</form>
 	);
 }

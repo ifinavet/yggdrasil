@@ -6,8 +6,11 @@ import { headers } from "next/headers";
 import type { Event } from "@/constants/types";
 import EventCard from "./event-card";
 
-export default async function EventsGrid() {
-	const pathname = (await headers()).get("x-searchParams");
+export default async function EventsGrid({
+	pathname,
+}: Readonly<{ pathname: string }>) {
+	"use cache";
+
 	let searchParams: URLSearchParams | undefined;
 	if (pathname) searchParams = new URLSearchParams(pathname);
 

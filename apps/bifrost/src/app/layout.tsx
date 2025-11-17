@@ -33,48 +33,56 @@ const interSans = Inter({
 	subsets: ["latin"],
 });
 
-export default async function RootLayout({
+export default function RootLayout({
 	children,
 }: Readonly<{
 	readonly children: React.ReactNode;
 }>) {
-	const hasRights = await hasBasicRights();
-
 	return (
 		// biome-ignore lint: This is a valid html attribute
 		<html lang="nb" suppressHydrationWarning>
 			<body className={`antialiased ${interSans.className}`}>
-				<ClerkProvider>
-					<ConvexClientProvider>
-						<SidebarProvider>
-							<ThemeProvider
-								attribute="class"
-								defaultTheme="system"
-								enableSystem
-								disableTransitionOnChange
-							>
-								{!hasRights ? (
-									<UnauthorizedPage />
-								) : (
-									<>
-										<BifrostSidebar />
-										<SidebarInset className="max-h-full">
-											<Header />
-											<main className="flex max-h-full flex-col gap-4 p-4">
-												{children}
-											</main>
-										</SidebarInset>
-										<Toaster richColors position="top-center" />
-										<Suspense fallback={null}>
-											<PostHogPageView />
-										</Suspense>
-									</>
-								)}
-							</ThemeProvider>
-						</SidebarProvider>
-					</ConvexClientProvider>
-				</ClerkProvider>
+				<Suspense fallback={null}>
+					<ClerkProvider>
+						<ConvexClientProvider>
+							<SidebarProvider>
+								<ThemeProvider
+									attribute="class"
+									defaultTheme="system"
+									enableSystem
+									disableTransitionOnChange
+								>
+									<Suspense fallback={null}>
+										<AuthorizedContent>{children}</AuthorizedContent>
+									</Suspense>
+								</ThemeProvider>
+							</SidebarProvider>
+						</ConvexClientProvider>
+					</ClerkProvider>
+				</Suspense>
 			</body>
 		</html>
+	);
+}
+
+async function AuthorizedContent({ children }: { children: React.ReactNode }) {
+	const hasRights = await hasBasicRights();
+
+	if (!hasRights) {
+		return <UnauthorizedPage />;
+	}
+
+	return (
+		<>
+			<BifrostSidebar />
+			<SidebarInset className="max-h-full">
+				<Header />
+				<main className="flex max-h-full flex-col gap-4 p-4">{children}</main>
+			</SidebarInset>
+			<Toaster richColors position="top-center" />
+			<Suspense fallback={null}>
+				<PostHogPageView />
+			</Suspense>
+		</>
 	);
 }

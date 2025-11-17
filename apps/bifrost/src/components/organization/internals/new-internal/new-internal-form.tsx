@@ -1,5 +1,6 @@
 "use client";
 
+import { useForm } from "@tanstack/react-form";
 import type { Doc } from "@workspace/backend/convex/dataModel";
 import { Button } from "@workspace/ui/components/button";
 import {
@@ -13,22 +14,18 @@ import {
 	DialogTrigger,
 } from "@workspace/ui/components/dialog";
 import {
-	Form,
-	FormControl,
-	FormDescription,
-	FormField,
-	FormItem,
-	FormLabel,
-	FormMessage,
-} from "@workspace/ui/components/form";
+	Field,
+	FieldDescription,
+	FieldError,
+	FieldLabel,
+	FieldSet,
+} from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
 import {
 	type InternalMemberFormValues,
 	internalMemberFormSchema,
 } from "@/constants/schemas/internal-member-form-shcema";
-import { zodV4Resolver } from "@/utils/zod-v4-resolver";
 import NewInternalSearch from "./new-internal-search";
 
 export default function InternalMemberForm({
@@ -50,22 +47,27 @@ export default function InternalMemberForm({
 	button: React.ReactNode;
 	className?: string;
 }>) {
-	const form = useForm<InternalMemberFormValues>({
-		resolver: zodV4Resolver(internalMemberFormSchema),
+	const [selectedUser, setSelectedUser] = useState<Doc<"users"> | null>(null);
+
+	const form = useForm({
 		defaultValues,
+		validators: {
+			onSubmit: internalMemberFormSchema,
+		},
+		onSubmit: async ({ value }) => {
+			onSubmitAction(value);
+		},
 	});
 
 	useEffect(() => {
 		if (!openDialog) {
-			form.reset(defaultValues);
+			form.reset();
 		}
-	}, [openDialog, defaultValues, form]);
-
-	const [selectedUser, setSelectedUser] = useState<Doc<"users"> | null>(null);
+	}, [openDialog, form]);
 
 	const handleUserSelect = (user: Doc<"users"> | null) => {
 		setSelectedUser(user);
-		form.setValue("userId", user?._id || "");
+		form.setFieldValue("userId", user?._id || "");
 	};
 
 	return (
@@ -80,50 +82,68 @@ export default function InternalMemberForm({
 					<DialogTitle>{title}</DialogTitle>
 					<DialogDescription>{description}</DialogDescription>
 				</DialogHeader>
-				<Form {...form}>
-					<form
-						onSubmit={form.handleSubmit(onSubmitAction)}
-						className="space-y-8"
-					>
-						<FormField
-							control={form.control}
-							name="userId"
-							render={() => (
-								<FormItem className="flex flex-col">
-									<FormLabel>Velg bruker</FormLabel>
-									<FormControl>
-										<NewInternalSearch
-											selectedUser={selectedUser}
-											setSelectedUserAction={handleUserSelect}
+				<form
+					onSubmit={(e) => {
+						e.preventDefault();
+						e.stopPropagation();
+						form.handleSubmit();
+					}}
+					className="space-y-8"
+				>
+					<FieldSet>
+						<form.Field name="userId">
+							{(field) => (
+								<Field className="flex flex-col">
+									<FieldLabel>Velg bruker</FieldLabel>
+									<NewInternalSearch
+										selectedUser={selectedUser}
+										setSelectedUserAction={handleUserSelect}
+									/>
+									{field.state.meta.isTouched && !field.state.meta.isValid && (
+										<FieldError errors={field.state.meta.errors} />
+									)}
+								</Field>
+							)}
+						</form.Field>
+
+						<form.Field name="group">
+							{(field) => {
+								const isInvalid =
+									field.state.meta.isTouched && !field.state.meta.isValid;
+								return (
+									<Field>
+										<FieldLabel htmlFor={field.name}>Gruppe</FieldLabel>
+										<Input
+											id={field.name}
+											name={field.name}
+											value={field.state.value}
+											onChange={(e) => field.handleChange(e.target.value)}
+											onBlur={field.handleBlur}
+											aria-invalid={isInvalid}
+											placeholder="f.eks. Webgruppen"
 										/>
-									</FormControl>
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="group"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Gruppe</FormLabel>
-									<FormControl>
-										<Input {...field} placeholder="f.eks. Webgruppen" />
-									</FormControl>
-									<FormDescription>
-										Hva skal gruppen til vervet hete?
-									</FormDescription>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-					</form>
-				</Form>
+										<FieldDescription>
+											Hva skal gruppen til vervet hete?
+										</FieldDescription>
+										{isInvalid && (
+											<FieldError errors={field.state.meta.errors} />
+										)}
+									</Field>
+								);
+							}}
+						</form.Field>
+					</FieldSet>
+				</form>
 				<DialogFooter>
 					<DialogClose asChild>
 						<Button variant="outline">Avbryt</Button>
 					</DialogClose>
-					<Button type="submit" onClick={form.handleSubmit(onSubmitAction)}>
-						Lagre
+					<Button
+						type="submit"
+						disabled={form.state.isSubmitting}
+						onClick={() => form.handleSubmit()}
+					>
+						{form.state.isSubmitting ? "Lagrer..." : "Lagre"}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

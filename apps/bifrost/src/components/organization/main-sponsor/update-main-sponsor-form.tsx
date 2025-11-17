@@ -1,25 +1,22 @@
 "use client";
 
+import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { Button } from "@workspace/ui/components/button";
 import {
-	Form,
-	FormControl,
-	FormDescription,
-	FormField,
-	FormItem,
-	FormLabel,
-	FormMessage,
-} from "@workspace/ui/components/form";
+	Field,
+	FieldDescription,
+	FieldError,
+	FieldLabel,
+	FieldSet,
+} from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
 import { useMutation, useQuery } from "convex/react";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod/v4";
-import { zodV4Resolver } from "@/utils/zod-v4-resolver";
 
 const schema = z.object({
 	companyId: z.custom<Id<"companies">>(
@@ -31,13 +28,6 @@ const schema = z.object({
 export default function UpdateMainSponsorForm({
 	companyId,
 }: Readonly<{ companyId: Id<"companies"> }>) {
-	const form = useForm<z.infer<typeof schema>>({
-		resolver: zodV4Resolver(schema),
-		defaultValues: {
-			companyId: companyId || "",
-		},
-	});
-
 	const [searchInput, setSearchInput] = useState<string>("");
 
 	const companies = useQuery(api.companies.searchByName, {
@@ -45,23 +35,40 @@ export default function UpdateMainSponsorForm({
 	});
 
 	const updateMainSponsor = useMutation(api.companies.updateMainSponsor);
-	const handleUpdateMainSponsor = ({ companyId }: z.infer<typeof schema>) =>
-		updateMainSponsor({ companyId }).catch(() =>
-			toast.error("Oi! Det oppstod en feil!", {
-				description: "Skulle feilen vedvare kontakt webansvarlig.",
-			}),
-		);
+
+	const form = useForm({
+		defaultValues: {
+			companyId: companyId || ("" as Id<"companies">),
+		},
+		validators: {
+			onSubmit: schema,
+		},
+		onSubmit: async ({ value }) => {
+			updateMainSponsor({ companyId: value.companyId }).catch(() =>
+				toast.error("Oi! Det oppstod en feil!", {
+					description: "Skulle feilen vedvare kontakt webansvarlig.",
+				}),
+			);
+		},
+	});
 
 	return (
-		<Form {...form}>
-			<form onSubmit={form.handleSubmit(handleUpdateMainSponsor)} className="space-y-6">
-				<FormField
-					control={form.control}
-					name="companyId"
-					render={({ field }) => (
-						<FormItem className="flex flex-col">
-							<FormLabel>Endre hovedsamarbeidspartner</FormLabel>
-							<FormControl>
+		<form
+			onSubmit={(e) => {
+				e.preventDefault();
+				e.stopPropagation();
+				form.handleSubmit();
+			}}
+			className="space-y-6"
+		>
+			<FieldSet>
+				<form.Field name="companyId">
+					{(field) => {
+						const isInvalid =
+							field.state.meta.isTouched && !field.state.meta.isValid;
+						return (
+							<Field className="flex flex-col">
+								<FieldLabel>Endre hovedsamarbeidspartner</FieldLabel>
 								<div className="space-y-2">
 									<Input
 										placeholder="Søk eks. ifi-navet"
@@ -76,9 +83,9 @@ export default function UpdateMainSponsorForm({
 												key={company._id}
 												type="button"
 												variant="ghost"
-												onClick={() => field.onChange(company._id)}
+												onClick={() => field.handleChange(company._id)}
 												className={`mb-2 flex w-full justify-start ${
-													field.value === company._id
+													field.state.value === company._id
 														? "bg-primary text-primary hover:bg-primary/90 dark:text-primary-foreground"
 														: ""
 												}`}
@@ -88,17 +95,21 @@ export default function UpdateMainSponsorForm({
 										))}
 									</ScrollArea>
 								</div>
-							</FormControl>
-							<FormDescription>
-								Søk og velg en bedrift til å være hovedsamarbeidspartner.
-							</FormDescription>
-							<FormMessage />
-						</FormItem>
-					)}
-				/>
+								<FieldDescription>
+									Søk og velg en bedrift til å være hovedsamarbeidspartner.
+								</FieldDescription>
+								{isInvalid && <FieldError errors={field.state.meta.errors} />}
+							</Field>
+						);
+					}}
+				</form.Field>
+			</FieldSet>
 
-				<Button type="submit">Oppdater hovedsamarbeidspartner</Button>
-			</form>
-		</Form>
+			<Button type="submit" disabled={form.state.isSubmitting}>
+				{form.state.isSubmitting
+					? "Oppdaterer..."
+					: "Oppdater hovedsamarbeidspartner"}
+			</Button>
+		</form>
 	);
 }
