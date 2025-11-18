@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
-import { preloadedQueryResult, preloadQuery } from "convex/nextjs";
+import { fetchQuery, preloadedQueryResult, preloadQuery } from "convex/nextjs";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
@@ -22,15 +22,7 @@ export default async function RegistrationPage({
 
 	if (!isAuthenticated) return redirect(`/sign-in/?redirect=${pathname}`);
 
-	const preloadedEvent = await preloadQuery(api.events.getEvent, {
-		identifier: eventId,
-	});
-	const event = preloadedQueryResult(preloadedEvent);
-
-	const preloadedRegistration = await preloadQuery(api.registration.getById, {
-		id: registrationId,
-	});
-	const registration = preloadedQueryResult(preloadedRegistration);
+	const event = await fetchQuery(api.events.getEvent, { identifier: eventId });
 
 	return (
 		<ResponsiveCenterContainer>
@@ -40,20 +32,43 @@ export default async function RegistrationPage({
 				{humanReadableDate(new Date(event.eventStart))}
 			</h2>
 
-			{registration.status === "pending" ? (
-				<Register
-					preloadedRegistration={preloadedRegistration}
-					eventId={eventId}
-				/>
-			) : registration.status === "registered" ? (
-				<div className="text-center">
-					<p>Du er allerede registrert</p>
-				</div>
-			) : (
-				<div className="text-center">
-					<p>Du er på venteliste</p>
-				</div>
-			)}
+			<RegistrationStatusHandler
+				registrationId={registrationId}
+				eventId={eventId}
+			/>
 		</ResponsiveCenterContainer>
+	);
+}
+
+async function RegistrationStatusHandler({
+	registrationId,
+	eventId,
+}: Readonly<{ registrationId: Id<"registrations">; eventId: Id<"events"> }>) {
+	const preloadedRegistration = await preloadQuery(api.registration.getById, {
+		id: registrationId,
+	});
+	const registration = preloadedQueryResult(preloadedRegistration);
+
+	if (registration.status === "pending") {
+		return (
+			<Register
+				preloadedRegistration={preloadedRegistration}
+				eventId={eventId}
+			/>
+		);
+	}
+
+	if (registration.status === "registered") {
+		return (
+			<div className="text-center">
+				<p>Du er allerede registrert</p>
+			</div>
+		);
+	}
+
+	return (
+		<div className="text-center">
+			<p>Du er på venteliste</p>
+		</div>
 	);
 }
