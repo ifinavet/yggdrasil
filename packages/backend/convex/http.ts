@@ -39,56 +39,6 @@ http.route({
 	}),
 });
 
-http.route({
-	path: "/job-listings-webhook",
-	method: "POST",
-	handler: httpAction(async (ctx, request) => {
-		const webhookSecret = process.env.JOB_LISTING_WEBHOOK_SECRET;
-
-		if (!webhookSecret) {
-			console.error("JOB_LISTING_WEBHOOK_SECRET is not configured");
-			return new Response("Webhook not configured", { status: 500 });
-		}
-
-		// Verify the webhook secret from the Authorization header
-		const authHeader = request.headers.get("authorization");
-		const expectedAuth = `Bearer ${webhookSecret}`;
-
-		if (authHeader !== expectedAuth) {
-			console.error("Invalid webhook secret");
-			return new Response("Unauthorized", { status: 401 });
-		}
-
-		try {
-			const payload = await request.json();
-			const { listingId, webhookUrl } = payload;
-
-			if (!listingId || !webhookUrl) {
-				return new Response("Missing required fields: listingId, webhookUrl", {
-					status: 400,
-				});
-			}
-
-			// Trigger the webhook notification
-			await ctx.runMutation(internal.listings.notifyJobListingPublished, {
-				listingId,
-				webhookUrl,
-			});
-
-			return new Response(
-				JSON.stringify({ success: true, listingId }),
-				{
-					status: 200,
-					headers: { "Content-Type": "application/json" },
-				},
-			);
-		} catch (error) {
-			console.error("Error processing job listing webhook:", error);
-			return new Response("Internal server error", { status: 500 });
-		}
-	}),
-});
-
 async function validateRequest(req: Request): Promise<WebhookEvent | null> {
 	const payloadString = await req.text();
 	const svixId = req.headers.get("svix-id");
