@@ -1,7 +1,13 @@
 import type { OrderedQuery } from "convex/server";
 import { v } from "convex/values";
 import type { DataModel, Doc } from "./_generated/dataModel";
-import { mutation, type QueryCtx, query } from "./_generated/server";
+import { internal } from "./_generated/api";
+import {
+	internalMutation,
+	mutation,
+	type QueryCtx,
+	query,
+} from "./_generated/server";
 
 export const getAll = query({
 	args: {
@@ -169,6 +175,21 @@ export const create = mutation({
 			});
 		}
 
+		// Trigger webhook if listing is published
+		if (args.published) {
+			const webhookUrl = process.env.JOB_LISTING_WEBHOOK_URL;
+			if (webhookUrl) {
+				await ctx.scheduler.runAfter(
+					0,
+					internal.listings.notifyJobListingPublished,
+					{
+						listingId: listing,
+						webhookUrl,
+					},
+				);
+			}
+		}
+
 		return listing;
 	},
 });
@@ -198,6 +219,10 @@ export const update = mutation({
 			throw new Error("Unauthenticated call to mutation");
 		}
 
+		// Get the existing listing to check if it was previously unpublished
+		const existingListing = await ctx.db.get(args.id);
+		const wasUnpublished = existingListing && !existingListing.published;
+
 		const listing = await ctx.db.replace(args.id, {
 			title: args.title,
 			type: args.type,
@@ -223,6 +248,21 @@ export const update = mutation({
 				...contact,
 				listingId: args.id,
 			});
+		}
+
+		// Trigger webhook if listing is newly published (was unpublished before)
+		if (args.published && wasUnpublished) {
+			const webhookUrl = process.env.JOB_LISTING_WEBHOOK_URL;
+			if (webhookUrl) {
+				await ctx.scheduler.runAfter(
+					0,
+					internal.listings.notifyJobListingPublished,
+					{
+						listingId: args.id,
+						webhookUrl,
+					},
+				);
+			}
 		}
 
 		return listing;
@@ -251,5 +291,63 @@ export const remove = mutation({
 		await ctx.db.delete(id);
 
 		return id;
+	},
+});
+
+export const notifyJobListingPublished = internalMutation({
+	args: {
+		listingId: v.id("jobListings"),
+		webhookUrl: v.string(),
+	},
+	handler: async (ctx, { listingId, webhookUrl }) => {
+		const listing = await ctx.db.get(listingId);
+
+		if (!listing) {
+			throw new Error(`Job listing with ID ${listingId} not found`);
+		}
+
+		const company = await ctx.db.get(listing.company);
+
+		// Prepare webhook payload
+		const payload = {
+			event: "job_listing.published",
+			listingId: listingId,
+			data: {
+				title: listing.title,
+				type: listing.type,
+				teaser: listing.teaser,
+				deadline: listing.deadline,
+				applicationUrl: listing.applicationUrl,
+				company: company?.name || "Unknown",
+			},
+			timestamp: Date.now(),
+		};
+
+		// Send webhook notification
+		try {
+			const response = await fetch(webhookUrl, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify(payload),
+			});
+
+			if (!response.ok) {
+				console.error(
+					`Failed to send webhook notification: ${response.status} ${response.statusText}`,
+				);
+			}
+
+			console.log("Job listing webhook sent:", {
+				id: listingId,
+				title: listing.title,
+				status: response.status,
+			});
+		} catch (error) {
+			console.error("Error sending webhook notification:", error);
+		}
+
+		return listingId;
 	},
 });
