@@ -33,7 +33,10 @@ export default function NewJobListingForm() {
 	const posthog = usePostHog();
 
 	const createJobListingMutation = useMutation(api.listings.create);
-	const handleSubmit = async (values: JobListingFormValues, published: boolean) => {
+	const handleSubmit = async (
+		values: JobListingFormValues,
+		published: boolean,
+	) => {
 		createJobListingMutation({
 			title: values.title,
 			teaser: values.teaser,

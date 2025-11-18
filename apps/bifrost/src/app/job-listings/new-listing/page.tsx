@@ -5,6 +5,7 @@ import {
 	BreadcrumbList,
 	BreadcrumbSeparator,
 } from "@workspace/ui/components/breadcrumb";
+import { Suspense } from "react";
 import NewJobListingForm from "./new-job-listing-form";
 
 export default async function NewListingPage() {
@@ -17,7 +18,9 @@ export default async function NewListingPage() {
 					</BreadcrumbItem>
 					<BreadcrumbSeparator />
 					<BreadcrumbItem>
-						<BreadcrumbLink href="/job-listings">Stillingsannonser</BreadcrumbLink>
+						<BreadcrumbLink href="/job-listings">
+							Stillingsannonser
+						</BreadcrumbLink>
 					</BreadcrumbItem>
 					<BreadcrumbSeparator />
 					<BreadcrumbItem>
@@ -26,7 +29,9 @@ export default async function NewListingPage() {
 				</BreadcrumbList>
 			</Breadcrumb>
 
-			<NewJobListingForm />
+			<Suspense fallback={null}>
+				<NewJobListingForm />
+			</Suspense>
 		</>
 	);
 }

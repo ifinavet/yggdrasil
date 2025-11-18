@@ -14,6 +14,7 @@ const convexSite = process.env.NEXT_PUBLIC_CONVEX_URL.replace(
 const nextConfig: NextConfig = {
 	/* config options here */
 	transpilePackages: ["@workspace/ui"],
+	cacheComponents: true,
 	images: {
 		remotePatterns: [
 			{

@@ -1,3 +1,5 @@
+"use server";
+
 import { api } from "@workspace/backend/convex/api";
 import { fetchQuery } from "convex/nextjs";
 import { getAuthToken } from "./authToken";

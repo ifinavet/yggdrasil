@@ -1,16 +1,16 @@
 "use client";
 
+import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
 import { DEGREE_TYPES, STUDY_PROGRAMS } from "@workspace/shared/constants";
 import { Button } from "@workspace/ui/components/button";
 import {
-	Form,
-	FormControl,
-	FormField,
-	FormItem,
-	FormLabel,
-	FormMessage,
-} from "@workspace/ui/components/form";
+	Field,
+	FieldError,
+	FieldGroup,
+	FieldLabel,
+	FieldSet,
+} from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
 import {
 	Select,
@@ -20,17 +20,15 @@ import {
 	SelectValue,
 } from "@workspace/ui/components/select";
 import { type Preloaded, useMutation, usePreloadedQuery } from "convex/react";
-import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod/v4";
-import { zodV4Resolver } from "@/utils/zod-v4-resolver";
 
 const formSchema = z.object({
 	firstName: z.string().min(2, "Studenten må ha et fornavn"),
 	lastName: z.string().min(2, "Studenten må ha et etternavn"),
 	email: z.email("Studenten må ha en gyldig e-postadresse"),
 	studyProgram: z.enum(STUDY_PROGRAMS, "Studenten må ha et studieprogram"),
-	year: z.coerce.number().min(1, "Studenten må gå hvertfall 1. året"),
+	year: z.number().min(1, "Studenten må gå hvertfall 1. året"),
 	degree: z.enum(DEGREE_TYPES, "Studenten må ha en gyldig grad"),
 });
 
@@ -41,10 +39,9 @@ export default function UpdateStudentForm({
 }>) {
 	const student = usePreloadedQuery(preloadedStudent);
 
-	type FormSchema = z.infer<typeof formSchema>;
+	const updateStudent = useMutation(api.students.update);
 
-	const form = useForm<FormSchema>({
-		resolver: zodV4Resolver(formSchema),
+	const form = useForm({
 		defaultValues: {
 			firstName: student.firstName,
 			lastName: student.lastName,
@@ -53,96 +50,148 @@ export default function UpdateStudentForm({
 			studyProgram: student.studyProgram as (typeof STUDY_PROGRAMS)[number],
 			degree: student.degree as (typeof DEGREE_TYPES)[number],
 		},
+		validators: {
+			onSubmit: formSchema,
+		},
+		onSubmit: async ({ value }) => {
+			updateStudent({
+				id: student.id,
+				year: value.year,
+				studyProgram: value.studyProgram as (typeof STUDY_PROGRAMS)[number],
+				degree: value.degree as (typeof DEGREE_TYPES)[number],
+			})
+				.then(() => {
+					toast.success("Student updated successfully");
+				})
+				.catch((error: Error) => {
+					toast.error(error instanceof Error ? error.message : "Unknown error");
+				});
+		},
 	});
 
-	const updateStudent = useMutation(api.students.update);
-	const handleSubmit = (values: FormSchema) => {
-		updateStudent({
-			id: student.id,
-			year: values.year,
-			studyProgram: values.studyProgram as (typeof STUDY_PROGRAMS)[number],
-			degree: values.degree as (typeof DEGREE_TYPES)[number],
-		})
-			.then(() => {
-				toast.success("Student updated successfully");
-			})
-			.catch((error: Error) => {
-				toast.error(error instanceof Error ? error.message : "Unknown error");
-			});
-	};
-
 	return (
-		<Form {...form}>
-			<form
-				className="max-w-5xl space-y-8"
-				onSubmit={form.handleSubmit(handleSubmit)}
-			>
-				<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-					<FormField
-						control={form.control}
-						name="firstName"
-						render={({ field }) => (
-							<FormItem>
-								<FormLabel>Fornavn</FormLabel>
-								<FormControl>
-									<Input placeholder="Ola" {...field} disabled />
-								</FormControl>
-								<FormMessage />
-							</FormItem>
-						)}
-					/>
-					<FormField
-						control={form.control}
-						name="lastName"
-						render={({ field }) => (
-							<FormItem>
-								<FormLabel>Etternavn</FormLabel>
-								<FormControl>
-									<Input placeholder="Nordmann" {...field} disabled />
-								</FormControl>
-								<FormMessage />
-							</FormItem>
-						)}
-					/>
-				</div>
+		<form
+			className="max-w-5xl space-y-8"
+			onSubmit={(e) => {
+				e.preventDefault();
+				e.stopPropagation();
+				form.handleSubmit();
+			}}
+		>
+			<FieldSet>
+				<FieldGroup className="grid grid-cols-1 gap-4 md:grid-cols-2">
+					<form.Field name="firstName">
+						{(field) => {
+							const isInvalid =
+								field.state.meta.isTouched && !field.state.meta.isValid;
+							return (
+								<Field>
+									<FieldLabel htmlFor={field.name}>Fornavn</FieldLabel>
+									<Input
+										id={field.name}
+										name={field.name}
+										value={field.state.value}
+										onChange={(e) => field.handleChange(e.target.value)}
+										onBlur={field.handleBlur}
+										aria-invalid={isInvalid}
+										placeholder="Ola"
+										disabled
+									/>
+									{isInvalid && <FieldError errors={field.state.meta.errors} />}
+								</Field>
+							);
+						}}
+					</form.Field>
 
-				<FormField
-					control={form.control}
-					name="email"
-					render={({ field }) => (
-						<FormItem>
-							<FormLabel>E-post</FormLabel>
-							<FormControl>
-								<Input placeholder="eks. olanord@uio.no" disabled {...field} />
-							</FormControl>
-							<FormMessage />
-						</FormItem>
-					)}
-				/>
+					<form.Field name="lastName">
+						{(field) => {
+							const isInvalid =
+								field.state.meta.isTouched && !field.state.meta.isValid;
+							return (
+								<Field>
+									<FieldLabel htmlFor={field.name}>Etternavn</FieldLabel>
+									<Input
+										id={field.name}
+										name={field.name}
+										value={field.state.value}
+										onChange={(e) => field.handleChange(e.target.value)}
+										onBlur={field.handleBlur}
+										aria-invalid={isInvalid}
+										placeholder="Nordmann"
+										disabled
+									/>
+									{isInvalid && <FieldError errors={field.state.meta.errors} />}
+								</Field>
+							);
+						}}
+					</form.Field>
+				</FieldGroup>
 
-				<div className="flex flex-wrap gap-4">
-					<FormField
-						control={form.control}
-						name="year"
-						render={({ field }) => (
-							<FormItem>
-								<FormLabel>År</FormLabel>
-								<FormControl>
-									<Input type="number" min={1} max={5} {...field} />
-								</FormControl>
-								<FormMessage />
-							</FormItem>
-						)}
-					/>
+				<form.Field name="email">
+					{(field) => {
+						const isInvalid =
+							field.state.meta.isTouched && !field.state.meta.isValid;
+						return (
+							<Field>
+								<FieldLabel htmlFor={field.name}>E-post</FieldLabel>
+								<Input
+									id={field.name}
+									name={field.name}
+									value={field.state.value}
+									onChange={(e) => field.handleChange(e.target.value)}
+									onBlur={field.handleBlur}
+									aria-invalid={isInvalid}
+									placeholder="eks. olanord@uio.no"
+									disabled
+								/>
+								{isInvalid && <FieldError errors={field.state.meta.errors} />}
+							</Field>
+						);
+					}}
+				</form.Field>
 
-					<FormField
-						control={form.control}
-						name="studyProgram"
-						render={({ field }) => (
-							<FormItem>
-								<FormLabel>Studieprogram</FormLabel>
-								<FormControl>
-									<Select onValueChange={field.onChange} value={field.value}>
+				<FieldGroup className="flex flex-wrap gap-4">
+					<form.Field name="year">
+						{(field) => {
+							const isInvalid =
+								field.state.meta.isTouched && !field.state.meta.isValid;
+							return (
+								<Field>
+									<FieldLabel htmlFor={field.name}>År</FieldLabel>
+									<Input
+										id={field.name}
+										name={field.name}
+										type="number"
+										min={1}
+										max={5}
+										value={field.state.value}
+										onChange={(e) =>
+											field.handleChange(Number.parseInt(e.target.value, 10))
+										}
+										onBlur={field.handleBlur}
+										aria-invalid={isInvalid}
+									/>
+									{isInvalid && <FieldError errors={field.state.meta.errors} />}
+								</Field>
+							);
+						}}
+					</form.Field>
+
+					<form.Field name="studyProgram">
+						{(field) => {
+							const isInvalid =
+								field.state.meta.isTouched && !field.state.meta.isValid;
+							return (
+								<Field>
+									<FieldLabel htmlFor={field.name}>Studieprogram</FieldLabel>
+									<Select
+										onValueChange={(value) =>
+											field.handleChange(
+												value as (typeof STUDY_PROGRAMS)[number],
+											)
+										}
+										value={field.state.value}
+									>
 										<SelectTrigger>
 											<SelectValue placeholder="Velg et studieprogram" />
 										</SelectTrigger>
@@ -154,20 +203,25 @@ export default function UpdateStudentForm({
 											))}
 										</SelectContent>
 									</Select>
-								</FormControl>
-								<FormMessage />
-							</FormItem>
-						)}
-					/>
+									{isInvalid && <FieldError errors={field.state.meta.errors} />}
+								</Field>
+							);
+						}}
+					</form.Field>
 
-					<FormField
-						control={form.control}
-						name="degree"
-						render={({ field }) => (
-							<FormItem>
-								<FormLabel>Studiegrad</FormLabel>
-								<FormControl>
-									<Select onValueChange={field.onChange} value={field.value}>
+					<form.Field name="degree">
+						{(field) => {
+							const isInvalid =
+								field.state.meta.isTouched && !field.state.meta.isValid;
+							return (
+								<Field>
+									<FieldLabel htmlFor={field.name}>Studiegrad</FieldLabel>
+									<Select
+										onValueChange={(value) =>
+											field.handleChange(value as (typeof DEGREE_TYPES)[number])
+										}
+										value={field.state.value}
+									>
 										<SelectTrigger>
 											<SelectValue placeholder="Velg studie grad" />
 										</SelectTrigger>
@@ -179,17 +233,17 @@ export default function UpdateStudentForm({
 											))}
 										</SelectContent>
 									</Select>
-								</FormControl>
-								<FormMessage />
-							</FormItem>
-						)}
-					/>
-				</div>
+									{isInvalid && <FieldError errors={field.state.meta.errors} />}
+								</Field>
+							);
+						}}
+					</form.Field>
+				</FieldGroup>
+			</FieldSet>
 
-				<Button type="submit" className="mt-4">
-					Oppdater
-				</Button>
-			</form>
-		</Form>
+			<Button type="submit" className="mt-4" disabled={form.state.isSubmitting}>
+				{form.state.isSubmitting ? "Oppdaterer..." : "Oppdater"}
+			</Button>
+		</form>
 	);
 }

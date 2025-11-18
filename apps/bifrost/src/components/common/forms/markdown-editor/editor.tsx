@@ -6,51 +6,49 @@ import Underline from "@tiptap/extension-underline";
 import { useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import {
-	FormControl,
-	FormDescription,
-	FormField,
-	FormItem,
-	FormLabel,
-	FormMessage,
-} from "@workspace/ui/components//form";
+	Field,
+	FieldDescription,
+	FieldError,
+	FieldLabel,
+} from "@workspace/ui/components/field";
 import { useCallback, useMemo } from "react";
-import type {
-	FieldValues,
-	Path,
-	PathValue,
-	UseFormReturn,
-} from "react-hook-form";
 import ContentEditor from "@/components/common/forms/markdown-editor/markdown-editor";
 
-export default function DescriptionEditor<TFieldValues extends FieldValues>({
+export default function DescriptionEditor({
 	title = "Beskrivelse",
 	description = "Dette er beskrivelsen.",
-	form,
-	fieldName = "description" as Path<TFieldValues>,
+	field,
 }: Readonly<{
-	title: string;
-	description: string;
-	form: UseFormReturn<TFieldValues>;
-	fieldName?: Path<TFieldValues>;
+	title?: string;
+	description?: string;
+	field: {
+		name: string;
+		state: {
+			value: string;
+			meta: {
+				isTouched: boolean;
+				isValid: boolean;
+				errors: Array<{ message?: string } | undefined>;
+			};
+		};
+		handleChange: (value: string) => void;
+		handleBlur: () => void;
+	};
 }>) {
+	const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+
 	const handleEditorUpdate = useCallback(
 		({ editor }: { editor: { getHTML: () => string } }) => {
-			form.setValue(
-				fieldName,
-				editor.getHTML() as PathValue<TFieldValues, Path<TFieldValues>>,
-			);
+			field.handleChange(editor.getHTML());
 		},
-		[form, fieldName],
+		[field],
 	);
 
 	const handleEditorCreate = useCallback(
 		({ editor }: { editor: { getHTML: () => string } }) => {
-			form.setValue(
-				fieldName,
-				editor.getHTML() as PathValue<TFieldValues, Path<TFieldValues>>,
-			);
+			field.handleChange(editor.getHTML());
 		},
-		[form, fieldName],
+		[field],
 	);
 
 	const editorExtensions = useMemo(
@@ -87,24 +85,16 @@ export default function DescriptionEditor<TFieldValues extends FieldValues>({
 		editorProps: editorProps,
 		onUpdate: handleEditorUpdate,
 		immediatelyRender: false,
-		content: form.watch(fieldName),
+		content: field.state.value,
 		onCreate: handleEditorCreate,
 	});
 
 	return (
-		<FormField
-			control={form.control}
-			name={fieldName}
-			render={() => (
-				<FormItem className="flex flex-col">
-					<FormLabel>{title} </FormLabel>
-					<FormControl>
-						<ContentEditor editor={editor} />
-					</FormControl>
-					<FormDescription>{description}</FormDescription>
-					<FormMessage />
-				</FormItem>
-			)}
-		/>
+		<Field data-invalid={isInvalid}>
+			<FieldLabel htmlFor={field.name}>{title}</FieldLabel>
+			<ContentEditor editor={editor} />
+			<FieldDescription>{description}</FieldDescription>
+			{isInvalid && <FieldError errors={field.state.meta.errors} />}
+		</Field>
 	);
 }

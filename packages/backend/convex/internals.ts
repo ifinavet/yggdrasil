@@ -42,7 +42,8 @@ export const getTheBoard = query({
 				const user = await ctx.db.get(member.userId);
 				return {
 					...member,
-					fullName: (user && `${user.firstName} ${user.lastName}`) ?? "Styremedlem",
+					fullName:
+						(user && `${user.firstName} ${user.lastName}`) ?? "Styremedlem",
 					email: user?.email ?? "styret@ifinavet.no",
 					image: user?.image,
 				};
@@ -109,9 +110,13 @@ export const upsertBoardMember = mutation({
 		positionEmail: v.optional(v.string()),
 		role: accessRoles,
 	},
-	handler: async (ctx, { id, userId, position, group, positionEmail, role }) => {
+	handler: async (
+		ctx,
+		{ id, userId, position, group, positionEmail, role },
+	) => {
 		const currentBoardMember = await ctx.db.get(id);
-		if (!currentBoardMember) throw new Error(`Board member not found for ID: ${id}`);
+		if (!currentBoardMember)
+			throw new Error(`Board member not found for ID: ${id}`);
 
 		await ctx.runMutation(api.accsessRights.upsertAccessRights, {
 			userId,
@@ -123,18 +128,21 @@ export const upsertBoardMember = mutation({
 				group: "",
 				positionEmail: "",
 				position: "Intern",
+				rank: undefined,
 			});
 
 			const newBoardMember = await ctx.db
 				.query("internals")
 				.withIndex("by_userId", (q) => q.eq("userId", userId))
 				.first();
-			if (!newBoardMember) throw new Error(`New board member not found for user ID: ${userId}`);
+			if (!newBoardMember)
+				throw new Error(`New board member not found for user ID: ${userId}`);
 
 			await ctx.db.patch(newBoardMember._id, {
 				group,
 				positionEmail,
 				position,
+				rank: currentBoardMember.rank,
 			});
 		} else {
 			await ctx.db.patch(id, {

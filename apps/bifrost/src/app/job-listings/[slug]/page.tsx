@@ -7,6 +7,8 @@ import {
 	BreadcrumbPage,
 	BreadcrumbSeparator,
 } from "@workspace/ui/components/breadcrumb";
+import { Suspense } from "react";
+import JobListingFormSkeleton from "@/components/job-listings/job-listing-form-skeleton";
 import EditJobListingForm from "./edit-job-listing-form";
 
 export default async function EditJobListingPage({
@@ -36,7 +38,9 @@ export default async function EditJobListingPage({
 				</BreadcrumbList>
 			</Breadcrumb>
 
-			<EditJobListingForm listingId={listingId} />
+			<Suspense fallback={<JobListingFormSkeleton showDeleteButton={true} />}>
+				<EditJobListingForm listingId={listingId} />
+			</Suspense>
 		</>
 	);
 }

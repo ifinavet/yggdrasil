@@ -1,31 +1,32 @@
 "use client";
 
+import { useForm } from "@tanstack/react-form";
 import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
 import Underline from "@tiptap/extension-underline";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import {
-	Form,
-	FormControl,
-	FormDescription,
-	FormField,
-	FormItem,
-	FormLabel,
-	FormMessage,
-} from "@workspace/ui/components//form";
-import { Input } from "@workspace/ui/components//input";
-import { Separator } from "@workspace/ui/components//separator";
 import { Button } from "@workspace/ui/components/button";
+import {
+	Field,
+	FieldDescription,
+	FieldError,
+	FieldLabel,
+	FieldSet,
+} from "@workspace/ui/components/field";
+import { Input } from "@workspace/ui/components/input";
+import { Separator } from "@workspace/ui/components/separator";
 import { EyeOff, Save, Send } from "lucide-react";
 import { useCallback, useMemo } from "react";
-import { useForm } from "react-hook-form";
 import { EditorMenu } from "@/components/common/forms/markdown-editor/markdown-editor";
 import {
 	type PageFormValues,
 	pageSchema,
 } from "@/constants/schemas/page-form-schema";
-import { zodV4Resolver } from "@/utils/zod-v4-resolver";
+
+type FormMeta = {
+	submitAction: "primary" | "secondary" | "tertiary";
+};
 
 export default function PageForm({
 	defaultValues,
@@ -38,21 +39,41 @@ export default function PageForm({
 	onSecondarySubmitAction: (values: PageFormValues) => void;
 	onTertiarySubmitAction?: (values: PageFormValues) => void;
 }>) {
-	const form = useForm<PageFormValues>({
-		resolver: zodV4Resolver(pageSchema),
+	const form = useForm({
 		defaultValues,
+		validators: {
+			onSubmit: pageSchema,
+		},
+		onSubmitMeta: {
+			submitAction: "primary",
+		} as FormMeta,
+		onSubmit: async ({ value, meta }) => {
+			switch (meta.submitAction) {
+				case "primary":
+					onPrimarySubmitAction(value);
+					break;
+				case "secondary":
+					onSecondarySubmitAction(value);
+					break;
+				case "tertiary":
+					onTertiarySubmitAction?.(value);
+					break;
+				default:
+					break;
+			}
+		},
 	});
 
 	const handleEditorUpdate = useCallback(
 		({ editor }: { editor: { getHTML: () => string } }) => {
-			form.setValue("content", editor.getHTML());
+			form.setFieldValue("content", editor.getHTML());
 		},
 		[form],
 	);
 
 	const handleEditorCreate = useCallback(
 		({ editor }: { editor: { getHTML: () => string } }) => {
-			form.setValue("content", editor.getHTML());
+			form.setFieldValue("content", editor.getHTML());
 		},
 		[form],
 	);
@@ -91,84 +112,95 @@ export default function PageForm({
 		editorProps: editorProps,
 		onUpdate: handleEditorUpdate,
 		immediatelyRender: false,
-		content: form.watch("content"),
+		content: form.state.values.content,
 		onCreate: handleEditorCreate,
 	});
 
 	return (
-		<Form {...form}>
-			<form
-				onSubmit={form.handleSubmit(onPrimarySubmitAction)}
-				className="space-y-4"
-			>
-				<FormField
-					control={form.control}
-					name="title"
-					render={({ field }) => (
-						<FormItem className="flex-1">
-							<FormLabel>Tittel</FormLabel>
-							<FormControl>
-								<Input placeholder="Tittel" {...field} />
-							</FormControl>
-							<FormDescription>
-								En kort informativ tittel som beskriver siden
-							</FormDescription>
-							<FormMessage />
-						</FormItem>
-					)}
-				/>
+		<form
+			onSubmit={(e) => {
+				e.preventDefault();
+				e.stopPropagation();
+				form.handleSubmit();
+			}}
+			className="space-y-2"
+		>
+			<FieldSet>
+				<form.Field name="title">
+					{(field) => {
+						const isInvalid =
+							field.state.meta.isTouched && !field.state.meta.isValid;
+						return (
+							<Field data-invalid={isInvalid} className="min-w-0 md:w-full">
+								<FieldLabel htmlFor={field.name}>Tittel</FieldLabel>
+								<Input
+									id={field.name}
+									name={field.name}
+									value={field.state.value}
+									onChange={(e) => field.handleChange(e.target.value)}
+									onBlur={field.handleBlur}
+									aria-invalid={isInvalid}
+									placeholder="Tittel"
+									className="truncate"
+								/>
+								{isInvalid && <FieldError errors={field.state.meta.errors} />}
+								<FieldDescription>
+									En kort informativ tittel som beskriver siden.
+								</FieldDescription>
+							</Field>
+						);
+					}}
+				</form.Field>
 
 				<Separator className="my-4" />
-				<FormField
-					control={form.control}
-					name="content"
-					render={() => (
-						<FormItem>
-							<FormLabel>Innhold</FormLabel>
-							<FormControl>
+
+				<form.Field name="content">
+					{(field) => {
+						const isInvalid =
+							field.state.meta.isTouched && !field.state.meta.isValid;
+						return (
+							<Field data-invalid={isInvalid} className="min-w-0 md:w-full">
+								<FieldLabel htmlFor={field.name}>Innhold</FieldLabel>
 								<div className="min-h-[60vh] overflow-clip rounded-md border">
 									<EditorMenu editor={editor} />
 									<EditorContent editor={editor} />
 								</div>
-							</FormControl>
-							<FormDescription>Innholdet på siden</FormDescription>
-							<FormMessage />
-						</FormItem>
-					)}
-				/>
+								{isInvalid && <FieldError errors={field.state.meta.errors} />}
+								<FieldDescription>Innholdet på siden.</FieldDescription>
+							</Field>
+						);
+					}}
+				</form.Field>
+			</FieldSet>
 
-				<div className="flex flex-wrap gap-4">
+			<div className="flex flex-wrap gap-4">
+				<Button
+					type="button"
+					disabled={form.state.isSubmitting}
+					onClick={() => form.handleSubmit({ submitAction: "primary" })}
+				>
+					<Send /> {form.state.isSubmitting ? "Jobber..." : "Lagre og publiser"}
+				</Button>
+				<Button
+					type="button"
+					disabled={form.state.isSubmitting}
+					variant="secondary"
+					onClick={() => form.handleSubmit({ submitAction: "secondary" })}
+				>
+					<Save /> {form.state.isSubmitting ? "Jobber..." : "Lagre"}
+				</Button>
+				{onTertiarySubmitAction && (
 					<Button
-						type="submit"
-						disabled={form.formState.isSubmitting}
-						onClick={form.handleSubmit(onPrimarySubmitAction)}
+						type="button"
+						disabled={form.state.isSubmitting}
+						variant="destructive"
+						onClick={() => form.handleSubmit({ submitAction: "tertiary" })}
 					>
-						<Send />{" "}
-						{form.formState.isSubmitting ? "Jobber..." : "Lagre og publiser"}
+						<EyeOff />{" "}
+						{form.state.isSubmitting ? "Jobber..." : "Lagre og avpubliser"}
 					</Button>
-					<Button
-						type="submit"
-						disabled={form.formState.isSubmitting}
-						variant="secondary"
-						onClick={form.handleSubmit(onSecondarySubmitAction)}
-					>
-						<Save /> {form.formState.isSubmitting ? "Jobber..." : "Lagre"}
-					</Button>
-					{onTertiarySubmitAction && (
-						<Button
-							type="submit"
-							disabled={form.formState.isSubmitting}
-							variant="destructive"
-							onClick={form.handleSubmit(onTertiarySubmitAction)}
-						>
-							<EyeOff />{" "}
-							{form.formState.isSubmitting
-								? "Jobber..."
-								: "Lagre og avpubliser"}
-						</Button>
-					)}
-				</div>
-			</form>
-		</Form>
+				)}
+			</div>
+		</form>
 	);
 }

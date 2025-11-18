@@ -7,16 +7,21 @@ import {
 	BreadcrumbPage,
 	BreadcrumbSeparator,
 } from "@workspace/ui/components//breadcrumb";
-import { Button } from "@workspace/ui/components//button";
+import { Button } from "@workspace/ui/components/button";
 import { preloadQuery } from "convex/nextjs";
 import { Plus } from "lucide-react";
+import { headers } from "next/headers";
 import Link from "next/link";
 import EventsGrid from "@/components/events/events-grid";
 import SelectSemester from "@/components/events/select-semester";
 import SelectedEvents from "@/components/events/selected-events";
 
 export default async function Events() {
-	const preloadedPossibleSemesters = await preloadQuery(api.events.getPossibleSemesters);
+	const pathname = (await headers()).get("x-searchParams");
+
+	const preloadedPossibleSemesters = await preloadQuery(
+		api.events.getPossibleSemesters,
+	);
 
 	return (
 		<>
@@ -34,7 +39,9 @@ export default async function Events() {
 
 			<div className="flex flex-wrap justify-between">
 				<div className="flex flex-wrap gap-6">
-					<SelectSemester preloadedPossibleSemesters={preloadedPossibleSemesters} />
+					<SelectSemester
+						preloadedPossibleSemesters={preloadedPossibleSemesters}
+					/>
 
 					<SelectedEvents />
 				</div>
@@ -46,7 +53,7 @@ export default async function Events() {
 				</Button>
 			</div>
 
-			<EventsGrid />
+			<EventsGrid pathname={pathname ?? ""} />
 		</>
 	);
 }

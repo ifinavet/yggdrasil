@@ -1,26 +1,26 @@
-import { auth } from "@clerk/nextjs/server";
+"use client";
+
 import { api } from "@workspace/backend/convex/api";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@workspace/ui/components//card";
-import { fetchQuery } from "convex/nextjs";
-import { Pencil } from "lucide-react";
-import Link from "next/link";
+import { Separator } from "@workspace/ui/components/separator";
+import { Spinner } from "@workspace/ui/components/spinner";
+import { useQuery } from "convex/react";
 import ResourceCard from "./resource-card";
 
-export default async function ResourcesGrid() {
-	const resources = await fetchQuery(api.resources.getAllGroupedByTag);
-	const { orgRole } = await auth();
+export default function ResourcesGrid() {
+	const resources = useQuery(api.resources.getAllGroupedByTag);
+	const hasEditRights = useQuery(api.accsessRights.checkRights, {
+		right: ["admin", "super-admin", "editor"],
+	});
+
+	if (!resources) return <Spinner className="size-8" />;
 
 	return (
 		<div className="mx-4 flex flex-col gap-4">
 			{Object.entries(resources.groupedByTag).map(([tag, resources]) => (
 				<div key={tag} className="flex flex-col gap-4">
-					<h4 className="scroll-m-20 font-semibold text-xl capitalize tracking-tight">{tag}</h4>
+					<h4 className="scroll-m-20 font-semibold text-xl capitalize tracking-tight">
+						{tag}
+					</h4>
 					<div className="grid max-w-6xl grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
 						{resources.map((resource) => (
 							<ResourceCard key={resource._id} resource={resource} />
@@ -29,42 +29,19 @@ export default async function ResourcesGrid() {
 				</div>
 			))}
 
-			{resources.unpublishedResources.length > 0 &&
-				(orgRole === "org:admin" || orgRole === "org:editor") && (
-					<div className="flex flex-col gap-4">
-						<h4 className="scroll-m-20 font-semibold text-xl tracking-tight">
-							Upubliserte ressurser
-						</h4>
-						<div className="grid max-w-6xl grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-							{resources.unpublishedResources.map((resource) => (
-								<Link href={`/resources/${resource._id}/edit`} key={resource._id}>
-									<Card
-										key={resource._id}
-										className="overflow-hidden border-0 py-0 pb-6 shadow-sm transition-shadow hover:shadow-md"
-									>
-										<div className="relative h-28 bg-gradient-to-r from-sky-400 to-blue-800">
-											<div className="-bottom-4 absolute left-6">
-												<div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gray-900 shadow-lg">
-													<Pencil className="h-6 w-6 text-white" />
-												</div>
-											</div>
-										</div>
-										<CardHeader className="pt-8 pb-2">
-											<CardTitle className="font-semibold text-gray-900 text-xl">
-												{resource.title}
-											</CardTitle>
-										</CardHeader>
-										<CardContent>
-											<CardDescription className="text-gray-600 leading-relaxed">
-												{resource.excerpt}
-											</CardDescription>
-										</CardContent>
-									</Card>
-								</Link>
-							))}
-						</div>
+			{resources?.unpublishedResources.length > 0 && hasEditRights && (
+				<div className="flex flex-col gap-4">
+					<h4 className="scroll-m-20 font-semibold text-xl tracking-tight">
+						Upubliserte ressurser
+					</h4>
+					<Separator />
+					<div className="grid max-w-6xl grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+						{resources.unpublishedResources.map((resource) => (
+							<ResourceCard key={resource._id} resource={resource} />
+						))}
 					</div>
-				)}
+				</div>
+			)}
 		</div>
 	);
 }
