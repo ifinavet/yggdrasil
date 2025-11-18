@@ -12,7 +12,7 @@ export default function Footer() {
 					<p className="leading-none">Institutt for informatikk</p>
 					<p className="leading-none">0316 Oslo, Norway</p>
 				</div>
-				<div className="flex flex-col items-start gap-4 sm:items-end">
+				<div className="flex flex-col items-start gap-2 sm:items-end">
 					<Button
 						type="button"
 						variant="link"
@@ -28,6 +28,14 @@ export default function Footer() {
 						asChild
 					>
 						<Link href="/info/retningslinjer">Retningslinjer</Link>
+					</Button>
+					<Button
+						type="button"
+						variant="link"
+						className="text-base text-primary-foreground"
+						asChild
+					>
+						<Link href="/info/vedtekter">Vedtekter</Link>
 					</Button>
 					<ThemeSwitcher />
 				</div>
