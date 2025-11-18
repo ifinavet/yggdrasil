@@ -65,7 +65,9 @@ export default function RootLayout({
 	);
 }
 
-async function AuthorizedContent({ children }: { children: React.ReactNode }) {
+async function AuthorizedContent({
+	children,
+}: Readonly<{ children: React.ReactNode }>) {
 	const hasRights = await hasBasicRights();
 
 	if (!hasRights) {

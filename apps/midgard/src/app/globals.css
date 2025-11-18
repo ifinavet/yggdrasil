@@ -11,9 +11,3 @@
 	--primary: var(--color-gray-800);
 	--background: oklch(0.2169 0 0);
 }
-
-/*
-* {
-	outline: 1px solid #f00 !important;
-}
-*/
