@@ -3,7 +3,7 @@ import { v } from "convex/values";
 import type { DataModel, Doc } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import {
-	internalMutation,
+	internalAction,
 	mutation,
 	type QueryCtx,
 	query,
@@ -175,19 +175,15 @@ export const create = mutation({
 			});
 		}
 
-		// Trigger webhook if listing is published
+		// Send Slack notification if listing is published
 		if (args.published) {
-			const webhookUrl = process.env.JOB_LISTING_WEBHOOK_URL;
-			if (webhookUrl) {
-				await ctx.scheduler.runAfter(
-					0,
-					internal.listings.notifyJobListingPublished,
-					{
-						listingId: listing,
-						webhookUrl,
-					},
-				);
-			}
+			await ctx.scheduler.runAfter(
+				0,
+				internal.listings.notifySlackJobListingPublished,
+				{
+					listingId: listing,
+				},
+			);
 		}
 
 		return listing;
@@ -219,7 +215,7 @@ export const update = mutation({
 			throw new Error("Unauthenticated call to mutation");
 		}
 
-		// Get the existing listing to check if it was previously unpublished
+		// Get existing listing to check if it was previously unpublished
 		const existingListing = await ctx.db.get(args.id);
 		const wasUnpublished = existingListing && !existingListing.published;
 
@@ -250,19 +246,15 @@ export const update = mutation({
 			});
 		}
 
-		// Trigger webhook if listing is newly published (was unpublished before)
+		// Send Slack notification if listing is newly published
 		if (args.published && wasUnpublished) {
-			const webhookUrl = process.env.JOB_LISTING_WEBHOOK_URL;
-			if (webhookUrl) {
-				await ctx.scheduler.runAfter(
-					0,
-					internal.listings.notifyJobListingPublished,
-					{
-						listingId: args.id,
-						webhookUrl,
-					},
-				);
-			}
+			await ctx.scheduler.runAfter(
+				0,
+				internal.listings.notifySlackJobListingPublished,
+				{
+					listingId: args.id,
+				},
+			);
 		}
 
 		return listing;
@@ -294,60 +286,103 @@ export const remove = mutation({
 	},
 });
 
-export const notifyJobListingPublished = internalMutation({
+// Internal action to send Slack notification when job listing is published
+export const notifySlackJobListingPublished = internalAction({
 	args: {
 		listingId: v.id("jobListings"),
-		webhookUrl: v.string(),
 	},
-	handler: async (ctx, { listingId, webhookUrl }) => {
-		const listing = await ctx.db.get(listingId);
+	handler: async (ctx, { listingId }) => {
+		const slackWebhookUrl = process.env.SLACK_WEBHOOK_URL;
 
-		if (!listing) {
-			throw new Error(`Job listing with ID ${listingId} not found`);
+		if (!slackWebhookUrl) {
+			console.log("SLACK_WEBHOOK_URL not configured, skipping notification");
+			return;
 		}
 
-		const company = await ctx.db.get(listing.company);
+		// Get the listing data
+		const listing = await ctx.runQuery(internal.listings.getById, {
+			id: listingId,
+		});
 
-		// Prepare webhook payload
-		const payload = {
-			event: "job_listing.published",
-			listingId: listingId,
-			data: {
-				title: listing.title,
-				type: listing.type,
-				teaser: listing.teaser,
-				deadline: listing.deadline,
-				applicationUrl: listing.applicationUrl,
-				company: company?.name || "Unknown",
-			},
-			timestamp: Date.now(),
-		};
+		if (!listing) {
+			console.error(`Job listing with ID ${listingId} not found`);
+			return;
+		}
 
-		// Send webhook notification
+		// Get company info
+		const company = await ctx.runQuery(internal.companies.getById, {
+			id: listing.company,
+		});
+
+		// Send to Slack
 		try {
-			const response = await fetch(webhookUrl, {
+			const response = await fetch(slackWebhookUrl, {
 				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify(payload),
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					text: `🆕 New Job Listing: ${listing.title}`,
+					blocks: [
+						{
+							type: "header",
+							text: {
+								type: "plain_text",
+								text: `🆕 ${listing.title}`,
+							},
+						},
+						{
+							type: "section",
+							fields: [
+								{
+									type: "mrkdwn",
+									text: `*Company:*\n${company?.name || "Unknown"}`,
+								},
+								{
+									type: "mrkdwn",
+									text: `*Type:*\n${listing.type}`,
+								},
+								{
+									type: "mrkdwn",
+									text: `*Deadline:*\n${new Date(listing.deadline).toLocaleDateString()}`,
+								},
+							],
+						},
+						{
+							type: "section",
+							text: {
+								type: "mrkdwn",
+								text: listing.teaser,
+							},
+						},
+						{
+							type: "actions",
+							elements: [
+								{
+									type: "button",
+									text: {
+										type: "plain_text",
+										text: "Apply Now",
+									},
+									url: listing.applicationUrl,
+									style: "primary",
+								},
+							],
+						},
+					],
+				}),
 			});
 
 			if (!response.ok) {
 				console.error(
-					`Failed to send webhook notification: ${response.status} ${response.statusText}`,
+					`Failed to send Slack notification: ${response.status} ${response.statusText}`,
 				);
+			} else {
+				console.log("Job listing notification sent to Slack:", {
+					id: listingId,
+					title: listing.title,
+				});
 			}
-
-			console.log("Job listing webhook sent:", {
-				id: listingId,
-				title: listing.title,
-				status: response.status,
-			});
 		} catch (error) {
-			console.error("Error sending webhook notification:", error);
+			console.error("Error sending Slack notification:", error);
 		}
-
-		return listingId;
 	},
 });
