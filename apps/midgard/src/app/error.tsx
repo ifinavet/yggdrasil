@@ -94,7 +94,7 @@ export default function GlobalError({
 							className="text-muted-foreground text-sm italic"
 							href="mailto:web@ifinavet.no"
 						>
-							Send oss en mail
+							Send oss en mail!
 						</a>
 					</div>
 				</div>
