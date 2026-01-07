@@ -93,6 +93,10 @@ export default function DateTimePicker({
 							selected={field.state.value}
 							onSelect={handleDateChange}
 							captionLayout="dropdown"
+							startMonth={new Date(2020, 0)}
+							endMonth={new Date(2050, 11)}git add apps/bifrost/src/components/common/forms/date-time-picker.tsx
+git commit -m "Extend future dates in dropdown calendar"
+
 						/>
 					</PopoverContent>
 				</Popover>
