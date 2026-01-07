@@ -101,6 +101,8 @@ export default function DateTimePicker<TFieldValues extends FieldValues>({
 										handleDateChange(date, field.value, field.onChange)
 									}
 									captionLayout="dropdown"
+									startMonth = {new Date(2020,0)}
+									endMonth={new Date(2050, 11)}
 								/>
 							</PopoverContent>
 						</Popover>
