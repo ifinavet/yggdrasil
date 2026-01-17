@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@clerk/localizations": "^3.26.4",
-    "@clerk/nextjs": "^6.34.1",
+    "@clerk/nextjs": "^6.36.8",
     "@clerk/types": "^4.96.0",
     "@convex-dev/react-query": "0.0.0-alpha.11",
     "@radix-ui/react-navigation-menu": "^1.2.14",
