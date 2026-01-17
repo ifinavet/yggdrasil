@@ -16,15 +16,17 @@ import {
 } from "@workspace/ui/components/tabs";
 import { fetchQuery } from "convex/nextjs";
 import { Plus } from "lucide-react";
+import { unstable_noStore } from "next/cache";
+import { headers } from "next/headers";
 import Link from "next/link";
 import { createColumns } from "@/components/job-listings/listings-table/columns";
 import { ListingsTable } from "@/components/job-listings/listings-table/listings-table";
 import { groupJobListings, type JobListing } from "@/utils/job-listings";
-import { cacheLife } from "next/cache";
 
 export default async function JobListingsPage() {
-	"use cache";
-	cacheLife("seconds");
+	const requestHeaders = await headers();
+	requestHeaders.get("x-nextjs-data");
+	unstable_noStore();
 
 	const listings = await fetchQuery(api.listings.getAll, {});
 
