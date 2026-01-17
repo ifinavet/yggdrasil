@@ -1,9 +1,10 @@
 "use client";
 
-import { DropdownMenu } from "@radix-ui/react-dropdown-menu";
+
 import { api } from "@workspace/backend/convex/api";
 import { Button } from "@workspace/ui/components/button";
 import {
+	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuTrigger,
