@@ -46,12 +46,12 @@ export default async function Layout({
 				</Breadcrumb>
 
 				<div className="flex gap-4">
-					<Button asChild variant="link" className="text-primary-foreground">
+					<Button asChild variant="link" className="text-foreground">
 						<Link href={`/events/${event_id}`}>
 							<Pencil className="sie-4" /> Rediger og Administer
 						</Link>
 					</Button>
-					<Button asChild variant="link" className="text-primary-foreground">
+					<Button asChild variant="link" className="text-foreground">
 						<Link href={`/events/${event_id}/registrations`}>
 							<Users className="sie-4" /> Påmeldte
 						</Link>
