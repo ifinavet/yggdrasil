@@ -1355,6 +1355,12 @@ packages:
     cpu: [ia32]
     os: [linux]
 
+  '@esbuild/linux-ia32@0.27.0':
+    resolution: {integrity: sha512-Mz1jxqm/kfgKkc/KLHC5qIujMvnnarD9ra1cEcrs7qshTUSksPihGrWHVG5+osAIQ68577Zpww7SGapmzSt4Nw==}
+    engines: {node: '>=18'}
+    cpu: [ia32]
+    os: [linux]
+
   '@esbuild/linux-loong64@0.25.0':
     resolution: {integrity: sha512-fC95c/xyNFueMhClxJmeRIj2yrSMdDfmqJnyOY4ZqsALkDrrKJfIg5NTMSzVBr5YW1jf+l7/cndBfP3MSDpoHw==}
     engines: {node: '>=18'}
@@ -10380,6 +10386,7 @@ snapshots:
       '@radix-ui/react-use-controllable-state': 1.2.2(@types/react@19.1.9)(react@19.1.1)
       react: 19.1.1
       react-dom: 19.1.1(react@19.1.1)
+      react-remove-scroll: 2.7.2(@types/react@19.1.9)(react@19.1.1)
     optionalDependencies:
       '@types/react': 19.1.9
       '@types/react-dom': 19.1.7(@types/react@19.1.9)
@@ -11993,6 +12000,7 @@ snapshots:
       tiny-invariant: 1.3.3
       tiny-warning: 1.0.3
     optional: true
+  '@tanstack/pacer-lite@0.1.1': {}
 
   '@tanstack/start-fn-stubs@1.154.7':
     optional: true
@@ -12019,6 +12027,11 @@ snapshots:
       vitefu: 1.1.1(vite@7.3.1(@types/node@20.19.24)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.93.3)(terser@5.43.1)(tsx@4.21.0)(yaml@2.8.1))
       xmlbuilder2: 4.0.3
       zod: 3.25.76
+  '@tanstack/react-form@1.28.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
+    dependencies:
+      '@tanstack/form-core': 1.28.0
+      '@tanstack/react-store': 0.8.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      react: 19.1.1
     transitivePeerDependencies:
       - '@rsbuild/core'
       - '@tanstack/react-router'
@@ -12040,6 +12053,12 @@ snapshots:
     transitivePeerDependencies:
       - crossws
     optional: true
+  '@tanstack/react-store@0.8.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
+    dependencies:
+      '@tanstack/store': 0.8.0
+      react: 19.1.1
+      react-dom: 19.1.1(react@19.1.1)
+      use-sync-external-store: 1.6.0(react@19.1.1)
 
   '@tanstack/start-storage-context@1.158.1':
     dependencies:
