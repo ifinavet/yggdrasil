@@ -48,17 +48,17 @@ export default async function Layout({
         <div className="flex gap-4">
           <Button asChild variant="link" className="text-foreground">
             <Link href={`/events/${event_id}`}>
-              <Pencil className="sie-4" /> Rediger og Administer
+              <Pencil className="size-4" /> Rediger og Administer
             </Link>
           </Button>
           <Button asChild variant="link" className="text-foreground">
             <Link href={`/events/${event_id}/registrations`}>
-              <Users className="sie-4" /> Påmeldte
+              <Users className="size-4" /> Påmeldte
             </Link>
           </Button>
           <Button asChild variant="link" className="text-foreground">
             <Link href={`/events/${event_id}/report`}>
-              <ChartPie className="sie-4" /> Rapport
+              <ChartPie className="size-4" /> Rapport
             </Link>
           </Button>
         </div>
