@@ -6,391 +6,367 @@ import { type MutationCtx, mutation, query } from "./_generated/server";
 import { getCurrentUserOrThrow } from "./users";
 
 export const getByEventId = query({
-	args: {
-		eventId: v.id("events"),
-	},
-	handler: async (ctx, { eventId }) => {
-		const registrations = await ctx.db
-			.query("registrations")
-			.withIndex("by_eventIdAndRegistrationTime", (q) =>
-				q.eq("eventId", eventId),
-			)
-			.collect();
+  args: {
+    eventId: v.id("events"),
+  },
+  handler: async (ctx, { eventId }) => {
+    const registrations = await ctx.db
+      .query("registrations")
+      .withIndex("by_eventIdAndRegistrationTime", (q) => q.eq("eventId", eventId))
+      .collect();
 
-		const registrationsWithUsers = await Promise.all(
-			registrations.map(async (registration) => {
-				const user = await ctx.db.get(registration.userId);
-				return {
-					...registration,
-					userName: user
-						? `${user.firstName} ${user.lastName}`
-						: "Ukjent bruker",
-					userEmail: user ? user.email : "Ukjent e-post",
-				};
-			}),
-		);
+    const registrationsWithUsers = await Promise.all(
+      registrations.map(async (registration) => {
+        const user = await ctx.db.get(registration.userId);
+        return {
+          ...registration,
+          userName: user ? `${user.firstName} ${user.lastName}` : "Ukjent bruker",
+          userEmail: user ? user.email : "Ukjent e-post",
+        };
+      }),
+    );
 
-		const registeredPending = registrationsWithUsers.filter(
-			(reg) => reg.status === "pending" || reg.status === "registered",
-		);
-		const waitlist = registrationsWithUsers.filter(
-			(reg) => reg.status === "waitlist",
-		);
+    const registeredPending = registrationsWithUsers.filter(
+      (reg) => reg.status === "pending" || reg.status === "registered",
+    );
+    const waitlist = registrationsWithUsers.filter((reg) => reg.status === "waitlist");
 
-		return {
-			registered: registeredPending,
-			waitlist: waitlist,
-		};
-	},
+    return {
+      registered: registeredPending,
+      waitlist: waitlist,
+    };
+  },
 });
 
 export const getById = query({
-	args: {
-		id: v.id("registrations"),
-	},
-	handler: async (ctx, { id }) => {
-		const registration = await ctx.db.get(id);
+  args: {
+    id: v.id("registrations"),
+  },
+  handler: async (ctx, { id }) => {
+    const registration = await ctx.db.get(id);
 
-		if (!registration) {
-			throw new Error(`Registrering med ID ${id} ikke funnet.`);
-		}
+    if (!registration) {
+      throw new Error(`Registrering med ID ${id} ikke funnet.`);
+    }
 
-		return registration;
-	},
+    return registration;
+  },
 });
 
 export const getCurrentUser = query({
-	handler: async (ctx) => {
-		const user = await getCurrentUserOrThrow(ctx);
+  handler: async (ctx) => {
+    const user = await getCurrentUserOrThrow(ctx);
 
-		const registrations = await ctx.db
-			.query("registrations")
-			.withIndex("by_userId", (q) => q.eq("userId", user._id))
-			.collect();
+    const registrations = await ctx.db
+      .query("registrations")
+      .withIndex("by_userId", (q) => q.eq("userId", user._id))
+      .collect();
 
-		const registrationsWithEvents = await Promise.all(
-			registrations.map(async (reg) => {
-				const event = await ctx.db.get(reg.eventId);
-				if (!event) {
-					throw new Error(
-						`Arrangementet med ID ${reg.eventId} ikke funnet. Kan ikke hente registrering.`,
-					);
-				}
+    const registrationsWithEvents = await Promise.all(
+      registrations.map(async (reg) => {
+        const event = await ctx.db.get(reg.eventId);
+        if (!event) {
+          throw new Error(
+            `aarangementet med ID ${reg.eventId} ikke funnet. Kan ikke hente registrering.`,
+          );
+        }
 
-				return {
-					...reg,
-					eventTitle: event.title,
-					eventStart: event.eventStart,
-				};
-			}),
-		);
+        return {
+          ...reg,
+          eventTitle: event.title,
+          eventStart: event.eventStart,
+        };
+      }),
+    );
 
-		return registrationsWithEvents;
-	},
+    return registrationsWithEvents;
+  },
 });
 
 export const getUserByRegistrationId = query({
-	args: {
-		id: v.id("registrations"),
-	},
-	handler: async (ctx, { id }) => {
-		const registration = await ctx.db.get(id);
-		if (!registration) return null;
+  args: {
+    id: v.id("registrations"),
+  },
+  handler: async (ctx, { id }) => {
+    const registration = await ctx.db.get(id);
+    if (!registration) return null;
 
-		const user = await ctx.db.get(registration.userId);
-		if (!user) return null;
+    const user = await ctx.db.get(registration.userId);
+    if (!user) return null;
 
-		return { ...registration, ...user };
-	},
+    return { ...registration, ...user };
+  },
 });
 
 export const acceptPendingRegistration = mutation({
-	args: {
-		id: v.id("registrations"),
-	},
-	handler: async (ctx, { id }) => {
-		const user = await getCurrentUserOrThrow(ctx);
+  args: {
+    id: v.id("registrations"),
+  },
+  handler: async (ctx, { id }) => {
+    const user = await getCurrentUserOrThrow(ctx);
 
-		const registration = await ctx.db.get(id);
-		if (!registration) {
-			throw new Error(
-				`Registrering med ID ${id} ikke funnet. Kan ikke godta registrering.`,
-			);
-		}
+    const registration = await ctx.db.get(id);
+    if (!registration) {
+      throw new Error(`Registrering med ID ${id} ikke funnet. Kan ikke godta registrering.`);
+    }
 
-		if (registration.userId !== user._id) {
-			throw new Error(
-				`Registrering med ID ${id} tilhører ikke brukeren. Kan ikke godta. Utført av id ${user._id}, ${user.firstName} ${user.lastName}`,
-			);
-		}
+    if (registration.userId !== user._id) {
+      throw new Error(
+        `Registrering med ID ${id} tilhører ikke brukeren. Kan ikke godta. Utført av id ${user._id}, ${user.firstName} ${user.lastName}`,
+      );
+    }
 
-		await ctx.db.patch(id, {
-			status: "registered",
-			registrationTime: Date.now(),
-		});
-	},
+    await ctx.db.patch(id, {
+      status: "registered",
+      registrationTime: Date.now(),
+    });
+  },
 });
 
 export const updateAttendance = mutation({
-	args: {
-		id: v.id("registrations"),
-		newStatus: v.union(
-			v.literal("confirmed"),
-			v.literal("late"),
-			v.literal("no_show"),
-		),
-	},
-	handler: async (ctx, { id, newStatus }) => {
-		await getCurrentUserOrThrow(ctx);
+  args: {
+    id: v.id("registrations"),
+    newStatus: v.union(v.literal("confirmed"), v.literal("late"), v.literal("no_show")),
+  },
+  handler: async (ctx, { id, newStatus }) => {
+    await getCurrentUserOrThrow(ctx);
 
-		const registration = await ctx.db.get(id);
-		if (!registration) {
-			throw new Error(
-				`Registrering med ID ${id} ikke funnet. Kan ikke oppdatere deltakelsestatus.`,
-			);
-		}
+    const registration = await ctx.db.get(id);
+    if (!registration) {
+      throw new Error(
+        `Registrering med ID ${id} ikke funnet. Kan ikke oppdatere deltakelsestatus.`,
+      );
+    }
 
-		await ctx.db.patch(id, {
-			attendanceStatus: newStatus,
-			attendanceTime: Date.now(),
-			status:
-				registration.status === "pending" ? "registered" : registration.status,
-		});
+    await ctx.db.patch(id, {
+      attendanceStatus: newStatus,
+      attendanceTime: Date.now(),
+      status: registration.status === "pending" ? "registered" : registration.status,
+    });
 
-		if (registration.status !== "registered") return;
+    if (registration.status !== "registered") return;
 
-		const student = await ctx.db
-			.query("students")
-			.withIndex("by_userId", (q) => q.eq("userId", registration.userId))
-			.first();
+    const student = await ctx.db
+      .query("students")
+      .withIndex("by_userId", (q) => q.eq("userId", registration.userId))
+      .first();
 
-		if (!student) {
-			throw new Error(
-				`Bruker med ID ${registration.userId} ikke funnet. Kan ikke oppdatere deltakelsestatus.`,
-			);
-		}
+    if (!student) {
+      throw new Error(
+        `Bruker med ID ${registration.userId} ikke funnet. Kan ikke oppdatere deltakelsestatus.`,
+      );
+    }
 
-		const event = await ctx.db.get(registration.eventId);
+    const event = await ctx.db.get(registration.eventId);
 
-		if (newStatus === "late" || newStatus === "no_show") {
-			const severity = newStatus === "late" ? 1 : 2;
-			const reason =
-				newStatus === "late"
-					? `Du fikk 1 prikk for å være for sen til arrangementet "${event?.title}".`
-					: `Du fikk 2 prikker for å ikke møte til arrangementet "${event?.title}".`;
+    if (newStatus === "late" || newStatus === "no_show") {
+      const severity = newStatus === "late" ? 1 : 2;
+      const reason =
+        newStatus === "late"
+          ? `Du fikk 1 prikk for å være for sen til aarangementet "${event?.title}".`
+          : `Du fikk 2 prikker for å ikke møte til aarangementet "${event?.title}".`;
 
-			await ctx.runMutation(internal.points.givePointsInternal, {
-				id: student._id,
-				severity,
-				reason,
-			});
+      await ctx.runMutation(internal.points.givePointsInternal, {
+        id: student._id,
+        severity,
+        reason,
+      });
 
-			await ctx.runMutation(internal.points.givePointsEmail, {
-				userId: student.userId,
-				severity,
-				reason,
-			});
-		}
-	},
+      await ctx.runMutation(internal.points.givePointsEmail, {
+        userId: student.userId,
+        severity,
+        reason,
+      });
+    }
+  },
 });
 
 export const register = mutation({
-	args: {
-		eventId: v.id("events"),
-		note: v.optional(v.string()),
-	},
-	handler: async (ctx, { eventId, note }) => {
-		const user = await getCurrentUserOrThrow(ctx);
+  args: {
+    eventId: v.id("events"),
+    note: v.optional(v.string()),
+  },
+  handler: async (ctx, { eventId, note }) => {
+    const user = await getCurrentUserOrThrow(ctx);
 
-		const event = await ctx.db.get(eventId);
-		if (!event) {
-			throw new Error(
-				`Arrangementet med ID ${eventId} ikke funnet.Kan ikke registrere.`,
-			);
-		}
+    const event = await ctx.db.get(eventId);
+    if (!event) {
+      throw new Error(`aarangementet med ID ${eventId} ikke funnet.Kan ikke registrere.`);
+    }
 
-		const registrations = await ctx.db
-			.query("registrations")
-			.withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
-				q.eq("eventId", eventId),
-			)
-			.collect();
+    const registrations = await ctx.db
+      .query("registrations")
+      .withIndex("by_eventIdStatusAndRegistrationTime", (q) => q.eq("eventId", eventId))
+      .collect();
 
-		if (registrations.some((registration) => registration.userId === user._id))
-			return;
+    if (registrations.some((registration) => registration.userId === user._id)) return;
 
-		const registrationCount = registrations.filter(
-			(reg) => reg.status === "registered" || reg.status === "pending",
-		).length;
+    const registrationCount = registrations.filter(
+      (reg) => reg.status === "registered" || reg.status === "pending",
+    ).length;
 
-		const status =
-			registrationCount < event.participationLimit ? "registered" : "waitlist";
+    const status = registrationCount < event.participationLimit ? "registered" : "waitlist";
 
-		await ctx.db.insert("registrations", {
-			eventId,
-			userId: user._id,
-			status,
-			note: note,
-			registrationTime: Date.now(),
-		});
+    await ctx.db.insert("registrations", {
+      eventId,
+      userId: user._id,
+      status,
+      note: note,
+      registrationTime: Date.now(),
+    });
 
-		return status;
-	},
+    return status;
+  },
 });
 
 export const updateNote = mutation({
-	args: {
-		id: v.id("registrations"),
-		note: v.optional(v.string()),
-	},
-	handler: async (ctx, { id, note }) => {
-		await getCurrentUserOrThrow(ctx);
+  args: {
+    id: v.id("registrations"),
+    note: v.optional(v.string()),
+  },
+  handler: async (ctx, { id, note }) => {
+    await getCurrentUserOrThrow(ctx);
 
-		await ctx.db.patch(id, { note });
-	},
+    await ctx.db.patch(id, { note });
+  },
 });
 
 export const unregister = mutation({
-	args: {
-		id: v.id("registrations"),
-	},
-	handler: async (ctx, { id }) => {
-		await getCurrentUserOrThrow(ctx);
+  args: {
+    id: v.id("registrations"),
+  },
+  handler: async (ctx, { id }) => {
+    await getCurrentUserOrThrow(ctx);
 
-		const registration = await ctx.db.get(id);
-		if (!registration) {
-			throw new Error(
-				`Registrering med ID ${id} ble ikke funnet. Avbryter avregistrering.`,
-			);
-		}
+    const registration = await ctx.db.get(id);
+    if (!registration) {
+      throw new Error(`Registrering med ID ${id} ble ikke funnet. Avbryter avregistrering.`);
+    }
 
-		const event = await ctx.db.get(registration.eventId);
-		if (!event) {
-			throw new Error(
-				`Arrangement med ID ${registration.eventId} ble ikke funnet.Kan ikke behandle ventelisten.`,
-			);
-		}
+    const event = await ctx.db.get(registration.eventId);
+    if (!event) {
+      throw new Error(
+        `aarangement med ID ${registration.eventId} ble ikke funnet.Kan ikke behandle ventelisten.`,
+      );
+    }
 
-		await ctx.db.delete(id);
+    await ctx.db.delete(id);
 
-		const returnData = {
-			deletedRegistration: registration,
-			event: event,
-		};
+    const returnData = {
+      deletedRegistration: registration,
+      event: event,
+    };
 
-		if (registration.status === "waitlist") return returnData;
+    if (registration.status === "waitlist") return returnData;
 
-		const nextRegistration = await ctx.db
-			.query("registrations")
-			.withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
-				q.eq("eventId", registration.eventId).eq("status", "waitlist"),
-			)
-			.order("asc")
-			.first();
+    const nextRegistration = await ctx.db
+      .query("registrations")
+      .withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
+        q.eq("eventId", registration.eventId).eq("status", "waitlist"),
+      )
+      .order("asc")
+      .first();
 
-		if (nextRegistration) {
-			await makeStatusPending(ctx, nextRegistration, event);
-		}
+    if (nextRegistration) {
+      await makeStatusPending(ctx, nextRegistration, event);
+    }
 
-		const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
+    const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
 
-		if (
-			event.eventStart - Date.now() < TWENTY_FOUR_HOURS &&
-			registration.status === "registered"
-		) {
-			try {
-				const student = await ctx.db
-					.query("students")
-					.withIndex("by_userId", (q) => q.eq("userId", registration.userId))
-					.first();
+    if (event.eventStart - Date.now() < TWENTY_FOUR_HOURS && registration.status === "registered") {
+      try {
+        const student = await ctx.db
+          .query("students")
+          .withIndex("by_userId", (q) => q.eq("userId", registration.userId))
+          .first();
 
-				if (student) {
-					await ctx.runMutation(internal.points.givePointsInternal, {
-						id: student._id,
-						severity: 1,
-						reason: `Avregistrering fra arrangement ${event.title} mindre enn 24 timer før start.`,
-					});
-				}
-			} catch (e) {
-				console.error("Failed to apply late unregister penalty:", e);
-			}
-		}
+        if (student) {
+          await ctx.runMutation(internal.points.givePointsInternal, {
+            id: student._id,
+            severity: 1,
+            reason: `Avregistrering fra aarangement ${event.title} mindre enn 24 timer før start.`,
+          });
+        }
+      } catch (e) {
+        console.error("Failed to apply late unregister penalty:", e);
+      }
+    }
 
-		return returnData;
-	},
+    return returnData;
+  },
 });
 
 export const makeStatusPending = async (
-	ctx: MutationCtx,
-	registrationToMakePending: Doc<"registrations">,
-	event: Doc<"events">,
+  ctx: MutationCtx,
+  registrationToMakePending: Doc<"registrations">,
+  event: Doc<"events">,
 ) => {
-	const user = await ctx.db.get(registrationToMakePending.userId);
-	if (!user) {
-		throw new Error(
-			`Bruker med ID ${registrationToMakePending.userId} ikke funnet. Kan ikke oppdatere registrering.`,
-		);
-	}
+  const user = await ctx.db.get(registrationToMakePending.userId);
+  if (!user) {
+    throw new Error(
+      `Bruker med ID ${registrationToMakePending.userId} ikke funnet. Kan ikke oppdatere registrering.`,
+    );
+  }
 
-	await ctx.db.patch(registrationToMakePending._id, {
-		status: "pending",
-		registrationTime: Date.now(),
-	});
+  await ctx.db.patch(registrationToMakePending._id, {
+    status: "pending",
+    registrationTime: Date.now(),
+  });
 
-	await ctx.scheduler.runAfter(0, internal.emails.sendAvailableSeatEmail, {
-		participantEmail: user.email,
-		eventTitle: event.title,
-		eventId: event._id,
-		registrationId: registrationToMakePending._id,
-	});
+  await ctx.scheduler.runAfter(0, internal.emails.sendAvailableSeatEmail, {
+    participantEmail: user.email,
+    eventTitle: event.title,
+    eventId: event._id,
+    registrationId: registrationToMakePending._id,
+  });
 };
 
 export const getRegistrantsInfo = query({
-	args: {
-		eventId: v.id("events"),
-	},
-	handler: async (ctx, { eventId }) => {
-		const registrations = await ctx.db
-			.query("registrations")
-			.withIndex("by_eventId", (q) => q.eq("eventId", eventId))
-			.filter((r) => r.eq(r.field("status"), "registered"))
-			.collect();
+  args: {
+    eventId: v.id("events"),
+  },
+  handler: async (ctx, { eventId }) => {
+    const registrations = await ctx.db
+      .query("registrations")
+      .withIndex("by_eventId", (q) => q.eq("eventId", eventId))
+      .filter((r) => r.eq(r.field("status"), "registered"))
+      .collect();
 
-		const studentsInfo = await Promise.all(
-			registrations.map(async (registration) => {
-				const student = await ctx.db
-					.query("students")
-					.withIndex("by_userId", (q) => q.eq("userId", registration.userId))
-					.first();
+    const studentsInfo = await Promise.all(
+      registrations.map(async (registration) => {
+        const student = await ctx.db
+          .query("students")
+          .withIndex("by_userId", (q) => q.eq("userId", registration.userId))
+          .first();
 
-				return {
-					semester: student?.semester ?? -1,
-					program: student?.studyProgram ?? "Ukjent",
-					degree: student?.degree ?? "Ukjent",
-				};
-			}),
-		);
+        return {
+          aar: student?.year ?? -1,
+          program: student?.studyProgram ?? "Ukjent",
+          degree: student?.degree ?? "Ukjent",
+        };
+      }),
+    );
 
-		const result: {
-			[degree: string]: {
-				[program: string]: {
-					[semester: number]: number;
-				};
-			};
-		} = {};
+    const result: {
+      [degree: string]: {
+        [program: string]: {
+          [aar: number]: number;
+        };
+      };
+    } = {};
 
-		for (const info of studentsInfo) {
-			const { degree, program, semester } = info;
-			const programBase = toBase64(program);
-			if (!result[degree]) result[degree] = {};
+    for (const info of studentsInfo) {
+      const { degree, program, aar } = info;
+      const programBase = toBase64(program);
+      if (!result[degree]) result[degree] = {};
 
-			if (!result[degree][programBase]) result[degree][programBase] = {};
+      if (!result[degree][programBase]) result[degree][programBase] = {};
 
-			result[degree][programBase][semester] ??= 0;
+      result[degree][programBase][aar] ??= 0;
 
-			result[degree][programBase][semester]++;
-		}
+      result[degree][programBase][aar]++;
+    }
 
-		return result;
-	},
+    return result;
+  },
 });
