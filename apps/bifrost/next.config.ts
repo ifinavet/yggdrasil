@@ -6,10 +6,7 @@ if (!process.env.NEXT_PUBLIC_CONVEX_URL) {
 }
 
 // Remove http(s):// protocol if present
-const convexSite = process.env.NEXT_PUBLIC_CONVEX_URL.replace(
-	/^https?:\/\//,
-	"",
-);
+const convexSite = process.env.NEXT_PUBLIC_CONVEX_URL.replace(/^https?:\/\//, "");
 
 const nextConfig: NextConfig = {
 	/* config options here */
@@ -21,6 +18,12 @@ const nextConfig: NextConfig = {
 				protocol: "https",
 				hostname: convexSite,
 				port: "",
+				pathname: "**",
+			},
+			{
+				protocol: "http",
+				hostname: "127.0.0.1",
+				port: "3210",
 				pathname: "**",
 			},
 			{
