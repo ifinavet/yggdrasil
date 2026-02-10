@@ -13,17 +13,17 @@
 	"author": "",
 	"packageManager": "pnpm@10.13.1",
 	"dependencies": {
-		"@clerk/backend": "^2.13.0",
+		"@clerk/backend": "^2.30.1",
 		"@convex-dev/migrations": "^0.2.9",
-		"@convex-dev/resend": "^0.1.12",
-		"@react-email/render": "^1.2.3",
+		"@convex-dev/resend": "^0.1.13",
+		"@react-email/render": "^1.4.0",
 		"@workspace/emails": "workspace:*",
 		"@workspace/shared": "workspace:*",
-		"convex": "^1.27.0",
-		"svix": "^1.76.1"
+		"convex": "^1.31.7",
+		"svix": "^1.84.1"
 	},
 	"devDependencies": {
-		"@types/node": "^20.19.13"
+		"@types/node": "^20.19.32"
 	},
 	"exports": {
 		"./convex/api": {
