@@ -48,9 +48,9 @@ async function User() {
 				</DropdownMenuTrigger>
 				<DropdownMenuContent>
 					<DropdownMenuGroup>
-						<DropdownMenuItem asChild className="w-full">
-							<SignOutButton>Logg ut</SignOutButton>
-						</DropdownMenuItem>
+						<SignOutButton>
+							<DropdownMenuItem className="w-full">Logg ut</DropdownMenuItem>
+						</SignOutButton>
 					</DropdownMenuGroup>
 				</DropdownMenuContent>
 			</DropdownMenu>
