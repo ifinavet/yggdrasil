@@ -1,18 +1,15 @@
 import { ClerkProvider } from "@clerk/nextjs";
-import {
-	SidebarInset,
-	SidebarProvider,
-} from "@workspace/ui/components/sidebar";
+import { SidebarInset, SidebarProvider } from "@workspace/ui/components/sidebar";
 import { Toaster } from "@workspace/ui/components/sonner";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { Suspense } from "react";
 import "./globals.css";
+import { hasBasicRights } from "@workspace/auth";
 import Header from "@/components/common/header";
 import BifrostSidebar from "@/components/common/sidebar/sidebar";
 import ConvexClientProvider from "@/providers/convex-client-provider";
-import { hasBasicRights } from "@/utils/auth";
 import PostHogPageView from "./posthog-page-view";
 import UnauthorizedPage from "./unauthorized";
 
@@ -65,9 +62,7 @@ export default function RootLayout({
 	);
 }
 
-async function AuthorizedContent({
-	children,
-}: Readonly<{ children: React.ReactNode }>) {
+async function AuthorizedContent({ children }: Readonly<{ children: React.ReactNode }>) {
 	const hasRights = await hasBasicRights();
 
 	if (!hasRights) {

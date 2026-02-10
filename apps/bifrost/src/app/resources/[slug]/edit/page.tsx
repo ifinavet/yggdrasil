@@ -1,3 +1,4 @@
+import { hasEditRights } from "@workspace/auth";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import {
 	Breadcrumb,
@@ -8,7 +9,6 @@ import {
 	BreadcrumbSeparator,
 } from "@workspace/ui/components//breadcrumb";
 import { redirect } from "next/navigation";
-import { hasEditRights } from "@/utils/auth";
 import EditResourceForm from "./edit-resource-form";
 
 export default async function EditResourcePage({

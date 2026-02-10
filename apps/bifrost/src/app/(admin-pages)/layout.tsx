@@ -1,5 +1,5 @@
+import { hasAdminRights } from "@workspace/auth";
 import { redirect } from "next/navigation";
-import { hasAdminRights } from "@/utils/auth";
 
 export default async function Layout({
 	children,
