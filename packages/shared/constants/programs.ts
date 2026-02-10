@@ -14,4 +14,5 @@ export const STUDY_PROGRAMS = [
 	"Digitalisering i helsesektoren",
 	"Informatikk (årsenhet)",
 	"IT-arkitektur (årsenhet)",
+	"Enkeltemne(r)",
 ] as const;
