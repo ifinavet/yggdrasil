@@ -6,6 +6,7 @@ import { getAuthToken } from "@workspace/auth";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@workspace/ui/components/card";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 export default async function EventResponse({
 	params,
@@ -23,6 +24,16 @@ export default async function EventResponse({
 	}
 
 	const token = await getAuthToken();
+
+	const ableToAnswer = await fetchQuery(api.forms.checkIfCurrentUserAttendedTheEventAndShouldBeAbleToSubmit,
+		{
+			eventId: event._id
+		},
+		{ token }
+	);
+
+	if (!ableToAnswer) redirect("/");
+
 	const response = await fetchQuery(
 		api.forms.getCurrentUsersResponseByFormId,
 		{
@@ -57,6 +68,7 @@ export default async function EventResponse({
 			</div>
 		)
 	}
+
 
 	return (
 		<div className="mx-auto mb-8 max-w-3xl">

@@ -57,3 +57,33 @@ export const getCurrentUsersResponseByFormId = query({
 		return response;
 	},
 });
+
+export const checkIfCurrentUserAttendedTheEventAndShouldBeAbleToSubmit = query({
+	args: {
+		eventId: v.id("events"),
+	},
+	handler: async (ctx, { eventId }) => {
+		const user = await getCurrentUserOrThrow(ctx);
+
+		const event = await ctx.db.get(eventId)
+
+		if (!event) return false
+		console.log(event)
+
+		const attendance = await ctx.db
+			.query("registrations")
+			.withIndex("by_userId", (q) => q.eq("userId", user._id))
+			.first();
+
+
+		if (!attendance) return false
+		console.log(attendance);
+
+		if (attendance.attendanceStatus === undefined || attendance.attendanceStatus === "no_show") {
+			return false
+		}
+		console.log(attendance.attendanceStatus)
+
+		return true
+	},
+});
