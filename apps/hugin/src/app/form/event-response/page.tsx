@@ -1,48 +1,25 @@
-import { useForm } from "@tanstack/react-form";
-import z from "zod/v4";
+"use client";
 
-const eventResponseFromSchema = z.object({
-	satisfaction: z.int().min(1).max(5),
-	impression: z.int().min(1).max(5),
-	expectation: z.int().min(1).max(5),
-	toughts: z.string().min(1).max(1000),
-	improvements: z.string().min(1).max(1000),
-	want_to_work: z.boolean(),
-	word_of_mouth: z.string().min(1).max(200),
-	other: z.string().min(1).max(1000),
-});
+import { Suspense } from "react";
+import { EventResponseFrom } from "./form";
 
 export default function EventResponse() {
 	const company = "bedrift";
 
 	return (
-		<>
-			<div>
+		<div className="mx-auto mb-8 max-w-3xl">
+			<div className="prose dark:prose-invert max-w-[80ch] pb-4 prose-h1:text-primary dark:prose-h1:text-primary-foreground">
 				<h1>Bedriftspresentasjon med {company}</h1>
+				<p>
+					Takk for at du kom på Bedriftspresentasjonen vår. Vi ønsker alltid å gjøre opplevelsen
+					best mulig. Derfor så hadde vi satt pris på om du kunne svart på denne kjappe
+					undersøkelsen.
+				</p>
 			</div>
 
-			<div></div>
-		</>
-	);
-}
-
-export function EventResponseFrom() {
-	const form = useForm({
-		defaultValues: {},
-		validators: {
-			onSubmit: eventResponseFromSchema,
-		},
-		onSubmit: async ({ value }) => {
-			console.log(value);
-		},
-	});
-
-	return (
-		<form
-			onSubmit={(e) => {
-				e.preventDefault();
-				form.handleSubmit();
-			}}
-		></form>
+			<Suspense>
+				<EventResponseFrom />
+			</Suspense>
+		</div>
 	);
 }
