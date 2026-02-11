@@ -7,6 +7,7 @@ import { Suspense } from "react";
 import "./globals.css";
 import Header from "@/components/header";
 import ConvexClientProvider from "@/providers/convex-client-provider";
+import PostHogProvider from "@/providers/posthog-provider";
 import PostHogPageView from "./posthog-page-view";
 
 const defaultUrl = process.env.VERCEL_URL
@@ -16,7 +17,7 @@ const defaultUrl = process.env.VERCEL_URL
 export const metadata: Metadata = {
 	metadataBase: new URL(defaultUrl),
 	title: {
-		template: "%s",
+		template: "Navet | %s",
 		default: "Navet - Hugin",
 	},
 };
@@ -36,25 +37,27 @@ export default function RootLayout({
 		<html lang="nb" suppressHydrationWarning>
 			<body className={`antialiased ${interSans.className}`}>
 				<Suspense fallback={null}>
-					<ClerkProvider>
-						<ConvexClientProvider>
-							<ThemeProvider
-								attribute="class"
-								defaultTheme="system"
-								enableSystem
-								disableTransitionOnChange
-							>
-								<main className="wrap-break-word mx-6 min-w-0 max-w-5xl whitespace-normal text-balance lg:mx-auto">
-									<Header />
-									{children}
-								</main>
-								<Toaster richColors position="bottom-right" />
-								<Suspense fallback={null}>
-									<PostHogPageView />
-								</Suspense>
-							</ThemeProvider>
-						</ConvexClientProvider>
-					</ClerkProvider>
+					<PostHogProvider>
+						<ClerkProvider>
+							<ConvexClientProvider>
+								<ThemeProvider
+									attribute="class"
+									defaultTheme="system"
+									enableSystem
+									disableTransitionOnChange
+								>
+									<main className="wrap-break-word mx-6 min-w-0 max-w-5xl whitespace-normal text-balance lg:mx-auto">
+										<Header />
+										{children}
+									</main>
+									<Toaster richColors position="bottom-right" />
+									<Suspense fallback={null}>
+										<PostHogPageView />
+									</Suspense>
+								</ThemeProvider>
+							</ConvexClientProvider>
+						</ClerkProvider>
+					</PostHogProvider>
 				</Suspense>
 			</body>
 		</html>
