@@ -15,8 +15,17 @@ export default function EventCard({
 	event,
 }: Readonly<{ event: EventCardType }>) {
 
-	const isExpired =
-		event.eventDate ? event.eventDate < new Date() : false;
+	const isExpired = (() => {
+		if (!event.eventDate) return false;
+
+		const today = new Date();
+		today.setHours(0, 0, 0, 0);
+
+		const eventDate = new Date(event.eventDate);
+		eventDate.setHours(0, 0, 0, 0);
+
+		return eventDate < today;
+	})();
 
 	return (
 		<div className="flex h-100 flex-col overflow-clip rounded-lg border border-primary/10 shadow-md">
@@ -32,10 +41,10 @@ export default function EventCard({
 
 			<div
 				className={`flex flex-1 flex-col justify-between gap-4 p-6 ${
-		isExpired
-			? "bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-white"
-			: "bg-primary text-primary-foreground dark:bg-gray-800"
-	}`}
+					isExpired
+						? "bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-white"
+						: "bg-primary text-primary-foreground dark:bg-gray-800"
+				}`}
 			>
 				<div className="flex flex-col gap-4">
 					<h2 className="font-bold text-xl tracking-tight">
