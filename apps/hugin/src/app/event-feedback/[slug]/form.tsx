@@ -2,9 +2,10 @@
 
 import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
-import type { Id } from "@workspace/backend/convex/dataModel";
 import { Button } from "@workspace/ui/components/button";
 import { useMutation } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
 	BooleanCard,
@@ -13,9 +14,6 @@ import {
 	TextInputCard,
 } from "@/components/input-cards";
 import { eventResponseFromSchema } from "@/lib/schema/event-feedback-schema";
-import { redirect, useRouter } from "next/navigation";
-import { FunctionReturnType } from "convex/server";
-
 
 export function EventResponseFrom({
 	event,
@@ -48,12 +46,12 @@ export function EventResponseFrom({
 					},
 				});
 				toast.success("Takk for din tilbakemelding!");
-				router.push(`/event-feedback/${event.slug ?? event._id}/response`)
+				router.push(`/event-feedback/${event.slug ?? event._id}/response`);
 			} catch (error) {
 				console.error(error);
 				toast.error("Hmm, det ser ut til at det har skjedd en feil", {
-					description: "Skulle feilen vedvare så burde du gi beskjed til webansvarlig"
-				})
+					description: "Skulle feilen vedvare så burde du gi beskjed til webansvarlig",
+				});
 			}
 		},
 	});
