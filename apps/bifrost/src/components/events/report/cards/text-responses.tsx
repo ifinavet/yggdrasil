@@ -27,7 +27,7 @@ export default function TextResponseCard({
 				<CardTitle>{title}</CardTitle>
 				<CardDescription>{description}</CardDescription>
 			</CardHeader>
-			<CardContent>
+			<CardContent className="max-h-96 overflow-y-scroll">
 				{values.length === 0 && (
 					<div>Her var det tomt... Ser ikke ut til at noen hadde noen tanker om dette punktet.</div>
 				)}
