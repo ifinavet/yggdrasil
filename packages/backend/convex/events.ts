@@ -342,7 +342,7 @@ export const update = mutation({
 			// Creating the feedback form for after the event, if it does not already exist
 			formId = await ctx.runMutation(internal.forms.createEventFeedbackForm);
 			if (!formId) {
-				new Error("Failed to create feedback form");
+				console.error("Failed to create feedback form");
 			}
 		} else {
 			formId = event.formId;
@@ -566,7 +566,7 @@ export const create = mutation({
 		// Creating the feedback form for after the event
 		const formId = await ctx.runMutation(internal.forms.createEventFeedbackForm);
 		if (!formId) {
-			new Error("Failed to create feedback form");
+			console.error("Failed to create feedback form");
 		}
 
 		const eventId = await ctx.db.insert("events", {

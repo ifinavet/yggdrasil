@@ -9,12 +9,12 @@ export function BooleanCard({
 	label,
 	required,
 	readonly,
-}: {
+}: Readonly<{
 	field: AnyFieldApi;
 	label: string;
 	required?: boolean;
 	readonly?: boolean;
-}) {
+}>) {
 	const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
 	return (

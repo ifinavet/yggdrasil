@@ -9,13 +9,13 @@ export function TextInputCard({
 	placeholder,
 	required,
 	readonly,
-}: {
+}: Readonly<{
 	field: AnyFieldApi;
 	label: string;
 	placeholder: string;
 	required?: boolean;
 	readonly?: boolean;
-}) {
+}>) {
 	const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
 	return (

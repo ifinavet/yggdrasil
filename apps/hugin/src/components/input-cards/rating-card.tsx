@@ -11,14 +11,14 @@ export function RatingCard({
 	highLabel,
 	required,
 	readonly,
-}: {
+}: Readonly<{
 	field: AnyFieldApi;
 	label: string;
 	lowLabel: string;
 	highLabel: string;
 	required?: boolean;
 	readonly?: boolean;
-}) {
+}>) {
 	const ratings = Array.from({ length: 5 }, (_, i) => i + 1);
 	const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 

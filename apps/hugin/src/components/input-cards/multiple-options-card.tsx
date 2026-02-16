@@ -11,13 +11,13 @@ export function MultipleOptionsCard({
 	options,
 	required,
 	readonly,
-}: {
+}: Readonly<{
 	field: AnyFieldApi;
 	label: string;
 	options: string[];
 	required?: boolean;
 	readonly?: boolean;
-}) {
+}>) {
 	const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
 	const otherValue = (field.state.value as string[]).find((v: string) => !options.includes(v));
