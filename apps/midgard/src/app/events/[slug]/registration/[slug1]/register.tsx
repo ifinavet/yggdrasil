@@ -5,6 +5,7 @@ import type { Id } from "@workspace/backend/convex/dataModel";
 import { Button } from "@workspace/ui/components/button";
 import { type Preloaded, useMutation, usePreloadedQuery } from "convex/react";
 import { useRouter } from "next/navigation";
+import { usePostHog } from "posthog-js/react";
 import { toast } from "sonner";
 
 export default function Register({
@@ -17,10 +18,9 @@ export default function Register({
 	const registration = usePreloadedQuery(preloadedRegistration);
 
 	const router = useRouter();
+	const posthog = usePostHog();
 
-	const acceptRegistration = useMutation(
-		api.registration.acceptPendingRegistration,
-	);
+	const acceptRegistration = useMutation(api.registration.acceptPendingRegistration);
 	const handleAccept = async () =>
 		acceptRegistration({ id: registration._id })
 			.then(() => {
@@ -36,7 +36,14 @@ export default function Register({
 	const unregister = useMutation(api.registration.unregister);
 	const handleUnregister = async () =>
 		unregister({ id: registration._id })
-			.then(() => {
+			.then(({ deletedRegistration, event, person }) => {
+				posthog.capture("midgard-student_unregister", {
+					unregistration_type: "Waitlist unregistration",
+					deletedRegistration,
+					event,
+					person,
+				});
+
 				toast.success("Du har blitt avregistrert fra arrangementet!");
 				router.push(`/events/${eventId}`);
 			})
@@ -53,9 +60,8 @@ export default function Register({
 			</h3>
 
 			<p className="not-first:mt-2 leading-7">
-				Du har fått muligheten til å delta på arrangementet. Hvis du godtar, vil
-				du bli registrert som deltaker. Hvis du ikke ønsker å delta, kan du
-				avregistrere deg.
+				Du har fått muligheten til å delta på arrangementet. Hvis du godtar, vil du bli registrert
+				som deltaker. Hvis du ikke ønsker å delta, kan du avregistrere deg.
 			</p>
 
 			<div className="flex gap-4">

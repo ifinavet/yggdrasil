@@ -30,10 +30,12 @@ export default function Unregister({
 	const unregister = useMutation(api.registration.unregister);
 	const onUnregister = () =>
 		unregister({ id: registrationId })
-			.then(({ deletedRegistration, event }) =>
+			.then(({ deletedRegistration, event, person }) =>
 				posthog.capture("midgard-student_unregister", {
+					unregistration_type: "Regular unregistration",
 					deletedRegistration,
 					event,
+					person,
 				}),
 			)
 			.catch(() => {
@@ -56,18 +58,14 @@ export default function Unregister({
 				<AlertDialogHeader>
 					<AlertDialogTitle>Er du sikker?</AlertDialogTitle>
 					<AlertDialogDescription>
-						Dersom du melder deg av og det er folk på venteliste, vil miste din
-						plass og havne på venteliste dersom du melder deg opp på nytt. NB!
-						Melder du det av under 24 timer før arrangementet vil du få en
-						prikk.
+						Dersom du melder deg av og det er folk på venteliste, vil miste din plass og havne på
+						venteliste dersom du melder deg opp på nytt. NB! Melder du det av under 24 timer før
+						arrangementet vil du få en prikk.
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>
 					<AlertDialogCancel>Avbryt</AlertDialogCancel>
-					<AlertDialogAction
-						onClick={onUnregister}
-						className="text-primary-foreground"
-					>
+					<AlertDialogAction onClick={onUnregister} className="text-primary-foreground">
 						Jeg er helt sikker, meld meg av.
 					</AlertDialogAction>
 				</AlertDialogFooter>

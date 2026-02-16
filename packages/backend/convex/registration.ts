@@ -268,7 +268,7 @@ export const unregister = mutation({
 		id: v.id("registrations"),
 	},
 	handler: async (ctx, { id }) => {
-		await getCurrentUserOrThrow(ctx);
+		const currentUser = await getCurrentUserOrThrow(ctx);
 
 		const registration = await ctx.db.get(id);
 		if (!registration) {
@@ -287,6 +287,7 @@ export const unregister = mutation({
 		const returnData = {
 			deletedRegistration: registration,
 			event: event,
+			person: currentUser,
 		};
 
 		if (registration.status === "waitlist") return returnData;
