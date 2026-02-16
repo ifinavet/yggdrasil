@@ -372,28 +372,14 @@ export const update = mutation({
 			updatedOrganizers: organizers,
 		});
 
-		const registeredCount = (
-			await ctx.db
-				.query("registrations")
-				.withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
-					q.eq("eventId", eventId).eq("status", "registered"),
-				)
-				.collect()
-		).length;
+		const waitlistLength = await ctx.db
+			.query("registrations")
+			.withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
+				q.eq("eventId", eventId).eq("status", "waitlist"),
+			)
+			.collect();
 
-		const pendingCount = (
-			await ctx.db
-				.query("registrations")
-				.withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
-					q.eq("eventId", eventId).eq("status", "pending"),
-				)
-				.collect()
-		).length;
-
-		if (
-			participationLimit - event.participationLimit > 0 &&
-			registeredCount + pendingCount === event.participationLimit
-		)
+		if (participationLimit - event.participationLimit > 0 && waitlistLength)
 			await updateWaitlist(ctx, event._id, participationLimit - event.participationLimit);
 	},
 });
