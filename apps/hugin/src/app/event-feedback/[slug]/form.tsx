@@ -15,7 +15,7 @@ import {
 } from "@/components/input-cards";
 import { eventResponseFromSchema } from "@/lib/schema/event-feedback-schema";
 
-export function EventResponseFrom({
+export function EventResponseForm({
 	event,
 	userId,
 }: Readonly<{ event: FunctionReturnType<typeof api.events.getEvent>; userId: string }>) {

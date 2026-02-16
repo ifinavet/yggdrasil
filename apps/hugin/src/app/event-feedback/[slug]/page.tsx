@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/componen
 import { fetchQuery } from "convex/nextjs";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { EventResponseFrom } from "./form";
+import { EventResponseForm } from "./form";
 
 export default async function EventResponse({
 	params,
@@ -81,7 +81,7 @@ export default async function EventResponse({
 				</p>
 			</div>
 
-			<EventResponseFrom event={event} userId={userId} />
+			<EventResponseForm event={event} userId={userId} />
 		</div>
 	);
 }
