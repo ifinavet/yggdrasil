@@ -31,14 +31,14 @@ export default function PostHogPageView(): null {
 			posthog.identify(userId, {
 				email: user.primaryEmailAddress?.emailAddress,
 				username: user.username,
-				site: "bifrost",
+				site: "hugin",
 			});
 		}
 
 		if (!isSignedIn && posthog._isIdentified()) {
 			posthog.reset();
 		}
-	}, [posthog, user]);
+	}, [posthog, user, isSignedIn, userId]);
 
 	return null;
 }

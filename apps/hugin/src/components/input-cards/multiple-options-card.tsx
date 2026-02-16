@@ -2,6 +2,8 @@ import type { AnyFieldApi } from "@tanstack/react-form";
 import { Card } from "@workspace/ui/components/card";
 import { Checkbox } from "@workspace/ui/components/checkbox";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@workspace/ui/components/field";
+import { Input } from "@workspace/ui/components/input";
+import { useState } from "react";
 
 export function MultipleOptionsCard({
 	field,
@@ -17,6 +19,11 @@ export function MultipleOptionsCard({
 	readonly?: boolean;
 }) {
 	const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+
+	const otherValue = (field.state.value as string[]).find((v: string) => !options.includes(v));
+	const isOtherChecked = otherValue !== undefined;
+
+	const [otherText, setOtherText] = useState(otherValue ?? "");
 
 	return (
 		<Card>
@@ -52,6 +59,52 @@ export function MultipleOptionsCard({
 							</FieldLabel>
 						</Field>
 					))}
+
+					<Field orientation="horizontal" data-invalid={isInvalid}>
+						<Checkbox
+							id={`${field.name}-other`}
+							name={`${field.name}-other`}
+							aria-invalid={isInvalid}
+							checked={isOtherChecked}
+							className="size-6"
+							disabled={readonly}
+							onCheckedChange={(checked) => {
+								if (checked) {
+									field.pushValue(otherText);
+								} else {
+									const index = (field.state.value as string[]).findIndex(
+										(v: string) => !options.includes(v),
+									);
+									if (index > -1) {
+										field.removeValue(index);
+									}
+									setOtherText("");
+								}
+							}}
+						/>
+						<FieldLabel htmlFor={`${field.name}-other`} className="font-normal">
+							Annet
+						</FieldLabel>
+					</Field>
+
+					{isOtherChecked && (
+						<Input
+							id={`${field.name}-other-input`}
+							placeholder="Spesifiser..."
+							value={otherText}
+							disabled={readonly}
+							onChange={(e) => {
+								const newValue = e.target.value;
+								setOtherText(newValue);
+								const index = (field.state.value as string[]).findIndex(
+									(v: string) => !options.includes(v),
+								);
+								if (index > -1) {
+									field.replaceValue(index, newValue);
+								}
+							}}
+						/>
+					)}
 
 					{field.state.meta.errors?.length > 0 && (
 						<FieldError>

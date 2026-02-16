@@ -2,6 +2,9 @@ import { v } from "convex/values";
 import { internalMutation, mutation, query } from "./_generated/server";
 import { getCurrentUserOrThrow } from "./users";
 
+/*
+ * Insert the form into the form.
+ */
 export const submitFormResponse = mutation({
 	args: {
 		formId: v.id("form"),
@@ -15,6 +18,9 @@ export const submitFormResponse = mutation({
 	},
 });
 
+/*
+ * Fetch all responses for a from.
+ */
 export const getFormResponsesByFormId = query({
 	args: {
 		formId: v.id("form"),
@@ -27,6 +33,9 @@ export const getFormResponsesByFormId = query({
 	},
 });
 
+/*
+ * Create the feedback form.
+ */
 export const createEventFeedbackForm = internalMutation({
 	handler: async (ctx) => {
 		return await ctx.db.insert("form", {
@@ -35,6 +44,9 @@ export const createEventFeedbackForm = internalMutation({
 	},
 });
 
+/*
+ * Get the current user's response for a form.
+ */
 export const getCurrentUsersResponseByFormId = query({
 	args: {
 		formId: v.id("form"),
@@ -58,6 +70,9 @@ export const getCurrentUsersResponseByFormId = query({
 	},
 });
 
+/*
+ * Check if the current user can answer the given form
+ */
 export const checkIfCurrentUserAttendedTheEventAndShouldBeAbleToSubmit = query({
 	args: {
 		eventId: v.id("events"),
@@ -65,25 +80,34 @@ export const checkIfCurrentUserAttendedTheEventAndShouldBeAbleToSubmit = query({
 	handler: async (ctx, { eventId }) => {
 		const user = await getCurrentUserOrThrow(ctx);
 
-		const event = await ctx.db.get(eventId)
+		const event = await ctx.db.get(eventId);
 
-		if (!event) return false
-		console.log(event)
+		if (!event) return false;
+		console.log(event);
 
+		// Check if the user is an organizer
+		const organizers = await ctx.db
+			.query("eventOrganizers")
+			.withIndex("by_eventId", (q) => q.eq("eventId", event._id))
+			.filter((q) => q.eq(q.field("userId"), user._id))
+			.first();
+
+		if (organizers) return true;
+
+		// Chek if the user is an attendant
 		const attendance = await ctx.db
 			.query("registrations")
 			.withIndex("by_userId", (q) => q.eq("userId", user._id))
 			.first();
 
-
-		if (!attendance) return false
+		if (!attendance) return false;
 		console.log(attendance);
 
 		if (attendance.attendanceStatus === undefined || attendance.attendanceStatus === "no_show") {
-			return false
+			return false;
 		}
-		console.log(attendance.attendanceStatus)
+		console.log(attendance.attendanceStatus);
 
-		return true
+		return true;
 	},
 });
