@@ -1,0 +1,17 @@
+@import "@workspace/ui/globals.css";
+:root {
+  /* Navet blå */
+  --primary: oklch(0.3667 0.0606 264.93);
+  --primary-light: oklch(0.9445 0.0206 274.04);
+}
+
+.dark {
+  --primary-foreground: var(--color-slate-100);
+  --primary: var(--color-gray-800);
+  --background: oklch(0.2169 0 0);
+}
+
+body,
+html {
+  background-color: var(--background);
+}

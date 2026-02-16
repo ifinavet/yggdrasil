@@ -1,3 +1,4 @@
+import { hasEditRights } from "@workspace/auth";
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import {
@@ -13,7 +14,6 @@ import { Separator } from "@workspace/ui/components//separator";
 import { fetchQuery } from "convex/nextjs";
 import Link from "next/link";
 import SafeHtml from "@/components/common/sanitize-html";
-import { hasEditRights } from "@/utils/auth";
 
 export default async function ResourcePage({
 	params,
@@ -48,11 +48,7 @@ export default async function ResourcePage({
 					{resource.title}
 				</h1>
 				{hasEditRight && (
-					<Button
-						variant="outline"
-						asChild
-						className="w-fit self-end md:self-auto"
-					>
+					<Button variant="outline" asChild className="w-fit self-end md:self-auto">
 						<Link href={`/resources/${resource._id}/edit`}>Rediger</Link>
 					</Button>
 				)}

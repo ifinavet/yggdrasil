@@ -1,5 +1,6 @@
 import { SignOutButton } from "@clerk/nextjs";
 import { currentUser } from "@clerk/nextjs/server";
+import { hasAdminRights, hasAllRights, hasEditRights } from "@workspace/auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@workspace/ui/components/avatar";
 import {
 	DropdownMenu,
@@ -40,7 +41,6 @@ import Image from "next/image";
 import Link from "next/link";
 import LogoNBlue from "@/assets/navet/logo_n_blaa.webp";
 import LogoBlue from "@/assets/navet/simple_logo_blaa.webp";
-import { hasAdminRights, hasAllRights, hasEditRights } from "@/utils/auth";
 import { SidebarContentGroup } from "./sidebar-content-group";
 
 const externalPaths = {

@@ -1,5 +1,3 @@
-"use server";
-
 import { api } from "@workspace/backend/convex/api";
 import { fetchQuery } from "convex/nextjs";
 import { getAuthToken } from "./authToken";
@@ -36,9 +34,5 @@ export async function hasEditRights() {
 export async function hasAllRights() {
 	const token = await getAuthToken();
 
-	return await fetchQuery(
-		api.accsessRights.checkRights,
-		{ right: ["super-admin"] },
-		{ token },
-	);
+	return await fetchQuery(api.accsessRights.checkRights, { right: ["super-admin"] }, { token });
 }

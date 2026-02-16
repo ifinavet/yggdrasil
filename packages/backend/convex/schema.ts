@@ -112,6 +112,7 @@ export default defineSchema({
 		hostingCompany: v.id("companies"),
 		published: v.boolean(),
 		slug: v.optional(v.string()),
+		formId: v.optional(v.id("form")),
 	})
 		.index("by_eventStart", ["eventStart"])
 		.index("by_registrationOpens", ["registrationOpens"])
@@ -126,11 +127,7 @@ export default defineSchema({
 	registrations: defineTable({
 		eventId: v.id("events"),
 		userId: v.id("users"),
-		status: v.union(
-			v.literal("registered"),
-			v.literal("pending"),
-			v.literal("waitlist"),
-		),
+		status: v.union(v.literal("registered"), v.literal("pending"), v.literal("waitlist")),
 		note: v.optional(v.string()),
 		registrationTime: v.number(),
 		attendanceStatus: v.optional(
@@ -140,12 +137,17 @@ export default defineSchema({
 	})
 		.index("by_eventId", ["eventId"])
 		.index("by_eventIdAndRegistrationTime", ["eventId", "registrationTime"])
-		.index("by_eventIdStatusAndRegistrationTime", [
-			"eventId",
-			"status",
-			"registrationTime",
-		])
+		.index("by_eventIdStatusAndRegistrationTime", ["eventId", "status", "registrationTime"])
 		.index("by_userId", ["userId"]),
+
+	form: defineTable({
+		formType: v.union(v.literal("event-feedback"), v.literal("listing-application")),
+	}).index("by_formType", ["formType"]),
+
+	formResponses: defineTable({
+		formId: v.id("form"),
+		data: v.record(v.string(), v.any()),
+	}).index("by_formId", ["formId"]),
 
 	externalPages: defineTable({
 		identifier: v.string(),

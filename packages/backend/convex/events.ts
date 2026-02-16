@@ -14,10 +14,7 @@ import { makeStatusPending } from "./registration";
 import { getCurrentUserOrThrow } from "./users";
 
 // Shared validator for organizer roles
-const organizerRoleValidator = v.union(
-	v.literal("hovedansvarlig"),
-	v.literal("medhjelper"),
-);
+const organizerRoleValidator = v.union(v.literal("hovedansvarlig"), v.literal("medhjelper"));
 
 export const getLatest = query({
 	args: {
@@ -30,9 +27,7 @@ export const getLatest = query({
 
 		const events = await ctx.db
 			.query("events")
-			.withIndex("by_eventStart", (q) =>
-				q.gte("eventStart", firstDayOfThisWeek.getTime()),
-			)
+			.withIndex("by_eventStart", (q) => q.gte("eventStart", firstDayOfThisWeek.getTime()))
 			.filter((q) => q.eq(q.field("published"), true))
 			.order("asc")
 			.take(n);
@@ -69,9 +64,7 @@ export const getAllEvents = internalQuery({
 		const events = await ctx.db
 			.query("events")
 			.withIndex("by_eventStart", (q) =>
-				q
-					.gte("eventStart", range_start.getTime())
-					.lte("eventStart", range_end.getTime()),
+				q.gte("eventStart", range_start.getTime()).lte("eventStart", range_end.getTime()),
 			)
 			.order("asc")
 			.collect();
@@ -95,11 +88,13 @@ export const getAll = query({
 	handler: async (ctx, { semester, year }) => {
 		const semesterNumber = semester === "vår" ? 0 : 1; // 0 for spring, 1 for fall
 
-		const events: Array<Doc<"events"> & { hostingCompanyName: string }> =
-			await ctx.runQuery(internal.events.getAllEvents, {
+		const events: Array<Doc<"events"> & { hostingCompanyName: string }> = await ctx.runQuery(
+			internal.events.getAllEvents,
+			{
 				semester: semesterNumber,
 				year,
-			});
+			},
+		);
 
 		const published = events.filter((event) => event.published);
 		const unpublished = events.filter((event) => !event.published);
@@ -122,26 +117,17 @@ export const getCurrentSemester = query({
 		).filter((q) => q.published === true);
 
 		const filteredEvents = isExternal
-			? events.filter(
-					(event) => event.externalUrl && event.externalUrl.length > 0,
-				)
-			: events.filter(
-					(event) =>
-						event.externalUrl === undefined || event.externalUrl.length === 0,
-				);
+			? events.filter((event) => event.externalUrl && event.externalUrl.length > 0)
+			: events.filter((event) => event.externalUrl === undefined || event.externalUrl.length === 0);
 
 		const eventsWithParticipationCount = await Promise.all(
 			filteredEvents.map(async (event) => {
 				const participationCount = (
 					await ctx.db
 						.query("registrations")
-						.withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
-							q.eq("eventId", event._id),
-						)
+						.withIndex("by_eventIdStatusAndRegistrationTime", (q) => q.eq("eventId", event._id))
 						.collect()
-				).filter(
-					(q) => q.status === "registered" || q.status === "pending",
-				).length;
+				).filter((q) => q.status === "registered" || q.status === "pending").length;
 
 				return { ...event, participationCount };
 			}),
@@ -162,8 +148,7 @@ export const getCurrentSemester = query({
 			"desember",
 		];
 
-		const eventsByMonth: Record<string, typeof eventsWithParticipationCount> =
-			{};
+		const eventsByMonth: Record<string, typeof eventsWithParticipationCount> = {};
 
 		eventsWithParticipationCount.forEach((event) => {
 			const eventDate = new Date(event.eventStart);
@@ -249,25 +234,15 @@ async function getOrganizers(ctx: QueryCtx, eventId: Id<"events">) {
 
 export const getPossibleSemesters = query({
 	handler: async (ctx) => {
-		const firstEvent = await ctx.db
-			.query("events")
-			.withIndex("by_eventStart")
-			.order("asc")
-			.first();
-		const lastEvent = await ctx.db
-			.query("events")
-			.withIndex("by_eventStart")
-			.order("desc")
-			.first();
+		const firstEvent = await ctx.db.query("events").withIndex("by_eventStart").order("asc").first();
+		const lastEvent = await ctx.db.query("events").withIndex("by_eventStart").order("desc").first();
 
 		if (!firstEvent || !lastEvent) {
 			const today = new Date();
 			const currentYear = today.getFullYear();
 			const currentMonth = today.getMonth();
 
-			return [
-				{ year: currentYear, semester: currentMonth < 6 ? "vår" : "høst" },
-			];
+			return [{ year: currentYear, semester: currentMonth < 6 ? "vår" : "høst" }];
 		}
 
 		const firstYear = new Date(firstEvent.eventStart).getFullYear();
@@ -275,10 +250,7 @@ export const getPossibleSemesters = query({
 
 		const possibleSemesters = [];
 		for (let year = firstYear; year <= lastYear; year++) {
-			possibleSemesters.push(
-				{ year, semester: "vår" },
-				{ year, semester: "høst" },
-			);
+			possibleSemesters.push({ year, semester: "vår" }, { year, semester: "høst" });
 		}
 
 		return possibleSemesters;
@@ -365,6 +337,17 @@ export const update = mutation({
 		// Create a slug if it doesn't exist
 		const slug = event.slug || slugify(title, new Date(eventStart));
 
+		let formId: Id<"form">;
+		if (event.formId) {
+			formId = event.formId;
+		} else {
+			// Creating the feedback form for after the event, if it does not already exist
+			formId = await ctx.runMutation(internal.forms.createEventFeedbackForm);
+			if (!formId) {
+				console.error("Failed to create feedback form");
+			}
+		}
+
 		// Update the event details
 		await ctx.db.replace(eventId, {
 			title,
@@ -381,6 +364,7 @@ export const update = mutation({
 			hostingCompany,
 			published,
 			slug,
+			formId,
 		});
 
 		await ctx.runMutation(internal.events.upsertEventOrganizer, {
@@ -410,11 +394,7 @@ export const update = mutation({
 			participationLimit - event.participationLimit > 0 &&
 			registeredCount + pendingCount === event.participationLimit
 		)
-			await updateWaitlist(
-				ctx,
-				event._id,
-				participationLimit - event.participationLimit,
-			);
+			await updateWaitlist(ctx, event._id, participationLimit - event.participationLimit);
 	},
 });
 
@@ -437,15 +417,11 @@ export const upsertEventOrganizer = internalMutation({
 			.collect();
 
 		const organizersToRemove = eventOrganizers
-			.filter(
-				(org) => !updatedOrganizers.some(({ userId }) => userId === org.userId),
-			)
+			.filter((org) => !updatedOrganizers.some(({ userId }) => userId === org.userId))
 			.map((org) => ctx.db.delete(org._id));
 
 		const organizersToAdd = updatedOrganizers
-			.filter(
-				({ userId }) => !eventOrganizers.some((org) => org.userId === userId),
-			)
+			.filter(({ userId }) => !eventOrganizers.some((org) => org.userId === userId))
 			.map((org) =>
 				ctx.db.insert("eventOrganizers", {
 					eventId: id,
@@ -460,19 +436,13 @@ export const upsertEventOrganizer = internalMutation({
 				return existing && existing.role !== role;
 			})
 			.map((org) => {
-				const existing = eventOrganizers.find(
-					(eOrg) => eOrg.userId === org.userId,
-				);
+				const existing = eventOrganizers.find((eOrg) => eOrg.userId === org.userId);
 				if (existing) {
 					ctx.db.patch(existing._id, { role: org.role });
 				}
 			});
 
-		await Promise.all([
-			...organizersToRemove,
-			...organizersToAdd,
-			...organizersToUpdate,
-		]);
+		await Promise.all([...organizersToRemove, ...organizersToAdd, ...organizersToUpdate]);
 	},
 });
 
@@ -507,10 +477,7 @@ export const updateWaitlist = async (
 	await Promise.all(
 		waitlistRegistrations
 			.slice(0, numOfNewPlaces)
-			.map(
-				async (registration) =>
-					await makeStatusPending(ctx, registration, event),
-			),
+			.map(async (registration) => await makeStatusPending(ctx, registration, event)),
 	);
 };
 
@@ -532,13 +499,9 @@ export const updatePublishedStatus = mutation({
 
 // Not meant for security purposes
 function simpleHash(str: string): string {
-	const hash = Math.abs(
-		str.split("").reduce((a, b) => (a << 5) - a + (b.codePointAt(0) || 0), 0),
-	);
+	const hash = Math.abs(str.split("").reduce((a, b) => (a << 5) - a + (b.codePointAt(0) || 0), 0));
 	const result = hash.toString(36).toUpperCase();
-	return result.length < 4
-		? result.padStart(4, "0").substring(0, 4)
-		: result.substring(0, 4);
+	return result.length < 4 ? result.padStart(4, "0").substring(0, 4) : result.substring(0, 4);
 }
 
 function slugify(title: string, eventDate: Date): string {
@@ -600,6 +563,12 @@ export const create = mutation({
 			throw new Error("Unauthenticated call to mutation");
 		}
 
+		// Creating the feedback form for after the event
+		const formId = await ctx.runMutation(internal.forms.createEventFeedbackForm);
+		if (!formId) {
+			console.error("Failed to create feedback form");
+		}
+
 		const eventId = await ctx.db.insert("events", {
 			title,
 			teaser,
@@ -615,6 +584,7 @@ export const create = mutation({
 			hostingCompany,
 			published,
 			slug: slugify(title, new Date(eventStart)),
+			formId,
 		});
 
 		await Promise.all(

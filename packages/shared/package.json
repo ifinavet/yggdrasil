@@ -4,6 +4,10 @@
 	"type": "module",
 	"private": true,
 	"packageManager": "pnpm@10.15.1",
+	"dependencies": {
+		"@clerk/nextjs": "^5.7.3",
+		"convex": "^1.17.0"
+	},
 	"devDependencies": {
 		"@workspace/typescript-config": "workspace:*",
 		"typescript": "^5.7.3"
