@@ -8,7 +8,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@workspace/ui/components/card";
-import { AlertTriangle, ExternalLink, Home, Mail, RefreshCw } from "lucide-react";
+import { AlertTriangle, ExternalLink, Mail, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import posthog from "posthog-js";
 import { useEffect } from "react";

@@ -34,7 +34,7 @@ export function RatingCard({
 						<p>{lowLabel}</p>
 						<RadioGroup
 							value={String(field.state.value)}
-							onValueChange={(value) => field.handleChange(parseInt(value))}
+							onValueChange={(value) => field.handleChange(Number.parseInt(value))}
 							className="flex w-fit flex-col gap-8 md:flex-row"
 							disabled={readonly}
 						>

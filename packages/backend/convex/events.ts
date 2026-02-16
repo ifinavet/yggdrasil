@@ -338,14 +338,14 @@ export const update = mutation({
 		const slug = event.slug || slugify(title, new Date(eventStart));
 
 		let formId: Id<"form">;
-		if (!event.formId) {
+		if (event.formId) {
+			formId = event.formId;
+		} else {
 			// Creating the feedback form for after the event, if it does not already exist
 			formId = await ctx.runMutation(internal.forms.createEventFeedbackForm);
 			if (!formId) {
 				console.error("Failed to create feedback form");
 			}
-		} else {
-			formId = event.formId;
 		}
 
 		// Update the event details

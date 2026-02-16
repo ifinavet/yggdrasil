@@ -11,12 +11,12 @@ export default function TextResponseCard({
 	filterKey,
 	title,
 	description,
-}: {
+}: Readonly<{
 	data: Record<string, string>[];
 	filterKey: string;
 	title: string;
 	description: string;
-}) {
+}>) {
 	const values = data
 		.map((item) => item[filterKey])
 		.filter((value) => value !== undefined && value !== "");
