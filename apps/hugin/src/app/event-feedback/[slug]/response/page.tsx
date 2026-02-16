@@ -1,11 +1,11 @@
 import { auth } from "@clerk/nextjs/server";
 import { getAuthToken } from "@workspace/auth";
 import { api } from "@workspace/backend/convex/api";
-import { fetchQuery } from "convex/nextjs";
-import { ReadonlyEventResponseForm, type ResponseData } from "./readonly-form";
 import { Button } from "@workspace/ui/components/button";
-import { Card, CardHeader, CardTitle, CardContent } from "@workspace/ui/components/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";
+import { fetchQuery } from "convex/nextjs";
 import Link from "next/link";
+import { ReadonlyEventResponseForm, type ResponseData } from "./readonly-form";
 
 export default async function EventFeedbackResponsePage({
 	params,
@@ -43,19 +43,18 @@ export default async function EventFeedbackResponsePage({
 						</CardHeader>
 						<CardContent className="space-y-6 text-center">
 							<p className="text-muted-foreground">
-								Vi hadde satt veldig pris på om du ville svare på spørreskjema. Tykk på knappen under for å bli tatt til skjema.
+								Vi hadde satt veldig pris på om du ville svare på spørreskjema. Tykk på knappen
+								under for å bli tatt til skjema.
 							</p>
 
 							<Button asChild className="w-full">
-								<Link href={`/event-feedback/${event.slug ?? event._id}`}>
-									Gå til spørreskjema
-								</Link>
+								<Link href={`/event-feedback/${event.slug ?? event._id}`}>Gå til spørreskjema</Link>
 							</Button>
 						</CardContent>
 					</Card>
 				</div>
 			</div>
-		)
+		);
 	}
 
 	return (

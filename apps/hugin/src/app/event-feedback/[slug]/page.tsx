@@ -56,7 +56,9 @@ export default async function EventResponse({
 							</p>
 
 							<Button asChild className="w-full">
-								<Link href={`/event-feedback/${event.slug}/response`}>Gå til din besvarelse</Link>
+								<Link href={`/event-feedback/${event.slug ?? identifier}/response`}>
+									Gå til din besvarelse
+								</Link>
 							</Button>
 						</CardContent>
 					</Card>

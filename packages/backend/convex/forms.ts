@@ -3,7 +3,7 @@ import { internalMutation, mutation, query } from "./_generated/server";
 import { getCurrentUserOrThrow } from "./users";
 
 /*
- * Insert the form into the form.
+ * Insert a response into the form.
  */
 export const submitFormResponse = mutation({
 	args: {
@@ -11,7 +11,9 @@ export const submitFormResponse = mutation({
 		data: v.record(v.string(), v.any()),
 	},
 	handler: async (ctx, { formId, data }) => {
-		ctx.db.insert("formResponses", {
+		await getCurrentUserOrThrow(ctx);
+
+		await ctx.db.insert("formResponses", {
 			formId,
 			data,
 		});
@@ -26,7 +28,9 @@ export const getFormResponsesByFormId = query({
 		formId: v.id("form"),
 	},
 	handler: async (ctx, { formId }) => {
-		return ctx.db
+		await getCurrentUserOrThrow(ctx);
+
+		return await ctx.db
 			.query("formResponses")
 			.withIndex("by_formId", (q) => q.eq("formId", formId))
 			.collect();
@@ -97,7 +101,8 @@ export const checkIfCurrentUserAttendedTheEventAndShouldBeAbleToSubmit = query({
 		// Chek if the user is an attendant
 		const attendance = await ctx.db
 			.query("registrations")
-			.withIndex("by_userId", (q) => q.eq("userId", user._id))
+			.withIndex("by_eventId", (q) => q.eq("eventId", event._id))
+			.filter((q) => q.eq(q.field("userId"), user._id))
 			.first();
 
 		if (!attendance) return false;
