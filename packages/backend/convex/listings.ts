@@ -1,7 +1,13 @@
 import type { OrderedQuery } from "convex/server";
 import { v } from "convex/values";
 import type { DataModel, Doc } from "./_generated/dataModel";
-import { mutation, type QueryCtx, query } from "./_generated/server";
+import { internal } from "./_generated/api";
+import {
+	internalAction,
+	mutation,
+	type QueryCtx,
+	query,
+} from "./_generated/server";
 
 export const getAll = query({
 	args: {
@@ -169,6 +175,17 @@ export const create = mutation({
 			});
 		}
 
+		// Send Slack notification if listing is published
+		if (args.published) {
+			await ctx.scheduler.runAfter(
+				0,
+				internal.listings.notifySlackJobListingPublished,
+				{
+					listingId: listing,
+				},
+			);
+		}
+
 		return listing;
 	},
 });
@@ -198,6 +215,10 @@ export const update = mutation({
 			throw new Error("Unauthenticated call to mutation");
 		}
 
+		// Get existing listing to check if it was previously unpublished
+		const existingListing = await ctx.db.get(args.id);
+		const wasUnpublished = existingListing && !existingListing.published;
+
 		const listing = await ctx.db.replace(args.id, {
 			title: args.title,
 			type: args.type,
@@ -223,6 +244,17 @@ export const update = mutation({
 				...contact,
 				listingId: args.id,
 			});
+		}
+
+		// Send Slack notification if listing is newly published
+		if (args.published && wasUnpublished) {
+			await ctx.scheduler.runAfter(
+				0,
+				internal.listings.notifySlackJobListingPublished,
+				{
+					listingId: args.id,
+				},
+			);
 		}
 
 		return listing;
@@ -251,5 +283,106 @@ export const remove = mutation({
 		await ctx.db.delete(id);
 
 		return id;
+	},
+});
+
+// Internal action to send Slack notification when job listing is published
+export const notifySlackJobListingPublished = internalAction({
+	args: {
+		listingId: v.id("jobListings"),
+	},
+	handler: async (ctx, { listingId }) => {
+		const slackWebhookUrl = process.env.SLACK_WEBHOOK_URL;
+
+		if (!slackWebhookUrl) {
+			console.log("SLACK_WEBHOOK_URL not configured, skipping notification");
+			return;
+		}
+
+		// Get the listing data
+		const listing = await ctx.runQuery(internal.listings.getById, {
+			id: listingId,
+		});
+
+		if (!listing) {
+			console.error(`Job listing with ID ${listingId} not found`);
+			return;
+		}
+
+		// Get company info
+		const company = await ctx.runQuery(internal.companies.getById, {
+			id: listing.company,
+		});
+
+		// Send to Slack
+		try {
+			const response = await fetch(slackWebhookUrl, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					text: `🆕 New Job Listing: ${listing.title}`,
+					blocks: [
+						{
+							type: "header",
+							text: {
+								type: "plain_text",
+								text: `🆕 ${listing.title}`,
+							},
+						},
+						{
+							type: "section",
+							fields: [
+								{
+									type: "mrkdwn",
+									text: `*Company:*\n${company?.name || "Unknown"}`,
+								},
+								{
+									type: "mrkdwn",
+									text: `*Type:*\n${listing.type}`,
+								},
+								{
+									type: "mrkdwn",
+									text: `*Deadline:*\n${new Date(listing.deadline).toLocaleDateString()}`,
+								},
+							],
+						},
+						{
+							type: "section",
+							text: {
+								type: "mrkdwn",
+								text: listing.teaser,
+							},
+						},
+						{
+							type: "actions",
+							elements: [
+								{
+									type: "button",
+									text: {
+										type: "plain_text",
+										text: "Apply Now",
+									},
+									url: listing.applicationUrl,
+									style: "primary",
+								},
+							],
+						},
+					],
+				}),
+			});
+
+			if (!response.ok) {
+				console.error(
+					`Failed to send Slack notification: ${response.status} ${response.statusText}`,
+				);
+			} else {
+				console.log("Job listing notification sent to Slack:", {
+					id: listingId,
+					title: listing.title,
+				});
+			}
+		} catch (error) {
+			console.error("Error sending Slack notification:", error);
+		}
 	},
 });
