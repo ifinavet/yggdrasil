@@ -19,33 +19,53 @@ function getRegistrationStatus(event: EventWithParticipationCount) {
 	const participants = event.participationCount;
 	const participantsLimit = event.participationLimit;
 
-	const registrationIsOpen = registrationOpensDate <= now;
+	const EVENT_DURATION_MS = 2 * 60 * 60 * 1000;
+
+	const eventEnded =
+		now.getTime() > eventStartDate.getTime() + EVENT_DURATION_MS;
+
+	const registrationIsOpen =
+		registrationOpensDate <= now && !eventEnded;
+
 	const eventActive =
 		now.getTime() >= eventStartDate.getTime() &&
-		now.getTime() - eventStartDate.getTime() <= 2 * 60 * 60 * 1000;
+		now.getTime() <= eventStartDate.getTime() + EVENT_DURATION_MS;
 
-	const registrationOpenToday =
-		registrationIsOpen &&
-		event.registrationOpens >= now.setHours(0, 0, 0, 0) &&
-		event.registrationOpens < now.setHours(24, 0, 0, 0);
+	const registrationOpenToday = (() => {
+		const startOfToday = new Date();
+		startOfToday.setHours(0, 0, 0, 0);
 
-	const statusMessage = !registrationIsOpen
-		? `Påmeldingen åpner ${humanReadableDateTime(registrationOpensDate)}`
-		: participants >= participantsLimit
-			? "Påmeldingen er full, sett deg på venteliste!"
-			: registrationOpenToday
-				? "Påmeldingen er åpen"
-				: "Det er fortsatt ledige plasser";
+		const endOfToday = new Date();
+		endOfToday.setHours(23, 59, 59, 999);
+
+		return (
+			registrationOpensDate >= startOfToday &&
+			registrationOpensDate <= endOfToday
+		);
+	})();
+
+	const statusMessage = eventEnded
+		? "Arrangementet er avsluttet"
+		: !registrationIsOpen
+			? `Påmeldingen åpner ${humanReadableDateTime(registrationOpensDate)}`
+			: participants >= participantsLimit
+				? "Påmeldingen er full, sett deg på venteliste!"
+				: registrationOpenToday
+					? "Påmeldingen er åpen"
+					: "Det er fortsatt ledige plasser";
 
 	return {
 		registrationOpen: registrationIsOpen,
 		eventActive,
 		statusMessage,
-		cardColor: registrationIsOpen
-			? "border-emerald-700 bg-emerald-700"
-			: "border-zinc-400 bg-zinc-400",
+		cardColor: eventEnded
+			? "border-zinc-400 bg-zinc-400"
+			: registrationIsOpen
+				? "border-emerald-700 bg-emerald-700"
+				: "border-zinc-400 bg-zinc-400",
 	};
 }
+
 
 function RegistrationStatusBanner({
 	show,
