@@ -9,8 +9,6 @@ import EventCard from "./event-card";
 export default async function EventsGrid({
 	pathname,
 }: Readonly<{ pathname: string }>) {
-	"use cache";
-
 	let searchParams: URLSearchParams | undefined;
 	if (pathname) searchParams = new URLSearchParams(pathname);
 
