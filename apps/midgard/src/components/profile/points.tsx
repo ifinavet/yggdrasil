@@ -45,7 +45,7 @@ export default async function Points({ className }: Readonly<{ className?: strin
 				</p>
 			</div>
 			<p className="text-balance font-semibold text-lg text-primary tracking-tight dark:text-primary-foreground">
-				Ved tre prikker får du ikke mulighet til å melde deg på bedriftspresentasjoner i en måned
+				Ved tre prikker får du ikke mulighet til å melde deg på bedriftspresentasjoner, hver prikk varer 6 måneder.
 			</p>
 			<p className="text-balance font-semibold text-lg text-primary tracking-tight dark:text-primary-foreground">
 				Navet har innført et prikksystem, der sen eller manglende avmelding kan hindre andre
