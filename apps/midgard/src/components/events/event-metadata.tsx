@@ -64,6 +64,8 @@ export function EventMetadata({
 					variant="secondary"
 					size="icon-lg"
 					className="order-3 aspect-square h-auto self-stretch rounded-xl px-8 md:order-1"
+					aria-label="Legg til i kalender"
+					title="Legg til i kalender"
 					onClick={() => {
 						createCalendarEventIcs(
 							event.title,
@@ -88,6 +90,8 @@ export function EventMetadata({
 					variant="secondary"
 					size="icon"
 					className="order-4 aspect-square h-auto self-stretch rounded-xl px-8 md:order-3"
+					aria-label="Del arrangementet"
+					title="Del arrangementet"
 					onClick={async () => {
 						try {
 							await navigator.share({
