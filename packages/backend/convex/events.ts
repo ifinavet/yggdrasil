@@ -44,6 +44,22 @@ export const getLatest = query({
 	},
 });
 
+export const getUpcoming = query({
+	args: {
+		n: v.number(),
+	},
+	handler: async (ctx, { n }) => {
+		const events = await ctx.db
+			.query("events")
+			.withIndex("by_eventStart", (q) => q.gte("eventStart", Date.now()))
+			.filter((q) => q.eq(q.field("published"), true))
+			.order("asc")
+			.take(n);
+
+		return events;
+	},
+});
+
 export const getAllEvents = internalQuery({
 	args: {
 		semester: v.number(),
