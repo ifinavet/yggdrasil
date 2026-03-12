@@ -8,7 +8,16 @@ import { Button } from "@workspace/ui/components/button";
 import { cn } from "@workspace/ui/lib/utils";
 import { type Preloaded, usePreloadedQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { CalendarDays, CalendarPlus, Globe, IdCard, MapPin, ShareIcon, Users, Utensils } from "lucide-react";
+import {
+	CalendarDays,
+	CalendarPlus,
+	Globe,
+	IdCard,
+	MapPin,
+	ShareIcon,
+	Users,
+	Utensils,
+} from "lucide-react";
 import { toast } from "sonner";
 import QRCode from "./registration/qr-code";
 import RegistrationButton from "./registration/registration-button";
@@ -50,11 +59,11 @@ export function EventMetadata({
 				</p>
 			</div>
 
-			<div className="-mt-6 mb-6 w-full flex items-stretch justify-center gap-2 md:gap-4 flex-wrap">
+			<div className="-mt-6 mb-6 flex w-full flex-wrap items-stretch justify-center gap-2 md:gap-4">
 				<Button
 					variant="secondary"
 					size="icon-lg"
-					className="h-auto self-stretch aspect-square px-8 order-3 md:order-1 rounded-xl"
+					className="order-3 aspect-square h-auto self-stretch rounded-xl px-8 md:order-1"
 					onClick={() => {
 						createCalendarEventIcs(
 							event.title,
@@ -67,25 +76,30 @@ export function EventMetadata({
 					<CalendarPlus className="size-4 min-w-6 md:size-6" />
 				</Button>
 
-				<EventActionButton className="order-1 md:order-2" event={event} registrations={registrations} />
+				<EventActionButton
+					className="order-1 md:order-2"
+					event={event}
+					registrations={registrations}
+				/>
 
-				<div className="basis-full order-2 md:hidden" />
+				<div className="order-2 basis-full md:hidden" />
 
 				<Button
 					variant="secondary"
 					size="icon"
-					className="h-auto self-stretch aspect-square px-8 order-4 md:order-3 rounded-xl"
+					className="order-4 aspect-square h-auto self-stretch rounded-xl px-8 md:order-3"
 					onClick={async () => {
 						try {
 							await navigator.share({
 								title: event.title,
 								url: window.location.href,
 								text: event.teaser,
-							})
+							});
 						} catch (e: unknown) {
-							const clip = await navigator.clipboard
-							clip.writeText(window.location.href);
-							toast.success("Copierte URL til clipboard")
+							if (e instanceof TypeError && e.message.includes("not a function")) {
+								await navigator.clipboard.writeText(window.location.href);
+								toast.success("Copierte URL til clipboard");
+							}
 						}
 					}}
 				>
@@ -110,7 +124,7 @@ export function EventActionButton({
 }: Readonly<{
 	event: Doc<"events">;
 	registrations: FunctionReturnType<typeof api.registration.getByEventId>;
-	className: string,
+	className: string;
 }>) {
 	const availableSpots = event.participationLimit - (registrations.registered.length || 0);
 
@@ -118,7 +132,10 @@ export function EventActionButton({
 		return (
 			<Button
 				type="button"
-				className={cn(className, "min-h-fit w-4/5 whitespace-normal text-balance rounded-xl bg-orange-500 py-4 text-center text-lg text-primary-foreground hover:cursor-pointer hover:bg-orange-600 sm:w-3/5 sm:py-6 dark:bg-orange-400")}
+				className={cn(
+					className,
+					"min-h-fit w-4/5 whitespace-normal text-balance rounded-xl bg-orange-500 py-4 text-center text-lg text-primary-foreground hover:cursor-pointer hover:bg-orange-600 sm:w-3/5 sm:py-6 dark:bg-orange-400",
+				)}
 				asChild
 			>
 				<a href={event.externalUrl} target="_blank" rel="noopener noreferrer">
@@ -132,7 +149,10 @@ export function EventActionButton({
 		return (
 			<Button
 				type="button"
-				className={cn(className, "min-h-fit w-3/4 whitespace-normal text-balance rounded-xl bg-zinc-500 text-lg text-primary-foreground hover:cursor-pointer hover:bg-zinc-500 sm:py-6 md:py-8 dark:bg-zinc-700")}
+				className={cn(
+					className,
+					"min-h-fit w-3/4 whitespace-normal text-balance rounded-xl bg-zinc-500 text-lg text-primary-foreground hover:cursor-pointer hover:bg-zinc-500 sm:py-6 md:py-8 dark:bg-zinc-700",
+				)}
 			>
 				Påmelding åpner {humanReadableDateTime(new Date(event.registrationOpens))}
 			</Button>
