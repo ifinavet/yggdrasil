@@ -1,7 +1,6 @@
 "use client";
 
 import { humanReadableDateTime } from "@/utils/dateFormatting";
-import createCalendarEventIcs from "@/utils/icsCalendarEvent";
 import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
 import type { Doc } from "@workspace/backend/convex/dataModel";
@@ -24,7 +23,6 @@ import {
 import { Input } from "@workspace/ui/components/input";
 import { cn } from "@workspace/ui/lib/utils";
 import { useMutation } from "convex/react";
-import { CalendarPlus } from "lucide-react";
 import { usePostHog } from "posthog-js/react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -116,41 +114,17 @@ export default function EditRegistration({
 				</form>
 				<DialogFooter>
 					<div className="flex w-full flex-wrap justify-between gap-2">
-						<div>
-							<Button
-								variant="outline"
-								onClick={() => {
-									createCalendarEventIcs(
-										event.title,
-										event.description,
-										event.location,
-										event.eventStart,
-									);
-
-									postHog.capture("midgard_added-event-to-calendar", {
-										site: "midgard",
-										eventId: event._id,
-										eventTitle: event.title,
-									});
-								}}
-							>
-								<CalendarPlus />
-								Legg til i kalenderen
-							</Button>
-						</div>
-						<div className="flex gap-2">
-							<Unregister
-								registrationId={registration._id}
-								eventId={event._id}
-							/>
-							<Button
-								type="submit"
-								form="update-registration-form"
-								className="text-primary-foreground"
-							>
-								Lagre Endringer
-							</Button>
-						</div>
+						<Unregister
+							registrationId={registration._id}
+							eventId={event._id}
+						/>
+						<Button
+							type="submit"
+							form="update-registration-form"
+							className="text-primary-foreground"
+						>
+							Lagre Endringer
+						</Button>
 					</div>
 				</DialogFooter>
 			</DialogContent>
