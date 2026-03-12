@@ -3,6 +3,7 @@
 import { api } from "@workspace/backend/convex/api";
 import type { Doc } from "@workspace/backend/convex/dataModel";
 import { Button } from "@workspace/ui/components/button";
+import { cn } from "@workspace/ui/lib/utils";
 import { useConvexAuth, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import Link from "next/link";
@@ -15,11 +16,13 @@ export default function RegistrationButton({
 	availableSpots,
 	disabled,
 	event,
+	className,
 }: Readonly<{
 	registration: FunctionReturnType<typeof api.registration.getByEventId>;
 	availableSpots: number;
 	disabled: boolean;
 	event: Doc<"events">;
+	className: string;
 }>) {
 	const path = usePathname();
 
@@ -46,7 +49,7 @@ export default function RegistrationButton({
 		return (
 			<Button
 				type="button"
-				className="w-1/2 rounded-xl bg-zinc-800 py-8 text-lg text-primary-foreground hover:cursor-pointer hover:bg-zinc-700"
+				className={cn(className, "w-1/2 rounded-xl bg-zinc-800 py-8 text-lg text-primary-foreground hover:cursor-pointer hover:bg-zinc-700")}
 				asChild
 			>
 				<Link href={`/sign-in?redirect=${path}`}>Logg inn</Link>
@@ -62,7 +65,7 @@ export default function RegistrationButton({
 		return (
 			<Button
 				type="button"
-				className="w-3/4 whitespace-normal text-balance rounded-xl bg-amber-600 py-8 text-lg text-primary-foreground opacity-100! hover:cursor-pointer hover:bg-zinc-700"
+				className={cn(className, "w-3/4 whitespace-normal text-balance rounded-xl bg-amber-600 py-8 text-lg text-primary-foreground opacity-100! hover:cursor-pointer hover:bg-zinc-700")}
 				disabled
 			>
 				For mange prikker til å kunne melde deg på.
@@ -74,7 +77,7 @@ export default function RegistrationButton({
 		return (
 			<RegisterForm
 				eventId={event._id}
-				className={`w-3/4 whitespace-normal text-balance rounded-xl bg-emerald-600 px-6 py-8 text-center font-semibold text-lg text-primary-foreground hover:cursor-pointer hover:bg-emerald-700 md:w-1/2`}
+				className={cn(className, `w-3/4 whitespace-normal text-balance rounded-xl bg-emerald-600 px-6 py-8 text-center font-semibold text-lg text-primary-foreground hover:cursor-pointer hover:bg-emerald-700 md:w-1/2`)}
 				disabled={disabled}
 				waitlist={availableSpots === 0}
 			/>
@@ -88,6 +91,7 @@ export default function RegistrationButton({
 
 	return (
 		<EditRegistration
+			className={className}
 			registration={registrationToEdit}
 			disabled={disabled}
 			event={event}

@@ -1,5 +1,7 @@
 "use client";
 
+import { humanReadableDateTime } from "@/utils/dateFormatting";
+import createCalendarEventIcs from "@/utils/icsCalendarEvent";
 import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
 import type { Doc } from "@workspace/backend/convex/dataModel";
@@ -20,23 +22,24 @@ import {
 	FieldLabel,
 } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
+import { cn } from "@workspace/ui/lib/utils";
 import { useMutation } from "convex/react";
 import { CalendarPlus } from "lucide-react";
 import { usePostHog } from "posthog-js/react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { humanReadableDateTime } from "@/utils/dateFormatting";
-import createCalendarEventIcs from "@/utils/icsCalendarEvent";
 import Unregister from "./unregister";
 
 export default function EditRegistration({
 	registration,
 	disabled,
 	event,
+	className,
 }: Readonly<{
 	registration: Doc<"registrations">;
 	disabled: boolean;
 	event: Doc<"events">;
+	className: string;
 }>) {
 	const [open, setOpen] = useState(false);
 
@@ -67,7 +70,7 @@ export default function EditRegistration({
 			<DialogTrigger asChild>
 				<Button
 					type="button"
-					className="w-3/4 whitespace-normal text-balance rounded-xl bg-violet-400 py-8 text-lg text-primary-foreground opacity-100! hover:cursor-pointer hover:bg-violet-500 md:w-1/2 dark:bg-violet-300 dark:text-zinc-800"
+					className={cn(className, "w-3/4 whitespace-normal text-balance rounded-xl bg-violet-400 py-8 text-lg text-primary-foreground opacity-100! hover:cursor-pointer hover:bg-violet-500 md:w-1/2 dark:bg-violet-300 dark:text-zinc-800")}
 					onClick={() => setOpen(true)}
 					disabled={disabled}
 				>
