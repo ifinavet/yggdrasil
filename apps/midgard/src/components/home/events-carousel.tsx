@@ -14,13 +14,15 @@ import Link from "next/link";
 import EventCard from "../events/events-card";
 import NoMoreEventsEventCard from "../events/no-more-events-event-card";
 
-export default async function EventsCarousel({
-	className,
-}: Readonly<{ className?: string }>) {
+export default async function EventsCarousel({ className }: Readonly<{ className?: string }>) {
 	"use cache";
-	cacheLife("days");
+	cacheLife({
+		stale: 300, // 5 Minutes
+		revalidate: 60 * 60 * 12, // 12 Hours
+		expire: 60 * 60 * 48, // 2 days
+	});
 
-	const latestEvents = await fetchQuery(api.events.getLatest, { n: 3 });
+	const latestEvents = await fetchQuery(api.events.getUpcoming, { n: 3 });
 
 	return (
 		<div className={cn(className, "grid justify-center gap-4")}>
