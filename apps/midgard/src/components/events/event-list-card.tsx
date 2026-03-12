@@ -20,14 +20,23 @@ function getRegistrationStatus(event: EventWithParticipationCount) {
 	const participantsLimit = event.participationLimit;
 
 	const registrationIsOpen = registrationOpensDate <= now;
-	const eventActive =
-		now.getTime() >= eventStartDate.getTime() &&
-		now.getTime() - eventStartDate.getTime() <= 2 * 60 * 60 * 1000;
+
+	const eventStartPlusOneDay = new Date(eventStartDate);
+	eventStartPlusOneDay.setDate(eventStartPlusOneDay.getDate() + 1);
+	eventStartPlusOneDay.setHours(0, 0, 0, 0);
+
+	const showBanner = now < eventStartDate;
+	const isDayAfterEvent = now >= eventStartPlusOneDay;
+
+	const todayStart = new Date(now);
+	todayStart.setHours(0, 0, 0, 0);
+	const tomorrowStart = new Date(todayStart);
+	tomorrowStart.setDate(tomorrowStart.getDate() + 1);
 
 	const registrationOpenToday =
 		registrationIsOpen &&
-		event.registrationOpens >= now.setHours(0, 0, 0, 0) &&
-		event.registrationOpens < now.setHours(24, 0, 0, 0);
+		registrationOpensDate >= todayStart &&
+		registrationOpensDate < tomorrowStart;
 
 	const statusMessage = !registrationIsOpen
 		? `Påmeldingen åpner ${humanReadableDateTime(registrationOpensDate)}`
@@ -38,12 +47,13 @@ function getRegistrationStatus(event: EventWithParticipationCount) {
 				: "Det er fortsatt ledige plasser";
 
 	return {
-		registrationOpen: registrationIsOpen,
-		eventActive,
+		showBanner,
 		statusMessage,
-		cardColor: registrationIsOpen
-			? "border-emerald-700 bg-emerald-700"
-			: "border-zinc-400 bg-zinc-400",
+		cardColor: isDayAfterEvent
+			? "border-zinc-400 bg-zinc-400"
+			: registrationIsOpen
+				? "border-emerald-700 bg-emerald-700"
+				: "border-zinc-400 bg-zinc-400",
 	};
 }
 
@@ -70,18 +80,13 @@ function RegistrationStatusBanner({
 }
 
 // Event details component
-function EventDetails({
-	event,
-}: Readonly<{ event: EventWithParticipationCount }>) {
+function EventDetails({ event }: Readonly<{ event: EventWithParticipationCount }>) {
 	const participantsLimit = event.participationLimit;
 
 	return (
 		<div className="flex w-full flex-col justify-between gap-6 px-4 py-4 text-zinc-100 sm:pr-4 md:col-span-5 md:px-0 lg:pr-32">
 			<EventHeader title={event.title} teaser={event.teaser} />
-			<EventMetadata
-				eventStart={event.eventStart}
-				participantsLimit={participantsLimit}
-			/>
+			<EventMetadata eventStart={event.eventStart} participantsLimit={participantsLimit} />
 		</div>
 	);
 }
@@ -97,9 +102,7 @@ function EventHeader({
 	return (
 		<div className="grid w-full gap-2">
 			<h2 className="font-bold text-2xl tracking-tight">{title}</h2>
-			<p className="line-clamp-2 scroll-m-20 font-medium text-lg tracking-tight">
-				{teaser}
-			</p>
+			<p className="line-clamp-2 scroll-m-20 font-medium text-lg tracking-tight">{teaser}</p>
 		</div>
 	);
 }
@@ -140,12 +143,7 @@ function CompanyImage({
 }>) {
 	return (
 		<div className="relative col-span-2 grid h-full min-h-32 place-content-center rounded-r-md bg-white px-6 py-4 dark:bg-zinc-100/95">
-			<Image
-				src={imageUrl}
-				alt={title}
-				className="object-contain px-4 py-6 md:px-6"
-				fill
-			/>
+			<Image src={imageUrl} alt={title} className="object-contain px-4 py-6 md:px-6" fill />
 		</div>
 	);
 }
@@ -162,14 +160,13 @@ export default async function EventCard({
 		id: event.hostingCompany,
 	});
 
-	const { eventActive, statusMessage, cardColor } =
-		getRegistrationStatus(event);
+	const { showBanner, statusMessage, cardColor } = getRegistrationStatus(event);
 
 	return (
 		<Link href={`/events/${event.slug ?? event._id}`}>
 			{!isExternal && (
 				<RegistrationStatusBanner
-					show={eventActive}
+					show={showBanner}
 					statusMessage={statusMessage}
 					cardColor={cardColor}
 				/>
