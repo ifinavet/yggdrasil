@@ -45,11 +45,12 @@ const signUpFormSchema = z
 		lastName: z.string().min(1, "Etternavn er påkrevd"),
 		email: z
 			.email()
+			.trim()
 			.regex(
 				/^[A-Za-z0-9._%+-]+@(?:[A-Za-z0-9-]+\.)*uio\.no$|^[A-Za-z0-9._%+-]+@ifinavet\.no$/,
 				"E-post må være en gyldig uio e-postadresse",
 			)
-			.trim(),
+			,
 		password: z.string().min(8, "Passord må være minst 8 tegn"),
 		confirmPassword: z.string().min(8, "Bekreft passord må være minst 8 tegn"),
 		studyProgram: z.enum(STUDY_PROGRAMS),
@@ -157,7 +158,7 @@ export default function SignUpPage() {
 						studyProgram: signUpFormValues.studyProgram,
 						degree: signUpFormValues.degree,
 						year: signUpFormValues.year,
-						name: `${signUpFormValues.firstName} ${signUpFormValues.lastName}`,
+						name: `${signUpFormValues.firstName.trim()} ${signUpFormValues.lastName.trim()}`,
 					});
 
 					postHog.capture("midgard-student-sign-up", {
