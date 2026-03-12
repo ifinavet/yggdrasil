@@ -23,7 +23,6 @@ import {
 import { Input } from "@workspace/ui/components/input";
 import { cn } from "@workspace/ui/lib/utils";
 import { useMutation } from "convex/react";
-import { usePostHog } from "posthog-js/react";
 import { useState } from "react";
 import { toast } from "sonner";
 import Unregister from "./unregister";
@@ -40,8 +39,6 @@ export default function EditRegistration({
 	className: string;
 }>) {
 	const [open, setOpen] = useState(false);
-
-	const postHog = usePostHog();
 
 	const updateNote = useMutation(api.registration.updateNote);
 	const form = useForm({

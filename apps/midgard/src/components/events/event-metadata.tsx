@@ -92,12 +92,12 @@ export function EventMetadata({
 						try {
 							await navigator.share({
 								title: event.title,
-								url: window.location.href,
+								url: globalThis.location.href,
 								text: event.teaser,
 							});
 						} catch (e: unknown) {
 							if (e instanceof TypeError && e.message.includes("not a function")) {
-								await navigator.clipboard.writeText(window.location.href);
+								await navigator.clipboard.writeText(globalThis.location.href);
 								toast.success("Copierte URL til clipboard");
 							}
 						}
