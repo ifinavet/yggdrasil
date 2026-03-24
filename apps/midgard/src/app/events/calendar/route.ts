@@ -14,7 +14,6 @@ const formatIcsDate = (date: Date): string =>
 	date.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
 
 
-export const revalidate = 3600;
 
 export async function GET() {
 	const events = await fetchQuery(api.events.getUpcoming, { n: 100 });
