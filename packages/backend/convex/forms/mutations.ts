@@ -2,8 +2,14 @@ import { v } from "convex/values";
 import { internalMutation, mutation } from "../_generated/server";
 import { getCurrentUserOrThrow } from "../auth/currentUser";
 
-/*
- * Insert a response into the form.
+/**
+ * Inserts a response into a form.
+ *
+ * @param {Id<"form">} formId - The id of the form receiving the response.
+ * @param {Record<string, any>} data - The submitted response payload.
+ *
+ * @throws - An error if the current user cannot be resolved.
+ * @returns {null} - Returns null when the response is stored successfully.
  */
 export const submitFormResponse = mutation({
     args: {
@@ -20,8 +26,10 @@ export const submitFormResponse = mutation({
     },
 });
 
-/*
- * Create the feedback form.
+/**
+ * Creates the default event feedback form.
+ *
+ * @returns {Id<"form">} - The id of the created feedback form document.
  */
 export const createEventFeedbackForm = internalMutation({
     handler: async (ctx) => {

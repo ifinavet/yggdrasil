@@ -2,8 +2,13 @@ import { v } from "convex/values";
 import { query } from "../_generated/server";
 import { getCurrentUserOrThrow } from "../auth/currentUser";
 
-/*
- * Fetch all responses for a from.
+/**
+ * Fetches all responses for a form.
+ *
+ * @param {Id<"form">} formId - The id of the form to fetch responses for.
+ *
+ * @throws - An error if the current user cannot be resolved.
+ * @returns {Doc<"formResponses">[]} - All stored responses for the given form.
  */
 export const getFormResponsesByFormId = query({
     args: {
@@ -19,8 +24,13 @@ export const getFormResponsesByFormId = query({
     },
 });
 
-/*
- * Get the current user's response for a form.
+/**
+ * Fetches the current user's response for a form.
+ *
+ * @param {Id<"form">} formId - The id of the form to inspect.
+ *
+ * @throws - An error if the current user cannot be resolved.
+ * @returns {Doc<"formResponses"> | undefined} - The matching response for the current user, if one exists.
  */
 export const getCurrentUsersResponseByFormId = query({
     args: {
@@ -45,8 +55,13 @@ export const getCurrentUsersResponseByFormId = query({
     },
 });
 
-/*
- * Check if the current user can answer the given form
+/**
+ * Checks whether the current user is allowed to submit the event feedback form.
+ *
+ * @param {Id<"events">} eventId - The id of the event tied to the form.
+ *
+ * @throws - An error if the current user cannot be resolved.
+ * @returns {boolean} - Whether the current user attended or organized the event.
  */
 export const checkIfCurrentUserAttendedTheEventAndShouldBeAbleToSubmit = query({
     args: {

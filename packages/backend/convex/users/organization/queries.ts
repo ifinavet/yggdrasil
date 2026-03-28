@@ -1,7 +1,14 @@
 import { v } from "convex/values";
 import { query } from "../../_generated/server";
 
-
+/**
+ * Fetches a board member by position with linked user data.
+ *
+ * @param {string} position - The board position to look up.
+ *
+ * @throws - An error if the linked user cannot be found.
+ * @returns {(Doc<"internals"> & Doc<"users">) | null} - The board member and user data, or null when not found.
+ */
 export const getBoardMemberByPosition = query({
     args: {
         position: v.string(),
@@ -28,6 +35,11 @@ export const getBoardMemberByPosition = query({
     },
 });
 
+/**
+ * Fetches all board members ordered by rank.
+ *
+ * @returns {Array<Doc<"internals"> & { fullName: string, email: string, image: string | undefined }>} - The board member list.
+ */
 export const getTheBoard = query({
     handler: async (ctx) => {
         const members = await ctx.db
@@ -69,6 +81,14 @@ export const getTheBoard = query({
     },
 });
 
+/**
+ * Fetches an internal member by id with user and access-right details.
+ *
+ * @param {Id<"internals">} id - The id of the internal record to fetch.
+ *
+ * @throws - An error if the internal record or linked user cannot be found.
+ * @returns {Doc<"internals"> & { fullName: string, email: string, image: string, accessRights: string | undefined }} - The resolved internal member payload.
+ */
 export const getById = query({
     args: {
         id: v.id("internals"),
@@ -99,6 +119,11 @@ export const getById = query({
     },
 });
 
+/**
+ * Fetches all internal members with resolved names.
+ *
+ * @returns {Array<Doc<"internals"> & { fullName: string }>} - All internal member records with display names.
+ */
 export const getAll = query({
     handler: async (ctx) => {
         const internals = await ctx.db.query("internals").collect();
@@ -121,6 +146,11 @@ export const getAll = query({
     },
 });
 
+/**
+ * Fetches all internal members that currently have the `Intern` position.
+ *
+ * @returns {Array<Doc<"internals"> & { fullName: string, email: string, image: string | null | undefined, role: string | undefined }>} - The internal members with user and role data.
+ */
 export const getAllInternals = query({
     handler: async (ctx) => {
         const internals = await ctx.db

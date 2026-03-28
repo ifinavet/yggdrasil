@@ -3,6 +3,16 @@ import { internal } from "../_generated/api";
 import { internalMutation, mutation } from "../_generated/server";
 import { getCurrentUserOrThrow } from "../auth/currentUser";
 
+/**
+ * Gives points to a student and schedules the notification email.
+ *
+ * @param {Id<"students">} id - The id of the student receiving points.
+ * @param {string} reason - The reason for the points.
+ * @param {number} severity - The number of points to assign.
+ *
+ * @throws - An error if the student cannot be found.
+ * @returns {null} - Returns null when the points are created successfully.
+ */
 export const givePoints = mutation({
     args: {
         id: v.id("students"),
@@ -29,6 +39,16 @@ export const givePoints = mutation({
     },
 });
 
+/**
+ * Inserts a points record and triggers the locked-out notification threshold check.
+ *
+ * @param {Id<"students">} id - The id of the student receiving points.
+ * @param {string} reason - The reason for the points.
+ * @param {number} severity - The number of points to assign.
+ *
+ * @throws - An error if the caller is unauthenticated.
+ * @returns {null} - Returns null when the points are stored successfully.
+ */
 export const givePointsInternal = internalMutation({
     args: {
         id: v.id("students"),
@@ -60,6 +80,16 @@ export const givePointsInternal = internalMutation({
     },
 });
 
+/**
+ * Schedules the email notifying a user about newly assigned points.
+ *
+ * @param {Id<"users">} userId - The id of the user to notify.
+ * @param {number} severity - The number of points assigned.
+ * @param {string} reason - The reason for the points.
+ *
+ * @throws - An error if the user cannot be found.
+ * @returns {null} - Returns null when the email job is scheduled successfully.
+ */
 export const givePointsEmail = internalMutation({
     args: {
         userId: v.id("users"),
@@ -81,6 +111,14 @@ export const givePointsEmail = internalMutation({
     },
 });
 
+/**
+ * Schedules the email notifying a student that they have too many points.
+ *
+ * @param {Id<"students">} studentsId - The id of the student to notify.
+ *
+ * @throws - An error if the student or linked user cannot be found.
+ * @returns {null} - Returns null when the email job is scheduled successfully.
+ */
 export const tooManyPointsEmail = internalMutation({
     args: {
         studentsId: v.id("students"),
@@ -102,6 +140,14 @@ export const tooManyPointsEmail = internalMutation({
     },
 });
 
+/**
+ * Deletes a points record by id.
+ *
+ * @param {Id<"points">} id - The id of the points record to delete.
+ *
+ * @throws - An error if the current user cannot be resolved.
+ * @returns {null} - Returns null when the points record is deleted successfully.
+ */
 export const remove = mutation({
     args: {
         id: v.id("points"),
@@ -113,6 +159,11 @@ export const remove = mutation({
     },
 });
 
+/**
+ * Deletes points records older than roughly six months.
+ *
+ * @returns {null} - Returns null when the cleanup has completed.
+ */
 export const checkIfAnyPointsShouldBeRemoved = internalMutation({
     handler: async (ctx) => {
         const points = await ctx.db

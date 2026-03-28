@@ -3,6 +3,9 @@ import { api } from "../_generated/api";
 import { mutation, query } from "../_generated/server";
 import { getCurrentUser } from "./currentUser";
 
+/**
+ * Defines the allowed access right roles.
+ */
 export const accessRoles = v.union(
 	v.literal("super-admin"),
 	v.literal("admin"),
@@ -10,6 +13,13 @@ export const accessRoles = v.union(
 	v.literal("internal"),
 );
 
+/**
+ * Checks whether the current user has one of the requested roles.
+ *
+ * @param {("super-admin" | "admin" | "editor" | "internal")[]} right - The allowed roles to check against.
+ *
+ * @returns {boolean} - Whether the current user has one of the requested roles.
+ */
 export const checkRights = query({
 	args: {
 		right: v.array(accessRoles),
@@ -28,6 +38,15 @@ export const checkRights = query({
 	},
 });
 
+/**
+ * Creates or updates a user's access rights.
+ *
+ * @param {Id<"users">} userId - The id of the user whose rights should be updated.
+ * @param {"super-admin" | "admin" | "editor" | "internal"} role - The role to assign.
+ *
+ * @throws - An error if the caller is unauthorized to change access rights.
+ * @returns {null} - Returns null when the access rights are upserted successfully.
+ */
 export const upsertAccessRights = mutation({
 	args: {
 		userId: v.id("users"),

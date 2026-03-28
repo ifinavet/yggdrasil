@@ -4,6 +4,14 @@ import { Doc } from "../../_generated/dataModel";
 import { mutation, MutationCtx } from "../../_generated/server";
 import { getCurrentUserOrThrow } from "../../auth/currentUser";
 
+/**
+ * Accepts a pending registration for the current user.
+ *
+ * @param {Id<"registrations">} id - The id of the registration to accept.
+ *
+ * @throws - An error if the registration does not exist or does not belong to the current user.
+ * @returns {null} - Returns null when the registration is accepted successfully.
+ */
 export const acceptPendingRegistration = mutation({
     args: {
         id: v.id("registrations"),
@@ -29,6 +37,15 @@ export const acceptPendingRegistration = mutation({
     },
 });
 
+/**
+ * Updates the attendance status for a registration and applies points when needed.
+ *
+ * @param {Id<"registrations">} id - The id of the registration to update.
+ * @param {"confirmed" | "late" | "no_show"} newStatus - The new attendance status.
+ *
+ * @throws - An error if the registration or related student cannot be resolved.
+ * @returns {null} - Returns null when the attendance status is updated successfully.
+ */
 export const updateAttendance = mutation({
     args: {
         id: v.id("registrations"),
@@ -87,6 +104,15 @@ export const updateAttendance = mutation({
     },
 });
 
+/**
+ * Registers the current user for an event.
+ *
+ * @param {Id<"events">} eventId - The id of the event to register for.
+ * @param {string | undefined} note - The optional registration note.
+ *
+ * @throws - An error if the event does not exist.
+ * @returns {"registered" | "waitlist" | undefined} - The resulting registration status, or undefined if the user was already registered.
+ */
 export const register = mutation({
     args: {
         eventId: v.id("events"),
@@ -125,6 +151,15 @@ export const register = mutation({
     },
 });
 
+/**
+ * Updates the note on a registration.
+ *
+ * @param {Id<"registrations">} id - The id of the registration to update.
+ * @param {string | undefined} note - The updated optional note.
+ *
+ * @throws - An error if the current user cannot be resolved.
+ * @returns {null} - Returns null when the note is updated successfully.
+ */
 export const updateNote = mutation({
     args: {
         id: v.id("registrations"),
@@ -137,6 +172,14 @@ export const updateNote = mutation({
     },
 });
 
+/**
+ * Unregisters the current user from an event and advances the waitlist when needed.
+ *
+ * @param {Id<"registrations">} id - The id of the registration to remove.
+ *
+ * @throws - An error if the registration or event does not exist.
+ * @returns {{ deletedRegistration: Doc<"registrations">, event: Doc<"events">, person: Doc<"users"> }} - Information about the removed registration.
+ */
 export const unregister = mutation({
     args: {
         id: v.id("registrations"),
@@ -203,6 +246,16 @@ export const unregister = mutation({
     },
 });
 
+/**
+ * Moves a registration to pending status and schedules the seat notification email.
+ *
+ * @param {MutationCtx} ctx - The Convex mutation context.
+ * @param {Doc<"registrations">} registrationToMakePending - The registration to update.
+ * @param {Doc<"events">} event - The event the registration belongs to.
+ *
+ * @throws - An error if the user for the registration cannot be resolved.
+ * @returns {Promise<void>} - Resolves when the registration has been updated and the email scheduled.
+ */
 export const makeStatusPending = async (
     ctx: MutationCtx,
     registrationToMakePending: Doc<"registrations">,

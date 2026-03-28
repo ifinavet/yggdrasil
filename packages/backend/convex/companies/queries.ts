@@ -2,6 +2,13 @@ import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { query } from "../_generated/server";
 
+/**
+ * Fetches paginated companies.
+ *
+ * @param {PaginationOptions} paginationOpts - The Convex pagination options.
+ *
+ * @returns {PaginationResult<Doc<"companies">>} - The paginated companies result.
+ */
 export const getAllPaged = query({
     args: { paginationOpts: paginationOptsValidator },
     handler: async (ctx, { paginationOpts }) => {
@@ -10,12 +17,23 @@ export const getAllPaged = query({
     },
 });
 
+/**
+ * Fetches all companies.
+ *
+ * @returns {Doc<"companies">[]} - All company documents.
+ */
 export const getAll = query({
     handler: async (ctx) => {
         return await ctx.db.query("companies").collect();
     },
 });
 
+/**
+ * Fetches the current main sponsor with its resolved logo URL.
+ *
+ * @throws - An error if the main sponsor logo or logo URL cannot be resolved.
+ * @returns {(Doc<"companies"> & { imageUrl: string }) | null} - The main sponsor with image URL, or null if none is set.
+ */
 export const getMainSponsor = query({
     handler: async (ctx) => {
         const mainSponsor = await ctx.db
@@ -39,6 +57,14 @@ export const getMainSponsor = query({
     },
 });
 
+/**
+ * Fetches a company by id with its resolved logo URL.
+ *
+ * @param {Id<"companies">} id - The id of the company to fetch.
+ *
+ * @throws - An error if the company, logo, or logo URL cannot be resolved.
+ * @returns {Doc<"companies"> & { imageUrl: string }} - The company with image URL.
+ */
 export const getById = query({
     args: {
         id: v.id("companies"),
@@ -63,6 +89,13 @@ export const getById = query({
     },
 });
 
+/**
+ * Searches companies by name.
+ *
+ * @param {string} searchQuery - The search string to match against company names.
+ *
+ * @returns {Doc<"companies">[]} - Up to ten matching companies.
+ */
 export const searchByName = query({
     args: {
         searchQuery: v.string(),
@@ -75,6 +108,14 @@ export const searchByName = query({
     },
 });
 
+/**
+ * Fetches paginated company logos with resolved image URLs.
+ *
+ * @param {PaginationOptions} paginationOpts - The Convex pagination options.
+ *
+ * @throws - An error if any logo image URL cannot be resolved.
+ * @returns {PaginationResult<Doc<"companyLogos"> & { imageUrl: string }>} - The paginated logos result.
+ */
 export const getCompanyLogosPaged = query({
     args: { paginationOpts: paginationOptsValidator },
     handler: async (ctx, { paginationOpts }) => {
@@ -101,6 +142,14 @@ export const getCompanyLogosPaged = query({
     },
 });
 
+/**
+ * Fetches a company logo by id with its resolved image URL.
+ *
+ * @param {Id<"companyLogos"> | undefined} id - The optional id of the company logo to fetch.
+ *
+ * @throws - An error if the logo or logo URL cannot be resolved.
+ * @returns {(Doc<"companyLogos"> & { imageUrl: string }) | null} - The logo with image URL, or null when no id is provided.
+ */
 export const getCompanyLogoById = query({
     args: {
         id: v.optional(v.id("companyLogos")),

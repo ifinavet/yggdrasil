@@ -1,6 +1,9 @@
 import { cronJobs } from "convex/server";
 import { internal } from "./_generated/api";
 
+/**
+ * Registers the scheduled Convex jobs used by the backend.
+ */
 const crons = cronJobs();
 
 crons.interval(
@@ -27,4 +30,7 @@ crons.cron(
 	internal.users.students.mutations.updateYear,
 );
 
+/**
+ * Exports the configured cron job collection.
+ */
 export default crons;

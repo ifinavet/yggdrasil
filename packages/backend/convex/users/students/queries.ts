@@ -4,6 +4,14 @@ import { Doc, Id } from "../../_generated/dataModel";
 import { query } from "../../_generated/server";
 import { getCurrentUserOrThrow } from "../clerk/queries";
 
+/**
+ * Fetches paginated students, optionally filtered by search.
+ *
+ * @param {string | undefined} search - The optional student name search string.
+ * @param {PaginationOptions} paginationOpts - The Convex pagination options.
+ *
+ * @returns {PaginationResult<Doc<"students"> & { status: string }>} - The paginated students result with account status.
+ */
 export const getAllPaged = query({
     args: {
         search: v.optional(v.string()),
@@ -36,6 +44,12 @@ export const getAllPaged = query({
     },
 });
 
+/**
+ * Fetches all students with their total points count.
+ *
+ * @throws - An error if a referenced student cannot be found.
+ * @returns {{ id: Id<"students">, name: string, points: number }[]} - Students sorted by total points.
+ */
 export const getAllWithPoints = query({
     handler: async (ctx) => {
         const points = await ctx.db.query("points").collect();
@@ -72,6 +86,12 @@ export const getAllWithPoints = query({
     },
 });
 
+/**
+ * Fetches the current student with linked user data.
+ *
+ * @throws - An error if the current user has no linked student record.
+ * @returns {Doc<"students"> & Doc<"users">} - The merged student and user data.
+ */
 export const getCurrent = query({
     handler: async (ctx) => {
         const user = await getCurrentUserOrThrow(ctx);
@@ -92,6 +112,14 @@ export const getCurrent = query({
     },
 });
 
+/**
+ * Fetches a student by id with selected linked user data.
+ *
+ * @param {Id<"students">} id - The id of the student to fetch.
+ *
+ * @throws - An error if the student or linked user cannot be found.
+ * @returns {{ id: Id<"students">, userId: Id<"users">, email: string, firstName: string, lastName: string, studyProgram: string, year: number, degree: string }} - The resolved student payload.
+ */
 export const getById = query({
     args: { id: v.id("students") },
     handler: async (ctx, { id }) => {

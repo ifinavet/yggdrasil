@@ -3,6 +3,17 @@ import { internal } from "../../_generated/api";
 import { internalMutation, mutation } from "../../_generated/server";
 import { getCurrentUserOrThrow } from "../clerk/queries";
 
+/**
+ * Creates a student record for an external user id.
+ *
+ * @param {string} externalId - The external auth provider id.
+ * @param {"Årsstudium" | "Bachelor" | "Master" | "PhD"} degree - The student's degree.
+ * @param {number} year - The student's study year.
+ * @param {string} studyProgram - The student's study program.
+ * @param {string} name - The student's display name.
+ *
+ * @returns {null} - Returns null when the student is created successfully.
+ */
 export const createByExternalId = mutation({
     args: {
         externalId: v.string(),
@@ -38,6 +49,16 @@ export const createByExternalId = mutation({
     },
 });
 
+/**
+ * Updates the current student's study information.
+ *
+ * @param {number} year - The updated study year.
+ * @param {string} studyProgram - The updated study program.
+ * @param {"Årsstudium" | "Bachelor" | "Master" | "PhD"} degree - The updated degree.
+ *
+ * @throws - An error if the current user has no linked student record.
+ * @returns {null} - Returns null when the student is updated successfully.
+ */
 export const updateCurrent = mutation({
     args: {
         year: v.number(),
@@ -69,6 +90,17 @@ export const updateCurrent = mutation({
     },
 });
 
+/**
+ * Updates a student record by id.
+ *
+ * @param {Id<"students">} id - The id of the student to update.
+ * @param {number} year - The updated study year.
+ * @param {string} studyProgram - The updated study program.
+ * @param {"Årsstudium" | "Bachelor" | "Master" | "PhD"} degree - The updated degree.
+ *
+ * @throws - An error if the caller is unauthenticated.
+ * @returns {null} - Returns null when the student is updated successfully.
+ */
 export const update = mutation({
     args: {
         id: v.id("students"),
@@ -95,6 +127,11 @@ export const update = mutation({
     },
 });
 
+/**
+ * Increments the year for all students, capped at five.
+ *
+ * @returns {null} - Returns null when all student years have been updated.
+ */
 export const updateYear = internalMutation({
     handler: async (ctx) => {
         const students = await ctx.db.query("students").collect();

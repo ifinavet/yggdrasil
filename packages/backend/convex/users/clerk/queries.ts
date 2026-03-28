@@ -9,6 +9,11 @@ export {
     userByExternalId,
 } from "../../auth/currentUser";
 
+/**
+ * Fetches the current authenticated user.
+ *
+ * @returns {Promise<Doc<"users"> | null>} - The current user document, or null when unauthenticated.
+ */
 export const current = query({
     args: {},
     handler: async (ctx) => {
@@ -16,6 +21,14 @@ export const current = query({
     },
 });
 
+/**
+ * Searches users by email with pagination.
+ *
+ * @param {string} searchInput - The email search string.
+ * @param {PaginationOptions} paginationOpts - The Convex pagination options.
+ *
+ * @returns {PaginationResult<Doc<"users">>} - The paginated search result.
+ */
 export const searchAfterUsers = query({
     args: {
         searchInput: v.string(),

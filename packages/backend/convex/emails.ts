@@ -10,10 +10,22 @@ import { v } from "convex/values";
 import { components } from "./_generated/api";
 import { internalAction } from "./_generated/server";
 
+/**
+ * Configures the Resend client used by backend email actions.
+ */
 export const resend: Resend = new Resend(components.resend, {
 	testMode: false,
 });
 
+/**
+ * Sends the email informing a participant that they received points.
+ *
+ * @param {string} participantEmail - The recipient email address.
+ * @param {number} severity - The number of points assigned.
+ * @param {string} reason - The reason for the points.
+ *
+ * @returns {Promise<void>} - Resolves when the email has been sent.
+ */
 export const sendGottenPointsEmail = internalAction({
 	args: {
 		participantEmail: v.string(),
@@ -40,6 +52,13 @@ export const sendGottenPointsEmail = internalAction({
 	},
 });
 
+/**
+ * Sends the email informing a participant that they have exceeded the points threshold.
+ *
+ * @param {string} participantEmail - The recipient email address.
+ *
+ * @returns {Promise<void>} - Resolves when the email has been sent.
+ */
 export const sendTooManyPointsEmail = internalAction({
 	args: {
 		participantEmail: v.string(),
@@ -57,6 +76,16 @@ export const sendTooManyPointsEmail = internalAction({
 	},
 });
 
+/**
+ * Sends the email offering a waitlisted participant an available seat.
+ *
+ * @param {string} participantEmail - The recipient email address.
+ * @param {Id<"events">} eventId - The id of the event.
+ * @param {string} eventTitle - The event title.
+ * @param {Id<"registrations">} registrationId - The registration id used in the acceptance URL.
+ *
+ * @returns {Promise<void>} - Resolves when the email has been sent.
+ */
 export const sendAvailableSeatEmail = internalAction({
 	args: {
 		participantEmail: v.string(),
@@ -86,6 +115,16 @@ export const sendAvailableSeatEmail = internalAction({
 	},
 });
 
+/**
+ * Sends the free-for-all email for released event seats.
+ *
+ * @param {string} participantEmail - The recipient email address.
+ * @param {Id<"events">} eventId - The id of the event.
+ * @param {string} eventTitle - The event title.
+ * @param {number} availableSeats - The number of available seats.
+ *
+ * @returns {Promise<void>} - Resolves when the email has been sent.
+ */
 export const sendFreeForAll = internalAction({
 	args: {
 		participantEmail: v.string(),

@@ -3,6 +3,14 @@ import { v } from "convex/values";
 import { DataModel, Doc } from "../_generated/dataModel";
 import { query, QueryCtx } from "../_generated/server";
 
+/**
+ * Fetches job listings, optionally filtered by count and type.
+ *
+ * @param {number | undefined} n - The optional maximum number of listings to return.
+ * @param {string | undefined} type - The optional listing type filter.
+ *
+ * @returns {Promise<Array<Doc<"jobListings"> & { companyName: string, companyLogo: string }>>} - Listings with company metadata.
+ */
 export const getAll = query({
     args: {
         n: v.optional(v.number()),
@@ -24,6 +32,16 @@ export const getAll = query({
     },
 });
 
+/**
+ * Fetches published active job listings with optional filtering and sorting.
+ *
+ * @param {number | undefined} n - The optional maximum number of listings to return.
+ * @param {string | undefined} listingType - The optional listing type filter.
+ * @param {string | undefined} sorting - The optional sort mode.
+ * @param {Id<"companies"> | undefined} company - The optional company filter.
+ *
+ * @returns {Promise<Array<Doc<"jobListings"> & { companyName: string, companyLogo: string }>>} - Active listings with company metadata.
+ */
 export const getAllPublishedAndActive = query({
     args: {
         n: v.optional(v.number()),
@@ -68,6 +86,15 @@ export const getAllPublishedAndActive = query({
     },
 });
 
+/**
+ * Enriches job listings with hosting company name and logo URL.
+ *
+ * @param {QueryCtx} ctx - The Convex query context.
+ * @param {Doc<"jobListings">[]} listings - The listings to enrich.
+ *
+ * @throws - An error if the linked company, logo, or image URL cannot be resolved.
+ * @returns {Promise<Array<Doc<"jobListings"> & { companyName: string, companyLogo: string }>>} - The enriched listings.
+ */
 async function addCompanyToListings(
     ctx: QueryCtx,
     listings: Doc<"jobListings">[],
@@ -100,6 +127,14 @@ async function addCompanyToListings(
     return listingsWithCompany;
 }
 
+/**
+ * Fetches a job listing by id with its contacts.
+ *
+ * @param {Id<"jobListings">} id - The id of the listing to fetch.
+ *
+ * @throws - An error if the listing cannot be found.
+ * @returns {Doc<"jobListings"> & { contacts: Array<{ id: Id<"jobListingContacts">, name: string, email?: string, phone?: string }> }} - The listing with contact data.
+ */
 export const getById = query({
     args: {
         id: v.id("jobListings"),

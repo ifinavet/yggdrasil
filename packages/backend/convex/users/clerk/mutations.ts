@@ -3,6 +3,13 @@ import { v, Validator } from "convex/values";
 import { internalMutation } from "../../_generated/server";
 import { userByExternalId } from "./queries";
 
+/**
+ * Creates or updates a user from a Clerk webhook payload.
+ *
+ * @param {UserJSON} data - The Clerk user payload.
+ *
+ * @returns {null} - Returns null when the user has been synchronized successfully.
+ */
 export const upsertFromClerk = internalMutation({
     args: { data: v.any() as Validator<UserJSON> }, // no runtime validation, trust Clerk
     async handler(ctx, { data }) {
@@ -27,6 +34,17 @@ export const upsertFromClerk = internalMutation({
     },
 });
 
+/**
+ * Creates a user for an external id if none exists yet.
+ *
+ * @param {string} externalId - The external auth provider id.
+ * @param {string} firstName - The user's first name.
+ * @param {string} lastName - The user's last name.
+ * @param {string} email - The user's email address.
+ * @param {string} image - The user's profile image URL.
+ *
+ * @returns {Id<"users">} - The existing or newly created user id.
+ */
 export const createIfNotExists = internalMutation({
     args: {
         externalId: v.string(),
@@ -59,6 +77,13 @@ export const createIfNotExists = internalMutation({
     },
 });
 
+/**
+ * Deletes a user that originated from Clerk.
+ *
+ * @param {string} clerkUserId - The Clerk user id to remove.
+ *
+ * @returns {null} - Returns null when the delete attempt has completed.
+ */
 export const deleteFromClerk = internalMutation({
     args: { clerkUserId: v.string() },
     async handler(ctx, { clerkUserId }) {

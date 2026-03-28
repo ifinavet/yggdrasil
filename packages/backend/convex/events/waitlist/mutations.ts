@@ -3,6 +3,11 @@ import { internal } from "../../_generated/api";
 import { internalMutation } from "../../_generated/server";
 import { makeStatusPending } from "../registrations/mutations";
 
+/**
+ * Checks pending registrations and reoffers seats when the response window expires.
+ *
+ * @returns {Promise<void>} - Resolves when all pending registrations have been processed.
+ */
 export const checkPendingRegistrations = internalMutation({
     handler: async (ctx) => {
         const ONE_HOUR_MS = 60 * 60 * 1000;
@@ -75,6 +80,11 @@ export const checkPendingRegistrations = internalMutation({
     },
 });
 
+/**
+ * Clears waitlist and pending registrations for today's events and sends free-for-all emails.
+ *
+ * @returns {Promise<void>} - Resolves when the affected registrations have been cleared.
+ */
 export const clearWaitlistAndPending = internalMutation({
     handler: async (ctx) => {
         const now = Date.now();
@@ -143,6 +153,13 @@ export const clearWaitlistAndPending = internalMutation({
     },
 });
 
+/**
+ * Repairs the waitlist for an event by filling open spots with pending registrations.
+ *
+ * @param {Id<"events">} eventId - The id of the event to repair.
+ *
+ * @returns {Promise<"No event found" | void>} - A status message when no event is found, otherwise resolves after processing.
+ */
 export const fixWaitlist = internalMutation({
     args: {
         eventId: v.id("events"),

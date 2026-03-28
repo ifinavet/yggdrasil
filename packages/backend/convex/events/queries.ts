@@ -4,6 +4,13 @@ import { internal } from "../_generated/api";
 import { Doc, Id } from "../_generated/dataModel";
 import { internalQuery, query, QueryCtx } from "../_generated/server";
 
+/**
+ * Fetches the next published events from the current week onward.
+ *
+ * @param {number} n - The maximum number of events to return.
+ *
+ * @returns {Array<Doc<"events"> & { organizers: Awaited<ReturnType<typeof getOrganizers>> }>} - The upcoming events with organizer details.
+ */
 export const getLatest = query({
     args: {
         n: v.number(),
@@ -32,6 +39,13 @@ export const getLatest = query({
     },
 });
 
+/**
+ * Fetches the next published upcoming events.
+ *
+ * @param {number} n - The maximum number of events to return.
+ *
+ * @returns {Doc<"events">[]} - The upcoming published events.
+ */
 export const getUpcoming = query({
     args: {
         n: v.number(),
@@ -48,6 +62,15 @@ export const getUpcoming = query({
     },
 });
 
+/**
+ * Fetches all events for a given semester and year.
+ *
+ * @param {number} semester - The semester flag where `0` is spring and `1` is fall.
+ * @param {number} year - The year to fetch events for.
+ * @param {string | undefined} status - An unused optional status parameter.
+ *
+ * @returns {Array<Doc<"events"> & { hostingCompanyName: string }>} - All events in the semester with hosting company names.
+ */
 export const getAllEvents = internalQuery({
     args: {
         semester: v.number(),
@@ -84,6 +107,14 @@ export const getAllEvents = internalQuery({
     },
 });
 
+/**
+ * Fetches published and unpublished events for a semester.
+ *
+ * @param {string} semester - The semester name.
+ * @param {number} year - The year to fetch events for.
+ *
+ * @returns {{ published: Array<Doc<"events"> & { hostingCompanyName: string }>, unpublished: Array<Doc<"events"> & { hostingCompanyName: string }> }} - Events separated by publication status.
+ */
 export const getAll = query({
     args: {
         semester: v.string(),
@@ -106,6 +137,13 @@ export const getAll = query({
     },
 });
 
+/**
+ * Fetches the current semester's published events grouped by month.
+ *
+ * @param {boolean} isExternal - Whether to only include events with an external URL.
+ *
+ * @returns {Record<string, Array<Doc<"events"> & { hostingCompanyName: string, participationCount: number }>>} - Current semester events grouped by month name.
+ */
 export const getCurrentSemester = query({
     args: {
         isExternal: v.boolean(),
@@ -168,6 +206,14 @@ export const getCurrentSemester = query({
     },
 });
 
+/**
+ * Fetches an event by id or slug with hosting company and organizer data.
+ *
+ * @param {string} identifier - Either the event id or event slug.
+ *
+ * @throws - An error if the event or hosting company cannot be resolved.
+ * @returns {Doc<"events"> & { hostingCompanyName: string, organizers: Awaited<ReturnType<typeof getOrganizers>> }} - The resolved event payload.
+ */
 export const getEvent = query({
     args: {
         identifier: v.string(),
@@ -203,6 +249,14 @@ export const getEvent = query({
     },
 });
 
+/**
+ * Resolves organizer records for an event into display data.
+ *
+ * @param {QueryCtx} ctx - The Convex query context.
+ * @param {Id<"events">} eventId - The event id to fetch organizers for.
+ *
+ * @returns {Promise<Array<{ id: Id<"eventOrganizers">, name: string, role: ORGANIZER_ROLE, userId: Id<"users">, imageUrl: string, email: string }>>} - Organizer display data for the event.
+ */
 async function getOrganizers(ctx: QueryCtx, eventId: Id<"events">) {
     const organizers = await ctx.db
         .query("eventOrganizers")
@@ -236,6 +290,11 @@ async function getOrganizers(ctx: QueryCtx, eventId: Id<"events">) {
     return organizersWithName;
 }
 
+/**
+ * Fetches all semester options covered by the stored events.
+ *
+ * @returns {Array<{ year: number, semester: string }>} - The available semesters.
+ */
 export const getPossibleSemesters = query({
     handler: async (ctx) => {
         const firstEvent = await ctx.db.query("events").withIndex("by_eventStart").order("asc").first();
@@ -261,6 +320,13 @@ export const getPossibleSemesters = query({
     },
 });
 
+/**
+ * Fetches organizers for an event by id.
+ *
+ * @param {Id<"events">} id - The id of the event to inspect.
+ *
+ * @returns {Array<Doc<"eventOrganizers"> & { name: string }>} - The organizers with resolved names.
+ */
 export const getOrganizersByEventId = query({
     args: {
         id: v.id("events"),

@@ -1,6 +1,22 @@
 import { v } from "convex/values";
 import { mutation } from "../_generated/server";
 
+/**
+ * Creates a new job listing and its contact records.
+ *
+ * @param {string} title - The listing title.
+ * @param {string} type - The listing type.
+ * @param {string} teaser - The listing teaser text.
+ * @param {string} description - The full listing description.
+ * @param {string} applicationUrl - The application URL.
+ * @param {boolean} published - Whether the listing should be publicly visible.
+ * @param {Id<"companies">} company - The company id linked to the listing.
+ * @param {number} deadline - The application deadline timestamp.
+ * @param {{ name: string, email?: string, phone?: string }[]} contacts - The contacts to attach to the listing.
+ *
+ * @throws - An error if the mutation is called without an authenticated user.
+ * @returns {Id<"jobListings">} - The id of the created job listing.
+ */
 export const create = mutation({
     args: {
         title: v.string(),
@@ -47,6 +63,23 @@ export const create = mutation({
     },
 });
 
+/**
+ * Updates a job listing and replaces its contact records.
+ *
+ * @param {Id<"jobListings">} id - The id of the listing to update.
+ * @param {string} title - The updated listing title.
+ * @param {string} type - The updated listing type.
+ * @param {string} teaser - The updated listing teaser text.
+ * @param {string} description - The updated full listing description.
+ * @param {string} applicationUrl - The updated application URL.
+ * @param {boolean} published - Whether the listing should be publicly visible.
+ * @param {Id<"companies">} company - The updated company id.
+ * @param {number} deadline - The updated application deadline timestamp.
+ * @param {{ name: string, email?: string, phone?: string }[]} contacts - The updated contacts for the listing.
+ *
+ * @throws - An error if the mutation is called without an authenticated user.
+ * @returns {Id<"jobListings">} - The id of the updated job listing.
+ */
 export const update = mutation({
     args: {
         id: v.id("jobListings"),
@@ -103,6 +136,14 @@ export const update = mutation({
     },
 });
 
+/**
+ * Deletes a job listing and all of its contacts.
+ *
+ * @param {Id<"jobListings">} id - The id of the listing to delete.
+ *
+ * @throws - An error if the mutation is called without an authenticated user.
+ * @returns {Id<"jobListings">} - The id of the deleted job listing.
+ */
 export const remove = mutation({
     args: {
         id: v.id("jobListings"),

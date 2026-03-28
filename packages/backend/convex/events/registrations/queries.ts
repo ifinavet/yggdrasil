@@ -3,6 +3,13 @@ import { v } from "convex/values";
 import { query } from "../../_generated/server";
 import { getCurrentUserOrThrow } from "../../auth/currentUser";
 
+/**
+ * Fetches registrations for an event grouped into registered and waitlist buckets.
+ *
+ * @param {Id<"events">} eventId - The id of the event to inspect.
+ *
+ * @returns {{ registered: Array<Doc<"registrations"> & { userName: string, userEmail: string }>, waitlist: Array<Doc<"registrations"> & { userName: string, userEmail: string }> }} - Registrations grouped by status bucket.
+ */
 export const getByEventId = query({
     args: {
         eventId: v.id("events"),
@@ -36,6 +43,14 @@ export const getByEventId = query({
     },
 });
 
+/**
+ * Fetches a registration by id.
+ *
+ * @param {Id<"registrations">} id - The id of the registration to fetch.
+ *
+ * @throws - An error if the registration does not exist.
+ * @returns {Doc<"registrations">} - The matching registration document.
+ */
 export const getById = query({
     args: {
         id: v.id("registrations"),
@@ -51,6 +66,14 @@ export const getById = query({
     },
 });
 
+/**
+ * Checks whether the current user is registered for an event identified by slug.
+ *
+ * @param {string} slug - The event slug to inspect.
+ *
+ * @throws - An error if the event does not exist or the user is not registered.
+ * @returns {Id<"users">} - The current user's id when they are registered.
+ */
 export const getCurrentUserRegistertToEventBySlug = query({
     args: {
         slug: v.string(),
@@ -83,6 +106,12 @@ export const getCurrentUserRegistertToEventBySlug = query({
     },
 });
 
+/**
+ * Fetches all registrations for the current user with event metadata.
+ *
+ * @throws - An error if the current user or any linked event cannot be resolved.
+ * @returns {Array<Doc<"registrations"> & { eventTitle: string, eventStart: number }>} - The current user's registrations with event details.
+ */
 export const getCurrentUser = query({
     handler: async (ctx) => {
         const user = await getCurrentUserOrThrow(ctx);
@@ -113,6 +142,13 @@ export const getCurrentUser = query({
     },
 });
 
+/**
+ * Fetches the user attached to a registration.
+ *
+ * @param {Id<"registrations">} id - The id of the registration to inspect.
+ *
+ * @returns {(Doc<"registrations"> & Doc<"users">) | null} - The merged registration and user data, or null if either record is missing.
+ */
 export const getUserByRegistrationId = query({
     args: {
         id: v.id("registrations"),
@@ -128,6 +164,13 @@ export const getUserByRegistrationId = query({
     },
 });
 
+/**
+ * Aggregates registered attendees by degree, program, and year for an event.
+ *
+ * @param {Id<"events">} eventId - The id of the event to inspect.
+ *
+ * @returns {Record<string, Record<string, Record<number, number>>>} - Counts grouped by degree, study program, and year.
+ */
 export const getRegistrantsInfo = query({
     args: {
         eventId: v.id("events"),

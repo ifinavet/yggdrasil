@@ -8,6 +8,28 @@ import { makeStatusPending } from "./registrations/mutations";
 // Shared validator for organizer roles
 const organizerRoleValidator = v.union(v.literal("hovedansvarlig"), v.literal("medhjelper"));
 
+/**
+ * Updates an existing event and synchronizes its organizers and waitlist.
+ *
+ * @param {Id<"events">} id - The id of the event to update.
+ * @param {string} title - The updated event title.
+ * @param {string} teaser - The updated event teaser.
+ * @param {string} description - The updated event description.
+ * @param {number} eventStart - The event start time as a timestamp.
+ * @param {number} registrationOpens - The registration opening time as a timestamp.
+ * @param {number} participationLimit - The maximum number of participants.
+ * @param {string} location - The event location.
+ * @param {string} food - The food information for the event.
+ * @param {string} language - The event language.
+ * @param {string} ageRestriction - The event age restriction.
+ * @param {string | undefined} externalUrl - The optional external registration URL.
+ * @param {Id<"companies">} hostingCompany - The hosting company id.
+ * @param {boolean} published - Whether the event should be published.
+ * @param {{ userId: Id<"users">, role: "hovedansvarlig" | "medhjelper" }[]} organizers - The organizer assignments.
+ *
+ * @throws - An error if the caller is unauthenticated or the event cannot be found.
+ * @returns {null} - Returns null when the event is updated successfully.
+ */
 export const update = mutation({
     args: {
         id: v.id("events"),
@@ -111,6 +133,15 @@ export const update = mutation({
     },
 });
 
+/**
+ * Reconciles the organizer records for an event.
+ *
+ * @param {Id<"events">} id - The id of the event to update organizers for.
+ * @param {{ userId: Id<"users">, role: "hovedansvarlig" | "medhjelper" }[]} updatedOrganizers - The desired organizer assignments.
+ *
+ * @throws - An error if the current user cannot be resolved.
+ * @returns {null} - Returns null when the organizers have been synchronized successfully.
+ */
 export const upsertEventOrganizer = internalMutation({
     args: {
         id: v.id("events"),
@@ -159,6 +190,14 @@ export const upsertEventOrganizer = internalMutation({
     },
 });
 
+/**
+ * Advances the event waitlist by a given number of places.
+ *
+ * @param {Id<"events">} eventId - The id of the event to update.
+ * @param {number} numOfNewPlaces - The number of new places to offer.
+ *
+ * @returns {Promise<void>} - Resolves when the waitlist has been processed.
+ */
 export const updateWaitlistMutation = internalMutation({
     args: {
         eventId: v.id("events"),
@@ -169,6 +208,16 @@ export const updateWaitlistMutation = internalMutation({
     },
 });
 
+/**
+ * Promotes waitlisted registrations into pending status.
+ *
+ * @param {MutationCtx} ctx - The Convex mutation context.
+ * @param {Id<"events">} eventId - The id of the event to update.
+ * @param {number} numOfNewPlaces - The number of new places to offer.
+ *
+ * @throws - An error if the event cannot be found.
+ * @returns {Promise<void>} - Resolves when the waitlist has been updated.
+ */
 export const updateWaitlist = async (
     ctx: MutationCtx,
     eventId: Id<"events">,
@@ -194,6 +243,15 @@ export const updateWaitlist = async (
     );
 };
 
+/**
+ * Updates the published status for multiple events.
+ *
+ * @param {Id<"events">[]} ids - The ids of the events to update.
+ * @param {boolean} newPublishedStatus - The published status to assign.
+ *
+ * @throws - An error if the current user cannot be resolved.
+ * @returns {null} - Returns null when the events are updated successfully.
+ */
 export const updatePublishedStatus = mutation({
     args: {
         ids: v.array(v.id("events")),
@@ -211,12 +269,27 @@ export const updatePublishedStatus = mutation({
 });
 
 // Not meant for security purposes
+/**
+ * Creates a short deterministic hash from a string.
+ *
+ * @param {string} str - The input string to hash.
+ *
+ * @returns {string} - A four-character uppercase hash.
+ */
 function simpleHash(str: string): string {
     const hash = Math.abs(str.split("").reduce((a, b) => (a << 5) - a + (b.codePointAt(0) || 0), 0));
     const result = hash.toString(36).toUpperCase();
     return result.length < 4 ? result.padStart(4, "0").substring(0, 4) : result.substring(0, 4);
 }
 
+/**
+ * Creates the event slug from its title and date.
+ *
+ * @param {string} title - The event title.
+ * @param {Date} eventDate - The event date.
+ *
+ * @returns {string} - The generated slug.
+ */
 function slugify(title: string, eventDate: Date): string {
     let slugTitle = title
         .normalize("NFD")
@@ -230,6 +303,27 @@ function slugify(title: string, eventDate: Date): string {
     return `${semester}${eventDate.getFullYear().toString().slice(2)}-${slugTitle}-${simpleHash(title)}`;
 }
 
+/**
+ * Creates a new event and stores its organizer assignments.
+ *
+ * @param {string} title - The event title.
+ * @param {string} teaser - The event teaser.
+ * @param {string} description - The event description.
+ * @param {number} eventStart - The event start time as a timestamp.
+ * @param {number} registrationOpens - The registration opening time as a timestamp.
+ * @param {number} participationLimit - The maximum number of participants.
+ * @param {string} location - The event location.
+ * @param {string} food - The food information for the event.
+ * @param {string} language - The event language.
+ * @param {string} ageRestriction - The event age restriction.
+ * @param {string | undefined} externalUrl - The optional external registration URL.
+ * @param {Id<"companies">} hostingCompany - The hosting company id.
+ * @param {boolean} published - Whether the event should be published.
+ * @param {{ userId: Id<"users">, role: "hovedansvarlig" | "medhjelper" }[]} organizers - The organizer assignments.
+ *
+ * @throws - An error if the caller is unauthenticated.
+ * @returns {null} - Returns null when the event is created successfully.
+ */
 export const create = mutation({
     args: {
         title: v.string(),

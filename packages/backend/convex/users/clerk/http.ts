@@ -4,6 +4,9 @@ import { Webhook } from "svix";
 import { internal } from "../../_generated/api";
 import { httpAction } from "../../_generated/server";
 
+/**
+ * Registers the Clerk webhook route.
+ */
 const http = httpRouter();
 
 http.route({
@@ -39,6 +42,13 @@ http.route({
 	}),
 });
 
+/**
+ * Validates and verifies an incoming Clerk webhook request.
+ *
+ * @param {Request} req - The incoming HTTP request.
+ *
+ * @returns {Promise<WebhookEvent | null>} - The verified Clerk event, or null when validation fails.
+ */
 async function validateRequest(req: Request): Promise<WebhookEvent | null> {
 	const payloadString = await req.text();
 	const svixId = req.headers.get("svix-id");
@@ -65,4 +75,7 @@ async function validateRequest(req: Request): Promise<WebhookEvent | null> {
 	}
 }
 
+/**
+ * Exports the configured Clerk HTTP router.
+ */
 export default http;

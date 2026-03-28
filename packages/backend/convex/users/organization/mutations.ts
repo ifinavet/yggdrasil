@@ -4,6 +4,19 @@ import { mutation } from "../../_generated/server";
 import { accessRoles } from "../../auth/accessRights";
 import { getCurrentUserOrThrow } from "../../auth/currentUser";
 
+/**
+ * Updates a board member assignment and synchronizes access rights.
+ *
+ * @param {Id<"internals">} id - The id of the current board member record.
+ * @param {Id<"users">} userId - The user that should hold the board position.
+ * @param {string} position - The board position title.
+ * @param {string} group - The internal group name.
+ * @param {string | undefined} positionEmail - The optional role email.
+ * @param {"super-admin" | "admin" | "editor" | "internal"} role - The access role to assign.
+ *
+ * @throws - An error if the current or replacement board member record cannot be found.
+ * @returns {null} - Returns null when the board member has been updated successfully.
+ */
 export const upsertBoardMember = mutation({
     args: {
         id: v.id("internals"),
@@ -59,6 +72,15 @@ export const upsertBoardMember = mutation({
 });
 
 
+/**
+ * Creates an internal member record and assigns the internal access role.
+ *
+ * @param {Id<"users">} userId - The user to create an internal record for.
+ * @param {string} group - The internal group name.
+ *
+ * @throws - An error if the current user cannot be resolved or the internal record already exists.
+ * @returns {null} - Returns null when the internal member is created successfully.
+ */
 export const createInternal = mutation({
     args: {
         userId: v.id("users"),
@@ -88,6 +110,14 @@ export const createInternal = mutation({
     },
 });
 
+/**
+ * Deletes an internal member record.
+ *
+ * @param {Id<"internals">} id - The id of the internal record to delete.
+ *
+ * @throws - An error if the current user cannot be resolved.
+ * @returns {null} - Returns null when the internal record is deleted successfully.
+ */
 export const removeInternal = mutation({
     args: {
         id: v.id("internals"),
@@ -99,6 +129,15 @@ export const removeInternal = mutation({
     },
 });
 
+/**
+ * Updates the group on an internal member record.
+ *
+ * @param {Id<"internals">} id - The id of the internal record to update.
+ * @param {string} group - The updated internal group name.
+ *
+ * @throws - An error if the current user cannot be resolved.
+ * @returns {null} - Returns null when the internal record is updated successfully.
+ */
 export const updateInternal = mutation({
     args: {
         id: v.id("internals"),
