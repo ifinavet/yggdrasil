@@ -70,7 +70,7 @@ export default function StudentsOverview() {
 		status,
 		loadMore,
 	} = usePaginatedQuery(
-		api.students.getAllPaged,
+		api.users.students.queries.getAllPaged,
 		{ search },
 		{ initialNumItems: 25 },
 	);

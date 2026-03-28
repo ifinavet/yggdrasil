@@ -19,7 +19,7 @@ export function NewInternal() {
 
 	const posthog = usePostHog();
 
-	const createInernalMember = useMutation(api.internals.createInternal);
+	const createInernalMember = useMutation(api.users.organization.mutations.createInternal);
 	const onSubmit = (data: InternalMemberFormValues) =>
 		createInernalMember({
 			userId: data.userId as Id<"users">,

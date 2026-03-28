@@ -10,7 +10,7 @@ export default async function EventPage({
 }>) {
 	const { slug: identifier } = await params;
 
-	const event = await preloadQuery(api.events.getEvent, { identifier });
+	const event = await preloadQuery(api.events.queries.getEvent, { identifier });
 
 	return <UpdateEventForm preloadedEvent={event} />;
 }

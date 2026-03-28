@@ -19,7 +19,7 @@ import EditBoardMember from "./edit-boardmember";
 export default function ListBoardMembers({
 	preloadedBoardMembers,
 }: Readonly<{
-	preloadedBoardMembers: Preloaded<typeof api.internals.getTheBoard>;
+	preloadedBoardMembers: Preloaded<typeof api.users.organization.queries.getTheBoard>;
 }>) {
 	const boardMembers = usePreloadedQuery(preloadedBoardMembers);
 

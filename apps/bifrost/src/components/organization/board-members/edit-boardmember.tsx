@@ -21,9 +21,9 @@ export default function EditBoardMember({
 	const [openDialog, setOpenDialog] = useState(false);
 	const posthog = usePostHog();
 
-	const boardMember = useQuery(api.internals.getById, { id: internalId });
+	const boardMember = useQuery(api.users.organization.queries.getById, { id: internalId });
 
-	const updateBoardMember = useMutation(api.internals.upsertBoardMember);
+	const updateBoardMember = useMutation(api.users.organization.mutations.upsertBoardMember);
 	const onSubmit = (data: boardMemberSchema) => {
 		updateBoardMember({
 			id: internalId,

@@ -13,7 +13,7 @@ export default async function registrations(
 	const { slug: eventId } = await props.params;
 
 	const preloadedRegistrations = await preloadQuery(
-		api.registration.getByEventId,
+		api.events.registrations.queries.getByEventId,
 		{ eventId },
 	);
 

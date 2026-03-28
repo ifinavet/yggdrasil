@@ -9,14 +9,14 @@ import YesNoPieChart from "./cards/yes-no-pie-chart";
 
 export default function EventFeedbackFormResponses({
 	preloadedEvent,
-}: Readonly<{ preloadedEvent: Preloaded<typeof api.events.getEvent> }>) {
+}: Readonly<{ preloadedEvent: Preloaded<typeof api.events.queries.getEvent> }>) {
 	const event = usePreloadedQuery(preloadedEvent);
 
 	if (!event.formId) {
 		return <div>No feedback form available for this event.</div>;
 	}
 
-	const responses = useQuery(api.forms.getFormResponsesByFormId, { formId: event.formId });
+	const responses = useQuery(api.forms.queries.getFormResponsesByFormId, { formId: event.formId });
 
 	if (!responses || responses.length === 0) {
 		return (

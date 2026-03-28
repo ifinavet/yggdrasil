@@ -93,7 +93,7 @@ export default function EventForm({
 
 	const isExternal = useStore(form.store, (state) => state.values.eventType);
 
-	const companies = useQuery(api.companies.getAll);
+	const companies = useQuery(api.companies.queries.getAll);
 
 	return (
 		<form className="space-y-4">

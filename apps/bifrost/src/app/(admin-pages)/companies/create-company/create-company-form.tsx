@@ -18,7 +18,7 @@ export default function CreateCompanyForm() {
 
 	const router = useRouter();
 
-	const createCompany = useMutation(api.companies.create);
+	const createCompany = useMutation(api.companies.mutations.create);
 	const handleSubmit = async (values: CompanyFormValues) => {
 		createCompany({
 			orgNumber: Number.parseInt(values.orgNumber),

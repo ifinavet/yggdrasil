@@ -13,11 +13,11 @@ export default function EditCompanyForm({
 }: Readonly<{
 	readonly company_id: Id<"companies">;
 }>) {
-	const company = useQuery(api.companies.getById, { id: company_id });
+	const company = useQuery(api.companies.queries.getById, { id: company_id });
 
 	const router = useRouter();
 
-	const updateCompany = useMutation(api.companies.update);
+	const updateCompany = useMutation(api.companies.mutations.update);
 	const handleSubmit = (values: CompanyFormValues) =>
 		updateCompany({
 			id: company_id,
@@ -39,7 +39,7 @@ export default function EditCompanyForm({
 				});
 			});
 
-	const deleteCompany = useMutation(api.companies.remove);
+	const deleteCompany = useMutation(api.companies.mutations.remove);
 	const handleDelete = () =>
 		deleteCompany({ id: company_id })
 			.then(() => {

@@ -20,7 +20,7 @@ export default async function Events() {
 	const pathname = (await headers()).get("x-searchParams");
 
 	const preloadedPossibleSemesters = await preloadQuery(
-		api.events.getPossibleSemesters,
+		api.events.queries.getPossibleSemesters,
 	);
 
 	return (

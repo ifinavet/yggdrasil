@@ -11,10 +11,10 @@ import type { EventFormValues } from "@/constants/schemas/event-form-schema";
 
 export default function UpdateEventForm({
 	preloadedEvent,
-}: Readonly<{ preloadedEvent: Preloaded<typeof api.events.getEvent> }>) {
+}: Readonly<{ preloadedEvent: Preloaded<typeof api.events.queries.getEvent> }>) {
 	const event = usePreloadedQuery(preloadedEvent);
 	const router = useRouter();
-	const updateEventMutation = useMutation(api.events.update);
+	const updateEventMutation = useMutation(api.events.mutations.update);
 
 	const defaultValues: EventFormValues = {
 		title: event.title,

@@ -22,7 +22,7 @@ export default function CompaniesGrid() {
 		status,
 		loadMore,
 	} = usePaginatedQuery(
-		api.companies.getAllPaged,
+		api.companies.queries.getAllPaged,
 		{},
 		{
 			initialNumItems: 25,

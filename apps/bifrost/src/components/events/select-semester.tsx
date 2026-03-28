@@ -16,7 +16,7 @@ import { useSelectedEventsStore } from "@/lib/stores/selected-events";
 export default function SelectSemester(
 	props: Readonly<{
 		preloadedPossibleSemesters: Preloaded<
-			typeof api.events.getPossibleSemesters
+			typeof api.events.queries.getPossibleSemesters
 		>;
 	}>,
 ) {

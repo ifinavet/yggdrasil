@@ -22,7 +22,7 @@ export default function AddBoardMember({
 
 	const [openDialog, setOpenDialog] = useState(false);
 
-	const createBoardMember = useMutation(api.internals.upsertBoardMember);
+	const createBoardMember = useMutation(api.users.organization.mutations.upsertBoardMember);
 	const onSubmit = (data: boardMemberSchema) => {
 		createBoardMember({
 			id: data.internalId as Id<"internals">,

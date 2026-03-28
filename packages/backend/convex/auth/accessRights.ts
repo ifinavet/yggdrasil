@@ -37,7 +37,7 @@ export const upsertAccessRights = mutation({
 		const currentUser = await getCurrentUser(ctx);
 		if (!currentUser) throw new Error("Unauthorized");
 
-		const isSuperAdmin = await ctx.runQuery(api.accsessRights.checkRights, {
+		const isSuperAdmin = await ctx.runQuery(api.auth.accessRights.checkRights, {
 			right: ["super-admin"],
 		});
 		if (!isSuperAdmin)

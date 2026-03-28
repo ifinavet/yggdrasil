@@ -18,7 +18,7 @@ import { humanReadableDate } from "@/utils/utils";
 
 export default function UpcomingEventsOverview({
 	preloadedEvents,
-}: Readonly<{ preloadedEvents: Preloaded<typeof api.events.getLatest> }>) {
+}: Readonly<{ preloadedEvents: Preloaded<typeof api.events.queries.getLatest> }>) {
 	const events = usePreloadedQuery(preloadedEvents)
 		.filter((m) => !m.externalUrl)
 		.sort((a, b) => a.eventStart - b.eventStart);
@@ -83,7 +83,7 @@ export function EventCard({
 	event,
 	className,
 }: Readonly<{ event: Doc<"events">; className?: string }>) {
-	const mainOrganizer = useQuery(api.events.getOrganizersByEventId, {
+	const mainOrganizer = useQuery(api.events.queries.getOrganizersByEventId, {
 		id: event._id,
 	});
 

@@ -16,8 +16,8 @@ export default function EditResourceForm({
 
 	const posthog = usePostHog();
 
-	const resource = useQuery(api.resources.getById, { id: id });
-	const updateResource = useMutation(api.resources.update);
+	const resource = useQuery(api.pages.queries.getResourceById, { id: id });
+	const updateResource = useMutation(api.pages.mutations.updateResource);
 
 	if (!resource) {
 		return null;

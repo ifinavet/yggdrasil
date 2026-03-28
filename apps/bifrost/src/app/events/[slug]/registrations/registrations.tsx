@@ -29,13 +29,13 @@ import { humanReadableDate } from "@/utils/utils";
 export function Registrations({
 	preloadedRegistrations,
 }: Readonly<{
-	preloadedRegistrations: Preloaded<typeof api.registration.getByEventId>;
+	preloadedRegistrations: Preloaded<typeof api.events.registrations.queries.getByEventId>;
 }>) {
 	const registrations = usePreloadedQuery(preloadedRegistrations);
 
 	const postHog = usePostHog();
 
-	const deleteRegistration = useMutation(api.registration.unregister);
+	const deleteRegistration = useMutation(api.events.registrations.mutations.unregister);
 	const handleDeleteRegistration = async (
 		registrationId: Id<"registrations">,
 	) => {
@@ -64,7 +64,7 @@ export function Registrations({
 			});
 	};
 
-	const updateRegistration = useMutation(api.registration.updateAttendance);
+	const updateRegistration = useMutation(api.events.registrations.mutations.updateAttendance);
 	const handleUpdateRegistration = async (
 		registrationId: Id<"registrations">,
 		newStatus: string,

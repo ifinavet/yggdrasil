@@ -25,7 +25,7 @@ export default function SelectedEvents() {
 	const selectedEvents = useSelectedEventsStore((state) => state.events);
 	const clearSelectedEvents = useSelectedEventsStore((state) => state.clearEvents);
 
-	const updateSelectedEvents = useMutation(api.events.updatePublishedStatus);
+	const updateSelectedEvents = useMutation(api.events.mutations.updatePublishedStatus);
 	const publishSelectedEvents = () =>
 		updateSelectedEvents({ ids: selectedEvents, newPublishedStatus: true })
 			.then(() => {

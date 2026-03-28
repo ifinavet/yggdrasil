@@ -35,7 +35,7 @@ export default function SelectImage({
 	field,
 }: Readonly<{ field: ImageField }>) {
 	const { results, isLoading, status, loadMore } = usePaginatedQuery(
-		api.companies.getCompanyLogosPaged,
+		api.companies.queries.getCompanyLogosPaged,
 		{},
 		{
 			initialNumItems: 25,
@@ -48,7 +48,7 @@ export default function SelectImage({
 	const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
 	const selectedImageName = useRef<string>("");
 
-	const selectedImage = useQuery(api.companies.getCompanyLogoById, {
+	const selectedImage = useQuery(api.companies.queries.getCompanyLogoById, {
 		id: formImageValue || selectedImageId || undefined,
 	});
 

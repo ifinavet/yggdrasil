@@ -12,8 +12,8 @@ import { PointsTable } from "./points-table";
 export default function StudentPoints({
 	student_id,
 }: Readonly<{ student_id: Id<"students"> }>) {
-	const points = useQuery(api.points.getByStudentId, { id: student_id });
-	const deletePoint = useMutation(api.points.remove);
+	const points = useQuery(api.points.queries.getByStudentId, { id: student_id });
+	const deletePoint = useMutation(api.points.mutations.remove);
 
 	const posthog = usePostHog();
 

@@ -21,7 +21,7 @@ export const upsertBoardMember = mutation({
         if (!currentBoardMember)
             throw new Error(`Board member not found for ID: ${id}`);
 
-        await ctx.runMutation(api.accsessRights.upsertAccessRights, {
+        await ctx.runMutation(api.auth.accessRights.upsertAccessRights, {
             userId,
             role,
         });
@@ -80,7 +80,7 @@ export const createInternal = mutation({
             position: "Intern",
         });
 
-        await ctx.runMutation(api.accsessRights.upsertAccessRights, {
+        await ctx.runMutation(api.auth.accessRights.upsertAccessRights, {
             userId,
             role: "internal",
         });

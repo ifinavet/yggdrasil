@@ -7,8 +7,8 @@ import { useQuery } from "convex/react";
 import ResourceCard from "./resource-card";
 
 export default function ResourcesGrid() {
-	const resources = useQuery(api.resources.getAllGroupedByTag);
-	const hasEditRights = useQuery(api.accsessRights.checkRights, {
+	const resources = useQuery(api.pages.queries.getAllGroupedByTag);
+	const hasEditRights = useQuery(api.auth.accessRights.checkRights, {
 		right: ["admin", "super-admin", "editor"],
 	});
 

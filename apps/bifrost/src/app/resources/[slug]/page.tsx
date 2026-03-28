@@ -21,7 +21,7 @@ export default async function ResourcePage({
 	params: Promise<{ slug: Id<"resources"> }>;
 }>) {
 	const { slug: id } = await params;
-	const resource = await fetchQuery(api.resources.getById, { id: id });
+	const resource = await fetchQuery(api.pages.queries.getResourceById, { id: id });
 
 	const hasEditRight = await hasEditRights();
 

@@ -16,7 +16,7 @@ export default async function EditResourcePage({
 }: Readonly<{ params: Promise<{ slug: Id<"externalPages"> }> }>) {
 	const { slug: id } = await params;
 
-	const preloadedPage = await preloadQuery(api.externalPages.getById, { id });
+	const preloadedPage = await preloadQuery(api.pages.queries.getExternalPageById, { id });
 
 	return (
 		<>

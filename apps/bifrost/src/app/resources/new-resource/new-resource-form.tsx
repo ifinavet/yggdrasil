@@ -26,7 +26,7 @@ export default function NewResourceForm() {
 		icon: "pencil",
 	};
 
-	const createResource = useMutation(api.resources.create);
+	const createResource = useMutation(api.pages.mutations.createResource);
 	const handleCreateResource = async (
 		values: ResourceFormValues,
 		published: boolean,

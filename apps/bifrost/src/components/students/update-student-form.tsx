@@ -35,11 +35,11 @@ const formSchema = z.object({
 export default function UpdateStudentForm({
 	preloadedStudent,
 }: Readonly<{
-	preloadedStudent: Preloaded<typeof api.students.getById>;
+	preloadedStudent: Preloaded<typeof api.users.students.queries.getById>;
 }>) {
 	const student = usePreloadedQuery(preloadedStudent);
 
-	const updateStudent = useMutation(api.students.update);
+	const updateStudent = useMutation(api.users.students.mutations.update);
 
 	const form = useForm({
 		defaultValues: {

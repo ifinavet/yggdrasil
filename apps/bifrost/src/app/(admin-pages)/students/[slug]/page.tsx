@@ -29,7 +29,7 @@ export default async function StudentPage({
 }>) {
 	const { slug: id } = await params;
 
-	const preloadedStudent = await preloadQuery(api.students.getById, { id });
+	const preloadedStudent = await preloadQuery(api.users.students.queries.getById, { id });
 
 	return (
 		<>
