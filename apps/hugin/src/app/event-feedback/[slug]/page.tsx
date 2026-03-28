@@ -15,7 +15,7 @@ export default async function EventResponse({
 	params: Promise<{ slug: string }>;
 }>) {
 	const { slug: identifier } = await params;
-	const event = await fetchQuery(api.events.getEvent, { identifier });
+	const event = await fetchQuery(api.events.queries.getEvent, { identifier });
 
 	const { userId, redirectToSignIn } = await auth();
 	if (!userId) return redirectToSignIn();
@@ -26,7 +26,7 @@ export default async function EventResponse({
 
 	const token = await getAuthToken();
 	const ableToAnswer = await fetchQuery(
-		api.forms.checkIfCurrentUserAttendedTheEventAndShouldBeAbleToSubmit,
+		api.forms.queries.checkIfCurrentUserAttendedTheEventAndShouldBeAbleToSubmit,
 		{ eventId: event._id },
 		{ token },
 	);
@@ -34,7 +34,7 @@ export default async function EventResponse({
 	if (!ableToAnswer) redirect("/");
 
 	const response = await fetchQuery(
-		api.forms.getCurrentUsersResponseByFormId,
+		api.forms.queries.getCurrentUsersResponseByFormId,
 		{ formId: event.formId },
 		{ token },
 	);
