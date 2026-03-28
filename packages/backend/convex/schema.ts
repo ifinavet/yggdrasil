@@ -1,5 +1,4 @@
 import { defineSchema } from "convex/server";
-import { v } from "convex/values";
 import { accessSchema } from "./auth/schema";
 import { companiesSchema } from "./companies/schema";
 import { eventsSchema } from "./events/schema";

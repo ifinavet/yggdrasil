@@ -57,12 +57,12 @@ export const getAllEvents = internalQuery({
     handler: async (ctx, { semester, year }) => {
         let range_start: Date;
         let range_end: Date;
-        if (!semester) {
-            range_start = new Date(year, 0, 1);
-            range_end = new Date(year, 6, 30);
-        } else {
+        if (semester) {
             range_start = new Date(year, 7, 1);
             range_end = new Date(year, 11, 31);
+        } else {
+            range_start = new Date(year, 0, 1);
+            range_end = new Date(year, 6, 30);
         }
 
         const events = await ctx.db
@@ -156,7 +156,7 @@ export const getCurrentSemester = query({
 
         eventsWithParticipationCount.forEach((event) => {
             const eventDate = new Date(event.eventStart);
-            const monthName = monthNames[eventDate.getMonth()] as string;
+            const monthName = monthNames[eventDate.getMonth()];
 
             if (!eventsByMonth[monthName]) {
                 eventsByMonth[monthName] = [];

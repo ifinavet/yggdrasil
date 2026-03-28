@@ -26,7 +26,14 @@ export const upsertBoardMember = mutation({
             role,
         });
 
-        if (currentBoardMember.userId !== userId) {
+        if (currentBoardMember.userId === userId) {
+            await ctx.db.patch(id, {
+                position,
+                group,
+                positionEmail,
+
+            });
+        } else {
             await ctx.db.patch(id, {
                 group: "",
                 positionEmail: "",
@@ -46,12 +53,6 @@ export const upsertBoardMember = mutation({
                 positionEmail,
                 position,
                 rank: currentBoardMember.rank,
-            });
-        } else {
-            await ctx.db.patch(id, {
-                position,
-                group,
-                positionEmail,
             });
         }
     },

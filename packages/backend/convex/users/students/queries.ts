@@ -20,9 +20,11 @@ export const getAllPaged = query({
         const studentsWithLockedStatus = await Promise.all(
             students.page.map(async (student) => {
                 const user = await ctx.db.get(student.userId);
+                const userLocked = user?.locked ? "Låst" : "Aktiv";
+
                 return {
                     ...student,
-                    status: user ? (user.locked ? "Låst" : "Aktiv") : "Ikke registrert",
+                    status: user ? userLocked : "Ikke registrert",
                 };
             }),
         );
