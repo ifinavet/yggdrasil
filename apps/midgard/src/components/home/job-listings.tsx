@@ -10,7 +10,7 @@ export default async function JobListings() {
 	"use cache";
 	cacheLife("hours");
 
-	const jobListings = await fetchQuery(api.listings.getAllPublishedAndActive, {
+	const jobListings = await fetchQuery(api.jobListings.queries.getAllPublishedAndActive, {
 		n: 3,
 	});
 

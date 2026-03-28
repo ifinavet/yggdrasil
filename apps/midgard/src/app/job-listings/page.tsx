@@ -21,7 +21,7 @@ export default async function JobListingsPage() {
 	const company = (xSearchParams?.get("company") as Id<"companies">) || undefined;
 	const sorting = xSearchParams?.get("sort") || undefined;
 
-	const jobListings = await fetchQuery(api.listings.getAllPublishedAndActive, {
+	const jobListings = await fetchQuery(api.jobListings.queries.getAllPublishedAndActive, {
 		listingType,
 		company,
 		sorting,

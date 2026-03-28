@@ -27,7 +27,7 @@ export default function Unregister({
 }>) {
 	const posthog = usePostHog();
 
-	const unregister = useMutation(api.registration.unregister);
+	const unregister = useMutation(api.events.registrations.mutations.unregister);
 	const onUnregister = () =>
 		unregister({ id: registrationId })
 			.then(({ deletedRegistration, event, person }) =>

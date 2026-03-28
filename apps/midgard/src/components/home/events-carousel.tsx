@@ -22,7 +22,7 @@ export default async function EventsCarousel({ className }: Readonly<{ className
 		expire: 60 * 60 * 48, // 2 days
 	});
 
-	const latestEvents = await fetchQuery(api.events.getUpcoming, { n: 3 });
+	const latestEvents = await fetchQuery(api.events.queries.getUpcoming, { n: 3 });
 
 	return (
 		<div className={cn(className, "grid justify-center gap-4")}>

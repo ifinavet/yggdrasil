@@ -42,7 +42,7 @@ export default function EditRegistration({
 
 	const postHog = usePostHog();
 
-	const updateNote = useMutation(api.registration.updateNote);
+	const updateNote = useMutation(api.events.registrations.mutations.updateNote);
 	const form = useForm({
 		defaultValues: {
 			notes: registration.note,

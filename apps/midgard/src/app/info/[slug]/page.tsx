@@ -15,7 +15,7 @@ export default async function Page({
 
 	const { slug: identifier } = await params;
 
-	const page = await fetchQuery(api.externalPages.getByIdentifier, {
+	const page = await fetchQuery(api.pages.queries.getByIdentifier, {
 		identifier,
 	});
 

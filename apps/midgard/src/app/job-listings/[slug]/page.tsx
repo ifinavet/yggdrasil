@@ -16,8 +16,8 @@ export default async function JobListingPage({
 }>) {
 	const listingId = await params.then((params) => params.slug);
 
-	const listing = await fetchQuery(api.listings.getById, { id: listingId });
-	const company = await fetchQuery(api.companies.getById, {
+	const listing = await fetchQuery(api.jobListings.queries.getById, { id: listingId });
+	const company = await fetchQuery(api.companies.queries.getById, {
 		id: listing.company,
 	});
 

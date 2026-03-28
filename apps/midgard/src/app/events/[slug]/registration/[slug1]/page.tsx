@@ -22,7 +22,7 @@ export default async function RegistrationPage({
 
 	if (!isAuthenticated) return redirect(`/sign-in/?redirect=${pathname}`);
 
-	const event = await fetchQuery(api.events.getEvent, { identifier: eventId });
+	const event = await fetchQuery(api.events.queries.getEvent, { identifier: eventId });
 
 	return (
 		<ResponsiveCenterContainer>
@@ -44,7 +44,7 @@ async function RegistrationStatusHandler({
 	registrationId,
 	eventId,
 }: Readonly<{ registrationId: Id<"registrations">; eventId: Id<"events"> }>) {
-	const preloadedRegistration = await preloadQuery(api.registration.getById, {
+	const preloadedRegistration = await preloadQuery(api.events.registrations.queries.getById, {
 		id: registrationId,
 	});
 	const registration = preloadedQueryResult(preloadedRegistration);

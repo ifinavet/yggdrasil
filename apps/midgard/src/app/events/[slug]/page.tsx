@@ -18,8 +18,8 @@ export async function generateMetadata({
 }>): Promise<Metadata> {
 	const { slug: identifier } = await params;
 
-	const event = await fetchQuery(api.events.getEvent, { identifier });
-	const company = await fetchQuery(api.companies.getById, {
+	const event = await fetchQuery(api.events.queries.getEvent, { identifier });
+	const company = await fetchQuery(api.companies.queries.getById, {
 		id: event.hostingCompany,
 	});
 
@@ -48,23 +48,23 @@ export default async function EventPage({
 
 	const token = await getAuthToken();
 	const hasAdminAccess = await fetchQuery(
-		api.accsessRights.checkRights,
+		api.auth.accessRights.checkRights,
 		{ right: ["internal", "editor", "admin", "super-admin"] },
 		{ token },
 	);
 
-	const preloadedEvent = await preloadQuery(api.events.getEvent, {
+	const preloadedEvent = await preloadQuery(api.events.queries.getEvent, {
 		identifier,
 	});
 	const event = preloadedQueryResult(preloadedEvent);
 
 	if (!hasAdminAccess && !event.published) return (await import("next/navigation")).notFound();
 
-	const company = await fetchQuery(api.companies.getById, {
+	const company = await fetchQuery(api.companies.queries.getById, {
 		id: event.hostingCompany,
 	});
 
-	const preloadedRegistrations = await preloadQuery(api.registration.getByEventId, {
+	const preloadedRegistrations = await preloadQuery(api.events.registrations.queries.getByEventId, {
 		eventId: event._id,
 	});
 

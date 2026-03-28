@@ -12,7 +12,7 @@ export default function Register({
 	preloadedRegistration,
 	eventId,
 }: Readonly<{
-	preloadedRegistration: Preloaded<typeof api.registration.getById>;
+	preloadedRegistration: Preloaded<typeof api.events.registrations.queries.getById>;
 	eventId: Id<"events">;
 }>) {
 	const registration = usePreloadedQuery(preloadedRegistration);
@@ -20,7 +20,7 @@ export default function Register({
 	const router = useRouter();
 	const posthog = usePostHog();
 
-	const acceptRegistration = useMutation(api.registration.acceptPendingRegistration);
+	const acceptRegistration = useMutation(api.events.registrations.mutations.acceptPendingRegistration);
 	const handleAccept = async () =>
 		acceptRegistration({ id: registration._id })
 			.then(() => {
@@ -33,7 +33,7 @@ export default function Register({
 				);
 			});
 
-	const unregister = useMutation(api.registration.unregister);
+	const unregister = useMutation(api.events.registrations.mutations.unregister);
 	const handleUnregister = async () =>
 		unregister({ id: registration._id })
 			.then(({ deletedRegistration, event, person }) => {

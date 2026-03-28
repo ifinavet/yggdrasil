@@ -117,7 +117,7 @@ export default function SignUpPage() {
 		},
 	});
 
-	const createStudent = useMutation(api.students.createByExternalId);
+	const createStudent = useMutation(api.users.students.mutations.createByExternalId);
 	const verifyingForm = useForm({
 		defaultValues: {
 			code: "",

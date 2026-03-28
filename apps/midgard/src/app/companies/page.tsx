@@ -20,7 +20,7 @@ export default async function CompaniesPage() {
 	cacheLife("max");
 
 	const companyContact = await fetchQuery(
-		api.internals.getBoardMemberByPosition,
+		api.users.organization.queries.getBoardMemberByPosition,
 		{
 			position: "Bedriftskontakt",
 		},

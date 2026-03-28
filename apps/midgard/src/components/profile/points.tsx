@@ -17,7 +17,7 @@ function getPointsText(points: number) {
 
 export default async function Points({ className }: Readonly<{ className?: string }>) {
 	const token = await getAuthToken();
-	const points = await fetchQuery(api.points.getCurrentStudentsPoints, {}, { token });
+	const points = await fetchQuery(api.points.queries.getCurrentStudentsPoints, {}, { token });
 
 	const numberOfPoints = points.reduce((acc, point) => acc + point.severity, 0);
 

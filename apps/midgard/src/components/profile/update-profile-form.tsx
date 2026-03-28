@@ -42,12 +42,12 @@ export default function UpdateProfileForm({
 	preloadedStudent,
 	className,
 }: Readonly<{
-	preloadedStudent: Preloaded<typeof api.students.getCurrent>;
+	preloadedStudent: Preloaded<typeof api.users.students.queries.getCurrent>;
 	className?: string;
 }>) {
 	const student = usePreloadedQuery(preloadedStudent);
 
-	const updateProfile = useMutation(api.students.updateCurrent);
+	const updateProfile = useMutation(api.users.students.mutations.updateCurrent);
 	const form = useForm({
 		defaultValues: {
 			firstname: student.firstName,

@@ -8,11 +8,11 @@ export default function WaitlistPosition({
 	registrations,
 }: Readonly<{
 	className?: string;
-	registrations: FunctionReturnType<typeof api.registration.getByEventId>;
+	registrations: FunctionReturnType<typeof api.events.registrations.queries.getByEventId>;
 }>) {
 	const { isAuthenticated } = useConvexAuth();
 	const currentUser = useQuery(
-		api.users.current,
+		api.users.clerk.queries.current,
 		isAuthenticated ? undefined : "skip",
 	);
 	const waitlistPosition =

@@ -17,7 +17,7 @@ export default async function StudentsPage() {
 	"use cache";
 	cacheLife("max");
 
-	const coordinator = await fetchQuery(api.internals.getBoardMemberByPosition, {
+	const coordinator = await fetchQuery(api.users.organization.queries.getBoardMemberByPosition, {
 		position: "Koordinator",
 	});
 
