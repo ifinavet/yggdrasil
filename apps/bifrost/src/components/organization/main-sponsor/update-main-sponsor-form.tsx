@@ -30,11 +30,11 @@ export default function UpdateMainSponsorForm({
 }: Readonly<{ companyId: Id<"companies"> }>) {
 	const [searchInput, setSearchInput] = useState<string>("");
 
-	const companies = useQuery(api.companies.searchByName, {
+	const companies = useQuery(api.companies.queries.searchByName, {
 		searchQuery: searchInput,
 	});
 
-	const updateMainSponsor = useMutation(api.companies.updateMainSponsor);
+	const updateMainSponsor = useMutation(api.companies.mutations.updateMainSponsor);
 
 	const form = useForm({
 		defaultValues: {

@@ -11,7 +11,7 @@ import type { PageFormValues } from "@/constants/schemas/page-form-schema";
 export default function EditPageForm({
 	preloadedPage,
 }: Readonly<{
-	preloadedPage: Preloaded<typeof api.externalPages.getById>;
+	preloadedPage: Preloaded<typeof api.pages.queries.getExternalPageById>;
 }>) {
 	const router = useRouter();
 
@@ -24,7 +24,7 @@ export default function EditPageForm({
 		content: page.content,
 	};
 
-	const updatePage = useMutation(api.externalPages.update);
+	const updatePage = useMutation(api.pages.mutations.updateExternalPage);
 	const hanldeUpdatePage = async (
 		values: PageFormValues,
 		published: boolean,

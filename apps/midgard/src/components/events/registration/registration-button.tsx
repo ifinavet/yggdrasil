@@ -16,7 +16,7 @@ export default function RegistrationButton({
 	disabled,
 	event,
 }: Readonly<{
-	registration: FunctionReturnType<typeof api.registration.getByEventId>;
+	registration: FunctionReturnType<typeof api.events.registrations.queries.getByEventId>;
 	availableSpots: number;
 	disabled: boolean;
 	event: Doc<"events">;
@@ -24,12 +24,9 @@ export default function RegistrationButton({
 	const path = usePathname();
 
 	const { isAuthenticated } = useConvexAuth();
-	const currentUser = useQuery(
-		api.users.current,
-		isAuthenticated ? undefined : "skip",
-	);
+	const currentUser = useQuery(api.users.clerk.queries.current, isAuthenticated ? undefined : "skip");
 	const currentUsersPoints = useQuery(
-		api.points.getCurrentStudentsPoints,
+		api.points.queries.getCurrentStudentsPoints,
 		isAuthenticated ? undefined : "skip",
 	);
 	const numberOfPoints =

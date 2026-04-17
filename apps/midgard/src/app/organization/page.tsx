@@ -20,7 +20,7 @@ export default async function OrganizationPage() {
 	"use cache";
 	cacheLife("max");
 
-	const theBoard = await fetchQuery(api.internals.getTheBoard);
+	const theBoard = await fetchQuery(api.users.organization.queries.getTheBoard);
 
 	return (
 		<ResponsiveCenterContainer className="max-w-6xl!">

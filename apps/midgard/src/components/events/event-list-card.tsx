@@ -156,7 +156,7 @@ export default async function EventCard({
 	event: EventWithParticipationCount;
 	isExternal: boolean;
 }>) {
-	const image = await fetchQuery(api.companies.getById, {
+	const image = await fetchQuery(api.companies.queries.getById, {
 		id: event.hostingCompany,
 	});
 

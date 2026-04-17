@@ -20,7 +20,7 @@ export default async function ProfilePage() {
 
 	if (!userId) return redirectToSignIn();
 
-	const preloadStudent = await preloadQuery(api.students.getCurrent, {}, { token });
+	const preloadStudent = await preloadQuery(api.users.students.queries.getCurrent, {}, { token });
 
 	return (
 		<ResponsiveCenterContainer>

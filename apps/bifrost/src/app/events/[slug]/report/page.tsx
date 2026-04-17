@@ -12,8 +12,10 @@ export default async function RapportPage({
 }: Readonly<{ params: Promise<{ slug: Id<"events"> }> }>) {
 	const { slug } = await params;
 
-	const registrantsInfo = await fetchQuery(api.registration.getRegistrantsInfo, { eventId: slug });
-	const preloadedEvent = await preloadQuery(api.events.getEvent, { identifier: slug });
+	const registrantsInfo = await fetchQuery(api.events.registrations.queries.getRegistrantsInfo, {
+		eventId: slug,
+	});
+	const preloadedEvent = await preloadQuery(api.events.queries.getEvent, { identifier: slug });
 
 	const degreeTotals = Object.entries(registrantsInfo).map(([degree, programs]) => {
 		const num = Object.values(programs).reduce((acc, aar) => {

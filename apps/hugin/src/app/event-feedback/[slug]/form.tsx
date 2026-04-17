@@ -18,8 +18,8 @@ import { eventResponseFromSchema } from "@/lib/schema/event-feedback-schema";
 export function EventResponseForm({
 	event,
 	userId,
-}: Readonly<{ event: FunctionReturnType<typeof api.events.getEvent>; userId: string }>) {
-	const formResponseMutation = useMutation(api.forms.submitFormResponse);
+}: Readonly<{ event: FunctionReturnType<typeof api.events.queries.getEvent>; userId: string }>) {
+	const formResponseMutation = useMutation(api.forms.mutations.submitFormResponse);
 	const router = useRouter();
 	const form = useForm({
 		defaultValues: {

@@ -41,7 +41,7 @@ export default function RegisterForm({
 	const [open, setOpen] = useState(false);
 	const postHog = usePostHog();
 
-	const signUp = useMutation(api.registration.register);
+	const signUp = useMutation(api.events.registrations.mutations.register);
 	const form = useForm({
 		defaultValues: {
 			notes: "",

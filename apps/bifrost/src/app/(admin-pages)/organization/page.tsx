@@ -19,9 +19,9 @@ export default async function OrganizationPage() {
 	"use cache";
 	cacheLife("hours");
 
-	const preloadedBoardMembers = await preloadQuery(api.internals.getTheBoard);
-	const preloadedInternals = await preloadQuery(api.internals.getAllInternals);
-	const preloadedMainSponsor = await preloadQuery(api.companies.getMainSponsor);
+	const preloadedBoardMembers = await preloadQuery(api.users.organization.queries.getTheBoard);
+	const preloadedInternals = await preloadQuery(api.users.organization.queries.getAllInternals);
+	const preloadedMainSponsor = await preloadQuery(api.companies.queries.getMainSponsor);
 
 	return (
 		<>

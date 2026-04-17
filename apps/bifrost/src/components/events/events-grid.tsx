@@ -19,14 +19,14 @@ export default async function EventsGrid({
 		searchParams?.get("semester") ||
 		(new Date().getMonth() < 7 ? "vår" : "høst");
 
-	const events = await fetchQuery(api.events.getAll, {
+	const events = await fetchQuery(api.events.queries.getAll, {
 		year: Number.parseInt(year),
 		semester,
 	});
 
 	const publishedEvents = await Promise.all(
 		(events?.published || []).map(async (event) => {
-			const organizers = await fetchQuery(api.events.getOrganizersByEventId, {
+			const organizers = await fetchQuery(api.events.queries.getOrganizersByEventId, {
 				id: event._id as Id<"events">,
 			});
 			return { ...event, organizers };
@@ -35,7 +35,7 @@ export default async function EventsGrid({
 
 	const unpublishedEvents = await Promise.all(
 		(events?.unpublished || []).map(async (event) => {
-			const organizers = await fetchQuery(api.events.getOrganizersByEventId, {
+			const organizers = await fetchQuery(api.events.queries.getOrganizersByEventId, {
 				id: event._id as Id<"events">,
 			});
 			return { ...event, organizers };

@@ -26,7 +26,7 @@ export default function NewInternalSearch({
 }>) {
 	const [searchInput, setSearchInput] = useState<string>("");
 	const users = usePaginatedQuery(
-		api.users.searchAfterUsers,
+		api.users.clerk.queries.searchAfterUsers,
 		{ searchInput },
 		{ initialNumItems: 10 },
 	);

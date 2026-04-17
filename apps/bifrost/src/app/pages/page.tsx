@@ -23,7 +23,7 @@ import { humanReadableDate } from "@/utils/utils";
 import { useQuery } from "convex/react";
 
 export default function pagesPage() {
-	const pages = useQuery(api.externalPages.getAll);
+	const pages = useQuery(api.pages.queries.getAll);
 
 	return (
 		<>

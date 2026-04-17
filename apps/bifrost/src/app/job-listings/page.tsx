@@ -26,7 +26,7 @@ export default async function JobListingsPage() {
 	"use cache";
 	cacheLife("seconds");
 
-	const listings = await fetchQuery(api.listings.getAll, {});
+	const listings = await fetchQuery(api.jobListings.queries.getAll, {});
 
 	const data: JobListing[] = listings.map((listing) => ({
 		listingId: listing._id,

@@ -13,13 +13,13 @@ import { DataTable } from "@/components/common/tables/table";
 export default function Internals({
 	preloadedInternals,
 }: Readonly<{
-	preloadedInternals: Preloaded<typeof api.internals.getAllInternals>;
+	preloadedInternals: Preloaded<typeof api.users.organization.queries.getAllInternals>;
 }>) {
 	const internals = usePreloadedQuery(preloadedInternals);
 
 	const postHog = usePostHog();
 
-	const deleteInternal = useMutation(api.internals.removeInternal);
+	const deleteInternal = useMutation(api.users.organization.mutations.removeInternal);
 	const deleteInternalAction = (internalsId: Id<"internals">) =>
 		deleteInternal({ id: internalsId })
 			.then(() => {
@@ -43,7 +43,7 @@ export default function Internals({
 				});
 			});
 
-	const updateGroup = useMutation(api.internals.updateInternal);
+	const updateGroup = useMutation(api.users.organization.mutations.updateInternal);
 	const updateGroupAction = (internalsId: Id<"internals">, group: string) =>
 		updateGroup({ id: internalsId, group }).catch((error) => {
 			toast.error("Kunne ikke oppdatere intern medlem", {
@@ -58,7 +58,7 @@ export default function Internals({
 			});
 		});
 
-	const upsertRole = useMutation(api.accsessRights.upsertAccessRights);
+	const upsertRole = useMutation(api.auth.accessRights.upsertAccessRights);
 	const upsertRoleAction = (
 		userId: Id<"users">,
 		role: (typeof ACCESS_RIGHTS)[number],

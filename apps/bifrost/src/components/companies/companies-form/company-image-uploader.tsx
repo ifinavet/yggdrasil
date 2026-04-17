@@ -44,8 +44,8 @@ export default function CompanyImageUploader({
 	) => void;
 	onDismissAction: () => void;
 }>) {
-	const generateUploadUrl = useMutation(api.companies.generateUploadUrl);
-	const storeCompanyImage = useMutation(api.companies.uploadCompanyLogo);
+	const generateUploadUrl = useMutation(api.companies.mutations.generateUploadUrl);
+	const storeCompanyImage = useMutation(api.companies.mutations.uploadCompanyLogo);
 
 	const form = useForm({
 		defaultValues: {

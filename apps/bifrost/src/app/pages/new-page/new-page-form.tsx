@@ -15,7 +15,7 @@ export default function NewPageForm() {
 		content: "",
 	};
 
-	const createPage = useMutation(api.externalPages.create);
+	const createPage = useMutation(api.pages.mutations.createExternalPage);
 	const handleCreatePage = async (values: PageFormValues, published: boolean) => {
 		createPage({ title: values.title, content: values.content, published })
 			.then(() => {

@@ -7,7 +7,7 @@ import EventCard, { type EventCardType } from "./event-card";
 export default async function EventsCard({
 	event,
 }: Readonly<{ event: Doc<"events"> }>) {
-	const company = await fetchQuery(api.companies.getById, {
+	const company = await fetchQuery(api.companies.queries.getById, {
 		id: event.hostingCompany,
 	});
 

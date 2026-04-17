@@ -64,7 +64,7 @@ export default function Organizers({
 }: Readonly<{
 	field: OrganizerField;
 }>) {
-	const internalMembers = useQuery(api.internals.getAll);
+	const internalMembers = useQuery(api.users.organization.queries.getAll);
 
 	const [openMembers, setOpenMembers] = useState(false);
 	const selectedMember = useRef("");

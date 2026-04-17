@@ -70,7 +70,7 @@ export default function BoardMemberForm({
 	button: React.ReactNode;
 	className?: string;
 }>) {
-	const internalMembers = useQuery(api.internals.getAll);
+	const internalMembers = useQuery(api.users.organization.queries.getAll);
 	const [openMembers, setOpenMembers] = useState(false);
 
 	const form = useForm({

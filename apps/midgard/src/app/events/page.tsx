@@ -15,7 +15,7 @@ export default async function EventsPage() {
 	if (pathname) searchParams = new URLSearchParams(pathname);
 	const isExternalEvents = searchParams?.get("external") === "true";
 
-	const events = await fetchQuery(api.events.getCurrentSemester, {
+	const events = await fetchQuery(api.events.queries.getCurrentSemester, {
 		isExternal: isExternalEvents,
 	});
 	const today = new Date();

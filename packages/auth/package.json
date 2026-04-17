@@ -4,13 +4,13 @@
 	"type": "module",
 	"private": true,
 	"dependencies": {
-		"@clerk/nextjs": "^6.36.8",
+		"@clerk/nextjs": "^6.39.1",
 		"@workspace/backend": "workspace:*",
-		"convex": "^1.28.2"
+		"convex": "^1.34.1"
 	},
 	"devDependencies": {
 		"@workspace/typescript-config": "workspace:*",
-		"typescript": "^5.7.3"
+		"typescript": "^5.9.3"
 	},
 	"exports": {
 		".": "./index.ts"

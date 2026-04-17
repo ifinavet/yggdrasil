@@ -34,7 +34,7 @@ const columns: ColumnDef<StudentColumns>[] = [
 ];
 
 export default function StudentsWithPointsOverview() {
-	const students = useQuery(api.students.getAllWithPoints);
+	const students = useQuery(api.users.students.queries.getAllWithPoints);
 
 	const defaultData = useMemo(() => [], []);
 

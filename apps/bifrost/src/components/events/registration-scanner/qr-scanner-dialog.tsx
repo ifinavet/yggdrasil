@@ -60,13 +60,13 @@ export default function QRScannerDialog({
 		useState<Id<"registrations"> | null>(null);
 
 	const registrant = useQuery(
-		api.registration.getUserByRegistrationId,
+		api.events.registrations.queries.getUserByRegistrationId,
 		registrationId ? { id: registrationId as Id<"registrations"> } : "skip",
 	);
 
 	const postHog = usePostHog();
 
-	const register = useMutation(api.registration.updateAttendance);
+	const register = useMutation(api.events.registrations.mutations.updateAttendance);
 	const handleRegister = (newStatus: "confirmed" | "late") =>
 		register({
 			id: registrationId as Id<"registrations">,

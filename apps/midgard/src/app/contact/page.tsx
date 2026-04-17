@@ -17,7 +17,7 @@ export default async function ContactPage() {
 	cacheLife("max");
 
 	const studentContact = await fetchQuery(
-		api.internals.getBoardMemberByPosition,
+		api.users.organization.queries.getBoardMemberByPosition,
 		{
 			position: "Studentkontakt",
 		},

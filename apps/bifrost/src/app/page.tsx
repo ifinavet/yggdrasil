@@ -10,7 +10,7 @@ export default async function Page() {
 
 	if (!userId) return redirectToSignIn();
 
-	const preloadedEvents = await preloadQuery(api.events.getLatest, { n: 7 });
+	const preloadedEvents = await preloadQuery(api.events.queries.getLatest, { n: 7 });
 
 	return (
 		<div className="flex max-h-full flex-col gap-4 overflow-clip">

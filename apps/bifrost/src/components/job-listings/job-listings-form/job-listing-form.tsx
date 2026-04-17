@@ -92,7 +92,7 @@ export default function JobListingForm({
 		form.state.values.company.name,
 	);
 
-	const companies = useQuery(api.companies.getAll);
+	const companies = useQuery(api.companies.queries.getAll);
 
 	return (
 		<form

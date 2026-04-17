@@ -31,7 +31,7 @@ export default function CreateEventForm() {
 	};
 
 	const router = useRouter();
-	const createEventMutation = useMutation(api.events.create);
+	const createEventMutation = useMutation(api.events.mutations.create);
 	const handleSubmit = (values: EventFormValues, published: boolean) =>
 		createEventMutation({
 			title: values.title,

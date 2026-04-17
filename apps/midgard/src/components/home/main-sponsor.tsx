@@ -13,7 +13,7 @@ export default async function MainSponsorCard({
 	"use cache";
 	cacheLife("max");
 
-	const mainSponsor = await fetchQuery(api.companies.getMainSponsor);
+	const mainSponsor = await fetchQuery(api.companies.queries.getMainSponsor);
 
 	return (
 		<div className={cn(className, "space-y-4")}>

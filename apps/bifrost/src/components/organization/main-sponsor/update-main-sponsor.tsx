@@ -19,7 +19,7 @@ import UpdateMainSponsorForm from "./update-main-sponsor-form";
 export default function UpdateMainSponsor({
 	preloadedMainSponsor,
 }: Readonly<{
-	preloadedMainSponsor: Preloaded<typeof api.companies.getMainSponsor>;
+	preloadedMainSponsor: Preloaded<typeof api.companies.queries.getMainSponsor>;
 }>) {
 	const mainSponsor = usePreloadedQuery(preloadedMainSponsor);
 

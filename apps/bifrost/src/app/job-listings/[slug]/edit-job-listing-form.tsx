@@ -14,9 +14,9 @@ import { humanReadableDate } from "@/utils/utils";
 export default function EditJobListingForm({
 	listingId,
 }: Readonly<{ listingId: Id<"jobListings"> }>) {
-	const jobListing = useQuery(api.listings.getById, { id: listingId });
+	const jobListing = useQuery(api.jobListings.queries.getById, { id: listingId });
 	const company = useQuery(
-		api.companies.getById,
+		api.companies.queries.getById,
 		jobListing ? { id: jobListing.company } : "skip",
 	);
 
@@ -24,7 +24,7 @@ export default function EditJobListingForm({
 
 	const router = useRouter();
 
-	const updateJobListing = useMutation(api.listings.update);
+	const updateJobListing = useMutation(api.jobListings.mutations.update);
 	const handleUpdate = (values: JobListingFormValues, published: boolean) =>
 		updateJobListing({
 			id: listingId,
@@ -54,7 +54,7 @@ export default function EditJobListingForm({
 				postHog.captureException(error, { site: "bifrost" });
 			});
 
-	const deleteJobListing = useMutation(api.listings.remove);
+	const deleteJobListing = useMutation(api.jobListings.mutations.remove);
 	const handleDelete = (id: Id<"jobListings">) =>
 		deleteJobListing({ id })
 			.then(() => {

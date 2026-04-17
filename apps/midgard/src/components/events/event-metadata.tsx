@@ -22,8 +22,8 @@ export function EventMetadata({
 	preloadedEvent,
 	preloadedRegistrations,
 }: Readonly<{
-	preloadedEvent: Preloaded<typeof api.events.getEvent>;
-	preloadedRegistrations: Preloaded<typeof api.registration.getByEventId>;
+	preloadedEvent: Preloaded<typeof api.events.queries.getEvent>;
+	preloadedRegistrations: Preloaded<typeof api.events.registrations.queries.getByEventId>;
 }>) {
 	const event = usePreloadedQuery(preloadedEvent);
 	const registrations = usePreloadedQuery(preloadedRegistrations);
@@ -75,7 +75,7 @@ export function EventActionButton({
 	registrations,
 }: Readonly<{
 	event: Doc<"events">;
-	registrations: FunctionReturnType<typeof api.registration.getByEventId>;
+	registrations: FunctionReturnType<typeof api.events.registrations.queries.getByEventId>;
 }>) {
 	const availableSpots =
 		event.participationLimit - (registrations.registered.length || 0);
