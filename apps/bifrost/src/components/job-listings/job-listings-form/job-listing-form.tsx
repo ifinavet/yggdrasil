@@ -2,7 +2,7 @@
 
 import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
-import type { JOB_TYPES } from "@workspace/shared/constants";
+import { JOB_TYPES, LISTING_COLORS } from "@workspace/shared/constants";
 import { Button } from "@workspace/ui/components/button";
 import {
 	Command,
@@ -50,6 +50,23 @@ import ContactsSection from "./contacts-section";
 type FormMeta = {
 	submitAction: "primary" | "secondary" | "tertiary";
 };
+
+type JobType = (typeof JOB_TYPES)[number];
+
+function JobTypeLabel({ type }: Readonly<{ type: JobType }>) {
+	return (
+		<>
+			<span
+				aria-hidden="true"
+				className={cn(
+					"size-4 rounded-full",
+					LISTING_COLORS[type] ?? "bg-gray-400",
+				)}
+			/>
+			{type}
+		</>
+	);
+}
 
 export default function JobListingForm({
 	onPrimarySubmitAction,
@@ -149,13 +166,13 @@ export default function JobListingForm({
 											>
 												{companyValue
 													? companies?.find(
-															(company) => company.name === companyValue,
-														)?.name
+														(company) => company.name === companyValue,
+													)?.name
 													: "Velg en bedrift..."}
 												<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 											</Button>
 										</PopoverTrigger>
-										<PopoverContent className="w-[200px] p-0" align="start">
+										<PopoverContent className="w-50 p-0" align="start">
 											<Command>
 												<CommandInput placeholder="Søk etter bedrift..." />
 												<CommandList>
@@ -228,13 +245,18 @@ export default function JobListingForm({
 										value={field.state.value}
 									>
 										<SelectTrigger>
-											<SelectValue placeholder="Velg type" />
+											<SelectValue placeholder="Velg type">
+												{field.state.value ? (
+													<JobTypeLabel type={field.state.value} />
+												) : null}
+											</SelectValue>
 										</SelectTrigger>
 										<SelectContent>
-											<SelectItem value="Fulltid">Fulltid</SelectItem>
-											<SelectItem value="Deltid">Deltid</SelectItem>
-											<SelectItem value="Internship">Internship</SelectItem>
-											<SelectItem value="Sommerjobb">Sommerjobb</SelectItem>
+											{JOB_TYPES.map((type) => (
+												<SelectItem key={type} textValue={type} value={type}>
+													<JobTypeLabel type={type} />
+												</SelectItem>
+											))}
 										</SelectContent>
 									</Select>
 									{isInvalid && <FieldError errors={field.state.meta.errors} />}
