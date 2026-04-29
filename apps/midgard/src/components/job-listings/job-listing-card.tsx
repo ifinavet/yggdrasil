@@ -1,4 +1,5 @@
 import type { Id } from "@workspace/backend/convex/dataModel";
+import { LISTING_COLORS } from "@workspace/shared/constants";
 import { Button } from "@workspace/ui/components/button";
 import Image from "next/image";
 import Link from "next/link";
@@ -18,12 +19,6 @@ export default function JobListingCard({
 	title: string;
 	teaser: string;
 }>) {
-	const typeColors: Record<string, string> = {
-		Sommerjobb: "bg-orange-400",
-		Fulltid: "bg-indigo-400",
-		Deltid: "bg-emerald-400",
-		Internship: "bg-fuchsia-400",
-	};
 
 	return (
 		<div
@@ -31,7 +26,7 @@ export default function JobListingCard({
 			className="flex h-[450px] w-full max-w-80 flex-col overflow-clip rounded-lg bg-white shadow-md dark:bg-zinc-800"
 		>
 			<div
-				className={`py-4 text-center ${typeColors[type] ?? "bg-gray-400"} font-semibold text-lg text-primary-foreground`}
+				className={`py-4 text-center ${LISTING_COLORS[type] ?? "bg-gray-400"} font-semibold text-lg text-primary-foreground`}
 			>
 				{type}
 			</div>
