@@ -86,8 +86,8 @@ export const updateAttendance = mutation({
             const severity = newStatus === "late" ? 1 : 2;
             const reason =
                 newStatus === "late"
-                    ? `Du fikk 1 prikk for å være for sen til aarangementet "${event?.title}".`
-                    : `Du fikk 2 prikker for å ikke møte til aarangementet "${event?.title}".`;
+                    ? `Du fikk 1 prikk for å være for sen til arangementet "${event?.title}".`
+                    : `Du fikk 2 prikker for å ikke møte til arangementet "${event?.title}".`;
 
             await ctx.runMutation(internal.points.mutations.givePointsInternal, {
                 id: student._id,

@@ -80,8 +80,8 @@ export default async function StudentsPage() {
 							<p className="not-first:mt-6 leading-7">
 								For deg som ny student er det bare å opprette en ny bruker.
 								<br />
-								Brukeren registreres med ditt UiO brukernavn eller epost. Ved
-								førstegangs registrering vil du få passord på mail.
+								Brukeren registreres med din epost. Ved
+								førstegangs registrering vil du måtte bekrefte eposten, du vil få en kode tilsendt på mail.
 								<br />
 								Når du har opprettet en ny bruker kan du selv redigere og legge
 								til informasjon på din brukerprofil.
