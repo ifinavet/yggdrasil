@@ -88,7 +88,7 @@ export function EventCard({
 	});
 
 	return (
-		<Link href={`events/${event._id}`}>
+		<Link href={`events/${event.slug ?? event._id}`}>
 			<Card className={className}>
 				<CardHeader>
 					<CardTitle>{event.title}</CardTitle>
