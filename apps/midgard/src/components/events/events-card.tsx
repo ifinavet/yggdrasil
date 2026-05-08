@@ -21,7 +21,7 @@ export default async function EventsCard({
 	} satisfies EventCardType;
 
 	return (
-		<Link href={`/events/${event._id}`} className="h-full">
+		<Link href={`/events/${event.slug ?? event._id}`} className="h-full">
 			<EventCard event={cardData} />
 		</Link>
 	);

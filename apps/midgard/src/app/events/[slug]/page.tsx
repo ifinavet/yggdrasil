@@ -159,7 +159,7 @@ export default async function EventPage({
 							asChild
 						>
 							<a
-								href={`https://bifrost.ifinavet.no/events/${event._id}/registrations`}
+								href={`https://bifrost.ifinavet.no/events/${event.slug ?? event._id}/registrations`}
 								rel="nofollow noopener noreferrer external"
 								target="_blank"
 							>
