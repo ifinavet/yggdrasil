@@ -1,11 +1,6 @@
 "use client";
 
 import { useForm } from "@tanstack/react-form";
-import {
-	Popover,
-	PopoverContent,
-	PopoverTrigger,
-} from "@radix-ui/react-popover";
 import { api } from "@workspace/backend/convex/api";
 import { ACCESS_RIGHTS } from "@workspace/shared/constants";
 import { Button } from "@workspace/ui/components/button";
@@ -35,6 +30,7 @@ import {
 	FieldSet,
 } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui/components/popover";
 import {
 	Select,
 	SelectContent,
