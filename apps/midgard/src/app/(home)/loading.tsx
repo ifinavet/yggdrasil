@@ -31,7 +31,7 @@ export default function LoadingHomePage() {
 			{/* About section skeleton */}
 			<ResponsiveCenterContainer>
 				<TwoColumns
-					className="!gap-2"
+					className="gap-2!"
 					main={
 						<div className="space-y-6">
 							<Skeleton className="h-10 w-48" />
@@ -46,7 +46,7 @@ export default function LoadingHomePage() {
 						</div>
 					}
 					aside={
-						<div className="relative mx-auto h-[280px] w-[280px] max-w-full sm:h-[350px] sm:w-[350px] md:h-[420px] md:w-[420px]">
+						<div className="relative mx-auto h-70 w-70 max-w-full sm:h-88 sm:w-88 md:h-105 md:w-105">
 							<Skeleton className="absolute top-0 left-0 z-10 size-40 translate-x-4 translate-y-8 transform rounded-full sm:size-48 md:size-56" />
 							<Skeleton className="-translate-x-4 -translate-y-8 absolute right-0 bottom-0 z-0 size-40 transform rounded-full sm:size-48 md:size-56" />
 						</div>

@@ -110,7 +110,7 @@ export default function HomePage() {
 						</div>
 					}
 					aside={
-						<div className="relative mx-auto h-[280px] w-[280px] max-w-full sm:h-[350px] sm:w-[350px] md:h-[420px] md:w-[420px]">
+						<div className="relative mx-auto h-70 w-70 max-w-full sm:h-88 sm:w-88 md:h-105 md:w-105">
 							<div className="absolute top-0 left-0 z-10 size-40 translate-x-4 translate-y-8 transform overflow-hidden rounded-full sm:size-48 md:size-56">
 								<Image
 									src={Navet}
