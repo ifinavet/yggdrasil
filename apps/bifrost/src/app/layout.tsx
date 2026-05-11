@@ -36,9 +36,9 @@ export default function RootLayout({
 	readonly children: React.ReactNode;
 }>) {
 	return (
-		// biome-ignore lint: This is a valid html attribute
-		<html lang="nb" suppressHydrationWarning>
-			<body className={`antialiased ${interSans.className}`}>
+        // biome-ignore lint: This is a valid html attribute
+        <html lang="nb" suppressHydrationWarning>
+            <body className={`antialiased ${interSans.className}`}>
 				<Suspense fallback={null}>
 					<ClerkProvider>
 						<ConvexClientProvider>
@@ -58,8 +58,8 @@ export default function RootLayout({
 					</ClerkProvider>
 				</Suspense>
 			</body>
-		</html>
-	);
+        </html>
+    );
 }
 
 async function AuthorizedContent({ children }: Readonly<{ children: React.ReactNode }>) {
