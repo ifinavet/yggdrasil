@@ -14,6 +14,7 @@ import type * as companies_mutations from "../companies/mutations.js";
 import type * as companies_queries from "../companies/queries.js";
 import type * as crons from "../crons.js";
 import type * as emails from "../emails.js";
+import type * as events_helper from "../events/helper.js";
 import type * as events_mutations from "../events/mutations.js";
 import type * as events_queries from "../events/queries.js";
 import type * as events_registrations_mutations from "../events/registrations/mutations.js";
@@ -48,6 +49,7 @@ declare const fullApi: ApiFromModules<{
   "companies/queries": typeof companies_queries;
   crons: typeof crons;
   emails: typeof emails;
+  "events/helper": typeof events_helper;
   "events/mutations": typeof events_mutations;
   "events/queries": typeof events_queries;
   "events/registrations/mutations": typeof events_registrations_mutations;

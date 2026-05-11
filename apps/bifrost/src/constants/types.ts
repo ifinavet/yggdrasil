@@ -12,6 +12,7 @@ export type Event = {
 	hostingCompanyName: string;
 	eventStart: number;
 	published: boolean;
+	slug?: string;
 	externalUrl?: string;
 	organizers: Organizer[];
 };

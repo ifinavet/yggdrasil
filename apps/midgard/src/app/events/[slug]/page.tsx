@@ -65,7 +65,7 @@ export default async function EventPage({
 	});
 
 	const preloadedRegistrations = await preloadQuery(api.events.registrations.queries.getByEventId, {
-		eventId: event._id,
+		eventIdentifier: event._id,
 	});
 
 	return (

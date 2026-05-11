@@ -2,6 +2,7 @@ import { toBase64 } from "@workspace/shared/utils";
 import { v } from "convex/values";
 import { query } from "../../_generated/server";
 import { getCurrentUserOrThrow } from "../../auth/currentUser";
+import { getEventByIdentifier } from "../helper";
 
 /**
  * Fetches registrations for an event grouped into registered and waitlist buckets.
@@ -12,12 +13,13 @@ import { getCurrentUserOrThrow } from "../../auth/currentUser";
  */
 export const getByEventId = query({
     args: {
-        eventId: v.id("events"),
+        eventIdentifier: v.string(),
     },
-    handler: async (ctx, { eventId }) => {
+    handler: async (ctx, { eventIdentifier }) => {
+        const event = await getEventByIdentifier(ctx, eventIdentifier);
         const registrations = await ctx.db
             .query("registrations")
-            .withIndex("by_eventIdAndRegistrationTime", (q) => q.eq("eventId", eventId))
+            .withIndex("by_eventIdAndRegistrationTime", (q) => q.eq("eventId", event._id))
             .collect();
 
         const registrationsWithUsers = await Promise.all(
@@ -173,12 +175,14 @@ export const getUserByRegistrationId = query({
  */
 export const getRegistrantsInfo = query({
     args: {
-        eventId: v.id("events"),
+        eventIdentifier: v.string(),
     },
-    handler: async (ctx, { eventId }) => {
+    handler: async (ctx, { eventIdentifier }) => {
+        const event = await getEventByIdentifier(ctx, eventIdentifier);
+
         const registrations = await ctx.db
             .query("registrations")
-            .withIndex("by_eventId", (q) => q.eq("eventId", eventId))
+            .withIndex("by_eventId", (q) => q.eq("eventId", event._id))
             .filter((r) => r.eq(r.field("status"), "registered"))
             .collect();
 
