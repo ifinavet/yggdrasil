@@ -20,6 +20,7 @@
 		"@workspace/emails": "workspace:*",
 		"@workspace/shared": "workspace:*",
 		"convex": "^1.34.1",
+		"convex-helpers": "^0.1.116",
 		"svix": "^1.89.0"
 	},
 	"devDependencies": {
