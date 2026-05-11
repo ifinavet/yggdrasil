@@ -73,6 +73,7 @@ function EventsGridContent({
 								companyName={event.hostingCompanyName}
 								date={event.eventStart}
 								isPublished={event.published}
+								slug={event.slug}
 								externalUrl={event.externalUrl}
 								organizers={event.organizers}
 							/>
@@ -89,6 +90,7 @@ function EventsGridContent({
 								title={event.title}
 								companyName={event.hostingCompanyName}
 								date={event.eventStart}
+								slug={event.slug}
 								isPublished={event.published}
 								externalUrl={event.externalUrl}
 								organizers={event.organizers}

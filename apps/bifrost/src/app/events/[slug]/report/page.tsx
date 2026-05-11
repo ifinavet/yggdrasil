@@ -9,11 +9,11 @@ import DegreeTables from "@/components/events/report/table";
 
 export default async function RapportPage({
 	params,
-}: Readonly<{ params: Promise<{ slug: Id<"events"> }> }>) {
+}: Readonly<{ params: Promise<{ slug: string }> }>) {
 	const { slug } = await params;
 
 	const registrantsInfo = await fetchQuery(api.events.registrations.queries.getRegistrantsInfo, {
-		eventId: slug,
+		eventIdentifier: slug,
 	});
 	const preloadedEvent = await preloadQuery(api.events.queries.getEvent, { identifier: slug });
 

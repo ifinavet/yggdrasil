@@ -25,6 +25,7 @@ export default function EventCard({
 	companyName,
 	date,
 	isPublished,
+	slug,
 	externalUrl,
 	organizers,
 }: Readonly<{
@@ -33,6 +34,7 @@ export default function EventCard({
 	companyName: string;
 	date: number;
 	isPublished: boolean;
+	slug?: string;
 	externalUrl?: string;
 	organizers: Organizer[];
 }>) {
@@ -94,7 +96,7 @@ export default function EventCard({
 				</CardFooter>
 			</Card>
 			<Link
-				href={`/events/${eventId}`}
+				href={`/events/${slug ?? eventId}`}
 				aria-label={`Open event ${title}`}
 				className="absolute inset-0 z-10"
 			>

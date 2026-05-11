@@ -1,12 +1,11 @@
 import { api } from "@workspace/backend/convex/api";
-import type { Id } from "@workspace/backend/convex/dataModel";
 import { preloadQuery } from "convex/nextjs";
 import UpdateEventForm from "./update-event-form";
 
 export default async function EventPage({
 	params,
 }: Readonly<{
-	params: Promise<{ slug: Id<"events"> }>;
+	params: Promise<{ slug: string }>;
 }>) {
 	const { slug: identifier } = await params;
 
