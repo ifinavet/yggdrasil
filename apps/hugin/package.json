@@ -15,7 +15,6 @@
 		"@clerk/themes": "^2.4.57",
 		"@convex-dev/react-query": "0.0.0-alpha.11",
 		"@floating-ui/react": "^0.27.19",
-		"@hookform/resolvers": "^5.2.2",
 		"@sentry/nextjs": "^10.46.0",
 		"@tanstack/react-form": "^1.28.5",
 		"@tanstack/react-table": "^8.21.3",
