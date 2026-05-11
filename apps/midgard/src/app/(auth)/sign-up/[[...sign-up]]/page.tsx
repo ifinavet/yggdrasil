@@ -1,8 +1,8 @@
 "use client";
-
-import { useAuth, useSignUp } from "@clerk/nextjs";
+import { useAuth } from "@clerk/nextjs";
+import { useSignUp } from "@clerk/nextjs/legacy";
 import { isClerkAPIResponseError } from "@clerk/nextjs/errors";
-import type { ClerkAPIError } from "@clerk/types";
+import type { ClerkAPIError } from "@clerk/shared/types";
 import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
 import { DEGREE_TYPES, STUDY_PROGRAMS } from "@workspace/shared/constants";
