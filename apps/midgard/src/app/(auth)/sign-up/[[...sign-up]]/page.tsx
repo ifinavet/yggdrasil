@@ -41,8 +41,8 @@ import { Title } from "@/components/common/title";
 
 const signUpFormSchema = z
 	.object({
-		firstName: z.string().min(1, "Fornavn er påkrevd"),
-		lastName: z.string().min(1, "Etternavn er påkrevd"),
+		firstName: z.string().min(1, "Fornavn er påkrevd").trim(),
+		lastName: z.string().min(1, "Etternavn er påkrevd").trim(),
 		email: z
 			.email()
 			.regex(
