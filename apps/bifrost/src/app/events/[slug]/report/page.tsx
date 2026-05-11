@@ -1,5 +1,4 @@
 import { api } from "@workspace/backend/convex/api";
-import type { Id } from "@workspace/backend/convex/dataModel";
 import { fromBase64, toVariableName } from "@workspace/shared/utils";
 import { fetchQuery, preloadQuery } from "convex/nextjs";
 import DegreeChart from "@/components/events/report/cards/degree-chart";
