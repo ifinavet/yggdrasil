@@ -13,7 +13,6 @@
 	"dependencies": {
 		"@clerk/nextjs": "^7.3.3",
 		"@clerk/ui": "^1.9.1",
-		"@convex-dev/react-query": "0.0.0-alpha.11",
 		"@floating-ui/react": "^0.27.19",
 		"@sentry/nextjs": "^10.52.0",
 		"@tanstack/react-form": "^1.32.0",
