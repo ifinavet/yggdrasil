@@ -101,7 +101,7 @@ export default async function CompaniesPage() {
 								fulltidsstillinger. Ved forespørsel om annonser for sommerjobb
 								er det viktig at de følger{" "}
 								<a
-									href="https://drive.google.com/file/d/1wW0356QeoPGtKQruSlP8eBXI7qqn8eHm/view?usp=sharing"
+									href="https://drive.google.com/file/d/181KxygLZzqqjqgDr3GZY5Lxac7ZKMWVs/view?usp=sharing"
 									rel="nofollow noopener noreferrer external"
 									target="_blank"
 									className="hover:cursor underline"
