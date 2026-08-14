@@ -10,6 +10,7 @@ crons.interval(
 	"Check and update pending registrations",
 	{ hours: 2 },
 	internal.events.waitlist.mutations.checkPendingRegistrations,
+	{},
 );
 
 crons.interval(
@@ -22,6 +23,7 @@ crons.cron(
 	"Free for all on today's event",
 	"0 12 * * 2,4",
 	internal.events.waitlist.mutations.clearWaitlistAndPending,
+	{},
 );
 
 crons.cron(

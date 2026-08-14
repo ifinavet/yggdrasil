@@ -8,7 +8,7 @@ import LockedOutEmail from "@workspace/emails/locked-out-email";
 import PointsEmail from "@workspace/emails/point-email";
 import { v } from "convex/values";
 import { components } from "./_generated/api";
-import { internalAction } from "./_generated/server";
+import { tracedInternalAction } from "./lib/trace";
 
 /**
  * Configures the Resend client used by backend email actions.
@@ -26,7 +26,7 @@ export const resend: Resend = new Resend(components.resend, {
  *
  * @returns {Promise<void>} - Resolves when the email has been sent.
  */
-export const sendGottenPointsEmail = internalAction({
+export const sendGottenPointsEmail = tracedInternalAction({
 	args: {
 		participantEmail: v.string(),
 		severity: v.number(),
@@ -59,7 +59,7 @@ export const sendGottenPointsEmail = internalAction({
  *
  * @returns {Promise<void>} - Resolves when the email has been sent.
  */
-export const sendTooManyPointsEmail = internalAction({
+export const sendTooManyPointsEmail = tracedInternalAction({
 	args: {
 		participantEmail: v.string(),
 	},
@@ -86,7 +86,7 @@ export const sendTooManyPointsEmail = internalAction({
  *
  * @returns {Promise<void>} - Resolves when the email has been sent.
  */
-export const sendAvailableSeatEmail = internalAction({
+export const sendAvailableSeatEmail = tracedInternalAction({
 	args: {
 		participantEmail: v.string(),
 		eventId: v.id("events"),
@@ -95,6 +95,7 @@ export const sendAvailableSeatEmail = internalAction({
 	},
 	handler: async (ctx, { participantEmail, eventId, eventTitle, registrationId }) => {
 		const url = `https://ifinavet.no/events/${eventId}/registration/${registrationId}`;
+		ctx.trace("seat_email_sending", { eventId, registrationId });
 
 		const html = await pretty(
 			await render(
@@ -125,7 +126,7 @@ export const sendAvailableSeatEmail = internalAction({
  *
  * @returns {Promise<void>} - Resolves when the email has been sent.
  */
-export const sendFreeForAll = internalAction({
+export const sendFreeForAll = tracedInternalAction({
 	args: {
 		participantEmail: v.string(),
 		eventId: v.id("events"),
@@ -134,6 +135,7 @@ export const sendFreeForAll = internalAction({
 	},
 	handler: async (ctx, { participantEmail, eventId, eventTitle, availableSeats }) => {
 		const url = `https://ifinavet.no/events/${eventId}`;
+		ctx.trace("free_for_all_email_sending", { eventId, availableSeats });
 
 		const html = await pretty(
 			await render(

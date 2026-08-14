@@ -1,7 +1,7 @@
 import { toBase64 } from "@workspace/shared/utils";
 import { v } from "convex/values";
-import { query } from "../../_generated/server";
 import { getCurrentUserOrThrow } from "../../auth/currentUser";
+import { tracedQuery } from "../../lib/trace";
 import { getEventByIdentifier } from "../helper";
 
 /**
@@ -11,38 +11,38 @@ import { getEventByIdentifier } from "../helper";
  *
  * @returns {{ registered: Array<Doc<"registrations"> & { userName: string, userEmail: string }>, waitlist: Array<Doc<"registrations"> & { userName: string, userEmail: string }> }} - Registrations grouped by status bucket.
  */
-export const getByEventId = query({
-    args: {
-        eventIdentifier: v.string(),
-    },
-    handler: async (ctx, { eventIdentifier }) => {
-        const event = await getEventByIdentifier(ctx, eventIdentifier);
-        const registrations = await ctx.db
-            .query("registrations")
-            .withIndex("by_eventIdAndRegistrationTime", (q) => q.eq("eventId", event._id))
-            .collect();
+export const getByEventId = tracedQuery({
+	args: {
+		eventIdentifier: v.string(),
+	},
+	handler: async (ctx, { eventIdentifier }) => {
+		const event = await getEventByIdentifier(ctx, eventIdentifier);
+		const registrations = await ctx.db
+			.query("registrations")
+			.withIndex("by_eventIdAndRegistrationTime", (q) => q.eq("eventId", event._id))
+			.collect();
 
-        const registrationsWithUsers = await Promise.all(
-            registrations.map(async (registration) => {
-                const user = await ctx.db.get(registration.userId);
-                return {
-                    ...registration,
-                    userName: user ? `${user.firstName} ${user.lastName}` : "Ukjent bruker",
-                    userEmail: user ? user.email : "Ukjent e-post",
-                };
-            }),
-        );
+		const registrationsWithUsers = await Promise.all(
+			registrations.map(async (registration) => {
+				const user = await ctx.db.get(registration.userId);
+				return {
+					...registration,
+					userName: user ? `${user.firstName} ${user.lastName}` : "Ukjent bruker",
+					userEmail: user ? user.email : "Ukjent e-post",
+				};
+			}),
+		);
 
-        const registeredPending = registrationsWithUsers.filter(
-            (reg) => reg.status === "pending" || reg.status === "registered",
-        );
-        const waitlist = registrationsWithUsers.filter((reg) => reg.status === "waitlist");
+		const registeredPending = registrationsWithUsers.filter(
+			(reg) => reg.status === "pending" || reg.status === "registered",
+		);
+		const waitlist = registrationsWithUsers.filter((reg) => reg.status === "waitlist");
 
-        return {
-            registered: registeredPending,
-            waitlist: waitlist,
-        };
-    },
+		return {
+			registered: registeredPending,
+			waitlist: waitlist,
+		};
+	},
 });
 
 /**
@@ -53,19 +53,19 @@ export const getByEventId = query({
  * @throws - An error if the registration does not exist.
  * @returns {Doc<"registrations">} - The matching registration document.
  */
-export const getById = query({
-    args: {
-        id: v.id("registrations"),
-    },
-    handler: async (ctx, { id }) => {
-        const registration = await ctx.db.get(id);
+export const getById = tracedQuery({
+	args: {
+		id: v.id("registrations"),
+	},
+	handler: async (ctx, { id }) => {
+		const registration = await ctx.db.get(id);
 
-        if (!registration) {
-            throw new Error(`Registrering med ID ${id} ikke funnet.`);
-        }
+		if (!registration) {
+			throw new Error(`Registrering med ID ${id} ikke funnet.`);
+		}
 
-        return registration;
-    },
+		return registration;
+	},
 });
 
 /**
@@ -76,36 +76,36 @@ export const getById = query({
  * @throws - An error if the event does not exist or the user is not registered.
  * @returns {Id<"users">} - The current user's id when they are registered.
  */
-export const getCurrentUserRegistertToEventBySlug = query({
-    args: {
-        slug: v.string(),
-    },
-    handler: async (ctx, { slug }) => {
-        const event = await ctx.db
-            .query("events")
-            .withIndex("by_slug", (q) => q.eq("slug", slug))
-            .first();
+export const getCurrentUserRegistertToEventBySlug = tracedQuery({
+	args: {
+		slug: v.string(),
+	},
+	handler: async (ctx, { slug }) => {
+		const event = await ctx.db
+			.query("events")
+			.withIndex("by_slug", (q) => q.eq("slug", slug))
+			.first();
 
-        if (!event) {
-            throw new Error(`Arrangement med slug ${slug} ikke funnet.`);
-        }
+		if (!event) {
+			throw new Error(`Arrangement med slug ${slug} ikke funnet.`);
+		}
 
-        const user = await getCurrentUserOrThrow(ctx);
+		const user = await getCurrentUserOrThrow(ctx);
 
-        const registrations = await ctx.db
-            .query("registrations")
-            .withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
-                q.eq("eventId", event._id).eq("status", "registered"),
-            )
-            .filter((q) => q.eq(q.field("userId"), user._id))
-            .first();
+		const registrations = await ctx.db
+			.query("registrations")
+			.withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
+				q.eq("eventId", event._id).eq("status", "registered"),
+			)
+			.filter((q) => q.eq(q.field("userId"), user._id))
+			.first();
 
-        if (!registrations) {
-            throw new Error(`Bruker er ikke registrert på arrangementet med slug ${slug}.`);
-        }
+		if (!registrations) {
+			throw new Error(`Bruker er ikke registrert på arrangementet med slug ${slug}.`);
+		}
 
-        return user._id;
-    },
+		return user._id;
+	},
 });
 
 /**
@@ -114,34 +114,34 @@ export const getCurrentUserRegistertToEventBySlug = query({
  * @throws - An error if the current user or any linked event cannot be resolved.
  * @returns {Array<Doc<"registrations"> & { eventTitle: string, eventStart: number }>} - The current user's registrations with event details.
  */
-export const getCurrentUser = query({
-    handler: async (ctx) => {
-        const user = await getCurrentUserOrThrow(ctx);
+export const getCurrentUser = tracedQuery({
+	handler: async (ctx) => {
+		const user = await getCurrentUserOrThrow(ctx);
 
-        const registrations = await ctx.db
-            .query("registrations")
-            .withIndex("by_userId", (q) => q.eq("userId", user._id))
-            .collect();
+		const registrations = await ctx.db
+			.query("registrations")
+			.withIndex("by_userId", (q) => q.eq("userId", user._id))
+			.collect();
 
-        const registrationsWithEvents = await Promise.all(
-            registrations.map(async (reg) => {
-                const event = await ctx.db.get(reg.eventId);
-                if (!event) {
-                    throw new Error(
-                        `aarangementet med ID ${reg.eventId} ikke funnet. Kan ikke hente registrering.`,
-                    );
-                }
+		const registrationsWithEvents = await Promise.all(
+			registrations.map(async (reg) => {
+				const event = await ctx.db.get(reg.eventId);
+				if (!event) {
+					throw new Error(
+						`aarangementet med ID ${reg.eventId} ikke funnet. Kan ikke hente registrering.`,
+					);
+				}
 
-                return {
-                    ...reg,
-                    eventTitle: event.title,
-                    eventStart: event.eventStart,
-                };
-            }),
-        );
+				return {
+					...reg,
+					eventTitle: event.title,
+					eventStart: event.eventStart,
+				};
+			}),
+		);
 
-        return registrationsWithEvents;
-    },
+		return registrationsWithEvents;
+	},
 });
 
 /**
@@ -151,19 +151,19 @@ export const getCurrentUser = query({
  *
  * @returns {(Doc<"registrations"> & Doc<"users">) | null} - The merged registration and user data, or null if either record is missing.
  */
-export const getUserByRegistrationId = query({
-    args: {
-        id: v.id("registrations"),
-    },
-    handler: async (ctx, { id }) => {
-        const registration = await ctx.db.get(id);
-        if (!registration) return null;
+export const getUserByRegistrationId = tracedQuery({
+	args: {
+		id: v.id("registrations"),
+	},
+	handler: async (ctx, { id }) => {
+		const registration = await ctx.db.get(id);
+		if (!registration) return null;
 
-        const user = await ctx.db.get(registration.userId);
-        if (!user) return null;
+		const user = await ctx.db.get(registration.userId);
+		if (!user) return null;
 
-        return { ...registration, ...user };
-    },
+		return { ...registration, ...user };
+	},
 });
 
 /**
@@ -173,54 +173,54 @@ export const getUserByRegistrationId = query({
  *
  * @returns {Record<string, Record<string, Record<number, number>>>} - Counts grouped by degree, study program, and year.
  */
-export const getRegistrantsInfo = query({
-    args: {
-        eventIdentifier: v.string(),
-    },
-    handler: async (ctx, { eventIdentifier }) => {
-        const event = await getEventByIdentifier(ctx, eventIdentifier);
+export const getRegistrantsInfo = tracedQuery({
+	args: {
+		eventIdentifier: v.string(),
+	},
+	handler: async (ctx, { eventIdentifier }) => {
+		const event = await getEventByIdentifier(ctx, eventIdentifier);
 
-        const registrations = await ctx.db
-            .query("registrations")
-            .withIndex("by_eventId", (q) => q.eq("eventId", event._id))
-            .filter((r) => r.eq(r.field("status"), "registered"))
-            .collect();
+		const registrations = await ctx.db
+			.query("registrations")
+			.withIndex("by_eventId", (q) => q.eq("eventId", event._id))
+			.filter((r) => r.eq(r.field("status"), "registered"))
+			.collect();
 
-        const studentsInfo = await Promise.all(
-            registrations.map(async (registration) => {
-                const student = await ctx.db
-                    .query("students")
-                    .withIndex("by_userId", (q) => q.eq("userId", registration.userId))
-                    .first();
+		const studentsInfo = await Promise.all(
+			registrations.map(async (registration) => {
+				const student = await ctx.db
+					.query("students")
+					.withIndex("by_userId", (q) => q.eq("userId", registration.userId))
+					.first();
 
-                return {
-                    aar: student?.year ?? -1,
-                    program: student?.studyProgram ?? "Ukjent",
-                    degree: student?.degree ?? "Ukjent",
-                };
-            }),
-        );
+				return {
+					aar: student?.year ?? -1,
+					program: student?.studyProgram ?? "Ukjent",
+					degree: student?.degree ?? "Ukjent",
+				};
+			}),
+		);
 
-        const result: {
-            [degree: string]: {
-                [program: string]: {
-                    [aar: number]: number;
-                };
-            };
-        } = {};
+		const result: {
+			[degree: string]: {
+				[program: string]: {
+					[aar: number]: number;
+				};
+			};
+		} = {};
 
-        for (const info of studentsInfo) {
-            const { degree, program, aar } = info;
-            const programBase = toBase64(program);
-            if (!result[degree]) result[degree] = {};
+		for (const info of studentsInfo) {
+			const { degree, program, aar } = info;
+			const programBase = toBase64(program);
+			if (!result[degree]) result[degree] = {};
 
-            if (!result[degree][programBase]) result[degree][programBase] = {};
+			if (!result[degree][programBase]) result[degree][programBase] = {};
 
-            result[degree][programBase][aar] ??= 0;
+			result[degree][programBase][aar] ??= 0;
 
-            result[degree][programBase][aar]++;
-        }
+			result[degree][programBase][aar]++;
+		}
 
-        return result;
-    },
+		return result;
+	},
 });
