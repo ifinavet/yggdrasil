@@ -161,8 +161,8 @@ export const getCurrentSemester = query({
 		).filter((q) => q.published === true);
 
 		const filteredEvents = isExternal
-			? events.filter((event) => event.externalUrl && event.externalUrl.length > 0)
-			: events.filter((event) => event.externalUrl === undefined || event.externalUrl.length === 0);
+			? events.filter((event) => event.externalEvent )
+			: events.filter((event) => !event.externalEvent );
 
 		const eventsWithParticipationCount = await Promise.all(
 			filteredEvents.map(async (event) => {

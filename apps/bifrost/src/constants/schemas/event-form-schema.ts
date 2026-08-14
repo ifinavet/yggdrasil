@@ -20,7 +20,6 @@ export const formSchema = z.object({
 		.min(1, "Hvem alle få lov til å være på arrangementet?"),
 	language: z.string().min(1, "Husk å spesifisere språk"),
 	participantsLimit: z.number("Deltakergrense er påkrevd"),
-	eventType: z.enum(["internal_event", "external_event"]),
 	hostingCompany: z.object(
 		{ name: z.string(), id: z.string() },
 		"Hvem skal arrangere arrangementet?",
@@ -34,6 +33,7 @@ export const formSchema = z.object({
 		)
 		.min(1, { message: "Må ha minst en arrangør" }),
 	externalUrl: z.string().optional(),
+	externalEvent: z.boolean(),
 });
 
 export type EventFormValues = z.infer<typeof formSchema>;
