@@ -14,5 +14,6 @@ export type Event = {
 	published: boolean;
 	slug?: string;
 	externalEvent?: boolean;
+	externalUrl?: string;
 	organizers: Organizer[];
 };

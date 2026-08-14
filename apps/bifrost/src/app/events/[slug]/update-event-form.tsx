@@ -31,7 +31,8 @@ export default function UpdateEventForm({
 			userId: organizer.userId,
 			role: organizer.role as ORGANIZER_ROLE,
 		})),
-		externalEvent: event.externalEvent!,
+		externalEvent:
+			event.externalEvent ?? Boolean(event.externalUrl?.length),
 		hostingCompany: {
 			id: event.hostingCompany,
 			name: event.hostingCompanyName,

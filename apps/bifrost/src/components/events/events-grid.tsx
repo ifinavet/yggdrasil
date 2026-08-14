@@ -24,8 +24,6 @@ export default async function EventsGrid({
 		semester,
 	});
 
-	console.log("events", events);
-
 	const publishedEvents = await Promise.all(
 		(events?.published || []).map(async (event) => {
 			const organizers = await fetchQuery(api.events.queries.getOrganizersByEventId, {
@@ -76,7 +74,9 @@ function EventsGridContent({
 								date={event.eventStart}
 								isPublished={event.published}
 								slug={event.slug}
-								externalEvent={event.externalEvent!}
+								externalEvent={
+									event.externalEvent ?? Boolean(event.externalUrl?.length)
+								}
 								organizers={event.organizers}
 							/>
 						))}
@@ -94,7 +94,9 @@ function EventsGridContent({
 								date={event.eventStart}
 								slug={event.slug}
 								isPublished={event.published}
-								externalEvent={event.externalEvent!}
+								externalEvent={
+									event.externalEvent ?? Boolean(event.externalUrl?.length)
+								}
 								organizers={event.organizers}
 							/>
 						))}

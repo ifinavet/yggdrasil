@@ -42,8 +42,6 @@ export default function EventCard({
 	const addEvent = useSelectedEventsStore((state) => state.addEvent);
 	const removeEvent = useSelectedEventsStore((state) => state.removeEvent);
 
-	console.log(title, externalEvent);
-
 	function handleCheckboxChange(checked: boolean) {
 		setSelected(checked);
 		if (checked) {

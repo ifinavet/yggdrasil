@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm, useStore } from "@tanstack/react-form";
+import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
 import {
 	Select,
@@ -403,12 +403,7 @@ export default function EventForm({
 							<Field>
 								<FieldLabel htmlFor={field.name}>Arrangementtype</FieldLabel>
 								<Select
-									onValueChange={(value) => {
-										field.handleChange(value === "true");
-										if (value === "false") {
-											form.setFieldValue("externalUrl", "");
-										}
-									}}
+									onValueChange={(value) => field.handleChange(value === "true")}
 									value={field.state.value ? "true" : "false"}
 								>
 									<SelectTrigger className="w-45">
@@ -446,7 +441,7 @@ export default function EventForm({
 								/>
 								{isInvalid && <FieldError errors={field.state.meta.errors} />}
 								<FieldDescription>
-									Legg til en url for extern påmelding ti arrangementet
+									Legg til en URL for ekstern påmelding til arrangementet
 								</FieldDescription>
 							</Field>
 						);
