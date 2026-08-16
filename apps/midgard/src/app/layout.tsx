@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { nbNO } from "@clerk/localizations";
-import { ClerkProvider } from "@clerk/nextjs";
+import { AuthProvider } from "@workspace/auth/client";
+import PostHogPageView from "@workspace/ui/components/posthog-page-view";
 import { Toaster } from "@workspace/ui/components/sonner";
 import { Suspense } from "react";
 import { Consent } from "@/components/common/consent";
@@ -10,7 +11,6 @@ import Footer from "@/components/common/footer";
 import Header from "@/components/common/header";
 import ConvexClientProvider from "@/providers/convex-clerk-provider";
 import { ThemeProvider } from "@/providers/theme-provider";
-import PostHogPageView from "./posthog-page-view";
 
 const defaultUrl = process.env.VERCEL_URL
 	? `https://${process.env.VERCEL_URL}`
@@ -35,13 +35,9 @@ export default function RootLayout({
 		<html lang="no" suppressHydrationWarning>
 			<body className={`${eina.className} antialiased`}>
 				<Suspense fallback={null}>
-					<ClerkProvider localization={nbNO}>
+					<AuthProvider localization={nbNO}>
 						<ConvexClientProvider>
-							<ThemeProvider
-								attribute="class"
-								defaultTheme="light"
-								disableTransitionOnChange
-							>
+							<ThemeProvider attribute="class" defaultTheme="light" disableTransitionOnChange>
 								<div className="flex h-screen flex-col overflow-y-auto">
 									<Header />
 									<main className="mb-12 flex-1">{children}</main>
@@ -50,11 +46,11 @@ export default function RootLayout({
 								</div>
 								<Consent />
 								<Suspense fallback={null}>
-									<PostHogPageView />
+									<PostHogPageView site="midgard" />
 								</Suspense>
 							</ThemeProvider>
 						</ConvexClientProvider>
-					</ClerkProvider>
+					</AuthProvider>
 				</Suspense>
 			</body>
 		</html>

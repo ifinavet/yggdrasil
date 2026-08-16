@@ -5,6 +5,7 @@
 	"scripts": {
 		"build": "turbo build",
 		"dev": "turbo dev",
+		"setup:local": "node scripts/setup-local.mjs",
 		"lint": "turbo lint",
 		"check": "turbo check",
 		"check:fix": "turbo check:fix",

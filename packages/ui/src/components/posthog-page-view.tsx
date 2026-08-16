@@ -1,21 +1,20 @@
 "use client";
 
-import { useAuth, useUser } from "@clerk/nextjs";
+import { useAuthUser } from "@workspace/auth/client";
 import { usePathname, useSearchParams } from "next/navigation";
 import { usePostHog } from "posthog-js/react";
 import { useEffect } from "react";
 
-export default function PostHogPageView(): null {
+export default function PostHogPageView({ site }: Readonly<{ site: string }>): null {
 	const pathname = usePathname();
 	const searchParams = useSearchParams();
 	const posthog = usePostHog();
 
-	const { isSignedIn, userId } = useAuth();
-	const { user } = useUser();
+	const { isSignedIn, user } = useAuthUser();
 
 	// Track pageviews
 	useEffect(() => {
-		if (pathname && posthog) {
+		if (pathname && posthog?.__loaded) {
 			let url = window.origin + pathname;
 			if (searchParams.toString()) {
 				url = `${url}?${searchParams.toString()}`;
@@ -27,18 +26,20 @@ export default function PostHogPageView(): null {
 	}, [pathname, searchParams, posthog]);
 
 	useEffect(() => {
-		if (isSignedIn && userId && user && !posthog._isIdentified()) {
-			posthog.identify(userId, {
-				email: user.primaryEmailAddress?.emailAddress,
+		if (!posthog?.__loaded) return;
+
+		if (isSignedIn && user && !posthog._isIdentified()) {
+			posthog.identify(user.externalId, {
+				email: user.email,
 				username: user.username,
-				site: "bifrost",
+				site,
 			});
 		}
 
 		if (!isSignedIn && posthog._isIdentified()) {
 			posthog.reset();
 		}
-	}, [posthog, user]);
+	}, [posthog, isSignedIn, user, site]);
 
 	return null;
 }

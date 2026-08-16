@@ -28,6 +28,7 @@ import type * as pages_mutations from "../pages/mutations.js";
 import type * as pages_queries from "../pages/queries.js";
 import type * as points_mutations from "../points/mutations.js";
 import type * as points_queries from "../points/queries.js";
+import type * as seed from "../seed.js";
 import type * as users_clerk_http from "../users/clerk/http.js";
 import type * as users_clerk_mutations from "../users/clerk/mutations.js";
 import type * as users_clerk_queries from "../users/clerk/queries.js";
@@ -63,6 +64,7 @@ declare const fullApi: ApiFromModules<{
   "pages/queries": typeof pages_queries;
   "points/mutations": typeof points_mutations;
   "points/queries": typeof points_queries;
+  seed: typeof seed;
   "users/clerk/http": typeof users_clerk_http;
   "users/clerk/mutations": typeof users_clerk_mutations;
   "users/clerk/queries": typeof users_clerk_queries;

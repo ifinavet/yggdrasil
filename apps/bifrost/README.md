@@ -40,32 +40,17 @@ To get a local copy up and running, follow these steps.
 
 ### Installation
 
-1.  **Clone the repository:**
+Run the monorepo setup from the repository root. It configures every service at once, without any third-party accounts:
 
-    ```bash
-    git clone https://github.com/ifinavet/yggdrasil.git
-    cd yggdrasil/apps/bifrost
-    ```
+```bash
+git clone https://github.com/ifinavet/yggdrasil.git
+cd yggdrasil
+pnpm install
+pnpm setup:local
+pnpm dev
+```
 
-2.  **Install dependencies:**
-
-    ```bash
-    pnpm install
-    ```
-
-3. **Set up environment variables:**
-
-   Create a `.env.local` file in the root of the `bifrost` directory and add the necessary environment variables. Look at the .env.example to get an idea of what you need.
-
-   *Unfortunately our setup requires that you have an clerk account. Without it the auth won't work. We are assesing the options to move to a new solution but as of now you need to use clerk*
-
-4.  **Run the development server:**
-
-    ```bash
-    pnpm dev
-    ```
-
-    Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3001](http://localhost:3001) and sign in as one of the seeded development users. See the [root README](../../README.md) for the full walkthrough, including how to work against real Clerk keys instead.
 
 ## 🛠️ Technologies & Packages
 

@@ -1,5 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
-import { getAuthToken } from "@workspace/auth";
+import { getAuthToken, getAuthUserId, redirectToSignIn } from "@workspace/auth";
 import { api } from "@workspace/backend/convex/api";
 import { humanReadableDate } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
@@ -17,7 +16,7 @@ export default async function EventResponse({
 	const { slug: identifier } = await params;
 	const event = await fetchQuery(api.events.queries.getEvent, { identifier });
 
-	const { userId, redirectToSignIn } = await auth();
+	const userId = await getAuthUserId();
 	if (!userId) return redirectToSignIn();
 
 	if (!event.formId) {

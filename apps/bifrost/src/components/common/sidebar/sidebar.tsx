@@ -1,6 +1,5 @@
-import { SignOutButton } from "@clerk/nextjs";
-import { currentUser } from "@clerk/nextjs/server";
-import { hasAdminRights, hasAllRights, hasEditRights } from "@workspace/auth";
+import { getAuthUser, hasAdminRights, hasAllRights, hasEditRights } from "@workspace/auth";
+import { SignOutButton } from "@workspace/auth/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@workspace/ui/components/avatar";
 import {
 	DropdownMenu,
@@ -89,7 +88,7 @@ const externalPaths = {
 };
 
 export default async function BifrostSidebar() {
-	const user = await currentUser();
+	const user = await getAuthUser();
 
 	const adminRights = await hasAdminRights();
 	const editRights = await hasEditRights();
@@ -159,12 +158,12 @@ export default async function BifrostSidebar() {
 									className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground group-data-[collapsible=icon]:p-0!"
 								>
 									<Avatar className="h-8 w-8 rounded-lg">
-										<AvatarImage src={user.imageUrl} alt={user.fullName ?? "Ukjent"} />
+										<AvatarImage src={user.imageUrl} alt={user.fullName || "Ukjent"} />
 										<AvatarFallback className="rounded-lg">NA</AvatarFallback>
 									</Avatar>
 									<div className="grid flex-1 text-left text-sm leading-tight">
-										<span className="truncate font-semibold">{user.fullName ?? "Ukjent"}</span>
-										<span className="truncate text-xs">{user.emailAddresses[0]?.emailAddress}</span>
+										<span className="truncate font-semibold">{user.fullName || "Ukjent"}</span>
+										<span className="truncate text-xs">{user.email}</span>
 									</div>
 									<ChevronsUpDown className="ml-auto size-4" />
 								</SidebarMenuButton>
@@ -178,14 +177,12 @@ export default async function BifrostSidebar() {
 								<DropdownMenuLabel className="p-0 font-normal">
 									<div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
 										<Avatar className="h-8 w-8 rounded-lg">
-											<AvatarImage src={user.imageUrl} alt={user.fullName ?? "Ukjent"} />
+											<AvatarImage src={user.imageUrl} alt={user.fullName || "Ukjent"} />
 											<AvatarFallback className="rounded-lg">NA</AvatarFallback>
 										</Avatar>
 										<div className="grid flex-1 text-left text-sm leading-tight">
-											<span className="truncate font-semibold">{user.fullName ?? "Ukjent"}</span>
-											<span className="truncate text-xs">
-												{user.primaryEmailAddress?.emailAddress}
-											</span>
+											<span className="truncate font-semibold">{user.fullName || "Ukjent"}</span>
+											<span className="truncate text-xs">{user.email}</span>
 										</div>
 									</div>
 								</DropdownMenuLabel>

@@ -1,5 +1,5 @@
-import { SignOutButton } from "@clerk/nextjs";
-import { currentUser } from "@clerk/nextjs/server";
+import { getAuthUser } from "@workspace/auth";
+import { SignOutButton } from "@workspace/auth/client";
 import { Button } from "@workspace/ui/components/button";
 import {
 	DropdownMenu,
@@ -38,7 +38,7 @@ export default async function Header() {
 }
 
 async function User() {
-	const user = await currentUser();
+	const user = await getAuthUser();
 
 	if (user) {
 		return (

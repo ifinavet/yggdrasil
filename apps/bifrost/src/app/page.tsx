@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { getAuthUserId, redirectToSignIn } from "@workspace/auth";
 import { api } from "@workspace/backend/convex/api";
 import { preloadQuery } from "convex/nextjs";
 import FavoriteResources from "@/components/home/favorited-resources";
@@ -6,7 +6,7 @@ import UpcomingEventsOverview from "@/components/home/upcomming-events-overview"
 import { WELCOME_MESSAGES } from "@/constants/welcome-messages";
 
 export default async function Page() {
-	const { userId, redirectToSignIn } = await auth();
+	const userId = await getAuthUserId();
 
 	if (!userId) return redirectToSignIn();
 
