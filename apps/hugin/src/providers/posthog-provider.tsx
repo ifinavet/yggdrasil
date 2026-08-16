@@ -10,7 +10,11 @@ export default function PostHogProvider({
 	children: React.ReactNode;
 }>) {
 	useEffect(() => {
-		posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
+		const key = process.env.NEXT_PUBLIC_POSTHOG_KEY;
+		const host = process.env.NEXT_PUBLIC_POSTHOG_HOST;
+		if (!key || !host) return;
+
+		posthog.init(key, {
 			api_host: "/relay-aXgZ",
 			ui_host: "https://eu.posthog.com",
 			defaults: "2025-05-24",

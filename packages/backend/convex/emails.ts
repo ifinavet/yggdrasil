@@ -1,6 +1,6 @@
 "use node";
 
-import { Resend } from "@convex-dev/resend";
+import { Resend, type SendEmailOptions } from "@convex-dev/resend";
 import { pretty, render } from "@react-email/render";
 import AvailableSeatEmail from "@workspace/emails/available-seat-email";
 import FreeForAllEmail from "@workspace/emails/free-for-all-email";
@@ -8,14 +8,23 @@ import LockedOutEmail from "@workspace/emails/locked-out-email";
 import PointsEmail from "@workspace/emails/point-email";
 import { v } from "convex/values";
 import { components } from "./_generated/api";
-import { internalAction } from "./_generated/server";
+import { type ActionCtx, internalAction } from "./_generated/server";
 
 /**
  * Configures the Resend client used by backend email actions.
  */
 export const resend: Resend = new Resend(components.resend, {
-	testMode: false,
+	testMode: process.env.RESEND_TEST_MODE === "true",
 });
+
+async function deliver(ctx: ActionCtx, options: SendEmailOptions): Promise<void> {
+	if (process.env.LOCAL_DEVELOPMENT === "true") {
+		console.info(`Skipped email "${options.subject}" on a local development deployment`);
+		return;
+	}
+
+	await resend.sendEmail(ctx, options);
+}
 
 /**
  * Sends the email informing a participant that they received points.
@@ -42,7 +51,7 @@ export const sendGottenPointsEmail = internalAction({
 			),
 		);
 
-		await resend.sendEmail(ctx, {
+		await deliver(ctx, {
 			from: "Navet <prikker@ifinavet.no>",
 			replyTo: ["arrangement@ifinavet.no"],
 			to: participantEmail,
@@ -66,7 +75,7 @@ export const sendTooManyPointsEmail = internalAction({
 	handler: async (ctx, { participantEmail }) => {
 		const html = await pretty(await render(LockedOutEmail()));
 
-		await resend.sendEmail(ctx, {
+		await deliver(ctx, {
 			from: "Navet <prikker@ifinavet.no>",
 			replyTo: ["arrangement@ifinavet.no"],
 			to: participantEmail,
@@ -105,7 +114,7 @@ export const sendAvailableSeatEmail = internalAction({
 			),
 		);
 
-		await resend.sendEmail(ctx, {
+		await deliver(ctx, {
 			from: "Navet <info@ifinavet.no>",
 			replyTo: ["arrangement@ifinavet.no"],
 			to: participantEmail,
@@ -145,7 +154,7 @@ export const sendFreeForAll = internalAction({
 			),
 		);
 
-		await resend.sendEmail(ctx, {
+		await deliver(ctx, {
 			from: "Navet <info@ifinavet.no>",
 			replyTo: ["arrangement@ifinavet.no"],
 			to: participantEmail,
