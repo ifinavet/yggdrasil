@@ -1,5 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
-import { getAuthToken } from "@workspace/auth";
+import { getAuthToken, getAuthUserId, redirectToSignIn } from "@workspace/auth";
 import { api } from "@workspace/backend/convex/api";
 import { preloadQuery } from "convex/nextjs";
 import type { Metadata } from "next";
@@ -15,7 +14,7 @@ export const metadata: Metadata = {
 };
 
 export default async function ProfilePage() {
-	const { userId, redirectToSignIn } = await auth();
+	const userId = await getAuthUserId();
 	const token = await getAuthToken();
 
 	if (!userId) return redirectToSignIn();

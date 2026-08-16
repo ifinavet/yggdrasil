@@ -8,6 +8,10 @@ if (!process.env.NEXT_PUBLIC_CONVEX_URL) {
 // Remove http(s):// protocol if present
 const convexSite = process.env.NEXT_PUBLIC_CONVEX_URL.replace(/^https?:\/\//, "");
 
+const convexIsLocal = /^https?:\/\/(127\.0\.0\.1|localhost)(:|\/|$)/.test(
+	process.env.NEXT_PUBLIC_CONVEX_URL,
+);
+
 const nextConfig: NextConfig = {
 	/* config options here */
 	transpilePackages: ["@workspace/ui"],
@@ -27,6 +31,12 @@ const nextConfig: NextConfig = {
 				pathname: "**",
 			},
 			{
+				protocol: "http",
+				hostname: "localhost",
+				port: "3210",
+				pathname: "**",
+			},
+			{
 				protocol: "https",
 				hostname: "img.clerk.com",
 				port: "",
@@ -34,6 +44,7 @@ const nextConfig: NextConfig = {
 			},
 		],
 		dangerouslyAllowSVG: true,
+		dangerouslyAllowLocalIP: convexIsLocal,
 	},
 	devIndicators: false,
 	async rewrites() {

@@ -1,6 +1,6 @@
 "use client";
 
-import { SignOutButton, useUser } from "@clerk/nextjs";
+import { SignOutButton, useAuthUser } from "@workspace/auth/client";
 import { Button } from "@workspace/ui/components/button";
 import {
 	NavigationMenu,
@@ -83,7 +83,7 @@ function MediumNavigation({ className }: Readonly<{ className?: string }>) {
 }
 
 function DropdownNavigation({ className }: Readonly<{ className?: string }>) {
-	const { user } = useUser();
+	const { user } = useAuthUser();
 	const [open, setOpen] = useState(false);
 	return (
 		<Popover open={open} onOpenChange={setOpen}>
@@ -143,7 +143,7 @@ function DropdownNavigation({ className }: Readonly<{ className?: string }>) {
 }
 
 function LargeNavigation({ className }: Readonly<{ className?: string }>) {
-	const { user } = useUser();
+	const { user } = useAuthUser();
 
 	return (
 		<>

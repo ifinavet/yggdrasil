@@ -6,6 +6,18 @@ To maintain quality and consistency, we ask that **all contributions follow the 
 
 ---
 
+## 🚀 Getting set up
+
+```bash
+pnpm install
+pnpm setup:local
+pnpm dev
+```
+
+No third-party accounts are needed. `pnpm setup:local` starts a local Convex deployment, enables the local auth provider and seeds demo data, so you can sign in as a seeded student, editor or super-admin straight away. The full walkthrough, including how to work against real Clerk keys instead, is in the [`README.md`](README.md).
+
+---
+
 ## 📚 Language Requirement
 - **All issues, pull requests (PRs), commits, and documentation must be written in English.**
 - This ensures accessibility and understanding for all contributors and maintainers.
