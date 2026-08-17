@@ -1,9 +1,7 @@
 "use client";
 
 import { useForm } from "@tanstack/react-form";
-import Link from "@tiptap/extension-link";
-import Placeholder from "@tiptap/extension-placeholder";
-import Underline from "@tiptap/extension-underline";
+import { Placeholder } from "@tiptap/extensions";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Button } from "@workspace/ui/components/button";
@@ -80,18 +78,19 @@ export default function PageForm({
 
 	const editorExtensions = useMemo(
 		() => [
-			StarterKit,
+			StarterKit.configure({
+				trailingNode: false,
+				link: {
+					openOnClick: false,
+					defaultProtocol: "https",
+					protocols: ["https", "mailto", "tel"],
+					autolink: true,
+				},
+			}),
 			Placeholder.configure({
 				emptyEditorClass:
 					"before:content-[attr(data-placeholder)] before:float-left before:text-muted-foreground before:h-0 before:pointer-events-none",
 				placeholder: "Lag en bra side, foreksempel en personvernerklæring",
-			}),
-			Underline,
-			Link.configure({
-				openOnClick: false,
-				defaultProtocol: "https",
-				protocols: ["https", "mailto", "tel"],
-				autolink: true,
 			}),
 		],
 		[],
