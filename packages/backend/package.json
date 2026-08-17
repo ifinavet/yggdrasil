@@ -13,7 +13,7 @@
 	"author": "",
 	"packageManager": "pnpm@10.13.1",
 	"dependencies": {
-		"@clerk/backend": "^2.33.6",
+		"@clerk/backend": "^3.16.6",
 		"@convex-dev/migrations": "^0.3.6",
 		"@convex-dev/resend": "^0.2.6",
 		"@react-email/render": "^1.4.0",

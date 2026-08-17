@@ -4,7 +4,7 @@
 	"type": "module",
 	"private": true,
 	"dependencies": {
-		"@clerk/nextjs": "^6.39.6",
+		"@clerk/nextjs": "^7.7.6",
 		"@workspace/backend": "workspace:*",
 		"convex": "^1.44.0"
 	},

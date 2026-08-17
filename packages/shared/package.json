@@ -5,7 +5,6 @@
 	"private": true,
 	"packageManager": "pnpm@10.15.1",
 	"dependencies": {
-		"@clerk/nextjs": "^5.7.6",
 		"convex": "^1.44.0"
 	},
 	"devDependencies": {
