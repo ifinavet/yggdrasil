@@ -1,9 +1,7 @@
 "use client";
 
 import { useForm } from "@tanstack/react-form";
-import Link from "@tiptap/extension-link";
-import Placeholder from "@tiptap/extension-placeholder";
-import Underline from "@tiptap/extension-underline";
+import { Placeholder } from "@tiptap/extensions";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Button } from "@workspace/ui/components/button";
@@ -90,19 +88,20 @@ export default function ResourceForm({
 
 	const editorExtensions = useMemo(
 		() => [
-			StarterKit,
+			StarterKit.configure({
+				trailingNode: false,
+				link: {
+					openOnClick: false,
+					defaultProtocol: "https",
+					protocols: ["https", "mailto", "tel"],
+					autolink: true,
+				},
+			}),
 			Placeholder.configure({
 				emptyEditorClass:
 					"before:content-[attr(data-placeholder)] before:float-left before:text-muted-foreground before:h-0 before:pointer-events-none",
 				placeholder:
 					"Skriv en helt fantaskisk ressurs som alle i Navet kan ha glede av å lese!",
-			}),
-			Underline,
-			Link.configure({
-				openOnClick: false,
-				defaultProtocol: "https",
-				protocols: ["https", "mailto", "tel"],
-				autolink: true,
 			}),
 		],
 		[],
@@ -198,10 +197,10 @@ export default function ResourceForm({
 								<Field data-invalid={isInvalid} className="min-w-0 md:w-full">
 									<FieldLabel htmlFor={field.name}>Icon</FieldLabel>
 									<div className="flex items-center gap-2">
-										<Select
-											onValueChange={field.handleChange}
-											value={field.state.value}
-										>
+									<Select
+										onValueChange={field.handleChange}
+										value={field.state.value}
+									>
 											<SelectTrigger className="w-40">
 												<SelectValue placeholder="Velg ikon" />
 											</SelectTrigger>

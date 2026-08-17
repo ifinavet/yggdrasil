@@ -1,4 +1,4 @@
-import { type Editor, EditorContent } from "@tiptap/react";
+import { type Editor, EditorContent, useEditorState } from "@tiptap/react";
 import { Separator } from "@workspace/ui/components//separator";
 import {
 	Bold,
@@ -53,6 +53,21 @@ export const EditorMenu = memo(function EditorMenu({
 }: Readonly<{
 	editor: Editor | null;
 }>) {
+	const editorState = useEditorState({
+		editor,
+		selector: ({ editor: currentEditor }) => ({
+			heading1: currentEditor?.isActive("heading", { level: 1 }) ?? false,
+			heading2: currentEditor?.isActive("heading", { level: 2 }) ?? false,
+			heading3: currentEditor?.isActive("heading", { level: 3 }) ?? false,
+			bold: currentEditor?.isActive("bold") ?? false,
+			italic: currentEditor?.isActive("italic") ?? false,
+			strike: currentEditor?.isActive("strike") ?? false,
+			codeBlock: currentEditor?.isActive("codeBlock") ?? false,
+			underline: currentEditor?.isActive("underline") ?? false,
+			bulletList: currentEditor?.isActive("bulletList") ?? false,
+		}),
+	});
+
 	const toggleHeading1 = useCallback(() => {
 		editor?.chain().focus().toggleHeading({ level: 1 }).run();
 	}, [editor]);
@@ -99,21 +114,21 @@ export const EditorMenu = memo(function EditorMenu({
 				<ToolButton
 					editor={editor}
 					onButtonClick={toggleHeading1}
-					isActive={editor.isActive("heading", { level: 1 })}
+					isActive={editorState?.heading1}
 				>
 					<Heading1 size={18} />
 				</ToolButton>
 				<ToolButton
 					editor={editor}
 					onButtonClick={toggleHeading2}
-					isActive={editor.isActive("heading", { level: 2 })}
+					isActive={editorState?.heading2}
 				>
 					<Heading2 size={18} />
 				</ToolButton>
 				<ToolButton
 					editor={editor}
 					onButtonClick={toggleHeading3}
-					isActive={editor.isActive("heading", { level: 3 })}
+					isActive={editorState?.heading3}
 				>
 					<Heading3 size={18} />
 				</ToolButton>
@@ -126,21 +141,21 @@ export const EditorMenu = memo(function EditorMenu({
 				<ToolButton
 					editor={editor}
 					onButtonClick={toggleBold}
-					isActive={editor.isActive("bold")}
+					isActive={editorState?.bold}
 				>
 					<Bold size={18} />
 				</ToolButton>
 				<ToolButton
 					editor={editor}
 					onButtonClick={toggleItalic}
-					isActive={editor.isActive("italic")}
+					isActive={editorState?.italic}
 				>
 					<Italic size={18} />
 				</ToolButton>
 				<ToolButton
 					editor={editor}
 					onButtonClick={toggleStrike}
-					isActive={editor.isActive("strike")}
+					isActive={editorState?.strike}
 				>
 					<Strikethrough size={18} />
 				</ToolButton>
@@ -150,14 +165,14 @@ export const EditorMenu = memo(function EditorMenu({
 				<ToolButton
 					editor={editor}
 					onButtonClick={toggleCodeBlock}
-					isActive={editor.isActive("codeBlock")}
+					isActive={editorState?.codeBlock}
 				>
 					<CodeXml size={18} />
 				</ToolButton>
 				<ToolButton
 					editor={editor}
 					onButtonClick={toggleUnderline}
-					isActive={editor.isActive("underline")}
+					isActive={editorState?.underline}
 				>
 					<Underline size={18} />
 				</ToolButton>
@@ -170,7 +185,7 @@ export const EditorMenu = memo(function EditorMenu({
 				<ToolButton
 					editor={editor}
 					onButtonClick={toggleBulletList}
-					isActive={editor.isActive("bulletList")}
+					isActive={editorState?.bulletList}
 				>
 					<List size={18} />
 				</ToolButton>

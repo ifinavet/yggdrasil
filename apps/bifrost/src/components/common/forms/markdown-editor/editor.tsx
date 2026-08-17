@@ -1,8 +1,6 @@
 "use client";
 
-import Link from "@tiptap/extension-link";
-import Placeholder from "@tiptap/extension-placeholder";
-import Underline from "@tiptap/extension-underline";
+import { Placeholder } from "@tiptap/extensions";
 import { useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import {
@@ -53,18 +51,19 @@ export default function DescriptionEditor({
 
 	const editorExtensions = useMemo(
 		() => [
-			StarterKit,
+			StarterKit.configure({
+				trailingNode: false,
+				link: {
+					openOnClick: true,
+					defaultProtocol: "https",
+					protocols: ["https", "mailto", "tel"],
+					autolink: true,
+				},
+			}),
 			Placeholder.configure({
 				emptyEditorClass:
 					"before:content-[attr(data-placeholder)] before:float-left before:text-muted-foreground before:h-0 before:pointer-events-none",
 				placeholder: "Skriv en kjempe kul beskrivelse av arrangementet...",
-			}),
-			Underline,
-			Link.configure({
-				openOnClick: true,
-				defaultProtocol: "https",
-				protocols: ["https", "mailto", "tel"],
-				autolink: true,
 			}),
 		],
 		[],
