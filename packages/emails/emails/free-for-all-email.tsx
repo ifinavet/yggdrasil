@@ -10,7 +10,7 @@ import {
 	pixelBasedPreset,
 	Tailwind,
 	Text,
-} from "@react-email/components";
+} from "react-email";
 
 export default function FreeForAllEmail({
 	event,

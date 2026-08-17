@@ -16,7 +16,7 @@
 		"@clerk/backend": "^3.16.6",
 		"@convex-dev/migrations": "^0.3.6",
 		"@convex-dev/resend": "^0.2.6",
-		"@react-email/render": "^1.4.0",
+		"@react-email/render": "^2.1.0",
 		"@workspace/emails": "workspace:*",
 		"@workspace/shared": "workspace:*",
 		"convex": "^1.44.0",
