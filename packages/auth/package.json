@@ -4,9 +4,9 @@
 	"type": "module",
 	"private": true,
 	"dependencies": {
-		"@clerk/nextjs": "^6.39.1",
+		"@clerk/nextjs": "^6.39.6",
 		"@workspace/backend": "workspace:*",
-		"convex": "^1.34.1"
+		"convex": "^1.44.0"
 	},
 	"devDependencies": {
 		"@workspace/typescript-config": "workspace:*",
