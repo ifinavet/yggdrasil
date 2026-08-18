@@ -16,11 +16,17 @@ if (typeof Element !== "undefined") {
 	}
 }
 
-if (typeof globalThis.ResizeObserver === "undefined") {
+if (globalThis.ResizeObserver === undefined) {
 	class ResizeObserverStub {
-		observe() {}
-		unobserve() {}
-		disconnect() {}
+		observe() {
+			// no-op: jsdom has no layout, so there's nothing to observe
+		}
+		unobserve() {
+			// no-op: nothing was ever observed
+		}
+		disconnect() {
+			// no-op: nothing was ever observed
+		}
 	}
 	globalThis.ResizeObserver = ResizeObserverStub as unknown as typeof ResizeObserver;
 }
