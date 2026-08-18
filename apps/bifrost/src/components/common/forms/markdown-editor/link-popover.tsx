@@ -17,7 +17,7 @@ import { useTiptapEditor } from "@/hooks/use-tiptap-editor";
 // --- Lib ---
 import { isMarkInSchema } from "@/utils/tiptap-utils";
 
-export interface LinkHandlerProps {
+interface LinkHandlerProps {
 	readonly editor: Editor | null;
 	readonly onSetLink?: () => void;
 	readonly onLinkActive?: () => void;
