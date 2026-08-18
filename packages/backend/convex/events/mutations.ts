@@ -191,24 +191,6 @@ export const upsertEventOrganizer = internalMutation({
 });
 
 /**
- * Advances the event waitlist by a given number of places.
- *
- * @param {Id<"events">} eventId - The id of the event to update.
- * @param {number} numOfNewPlaces - The number of new places to offer.
- *
- * @returns {Promise<void>} - Resolves when the waitlist has been processed.
- */
-export const updateWaitlistMutation = internalMutation({
-    args: {
-        eventId: v.id("events"),
-        numOfNewPlaces: v.number(),
-    },
-    handler: async (ctx, { eventId, numOfNewPlaces }) => {
-        await updateWaitlist(ctx, eventId, numOfNewPlaces);
-    },
-});
-
-/**
  * Promotes waitlisted registrations into pending status.
  *
  * @param {MutationCtx} ctx - The Convex mutation context.
