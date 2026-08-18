@@ -1,7 +1,95 @@
 import { v } from "convex/values";
 import { internal } from "../../_generated/api";
-import { internalMutation } from "../../_generated/server";
-import { makeStatusPending } from "../registrations/mutations";
+import { Doc, Id } from "../../_generated/dataModel";
+import { internalMutation, MutationCtx } from "../../_generated/server";
+
+/**
+ * Moves a registration to pending status and schedules the seat notification email.
+ *
+ * @param {MutationCtx} ctx - The Convex mutation context.
+ * @param {Doc<"registrations">} registrationToMakePending - The registration to update.
+ * @param {Doc<"events">} event - The event the registration belongs to.
+ *
+ * @throws - An error if the user for the registration cannot be resolved.
+ * @returns {Promise<void>} - Resolves when the registration has been updated and the email scheduled.
+ */
+export const makeStatusPending = async (
+    ctx: MutationCtx,
+    registrationToMakePending: Doc<"registrations">,
+    event: Doc<"events">,
+) => {
+    const user = await ctx.db.get(registrationToMakePending.userId);
+    if (!user) {
+        throw new Error(
+            `Bruker med ID ${registrationToMakePending.userId} ikke funnet. Kan ikke oppdatere registrering.`,
+        );
+    }
+
+    await ctx.db.patch(registrationToMakePending._id, {
+        status: "pending",
+        registrationTime: Date.now(),
+    });
+
+    await ctx.scheduler.runAfter(0, internal.emails.sendAvailableSeatEmail, {
+        participantEmail: user.email,
+        eventTitle: event.title,
+        eventId: event._id,
+        registrationId: registrationToMakePending._id,
+    });
+};
+
+/**
+ * Advances the event waitlist by a given number of places.
+ *
+ * @param {Id<"events">} eventId - The id of the event to update.
+ * @param {number} numOfNewPlaces - The number of new places to offer.
+ *
+ * @returns {Promise<void>} - Resolves when the waitlist has been processed.
+ */
+export const updateWaitlistMutation = internalMutation({
+    args: {
+        eventId: v.id("events"),
+        numOfNewPlaces: v.number(),
+    },
+    handler: async (ctx, { eventId, numOfNewPlaces }) => {
+        await updateWaitlist(ctx, eventId, numOfNewPlaces);
+    },
+});
+
+/**
+ * Promotes waitlisted registrations into pending status.
+ *
+ * @param {MutationCtx} ctx - The Convex mutation context.
+ * @param {Id<"events">} eventId - The id of the event to update.
+ * @param {number} numOfNewPlaces - The number of new places to offer.
+ *
+ * @throws - An error if the event cannot be found.
+ * @returns {Promise<void>} - Resolves when the waitlist has been updated.
+ */
+export const updateWaitlist = async (
+    ctx: MutationCtx,
+    eventId: Id<"events">,
+    numOfNewPlaces: number,
+) => {
+    const waitlistRegistrations = await ctx.db
+        .query("registrations")
+        .withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
+            q.eq("eventId", eventId).eq("status", "waitlist"),
+        )
+        .order("asc")
+        .collect();
+
+    const event = await ctx.db.get(eventId);
+    if (!event) {
+        throw new Error(`Event not for eventId: ${eventId}`);
+    }
+
+    await Promise.all(
+        waitlistRegistrations
+            .slice(0, numOfNewPlaces)
+            .map(async (registration) => await makeStatusPending(ctx, registration, event)),
+    );
+};
 
 /**
  * Checks pending registrations and reoffers seats when the response window expires.

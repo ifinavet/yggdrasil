@@ -1,9 +1,9 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { Id } from "../_generated/dataModel";
-import { internalMutation, mutation, MutationCtx } from "../_generated/server";
+import { internalMutation, mutation } from "../_generated/server";
 import { getCurrentUserOrThrow } from "../auth/currentUser";
-import { makeStatusPending } from "./registrations/mutations";
+import { updateWaitlist } from "./waitlist/mutations";
 
 // Shared validator for organizer roles
 const organizerRoleValidator = v.union(v.literal("hovedansvarlig"), v.literal("medhjelper"));
@@ -189,59 +189,6 @@ export const upsertEventOrganizer = internalMutation({
         await Promise.all([...organizersToRemove, ...organizersToAdd, ...organizersToUpdate]);
     },
 });
-
-/**
- * Advances the event waitlist by a given number of places.
- *
- * @param {Id<"events">} eventId - The id of the event to update.
- * @param {number} numOfNewPlaces - The number of new places to offer.
- *
- * @returns {Promise<void>} - Resolves when the waitlist has been processed.
- */
-export const updateWaitlistMutation = internalMutation({
-    args: {
-        eventId: v.id("events"),
-        numOfNewPlaces: v.number(),
-    },
-    handler: async (ctx, { eventId, numOfNewPlaces }) => {
-        await updateWaitlist(ctx, eventId, numOfNewPlaces);
-    },
-});
-
-/**
- * Promotes waitlisted registrations into pending status.
- *
- * @param {MutationCtx} ctx - The Convex mutation context.
- * @param {Id<"events">} eventId - The id of the event to update.
- * @param {number} numOfNewPlaces - The number of new places to offer.
- *
- * @throws - An error if the event cannot be found.
- * @returns {Promise<void>} - Resolves when the waitlist has been updated.
- */
-export const updateWaitlist = async (
-    ctx: MutationCtx,
-    eventId: Id<"events">,
-    numOfNewPlaces: number,
-) => {
-    const waitlistRegistrations = await ctx.db
-        .query("registrations")
-        .withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
-            q.eq("eventId", eventId).eq("status", "waitlist"),
-        )
-        .order("asc")
-        .collect();
-
-    const event = await ctx.db.get(eventId);
-    if (!event) {
-        throw new Error(`Event not for eventId: ${eventId}`);
-    }
-
-    await Promise.all(
-        waitlistRegistrations
-            .slice(0, numOfNewPlaces)
-            .map(async (registration) => await makeStatusPending(ctx, registration, event)),
-    );
-};
 
 /**
  * Updates the published status for multiple events.
