@@ -107,6 +107,17 @@ async function insertWaitlist(
 	return ids;
 }
 
+/**
+ * `clearWaitlistAndPending` plukker arrangementer på kalenderdag, ikke på
+ * tidsavstand. `Date.now() + HOUR` havner på neste dag i den siste timen før
+ * midnatt, så fixturene bruker et fast klokkeslett midt på dagen i stedet.
+ */
+function noonToday() {
+	const noon = new Date();
+	noon.setHours(12, 0, 0, 0);
+	return noon.getTime();
+}
+
 async function statusOf(t: ReturnType<typeof convexTest>, id: Id<"registrations">) {
 	return t.run(async (ctx) => (await ctx.db.get(id))?.status ?? null);
 }
@@ -202,10 +213,19 @@ describe("updateWaitlist", () => {
 			"registered",
 			Date.now() - 20 * HOUR,
 		);
+		const pendingUser = await insertUser(t, "venter@example.com");
+		const pending = await insertRegistration(
+			t,
+			eventId,
+			pendingUser,
+			"pending",
+			Date.now() - 2 * HOUR,
+		);
 
 		await t.run(async (ctx) => updateWaitlist(ctx, eventId, 3));
 
 		expect(await statusOf(t, registered)).toBe("registered");
+		expect(await statusOf(t, pending)).toBe("pending");
 		expect(await scheduledSeatEmails(t)).toHaveLength(0);
 	});
 
@@ -347,7 +367,7 @@ describe("checkPendingRegistrations", () => {
 describe("clearWaitlistAndPending", () => {
 	it("sletter venteliste og pending for dagens arrangementer og varsler dem", async () => {
 		const { t, companyId } = setup();
-		const eventId = await insertEvent(t, companyId, { eventStart: Date.now() + HOUR });
+		const eventId = await insertEvent(t, companyId, { eventStart: noonToday() });
 		const [waitlisted] = await insertWaitlist(t, eventId, 1);
 		const pendingUser = await insertUser(t, "pending@example.com");
 		const pending = await insertRegistration(t, eventId, pendingUser, "pending", Date.now());
@@ -361,7 +381,7 @@ describe("clearWaitlistAndPending", () => {
 
 	it("beholder registrerte deltakere", async () => {
 		const { t, companyId } = setup();
-		const eventId = await insertEvent(t, companyId, { eventStart: Date.now() + HOUR });
+		const eventId = await insertEvent(t, companyId, { eventStart: noonToday() });
 		const userId = await insertUser(t, "registrert@example.com");
 		const registered = await insertRegistration(t, eventId, userId, "registered", Date.now());
 
@@ -383,7 +403,7 @@ describe("clearWaitlistAndPending", () => {
 	it("gjør ingenting når arrangementet allerede er fullt", async () => {
 		const { t, companyId } = setup();
 		const eventId = await insertEvent(t, companyId, {
-			eventStart: Date.now() + HOUR,
+			eventStart: noonToday(),
 			participationLimit: 1,
 		});
 		const registeredUser = await insertUser(t, "full@example.com");
@@ -398,7 +418,7 @@ describe("clearWaitlistAndPending", () => {
 
 	it("sletter registreringen uten å varsle når brukeren er borte", async () => {
 		const { t, companyId } = setup();
-		const eventId = await insertEvent(t, companyId, { eventStart: Date.now() + HOUR });
+		const eventId = await insertEvent(t, companyId, { eventStart: noonToday() });
 		const [waitlisted] = await insertWaitlist(t, eventId, 1);
 		await t.run(async (ctx) => {
 			const registration = await ctx.db.get(waitlisted);
