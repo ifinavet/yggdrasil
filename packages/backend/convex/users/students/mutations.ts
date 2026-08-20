@@ -33,8 +33,8 @@ export const createByExternalId = mutation({
 
         const userId = await ctx.runMutation(internal.users.clerk.mutations.createIfNotExists, {
             externalId,
-            firstName: identity?.givenName ?? "Pending...",
-            lastName: identity?.familyName ?? "Pending...",
+            firstName: identity?.givenName?.trimEnd() ?? "Pending...",
+            lastName: identity?.familyName?.trimEnd() ?? "Pending...",
             email: identity?.email ?? "Pending...",
             image: identity?.profileUrl ?? "Pending...",
         });

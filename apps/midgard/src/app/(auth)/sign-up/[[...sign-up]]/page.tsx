@@ -98,8 +98,8 @@ export default function SignUpPage() {
 			try {
 				setLoading(true);
 				await signUp.create({
-					firstName: value.firstName,
-					lastName: value.lastName,
+					firstName: value.firstName.trimEnd(),
+					lastName: value.lastName.trimEnd(),
 					emailAddress: value.email,
 					password: value.password,
 				});
