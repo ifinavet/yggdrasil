@@ -1,8 +1,8 @@
 import { v } from "convex/values";
 import { internal } from "../../_generated/api";
-import { Doc } from "../../_generated/dataModel";
-import { mutation, MutationCtx } from "../../_generated/server";
+import { mutation } from "../../_generated/server";
 import { getCurrentUserOrThrow } from "../../auth/currentUser";
+import { makeStatusPending } from "../waitlist/mutations";
 
 /**
  * Accepts a pending registration for the current user.
@@ -245,38 +245,3 @@ export const unregister = mutation({
         return returnData;
     },
 });
-
-/**
- * Moves a registration to pending status and schedules the seat notification email.
- *
- * @param {MutationCtx} ctx - The Convex mutation context.
- * @param {Doc<"registrations">} registrationToMakePending - The registration to update.
- * @param {Doc<"events">} event - The event the registration belongs to.
- *
- * @throws - An error if the user for the registration cannot be resolved.
- * @returns {Promise<void>} - Resolves when the registration has been updated and the email scheduled.
- */
-export const makeStatusPending = async (
-    ctx: MutationCtx,
-    registrationToMakePending: Doc<"registrations">,
-    event: Doc<"events">,
-) => {
-    const user = await ctx.db.get(registrationToMakePending.userId);
-    if (!user) {
-        throw new Error(
-            `Bruker med ID ${registrationToMakePending.userId} ikke funnet. Kan ikke oppdatere registrering.`,
-        );
-    }
-
-    await ctx.db.patch(registrationToMakePending._id, {
-        status: "pending",
-        registrationTime: Date.now(),
-    });
-
-    await ctx.scheduler.runAfter(0, internal.emails.sendAvailableSeatEmail, {
-        participantEmail: user.email,
-        eventTitle: event.title,
-        eventId: event._id,
-        registrationId: registrationToMakePending._id,
-    });
-};
