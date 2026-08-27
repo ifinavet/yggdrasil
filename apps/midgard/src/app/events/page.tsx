@@ -72,10 +72,7 @@ export default async function EventsPage() {
 					aria-hidden="true"
 				/>
 				<div className="relative z-10 py-4">
-					<EventsList
-						events={activeMonthEvents}
-						isExternal={isExternalEvents}
-					/>
+					<EventsList events={activeMonthEvents} />
 				</div>
 			</div>
 		</>

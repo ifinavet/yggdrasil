@@ -13,6 +13,7 @@ export const eventsSchema = {
         food: v.string(),
         language: v.string(),
         ageRestriction: v.string(),
+        externalEvent: v.optional(v.boolean()),
         externalUrl: v.optional(v.string()),
         hostingCompany: v.id("companies"),
         published: v.boolean(),

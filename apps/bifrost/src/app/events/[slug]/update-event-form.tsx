@@ -31,7 +31,8 @@ export default function UpdateEventForm({
 			userId: organizer.userId,
 			role: organizer.role as ORGANIZER_ROLE,
 		})),
-		eventType: event.externalUrl ? "external_event" : "internal_event",
+		externalEvent:
+			event.externalEvent ?? Boolean(event.externalUrl?.length),
 		hostingCompany: {
 			id: event.hostingCompany,
 			name: event.hostingCompanyName,
@@ -52,6 +53,7 @@ export default function UpdateEventForm({
 			food: values.food,
 			language: values.language,
 			ageRestriction: values.ageRestrictions,
+			externalEvent: values.externalEvent,
 			externalUrl: values.externalUrl,
 			hostingCompany: values.hostingCompany.id as Id<"companies">,
 			organizers: values.organizers.map((organizer) => ({

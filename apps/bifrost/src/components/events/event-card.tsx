@@ -26,7 +26,7 @@ export default function EventCard({
 	date,
 	isPublished,
 	slug,
-	externalUrl,
+	externalEvent,
 	organizers,
 }: Readonly<{
 	title: string;
@@ -35,14 +35,12 @@ export default function EventCard({
 	date: number;
 	isPublished: boolean;
 	slug?: string;
-	externalUrl?: string;
+	externalEvent: boolean;
 	organizers: Organizer[];
 }>) {
 	const [selected, setSelected] = useState(false);
 	const addEvent = useSelectedEventsStore((state) => state.addEvent);
 	const removeEvent = useSelectedEventsStore((state) => state.removeEvent);
-
-	const isExternal = !(externalUrl === undefined || externalUrl === "");
 
 	function handleCheckboxChange(checked: boolean) {
 		setSelected(checked);
@@ -75,7 +73,7 @@ export default function EventCard({
 						</h3>
 					</div>
 					<div className="flex flex-wrap gap-2">
-						{isExternal && <Badge>Externt arrangement</Badge>}
+						{externalEvent && <Badge>Eksternt arrangement</Badge>}
 						{!isPublished && <Badge variant="secondary">Avpublisert</Badge>}
 					</div>
 				</CardContent>

@@ -74,7 +74,9 @@ function EventsGridContent({
 								date={event.eventStart}
 								isPublished={event.published}
 								slug={event.slug}
-								externalUrl={event.externalUrl}
+								externalEvent={
+									event.externalEvent ?? Boolean(event.externalUrl?.length)
+								}
 								organizers={event.organizers}
 							/>
 						))}
@@ -92,7 +94,9 @@ function EventsGridContent({
 								date={event.eventStart}
 								slug={event.slug}
 								isPublished={event.published}
-								externalUrl={event.externalUrl}
+								externalEvent={
+									event.externalEvent ?? Boolean(event.externalUrl?.length)
+								}
 								organizers={event.organizers}
 							/>
 						))}
