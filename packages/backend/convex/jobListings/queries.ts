@@ -82,7 +82,9 @@ export const getAllPublishedAndActive = query({
             }
         }
 
-        return listingsWithCompany;
+        return listingsWithCompany.sort((a, b) =>
+            Number(b.mainSponsor) - Number(a.mainSponsor)
+        );
     },
 });
 
@@ -120,6 +122,7 @@ async function addCompanyToListings(
                 ...listing,
                 companyName: company?.name || "Ukjent bedrift",
                 companyLogo: imageUrl,
+                mainSponsor: company.mainSponsor,
             };
         }),
     );
