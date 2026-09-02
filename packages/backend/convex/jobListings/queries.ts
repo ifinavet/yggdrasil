@@ -65,7 +65,7 @@ export const getAllPublishedAndActive = query({
             query = query.filter((q) => q.eq(q.field("company"), company));
         }
 
-        const listings = n ? await query.take(n) : await query.collect();
+        const listings = await query.collect();
 
         const listingsWithCompany = await addCompanyToListings(ctx, listings);
 
@@ -82,9 +82,11 @@ export const getAllPublishedAndActive = query({
             }
         }
 
-        return listingsWithCompany.sort((a, b) =>
+        const result = listingsWithCompany.sort((a, b) =>
             Number(b.mainSponsor) - Number(a.mainSponsor)
         );
+
+        return n ? result.slice(0, n) : result;
     },
 });
 
