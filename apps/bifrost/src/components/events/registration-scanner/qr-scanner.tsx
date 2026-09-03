@@ -50,7 +50,12 @@ export default function QRScannerControlled({
 				.filter((d) => d.kind === "videoinput")
 				.map((d) => ({ deviceId: d.deviceId, label: d.label || "Camera" }));
 			setCams(vids);
-			if (!selectedCam && vids[0]) setSelectedCam(vids[0].deviceId);
+			if (!selectedCam) {
+				const backCam = vids.find((v) =>
+				/back|rear|environment/i.test(v.label),
+			) ?? vids[vids.length - 1] ?? vids[0];
+			if (backCam) setSelectedCam(backCam.deviceId);
+			}
 		} catch {
 			toast.error("Kunne ikke hente kameraer. Krever tillatelse?");
 		}
