@@ -14,13 +14,18 @@ import {
 import { cn } from "@workspace/ui/lib/utils";
 import { useMutation, useQuery } from "convex/react";
 import { QrCode } from "lucide-react";
+import dynamic from "next/dynamic";
 import { usePostHog } from "posthog-js/react";
 import type * as React from "react";
 import { useState } from "react";
 import { toast } from "sonner";
-import QRScanner from "@/components/events/registration-scanner/qr-scanner";
 import { humanReadableDate } from "@/utils/utils";
 import RegisterAttendanceByQr from "./register-by-qr-code";
+
+const QRScanner = dynamic(
+	() => import("@/components/events/registration-scanner/qr-scanner"),
+	{ ssr: false },
+);
 
 export type QRScannerDialogProps = {
 	readonly open?: boolean;
