@@ -17,13 +17,13 @@ import { useTiptapEditor } from "@/hooks/use-tiptap-editor";
 // --- Lib ---
 import { isMarkInSchema } from "@/utils/tiptap-utils";
 
-export interface LinkHandlerProps {
+interface LinkHandlerProps {
 	readonly editor: Editor | null;
 	readonly onSetLink?: () => void;
 	readonly onLinkActive?: () => void;
 }
 
-export interface LinkMainProps {
+interface LinkMainProps {
 	readonly url: string;
 	readonly setUrl: React.Dispatch<React.SetStateAction<string>>;
 	readonly setLink: () => void;
@@ -31,7 +31,7 @@ export interface LinkMainProps {
 	readonly isActive: boolean;
 }
 
-export const useLinkHandler = (props: Readonly<LinkHandlerProps>) => {
+const useLinkHandler = (props: Readonly<LinkHandlerProps>) => {
 	const { editor, onSetLink, onLinkActive } = props;
 	const [url, setUrl] = React.useState<string>("");
 
@@ -103,20 +103,6 @@ export const useLinkHandler = (props: Readonly<LinkHandlerProps>) => {
 		removeLink,
 		isActive: editor?.isActive("link") || false,
 	};
-};
-
-export const LinkContent: React.FC<
-	Readonly<{
-		editor?: Editor | null;
-	}>
-> = ({ editor: providedEditor }) => {
-	const editor = useTiptapEditor(providedEditor);
-
-	const linkHandler = useLinkHandler({
-		editor: editor,
-	});
-
-	return <LinkMain {...linkHandler} />;
 };
 
 const LinkMain: React.FC<Readonly<LinkMainProps>> = ({

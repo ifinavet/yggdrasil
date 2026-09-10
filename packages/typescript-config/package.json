@@ -2,8 +2,15 @@
 	"name": "@workspace/typescript-config",
 	"version": "0.0.0",
 	"private": true,
+	"type": "module",
 	"license": "PROPRIETARY",
 	"publishConfig": {
 		"access": "public"
+	},
+	"dependencies": {
+		"@testing-library/jest-dom": "^7.0.1",
+		"@vitejs/plugin-react": "^6.0.5",
+		"jsdom": "^30.0.1",
+		"vitest": "^4.1.11"
 	}
 }
