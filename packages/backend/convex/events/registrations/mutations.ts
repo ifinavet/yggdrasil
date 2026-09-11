@@ -126,6 +126,12 @@ export const register = mutation({
             throw new Error(`aarangementet med ID ${eventId} ikke funnet.Kan ikke registrere.`);
         }
 
+        if (Date.now() < event.registrationOpens) {
+            throw new Error(
+                `Påmelding til arrangementet "${event.title}" har ikke åpnet ennå.`,
+            );
+        }
+
         const registrations = await ctx.db
             .query("registrations")
             .withIndex("by_eventIdStatusAndRegistrationTime", (q) => q.eq("eventId", eventId))
