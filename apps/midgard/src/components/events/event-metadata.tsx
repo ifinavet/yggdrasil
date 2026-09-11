@@ -1,9 +1,9 @@
 "use client";
 
-import { api } from "@workspace/backend/convex/api";
+import type { api } from "@workspace/backend/convex/api";
 import type { Doc } from "@workspace/backend/convex/dataModel";
 import { Button } from "@workspace/ui/components/button";
-import { type Preloaded, useQuery, usePreloadedQuery } from "convex/react";
+import { type Preloaded, usePreloadedQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import {
 	CalendarDays,
@@ -13,38 +13,10 @@ import {
 	Users,
 	Utensils,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
 import { humanReadableDateTime } from "@/utils/dateFormatting";
 import QRCode from "./registration/qr-code";
 import RegistrationButton from "./registration/registration-button";
 import WaitlistPosition from "./registration/waitlist-position";
-
-/**
- * Tracks the current time corrected for skew between the device clock and the
- * Convex server clock, so time-gated UI can't be tricked by changing the
- * device's system clock.
- *
- * @returns {number | undefined} - The clock-skew-corrected timestamp, or undefined until the server time has been fetched.
- */
-function useServerCorrectedNow() {
-	const serverTime = useQuery(api.events.queries.getServerTime, {});
-	const offsetRef = useRef<number | null>(null);
-	const [now, setNow] = useState(() => Date.now());
-
-	useEffect(() => {
-		if (serverTime !== undefined && offsetRef.current === null) {
-			offsetRef.current = serverTime - Date.now();
-		}
-	}, [serverTime]);
-
-	useEffect(() => {
-		const interval = setInterval(() => setNow(Date.now()), 1000);
-		return () => clearInterval(interval);
-	}, []);
-
-	if (serverTime === undefined) return undefined;
-	return now + (offsetRef.current ?? 0);
-}
 
 export function EventMetadata({
 	preloadedEvent,
@@ -108,8 +80,6 @@ export function EventActionButton({
 	const availableSpots =
 		event.participationLimit - (registrations.registered.length || 0);
 
-	const correctedNow = useServerCorrectedNow();
-
 	if (event.externalUrl && event.externalUrl.length > 0) {
 		return (
 			<Button
@@ -124,12 +94,11 @@ export function EventActionButton({
 		);
 	}
 
-	if (correctedNow === undefined || event.registrationOpens > correctedNow) {
+	if (event.registrationOpens > Date.now()) {
 		return (
 			<Button
 				type="button"
-				disabled
-				className="min-h-fit w-3/4 whitespace-normal text-balance rounded-xl bg-zinc-500 text-lg text-primary-foreground disabled:opacity-100 sm:py-6 md:py-8 dark:bg-zinc-700"
+				className="min-h-fit w-3/4 whitespace-normal text-balance rounded-xl bg-zinc-500 text-lg text-primary-foreground hover:cursor-pointer hover:bg-zinc-500 sm:py-6 md:py-8 dark:bg-zinc-700"
 			>
 				Påmelding åpner{" "}
 				{humanReadableDateTime(new Date(event.registrationOpens))}
@@ -138,7 +107,7 @@ export function EventActionButton({
 	}
 
 	const HALF_HOUR = 30 * 60 * 1000;
-	const disabledButtons = correctedNow - event.eventStart >= HALF_HOUR;
+	const disabledButtons = Date.now() - event.eventStart >= HALF_HOUR;
 
 	return (
 		<RegistrationButton
