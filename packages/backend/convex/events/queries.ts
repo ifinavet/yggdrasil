@@ -211,16 +211,6 @@ export const getCurrentSemester = query({
 });
 
 /**
- * Fetches the current server time, used by clients to detect local clock skew.
- *
- * @returns {number} - The current server timestamp in milliseconds.
- */
-export const getServerTime = query({
-	args: {},
-	handler: async () => Date.now(),
-});
-
-/**
  * Fetches an event by id or slug with hosting company and organizer data.
  *
  * @param {string} identifier - Either the event id or event slug.
