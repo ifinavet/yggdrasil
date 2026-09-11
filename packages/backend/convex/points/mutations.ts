@@ -14,29 +14,38 @@ import { getCurrentUserOrThrow } from "../auth/currentUser";
  * @returns {null} - Returns null when the points are created successfully.
  */
 export const givePoints = mutation({
-    args: {
-        id: v.id("students"),
-        reason: v.string(),
-        severity: v.number(),
-    },
-    handler: async (ctx, { id, reason, severity }) => {
-        await ctx.runMutation(internal.points.mutations.givePointsInternal, {
-            id,
-            reason,
-            severity,
-        });
+	args: {
+		id: v.id("students"),
+		reason: v.string(),
+		severity: v.number(),
+	},
+	handler: async (ctx, { id, reason, severity }) => {
+		const user = await getCurrentUserOrThrow(ctx);
+		const access = await ctx.db
+			.query("accessRights")
+			.withIndex("by_userId", (q) => q.eq("userId", user._id))
+			.first();
+		if (!access || !["super-admin", "admin", "internal"].includes(access.role)) {
+			throw new Error("Unauthorized: Bare administratorer kan tildele prikker.");
+		}
 
-        const student = await ctx.db.get(id);
-        if (!student) {
-            throw new Error(`Student with ID ${id} not found.`);
-        }
+		await ctx.runMutation(internal.points.mutations.givePointsInternal, {
+			id,
+			reason,
+			severity,
+		});
 
-        await ctx.scheduler.runAfter(0, internal.points.mutations.givePointsEmail, {
-            userId: student.userId,
-            severity,
-            reason,
-        });
-    },
+		const student = await ctx.db.get(id);
+		if (!student) {
+			throw new Error(`Student with ID ${id} not found.`);
+		}
+
+		await ctx.scheduler.runAfter(0, internal.points.mutations.givePointsEmail, {
+			userId: student.userId,
+			severity,
+			reason,
+		});
+	},
 });
 
 /**
@@ -50,34 +59,34 @@ export const givePoints = mutation({
  * @returns {null} - Returns null when the points are stored successfully.
  */
 export const givePointsInternal = internalMutation({
-    args: {
-        id: v.id("students"),
-        reason: v.string(),
-        severity: v.number(),
-    },
-    handler: async (ctx, { id, reason, severity }) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (identity === null) {
-            throw new Error("Unauthenticated call to mutation");
-        }
+	args: {
+		id: v.id("students"),
+		reason: v.string(),
+		severity: v.number(),
+	},
+	handler: async (ctx, { id, reason, severity }) => {
+		const identity = await ctx.auth.getUserIdentity();
+		if (identity === null) {
+			throw new Error("Unauthenticated call to mutation");
+		}
 
-        await ctx.db.insert("points", {
-            studentId: id,
-            reason,
-            severity,
-        });
+		await ctx.db.insert("points", {
+			studentId: id,
+			reason,
+			severity,
+		});
 
-        const points = await ctx.db
-            .query("points")
-            .withIndex("by_studentId", (q) => q.eq("studentId", id))
-            .collect();
+		const points = await ctx.db
+			.query("points")
+			.withIndex("by_studentId", (q) => q.eq("studentId", id))
+			.collect();
 
-        if (points.reduce((acc, point) => acc + point.severity, 0) >= 3) {
-            await ctx.runMutation(internal.points.mutations.tooManyPointsEmail, {
-                studentsId: id,
-            });
-        }
-    },
+		if (points.reduce((acc, point) => acc + point.severity, 0) >= 3) {
+			await ctx.runMutation(internal.points.mutations.tooManyPointsEmail, {
+				studentsId: id,
+			});
+		}
+	},
 });
 
 /**
@@ -91,24 +100,24 @@ export const givePointsInternal = internalMutation({
  * @returns {null} - Returns null when the email job is scheduled successfully.
  */
 export const givePointsEmail = internalMutation({
-    args: {
-        userId: v.id("users"),
-        severity: v.number(),
-        reason: v.string(),
-    },
-    handler: async (ctx, { userId, severity, reason }) => {
-        const user = await ctx.db.get(userId);
+	args: {
+		userId: v.id("users"),
+		severity: v.number(),
+		reason: v.string(),
+	},
+	handler: async (ctx, { userId, severity, reason }) => {
+		const user = await ctx.db.get(userId);
 
-        if (!user) {
-            throw new Error(`User with ID ${userId} not found.`);
-        }
+		if (!user) {
+			throw new Error(`User with ID ${userId} not found.`);
+		}
 
-        await ctx.scheduler.runAfter(0, internal.emails.sendGottenPointsEmail, {
-            participantEmail: user.email,
-            severity,
-            reason,
-        });
-    },
+		await ctx.scheduler.runAfter(0, internal.emails.sendGottenPointsEmail, {
+			participantEmail: user.email,
+			severity,
+			reason,
+		});
+	},
 });
 
 /**
@@ -120,24 +129,24 @@ export const givePointsEmail = internalMutation({
  * @returns {null} - Returns null when the email job is scheduled successfully.
  */
 export const tooManyPointsEmail = internalMutation({
-    args: {
-        studentsId: v.id("students"),
-    },
-    handler: async (ctx, { studentsId }) => {
-        const student = await ctx.db.get(studentsId);
-        if (!student) {
-            throw new Error(`Student with ID ${studentsId} not found.`);
-        }
+	args: {
+		studentsId: v.id("students"),
+	},
+	handler: async (ctx, { studentsId }) => {
+		const student = await ctx.db.get(studentsId);
+		if (!student) {
+			throw new Error(`Student with ID ${studentsId} not found.`);
+		}
 
-        const user = await ctx.db.get(student.userId);
-        if (!user) {
-            throw new Error(`User with ID ${student.userId} not found.`);
-        }
+		const user = await ctx.db.get(student.userId);
+		if (!user) {
+			throw new Error(`User with ID ${student.userId} not found.`);
+		}
 
-        await ctx.scheduler.runAfter(0, internal.emails.sendTooManyPointsEmail, {
-            participantEmail: user.email,
-        });
-    },
+		await ctx.scheduler.runAfter(0, internal.emails.sendTooManyPointsEmail, {
+			participantEmail: user.email,
+		});
+	},
 });
 
 /**
@@ -149,14 +158,21 @@ export const tooManyPointsEmail = internalMutation({
  * @returns {null} - Returns null when the points record is deleted successfully.
  */
 export const remove = mutation({
-    args: {
-        id: v.id("points"),
-    },
-    handler: async (ctx, { id }) => {
-        await getCurrentUserOrThrow(ctx);
+	args: {
+		id: v.id("points"),
+	},
+	handler: async (ctx, { id }) => {
+		const user = await getCurrentUserOrThrow(ctx);
+		const access = await ctx.db
+			.query("accessRights")
+			.withIndex("by_userId", (q) => q.eq("userId", user._id))
+			.first();
+		if (!access || !["super-admin", "admin"].includes(access.role)) {
+			throw new Error("Unauthorized: Bare administratorer kan slette prikker.");
+		}
 
-        await ctx.db.delete(id);
-    },
+		await ctx.db.delete(id);
+	},
 });
 
 /**
@@ -165,22 +181,22 @@ export const remove = mutation({
  * @returns {null} - Returns null when the cleanup has completed.
  */
 export const checkIfAnyPointsShouldBeRemoved = internalMutation({
-    handler: async (ctx) => {
-        const points = await ctx.db
-            .query("points")
-            .withIndex("by_creation_time", (q) =>
-                q.lt("_creationTime", Date.now() - 6 * 30 * 24 * 60 * 60 * 1000),
-            )
-            .collect();
+	handler: async (ctx) => {
+		const points = await ctx.db
+			.query("points")
+			.withIndex("by_creation_time", (q) =>
+				q.lt("_creationTime", Date.now() - 6 * 30 * 24 * 60 * 60 * 1000),
+			)
+			.collect();
 
-        if (points.length === 0) {
-            return;
-        }
+		if (points.length === 0) {
+			return;
+		}
 
-        await Promise.all(
-            points.map(async (point) => {
-                await ctx.db.delete(point._id);
-            }),
-        );
-    },
+		await Promise.all(
+			points.map(async (point) => {
+				await ctx.db.delete(point._id);
+			}),
+		);
+	},
 });
