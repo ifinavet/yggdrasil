@@ -3,6 +3,7 @@
 import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
 import { DEGREE_TYPES, STUDY_PROGRAMS } from "@workspace/shared/constants";
+import { describeMutationError } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
 import {
 	Field,
@@ -68,8 +69,8 @@ export default function UpdateProfileForm({
 				.then(() => {
 					toast.success("Profilen ble oppdatert!");
 				})
-				.catch(() => {
-					toast.error("Oi! Det oppstod en feil! Prøv igjen senere.");
+				.catch((error) => {
+					toast.error(describeMutationError(error, "Oi! Det oppstod en feil! Prøv igjen senere."));
 				}),
 	});
 
@@ -126,33 +127,22 @@ export default function UpdateProfileForm({
 				<FieldGroup>
 					<form.Field name="studyProgram">
 						{(field) => {
-							const isInvalid =
-								field.state.meta.isTouched && !field.state.meta.isValid;
+							const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
 							return (
 								<Field className="w-full" data-invalid={isInvalid}>
 									<FieldContent>
 										<FieldLabel htmlFor={field.name}>Studieprogram</FieldLabel>
-										{isInvalid && (
-											<FieldError errors={field.state.meta.errors} />
-										)}
+										{isInvalid && <FieldError errors={field.state.meta.errors} />}
 									</FieldContent>
 									<Select
 										onValueChange={(value) =>
-											field.handleChange(
-												value as ProfileFormSchema["studyProgram"],
-											)
+											field.handleChange(value as ProfileFormSchema["studyProgram"])
 										}
 										value={field.state.value}
 									>
-										<SelectTrigger
-											className="w-full truncate"
-											aria-invalid={isInvalid}
-										>
-											<SelectValue
-												placeholder="Velg et studieprogram"
-												className="truncate"
-											/>
+										<SelectTrigger className="w-full truncate" aria-invalid={isInvalid}>
+											<SelectValue placeholder="Velg et studieprogram" className="truncate" />
 										</SelectTrigger>
 										<SelectContent>
 											{STUDY_PROGRAMS.map((program) => (
@@ -170,16 +160,13 @@ export default function UpdateProfileForm({
 				<FieldGroup className="flex w-full flex-col gap-4 md:flex-row">
 					<form.Field name="degree">
 						{(field) => {
-							const isInvalid =
-								field.state.meta.isTouched && !field.state.meta.isValid;
+							const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
 							return (
 								<Field className="w-full" data-invalid={isInvalid}>
 									<FieldContent>
 										<FieldLabel htmlFor={field.name}>Grad</FieldLabel>
-										{isInvalid && (
-											<FieldError errors={field.state.meta.errors} />
-										)}
+										{isInvalid && <FieldError errors={field.state.meta.errors} />}
 									</FieldContent>
 									<Select
 										onValueChange={(value) =>
@@ -187,14 +174,8 @@ export default function UpdateProfileForm({
 										}
 										value={field.state.value}
 									>
-										<SelectTrigger
-											className="w-full truncate"
-											aria-invalid={isInvalid}
-										>
-											<SelectValue
-												placeholder="Velg studie grad"
-												className="truncate"
-											/>
+										<SelectTrigger className="w-full truncate" aria-invalid={isInvalid}>
+											<SelectValue placeholder="Velg studie grad" className="truncate" />
 										</SelectTrigger>
 										<SelectContent>
 											{DEGREE_TYPES.map((degree) => (

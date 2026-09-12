@@ -1,7 +1,7 @@
 "use client";
 import { useAuth } from "@clerk/nextjs";
-import { useSignUp } from "@clerk/nextjs/legacy";
 import { isClerkAPIResponseError } from "@clerk/nextjs/errors";
+import { useSignUp } from "@clerk/nextjs/legacy";
 import type { ClerkAPIError } from "@clerk/nextjs/types";
 import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
@@ -31,10 +31,10 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@workspace/ui/components/select";
-import { useMutation } from "convex/react";
+import { useConvexAuth, useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
 import { usePostHog } from "posthog-js/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import z from "zod/v4";
 import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
 import { Title } from "@/components/common/title";
@@ -67,14 +67,24 @@ const verifyingSchema = z.object({
 	code: z.string().min(6, "Verifiseringkode må være 6 tegn"),
 });
 
+type PendingStudent = {
+	externalId: string;
+	studyProgram: SignUpFormSchema["studyProgram"];
+	degree: SignUpFormSchema["degree"];
+	year: number;
+	name: string;
+};
+
 export default function SignUpPage() {
 	const { isSignedIn } = useAuth();
 	const { isLoaded, signUp, setActive } = useSignUp();
+	const { isAuthenticated } = useConvexAuth();
 	const postHog = usePostHog();
 
 	const [errors, setErrors] = useState<ClerkAPIError[]>([]);
 	const [loading, setLoading] = useState(false);
 	const [verifying, setVerifying] = useState(false);
+	const [pendingStudent, setPendingStudent] = useState<PendingStudent | null>(null);
 
 	const router = useRouter();
 
@@ -118,6 +128,41 @@ export default function SignUpPage() {
 	});
 
 	const createStudent = useMutation(api.users.students.mutations.createByExternalId);
+	const signUpEmail = signUpForm.state.values.email;
+
+	useEffect(() => {
+		if (!isAuthenticated || !pendingStudent) return;
+
+		const createStudentProfile = async () => {
+			try {
+				await createStudent(pendingStudent);
+
+				postHog.capture("midgard-student-sign-up", {
+					email: signUpEmail,
+					studyProgram: pendingStudent.studyProgram,
+					degree: pendingStudent.degree,
+					year: pendingStudent.year,
+					name: pendingStudent.name,
+				});
+
+				router.push("/");
+			} catch {
+				setErrors([
+					{
+						code: "student_creation_failed",
+						longMessage: "Studentprofilen kunne ikke opprettes. Vennligst prøv igjen.",
+						meta: {},
+					} as ClerkAPIError,
+				]);
+				setLoading(false);
+			} finally {
+				setPendingStudent(null);
+			}
+		};
+
+		createStudentProfile();
+	}, [isAuthenticated, pendingStudent, createStudent, postHog, router, signUpEmail]);
+
 	const verifyingForm = useForm({
 		defaultValues: {
 			code: "",
@@ -134,42 +179,7 @@ export default function SignUpPage() {
 					code: value.code,
 				});
 
-				if (signUpAttempt.status === "complete") {
-					await setActive({
-						session: signUpAttempt.createdSessionId,
-					});
-
-					if (signUpAttempt.createdUserId === null) {
-						setErrors([
-							{
-								code: "user_creation_failed",
-								longMessage:
-									"Bruker kunne ikke opprettes. Vennligst prøv igjen.",
-								meta: {},
-							} as ClerkAPIError,
-						]);
-						return;
-					}
-					const signUpFormValues = signUpForm.state.values;
-
-					await createStudent({
-						externalId: signUpAttempt.createdUserId,
-						studyProgram: signUpFormValues.studyProgram,
-						degree: signUpFormValues.degree,
-						year: signUpFormValues.year,
-						name: `${signUpFormValues.firstName} ${signUpFormValues.lastName}`,
-					});
-
-					postHog.capture("midgard-student-sign-up", {
-						email: signUpFormValues.email,
-						studyProgram: signUpFormValues.studyProgram,
-						degree: signUpFormValues.degree,
-						year: signUpFormValues.year,
-						name: `${signUpFormValues.firstName} ${signUpFormValues.lastName}`,
-					});
-
-					router.push("/");
-				} else {
+				if (signUpAttempt.status !== "complete") {
 					setErrors([
 						{
 							code: "verification_failed",
@@ -178,16 +188,43 @@ export default function SignUpPage() {
 						} as ClerkAPIError,
 					]);
 					console.error("Verification failed", signUpAttempt);
+					setLoading(false);
+					return;
 				}
+
+				await setActive({
+					session: signUpAttempt.createdSessionId,
+				});
+
+				if (signUpAttempt.createdUserId === null) {
+					setErrors([
+						{
+							code: "user_creation_failed",
+							longMessage: "Bruker kunne ikke opprettes. Vennligst prøv igjen.",
+							meta: {},
+						} as ClerkAPIError,
+					]);
+					setLoading(false);
+					return;
+				}
+
+				const signUpFormValues = signUpForm.state.values;
+
+				setPendingStudent({
+					externalId: signUpAttempt.createdUserId,
+					studyProgram: signUpFormValues.studyProgram,
+					degree: signUpFormValues.degree,
+					year: signUpFormValues.year,
+					name: `${signUpFormValues.firstName} ${signUpFormValues.lastName}`,
+				});
 			} catch (error) {
 				if (isClerkAPIResponseError(error)) setErrors(error.errors);
-			} finally {
 				setLoading(false);
 			}
 		},
 	});
 
-	if (isSignedIn) {
+	if (isSignedIn && !pendingStudent) {
 		router.push("/");
 		return null;
 	}
@@ -208,15 +245,13 @@ export default function SignUpPage() {
 							<FieldGroup className="w-full">
 								<verifyingForm.Field name="code">
 									{(field) => {
-										const isInvalid =
-											field.state.meta.isTouched && !field.state.meta.isValid;
+										const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 										return (
 											<Field data-invalid={isInvalid} className="w-full">
 												<FieldContent>
 													<FieldLabel>Verifiserings kode</FieldLabel>
 													<FieldDescription>
-														Skriv inn koden du har fått på e-post for å
-														verifisere brukeren din.
+														Skriv inn koden du har fått på e-post for å verifisere brukeren din.
 													</FieldDescription>
 												</FieldContent>
 												<InputOTP
@@ -239,9 +274,7 @@ export default function SignUpPage() {
 														<InputOTPSlot index={5} />
 													</InputOTPGroup>
 												</InputOTP>
-												{isInvalid && (
-													<FieldError errors={field.state.meta.errors} />
-												)}
+												{isInvalid && <FieldError errors={field.state.meta.errors} />}
 											</Field>
 										);
 									}}
@@ -271,8 +304,7 @@ export default function SignUpPage() {
 					<FieldGroup className="grid gap-4 md:grid-cols-2">
 						<signUpForm.Field name="firstName">
 							{(field) => {
-								const isInvalid =
-									field.state.meta.isTouched && !field.state.meta.isValid;
+								const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 								return (
 									<Field data-invalid={isInvalid}>
 										<FieldLabel htmlFor={field.name}>Fornavn</FieldLabel>
@@ -286,9 +318,7 @@ export default function SignUpPage() {
 											placeholder="Ola"
 											autoComplete="off"
 										/>
-										{isInvalid && (
-											<FieldError errors={field.state.meta.errors} />
-										)}
+										{isInvalid && <FieldError errors={field.state.meta.errors} />}
 									</Field>
 								);
 							}}
@@ -296,8 +326,7 @@ export default function SignUpPage() {
 
 						<signUpForm.Field name="lastName">
 							{(field) => {
-								const isInvalid =
-									field.state.meta.isTouched && !field.state.meta.isValid;
+								const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 								return (
 									<Field data-invalid={isInvalid}>
 										<FieldLabel htmlFor={field.name}>Etternavn</FieldLabel>
@@ -311,9 +340,7 @@ export default function SignUpPage() {
 											placeholder="Nordmann"
 											autoComplete="off"
 										/>
-										{isInvalid && (
-											<FieldError errors={field.state.meta.errors} />
-										)}
+										{isInvalid && <FieldError errors={field.state.meta.errors} />}
 									</Field>
 								);
 							}}
@@ -323,8 +350,7 @@ export default function SignUpPage() {
 					<FieldGroup>
 						<signUpForm.Field name="email">
 							{(field) => {
-								const isInvalid =
-									field.state.meta.isTouched && !field.state.meta.isValid;
+								const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 								return (
 									<Field data-invalid={isInvalid}>
 										<FieldLabel htmlFor={field.name}>Epost</FieldLabel>
@@ -339,12 +365,9 @@ export default function SignUpPage() {
 											autoComplete="email"
 										/>
 										<FieldDescription>
-											Oppgi din UIO e-post adresse. Denne må være en gyldig
-											(ifi.)uio.no e-post.
+											Oppgi din UIO e-post adresse. Denne må være en gyldig (ifi.)uio.no e-post.
 										</FieldDescription>
-										{isInvalid && (
-											<FieldError errors={field.state.meta.errors} />
-										)}
+										{isInvalid && <FieldError errors={field.state.meta.errors} />}
 									</Field>
 								);
 							}}
@@ -354,8 +377,7 @@ export default function SignUpPage() {
 					<FieldGroup className="grid gap-4 md:grid-cols-2">
 						<signUpForm.Field name="password">
 							{(field) => {
-								const isInvalid =
-									field.state.meta.isTouched && !field.state.meta.isValid;
+								const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 								return (
 									<Field data-invalid={isInvalid}>
 										<FieldLabel htmlFor={field.name}>Passord</FieldLabel>
@@ -370,12 +392,8 @@ export default function SignUpPage() {
 											placeholder="••••••••"
 											autoComplete="new-password"
 										/>
-										<FieldDescription>
-											Passordet må være minst 8 tegn langt.
-										</FieldDescription>
-										{isInvalid && (
-											<FieldError errors={field.state.meta.errors} />
-										)}
+										<FieldDescription>Passordet må være minst 8 tegn langt.</FieldDescription>
+										{isInvalid && <FieldError errors={field.state.meta.errors} />}
 									</Field>
 								);
 							}}
@@ -383,13 +401,10 @@ export default function SignUpPage() {
 
 						<signUpForm.Field name="confirmPassword">
 							{(field) => {
-								const isInvalid =
-									field.state.meta.isTouched && !field.state.meta.isValid;
+								const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 								return (
 									<Field data-invalid={isInvalid}>
-										<FieldLabel htmlFor={field.name}>
-											Bekreft passord
-										</FieldLabel>
+										<FieldLabel htmlFor={field.name}>Bekreft passord</FieldLabel>
 										<Input
 											id={field.name}
 											name={field.name}
@@ -402,9 +417,7 @@ export default function SignUpPage() {
 											autoComplete="new-password"
 										/>
 										<FieldDescription>Bekreft passordet ditt.</FieldDescription>
-										{isInvalid && (
-											<FieldError errors={field.state.meta.errors} />
-										)}
+										{isInvalid && <FieldError errors={field.state.meta.errors} />}
 									</Field>
 								);
 							}}
@@ -414,16 +427,13 @@ export default function SignUpPage() {
 					<FieldGroup>
 						<signUpForm.Field name="studyProgram">
 							{(field) => {
-								const isInvalid =
-									field.state.meta.isTouched && !field.state.meta.isValid;
+								const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 								return (
 									<Field data-invalid={isInvalid}>
 										<FieldLabel htmlFor={field.name}>Studiegrad</FieldLabel>
 										<Select
 											onValueChange={(v) =>
-												field.handleChange(
-													v as SignUpFormSchema["studyProgram"],
-												)
+												field.handleChange(v as SignUpFormSchema["studyProgram"])
 											}
 											value={field.state.value}
 										>
@@ -438,12 +448,8 @@ export default function SignUpPage() {
 												))}
 											</SelectContent>
 										</Select>
-										<FieldDescription>
-											Oppgi hvilket studieprogram du studerer.
-										</FieldDescription>
-										{isInvalid && (
-											<FieldError errors={field.state.meta.errors} />
-										)}
+										<FieldDescription>Oppgi hvilket studieprogram du studerer.</FieldDescription>
+										{isInvalid && <FieldError errors={field.state.meta.errors} />}
 									</Field>
 								);
 							}}
@@ -452,15 +458,12 @@ export default function SignUpPage() {
 					<FieldGroup>
 						<signUpForm.Field name="degree">
 							{(field) => {
-								const isInvalid =
-									field.state.meta.isTouched && !field.state.meta.isValid;
+								const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 								return (
 									<Field data-invalid={isInvalid}>
 										<FieldLabel htmlFor={field.name}>Grad</FieldLabel>
 										<Select
-											onValueChange={(v) =>
-												field.handleChange(v as SignUpFormSchema["degree"])
-											}
+											onValueChange={(v) => field.handleChange(v as SignUpFormSchema["degree"])}
 											value={field.state.value}
 										>
 											<SelectTrigger className="w-full">
@@ -475,12 +478,9 @@ export default function SignUpPage() {
 											</SelectContent>
 										</Select>
 										<FieldDescription>
-											Oppgi hvilken grad du studerer (f.eks. Bachelor, Master,
-											etc.).
+											Oppgi hvilken grad du studerer (f.eks. Bachelor, Master, etc.).
 										</FieldDescription>
-										{isInvalid && (
-											<FieldError errors={field.state.meta.errors} />
-										)}
+										{isInvalid && <FieldError errors={field.state.meta.errors} />}
 									</Field>
 								);
 							}}
@@ -490,8 +490,7 @@ export default function SignUpPage() {
 					<FieldGroup>
 						<signUpForm.Field name="year">
 							{(field) => {
-								const isInvalid =
-									field.state.meta.isTouched && !field.state.meta.isValid;
+								const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 								return (
 									<Field data-invalid={isInvalid}>
 										<FieldLabel htmlFor={field.name}>År</FieldLabel>
@@ -500,9 +499,7 @@ export default function SignUpPage() {
 											name={field.name}
 											value={field.state.value}
 											onBlur={field.handleBlur}
-											onChange={(e) =>
-												field.handleChange(Number.parseInt(e.target.value))
-											}
+											onChange={(e) => field.handleChange(Number.parseInt(e.target.value))}
 											type="number"
 											min={1}
 											max={5}
@@ -511,9 +508,7 @@ export default function SignUpPage() {
 										<FieldDescription>
 											Oppgi hvilket år du er på. (4. året er 1. året på master)
 										</FieldDescription>
-										{isInvalid && (
-											<FieldError errors={field.state.meta.errors} />
-										)}
+										{isInvalid && <FieldError errors={field.state.meta.errors} />}
 									</Field>
 								);
 							}}
@@ -541,11 +536,7 @@ export default function SignUpPage() {
 					</a>
 				</small>
 
-				<Button
-					type="submit"
-					className="text-primary-foreground"
-					disabled={loading}
-				>
+				<Button type="submit" className="text-primary-foreground" disabled={loading}>
 					Opprett ny bruker
 				</Button>
 			</form>

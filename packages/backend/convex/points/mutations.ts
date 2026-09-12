@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalMutation, mutation } from "../_generated/server";
 import { adminRoles, requireRole } from "../auth/accessRights";
@@ -30,7 +30,7 @@ export const givePoints = mutation({
 
 		const student = await ctx.db.get(id);
 		if (!student) {
-			throw new Error(`Student with ID ${id} not found.`);
+			throw new ConvexError(`Studenten med ID ${id} ble ikke funnet.`);
 		}
 
 		await ctx.scheduler.runAfter(0, internal.points.mutations.givePointsEmail, {

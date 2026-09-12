@@ -3,6 +3,7 @@
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import type { ORGANIZER_ROLE } from "@workspace/shared/constants";
+import { describeMutationError } from "@workspace/shared/utils";
 import { type Preloaded, useMutation, usePreloadedQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -31,8 +32,7 @@ export default function UpdateEventForm({
 			userId: organizer.userId,
 			role: organizer.role as ORGANIZER_ROLE,
 		})),
-		externalEvent:
-			event.externalEvent ?? Boolean(event.externalUrl?.length),
+		externalEvent: event.externalEvent ?? Boolean(event.externalUrl?.length),
 		hostingCompany: {
 			id: event.hostingCompany,
 			name: event.hostingCompanyName,
@@ -72,16 +72,14 @@ export default function UpdateEventForm({
 				console.error(error);
 				console.error("Noe gikk galt!");
 				toast.error("Noe gikk galt!", {
-					description: error.message,
+					description: describeMutationError(error, error.message),
 				});
 			});
 	};
 
-	const onDefaultSubmit = (values: EventFormValues) =>
-		handleSubmit(values, true);
+	const onDefaultSubmit = (values: EventFormValues) => handleSubmit(values, true);
 
-	const onSubmit = (values: EventFormValues) =>
-		handleSubmit(values, event.published);
+	const onSubmit = (values: EventFormValues) => handleSubmit(values, event.published);
 
 	const onHideSubmit = (values: EventFormValues) => handleSubmit(values, false);
 

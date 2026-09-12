@@ -2,6 +2,7 @@
 
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
+import { describeMutationError } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
 import { type Preloaded, useMutation, usePreloadedQuery } from "convex/react";
 import { useRouter } from "next/navigation";
@@ -20,16 +21,21 @@ export default function Register({
 	const router = useRouter();
 	const posthog = usePostHog();
 
-	const acceptRegistration = useMutation(api.events.registrations.mutations.acceptPendingRegistration);
+	const acceptRegistration = useMutation(
+		api.events.registrations.mutations.acceptPendingRegistration,
+	);
 	const handleAccept = async () =>
 		acceptRegistration({ id: registration._id })
 			.then(() => {
 				toast.success("Registreringen er akseptert!");
 				router.push(`/events/${eventId}`);
 			})
-			.catch(() => {
+			.catch((error) => {
 				toast.error(
-					"Oi! Det oppsto en feil! Prøv igjen senere eller kontakt ansvarlige for arrangementet",
+					describeMutationError(
+						error,
+						"Oi! Det oppsto en feil! Prøv igjen senere eller kontakt ansvarlige for arrangementet",
+					),
 				);
 			});
 
@@ -47,9 +53,12 @@ export default function Register({
 				toast.success("Du har blitt avregistrert fra arrangementet!");
 				router.push(`/events/${eventId}`);
 			})
-			.catch(() => {
+			.catch((error) => {
 				toast.error(
-					"Oi! Det oppsto en feil! Prøv igjen senere eller kontakt ansvarlige for arrangementet",
+					describeMutationError(
+						error,
+						"Oi! Det oppsto en feil! Prøv igjen senere eller kontakt ansvarlige for arrangementet",
+					),
 				);
 			});
 

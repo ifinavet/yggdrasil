@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, mutation } from "../_generated/server";
@@ -80,7 +80,7 @@ export const update = mutation({
 
 		const event = await ctx.db.get(eventId);
 		if (!event) {
-			throw new Error("Event not found");
+			throw new ConvexError("Arrangementet ble ikke funnet.");
 		}
 
 		// Create a slug if it doesn't exist
@@ -234,7 +234,7 @@ export const updateWaitlist = async (
 
 	const event = await ctx.db.get(eventId);
 	if (!event) {
-		throw new Error(`Event not for eventId: ${eventId}`);
+		throw new ConvexError(`Arrangementet med ID ${eventId} ble ikke funnet.`);
 	}
 
 	await Promise.all(

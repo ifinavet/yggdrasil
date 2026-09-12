@@ -1,3 +1,5 @@
+import { REGISTRATION_GRACE_PERIOD_MS } from "@workspace/shared/constants";
+import { ConvexError } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { internalRoles, userHasRole } from "../auth/accessRights";
@@ -20,7 +22,7 @@ export async function getEventByIdentifier(
 	}
 
 	if (!event) {
-		throw new Error("Event not found");
+		throw new ConvexError("Arrangementet ble ikke funnet.");
 	}
 
 	return event;
@@ -29,16 +31,16 @@ export async function getEventByIdentifier(
 export function validateRegistrationTime(event: Doc<"events">) {
 	const now = Date.now();
 	if (now < event.registrationOpens) {
-		throw new Error(`Påmelding til arrangementet "${event.title}" har ikke åpnet ennå.`);
+		throw new ConvexError(`Påmelding til arrangementet "${event.title}" har ikke åpnet ennå.`);
 	}
-	if (now >= event.eventStart) {
-		throw new Error(`Påmelding til arrangementet "${event.title}" er stengt.`);
+	if (now >= event.eventStart + REGISTRATION_GRACE_PERIOD_MS) {
+		throw new ConvexError(`Påmelding til arrangementet "${event.title}" er stengt.`);
 	}
 }
 
 export async function validateUserCanRegister(ctx: MutationCtx, user: Doc<"users">) {
 	if (user.locked) {
-		throw new Error("Kontoen din er låst fra å melde seg på arrangementer.");
+		throw new ConvexError("Kontoen din er låst fra å melde seg på arrangementer.");
 	}
 
 	const student = await ctx.db
@@ -53,7 +55,7 @@ export async function validateUserCanRegister(ctx: MutationCtx, user: Doc<"users
 			.collect();
 		const totalPoints = points.reduce((acc, p) => acc + p.severity, 0);
 		if (totalPoints >= 3) {
-			throw new Error("Du har 3 eller flere prikker og kan ikke melde deg på arrangementer.");
+			throw new ConvexError("Du har 3 eller flere prikker og kan ikke melde deg på arrangementer.");
 		}
 	}
 }

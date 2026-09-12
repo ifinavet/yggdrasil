@@ -1,6 +1,7 @@
 "use client";
 
 import { api } from "@workspace/backend/convex/api";
+import { describeMutationError } from "@workspace/shared/utils";
 import { type Preloaded, useMutation, usePreloadedQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import { usePostHog } from "posthog-js/react";
@@ -25,10 +26,7 @@ export default function EditPageForm({
 	};
 
 	const updatePage = useMutation(api.pages.mutations.updateExternalPage);
-	const hanldeUpdatePage = async (
-		values: PageFormValues,
-		published: boolean,
-	) => {
+	const hanldeUpdatePage = async (values: PageFormValues, published: boolean) => {
 		updatePage({
 			id: page._id,
 			title: values.title,
@@ -51,7 +49,7 @@ export default function EditPageForm({
 				console.error(error, "Noe gikk galt!");
 
 				toast.error("Noe gikk galt!", {
-					description: error.message,
+					description: describeMutationError(error, error.message),
 				});
 
 				posthog.captureException("bifrost-page_update_error", {
@@ -61,11 +59,9 @@ export default function EditPageForm({
 			});
 	};
 
-	const onSubmitAndPublish = (values: PageFormValues) =>
-		hanldeUpdatePage(values, true);
+	const onSubmitAndPublish = (values: PageFormValues) => hanldeUpdatePage(values, true);
 
-	const onSubmitAndSave = (values: PageFormValues) =>
-		hanldeUpdatePage(values, page.published);
+	const onSubmitAndSave = (values: PageFormValues) => hanldeUpdatePage(values, page.published);
 
 	const onSubmitAndUnpublish = () => hanldeUpdatePage(defaultValues, false);
 

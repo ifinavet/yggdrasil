@@ -3,6 +3,7 @@
 import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
+import { describeMutationError } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
 import {
 	Field,
@@ -13,10 +14,7 @@ import {
 } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
 import { Label } from "@workspace/ui/components/label";
-import {
-	RadioGroup,
-	RadioGroupItem,
-} from "@workspace/ui/components/radio-group";
+import { RadioGroup, RadioGroupItem } from "@workspace/ui/components/radio-group";
 import { useMutation } from "convex/react";
 import { usePostHog } from "posthog-js/react";
 import { toast } from "sonner";
@@ -65,8 +63,8 @@ export default function StudentPointsForm({
 
 					form.reset();
 				})
-				.catch(() => {
-					toast.error("Noe gikk galt. Vennligst prøv igjen senere.");
+				.catch((error) => {
+					toast.error(describeMutationError(error, "Noe gikk galt. Vennligst prøv igjen senere."));
 				});
 		},
 	});
@@ -83,8 +81,7 @@ export default function StudentPointsForm({
 			<FieldSet>
 				<form.Field name="reason">
 					{(field) => {
-						const isInvalid =
-							field.state.meta.isTouched && !field.state.meta.isValid;
+						const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 						return (
 							<Field>
 								<FieldLabel htmlFor={field.name}>Begrunnelse</FieldLabel>
@@ -97,8 +94,8 @@ export default function StudentPointsForm({
 									aria-invalid={isInvalid}
 								/>
 								<FieldDescription>
-									Beskriv hvorfor studenten har fått prikken(e). Denne
-									beskrivelsen vil være synlig for studenten.
+									Beskriv hvorfor studenten har fått prikken(e). Denne beskrivelsen vil være synlig
+									for studenten.
 								</FieldDescription>
 								{isInvalid && <FieldError errors={field.state.meta.errors} />}
 							</Field>
@@ -108,16 +105,13 @@ export default function StudentPointsForm({
 
 				<form.Field name="severity">
 					{(field) => {
-						const isInvalid =
-							field.state.meta.isTouched && !field.state.meta.isValid;
+						const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 						return (
 							<Field>
 								<FieldLabel>Velg antall runder</FieldLabel>
 								<RadioGroup
 									value={field.state.value.toString()}
-									onValueChange={(e) =>
-										field.handleChange(Number.parseInt(e, 10))
-									}
+									onValueChange={(e) => field.handleChange(Number.parseInt(e, 10))}
 									defaultValue="1"
 									className="grid grid-cols-1 gap-4 md:grid-cols-3"
 								>

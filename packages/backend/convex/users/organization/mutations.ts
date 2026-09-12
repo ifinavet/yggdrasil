@@ -1,7 +1,12 @@
-import { v } from "convex/values";
-import { api } from "../../_generated/api";
+import { ConvexError, v } from "convex/values";
 import { mutation } from "../../_generated/server";
-import { accessRoles, adminRoles, requireRole, superAdminRoles } from "../../auth/accessRights";
+import {
+	accessRoles,
+	adminRoles,
+	assignAccessRole,
+	requireRole,
+	superAdminRoles,
+} from "../../auth/accessRights";
 
 /**
  * Updates a board member assignment and synchronizes access rights.
@@ -29,12 +34,9 @@ export const upsertBoardMember = mutation({
 		await requireRole(ctx, superAdminRoles);
 
 		const currentBoardMember = await ctx.db.get(id);
-		if (!currentBoardMember) throw new Error(`Board member not found for ID: ${id}`);
+		if (!currentBoardMember) throw new ConvexError(`Fant ikke styremedlemmet med ID: ${id}.`);
 
-		await ctx.runMutation(api.auth.accessRights.upsertAccessRights, {
-			userId,
-			role,
-		});
+		await assignAccessRole(ctx, userId, role);
 
 		if (currentBoardMember.userId === userId) {
 			await ctx.db.patch(id, {
@@ -54,7 +56,8 @@ export const upsertBoardMember = mutation({
 				.query("internals")
 				.withIndex("by_userId", (q) => q.eq("userId", userId))
 				.first();
-			if (!newBoardMember) throw new Error(`New board member not found for user ID: ${userId}`);
+			if (!newBoardMember)
+				throw new ConvexError(`Fant ikke det nye styremedlemmet for bruker-ID: ${userId}.`);
 
 			await ctx.db.patch(newBoardMember._id, {
 				group,
@@ -88,7 +91,7 @@ export const createInternal = mutation({
 			.withIndex("by_userId", (q) => q.eq("userId", userId))
 			.first();
 		if (existingInternal) {
-			throw new Error(`Internal member already exists for user ID: ${userId}`);
+			throw new ConvexError(`Brukeren med ID ${userId} er allerede intern.`);
 		}
 
 		await ctx.db.insert("internals", {
@@ -97,10 +100,7 @@ export const createInternal = mutation({
 			position: "Intern",
 		});
 
-		await ctx.runMutation(api.auth.accessRights.upsertAccessRights, {
-			userId,
-			role: "internal",
-		});
+		await assignAccessRole(ctx, userId, "internal");
 	},
 });
 

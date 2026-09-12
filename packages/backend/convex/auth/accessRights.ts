@@ -1,4 +1,4 @@
-import { type Infer, v } from "convex/values";
+import { ConvexError, type Infer, v } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import { type MutationCtx, mutation, type QueryCtx, query } from "../_generated/server";
 import { getCurrentUser, getCurrentUserOrThrow } from "./currentUser";
@@ -59,6 +59,23 @@ export async function userHasRole(
 }
 
 /**
+ * Describes the allowed roles as a Norwegian list for error messages.
+ *
+ * @param {readonly AccessRole[]} allowedRoles - The roles that grant access.
+ *
+ * @returns {string} - The roles joined into a readable list.
+ */
+function describeAllowedRoles(allowedRoles: readonly AccessRole[]): string {
+	const lastRole = allowedRoles.at(-1);
+	if (!lastRole) return "";
+
+	const earlierRoles = allowedRoles.slice(0, -1);
+	if (earlierRoles.length === 0) return lastRole;
+
+	return `${earlierRoles.join(", ")} eller ${lastRole}`;
+}
+
+/**
  * Resolves the current user and requires that they hold one of the allowed roles.
  *
  * @param {QueryCtx | MutationCtx} ctx - The Convex query or mutation context.
@@ -74,7 +91,9 @@ export async function requireRole(
 	const currentUser = await getCurrentUserOrThrow(ctx);
 
 	if (!(await userHasRole(ctx, currentUser._id, allowedRoles))) {
-		throw new Error("Unauthorized: Du har ikke tilgang til denne handlingen.");
+		throw new ConvexError(
+			`Unauthorized: Du har ikke tilgang til denne handlingen. Krever rollen: ${describeAllowedRoles(allowedRoles)}.`,
+		);
 	}
 
 	return currentUser;
@@ -100,6 +119,32 @@ export const checkRights = query({
 });
 
 /**
+ * Creates or updates the access role assigned to a user, without checking the caller.
+ *
+ * @param {MutationCtx} ctx - The Convex mutation context.
+ * @param {Id<"users">} userId - The id of the user whose role should be assigned.
+ * @param {AccessRole} role - The role to assign.
+ *
+ * @returns {Promise<void>} - Resolves when the role has been assigned.
+ */
+export async function assignAccessRole(
+	ctx: MutationCtx,
+	userId: Id<"users">,
+	role: AccessRole,
+): Promise<void> {
+	const usersRights = await ctx.db
+		.query("accessRights")
+		.withIndex("by_userId", (q) => q.eq("userId", userId))
+		.first();
+
+	if (usersRights) {
+		await ctx.db.patch(usersRights._id, { role });
+	} else {
+		await ctx.db.insert("accessRights", { userId, role });
+	}
+}
+
+/**
  * Creates or updates a user's access rights.
  *
  * @param {Id<"users">} userId - The id of the user whose rights should be updated.
@@ -116,15 +161,6 @@ export const upsertAccessRights = mutation({
 	handler: async (ctx, { userId, role }) => {
 		await requireRole(ctx, superAdminRoles);
 
-		const usersRights = await ctx.db
-			.query("accessRights")
-			.withIndex("by_userId", (q) => q.eq("userId", userId))
-			.first();
-
-		if (usersRights) {
-			await ctx.db.patch(usersRights._id, { role });
-		} else {
-			await ctx.db.insert("accessRights", { userId, role });
-		}
+		await assignAccessRole(ctx, userId, role);
 	},
 });

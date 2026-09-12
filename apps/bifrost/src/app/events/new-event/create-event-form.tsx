@@ -3,6 +3,7 @@
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import type { ORGANIZER_ROLE } from "@workspace/shared/constants";
+import { describeMutationError } from "@workspace/shared/utils";
 import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -63,15 +64,13 @@ export default function CreateEventForm() {
 				console.error(error);
 				console.error("Noe gikk galt!");
 				toast.error("Noe gikk galt!", {
-					description: error.message,
+					description: describeMutationError(error, error.message),
 				});
 			});
 
-	const onDefaultSubmit = (values: EventFormValues) =>
-		handleSubmit(values, true);
+	const onDefaultSubmit = (values: EventFormValues) => handleSubmit(values, true);
 
-	const onHiddenSubmit = (values: EventFormValues) =>
-		handleSubmit(values, false);
+	const onHiddenSubmit = (values: EventFormValues) => handleSubmit(values, false);
 
 	return (
 		<EventForm

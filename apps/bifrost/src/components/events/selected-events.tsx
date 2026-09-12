@@ -1,7 +1,7 @@
 "use client";
 
-
 import { api } from "@workspace/backend/convex/api";
+import { describeMutationError } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
 import {
 	DropdownMenu,
@@ -38,7 +38,7 @@ export default function SelectedEvents() {
 			})
 			.catch((error) => {
 				toast.error("Noe gikk galt med publisering!", {
-					description: error.message,
+					description: describeMutationError(error, error.message),
 				});
 
 				posthog.captureException(error, { site: "midgard" });
@@ -56,7 +56,7 @@ export default function SelectedEvents() {
 			})
 			.catch((error) => {
 				toast.error("Noe gikk galt med avpublisering!", {
-					description: error.message,
+					description: describeMutationError(error, error.message),
 				});
 
 				posthog.captureException(error, { site: "midgard" });
