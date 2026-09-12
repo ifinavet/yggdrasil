@@ -1,6 +1,7 @@
 "use client";
 
 import { api } from "@workspace/backend/convex/api";
+import { describeMutationError } from "@workspace/shared/utils";
 import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -11,11 +12,8 @@ import type { ResourceFormValues } from "@/constants/schemas/resource-form-schem
 export default function NewResourceForm() {
 	const router = useRouter();
 
-	const cardColorKeys = Object.keys(cardColors) as Array<
-		keyof typeof cardColors
-	>;
-	const randomKey =
-		cardColorKeys[Math.floor(Math.random() * cardColorKeys.length)];
+	const cardColorKeys = Object.keys(cardColors) as Array<keyof typeof cardColors>;
+	const randomKey = cardColorKeys[Math.floor(Math.random() * cardColorKeys.length)];
 
 	const defaultValues: ResourceFormValues = {
 		title: "",
@@ -27,10 +25,7 @@ export default function NewResourceForm() {
 	};
 
 	const createResource = useMutation(api.pages.mutations.createResource);
-	const handleCreateResource = async (
-		values: ResourceFormValues,
-		published: boolean,
-	) => {
+	const handleCreateResource = async (values: ResourceFormValues, published: boolean) => {
 		createResource({
 			title: values.title,
 			excerpt: values.excerpt,
@@ -49,15 +44,13 @@ export default function NewResourceForm() {
 			.catch((error) => {
 				console.error("Error creating resource:", error);
 				toast.error("Something went wrong!", {
-					description: error.message,
+					description: describeMutationError(error, error.message),
 				});
 			});
 	};
 
-	const onSubmitAndPublish = (values: ResourceFormValues) =>
-		handleCreateResource(values, true);
-	const onSubmitAndSave = (values: ResourceFormValues) =>
-		handleCreateResource(values, false);
+	const onSubmitAndPublish = (values: ResourceFormValues) => handleCreateResource(values, true);
+	const onSubmitAndSave = (values: ResourceFormValues) => handleCreateResource(values, false);
 
 	return (
 		<ResourceForm

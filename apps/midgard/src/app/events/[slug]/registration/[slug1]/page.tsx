@@ -1,4 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
+import { getAuthToken } from "@workspace/auth";
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { fetchQuery, preloadedQueryResult, preloadQuery } from "convex/nextjs";
@@ -22,20 +23,17 @@ export default async function RegistrationPage({
 
 	if (!isAuthenticated) return redirect(`/sign-in/?redirect=${pathname}`);
 
-	const event = await fetchQuery(api.events.queries.getEvent, { identifier: eventId });
+	const token = await getAuthToken();
+	const event = await fetchQuery(api.events.queries.getEvent, { identifier: eventId }, { token });
 
 	return (
 		<ResponsiveCenterContainer>
 			<Title>Det har blitt en ledig plass til deg!</Title>
 			<h2 className="mb-4 scroll-m-20 pb-2 text-center font-semibold text-3xl tracking-tight first:mt-0">
-				Arrangement: {event.title} den{" "}
-				{humanReadableDate(new Date(event.eventStart))}
+				Arrangement: {event.title} den {humanReadableDate(new Date(event.eventStart))}
 			</h2>
 
-			<RegistrationStatusHandler
-				registrationId={registrationId}
-				eventId={eventId}
-			/>
+			<RegistrationStatusHandler registrationId={registrationId} eventId={eventId} />
 		</ResponsiveCenterContainer>
 	);
 }
@@ -44,18 +42,16 @@ async function RegistrationStatusHandler({
 	registrationId,
 	eventId,
 }: Readonly<{ registrationId: Id<"registrations">; eventId: Id<"events"> }>) {
-	const preloadedRegistration = await preloadQuery(api.events.registrations.queries.getById, {
-		id: registrationId,
-	});
+	const token = await getAuthToken();
+	const preloadedRegistration = await preloadQuery(
+		api.events.registrations.queries.getById,
+		{ id: registrationId },
+		{ token },
+	);
 	const registration = preloadedQueryResult(preloadedRegistration);
 
 	if (registration.status === "pending") {
-		return (
-			<Register
-				preloadedRegistration={preloadedRegistration}
-				eventId={eventId}
-			/>
-		);
+		return <Register preloadedRegistration={preloadedRegistration} eventId={eventId} />;
 	}
 
 	if (registration.status === "registered") {

@@ -2,8 +2,10 @@ import { getAuthToken } from "@workspace/auth";
 import { api } from "@workspace/backend/convex/api";
 import { Button } from "@workspace/ui/components/button";
 import { fetchQuery, preloadedQueryResult, preloadQuery } from "convex/nextjs";
+import { ConvexError } from "convex/values";
 import type { Metadata } from "next";
 import Image from "next/image";
+import { notFound } from "next/navigation";
 import ContainerCard from "@/components/cards/container-card";
 import LargeUserCard from "@/components/cards/large-user";
 import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
@@ -18,7 +20,13 @@ export async function generateMetadata({
 }>): Promise<Metadata> {
 	const { slug: identifier } = await params;
 
-	const event = await fetchQuery(api.events.queries.getEvent, { identifier });
+	const token = await getAuthToken();
+	const event = await fetchQuery(api.events.queries.getEvent, { identifier }, { token }).catch(
+		() => null,
+	);
+
+	if (!event) return {};
+
 	const company = await fetchQuery(api.companies.queries.getById, {
 		id: event.hostingCompany,
 	});
@@ -53,20 +61,25 @@ export default async function EventPage({
 		{ token },
 	);
 
-	const preloadedEvent = await preloadQuery(api.events.queries.getEvent, {
-		identifier,
+	const preloadedEvent = await preloadQuery(
+		api.events.queries.getEvent,
+		{ identifier },
+		{ token },
+	).catch((error) => {
+		if (error instanceof ConvexError) notFound();
+		throw error;
 	});
 	const event = preloadedQueryResult(preloadedEvent);
-
-	if (!hasAdminAccess && !event.published) return (await import("next/navigation")).notFound();
 
 	const company = await fetchQuery(api.companies.queries.getById, {
 		id: event.hostingCompany,
 	});
 
-	const preloadedRegistrations = await preloadQuery(api.events.registrations.queries.getByEventId, {
-		eventIdentifier: event._id,
-	});
+	const preloadedRegistrationSummary = await preloadQuery(
+		api.events.registrations.queries.getEventRegistrationSummary,
+		{ eventIdentifier: event._id },
+		{ token },
+	);
 
 	return (
 		<ResponsiveCenterContainer>
@@ -75,7 +88,7 @@ export default async function EventPage({
 				<main className="gap-4 md:col-span-3">
 					<EventMetadata
 						preloadedEvent={preloadedEvent}
-						preloadedRegistrations={preloadedRegistrations}
+						preloadedRegistrationSummary={preloadedRegistrationSummary}
 					/>
 					<ContainerCard>
 						<h1 className="scroll-m-20 text-balance pb-2 font-bold text-3xl tracking-normal">

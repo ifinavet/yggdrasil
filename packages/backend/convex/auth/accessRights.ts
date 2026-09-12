@@ -1,7 +1,7 @@
-import { v } from "convex/values";
-import { api } from "../_generated/api";
-import { mutation, query } from "../_generated/server";
-import { getCurrentUser } from "./currentUser";
+import { ConvexError, type Infer, v } from "convex/values";
+import type { Doc, Id } from "../_generated/dataModel";
+import { type MutationCtx, mutation, type QueryCtx, query } from "../_generated/server";
+import { getCurrentUser, getCurrentUserOrThrow } from "./currentUser";
 
 /**
  * Defines the allowed access right roles.
@@ -12,6 +12,110 @@ export const accessRoles = v.union(
 	v.literal("editor"),
 	v.literal("internal"),
 );
+
+export type AccessRole = Infer<typeof accessRoles>;
+
+export const superAdminRoles: readonly AccessRole[] = ["super-admin"];
+export const adminRoles: readonly AccessRole[] = [...superAdminRoles, "admin"];
+export const editorRoles: readonly AccessRole[] = [...adminRoles, "editor"];
+export const internalRoles: readonly AccessRole[] = [...editorRoles, "internal"];
+
+/**
+ * Reads the access role assigned to a user.
+ *
+ * @param {QueryCtx | MutationCtx} ctx - The Convex query or mutation context.
+ * @param {Id<"users">} userId - The id of the user to read the role for.
+ *
+ * @returns {Promise<AccessRole | null>} - The assigned role, or null when the user has none.
+ */
+export async function getAccessRole(
+	ctx: QueryCtx | MutationCtx,
+	userId: Id<"users">,
+): Promise<AccessRole | null> {
+	const assignedRights = await ctx.db
+		.query("accessRights")
+		.withIndex("by_userId", (q) => q.eq("userId", userId))
+		.first();
+
+	return assignedRights?.role ?? null;
+}
+
+/**
+ * Checks whether a user holds one of the allowed roles.
+ *
+ * @param {QueryCtx | MutationCtx} ctx - The Convex query or mutation context.
+ * @param {Id<"users">} userId - The id of the user to check.
+ * @param {readonly AccessRole[]} allowedRoles - The roles that grant access.
+ *
+ * @returns {Promise<boolean>} - Whether the user holds one of the allowed roles.
+ */
+export async function userHasRole(
+	ctx: QueryCtx | MutationCtx,
+	userId: Id<"users">,
+	allowedRoles: readonly AccessRole[],
+): Promise<boolean> {
+	const assignedRole = await getAccessRole(ctx, userId);
+	return assignedRole !== null && allowedRoles.includes(assignedRole);
+}
+
+/**
+ * Checks whether the caller is signed in and holds one of the allowed roles.
+ *
+ * @param {QueryCtx | MutationCtx} ctx - The Convex query or mutation context.
+ * @param {readonly AccessRole[]} allowedRoles - The roles that grant access.
+ *
+ * @returns {Promise<boolean>} - Whether the caller holds one of the allowed roles.
+ */
+export async function currentUserHasRole(
+	ctx: QueryCtx | MutationCtx,
+	allowedRoles: readonly AccessRole[],
+): Promise<boolean> {
+	const currentUser = await getCurrentUser(ctx);
+	if (!currentUser) return false;
+
+	return await userHasRole(ctx, currentUser._id, allowedRoles);
+}
+
+/**
+ * Describes the allowed roles as a Norwegian list for error messages.
+ *
+ * @param {readonly AccessRole[]} allowedRoles - The roles that grant access.
+ *
+ * @returns {string} - The roles joined into a readable list.
+ */
+function describeAllowedRoles(allowedRoles: readonly AccessRole[]): string {
+	const lastRole = allowedRoles.at(-1);
+	if (!lastRole) return "";
+
+	const earlierRoles = allowedRoles.slice(0, -1);
+	if (earlierRoles.length === 0) return lastRole;
+
+	return `${earlierRoles.join(", ")} eller ${lastRole}`;
+}
+
+/**
+ * Resolves the current user and requires that they hold one of the allowed roles.
+ *
+ * @param {QueryCtx | MutationCtx} ctx - The Convex query or mutation context.
+ * @param {readonly AccessRole[]} allowedRoles - The roles that grant access.
+ *
+ * @throws - An error if the current user cannot be resolved or lacks the allowed roles.
+ * @returns {Promise<Doc<"users">>} - The current user document.
+ */
+export async function requireRole(
+	ctx: QueryCtx | MutationCtx,
+	allowedRoles: readonly AccessRole[],
+): Promise<Doc<"users">> {
+	const currentUser = await getCurrentUserOrThrow(ctx);
+
+	if (!(await userHasRole(ctx, currentUser._id, allowedRoles))) {
+		throw new ConvexError(
+			`Unauthorized: Du har ikke tilgang til denne handlingen. Krever rollen: ${describeAllowedRoles(allowedRoles)}.`,
+		);
+	}
+
+	return currentUser;
+}
 
 /**
  * Checks whether the current user has one of the requested roles.
@@ -28,15 +132,54 @@ export const checkRights = query({
 		const currentUser = await getCurrentUser(ctx);
 		if (!currentUser) return false;
 
-		const usersRights = await ctx.db
-			.query("accessRights")
-			.withIndex("by_userId", (q) => q.eq("userId", currentUser._id))
-			.first();
-		if (!usersRights) return false;
-
-		return right.includes(usersRights.role);
+		return await userHasRole(ctx, currentUser._id, right);
 	},
 });
+
+/**
+ * Creates or updates the access role assigned to a user, without checking the caller.
+ *
+ * @param {MutationCtx} ctx - The Convex mutation context.
+ * @param {Id<"users">} userId - The id of the user whose role should be assigned.
+ * @param {AccessRole} role - The role to assign.
+ *
+ * @returns {Promise<void>} - Resolves when the role has been assigned.
+ */
+export async function assignAccessRole(
+	ctx: MutationCtx,
+	userId: Id<"users">,
+	role: AccessRole,
+): Promise<void> {
+	const usersRights = await ctx.db
+		.query("accessRights")
+		.withIndex("by_userId", (q) => q.eq("userId", userId))
+		.first();
+
+	if (usersRights) {
+		await ctx.db.patch(usersRights._id, { role });
+	} else {
+		await ctx.db.insert("accessRights", { userId, role });
+	}
+}
+
+/**
+ * Removes the access role assigned to a user, without checking the caller.
+ *
+ * @param {MutationCtx} ctx - The Convex mutation context.
+ * @param {Id<"users">} userId - The id of the user whose role should be removed.
+ *
+ * @returns {Promise<void>} - Resolves when the role has been removed.
+ */
+export async function revokeAccessRole(ctx: MutationCtx, userId: Id<"users">): Promise<void> {
+	const usersRights = await ctx.db
+		.query("accessRights")
+		.withIndex("by_userId", (q) => q.eq("userId", userId))
+		.first();
+
+	if (usersRights) {
+		await ctx.db.delete(usersRights._id);
+	}
+}
 
 /**
  * Creates or updates a user's access rights.
@@ -53,26 +196,8 @@ export const upsertAccessRights = mutation({
 		role: accessRoles,
 	},
 	handler: async (ctx, { userId, role }) => {
-		const currentUser = await getCurrentUser(ctx);
-		if (!currentUser) throw new Error("Unauthorized");
+		await requireRole(ctx, superAdminRoles);
 
-		const isSuperAdmin = await ctx.runQuery(api.auth.accessRights.checkRights, {
-			right: ["super-admin"],
-		});
-		if (!isSuperAdmin)
-			throw new Error(
-				"Unauthorized: You do not have permission to change access rights",
-			);
-
-		const usersRights = await ctx.db
-			.query("accessRights")
-			.withIndex("by_userId", (q) => q.eq("userId", userId))
-			.first();
-
-		if (usersRights) {
-			await ctx.db.patch(usersRights._id, { role });
-		} else {
-			await ctx.db.insert("accessRights", { userId, role });
-		}
+		await assignAccessRole(ctx, userId, role);
 	},
 });

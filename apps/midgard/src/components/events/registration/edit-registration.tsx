@@ -3,6 +3,7 @@
 import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
 import type { Doc } from "@workspace/backend/convex/dataModel";
+import { describeMutationError } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
 import {
 	Dialog,
@@ -57,8 +58,8 @@ export default function EditRegistration({
 					form.reset({ notes: value.notes });
 					setOpen(false);
 				})
-				.catch(() => {
-					toast.error("Oi! Det oppstod en feil! Prøv igjen senere");
+				.catch((error) => {
+					toast.error(describeMutationError(error, "Oi! Det oppstod en feil! Prøv igjen senere"));
 				}),
 	});
 
@@ -136,10 +137,7 @@ export default function EditRegistration({
 							</Button>
 						</div>
 						<div className="flex gap-2">
-							<Unregister
-								registrationId={registration._id}
-								eventId={event._id}
-							/>
+							<Unregister registrationId={registration._id} eventId={event._id} />
 							<Button
 								type="submit"
 								form="update-registration-form"

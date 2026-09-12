@@ -1,5 +1,6 @@
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
+import { describeMutationError } from "@workspace/shared/utils";
 import { useMutation } from "convex/react";
 import { Plus } from "lucide-react";
 import { usePostHog } from "posthog-js/react";
@@ -31,7 +32,10 @@ export function NewInternal() {
 			})
 			.catch((error) => {
 				toast.error(`Kunne ikke opprette intern medlem`, {
-					description: "Denne hendelsen er logget. Skulle den vedvare ta kontakt med webansvarlig",
+					description: describeMutationError(
+						error,
+						"Denne hendelsen er logget. Skulle den vedvare ta kontakt med webansvarlig",
+					),
 				});
 
 				posthog.capture("create-internal-member-error", {

@@ -2,6 +2,7 @@
 
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
+import { describeMutationError } from "@workspace/shared/utils";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -38,8 +39,8 @@ export default function Unregister({
 					person,
 				}),
 			)
-			.catch(() => {
-				toast.error("O! Noe gikk galt! Prøv igjen senere");
+			.catch((error) => {
+				toast.error(describeMutationError(error, "O! Noe gikk galt! Prøv igjen senere"));
 				posthog.captureException("midgard-student_unregister_error", {
 					site: "midgard",
 					eventId,

@@ -1,3 +1,4 @@
+import { getAuthToken } from "@workspace/auth";
 import { api } from "@workspace/backend/convex/api";
 import {
 	Breadcrumb,
@@ -8,25 +9,17 @@ import {
 	BreadcrumbSeparator,
 } from "@workspace/ui/components/breadcrumb";
 import { Button } from "@workspace/ui/components/button";
-import {
-	Tabs,
-	TabsContent,
-	TabsList,
-	TabsTrigger,
-} from "@workspace/ui/components/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/components/tabs";
 import { fetchQuery } from "convex/nextjs";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import { createColumns } from "@/components/job-listings/listings-table/columns";
 import { ListingsTable } from "@/components/job-listings/listings-table/listings-table";
 import { groupJobListings, type JobListing } from "@/utils/job-listings";
-import { cacheLife } from "next/cache";
 
 export default async function JobListingsPage() {
-	"use cache";
-	cacheLife("seconds");
-
-	const listings = await fetchQuery(api.jobListings.queries.getAll, {});
+	const token = await getAuthToken();
+	const listings = await fetchQuery(api.jobListings.queries.getAll, {}, { token });
 
 	const data: JobListing[] = listings.map((listing) => ({
 		listingId: listing._id,
@@ -75,9 +68,7 @@ export default async function JobListingsPage() {
 					<div className="space-y-8">
 						{groupedListings.published.deadlineNotPassed.length > 0 && (
 							<div>
-								<h3 className="mb-4 font-semibold text-lg">
-									Aktive publiserte stillingsannonser
-								</h3>
+								<h3 className="mb-4 font-semibold text-lg">Aktive publiserte stillingsannonser</h3>
 								<ListingsTable
 									data={groupedListings.published.deadlineNotPassed}
 									columns={createColumns}
@@ -89,9 +80,7 @@ export default async function JobListingsPage() {
 						{/* Unpublished Listings - Deadline Passed */}
 						{groupedListings.published.deadlinePassed.length > 0 && (
 							<div>
-								<h3 className="mb-4 font-semibold text-lg">
-									Utløpte publiserte stillingsannonser
-								</h3>
+								<h3 className="mb-4 font-semibold text-lg">Utløpte publiserte stillingsannonser</h3>
 								<ListingsTable
 									data={groupedListings.published.deadlinePassed}
 									columns={createColumns}
@@ -107,9 +96,7 @@ export default async function JobListingsPage() {
 						{/* Unpublished Listings - Deadline Not Passed */}
 						{groupedListings.unpublished.deadlineNotPassed.length > 0 && (
 							<div>
-								<h3 className="mb-4 font-semibold text-lg">
-									Aktive upubliserte stillingsannonser
-								</h3>
+								<h3 className="mb-4 font-semibold text-lg">Aktive upubliserte stillingsannonser</h3>
 								<ListingsTable
 									data={groupedListings.unpublished.deadlineNotPassed}
 									columns={createColumns}

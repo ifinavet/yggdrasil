@@ -1,3 +1,4 @@
+import { hasEditRights } from "@workspace/auth";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -6,9 +7,12 @@ import {
 	BreadcrumbPage,
 	BreadcrumbSeparator,
 } from "@workspace/ui/components//breadcrumb";
+import { redirect } from "next/navigation";
 import NewResourceForm from "./new-resource-form";
 
-export default function NewResourcePage() {
+export default async function NewResourcePage() {
+	if (!(await hasEditRights())) redirect("/");
+
 	return (
 		<>
 			<Breadcrumb>

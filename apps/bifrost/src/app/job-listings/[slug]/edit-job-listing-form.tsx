@@ -2,6 +2,7 @@
 
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
+import { describeMutationError } from "@workspace/shared/utils";
 import { useMutation, useQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import { usePostHog } from "posthog-js/react";
@@ -49,7 +50,7 @@ export default function EditJobListingForm({
 				router.push("/job-listings");
 			})
 			.catch((error) => {
-				toast.error("Det har skjedd en feil!");
+				toast.error(describeMutationError(error, "Det har skjedd en feil!"));
 
 				postHog.captureException(error, { site: "bifrost" });
 			});
@@ -64,7 +65,7 @@ export default function EditJobListingForm({
 				router.push("/job-listings");
 			})
 			.catch((error) => {
-				toast.error("Det har skjedd en feil!");
+				toast.error(describeMutationError(error, "Det har skjedd en feil!"));
 
 				postHog.captureException(error, { site: "bifrost" });
 			});
@@ -92,11 +93,9 @@ export default function EditJobListingForm({
 		applicationUrl: jobListing.applicationUrl,
 	};
 
-	const handlePrimaryFormSubmit = (values: JobListingFormValues) =>
-		handleUpdate(values, true);
+	const handlePrimaryFormSubmit = (values: JobListingFormValues) => handleUpdate(values, true);
 
-	const handleSecondaryFormSubmit = (values: JobListingFormValues) =>
-		handleUpdate(values, false);
+	const handleSecondaryFormSubmit = (values: JobListingFormValues) => handleUpdate(values, false);
 
 	const handleTertiaryFormSubmit = () => handleDelete(jobListing._id);
 

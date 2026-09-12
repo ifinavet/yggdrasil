@@ -2,6 +2,7 @@
 
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
+import { describeMutationError } from "@workspace/shared/utils";
 import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -35,7 +36,7 @@ export default function CreateCompanyForm() {
 			.catch((error) => {
 				console.error("Noe gikk galt!", error);
 				toast.error("Noe gikk galt!", {
-					description: error.message,
+					description: describeMutationError(error, error.message),
 				});
 			});
 	};

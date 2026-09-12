@@ -2,6 +2,7 @@
 
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
+import { describeMutationError } from "@workspace/shared/utils";
 import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
 import { usePostHog } from "posthog-js/react";
@@ -33,10 +34,7 @@ export default function NewJobListingForm() {
 	const posthog = usePostHog();
 
 	const createJobListingMutation = useMutation(api.jobListings.mutations.create);
-	const handleSubmit = async (
-		values: JobListingFormValues,
-		published: boolean,
-	) => {
+	const handleSubmit = async (values: JobListingFormValues, published: boolean) => {
 		createJobListingMutation({
 			title: values.title,
 			teaser: values.teaser,
@@ -59,7 +57,7 @@ export default function NewJobListingForm() {
 				router.push("/job-listings");
 			})
 			.catch((error) => {
-				toast.error("Det har skjedd en feil!");
+				toast.error(describeMutationError(error, "Det har skjedd en feil!"));
 
 				posthog.captureException(error, { site: "bifrost" });
 			});
