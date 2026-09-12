@@ -1,5 +1,5 @@
 import type { OrderedQuery } from "convex/server";
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import type { DataModel, Doc } from "../_generated/dataModel";
 import { type QueryCtx, query } from "../_generated/server";
 import { currentUserHasRole, internalRoles } from "../auth/accessRights";
@@ -142,7 +142,11 @@ export const getById = query({
 	handler: async (ctx, { id }) => {
 		const listing = await ctx.db.get(id);
 		if (!listing) {
-			throw new Error("Job listing not found");
+			throw new ConvexError("Stillingsannonsen ble ikke funnet.");
+		}
+
+		if (!listing.published && !(await currentUserHasRole(ctx, internalRoles))) {
+			throw new ConvexError("Stillingsannonsen ble ikke funnet.");
 		}
 
 		const contacts = await ctx.db

@@ -2,6 +2,7 @@ import { getAuthToken } from "@workspace/auth";
 import { api } from "@workspace/backend/convex/api";
 import { Button } from "@workspace/ui/components/button";
 import { fetchQuery, preloadedQueryResult, preloadQuery } from "convex/nextjs";
+import { ConvexError } from "convex/values";
 import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
@@ -64,7 +65,10 @@ export default async function EventPage({
 		api.events.queries.getEvent,
 		{ identifier },
 		{ token },
-	).catch(() => notFound());
+	).catch((error) => {
+		if (error instanceof ConvexError) notFound();
+		throw error;
+	});
 	const event = preloadedQueryResult(preloadedEvent);
 
 	const company = await fetchQuery(api.companies.queries.getById, {

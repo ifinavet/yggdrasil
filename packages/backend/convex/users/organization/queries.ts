@@ -8,7 +8,7 @@ import { adminRoles, internalRoles, requireRole } from "../../auth/accessRights"
  * @param {string} position - The board position to look up.
  *
  * @throws - An error if the linked user cannot be found.
- * @returns {(Doc<"internals"> & Doc<"users">) | null} - The board member and user data, or null when not found.
+ * @returns {{ _id: Id<"internals">, position: string, group: string, positionEmail: string | undefined, firstName: string, lastName: string, email: string, image: string | undefined } | null} - The publicly visible board member data, or null when not found.
  */
 export const getBoardMemberByPosition = query({
 	args: {
@@ -30,16 +30,29 @@ export const getBoardMemberByPosition = query({
 		}
 
 		return {
-			...member,
-			...user,
+			_id: member._id,
+			position: member.position,
+			group: member.group,
+			positionEmail: member.positionEmail,
+			firstName: user.firstName,
+			lastName: user.lastName,
+			email: user.email,
+			image: user.image,
 		};
 	},
 });
 
+function compareByRank(a: { rank?: number }, b: { rank?: number }): number {
+	if (a.rank !== undefined && b.rank !== undefined) return a.rank - b.rank;
+	if (a.rank !== undefined) return -1;
+	if (b.rank !== undefined) return 1;
+	return 0;
+}
+
 /**
  * Fetches all board members ordered by rank.
  *
- * @returns {Array<Doc<"internals"> & { fullName: string, email: string, image: string | undefined }>} - The board member list.
+ * @returns {Array<{ _id: Id<"internals">, position: string, group: string, positionEmail: string | undefined, fullName: string, email: string, image: string | undefined }>} - The publicly visible board member list.
  */
 export const getTheBoard = query({
 	handler: async (ctx) => {
@@ -48,36 +61,22 @@ export const getTheBoard = query({
 			.filter((q) => q.neq(q.field("position"), "Intern"))
 			.collect();
 
-		const boardMembers = await Promise.all(
+		members.sort(compareByRank);
+
+		return await Promise.all(
 			members.map(async (member) => {
 				const user = await ctx.db.get(member.userId);
 				return {
-					...member,
+					_id: member._id,
+					position: member.position,
+					group: member.group,
+					positionEmail: member.positionEmail,
 					fullName: (user && `${user.firstName} ${user.lastName}`) ?? "Styremedlem",
 					email: user?.email ?? "styret@ifinavet.no",
 					image: user?.image,
 				};
 			}),
 		);
-
-		// Sort board members by rank, if defined
-		boardMembers.sort((a, b) => {
-			if (a.rank !== undefined && b.rank !== undefined) {
-				return a.rank - b.rank;
-			}
-
-			if (a.rank !== undefined && b.rank === undefined) {
-				return -1;
-			}
-
-			if (a.rank === undefined && b.rank !== undefined) {
-				return 1;
-			}
-
-			return 0;
-		});
-
-		return boardMembers;
 	},
 });
 
