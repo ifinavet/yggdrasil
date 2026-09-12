@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation } from "../_generated/server";
-import { getCurrentUserOrThrow } from "../auth/currentUser";
+import { adminRoles, requireRole } from "../auth/accessRights";
 
 /**
  * Generates a temporary upload URL for storing a company logo in Convex storage.
@@ -9,13 +9,13 @@ import { getCurrentUserOrThrow } from "../auth/currentUser";
  * @returns {string} - A temporary upload URL for the logo file.
  */
 export const generateUploadUrl = mutation({
-    handler: async (ctx) => {
-        await getCurrentUserOrThrow(ctx);
+	handler: async (ctx) => {
+		await requireRole(ctx, adminRoles);
 
-        const uploadUrl = await ctx.storage.generateUploadUrl();
+		const uploadUrl = await ctx.storage.generateUploadUrl();
 
-        return uploadUrl;
-    },
+		return uploadUrl;
+	},
 });
 
 /**
@@ -28,20 +28,20 @@ export const generateUploadUrl = mutation({
  * @returns {Id<"companyLogos">} - The id of the created company logo document.
  */
 export const uploadCompanyLogo = mutation({
-    args: {
-        id: v.id("_storage"),
-        name: v.string(),
-    },
-    handler: async (ctx, { id, name }) => {
-        await getCurrentUserOrThrow(ctx);
+	args: {
+		id: v.id("_storage"),
+		name: v.string(),
+	},
+	handler: async (ctx, { id, name }) => {
+		await requireRole(ctx, adminRoles);
 
-        const logoId = await ctx.db.insert("companyLogos", {
-            name,
-            image: id,
-        });
+		const logoId = await ctx.db.insert("companyLogos", {
+			name,
+			image: id,
+		});
 
-        return logoId;
-    },
+		return logoId;
+	},
 });
 
 /**
@@ -56,23 +56,23 @@ export const uploadCompanyLogo = mutation({
  * @returns {null} - Returns null when the company is created successfully.
  */
 export const create = mutation({
-    args: {
-        orgNumber: v.number(),
-        name: v.string(),
-        description: v.string(),
-        logo: v.id("companyLogos"),
-    },
-    handler: async (ctx, { orgNumber, name, description, logo }) => {
-        await getCurrentUserOrThrow(ctx);
+	args: {
+		orgNumber: v.number(),
+		name: v.string(),
+		description: v.string(),
+		logo: v.id("companyLogos"),
+	},
+	handler: async (ctx, { orgNumber, name, description, logo }) => {
+		await requireRole(ctx, adminRoles);
 
-        await ctx.db.insert("companies", {
-            orgNumber,
-            name,
-            description,
-            logo,
-            mainSponsor: false,
-        });
-    },
+		await ctx.db.insert("companies", {
+			orgNumber,
+			name,
+			description,
+			logo,
+			mainSponsor: false,
+		});
+	},
 });
 
 /**
@@ -88,23 +88,23 @@ export const create = mutation({
  * @returns {null} - Returns null when the company is updated successfully.
  */
 export const update = mutation({
-    args: {
-        id: v.id("companies"),
-        orgNumber: v.number(),
-        name: v.string(),
-        description: v.string(),
-        logo: v.id("companyLogos"),
-    },
-    handler: async (ctx, { id, orgNumber, name, description, logo }) => {
-        await getCurrentUserOrThrow(ctx);
+	args: {
+		id: v.id("companies"),
+		orgNumber: v.number(),
+		name: v.string(),
+		description: v.string(),
+		logo: v.id("companyLogos"),
+	},
+	handler: async (ctx, { id, orgNumber, name, description, logo }) => {
+		await requireRole(ctx, adminRoles);
 
-        await ctx.db.patch(id, {
-            orgNumber,
-            name,
-            description,
-            logo,
-        });
-    },
+		await ctx.db.patch(id, {
+			orgNumber,
+			name,
+			description,
+			logo,
+		});
+	},
 });
 
 /**
@@ -116,25 +116,25 @@ export const update = mutation({
  * @returns {null} - Returns null when the main sponsor is updated successfully.
  */
 export const updateMainSponsor = mutation({
-    args: {
-        companyId: v.id("companies"),
-    },
-    handler: async (ctx, { companyId: id }) => {
-        await getCurrentUserOrThrow(ctx);
+	args: {
+		companyId: v.id("companies"),
+	},
+	handler: async (ctx, { companyId: id }) => {
+		await requireRole(ctx, adminRoles);
 
-        // Unset previous main sponsor
-        const previousMainSponsor = await ctx.db
-            .query("companies")
-            .filter((q) => q.eq(q.field("mainSponsor"), true))
-            .first();
+		// Unset previous main sponsor
+		const previousMainSponsor = await ctx.db
+			.query("companies")
+			.filter((q) => q.eq(q.field("mainSponsor"), true))
+			.first();
 
-        if (previousMainSponsor) {
-            await ctx.db.patch(previousMainSponsor._id, { mainSponsor: false });
-        }
+		if (previousMainSponsor) {
+			await ctx.db.patch(previousMainSponsor._id, { mainSponsor: false });
+		}
 
-        // Set new main sponsor
-        await ctx.db.patch(id, { mainSponsor: true });
-    },
+		// Set new main sponsor
+		await ctx.db.patch(id, { mainSponsor: true });
+	},
 });
 
 /**
@@ -146,12 +146,12 @@ export const updateMainSponsor = mutation({
  * @returns {null} - Returns null when the company is deleted successfully.
  */
 export const remove = mutation({
-    args: {
-        id: v.id("companies"),
-    },
-    handler: async (ctx, { id }) => {
-        await getCurrentUserOrThrow(ctx);
+	args: {
+		id: v.id("companies"),
+	},
+	handler: async (ctx, { id }) => {
+		await requireRole(ctx, adminRoles);
 
-        await ctx.db.delete(id);
-    },
+		await ctx.db.delete(id);
+	},
 });

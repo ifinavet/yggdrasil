@@ -1,5 +1,6 @@
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
+import { internalRoles, userHasRole } from "../auth/accessRights";
 
 export async function getEventByIdentifier(
 	ctx: QueryCtx,
@@ -62,12 +63,7 @@ export async function isEventOrganizerOrAdmin(
 	eventId: Id<"events">,
 	userId: Id<"users">,
 ): Promise<boolean> {
-	const access = await ctx.db
-		.query("accessRights")
-		.withIndex("by_userId", (q) => q.eq("userId", userId))
-		.first();
-
-	if (access && ["super-admin", "admin", "editor", "internal"].includes(access.role)) {
+	if (await userHasRole(ctx, userId, internalRoles)) {
 		return true;
 	}
 

@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalMutation, mutation } from "../_generated/server";
-import { getCurrentUserOrThrow } from "../auth/currentUser";
+import { adminRoles, requireRole } from "../auth/accessRights";
 
 /**
  * Gives points to a student and schedules the notification email.
@@ -20,14 +20,7 @@ export const givePoints = mutation({
 		severity: v.number(),
 	},
 	handler: async (ctx, { id, reason, severity }) => {
-		const user = await getCurrentUserOrThrow(ctx);
-		const access = await ctx.db
-			.query("accessRights")
-			.withIndex("by_userId", (q) => q.eq("userId", user._id))
-			.first();
-		if (!access || !["super-admin", "admin", "internal"].includes(access.role)) {
-			throw new Error("Unauthorized: Bare administratorer kan tildele prikker.");
-		}
+		await requireRole(ctx, ["super-admin", "admin", "internal"]);
 
 		await ctx.runMutation(internal.points.mutations.givePointsInternal, {
 			id,
@@ -162,14 +155,7 @@ export const remove = mutation({
 		id: v.id("points"),
 	},
 	handler: async (ctx, { id }) => {
-		const user = await getCurrentUserOrThrow(ctx);
-		const access = await ctx.db
-			.query("accessRights")
-			.withIndex("by_userId", (q) => q.eq("userId", user._id))
-			.first();
-		if (!access || !["super-admin", "admin"].includes(access.role)) {
-			throw new Error("Unauthorized: Bare administratorer kan slette prikker.");
-		}
+		await requireRole(ctx, adminRoles);
 
 		await ctx.db.delete(id);
 	},

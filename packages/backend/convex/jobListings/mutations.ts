@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation } from "../_generated/server";
+import { internalRoles, requireRole } from "../auth/accessRights";
 
 /**
  * Creates a new job listing and its contact records.
@@ -18,49 +19,46 @@ import { mutation } from "../_generated/server";
  * @returns {Id<"jobListings">} - The id of the created job listing.
  */
 export const create = mutation({
-    args: {
-        title: v.string(),
-        type: v.string(),
-        teaser: v.string(),
-        description: v.string(),
-        applicationUrl: v.string(),
-        published: v.boolean(),
-        company: v.id("companies"),
-        deadline: v.number(),
-        contacts: v.array(
-            v.object({
-                name: v.string(),
-                email: v.optional(v.string()),
-                phone: v.optional(v.string()),
-            }),
-        ),
-    },
-    handler: async (ctx, args) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (identity === null) {
-            throw new Error("Unauthenticated call to mutation");
-        }
+	args: {
+		title: v.string(),
+		type: v.string(),
+		teaser: v.string(),
+		description: v.string(),
+		applicationUrl: v.string(),
+		published: v.boolean(),
+		company: v.id("companies"),
+		deadline: v.number(),
+		contacts: v.array(
+			v.object({
+				name: v.string(),
+				email: v.optional(v.string()),
+				phone: v.optional(v.string()),
+			}),
+		),
+	},
+	handler: async (ctx, args) => {
+		await requireRole(ctx, internalRoles);
 
-        const listing = await ctx.db.insert("jobListings", {
-            title: args.title,
-            type: args.type,
-            teaser: args.teaser,
-            description: args.description,
-            applicationUrl: args.applicationUrl,
-            published: args.published,
-            company: args.company,
-            deadline: args.deadline,
-        });
+		const listing = await ctx.db.insert("jobListings", {
+			title: args.title,
+			type: args.type,
+			teaser: args.teaser,
+			description: args.description,
+			applicationUrl: args.applicationUrl,
+			published: args.published,
+			company: args.company,
+			deadline: args.deadline,
+		});
 
-        for (const contact of args.contacts) {
-            await ctx.db.insert("jobListingContacts", {
-                ...contact,
-                listingId: listing,
-            });
-        }
+		for (const contact of args.contacts) {
+			await ctx.db.insert("jobListingContacts", {
+				...contact,
+				listingId: listing,
+			});
+		}
 
-        return listing;
-    },
+		return listing;
+	},
 });
 
 /**
@@ -81,59 +79,56 @@ export const create = mutation({
  * @returns {Id<"jobListings">} - The id of the updated job listing.
  */
 export const update = mutation({
-    args: {
-        id: v.id("jobListings"),
-        title: v.string(),
-        type: v.string(),
-        teaser: v.string(),
-        description: v.string(),
-        applicationUrl: v.string(),
-        published: v.boolean(),
-        company: v.id("companies"),
-        deadline: v.number(),
-        contacts: v.array(
-            v.object({
-                name: v.string(),
-                email: v.optional(v.string()),
-                phone: v.optional(v.string()),
-            }),
-        ),
-    },
-    handler: async (ctx, args) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (identity === null) {
-            throw new Error("Unauthenticated call to mutation");
-        }
+	args: {
+		id: v.id("jobListings"),
+		title: v.string(),
+		type: v.string(),
+		teaser: v.string(),
+		description: v.string(),
+		applicationUrl: v.string(),
+		published: v.boolean(),
+		company: v.id("companies"),
+		deadline: v.number(),
+		contacts: v.array(
+			v.object({
+				name: v.string(),
+				email: v.optional(v.string()),
+				phone: v.optional(v.string()),
+			}),
+		),
+	},
+	handler: async (ctx, args) => {
+		await requireRole(ctx, internalRoles);
 
-        const listing = await ctx.db.replace(args.id, {
-            title: args.title,
-            type: args.type,
-            teaser: args.teaser,
-            description: args.description,
-            applicationUrl: args.applicationUrl,
-            published: args.published,
-            company: args.company,
-            deadline: args.deadline,
-        });
+		const listing = await ctx.db.replace(args.id, {
+			title: args.title,
+			type: args.type,
+			teaser: args.teaser,
+			description: args.description,
+			applicationUrl: args.applicationUrl,
+			published: args.published,
+			company: args.company,
+			deadline: args.deadline,
+		});
 
-        const contacts = await ctx.db
-            .query("jobListingContacts")
-            .withIndex("by_listingId", (q) => q.eq("listingId", args.id))
-            .collect();
+		const contacts = await ctx.db
+			.query("jobListingContacts")
+			.withIndex("by_listingId", (q) => q.eq("listingId", args.id))
+			.collect();
 
-        for (const contact of contacts) {
-            await ctx.db.delete(contact._id);
-        }
+		for (const contact of contacts) {
+			await ctx.db.delete(contact._id);
+		}
 
-        for (const contact of args.contacts) {
-            await ctx.db.insert("jobListingContacts", {
-                ...contact,
-                listingId: args.id,
-            });
-        }
+		for (const contact of args.contacts) {
+			await ctx.db.insert("jobListingContacts", {
+				...contact,
+				listingId: args.id,
+			});
+		}
 
-        return listing;
-    },
+		return listing;
+	},
 });
 
 /**
@@ -145,26 +140,23 @@ export const update = mutation({
  * @returns {Id<"jobListings">} - The id of the deleted job listing.
  */
 export const remove = mutation({
-    args: {
-        id: v.id("jobListings"),
-    },
-    handler: async (ctx, { id }) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (identity === null) {
-            throw new Error("Unauthenticated call to mutation");
-        }
+	args: {
+		id: v.id("jobListings"),
+	},
+	handler: async (ctx, { id }) => {
+		await requireRole(ctx, internalRoles);
 
-        const contacts = await ctx.db
-            .query("jobListingContacts")
-            .withIndex("by_listingId", (q) => q.eq("listingId", id))
-            .collect();
+		const contacts = await ctx.db
+			.query("jobListingContacts")
+			.withIndex("by_listingId", (q) => q.eq("listingId", id))
+			.collect();
 
-        for (const contact of contacts) {
-            await ctx.db.delete(contact._id);
-        }
+		for (const contact of contacts) {
+			await ctx.db.delete(contact._id);
+		}
 
-        await ctx.db.delete(id);
+		await ctx.db.delete(id);
 
-        return id;
-    },
+		return id;
+	},
 });

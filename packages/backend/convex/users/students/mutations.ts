@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { internal } from "../../_generated/api";
 import { internalMutation, mutation } from "../../_generated/server";
+import { adminRoles, userHasRole } from "../../auth/accessRights";
 import { getCurrentUserOrThrow } from "../clerk/queries";
 
 /**
@@ -128,13 +129,9 @@ export const update = mutation({
 		}
 
 		const isOwner = student.userId === user._id;
-		const access = await ctx.db
-			.query("accessRights")
-			.withIndex("by_userId", (q) => q.eq("userId", user._id))
-			.first();
-		const hasAdmin = access && ["super-admin", "admin"].includes(access.role);
+		const isAdmin = await userHasRole(ctx, user._id, adminRoles);
 
-		if (!isOwner && !hasAdmin) {
+		if (!isOwner && !isAdmin) {
 			throw new Error("Unauthorized: Du kan kun oppdatere din egen studentprofil.");
 		}
 

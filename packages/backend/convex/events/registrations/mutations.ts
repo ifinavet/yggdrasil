@@ -42,9 +42,17 @@ export const acceptPendingRegistration = mutation({
 		}
 
 		const event = await ctx.db.get(registration.eventId);
-		if (event && Date.now() >= event.eventStart) {
+		if (!event) {
+			throw new Error(
+				`Arrangementet med ID ${registration.eventId} ikke funnet. Kan ikke godta registrering.`,
+			);
+		}
+
+		if (Date.now() >= event.eventStart) {
 			throw new Error("Arrangementet har allerede startet.");
 		}
+
+		await validateUserCanRegister(ctx, user);
 
 		await ctx.db.patch(id, {
 			status: "registered",
@@ -147,15 +155,15 @@ export const register = mutation({
 			throw new Error(`aarangementet med ID ${eventId} ikke funnet.Kan ikke registrere.`);
 		}
 
-		validateRegistrationTime(event);
-		await validateUserCanRegister(ctx, user);
-
 		const registrations = await ctx.db
 			.query("registrations")
 			.withIndex("by_eventIdStatusAndRegistrationTime", (q) => q.eq("eventId", eventId))
 			.collect();
 
 		if (registrations.some((registration) => registration.userId === user._id)) return;
+
+		validateRegistrationTime(event);
+		await validateUserCanRegister(ctx, user);
 
 		const registrationCount = registrations.filter(
 			(reg) => reg.status === "registered" || reg.status === "pending",
