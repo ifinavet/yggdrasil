@@ -5,7 +5,8 @@ import { type MutationCtx, mutation } from "../../_generated/server";
 import { getCurrentUserOrThrow } from "../../auth/currentUser";
 import {
 	isEventOrganizerOrAdmin,
-	validateRegistrationTime,
+	validateRegistrationIsOpen,
+	validateRegistrationNotClosed,
 	validateUserCanRegister,
 } from "../helper";
 
@@ -31,7 +32,7 @@ export const acceptPendingRegistration = mutation({
 
 		if (registration.userId !== user._id) {
 			throw new ConvexError(
-				`Registrering med ID ${id} tilhører ikke brukeren. Kan ikke godta. Utført av id ${user._id}, ${user.firstName} ${user.lastName}`,
+				`Registrering med ID ${id} tilhører ikke deg. Kan ikke godta registreringen.`,
 			);
 		}
 
@@ -48,7 +49,7 @@ export const acceptPendingRegistration = mutation({
 			);
 		}
 
-		validateRegistrationTime(event);
+		validateRegistrationNotClosed(event);
 		await validateUserCanRegister(ctx, user);
 
 		await ctx.db.patch(id, {
@@ -163,7 +164,7 @@ export const register = mutation({
 
 		if (registrations.some((registration) => registration.userId === user._id)) return;
 
-		validateRegistrationTime(event);
+		validateRegistrationIsOpen(event);
 		await validateUserCanRegister(ctx, user);
 
 		const registrationCount = registrations.filter(

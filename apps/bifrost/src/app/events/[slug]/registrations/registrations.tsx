@@ -40,7 +40,10 @@ export function Registrations({
 			})
 			.catch((error) => {
 				toast.error("Det oppsto en feil ved sletting av registreringen", {
-					description: describeMutationError(error, `${error.name}: ${error.message}`),
+					description: describeMutationError(
+						error,
+						"Prøv igjen senere eller kontakt webansvarlig.",
+					),
 				});
 
 				postHog.captureException("bifrost-registration_delete_error", {
@@ -73,7 +76,10 @@ export function Registrations({
 			})
 			.catch((error) => {
 				toast.error("Det oppsto en feil ved oppdatering av registreringen", {
-					description: describeMutationError(error, `${error.name}: ${error.message}`),
+					description: describeMutationError(
+						error,
+						"Prøv igjen senere eller kontakt webansvarlig.",
+					),
 				});
 
 				postHog.captureException("bifrost-registration_update_error", {

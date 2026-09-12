@@ -28,14 +28,18 @@ export async function getEventByIdentifier(
 	return event;
 }
 
-export function validateRegistrationTime(event: Doc<"events">) {
-	const now = Date.now();
-	if (now < event.registrationOpens) {
-		throw new ConvexError(`Påmelding til arrangementet "${event.title}" har ikke åpnet ennå.`);
-	}
-	if (now >= event.eventStart + REGISTRATION_GRACE_PERIOD_MS) {
+export function validateRegistrationNotClosed(event: Doc<"events">) {
+	if (Date.now() >= event.eventStart + REGISTRATION_GRACE_PERIOD_MS) {
 		throw new ConvexError(`Påmelding til arrangementet "${event.title}" er stengt.`);
 	}
+}
+
+export function validateRegistrationIsOpen(event: Doc<"events">) {
+	if (Date.now() < event.registrationOpens) {
+		throw new ConvexError(`Påmelding til arrangementet "${event.title}" har ikke åpnet ennå.`);
+	}
+
+	validateRegistrationNotClosed(event);
 }
 
 export async function validateUserCanRegister(ctx: MutationCtx, user: Doc<"users">) {

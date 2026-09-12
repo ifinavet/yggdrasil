@@ -64,9 +64,11 @@ export default async function EventPage({
 		id: event.hostingCompany,
 	});
 
-	const preloadedRegistrations = await preloadQuery(api.events.registrations.queries.getByEventId, {
-		eventIdentifier: event._id,
-	});
+	const preloadedRegistrationSummary = await preloadQuery(
+		api.events.registrations.queries.getEventRegistrationSummary,
+		{ eventIdentifier: event._id },
+		{ token },
+	);
 
 	return (
 		<ResponsiveCenterContainer>
@@ -75,7 +77,7 @@ export default async function EventPage({
 				<main className="gap-4 md:col-span-3">
 					<EventMetadata
 						preloadedEvent={preloadedEvent}
-						preloadedRegistrations={preloadedRegistrations}
+						preloadedRegistrationSummary={preloadedRegistrationSummary}
 					/>
 					<ContainerCard>
 						<h1 className="scroll-m-20 text-balance pb-2 font-bold text-3xl tracking-normal">

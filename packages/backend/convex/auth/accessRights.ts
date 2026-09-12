@@ -145,6 +145,25 @@ export async function assignAccessRole(
 }
 
 /**
+ * Removes the access role assigned to a user, without checking the caller.
+ *
+ * @param {MutationCtx} ctx - The Convex mutation context.
+ * @param {Id<"users">} userId - The id of the user whose role should be removed.
+ *
+ * @returns {Promise<void>} - Resolves when the role has been removed.
+ */
+export async function revokeAccessRole(ctx: MutationCtx, userId: Id<"users">): Promise<void> {
+	const usersRights = await ctx.db
+		.query("accessRights")
+		.withIndex("by_userId", (q) => q.eq("userId", userId))
+		.first();
+
+	if (usersRights) {
+		await ctx.db.delete(usersRights._id);
+	}
+}
+
+/**
  * Creates or updates a user's access rights.
  *
  * @param {Id<"users">} userId - The id of the user whose rights should be updated.

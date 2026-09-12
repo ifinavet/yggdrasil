@@ -6,6 +6,7 @@ import type { ClerkAPIError } from "@clerk/nextjs/types";
 import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
 import { DEGREE_TYPES, STUDY_PROGRAMS } from "@workspace/shared/constants";
+import { describeMutationError } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
 import { Card } from "@workspace/ui/components/card";
 import {
@@ -34,7 +35,7 @@ import {
 import { useConvexAuth, useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
 import { usePostHog } from "posthog-js/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import z from "zod/v4";
 import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
 import { Title } from "@/components/common/title";
@@ -75,6 +76,13 @@ type PendingStudent = {
 	name: string;
 };
 
+type PendingSignUp = {
+	student: PendingStudent;
+	email: string;
+};
+
+const AUTHENTICATION_TIMEOUT_MS = 15 * 1000;
+
 export default function SignUpPage() {
 	const { isSignedIn } = useAuth();
 	const { isLoaded, signUp, setActive } = useSignUp();
@@ -84,7 +92,8 @@ export default function SignUpPage() {
 	const [errors, setErrors] = useState<ClerkAPIError[]>([]);
 	const [loading, setLoading] = useState(false);
 	const [verifying, setVerifying] = useState(false);
-	const [pendingStudent, setPendingStudent] = useState<PendingStudent | null>(null);
+	const [pendingSignUp, setPendingSignUp] = useState<PendingSignUp | null>(null);
+	const [signUpCompletionFailed, setSignUpCompletionFailed] = useState(false);
 
 	const router = useRouter();
 
@@ -128,40 +137,66 @@ export default function SignUpPage() {
 	});
 
 	const createStudent = useMutation(api.users.students.mutations.createByExternalId);
-	const signUpEmail = signUpForm.state.values.email;
+	const isCreatingStudent = useRef(false);
 
 	useEffect(() => {
-		if (!isAuthenticated || !pendingStudent) return;
+		if (!isAuthenticated || !pendingSignUp || isCreatingStudent.current) return;
+
+		isCreatingStudent.current = true;
 
 		const createStudentProfile = async () => {
 			try {
-				await createStudent(pendingStudent);
+				await createStudent(pendingSignUp.student);
 
 				postHog.capture("midgard-student-sign-up", {
-					email: signUpEmail,
-					studyProgram: pendingStudent.studyProgram,
-					degree: pendingStudent.degree,
-					year: pendingStudent.year,
-					name: pendingStudent.name,
+					email: pendingSignUp.email,
+					studyProgram: pendingSignUp.student.studyProgram,
+					degree: pendingSignUp.student.degree,
+					year: pendingSignUp.student.year,
+					name: pendingSignUp.student.name,
 				});
 
 				router.push("/");
-			} catch {
+			} catch (error) {
 				setErrors([
 					{
 						code: "student_creation_failed",
-						longMessage: "Studentprofilen kunne ikke opprettes. Vennligst prøv igjen.",
+						longMessage: describeMutationError(
+							error,
+							"Studentprofilen kunne ikke opprettes. Vennligst prøv igjen.",
+						),
 						meta: {},
 					} as ClerkAPIError,
 				]);
+				setSignUpCompletionFailed(true);
 				setLoading(false);
 			} finally {
-				setPendingStudent(null);
+				isCreatingStudent.current = false;
+				setPendingSignUp(null);
 			}
 		};
 
 		createStudentProfile();
-	}, [isAuthenticated, pendingStudent, createStudent, postHog, router, signUpEmail]);
+	}, [isAuthenticated, pendingSignUp, createStudent, postHog, router]);
+
+	useEffect(() => {
+		if (!pendingSignUp || isAuthenticated) return;
+
+		const timeoutId = setTimeout(() => {
+			setErrors([
+				{
+					code: "authentication_timed_out",
+					longMessage: "Kunne ikke bekrefte innloggingen. Last siden på nytt og prøv igjen.",
+					meta: {},
+				} as ClerkAPIError,
+			]);
+			setSignUpCompletionFailed(true);
+			setPendingSignUp(null);
+			setLoading(false);
+		}, AUTHENTICATION_TIMEOUT_MS);
+
+		return () => clearTimeout(timeoutId);
+	}, [pendingSignUp, isAuthenticated]);
 
 	const verifyingForm = useForm({
 		defaultValues: {
@@ -210,12 +245,15 @@ export default function SignUpPage() {
 
 				const signUpFormValues = signUpForm.state.values;
 
-				setPendingStudent({
-					externalId: signUpAttempt.createdUserId,
-					studyProgram: signUpFormValues.studyProgram,
-					degree: signUpFormValues.degree,
-					year: signUpFormValues.year,
-					name: `${signUpFormValues.firstName} ${signUpFormValues.lastName}`,
+				setPendingSignUp({
+					email: signUpFormValues.email,
+					student: {
+						externalId: signUpAttempt.createdUserId,
+						studyProgram: signUpFormValues.studyProgram,
+						degree: signUpFormValues.degree,
+						year: signUpFormValues.year,
+						name: `${signUpFormValues.firstName} ${signUpFormValues.lastName}`,
+					},
 				});
 			} catch (error) {
 				if (isClerkAPIResponseError(error)) setErrors(error.errors);
@@ -224,7 +262,7 @@ export default function SignUpPage() {
 		},
 	});
 
-	if (isSignedIn && !pendingStudent) {
+	if (isSignedIn && !pendingSignUp && !signUpCompletionFailed) {
 		router.push("/");
 		return null;
 	}
@@ -280,6 +318,14 @@ export default function SignUpPage() {
 									}}
 								</verifyingForm.Field>
 							</FieldGroup>
+							{errors.length > 0 && (
+								<ul className="list-disc space-y-1 pl-5 text-destructive text-sm">
+									{errors.map((error) => (
+										<li key={error.code}>{error.longMessage}</li>
+									))}
+								</ul>
+							)}
+
 							<Button type="submit" disabled={loading}>
 								Fullfør oppretting
 							</Button>

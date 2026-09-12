@@ -5,6 +5,7 @@ import {
 	adminRoles,
 	assignAccessRole,
 	requireRole,
+	revokeAccessRole,
 	superAdminRoles,
 } from "../../auth/accessRights";
 
@@ -51,6 +52,8 @@ export const upsertBoardMember = mutation({
 				position: "Intern",
 				rank: undefined,
 			});
+
+			await assignAccessRole(ctx, currentBoardMember.userId, "internal");
 
 			const newBoardMember = await ctx.db
 				.query("internals")
@@ -119,7 +122,13 @@ export const removeInternal = mutation({
 	handler: async (ctx, { id }) => {
 		await requireRole(ctx, adminRoles);
 
+		const internalToRemove = await ctx.db.get(id);
+		if (!internalToRemove) {
+			throw new ConvexError(`Fant ikke det interne medlemmet med ID: ${id}.`);
+		}
+
 		await ctx.db.delete(id);
+		await revokeAccessRole(ctx, internalToRemove.userId);
 	},
 });
 
