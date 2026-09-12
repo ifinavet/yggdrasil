@@ -4,6 +4,7 @@ import {
 	accessRoles,
 	adminRoles,
 	assignAccessRole,
+	getAccessRole,
 	requireRole,
 	revokeAccessRole,
 	superAdminRoles,
@@ -32,7 +33,7 @@ export const upsertBoardMember = mutation({
 		role: accessRoles,
 	},
 	handler: async (ctx, { id, userId, position, group, positionEmail, role }) => {
-		await requireRole(ctx, superAdminRoles);
+		const caller = await requireRole(ctx, superAdminRoles);
 
 		const currentBoardMember = await ctx.db.get(id);
 		if (!currentBoardMember) throw new ConvexError(`Fant ikke styremedlemmet med ID: ${id}.`);
@@ -53,7 +54,9 @@ export const upsertBoardMember = mutation({
 				rank: undefined,
 			});
 
-			await assignAccessRole(ctx, currentBoardMember.userId, "internal");
+			if (currentBoardMember.userId !== caller._id) {
+				await assignAccessRole(ctx, currentBoardMember.userId, "internal");
+			}
 
 			const newBoardMember = await ctx.db
 				.query("internals")
@@ -120,11 +123,20 @@ export const removeInternal = mutation({
 		id: v.id("internals"),
 	},
 	handler: async (ctx, { id }) => {
-		await requireRole(ctx, adminRoles);
+		const caller = await requireRole(ctx, adminRoles);
 
 		const internalToRemove = await ctx.db.get(id);
 		if (!internalToRemove) {
 			throw new ConvexError(`Fant ikke det interne medlemmet med ID: ${id}.`);
+		}
+
+		if (internalToRemove.userId === caller._id) {
+			throw new ConvexError("Unauthorized: Du kan ikke fjerne deg selv.");
+		}
+
+		const roleToRemove = await getAccessRole(ctx, internalToRemove.userId);
+		if (roleToRemove !== null && adminRoles.includes(roleToRemove)) {
+			await requireRole(ctx, superAdminRoles);
 		}
 
 		await ctx.db.delete(id);

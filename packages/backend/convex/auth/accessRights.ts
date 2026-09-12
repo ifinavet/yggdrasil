@@ -59,6 +59,24 @@ export async function userHasRole(
 }
 
 /**
+ * Checks whether the caller is signed in and holds one of the allowed roles.
+ *
+ * @param {QueryCtx | MutationCtx} ctx - The Convex query or mutation context.
+ * @param {readonly AccessRole[]} allowedRoles - The roles that grant access.
+ *
+ * @returns {Promise<boolean>} - Whether the caller holds one of the allowed roles.
+ */
+export async function currentUserHasRole(
+	ctx: QueryCtx | MutationCtx,
+	allowedRoles: readonly AccessRole[],
+): Promise<boolean> {
+	const currentUser = await getCurrentUser(ctx);
+	if (!currentUser) return false;
+
+	return await userHasRole(ctx, currentUser._id, allowedRoles);
+}
+
+/**
  * Describes the allowed roles as a Norwegian list for error messages.
  *
  * @param {readonly AccessRole[]} allowedRoles - The roles that grant access.

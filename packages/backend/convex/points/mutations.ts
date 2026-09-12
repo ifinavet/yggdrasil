@@ -20,7 +20,7 @@ export const givePoints = mutation({
 		severity: v.number(),
 	},
 	handler: async (ctx, { id, reason, severity }) => {
-		await requireRole(ctx, ["super-admin", "admin", "internal"]);
+		await requireRole(ctx, adminRoles);
 
 		await ctx.runMutation(internal.points.mutations.givePointsInternal, {
 			id,

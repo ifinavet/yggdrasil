@@ -4,6 +4,7 @@ import { Button } from "@workspace/ui/components/button";
 import { fetchQuery, preloadedQueryResult, preloadQuery } from "convex/nextjs";
 import type { Metadata } from "next";
 import Image from "next/image";
+import { notFound } from "next/navigation";
 import ContainerCard from "@/components/cards/container-card";
 import LargeUserCard from "@/components/cards/large-user";
 import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
@@ -18,7 +19,13 @@ export async function generateMetadata({
 }>): Promise<Metadata> {
 	const { slug: identifier } = await params;
 
-	const event = await fetchQuery(api.events.queries.getEvent, { identifier });
+	const token = await getAuthToken();
+	const event = await fetchQuery(api.events.queries.getEvent, { identifier }, { token }).catch(
+		() => null,
+	);
+
+	if (!event) return {};
+
 	const company = await fetchQuery(api.companies.queries.getById, {
 		id: event.hostingCompany,
 	});
@@ -53,12 +60,12 @@ export default async function EventPage({
 		{ token },
 	);
 
-	const preloadedEvent = await preloadQuery(api.events.queries.getEvent, {
-		identifier,
-	});
+	const preloadedEvent = await preloadQuery(
+		api.events.queries.getEvent,
+		{ identifier },
+		{ token },
+	).catch(() => notFound());
 	const event = preloadedQueryResult(preloadedEvent);
-
-	if (!hasAdminAccess && !event.published) return (await import("next/navigation")).notFound();
 
 	const company = await fetchQuery(api.companies.queries.getById, {
 		id: event.hostingCompany,

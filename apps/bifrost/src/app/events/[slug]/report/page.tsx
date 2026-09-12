@@ -18,7 +18,11 @@ export default async function RapportPage({
 		{ eventIdentifier: slug },
 		{ token },
 	);
-	const preloadedEvent = await preloadQuery(api.events.queries.getEvent, { identifier: slug });
+	const preloadedEvent = await preloadQuery(
+		api.events.queries.getEvent,
+		{ identifier: slug },
+		{ token },
+	);
 
 	const degreeTotals = Object.entries(registrantsInfo).map(([degree, programs]) => {
 		const num = Object.values(programs).reduce((acc, aar) => {

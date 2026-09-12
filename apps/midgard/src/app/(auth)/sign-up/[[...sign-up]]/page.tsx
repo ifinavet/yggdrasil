@@ -185,14 +185,12 @@ export default function SignUpPage() {
 		const timeoutId = setTimeout(() => {
 			setErrors([
 				{
-					code: "authentication_timed_out",
-					longMessage: "Kunne ikke bekrefte innloggingen. Last siden på nytt og prøv igjen.",
+					code: "authentication_is_slow",
+					longMessage:
+						"Innloggingen tar lengre tid enn vanlig. Vent litt, eller last siden på nytt.",
 					meta: {},
 				} as ClerkAPIError,
 			]);
-			setSignUpCompletionFailed(true);
-			setPendingSignUp(null);
-			setLoading(false);
 		}, AUTHENTICATION_TIMEOUT_MS);
 
 		return () => clearTimeout(timeoutId);
@@ -320,8 +318,8 @@ export default function SignUpPage() {
 							</FieldGroup>
 							{errors.length > 0 && (
 								<ul className="list-disc space-y-1 pl-5 text-destructive text-sm">
-									{errors.map((error) => (
-										<li key={error.code}>{error.longMessage}</li>
+									{errors.map((error, index) => (
+										<li key={`${error.code}-${index}`}>{error.longMessage}</li>
 									))}
 								</ul>
 							)}
@@ -566,8 +564,8 @@ export default function SignUpPage() {
 
 				{errors && errors.length > 0 && (
 					<ul className="list-disc space-y-1 pl-5 text-destructive text-sm">
-						{errors.map((error) => (
-							<li key={error.code}>{error.longMessage}</li>
+						{errors.map((error, index) => (
+							<li key={`${error.code}-${index}`}>{error.longMessage}</li>
 						))}
 					</ul>
 				)}

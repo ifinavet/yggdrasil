@@ -23,7 +23,8 @@ export default async function RegistrationPage({
 
 	if (!isAuthenticated) return redirect(`/sign-in/?redirect=${pathname}`);
 
-	const event = await fetchQuery(api.events.queries.getEvent, { identifier: eventId });
+	const token = await getAuthToken();
+	const event = await fetchQuery(api.events.queries.getEvent, { identifier: eventId }, { token });
 
 	return (
 		<ResponsiveCenterContainer>

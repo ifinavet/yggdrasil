@@ -19,7 +19,7 @@ export default async function Points({ className }: Readonly<{ className?: strin
 	const token = await getAuthToken();
 	const points = await fetchQuery(api.points.queries.getCurrentStudentsPoints, {}, { token });
 
-	const numberOfPoints = points.reduce((acc, point) => acc + point.severity, 0);
+	const numberOfPoints = (points ?? []).reduce((acc, point) => acc + point.severity, 0);
 
 	return (
 		<div
@@ -45,7 +45,8 @@ export default async function Points({ className }: Readonly<{ className?: strin
 				</p>
 			</div>
 			<p className="text-balance font-semibold text-lg text-primary tracking-tight dark:text-primary-foreground">
-				Ved tre prikker får du ikke mulighet til å melde deg på bedriftspresentasjoner, hver prikk varer 6 måneder.
+				Ved tre prikker får du ikke mulighet til å melde deg på bedriftspresentasjoner, hver prikk
+				varer 6 måneder.
 			</p>
 			<p className="text-balance font-semibold text-lg text-primary tracking-tight dark:text-primary-foreground">
 				Navet har innført et prikksystem, der sen eller manglende avmelding kan hindre andre
