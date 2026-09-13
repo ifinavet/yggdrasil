@@ -1,7 +1,8 @@
-import { OrderedQuery } from "convex/server";
-import { v } from "convex/values";
-import { DataModel, Doc } from "../_generated/dataModel";
-import { query, QueryCtx } from "../_generated/server";
+import type { OrderedQuery } from "convex/server";
+import { ConvexError, v } from "convex/values";
+import type { DataModel, Doc } from "../_generated/dataModel";
+import { type QueryCtx, query } from "../_generated/server";
+import { currentUserHasRole, internalRoles } from "../auth/accessRights";
 
 /**
  * Fetches job listings, optionally filtered by count and type.
@@ -19,16 +20,19 @@ export const getAll = query({
     handler: async (ctx, { n, type }) => {
         const query = type
             ? ctx.db
-                .query("jobListings")
-                .withIndex("by_deadlineAndType", (q) => q.eq("type", type))
-                .order("desc")
+                  .query("jobListings")
+                  .withIndex("by_deadlineAndType", (q) => q.eq("type", type))
+                  .order("desc")
             : ctx.db.query("jobListings").withIndex("by_deadline").order("desc");
 
-        const listings = n ? await query.take(n) : await query.collect();
+        const listings = await query.collect();
 
-        const listingsWithCompany = await addCompanyToListings(ctx, listings);
+        const maySeeUnpublished = await currentUserHasRole(ctx, internalRoles);
+        const visibleListings = maySeeUnpublished
+            ? listings
+            : listings.filter((listing) => listing.published);
 
-        return listingsWithCompany;
+        return await addCompanyToListings(ctx, n ? visibleListings.slice(0, n) : visibleListings);
     },
 });
 
@@ -72,9 +76,7 @@ export const getAllPublishedAndActive = query({
         if (sorting) {
             switch (sorting) {
                 case "title":
-                    return listingsWithCompany.sort((a, b) =>
-                        a.title.localeCompare(b.title),
-                    );
+                    return listingsWithCompany.sort((a, b) => a.title.localeCompare(b.title));
                 case "deadline_desc":
                     return listingsWithCompany.sort((a, b) => b.deadline - a.deadline);
                 case "deadline_asc":
@@ -82,9 +84,7 @@ export const getAllPublishedAndActive = query({
             }
         }
 
-        return listingsWithCompany.sort((a, b) =>
-            Number(b.mainSponsor) - Number(a.mainSponsor)
-        );
+        return listingsWithCompany.sort((a, b) => Number(b.mainSponsor) - Number(a.mainSponsor));
     },
 });
 
@@ -97,10 +97,7 @@ export const getAllPublishedAndActive = query({
  * @throws - An error if the linked company, logo, or image URL cannot be resolved.
  * @returns {Promise<Array<Doc<"jobListings"> & { companyName: string, companyLogo: string }>>} - The enriched listings.
  */
-async function addCompanyToListings(
-    ctx: QueryCtx,
-    listings: Doc<"jobListings">[],
-) {
+async function addCompanyToListings(ctx: QueryCtx, listings: Doc<"jobListings">[]) {
     const listingsWithCompany = await Promise.all(
         listings.map(async (listing) => {
             const company = await ctx.db.get(listing.company);
@@ -145,7 +142,11 @@ export const getById = query({
     handler: async (ctx, { id }) => {
         const listing = await ctx.db.get(id);
         if (!listing) {
-            throw new Error("Job listing not found");
+            throw new ConvexError("Stillingsannonsen ble ikke funnet.");
+        }
+
+        if (!listing.published && !(await currentUserHasRole(ctx, internalRoles))) {
+            throw new ConvexError("Stillingsannonsen ble ikke funnet.");
         }
 
         const contacts = await ctx.db

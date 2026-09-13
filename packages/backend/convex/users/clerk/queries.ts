@@ -1,6 +1,7 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { query } from "../../_generated/server";
+import { internalRoles, requireRole } from "../../auth/accessRights";
 import { getCurrentUser } from "../../auth/currentUser";
 
 export {
@@ -35,6 +36,8 @@ export const searchAfterUsers = query({
         paginationOpts: paginationOptsValidator,
     },
     handler: async (ctx, { searchInput, paginationOpts }) => {
+        await requireRole(ctx, internalRoles);
+
         const users = await ctx.db
             .query("users")
             .withSearchIndex("search_email", (q) => q.search("email", searchInput))
