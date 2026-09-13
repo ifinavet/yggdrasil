@@ -9,8 +9,9 @@ import {
 	roleOf,
 	setup,
 } from "../test/fixtures";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
+import { revokeAccessRole } from "./auth/accessRights";
 
 function companyArgs(logoId: Id<"companyLogos">) {
 	return { orgNumber: 987654321, name: "Ny bedrift", description: "", logo: logoId };
@@ -29,8 +30,7 @@ describe("role chokepoint on companies.create", () => {
 			asUser(t, student).mutation(api.companies.mutations.create, companyArgs(logoId)),
 		);
 
-		expect(message).toContain("super-admin");
-		expect(message).toContain("admin");
+		expect(message).toContain("Krever rollen: super-admin eller admin.");
 	});
 
 	it("lets an admin create a company", async () => {
@@ -101,6 +101,8 @@ describe("removeInternal", () => {
 		await grantRole(t, admin._id, "admin");
 		const superAdmin = await insertUser(t, "super@example.com");
 		await grantRole(t, superAdmin._id, "super-admin");
+		const spareSuperAdmin = await insertUser(t, "super-reserve@example.com");
+		await grantRole(t, spareSuperAdmin._id, "super-admin");
 		const superAdminInternalId = await insertInternal(t, superAdmin._id, "Leder");
 
 		const message = await refusalMessageFrom(
@@ -109,7 +111,23 @@ describe("removeInternal", () => {
 			}),
 		);
 
-		expect(message).toContain("super-admin");
+		expect(message).toContain("Krever rollen: super-admin");
+		expect(await roleOf(t, superAdmin._id)).toBe("super-admin");
+	});
+
+	it("refuses removing the internals record of the caller themselves", async () => {
+		const { t } = await setup();
+		const superAdmin = await insertUser(t, "super@example.com");
+		await grantRole(t, superAdmin._id, "super-admin");
+		const ownInternalId = await insertInternal(t, superAdmin._id);
+
+		const message = await refusalMessageFrom(
+			asUser(t, superAdmin).mutation(api.users.organization.mutations.removeInternal, {
+				id: ownInternalId,
+			}),
+		);
+
+		expect(message).toContain("kan ikke fjerne deg selv");
 		expect(await roleOf(t, superAdmin._id)).toBe("super-admin");
 	});
 
@@ -127,6 +145,31 @@ describe("removeInternal", () => {
 
 		expect(await roleOf(t, member._id)).toBeNull();
 		expect(await t.run((ctx) => ctx.db.get(memberInternalId))).toBeNull();
+	});
+});
+
+describe("revokeAccessRole", () => {
+	it("refuses to revoke the role of the only super-admin", async () => {
+		const { t } = await setup();
+		const superAdmin = await insertUser(t, "super@example.com");
+		await grantRole(t, superAdmin._id, "super-admin");
+
+		const message = await refusalMessageFrom(t.run((ctx) => revokeAccessRole(ctx, superAdmin._id)));
+
+		expect(message).toBe("Kan ikke fjerne den siste super-administratoren.");
+		expect(await roleOf(t, superAdmin._id)).toBe("super-admin");
+	});
+
+	it("revokes the role when another super-admin remains", async () => {
+		const { t } = await setup();
+		const superAdmin = await insertUser(t, "super@example.com");
+		await grantRole(t, superAdmin._id, "super-admin");
+		const colleague = await insertUser(t, "super-two@example.com");
+		await grantRole(t, colleague._id, "super-admin");
+
+		await t.run((ctx) => revokeAccessRole(ctx, superAdmin._id));
+
+		expect(await roleOf(t, superAdmin._id)).toBeNull();
 	});
 });
 
@@ -180,5 +223,20 @@ describe("upsertBoardMember", () => {
 
 		expect(await roleOf(t, caller._id)).toBe("super-admin");
 		expect(await roleOf(t, successor._id)).toBe("admin");
+	});
+});
+
+describe("users.clerk.mutations.deleteFromClerk", () => {
+	it("removes the access rights row along with the user", async () => {
+		const { t } = await setup();
+		const departing = await insertUser(t, "slutter@example.com");
+		await grantRole(t, departing._id, "editor");
+
+		await t.mutation(internal.users.clerk.mutations.deleteFromClerk, {
+			clerkUserId: departing.externalId,
+		});
+
+		expect(await t.run((ctx) => ctx.db.get(departing._id))).toBeNull();
+		expect(await roleOf(t, departing._id)).toBeNull();
 	});
 });

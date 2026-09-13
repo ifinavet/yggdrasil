@@ -4,9 +4,14 @@ import {
 	asUser,
 	grantRole,
 	insertEvent,
+	insertExternalPage,
+	insertForm,
+	insertFormResponse,
 	insertInternal,
+	insertJobListing,
 	insertOrganizer,
 	insertRegistration,
+	insertResource,
 	insertUser,
 	refusalMessageFrom,
 	setup,
@@ -14,16 +19,10 @@ import {
 } from "../test/fixtures";
 import { api } from "./_generated/api";
 
-async function insertUnpublishedPage(t: TestBackend, identifier: string) {
-	await t.run((ctx) =>
-		ctx.db.insert("externalPages", {
-			identifier,
-			title: "Hemmelig side",
-			content: "",
-			published: false,
-			updatedAt: Date.now(),
-		}),
-	);
+async function insertInternalUser(t: TestBackend, email = "intern@example.com") {
+	const internalUser = await insertUser(t, email);
+	await grantRole(t, internalUser._id, "internal");
+	return internalUser;
 }
 
 describe("events.queries.getEvent", () => {
@@ -41,8 +40,7 @@ describe("events.queries.getEvent", () => {
 	it("shows an unpublished event to an internal user", async () => {
 		const { t, companyId } = await setup();
 		const eventId = await insertEvent(t, companyId, { published: false });
-		const internalUser = await insertUser(t, "intern@example.com");
-		await grantRole(t, internalUser._id, "internal");
+		const internalUser = await insertInternalUser(t);
 
 		const event = await asUser(t, internalUser).query(api.events.queries.getEvent, {
 			identifier: eventId,
@@ -75,8 +73,9 @@ describe("events.registrations.queries.getEventRegistrationSummary", () => {
 		const serialized = JSON.stringify(summary);
 		for (const hidden of [otherAttendee, waitlisted]) {
 			expect(serialized).not.toContain(hidden._id);
-			expect(serialized).not.toContain(hidden.externalId);
 		}
+		expect(serialized).not.toContain("email");
+		expect(serialized).not.toContain("firstName");
 	});
 });
 
@@ -153,10 +152,189 @@ describe("users.organization.queries.getAllInternals", () => {
 	});
 });
 
+describe("events.registrations.queries.getById", () => {
+	async function backendWithRegistration() {
+		const { t, companyId } = await setup();
+		const eventId = await insertEvent(t, companyId);
+		const owner = await insertUser(t, "eier@example.com");
+		const registrationId = await insertRegistration(t, eventId, owner._id, "registered");
+
+		return { t, eventId, owner, registrationId };
+	}
+
+	it("refuses a stranger", async () => {
+		const { t, registrationId } = await backendWithRegistration();
+		const stranger = await insertUser(t, "fremmed@example.com");
+
+		const message = await refusalMessageFrom(
+			asUser(t, stranger).query(api.events.registrations.queries.getById, { id: registrationId }),
+		);
+
+		expect(message).toContain("ikke tilgang");
+	});
+
+	it("lets the owner read their own registration", async () => {
+		const { t, owner, registrationId } = await backendWithRegistration();
+
+		const registration = await asUser(t, owner).query(api.events.registrations.queries.getById, {
+			id: registrationId,
+		});
+
+		expect(registration._id).toBe(registrationId);
+	});
+
+	it("lets an event organizer read the registration", async () => {
+		const { t, eventId, registrationId } = await backendWithRegistration();
+		const organizer = await insertUser(t, "arrangor@example.com");
+		await insertOrganizer(t, eventId, organizer._id);
+
+		const registration = await asUser(t, organizer).query(
+			api.events.registrations.queries.getById,
+			{ id: registrationId },
+		);
+
+		expect(registration._id).toBe(registrationId);
+	});
+});
+
+describe("getEventRegistrationSummary on an unpublished event", () => {
+	it("refuses a student and allows an internal", async () => {
+		const { t, companyId } = await setup();
+		const eventId = await insertEvent(t, companyId, { published: false });
+		const student = await insertUser(t, "student@example.com");
+		const internalUser = await insertInternalUser(t);
+
+		const message = await refusalMessageFrom(
+			asUser(t, student).query(api.events.registrations.queries.getEventRegistrationSummary, {
+				eventIdentifier: eventId,
+			}),
+		);
+		expect(message).toContain("ble ikke funnet");
+
+		const summary = await asUser(t, internalUser).query(
+			api.events.registrations.queries.getEventRegistrationSummary,
+			{ eventIdentifier: eventId },
+		);
+		expect(summary.registeredCount).toBe(0);
+	});
+});
+
+describe("forms.queries.getFormResponsesByFormId", () => {
+	it("refuses a student and allows an internal", async () => {
+		const { t } = await setup();
+		const formId = await insertForm(t);
+		await insertFormResponse(t, formId, { rating: 5 });
+		const student = await insertUser(t, "student@example.com");
+		const internalUser = await insertInternalUser(t);
+
+		const message = await refusalMessageFrom(
+			asUser(t, student).query(api.forms.queries.getFormResponsesByFormId, { formId }),
+		);
+		expect(message).toContain("Krever rollen: super-admin, admin, editor eller internal.");
+
+		const responses = await asUser(t, internalUser).query(
+			api.forms.queries.getFormResponsesByFormId,
+			{ formId },
+		);
+		expect(responses).toHaveLength(1);
+	});
+});
+
+describe("jobListings.queries.getAll", () => {
+	async function backendWithHiddenListing() {
+		const { t, companyId } = await setup();
+		await insertJobListing(t, companyId, { title: "Publisert" });
+		await insertJobListing(t, companyId, { title: "Upublisert", published: false });
+
+		return { t };
+	}
+
+	it("hides an unpublished listing from anonymous callers", async () => {
+		const { t } = await backendWithHiddenListing();
+
+		const listings = await t.query(api.jobListings.queries.getAll, {});
+
+		expect(listings.map((listing) => listing.title)).toEqual(["Publisert"]);
+	});
+
+	it("hides an unpublished listing from a student", async () => {
+		const { t } = await backendWithHiddenListing();
+		const student = await insertUser(t, "student@example.com");
+
+		const listings = await asUser(t, student).query(api.jobListings.queries.getAll, {});
+
+		expect(listings.map((listing) => listing.title)).toEqual(["Publisert"]);
+	});
+
+	it("shows an unpublished listing to an internal", async () => {
+		const { t } = await backendWithHiddenListing();
+		const internalUser = await insertInternalUser(t);
+
+		const listings = await asUser(t, internalUser).query(api.jobListings.queries.getAll, {});
+
+		expect(listings.map((listing) => listing.title).sort()).toEqual(["Publisert", "Upublisert"]);
+	});
+});
+
+describe("jobListings.queries.getById", () => {
+	it("refuses a student on an unpublished listing and returns it to an internal", async () => {
+		const { t, companyId } = await setup();
+		const listingId = await insertJobListing(t, companyId, { published: false });
+		const student = await insertUser(t, "student@example.com");
+		const internalUser = await insertInternalUser(t);
+
+		const message = await refusalMessageFrom(
+			asUser(t, student).query(api.jobListings.queries.getById, { id: listingId }),
+		);
+		expect(message).toContain("Stillingsannonsen ble ikke funnet.");
+
+		const listing = await asUser(t, internalUser).query(api.jobListings.queries.getById, {
+			id: listingId,
+		});
+		expect(listing._id).toBe(listingId);
+	});
+});
+
+describe("pages queries hide unpublished content from anonymous callers", () => {
+	it("leaves the unpublished bucket empty in getAllGroupedByTag", async () => {
+		const { t } = await setup();
+		await insertResource(t, "Publisert ressurs");
+		await insertResource(t, "Upublisert ressurs", { published: false });
+
+		const { groupedByTag, unpublishedResources } = await t.query(
+			api.pages.queries.getAllGroupedByTag,
+			{},
+		);
+
+		expect(unpublishedResources).toEqual([]);
+		expect(groupedByTag.generelt.map((resource) => resource.title)).toEqual(["Publisert ressurs"]);
+	});
+
+	it("filters unpublished favorites out of getFavorites", async () => {
+		const { t } = await setup();
+		await insertResource(t, "Publisert favoritt", { favorite: true });
+		await insertResource(t, "Upublisert favoritt", { favorite: true, published: false });
+
+		const favorites = await t.query(api.pages.queries.getFavorites, {});
+
+		expect(favorites.map((resource) => resource.title)).toEqual(["Publisert favoritt"]);
+	});
+
+	it("filters unpublished pages out of getAll", async () => {
+		const { t } = await setup();
+		await insertExternalPage(t, "publisert");
+		await insertExternalPage(t, "upublisert", { published: false });
+
+		const pages = await t.query(api.pages.queries.getAll, {});
+
+		expect(pages.map((page) => page.identifier)).toEqual(["publisert"]);
+	});
+});
+
 describe("pages.queries.getByIdentifier", () => {
 	it("hides an unpublished page from anonymous callers", async () => {
 		const { t } = await setup();
-		await insertUnpublishedPage(t, "om-oss");
+		await insertExternalPage(t, "om-oss", { published: false });
 
 		const message = await refusalMessageFrom(
 			t.query(api.pages.queries.getByIdentifier, { identifier: "om-oss" }),
@@ -167,7 +345,7 @@ describe("pages.queries.getByIdentifier", () => {
 
 	it("shows an unpublished page to an editor", async () => {
 		const { t } = await setup();
-		await insertUnpublishedPage(t, "om-oss");
+		await insertExternalPage(t, "om-oss", { published: false });
 		const editor = await insertUser(t, "editor@example.com");
 		await grantRole(t, editor._id, "editor");
 

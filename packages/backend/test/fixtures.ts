@@ -142,6 +142,92 @@ export async function insertOrganizer(
 	);
 }
 
+export async function insertJobListing(
+	t: TestBackend,
+	companyId: Id<"companies">,
+	overrides: Partial<WithoutSystemFields<Doc<"jobListings">>> = {},
+): Promise<Id<"jobListings">> {
+	return t.run((ctx) =>
+		ctx.db.insert("jobListings", {
+			title: "Sommerjobb",
+			type: "sommerjobb",
+			teaser: "",
+			description: "",
+			applicationUrl: "https://example.com/soknad",
+			published: true,
+			company: companyId,
+			deadline: Date.now() + 30 * 24 * HOUR_IN_MS,
+			...overrides,
+		}),
+	);
+}
+
+export async function insertResource(
+	t: TestBackend,
+	title: string,
+	overrides: Partial<WithoutSystemFields<Doc<"resources">>> = {},
+): Promise<Id<"resources">> {
+	return t.run((ctx) =>
+		ctx.db.insert("resources", {
+			title,
+			content: "",
+			excerpt: "",
+			tag: "generelt",
+			published: true,
+			updatedAt: Date.now(),
+			...overrides,
+		}),
+	);
+}
+
+export async function insertExternalPage(
+	t: TestBackend,
+	identifier: string,
+	overrides: Partial<WithoutSystemFields<Doc<"externalPages">>> = {},
+): Promise<Id<"externalPages">> {
+	return t.run((ctx) =>
+		ctx.db.insert("externalPages", {
+			identifier,
+			title: "Testside",
+			content: "",
+			published: true,
+			updatedAt: Date.now(),
+			...overrides,
+		}),
+	);
+}
+
+export async function insertForm(
+	t: TestBackend,
+	formType: Doc<"form">["formType"] = "event-feedback",
+): Promise<Id<"form">> {
+	return t.run((ctx) => ctx.db.insert("form", { formType }));
+}
+
+export async function insertFormResponse(
+	t: TestBackend,
+	formId: Id<"form">,
+	data: Record<string, unknown> = {},
+): Promise<Id<"formResponses">> {
+	return t.run((ctx) => ctx.db.insert("formResponses", { formId, data }));
+}
+
+export async function pointsFor(
+	t: TestBackend,
+	studentId: Id<"students">,
+): Promise<Doc<"points">[]> {
+	return t.run((ctx) =>
+		ctx.db
+			.query("points")
+			.withIndex("by_studentId", (q) => q.eq("studentId", studentId))
+			.collect(),
+	);
+}
+
+export async function countRowsIn(t: TestBackend, table: "users" | "students"): Promise<number> {
+	return t.run(async (ctx) => (await ctx.db.query(table).collect()).length);
+}
+
 export function asUser(t: TestBackend, user: TestUser) {
 	return t.withIdentity({ subject: user.externalId });
 }

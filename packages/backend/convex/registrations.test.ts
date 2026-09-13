@@ -8,6 +8,7 @@ import {
 	insertRegistration,
 	insertStudent,
 	insertUser,
+	pointsFor,
 	refusalMessageFrom,
 	setup,
 	type TestBackend,
@@ -24,16 +25,6 @@ async function registrationCountFor(t: TestBackend, eventId: Id<"events">) {
 			.withIndex("by_eventId", (q) => q.eq("eventId", eventId))
 			.collect();
 		return registrations.length;
-	});
-}
-
-async function pointCountFor(t: TestBackend, studentId: Id<"students">) {
-	return t.run(async (ctx) => {
-		const points = await ctx.db
-			.query("points")
-			.withIndex("by_studentId", (q) => q.eq("studentId", studentId))
-			.collect();
-		return points.length;
 	});
 }
 
@@ -221,7 +212,7 @@ describe("unregister", () => {
 			id: registrationId,
 		});
 
-		expect(await pointCountFor(t, studentId)).toBe(1);
+		expect((await pointsFor(t, studentId)).length).toBe(1);
 	});
 
 	it("gives no point when an organizer removes someone late", async () => {
@@ -237,7 +228,7 @@ describe("unregister", () => {
 			id: registrationId,
 		});
 
-		expect(await pointCountFor(t, studentId)).toBe(0);
+		expect((await pointsFor(t, studentId)).length).toBe(0);
 	});
 });
 
@@ -277,6 +268,31 @@ describe("updateAttendance", () => {
 		);
 
 		expect(message).toContain("Bare arrangører eller administratorer");
+	});
+
+	it.each([
+		{ newStatus: "confirmed" as const, expectedPoints: 0 },
+		{ newStatus: "late" as const, expectedPoints: 1 },
+		{ newStatus: "no_show" as const, expectedPoints: 2 },
+	])("gives $expectedPoints points for $newStatus", async ({ newStatus, expectedPoints }) => {
+		const { t, companyId } = await setup();
+		const eventId = await insertEvent(t, companyId);
+		const attendee = await insertUser(t, "deltaker@example.com");
+		const studentId = await insertStudent(t, attendee._id);
+		const registrationId = await insertRegistration(t, eventId, attendee._id, "registered");
+		const organizer = await insertUser(t, "arrangor@example.com");
+		await insertOrganizer(t, eventId, organizer._id);
+
+		await asUser(t, organizer).mutation(api.events.registrations.mutations.updateAttendance, {
+			id: registrationId,
+			newStatus,
+		});
+
+		const totalPoints = (await pointsFor(t, studentId)).reduce(
+			(total, point) => total + point.severity,
+			0,
+		);
+		expect(totalPoints).toBe(expectedPoints);
 	});
 
 	it("lets an event organizer without any role confirm attendance", async () => {
