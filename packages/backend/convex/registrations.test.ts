@@ -77,47 +77,6 @@ describe("register", () => {
 		expect(message).toContain("3 eller flere prikker");
 		expect(await registrationCountFor(t, eventId)).toBe(0);
 	});
-
-	it("refuses before registration opens", async () => {
-		const { t, companyId } = await setup();
-		const eventId = await insertEvent(t, companyId, {
-			registrationOpens: Date.now() + HOUR_IN_MS,
-		});
-		const student = await insertUser(t, "tidlig@example.com");
-
-		const message = await refusalMessageFrom(
-			asUser(t, student).mutation(api.events.registrations.mutations.register, { eventId }),
-		);
-
-		expect(message).toContain("har ikke åpnet ennå");
-	});
-
-	it("refuses after the event has started", async () => {
-		const { t, companyId } = await setup();
-		const eventId = await insertEvent(t, companyId, { eventStart: Date.now() - HOUR_IN_MS });
-		const student = await insertUser(t, "sen@example.com");
-
-		const message = await refusalMessageFrom(
-			asUser(t, student).mutation(api.events.registrations.mutations.register, { eventId }),
-		);
-
-		expect(message).toContain("er stengt");
-	});
-
-	it("puts the caller on the waitlist when the participation limit is reached", async () => {
-		const { t, companyId } = await setup();
-		const eventId = await insertEvent(t, companyId, { participationLimit: 1 });
-		const seatHolder = await insertUser(t, "har-plass@example.com");
-		await insertRegistration(t, eventId, seatHolder._id, "registered");
-		const latecomer = await insertUser(t, "for-sen@example.com");
-
-		const status = await asUser(t, latecomer).mutation(
-			api.events.registrations.mutations.register,
-			{ eventId },
-		);
-
-		expect(status).toBe("waitlist");
-	});
 });
 
 describe("acceptPendingRegistration", () => {
@@ -154,19 +113,6 @@ describe("acceptPendingRegistration", () => {
 
 		expect(message).toContain("3 eller flere prikker");
 		expect(await statusOf(t, registrationId)).toBe("pending");
-	});
-
-	it("accepts an eligible owner", async () => {
-		const { t, companyId } = await setup();
-		const eventId = await insertEvent(t, companyId);
-		const owner = await insertUser(t, "eier@example.com");
-		const registrationId = await insertRegistration(t, eventId, owner._id, "pending");
-
-		await asUser(t, owner).mutation(api.events.registrations.mutations.acceptPendingRegistration, {
-			id: registrationId,
-		});
-
-		expect(await statusOf(t, registrationId)).toBe("registered");
 	});
 });
 

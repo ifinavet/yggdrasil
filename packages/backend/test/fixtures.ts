@@ -90,8 +90,11 @@ export async function insertInternal(
 	t: TestBackend,
 	userId: Id<"users">,
 	position = "Intern",
+	overrides: Partial<WithoutSystemFields<Doc<"internals">>> = {},
 ): Promise<Id<"internals">> {
-	return t.run((ctx) => ctx.db.insert("internals", { userId, position, group: "Testgruppe" }));
+	return t.run((ctx) =>
+		ctx.db.insert("internals", { userId, position, group: "Testgruppe", ...overrides }),
+	);
 }
 
 export async function insertEvent(
