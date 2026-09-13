@@ -2,6 +2,7 @@
 
 import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
+import { describeMutationError } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
 import { useMutation } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
@@ -37,7 +38,7 @@ export function EventResponseForm({
 		},
 		onSubmit: async ({ value }) => {
 			try {
-				formResponseMutation({
+				await formResponseMutation({
 					formId: event.formId!,
 					data: {
 						userId,
@@ -49,7 +50,7 @@ export function EventResponseForm({
 				router.push(`/event-feedback/${event.slug ?? event._id}/response`);
 			} catch (error) {
 				console.error(error);
-				toast.error("Hmm, det ser ut til at det har skjedd en feil", {
+				toast.error(describeMutationError(error, "Hmm, det ser ut til at det har skjedd en feil"), {
 					description: "Skulle feilen vedvare så burde du gi beskjed til webansvarlig",
 				});
 			}

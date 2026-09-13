@@ -3,6 +3,7 @@
 import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
 import { DEGREE_TYPES, STUDY_PROGRAMS } from "@workspace/shared/constants";
+import { describeMutationError } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
 import {
 	Field,
@@ -63,8 +64,13 @@ export default function UpdateStudentForm({
 				.then(() => {
 					toast.success("Student updated successfully");
 				})
-				.catch((error: Error) => {
-					toast.error(error instanceof Error ? error.message : "Unknown error");
+				.catch((error) => {
+					toast.error(
+						describeMutationError(
+							error,
+							"Noe gikk galt. Vennligst prøv igjen senere.",
+						),
+					);
 				});
 		},
 	});

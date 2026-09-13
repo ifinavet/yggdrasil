@@ -2,6 +2,7 @@
 
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
+import { describeMutationError } from "@workspace/shared/utils";
 import {
 	Tabs,
 	TabsContent,
@@ -29,13 +30,17 @@ import { humanReadableDate } from "@/utils/utils";
 export function Registrations({
 	preloadedRegistrations,
 }: Readonly<{
-	preloadedRegistrations: Preloaded<typeof api.events.registrations.queries.getByEventId>;
+	preloadedRegistrations: Preloaded<
+		typeof api.events.registrations.queries.getByEventId
+	>;
 }>) {
 	const registrations = usePreloadedQuery(preloadedRegistrations);
 
 	const postHog = usePostHog();
 
-	const deleteRegistration = useMutation(api.events.registrations.mutations.unregister);
+	const deleteRegistration = useMutation(
+		api.events.registrations.mutations.unregister,
+	);
 	const handleDeleteRegistration = async (
 		registrationId: Id<"registrations">,
 	) => {
@@ -53,7 +58,10 @@ export function Registrations({
 			})
 			.catch((error) => {
 				toast.error("Det oppsto en feil ved sletting av registreringen", {
-					description: `${error.name}: ${error.message}`,
+					description: describeMutationError(
+						error,
+						"Prøv igjen senere eller kontakt webansvarlig.",
+					),
 				});
 
 				postHog.captureException("bifrost-registration_delete_error", {
@@ -64,7 +72,9 @@ export function Registrations({
 			});
 	};
 
-	const updateRegistration = useMutation(api.events.registrations.mutations.updateAttendance);
+	const updateRegistration = useMutation(
+		api.events.registrations.mutations.updateAttendance,
+	);
 	const handleUpdateRegistration = async (
 		registrationId: Id<"registrations">,
 		newStatus: string,
@@ -86,7 +96,10 @@ export function Registrations({
 			})
 			.catch((error) => {
 				toast.error("Det oppsto en feil ved oppdatering av registreringen", {
-					description: `${error.name}: ${error.message}`,
+					description: describeMutationError(
+						error,
+						"Prøv igjen senere eller kontakt webansvarlig.",
+					),
 				});
 
 				postHog.captureException("bifrost-registration_update_error", {

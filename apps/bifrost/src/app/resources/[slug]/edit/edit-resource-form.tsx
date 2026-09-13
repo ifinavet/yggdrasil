@@ -2,6 +2,7 @@
 
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
+import { describeMutationError } from "@workspace/shared/utils";
 import { useMutation, useQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import { usePostHog } from "posthog-js/react";
@@ -60,7 +61,7 @@ export default function EditResourceForm({
 				console.error("Noe gikk galt!", error);
 
 				toast.error("Noe gikk galt!", {
-					description: error.message,
+					description: describeMutationError(error, error.message),
 				});
 
 				posthog.captureException("bifrost-resource_update_error", {

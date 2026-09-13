@@ -2,6 +2,7 @@
 
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
+import { describeMutationError } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
 import { useMutation, useQuery } from "convex/react";
 import { Pencil } from "lucide-react";
@@ -39,7 +40,7 @@ export default function EditBoardMember({
 			})
 			.catch((error) => {
 				console.error(error);
-				toast.error("Hmm... Det skjedde en feil. Prøv igjen senere.");
+				toast.error(describeMutationError(error, "Hmm... Det skjedde en feil. Prøv igjen senere."));
 
 				posthog.captureException("bifrost-boardmember_update_error", {
 					site: "bifrost",
