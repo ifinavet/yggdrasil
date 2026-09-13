@@ -2,6 +2,7 @@
 
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
+import { describeMutationError } from "@workspace/shared/utils";
 import { useMutation, useQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import { usePostHog } from "posthog-js/react";
@@ -14,7 +15,9 @@ import { humanReadableDate } from "@/utils/utils";
 export default function EditJobListingForm({
 	listingId,
 }: Readonly<{ listingId: Id<"jobListings"> }>) {
-	const jobListing = useQuery(api.jobListings.queries.getById, { id: listingId });
+	const jobListing = useQuery(api.jobListings.queries.getById, {
+		id: listingId,
+	});
 	const company = useQuery(
 		api.companies.queries.getById,
 		jobListing ? { id: jobListing.company } : "skip",
@@ -49,7 +52,7 @@ export default function EditJobListingForm({
 				router.push("/job-listings");
 			})
 			.catch((error) => {
-				toast.error("Det har skjedd en feil!");
+				toast.error(describeMutationError(error, "Det har skjedd en feil!"));
 
 				postHog.captureException(error, { site: "bifrost" });
 			});
@@ -64,7 +67,7 @@ export default function EditJobListingForm({
 				router.push("/job-listings");
 			})
 			.catch((error) => {
-				toast.error("Det har skjedd en feil!");
+				toast.error(describeMutationError(error, "Det har skjedd en feil!"));
 
 				postHog.captureException(error, { site: "bifrost" });
 			});

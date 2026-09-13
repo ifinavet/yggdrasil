@@ -3,23 +3,28 @@
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import type { ACCESS_RIGHTS } from "@workspace/shared/constants";
+import { describeMutationError } from "@workspace/shared/utils";
 import { type Preloaded, useMutation, usePreloadedQuery } from "convex/react";
 import { usePostHog } from "posthog-js/react";
 import { toast } from "sonner";
+import { DataTable } from "@/components/common/tables/table";
 import { createColumns } from "./columns";
 import { NewInternal } from "./new-internal/new-internal";
-import { DataTable } from "@/components/common/tables/table";
 
 export default function Internals({
 	preloadedInternals,
 }: Readonly<{
-	preloadedInternals: Preloaded<typeof api.users.organization.queries.getAllInternals>;
+	preloadedInternals: Preloaded<
+		typeof api.users.organization.queries.getAllInternals
+	>;
 }>) {
 	const internals = usePreloadedQuery(preloadedInternals);
 
 	const postHog = usePostHog();
 
-	const deleteInternal = useMutation(api.users.organization.mutations.removeInternal);
+	const deleteInternal = useMutation(
+		api.users.organization.mutations.removeInternal,
+	);
 	const deleteInternalAction = (internalsId: Id<"internals">) =>
 		deleteInternal({ id: internalsId })
 			.then(() => {
@@ -34,8 +39,10 @@ export default function Internals({
 			})
 			.catch((error) => {
 				toast.error("Kunne ikke slette intern medlem", {
-					description:
+					description: describeMutationError(
+						error,
 						"Denne hendelsen er logget. Skulle den vedvare ta kontakt med webansvarlig",
+					),
 				});
 				postHog.capture("delete-internal-member-error", {
 					error: error,
@@ -43,12 +50,16 @@ export default function Internals({
 				});
 			});
 
-	const updateGroup = useMutation(api.users.organization.mutations.updateInternal);
+	const updateGroup = useMutation(
+		api.users.organization.mutations.updateInternal,
+	);
 	const updateGroupAction = (internalsId: Id<"internals">, group: string) =>
 		updateGroup({ id: internalsId, group }).catch((error) => {
 			toast.error("Kunne ikke oppdatere intern medlem", {
-				description:
+				description: describeMutationError(
+					error,
 					"Denne hendelsen er logget. Skulle den vedvare ta kontakt med webansvarlig",
+				),
 			});
 
 			postHog.capture("update-internal-member-error", {
@@ -66,6 +77,13 @@ export default function Internals({
 		upsertRole({
 			userId,
 			role,
+		}).catch((error) => {
+			toast.error(
+				describeMutationError(
+					error,
+					"Kunne ikke oppdatere rollen til det interne medlemmet",
+				),
+			);
 		});
 
 	const columns = createColumns(

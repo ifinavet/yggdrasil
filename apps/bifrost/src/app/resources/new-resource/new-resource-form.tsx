@@ -1,6 +1,7 @@
 "use client";
 
 import { api } from "@workspace/backend/convex/api";
+import { describeMutationError } from "@workspace/shared/utils";
 import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -49,7 +50,7 @@ export default function NewResourceForm() {
 			.catch((error) => {
 				console.error("Error creating resource:", error);
 				toast.error("Something went wrong!", {
-					description: error.message,
+					description: describeMutationError(error, error.message),
 				});
 			});
 	};

@@ -3,6 +3,7 @@
 import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
+import { describeMutationError } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
 import {
 	Field,
@@ -65,8 +66,13 @@ export default function StudentPointsForm({
 
 					form.reset();
 				})
-				.catch(() => {
-					toast.error("Noe gikk galt. Vennligst prøv igjen senere.");
+				.catch((error) => {
+					toast.error(
+						describeMutationError(
+							error,
+							"Noe gikk galt. Vennligst prøv igjen senere.",
+						),
+					);
 				});
 		},
 	});

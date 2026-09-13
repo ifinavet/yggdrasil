@@ -3,6 +3,7 @@
 import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
+import { describeMutationError } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
 import {
 	Field,
@@ -46,7 +47,7 @@ export default function UpdateMainSponsorForm({
 		onSubmit: async ({ value }) => {
 			updateMainSponsor({ companyId: value.companyId }).catch((err) => {
 				toast.error("Oi! Det oppstod en feil!", {
-					description: "Skulle feilen vedvare kontakt webansvarlig.",
+					description: describeMutationError(err, "Skulle feilen vedvare kontakt webansvarlig."),
 				});
 				throw err;
 			});
@@ -65,8 +66,7 @@ export default function UpdateMainSponsorForm({
 			<FieldSet>
 				<form.Field name="companyId">
 					{(field) => {
-						const isInvalid =
-							field.state.meta.isTouched && !field.state.meta.isValid;
+						const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 						return (
 							<Field className="flex flex-col">
 								<FieldLabel>Endre hovedsamarbeidspartner</FieldLabel>
@@ -107,9 +107,7 @@ export default function UpdateMainSponsorForm({
 			</FieldSet>
 
 			<Button type="submit" disabled={form.state.isSubmitting}>
-				{form.state.isSubmitting
-					? "Oppdaterer..."
-					: "Oppdater hovedsamarbeidspartner"}
+				{form.state.isSubmitting ? "Oppdaterer..." : "Oppdater hovedsamarbeidspartner"}
 			</Button>
 		</form>
 	);

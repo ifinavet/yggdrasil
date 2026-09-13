@@ -2,6 +2,7 @@
 
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
+import { describeMutationError } from "@workspace/shared/utils";
 import { useMutation } from "convex/react";
 import { Plus } from "lucide-react";
 import { useState } from "react";
@@ -9,9 +10,7 @@ import { toast } from "sonner";
 import type { boardMemberSchema } from "@/constants/schemas/boardmember-form-schema";
 import BoardMemberForm from "./board-member-form";
 
-export default function AddBoardMember({
-	className,
-}: Readonly<{ className?: string }>) {
+export default function AddBoardMember({ className }: Readonly<{ className?: string }>) {
 	const defaultValues: boardMemberSchema = {
 		internalId: "",
 		userId: "",
@@ -38,7 +37,7 @@ export default function AddBoardMember({
 			})
 			.catch((error) => {
 				console.error(error);
-				toast.error("Hmm... Det skjedde en feil. Prøv igjen senere.");
+				toast.error(describeMutationError(error, "Hmm... Det skjedde en feil. Prøv igjen senere."));
 			});
 	};
 

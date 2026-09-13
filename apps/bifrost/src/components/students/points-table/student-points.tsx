@@ -2,6 +2,7 @@
 
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
+import { describeMutationError } from "@workspace/shared/utils";
 import { useMutation, useQuery } from "convex/react";
 import { usePostHog } from "posthog-js/react";
 import { toast } from "sonner";
@@ -9,9 +10,7 @@ import { humanReadableDate } from "@/utils/utils";
 import { createColumns } from "./columns";
 import { PointsTable } from "./points-table";
 
-export default function StudentPoints({
-	student_id,
-}: Readonly<{ student_id: Id<"students"> }>) {
+export default function StudentPoints({ student_id }: Readonly<{ student_id: Id<"students"> }>) {
 	const points = useQuery(api.points.queries.getByStudentId, { id: student_id });
 	const deletePoint = useMutation(api.points.mutations.remove);
 
@@ -35,7 +34,7 @@ export default function StudentPoints({
 			})
 			.catch((error) => {
 				toast.error("Oi! Det opstod en feil! Prøv igjen senere", {
-					description: error.message,
+					description: describeMutationError(error, error.message),
 				});
 			});
 
