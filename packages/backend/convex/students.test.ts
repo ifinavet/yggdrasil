@@ -19,6 +19,10 @@ async function studyProgramOf(t: TestBackend, studentId: Id<"students">) {
 	return t.run(async (ctx) => (await ctx.db.get(studentId))?.studyProgram ?? null);
 }
 
+async function studyProgramOfOnlyStudent(t: TestBackend) {
+	return t.run(async (ctx) => (await ctx.db.query("students").unique())?.studyProgram ?? null);
+}
+
 describe("students.mutations.update", () => {
 	it("refuses a stranger", async () => {
 		const { t } = await setup();
@@ -107,6 +111,21 @@ describe("students.mutations.createByExternalId", () => {
 
 		expect(await countRowsIn(t, "users")).toBe(1);
 		expect(await countRowsIn(t, "students")).toBe(1);
+		expect(await studyProgramOfOnlyStudent(t)).toBe("Robotikk");
+	});
+
+	it("refuses an anonymous caller", async () => {
+		const { t } = await setup();
+
+		const message = await refusalMessageFrom(
+			t.mutation(api.users.students.mutations.createByExternalId, {
+				externalId: "clerk_meg",
+				...newStudent,
+			}),
+		);
+
+		expect(message).toContain("innlogget");
+		expect(await countRowsIn(t, "students")).toBe(0);
 	});
 });
 

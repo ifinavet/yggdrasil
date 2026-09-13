@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 import { describe, expect, it } from "vitest";
 
-const PUBLIC_READ_ONLY_FUNCTIONS: readonly string[] = [
+const PUBLIC_FUNCTIONS_WITHOUT_AUTHENTICATION_CHECK: readonly string[] = [
 	"companies/queries.ts:getAll",
 	"companies/queries.ts:getAllPaged",
 	"companies/queries.ts:getById",
@@ -29,10 +29,12 @@ const CONFIG_MODULES_WITH_DEFAULT_EXPORT: readonly string[] = [
 const INTERNAL_FUNCTION_BUILDERS = ["internalQuery", "internalMutation", "internalAction"];
 
 const PUBLIC_FUNCTION_DECLARATION =
-	/^\s*export\s+const\s+(\w+)\s*=\s*(?:query|mutation|action|httpAction)\s*\(/gm;
-const ANY_BUILDER_DECLARATION = /^\s*export\s+const\s+(\w+)\s*=\s*(\w+)\s*\(/gm;
+	/^\s*(?:export\s+)?const\s+(\w+)\s*=\s*(?:query|mutation|action|httpAction)\s*\(/gm;
+const ANY_BUILDER_DECLARATION = /^\s*(?:export\s+)?const\s+(\w+)\s*=\s*(\w+)\s*\(/gm;
+const CUSTOM_BUILDER_FACTORY = /\bcustom(?:Query|Mutation|Action)\s*\(/;
 const DEFAULT_EXPORT = /^\s*export\s+default\s/m;
-const NEXT_TOP_LEVEL_EXPORT = /^export /m;
+const NEXT_TOP_LEVEL_DECLARATION =
+	/^(?:export\s+)?(?:const|let|var|function|async\s+function|class)\b/m;
 const BLOCK_COMMENT = /\/\*[\s\S]*?\*\//g;
 const LINE_COMMENT = /(?<!:)\/\/.*$/gm;
 
@@ -66,8 +68,8 @@ function withoutComments(source: string) {
 
 function declarationBodyAfter(source: string, declarationEnd: number) {
 	const rest = source.slice(declarationEnd);
-	const nextExport = NEXT_TOP_LEVEL_EXPORT.exec(rest);
-	return nextExport ? rest.slice(0, nextExport.index) : rest;
+	const nextDeclaration = NEXT_TOP_LEVEL_DECLARATION.exec(rest);
+	return nextDeclaration ? rest.slice(0, nextDeclaration.index) : rest;
 }
 
 function matchesOf(pattern: RegExp, source: string) {
@@ -105,6 +107,12 @@ function modulesWithDefaultExport() {
 		.map(({ path }) => path);
 }
 
+function modulesUsingCustomBuilderFactories() {
+	return backendModules()
+		.filter(({ source }) => CUSTOM_BUILDER_FACTORY.test(withoutComments(source)))
+		.map(({ path }) => path);
+}
+
 function functionsBuiltByUnknownBuilders() {
 	const unknown: string[] = [];
 
@@ -126,7 +134,9 @@ describe("public function guard", () => {
 	});
 
 	it("requires an authentication check on every public query and mutation", () => {
-		expect(unguardedPublicFunctions().sort()).toEqual([...PUBLIC_READ_ONLY_FUNCTIONS].sort());
+		expect(unguardedPublicFunctions().sort()).toEqual(
+			[...PUBLIC_FUNCTIONS_WITHOUT_AUTHENTICATION_CHECK].sort(),
+		);
 	});
 
 	it("keeps default exports to the config modules the scanner cannot read", () => {
@@ -135,7 +145,11 @@ describe("public function guard", () => {
 		);
 	});
 
-	it("builds every exported function with a builder the scanner understands", () => {
+	it("builds every function with a builder the scanner understands", () => {
 		expect(functionsBuiltByUnknownBuilders()).toEqual([]);
+	});
+
+	it("never wraps builders in custom function factories the scanner cannot see through", () => {
+		expect(modulesUsingCustomBuilderFactories()).toEqual([]);
 	});
 });
