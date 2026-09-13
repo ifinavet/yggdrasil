@@ -4,6 +4,7 @@
 	"type": "module",
 	"private": true,
 	"scripts": {
+		"check-types": "tsc --noEmit",
 		"test": "vitest run"
 	},
 	"packageManager": "pnpm@10.15.1",

@@ -8,6 +8,7 @@
 		"lint": "turbo lint",
 		"test": "turbo test",
 		"check": "turbo check",
+		"check-types": "turbo check-types",
 		"check:fix": "turbo check:fix",
 		"check:all": "biome check .",
 		"check:all:fix": "biome check . --write",
