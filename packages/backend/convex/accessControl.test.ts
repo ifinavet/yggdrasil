@@ -131,6 +131,56 @@ describe("removeInternal", () => {
 		expect(await roleOf(t, superAdmin._id)).toBe("super-admin");
 	});
 
+	it("refuses an admin removing an editor", async () => {
+		const { t } = await setup();
+		const admin = await insertUser(t, "admin@example.com");
+		await grantRole(t, admin._id, "admin");
+		const editor = await insertUser(t, "editor@example.com");
+		await grantRole(t, editor._id, "editor");
+		const editorInternalId = await insertInternal(t, editor._id);
+
+		const message = await refusalMessageFrom(
+			asUser(t, admin).mutation(api.users.organization.mutations.removeInternal, {
+				id: editorInternalId,
+			}),
+		);
+
+		expect(message).toContain("Krever rollen: super-admin");
+		expect(await roleOf(t, editor._id)).toBe("editor");
+	});
+
+	it("lets a super-admin remove an editor", async () => {
+		const { t } = await setup();
+		const superAdmin = await insertUser(t, "super@example.com");
+		await grantRole(t, superAdmin._id, "super-admin");
+		const editor = await insertUser(t, "editor@example.com");
+		await grantRole(t, editor._id, "editor");
+		const editorInternalId = await insertInternal(t, editor._id);
+
+		await asUser(t, superAdmin).mutation(api.users.organization.mutations.removeInternal, {
+			id: editorInternalId,
+		});
+
+		expect(await roleOf(t, editor._id)).toBeNull();
+		expect(await t.run((ctx) => ctx.db.get(editorInternalId))).toBeNull();
+	});
+
+	it("lets an admin remove a plain internal", async () => {
+		const { t } = await setup();
+		const admin = await insertUser(t, "admin@example.com");
+		await grantRole(t, admin._id, "admin");
+		const member = await insertUser(t, "internal@example.com");
+		await grantRole(t, member._id, "internal");
+		const memberInternalId = await insertInternal(t, member._id);
+
+		await asUser(t, admin).mutation(api.users.organization.mutations.removeInternal, {
+			id: memberInternalId,
+		});
+
+		expect(await roleOf(t, member._id)).toBeNull();
+		expect(await t.run((ctx) => ctx.db.get(memberInternalId))).toBeNull();
+	});
+
 	it("lets a super-admin remove an internal and revokes their access rights", async () => {
 		const { t } = await setup();
 		const superAdmin = await insertUser(t, "super@example.com");

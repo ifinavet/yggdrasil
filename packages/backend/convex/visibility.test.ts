@@ -274,6 +274,29 @@ describe("jobListings.queries.getAll", () => {
 
 		expect(listings.map((listing) => listing.title).sort()).toEqual(["Publisert", "Upublisert"]);
 	});
+
+	it("gives a student the newest published listing when n is 1", async () => {
+		const { t, companyId } = await setup();
+		const day = 24 * 60 * 60 * 1000;
+		await insertJobListing(t, companyId, {
+			title: "Eldre publisert",
+			deadline: Date.now() + day,
+		});
+		await insertJobListing(t, companyId, {
+			title: "Nyere publisert",
+			deadline: Date.now() + 2 * day,
+		});
+		await insertJobListing(t, companyId, {
+			title: "Nyeste upublisert",
+			deadline: Date.now() + 3 * day,
+			published: false,
+		});
+		const student = await insertUser(t, "student@example.com");
+
+		const listings = await asUser(t, student).query(api.jobListings.queries.getAll, { n: 1 });
+
+		expect(listings.map((listing) => listing.title)).toEqual(["Nyere publisert"]);
+	});
 });
 
 describe("jobListings.queries.getById", () => {

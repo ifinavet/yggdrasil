@@ -212,7 +212,7 @@ describe("unregister", () => {
 			id: registrationId,
 		});
 
-		expect((await pointsFor(t, studentId)).length).toBe(1);
+		expect(await pointsFor(t, studentId)).toHaveLength(1);
 	});
 
 	it("gives no point when an organizer removes someone late", async () => {
@@ -228,7 +228,7 @@ describe("unregister", () => {
 			id: registrationId,
 		});
 
-		expect((await pointsFor(t, studentId)).length).toBe(0);
+		expect(await pointsFor(t, studentId)).toHaveLength(0);
 	});
 });
 

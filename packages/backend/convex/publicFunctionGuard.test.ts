@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 
 const PUBLIC_FUNCTIONS_WITHOUT_AUTHENTICATION_CHECK: readonly string[] = [
+	"auth/accessRights.ts:checkRights",
 	"companies/queries.ts:getAll",
 	"companies/queries.ts:getAllPaged",
 	"companies/queries.ts:getById",
@@ -37,14 +38,25 @@ const NEXT_TOP_LEVEL_DECLARATION =
 	/^(?:export\s+)?(?:const|let|var|function|async\s+function|class)\b/m;
 const BLOCK_COMMENT = /\/\*[\s\S]*?\*\//g;
 const LINE_COMMENT = /(?<!:)\/\/.*$/gm;
+const IF_STATEMENT = /\bif\s*\(/g;
 
-const AUTHENTICATION_CALLS = [
-	"getCurrentUserOrThrow(",
-	"requireRole(",
-	"currentUserHasRole(",
-	"userHasRole(",
+const THROWING_AUTHENTICATION_CALLS = ["getCurrentUserOrThrow", "requireRole"] as const;
+const NON_THROWING_AUTHENTICATION_CALLS = [
+	"currentUserHasRole",
+	"userHasRole",
+	"ctx.auth.getUserIdentity",
 ] as const;
-const IDENTITY_LOOKUP = /(?:const|let)\s+\w+\s*=\s*await\s+ctx\.auth\.getUserIdentity\(/;
+
+function escapeForRegExp(text: string) {
+	return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+const ASSIGNED_AUTHENTICATION_RESULT = new RegExp(
+	`(?:const|let|var)\\s+(\\w+)\\s*=\\s*await\\s+(?:${NON_THROWING_AUTHENTICATION_CALLS.map(
+		escapeForRegExp,
+	).join("|")})\\s*\\(`,
+	"g",
+);
 
 const backendSources = import.meta.glob("./**/*.ts", {
 	query: "?raw",
@@ -83,22 +95,73 @@ function matchesOf(pattern: RegExp, source: string) {
 	return found;
 }
 
-function hasAuthenticationCheck(body: string) {
-	const code = withoutComments(body);
-	return AUTHENTICATION_CALLS.some((call) => code.includes(call)) || IDENTITY_LOOKUP.test(code);
-}
+function balancedParenthesesFrom(code: string, openParenIndex: number) {
+	let depth = 0;
 
-function unguardedPublicFunctions() {
-	const unguarded: string[] = [];
-
-	for (const { path, source } of backendModules()) {
-		for (const declaration of matchesOf(PUBLIC_FUNCTION_DECLARATION, source)) {
-			const body = declarationBodyAfter(source, declaration.index + declaration[0].length);
-			if (!hasAuthenticationCheck(body)) unguarded.push(`${path}:${declaration[1]}`);
+	for (let index = openParenIndex; index < code.length; index++) {
+		if (code[index] === "(") depth++;
+		if (code[index] === ")") {
+			depth--;
+			if (depth === 0) return code.slice(openParenIndex + 1, index);
 		}
 	}
 
+	return code.slice(openParenIndex + 1);
+}
+
+function conditionsOf(code: string) {
+	return matchesOf(IF_STATEMENT, code).map((match) =>
+		balancedParenthesesFrom(code, match.index + match[0].length - 1),
+	);
+}
+
+function containsCallTo(code: string, calls: readonly string[]) {
+	return calls.some((call) => code.includes(`${call}(`));
+}
+
+function isConsumedInCondition(code: string, conditions: readonly string[], name: string) {
+	const identifier = escapeForRegExp(name);
+
+	if (conditions.some((condition) => new RegExp(`\\b${identifier}\\b`).test(condition))) {
+		return true;
+	}
+
+	return new RegExp(`!\\s*${identifier}\\b|\\b${identifier}\\s*(?:\\?(?![.?])|&&|\\|\\|)`).test(
+		code,
+	);
+}
+
+function assignedAuthenticationResults(code: string) {
+	return matchesOf(ASSIGNED_AUTHENTICATION_RESULT, code).map((match) => match[1]);
+}
+
+function hasAuthenticationCheck(body: string) {
+	const code = withoutComments(body);
+
+	if (containsCallTo(code, THROWING_AUTHENTICATION_CALLS)) return true;
+
+	const conditions = conditionsOf(code);
+	if (conditions.some((condition) => containsCallTo(condition, NON_THROWING_AUTHENTICATION_CALLS)))
+		return true;
+
+	return assignedAuthenticationResults(code).some((name) =>
+		isConsumedInCondition(code, conditions, name),
+	);
+}
+
+function unguardedPublicFunctionsIn(path: string, source: string) {
+	const unguarded: string[] = [];
+
+	for (const declaration of matchesOf(PUBLIC_FUNCTION_DECLARATION, source)) {
+		const body = declarationBodyAfter(source, declaration.index + declaration[0].length);
+		if (!hasAuthenticationCheck(body)) unguarded.push(`${path}:${declaration[1]}`);
+	}
+
 	return unguarded;
+}
+
+function unguardedPublicFunctions() {
+	return backendModules().flatMap(({ path, source }) => unguardedPublicFunctionsIn(path, source));
 }
 
 function modulesWithDefaultExport() {
@@ -128,6 +191,21 @@ function functionsBuiltByUnknownBuilders() {
 	return unknown;
 }
 
+function fixtureSource(handlerBody: string) {
+	return [
+		"export const readSecrets = query({",
+		"    handler: async (ctx) => {",
+		handlerBody,
+		"    },",
+		"});",
+		"",
+	].join("\n");
+}
+
+function unguardedFixtureFunctions(handlerBody: string) {
+	return unguardedPublicFunctionsIn("fixture.ts", fixtureSource(handlerBody));
+}
+
 describe("public function guard", () => {
 	it("finds the backend modules to scan", () => {
 		expect(backendModules().length).toBeGreaterThan(10);
@@ -151,5 +229,73 @@ describe("public function guard", () => {
 
 	it("never wraps builders in custom function factories the scanner cannot see through", () => {
 		expect(modulesUsingCustomBuilderFactories()).toEqual([]);
+	});
+});
+
+describe("public function guard scanner", () => {
+	it("reports a handler that ignores the identity it looked up", () => {
+		const handlerBody = [
+			"        const identity = await ctx.auth.getUserIdentity();",
+			'        return await ctx.db.query("users").collect();',
+		].join("\n");
+
+		expect(unguardedFixtureFunctions(handlerBody)).toEqual(["fixture.ts:readSecrets"]);
+	});
+
+	it("reports a handler that ignores the role result it looked up", () => {
+		const handlerBody = [
+			"        const isAdmin = await currentUserHasRole(ctx, adminRoles);",
+			'        return await ctx.db.query("users").collect();',
+		].join("\n");
+
+		expect(unguardedFixtureFunctions(handlerBody)).toEqual(["fixture.ts:readSecrets"]);
+	});
+
+	it("reports a handler that only returns the role result instead of branching on it", () => {
+		const handlerBody = [
+			"        const isAdmin = await userHasRole(ctx, userId, adminRoles);",
+			"        return isAdmin;",
+		].join("\n");
+
+		expect(unguardedFixtureFunctions(handlerBody)).toEqual(["fixture.ts:readSecrets"]);
+	});
+
+	it("reports a handler whose only guard sits in a comment", () => {
+		const handlerBody = [
+			"        // await requireRole(ctx, adminRoles);",
+			'        return await ctx.db.query("users").collect();',
+		].join("\n");
+
+		expect(unguardedFixtureFunctions(handlerBody)).toEqual(["fixture.ts:readSecrets"]);
+	});
+
+	it("accepts a handler that branches on the role result it looked up", () => {
+		const handlerBody = [
+			"        const isAdmin = await currentUserHasRole(ctx, adminRoles);",
+			'        if (!isAdmin) throw new ConvexError("Unauthorized");',
+			'        return await ctx.db.query("users").collect();',
+		].join("\n");
+
+		expect(unguardedFixtureFunctions(handlerBody)).toEqual([]);
+	});
+
+	it("accepts a handler that checks the role inline in a condition", () => {
+		const handlerBody = [
+			"        if (!(await currentUserHasRole(ctx, adminRoles))) {",
+			'            throw new ConvexError("Unauthorized");',
+			"        }",
+			'        return await ctx.db.query("users").collect();',
+		].join("\n");
+
+		expect(unguardedFixtureFunctions(handlerBody)).toEqual([]);
+	});
+
+	it("accepts a handler that calls a throwing guard", () => {
+		const handlerBody = [
+			"        await requireRole(ctx, adminRoles);",
+			'        return await ctx.db.query("users").collect();',
+		].join("\n");
+
+		expect(unguardedFixtureFunctions(handlerBody)).toEqual([]);
 	});
 });
