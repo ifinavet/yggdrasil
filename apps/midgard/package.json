@@ -9,7 +9,8 @@
     "lint": "next lint",
     "check": "biome check .",
     "check-types": "next typegen && tsc --noEmit",
-    "check:fix": "biome check . --write"
+    "check:fix": "biome check . --write",
+    "test": "vitest run"
   },
   "dependencies": {
     "@clerk/localizations": "^4.15.3",
@@ -38,12 +39,15 @@
     "@biomejs/biome": "2.0.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@tailwindcss/typography": "^0.5.20",
+    "@testing-library/react": "16.3.3",
     "@types/node": "^20.19.43",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.4",
     "@types/sanitize-html": "^2.16.1",
     "@workspace/typescript-config": "workspace:*",
+    "jsdom": "28.1.0",
     "tailwindcss": "^4.3.3",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "4.1.11"
   }
 }
