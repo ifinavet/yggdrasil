@@ -3,6 +3,7 @@
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import type { ORGANIZER_ROLE } from "@workspace/shared/constants";
+import { describeMutationError } from "@workspace/shared/utils";
 import { type Preloaded, useMutation, usePreloadedQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -11,7 +12,9 @@ import type { EventFormValues } from "@/constants/schemas/event-form-schema";
 
 export default function UpdateEventForm({
 	preloadedEvent,
-}: Readonly<{ preloadedEvent: Preloaded<typeof api.events.queries.getEvent> }>) {
+}: Readonly<{
+	preloadedEvent: Preloaded<typeof api.events.queries.getEvent>;
+}>) {
 	const event = usePreloadedQuery(preloadedEvent);
 	const router = useRouter();
 	const updateEventMutation = useMutation(api.events.mutations.update);
@@ -31,8 +34,7 @@ export default function UpdateEventForm({
 			userId: organizer.userId,
 			role: organizer.role as ORGANIZER_ROLE,
 		})),
-		externalEvent:
-			event.externalEvent ?? Boolean(event.externalUrl?.length),
+		externalEvent: event.externalEvent ?? Boolean(event.externalUrl?.length),
 		hostingCompany: {
 			id: event.hostingCompany,
 			name: event.hostingCompanyName,
@@ -72,7 +74,7 @@ export default function UpdateEventForm({
 				console.error(error);
 				console.error("Noe gikk galt!");
 				toast.error("Noe gikk galt!", {
-					description: error.message,
+					description: describeMutationError(error, error.message),
 				});
 			});
 	};

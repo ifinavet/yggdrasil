@@ -21,7 +21,11 @@
 			"dependsOn": ["^lint"]
 		},
 		"check-types": {
-			"dependsOn": ["^check-types"]
+			"dependsOn": ["^check-types"],
+			"env": ["NEXT_PUBLIC_CONVEX_URL"]
+		},
+		"test": {
+			"dependsOn": ["^test"]
 		},
 		"dev": {
 			"cache": false,

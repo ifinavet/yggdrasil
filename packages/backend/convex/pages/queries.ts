@@ -1,5 +1,6 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { query } from "../_generated/server";
+import { currentUserHasRole, editorRoles } from "../auth/accessRights";
 
 /**
  * Fetches all resources grouped by tag alongside unpublished resources.
@@ -11,7 +12,8 @@ export const getAllGroupedByTag = query({
         const resources = await ctx.db.query("resources").collect();
 
         const publishedResources = resources.filter((resource) => resource.published);
-        const unpublishedResources = resources.filter((resource) => !resource.published);
+        const maySeeUnpublished = await currentUserHasRole(ctx, editorRoles);
+        const unpublishedResources = maySeeUnpublished ? resources.filter((resource) => !resource.published) : [];
 
         const groupedByTag = publishedResources.reduce(
             (acc, resource) => {
@@ -42,8 +44,13 @@ export const getResourceById = query({
     handler: async (ctx, args) => {
         const resource = await ctx.db.get(args.id);
         if (!resource) {
-            throw new Error("Resource not found");
+            throw new ConvexError("Ressursen ble ikke funnet.");
         }
+
+        if (!resource.published && !(await currentUserHasRole(ctx, editorRoles))) {
+            throw new ConvexError("Ressursen ble ikke funnet.");
+        }
+
         return resource;
     },
 });
@@ -63,8 +70,13 @@ export const getExternalPageById = query({
     handler: async (ctx, { id }) => {
         const page = await ctx.db.get(id);
         if (!page) {
-            throw new Error("Page not found");
+            throw new ConvexError("Siden ble ikke funnet.");
         }
+
+        if (!page.published && !(await currentUserHasRole(ctx, editorRoles))) {
+            throw new ConvexError("Siden ble ikke funnet.");
+        }
+
         return page;
     },
 });
@@ -82,7 +94,9 @@ export const getFavorites = query({
             .order("desc")
             .collect();
 
-        return resources;
+        if (await currentUserHasRole(ctx, editorRoles)) return resources;
+
+        return resources.filter((resource) => resource.published);
     },
 });
 
@@ -94,7 +108,10 @@ export const getFavorites = query({
 export const getAll = query({
     handler: async (ctx) => {
         const externalPages = await ctx.db.query("externalPages").collect();
-        return externalPages;
+
+        if (await currentUserHasRole(ctx, editorRoles)) return externalPages;
+
+        return externalPages.filter((externalPage) => externalPage.published);
     },
 });
 
@@ -117,7 +134,11 @@ export const getByIdentifier = query({
             .first();
 
         if (!page) {
-            throw new Error("Page not found");
+            throw new ConvexError("Siden ble ikke funnet.");
+        }
+
+        if (!page.published && !(await currentUserHasRole(ctx, editorRoles))) {
+            throw new ConvexError("Siden ble ikke funnet.");
         }
 
         return page;

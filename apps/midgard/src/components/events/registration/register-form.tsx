@@ -3,6 +3,7 @@
 import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
+import { describeMutationError } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
 import {
 	Dialog,
@@ -60,8 +61,13 @@ export default function RegisterForm({
 					});
 					setOpen(false);
 				})
-				.catch(() => {
-					toast.error("Oops! Noe gikk galt! Prøv igjen senere.");
+				.catch((error) => {
+					toast.error(
+						describeMutationError(
+							error,
+							"Oops! Noe gikk galt! Prøv igjen senere.",
+						),
+					);
 				}),
 	});
 

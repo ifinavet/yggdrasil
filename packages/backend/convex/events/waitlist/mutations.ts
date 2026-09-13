@@ -1,3 +1,4 @@
+import { REGISTRATION_GRACE_PERIOD_MS } from "@workspace/shared/constants";
 import { v } from "convex/values";
 import { internal } from "../../_generated/api";
 import { internalMutation } from "../../_generated/server";
@@ -22,11 +23,9 @@ export const checkPendingRegistrations = internalMutation({
         const eventsWithOpenRegistrations = await ctx.db
             .query("events")
             .withIndex("by_registrationOpens", (q) =>
-                q
-                    .gte("registrationOpens", now - ONE_MONTH_MS)
-                    .lte("registrationOpens", now),
+                q.gte("registrationOpens", now - ONE_MONTH_MS).lte("registrationOpens", now),
             )
-            .filter((q) => q.gte(q.field("eventStart"), now - ONE_HOUR_MS))
+            .filter((q) => q.gte(q.field("eventStart"), now - REGISTRATION_GRACE_PERIOD_MS))
             .filter((q) => q.eq(q.field("externalUrl"), ""))
             .filter((q) => q.eq(q.field("published"), true))
             .collect();
@@ -70,8 +69,7 @@ export const checkPendingRegistrations = internalMutation({
                     const event = eventsWithOpenRegistrations.find(
                         (e) => e._id === registration.eventId,
                     );
-                    if (!event)
-                        throw new Error("Ingen arrangement assosiert med registreringen.");
+                    if (!event) throw new Error("Ingen arrangement assosiert med registreringen.");
 
                     await makeStatusPending(ctx, nextRegistration, event);
                 }
@@ -96,9 +94,7 @@ export const clearWaitlistAndPending = internalMutation({
         const eventsToClear = await ctx.db
             .query("events")
             .withIndex("by_eventStart", (q) =>
-                q
-                    .gte("eventStart", startOfDay.getTime())
-                    .lte("eventStart", endOfDay.getTime()),
+                q.gte("eventStart", startOfDay.getTime()).lte("eventStart", endOfDay.getTime()),
             )
             .collect();
 
@@ -115,8 +111,6 @@ export const clearWaitlistAndPending = internalMutation({
                 };
             }),
         );
-
-        console.log(registrationsForEvents);
 
         await Promise.all(
             registrationsForEvents.map(async ({ event, registrations }) => {
@@ -181,10 +175,7 @@ export const fixWaitlist = internalMutation({
             )
             .collect();
 
-        console.log(
-            registrations.length + pending.length,
-            event.participationLimit,
-        );
+        console.log(registrations.length + pending.length, event.participationLimit);
 
         const numRegisteredAndPending = registrations.length + pending.length;
         if (numRegisteredAndPending < event.participationLimit) {

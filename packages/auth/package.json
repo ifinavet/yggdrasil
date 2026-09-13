@@ -3,6 +3,9 @@
 	"version": "0.0.0",
 	"type": "module",
 	"private": true,
+	"scripts": {
+		"check-types": "tsc --noEmit"
+	},
 	"dependencies": {
 		"@clerk/nextjs": "^7.7.6",
 		"@workspace/backend": "workspace:*",

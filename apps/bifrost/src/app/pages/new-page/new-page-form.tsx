@@ -1,6 +1,7 @@
 "use client";
 
 import { api } from "@workspace/backend/convex/api";
+import { describeMutationError } from "@workspace/shared/utils";
 import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -28,7 +29,7 @@ export default function NewPageForm() {
 				console.error(error);
 				console.error("Noe gikk galt!");
 				toast.error("Noe gikk galt!", {
-					description: error.message,
+					description: describeMutationError(error, error.message),
 				});
 			});
 	};

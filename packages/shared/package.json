@@ -3,13 +3,18 @@
 	"version": "0.0.0",
 	"type": "module",
 	"private": true,
+	"scripts": {
+		"check-types": "tsc --noEmit",
+		"test": "vitest run"
+	},
 	"packageManager": "pnpm@10.15.1",
 	"dependencies": {
 		"convex": "^1.44.0"
 	},
 	"devDependencies": {
 		"@workspace/typescript-config": "workspace:*",
-		"typescript": "^5.9.3"
+		"typescript": "^5.9.3",
+		"vitest": "^4.1.11"
 	},
 	"exports": {
 		"./constants": "./constants/index.ts",

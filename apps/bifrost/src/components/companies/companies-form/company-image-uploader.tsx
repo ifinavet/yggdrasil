@@ -3,6 +3,7 @@
 import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
+import { describeMutationError } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
 import {
 	Field,
@@ -44,8 +45,12 @@ export default function CompanyImageUploader({
 	) => void;
 	onDismissAction: () => void;
 }>) {
-	const generateUploadUrl = useMutation(api.companies.mutations.generateUploadUrl);
-	const storeCompanyImage = useMutation(api.companies.mutations.uploadCompanyLogo);
+	const generateUploadUrl = useMutation(
+		api.companies.mutations.generateUploadUrl,
+	);
+	const storeCompanyImage = useMutation(
+		api.companies.mutations.uploadCompanyLogo,
+	);
 
 	const form = useForm({
 		defaultValues: {
@@ -88,7 +93,10 @@ export default function CompanyImageUploader({
 			} catch (error) {
 				console.error("Error uploading image:", error);
 				toast.error(
-					"Noe gikk galt under opplastingen av bildet. Vennligst prøv igjen.",
+					describeMutationError(
+						error,
+						"Noe gikk galt under opplastingen av bildet. Vennligst prøv igjen.",
+					),
 				);
 			}
 		},

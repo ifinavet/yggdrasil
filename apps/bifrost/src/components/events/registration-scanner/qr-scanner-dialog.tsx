@@ -2,6 +2,7 @@
 
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
+import { describeMutationError } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
 import {
 	Dialog,
@@ -24,7 +25,9 @@ import RegisterAttendanceByQr from "./register-by-qr-code";
 
 const QRScanner = dynamic(
 	() => import("@/components/events/registration-scanner/qr-scanner"),
-	{ ssr: false },
+	{
+		ssr: false,
+	},
 );
 
 export type QRScannerDialogProps = {
@@ -71,7 +74,9 @@ export default function QRScannerDialog({
 
 	const postHog = usePostHog();
 
-	const register = useMutation(api.events.registrations.mutations.updateAttendance);
+	const register = useMutation(
+		api.events.registrations.mutations.updateAttendance,
+	);
 	const handleRegister = (newStatus: "confirmed" | "late") =>
 		register({
 			id: registrationId as Id<"registrations">,
@@ -90,7 +95,10 @@ export default function QRScannerDialog({
 			})
 			.catch((e) => {
 				toast.error(
-					"An error occurred, please try again or register manually.",
+					describeMutationError(
+						e,
+						"An error occurred, please try again or register manually.",
+					),
 					{
 						description:
 							"If the error persists, please notify the Web Administrator. The event has been logged.",

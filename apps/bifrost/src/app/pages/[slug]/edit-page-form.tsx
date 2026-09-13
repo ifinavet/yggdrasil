@@ -1,6 +1,7 @@
 "use client";
 
 import { api } from "@workspace/backend/convex/api";
+import { describeMutationError } from "@workspace/shared/utils";
 import { type Preloaded, useMutation, usePreloadedQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import { usePostHog } from "posthog-js/react";
@@ -51,7 +52,7 @@ export default function EditPageForm({
 				console.error(error, "Noe gikk galt!");
 
 				toast.error("Noe gikk galt!", {
-					description: error.message,
+					description: describeMutationError(error, error.message),
 				});
 
 				posthog.captureException("bifrost-page_update_error", {
