@@ -37,9 +37,14 @@ export function EventResponseForm({
 			onSubmit: eventResponseFromSchema,
 		},
 		onSubmit: async ({ value }) => {
+			if (!event.formId) {
+				toast.error("Dette arrangementet har ikke noe tilbakemeldingsskjema.");
+				return;
+			}
+
 			try {
 				await formResponseMutation({
-					formId: event.formId!,
+					formId: event.formId,
 					data: {
 						userId,
 						eventId: event._id,

@@ -2,14 +2,6 @@
 
 import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@workspace/ui/components/select";
-import { Textarea } from "@workspace/ui/components/textarea";
 import { Button } from "@workspace/ui/components/button";
 import {
 	Command,
@@ -23,10 +15,10 @@ import {
 	Field,
 	FieldDescription,
 	FieldError,
+	FieldGroup,
 	FieldLabel,
 	FieldSeparator,
 	FieldSet,
-	FieldGroup,
 } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
 import {
@@ -34,17 +26,25 @@ import {
 	PopoverContent,
 	PopoverTrigger,
 } from "@workspace/ui/components/popover";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@workspace/ui/components/select";
+import { Textarea } from "@workspace/ui/components/textarea";
 import { cn } from "@workspace/ui/lib/utils";
 import { useQuery } from "convex/react";
 import { Check, ChevronsUpDown, EyeOff, Save, Send } from "lucide-react";
 import { useState } from "react";
+import DateTimePicker from "@/components/common/forms/date-time-picker";
+import DescriptionEditor from "@/components/common/forms/markdown-editor/editor";
 import {
 	type EventFormValues,
 	formSchema,
 } from "@/constants/schemas/event-form-schema";
 import Organizers from "./organizers";
-import DescriptionEditor from "@/components/common/forms/markdown-editor/editor";
-import DateTimePicker from "@/components/common/forms/date-time-picker";
 
 type FormMeta = {
 	submitAction: "primary" | "secondary" | "tertiary";

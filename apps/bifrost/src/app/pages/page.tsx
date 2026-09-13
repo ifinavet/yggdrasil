@@ -17,10 +17,10 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@workspace/ui/components/card";
+import { useQuery } from "convex/react";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import { humanReadableDate } from "@/utils/utils";
-import { useQuery } from "convex/react";
 
 export default function pagesPage() {
 	const pages = useQuery(api.pages.queries.getAll);
