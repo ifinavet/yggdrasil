@@ -2,6 +2,7 @@
 
 import type { api } from "@workspace/backend/convex/api";
 import type { Doc } from "@workspace/backend/convex/dataModel";
+import { REGISTRATION_GRACE_PERIOD_MS } from "@workspace/shared/constants";
 import { Button } from "@workspace/ui/components/button";
 import { type Preloaded, usePreloadedQuery } from "convex/react";
 import {
@@ -114,8 +115,8 @@ export function EventActionButton({
 		);
 	}
 
-	const HALF_HOUR = 30 * 60 * 1000;
-	const disabledButtons = Date.now() - event.eventStart >= HALF_HOUR;
+	const disabledButtons =
+		Date.now() - event.eventStart >= REGISTRATION_GRACE_PERIOD_MS;
 
 	return (
 		<RegistrationButton

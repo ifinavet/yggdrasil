@@ -5,7 +5,8 @@ import { type MutationCtx, mutation } from "../../_generated/server";
 import { getCurrentUserOrThrow } from "../../auth/currentUser";
 import {
     isEventOrganizerOrAdmin,
-    validateRegistrationTime,
+    validateRegistrationIsOpen,
+    validateRegistrationNotClosed,
     validateUserCanRegister,
 } from "../helper";
 
@@ -46,9 +47,7 @@ export const acceptPendingRegistration = mutation({
             );
         }
 
-        if (Date.now() >= event.eventStart) {
-            throw new ConvexError("Arrangementet har allerede startet.");
-        }
+        validateRegistrationNotClosed(event);
         await validateUserCanRegister(ctx, user);
 
         await ctx.db.patch(id, {
@@ -157,7 +156,7 @@ export const register = mutation({
 
         if (registrations.some((registration) => registration.userId === user._id)) return;
 
-        validateRegistrationTime(event);
+        validateRegistrationIsOpen(event);
         await validateUserCanRegister(ctx, user);
 
         const registrationCount = registrations.filter(
