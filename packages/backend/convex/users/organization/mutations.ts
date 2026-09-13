@@ -137,7 +137,7 @@ export const removeInternal = mutation({
         }
 
         const roleToRemove = await getAccessRole(ctx, internalToRemove.userId);
-        if (roleToRemove !== null && adminRoles.includes(roleToRemove)) {
+        if (roleToRemove !== null && roleToRemove !== "internal") {
             await requireRole(ctx, superAdminRoles);
         }
 

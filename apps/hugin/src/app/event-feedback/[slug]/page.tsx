@@ -15,11 +15,12 @@ export default async function EventResponse({
 	params: Promise<{ slug: string }>;
 }>) {
 	const { slug: identifier } = await params;
-	const token = await getAuthToken();
-	const event = await fetchQuery(api.events.queries.getEvent, { identifier }, { token });
 
 	const { userId, redirectToSignIn } = await auth();
 	if (!userId) return redirectToSignIn();
+
+	const token = await getAuthToken();
+	const event = await fetchQuery(api.events.queries.getEvent, { identifier }, { token });
 
 	if (!event.formId) {
 		return <h1>Det er ikke laget et spørreskjema til dette arrangementet</h1>;

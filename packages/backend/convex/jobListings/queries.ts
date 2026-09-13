@@ -18,23 +18,46 @@ export const getAll = query({
         type: v.optional(v.string()),
     },
     handler: async (ctx, { n, type }) => {
-        const query = type
-            ? ctx.db
-                  .query("jobListings")
-                  .withIndex("by_deadlineAndType", (q) => q.eq("type", type))
-                  .order("desc")
-            : ctx.db.query("jobListings").withIndex("by_deadline").order("desc");
-
-        const listings = await query.collect();
-
         const maySeeUnpublished = await currentUserHasRole(ctx, internalRoles);
-        const visibleListings = maySeeUnpublished
-            ? listings
-            : listings.filter((listing) => listing.published);
+        const listingsQuery = maySeeUnpublished
+            ? allListingsByDeadline(ctx, type)
+            : publishedListingsByDeadline(ctx, type);
 
-        return await addCompanyToListings(ctx, n ? visibleListings.slice(0, n) : visibleListings);
+        const listings = n ? await listingsQuery.take(n) : await listingsQuery.collect();
+
+        return await addCompanyToListings(ctx, listings);
     },
 });
+
+function allListingsByDeadline(
+    ctx: QueryCtx,
+    type: string | undefined,
+): OrderedQuery<DataModel["jobListings"]> {
+    if (type) {
+        return ctx.db
+            .query("jobListings")
+            .withIndex("by_deadlineAndType", (q) => q.eq("type", type))
+            .order("desc");
+    }
+
+    return ctx.db.query("jobListings").withIndex("by_deadline").order("desc");
+}
+
+function publishedListingsByDeadline(
+    ctx: QueryCtx,
+    type: string | undefined,
+): OrderedQuery<DataModel["jobListings"]> {
+    const publishedListings = ctx.db
+        .query("jobListings")
+        .withIndex("by_deadlineAndPublished", (q) => q.eq("published", true))
+        .order("desc");
+
+    if (type) {
+        return publishedListings.filter((q) => q.eq(q.field("type"), type));
+    }
+
+    return publishedListings;
+}
 
 /**
  * Fetches published active job listings with optional filtering and sorting.
