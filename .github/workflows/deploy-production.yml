@@ -103,6 +103,6 @@ jobs:
           NEXT_PUBLIC_CONVEX_URL: ${{ needs.backend.outputs.convex-url }}
         run: |
           : "${NEXT_PUBLIC_CONVEX_URL:?The backend deployment did not return a URL}"
-          npx --yes vercel@59.16.0 deploy --prod --yes --token "$VERCEL_TOKEN" \
+          npx --yes --ignore-scripts vercel@59.16.0 deploy --prod --yes --token "$VERCEL_TOKEN" \
             --build-env "NEXT_PUBLIC_CONVEX_URL=$NEXT_PUBLIC_CONVEX_URL" \
             --env "NEXT_PUBLIC_CONVEX_URL=$NEXT_PUBLIC_CONVEX_URL"
