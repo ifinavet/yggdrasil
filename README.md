@@ -41,8 +41,6 @@ The project uses Turborepo to manage the different services and is structured li
 
 Pushes to `main` [deploy Convex first, then all three apps on Vercel](.github/workflows/deploy-production.yml). PR previews still use Vercel's Git integration.
 
-Before merging, add these under **Settings → Secrets and variables → Actions**:
-
 - **Secrets:** `CONVEX_DEPLOY_KEY` (production) and `VERCEL_TOKEN` (access to all three projects).
 - **Variables:** `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID_MIDGARD`, `VERCEL_PROJECT_ID_BIFROST`, and `VERCEL_PROJECT_ID_HUGIN`, from Vercel's settings.
 
