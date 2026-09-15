@@ -1,7 +1,8 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { internal } from "../_generated/api";
-import { Id } from "../_generated/dataModel";
-import { internalMutation, mutation, MutationCtx } from "../_generated/server";
+import type { Id } from "../_generated/dataModel";
+import { internalMutation, type MutationCtx, mutation } from "../_generated/server";
+import { internalRoles, requireRole } from "../auth/accessRights";
 import { getCurrentUserOrThrow } from "../auth/currentUser";
 import { makeStatusPending } from "./registrations/mutations";
 
@@ -75,14 +76,11 @@ export const update = mutation({
             organizers,
         },
     ) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (identity === null) {
-            throw new Error("Unauthenticated call to mutation");
-        }
+        await requireRole(ctx, internalRoles);
 
         const event = await ctx.db.get(eventId);
         if (!event) {
-            throw new Error("Event not found");
+            throw new ConvexError("Arrangementet ble ikke funnet.");
         }
 
         // Create a slug if it doesn't exist
@@ -185,7 +183,7 @@ export const upsertEventOrganizer = internalMutation({
             .map((org) => {
                 const existing = eventOrganizers.find((eOrg) => eOrg.userId === org.userId);
                 if (existing) {
-                    ctx.db.patch(existing._id, { role: org.role });
+                    return ctx.db.patch(existing._id, { role: org.role });
                 }
             });
 
@@ -236,7 +234,7 @@ export const updateWaitlist = async (
 
     const event = await ctx.db.get(eventId);
     if (!event) {
-        throw new Error(`Event not for eventId: ${eventId}`);
+        throw new ConvexError(`Arrangementet med ID ${eventId} ble ikke funnet.`);
     }
 
     await Promise.all(
@@ -261,7 +259,7 @@ export const updatePublishedStatus = mutation({
         newPublishedStatus: v.boolean(),
     },
     handler: async (ctx, { ids, newPublishedStatus }) => {
-        await getCurrentUserOrThrow(ctx);
+        await requireRole(ctx, internalRoles);
 
         await Promise.all(
             ids.map(async (id) => {
@@ -280,7 +278,9 @@ export const updatePublishedStatus = mutation({
  * @returns {string} - A four-character uppercase hash.
  */
 function simpleHash(str: string): string {
-    const hash = Math.abs(str.split("").reduce((a, b) => (a << 5) - a + (b.codePointAt(0) || 0), 0));
+    const hash = Math.abs(
+        str.split("").reduce((a, b) => (a << 5) - a + (b.codePointAt(0) || 0), 0),
+    );
     const result = hash.toString(36).toUpperCase();
     return result.length < 4 ? result.padStart(4, "0").substring(0, 4) : result.substring(0, 4);
 }
@@ -370,10 +370,7 @@ export const create = mutation({
             organizers,
         },
     ) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (identity === null) {
-            throw new Error("Unauthenticated call to mutation");
-        }
+        await requireRole(ctx, internalRoles);
 
         // Creating the feedback form for after the event
         const formId = await ctx.runMutation(internal.forms.mutations.createEventFeedbackForm);

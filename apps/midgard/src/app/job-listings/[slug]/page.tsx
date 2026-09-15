@@ -7,6 +7,7 @@ import Image from "next/image";
 import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
 import SanitizeHtml from "@/components/common/sanitize-html";
 import { Title } from "@/components/common/title";
+import { notFoundOnConvexError } from "@/lib/notFoundOnConvexError";
 import { humanReadableDateTime } from "@/utils/dateFormatting";
 
 export default async function JobListingPage({
@@ -16,7 +17,9 @@ export default async function JobListingPage({
 }>) {
 	const listingId = await params.then((params) => params.slug);
 
-	const listing = await fetchQuery(api.jobListings.queries.getById, { id: listingId });
+	const listing = await fetchQuery(api.jobListings.queries.getById, {
+		id: listingId,
+	}).catch(notFoundOnConvexError);
 	const company = await fetchQuery(api.companies.queries.getById, {
 		id: listing.company,
 	});
