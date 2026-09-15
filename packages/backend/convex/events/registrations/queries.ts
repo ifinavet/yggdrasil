@@ -1,8 +1,9 @@
 import { toBase64 } from "@workspace/shared/utils";
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { query } from "../../_generated/server";
-import { getCurrentUserOrThrow } from "../../auth/currentUser";
-import { getEventByIdentifier } from "../helper";
+import { currentUserHasRole, internalRoles, requireRole } from "../../auth/accessRights";
+import { getCurrentUser as getCurrentUserOrNull, getCurrentUserOrThrow } from "../../auth/currentUser";
+import { getEventByIdentifier, isEventOrganizerOrAdmin } from "../helper";
 
 /**
  * Fetches registrations for an event grouped into registered and waitlist buckets.
@@ -16,7 +17,13 @@ export const getByEventId = query({
         eventIdentifier: v.string(),
     },
     handler: async (ctx, { eventIdentifier }) => {
+        const currentUser = await getCurrentUserOrThrow(ctx);
         const event = await getEventByIdentifier(ctx, eventIdentifier);
+
+        if (!(await isEventOrganizerOrAdmin(ctx, event._id, currentUser._id))) {
+            throw new ConvexError("Bare arrangører eller administratorer kan se påmeldingslisten.");
+        }
+
         const registrations = await ctx.db
             .query("registrations")
             .withIndex("by_eventIdAndRegistrationTime", (q) => q.eq("eventId", event._id))
@@ -46,6 +53,51 @@ export const getByEventId = query({
 });
 
 /**
+ * Fetches the registration counts for an event plus the current user's own registration.
+ *
+ * @param {string} eventIdentifier - The event id or slug to inspect.
+ *
+ * @returns {{ registeredCount: number, waitlistCount: number, ownRegistration: Doc<"registrations"> | null, ownWaitlistPosition: number | null }} - The publicly visible registration summary.
+ */
+export const getEventRegistrationSummary = query({
+    args: {
+        eventIdentifier: v.string(),
+    },
+    handler: async (ctx, { eventIdentifier }) => {
+        const event = await getEventByIdentifier(ctx, eventIdentifier);
+
+        if (!event.published && !(await currentUserHasRole(ctx, internalRoles))) {
+            throw new ConvexError("Arrangementet ble ikke funnet.");
+        }
+
+        const registrations = await ctx.db
+            .query("registrations")
+            .withIndex("by_eventIdAndRegistrationTime", (q) => q.eq("eventId", event._id))
+            .collect();
+
+        const registeredOrPending = registrations.filter(
+            (registration) => registration.status === "pending" || registration.status === "registered",
+        );
+        const waitlist = registrations.filter((registration) => registration.status === "waitlist");
+
+        const currentUser = await getCurrentUserOrNull(ctx);
+        const ownRegistration = currentUser
+            ? (registrations.find((registration) => registration.userId === currentUser._id) ?? null)
+            : null;
+        const ownWaitlistIndex = currentUser
+            ? waitlist.findIndex((registration) => registration.userId === currentUser._id)
+            : -1;
+
+        return {
+            registeredCount: registeredOrPending.length,
+            waitlistCount: waitlist.length,
+            ownRegistration,
+            ownWaitlistPosition: ownWaitlistIndex === -1 ? null : ownWaitlistIndex + 1,
+        };
+    },
+});
+
+/**
  * Fetches a registration by id.
  *
  * @param {Id<"registrations">} id - The id of the registration to fetch.
@@ -58,10 +110,17 @@ export const getById = query({
         id: v.id("registrations"),
     },
     handler: async (ctx, { id }) => {
-        const registration = await ctx.db.get(id);
+        const user = await getCurrentUserOrThrow(ctx);
 
+        const registration = await ctx.db.get(id);
         if (!registration) {
-            throw new Error(`Registrering med ID ${id} ikke funnet.`);
+            throw new ConvexError(`Registrering med ID ${id} ikke funnet.`);
+        }
+
+        const isOwner = registration.userId === user._id;
+        const isOrganizer = await isEventOrganizerOrAdmin(ctx, registration.eventId, user._id);
+        if (!isOwner && !isOrganizer) {
+            throw new ConvexError("Unauthorized: Du har ikke tilgang til denne registreringen.");
         }
 
         return registration;
@@ -87,7 +146,7 @@ export const getCurrentUserRegistertToEventBySlug = query({
             .first();
 
         if (!event) {
-            throw new Error(`Arrangement med slug ${slug} ikke funnet.`);
+            throw new ConvexError(`Arrangement med slug ${slug} ikke funnet.`);
         }
 
         const user = await getCurrentUserOrThrow(ctx);
@@ -101,7 +160,7 @@ export const getCurrentUserRegistertToEventBySlug = query({
             .first();
 
         if (!registrations) {
-            throw new Error(`Bruker er ikke registrert på arrangementet med slug ${slug}.`);
+            throw new ConvexError(`Bruker er ikke registrert på arrangementet med slug ${slug}.`);
         }
 
         return user._id;
@@ -127,8 +186,8 @@ export const getCurrentUser = query({
             registrations.map(async (reg) => {
                 const event = await ctx.db.get(reg.eventId);
                 if (!event) {
-                    throw new Error(
-                        `aarangementet med ID ${reg.eventId} ikke funnet. Kan ikke hente registrering.`,
+                    throw new ConvexError(
+                        `Arrangementet med ID ${reg.eventId} ble ikke funnet. Kan ikke hente registreringen.`,
                     );
                 }
 
@@ -145,24 +204,32 @@ export const getCurrentUser = query({
 });
 
 /**
- * Fetches the user attached to a registration.
+ * Fetches the name of the user attached to a registration.
  *
  * @param {Id<"registrations">} id - The id of the registration to inspect.
  *
- * @returns {(Doc<"registrations"> & Doc<"users">) | null} - The merged registration and user data, or null if either record is missing.
+ * @throws - An error if the caller may not see the registration.
+ * @returns {{ firstName: string, lastName: string } | null} - The registrant's name, or null if either record is missing.
  */
 export const getUserByRegistrationId = query({
     args: {
         id: v.id("registrations"),
     },
     handler: async (ctx, { id }) => {
+        const currentUser = await getCurrentUserOrThrow(ctx);
+
         const registration = await ctx.db.get(id);
         if (!registration) return null;
+
+        const isOrganizer = await isEventOrganizerOrAdmin(ctx, registration.eventId, currentUser._id);
+        if (!isOrganizer) {
+            throw new ConvexError("Unauthorized: Du har ikke tilgang til denne registreringen.");
+        }
 
         const user = await ctx.db.get(registration.userId);
         if (!user) return null;
 
-        return { ...registration, ...user };
+        return { firstName: user.firstName, lastName: user.lastName };
     },
 });
 
@@ -178,6 +245,8 @@ export const getRegistrantsInfo = query({
         eventIdentifier: v.string(),
     },
     handler: async (ctx, { eventIdentifier }) => {
+        await requireRole(ctx, internalRoles);
+
         const event = await getEventByIdentifier(ctx, eventIdentifier);
 
         const registrations = await ctx.db
