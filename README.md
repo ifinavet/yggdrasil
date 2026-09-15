@@ -44,8 +44,6 @@ Pushes to `main` [deploy Convex first, then all three apps on Vercel](.github/wo
 - **Secrets:** `CONVEX_DEPLOY_KEY` (production) and `VERCEL_TOKEN` (access to all three projects).
 - **Variables:** `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID_MIDGARD`, `VERCEL_PROJECT_ID_BIFROST`, and `VERCEL_PROJECT_ID_HUGIN`, from Vercel's settings.
 
-Keep each Vercel project's root at `apps/<app>` with access to shared packages. Remove any build override that deploys Convex.
-
 To retry, use **Actions → Deploy production → Run workflow** on `main`. Keep backend changes compatible with the previous frontend; rolling back Vercel alone does not roll back Convex.
 
 ## Want to contribute? 🤝
