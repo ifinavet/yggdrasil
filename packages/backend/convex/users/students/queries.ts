@@ -1,8 +1,7 @@
 import { paginationOptsValidator } from "convex/server";
-import { ConvexError, v } from "convex/values";
-import type { Doc, Id } from "../../_generated/dataModel";
+import { v } from "convex/values";
+import { Doc, Id } from "../../_generated/dataModel";
 import { query } from "../../_generated/server";
-import { adminRoles, requireRole } from "../../auth/accessRights";
 import { getCurrentUserOrThrow } from "../clerk/queries";
 
 /**
@@ -19,13 +18,11 @@ export const getAllPaged = query({
         paginationOpts: paginationOptsValidator,
     },
     handler: async (ctx, { search, paginationOpts }) => {
-        await requireRole(ctx, adminRoles);
-
         const students = await (search && search.length > 0
             ? ctx.db
-                  .query("students")
-                  .withSearchIndex("search_name", (q) => q.search("name", search))
-                  .paginate(paginationOpts)
+                .query("students")
+                .withSearchIndex("search_name", (q) => q.search("name", search))
+                .paginate(paginationOpts)
             : ctx.db.query("students").paginate(paginationOpts));
 
         const studentsWithLockedStatus = await Promise.all(
@@ -55,8 +52,6 @@ export const getAllPaged = query({
  */
 export const getAllWithPoints = query({
     handler: async (ctx) => {
-        await requireRole(ctx, adminRoles);
-
         const points = await ctx.db.query("points").collect();
         const students = new Map<Id<"students">, Doc<"points">[]>();
 
@@ -76,7 +71,7 @@ export const getAllWithPoints = query({
         for (const [studentId, points] of students.entries()) {
             const student = await ctx.db.get(studentId);
             if (!student) {
-                throw new ConvexError("Fant ikke studenten.");
+                throw new Error("User not found");
             }
 
             studentsWithPoints.push({
@@ -107,7 +102,7 @@ export const getCurrent = query({
             .first();
 
         if (!student) {
-            throw new ConvexError("Fant ingen studentprofil for brukeren din.");
+            throw new Error("Student not found for the user");
         }
 
         return {
@@ -128,15 +123,13 @@ export const getCurrent = query({
 export const getById = query({
     args: { id: v.id("students") },
     handler: async (ctx, { id }) => {
-        await requireRole(ctx, adminRoles);
-
         const student = await ctx.db.get(id);
         if (!student) {
-            throw new ConvexError(`Studenten med ID ${id} ble ikke funnet.`);
+            throw new Error("Student not found");
         }
         const user = await ctx.db.get(student.userId);
         if (!user) {
-            throw new ConvexError("Fant ikke brukeren som hører til studenten.");
+            throw new Error("User not found for the student");
         }
 
         return {

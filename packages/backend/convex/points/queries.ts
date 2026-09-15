@@ -1,6 +1,5 @@
 import { v } from "convex/values";
 import { query } from "../_generated/server";
-import { adminRoles, requireRole } from "../auth/accessRights";
 import { getCurrentUserOrThrow } from "../users/clerk/queries";
 
 /**
@@ -13,8 +12,6 @@ import { getCurrentUserOrThrow } from "../users/clerk/queries";
 export const getByStudentId = query({
     args: { id: v.id("students") },
     handler: async (ctx, { id }) => {
-        await requireRole(ctx, adminRoles);
-
         const points = await ctx.db
             .query("points")
             .withIndex("by_studentId", (q) => q.eq("studentId", id))
@@ -26,7 +23,8 @@ export const getByStudentId = query({
 /**
  * Fetches all points records for the current student.
  *
- * @returns {Doc<"points">[] | null} - The points records, or null when the user has no student profile.
+ * @throws - An error if the current user has no linked student record.
+ * @returns {Doc<"points">[]} - The current student's points records.
  */
 export const getCurrentStudentsPoints = query({
     handler: async (ctx) => {
@@ -37,7 +35,9 @@ export const getCurrentStudentsPoints = query({
             .withIndex("by_userId", (q) => q.eq("userId", user._id))
             .first();
 
-        if (!student) return null;
+        if (!student) {
+            throw new Error("Student not found for the user");
+        }
 
         const points = await ctx.db
             .query("points")

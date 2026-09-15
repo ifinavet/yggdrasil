@@ -1,4 +1,3 @@
-import { getAuthToken } from "@workspace/auth";
 import { api } from "@workspace/backend/convex/api";
 import { fromBase64, toVariableName } from "@workspace/shared/utils";
 import { fetchQuery, preloadQuery } from "convex/nextjs";
@@ -12,17 +11,10 @@ export default async function RapportPage({
 }: Readonly<{ params: Promise<{ slug: string }> }>) {
 	const { slug } = await params;
 
-	const token = await getAuthToken();
-	const registrantsInfo = await fetchQuery(
-		api.events.registrations.queries.getRegistrantsInfo,
-		{ eventIdentifier: slug },
-		{ token },
-	);
-	const preloadedEvent = await preloadQuery(
-		api.events.queries.getEvent,
-		{ identifier: slug },
-		{ token },
-	);
+	const registrantsInfo = await fetchQuery(api.events.registrations.queries.getRegistrantsInfo, {
+		eventIdentifier: slug,
+	});
+	const preloadedEvent = await preloadQuery(api.events.queries.getEvent, { identifier: slug });
 
 	const degreeTotals = Object.entries(registrantsInfo).map(([degree, programs]) => {
 		const num = Object.values(programs).reduce((acc, aar) => {

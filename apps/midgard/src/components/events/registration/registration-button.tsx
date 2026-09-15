@@ -4,19 +4,19 @@ import { api } from "@workspace/backend/convex/api";
 import type { Doc } from "@workspace/backend/convex/dataModel";
 import { Button } from "@workspace/ui/components/button";
 import { useConvexAuth, useQuery } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import EditRegistration from "./edit-registration";
 import RegisterForm from "./register-form";
-import type { EventRegistrationSummary } from "./registration-summary";
 
 export default function RegistrationButton({
-	registrationSummary,
+	registration,
 	availableSpots,
 	disabled,
 	event,
 }: Readonly<{
-	registrationSummary: EventRegistrationSummary;
+	registration: FunctionReturnType<typeof api.events.registrations.queries.getByEventId>;
 	availableSpots: number;
 	disabled: boolean;
 	event: Doc<"events">;
@@ -24,6 +24,7 @@ export default function RegistrationButton({
 	const path = usePathname();
 
 	const { isAuthenticated } = useConvexAuth();
+	const currentUser = useQuery(api.users.clerk.queries.current, isAuthenticated ? undefined : "skip");
 	const currentUsersPoints = useQuery(
 		api.points.queries.getCurrentStudentsPoints,
 		isAuthenticated ? undefined : "skip",
@@ -31,9 +32,14 @@ export default function RegistrationButton({
 	const numberOfPoints =
 		currentUsersPoints?.reduce((acc, curr) => acc + curr.severity, 0) || 0;
 
-	const { ownRegistration } = registrationSummary;
+	const currentUsersRegistration = registration.registered.find(
+		(registration) => registration.userId === currentUser?._id,
+	);
+	const currentUsersWaitlistRegistration = registration.waitlist.find(
+		(registration) => registration.userId === currentUser?._id,
+	);
 
-	if (!isAuthenticated) {
+	if (!currentUser || !isAuthenticated) {
 		return (
 			<Button
 				type="button"
@@ -45,7 +51,11 @@ export default function RegistrationButton({
 		);
 	}
 
-	if (numberOfPoints >= 3 && !ownRegistration) {
+	if (
+		numberOfPoints >= 3 &&
+		!currentUsersRegistration &&
+		!currentUsersWaitlistRegistration
+	) {
 		return (
 			<Button
 				type="button"
@@ -57,7 +67,7 @@ export default function RegistrationButton({
 		);
 	}
 
-	if (!ownRegistration) {
+	if (!currentUsersRegistration && !currentUsersWaitlistRegistration) {
 		return (
 			<RegisterForm
 				eventId={event._id}
@@ -68,9 +78,14 @@ export default function RegistrationButton({
 		);
 	}
 
+	const registrationToEdit =
+		currentUsersRegistration ?? currentUsersWaitlistRegistration;
+
+	if (!registrationToEdit) return null;
+
 	return (
 		<EditRegistration
-			registration={ownRegistration}
+			registration={registrationToEdit}
 			disabled={disabled}
 			event={event}
 		/>

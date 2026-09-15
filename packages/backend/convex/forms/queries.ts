@@ -1,6 +1,5 @@
 import { v } from "convex/values";
 import { query } from "../_generated/server";
-import { internalRoles, requireRole } from "../auth/accessRights";
 import { getCurrentUserOrThrow } from "../auth/currentUser";
 
 /**
@@ -16,7 +15,7 @@ export const getFormResponsesByFormId = query({
         formId: v.id("form"),
     },
     handler: async (ctx, { formId }) => {
-        await requireRole(ctx, internalRoles);
+        await getCurrentUserOrThrow(ctx);
 
         return await ctx.db
             .query("formResponses")
@@ -74,6 +73,7 @@ export const checkIfCurrentUserAttendedTheEventAndShouldBeAbleToSubmit = query({
         const event = await ctx.db.get(eventId);
 
         if (!event) return false;
+        console.log(event);
 
         // Check if the user is an organizer
         const organizers = await ctx.db
@@ -92,10 +92,12 @@ export const checkIfCurrentUserAttendedTheEventAndShouldBeAbleToSubmit = query({
             .first();
 
         if (!attendance) return false;
+        console.log(attendance);
 
         if (attendance.attendanceStatus === undefined || attendance.attendanceStatus === "no_show") {
             return false;
         }
+        console.log(attendance.attendanceStatus);
 
         return true;
     },

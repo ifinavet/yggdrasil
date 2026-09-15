@@ -4,7 +4,6 @@ import { cacheLife } from "next/cache";
 import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
 import SanitizeHtml from "@/components/common/sanitize-html";
 import { Title } from "@/components/common/title";
-import { notFoundOnConvexError } from "@/lib/notFoundOnConvexError";
 
 export default async function Page({
 	params,
@@ -18,7 +17,7 @@ export default async function Page({
 
 	const page = await fetchQuery(api.pages.queries.getByIdentifier, {
 		identifier,
-	}).catch(notFoundOnConvexError);
+	});
 
 	return (
 		<ResponsiveCenterContainer>

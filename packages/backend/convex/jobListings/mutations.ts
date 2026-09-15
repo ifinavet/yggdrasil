@@ -1,6 +1,5 @@
 import { v } from "convex/values";
 import { mutation } from "../_generated/server";
-import { internalRoles, requireRole } from "../auth/accessRights";
 
 /**
  * Creates a new job listing and its contact records.
@@ -37,7 +36,10 @@ export const create = mutation({
         ),
     },
     handler: async (ctx, args) => {
-        await requireRole(ctx, internalRoles);
+        const identity = await ctx.auth.getUserIdentity();
+        if (identity === null) {
+            throw new Error("Unauthenticated call to mutation");
+        }
 
         const listing = await ctx.db.insert("jobListings", {
             title: args.title,
@@ -98,7 +100,10 @@ export const update = mutation({
         ),
     },
     handler: async (ctx, args) => {
-        await requireRole(ctx, internalRoles);
+        const identity = await ctx.auth.getUserIdentity();
+        if (identity === null) {
+            throw new Error("Unauthenticated call to mutation");
+        }
 
         const listing = await ctx.db.replace(args.id, {
             title: args.title,
@@ -144,7 +149,10 @@ export const remove = mutation({
         id: v.id("jobListings"),
     },
     handler: async (ctx, { id }) => {
-        await requireRole(ctx, internalRoles);
+        const identity = await ctx.auth.getUserIdentity();
+        if (identity === null) {
+            throw new Error("Unauthenticated call to mutation");
+        }
 
         const contacts = await ctx.db
             .query("jobListingContacts")

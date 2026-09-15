@@ -1,4 +1,4 @@
-import { getAuthToken, hasEditRights } from "@workspace/auth";
+import { hasEditRights } from "@workspace/auth";
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import {
@@ -21,8 +21,7 @@ export default async function ResourcePage({
 	params: Promise<{ slug: Id<"resources"> }>;
 }>) {
 	const { slug: id } = await params;
-	const token = await getAuthToken();
-	const resource = await fetchQuery(api.pages.queries.getResourceById, { id }, { token });
+	const resource = await fetchQuery(api.pages.queries.getResourceById, { id: id });
 
 	const hasEditRight = await hasEditRights();
 

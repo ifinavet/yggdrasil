@@ -1,6 +1,5 @@
 import { v } from "convex/values";
 import { mutation } from "../_generated/server";
-import { editorRoles, requireRole } from "../auth/accessRights";
 
 /**
  * Creates a new resource page.
@@ -27,7 +26,10 @@ export const createResource = mutation({
         published: v.boolean(),
     },
     handler: async (ctx, args) => {
-        await requireRole(ctx, editorRoles);
+        const identity = await ctx.auth.getUserIdentity();
+        if (identity === null) {
+            throw new Error("Unauthenticated call to mutation");
+        }
 
         await ctx.db.insert("resources", {
             title: args.title,
@@ -68,7 +70,10 @@ export const updateResource = mutation({
         published: v.boolean(),
     },
     handler: async (ctx, args) => {
-        await requireRole(ctx, editorRoles);
+        const identity = await ctx.auth.getUserIdentity();
+        if (identity === null) {
+            throw new Error("Unauthenticated call to mutation");
+        }
 
         await ctx.db.patch(args.id, {
             title: args.title,
@@ -101,7 +106,10 @@ export const updateExternalPage = mutation({
         published: v.boolean(),
     },
     handler: async (ctx, { id, title, content, published }) => {
-        await requireRole(ctx, editorRoles);
+        const identity = await ctx.auth.getUserIdentity();
+        if (identity === null) {
+            throw new Error("Unauthenticated call to mutation");
+        }
 
         const identifier = title
             .toLowerCase()
@@ -146,7 +154,10 @@ export const createExternalPage = mutation({
         published: v.boolean(),
     },
     handler: async (ctx, { title, content, published }) => {
-        await requireRole(ctx, editorRoles);
+        const identity = await ctx.auth.getUserIdentity();
+        if (identity === null) {
+            throw new Error("Unauthenticated call to mutation");
+        }
 
         const identifier = title
             .toLowerCase()

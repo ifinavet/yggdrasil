@@ -1,4 +1,3 @@
-import { getAuthToken } from "@workspace/auth";
 import { api } from "@workspace/backend/convex/api";
 import {
 	Breadcrumb,
@@ -21,14 +20,13 @@ import Link from "next/link";
 import { createColumns } from "@/components/job-listings/listings-table/columns";
 import { ListingsTable } from "@/components/job-listings/listings-table/listings-table";
 import { groupJobListings, type JobListing } from "@/utils/job-listings";
+import { cacheLife } from "next/cache";
 
 export default async function JobListingsPage() {
-	const token = await getAuthToken();
-	const listings = await fetchQuery(
-		api.jobListings.queries.getAll,
-		{},
-		{ token },
-	);
+	"use cache";
+	cacheLife("seconds");
+
+	const listings = await fetchQuery(api.jobListings.queries.getAll, {});
 
 	const data: JobListing[] = listings.map((listing) => ({
 		listingId: listing._id,
