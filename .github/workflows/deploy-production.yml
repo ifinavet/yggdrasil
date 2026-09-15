@@ -1,0 +1,108 @@
+name: Deploy production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Keep the backend and all three frontends in the same release.
+concurrency:
+  group: production
+  cancel-in-progress: false
+
+jobs:
+  backend:
+    if: github.repository == 'ifinavet/yggdrasil' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      convex-url: ${{ steps.deploy.outputs.url }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Check release configuration
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID_MIDGARD: ${{ vars.VERCEL_PROJECT_ID_MIDGARD }}
+          VERCEL_PROJECT_ID_BIFROST: ${{ vars.VERCEL_PROJECT_ID_BIFROST }}
+          VERCEL_PROJECT_ID_HUGIN: ${{ vars.VERCEL_PROJECT_ID_HUGIN }}
+        run: |
+          : "${CONVEX_DEPLOY_KEY:?Set the production CONVEX_DEPLOY_KEY secret}"
+          : "${VERCEL_TOKEN:?Set the VERCEL_TOKEN secret}"
+          : "${VERCEL_ORG_ID:?Set the VERCEL_ORG_ID variable}"
+          : "${VERCEL_PROJECT_ID_MIDGARD:?Set the VERCEL_PROJECT_ID_MIDGARD variable}"
+          : "${VERCEL_PROJECT_ID_BIFROST:?Set the VERCEL_PROJECT_ID_BIFROST variable}"
+          : "${VERCEL_PROJECT_ID_HUGIN:?Set the VERCEL_PROJECT_ID_HUGIN variable}"
+
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Reject superseded releases
+        run: |
+          git fetch origin main --depth=1
+          test "$(git rev-parse FETCH_HEAD)" = "$GITHUB_SHA" || {
+            echo "::error::This commit is no longer main. Run the latest release instead."
+            exit 1
+          }
+
+      - name: Deploy Convex
+        id: deploy
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+        # --cmd runs before the backend push; only export the URL here.
+        run: |
+          # Convex's child shell expands these variables.
+          # shellcheck disable=SC2016
+          pnpm --dir packages/backend exec convex deploy --typecheck enable \
+            --cmd-url-env-var-name NEXT_PUBLIC_CONVEX_URL \
+            --cmd 'echo "url=$NEXT_PUBLIC_CONVEX_URL" >> "$GITHUB_OUTPUT"'
+
+  frontends:
+    name: Deploy ${{ matrix.app }}
+    needs: backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app: midgard
+            project-id-variable: VERCEL_PROJECT_ID_MIDGARD
+          - app: bifrost
+            project-id-variable: VERCEL_PROJECT_ID_BIFROST
+          - app: hugin
+            project-id-variable: VERCEL_PROJECT_ID_HUGIN
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 22
+
+      - name: Reject superseded releases
+        run: |
+          git fetch origin main --depth=1
+          test "$(git rev-parse FETCH_HEAD)" = "$GITHUB_SHA" || {
+            echo "::error::This commit is no longer main. Run the latest release instead."
+            exit 1
+          }
+
+      - name: Build and deploy on Vercel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars[matrix.project-id-variable] }}
+          NEXT_PUBLIC_CONVEX_URL: ${{ needs.backend.outputs.convex-url }}
+        run: |
+          : "${NEXT_PUBLIC_CONVEX_URL:?The backend deployment did not return a URL}"
+          npx --yes vercel@59.16.0 deploy --prod --yes --token "$VERCEL_TOKEN" \
+            --build-env "NEXT_PUBLIC_CONVEX_URL=$NEXT_PUBLIC_CONVEX_URL" \
+            --env "NEXT_PUBLIC_CONVEX_URL=$NEXT_PUBLIC_CONVEX_URL"
