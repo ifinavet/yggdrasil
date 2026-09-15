@@ -1,4 +1,5 @@
 import { URLSearchParams } from "node:url";
+import { getAuthToken } from "@workspace/auth";
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { fetchQuery } from "convex/nextjs";
@@ -9,8 +10,6 @@ import EventCard from "./event-card";
 export default async function EventsGrid({
 	pathname,
 }: Readonly<{ pathname: string }>) {
-	"use cache";
-
 	let searchParams: URLSearchParams | undefined;
 	if (pathname) searchParams = new URLSearchParams(pathname);
 
@@ -19,25 +18,31 @@ export default async function EventsGrid({
 		searchParams?.get("semester") ||
 		(new Date().getMonth() < 7 ? "vår" : "høst");
 
-	const events = await fetchQuery(api.events.queries.getAll, {
-		year: Number.parseInt(year),
-		semester,
-	});
+	const token = await getAuthToken();
+	const events = await fetchQuery(
+		api.events.queries.getAll,
+		{ year: Number.parseInt(year), semester },
+		{ token },
+	);
 
 	const publishedEvents = await Promise.all(
 		(events?.published || []).map(async (event) => {
-			const organizers = await fetchQuery(api.events.queries.getOrganizersByEventId, {
-				id: event._id as Id<"events">,
-			});
+			const organizers = await fetchQuery(
+				api.events.queries.getOrganizersByEventId,
+				{ id: event._id as Id<"events"> },
+				{ token },
+			);
 			return { ...event, organizers };
 		}),
 	);
 
 	const unpublishedEvents = await Promise.all(
 		(events?.unpublished || []).map(async (event) => {
-			const organizers = await fetchQuery(api.events.queries.getOrganizersByEventId, {
-				id: event._id as Id<"events">,
-			});
+			const organizers = await fetchQuery(
+				api.events.queries.getOrganizersByEventId,
+				{ id: event._id as Id<"events"> },
+				{ token },
+			);
 			return { ...event, organizers };
 		}),
 	);
