@@ -1,3 +1,4 @@
+import { getAuthToken } from "@workspace/auth";
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import {
@@ -29,7 +30,12 @@ export default async function StudentPage({
 }>) {
 	const { slug: id } = await params;
 
-	const preloadedStudent = await preloadQuery(api.users.students.queries.getById, { id });
+	const token = await getAuthToken();
+	const preloadedStudent = await preloadQuery(
+		api.users.students.queries.getById,
+		{ id },
+		{ token },
+	);
 
 	return (
 		<>

@@ -13,6 +13,7 @@ export type Event = {
 	eventStart: number;
 	published: boolean;
 	slug?: string;
+	externalEvent?: boolean;
 	externalUrl?: string;
 	organizers: Organizer[];
 };

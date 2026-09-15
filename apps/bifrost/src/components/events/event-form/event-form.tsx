@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm, useStore } from "@tanstack/react-form";
+import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
 import {
 	Select,
@@ -90,8 +90,6 @@ export default function EventForm({
 	const [companyValue, setCompanyValue] = useState(
 		form.state.values.hostingCompany.name,
 	);
-
-	const isExternal = useStore(form.store, (state) => state.values.eventType);
 
 	const companies = useQuery(api.companies.queries.getAll);
 
@@ -276,7 +274,7 @@ export default function EventForm({
 												<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 											</Button>
 										</PopoverTrigger>
-										<PopoverContent className="w-[200px] p-0" align="start">
+										<PopoverContent className="w-50 p-0" align="start">
 											<Command>
 												<CommandInput placeholder="Søk etter bedrift..." />
 												<CommandList>
@@ -396,7 +394,7 @@ export default function EventForm({
 
 				<FieldSeparator />
 
-				<form.Field name="eventType">
+				<form.Field name="externalEvent">
 					{(field) => {
 						const isInvalid =
 							field.state.meta.isTouched && !field.state.meta.isValid;
@@ -405,22 +403,15 @@ export default function EventForm({
 							<Field>
 								<FieldLabel htmlFor={field.name}>Arrangementtype</FieldLabel>
 								<Select
-									onValueChange={(value) => {
-										field.handleChange(
-											value as "internal_event" | "external_event",
-										);
-										if (value === "internal_event") {
-											form.setFieldValue("externalUrl", "");
-										}
-									}}
-									value={field.state.value}
+									onValueChange={(value) => field.handleChange(value === "true")}
+									value={field.state.value ? "true" : "false"}
 								>
-									<SelectTrigger className="w-[180px]">
+									<SelectTrigger className="w-45">
 										<SelectValue placeholder="Velg arrangementtype" />
 									</SelectTrigger>
 									<SelectContent>
-										<SelectItem value="internal_event">Internt</SelectItem>
-										<SelectItem value="external_event">Eksternt</SelectItem>
+										<SelectItem value="false">Internt</SelectItem>
+										<SelectItem value="true">Eksternt</SelectItem>
 									</SelectContent>
 								</Select>
 								{isInvalid && <FieldError errors={field.state.meta.errors} />}
@@ -429,35 +420,33 @@ export default function EventForm({
 					}}
 				</form.Field>
 
-				{isExternal === "external_event" && (
-					<form.Field name="externalUrl">
-						{(field) => {
-							const isInvalid =
-								field.state.meta.isTouched && !field.state.meta.isValid;
-							return (
-								<Field>
-									<FieldLabel htmlFor={field.name}>
-										Link til arrangementet
-									</FieldLabel>
-									<Input
-										id={field.name}
-										name={field.name}
-										value={field.state.value || ""}
-										onChange={(e) => field.handleChange(e.target.value)}
-										onBlur={field.handleBlur}
-										aria-invalid={isInvalid}
-										placeholder="f.eks. https://ifinavet.no/"
-										className="truncate"
-									/>
-									{isInvalid && <FieldError errors={field.state.meta.errors} />}
-									<FieldDescription>
-										Legg til en url til det eksterne arrangementet
-									</FieldDescription>
-								</Field>
-							);
-						}}
-					</form.Field>
-				)}
+				<form.Field name="externalUrl">
+					{(field) => {
+						const isInvalid =
+							field.state.meta.isTouched && !field.state.meta.isValid;
+						return (
+							<Field>
+								<FieldLabel htmlFor={field.name}>
+									Link til ekstern påmelding
+								</FieldLabel>
+								<Input
+									id={field.name}
+									name={field.name}
+									value={field.state.value || ""}
+									onChange={(e) => field.handleChange(e.target.value)}
+									onBlur={field.handleBlur}
+									aria-invalid={isInvalid}
+									placeholder="f.eks. https://ifinavet.no/"
+									className="truncate"
+								/>
+								{isInvalid && <FieldError errors={field.state.meta.errors} />}
+								<FieldDescription>
+									Legg til en URL for ekstern påmelding til arrangementet
+								</FieldDescription>
+							</Field>
+						);
+					}}
+				</form.Field>
 			</FieldSet>
 
 			<div className="mb-4 flex gap-4">

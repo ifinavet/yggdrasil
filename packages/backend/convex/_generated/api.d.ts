@@ -24,6 +24,7 @@ import type * as forms_mutations from "../forms/mutations.js";
 import type * as forms_queries from "../forms/queries.js";
 import type * as jobListings_mutations from "../jobListings/mutations.js";
 import type * as jobListings_queries from "../jobListings/queries.js";
+import type * as migrations from "../migrations.js";
 import type * as pages_mutations from "../pages/mutations.js";
 import type * as pages_queries from "../pages/queries.js";
 import type * as points_mutations from "../points/mutations.js";
@@ -59,6 +60,7 @@ declare const fullApi: ApiFromModules<{
   "forms/queries": typeof forms_queries;
   "jobListings/mutations": typeof jobListings_mutations;
   "jobListings/queries": typeof jobListings_queries;
+  migrations: typeof migrations;
   "pages/mutations": typeof pages_mutations;
   "pages/queries": typeof pages_queries;
   "points/mutations": typeof points_mutations;
@@ -100,4 +102,5 @@ export declare const internal: FilterApi<
 
 export declare const components: {
   resend: import("@convex-dev/resend/_generated/component.js").ComponentApi<"resend">;
+  migrations: import("@convex-dev/migrations/_generated/component.js").ComponentApi<"migrations">;
 };

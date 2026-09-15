@@ -15,7 +15,7 @@ export default function SafeHtml({
 			...sanitizeHtml.defaults.allowedAttributes,
 			img: ["src", "alt", "title", "width", "height", "srcset"],
 		},
-		allowedSchemes: ["http", "https"],
+		allowedSchemes: ["http", "https", "mailto", "tel"],
 		allowedSchemesByTag: {
 			img: ["http", "https", "data"],
 		},

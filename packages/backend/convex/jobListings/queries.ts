@@ -1,7 +1,8 @@
-import { OrderedQuery } from "convex/server";
-import { v } from "convex/values";
-import { DataModel, Doc } from "../_generated/dataModel";
-import { query, QueryCtx } from "../_generated/server";
+import type { OrderedQuery } from "convex/server";
+import { ConvexError, v } from "convex/values";
+import type { DataModel, Doc } from "../_generated/dataModel";
+import { type QueryCtx, query } from "../_generated/server";
+import { currentUserHasRole, internalRoles } from "../auth/accessRights";
 
 /**
  * Fetches job listings, optionally filtered by count and type.
@@ -17,20 +18,46 @@ export const getAll = query({
         type: v.optional(v.string()),
     },
     handler: async (ctx, { n, type }) => {
-        const query = type
-            ? ctx.db
-                .query("jobListings")
-                .withIndex("by_deadlineAndType", (q) => q.eq("type", type))
-                .order("desc")
-            : ctx.db.query("jobListings").withIndex("by_deadline").order("desc");
+        const maySeeUnpublished = await currentUserHasRole(ctx, internalRoles);
+        const listingsQuery = maySeeUnpublished
+            ? allListingsByDeadline(ctx, type)
+            : publishedListingsByDeadline(ctx, type);
 
-        const listings = n ? await query.take(n) : await query.collect();
+        const listings = n ? await listingsQuery.take(n) : await listingsQuery.collect();
 
-        const listingsWithCompany = await addCompanyToListings(ctx, listings);
-
-        return listingsWithCompany;
+        return await addCompanyToListings(ctx, listings);
     },
 });
+
+function allListingsByDeadline(
+    ctx: QueryCtx,
+    type: string | undefined,
+): OrderedQuery<DataModel["jobListings"]> {
+    if (type) {
+        return ctx.db
+            .query("jobListings")
+            .withIndex("by_deadlineAndType", (q) => q.eq("type", type))
+            .order("desc");
+    }
+
+    return ctx.db.query("jobListings").withIndex("by_deadline").order("desc");
+}
+
+function publishedListingsByDeadline(
+    ctx: QueryCtx,
+    type: string | undefined,
+): OrderedQuery<DataModel["jobListings"]> {
+    const publishedListings = ctx.db
+        .query("jobListings")
+        .withIndex("by_deadlineAndPublished", (q) => q.eq("published", true))
+        .order("desc");
+
+    if (type) {
+        return publishedListings.filter((q) => q.eq(q.field("type"), type));
+    }
+
+    return publishedListings;
+}
 
 /**
  * Fetches published active job listings with optional filtering and sorting.
@@ -72,9 +99,7 @@ export const getAllPublishedAndActive = query({
         if (sorting) {
             switch (sorting) {
                 case "title":
-                    return listingsWithCompany.sort((a, b) =>
-                        a.title.localeCompare(b.title),
-                    );
+                    return listingsWithCompany.sort((a, b) => a.title.localeCompare(b.title));
                 case "deadline_desc":
                     return listingsWithCompany.sort((a, b) => b.deadline - a.deadline);
                 case "deadline_asc":
@@ -82,7 +107,7 @@ export const getAllPublishedAndActive = query({
             }
         }
 
-        return listingsWithCompany;
+        return listingsWithCompany.sort((a, b) => Number(b.mainSponsor) - Number(a.mainSponsor));
     },
 });
 
@@ -95,10 +120,7 @@ export const getAllPublishedAndActive = query({
  * @throws - An error if the linked company, logo, or image URL cannot be resolved.
  * @returns {Promise<Array<Doc<"jobListings"> & { companyName: string, companyLogo: string }>>} - The enriched listings.
  */
-async function addCompanyToListings(
-    ctx: QueryCtx,
-    listings: Doc<"jobListings">[],
-) {
+async function addCompanyToListings(ctx: QueryCtx, listings: Doc<"jobListings">[]) {
     const listingsWithCompany = await Promise.all(
         listings.map(async (listing) => {
             const company = await ctx.db.get(listing.company);
@@ -120,6 +142,7 @@ async function addCompanyToListings(
                 ...listing,
                 companyName: company?.name || "Ukjent bedrift",
                 companyLogo: imageUrl,
+                mainSponsor: company.mainSponsor,
             };
         }),
     );
@@ -142,7 +165,11 @@ export const getById = query({
     handler: async (ctx, { id }) => {
         const listing = await ctx.db.get(id);
         if (!listing) {
-            throw new Error("Job listing not found");
+            throw new ConvexError("Stillingsannonsen ble ikke funnet.");
+        }
+
+        if (!listing.published && !(await currentUserHasRole(ctx, internalRoles))) {
+            throw new ConvexError("Stillingsannonsen ble ikke funnet.");
         }
 
         const contacts = await ctx.db

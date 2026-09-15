@@ -10,6 +10,7 @@ import ResponsiveCenterContainer from "@/components/common/responsive-center-con
 import SanitizeHtml from "@/components/common/sanitize-html";
 import { Title } from "@/components/common/title";
 import { EventMetadata } from "@/components/events/event-metadata";
+import { notFoundOnConvexError } from "@/lib/notFoundOnConvexError";
 
 export async function generateMetadata({
 	params,
@@ -18,7 +19,13 @@ export async function generateMetadata({
 }>): Promise<Metadata> {
 	const { slug: identifier } = await params;
 
-	const event = await fetchQuery(api.events.queries.getEvent, { identifier });
+	const token = await getAuthToken();
+	const event = await fetchQuery(api.events.queries.getEvent, { identifier }, { token }).catch(
+		() => null,
+	);
+
+	if (!event) return {};
+
 	const company = await fetchQuery(api.companies.queries.getById, {
 		id: event.hostingCompany,
 	});
@@ -53,20 +60,22 @@ export default async function EventPage({
 		{ token },
 	);
 
-	const preloadedEvent = await preloadQuery(api.events.queries.getEvent, {
-		identifier,
-	});
+	const preloadedEvent = await preloadQuery(
+		api.events.queries.getEvent,
+		{ identifier },
+		{ token },
+	).catch(notFoundOnConvexError);
 	const event = preloadedQueryResult(preloadedEvent);
-
-	if (!hasAdminAccess && !event.published) return (await import("next/navigation")).notFound();
 
 	const company = await fetchQuery(api.companies.queries.getById, {
 		id: event.hostingCompany,
 	});
 
-	const preloadedRegistrations = await preloadQuery(api.events.registrations.queries.getByEventId, {
-		eventIdentifier: event._id,
-	});
+	const preloadedRegistrationSummary = await preloadQuery(
+		api.events.registrations.queries.getEventRegistrationSummary,
+		{ eventIdentifier: event._id },
+		{ token },
+	);
 
 	return (
 		<ResponsiveCenterContainer>
@@ -75,7 +84,7 @@ export default async function EventPage({
 				<main className="gap-4 md:col-span-3">
 					<EventMetadata
 						preloadedEvent={preloadedEvent}
-						preloadedRegistrations={preloadedRegistrations}
+						preloadedRegistrationSummary={preloadedRegistrationSummary}
 					/>
 					<ContainerCard>
 						<h1 className="scroll-m-20 text-balance pb-2 font-bold text-3xl tracking-normal">

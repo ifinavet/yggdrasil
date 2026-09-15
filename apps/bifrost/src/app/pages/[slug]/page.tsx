@@ -1,3 +1,4 @@
+import { getAuthToken } from "@workspace/auth";
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import {
@@ -16,7 +17,12 @@ export default async function EditResourcePage({
 }: Readonly<{ params: Promise<{ slug: Id<"externalPages"> }> }>) {
 	const { slug: id } = await params;
 
-	const preloadedPage = await preloadQuery(api.pages.queries.getExternalPageById, { id });
+	const token = await getAuthToken();
+	const preloadedPage = await preloadQuery(
+		api.pages.queries.getExternalPageById,
+		{ id },
+		{ token },
+	);
 
 	return (
 		<>

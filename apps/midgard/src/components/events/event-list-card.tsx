@@ -151,10 +151,8 @@ function CompanyImage({
 // Main EventCard component
 export default async function EventCard({
 	event,
-	isExternal,
 }: Readonly<{
 	event: EventWithParticipationCount;
-	isExternal: boolean;
 }>) {
 	const image = await fetchQuery(api.companies.queries.getById, {
 		id: event.hostingCompany,
@@ -164,7 +162,7 @@ export default async function EventCard({
 
 	return (
 		<Link href={`/events/${event.slug ?? event._id}`}>
-			{!isExternal && (
+			{!event.externalUrl && (
 				<RegistrationStatusBanner
 					show={showBanner}
 					statusMessage={statusMessage}

@@ -22,7 +22,7 @@ export default function CreateEventForm() {
 		language: "Norsk",
 		participantsLimit: 40,
 		organizers: [],
-		eventType: "internal_event",
+		externalEvent: false,
 		hostingCompany: {
 			name: "",
 			id: "",
@@ -44,6 +44,7 @@ export default function CreateEventForm() {
 			food: values.food,
 			language: values.language,
 			ageRestriction: values.ageRestrictions,
+			externalEvent: values.externalEvent,
 			externalUrl: values.externalUrl,
 			hostingCompany: values.hostingCompany.id as Id<"companies">,
 			organizers: values.organizers.map((organizer) => ({
