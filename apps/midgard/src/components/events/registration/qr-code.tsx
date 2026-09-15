@@ -1,23 +1,37 @@
+import { api } from "@workspace/backend/convex/api";
+import { useConvexAuth, useQuery } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { QRCodeSVG } from "qrcode.react";
 import ContainerCard from "@/components/cards/container-card";
-import type { EventRegistrationSummary } from "./registration-summary";
 
 export default function QRCode({
 	className,
-	registrationSummary,
+	registrations,
 }: Readonly<{
 	className?: string;
-	registrationSummary: EventRegistrationSummary;
+	registrations: FunctionReturnType<typeof api.events.registrations.queries.getByEventId>;
 }>) {
-	const { ownRegistration } = registrationSummary;
-
-	if (!ownRegistration || ownRegistration.status === "waitlist") return null;
+	const { isAuthenticated } = useConvexAuth();
+	const currentUser = useQuery(
+		api.users.clerk.queries.current,
+		isAuthenticated ? undefined : "skip",
+	);
+	const currentUsersRegistration = registrations.registered.find(
+		(registration) => registration.userId === currentUser?._id,
+	);
 
 	return (
-		<ContainerCard className={className}>
-			<div className="mx-auto overflow-clip rounded-lg bg-zinc-100 p-4">
-				<QRCodeSVG value={ownRegistration._id} size={256} fgColor="#2f3e5f" bgColor="#f4f4f5" />
-			</div>
-		</ContainerCard>
+		currentUsersRegistration && (
+			<ContainerCard className={className}>
+				<div className="mx-auto overflow-clip rounded-lg bg-zinc-100 p-4">
+					<QRCodeSVG
+						value={currentUsersRegistration._id}
+						size={256}
+						fgColor="#2f3e5f"
+						bgColor="#f4f4f5"
+					/>
+				</div>
+			</ContainerCard>
+		)
 	);
 }

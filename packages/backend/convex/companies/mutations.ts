@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation } from "../_generated/server";
-import { adminRoles, requireRole } from "../auth/accessRights";
+import { getCurrentUserOrThrow } from "../auth/currentUser";
 
 /**
  * Generates a temporary upload URL for storing a company logo in Convex storage.
@@ -10,7 +10,7 @@ import { adminRoles, requireRole } from "../auth/accessRights";
  */
 export const generateUploadUrl = mutation({
     handler: async (ctx) => {
-        await requireRole(ctx, adminRoles);
+        await getCurrentUserOrThrow(ctx);
 
         const uploadUrl = await ctx.storage.generateUploadUrl();
 
@@ -33,7 +33,7 @@ export const uploadCompanyLogo = mutation({
         name: v.string(),
     },
     handler: async (ctx, { id, name }) => {
-        await requireRole(ctx, adminRoles);
+        await getCurrentUserOrThrow(ctx);
 
         const logoId = await ctx.db.insert("companyLogos", {
             name,
@@ -63,7 +63,7 @@ export const create = mutation({
         logo: v.id("companyLogos"),
     },
     handler: async (ctx, { orgNumber, name, description, logo }) => {
-        await requireRole(ctx, adminRoles);
+        await getCurrentUserOrThrow(ctx);
 
         await ctx.db.insert("companies", {
             orgNumber,
@@ -96,7 +96,7 @@ export const update = mutation({
         logo: v.id("companyLogos"),
     },
     handler: async (ctx, { id, orgNumber, name, description, logo }) => {
-        await requireRole(ctx, adminRoles);
+        await getCurrentUserOrThrow(ctx);
 
         await ctx.db.patch(id, {
             orgNumber,
@@ -120,7 +120,7 @@ export const updateMainSponsor = mutation({
         companyId: v.id("companies"),
     },
     handler: async (ctx, { companyId: id }) => {
-        await requireRole(ctx, adminRoles);
+        await getCurrentUserOrThrow(ctx);
 
         // Unset previous main sponsor
         const previousMainSponsor = await ctx.db
@@ -150,7 +150,7 @@ export const remove = mutation({
         id: v.id("companies"),
     },
     handler: async (ctx, { id }) => {
-        await requireRole(ctx, adminRoles);
+        await getCurrentUserOrThrow(ctx);
 
         await ctx.db.delete(id);
     },

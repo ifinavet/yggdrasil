@@ -1,6 +1,5 @@
-import { ConvexError, v } from "convex/values";
+import { v } from "convex/values";
 import { query } from "../../_generated/server";
-import { adminRoles, internalRoles, requireRole } from "../../auth/accessRights";
 
 /**
  * Fetches a board member by position with linked user data.
@@ -95,16 +94,14 @@ export const getById = query({
         id: v.id("internals"),
     },
     handler: async (ctx, { id }) => {
-        await requireRole(ctx, adminRoles);
-
         const internal = await ctx.db.get(id);
         if (!internal) {
-            throw new ConvexError(`Fant ikke det interne medlemmet med ID: ${id}.`);
+            throw new Error(`Internal record not found for ID: ${id}`);
         }
 
         const user = await ctx.db.get(internal.userId);
         if (!user) {
-            throw new ConvexError(`Fant ikke brukeren til det interne medlemmet med ID: ${id}.`);
+            throw new Error(`User not found for internal record with ID: ${id}`);
         }
 
         const rights = await ctx.db
@@ -129,8 +126,6 @@ export const getById = query({
  */
 export const getAll = query({
     handler: async (ctx) => {
-        await requireRole(ctx, internalRoles);
-
         const internals = await ctx.db.query("internals").collect();
 
         return await Promise.all(
@@ -158,8 +153,6 @@ export const getAll = query({
  */
 export const getAllInternals = query({
     handler: async (ctx) => {
-        await requireRole(ctx, adminRoles);
-
         const internals = await ctx.db
             .query("internals")
             .withIndex("by_position", (q) => q.eq("position", "Intern"))

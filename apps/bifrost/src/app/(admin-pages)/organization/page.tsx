@@ -1,4 +1,3 @@
-import { getAuthToken } from "@workspace/auth";
 import { api } from "@workspace/backend/convex/api";
 import {
 	Breadcrumb,
@@ -10,24 +9,18 @@ import {
 } from "@workspace/ui/components/breadcrumb";
 import { Separator } from "@workspace/ui/components/separator";
 import { preloadQuery } from "convex/nextjs";
+import { cacheLife } from "next/cache";
 import AddBoardMember from "@/components/organization/board-members/add-boardmember";
 import ListBoardMembers from "@/components/organization/board-members/list-board-members";
 import Internals from "@/components/organization/internals/internals";
 import UpdateMainSponsor from "@/components/organization/main-sponsor/update-main-sponsor";
 
 export default async function OrganizationPage() {
-	const token = await getAuthToken();
+	"use cache";
+	cacheLife("hours");
 
-	const preloadedBoardMembers = await preloadQuery(
-		api.users.organization.queries.getTheBoard,
-		{},
-		{ token },
-	);
-	const preloadedInternals = await preloadQuery(
-		api.users.organization.queries.getAllInternals,
-		{},
-		{ token },
-	);
+	const preloadedBoardMembers = await preloadQuery(api.users.organization.queries.getTheBoard);
+	const preloadedInternals = await preloadQuery(api.users.organization.queries.getAllInternals);
 	const preloadedMainSponsor = await preloadQuery(api.companies.queries.getMainSponsor);
 
 	return (

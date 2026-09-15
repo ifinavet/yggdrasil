@@ -4,6 +4,7 @@ import type { api } from "@workspace/backend/convex/api";
 import type { Doc } from "@workspace/backend/convex/dataModel";
 import { Button } from "@workspace/ui/components/button";
 import { type Preloaded, usePreloadedQuery } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import {
 	CalendarDays,
 	Globe,
@@ -15,23 +16,20 @@ import {
 import { humanReadableDateTime } from "@/utils/dateFormatting";
 import QRCode from "./registration/qr-code";
 import RegistrationButton from "./registration/registration-button";
-import type { EventRegistrationSummary } from "./registration/registration-summary";
 import WaitlistPosition from "./registration/waitlist-position";
 
 export function EventMetadata({
 	preloadedEvent,
-	preloadedRegistrationSummary,
+	preloadedRegistrations,
 }: Readonly<{
 	preloadedEvent: Preloaded<typeof api.events.queries.getEvent>;
-	preloadedRegistrationSummary: Preloaded<
-		typeof api.events.registrations.queries.getEventRegistrationSummary
-	>;
+	preloadedRegistrations: Preloaded<typeof api.events.registrations.queries.getByEventId>;
 }>) {
 	const event = usePreloadedQuery(preloadedEvent);
-	const registrationSummary = usePreloadedQuery(preloadedRegistrationSummary);
+	const registrations = usePreloadedQuery(preloadedRegistrations);
 
 	const availableSpots =
-		event.participationLimit - registrationSummary.registeredCount;
+		event.participationLimit - (registrations.registered.length || 0);
 
 	return (
 		<div>
@@ -59,20 +57,14 @@ export function EventMetadata({
 			</div>
 
 			<div className="-mt-6 mb-6 flex justify-center">
-				<EventActionButton
-					event={event}
-					registrationSummary={registrationSummary}
-				/>
+				<EventActionButton event={event} registrations={registrations} />
 			</div>
 
-			<WaitlistPosition
-				className="mb-6"
-				registrationSummary={registrationSummary}
-			/>
+			<WaitlistPosition className="mb-6" registrations={registrations} />
 
 			{event.eventStart - Date.now() < 60 * 60 * 1000 &&
 				Date.now() - event.eventStart < 60 * 60 * 1000 && (
-					<QRCode className="mb-6" registrationSummary={registrationSummary} />
+					<QRCode className="mb-6" registrations={registrations} />
 				)}
 		</div>
 	);
@@ -80,13 +72,13 @@ export function EventMetadata({
 
 export function EventActionButton({
 	event,
-	registrationSummary,
+	registrations,
 }: Readonly<{
 	event: Doc<"events">;
-	registrationSummary: EventRegistrationSummary;
+	registrations: FunctionReturnType<typeof api.events.registrations.queries.getByEventId>;
 }>) {
 	const availableSpots =
-		event.participationLimit - registrationSummary.registeredCount;
+		event.participationLimit - (registrations.registered.length || 0);
 
 	if (event.externalUrl && event.externalUrl.length > 0) {
 		return (
@@ -119,7 +111,7 @@ export function EventActionButton({
 
 	return (
 		<RegistrationButton
-			registrationSummary={registrationSummary}
+			registration={registrations}
 			availableSpots={availableSpots}
 			disabled={disabledButtons}
 			event={event}

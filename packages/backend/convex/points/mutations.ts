@@ -1,7 +1,7 @@
-import { ConvexError, v } from "convex/values";
+import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalMutation, mutation } from "../_generated/server";
-import { adminRoles, requireRole } from "../auth/accessRights";
+import { getCurrentUserOrThrow } from "../auth/currentUser";
 
 /**
  * Gives points to a student and schedules the notification email.
@@ -20,8 +20,6 @@ export const givePoints = mutation({
         severity: v.number(),
     },
     handler: async (ctx, { id, reason, severity }) => {
-        await requireRole(ctx, ["super-admin", "admin", "internal"]);
-
         await ctx.runMutation(internal.points.mutations.givePointsInternal, {
             id,
             reason,
@@ -30,7 +28,7 @@ export const givePoints = mutation({
 
         const student = await ctx.db.get(id);
         if (!student) {
-            throw new ConvexError(`Studenten med ID ${id} ble ikke funnet.`);
+            throw new Error(`Student with ID ${id} not found.`);
         }
 
         await ctx.scheduler.runAfter(0, internal.points.mutations.givePointsEmail, {
@@ -155,7 +153,7 @@ export const remove = mutation({
         id: v.id("points"),
     },
     handler: async (ctx, { id }) => {
-        await requireRole(ctx, adminRoles);
+        await getCurrentUserOrThrow(ctx);
 
         await ctx.db.delete(id);
     },

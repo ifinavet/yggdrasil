@@ -1,7 +1,6 @@
-import { ConvexError, v } from "convex/values";
+import { v } from "convex/values";
 import { internal } from "../../_generated/api";
 import { internalMutation, mutation } from "../../_generated/server";
-import { adminRoles, userHasRole } from "../../auth/accessRights";
 import { getCurrentUserOrThrow } from "../clerk/queries";
 
 /**
@@ -30,12 +29,7 @@ export const createByExternalId = mutation({
     },
     handler: async (ctx, { externalId, degree, year, studyProgram, name }) => {
         const identity = await ctx.auth.getUserIdentity();
-        if (identity === null) {
-            throw new ConvexError("Unauthorized: Du må være innlogget for å gjøre dette.");
-        }
-        if (identity.subject !== externalId) {
-            throw new ConvexError("Unauthorized: externalId stemmer ikke med innlogget bruker.");
-        }
+        console.log("Identity from auth:", identity);
 
         const userId = await ctx.runMutation(internal.users.clerk.mutations.createIfNotExists, {
             externalId,
@@ -45,24 +39,13 @@ export const createByExternalId = mutation({
             image: identity?.profileUrl ?? "Pending...",
         });
 
-        const studentFields = {
+        await ctx.db.insert("students", {
+            userId,
             degree,
             year,
             studyProgram: studyProgram.trim(),
             name: name.trim(),
-        };
-
-        const existingStudent = await ctx.db
-            .query("students")
-            .withIndex("by_userId", (q) => q.eq("userId", userId))
-            .first();
-
-        if (existingStudent) {
-            await ctx.db.patch(existingStudent._id, studentFields);
-            return;
-        }
-
-        await ctx.db.insert("students", { userId, ...studentFields });
+        });
     },
 });
 
@@ -96,7 +79,7 @@ export const updateCurrent = mutation({
             .first();
 
         if (!student) {
-            throw new ConvexError("Fant ingen studentprofil for brukeren din.");
+            throw new Error("Student not found for the user");
         }
 
         await ctx.db.patch(student._id, {
@@ -131,18 +114,9 @@ export const update = mutation({
         ),
     },
     handler: async (ctx, { id, year, studyProgram, degree }) => {
-        const user = await getCurrentUserOrThrow(ctx);
-
-        const student = await ctx.db.get(id);
-        if (!student) {
-            throw new ConvexError(`Studenten med ID ${id} ble ikke funnet.`);
-        }
-
-        const isOwner = student.userId === user._id;
-        const isAdmin = await userHasRole(ctx, user._id, adminRoles);
-
-        if (!isOwner && !isAdmin) {
-            throw new ConvexError("Unauthorized: Du kan kun oppdatere din egen studentprofil.");
+        const identity = await ctx.auth.getUserIdentity();
+        if (identity === null) {
+            throw new Error("Unauthenticated call to mutation");
         }
 
         await ctx.db.patch(id, {

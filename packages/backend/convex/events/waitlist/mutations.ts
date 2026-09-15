@@ -116,6 +116,8 @@ export const clearWaitlistAndPending = internalMutation({
             }),
         );
 
+        console.log(registrationsForEvents);
+
         await Promise.all(
             registrationsForEvents.map(async ({ event, registrations }) => {
                 const availablePlaces =

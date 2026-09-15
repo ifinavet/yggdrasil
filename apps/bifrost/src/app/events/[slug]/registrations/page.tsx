@@ -1,4 +1,3 @@
-import { getAuthToken } from "@workspace/auth";
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { preloadQuery } from "convex/nextjs";
@@ -11,11 +10,9 @@ export default async function registrations(
 ) {
 	const { slug } = await props.params;
 
-	const token = await getAuthToken();
 	const preloadedRegistrations = await preloadQuery(
 		api.events.registrations.queries.getByEventId,
 		{ eventIdentifier: slug },
-		{ token },
 	);
 
 	return (

@@ -1,5 +1,4 @@
-import { ConvexError } from "convex/values";
-import type { MutationCtx, QueryCtx } from "../_generated/server";
+import { MutationCtx, QueryCtx } from "../_generated/server";
 
 type AuthCtx = QueryCtx | MutationCtx;
 
@@ -13,7 +12,7 @@ type AuthCtx = QueryCtx | MutationCtx;
  */
 export async function getCurrentUserOrThrow(ctx: AuthCtx) {
     const userRecord = await getCurrentUser(ctx);
-    if (!userRecord) throw new ConvexError("Unauthorized: Du må være innlogget for å gjøre dette.");
+    if (!userRecord) throw new Error("Can't get current user");
     return userRecord;
 }
 

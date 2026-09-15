@@ -1,10 +1,10 @@
 import type { ORGANIZER_ROLE } from "@workspace/shared/constants";
-import { ConvexError, v } from "convex/values";
+import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
-import { internalQuery, type QueryCtx, query } from "../_generated/server";
-import { currentUserHasRole, internalRoles } from "../auth/accessRights";
+import { internalQuery, query, QueryCtx } from "../_generated/server";
 import { getEventByIdentifier } from "./helper";
+
 
 /**
  * Fetches the next published events from the current week onward.
@@ -134,12 +134,8 @@ export const getAll = query({
 		);
 
 		const published = events.filter((event) => event.published);
-		const maySeeUnpublished = await currentUserHasRole(ctx, internalRoles);
-
-		return {
-			published,
-			unpublished: maySeeUnpublished ? events.filter((event) => !event.published) : [],
-		};
+		const unpublished = events.filter((event) => !event.published);
+		return { published, unpublished };
 	},
 });
 
@@ -165,7 +161,8 @@ export const getCurrentSemester = query({
 		).filter((q) => q.published === true);
 
 		const filteredEvents = events.filter((event) => {
-			const externalEvent = event.externalEvent ?? Boolean(event.externalUrl?.length);
+			const externalEvent =
+				event.externalEvent ?? Boolean(event.externalUrl?.length);
 			return externalEvent === isExternal;
 		});
 
@@ -226,14 +223,10 @@ export const getEvent = query({
 		identifier: v.string(),
 	},
 	handler: async (ctx, { identifier }) => {
-		const event = await getEventByIdentifier(ctx, identifier);
-
-		if (!event.published && !(await currentUserHasRole(ctx, internalRoles))) {
-			throw new ConvexError("Arrangementet ble ikke funnet.");
-		}
+        const event = await getEventByIdentifier(ctx, identifier);
 
 		const company = await ctx.db.get(event.hostingCompany);
-		if (!company) throw new ConvexError("Fant ikke bedriften som er vert for arrangementet.");
+		if (!company) throw new Error("Company not found");
 
 		const organizers = await getOrganizers(ctx, event._id);
 
@@ -328,15 +321,6 @@ export const getOrganizersByEventId = query({
 		id: v.id("events"),
 	},
 	handler: async (ctx, { id }) => {
-		const event = await ctx.db.get(id);
-		if (!event) {
-			throw new ConvexError("Arrangementet ble ikke funnet.");
-		}
-
-		if (!event.published && !(await currentUserHasRole(ctx, internalRoles))) {
-			throw new ConvexError("Arrangementet ble ikke funnet.");
-		}
-
 		const organizers = await ctx.db
 			.query("eventOrganizers")
 			.withIndex("by_eventId", (q) => q.eq("eventId", id))

@@ -1,13 +1,8 @@
-import { ConvexError, v } from "convex/values";
+import { v } from "convex/values";
 import { internal } from "../../_generated/api";
-import type { Doc } from "../../_generated/dataModel";
-import { type MutationCtx, mutation } from "../../_generated/server";
+import { Doc } from "../../_generated/dataModel";
+import { mutation, MutationCtx } from "../../_generated/server";
 import { getCurrentUserOrThrow } from "../../auth/currentUser";
-import {
-    isEventOrganizerOrAdmin,
-    validateRegistrationTime,
-    validateUserCanRegister,
-} from "../helper";
 
 /**
  * Accepts a pending registration for the current user.
@@ -26,30 +21,14 @@ export const acceptPendingRegistration = mutation({
 
         const registration = await ctx.db.get(id);
         if (!registration) {
-            throw new ConvexError(`Registrering med ID ${id} ikke funnet. Kan ikke godta registrering.`);
+            throw new Error(`Registrering med ID ${id} ikke funnet. Kan ikke godta registrering.`);
         }
 
         if (registration.userId !== user._id) {
-            throw new ConvexError(`Registrering med ID ${id} tilhører ikke deg. Kan ikke godta registreringen.`);
-        }
-
-        if (registration.status !== "pending") {
-            throw new ConvexError(
-                `Registrering med ID ${id} har status "${registration.status}", og kan ikke godtas. Kun ventende påmeldinger kan godtas.`,
+            throw new Error(
+                `Registrering med ID ${id} tilhører ikke brukeren. Kan ikke godta. Utført av id ${user._id}, ${user.firstName} ${user.lastName}`,
             );
         }
-
-        const event = await ctx.db.get(registration.eventId);
-        if (!event) {
-            throw new ConvexError(
-                `Arrangementet med ID ${registration.eventId} ikke funnet. Kan ikke godta registrering.`,
-            );
-        }
-
-        if (Date.now() >= event.eventStart) {
-            throw new ConvexError("Arrangementet har allerede startet.");
-        }
-        await validateUserCanRegister(ctx, user);
 
         await ctx.db.patch(id, {
             status: "registered",
@@ -73,16 +52,13 @@ export const updateAttendance = mutation({
         newStatus: v.union(v.literal("confirmed"), v.literal("late"), v.literal("no_show")),
     },
     handler: async (ctx, { id, newStatus }) => {
-        const user = await getCurrentUserOrThrow(ctx);
+        await getCurrentUserOrThrow(ctx);
 
         const registration = await ctx.db.get(id);
         if (!registration) {
-            throw new ConvexError(`Registrering med ID ${id} ikke funnet. Kan ikke oppdatere deltakelsestatus.`);
-        }
-
-        const isOrganizer = await isEventOrganizerOrAdmin(ctx, registration.eventId, user._id);
-        if (!isOrganizer) {
-            throw new ConvexError("Unauthorized: Bare arrangører eller administratorer kan oppdatere oppmøte.");
+            throw new Error(
+                `Registrering med ID ${id} ikke funnet. Kan ikke oppdatere deltakelsestatus.`,
+            );
         }
 
         await ctx.db.patch(id, {
@@ -99,7 +75,7 @@ export const updateAttendance = mutation({
             .first();
 
         if (!student) {
-            throw new ConvexError(
+            throw new Error(
                 `Bruker med ID ${registration.userId} ikke funnet. Kan ikke oppdatere deltakelsestatus.`,
             );
         }
@@ -147,7 +123,7 @@ export const register = mutation({
 
         const event = await ctx.db.get(eventId);
         if (!event) {
-            throw new ConvexError(`Arrangementet med ID ${eventId} ble ikke funnet. Kan ikke registrere deg.`);
+            throw new Error(`aarangementet med ID ${eventId} ikke funnet.Kan ikke registrere.`);
         }
 
         const registrations = await ctx.db
@@ -156,9 +132,6 @@ export const register = mutation({
             .collect();
 
         if (registrations.some((registration) => registration.userId === user._id)) return;
-
-        validateRegistrationTime(event);
-        await validateUserCanRegister(ctx, user);
 
         const registrationCount = registrations.filter(
             (reg) => reg.status === "registered" || reg.status === "pending",
@@ -193,19 +166,7 @@ export const updateNote = mutation({
         note: v.optional(v.string()),
     },
     handler: async (ctx, { id, note }) => {
-        const user = await getCurrentUserOrThrow(ctx);
-
-        const registration = await ctx.db.get(id);
-        if (!registration) {
-            throw new ConvexError(`Registrering med ID ${id} ikke funnet.`);
-        }
-
-        const isOwner = registration.userId === user._id;
-        const isOrganizer = await isEventOrganizerOrAdmin(ctx, registration.eventId, user._id);
-
-        if (!isOwner && !isOrganizer) {
-            throw new ConvexError("Unauthorized: Du kan ikke endre notatet til en annen bruker.");
-        }
+        await getCurrentUserOrThrow(ctx);
 
         await ctx.db.patch(id, { note });
     },
@@ -228,20 +189,13 @@ export const unregister = mutation({
 
         const registration = await ctx.db.get(id);
         if (!registration) {
-            throw new ConvexError(`Registrering med ID ${id} ble ikke funnet. Avbryter avregistrering.`);
-        }
-
-        const isOwner = registration.userId === currentUser._id;
-        const isOrganizer = await isEventOrganizerOrAdmin(ctx, registration.eventId, currentUser._id);
-
-        if (!isOwner && !isOrganizer) {
-            throw new ConvexError("Unauthorized: Du har ikke tilgang til å melde av denne registreringen.");
+            throw new Error(`Registrering med ID ${id} ble ikke funnet. Avbryter avregistrering.`);
         }
 
         const event = await ctx.db.get(registration.eventId);
         if (!event) {
-            throw new ConvexError(
-                `Arrangementet med ID ${registration.eventId} ble ikke funnet. Kan ikke behandle ventelisten.`,
+            throw new Error(
+                `aarangement med ID ${registration.eventId} ble ikke funnet.Kan ikke behandle ventelisten.`,
             );
         }
 
@@ -269,7 +223,7 @@ export const unregister = mutation({
 
         const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
 
-        if (isOwner && event.eventStart - Date.now() < TWENTY_FOUR_HOURS && registration.status === "registered") {
+        if (event.eventStart - Date.now() < TWENTY_FOUR_HOURS && registration.status === "registered") {
             try {
                 const student = await ctx.db
                     .query("students")
@@ -280,7 +234,7 @@ export const unregister = mutation({
                     await ctx.runMutation(internal.points.mutations.givePointsInternal, {
                         id: student._id,
                         severity: 1,
-                        reason: `Avregistrering fra arrangementet ${event.title} mindre enn 24 timer før start.`,
+                        reason: `Avregistrering fra aarangement ${event.title} mindre enn 24 timer før start.`,
                     });
                 }
             } catch (e) {
@@ -309,7 +263,7 @@ export const makeStatusPending = async (
 ) => {
     const user = await ctx.db.get(registrationToMakePending.userId);
     if (!user) {
-        throw new ConvexError(
+        throw new Error(
             `Bruker med ID ${registrationToMakePending.userId} ikke funnet. Kan ikke oppdatere registrering.`,
         );
     }

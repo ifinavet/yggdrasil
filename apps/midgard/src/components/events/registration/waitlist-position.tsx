@@ -1,24 +1,38 @@
+import { api } from "@workspace/backend/convex/api";
+import { useConvexAuth, useQuery } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import ContainerCard from "@/components/cards/container-card";
-import type { EventRegistrationSummary } from "./registration-summary";
 
 export default function WaitlistPosition({
 	className,
-	registrationSummary,
+	registrations,
 }: Readonly<{
 	className?: string;
-	registrationSummary: EventRegistrationSummary;
+	registrations: FunctionReturnType<typeof api.events.registrations.queries.getByEventId>;
 }>) {
-	const { ownWaitlistPosition } = registrationSummary;
-
-	if (!ownWaitlistPosition) return null;
+	const { isAuthenticated } = useConvexAuth();
+	const currentUser = useQuery(
+		api.users.clerk.queries.current,
+		isAuthenticated ? undefined : "skip",
+	);
+	const waitlistPosition =
+		registrations.waitlist.findIndex(
+			(registration) => registration.userId === currentUser?._id,
+		) + 1;
 
 	return (
-		<ContainerCard className={className}>
-			<p className="not-first:mt-6 leading-7">
-				Du står på venteliste for dette arrangementet. Dersom det blir en ledig plass til deg så vil
-				du motta en e-post, du har da 24 timer på å godta tilbudet om å bli med på arrangementet.
-			</p>
-			<p className="font-semibold text-lg">Du er nr. {ownWaitlistPosition} på ventelisten.</p>
-		</ContainerCard>
+		isAuthenticated &&
+		waitlistPosition !== 0 && (
+			<ContainerCard className={className}>
+				<p className="not-first:mt-6 leading-7">
+					Du står på venteliste for dette arrangementet. Dersom det blir en
+					ledig plass til deg så vil du mota en e-post, du har da 24 timer på å
+					godta tilbudet om å bli med på arrangementet.
+				</p>
+				<p className="font-semibold text-lg">
+					Du er nr. {waitlistPosition} på ventelisten.
+				</p>
+			</ContainerCard>
+		)
 	);
 }

@@ -1,5 +1,5 @@
-import type { UserJSON } from "@clerk/backend";
-import { type Validator, v } from "convex/values";
+import { UserJSON } from "@clerk/backend";
+import { v, Validator } from "convex/values";
 import { internalMutation } from "../../_generated/server";
 import { userByExternalId } from "./queries";
 
@@ -57,7 +57,9 @@ export const createIfNotExists = internalMutation({
         const user = await userByExternalId(ctx, externalId);
 
         if (!user) {
-            console.warn(`User for externalId ${externalId} not found, creating...`);
+            console.warn(
+                `User for externalId ${externalId} not found, creating... \n { firstName: ${firstName}, lastName: ${lastName}, email: ${email}, image: ${image}}`,
+            );
             // Create user
             const id = await ctx.db.insert("users", {
                 externalId,
@@ -88,13 +90,6 @@ export const deleteFromClerk = internalMutation({
         const user = await userByExternalId(ctx, clerkUserId);
 
         if (user !== null) {
-            const accessRights = await ctx.db
-                .query("accessRights")
-                .withIndex("by_userId", (q) => q.eq("userId", user._id))
-                .first();
-            if (accessRights) {
-                await ctx.db.delete(accessRights._id);
-            }
             await ctx.db.delete(user._id);
         } else {
             console.warn(`Can't delete user, there is none for Clerk user ID: ${clerkUserId}`);
