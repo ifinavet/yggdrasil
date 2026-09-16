@@ -50,20 +50,29 @@ git clone https://github.com/ifinavet/yggdrasil.git
 cd yggdrasil
 ```
 
-Install dependencies and copy the local environment config:
+Install dependencies:
 
 ```bash
 pnpm install
+```
+
+Local mode is the default for development: with no external keys configured, the apps mock authentication, disable telemetry and email delivery, and use a real local Convex backend. You can run apps directly too, for example `pnpm --filter midgard dev`; start the local backend alongside with `pnpm --filter @workspace/backend dev`.
+
+To be explicit, or to override defaults, copy the local environment config:
+
+```bash
 cp .env.example .env.local
 ```
 
-The local config contains:
+The config contains:
 
 ```
 APP_ENV=local
 CONVEX_AGENT_MODE=anonymous
 CONVEX_DEPLOYMENT=
 ```
+
+Set `APP_ENV=production` in `.env.local` to connect to real external services instead (Clerk, Sentry, PostHog, Resend). Restart after changing the flag.
 
 From the repository root, run:
 

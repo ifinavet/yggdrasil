@@ -4,7 +4,7 @@
 	"private": true,
 	"scripts": {
 		"build": "turbo build",
-		"dev": "node --env-file=.env.local ./node_modules/turbo/bin/turbo dev",
+		"dev": "node ./scripts/dev.mjs",
 		"lint": "turbo lint",
 		"check": "turbo check",
 		"check:fix": "turbo check:fix",

@@ -31,7 +31,41 @@ Bifrost is the official admin dashboard and backend for [ifinavet.no](https://if
 
 ## 🚀 Getting Started
 
-Follow the local development instructions in the [repository README](../../README.md). Run `pnpm dev` from the repository root to start all apps and the local backend. Hugin runs at [http://localhost:3003](http://localhost:3003).
+To get a local copy up and running, follow these steps.
+
+### Prerequisites
+
+-   [Node.js](https://nodejs.org/en/) (v20 or later)
+-   [pnpm](https://pnpm.io/)
+
+### Installation
+
+1.  **Clone the repository:**
+
+    ```bash
+    git clone https://github.com/ifinavet/yggdrasil.git
+    cd yggdrasil/apps/bifrost
+    ```
+
+2.  **Install dependencies:**
+
+    ```bash
+    pnpm install
+    ```
+
+3. **Set up environment variables:**
+
+   Create a `.env.local` file in the root of the `bifrost` directory and add the necessary environment variables. Look at the .env.example to get an idea of what you need.
+
+   *Unfortunately our setup requires that you have an clerk account. Without it the auth won't work. We are assesing the options to move to a new solution but as of now you need to use clerk*
+
+4.  **Run the development server:**
+
+    ```bash
+    pnpm dev
+    ```
+
+    Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
 ## 🛠️ Technologies & Packages
 

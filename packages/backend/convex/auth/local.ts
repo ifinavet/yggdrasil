@@ -1,3 +1,4 @@
+import { localIdentity } from "@workspace/shared/local";
 import { mutation } from "../_generated/server";
 
 // Convex supplies this deployment URL; never enable mock auth on a hosted backend.
@@ -5,13 +6,7 @@ export function isLocalDevelopment() {
 	return /^http:\/\/(127\.0\.0\.1|localhost):3210$/.test(process.env.CONVEX_CLOUD_URL ?? "");
 }
 
-export const localIdentity = {
-	subject: "local-developer",
-	givenName: "Local",
-	familyName: "Developer",
-	email: "developer@example.test",
-	profileUrl: "",
-};
+export { localIdentity };
 
 export const signIn = mutation({
 	args: {},

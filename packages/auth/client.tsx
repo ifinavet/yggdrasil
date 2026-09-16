@@ -2,24 +2,24 @@
 
 import * as Clerk from "@clerk/nextjs";
 import type { ComponentProps } from "react";
-import { isLocalDevelopment, localUser } from "./local";
+import { isLocalDevelopment, type LocalUser, localUser } from "./local";
 
-function useLocalUser() {
+function useLocalUser(): { isLoaded: true; isSignedIn: true; user: LocalUser } {
 	return { isLoaded: true, isSignedIn: true, user: localUser };
 }
-function useLocalAuth() {
+function useLocalAuth(): { isLoaded: true; isSignedIn: true; userId: string } {
 	return { isLoaded: true, isSignedIn: true, userId: localUser.id };
 }
-function LocalProfile() {
+export function LocalAuthNotice(_props: Record<string, unknown>) {
 	return <p>Local Developer (local development account)</p>;
 }
-function LocalSignOut(_props: ComponentProps<typeof Clerk.SignOutButton>) {
-	return <span>Local development account</span>;
+function LocalSignOut({ children }: ComponentProps<typeof Clerk.SignOutButton>) {
+	return <span>{children}</span>;
 }
 
 export const useUser = isLocalDevelopment ? useLocalUser : Clerk.useUser;
 export const useAuth = isLocalDevelopment ? useLocalAuth : Clerk.useAuth;
 export const SignOutButton = isLocalDevelopment ? LocalSignOut : Clerk.SignOutButton;
-export const SignIn = isLocalDevelopment ? LocalProfile : Clerk.SignIn;
-export const UserProfile = isLocalDevelopment ? LocalProfile : Clerk.UserProfile;
-export const OrganizationProfile = isLocalDevelopment ? LocalProfile : Clerk.OrganizationProfile;
+export const SignIn = isLocalDevelopment ? LocalAuthNotice : Clerk.SignIn;
+export const UserProfile = isLocalDevelopment ? LocalAuthNotice : Clerk.UserProfile;
+export const OrganizationProfile = isLocalDevelopment ? LocalAuthNotice : Clerk.OrganizationProfile;

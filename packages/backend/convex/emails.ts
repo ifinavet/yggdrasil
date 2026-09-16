@@ -34,6 +34,8 @@ export const sendGottenPointsEmail = internalAction({
 		reason: v.string(),
 	},
 	handler: async (ctx, { participantEmail, severity, reason }) => {
+		if (isLocalDevelopment()) return;
+
 		const html = await pretty(
 			await render(
 				PointsEmail({
@@ -42,8 +44,6 @@ export const sendGottenPointsEmail = internalAction({
 				}),
 			),
 		);
-
-		if (isLocalDevelopment()) return;
 
 		await resend.sendEmail(ctx, {
 			from: "Navet <prikker@ifinavet.no>",
@@ -67,9 +67,9 @@ export const sendTooManyPointsEmail = internalAction({
 		participantEmail: v.string(),
 	},
 	handler: async (ctx, { participantEmail }) => {
-		const html = await pretty(await render(LockedOutEmail()));
-
 		if (isLocalDevelopment()) return;
+
+		const html = await pretty(await render(LockedOutEmail()));
 
 		await resend.sendEmail(ctx, {
 			from: "Navet <prikker@ifinavet.no>",
@@ -99,6 +99,8 @@ export const sendAvailableSeatEmail = internalAction({
 		registrationId: v.id("registrations"),
 	},
 	handler: async (ctx, { participantEmail, eventId, eventTitle, registrationId }) => {
+		if (isLocalDevelopment()) return;
+
 		const url = `https://ifinavet.no/events/${eventId}/registration/${registrationId}`;
 
 		const html = await pretty(
@@ -109,8 +111,6 @@ export const sendAvailableSeatEmail = internalAction({
 				}),
 			),
 		);
-
-		if (isLocalDevelopment()) return;
 
 		await resend.sendEmail(ctx, {
 			from: "Navet <info@ifinavet.no>",
@@ -140,6 +140,8 @@ export const sendFreeForAll = internalAction({
 		availableSeats: v.number(),
 	},
 	handler: async (ctx, { participantEmail, eventId, eventTitle, availableSeats }) => {
+		if (isLocalDevelopment()) return;
+
 		const url = `https://ifinavet.no/events/${eventId}`;
 
 		const html = await pretty(
@@ -151,8 +153,6 @@ export const sendFreeForAll = internalAction({
 				}),
 			),
 		);
-
-		if (isLocalDevelopment()) return;
 
 		await resend.sendEmail(ctx, {
 			from: "Navet <info@ifinavet.no>",

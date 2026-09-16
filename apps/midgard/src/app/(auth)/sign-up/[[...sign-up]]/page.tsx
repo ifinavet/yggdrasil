@@ -3,7 +3,7 @@ import { isClerkAPIResponseError } from "@clerk/nextjs/errors";
 import { useSignUp } from "@clerk/nextjs/legacy";
 import type { ClerkAPIError } from "@clerk/nextjs/types";
 import { useForm } from "@tanstack/react-form";
-import { useAuth } from "@workspace/auth/client";
+import { LocalAuthNotice, useAuth } from "@workspace/auth/client";
 import { useConvexAuth } from "@workspace/auth/convex";
 import { isLocalDevelopment } from "@workspace/auth/local";
 import { api } from "@workspace/backend/convex/api";
@@ -87,7 +87,7 @@ const AUTHENTICATION_TIMEOUT_MS = 15 * 1000;
 
 export default function SignUpPage() {
 	if (isLocalDevelopment) {
-		return <p>Local Developer is already signed in.</p>;
+		return <LocalAuthNotice />;
 	}
 	return <ClerkSignUpPage />;
 }

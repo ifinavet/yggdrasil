@@ -49,5 +49,7 @@ export async function userByExternalId(ctx: AuthCtx, externalId: string) {
 }
 
 export async function getIdentity(ctx: AuthCtx) {
-    return isLocalDevelopment() ? localIdentity : ctx.auth.getUserIdentity();
+    const identity = await ctx.auth.getUserIdentity();
+    if (identity) return identity;
+    return isLocalDevelopment() ? localIdentity : null;
 }

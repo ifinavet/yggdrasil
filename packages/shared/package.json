@@ -13,6 +13,7 @@
 	},
 	"exports": {
 		"./constants": "./constants/index.ts",
+		"./local": "./local.ts",
 		"./utils": "./utils/index.ts"
 	}
 }

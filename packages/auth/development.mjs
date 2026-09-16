@@ -1,9 +1,17 @@
-const local = process.env.NODE_ENV === "development" && process.env.APP_ENV === "local";
-if (local) {
-	process.env.NEXT_PUBLIC_CONVEX_URL = "http://127.0.0.1:3210";
+const isDev = process.env.NODE_ENV === "development";
+const local =
+	isDev &&
+	(process.env.APP_ENV === "local" ||
+		(!process.env.APP_ENV && !process.env.NEXT_PUBLIC_CONVEX_URL));
+
+export function applyLocalConvexUrl() {
+	if (local) {
+		process.env.NEXT_PUBLIC_CONVEX_URL ??= "http://127.0.0.1:3210";
+	}
 }
 
 export function withDevelopment(config, withSentryConfig, sentryOptions) {
+	applyLocalConvexUrl();
 	const nextConfig = {
 		...config,
 		env: { ...config.env, NEXT_PUBLIC_LOCAL_DEV: String(local) },

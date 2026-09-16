@@ -6,6 +6,7 @@
 	"dependencies": {
 		"@clerk/nextjs": "^7.7.6",
 		"@workspace/backend": "workspace:*",
+		"@workspace/shared": "workspace:*",
 		"convex": "^1.45.0"
 	},
 	"devDependencies": {
