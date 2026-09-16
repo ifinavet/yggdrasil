@@ -37,6 +37,21 @@ The project uses Turborepo to manage the different services and is structured li
 └── ...
 ```
 
+## Running the projects locally 💻
+
+**Follow this guide first, then follow the per-project READMEs to set each application up.**
+
+Create `.env.local` that contains:
+
+```
+APP_ENV=local
+```
+
+From the repository root, run `pnpm install` and `pnpm dev`.
+
+
+
+
 ## Want to contribute? 🤝
 
 That's great! We love any and all contributions, but sadly, as we are students, we do not have the ability nor the resources to deal with everything. Therefore, we have some "rules" on how to contribute.
