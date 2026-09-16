@@ -5,9 +5,11 @@
 	"private": true,
 	"dependencies": {
 		"@clerk/nextjs": "^7.7.6",
+		"@sentry/nextjs": "^10.70.0",
 		"@workspace/backend": "workspace:*",
 		"@workspace/shared": "workspace:*",
-		"convex": "^1.45.0"
+		"convex": "^1.45.0",
+		"posthog-js": "^1.417.1"
 	},
 	"devDependencies": {
 		"@workspace/typescript-config": "workspace:*",
@@ -21,7 +23,9 @@
 		"./convex": "./convex.tsx",
 		"./local": "./local.ts",
 		"./development": "./development.mjs",
-		"./provider": "./provider.tsx"
+		"./provider": "./provider.tsx",
+		"./telemetry": "./telemetry.ts",
+		"./telemetry-client": "./telemetry-client.tsx"
 	},
 	"peerDependencies": {
 		"next": "^16.3.1",

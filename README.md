@@ -74,6 +74,10 @@ CONVEX_DEPLOYMENT=
 
 Set `APP_ENV=production` in `.env.local` to connect to real external services instead (Clerk, Sentry, PostHog, Resend). Restart after changing the flag.
 
+### Developing against a real Clerk dev instance
+
+Clerk development instances use publishable keys that are safe to commit, so a Clerk dev instance can replace the local auth mocks entirely: uncomment the `CLERK_*` variables in `.env.example`, set `APP_ENV=production`, and the apps will sign in for real while `convex dev` validates JWTs against `CLERK_FRONTEND_API_URL`. The mocks remain the default, fully offline path.
+
 From the repository root, run:
 
 ```bash

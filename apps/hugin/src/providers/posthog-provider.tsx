@@ -1,6 +1,6 @@
 "use client";
 
-import { isLocalDevelopment } from "@workspace/auth/local";
+import { runTelemetry } from "@workspace/auth/telemetry";
 import posthog from "posthog-js";
 import { PostHogProvider as PHProvider } from "posthog-js/react";
 import { useEffect } from "react";
@@ -11,12 +11,17 @@ export default function PostHogProvider({
 	children: React.ReactNode;
 }>) {
 	useEffect(() => {
-		if (isLocalDevelopment) return;
-		posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
-			api_host: "/relay-aXgZ",
-			ui_host: "https://eu.posthog.com",
-			defaults: "2025-05-24",
-			capture_pageview: false,
+		runTelemetry(() => {
+			if (!process.env.NEXT_PUBLIC_POSTHOG_KEY || !process.env.NEXT_PUBLIC_POSTHOG_HOST) {
+				throw new Error("PostHog environment variables are not set");
+			}
+
+			posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY, {
+				api_host: "/relay-aXgZ",
+				ui_host: "https://eu.posthog.com",
+				defaults: "2025-05-24",
+				capture_pageview: false,
+			});
 		});
 	}, []);
 

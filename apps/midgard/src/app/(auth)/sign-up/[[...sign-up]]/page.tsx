@@ -1,9 +1,12 @@
 "use client";
-import { isClerkAPIResponseError } from "@clerk/nextjs/errors";
-import { useSignUp } from "@clerk/nextjs/legacy";
-import type { ClerkAPIError } from "@clerk/nextjs/types";
 import { useForm } from "@tanstack/react-form";
-import { LocalAuthNotice, useAuth } from "@workspace/auth/client";
+import {
+	type ClerkAPIError,
+	isClerkAPIResponseError,
+	LocalAuthNotice,
+	useAuth,
+	useSignUp,
+} from "@workspace/auth/client";
 import { useConvexAuth } from "@workspace/auth/convex";
 import { isLocalDevelopment } from "@workspace/auth/local";
 import { api } from "@workspace/backend/convex/api";

@@ -1,8 +1,15 @@
 "use client";
 
 import * as Clerk from "@clerk/nextjs";
+import { isClerkAPIResponseError } from "@clerk/nextjs/errors";
+import { useSignUp } from "@clerk/nextjs/legacy";
+import type { ClerkAPIError } from "@clerk/nextjs/types";
 import type { ComponentProps } from "react";
 import { isLocalDevelopment, type LocalUser, localUser } from "./local";
+
+export { isClerkAPIResponseError };
+export { useSignUp };
+export type { ClerkAPIError };
 
 function useLocalUser(): { isLoaded: true; isSignedIn: true; user: LocalUser } {
 	return { isLoaded: true, isSignedIn: true, user: localUser };

@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { nbNO } from "@clerk/localizations";
-import { isLocalDevelopment } from "@workspace/auth/local";
 import ClerkProvider from "@workspace/auth/provider";
+import { PostHogPageView } from "@workspace/auth/telemetry-client";
 import { Toaster } from "@workspace/ui/components/sonner";
 import { Suspense } from "react";
 import { Consent } from "@/components/common/consent";
@@ -11,7 +11,6 @@ import Footer from "@/components/common/footer";
 import Header from "@/components/common/header";
 import ConvexClientProvider from "@/providers/convex-clerk-provider";
 import { ThemeProvider } from "@/providers/theme-provider";
-import PostHogPageView from "./posthog-page-view";
 
 const defaultUrl = process.env.VERCEL_URL
 	? `https://${process.env.VERCEL_URL}`
@@ -38,11 +37,7 @@ export default function RootLayout({
 				<Suspense fallback={null}>
 					<ClerkProvider localization={nbNO}>
 						<ConvexClientProvider>
-							<ThemeProvider
-								attribute="class"
-								defaultTheme="light"
-								disableTransitionOnChange
-							>
+							<ThemeProvider attribute="class" defaultTheme="light" disableTransitionOnChange>
 								<div className="flex h-screen flex-col overflow-y-auto">
 									<Header />
 									<main className="mb-12 flex-1">{children}</main>
@@ -51,7 +46,7 @@ export default function RootLayout({
 								</div>
 								<Consent />
 								<Suspense fallback={null}>
-									{!isLocalDevelopment && <PostHogPageView />}
+									<PostHogPageView site="midgard" />
 								</Suspense>
 							</ThemeProvider>
 						</ConvexClientProvider>

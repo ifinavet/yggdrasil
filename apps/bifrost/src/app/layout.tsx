@@ -1,5 +1,5 @@
-import { isLocalDevelopment } from "@workspace/auth/local";
 import ClerkProvider from "@workspace/auth/provider";
+import { PostHogPageView } from "@workspace/auth/telemetry-client";
 import { SidebarInset, SidebarProvider } from "@workspace/ui/components/sidebar";
 import { Toaster } from "@workspace/ui/components/sonner";
 import type { Metadata } from "next";
@@ -11,7 +11,6 @@ import { hasBasicRights } from "@workspace/auth";
 import Header from "@/components/common/header";
 import BifrostSidebar from "@/components/common/sidebar/sidebar";
 import ConvexClientProvider from "@/providers/convex-client-provider";
-import PostHogPageView from "./posthog-page-view";
 import UnauthorizedPage from "./unauthorized";
 
 const defaultUrl = process.env.VERCEL_URL
@@ -37,9 +36,9 @@ export default function RootLayout({
 	readonly children: React.ReactNode;
 }>) {
 	return (
-        // biome-ignore lint: This is a valid html attribute
-        <html lang="nb" suppressHydrationWarning>
-            <body className={`antialiased ${interSans.className}`}>
+		// biome-ignore lint: This is a valid html attribute
+		<html lang="nb" suppressHydrationWarning>
+			<body className={`antialiased ${interSans.className}`}>
 				<Suspense fallback={null}>
 					<ClerkProvider>
 						<ConvexClientProvider>
@@ -59,8 +58,8 @@ export default function RootLayout({
 					</ClerkProvider>
 				</Suspense>
 			</body>
-        </html>
-    );
+		</html>
+	);
 }
 
 async function AuthorizedContent({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -79,7 +78,7 @@ async function AuthorizedContent({ children }: Readonly<{ children: React.ReactN
 			</SidebarInset>
 			<Toaster richColors position="top-center" />
 			<Suspense fallback={null}>
-				{!isLocalDevelopment && <PostHogPageView />}
+				<PostHogPageView site="bifrost" />
 			</Suspense>
 		</>
 	);
