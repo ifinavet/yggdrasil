@@ -34,39 +34,7 @@ Midgard is the official website for [ifinavet.no](https://ifinavet.no), the stud
 
 ## 🚀 Getting Started
 
-To get a local copy up and running, follow these steps.
-
-### Prerequisites
-
--   [Node.js](https://nodejs.org/en/) (v20 or later)
--   [pnpm](https://pnpm.io/)
-
-### Installation
-
-1.  **Clone the repository:**
-
-    ```bash
-    git clone https://github.com/ifinavet/yggdrasil.git
-    cd yggdrasil/apps/midgard
-    ```
-
-2.  **Install dependencies:**
-
-    ```bash
-    pnpm install
-    ```
-
-3. **Set up environment variables:**
-
-   Create a `.env.local` file in the root of the `midgard` directory and add the necessary environment variables. Look at the .env.example to get an idea of what you need.
-
-4.  **Run the development server:**
-
-    ```bash
-    pnpm dev
-    ```
-
-    Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Follow the local development instructions in the [repository README](../../README.md). Run `pnpm dev` from the repository root to start all apps and the local backend. Midgard runs at [http://localhost:3000](http://localhost:3000).
 
 ## 🛠️ Technologies & Packages
 

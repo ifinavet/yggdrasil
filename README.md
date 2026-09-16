@@ -41,14 +41,34 @@ The project uses Turborepo to manage the different services and is structured li
 
 **Follow this guide first, then use the per-project READMEs for application-specific information.**
 
-Copy `.env.example` to `.env.local` in the repository root. It contains:
+You need [Node.js](https://nodejs.org/) 20.9 or later and [pnpm](https://pnpm.io/).
+
+Clone the repository and move into its root:
+
+```bash
+git clone https://github.com/ifinavet/yggdrasil.git
+cd yggdrasil
+```
+
+Install dependencies and copy the local environment config:
+
+```bash
+pnpm install
+cp .env.example .env.local
+```
+
+The local config contains:
 
 ```
 APP_ENV=local
 CONVEX_AGENT_MODE=anonymous
 ```
 
-From the repository root, run `pnpm install` and `pnpm dev`.
+From the repository root, run:
+
+```bash
+pnpm dev
+```
 
 This starts the local backend, Midgard at `http://localhost:3000`, Bifrost at `http://localhost:3001`, and Hugin at `http://localhost:3003`.
 
