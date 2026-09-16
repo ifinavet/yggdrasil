@@ -37,28 +37,6 @@ The project uses Turborepo to manage the different services and is structured li
 └── ...
 ```
 
-## Develop without service accounts
-
-Use Node.js 20 (20.9+), 22, or 24 and pnpm. Run `pnpm install`, then
-`APP_ENV=local pnpm dev` from the repository root. Alternatively, copy the root
-`.env.example` to `.env.local` and run `pnpm dev`. No external keys are required;
-app `.env.local` files can be absent or contain dummy keys. The first run downloads
-the local Convex backend and therefore needs internet access.
-
-Local mode starts Convex at `http://127.0.0.1:3210`, Midgard on port 3000, Bifrost
-on 3001, and Hugin on 3003. Keep ports 3210 and 3211 available for Convex.
-The apps automatically sign in as one local developer with a student profile and
-super-admin access. Clerk account management and sign-out are replaced with a local
-account placeholder; email delivery and application telemetry are disabled.
-
-Queries, mutations, and uploads use the real local backend. Data persists in
-`packages/backend/.local-development/.convex/`; no sample content is created. Create content through
-Bifrost. Local mode applies only during development; mock authentication is rejected
-by hosted backends. The local backend accepts unauthenticated requests and listens
-on all network interfaces, so keep its ports private. Remove `APP_ENV=local` from
-the root `.env.local` to use the existing configured services. Restart `pnpm dev`
-after changing this flag.
-
 ## Want to contribute? 🤝
 
 That's great! We love any and all contributions, but sadly, as we are students, we do not have the ability nor the resources to deal with everything. Therefore, we have some "rules" on how to contribute.
