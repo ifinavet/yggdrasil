@@ -6,7 +6,7 @@
 	"dependencies": {
 		"@clerk/nextjs": "^7.7.6",
 		"@workspace/backend": "workspace:*",
-		"convex": "^1.44.0"
+		"convex": "^1.45.0"
 	},
 	"devDependencies": {
 		"@workspace/typescript-config": "workspace:*",

@@ -62,6 +62,7 @@ The local config contains:
 ```
 APP_ENV=local
 CONVEX_AGENT_MODE=anonymous
+CONVEX_DEPLOYMENT=
 ```
 
 From the repository root, run:

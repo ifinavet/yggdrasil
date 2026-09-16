@@ -27,7 +27,7 @@
 			"cache": false,
 			"persistent": true,
 			"inputs": ["$TURBO_DEFAULT$", ".env", ".env.local"],
-			"env": ["APP_ENV", "CONVEX_AGENT_MODE"]
+			"env": ["APP_ENV", "CONVEX_AGENT_MODE", "CONVEX_DEPLOYMENT"]
 		},
 		"//#format-and-lint": {},
 		"//#format-and-lint:fix": {

@@ -19,7 +19,7 @@
 		"@react-email/render": "^2.1.0",
 		"@workspace/emails": "workspace:*",
 		"@workspace/shared": "workspace:*",
-		"convex": "^1.44.0",
+		"convex": "^1.45.0",
 		"convex-helpers": "^0.1.123",
 		"svix": "^1.99.1"
 	},
