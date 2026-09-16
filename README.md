@@ -52,6 +52,16 @@ From the repository root, run `pnpm install` and `pnpm dev`.
 
 This starts the local backend, Midgard at `http://localhost:3000`, Bifrost at `http://localhost:3001`, and Hugin at `http://localhost:3003`.
 
+## Deployments 🚀
+
+Pushes to `main` [deploy Convex first, then all three apps on Vercel](.github/workflows/deploy-production.yml). PR previews still use Vercel's Git integration.
+
+- **Secrets:** `CONVEX_DEPLOY_KEY` (production) and `VERCEL_TOKEN` (access to all three projects).
+- **Variables:** `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID_MIDGARD`, `VERCEL_PROJECT_ID_BIFROST`, and `VERCEL_PROJECT_ID_HUGIN`, from Vercel's settings.
+- **Convex production environment:** `CLERK_FRONTEND_API_URL`, set to the production Clerk Frontend API URL used as the provider domain in `packages/backend/convex/auth.config.js`.
+
+To retry, use **Actions → Deploy production → Run workflow** on `main`. Keep backend changes compatible with the previous frontend; rolling back Vercel alone does not roll back Convex.
+
 ## Want to contribute? 🤝
 
 That's great! We love any and all contributions, but sadly, as we are students, we do not have the ability nor the resources to deal with everything. Therefore, we have some "rules" on how to contribute.

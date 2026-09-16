@@ -24,7 +24,8 @@
 		"svix": "^1.99.1"
 	},
 	"devDependencies": {
-		"@types/node": "^20.19.43"
+		"@types/node": "^20.19.43",
+		"typescript": "5.9.3"
 	},
 	"exports": {
 		"./convex/api": {
