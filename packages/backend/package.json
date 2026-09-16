@@ -6,7 +6,7 @@
 	"scripts": {
 		"check": "biome check .",
 		"check:fix": "biome check . --write",
-		"dev": "convex dev",
+		"dev": "convex dev --run auth/local:signIn",
 		"setup": "convex dev --until-success"
 	},
 	"keywords": [],
