@@ -39,18 +39,18 @@ The project uses Turborepo to manage the different services and is structured li
 
 ## Running the projects locally 💻
 
-**Follow this guide first, then follow the per-project READMEs to set each application up.**
+**Follow this guide first, then use the per-project READMEs for application-specific information.**
 
-Create `.env.local` that contains:
+Copy `.env.example` to `.env.local` in the repository root. It contains:
 
 ```
 APP_ENV=local
+CONVEX_AGENT_MODE=anonymous
 ```
 
 From the repository root, run `pnpm install` and `pnpm dev`.
 
-
-
+This starts the local backend, Midgard at `http://localhost:3000`, Bifrost at `http://localhost:3001`, and Hugin at `http://localhost:3003`.
 
 ## Want to contribute? 🤝
 
