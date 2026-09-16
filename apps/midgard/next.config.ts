@@ -1,8 +1,6 @@
 import { withSentryConfig } from "@sentry/nextjs";
-import { getConvexSite, withDevelopment } from "@workspace/auth/development";
+import { withDevelopment } from "@workspace/auth/development";
 import type { NextConfig } from "next";
-
-const convexSite = getConvexSite();
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -10,12 +8,6 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   images: {
     remotePatterns: [
-      {
-        protocol: "https",
-        hostname: convexSite,
-        port: "",
-        pathname: "**",
-      },
       {
         protocol: "http",
         hostname: "127.0.0.1",
