@@ -1,11 +1,8 @@
-import { ConvexError } from "convex/values";
 import { mutation } from "../_generated/server";
 
 // Convex supplies this deployment URL; never enable mock auth on a hosted backend.
 export function isLocalDevelopment() {
-	return (
-		/^http:\/\/(127\.0\.0\.1|localhost):3210$/.test(process.env.CONVEX_CLOUD_URL ?? "")
-	);
+	return /^http:\/\/(127\.0\.0\.1|localhost):3210$/.test(process.env.CONVEX_CLOUD_URL ?? "");
 }
 
 export const localIdentity = {
