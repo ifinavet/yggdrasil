@@ -1,5 +1,8 @@
 import { withSentryConfig } from "@sentry/nextjs";
+import { configureLocalDevelopment } from "@workspace/auth/development";
 import type { NextConfig } from "next";
+
+const localDevelopment = configureLocalDevelopment();
 
 if (!process.env.NEXT_PUBLIC_CONVEX_URL) {
 	throw new Error("NEXT_PUBLIC_CONVEX_URL environment variable is not set.");
@@ -9,10 +12,12 @@ if (!process.env.NEXT_PUBLIC_CONVEX_URL) {
 const convexSite = process.env.NEXT_PUBLIC_CONVEX_URL.replace(/^https?:\/\//, "");
 
 const nextConfig: NextConfig = {
+	env: { NEXT_PUBLIC_LOCAL_DEV: localDevelopment ? "true" : "false" },
 	/* config options here */
 	transpilePackages: ["@workspace/ui"],
 	cacheComponents: true,
 	images: {
+		dangerouslyAllowLocalIP: localDevelopment,
 		remotePatterns: [
 			{
 				protocol: "https",
@@ -55,7 +60,7 @@ const nextConfig: NextConfig = {
 	skipTrailingSlashRedirect: true,
 };
 
-export default withSentryConfig(nextConfig, {
+const sentryOptions = {
 	// For all available options, see:
 	// https://www.npmjs.com/package/@sentry/webpack-plugin#options
 
@@ -80,4 +85,6 @@ export default withSentryConfig(nextConfig, {
 	// https://docs.sentry.io/product/crons/
 	// https://vercel.com/docs/cron-jobs
 	automaticVercelMonitors: true,
-});
+};
+
+export default localDevelopment ? nextConfig : withSentryConfig(nextConfig, sentryOptions);

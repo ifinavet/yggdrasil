@@ -1,6 +1,7 @@
 "use client";
 
-import { useAuth, useUser } from "@clerk/nextjs";
+import { useAuth, useUser } from "@workspace/auth/client";
+import { isLocalDevelopment } from "@workspace/auth/local";
 import { usePathname, useSearchParams } from "next/navigation";
 import { usePostHog } from "posthog-js/react";
 import { useEffect } from "react";
@@ -15,6 +16,7 @@ export default function PostHogPageView(): null {
 
 	// Track pageviews
 	useEffect(() => {
+		if (isLocalDevelopment) return;
 		if (pathname && posthog) {
 			let url = window.origin + pathname;
 			if (searchParams.toString()) {
@@ -27,6 +29,7 @@ export default function PostHogPageView(): null {
 	}, [pathname, searchParams, posthog]);
 
 	useEffect(() => {
+		if (isLocalDevelopment) return;
 		if (isSignedIn && userId && user && !posthog._isIdentified()) {
 			posthog.identify(userId, {
 				email: user.primaryEmailAddress?.emailAddress,

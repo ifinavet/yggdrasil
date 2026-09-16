@@ -1,5 +1,5 @@
-import { SignOutButton } from "@clerk/nextjs";
-import { currentUser } from "@clerk/nextjs/server";
+import { SignOutButton } from "@workspace/auth/client";
+import { currentUser } from "@workspace/auth/server";
 import { Button } from "@workspace/ui/components/button";
 import {
 	DropdownMenu,

@@ -1,5 +1,6 @@
 "use client";
 
+import { isLocalDevelopment } from "@workspace/auth/local";
 import posthog from "posthog-js";
 import { PostHogProvider as PHProvider } from "posthog-js/react";
 import { useEffect } from "react";
@@ -10,6 +11,7 @@ export default function PostHogProvider({
 	children: React.ReactNode;
 }>) {
 	useEffect(() => {
+		if (isLocalDevelopment) return;
 		posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
 			api_host: "/relay-aXgZ",
 			ui_host: "https://eu.posthog.com",

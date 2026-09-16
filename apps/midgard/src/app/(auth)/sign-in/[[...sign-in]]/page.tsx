@@ -1,5 +1,5 @@
-import { SignIn } from "@clerk/nextjs";
-import { auth } from "@clerk/nextjs/server";
+import { SignIn } from "@workspace/auth/client";
+import { auth } from "@workspace/auth/server";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import ResponsiveCenterContainer from "@/components/common/responsive-center-container";

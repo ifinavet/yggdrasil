@@ -1,5 +1,5 @@
-import { auth } from "@clerk/nextjs/server";
 import { getAuthToken } from "@workspace/auth";
+import { auth } from "@workspace/auth/server";
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { fetchQuery, preloadedQueryResult, preloadQuery } from "convex/nextjs";

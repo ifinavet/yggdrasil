@@ -1,4 +1,4 @@
-import { SignOutButton } from "@clerk/nextjs";
+import { SignOutButton } from "@workspace/auth/client";
 import { Button } from "@workspace/ui/components//button";
 import { DynamicUserProfile } from "@/components/profile/dynamic-clerk-components";
 

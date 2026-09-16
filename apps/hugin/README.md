@@ -1,5 +1,7 @@
 # 🌈 Bifrost
 
+For development without external keys, use [the repository root instructions](../../README.md#develop-without-service-accounts). The setup below is for connected services.
+
 Bifrost is the official admin dashboard and backend for [ifinavet.no](https://ifinavet.no). It serves as the central hub for managing content, events, job listings, and other administrative tasks for the student organization IFIs Navet.
 
 ## ✨ Features

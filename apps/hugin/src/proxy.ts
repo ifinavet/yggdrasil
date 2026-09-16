@@ -1,4 +1,5 @@
 import { clerkMiddleware } from "@clerk/nextjs/server";
+import { isLocalDevelopment } from "@workspace/auth/local";
 import { type NextRequest, NextResponse } from "next/server";
 
 const searchParamsMiddleware = (request: NextRequest) => {
@@ -10,9 +11,11 @@ const searchParamsMiddleware = (request: NextRequest) => {
 	});
 };
 
-export const proxy = clerkMiddleware(async (_, req) => {
-	return searchParamsMiddleware(req);
-});
+export const proxy = isLocalDevelopment
+	? searchParamsMiddleware
+	: clerkMiddleware(async (_, req) => {
+			return searchParamsMiddleware(req);
+		});
 
 export const config = {
 	matcher: [

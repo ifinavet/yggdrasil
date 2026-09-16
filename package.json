@@ -4,7 +4,7 @@
 	"private": true,
 	"scripts": {
 		"build": "turbo build",
-		"dev": "turbo dev",
+		"dev": "node scripts/dev.mjs",
 		"lint": "turbo lint",
 		"check": "turbo check",
 		"check:fix": "turbo check:fix",

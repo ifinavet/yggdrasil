@@ -10,9 +10,20 @@
 	},
 	"devDependencies": {
 		"@workspace/typescript-config": "workspace:*",
-		"typescript": "^5.9.3"
+		"typescript": "^5.9.3",
+		"@types/react": "19.2.18"
 	},
 	"exports": {
-		".": "./index.ts"
+		".": "./index.ts",
+		"./client": "./client.tsx",
+		"./server": "./server.ts",
+		"./convex": "./convex.tsx",
+		"./local": "./local.ts",
+		"./development": "./development.mjs",
+		"./provider": "./provider.tsx"
+	},
+	"peerDependencies": {
+		"next": "^16.3.1",
+		"react": "^19.2.8"
 	}
 }

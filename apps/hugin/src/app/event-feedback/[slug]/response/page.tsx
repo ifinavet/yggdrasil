@@ -1,5 +1,5 @@
-import { auth } from "@clerk/nextjs/server";
 import { getAuthToken } from "@workspace/auth";
+import { auth } from "@workspace/auth/server";
 import { api } from "@workspace/backend/convex/api";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";

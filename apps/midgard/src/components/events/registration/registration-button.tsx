@@ -1,9 +1,10 @@
 "use client";
 
+import { useConvexAuth } from "@workspace/auth/convex";
 import { api } from "@workspace/backend/convex/api";
 import type { Doc } from "@workspace/backend/convex/dataModel";
 import { Button } from "@workspace/ui/components/button";
-import { useConvexAuth, useQuery } from "convex/react";
+import { useQuery } from "convex/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import EditRegistration from "./edit-registration";

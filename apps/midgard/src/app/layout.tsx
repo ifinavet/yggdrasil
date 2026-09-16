@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { nbNO } from "@clerk/localizations";
-import { ClerkProvider } from "@clerk/nextjs";
+import ClerkProvider from "@workspace/auth/provider";
 import { Toaster } from "@workspace/ui/components/sonner";
 import { Suspense } from "react";
 import { Consent } from "@/components/common/consent";

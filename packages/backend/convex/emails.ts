@@ -9,6 +9,7 @@ import PointsEmail from "@workspace/emails/point-email";
 import { v } from "convex/values";
 import { components } from "./_generated/api";
 import { internalAction } from "./_generated/server";
+import { isLocalDevelopment } from "./auth/local";
 
 /**
  * Configures the Resend client used by backend email actions.
@@ -42,6 +43,8 @@ export const sendGottenPointsEmail = internalAction({
 			),
 		);
 
+		if (isLocalDevelopment()) return;
+
 		await resend.sendEmail(ctx, {
 			from: "Navet <prikker@ifinavet.no>",
 			replyTo: ["arrangement@ifinavet.no"],
@@ -65,6 +68,8 @@ export const sendTooManyPointsEmail = internalAction({
 	},
 	handler: async (ctx, { participantEmail }) => {
 		const html = await pretty(await render(LockedOutEmail()));
+
+		if (isLocalDevelopment()) return;
 
 		await resend.sendEmail(ctx, {
 			from: "Navet <prikker@ifinavet.no>",
@@ -105,6 +110,8 @@ export const sendAvailableSeatEmail = internalAction({
 			),
 		);
 
+		if (isLocalDevelopment()) return;
+
 		await resend.sendEmail(ctx, {
 			from: "Navet <info@ifinavet.no>",
 			replyTo: ["arrangement@ifinavet.no"],
@@ -144,6 +151,8 @@ export const sendFreeForAll = internalAction({
 				}),
 			),
 		);
+
+		if (isLocalDevelopment()) return;
 
 		await resend.sendEmail(ctx, {
 			from: "Navet <info@ifinavet.no>",

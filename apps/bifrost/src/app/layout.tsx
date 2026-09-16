@@ -1,4 +1,4 @@
-import { ClerkProvider } from "@clerk/nextjs";
+import ClerkProvider from "@workspace/auth/provider";
 import { SidebarInset, SidebarProvider } from "@workspace/ui/components/sidebar";
 import { Toaster } from "@workspace/ui/components/sonner";
 import type { Metadata } from "next";

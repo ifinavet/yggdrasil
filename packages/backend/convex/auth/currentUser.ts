@@ -1,5 +1,6 @@
 import { ConvexError } from "convex/values";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
+import { isLocalDevelopment, localIdentity } from "./local";
 
 type AuthCtx = QueryCtx | MutationCtx;
 
@@ -25,7 +26,7 @@ export async function getCurrentUserOrThrow(ctx: AuthCtx) {
  * @returns {Promise<Doc<"users"> | null>} - The current user document, or null when unauthenticated.
  */
 export async function getCurrentUser(ctx: AuthCtx) {
-    const identity = await ctx.auth.getUserIdentity();
+    const identity = await getIdentity(ctx);
     if (identity === null) {
         return null;
     }
@@ -45,4 +46,8 @@ export async function userByExternalId(ctx: AuthCtx, externalId: string) {
         .query("users")
         .withIndex("by_ExternalId", (q) => q.eq("externalId", externalId))
         .unique();
+}
+
+export async function getIdentity(ctx: AuthCtx) {
+    return isLocalDevelopment() ? localIdentity : ctx.auth.getUserIdentity();
 }

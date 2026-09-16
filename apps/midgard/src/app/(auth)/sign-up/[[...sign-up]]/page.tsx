@@ -1,9 +1,11 @@
 "use client";
-import { useAuth } from "@clerk/nextjs";
 import { isClerkAPIResponseError } from "@clerk/nextjs/errors";
 import { useSignUp } from "@clerk/nextjs/legacy";
 import type { ClerkAPIError } from "@clerk/nextjs/types";
 import { useForm } from "@tanstack/react-form";
+import { useAuth } from "@workspace/auth/client";
+import { useConvexAuth } from "@workspace/auth/convex";
+import { isLocalDevelopment } from "@workspace/auth/local";
 import { api } from "@workspace/backend/convex/api";
 import { DEGREE_TYPES, STUDY_PROGRAMS } from "@workspace/shared/constants";
 import { Button } from "@workspace/ui/components/button";
@@ -31,7 +33,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@workspace/ui/components/select";
-import { useConvexAuth, useMutation } from "convex/react";
+import { useMutation } from "convex/react";
 import { ConvexError } from "convex/values";
 import { useRouter } from "next/navigation";
 import { usePostHog } from "posthog-js/react";
@@ -84,6 +86,13 @@ type PendingSignUp = {
 const AUTHENTICATION_TIMEOUT_MS = 15 * 1000;
 
 export default function SignUpPage() {
+	if (isLocalDevelopment) {
+		return <p>Local Developer is already signed in.</p>;
+	}
+	return <ClerkSignUpPage />;
+}
+
+function ClerkSignUpPage() {
 	const { isSignedIn } = useAuth();
 	const { isLoaded, signUp, setActive } = useSignUp();
 	const { isAuthenticated } = useConvexAuth();

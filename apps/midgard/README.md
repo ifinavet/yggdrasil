@@ -1,5 +1,7 @@
 # 🌍 Midgard
 
+For development without external keys, use [the repository root instructions](../../README.md#develop-without-service-accounts). The setup below is for connected services.
+
 Midgard is the official website for [ifinavet.no](https://ifinavet.no), the student association for the Department of Informatics at the University of Oslo. It serves as the main point of contact for students, companies, and the public.
 
 ## ✨ Features

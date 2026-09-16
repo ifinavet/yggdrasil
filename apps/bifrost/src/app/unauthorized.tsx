@@ -1,5 +1,5 @@
-import { SignOutButton } from "@clerk/nextjs";
-import { auth } from "@clerk/nextjs/server";
+import { SignOutButton } from "@workspace/auth/client";
+import { auth } from "@workspace/auth/server";
 import { Button } from "@workspace/ui/components/button";
 import {
 	Card,
