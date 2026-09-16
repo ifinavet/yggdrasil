@@ -1,7 +1,5 @@
 # 🌍 Midgard
 
-For development without external keys, use [the repository root instructions](../../README.md#develop-without-service-accounts). The setup below is for connected services.
-
 Midgard is the official website for [ifinavet.no](https://ifinavet.no), the student association for the Department of Informatics at the University of Oslo. It serves as the main point of contact for students, companies, and the public.
 
 ## ✨ Features
@@ -61,8 +59,6 @@ To get a local copy up and running, follow these steps.
 3. **Set up environment variables:**
 
    Create a `.env.local` file in the root of the `midgard` directory and add the necessary environment variables. Look at the .env.example to get an idea of what you need.
-
-   *Unfortunately our setup requires that you have an clerk account. Without it the auth won't work. We are assesing the options to move to a new solution but as of now you need to use clerk*
 
 4.  **Run the development server:**
 

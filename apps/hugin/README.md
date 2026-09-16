@@ -1,7 +1,5 @@
 # 🌈 Bifrost
 
-For development without external keys, use [the repository root instructions](../../README.md#develop-without-service-accounts). The setup below is for connected services.
-
 Bifrost is the official admin dashboard and backend for [ifinavet.no](https://ifinavet.no). It serves as the central hub for managing content, events, job listings, and other administrative tasks for the student organization IFIs Navet.
 
 ## ✨ Features
@@ -58,8 +56,6 @@ To get a local copy up and running, follow these steps.
 3. **Set up environment variables:**
 
    Create a `.env.local` file in the root of the `bifrost` directory and add the necessary environment variables. Look at the .env.example to get an idea of what you need.
-
-   *Unfortunately our setup requires that you have an clerk account. Without it the auth won't work. We are assesing the options to move to a new solution but as of now you need to use clerk*
 
 4.  **Run the development server:**
 
