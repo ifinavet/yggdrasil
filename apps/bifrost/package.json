@@ -28,6 +28,7 @@
     "@tiptap/starter-kit": "^2.27.2",
     "@workspace/auth": "workspace:*",
     "@workspace/backend": "workspace:*",
+    "@workspace/next-config": "workspace:*",
     "@workspace/shared": "workspace:*",
     "@workspace/ui": "workspace:*",
     "@yudiel/react-qr-scanner": "^2.6.0",

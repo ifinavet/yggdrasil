@@ -22,7 +22,6 @@
 		"./server": "./server.ts",
 		"./convex": "./convex.tsx",
 		"./local": "./local.ts",
-		"./development": "./development.mjs",
 		"./provider": "./provider.tsx",
 		"./telemetry": "./telemetry.ts",
 		"./telemetry-client": "./telemetry-client.tsx"

@@ -18,6 +18,7 @@
     "@tanstack/react-table": "^8.21.3",
     "@workspace/auth": "workspace:*",
     "@workspace/backend": "workspace:*",
+    "@workspace/next-config": "workspace:*",
     "@workspace/shared": "workspace:*",
     "@workspace/ui": "workspace:*",
     "convex": "^1.45.0",
