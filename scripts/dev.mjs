@@ -13,6 +13,11 @@ const convex = join(dirname(backendRequire.resolve("convex/package.json")), "bin
 const turbo = require.resolve("turbo");
 const startApps = process.argv[2] === "--local-apps";
 if (!startApps) {
+	try {
+		writeFileSync(join(root, ".env.local"), "APP_ENV=local\n", { flag: "wx" });
+	} catch (error) {
+		if (error.code !== "EEXIST") throw error;
+	}
 	const { loadEnvConfig } = createRequire(appRequire.resolve("next/package.json"))("@next/env");
 	loadEnvConfig(root, true);
 }
