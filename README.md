@@ -52,9 +52,12 @@ super-admin access. Clerk account management and sign-out are replaced with a lo
 account placeholder; email delivery and application telemetry are disabled.
 
 Queries, mutations, and uploads use the real local backend. Data persists in
-`packages/backend/.convex/`; no sample content is created. Create content through
+`packages/backend/.local-development/.convex/`; no sample content is created. Create content through
 Bifrost. Local mode applies only during development; mock authentication is rejected
-by hosted backends. Omit `APP_ENV=local` to use the existing configured services.
+by hosted backends. The local backend accepts unauthenticated requests and listens
+on all network interfaces, so keep its ports private. Remove `APP_ENV=local` from
+the root `.env.local` to use the existing configured services. Restart `pnpm dev`
+after changing this flag.
 
 ## Want to contribute? 🤝
 

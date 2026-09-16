@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { nbNO } from "@clerk/localizations";
+import { isLocalDevelopment } from "@workspace/auth/local";
 import ClerkProvider from "@workspace/auth/provider";
 import { Toaster } from "@workspace/ui/components/sonner";
 import { Suspense } from "react";
@@ -50,7 +51,7 @@ export default function RootLayout({
 								</div>
 								<Consent />
 								<Suspense fallback={null}>
-									<PostHogPageView />
+									{!isLocalDevelopment && <PostHogPageView />}
 								</Suspense>
 							</ThemeProvider>
 						</ConvexClientProvider>

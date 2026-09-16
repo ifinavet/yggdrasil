@@ -11,7 +11,7 @@ function useLocalAuth() {
 	return { isLoaded: true, isSignedIn: true, userId: localUser.id };
 }
 function LocalProfile() {
-	return <p>Local Developer — local development account</p>;
+	return <p>Local Developer (local development account)</p>;
 }
 function LocalSignOut(_props: ComponentProps<typeof Clerk.SignOutButton>) {
 	return <span>Local development account</span>;

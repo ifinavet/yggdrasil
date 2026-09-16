@@ -1,3 +1,4 @@
+import { isLocalDevelopment } from "@workspace/auth/local";
 import ClerkProvider from "@workspace/auth/provider";
 import { SidebarInset, SidebarProvider } from "@workspace/ui/components/sidebar";
 import { Toaster } from "@workspace/ui/components/sonner";
@@ -78,7 +79,7 @@ async function AuthorizedContent({ children }: Readonly<{ children: React.ReactN
 			</SidebarInset>
 			<Toaster richColors position="top-center" />
 			<Suspense fallback={null}>
-				<PostHogPageView />
+				{!isLocalDevelopment && <PostHogPageView />}
 			</Suspense>
 		</>
 	);

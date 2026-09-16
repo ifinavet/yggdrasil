@@ -40,3 +40,4 @@ npm-debug.log*
 
 # Local Convex deployment
 .convex/
+packages/backend/.local-development/

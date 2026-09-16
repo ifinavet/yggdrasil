@@ -1,3 +1,4 @@
+import { isLocalDevelopment } from "@workspace/auth/local";
 import ClerkProvider from "@workspace/auth/provider";
 import { Toaster } from "@workspace/ui/components/sonner";
 import type { Metadata } from "next";
@@ -52,7 +53,7 @@ export default function RootLayout({
 									</main>
 									<Toaster richColors position="bottom-right" />
 									<Suspense fallback={null}>
-										<PostHogPageView />
+										{!isLocalDevelopment && <PostHogPageView />}
 									</Suspense>
 								</ThemeProvider>
 							</ConvexClientProvider>
