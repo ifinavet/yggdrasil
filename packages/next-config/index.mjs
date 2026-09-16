@@ -13,6 +13,12 @@ const local =
 	(process.env.APP_ENV === "local" ||
 		(!process.env.APP_ENV && !process.env.NEXT_PUBLIC_CONVEX_URL));
 
+if (local && process.env.CONVEX_DEPLOYMENT) {
+	throw new Error(
+		`Local mode requires an isolated Convex backend, but CONVEX_DEPLOYMENT is set to "${process.env.CONVEX_DEPLOYMENT}". Leave CONVEX_DEPLOYMENT empty for isolated local development, or set APP_ENV=production to use the connected deployment.`,
+	);
+}
+
 function applyLocalConvexUrl() {
 	if (local) {
 		process.env.NEXT_PUBLIC_CONVEX_URL = "http://127.0.0.1:3210";
