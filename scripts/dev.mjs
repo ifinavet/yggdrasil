@@ -72,7 +72,7 @@ if (startApps) {
 		JSON.stringify({ ...config, functions: "../convex" }),
 	);
 	const quote = (value) =>
-		process.platform === "win32" ? `"${value}"` : `'${value.replaceAll("'", "'\\''")}'`;
+		process.platform === "win32" ? `"${value}"` : `'${value.replaceAll("'", String.raw`'\''`)}'`;
 	await run(
 		convex,
 		[
