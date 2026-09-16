@@ -71,8 +71,9 @@ if (startApps) {
 		join(localDir, "convex.json"),
 		JSON.stringify({ ...config, functions: "../convex" }),
 	);
+	const singleQuoteEscape = String.raw`'\''`;
 	const quote = (value) =>
-		process.platform === "win32" ? `"${value}"` : `'${value.replaceAll("'", String.raw`'\''`)}'`;
+		process.platform === "win32" ? `"${value}"` : `'${value.replaceAll("'", singleQuoteEscape)}'`;
 	await run(
 		convex,
 		[
