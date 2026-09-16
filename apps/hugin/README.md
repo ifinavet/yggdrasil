@@ -1,14 +1,11 @@
-# 🌈 Bifrost
+# 🌈 Hugin
 
-Bifrost is the official admin dashboard and backend for [ifinavet.no](https://ifinavet.no). It serves as the central hub for managing content, events, job listings, and other administrative tasks for the student organization IFIs Navet.
+Hugin is Navet's event feedback service for [ifinavet.no](https://ifinavet.no). It lets event participants share feedback with the organizers after attending an event.
 
 ## ✨ Features
 
--   **Content Management:** Easily create, edit, and delete resources and articles.
--   **Event Management:** Organize and manage all Navet events, including registrations.
--   **Job Listings:** A dedicated section for companies to post job opportunities for students.
--   **Company Database:** Keep track of partner companies and their information.
--   **Student Overview:** View and manage student members.
+-   **Event Feedback:** Participants give feedback on the events they attended.
+-   **Organizer Insights:** Organizers see aggregated feedback for their events.
 
 ## Project Structure
 
@@ -16,16 +13,10 @@ Bifrost is the official admin dashboard and backend for [ifinavet.no](https://if
 .
 ├── src
 │   ├── app
-│   │   ├── (admin-pages)   # Admin-specific pages and layouts
-│   │   ├── events          # Event-related pages
-│   │   ├── job-listings    # Job listing pages
-│   │   ├── profile         # User profile pages
-│   │   └── resources       # Resource management pages
-│   ├── components          # Reusable React components
-│   ├── constants           # Schemas and constants
-│   ├── hooks               # Custom React hooks
-│   ├── lib                 # Core logic and zustand
-│   └── utils               # Utility functions
+│   │   └── event-feedback   # Feedback pages and response handling
+│   ├── components           # Reusable React components
+│   ├── lib                  # Core logic and helpers
+│   └── providers            # Application providers
 └── ...
 ```
 
@@ -44,7 +35,7 @@ To get a local copy up and running, follow these steps.
 
     ```bash
     git clone https://github.com/ifinavet/yggdrasil.git
-    cd yggdrasil/apps/bifrost
+    cd yggdrasil/apps/hugin
     ```
 
 2.  **Install dependencies:**
@@ -55,9 +46,9 @@ To get a local copy up and running, follow these steps.
 
 3. **Set up environment variables:**
 
-   Create a `.env.local` file in the root of the `bifrost` directory and add the necessary environment variables. Look at the .env.example to get an idea of what you need.
+   No environment variables are needed for local development; the app falls back to local mode with mocked authentication. See the [repository README](../../README.md) for details.
 
-   *Unfortunately our setup requires that you have an clerk account. Without it the auth won't work. We are assesing the options to move to a new solution but as of now you need to use clerk*
+   To use real services (Clerk, PostHog, a hosted Convex deployment), copy the variables from `.env.example` into a `.env.local` file in this directory and set `APP_ENV=production`.
 
 4.  **Run the development server:**
 
@@ -65,7 +56,7 @@ To get a local copy up and running, follow these steps.
     pnpm dev
     ```
 
-    Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+    Open [http://localhost:3003](http://localhost:3003) with your browser to see the result.
 
 ## 🛠️ Technologies & Packages
 

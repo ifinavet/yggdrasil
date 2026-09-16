@@ -55,9 +55,9 @@ To get a local copy up and running, follow these steps.
 
 3. **Set up environment variables:**
 
-   Create a `.env.local` file in the root of the `bifrost` directory and add the necessary environment variables. Look at the .env.example to get an idea of what you need.
+   No environment variables are needed for local development; the app falls back to local mode with mocked authentication. See the [repository README](../../README.md) for details.
 
-   *Unfortunately our setup requires that you have an clerk account. Without it the auth won't work. We are assesing the options to move to a new solution but as of now you need to use clerk*
+   To use real services (Clerk, PostHog, a hosted Convex deployment), copy the variables from `.env.example` into a `.env.local` file in this directory and set `APP_ENV=production`.
 
 4.  **Run the development server:**
 
@@ -65,7 +65,7 @@ To get a local copy up and running, follow these steps.
     pnpm dev
     ```
 
-    Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+    Open [http://localhost:3001](http://localhost:3001) with your browser to see the result.
 
 ## 🛠️ Technologies & Packages
 
