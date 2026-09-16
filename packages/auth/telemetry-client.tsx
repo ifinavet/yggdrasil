@@ -54,7 +54,7 @@ export function PostHogPageView({ site }: Readonly<{ site: string }>): null {
 	const searchParams = useSearchParams();
 	const posthog = usePostHog();
 
-	const { isSignedIn, userId } = useAuth();
+	const { isLoaded, isSignedIn, userId } = useAuth();
 	const { user } = useUser();
 
 	useEffect(() => {
@@ -69,8 +69,8 @@ export function PostHogPageView({ site }: Readonly<{ site: string }>): null {
 	}, [pathname, searchParams, posthog]);
 
 	useEffect(() => {
-		if (isLocalDevelopment) return;
-		if (isSignedIn && userId && user && !posthog._isIdentified()) {
+		if (isLocalDevelopment || !isLoaded) return;
+		if (isSignedIn && userId && user && posthog.get_distinct_id() !== userId) {
 			posthog.identify(userId, {
 				email: user.primaryEmailAddress?.emailAddress,
 				username: user.username,
@@ -78,10 +78,10 @@ export function PostHogPageView({ site }: Readonly<{ site: string }>): null {
 			});
 		}
 
-		if (!isSignedIn && posthog._isIdentified()) {
+		if (isSignedIn === false && posthog._isIdentified()) {
 			posthog.reset();
 		}
-	}, [posthog, user, isSignedIn, userId, site]);
+	}, [posthog, user, isLoaded, isSignedIn, userId, site]);
 
 	return null;
 }

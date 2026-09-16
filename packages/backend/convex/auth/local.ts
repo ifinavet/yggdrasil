@@ -16,23 +16,39 @@ export const signIn = mutation({
 			.query("users")
 			.withIndex("by_ExternalId", (q) => q.eq("externalId", localIdentity.subject))
 			.unique();
-		if (existing) return existing._id;
-		const userId = await ctx.db.insert("users", {
-			externalId: localIdentity.subject,
-			firstName: localIdentity.givenName,
-			lastName: localIdentity.familyName,
-			email: localIdentity.email,
-			image: "",
-			locked: false,
-		});
-		await ctx.db.insert("students", {
-			userId,
-			name: "Local Developer",
-			studyProgram: "Informatikk: programmering og systemarkitektur",
-			year: 1,
-			degree: "Bachelor",
-		});
-		await ctx.db.insert("accessRights", { userId, role: "super-admin" });
+		const userId =
+			existing?._id ??
+			(await ctx.db.insert("users", {
+				externalId: localIdentity.subject,
+				firstName: localIdentity.givenName,
+				lastName: localIdentity.familyName,
+				email: localIdentity.email,
+				image: "",
+				locked: false,
+			}));
+
+		const student = await ctx.db
+			.query("students")
+			.withIndex("by_userId", (q) => q.eq("userId", userId))
+			.first();
+		if (!student) {
+			await ctx.db.insert("students", {
+				userId,
+				name: "Local Developer",
+				studyProgram: "Informatikk: programmering og systemarkitektur",
+				year: 1,
+				degree: "Bachelor",
+			});
+		}
+
+		const rights = await ctx.db
+			.query("accessRights")
+			.withIndex("by_userId", (q) => q.eq("userId", userId))
+			.first();
+		if (!rights) {
+			await ctx.db.insert("accessRights", { userId, role: "super-admin" });
+		}
+
 		return userId;
 	},
 });
