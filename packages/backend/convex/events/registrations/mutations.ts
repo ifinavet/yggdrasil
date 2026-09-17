@@ -51,21 +51,11 @@ export const acceptPendingRegistration = mutation({
         }
         await validateUserCanRegister(ctx, user);
 
-        const registrations = await ctx.db
-            .query("registrations")
-            .withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
-                q.eq("eventId", registration.eventId),
-            )
-            .collect();
+        const registeredCount = await countRegistrationsWithStatus(ctx, event._id, "registered");
 
-        const takenSeats = registrations.filter(
-            (reg) =>
-                reg._id !== id && (reg.status === "registered" || reg.status === "pending"),
-        ).length;
-
-        if (takenSeats >= event.participationLimit) {
+        if (registeredCount >= event.participationLimit) {
             throw new ConvexError(
-                `Arrangementet med ID ${event._id} er fullt (${takenSeats}/${event.participationLimit}). Kan ikke godta registreringen.`,
+                `Arrangementet med ID ${event._id} er fullt (${registeredCount}/${event.participationLimit}). Kan ikke godta registreringen.`,
             );
         }
 
@@ -314,6 +304,7 @@ export const unregister = mutation({
 
 /**
  * Moves a registration to pending status and schedules the seat notification email.
+ * Does nothing when registered and pending registrations already fill the participation limit.
  *
  * @param {MutationCtx} ctx - The Convex mutation context.
  * @param {Doc<"registrations">} registrationToMakePending - The registration to update.
@@ -334,6 +325,10 @@ export const makeStatusPending = async (
         );
     }
 
+    const registeredCount = await countRegistrationsWithStatus(ctx, event._id, "registered");
+    const pendingCount = await countRegistrationsWithStatus(ctx, event._id, "pending");
+    if (registeredCount + pendingCount >= event.participationLimit) return;
+
     await ctx.db.patch(registrationToMakePending._id, {
         status: "pending",
         registrationTime: Date.now(),
@@ -345,4 +340,19 @@ export const makeStatusPending = async (
         eventId: event._id,
         registrationId: registrationToMakePending._id,
     });
+};
+
+const countRegistrationsWithStatus = async (
+    ctx: MutationCtx,
+    eventId: Doc<"events">["_id"],
+    status: Doc<"registrations">["status"],
+) => {
+    const registrationsWithStatus = await ctx.db
+        .query("registrations")
+        .withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
+            q.eq("eventId", eventId).eq("status", status),
+        )
+        .collect();
+
+    return registrationsWithStatus.length;
 };
