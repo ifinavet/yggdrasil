@@ -148,7 +148,7 @@ export const getAll = query({
  *
  * @param {boolean} isExternal - Whether to only include events with an external URL.
  *
- * @returns {Record<string, Array<Doc<"events"> & { hostingCompanyName: string, participationCount: number }>>} - Current semester events grouped by month name.
+ * @returns {Record<string, Array<Doc<"events"> & { hostingCompanyName: string, participationCount: number, waitlistCount: number }>>} - Current semester events grouped by month name.
  */
 export const getCurrentSemester = query({
 	args: {
@@ -171,14 +171,20 @@ export const getCurrentSemester = query({
 
 		const eventsWithParticipationCount = await Promise.all(
 			filteredEvents.map(async (event) => {
-				const participationCount = (
-					await ctx.db
-						.query("registrations")
-						.withIndex("by_eventIdStatusAndRegistrationTime", (q) => q.eq("eventId", event._id))
-						.collect()
-				).filter((q) => q.status === "registered" || q.status === "pending").length;
+				const registrations = await ctx.db
+					.query("registrations")
+					.withIndex("by_eventIdStatusAndRegistrationTime", (q) => q.eq("eventId", event._id))
+					.collect();
 
-				return { ...event, participationCount };
+				const participationCount = registrations.filter(
+					(registration) =>
+						registration.status === "registered" || registration.status === "pending",
+				).length;
+				const waitlistCount = registrations.filter(
+					(registration) => registration.status === "waitlist",
+				).length;
+
+				return { ...event, participationCount, waitlistCount };
 			}),
 		);
 

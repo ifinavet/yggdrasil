@@ -18,12 +18,9 @@ import RegistrationButton from "./registration/registration-button";
 import type { EventRegistrationSummary } from "./registration/registration-summary";
 import WaitlistPosition from "./registration/waitlist-position";
 
-function getAvailableSpots(
-	event: Doc<"events">,
-	registrationSummary: EventRegistrationSummary,
-) {
+function getAvailableSpots(event: Doc<"events">, registrationSummary: EventRegistrationSummary) {
 	if (registrationSummary.waitlistCount > 0) return 0;
-	return event.participationLimit - registrationSummary.registeredCount;
+	return Math.max(0, event.participationLimit - registrationSummary.registeredCount);
 }
 
 export function EventMetadata({

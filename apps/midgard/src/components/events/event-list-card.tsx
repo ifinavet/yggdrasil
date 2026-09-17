@@ -18,6 +18,7 @@ function getRegistrationStatus(event: EventWithParticipationCount) {
 
 	const participants = event.participationCount;
 	const participantsLimit = event.participationLimit;
+	const isFull = event.waitlistCount > 0 || participants >= participantsLimit;
 
 	const registrationIsOpen = registrationOpensDate <= now;
 
@@ -40,7 +41,7 @@ function getRegistrationStatus(event: EventWithParticipationCount) {
 
 	const statusMessage = !registrationIsOpen
 		? `Påmeldingen åpner ${humanReadableDateTime(registrationOpensDate)}`
-		: participants >= participantsLimit
+		: isFull
 			? "Påmeldingen er full, sett deg på venteliste!"
 			: registrationOpenToday
 				? "Påmeldingen er åpen"
