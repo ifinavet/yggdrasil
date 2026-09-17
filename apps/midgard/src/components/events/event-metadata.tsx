@@ -18,6 +18,14 @@ import RegistrationButton from "./registration/registration-button";
 import type { EventRegistrationSummary } from "./registration/registration-summary";
 import WaitlistPosition from "./registration/waitlist-position";
 
+function getAvailableSpots(
+	event: Doc<"events">,
+	registrationSummary: EventRegistrationSummary,
+) {
+	if (registrationSummary.waitlistCount > 0) return 0;
+	return event.participationLimit - registrationSummary.registeredCount;
+}
+
 export function EventMetadata({
 	preloadedEvent,
 	preloadedRegistrationSummary,
@@ -30,8 +38,7 @@ export function EventMetadata({
 	const event = usePreloadedQuery(preloadedEvent);
 	const registrationSummary = usePreloadedQuery(preloadedRegistrationSummary);
 
-	const availableSpots =
-		event.participationLimit - registrationSummary.registeredCount;
+	const availableSpots = getAvailableSpots(event, registrationSummary);
 
 	return (
 		<div>
@@ -85,8 +92,7 @@ export function EventActionButton({
 	event: Doc<"events">;
 	registrationSummary: EventRegistrationSummary;
 }>) {
-	const availableSpots =
-		event.participationLimit - registrationSummary.registeredCount;
+	const availableSpots = getAvailableSpots(event, registrationSummary);
 
 	if (event.externalUrl && event.externalUrl.length > 0) {
 		return (
