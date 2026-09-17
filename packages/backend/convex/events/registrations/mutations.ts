@@ -14,7 +14,7 @@ import {
  *
  * @param {Id<"registrations">} id - The id of the registration to accept.
  *
- * @throws - An error if the registration does not exist or does not belong to the current user.
+ * @throws - An error if the registration does not exist, does not belong to the current user, or the event already has as many registered participants as its participation limit.
  * @returns {null} - Returns null when the registration is accepted successfully.
  */
 export const acceptPendingRegistration = mutation({
@@ -136,7 +136,7 @@ export const updateAttendance = mutation({
 });
 
 /**
- * Registers the current user for an event.
+ * Registers the current user for an event, or places them at the back of the waitlist when the event is full or already has a waitlist.
  *
  * @param {Id<"events">} eventId - The id of the event to register for.
  * @param {string | undefined} note - The optional registration note.
