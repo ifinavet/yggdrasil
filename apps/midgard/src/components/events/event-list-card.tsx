@@ -39,13 +39,14 @@ function getRegistrationStatus(event: EventWithParticipationCount) {
 		registrationOpensDate >= todayStart &&
 		registrationOpensDate < tomorrowStart;
 
-	const statusMessage = !registrationIsOpen
-		? `Påmeldingen åpner ${humanReadableDateTime(registrationOpensDate)}`
-		: isFull
-			? "Påmeldingen er full, sett deg på venteliste!"
-			: registrationOpenToday
-				? "Påmeldingen er åpen"
-				: "Det er fortsatt ledige plasser";
+	let statusMessage = "Det er fortsatt ledige plasser";
+	if (!registrationIsOpen) {
+		statusMessage = `Påmeldingen åpner ${humanReadableDateTime(registrationOpensDate)}`;
+	} else if (isFull) {
+		statusMessage = "Påmeldingen er full, sett deg på venteliste!";
+	} else if (registrationOpenToday) {
+		statusMessage = "Påmeldingen er åpen";
+	}
 
 	return {
 		showBanner,
