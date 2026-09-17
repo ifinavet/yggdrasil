@@ -46,9 +46,9 @@ To get a local copy up and running, follow these steps.
 
 3. **Set up environment variables:**
 
-   No environment variables are needed for local development; the app falls back to local mode with mocked authentication. See the [repository README](../../README.md) for details.
+   Set `APP_ENV=local` for local development with mocked authentication. See the [repository README](../../README.md) for details.
 
-   To use real services (Clerk, PostHog, a hosted Convex deployment), copy the variables from `.env.example` into a `.env.local` file in this directory and set `APP_ENV=production`.
+   To use real services (Clerk, PostHog, a hosted Convex deployment), copy the variables from `.env.example` into a `.env.local` file in this directory and leave `APP_ENV` unset.
 
 4.  **Run the development server:**
 

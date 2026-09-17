@@ -1,21 +1,15 @@
 import { withSentryConfig } from "@sentry/nextjs";
 
-const allowedAppEnvs = new Set(["local", "production"]);
-if (process.env.APP_ENV && !allowedAppEnvs.has(process.env.APP_ENV)) {
-	throw new Error(
-		`APP_ENV must be "local" or "production" (or unset), got "${process.env.APP_ENV}".`,
-	);
+if (process.env.APP_ENV && process.env.APP_ENV !== "local") {
+	throw new Error(`APP_ENV must be "local" or unset, got "${process.env.APP_ENV}".`);
 }
 
 const isDev = process.env.NODE_ENV === "development";
-const local =
-	isDev &&
-	(process.env.APP_ENV === "local" ||
-		(!process.env.APP_ENV && !process.env.NEXT_PUBLIC_CONVEX_URL));
+const local = isDev && process.env.APP_ENV === "local";
 
 if (local && process.env.CONVEX_DEPLOYMENT) {
 	throw new Error(
-		`Local mode requires an isolated Convex backend, but CONVEX_DEPLOYMENT is set to "${process.env.CONVEX_DEPLOYMENT}". Leave CONVEX_DEPLOYMENT empty for isolated local development, or set APP_ENV=production to use the connected deployment.`,
+		`Local mode requires an isolated Convex backend, but CONVEX_DEPLOYMENT is set to "${process.env.CONVEX_DEPLOYMENT}". Leave CONVEX_DEPLOYMENT empty for isolated local development, or unset APP_ENV to use the connected deployment.`,
 	);
 }
 

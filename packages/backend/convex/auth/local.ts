@@ -6,7 +6,7 @@ export function isLocalDevelopment() {
 	const localUrl = /^http:\/\/(127\.0\.0\.1|localhost):3210$/.test(
 		process.env.CONVEX_CLOUD_URL ?? "",
 	);
-	return localUrl && process.env.APP_ENV !== "production";
+	return localUrl && process.env.APP_ENV === "local";
 }
 
 export { localIdentity };

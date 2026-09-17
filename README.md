@@ -56,9 +56,9 @@ Install dependencies:
 pnpm install
 ```
 
-Local mode is the default for development: with no external keys configured, the apps mock authentication, disable telemetry and email delivery, and use a real local Convex backend. You can run apps directly too, for example `pnpm --filter midgard dev`; start the local backend alongside with `pnpm --filter @workspace/backend dev`.
+Local mode mocks authentication, disables telemetry and email delivery, and uses a real local Convex backend. It is enabled explicitly with `APP_ENV=local`.
 
-To be explicit, or to override defaults, copy the local environment config:
+Copy the local environment config:
 
 ```bash
 cp .env.example .env.local
@@ -70,13 +70,14 @@ The config contains:
 APP_ENV=local
 CONVEX_AGENT_MODE=anonymous
 CONVEX_DEPLOYMENT=
+NEXT_PUBLIC_CONVEX_URL=http://127.0.0.1:3210
 ```
 
-Set `APP_ENV=production` in `.env.local` to connect to real external services instead (Clerk, Sentry, PostHog, Resend). Restart after changing the flag.
+Leave `APP_ENV` unset to run the normal app with configured external services. Restart after changing the flag.
 
 ### Developing against a real Clerk dev instance
 
-Clerk development instances use publishable keys that are safe to commit, so a Clerk dev instance can replace the local auth mocks entirely: uncomment the `CLERK_*` variables in `.env.example`, set `APP_ENV=production`, and the apps will sign in for real while `convex dev` validates JWTs against `CLERK_FRONTEND_API_URL`. The mocks remain the default, fully offline path.
+Clerk development instances use publishable keys that are safe to commit, so a Clerk dev instance can replace the local auth mocks entirely: remove `APP_ENV=local` from `.env.local` and uncomment the `CLERK_*` variables. The apps will sign in for real while the local `convex dev` backend validates JWTs against `CLERK_FRONTEND_API_URL`.
 
 From the repository root, run:
 
