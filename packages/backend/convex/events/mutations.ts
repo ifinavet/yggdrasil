@@ -237,11 +237,9 @@ export const updateWaitlist = async (
         throw new ConvexError(`Arrangementet med ID ${eventId} ble ikke funnet.`);
     }
 
-    await Promise.all(
-        waitlistRegistrations
-            .slice(0, numOfNewPlaces)
-            .map(async (registration) => await makeStatusPending(ctx, registration, event)),
-    );
+    for (const registration of waitlistRegistrations.slice(0, numOfNewPlaces)) {
+        await makeStatusPending(ctx, registration, event);
+    }
 };
 
 /**
