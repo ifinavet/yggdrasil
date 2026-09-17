@@ -2,6 +2,7 @@ import { api } from "@workspace/backend/convex/api";
 import { fetchQuery } from "convex/nextjs";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
+import { Suspense } from "react";
 import EventsList from "@/components/events/events-list";
 import MonthSelector from "@/components/events/month-selector";
 
@@ -9,7 +10,15 @@ export const metadata: Metadata = {
 	title: "Arrangementer",
 };
 
-export default async function EventsPage() {
+export default function EventsPage() {
+	return (
+		<Suspense fallback={null}>
+			<EventsContent />
+		</Suspense>
+	);
+}
+
+async function EventsContent() {
 	const pathname = (await headers()).get("x-searchParams");
 	let searchParams: URLSearchParams | undefined;
 	if (pathname) searchParams = new URLSearchParams(pathname);
@@ -36,13 +45,10 @@ export default async function EventsPage() {
 		"desember",
 	];
 	const months = Object.keys(events).sort(
-		(a, b) =>
-			monthOrder.indexOf(a.toLowerCase()) - monthOrder.indexOf(b.toLowerCase()),
+		(a, b) => monthOrder.indexOf(a.toLowerCase()) - monthOrder.indexOf(b.toLowerCase()),
 	);
 
-	const currentMonth = today
-		.toLocaleString("no", { month: "long" })
-		.toLowerCase();
+	const currentMonth = today.toLocaleString("no", { month: "long" }).toLowerCase();
 	const selectedMonth = searchParams?.get("month")?.toLowerCase();
 
 	const activeMonth =
