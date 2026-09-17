@@ -51,6 +51,24 @@ export const acceptPendingRegistration = mutation({
         }
         await validateUserCanRegister(ctx, user);
 
+        const registrations = await ctx.db
+            .query("registrations")
+            .withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
+                q.eq("eventId", registration.eventId),
+            )
+            .collect();
+
+        const takenSeats = registrations.filter(
+            (reg) =>
+                reg._id !== id && (reg.status === "registered" || reg.status === "pending"),
+        ).length;
+
+        if (takenSeats >= event.participationLimit) {
+            throw new ConvexError(
+                `Arrangementet med ID ${event._id} er fullt (${takenSeats}/${event.participationLimit}). Kan ikke godta registreringen.`,
+            );
+        }
+
         await ctx.db.patch(id, {
             status: "registered",
             registrationTime: Date.now(),
@@ -88,7 +106,6 @@ export const updateAttendance = mutation({
         await ctx.db.patch(id, {
             attendanceStatus: newStatus,
             attendanceTime: Date.now(),
-            status: registration.status === "pending" ? "registered" : registration.status,
         });
 
         if (registration.status !== "registered") return;
@@ -164,7 +181,10 @@ export const register = mutation({
             (reg) => reg.status === "registered" || reg.status === "pending",
         ).length;
 
-        const status = registrationCount < event.participationLimit ? "registered" : "waitlist";
+        const hasWaitlist = registrations.some((registration) => registration.status === "waitlist");
+
+        const status =
+            registrationCount < event.participationLimit && !hasWaitlist ? "registered" : "waitlist";
 
         await ctx.db.insert("registrations", {
             eventId,
