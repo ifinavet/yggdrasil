@@ -19,7 +19,7 @@
     "@tanstack/react-table": "^8.21.3",
     "@tiptap/extension-heading": "^2.27.2",
     "@tiptap/extension-link": "^2.27.2",
-    "@tiptap/extension-list-item": "^2.27.2",
+    "@tiptap/extension-list-item": "^3.31.3",
     "@tiptap/extension-ordered-list": "^2.27.2",
     "@tiptap/extension-placeholder": "^2.27.2",
     "@tiptap/extension-underline": "^2.27.2",
