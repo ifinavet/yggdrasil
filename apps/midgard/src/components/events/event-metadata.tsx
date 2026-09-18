@@ -48,7 +48,7 @@ export function EventMetadata({
 				</p>
 				<p className="flex items-center gap-2 font-semibold md:text-lg">
 					<Users className="size-6 min-w-6 md:size-8" />{" "}
-					{`${availableSpots} plasser igjen`}
+					{`${availableSpots} ${(availableSpots === 1) ? "plass" : "plasser"} igjen`}
 				</p>
 				<p className="flex items-center gap-2 font-semibold md:text-lg">
 					<Globe className="size-6 min-w-6 md:size-8" /> {event.language}
