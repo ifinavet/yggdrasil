@@ -60,7 +60,7 @@ To get a local copy up and running, follow these steps.
 
 ## 🛠️ Technologies & Packages
 
-Bifrost is built with a modern tech stack, including:
+Hugin is built with a modern tech stack, including:
 
 -   **[Next.js](https://nextjs.org/):** The React framework for production.
 -   **[React](https://react.dev/):** A JavaScript library for building user interfaces.
