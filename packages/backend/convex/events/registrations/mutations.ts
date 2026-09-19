@@ -72,7 +72,7 @@ export const acceptPendingRegistration = mutation({
  * @param {Id<"registrations">} id - The id of the registration to update.
  * @param {"confirmed" | "late" | "no_show"} newStatus - The new attendance status.
  *
- * @throws - An error if the registration or related student cannot be resolved.
+ * @throws - An error if the registration, its event or the related student cannot be resolved.
  * @returns {null} - Returns null when the attendance status is updated successfully.
  */
 export const updateAttendance = mutation({
@@ -93,12 +93,27 @@ export const updateAttendance = mutation({
             throw new ConvexError("Unauthorized: Bare arrangører eller administratorer kan oppdatere oppmøte.");
         }
 
+        const event = await ctx.db.get(registration.eventId);
+        if (!event) {
+            throw new ConvexError(
+                `Arrangementet med ID ${registration.eventId} ikke funnet. Kan ikke oppdatere deltakelsestatus.`,
+            );
+        }
+
+        const hasRoomToConfirm =
+            registration.status === "pending" &&
+            (await countRegistrationsWithStatus(ctx, event._id, "registered")) <
+                event.participationLimit;
+
+        const status = hasRoomToConfirm ? "registered" : registration.status;
+
         await ctx.db.patch(id, {
             attendanceStatus: newStatus,
             attendanceTime: Date.now(),
+            status,
         });
 
-        if (registration.status !== "registered") return;
+        if (status !== "registered") return;
 
         const student = await ctx.db
             .query("students")
@@ -111,14 +126,12 @@ export const updateAttendance = mutation({
             );
         }
 
-        const event = await ctx.db.get(registration.eventId);
-
         if (newStatus === "late" || newStatus === "no_show") {
             const severity = newStatus === "late" ? 1 : 2;
             const reason =
                 newStatus === "late"
-                    ? `Du fikk 1 prikk for å være for sen til arrangementet "${event?.title}".`
-                    : `Du fikk 2 prikker for å ikke møte til arrangementet "${event?.title}".`;
+                    ? `Du fikk 1 prikk for å være for sen til arrangementet "${event.title}".`
+                    : `Du fikk 2 prikker for å ikke møte til arrangementet "${event.title}".`;
 
             await ctx.runMutation(internal.points.mutations.givePointsInternal, {
                 id: student._id,
@@ -136,7 +149,7 @@ export const updateAttendance = mutation({
 });
 
 /**
- * Registers the current user for an event, or places them at the back of the waitlist when the event is full or already has a waitlist.
+ * Registers the current user for an event, after offering any free seats to the people already waiting.
  *
  * @param {Id<"events">} eventId - The id of the event to register for.
  * @param {string | undefined} note - The optional registration note.
@@ -167,14 +180,33 @@ export const register = mutation({
         validateRegistrationTime(event);
         await validateUserCanRegister(ctx, user);
 
-        const registrationCount = registrations.filter(
+        let registrationCount = registrations.filter(
             (reg) => reg.status === "registered" || reg.status === "pending",
         ).length;
 
-        const hasWaitlist = registrations.some((registration) => registration.status === "waitlist");
+        const waitlist = registrations
+            .filter((reg) => reg.status === "waitlist")
+            .sort((a, b) => a.registrationTime - b.registrationTime);
+
+        let seatsOffered = 0;
+        for (const waiting of waitlist) {
+            if (registrationCount >= event.participationLimit) break;
+
+            try {
+                await makeStatusPending(ctx, waiting, event);
+            } catch (e) {
+                console.error("Failed to offer a free seat to the next person waiting:", e);
+                continue;
+            }
+
+            registrationCount += 1;
+            seatsOffered += 1;
+        }
 
         const status =
-            registrationCount < event.participationLimit && !hasWaitlist ? "registered" : "waitlist";
+            registrationCount < event.participationLimit && seatsOffered === waitlist.length
+                ? "registered"
+                : "waitlist";
 
         await ctx.db.insert("registrations", {
             eventId,

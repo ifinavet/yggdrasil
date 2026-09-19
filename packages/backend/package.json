@@ -7,7 +7,9 @@
 		"check": "biome check .",
 		"check:fix": "biome check . --write",
 		"dev": "convex dev",
-		"setup": "convex dev --until-success"
+		"setup": "convex dev --until-success",
+		"test": "vitest run",
+		"test:watch": "vitest"
 	},
 	"keywords": [],
 	"author": "",
@@ -24,8 +26,11 @@
 		"svix": "^1.99.1"
 	},
 	"devDependencies": {
+		"@edge-runtime/vm": "^5.0.0",
 		"@types/node": "^20.19.43",
-		"typescript": "5.9.3"
+		"convex-test": "^0.0.59",
+		"typescript": "5.9.3",
+		"vitest": "^3"
 	},
 	"exports": {
 		"./convex/api": {
