@@ -4,7 +4,7 @@ import type { Id } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, mutation } from "../_generated/server";
 import { internalRoles, requireRole } from "../auth/accessRights";
 import { getCurrentUserOrThrow } from "../auth/currentUser";
-import { makeStatusPending } from "./registrations/mutations";
+import { offerFreeSeats } from "./registrations/seats";
 
 // Shared validator for organizer roles
 const organizerRoleValidator = v.union(v.literal("hovedansvarlig"), v.literal("medhjelper"));
@@ -122,15 +122,8 @@ export const update = mutation({
             updatedOrganizers: organizers,
         });
 
-        const waitlistLength = await ctx.db
-            .query("registrations")
-            .withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
-                q.eq("eventId", eventId).eq("status", "waitlist"),
-            )
-            .collect();
-
-        if (participationLimit - event.participationLimit > 0 && waitlistLength)
-            await updateWaitlist(ctx, event._id, participationLimit - event.participationLimit);
+        const updatedEvent = await ctx.db.get(eventId);
+        if (updatedEvent) await offerFreeSeats(ctx, updatedEvent);
     },
 });
 
@@ -202,45 +195,16 @@ export const upsertEventOrganizer = internalMutation({
 export const updateWaitlistMutation = internalMutation({
     args: {
         eventId: v.id("events"),
-        numOfNewPlaces: v.number(),
     },
-    handler: async (ctx, { eventId, numOfNewPlaces }) => {
-        await updateWaitlist(ctx, eventId, numOfNewPlaces);
+    handler: async (ctx, { eventId }) => {
+        const event = await ctx.db.get(eventId);
+        if (!event) {
+            throw new ConvexError(`Arrangementet med ID ${eventId} ble ikke funnet.`);
+        }
+
+        await offerFreeSeats(ctx, event);
     },
 });
-
-/**
- * Promotes waitlisted registrations into pending status.
- *
- * @param {MutationCtx} ctx - The Convex mutation context.
- * @param {Id<"events">} eventId - The id of the event to update.
- * @param {number} numOfNewPlaces - The number of new places to offer.
- *
- * @throws - An error if the event cannot be found.
- * @returns {Promise<void>} - Resolves when the waitlist has been updated.
- */
-export const updateWaitlist = async (
-    ctx: MutationCtx,
-    eventId: Id<"events">,
-    numOfNewPlaces: number,
-) => {
-    const waitlistRegistrations = await ctx.db
-        .query("registrations")
-        .withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
-            q.eq("eventId", eventId).eq("status", "waitlist"),
-        )
-        .order("asc")
-        .collect();
-
-    const event = await ctx.db.get(eventId);
-    if (!event) {
-        throw new ConvexError(`Arrangementet med ID ${eventId} ble ikke funnet.`);
-    }
-
-    for (const registration of waitlistRegistrations.slice(0, numOfNewPlaces)) {
-        await makeStatusPending(ctx, registration, event);
-    }
-};
 
 /**
  * Updates the published status for multiple events.

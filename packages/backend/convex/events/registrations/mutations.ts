@@ -8,6 +8,7 @@ import {
     validateRegistrationTime,
     validateUserCanRegister,
 } from "../helper";
+import { countWithStatus, offerFreeSeats } from "./seats";
 
 /**
  * Accepts a pending registration for the current user.
@@ -51,7 +52,7 @@ export const acceptPendingRegistration = mutation({
         }
         await validateUserCanRegister(ctx, user);
 
-        const registeredCount = await countRegistrationsWithStatus(ctx, event._id, "registered");
+        const registeredCount = await countWithStatus(ctx, event._id, "registered");
 
         if (registeredCount >= event.participationLimit) {
             throw new ConvexError(
@@ -104,7 +105,7 @@ export const updateAttendance = mutation({
         const hasRoomToConfirm =
             attendeeTurnedUp &&
             registration.status === "pending" &&
-            (await countRegistrationsWithStatus(ctx, event._id, "registered")) <
+            (await countWithStatus(ctx, event._id, "registered")) <
                 event.participationLimit;
 
         const status = hasRoomToConfirm ? "registered" : registration.status;
@@ -182,32 +183,15 @@ export const register = mutation({
         validateRegistrationTime(event);
         await validateUserCanRegister(ctx, user);
 
-        let registrationCount = registrations.filter(
-            (reg) => reg.status === "registered" || reg.status === "pending",
-        ).length;
+        await offerFreeSeats(ctx, event);
 
-        const waitlist = registrations
-            .filter((reg) => reg.status === "waitlist")
-            .sort((a, b) => a.registrationTime - b.registrationTime);
-
-        let stillWaiting = 0;
-        for (const waiting of waitlist) {
-            const waitingUser = await ctx.db.get(waiting.userId);
-            if (!waitingUser) continue;
-
-            if (registrationCount >= event.participationLimit) {
-                stillWaiting += 1;
-                continue;
-            }
-
-            await makeStatusPending(ctx, waiting, event);
-            registrationCount += 1;
-        }
+        const occupied =
+            (await countWithStatus(ctx, eventId, "registered")) +
+            (await countWithStatus(ctx, eventId, "pending"));
+        const stillWaiting = await countWithStatus(ctx, eventId, "waitlist");
 
         const status =
-            registrationCount < event.participationLimit && stillWaiting === 0
-                ? "registered"
-                : "waitlist";
+            occupied < event.participationLimit && stillWaiting === 0 ? "registered" : "waitlist";
 
         await ctx.db.insert("registrations", {
             eventId,
@@ -298,17 +282,7 @@ export const unregister = mutation({
 
         if (registration.status === "waitlist") return returnData;
 
-        const nextRegistration = await ctx.db
-            .query("registrations")
-            .withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
-                q.eq("eventId", registration.eventId).eq("status", "waitlist"),
-            )
-            .order("asc")
-            .first();
-
-        if (nextRegistration) {
-            await makeStatusPending(ctx, nextRegistration, event);
-        }
+        await offerFreeSeats(ctx, event);
 
         const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
 
@@ -334,58 +308,3 @@ export const unregister = mutation({
         return returnData;
     },
 });
-
-/**
- * Moves a registration to pending status and schedules the seat notification email.
- * Does nothing when registered and pending registrations already fill the participation limit.
- *
- * @param {MutationCtx} ctx - The Convex mutation context.
- * @param {Doc<"registrations">} registrationToMakePending - The registration to update.
- * @param {Doc<"events">} event - The event the registration belongs to.
- *
- * @throws - An error if the user for the registration cannot be resolved.
- * @returns {Promise<void>} - Resolves when the registration has been updated and the email scheduled.
- */
-export const makeStatusPending = async (
-    ctx: MutationCtx,
-    registrationToMakePending: Doc<"registrations">,
-    event: Doc<"events">,
-) => {
-    const user = await ctx.db.get(registrationToMakePending.userId);
-    if (!user) {
-        throw new ConvexError(
-            `Bruker med ID ${registrationToMakePending.userId} ikke funnet. Kan ikke oppdatere registrering.`,
-        );
-    }
-
-    const registeredCount = await countRegistrationsWithStatus(ctx, event._id, "registered");
-    const pendingCount = await countRegistrationsWithStatus(ctx, event._id, "pending");
-    if (registeredCount + pendingCount >= event.participationLimit) return;
-
-    await ctx.db.patch(registrationToMakePending._id, {
-        status: "pending",
-        registrationTime: Date.now(),
-    });
-
-    await ctx.scheduler.runAfter(0, internal.emails.sendAvailableSeatEmail, {
-        participantEmail: user.email,
-        eventTitle: event.title,
-        eventId: event._id,
-        registrationId: registrationToMakePending._id,
-    });
-};
-
-const countRegistrationsWithStatus = async (
-    ctx: MutationCtx,
-    eventId: Doc<"events">["_id"],
-    status: Doc<"registrations">["status"],
-) => {
-    const registrationsWithStatus = await ctx.db
-        .query("registrations")
-        .withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
-            q.eq("eventId", eventId).eq("status", status),
-        )
-        .collect();
-
-    return registrationsWithStatus.length;
-};

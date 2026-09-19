@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { internal } from "../../_generated/api";
 import { internalMutation } from "../../_generated/server";
-import { makeStatusPending } from "../registrations/mutations";
+import { offerFreeSeats } from "../registrations/seats";
 
 /**
  * Checks pending registrations and reoffers seats when the response window expires.
@@ -27,7 +27,7 @@ export const checkPendingRegistrations = internalMutation({
                     .lte("registrationOpens", now),
             )
             .filter((q) => q.gte(q.field("eventStart"), now - ONE_HOUR_MS))
-            .filter((q) => q.eq(q.field("externalUrl"), ""))
+            .filter((q) => q.or(q.eq(q.field("externalUrl"), ""), q.eq(q.field("externalUrl"), undefined)))
             .filter((q) => q.eq(q.field("published"), true))
             .collect();
 
@@ -47,36 +47,16 @@ export const checkPendingRegistrations = internalMutation({
             )
         ).flat();
 
-        // Check and update all the pending registrations that have been pending for more than 16 hours.
-        await Promise.all(
-            pendingRegistrations.map(async (registration) => {
-                if (now - registration.registrationTime > ANSWER_TIME_LIMIT_MS) {
-                    // Move to the back of the waitlist
-                    await ctx.db.patch(registration._id, {
-                        status: "waitlist",
-                        registrationTime: now,
-                    });
+        for (const registration of pendingRegistrations) {
+            if (now - registration.registrationTime <= ANSWER_TIME_LIMIT_MS) continue;
+            if (registration.attendanceStatus) continue;
 
-                    // Find the next on the waitlist to be offered a place
-                    const nextRegistration = await ctx.db
-                        .query("registrations")
-                        .withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
-                            q.eq("eventId", registration.eventId).eq("status", "waitlist"),
-                        )
-                        .order("asc")
-                        .first();
+            await ctx.db.patch(registration._id, { status: "waitlist", registrationTime: now });
+        }
 
-                    if (!nextRegistration) return;
-                    const event = eventsWithOpenRegistrations.find(
-                        (e) => e._id === registration.eventId,
-                    );
-                    if (!event)
-                        throw new Error("Ingen arrangement assosiert med registreringen.");
-
-                    await makeStatusPending(ctx, nextRegistration, event);
-                }
-            }),
-        );
+        for (const event of eventsWithOpenRegistrations) {
+            await offerFreeSeats(ctx, event);
+        }
     },
 });
 
@@ -121,7 +101,7 @@ export const clearWaitlistAndPending = internalMutation({
                 const availablePlaces =
                     event.participationLimit -
                     registrations.filter((reg) => reg.status === "registered").length;
-                if (availablePlaces === 0) return;
+                if (availablePlaces <= 0) return;
 
                 // Delete and notify the students on the waitlist
                 await Promise.all(
@@ -166,40 +146,6 @@ export const fixWaitlist = internalMutation({
         const event = await ctx.db.get(eventId);
         if (!event) return "No event found";
 
-        const registrations = await ctx.db
-            .query("registrations")
-            .withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
-                q.eq("eventId", eventId).eq("status", "registered"),
-            )
-            .collect();
-        const pending = await ctx.db
-            .query("registrations")
-            .withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
-                q.eq("eventId", eventId).eq("status", "pending"),
-            )
-            .collect();
-
-        console.log(
-            registrations.length + pending.length,
-            event.participationLimit,
-        );
-
-        const numRegisteredAndPending = registrations.length + pending.length;
-        if (numRegisteredAndPending < event.participationLimit) {
-            const waitlist = await ctx.db
-                .query("registrations")
-                .withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
-                    q.eq("eventId", eventId).eq("status", "waitlist"),
-                )
-                .collect();
-
-            await Promise.all(
-                waitlist
-                    .slice(0, event.participationLimit - numRegisteredAndPending)
-                    .map(async (reg) => {
-                        await makeStatusPending(ctx, reg, event);
-                    }),
-            );
-        }
+        await offerFreeSeats(ctx, event);
     },
 });
