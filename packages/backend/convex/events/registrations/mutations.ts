@@ -14,7 +14,7 @@ import {
  *
  * @param {Id<"registrations">} id - The id of the registration to accept.
  *
- * @throws - An error if the registration does not exist or does not belong to the current user.
+ * @throws - An error if the registration does not exist, does not belong to the current user, or the event already has as many registered participants as its participation limit.
  * @returns {null} - Returns null when the registration is accepted successfully.
  */
 export const acceptPendingRegistration = mutation({
@@ -50,6 +50,14 @@ export const acceptPendingRegistration = mutation({
             throw new ConvexError("Arrangementet har allerede startet.");
         }
         await validateUserCanRegister(ctx, user);
+
+        const registeredCount = await countRegistrationsWithStatus(ctx, event._id, "registered");
+
+        if (registeredCount >= event.participationLimit) {
+            throw new ConvexError(
+                `Arrangementet med ID ${event._id} er fullt (${registeredCount}/${event.participationLimit}). Kan ikke godta registreringen.`,
+            );
+        }
 
         await ctx.db.patch(id, {
             status: "registered",
@@ -88,7 +96,6 @@ export const updateAttendance = mutation({
         await ctx.db.patch(id, {
             attendanceStatus: newStatus,
             attendanceTime: Date.now(),
-            status: registration.status === "pending" ? "registered" : registration.status,
         });
 
         if (registration.status !== "registered") return;
@@ -129,7 +136,7 @@ export const updateAttendance = mutation({
 });
 
 /**
- * Registers the current user for an event.
+ * Registers the current user for an event, or places them at the back of the waitlist when the event is full or already has a waitlist.
  *
  * @param {Id<"events">} eventId - The id of the event to register for.
  * @param {string | undefined} note - The optional registration note.
@@ -164,7 +171,10 @@ export const register = mutation({
             (reg) => reg.status === "registered" || reg.status === "pending",
         ).length;
 
-        const status = registrationCount < event.participationLimit ? "registered" : "waitlist";
+        const hasWaitlist = registrations.some((registration) => registration.status === "waitlist");
+
+        const status =
+            registrationCount < event.participationLimit && !hasWaitlist ? "registered" : "waitlist";
 
         await ctx.db.insert("registrations", {
             eventId,
@@ -294,6 +304,7 @@ export const unregister = mutation({
 
 /**
  * Moves a registration to pending status and schedules the seat notification email.
+ * Does nothing when registered and pending registrations already fill the participation limit.
  *
  * @param {MutationCtx} ctx - The Convex mutation context.
  * @param {Doc<"registrations">} registrationToMakePending - The registration to update.
@@ -314,6 +325,10 @@ export const makeStatusPending = async (
         );
     }
 
+    const registeredCount = await countRegistrationsWithStatus(ctx, event._id, "registered");
+    const pendingCount = await countRegistrationsWithStatus(ctx, event._id, "pending");
+    if (registeredCount + pendingCount >= event.participationLimit) return;
+
     await ctx.db.patch(registrationToMakePending._id, {
         status: "pending",
         registrationTime: Date.now(),
@@ -325,4 +340,19 @@ export const makeStatusPending = async (
         eventId: event._id,
         registrationId: registrationToMakePending._id,
     });
+};
+
+const countRegistrationsWithStatus = async (
+    ctx: MutationCtx,
+    eventId: Doc<"events">["_id"],
+    status: Doc<"registrations">["status"],
+) => {
+    const registrationsWithStatus = await ctx.db
+        .query("registrations")
+        .withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
+            q.eq("eventId", eventId).eq("status", status),
+        )
+        .collect();
+
+    return registrationsWithStatus.length;
 };
