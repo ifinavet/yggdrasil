@@ -192,13 +192,10 @@ export const register = mutation({
         for (const waiting of waitlist) {
             if (registrationCount >= event.participationLimit) break;
 
-            try {
-                await makeStatusPending(ctx, waiting, event);
-            } catch (e) {
-                console.error("Failed to offer a free seat to the next person waiting:", e);
-                continue;
-            }
+            const waitingUser = await ctx.db.get(waiting.userId);
+            if (!waitingUser) continue;
 
+            await makeStatusPending(ctx, waiting, event);
             registrationCount += 1;
             seatsOffered += 1;
         }
