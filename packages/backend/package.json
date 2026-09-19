@@ -13,7 +13,6 @@
 	},
 	"keywords": [],
 	"author": "",
-	"packageManager": "pnpm@10.13.1",
 	"dependencies": {
 		"@clerk/backend": "^3.17.2",
 		"@convex-dev/migrations": "^0.3.6",
