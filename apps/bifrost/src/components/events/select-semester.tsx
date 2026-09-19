@@ -50,7 +50,7 @@ export default function SelectSemester(
 				clearEvents();
 
 				if (semesterPart && yearPart) {
-					router.push(`${path}?${updateSemester(semesterPart, Number.parseInt(yearPart))}`);
+					router.push(`${path}?${updateSemester(semesterPart, Number.parseInt(yearPart, 10))}`);
 				}
 			}}
 		>

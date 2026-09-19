@@ -266,7 +266,7 @@ export function LinkPopover({
 		return true;
 	}, [linkInSchema, hideWhenUnavailable, editor, canSetLink]);
 
-	if (!show || !editor || !editor.isEditable) {
+	if (!show || !editor?.isEditable) {
 		return null;
 	}
 

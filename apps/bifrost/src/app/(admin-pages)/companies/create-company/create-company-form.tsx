@@ -21,7 +21,7 @@ export default function CreateCompanyForm() {
 	const createCompany = useMutation(api.companies.mutations.create);
 	const handleSubmit = async (values: CompanyFormValues) => {
 		createCompany({
-			orgNumber: Number.parseInt(values.orgNumber),
+			orgNumber: Number.parseInt(values.orgNumber, 10),
 			name: values.name,
 			description: values.description,
 			logo: values.image as Id<"companyLogos">,

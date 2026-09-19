@@ -1,12 +1,7 @@
 "use client";
 
 import { useForm } from "@tanstack/react-form";
-import Link from "@tiptap/extension-link";
-import Placeholder from "@tiptap/extension-placeholder";
-import Underline from "@tiptap/extension-underline";
-import { EditorContent, useEditor } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import { Button } from "@workspace/ui/components/button";
+import { EditorContent } from "@tiptap/react";
 import {
 	Field,
 	FieldDescription,
@@ -17,8 +12,10 @@ import {
 import { Input } from "@workspace/ui/components/input";
 import { Separator } from "@workspace/ui/components/separator";
 import { EyeOff, Save, Send } from "lucide-react";
-import { useCallback, useMemo } from "react";
+import { useCallback } from "react";
+import FormSubmitActions from "@/components/common/forms/form-submit-actions";
 import { EditorMenu } from "@/components/common/forms/markdown-editor/markdown-editor";
+import { useContentEditor } from "@/components/common/forms/markdown-editor/use-content-editor";
 import { type PageFormValues, pageSchema } from "@/constants/schemas/page-form-schema";
 
 type FormMeta = {
@@ -61,56 +58,12 @@ export default function PageForm({
 		},
 	});
 
-	const handleEditorUpdate = useCallback(
-		({ editor }: { editor: { getHTML: () => string } }) => {
-			form.setFieldValue("content", editor.getHTML());
-		},
-		[form],
-	);
+	const setContent = useCallback((html: string) => form.setFieldValue("content", html), [form]);
 
-	const handleEditorCreate = useCallback(
-		({ editor }: { editor: { getHTML: () => string } }) => {
-			form.setFieldValue("content", editor.getHTML());
-		},
-		[form],
-	);
-
-	const editorExtensions = useMemo(
-		() => [
-			StarterKit,
-			Placeholder.configure({
-				emptyEditorClass:
-					"before:content-[attr(data-placeholder)] before:float-left before:text-muted-foreground before:h-0 before:pointer-events-none",
-				placeholder: "Lag en bra side, foreksempel en personvernerklæring",
-			}),
-			Underline,
-			Link.configure({
-				openOnClick: false,
-				defaultProtocol: "https",
-				protocols: ["https", "mailto", "tel"],
-				autolink: true,
-			}),
-		],
-		[],
-	);
-
-	const editorProps = useMemo(
-		() => ({
-			attributes: {
-				class:
-					"prose prose-sm prose-base max-w-none sm:prose-sm m-5 focus:outline-none dark:prose-invert",
-			},
-		}),
-		[],
-	);
-
-	const editor = useEditor({
-		extensions: editorExtensions,
-		editorProps: editorProps,
-		onUpdate: handleEditorUpdate,
-		immediatelyRender: false,
-		content: form.state.values.content,
-		onCreate: handleEditorCreate,
+	const editor = useContentEditor({
+		placeholder: "Lag en bra side, foreksempel en personvernerklæring",
+		initialContent: form.state.values.content,
+		onContentChange: setContent,
 	});
 
 	return (
@@ -166,33 +119,14 @@ export default function PageForm({
 				</form.Field>
 			</FieldSet>
 
-			<div className="flex flex-wrap gap-4">
-				<Button
-					type="button"
-					disabled={form.state.isSubmitting}
-					onClick={() => form.handleSubmit({ submitAction: "primary" })}
-				>
-					<Send /> {form.state.isSubmitting ? "Jobber..." : "Lagre og publiser"}
-				</Button>
-				<Button
-					type="button"
-					disabled={form.state.isSubmitting}
-					variant="secondary"
-					onClick={() => form.handleSubmit({ submitAction: "secondary" })}
-				>
-					<Save /> {form.state.isSubmitting ? "Jobber..." : "Lagre"}
-				</Button>
-				{onTertiarySubmitAction && (
-					<Button
-						type="button"
-						disabled={form.state.isSubmitting}
-						variant="destructive"
-						onClick={() => form.handleSubmit({ submitAction: "tertiary" })}
-					>
-						<EyeOff /> {form.state.isSubmitting ? "Jobber..." : "Lagre og avpubliser"}
-					</Button>
-				)}
-			</div>
+			<FormSubmitActions
+				className="flex-wrap"
+				isSubmitting={form.state.isSubmitting}
+				onSubmitAction={(submitAction) => form.handleSubmit({ submitAction })}
+				primary={{ label: "Lagre og publiser", icon: <Send /> }}
+				secondary={{ label: "Lagre", icon: <Save /> }}
+				tertiary={onTertiarySubmitAction && { label: "Lagre og avpubliser", icon: <EyeOff /> }}
+			/>
 		</form>
 	);
 }

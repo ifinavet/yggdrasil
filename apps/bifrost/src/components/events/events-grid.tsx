@@ -17,7 +17,7 @@ export default async function EventsGrid({ pathname }: Readonly<{ pathname: stri
 	const token = await getAuthToken();
 	const events = await fetchQuery(
 		api.events.queries.getAll,
-		{ year: Number.parseInt(year), semester },
+		{ year: Number.parseInt(year, 10), semester },
 		{ token },
 	);
 

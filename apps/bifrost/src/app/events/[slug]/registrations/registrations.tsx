@@ -87,7 +87,7 @@ export function Registrations({
 	const handleSendEmail = (registered: boolean, copy: boolean) => {
 		const registrationsToUse = registered ? registrations.registered : registrations.waitlist;
 		const emails = registrationsToUse
-			.filter((reg) => reg.status !== "pending")
+			.filter((reg) => reg.status !== "pending" && reg.userEmail !== "")
 			.map((reg) => reg.userEmail);
 
 		if (copy) {

@@ -8,11 +8,17 @@ import ResourceForm from "@/components/resources/resource-form";
 import { cardColors } from "@/constants/resource-constants";
 import type { ResourceFormValues } from "@/constants/schemas/resource-form-schema";
 
+function randomIndexBelow(count: number): number {
+	const drawnValues = new Uint32Array(1);
+	crypto.getRandomValues(drawnValues);
+	return (drawnValues[0] ?? 0) % count;
+}
+
 export default function NewResourceForm() {
 	const router = useRouter();
 
 	const cardColorKeys = Object.keys(cardColors) as Array<keyof typeof cardColors>;
-	const randomKey = cardColorKeys[Math.floor(Math.random() * cardColorKeys.length)];
+	const randomKey = cardColorKeys[randomIndexBelow(cardColorKeys.length)];
 
 	const defaultValues: ResourceFormValues = {
 		title: "",

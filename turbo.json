@@ -21,7 +21,7 @@
 			"dependsOn": ["^compile"],
 			"inputs": ["$TURBO_DEFAULT$"],
 			"env": ["NEXT_PUBLIC_CONVEX_URL"],
-			"outputs": [".next/**", "!.next/cache/**"]
+			"outputs": []
 		},
 		"check-types": {
 			"dependsOn": ["^check-types"],

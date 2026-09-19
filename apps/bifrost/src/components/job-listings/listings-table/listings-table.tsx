@@ -1,90 +1,31 @@
 "use client";
 
-import {
-	type ColumnDef,
-	flexRender,
-	getCoreRowModel,
-	type Row,
-	useReactTable,
-} from "@tanstack/react-table";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@workspace/ui/components//table";
+import type { ColumnDef, Row } from "@tanstack/react-table";
 import { useRouter } from "next/navigation";
+import BaseDataTable from "@/components/common/tables/data-table";
 
-interface RegistrationsTableProps<TData, TValue> {
-	readonly columns: ColumnDef<TData, TValue>[];
-	readonly data: TData[];
-	readonly empty_message?: string;
+function listingIdOf<TData>(row: Row<TData>): string | undefined {
+	const original = row.original as { listingId?: string } | null;
+	return original?.listingId;
 }
 
 export function ListingsTable<TData, TValue>({
 	columns,
 	data,
 	empty_message = "Ingen aktive stillingsannonser funnet",
-}: Readonly<RegistrationsTableProps<TData, TValue>>) {
+}: Readonly<{ columns: ColumnDef<TData, TValue>[]; data: TData[]; empty_message?: string }>) {
 	const router = useRouter();
 
-	const table = useReactTable({
-		data,
-		columns,
-		getCoreRowModel: getCoreRowModel(),
-	});
-
-	const handleRowClick = (row: Row<TData>) => {
-		// biome-ignore lint: Artifact of being an generic type
-		if ((row.original as any)?.listingId) {
-			// biome-ignore lint: Artifact of being an generic type
-			router.push(`/job-listings/${(row.original as any).listingId}`);
-		}
-	};
-
 	return (
-		<div className="rounded-md">
-			<Table>
-				<TableHeader>
-					{table.getHeaderGroups().map((headerGroup) => (
-						<TableRow key={headerGroup.id}>
-							{headerGroup.headers.map((header) => (
-								<TableHead key={header.id}>
-									{header.isPlaceholder
-										? null
-										: flexRender(header.column.columnDef.header, header.getContext())}
-								</TableHead>
-							))}
-						</TableRow>
-					))}
-				</TableHeader>
-				<TableBody>
-					{table.getCoreRowModel().rows?.length ? (
-						table.getCoreRowModel().rows.map((row) => (
-							<TableRow
-								key={row.id}
-								data-state={row.getIsSelected() && "selected"}
-								className="cursor-pointer hover:bg-muted/50"
-								onClick={() => handleRowClick(row)}
-							>
-								{row.getVisibleCells().map((cell) => (
-									<TableCell key={cell.id}>
-										{flexRender(cell.column.columnDef.cell, cell.getContext())}
-									</TableCell>
-								))}
-							</TableRow>
-						))
-					) : (
-						<TableRow>
-							<TableCell colSpan={columns.length} className="text-center">
-								{empty_message}
-							</TableCell>
-						</TableRow>
-					)}
-				</TableBody>
-			</Table>
-		</div>
+		<BaseDataTable
+			columns={columns}
+			data={data}
+			emptyMessage={empty_message}
+			styles={{ container: "rounded-md", row: "hover:bg-muted/50" }}
+			onRowClick={(row) => {
+				const listingId = listingIdOf(row);
+				if (listingId) router.push(`/job-listings/${listingId}`);
+			}}
+		/>
 	);
 }

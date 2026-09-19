@@ -105,15 +105,17 @@ This starts the local backend, Midgard at `http://localhost:3000`, Bifrost at `h
 Every pull request runs [the same four commands you can run locally](.github/workflows/ci.yml):
 
 ```bash
-pnpm lint          # biome, the whole repo in one pass (pnpm lint:fix writes the fixes)
+pnpm lint          # biome in one pass (pnpm lint:fix writes the fixes)
 pnpm check-types   # tsc --noEmit in every package
 pnpm compile       # next build in compile mode, no backend needed
 pnpm test          # vitest, per package
 ```
 
-`pnpm compile` skips prerendering, so it needs no Convex deployment and works on forks. Midgard's
-prerendered pages fetch from Convex at build time and are covered by the Vercel PR preview instead.
-`pnpm build` is the real production build and does need a reachable `NEXT_PUBLIC_CONVEX_URL`.
+`pnpm lint` covers the whole repo except `packages/ui`, which `biome.json` excludes. `pnpm compile`
+skips prerendering, so it needs no Convex deployment and works on forks; midgard's prerendered pages
+fetch from Convex at build time and nothing checks them until the production deploy. `pnpm build` is
+that real production build and needs a reachable `NEXT_PUBLIC_CONVEX_URL`, as do `check-types` and
+`compile` when you run them by hand.
 
 ## Deployments 🚀
 

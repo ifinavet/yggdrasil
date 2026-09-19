@@ -14,10 +14,8 @@ import {
 } from "@workspace/ui/components/command";
 import {
 	Dialog,
-	DialogClose,
 	DialogContent,
 	DialogDescription,
-	DialogFooter,
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
@@ -42,6 +40,8 @@ import { cn } from "@workspace/ui/lib/utils";
 import { useQuery } from "convex/react";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { useEffect, useState } from "react";
+import DialogSaveFooter from "@/components/common/forms/dialog-save-footer";
+import PositionGroupField from "@/components/common/forms/position-group-field";
 import { type boardMemberSchema, formSchema } from "@/constants/schemas/boardmember-form-schema";
 
 export default function BoardMemberForm({
@@ -194,27 +194,7 @@ export default function BoardMemberForm({
 							}}
 						</form.Field>
 
-						<form.Field name="group">
-							{(field) => {
-								const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
-								return (
-									<Field>
-										<FieldLabel htmlFor={field.name}>Gruppe</FieldLabel>
-										<Input
-											id={field.name}
-											name={field.name}
-											value={field.state.value}
-											onChange={(e) => field.handleChange(e.target.value)}
-											onBlur={field.handleBlur}
-											aria-invalid={isInvalid}
-											placeholder="f.eks. Webgruppen"
-										/>
-										<FieldDescription>Hva skal gruppen til vervet hete?</FieldDescription>
-										{isInvalid && <FieldError errors={field.state.meta.errors} />}
-									</Field>
-								);
-							}}
-						</form.Field>
+						<form.Field name="group">{(field) => <PositionGroupField field={field} />}</form.Field>
 
 						<form.Field name="positionEmail">
 							{(field) => {
@@ -273,18 +253,10 @@ export default function BoardMemberForm({
 						</form.Field>
 					</FieldSet>
 				</form>
-				<DialogFooter>
-					<DialogClose asChild>
-						<Button variant="outline">Avbryt</Button>
-					</DialogClose>
-					<Button
-						type="submit"
-						disabled={form.state.isSubmitting}
-						onClick={() => form.handleSubmit()}
-					>
-						{form.state.isSubmitting ? "Lagrer..." : "Lagre"}
-					</Button>
-				</DialogFooter>
+				<DialogSaveFooter
+					isSubmitting={form.state.isSubmitting}
+					onSave={() => form.handleSubmit()}
+				/>
 			</DialogContent>
 		</Dialog>
 	);
