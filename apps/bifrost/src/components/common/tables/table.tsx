@@ -25,7 +25,7 @@ export function DataTable<TData, TValue>({
 			styles={{
 				table: className,
 				header: "bg-accent font-bold",
-				head: "text-bold",
+				head: "font-bold",
 				row: "hover:bg-muted/50",
 			}}
 		/>

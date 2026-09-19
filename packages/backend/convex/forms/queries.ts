@@ -84,7 +84,7 @@ export const checkIfCurrentUserAttendedTheEventAndShouldBeAbleToSubmit = query({
 
 		if (organizers) return true;
 
-		// Chek if the user is an attendant
+		// Check if the user is an attendant
 		const attendance = await ctx.db
 			.query("registrations")
 			.withIndex("by_eventId", (q) => q.eq("eventId", event._id))

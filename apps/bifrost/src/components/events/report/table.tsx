@@ -24,7 +24,7 @@ export default function DegreeTables({ data }: Readonly<DegreeTablesProps>) {
 	return (
 		<div className="my-2">
 			<Tabs defaultValue={selectedDegree} onValueChange={setSelectedDegree}>
-				<div className="flex w-fll justify-between">
+				<div className="flex w-full justify-between">
 					<TabsList>
 						{Object.keys(data).map((degree) => (
 							<TabsTrigger value={degree} key={degree}>
