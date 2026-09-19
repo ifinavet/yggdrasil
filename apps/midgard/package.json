@@ -4,11 +4,10 @@
 	"private": true,
 	"scripts": {
 		"dev": "next dev --turbopack -p 3000",
+		"check-types": "next typegen && tsc --noEmit",
+		"compile": "next build --experimental-build-mode compile",
 		"build": "next build",
-		"start": "next start",
-		"lint": "next lint",
-		"check": "biome check .",
-		"check:fix": "biome check . --write"
+		"start": "next start"
 	},
 	"dependencies": {
 		"@clerk/localizations": "^4.16.1",
