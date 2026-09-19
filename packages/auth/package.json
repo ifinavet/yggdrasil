@@ -4,17 +4,17 @@
 	"type": "module",
 	"private": true,
 	"dependencies": {
-"@clerk/nextjs": "^7.9.2",
-		"@sentry/nextjs": "^10.70.0",
+"@clerk/nextjs": "^7.9.4",
+		"@sentry/nextjs": "^10.74.0",
 		"@workspace/backend": "workspace:*",
 		"@workspace/shared": "workspace:*",
 		"convex": "^1.45.0",
-		"posthog-js": "^1.417.1"
+		"posthog-js": "^1.433.5"
 	},
 	"devDependencies": {
 		"@workspace/typescript-config": "workspace:*",
 		"typescript": "^5.9.3",
-		"@types/react": "19.2.18"
+		"@types/react": "19.3.0"
 	},
 	"exports": {
 		".": "./index.ts",

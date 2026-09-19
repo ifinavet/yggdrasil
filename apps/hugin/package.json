@@ -11,9 +11,9 @@
     "check:fix": "biome check . --write"
   },
   "dependencies": {
-    "@clerk/nextjs": "^7.9.2",
+    "@clerk/nextjs": "^7.9.4",
     "@floating-ui/react": "^0.27.20",
-    "@sentry/nextjs": "^10.70.0",
+    "@sentry/nextjs": "^10.74.0",
     "@tanstack/react-form": "^1.33.5",
     "@tanstack/react-table": "^8.21.3",
     "@tiptap/core": "^2.27.2",
@@ -42,7 +42,7 @@
     "lucide-react": "^0.515.0",
     "next": "16.3.5",
     "next-themes": "^0.4.6",
-    "posthog-js": "^1.430.3",
+    "posthog-js": "^1.433.5",
     "radix-ui": "^1.6.7",
     "react": "19.3.0",
     "react-day-picker": "^9.14.0",
@@ -54,7 +54,7 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.13",
+    "@biomejs/biome": "2.5.14",
     "@tailwindcss/postcss": "^4.3.3",
     "@tailwindcss/typography": "^0.5.20",
     "@types/node": "^20.19.43",
