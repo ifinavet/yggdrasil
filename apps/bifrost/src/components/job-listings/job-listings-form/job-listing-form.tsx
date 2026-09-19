@@ -22,11 +22,7 @@ import {
 	FieldSet,
 } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
-import {
-	Popover,
-	PopoverContent,
-	PopoverTrigger,
-} from "@workspace/ui/components/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui/components/popover";
 import {
 	Select,
 	SelectContent,
@@ -41,10 +37,7 @@ import { Check, ChevronsUpDown, Save, Send, Trash2 } from "lucide-react";
 import { useState } from "react";
 import DateTimePicker from "@/components/common/forms/date-time-picker";
 import DescriptionEditor from "@/components/common/forms/markdown-editor/editor";
-import {
-	formSchema,
-	type JobListingFormValues,
-} from "@/constants/schemas/job-listing-form-schema";
+import { formSchema, type JobListingFormValues } from "@/constants/schemas/job-listing-form-schema";
 import ContactsSection from "./contacts-section";
 
 type FormMeta = {
@@ -58,10 +51,7 @@ function JobTypeLabel({ type }: Readonly<{ type: JobType }>) {
 		<>
 			<span
 				aria-hidden="true"
-				className={cn(
-					"size-4 rounded-full",
-					LISTING_COLORS[type] ?? "bg-gray-400",
-				)}
+				className={cn("size-4 rounded-full", LISTING_COLORS[type] ?? "bg-gray-400")}
 			/>
 			{type}
 		</>
@@ -105,9 +95,7 @@ export default function JobListingForm({
 	});
 
 	const [openCompanies, setOpenCompanies] = useState(false);
-	const [companyValue, setCompanyValue] = useState(
-		form.state.values.company.name,
-	);
+	const [companyValue, setCompanyValue] = useState(form.state.values.company.name);
 
 	const companies = useQuery(api.companies.queries.getAll);
 
@@ -123,8 +111,7 @@ export default function JobListingForm({
 				<FieldGroup>
 					<form.Field name="title">
 						{(field) => {
-							const isInvalid =
-								field.state.meta.isTouched && !field.state.meta.isValid;
+							const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 							return (
 								<Field>
 									<FieldLabel htmlFor={field.name}>Tittel</FieldLabel>
@@ -139,9 +126,7 @@ export default function JobListingForm({
 										className="truncate"
 									/>
 									{isInvalid && <FieldError errors={field.state.meta.errors} />}
-									<FieldDescription>
-										Dette er hva stillingsannonsen skal hete.
-									</FieldDescription>
+									<FieldDescription>Dette er hva stillingsannonsen skal hete.</FieldDescription>
 								</Field>
 							);
 						}}
@@ -151,8 +136,7 @@ export default function JobListingForm({
 				<FieldGroup className="flex flex-col gap-4 md:flex-row">
 					<form.Field name="company">
 						{(field) => {
-							const isInvalid =
-								field.state.meta.isTouched && !field.state.meta.isValid;
+							const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
 							return (
 								<Field className="min-w-0 md:w-full">
@@ -165,9 +149,7 @@ export default function JobListingForm({
 												className="justify-between truncate"
 											>
 												{companyValue
-													? companies?.find(
-														(company) => company.name === companyValue,
-													)?.name
+													? companies?.find((company) => company.name === companyValue)?.name
 													: "Velg en bedrift..."}
 												<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 											</Button>
@@ -184,9 +166,7 @@ export default function JobListingForm({
 																value={company.name}
 																onSelect={(currentValue) => {
 																	setCompanyValue(
-																		currentValue === companyValue
-																			? ""
-																			: currentValue,
+																		currentValue === companyValue ? "" : currentValue,
 																	);
 																	field.handleChange({
 																		name: currentValue,
@@ -198,9 +178,7 @@ export default function JobListingForm({
 																<Check
 																	className={cn(
 																		"mr-2 h-4 w-4",
-																		companyValue === company.name
-																			? "opacity-100"
-																			: "opacity-0",
+																		companyValue === company.name ? "opacity-100" : "opacity-0",
 																	)}
 																/>
 																{company.name}
@@ -232,8 +210,7 @@ export default function JobListingForm({
 
 					<form.Field name="type">
 						{(field) => {
-							const isInvalid =
-								field.state.meta.isTouched && !field.state.meta.isValid;
+							const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
 							return (
 								<Field>
@@ -246,9 +223,7 @@ export default function JobListingForm({
 									>
 										<SelectTrigger>
 											<SelectValue placeholder="Velg type">
-												{field.state.value ? (
-													<JobTypeLabel type={field.state.value} />
-												) : null}
+												{field.state.value ? <JobTypeLabel type={field.state.value} /> : null}
 											</SelectValue>
 										</SelectTrigger>
 										<SelectContent>
@@ -260,9 +235,7 @@ export default function JobListingForm({
 										</SelectContent>
 									</Select>
 									{isInvalid && <FieldError errors={field.state.meta.errors} />}
-									<FieldDescription>
-										Velg hvilken type annonsen skal være
-									</FieldDescription>
+									<FieldDescription>Velg hvilken type annonsen skal være</FieldDescription>
 								</Field>
 							);
 						}}
@@ -273,8 +246,7 @@ export default function JobListingForm({
 
 				<form.Field name="teaser">
 					{(field) => {
-						const isInvalid =
-							field.state.meta.isTouched && !field.state.meta.isValid;
+						const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
 						return (
 							<Field>
@@ -289,9 +261,7 @@ export default function JobListingForm({
 									className="truncate"
 									placeholder="eks. Har du lyst til å jobbe med Navet?"
 								/>
-								<FieldDescription>
-									Dette er en liten teaser av stillingsannonsen.
-								</FieldDescription>
+								<FieldDescription>Dette er en liten teaser av stillingsannonsen.</FieldDescription>
 							</Field>
 						);
 					}}
@@ -309,16 +279,13 @@ export default function JobListingForm({
 
 				<FieldSeparator />
 
-				<form.Field name="contacts">
-					{(field) => <ContactsSection field={field} />}
-				</form.Field>
+				<form.Field name="contacts">{(field) => <ContactsSection field={field} />}</form.Field>
 
 				<FieldSeparator />
 
 				<form.Field name="applicationUrl">
 					{(field) => {
-						const isInvalid =
-							field.state.meta.isTouched && !field.state.meta.isValid;
+						const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 						return (
 							<Field>
 								<FieldLabel htmlFor={field.name}>Annonselenke</FieldLabel>
@@ -333,9 +300,7 @@ export default function JobListingForm({
 									className="truncate"
 								/>
 								{isInvalid && <FieldError errors={field.state.meta.errors} />}
-								<FieldDescription>
-									Lenken til stillingsannonsen.
-								</FieldDescription>
+								<FieldDescription>Lenken til stillingsannonsen.</FieldDescription>
 							</Field>
 						);
 					}}
@@ -356,8 +321,7 @@ export default function JobListingForm({
 					variant="secondary"
 					onClick={() => form.handleSubmit({ submitAction: "secondary" })}
 				>
-					<Save />{" "}
-					{form.state.isSubmitting ? "Jobber..." : "Lagre og avpubliser"}
+					<Save /> {form.state.isSubmitting ? "Jobber..." : "Lagre og avpubliser"}
 				</Button>
 				{onTertiarySubmitAction && (
 					<Button

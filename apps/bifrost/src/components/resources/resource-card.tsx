@@ -32,7 +32,7 @@ export default function ResourceCard({
 				)}
 			>
 				<div className={cn(`relative h-28 bg-gradient-to-r`, cardColors[gradientKey])}>
-					<div className="-bottom-4 absolute left-6">
+					<div className="absolute -bottom-4 left-6">
 						<div className="flex size-12 items-center justify-center rounded-xl bg-gray-600 shadow-lg dark:bg-gray-200">
 							<IconComponent className="size-6 text-white dark:text-black" />
 						</div>

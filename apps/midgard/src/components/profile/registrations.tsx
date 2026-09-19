@@ -17,7 +17,11 @@ import { humanReadableDateTime } from "@/utils/dateFormatting";
 
 export default async function Registrations({ className }: Readonly<{ className?: string }>) {
 	const token = await getAuthToken();
-	const registrations = await fetchQuery(api.events.registrations.queries.getCurrentUser, {}, { token });
+	const registrations = await fetchQuery(
+		api.events.registrations.queries.getCurrentUser,
+		{},
+		{ token },
+	);
 
 	const previousEvents = registrations.filter(
 		(registration) => registration.eventStart < Date.now(),

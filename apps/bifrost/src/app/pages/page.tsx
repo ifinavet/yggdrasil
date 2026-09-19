@@ -17,10 +17,10 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@workspace/ui/components/card";
+import { useQuery } from "convex/react";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import { humanReadableDate } from "@/utils/utils";
-import { useQuery } from "convex/react";
 
 export default function pagesPage() {
 	const pages = useQuery(api.pages.queries.getAll);
@@ -49,22 +49,14 @@ export default function pagesPage() {
 
 			<div className="flex flex-wrap gap-4">
 				{pages?.map((page) => (
-					<Link
-						href={`/pages/${page._id}`}
-						className="flex flex-col gap-6"
-						key={page._id}
-					>
+					<Link href={`/pages/${page._id}`} className="flex flex-col gap-6" key={page._id}>
 						<Card>
 							<CardHeader>
 								<CardTitle>{page.title}</CardTitle>
-								<CardDescription>
-									{page.published ? "Publisert" : "Ikke publisert"}
-								</CardDescription>
+								<CardDescription>{page.published ? "Publisert" : "Ikke publisert"}</CardDescription>
 							</CardHeader>
 							<CardContent>
-								<p>
-									Sist oppdatert: {humanReadableDate(new Date(page.updatedAt))}
-								</p>
+								<p>Sist oppdatert: {humanReadableDate(new Date(page.updatedAt))}</p>
 							</CardContent>
 						</Card>
 					</Link>

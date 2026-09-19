@@ -15,9 +15,7 @@ import { useSelectedEventsStore } from "@/lib/stores/selected-events";
 
 export default function SelectSemester(
 	props: Readonly<{
-		preloadedPossibleSemesters: Preloaded<
-			typeof api.events.queries.getPossibleSemesters
-		>;
+		preloadedPossibleSemesters: Preloaded<typeof api.events.queries.getPossibleSemesters>;
 	}>,
 ) {
 	const router = useRouter();
@@ -39,9 +37,7 @@ export default function SelectSemester(
 	);
 
 	const year = searchParams.get("year") || new Date().getFullYear();
-	const semester =
-		searchParams.get("semester") ||
-		(new Date().getMonth() < 7 ? "vår" : "høst");
+	const semester = searchParams.get("semester") || (new Date().getMonth() < 7 ? "vår" : "høst");
 
 	return (
 		<Select
@@ -54,9 +50,7 @@ export default function SelectSemester(
 				clearEvents();
 
 				if (semesterPart && yearPart) {
-					router.push(
-						`${path}?${updateSemester(semesterPart, Number.parseInt(yearPart))}`,
-					);
+					router.push(`${path}?${updateSemester(semesterPart, Number.parseInt(yearPart))}`);
 				}
 			}}
 		>

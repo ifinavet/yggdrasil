@@ -108,8 +108,7 @@ export default function InternalMemberForm({
 
 						<form.Field name="group">
 							{(field) => {
-								const isInvalid =
-									field.state.meta.isTouched && !field.state.meta.isValid;
+								const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 								return (
 									<Field>
 										<FieldLabel htmlFor={field.name}>Gruppe</FieldLabel>
@@ -122,12 +121,8 @@ export default function InternalMemberForm({
 											aria-invalid={isInvalid}
 											placeholder="f.eks. Webgruppen"
 										/>
-										<FieldDescription>
-											Hva skal gruppen til vervet hete?
-										</FieldDescription>
-										{isInvalid && (
-											<FieldError errors={field.state.meta.errors} />
-										)}
+										<FieldDescription>Hva skal gruppen til vervet hete?</FieldDescription>
+										{isInvalid && <FieldError errors={field.state.meta.errors} />}
 									</Field>
 								);
 							}}

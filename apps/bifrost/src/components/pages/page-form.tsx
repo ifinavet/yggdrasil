@@ -19,10 +19,7 @@ import { Separator } from "@workspace/ui/components/separator";
 import { EyeOff, Save, Send } from "lucide-react";
 import { useCallback, useMemo } from "react";
 import { EditorMenu } from "@/components/common/forms/markdown-editor/markdown-editor";
-import {
-	type PageFormValues,
-	pageSchema,
-} from "@/constants/schemas/page-form-schema";
+import { type PageFormValues, pageSchema } from "@/constants/schemas/page-form-schema";
 
 type FormMeta = {
 	submitAction: "primary" | "secondary" | "tertiary";
@@ -128,8 +125,7 @@ export default function PageForm({
 			<FieldSet>
 				<form.Field name="title">
 					{(field) => {
-						const isInvalid =
-							field.state.meta.isTouched && !field.state.meta.isValid;
+						const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 						return (
 							<Field data-invalid={isInvalid} className="min-w-0 md:w-full">
 								<FieldLabel htmlFor={field.name}>Tittel</FieldLabel>
@@ -144,9 +140,7 @@ export default function PageForm({
 									className="truncate"
 								/>
 								{isInvalid && <FieldError errors={field.state.meta.errors} />}
-								<FieldDescription>
-									En kort informativ tittel som beskriver siden.
-								</FieldDescription>
+								<FieldDescription>En kort informativ tittel som beskriver siden.</FieldDescription>
 							</Field>
 						);
 					}}
@@ -156,8 +150,7 @@ export default function PageForm({
 
 				<form.Field name="content">
 					{(field) => {
-						const isInvalid =
-							field.state.meta.isTouched && !field.state.meta.isValid;
+						const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 						return (
 							<Field data-invalid={isInvalid} className="min-w-0 md:w-full">
 								<FieldLabel htmlFor={field.name}>Innhold</FieldLabel>
@@ -196,8 +189,7 @@ export default function PageForm({
 						variant="destructive"
 						onClick={() => form.handleSubmit({ submitAction: "tertiary" })}
 					>
-						<EyeOff />{" "}
-						{form.state.isSubmitting ? "Jobber..." : "Lagre og avpubliser"}
+						<EyeOff /> {form.state.isSubmitting ? "Jobber..." : "Lagre og avpubliser"}
 					</Button>
 				)}
 			</div>

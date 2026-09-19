@@ -5,12 +5,7 @@ import Placeholder from "@tiptap/extension-placeholder";
 import Underline from "@tiptap/extension-underline";
 import { useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import {
-	Field,
-	FieldDescription,
-	FieldError,
-	FieldLabel,
-} from "@workspace/ui/components/field";
+import { Field, FieldDescription, FieldError, FieldLabel } from "@workspace/ui/components/field";
 import { useCallback, useMemo } from "react";
 import ContentEditor from "@/components/common/forms/markdown-editor/markdown-editor";
 

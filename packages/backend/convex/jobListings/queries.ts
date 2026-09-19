@@ -13,50 +13,50 @@ import { currentUserHasRole, internalRoles } from "../auth/accessRights";
  * @returns {Promise<Array<Doc<"jobListings"> & { companyName: string, companyLogo: string }>>} - Listings with company metadata.
  */
 export const getAll = query({
-    args: {
-        n: v.optional(v.number()),
-        type: v.optional(v.string()),
-    },
-    handler: async (ctx, { n, type }) => {
-        const maySeeUnpublished = await currentUserHasRole(ctx, internalRoles);
-        const listingsQuery = maySeeUnpublished
-            ? allListingsByDeadline(ctx, type)
-            : publishedListingsByDeadline(ctx, type);
+	args: {
+		n: v.optional(v.number()),
+		type: v.optional(v.string()),
+	},
+	handler: async (ctx, { n, type }) => {
+		const maySeeUnpublished = await currentUserHasRole(ctx, internalRoles);
+		const listingsQuery = maySeeUnpublished
+			? allListingsByDeadline(ctx, type)
+			: publishedListingsByDeadline(ctx, type);
 
-        const listings = n ? await listingsQuery.take(n) : await listingsQuery.collect();
+		const listings = n ? await listingsQuery.take(n) : await listingsQuery.collect();
 
-        return await addCompanyToListings(ctx, listings);
-    },
+		return await addCompanyToListings(ctx, listings);
+	},
 });
 
 function allListingsByDeadline(
-    ctx: QueryCtx,
-    type: string | undefined,
+	ctx: QueryCtx,
+	type: string | undefined,
 ): OrderedQuery<DataModel["jobListings"]> {
-    if (type) {
-        return ctx.db
-            .query("jobListings")
-            .withIndex("by_deadlineAndType", (q) => q.eq("type", type))
-            .order("desc");
-    }
+	if (type) {
+		return ctx.db
+			.query("jobListings")
+			.withIndex("by_deadlineAndType", (q) => q.eq("type", type))
+			.order("desc");
+	}
 
-    return ctx.db.query("jobListings").withIndex("by_deadline").order("desc");
+	return ctx.db.query("jobListings").withIndex("by_deadline").order("desc");
 }
 
 function publishedListingsByDeadline(
-    ctx: QueryCtx,
-    type: string | undefined,
+	ctx: QueryCtx,
+	type: string | undefined,
 ): OrderedQuery<DataModel["jobListings"]> {
-    const publishedListings = ctx.db
-        .query("jobListings")
-        .withIndex("by_deadlineAndPublished", (q) => q.eq("published", true))
-        .order("desc");
+	const publishedListings = ctx.db
+		.query("jobListings")
+		.withIndex("by_deadlineAndPublished", (q) => q.eq("published", true))
+		.order("desc");
 
-    if (type) {
-        return publishedListings.filter((q) => q.eq(q.field("type"), type));
-    }
+	if (type) {
+		return publishedListings.filter((q) => q.eq(q.field("type"), type));
+	}
 
-    return publishedListings;
+	return publishedListings;
 }
 
 /**
@@ -70,45 +70,45 @@ function publishedListingsByDeadline(
  * @returns {Promise<Array<Doc<"jobListings"> & { companyName: string, companyLogo: string }>>} - Active listings with company metadata.
  */
 export const getAllPublishedAndActive = query({
-    args: {
-        n: v.optional(v.number()),
-        listingType: v.optional(v.string()),
-        sorting: v.optional(v.string()),
-        company: v.optional(v.id("companies")),
-    },
-    handler: async (ctx, { n, listingType, sorting, company }) => {
-        let query: OrderedQuery<DataModel["jobListings"]> = ctx.db
-            .query("jobListings")
-            .withIndex("by_deadlineAndPublished", (q) =>
-                q.eq("published", true).gte("deadline", Date.now()),
-            )
-            .order("asc");
+	args: {
+		n: v.optional(v.number()),
+		listingType: v.optional(v.string()),
+		sorting: v.optional(v.string()),
+		company: v.optional(v.id("companies")),
+	},
+	handler: async (ctx, { n, listingType, sorting, company }) => {
+		let query: OrderedQuery<DataModel["jobListings"]> = ctx.db
+			.query("jobListings")
+			.withIndex("by_deadlineAndPublished", (q) =>
+				q.eq("published", true).gte("deadline", Date.now()),
+			)
+			.order("asc");
 
-        if (listingType) {
-            query = query.filter((q) => q.eq(q.field("type"), listingType));
-        }
+		if (listingType) {
+			query = query.filter((q) => q.eq(q.field("type"), listingType));
+		}
 
-        if (company) {
-            query = query.filter((q) => q.eq(q.field("company"), company));
-        }
+		if (company) {
+			query = query.filter((q) => q.eq(q.field("company"), company));
+		}
 
-        const listings = n ? await query.take(n) : await query.collect();
+		const listings = n ? await query.take(n) : await query.collect();
 
-        const listingsWithCompany = await addCompanyToListings(ctx, listings);
+		const listingsWithCompany = await addCompanyToListings(ctx, listings);
 
-        if (sorting) {
-            switch (sorting) {
-                case "title":
-                    return listingsWithCompany.sort((a, b) => a.title.localeCompare(b.title));
-                case "deadline_desc":
-                    return listingsWithCompany.sort((a, b) => b.deadline - a.deadline);
-                case "deadline_asc":
-                    return listingsWithCompany.sort((a, b) => a.deadline - b.deadline);
-            }
-        }
+		if (sorting) {
+			switch (sorting) {
+				case "title":
+					return listingsWithCompany.sort((a, b) => a.title.localeCompare(b.title));
+				case "deadline_desc":
+					return listingsWithCompany.sort((a, b) => b.deadline - a.deadline);
+				case "deadline_asc":
+					return listingsWithCompany.sort((a, b) => a.deadline - b.deadline);
+			}
+		}
 
-        return listingsWithCompany.sort((a, b) => Number(b.mainSponsor) - Number(a.mainSponsor));
-    },
+		return listingsWithCompany.sort((a, b) => Number(b.mainSponsor) - Number(a.mainSponsor));
+	},
 });
 
 /**
@@ -121,33 +121,33 @@ export const getAllPublishedAndActive = query({
  * @returns {Promise<Array<Doc<"jobListings"> & { companyName: string, companyLogo: string }>>} - The enriched listings.
  */
 async function addCompanyToListings(ctx: QueryCtx, listings: Doc<"jobListings">[]) {
-    const listingsWithCompany = await Promise.all(
-        listings.map(async (listing) => {
-            const company = await ctx.db.get(listing.company);
-            if (!company) {
-                throw new Error(`Company with ID ${listing.company} not found`);
-            }
+	const listingsWithCompany = await Promise.all(
+		listings.map(async (listing) => {
+			const company = await ctx.db.get(listing.company);
+			if (!company) {
+				throw new Error(`Company with ID ${listing.company} not found`);
+			}
 
-            const logo = await ctx.db.get(company?.logo);
-            if (!logo) {
-                throw new Error(`Company logo with ID ${company.logo} not found`);
-            }
+			const logo = await ctx.db.get(company?.logo);
+			if (!logo) {
+				throw new Error(`Company logo with ID ${company.logo} not found`);
+			}
 
-            const imageUrl = await ctx.storage.getUrl(logo.image);
-            if (!imageUrl) {
-                throw new Error(`Image URL for logo with ID ${logo.image} not found`);
-            }
+			const imageUrl = await ctx.storage.getUrl(logo.image);
+			if (!imageUrl) {
+				throw new Error(`Image URL for logo with ID ${logo.image} not found`);
+			}
 
-            return {
-                ...listing,
-                companyName: company?.name || "Ukjent bedrift",
-                companyLogo: imageUrl,
-                mainSponsor: company.mainSponsor,
-            };
-        }),
-    );
+			return {
+				...listing,
+				companyName: company?.name || "Ukjent bedrift",
+				companyLogo: imageUrl,
+				mainSponsor: company.mainSponsor,
+			};
+		}),
+	);
 
-    return listingsWithCompany;
+	return listingsWithCompany;
 }
 
 /**
@@ -159,32 +159,32 @@ async function addCompanyToListings(ctx: QueryCtx, listings: Doc<"jobListings">[
  * @returns {Doc<"jobListings"> & { contacts: Array<{ id: Id<"jobListingContacts">, name: string, email?: string, phone?: string }> }} - The listing with contact data.
  */
 export const getById = query({
-    args: {
-        id: v.id("jobListings"),
-    },
-    handler: async (ctx, { id }) => {
-        const listing = await ctx.db.get(id);
-        if (!listing) {
-            throw new ConvexError("Stillingsannonsen ble ikke funnet.");
-        }
+	args: {
+		id: v.id("jobListings"),
+	},
+	handler: async (ctx, { id }) => {
+		const listing = await ctx.db.get(id);
+		if (!listing) {
+			throw new ConvexError("Stillingsannonsen ble ikke funnet.");
+		}
 
-        if (!listing.published && !(await currentUserHasRole(ctx, internalRoles))) {
-            throw new ConvexError("Stillingsannonsen ble ikke funnet.");
-        }
+		if (!listing.published && !(await currentUserHasRole(ctx, internalRoles))) {
+			throw new ConvexError("Stillingsannonsen ble ikke funnet.");
+		}
 
-        const contacts = await ctx.db
-            .query("jobListingContacts")
-            .withIndex("by_listingId", (q) => q.eq("listingId", id))
-            .collect();
+		const contacts = await ctx.db
+			.query("jobListingContacts")
+			.withIndex("by_listingId", (q) => q.eq("listingId", id))
+			.collect();
 
-        return {
-            ...listing,
-            contacts: contacts.map((contact) => ({
-                id: contact._id,
-                name: contact.name,
-                email: contact.email,
-                phone: contact.phone,
-            })),
-        };
-    },
+		return {
+			...listing,
+			contacts: contacts.map((contact) => ({
+				id: contact._id,
+				name: contact.name,
+				email: contact.email,
+				phone: contact.phone,
+			})),
+		};
+	},
 });

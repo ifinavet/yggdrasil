@@ -4,11 +4,7 @@ import { type Editor, isNodeSelection } from "@tiptap/react";
 // --- Styles ---
 import { Button } from "@workspace/ui/components//button";
 import { Input } from "@workspace/ui/components//input";
-import {
-	Popover,
-	PopoverContent,
-	PopoverTrigger,
-} from "@workspace/ui/components//popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui/components//popover";
 import { Separator } from "@workspace/ui/components//separator";
 import { CornerDownLeft, ExternalLink, Link, Trash } from "lucide-react";
 import * as React from "react";
@@ -159,10 +155,7 @@ const LinkMain: React.FC<Readonly<LinkMainProps>> = ({
 				</Button>
 			</div>
 
-			<Separator
-				orientation="vertical"
-				className="data-[orientation=vertical]:h-8"
-			/>
+			<Separator orientation="vertical" className="data-[orientation=vertical]:h-8" />
 
 			<div className="flex gap-2">
 				<Button

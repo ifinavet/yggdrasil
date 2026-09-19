@@ -118,16 +118,9 @@ export const EditorMenu = memo(function EditorMenu({
 					<Heading3 size={18} />
 				</ToolButton>
 			</div>
-			<Separator
-				orientation="vertical"
-				className="data-[orientation=vertical]:h-8"
-			/>
+			<Separator orientation="vertical" className="data-[orientation=vertical]:h-8" />
 			<div className="flex gap-2">
-				<ToolButton
-					editor={editor}
-					onButtonClick={toggleBold}
-					isActive={editor.isActive("bold")}
-				>
+				<ToolButton editor={editor} onButtonClick={toggleBold} isActive={editor.isActive("bold")}>
 					<Bold size={18} />
 				</ToolButton>
 				<ToolButton
@@ -162,10 +155,7 @@ export const EditorMenu = memo(function EditorMenu({
 					<Underline size={18} />
 				</ToolButton>
 			</div>
-			<Separator
-				orientation="vertical"
-				className="data-[orientation=vertical]:h-8"
-			/>
+			<Separator orientation="vertical" className="data-[orientation=vertical]:h-8" />
 			<div className="flex gap-2">
 				<ToolButton
 					editor={editor}

@@ -2,14 +2,6 @@
 
 import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@workspace/ui/components/select";
-import { Textarea } from "@workspace/ui/components/textarea";
 import { Button } from "@workspace/ui/components/button";
 import {
 	Command,
@@ -23,28 +15,29 @@ import {
 	Field,
 	FieldDescription,
 	FieldError,
+	FieldGroup,
 	FieldLabel,
 	FieldSeparator,
 	FieldSet,
-	FieldGroup,
 } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui/components/popover";
 import {
-	Popover,
-	PopoverContent,
-	PopoverTrigger,
-} from "@workspace/ui/components/popover";
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@workspace/ui/components/select";
+import { Textarea } from "@workspace/ui/components/textarea";
 import { cn } from "@workspace/ui/lib/utils";
 import { useQuery } from "convex/react";
 import { Check, ChevronsUpDown, EyeOff, Save, Send } from "lucide-react";
 import { useState } from "react";
-import {
-	type EventFormValues,
-	formSchema,
-} from "@/constants/schemas/event-form-schema";
-import Organizers from "./organizers";
-import DescriptionEditor from "@/components/common/forms/markdown-editor/editor";
 import DateTimePicker from "@/components/common/forms/date-time-picker";
+import DescriptionEditor from "@/components/common/forms/markdown-editor/editor";
+import { type EventFormValues, formSchema } from "@/constants/schemas/event-form-schema";
+import Organizers from "./organizers";
 
 type FormMeta = {
 	submitAction: "primary" | "secondary" | "tertiary";
@@ -87,9 +80,7 @@ export default function EventForm({
 	});
 
 	const [openCompanies, setOpenCompanies] = useState(false);
-	const [companyValue, setCompanyValue] = useState(
-		form.state.values.hostingCompany.name,
-	);
+	const [companyValue, setCompanyValue] = useState(form.state.values.hostingCompany.name);
 
 	const companies = useQuery(api.companies.queries.getAll);
 
@@ -99,8 +90,7 @@ export default function EventForm({
 				<FieldGroup>
 					<form.Field name="title">
 						{(field) => {
-							const isInvalid =
-								field.state.meta.isTouched && !field.state.meta.isValid;
+							const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 							return (
 								<Field>
 									<FieldLabel htmlFor={field.name}>Tittel</FieldLabel>
@@ -115,9 +105,7 @@ export default function EventForm({
 										className="truncate"
 									/>
 									{isInvalid && <FieldError errors={field.state.meta.errors} />}
-									<FieldDescription>
-										Dette er hva arrangementet skal hete.
-									</FieldDescription>
+									<FieldDescription>Dette er hva arrangementet skal hete.</FieldDescription>
 								</Field>
 							);
 						}}
@@ -129,8 +117,7 @@ export default function EventForm({
 				<FieldGroup className="grid grid-cols-1 gap-4 md:grid-cols-2">
 					<form.Field name="food">
 						{(field) => {
-							const isInvalid =
-								field.state.meta.isTouched && !field.state.meta.isValid;
+							const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 							return (
 								<Field>
 									<FieldLabel htmlFor={field.name}>Mat</FieldLabel>
@@ -151,8 +138,7 @@ export default function EventForm({
 
 					<form.Field name="location">
 						{(field) => {
-							const isInvalid =
-								field.state.meta.isTouched && !field.state.meta.isValid;
+							const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 							return (
 								<Field>
 									<FieldLabel htmlFor={field.name}>Sted</FieldLabel>
@@ -173,8 +159,7 @@ export default function EventForm({
 
 					<form.Field name="participantsLimit">
 						{(field) => {
-							const isInvalid =
-								field.state.meta.isTouched && !field.state.meta.isValid;
+							const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 							return (
 								<Field>
 									<FieldLabel htmlFor={field.name}>Deltaker grense</FieldLabel>
@@ -189,9 +174,7 @@ export default function EventForm({
 												field.handleChange(0);
 											} else {
 												const numValue = Number.parseInt(inputValue, 10);
-												field.handleChange(
-													Number.isNaN(numValue) ? 0 : numValue,
-												);
+												field.handleChange(Number.isNaN(numValue) ? 0 : numValue);
 											}
 										}}
 										onBlur={field.handleBlur}
@@ -207,13 +190,10 @@ export default function EventForm({
 
 					<form.Field name="ageRestrictions">
 						{(field) => {
-							const isInvalid =
-								field.state.meta.isTouched && !field.state.meta.isValid;
+							const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 							return (
 								<Field>
-									<FieldLabel htmlFor={field.name}>
-										Aldersbegrensninger
-									</FieldLabel>
+									<FieldLabel htmlFor={field.name}>Aldersbegrensninger</FieldLabel>
 									<Input
 										id={field.name}
 										name={field.name}
@@ -231,8 +211,7 @@ export default function EventForm({
 
 					<form.Field name="language">
 						{(field) => {
-							const isInvalid =
-								field.state.meta.isTouched && !field.state.meta.isValid;
+							const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 							return (
 								<Field>
 									<FieldLabel htmlFor={field.name}>Språk</FieldLabel>
@@ -253,8 +232,7 @@ export default function EventForm({
 
 					<form.Field name="hostingCompany">
 						{(field) => {
-							const isInvalid =
-								field.state.meta.isTouched && !field.state.meta.isValid;
+							const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
 							return (
 								<Field className="min-w-0 md:w-full">
@@ -267,9 +245,7 @@ export default function EventForm({
 												className="justify-between truncate"
 											>
 												{companyValue
-													? companies?.find(
-															(company) => company.name === companyValue,
-														)?.name
+													? companies?.find((company) => company.name === companyValue)?.name
 													: "Velg en bedrift..."}
 												<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 											</Button>
@@ -286,9 +262,7 @@ export default function EventForm({
 																value={company.name}
 																onSelect={(currentValue) => {
 																	setCompanyValue(
-																		currentValue === companyValue
-																			? ""
-																			: currentValue,
+																		currentValue === companyValue ? "" : currentValue,
 																	);
 																	field.handleChange({
 																		name: currentValue,
@@ -300,9 +274,7 @@ export default function EventForm({
 																<Check
 																	className={cn(
 																		"mr-2 h-4 w-4",
-																		companyValue === company.name
-																			? "opacity-100"
-																			: "opacity-0",
+																		companyValue === company.name ? "opacity-100" : "opacity-0",
 																	)}
 																/>
 																{company.name}
@@ -351,8 +323,7 @@ export default function EventForm({
 
 				<form.Field name="teaser">
 					{(field) => {
-						const isInvalid =
-							field.state.meta.isTouched && !field.state.meta.isValid;
+						const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
 						return (
 							<Field>
@@ -368,9 +339,7 @@ export default function EventForm({
 									placeholder="Velkommen til en magisk aften med Navet"
 								/>
 								{isInvalid && <FieldError errors={field.state.meta.errors} />}
-								<FieldDescription>
-									Dette er en liten teaser av arrangementet.
-								</FieldDescription>
+								<FieldDescription>Dette er en liten teaser av arrangementet.</FieldDescription>
 							</Field>
 						);
 					}}
@@ -388,16 +357,13 @@ export default function EventForm({
 
 				<FieldSeparator />
 
-				<form.Field name="organizers">
-					{(field) => <Organizers field={field} />}
-				</form.Field>
+				<form.Field name="organizers">{(field) => <Organizers field={field} />}</form.Field>
 
 				<FieldSeparator />
 
 				<form.Field name="externalEvent">
 					{(field) => {
-						const isInvalid =
-							field.state.meta.isTouched && !field.state.meta.isValid;
+						const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
 						return (
 							<Field>
@@ -422,13 +388,10 @@ export default function EventForm({
 
 				<form.Field name="externalUrl">
 					{(field) => {
-						const isInvalid =
-							field.state.meta.isTouched && !field.state.meta.isValid;
+						const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 						return (
 							<Field>
-								<FieldLabel htmlFor={field.name}>
-									Link til ekstern påmelding
-								</FieldLabel>
+								<FieldLabel htmlFor={field.name}>Link til ekstern påmelding</FieldLabel>
 								<Input
 									id={field.name}
 									name={field.name}
@@ -472,8 +435,7 @@ export default function EventForm({
 						variant="destructive"
 						onClick={() => form.handleSubmit({ submitAction: "tertiary" })}
 					>
-						<EyeOff />{" "}
-						{form.state.isSubmitting ? "Jobber..." : "Lagre og avpubliser"}
+						<EyeOff /> {form.state.isSubmitting ? "Jobber..." : "Lagre og avpubliser"}
 					</Button>
 				)}
 			</div>

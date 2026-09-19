@@ -29,10 +29,7 @@ import { EyeOff, Save, Send } from "lucide-react";
 import React, { useCallback, useMemo } from "react";
 import { EditorMenu } from "@/components/common/forms/markdown-editor/markdown-editor";
 import { cardIcons } from "@/constants/resource-constants";
-import {
-	type ResourceFormValues,
-	resourceSchema,
-} from "@/constants/schemas/resource-form-schema";
+import { type ResourceFormValues, resourceSchema } from "@/constants/schemas/resource-form-schema";
 
 type FormMeta = {
 	submitAction: "primary" | "secondary" | "tertiary";
@@ -94,8 +91,7 @@ export default function ResourceForm({
 			Placeholder.configure({
 				emptyEditorClass:
 					"before:content-[attr(data-placeholder)] before:float-left before:text-muted-foreground before:h-0 before:pointer-events-none",
-				placeholder:
-					"Skriv en helt fantaskisk ressurs som alle i Navet kan ha glede av å lese!",
+				placeholder: "Skriv en helt fantaskisk ressurs som alle i Navet kan ha glede av å lese!",
 			}),
 			Underline,
 			Link.configure({
@@ -140,8 +136,7 @@ export default function ResourceForm({
 				<FieldGroup className="flex flex-col gap-4 md:flex-row">
 					<form.Field name="title">
 						{(field) => {
-							const isInvalid =
-								field.state.meta.isTouched && !field.state.meta.isValid;
+							const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 							return (
 								<Field data-invalid={isInvalid} className="min-w-0 md:w-full">
 									<FieldLabel htmlFor={field.name}>Tittel</FieldLabel>
@@ -166,8 +161,7 @@ export default function ResourceForm({
 
 					<form.Field name="tag">
 						{(field) => {
-							const isInvalid =
-								field.state.meta.isTouched && !field.state.meta.isValid;
+							const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 							return (
 								<Field data-invalid={isInvalid} className="min-w-0 md:w-full">
 									<FieldLabel htmlFor={field.name}>Tag</FieldLabel>
@@ -192,16 +186,12 @@ export default function ResourceForm({
 
 					<form.Field name="icon">
 						{(field) => {
-							const isInvalid =
-								field.state.meta.isTouched && !field.state.meta.isValid;
+							const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 							return (
 								<Field data-invalid={isInvalid} className="min-w-0 md:w-full">
 									<FieldLabel htmlFor={field.name}>Icon</FieldLabel>
 									<div className="flex items-center gap-2">
-										<Select
-											onValueChange={field.handleChange}
-											value={field.state.value}
-										>
+										<Select onValueChange={field.handleChange} value={field.state.value}>
 											<SelectTrigger className="w-40">
 												<SelectValue placeholder="Velg ikon" />
 											</SelectTrigger>
@@ -228,15 +218,12 @@ export default function ResourceForm({
 				<FieldGroup>
 					<form.Field name="excerpt">
 						{(field) => {
-							const isInvalid =
-								field.state.meta.isTouched && !field.state.meta.isValid;
+							const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
 							return (
 								<Field>
 									<FieldLabel htmlFor={field.name}>Sammendrag</FieldLabel>
-									<FieldDescription>
-										Et kort beskrivende sammendrag av ressursen
-									</FieldDescription>
+									<FieldDescription>Et kort beskrivende sammendrag av ressursen</FieldDescription>
 									<Textarea
 										id={field.name}
 										name={field.name}
@@ -247,9 +234,7 @@ export default function ResourceForm({
 										placeholder="Et kort beskrivende sammendrag av ressursen"
 									/>
 									{isInvalid && <FieldError errors={field.state.meta.errors} />}
-									<FieldDescription>
-										En kort beskrivelse/sammendrag av ressursen
-									</FieldDescription>
+									<FieldDescription>En kort beskrivelse/sammendrag av ressursen</FieldDescription>
 								</Field>
 							);
 						}}
@@ -257,8 +242,7 @@ export default function ResourceForm({
 					<FieldSeparator />
 					<form.Field name="content">
 						{(field) => {
-							const isInvalid =
-								field.state.meta.isTouched && !field.state.meta.isValid;
+							const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
 							return (
 								<Field>
@@ -282,8 +266,7 @@ export default function ResourceForm({
 						disabled={form.state.isSubmitting}
 						onClick={() => form.handleSubmit({ submitAction: "primary" })}
 					>
-						<Send />{" "}
-						{form.state.isSubmitting ? "Jobber..." : "Lagre og publiser"}
+						<Send /> {form.state.isSubmitting ? "Jobber..." : "Lagre og publiser"}
 					</Button>
 					<Button
 						type="button"
@@ -300,8 +283,7 @@ export default function ResourceForm({
 							variant="destructive"
 							onClick={() => form.handleSubmit({ submitAction: "tertiary" })}
 						>
-							<EyeOff />{" "}
-							{form.state.isSubmitting ? "Jobber..." : "Lagre og avpubliser"}
+							<EyeOff /> {form.state.isSubmitting ? "Jobber..." : "Lagre og avpubliser"}
 						</Button>
 					)}
 				</div>

@@ -11,11 +11,8 @@ import type { ResourceFormValues } from "@/constants/schemas/resource-form-schem
 export default function NewResourceForm() {
 	const router = useRouter();
 
-	const cardColorKeys = Object.keys(cardColors) as Array<
-		keyof typeof cardColors
-	>;
-	const randomKey =
-		cardColorKeys[Math.floor(Math.random() * cardColorKeys.length)];
+	const cardColorKeys = Object.keys(cardColors) as Array<keyof typeof cardColors>;
+	const randomKey = cardColorKeys[Math.floor(Math.random() * cardColorKeys.length)];
 
 	const defaultValues: ResourceFormValues = {
 		title: "",
@@ -27,10 +24,7 @@ export default function NewResourceForm() {
 	};
 
 	const createResource = useMutation(api.pages.mutations.createResource);
-	const handleCreateResource = async (
-		values: ResourceFormValues,
-		published: boolean,
-	) => {
+	const handleCreateResource = async (values: ResourceFormValues, published: boolean) => {
 		createResource({
 			title: values.title,
 			excerpt: values.excerpt,
@@ -54,10 +48,8 @@ export default function NewResourceForm() {
 			});
 	};
 
-	const onSubmitAndPublish = (values: ResourceFormValues) =>
-		handleCreateResource(values, true);
-	const onSubmitAndSave = (values: ResourceFormValues) =>
-		handleCreateResource(values, false);
+	const onSubmitAndPublish = (values: ResourceFormValues) => handleCreateResource(values, true);
+	const onSubmitAndSave = (values: ResourceFormValues) => handleCreateResource(values, false);
 
 	return (
 		<ResourceForm

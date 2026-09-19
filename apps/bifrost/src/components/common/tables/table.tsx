@@ -46,10 +46,7 @@ export function DataTable<TData, TValue>({
 							<TableHead key={header.id} className="text-bold">
 								{header.isPlaceholder
 									? null
-									: flexRender(
-											header.column.columnDef.header,
-											header.getContext(),
-										)}
+									: flexRender(header.column.columnDef.header, header.getContext())}
 							</TableHead>
 						))}
 					</TableRow>

@@ -1,11 +1,6 @@
 "use client";
 
-import {
-	type ColumnDef,
-	flexRender,
-	getCoreRowModel,
-	useReactTable,
-} from "@tanstack/react-table";
+import { type ColumnDef, flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table";
 import {
 	Table,
 	TableBody,
@@ -40,10 +35,7 @@ export function ContactsTable<TData, TValue>({
 								<TableHead key={header.id}>
 									{header.isPlaceholder
 										? null
-										: flexRender(
-												header.column.columnDef.header,
-												header.getContext(),
-											)}
+										: flexRender(header.column.columnDef.header, header.getContext())}
 								</TableHead>
 							))}
 						</TableRow>
@@ -52,10 +44,7 @@ export function ContactsTable<TData, TValue>({
 				<TableBody>
 					{table.getCoreRowModel().rows?.length ? (
 						table.getCoreRowModel().rows.map((row) => (
-							<TableRow
-								key={row.id}
-								data-state={row.getIsSelected() && "selected"}
-							>
+							<TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
 								{row.getVisibleCells().map((cell) => (
 									<TableCell key={cell.id}>
 										{flexRender(cell.column.columnDef.cell, cell.getContext())}

@@ -42,10 +42,7 @@ import { cn } from "@workspace/ui/lib/utils";
 import { useQuery } from "convex/react";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { useEffect, useState } from "react";
-import {
-	type boardMemberSchema,
-	formSchema,
-} from "@/constants/schemas/boardmember-form-schema";
+import { type boardMemberSchema, formSchema } from "@/constants/schemas/boardmember-form-schema";
 
 export default function BoardMemberForm({
 	defaultValues,
@@ -115,8 +112,7 @@ export default function BoardMemberForm({
 					<FieldSet>
 						<form.Field name="userId">
 							{(field) => {
-								const isInvalid =
-									field.state.meta.isTouched && !field.state.meta.isValid;
+								const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 								return (
 									<Field className="flex flex-col">
 										<FieldLabel>Ansvarlige</FieldLabel>
@@ -130,8 +126,7 @@ export default function BoardMemberForm({
 												>
 													{field.state.value
 														? internalMembers?.find(
-																(internalMember) =>
-																	internalMember.userId === field.state.value,
+																(internalMember) => internalMember.userId === field.state.value,
 															)?.fullName
 														: "Velg et medlem..."}
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -141,9 +136,7 @@ export default function BoardMemberForm({
 												<Command>
 													<CommandInput placeholder="Søk etter en ansvarlig..." />
 													<CommandList>
-														<CommandEmpty>
-															Fant ingen ansvarlige(er).
-														</CommandEmpty>
+														<CommandEmpty>Fant ingen ansvarlige(er).</CommandEmpty>
 														<CommandGroup>
 															{internalMembers?.map((internalMember) => (
 																<CommandItem
@@ -151,9 +144,7 @@ export default function BoardMemberForm({
 																	value={internalMember.userId ?? "Ukjent"}
 																	onSelect={(currentValue) => {
 																		field.handleChange(
-																			currentValue === field.state.value
-																				? ""
-																				: currentValue,
+																			currentValue === field.state.value ? "" : currentValue,
 																		);
 																		setOpenMembers(false);
 																	}}
@@ -161,8 +152,7 @@ export default function BoardMemberForm({
 																	<Check
 																		className={cn(
 																			"mr-2 h-4 w-4",
-																			field.state.value ===
-																				internalMember.userId
+																			field.state.value === internalMember.userId
 																				? "opacity-100"
 																				: "opacity-0",
 																		)}
@@ -175,12 +165,8 @@ export default function BoardMemberForm({
 												</Command>
 											</PopoverContent>
 										</Popover>
-										<FieldDescription>
-											Velg hvem som har vervet.
-										</FieldDescription>
-										{isInvalid && (
-											<FieldError errors={field.state.meta.errors} />
-										)}
+										<FieldDescription>Velg hvem som har vervet.</FieldDescription>
+										{isInvalid && <FieldError errors={field.state.meta.errors} />}
 									</Field>
 								);
 							}}
@@ -188,8 +174,7 @@ export default function BoardMemberForm({
 
 						<form.Field name="role">
 							{(field) => {
-								const isInvalid =
-									field.state.meta.isTouched && !field.state.meta.isValid;
+								const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 								return (
 									<Field>
 										<FieldLabel htmlFor={field.name}>Rolle</FieldLabel>
@@ -203,9 +188,7 @@ export default function BoardMemberForm({
 											placeholder="f.eks. Leder"
 										/>
 										<FieldDescription>Hva skal vervet hete?</FieldDescription>
-										{isInvalid && (
-											<FieldError errors={field.state.meta.errors} />
-										)}
+										{isInvalid && <FieldError errors={field.state.meta.errors} />}
 									</Field>
 								);
 							}}
@@ -213,8 +196,7 @@ export default function BoardMemberForm({
 
 						<form.Field name="group">
 							{(field) => {
-								const isInvalid =
-									field.state.meta.isTouched && !field.state.meta.isValid;
+								const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 								return (
 									<Field>
 										<FieldLabel htmlFor={field.name}>Gruppe</FieldLabel>
@@ -227,12 +209,8 @@ export default function BoardMemberForm({
 											aria-invalid={isInvalid}
 											placeholder="f.eks. Webgruppen"
 										/>
-										<FieldDescription>
-											Hva skal gruppen til vervet hete?
-										</FieldDescription>
-										{isInvalid && (
-											<FieldError errors={field.state.meta.errors} />
-										)}
+										<FieldDescription>Hva skal gruppen til vervet hete?</FieldDescription>
+										{isInvalid && <FieldError errors={field.state.meta.errors} />}
 									</Field>
 								);
 							}}
@@ -240,8 +218,7 @@ export default function BoardMemberForm({
 
 						<form.Field name="positionEmail">
 							{(field) => {
-								const isInvalid =
-									field.state.meta.isTouched && !field.state.meta.isValid;
+								const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 								return (
 									<Field>
 										<FieldLabel htmlFor={field.name}>Rolle epost</FieldLabel>
@@ -255,12 +232,9 @@ export default function BoardMemberForm({
 											placeholder="f.eks. leder@ifinavet.no"
 										/>
 										<FieldDescription>
-											En valgri epost som bli brukt isteden for rolle inhaver
-											sin egen.
+											En valgri epost som bli brukt isteden for rolle inhaver sin egen.
 										</FieldDescription>
-										{isInvalid && (
-											<FieldError errors={field.state.meta.errors} />
-										)}
+										{isInvalid && <FieldError errors={field.state.meta.errors} />}
 									</Field>
 								);
 							}}
@@ -268,32 +242,22 @@ export default function BoardMemberForm({
 
 						<form.Field name="accessRole">
 							{(field) => {
-								const isInvalid =
-									field.state.meta.isTouched && !field.state.meta.isValid;
+								const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 								return (
 									<Field>
 										<FieldLabel htmlFor={field.name}>Tilgangsrolle</FieldLabel>
 										<Select
 											onValueChange={(value) =>
-												field.handleChange(
-													value as (typeof ACCESS_RIGHTS)[number],
-												)
+												field.handleChange(value as (typeof ACCESS_RIGHTS)[number])
 											}
 											defaultValue={field.state.value}
 										>
 											<SelectTrigger>
-												<SelectValue
-													placeholder="Velg tilgangsrolle"
-													className="capitalize"
-												/>
+												<SelectValue placeholder="Velg tilgangsrolle" className="capitalize" />
 											</SelectTrigger>
 											<SelectContent>
 												{ACCESS_RIGHTS.map((accessRight) => (
-													<SelectItem
-														value={accessRight}
-														key={accessRight}
-														className="capitalize"
-													>
+													<SelectItem value={accessRight} key={accessRight} className="capitalize">
 														{accessRight}
 													</SelectItem>
 												))}
@@ -302,9 +266,7 @@ export default function BoardMemberForm({
 										<FieldDescription>
 											Hva slags tilgangsrolle skal denne personen ha?
 										</FieldDescription>
-										{isInvalid && (
-											<FieldError errors={field.state.meta.errors} />
-										)}
+										{isInvalid && <FieldError errors={field.state.meta.errors} />}
 									</Field>
 								);
 							}}
