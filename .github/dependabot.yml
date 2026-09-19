@@ -5,5 +5,13 @@ updates:
     schedule:
       interval: weekly
     groups:
+      # The tiptap packages are version-locked to each other by exact peer
+      # dependencies (@tiptap/react@3.x requires @tiptap/core@3.x and
+      # @tiptap/pm@3.x). Updating one of them alone breaks the Next.js build
+      # with "export ... doesn't exist in target module", so the whole family
+      # must always move in a single pull request, majors included.
+      tiptap:
+        patterns: ["@tiptap*"]
       minor-and-patch:
+        exclude-patterns: ["@tiptap*"]
         update-types: [minor, patch]
