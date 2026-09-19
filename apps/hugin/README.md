@@ -69,7 +69,6 @@ Hugin is built with a modern tech stack, including:
 -   **[Clerk](https://clerk.com/):** User management and authentication.
 -   **[Tailwind CSS](https://tailwindcss.com/):** A utility-first CSS framework.
 -   **[Shadcn/ui](https://ui.shadcn.com/):** Re-usable components built using Radix UI and Tailwind CSS.
--   **[Tiptap](https://tiptap.dev/):** A headless wrapper around ProseMirror for building rich text editors.
 -   **[Zod](https://zod.dev/):** A TypeScript-first schema declaration and validation library.
 
 ## 🙌 Contributing
