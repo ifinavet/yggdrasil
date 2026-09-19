@@ -100,7 +100,9 @@ export const updateAttendance = mutation({
             );
         }
 
+        const attendeeTurnedUp = newStatus === "confirmed" || newStatus === "late";
         const hasRoomToConfirm =
+            attendeeTurnedUp &&
             registration.status === "pending" &&
             (await countRegistrationsWithStatus(ctx, event._id, "registered")) <
                 event.participationLimit;
@@ -188,20 +190,22 @@ export const register = mutation({
             .filter((reg) => reg.status === "waitlist")
             .sort((a, b) => a.registrationTime - b.registrationTime);
 
-        let seatsOffered = 0;
+        let stillWaiting = 0;
         for (const waiting of waitlist) {
-            if (registrationCount >= event.participationLimit) break;
-
             const waitingUser = await ctx.db.get(waiting.userId);
             if (!waitingUser) continue;
 
+            if (registrationCount >= event.participationLimit) {
+                stillWaiting += 1;
+                continue;
+            }
+
             await makeStatusPending(ctx, waiting, event);
             registrationCount += 1;
-            seatsOffered += 1;
         }
 
         const status =
-            registrationCount < event.participationLimit && seatsOffered === waitlist.length
+            registrationCount < event.participationLimit && stillWaiting === 0
                 ? "registered"
                 : "waitlist";
 
