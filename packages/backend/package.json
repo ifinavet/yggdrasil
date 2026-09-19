@@ -15,14 +15,14 @@
 	"author": "",
 	"packageManager": "pnpm@10.13.1",
 	"dependencies": {
-		"@clerk/backend": "^3.16.6",
+		"@clerk/backend": "^3.17.2",
 		"@convex-dev/migrations": "^0.3.6",
-		"@convex-dev/resend": "^0.2.6",
+		"@convex-dev/resend": "^0.2.8",
 		"@react-email/render": "^2.1.0",
 		"@workspace/emails": "workspace:*",
 		"@workspace/shared": "workspace:*",
-		"convex": "^1.44.0",
-		"convex-helpers": "^0.1.123",
+		"convex": "^1.45.0",
+		"convex-helpers": "^0.1.124",
 		"svix": "^1.99.1"
 	},
 	"devDependencies": {
