@@ -6,6 +6,8 @@
 	"scripts": {
 		"check": "biome check .",
 		"check:fix": "biome check . --write",
+		"test": "vitest run",
+		"test:watch": "vitest",
 		"dev": "convex dev --run auth/local:signIn",
 		"setup": "convex dev --until-success"
 	},
@@ -20,12 +22,16 @@
 		"@workspace/emails": "workspace:*",
 		"@workspace/shared": "workspace:*",
 		"convex": "^1.45.0",
-"convex-helpers": "^0.1.124",
+		"convex-helpers": "^0.1.124",
 		"svix": "^1.99.1"
 	},
 	"devDependencies": {
+		"@edge-runtime/vm": "5.0.0",
 		"@types/node": "^20.19.43",
-		"typescript": "5.9.3"
+		"convex-test": "0.0.59",
+		"typescript": "5.9.3",
+		"vite": "8.3.0",
+		"vitest": "4.1.11"
 	},
 	"exports": {
 		"./convex/api": {
