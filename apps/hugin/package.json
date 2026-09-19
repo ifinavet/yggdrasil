@@ -23,7 +23,7 @@
     "@tiptap/extension-placeholder": "^2.27.2",
     "@tiptap/extension-underline": "^2.27.2",
     "@tiptap/pm": "^2.27.2",
-    "@tiptap/react": "^2.27.2",
+    "@tiptap/react": "^3.31.3",
     "@tiptap/starter-kit": "^2.27.2",
     "@workspace/auth": "workspace:*",
     "@workspace/backend": "workspace:*",
