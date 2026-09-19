@@ -17,11 +17,68 @@ import {
 	scheduledRecipientsOf,
 	setup,
 	statusOf,
+	type TestBackend,
+	type TestUser,
 	totalPointsFor,
 } from "../../../test/fixtures";
 import { api } from "../../_generated/api";
+import type { Id } from "../../_generated/dataModel";
 
 const mutations = api.events.registrations.mutations;
+
+const OFFERS_THAT_CANNOT_BE_ACCEPTED: {
+	because: string;
+	arrange: (
+		t: TestBackend,
+		companyId: Id<"companies">,
+	) => Promise<{ owner: TestUser; registrationId: Id<"registrations"> }>;
+	expectedMessage: string;
+}[] = [
+	{
+		because: "the event has already started",
+		arrange: async (t, companyId) => {
+			const eventId = await insertEvent(t, companyId, { eventStart: Date.now() - HOUR_IN_MS });
+			const owner = await insertUser(t, "eier@example.com");
+			const registrationId = await insertRegistration(t, eventId, owner._id, "pending");
+			return { owner, registrationId };
+		},
+		expectedMessage: "allerede startet",
+	},
+	{
+		because: "the seats are already taken",
+		arrange: async (t, companyId) => {
+			const eventId = await insertEvent(t, companyId, { participationLimit: 1 });
+			const seated = await insertUser(t, "sitter@example.com");
+			await insertRegistration(t, eventId, seated._id, "registered");
+			const owner = await insertUser(t, "eier@example.com");
+			const registrationId = await insertRegistration(t, eventId, owner._id, "pending");
+			return { owner, registrationId };
+		},
+		expectedMessage: "er fullt",
+	},
+	{
+		because: "the owner has picked up three points in the meantime",
+		arrange: async (t, companyId) => {
+			const eventId = await insertEvent(t, companyId);
+			const owner = await insertUser(t, "prikket-eier@example.com");
+			const studentId = await insertStudent(t, owner._id);
+			const registrationId = await insertRegistration(t, eventId, owner._id, "pending");
+			await givePointsTo(t, studentId, 3);
+			return { owner, registrationId };
+		},
+		expectedMessage: "3 eller flere prikker",
+	},
+	{
+		because: "the owner's account has been locked",
+		arrange: async (t, companyId) => {
+			const eventId = await insertEvent(t, companyId);
+			const owner = await insertUser(t, "laast-eier@example.com", { locked: true });
+			const registrationId = await insertRegistration(t, eventId, owner._id, "pending");
+			return { owner, registrationId };
+		},
+		expectedMessage: "låst",
+	},
+];
 
 describe("register", () => {
 	it("seats the first registrant", async () => {
@@ -134,33 +191,30 @@ describe("register", () => {
 		expect(status).toBe("registered");
 	});
 
-	it("refuses a registration before registration opens", async () => {
+	it.each([
+		{
+			window: "has not opened yet",
+			overridesAt: (now: number) => ({ registrationOpens: now + HOUR_IN_MS }),
+			expectedMessage: "har ikke åpnet ennå",
+		},
+		{
+			window: "has closed",
+			overridesAt: (now: number) => ({
+				registrationOpens: now - 2 * DAY_IN_MS,
+				eventStart: now - HOUR_IN_MS,
+			}),
+			expectedMessage: "er stengt",
+		},
+	])("refuses a registration when the window $window", async ({ overridesAt, expectedMessage }) => {
 		const { t, companyId } = await setup();
-		const eventId = await insertEvent(t, companyId, {
-			registrationOpens: Date.now() + HOUR_IN_MS,
-		});
-		const student = await insertUser(t, "tidlig@example.com");
+		const eventId = await insertEvent(t, companyId, overridesAt(Date.now()));
+		const student = await insertUser(t, "student@example.com");
 
 		const message = await refusalMessageFrom(
 			asUser(t, student).mutation(mutations.register, { eventId }),
 		);
 
-		expect(message).toContain("har ikke åpnet ennå");
-	});
-
-	it("refuses a registration once the event has started", async () => {
-		const { t, companyId } = await setup();
-		const eventId = await insertEvent(t, companyId, {
-			registrationOpens: Date.now() - 2 * DAY_IN_MS,
-			eventStart: Date.now() - HOUR_IN_MS,
-		});
-		const student = await insertUser(t, "sent@example.com");
-
-		const message = await refusalMessageFrom(
-			asUser(t, student).mutation(mutations.register, { eventId }),
-		);
-
-		expect(message).toContain("er stengt");
+		expect(message).toContain(expectedMessage);
 	});
 
 	it("returns null instead of refusing when an existing registrant calls after the event started", async () => {
@@ -232,65 +286,20 @@ describe("acceptPendingRegistration", () => {
 		expect(await statusOf(t, registrationId)).toBe(status);
 	});
 
-	it("refuses an offer once the event has started", async () => {
-		const { t, companyId } = await setup();
-		const eventId = await insertEvent(t, companyId, { eventStart: Date.now() - HOUR_IN_MS });
-		const owner = await insertUser(t, "eier@example.com");
-		const registrationId = await insertRegistration(t, eventId, owner._id, "pending");
+	it.each(OFFERS_THAT_CANNOT_BE_ACCEPTED)(
+		"refuses an offer because $because",
+		async ({ arrange, expectedMessage }) => {
+			const { t, companyId } = await setup();
+			const { owner, registrationId } = await arrange(t, companyId);
 
-		const message = await refusalMessageFrom(
-			asUser(t, owner).mutation(mutations.acceptPendingRegistration, { id: registrationId }),
-		);
+			const message = await refusalMessageFrom(
+				asUser(t, owner).mutation(mutations.acceptPendingRegistration, { id: registrationId }),
+			);
 
-		expect(message).toContain("allerede startet");
-		expect(await statusOf(t, registrationId)).toBe("pending");
-	});
-
-	it("refuses an offer when the seats are already taken", async () => {
-		const { t, companyId } = await setup();
-		const eventId = await insertEvent(t, companyId, { participationLimit: 1 });
-		const seated = await insertUser(t, "sitter@example.com");
-		await insertRegistration(t, eventId, seated._id, "registered");
-		const owner = await insertUser(t, "eier@example.com");
-		const registrationId = await insertRegistration(t, eventId, owner._id, "pending");
-
-		const message = await refusalMessageFrom(
-			asUser(t, owner).mutation(mutations.acceptPendingRegistration, { id: registrationId }),
-		);
-
-		expect(message).toContain("er fullt");
-		expect(await statusOf(t, registrationId)).toBe("pending");
-	});
-
-	it("refuses an owner who has picked up three points in the meantime", async () => {
-		const { t, companyId } = await setup();
-		const eventId = await insertEvent(t, companyId);
-		const owner = await insertUser(t, "prikket-eier@example.com");
-		const studentId = await insertStudent(t, owner._id);
-		const registrationId = await insertRegistration(t, eventId, owner._id, "pending");
-		await givePointsTo(t, studentId, 3);
-
-		const message = await refusalMessageFrom(
-			asUser(t, owner).mutation(mutations.acceptPendingRegistration, { id: registrationId }),
-		);
-
-		expect(message).toContain("3 eller flere prikker");
-		expect(await statusOf(t, registrationId)).toBe("pending");
-	});
-
-	it("refuses an owner whose account has been locked", async () => {
-		const { t, companyId } = await setup();
-		const eventId = await insertEvent(t, companyId);
-		const owner = await insertUser(t, "laast-eier@example.com", { locked: true });
-		const registrationId = await insertRegistration(t, eventId, owner._id, "pending");
-
-		const message = await refusalMessageFrom(
-			asUser(t, owner).mutation(mutations.acceptPendingRegistration, { id: registrationId }),
-		);
-
-		expect(message).toContain("låst");
-		expect(await statusOf(t, registrationId)).toBe("pending");
-	});
+			expect(message).toContain(expectedMessage);
+			expect(await statusOf(t, registrationId)).toBe("pending");
+		},
+	);
 });
 
 describe("unregister", () => {

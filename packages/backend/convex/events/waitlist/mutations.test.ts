@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
 	countRegistrationsForEvent,
 	DAY_IN_MS,
+	type EventOverrides,
 	emailsWithStatus,
 	HOUR_IN_MS,
 	insertEvent,
@@ -17,6 +18,32 @@ const waitlistMutations = internal.events.waitlist.mutations;
 
 const ANSWER_TIME_LIMIT_IN_MS = 16 * HOUR_IN_MS;
 const EXPIRED_OFFER_AGE_IN_MS = ANSWER_TIME_LIMIT_IN_MS + HOUR_IN_MS;
+
+const EVENTS_OUTSIDE_THE_CRONS_REACH: {
+	reason: string;
+	overridesAt: (now: number) => EventOverrides;
+}[] = [
+	{ reason: "is unpublished", overridesAt: () => ({ published: false }) },
+	{
+		reason: "registers through an external url",
+		overridesAt: () => ({
+			externalEvent: true,
+			externalUrl: "https://example.com/pamelding",
+		}),
+	},
+	{
+		reason: "started more than an hour ago",
+		overridesAt: (now) => ({ eventStart: now - 2 * HOUR_IN_MS }),
+	},
+	{
+		reason: "has not opened registration yet",
+		overridesAt: (now) => ({ registrationOpens: now + DAY_IN_MS }),
+	},
+	{
+		reason: "opened registration more than a month ago",
+		overridesAt: (now) => ({ registrationOpens: now - 40 * DAY_IN_MS }),
+	},
+];
 
 describe("checkPendingRegistrations", () => {
 	it("moves an expired offer to the back and offers the seat to the next in line", async () => {
@@ -92,100 +119,26 @@ describe("checkPendingRegistrations", () => {
 		expect(await scheduledRecipientsOf(t, "sendAvailableSeatEmail")).toEqual([]);
 	});
 
-	it("ignores an unpublished event", async () => {
-		const { t, companyId } = await setup();
-		const now = Date.now();
-		const eventId = await insertEvent(t, companyId, { published: false });
-		const expiredUser = await insertUser(t, "utlopt@example.com");
-		const expiredId = await insertRegistration(
-			t,
-			eventId,
-			expiredUser._id,
-			"pending",
-			now - EXPIRED_OFFER_AGE_IN_MS,
-		);
+	it.each(EVENTS_OUTSIDE_THE_CRONS_REACH)(
+		"leaves an expired offer alone when the event $reason",
+		async ({ overridesAt }) => {
+			const { t, companyId } = await setup();
+			const now = Date.now();
+			const eventId = await insertEvent(t, companyId, overridesAt(now));
+			const expiredUser = await insertUser(t, "utlopt@example.com");
+			const expiredId = await insertRegistration(
+				t,
+				eventId,
+				expiredUser._id,
+				"pending",
+				now - EXPIRED_OFFER_AGE_IN_MS,
+			);
 
-		await t.mutation(waitlistMutations.checkPendingRegistrations, {});
+			await t.mutation(waitlistMutations.checkPendingRegistrations, {});
 
-		expect(await statusOf(t, expiredId)).toBe("pending");
-	});
-
-	it("ignores an event that registers through an external url", async () => {
-		const { t, companyId } = await setup();
-		const now = Date.now();
-		const eventId = await insertEvent(t, companyId, {
-			externalEvent: true,
-			externalUrl: "https://example.com/pamelding",
-		});
-		const expiredUser = await insertUser(t, "utlopt@example.com");
-		const expiredId = await insertRegistration(
-			t,
-			eventId,
-			expiredUser._id,
-			"pending",
-			now - EXPIRED_OFFER_AGE_IN_MS,
-		);
-
-		await t.mutation(waitlistMutations.checkPendingRegistrations, {});
-
-		expect(await statusOf(t, expiredId)).toBe("pending");
-	});
-
-	it("ignores an event that started more than an hour ago", async () => {
-		const { t, companyId } = await setup();
-		const now = Date.now();
-		const eventId = await insertEvent(t, companyId, { eventStart: now - 2 * HOUR_IN_MS });
-		const expiredUser = await insertUser(t, "utlopt@example.com");
-		const expiredId = await insertRegistration(
-			t,
-			eventId,
-			expiredUser._id,
-			"pending",
-			now - EXPIRED_OFFER_AGE_IN_MS,
-		);
-
-		await t.mutation(waitlistMutations.checkPendingRegistrations, {});
-
-		expect(await statusOf(t, expiredId)).toBe("pending");
-	});
-
-	it("ignores an event whose registration has not opened yet", async () => {
-		const { t, companyId } = await setup();
-		const now = Date.now();
-		const eventId = await insertEvent(t, companyId, { registrationOpens: now + DAY_IN_MS });
-		const expiredUser = await insertUser(t, "utlopt@example.com");
-		const expiredId = await insertRegistration(
-			t,
-			eventId,
-			expiredUser._id,
-			"pending",
-			now - EXPIRED_OFFER_AGE_IN_MS,
-		);
-
-		await t.mutation(waitlistMutations.checkPendingRegistrations, {});
-
-		expect(await statusOf(t, expiredId)).toBe("pending");
-	});
-
-	it("ignores an event whose registration opened more than a month ago", async () => {
-		const { t, companyId } = await setup();
-		const now = Date.now();
-		const eventId = await insertEvent(t, companyId, {
-			registrationOpens: now - 40 * DAY_IN_MS,
-		});
-		const expiredUser = await insertUser(t, "utlopt@example.com");
-		const expiredId = await insertRegistration(
-			t,
-			eventId,
-			expiredUser._id,
-			"pending",
-			now - EXPIRED_OFFER_AGE_IN_MS,
-		);
-
-		await t.mutation(waitlistMutations.checkPendingRegistrations, {});
-
-		expect(await statusOf(t, expiredId)).toBe("pending");
-	});
+			expect(await statusOf(t, expiredId)).toBe("pending");
+		},
+	);
 
 	it("does not offer a seat past the participation limit", async () => {
 		const { t, companyId } = await setup();

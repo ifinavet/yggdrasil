@@ -10,6 +10,7 @@ import {
 	insertUser,
 	refusalMessageFrom,
 	setup,
+	setupEventWithOneOfEachStatus,
 } from "../../../test/fixtures";
 import { api } from "../../_generated/api";
 
@@ -17,15 +18,7 @@ const queries = api.events.registrations.queries;
 
 describe("getByEventId", () => {
 	it("groups outstanding offers together with the seated registrants", async () => {
-		const { t, companyId } = await setup();
-		const now = Date.now();
-		const eventId = await insertEvent(t, companyId);
-		const seated = await insertUser(t, "sitter@example.com");
-		await insertRegistration(t, eventId, seated._id, "registered", now);
-		const offered = await insertUser(t, "tilbudt@example.com");
-		await insertRegistration(t, eventId, offered._id, "pending", now + 1);
-		const waiting = await insertUser(t, "venter@example.com");
-		await insertRegistration(t, eventId, waiting._id, "waitlist", now + 2);
+		const { t, eventId } = await setupEventWithOneOfEachStatus();
 		const organizer = await insertUser(t, "arrangor@example.com");
 		await insertOrganizer(t, eventId, organizer._id);
 
@@ -140,15 +133,7 @@ describe("getByEventId", () => {
 
 describe("getEventRegistrationSummary", () => {
 	it("counts outstanding offers as taken seats and reports the waitlist separately", async () => {
-		const { t, companyId } = await setup();
-		const now = Date.now();
-		const eventId = await insertEvent(t, companyId);
-		const seated = await insertUser(t, "sitter@example.com");
-		await insertRegistration(t, eventId, seated._id, "registered", now);
-		const offered = await insertUser(t, "tilbudt@example.com");
-		await insertRegistration(t, eventId, offered._id, "pending", now + 1);
-		const waiting = await insertUser(t, "venter@example.com");
-		await insertRegistration(t, eventId, waiting._id, "waitlist", now + 2);
+		const { t, eventId } = await setupEventWithOneOfEachStatus();
 
 		const summary = await t.query(queries.getEventRegistrationSummary, {
 			eventIdentifier: eventId,

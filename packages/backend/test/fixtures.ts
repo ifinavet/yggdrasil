@@ -17,6 +17,8 @@ export type TestBackend = ReturnType<typeof convexTest<(typeof schema)["tables"]
 
 export type TestUser = { _id: Id<"users">; externalId: string };
 
+export type EventOverrides = Partial<WithoutSystemFields<Doc<"events">>>;
+
 export async function setup() {
 	const t = convexTest(schema, convexModules);
 
@@ -91,7 +93,7 @@ export async function grantRole(
 export async function insertEvent(
 	t: TestBackend,
 	companyId: Id<"companies">,
-	overrides: Partial<WithoutSystemFields<Doc<"events">>> = {},
+	overrides: EventOverrides = {},
 ): Promise<Id<"events">> {
 	return t.run((ctx) =>
 		ctx.db.insert("events", {
@@ -134,6 +136,21 @@ export async function insertOrganizer(
 	return t.run((ctx) =>
 		ctx.db.insert("eventOrganizers", { eventId, userId, role: "hovedansvarlig" as const }),
 	);
+}
+
+export async function setupEventWithOneOfEachStatus(overrides: EventOverrides = {}) {
+	const { t, companyId } = await setup();
+	const now = Date.now();
+	const eventId = await insertEvent(t, companyId, overrides);
+
+	const seated = await insertUser(t, "sitter@example.com");
+	await insertRegistration(t, eventId, seated._id, "registered", now);
+	const offered = await insertUser(t, "tilbudt@example.com");
+	await insertRegistration(t, eventId, offered._id, "pending", now + 1);
+	const waiting = await insertUser(t, "venter@example.com");
+	await insertRegistration(t, eventId, waiting._id, "waitlist", now + 2);
+
+	return { t, companyId, eventId, seated, offered, waiting };
 }
 
 export async function registrationById(
