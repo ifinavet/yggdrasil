@@ -19,10 +19,7 @@ export type InternalsTable = {
 export const createColumns = (
 	onDelete: (internalsId: Id<"internals">) => void,
 	onUpdateGroup: (internalsId: Id<"internals">, group: string) => void,
-	onSetRole: (
-		userId: Id<"users">,
-		role: (typeof ACCESS_RIGHTS)[number],
-	) => void,
+	onSetRole: (userId: Id<"users">, role: (typeof ACCESS_RIGHTS)[number]) => void,
 ): ColumnDef<InternalsTable>[] => [
 	{
 		id: "index",
@@ -78,10 +75,7 @@ export const createColumns = (
 				<UpsertInternalRole
 					role={row.original.role as unknown as string}
 					setSelectedRoleAction={(newRole) =>
-						onSetRole(
-							row.original.userId,
-							newRole as (typeof ACCESS_RIGHTS)[number],
-						)
+						onSetRole(row.original.userId, newRole as (typeof ACCESS_RIGHTS)[number])
 					}
 				/>
 			);
@@ -91,11 +85,7 @@ export const createColumns = (
 		id: "actions",
 		cell: ({ row }) => (
 			<div className="flex gap-2">
-				<Button
-					variant="destructive"
-					size="icon"
-					onClick={() => onDelete(row.original.internalId)}
-				>
+				<Button variant="destructive" size="icon" onClick={() => onDelete(row.original.internalId)}>
 					<Trash className="size-4" />
 				</Button>
 			</div>

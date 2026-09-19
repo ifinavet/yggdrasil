@@ -1,9 +1,5 @@
 import { api } from "@workspace/backend/convex/api";
-import {
-	Avatar,
-	AvatarFallback,
-	AvatarImage,
-} from "@workspace/ui/components/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@workspace/ui/components/avatar";
 import { Button } from "@workspace/ui/components/button";
 import { Separator } from "@workspace/ui/components/separator";
 import { cn } from "@workspace/ui/lib/utils";
@@ -33,29 +29,25 @@ export default async function OrganizationPage() {
 								Hvem er vi?
 							</h3>
 							<p className="not-first:mt-6 leading-7">
-								Navet er bedriftskontakten ved Institutt for informatikk ved
-								Universitetet i Oslo. Hensikten med Navet er å gjøre det enkelt
-								for bedrifter å komme i kontakt med studentene ved instituttet,
-								ved å tilby:
+								Navet er bedriftskontakten ved Institutt for informatikk ved Universitetet i Oslo.
+								Hensikten med Navet er å gjøre det enkelt for bedrifter å komme i kontakt med
+								studentene ved instituttet, ved å tilby:
 							</p>
 
 							<ul className="my-6 ml-6 list-disc [&>li]:mt-2">
 								<li>
-									et sentralt kontakt- og koordineringspunkt for alle
-									bedriftsrelaterte aktiviteter ved instituttet.
+									et sentralt kontakt- og koordineringspunkt for alle bedriftsrelaterte aktiviteter
+									ved instituttet.
 								</li>
 								<li>
-									praktisk hjelp ved bedriftspresentasjoner og andre typer
-									arrangementer (romreservasjon, matbestilling, mm.)
+									praktisk hjelp ved bedriftspresentasjoner og andre typer arrangementer
+									(romreservasjon, matbestilling, mm.)
 								</li>
-								<li>
-									oversikt over bedriftsrelaterte aktiviteter for studenter.
-								</li>
+								<li>oversikt over bedriftsrelaterte aktiviteter for studenter.</li>
 							</ul>
 
 							<p>
-								Følg oss på våre sosiale medier for å holde deg oppdatert på hva
-								som skjer i Navet:
+								Følg oss på våre sosiale medier for å holde deg oppdatert på hva som skjer i Navet:
 							</p>
 							<ul className="my-6 ml-6 grid w-fit list-disc gap-2 md:grid-cols-2 [&>li]:mt-2 [&>li]:pr-8">
 								<li>
@@ -101,13 +93,7 @@ export default async function OrganizationPage() {
 							</ul>
 						</div>
 					}
-					aside={
-						<Image
-							src={Navet}
-							alt="Navet Logo"
-							className="h-full rounded-lg object-cover"
-						/>
-					}
+					aside={<Image src={Navet} alt="Navet Logo" className="h-full rounded-lg object-cover" />}
 				/>
 				<FlowyLine
 					className="w-full stroke-8 text-primary dark:text-primary-foreground"
@@ -119,18 +105,15 @@ export default async function OrganizationPage() {
 					</h3>
 					<div className="flex h-fit flex-wrap items-start gap-8">
 						<p className="not-first:mt-6 mb-4 max-w-[80ch] leading-7">
-							Som intern i Navet er du en viktig del av driften i foreningen.
-							Gjennom et semester vil du som regel være ansvarlig eller
-							medansvarlig for 2–3 bedriftspresentasjoner. I tillegg bidrar
-							interne til styrets arbeid gjennom å være med i en av
-							arbeidsgruppene. Mer informasjon om arbeidsgruppene finner du
-							under. En gang i måneden har vi internmøte, der hele foreningen
-							samles for oppdateringer om aktuelle saker. Det er viktig å være
-							engasjert og hjelpe til ved behov. Det er viktig å huske at det
-							ikke bare er arbeid, men mye sosialt også! Etter hvert internmøte
-							er det internkveld, som er sponset av foreningen. Foreningen har
-							mye sosialt å by på, som utenlandstur, julebord, sommerfest og
-							mange andre små og store aktiviteter gjennom året.
+							Som intern i Navet er du en viktig del av driften i foreningen. Gjennom et semester
+							vil du som regel være ansvarlig eller medansvarlig for 2–3 bedriftspresentasjoner. I
+							tillegg bidrar interne til styrets arbeid gjennom å være med i en av arbeidsgruppene.
+							Mer informasjon om arbeidsgruppene finner du under. En gang i måneden har vi
+							internmøte, der hele foreningen samles for oppdateringer om aktuelle saker. Det er
+							viktig å være engasjert og hjelpe til ved behov. Det er viktig å huske at det ikke
+							bare er arbeid, men mye sosialt også! Etter hvert internmøte er det internkveld, som
+							er sponset av foreningen. Foreningen har mye sosialt å by på, som utenlandstur,
+							julebord, sommerfest og mange andre små og store aktiviteter gjennom året.
 						</p>
 						<div className="grid h-full flex-1 place-content-center">
 							<Image
@@ -143,68 +126,60 @@ export default async function OrganizationPage() {
 					<div className="grid justify-center gap-12 sm:grid-cols-2 lg:grid-cols-3">
 						<InternGroup name="Interngruppen">
 							<p className="not-first:mt-4 leading-7">
-								I interngruppen så organiserer vi alle Navets interne
-								arrangementer. Vi planlegger internkveldene og de større
-								avsluttningene på slutten av hvert semester. Vi jobber på for at
-								alle i Navet skal ha det så bra som mulig (og gøy som mulig).
+								I interngruppen så organiserer vi alle Navets interne arrangementer. Vi planlegger
+								internkveldene og de større avsluttningene på slutten av hvert semester. Vi jobber
+								på for at alle i Navet skal ha det så bra som mulig (og gøy som mulig).
 							</p>
 						</InternGroup>
 						<InternGroup name="Bedriftsgruppen">
 							<p className="not-first:mt-4 leading-7">
-								Vi i bedriftsgruppen gjør kanskje Navets viktigste jobb, vi
-								finner bedriftene som skal ha bedriftspresentasjoner.
-								Bedriftsgruppen jobber kontinuerlig med å finne bedrifter for
-								studentene. Uten oss så får vi ingen bedrifter som kan lære og
+								Vi i bedriftsgruppen gjør kanskje Navets viktigste jobb, vi finner bedriftene som
+								skal ha bedriftspresentasjoner. Bedriftsgruppen jobber kontinuerlig med å finne
+								bedrifter for studentene. Uten oss så får vi ingen bedrifter som kan lære og
 								informere studente om arbeidslivet.
 							</p>
 						</InternGroup>
 						<InternGroup name="Organiseringsgruppen">
 							<p className="not-first:mt-4 leading-7">
-								Organiseringsteamet har ansvar for å sikre den praktiske
-								gjennomføringen av Navets arrangementer. Vi tar oss av booking
-								av rom, bestilling av mat og sørger for at alt er på plass før
-								arrangementet starter. Vi gjør vårt beste for at alt det
-								praktiske går sømløst.
+								Organiseringsteamet har ansvar for å sikre den praktiske gjennomføringen av Navets
+								arrangementer. Vi tar oss av booking av rom, bestilling av mat og sørger for at alt
+								er på plass før arrangementet starter. Vi gjør vårt beste for at alt det praktiske
+								går sømløst.
 							</p>
 						</InternGroup>
 						<InternGroup name="Økonomigruppen">
 							<p className="not-first:mt-4 leading-7">
-								I økonomigruppen får du innsikt i hvordan Navets økonomi drives.
-								Som intern bidrar du til både regnskapsføring og budsjettering
-								for en større forening.
+								I økonomigruppen får du innsikt i hvordan Navets økonomi drives. Som intern bidrar
+								du til både regnskapsføring og budsjettering for en større forening.
 							</p>
 						</InternGroup>
 						<InternGroup name="Promoteringsgruppen">
 							<p className="not-first:mt-4 leading-7">
-								Som del av promoteringsgruppen vil du hjelpe
-								promoteringsansvarlig med synligheten og kommunikasjonen til
-								Navet, slik at vi kan nå ut til studenter og bedrifter. Vi har
-								ansvar for å formidle hva Navet driver med, skape engasjement
-								rundt arrangementene våre og bygge et positivt inntrykk av
-								foreningen.
+								Som del av promoteringsgruppen vil du hjelpe promoteringsansvarlig med synligheten
+								og kommunikasjonen til Navet, slik at vi kan nå ut til studenter og bedrifter. Vi
+								har ansvar for å formidle hva Navet driver med, skape engasjement rundt
+								arrangementene våre og bygge et positivt inntrykk av foreningen.
 							</p>
 						</InternGroup>
 						<InternGroup name="Webteamet">
 							<p className="not-first:mt-4 leading-7">
-								Hjelp webansvarlig med å vedlikeholde, teste, og utvikle nye
-								funksjoner for Navets webplatform. Dette er en unik mulighet til
-								å jobbe med et større system som brukes av mange ifi-studenter
-								daglig.
+								Hjelp webansvarlig med å vedlikeholde, teste, og utvikle nye funksjoner for Navets
+								webplatform. Dette er en unik mulighet til å jobbe med et større system som brukes
+								av mange ifi-studenter daglig.
 							</p>
 						</InternGroup>
 						<InternGroup name="Arrangementsgruppen">
 							<p className="not-first:mt-4 leading-7">
-								I arrangementsgruppen så passer vi på at alle navets
-								arrangementer går på skinner. Vi har ansvaret for prikke
-								systemet og assisterer de andre gruppene i sine oppgaver, og
-								samhandler med andre foreninger ved større arrangementer.
+								I arrangementsgruppen så passer vi på at alle navets arrangementer går på skinner.
+								Vi har ansvaret for prikke systemet og assisterer de andre gruppene i sine oppgaver,
+								og samhandler med andre foreninger ved større arrangementer.
 							</p>
 						</InternGroup>
 						<InternGroup name="Koordineringsgruppen">
 							<p className="not-first:mt-4 leading-7">
-								Hjelp koordinator i sine oppgaver. Vi gjør et variert utvalg med
-								oppgaver, men kjernen er stillingsannonser. Vi legger ut og
-								passer på at alt er i orden med stillingsannonsene.
+								Hjelp koordinator i sine oppgaver. Vi gjør et variert utvalg med oppgaver, men
+								kjernen er stillingsannonser. Vi legger ut og passer på at alt er i orden med
+								stillingsannonsene.
 							</p>
 						</InternGroup>
 					</div>
@@ -306,9 +281,7 @@ function BoardMember({
 			</h2>
 			<Separator className="rounded-lg border border-primary dark:border-primary-foreground" />
 			<div className="flex flex-col items-center">
-				<h3 className="text-pretty text-center font-semibold text-lg">
-					{name}
-				</h3>
+				<h3 className="text-pretty text-center font-semibold text-lg">{name}</h3>
 				<Button variant="link">
 					<a
 						href={`mailto:${email}`}

@@ -17,36 +17,28 @@
 			],
 			"outputs": [".next/**", "!.next/cache/**"]
 		},
-		"lint": {
-			"dependsOn": ["^lint"]
-		},
-		"test": {
-			"dependsOn": ["^test"],
+		"compile": {
+			"dependsOn": ["^compile"],
+			"inputs": ["$TURBO_DEFAULT$"],
+			"env": ["NEXT_PUBLIC_CONVEX_URL"],
 			"outputs": []
 		},
 		"check-types": {
-			"dependsOn": ["^check-types"]
+			"dependsOn": ["^check-types"],
+			"inputs": ["$TURBO_DEFAULT$"],
+			"env": ["NEXT_PUBLIC_CONVEX_URL"],
+			"outputs": []
+		},
+		"test": {
+			"dependsOn": ["^test"],
+			"inputs": ["$TURBO_DEFAULT$"],
+			"outputs": []
 		},
 		"dev": {
 			"cache": false,
 			"persistent": true,
 			"inputs": ["$TURBO_DEFAULT$", ".env", ".env.local"],
 			"env": ["APP_ENV", "CONVEX_AGENT_MODE", "CONVEX_DEPLOYMENT", "NEXT_PUBLIC_CONVEX_URL"]
-		},
-		"//#format-and-lint": {},
-		"//#format-and-lint:fix": {
-			"cache": false
-		},
-		"//#check:all": {},
-		"//#check:all:fix": {
-			"cache": false
-		},
-		"check": {
-			"dependsOn": ["^check"]
-		},
-		"check:fix": {
-			"dependsOn": ["^check:fix"],
-			"cache": false
 		}
 	}
 }

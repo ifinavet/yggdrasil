@@ -12,17 +12,8 @@ import {
 	CommandItem,
 	CommandList,
 } from "@workspace/ui/components/command";
-import {
-	Field,
-	FieldDescription,
-	FieldError,
-	FieldLabel,
-} from "@workspace/ui/components/field";
-import {
-	Popover,
-	PopoverContent,
-	PopoverTrigger,
-} from "@workspace/ui/components/popover";
+import { Field, FieldDescription, FieldError, FieldLabel } from "@workspace/ui/components/field";
+import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui/components/popover";
 import {
 	Select,
 	SelectContent,
@@ -69,8 +60,7 @@ export default function Organizers({
 	const [openMembers, setOpenMembers] = useState(false);
 	const selectedMember = useRef("");
 
-	const [selectedOrganizerType, setSelectedOrganizerType] =
-		useState<ORGANIZER_ROLE>("medhjelper");
+	const [selectedOrganizerType, setSelectedOrganizerType] = useState<ORGANIZER_ROLE>("medhjelper");
 
 	const selectedOrganizers = useMemo(() => {
 		if (!internalMembers) return [];
@@ -78,8 +68,7 @@ export default function Organizers({
 		return field.state.value.map((organizer) => ({
 			id: organizer.userId,
 			name:
-				internalMembers.find((member) => member.userId === organizer.userId)
-					?.fullName || "Ukjent",
+				internalMembers.find((member) => member.userId === organizer.userId)?.fullName || "Ukjent",
 			role: organizer.role,
 		}));
 	}, [internalMembers, field.state.value]);
@@ -120,8 +109,7 @@ export default function Organizers({
 							>
 								{selectedMember.current
 									? internalMembers.find(
-											(internalMember) =>
-												internalMember.fullName === selectedMember.current,
+											(internalMember) => internalMember.fullName === selectedMember.current,
 										)?.fullName
 									: "Velg et medlem..."}
 								<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -139,9 +127,7 @@ export default function Organizers({
 												value={internalMember.fullName ?? "Ukjent"}
 												onSelect={(currentValue) => {
 													selectedMember.current =
-														currentValue === selectedMember.current
-															? ""
-															: currentValue;
+														currentValue === selectedMember.current ? "" : currentValue;
 													setOpenMembers(false);
 												}}
 											>
@@ -181,8 +167,7 @@ export default function Organizers({
 							if (!selectedMember.current) return;
 
 							const organizerToAdd = internalMembers.find(
-								(internalMember) =>
-									internalMember.fullName === selectedMember.current,
+								(internalMember) => internalMember.fullName === selectedMember.current,
 							);
 
 							if (organizerToAdd) {
@@ -213,8 +198,7 @@ export default function Organizers({
 				<OrganizersTable columns={columns} data={selectedOrganizers} />
 			</div>
 			<FieldDescription>
-				Velg hvem som er ansvarlig for og skal organisere/planlegge
-				arrangementet.
+				Velg hvem som er ansvarlig for og skal organisere/planlegge arrangementet.
 			</FieldDescription>
 			{isInvalid && <FieldError errors={field.state.meta.errors} />}
 		</Field>

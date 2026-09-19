@@ -10,19 +10,25 @@
 		"ignoreUnknown": false,
 		"includes": [
 			"**",
-			"!packages/ui/**",
-			"!**/node_modules/**",
-			"!**/.next/**",
-			"!**/.turbo/**",
-			"!**/dist/**",
-			"!**/build/**",
-			"!**/.git/**",
-			"!**/coverage/**",
+			"!packages/ui",
+			"!**/node_modules",
+			"!**/.next",
+			"!**/.turbo",
+			"!**/dist",
+			"!**/build",
+			"!**/.git",
+			"!**/coverage",
+			"!**/*.svg",
 			"!**/*.min.js",
 			"!**/*.min.css",
-			"!**/convex/_generated/**",
+			"!**/convex/_generated",
 			"!**/pnpm-lock.yaml"
 		]
+	},
+	"css": {
+		"parser": {
+			"tailwindDirectives": true
+		}
 	},
 	"formatter": {
 		"includes": ["**"],

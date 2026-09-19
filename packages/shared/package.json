@@ -15,5 +15,8 @@
 		"./constants": "./constants/index.ts",
 		"./local": "./local.ts",
 		"./utils": "./utils/index.ts"
+	},
+	"scripts": {
+		"check-types": "tsc --noEmit"
 	}
 }

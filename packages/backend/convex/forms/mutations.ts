@@ -12,18 +12,18 @@ import { getCurrentUserOrThrow } from "../auth/currentUser";
  * @returns {null} - Returns null when the response is stored successfully.
  */
 export const submitFormResponse = mutation({
-    args: {
-        formId: v.id("form"),
-        data: v.record(v.string(), v.any()),
-    },
-    handler: async (ctx, { formId, data }) => {
-        await getCurrentUserOrThrow(ctx);
+	args: {
+		formId: v.id("form"),
+		data: v.record(v.string(), v.any()),
+	},
+	handler: async (ctx, { formId, data }) => {
+		await getCurrentUserOrThrow(ctx);
 
-        await ctx.db.insert("formResponses", {
-            formId,
-            data,
-        });
-    },
+		await ctx.db.insert("formResponses", {
+			formId,
+			data,
+		});
+	},
 });
 
 /**
@@ -32,9 +32,9 @@ export const submitFormResponse = mutation({
  * @returns {Id<"form">} - The id of the created feedback form document.
  */
 export const createEventFeedbackForm = internalMutation({
-    handler: async (ctx) => {
-        return await ctx.db.insert("form", {
-            formType: "event-feedback",
-        });
-    },
+	handler: async (ctx) => {
+		return await ctx.db.insert("form", {
+			formType: "event-feedback",
+		});
+	},
 });

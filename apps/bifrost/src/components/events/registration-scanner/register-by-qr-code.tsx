@@ -12,11 +12,7 @@ export default function RegisterAttendanceByQr({
 			<Button type="submit" onClick={() => onRegisterAction("confirmed")}>
 				Oppmøtt
 			</Button>
-			<Button
-				type="submit"
-				variant="outline"
-				onClick={() => onRegisterAction("late")}
-			>
+			<Button type="submit" variant="outline" onClick={() => onRegisterAction("late")}>
 				Møtt sent
 			</Button>
 		</div>

@@ -25,10 +25,7 @@ export default function EditPageForm({
 	};
 
 	const updatePage = useMutation(api.pages.mutations.updateExternalPage);
-	const hanldeUpdatePage = async (
-		values: PageFormValues,
-		published: boolean,
-	) => {
+	const hanldeUpdatePage = async (values: PageFormValues, published: boolean) => {
 		updatePage({
 			id: page._id,
 			title: values.title,
@@ -61,11 +58,9 @@ export default function EditPageForm({
 			});
 	};
 
-	const onSubmitAndPublish = (values: PageFormValues) =>
-		hanldeUpdatePage(values, true);
+	const onSubmitAndPublish = (values: PageFormValues) => hanldeUpdatePage(values, true);
 
-	const onSubmitAndSave = (values: PageFormValues) =>
-		hanldeUpdatePage(values, page.published);
+	const onSubmitAndSave = (values: PageFormValues) => hanldeUpdatePage(values, page.published);
 
 	const onSubmitAndUnpublish = () => hanldeUpdatePage(defaultValues, false);
 

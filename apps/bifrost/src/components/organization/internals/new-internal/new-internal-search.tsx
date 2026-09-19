@@ -35,17 +35,14 @@ export default function NewInternalSearch({
 		<Dialog>
 			<DialogTrigger asChild>
 				<Button variant="outline">
-					{selectedUser
-						? `${selectedUser.firstName} ${selectedUser.lastName}`
-						: "Velg bruker"}
+					{selectedUser ? `${selectedUser.firstName} ${selectedUser.lastName}` : "Velg bruker"}
 				</Button>
 			</DialogTrigger>
 			<DialogContent>
 				<DialogHeader>
 					<DialogTitle>Søk etter en bruker</DialogTitle>
 					<DialogDescription>
-						Søk etter eposten til en bruker for å velge vedkomende til å bli
-						intern.
+						Søk etter eposten til en bruker for å velge vedkomende til å bli intern.
 					</DialogDescription>
 					<div className="space-y-6">
 						<Input
@@ -70,8 +67,7 @@ export default function NewInternalSearch({
 							))}
 						</ScrollArea>
 						<Button disabled={users.status !== "CanLoadMore"}>
-							{users.status === "LoadingFirstPage" ||
-							users.status === "LoadingMore"
+							{users.status === "LoadingFirstPage" || users.status === "LoadingMore"
 								? "Laster..."
 								: "Last inn flere"}
 						</Button>

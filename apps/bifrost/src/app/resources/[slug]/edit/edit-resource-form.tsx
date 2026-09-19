@@ -9,9 +9,7 @@ import { toast } from "sonner";
 import ResourceForm from "@/components/resources/resource-form";
 import type { ResourceFormValues } from "@/constants/schemas/resource-form-schema";
 
-export default function EditResourceForm({
-	id,
-}: Readonly<{ id: Id<"resources"> }>) {
+export default function EditResourceForm({ id }: Readonly<{ id: Id<"resources"> }>) {
 	const router = useRouter();
 
 	const posthog = usePostHog();
@@ -31,10 +29,7 @@ export default function EditResourceForm({
 		icon: resource.icon ?? "",
 		gradient: resource.gradient ?? "",
 	};
-	const handleUpdateResource = async (
-		values: ResourceFormValues,
-		published: boolean,
-	) => {
+	const handleUpdateResource = async (values: ResourceFormValues, published: boolean) => {
 		await updateResource({
 			id,
 			title: values.title,
@@ -70,8 +65,7 @@ export default function EditResourceForm({
 			});
 	};
 
-	const onSubmitAndPublish = (values: ResourceFormValues) =>
-		handleUpdateResource(values, true);
+	const onSubmitAndPublish = (values: ResourceFormValues) => handleUpdateResource(values, true);
 
 	const onSubmitAndSave = (values: ResourceFormValues) =>
 		handleUpdateResource(values, resource.published);

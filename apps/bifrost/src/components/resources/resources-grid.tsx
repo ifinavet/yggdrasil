@@ -18,9 +18,7 @@ export default function ResourcesGrid() {
 		<div className="mx-4 flex flex-col gap-4">
 			{Object.entries(resources.groupedByTag).map(([tag, resources]) => (
 				<div key={tag} className="flex flex-col gap-4">
-					<h4 className="scroll-m-20 font-semibold text-xl capitalize tracking-tight">
-						{tag}
-					</h4>
+					<h4 className="scroll-m-20 font-semibold text-xl capitalize tracking-tight">{tag}</h4>
 					<div className="grid max-w-6xl grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
 						{resources.map((resource) => (
 							<ResourceCard key={resource._id} resource={resource} />

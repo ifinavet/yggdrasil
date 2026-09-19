@@ -82,8 +82,7 @@ export default function UpdateStudentForm({
 				<FieldGroup className="grid grid-cols-1 gap-4 md:grid-cols-2">
 					<form.Field name="firstName">
 						{(field) => {
-							const isInvalid =
-								field.state.meta.isTouched && !field.state.meta.isValid;
+							const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 							return (
 								<Field>
 									<FieldLabel htmlFor={field.name}>Fornavn</FieldLabel>
@@ -105,8 +104,7 @@ export default function UpdateStudentForm({
 
 					<form.Field name="lastName">
 						{(field) => {
-							const isInvalid =
-								field.state.meta.isTouched && !field.state.meta.isValid;
+							const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 							return (
 								<Field>
 									<FieldLabel htmlFor={field.name}>Etternavn</FieldLabel>
@@ -129,8 +127,7 @@ export default function UpdateStudentForm({
 
 				<form.Field name="email">
 					{(field) => {
-						const isInvalid =
-							field.state.meta.isTouched && !field.state.meta.isValid;
+						const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 						return (
 							<Field>
 								<FieldLabel htmlFor={field.name}>E-post</FieldLabel>
@@ -153,8 +150,7 @@ export default function UpdateStudentForm({
 				<FieldGroup className="flex flex-wrap gap-4">
 					<form.Field name="year">
 						{(field) => {
-							const isInvalid =
-								field.state.meta.isTouched && !field.state.meta.isValid;
+							const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 							return (
 								<Field>
 									<FieldLabel htmlFor={field.name}>År</FieldLabel>
@@ -165,9 +161,7 @@ export default function UpdateStudentForm({
 										min={1}
 										max={5}
 										value={field.state.value}
-										onChange={(e) =>
-											field.handleChange(Number.parseInt(e.target.value, 10))
-										}
+										onChange={(e) => field.handleChange(Number.parseInt(e.target.value, 10))}
 										onBlur={field.handleBlur}
 										aria-invalid={isInvalid}
 									/>
@@ -179,16 +173,13 @@ export default function UpdateStudentForm({
 
 					<form.Field name="studyProgram">
 						{(field) => {
-							const isInvalid =
-								field.state.meta.isTouched && !field.state.meta.isValid;
+							const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 							return (
 								<Field>
 									<FieldLabel htmlFor={field.name}>Studieprogram</FieldLabel>
 									<Select
 										onValueChange={(value) =>
-											field.handleChange(
-												value as (typeof STUDY_PROGRAMS)[number],
-											)
+											field.handleChange(value as (typeof STUDY_PROGRAMS)[number])
 										}
 										value={field.state.value}
 									>
@@ -211,8 +202,7 @@ export default function UpdateStudentForm({
 
 					<form.Field name="degree">
 						{(field) => {
-							const isInvalid =
-								field.state.meta.isTouched && !field.state.meta.isValid;
+							const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 							return (
 								<Field>
 									<FieldLabel htmlFor={field.name}>Studiegrad</FieldLabel>

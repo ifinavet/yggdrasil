@@ -4,12 +4,7 @@ import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { Button } from "@workspace/ui/components/button";
-import {
-	Field,
-	FieldError,
-	FieldLabel,
-	FieldSet,
-} from "@workspace/ui/components/field";
+import { Field, FieldError, FieldLabel, FieldSet } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
 import { useMutation } from "convex/react";
 import { Send, X } from "lucide-react";
@@ -20,10 +15,7 @@ const schema = z.object({
 	image: z
 		.instanceof(File)
 		.refine(
-			(file) =>
-				["image/jpeg", "image/svg+xml", "image/webp", "image/png"].includes(
-					file.type,
-				),
+			(file) => ["image/jpeg", "image/svg+xml", "image/webp", "image/png"].includes(file.type),
 			"Bildet må være av type JPEG, SVG, WebP eller PNG",
 		),
 	name: z.string().min(1, "Navn er påkrevd"),
@@ -38,10 +30,7 @@ export default function CompanyImageUploader({
 	onImageUploadedAction,
 	onDismissAction,
 }: Readonly<{
-	onImageUploadedAction: (
-		imageId: Id<"companyLogos">,
-		imageName: string,
-	) => void;
+	onImageUploadedAction: (imageId: Id<"companyLogos">, imageName: string) => void;
 	onDismissAction: () => void;
 }>) {
 	const generateUploadUrl = useMutation(api.companies.mutations.generateUploadUrl);
@@ -87,9 +76,7 @@ export default function CompanyImageUploader({
 				}
 			} catch (error) {
 				console.error("Error uploading image:", error);
-				toast.error(
-					"Noe gikk galt under opplastingen av bildet. Vennligst prøv igjen.",
-				);
+				toast.error("Noe gikk galt under opplastingen av bildet. Vennligst prøv igjen.");
 			}
 		},
 	});
@@ -107,13 +94,10 @@ export default function CompanyImageUploader({
 			<FieldSet>
 				<form.Field name="image">
 					{(field) => {
-						const isInvalid =
-							field.state.meta.isTouched && !field.state.meta.isValid;
+						const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 						return (
 							<Field>
-								<FieldLabel htmlFor={field.name}>
-									Velg bilde som skal lastes opp.
-								</FieldLabel>
+								<FieldLabel htmlFor={field.name}>Velg bilde som skal lastes opp.</FieldLabel>
 								<Input
 									id={field.name}
 									type="file"
@@ -133,8 +117,7 @@ export default function CompanyImageUploader({
 
 				<form.Field name="name">
 					{(field) => {
-						const isInvalid =
-							field.state.meta.isTouched && !field.state.meta.isValid;
+						const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 						return (
 							<Field>
 								<FieldLabel htmlFor={field.name}>Navn på bildet</FieldLabel>

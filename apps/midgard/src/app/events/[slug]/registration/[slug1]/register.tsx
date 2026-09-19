@@ -20,7 +20,9 @@ export default function Register({
 	const router = useRouter();
 	const posthog = usePostHog();
 
-	const acceptRegistration = useMutation(api.events.registrations.mutations.acceptPendingRegistration);
+	const acceptRegistration = useMutation(
+		api.events.registrations.mutations.acceptPendingRegistration,
+	);
 	const handleAccept = async () =>
 		acceptRegistration({ id: registration._id })
 			.then(() => {

@@ -106,7 +106,6 @@ function ClerkSignUpPage() {
 	const [verifying, setVerifying] = useState(false);
 	const [pendingSignUp, setPendingSignUp] = useState<PendingSignUp | null>(null);
 	const [signUpCompletionFailed, setSignUpCompletionFailed] = useState(false);
-	const [profileCreationAttempt, setProfileCreationAttempt] = useState(0);
 	const uniqueErrors = errors.filter(
 		(error, index, all) => all.findIndex((candidate) => candidate.code === error.code) === index,
 	);
@@ -195,21 +194,12 @@ function ClerkSignUpPage() {
 		};
 
 		createStudentProfile();
-	}, [
-		isAuthenticated,
-		pendingSignUp,
-		signUpCompletionFailed,
-		profileCreationAttempt,
-		createStudent,
-		postHog,
-		router,
-	]);
+	}, [isAuthenticated, pendingSignUp, signUpCompletionFailed, createStudent, postHog, router]);
 
 	const retryProfileCreation = () => {
 		setErrors([]);
 		setSignUpCompletionFailed(false);
 		setLoading(true);
-		setProfileCreationAttempt((attempt) => attempt + 1);
 	};
 
 	useEffect(() => {

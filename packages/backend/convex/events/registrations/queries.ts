@@ -2,7 +2,10 @@ import { toBase64 } from "@workspace/shared/utils";
 import { ConvexError, v } from "convex/values";
 import { query } from "../../_generated/server";
 import { currentUserHasRole, internalRoles, requireRole } from "../../auth/accessRights";
-import { getCurrentUser as getCurrentUserOrNull, getCurrentUserOrThrow } from "../../auth/currentUser";
+import {
+	getCurrentUser as getCurrentUserOrNull,
+	getCurrentUserOrThrow,
+} from "../../auth/currentUser";
 import { getEventByIdentifier, isEventOrganizerOrAdmin } from "../helper";
 
 /**
@@ -13,43 +16,43 @@ import { getEventByIdentifier, isEventOrganizerOrAdmin } from "../helper";
  * @returns {{ registered: Array<Doc<"registrations"> & { userName: string, userEmail: string }>, waitlist: Array<Doc<"registrations"> & { userName: string, userEmail: string }> }} - Registrations grouped by status bucket.
  */
 export const getByEventId = query({
-    args: {
-        eventIdentifier: v.string(),
-    },
-    handler: async (ctx, { eventIdentifier }) => {
-        const currentUser = await getCurrentUserOrThrow(ctx);
-        const event = await getEventByIdentifier(ctx, eventIdentifier);
+	args: {
+		eventIdentifier: v.string(),
+	},
+	handler: async (ctx, { eventIdentifier }) => {
+		const currentUser = await getCurrentUserOrThrow(ctx);
+		const event = await getEventByIdentifier(ctx, eventIdentifier);
 
-        if (!(await isEventOrganizerOrAdmin(ctx, event._id, currentUser._id))) {
-            throw new ConvexError("Bare arrangører eller administratorer kan se påmeldingslisten.");
-        }
+		if (!(await isEventOrganizerOrAdmin(ctx, event._id, currentUser._id))) {
+			throw new ConvexError("Bare arrangører eller administratorer kan se påmeldingslisten.");
+		}
 
-        const registrations = await ctx.db
-            .query("registrations")
-            .withIndex("by_eventIdAndRegistrationTime", (q) => q.eq("eventId", event._id))
-            .collect();
+		const registrations = await ctx.db
+			.query("registrations")
+			.withIndex("by_eventIdAndRegistrationTime", (q) => q.eq("eventId", event._id))
+			.collect();
 
-        const registrationsWithUsers = await Promise.all(
-            registrations.map(async (registration) => {
-                const user = await ctx.db.get(registration.userId);
-                return {
-                    ...registration,
-                    userName: user ? `${user.firstName} ${user.lastName}` : "Ukjent bruker",
-                    userEmail: user ? user.email : "Ukjent e-post",
-                };
-            }),
-        );
+		const registrationsWithUsers = await Promise.all(
+			registrations.map(async (registration) => {
+				const user = await ctx.db.get(registration.userId);
+				return {
+					...registration,
+					userName: user ? `${user.firstName} ${user.lastName}` : "Ukjent bruker",
+					userEmail: user ? user.email : "Ukjent e-post",
+				};
+			}),
+		);
 
-        const registeredPending = registrationsWithUsers.filter(
-            (reg) => reg.status === "pending" || reg.status === "registered",
-        );
-        const waitlist = registrationsWithUsers.filter((reg) => reg.status === "waitlist");
+		const registeredPending = registrationsWithUsers.filter(
+			(reg) => reg.status === "pending" || reg.status === "registered",
+		);
+		const waitlist = registrationsWithUsers.filter((reg) => reg.status === "waitlist");
 
-        return {
-            registered: registeredPending,
-            waitlist: waitlist,
-        };
-    },
+		return {
+			registered: registeredPending,
+			waitlist: waitlist,
+		};
+	},
 });
 
 /**
@@ -60,41 +63,41 @@ export const getByEventId = query({
  * @returns {{ registeredCount: number, waitlistCount: number, ownRegistration: Doc<"registrations"> | null, ownWaitlistPosition: number | null }} - The publicly visible registration summary.
  */
 export const getEventRegistrationSummary = query({
-    args: {
-        eventIdentifier: v.string(),
-    },
-    handler: async (ctx, { eventIdentifier }) => {
-        const event = await getEventByIdentifier(ctx, eventIdentifier);
+	args: {
+		eventIdentifier: v.string(),
+	},
+	handler: async (ctx, { eventIdentifier }) => {
+		const event = await getEventByIdentifier(ctx, eventIdentifier);
 
-        if (!event.published && !(await currentUserHasRole(ctx, internalRoles))) {
-            throw new ConvexError("Arrangementet ble ikke funnet.");
-        }
+		if (!event.published && !(await currentUserHasRole(ctx, internalRoles))) {
+			throw new ConvexError("Arrangementet ble ikke funnet.");
+		}
 
-        const registrations = await ctx.db
-            .query("registrations")
-            .withIndex("by_eventIdAndRegistrationTime", (q) => q.eq("eventId", event._id))
-            .collect();
+		const registrations = await ctx.db
+			.query("registrations")
+			.withIndex("by_eventIdAndRegistrationTime", (q) => q.eq("eventId", event._id))
+			.collect();
 
-        const registeredOrPending = registrations.filter(
-            (registration) => registration.status === "pending" || registration.status === "registered",
-        );
-        const waitlist = registrations.filter((registration) => registration.status === "waitlist");
+		const registeredOrPending = registrations.filter(
+			(registration) => registration.status === "pending" || registration.status === "registered",
+		);
+		const waitlist = registrations.filter((registration) => registration.status === "waitlist");
 
-        const currentUser = await getCurrentUserOrNull(ctx);
-        const ownRegistration = currentUser
-            ? (registrations.find((registration) => registration.userId === currentUser._id) ?? null)
-            : null;
-        const ownWaitlistIndex = currentUser
-            ? waitlist.findIndex((registration) => registration.userId === currentUser._id)
-            : -1;
+		const currentUser = await getCurrentUserOrNull(ctx);
+		const ownRegistration = currentUser
+			? (registrations.find((registration) => registration.userId === currentUser._id) ?? null)
+			: null;
+		const ownWaitlistIndex = currentUser
+			? waitlist.findIndex((registration) => registration.userId === currentUser._id)
+			: -1;
 
-        return {
-            registeredCount: registeredOrPending.length,
-            waitlistCount: waitlist.length,
-            ownRegistration,
-            ownWaitlistPosition: ownWaitlistIndex === -1 ? null : ownWaitlistIndex + 1,
-        };
-    },
+		return {
+			registeredCount: registeredOrPending.length,
+			waitlistCount: waitlist.length,
+			ownRegistration,
+			ownWaitlistPosition: ownWaitlistIndex === -1 ? null : ownWaitlistIndex + 1,
+		};
+	},
 });
 
 /**
@@ -106,25 +109,25 @@ export const getEventRegistrationSummary = query({
  * @returns {Doc<"registrations">} - The matching registration document.
  */
 export const getById = query({
-    args: {
-        id: v.id("registrations"),
-    },
-    handler: async (ctx, { id }) => {
-        const user = await getCurrentUserOrThrow(ctx);
+	args: {
+		id: v.id("registrations"),
+	},
+	handler: async (ctx, { id }) => {
+		const user = await getCurrentUserOrThrow(ctx);
 
-        const registration = await ctx.db.get(id);
-        if (!registration) {
-            throw new ConvexError(`Registrering med ID ${id} ikke funnet.`);
-        }
+		const registration = await ctx.db.get(id);
+		if (!registration) {
+			throw new ConvexError(`Registrering med ID ${id} ikke funnet.`);
+		}
 
-        const isOwner = registration.userId === user._id;
-        const isOrganizer = await isEventOrganizerOrAdmin(ctx, registration.eventId, user._id);
-        if (!isOwner && !isOrganizer) {
-            throw new ConvexError("Unauthorized: Du har ikke tilgang til denne registreringen.");
-        }
+		const isOwner = registration.userId === user._id;
+		const isOrganizer = await isEventOrganizerOrAdmin(ctx, registration.eventId, user._id);
+		if (!isOwner && !isOrganizer) {
+			throw new ConvexError("Unauthorized: Du har ikke tilgang til denne registreringen.");
+		}
 
-        return registration;
-    },
+		return registration;
+	},
 });
 
 /**
@@ -136,35 +139,35 @@ export const getById = query({
  * @returns {Id<"users">} - The current user's id when they are registered.
  */
 export const getCurrentUserRegistertToEventBySlug = query({
-    args: {
-        slug: v.string(),
-    },
-    handler: async (ctx, { slug }) => {
-        const event = await ctx.db
-            .query("events")
-            .withIndex("by_slug", (q) => q.eq("slug", slug))
-            .first();
+	args: {
+		slug: v.string(),
+	},
+	handler: async (ctx, { slug }) => {
+		const event = await ctx.db
+			.query("events")
+			.withIndex("by_slug", (q) => q.eq("slug", slug))
+			.first();
 
-        if (!event) {
-            throw new ConvexError(`Arrangement med slug ${slug} ikke funnet.`);
-        }
+		if (!event) {
+			throw new ConvexError(`Arrangement med slug ${slug} ikke funnet.`);
+		}
 
-        const user = await getCurrentUserOrThrow(ctx);
+		const user = await getCurrentUserOrThrow(ctx);
 
-        const registrations = await ctx.db
-            .query("registrations")
-            .withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
-                q.eq("eventId", event._id).eq("status", "registered"),
-            )
-            .filter((q) => q.eq(q.field("userId"), user._id))
-            .first();
+		const registrations = await ctx.db
+			.query("registrations")
+			.withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
+				q.eq("eventId", event._id).eq("status", "registered"),
+			)
+			.filter((q) => q.eq(q.field("userId"), user._id))
+			.first();
 
-        if (!registrations) {
-            throw new ConvexError(`Bruker er ikke registrert på arrangementet med slug ${slug}.`);
-        }
+		if (!registrations) {
+			throw new ConvexError(`Bruker er ikke registrert på arrangementet med slug ${slug}.`);
+		}
 
-        return user._id;
-    },
+		return user._id;
+	},
 });
 
 /**
@@ -174,33 +177,33 @@ export const getCurrentUserRegistertToEventBySlug = query({
  * @returns {Array<Doc<"registrations"> & { eventTitle: string, eventStart: number }>} - The current user's registrations with event details.
  */
 export const getCurrentUser = query({
-    handler: async (ctx) => {
-        const user = await getCurrentUserOrThrow(ctx);
+	handler: async (ctx) => {
+		const user = await getCurrentUserOrThrow(ctx);
 
-        const registrations = await ctx.db
-            .query("registrations")
-            .withIndex("by_userId", (q) => q.eq("userId", user._id))
-            .collect();
+		const registrations = await ctx.db
+			.query("registrations")
+			.withIndex("by_userId", (q) => q.eq("userId", user._id))
+			.collect();
 
-        const registrationsWithEvents = await Promise.all(
-            registrations.map(async (reg) => {
-                const event = await ctx.db.get(reg.eventId);
-                if (!event) {
-                    throw new ConvexError(
-                        `Arrangementet med ID ${reg.eventId} ble ikke funnet. Kan ikke hente registreringen.`,
-                    );
-                }
+		const registrationsWithEvents = await Promise.all(
+			registrations.map(async (reg) => {
+				const event = await ctx.db.get(reg.eventId);
+				if (!event) {
+					throw new ConvexError(
+						`Arrangementet med ID ${reg.eventId} ble ikke funnet. Kan ikke hente registreringen.`,
+					);
+				}
 
-                return {
-                    ...reg,
-                    eventTitle: event.title,
-                    eventStart: event.eventStart,
-                };
-            }),
-        );
+				return {
+					...reg,
+					eventTitle: event.title,
+					eventStart: event.eventStart,
+				};
+			}),
+		);
 
-        return registrationsWithEvents;
-    },
+		return registrationsWithEvents;
+	},
 });
 
 /**
@@ -212,25 +215,25 @@ export const getCurrentUser = query({
  * @returns {{ firstName: string, lastName: string } | null} - The registrant's name, or null if either record is missing.
  */
 export const getUserByRegistrationId = query({
-    args: {
-        id: v.id("registrations"),
-    },
-    handler: async (ctx, { id }) => {
-        const currentUser = await getCurrentUserOrThrow(ctx);
+	args: {
+		id: v.id("registrations"),
+	},
+	handler: async (ctx, { id }) => {
+		const currentUser = await getCurrentUserOrThrow(ctx);
 
-        const registration = await ctx.db.get(id);
-        if (!registration) return null;
+		const registration = await ctx.db.get(id);
+		if (!registration) return null;
 
-        const isOrganizer = await isEventOrganizerOrAdmin(ctx, registration.eventId, currentUser._id);
-        if (!isOrganizer) {
-            throw new ConvexError("Unauthorized: Du har ikke tilgang til denne registreringen.");
-        }
+		const isOrganizer = await isEventOrganizerOrAdmin(ctx, registration.eventId, currentUser._id);
+		if (!isOrganizer) {
+			throw new ConvexError("Unauthorized: Du har ikke tilgang til denne registreringen.");
+		}
 
-        const user = await ctx.db.get(registration.userId);
-        if (!user) return null;
+		const user = await ctx.db.get(registration.userId);
+		if (!user) return null;
 
-        return { firstName: user.firstName, lastName: user.lastName };
-    },
+		return { firstName: user.firstName, lastName: user.lastName };
+	},
 });
 
 /**
@@ -241,55 +244,55 @@ export const getUserByRegistrationId = query({
  * @returns {Record<string, Record<string, Record<number, number>>>} - Counts grouped by degree, study program, and year.
  */
 export const getRegistrantsInfo = query({
-    args: {
-        eventIdentifier: v.string(),
-    },
-    handler: async (ctx, { eventIdentifier }) => {
-        await requireRole(ctx, internalRoles);
+	args: {
+		eventIdentifier: v.string(),
+	},
+	handler: async (ctx, { eventIdentifier }) => {
+		await requireRole(ctx, internalRoles);
 
-        const event = await getEventByIdentifier(ctx, eventIdentifier);
+		const event = await getEventByIdentifier(ctx, eventIdentifier);
 
-        const registrations = await ctx.db
-            .query("registrations")
-            .withIndex("by_eventId", (q) => q.eq("eventId", event._id))
-            .filter((r) => r.eq(r.field("status"), "registered"))
-            .collect();
+		const registrations = await ctx.db
+			.query("registrations")
+			.withIndex("by_eventId", (q) => q.eq("eventId", event._id))
+			.filter((r) => r.eq(r.field("status"), "registered"))
+			.collect();
 
-        const studentsInfo = await Promise.all(
-            registrations.map(async (registration) => {
-                const student = await ctx.db
-                    .query("students")
-                    .withIndex("by_userId", (q) => q.eq("userId", registration.userId))
-                    .first();
+		const studentsInfo = await Promise.all(
+			registrations.map(async (registration) => {
+				const student = await ctx.db
+					.query("students")
+					.withIndex("by_userId", (q) => q.eq("userId", registration.userId))
+					.first();
 
-                return {
-                    aar: student?.year ?? -1,
-                    program: student?.studyProgram ?? "Ukjent",
-                    degree: student?.degree ?? "Ukjent",
-                };
-            }),
-        );
+				return {
+					aar: student?.year ?? -1,
+					program: student?.studyProgram ?? "Ukjent",
+					degree: student?.degree ?? "Ukjent",
+				};
+			}),
+		);
 
-        const result: {
-            [degree: string]: {
-                [program: string]: {
-                    [aar: number]: number;
-                };
-            };
-        } = {};
+		const result: {
+			[degree: string]: {
+				[program: string]: {
+					[aar: number]: number;
+				};
+			};
+		} = {};
 
-        for (const info of studentsInfo) {
-            const { degree, program, aar } = info;
-            const programBase = toBase64(program);
-            if (!result[degree]) result[degree] = {};
+		for (const info of studentsInfo) {
+			const { degree, program, aar } = info;
+			const programBase = toBase64(program);
+			if (!result[degree]) result[degree] = {};
 
-            if (!result[degree][programBase]) result[degree][programBase] = {};
+			if (!result[degree][programBase]) result[degree][programBase] = {};
 
-            result[degree][programBase][aar] ??= 0;
+			result[degree][programBase][aar] ??= 0;
 
-            result[degree][programBase][aar]++;
-        }
+			result[degree][programBase][aar]++;
+		}
 
-        return result;
-    },
+		return result;
+	},
 });

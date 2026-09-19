@@ -35,9 +35,7 @@ export const createColumns = (
 			return (
 				<Select
 					defaultValue={row.original.role}
-					onValueChange={(value) =>
-						onRoleChange(row.original.id, value as ORGANIZER_ROLE)
-					}
+					onValueChange={(value) => onRoleChange(row.original.id, value as ORGANIZER_ROLE)}
 				>
 					<SelectTrigger className="w-[180px]">
 						<SelectValue placeholder="Ansvarlig type" />

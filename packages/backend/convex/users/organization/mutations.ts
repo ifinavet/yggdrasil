@@ -1,13 +1,13 @@
 import { ConvexError, v } from "convex/values";
 import { mutation } from "../../_generated/server";
 import {
-    accessRoles,
-    adminRoles,
-    assignAccessRole,
-    getAccessRole,
-    requireRole,
-    revokeAccessRole,
-    superAdminRoles,
+	accessRoles,
+	adminRoles,
+	assignAccessRole,
+	getAccessRole,
+	requireRole,
+	revokeAccessRole,
+	superAdminRoles,
 } from "../../auth/accessRights";
 
 /**
@@ -24,55 +24,55 @@ import {
  * @returns {null} - Returns null when the board member has been updated successfully.
  */
 export const upsertBoardMember = mutation({
-    args: {
-        id: v.id("internals"),
-        userId: v.id("users"),
-        position: v.string(),
-        group: v.string(),
-        positionEmail: v.optional(v.string()),
-        role: accessRoles,
-    },
-    handler: async (ctx, { id, userId, position, group, positionEmail, role }) => {
-        const caller = await requireRole(ctx, superAdminRoles);
+	args: {
+		id: v.id("internals"),
+		userId: v.id("users"),
+		position: v.string(),
+		group: v.string(),
+		positionEmail: v.optional(v.string()),
+		role: accessRoles,
+	},
+	handler: async (ctx, { id, userId, position, group, positionEmail, role }) => {
+		const caller = await requireRole(ctx, superAdminRoles);
 
-        const currentBoardMember = await ctx.db.get(id);
-        if (!currentBoardMember) throw new ConvexError(`Fant ikke styremedlemmet med ID: ${id}.`);
+		const currentBoardMember = await ctx.db.get(id);
+		if (!currentBoardMember) throw new ConvexError(`Fant ikke styremedlemmet med ID: ${id}.`);
 
-        await assignAccessRole(ctx, userId, role);
+		await assignAccessRole(ctx, userId, role);
 
-        if (currentBoardMember.userId === userId) {
-            await ctx.db.patch(id, {
-                position,
-                group,
-                positionEmail,
-            });
-        } else {
-            await ctx.db.patch(id, {
-                group: "",
-                positionEmail: "",
-                position: "Intern",
-                rank: undefined,
-            });
+		if (currentBoardMember.userId === userId) {
+			await ctx.db.patch(id, {
+				position,
+				group,
+				positionEmail,
+			});
+		} else {
+			await ctx.db.patch(id, {
+				group: "",
+				positionEmail: "",
+				position: "Intern",
+				rank: undefined,
+			});
 
-            if (currentBoardMember.userId !== caller._id) {
-                await assignAccessRole(ctx, currentBoardMember.userId, "internal");
-            }
+			if (currentBoardMember.userId !== caller._id) {
+				await assignAccessRole(ctx, currentBoardMember.userId, "internal");
+			}
 
-            const newBoardMember = await ctx.db
-                .query("internals")
-                .withIndex("by_userId", (q) => q.eq("userId", userId))
-                .first();
-            if (!newBoardMember)
-                throw new ConvexError(`Fant ikke det nye styremedlemmet for bruker-ID: ${userId}.`);
+			const newBoardMember = await ctx.db
+				.query("internals")
+				.withIndex("by_userId", (q) => q.eq("userId", userId))
+				.first();
+			if (!newBoardMember)
+				throw new ConvexError(`Fant ikke det nye styremedlemmet for bruker-ID: ${userId}.`);
 
-            await ctx.db.patch(newBoardMember._id, {
-                group,
-                positionEmail,
-                position,
-                rank: currentBoardMember.rank,
-            });
-        }
-    },
+			await ctx.db.patch(newBoardMember._id, {
+				group,
+				positionEmail,
+				position,
+				rank: currentBoardMember.rank,
+			});
+		}
+	},
 });
 
 /**
@@ -85,31 +85,31 @@ export const upsertBoardMember = mutation({
  * @returns {null} - Returns null when the internal member is created successfully.
  */
 export const createInternal = mutation({
-    args: {
-        userId: v.id("users"),
-        group: v.string(),
-    },
-    handler: async (ctx, { userId, group }) => {
-        await requireRole(ctx, adminRoles);
+	args: {
+		userId: v.id("users"),
+		group: v.string(),
+	},
+	handler: async (ctx, { userId, group }) => {
+		await requireRole(ctx, adminRoles);
 
-        const existingInternal = await ctx.db
-            .query("internals")
-            .withIndex("by_userId", (q) => q.eq("userId", userId))
-            .first();
-        if (existingInternal) {
-            throw new ConvexError(`Brukeren med ID ${userId} er allerede intern.`);
-        }
+		const existingInternal = await ctx.db
+			.query("internals")
+			.withIndex("by_userId", (q) => q.eq("userId", userId))
+			.first();
+		if (existingInternal) {
+			throw new ConvexError(`Brukeren med ID ${userId} er allerede intern.`);
+		}
 
-        await ctx.db.insert("internals", {
-            userId,
-            group,
-            position: "Intern",
-        });
+		await ctx.db.insert("internals", {
+			userId,
+			group,
+			position: "Intern",
+		});
 
-        if ((await getAccessRole(ctx, userId)) === null) {
-            await assignAccessRole(ctx, userId, "internal");
-        }
-    },
+		if ((await getAccessRole(ctx, userId)) === null) {
+			await assignAccessRole(ctx, userId, "internal");
+		}
+	},
 });
 
 /**
@@ -121,29 +121,29 @@ export const createInternal = mutation({
  * @returns {null} - Returns null when the internal record is deleted successfully.
  */
 export const removeInternal = mutation({
-    args: {
-        id: v.id("internals"),
-    },
-    handler: async (ctx, { id }) => {
-        const caller = await requireRole(ctx, adminRoles);
+	args: {
+		id: v.id("internals"),
+	},
+	handler: async (ctx, { id }) => {
+		const caller = await requireRole(ctx, adminRoles);
 
-        const internalToRemove = await ctx.db.get(id);
-        if (!internalToRemove) {
-            throw new ConvexError(`Fant ikke det interne medlemmet med ID: ${id}.`);
-        }
+		const internalToRemove = await ctx.db.get(id);
+		if (!internalToRemove) {
+			throw new ConvexError(`Fant ikke det interne medlemmet med ID: ${id}.`);
+		}
 
-        if (internalToRemove.userId === caller._id) {
-            throw new ConvexError("Unauthorized: Du kan ikke fjerne deg selv.");
-        }
+		if (internalToRemove.userId === caller._id) {
+			throw new ConvexError("Unauthorized: Du kan ikke fjerne deg selv.");
+		}
 
-        const roleToRemove = await getAccessRole(ctx, internalToRemove.userId);
-        if (roleToRemove !== null && roleToRemove !== "internal") {
-            await requireRole(ctx, superAdminRoles);
-        }
+		const roleToRemove = await getAccessRole(ctx, internalToRemove.userId);
+		if (roleToRemove !== null && roleToRemove !== "internal") {
+			await requireRole(ctx, superAdminRoles);
+		}
 
-        await ctx.db.delete(id);
-        await revokeAccessRole(ctx, internalToRemove.userId);
-    },
+		await ctx.db.delete(id);
+		await revokeAccessRole(ctx, internalToRemove.userId);
+	},
 });
 
 /**
@@ -156,13 +156,13 @@ export const removeInternal = mutation({
  * @returns {null} - Returns null when the internal record is updated successfully.
  */
 export const updateInternal = mutation({
-    args: {
-        id: v.id("internals"),
-        group: v.string(),
-    },
-    handler: async (ctx, { id, group }) => {
-        await requireRole(ctx, adminRoles);
+	args: {
+		id: v.id("internals"),
+		group: v.string(),
+	},
+	handler: async (ctx, { id, group }) => {
+		await requireRole(ctx, adminRoles);
 
-        await ctx.db.patch(id, { group });
-    },
+		await ctx.db.patch(id, { group });
+	},
 });

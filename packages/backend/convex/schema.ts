@@ -10,7 +10,6 @@ import { usersSchema } from "./users/clerk/schema";
 import { organizationSchema } from "./users/organization/schema";
 import { studentsSchema } from "./users/students/schema";
 
-
 export default defineSchema({
 	...companiesSchema,
 	...eventsSchema,
@@ -21,5 +20,5 @@ export default defineSchema({
 	...studentsSchema,
 	...pointsSchema,
 	...formsSchema,
-	...accessSchema
+	...accessSchema,
 });
