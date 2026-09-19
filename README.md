@@ -37,6 +37,69 @@ The project uses Turborepo to manage the different services and is structured li
 └── ...
 ```
 
+## Running the projects locally 💻
+
+**Follow this guide first, then use the per-project READMEs for application-specific information.**
+
+You need [Node.js](https://nodejs.org/) 20.9 or later and [pnpm](https://pnpm.io/).
+
+Clone the repository and move into its root:
+
+```bash
+git clone https://github.com/ifinavet/yggdrasil.git
+cd yggdrasil
+```
+
+Install dependencies:
+
+```bash
+pnpm install
+```
+
+Local mode mocks authentication, disables telemetry and email delivery, and uses a real local Convex backend. It is enabled explicitly with `APP_ENV=local`.
+
+Copy the local environment config:
+
+```bash
+cp .env.example .env.local
+```
+
+The config contains:
+
+```
+APP_ENV=local
+CONVEX_AGENT_MODE=anonymous
+CONVEX_DEPLOYMENT=
+NEXT_PUBLIC_CONVEX_URL=http://127.0.0.1:3210
+```
+
+Leave `APP_ENV` unset to run the normal app with configured external services. Restart after changing the flag.
+
+`pnpm dev` sets `APP_ENV=local` on the isolated local deployment before starting. To do it manually:
+
+```bash
+pnpm --dir packages/backend exec convex env set APP_ENV local
+```
+
+### Developing against a real Clerk dev instance
+
+Clerk development instances use publishable keys that are safe to commit, so a Clerk dev instance can replace the local auth mocks entirely: remove `APP_ENV=local` from `.env.local` and uncomment the `CLERK_*` variables. The apps will sign in for real while the local `convex dev` backend validates JWTs against `CLERK_FRONTEND_API_URL`.
+
+`pnpm dev` removes `APP_ENV` and syncs `CLERK_FRONTEND_API_URL` to the deployment when the variable is set in `.env.local`. To do it manually:
+
+```bash
+pnpm --dir packages/backend exec convex env remove APP_ENV
+pnpm --dir packages/backend exec convex env set CLERK_FRONTEND_API_URL https://your-instance.clerk.accounts.dev
+```
+
+From the repository root, run:
+
+```bash
+pnpm dev
+```
+
+This starts the local backend, Midgard at `http://localhost:3000`, Bifrost at `http://localhost:3001`, and Hugin at `http://localhost:3003`.
+
 ## Deployments 🚀
 
 Pushes to `main` [deploy Convex first, then all three apps on Vercel](.github/workflows/deploy-production.yml). PR previews still use Vercel's Git integration.

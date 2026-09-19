@@ -1,6 +1,6 @@
-import { SignOutButton } from "@clerk/nextjs";
-import { currentUser } from "@clerk/nextjs/server";
 import { hasAdminRights, hasAllRights, hasEditRights } from "@workspace/auth";
+import { SignOutButton } from "@workspace/auth/client";
+import { currentUser } from "@workspace/auth/server";
 import { Avatar, AvatarFallback, AvatarImage } from "@workspace/ui/components/avatar";
 import {
 	DropdownMenu,

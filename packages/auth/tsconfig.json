@@ -1,9 +1,14 @@
 {
 	"extends": "@workspace/typescript-config/base.json",
-	"include": ["**/*.ts"],
+	"include": ["**/*.ts", "**/*.tsx"],
 	"exclude": ["node_modules"],
 	"compilerOptions": {
 		"module": "ESNext",
-		"moduleResolution": "bundler"
+		"moduleResolution": "bundler",
+		"jsx": "react-jsx",
+		"allowJs": true,
+		"declaration": false,
+		"declarationMap": false,
+		"noEmit": true
 	}
 }

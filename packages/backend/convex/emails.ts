@@ -9,6 +9,7 @@ import PointsEmail from "@workspace/emails/point-email";
 import { v } from "convex/values";
 import { components } from "./_generated/api";
 import { internalAction } from "./_generated/server";
+import { isLocalDevelopment } from "./auth/local";
 
 /**
  * Configures the Resend client used by backend email actions.
@@ -33,6 +34,8 @@ export const sendGottenPointsEmail = internalAction({
 		reason: v.string(),
 	},
 	handler: async (ctx, { participantEmail, severity, reason }) => {
+		if (isLocalDevelopment()) return;
+
 		const html = await pretty(
 			await render(
 				PointsEmail({
@@ -64,6 +67,8 @@ export const sendTooManyPointsEmail = internalAction({
 		participantEmail: v.string(),
 	},
 	handler: async (ctx, { participantEmail }) => {
+		if (isLocalDevelopment()) return;
+
 		const html = await pretty(await render(LockedOutEmail()));
 
 		await resend.sendEmail(ctx, {
@@ -94,6 +99,8 @@ export const sendAvailableSeatEmail = internalAction({
 		registrationId: v.id("registrations"),
 	},
 	handler: async (ctx, { participantEmail, eventId, eventTitle, registrationId }) => {
+		if (isLocalDevelopment()) return;
+
 		const url = `https://ifinavet.no/events/${eventId}/registration/${registrationId}`;
 
 		const html = await pretty(
@@ -133,6 +140,8 @@ export const sendFreeForAll = internalAction({
 		availableSeats: v.number(),
 	},
 	handler: async (ctx, { participantEmail, eventId, eventTitle, availableSeats }) => {
+		if (isLocalDevelopment()) return;
+
 		const url = `https://ifinavet.no/events/${eventId}`;
 
 		const html = await pretty(

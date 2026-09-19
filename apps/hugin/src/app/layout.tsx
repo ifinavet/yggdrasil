@@ -1,4 +1,5 @@
-import { ClerkProvider } from "@clerk/nextjs";
+import ClerkProvider from "@workspace/auth/provider";
+import { PostHogPageView } from "@workspace/auth/telemetry-client";
 import { Toaster } from "@workspace/ui/components/sonner";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
@@ -8,7 +9,6 @@ import "./globals.css";
 import Header from "@/components/header";
 import ConvexClientProvider from "@/providers/convex-client-provider";
 import PostHogProvider from "@/providers/posthog-provider";
-import PostHogPageView from "./posthog-page-view";
 
 const defaultUrl = process.env.VERCEL_URL
 	? `https://${process.env.VERCEL_URL}`
@@ -52,7 +52,7 @@ export default function RootLayout({
 									</main>
 									<Toaster richColors position="bottom-right" />
 									<Suspense fallback={null}>
-										<PostHogPageView />
+										<PostHogPageView site="hugin" />
 									</Suspense>
 								</ThemeProvider>
 							</ConvexClientProvider>

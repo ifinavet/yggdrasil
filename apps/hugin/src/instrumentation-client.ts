@@ -1,15 +1,9 @@
-import * as Sentry from "@sentry/nextjs";
+import { initializeClientTelemetry } from "@workspace/auth/telemetry-client";
 
-Sentry.init({
-	dsn: "https://04d7959e133fb993cec8d4f62d3418ef@o4509833113501696.ingest.de.sentry.io/4509835991253072",
+export { onRouterTransitionStart } from "@workspace/auth/telemetry-client";
 
-	// Define how likely traces are sampled. Adjust this value in production, or use tracesSampler for greater control.
-	tracesSampleRate: 1,
-	// Enable logs to be sent to Sentry
-	enableLogs: true,
-
-	// Setting this option to true will print useful information to the console while you're setting up Sentry.
-	debug: false,
+initializeClientTelemetry({
+	sentryDsn:
+		"https://04d7959e133fb993cec8d4f62d3418ef@o4509833113501696.ingest.de.sentry.io/4509835991253072",
+	initializePostHog: false,
 });
-
-export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;

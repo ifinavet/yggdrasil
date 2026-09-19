@@ -2,6 +2,7 @@ import { ConvexError, v } from "convex/values";
 import { internal } from "../../_generated/api";
 import { internalMutation, mutation } from "../../_generated/server";
 import { adminRoles, userHasRole } from "../../auth/accessRights";
+import { getIdentity } from "../../auth/currentUser";
 import { getCurrentUserOrThrow } from "../clerk/queries";
 
 /**
@@ -29,7 +30,7 @@ export const createByExternalId = mutation({
         name: v.string(),
     },
     handler: async (ctx, { externalId, degree, year, studyProgram, name }) => {
-        const identity = await ctx.auth.getUserIdentity();
+        const identity = await getIdentity(ctx);
         if (identity === null) {
             throw new ConvexError("Unauthorized: Du må være innlogget for å gjøre dette.");
         }

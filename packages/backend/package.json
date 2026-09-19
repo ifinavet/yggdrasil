@@ -6,7 +6,7 @@
 	"scripts": {
 		"check": "biome check .",
 		"check:fix": "biome check . --write",
-		"dev": "convex dev",
+		"dev": "convex dev --run auth/local:signIn",
 		"setup": "convex dev --until-success"
 	},
 	"keywords": [],
@@ -20,7 +20,7 @@
 		"@workspace/emails": "workspace:*",
 		"@workspace/shared": "workspace:*",
 		"convex": "^1.45.0",
-		"convex-helpers": "^0.1.124",
+"convex-helpers": "^0.1.124",
 		"svix": "^1.99.1"
 	},
 	"devDependencies": {

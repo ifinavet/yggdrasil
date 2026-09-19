@@ -3,17 +3,8 @@
 // Note that this config is unrelated to the Vercel Edge Runtime and is also required when running locally.
 // https://docs.sentry.io/platforms/javascript/guides/nextjs/
 
-import * as Sentry from "@sentry/nextjs";
+import { initializeSentry } from "@workspace/auth/telemetry";
 
-Sentry.init({
-	dsn: "https://97690ed14bdf1b094f610bcfcaef3a6b@o4509833113501696.ingest.de.sentry.io/4509833115336784",
-
-	// Define how likely traces are sampled. Adjust this value in production, or use tracesSampler for greater control.
-	tracesSampleRate: 1,
-
-	// Enable logs to be sent to Sentry
-	enableLogs: true,
-
-	// Setting this option to true will print useful information to the console while you're setting up Sentry.
-	debug: false,
-});
+initializeSentry(
+	"https://97690ed14bdf1b094f610bcfcaef3a6b@o4509833113501696.ingest.de.sentry.io/4509833115336784",
+);

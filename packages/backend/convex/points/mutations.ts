@@ -2,6 +2,7 @@ import { ConvexError, v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalMutation, mutation } from "../_generated/server";
 import { adminRoles, requireRole } from "../auth/accessRights";
+import { getIdentity } from "../auth/currentUser";
 
 /**
  * Gives points to a student and schedules the notification email.
@@ -58,7 +59,7 @@ export const givePointsInternal = internalMutation({
         severity: v.number(),
     },
     handler: async (ctx, { id, reason, severity }) => {
-        const identity = await ctx.auth.getUserIdentity();
+        const identity = await getIdentity(ctx);
         if (identity === null) {
             throw new Error("Unauthenticated call to mutation");
         }

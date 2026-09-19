@@ -27,6 +27,7 @@
     "@tiptap/starter-kit": "^2.27.2",
     "@workspace/auth": "workspace:*",
     "@workspace/backend": "workspace:*",
+    "@workspace/next-config": "workspace:*",
     "@workspace/shared": "workspace:*",
     "@workspace/ui": "workspace:*",
     "@zxing/browser": "^0.2.1",

@@ -1,7 +1,7 @@
 "use client";
 
-import { OrganizationProfile, UserProfile } from "@clerk/nextjs";
 import { dark } from "@clerk/ui/themes";
+import { OrganizationProfile, UserProfile } from "@workspace/auth/client";
 import { useTheme } from "next-themes";
 
 export function DynamicUserProfile() {

@@ -37,3 +37,7 @@ npm-debug.log*
 *.pem
 
 **/.vscode
+
+# Local Convex deployment
+.convex/
+packages/backend/.local-development/

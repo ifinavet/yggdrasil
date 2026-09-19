@@ -1,6 +1,7 @@
 "use client";
 
-import { SignOutButton, useUser } from "@clerk/nextjs";
+import { SignOutButton, useUser } from "@workspace/auth/client";
+import { Authenticated, AuthLoading, Unauthenticated } from "@workspace/auth/convex";
 import { Button } from "@workspace/ui/components/button";
 import {
 	NavigationMenu,
@@ -13,7 +14,6 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui/components/popover";
 import { Separator } from "@workspace/ui/components/separator";
 import { cn } from "@workspace/ui/lib/utils";
-import { Authenticated, AuthLoading, Unauthenticated } from "convex/react";
 import { Menu } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
