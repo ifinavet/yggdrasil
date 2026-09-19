@@ -1,3 +1,4 @@
+import { placeholderKeys } from "@workspace/shared/utils";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -68,8 +69,8 @@ export default function JobListingsLoading() {
 							</TableRow>
 						</TableHeader>
 						<TableBody>
-							{Array.from({ length: 3 }).map((_, index) => (
-								<TableRow key={`published-skeleton-row-${index * 2}`}>
+							{placeholderKeys("published-listing-row", 3).map((key) => (
+								<TableRow key={key}>
 									<TableCell>
 										<Skeleton className="h-4 w-48" />
 									</TableCell>
@@ -104,8 +105,8 @@ export default function JobListingsLoading() {
 									</TableRow>
 								</TableHeader>
 								<TableBody>
-									{Array.from({ length: 2 }).map((_, index) => (
-										<TableRow key={`active-skeleton-row-${index * 2}`}>
+									{placeholderKeys("active-listing-row", 2).map((key) => (
+										<TableRow key={key}>
 											<TableCell>
 												<Skeleton className="h-4 w-48" />
 											</TableCell>
@@ -138,8 +139,8 @@ export default function JobListingsLoading() {
 									</TableRow>
 								</TableHeader>
 								<TableBody>
-									{Array.from({ length: 1 }).map((_, index) => (
-										<TableRow key={`expired-skeleton-row-${index * 2}`}>
+									{placeholderKeys("expired-listing-row", 1).map((key) => (
+										<TableRow key={key}>
 											<TableCell>
 												<Skeleton className="h-4 w-48" />
 											</TableCell>

@@ -1,3 +1,4 @@
+import { placeholderKeys } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent, CardHeader } from "@workspace/ui/components/card";
 import { Skeleton } from "@workspace/ui/components/skeleton";
@@ -63,8 +64,8 @@ export default function JobListingFormSkeleton({
 				<div className="space-y-4">
 					<Skeleton className="h-6 w-32" />
 					<div className="space-y-4">
-						{Array.from({ length: 2 }).map((_, index) => (
-							<Card key={`job-listing-contact-skeleton-${index * 2}`} className="p-4">
+						{placeholderKeys("job-listing-contact", 2).map((key) => (
+							<Card key={key} className="p-4">
 								<div className="grid grid-cols-1 gap-4 md:grid-cols-3">
 									<div className="space-y-2">
 										<Skeleton className="h-4 w-12" />

@@ -18,11 +18,17 @@
 			"!**/build",
 			"!**/.git",
 			"!**/coverage",
+			"!**/*.svg",
 			"!**/*.min.js",
 			"!**/*.min.css",
 			"!**/convex/_generated",
 			"!**/pnpm-lock.yaml"
 		]
+	},
+	"css": {
+		"parser": {
+			"tailwindDirectives": true
+		}
 	},
 	"formatter": {
 		"includes": ["**"],

@@ -1,3 +1,4 @@
+import { placeholderKeys } from "@workspace/shared/utils";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 
 interface ParagraphSkeletonProps {
@@ -13,15 +14,12 @@ export default function ParagraphSkeleton({
 
 	return (
 		<div className={`space-y-2 ${className || ""}`}>
-			{Array.from({ length: lines }).map((_, index) => {
-				const widthClass = widthVariations[index % widthVariations.length];
-				return (
-					<Skeleton
-						key={`paragraph-line-${index + 1}`}
-						className={`h-4 ${widthClass} dark:bg-primary-foreground/80`}
-					/>
-				);
-			})}
+			{placeholderKeys("paragraph-line", lines).map((key, index) => (
+				<Skeleton
+					key={key}
+					className={`h-4 ${widthVariations[index % widthVariations.length]} dark:bg-primary-foreground/80`}
+				/>
+			))}
 		</div>
 	);
 }

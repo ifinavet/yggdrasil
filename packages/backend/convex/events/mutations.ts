@@ -175,17 +175,11 @@ export const upsertEventOrganizer = internalMutation({
 				}),
 			);
 
-		const organizersToUpdate = updatedOrganizers
-			.filter(({ userId, role }) => {
-				const existing = eventOrganizers.find((org) => org.userId === userId);
-				return existing && existing.role !== role;
-			})
-			.map((org) => {
-				const existing = eventOrganizers.find((eOrg) => eOrg.userId === org.userId);
-				if (existing) {
-					return ctx.db.patch(existing._id, { role: org.role });
-				}
-			});
+		const organizersToUpdate = updatedOrganizers.flatMap((org) => {
+			const existing = eventOrganizers.find((eOrg) => eOrg.userId === org.userId);
+			if (!existing || existing.role === org.role) return [];
+			return [ctx.db.patch(existing._id, { role: org.role })];
+		});
 
 		await Promise.all([...organizersToRemove, ...organizersToAdd, ...organizersToUpdate]);
 	},

@@ -22,7 +22,7 @@ import { Plus } from "lucide-react";
 import Link from "next/link";
 import { humanReadableDate } from "@/utils/utils";
 
-export default function pagesPage() {
+export default function PagesPage() {
 	const pages = useQuery(api.pages.queries.getAll);
 
 	return (

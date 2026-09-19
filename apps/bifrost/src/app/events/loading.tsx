@@ -1,3 +1,4 @@
+import { placeholderKeys } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components//button";
 import { Card, CardContent, CardFooter, CardHeader } from "@workspace/ui/components//card";
 import { Skeleton } from "@workspace/ui/components//skeleton";
@@ -18,16 +19,16 @@ export default function EventsLoading() {
 					Publiserte arrangementer
 				</h2>
 				<div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-					{Array.from({ length: 6 }).map((_, index) => (
-						<EventCardSkeleton key={`visible-skeleton-${index + 1}`} />
+					{placeholderKeys("published-event", 6).map((key) => (
+						<EventCardSkeleton key={key} />
 					))}
 				</div>
 				<h2 className="scroll-m-20 border-b pb-2 font-semibold text-2xl tracking-tight first:mt-0">
 					Skjulte/Påbegynte arrangementer
 				</h2>
 				<div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-					{Array.from({ length: 3 }).map((_, index) => (
-						<EventCardSkeleton key={`hidden-skeleton-${index + 1}`} />
+					{placeholderKeys("hidden-event", 3).map((key) => (
+						<EventCardSkeleton key={key} />
 					))}
 				</div>
 			</div>

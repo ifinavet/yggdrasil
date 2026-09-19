@@ -11,12 +11,14 @@ export default function EventFeedbackFormResponses({
 	preloadedEvent,
 }: Readonly<{ preloadedEvent: Preloaded<typeof api.events.queries.getEvent> }>) {
 	const event = usePreloadedQuery(preloadedEvent);
+	const responses = useQuery(
+		api.forms.queries.getFormResponsesByFormId,
+		event.formId ? { formId: event.formId } : "skip",
+	);
 
 	if (!event.formId) {
-		return <div>No feedback form available for this event.</div>;
+		return <div>Dette arrangementet har ingen tilbakemeldingsskjema.</div>;
 	}
-
-	const responses = useQuery(api.forms.queries.getFormResponsesByFormId, { formId: event.formId });
 
 	if (!responses || responses.length === 0) {
 		return (
@@ -27,9 +29,7 @@ export default function EventFeedbackFormResponses({
 		);
 	}
 
-	const responseData = responses.map((r) => r.data);
-
-	console.log("responses", responseData);
+	const responseData = responses.map((response) => response.data);
 
 	return (
 		<div className="flex flex-col gap-4">
@@ -69,19 +69,19 @@ export default function EventFeedbackFormResponses({
 				/>
 			</div>
 			<TextResponseCard
-				data={responseData}
+				responses={responses}
 				filterKey="toughts"
 				title="Hva syntes du om arrangementet og bedriften?"
 				description="Innsendte tanker"
 			/>
 			<TextResponseCard
-				data={responseData}
+				responses={responses}
 				filterKey="improvements"
 				title="Hva kunne gjort arrangementet bedre?"
 				description="Innsendte tanker"
 			/>
 			<TextResponseCard
-				data={responseData}
+				responses={responses}
 				filterKey="other"
 				title="Annet?"
 				description="Innsedte tanker om andre ting"
