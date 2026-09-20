@@ -24,23 +24,19 @@ export function isFieldInvalid(field: AnyFieldApi): boolean {
 }
 
 /**
- * One question on the sheet: label, optional hint, the control, and the error
+ * One question on the sheet: label, the control, and the error
  * line. Questions are separated by a hairline instead of a card each, so the
  * block owns its own divider.
  */
 export function QuestionBlock({
 	name,
 	label,
-	hint,
-	hintId,
 	invalid,
 	error,
 	children,
 }: Readonly<{
 	name: string;
 	label: string;
-	hint?: string;
-	hintId?: string;
 	invalid: boolean;
 	error?: string;
 	children: ReactNode;
@@ -62,11 +58,6 @@ export function QuestionBlock({
 			>
 				{label}
 			</span>
-			{hint && (
-				<span id={hintId} className="-mt-1.5 mb-3 block text-[13px] text-muted-foreground">
-					{hint}
-				</span>
-			)}
 			{children}
 			{error && (
 				<p id={errorId} className="mt-2.5 font-medium text-[13px] text-destructive">

@@ -164,7 +164,6 @@ export function EventResponseForm({
 								<TextInputCard
 									field={field}
 									label={question.label}
-									hint={question.hint}
 									placeholder={question.placeholder}
 									required={!question.optional}
 								/>

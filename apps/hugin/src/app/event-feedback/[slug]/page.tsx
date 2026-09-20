@@ -83,7 +83,7 @@ export default async function EventResponse({
 				</p>
 				<p className="m-0 text-[14.5px] leading-normal">
 					Takk for at du kom! {questionCountWord} kjappe spørsmål, det tar under et minutt. Svarene
-					går bare til Navet og bedriften.
+					går bare til bedriften.
 				</p>
 			</div>
 

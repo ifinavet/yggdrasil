@@ -10,7 +10,6 @@ export interface RatingQuestion {
 export interface TextQuestion {
 	id: "toughts" | "improvements" | "other";
 	label: string;
-	hint?: string;
 	placeholder: string;
 	optional?: boolean;
 }
@@ -39,7 +38,6 @@ export const ratingQuestions = [
 export const toughtsQuestion = {
 	id: "toughts",
 	label: "Hva syntes du om arrangementet og bedriften?",
-	hint: "Vi leser alle svar. Skriv så kort eller langt du vil.",
 	placeholder: "F.eks. «Godt lagt opp, men litt knapp tid til spørsmål»",
 	optional: false,
 } as const satisfies TextQuestion;
@@ -47,7 +45,6 @@ export const toughtsQuestion = {
 export const improvementsQuestion = {
 	id: "improvements",
 	label: "Hva kunne gjort arrangementet bedre?",
-	hint: "Ett konkret tips er nok.",
 	placeholder: "F.eks. «Mer tid til mingling etterpå»",
 	optional: false,
 } as const satisfies TextQuestion;
@@ -55,7 +52,6 @@ export const improvementsQuestion = {
 export const otherQuestion = {
 	id: "other",
 	label: "Noe annet du vil si?",
-	hint: "Valgfritt.",
 	placeholder: "",
 	optional: true,
 } as const satisfies TextQuestion;
