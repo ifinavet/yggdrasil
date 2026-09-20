@@ -74,6 +74,22 @@ export async function insertStudent(
 	);
 }
 
+export async function insertInternal(
+	t: TestBackend,
+	userId: Id<"users">,
+	position: string,
+	overrides: Partial<WithoutSystemFields<Doc<"internals">>> = {},
+): Promise<Id<"internals">> {
+	return t.run((ctx) =>
+		ctx.db.insert("internals", {
+			userId,
+			position,
+			group: "Styret",
+			...overrides,
+		}),
+	);
+}
+
 export async function givePointsTo(
 	t: TestBackend,
 	studentId: Id<"students">,
