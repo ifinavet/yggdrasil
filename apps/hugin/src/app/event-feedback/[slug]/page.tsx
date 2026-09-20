@@ -81,12 +81,9 @@ export default async function EventResponse({
 				<p className="m-0 mb-3 text-[13.5px] text-muted-foreground tabular-nums">
 					{humanReadableDate(new Date(event.eventStart))}
 				</p>
-				<p className="m-0 mb-2 text-[14.5px] leading-normal">
+				<p className="m-0 text-[14.5px] leading-normal">
 					Takk for at du kom! {questionCountWord} kjappe spørsmål, det tar under et minutt. Svarene
 					går bare til Navet og bedriften.
-				</p>
-				<p className="m-0 text-[13px] text-muted-foreground">
-					Alle spørsmålene må besvares, bortsett fra det siste.
 				</p>
 			</div>
 
