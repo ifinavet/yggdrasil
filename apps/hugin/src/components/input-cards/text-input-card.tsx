@@ -48,6 +48,8 @@ export function TextInputCard({
 			/>
 			<span
 				id={counterId}
+				role="status"
+				aria-live="polite"
 				className="mt-1.5 block text-right text-[12px] text-muted-foreground tabular-nums"
 			>
 				{value.length} / 1000
