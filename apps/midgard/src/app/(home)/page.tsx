@@ -1,4 +1,5 @@
 import { Button } from "@workspace/ui/components/button";
+import ResponsiveCenterContainer from "@workspace/ui/components/responsive-center-container";
 import { Info } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -6,7 +7,6 @@ import { Suspense } from "react";
 import { FacebookIcon, InstagramIcon, LinkedinIcon } from "@/assets/icons/social";
 import Navet_Logo from "@/assets/navet/logo_n_blaa.webp";
 import Navet from "@/assets/promo_images/navet.webp";
-import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
 import TwoColumns from "@/components/common/two-columns";
 import EventsCarousel from "@/components/home/events-carousel";
 import JobListings from "@/components/home/job-listings";

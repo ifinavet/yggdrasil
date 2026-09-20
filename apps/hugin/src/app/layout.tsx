@@ -1,9 +1,10 @@
 import ClerkProvider from "@workspace/auth/provider";
 import { PostHogPageView } from "@workspace/auth/telemetry-client";
+import Footer from "@workspace/ui/components/footer";
 import { Toaster } from "@workspace/ui/components/sonner";
+import { eina } from "@workspace/ui/fonts/eina-font";
+import { ThemeProvider } from "@workspace/ui/providers/theme-provider";
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import { ThemeProvider } from "next-themes";
 import { Suspense } from "react";
 import "./globals.css";
 import Header from "@/components/header";
@@ -22,11 +23,6 @@ export const metadata: Metadata = {
 	},
 };
 
-const interSans = Inter({
-	display: "swap",
-	subsets: ["latin"],
-});
-
 export default function RootLayout({
 	children,
 }: Readonly<{
@@ -34,22 +30,18 @@ export default function RootLayout({
 }>) {
 	return (
 		<html lang="nb" suppressHydrationWarning>
-			<body className={`antialiased ${interSans.className}`}>
+			<body className={`${eina.className} antialiased`}>
 				<Suspense fallback={null}>
 					<PostHogProvider>
 						<ClerkProvider>
 							<ConvexClientProvider>
-								<ThemeProvider
-									attribute="class"
-									defaultTheme="system"
-									enableSystem
-									disableTransitionOnChange
-								>
-									<main className="wrap-break-word mx-6 min-w-0 max-w-5xl whitespace-normal text-balance lg:mx-auto">
+								<ThemeProvider>
+									<div className="flex h-screen flex-col overflow-y-auto">
 										<Header />
-										{children}
-									</main>
-									<Toaster richColors position="bottom-right" />
+										<main className="mb-12 flex-1">{children}</main>
+										<Footer />
+										<Toaster richColors position="bottom-right" />
+									</div>
 									<Suspense fallback={null}>
 										<PostHogPageView site="hugin" />
 									</Suspense>

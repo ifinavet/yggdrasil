@@ -1,7 +1,7 @@
 import { Button } from "@workspace/ui/components/button";
+import ResponsiveCenterContainer from "@workspace/ui/components/responsive-center-container";
 import { Home } from "lucide-react";
 import Link from "next/link";
-import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
 
 export default function NotFound() {
 	return (

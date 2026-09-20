@@ -1,8 +1,8 @@
 import { SignIn } from "@workspace/auth/client";
 import { auth } from "@workspace/auth/server";
+import ResponsiveCenterContainer from "@workspace/ui/components/responsive-center-container";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
 
 export default async function SignInPage() {
 	const { isAuthenticated } = await auth();

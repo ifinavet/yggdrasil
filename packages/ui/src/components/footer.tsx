@@ -1,5 +1,6 @@
 import { Button } from "@workspace/ui/components/button";
 import ThemeSwitcher from "@workspace/ui/components/theme-switcher";
+import { midgardUrl } from "@workspace/ui/lib/urls";
 import Link from "next/link";
 
 export default function Footer() {
@@ -19,7 +20,7 @@ export default function Footer() {
 						className="text-base text-primary-foreground"
 						asChild
 					>
-						<Link href="/info/personvernerklaering">Personvernerklæring</Link>
+						<Link href={`${midgardUrl}/info/personvernerklaering`}>Personvernerklæring</Link>
 					</Button>
 					<Button
 						type="button"
@@ -27,7 +28,7 @@ export default function Footer() {
 						className="text-base text-primary-foreground"
 						asChild
 					>
-						<Link href="/info/retningslinjer">Retningslinjer</Link>
+						<Link href={`${midgardUrl}/info/retningslinjer`}>Retningslinjer</Link>
 					</Button>
 					<Button
 						type="button"
@@ -35,7 +36,7 @@ export default function Footer() {
 						className="text-base text-primary-foreground"
 						asChild
 					>
-						<Link href="/info/vedtekter">Vedtekter</Link>
+						<Link href={`${midgardUrl}/info/vedtekter`}>Vedtekter</Link>
 					</Button>
 					<ThemeSwitcher />
 				</div>

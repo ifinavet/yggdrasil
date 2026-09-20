@@ -3,14 +3,14 @@ import "./globals.css";
 import { nbNO } from "@clerk/localizations";
 import ClerkProvider from "@workspace/auth/provider";
 import { PostHogPageView } from "@workspace/auth/telemetry-client";
+import Footer from "@workspace/ui/components/footer";
 import { Toaster } from "@workspace/ui/components/sonner";
+import { eina } from "@workspace/ui/fonts/eina-font";
+import { ThemeProvider } from "@workspace/ui/providers/theme-provider";
 import { Suspense } from "react";
 import { Consent } from "@/components/common/consent";
-import { eina } from "@/components/common/eina-font";
-import Footer from "@/components/common/footer";
 import Header from "@/components/common/header";
 import ConvexClientProvider from "@/providers/convex-clerk-provider";
-import { ThemeProvider } from "@/providers/theme-provider";
 
 const defaultUrl = process.env.VERCEL_URL
 	? `https://${process.env.VERCEL_URL}`
@@ -37,7 +37,7 @@ export default function RootLayout({
 				<Suspense fallback={null}>
 					<ClerkProvider localization={nbNO}>
 						<ConvexClientProvider>
-							<ThemeProvider attribute="class" defaultTheme="light" disableTransitionOnChange>
+							<ThemeProvider>
 								<div className="flex h-screen flex-col overflow-y-auto">
 									<Header />
 									<main className="mb-12 flex-1">{children}</main>

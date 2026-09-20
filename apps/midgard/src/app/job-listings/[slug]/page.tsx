@@ -1,12 +1,12 @@
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { Button } from "@workspace/ui/components/button";
+import ResponsiveCenterContainer from "@workspace/ui/components/responsive-center-container";
+import { Title } from "@workspace/ui/components/title";
 import { fetchQuery } from "convex/nextjs";
 import { BriefcaseBusiness, CalendarDays } from "lucide-react";
 import Image from "next/image";
-import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
 import SanitizeHtml from "@/components/common/sanitize-html";
-import { Title } from "@/components/common/title";
 import { notFoundOnConvexError } from "@/lib/notFoundOnConvexError";
 import { humanReadableDateTime } from "@/utils/dateFormatting";
 

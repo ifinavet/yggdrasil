@@ -1,5 +1,5 @@
+import ResponsiveCenterContainer from "@workspace/ui/components/responsive-center-container";
 import { Skeleton } from "@workspace/ui/components/skeleton";
-import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
 import ButtonSkeleton from "../button-skeleton";
 import JobListingCardSkeleton from "../job-listing-card-skeleton";
 

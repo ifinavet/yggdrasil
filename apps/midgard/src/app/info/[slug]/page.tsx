@@ -1,9 +1,9 @@
 import { api } from "@workspace/backend/convex/api";
+import ResponsiveCenterContainer from "@workspace/ui/components/responsive-center-container";
+import { Title } from "@workspace/ui/components/title";
 import { fetchQuery } from "convex/nextjs";
 import { cacheLife } from "next/cache";
-import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
 import SanitizeHtml from "@/components/common/sanitize-html";
-import { Title } from "@/components/common/title";
 import { notFoundOnConvexError } from "@/lib/notFoundOnConvexError";
 
 export default async function Page({
