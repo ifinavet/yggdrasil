@@ -3,6 +3,10 @@ import { Textarea } from "@workspace/ui/components/textarea";
 import { cn } from "@workspace/ui/lib/utils";
 import { fieldErrorText, isFieldInvalid, QuestionBlock, questionIds } from "./question-block";
 
+const MAX_LENGTH = 1000;
+/** Start announcing only once the answer gets close to the limit. */
+const ANNOUNCE_FROM = 900;
+
 export function TextInputCard({
 	field,
 	number,
@@ -20,6 +24,7 @@ export function TextInputCard({
 	const value = String(field.state.value ?? "");
 	const counterId = `${field.name}-counter`;
 	const { promptId, errorId } = questionIds(field.name);
+	const nearLimit = value.length >= ANNOUNCE_FROM;
 
 	return (
 		<QuestionBlock
@@ -36,7 +41,7 @@ export function TextInputCard({
 				onBlur={field.handleBlur}
 				onChange={(event) => field.handleChange(event.target.value)}
 				placeholder={placeholder}
-				maxLength={1000}
+				maxLength={MAX_LENGTH}
 				aria-labelledby={promptId}
 				aria-invalid={invalid}
 				aria-required={required}
@@ -49,10 +54,10 @@ export function TextInputCard({
 			<span
 				id={counterId}
 				role="status"
-				aria-live="polite"
+				aria-live={nearLimit ? "polite" : "off"}
 				className="mt-1.5 block text-right text-[12px] text-muted-foreground tabular-nums"
 			>
-				{value.length} / 1000
+				{value.length} / {MAX_LENGTH}
 			</span>
 		</QuestionBlock>
 	);
