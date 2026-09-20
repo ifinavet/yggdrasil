@@ -58,7 +58,10 @@ export function EventResponseForm({
 			}
 
 			try {
-				formResponseMutation({
+				// Await the write: the response page reads it back straight away, and
+				// navigating before the mutation is confirmed told a student who had
+				// just answered that they had not answered.
+				await formResponseMutation({
 					formId,
 					data: {
 						userId,
