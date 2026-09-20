@@ -18,4 +18,4 @@ overrides:
 # on, so a pin younger than the cooldown fails every Dependabot run in the repo,
 # and the error surfaces in whichever unrelated pull request happens to run next.
 minimumReleaseAgeExclude:
-  - convex-test
+  - convex-test@0.0.59
