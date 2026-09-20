@@ -139,7 +139,9 @@ export function EventResponseForm({
 					</div>
 				)}
 
-				<div className="pb-[34px]">
+				{/* Bottom clearance must exceed the sticky dock, or the last question
+				    can never scroll clear of it and taps land on submit. */}
+				<div className="pb-[110px]">
 					{ratingQuestions.map((question) => (
 						<form.Field key={question.id} name={question.id}>
 							{(field) => (
@@ -161,6 +163,7 @@ export function EventResponseForm({
 									label={question.label}
 									hint={question.hint}
 									placeholder={question.placeholder}
+									required={!question.optional}
 								/>
 							)}
 						</form.Field>
@@ -203,7 +206,7 @@ export function EventResponseForm({
 					>
 						{isSubmitting ? (
 							<span className="flex items-center">
-								<span className="mr-2 inline-block size-4 animate-spin rounded-full border-2 border-[color-mix(in_oklab,var(--primary-foreground)_40%,transparent)] border-t-primary-foreground align-[-3px]" />
+								<span className="mr-2 inline-block size-4 animate-spin rounded-full border-2 border-[color-mix(in_oklab,var(--primary-foreground)_40%,transparent)] border-t-primary-foreground align-[-3px]" />{" "}
 								Sender …
 							</span>
 						) : (

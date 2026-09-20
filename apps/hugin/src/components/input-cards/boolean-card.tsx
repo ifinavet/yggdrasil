@@ -2,7 +2,7 @@ import type { AnyFieldApi } from "@tanstack/react-form";
 import { Label } from "@workspace/ui/components/label";
 import { RadioGroup, RadioGroupItem } from "@workspace/ui/components/radio-group";
 import { cn } from "@workspace/ui/lib/utils";
-import { fieldErrorText, isFieldInvalid, QuestionBlock } from "./question-block";
+import { fieldErrorText, isFieldInvalid, QuestionBlock, questionIds } from "./question-block";
 
 const CHOICES = [
 	{ value: "ja", text: "Ja" },
@@ -11,6 +11,7 @@ const CHOICES = [
 
 export function BooleanCard({ field, label }: Readonly<{ field: AnyFieldApi; label: string }>) {
 	const invalid = isFieldInvalid(field);
+	const { promptId, errorId } = questionIds(field.name);
 
 	return (
 		<QuestionBlock name={field.name} label={label} invalid={invalid} error={fieldErrorText(field)}>
@@ -18,6 +19,10 @@ export function BooleanCard({ field, label }: Readonly<{ field: AnyFieldApi; lab
 				value={field.state.value}
 				onValueChange={(next) => field.handleChange(next)}
 				className="grid grid-cols-2 gap-2"
+				aria-labelledby={promptId}
+				aria-describedby={invalid ? errorId : undefined}
+				aria-invalid={invalid}
+				aria-required
 			>
 				{CHOICES.map(({ value, text }) => {
 					const id = `${field.name}_${value}`;

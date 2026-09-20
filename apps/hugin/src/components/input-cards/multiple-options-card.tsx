@@ -4,7 +4,7 @@ import { Textarea } from "@workspace/ui/components/textarea";
 import { cn } from "@workspace/ui/lib/utils";
 import { Check } from "lucide-react";
 import { useState } from "react";
-import { fieldErrorText, isFieldInvalid, QuestionBlock } from "./question-block";
+import { fieldErrorText, isFieldInvalid, QuestionBlock, questionIds } from "./question-block";
 
 const ROW_CLASS =
 	"flex cursor-pointer items-center gap-3 rounded-xl border px-[14px] py-[13px] transition-[background-color,border-color] duration-150";
@@ -26,6 +26,8 @@ export function MultipleOptionsCard({
 
 	const [otherChecked, setOtherChecked] = useState(otherValue !== undefined);
 	const [otherText, setOtherText] = useState(otherValue ?? "");
+
+	const { promptId, errorId } = questionIds(field.name);
 
 	const otherIndex = values.findIndex((value) => !options.includes(value));
 
@@ -72,7 +74,11 @@ export function MultipleOptionsCard({
 
 	return (
 		<QuestionBlock name={field.name} label={label} invalid={invalid} error={fieldErrorText(field)}>
-			<div className="grid gap-2">
+			<fieldset
+				aria-labelledby={promptId}
+				aria-describedby={invalid ? errorId : undefined}
+				className="m-0 grid gap-2 border-0 p-0"
+			>
 				{options.map((option, index) => {
 					const checked = values.includes(option);
 					const optionId = `${field.name}_${index}`;
@@ -153,7 +159,7 @@ export function MultipleOptionsCard({
 						/>
 					</div>
 				)}
-			</div>
+			</fieldset>
 		</QuestionBlock>
 	);
 }

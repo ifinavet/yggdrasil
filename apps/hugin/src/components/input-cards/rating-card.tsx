@@ -2,7 +2,7 @@ import type { AnyFieldApi } from "@tanstack/react-form";
 import { Label } from "@workspace/ui/components/label";
 import { RadioGroup, RadioGroupItem } from "@workspace/ui/components/radio-group";
 import { cn } from "@workspace/ui/lib/utils";
-import { fieldErrorText, isFieldInvalid, QuestionBlock } from "./question-block";
+import { fieldErrorText, isFieldInvalid, QuestionBlock, questionIds } from "./question-block";
 
 const CELL_CLASS =
 	"relative grid h-[54px] cursor-pointer place-items-center rounded-xl border bg-card font-semibold text-[15px] transition-[background-color,border-color,color,transform] duration-150 active:scale-[0.97] peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[color-mix(in_oklab,var(--ring)_55%,transparent)]";
@@ -20,6 +20,7 @@ export function RatingCard({
 }>) {
 	const invalid = isFieldInvalid(field);
 	const value = Number(field.state.value);
+	const { promptId, errorId } = questionIds(field.name);
 
 	return (
 		<QuestionBlock name={field.name} label={label} invalid={invalid} error={fieldErrorText(field)}>
@@ -27,6 +28,10 @@ export function RatingCard({
 				value={String(value)}
 				onValueChange={(next) => field.handleChange(Number.parseInt(next, 10))}
 				className="grid gap-2"
+				aria-labelledby={promptId}
+				aria-describedby={invalid ? errorId : undefined}
+				aria-invalid={invalid}
+				aria-required
 			>
 				<div className="grid grid-cols-5 gap-1.5">
 					{[1, 2, 3, 4, 5].map((rating) => {

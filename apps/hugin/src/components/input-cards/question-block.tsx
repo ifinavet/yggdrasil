@@ -14,6 +14,11 @@ export function fieldErrorText(field: AnyFieldApi): string | undefined {
 		.join(", ");
 }
 
+/** The labelled prompt and error element ids for one question. */
+export function questionIds(name: string) {
+	return { promptId: `${name}-prompt`, errorId: `${name}-error` };
+}
+
 export function isFieldInvalid(field: AnyFieldApi): boolean {
 	return field.state.meta.isTouched && !field.state.meta.isValid;
 }
@@ -40,6 +45,8 @@ export function QuestionBlock({
 	error?: string;
 	children: ReactNode;
 }>) {
+	const { promptId, errorId } = questionIds(name);
+
 	return (
 		<div
 			data-question={name}
@@ -47,6 +54,7 @@ export function QuestionBlock({
 			className="mt-[22px] scroll-mt-[130px] border-border border-t pt-[22px] first:mt-0 first:border-t-0 first:pt-2"
 		>
 			<span
+				id={promptId}
 				className={cn(
 					"mb-3 block font-semibold text-[15px] leading-[1.35]",
 					invalid ? "text-destructive" : "text-foreground",
@@ -60,7 +68,11 @@ export function QuestionBlock({
 				</span>
 			)}
 			{children}
-			{error && <p className="mt-2.5 font-medium text-[13px] text-destructive">{error}</p>}
+			{error && (
+				<p id={errorId} className="mt-2.5 font-medium text-[13px] text-destructive">
+					{error}
+				</p>
+			)}
 		</div>
 	);
 }

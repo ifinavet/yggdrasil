@@ -1,23 +1,26 @@
 import type { AnyFieldApi } from "@tanstack/react-form";
 import { Textarea } from "@workspace/ui/components/textarea";
 import { cn } from "@workspace/ui/lib/utils";
-import { fieldErrorText, isFieldInvalid, QuestionBlock } from "./question-block";
+import { fieldErrorText, isFieldInvalid, QuestionBlock, questionIds } from "./question-block";
 
 export function TextInputCard({
 	field,
 	label,
 	hint,
 	placeholder,
+	required,
 }: Readonly<{
 	field: AnyFieldApi;
 	label: string;
 	hint?: string;
 	placeholder: string;
+	required?: boolean;
 }>) {
 	const invalid = isFieldInvalid(field);
 	const value = String(field.state.value ?? "");
 	const hintId = `${field.name}-hint`;
 	const counterId = `${field.name}-counter`;
+	const { promptId, errorId } = questionIds(field.name);
 
 	return (
 		<QuestionBlock
@@ -36,8 +39,10 @@ export function TextInputCard({
 				onChange={(event) => field.handleChange(event.target.value)}
 				placeholder={placeholder}
 				maxLength={1000}
+				aria-labelledby={promptId}
 				aria-invalid={invalid}
-				aria-describedby={cn(hint && hintId, counterId)}
+				aria-required={required}
+				aria-describedby={cn(hint && hintId, counterId, invalid && errorId)}
 				className={cn(
 					"block min-h-[104px] w-full resize-none rounded-xl bg-card px-[14px] py-[13px] text-[15px] leading-[1.45] transition-[border-color,box-shadow] placeholder:text-[color-mix(in_oklab,var(--muted-foreground)_78%,var(--card))] focus:border-ring focus:shadow-[0_0_0_3px_color-mix(in_oklab,var(--ring)_32%,transparent)] focus:outline-none",
 					invalid ? "border-destructive" : "border-input",
