@@ -136,9 +136,11 @@ export default async function EventPage({
 										key={organizer.id}
 										className="flex flex-wrap items-center gap-4 rounded-xl bg-zinc-100 px-6 py-4 dark:bg-zinc-800"
 									>
-										<img
+										<Image
 											src={organizer.imageUrl}
 											alt={organizer.name}
+											width={64}
+											height={64}
 											className="aspect-square max-h-16 max-w-16 rounded-full"
 											loading="lazy"
 										/>

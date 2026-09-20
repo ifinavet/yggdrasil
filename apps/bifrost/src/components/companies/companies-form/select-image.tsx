@@ -101,13 +101,15 @@ export default function SelectImage({ field }: Readonly<{ field: ImageField }>) 
 										onClick={() => selectImage(image._id, image.name)}
 										className={`m-auto flex h-24 w-24 flex-col justify-center hover:cursor-pointer ${image._id === selectedImageId ? "rounded-md outline-2 outline-primary" : ""}`}
 									>
-										<img
-											src={image.imageUrl ?? ""}
-											alt={image.name}
-											width={400}
-											height={400}
-											className="justify-center object-contain p-2"
-										/>
+										{image.imageUrl && (
+											<Image
+												src={image.imageUrl}
+												alt={image.name}
+												width={400}
+												height={400}
+												className="justify-center object-contain p-2"
+											/>
+										)}
 									</button>
 								))}
 							</div>

@@ -200,7 +200,7 @@ export default function UpdateProfileForm({
 										onBlur={field.handleBlur}
 										onChange={(e) => {
 											const numeric = e.target.value.replaceAll(/\D/g, "");
-											field.handleChange(Number.parseInt(numeric));
+											field.handleChange(Number.parseInt(numeric, 10));
 										}}
 										type="number"
 										min={1}

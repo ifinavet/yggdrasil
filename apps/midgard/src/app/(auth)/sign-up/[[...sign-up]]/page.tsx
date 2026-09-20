@@ -571,7 +571,7 @@ function ClerkSignUpPage() {
 											name={field.name}
 											value={field.state.value}
 											onBlur={field.handleBlur}
-											onChange={(e) => field.handleChange(Number.parseInt(e.target.value))}
+											onChange={(e) => field.handleChange(Number.parseInt(e.target.value, 10))}
 											type="number"
 											min={1}
 											max={5}
