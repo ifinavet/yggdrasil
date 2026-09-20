@@ -3,7 +3,7 @@
 	"vcs": {
 		"enabled": true,
 		"clientKind": "git",
-		"useIgnoreFile": false,
+		"useIgnoreFile": true,
 		"defaultBranch": "main"
 	},
 	"files": {
@@ -17,6 +17,7 @@
 			"!**/dist",
 			"!**/build",
 			"!**/.git",
+			"!**/.claude",
 			"!**/coverage",
 			"!**/*.svg",
 			"!**/*.min.js",
