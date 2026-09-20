@@ -9,12 +9,22 @@ const CHOICES = [
 	{ value: "nei", text: "Nei" },
 ] as const;
 
-export function BooleanCard({ field, label }: Readonly<{ field: AnyFieldApi; label: string }>) {
+export function BooleanCard({
+	field,
+	number,
+	label,
+}: Readonly<{ field: AnyFieldApi; number: number; label: string }>) {
 	const invalid = isFieldInvalid(field);
 	const { promptId, errorId } = questionIds(field.name);
 
 	return (
-		<QuestionBlock name={field.name} label={label} invalid={invalid} error={fieldErrorText(field)}>
+		<QuestionBlock
+			name={field.name}
+			number={number}
+			label={label}
+			invalid={invalid}
+			error={fieldErrorText(field)}
+		>
 			<RadioGroup
 				value={field.state.value}
 				onValueChange={(next) => field.handleChange(next)}

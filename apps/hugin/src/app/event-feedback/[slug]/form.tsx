@@ -17,11 +17,8 @@ import {
 } from "@/components/input-cards";
 import {
 	missingRequiredFields,
-	optionsQuestion,
-	ratingQuestions,
+	questionOrder,
 	requiredQuestionCount,
-	textQuestions,
-	yesNoQuestion,
 } from "@/lib/event-feedback-questions";
 import { eventResponseFromSchema } from "@/lib/schema/event-feedback-schema";
 
@@ -117,7 +114,7 @@ export function EventResponseForm({
 			noValidate
 		>
 			<div className="flex-1">
-				<div className="sticky top-[104px] z-4 flex items-center gap-2.5 bg-background py-3">
+				<div className="sticky top-0 z-4 flex items-center gap-2.5 bg-background py-3">
 					<span className="whitespace-nowrap font-semibold text-[12.5px] text-muted-foreground tabular-nums">
 						{answered} av {requiredQuestionCount} besvart
 					</span>
@@ -145,45 +142,64 @@ export function EventResponseForm({
 				{/* Bottom clearance must exceed the sticky dock, or the last question
 				    can never scroll clear of it and taps land on submit. */}
 				<div className="pb-[110px]">
-					{ratingQuestions.map((question) => (
-						<form.Field key={question.id} name={question.id}>
-							{(field) => (
-								<RatingCard
-									field={field}
-									label={question.label}
-									low={question.low}
-									high={question.high}
-								/>
-							)}
-						</form.Field>
-					))}
+					{questionOrder.map((entry, index) => {
+						const number = index + 1;
 
-					{textQuestions.map((question) => (
-						<form.Field key={question.id} name={question.id}>
-							{(field) => (
-								<TextInputCard
-									field={field}
-									label={question.label}
-									placeholder={question.placeholder}
-									required={!question.optional}
-								/>
-							)}
-						</form.Field>
-					))}
+						if (entry.kind === "rating") {
+							return (
+								<form.Field key={entry.question.id} name={entry.question.id}>
+									{(field) => (
+										<RatingCard
+											field={field}
+											number={number}
+											label={entry.question.label}
+											low={entry.question.low}
+											high={entry.question.high}
+										/>
+									)}
+								</form.Field>
+							);
+						}
 
-					<form.Field name={yesNoQuestion.id}>
-						{(field) => <BooleanCard field={field} label={yesNoQuestion.label} />}
-					</form.Field>
+						if (entry.kind === "text") {
+							return (
+								<form.Field key={entry.question.id} name={entry.question.id}>
+									{(field) => (
+										<TextInputCard
+											field={field}
+											number={number}
+											label={entry.question.label}
+											placeholder={entry.question.placeholder}
+											required={!entry.question.optional}
+										/>
+									)}
+								</form.Field>
+							);
+						}
 
-					<form.Field name={optionsQuestion.id}>
-						{(field) => (
-							<MultipleOptionsCard
-								field={field}
-								label={optionsQuestion.label}
-								options={optionsQuestion.options}
-							/>
-						)}
-					</form.Field>
+						if (entry.kind === "yesNo") {
+							return (
+								<form.Field key={entry.question.id} name={entry.question.id}>
+									{(field) => (
+										<BooleanCard field={field} number={number} label={entry.question.label} />
+									)}
+								</form.Field>
+							);
+						}
+
+						return (
+							<form.Field key={entry.question.id} name={entry.question.id}>
+								{(field) => (
+									<MultipleOptionsCard
+										field={field}
+										number={number}
+										label={entry.question.label}
+										options={entry.question.options}
+									/>
+								)}
+							</form.Field>
+						);
+					})}
 				</div>
 			</div>
 

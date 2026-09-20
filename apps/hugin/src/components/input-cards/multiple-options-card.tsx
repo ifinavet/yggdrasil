@@ -7,16 +7,18 @@ import { useState } from "react";
 import { fieldErrorText, isFieldInvalid, QuestionBlock, questionIds } from "./question-block";
 
 const ROW_CLASS =
-	"flex cursor-pointer items-center gap-3 rounded-xl border px-[14px] py-[13px] transition-[background-color,border-color] duration-150";
+	"relative flex cursor-pointer items-center gap-3 rounded-xl border px-[14px] py-[13px] transition-[background-color,border-color] duration-150";
 const BOX_CLASS =
 	"grid size-[22px] flex-none place-items-center rounded-md border-[1.5px] transition-[background-color,border-color,color] duration-150 peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[color-mix(in_oklab,var(--ring)_55%,transparent)]";
 
 export function MultipleOptionsCard({
 	field,
+	number,
 	label,
 	options,
 }: Readonly<{
 	field: AnyFieldApi;
+	number: number;
 	label: string;
 	options: readonly string[];
 }>) {
@@ -73,7 +75,13 @@ export function MultipleOptionsCard({
 	};
 
 	return (
-		<QuestionBlock name={field.name} label={label} invalid={invalid} error={fieldErrorText(field)}>
+		<QuestionBlock
+			name={field.name}
+			number={number}
+			label={label}
+			invalid={invalid}
+			error={fieldErrorText(field)}
+		>
 			<fieldset
 				aria-labelledby={promptId}
 				aria-describedby={invalid ? errorId : undefined}

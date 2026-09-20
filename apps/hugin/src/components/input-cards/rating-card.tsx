@@ -9,11 +9,13 @@ const CELL_CLASS =
 
 export function RatingCard({
 	field,
+	number,
 	label,
 	low,
 	high,
 }: Readonly<{
 	field: AnyFieldApi;
+	number: number;
 	label: string;
 	low: string;
 	high: string;
@@ -23,7 +25,13 @@ export function RatingCard({
 	const { promptId, errorId } = questionIds(field.name);
 
 	return (
-		<QuestionBlock name={field.name} label={label} invalid={invalid} error={fieldErrorText(field)}>
+		<QuestionBlock
+			name={field.name}
+			number={number}
+			label={label}
+			invalid={invalid}
+			error={fieldErrorText(field)}
+		>
 			<RadioGroup
 				value={String(value)}
 				onValueChange={(next) => field.handleChange(Number.parseInt(next, 10))}

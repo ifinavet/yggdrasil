@@ -82,8 +82,7 @@ export default async function EventResponse({
 					{humanReadableDate(new Date(event.eventStart))}
 				</p>
 				<p className="m-0 text-[14.5px] leading-normal">
-					Takk for at du kom! {questionCountWord} kjappe spørsmål, det tar under et minutt. Svarene
-					går bare til bedriften.
+					Takk for at du kom! {questionCountWord} kjappe spørsmål, det tar under et minutt.
 				</p>
 			</div>
 

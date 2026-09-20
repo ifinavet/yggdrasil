@@ -5,11 +5,13 @@ import { fieldErrorText, isFieldInvalid, QuestionBlock, questionIds } from "./qu
 
 export function TextInputCard({
 	field,
+	number,
 	label,
 	placeholder,
 	required,
 }: Readonly<{
 	field: AnyFieldApi;
+	number: number;
 	label: string;
 	placeholder: string;
 	required?: boolean;
@@ -20,7 +22,13 @@ export function TextInputCard({
 	const { promptId, errorId } = questionIds(field.name);
 
 	return (
-		<QuestionBlock name={field.name} label={label} invalid={invalid} error={fieldErrorText(field)}>
+		<QuestionBlock
+			name={field.name}
+			number={number}
+			label={label}
+			invalid={invalid}
+			error={fieldErrorText(field)}
+		>
 			<Textarea
 				id={field.name}
 				name={field.name}

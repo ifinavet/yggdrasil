@@ -44,7 +44,11 @@ export function ReadonlyEventResponseForm({ data }: Readonly<{ data: ResponseDat
 			<div className="flex-1">
 				{ratingQuestions.map((question) => (
 					<AnswerRow key={question.id} label={question.label}>
-						<div className="grid grid-cols-5 gap-1.5">
+						<p className="sr-only">
+							Svart {data[question.id]} av 5, der 1 er {question.low.toLowerCase()} og 5 er{" "}
+							{question.high.toLowerCase()}.
+						</p>
+						<div aria-hidden="true" className="grid grid-cols-5 gap-1.5">
 							{[1, 2, 3, 4, 5].map((rating) => (
 								<span
 									key={rating}
@@ -59,7 +63,10 @@ export function ReadonlyEventResponseForm({ data }: Readonly<{ data: ResponseDat
 								</span>
 							))}
 						</div>
-						<div className="mt-2 flex justify-between gap-3 text-[12.5px] text-muted-foreground">
+						<div
+							aria-hidden="true"
+							className="mt-2 flex justify-between gap-3 text-[12.5px] text-muted-foreground"
+						>
 							<span className="max-w-[46%]">{question.low}</span>
 							<span className="max-w-[46%] text-right">{question.high}</span>
 						</div>

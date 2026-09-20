@@ -80,8 +80,6 @@ export const optionsQuestion = {
 	],
 } as const;
 
-export const questionCount = ratingQuestions.length + textQuestions.length + 2;
-
 export const requiredFieldNames = [
 	...ratingQuestions.map((question) => question.id),
 	...textQuestions.filter((question) => !question.optional).map((question) => question.id),
@@ -90,6 +88,28 @@ export const requiredFieldNames = [
 ] as const;
 
 export const requiredQuestionCount = requiredFieldNames.length;
+
+export type FeedbackQuestion =
+	| { kind: "rating"; question: (typeof ratingQuestions)[number] }
+	| { kind: "text"; question: TextQuestion }
+	| { kind: "yesNo"; question: typeof yesNoQuestion }
+	| { kind: "options"; question: typeof optionsQuestion };
+
+/**
+ * The order the student reads, and therefore the number each question carries.
+ * The optional question is last, so the numbers count what is on screen.
+ */
+export const questionOrder: readonly FeedbackQuestion[] = [
+	...ratingQuestions.map((question) => ({ kind: "rating" as const, question })),
+	{ kind: "text", question: toughtsQuestion },
+	{ kind: "text", question: improvementsQuestion },
+	{ kind: "yesNo", question: yesNoQuestion },
+	{ kind: "options", question: optionsQuestion },
+	{ kind: "text", question: otherQuestion },
+];
+
+/** Every question on screen, optional ones included. */
+export const questionCount = questionOrder.length;
 
 const NUMBER_WORDS = [
 	"null",

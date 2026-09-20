@@ -8,6 +8,7 @@ export default function HuginHeader() {
 	return (
 		<Header
 			homeHref={midgardUrl}
+			sticky={false}
 			navigation={
 				<Button asChild size="icon" variant="link" className="text-primary-foreground">
 					<Link href={`${midgardUrl}/profile`} aria-label="Profil">

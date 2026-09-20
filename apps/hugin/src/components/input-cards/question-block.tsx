@@ -24,18 +24,20 @@ export function isFieldInvalid(field: AnyFieldApi): boolean {
 }
 
 /**
- * One question on the sheet: label, the control, and the error
- * line. Questions are separated by a hairline instead of a card each, so the
- * block owns its own divider.
+ * One question on the sheet: its number, label, the control, and the error
+ * line. Questions are held apart by space rather than a rule, so the spacing
+ * carries the rhythm.
  */
 export function QuestionBlock({
 	name,
+	number,
 	label,
 	invalid,
 	error,
 	children,
 }: Readonly<{
 	name: string;
+	number: number;
 	label: string;
 	invalid: boolean;
 	error?: string;
@@ -47,7 +49,7 @@ export function QuestionBlock({
 		<div
 			data-question={name}
 			data-invalid={invalid}
-			className="mt-[22px] scroll-mt-[130px] border-border border-t pt-[22px] first:mt-0 first:border-t-0 first:pt-2"
+			className="mt-[22px] scroll-mt-[56px] pt-[22px] first:mt-0 first:pt-2"
 		>
 			<span
 				id={promptId}
@@ -56,7 +58,7 @@ export function QuestionBlock({
 					invalid ? "text-destructive" : "text-foreground",
 				)}
 			>
-				{label}
+				{number}. {label}
 			</span>
 			{children}
 			{error && (
