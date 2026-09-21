@@ -11,9 +11,9 @@
     "check:fix": "biome check . --write"
   },
   "dependencies": {
-    "@clerk/localizations": "^4.16.1",
-    "@clerk/nextjs": "^7.9.2",
-    "@sentry/nextjs": "^10.70.0",
+    "@clerk/localizations": "^4.17.1",
+    "@clerk/nextjs": "^7.9.4",
+    "@sentry/nextjs": "^10.75.0",
     "@tanstack/react-form": "^1.33.5",
     "@tanstack/react-table": "^8.21.3",
     "@workspace/auth": "workspace:*",
@@ -21,11 +21,11 @@
     "@workspace/next-config": "workspace:*",
     "@workspace/shared": "workspace:*",
     "@workspace/ui": "workspace:*",
-    "convex": "^1.45.0",
+    "convex": "^1.46.0",
     "lucide-react": "^0.525.0",
     "next": "16.3.5",
     "next-themes": "^0.4.6",
-    "posthog-js": "^1.430.3",
+    "posthog-js": "^1.434.0",
     "qrcode.react": "^4.2.0",
     "radix-ui": "^1.6.7",
     "react": "19.3.0",
@@ -35,7 +35,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.13",
+    "@biomejs/biome": "2.5.14",
     "@tailwindcss/postcss": "^4.3.3",
     "@tailwindcss/typography": "^0.5.20",
     "@types/node": "^20.19.43",
