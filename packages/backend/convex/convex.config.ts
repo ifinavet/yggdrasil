@@ -7,8 +7,6 @@ import { v } from "convex/values";
 
 const app = defineApp({
 	env: {
-		FEEDBACK_REPORTS_ENABLED: v.optional(v.string()),
-		FEEDBACK_REPORT_EMAILS_ENABLED: v.optional(v.string()),
 		FEEDBACK_EMAILS_ENABLED: v.optional(v.string()),
 		HUGIN_BASE_URL: v.optional(v.string()),
 	},

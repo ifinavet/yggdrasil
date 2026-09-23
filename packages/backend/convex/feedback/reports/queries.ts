@@ -1,6 +1,7 @@
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
-import { env, query } from "../../_generated/server";
+import { query } from "../../_generated/server";
+import { feedbackConfig } from "../constants";
 import { isReportFeatureEnabled, requireReportAccess } from "./access";
 
 export const getEventReport = query({
@@ -20,8 +21,7 @@ export const getEventReport = query({
 			.unique();
 		return {
 			enabled: true as const,
-			deliveryEnabled:
-				env.FEEDBACK_EMAILS_ENABLED === "true" && env.FEEDBACK_REPORT_EMAILS_ENABLED === "true",
+			deliveryEnabled: feedbackConfig.emailsEnabled && feedbackConfig.reportEmailsEnabled,
 			campaignId: campaign._id,
 			campaignStatus: campaign.status,
 			report: report

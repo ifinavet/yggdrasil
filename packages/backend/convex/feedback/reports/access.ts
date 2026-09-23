@@ -1,8 +1,9 @@
 import { ConvexError } from "convex/values";
 import type { Id } from "../../_generated/dataModel";
-import { env, type QueryCtx } from "../../_generated/server";
+import type { QueryCtx } from "../../_generated/server";
 import { getAccessRole, internalRoles } from "../../auth/accessRights";
 import { getCurrentUserOrThrow } from "../../auth/currentUser";
+import { feedbackConfig } from "../constants";
 
 export async function requireReportAccess(ctx: QueryCtx, eventId: Id<"events">) {
 	const user = await getCurrentUserOrThrow(ctx);
@@ -20,5 +21,5 @@ export async function requireReportAccess(ctx: QueryCtx, eventId: Id<"events">) 
 }
 
 export function isReportFeatureEnabled(): boolean {
-	return env.FEEDBACK_REPORTS_ENABLED === "true";
+	return feedbackConfig.reportsEnabled;
 }

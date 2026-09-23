@@ -14,6 +14,7 @@ import {
 } from "../../../test/fixtures";
 import { api, internal } from "../../_generated/api";
 import { hashLinkToken } from "../../lib/tokens";
+import { feedbackConfig } from "../constants";
 import { defaultFeedbackFields } from "../defaultFields";
 import { feedbackResend } from "../delivery/messages";
 
@@ -105,15 +106,21 @@ async function queued(f: Awaited<ReturnType<typeof fixture>>) {
 beforeEach(() => {
 	vi.useFakeTimers();
 	vi.setSystemTime(now);
-	vi.stubEnv("FEEDBACK_REPORTS_ENABLED", "true");
-	vi.stubEnv("FEEDBACK_EMAILS_ENABLED", "true");
-	vi.stubEnv("FEEDBACK_REPORT_EMAILS_ENABLED", "true");
+	feedbackConfig.reportsEnabled = true;
+	feedbackConfig.emailsEnabled = true;
+	feedbackConfig.reportEmailsEnabled = true;
 	vi.stubEnv("APP_ENV", "local");
 	vi.stubEnv("CONVEX_CLOUD_URL", "http://127.0.0.1:3210");
 });
 afterEach(() => {
 	vi.useRealTimers();
 	vi.unstubAllEnvs();
+	Object.assign(feedbackConfig, {
+		emailsEnabled: false,
+		reportsEnabled: false,
+		reportEmailsEnabled: false,
+		huginBaseUrl: "https://hugin.ifinavet.no",
+	});
 });
 
 describe("company feedback reports", () => {
@@ -210,9 +217,9 @@ describe("company feedback reports", () => {
 	it("keeps public links independent of flags and denies revoked, expired, malformed and unknown links", async () => {
 		const f = await fixture();
 		const reportId = await queued(f);
-		vi.stubEnv("FEEDBACK_REPORTS_ENABLED", "false");
-		vi.stubEnv("FEEDBACK_EMAILS_ENABLED", "false");
-		vi.stubEnv("FEEDBACK_REPORT_EMAILS_ENABLED", "false");
+		feedbackConfig.reportsEnabled = false;
+		feedbackConfig.emailsEnabled = false;
+		feedbackConfig.reportEmailsEnabled = false;
 		expect(
 			await f.t.action(reports.public.resolveReport, { token, paginationOpts }),
 		).not.toBeNull();
@@ -223,7 +230,7 @@ describe("company feedback reports", () => {
 		vi.setSystemTime(now + 86400000);
 		expect(await f.t.action(reports.public.resolveReport, { token, paginationOpts })).toBeNull();
 		vi.setSystemTime(now);
-		vi.stubEnv("FEEDBACK_REPORTS_ENABLED", "true");
+		feedbackConfig.reportsEnabled = true;
 		await f.client.mutation(reports.mutations.revoke, { reportId, revision: 1 });
 		expect(await f.t.action(reports.public.resolveReport, { token, paginationOpts })).toBeNull();
 	});
@@ -247,18 +254,16 @@ describe("company feedback reports", () => {
 		await expect(
 			client.query(reports.queries.getEventReport, { eventId: otherEvent }),
 		).rejects.toThrow("arrangør");
-		for (const flag of [undefined, "false", "TRUE"]) {
-			vi.stubEnv("FEEDBACK_REPORTS_ENABLED", flag);
-			expect(await client.query(reports.queries.getEventReport, { eventId: f.eventId })).toEqual({
-				enabled: false,
-			});
-			await expect(
-				client.query(reports.queries.getReportAnswers, { reportId, paginationOpts }),
-			).rejects.toThrow("slått av");
-			await expect(
-				client.mutation(reports.build.prepare, { campaignId: f.campaignId }),
-			).rejects.toThrow("slått av");
-		}
+		feedbackConfig.reportsEnabled = false;
+		expect(await client.query(reports.queries.getEventReport, { eventId: f.eventId })).toEqual({
+			enabled: false,
+		});
+		await expect(
+			client.query(reports.queries.getReportAnswers, { reportId, paginationOpts }),
+		).rejects.toThrow("slått av");
+		await expect(
+			client.mutation(reports.build.prepare, { campaignId: f.campaignId }),
+		).rejects.toThrow("slått av");
 	});
 	it("refuses premature, retained and expired campaigns, empty reports, and invalid recipients", async () => {
 		const f = await fixture(0);
@@ -292,8 +297,8 @@ describe("company feedback reports", () => {
 	it("rechecks email flags after approval and retries the same locked snapshot", async () => {
 		const f = await fixture();
 		const reportId = await f.prepare();
-		for (const flag of ["FEEDBACK_EMAILS_ENABLED", "FEEDBACK_REPORT_EMAILS_ENABLED"]) {
-			vi.stubEnv(flag, "false");
+		for (const flag of ["emailsEnabled", "reportEmailsEnabled"] as const) {
+			feedbackConfig[flag] = false;
 			await expect(
 				f.client.mutation(reports.mutations.approve, {
 					reportId,
@@ -301,14 +306,14 @@ describe("company feedback reports", () => {
 					recipientEmail: "contact@example.test",
 				}),
 			).rejects.toThrow("slått av");
-			vi.stubEnv(flag, "true");
+			feedbackConfig[flag] = true;
 		}
 		await f.client.mutation(reports.mutations.approve, {
 			reportId,
 			revision: 0,
 			recipientEmail: "contact@example.test",
 		});
-		vi.stubEnv("FEEDBACK_EMAILS_ENABLED", "false");
+		feedbackConfig.emailsEnabled = false;
 		await f.t.mutation(jobs.messages.enqueue, { reportId, token, url: "link", html: "report" });
 		expect(await f.t.run((ctx) => ctx.db.query("feedbackReportLocalEmails").collect())).toEqual([]);
 		expect(await f.t.run((ctx) => ctx.db.get(reportId))).toMatchObject({
@@ -318,7 +323,7 @@ describe("company feedback reports", () => {
 		await expect(
 			f.client.mutation(reports.mutations.retryDelivery, { reportId, revision: 1 }),
 		).rejects.toThrow("slått av");
-		vi.stubEnv("FEEDBACK_EMAILS_ENABLED", "true");
+		feedbackConfig.emailsEnabled = true;
 		await f.client.mutation(reports.mutations.retryDelivery, { reportId, revision: 1 });
 		await f.t.action(jobs.mail.sendReportEmail, { reportId });
 		const captures = await f.t.run((ctx) => ctx.db.query("feedbackReportLocalEmails").collect());
@@ -399,12 +404,12 @@ describe("report boundary cases", () => {
 	});
 	it("starts building only when enabled and ignores stale or expired batch jobs", async () => {
 		const f = await fixture();
-		vi.stubEnv("FEEDBACK_REPORTS_ENABLED", "false");
+		feedbackConfig.reportsEnabled = false;
 		await f.t.mutation(jobs.build.prepareClosedReport, { campaignId: f.campaignId });
 		expect(await f.client.query(reports.queries.getEventReport, { eventId: f.eventId })).toEqual({
 			enabled: false,
 		});
-		vi.stubEnv("FEEDBACK_REPORTS_ENABLED", "true");
+		feedbackConfig.reportsEnabled = true;
 		expect(
 			await f.client.query(reports.queries.getEventReport, { eventId: f.eventId }),
 		).toMatchObject({ report: null });
@@ -470,11 +475,11 @@ describe("report boundary cases", () => {
 				visible: false,
 			}),
 		).rejects.toThrow("finnes ikke");
-		vi.stubEnv("FEEDBACK_REPORTS_ENABLED", "false");
+		feedbackConfig.reportsEnabled = false;
 		await expect(
 			f.client.mutation(reports.mutations.revoke, { reportId, revision: 0 }),
 		).rejects.toThrow("slått av");
-		vi.stubEnv("FEEDBACK_REPORTS_ENABLED", "true");
+		feedbackConfig.reportsEnabled = true;
 		vi.setSystemTime(now + 86400000);
 		await expect(
 			f.client.mutation(reports.mutations.revoke, { reportId, revision: 0 }),
@@ -519,26 +524,26 @@ describe("report boundary cases", () => {
 			recipientEmail: "contact@example.test",
 		});
 		vi.stubEnv("APP_ENV", "test");
-		vi.stubEnv("HUGIN_BASE_URL", "http://example.test");
+		feedbackConfig.huginBaseUrl = "http://example.test";
 		await f.t.action(jobs.mail.sendReportEmail, { reportId });
 		expect(await f.t.run((ctx) => ctx.db.get(reportId))).toMatchObject({
 			status: "approved",
 			deliveryStatus: "failed",
 		});
 		await f.client.mutation(reports.mutations.retryDelivery, { reportId, revision: 1 });
-		vi.stubEnv("HUGIN_BASE_URL", undefined);
+		feedbackConfig.huginBaseUrl = "invalid";
 		await f.t.action(jobs.mail.sendReportEmail, { reportId });
 		expect(await f.t.run((ctx) => ctx.db.get(reportId))).toMatchObject({
 			deliveryStatus: "failed",
 		});
-		vi.stubEnv("FEEDBACK_REPORT_EMAILS_ENABLED", "false");
+		feedbackConfig.reportEmailsEnabled = false;
 		await expect(
 			f.client.mutation(reports.mutations.retryDelivery, { reportId, revision: 1 }),
 		).rejects.toThrow("slått av");
-		vi.stubEnv("FEEDBACK_REPORT_EMAILS_ENABLED", "true");
+		feedbackConfig.reportEmailsEnabled = true;
 		await f.client.mutation(reports.mutations.retryDelivery, { reportId, revision: 1 });
 		vi.stubEnv("APP_ENV", "local");
-		vi.stubEnv("HUGIN_BASE_URL", "http://localhost:3003");
+		feedbackConfig.huginBaseUrl = "https://hugin.ifinavet.no";
 		await f.t.action(jobs.mail.sendReportEmail, { reportId });
 		await f.t.mutation(jobs.messages.failed, { reportId });
 		expect(await f.t.run((ctx) => ctx.db.get(reportId))).toMatchObject({
@@ -554,7 +559,7 @@ describe("report boundary cases", () => {
 			recipientEmail: "contact@example.test",
 		});
 		vi.stubEnv("APP_ENV", "test");
-		vi.stubEnv("HUGIN_BASE_URL", "https://hugin.example.test");
+		feedbackConfig.huginBaseUrl = "https://hugin.example.test";
 		feedbackResend.config.apiKey = "re_test";
 		await f.t.action(jobs.mail.sendReportEmail, { reportId });
 		const report = await f.t.run((ctx) => ctx.db.get(reportId));
@@ -616,12 +621,12 @@ describe("report boundary cases", () => {
 			revision: 0,
 			recipientEmail: "contact@example.test",
 		});
-		vi.stubEnv("FEEDBACK_REPORT_EMAILS_ENABLED", "false");
+		feedbackConfig.reportEmailsEnabled = false;
 		await f.t.mutation(jobs.messages.enqueue, { reportId, token, url: "", html: "" });
 		expect(await f.t.run((ctx) => ctx.db.get(reportId))).toMatchObject({
 			deliveryStatus: "failed",
 		});
-		vi.stubEnv("FEEDBACK_REPORT_EMAILS_ENABLED", "true");
+		feedbackConfig.reportEmailsEnabled = true;
 		await f.client.mutation(reports.mutations.retryDelivery, { reportId, revision: 1 });
 		vi.setSystemTime(now + 86400000);
 		await f.t.mutation(jobs.messages.enqueue, { reportId, token, url: "", html: "" });

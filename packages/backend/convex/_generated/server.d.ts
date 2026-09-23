@@ -31,8 +31,6 @@ type Env = {
   readonly CONVEX_CLOUD_URL: string;
   readonly CONVEX_SITE_URL: string;
   readonly FEEDBACK_EMAILS_ENABLED: string | undefined;
-  readonly FEEDBACK_REPORTS_ENABLED: string | undefined;
-  readonly FEEDBACK_REPORT_EMAILS_ENABLED: string | undefined;
   readonly HUGIN_BASE_URL: string | undefined;
 };
 

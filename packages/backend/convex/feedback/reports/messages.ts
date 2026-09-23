@@ -1,8 +1,9 @@
 import { feedbackTokenSchema } from "@workspace/shared/feedback";
 import { v } from "convex/values";
-import { env, internalMutation, internalQuery } from "../../_generated/server";
+import { internalMutation, internalQuery } from "../../_generated/server";
 import { isLocalDevelopment } from "../../auth/local";
 import { hashLinkToken } from "../../lib/tokens";
+import { feedbackConfig } from "../constants";
 import { feedbackResend } from "../delivery/messages";
 
 export const getDelivery = internalQuery({
@@ -22,8 +23,8 @@ export const enqueue = internalMutation({
 			return;
 		if (
 			Date.now() >= report.retentionAt ||
-			env.FEEDBACK_EMAILS_ENABLED !== "true" ||
-			env.FEEDBACK_REPORT_EMAILS_ENABLED !== "true"
+			!feedbackConfig.emailsEnabled ||
+			!feedbackConfig.reportEmailsEnabled
 		) {
 			await ctx.db.patch(report._id, { deliveryStatus: "failed" });
 			return;

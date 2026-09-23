@@ -5,9 +5,10 @@ import FeedbackReportEmail from "@workspace/emails/feedback-report-email";
 import { formatFeedbackDate } from "@workspace/shared/feedback/time";
 import { v } from "convex/values";
 import { internal } from "../../_generated/api";
-import { env, internalAction } from "../../_generated/server";
+import { internalAction } from "../../_generated/server";
 import { isLocalDevelopment } from "../../auth/local";
 import { generateLinkToken } from "../../lib/tokens";
+import { feedbackConfig } from "../constants";
 
 export const sendReportEmail = internalAction({
 	args: { reportId: v.id("feedbackReports") },
@@ -18,7 +19,7 @@ export const sendReportEmail = internalAction({
 			});
 			if (!report) return;
 			const origin = new URL(
-				env.HUGIN_BASE_URL ?? (isLocalDevelopment() ? "http://localhost:3003" : ""),
+				isLocalDevelopment() ? "http://localhost:3003" : feedbackConfig.huginBaseUrl,
 			);
 			if (origin.protocol !== "https:" && !isLocalDevelopment())
 				throw new Error("HUGIN_BASE_URL must use HTTPS");
