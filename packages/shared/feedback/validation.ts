@@ -89,7 +89,14 @@ export function feedbackAnswersSchema(fields: FeedbackField[]) {
 				: schema.optional(),
 		);
 	}
-	return z.strictObject(shape, { error: "Svaret inneholder ukjente felt." });
+	return z.preprocess(
+		// Only submitted own properties are answers; inherited properties are omitted.
+		(data) =>
+			data !== null && typeof data === "object" && !Array.isArray(data)
+				? Object.assign(Object.create(null), data)
+				: data,
+		z.strictObject(shape, { error: "Svaret inneholder ukjente felt." }),
+	);
 }
 
 export function validateFeedbackFields(fields: unknown): string | null {

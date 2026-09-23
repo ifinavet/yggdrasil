@@ -1,6 +1,7 @@
 import {
 	emptyFeedbackAnswers,
 	type FeedbackField,
+	feedbackAnswersSchema,
 	feedbackErrors,
 	feedbackPrefill,
 	validateFeedbackFields,
@@ -28,6 +29,24 @@ describe("feedback contracts", () => {
 	it("permits omitted optional fields and rejects unknown keys", () => {
 		expect(feedbackErrors([{ ...field, required: false }], {})).toEqual({});
 		expect(feedbackErrors([field], { score: 5, unknown: 1 })).toHaveProperty("_form");
+	});
+	it("treats inherited answers as omitted", () => {
+		const optional = [{ ...field, required: false }];
+		const inheritedInvalid = Object.create({ score: "invalid" });
+		expect(feedbackAnswersSchema(optional).safeParse(inheritedInvalid).success).toBe(true);
+		expect(feedbackErrors(optional, inheritedInvalid)).toEqual({});
+		expect(feedbackErrors([field], Object.create({ score: 5 }))).toEqual({
+			score: "Fyll inn et svar",
+		});
+	});
+	it("validates own answers and unknown keys even when the payload has a prototype", () => {
+		const data = Object.assign(Object.create({ score: "invalid", inherited: true }), { score: 5 });
+		expect(feedbackErrors([field], data)).toEqual({});
+		data.score = 6;
+		expect(feedbackErrors([field], data)).toHaveProperty("score");
+		data.score = 5;
+		data.unknown = true;
+		expect(feedbackErrors([field], data)).toHaveProperty("_form");
 	});
 	it("validates text, yes/no and options", () => {
 		const fields: [FeedbackField, FeedbackField, FeedbackField] = [
