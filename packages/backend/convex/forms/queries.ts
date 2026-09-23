@@ -2,6 +2,8 @@ import { v } from "convex/values";
 import { query } from "../_generated/server";
 import { internalRoles, requireRole } from "../auth/accessRights";
 import { getCurrentUserOrThrow } from "../auth/currentUser";
+import { canSubmitEventFeedback } from "./access";
+import { findUserResponse } from "./responses";
 
 /**
  * Fetches all responses for a form.
@@ -43,19 +45,7 @@ export const getCurrentUsersResponseByFormId = query({
 	handler: async (ctx, { formId }) => {
 		const user = await getCurrentUserOrThrow(ctx);
 
-		const responses = await ctx.db
-			.query("formResponses")
-			.withIndex("by_formId", (q) => q.eq("formId", formId))
-			.collect();
-
-		const response = responses.find((r) => {
-			const data = r.data;
-			const userId = data.userId as string | undefined;
-
-			return userId === user.externalId;
-		});
-
-		return response;
+		return await findUserResponse(ctx, formId, user.externalId);
 	},
 });
 
@@ -74,32 +64,6 @@ export const checkIfCurrentUserAttendedTheEventAndShouldBeAbleToSubmit = query({
 	handler: async (ctx, { eventId }) => {
 		const user = await getCurrentUserOrThrow(ctx);
 
-		const event = await ctx.db.get(eventId);
-
-		if (!event) return false;
-
-		// Check if the user is an organizer
-		const organizers = await ctx.db
-			.query("eventOrganizers")
-			.withIndex("by_eventId", (q) => q.eq("eventId", event._id))
-			.filter((q) => q.eq(q.field("userId"), user._id))
-			.first();
-
-		if (organizers) return true;
-
-		// Check if the user is an attendant
-		const attendance = await ctx.db
-			.query("registrations")
-			.withIndex("by_eventId", (q) => q.eq("eventId", event._id))
-			.filter((q) => q.eq(q.field("userId"), user._id))
-			.first();
-
-		if (!attendance) return false;
-
-		if (attendance.attendanceStatus === undefined || attendance.attendanceStatus === "no_show") {
-			return false;
-		}
-
-		return true;
+		return await canSubmitEventFeedback(ctx, eventId, user._id);
 	},
 });

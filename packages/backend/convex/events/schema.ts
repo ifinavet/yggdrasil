@@ -24,7 +24,8 @@ export const eventsSchema = {
 	})
 		.index("by_eventStart", ["eventStart"])
 		.index("by_registrationOpens", ["registrationOpens"])
-		.index("by_slug", ["slug"]),
+		.index("by_slug", ["slug"])
+		.index("by_formId", ["formId"]),
 
 	eventOrganizers: defineTable({
 		eventId: v.id("events"),
@@ -48,5 +49,6 @@ export const eventsSchema = {
 		.index("by_eventId", ["eventId"])
 		.index("by_eventIdAndRegistrationTime", ["eventId", "registrationTime"])
 		.index("by_eventIdStatusAndRegistrationTime", ["eventId", "status", "registrationTime"])
-		.index("by_userId", ["userId"]),
+		.index("by_userId", ["userId"])
+		.index("by_eventId_and_userId", ["eventId", "userId"]),
 };
