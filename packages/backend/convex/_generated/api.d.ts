@@ -44,7 +44,7 @@ import type * as pages_mutations from "../pages/mutations.js";
 import type * as pages_queries from "../pages/queries.js";
 import type * as points_mutations from "../points/mutations.js";
 import type * as points_queries from "../points/queries.js";
-import type * as semesterPlanning_helper from "../semesterPlanning/helper.js";
+import type * as semesterPlanning_applicationLifecycle from "../semesterPlanning/applicationLifecycle.js";
 import type * as semesterPlanning_rules from "../semesterPlanning/rules.js";
 import type * as users_clerk_http from "../users/clerk/http.js";
 import type * as users_clerk_mutations from "../users/clerk/mutations.js";
@@ -97,7 +97,7 @@ declare const fullApi: ApiFromModules<{
   "pages/queries": typeof pages_queries;
   "points/mutations": typeof points_mutations;
   "points/queries": typeof points_queries;
-  "semesterPlanning/helper": typeof semesterPlanning_helper;
+  "semesterPlanning/applicationLifecycle": typeof semesterPlanning_applicationLifecycle;
   "semesterPlanning/rules": typeof semesterPlanning_rules;
   "users/clerk/http": typeof users_clerk_http;
   "users/clerk/mutations": typeof users_clerk_mutations;

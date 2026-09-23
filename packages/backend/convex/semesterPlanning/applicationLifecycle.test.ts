@@ -9,13 +9,13 @@ import {
 	setup,
 } from "../../test/fixtures";
 import {
-	findLiveApplicationOnDate,
-	logActivity,
+	findActiveApplicationOnDate,
+	logApplicationActivity,
 	supersedePendingOffers,
-	transitionStatus,
-} from "./helper";
+	transitionApplicationStatus,
+} from "./applicationLifecycle";
 
-describe("transitionStatus", () => {
+describe("transitionApplicationStatus", () => {
 	it("changes the status and writes exactly one history row", async () => {
 		const { t } = await setup();
 		const editor = await insertUser(t, "kari@ifinavet.no");
@@ -25,7 +25,7 @@ describe("transitionStatus", () => {
 		await t.run(async (ctx) => {
 			const application = await ctx.db.get(applicationId);
 			if (!application) throw new Error("missing");
-			await transitionStatus(
+			await transitionApplicationStatus(
 				ctx,
 				application,
 				"rejected",
@@ -60,7 +60,7 @@ describe("transitionStatus", () => {
 		await t.run(async (ctx) => {
 			const application = await ctx.db.get(applicationId);
 			if (!application) throw new Error("missing");
-			await transitionStatus(
+			await transitionApplicationStatus(
 				ctx,
 				application,
 				"applied",
@@ -85,7 +85,7 @@ describe("transitionStatus", () => {
 			.run(async (ctx) => {
 				const application = await ctx.db.get(applicationId);
 				if (!application) throw new Error("missing");
-				await transitionStatus(ctx, application, "confirmed", { type: "company" });
+				await transitionApplicationStatus(ctx, application, "confirmed", { type: "company" });
 			})
 			.catch((caught: unknown) => caught);
 
@@ -98,15 +98,15 @@ describe("transitionStatus", () => {
 	});
 });
 
-describe("logActivity", () => {
+describe("logApplicationActivity", () => {
 	it("records the actor without a user for companies and the system", async () => {
 		const { t } = await setup();
 		const semesterId = await insertSemester(t);
 		const applicationId = await insertApplication(t, semesterId);
 
 		await t.run(async (ctx) => {
-			await logActivity(ctx, applicationId, "submitted", { type: "company" });
-			await logActivity(
+			await logApplicationActivity(ctx, applicationId, "submitted", { type: "company" });
+			await logApplicationActivity(
 				ctx,
 				applicationId,
 				"date_assigned",
@@ -123,7 +123,7 @@ describe("logActivity", () => {
 	});
 });
 
-describe("findLiveApplicationOnDate", () => {
+describe("findActiveApplicationOnDate", () => {
 	it("finds the live application holding a date and ignores closed ones and the caller", async () => {
 		const { t } = await setup();
 		const semesterId = await insertSemester(t);
@@ -138,16 +138,16 @@ describe("findLiveApplicationOnDate", () => {
 			assignedDate: "2027-02-09",
 		});
 
-		const found = await t.run((ctx) => findLiveApplicationOnDate(ctx, semesterId, "2027-02-09"));
+		const found = await t.run((ctx) => findActiveApplicationOnDate(ctx, semesterId, "2027-02-09"));
 		expect(found?._id).toBe(holderId);
 
 		const exceptSelf = await t.run((ctx) =>
-			findLiveApplicationOnDate(ctx, semesterId, "2027-02-09", holderId),
+			findActiveApplicationOnDate(ctx, semesterId, "2027-02-09", holderId),
 		);
 		expect(exceptSelf).toBeNull();
 
 		expect(
-			await t.run((ctx) => findLiveApplicationOnDate(ctx, semesterId, "2027-02-16")),
+			await t.run((ctx) => findActiveApplicationOnDate(ctx, semesterId, "2027-02-16")),
 		).toBeNull();
 	});
 });

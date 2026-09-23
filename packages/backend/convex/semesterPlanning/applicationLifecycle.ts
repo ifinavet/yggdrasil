@@ -1,7 +1,12 @@
 import { ConvexError, type Infer } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
-import { type ApplicationStatus, canTransition, isLiveStatus, STATUS_LABELS } from "./rules";
+import {
+	type ApplicationStatus,
+	canTransition,
+	isActiveApplicationStatus,
+	STATUS_LABELS,
+} from "./rules";
 import type { activityActor, applicationActivityType } from "./schema";
 
 /** Who performed an activity. A Navet member is also recorded by user id. */
@@ -25,7 +30,7 @@ type ActivityDetails = Pick<
  *
  * @returns {Promise<Id<"companyApplicationActivity">>} - The id of the new history row.
  */
-export async function logActivity(
+export async function logApplicationActivity(
 	ctx: MutationCtx,
 	applicationId: Id<"companyApplications">,
 	type: Infer<typeof applicationActivityType>,
@@ -54,7 +59,7 @@ export async function logActivity(
  * @throws - An error if the change is not allowed from the current status.
  * @returns {Promise<void>} - Resolves when the status and history are written.
  */
-export async function transitionStatus(
+export async function transitionApplicationStatus(
 	ctx: MutationCtx,
 	application: Doc<"companyApplications">,
 	to: ApplicationStatus,
@@ -71,7 +76,7 @@ export async function transitionStatus(
 	}
 
 	await ctx.db.patch(application._id, { ...options.patch, status: to });
-	await logActivity(ctx, application._id, "status_changed", actor, {
+	await logApplicationActivity(ctx, application._id, "status_changed", actor, {
 		fromStatus: from,
 		toStatus: to,
 		...(options.offerId ? { offerId: options.offerId } : {}),
@@ -89,7 +94,7 @@ export async function transitionStatus(
  *
  * @returns {Promise<Doc<"companyApplications"> | null>} - The application holding the date, or null.
  */
-export async function findLiveApplicationOnDate(
+export async function findActiveApplicationOnDate(
 	ctx: QueryCtx | MutationCtx,
 	semesterId: Id<"semesters">,
 	date: string,
@@ -104,7 +109,8 @@ export async function findLiveApplicationOnDate(
 
 	return (
 		onDate.find(
-			(application) => application._id !== exceptId && isLiveStatus(application.status),
+			(application) =>
+				application._id !== exceptId && isActiveApplicationStatus(application.status),
 		) ?? null
 	);
 }
