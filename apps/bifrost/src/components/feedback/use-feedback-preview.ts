@@ -1,5 +1,7 @@
 "use client";
 
+import { featureFlags } from "@workspace/shared/feature-flags";
+
 import { feedbackConfig } from "@workspace/shared/feedback/constants";
 import { useSyncExternalStore } from "react";
 
@@ -8,7 +10,7 @@ function subscribe(onChange: () => void) {
 	return () => window.removeEventListener("storage", onChange);
 }
 function isEnabled() {
-	if (feedbackConfig.uiEnabled) return true;
+	if (featureFlags.huginFeedback.uiEnabled) return true;
 	try {
 		return localStorage.getItem(feedbackConfig.previewStorageKey) === "true";
 	} catch {
@@ -16,5 +18,5 @@ function isEnabled() {
 	}
 }
 export function useFeedbackPreviewEnabled() {
-	return useSyncExternalStore(subscribe, isEnabled, () => feedbackConfig.uiEnabled);
+	return useSyncExternalStore(subscribe, isEnabled, () => featureFlags.huginFeedback.uiEnabled);
 }

@@ -1,4 +1,5 @@
 import type { EmailEvent, EmailId } from "@convex-dev/resend";
+import { featureFlags } from "@workspace/shared/feature-flags";
 import { reportHighlights } from "@workspace/shared/feedback/report";
 import { feedbackReportCsv } from "@workspace/shared/feedback/report-csv";
 import { toBase64 } from "@workspace/shared/utils";
@@ -109,21 +110,21 @@ async function queued(f: Awaited<ReturnType<typeof fixture>>) {
 beforeEach(() => {
 	vi.useFakeTimers();
 	vi.setSystemTime(now);
-	feedbackConfig.reportsEnabled = true;
-	feedbackConfig.emailsEnabled = true;
-	feedbackConfig.reportEmailsEnabled = true;
+	featureFlags.huginFeedback.reportsEnabled = true;
+	featureFlags.huginFeedback.emailsEnabled = true;
+	featureFlags.huginFeedback.reportEmailsEnabled = true;
 	vi.stubEnv("APP_ENV", "local");
 	vi.stubEnv("CONVEX_CLOUD_URL", "http://127.0.0.1:3210");
 });
 afterEach(() => {
 	vi.useRealTimers();
 	vi.unstubAllEnvs();
-	Object.assign(feedbackConfig, {
+	Object.assign(featureFlags.huginFeedback, {
 		emailsEnabled: false,
 		reportsEnabled: false,
 		reportEmailsEnabled: false,
-		huginBaseUrl: "https://hugin.ifinavet.no",
 	});
+	feedbackConfig.huginBaseUrl = "https://hugin.ifinavet.no";
 });
 
 describe("company feedback reports", () => {
@@ -256,9 +257,9 @@ describe("company feedback reports", () => {
 	it("keeps public links independent of flags and denies revoked, expired, malformed and unknown links", async () => {
 		const f = await fixture();
 		const reportId = await queued(f);
-		feedbackConfig.reportsEnabled = false;
-		feedbackConfig.emailsEnabled = false;
-		feedbackConfig.reportEmailsEnabled = false;
+		featureFlags.huginFeedback.reportsEnabled = false;
+		featureFlags.huginFeedback.emailsEnabled = false;
+		featureFlags.huginFeedback.reportEmailsEnabled = false;
 		expect(
 			await f.t.action(reports.public.resolveReport, { token, paginationOpts }),
 		).not.toBeNull();
@@ -269,7 +270,7 @@ describe("company feedback reports", () => {
 		vi.setSystemTime(now + 86400000);
 		expect(await f.t.action(reports.public.resolveReport, { token, paginationOpts })).toBeNull();
 		vi.setSystemTime(now);
-		feedbackConfig.reportsEnabled = true;
+		featureFlags.huginFeedback.reportsEnabled = true;
 		await f.client.mutation(reports.mutations.revoke, { reportId, revision: 1 });
 		expect(await f.t.action(reports.public.resolveReport, { token, paginationOpts })).toBeNull();
 	});
@@ -293,7 +294,7 @@ describe("company feedback reports", () => {
 		await expect(
 			client.query(reports.queries.getEventReport, { eventId: otherEvent }),
 		).rejects.toThrow("arrangør");
-		feedbackConfig.reportsEnabled = false;
+		featureFlags.huginFeedback.reportsEnabled = false;
 		expect(await client.query(reports.queries.getEventReport, { eventId: f.eventId })).toEqual({
 			enabled: false,
 		});
@@ -337,7 +338,7 @@ describe("company feedback reports", () => {
 		const f = await fixture();
 		const reportId = await f.prepare();
 		for (const flag of ["emailsEnabled", "reportEmailsEnabled"] as const) {
-			feedbackConfig[flag] = false;
+			featureFlags.huginFeedback[flag] = false;
 			await expect(
 				f.client.mutation(reports.mutations.approve, {
 					reportId,
@@ -345,14 +346,14 @@ describe("company feedback reports", () => {
 					recipientEmail: "contact@example.test",
 				}),
 			).rejects.toThrow("slått av");
-			feedbackConfig[flag] = true;
+			featureFlags.huginFeedback[flag] = true;
 		}
 		await f.client.mutation(reports.mutations.approve, {
 			reportId,
 			revision: 0,
 			recipientEmail: "contact@example.test",
 		});
-		feedbackConfig.emailsEnabled = false;
+		featureFlags.huginFeedback.emailsEnabled = false;
 		await f.t.mutation(jobs.messages.enqueue, { reportId, token, url: "link", html: "report" });
 		expect(await f.t.run((ctx) => ctx.db.query("feedbackReportLocalEmails").collect())).toEqual([]);
 		expect(await f.t.run((ctx) => ctx.db.get(reportId))).toMatchObject({
@@ -362,7 +363,7 @@ describe("company feedback reports", () => {
 		await expect(
 			f.client.mutation(reports.mutations.retryDelivery, { reportId, revision: 1 }),
 		).rejects.toThrow("slått av");
-		feedbackConfig.emailsEnabled = true;
+		featureFlags.huginFeedback.emailsEnabled = true;
 		await f.client.mutation(reports.mutations.retryDelivery, { reportId, revision: 1 });
 		await f.t.action(jobs.mail.sendReportEmail, { reportId });
 		const captures = await f.t.run((ctx) => ctx.db.query("feedbackReportLocalEmails").collect());
@@ -453,12 +454,12 @@ describe("report boundary cases", () => {
 	});
 	it("starts building only when enabled and ignores stale or expired batch jobs", async () => {
 		const f = await fixture();
-		feedbackConfig.reportsEnabled = false;
+		featureFlags.huginFeedback.reportsEnabled = false;
 		await f.t.mutation(jobs.build.prepareClosedReport, { campaignId: f.campaignId });
 		expect(await f.client.query(reports.queries.getEventReport, { eventId: f.eventId })).toEqual({
 			enabled: false,
 		});
-		feedbackConfig.reportsEnabled = true;
+		featureFlags.huginFeedback.reportsEnabled = true;
 		expect(
 			await f.client.query(reports.queries.getEventReport, { eventId: f.eventId }),
 		).toMatchObject({ report: null });
@@ -524,11 +525,11 @@ describe("report boundary cases", () => {
 				visible: false,
 			}),
 		).rejects.toThrow("finnes ikke");
-		feedbackConfig.reportsEnabled = false;
+		featureFlags.huginFeedback.reportsEnabled = false;
 		await expect(
 			f.client.mutation(reports.mutations.revoke, { reportId, revision: 0 }),
 		).rejects.toThrow("slått av");
-		feedbackConfig.reportsEnabled = true;
+		featureFlags.huginFeedback.reportsEnabled = true;
 		vi.setSystemTime(now + 86400000);
 		await expect(
 			f.client.mutation(reports.mutations.revoke, { reportId, revision: 0 }),
@@ -585,11 +586,11 @@ describe("report boundary cases", () => {
 		expect(await f.t.run((ctx) => ctx.db.get(reportId))).toMatchObject({
 			deliveryStatus: "failed",
 		});
-		feedbackConfig.reportEmailsEnabled = false;
+		featureFlags.huginFeedback.reportEmailsEnabled = false;
 		await expect(
 			f.client.mutation(reports.mutations.retryDelivery, { reportId, revision: 1 }),
 		).rejects.toThrow("slått av");
-		feedbackConfig.reportEmailsEnabled = true;
+		featureFlags.huginFeedback.reportEmailsEnabled = true;
 		await f.client.mutation(reports.mutations.retryDelivery, { reportId, revision: 1 });
 		vi.stubEnv("APP_ENV", "local");
 		feedbackConfig.huginBaseUrl = "https://hugin.ifinavet.no";
@@ -670,12 +671,12 @@ describe("report boundary cases", () => {
 			revision: 0,
 			recipientEmail: "contact@example.test",
 		});
-		feedbackConfig.reportEmailsEnabled = false;
+		featureFlags.huginFeedback.reportEmailsEnabled = false;
 		await f.t.mutation(jobs.messages.enqueue, { reportId, token, url: "", html: "" });
 		expect(await f.t.run((ctx) => ctx.db.get(reportId))).toMatchObject({
 			deliveryStatus: "failed",
 		});
-		feedbackConfig.reportEmailsEnabled = true;
+		featureFlags.huginFeedback.reportEmailsEnabled = true;
 		await f.client.mutation(reports.mutations.retryDelivery, { reportId, revision: 1 });
 		vi.setSystemTime(now + 86400000);
 		await f.t.mutation(jobs.messages.enqueue, { reportId, token, url: "", html: "" });

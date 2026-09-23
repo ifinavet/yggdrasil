@@ -1,4 +1,5 @@
 import type { EmailEvent, EmailId } from "@convex-dev/resend";
+import { featureFlags } from "@workspace/shared/feature-flags";
 import { feedbackOpensAt, feedbackRoundAt } from "@workspace/shared/feedback/time";
 import { Webhook } from "svix";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -13,7 +14,6 @@ import {
 } from "../../../test/fixtures";
 import { api, internal } from "../../_generated/api";
 import { hashLinkToken } from "../../lib/tokens";
-import { feedbackConfig } from "../constants";
 import { syncFeedbackCampaign } from "./campaigns";
 import { cancelInvitationEmails, feedbackResend } from "./messages";
 
@@ -83,12 +83,12 @@ async function fixture() {
 beforeEach(() => {
 	vi.useFakeTimers();
 	vi.setSystemTime(opensAt);
-	feedbackConfig.emailsEnabled = true;
+	featureFlags.huginFeedback.emailsEnabled = true;
 	vi.stubEnv("APP_ENV", "local");
 	vi.stubEnv("CONVEX_CLOUD_URL", "http://127.0.0.1:3210");
 });
 afterEach(() => {
-	feedbackConfig.emailsEnabled = false;
+	featureFlags.huginFeedback.emailsEnabled = false;
 	vi.clearAllTimers();
 	vi.useRealTimers();
 	vi.unstubAllEnvs();
@@ -142,7 +142,7 @@ describe("feedback delivery", () => {
 	});
 	it("does not render or queue mail with the master flag disabled", async () => {
 		const { t, args, email } = await fixture();
-		feedbackConfig.emailsEnabled = false;
+		featureFlags.huginFeedback.emailsEnabled = false;
 		await t.action(send, args);
 		expect(await t.mutation(messages.enqueueEmail, email)).toBeNull();
 		expect(await t.run((ctx) => ctx.db.query("feedbackDeliveries").collect())).toEqual([]);
