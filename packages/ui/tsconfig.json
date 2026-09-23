@@ -1,6 +1,9 @@
 {
 	"extends": "@workspace/typescript-config/react-library.json",
 	"compilerOptions": {
+		"module": "ESNext",
+		"moduleResolution": "bundler",
+		"types": ["next/image-types/global"],
 		"baseUrl": ".",
 		"paths": {
 			"@workspace/ui/*": ["./src/*"]
