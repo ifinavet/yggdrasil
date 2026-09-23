@@ -42,19 +42,22 @@ const students = z
 	.min(1, "Oppgi minst 1 student.")
 	.max(MAX_STUDENTS, `Oppgi høyst ${MAX_STUDENTS} studenter.`);
 
+/** The company's contact person. The offer email goes to this address. */
+export const applicationContactSchema = z.object({
+	name: text(100, "Skriv navnet til kontaktpersonen."),
+	email: email("Skriv en gyldig e-postadresse til kontaktpersonen."),
+	phone: z
+		.string({ error: "Skriv et gyldig telefonnummer." })
+		.trim()
+		.regex(/^\+?[\d ]{8,20}$/, "Skriv et gyldig telefonnummer."),
+});
+
 export const applicationFormSchema = z
 	.object({
 		orgNumber: z
 			.string({ error: "Velg bedriften fra Enhetsregisteret." })
 			.regex(/^\d{9}$/, "Velg bedriften fra Enhetsregisteret."),
-		contact: z.object({
-			name: text(100, "Skriv navnet til kontaktpersonen."),
-			email: email("Skriv en gyldig e-postadresse til kontaktpersonen."),
-			phone: z
-				.string({ error: "Skriv et gyldig telefonnummer." })
-				.trim()
-				.regex(/^\+?[\d ]{8,20}$/, "Skriv et gyldig telefonnummer."),
-		}),
+		contact: applicationContactSchema,
 		filledInByEmail: email("Skriv en gyldig e-postadresse, eller la feltet stå tomt.").optional(),
 		eventType: z.enum(EVENT_TYPES, { error: "Velg hva slags arrangement dere ønsker." }),
 		minStudents: students,
