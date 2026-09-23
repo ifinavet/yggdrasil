@@ -10,7 +10,6 @@ import { Button } from "@workspace/ui/components//button";
 import { ChartPie, Pencil, Users } from "lucide-react";
 import { headers } from "next/headers";
 import Link from "next/link";
-import { FeedbackPreviewLink } from "@/components/feedback/feedback-preview-link";
 
 export default async function Layout({
 	children,
@@ -57,7 +56,6 @@ export default async function Layout({
 							<Users className="size-4" /> Påmeldte
 						</Link>
 					</Button>
-					<FeedbackPreviewLink eventId={event_id} />
 					<Button asChild variant="link" className="text-foreground">
 						<Link href={`/events/${event_id}/report`}>
 							<ChartPie className="size-4" /> Rapport

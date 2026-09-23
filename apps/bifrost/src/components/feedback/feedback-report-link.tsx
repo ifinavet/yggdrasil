@@ -9,7 +9,7 @@ export function FeedbackReportLink({ slug }: Readonly<{ slug: string }>) {
 	if (!enabled) return null;
 	return (
 		<Button asChild variant="outline">
-			<Link href={`/events/${slug}/feedback/report`}>Se rapport</Link>
+			<Link href={`/events/${slug}/feedback/report`}>Forhåndsvis og del bedriftsrapport</Link>
 		</Button>
 	);
 }

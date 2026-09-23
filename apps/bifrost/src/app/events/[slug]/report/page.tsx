@@ -6,6 +6,8 @@ import DegreeChart from "@/components/events/report/cards/degree-chart";
 import ProgramsChart from "@/components/events/report/cards/programs-chart";
 import EventFeedbackFormResponses from "@/components/events/report/form-responses";
 import DegreeTables from "@/components/events/report/table";
+import { FeedbackPreviewLink } from "@/components/feedback/feedback-preview-link";
+import { FeedbackReportLink } from "@/components/feedback/feedback-report-link";
 
 export default async function RapportPage({
 	params,
@@ -59,6 +61,10 @@ export default async function RapportPage({
 			<h3 className="border-b pb-2 font-semibold text-3xl tracking-tight">
 				Bedriftspresentasjons rapport
 			</h3>
+			<div className="flex flex-wrap gap-3">
+				<FeedbackPreviewLink eventId={slug} />
+				<FeedbackReportLink slug={slug} />
+			</div>
 			<h4 className="scroll-m-20 font-semibold text-xl tracking-tight">
 				Grader- og Studieretninger
 			</h4>

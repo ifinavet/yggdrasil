@@ -9,9 +9,9 @@ export function FeedbackPreviewLink({ eventId }: Readonly<{ eventId: string }>) 
 	const enabled = useFeedbackPreviewEnabled();
 	if (!enabled) return null;
 	return (
-		<Button asChild variant="link" className="text-foreground">
+		<Button asChild variant="outline">
 			<Link href={`/events/${eventId}/feedback`}>
-				<MessageSquare className="size-4" /> Tilbakemeldinger
+				<MessageSquare className="size-4" /> Innstillinger for tilbakemeldinger
 			</Link>
 		</Button>
 	);
