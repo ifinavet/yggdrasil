@@ -1,6 +1,7 @@
 import { ConvexError, type Infer } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
+import { editorRoles, requireRole } from "../auth/accessRights";
 import {
 	type ApplicationStatus,
 	canTransition,
@@ -13,6 +14,19 @@ import type { activityActor, applicationActivityType } from "./schema";
 export type Actor =
 	| { type: "internal"; userId: Id<"users"> }
 	| { type: Exclude<Infer<typeof activityActor>, "internal"> };
+
+/**
+ * Requires the caller to be an editor, and returns them as the actor for the history.
+ *
+ * @param {MutationCtx} ctx - The Convex mutation context.
+ *
+ * @throws - An error if the caller is not an editor.
+ * @returns {Promise<Actor>} - The editor as an internal actor.
+ */
+export async function requireEditorActor(ctx: MutationCtx): Promise<Actor> {
+	const user = await requireRole(ctx, editorRoles);
+	return { type: "internal", userId: user._id };
+}
 
 type ActivityDetails = Pick<
 	Doc<"companyApplicationActivity">,

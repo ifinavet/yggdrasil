@@ -1,4 +1,4 @@
-import { ConvexError, v } from "convex/values";
+import { ConvexError, type Infer, v } from "convex/values";
 import type { Doc, Id } from "../../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../../_generated/server";
 import { applicationStatus, presentationEventType } from "../schema";
@@ -29,7 +29,7 @@ export async function requireApplication(
  *
  * @returns {Promise<Doc<"companyApplications">[]>} - The applications, in no particular order.
  */
-export async function applicationsInSemester(
+export async function listApplicationsInSemester(
 	ctx: QueryCtx | MutationCtx,
 	semesterId: Id<"semesters">,
 ): Promise<Doc<"companyApplications">[]> {
@@ -43,7 +43,7 @@ export async function applicationsInSemester(
  * What internal members who are not editors may see of an application: no contact person, no
  * invoice details, no notes and no brreg details beyond the name.
  */
-export const planRow = v.object({
+export const planRowValidator = v.object({
 	_id: v.id("companyApplications"),
 	status: applicationStatus,
 	assignedDate: v.optional(v.string()),
@@ -58,6 +58,8 @@ export const planRow = v.object({
 	eventId: v.optional(v.id("events")),
 });
 
+export type PlanRow = Infer<typeof planRowValidator>;
+
 /**
  * Builds the plan row for an application. Fields are copied one by one, so a new field on the
  * application never leaks into the plan by accident.
@@ -70,7 +72,7 @@ export const planRow = v.object({
 export function toPlanRow(
 	application: Doc<"companyApplications">,
 	responsible: Doc<"users"> | null,
-): typeof planRow.type {
+): PlanRow {
 	return {
 		_id: application._id,
 		status: application.status,

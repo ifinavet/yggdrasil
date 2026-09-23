@@ -326,7 +326,7 @@ describe("linkCompany", () => {
 	});
 });
 
-describe("updatePlanning", () => {
+describe("updatePlanningDetails", () => {
 	it("saves the org-ansvarlig, room, checkboxes and notes, and clears with empty strings", async () => {
 		const { t, semesterId, editor } = await planningSetup();
 		const member = await insertUser(t, "emil@ifinavet.no");
@@ -336,7 +336,7 @@ describe("updatePlanning", () => {
 			internalNotes: "Gammelt",
 		});
 
-		await editor.mutation(mutations.updatePlanning, {
+		await editor.mutation(mutations.updatePlanningDetails, {
 			applicationId,
 			responsibleUserId: member._id,
 			room: "",
@@ -362,7 +362,7 @@ describe("updatePlanning", () => {
 
 		expect(
 			await refusalMessageFrom(
-				editor.mutation(mutations.updatePlanning, {
+				editor.mutation(mutations.updatePlanningDetails, {
 					applicationId,
 					responsibleUserId: student._id,
 				}),

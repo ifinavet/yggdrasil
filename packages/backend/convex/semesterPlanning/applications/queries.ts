@@ -1,9 +1,14 @@
+import { toCompanyProfileOrgNumber } from "@workspace/shared/semester/orgNumber";
 import { v } from "convex/values";
 import { query } from "../../_generated/server";
 import { editorRoles, internalRoles, requireRole } from "../../auth/accessRights";
 import schema from "../../schema";
-import { toCompanyOrgNumber } from "../rules";
-import { applicationsInSemester, planRow, requireApplication, toPlanRow } from "./helper";
+import {
+	listApplicationsInSemester,
+	planRowValidator,
+	requireApplication,
+	toPlanRow,
+} from "./helper";
 
 /**
  * The semester plan for every internal member: dates, companies, status and org-ansvarlig, but
@@ -16,11 +21,11 @@ import { applicationsInSemester, planRow, requireApplication, toPlanRow } from "
  */
 export const getPlan = query({
 	args: { semesterId: v.id("semesters") },
-	returns: v.array(planRow),
+	returns: v.array(planRowValidator),
 	handler: async (ctx, { semesterId }) => {
 		await requireRole(ctx, internalRoles);
 
-		const applications = await applicationsInSemester(ctx, semesterId);
+		const applications = await listApplicationsInSemester(ctx, semesterId);
 		return Promise.all(
 			applications.map(async (application) =>
 				toPlanRow(
@@ -46,7 +51,7 @@ export const listForSemester = query({
 	handler: async (ctx, { semesterId }) => {
 		await requireRole(ctx, editorRoles);
 
-		const applications = await applicationsInSemester(ctx, semesterId);
+		const applications = await listApplicationsInSemester(ctx, semesterId);
 		return applications.sort((a, b) => a._creationTime - b._creationTime);
 	},
 });
@@ -85,7 +90,7 @@ export const get = query({
 			: await ctx.db
 					.query("companies")
 					.withIndex("by_orgNumber", (q) =>
-						q.eq("orgNumber", toCompanyOrgNumber(application.orgNumber)),
+						q.eq("orgNumber", toCompanyProfileOrgNumber(application.orgNumber)),
 					)
 					.first();
 
