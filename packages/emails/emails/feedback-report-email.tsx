@@ -10,7 +10,7 @@ import {
 	Section,
 	Text,
 } from "react-email";
-import { BRAND_PRIMARY_COLOR } from "../constants";
+import { BRAND_PRIMARY_COLOR } from "../constants.js";
 
 export default function FeedbackReportEmail({
 	eventDate,
