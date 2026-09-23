@@ -4,13 +4,7 @@ import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { Button } from "@workspace/ui/components/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@workspace/ui/components/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";
 import { Checkbox } from "@workspace/ui/components/checkbox";
 import { Field, FieldLabel } from "@workspace/ui/components/field";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
@@ -21,12 +15,6 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 const settingsSchema = z.object({ enabled: z.boolean(), formId: z.string() });
-const campaignLabels = {
-	scheduled: "Planlagt",
-	open: "Åpen",
-	closed: "Avsluttet",
-	cancelled: "Avbrutt",
-};
 export function EventFeedbackSettings({ eventId }: { eventId: Id<"events"> }) {
 	const settings = useQuery(api.feedback.events.getEventFeedbackSettings, { eventId });
 	if (!settings) return <p role="status">Henter innstillinger …</p>;
@@ -72,9 +60,6 @@ function SettingsForm({
 		<Card className="max-w-3xl">
 			<CardHeader>
 				<CardTitle>Tilbakemeldinger</CardTitle>
-				<CardDescription>
-					Velg skjema og om deltakerne skal kunne svare. Av som standard.
-				</CardDescription>
 			</CardHeader>
 			<CardContent>
 				<form
@@ -127,10 +112,6 @@ function SettingsForm({
 											</option>
 										))}
 								</select>
-								<p className="text-muted-foreground text-sm">
-									Kun publiserte skjemaer kan velges. Innsamlinger som allerede er opprettet,
-									beholder sin skjemaversjon.
-								</p>
 							</Field>
 						)}
 					</form.Field>
@@ -139,13 +120,6 @@ function SettingsForm({
 							Hent flere skjemaer
 						</Button>
 					)}
-					<p className="text-muted-foreground text-sm">
-						Innsamling:{" "}
-						{settings.campaignStatus
-							? campaignLabels[settings.campaignStatus]
-							: "Ingen innsamling opprettet"}
-						. Utsending av invitasjoner settes opp separat.
-					</p>
 					{saveError && (
 						<p role="alert" className="text-destructive text-sm">
 							{saveError}

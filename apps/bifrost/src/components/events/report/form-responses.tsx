@@ -72,20 +72,13 @@ export default function EventFeedbackFormResponses({
 				responses={responses}
 				filterKey="toughts"
 				title="Hva syntes du om arrangementet og bedriften?"
-				description="Innsendte tanker"
 			/>
 			<TextResponseCard
 				responses={responses}
 				filterKey="improvements"
 				title="Hva kunne gjort arrangementet bedre?"
-				description="Innsendte tanker"
 			/>
-			<TextResponseCard
-				responses={responses}
-				filterKey="other"
-				title="Annet?"
-				description="Innsedte tanker om andre ting"
-			/>
+			<TextResponseCard responses={responses} filterKey="other" title="Annet?" />
 		</div>
 	);
 }
