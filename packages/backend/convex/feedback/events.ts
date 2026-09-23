@@ -1,6 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import { internalRoles, requireRole } from "../auth/accessRights";
+import { syncFeedbackCampaign } from "./delivery/campaigns";
 import { getFeedbackFormOrThrow, getLatestPublishedVersion } from "./forms/helpers";
 
 export const getEventFeedbackSettings = query({
@@ -49,5 +50,6 @@ export const updateEventFeedbackSettings = mutation({
 				throw new ConvexError("Publiser og velg et standardskjema før tilbakemeldinger slås på.");
 		}
 		await ctx.db.patch(eventId, { feedbackEnabled: enabled, feedbackFormId: formId });
+		await syncFeedbackCampaign(ctx, eventId, { requireSchedule: enabled });
 	},
 });

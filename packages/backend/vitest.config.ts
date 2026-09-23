@@ -11,10 +11,11 @@ export default defineConfig({
 				"convex/feedback/forms/{helpers,mutations,queries}.ts",
 				"convex/feedback/responses/{access,actions,mutations,queries}.ts",
 				"convex/feedback/events.ts",
+				"convex/feedback/delivery/{campaigns,messages,mail,workflows,http}.ts",
 			],
 			thresholds: { 100: true },
 		},
-		server: { deps: { inline: ["convex-test"] } },
+		server: { deps: { inline: ["convex-test", "@convex-dev/workflow"] } },
 		include: ["convex/**/*.test.ts"],
 		env: {
 			APP_ENV: "test",
