@@ -1,5 +1,4 @@
 import ClerkProvider from "@workspace/auth/provider";
-import { PostHogPageView } from "@workspace/auth/telemetry-client";
 import { Toaster } from "@workspace/ui/components/sonner";
 import { eina } from "@workspace/ui/fonts/eina-font";
 import { ThemeProvider } from "@workspace/ui/providers/theme-provider";
@@ -8,7 +7,7 @@ import { Suspense } from "react";
 import "./globals.css";
 import Header from "@/components/header";
 import ConvexClientProvider from "@/providers/convex-client-provider";
-import PostHogProvider from "@/providers/posthog-provider";
+import PageTelemetry from "@/providers/page-telemetry";
 
 const defaultUrl = process.env.VERCEL_URL
 	? `https://${process.env.VERCEL_URL}`
@@ -31,10 +30,10 @@ export default function RootLayout({
 		<html lang="nb" suppressHydrationWarning>
 			<body className={`${eina.className} antialiased`}>
 				<Suspense fallback={null}>
-					<PostHogProvider>
-						<ClerkProvider>
-							<ConvexClientProvider>
-								<ThemeProvider>
+					<ClerkProvider>
+						<ConvexClientProvider>
+							<ThemeProvider>
+								<PageTelemetry>
 									<div className="flex h-screen flex-col overflow-y-auto">
 										<Header />
 										<main className="wrap-break-word mx-6 mb-12 min-w-0 max-w-5xl flex-1 whitespace-normal text-balance lg:mx-auto">
@@ -42,13 +41,10 @@ export default function RootLayout({
 										</main>
 										<Toaster richColors position="bottom-right" />
 									</div>
-									<Suspense fallback={null}>
-										<PostHogPageView site="hugin" />
-									</Suspense>
-								</ThemeProvider>
-							</ConvexClientProvider>
-						</ClerkProvider>
-					</PostHogProvider>
+								</PageTelemetry>
+							</ThemeProvider>
+						</ConvexClientProvider>
+					</ClerkProvider>
 				</Suspense>
 			</body>
 		</html>

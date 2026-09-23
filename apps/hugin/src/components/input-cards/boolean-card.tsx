@@ -13,7 +13,8 @@ export function BooleanCard({
 	field,
 	number,
 	label,
-}: Readonly<{ field: AnyFieldApi; number: number; label: string }>) {
+	required = true,
+}: Readonly<{ field: AnyFieldApi; number: number; label: string; required?: boolean }>) {
 	const invalid = isFieldInvalid(field);
 	const { promptId, errorId } = questionIds(field.name);
 
@@ -32,7 +33,7 @@ export function BooleanCard({
 				aria-labelledby={promptId}
 				aria-describedby={invalid ? errorId : undefined}
 				aria-invalid={invalid}
-				aria-required
+				aria-required={required}
 			>
 				{CHOICES.map(({ value, text }) => {
 					const id = `${field.name}_${value}`;
