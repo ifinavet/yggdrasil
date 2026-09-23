@@ -226,7 +226,10 @@ function receiptRows(
 		{ label: "Bedrift", value: `${companyName}, ${form.orgNumber}` },
 		{ label: "Type", value: EVENT_TYPE_LABELS[form.eventType] },
 		{ label: "Studenter", value: students },
-		{ label: "Datoer", value: form.availableDates.map(formatSemesterDay).join(", ") },
+		{
+			label: "Datoer",
+			value: form.availableDates.map((date) => formatSemesterDay(date)).join(", "),
+		},
 		{ label: "Sted", value: VENUE_LABELS[form.venue] },
 		{ label: "Escape", value: ESCAPE_LABELS[form.wantsToUseEscape] },
 		{

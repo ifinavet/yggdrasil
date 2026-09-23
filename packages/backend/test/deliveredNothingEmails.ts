@@ -19,3 +19,15 @@ export const sendFreeForAll = internalAction({
 export const sendApplicationReceiptEmail = internalAction({
 	handler: async () => {},
 });
+
+export const sendOfferEmail = internalAction({
+	handler: async () => {},
+});
+
+export const sendOfferConfirmedEmail = internalAction({
+	handler: async () => {},
+});
+
+export const sendOfferResponseNoticeEmail = internalAction({
+	handler: async () => {},
+});
