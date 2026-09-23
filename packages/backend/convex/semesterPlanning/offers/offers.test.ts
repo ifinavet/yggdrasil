@@ -50,7 +50,7 @@ async function sendAndGetToken(
 	editor: ReturnType<typeof asUser>,
 	applicationId: Id<"companyApplications">,
 ): Promise<string> {
-	await editor.mutation(offers.mutations.send, { applicationId });
+	await editor.mutation(offers.mutations.sendOffer, { applicationId });
 	const emails = (await scheduledCallsOf(t, "sendOfferEmail")) as OfferEmail[];
 	const url = emails.at(-1)?.url ?? "";
 	return url.slice(url.lastIndexOf("/") + 1);
@@ -134,7 +134,7 @@ describe("send", () => {
 		});
 
 		expect(
-			await refusalMessageFrom(editor.mutation(offers.mutations.send, { applicationId })),
+			await refusalMessageFrom(editor.mutation(offers.mutations.sendOffer, { applicationId })),
 		).toBe(expected);
 		expect(await offersOf(t, applicationId)).toHaveLength(0);
 	});
@@ -146,7 +146,7 @@ describe("send", () => {
 
 		expect(
 			await refusalMessageFrom(
-				asUser(t, member).mutation(offers.mutations.send, { applicationId }),
+				asUser(t, member).mutation(offers.mutations.sendOffer, { applicationId }),
 			),
 		).toContain("Unauthorized");
 	});
@@ -213,7 +213,7 @@ describe("accept", () => {
 				dateLabel: "tirsdag 9. februar 2027",
 			},
 		]);
-		expect(await scheduledCallsOf(t, "sendOfferResponseNotice")).toMatchObject([
+		expect(await scheduledCallsOf(t, "sendOfferResponseNoticeEmail")).toMatchObject([
 			{ to: "bedrift@ifinavet.no", answer: "accepted" },
 		]);
 	});
@@ -285,7 +285,7 @@ describe("requestNewDate", () => {
 			requestedDates: ["2027-02-16", "2027-02-11"],
 			responseComment: "Maks 30 går også fint.",
 		});
-		expect(await scheduledCallsOf(t, "sendOfferResponseNotice")).toMatchObject([
+		expect(await scheduledCallsOf(t, "sendOfferResponseNoticeEmail")).toMatchObject([
 			{ answer: "new_date_requested" },
 		]);
 	});

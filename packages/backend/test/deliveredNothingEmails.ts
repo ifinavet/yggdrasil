@@ -28,6 +28,6 @@ export const sendOfferConfirmedEmail = internalAction({
 	handler: async () => {},
 });
 
-export const sendOfferResponseNotice = internalAction({
+export const sendOfferResponseNoticeEmail = internalAction({
 	handler: async () => {},
 });

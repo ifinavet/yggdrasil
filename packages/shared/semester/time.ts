@@ -1,5 +1,13 @@
 import { tz } from "@date-fns/tz";
-import { eachDayOfInterval, format, isThursday, isTuesday, isValid, parse } from "date-fns";
+import {
+	addDays,
+	eachDayOfInterval,
+	format,
+	isThursday,
+	isTuesday,
+	isValid,
+	parse,
+} from "date-fns";
 import { nb } from "date-fns/locale";
 
 // Semester days are Oslo-local "YYYY-MM-DD" strings. All parsing and calendar arithmetic runs in
@@ -30,6 +38,11 @@ export function osloDateTimeToEpoch(date: string, time: string): number {
 	return parseStrictOrThrow(`${date} ${time}`, DAY_TIME_FORMAT).getTime();
 }
 
+/** The moment a number of Oslo calendar days after another, keeping the wall-clock time. */
+export function addOsloDays(epoch: number, days: number): number {
+	return addDays(epoch, days, IN_OSLO).getTime();
+}
+
 /** Every presentation day (Tuesday and Thursday) from firstDate to lastDate, both inclusive. */
 export function presentationDaysBetween(firstDate: string, lastDate: string): string[] {
 	return eachDayOfInterval(
@@ -43,14 +56,15 @@ export function presentationDaysBetween(firstDate: string, lastDate: string): st
 		.map((day) => format(day, DAY_FORMAT));
 }
 
-/** A semester day for people, in Norwegian, e.g. "tir 9. feb.". */
-export function formatSemesterDay(date: string): string {
-	return format(parseStrictOrThrow(date, DAY_FORMAT), "EEE d. MMM", { ...IN_OSLO, locale: nb });
-}
+// date-fns patterns for showing a semester day. "PPPP" is the locale's full date format.
+const DAY_STYLES = {
+	short: "EEE d. MMM",
+	long: "PPPP",
+} as const;
 
-/** A semester day written out, e.g. "tirsdag 9. februar 2027". */
-export function formatSemesterDayLong(date: string): string {
-	return format(parseStrictOrThrow(date, DAY_FORMAT), "EEEE d. MMMM yyyy", {
+/** A semester day for people, in Norwegian: "tir 9. feb." (short) or "tirsdag 9. februar 2027" (long). */
+export function formatSemesterDay(date: string, style: keyof typeof DAY_STYLES = "short"): string {
+	return format(parseStrictOrThrow(date, DAY_FORMAT), DAY_STYLES[style], {
 		...IN_OSLO,
 		locale: nb,
 	});

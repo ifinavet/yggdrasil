@@ -11,8 +11,8 @@ export default function CompanyOfferConfirmedEmail({
 			heading="Datoen er bekreftet"
 		>
 			<Text className="text-lg">
-				Takk! {companyName} har fått {dateLabel}. Org-ansvarlig i Navet tar kontakt 4–5 uker før
-				arrangementet.
+				Takk! {companyName} har fått {dateLabel}. Deres kontaktperson i Navet tar kontakt 4–5 uker
+				før arrangementet.
 			</Text>
 		</CompanyEmailLayout>
 	);

@@ -1,7 +1,8 @@
+import { HUGIN_URL } from "@workspace/shared/constants";
 import { ConvexError } from "convex/values";
-import type { Doc } from "../../_generated/dataModel";
+import type { Doc, Id } from "../../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../../_generated/server";
-import { hashToken } from "../../lib/tokens";
+import { hashLinkToken, LINK_TOKEN_LENGTH } from "../../lib/tokens";
 
 /**
  * Finds the offer behind a link token. Only the hash is stored, so the token is hashed first.
@@ -15,9 +16,9 @@ export async function findOfferByToken(
 	ctx: QueryCtx | MutationCtx,
 	token: string,
 ): Promise<Doc<"companyApplicationOffers"> | null> {
-	if (token.length < 20 || token.length > 200) return null;
+	if (token.length !== LINK_TOKEN_LENGTH) return null;
 
-	const tokenHash = await hashToken(token);
+	const tokenHash = await hashLinkToken(token);
 	return ctx.db
 		.query("companyApplicationOffers")
 		.withIndex("by_tokenHash", (q) => q.eq("tokenHash", tokenHash))
@@ -56,10 +57,28 @@ export async function requireAnswerableOffer(
 
 /** Where companies answer an offer. The token is the only credential. */
 export function offerUrl(token: string): string {
-	return `https://hugin.ifinavet.no/bestill-bedpres/tilbud/${token}`;
+	return `${HUGIN_URL}/bestill-bedpres/tilbud/${token}`;
 }
 
-/** Who hears about company answers: SEMESTER_PLANNING_NOTIFY_EMAIL, or bedrift@ifinavet.no. */
-export function notifyAddress(): string {
-	return process.env.SEMESTER_PLANNING_NOTIFY_EMAIL || "bedrift@ifinavet.no";
+/**
+ * Marks every pending offer on an application as superseded, so their links stop working.
+ *
+ * @param {MutationCtx} ctx - The Convex mutation context.
+ * @param {Id<"companyApplications">} applicationId - The application whose offers to close.
+ *
+ * @returns {Promise<number>} - How many offers were superseded.
+ */
+export async function supersedePendingOffers(
+	ctx: MutationCtx,
+	applicationId: Id<"companyApplications">,
+): Promise<number> {
+	const offers = await ctx.db
+		.query("companyApplicationOffers")
+		.withIndex("by_applicationId", (q) => q.eq("applicationId", applicationId))
+		.collect();
+
+	const pending = offers.filter((offer) => offer.status === "pending");
+	await Promise.all(pending.map((offer) => ctx.db.patch(offer._id, { status: "superseded" })));
+
+	return pending.length;
 }

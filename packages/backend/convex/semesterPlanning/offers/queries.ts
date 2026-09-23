@@ -1,8 +1,8 @@
 import { v } from "convex/values";
 import { query } from "../../_generated/server";
-import { isLiveStatus } from "../rules";
+import { isActiveApplicationStatus } from "../rules";
 import { presentationEventType, venue } from "../schema";
-import { requireSemester, semesterDates } from "../semesters/helper";
+import { listSemesterDates, requireSemester } from "../semesters/helper";
 import { findOfferByToken } from "./helper";
 
 /**
@@ -45,10 +45,12 @@ export const getByToken = query({
 		if (!offer || !application) return { state: "unknown" as const };
 
 		const semester = await requireSemester(ctx, application.semesterId);
-		const state = isLiveStatus(application.status) ? offer.status : ("inactive" as const);
+		const state = isActiveApplicationStatus(application.status)
+			? offer.status
+			: ("inactive" as const);
 		const openDates =
 			state === "pending"
-				? (await semesterDates(ctx, application.semesterId))
+				? (await listSemesterDates(ctx, application.semesterId))
 						.filter((date) => date.closedLabel === undefined && date.date !== offer.date)
 						.map((date) => date.date)
 				: undefined;

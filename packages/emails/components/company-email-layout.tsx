@@ -13,6 +13,7 @@ import {
 	Tailwind,
 	Text,
 } from "react-email";
+import { BRAND_PRIMARY_COLOR, COMPANY_CONTACT_EMAIL, NAVET_LOGO_URL } from "../constants.js";
 
 export type SummaryRow = { label: string; value: string };
 
@@ -33,16 +34,11 @@ export function CompanyEmailLayout({
 			<Tailwind
 				config={{
 					presets: [pixelBasedPreset],
-					theme: { extend: { colors: { primary: "#2f3e5f" } } },
+					theme: { extend: { colors: { primary: BRAND_PRIMARY_COLOR } } },
 				}}
 			>
 				<Container className="mx-auto my-auto w-full max-w-[600px] px-4 py-8">
-					<Img
-						src="https://gallant-pheasant-518.convex.cloud/api/storage/6aa758e2-ee53-449a-af69-9534518f3d6c"
-						alt="Navet Logo"
-						height="50px"
-						className="pb-4"
-					/>
+					<Img src={NAVET_LOGO_URL} alt="Navet Logo" height="50px" className="pb-4" />
 
 					<Heading as="h1" className="text-primary">
 						{heading}
@@ -54,7 +50,7 @@ export function CompanyEmailLayout({
 
 					<Text className="py-4 text-gray-700 text-sm">
 						Spørsmål? Svar på denne e-posten, eller skriv til{" "}
-						<a href="mailto:bedrift@ifinavet.no">bedrift@ifinavet.no</a>.
+						<a href={`mailto:${COMPANY_CONTACT_EMAIL}`}>{COMPANY_CONTACT_EMAIL}</a>.
 					</Text>
 
 					<Text className="pt-16 text-center text-gray-400 text-lg leading-[18px]">

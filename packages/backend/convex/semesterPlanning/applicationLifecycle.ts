@@ -15,15 +15,17 @@ export type Actor =
 	| { type: "internal"; userId: Id<"users"> }
 	| { type: Exclude<Infer<typeof activityActor>, "internal"> };
 
+export type InternalActor = Extract<Actor, { type: "internal" }>;
+
 /**
  * Requires the caller to be an editor, and returns them as the actor for the history.
  *
  * @param {MutationCtx} ctx - The Convex mutation context.
  *
  * @throws - An error if the caller is not an editor.
- * @returns {Promise<Actor>} - The editor as an internal actor.
+ * @returns {Promise<InternalActor>} - The editor as an internal actor.
  */
-export async function requireEditorActor(ctx: MutationCtx): Promise<Actor> {
+export async function requireEditorActor(ctx: MutationCtx): Promise<InternalActor> {
 	const user = await requireRole(ctx, editorRoles);
 	return { type: "internal", userId: user._id };
 }
@@ -136,27 +138,4 @@ export async function findActiveApplicationOnDate(
 				application._id !== exceptId && isActiveApplicationStatus(application.status),
 		) ?? null
 	);
-}
-
-/**
- * Marks every pending offer on an application as superseded, so their links stop working.
- *
- * @param {MutationCtx} ctx - The Convex mutation context.
- * @param {Id<"companyApplications">} applicationId - The application whose offers to close.
- *
- * @returns {Promise<number>} - How many offers were superseded.
- */
-export async function supersedePendingOffers(
-	ctx: MutationCtx,
-	applicationId: Id<"companyApplications">,
-): Promise<number> {
-	const offers = await ctx.db
-		.query("companyApplicationOffers")
-		.withIndex("by_applicationId", (q) => q.eq("applicationId", applicationId))
-		.collect();
-
-	const pending = offers.filter((offer) => offer.status === "pending");
-	await Promise.all(pending.map((offer) => ctx.db.patch(offer._id, { status: "superseded" })));
-
-	return pending.length;
 }

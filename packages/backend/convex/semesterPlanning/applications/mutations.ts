@@ -11,9 +11,9 @@ import {
 	findActiveApplicationOnDate,
 	logApplicationActivity,
 	requireEditorActor,
-	supersedePendingOffers,
 	transitionApplicationStatus,
 } from "../applicationLifecycle";
+import { supersedePendingOffers } from "../offers/helper";
 import { isActiveApplicationStatus } from "../rules";
 import { applicationContact } from "../schema";
 import { requireSemester } from "../semesters/helper";
