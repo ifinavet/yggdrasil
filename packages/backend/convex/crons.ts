@@ -30,6 +30,13 @@ crons.cron(
 	internal.users.students.mutations.updateYear,
 );
 
+crons.cron(
+	"Ensure next semester exists",
+	"0 3 * * *",
+	internal.semesterPlanning.semesters.mutations.ensureNextSemester,
+	{},
+);
+
 /**
  * Exports the configured cron job collection.
  */
