@@ -4,6 +4,7 @@ import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { FeedbackReportResponses } from "@workspace/ui/components/feedback/report";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { type ReactNode, useEffect, useState } from "react";
 import { ReportReview } from "./report-review";
 
@@ -22,6 +23,12 @@ export function EventFeedbackReport({
 	);
 }
 
+function getCampaignToPrepare(
+	data: FunctionReturnType<typeof api.feedback.reports.queries.getEventReport> | undefined,
+) {
+	return data?.enabled && data.campaignStatus === "closed" && !data.report ? data.campaignId : null;
+}
+
 function ReportContent({
 	eventId,
 	summary,
@@ -31,8 +38,7 @@ function ReportContent({
 	const prepare = useMutation(api.feedback.reports.build.prepare);
 	const [error, setError] = useState<string | null>(null);
 	const report = data?.enabled ? data.report : null;
-	const campaignToPrepare =
-		data?.enabled && data.campaignStatus === "closed" && !report ? data.campaignId : null;
+	const campaignToPrepare = getCampaignToPrepare(data);
 	useEffect(() => {
 		if (campaignToPrepare)
 			void prepare({ campaignId: campaignToPrepare }).catch(() =>
