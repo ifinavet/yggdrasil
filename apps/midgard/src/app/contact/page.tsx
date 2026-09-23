@@ -1,11 +1,11 @@
 import { api } from "@workspace/backend/convex/api";
+import ResponsiveCenterContainer from "@workspace/ui/components/responsive-center-container";
+import { Title } from "@workspace/ui/components/title";
 import { fetchQuery } from "convex/nextjs";
 import type { Metadata } from "next";
 import { cacheLife } from "next/cache";
 import ContainerCard from "@/components/cards/container-card";
 import LargeUserCard from "@/components/cards/large-user";
-import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
-import { Title } from "@/components/common/title";
 import TwoColumns from "@/components/common/two-columns";
 
 export const metadata: Metadata = {
@@ -16,12 +16,9 @@ export default async function ContactPage() {
 	"use cache";
 	cacheLife("max");
 
-	const studentContact = await fetchQuery(
-		api.users.organization.queries.getBoardMemberByPosition,
-		{
-			position: "Studentkontakt",
-		},
-	);
+	const studentContact = await fetchQuery(api.users.organization.queries.getBoardMemberByPosition, {
+		position: "Studentkontakt",
+	});
 
 	return (
 		<ResponsiveCenterContainer>
@@ -34,23 +31,20 @@ export default async function ContactPage() {
 								Opplevd noe ugreit?
 							</h2>
 							<p className="leading-7">
-								Dersom du har opplevd ubehagelige hendelser eller situasjoner
-								under et av Navets arrangementer, oppfordrer vi deg sterkt til å
-								si ifra. Det er viktig for oss å vite, uansett om det involverer
-								en bedriftsrepresentant, en annen student, eller et medlem av
-								Navet. Om ønskelig vil all informasjon du deler bli behandlet
-								med full konfidensialitet.
+								Dersom du har opplevd ubehagelige hendelser eller situasjoner under et av Navets
+								arrangementer, oppfordrer vi deg sterkt til å si ifra. Det er viktig for oss å vite,
+								uansett om det involverer en bedriftsrepresentant, en annen student, eller et medlem
+								av Navet. Om ønskelig vil all informasjon du deler bli behandlet med full
+								konfidensialitet.
 							</p>
 							<p className="leading-7">
-								Du kan alltid kontakte vår studentkontakt, nestleder eller et
-								annet styremedlem dersom du trenger å diskutere en sak eller
-								ønsker veiledning.
+								Du kan alltid kontakte vår studentkontakt, nestleder eller et annet styremedlem
+								dersom du trenger å diskutere en sak eller ønsker veiledning.
 							</p>
 							<p className="leading-7">
-								Vær trygg på at alle innmeldte saker vil bli tatt på alvor. Om
-								det kommer inn rapporter som krever en upartisk behandling, vil
-								vi vurdere å bringe saken videre til studieadministrasjonen
-								eller andre relevante parter for en objektiv vurdering.
+								Vær trygg på at alle innmeldte saker vil bli tatt på alvor. Om det kommer inn
+								rapporter som krever en upartisk behandling, vil vi vurdere å bringe saken videre
+								til studieadministrasjonen eller andre relevante parter for en objektiv vurdering.
 							</p>
 							<p className="leading-7">
 								<strong>Skjema</strong>:{" "}
@@ -77,9 +71,7 @@ export default async function ContactPage() {
 						}
 						email={
 							studentContact
-								? (studentContact.positionEmail ??
-									studentContact.email ??
-									"styret@ifinavet.no")
+								? (studentContact.positionEmail ?? studentContact.email ?? "styret@ifinavet.no")
 								: "styret@ifinavet.no"
 						}
 						imageUrl={studentContact?.image}

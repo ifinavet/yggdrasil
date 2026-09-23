@@ -19,9 +19,7 @@ import SelectedEvents from "@/components/events/selected-events";
 export default async function Events() {
 	const pathname = (await headers()).get("x-searchParams");
 
-	const preloadedPossibleSemesters = await preloadQuery(
-		api.events.queries.getPossibleSemesters,
-	);
+	const preloadedPossibleSemesters = await preloadQuery(api.events.queries.getPossibleSemesters);
 
 	return (
 		<>
@@ -39,9 +37,7 @@ export default async function Events() {
 
 			<div className="flex flex-wrap justify-between">
 				<div className="flex flex-wrap gap-6">
-					<SelectSemester
-						preloadedPossibleSemesters={preloadedPossibleSemesters}
-					/>
+					<SelectSemester preloadedPossibleSemesters={preloadedPossibleSemesters} />
 
 					<SelectedEvents />
 				</div>

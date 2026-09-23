@@ -6,9 +6,9 @@ import type { ACCESS_RIGHTS } from "@workspace/shared/constants";
 import { type Preloaded, useMutation, usePreloadedQuery } from "convex/react";
 import { usePostHog } from "posthog-js/react";
 import { toast } from "sonner";
+import { DataTable } from "@/components/common/tables/table";
 import { createColumns } from "./columns";
 import { NewInternal } from "./new-internal/new-internal";
-import { DataTable } from "@/components/common/tables/table";
 
 export default function Internals({
 	preloadedInternals,
@@ -34,8 +34,7 @@ export default function Internals({
 			})
 			.catch((error) => {
 				toast.error("Kunne ikke slette intern medlem", {
-					description:
-						"Denne hendelsen er logget. Skulle den vedvare ta kontakt med webansvarlig",
+					description: "Denne hendelsen er logget. Skulle den vedvare ta kontakt med webansvarlig",
 				});
 				postHog.capture("delete-internal-member-error", {
 					error: error,
@@ -47,8 +46,7 @@ export default function Internals({
 	const updateGroupAction = (internalsId: Id<"internals">, group: string) =>
 		updateGroup({ id: internalsId, group }).catch((error) => {
 			toast.error("Kunne ikke oppdatere intern medlem", {
-				description:
-					"Denne hendelsen er logget. Skulle den vedvare ta kontakt med webansvarlig",
+				description: "Denne hendelsen er logget. Skulle den vedvare ta kontakt med webansvarlig",
 			});
 
 			postHog.capture("update-internal-member-error", {
@@ -59,20 +57,13 @@ export default function Internals({
 		});
 
 	const upsertRole = useMutation(api.auth.accessRights.upsertAccessRights);
-	const upsertRoleAction = (
-		userId: Id<"users">,
-		role: (typeof ACCESS_RIGHTS)[number],
-	) =>
+	const upsertRoleAction = (userId: Id<"users">, role: (typeof ACCESS_RIGHTS)[number]) =>
 		upsertRole({
 			userId,
 			role,
 		});
 
-	const columns = createColumns(
-		deleteInternalAction,
-		updateGroupAction,
-		upsertRoleAction,
-	);
+	const columns = createColumns(deleteInternalAction, updateGroupAction, upsertRoleAction);
 
 	const data = internals.map((internal) => ({
 		userId: internal.userId,
@@ -86,11 +77,7 @@ export default function Internals({
 	return (
 		<div className="space-y-4">
 			<NewInternal />
-			<DataTable
-				columns={columns}
-				data={data}
-				className="overflow-clip rounded-lg"
-			/>
+			<DataTable columns={columns} data={data} className="overflow-clip rounded-lg" />
 		</div>
 	);
 }

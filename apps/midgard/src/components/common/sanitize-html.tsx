@@ -8,9 +8,7 @@ export default function SafeHtml({
 	className?: string;
 }>) {
 	const cleanHtml = sanitizeHtml(html, {
-		allowedTags: sanitizeHtml.defaults.allowedTags
-			.filter((t) => t !== "iframe")
-			.concat(["img"]),
+		allowedTags: sanitizeHtml.defaults.allowedTags.filter((t) => t !== "iframe").concat(["img"]),
 		allowedAttributes: {
 			...sanitizeHtml.defaults.allowedAttributes,
 			img: ["src", "alt", "title", "width", "height", "srcset"],

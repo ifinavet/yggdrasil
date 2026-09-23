@@ -1,3 +1,4 @@
+import { placeholderKeys } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components//button";
 import { Separator } from "@workspace/ui/components//separator";
 import { Skeleton } from "@workspace/ui/components//skeleton";
@@ -16,8 +17,8 @@ export default function NewEventLoading() {
 
 			{/* Event metadata */}
 			<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-				{Array.from({ length: 6 }).map((_, index) => (
-					<div key={`metadata-${index + 1}`}>
+				{placeholderKeys("event-metadata", 6).map((key) => (
+					<div key={key}>
 						<Skeleton className="mb-2 h-4 w-16" />
 						<Skeleton className="h-10 w-full" />
 					</div>

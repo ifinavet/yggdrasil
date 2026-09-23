@@ -43,12 +43,9 @@ const columns: ColumnDef<StudentColumns>[] = [
 		cell: ({ row }) => {
 			const status = row.original.status;
 			const color =
-				statusColors[status as keyof typeof statusColors] ||
-				"bg-gray-100 text-gray-800";
+				statusColors[status as keyof typeof statusColors] || "bg-gray-100 text-gray-800";
 			return (
-				<span className={`rounded-full px-2 py-1 font-medium text-xs ${color}`}>
-					{status}
-				</span>
+				<span className={`rounded-full px-2 py-1 font-medium text-xs ${color}`}>{status}</span>
 			);
 		},
 	},

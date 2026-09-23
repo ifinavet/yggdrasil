@@ -4,9 +4,9 @@ import type { Doc } from "../../_generated/dataModel";
 import { type MutationCtx, mutation } from "../../_generated/server";
 import { getCurrentUserOrThrow } from "../../auth/currentUser";
 import {
-    isEventOrganizerOrAdmin,
-    validateRegistrationTime,
-    validateUserCanRegister,
+	isEventOrganizerOrAdmin,
+	validateRegistrationTime,
+	validateUserCanRegister,
 } from "../helper";
 
 /**
@@ -18,52 +18,54 @@ import {
  * @returns {null} - Returns null when the registration is accepted successfully.
  */
 export const acceptPendingRegistration = mutation({
-    args: {
-        id: v.id("registrations"),
-    },
-    handler: async (ctx, { id }) => {
-        const user = await getCurrentUserOrThrow(ctx);
+	args: {
+		id: v.id("registrations"),
+	},
+	handler: async (ctx, { id }) => {
+		const user = await getCurrentUserOrThrow(ctx);
 
-        const registration = await ctx.db.get(id);
-        if (!registration) {
-            throw new ConvexError(`Registrering med ID ${id} ikke funnet. Kan ikke godta registrering.`);
-        }
+		const registration = await ctx.db.get(id);
+		if (!registration) {
+			throw new ConvexError(`Registrering med ID ${id} ikke funnet. Kan ikke godta registrering.`);
+		}
 
-        if (registration.userId !== user._id) {
-            throw new ConvexError(`Registrering med ID ${id} tilhører ikke deg. Kan ikke godta registreringen.`);
-        }
+		if (registration.userId !== user._id) {
+			throw new ConvexError(
+				`Registrering med ID ${id} tilhører ikke deg. Kan ikke godta registreringen.`,
+			);
+		}
 
-        if (registration.status !== "pending") {
-            throw new ConvexError(
-                `Registrering med ID ${id} har status "${registration.status}", og kan ikke godtas. Kun ventende påmeldinger kan godtas.`,
-            );
-        }
+		if (registration.status !== "pending") {
+			throw new ConvexError(
+				`Registrering med ID ${id} har status "${registration.status}", og kan ikke godtas. Kun ventende påmeldinger kan godtas.`,
+			);
+		}
 
-        const event = await ctx.db.get(registration.eventId);
-        if (!event) {
-            throw new ConvexError(
-                `Arrangementet med ID ${registration.eventId} ikke funnet. Kan ikke godta registrering.`,
-            );
-        }
+		const event = await ctx.db.get(registration.eventId);
+		if (!event) {
+			throw new ConvexError(
+				`Arrangementet med ID ${registration.eventId} ikke funnet. Kan ikke godta registrering.`,
+			);
+		}
 
-        if (Date.now() >= event.eventStart) {
-            throw new ConvexError("Arrangementet har allerede startet.");
-        }
-        await validateUserCanRegister(ctx, user);
+		if (Date.now() >= event.eventStart) {
+			throw new ConvexError("Arrangementet har allerede startet.");
+		}
+		await validateUserCanRegister(ctx, user);
 
-        const registeredCount = await countRegistrationsWithStatus(ctx, event._id, "registered");
+		const registeredCount = await countRegistrationsWithStatus(ctx, event._id, "registered");
 
-        if (registeredCount >= event.participationLimit) {
-            throw new ConvexError(
-                `Arrangementet med ID ${event._id} er fullt (${registeredCount}/${event.participationLimit}). Kan ikke godta registreringen.`,
-            );
-        }
+		if (registeredCount >= event.participationLimit) {
+			throw new ConvexError(
+				`Arrangementet med ID ${event._id} er fullt (${registeredCount}/${event.participationLimit}). Kan ikke godta registreringen.`,
+			);
+		}
 
-        await ctx.db.patch(id, {
-            status: "registered",
-            registrationTime: Date.now(),
-        });
-    },
+		await ctx.db.patch(id, {
+			status: "registered",
+			registrationTime: Date.now(),
+		});
+	},
 });
 
 /**
@@ -76,63 +78,67 @@ export const acceptPendingRegistration = mutation({
  * @returns {null} - Returns null when the attendance status is updated successfully.
  */
 export const updateAttendance = mutation({
-    args: {
-        id: v.id("registrations"),
-        newStatus: v.union(v.literal("confirmed"), v.literal("late"), v.literal("no_show")),
-    },
-    handler: async (ctx, { id, newStatus }) => {
-        const user = await getCurrentUserOrThrow(ctx);
+	args: {
+		id: v.id("registrations"),
+		newStatus: v.union(v.literal("confirmed"), v.literal("late"), v.literal("no_show")),
+	},
+	handler: async (ctx, { id, newStatus }) => {
+		const user = await getCurrentUserOrThrow(ctx);
 
-        const registration = await ctx.db.get(id);
-        if (!registration) {
-            throw new ConvexError(`Registrering med ID ${id} ikke funnet. Kan ikke oppdatere deltakelsestatus.`);
-        }
+		const registration = await ctx.db.get(id);
+		if (!registration) {
+			throw new ConvexError(
+				`Registrering med ID ${id} ikke funnet. Kan ikke oppdatere deltakelsestatus.`,
+			);
+		}
 
-        const isOrganizer = await isEventOrganizerOrAdmin(ctx, registration.eventId, user._id);
-        if (!isOrganizer) {
-            throw new ConvexError("Unauthorized: Bare arrangører eller administratorer kan oppdatere oppmøte.");
-        }
+		const isOrganizer = await isEventOrganizerOrAdmin(ctx, registration.eventId, user._id);
+		if (!isOrganizer) {
+			throw new ConvexError(
+				"Unauthorized: Bare arrangører eller administratorer kan oppdatere oppmøte.",
+			);
+		}
 
-        await ctx.db.patch(id, {
-            attendanceStatus: newStatus,
-            attendanceTime: Date.now(),
-        });
+		await ctx.db.patch(id, {
+			attendanceStatus: newStatus,
+			attendanceTime: Date.now(),
+		});
 
-        if (registration.status !== "registered") return;
+		if (registration.status !== "registered") return;
 
-        const student = await ctx.db
-            .query("students")
-            .withIndex("by_userId", (q) => q.eq("userId", registration.userId))
-            .first();
+		const student = await ctx.db
+			.query("students")
+			.withIndex("by_userId", (q) => q.eq("userId", registration.userId))
+			.first();
 
-        if (!student) {
-            throw new ConvexError(
-                `Bruker med ID ${registration.userId} ikke funnet. Kan ikke oppdatere deltakelsestatus.`,
-            );
-        }
+		if (!student) {
+			throw new ConvexError(
+				`Bruker med ID ${registration.userId} ikke funnet. Kan ikke oppdatere deltakelsestatus.`,
+			);
+		}
 
-        const event = await ctx.db.get(registration.eventId);
+		const event = await ctx.db.get(registration.eventId);
 
-        if (newStatus === "late" || newStatus === "no_show") {
-            const severity = newStatus === "late" ? 1 : 2;
-            const reason =
-                newStatus === "late"
-                    ? `Du fikk 1 prikk for å være for sen til arrangementet "${event?.title}".`
-                    : `Du fikk 2 prikker for å ikke møte til arrangementet "${event?.title}".`;
+		if (newStatus === "late" || newStatus === "no_show") {
+			const severity = newStatus === "late" ? 1 : 2;
+			const reason =
+				newStatus === "late"
+					? `Du fikk 1 prikk for å være for sen til arrangementet "${event?.title}".`
+					: `Du fikk 2 prikker for å ikke møte til arrangementet "${event?.title}".`;
 
-            await ctx.runMutation(internal.points.mutations.givePointsInternal, {
-                id: student._id,
-                severity,
-                reason,
-            });
+			await ctx.runMutation(internal.points.mutations.givePointsInternal, {
+				id: student._id,
+				severity,
+				reason,
+			});
 
-            await ctx.runMutation(internal.points.mutations.givePointsEmail, {
-                userId: student.userId,
-                severity,
-                reason,
-            });
-        }
-    },
+			await ctx.runMutation(internal.points.mutations.givePointsEmail, {
+				userId: student.userId,
+				severity,
+				reason,
+			});
+		}
+	},
 });
 
 /**
@@ -145,47 +151,49 @@ export const updateAttendance = mutation({
  * @returns {"registered" | "waitlist" | undefined} - The resulting registration status, or undefined if the user was already registered.
  */
 export const register = mutation({
-    args: {
-        eventId: v.id("events"),
-        note: v.optional(v.string()),
-    },
-    handler: async (ctx, { eventId, note }) => {
-        const user = await getCurrentUserOrThrow(ctx);
+	args: {
+		eventId: v.id("events"),
+		note: v.optional(v.string()),
+	},
+	handler: async (ctx, { eventId, note }) => {
+		const user = await getCurrentUserOrThrow(ctx);
 
-        const event = await ctx.db.get(eventId);
-        if (!event) {
-            throw new ConvexError(`Arrangementet med ID ${eventId} ble ikke funnet. Kan ikke registrere deg.`);
-        }
+		const event = await ctx.db.get(eventId);
+		if (!event) {
+			throw new ConvexError(
+				`Arrangementet med ID ${eventId} ble ikke funnet. Kan ikke registrere deg.`,
+			);
+		}
 
-        const registrations = await ctx.db
-            .query("registrations")
-            .withIndex("by_eventIdStatusAndRegistrationTime", (q) => q.eq("eventId", eventId))
-            .collect();
+		const registrations = await ctx.db
+			.query("registrations")
+			.withIndex("by_eventIdStatusAndRegistrationTime", (q) => q.eq("eventId", eventId))
+			.collect();
 
-        if (registrations.some((registration) => registration.userId === user._id)) return;
+		if (registrations.some((registration) => registration.userId === user._id)) return;
 
-        validateRegistrationTime(event);
-        await validateUserCanRegister(ctx, user);
+		validateRegistrationTime(event);
+		await validateUserCanRegister(ctx, user);
 
-        const registrationCount = registrations.filter(
-            (reg) => reg.status === "registered" || reg.status === "pending",
-        ).length;
+		const registrationCount = registrations.filter(
+			(reg) => reg.status === "registered" || reg.status === "pending",
+		).length;
 
-        const hasWaitlist = registrations.some((registration) => registration.status === "waitlist");
+		const hasWaitlist = registrations.some((registration) => registration.status === "waitlist");
 
-        const status =
-            registrationCount < event.participationLimit && !hasWaitlist ? "registered" : "waitlist";
+		const status =
+			registrationCount < event.participationLimit && !hasWaitlist ? "registered" : "waitlist";
 
-        await ctx.db.insert("registrations", {
-            eventId,
-            userId: user._id,
-            status,
-            note: note,
-            registrationTime: Date.now(),
-        });
+		await ctx.db.insert("registrations", {
+			eventId,
+			userId: user._id,
+			status,
+			note: note,
+			registrationTime: Date.now(),
+		});
 
-        return status;
-    },
+		return status;
+	},
 });
 
 /**
@@ -198,27 +206,27 @@ export const register = mutation({
  * @returns {null} - Returns null when the note is updated successfully.
  */
 export const updateNote = mutation({
-    args: {
-        id: v.id("registrations"),
-        note: v.optional(v.string()),
-    },
-    handler: async (ctx, { id, note }) => {
-        const user = await getCurrentUserOrThrow(ctx);
+	args: {
+		id: v.id("registrations"),
+		note: v.optional(v.string()),
+	},
+	handler: async (ctx, { id, note }) => {
+		const user = await getCurrentUserOrThrow(ctx);
 
-        const registration = await ctx.db.get(id);
-        if (!registration) {
-            throw new ConvexError(`Registrering med ID ${id} ikke funnet.`);
-        }
+		const registration = await ctx.db.get(id);
+		if (!registration) {
+			throw new ConvexError(`Registrering med ID ${id} ikke funnet.`);
+		}
 
-        const isOwner = registration.userId === user._id;
-        const isOrganizer = await isEventOrganizerOrAdmin(ctx, registration.eventId, user._id);
+		const isOwner = registration.userId === user._id;
+		const isOrganizer = await isEventOrganizerOrAdmin(ctx, registration.eventId, user._id);
 
-        if (!isOwner && !isOrganizer) {
-            throw new ConvexError("Unauthorized: Du kan ikke endre notatet til en annen bruker.");
-        }
+		if (!isOwner && !isOrganizer) {
+			throw new ConvexError("Unauthorized: Du kan ikke endre notatet til en annen bruker.");
+		}
 
-        await ctx.db.patch(id, { note });
-    },
+		await ctx.db.patch(id, { note });
+	},
 });
 
 /**
@@ -230,76 +238,72 @@ export const updateNote = mutation({
  * @returns {{ deletedRegistration: Doc<"registrations">, event: Doc<"events">, person: Doc<"users"> }} - Information about the removed registration.
  */
 export const unregister = mutation({
-    args: {
-        id: v.id("registrations"),
-    },
-    handler: async (ctx, { id }) => {
-        const currentUser = await getCurrentUserOrThrow(ctx);
+	args: {
+		id: v.id("registrations"),
+	},
+	handler: async (ctx, { id }) => {
+		const currentUser = await getCurrentUserOrThrow(ctx);
 
-        const registration = await ctx.db.get(id);
-        if (!registration) {
-            throw new ConvexError(`Registrering med ID ${id} ble ikke funnet. Avbryter avregistrering.`);
-        }
+		const registration = await ctx.db.get(id);
+		if (!registration) {
+			throw new ConvexError(`Registrering med ID ${id} ble ikke funnet. Avbryter avregistrering.`);
+		}
 
-        const isOwner = registration.userId === currentUser._id;
-        const isOrganizer = await isEventOrganizerOrAdmin(ctx, registration.eventId, currentUser._id);
+		const isOwner = registration.userId === currentUser._id;
+		const isOrganizer = await isEventOrganizerOrAdmin(ctx, registration.eventId, currentUser._id);
 
-        if (!isOwner && !isOrganizer) {
-            throw new ConvexError("Unauthorized: Du har ikke tilgang til å melde av denne registreringen.");
-        }
+		if (!isOwner && !isOrganizer) {
+			throw new ConvexError(
+				"Unauthorized: Du har ikke tilgang til å melde av denne registreringen.",
+			);
+		}
 
-        const event = await ctx.db.get(registration.eventId);
-        if (!event) {
-            throw new ConvexError(
-                `Arrangementet med ID ${registration.eventId} ble ikke funnet. Kan ikke behandle ventelisten.`,
-            );
-        }
+		const event = await ctx.db.get(registration.eventId);
+		if (!event) {
+			throw new ConvexError(
+				`Arrangementet med ID ${registration.eventId} ble ikke funnet. Kan ikke behandle ventelisten.`,
+			);
+		}
 
-        await ctx.db.delete(id);
+		await ctx.db.delete(id);
 
-        const returnData = {
-            deletedRegistration: registration,
-            event: event,
-            person: currentUser,
-        };
+		const returnData = {
+			deletedRegistration: registration,
+			event: event,
+			person: currentUser,
+		};
 
-        if (registration.status === "waitlist") return returnData;
+		if (registration.status === "waitlist") return returnData;
 
-        const nextRegistration = await ctx.db
-            .query("registrations")
-            .withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
-                q.eq("eventId", registration.eventId).eq("status", "waitlist"),
-            )
-            .order("asc")
-            .first();
+		await fillOpenSeats(ctx, event);
 
-        if (nextRegistration) {
-            await makeStatusPending(ctx, nextRegistration, event);
-        }
+		const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
 
-        const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
+		if (
+			isOwner &&
+			event.eventStart - Date.now() < TWENTY_FOUR_HOURS &&
+			registration.status === "registered"
+		) {
+			try {
+				const student = await ctx.db
+					.query("students")
+					.withIndex("by_userId", (q) => q.eq("userId", registration.userId))
+					.first();
 
-        if (isOwner && event.eventStart - Date.now() < TWENTY_FOUR_HOURS && registration.status === "registered") {
-            try {
-                const student = await ctx.db
-                    .query("students")
-                    .withIndex("by_userId", (q) => q.eq("userId", registration.userId))
-                    .first();
+				if (student) {
+					await ctx.runMutation(internal.points.mutations.givePointsInternal, {
+						id: student._id,
+						severity: 1,
+						reason: `Avregistrering fra arrangementet ${event.title} mindre enn 24 timer før start.`,
+					});
+				}
+			} catch (e) {
+				console.error("Failed to apply late unregister penalty:", e);
+			}
+		}
 
-                if (student) {
-                    await ctx.runMutation(internal.points.mutations.givePointsInternal, {
-                        id: student._id,
-                        severity: 1,
-                        reason: `Avregistrering fra arrangementet ${event.title} mindre enn 24 timer før start.`,
-                    });
-                }
-            } catch (e) {
-                console.error("Failed to apply late unregister penalty:", e);
-            }
-        }
-
-        return returnData;
-    },
+		return returnData;
+	},
 });
 
 /**
@@ -314,45 +318,82 @@ export const unregister = mutation({
  * @returns {Promise<void>} - Resolves when the registration has been updated and the email scheduled.
  */
 export const makeStatusPending = async (
-    ctx: MutationCtx,
-    registrationToMakePending: Doc<"registrations">,
-    event: Doc<"events">,
+	ctx: MutationCtx,
+	registrationToMakePending: Doc<"registrations">,
+	event: Doc<"events">,
 ) => {
-    const user = await ctx.db.get(registrationToMakePending.userId);
-    if (!user) {
-        throw new ConvexError(
-            `Bruker med ID ${registrationToMakePending.userId} ikke funnet. Kan ikke oppdatere registrering.`,
-        );
-    }
+	const user = await ctx.db.get(registrationToMakePending.userId);
+	if (!user) {
+		throw new ConvexError(
+			`Bruker med ID ${registrationToMakePending.userId} ikke funnet. Kan ikke oppdatere registrering.`,
+		);
+	}
 
-    const registeredCount = await countRegistrationsWithStatus(ctx, event._id, "registered");
-    const pendingCount = await countRegistrationsWithStatus(ctx, event._id, "pending");
-    if (registeredCount + pendingCount >= event.participationLimit) return;
+	const registeredCount = await countRegistrationsWithStatus(ctx, event._id, "registered");
+	const pendingCount = await countRegistrationsWithStatus(ctx, event._id, "pending");
+	if (registeredCount + pendingCount >= event.participationLimit) return;
 
-    await ctx.db.patch(registrationToMakePending._id, {
-        status: "pending",
-        registrationTime: Date.now(),
-    });
+	await ctx.db.patch(registrationToMakePending._id, {
+		status: "pending",
+		registrationTime: Date.now(),
+	});
 
-    await ctx.scheduler.runAfter(0, internal.emails.sendAvailableSeatEmail, {
-        participantEmail: user.email,
-        eventTitle: event.title,
-        eventId: event._id,
-        registrationId: registrationToMakePending._id,
-    });
+	await ctx.scheduler.runAfter(0, internal.emails.sendAvailableSeatEmail, {
+		participantEmail: user.email,
+		eventTitle: event.title,
+		eventId: event._id,
+		registrationId: registrationToMakePending._id,
+	});
+};
+
+/**
+ * Offers every open seat on an event to the front of its waitlist, one registration at a time.
+ * Waitlisted registrations whose user no longer exists are deleted instead of offered a seat.
+ *
+ * @param {MutationCtx} ctx - The Convex mutation context.
+ * @param {Doc<"events">} event - The event whose open seats should be filled.
+ *
+ * @returns {Promise<void>} - Resolves when the open seats have been offered or the waitlist is empty.
+ */
+export const fillOpenSeats = async (ctx: MutationCtx, event: Doc<"events">) => {
+	const registeredCount = await countRegistrationsWithStatus(ctx, event._id, "registered");
+	const pendingCount = await countRegistrationsWithStatus(ctx, event._id, "pending");
+	let openSeats = event.participationLimit - registeredCount - pendingCount;
+	if (openSeats <= 0) return;
+
+	const waitlist = await ctx.db
+		.query("registrations")
+		.withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
+			q.eq("eventId", event._id).eq("status", "waitlist"),
+		)
+		.order("asc")
+		.collect();
+
+	for (const registration of waitlist) {
+		if (openSeats <= 0) return;
+
+		const user = await ctx.db.get(registration.userId);
+		if (!user) {
+			await ctx.db.delete(registration._id);
+			continue;
+		}
+
+		await makeStatusPending(ctx, registration, event);
+		openSeats--;
+	}
 };
 
 const countRegistrationsWithStatus = async (
-    ctx: MutationCtx,
-    eventId: Doc<"events">["_id"],
-    status: Doc<"registrations">["status"],
+	ctx: MutationCtx,
+	eventId: Doc<"events">["_id"],
+	status: Doc<"registrations">["status"],
 ) => {
-    const registrationsWithStatus = await ctx.db
-        .query("registrations")
-        .withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
-            q.eq("eventId", eventId).eq("status", status),
-        )
-        .collect();
+	const registrationsWithStatus = await ctx.db
+		.query("registrations")
+		.withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
+			q.eq("eventId", eventId).eq("status", status),
+		)
+		.collect();
 
-    return registrationsWithStatus.length;
+	return registrationsWithStatus.length;
 };

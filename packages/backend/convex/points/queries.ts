@@ -11,16 +11,16 @@ import { getCurrentUserOrThrow } from "../users/clerk/queries";
  * @returns {Doc<"points">[]} - The points records for the student.
  */
 export const getByStudentId = query({
-    args: { id: v.id("students") },
-    handler: async (ctx, { id }) => {
-        await requireRole(ctx, adminRoles);
+	args: { id: v.id("students") },
+	handler: async (ctx, { id }) => {
+		await requireRole(ctx, adminRoles);
 
-        const points = await ctx.db
-            .query("points")
-            .withIndex("by_studentId", (q) => q.eq("studentId", id))
-            .collect();
-        return points;
-    },
+		const points = await ctx.db
+			.query("points")
+			.withIndex("by_studentId", (q) => q.eq("studentId", id))
+			.collect();
+		return points;
+	},
 });
 
 /**
@@ -29,21 +29,21 @@ export const getByStudentId = query({
  * @returns {Doc<"points">[] | null} - The points records, or null when the user has no student profile.
  */
 export const getCurrentStudentsPoints = query({
-    handler: async (ctx) => {
-        const user = await getCurrentUserOrThrow(ctx);
+	handler: async (ctx) => {
+		const user = await getCurrentUserOrThrow(ctx);
 
-        const student = await ctx.db
-            .query("students")
-            .withIndex("by_userId", (q) => q.eq("userId", user._id))
-            .first();
+		const student = await ctx.db
+			.query("students")
+			.withIndex("by_userId", (q) => q.eq("userId", user._id))
+			.first();
 
-        if (!student) return null;
+		if (!student) return null;
 
-        const points = await ctx.db
-            .query("points")
-            .withIndex("by_studentId", (q) => q.eq("studentId", student._id))
-            .collect();
+		const points = await ctx.db
+			.query("points")
+			.withIndex("by_studentId", (q) => q.eq("studentId", student._id))
+			.collect();
 
-        return points;
-    },
+		return points;
+	},
 });

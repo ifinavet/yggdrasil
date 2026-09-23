@@ -14,37 +14,37 @@ import { getCurrentUserOrThrow } from "../clerk/queries";
  * @returns {PaginationResult<Doc<"students"> & { status: string }>} - The paginated students result with account status.
  */
 export const getAllPaged = query({
-    args: {
-        search: v.optional(v.string()),
-        paginationOpts: paginationOptsValidator,
-    },
-    handler: async (ctx, { search, paginationOpts }) => {
-        await requireRole(ctx, adminRoles);
+	args: {
+		search: v.optional(v.string()),
+		paginationOpts: paginationOptsValidator,
+	},
+	handler: async (ctx, { search, paginationOpts }) => {
+		await requireRole(ctx, adminRoles);
 
-        const students = await (search && search.length > 0
-            ? ctx.db
-                  .query("students")
-                  .withSearchIndex("search_name", (q) => q.search("name", search))
-                  .paginate(paginationOpts)
-            : ctx.db.query("students").paginate(paginationOpts));
+		const students = await (search && search.length > 0
+			? ctx.db
+					.query("students")
+					.withSearchIndex("search_name", (q) => q.search("name", search))
+					.paginate(paginationOpts)
+			: ctx.db.query("students").paginate(paginationOpts));
 
-        const studentsWithLockedStatus = await Promise.all(
-            students.page.map(async (student) => {
-                const user = await ctx.db.get(student.userId);
-                const userLocked = user?.locked ? "Låst" : "Aktiv";
+		const studentsWithLockedStatus = await Promise.all(
+			students.page.map(async (student) => {
+				const user = await ctx.db.get(student.userId);
+				const userLocked = user?.locked ? "Låst" : "Aktiv";
 
-                return {
-                    ...student,
-                    status: user ? userLocked : "Ikke registrert",
-                };
-            }),
-        );
+				return {
+					...student,
+					status: user ? userLocked : "Ikke registrert",
+				};
+			}),
+		);
 
-        return {
-            ...students,
-            page: studentsWithLockedStatus,
-        };
-    },
+		return {
+			...students,
+			page: studentsWithLockedStatus,
+		};
+	},
 });
 
 /**
@@ -54,41 +54,41 @@ export const getAllPaged = query({
  * @returns {{ id: Id<"students">, name: string, points: number }[]} - Students sorted by total points.
  */
 export const getAllWithPoints = query({
-    handler: async (ctx) => {
-        await requireRole(ctx, adminRoles);
+	handler: async (ctx) => {
+		await requireRole(ctx, adminRoles);
 
-        const points = await ctx.db.query("points").collect();
-        const students = new Map<Id<"students">, Doc<"points">[]>();
+		const points = await ctx.db.query("points").collect();
+		const students = new Map<Id<"students">, Doc<"points">[]>();
 
-        for (const point of points) {
-            if (!students.has(point.studentId)) {
-                students.set(point.studentId, []);
-            }
-            students.get(point.studentId)?.push(point);
-        }
+		for (const point of points) {
+			if (!students.has(point.studentId)) {
+				students.set(point.studentId, []);
+			}
+			students.get(point.studentId)?.push(point);
+		}
 
-        const studentsWithPoints: {
-            id: Id<"students">;
-            name: string;
-            points: number;
-        }[] = [];
+		const studentsWithPoints: {
+			id: Id<"students">;
+			name: string;
+			points: number;
+		}[] = [];
 
-        for (const [studentId, points] of students.entries()) {
-            const student = await ctx.db.get(studentId);
-            if (!student) {
-                throw new ConvexError("Fant ikke studenten.");
-            }
+		for (const [studentId, points] of students.entries()) {
+			const student = await ctx.db.get(studentId);
+			if (!student) {
+				throw new ConvexError("Fant ikke studenten.");
+			}
 
-            studentsWithPoints.push({
-                id: student._id,
-                name: student.name,
-                points: points.reduce((acc, point) => acc + point.severity, 0),
-            });
-        }
+			studentsWithPoints.push({
+				id: student._id,
+				name: student.name,
+				points: points.reduce((acc, point) => acc + point.severity, 0),
+			});
+		}
 
-        studentsWithPoints.sort((a, b) => b.points - a.points);
-        return studentsWithPoints;
-    },
+		studentsWithPoints.sort((a, b) => b.points - a.points);
+		return studentsWithPoints;
+	},
 });
 
 /**
@@ -98,23 +98,23 @@ export const getAllWithPoints = query({
  * @returns {Doc<"students"> & Doc<"users">} - The merged student and user data.
  */
 export const getCurrent = query({
-    handler: async (ctx) => {
-        const user = await getCurrentUserOrThrow(ctx);
+	handler: async (ctx) => {
+		const user = await getCurrentUserOrThrow(ctx);
 
-        const student = await ctx.db
-            .query("students")
-            .withIndex("by_userId", (q) => q.eq("userId", user._id))
-            .first();
+		const student = await ctx.db
+			.query("students")
+			.withIndex("by_userId", (q) => q.eq("userId", user._id))
+			.first();
 
-        if (!student) {
-            throw new ConvexError("Fant ingen studentprofil for brukeren din.");
-        }
+		if (!student) {
+			throw new ConvexError("Fant ingen studentprofil for brukeren din.");
+		}
 
-        return {
-            ...student,
-            ...user,
-        };
-    },
+		return {
+			...student,
+			...user,
+		};
+	},
 });
 
 /**
@@ -126,28 +126,28 @@ export const getCurrent = query({
  * @returns {{ id: Id<"students">, userId: Id<"users">, email: string, firstName: string, lastName: string, studyProgram: string, year: number, degree: string }} - The resolved student payload.
  */
 export const getById = query({
-    args: { id: v.id("students") },
-    handler: async (ctx, { id }) => {
-        await requireRole(ctx, adminRoles);
+	args: { id: v.id("students") },
+	handler: async (ctx, { id }) => {
+		await requireRole(ctx, adminRoles);
 
-        const student = await ctx.db.get(id);
-        if (!student) {
-            throw new ConvexError(`Studenten med ID ${id} ble ikke funnet.`);
-        }
-        const user = await ctx.db.get(student.userId);
-        if (!user) {
-            throw new ConvexError("Fant ikke brukeren som hører til studenten.");
-        }
+		const student = await ctx.db.get(id);
+		if (!student) {
+			throw new ConvexError(`Studenten med ID ${id} ble ikke funnet.`);
+		}
+		const user = await ctx.db.get(student.userId);
+		if (!user) {
+			throw new ConvexError("Fant ikke brukeren som hører til studenten.");
+		}
 
-        return {
-            id: student._id,
-            userId: student.userId,
-            email: user.email,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            studyProgram: student.studyProgram,
-            year: student.year,
-            degree: student.degree,
-        };
-    },
+		return {
+			id: student._id,
+			userId: student.userId,
+			email: user.email,
+			firstName: user.firstName,
+			lastName: user.lastName,
+			studyProgram: student.studyProgram,
+			year: student.year,
+			degree: student.degree,
+		};
+	},
 });

@@ -36,13 +36,10 @@ export default async function EventsPage() {
 		"desember",
 	];
 	const months = Object.keys(events).sort(
-		(a, b) =>
-			monthOrder.indexOf(a.toLowerCase()) - monthOrder.indexOf(b.toLowerCase()),
+		(a, b) => monthOrder.indexOf(a.toLowerCase()) - monthOrder.indexOf(b.toLowerCase()),
 	);
 
-	const currentMonth = today
-		.toLocaleString("no", { month: "long" })
-		.toLowerCase();
+	const currentMonth = today.toLocaleString("no", { month: "long" }).toLowerCase();
 	const selectedMonth = searchParams?.get("month")?.toLowerCase();
 
 	const activeMonth =

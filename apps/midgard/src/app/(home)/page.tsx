@@ -1,16 +1,12 @@
 import { Button } from "@workspace/ui/components/button";
+import ResponsiveCenterContainer from "@workspace/ui/components/responsive-center-container";
 import { Info } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
-import {
-	FacebookIcon,
-	InstagramIcon,
-	LinkedinIcon,
-} from "@/assets/icons/social";
+import { FacebookIcon, InstagramIcon, LinkedinIcon } from "@/assets/icons/social";
 import Navet_Logo from "@/assets/navet/logo_n_blaa.webp";
 import Navet from "@/assets/promo_images/navet.webp";
-import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
 import TwoColumns from "@/components/common/two-columns";
 import EventsCarousel from "@/components/home/events-carousel";
 import JobListings from "@/components/home/job-listings";
@@ -55,24 +51,21 @@ export default function HomePage() {
 								Hvem er vi?
 							</h3>
 							<p className="not-first:mt-6 leading-7">
-								Navet er bedriftskontakten ved Institutt for informatikk ved
-								Universitetet i Oslo. Hensikten med Navet er å gjøre det enkelt
-								for bedrifter å komme i kontakt med studentene ved instituttet,
-								ved å tilby:
+								Navet er bedriftskontakten ved Institutt for informatikk ved Universitetet i Oslo.
+								Hensikten med Navet er å gjøre det enkelt for bedrifter å komme i kontakt med
+								studentene ved instituttet, ved å tilby:
 							</p>
 
 							<ul className="my-6 ml-6 list-disc [&>li]:mt-2">
 								<li>
-									et sentralt kontakt- og koordineringspunkt for alle
-									bedriftsrelaterte aktiviteter ved instituttet.
+									et sentralt kontakt- og koordineringspunkt for alle bedriftsrelaterte aktiviteter
+									ved instituttet.
 								</li>
 								<li>
-									praktisk hjelp ved bedriftspresentasjoner og andre typer
-									arrangementer (romreservasjon, matbestilling, mm.)
+									praktisk hjelp ved bedriftspresentasjoner og andre typer arrangementer
+									(romreservasjon, matbestilling, mm.)
 								</li>
-								<li>
-									oversikt over bedriftsrelaterte aktiviteter for studenter.
-								</li>
+								<li>oversikt over bedriftsrelaterte aktiviteter for studenter.</li>
 							</ul>
 
 							<h4 className="scroll-m-20 font-semibold text-xl tracking-tight">
@@ -119,7 +112,7 @@ export default function HomePage() {
 								/>
 							</div>
 
-							<div className="-translate-x-4 -translate-y-8 absolute right-0 bottom-0 z-0 size-40 transform overflow-hidden rounded-full sm:size-48 md:size-56">
+							<div className="absolute right-0 bottom-0 z-0 size-40 -translate-x-4 -translate-y-8 transform overflow-hidden rounded-full sm:size-48 md:size-56">
 								<Image
 									src={Navet_Logo}
 									alt="Vi alle elsker Navet"

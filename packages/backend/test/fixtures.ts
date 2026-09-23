@@ -1,3 +1,5 @@
+/// <reference types="vite/client" />
+
 import type { WithoutSystemFields } from "convex/server";
 import { ConvexError } from "convex/values";
 import { convexTest } from "convex-test";

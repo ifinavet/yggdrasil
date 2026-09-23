@@ -1,0 +1,12 @@
+{
+	"extends": "@workspace/typescript-config/base.json",
+	"include": ["**/*.mjs", "**/*.d.mts"],
+	"exclude": ["node_modules"],
+	"compilerOptions": {
+		"allowJs": true,
+		"checkJs": true,
+		"declaration": false,
+		"declarationMap": false,
+		"noEmit": true
+	}
+}

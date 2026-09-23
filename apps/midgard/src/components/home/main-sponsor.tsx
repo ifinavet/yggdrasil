@@ -7,9 +7,7 @@ import Image from "next/image";
 import Link from "next/link";
 import SafeHtml from "../common/sanitize-html";
 
-export default async function MainSponsorCard({
-	className,
-}: Readonly<{ className?: string }>) {
+export default async function MainSponsorCard({ className }: Readonly<{ className?: string }>) {
 	"use cache";
 	cacheLife("max");
 
@@ -44,7 +42,7 @@ export default async function MainSponsorCard({
 					<Button
 						variant="default"
 						size="lg"
-						className="-mb-4 mt-2 w-fit text-end dark:bg-primary-light dark:text-primary"
+						className="mt-2 -mb-4 w-fit text-end dark:bg-primary-light dark:text-primary"
 						asChild
 					>
 						<Link href={`/job-listings?company=${mainSponsor?._id ?? ""}`}>

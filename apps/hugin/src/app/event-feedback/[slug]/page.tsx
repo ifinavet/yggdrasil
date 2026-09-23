@@ -3,10 +3,12 @@ import { auth } from "@workspace/auth/server";
 import { api } from "@workspace/backend/convex/api";
 import { humanReadableDate } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";
 import { fetchQuery } from "convex/nextjs";
+import { Check } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { FormStatePanel } from "@/components/form-state-panel";
+import { questionCountWord } from "@/lib/event-feedback-questions";
 import { EventResponseForm } from "./form";
 
 export default async function EventResponse({
@@ -42,43 +44,45 @@ export default async function EventResponse({
 
 	if (response) {
 		return (
-			<div className="grid h-[calc(100vh-6rem)] place-content-center bg-background p-4">
-				<div className="w-full max-w-lg space-y-6">
-					<Card>
-						<CardHeader className="text-center">
-							<CardTitle className="font-bold text-2xl">
-								Det ser ut til at du allerede har besvart spørreskjema
-							</CardTitle>
-						</CardHeader>
-						<CardContent className="space-y-6 text-center">
-							<p className="text-muted-foreground">
-								Tusen takk for at du tok deg tid til å svare. Du kan trykke på knappen under for å
-								gå til din besvarelse
-							</p>
-
-							<Button asChild className="w-full">
-								<Link href={`/event-feedback/${event.slug ?? identifier}/response`}>
-									Gå til din besvarelse
-								</Link>
-							</Button>
-						</CardContent>
-					</Card>
-				</div>
+			<div className="mx-auto w-full max-w-3xl">
+				<FormStatePanel
+					icon={<Check className="size-6" strokeWidth={2.4} />}
+					title="Du har allerede svart på dette skjemaet"
+					body="Tusen takk for at du tok deg tid. Du kan svare bare én gang per arrangement, men du kan se hva du svarte."
+					action={
+						<Button asChild className="h-[52px] w-full rounded-[13px] font-semibold text-[15.5px]">
+							<Link href={`/event-feedback/${event.slug ?? identifier}/response`}>
+								Se besvarelsen din
+							</Link>
+						</Button>
+					}
+					quiet={
+						<>
+							Svarte du feil?{" "}
+							<a
+								href="mailto:web@ifinavet.no"
+								className="text-primary underline underline-offset-[3px]"
+							>
+								Gi beskjed til webansvarlig
+							</a>
+						</>
+					}
+				/>
 			</div>
 		);
 	}
 
 	return (
-		<div className="mx-auto mb-8 max-w-3xl">
-			<div className="prose dark:prose-invert py-4 pb-8 prose-h1:text-primary dark:prose-h1:text-primary-foreground">
-				<h1 className="hyphens-auto">
-					Bedriftspresentasjonen "{event.title}",&shy;{" "}
-					{humanReadableDate(new Date(event.eventStart))}
+		<div className="mx-auto flex min-h-full w-full max-w-3xl flex-col">
+			<div className="pt-1.5">
+				<h1 className="m-0 mb-1.5 font-bold text-[21px] text-primary leading-[1.22] tracking-[-0.015em]">
+					{event.title}
 				</h1>
-				<p className="max-w-[80ch]">
-					Takk for at du kom på Bedriftspresentasjonen vår. Vi ønsker alltid å gjøre opplevelsen
-					best mulig. Derfor så hadde vi satt pris på om du kunne svart på denne kjappe
-					undersøkelsen.
+				<p className="m-0 mb-3 text-[13.5px] text-muted-foreground tabular-nums">
+					{humanReadableDate(new Date(event.eventStart))}
+				</p>
+				<p className="m-0 text-[14.5px] leading-normal">
+					Takk for at du kom! {questionCountWord} kjappe spørsmål, det tar under et minutt.
 				</p>
 			</div>
 

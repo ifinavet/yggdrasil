@@ -27,9 +27,7 @@ export default async function EditJobListingPage({
 					</BreadcrumbItem>
 					<BreadcrumbSeparator />
 					<BreadcrumbItem>
-						<BreadcrumbLink href="/job-listings">
-							Stillingsannonser
-						</BreadcrumbLink>
+						<BreadcrumbLink href="/job-listings">Stillingsannonser</BreadcrumbLink>
 					</BreadcrumbItem>
 					<BreadcrumbSeparator />
 					<BreadcrumbItem>

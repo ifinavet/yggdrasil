@@ -24,19 +24,11 @@ export function groupJobListings(listings: JobListing[]): GroupedJobListings {
 	const published = listings.filter((listing) => listing.published);
 	const unpublished = listings.filter((listing) => !listing.published);
 
-	const publishedDeadlinePassed = published.filter(
-		(listing) => listing.deadline < now,
-	);
-	const publishedDeadlineNotPassed = published.filter(
-		(listing) => listing.deadline >= now,
-	);
+	const publishedDeadlinePassed = published.filter((listing) => listing.deadline < now);
+	const publishedDeadlineNotPassed = published.filter((listing) => listing.deadline >= now);
 
-	const unpublishedDeadlinePassed = unpublished.filter(
-		(listing) => listing.deadline < now,
-	);
-	const unpublishedDeadlineNotPassed = unpublished.filter(
-		(listing) => listing.deadline >= now,
-	);
+	const unpublishedDeadlinePassed = unpublished.filter((listing) => listing.deadline < now);
+	const unpublishedDeadlineNotPassed = unpublished.filter((listing) => listing.deadline >= now);
 
 	return {
 		published: {

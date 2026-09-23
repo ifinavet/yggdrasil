@@ -1,5 +1,6 @@
+import { placeholderKeys } from "@workspace/shared/utils";
 import { Skeleton } from "@workspace/ui/components/skeleton";
-import { Title } from "@/components/common/title";
+import { Title } from "@workspace/ui/components/title";
 import JobListingBanner from "@/components/job-listings/job-listing-banner";
 import JobListingCardSkeleton from "@/components/loaders/job-listing-card-skeleton";
 import TitleSkeleton from "@/components/loaders/title-skeleton";
@@ -23,8 +24,8 @@ export default function JobListingsLoading() {
 					<div className="space-y-3">
 						<Skeleton className="h-4 w-32" />
 						<div className="space-y-2">
-							{Array.from({ length: 4 }).map((_, i) => (
-								<div className="flex items-center gap-2" key={`lt-${i + 1}`}>
+							{placeholderKeys("listing-type-filter", 4).map((key) => (
+								<div className="flex items-center gap-2" key={key}>
 									<Skeleton className="h-4 w-4 rounded-full" />
 									<Skeleton className="h-4 w-24" />
 								</div>
@@ -36,8 +37,8 @@ export default function JobListingsLoading() {
 					<div className="space-y-3">
 						<Skeleton className="h-4 w-40" />
 						<div className="space-y-2">
-							{Array.from({ length: 5 }).map((_, i) => (
-								<div className="flex items-center gap-2" key={`comp-${i * 2}`}>
+							{placeholderKeys("company-filter", 5).map((key) => (
+								<div className="flex items-center gap-2" key={key}>
 									<Skeleton className="h-4 w-4 rounded-full" />
 									<Skeleton className="h-4 w-32" />
 								</div>
@@ -58,8 +59,8 @@ export default function JobListingsLoading() {
 
 				{/* Cards grid */}
 				<div className="grid w-full min-w-0 grid-cols-1 items-center gap-6 px-6 sm:grid-cols-2 lg:grid-cols-3">
-					{Array.from({ length: 6 }).map((_, i) => (
-						<JobListingCardSkeleton key={`job-card-${i * 3}`} />
+					{placeholderKeys("job-listing-card", 6).map((key) => (
+						<JobListingCardSkeleton key={key} />
 					))}
 				</div>
 			</div>

@@ -1,5 +1,5 @@
-import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
-import { Title } from "@/components/common/title";
+import ResponsiveCenterContainer from "@workspace/ui/components/responsive-center-container";
+import { Title } from "@workspace/ui/components/title";
 import ParagraphSkeleton from "@/components/loaders/paragraph-skeleton";
 import TitleSkeleton from "@/components/loaders/title-skeleton";
 

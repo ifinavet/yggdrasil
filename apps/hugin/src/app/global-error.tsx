@@ -13,7 +13,6 @@ export default function GlobalError({
 	}, [error]);
 
 	return (
-		// biome-ignore lint: This is a valid html attribute
 		<html lang="nb">
 			<body
 				style={{

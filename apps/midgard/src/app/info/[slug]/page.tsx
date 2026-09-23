@@ -1,9 +1,9 @@
 import { api } from "@workspace/backend/convex/api";
+import ResponsiveCenterContainer from "@workspace/ui/components/responsive-center-container";
+import { Title } from "@workspace/ui/components/title";
 import { fetchQuery } from "convex/nextjs";
 import { cacheLife } from "next/cache";
-import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
 import SanitizeHtml from "@/components/common/sanitize-html";
-import { Title } from "@/components/common/title";
 import { notFoundOnConvexError } from "@/lib/notFoundOnConvexError";
 
 export default async function Page({
@@ -25,10 +25,7 @@ export default async function Page({
 			<Title>{page.title}</Title>
 
 			<div className="mx-auto rounded-xl bg-zinc-100 px-10 py-8 md:px-12 dark:bg-zinc-800">
-				<SanitizeHtml
-					html={page.content}
-					className="prose dark:prose-invert max-w-[80ch]"
-				/>
+				<SanitizeHtml html={page.content} className="prose dark:prose-invert max-w-[80ch]" />
 			</div>
 		</ResponsiveCenterContainer>
 	);

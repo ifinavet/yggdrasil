@@ -1,12 +1,12 @@
 import { api } from "@workspace/backend/convex/api";
 import { Button } from "@workspace/ui/components/button";
+import ResponsiveCenterContainer from "@workspace/ui/components/responsive-center-container";
+import { Title } from "@workspace/ui/components/title";
 import { fetchQuery } from "convex/nextjs";
 import type { Metadata } from "next";
 import { cacheLife } from "next/cache";
 import ContainerCard from "@/components/cards/container-card";
 import LargeUserCard from "@/components/cards/large-user";
-import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
-import { Title } from "@/components/common/title";
 import InformationGrid from "@/components/companies/information-grid";
 import OfferGrid from "@/components/companies/offer-grid";
 import JobListingBanner from "@/components/job-listings/job-listing-banner";
@@ -19,12 +19,9 @@ export default async function CompaniesPage() {
 	"use cache";
 	cacheLife("max");
 
-	const companyContact = await fetchQuery(
-		api.users.organization.queries.getBoardMemberByPosition,
-		{
-			position: "Bedriftskontakt",
-		},
-	);
+	const companyContact = await fetchQuery(api.users.organization.queries.getBoardMemberByPosition, {
+		position: "Bedriftskontakt",
+	});
 
 	return (
 		<>
@@ -37,25 +34,21 @@ export default async function CompaniesPage() {
 								Navets formål
 							</h2>
 							<p className="text-primary-foreground leading-7">
-								Navets formål er å gjøre det enklere for bedrifter å komme i
-								kontakt med studentene ved Institutt for informatikk, UiO. Vi
-								fungerer derfor som instituttets koordinerings- og
-								kommunikasjonssentral for bedrifter, ved å blant annet arrangere
-								bedriftspresentasjoner og tilby en plattform for
-								stillingsannonser.
+								Navets formål er å gjøre det enklere for bedrifter å komme i kontakt med studentene
+								ved Institutt for informatikk, UiO. Vi fungerer derfor som instituttets
+								koordinerings- og kommunikasjonssentral for bedrifter, ved å blant annet arrangere
+								bedriftspresentasjoner og tilby en plattform for stillingsannonser.
 							</p>
 
 							<h2 className="scroll-m-20 pb-2 font-semibold text-3xl text-primary-foreground tracking-tight first:mt-0">
 								Om instituttet
 							</h2>
 							<p className="text-primary-foreground leading-7">
-								Institutt for Informatikk er det største instituttet ved
-								Universitetet i Oslo målt i antall studenter og inneholder mange
-								ulike studieprogrammer og studentforeninger. Dette kan gjøre det
-								utfordende å komme i kontakt med riktig studentgrupper. Navet
-								knytter bedriftene tettere opp mot studentene med informasjon om
-								instituttet, deriblant om de ulike studieretningene og om de
-								mange foreningene.
+								Institutt for Informatikk er det største instituttet ved Universitetet i Oslo målt i
+								antall studenter og inneholder mange ulike studieprogrammer og studentforeninger.
+								Dette kan gjøre det utfordende å komme i kontakt med riktig studentgrupper. Navet
+								knytter bedriftene tettere opp mot studentene med informasjon om instituttet,
+								deriblant om de ulike studieretningene og om de mange foreningene.
 							</p>
 						</ContainerCard>
 						<ContainerCard>
@@ -63,15 +56,13 @@ export default async function CompaniesPage() {
 								Bedriftspresentasjon, kurs og foredrag
 							</h2>
 							<p className="leading-7">
-								Navet sender i slutten av hvert semester ut en invitasjon der vi
-								oppfordrer bedrifter til å søke om og holde bedriftspresentasjon
-								det påfølgende semesteret.
+								Navet sender i slutten av hvert semester ut en invitasjon der vi oppfordrer
+								bedrifter til å søke om og holde bedriftspresentasjon det påfølgende semesteret.
 								<br />
 								<br />
-								Dersom din bedrift ønsker å holde en bedriftspresentasjon ved
-								Institutt for informatikk kan dere sende en mail til vår
-								bedriftskontakt og dere vil få mulighet ved neste semester
-								gjennom våre maillister.
+								Dersom din bedrift ønsker å holde en bedriftspresentasjon ved Institutt for
+								informatikk kan dere sende en mail til vår bedriftskontakt og dere vil få mulighet
+								ved neste semester gjennom våre maillister.
 							</p>
 						</ContainerCard>
 					</div>
@@ -79,15 +70,10 @@ export default async function CompaniesPage() {
 						<LargeUserCard
 							title="Bedriftskontakt"
 							fullName={
-								(companyContact &&
-									`${companyContact.firstName} ${companyContact.lastName}`) ??
+								(companyContact && `${companyContact.firstName} ${companyContact.lastName}`) ??
 								"Bedriftskontakt"
 							}
-							email={
-								companyContact?.positionEmail ??
-								companyContact?.email ??
-								"styret@ifinavet.no"
-							}
+							email={companyContact?.positionEmail ?? companyContact?.email ?? "styret@ifinavet.no"}
 							imageUrl={companyContact?.image}
 							initials="BK"
 						/>
@@ -96,10 +82,9 @@ export default async function CompaniesPage() {
 								Stillingsanonnser
 							</h2>
 							<p className="leading-7">
-								Navet tilbyr publisering av stillingsannonser på våre
-								hjemmesider. Dette gjelder både interships, deltid-, og
-								fulltidsstillinger. Ved forespørsel om annonser for sommerjobb
-								er det viktig at de følger{" "}
+								Navet tilbyr publisering av stillingsannonser på våre hjemmesider. Dette gjelder
+								både interships, deltid-, og fulltidsstillinger. Ved forespørsel om annonser for
+								sommerjobb er det viktig at de følger{" "}
 								<a
 									href="https://drive.google.com/file/d/181KxygLZzqqjqgDr3GZY5Lxac7ZKMWVs/view?usp=sharing"
 									rel="nofollow noopener noreferrer external"
@@ -119,9 +104,9 @@ export default async function CompaniesPage() {
 								>
 									Navet's retningslinjer.
 								</a>{" "}
-								Stillingsannonser må inneholde en søknadsfrist og stillingen må
-								være relatert til informatikk. Nye annonser publiseres ukentlig.
-								Følg linken for å opprette stillingsannonse:
+								Stillingsannonser må inneholde en søknadsfrist og stillingen må være relatert til
+								informatikk. Nye annonser publiseres ukentlig. Følg linken for å opprette
+								stillingsannonse:
 							</p>
 							<Button
 								variant="default"

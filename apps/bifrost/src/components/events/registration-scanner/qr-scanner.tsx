@@ -28,8 +28,7 @@ export default function QRScannerControlled({
 				constraints={{ facingMode: "environment" }}
 				components={{ finder: true, onOff: true }}
 				classNames={{
-					container:
-						"relative aspect-square w-full overflow-hidden rounded-lg bg-black",
+					container: "relative aspect-square w-full overflow-hidden rounded-lg bg-black",
 					video: "h-full w-full object-cover",
 				}}
 				onScan={(codes) => {

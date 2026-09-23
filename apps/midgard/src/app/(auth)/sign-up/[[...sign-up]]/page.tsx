@@ -29,6 +29,7 @@ import {
 	InputOTPSeparator,
 	InputOTPSlot,
 } from "@workspace/ui/components/input-otp";
+import ResponsiveCenterContainer from "@workspace/ui/components/responsive-center-container";
 import {
 	Select,
 	SelectContent,
@@ -36,14 +37,13 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@workspace/ui/components/select";
+import { Title } from "@workspace/ui/components/title";
 import { useMutation } from "convex/react";
 import { ConvexError } from "convex/values";
 import { useRouter } from "next/navigation";
 import { usePostHog } from "posthog-js/react";
 import { useEffect, useRef, useState } from "react";
 import z from "zod/v4";
-import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
-import { Title } from "@/components/common/title";
 
 const signUpFormSchema = z
 	.object({
@@ -106,7 +106,6 @@ function ClerkSignUpPage() {
 	const [verifying, setVerifying] = useState(false);
 	const [pendingSignUp, setPendingSignUp] = useState<PendingSignUp | null>(null);
 	const [signUpCompletionFailed, setSignUpCompletionFailed] = useState(false);
-	const [profileCreationAttempt, setProfileCreationAttempt] = useState(0);
 	const uniqueErrors = errors.filter(
 		(error, index, all) => all.findIndex((candidate) => candidate.code === error.code) === index,
 	);
@@ -195,21 +194,12 @@ function ClerkSignUpPage() {
 		};
 
 		createStudentProfile();
-	}, [
-		isAuthenticated,
-		pendingSignUp,
-		signUpCompletionFailed,
-		profileCreationAttempt,
-		createStudent,
-		postHog,
-		router,
-	]);
+	}, [isAuthenticated, pendingSignUp, signUpCompletionFailed, createStudent, postHog, router]);
 
 	const retryProfileCreation = () => {
 		setErrors([]);
 		setSignUpCompletionFailed(false);
 		setLoading(true);
-		setProfileCreationAttempt((attempt) => attempt + 1);
 	};
 
 	useEffect(() => {
@@ -581,7 +571,7 @@ function ClerkSignUpPage() {
 											name={field.name}
 											value={field.state.value}
 											onBlur={field.handleBlur}
-											onChange={(e) => field.handleChange(Number.parseInt(e.target.value))}
+											onChange={(e) => field.handleChange(Number.parseInt(e.target.value, 10))}
 											type="number"
 											min={1}
 											max={5}

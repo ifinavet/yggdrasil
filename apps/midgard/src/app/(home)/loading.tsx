@@ -1,5 +1,5 @@
+import ResponsiveCenterContainer from "@workspace/ui/components/responsive-center-container";
 import { Skeleton } from "@workspace/ui/components/skeleton";
-import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
 import TwoColumns from "@/components/common/two-columns";
 import ButtonSkeleton from "@/components/loaders/button-skeleton";
 import EventsCarouselSkeleton from "@/components/loaders/home/events-carousel-skeleton";
@@ -48,7 +48,7 @@ export default function LoadingHomePage() {
 					aside={
 						<div className="relative mx-auto h-70 w-70 max-w-full sm:h-88 sm:w-88 md:h-105 md:w-105">
 							<Skeleton className="absolute top-0 left-0 z-10 size-40 translate-x-4 translate-y-8 transform rounded-full sm:size-48 md:size-56" />
-							<Skeleton className="-translate-x-4 -translate-y-8 absolute right-0 bottom-0 z-0 size-40 transform rounded-full sm:size-48 md:size-56" />
+							<Skeleton className="absolute right-0 bottom-0 z-0 size-40 -translate-x-4 -translate-y-8 transform rounded-full sm:size-48 md:size-56" />
 						</div>
 					}
 				/>

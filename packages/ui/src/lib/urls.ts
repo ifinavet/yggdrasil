@@ -1,0 +1,1 @@
+export const midgardUrl = "https://ifinavet.no";

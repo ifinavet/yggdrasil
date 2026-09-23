@@ -29,8 +29,7 @@ export default function RegistrationButton({
 		api.points.queries.getCurrentStudentsPoints,
 		isAuthenticated ? undefined : "skip",
 	);
-	const numberOfPoints =
-		currentUsersPoints?.reduce((acc, curr) => acc + curr.severity, 0) || 0;
+	const numberOfPoints = currentUsersPoints?.reduce((acc, curr) => acc + curr.severity, 0) || 0;
 
 	const { ownRegistration } = registrationSummary;
 
@@ -64,16 +63,11 @@ export default function RegistrationButton({
 				eventId={event._id}
 				className={`w-3/4 whitespace-normal text-balance rounded-xl bg-emerald-600 px-6 py-8 text-center font-semibold text-lg text-primary-foreground hover:cursor-pointer hover:bg-emerald-700 md:w-1/2`}
 				disabled={disabled}
-				waitlist={availableSpots === 0}
+				// Mirrors the backend: anyone already waiting keeps new registrants off the free seats.
+				waitlist={availableSpots <= 0 || registrationSummary.waitlistCount > 0}
 			/>
 		);
 	}
 
-	return (
-		<EditRegistration
-			registration={ownRegistration}
-			disabled={disabled}
-			event={event}
-		/>
-	);
+	return <EditRegistration registration={ownRegistration} disabled={disabled} event={event} />;
 }

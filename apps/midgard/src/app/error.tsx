@@ -1,11 +1,11 @@
 "use client";
 
 import { Button } from "@workspace/ui/components/button";
+import ResponsiveCenterContainer from "@workspace/ui/components/responsive-center-container";
 import { AlertTriangle, Home, RefreshCcw } from "lucide-react";
 import Link from "next/link";
 import posthog from "posthog-js";
 import { useEffect, useMemo } from "react";
-import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
 
 function getErrorMessage(error: unknown): string {
 	if (!error) return "Ukjent feil.";
@@ -35,8 +35,7 @@ export default function GlobalError({
 		<ResponsiveCenterContainer className="text-center">
 			<div className="mx-auto w-full max-w-xl">
 				<div className="mb-6 inline-flex items-center rounded-full border px-3 py-1 text-muted-foreground text-xs">
-					<span className="mr-2 inline-flex h-2 w-2 rounded-full bg-destructive" />{" "}
-					Feil 500
+					<span className="mr-2 inline-flex h-2 w-2 rounded-full bg-destructive" /> Feil 500
 				</div>
 
 				<h1 className="mb-3 font-bold text-4xl tracking-tight sm:text-5xl">
@@ -44,8 +43,8 @@ export default function GlobalError({
 				</h1>
 
 				<p className="mb-6 text-balance text-muted-foreground">
-					Det oppstod en intern feil. Prøv igjen om litt, eller gå tilbake til
-					forsiden. Hvis problemet vedvarer, kontakt oss gjerne.
+					Det oppstod en intern feil. Prøv igjen om litt, eller gå tilbake til forsiden. Hvis
+					problemet vedvarer, kontakt oss gjerne.
 				</p>
 
 				<div className="mx-auto mb-8 max-w-xl text-left">
@@ -90,10 +89,7 @@ export default function GlobalError({
 						<p className="text-muted-foreground text-sm">
 							Trenger du hjelp? Ta kontakt med support hvis problemet vedvarer.
 						</p>
-						<a
-							className="text-muted-foreground text-sm italic"
-							href="mailto:web@ifinavet.no"
-						>
+						<a className="text-muted-foreground text-sm italic" href="mailto:web@ifinavet.no">
 							Send oss en mail!
 						</a>
 					</div>

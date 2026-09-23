@@ -18,9 +18,7 @@ export default async function NewListingPage() {
 					</BreadcrumbItem>
 					<BreadcrumbSeparator />
 					<BreadcrumbItem>
-						<BreadcrumbLink href="/job-listings">
-							Stillingsannonser
-						</BreadcrumbLink>
+						<BreadcrumbLink href="/job-listings">Stillingsannonser</BreadcrumbLink>
 					</BreadcrumbItem>
 					<BreadcrumbSeparator />
 					<BreadcrumbItem>

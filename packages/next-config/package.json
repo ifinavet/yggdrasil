@@ -5,10 +5,10 @@
 	"private": true,
 	"packageManager": "pnpm@10.15.1",
 	"scripts": {
-		"check": "biome check ."
+		"check-types": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@sentry/nextjs": "^10.70.0"
+		"@sentry/nextjs": "^10.75.0"
 	},
 	"devDependencies": {
 		"@workspace/typescript-config": "workspace:*",

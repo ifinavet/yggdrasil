@@ -74,7 +74,7 @@ export function findNodePosition(props: {
 }): { pos: number; node: Node } | null {
 	const { editor, node, nodePos } = props;
 
-	if (!editor || !editor.state?.doc) return null;
+	if (!editor?.state?.doc) return null;
 
 	// Zero is valid position
 	const hasValidNode = node !== undefined && node !== null;

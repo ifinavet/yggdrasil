@@ -1,11 +1,11 @@
 import { api } from "@workspace/backend/convex/api";
+import ResponsiveCenterContainer from "@workspace/ui/components/responsive-center-container";
+import { Title } from "@workspace/ui/components/title";
 import { fetchQuery } from "convex/nextjs";
 import type { Metadata } from "next";
 import { cacheLife } from "next/cache";
 import ContainerCard from "@/components/cards/container-card";
 import LargeUserCard from "@/components/cards/large-user";
-import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
-import { Title } from "@/components/common/title";
 import TwoColumns from "@/components/common/two-columns";
 import FAQGrid from "@/components/students/faq-grid";
 
@@ -32,9 +32,9 @@ export default async function StudentsPage() {
 								Hei IFI-Student! 👋
 							</h2>
 							<p className="not-first:mt-6 leading-7">
-								Her har vi forsøkt å samle de mest vanlige spørsmålene om Navet.
-								Hvis du har et spørsmål du ikke finner svar på her, kontakt oss
-								gjerne på våre SoMe-kanaler eller send en mail til{" "}
+								Her har vi forsøkt å samle de mest vanlige spørsmålene om Navet. Hvis du har et
+								spørsmål du ikke finner svar på her, kontakt oss gjerne på våre SoMe-kanaler eller
+								send en mail til{" "}
 								<a href="mailto:koordinator@ifinavet.no" className="underline">
 									koordinator@ifinavet.no
 								</a>
@@ -61,15 +61,9 @@ export default async function StudentsPage() {
 						<LargeUserCard
 							title="Koordinator"
 							fullName={
-								(coordinator &&
-									`${coordinator.firstName} ${coordinator.lastName}`) ??
-								"Koordinator"
+								(coordinator && `${coordinator.firstName} ${coordinator.lastName}`) ?? "Koordinator"
 							}
-							email={
-								coordinator?.positionEmail ??
-								coordinator?.email ??
-								"styret@ifinavet.no"
-							}
+							email={coordinator?.positionEmail ?? coordinator?.email ?? "styret@ifinavet.no"}
 							imageUrl={coordinator?.image}
 							initials="KO"
 						/>
@@ -80,11 +74,11 @@ export default async function StudentsPage() {
 							<p className="not-first:mt-6 leading-7">
 								For deg som ny student er det bare å opprette en ny bruker.
 								<br />
-								Brukeren registreres med din epost. Ved
-								førstegangs registrering vil du måtte bekrefte eposten, du vil få en kode tilsendt på mail.
+								Brukeren registreres med din epost. Ved førstegangs registrering vil du måtte
+								bekrefte eposten, du vil få en kode tilsendt på mail.
 								<br />
-								Når du har opprettet en ny bruker kan du selv redigere og legge
-								til informasjon på din brukerprofil.
+								Når du har opprettet en ny bruker kan du selv redigere og legge til informasjon på
+								din brukerprofil.
 							</p>
 						</ContainerCard>
 					</div>

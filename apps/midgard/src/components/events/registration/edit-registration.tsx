@@ -136,10 +136,7 @@ export default function EditRegistration({
 							</Button>
 						</div>
 						<div className="flex gap-2">
-							<Unregister
-								registrationId={registration._id}
-								eventId={event._id}
-							/>
+							<Unregister registrationId={registration._id} eventId={event._id} />
 							<Button
 								type="submit"
 								form="update-registration-form"
