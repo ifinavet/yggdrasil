@@ -18,10 +18,13 @@ export const getFormResponsesByFormId = query({
 	handler: async (ctx, { formId }) => {
 		await requireRole(ctx, internalRoles);
 
-		return await ctx.db
+		const responses = await ctx.db
 			.query("formResponses")
 			.withIndex("by_formId", (q) => q.eq("formId", formId))
 			.collect();
+
+		// The index selects legacy responses, but does not narrow the document union.
+		return responses.filter((response) => "formId" in response);
 	},
 });
 
