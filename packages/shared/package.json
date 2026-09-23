@@ -14,7 +14,8 @@
 	"exports": {
 		"./constants": "./constants/index.ts",
 		"./local": "./local.ts",
-		"./utils": "./utils/index.ts"
+		"./utils": "./utils/index.ts",
+		"./feedback": "./feedback.ts"
 	},
 	"scripts": {
 		"check-types": "tsc --noEmit"
