@@ -1,46 +1,48 @@
 import type { WebhookEvent } from "@clerk/backend";
-import { httpRouter } from "convex/server";
+import type { HttpRouter } from "convex/server";
 import { Webhook } from "svix";
 import { internal } from "../../_generated/api";
 import { httpAction } from "../../_generated/server";
 
 /**
- * Registers the Clerk webhook route.
+ * Registers the Clerk webhook route on the application's HTTP router.
+ *
+ * @param {HttpRouter} http - The router exported from convex/http.ts.
  */
-const http = httpRouter();
+export function registerClerkRoutes(http: HttpRouter): void {
+	http.route({
+		path: "/clerk-users-webhook",
+		method: "POST",
+		handler: httpAction(async (ctx, request) => {
+			const event = await validateRequest(request);
+			if (!event) {
+				return new Response("Error occured", { status: 400 });
+			}
+			switch (event.type) {
+				case "user.created": // intentional fallthrough
+				case "user.updated":
+					await ctx.runMutation(internal.users.clerk.mutations.upsertFromClerk, {
+						data: event.data,
+					});
+					break;
 
-http.route({
-	path: "/clerk-users-webhook",
-	method: "POST",
-	handler: httpAction(async (ctx, request) => {
-		const event = await validateRequest(request);
-		if (!event) {
-			return new Response("Error occured", { status: 400 });
-		}
-		switch (event.type) {
-			case "user.created": // intentional fallthrough
-			case "user.updated":
-				await ctx.runMutation(internal.users.clerk.mutations.upsertFromClerk, {
-					data: event.data,
-				});
-				break;
-
-			case "user.deleted": {
-				const clerkUserId = event.data.id;
-				if (!clerkUserId) {
-					console.error("Missing user ID in delete event");
+				case "user.deleted": {
+					const clerkUserId = event.data.id;
+					if (!clerkUserId) {
+						console.error("Missing user ID in delete event");
+						break;
+					}
+					await ctx.runMutation(internal.users.clerk.mutations.deleteFromClerk, { clerkUserId });
 					break;
 				}
-				await ctx.runMutation(internal.users.clerk.mutations.deleteFromClerk, { clerkUserId });
-				break;
+				default:
+					console.log("Ignored Clerk webhook event", event.type);
 			}
-			default:
-				console.log("Ignored Clerk webhook event", event.type);
-		}
 
-		return new Response(null, { status: 200 });
-	}),
-});
+			return new Response(null, { status: 200 });
+		}),
+	});
+}
 
 /**
  * Validates and verifies an incoming Clerk webhook request.
@@ -74,8 +76,3 @@ async function validateRequest(req: Request): Promise<WebhookEvent | null> {
 		return null;
 	}
 }
-
-/**
- * Exports the configured Clerk HTTP router.
- */
-export default http;
