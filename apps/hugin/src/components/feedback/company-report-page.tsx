@@ -47,6 +47,7 @@ function CompanyReport({
 	useEffect(() => {
 		let active = true;
 		let loading = false;
+		let loaded = false;
 		async function load() {
 			if (loading) return;
 			loading = true;
@@ -69,12 +70,13 @@ function CompanyReport({
 					if (page.isDone) {
 						setResult({ report: page.report, answers });
 						setState("ready");
+						loaded = true;
 						return;
 					}
 					cursor = page.continueCursor;
 				}
 			} catch {
-				if (active) {
+				if (active && !loaded) {
 					setResult(null);
 					setState("error");
 				}

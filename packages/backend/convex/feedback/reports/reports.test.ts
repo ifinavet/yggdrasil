@@ -344,8 +344,18 @@ describe("company feedback reports", () => {
 		expect(await f.t.run((ctx) => ctx.db.query("feedbackReportAnswers").collect())).toHaveLength(
 			120,
 		);
+		vi.setSystemTime(now + 86400000 - 1);
+		expect(
+			(await f.client.query(reports.queries.getReportAnswers, { reportId, paginationOpts })).page,
+		).not.toHaveLength(0);
 		vi.setSystemTime(now + 86400000);
+		await expect(
+			f.client.query(reports.queries.getReportAnswers, { reportId, paginationOpts }),
+		).rejects.toThrow("Lagringstiden");
 		await f.t.mutation(jobs.build.expireReport, { reportId });
+		await expect(
+			f.client.query(reports.queries.getReportAnswers, { reportId, paginationOpts }),
+		).rejects.toThrow("Lagringstiden");
 		await f.t.mutation(jobs.build.expireReport, { reportId });
 		expect(await f.t.run((ctx) => ctx.db.query("feedbackReportAnswers").collect())).toHaveLength(0);
 		expect(

@@ -43,6 +43,8 @@ export const getReportAnswers = query({
 		if (!report) throw new ConvexError("Rapporten finnes ikke.");
 		await requireReportAccess(ctx, report.eventId);
 		if (!isReportFeatureEnabled()) throw new ConvexError("Rapportfunksjonen er slått av.");
+		if (Date.now() >= report.retentionAt)
+			throw new ConvexError("Lagringstiden for rapporten er utløpt.");
 		const result = await ctx.db
 			.query("feedbackReportAnswers")
 			.withIndex("by_reportId", (index) => index.eq("reportId", reportId))
