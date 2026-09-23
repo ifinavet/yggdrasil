@@ -5,7 +5,9 @@
 	"private": true,
 	"packageManager": "pnpm@10.15.1",
 	"dependencies": {
-		"convex": "^1.46.0"
+		"@date-fns/tz": "^1.5.0",
+		"convex": "^1.46.0",
+		"date-fns": "^4.4.0"
 	},
 	"devDependencies": {
 		"@workspace/typescript-config": "workspace:*",
@@ -15,7 +17,8 @@
 		"./constants": "./constants/index.ts",
 		"./local": "./local.ts",
 		"./utils": "./utils/index.ts",
-		"./feedback": "./feedback/index.ts"
+		"./feedback": "./feedback/index.ts",
+		"./feedback/time": "./feedback/time.ts"
 	},
 	"scripts": {
 		"check-types": "tsc --noEmit"

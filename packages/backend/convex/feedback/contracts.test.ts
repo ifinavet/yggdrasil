@@ -5,8 +5,9 @@ import {
 	feedbackPrefill,
 	validateFeedbackFields,
 } from "@workspace/shared/feedback";
+import { feedbackOpensAt, feedbackRetentionAt } from "@workspace/shared/feedback/time";
 import { describe, expect, it } from "vitest";
-import { feedbackOpensAt, feedbackRetentionAt, hashFeedbackToken } from "./time";
+import { hashFeedbackToken } from "./tokens";
 
 const field: FeedbackField = {
 	key: "score",
@@ -78,6 +79,7 @@ describe("Oslo campaign calendar", () => {
 		["2026-03-28T20:00:00Z", "2026-03-29T06:00:00Z"],
 		["2026-10-24T20:00:00Z", "2026-10-25T07:00:00Z"],
 		["2026-12-31T23:30:00Z", "2027-01-02T07:00:00Z"],
+		["2028-02-28T23:30:00Z", "2028-03-01T07:00:00Z"],
 	])("opens after %s at %s", (start, expected) =>
 		expect(feedbackOpensAt(Date.parse(start))).toBe(Date.parse(expected)),
 	);
@@ -87,6 +89,9 @@ describe("Oslo campaign calendar", () => {
 		);
 		expect(feedbackRetentionAt(Date.parse("2026-01-10T08:00:00Z"))).toBe(
 			Date.parse("2027-07-10T08:00:00Z"),
+		);
+		expect(feedbackRetentionAt(Date.parse("2026-08-31T23:59:59.123Z"))).toBe(
+			Date.parse("2028-02-29T23:59:59.123Z"),
 		);
 	});
 	it("hashes the token using SHA256", async () =>
