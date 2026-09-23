@@ -48,6 +48,14 @@ export function formatSemesterDay(date: string): string {
 	return format(parseStrictOrThrow(date, DAY_FORMAT), "EEE d. MMM", { ...IN_OSLO, locale: nb });
 }
 
+/** A semester day written out, e.g. "tirsdag 9. februar 2027". */
+export function formatSemesterDayLong(date: string): string {
+	return format(parseStrictOrThrow(date, DAY_FORMAT), "EEEE d. MMMM yyyy", {
+		...IN_OSLO,
+		locale: nb,
+	});
+}
+
 /** Whether the day is a presentation day: a Tuesday or a Thursday. */
 export function isPresentationDay(date: string): boolean {
 	return isPresentationWeekday(parseStrictOrThrow(date, DAY_FORMAT));

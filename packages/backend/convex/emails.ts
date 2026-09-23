@@ -5,12 +5,15 @@ import { pretty, render } from "@react-email/render";
 import ApplicationReceiptEmail from "@workspace/emails/application-receipt-email";
 import AvailableSeatEmail from "@workspace/emails/available-seat-email";
 import { COMPANY_CONTACT_EMAIL } from "@workspace/emails/constants";
+import CompanyOfferConfirmedEmail from "@workspace/emails/company-offer-confirmed-email";
+import CompanyOfferEmail from "@workspace/emails/company-offer-email";
 import FreeForAllEmail from "@workspace/emails/free-for-all-email";
 import LockedOutEmail from "@workspace/emails/locked-out-email";
+import OfferResponseNoticeEmail from "@workspace/emails/offer-response-notice-email";
 import PointsEmail from "@workspace/emails/point-email";
 import { v } from "convex/values";
 import { components } from "./_generated/api";
-import { internalAction } from "./_generated/server";
+import { type ActionCtx, internalAction } from "./_generated/server";
 import { isLocalDevelopment } from "./auth/local";
 
 /**
@@ -176,26 +179,130 @@ export const sendFreeForAll = internalAction({
  *
  * @returns {Promise<void>} - Resolves when the email has been sent.
  */
+const summaryRows = v.array(v.object({ label: v.string(), value: v.string() }));
+
 export const sendApplicationReceiptEmail = internalAction({
 	args: {
 		to: v.array(v.string()),
 		companyName: v.string(),
 		semesterLabel: v.string(),
-		rows: v.array(v.object({ label: v.string(), value: v.string() })),
+		rows: summaryRows,
 	},
 	handler: async (ctx, { to, companyName, semesterLabel, rows }) => {
 		if (isLocalDevelopment()) return;
 
-		const html = await pretty(
-			await render(ApplicationReceiptEmail({ companyName, semesterLabel, rows })),
-		);
-
-		await resend.sendEmail(ctx, {
-			from: `Navet <${COMPANY_CONTACT_EMAIL}>`,
-			replyTo: [COMPANY_CONTACT_EMAIL],
+		await sendCompanyEmail(
+			ctx,
 			to,
-			subject: `Søknad om bedriftsarrangement ${semesterLabel} er mottatt`,
-			html,
-		});
+			`Søknad om bedriftsarrangement ${semesterLabel} er mottatt`,
+			ApplicationReceiptEmail({ companyName, semesterLabel, rows }),
+		);
 	},
 });
+
+/**
+ * Sends an offer to a company's contact person, with the personal link to answer it.
+ *
+ * @param {string} to - The contact person's email address.
+ * @param {string} url - The offer link. It contains the plaintext token, which is stored nowhere else.
+ *
+ * @returns {Promise<void>} - Resolves when the email has been sent.
+ */
+export const sendOfferEmail = internalAction({
+	args: {
+		to: v.string(),
+		contactName: v.string(),
+		companyName: v.string(),
+		dateLabel: v.string(),
+		eventTypeLabel: v.string(),
+		maxStudents: v.number(),
+		url: v.string(),
+		respondByLabel: v.optional(v.string()),
+	},
+	handler: async (ctx, { to, ...offer }) => {
+		if (isLocalDevelopment()) return;
+
+		await sendCompanyEmail(
+			ctx,
+			to,
+			`Tilbud om bedriftsarrangement ${offer.dateLabel}`,
+			CompanyOfferEmail(offer),
+		);
+	},
+});
+
+/**
+ * Confirms to a company that it has accepted its date.
+ *
+ * @param {string[]} to - The contact person, and whoever filled in the application.
+ *
+ * @returns {Promise<void>} - Resolves when the email has been sent.
+ */
+export const sendOfferConfirmedEmail = internalAction({
+	args: { to: v.array(v.string()), companyName: v.string(), dateLabel: v.string() },
+	handler: async (ctx, { to, companyName, dateLabel }) => {
+		if (isLocalDevelopment()) return;
+
+		await sendCompanyEmail(
+			ctx,
+			to,
+			`Bekreftet: bedriftsarrangement ${dateLabel}`,
+			CompanyOfferConfirmedEmail({ companyName, dateLabel }),
+		);
+	},
+});
+
+/**
+ * Tells the bedriftskontakt that a company accepted an offer or asked for another date.
+ *
+ * @param {string} to - The address set in SEMESTER_PLANNING_NOTIFY_EMAIL.
+ *
+ * @returns {Promise<void>} - Resolves when the email has been sent.
+ */
+export const sendOfferResponseNotice = internalAction({
+	args: {
+		to: v.string(),
+		companyName: v.string(),
+		answer: v.union(v.literal("accepted"), v.literal("new_date_requested")),
+		rows: summaryRows,
+	},
+	handler: async (ctx, { to, companyName, answer, rows }) => {
+		if (isLocalDevelopment()) return;
+
+		const subject =
+			answer === "accepted"
+				? `${companyName} har godtatt tilbudet`
+				: `${companyName} ber om en annen dato`;
+		await sendCompanyEmail(
+			ctx,
+			to,
+			subject,
+			OfferResponseNoticeEmail({ companyName, answer, rows }),
+		);
+	},
+});
+
+/**
+ * Sends a semester planning email from bedrift@ifinavet.no, where companies reply.
+ *
+ * @param {ActionCtx} ctx - The Convex action context.
+ * @param {string | string[]} to - The recipient or recipients.
+ * @param {string} subject - The subject line.
+ * @param {React.ReactElement} email - The email template to render.
+ *
+ * @returns {Promise<void>} - Resolves when the email has been handed to Resend.
+ */
+async function sendCompanyEmail(
+	ctx: ActionCtx,
+	to: string | string[],
+	subject: string,
+	email: Parameters<typeof render>[0],
+): Promise<void> {
+	await resend.sendEmail(ctx, {
+		from: "Navet <bedrift@ifinavet.no>",
+		replyTo: ["bedrift@ifinavet.no"],
+		to,
+		subject,
+		html: await pretty(await render(email)),
+	});
+}
