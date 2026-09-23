@@ -8,7 +8,7 @@ import {
 } from "@workspace/shared/feedback";
 import { feedbackOpensAt, feedbackRetentionAt } from "@workspace/shared/feedback/time";
 import { describe, expect, it } from "vitest";
-import { hashFeedbackToken } from "./tokens";
+import { hashToken } from "../lib/tokens";
 
 const field: FeedbackField = {
 	key: "score",
@@ -139,7 +139,7 @@ describe("Oslo campaign calendar", () => {
 		);
 	});
 	it("hashes the token using SHA256", async () =>
-		expect(await hashFeedbackToken("abc")).toBe(
+		expect(await hashToken("abc")).toBe(
 			"ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
 		));
 });

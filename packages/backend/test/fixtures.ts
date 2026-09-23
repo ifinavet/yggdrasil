@@ -6,6 +6,7 @@ import { convexTest } from "convex-test";
 import type { Doc, Id } from "../convex/_generated/dataModel";
 import type { AccessRole } from "../convex/auth/accessRights";
 import schema from "../convex/schema";
+import { CONSENT_VERSION, FORM_VERSION } from "../convex/semesterPlanning/rules";
 
 const convexModules = {
 	...import.meta.glob(["../convex/**/*.*s", "!../convex/**/*.test.ts"]),
@@ -254,4 +255,81 @@ export async function refusalMessageFrom(call: Promise<unknown>): Promise<string
 	}
 
 	throw new Error("Expected the call to be refused, but it resolved.");
+}
+
+export type SemesterOverrides = Partial<WithoutSystemFields<Doc<"semesters">>>;
+export type ApplicationOverrides = Partial<WithoutSystemFields<Doc<"companyApplications">>>;
+
+export async function insertSemester(
+	t: TestBackend,
+	overrides: SemesterOverrides = {},
+): Promise<Id<"semesters">> {
+	return t.run((ctx) =>
+		ctx.db.insert("semesters", {
+			year: 2027,
+			term: "spring",
+			firstDate: "2027-01-19",
+			lastDate: "2027-05-13",
+			applicationDeadline: "2026-12-04",
+			status: "open",
+			...overrides,
+		}),
+	);
+}
+
+export async function insertApplication(
+	t: TestBackend,
+	semesterId: Id<"semesters">,
+	overrides: ApplicationOverrides = {},
+): Promise<Id<"companyApplications">> {
+	return t.run((ctx) =>
+		ctx.db.insert("companyApplications", {
+			semesterId,
+			formVersion: FORM_VERSION,
+			orgNumber: "924773189",
+			registry: {
+				name: "FJORDKODE AS",
+				organizationForm: { code: "AS", description: "Aksjeselskap" },
+				fetchedAt: Date.now(),
+			},
+			contact: { name: "Ingrid Solberg", email: "ingrid@fjordkode.no", phone: "+4741234567" },
+			eventType: "standard_presentation",
+			minStudents: 25,
+			maxStudents: 40,
+			description: "Presentasjon og kodeoppgave.",
+			availableDates: ["2027-02-09", "2027-02-16"],
+			venue: "campus",
+			wantsToUseEscape: "unsure",
+			foodAndDrinks: true,
+			foodPurchasedBy: "company",
+			billing: {
+				email: "faktura@fjordkode.no",
+				ehf: true,
+				peppolLookup: "found",
+				peppolCheckedAt: Date.now(),
+			},
+			targetDegrees: [],
+			targetStudyPrograms: [],
+			consent: { version: CONSENT_VERSION, consentedAt: Date.now() },
+			status: "applied",
+			roomBooked: false,
+			foodOrdered: false,
+			...overrides,
+		}),
+	);
+}
+
+export async function applicationById(t: TestBackend, applicationId: Id<"companyApplications">) {
+	const application = await t.run((ctx) => ctx.db.get(applicationId));
+	if (!application) throw new Error("Expected the application to exist.");
+	return application;
+}
+
+export async function activityFor(t: TestBackend, applicationId: Id<"companyApplications">) {
+	return t.run((ctx) =>
+		ctx.db
+			.query("companyApplicationActivity")
+			.withIndex("by_applicationId", (q) => q.eq("applicationId", applicationId))
+			.collect(),
+	);
 }

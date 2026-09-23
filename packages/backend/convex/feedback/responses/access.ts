@@ -1,11 +1,11 @@
 import { feedbackFieldsSchema, feedbackTokenSchema } from "@workspace/shared/feedback";
 import type { QueryCtx } from "../../_generated/server";
-import { hashFeedbackToken } from "../tokens";
+import { hashToken } from "../../lib/tokens";
 
 /** Shared by the read-only resolver and the atomic submission mutation. */
 export async function getFeedbackTokenAccess(ctx: QueryCtx, token: string, now: number) {
 	if (!feedbackTokenSchema.safeParse(token).success) return { status: "invalid" } as const;
-	const tokenHash = await hashFeedbackToken(token);
+	const tokenHash = await hashToken(token);
 	const storedToken = await ctx.db
 		.query("feedbackTokens")
 		.withIndex("by_tokenHash", (index) => index.eq("tokenHash", tokenHash))
