@@ -35,14 +35,10 @@ export default async function RegistrationPage({
 		<ResponsiveCenterContainer>
 			<Title>Det har blitt en ledig plass til deg!</Title>
 			<h2 className="mb-4 scroll-m-20 pb-2 text-center font-semibold text-3xl tracking-tight first:mt-0">
-				Arrangement: {event.title} den{" "}
-				{humanReadableDate(new Date(event.eventStart))}
+				Arrangement: {event.title} den {humanReadableDate(new Date(event.eventStart))}
 			</h2>
 
-			<RegistrationStatusHandler
-				registrationId={registrationId}
-				eventId={eventId}
-			/>
+			<RegistrationStatusHandler registrationId={registrationId} eventId={eventId} />
 		</ResponsiveCenterContainer>
 	);
 }
@@ -60,12 +56,7 @@ async function RegistrationStatusHandler({
 	const registration = preloadedQueryResult(preloadedRegistration);
 
 	if (registration.status === "pending") {
-		return (
-			<Register
-				preloadedRegistration={preloadedRegistration}
-				eventId={eventId}
-			/>
-		);
+		return <Register preloadedRegistration={preloadedRegistration} eventId={eventId} />;
 	}
 
 	if (registration.status === "registered") {

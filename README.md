@@ -100,6 +100,23 @@ pnpm dev
 
 This starts the local backend, Midgard at `http://localhost:3000`, Bifrost at `http://localhost:3001`, and Hugin at `http://localhost:3003`.
 
+## Checks ✅
+
+Every pull request runs [the same four commands you can run locally](.github/workflows/ci.yml):
+
+```bash
+pnpm lint          # biome in one pass (pnpm lint:fix writes the fixes)
+pnpm check-types   # tsc --noEmit in every package
+pnpm compile       # next build in compile mode, no backend needed
+pnpm test          # vitest, per package
+```
+
+`pnpm lint` covers the whole repo except `packages/ui`, which `biome.json` excludes. `pnpm compile`
+skips prerendering, so it needs no Convex deployment and works on forks; midgard's prerendered pages
+fetch from Convex at build time and nothing checks them until the production deploy. `pnpm build` is
+that real production build and needs a reachable `NEXT_PUBLIC_CONVEX_URL`, as do `check-types` and
+`compile` when you run them by hand.
+
 ## Deployments 🚀
 
 Pushes to `main` [deploy Convex first, then all three apps on Vercel](.github/workflows/deploy-production.yml). PR previews still use Vercel's Git integration.

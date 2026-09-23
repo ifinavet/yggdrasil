@@ -36,7 +36,6 @@ export default function RootLayout({
 	readonly children: React.ReactNode;
 }>) {
 	return (
-		// biome-ignore lint: This is a valid html attribute
 		<html lang="nb" suppressHydrationWarning>
 			<body className={`antialiased ${interSans.className}`}>
 				<Suspense fallback={null}>

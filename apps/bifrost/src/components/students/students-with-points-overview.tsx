@@ -51,11 +51,7 @@ export default function StudentsWithPointsOverview() {
 
 	return (
 		<div className="overflow-clip rounded-md border">
-			<DataTable
-				columns={columns}
-				data={students ?? defaultData}
-				onRowClick={handleRowClick}
-			/>
+			<DataTable columns={columns} data={students ?? defaultData} onRowClick={handleRowClick} />
 		</div>
 	);
 }

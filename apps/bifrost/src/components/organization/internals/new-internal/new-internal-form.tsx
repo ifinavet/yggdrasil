@@ -5,23 +5,16 @@ import type { Doc } from "@workspace/backend/convex/dataModel";
 import { Button } from "@workspace/ui/components/button";
 import {
 	Dialog,
-	DialogClose,
 	DialogContent,
 	DialogDescription,
-	DialogFooter,
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
 } from "@workspace/ui/components/dialog";
-import {
-	Field,
-	FieldDescription,
-	FieldError,
-	FieldLabel,
-	FieldSet,
-} from "@workspace/ui/components/field";
-import { Input } from "@workspace/ui/components/input";
+import { Field, FieldError, FieldLabel, FieldSet } from "@workspace/ui/components/field";
 import { useEffect, useState } from "react";
+import DialogSaveFooter from "@/components/common/forms/dialog-save-footer";
+import PositionGroupField from "@/components/common/forms/position-group-field";
 import {
 	type InternalMemberFormValues,
 	internalMemberFormSchema,
@@ -106,46 +99,13 @@ export default function InternalMemberForm({
 							)}
 						</form.Field>
 
-						<form.Field name="group">
-							{(field) => {
-								const isInvalid =
-									field.state.meta.isTouched && !field.state.meta.isValid;
-								return (
-									<Field>
-										<FieldLabel htmlFor={field.name}>Gruppe</FieldLabel>
-										<Input
-											id={field.name}
-											name={field.name}
-											value={field.state.value}
-											onChange={(e) => field.handleChange(e.target.value)}
-											onBlur={field.handleBlur}
-											aria-invalid={isInvalid}
-											placeholder="f.eks. Webgruppen"
-										/>
-										<FieldDescription>
-											Hva skal gruppen til vervet hete?
-										</FieldDescription>
-										{isInvalid && (
-											<FieldError errors={field.state.meta.errors} />
-										)}
-									</Field>
-								);
-							}}
-						</form.Field>
+						<form.Field name="group">{(field) => <PositionGroupField field={field} />}</form.Field>
 					</FieldSet>
 				</form>
-				<DialogFooter>
-					<DialogClose asChild>
-						<Button variant="outline">Avbryt</Button>
-					</DialogClose>
-					<Button
-						type="submit"
-						disabled={form.state.isSubmitting}
-						onClick={() => form.handleSubmit()}
-					>
-						{form.state.isSubmitting ? "Lagrer..." : "Lagre"}
-					</Button>
-				</DialogFooter>
+				<DialogSaveFooter
+					isSubmitting={form.state.isSubmitting}
+					onSave={() => form.handleSubmit()}
+				/>
 			</DialogContent>
 		</Dialog>
 	);

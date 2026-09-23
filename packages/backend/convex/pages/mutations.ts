@@ -17,30 +17,30 @@ import { editorRoles, requireRole } from "../auth/accessRights";
  * @returns {null} - Returns null when the resource is created successfully.
  */
 export const createResource = mutation({
-    args: {
-        title: v.string(),
-        excerpt: v.string(),
-        content: v.string(),
-        tag: v.optional(v.string()),
-        icon: v.string(),
-        gradient: v.string(),
-        published: v.boolean(),
-    },
-    handler: async (ctx, args) => {
-        await requireRole(ctx, editorRoles);
+	args: {
+		title: v.string(),
+		excerpt: v.string(),
+		content: v.string(),
+		tag: v.optional(v.string()),
+		icon: v.string(),
+		gradient: v.string(),
+		published: v.boolean(),
+	},
+	handler: async (ctx, args) => {
+		await requireRole(ctx, editorRoles);
 
-        await ctx.db.insert("resources", {
-            title: args.title,
-            excerpt: args.excerpt,
-            content: args.content,
-            tag: args.tag,
-            favorite: false,
-            icon: args.icon,
-            gradient: args.gradient,
-            published: args.published,
-            updatedAt: Date.now(),
-        });
-    },
+		await ctx.db.insert("resources", {
+			title: args.title,
+			excerpt: args.excerpt,
+			content: args.content,
+			tag: args.tag,
+			favorite: false,
+			icon: args.icon,
+			gradient: args.gradient,
+			published: args.published,
+			updatedAt: Date.now(),
+		});
+	},
 });
 
 /**
@@ -58,28 +58,28 @@ export const createResource = mutation({
  * @returns {null} - Returns null when the resource is updated successfully.
  */
 export const updateResource = mutation({
-    args: {
-        id: v.id("resources"),
-        title: v.string(),
-        excerpt: v.string(),
-        content: v.string(),
-        tag: v.optional(v.string()),
-        icon: v.string(),
-        published: v.boolean(),
-    },
-    handler: async (ctx, args) => {
-        await requireRole(ctx, editorRoles);
+	args: {
+		id: v.id("resources"),
+		title: v.string(),
+		excerpt: v.string(),
+		content: v.string(),
+		tag: v.optional(v.string()),
+		icon: v.string(),
+		published: v.boolean(),
+	},
+	handler: async (ctx, args) => {
+		await requireRole(ctx, editorRoles);
 
-        await ctx.db.patch(args.id, {
-            title: args.title,
-            excerpt: args.excerpt,
-            content: args.content,
-            tag: args.tag,
-            icon: args.icon,
-            published: args.published,
-            updatedAt: Date.now(),
-        });
-    },
+		await ctx.db.patch(args.id, {
+			title: args.title,
+			excerpt: args.excerpt,
+			content: args.content,
+			tag: args.tag,
+			icon: args.icon,
+			published: args.published,
+			updatedAt: Date.now(),
+		});
+	},
 });
 
 /**
@@ -94,39 +94,39 @@ export const updateResource = mutation({
  * @returns {null} - Returns null when the external page is updated successfully.
  */
 export const updateExternalPage = mutation({
-    args: {
-        id: v.id("externalPages"),
-        title: v.string(),
-        content: v.string(),
-        published: v.boolean(),
-    },
-    handler: async (ctx, { id, title, content, published }) => {
-        await requireRole(ctx, editorRoles);
+	args: {
+		id: v.id("externalPages"),
+		title: v.string(),
+		content: v.string(),
+		published: v.boolean(),
+	},
+	handler: async (ctx, { id, title, content, published }) => {
+		await requireRole(ctx, editorRoles);
 
-        const identifier = title
-            .toLowerCase()
-            .replaceAll(/[æøå]/g, (match) => {
-                switch (match) {
-                    case "æ":
-                        return "ae";
-                    case "ø":
-                        return "o";
-                    case "å":
-                        return "a";
-                    default:
-                        return match;
-                }
-            })
-            .replaceAll(/\s+/g, "-");
+		const identifier = title
+			.toLowerCase()
+			.replaceAll(/[æøå]/g, (match) => {
+				switch (match) {
+					case "æ":
+						return "ae";
+					case "ø":
+						return "o";
+					case "å":
+						return "a";
+					default:
+						return match;
+				}
+			})
+			.replaceAll(/\s+/g, "-");
 
-        await ctx.db.patch(id, {
-            title,
-            identifier,
-            content,
-            published,
-            updatedAt: Date.now(),
-        });
-    },
+		await ctx.db.patch(id, {
+			title,
+			identifier,
+			content,
+			published,
+			updatedAt: Date.now(),
+		});
+	},
 });
 
 /**
@@ -140,36 +140,36 @@ export const updateExternalPage = mutation({
  * @returns {null} - Returns null when the external page is created successfully.
  */
 export const createExternalPage = mutation({
-    args: {
-        title: v.string(),
-        content: v.string(),
-        published: v.boolean(),
-    },
-    handler: async (ctx, { title, content, published }) => {
-        await requireRole(ctx, editorRoles);
+	args: {
+		title: v.string(),
+		content: v.string(),
+		published: v.boolean(),
+	},
+	handler: async (ctx, { title, content, published }) => {
+		await requireRole(ctx, editorRoles);
 
-        const identifier = title
-            .toLowerCase()
-            .replaceAll(/[æøå]/g, (match) => {
-                switch (match) {
-                    case "æ":
-                        return "ae";
-                    case "ø":
-                        return "o";
-                    case "å":
-                        return "a";
-                    default:
-                        return match;
-                }
-            })
-            .replaceAll(/\s+/g, "-");
+		const identifier = title
+			.toLowerCase()
+			.replaceAll(/[æøå]/g, (match) => {
+				switch (match) {
+					case "æ":
+						return "ae";
+					case "ø":
+						return "o";
+					case "å":
+						return "a";
+					default:
+						return match;
+				}
+			})
+			.replaceAll(/\s+/g, "-");
 
-        await ctx.db.insert("externalPages", {
-            identifier,
-            title,
-            content,
-            published,
-            updatedAt: Date.now(),
-        });
-    },
+		await ctx.db.insert("externalPages", {
+			identifier,
+			title,
+			content,
+			published,
+			updatedAt: Date.now(),
+		});
+	},
 });

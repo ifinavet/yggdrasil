@@ -55,20 +55,16 @@ export default async function StudentPage({
 				</BreadcrumbList>
 			</Breadcrumb>
 
-			<h3 className="scroll-m-20 font-semibold text-2xl tracking-tight">
-				Administer student
-			</h3>
+			<h3 className="scroll-m-20 font-semibold text-2xl tracking-tight">Administer student</h3>
 
 			<UpdateStudentForm preloadedStudent={preloadedStudent} />
 
 			<p className="text-muted-foreground text-sm">
-				NB! Dersom du trenger å låse opp studenten, eller endre noen andre ting
-				som ikke er her gå til clerk dashboardet.
+				NB! Dersom du trenger å låse opp studenten, eller endre noen andre ting som ikke er her gå
+				til clerk dashboardet.
 			</p>
 
-			<h3 className="scroll-m-20 font-semibold text-2xl tracking-tight">
-				Prikker
-			</h3>
+			<h3 className="scroll-m-20 font-semibold text-2xl tracking-tight">Prikker</h3>
 			<div className="flex flex-col gap-4">
 				<Dialog>
 					<DialogTrigger asChild>
@@ -78,14 +74,11 @@ export default async function StudentPage({
 					</DialogTrigger>
 					<DialogContent>
 						<DialogHeader>
-							<DialogTitle>
-								Fyll ut infromasjonen for å gi studenten prikker
-							</DialogTitle>
+							<DialogTitle>Fyll ut infromasjonen for å gi studenten prikker</DialogTitle>
 							<DialogDescription>
-								Prikker skal kun gis manuelt dersom det har skjedd noe alvorlig
-								eller ekstra ordinært hvor det å gi prikk er riktig staff. Under
-								normale forhold så skal prikkene som gis automatisk være
-								tilstrekelig.
+								Prikker skal kun gis manuelt dersom det har skjedd noe alvorlig eller ekstra
+								ordinært hvor det å gi prikk er riktig staff. Under normale forhold så skal prikkene
+								som gis automatisk være tilstrekelig.
 							</DialogDescription>
 						</DialogHeader>
 						<StudentPointsForm student_id={id} />

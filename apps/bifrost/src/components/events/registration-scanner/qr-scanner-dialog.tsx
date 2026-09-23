@@ -22,10 +22,9 @@ import { toast } from "sonner";
 import { humanReadableDate } from "@/utils/utils";
 import RegisterAttendanceByQr from "./register-by-qr-code";
 
-const QRScanner = dynamic(
-	() => import("@/components/events/registration-scanner/qr-scanner"),
-	{ ssr: false },
-);
+const QRScanner = dynamic(() => import("@/components/events/registration-scanner/qr-scanner"), {
+	ssr: false,
+});
 
 export type QRScannerDialogProps = {
 	readonly open?: boolean;
@@ -61,8 +60,7 @@ export default function QRScannerDialog({
 	showCloseButton = true,
 	triggerButtonProps,
 }: Readonly<QRScannerDialogProps>) {
-	const [registrationId, setRegistrationId] =
-		useState<Id<"registrations"> | null>(null);
+	const [registrationId, setRegistrationId] = useState<Id<"registrations"> | null>(null);
 
 	const registrant = useQuery(
 		api.events.registrations.queries.getUserByRegistrationId,
@@ -89,13 +87,10 @@ export default function QRScannerDialog({
 				});
 			})
 			.catch((e) => {
-				toast.error(
-					"An error occurred, please try again or register manually.",
-					{
-						description:
-							"If the error persists, please notify the Web Administrator. The event has been logged.",
-					},
-				);
+				toast.error("An error occurred, please try again or register manually.", {
+					description:
+						"If the error persists, please notify the Web Administrator. The event has been logged.",
+				});
 
 				postHog.captureException("bifrost-registration_by_qr_code_error", {
 					site: "bifrost",
@@ -107,11 +102,7 @@ export default function QRScannerDialog({
 			.finally(() => setRegistrationId(null));
 
 	return (
-		<Dialog
-			open={open}
-			defaultOpen={defaultOpen}
-			onOpenChange={onOpenChangeAction}
-		>
+		<Dialog open={open} defaultOpen={defaultOpen} onOpenChange={onOpenChangeAction}>
 			<DialogTrigger asChild>
 				{trigger ?? (
 					<Button {...triggerButtonProps} className="text-white">
@@ -120,32 +111,19 @@ export default function QRScannerDialog({
 				)}
 			</DialogTrigger>
 			<DialogContent
-				className={cn(
-					"mx-auto sm:max-w-md md:max-w-xl xl:w-auto",
-					contentClassName,
-				)}
+				className={cn("mx-auto sm:max-w-md md:max-w-xl xl:w-auto", contentClassName)}
 				showCloseButton={showCloseButton}
 			>
 				<DialogHeader>
 					<DialogTitle>{title}</DialogTitle>
-					{description ? (
-						<DialogDescription>{description}</DialogDescription>
-					) : null}
+					{description ? <DialogDescription>{description}</DialogDescription> : null}
 				</DialogHeader>
-				<QRScanner
-					onDecodedAction={(text) =>
-						setRegistrationId(text as Id<"registrations">)
-					}
-				/>
+				<QRScanner onDecodedAction={(text) => setRegistrationId(text as Id<"registrations">)} />
 				<p>
 					<strong>Student: </strong>
-					{registrant
-						? `${registrant?.firstName} ${registrant?.lastName}`
-						: "venter..."}
+					{registrant ? `${registrant?.firstName} ${registrant?.lastName}` : "venter..."}
 				</p>
-				{registrationId ? (
-					<RegisterAttendanceByQr onRegisterAction={handleRegister} />
-				) : null}
+				{registrationId ? <RegisterAttendanceByQr onRegisterAction={handleRegister} /> : null}
 			</DialogContent>
 		</Dialog>
 	);

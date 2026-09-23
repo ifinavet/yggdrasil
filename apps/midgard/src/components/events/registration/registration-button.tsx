@@ -29,8 +29,7 @@ export default function RegistrationButton({
 		api.points.queries.getCurrentStudentsPoints,
 		isAuthenticated ? undefined : "skip",
 	);
-	const numberOfPoints =
-		currentUsersPoints?.reduce((acc, curr) => acc + curr.severity, 0) || 0;
+	const numberOfPoints = currentUsersPoints?.reduce((acc, curr) => acc + curr.severity, 0) || 0;
 
 	const { ownRegistration } = registrationSummary;
 
@@ -70,11 +69,5 @@ export default function RegistrationButton({
 		);
 	}
 
-	return (
-		<EditRegistration
-			registration={ownRegistration}
-			disabled={disabled}
-			event={event}
-		/>
-	);
+	return <EditRegistration registration={ownRegistration} disabled={disabled} event={event} />;
 }

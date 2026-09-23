@@ -1,28 +1,35 @@
 {
-	"$schema": "https://biomejs.dev/schemas/2.0.0/schema.json",
+	"$schema": "https://biomejs.dev/schemas/2.5.13/schema.json",
 	"vcs": {
 		"enabled": true,
 		"clientKind": "git",
-		"useIgnoreFile": false,
+		"useIgnoreFile": true,
 		"defaultBranch": "main"
 	},
 	"files": {
 		"ignoreUnknown": false,
 		"includes": [
 			"**",
-			"!packages/ui/**",
-			"!**/node_modules/**",
-			"!**/.next/**",
-			"!**/.turbo/**",
-			"!**/dist/**",
-			"!**/build/**",
-			"!**/.git/**",
-			"!**/coverage/**",
+			"!packages/ui",
+			"!**/node_modules",
+			"!**/.next",
+			"!**/.turbo",
+			"!**/dist",
+			"!**/build",
+			"!**/.git",
+			"!**/.claude",
+			"!**/coverage",
+			"!**/*.svg",
 			"!**/*.min.js",
 			"!**/*.min.css",
-			"!**/convex/_generated/**",
+			"!**/convex/_generated",
 			"!**/pnpm-lock.yaml"
 		]
+	},
+	"css": {
+		"parser": {
+			"tailwindDirectives": true
+		}
 	},
 	"formatter": {
 		"includes": ["**"],
@@ -34,7 +41,7 @@
 	"linter": {
 		"enabled": true,
 		"rules": {
-			"recommended": true,
+			"preset": "recommended",
 			"nursery": {
 				"useSortedClasses": {
 					"fix": "safe",

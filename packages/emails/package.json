@@ -4,7 +4,8 @@
 	"type": "module",
 	"private": true,
 	"scripts": {
-		"dev": "email dev -p 3030"
+		"dev": "email dev -p 3030",
+		"check-types": "tsc --noEmit"
 	},
 	"keywords": [],
 	"author": "",

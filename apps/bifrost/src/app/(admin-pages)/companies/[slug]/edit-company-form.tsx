@@ -21,7 +21,7 @@ export default function EditCompanyForm({
 	const handleSubmit = (values: CompanyFormValues) =>
 		updateCompany({
 			id: company_id,
-			orgNumber: Number.parseInt(values.orgNumber),
+			orgNumber: Number.parseInt(values.orgNumber, 10),
 			name: values.name,
 			description: values.description,
 			logo: values.image as Id<"companyLogos">,

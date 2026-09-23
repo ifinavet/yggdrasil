@@ -31,8 +31,7 @@ export default function UpdateEventForm({
 			userId: organizer.userId,
 			role: organizer.role as ORGANIZER_ROLE,
 		})),
-		externalEvent:
-			event.externalEvent ?? Boolean(event.externalUrl?.length),
+		externalEvent: event.externalEvent ?? Boolean(event.externalUrl?.length),
 		hostingCompany: {
 			id: event.hostingCompany,
 			name: event.hostingCompanyName,
@@ -77,11 +76,9 @@ export default function UpdateEventForm({
 			});
 	};
 
-	const onDefaultSubmit = (values: EventFormValues) =>
-		handleSubmit(values, true);
+	const onDefaultSubmit = (values: EventFormValues) => handleSubmit(values, true);
 
-	const onSubmit = (values: EventFormValues) =>
-		handleSubmit(values, event.published);
+	const onSubmit = (values: EventFormValues) => handleSubmit(values, event.published);
 
 	const onHideSubmit = (values: EventFormValues) => handleSubmit(values, false);
 

@@ -3,16 +3,13 @@
 	"version": "0.0.1",
 	"private": true,
 	"scripts": {
-		"build": "turbo build",
 		"dev": "node ./scripts/dev.mjs",
-		"lint": "turbo lint",
+		"lint": "biome check .",
+		"lint:fix": "biome check . --write",
+		"check-types": "turbo check-types",
+		"compile": "turbo compile",
 		"test": "turbo test",
-		"check": "turbo check",
-		"check:fix": "turbo check:fix",
-		"check:all": "biome check .",
-		"check:all:fix": "biome check . --write",
-		"format-and-lint": "biome check .",
-		"format-and-lint:fix": "biome check . --write"
+		"build": "turbo build"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.5.13",

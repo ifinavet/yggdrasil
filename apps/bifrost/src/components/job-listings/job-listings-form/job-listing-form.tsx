@@ -1,17 +1,7 @@
 "use client";
 
 import { useForm } from "@tanstack/react-form";
-import { api } from "@workspace/backend/convex/api";
 import { JOB_TYPES, LISTING_COLORS } from "@workspace/shared/constants";
-import { Button } from "@workspace/ui/components/button";
-import {
-	Command,
-	CommandEmpty,
-	CommandGroup,
-	CommandInput,
-	CommandItem,
-	CommandList,
-} from "@workspace/ui/components/command";
 import {
 	Field,
 	FieldDescription,
@@ -23,11 +13,6 @@ import {
 } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
 import {
-	Popover,
-	PopoverContent,
-	PopoverTrigger,
-} from "@workspace/ui/components/popover";
-import {
 	Select,
 	SelectContent,
 	SelectItem,
@@ -36,15 +21,12 @@ import {
 } from "@workspace/ui/components/select";
 import { Textarea } from "@workspace/ui/components/textarea";
 import { cn } from "@workspace/ui/lib/utils";
-import { useQuery } from "convex/react";
-import { Check, ChevronsUpDown, Save, Send, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { Save, Send, Trash2 } from "lucide-react";
+import CompanySelectField from "@/components/common/forms/company-select-field";
 import DateTimePicker from "@/components/common/forms/date-time-picker";
+import FormSubmitActions from "@/components/common/forms/form-submit-actions";
 import DescriptionEditor from "@/components/common/forms/markdown-editor/editor";
-import {
-	formSchema,
-	type JobListingFormValues,
-} from "@/constants/schemas/job-listing-form-schema";
+import { formSchema, type JobListingFormValues } from "@/constants/schemas/job-listing-form-schema";
 import ContactsSection from "./contacts-section";
 
 type FormMeta = {
@@ -58,10 +40,7 @@ function JobTypeLabel({ type }: Readonly<{ type: JobType }>) {
 		<>
 			<span
 				aria-hidden="true"
-				className={cn(
-					"size-4 rounded-full",
-					LISTING_COLORS[type] ?? "bg-gray-400",
-				)}
+				className={cn("size-4 rounded-full", LISTING_COLORS[type] ?? "bg-gray-400")}
 			/>
 			{type}
 		</>
@@ -104,13 +83,6 @@ export default function JobListingForm({
 		},
 	});
 
-	const [openCompanies, setOpenCompanies] = useState(false);
-	const [companyValue, setCompanyValue] = useState(
-		form.state.values.company.name,
-	);
-
-	const companies = useQuery(api.companies.queries.getAll);
-
 	return (
 		<form
 			onSubmit={(e) => {
@@ -123,8 +95,7 @@ export default function JobListingForm({
 				<FieldGroup>
 					<form.Field name="title">
 						{(field) => {
-							const isInvalid =
-								field.state.meta.isTouched && !field.state.meta.isValid;
+							const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 							return (
 								<Field>
 									<FieldLabel htmlFor={field.name}>Tittel</FieldLabel>
@@ -139,9 +110,7 @@ export default function JobListingForm({
 										className="truncate"
 									/>
 									{isInvalid && <FieldError errors={field.state.meta.errors} />}
-									<FieldDescription>
-										Dette er hva stillingsannonsen skal hete.
-									</FieldDescription>
+									<FieldDescription>Dette er hva stillingsannonsen skal hete.</FieldDescription>
 								</Field>
 							);
 						}}
@@ -150,74 +119,14 @@ export default function JobListingForm({
 				<FieldSeparator />
 				<FieldGroup className="flex flex-col gap-4 md:flex-row">
 					<form.Field name="company">
-						{(field) => {
-							const isInvalid =
-								field.state.meta.isTouched && !field.state.meta.isValid;
-
-							return (
-								<Field className="min-w-0 md:w-full">
-									<FieldLabel>Velg arrangerende bedrift</FieldLabel>
-									<Popover open={openCompanies} onOpenChange={setOpenCompanies}>
-										<PopoverTrigger asChild>
-											<Button
-												variant="outline"
-												aria-expanded={openCompanies}
-												className="justify-between truncate"
-											>
-												{companyValue
-													? companies?.find(
-														(company) => company.name === companyValue,
-													)?.name
-													: "Velg en bedrift..."}
-												<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-											</Button>
-										</PopoverTrigger>
-										<PopoverContent className="w-50 p-0" align="start">
-											<Command>
-												<CommandInput placeholder="Søk etter bedrift..." />
-												<CommandList>
-													<CommandEmpty>Fant ingen bedrift(er).</CommandEmpty>
-													<CommandGroup>
-														{companies?.map((company) => (
-															<CommandItem
-																key={company._id}
-																value={company.name}
-																onSelect={(currentValue) => {
-																	setCompanyValue(
-																		currentValue === companyValue
-																			? ""
-																			: currentValue,
-																	);
-																	field.handleChange({
-																		name: currentValue,
-																		id: company._id,
-																	});
-																	setOpenCompanies(false);
-																}}
-															>
-																<Check
-																	className={cn(
-																		"mr-2 h-4 w-4",
-																		companyValue === company.name
-																			? "opacity-100"
-																			: "opacity-0",
-																	)}
-																/>
-																{company.name}
-															</CommandItem>
-														))}
-													</CommandGroup>
-												</CommandList>
-											</Command>
-										</PopoverContent>
-									</Popover>
-									{isInvalid && <FieldError errors={field.state.meta.errors} />}
-									<FieldDescription>
-										Velg hvilken bedrift annonsen skal være knyttet til
-									</FieldDescription>
-								</Field>
-							);
-						}}
+						{(field) => (
+							<CompanySelectField
+								initialCompanyName={field.state.value.name}
+								onCompanyChange={(company) => field.handleChange(company)}
+								errors={field.state.meta.errors}
+								isInvalid={field.state.meta.isTouched && !field.state.meta.isValid}
+							/>
+						)}
 					</form.Field>
 
 					<form.Field name="deadline">
@@ -232,8 +141,7 @@ export default function JobListingForm({
 
 					<form.Field name="type">
 						{(field) => {
-							const isInvalid =
-								field.state.meta.isTouched && !field.state.meta.isValid;
+							const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
 							return (
 								<Field>
@@ -246,9 +154,7 @@ export default function JobListingForm({
 									>
 										<SelectTrigger>
 											<SelectValue placeholder="Velg type">
-												{field.state.value ? (
-													<JobTypeLabel type={field.state.value} />
-												) : null}
+												{field.state.value ? <JobTypeLabel type={field.state.value} /> : null}
 											</SelectValue>
 										</SelectTrigger>
 										<SelectContent>
@@ -260,9 +166,7 @@ export default function JobListingForm({
 										</SelectContent>
 									</Select>
 									{isInvalid && <FieldError errors={field.state.meta.errors} />}
-									<FieldDescription>
-										Velg hvilken type annonsen skal være
-									</FieldDescription>
+									<FieldDescription>Velg hvilken type annonsen skal være</FieldDescription>
 								</Field>
 							);
 						}}
@@ -273,8 +177,7 @@ export default function JobListingForm({
 
 				<form.Field name="teaser">
 					{(field) => {
-						const isInvalid =
-							field.state.meta.isTouched && !field.state.meta.isValid;
+						const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
 						return (
 							<Field>
@@ -289,9 +192,7 @@ export default function JobListingForm({
 									className="truncate"
 									placeholder="eks. Har du lyst til å jobbe med Navet?"
 								/>
-								<FieldDescription>
-									Dette er en liten teaser av stillingsannonsen.
-								</FieldDescription>
+								<FieldDescription>Dette er en liten teaser av stillingsannonsen.</FieldDescription>
 							</Field>
 						);
 					}}
@@ -309,16 +210,13 @@ export default function JobListingForm({
 
 				<FieldSeparator />
 
-				<form.Field name="contacts">
-					{(field) => <ContactsSection field={field} />}
-				</form.Field>
+				<form.Field name="contacts">{(field) => <ContactsSection field={field} />}</form.Field>
 
 				<FieldSeparator />
 
 				<form.Field name="applicationUrl">
 					{(field) => {
-						const isInvalid =
-							field.state.meta.isTouched && !field.state.meta.isValid;
+						const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 						return (
 							<Field>
 								<FieldLabel htmlFor={field.name}>Annonselenke</FieldLabel>
@@ -333,43 +231,21 @@ export default function JobListingForm({
 									className="truncate"
 								/>
 								{isInvalid && <FieldError errors={field.state.meta.errors} />}
-								<FieldDescription>
-									Lenken til stillingsannonsen.
-								</FieldDescription>
+								<FieldDescription>Lenken til stillingsannonsen.</FieldDescription>
 							</Field>
 						);
 					}}
 				</form.Field>
 			</FieldSet>
 
-			<div className="mb-4 flex gap-4">
-				<Button
-					type="button"
-					disabled={form.state.isSubmitting}
-					onClick={() => form.handleSubmit({ submitAction: "primary" })}
-				>
-					<Send /> {form.state.isSubmitting ? "Jobber..." : "Lagre og publiser"}
-				</Button>
-				<Button
-					type="button"
-					disabled={form.state.isSubmitting}
-					variant="secondary"
-					onClick={() => form.handleSubmit({ submitAction: "secondary" })}
-				>
-					<Save />{" "}
-					{form.state.isSubmitting ? "Jobber..." : "Lagre og avpubliser"}
-				</Button>
-				{onTertiarySubmitAction && (
-					<Button
-						type="button"
-						disabled={form.state.isSubmitting}
-						variant="destructive"
-						onClick={() => form.handleSubmit({ submitAction: "tertiary" })}
-					>
-						<Trash2 /> {form.state.isSubmitting ? "Jobber..." : "Slett"}
-					</Button>
-				)}
-			</div>
+			<FormSubmitActions
+				className="mb-4"
+				isSubmitting={form.state.isSubmitting}
+				onSubmitAction={(submitAction) => form.handleSubmit({ submitAction })}
+				primary={{ label: "Lagre og publiser", icon: <Send /> }}
+				secondary={{ label: "Lagre og avpubliser", icon: <Save /> }}
+				tertiary={onTertiarySubmitAction && { label: "Slett", icon: <Trash2 /> }}
+			/>
 		</form>
 	);
 }

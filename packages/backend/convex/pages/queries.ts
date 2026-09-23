@@ -8,27 +8,29 @@ import { currentUserHasRole, editorRoles } from "../auth/accessRights";
  * @returns {{ groupedByTag: Record<string, Doc<"resources">[]>, unpublishedResources: Doc<"resources">[] }} - Published resources grouped by tag and the unpublished resources list.
  */
 export const getAllGroupedByTag = query({
-    handler: async (ctx) => {
-        const resources = await ctx.db.query("resources").collect();
+	handler: async (ctx) => {
+		const resources = await ctx.db.query("resources").collect();
 
-        const publishedResources = resources.filter((resource) => resource.published);
-        const maySeeUnpublished = await currentUserHasRole(ctx, editorRoles);
-        const unpublishedResources = maySeeUnpublished ? resources.filter((resource) => !resource.published) : [];
+		const publishedResources = resources.filter((resource) => resource.published);
+		const maySeeUnpublished = await currentUserHasRole(ctx, editorRoles);
+		const unpublishedResources = maySeeUnpublished
+			? resources.filter((resource) => !resource.published)
+			: [];
 
-        const groupedByTag = publishedResources.reduce(
-            (acc, resource) => {
-                const tag = resource.tag || "uncategorized";
-                if (!acc[tag]) {
-                    acc[tag] = [];
-                }
-                acc[tag].push(resource);
-                return acc;
-            },
-            {} as Record<string, typeof publishedResources>,
-        );
+		const groupedByTag = publishedResources.reduce(
+			(acc, resource) => {
+				const tag = resource.tag || "uncategorized";
+				if (!acc[tag]) {
+					acc[tag] = [];
+				}
+				acc[tag].push(resource);
+				return acc;
+			},
+			{} as Record<string, typeof publishedResources>,
+		);
 
-        return { groupedByTag, unpublishedResources };
-    },
+		return { groupedByTag, unpublishedResources };
+	},
 });
 
 /**
@@ -40,19 +42,19 @@ export const getAllGroupedByTag = query({
  * @returns {Doc<"resources">} - The matching resource document.
  */
 export const getResourceById = query({
-    args: { id: v.id("resources") },
-    handler: async (ctx, args) => {
-        const resource = await ctx.db.get(args.id);
-        if (!resource) {
-            throw new ConvexError("Ressursen ble ikke funnet.");
-        }
+	args: { id: v.id("resources") },
+	handler: async (ctx, args) => {
+		const resource = await ctx.db.get(args.id);
+		if (!resource) {
+			throw new ConvexError("Ressursen ble ikke funnet.");
+		}
 
-        if (!resource.published && !(await currentUserHasRole(ctx, editorRoles))) {
-            throw new ConvexError("Ressursen ble ikke funnet.");
-        }
+		if (!resource.published && !(await currentUserHasRole(ctx, editorRoles))) {
+			throw new ConvexError("Ressursen ble ikke funnet.");
+		}
 
-        return resource;
-    },
+		return resource;
+	},
 });
 
 /**
@@ -64,21 +66,21 @@ export const getResourceById = query({
  * @returns {Doc<"externalPages">} - The matching external page document.
  */
 export const getExternalPageById = query({
-    args: {
-        id: v.id("externalPages"),
-    },
-    handler: async (ctx, { id }) => {
-        const page = await ctx.db.get(id);
-        if (!page) {
-            throw new ConvexError("Siden ble ikke funnet.");
-        }
+	args: {
+		id: v.id("externalPages"),
+	},
+	handler: async (ctx, { id }) => {
+		const page = await ctx.db.get(id);
+		if (!page) {
+			throw new ConvexError("Siden ble ikke funnet.");
+		}
 
-        if (!page.published && !(await currentUserHasRole(ctx, editorRoles))) {
-            throw new ConvexError("Siden ble ikke funnet.");
-        }
+		if (!page.published && !(await currentUserHasRole(ctx, editorRoles))) {
+			throw new ConvexError("Siden ble ikke funnet.");
+		}
 
-        return page;
-    },
+		return page;
+	},
 });
 
 /**
@@ -87,17 +89,17 @@ export const getExternalPageById = query({
  * @returns {Doc<"resources">[]} - The list of favorite resources.
  */
 export const getFavorites = query({
-    handler: async (ctx) => {
-        const resources = await ctx.db
-            .query("resources")
-            .withIndex("by_favoriteAndUpdated", (q) => q.eq("favorite", true))
-            .order("desc")
-            .collect();
+	handler: async (ctx) => {
+		const resources = await ctx.db
+			.query("resources")
+			.withIndex("by_favoriteAndUpdated", (q) => q.eq("favorite", true))
+			.order("desc")
+			.collect();
 
-        if (await currentUserHasRole(ctx, editorRoles)) return resources;
+		if (await currentUserHasRole(ctx, editorRoles)) return resources;
 
-        return resources.filter((resource) => resource.published);
-    },
+		return resources.filter((resource) => resource.published);
+	},
 });
 
 /**
@@ -106,13 +108,13 @@ export const getFavorites = query({
  * @returns {Doc<"externalPages">[]} - All external page documents.
  */
 export const getAll = query({
-    handler: async (ctx) => {
-        const externalPages = await ctx.db.query("externalPages").collect();
+	handler: async (ctx) => {
+		const externalPages = await ctx.db.query("externalPages").collect();
 
-        if (await currentUserHasRole(ctx, editorRoles)) return externalPages;
+		if (await currentUserHasRole(ctx, editorRoles)) return externalPages;
 
-        return externalPages.filter((externalPage) => externalPage.published);
-    },
+		return externalPages.filter((externalPage) => externalPage.published);
+	},
 });
 
 /**
@@ -124,23 +126,23 @@ export const getAll = query({
  * @returns {Doc<"externalPages">} - The matching external page document.
  */
 export const getByIdentifier = query({
-    args: {
-        identifier: v.string(),
-    },
-    handler: async (ctx, { identifier }) => {
-        const page = await ctx.db
-            .query("externalPages")
-            .withIndex("by_identifier", (q) => q.eq("identifier", identifier))
-            .first();
+	args: {
+		identifier: v.string(),
+	},
+	handler: async (ctx, { identifier }) => {
+		const page = await ctx.db
+			.query("externalPages")
+			.withIndex("by_identifier", (q) => q.eq("identifier", identifier))
+			.first();
 
-        if (!page) {
-            throw new ConvexError("Siden ble ikke funnet.");
-        }
+		if (!page) {
+			throw new ConvexError("Siden ble ikke funnet.");
+		}
 
-        if (!page.published && !(await currentUserHasRole(ctx, editorRoles))) {
-            throw new ConvexError("Siden ble ikke funnet.");
-        }
+		if (!page.published && !(await currentUserHasRole(ctx, editorRoles))) {
+			throw new ConvexError("Siden ble ikke funnet.");
+		}
 
-        return page;
-    },
+		return page;
+	},
 });

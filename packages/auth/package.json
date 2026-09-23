@@ -4,7 +4,7 @@
 	"type": "module",
 	"private": true,
 	"dependencies": {
-"@clerk/nextjs": "^7.9.2",
+		"@clerk/nextjs": "^7.9.2",
 		"@sentry/nextjs": "^10.70.0",
 		"@workspace/backend": "workspace:*",
 		"@workspace/shared": "workspace:*",
@@ -29,5 +29,8 @@
 	"peerDependencies": {
 		"next": "^16.3.1",
 		"react": "^19.2.8"
+	},
+	"scripts": {
+		"check-types": "tsc --noEmit"
 	}
 }

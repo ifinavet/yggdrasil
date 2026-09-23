@@ -65,8 +65,7 @@ export default function UpdateMainSponsorForm({
 			<FieldSet>
 				<form.Field name="companyId">
 					{(field) => {
-						const isInvalid =
-							field.state.meta.isTouched && !field.state.meta.isValid;
+						const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 						return (
 							<Field className="flex flex-col">
 								<FieldLabel>Endre hovedsamarbeidspartner</FieldLabel>
@@ -107,9 +106,7 @@ export default function UpdateMainSponsorForm({
 			</FieldSet>
 
 			<Button type="submit" disabled={form.state.isSubmitting}>
-				{form.state.isSubmitting
-					? "Oppdaterer..."
-					: "Oppdater hovedsamarbeidspartner"}
+				{form.state.isSubmitting ? "Oppdaterer..." : "Oppdater hovedsamarbeidspartner"}
 			</Button>
 		</form>
 	);

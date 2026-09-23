@@ -12,10 +12,7 @@ import {
 import { Input } from "@workspace/ui/components/input";
 import { Send, Trash } from "lucide-react";
 import DescriptionEditor from "@/components/common/forms/markdown-editor/editor";
-import {
-	type CompanyFormValues,
-	formSchema,
-} from "@/constants/schemas/companies-form-schema";
+import { type CompanyFormValues, formSchema } from "@/constants/schemas/companies-form-schema";
 import SelectImage from "./select-image";
 
 type FormMeta = {
@@ -65,8 +62,7 @@ export default function CompanyForm({
 			<FieldSet>
 				<form.Field name="name">
 					{(field) => {
-						const isInvalid =
-							field.state.meta.isTouched && !field.state.meta.isValid;
+						const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 						return (
 							<Field>
 								<FieldLabel htmlFor={field.name}>Bedrifts navn</FieldLabel>
@@ -78,9 +74,7 @@ export default function CompanyForm({
 									onBlur={field.handleBlur}
 									aria-invalid={isInvalid}
 								/>
-								<FieldDescription>
-									Skriv inn bedriftens navn her.
-								</FieldDescription>
+								<FieldDescription>Skriv inn bedriftens navn her.</FieldDescription>
 								{isInvalid && <FieldError errors={field.state.meta.errors} />}
 							</Field>
 						);
@@ -89,8 +83,7 @@ export default function CompanyForm({
 
 				<form.Field name="orgNumber">
 					{(field) => {
-						const isInvalid =
-							field.state.meta.isTouched && !field.state.meta.isValid;
+						const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 						return (
 							<Field>
 								<FieldLabel htmlFor={field.name}>Org. nr.</FieldLabel>
@@ -102,9 +95,7 @@ export default function CompanyForm({
 									onBlur={field.handleBlur}
 									aria-invalid={isInvalid}
 								/>
-								<FieldDescription>
-									Skriv inn bedriftens organisasjonsnummer her.
-								</FieldDescription>
+								<FieldDescription>Skriv inn bedriftens organisasjonsnummer her.</FieldDescription>
 								{isInvalid && <FieldError errors={field.state.meta.errors} />}
 							</Field>
 						);
@@ -113,15 +104,12 @@ export default function CompanyForm({
 
 				<form.Field name="image">
 					{(field) => {
-						const isInvalid =
-							field.state.meta.isTouched && !field.state.meta.isValid;
+						const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 						return (
 							<Field>
 								<FieldLabel>Bedrifts bilde</FieldLabel>
 								<SelectImage field={field} />
-								<FieldDescription>
-									Velg et bilde for bedriften her.
-								</FieldDescription>
+								<FieldDescription>Velg et bilde for bedriften her.</FieldDescription>
 								{isInvalid && <FieldError errors={field.state.meta.errors} />}
 							</Field>
 						);

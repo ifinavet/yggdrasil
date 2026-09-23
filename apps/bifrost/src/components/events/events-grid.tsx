@@ -7,21 +7,17 @@ import { fetchQuery } from "convex/nextjs";
 import type { Event } from "@/constants/types";
 import EventCard from "./event-card";
 
-export default async function EventsGrid({
-	pathname,
-}: Readonly<{ pathname: string }>) {
+export default async function EventsGrid({ pathname }: Readonly<{ pathname: string }>) {
 	let searchParams: URLSearchParams | undefined;
 	if (pathname) searchParams = new URLSearchParams(pathname);
 
 	const year = searchParams?.get("year") || new Date().getFullYear().toString();
-	const semester =
-		searchParams?.get("semester") ||
-		(new Date().getMonth() < 7 ? "vår" : "høst");
+	const semester = searchParams?.get("semester") || (new Date().getMonth() < 7 ? "vår" : "høst");
 
 	const token = await getAuthToken();
 	const events = await fetchQuery(
 		api.events.queries.getAll,
-		{ year: Number.parseInt(year), semester },
+		{ year: Number.parseInt(year, 10), semester },
 		{ token },
 	);
 
@@ -48,10 +44,7 @@ export default async function EventsGrid({
 	);
 
 	return (
-		<EventsGridContent
-			publishedEvents={publishedEvents}
-			unpublishedEvents={unpublishedEvents}
-		/>
+		<EventsGridContent publishedEvents={publishedEvents} unpublishedEvents={unpublishedEvents} />
 	);
 }
 
@@ -79,9 +72,7 @@ function EventsGridContent({
 								date={event.eventStart}
 								isPublished={event.published}
 								slug={event.slug}
-								externalEvent={
-									event.externalEvent ?? Boolean(event.externalUrl?.length)
-								}
+								externalEvent={event.externalEvent ?? Boolean(event.externalUrl?.length)}
 								organizers={event.organizers}
 							/>
 						))}
@@ -99,9 +90,7 @@ function EventsGridContent({
 								date={event.eventStart}
 								slug={event.slug}
 								isPublished={event.published}
-								externalEvent={
-									event.externalEvent ?? Boolean(event.externalUrl?.length)
-								}
+								externalEvent={event.externalEvent ?? Boolean(event.externalUrl?.length)}
 								organizers={event.organizers}
 							/>
 						))}

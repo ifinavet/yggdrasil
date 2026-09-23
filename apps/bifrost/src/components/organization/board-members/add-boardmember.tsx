@@ -9,9 +9,7 @@ import { toast } from "sonner";
 import type { boardMemberSchema } from "@/constants/schemas/boardmember-form-schema";
 import BoardMemberForm from "./board-member-form";
 
-export default function AddBoardMember({
-	className,
-}: Readonly<{ className?: string }>) {
+export default function AddBoardMember({ className }: Readonly<{ className?: string }>) {
 	const defaultValues: boardMemberSchema = {
 		internalId: "",
 		userId: "",

@@ -6,12 +6,7 @@ import {
 	BreadcrumbPage,
 	BreadcrumbSeparator,
 } from "@workspace/ui/components/breadcrumb";
-import {
-	Tabs,
-	TabsContent,
-	TabsList,
-	TabsTrigger,
-} from "@workspace/ui/components/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/components/tabs";
 import StudentsOverview from "@/components/students/students-overview";
 import StudentsWithPointsOverview from "@/components/students/students-with-points-overview";
 

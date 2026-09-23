@@ -92,11 +92,9 @@ export default function EditJobListingForm({
 		applicationUrl: jobListing.applicationUrl,
 	};
 
-	const handlePrimaryFormSubmit = (values: JobListingFormValues) =>
-		handleUpdate(values, true);
+	const handlePrimaryFormSubmit = (values: JobListingFormValues) => handleUpdate(values, true);
 
-	const handleSecondaryFormSubmit = (values: JobListingFormValues) =>
-		handleUpdate(values, false);
+	const handleSecondaryFormSubmit = (values: JobListingFormValues) => handleUpdate(values, false);
 
 	const handleTertiaryFormSubmit = () => handleDelete(jobListing._id);
 

@@ -4,14 +4,7 @@ import type { api } from "@workspace/backend/convex/api";
 import type { Doc } from "@workspace/backend/convex/dataModel";
 import { Button } from "@workspace/ui/components/button";
 import { type Preloaded, usePreloadedQuery } from "convex/react";
-import {
-	CalendarDays,
-	Globe,
-	IdCard,
-	MapPin,
-	Users,
-	Utensils,
-} from "lucide-react";
+import { CalendarDays, Globe, IdCard, MapPin, Users, Utensils } from "lucide-react";
 import { humanReadableDateTime } from "@/utils/dateFormatting";
 import QRCode from "./registration/qr-code";
 import RegistrationButton from "./registration/registration-button";
@@ -30,8 +23,10 @@ export function EventMetadata({
 	const event = usePreloadedQuery(preloadedEvent);
 	const registrationSummary = usePreloadedQuery(preloadedRegistrationSummary);
 
-	const availableSpots =
-		Math.max(0, event.participationLimit - registrationSummary.registeredCount);
+	const availableSpots = Math.max(
+		0,
+		event.participationLimit - registrationSummary.registeredCount,
+	);
 
 	return (
 		<div>
@@ -48,7 +43,7 @@ export function EventMetadata({
 				</p>
 				<p className="flex items-center gap-2 font-semibold md:text-lg">
 					<Users className="size-6 min-w-6 md:size-8" />{" "}
-					{`${availableSpots} ${(availableSpots === 1) ? "plass" : "plasser"} igjen`}
+					{`${availableSpots} ${availableSpots === 1 ? "plass" : "plasser"} igjen`}
 				</p>
 				<p className="flex items-center gap-2 font-semibold md:text-lg">
 					<Globe className="size-6 min-w-6 md:size-8" /> {event.language}
@@ -59,16 +54,10 @@ export function EventMetadata({
 			</div>
 
 			<div className="-mt-6 mb-6 flex justify-center">
-				<EventActionButton
-					event={event}
-					registrationSummary={registrationSummary}
-				/>
+				<EventActionButton event={event} registrationSummary={registrationSummary} />
 			</div>
 
-			<WaitlistPosition
-				className="mb-6"
-				registrationSummary={registrationSummary}
-			/>
+			<WaitlistPosition className="mb-6" registrationSummary={registrationSummary} />
 
 			{event.eventStart - Date.now() < 60 * 60 * 1000 &&
 				Date.now() - event.eventStart < 60 * 60 * 1000 && (
@@ -85,8 +74,10 @@ export function EventActionButton({
 	event: Doc<"events">;
 	registrationSummary: EventRegistrationSummary;
 }>) {
-	const availableSpots =
-		Math.max(0, event.participationLimit - registrationSummary.registeredCount);
+	const availableSpots = Math.max(
+		0,
+		event.participationLimit - registrationSummary.registeredCount,
+	);
 
 	if (event.externalUrl && event.externalUrl.length > 0) {
 		return (
@@ -108,8 +99,7 @@ export function EventActionButton({
 				type="button"
 				className="min-h-fit w-3/4 whitespace-normal text-balance rounded-xl bg-zinc-500 text-lg text-primary-foreground hover:cursor-pointer hover:bg-zinc-500 sm:py-6 md:py-8 dark:bg-zinc-700"
 			>
-				Påmelding åpner{" "}
-				{humanReadableDateTime(new Date(event.registrationOpens))}
+				Påmelding åpner {humanReadableDateTime(new Date(event.registrationOpens))}
 			</Button>
 		);
 	}

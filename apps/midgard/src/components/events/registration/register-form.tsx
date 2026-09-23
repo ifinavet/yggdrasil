@@ -85,12 +85,11 @@ export default function RegisterForm({
 				<DialogHeader>
 					<DialogTitle>Meld meg på</DialogTitle>
 					<DialogDescription className="">
-						Meld deg på bedriftspresentasjonen! Dersom du har noen algerier
-						eller andre ting vi burde vite om, ber vi deg vennligst oppi dem nå.{" "}
+						Meld deg på bedriftspresentasjonen! Dersom du har noen algerier eller andre ting vi
+						burde vite om, ber vi deg vennligst oppi dem nå.{" "}
 						<span className="font-bold">
-							NB! Dersom du melder deg på sent, eller blir flyttet fra
-							ventelisten sent, så er det ikke sikker at vi kan ta hensyn til
-							allergener.
+							NB! Dersom du melder deg på sent, eller blir flyttet fra ventelisten sent, så er det
+							ikke sikker at vi kan ta hensyn til allergener.
 						</span>
 					</DialogDescription>
 				</DialogHeader>
@@ -107,9 +106,7 @@ export default function RegisterForm({
 								return (
 									<Field>
 										<FieldContent>
-											<FieldLabel htmlFor={field.name}>
-												Allergier eller andre merknader
-											</FieldLabel>
+											<FieldLabel htmlFor={field.name}>Allergier eller andre merknader</FieldLabel>
 											<FieldDescription>
 												Har du noen allergier, eller andre merknader?
 											</FieldDescription>
@@ -133,11 +130,7 @@ export default function RegisterForm({
 					<DialogClose asChild>
 						<Button variant="outline">Avbryt</Button>
 					</DialogClose>
-					<Button
-						type="submit"
-						className="text-primary-foreground"
-						form="registration-form"
-					>
+					<Button type="submit" className="text-primary-foreground" form="registration-form">
 						Meld meg på {waitlist && "ventelisten"}!
 					</Button>
 				</DialogFooter>
