@@ -9,6 +9,7 @@ export default defineConfig({
 			include: [
 				"convex/forms/{access,mutations,queries,responses,migrations}.ts",
 				"convex/feedback/forms/{helpers,mutations,queries}.ts",
+				"convex/feedback/responses/{access,actions,mutations,queries}.ts",
 			],
 			thresholds: { 100: true },
 		},

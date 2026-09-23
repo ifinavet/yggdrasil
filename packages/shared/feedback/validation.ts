@@ -54,6 +54,8 @@ export const feedbackFormSchema = z.object({
 export type FeedbackField = z.infer<typeof feedbackFieldSchema>;
 export type FeedbackAnswers = Record<string, string | number | string[]>;
 
+export const feedbackTokenSchema = z.string().min(32).max(256);
+
 export const feedbackRatingSchema = z
 	.number({ error: "Velg en verdi fra 1 til 5" })
 	.int("Velg en verdi fra 1 til 5")
