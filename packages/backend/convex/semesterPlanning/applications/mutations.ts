@@ -1,11 +1,12 @@
 import { applicationContactSchema } from "@workspace/shared/semester/application";
 import { MAX_INTERNAL_NOTES_LENGTH, MAX_ROOM_LENGTH } from "@workspace/shared/semester/limits";
 import { toCompanyProfileOrgNumber } from "@workspace/shared/semester/orgNumber";
-import { isIsoDate } from "@workspace/shared/semester/time";
+import { isIsoDate, osloDateTimeToEpoch } from "@workspace/shared/semester/time";
 import { ConvexError, v } from "convex/values";
 import type { Doc, Id } from "../../_generated/dataModel";
 import { type MutationCtx, mutation } from "../../_generated/server";
 import { internalRoles, userHasRole } from "../../auth/accessRights";
+import { insertEventWithOrganizers } from "../../events/helper";
 import {
 	type Actor,
 	findActiveApplicationOnDate,
@@ -313,5 +314,75 @@ export const updateContact = mutation({
 			comment: `${application.contact.name} → ${parsed.data.name}`,
 		});
 		return null;
+	},
+});
+
+/**
+ * Creates the event for a confirmed application, with the date, company and seats filled in. The
+ * event starts unpublished, like any other event, and the org-ansvarlig becomes its
+ * hovedansvarlig. The application remembers the event.
+ *
+ * @param {Id<"companyApplications">} applicationId - The confirmed application.
+ * @param {string} startTime - When the event starts on the assigned day, as "HH:mm" Oslo time.
+ * @param {number} [participationLimit] - Seats; defaults to the offered number of students.
+ *
+ * @throws - An error if the caller is not an editor, the application is not confirmed, has no
+ * company profile, or already has an event.
+ * @returns {Id<"events">} - The new event.
+ */
+export const createEvent = mutation({
+	args: {
+		applicationId: v.id("companyApplications"),
+		title: v.string(),
+		teaser: v.string(),
+		description: v.string(),
+		startTime: v.string(),
+		registrationOpens: v.number(),
+		participationLimit: v.optional(v.number()),
+		location: v.string(),
+		food: v.string(),
+		language: v.string(),
+		ageRestriction: v.string(),
+	},
+	returns: v.id("events"),
+	handler: async (ctx, { applicationId, startTime, participationLimit, ...details }) => {
+		const actor = await requireEditor(ctx);
+		const application = await requireApplication(ctx, applicationId);
+
+		if (application.status !== "confirmed" || !application.assignedDate) {
+			throw new ConvexError("Bare bekreftede søknader kan få et arrangement.");
+		}
+		if (!application.companyId) {
+			throw new ConvexError("Koble søknaden til en bedriftsprofil først.");
+		}
+		if (application.eventId && (await ctx.db.get(application.eventId))) {
+			throw new ConvexError("Søknaden har allerede et arrangement.");
+		}
+
+		let eventStart: number;
+		try {
+			eventStart = osloDateTimeToEpoch(application.assignedDate, startTime);
+		} catch {
+			throw new ConvexError("Skriv starttiden som TT:MM.");
+		}
+
+		const eventId = await insertEventWithOrganizers(
+			ctx,
+			{
+				...details,
+				eventStart,
+				participationLimit: participationLimit ?? application.maxStudents,
+				externalEvent: false,
+				hostingCompany: application.companyId,
+				published: false,
+			},
+			application.responsibleUserId
+				? [{ userId: application.responsibleUserId, role: "hovedansvarlig" }]
+				: [],
+		);
+
+		await ctx.db.patch(applicationId, { eventId });
+		await logActivity(ctx, applicationId, "event_linked", actor);
+		return eventId;
 	},
 });

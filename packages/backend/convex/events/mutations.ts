@@ -4,10 +4,8 @@ import type { Id } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, mutation } from "../_generated/server";
 import { internalRoles, requireRole } from "../auth/accessRights";
 import { getCurrentUserOrThrow } from "../auth/currentUser";
+import { insertEventWithOrganizers, organizerRoleValidator, slugify } from "./helper";
 import { makeStatusPending } from "./registrations/mutations";
-
-// Shared validator for organizer roles
-const organizerRoleValidator = v.union(v.literal("hovedansvarlig"), v.literal("medhjelper"));
 
 /**
  * Updates an existing event and synchronizes its organizers and waitlist.
@@ -261,41 +259,6 @@ export const updatePublishedStatus = mutation({
 	},
 });
 
-// Not meant for security purposes
-/**
- * Creates a short deterministic hash from a string.
- *
- * @param {string} str - The input string to hash.
- *
- * @returns {string} - A four-character uppercase hash.
- */
-function simpleHash(str: string): string {
-	const hash = Math.abs(str.split("").reduce((a, b) => (a << 5) - a + (b.codePointAt(0) || 0), 0));
-	const result = hash.toString(36).toUpperCase();
-	return result.length < 4 ? result.padStart(4, "0").substring(0, 4) : result.substring(0, 4);
-}
-
-/**
- * Creates the event slug from its title and date.
- *
- * @param {string} title - The event title.
- * @param {Date} eventDate - The event date.
- *
- * @returns {string} - The generated slug.
- */
-function slugify(title: string, eventDate: Date): string {
-	let slugTitle = title
-		.normalize("NFD")
-		.toLowerCase()
-		.replaceAll(/[^a-z0-9]+/g, "-");
-
-	if (slugTitle.length === 0) slugTitle = simpleHash(title).toLowerCase();
-
-	const semester = eventDate.getMonth() >= 7 ? "h" : "v";
-
-	return `${semester}${eventDate.getFullYear().toString().slice(2)}-${slugTitle}-${simpleHash(title)}`;
-}
-
 /**
  * Creates a new event and stores its organizer assignments.
  *
@@ -362,40 +325,25 @@ export const create = mutation({
 	) => {
 		await requireRole(ctx, internalRoles);
 
-		// Creating the feedback form for after the event
-		const formId = await ctx.runMutation(internal.forms.mutations.createEventFeedbackForm);
-		if (!formId) {
-			console.error("Failed to create feedback form");
-		}
-
-		const eventId = await ctx.db.insert("events", {
-			title,
-			teaser,
-			description,
-			eventStart,
-			registrationOpens,
-			participationLimit,
-			location,
-			food,
-			language,
-			ageRestriction,
-			externalEvent,
-			externalUrl,
-			hostingCompany,
-			published,
-			slug: slugify(title, new Date(eventStart)),
-			formId,
-		});
-
-		await Promise.all(
-			organizers.map(
-				async ({ userId, role }) =>
-					await ctx.db.insert("eventOrganizers", {
-						eventId,
-						userId,
-						role,
-					}),
-			),
+		await insertEventWithOrganizers(
+			ctx,
+			{
+				title,
+				teaser,
+				description,
+				eventStart,
+				registrationOpens,
+				participationLimit,
+				location,
+				food,
+				language,
+				ageRestriction,
+				externalEvent,
+				externalUrl,
+				hostingCompany,
+				published,
+			},
+			organizers,
 		);
 	},
 });
