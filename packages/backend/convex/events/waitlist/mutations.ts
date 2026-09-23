@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { internal } from "../../_generated/api";
 import { internalMutation } from "../../_generated/server";
-import { makeStatusPending } from "../registrations/mutations";
+import { fillOpenSeats } from "../registrations/mutations";
 
 /**
  * Checks pending registrations and reoffers seats when the response window expires.
@@ -31,52 +31,33 @@ export const checkPendingRegistrations = internalMutation({
             .filter((q) => q.eq(q.field("published"), true))
             .collect();
 
-        // Get all the pending registrations.
-        const pendingRegistrations = (
-            await Promise.all(
-                eventsWithOpenRegistrations.map(
-                    async (event) =>
-                        await ctx.db
-                            .query("registrations")
-                            .withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
-                                q.eq("eventId", event._id).eq("status", "pending"),
-                            )
-                            .order("asc")
-                            .collect(),
-                ),
-            )
-        ).flat();
+        // Expire stale offers first, then fill every freed seat once per event.
+        // Running this sequentially keeps each event's waitlist promotions in order,
+        // so several offers expiring in the same run each free a seat for someone new.
+        for (const event of eventsWithOpenRegistrations) {
+            const pendingRegistrations = await ctx.db
+                .query("registrations")
+                .withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
+                    q.eq("eventId", event._id).eq("status", "pending"),
+                )
+                .order("asc")
+                .collect();
 
-        // Check and update all the pending registrations that have been pending for more than 16 hours.
-        await Promise.all(
-            pendingRegistrations.map(async (registration) => {
-                if (now - registration.registrationTime > ANSWER_TIME_LIMIT_MS) {
-                    // Move to the back of the waitlist
-                    await ctx.db.patch(registration._id, {
-                        status: "waitlist",
-                        registrationTime: now,
-                    });
+            const expiredRegistrations = pendingRegistrations.filter(
+                (registration) => now - registration.registrationTime > ANSWER_TIME_LIMIT_MS,
+            );
+            if (expiredRegistrations.length === 0) continue;
 
-                    // Find the next on the waitlist to be offered a place
-                    const nextRegistration = await ctx.db
-                        .query("registrations")
-                        .withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
-                            q.eq("eventId", registration.eventId).eq("status", "waitlist"),
-                        )
-                        .order("asc")
-                        .first();
+            // Move to the back of the waitlist
+            for (const registration of expiredRegistrations) {
+                await ctx.db.patch(registration._id, {
+                    status: "waitlist",
+                    registrationTime: now,
+                });
+            }
 
-                    if (!nextRegistration) return;
-                    const event = eventsWithOpenRegistrations.find(
-                        (e) => e._id === registration.eventId,
-                    );
-                    if (!event)
-                        throw new Error("Ingen arrangement assosiert med registreringen.");
-
-                    await makeStatusPending(ctx, nextRegistration, event);
-                }
-            }),
-        );
+            await fillOpenSeats(ctx, event);
+        }
     },
 });
 
@@ -152,7 +133,7 @@ export const clearWaitlistAndPending = internalMutation({
 });
 
 /**
- * Repairs the waitlist for an event by filling open spots with pending registrations.
+ * Repairs the waitlist for an event by offering every open seat to the front of the waitlist.
  *
  * @param {Id<"events">} eventId - The id of the event to repair.
  *
@@ -166,40 +147,6 @@ export const fixWaitlist = internalMutation({
         const event = await ctx.db.get(eventId);
         if (!event) return "No event found";
 
-        const registrations = await ctx.db
-            .query("registrations")
-            .withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
-                q.eq("eventId", eventId).eq("status", "registered"),
-            )
-            .collect();
-        const pending = await ctx.db
-            .query("registrations")
-            .withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
-                q.eq("eventId", eventId).eq("status", "pending"),
-            )
-            .collect();
-
-        console.log(
-            registrations.length + pending.length,
-            event.participationLimit,
-        );
-
-        const numRegisteredAndPending = registrations.length + pending.length;
-        if (numRegisteredAndPending < event.participationLimit) {
-            const waitlist = await ctx.db
-                .query("registrations")
-                .withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
-                    q.eq("eventId", eventId).eq("status", "waitlist"),
-                )
-                .collect();
-
-            await Promise.all(
-                waitlist
-                    .slice(0, event.participationLimit - numRegisteredAndPending)
-                    .map(async (reg) => {
-                        await makeStatusPending(ctx, reg, event);
-                    }),
-            );
-        }
+        await fillOpenSeats(ctx, event);
     },
 });

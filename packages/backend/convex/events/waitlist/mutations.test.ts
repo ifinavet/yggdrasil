@@ -140,6 +140,80 @@ describe("checkPendingRegistrations", () => {
 		},
 	);
 
+	it("offers every seat freed by offers expiring in the same run", async () => {
+		const { t, companyId } = await setup();
+		const now = Date.now();
+		const eventId = await insertEvent(t, companyId, { participationLimit: 3 });
+		const seatedUser = await insertUser(t, "sitter@example.com");
+		await insertRegistration(t, eventId, seatedUser._id, "registered", now);
+		const firstExpired = await insertUser(t, "utlopt-1@example.com");
+		const firstExpiredId = await insertRegistration(
+			t,
+			eventId,
+			firstExpired._id,
+			"pending",
+			now - EXPIRED_OFFER_AGE_IN_MS - 1,
+		);
+		const secondExpired = await insertUser(t, "utlopt-2@example.com");
+		const secondExpiredId = await insertRegistration(
+			t,
+			eventId,
+			secondExpired._id,
+			"pending",
+			now - EXPIRED_OFFER_AGE_IN_MS,
+		);
+		const firstWaiting = await insertUser(t, "venter-1@example.com");
+		await insertRegistration(t, eventId, firstWaiting._id, "waitlist", now - 10 * HOUR_IN_MS);
+		const secondWaiting = await insertUser(t, "venter-2@example.com");
+		await insertRegistration(t, eventId, secondWaiting._id, "waitlist", now - 9 * HOUR_IN_MS);
+
+		await t.mutation(waitlistMutations.checkPendingRegistrations, {});
+
+		expect(await emailsWithStatus(t, eventId, "pending")).toEqual([
+			"venter-1@example.com",
+			"venter-2@example.com",
+		]);
+		expect(await statusOf(t, firstExpiredId)).toBe("waitlist");
+		expect(await statusOf(t, secondExpiredId)).toBe("waitlist");
+		expect(await scheduledRecipientsOf(t, "sendAvailableSeatEmail")).toEqual([
+			"venter-1@example.com",
+			"venter-2@example.com",
+		]);
+	});
+
+	it("skips past a waitlisted registration whose user is gone", async () => {
+		const { t, companyId } = await setup();
+		const now = Date.now();
+		const eventId = await insertEvent(t, companyId, { participationLimit: 1 });
+		const expiredUser = await insertUser(t, "utlopt@example.com");
+		await insertRegistration(t, eventId, expiredUser._id, "pending", now - EXPIRED_OFFER_AGE_IN_MS);
+		const departedUser = await insertUser(t, "slettet@example.com");
+		const departedId = await insertRegistration(
+			t,
+			eventId,
+			departedUser._id,
+			"waitlist",
+			now - 10 * HOUR_IN_MS,
+		);
+		await t.run((ctx) => ctx.db.delete(departedUser._id));
+		const waitingUser = await insertUser(t, "venter@example.com");
+		const waitingId = await insertRegistration(
+			t,
+			eventId,
+			waitingUser._id,
+			"waitlist",
+			now - 9 * HOUR_IN_MS,
+		);
+
+		await t.mutation(waitlistMutations.checkPendingRegistrations, {});
+
+		expect(await statusOf(t, departedId)).toBeNull();
+		expect(await statusOf(t, waitingId)).toBe("pending");
+		expect(await scheduledRecipientsOf(t, "sendAvailableSeatEmail")).toEqual([
+			"venter@example.com",
+		]);
+	});
+
 	it("does not offer a seat past the participation limit", async () => {
 		const { t, companyId } = await setup();
 		const now = Date.now();
@@ -336,6 +410,32 @@ describe("fixWaitlist", () => {
 		expect(await statusOf(t, secondWaitingId)).toBe("waitlist");
 		expect(await scheduledRecipientsOf(t, "sendAvailableSeatEmail")).toEqual([
 			"venter-1@example.com",
+		]);
+	});
+
+	it("repairs an event left with free seats while people are still waiting", async () => {
+		const { t, companyId } = await setup();
+		const now = Date.now();
+		const eventId = await insertEvent(t, companyId, { participationLimit: 80 });
+		for (let i = 0; i < 76; i++) {
+			const seated = await insertUser(t, `sitter-${i}@example.com`);
+			await insertRegistration(t, eventId, seated._id, "registered", now + i);
+		}
+		const firstWaiting = await insertUser(t, "venter-1@example.com");
+		await insertRegistration(t, eventId, firstWaiting._id, "waitlist", now + 100);
+		const secondWaiting = await insertUser(t, "venter-2@example.com");
+		await insertRegistration(t, eventId, secondWaiting._id, "waitlist", now + 101);
+
+		await t.mutation(waitlistMutations.fixWaitlist, { eventId });
+
+		expect(await emailsWithStatus(t, eventId, "pending")).toEqual([
+			"venter-1@example.com",
+			"venter-2@example.com",
+		]);
+		expect(await emailsWithStatus(t, eventId, "waitlist")).toEqual([]);
+		expect(await scheduledRecipientsOf(t, "sendAvailableSeatEmail")).toEqual([
+			"venter-1@example.com",
+			"venter-2@example.com",
 		]);
 	});
 

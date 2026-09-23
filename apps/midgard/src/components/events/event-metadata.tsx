@@ -31,7 +31,7 @@ export function EventMetadata({
 	const registrationSummary = usePreloadedQuery(preloadedRegistrationSummary);
 
 	const availableSpots =
-		event.participationLimit - registrationSummary.registeredCount;
+		Math.max(0, event.participationLimit - registrationSummary.registeredCount);
 
 	return (
 		<div>
@@ -86,7 +86,7 @@ export function EventActionButton({
 	registrationSummary: EventRegistrationSummary;
 }>) {
 	const availableSpots =
-		event.participationLimit - registrationSummary.registeredCount;
+		Math.max(0, event.participationLimit - registrationSummary.registeredCount);
 
 	if (event.externalUrl && event.externalUrl.length > 0) {
 		return (
