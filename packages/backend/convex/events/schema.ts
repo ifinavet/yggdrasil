@@ -17,6 +17,8 @@ export const eventsSchema = {
 		externalUrl: v.optional(v.string()),
 		hostingCompany: v.id("companies"),
 		published: v.boolean(),
+		feedbackEnabled: v.optional(v.boolean()),
+		feedbackFormId: v.optional(v.id("feedbackForms")),
 		slug: v.optional(v.string()),
 		formId: v.optional(v.id("form")),
 	})
@@ -28,7 +30,9 @@ export const eventsSchema = {
 		eventId: v.id("events"),
 		userId: v.id("users"),
 		role: v.union(v.literal("hovedansvarlig"), v.literal("medhjelper")),
-	}).index("by_eventId", ["eventId"]),
+	})
+		.index("by_eventId", ["eventId"])
+		.index("by_eventId_and_userId", ["eventId", "userId"]),
 
 	registrations: defineTable({
 		eventId: v.id("events"),
