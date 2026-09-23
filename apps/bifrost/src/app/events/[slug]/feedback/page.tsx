@@ -2,6 +2,7 @@ import { getAuthToken } from "@workspace/auth";
 import { api } from "@workspace/backend/convex/api";
 import { fetchQuery } from "convex/nextjs";
 import { Suspense } from "react";
+import { FeedbackReportLink } from "@/components/feedback/feedback-report-link";
 import { EventFeedbackSettings } from "@/components/feedback/event-feedback-settings";
 
 export default function EventFeedbackPage({
@@ -20,6 +21,7 @@ async function EventFeedbackContent({ params }: Readonly<{ params: Promise<{ slu
 		<>
 			<h1 className="font-semibold text-2xl">{event.title}</h1>
 			<EventFeedbackSettings eventId={event._id} />
+			<FeedbackReportLink slug={slug} />
 		</>
 	);
 }

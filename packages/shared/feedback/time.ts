@@ -1,5 +1,11 @@
 import { TZDate } from "@date-fns/tz";
-import { addDays, addMonths, set } from "date-fns";
+import { addDays, addMonths, format, set } from "date-fns";
+
+import { nb } from "date-fns/locale";
+
+export function formatFeedbackDate(timestamp: number, pattern: string): string {
+	return format(new TZDate(timestamp, "Europe/Oslo"), pattern, { locale: nb });
+}
 
 export const FEEDBACK_DAY = 86_400_000;
 export const REMINDER_DAYS = [3, 7, 11] as const;

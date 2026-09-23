@@ -8,9 +8,11 @@
 		"@date-fns/tz": "^1.5.0",
 		"convex": "^1.46.0",
 		"date-fns": "^4.4.0",
+		"papaparse": "5.5.3",
 		"zod": "^4.6.5"
 	},
 	"devDependencies": {
+		"@types/papaparse": "5.3.16",
 		"@workspace/typescript-config": "workspace:*",
 		"typescript": "^5.9.3"
 	},
@@ -24,7 +26,9 @@
 		"./semester/orgNumber": "./semester/orgNumber.ts",
 		"./semester/limits": "./semester/limits.ts",
 		"./semester/application": "./semester/application.ts",
-		"./semester/labels": "./semester/labels.ts"
+		"./semester/labels": "./semester/labels.ts",
+		"./feedback/report": "./feedback/report.ts",
+		"./feedback/report-csv": "./feedback/report-csv.ts"
 	},
 	"scripts": {
 		"check-types": "tsc --noEmit"
