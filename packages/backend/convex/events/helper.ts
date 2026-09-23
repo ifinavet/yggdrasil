@@ -1,4 +1,7 @@
+import type { OrganizerRole } from "@workspace/shared/constants";
+import { osloToday, termOfDay } from "@workspace/shared/semester/time";
 import { ConvexError } from "convex/values";
+import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { internalRoles, userHasRole } from "../auth/accessRights";
@@ -75,4 +78,78 @@ export async function isEventOrganizerOrAdmin(
 		.first();
 
 	return organizer !== null;
+}
+
+export type NewEvent = Omit<Doc<"events">, "_id" | "_creationTime" | "slug" | "formId">;
+
+// Not meant for security purposes
+/**
+ * Creates a short deterministic hash from a string.
+ *
+ * @param {string} str - The input string to hash.
+ *
+ * @returns {string} - A four-character uppercase hash.
+ */
+function simpleHash(str: string): string {
+	const hash = Math.abs(str.split("").reduce((a, b) => (a << 5) - a + (b.codePointAt(0) || 0), 0));
+	const result = hash.toString(36).toUpperCase();
+	return result.length < 4 ? result.padStart(4, "0").substring(0, 4) : result.substring(0, 4);
+}
+
+/**
+ * Creates the event slug from its title and start, prefixed with its term, e.g. "v27-" or "h26-".
+ *
+ * @param {string} title - The event title.
+ * @param {number} eventStart - When the event starts, in epoch milliseconds.
+ *
+ * @returns {string} - The generated slug.
+ */
+export function eventSlug(title: string, eventStart: number): string {
+	let slugTitle = title
+		.normalize("NFD")
+		.toLowerCase()
+		.replaceAll(/[^a-z0-9]+/g, "-");
+
+	if (slugTitle.length === 0) slugTitle = simpleHash(title).toLowerCase();
+
+	const { year, term } = termOfDay(osloToday(eventStart));
+	const termPrefix = term === "autumn" ? "h" : "v";
+
+	return `${termPrefix}${String(year).slice(2)}-${slugTitle}-${simpleHash(title)}`;
+}
+
+/**
+ * Creates an event with its feedback form, slug and organizers. Shared by events.create and by
+ * creating an event from a semester planning application.
+ *
+ * @param {MutationCtx} ctx - The Convex mutation context.
+ * @param {NewEvent} event - The event fields.
+ * @param {{ userId: Id<"users">, role: "hovedansvarlig" | "medhjelper" }[]} organizers - The organizers.
+ *
+ * @returns {Promise<Id<"events">>} - The id of the new event.
+ */
+export async function insertEventWithOrganizers(
+	ctx: MutationCtx,
+	event: NewEvent,
+	organizers: { userId: Id<"users">; role: OrganizerRole }[],
+): Promise<Id<"events">> {
+	// Creating the feedback form for after the event
+	const formId = await ctx.runMutation(internal.forms.mutations.createEventFeedbackForm);
+	if (!formId) {
+		console.error("Failed to create feedback form");
+	}
+
+	const eventId = await ctx.db.insert("events", {
+		...event,
+		slug: eventSlug(event.title, event.eventStart),
+		formId,
+	});
+
+	await Promise.all(
+		organizers.map(({ userId, role }) =>
+			ctx.db.insert("eventOrganizers", { eventId, userId, role }),
+		),
+	);
+
+	return eventId;
 }

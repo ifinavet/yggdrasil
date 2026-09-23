@@ -2,7 +2,7 @@
 
 import type { ColumnDef } from "@tanstack/react-table";
 import type { Id } from "@workspace/backend/convex/dataModel";
-import type { ORGANIZER_ROLE } from "@workspace/shared/constants";
+import type { OrganizerRole } from "@workspace/shared/constants";
 import { Button } from "@workspace/ui/components//button";
 import {
 	Select,
@@ -16,11 +16,11 @@ import { Trash2 } from "lucide-react";
 export type Organizer = {
 	id: Id<"users">;
 	name: string;
-	role: ORGANIZER_ROLE;
+	role: OrganizerRole;
 };
 
 export const createColumns = (
-	onRoleChange: (userId: Id<"users">, newRole: ORGANIZER_ROLE) => void,
+	onRoleChange: (userId: Id<"users">, newRole: OrganizerRole) => void,
 	onDelete: (userId: Id<"users">) => void,
 ): ColumnDef<Organizer>[] => [
 	{
@@ -35,7 +35,7 @@ export const createColumns = (
 			return (
 				<Select
 					defaultValue={row.original.role}
-					onValueChange={(value) => onRoleChange(row.original.id, value as ORGANIZER_ROLE)}
+					onValueChange={(value) => onRoleChange(row.original.id, value as OrganizerRole)}
 				>
 					<SelectTrigger className="w-[180px]">
 						<SelectValue placeholder="Ansvarlig type" />

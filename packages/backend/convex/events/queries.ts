@@ -1,4 +1,4 @@
-import type { ORGANIZER_ROLE } from "@workspace/shared/constants";
+import type { OrganizerRole } from "@workspace/shared/constants";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
@@ -251,7 +251,7 @@ export const getEvent = query({
  * @param {QueryCtx} ctx - The Convex query context.
  * @param {Id<"events">} eventId - The event id to fetch organizers for.
  *
- * @returns {Promise<Array<{ id: Id<"eventOrganizers">, name: string, role: ORGANIZER_ROLE, userId: Id<"users">, imageUrl: string, email: string }>>} - Organizer display data for the event.
+ * @returns {Promise<Array<{ id: Id<"eventOrganizers">, name: string, role: OrganizerRole, userId: Id<"users">, imageUrl: string, email: string }>>} - Organizer display data for the event.
  */
 async function getOrganizers(ctx: QueryCtx, eventId: Id<"events">) {
 	const organizers = await ctx.db
@@ -266,7 +266,7 @@ async function getOrganizers(ctx: QueryCtx, eventId: Id<"events">) {
 				return {
 					id: organizer._id,
 					name: "Ukjent ansvarlig",
-					role: "medhjelper" as ORGANIZER_ROLE,
+					role: "medhjelper" as OrganizerRole,
 					userId: organizer.userId,
 					imageUrl: "",
 					email: "",

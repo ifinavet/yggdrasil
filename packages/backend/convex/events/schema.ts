@@ -1,5 +1,8 @@
+import { ORGANIZER_ROLES } from "@workspace/shared/constants";
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
+
+export const organizerRoleValidator = v.union(...ORGANIZER_ROLES.map((role) => v.literal(role)));
 
 export const eventsSchema = {
 	events: defineTable({
@@ -30,7 +33,7 @@ export const eventsSchema = {
 	eventOrganizers: defineTable({
 		eventId: v.id("events"),
 		userId: v.id("users"),
-		role: v.union(v.literal("hovedansvarlig"), v.literal("medhjelper")),
+		role: organizerRoleValidator,
 	})
 		.index("by_eventId", ["eventId"])
 		.index("by_eventId_and_userId", ["eventId", "userId"]),

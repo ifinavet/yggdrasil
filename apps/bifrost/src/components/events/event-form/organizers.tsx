@@ -2,7 +2,7 @@
 
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
-import type { ORGANIZER_ROLE } from "@workspace/shared/constants";
+import type { OrganizerRole } from "@workspace/shared/constants";
 import { Button } from "@workspace/ui/components/button";
 import {
 	Command,
@@ -33,7 +33,7 @@ type OrganizerField = {
 	state: {
 		value: Array<{
 			userId: Id<"users">;
-			role: ORGANIZER_ROLE;
+			role: OrganizerRole;
 		}>;
 		meta: {
 			isTouched: boolean;
@@ -44,7 +44,7 @@ type OrganizerField = {
 	handleChange: (
 		value: Array<{
 			userId: Id<"users">;
-			role: ORGANIZER_ROLE;
+			role: OrganizerRole;
 		}>,
 	) => void;
 	handleBlur: () => void;
@@ -60,7 +60,7 @@ export default function Organizers({
 	const [openMembers, setOpenMembers] = useState(false);
 	const selectedMember = useRef("");
 
-	const [selectedOrganizerType, setSelectedOrganizerType] = useState<ORGANIZER_ROLE>("medhjelper");
+	const [selectedOrganizerType, setSelectedOrganizerType] = useState<OrganizerRole>("medhjelper");
 
 	const selectedOrganizers = useMemo(() => {
 		if (!internalMembers) return [];
@@ -75,7 +75,7 @@ export default function Organizers({
 
 	if (!internalMembers) return <div>Loading members...</div>;
 
-	const handleRoleChange = (userId: Id<"users">, newRole: ORGANIZER_ROLE) => {
+	const handleRoleChange = (userId: Id<"users">, newRole: OrganizerRole) => {
 		const currentOrganizers = field.state.value;
 		const updatedOrganizers = currentOrganizers.map((organizer) =>
 			organizer.userId === userId ? { ...organizer, role: newRole } : organizer,
@@ -149,7 +149,7 @@ export default function Organizers({
 					</Popover>
 					<Select
 						onValueChange={(value: string) => {
-							setSelectedOrganizerType(value as ORGANIZER_ROLE);
+							setSelectedOrganizerType(value as OrganizerRole);
 						}}
 						value={selectedOrganizerType}
 					>
