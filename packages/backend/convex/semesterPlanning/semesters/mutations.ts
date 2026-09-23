@@ -1,3 +1,4 @@
+import { semesterName } from "@workspace/shared/semester/labels";
 import {
 	MAX_OFFER_RESPONSE_DAYS,
 	MAX_SEMESTER_YEAR,
@@ -23,8 +24,6 @@ import {
 	requireSemester,
 	settingsFromLatestSemester,
 } from "./helper";
-
-const TERM_LABELS: Record<Doc<"semesters">["term"], string> = { spring: "Våren", autumn: "Høsten" };
 
 function requireIsoDate(value: string, label: string): void {
 	if (!isIsoDate(value)) throw new ConvexError(`${label} må være en gyldig dato (ÅÅÅÅ-MM-DD).`);
@@ -69,7 +68,7 @@ export const create = mutation({
 			throw new ConvexError("Oppgi et gyldig år.");
 		}
 		if (await findSemester(ctx, year, term)) {
-			throw new ConvexError(`${TERM_LABELS[term]} ${year} finnes allerede.`);
+			throw new ConvexError(`${semesterName(term, year)} finnes allerede.`);
 		}
 
 		return insertDraftSemester(ctx, year, term);
@@ -263,7 +262,7 @@ export const setStatus = mutation({
 			const other = alreadyOpen.find((open) => open._id !== semesterId);
 			if (other) {
 				throw new ConvexError(
-					`${TERM_LABELS[other.term]} ${other.year} er allerede åpent. Steng det først.`,
+					`${semesterName(other.term, other.year)} er allerede åpent. Steng det først.`,
 				);
 			}
 			// The rollover job would close it again the next night.

@@ -12,6 +12,7 @@ import {
 	Tailwind,
 	Text,
 } from "react-email";
+import { BRAND_PRIMARY_COLOR, NAVET_LOGO_URL } from "../constants.js";
 
 export default function LockedOutEmail() {
 	return (
@@ -28,19 +29,14 @@ export default function LockedOutEmail() {
 					theme: {
 						extend: {
 							colors: {
-								primary: "#2f3e5f",
+								primary: BRAND_PRIMARY_COLOR,
 							},
 						},
 					},
 				}}
 			>
 				<Container className="mx-auto my-auto w-full max-w-[600px] px-4 py-8">
-					<Img
-						src="https://gallant-pheasant-518.convex.cloud/api/storage/6aa758e2-ee53-449a-af69-9534518f3d6c"
-						alt="Navet Logo"
-						height="50px"
-						className="pb-4"
-					/>
+					<Img src={NAVET_LOGO_URL} alt="Navet Logo" height="50px" className="pb-4" />
 
 					<Heading as="h1" className="text-primary dark:text-primary-light">
 						Du har fått for mange prikker

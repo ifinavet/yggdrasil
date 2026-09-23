@@ -12,7 +12,8 @@ const DAY_TIME_FORMAT = "yyyy-MM-dd HH:mm";
 /** First month of the autumn term, zero-based (July). January to June belongs to spring. */
 const AUTUMN_FIRST_MONTH = 6;
 
-export type SemesterTerm = "spring" | "autumn";
+export const SEMESTER_TERMS = ["spring", "autumn"] as const;
+export type SemesterTerm = (typeof SEMESTER_TERMS)[number];
 
 /** Whether the value is a real calendar day written as YYYY-MM-DD. */
 export function isIsoDate(value: string): boolean {

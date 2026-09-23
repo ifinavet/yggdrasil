@@ -49,6 +49,7 @@ import type * as semesterPlanning_applications_submit from "../semesterPlanning/
 import type * as semesterPlanning_rateLimits from "../semesterPlanning/rateLimits.js";
 import type * as semesterPlanning_registry_actions from "../semesterPlanning/registry/actions.js";
 import type * as semesterPlanning_registry_client from "../semesterPlanning/registry/client.js";
+import type * as semesterPlanning_registry_messages from "../semesterPlanning/registry/messages.js";
 import type * as semesterPlanning_rules from "../semesterPlanning/rules.js";
 import type * as semesterPlanning_semesters_helper from "../semesterPlanning/semesters/helper.js";
 import type * as semesterPlanning_semesters_mutations from "../semesterPlanning/semesters/mutations.js";
@@ -109,6 +110,7 @@ declare const fullApi: ApiFromModules<{
   "semesterPlanning/rateLimits": typeof semesterPlanning_rateLimits;
   "semesterPlanning/registry/actions": typeof semesterPlanning_registry_actions;
   "semesterPlanning/registry/client": typeof semesterPlanning_registry_client;
+  "semesterPlanning/registry/messages": typeof semesterPlanning_registry_messages;
   "semesterPlanning/rules": typeof semesterPlanning_rules;
   "semesterPlanning/semesters/helper": typeof semesterPlanning_semesters_helper;
   "semesterPlanning/semesters/mutations": typeof semesterPlanning_semesters_mutations;

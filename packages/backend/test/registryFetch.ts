@@ -43,6 +43,22 @@ function json(status: number, body: unknown): Response {
 	});
 }
 
+function peppolResponse(peppol: NonNullable<RegistryStubs["peppol"]>): Response {
+	if (peppol === "down") throw new TypeError("fetch failed");
+	if (peppol === "error") return json(503, {});
+	const found = peppol === "found";
+	return json(200, { "total-result-count": found ? 1 : 0, matches: found ? [{}] : [] });
+}
+
+function brregResponse(
+	url: string,
+	{ unit, unitStatus, searchHits, brregDown }: Required<Omit<RegistryStubs, "peppol">>,
+): Response {
+	if (brregDown) throw new TypeError("fetch failed");
+	if (!url.includes("?")) return json(unitStatus, unit);
+	return json(200, searchHits.length ? { _embedded: { enheter: searchHits } } : { page: {} });
+}
+
 /** Replaces fetch with fake brreg and Peppol answers, and returns the URLs that were called. */
 export function stubRegistries({
 	unit = brregUnit(),
@@ -59,24 +75,10 @@ export function stubRegistries({
 			const url = input instanceof Request ? input.url : String(input);
 			calls.push(url);
 
-			if (url.startsWith("https://directory.peppol.eu/")) {
-				if (peppol === "down") throw new TypeError("fetch failed");
-				if (peppol === "error") return json(503, {});
-				const found = peppol === "found";
-				return json(200, { "total-result-count": found ? 1 : 0, matches: found ? [{}] : [] });
-			}
-
+			if (url.startsWith("https://directory.peppol.eu/")) return peppolResponse(peppol);
 			if (url.startsWith("https://data.brreg.no/")) {
-				if (brregDown) throw new TypeError("fetch failed");
-				if (url.includes("?")) {
-					return json(
-						200,
-						searchHits.length ? { _embedded: { enheter: searchHits } } : { page: {} },
-					);
-				}
-				return json(unitStatus, unit);
+				return brregResponse(url, { unit, unitStatus, searchHits, brregDown });
 			}
-
 			throw new Error(`Unexpected fetch in test: ${url}`);
 		}),
 	);

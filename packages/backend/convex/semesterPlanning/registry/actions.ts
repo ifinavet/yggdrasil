@@ -1,24 +1,20 @@
+import { isValidOrgNumber, normalizeOrgNumber } from "@workspace/shared/semester/orgNumber";
 import { ConvexError, v } from "convex/values";
 import { action } from "../../_generated/server";
 import { rateLimiter } from "../rateLimits";
-import { isValidOrgNumber, normalizeOrgNumber } from "../rules";
-import { peppolLookup } from "../schema";
+import { blockedReason, peppolLookup } from "../schema";
 import {
 	type BrregHit,
-	checkPeppol,
 	fetchBrregUnit,
-	REGISTRY_UNAVAILABLE_MESSAGE,
+	lookupPeppolParticipant,
 	RegistryUnavailableError,
 	searchBrregUnits,
 } from "./client";
+import { RATE_LIMITED_MESSAGE, REGISTRY_UNAVAILABLE_MESSAGE } from "./messages";
 
-const RATE_LIMITED_MESSAGE = "Det er mange søk akkurat nå. Prøv igjen om litt.";
-
-const blockedReason = v.union(
-	v.literal("deleted"),
-	v.literal("bankrupt"),
-	v.literal("liquidation"),
-);
+/** A search query must be at least this long, and at most MAX_QUERY_LENGTH. */
+const MIN_QUERY_LENGTH = 2;
+const MAX_QUERY_LENGTH = 100;
 
 /**
  * Searches Enhetsregisteret for the Hugin company picker. Public: it only returns what brreg
@@ -43,7 +39,7 @@ export const searchCompanies = action({
 	),
 	handler: async (ctx, { query }): Promise<BrregHit[]> => {
 		const trimmed = query.trim();
-		if (trimmed.length < 2 || trimmed.length > 100) {
+		if (trimmed.length < MIN_QUERY_LENGTH || trimmed.length > MAX_QUERY_LENGTH) {
 			throw new ConvexError("Skriv minst to tegn.");
 		}
 
@@ -99,6 +95,6 @@ export const lookupPeppol = action({
 		const { ok } = await rateLimiter.limit(ctx, "peppolLookup");
 		if (!ok) throw new ConvexError(RATE_LIMITED_MESSAGE);
 
-		return checkPeppol(normalized);
+		return lookupPeppolParticipant(normalized);
 	},
 });

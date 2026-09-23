@@ -23,6 +23,9 @@ export const STUDENT_CAP: Record<EventType, number | null> = {
 
 const MAX_STUDENTS = 1000;
 
+/** The one-time id the Hugin form sends with a submission, so a retry saves one application. */
+export const SUBMISSION_ID_PATTERN = /^[A-Za-z0-9-]{8,64}$/;
+
 function text(max: number, message: string) {
 	return z.string({ error: message }).trim().min(1, message).max(max, message);
 }

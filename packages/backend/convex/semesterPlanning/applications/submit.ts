@@ -1,6 +1,7 @@
 import {
 	type ApplicationForm,
 	applicationFormSchema,
+	SUBMISSION_ID_PATTERN,
 } from "@workspace/shared/semester/application";
 import {
 	ESCAPE_LABELS,
@@ -8,21 +9,21 @@ import {
 	semesterName,
 	VENUE_LABELS,
 } from "@workspace/shared/semester/labels";
+import { isValidOrgNumber } from "@workspace/shared/semester/orgNumber";
 import { formatSemesterDay } from "@workspace/shared/semester/time";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../../_generated/api";
 import { action, internalMutation } from "../../_generated/server";
 import { studentDegree } from "../../users/students/schema";
-import { logActivity } from "../helper";
+import { companyRecipients, logApplicationActivity } from "../applicationLifecycle";
 import { rateLimiter } from "../rateLimits";
 import {
-	BLOCKED_MESSAGES,
-	checkPeppol,
 	fetchBrregUnit,
-	REGISTRY_UNAVAILABLE_MESSAGE,
+	lookupPeppolParticipant,
 	RegistryUnavailableError,
 } from "../registry/client";
-import { CONSENT_VERSION, FORM_VERSION, isValidOrgNumber } from "../rules";
+import { BLOCKED_MESSAGES, REGISTRY_UNAVAILABLE_MESSAGE } from "../registry/messages";
+import { CONSENT_VERSION, FORM_VERSION } from "../rules";
 import {
 	applicationContact,
 	brregSnapshotAtSubmission,
@@ -32,7 +33,7 @@ import {
 	venue,
 	wantsToUseEscape,
 } from "../schema";
-import { semesterDates } from "../semesters/helper";
+import { listSemesterDates } from "../semesters/helper";
 
 /** What the Hugin form sends. The shared Zod schema checks the details. */
 export const applicationFormArgs = v.object({
@@ -60,9 +61,7 @@ export const applicationFormArgs = v.object({
 	consent: v.boolean(),
 });
 
-const SUBMISSION_ID = /^[A-Za-z0-9-]{8,64}$/;
-
-function parseForm(form: unknown): ApplicationForm {
+function parseApplicationForm(form: unknown): ApplicationForm {
 	const result = applicationFormSchema.safeParse(form);
 	if (!result.success) {
 		throw new ConvexError(result.error.issues[0]?.message ?? "Søknaden er ugyldig.");
@@ -94,11 +93,11 @@ export const submit = action({
 		// Answer a filled-in honeypot like a success, so bots learn nothing.
 		if (website?.trim()) return null;
 
-		if (!SUBMISSION_ID.test(submissionId)) {
+		if (!SUBMISSION_ID_PATTERN.test(submissionId)) {
 			throw new ConvexError("Skjemaet er utdatert. Last inn siden på nytt.");
 		}
 
-		const parsed = parseForm(form);
+		const parsed = parseApplicationForm(form);
 		if (!isValidOrgNumber(parsed.orgNumber)) {
 			throw new ConvexError("Organisasjonsnummeret er ugyldig.");
 		}
@@ -126,15 +125,18 @@ export const submit = action({
 			throw new ConvexError(BLOCKED_MESSAGES[lookup.blockedReason]);
 		}
 
-		const peppol = await checkPeppol(parsed.orgNumber);
+		const peppol = await lookupPeppolParticipant(parsed.orgNumber);
 
-		await ctx.runMutation(internal.semesterPlanning.applications.submit.insertSubmitted, {
-			form: parsed,
-			submissionId,
-			registry: lookup.snapshot,
-			peppolLookup: peppol,
-			peppolCheckedAt: Date.now(),
-		});
+		await ctx.runMutation(
+			internal.semesterPlanning.applications.submit.insertSubmittedApplication,
+			{
+				form: parsed,
+				submissionId,
+				registry: lookup.snapshot,
+				peppolLookup: peppol,
+				peppolCheckedAt: Date.now(),
+			},
+		);
 
 		return null;
 	},
@@ -148,7 +150,7 @@ export const submit = action({
  * @throws - A Norwegian error when applications are closed or a date is no longer open.
  * @returns {Id<"companyApplications">} - The new or already saved application.
  */
-export const insertSubmitted = internalMutation({
+export const insertSubmittedApplication = internalMutation({
 	args: {
 		form: applicationFormArgs,
 		submissionId: v.string(),
@@ -164,7 +166,7 @@ export const insertSubmitted = internalMutation({
 			.first();
 		if (already) return already._id;
 
-		const parsed = parseForm(form);
+		const parsed = parseApplicationForm(form);
 
 		const semester = await ctx.db
 			.query("semesters")
@@ -173,7 +175,7 @@ export const insertSubmitted = internalMutation({
 		if (!semester) throw new ConvexError("Søknadene er stengt.");
 
 		const openDates = new Set(
-			(await semesterDates(ctx, semester._id))
+			(await listSemesterDates(ctx, semester._id))
 				.filter((date) => date.closedLabel === undefined)
 				.map((date) => date.date),
 		);
@@ -197,12 +199,10 @@ export const insertSubmitted = internalMutation({
 			foodOrdered: false,
 		});
 
-		await logActivity(ctx, applicationId, "submitted", { type: "company" });
+		await logApplicationActivity(ctx, applicationId, "submitted", { type: "company" });
 
 		await ctx.scheduler.runAfter(0, internal.emails.sendApplicationReceiptEmail, {
-			to: [
-				...new Set([parsed.contact.email, parsed.filledInByEmail].filter((email) => !!email)),
-			] as string[],
+			to: companyRecipients(parsed),
 			companyName: registry.name,
 			semesterLabel: semesterName(semester.term, semester.year, { inSentence: true }),
 			rows: receiptRows(parsed, registry.name),

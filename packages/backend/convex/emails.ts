@@ -4,6 +4,7 @@ import { Resend } from "@convex-dev/resend";
 import { pretty, render } from "@react-email/render";
 import ApplicationReceiptEmail from "@workspace/emails/application-receipt-email";
 import AvailableSeatEmail from "@workspace/emails/available-seat-email";
+import { COMPANY_CONTACT_EMAIL } from "@workspace/emails/constants";
 import FreeForAllEmail from "@workspace/emails/free-for-all-email";
 import LockedOutEmail from "@workspace/emails/locked-out-email";
 import PointsEmail from "@workspace/emails/point-email";
@@ -190,8 +191,8 @@ export const sendApplicationReceiptEmail = internalAction({
 		);
 
 		await resend.sendEmail(ctx, {
-			from: "Navet <bedrift@ifinavet.no>",
-			replyTo: ["bedrift@ifinavet.no"],
+			from: `Navet <${COMPANY_CONTACT_EMAIL}>`,
+			replyTo: [COMPANY_CONTACT_EMAIL],
 			to,
 			subject: `Søknad om bedriftsarrangement ${semesterLabel} er mottatt`,
 			html,

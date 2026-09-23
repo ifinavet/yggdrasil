@@ -1,3 +1,5 @@
+import type { SemesterTerm } from "./time";
+
 // Norwegian labels for the stored semester planning values, shared by Hugin, Bifrost and emails.
 
 export const EVENT_TYPES = [
@@ -36,11 +38,14 @@ export const FOOD_PURCHASER_LABELS: Record<(typeof FOOD_PURCHASERS)[number], str
 	undecided: "Bestemmes senere",
 };
 
-export const TERM_LABELS = { spring: "Våren", autumn: "Høsten" } as const;
-export type Term = keyof typeof TERM_LABELS;
+export const TERM_LABELS: Record<SemesterTerm, string> = { spring: "Våren", autumn: "Høsten" };
 
 /** «Våren 2027», or «våren 2027» inside a sentence. */
-export function semesterName(term: Term, year: number, { inSentence = false } = {}): string {
+export function semesterName(
+	term: SemesterTerm,
+	year: number,
+	{ inSentence = false } = {},
+): string {
 	const label = TERM_LABELS[term];
 	return `${inSentence ? label.toLowerCase() : label} ${year}`;
 }

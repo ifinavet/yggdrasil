@@ -24,6 +24,7 @@
 		"typescript": "^5.9.3"
 	},
 	"exports": {
+		"./constants": "./constants.ts",
 		"./*": "./emails/*.tsx"
 	}
 }
