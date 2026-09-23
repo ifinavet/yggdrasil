@@ -22,6 +22,7 @@ import type * as events_registrations_mutations from "../events/registrations/mu
 import type * as events_registrations_queries from "../events/registrations/queries.js";
 import type * as events_waitlist_mutations from "../events/waitlist/mutations.js";
 import type * as feedback_defaultFields from "../feedback/defaultFields.js";
+import type * as feedback_events from "../feedback/events.js";
 import type * as feedback_forms_helpers from "../feedback/forms/helpers.js";
 import type * as feedback_forms_mutations from "../feedback/forms/mutations.js";
 import type * as feedback_forms_queries from "../feedback/forms/queries.js";
@@ -72,6 +73,7 @@ declare const fullApi: ApiFromModules<{
   "events/registrations/queries": typeof events_registrations_queries;
   "events/waitlist/mutations": typeof events_waitlist_mutations;
   "feedback/defaultFields": typeof feedback_defaultFields;
+  "feedback/events": typeof feedback_events;
   "feedback/forms/helpers": typeof feedback_forms_helpers;
   "feedback/forms/mutations": typeof feedback_forms_mutations;
   "feedback/forms/queries": typeof feedback_forms_queries;
