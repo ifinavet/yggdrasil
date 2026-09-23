@@ -21,7 +21,7 @@ export const feedbackStateCopy = {
 	},
 	submitted: {
 		title: "Takk for tilbakemeldingen!",
-		body: "Svaret ditt er lagret. Du kan lukke denne siden.",
+		body: "Svaret ditt er lagret.",
 	},
 	error: { title: "Kunne ikke hente skjemaet", body: "Sjekk nettforbindelsen og prøv igjen." },
 } as const;
@@ -34,4 +34,6 @@ export const feedbackCopy = {
 	validationError: "Se gjennom de markerte spørsmålene før du sender inn.",
 	introduction: "Takk for at du kom! Fortell oss hvordan du opplevde arrangementet.",
 	optional: "valgfritt",
+	redirectCountdown: (seconds: number) =>
+		`Du sendes til ifinavet.no om ${seconds} ${seconds === 1 ? "sekund" : "sekunder"}.`,
 };

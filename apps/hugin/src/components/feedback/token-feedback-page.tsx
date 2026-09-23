@@ -58,6 +58,7 @@ function FeedbackInvitation({
 			active = false;
 		};
 	}, [token, resolveToken]);
+	if (result.status === "submitted") return <SubmissionReceipt />;
 	if (result.status === "loading") return <output>{feedbackCopy.loading}</output>;
 	if (result.status === "open" && token)
 		return <TokenFeedbackForm token={token} feedback={result} onComplete={setResult} />;
@@ -73,6 +74,33 @@ function FeedbackInvitation({
 					result.status === "unavailable" ? (
 						<Button onClick={onRetry}>{feedbackCopy.retry}</Button>
 					) : null
+				}
+			/>
+		</div>
+	);
+}
+
+function SubmissionReceipt() {
+	const [secondsRemaining, setSecondsRemaining] = useState(5);
+	useEffect(() => {
+		const redirectAt = Date.now() + 5000;
+		const countdown = window.setInterval(() => {
+			setSecondsRemaining(Math.max(0, Math.ceil((redirectAt - Date.now()) / 1000)));
+		}, 1000);
+		const redirect = window.setTimeout(() => window.location.replace("https://ifinavet.no"), 5000);
+		return () => {
+			window.clearInterval(countdown);
+			window.clearTimeout(redirect);
+		};
+	}, []);
+	return (
+		<div className="mx-auto w-full max-w-3xl">
+			<FormStatePanel
+				{...feedbackStateCopy.submitted}
+				action={
+					<output aria-live="polite" className="text-muted-foreground text-sm">
+						{feedbackCopy.redirectCountdown(secondsRemaining)}
+					</output>
 				}
 			/>
 		</div>
