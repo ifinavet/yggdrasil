@@ -127,6 +127,14 @@ Pushes to `main` [deploy Convex first, then all three apps on Vercel](.github/wo
 
 To retry, use **Actions → Deploy production → Run workflow** on `main`. Keep backend changes compatible with the previous frontend; rolling back Vercel alone does not roll back Convex.
 
+### Deleted Clerk accounts
+
+The deletion webhook removes roles, student profiles, points and internal positions, clears group leadership, and cancels future registrations so their seats can be offered again. Past registrations and organizer references retain an anonymized user; registration notes are removed and attendance can still be corrected without issuing points or emails. Feedback answers remain, but their Clerk author IDs are scrubbed in batches of 100. Follow-up batches run through Convex scheduled functions.
+
+`deletedClerkUsers` stores only a SHA-256 digest of each deleted Clerk ID, separately from retained event history. This prevents delayed webhooks and student onboarding from recreating the account, even if deletion arrived before creation. Keep these deletion markers when maintaining the database.
+
+Deleting the last super-admin still revokes their access. Transfer that role before deleting the Clerk account when possible. For recovery, a Convex deployment administrator can use the dashboard's Data view to find a trusted active user's `users._id`, then update or insert their `accessRights` row with that `userId` and `role: "super-admin"`. Do not restore permissions to the anonymized account.
+
 ## Want to contribute? 🤝
 
 That's great! We love any and all contributions, but sadly, as we are students, we do not have the ability nor the resources to deal with everything. Therefore, we have some "rules" on how to contribute.

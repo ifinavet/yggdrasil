@@ -1,7 +1,9 @@
 import type { UserJSON } from "@clerk/backend";
-import { type Validator, v } from "convex/values";
-import type { Id } from "../../_generated/dataModel";
+import { ConvexError, type Validator, v } from "convex/values";
+import { internal } from "../../_generated/api";
+import type { Doc, Id } from "../../_generated/dataModel";
 import { internalMutation, type MutationCtx } from "../../_generated/server";
+import { fillOpenSeats } from "../../events/registrations/mutations";
 import { userByExternalId } from "./queries";
 
 const ANONYMIZED_USER = {
@@ -10,9 +12,23 @@ const ANONYMIZED_USER = {
 	lastName: "bruker",
 	image: "",
 	locked: true,
+	deleted: true,
 };
 
-const DELETED_EXTERNAL_ID_PREFIX = "deleted:";
+async function hashClerkId(externalId: string): Promise<string> {
+	const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(externalId));
+	return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function wasDeleted(ctx: MutationCtx, externalId: string): Promise<boolean> {
+	const hash = await hashClerkId(externalId);
+	return (
+		(await ctx.db
+			.query("deletedClerkUsers")
+			.withIndex("by_externalIdHash", (q) => q.eq("externalIdHash", hash))
+			.unique()) !== null
+	);
+}
 
 /**
  * Creates or updates a user from a Clerk webhook payload.
@@ -24,6 +40,8 @@ const DELETED_EXTERNAL_ID_PREFIX = "deleted:";
 export const upsertFromClerk = internalMutation({
 	args: { data: v.any() as Validator<UserJSON> }, // no runtime validation, trust Clerk
 	async handler(ctx, { data }) {
+		if (await wasDeleted(ctx, data.id)) return;
+
 		const email = data.email_addresses.find(
 			(emailAddress) => emailAddress.id === data.primary_email_address_id,
 		)?.email_address;
@@ -65,6 +83,9 @@ export const createIfNotExists = internalMutation({
 		image: v.string(),
 	},
 	handler: async (ctx, { externalId, firstName, lastName, email, image }) => {
+		if (await wasDeleted(ctx, externalId)) {
+			throw new ConvexError("Denne brukeren er slettet.");
+		}
 		const user = await userByExternalId(ctx, externalId);
 
 		if (!user) {
@@ -102,6 +123,12 @@ async function removeInternalPositions(ctx: MutationCtx, userId: Id<"users">): P
 		.collect();
 
 	await Promise.all(positions.map((position) => ctx.db.delete(position._id)));
+
+	const groups = await ctx.db
+		.query("internalGroups")
+		.filter((q) => q.eq(q.field("leader"), userId))
+		.collect();
+	await Promise.all(groups.map((group) => ctx.db.patch(group._id, { leader: undefined })));
 }
 
 async function removeStudentProfiles(ctx: MutationCtx, userId: Id<"users">): Promise<void> {
@@ -121,6 +148,44 @@ async function removeStudentProfiles(ctx: MutationCtx, userId: Id<"users">): Pro
 	}
 }
 
+async function cleanRegistrations(ctx: MutationCtx, userId: Id<"users">): Promise<void> {
+	const eventsToRefill = new Map<Id<"events">, Doc<"events">>();
+	const registrations = await ctx.db
+		.query("registrations")
+		.withIndex("by_userId", (q) => q.eq("userId", userId))
+		.collect();
+	for (const registration of registrations) {
+		const event = await ctx.db.get(registration.eventId);
+		if (!event || event.eventStart > Date.now()) {
+			await ctx.db.delete(registration._id);
+			if (event) eventsToRefill.set(event._id, event);
+		} else {
+			await ctx.db.patch(registration._id, { note: undefined });
+		}
+	}
+	for (const event of eventsToRefill.values()) await fillOpenSeats(ctx, event);
+}
+
+// Feedback has no author index. Scan bounded batches, keeping only the hash in scheduled work.
+export const anonymizeFormResponses = internalMutation({
+	args: { externalIdHash: v.string(), cursor: v.union(v.string(), v.null()) },
+	handler: async (ctx, { externalIdHash, cursor }): Promise<void> => {
+		const responses = await ctx.db.query("formResponses").paginate({ cursor, numItems: 100 });
+		for (const response of responses.page) {
+			const { userId, ...data } = response.data;
+			if (typeof userId === "string" && (await hashClerkId(userId)) === externalIdHash) {
+				await ctx.db.patch(response._id, { data });
+			}
+		}
+		if (!responses.isDone) {
+			await ctx.scheduler.runAfter(0, internal.users.clerk.mutations.anonymizeFormResponses, {
+				externalIdHash,
+				cursor: responses.continueCursor,
+			});
+		}
+	},
+});
+
 /**
  * Anonymizes a user that was deleted in Clerk and removes their personal records.
  *
@@ -128,17 +193,21 @@ async function removeStudentProfiles(ctx: MutationCtx, userId: Id<"users">): Pro
  *
  * @param {string} clerkUserId - The Clerk user id that was deleted.
  *
- * @returns {null} - Returns null when the user has been anonymized, or when no user matched.
+ * @returns {null} - Returns null after recording the deletion and anonymizing any matching user.
  */
 export const deleteFromClerk = internalMutation({
 	args: { clerkUserId: v.string() },
 	async handler(ctx, { clerkUserId }) {
+		if (await wasDeleted(ctx, clerkUserId)) return;
+		const externalIdHash = await hashClerkId(clerkUserId);
+		await ctx.db.insert("deletedClerkUsers", { externalIdHash });
+		await ctx.runMutation(internal.users.clerk.mutations.anonymizeFormResponses, {
+			externalIdHash,
+			cursor: null,
+		});
 		const user = await userByExternalId(ctx, clerkUserId);
 
-		if (user === null) {
-			console.warn(`Can't delete user, there is none for Clerk user ID: ${clerkUserId}`);
-			return;
-		}
+		if (user === null) return;
 
 		await revokeAccessRights(ctx, user._id);
 		await removeInternalPositions(ctx, user._id);
@@ -146,7 +215,8 @@ export const deleteFromClerk = internalMutation({
 
 		await ctx.db.patch(user._id, {
 			...ANONYMIZED_USER,
-			externalId: `${DELETED_EXTERNAL_ID_PREFIX}${clerkUserId}`,
+			externalId: `deleted:${user._id}`,
 		});
+		await cleanRegistrations(ctx, user._id);
 	},
 });
