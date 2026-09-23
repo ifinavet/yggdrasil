@@ -1,6 +1,13 @@
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
 
+export const studentDegree = v.union(
+	v.literal("Årsstudium"),
+	v.literal("Bachelor"),
+	v.literal("Master"),
+	v.literal("PhD"),
+);
+
 export const studentsSchema = {
 	students: defineTable({
 		userId: v.id("users"),
@@ -8,12 +15,7 @@ export const studentsSchema = {
 		studyProgram: v.string(),
 		semester: v.optional(v.number()),
 		year: v.number(),
-		degree: v.union(
-			v.literal("Årsstudium"),
-			v.literal("Bachelor"),
-			v.literal("Master"),
-			v.literal("PhD"),
-		),
+		degree: studentDegree,
 	})
 		.index("by_studyProgram", ["studyProgram"])
 		.index("by_userId", ["userId"])

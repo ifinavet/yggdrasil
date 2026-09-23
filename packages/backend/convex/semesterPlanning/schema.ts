@@ -1,12 +1,19 @@
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
+import { studentDegree } from "../users/students/schema";
 
 // Calendar days are Oslo-local "YYYY-MM-DD" strings, so a Tuesday never shifts with the time zone.
 // Moments (sent, responded, consented) are epoch milliseconds, like the rest of the backend.
 
 export const semesterTerm = v.union(v.literal("spring"), v.literal("autumn"));
 
-export const semesterStatus = v.union(v.literal("draft"), v.literal("open"), v.literal("closed"));
+// Whether companies can apply for the semester. `draft` means the semester exists but is not yet
+// open for applications, `open` means it accepts them, and `closed` means the deadline has passed.
+export const applicationPeriodStatus = v.union(
+	v.literal("draft"),
+	v.literal("open"),
+	v.literal("closed"),
+);
 
 export const applicationStatus = v.union(
 	v.literal("applied"),
@@ -30,9 +37,14 @@ export const venue = v.union(
 	v.literal("undecided"),
 );
 
-export const escapeChoice = v.union(v.literal("yes"), v.literal("no"), v.literal("unsure"));
+export const wantsToUseEscape = v.union(v.literal("yes"), v.literal("no"), v.literal("unsure"));
 
-export const purchasing = v.union(v.literal("company"), v.literal("navet"), v.literal("undecided"));
+// Who buys the food and drinks for the event.
+export const foodPurchaser = v.union(
+	v.literal("company"),
+	v.literal("navet"),
+	v.literal("undecided"),
+);
 
 export const peppolLookup = v.union(
 	v.literal("found"),
@@ -47,7 +59,7 @@ export const offerStatus = v.union(
 	v.literal("superseded"),
 );
 
-export const activityKind = v.union(
+export const applicationActivityType = v.union(
 	v.literal("submitted"),
 	v.literal("status_changed"),
 	v.literal("date_assigned"),
@@ -57,25 +69,24 @@ export const activityKind = v.union(
 	v.literal("contact_changed"),
 );
 
-export const actorKind = v.union(v.literal("internal"), v.literal("company"), v.literal("system"));
-
-// Same literals as students.degree.
-export const targetDegree = v.union(
-	v.literal("Årsstudium"),
-	v.literal("Bachelor"),
-	v.literal("Master"),
-	v.literal("PhD"),
+// Who performed an activity: a Navet member, the company itself or the system.
+export const activityActor = v.union(
+	v.literal("internal"),
+	v.literal("company"),
+	v.literal("system"),
 );
 
-const codeAndDescription = v.object({
+// A brreg code with its description, such as the organisation form or industry code.
+const registryCode = v.object({
 	code: v.string(),
 	description: v.string(),
 });
 
-// Snapshot of the Enhetsregisteret entity, fetched again on the server at submission.
-export const registrySnapshot = v.object({
+// The Enhetsregisteret entity as it was when the company applied, fetched again on the server at
+// submission. Bifrost shows the application as submitted even if brreg changes later or is down.
+export const brregSnapshotAtSubmission = v.object({
 	name: v.string(),
-	organizationForm: codeAndDescription,
+	organizationForm: registryCode,
 	businessAddress: v.optional(
 		v.object({
 			addressLines: v.array(v.string()),
@@ -84,7 +95,7 @@ export const registrySnapshot = v.object({
 			countryCode: v.optional(v.string()),
 		}),
 	),
-	industry: v.optional(codeAndDescription),
+	industry: v.optional(registryCode),
 	website: v.optional(v.string()),
 	employeeCount: v.optional(v.number()),
 	fetchedAt: v.number(),
@@ -111,7 +122,7 @@ export const semesterPlanningSchema = {
 		firstDate: v.string(),
 		lastDate: v.string(),
 		applicationDeadline: v.string(),
-		status: semesterStatus,
+		status: applicationPeriodStatus,
 		infoText: v.optional(v.string()),
 		termsUrl: v.optional(v.string()),
 		offerResponseDays: v.optional(v.number()),
@@ -131,7 +142,7 @@ export const semesterPlanningSchema = {
 		semesterId: v.id("semesters"),
 		formVersion: v.number(),
 		orgNumber: v.string(),
-		registry: registrySnapshot,
+		registry: brregSnapshotAtSubmission,
 		contact: applicationContact,
 		filledInByEmail: v.optional(v.string()),
 		eventType: presentationEventType,
@@ -141,11 +152,11 @@ export const semesterPlanningSchema = {
 		availableDates: v.array(v.string()),
 		datePreferences: v.optional(v.string()),
 		venue: venue,
-		escape: escapeChoice,
+		wantsToUseEscape: wantsToUseEscape,
 		foodAndDrinks: v.boolean(),
-		purchasing: purchasing,
+		foodPurchasedBy: foodPurchaser,
 		billing: applicationBilling,
-		targetDegrees: v.array(targetDegree),
+		targetDegrees: v.array(studentDegree),
 		targetStudyPrograms: v.array(v.string()),
 		additionalInfo: v.optional(v.string()),
 		consent: v.object({
@@ -189,8 +200,8 @@ export const semesterPlanningSchema = {
 
 	companyApplicationActivity: defineTable({
 		applicationId: v.id("companyApplications"),
-		kind: activityKind,
-		actorKind: actorKind,
+		type: applicationActivityType,
+		actor: activityActor,
 		actorUserId: v.optional(v.id("users")),
 		fromStatus: v.optional(applicationStatus),
 		toStatus: v.optional(applicationStatus),
