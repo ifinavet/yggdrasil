@@ -2,6 +2,7 @@ import { feedbackFormSchema } from "@workspace/shared/feedback";
 import { ConvexError, v } from "convex/values";
 import { mutation } from "../../_generated/server";
 import { internalRoles, requireRole, superAdminRoles } from "../../auth/accessRights";
+import { syncFeedbackCampaign } from "../delivery/campaigns";
 import { feedbackField } from "../schema";
 import { getFeedbackFormOrThrow, getLatestPublishedVersion } from "./helpers";
 
@@ -80,5 +81,6 @@ export const assignToEvent = mutation({
 				throw new ConvexError("Publiser skjemaet før det brukes på et arrangement.");
 		}
 		await ctx.db.patch(eventId, { feedbackFormId: formId });
+		await syncFeedbackCampaign(ctx, eventId);
 	},
 });

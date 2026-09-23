@@ -41,12 +41,12 @@ describe("event feedback settings", () => {
 			enabled: true,
 			formId,
 			selectedFormName: "Feedback",
-			campaignStatus: null,
+			campaignStatus: "scheduled",
 		});
 		await client.mutation(updateEventFeedbackSettings, { eventId, enabled: false });
 		expect(await client.query(getEventFeedbackSettings, { eventId })).toEqual({
 			enabled: false,
-			campaignStatus: null,
+			campaignStatus: "cancelled",
 		});
 		expect(await backend.run((ctx) => ctx.db.query("feedbackDeliveries").collect())).toEqual([]);
 	});
@@ -63,7 +63,7 @@ describe("event feedback settings", () => {
 		await client.mutation(updateEventFeedbackSettings, { eventId, enabled: true });
 		expect(await client.query(getEventFeedbackSettings, { eventId })).toEqual({
 			enabled: true,
-			campaignStatus: null,
+			campaignStatus: "scheduled",
 		});
 	});
 	it("rejects unpublished and missing overrides without changing the saved flag", async () => {
@@ -126,7 +126,10 @@ describe("event feedback settings", () => {
 				status,
 			);
 			await client.mutation(updateEventFeedbackSettings, { eventId, enabled: false });
-			expect(await backend.run((ctx) => ctx.db.get(campaignId))).toEqual(original);
+			expect(await backend.run((ctx) => ctx.db.get(campaignId))).toMatchObject({
+				...original,
+				status: status === "open" || status === "scheduled" ? "cancelled" : status,
+			});
 		},
 	);
 	it("reads settings even if an old selected form no longer exists", async () => {

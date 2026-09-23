@@ -1,6 +1,7 @@
 import { feedbackErrors } from "@workspace/shared/feedback";
 import { v } from "convex/values";
 import { mutation } from "../../_generated/server";
+import { cancelInvitationEmails } from "../delivery/messages";
 import { feedbackAnswers } from "../schema";
 import { getFeedbackTokenAccess } from "./access";
 
@@ -20,6 +21,7 @@ export const submitFeedbackResponse = mutation({
 			submittedAt,
 		});
 		await ctx.db.patch(access.invite._id, { responded: true });
+		await cancelInvitationEmails(ctx, access.invite._id);
 		return { status: "submitted" } as const;
 	},
 });
