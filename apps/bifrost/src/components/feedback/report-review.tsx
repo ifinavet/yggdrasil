@@ -23,6 +23,18 @@ type ReportResult = Extract<
 type Report = NonNullable<ReportResult["report"]>;
 type Answers = FunctionReturnType<typeof api.feedback.reports.queries.getReportAnswers>["page"];
 
+function reportStatusLabel(report: Report): string {
+	if (report.status === "revoked") return "Tilgangen er trukket tilbake";
+	if (report.status === "draft") return "Klar for gjennomgang";
+	const deliveryLabels = {
+		failed: "Godkjent · e-post feilet",
+		delivered: "Godkjent · e-post levert",
+		pending: "Godkjent · klargjør e-post",
+		queued: "Godkjent · e-post i kø",
+	};
+	return deliveryLabels[report.deliveryStatus ?? "pending"];
+}
+
 export function ReportReview({
 	report,
 	answers,
@@ -56,18 +68,7 @@ export function ReportReview({
 		onSubmit: async ({ value }) =>
 			perform(() => approve({ reportId: report._id, revision: report.revision, ...value })),
 	});
-	const status =
-		report.status === "revoked"
-			? "Tilgangen er trukket tilbake"
-			: locked
-				? report.deliveryStatus === "failed"
-					? "Godkjent · e-post feilet"
-					: report.deliveryStatus === "delivered"
-						? "Godkjent · e-post levert"
-						: report.deliveryStatus === "pending"
-							? "Godkjent · klargjør e-post"
-							: "Godkjent · e-post i kø"
-				: "Klar for gjennomgang";
+	const status = reportStatusLabel(report);
 	return (
 		<div className="w-full space-y-6">
 			<div className="flex flex-wrap items-start gap-4">

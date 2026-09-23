@@ -30,24 +30,42 @@ export interface FeedbackReport {
 	questions: ReportQuestion[];
 }
 
-export function createReportQuestions(fields: FeedbackField[]): ReportQuestion[] {
-	return fields.map((field) => {
-		const choices =
-			field.type === "rating"
-				? [5, 4, 3, 2, 1].map(String)
-				: field.type === "yesNo"
-					? ["ja", "nei"]
-					: (field.options ?? []);
-		const buckets = choices.map((value) => ({
-			value,
-			label: field.type === "yesNo" ? (value === "ja" ? "Ja" : "Nei") : value,
+function reportBuckets(field: FeedbackField): ReportBucket[] {
+	if (field.type === "rating")
+		return [5, 4, 3, 2, 1].map((value) => ({
+			value: String(value),
+			label: String(value),
 			count: 0,
 		}));
-		// The reserved value cannot collide with a real option: custom text uses a separate bucket.
-		if (field.type === "options" && field.allowOther)
-			buckets.push({ value: "", label: "Annet", count: 0 });
-		return { ...field, answered: 0, buckets };
-	});
+	if (field.type === "yesNo")
+		return [
+			{ value: "ja", label: "Ja", count: 0 },
+			{ value: "nei", label: "Nei", count: 0 },
+		];
+	const buckets = (field.options ?? []).map((value) => ({ value, label: value, count: 0 }));
+	// Empty option labels are rejected by form validation, leaving this value available for custom answers.
+	if (field.type === "options" && field.allowOther)
+		buckets.push({ value: "", label: "Annet", count: 0 });
+	return buckets;
+}
+
+export function createReportQuestions(fields: FeedbackField[]): ReportQuestion[] {
+	return fields.map((field) => ({ ...field, answered: 0, buckets: reportBuckets(field) }));
+}
+
+function addChoiceAnswers(question: ReportQuestion, answer: FeedbackAnswers[string]) {
+	const textAnswers: { fieldKey: string; text: string }[] = [];
+	const values = Array.isArray(answer) ? answer : [String(answer)];
+	for (const value of values) {
+		const bucket = question.buckets.find((item) => item.value === value);
+		if (bucket) bucket.count += 1;
+		else if (question.type === "options" && question.allowOther) {
+			const otherBucket = question.buckets.find((item) => item.value === "");
+			if (otherBucket) otherBucket.count += 1;
+			textAnswers.push({ fieldKey: question.key, text: value });
+		}
+	}
+	return textAnswers;
 }
 
 /** Called once per response while the closed campaign is materialized in bounded batches. */
@@ -65,16 +83,7 @@ export function addResponseToReport(questions: ReportQuestion[], data: FeedbackA
 			textAnswers.push({ fieldKey: question.key, text: String(answer) });
 			continue;
 		}
-		const values = Array.isArray(answer) ? answer : [String(answer)];
-		for (const value of values) {
-			const bucket = question.buckets.find((item) => item.value === value);
-			if (bucket) bucket.count += 1;
-			else if (question.type === "options" && question.allowOther) {
-				const otherBucket = question.buckets.find((item) => item.value === "");
-				if (otherBucket) otherBucket.count += 1;
-				textAnswers.push({ fieldKey: question.key, text: value });
-			}
-		}
+		textAnswers.push(...addChoiceAnswers(question, answer));
 	}
 	return textAnswers;
 }

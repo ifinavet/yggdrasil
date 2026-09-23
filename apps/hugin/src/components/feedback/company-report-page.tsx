@@ -8,6 +8,13 @@ import { useAction } from "convex/react";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { readFeedbackToken } from "@/lib/feedback/form";
 
+const stateHeadings = {
+	loading: "Henter rapport …",
+	error: "Kunne ikke hente rapporten",
+	invalid: "Rapporten er ikke tilgjengelig",
+	ready: "Rapport fra bedriftspresentasjon",
+};
+
 function subscribe(onChange: () => void) {
 	window.addEventListener("hashchange", onChange);
 	return () => window.removeEventListener("hashchange", onChange);
@@ -94,13 +101,7 @@ function CompanyReport({
 				<FeedbackReportView report={result.report} answers={result.answers} />
 			) : (
 				<div className="space-y-4 p-8">
-					<h1 className="font-semibold text-2xl">
-						{state === "loading"
-							? "Henter rapport …"
-							: state === "error"
-								? "Kunne ikke hente rapporten"
-								: "Rapporten er ikke tilgjengelig"}
-					</h1>
+					<h1 className="font-semibold text-2xl">{stateHeadings[state]}</h1>
 					{state === "invalid" ? (
 						<p>Kontakt arrangøren dersom du trenger tilgang til rapporten.</p>
 					) : null}
