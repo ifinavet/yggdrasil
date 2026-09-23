@@ -8,6 +8,7 @@ export default defineConfig({
 		env: {
 			APP_ENV: "test",
 			CONVEX_CLOUD_URL: "https://test-placeholder.convex.cloud",
+			CLERK_WEBHOOK_SECRET: "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw",
 		},
 	},
 });
