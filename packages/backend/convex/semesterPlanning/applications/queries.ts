@@ -1,13 +1,13 @@
 import { ESCAPE_LABELS, EVENT_TYPE_LABELS, semesterName } from "@workspace/shared/semester/labels";
-import { formatSemesterDay } from "@workspace/shared/semester/time";
-import { toCsv } from "@workspace/shared/utils";
 import { toCompanyProfileOrgNumber } from "@workspace/shared/semester/orgNumber";
+import { formatSemesterDay } from "@workspace/shared/semester/time";
+import { asciiFilename, toCsv } from "@workspace/shared/utils";
 import { v } from "convex/values";
 import { query } from "../../_generated/server";
 import { editorRoles, internalRoles, requireRole } from "../../auth/accessRights";
 import schema from "../../schema";
 import { findActiveApplicationOnDate } from "../applicationLifecycle";
-import { requireSemester, listSemesterDates } from "../semesters/helper";
+import { listSemesterDates, requireSemester } from "../semesters/helper";
 import {
 	listApplicationsInSemester,
 	planRowValidator,
@@ -103,12 +103,11 @@ export const get = query({
 	},
 });
 
-/** The columns of the Excel semester plan the export replaces, in the same order. */
-const EXPORT_COLUMNS = [
-	"Dag",
-	"Dato",
-	"Bekreftet",
-	"Bedrift",
+// The columns of the Excel semester plan the export replaces, in the same order. Every row has the
+// day columns; a closed or free date fills only the summary, and an assigned date fills the details.
+const DAY_COLUMNS = ["Dag", "Dato"] as const;
+const SUMMARY_COLUMNS = ["Bekreftet", "Bedrift"] as const;
+const DETAIL_COLUMNS = [
 	"Sendt tilbud",
 	"Org.nummer",
 	"Arr.type",
@@ -121,7 +120,9 @@ const EXPORT_COLUMNS = [
 	"Rom booket",
 	"Org-ansvarlig",
 	"Antall plasser",
-];
+] as const;
+const EXPORT_COLUMNS = [...DAY_COLUMNS, ...SUMMARY_COLUMNS, ...DETAIL_COLUMNS];
+const EMPTY_DETAILS = DETAIL_COLUMNS.map(() => "");
 
 const yesNo = (value: boolean) => (value ? "Ja" : "Nei");
 
@@ -135,7 +136,7 @@ const yesNo = (value: boolean) => (value ? "Ja" : "Nei");
  * @throws - An error if the caller is not an editor, or the semester does not exist.
  * @returns {{ filename: string, csv: string }} - The file name and contents.
  */
-export const exportRows = query({
+export const exportPlanCsv = query({
 	args: { semesterId: v.id("semesters") },
 	returns: v.object({ filename: v.string(), csv: v.string() }),
 	handler: async (ctx, { semesterId }) => {
@@ -143,13 +144,12 @@ export const exportRows = query({
 
 		const semester = await requireSemester(ctx, semesterId);
 		const rows = await Promise.all(
-			(await semesterDates(ctx, semesterId)).map(async ({ date, closedLabel }) => {
-				const day = [formatSemesterDay(date, "weekday"), formatSemesterDay(date, "numeric")];
-				const empty = Array<string>(EXPORT_COLUMNS.length - 4).fill("");
-				if (closedLabel) return [...day, "", `${closedLabel} (internt)`, ...empty];
+			(await listSemesterDates(ctx, semesterId)).map(async ({ date, closedLabel }) => {
+				const day = [formatSemesterDay(date, "weekday"), formatSemesterDay(date, "shortNumeric")];
+				if (closedLabel) return [...day, "", `${closedLabel} (internt)`, ...EMPTY_DETAILS];
 
-				const application = await findLiveApplicationOnDate(ctx, semesterId, date);
-				if (!application) return [...day, "", "Ledig", ...empty];
+				const application = await findActiveApplicationOnDate(ctx, semesterId, date);
+				if (!application) return [...day, "", "Ledig", ...EMPTY_DETAILS];
 
 				const responsible = application.responsibleUserId
 					? await ctx.db.get(application.responsibleUserId)
@@ -174,9 +174,8 @@ export const exportRows = query({
 			}),
 		);
 
-		const name = semesterName(semester.term, semester.year, { inSentence: true }).replace(" ", "-");
 		return {
-			filename: `semesterplan-${name.replace("å", "a")}.csv`,
+			filename: `semesterplan-${asciiFilename(semesterName(semester.term, semester.year))}.csv`,
 			csv: toCsv([EXPORT_COLUMNS, ...rows]),
 		};
 	},

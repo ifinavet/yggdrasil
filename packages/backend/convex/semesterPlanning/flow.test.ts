@@ -1,4 +1,4 @@
-import { toCsv } from "@workspace/shared/utils";
+import { asciiFilename, toCsv } from "@workspace/shared/utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
 	activityFor,
@@ -17,6 +17,7 @@ import { api } from "../_generated/api";
 
 afterEach(() => {
 	vi.unstubAllGlobals();
+	vi.useRealTimers();
 });
 
 describe("toCsv", () => {
@@ -31,7 +32,14 @@ describe("toCsv", () => {
 	});
 });
 
-describe("exportRows", () => {
+describe("exportPlanCsv", () => {
+	it.each([
+		["Våren 2027", "varen-2027"],
+		["Høsten 2027", "hosten-2027"],
+	])("names the file for %s as %s", (semester, name) => {
+		expect(asciiFilename(semester)).toBe(name);
+	});
+
 	it("has the Excel columns and one row per Tuesday and Thursday", async () => {
 		const { t } = await setup();
 		const editor = await insertUser(t, "kari@ifinavet.no");
@@ -60,7 +68,7 @@ describe("exportRows", () => {
 		await insertApplication(t, semesterId, { status: "withdrawn", assignedDate: "2027-01-21" });
 
 		const { filename, csv } = await asUser(t, editor).query(
-			api.semesterPlanning.applications.queries.exportRows,
+			api.semesterPlanning.applications.queries.exportPlanCsv,
 			{
 				semesterId,
 			},
@@ -84,7 +92,7 @@ describe("exportRows", () => {
 
 		expect(
 			await refusalMessageFrom(
-				asUser(t, member).query(api.semesterPlanning.applications.queries.exportRows, {
+				asUser(t, member).query(api.semesterPlanning.applications.queries.exportPlanCsv, {
 					semesterId,
 				}),
 			),
@@ -94,6 +102,9 @@ describe("exportRows", () => {
 
 describe("the whole journey", () => {
 	it("goes from a Hugin application to an event, with the full history", async () => {
+		// Before spring 2027 ends, so the semester can still be opened.
+		vi.useFakeTimers({ toFake: ["Date"] });
+		vi.setSystemTime(Date.parse("2027-01-10T12:00:00Z"));
 		const { t, companyId } = await setup();
 		const editorUser = await insertUser(t, "kari@ifinavet.no");
 		await grantRole(t, editorUser._id, "editor");
@@ -150,7 +161,7 @@ describe("the whole journey", () => {
 
 		// First offer; the company asks for another date.
 		await editor.mutation(applications.assignDate, { applicationId, date: "2027-02-09" });
-		await editor.mutation(offers.send, { applicationId });
+		await editor.mutation(offers.sendOffer, { applicationId });
 		await t.mutation(offers.requestNewDate, {
 			token: await tokenOfLatestOffer(),
 			dates: ["2027-02-16"],
@@ -158,7 +169,7 @@ describe("the whole journey", () => {
 
 		// Second offer; the company accepts.
 		await editor.mutation(applications.assignDate, { applicationId, date: "2027-02-16" });
-		await editor.mutation(offers.send, { applicationId });
+		await editor.mutation(offers.sendOffer, { applicationId });
 		await t.mutation(offers.accept, { token: await tokenOfLatestOffer(), acceptTerms: true });
 
 		// The editor links the company profile and creates the event.
