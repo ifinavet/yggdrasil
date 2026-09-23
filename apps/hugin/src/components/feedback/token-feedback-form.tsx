@@ -3,12 +3,11 @@
 import { useForm, useStore } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
 import { emptyFeedbackAnswers } from "@workspace/shared/feedback";
+import { humanReadableDate } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
 import { FieldError } from "@workspace/ui/components/field";
 import { useMutation } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { format } from "date-fns";
-import { nb } from "date-fns/locale";
 import { useRef, useState } from "react";
 import { feedbackCopy } from "@/lib/feedback/copy";
 import { feedbackProgress, tokenFeedbackValidator } from "@/lib/feedback/form";
@@ -61,7 +60,7 @@ export function TokenFeedbackForm({
 		<div className="mx-auto w-full max-w-3xl">
 			<h1 className="mb-1.5 font-bold text-[21px] text-primary">{feedback.event.title}</h1>
 			<p className="mb-3 text-muted-foreground text-sm">
-				{format(feedback.event.eventStart, "EEEE d. MMMM", { locale: nb })}
+				{humanReadableDate(new Date(feedback.event.eventStart))}
 			</p>
 			<p className="mb-4 text-sm">{feedbackCopy.introduction}</p>
 			<form
@@ -83,12 +82,12 @@ export function TokenFeedbackForm({
 					{fields.map((question, index) => (
 						<form.Field key={question.key} name={question.key}>
 							{(field) => (
-								<div>
+								<>
 									<FeedbackQuestion field={field} question={question} number={index + 1} />
 									{serverErrors[question.key] && (
 										<FieldError>{serverErrors[question.key]}</FieldError>
 									)}
-								</div>
+								</>
 							)}
 						</form.Field>
 					))}
