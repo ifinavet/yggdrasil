@@ -27,10 +27,10 @@ function reportStatusLabel(report: Report): string {
 	if (report.status === "revoked") return "Tilgangen er trukket tilbake";
 	if (report.status === "draft") return "Klar for gjennomgang";
 	const deliveryLabels = {
-		failed: "Godkjent · e-post feilet",
-		delivered: "Godkjent · e-post levert",
-		pending: "Godkjent · klargjør e-post",
-		queued: "Godkjent · e-post i kø",
+		failed: "E-post feilet",
+		delivered: "E-post levert",
+		pending: "Klargjør e-post",
+		queued: "E-post i kø",
 	};
 	return deliveryLabels[report.deliveryStatus ?? "pending"];
 }
@@ -74,10 +74,6 @@ export function ReportReview({
 			<div className="flex flex-wrap items-start gap-4">
 				<div className="min-w-0 flex-1">
 					<h1 className="font-semibold text-3xl">Se gjennom før du deler</h1>
-					<p className="mt-2 max-w-2xl text-muted-foreground">
-						Innsamlingen er avsluttet. Velg hvilke tekstsvar bedriften får se, kontroller mottakeren
-						og godkjenn rapporten.
-					</p>
 				</div>
 				<Badge variant="secondary">{status}</Badge>
 			</div>
@@ -92,7 +88,8 @@ export function ReportReview({
 					<fieldset disabled={busy} className="min-w-0 p-6">
 						<h2 className="font-semibold text-xl">Rapport for {report.companyName}</h2>
 						<p className="mt-2 text-muted-foreground">
-							{report.eventTitle} · {formatFeedbackDate(report.eventStart, "d. MMMM yyyy")}
+							<span className="block">{report.eventTitle}</span>
+							<span className="block">{formatFeedbackDate(report.eventStart, "d. MMMM yyyy")}</span>
 						</p>
 						<form.Field name="recipientEmail">
 							{(field) => (
@@ -123,7 +120,9 @@ export function ReportReview({
 								<section key={question.key} className="mt-6">
 									<h3 className="mb-3 font-semibold">
 										{question.label}
-										{question.allowOther ? " · Annet" : ""}
+										{question.allowOther ? (
+											<span className="block font-normal text-muted-foreground text-sm">Annet</span>
+										) : null}
 									</h3>
 									{answers
 										.filter((answer) => answer.fieldKey === question.key)

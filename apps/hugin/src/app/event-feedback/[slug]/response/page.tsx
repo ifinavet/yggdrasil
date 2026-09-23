@@ -56,7 +56,8 @@ export default async function EventFeedbackResponsePage({
 					Svaret ditt
 				</h1>
 				<p className="m-0 text-[13.5px] text-muted-foreground tabular-nums">
-					{event.title} · {humanReadableDate(new Date(event.eventStart))}
+					<span className="block">{event.title}</span>
+					<span className="block">{humanReadableDate(new Date(event.eventStart))}</span>
 				</p>
 			</div>
 
