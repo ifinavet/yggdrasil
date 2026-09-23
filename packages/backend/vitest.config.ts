@@ -3,6 +3,15 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
 	test: {
 		environment: "edge-runtime",
+		coverage: {
+			enabled: true,
+			provider: "v8",
+			include: [
+				"convex/forms/{access,mutations,queries,responses,migrations}.ts",
+				"convex/feedback/forms/{helpers,mutations,queries}.ts",
+			],
+			thresholds: { 100: true },
+		},
 		server: { deps: { inline: ["convex-test"] } },
 		include: ["convex/**/*.test.ts"],
 		env: {
