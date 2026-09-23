@@ -42,6 +42,15 @@ export const feedbackFieldsSchema = z
 		fieldKeyMessage,
 	);
 
+export const feedbackFormSchema = z.object({
+	name: z
+		.string()
+		.trim()
+		.min(1, "Skriv et navn på skjemaet.")
+		.max(200, "Skjemanavnet kan ha maks 200 tegn."),
+	fields: feedbackFieldsSchema,
+});
+
 export type FeedbackField = z.infer<typeof feedbackFieldSchema>;
 export type FeedbackAnswers = Record<string, string | number | string[]>;
 

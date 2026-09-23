@@ -98,7 +98,7 @@ export const update = mutation({
 		}
 
 		// Update the event details
-		await ctx.db.replace(eventId, {
+		await ctx.db.patch(eventId, {
 			title,
 			teaser,
 			description,

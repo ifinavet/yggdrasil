@@ -24,9 +24,11 @@ export const feedbackResponse = v.object({
 	submittedAt: v.number(),
 });
 export const feedbackSchema = {
-	feedbackForms: defineTable({ name: v.string(), isDefault: v.boolean() }).index("by_isDefault", [
-		"isDefault",
-	]),
+	feedbackForms: defineTable({
+		name: v.string(),
+		isDefault: v.boolean(),
+		draftFields: v.optional(v.array(feedbackField)),
+	}).index("by_isDefault", ["isDefault"]),
 	formVersions: defineTable({
 		formDefinitionId: v.id("feedbackForms"),
 		name: v.string(),
