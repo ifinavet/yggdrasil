@@ -18,3 +18,8 @@ export function feedbackOpensAt(eventStart: number): number {
 export function feedbackRetentionAt(closedAt: number): number {
 	return addMonths(new TZDate(closedAt, "UTC"), 18).getTime();
 }
+
+/** Keeps reminders and closure at the same Oslo time when daylight saving changes. */
+export function feedbackRoundAt(opensAt: number, days: number): number {
+	return addDays(new TZDate(opensAt, "Europe/Oslo"), days).getTime();
+}

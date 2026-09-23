@@ -4,6 +4,7 @@ import type { Id } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, mutation } from "../_generated/server";
 import { internalRoles, requireRole } from "../auth/accessRights";
 import { getCurrentUserOrThrow } from "../auth/currentUser";
+import { syncFeedbackCampaign } from "../feedback/delivery/campaigns";
 import { eventSlug, insertEventWithOrganizers } from "./helper";
 import { makeStatusPending } from "./registrations/mutations";
 import { organizerRoleValidator } from "./schema";
@@ -115,6 +116,8 @@ export const update = mutation({
 			slug,
 			formId,
 		});
+
+		await syncFeedbackCampaign(ctx, eventId);
 
 		await ctx.runMutation(internal.events.mutations.upsertEventOrganizer, {
 			id: eventId,
@@ -255,6 +258,7 @@ export const updatePublishedStatus = mutation({
 		await Promise.all(
 			ids.map(async (id) => {
 				await ctx.db.patch(id, { published: newPublishedStatus });
+				await syncFeedbackCampaign(ctx, id);
 			}),
 		);
 	},

@@ -22,6 +22,11 @@ import type * as events_registrations_mutations from "../events/registrations/mu
 import type * as events_registrations_queries from "../events/registrations/queries.js";
 import type * as events_waitlist_mutations from "../events/waitlist/mutations.js";
 import type * as feedback_defaultFields from "../feedback/defaultFields.js";
+import type * as feedback_delivery_campaigns from "../feedback/delivery/campaigns.js";
+import type * as feedback_delivery_http from "../feedback/delivery/http.js";
+import type * as feedback_delivery_mail from "../feedback/delivery/mail.js";
+import type * as feedback_delivery_messages from "../feedback/delivery/messages.js";
+import type * as feedback_delivery_workflows from "../feedback/delivery/workflows.js";
 import type * as feedback_events from "../feedback/events.js";
 import type * as feedback_forms_helpers from "../feedback/forms/helpers.js";
 import type * as feedback_forms_mutations from "../feedback/forms/mutations.js";
@@ -90,6 +95,11 @@ declare const fullApi: ApiFromModules<{
   "events/registrations/queries": typeof events_registrations_queries;
   "events/waitlist/mutations": typeof events_waitlist_mutations;
   "feedback/defaultFields": typeof feedback_defaultFields;
+  "feedback/delivery/campaigns": typeof feedback_delivery_campaigns;
+  "feedback/delivery/http": typeof feedback_delivery_http;
+  "feedback/delivery/mail": typeof feedback_delivery_mail;
+  "feedback/delivery/messages": typeof feedback_delivery_messages;
+  "feedback/delivery/workflows": typeof feedback_delivery_workflows;
   "feedback/events": typeof feedback_events;
   "feedback/forms/helpers": typeof feedback_forms_helpers;
   "feedback/forms/mutations": typeof feedback_forms_mutations;
@@ -166,6 +176,8 @@ export declare const internal: FilterApi<
 
 export declare const components: {
   resend: import("@convex-dev/resend/_generated/component.js").ComponentApi<"resend">;
+  feedbackResend: import("@convex-dev/resend/_generated/component.js").ComponentApi<"feedbackResend">;
   migrations: import("@convex-dev/migrations/_generated/component.js").ComponentApi<"migrations">;
   rateLimiter: import("@convex-dev/rate-limiter/_generated/component.js").ComponentApi<"rateLimiter">;
+  workflow: import("@convex-dev/workflow/_generated/component.js").ComponentApi<"workflow">;
 };

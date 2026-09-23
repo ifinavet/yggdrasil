@@ -1,6 +1,10 @@
 /// <reference types="vite/client" />
 
+import batchWorkerTest from "@convex-dev/batch-worker/test";
 import rateLimiter from "@convex-dev/rate-limiter/test";
+import resendTest from "@convex-dev/resend/test";
+import workflowTest from "@convex-dev/workflow/test";
+import workpoolTest from "@convex-dev/workpool/test";
 import type { WithoutSystemFields } from "convex/server";
 import { ConvexError } from "convex/values";
 import { convexTest } from "convex-test";
@@ -23,9 +27,31 @@ export type TestUser = { _id: Id<"users">; externalId: string };
 
 export type EventOverrides = Partial<WithoutSystemFields<Doc<"events">>>;
 
+// Resolve component modules before Workflow disables process during replay. Vitest's
+// dynamic-import resolver needs process.platform, unlike Convex's module loader.
+const workflowModules = Promise.all(
+	[workflowTest.modules, workpoolTest.modules, batchWorkerTest.modules].map(async (modules) =>
+		Object.fromEntries(
+			await Promise.all(
+				Object.entries(modules)
+					.filter(([path]) => !path.endsWith(".test.ts") && !path.endsWith("convex.config.ts"))
+					.map(async ([path, load]) => {
+						const loaded = await load();
+						return [path, () => Promise.resolve(loaded)];
+					}),
+			),
+		),
+	),
+);
+
 export async function setup() {
 	const t = convexTest(schema, convexModules);
 	rateLimiter.register(t);
+	const [workflow, workpool, batchWorker] = await workflowModules;
+	t.registerComponent("workflow", workflowTest.schema, workflow);
+	t.registerComponent("workflow/workpool", workpoolTest.schema, workpool);
+	t.registerComponent("workflow/workpool/batchWorker", batchWorkerTest.schema, batchWorker);
+	resendTest.register(t, "feedbackResend");
 
 	const companyId = await t.run(async (ctx) => {
 		const image = await ctx.storage.store(new Blob(["logo"]));

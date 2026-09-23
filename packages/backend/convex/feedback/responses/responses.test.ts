@@ -62,7 +62,7 @@ async function setupTokenFeedback() {
 			campaignId,
 			inviteId,
 			round: 0,
-			emailId: "test-email",
+			emailId: "local:test-email",
 			queuedAt: now,
 		}),
 	);
@@ -300,7 +300,7 @@ describe("public token feedback", () => {
 				campaignId,
 				inviteId,
 				round: 1,
-				emailId: "reminder",
+				emailId: "local:reminder",
 				queuedAt: now,
 			});
 			await ctx.db.insert("feedbackTokens", { inviteId, deliveryId, tokenHash: reminderHash });

@@ -19,6 +19,7 @@
 		"@convex-dev/migrations": "^0.3.6",
 		"@convex-dev/rate-limiter": "^0.4.0",
 		"@convex-dev/resend": "^0.2.8",
+		"@convex-dev/workflow": "^0.4.8",
 		"@react-email/render": "^2.1.0",
 		"@workspace/emails": "workspace:*",
 		"@workspace/shared": "workspace:*",
@@ -27,6 +28,8 @@
 		"svix": "^1.99.1"
 	},
 	"devDependencies": {
+		"@convex-dev/batch-worker": "^0.3.4",
+		"@convex-dev/workpool": "^0.4.12",
 		"@edge-runtime/vm": "5.0.0",
 		"@types/node": "^20.19.43",
 		"@vitest/coverage-v8": "4.1.11",
