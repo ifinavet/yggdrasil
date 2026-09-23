@@ -12,7 +12,7 @@ import {
 	setup,
 } from "../../../test/fixtures";
 import { api, internal } from "../../_generated/api";
-import { hashToken } from "../../lib/tokens";
+import { hashLinkToken } from "../../lib/tokens";
 import { syncFeedbackCampaign } from "./campaigns";
 import { cancelInvitationEmails, feedbackResend } from "./messages";
 
@@ -133,7 +133,7 @@ describe("feedback delivery", () => {
 			await t.action(api.feedback.responses.actions.resolveFeedbackToken, { token: plainToken }),
 		).toMatchObject({ status: "open", form: { name: "Feedback" } });
 		expect(await t.run((ctx) => ctx.db.query("feedbackTokens").collect())).toMatchObject([
-			{ tokenHash: await hashToken(plainToken) },
+			{ tokenHash: await hashLinkToken(plainToken) },
 		]);
 		await t.action(send, args);
 		expect(await t.run((ctx) => ctx.db.query("feedbackLocalEmails").collect())).toHaveLength(1);

@@ -28,7 +28,7 @@
 		"svix": "^1.99.1"
 	},
 	"devDependencies": {
-		"@convex-dev/batch-worker": "^0.3.4",
+		"@convex-dev/batch-worker": "^0.2.2",
 		"@convex-dev/workpool": "^0.4.12",
 		"@edge-runtime/vm": "5.0.0",
 		"@types/node": "^20.19.43",

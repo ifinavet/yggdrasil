@@ -12,7 +12,7 @@ import {
 	type QueryCtx,
 } from "../../_generated/server";
 import { isLocalDevelopment } from "../../auth/local";
-import { hashToken } from "../../lib/tokens";
+import { hashLinkToken } from "../../lib/tokens";
 
 export const feedbackResend: Resend = new Resend(components.feedbackResend, {
 	testMode: false,
@@ -118,7 +118,7 @@ export const enqueueEmail = internalMutation({
 		await ctx.db.insert("feedbackTokens", {
 			inviteId: args.inviteId,
 			deliveryId,
-			tokenHash: await hashToken(token),
+			tokenHash: await hashLinkToken(token),
 		});
 		if (isLocalDevelopment())
 			await ctx.db.insert("feedbackLocalEmails", {

@@ -5,7 +5,7 @@ import FeedbackEmail from "@workspace/emails/feedback-email";
 import { internal } from "../../_generated/api";
 import { env, internalAction } from "../../_generated/server";
 import { isLocalDevelopment } from "../../auth/local";
-import { generateToken } from "../../lib/tokens";
+import { generateLinkToken } from "../../lib/tokens";
 import { deliveryArgs } from "./messages";
 
 export const sendFeedbackEmail = internalAction({
@@ -21,7 +21,7 @@ export const sendFeedbackEmail = internalAction({
 		);
 		if (origin.protocol !== "https:" && !isLocalDevelopment())
 			throw new Error("HUGIN_BASE_URL must use HTTPS");
-		const token = generateToken();
+		const token = generateLinkToken();
 		const url = new URL("/feedback", origin);
 		// Fragments are available to Hugin without putting the bearer token in HTTP requests or access logs.
 		url.hash = new URLSearchParams({ token }).toString();

@@ -497,8 +497,8 @@ importers:
         version: 1.99.1
     devDependencies:
       '@convex-dev/batch-worker':
-        specifier: ^0.3.4
-        version: 0.3.4(@standard-schema/spec@1.1.0)(convex@1.46.0(@clerk/clerk-react@5.61.9(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@clerk/react@6.16.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(bufferutil@4.1.0)(react@19.2.8)(utf-8-validate@6.0.6))(react@19.2.8)(typescript@5.9.3)(zod@4.6.5)
+        specifier: ^0.2.2
+        version: 0.2.2(convex@1.46.0(@clerk/clerk-react@5.61.9(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@clerk/react@6.16.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(bufferutil@4.1.0)(react@19.2.8)(utf-8-validate@6.0.6))(react@19.2.8)
       '@convex-dev/workpool':
         specifier: ^0.4.12
         version: 0.4.12(convex-helpers@0.1.124(@standard-schema/spec@1.1.0)(convex@1.46.0(@clerk/clerk-react@5.61.9(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@clerk/react@6.16.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(bufferutil@4.1.0)(react@19.2.8)(utf-8-validate@6.0.6))(react@19.2.8)(typescript@5.9.3)(zod@4.6.5))(convex@1.46.0(@clerk/clerk-react@5.61.9(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@clerk/react@6.16.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(bufferutil@4.1.0)(react@19.2.8)(utf-8-validate@6.0.6))(react@19.2.8)
