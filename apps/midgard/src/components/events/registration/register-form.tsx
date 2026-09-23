@@ -49,10 +49,14 @@ export default function RegisterForm({
 		onSubmit: async ({ value }) =>
 			signUp({ note: value.notes, eventId })
 				.then((status) => {
-					if (status === "waitlist" && waitlist === false) {
+					if (status === "waitlist") {
 						toast.warning(
-							"Her gikk det unna! Du står nå på ventelisten og vil få en epost dersom det skulle bli en ledig plass til deg",
+							waitlist
+								? "Du står nå på ventelisten og vil få en epost dersom det skulle bli en ledig plass til deg"
+								: "Her gikk det unna! Du står nå på ventelisten og vil få en epost dersom det skulle bli en ledig plass til deg",
 						);
+					} else if (status === "registered") {
+						toast.success("Du er påmeldt arrangementet!");
 					}
 					postHog.capture("midgard-student_register", {
 						eventId,

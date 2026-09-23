@@ -265,17 +265,7 @@ export const unregister = mutation({
 
         if (registration.status === "waitlist") return returnData;
 
-        const nextRegistration = await ctx.db
-            .query("registrations")
-            .withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
-                q.eq("eventId", registration.eventId).eq("status", "waitlist"),
-            )
-            .order("asc")
-            .first();
-
-        if (nextRegistration) {
-            await makeStatusPending(ctx, nextRegistration, event);
-        }
+        await fillOpenSeats(ctx, event);
 
         const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
 
@@ -340,6 +330,43 @@ export const makeStatusPending = async (
         eventId: event._id,
         registrationId: registrationToMakePending._id,
     });
+};
+
+/**
+ * Offers every open seat on an event to the front of its waitlist, one registration at a time.
+ * Waitlisted registrations whose user no longer exists are deleted instead of offered a seat.
+ *
+ * @param {MutationCtx} ctx - The Convex mutation context.
+ * @param {Doc<"events">} event - The event whose open seats should be filled.
+ *
+ * @returns {Promise<void>} - Resolves when the open seats have been offered or the waitlist is empty.
+ */
+export const fillOpenSeats = async (ctx: MutationCtx, event: Doc<"events">) => {
+    const registeredCount = await countRegistrationsWithStatus(ctx, event._id, "registered");
+    const pendingCount = await countRegistrationsWithStatus(ctx, event._id, "pending");
+    let openSeats = event.participationLimit - registeredCount - pendingCount;
+    if (openSeats <= 0) return;
+
+    const waitlist = await ctx.db
+        .query("registrations")
+        .withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
+            q.eq("eventId", event._id).eq("status", "waitlist"),
+        )
+        .order("asc")
+        .collect();
+
+    for (const registration of waitlist) {
+        if (openSeats <= 0) return;
+
+        const user = await ctx.db.get(registration.userId);
+        if (!user) {
+            await ctx.db.delete(registration._id);
+            continue;
+        }
+
+        await makeStatusPending(ctx, registration, event);
+        openSeats--;
+    }
 };
 
 const countRegistrationsWithStatus = async (
