@@ -2,8 +2,16 @@
 
 import type { FeedbackField } from "@workspace/shared/feedback";
 import { Button } from "@workspace/ui/components/button";
+import { Checkbox } from "@workspace/ui/components/checkbox";
 import { FieldError } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@workspace/ui/components/select";
 import { Textarea } from "@workspace/ui/components/textarea";
 
 export function FeedbackQuestionsEditor({
@@ -47,33 +55,36 @@ export function FeedbackQuestionsEditor({
 							onChange={(event) => updateQuestion(index, { label: event.target.value })}
 						/>
 					</label>
-					<label className="block space-y-1 text-sm">
-						<span>Svarformat</span>
-						<select
-							className="h-10 w-full rounded-md border bg-background px-3"
+					<div className="space-y-1 text-sm">
+						<label htmlFor={`${question.key}-type`}>Svarformat</label>
+						<Select
 							value={question.type}
-							onChange={(event) =>
+							onValueChange={(value) =>
 								updateQuestion(index, {
-									type: event.target.value as FeedbackField["type"],
-									options:
-										event.target.value === "options" ? (question.options ?? [""]) : undefined,
+									type: value as FeedbackField["type"],
+									options: value === "options" ? (question.options ?? [""]) : undefined,
 								})
 							}
 						>
-							<option value="rating">Vurdering fra 1 til 5</option>
-							<option value="text">Fritekst</option>
-							<option value="yesNo">Ja eller nei</option>
-							<option value="options">Flervalg</option>
-						</select>
-					</label>
-					<label className="flex items-center gap-2 text-sm">
-						<input
-							type="checkbox"
+							<SelectTrigger id={`${question.key}-type`} className="w-full">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="rating">Vurdering fra 1 til 5</SelectItem>
+								<SelectItem value="text">Fritekst</SelectItem>
+								<SelectItem value="yesNo">Ja eller nei</SelectItem>
+								<SelectItem value="options">Flervalg</SelectItem>
+							</SelectContent>
+						</Select>
+					</div>
+					<div className="flex items-center gap-2 text-sm">
+						<Checkbox
+							id={`${question.key}-required`}
 							checked={question.required}
-							onChange={(event) => updateQuestion(index, { required: event.target.checked })}
+							onCheckedChange={(checked) => updateQuestion(index, { required: checked === true })}
 						/>
-						<span>Obligatorisk svar</span>
-					</label>
+						<label htmlFor={`${question.key}-required`}>Obligatorisk svar</label>
+					</div>
 					{question.type === "rating" && (
 						<div className="grid gap-3 sm:grid-cols-2">
 							<label htmlFor={`${question.key}-low`} className="space-y-1 text-sm">
@@ -123,14 +134,16 @@ export function FeedbackQuestionsEditor({
 									}
 								/>
 							</label>
-							<label className="flex items-center gap-2 text-sm">
-								<input
-									type="checkbox"
+							<div className="flex items-center gap-2 text-sm">
+								<Checkbox
+									id={`${question.key}-allow-other`}
 									checked={question.allowOther ?? false}
-									onChange={(event) => updateQuestion(index, { allowOther: event.target.checked })}
+									onCheckedChange={(checked) =>
+										updateQuestion(index, { allowOther: checked === true })
+									}
 								/>
-								<span>Tillat eget svaralternativ</span>
-							</label>
+								<label htmlFor={`${question.key}-allow-other`}>Tillat eget svaralternativ</label>
+							</div>
 						</>
 					)}
 					<div className="flex flex-wrap gap-2">

@@ -7,6 +7,13 @@ import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";
 import { Checkbox } from "@workspace/ui/components/checkbox";
 import { Field, FieldLabel } from "@workspace/ui/components/field";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@workspace/ui/components/select";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { ConvexError } from "convex/values";
@@ -87,31 +94,36 @@ function SettingsForm({
 						{(field) => (
 							<Field>
 								<FieldLabel htmlFor="feedback-form">Tilbakemeldingsskjema</FieldLabel>
-								<select
-									id="feedback-form"
-									className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-									value={field.state.value}
-									onChange={(event) => field.handleChange(event.target.value)}
+								<Select
+									value={field.state.value || "default"}
+									onValueChange={(value) => field.handleChange(value === "default" ? "" : value)}
 								>
-									<option value="">
-										{defaultForm?.publishedVersion
-											? `Standard: ${defaultForm.publishedVersion.name}`
-											: "Standardskjema er ikke valgt"}
-									</option>
-									{settings.formId &&
-										!feedbackForms.some((feedbackForm) => feedbackForm._id === settings.formId) && (
-											<option value={settings.formId}>
-												{settings.selectedFormName ?? "Valgt skjema"}
-											</option>
-										)}
-									{feedbackForms
-										.filter((feedbackForm) => feedbackForm.publishedVersion)
-										.map((feedbackForm) => (
-											<option key={feedbackForm._id} value={feedbackForm._id}>
-												{feedbackForm.name}
-											</option>
-										))}
-								</select>
+									<SelectTrigger id="feedback-form" className="w-full">
+										<SelectValue />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="default">
+											{defaultForm?.publishedVersion
+												? `Standard: ${defaultForm.publishedVersion.name}`
+												: "Standardskjema er ikke valgt"}
+										</SelectItem>
+										{settings.formId &&
+											!feedbackForms.some(
+												(feedbackForm) => feedbackForm._id === settings.formId,
+											) && (
+												<SelectItem value={settings.formId}>
+													{settings.selectedFormName ?? "Valgt skjema"}
+												</SelectItem>
+											)}
+										{feedbackForms
+											.filter((feedbackForm) => feedbackForm.publishedVersion)
+											.map((feedbackForm) => (
+												<SelectItem key={feedbackForm._id} value={feedbackForm._id}>
+													{feedbackForm.name}
+												</SelectItem>
+											))}
+									</SelectContent>
+								</Select>
 							</Field>
 						)}
 					</form.Field>
