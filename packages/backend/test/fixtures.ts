@@ -6,6 +6,7 @@ import { convexTest } from "convex-test";
 import type { Doc, Id } from "../convex/_generated/dataModel";
 import type { AccessRole } from "../convex/auth/accessRights";
 import schema from "../convex/schema";
+import { CONSENT_VERSION, FORM_VERSION } from "../convex/semesterPlanning/rules";
 
 const convexModules = {
 	...import.meta.glob(["../convex/**/*.*s", "!../convex/**/*.test.ts"]),
@@ -284,7 +285,7 @@ export async function insertApplication(
 	return t.run((ctx) =>
 		ctx.db.insert("companyApplications", {
 			semesterId,
-			formVersion: 1,
+			formVersion: FORM_VERSION,
 			orgNumber: "924773189",
 			registry: {
 				name: "FJORDKODE AS",
@@ -309,7 +310,7 @@ export async function insertApplication(
 			},
 			targetDegrees: [],
 			targetStudyPrograms: [],
-			consent: { version: "2026-10", consentedAt: Date.now() },
+			consent: { version: CONSENT_VERSION, consentedAt: Date.now() },
 			status: "applied",
 			roomBooked: false,
 			foodOrdered: false,

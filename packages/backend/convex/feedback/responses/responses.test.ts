@@ -2,8 +2,8 @@ import type { FeedbackAnswers } from "@workspace/shared/feedback";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { asUser, grantRole, insertEvent, insertUser, setup } from "../../../test/fixtures";
 import { api } from "../../_generated/api";
+import { hashToken } from "../../lib/tokens";
 import { defaultFeedbackFields } from "../defaultFields";
-import { hashFeedbackToken } from "../tokens";
 
 const resolveToken = api.feedback.responses.actions.resolveFeedbackToken;
 const submitResponse = api.feedback.responses.mutations.submitFeedbackResponse;
@@ -66,7 +66,7 @@ async function setupTokenFeedback() {
 			queuedAt: now,
 		}),
 	);
-	const tokenHash = await hashFeedbackToken(token);
+	const tokenHash = await hashToken(token);
 	const tokenId = await backend.run((ctx) =>
 		ctx.db.insert("feedbackTokens", { inviteId, deliveryId, tokenHash }),
 	);
@@ -294,7 +294,7 @@ describe("public token feedback", () => {
 	it("accepts exactly one concurrent submission across reminder tokens", async () => {
 		const { backend, inviteId, campaignId } = await setupTokenFeedback();
 		const reminderToken = "b".repeat(64);
-		const reminderHash = await hashFeedbackToken(reminderToken);
+		const reminderHash = await hashToken(reminderToken);
 		await backend.run(async (ctx) => {
 			const deliveryId = await ctx.db.insert("feedbackDeliveries", {
 				campaignId,

@@ -32,6 +32,7 @@ export const TRANSITIONS: Record<ApplicationStatus, readonly ApplicationStatus[]
 	withdrawn: ["applied"],
 };
 
+/** Whether `TRANSITIONS` allows moving an application from one status to another. */
 export function canTransition(from: ApplicationStatus, to: ApplicationStatus): boolean {
 	return TRANSITIONS[from].includes(to);
 }
@@ -60,9 +61,10 @@ export function isValidOrgNumber(value: string): boolean {
 	const weights = [3, 2, 7, 6, 5, 4, 3, 2];
 	const sum = weights.reduce((total, weight, index) => total + weight * Number(digits[index]), 0);
 	const remainder = sum % 11;
+	// A remainder of 1 gives check digit 10, which no digit can match, so the number is invalid.
 	const check = remainder === 0 ? 0 : 11 - remainder;
 
-	return check !== 10 && check === Number(digits[8]);
+	return check === Number(digits[8]);
 }
 
 /** Removes spaces, so "924 773 189" and "924773189" are the same number. */

@@ -2,20 +2,17 @@ import { ConvexError, type Infer } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { type ApplicationStatus, canTransition, isLiveStatus, STATUS_LABELS } from "./rules";
-import type { applicationActivityType } from "./schema";
+import type { activityActor, applicationActivityType } from "./schema";
 
+/** Who performed an activity. A Navet member is also recorded by user id. */
 export type Actor =
 	| { type: "internal"; userId: Id<"users"> }
-	| { type: "company" }
-	| { type: "system" };
+	| { type: Exclude<Infer<typeof activityActor>, "internal"> };
 
-type ActivityDetails = {
-	fromStatus?: ApplicationStatus;
-	toStatus?: ApplicationStatus;
-	date?: string;
-	offerId?: Id<"companyApplicationOffers">;
-	comment?: string;
-};
+type ActivityDetails = Pick<
+	Doc<"companyApplicationActivity">,
+	"fromStatus" | "toStatus" | "date" | "offerId" | "comment"
+>;
 
 /**
  * Appends a row to an application's history.

@@ -122,8 +122,12 @@ describe("Oslo time", () => {
 		expect(osloDateTimeToEpoch("2027-06-01", "16:15")).toBe(Date.parse("2027-06-01T14:15:00Z"));
 	});
 
-	it("refuses an invalid time", () => {
-		expect(() => osloDateTimeToEpoch("2027-02-09", "25:00")).toThrow();
+	it.each([
+		["an hour past 23", "2027-02-09", "25:00"],
+		["a single-digit hour", "2027-02-09", "9:00"],
+		["the skipped spring-forward hour", "2027-03-28", "02:30"],
+	])("refuses %s", (_reason, date, time) => {
+		expect(() => osloDateTimeToEpoch(date, time)).toThrow();
 	});
 });
 
