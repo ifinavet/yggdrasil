@@ -141,6 +141,8 @@ export const semesterPlanningSchema = {
 
 	companyApplications: defineTable({
 		semesterId: v.id("semesters"),
+		// One-time id from the Hugin form, so a double click or retry saves one application.
+		submissionId: v.optional(v.string()),
 		formVersion: v.number(),
 		orgNumber: v.string(),
 		registry: brregSnapshotAtSubmission,
@@ -179,7 +181,8 @@ export const semesterPlanningSchema = {
 		.index("by_semesterId_and_assignedDate", ["semesterId", "assignedDate"])
 		.index("by_semesterId_and_orgNumber", ["semesterId", "orgNumber"])
 		.index("by_companyId", ["companyId"])
-		.index("by_eventId", ["eventId"]),
+		.index("by_eventId", ["eventId"])
+		.index("by_submissionId", ["submissionId"]),
 
 	companyApplicationOffers: defineTable({
 		applicationId: v.id("companyApplications"),

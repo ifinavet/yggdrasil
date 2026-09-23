@@ -1,5 +1,6 @@
 /// <reference types="vite/client" />
 
+import rateLimiter from "@convex-dev/rate-limiter/test";
 import type { WithoutSystemFields } from "convex/server";
 import { ConvexError } from "convex/values";
 import { convexTest } from "convex-test";
@@ -24,6 +25,7 @@ export type EventOverrides = Partial<WithoutSystemFields<Doc<"events">>>;
 
 export async function setup() {
 	const t = convexTest(schema, convexModules);
+	rateLimiter.register(t);
 
 	const companyId = await t.run(async (ctx) => {
 		const image = await ctx.storage.store(new Blob(["logo"]));
@@ -332,4 +334,11 @@ export async function activityFor(t: TestBackend, applicationId: Id<"companyAppl
 			.withIndex("by_applicationId", (q) => q.eq("applicationId", applicationId))
 			.collect(),
 	);
+}
+
+export async function scheduledCallsOf(t: TestBackend, functionName: string): Promise<unknown[]> {
+	return t.run(async (ctx) => {
+		const scheduled = await ctx.db.system.query("_scheduled_functions").collect();
+		return scheduled.filter((job) => job.name.endsWith(functionName)).map((job) => job.args[0]);
+	});
 }

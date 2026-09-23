@@ -1,8 +1,7 @@
 import type { Infer } from "convex/values";
-import type { applicationStatus, presentationEventType } from "./schema";
+import type { applicationStatus } from "./schema";
 
 export type ApplicationStatus = Infer<typeof applicationStatus>;
-export type PresentationEventType = Infer<typeof presentationEventType>;
 
 /** Version of the Hugin application form. Bump it when the questions change. */
 export const FORM_VERSION = 1;
@@ -41,11 +40,3 @@ export function canTransition(from: ApplicationStatus, to: ApplicationStatus): b
 export function isActiveApplicationStatus(status: ApplicationStatus): boolean {
 	return status !== "rejected" && status !== "withdrawn";
 }
-
-/** The most students each event type allows; `null` means no upper limit. */
-export const STUDENT_CAP: Record<PresentationEventType, number | null> = {
-	standard_presentation: 40,
-	large_presentation: null,
-	workshop: 40,
-	social: 40,
-};

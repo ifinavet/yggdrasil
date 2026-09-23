@@ -15,3 +15,7 @@ export const sendAvailableSeatEmail = internalAction({
 export const sendFreeForAll = internalAction({
 	handler: async () => {},
 });
+
+export const sendApplicationReceiptEmail = internalAction({
+	handler: async () => {},
+});

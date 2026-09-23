@@ -22,7 +22,9 @@
 		"./feedback/time": "./feedback/time.ts",
 		"./semester/time": "./semester/time.ts",
 		"./semester/orgNumber": "./semester/orgNumber.ts",
-		"./semester/limits": "./semester/limits.ts"
+		"./semester/limits": "./semester/limits.ts",
+		"./semester/application": "./semester/application.ts",
+		"./semester/labels": "./semester/labels.ts"
 	},
 	"scripts": {
 		"check-types": "tsc --noEmit"
