@@ -18,6 +18,7 @@ import RegistrationButton from "./registration/registration-button";
 import type { EventRegistrationSummary } from "./registration/registration-summary";
 import WaitlistPosition from "./registration/waitlist-position";
 
+/** Renders an event's details, available capacity, and registration controls. */
 export function EventMetadata({
 	preloadedEvent,
 	preloadedRegistrationSummary,
@@ -78,6 +79,7 @@ export function EventMetadata({
 	);
 }
 
+/** Renders the appropriate registration action for an event's current state. */
 export function EventActionButton({
 	event,
 	registrationSummary,

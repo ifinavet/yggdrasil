@@ -11,6 +11,7 @@ import EditRegistration from "./edit-registration";
 import RegisterForm from "./register-form";
 import type { EventRegistrationSummary } from "./registration-summary";
 
+/** Selects the event registration control shown to the current user. */
 export default function RegistrationButton({
 	registrationSummary,
 	availableSpots,

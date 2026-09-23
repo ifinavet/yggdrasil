@@ -27,6 +27,7 @@ import { usePostHog } from "posthog-js/react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+/** Renders and submits the event registration dialog. */
 export default function RegisterForm({
 	eventId,
 	className,
