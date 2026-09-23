@@ -21,6 +21,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const paths = {
+	superAdmin: [{ title: "Tilbakemeldingsskjemaer", icon: FileIcon, path: "/feedback-forms" }],
 	main: [
 		{
 			title: "Arrangementer",

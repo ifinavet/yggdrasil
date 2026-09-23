@@ -1,5 +1,6 @@
 import type { FeedbackAnswers, FeedbackField } from "./validation";
 
+export { defaultFeedbackFields } from "./default-fields";
 export * from "./validation";
 
 export function emptyFeedbackAnswers(fields: FeedbackField[]): FeedbackAnswers {

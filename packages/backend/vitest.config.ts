@@ -10,6 +10,7 @@ export default defineConfig({
 				"convex/forms/{access,mutations,queries,responses,migrations}.ts",
 				"convex/feedback/forms/{helpers,mutations,queries}.ts",
 				"convex/feedback/responses/{access,actions,mutations,queries}.ts",
+				"convex/feedback/events.ts",
 			],
 			thresholds: { 100: true },
 		},

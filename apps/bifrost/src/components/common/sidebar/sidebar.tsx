@@ -127,6 +127,8 @@ export default async function BifrostSidebar() {
 
 				{adminRights && <SidebarContentGroup title="Administrator sider" items="admin" />}
 
+				{superAdminRights && <SidebarContentGroup title="Skjemaer" items="superAdmin" />}
+
 				{superAdminRights && (
 					<SidebarGroup>
 						<SidebarGroupLabel>
