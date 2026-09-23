@@ -154,6 +154,118 @@ describe("legacy feedback submission", () => {
 		);
 		expect(await t.run((ctx) => ctx.db.query("formResponses").collect())).toHaveLength(1);
 	});
+	it("preserves duplicate detection and receipt reads before and after backfill", async () => {
+		const { t, client, user, formId } = await fixture();
+		const legacyId = await t.run((ctx) =>
+			ctx.db.insert("formResponses", { formId, data: { ...answers, userId: user.externalId } }),
+		);
+		const otherForm = await t.run((ctx) => ctx.db.insert("form", { formType: "event-feedback" }));
+		const otherId = await t.run((ctx) =>
+			ctx.db.insert("formResponses", {
+				formId: otherForm,
+				data: { userId: "other" },
+				userId: "other",
+			}),
+		);
+		const anonymousId = await t.run((ctx) =>
+			ctx.db.insert("formResponses", { formId, data: { userId: 42 } }),
+		);
+		const migrate = () =>
+			t.mutation(internal.forms.migrations.backfillResponseUserId, {
+				oneBatchOnly: true,
+				cursor: null,
+				dryRun: false,
+			});
+		expect((await client.query(own, { formId }))?._id).toBe(legacyId);
+		await expect(client.mutation(submit, { formId, data: answers })).rejects.toThrow(
+			"allerede svart",
+		);
+		await migrate();
+		expect(await t.run((ctx) => ctx.db.get(legacyId))).toMatchObject({
+			userId: user.externalId,
+			data: { ...answers, userId: user.externalId },
+		});
+		expect((await client.query(own, { formId }))?._id).toBe(legacyId);
+		await expect(client.mutation(submit, { formId, data: answers })).rejects.toThrow(
+			"allerede svart",
+		);
+		await migrate();
+		expect(await t.run((ctx) => ctx.db.get(otherId))).toMatchObject({ userId: "other" });
+		expect(await t.run((ctx) => ctx.db.get(anonymousId))).not.toHaveProperty("userId");
+	});
+	it("leaves versioned feedback responses unchanged during backfill", async () => {
+		const { t, eventId } = await fixture();
+		const responseId = await t.run(async (ctx) => {
+			const definition = await ctx.db.insert("feedbackForms", {
+				name: "Feedback",
+				isDefault: true,
+			});
+			const version = await ctx.db.insert("formVersions", {
+				formDefinitionId: definition,
+				name: "Feedback",
+				publishedAt: 1,
+			});
+			const campaign = await ctx.db.insert("feedbackCampaigns", {
+				eventId,
+				status: "open",
+				opensAt: 1,
+				closesAt: 2,
+				generation: 1,
+			});
+			const invite = await ctx.db.insert("feedbackInvites", {
+				campaignId: campaign,
+				responded: true,
+				bounced: false,
+				complained: false,
+				delivered: false,
+				sent: false,
+			});
+			return ctx.db.insert("formResponses", {
+				campaignId: campaign,
+				formVersionId: version,
+				inviteId: invite,
+				data: { userId: "a question answer" },
+				submittedAt: 1,
+			});
+		});
+		const before = await t.run((ctx) => ctx.db.get(responseId));
+		await t.mutation(internal.forms.migrations.backfillResponseUserId, {
+			oneBatchOnly: true,
+			cursor: null,
+			dryRun: false,
+		});
+		expect(await t.run((ctx) => ctx.db.get(responseId))).toEqual(before);
+	});
+
+	it("does not confuse indexed responses belonging to other users or forms", async () => {
+		const { t, client, user, formId } = await fixture();
+		const otherForm = await t.run((ctx) => ctx.db.insert("form", { formType: "event-feedback" }));
+		await t.run(async (ctx) => {
+			await ctx.db.insert("formResponses", {
+				formId: otherForm,
+				userId: user.externalId,
+				data: { userId: user.externalId },
+			});
+			await ctx.db.insert("formResponses", { formId, userId: "other", data: { userId: "other" } });
+		});
+		expect(await client.query(own, { formId })).toBeNull();
+		await client.mutation(submit, { formId, data: answers });
+		expect(await client.query(own, { formId })).toMatchObject({ userId: user.externalId });
+	});
+	it("keeps listing submissions without string user IDs compatible", async () => {
+		const { t, client } = await fixture();
+		const formId = await t.run((ctx) => ctx.db.insert("form", { formType: "listing-application" }));
+		await client.mutation(submit, { formId, data: { custom: "Application" } });
+		const response = await t.run((ctx) =>
+			ctx.db
+				.query("formResponses")
+				.withIndex("by_formId", (q) => q.eq("formId", formId))
+				.first(),
+		);
+		expect(response).toMatchObject({ data: { custom: "Application" } });
+		expect(response).not.toHaveProperty("userId");
+	});
+
 	it("accepts exactly one of two concurrent submissions", async () => {
 		const { t, client, formId } = await fixture();
 		const results = await Promise.allSettled([

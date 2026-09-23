@@ -3,6 +3,7 @@ import { query } from "../_generated/server";
 import { internalRoles, requireRole } from "../auth/accessRights";
 import { getCurrentUserOrThrow } from "../auth/currentUser";
 import { canSubmitEventFeedback } from "./access";
+import { findUserResponse } from "./responses";
 
 /**
  * Fetches all responses for a form.
@@ -44,11 +45,7 @@ export const getCurrentUsersResponseByFormId = query({
 	handler: async (ctx, { formId }) => {
 		const user = await getCurrentUserOrThrow(ctx);
 
-		return await ctx.db
-			.query("formResponses")
-			.withIndex("by_formId", (q) => q.eq("formId", formId))
-			.filter((q) => q.eq(q.field("data.userId"), user.externalId))
-			.first();
+		return await findUserResponse(ctx, formId, user.externalId);
 	},
 });
 

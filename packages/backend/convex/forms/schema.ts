@@ -11,12 +11,14 @@ export const formsSchema = {
 		v.union(
 			v.object({
 				formId: v.id("form"),
+				userId: v.optional(v.string()),
 				data: v.record(v.string(), v.any()),
 			}),
 			feedbackResponse,
 		),
 	)
 		.index("by_formId", ["formId"])
+		.index("by_formId_and_userId", ["formId", "userId"])
 		.index("by_inviteId", ["inviteId"])
 		.index("by_campaignId", ["campaignId"]),
 };

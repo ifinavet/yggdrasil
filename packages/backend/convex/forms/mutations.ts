@@ -4,6 +4,7 @@ import { internalMutation, mutation } from "../_generated/server";
 import { getCurrentUserOrThrow } from "../auth/currentUser";
 import { defaultFeedbackFields } from "../feedback/defaultFields";
 import { canSubmitEventFeedback } from "./access";
+import { findUserResponse } from "./responses";
 
 /** Stores feedback once per eligible user, preserving the legacy response shape. */
 export const submitFormResponse = mutation({
@@ -36,17 +37,14 @@ export const submitFormResponse = mutation({
 			}
 			const errors = feedbackErrors(defaultFeedbackFields, answers);
 			if (Object.keys(errors).length > 0) throw new ConvexError("Svaret inneholder ugyldige felt.");
-			const previous = await ctx.db
-				.query("formResponses")
-				.withIndex("by_formId", (q) => q.eq("formId", formId))
-				.filter((q) => q.eq(q.field("data.userId"), user.externalId))
-				.first();
+			const previous = await findUserResponse(ctx, formId, user.externalId);
 			if (previous) throw new ConvexError("Du har allerede svart på dette skjemaet.");
 			data = { ...answers, userId: user.externalId, eventId: event._id };
 		}
 
 		await ctx.db.insert("formResponses", {
 			formId,
+			userId: typeof data.userId === "string" ? data.userId : undefined,
 			data,
 		});
 	},

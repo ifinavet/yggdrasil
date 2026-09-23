@@ -6,7 +6,7 @@
 	"scripts": {
 		"check-types": "tsc --noEmit -p convex/tsconfig.json && tsc --noEmit -p tsconfig.json",
 		"test": "vitest run",
-		"test:feedback": "vitest run --coverage --coverage.include=convex/forms/{access,mutations,queries}.ts --coverage.thresholds.100",
+		"test:feedback": "vitest run --coverage --coverage.include=convex/forms/{access,mutations,queries,responses,migrations}.ts --coverage.thresholds.100",
 		"test:watch": "vitest",
 		"dev": "convex dev --run auth/local:signIn",
 		"setup": "convex dev --until-success"

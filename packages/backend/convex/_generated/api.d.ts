@@ -24,8 +24,10 @@ import type * as events_waitlist_mutations from "../events/waitlist/mutations.js
 import type * as feedback_defaultFields from "../feedback/defaultFields.js";
 import type * as feedback_tokens from "../feedback/tokens.js";
 import type * as forms_access from "../forms/access.js";
+import type * as forms_migrations from "../forms/migrations.js";
 import type * as forms_mutations from "../forms/mutations.js";
 import type * as forms_queries from "../forms/queries.js";
+import type * as forms_responses from "../forms/responses.js";
 import type * as http from "../http.js";
 import type * as jobListings_mutations from "../jobListings/mutations.js";
 import type * as jobListings_queries from "../jobListings/queries.js";
@@ -65,8 +67,10 @@ declare const fullApi: ApiFromModules<{
   "feedback/defaultFields": typeof feedback_defaultFields;
   "feedback/tokens": typeof feedback_tokens;
   "forms/access": typeof forms_access;
+  "forms/migrations": typeof forms_migrations;
   "forms/mutations": typeof forms_mutations;
   "forms/queries": typeof forms_queries;
+  "forms/responses": typeof forms_responses;
   http: typeof http;
   "jobListings/mutations": typeof jobListings_mutations;
   "jobListings/queries": typeof jobListings_queries;
