@@ -1,5 +1,5 @@
 import type { Id } from "@workspace/backend/convex/dataModel";
-import type { ORGANIZER_ROLE } from "@workspace/shared/constants";
+import type { OrganizerRole } from "@workspace/shared/constants";
 import z from "zod/v4";
 
 export const formSchema = z.object({
@@ -24,7 +24,7 @@ export const formSchema = z.object({
 		.array(
 			z.object({
 				userId: z.custom<Id<"users">>(),
-				role: z.custom<ORGANIZER_ROLE>(),
+				role: z.custom<OrganizerRole>(),
 			}),
 		)
 		.min(1, { message: "Må ha minst en arrangør" }),

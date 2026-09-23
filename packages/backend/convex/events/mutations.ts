@@ -4,8 +4,9 @@ import type { Id } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, mutation } from "../_generated/server";
 import { internalRoles, requireRole } from "../auth/accessRights";
 import { getCurrentUserOrThrow } from "../auth/currentUser";
-import { insertEventWithOrganizers, organizerRoleValidator, slugify } from "./helper";
+import { eventSlug, insertEventWithOrganizers } from "./helper";
 import { makeStatusPending } from "./registrations/mutations";
+import { organizerRoleValidator } from "./schema";
 
 /**
  * Updates an existing event and synchronizes its organizers and waitlist.
@@ -82,7 +83,7 @@ export const update = mutation({
 		}
 
 		// Create a slug if it doesn't exist
-		const slug = event.slug || slugify(title, new Date(eventStart));
+		const slug = event.slug || eventSlug(title, eventStart);
 
 		let formId: Id<"form">;
 		if (event.formId) {

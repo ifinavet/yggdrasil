@@ -346,7 +346,7 @@ export const createEvent = mutation({
 	},
 	returns: v.id("events"),
 	handler: async (ctx, { applicationId, startTime, participationLimit, ...details }) => {
-		const actor = await requireEditor(ctx);
+		const actor = await requireEditorActor(ctx);
 		const application = await requireApplication(ctx, applicationId);
 
 		if (application.status !== "confirmed" || !application.assignedDate) {
@@ -382,7 +382,7 @@ export const createEvent = mutation({
 		);
 
 		await ctx.db.patch(applicationId, { eventId });
-		await logActivity(ctx, applicationId, "event_linked", actor);
+		await logApplicationActivity(ctx, applicationId, "event_linked", actor);
 		return eventId;
 	},
 });

@@ -2,7 +2,7 @@
 
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
-import type { ORGANIZER_ROLE } from "@workspace/shared/constants";
+import type { OrganizerRole } from "@workspace/shared/constants";
 import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -49,7 +49,7 @@ export default function CreateEventForm() {
 			hostingCompany: values.hostingCompany.id as Id<"companies">,
 			organizers: values.organizers.map((organizer) => ({
 				userId: organizer.userId as Id<"users">,
-				role: organizer.role as ORGANIZER_ROLE,
+				role: organizer.role as OrganizerRole,
 			})),
 			published,
 		})

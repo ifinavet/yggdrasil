@@ -1,4 +1,6 @@
-import { ConvexError, type Infer, v } from "convex/values";
+import type { OrganizerRole } from "@workspace/shared/constants";
+import { osloToday, termOfDay } from "@workspace/shared/semester/time";
+import { ConvexError } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
@@ -78,9 +80,6 @@ export async function isEventOrganizerOrAdmin(
 	return organizer !== null;
 }
 
-// Shared validator for organizer roles
-export const organizerRoleValidator = v.union(v.literal("hovedansvarlig"), v.literal("medhjelper"));
-
 export type NewEvent = Omit<Doc<"events">, "_id" | "_creationTime" | "slug" | "formId">;
 
 // Not meant for security purposes
@@ -98,14 +97,14 @@ function simpleHash(str: string): string {
 }
 
 /**
- * Creates the event slug from its title and date.
+ * Creates the event slug from its title and start, prefixed with its term, e.g. "v27-" or "h26-".
  *
  * @param {string} title - The event title.
- * @param {Date} eventDate - The event date.
+ * @param {number} eventStart - When the event starts, in epoch milliseconds.
  *
  * @returns {string} - The generated slug.
  */
-export function slugify(title: string, eventDate: Date): string {
+export function eventSlug(title: string, eventStart: number): string {
 	let slugTitle = title
 		.normalize("NFD")
 		.toLowerCase()
@@ -113,9 +112,10 @@ export function slugify(title: string, eventDate: Date): string {
 
 	if (slugTitle.length === 0) slugTitle = simpleHash(title).toLowerCase();
 
-	const semester = eventDate.getMonth() >= 7 ? "h" : "v";
+	const { year, term } = termOfDay(osloToday(eventStart));
+	const termPrefix = term === "autumn" ? "h" : "v";
 
-	return `${semester}${eventDate.getFullYear().toString().slice(2)}-${slugTitle}-${simpleHash(title)}`;
+	return `${termPrefix}${String(year).slice(2)}-${slugTitle}-${simpleHash(title)}`;
 }
 
 /**
@@ -131,7 +131,7 @@ export function slugify(title: string, eventDate: Date): string {
 export async function insertEventWithOrganizers(
 	ctx: MutationCtx,
 	event: NewEvent,
-	organizers: { userId: Id<"users">; role: Infer<typeof organizerRoleValidator> }[],
+	organizers: { userId: Id<"users">; role: OrganizerRole }[],
 ): Promise<Id<"events">> {
 	// Creating the feedback form for after the event
 	const formId = await ctx.runMutation(internal.forms.mutations.createEventFeedbackForm);
@@ -141,7 +141,7 @@ export async function insertEventWithOrganizers(
 
 	const eventId = await ctx.db.insert("events", {
 		...event,
-		slug: slugify(event.title, new Date(event.eventStart)),
+		slug: eventSlug(event.title, event.eventStart),
 		formId,
 	});
 
