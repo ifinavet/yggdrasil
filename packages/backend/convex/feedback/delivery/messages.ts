@@ -5,7 +5,6 @@ import { v } from "convex/values";
 import { components, internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import {
-	env,
 	internalMutation,
 	internalQuery,
 	type MutationCtx,
@@ -13,6 +12,7 @@ import {
 } from "../../_generated/server";
 import { isLocalDevelopment } from "../../auth/local";
 import { hashLinkToken } from "../../lib/tokens";
+import { feedbackConfig } from "../constants";
 
 export const feedbackResend: Resend = new Resend(components.feedbackResend, {
 	testMode: false,
@@ -31,7 +31,7 @@ async function deliveryContext(
 	round: number,
 	now: number,
 ) {
-	if (env.FEEDBACK_EMAILS_ENABLED !== "true") return null;
+	if (!feedbackConfig.emailsEnabled) return null;
 	const invite = await ctx.db.get(inviteId);
 	if (
 		!invite ||

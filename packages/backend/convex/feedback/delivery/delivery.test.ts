@@ -13,6 +13,7 @@ import {
 } from "../../../test/fixtures";
 import { api, internal } from "../../_generated/api";
 import { hashLinkToken } from "../../lib/tokens";
+import { feedbackConfig } from "../constants";
 import { syncFeedbackCampaign } from "./campaigns";
 import { cancelInvitationEmails, feedbackResend } from "./messages";
 
@@ -82,12 +83,12 @@ async function fixture() {
 beforeEach(() => {
 	vi.useFakeTimers();
 	vi.setSystemTime(opensAt);
-	vi.stubEnv("FEEDBACK_EMAILS_ENABLED", "true");
+	feedbackConfig.emailsEnabled = true;
 	vi.stubEnv("APP_ENV", "local");
 	vi.stubEnv("CONVEX_CLOUD_URL", "http://127.0.0.1:3210");
-	vi.stubEnv("HUGIN_BASE_URL", "http://localhost:3003");
 });
 afterEach(() => {
+	feedbackConfig.emailsEnabled = false;
 	vi.clearAllTimers();
 	vi.useRealTimers();
 	vi.unstubAllEnvs();
@@ -139,16 +140,13 @@ describe("feedback delivery", () => {
 		expect(await t.run((ctx) => ctx.db.query("feedbackLocalEmails").collect())).toHaveLength(1);
 		expect(await t.run((ctx) => ctx.db.query("feedbackTokens").collect())).toHaveLength(1);
 	});
-	it.each([undefined, "false", "TRUE"])(
-		"does not render or queue mail with master flag %s",
-		async (flag) => {
-			const { t, args, email } = await fixture();
-			vi.stubEnv("FEEDBACK_EMAILS_ENABLED", flag);
-			await t.action(send, args);
-			expect(await t.mutation(messages.enqueueEmail, email)).toBeNull();
-			expect(await t.run((ctx) => ctx.db.query("feedbackDeliveries").collect())).toEqual([]);
-		},
-	);
+	it("does not render or queue mail with the master flag disabled", async () => {
+		const { t, args, email } = await fixture();
+		feedbackConfig.emailsEnabled = false;
+		await t.action(send, args);
+		expect(await t.mutation(messages.enqueueEmail, email)).toBeNull();
+		expect(await t.run((ctx) => ctx.db.query("feedbackDeliveries").collect())).toEqual([]);
+	});
 	it("rechecks flags and answers after rendering, before enqueue", async () => {
 		const { t, args, email, eventId, inviteId } = await fixture();
 		expect(await t.query(messages.prepareEmail, { ...args, now: opensAt })).not.toBeNull();
@@ -275,12 +273,16 @@ describe("feedback delivery", () => {
 		await t.action(send, { ...args, round: 11 });
 		expect(await t.run((ctx) => ctx.db.query("feedbackDeliveries").collect())).toHaveLength(3);
 	});
-	it("requires an HTTPS base URL on hosted deployments", async () => {
+	it("uses the deployed Hugin URL outside local development", async () => {
 		const { t, args } = await fixture();
 		vi.stubEnv("APP_ENV", "test");
-		await expect(t.action(send, args)).rejects.toThrow("HTTPS");
-		vi.stubEnv("HUGIN_BASE_URL", undefined);
-		await expect(t.action(send, args)).rejects.toThrow();
+		feedbackResend.config.apiKey = "re_test";
+		await t.action(send, args);
+		const deliveries = await t.run((ctx) => ctx.db.query("feedbackDeliveries").collect());
+		const emailId = deliveries[0]?.emailId as EmailId;
+		const email = await t.run((ctx) => feedbackResend.get(ctx, emailId));
+		expect(email).toMatchObject({ status: "waiting" });
+		expect(email?.html).toContain("https://hugin.ifinavet.no/feedback#token=");
 	});
 	it("queues through the real Resend component atomically and cancels waiting mail", async () => {
 		const { t, email, inviteId, campaignId } = await fixture();
@@ -601,7 +603,6 @@ describe("durable workflow integration", () => {
 				await ctx.db.patch(f.eventId, { feedbackEnabled: enabled });
 				await ctx.db.delete(f.inviteId);
 			});
-			vi.stubEnv("HUGIN_BASE_URL", undefined);
 			await f.t.mutation(internal.feedback.delivery.workflows.campaignV1, {
 				args: {
 					campaignId: f.campaignId,

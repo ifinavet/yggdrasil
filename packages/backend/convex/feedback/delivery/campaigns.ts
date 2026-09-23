@@ -24,6 +24,22 @@ async function selectedVersion(ctx: QueryCtx, event: Doc<"events">) {
 	return formId ? getLatestPublishedVersion(ctx, formId) : null;
 }
 
+async function canScheduleFeedback(
+	ctx: QueryCtx,
+	event: Doc<"events">,
+	opensAt: number,
+	requireSchedule: boolean,
+) {
+	let schedulingError: string | null = null;
+	if (opensAt <= Date.now()) {
+		schedulingError = "Slå på tilbakemeldinger før utsendelsestidspunktet.";
+	} else if (!(await selectedVersion(ctx, event))) {
+		schedulingError = "Publiser et skjema før tilbakemeldinger slås på.";
+	}
+	if (schedulingError && requireSchedule) throw new ConvexError(schedulingError);
+	return schedulingError === null;
+}
+
 export async function finishCampaign(
 	ctx: MutationCtx,
 	campaign: Doc<"feedbackCampaigns">,
@@ -62,15 +78,8 @@ export async function syncFeedbackCampaign(
 	if (existing && existing.status !== "scheduled" && existing.formVersionId) return;
 	const opensAt = feedbackOpensAt(event.eventStart);
 	if (existing?.status === "scheduled" && existing.opensAt === opensAt) return;
-	const schedulingError =
-		opensAt <= Date.now()
-			? "Slå på tilbakemeldinger før utsendelsestidspunktet."
-			: !(await selectedVersion(ctx, event))
-				? "Publiser et skjema før tilbakemeldinger slås på."
-				: null;
-	if (schedulingError) {
-		// Routine event edits must still save when feedback can no longer be scheduled.
-		if (requireSchedule) throw new ConvexError(schedulingError);
+	// Routine event edits must still save when feedback can no longer be scheduled.
+	if (!(await canScheduleFeedback(ctx, event, opensAt, requireSchedule))) {
 		if (existing?.status === "scheduled") await finishCampaign(ctx, existing, "cancelled");
 		return;
 	}
