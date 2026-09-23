@@ -3,7 +3,7 @@ import { ConvexError, v } from "convex/values";
 import { mutation } from "../../_generated/server";
 import { internalRoles, requireRole, superAdminRoles } from "../../auth/accessRights";
 import { feedbackField } from "../schema";
-import { getFormOrThrow, latestVersion } from "./helpers";
+import { getFeedbackFormOrThrow, getLatestPublishedVersion } from "./helpers";
 
 export const saveDraft = mutation({
 	args: {
@@ -11,14 +11,14 @@ export const saveDraft = mutation({
 		name: v.string(),
 		fields: v.array(feedbackField),
 	},
-	handler: async (ctx, { formId, ...input }) => {
+	handler: async (ctx, { formId, ...draftInput }) => {
 		await requireRole(ctx, superAdminRoles);
-		const result = feedbackFormSchema.safeParse(input);
-		if (!result.success)
-			throw new ConvexError(result.error.issues.map((issue) => issue.message).join("\n"));
-		const { name, fields: draftFields } = result.data;
+		const validationResult = feedbackFormSchema.safeParse(draftInput);
+		if (!validationResult.success)
+			throw new ConvexError(validationResult.error.issues.map((issue) => issue.message).join("\n"));
+		const { name, fields: draftFields } = validationResult.data;
 		if (formId) {
-			await getFormOrThrow(ctx, formId);
+			await getFeedbackFormOrThrow(ctx, formId);
 			await ctx.db.patch(formId, { name, draftFields });
 			return formId;
 		}
@@ -29,18 +29,21 @@ export const saveDraft = mutation({
 export const publish = mutation({
 	args: { formId: v.id("feedbackForms") },
 	handler: async (ctx, { formId }) => {
-		const user = await requireRole(ctx, superAdminRoles);
-		const form = await getFormOrThrow(ctx, formId);
-		const result = feedbackFormSchema.safeParse({ name: form.name, fields: form.draftFields });
-		if (!result.success) throw new ConvexError("Lagre et gyldig utkast før publisering.");
+		const publisher = await requireRole(ctx, superAdminRoles);
+		const feedbackForm = await getFeedbackFormOrThrow(ctx, formId);
+		const validationResult = feedbackFormSchema.safeParse({
+			name: feedbackForm.name,
+			fields: feedbackForm.draftFields,
+		});
+		if (!validationResult.success) throw new ConvexError("Lagre et gyldig utkast før publisering.");
 		const versionId = await ctx.db.insert("formVersions", {
 			formDefinitionId: formId,
-			name: result.data.name,
+			name: validationResult.data.name,
 			publishedAt: Date.now(),
-			createdBy: user._id,
+			createdBy: publisher._id,
 		});
 		await Promise.all(
-			result.data.fields.map((field, order) =>
+			validationResult.data.fields.map((field, order) =>
 				ctx.db.insert("formFields", { ...field, order, formVersionId: versionId }),
 			),
 		);
@@ -53,14 +56,14 @@ export const setDefault = mutation({
 	args: { formId: v.id("feedbackForms") },
 	handler: async (ctx, { formId }) => {
 		await requireRole(ctx, superAdminRoles);
-		await getFormOrThrow(ctx, formId);
-		if (!(await latestVersion(ctx, formId)))
+		await getFeedbackFormOrThrow(ctx, formId);
+		if (!(await getLatestPublishedVersion(ctx, formId)))
 			throw new ConvexError("Publiser skjemaet før det settes som standard.");
-		const previous = await ctx.db
+		const previousDefaultForm = await ctx.db
 			.query("feedbackForms")
-			.withIndex("by_isDefault", (q) => q.eq("isDefault", true))
+			.withIndex("by_isDefault", (index) => index.eq("isDefault", true))
 			.unique();
-		if (previous) await ctx.db.patch(previous._id, { isDefault: false });
+		if (previousDefaultForm) await ctx.db.patch(previousDefaultForm._id, { isDefault: false });
 		await ctx.db.patch(formId, { isDefault: true });
 	},
 });
@@ -72,8 +75,8 @@ export const assignToEvent = mutation({
 		await requireRole(ctx, internalRoles);
 		if (!(await ctx.db.get(eventId))) throw new ConvexError("Arrangementet finnes ikke.");
 		if (formId) {
-			await getFormOrThrow(ctx, formId);
-			if (!(await latestVersion(ctx, formId)))
+			await getFeedbackFormOrThrow(ctx, formId);
+			if (!(await getLatestPublishedVersion(ctx, formId)))
 				throw new ConvexError("Publiser skjemaet før det brukes på et arrangement.");
 		}
 		await ctx.db.patch(eventId, { feedbackFormId: formId });
