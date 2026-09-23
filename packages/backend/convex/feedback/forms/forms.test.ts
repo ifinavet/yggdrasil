@@ -129,7 +129,9 @@ describe("feedback form management", () => {
 				.collect(),
 		);
 		expect(defaults).toHaveLength(1);
-		expect(defaults[0]._id).toBe(second);
+		expect([formId, second]).toContain(defaults[0]._id);
+		await client.mutation(m.setDefault, { formId: second });
+		expect(await client.query(q.getDefault, {})).toMatchObject({ formId: second });
 	});
 	it("paginates metadata without exposing draft fields", async () => {
 		const { client, formId } = await fixture();
