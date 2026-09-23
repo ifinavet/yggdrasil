@@ -8,9 +8,11 @@ export const companiesSchema = {
 		description: v.string(),
 		mainSponsor: v.boolean(),
 		logo: v.id("companyLogos"),
-	}).searchIndex("search_name", {
-		searchField: "name",
-	}),
+	})
+		.index("by_orgNumber", ["orgNumber"])
+		.searchIndex("search_name", {
+			searchField: "name",
+		}),
 
 	companyLogos: defineTable({
 		name: v.string(),
