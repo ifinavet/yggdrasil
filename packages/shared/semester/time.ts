@@ -60,9 +60,14 @@ export function presentationDaysBetween(firstDate: string, lastDate: string): st
 const DAY_STYLES = {
 	short: "EEE d. MMM",
 	long: "PPPP",
+	weekday: "EEEE",
+	numeric: "d.MM",
 } as const;
 
-/** A semester day for people, in Norwegian: "tir 9. feb." (short) or "tirsdag 9. februar 2027" (long). */
+/**
+ * A semester day for people, in Norwegian: "tir 9. feb." (short), "tirsdag 9. februar 2027"
+ * (long), "tirsdag" (weekday) or "9.02" (numeric, as in the Excel plan).
+ */
 export function formatSemesterDay(date: string, style: keyof typeof DAY_STYLES = "short"): string {
 	return format(parseStrictOrThrow(date, DAY_FORMAT), DAY_STYLES[style], {
 		...IN_OSLO,
