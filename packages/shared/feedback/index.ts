@@ -1,12 +1,12 @@
-import type { FeedbackAnswers, FeedbackField } from "./schema";
+import type { FeedbackAnswers, FeedbackField } from "./validation";
 
-export * from "./schema";
+export * from "./validation";
 
 export function emptyFeedbackAnswers(fields: FeedbackField[]): FeedbackAnswers {
 	return Object.fromEntries(fields.map((field) => [field.key, field.type === "options" ? [] : ""]));
 }
 
-/** Untrusted email query parameters only select a rating; they never submit it. */
+/** Prefill a valid 1–5 rating from an email link. The student still submits the form. */
 export function feedbackPrefill(
 	fields: FeedbackField[],
 	key?: string,

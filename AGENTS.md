@@ -14,7 +14,7 @@ This file is the project's committed home for project-intrinsic agent knowledge:
 
 User-facing Norwegian text, in both Hugin and Midgard, must never contain an em-dash (`—`). Use a comma, colon or full stop instead. En-dash (`–`) and hyphen (`-`) are unaffected, but only where they are correct.
 
-Student-facing copy lives with the feature that owns it. For the Hugin event feedback form that is `apps/hugin/src/lib/event-feedback-questions.ts` (labels, hints, placeholders) and `packages/shared/feedback/schema.ts` (shared validation rules and messages), composed by `apps/hugin/src/lib/schema/event-feedback-schema.ts`; edit there rather than inline in components.
+Student-facing copy lives with the feature that owns it. For the Hugin event feedback form that is `apps/hugin/src/lib/event-feedback-questions.ts` (labels, hints, placeholders) and `packages/shared/feedback/validation.ts` (shared validation rules and messages), composed by `apps/hugin/src/lib/schema/event-feedback-schema.ts`; edit there rather than inline in components.
 
 ## Maintaining this file
 
