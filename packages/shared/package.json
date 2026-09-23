@@ -7,7 +7,8 @@
 	"dependencies": {
 		"@date-fns/tz": "^1.5.0",
 		"convex": "^1.46.0",
-		"date-fns": "^4.4.0"
+		"date-fns": "^4.4.0",
+		"zod": "^4.6.5"
 	},
 	"devDependencies": {
 		"@workspace/typescript-config": "workspace:*",

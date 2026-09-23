@@ -15,12 +15,8 @@ import {
 	RatingCard,
 	TextInputCard,
 } from "@/components/input-cards";
-import {
-	missingRequiredFields,
-	questionOrder,
-	requiredQuestionCount,
-} from "@/lib/event-feedback-questions";
-import { eventResponseFromSchema } from "@/lib/schema/event-feedback-schema";
+import { questionOrder, requiredQuestionCount } from "@/lib/event-feedback-questions";
+import { eventResponseFromSchema, missingRequiredFields } from "@/lib/schema/event-feedback-schema";
 
 const CONTROL_SELECTOR = 'button[role="radio"], button[role="checkbox"], textarea, input';
 

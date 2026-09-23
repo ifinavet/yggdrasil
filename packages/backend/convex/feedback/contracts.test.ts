@@ -30,7 +30,7 @@ describe("feedback contracts", () => {
 		expect(feedbackErrors([field], { score: 5, unknown: 1 })).toHaveProperty("_form");
 	});
 	it("validates text, yes/no and options", () => {
-		const fields: FeedbackField[] = [
+		const fields: [FeedbackField, FeedbackField, FeedbackField] = [
 			{ ...field, key: "text", type: "text" },
 			{ ...field, key: "bool", type: "yesNo" },
 			{ ...field, key: "choice", type: "options", options: ["A", "B"] },
@@ -43,10 +43,10 @@ describe("feedback contracts", () => {
 			feedbackErrors(fields, { text: "x".repeat(1001), bool: "nei", choice: ["A", "A"] }),
 		).toHaveProperty("text");
 		expect(
-			feedbackErrors([{ ...fields[2]!, allowOther: true }], { choice: ["A", "Annet"] }),
+			feedbackErrors([{ ...fields[2], allowOther: true }], { choice: ["A", "Annet"] }),
 		).toEqual({});
 		expect(
-			feedbackErrors([{ ...fields[2]!, allowOther: true }], { choice: ["Annet", "To"] }),
+			feedbackErrors([{ ...fields[2], allowOther: true }], { choice: ["Annet", "To"] }),
 		).toHaveProperty("choice");
 	});
 	it("validates published definitions", () => {
@@ -63,6 +63,31 @@ describe("feedback contracts", () => {
 			[{ ...field, type: "options" as const, options: ["A", "A"] }],
 		])
 			expect(validateFeedbackFields(fields)).toBeTruthy();
+	});
+	it.each([null, {}, [null], [{ ...field, type: "unknown" }], [{ ...field, required: "yes" }]])(
+		"rejects malformed definitions without throwing: %j",
+		(fields) => expect(validateFeedbackFields(fields)).toBeTruthy(),
+	);
+	it.each([null, [], "answer", { score: null }, { score: true }, { score: {} }])(
+		"rejects malformed answer payloads without throwing: %j",
+		(data) => expect(Object.keys(feedbackErrors([field], data)).length).toBeGreaterThan(0),
+	);
+	it("normalizes empty optional answers and reports required answers consistently", () => {
+		for (const value of [undefined, "", []]) {
+			expect(feedbackErrors([{ ...field, required: false }], { score: value })).toEqual({});
+			expect(feedbackErrors([field], { score: value })).toEqual({ score: "Fyll inn et svar" });
+		}
+	});
+	it("rejects malformed, duplicate and excessive other selections", () => {
+		const choice: FeedbackField = { ...field, type: "options", options: ["A", "B"] };
+		for (const value of [[1], [null], [" "], ["A", "A"], ["C"], "A"]) {
+			expect(feedbackErrors([choice], { score: value })).toHaveProperty("score");
+		}
+		expect(feedbackErrors([choice], { score: ["A", "B"] })).toEqual({});
+		expect(feedbackErrors([{ ...choice, allowOther: true }], { score: ["A", "C"] })).toEqual({});
+		expect(feedbackErrors([{ ...choice, allowOther: true }], { score: ["C", "D"] })).toHaveProperty(
+			"score",
+		);
 	});
 	it("only prefills a valid rating", () => {
 		expect(feedbackPrefill([field], "score", "5")).toEqual({ score: 5 });
