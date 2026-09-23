@@ -3,7 +3,7 @@ import { query } from "../../_generated/server";
 import { internalRoles, requireRole } from "../../auth/accessRights";
 import schema from "../../schema";
 import { semesterTerm } from "../schema";
-import { requireSemester, semesterDates, semesterOrder } from "./helper";
+import { listSemesterDates, requireSemester, semesterSortKey } from "./helper";
 
 // Two semesters a year; this covers 50 years of history.
 const MAX_SEMESTERS = 100;
@@ -14,7 +14,7 @@ const MAX_SEMESTERS = 100;
  *
  * @returns {object | null} - The open semester, or null when applications are closed.
  */
-export const getOpen = query({
+export const getOpenForApplications = query({
 	args: {},
 	returns: v.union(
 		v.null(),
@@ -35,7 +35,7 @@ export const getOpen = query({
 			.first();
 		if (!semester?.applicationDeadline) return null;
 
-		const dates = await semesterDates(ctx, semester._id);
+		const dates = await listSemesterDates(ctx, semester._id);
 
 		return {
 			_id: semester._id,
@@ -66,7 +66,7 @@ export const list = query({
 			.withIndex("by_year_and_term")
 			.order("desc")
 			.take(MAX_SEMESTERS);
-		return semesters.sort((a, b) => semesterOrder(b) - semesterOrder(a));
+		return semesters.sort((a, b) => semesterSortKey(b) - semesterSortKey(a));
 	},
 });
 
@@ -88,7 +88,7 @@ export const get = query({
 		await requireRole(ctx, internalRoles);
 
 		const semester = await requireSemester(ctx, semesterId);
-		const dates = await semesterDates(ctx, semesterId);
+		const dates = await listSemesterDates(ctx, semesterId);
 
 		return { semester, dates };
 	},

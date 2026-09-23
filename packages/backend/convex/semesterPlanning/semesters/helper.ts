@@ -3,7 +3,7 @@ import type { Doc, Id } from "../../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../../_generated/server";
 
 /** Spring comes before autumn in the same year. */
-export function semesterOrder(semester: Pick<Doc<"semesters">, "year" | "term">): number {
+export function semesterSortKey(semester: Pick<Doc<"semesters">, "year" | "term">): number {
 	return semester.year * 2 + (semester.term === "autumn" ? 1 : 0);
 }
 
@@ -33,7 +33,7 @@ export async function requireSemester(
  *
  * @returns {Promise<Doc<"semesterDates">[]>} - The dates, earliest first.
  */
-export async function semesterDates(
+export async function listSemesterDates(
 	ctx: QueryCtx | MutationCtx,
 	semesterId: Id<"semesters">,
 ): Promise<Doc<"semesterDates">[]> {
@@ -71,7 +71,7 @@ export async function findSemester(
  *
  * @returns {Promise<Pick<Doc<"semesters">, "infoText" | "termsUrl" | "offerResponseDays">>} - The copied settings.
  */
-export async function inheritedSettings(
+export async function settingsFromLatestSemester(
 	ctx: MutationCtx,
 ): Promise<Pick<Doc<"semesters">, "infoText" | "termsUrl" | "offerResponseDays">> {
 	// The index sorts terms alphabetically, so read the newest few and order them properly.
@@ -80,7 +80,7 @@ export async function inheritedSettings(
 		.withIndex("by_year_and_term")
 		.order("desc")
 		.take(3);
-	const latest = newest.sort((a, b) => semesterOrder(b) - semesterOrder(a))[0];
+	const latest = newest.sort((a, b) => semesterSortKey(b) - semesterSortKey(a))[0];
 	if (!latest) return {};
 
 	return {

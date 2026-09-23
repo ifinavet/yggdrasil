@@ -323,9 +323,25 @@ describe("setStatus", () => {
 		expect(message).toBe("Høsten 2026 er allerede åpent. Steng det først.");
 	});
 
+	it("refuses to open a semester whose last date has passed", async () => {
+		const { t } = await setup();
+		const semesterId = await insertSemester(t, {
+			year: 2020,
+			firstDate: "2020-01-14",
+			lastDate: "2020-05-14",
+			status: "closed",
+		});
+		await t.run((ctx) => ctx.db.insert("semesterDates", { semesterId, date: "2020-01-14" }));
+
+		const message = await refusalMessageFrom(
+			(await editorOf(t)).mutation(mutations.setStatus, { semesterId, status: "open" }),
+		);
+		expect(message).toBe("Semesteret er over og kan ikke åpnes.");
+	});
+
 	it("opens a ready semester", async () => {
 		const { t } = await setup();
-		const semesterId = await insertSemester(t, { status: "draft" });
+		const semesterId = await insertSemester(t, { status: "draft", lastDate: "2099-12-31" });
 		await t.run((ctx) => ctx.db.insert("semesterDates", { semesterId, date: "2027-01-21" }));
 
 		await (await editorOf(t)).mutation(mutations.setStatus, { semesterId, status: "open" });
@@ -349,8 +365,8 @@ describe("finalizePlan", () => {
 	});
 });
 
-describe("ensureNextSemester (rollover cron)", () => {
-	const ensureNextSemester = internal.semesterPlanning.semesters.mutations.ensureNextSemester;
+describe("rolloverSemesters (rollover cron)", () => {
+	const rolloverSemesters = internal.semesterPlanning.semesters.mutations.rolloverSemesters;
 
 	it("creates next semester as an empty draft with inherited settings", async () => {
 		const { t } = await setup();
@@ -361,7 +377,7 @@ describe("ensureNextSemester (rollover cron)", () => {
 			termsUrl: "https://ifinavet.no/vilkar",
 		});
 
-		const result = await t.mutation(ensureNextSemester, {
+		const result = await t.mutation(rolloverSemesters, {
 			now: Date.parse("2026-09-23T10:00:00Z"),
 		});
 
@@ -383,8 +399,8 @@ describe("ensureNextSemester (rollover cron)", () => {
 		const { t } = await setup();
 		const now = Date.parse("2026-09-23T10:00:00Z");
 
-		await t.mutation(ensureNextSemester, { now });
-		const second = await t.mutation(ensureNextSemester, { now });
+		await t.mutation(rolloverSemesters, { now });
+		const second = await t.mutation(rolloverSemesters, { now });
 
 		expect(second.createdSemesterId).toBeNull();
 		expect(await t.run((ctx) => ctx.db.query("semesters").collect())).toHaveLength(1);
@@ -393,7 +409,7 @@ describe("ensureNextSemester (rollover cron)", () => {
 	it("uses the Oslo day: 30 June 23:30 in Oslo is still spring, so autumn comes next", async () => {
 		const { t } = await setup();
 
-		const result = await t.mutation(ensureNextSemester, {
+		const result = await t.mutation(rolloverSemesters, {
 			now: Date.parse("2026-06-30T21:30:00Z"),
 		});
 		const created = await semesterById(t, result.createdSemesterId as Id<"semesters">);
@@ -404,7 +420,7 @@ describe("ensureNextSemester (rollover cron)", () => {
 	it("uses the Oslo day: 1 July 00:30 in Oslo is autumn, so spring comes next", async () => {
 		const { t } = await setup();
 
-		const result = await t.mutation(ensureNextSemester, {
+		const result = await t.mutation(rolloverSemesters, {
 			now: Date.parse("2026-06-30T22:30:00Z"),
 		});
 		const created = await semesterById(t, result.createdSemesterId as Id<"semesters">);
@@ -433,7 +449,7 @@ describe("ensureNextSemester (rollover cron)", () => {
 			lastDate: "2025-11-27",
 		});
 
-		const result = await t.mutation(ensureNextSemester, {
+		const result = await t.mutation(rolloverSemesters, {
 			now: Date.parse("2026-09-23T10:00:00Z"),
 		});
 
@@ -445,7 +461,7 @@ describe("ensureNextSemester (rollover cron)", () => {
 
 	it("never opens a semester", async () => {
 		const { t } = await setup();
-		await t.mutation(ensureNextSemester, { now: Date.parse("2026-09-23T10:00:00Z") });
+		await t.mutation(rolloverSemesters, { now: Date.parse("2026-09-23T10:00:00Z") });
 
 		const open = await t.run((ctx) =>
 			ctx.db
@@ -458,7 +474,7 @@ describe("ensureNextSemester (rollover cron)", () => {
 });
 
 describe("queries", () => {
-	it("getOpen returns only open dates and needs no login", async () => {
+	it("getOpenForApplications returns only open dates and needs no login", async () => {
 		const { t } = await setup();
 		const semesterId = await insertSemester(t, { status: "open", infoText: "Hei" });
 		await t.run(async (ctx) => {
@@ -471,7 +487,7 @@ describe("queries", () => {
 		});
 		await insertApplication(t, semesterId, { assignedDate: "2027-01-21", status: "confirmed" });
 
-		const open = await t.query(queries.getOpen, {});
+		const open = await t.query(queries.getOpenForApplications, {});
 
 		expect(open).toEqual({
 			_id: semesterId,
@@ -483,11 +499,11 @@ describe("queries", () => {
 		});
 	});
 
-	it("getOpen returns null when no semester is open", async () => {
+	it("getOpenForApplications returns null when no semester is open", async () => {
 		const { t } = await setup();
 		await insertSemester(t, { status: "draft" });
 
-		expect(await t.query(queries.getOpen, {})).toBeNull();
+		expect(await t.query(queries.getOpenForApplications, {})).toBeNull();
 	});
 
 	it("list and get require an internal member", async () => {

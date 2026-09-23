@@ -1,16 +1,28 @@
 import {
+	MAX_OFFER_RESPONSE_DAYS,
+	MAX_SEMESTER_YEAR,
+	MIN_OFFER_RESPONSE_DAYS,
+	MIN_SEMESTER_YEAR,
+} from "@workspace/shared/semester/limits";
+import {
 	isIsoDate,
 	nextTermAfter,
 	osloToday,
-	tuesdaysAndThursdays,
+	presentationDaysBetween,
 } from "@workspace/shared/semester/time";
+import { isHttpUrl } from "@workspace/shared/utils";
 import { ConvexError, v } from "convex/values";
 import type { Doc, Id } from "../../_generated/dataModel";
 import { internalMutation, type MutationCtx, mutation } from "../../_generated/server";
 import { editorRoles, requireRole } from "../../auth/accessRights";
-import { findLiveApplicationOnDate } from "../helper";
+import { findActiveApplicationOnDate } from "../applicationLifecycle";
 import { applicationPeriodStatus, semesterTerm } from "../schema";
-import { findSemester, inheritedSettings, requireSemester, semesterDates } from "./helper";
+import {
+	findSemester,
+	listSemesterDates,
+	requireSemester,
+	settingsFromLatestSemester,
+} from "./helper";
 
 const TERM_LABELS: Record<Doc<"semesters">["term"], string> = { spring: "Våren", autumn: "Høsten" };
 
@@ -18,22 +30,13 @@ function requireIsoDate(value: string, label: string): void {
 	if (!isIsoDate(value)) throw new ConvexError(`${label} må være en gyldig dato (ÅÅÅÅ-MM-DD).`);
 }
 
-function isHttpUrl(value: string): boolean {
-	try {
-		const url = new URL(value);
-		return url.protocol === "https:" || url.protocol === "http:";
-	} catch {
-		return false;
-	}
-}
-
-function refuseIfClosed(semester: Doc<"semesters">): void {
+function refuseIfSemesterClosed(semester: Doc<"semesters">): void {
 	if (semester.status === "closed") {
 		throw new ConvexError("Semesteret er stengt og kan ikke endres.");
 	}
 }
 
-async function createDraft(
+async function insertDraftSemester(
 	ctx: MutationCtx,
 	year: number,
 	term: Doc<"semesters">["term"],
@@ -42,7 +45,7 @@ async function createDraft(
 		year,
 		term,
 		status: "draft",
-		...(await inheritedSettings(ctx)),
+		...(await settingsFromLatestSemester(ctx)),
 	});
 }
 
@@ -62,14 +65,14 @@ export const create = mutation({
 	handler: async (ctx, { year, term }) => {
 		await requireRole(ctx, editorRoles);
 
-		if (!Number.isInteger(year) || year < 2000 || year > 2100) {
+		if (!Number.isInteger(year) || year < MIN_SEMESTER_YEAR || year > MAX_SEMESTER_YEAR) {
 			throw new ConvexError("Oppgi et gyldig år.");
 		}
 		if (await findSemester(ctx, year, term)) {
 			throw new ConvexError(`${TERM_LABELS[term]} ${year} finnes allerede.`);
 		}
 
-		return createDraft(ctx, year, term);
+		return insertDraftSemester(ctx, year, term);
 	},
 });
 
@@ -93,22 +96,22 @@ export const setRange = mutation({
 		await requireRole(ctx, editorRoles);
 
 		const semester = await requireSemester(ctx, semesterId);
-		refuseIfClosed(semester);
+		refuseIfSemesterClosed(semester);
 		requireIsoDate(firstDate, "Første dato");
 		requireIsoDate(lastDate, "Siste dato");
 		if (firstDate > lastDate) {
 			throw new ConvexError("Første dato må være før siste dato.");
 		}
 
-		const wanted = new Set(tuesdaysAndThursdays(firstDate, lastDate));
+		const wanted = new Set(presentationDaysBetween(firstDate, lastDate));
 		if (wanted.size === 0) {
 			throw new ConvexError("Perioden har ingen tirsdager eller torsdager.");
 		}
 
-		const existing = await semesterDates(ctx, semesterId);
+		const existing = await listSemesterDates(ctx, semesterId);
 		const removed = existing.filter((date) => !wanted.has(date.date));
 		for (const date of removed) {
-			const holder = await findLiveApplicationOnDate(ctx, semesterId, date.date);
+			const holder = await findActiveApplicationOnDate(ctx, semesterId, date.date);
 			if (holder) {
 				throw new ConvexError(
 					`${date.date} er tildelt ${holder.registry.name}. Flytt søknaden før du endrer perioden.`,
@@ -157,7 +160,7 @@ export const updateSettings = mutation({
 		await requireRole(ctx, editorRoles);
 
 		const semester = await requireSemester(ctx, semesterId);
-		refuseIfClosed(semester);
+		refuseIfSemesterClosed(semester);
 
 		if (applicationDeadline !== undefined) requireIsoDate(applicationDeadline, "Søknadsfristen");
 		if (termsUrl !== undefined && termsUrl !== "" && !isHttpUrl(termsUrl)) {
@@ -165,9 +168,13 @@ export const updateSettings = mutation({
 		}
 		if (
 			offerResponseDays !== undefined &&
-			(!Number.isInteger(offerResponseDays) || offerResponseDays < 1 || offerResponseDays > 60)
+			(!Number.isInteger(offerResponseDays) ||
+				offerResponseDays < MIN_OFFER_RESPONSE_DAYS ||
+				offerResponseDays > MAX_OFFER_RESPONSE_DAYS)
 		) {
-			throw new ConvexError("Svarfristen må være mellom 1 og 60 dager.");
+			throw new ConvexError(
+				`Svarfristen må være mellom ${MIN_OFFER_RESPONSE_DAYS} og ${MAX_OFFER_RESPONSE_DAYS} dager.`,
+			);
 		}
 
 		const text = (value: string | undefined) => (value === "" ? undefined : value);
@@ -200,7 +207,7 @@ export const setDateClosed = mutation({
 
 		const date = await ctx.db.get(dateId);
 		if (!date) throw new ConvexError("Datoen ble ikke funnet.");
-		refuseIfClosed(await requireSemester(ctx, date.semesterId));
+		refuseIfSemesterClosed(await requireSemester(ctx, date.semesterId));
 
 		if (label === null) {
 			await ctx.db.patch(dateId, { closedLabel: undefined });
@@ -210,7 +217,7 @@ export const setDateClosed = mutation({
 		const trimmed = label.trim();
 		if (!trimmed) throw new ConvexError("Skriv hvorfor datoen er stengt.");
 
-		const holder = await findLiveApplicationOnDate(ctx, date.semesterId, date.date);
+		const holder = await findActiveApplicationOnDate(ctx, date.semesterId, date.date);
 		if (holder) {
 			throw new ConvexError(`Datoen er tildelt ${holder.registry.name}. Flytt søknaden først.`);
 		}
@@ -243,7 +250,7 @@ export const setStatus = mutation({
 					"Sett første dato, siste dato og søknadsfrist før du åpner semesteret.",
 				);
 			}
-			const openDates = (await semesterDates(ctx, semesterId)).filter(
+			const openDates = (await listSemesterDates(ctx, semesterId)).filter(
 				(date) => date.closedLabel === undefined,
 			);
 			if (openDates.length === 0) {
@@ -258,6 +265,10 @@ export const setStatus = mutation({
 				throw new ConvexError(
 					`${TERM_LABELS[other.term]} ${other.year} er allerede åpent. Steng det først.`,
 				);
+			}
+			// The rollover job would close it again the next night.
+			if (semester.lastDate < osloToday(Date.now())) {
+				throw new ConvexError("Semesteret er over og kan ikke åpnes.");
 			}
 		}
 
@@ -298,7 +309,7 @@ export const finalizePlan = mutation({
  *
  * @returns {{ createdSemesterId: Id<"semesters"> | null, closedSemesters: number }} - What changed.
  */
-export const ensureNextSemester = internalMutation({
+export const rolloverSemesters = internalMutation({
 	args: { now: v.optional(v.number()) },
 	returns: v.object({
 		createdSemesterId: v.union(v.id("semesters"), v.null()),
@@ -310,7 +321,7 @@ export const ensureNextSemester = internalMutation({
 
 		const createdSemesterId = (await findSemester(ctx, next.year, next.term))
 			? null
-			: await createDraft(ctx, next.year, next.term);
+			: await insertDraftSemester(ctx, next.year, next.term);
 
 		const open = await ctx.db
 			.query("semesters")
