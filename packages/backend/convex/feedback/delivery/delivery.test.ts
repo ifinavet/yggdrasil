@@ -378,21 +378,94 @@ describe("campaign lifecycle", () => {
 		});
 		await f.t.mutation(campaigns.closeCampaign, { campaignId: original._id, generation: 2 });
 	});
+	it.each(["missing", "cancelled", "closed"] as const)(
+		"allows ordinary edits and bulk publication of past events with a %s campaign",
+		async (status) => {
+			const f = await fixture();
+			await f.t.run(async (ctx) => {
+				if (status === "missing") await ctx.db.delete(f.campaignId);
+				else await ctx.db.patch(f.campaignId, { status, formVersionId: undefined });
+			});
+			const event = await f.t.run((ctx) => ctx.db.get(f.eventId));
+			if (!event) throw new Error("Expected event");
+			const { _id, _creationTime, slug, feedbackEnabled, ...eventFields } = event;
+			await f.client.mutation(api.events.mutations.update, {
+				...eventFields,
+				id: f.eventId,
+				title: "Updated past event",
+				organizers: [],
+			});
+			const otherEventId = await insertEvent(f.t, event.hostingCompany, { published: false });
+			await f.client.mutation(api.events.mutations.updatePublishedStatus, {
+				ids: [otherEventId, f.eventId],
+				newPublishedStatus: true,
+			});
+			expect(await f.t.run((ctx) => ctx.db.get(f.eventId))).toMatchObject({
+				title: "Updated past event",
+				published: true,
+			});
+			expect(await f.t.run((ctx) => ctx.db.get(otherEventId))).toMatchObject({ published: true });
+			const campaign = await f.t.run((ctx) => ctx.db.get(f.campaignId));
+			if (status === "missing") expect(campaign).toBeNull();
+			else expect(campaign?.status).toBe(status);
+			expect(await f.t.run((ctx) => ctx.db.query("feedbackDeliveries").collect())).toEqual([]);
+		},
+	);
+	it.each(["past", "unpublishedForm"] as const)(
+		"skips invalid passive scheduling: %s",
+		async (reason) => {
+			const f = await fixture();
+			await f.t.run((ctx) => ctx.db.delete(f.campaignId));
+			if (reason === "unpublishedForm") {
+				vi.setSystemTime(opensAt - 86400000);
+				await f.t.run((ctx) => ctx.db.delete(f.versionId));
+			}
+			await f.t.run((ctx) => syncFeedbackCampaign(ctx, f.eventId));
+			expect(await f.t.run((ctx) => ctx.db.query("feedbackCampaigns").collect())).toEqual([]);
+			const scheduledId = await f.t.run((ctx) =>
+				ctx.db.insert("feedbackCampaigns", {
+					eventId: f.eventId,
+					status: "scheduled",
+					generation: 1,
+					opensAt: opensAt + 86400000,
+					closesAt: feedbackRoundAt(opensAt, 15),
+				}),
+			);
+			await f.t.run((ctx) => syncFeedbackCampaign(ctx, f.eventId));
+			expect(await f.t.run((ctx) => ctx.db.get(scheduledId))).toMatchObject({
+				status: "cancelled",
+			});
+		},
+	);
+	it("rejects explicit activation of a past event without saving the flag", async () => {
+		const f = await fixture();
+		await f.t.run(async (ctx) => {
+			await ctx.db.delete(f.campaignId);
+			await ctx.db.patch(f.eventId, { feedbackEnabled: false });
+		});
+		await expect(
+			f.client.mutation(api.feedback.events.updateEventFeedbackSettings, {
+				eventId: f.eventId,
+				enabled: true,
+			}),
+		).rejects.toThrow("utsendelsestidspunktet");
+		expect(await f.t.run((ctx) => ctx.db.get(f.eventId))).toMatchObject({ feedbackEnabled: false });
+	});
 	it("never sends historical campaigns automatically and requires a published form", async () => {
 		const f = await fixture();
 		await f.t.run((ctx) => ctx.db.delete(f.campaignId));
-		await expect(f.t.run((ctx) => syncFeedbackCampaign(ctx, f.eventId))).rejects.toThrow(
-			"utsendelsestidspunktet",
-		);
+		await expect(
+			f.t.run((ctx) => syncFeedbackCampaign(ctx, f.eventId, { requireSchedule: true })),
+		).rejects.toThrow("utsendelsestidspunktet");
 		vi.setSystemTime(opensAt - 86400000);
 		await f.t.run((ctx) => ctx.db.delete(f.versionId));
-		await expect(f.t.run((ctx) => syncFeedbackCampaign(ctx, f.eventId))).rejects.toThrow(
-			"Publiser",
-		);
+		await expect(
+			f.t.run((ctx) => syncFeedbackCampaign(ctx, f.eventId, { requireSchedule: true })),
+		).rejects.toThrow("Publiser");
 		await f.t.run((ctx) => ctx.db.delete(f.eventId));
-		await expect(f.t.run((ctx) => syncFeedbackCampaign(ctx, f.eventId))).rejects.toThrow(
-			"finnes ikke",
-		);
+		await expect(
+			f.t.run((ctx) => syncFeedbackCampaign(ctx, f.eventId, { requireSchedule: true })),
+		).rejects.toThrow("finnes ikke");
 	});
 	it.each(["disabled", "unpublished", "external"])(
 		"cancels on %s and re-enables only an unopened campaign",

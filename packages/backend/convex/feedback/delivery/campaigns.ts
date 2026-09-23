@@ -41,7 +41,11 @@ export async function finishCampaign(
 	});
 }
 
-export async function syncFeedbackCampaign(ctx: MutationCtx, eventId: Id<"events">): Promise<void> {
+export async function syncFeedbackCampaign(
+	ctx: MutationCtx,
+	eventId: Id<"events">,
+	{ requireSchedule = false }: { requireSchedule?: boolean } = {},
+): Promise<void> {
 	const event = await ctx.db.get(eventId);
 	if (!event) throw new ConvexError("Arrangementet finnes ikke.");
 	const existing = await ctx.db
@@ -58,10 +62,18 @@ export async function syncFeedbackCampaign(ctx: MutationCtx, eventId: Id<"events
 	if (existing && existing.status !== "scheduled" && existing.formVersionId) return;
 	const opensAt = feedbackOpensAt(event.eventStart);
 	if (existing?.status === "scheduled" && existing.opensAt === opensAt) return;
-	if (opensAt <= Date.now())
-		throw new ConvexError("Slå på tilbakemeldinger før utsendelsestidspunktet.");
-	if (!(await selectedVersion(ctx, event)))
-		throw new ConvexError("Publiser et skjema før tilbakemeldinger slås på.");
+	const schedulingError =
+		opensAt <= Date.now()
+			? "Slå på tilbakemeldinger før utsendelsestidspunktet."
+			: !(await selectedVersion(ctx, event))
+				? "Publiser et skjema før tilbakemeldinger slås på."
+				: null;
+	if (schedulingError) {
+		// Routine event edits must still save when feedback can no longer be scheduled.
+		if (requireSchedule) throw new ConvexError(schedulingError);
+		if (existing?.status === "scheduled") await finishCampaign(ctx, existing, "cancelled");
+		return;
+	}
 	const generation = (existing?.generation ?? 0) + 1;
 	const closesAt = feedbackRoundAt(opensAt, 14);
 	const schedule = {

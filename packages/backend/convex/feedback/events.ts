@@ -50,6 +50,6 @@ export const updateEventFeedbackSettings = mutation({
 				throw new ConvexError("Publiser og velg et standardskjema før tilbakemeldinger slås på.");
 		}
 		await ctx.db.patch(eventId, { feedbackEnabled: enabled, feedbackFormId: formId });
-		await syncFeedbackCampaign(ctx, eventId);
+		await syncFeedbackCampaign(ctx, eventId, { requireSchedule: enabled });
 	},
 });
