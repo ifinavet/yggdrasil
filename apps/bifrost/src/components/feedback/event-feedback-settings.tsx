@@ -15,18 +15,18 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 const settingsSchema = z.object({ enabled: z.boolean(), formId: z.string() });
-export function EventFeedbackSettings({ eventId }: { eventId: Id<"events"> }) {
+export function EventFeedbackSettings({ eventId }: Readonly<{ eventId: Id<"events"> }>) {
 	const settings = useQuery(api.feedback.events.getEventFeedbackSettings, { eventId });
-	if (!settings) return <p role="status">Henter innstillinger …</p>;
+	if (!settings) return <output>Henter innstillinger …</output>;
 	return <SettingsForm eventId={eventId} settings={settings} />;
 }
 function SettingsForm({
 	eventId,
 	settings,
-}: {
+}: Readonly<{
 	eventId: Id<"events">;
 	settings: FunctionReturnType<typeof api.feedback.events.getEventFeedbackSettings>;
-}) {
+}>) {
 	const saveSettings = useMutation(api.feedback.events.updateEventFeedbackSettings);
 	const defaultForm = useQuery(api.feedback.forms.queries.getDefault, {});
 	const {

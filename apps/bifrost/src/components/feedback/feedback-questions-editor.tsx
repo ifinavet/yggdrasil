@@ -2,16 +2,19 @@
 
 import type { FeedbackField } from "@workspace/shared/feedback";
 import { Button } from "@workspace/ui/components/button";
+import { FieldError } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
 import { Textarea } from "@workspace/ui/components/textarea";
 
 export function FeedbackQuestionsEditor({
 	fields,
 	onChange,
-}: {
+	errors,
+}: Readonly<{
 	fields: FeedbackField[];
 	onChange: (fields: FeedbackField[]) => void;
-}) {
+	errors?: Record<string, readonly { message: string }[]>;
+}>) {
 	function updateQuestion(index: number, change: Partial<FeedbackField>) {
 		onChange(
 			fields.map((field, position) => (position === index ? { ...field, ...change } : field)),
@@ -31,6 +34,11 @@ export function FeedbackQuestionsEditor({
 			{fields.map((question, index) => (
 				<fieldset key={question.key} className="min-w-0 space-y-3 rounded-lg border p-4">
 					<legend className="px-2 font-medium">Spørsmål {index + 1}</legend>
+					<FieldError
+						errors={Object.entries(errors ?? {})
+							.filter(([path]) => path.startsWith(`fields[${index}].`))
+							.flatMap(([, issues]) => issues)}
+					/>
 					<label htmlFor={`${question.key}-label`} className="block space-y-1 text-sm">
 						<span>Spørsmålstekst</span>
 						<Input
@@ -64,7 +72,7 @@ export function FeedbackQuestionsEditor({
 							checked={question.required}
 							onChange={(event) => updateQuestion(index, { required: event.target.checked })}
 						/>
-						Obligatorisk svar
+						<span>Obligatorisk svar</span>
 					</label>
 					{question.type === "rating" && (
 						<div className="grid gap-3 sm:grid-cols-2">
@@ -103,6 +111,13 @@ export function FeedbackQuestionsEditor({
 								<Textarea
 									id={`${question.key}-options`}
 									value={question.options?.join("\n") ?? ""}
+									onBlur={(event) =>
+										updateQuestion(index, {
+											options: event.target.value
+												.split("\n")
+												.filter((option) => option.trim().length > 0),
+										})
+									}
 									onChange={(event) =>
 										updateQuestion(index, { options: event.target.value.split("\n") })
 									}
@@ -114,7 +129,7 @@ export function FeedbackQuestionsEditor({
 									checked={question.allowOther ?? false}
 									onChange={(event) => updateQuestion(index, { allowOther: event.target.checked })}
 								/>
-								Tillat eget svaralternativ
+								<span>Tillat eget svaralternativ</span>
 							</label>
 						</>
 					)}

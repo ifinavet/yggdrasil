@@ -31,7 +31,7 @@ export function FeedbackForms() {
 		<div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
 			<div className="min-w-0 space-y-3">
 				<Button onClick={() => setSelectedFormId(undefined)}>Nytt skjema</Button>
-				{status === "LoadingFirstPage" && <p role="status">Henter skjemaer …</p>}
+				{status === "LoadingFirstPage" && <output>Henter skjemaer …</output>}
 				{feedbackForms.map((feedbackForm) => (
 					<button
 						type="button"
@@ -107,17 +107,17 @@ function ExistingFormEditor({
 	formId,
 	versionId,
 	onSaved,
-}: {
+}: Readonly<{
 	formId: Id<"feedbackForms">;
 	versionId?: Id<"formVersions">;
 	onSaved: (formId: Id<"feedbackForms">) => void;
-}) {
+}>) {
 	const draft = useQuery(api.feedback.forms.queries.getDraft, { formId });
 	const version = useQuery(
 		api.feedback.forms.queries.getVersion,
 		versionId ? { versionId } : "skip",
 	);
-	if (!draft || (versionId && !version)) return <p role="status">Henter skjema …</p>;
+	if (!draft || (versionId && !version)) return <output>Henter skjema …</output>;
 	const fields =
 		draft.draftFields ??
 		version?.fields.map(

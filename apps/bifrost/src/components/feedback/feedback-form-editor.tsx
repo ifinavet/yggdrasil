@@ -17,11 +17,11 @@ export function FeedbackFormEditor({
 	formId,
 	initialValues,
 	onSaved,
-}: {
+}: Readonly<{
 	formId?: Id<"feedbackForms">;
 	initialValues: { name: string; fields: FeedbackField[] };
 	onSaved: (formId: Id<"feedbackForms">) => void;
-}) {
+}>) {
 	const saveDraft = useMutation(api.feedback.forms.mutations.saveDraft);
 	const publish = useMutation(api.feedback.forms.mutations.publish);
 	const [savedFormId, setSavedFormId] = useState(formId);
@@ -76,10 +76,19 @@ export function FeedbackFormEditor({
 						<form.Field name="fields" mode="array">
 							{(field) => (
 								<>
-									<FeedbackQuestionsEditor
-										fields={field.state.value}
-										onChange={field.handleChange}
-									/>
+									<form.Subscribe selector={(state) => state.errorMap.onSubmit}>
+										{(errors) => (
+											<FeedbackQuestionsEditor
+												fields={field.state.value}
+												onChange={(fields) => {
+													field.handleChange(fields);
+													// Nested questions share one array field, so revalidate their submit errors after edits.
+													if (form.state.submissionAttempts > 0) void form.validate("submit");
+												}}
+												errors={errors}
+											/>
+										)}
+									</form.Subscribe>
 									<FieldError errors={field.state.meta.errors} />
 								</>
 							)}
