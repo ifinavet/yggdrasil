@@ -7,6 +7,7 @@
 		"check-types": "tsc --noEmit"
 	},
 	"dependencies": {
+		"@workspace/shared": "workspace:*",
 		"class-variance-authority": "^0.7.1",
 		"clsx": "^2.1.1",
 		"cmdk": "^1.1.1",

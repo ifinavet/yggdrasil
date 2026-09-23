@@ -1,10 +1,15 @@
+"use client";
+
 import { Button } from "@workspace/ui/components/button";
 import Header from "@workspace/ui/components/header";
 import { midgardUrl } from "@workspace/ui/lib/urls";
 import { CircleUserRound } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 export default function HuginHeader() {
+	const pathname = usePathname();
+	if (pathname === "/report") return null;
 	return (
 		<Header
 			homeHref={midgardUrl}

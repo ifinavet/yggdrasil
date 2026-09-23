@@ -43,7 +43,7 @@ export function FeedbackForms() {
 						<span className="block break-words font-medium">{feedbackForm.name}</span>
 						<span className="text-muted-foreground text-sm">
 							{feedbackForm.publishedVersion ? "Publisert" : "Utkast"}
-							{feedbackForm.isDefault ? " · Standardskjema" : ""}
+							{feedbackForm.isDefault ? <span className="block">Standardskjema</span> : null}
 						</span>
 					</button>
 				))}

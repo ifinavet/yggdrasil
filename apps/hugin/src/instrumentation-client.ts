@@ -4,11 +4,15 @@ import {
 } from "@workspace/auth/telemetry-client";
 
 export const onRouterTransitionStart: typeof captureRouterTransition = (...args) => {
-	if (window.location.pathname === "/feedback" || args[0].split(/[?#]/)[0] === "/feedback") return;
+	if (
+		["/feedback", "/report"].includes(window.location.pathname) ||
+		["/feedback", "/report"].includes(args[0].split(/[?#]/)[0] ?? "")
+	)
+		return;
 	captureRouterTransition(...args);
 };
 
-if (window.location.pathname !== "/feedback")
+if (!["/feedback", "/report"].includes(window.location.pathname))
 	initializeClientTelemetry({
 		sentryDsn:
 			"https://04d7959e133fb993cec8d4f62d3418ef@o4509833113501696.ingest.de.sentry.io/4509835991253072",

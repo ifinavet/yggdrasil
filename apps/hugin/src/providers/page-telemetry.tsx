@@ -8,7 +8,7 @@ import PostHogProvider from "./posthog-provider";
 export default function PageTelemetry({ children }: Readonly<{ children: ReactNode }>) {
 	const pathname = usePathname();
 	// Invitation fragments contain access tokens, so this page must not initialize analytics.
-	if (pathname === "/feedback") return children;
+	if (pathname === "/feedback" || pathname === "/report") return children;
 	return (
 		<PostHogProvider>
 			{children}

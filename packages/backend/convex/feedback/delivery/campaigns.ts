@@ -51,6 +51,10 @@ export async function finishCampaign(
 		closedAt,
 		retentionAt: feedbackRetentionAt(closedAt),
 	});
+	if (status === "closed" && campaign.formVersionId)
+		await ctx.scheduler.runAfter(0, internal.feedback.reports.build.prepareClosedReport, {
+			campaignId: campaign._id,
+		});
 	await ctx.scheduler.runAfter(0, internal.feedback.delivery.messages.cancelCampaignEmails, {
 		campaignId: campaign._id,
 		cursor: null,
