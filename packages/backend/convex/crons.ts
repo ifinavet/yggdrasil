@@ -30,6 +30,14 @@ crons.cron(
 	internal.users.students.mutations.updateYear,
 );
 
+// Convex runs crons in UTC: 03:00 UTC is 04:00 or 05:00 in Oslo.
+crons.cron(
+	"Roll over semesters",
+	"0 3 * * *",
+	internal.semesterPlanning.semesters.mutations.rolloverSemesters,
+	{},
+);
+
 /**
  * Exports the configured cron job collection.
  */

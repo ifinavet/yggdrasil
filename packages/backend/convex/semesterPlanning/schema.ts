@@ -119,9 +119,10 @@ export const semesterPlanningSchema = {
 	semesters: defineTable({
 		year: v.number(),
 		term: semesterTerm,
-		firstDate: v.string(),
-		lastDate: v.string(),
-		applicationDeadline: v.string(),
+		// Set by a human in Bifrost. A semester created by the rollover cron starts without them.
+		firstDate: v.optional(v.string()),
+		lastDate: v.optional(v.string()),
+		applicationDeadline: v.optional(v.string()),
 		status: applicationPeriodStatus,
 		infoText: v.optional(v.string()),
 		termsUrl: v.optional(v.string()),

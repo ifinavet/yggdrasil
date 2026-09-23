@@ -1,20 +1,20 @@
+import { isValidOrgNumber, toCompanyProfileOrgNumber } from "@workspace/shared/semester/orgNumber";
 import {
 	isIsoDate,
-	isTuesdayOrThursday,
+	isPresentationDay,
 	nextTermAfter,
 	osloDateTimeToEpoch,
 	osloToday,
-	tuesdaysAndThursdays,
+	presentationDaysBetween,
+	termOfDay,
 } from "@workspace/shared/semester/time";
 import { describe, expect, it } from "vitest";
-import { generateToken, hashToken } from "../lib/tokens";
+import { generateLinkToken, hashLinkToken, LINK_TOKEN_LENGTH } from "../lib/tokens";
 import {
 	type ApplicationStatus,
 	canTransition,
-	isLiveStatus,
-	isValidOrgNumber,
+	isActiveApplicationStatus,
 	TRANSITIONS,
-	toCompanyOrgNumber,
 } from "./rules";
 
 const STATUSES = Object.keys(TRANSITIONS) as ApplicationStatus[];
@@ -57,7 +57,10 @@ describe("status transitions", () => {
 	});
 
 	it("treats rejected and withdrawn as the only closed statuses", () => {
-		expect(STATUSES.filter((status) => !isLiveStatus(status))).toEqual(["rejected", "withdrawn"]);
+		expect(STATUSES.filter((status) => !isActiveApplicationStatus(status))).toEqual([
+			"rejected",
+			"withdrawn",
+		]);
 	});
 });
 
@@ -77,20 +80,20 @@ describe("organization numbers", () => {
 	});
 
 	it("converts to the number stored on company profiles", () => {
-		expect(toCompanyOrgNumber("982 463 718")).toBe(982463718);
+		expect(toCompanyProfileOrgNumber("982 463 718")).toBe(982463718);
 	});
 });
 
 describe("semester days", () => {
 	it("lists the Tuesdays and Thursdays of spring 2027 like the mockup", () => {
-		const days = tuesdaysAndThursdays("2027-01-19", "2027-05-06");
+		const days = presentationDaysBetween("2027-01-19", "2027-05-06");
 		expect(days).toHaveLength(32);
 		expect(days.slice(0, 3)).toEqual(["2027-01-19", "2027-01-21", "2027-01-26"]);
-		expect(days.every(isTuesdayOrThursday)).toBe(true);
+		expect(days.every(isPresentationDay)).toBe(true);
 	});
 
 	it("keeps weekdays across the daylight-saving change", () => {
-		expect(tuesdaysAndThursdays("2027-03-25", "2027-04-01")).toEqual([
+		expect(presentationDaysBetween("2027-03-25", "2027-04-01")).toEqual([
 			"2027-03-25",
 			"2027-03-30",
 			"2027-04-01",
@@ -104,6 +107,14 @@ describe("semester days", () => {
 		["2027-03-01", { year: 2027, term: "autumn" }],
 	] as const)("the term after %s is %o", (today, next) => {
 		expect(nextTermAfter(today)).toEqual(next);
+	});
+
+	it.each([
+		["2027-06-30", { year: 2027, term: "spring" }],
+		["2027-07-01", { year: 2027, term: "autumn" }],
+		["2027-12-31", { year: 2027, term: "autumn" }],
+	] as const)("%s belongs to %o", (day, term) => {
+		expect(termOfDay(day)).toEqual(term);
 	});
 
 	it.each(["2027-02-29", "2027-13-01", "27-01-01", "2027-1-5"])("rejects %s as a day", (value) => {
@@ -133,14 +144,15 @@ describe("Oslo time", () => {
 
 describe("link tokens", () => {
 	it("are URL-safe and unique", () => {
-		const tokens = new Set(Array.from({ length: 50 }, generateToken));
+		const tokens = new Set(Array.from({ length: 50 }, generateLinkToken));
 		expect(tokens.size).toBe(50);
 		for (const token of tokens) expect(token).toMatch(/^[A-Za-z0-9_-]{43}$/);
+		expect(LINK_TOKEN_LENGTH).toBe(43);
 	});
 
 	it("hash to the same value every time, and differently per token", async () => {
-		const token = generateToken();
-		expect(await hashToken(token)).toBe(await hashToken(token));
-		expect(await hashToken(token)).not.toBe(await hashToken(generateToken()));
+		const token = generateLinkToken();
+		expect(await hashLinkToken(token)).toBe(await hashLinkToken(token));
+		expect(await hashLinkToken(token)).not.toBe(await hashLinkToken(generateLinkToken()));
 	});
 });
