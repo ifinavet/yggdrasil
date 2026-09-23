@@ -1,3 +1,4 @@
+import type { FeedbackAnswers } from "@workspace/shared/feedback";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { asUser, grantRole, insertEvent, insertUser, setup } from "../../../test/fixtures";
 import { api } from "../../_generated/api";
@@ -245,7 +246,7 @@ describe("public token feedback", () => {
 			status: "invalid",
 		});
 	});
-	it.each([
+	it.each<FeedbackAnswers>([
 		{ satisfaction: 6 },
 		{ toughts: " " },
 		{ word_of_mouth: [] },
