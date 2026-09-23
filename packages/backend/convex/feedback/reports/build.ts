@@ -5,6 +5,7 @@ import { ConvexError, v } from "convex/values";
 import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import { internalMutation, type MutationCtx, mutation } from "../../_generated/server";
+import { getRegistrantStatistics } from "../../events/registrations/statistics";
 import { isReportFeatureEnabled, requireReportAccess } from "./access";
 
 export async function prepareReport(ctx: MutationCtx, campaignId: Id<"feedbackCampaigns">) {
@@ -48,6 +49,7 @@ export async function prepareReport(ctx: MutationCtx, campaignId: Id<"feedbackCa
 		recipientEmail: application?.contact.email ?? "",
 		status: "building",
 		questions: createReportQuestions(fields.data),
+		registrants: await getRegistrantStatistics(ctx, event._id),
 		totalResponses: 0,
 		buildCursor: null,
 		revision: 0,

@@ -21,7 +21,10 @@ export interface ReportTextAnswer {
 	text: string;
 	visible: boolean;
 }
+export type RegistrantStatistics = Record<string, Record<string, Record<string, number>>>;
+
 export interface FeedbackReport {
+	registrants?: RegistrantStatistics;
 	eventTitle: string;
 	eventStart: number;
 	companyName: string;

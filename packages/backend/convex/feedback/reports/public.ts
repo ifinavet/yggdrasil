@@ -39,6 +39,7 @@ export const readPage = internalQuery({
 					: null,
 				totalResponses: report.totalResponses,
 				questions: report.questions,
+				registrants: report.registrants,
 			},
 			answers: answers.page.map((answer) => ({
 				id: answer._id,

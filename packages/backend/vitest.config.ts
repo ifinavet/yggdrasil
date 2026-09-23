@@ -7,6 +7,7 @@ export default defineConfig({
 			enabled: true,
 			provider: "v8",
 			include: [
+				"convex/events/registrations/statistics.ts",
 				"convex/forms/{access,mutations,queries,responses,migrations}.ts",
 				"convex/feedback/forms/{helpers,mutations,queries}.ts",
 				"convex/feedback/responses/{access,actions,mutations,queries}.ts",

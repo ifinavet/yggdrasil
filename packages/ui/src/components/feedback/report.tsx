@@ -16,6 +16,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import NavetLogo from "../../assets/navet/logo_n_blaa.webp";
 import styles from "./report.module.css";
+import { RegistrationStatistics } from "./registration-statistics";
 
 function ReportDistribution({ question }: Readonly<{ question: ReportQuestion }>) {
 	return (
@@ -54,7 +55,6 @@ export function FeedbackReportView({
 	allowExport?: boolean;
 }>) {
 	const [exporting, setExporting] = useState(false);
-	const highlights = reportHighlights(report);
 	async function downloadCsv() {
 		setExporting(true);
 		try {
@@ -105,6 +105,24 @@ export function FeedbackReportView({
 					</Button>
 				) : null}
 			</div>
+			{report.registrants ? (
+				<div className="@container mb-8">
+					<RegistrationStatistics data={report.registrants} />
+				</div>
+			) : null}
+			<FeedbackReportResponses report={report} answers={answers} />
+		</article>
+	);
+}
+
+export function FeedbackReportResponses({
+	report,
+	answers,
+}: Readonly<{ report: FeedbackReport; answers: ReportTextAnswer[] }>) {
+	const highlights = reportHighlights(report);
+	return (
+		<>
+			{" "}
 			{report.totalResponses === 0 ? (
 				<p className={styles.empty}>Ingen tilbakemeldinger ble sendt inn.</p>
 			) : (
@@ -155,6 +173,6 @@ export function FeedbackReportView({
 					})}
 				</>
 			)}
-		</article>
+		</>
 	);
 }

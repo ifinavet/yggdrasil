@@ -2,18 +2,31 @@
 
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
+import { FeedbackReportResponses } from "@workspace/ui/components/feedback/report";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { ReportReview } from "./report-review";
 
 import { useFeedbackPreviewEnabled } from "./use-feedback-preview";
 
-export function EventFeedbackReport({ eventId }: Readonly<{ eventId: Id<"events"> }>) {
+export function EventFeedbackReport({
+	eventId,
+	summary = false,
+	fallback = null,
+}: Readonly<{ eventId: Id<"events">; summary?: boolean; fallback?: ReactNode }>) {
 	const enabled = useFeedbackPreviewEnabled();
-	return enabled ? <ReportContent eventId={eventId} /> : null;
+	return enabled ? (
+		<ReportContent eventId={eventId} summary={summary} fallback={fallback} />
+	) : (
+		fallback
+	);
 }
 
-function ReportContent({ eventId }: Readonly<{ eventId: Id<"events"> }>) {
+function ReportContent({
+	eventId,
+	summary,
+	fallback,
+}: Readonly<{ eventId: Id<"events">; summary: boolean; fallback: ReactNode }>) {
 	const data = useQuery(api.feedback.reports.queries.getEventReport, { eventId });
 	const prepare = useMutation(api.feedback.reports.build.prepare);
 	const [error, setError] = useState<string | null>(null);
@@ -40,11 +53,12 @@ function ReportContent({ eventId }: Readonly<{ eventId: Id<"events"> }>) {
 	}, [status, loadMore]);
 	if (error) return <p role="alert">{error}</p>;
 	if (data === undefined) return <p>Henter rapport …</p>;
-	if (data && !data.enabled) return null;
-	if (!data) return <p>Dette arrangementet har ingen innsamling.</p>;
+	if (data && !data.enabled) return fallback;
+	if (!data) return summary ? fallback : <p>Dette arrangementet har ingen innsamling.</p>;
 	if (data.campaignStatus !== "closed")
-		return <p>Rapporten blir tilgjengelig når innsamlingen er avsluttet.</p>;
+		return summary ? fallback : <p>Rapporten blir tilgjengelig når innsamlingen er avsluttet.</p>;
 	if (!report || report.status === "building" || status !== "Exhausted")
 		return <p>Klargjør rapport …</p>;
+	if (summary) return <FeedbackReportResponses report={report} answers={answers} />;
 	return <ReportReview report={report} answers={answers} deliveryEnabled={data.deliveryEnabled} />;
 }

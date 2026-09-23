@@ -3,12 +3,18 @@
 import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
 import { reportRecipientSchema } from "@workspace/shared/feedback/report";
-import { formatFeedbackDate } from "@workspace/shared/feedback/time";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { FeedbackReportView } from "@workspace/ui/components/feedback/report";
 import { Field, FieldError, FieldLabel } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
+import {
+	Sheet,
+	SheetContent,
+	SheetHeader,
+	SheetTitle,
+	SheetTrigger,
+} from "@workspace/ui/components/sheet";
 import { cn } from "@workspace/ui/lib/utils";
 import { useMutation } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
@@ -71,29 +77,22 @@ export function ReportReview({
 	const status = reportStatusLabel(report);
 	return (
 		<div className="w-full space-y-6">
-			<div className="flex flex-wrap items-start gap-4">
-				<div className="min-w-0 flex-1">
-					<h1 className="font-semibold text-3xl">Se gjennom før du deler</h1>
-				</div>
-				<Badge variant="secondary">{status}</Badge>
-			</div>
-			<div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.12fr)]">
-				<form
-					className="min-w-0 rounded-[10px] border bg-card"
-					onSubmit={(event) => {
-						event.preventDefault();
-						void form.handleSubmit();
-					}}
-				>
-					<fieldset disabled={busy} className="min-w-0 p-6">
-						<h2 className="font-semibold text-xl">Rapport for {report.companyName}</h2>
-						<p className="mt-2 text-muted-foreground">
-							<span className="block">{report.eventTitle}</span>
-							<span className="block">{formatFeedbackDate(report.eventStart, "d. MMMM yyyy")}</span>
-						</p>
+			<form
+				className="rounded-lg border bg-muted/40 p-5"
+				onSubmit={(event) => {
+					event.preventDefault();
+					void form.handleSubmit();
+				}}
+			>
+				<fieldset disabled={busy} className="space-y-4">
+					<div className="flex flex-wrap items-center justify-between gap-3">
+						<h1 className="font-semibold text-xl">Forhåndsvis rapport</h1>
+						<Badge variant="secondary">{status}</Badge>
+					</div>
+					<div className="flex flex-wrap items-end gap-4">
 						<form.Field name="recipientEmail">
 							{(field) => (
-								<Field className="my-7">
+								<Field className="w-full min-w-0 sm:w-auto sm:min-w-64 sm:flex-1">
 									<FieldLabel htmlFor="report-recipient">Send rapporten til</FieldLabel>
 									<Input
 										id="report-recipient"
@@ -108,71 +107,9 @@ export function ReportReview({
 								</Field>
 							)}
 						</form.Field>
-						<div className="flex items-center justify-between gap-3">
-							<h2 className="font-semibold text-xl">Tekstsvar</h2>
-							<Badge variant="secondary">
-								{answers.filter((answer) => !answer.visible).length} skjult
-							</Badge>
-						</div>
-						{report.questions
-							.filter((question) => question.type === "text" || question.allowOther)
-							.map((question) => (
-								<section key={question.key} className="mt-6">
-									<h3 className="mb-3 font-semibold">
-										{question.label}
-										{question.allowOther ? (
-											<span className="block font-normal text-muted-foreground text-sm">Annet</span>
-										) : null}
-									</h3>
-									{answers
-										.filter((answer) => answer.fieldKey === question.key)
-										.map((answer) => (
-											<div
-												key={answer.id}
-												className={cn(
-													"my-2 flex min-w-0 items-start gap-3 rounded-md p-3",
-													!answer.visible && "bg-muted text-muted-foreground",
-												)}
-											>
-												<blockquote className="wrap-break-word min-w-0 flex-1 whitespace-pre-wrap">
-													{answer.text}
-												</blockquote>
-												<Button
-													type="button"
-													variant="ghost"
-													size="icon"
-													disabled={locked}
-													title={
-														answer.visible ? "Skjul svaret fra rapporten" : "Vis svaret i rapporten"
-													}
-													aria-label={`${answer.visible ? "Skjul svaret fra rapporten" : "Vis svaret i rapporten"}: ${answer.text}`}
-													aria-pressed={answer.visible}
-													onClick={() =>
-														void perform(() =>
-															setVisibility({
-																reportId: report._id,
-																revision: report.revision,
-																answerId: answer.id,
-																visible: !answer.visible,
-															}),
-														)
-													}
-												>
-													{answer.visible ? (
-														<Eye aria-hidden="true" />
-													) : (
-														<EyeOff aria-hidden="true" />
-													)}
-												</Button>
-											</div>
-										))}
-								</section>
-							))}
-						<div className="mt-7 space-y-3">
+						<div className="flex flex-wrap items-center gap-3">
 							{!deliveryEnabled && !locked ? (
-								<p className="text-muted-foreground text-sm">
-									E-postutsending er slått av. Rapporten kan gjennomgås, men ikke sendes.
-								</p>
+								<p className="text-muted-foreground text-sm">E-postutsending er slått av.</p>
 							) : null}
 							{report.totalResponses === 0 ? (
 								<p>Rapporten har ingen svar og kan ikke sendes.</p>
@@ -184,12 +121,12 @@ export function ReportReview({
 							) : null}
 							{!locked ? (
 								<Button type="submit" disabled={!deliveryEnabled || report.totalResponses === 0}>
-									Godkjenn og send rapport
+									Bekreft og send rapport
 								</Button>
 							) : null}
 							{report.deliveryStatus === "failed" && report.status === "approved" ? (
 								<>
-									<p>Rapporten er godkjent, men e-posten ble ikke sendt. Prøv igjen.</p>
+									<p>E-posten ble ikke sendt.</p>
 									<Button
 										type="button"
 										disabled={!deliveryEnabled}
@@ -213,12 +150,89 @@ export function ReportReview({
 								</Button>
 							) : null}
 						</div>
-					</fieldset>
-				</form>
-				<div className="min-w-0 overflow-hidden rounded-[10px] border bg-card">
-					<div className="bg-muted/40 px-6 py-4 font-semibold">Dette ser bedriften</div>
-					<FeedbackReportView report={report} answers={answers} allowExport={false} />
-				</div>
+					</div>
+				</fieldset>
+			</form>
+			<div className="flex justify-end">
+				<Sheet>
+					<SheetTrigger asChild>
+						<Button variant="outline">Tekstsvar</Button>
+					</SheetTrigger>
+					<SheetContent className="overflow-y-auto sm:max-w-xl" aria-describedby={undefined}>
+						<SheetHeader>
+							<SheetTitle>Tekstsvar</SheetTitle>
+						</SheetHeader>
+						<div className="p-4">
+							<div className="flex items-center justify-between gap-3">
+								<h2 className="font-semibold text-xl">Tekstsvar</h2>
+								<Badge variant="secondary">
+									{answers.filter((answer) => !answer.visible).length} skjult
+								</Badge>
+							</div>
+							{report.questions
+								.filter((question) => question.type === "text" || question.allowOther)
+								.map((question) => (
+									<section key={question.key} className="mt-6">
+										<h3 className="mb-3 font-semibold">
+											{question.label}
+											{question.allowOther ? (
+												<span className="block font-normal text-muted-foreground text-sm">
+													Annet
+												</span>
+											) : null}
+										</h3>
+										{answers
+											.filter((answer) => answer.fieldKey === question.key)
+											.map((answer) => (
+												<div
+													key={answer.id}
+													className={cn(
+														"my-2 flex min-w-0 items-start gap-3 rounded-md p-3",
+														!answer.visible && "bg-muted text-muted-foreground",
+													)}
+												>
+													<blockquote className="wrap-break-word min-w-0 flex-1 whitespace-pre-wrap">
+														{answer.text}
+													</blockquote>
+													<Button
+														type="button"
+														variant="ghost"
+														size="icon"
+														disabled={locked || busy}
+														title={
+															answer.visible
+																? "Skjul svaret fra rapporten"
+																: "Vis svaret i rapporten"
+														}
+														aria-label={`${answer.visible ? "Skjul svaret fra rapporten" : "Vis svaret i rapporten"}: ${answer.text}`}
+														aria-pressed={answer.visible}
+														onClick={() =>
+															void perform(() =>
+																setVisibility({
+																	reportId: report._id,
+																	revision: report.revision,
+																	answerId: answer.id,
+																	visible: !answer.visible,
+																}),
+															)
+														}
+													>
+														{answer.visible ? (
+															<Eye aria-hidden="true" />
+														) : (
+															<EyeOff aria-hidden="true" />
+														)}
+													</Button>
+												</div>
+											))}
+									</section>
+								))}
+						</div>
+					</SheetContent>
+				</Sheet>
+			</div>
+			<div className="mx-auto max-w-[800px] overflow-hidden rounded-[10px] border bg-card">
+				<FeedbackReportView report={report} answers={answers} allowExport={false} />
 			</div>
 		</div>
 	);

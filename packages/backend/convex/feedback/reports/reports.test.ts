@@ -1,6 +1,7 @@
 import type { EmailEvent, EmailId } from "@convex-dev/resend";
 import { reportHighlights } from "@workspace/shared/feedback/report";
 import { feedbackReportCsv } from "@workspace/shared/feedback/report-csv";
+import { toBase64 } from "@workspace/shared/utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	asUser,
@@ -8,7 +9,9 @@ import {
 	insertApplication,
 	insertEvent,
 	insertOrganizer,
+	insertRegistration,
 	insertSemester,
+	insertStudent,
 	insertUser,
 	setup,
 } from "../../../test/fixtures";
@@ -124,6 +127,42 @@ afterEach(() => {
 });
 
 describe("company feedback reports", () => {
+	it("snapshots the dashboard's degree, program and year statistics without exposing participants", async () => {
+		const f = await fixture();
+		const program = "Informatikk: programmering og systemarkitektur";
+		const studentId = await insertStudent(f.t, f.user._id, { studyProgram: program, year: 2 });
+		await insertRegistration(f.t, f.eventId, f.user._id, "registered");
+		const second = await insertUser(f.t, "second@example.test");
+		await insertStudent(f.t, second._id, { studyProgram: program, year: 2 });
+		await insertRegistration(f.t, f.eventId, second._id, "registered");
+		const third = await insertUser(f.t, "third@example.test");
+		await insertStudent(f.t, third._id, { studyProgram: "Design", year: 1 });
+		await insertRegistration(f.t, f.eventId, third._id, "registered");
+		const unknown = await insertUser(f.t, "unknown@example.test");
+		await insertRegistration(f.t, f.eventId, unknown._id, "registered");
+		const waiting = await insertUser(f.t, "waiting@example.test");
+		await insertRegistration(f.t, f.eventId, waiting._id, "waitlist");
+		const dashboard = await f.client.query(api.events.registrations.queries.getRegistrantsInfo, {
+			eventIdentifier: f.eventId,
+		});
+		expect(dashboard).toEqual({
+			Bachelor: { [toBase64(program)]: { "2": 2 }, [toBase64("Design")]: { "1": 1 } },
+			Ukjent: { [toBase64("Ukjent")]: { "-1": 1 } },
+		});
+		const reportId = await queued(f);
+		await f.t.run((ctx) => ctx.db.patch(studentId, { year: 3 }));
+		const preview = await f.client.query(reports.queries.getEventReport, { eventId: f.eventId });
+		expect(preview?.enabled && preview.report?.registrants).toEqual(dashboard);
+		const page = await f.t.action(reports.public.resolveReport, { token, paginationOpts });
+		expect(page?.report.registrants).toEqual(dashboard);
+		expect(JSON.stringify(page)).not.toContain(f.user._id);
+		expect(JSON.stringify(page)).not.toContain("second@example.test");
+		expect(feedbackReportCsv(page!.report, page!.answers)).toContain(
+			`Grad: Bachelor;${program}, år 2;2`,
+		);
+		expect(await f.t.run((ctx) => ctx.db.get(reportId))).toMatchObject({ registrants: dashboard });
+	});
+
 	it("materializes all pages once with individual text entries and exact default questions", async () => {
 		const f = await fixture(28);
 		const reportId = await f.prepare();

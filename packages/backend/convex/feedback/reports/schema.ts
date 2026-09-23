@@ -23,6 +23,9 @@ export const feedbackReportSchema = {
 		),
 		questions: v.array(reportQuestion),
 		totalResponses: v.number(),
+		registrants: v.optional(
+			v.record(v.string(), v.record(v.string(), v.record(v.string(), v.number()))),
+		),
 		buildCursor: v.union(v.string(), v.null()),
 		revision: v.number(),
 		retentionAt: v.number(),
