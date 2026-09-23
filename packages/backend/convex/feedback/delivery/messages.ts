@@ -1,4 +1,5 @@
 import { type EmailId, Resend, vOnEmailEventArgs } from "@convex-dev/resend";
+import { featureFlags } from "@workspace/shared/feature-flags";
 import { feedbackTokenSchema } from "@workspace/shared/feedback";
 import { feedbackRoundAt } from "@workspace/shared/feedback/time";
 import { v } from "convex/values";
@@ -12,7 +13,6 @@ import {
 } from "../../_generated/server";
 import { isLocalDevelopment } from "../../auth/local";
 import { hashLinkToken } from "../../lib/tokens";
-import { feedbackConfig } from "../constants";
 
 export const feedbackResend: Resend = new Resend(components.feedbackResend, {
 	testMode: false,
@@ -31,7 +31,7 @@ async function deliveryContext(
 	round: number,
 	now: number,
 ) {
-	if (!feedbackConfig.emailsEnabled) return null;
+	if (!featureFlags.huginFeedback.emailsEnabled) return null;
 	const invite = await ctx.db.get(inviteId);
 	if (
 		!invite ||

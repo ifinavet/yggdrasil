@@ -1,7 +1,7 @@
+import { featureFlags } from "@workspace/shared/feature-flags";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import { query } from "../../_generated/server";
-import { feedbackConfig } from "../constants";
 import { isReportFeatureEnabled, requireReportAccess } from "./access";
 
 export const getEventReport = query({
@@ -21,7 +21,8 @@ export const getEventReport = query({
 			.unique();
 		return {
 			enabled: true as const,
-			deliveryEnabled: feedbackConfig.emailsEnabled && feedbackConfig.reportEmailsEnabled,
+			deliveryEnabled:
+				featureFlags.huginFeedback.emailsEnabled && featureFlags.huginFeedback.reportEmailsEnabled,
 			campaignId: campaign._id,
 			campaignStatus: campaign.status,
 			report: report
