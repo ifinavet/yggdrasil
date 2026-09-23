@@ -7,9 +7,10 @@ import {
 	BreadcrumbSeparator,
 } from "@workspace/ui/components//breadcrumb";
 import { Button } from "@workspace/ui/components//button";
-import { ChartPie, MessageSquare, Pencil, Users } from "lucide-react";
+import { ChartPie, Pencil, Users } from "lucide-react";
 import { headers } from "next/headers";
 import Link from "next/link";
+import { FeedbackPreviewLink } from "@/components/feedback/feedback-preview-link";
 
 export default async function Layout({
 	children,
@@ -56,11 +57,7 @@ export default async function Layout({
 							<Users className="size-4" /> Påmeldte
 						</Link>
 					</Button>
-					<Button asChild variant="link" className="text-foreground">
-						<Link href={`/events/${event_id}/feedback`}>
-							<MessageSquare className="size-4" /> Tilbakemeldinger
-						</Link>
-					</Button>
+					<FeedbackPreviewLink eventId={event_id} />
 					<Button asChild variant="link" className="text-foreground">
 						<Link href={`/events/${event_id}/report`}>
 							<ChartPie className="size-4" /> Rapport

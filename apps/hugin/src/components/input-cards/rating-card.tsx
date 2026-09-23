@@ -11,12 +11,14 @@ export function RatingCard({
 	field,
 	number,
 	label,
+	required = true,
 	low,
 	high,
 }: Readonly<{
 	field: AnyFieldApi;
 	number: number;
 	label: string;
+	required?: boolean;
 	low: string;
 	high: string;
 }>) {
@@ -39,7 +41,7 @@ export function RatingCard({
 				aria-labelledby={promptId}
 				aria-describedby={invalid ? errorId : undefined}
 				aria-invalid={invalid}
-				aria-required
+				aria-required={required}
 			>
 				<div className="grid grid-cols-5 gap-1.5">
 					{[1, 2, 3, 4, 5].map((rating) => {
