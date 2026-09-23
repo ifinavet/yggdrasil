@@ -21,6 +21,7 @@
 		"./local": "./local.ts",
 		"./utils": "./utils/index.ts",
 		"./feedback": "./feedback/index.ts",
+		"./feedback/constants": "./feedback/constants.ts",
 		"./feedback/time": "./feedback/time.ts",
 		"./semester/time": "./semester/time.ts",
 		"./semester/orgNumber": "./semester/orgNumber.ts",
