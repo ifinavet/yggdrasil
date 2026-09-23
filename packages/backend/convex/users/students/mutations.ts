@@ -4,6 +4,7 @@ import { internalMutation, mutation } from "../../_generated/server";
 import { adminRoles, userHasRole } from "../../auth/accessRights";
 import { getIdentity } from "../../auth/currentUser";
 import { getCurrentUserOrThrow } from "../clerk/queries";
+import { studentDegree } from "./schema";
 
 /**
  * Creates a student record for an external user id.
@@ -19,12 +20,7 @@ import { getCurrentUserOrThrow } from "../clerk/queries";
 export const createByExternalId = mutation({
 	args: {
 		externalId: v.string(),
-		degree: v.union(
-			v.literal("Årsstudium"),
-			v.literal("Bachelor"),
-			v.literal("Master"),
-			v.literal("PhD"),
-		),
+		degree: studentDegree,
 		year: v.number(),
 		studyProgram: v.string(),
 		name: v.string(),
@@ -81,12 +77,7 @@ export const updateCurrent = mutation({
 	args: {
 		year: v.number(),
 		studyProgram: v.string(),
-		degree: v.union(
-			v.literal("Årsstudium"),
-			v.literal("Bachelor"),
-			v.literal("Master"),
-			v.literal("PhD"),
-		),
+		degree: studentDegree,
 	},
 	handler: async (ctx, { year, studyProgram, degree }) => {
 		const user = await getCurrentUserOrThrow(ctx);
@@ -124,12 +115,7 @@ export const update = mutation({
 		id: v.id("students"),
 		year: v.number(),
 		studyProgram: v.string(),
-		degree: v.union(
-			v.literal("Årsstudium"),
-			v.literal("Bachelor"),
-			v.literal("Master"),
-			v.literal("PhD"),
-		),
+		degree: studentDegree,
 	},
 	handler: async (ctx, { id, year, studyProgram, degree }) => {
 		const user = await getCurrentUserOrThrow(ctx);

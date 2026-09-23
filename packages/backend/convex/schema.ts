@@ -7,6 +7,7 @@ import { formsSchema } from "./forms/schema";
 import { jobListingsSchema } from "./jobListings/schema";
 import { pagesSchema } from "./pages/schema";
 import { pointsSchema } from "./points/schema";
+import { semesterPlanningSchema } from "./semesterPlanning/schema";
 import { usersSchema } from "./users/clerk/schema";
 import { organizationSchema } from "./users/organization/schema";
 import { studentsSchema } from "./users/students/schema";
@@ -23,4 +24,5 @@ export default defineSchema({
 	...formsSchema,
 	...feedbackSchema,
 	...accessSchema,
+	...semesterPlanningSchema,
 });
