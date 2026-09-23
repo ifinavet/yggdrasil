@@ -1,9 +1,9 @@
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
+import { Title } from "@workspace/ui/components/title";
 import { fetchQuery } from "convex/nextjs";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
-import { Title } from "@/components/common/title";
 import JobListingBanner from "@/components/job-listings/job-listing-banner";
 import JobListingCard from "@/components/job-listings/job-listing-card";
 import FilterJobListings from "@/components/job-listings/job-listings-filter";

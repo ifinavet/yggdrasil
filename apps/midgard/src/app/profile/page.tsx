@@ -1,11 +1,11 @@
 import { getAuthToken } from "@workspace/auth";
 import { auth } from "@workspace/auth/server";
 import { api } from "@workspace/backend/convex/api";
+import ResponsiveCenterContainer from "@workspace/ui/components/responsive-center-container";
+import { Title } from "@workspace/ui/components/title";
 import { preloadQuery } from "convex/nextjs";
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
-import { Title } from "@/components/common/title";
 import Points from "@/components/profile/points";
 import Registrations from "@/components/profile/registrations";
 import UpdateProfileForm from "@/components/profile/update-profile-form";

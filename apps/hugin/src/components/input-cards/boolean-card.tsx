@@ -1,56 +1,59 @@
 import type { AnyFieldApi } from "@tanstack/react-form";
-import { Card } from "@workspace/ui/components/card";
-import { Field, FieldError, FieldGroup, FieldLabel } from "@workspace/ui/components/field";
 import { Label } from "@workspace/ui/components/label";
 import { RadioGroup, RadioGroupItem } from "@workspace/ui/components/radio-group";
+import { cn } from "@workspace/ui/lib/utils";
+import { fieldErrorText, isFieldInvalid, QuestionBlock, questionIds } from "./question-block";
+
+const CHOICES = [
+	{ value: "ja", text: "Ja" },
+	{ value: "nei", text: "Nei" },
+] as const;
 
 export function BooleanCard({
 	field,
+	number,
 	label,
-	required,
-	readonly,
-}: Readonly<{
-	field: AnyFieldApi;
-	label: string;
-	required?: boolean;
-	readonly?: boolean;
-}>) {
-	const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+}: Readonly<{ field: AnyFieldApi; number: number; label: string }>) {
+	const invalid = isFieldInvalid(field);
+	const { promptId, errorId } = questionIds(field.name);
 
 	return (
-		<Card>
-			<FieldGroup className="p-4">
-				<Field data-invalid={isInvalid}>
-					<FieldLabel htmlFor={field.name} className="pb-4 text-base">
-						{label}
-						{required && <span className="text-red-500">*</span>}
-					</FieldLabel>
-					<div className="">
-						<RadioGroup
-							value={field.state.value}
-							onValueChange={(value) => field.handleChange(value)}
-							className="w-fit space-y-4"
-							disabled={readonly}
-						>
-							<div className="flex items-center gap-3">
-								<RadioGroupItem value="ja" id={`${field.name}_ja`} className="size-6" />
-								<Label htmlFor={`${field.name}_ja`}>Ja</Label>
-							</div>
-							<div className="flex items-center gap-3">
-								<RadioGroupItem value="nei" id={`${field.name}_nei`} className="size-6" />
-								<Label htmlFor={`${field.name}_nei`}>Nei</Label>
-							</div>
-						</RadioGroup>
-					</div>
-					{field.state.meta.errors?.length > 0 && (
-						<FieldError>
-							{field.state.meta.errors
-								.map((e: { message?: string } | string) => (typeof e === "string" ? e : e?.message))
-								.join(", ")}
-						</FieldError>
-					)}
-				</Field>
-			</FieldGroup>
-		</Card>
+		<QuestionBlock
+			name={field.name}
+			number={number}
+			label={label}
+			invalid={invalid}
+			error={fieldErrorText(field)}
+		>
+			<RadioGroup
+				value={field.state.value}
+				onValueChange={(next) => field.handleChange(next)}
+				className="grid grid-cols-2 gap-2"
+				aria-labelledby={promptId}
+				aria-describedby={invalid ? errorId : undefined}
+				aria-invalid={invalid}
+				aria-required
+			>
+				{CHOICES.map(({ value, text }) => {
+					const id = `${field.name}_${value}`;
+					const selected = field.state.value === value;
+
+					return (
+						<div key={value} className="relative">
+							<RadioGroupItem value={value} id={id} className="peer sr-only" />
+							<Label
+								htmlFor={id}
+								className={cn(
+									"grid h-[54px] cursor-pointer place-items-center rounded-xl border bg-card font-semibold text-[15px] transition-[background-color,border-color,color] duration-150 peer-focus-visible:outline-3 peer-focus-visible:outline-[color-mix(in_oklab,var(--ring)_55%,transparent)] peer-focus-visible:outline-offset-2",
+									selected ? "border-primary bg-primary text-primary-foreground" : "border-input",
+								)}
+							>
+								{text}
+							</Label>
+						</div>
+					);
+				})}
+			</RadioGroup>
+		</QuestionBlock>
 	);
 }

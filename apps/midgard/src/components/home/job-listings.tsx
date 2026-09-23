@@ -1,9 +1,9 @@
 import { api } from "@workspace/backend/convex/api";
 import { Button } from "@workspace/ui/components/button";
+import ResponsiveCenterContainer from "@workspace/ui/components/responsive-center-container";
 import { fetchQuery } from "convex/nextjs";
 import { cacheLife } from "next/cache";
 import Link from "next/link";
-import ResponsiveCenterContainer from "../common/responsive-center-container";
 import JobListingCard from "../job-listings/job-listing-card";
 
 export default async function JobListings() {

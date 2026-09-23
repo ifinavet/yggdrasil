@@ -1,5 +1,5 @@
+import ResponsiveCenterContainer from "@workspace/ui/components/responsive-center-container";
 import { Skeleton } from "@workspace/ui/components/skeleton";
-import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
 import TwoColumns from "@/components/common/two-columns";
 import ButtonSkeleton from "@/components/loaders/button-skeleton";
 import EventsCarouselSkeleton from "@/components/loaders/home/events-carousel-skeleton";

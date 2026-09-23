@@ -1,15 +1,15 @@
 import { api } from "@workspace/backend/convex/api";
 import { Avatar, AvatarFallback, AvatarImage } from "@workspace/ui/components/avatar";
 import { Button } from "@workspace/ui/components/button";
+import ResponsiveCenterContainer from "@workspace/ui/components/responsive-center-container";
 import { Separator } from "@workspace/ui/components/separator";
+import { Title } from "@workspace/ui/components/title";
 import { cn } from "@workspace/ui/lib/utils";
 import { fetchQuery } from "convex/nextjs";
 import { cacheLife } from "next/cache";
 import Image from "next/image";
 import NavetN from "@/assets/navet/logo_n_blaa.webp";
 import Navet from "@/assets/promo_images/navet.webp";
-import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
-import { Title } from "@/components/common/title";
 import TwoColumns from "@/components/common/two-columns";
 
 export default async function OrganizationPage() {

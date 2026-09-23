@@ -1,10 +1,11 @@
 import { getAuthToken } from "@workspace/auth";
 import { auth } from "@workspace/auth/server";
 import { api } from "@workspace/backend/convex/api";
+import { humanReadableDate } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";
 import { fetchQuery } from "convex/nextjs";
 import Link from "next/link";
+import { FormStatePanel } from "@/components/form-state-panel";
 import { ReadonlyEventResponseForm, type ResponseData } from "./readonly-form";
 
 export default async function EventFeedbackResponsePage({
@@ -34,38 +35,32 @@ export default async function EventFeedbackResponsePage({
 
 	if (!response) {
 		return (
-			<div className="grid h-[calc(100vh-6rem)] place-content-center bg-background p-4">
-				<div className="w-full max-w-lg space-y-6">
-					<Card>
-						<CardHeader className="text-center">
-							<CardTitle className="font-bold text-2xl">
-								Det ser ut til at du ikke har besvart spørreskjema
-							</CardTitle>
-						</CardHeader>
-						<CardContent className="space-y-6 text-center">
-							<p className="text-muted-foreground">
-								Vi hadde satt veldig pris på om du ville svare på spørreskjema. Tykk på knappen
-								under for å bli tatt til skjema.
-							</p>
-
-							<Button asChild className="w-full">
-								<Link href={`/event-feedback/${event.slug ?? event._id}`}>Gå til spørreskjema</Link>
-							</Button>
-						</CardContent>
-					</Card>
-				</div>
+			<div className="mx-auto w-full max-w-3xl">
+				<FormStatePanel
+					title="Du har ikke svart på dette skjemaet ennå"
+					body="Vi hadde satt stor pris på om du ville svare. Trykk på knappen under for å gå til skjemaet."
+					action={
+						<Button asChild className="h-[52px] w-full rounded-[13px] font-semibold text-[15.5px]">
+							<Link href={`/event-feedback/${event.slug ?? event._id}`}>Gå til spørreskjemaet</Link>
+						</Button>
+					}
+				/>
 			</div>
 		);
 	}
 
 	return (
-		<div className="mx-auto mb-8 max-w-3xl">
-			<div className="prose dark:prose-invert max-w-[80ch] py-4 pb-8 prose-h1:text-primary dark:prose-h1:text-primary-foreground">
-				<h1>Her er ditt svar på spørre skjema for arrangementet "{event.title}"</h1>
-				<p>Takk for at du kom på Bedriftspresentasjonen vår og at du fylte ut spørreskjema vårt.</p>
+		<div className="mx-auto flex min-h-full w-full max-w-3xl flex-col">
+			<div className="pt-1.5">
+				<h1 className="m-0 mb-1.5 font-bold text-[21px] text-primary leading-[1.22] tracking-[-0.015em]">
+					Svaret ditt
+				</h1>
+				<p className="m-0 text-[13.5px] text-muted-foreground tabular-nums">
+					{event.title} · {humanReadableDate(new Date(event.eventStart))}
+				</p>
 			</div>
 
-			{response && <ReadonlyEventResponseForm data={response.data as ResponseData} />}
+			<ReadonlyEventResponseForm data={response.data as ResponseData} />
 		</div>
 	);
 }

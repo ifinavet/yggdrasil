@@ -1,11 +1,13 @@
 "use client";
 
-import { useForm } from "@tanstack/react-form";
+import { useForm, useStore } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
-import { Button } from "@workspace/ui/components/button";
+import { cn } from "@workspace/ui/lib/utils";
 import { useMutation } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
+import { CircleAlert } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import {
 	BooleanCard,
@@ -13,7 +15,14 @@ import {
 	RatingCard,
 	TextInputCard,
 } from "@/components/input-cards";
+import {
+	missingRequiredFields,
+	questionOrder,
+	requiredQuestionCount,
+} from "@/lib/event-feedback-questions";
 import { eventResponseFromSchema } from "@/lib/schema/event-feedback-schema";
+
+const CONTROL_SELECTOR = 'button[role="radio"], button[role="checkbox"], textarea, input';
 
 export function EventResponseForm({
 	event,
@@ -21,6 +30,9 @@ export function EventResponseForm({
 }: Readonly<{ event: FunctionReturnType<typeof api.events.queries.getEvent>; userId: string }>) {
 	const formResponseMutation = useMutation(api.forms.mutations.submitFormResponse);
 	const router = useRouter();
+	const formElement = useRef<HTMLFormElement>(null);
+	const [showMissingSummary, setShowMissingSummary] = useState(false);
+
 	const form = useForm({
 		defaultValues: {
 			satisfaction: 0,
@@ -43,7 +55,10 @@ export function EventResponseForm({
 			}
 
 			try {
-				formResponseMutation({
+				// Await the write: the response page reads it back straight away, and
+				// navigating before the mutation is confirmed told a student who had
+				// just answered that they had not answered.
+				await formResponseMutation({
 					formId,
 					data: {
 						userId,
@@ -62,98 +77,162 @@ export function EventResponseForm({
 		},
 	});
 
+	const values = useStore(form.store, (state) => state.values);
+	const isSubmitting = useStore(form.store, (state) => state.isSubmitting);
+
+	const missing = missingRequiredFields(values);
+	const answered = requiredQuestionCount - missing.length;
+
+	const send = async () => {
+		const missingNow = missingRequiredFields(form.state.values);
+		setShowMissingSummary(missingNow.length > 0);
+
+		await form.handleSubmit();
+
+		if (missingNow.length === 0) return;
+
+		const block = formElement.current?.querySelector<HTMLElement>(
+			`[data-question="${missingNow[0]}"]`,
+		);
+		block?.scrollIntoView({ block: "center", behavior: "smooth" });
+
+		window.setTimeout(() => {
+			block?.querySelector<HTMLElement>(CONTROL_SELECTOR)?.focus({ preventScroll: true });
+		}, 400);
+	};
+
+	const showMissingInDock = showMissingSummary && missing.length > 0;
+
 	return (
 		<form
-			onSubmit={(e) => {
-				e.preventDefault();
-				form.handleSubmit();
+			ref={formElement}
+			onSubmit={(event_) => {
+				event_.preventDefault();
+				void send();
 			}}
-			className="space-y-4"
+			className="flex flex-1 flex-col"
+			noValidate
 		>
-			<form.Field name="satisfaction">
-				{(field) => (
-					<RatingCard
-						field={field}
-						label="Hvordan syntes du arrangementet var?"
-						lowLabel="Veldig Dårlig"
-						highLabel="Veldig Bra"
-						required
-					/>
-				)}
-			</form.Field>
-			<form.Field name="impression">
-				{(field) => (
-					<RatingCard
-						field={field}
-						label="Hvilket inntrykk fikk du av bedriften?"
-						lowLabel="Veldig Dårlig"
-						highLabel="Veldig Bra"
-						required
-					/>
-				)}
-			</form.Field>
-			<form.Field name="expectation">
-				{(field) => (
-					<RatingCard
-						field={field}
-						label="Var arrangementet som forventet?"
-						lowLabel="Dårligere enn forventet"
-						highLabel="Bedre enn forventet"
-						required
-					/>
-				)}
-			</form.Field>
-			<form.Field name="toughts">
-				{(field) => (
-					<TextInputCard
-						field={field}
-						label="Hva syntes du om arrangementet og bedriften?"
-						placeholder="Svaret ditt"
-						required
-					/>
-				)}
-			</form.Field>
-			<form.Field name="improvements">
-				{(field) => (
-					<TextInputCard
-						field={field}
-						label="Hva kunne gjort arrangementet bedre?"
-						placeholder="Svaret ditt"
-						required
-					/>
-				)}
-			</form.Field>
-			<form.Field name="want_to_work">
-				{(field) => (
-					<BooleanCard
-						field={field}
-						label="Kan du tenkte deg å jobbe for denne bedriften?"
-						required
-					/>
-				)}
-			</form.Field>
-			<form.Field name="word_of_mouth">
-				{(field) => (
-					<MultipleOptionsCard
-						field={field}
-						label="Hvordan fikk du vite om arrangementet?"
-						options={[
-							"Ifinavet.no",
-							"Stand utenfor Simula",
-							"Facebook (IFI-studenter)",
-							"Facebook (Arrangementside)",
-							"Instagram",
-							"Venner",
-						]}
-						required
-					/>
-				)}
-			</form.Field>
-			<form.Field name="other">
-				{(field) => <TextInputCard field={field} label="Annet?" placeholder="Svaret ditt" />}
-			</form.Field>
+			<div className="flex-1">
+				<div className="sticky top-0 z-4 flex items-center gap-2.5 bg-background py-3">
+					<span className="whitespace-nowrap font-semibold text-[12.5px] text-muted-foreground tabular-nums">
+						{answered} av {requiredQuestionCount} besvart
+					</span>
+					<span className="h-1 flex-1 overflow-hidden rounded-full bg-secondary">
+						<span
+							className="block h-full rounded-full bg-primary transition-[width] duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
+							style={{ width: `${(answered / requiredQuestionCount) * 100}%` }}
+						/>
+					</span>
+				</div>
 
-			<Button type="submit">Send inn svar</Button>
+				{showMissingSummary && missing.length > 0 && (
+					<div
+						role="alert"
+						className="mt-3.5 flex items-start gap-2.5 rounded-xl border border-[color-mix(in_oklab,var(--destructive)_42%,var(--border))] bg-[color-mix(in_oklab,var(--destructive)_7%,var(--card))] px-[14px] py-[13px] text-[13.5px] text-[color-mix(in_oklab,var(--destructive)_82%,var(--foreground))]"
+					>
+						<CircleAlert className="mt-0.5 size-4 flex-none" />
+						<span>
+							Vi mangler svar på {missing.length} spørsmål. Det første står rett under, resten er
+							merket med rødt.
+						</span>
+					</div>
+				)}
+
+				{/* Bottom clearance must exceed the sticky dock, or the last question
+				    can never scroll clear of it and taps land on submit. */}
+				<div className="pb-[110px]">
+					{questionOrder.map((entry, index) => {
+						const number = index + 1;
+
+						if (entry.kind === "rating") {
+							return (
+								<form.Field key={entry.question.id} name={entry.question.id}>
+									{(field) => (
+										<RatingCard
+											field={field}
+											number={number}
+											label={entry.question.label}
+											low={entry.question.low}
+											high={entry.question.high}
+										/>
+									)}
+								</form.Field>
+							);
+						}
+
+						if (entry.kind === "text") {
+							return (
+								<form.Field key={entry.question.id} name={entry.question.id}>
+									{(field) => (
+										<TextInputCard
+											field={field}
+											number={number}
+											label={entry.question.label}
+											placeholder={entry.question.placeholder}
+											required={!entry.question.optional}
+										/>
+									)}
+								</form.Field>
+							);
+						}
+
+						if (entry.kind === "yesNo") {
+							return (
+								<form.Field key={entry.question.id} name={entry.question.id}>
+									{(field) => (
+										<BooleanCard field={field} number={number} label={entry.question.label} />
+									)}
+								</form.Field>
+							);
+						}
+
+						return (
+							<form.Field key={entry.question.id} name={entry.question.id}>
+								{(field) => (
+									<MultipleOptionsCard
+										field={field}
+										number={number}
+										label={entry.question.label}
+										options={entry.question.options}
+									/>
+								)}
+							</form.Field>
+						);
+					})}
+				</div>
+			</div>
+
+			<div className="sticky bottom-0 z-6 border-border border-t bg-[color-mix(in_oklab,var(--background)_92%,transparent)] py-3 backdrop-blur-[6px]">
+				<div className="flex items-center gap-3">
+					<span
+						role="status"
+						aria-live="polite"
+						className={cn(
+							"whitespace-nowrap font-semibold text-[12.5px] tabular-nums",
+							showMissingInDock ? "text-destructive" : "text-muted-foreground",
+						)}
+					>
+						{showMissingInDock
+							? `${missing.length} felt mangler svar`
+							: `${answered} / ${requiredQuestionCount}`}
+					</span>
+					<button
+						type="submit"
+						disabled={isSubmitting}
+						className="grid h-[52px] flex-1 place-items-center rounded-[13px] bg-primary font-semibold text-[15.5px] text-primary-foreground shadow-[0_12px_20px_-14px_rgba(31,40,71,0.95)] transition-transform duration-100 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-55"
+					>
+						{isSubmitting ? (
+							<span className="flex items-center">
+								<span className="mr-2 inline-block size-4 animate-spin rounded-full border-2 border-[color-mix(in_oklab,var(--primary-foreground)_40%,transparent)] border-t-primary-foreground align-[-3px]" />{" "}
+								Sender …
+							</span>
+						) : (
+							"Send inn svar"
+						)}
+					</button>
+				</div>
+			</div>
 		</form>
 	);
 }

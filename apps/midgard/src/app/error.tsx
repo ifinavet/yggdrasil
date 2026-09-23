@@ -1,11 +1,11 @@
 "use client";
 
 import { Button } from "@workspace/ui/components/button";
+import ResponsiveCenterContainer from "@workspace/ui/components/responsive-center-container";
 import { AlertTriangle, Home, RefreshCcw } from "lucide-react";
 import Link from "next/link";
 import posthog from "posthog-js";
 import { useEffect, useMemo } from "react";
-import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
 
 function getErrorMessage(error: unknown): string {
 	if (!error) return "Ukjent feil.";

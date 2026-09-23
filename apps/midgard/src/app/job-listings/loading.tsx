@@ -1,6 +1,6 @@
 import { placeholderKeys } from "@workspace/shared/utils";
 import { Skeleton } from "@workspace/ui/components/skeleton";
-import { Title } from "@/components/common/title";
+import { Title } from "@workspace/ui/components/title";
 import JobListingBanner from "@/components/job-listings/job-listing-banner";
 import JobListingCardSkeleton from "@/components/loaders/job-listing-card-skeleton";
 import TitleSkeleton from "@/components/loaders/title-skeleton";

@@ -29,6 +29,7 @@ import {
 	InputOTPSeparator,
 	InputOTPSlot,
 } from "@workspace/ui/components/input-otp";
+import ResponsiveCenterContainer from "@workspace/ui/components/responsive-center-container";
 import {
 	Select,
 	SelectContent,
@@ -36,14 +37,13 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@workspace/ui/components/select";
+import { Title } from "@workspace/ui/components/title";
 import { useMutation } from "convex/react";
 import { ConvexError } from "convex/values";
 import { useRouter } from "next/navigation";
 import { usePostHog } from "posthog-js/react";
 import { useEffect, useRef, useState } from "react";
 import z from "zod/v4";
-import ResponsiveCenterContainer from "@/components/common/responsive-center-container";
-import { Title } from "@/components/common/title";
 
 const signUpFormSchema = z
 	.object({
