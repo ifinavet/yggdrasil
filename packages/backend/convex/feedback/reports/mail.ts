@@ -22,7 +22,7 @@ export const sendReportEmail = internalAction({
 				isLocalDevelopment() ? "http://localhost:3003" : feedbackConfig.huginBaseUrl,
 			);
 			if (origin.protocol !== "https:" && !isLocalDevelopment())
-				throw new Error("HUGIN_BASE_URL must use HTTPS");
+				throw new Error("feedbackConfig.huginBaseUrl must use HTTPS");
 			const token = generateLinkToken();
 			const url = new URL("/report", origin);
 			url.hash = new URLSearchParams({ token }).toString();
