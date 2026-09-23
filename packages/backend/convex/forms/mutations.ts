@@ -1,23 +1,49 @@
-import { v } from "convex/values";
+import { feedbackErrors } from "@workspace/shared/feedback";
+import { ConvexError, v } from "convex/values";
 import { internalMutation, mutation } from "../_generated/server";
 import { getCurrentUserOrThrow } from "../auth/currentUser";
+import { defaultFeedbackFields } from "../feedback/defaultFields";
+import { canSubmitEventFeedback } from "./access";
 
-/**
- * Inserts a response into a form.
- *
- * @param {Id<"form">} formId - The id of the form receiving the response.
- * @param {Record<string, any>} data - The submitted response payload.
- *
- * @throws - An error if the current user cannot be resolved.
- * @returns {null} - Returns null when the response is stored successfully.
- */
+/** Stores feedback once per eligible user, preserving the legacy response shape. */
 export const submitFormResponse = mutation({
 	args: {
 		formId: v.id("form"),
 		data: v.record(v.string(), v.any()),
 	},
 	handler: async (ctx, { formId, data }) => {
-		await getCurrentUserOrThrow(ctx);
+		const user = await getCurrentUserOrThrow(ctx);
+		const form = await ctx.db.get(formId);
+		if (!form) throw new ConvexError("Skjemaet finnes ikke.");
+
+		if (form.formType === "event-feedback") {
+			const events = await ctx.db
+				.query("events")
+				.withIndex("by_formId", (q) => q.eq("formId", formId))
+				.take(2);
+			const event = events[0];
+			if (!event || events.length > 1)
+				throw new ConvexError("Skjemaet må tilhøre ett arrangement.");
+			if (!(await canSubmitEventFeedback(ctx, event._id, user._id))) {
+				throw new ConvexError("Du kan ikke svare på dette skjemaet.");
+			}
+			const { userId, eventId, ...answers } = data;
+			if (
+				(userId !== undefined && userId !== user.externalId) ||
+				(eventId !== undefined && eventId !== event._id)
+			) {
+				throw new ConvexError("Svaret tilhører ikke denne brukeren og dette arrangementet.");
+			}
+			const errors = feedbackErrors(defaultFeedbackFields, answers);
+			if (Object.keys(errors).length > 0) throw new ConvexError("Svaret inneholder ugyldige felt.");
+			const previous = await ctx.db
+				.query("formResponses")
+				.withIndex("by_formId", (q) => q.eq("formId", formId))
+				.filter((q) => q.eq(q.field("data.userId"), user.externalId))
+				.first();
+			if (previous) throw new ConvexError("Du har allerede svart på dette skjemaet.");
+			data = { ...answers, userId: user.externalId, eventId: event._id };
+		}
 
 		await ctx.db.insert("formResponses", {
 			formId,
