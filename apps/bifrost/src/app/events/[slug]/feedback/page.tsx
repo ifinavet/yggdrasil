@@ -2,8 +2,8 @@ import { getAuthToken } from "@workspace/auth";
 import { api } from "@workspace/backend/convex/api";
 import { fetchQuery } from "convex/nextjs";
 import { Suspense } from "react";
-import { FeedbackReportLink } from "@/components/feedback/feedback-report-link";
 import { EventFeedbackSettings } from "@/components/feedback/event-feedback-settings";
+import { FeedbackReportLink } from "@/components/feedback/feedback-report-link";
 
 export default function EventFeedbackPage({
 	params,

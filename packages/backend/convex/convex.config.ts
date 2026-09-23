@@ -6,7 +6,12 @@ import { defineApp } from "convex/server";
 import { v } from "convex/values";
 
 const app = defineApp({
-	env: { FEEDBACK_EMAILS_ENABLED: v.optional(v.string()), HUGIN_BASE_URL: v.optional(v.string()) },
+	env: {
+		FEEDBACK_REPORTS_ENABLED: v.optional(v.string()),
+		FEEDBACK_REPORT_EMAILS_ENABLED: v.optional(v.string()),
+		FEEDBACK_EMAILS_ENABLED: v.optional(v.string()),
+		HUGIN_BASE_URL: v.optional(v.string()),
+	},
 });
 app.use(resend);
 // Resend stores callback options per component, so feedback needs its own delivery queue.

@@ -1,6 +1,10 @@
 "use client";
 
-import type { FeedbackReport, ReportQuestion, ReportTextAnswer } from "@workspace/shared/feedback/report";
+import type {
+	FeedbackReport,
+	ReportQuestion,
+	ReportTextAnswer,
+} from "@workspace/shared/feedback/report";
 import { reportHighlights } from "@workspace/shared/feedback/report";
 import { formatFeedbackDate } from "@workspace/shared/feedback/time";
 import { Button } from "@workspace/ui/components/button";
@@ -19,8 +23,17 @@ function ReportDistribution({ question }: Readonly<{ question: ReportQuestion }>
 			{question.buckets.map((bucket) => (
 				<div className={styles.barRow} key={bucket.value}>
 					<span>{bucket.label}</span>
-					<Progress.Root className={styles.track} value={bucket.count} max={Math.max(question.answered, 1)} aria-label={`${question.label}: ${bucket.label}`} getValueLabel={(value) => `${value} av ${question.answered} svar`}>
-						<Progress.Indicator className={styles.fill} style={{ width: `${bucket.count / Math.max(question.answered, 1) * 100}%` }} />
+					<Progress.Root
+						className={styles.track}
+						value={bucket.count}
+						max={Math.max(question.answered, 1)}
+						aria-label={`${question.label}: ${bucket.label}`}
+						getValueLabel={(value) => `${value} av ${question.answered} svar`}
+					>
+						<Progress.Indicator
+							className={styles.fill}
+							style={{ width: `${(bucket.count / Math.max(question.answered, 1)) * 100}%` }}
+						/>
 					</Progress.Root>
 					<span className={styles.count}>{bucket.count}</span>
 				</div>
@@ -29,10 +42,16 @@ function ReportDistribution({ question }: Readonly<{ question: ReportQuestion }>
 	);
 }
 
-export function FeedbackReportView({ report, answers, className }: Readonly<{
+export function FeedbackReportView({
+	report,
+	answers,
+	className,
+	allowExport = true,
+}: Readonly<{
 	report: FeedbackReport;
 	answers: ReportTextAnswer[];
 	className?: string;
+	allowExport?: boolean;
 }>) {
 	const [exporting, setExporting] = useState(false);
 	const highlights = reportHighlights(report);
@@ -57,32 +76,85 @@ export function FeedbackReportView({ report, answers, className }: Readonly<{
 		<article className={cn(styles.report, className)}>
 			<div className={styles.brands}>
 				<Image src={NavetLogo} alt="Navet" className={styles.navetLogo} />
-				{report.companyLogoUrl ? <Image src={report.companyLogoUrl} alt={report.companyName} width={148} height={38} className={styles.companyLogo} unoptimized /> : null}
+				{report.companyLogoUrl ? (
+					<Image
+						src={report.companyLogoUrl}
+						alt={report.companyName}
+						width={148}
+						height={38}
+						className={styles.companyLogo}
+						unoptimized
+					/>
+				) : (
+					<span className="font-semibold">{report.companyName}</span>
+				)}
 			</div>
 			<h2 className={styles.heading}>Rapport fra bedriftspresentasjon</h2>
 			<div className={styles.actions}>
 				<p>{formatFeedbackDate(report.eventStart, "d. MMMM yyyy")}</p>
-				<Button variant="outline" size="sm" className={styles.csvButton} onClick={downloadCsv} disabled={exporting}>
-					<Download aria-hidden="true" />{exporting ? "Eksporterer…" : "Last ned CSV"}
-				</Button>
+				{allowExport ? (
+					<Button
+						variant="outline"
+						size="sm"
+						className={styles.csvButton}
+						onClick={downloadCsv}
+						disabled={exporting}
+					>
+						<Download aria-hidden="true" />
+						{exporting ? "Eksporterer…" : "Last ned CSV"}
+					</Button>
+				) : null}
 			</div>
-			{report.totalResponses === 0 ? <p className={styles.empty}>Ingen tilbakemeldinger ble sendt inn.</p> : <>
-				<div className={styles.highlights} aria-label="Høydepunkter">
-					<div><strong>{report.totalResponses}</strong><span>tilbakemeldinger</span></div>
-					{highlights.rating !== null ? <div><strong>{highlights.rating.toLocaleString("nb-NO", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} <small>/ 5</small></strong><span>arrangementet</span></div> : null}
-					{highlights.employment !== null ? <div><strong>{Math.round(highlights.employment * 100)} %</strong><span>kan tenke seg å jobbe her</span></div> : null}
-				</div>
-				{report.questions.map((question) => {
-					const textAnswers = answers.filter((answer) => answer.visible && answer.fieldKey === question.key);
-					return <section key={question.key} className={styles.question}>
-						<h3>{question.label}</h3>
-						<ReportDistribution question={question} />
-						{question.type === "options" && textAnswers.length > 0 ? <h4>Utdypinger fra «Annet»</h4> : null}
-						{textAnswers.map((answer) => <blockquote key={answer.id}>{answer.text}</blockquote>)}
-						{question.type === "text" && textAnswers.length === 0 ? <p className={styles.muted}>Ingen tekstsvar deles for dette spørsmålet.</p> : null}
-					</section>;
-				})}
-			</>}
+			{report.totalResponses === 0 ? (
+				<p className={styles.empty}>Ingen tilbakemeldinger ble sendt inn.</p>
+			) : (
+				<>
+					<div className={styles.highlights} aria-label="Høydepunkter">
+						<div>
+							<strong>{report.totalResponses}</strong>
+							<span>tilbakemeldinger</span>
+						</div>
+						{highlights.rating !== null ? (
+							<div>
+								<strong>
+									{highlights.rating.toLocaleString("nb-NO", {
+										minimumFractionDigits: 1,
+										maximumFractionDigits: 1,
+									})}{" "}
+									<small>/ 5</small>
+								</strong>
+								<span>arrangementet</span>
+							</div>
+						) : null}
+						{highlights.employment !== null ? (
+							<div>
+								<strong>{Math.round(highlights.employment * 100)} %</strong>
+								<span>kan tenke seg å jobbe her</span>
+							</div>
+						) : null}
+					</div>
+					{report.questions.map((question) => {
+						const textAnswers = answers.filter(
+							(answer) => answer.visible && answer.fieldKey === question.key,
+						);
+						return (
+							<section key={question.key} className={styles.question}>
+								<h3>{question.label}</h3>
+								<ReportDistribution question={question} />
+								{question.type === "options" && textAnswers.length > 0 ? (
+									<h4>Utdypinger fra «Annet»</h4>
+								) : null}
+								{textAnswers.map((answer) => (
+									<blockquote key={answer.id}>{answer.text}</blockquote>
+								))}
+								{question.type === "text" && textAnswers.length === 0 ? (
+									<p className={styles.muted}>Ingen tekstsvar deles for dette spørsmålet.</p>
+								) : null}
+							</section>
+						);
+					})}
+				</>
+			)}
 		</article>
 	);
 }

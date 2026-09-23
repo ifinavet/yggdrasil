@@ -1,3 +1,9 @@
+import { z } from "zod";
+
+export const reportRecipientSchema = z.object({
+	recipientEmail: z.string().trim().max(254).pipe(z.email("Skriv inn en gyldig e-postadresse.")),
+});
+
 import type { FeedbackAnswers, FeedbackField } from "./validation";
 
 export interface ReportBucket {
@@ -26,14 +32,20 @@ export interface FeedbackReport {
 
 export function createReportQuestions(fields: FeedbackField[]): ReportQuestion[] {
 	return fields.map((field) => {
-		const choices = field.type === "rating"
-			? [5, 4, 3, 2, 1].map(String)
-			: field.type === "yesNo" ? ["ja", "nei"] : field.options ?? [];
+		const choices =
+			field.type === "rating"
+				? [5, 4, 3, 2, 1].map(String)
+				: field.type === "yesNo"
+					? ["ja", "nei"]
+					: (field.options ?? []);
 		const buckets = choices.map((value) => ({
-			value, label: field.type === "yesNo" ? (value === "ja" ? "Ja" : "Nei") : value, count: 0,
+			value,
+			label: field.type === "yesNo" ? (value === "ja" ? "Ja" : "Nei") : value,
+			count: 0,
 		}));
 		// The reserved value cannot collide with a real option: custom text uses a separate bucket.
-		if (field.type === "options" && field.allowOther) buckets.push({ value: "", label: "Annet", count: 0 });
+		if (field.type === "options" && field.allowOther)
+			buckets.push({ value: "", label: "Annet", count: 0 });
 		return { ...field, answered: 0, buckets };
 	});
 }
@@ -42,8 +54,12 @@ export function createReportQuestions(fields: FeedbackField[]): ReportQuestion[]
 export function addResponseToReport(questions: ReportQuestion[], data: FeedbackAnswers) {
 	const textAnswers: { fieldKey: string; text: string }[] = [];
 	for (const question of questions) {
-		const answer = Object.prototype.hasOwnProperty.call(data, question.key) ? data[question.key] : undefined;
-		if (answer === undefined || answer === "" || (Array.isArray(answer) && answer.length === 0)) continue;
+		const answer: FeedbackAnswers[string] | undefined = Object.getOwnPropertyDescriptor(
+			data,
+			question.key,
+		)?.value;
+		if (answer === undefined || answer === "" || (Array.isArray(answer) && answer.length === 0))
+			continue;
 		question.answered += 1;
 		if (question.type === "text") {
 			textAnswers.push({ fieldKey: question.key, text: String(answer) });
@@ -64,10 +80,22 @@ export function addResponseToReport(questions: ReportQuestion[], data: FeedbackA
 }
 
 export function reportHighlights(report: FeedbackReport) {
-	const satisfaction = report.questions.find((question) => question.key === "satisfaction" && question.type === "rating");
-	const employment = report.questions.find((question) => question.key === "want_to_work" && question.type === "yesNo");
+	const satisfaction = report.questions.find(
+		(question) => question.key === "satisfaction" && question.type === "rating",
+	);
+	const employment = report.questions.find(
+		(question) => question.key === "want_to_work" && question.type === "yesNo",
+	);
 	return {
-		rating: satisfaction?.answered ? satisfaction.buckets.reduce((total, bucket) => total + Number(bucket.value) * bucket.count, 0) / satisfaction.answered : null,
-		employment: employment?.answered ? (employment.buckets.find((bucket) => bucket.value === "ja")?.count ?? 0) / employment.answered : null,
+		rating: satisfaction?.answered
+			? satisfaction.buckets.reduce(
+					(total, bucket) => total + Number(bucket.value) * bucket.count,
+					0,
+				) / satisfaction.answered
+			: null,
+		employment: employment?.answered
+			? (employment.buckets.find((bucket) => bucket.value === "ja")?.count ?? 0) /
+				employment.answered
+			: null,
 	};
 }

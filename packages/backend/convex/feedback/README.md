@@ -46,8 +46,8 @@ provider cannot be recalled. The master environment flag prevents new enqueues;
 the event setting also triggers cancellation of its queued mail.
 
 Workflow errors are visible in the Convex Workflow component. Closure records a
-retention date; automatic retention cleanup and the new reporting UI are separate
-implementation steps.
+retention date; report text and local report email captures are removed at that date. Cleanup of
+the original campaign responses remains a separate implementation step.
 
 ## Local verification
 
@@ -60,3 +60,33 @@ Run `pnpm --filter @workspace/backend test`. The suite uses real Workflow,
 Workpool and Resend component functions, with local capture for scheduled mail.
 It advances the clock through the complete campaign, exercises idempotency and
 cancellation, and requires 100% coverage of the configured feedback backend files.
+
+## Company reports
+
+When a campaign closes after day 14, `reports/build.ts` prepares the report in
+bounded batches if `FEEDBACK_REPORTS_ENABLED=true`. Opening its Bifrost report
+page also prepares a closed campaign that has no report yet. Both this server
+flag and Bifrost's `localStorage["hugin-feedback-preview"] === "true"` must be on
+for internal report review. They default off.
+
+Only the event's assigned internal organizers and super-admins can review.
+Moderation hides individual text entries, including custom “Annet” answers;
+ratings and distributions remain unchanged. Approval checks the report revision
+and recipient, then locks the report and schedules delivery. The recipient is
+prefilled from the event's company application, or entered manually.
+
+Sending requires both `FEEDBACK_EMAILS_ENABLED=true` and
+`FEEDBACK_REPORT_EMAILS_ENABLED=true`. Queueing rechecks these flags and stores
+the Resend message and token hash atomically. A failed send can be retried with
+the same locked content and recipient. Revocation invalidates the link.
+
+The Hugin `/report#token=…` page and CSV export have **no feature flag**. They
+require an approved report and a valid 256-bit bearer token, stored only as a
+SHA-256 hash in the report table. Each public page request checks expiry using
+server time and returns only visible report content. No participant identifiers,
+recipient addresses or hidden entries are returned. Analytics are disabled on
+this route. CSV uses PapaParse with spreadsheet-formula protection.
+
+Local report email is captured in `feedbackReportLocalEmails`, never sent to
+Resend. Hosted deployments do not write these captures. At retention expiry,
+access is revoked and report text and local captures are deleted in batches.

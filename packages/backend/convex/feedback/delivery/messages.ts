@@ -169,7 +169,23 @@ export const onEmailEvent = internalMutation({
 			.query("feedbackDeliveries")
 			.withIndex("by_emailId", (index) => index.eq("emailId", id))
 			.unique();
-		if (!delivery) return;
+		if (!delivery) {
+			const report = await ctx.db
+				.query("feedbackReports")
+				.withIndex("by_emailId", (index) => index.eq("emailId", id))
+				.unique();
+			if (report?.status === "approved") {
+				if (event.type === "email.delivered" && report.deliveryStatus !== "failed")
+					await ctx.db.patch(report._id, { deliveryStatus: "delivered" });
+				if (
+					event.type === "email.bounced" ||
+					event.type === "email.complained" ||
+					event.type === "email.failed"
+				)
+					await ctx.db.patch(report._id, { deliveryStatus: "failed" });
+			}
+			return;
+		}
 		await ctx.db.patch(delivery._id, { callbackAt: Date.now() });
 		const invite = await ctx.db.get(delivery.inviteId);
 		if (!invite) return;
