@@ -1,11 +1,23 @@
+import {
+	ESCAPE_ANSWERS,
+	EVENT_TYPES,
+	FOOD_PURCHASERS,
+	VENUES,
+} from "@workspace/shared/semester/labels";
+import { SEMESTER_TERMS } from "@workspace/shared/semester/time";
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
 import { studentDegree } from "../users/students/schema";
 
+/** A validator for one of the values in a shared tuple, so the schema and the labels agree. */
+function oneOf<T extends string>(values: readonly [T, ...T[]]) {
+	return v.union(...values.map((value) => v.literal(value)));
+}
+
 // Calendar days are Oslo-local "YYYY-MM-DD" strings, so a Tuesday never shifts with the time zone.
 // Moments (sent, responded, consented) are epoch milliseconds, like the rest of the backend.
 
-export const semesterTerm = v.union(v.literal("spring"), v.literal("autumn"));
+export const semesterTerm = oneOf(SEMESTER_TERMS);
 
 // Whether companies can apply for the semester. `draft` means the semester exists but is not yet
 // open for applications, `open` means it accepts them, and `closed` means the deadline has passed.
@@ -24,26 +36,20 @@ export const applicationStatus = v.union(
 	v.literal("withdrawn"),
 );
 
-export const presentationEventType = v.union(
-	v.literal("standard_presentation"),
-	v.literal("large_presentation"),
-	v.literal("workshop"),
-	v.literal("social"),
-);
+export const presentationEventType = oneOf(EVENT_TYPES);
 
-export const venue = v.union(
-	v.literal("campus"),
-	v.literal("own_premises"),
-	v.literal("undecided"),
-);
+export const venue = oneOf(VENUES);
 
-export const wantsToUseEscape = v.union(v.literal("yes"), v.literal("no"), v.literal("unsure"));
+export const wantsToUseEscape = oneOf(ESCAPE_ANSWERS);
 
 // Who buys the food and drinks for the event.
-export const foodPurchaser = v.union(
-	v.literal("company"),
-	v.literal("navet"),
-	v.literal("undecided"),
+export const foodPurchaser = oneOf(FOOD_PURCHASERS);
+
+// Why a company cannot apply: deleted from, bankrupt or being wound up in Enhetsregisteret.
+export const blockedReason = v.union(
+	v.literal("deleted"),
+	v.literal("bankrupt"),
+	v.literal("liquidation"),
 );
 
 export const peppolLookup = v.union(
@@ -141,6 +147,8 @@ export const semesterPlanningSchema = {
 
 	companyApplications: defineTable({
 		semesterId: v.id("semesters"),
+		// One-time id from the Hugin form, so a double click or retry saves one application.
+		submissionId: v.optional(v.string()),
 		formVersion: v.number(),
 		orgNumber: v.string(),
 		registry: brregSnapshotAtSubmission,
@@ -179,7 +187,8 @@ export const semesterPlanningSchema = {
 		.index("by_semesterId_and_assignedDate", ["semesterId", "assignedDate"])
 		.index("by_semesterId_and_orgNumber", ["semesterId", "orgNumber"])
 		.index("by_companyId", ["companyId"])
-		.index("by_eventId", ["eventId"]),
+		.index("by_eventId", ["eventId"])
+		.index("by_submissionId", ["submissionId"]),
 
 	companyApplicationOffers: defineTable({
 		applicationId: v.id("companyApplications"),

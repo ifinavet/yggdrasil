@@ -17,6 +17,7 @@
 	"dependencies": {
 		"@clerk/backend": "^3.18.1",
 		"@convex-dev/migrations": "^0.3.6",
+		"@convex-dev/rate-limiter": "^0.4.0",
 		"@convex-dev/resend": "^0.2.8",
 		"@react-email/render": "^2.1.0",
 		"@workspace/emails": "workspace:*",

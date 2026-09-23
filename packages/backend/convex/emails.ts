@@ -2,7 +2,9 @@
 
 import { Resend } from "@convex-dev/resend";
 import { pretty, render } from "@react-email/render";
+import ApplicationReceiptEmail from "@workspace/emails/application-receipt-email";
 import AvailableSeatEmail from "@workspace/emails/available-seat-email";
+import { COMPANY_CONTACT_EMAIL } from "@workspace/emails/constants";
 import FreeForAllEmail from "@workspace/emails/free-for-all-email";
 import LockedOutEmail from "@workspace/emails/locked-out-email";
 import PointsEmail from "@workspace/emails/point-email";
@@ -159,6 +161,40 @@ export const sendFreeForAll = internalAction({
 			replyTo: ["arrangement@ifinavet.no"],
 			to: participantEmail,
 			subject: `Det er ${availableSeats} ledige plasser, første mann til mølla!`,
+			html,
+		});
+	},
+});
+
+/**
+ * Sends the receipt for a company application to the contact person and whoever filled it in.
+ *
+ * @param {string[]} to - The recipient email addresses.
+ * @param {string} companyName - The company name from Enhetsregisteret.
+ * @param {string} semesterLabel - The semester, e.g. «våren 2027».
+ * @param {{ label: string, value: string }[]} rows - The answers, as shown on the receipt page.
+ *
+ * @returns {Promise<void>} - Resolves when the email has been sent.
+ */
+export const sendApplicationReceiptEmail = internalAction({
+	args: {
+		to: v.array(v.string()),
+		companyName: v.string(),
+		semesterLabel: v.string(),
+		rows: v.array(v.object({ label: v.string(), value: v.string() })),
+	},
+	handler: async (ctx, { to, companyName, semesterLabel, rows }) => {
+		if (isLocalDevelopment()) return;
+
+		const html = await pretty(
+			await render(ApplicationReceiptEmail({ companyName, semesterLabel, rows })),
+		);
+
+		await resend.sendEmail(ctx, {
+			from: `Navet <${COMPANY_CONTACT_EMAIL}>`,
+			replyTo: [COMPANY_CONTACT_EMAIL],
+			to,
+			subject: `Søknad om bedriftsarrangement ${semesterLabel} er mottatt`,
 			html,
 		});
 	},

@@ -45,6 +45,11 @@ import type * as pages_queries from "../pages/queries.js";
 import type * as points_mutations from "../points/mutations.js";
 import type * as points_queries from "../points/queries.js";
 import type * as semesterPlanning_applicationLifecycle from "../semesterPlanning/applicationLifecycle.js";
+import type * as semesterPlanning_applications_submit from "../semesterPlanning/applications/submit.js";
+import type * as semesterPlanning_rateLimits from "../semesterPlanning/rateLimits.js";
+import type * as semesterPlanning_registry_actions from "../semesterPlanning/registry/actions.js";
+import type * as semesterPlanning_registry_client from "../semesterPlanning/registry/client.js";
+import type * as semesterPlanning_registry_messages from "../semesterPlanning/registry/messages.js";
 import type * as semesterPlanning_rules from "../semesterPlanning/rules.js";
 import type * as semesterPlanning_semesters_helper from "../semesterPlanning/semesters/helper.js";
 import type * as semesterPlanning_semesters_mutations from "../semesterPlanning/semesters/mutations.js";
@@ -101,6 +106,11 @@ declare const fullApi: ApiFromModules<{
   "points/mutations": typeof points_mutations;
   "points/queries": typeof points_queries;
   "semesterPlanning/applicationLifecycle": typeof semesterPlanning_applicationLifecycle;
+  "semesterPlanning/applications/submit": typeof semesterPlanning_applications_submit;
+  "semesterPlanning/rateLimits": typeof semesterPlanning_rateLimits;
+  "semesterPlanning/registry/actions": typeof semesterPlanning_registry_actions;
+  "semesterPlanning/registry/client": typeof semesterPlanning_registry_client;
+  "semesterPlanning/registry/messages": typeof semesterPlanning_registry_messages;
   "semesterPlanning/rules": typeof semesterPlanning_rules;
   "semesterPlanning/semesters/helper": typeof semesterPlanning_semesters_helper;
   "semesterPlanning/semesters/mutations": typeof semesterPlanning_semesters_mutations;
@@ -143,4 +153,5 @@ export declare const internal: FilterApi<
 export declare const components: {
   resend: import("@convex-dev/resend/_generated/component.js").ComponentApi<"resend">;
   migrations: import("@convex-dev/migrations/_generated/component.js").ComponentApi<"migrations">;
+  rateLimiter: import("@convex-dev/rate-limiter/_generated/component.js").ComponentApi<"rateLimiter">;
 };

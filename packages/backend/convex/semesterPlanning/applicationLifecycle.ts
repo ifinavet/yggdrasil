@@ -46,6 +46,15 @@ export async function logApplicationActivity(
 	});
 }
 
+/** The contact person and whoever filled in the application, without duplicates. */
+export function companyRecipients(
+	application: Pick<Doc<"companyApplications">, "contact" | "filledInByEmail">,
+): string[] {
+	return [...new Set([application.contact.email, application.filledInByEmail])].filter(
+		(email): email is string => !!email,
+	);
+}
+
 /**
  * Changes an application's status and records the change in its history. This is the only code
  * that writes `status`, so the transition rules and the history cannot drift apart.

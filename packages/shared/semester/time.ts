@@ -1,5 +1,6 @@
 import { tz } from "@date-fns/tz";
 import { eachDayOfInterval, format, isThursday, isTuesday, isValid, parse } from "date-fns";
+import { nb } from "date-fns/locale";
 
 // Semester days are Oslo-local "YYYY-MM-DD" strings. All parsing and calendar arithmetic runs in
 // the Oslo time zone, so weekdays and wall-clock times stay right across daylight-saving changes.
@@ -11,7 +12,8 @@ const DAY_TIME_FORMAT = "yyyy-MM-dd HH:mm";
 /** First month of the autumn term, zero-based (July). January to June belongs to spring. */
 const AUTUMN_FIRST_MONTH = 6;
 
-export type SemesterTerm = "spring" | "autumn";
+export const SEMESTER_TERMS = ["spring", "autumn"] as const;
+export type SemesterTerm = (typeof SEMESTER_TERMS)[number];
 
 /** Whether the value is a real calendar day written as YYYY-MM-DD. */
 export function isIsoDate(value: string): boolean {
@@ -39,6 +41,11 @@ export function presentationDaysBetween(firstDate: string, lastDate: string): st
 	)
 		.filter(isPresentationWeekday)
 		.map((day) => format(day, DAY_FORMAT));
+}
+
+/** A semester day for people, in Norwegian, e.g. "tir 9. feb.". */
+export function formatSemesterDay(date: string): string {
+	return format(parseStrictOrThrow(date, DAY_FORMAT), "EEE d. MMM", { ...IN_OSLO, locale: nb });
 }
 
 /** Whether the day is a presentation day: a Tuesday or a Thursday. */
