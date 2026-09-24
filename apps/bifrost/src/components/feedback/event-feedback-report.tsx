@@ -2,9 +2,12 @@
 
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
+import { reportAccessDeniedMessage } from "@workspace/shared/feedback/report";
+import { Card, CardContent } from "@workspace/ui/components/card";
 import { FeedbackReportResponses } from "@workspace/ui/components/feedback/report";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
+import { Lock } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import { ReportReview } from "./report-review";
 
@@ -59,7 +62,7 @@ function ReportContent({
 	}, [status, loadMore]);
 	if (error) return <p role="alert">{error}</p>;
 	if (data === undefined) return <p>Henter rapport …</p>;
-	if (data && !data.enabled) return fallback;
+	if (data && !data.enabled) return summary || data.canView ? fallback : <ReportAccessDenied />;
 	if (!data) return summary ? fallback : <p>Dette arrangementet har ingen innsamling.</p>;
 	if (data.campaignStatus !== "closed")
 		return summary ? fallback : <p>Rapporten blir tilgjengelig når innsamlingen er avsluttet.</p>;
@@ -67,4 +70,15 @@ function ReportContent({
 		return <p>Klargjør rapport …</p>;
 	if (summary) return <FeedbackReportResponses report={report} answers={answers} />;
 	return <ReportReview report={report} answers={answers} deliveryEnabled={data.deliveryEnabled} />;
+}
+
+function ReportAccessDenied() {
+	return (
+		<Card>
+			<CardContent className="flex items-center gap-3">
+				<Lock className="size-5 shrink-0 text-muted-foreground" />
+				<p>{reportAccessDeniedMessage}</p>
+			</CardContent>
+		</Card>
+	);
 }

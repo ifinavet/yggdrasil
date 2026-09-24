@@ -1,4 +1,5 @@
 import { featureFlags } from "@workspace/shared/feature-flags";
+import { reportAccessDeniedMessage } from "@workspace/shared/feedback/report";
 import { ConvexError } from "convex/values";
 import type { Doc, Id } from "../../_generated/dataModel";
 import type { QueryCtx } from "../../_generated/server";
@@ -25,7 +26,7 @@ export async function canViewReport(ctx: QueryCtx, eventId: Id<"events">) {
 export async function requireReportAccess(ctx: QueryCtx, eventId: Id<"events">) {
 	const user = await getCurrentUserOrThrow(ctx);
 	if (!(await hasReportAccess(ctx, user, eventId)))
-		throw new ConvexError("Du må være arrangør for dette arrangementet for å se rapporten.");
+		throw new ConvexError(reportAccessDeniedMessage);
 	return user;
 }
 
