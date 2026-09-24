@@ -2,28 +2,16 @@
 
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
-import { feedbackConfig } from "@workspace/shared/feedback/constants";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";
 import { useAction } from "convex/react";
 import { ConvexError } from "convex/values";
-import { useState, useSyncExternalStore } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
-
-function subscribe(onChange: () => void) {
-	window.addEventListener("storage", onChange);
-	return () => window.removeEventListener("storage", onChange);
-}
-function isTestSendEnabled() {
-	try {
-		return localStorage.getItem(feedbackConfig.testSendStorageKey) === "true";
-	} catch {
-		return false;
-	}
-}
+import { useBrowserOptIn } from "@/hooks/use-browser-opt-in";
 
 export function FeedbackTestSend({ eventId }: Readonly<{ eventId: Id<"events"> }>) {
-	const enabled = useSyncExternalStore(subscribe, isTestSendEnabled, () => false);
+	const enabled = useBrowserOptIn("huginFeedbackTestSend");
 	const send = useAction(api.feedback.testSend.send.send);
 	const [sending, setSending] = useState(false);
 	if (!enabled) return null;
