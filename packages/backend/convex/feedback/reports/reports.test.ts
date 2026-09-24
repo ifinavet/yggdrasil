@@ -1,4 +1,5 @@
-import type { EmailEvent, EmailId } from "@convex-dev/resend";
+import type { EmailEvent, EmailId, SendEmailOptions } from "@convex-dev/resend";
+import { NAVET_LOGO_URL } from "@workspace/emails/constants";
 import { DEGREES, HUGIN_LOCAL_URL } from "@workspace/shared/constants";
 import { featureFlags } from "@workspace/shared/feature-flags";
 import { reportHighlights } from "@workspace/shared/feedback/report";
@@ -358,6 +359,9 @@ describe("company feedback reports", () => {
 		expect(captures).toHaveLength(1);
 		expect(captures[0].to).toBe("contact@example.test");
 		expect(captures[0].html).toContain("Se rapporten");
+		expect(captures[0].html).not.toContain(".webp");
+		expect(captures[0].html).toContain("mailto:arrangement@ifinavet.no");
+		expect(captures[0].html.split(NAVET_LOGO_URL)).toHaveLength(3);
 		const generatedToken = new URLSearchParams(new URL(captures[0].url).hash.slice(1)).get("token");
 		expect(generatedToken).toHaveLength(43);
 		await f.t.action(jobs.mail.sendReportEmail, { reportId });
@@ -589,11 +593,27 @@ describe("report boundary cases", () => {
 			revision: 0,
 			recipientEmail: "contact@example.test",
 		});
+		const lead = await insertUser(f.t, "lead@example.test", {
+			firstName: "Ola",
+			lastName: "Nordmann",
+		});
+		await f.t.run((ctx) =>
+			ctx.db.insert("eventOrganizers", {
+				eventId: f.eventId,
+				userId: lead._id,
+				role: "hovedansvarlig",
+			}),
+		);
+		const sendEmail = vi.spyOn(feedbackResend, "sendEmail");
 		vi.stubEnv("APP_ENV", "test");
 		feedbackResend.config.apiKey = "re_test";
 		await f.t.action(jobs.mail.sendReportEmail, { reportId });
 		const report = await f.t.run((ctx) => ctx.db.get(reportId));
 		const emailId = report?.emailId as EmailId;
+		const sent = (sendEmail.mock.calls[0] as unknown as [unknown, SendEmailOptions])[1];
+		expect(sent.replyTo).toEqual(["lead@example.test"]);
+		expect(sent.html).toContain("Ola Nordmann");
+		expect(sent.html).toContain("mailto:lead@example.test");
 		expect(await f.t.run((ctx) => feedbackResend.status(ctx, emailId))).toMatchObject({
 			status: "waiting",
 		});

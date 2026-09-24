@@ -41,7 +41,15 @@ export async function feedbackEmailContent(
 	};
 }
 
-export async function reportEmailContent(eventTitle: string, eventStart: number) {
+export async function reportEmailContent({
+	eventTitle,
+	eventStart,
+	signature,
+}: Readonly<{
+	eventTitle: string;
+	eventStart: number;
+	signature: FeedbackEmailContext["signature"];
+}>) {
 	const origin = huginOrigin();
 	const { token, url } = linkWithTokenOutsideHttpRequests(origin, "/report");
 	return {
@@ -52,7 +60,7 @@ export async function reportEmailContent(eventTitle: string, eventStart: number)
 			FeedbackReportEmail({
 				eventDate: formatFeedbackDate(eventStart, "d. MMMM"),
 				url,
-				logoUrl: new URL("/report-navet.webp", origin).toString(),
+				signature,
 			}),
 		),
 	};
