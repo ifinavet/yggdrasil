@@ -108,7 +108,7 @@ export function FeedbackDeliveryStatus({ eventId }: Readonly<{ eventId: Id<"even
 				)}
 				{delivery.failed > 0 && (
 					<p role="alert" className={alertClassName}>
-						{delivery.failed} e-poster kunne ikke leveres.
+						{delivery.failed} utsendelser feilet.
 					</p>
 				)}
 				{delivery.failure && (

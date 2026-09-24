@@ -82,7 +82,7 @@ function SettingsForm({
 								<Checkbox
 									id="feedback-enabled"
 									checked={field.state.value}
-									disabled={settings.locked && field.state.value}
+									disabled={settings.locked}
 									onCheckedChange={(checked) => field.handleChange(checked === true)}
 								/>
 								<FieldContent>
