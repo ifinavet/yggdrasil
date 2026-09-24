@@ -10,10 +10,14 @@ import { feedbackResend, feedbackSender } from "../delivery/messages";
 export const send = action({
 	args: { eventId: v.id("events") },
 	handler: async (ctx, { eventId }): Promise<number> => {
-		const { to, title, eventStart } = await ctx.runQuery(
+		const { userId, to, title, eventStart } = await ctx.runQuery(
 			internal.feedback.testSend.access.recipient,
 			{ eventId },
 		);
+		await ctx.runMutation(internal.feedback.testSend.report.ensurePreviewForm, {
+			eventId,
+			createdBy: userId,
+		});
 		const [invitation, reminder, report] = await Promise.all([
 			feedbackEmailContent(title, 0),
 			feedbackEmailContent(title, 3),

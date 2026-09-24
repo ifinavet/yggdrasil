@@ -6,9 +6,11 @@ import type { Id } from "../../_generated/dataModel";
 import { internalMutation, internalQuery, type QueryCtx } from "../../_generated/server";
 import { getRegistrantStatistics } from "../../events/registrations/statistics";
 import { hashLinkToken } from "../../lib/tokens";
-import { getLatestPublishedVersion } from "../forms/helpers";
+import { defaultFeedbackFields } from "../defaultFields";
+import { getLatestPublishedVersion, insertFormVersion, markFormAsDefault } from "../forms/helpers";
 
 const reportLinkLifetimeMs = 7 * 24 * 60 * 60 * 1000;
+const defaultFormName = "Standardskjema";
 const maxPreviewResponses = 500;
 
 async function latestCampaign(ctx: QueryCtx, eventId: Id<"events">) {
@@ -37,16 +39,29 @@ async function previewFormVersionId(
 	return formId ? (await getLatestPublishedVersion(ctx, formId))?._id : undefined;
 }
 
-export async function requirePreviewForm(ctx: QueryCtx, eventId: Id<"events">) {
-	const event = await ctx.db.get(eventId);
-	if (!event) throw new ConvexError("Fant ikke arrangementet.");
-	const formVersionId = await previewFormVersionId(ctx, eventId, event.feedbackFormId);
-	if (!formVersionId) throw new ConvexError("Publiser et standardskjema før du sender test.");
-	return { event, formVersionId };
-}
+export const ensurePreviewForm = internalMutation({
+	args: { eventId: v.id("events"), createdBy: v.id("users") },
+	handler: async (ctx, { eventId, createdBy }) => {
+		const event = await ctx.db.get(eventId);
+		if (await previewFormVersionId(ctx, eventId, event?.feedbackFormId)) return;
+		const formId = await ctx.db.insert("feedbackForms", {
+			name: defaultFormName,
+			isDefault: false,
+		});
+		await insertFormVersion(ctx, {
+			formId,
+			name: defaultFormName,
+			fields: defaultFeedbackFields,
+			createdBy,
+		});
+		await markFormAsDefault(ctx, formId);
+	},
+});
 
 async function buildPreview(ctx: QueryCtx, eventId: Id<"events">) {
-	const { event, formVersionId } = await requirePreviewForm(ctx, eventId);
+	const event = await ctx.db.get(eventId);
+	const formVersionId = await previewFormVersionId(ctx, eventId, event?.feedbackFormId);
+	if (!event || !formVersionId) return null;
 	const campaign = await latestCampaign(ctx, eventId);
 	const [company, storedFields, responses] = await Promise.all([
 		ctx.db.get(event.hostingCompany),

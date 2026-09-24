@@ -217,16 +217,48 @@ describe("feedback test send", () => {
 		expect(stored.testLinks).toHaveLength(1);
 	});
 
-	it("refuses to send when no feedback form is published", async () => {
+	it("creates and publishes the default form once when none exists", async () => {
 		const f = await fixture("admin@ifinavet.no", "internal", { publishForm: false });
+		const sent = await sendAndCollect(f);
+		await f.client.action(api.feedback.testSend.send.send, { eventId: f.eventId });
+
+		const preview = await f.t.action(api.feedback.reports.public.resolveReport, {
+			token: reportTokenFrom(sent[2]?.html),
+			paginationOpts,
+		});
+		const forms = await f.t.run((ctx) => ctx.db.query("feedbackForms").collect());
+
+		expect(sent).toHaveLength(3);
+		expect(forms).toMatchObject([{ name: "Standardskjema", isDefault: true }]);
+		expect(preview?.report.questions.map(({ key }) => key)).toEqual(
+			defaultFeedbackFields.map(({ key }) => key),
+		);
+	});
+
+	it("refuses to send for an event that does not exist", async () => {
+		const f = await fixture("admin@ifinavet.no", "internal");
+		await f.t.run((ctx) => ctx.db.delete(f.eventId));
 		const sendEmail = vi.spyOn(feedbackResend, "sendEmail");
 
 		expect(
 			await refusalMessageFrom(
 				f.client.action(api.feedback.testSend.send.send, { eventId: f.eventId }),
 			),
-		).toBe("Publiser et standardskjema før du sender test.");
+		).toBe("Fant ikke arrangementet.");
 		expect(sendEmail).not.toHaveBeenCalled();
+	});
+
+	it("opens nothing through the test link once the event is deleted", async () => {
+		const f = await fixture("admin@ifinavet.no", "internal");
+		const sent = await sendAndCollect(f);
+		await f.t.run((ctx) => ctx.db.delete(f.eventId));
+
+		expect(
+			await f.t.action(api.feedback.reports.public.resolveReport, {
+				token: reportTokenFrom(sent[2]?.html),
+				paginationOpts,
+			}),
+		).toBeNull();
 	});
 
 	it("refuses callers without an internal role", async () => {
