@@ -1,4 +1,5 @@
 import type { SendEmailOptions } from "@convex-dev/resend";
+import { HUGIN_URL } from "@workspace/shared/constants";
 import { featureFlags } from "@workspace/shared/feature-flags";
 import type { ReportTextAnswer } from "@workspace/shared/feedback/report";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -16,11 +17,9 @@ import {
 import { api, internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import { hashLinkToken } from "../../lib/tokens";
-import { feedbackConfig } from "../constants";
 import { defaultFeedbackFields } from "../defaultFields";
 import { feedbackResend } from "../delivery/messages";
 
-const huginBaseUrl = feedbackConfig.huginBaseUrl;
 const reportsEnabled = featureFlags.huginFeedback.reportsEnabled;
 const paginationOpts = { cursor: null, numItems: 100 };
 const companyToken = "c".repeat(43);
@@ -112,14 +111,12 @@ const withoutIds = (answers: ReportTextAnswer[]) => answers.map(({ id: _id, ...a
 describe("feedback test send", () => {
 	beforeEach(() => {
 		vi.stubEnv("APP_ENV", "test");
-		feedbackConfig.huginBaseUrl = "https://hugin.example.test";
 		feedbackResend.config.apiKey = "re_test";
 	});
 	afterEach(() => {
 		vi.unstubAllEnvs();
 		vi.restoreAllMocks();
 		vi.useRealTimers();
-		feedbackConfig.huginBaseUrl = huginBaseUrl;
 		featureFlags.huginFeedback.reportsEnabled = reportsEnabled;
 	});
 
@@ -143,8 +140,8 @@ describe("feedback test send", () => {
 				replyTo: ["arrangement@ifinavet.no"],
 			});
 		}
-		expect(sent[0]?.html).toContain("https://hugin.example.test/feedback#token=");
-		expect(sent[2]?.html).toContain("https://hugin.example.test/report#token=");
+		expect(sent[0]?.html).toContain(`${HUGIN_URL}/feedback#token=`);
+		expect(sent[2]?.html).toContain(`${HUGIN_URL}/report#token=`);
 		expect(sent[2]?.html).toContain("14. mars");
 	});
 

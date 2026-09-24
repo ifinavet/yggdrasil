@@ -20,7 +20,6 @@ import {
 } from "../../../test/fixtures";
 import { api, internal } from "../../_generated/api";
 import { hashLinkToken } from "../../lib/tokens";
-import { feedbackConfig } from "../constants";
 import { defaultFeedbackFields } from "../defaultFields";
 import { feedbackResend } from "../delivery/messages";
 
@@ -89,6 +88,7 @@ async function queued(f: Awaited<ReturnType<typeof fixture>>) {
 	});
 	return reportId;
 }
+const resendApiKey = feedbackResend.config.apiKey;
 beforeEach(() => {
 	vi.useFakeTimers();
 	vi.setSystemTime(now);
@@ -106,7 +106,7 @@ afterEach(() => {
 		reportsEnabled: false,
 		reportEmailsEnabled: false,
 	});
-	feedbackConfig.huginBaseUrl = "https://hugin.ifinavet.no";
+	feedbackResend.config.apiKey = resendApiKey;
 });
 
 describe("company feedback reports", () => {
@@ -564,16 +564,10 @@ describe("report boundary cases", () => {
 			recipientEmail: "contact@example.test",
 		});
 		vi.stubEnv("APP_ENV", "test");
-		feedbackConfig.huginBaseUrl = "http://example.test";
+		feedbackResend.config.apiKey = "";
 		await f.t.action(jobs.mail.sendReportEmail, { reportId });
 		expect(await f.t.run((ctx) => ctx.db.get(reportId))).toMatchObject({
 			status: "approved",
-			deliveryStatus: "failed",
-		});
-		await f.client.mutation(reports.mutations.retryDelivery, { reportId, revision: 1 });
-		feedbackConfig.huginBaseUrl = "invalid";
-		await f.t.action(jobs.mail.sendReportEmail, { reportId });
-		expect(await f.t.run((ctx) => ctx.db.get(reportId))).toMatchObject({
 			deliveryStatus: "failed",
 		});
 		featureFlags.huginFeedback.reportEmailsEnabled = false;
@@ -583,7 +577,6 @@ describe("report boundary cases", () => {
 		featureFlags.huginFeedback.reportEmailsEnabled = true;
 		await f.client.mutation(reports.mutations.retryDelivery, { reportId, revision: 1 });
 		vi.stubEnv("APP_ENV", "local");
-		feedbackConfig.huginBaseUrl = "https://hugin.ifinavet.no";
 		await f.t.action(jobs.mail.sendReportEmail, { reportId });
 		await f.t.mutation(jobs.messages.failed, { reportId });
 		expect(await f.t.run((ctx) => ctx.db.get(reportId))).toMatchObject({
@@ -599,7 +592,6 @@ describe("report boundary cases", () => {
 			recipientEmail: "contact@example.test",
 		});
 		vi.stubEnv("APP_ENV", "test");
-		feedbackConfig.huginBaseUrl = "https://hugin.example.test";
 		feedbackResend.config.apiKey = "re_test";
 		await f.t.action(jobs.mail.sendReportEmail, { reportId });
 		const report = await f.t.run((ctx) => ctx.db.get(reportId));

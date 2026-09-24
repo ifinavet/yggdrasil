@@ -1,3 +1,4 @@
+import { MIDGARD_URL } from "@workspace/shared/constants";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";
 import { ExternalLink, MapPinOff } from "lucide-react";
@@ -23,7 +24,7 @@ export default function Page() {
 						</p>
 
 						<Button asChild className="w-full">
-							<Link href="https://ifinavet.no" target="_blank" rel="noopener noreferrer">
+							<Link href={MIDGARD_URL} target="_blank" rel="noopener noreferrer">
 								<ExternalLink className="mr-2 h-4 w-4" />
 								Gå til ifinavet.no
 							</Link>

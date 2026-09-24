@@ -11,6 +11,7 @@ import FreeForAllEmail from "@workspace/emails/free-for-all-email";
 import LockedOutEmail from "@workspace/emails/locked-out-email";
 import OfferResponseNoticeEmail from "@workspace/emails/offer-response-notice-email";
 import PointsEmail from "@workspace/emails/point-email";
+import { MIDGARD_URL } from "@workspace/shared/constants";
 import { v } from "convex/values";
 import { components } from "./_generated/api";
 import { type ActionCtx, internalAction } from "./_generated/server";
@@ -106,7 +107,7 @@ export const sendAvailableSeatEmail = internalAction({
 	handler: async (ctx, { participantEmail, eventId, eventTitle, registrationId }) => {
 		if (isLocalDevelopment()) return;
 
-		const url = `https://ifinavet.no/events/${eventId}/registration/${registrationId}`;
+		const url = `${MIDGARD_URL}/events/${eventId}/registration/${registrationId}`;
 
 		const html = await pretty(
 			await render(
@@ -147,7 +148,7 @@ export const sendFreeForAll = internalAction({
 	handler: async (ctx, { participantEmail, eventId, eventTitle, availableSeats }) => {
 		if (isLocalDevelopment()) return;
 
-		const url = `https://ifinavet.no/events/${eventId}`;
+		const url = `${MIDGARD_URL}/events/${eventId}`;
 
 		const html = await pretty(
 			await render(

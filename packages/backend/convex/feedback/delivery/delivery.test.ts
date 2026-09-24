@@ -1,4 +1,5 @@
 import type { EmailEvent, EmailId } from "@convex-dev/resend";
+import { HUGIN_URL } from "@workspace/shared/constants";
 import { featureFlags } from "@workspace/shared/feature-flags";
 import { feedbackOpensAt, feedbackRoundAt } from "@workspace/shared/feedback/time";
 import { Webhook } from "svix";
@@ -282,7 +283,7 @@ describe("feedback delivery", () => {
 		const emailId = deliveries[0]?.emailId as EmailId;
 		const email = await t.run((ctx) => feedbackResend.get(ctx, emailId));
 		expect(email).toMatchObject({ status: "waiting" });
-		expect(email?.html).toContain("https://hugin.ifinavet.no/feedback#token=");
+		expect(email?.html).toContain(`${HUGIN_URL}/feedback#token=`);
 	});
 	it("queues through the real Resend component atomically and cancels waiting mail", async () => {
 		const { t, email, inviteId, campaignId } = await fixture();

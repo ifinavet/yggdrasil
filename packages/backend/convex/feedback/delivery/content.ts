@@ -3,18 +3,18 @@
 import { render } from "@react-email/render";
 import FeedbackEmail from "@workspace/emails/feedback-email";
 import FeedbackReportEmail from "@workspace/emails/feedback-report-email";
+import { HUGIN_URL } from "@workspace/shared/constants";
 import { formatFeedbackDate } from "@workspace/shared/feedback/time";
 import type { Infer } from "convex/values";
 import { isLocalDevelopment } from "../../auth/local";
 import { generateLinkToken } from "../../lib/tokens";
-import { feedbackConfig } from "../constants";
 import { reportEmailSubject } from "../reports/messages";
 import type { deliveryArgs } from "./messages";
 
 type FeedbackRound = Infer<typeof deliveryArgs.round>;
 
 function huginOrigin() {
-	return new URL(isLocalDevelopment() ? "http://localhost:3003" : feedbackConfig.huginBaseUrl);
+	return new URL(isLocalDevelopment() ? "http://localhost:3003" : HUGIN_URL);
 }
 
 function linkWithTokenOutsideHttpRequests(origin: URL, path: string) {
@@ -37,8 +37,6 @@ export async function feedbackEmailContent(title: string, round: FeedbackRound) 
 
 export async function reportEmailContent(eventTitle: string, eventStart: number) {
 	const origin = huginOrigin();
-	if (origin.protocol !== "https:" && !isLocalDevelopment())
-		throw new Error("feedbackConfig.huginBaseUrl must use HTTPS");
 	const { token, url } = linkWithTokenOutsideHttpRequests(origin, "/report");
 	return {
 		token,

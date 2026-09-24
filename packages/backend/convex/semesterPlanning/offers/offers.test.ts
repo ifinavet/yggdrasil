@@ -1,3 +1,4 @@
+import { HUGIN_URL } from "@workspace/shared/constants";
 import { describe, expect, it } from "vitest";
 import {
 	activityFor,
@@ -86,7 +87,7 @@ describe("send", () => {
 		const [email] = (await scheduledCallsOf(t, "sendOfferEmail")) as OfferEmail[];
 		expect(email).toMatchObject({
 			to: "ingrid@fjordkode.no",
-			url: `https://hugin.ifinavet.no/bestill-bedpres/tilbud/${token}`,
+			url: `${HUGIN_URL}/bestill-bedpres/tilbud/${token}`,
 			dateLabel: "tirsdag 9. februar 2027",
 		});
 		expect(email?.respondByLabel).toBeDefined();
