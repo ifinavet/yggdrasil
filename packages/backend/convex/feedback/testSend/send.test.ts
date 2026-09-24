@@ -2,6 +2,7 @@ import type { SendEmailOptions } from "@convex-dev/resend";
 import { featureFlags } from "@workspace/shared/feature-flags";
 import type { ReportTextAnswer } from "@workspace/shared/feedback/report";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { insertFeedbackResponses } from "../../../test/feedbackResponses";
 import {
 	asUser,
 	DAY_IN_MS,
@@ -77,33 +78,13 @@ async function insertClosedCampaignWithResponses(
 			retentionAt: now + DAY_IN_MS,
 			generation: 1,
 		});
-		for (let i = 0; i < 3; i++) {
-			const inviteId = await ctx.db.insert("feedbackInvites", {
-				campaignId,
-				userId: participant._id,
-				responded: true,
-				bounced: false,
-				complained: false,
-				delivered: false,
-				sent: false,
-			});
-			await ctx.db.insert("formResponses", {
-				campaignId,
-				formVersionId,
-				inviteId,
-				submittedAt: now - 1,
-				data: {
-					satisfaction: i % 2 ? 3 : 5,
-					impression: 4,
-					expectation: 3,
-					toughts: `Bra ${i}`,
-					improvements: `Mer tid ${i}`,
-					want_to_work: i % 2 ? "nei" : "ja",
-					word_of_mouth: ["Ifinavet.no", `Fra noen ${i}`],
-					other: "",
-				},
-			});
-		}
+		await insertFeedbackResponses(ctx, {
+			campaignId,
+			formVersionId,
+			userId: participant._id,
+			count: 3,
+			submittedAt: now - 1,
+		});
 		return campaignId;
 	});
 }

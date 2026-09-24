@@ -5,6 +5,7 @@ import { reportHighlights } from "@workspace/shared/feedback/report";
 import { feedbackReportCsv } from "@workspace/shared/feedback/report-csv";
 import { toBase64 } from "@workspace/shared/utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { insertFeedbackResponses } from "../../../test/feedbackResponses";
 import {
 	asUser,
 	grantRole,
@@ -52,33 +53,13 @@ async function fixture(count = 2) {
 		}),
 	);
 	await t.run(async (ctx) => {
-		for (let i = 0; i < count; i++) {
-			const inviteId = await ctx.db.insert("feedbackInvites", {
-				campaignId,
-				userId: user._id,
-				responded: true,
-				bounced: false,
-				complained: false,
-				delivered: false,
-				sent: false,
-			});
-			await ctx.db.insert("formResponses", {
-				campaignId,
-				formVersionId,
-				inviteId,
-				submittedAt: now - 1,
-				data: {
-					satisfaction: i % 2 ? 3 : 5,
-					impression: 4,
-					expectation: 3,
-					toughts: `Bra ${i}`,
-					improvements: `Mer tid ${i}`,
-					want_to_work: i % 2 ? "nei" : "ja",
-					word_of_mouth: ["Ifinavet.no", `Fra noen ${i}`],
-					other: "",
-				},
-			});
-		}
+		await insertFeedbackResponses(ctx, {
+			campaignId,
+			formVersionId,
+			userId: user._id,
+			count: count,
+			submittedAt: now - 1,
+		});
 	});
 	async function prepare() {
 		const reportId = await client.mutation(reports.build.prepare, { campaignId });
