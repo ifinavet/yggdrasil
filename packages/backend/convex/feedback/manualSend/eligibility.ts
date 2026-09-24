@@ -97,6 +97,8 @@ export const enqueue = internalMutation({
 	handler: async (ctx, args): Promise<string> => {
 		const context = await manualSendContext(ctx, args);
 		const token = feedbackTokenSchema.parse(args.token);
+		if (!context.campaign.formVersionId)
+			await ctx.db.patch(context.campaign._id, { formVersionId: context.formVersionId });
 		const inviteId = await ctx.db.insert("feedbackInvites", {
 			campaignId: context.campaign._id,
 			userId: context.recipient._id,

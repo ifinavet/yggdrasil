@@ -93,7 +93,8 @@ export async function syncFeedbackCampaign(
 	if (existing?.status === "scheduled" && existing.opensAt === opensAt) return;
 	// Routine event edits must still save when feedback can no longer be scheduled.
 	if (!(await canScheduleFeedback(ctx, event, opensAt, requireSchedule))) {
-		if (existing?.status === "scheduled") await finishCampaign(ctx, existing, "cancelled");
+		if (existing?.status === "scheduled" && !(await hasSentForms(ctx, existing)))
+			await finishCampaign(ctx, existing, "cancelled");
 		return;
 	}
 	const generation = (existing?.generation ?? 0) + 1;
@@ -146,7 +147,9 @@ export const openCampaign = internalMutation({
 			await finishCampaign(ctx, campaign, "cancelled");
 			return false;
 		}
-		const version = await selectedVersion(ctx, event);
+		const version = campaign.formVersionId
+			? await ctx.db.get(campaign.formVersionId)
+			: await selectedVersion(ctx, event);
 		if (!version) {
 			await finishCampaign(ctx, campaign, "cancelled");
 			await ctx.db.patch(campaignId, {
