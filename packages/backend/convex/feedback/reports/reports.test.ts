@@ -147,9 +147,9 @@ describe("company feedback reports", () => {
 			eventIdentifier: f.eventId,
 		});
 		expect(dashboard).toEqual({
-			[toBase64("Bachelor")]: { [toBase64(program)]: { "2": 2 } },
-			[toBase64("Årsstudium")]: { [toBase64("Design")]: { "1": 1 } },
-			[toBase64("Ukjent")]: { [toBase64("Ukjent")]: { "-1": 1 } },
+			bachelor: { [toBase64(program)]: { "2": 2 } },
+			aarsstudium: { [toBase64("Design")]: { "1": 1 } },
+			ukjent: { [toBase64("Ukjent")]: { "-1": 1 } },
 		});
 		const reportId = await queued(f);
 		await f.t.run((ctx) => ctx.db.patch(studentId, { year: 3 }));

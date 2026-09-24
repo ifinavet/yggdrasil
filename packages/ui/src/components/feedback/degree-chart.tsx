@@ -27,8 +27,8 @@ const chartConfig = {
 		label: "PhD",
 		color: "var(--chart-3)",
 	},
-	aarsenheter: {
-		label: "Årsenheter",
+	aarsstudium: {
+		label: "Årsstudium",
 		color: "var(--chart-4)",
 	},
 	ukjent: {

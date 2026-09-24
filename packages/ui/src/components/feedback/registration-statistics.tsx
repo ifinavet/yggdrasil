@@ -12,9 +12,9 @@ export function RegistrationStatistics({ data }: Readonly<{ data: RegistrantStat
 			return acc + sum;
 		}, 0);
 		return {
-			degree: fromBase64(degree).toLowerCase(),
+			degree: degree.toLowerCase(),
 			num,
-			fill: `var(--color-${fromBase64(degree).toLowerCase()})`,
+			fill: `var(--color-${degree.toLowerCase()})`,
 		};
 	});
 

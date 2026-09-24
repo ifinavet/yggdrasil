@@ -449,7 +449,7 @@ describe("getRegistrantsInfo", () => {
 			eventIdentifier: eventId,
 		});
 
-		expect(info).toEqual({ [toBase64("Bachelor")]: { [toBase64("Informatikk")]: { 2: 2 } } });
+		expect(info).toEqual({ bachelor: { [toBase64("Informatikk")]: { 2: 2 } } });
 	});
 
 	it("ignores registrants who are not seated", async () => {
@@ -480,7 +480,7 @@ describe("getRegistrantsInfo", () => {
 			eventIdentifier: eventId,
 		});
 
-		expect(info).toEqual({ [toBase64("Ukjent")]: { [toBase64("Ukjent")]: { "-1": 1 } } });
+		expect(info).toEqual({ ukjent: { [toBase64("Ukjent")]: { "-1": 1 } } });
 	});
 
 	it("refuses a plain student", async () => {
