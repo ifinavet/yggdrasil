@@ -32,10 +32,11 @@ export async function feedbackEmailContent(
 	const { token, url } = linkWithTokenOutsideHttpRequests(huginOrigin(), "/feedback");
 	const reminderNumber = deliveryArgs.round.members.findIndex(({ value }) => value === round);
 	const reminder = reminderNumber > 0;
+	const subjectPrefix = reminder ? `${reminderNumber}. påminnelse` : "Tilbakemelding";
 	return {
 		token,
 		url,
-		subject: `${reminder ? `${reminderNumber}. påminnelse` : "Tilbakemelding"}: ${title}`,
+		subject: `${subjectPrefix}: ${title}`,
 		html: await render(FeedbackEmail({ companyName, signature, url, reminder })),
 	};
 }
