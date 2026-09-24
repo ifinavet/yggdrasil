@@ -4,9 +4,9 @@ export const featureFlags = {
 		// Makes the Bifrost UI visible without the localStorage preview opt-in.
 		uiEnabled: false,
 		// Enables internal report preparation and review. Approved public links do not use this flag.
-		reportsEnabled: false,
+		reportsEnabled: true,
 		// Allows approved company report emails.
-		reportEmailsEnabled: false,
+		reportEmailsEnabled: true,
 	},
 };
 
