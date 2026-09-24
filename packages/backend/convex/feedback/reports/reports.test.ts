@@ -273,17 +273,20 @@ describe("company feedback reports", () => {
 		const organizer = await insertUser(f.t, "organizer@example.test");
 		const client = asUser(f.t, organizer);
 		await insertOrganizer(f.t, f.eventId, organizer._id);
+		expect(await client.query(reports.queries.getEventReport, { eventId: f.eventId })).toEqual({
+			enabled: false,
+		});
 		await expect(
-			client.query(reports.queries.getEventReport, { eventId: f.eventId }),
+			client.query(reports.queries.getReportAnswers, { reportId, paginationOpts }),
 		).rejects.toThrow("arrangør");
 		await grantRole(f.t, organizer._id, "internal");
 		expect(
 			await client.query(reports.queries.getEventReport, { eventId: f.eventId }),
-		).not.toBeNull();
+		).toMatchObject({ enabled: true, campaignId: f.campaignId });
 		const otherEvent = await insertEvent(f.t, f.companyId);
-		await expect(
-			client.query(reports.queries.getEventReport, { eventId: otherEvent }),
-		).rejects.toThrow("arrangør");
+		expect(await client.query(reports.queries.getEventReport, { eventId: otherEvent })).toEqual({
+			enabled: false,
+		});
 		featureFlags.huginFeedback.reportsEnabled = false;
 		expect(await client.query(reports.queries.getEventReport, { eventId: f.eventId })).toEqual({
 			enabled: false,
