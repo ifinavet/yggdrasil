@@ -60,7 +60,7 @@ export default function FeedbackEmail({
 					</Button>
 					<Text>
 						Etter at du har svart på tilbakemeldingsskjemaet er du med på trekningen av en premie
-						med verdi på 2000 kr! Vi trekker den heldige vinneren etter den siste
+						med verdi på <strong>2000 kr!</strong> Vi trekker den heldige vinneren etter den siste
 						bedriftspresentasjonen for det semesteret.
 					</Text>
 					<Text>En siste takk til deg for at du deltar på Navet sine arrangementer!</Text>
