@@ -1,4 +1,5 @@
 import type { EmailEvent, EmailId } from "@convex-dev/resend";
+import { DEGREES } from "@workspace/shared/constants";
 import { featureFlags } from "@workspace/shared/feature-flags";
 import { reportHighlights } from "@workspace/shared/feedback/report";
 import { feedbackReportCsv } from "@workspace/shared/feedback/report-csv";
@@ -137,7 +138,11 @@ describe("company feedback reports", () => {
 		await insertStudent(f.t, second._id, { studyProgram: program, year: 2 });
 		await insertRegistration(f.t, f.eventId, second._id, "registered");
 		const third = await insertUser(f.t, "third@example.test");
-		await insertStudent(f.t, third._id, { studyProgram: "Design", year: 1, degree: "Årsstudium" });
+		await insertStudent(f.t, third._id, {
+			studyProgram: "Design",
+			year: 1,
+			degree: DEGREES.aarsstudium,
+		});
 		await insertRegistration(f.t, f.eventId, third._id, "registered");
 		const unknown = await insertUser(f.t, "unknown@example.test");
 		await insertRegistration(f.t, f.eventId, unknown._id, "registered");
@@ -149,7 +154,7 @@ describe("company feedback reports", () => {
 		expect(dashboard).toEqual({
 			bachelor: { [toBase64(program)]: { "2": 2 } },
 			aarsstudium: { [toBase64("Design")]: { "1": 1 } },
-			ukjent: { [toBase64("Ukjent")]: { "-1": 1 } },
+			Ukjent: { [toBase64("Ukjent")]: { "-1": 1 } },
 		});
 		const reportId = await queued(f);
 		await f.t.run((ctx) => ctx.db.patch(studentId, { year: 3 }));
@@ -163,7 +168,7 @@ describe("company feedback reports", () => {
 			`Grad: Bachelor;${program}, år 2;2`,
 		);
 		expect(feedbackReportCsv(page!.report, page!.answers)).toContain(
-			"Grad: Årsstudium;Design, år 1;1",
+			`Grad: ${DEGREES.aarsstudium};Design, år 1;1`,
 		);
 		expect(await f.t.run((ctx) => ctx.db.get(reportId))).toMatchObject({ registrants: dashboard });
 	});

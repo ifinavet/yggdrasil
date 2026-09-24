@@ -480,7 +480,7 @@ describe("getRegistrantsInfo", () => {
 			eventIdentifier: eventId,
 		});
 
-		expect(info).toEqual({ ukjent: { [toBase64("Ukjent")]: { "-1": 1 } } });
+		expect(info).toEqual({ Ukjent: { [toBase64("Ukjent")]: { "-1": 1 } } });
 	});
 
 	it("refuses a plain student", async () => {

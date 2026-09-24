@@ -21,7 +21,7 @@ export async function getRegistrantStatistics(ctx: QueryCtx, eventId: Id<"events
 			return {
 				aar: student?.year ?? -1,
 				program: student?.studyProgram ?? "Ukjent",
-				degree: student?.degree ?? "Ukjent",
+				degree: student ? degreeKey(student.degree) : "Ukjent",
 			};
 		}),
 	);
@@ -35,8 +35,7 @@ export async function getRegistrantStatistics(ctx: QueryCtx, eventId: Id<"events
 	} = {};
 
 	for (const info of studentsInfo) {
-		const { program, aar } = info;
-		const degree = degreeKey(info.degree);
+		const { degree, program, aar } = info;
 		const programBase = toBase64(program);
 		if (!result[degree]) result[degree] = {};
 
