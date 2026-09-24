@@ -1,4 +1,5 @@
 import type { EmailEvent, EmailId } from "@convex-dev/resend";
+import type { WorkflowId } from "@convex-dev/workflow";
 import { HUGIN_LOCAL_URL, HUGIN_URL } from "@workspace/shared/constants";
 import { feedbackOpensAt, feedbackRoundAt } from "@workspace/shared/feedback/time";
 import { Webhook } from "svix";
@@ -746,3 +747,97 @@ it.each([
 		).toBe(true);
 	},
 );
+
+describe("delivery status", () => {
+	const getStatus = api.feedback.delivery.status.getEventFeedbackDelivery;
+
+	it("records the delivery outcome and keeps a failure once reported", async () => {
+		const { t, email } = await fixture();
+		const id = (await t.mutation(messages.enqueueEmail, email)) ?? "";
+		const outcome = async () =>
+			(await t.run((ctx) => ctx.db.query("feedbackDeliveries").first()))?.outcome;
+		await t.mutation(messages.onEmailEvent, await eventCallback("email.sent", id));
+		expect(await outcome()).toBeUndefined();
+		await t.mutation(messages.onEmailEvent, await eventCallback("email.delivered", id));
+		expect(await outcome()).toBe("delivered");
+		await t.mutation(messages.onEmailEvent, await eventCallback("email.bounced", id));
+		expect(await outcome()).toBe("failed");
+		await t.mutation(messages.onEmailEvent, await eventCallback("email.delivered", id));
+		expect(await outcome()).toBe("failed");
+	});
+
+	it("records invitation workflows that fail after their retries", async () => {
+		const { t, inviteId } = await fixture();
+		const complete = (
+			result: { kind: "success"; returnValue: null } | { kind: "failed"; error: string },
+		) =>
+			t.mutation(messages.onInvitationComplete, {
+				workflowId: "workflow" as WorkflowId,
+				result,
+				context: { inviteId },
+			});
+		await complete({ kind: "success", returnValue: null });
+		expect((await t.run((ctx) => ctx.db.get(inviteId)))?.failure).toBeUndefined();
+		await complete({ kind: "failed", error: "Resend unavailable" });
+		expect((await t.run((ctx) => ctx.db.get(inviteId)))?.failure).toBe("Resend unavailable");
+		await t.run((ctx) => ctx.db.delete(inviteId));
+		await complete({ kind: "failed", error: "Resend unavailable" });
+	});
+
+	it("summarizes rounds, answers and failures for the latest campaign", async () => {
+		const f = await fixture();
+		const id = (await f.t.mutation(messages.enqueueEmail, f.email)) ?? "";
+		await f.t.mutation(messages.onEmailEvent, await eventCallback("email.delivered", id));
+		const other = await insertUser(f.t, "other@example.test");
+		await f.t.run(async (ctx) => {
+			await ctx.db.patch(f.inviteId, { responded: true });
+			await ctx.db.insert("feedbackInvites", {
+				campaignId: f.campaignId,
+				userId: other._id,
+				registrationId: f.registrationId,
+				responded: false,
+				bounced: false,
+				complained: false,
+				sent: false,
+				delivered: false,
+				failure: "Resend unavailable",
+			});
+		});
+		const status = await f.client.query(getStatus, { eventId: f.eventId });
+		expect(status).toMatchObject({
+			status: "open",
+			opensAt,
+			closesAt: feedbackRoundAt(opensAt, 14),
+			invited: 2,
+			responded: 1,
+			failed: 1,
+		});
+		expect(status?.rounds).toEqual([
+			{ round: 0, at: opensAt, sent: 1, delivered: 1, failed: 0 },
+			{ round: 3, at: feedbackRoundAt(opensAt, 3), sent: 0, delivered: 0, failed: 0 },
+			{ round: 7, at: feedbackRoundAt(opensAt, 7), sent: 0, delivered: 0, failed: 0 },
+			{ round: 11, at: feedbackRoundAt(opensAt, 11), sent: 0, delivered: 0, failed: 0 },
+		]);
+	});
+
+	it("hides campaigns that never started and shows cancelled ones with a failure", async () => {
+		const f = await fixture();
+		await f.t.run((ctx) => ctx.db.patch(f.campaignId, { status: "cancelled" }));
+		expect(await f.client.query(getStatus, { eventId: f.eventId })).toBeNull();
+		await f.t.run((ctx) =>
+			ctx.db.patch(f.campaignId, { failure: "Det valgte skjemaet har ingen publisert versjon." }),
+		);
+		expect(await f.client.query(getStatus, { eventId: f.eventId })).toMatchObject({
+			status: "cancelled",
+			failure: "Det valgte skjemaet har ingen publisert versjon.",
+		});
+		await f.t.run((ctx) => ctx.db.delete(f.campaignId));
+		expect(await f.client.query(getStatus, { eventId: f.eventId })).toBeNull();
+	});
+
+	it("requires an internal role", async () => {
+		const f = await fixture();
+		const student = await insertUser(f.t, "student@example.test");
+		await expect(asUser(f.t, student).query(getStatus, { eventId: f.eventId })).rejects.toThrow();
+	});
+});

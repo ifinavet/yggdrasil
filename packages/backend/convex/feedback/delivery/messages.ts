@@ -1,4 +1,5 @@
 import { type EmailId, Resend, vOnEmailEventArgs } from "@convex-dev/resend";
+import { vResultValidator, vWorkflowId } from "@convex-dev/workflow";
 import { feedbackTokenSchema } from "@workspace/shared/feedback";
 import { feedbackRoundAt } from "@workspace/shared/feedback/time";
 import { v } from "convex/values";
@@ -165,6 +166,26 @@ export const cancelCampaignEmails = internalMutation({
 	},
 });
 
+const deliveryOutcomes = {
+	"email.delivered": "delivered",
+	"email.bounced": "failed",
+	"email.complained": "failed",
+	"email.failed": "failed",
+} as const;
+
+export const onInvitationComplete = internalMutation({
+	args: {
+		workflowId: vWorkflowId,
+		result: vResultValidator,
+		context: v.object({ inviteId: v.id("feedbackInvites") }),
+	},
+	handler: async (ctx, { result, context }): Promise<void> => {
+		if (result.kind !== "failed") return;
+		const invite = await ctx.db.get(context.inviteId);
+		if (invite) await ctx.db.patch(invite._id, { failure: result.error });
+	},
+});
+
 export const onEmailEvent = internalMutation({
 	args: vOnEmailEventArgs,
 	handler: async (ctx, { id, event }): Promise<void> => {
@@ -189,7 +210,11 @@ export const onEmailEvent = internalMutation({
 			}
 			return;
 		}
-		await ctx.db.patch(delivery._id, { callbackAt: Date.now() });
+		const outcome = deliveryOutcomes[event.type as keyof typeof deliveryOutcomes];
+		await ctx.db.patch(delivery._id, {
+			callbackAt: Date.now(),
+			...(outcome && delivery.outcome !== "failed" && { outcome }),
+		});
 		const invite = await ctx.db.get(delivery.inviteId);
 		if (!invite) return;
 		const statusFields = {

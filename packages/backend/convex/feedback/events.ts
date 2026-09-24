@@ -1,7 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import { internalRoles, requireRole } from "../auth/accessRights";
-import { hasSentForms, syncFeedbackCampaign } from "./delivery/campaigns";
+import { hasSentForms, latestCampaign, syncFeedbackCampaign } from "./delivery/campaigns";
 import { getFeedbackFormOrThrow, getLatestPublishedVersion } from "./forms/helpers";
 
 export const getEventFeedbackSettings = query({
@@ -12,11 +12,7 @@ export const getEventFeedbackSettings = query({
 		if (!event) throw new ConvexError("Arrangementet finnes ikke.");
 		const [selectedForm, campaign] = await Promise.all([
 			event.feedbackFormId ? ctx.db.get(event.feedbackFormId) : null,
-			ctx.db
-				.query("feedbackCampaigns")
-				.withIndex("by_eventId", (index) => index.eq("eventId", eventId))
-				.order("desc")
-				.first(),
+			latestCampaign(ctx, eventId),
 		]);
 		// Older events have no stored flag. Requiring an explicit true keeps them off after deployment.
 		return {
@@ -39,11 +35,7 @@ export const updateEventFeedbackSettings = mutation({
 		await requireRole(ctx, internalRoles);
 		const event = await ctx.db.get(eventId);
 		if (!event) throw new ConvexError("Arrangementet finnes ikke.");
-		const campaign = await ctx.db
-			.query("feedbackCampaigns")
-			.withIndex("by_eventId", (index) => index.eq("eventId", eventId))
-			.order("desc")
-			.first();
+		const campaign = await latestCampaign(ctx, eventId);
 		if (campaign && (await hasSentForms(ctx, campaign))) {
 			if (!enabled)
 				throw new ConvexError(

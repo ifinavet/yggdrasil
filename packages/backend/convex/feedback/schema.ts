@@ -110,6 +110,7 @@ export const feedbackSchema = {
 		queuedAt: v.number(),
 		callbackAt: v.optional(v.number()),
 		alertedAt: v.optional(v.number()),
+		outcome: v.optional(v.union(v.literal("delivered"), v.literal("failed"))),
 	})
 		.index("by_inviteId_and_round", ["inviteId", "round"])
 		.index("by_campaignId", ["campaignId"])
