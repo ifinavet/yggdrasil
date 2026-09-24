@@ -23,11 +23,7 @@ export const enqueue = internalMutation({
 		const report = await ctx.db.get(args.reportId);
 		if (report?.status !== "approved" || report.emailId || report.deliveryStatus !== "pending")
 			return;
-		if (
-			Date.now() >= report.retentionAt ||
-			!featureFlags.huginFeedback.emailsEnabled ||
-			!featureFlags.huginFeedback.reportEmailsEnabled
-		) {
+		if (Date.now() >= report.retentionAt || !featureFlags.huginFeedback.reportEmailsEnabled) {
 			await ctx.db.patch(report._id, { deliveryStatus: "failed" });
 			return;
 		}

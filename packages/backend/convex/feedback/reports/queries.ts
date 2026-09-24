@@ -21,8 +21,7 @@ export const getEventReport = query({
 			.unique();
 		return {
 			enabled: true as const,
-			deliveryEnabled:
-				featureFlags.huginFeedback.emailsEnabled && featureFlags.huginFeedback.reportEmailsEnabled,
+			deliveryEnabled: featureFlags.huginFeedback.reportEmailsEnabled,
 			campaignId: campaign._id,
 			campaignStatus: campaign.status,
 			report: report
