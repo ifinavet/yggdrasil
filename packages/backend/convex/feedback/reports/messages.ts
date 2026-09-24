@@ -4,7 +4,9 @@ import { v } from "convex/values";
 import { internalMutation, internalQuery } from "../../_generated/server";
 import { isLocalDevelopment } from "../../auth/local";
 import { hashLinkToken } from "../../lib/tokens";
-import { feedbackResend } from "../delivery/messages";
+import { feedbackResend, feedbackSender } from "../delivery/messages";
+
+export const reportEmailSubject = (eventTitle: string) => `Rapport fra ${eventTitle}`;
 
 export const getDelivery = internalQuery({
 	args: { reportId: v.id("feedbackReports") },
@@ -34,10 +36,9 @@ export const enqueue = internalMutation({
 		const emailId = isLocalDevelopment()
 			? `local:${key}`
 			: await feedbackResend.sendEmail(ctx, {
-					from: "Navet <info@ifinavet.no>",
-					replyTo: ["arrangement@ifinavet.no"],
+					...feedbackSender,
 					to: report.recipientEmail,
-					subject: `Rapport fra ${report.eventTitle}`,
+					subject: reportEmailSubject(report.eventTitle),
 					html: args.html,
 					idempotencyKey: key,
 				});

@@ -18,6 +18,10 @@ export const feedbackResend: Resend = new Resend(components.feedbackResend, {
 	testMode: false,
 	onEmailEvent: internal.feedback.delivery.messages.onEmailEvent,
 });
+export const feedbackSender = {
+	from: "Navet <info@ifinavet.no>",
+	replyTo: ["arrangement@ifinavet.no"],
+};
 export const deliveryArgs = {
 	inviteId: v.id("feedbackInvites"),
 	generation: v.number(),
@@ -101,8 +105,7 @@ export const enqueueEmail = internalMutation({
 		const emailId = isLocalDevelopment()
 			? `local:${key}`
 			: await feedbackResend.sendEmail(ctx, {
-					from: "Navet <info@ifinavet.no>",
-					replyTo: ["arrangement@ifinavet.no"],
+					...feedbackSender,
 					to: context.user.email,
 					subject: args.subject,
 					html: args.html,

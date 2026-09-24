@@ -1,14 +1,9 @@
 "use node";
 
-import { render } from "@react-email/render";
-import FeedbackReportEmail from "@workspace/emails/feedback-report-email";
-import { formatFeedbackDate } from "@workspace/shared/feedback/time";
 import { v } from "convex/values";
 import { internal } from "../../_generated/api";
 import { internalAction } from "../../_generated/server";
-import { isLocalDevelopment } from "../../auth/local";
-import { generateLinkToken } from "../../lib/tokens";
-import { feedbackConfig } from "../constants";
+import { reportEmailContent } from "../delivery/content";
 
 export const sendReportEmail = internalAction({
 	args: { reportId: v.id("feedbackReports") },
@@ -18,26 +13,12 @@ export const sendReportEmail = internalAction({
 				reportId,
 			});
 			if (!report) return;
-			const origin = new URL(
-				isLocalDevelopment() ? "http://localhost:3003" : feedbackConfig.huginBaseUrl,
-			);
-			if (origin.protocol !== "https:" && !isLocalDevelopment())
-				throw new Error("feedbackConfig.huginBaseUrl must use HTTPS");
-			const token = generateLinkToken();
-			const url = new URL("/report", origin);
-			url.hash = new URLSearchParams({ token }).toString();
-			const html = await render(
-				FeedbackReportEmail({
-					eventDate: formatFeedbackDate(report.eventStart, "d. MMMM"),
-					url: url.toString(),
-					logoUrl: new URL("/report-navet.webp", origin).toString(),
-				}),
-			);
+			const { token, html, url } = await reportEmailContent(report.eventTitle, report.eventStart);
 			await ctx.runMutation(internal.feedback.reports.messages.enqueue, {
 				reportId,
 				token,
 				html,
-				url: url.toString(),
+				url,
 			});
 		} catch {
 			await ctx.runMutation(internal.feedback.reports.messages.failed, { reportId });

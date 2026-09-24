@@ -24,6 +24,7 @@ import type * as events_waitlist_mutations from "../events/waitlist/mutations.js
 import type * as feedback_constants from "../feedback/constants.js";
 import type * as feedback_defaultFields from "../feedback/defaultFields.js";
 import type * as feedback_delivery_campaigns from "../feedback/delivery/campaigns.js";
+import type * as feedback_delivery_content from "../feedback/delivery/content.js";
 import type * as feedback_delivery_http from "../feedback/delivery/http.js";
 import type * as feedback_delivery_mail from "../feedback/delivery/mail.js";
 import type * as feedback_delivery_messages from "../feedback/delivery/messages.js";
@@ -43,6 +44,9 @@ import type * as feedback_responses_access from "../feedback/responses/access.js
 import type * as feedback_responses_actions from "../feedback/responses/actions.js";
 import type * as feedback_responses_mutations from "../feedback/responses/mutations.js";
 import type * as feedback_responses_queries from "../feedback/responses/queries.js";
+import type * as feedback_testSend_access from "../feedback/testSend/access.js";
+import type * as feedback_testSend_report from "../feedback/testSend/report.js";
+import type * as feedback_testSend_send from "../feedback/testSend/send.js";
 import type * as forms_access from "../forms/access.js";
 import type * as forms_migrations from "../forms/migrations.js";
 import type * as forms_mutations from "../forms/mutations.js";
@@ -105,6 +109,7 @@ declare const fullApi: ApiFromModules<{
   "feedback/constants": typeof feedback_constants;
   "feedback/defaultFields": typeof feedback_defaultFields;
   "feedback/delivery/campaigns": typeof feedback_delivery_campaigns;
+  "feedback/delivery/content": typeof feedback_delivery_content;
   "feedback/delivery/http": typeof feedback_delivery_http;
   "feedback/delivery/mail": typeof feedback_delivery_mail;
   "feedback/delivery/messages": typeof feedback_delivery_messages;
@@ -124,6 +129,9 @@ declare const fullApi: ApiFromModules<{
   "feedback/responses/actions": typeof feedback_responses_actions;
   "feedback/responses/mutations": typeof feedback_responses_mutations;
   "feedback/responses/queries": typeof feedback_responses_queries;
+  "feedback/testSend/access": typeof feedback_testSend_access;
+  "feedback/testSend/report": typeof feedback_testSend_report;
+  "feedback/testSend/send": typeof feedback_testSend_send;
   "forms/access": typeof forms_access;
   "forms/migrations": typeof forms_migrations;
   "forms/mutations": typeof forms_mutations;
