@@ -1,18 +1,14 @@
 import type { Infer } from "convex/values";
-import type { blockedReason, brregSnapshotAtSubmission, peppolLookup } from "../schema";
+import type { blockedReason, brregSnapshotAtSubmission } from "../schema";
 
-// Clients for Enhetsregisteret (brreg) and the Peppol Directory. Both are free, public and need no
-// key. They are only called from actions, never from the browser.
+// The client for Enhetsregisteret (brreg). It is free, public and needs no key. It is only called
+// from actions, never from the browser.
 
 const BRREG_UNITS_URL = "https://data.brreg.no/enhetsregisteret/api/enheter";
-const PEPPOL_SEARCH_URL = "https://directory.peppol.eu/search/1.0/json";
 const REGISTRY_TIMEOUT_MS = 8000;
 const BRREG_SEARCH_LIMIT = 10;
-// Peppol participant id scheme for Norwegian organization numbers.
-const NORWEGIAN_ORG_NUMBER_SCHEME = "iso6523-actorid-upis::0192";
 
 export type BrregSnapshot = Infer<typeof brregSnapshotAtSubmission>;
-export type PeppolLookup = Infer<typeof peppolLookup>;
 
 /** Why a unit cannot apply, or null when it can. */
 export type BlockedReason = Infer<typeof blockedReason>;
@@ -170,21 +166,4 @@ export async function searchBrregUnits(name: string): Promise<BrregHit[]> {
 			},
 		];
 	});
-}
-
-/** Whether the company can receive EHF invoices. Never throws: a failed lookup is "failed". */
-export async function lookupPeppolParticipant(orgNumber: string): Promise<PeppolLookup> {
-	const params = new URLSearchParams({
-		participant: `${NORWEGIAN_ORG_NUMBER_SCHEME}:${orgNumber}`,
-	});
-	try {
-		const { status, body } = await getJson(`${PEPPOL_SEARCH_URL}?${params}`);
-		if (status !== 200 || !isObject(body)) return "failed";
-
-		const matches = Array.isArray(body.matches) ? body.matches.length : 0;
-		const total = typeof body["total-result-count"] === "number" ? body["total-result-count"] : 0;
-		return matches > 0 || total > 0 ? "found" : "not_found";
-	} catch {
-		return "failed";
-	}
 }

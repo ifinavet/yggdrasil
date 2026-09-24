@@ -3,32 +3,21 @@ import {
 	applicationFormSchema,
 	SUBMISSION_ID_PATTERN,
 } from "@workspace/shared/semester/application";
-import {
-	ESCAPE_LABELS,
-	EVENT_TYPE_LABELS,
-	semesterName,
-	VENUE_LABELS,
-} from "@workspace/shared/semester/labels";
 import { isValidOrgNumber } from "@workspace/shared/semester/orgNumber";
-import { formatSemesterDay } from "@workspace/shared/semester/time";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../../_generated/api";
 import { action, internalMutation } from "../../_generated/server";
 import { studentDegree } from "../../users/students/schema";
-import { companyRecipients, logApplicationActivity } from "../applicationLifecycle";
+import { logApplicationActivity } from "../applicationLifecycle";
 import { rateLimiter } from "../rateLimits";
-import {
-	fetchBrregUnit,
-	lookupPeppolParticipant,
-	RegistryUnavailableError,
-} from "../registry/client";
+import { fetchBrregUnit, RegistryUnavailableError } from "../registry/client";
 import { BLOCKED_MESSAGES, REGISTRY_UNAVAILABLE_MESSAGE } from "../registry/messages";
 import { CONSENT_VERSION, FORM_VERSION } from "../rules";
 import {
+	applicationBilling,
 	applicationContact,
 	brregSnapshotAtSubmission,
 	foodPurchaser,
-	peppolLookup,
 	presentationEventType,
 	venue,
 	wantsToUseEscape,
@@ -50,11 +39,7 @@ export const applicationFormArgs = v.object({
 	wantsToUseEscape,
 	foodAndDrinks: v.boolean(),
 	foodPurchasedBy: foodPurchaser,
-	billing: v.object({
-		email: v.string(),
-		ehf: v.boolean(),
-		reference: v.optional(v.string()),
-	}),
+	billing: applicationBilling,
 	targetDegrees: v.array(studentDegree),
 	targetStudyPrograms: v.array(v.string()),
 	additionalInfo: v.optional(v.string()),
@@ -72,7 +57,7 @@ function parseApplicationForm(form: unknown): ApplicationForm {
 /**
  * Receives an application from Hugin. Public and unauthenticated, so it trusts nothing from the
  * browser: it validates the form again, looks the company up in brreg again, refuses deleted,
- * bankrupt and liquidated companies, checks Peppol and rate limits per company. It returns null
+ * bankrupt and liquidated companies, and rate limits per company. It returns null
  * so it never reveals stored data.
  *
  * @param {ApplicationForm} form - The answers.
@@ -125,17 +110,9 @@ export const submit = action({
 			throw new ConvexError(BLOCKED_MESSAGES[lookup.blockedReason]);
 		}
 
-		const peppol = await lookupPeppolParticipant(parsed.orgNumber);
-
 		await ctx.runMutation(
 			internal.semesterPlanning.applications.submit.insertSubmittedApplication,
-			{
-				form: parsed,
-				submissionId,
-				registry: lookup.snapshot,
-				peppolLookup: peppol,
-				peppolCheckedAt: Date.now(),
-			},
+			{ form: parsed, submissionId, registry: lookup.snapshot },
 		);
 
 		return null;
@@ -144,8 +121,7 @@ export const submit = action({
 
 /**
  * Saves a checked application. Runs as one transaction: it re-checks the form, the open semester
- * and the dates, skips a submission it has already saved, records «received» in the history and
- * queues the receipt email.
+ * and the dates, skips a submission it has already saved, and records «received» in the history.
  *
  * @throws - A Norwegian error when applications are closed or a date is no longer open.
  * @returns {Id<"companyApplications">} - The new or already saved application.
@@ -155,11 +131,9 @@ export const insertSubmittedApplication = internalMutation({
 		form: applicationFormArgs,
 		submissionId: v.string(),
 		registry: brregSnapshotAtSubmission,
-		peppolLookup,
-		peppolCheckedAt: v.number(),
 	},
 	returns: v.id("companyApplications"),
-	handler: async (ctx, { form, submissionId, registry, peppolLookup, peppolCheckedAt }) => {
+	handler: async (ctx, { form, submissionId, registry }) => {
 		const already = await ctx.db
 			.query("companyApplications")
 			.withIndex("by_submissionId", (q) => q.eq("submissionId", submissionId))
@@ -192,7 +166,7 @@ export const insertSubmittedApplication = internalMutation({
 			submissionId,
 			formVersion: FORM_VERSION,
 			registry,
-			billing: { ...billing, peppolLookup, peppolCheckedAt },
+			billing,
 			consent: { version: CONSENT_VERSION, consentedAt: Date.now() },
 			status: "applied",
 			roomBooked: false,
@@ -201,40 +175,6 @@ export const insertSubmittedApplication = internalMutation({
 
 		await logApplicationActivity(ctx, applicationId, "submitted", { type: "company" });
 
-		await ctx.scheduler.runAfter(0, internal.emails.sendApplicationReceiptEmail, {
-			to: companyRecipients(parsed),
-			companyName: registry.name,
-			semesterLabel: semesterName(semester.term, semester.year, { inSentence: true }),
-			rows: receiptRows(parsed, registry.name),
-		});
-
 		return applicationId;
 	},
 });
-
-function receiptRows(
-	form: ApplicationForm,
-	companyName: string,
-): { label: string; value: string }[] {
-	const students =
-		form.minStudents === form.maxStudents
-			? String(form.maxStudents)
-			: `${form.minStudents}–${form.maxStudents}`;
-	const invoice = form.billing.ehf ? "EHF" : `E-post til ${form.billing.email}`;
-
-	return [
-		{ label: "Bedrift", value: `${companyName}, ${form.orgNumber}` },
-		{ label: "Type", value: EVENT_TYPE_LABELS[form.eventType] },
-		{ label: "Studenter", value: students },
-		{
-			label: "Datoer",
-			value: form.availableDates.map((date) => formatSemesterDay(date)).join(", "),
-		},
-		{ label: "Sted", value: VENUE_LABELS[form.venue] },
-		{ label: "Escape", value: ESCAPE_LABELS[form.wantsToUseEscape] },
-		{
-			label: "Faktura",
-			value: form.billing.reference ? `${invoice}, ref. ${form.billing.reference}` : invoice,
-		},
-	];
-}

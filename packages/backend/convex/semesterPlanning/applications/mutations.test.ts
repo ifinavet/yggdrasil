@@ -46,7 +46,7 @@ async function insertOffer(
 			date: "2027-02-09",
 			eventType: "standard_presentation",
 			maxStudents: 40,
-			tokenHash: `hash-${Math.random()}`,
+			linkToken: `token-${Math.random()}`,
 			sentAt: Date.now(),
 			sentBy,
 			status,
@@ -301,57 +301,25 @@ describe("reject, withdraw and reopen", () => {
 	});
 });
 
-describe("linkCompany", () => {
-	it("links a profile with the same organization number and logs it", async () => {
-		const { t, semesterId, editor, companyId } = await planningSetup();
-		const applicationId = await insertApplication(t, semesterId, { orgNumber: "123456789" });
-
-		await editor.mutation(mutations.linkCompany, { applicationId, companyId });
-
-		expect((await applicationById(t, applicationId)).companyId).toBe(companyId);
-		expect((await activityFor(t, applicationId)).map((row) => row.type)).toEqual([
-			"company_linked",
-		]);
-	});
-
-	it("refuses a profile with another organization number", async () => {
-		const { t, semesterId, editor, companyId } = await planningSetup();
-		const applicationId = await insertApplication(t, semesterId, { orgNumber: "924773189" });
-
-		expect(
-			await refusalMessageFrom(
-				editor.mutation(mutations.linkCompany, { applicationId, companyId }),
-			),
-		).toBe("Bedriftsprofilen har et annet organisasjonsnummer enn søknaden.");
-	});
-});
-
 describe("updatePlanningDetails", () => {
-	it("saves the org-ansvarlig, room, checkboxes and notes, and clears with empty strings", async () => {
+	it("saves the kontaktperson and notes, and clears notes with an empty string", async () => {
 		const { t, semesterId, editor } = await planningSetup();
 		const member = await insertUser(t, "emil@ifinavet.no");
 		await grantRole(t, member._id, "internal");
-		const applicationId = await insertApplication(t, semesterId, {
-			room: "Simula",
-			internalNotes: "Gammelt",
-		});
+		const applicationId = await insertApplication(t, semesterId, { internalNotes: "Gammelt" });
 
 		await editor.mutation(mutations.updatePlanningDetails, {
 			applicationId,
 			responsibleUserId: member._id,
-			room: "",
-			roomBooked: true,
-			foodOrdered: true,
+			internalNotes: "Ring før 4. feb",
+		});
+		expect(await applicationById(t, applicationId)).toMatchObject({
+			responsibleUserId: member._id,
 			internalNotes: "Ring før 4. feb",
 		});
 
-		expect(await applicationById(t, applicationId)).toMatchObject({
-			responsibleUserId: member._id,
-			roomBooked: true,
-			foodOrdered: true,
-			internalNotes: "Ring før 4. feb",
-		});
-		expect((await applicationById(t, applicationId)).room).toBeUndefined();
+		await editor.mutation(mutations.updatePlanningDetails, { applicationId, internalNotes: "" });
+		expect((await applicationById(t, applicationId)).internalNotes).toBeUndefined();
 		expect(await activityFor(t, applicationId)).toHaveLength(0);
 	});
 
@@ -367,7 +335,94 @@ describe("updatePlanningDetails", () => {
 					responsibleUserId: student._id,
 				}),
 			),
-		).toBe("Org-ansvarlig må være et internt medlem.");
+		).toBe("Kontaktpersonen fra Navet må være et internt medlem.");
+	});
+
+	it("saves up to two internal medhjelpere, and clears them with an empty list", async () => {
+		const { t, semesterId, editor } = await planningSetup();
+		const helpers = [];
+		for (const email of ["a@ifinavet.no", "b@ifinavet.no", "c@ifinavet.no"]) {
+			const user = await insertUser(t, email);
+			await grantRole(t, user._id, "internal");
+			helpers.push(user._id);
+		}
+		const [first, second, third] = helpers as [Id<"users">, Id<"users">, Id<"users">];
+		const applicationId = await insertApplication(t, semesterId);
+
+		await editor.mutation(mutations.updatePlanningDetails, {
+			applicationId,
+			helperUserIds: [first, second],
+		});
+		expect((await applicationById(t, applicationId)).helperUserIds).toEqual([first, second]);
+
+		expect(
+			await refusalMessageFrom(
+				editor.mutation(mutations.updatePlanningDetails, {
+					applicationId,
+					helperUserIds: [first, second, third],
+				}),
+			),
+		).toBe("Et arrangement kan ha høyst 2 medhjelpere.");
+		expect(
+			await refusalMessageFrom(
+				editor.mutation(mutations.updatePlanningDetails, {
+					applicationId,
+					helperUserIds: [first, first],
+				}),
+			),
+		).toBe("Samme person er valgt som medhjelper to ganger.");
+
+		await editor.mutation(mutations.updatePlanningDetails, { applicationId, helperUserIds: [] });
+		expect((await applicationById(t, applicationId)).helperUserIds).toBeUndefined();
+	});
+
+	it("refuses a medhjelper who is not an internal member", async () => {
+		const { t, semesterId, editor } = await planningSetup();
+		const student = await insertUser(t, "student@uio.no");
+		const applicationId = await insertApplication(t, semesterId);
+
+		expect(
+			await refusalMessageFrom(
+				editor.mutation(mutations.updatePlanningDetails, {
+					applicationId,
+					helperUserIds: [student._id],
+				}),
+			),
+		).toBe("Medhjelperne må være interne medlemmer.");
+	});
+
+	it("refuses team changes once the event exists, but still saves notes", async () => {
+		const { t, semesterId, editor, companyId } = await planningSetup();
+		const member = await insertUser(t, "emil@ifinavet.no");
+		await grantRole(t, member._id, "internal");
+		const eventId = await t.run((ctx) =>
+			ctx.db.insert("events", {
+				title: "Fjordkode",
+				teaser: "",
+				description: "",
+				eventStart: Date.parse("2027-02-09T15:15:00Z"),
+				registrationOpens: Date.parse("2027-01-26T11:00:00Z"),
+				participationLimit: 40,
+				location: "Simula",
+				food: "Pizza",
+				language: "Norsk",
+				ageRestriction: "Ingen",
+				externalEvent: false,
+				hostingCompany: companyId,
+				published: false,
+			}),
+		);
+		const applicationId = await insertApplication(t, semesterId, { eventId });
+
+		for (const change of [{ responsibleUserId: member._id }, { helperUserIds: [member._id] }]) {
+			expect(
+				await refusalMessageFrom(
+					editor.mutation(mutations.updatePlanningDetails, { applicationId, ...change }),
+				),
+			).toBe("Arrangementet er opprettet. Endre kontaktperson og medhjelpere på arrangementet.");
+		}
+		await editor.mutation(mutations.updatePlanningDetails, { applicationId, internalNotes: "Ok" });
+		expect((await applicationById(t, applicationId)).internalNotes).toBe("Ok");
 	});
 });
 

@@ -1,3 +1,4 @@
+import type { ApplicationStatus } from "@workspace/shared/semester/labels";
 import { isValidOrgNumber, toCompanyProfileOrgNumber } from "@workspace/shared/semester/orgNumber";
 import {
 	addOsloDays,
@@ -11,12 +12,7 @@ import {
 } from "@workspace/shared/semester/time";
 import { describe, expect, it } from "vitest";
 import { generateLinkToken, hashLinkToken, LINK_TOKEN_LENGTH } from "../lib/tokens";
-import {
-	type ApplicationStatus,
-	canTransition,
-	isActiveApplicationStatus,
-	TRANSITIONS,
-} from "./rules";
+import { canTransition, isActiveApplicationStatus, TRANSITIONS } from "./rules";
 
 const STATUSES = Object.keys(TRANSITIONS) as ApplicationStatus[];
 

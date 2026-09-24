@@ -3,6 +3,8 @@ import {
 	asUser,
 	grantRole,
 	insertApplication,
+	insertEvent,
+	insertOrganizer,
 	insertSemester,
 	insertUser,
 	refusalMessageFrom,
@@ -28,7 +30,6 @@ describe("getPlan", () => {
 		await insertApplication(t, semesterId, {
 			assignedDate: "2027-02-09",
 			responsibleUserId: member._id,
-			room: "Simula",
 			internalNotes: "Hemmelig",
 		});
 
@@ -40,7 +41,6 @@ describe("getPlan", () => {
 			assignedDate: "2027-02-09",
 			companyName: "FJORDKODE AS",
 			responsibleName: "Emil Moe",
-			room: "Simula",
 		});
 		const serialized = JSON.stringify(plan);
 		for (const secret of [
@@ -54,6 +54,33 @@ describe("getPlan", () => {
 		expect(Object.keys(plan[0] ?? {})).not.toEqual(
 			expect.arrayContaining(["contact", "billing", "internalNotes"]),
 		);
+	});
+
+	it("shows the Navet team from the application, then from the event once it exists", async () => {
+		const { t, companyId, semesterId, member } = await withPeople();
+		const helper = await insertUser(t, "helper@ifinavet.no", {
+			firstName: "Ida",
+			lastName: "Hjelp",
+		});
+		const applicationId = await insertApplication(t, semesterId, {
+			assignedDate: "2027-02-09",
+			responsibleUserId: member._id,
+			helperUserIds: [helper._id],
+		});
+
+		const before = await asUser(t, member).query(queries.getPlan, { semesterId });
+		expect(before[0]).toMatchObject({
+			responsibleName: "Emil Moe",
+			helpers: [{ userId: helper._id, name: "Ida Hjelp" }],
+		});
+
+		// Organizers changed on the event win over what the application says.
+		const eventId = await insertEvent(t, companyId);
+		await insertOrganizer(t, eventId, helper._id);
+		await t.run((ctx) => ctx.db.patch(applicationId, { eventId }));
+
+		const after = await asUser(t, member).query(queries.getPlan, { semesterId });
+		expect(after[0]).toMatchObject({ responsibleName: "Ida Hjelp", helpers: [] });
 	});
 
 	it("requires login", async () => {
@@ -88,17 +115,77 @@ describe("editor queries", () => {
 		expect(list[0]?.contact.email).toBe("ingrid@fjordkode.no");
 	});
 
-	it("get suggests the company profile with the same organization number until it is linked", async () => {
+	it("get finds the company profile by organization number, or the linked one", async () => {
 		const { t, semesterId, editor, companyId } = await withPeople();
 		const applicationId = await insertApplication(t, semesterId, { orgNumber: "123456789" });
 
-		const before = await asUser(t, editor).query(queries.get, { applicationId });
-		expect(before.matchingCompanyId).toBe(companyId);
-		expect(before.offers).toEqual([]);
-		expect(before.activity).toEqual([]);
+		const matched = await asUser(t, editor).query(queries.get, { applicationId });
+		expect(matched.companyId).toBe(companyId);
+		expect(matched.companyName).toBe("Testbedrift");
+		expect(matched.offers).toEqual([]);
+		expect(matched.activity).toEqual([]);
 
-		await t.run((ctx) => ctx.db.patch(applicationId, { companyId }));
-		const after = await asUser(t, editor).query(queries.get, { applicationId });
-		expect(after.matchingCompanyId).toBeNull();
+		const other = await insertApplication(t, semesterId, { orgNumber: "924773189" });
+		expect(await asUser(t, editor).query(queries.get, { applicationId: other })).toMatchObject({
+			companyId: null,
+			companyName: null,
+			logoUrl: null,
+		});
+
+		await t.run((ctx) => ctx.db.patch(other, { companyId }));
+		expect((await asUser(t, editor).query(queries.get, { applicationId: other })).companyId).toBe(
+			companyId,
+		);
+	});
+});
+
+describe("countForSemester", () => {
+	it("counts every application in the semester, for editors only", async () => {
+		const { t, semesterId, editor, member } = await withPeople();
+		await insertApplication(t, semesterId);
+		await insertApplication(t, semesterId, { status: "withdrawn" });
+		await insertApplication(t, await insertSemester(t, { year: 2028 }));
+
+		expect(await asUser(t, editor).query(queries.countForSemester, { semesterId })).toBe(2);
+		expect(
+			await refusalMessageFrom(asUser(t, member).query(queries.countForSemester, { semesterId })),
+		).toContain("Unauthorized");
+	});
+});
+
+describe("listRequestedDates", () => {
+	it("gives the dates from the latest answered offer of each application wanting a new date", async () => {
+		const { t, semesterId, editor } = await withPeople();
+		const waiting = await insertApplication(t, semesterId, {
+			status: "new_date_requested",
+			assignedDate: "2027-02-09",
+		});
+		await insertApplication(t, semesterId, { status: "offer_sent", assignedDate: "2027-02-16" });
+		await t.run(async (ctx) => {
+			const offer = {
+				applicationId: waiting,
+				date: "2027-02-09",
+				eventType: "standard_presentation" as const,
+				maxStudents: 40,
+				sentBy: editor._id,
+			};
+			await ctx.db.insert("companyApplicationOffers", {
+				...offer,
+				linkToken: "old",
+				sentAt: 1,
+				status: "superseded",
+			});
+			await ctx.db.insert("companyApplicationOffers", {
+				...offer,
+				linkToken: "new",
+				sentAt: 2,
+				status: "new_date_requested",
+				requestedDates: ["2027-02-16", "2027-02-11"],
+			});
+		});
+
+		expect(await asUser(t, editor).query(queries.listRequestedDates, { semesterId })).toEqual([
+			{ applicationId: waiting, dates: ["2027-02-16", "2027-02-11"] },
+		]);
 	});
 });

@@ -4,6 +4,26 @@ import { v } from "convex/values";
 
 export const organizerRoleValidator = v.union(...ORGANIZER_ROLES.map((role) => v.literal(role)));
 
+/**
+ * What Bifrost's event form sends to create an event, apart from whether it is external. Shared by
+ * `events.create` and creating the event for a semester planning application.
+ */
+export const newEventArgs = {
+	title: v.string(),
+	teaser: v.string(),
+	description: v.string(),
+	eventStart: v.number(),
+	registrationOpens: v.number(),
+	participationLimit: v.number(),
+	location: v.string(),
+	food: v.string(),
+	language: v.string(),
+	ageRestriction: v.string(),
+	hostingCompany: v.id("companies"),
+	published: v.boolean(),
+	organizers: v.array(v.object({ userId: v.id("users"), role: organizerRoleValidator })),
+};
+
 export const eventsSchema = {
 	events: defineTable({
 		title: v.string(),

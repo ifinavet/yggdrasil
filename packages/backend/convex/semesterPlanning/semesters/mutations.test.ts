@@ -244,12 +244,32 @@ describe("setDateClosed", () => {
 		expect((await t.run((ctx) => ctx.db.get(dateId)))?.closedLabel).toBe("Påske");
 	});
 
-	it("refuses an empty reason", async () => {
-		const { dateId, editor } = await withOneDate();
+	it("closes a date without a reason as an empty label", async () => {
+		const { t, dateId, editor } = await withOneDate();
+
+		await editor.mutation(mutations.setDateClosed, { dateId, label: "  " });
+		expect((await t.run((ctx) => ctx.db.get(dateId)))?.closedLabel).toBe("");
+
+		await editor.mutation(mutations.setDateClosed, { dateId, label: null });
+		expect((await t.run((ctx) => ctx.db.get(dateId)))?.closedLabel).toBeUndefined();
+	});
+
+	it("changes the reason of a closed date", async () => {
+		const { t, dateId, editor } = await withOneDate();
+
+		await editor.mutation(mutations.setDateClosed, { dateId, label: "" });
+		await editor.mutation(mutations.setDateClosed, { dateId, label: "Eksamen" });
+		expect((await t.run((ctx) => ctx.db.get(dateId)))?.closedLabel).toBe("Eksamen");
+	});
+
+	it("refuses to close a date that a company has been given, even without a reason", async () => {
+		const { t, semesterId, dateId, editor } = await withOneDate();
+		await insertApplication(t, semesterId, { status: "confirmed", assignedDate: "2027-02-09" });
+
 		const message = await refusalMessageFrom(
-			editor.mutation(mutations.setDateClosed, { dateId, label: " " }),
+			editor.mutation(mutations.setDateClosed, { dateId, label: "" }),
 		);
-		expect(message).toBe("Skriv hvorfor datoen er stengt.");
+		expect(message).toBe("Datoen er tildelt FJORDKODE AS. Flytt søknaden først.");
 	});
 });
 
@@ -516,9 +536,28 @@ describe("queries", () => {
 
 		const member = await insertUser(t, "medlem@ifinavet.no");
 		await grantRole(t, member._id, "internal");
-		const { semester, dates } = await asUser(t, member).query(queries.get, { semesterId });
+		const { semester, dates, finalizedByName } = await asUser(t, member).query(queries.get, {
+			semesterId,
+		});
 		expect(semester._id).toBe(semesterId);
 		expect(dates).toEqual([]);
+		expect(finalizedByName).toBeNull();
+	});
+
+	it("get names who finished the plan", async () => {
+		const { t } = await setup();
+		const member = await insertUser(t, "medlem@ifinavet.no", {
+			firstName: "Emil",
+			lastName: "Moe",
+		});
+		await grantRole(t, member._id, "internal");
+		const semesterId = await insertSemester(t, {
+			planFinalizedAt: Date.now(),
+			planFinalizedBy: member._id,
+		});
+
+		const { finalizedByName } = await asUser(t, member).query(queries.get, { semesterId });
+		expect(finalizedByName).toBe("Emil Moe");
 	});
 
 	it("list sorts autumn after spring in the same year", async () => {

@@ -1,22 +1,10 @@
-import type { Infer } from "convex/values";
-import type { applicationStatus } from "./schema";
-
-export type ApplicationStatus = Infer<typeof applicationStatus>;
+import type { ApplicationStatus } from "@workspace/shared/semester/labels";
 
 /** Version of the Hugin application form. Bump it when the questions change. */
 export const FORM_VERSION = 1;
 
 /** Version of the storage consent text the company accepts on Hugin. */
 export const CONSENT_VERSION = "2026-10";
-
-export const STATUS_LABELS: Record<ApplicationStatus, string> = {
-	applied: "Søkt",
-	offer_sent: "Tilbud sendt",
-	new_date_requested: "Ny dato ønsket",
-	confirmed: "Bekreftet",
-	rejected: "Avslått",
-	withdrawn: "Trukket",
-};
 
 /**
  * Every allowed status change. A confirmed application can only be withdrawn: to move it to

@@ -330,12 +330,7 @@ export async function insertApplication(
 			wantsToUseEscape: "unsure",
 			foodAndDrinks: true,
 			foodPurchasedBy: "company",
-			billing: {
-				email: "faktura@fjordkode.no",
-				ehf: true,
-				peppolLookup: "found",
-				peppolCheckedAt: Date.now(),
-			},
+			billing: { email: "faktura@fjordkode.no", details: "Referanse: PO-2027-014" },
 			targetDegrees: [],
 			targetStudyPrograms: [],
 			consent: { version: CONSENT_VERSION, consentedAt: Date.now() },

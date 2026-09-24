@@ -2,11 +2,10 @@ import { isValidOrgNumber, normalizeOrgNumber } from "@workspace/shared/semester
 import { ConvexError, v } from "convex/values";
 import { action } from "../../_generated/server";
 import { rateLimiter } from "../rateLimits";
-import { blockedReason, peppolLookup } from "../schema";
+import { blockedReason } from "../schema";
 import {
 	type BrregHit,
 	fetchBrregUnit,
-	lookupPeppolParticipant,
 	RegistryUnavailableError,
 	searchBrregUnits,
 } from "./client";
@@ -72,29 +71,5 @@ export const searchCompanies = action({
 			}
 			throw error;
 		}
-	},
-});
-
-/**
- * Checks whether a company can receive EHF invoices, to prefill the invoice question on Hugin.
- *
- * @param {string} orgNumber - The organization number.
- *
- * @throws - An error if the number is invalid or the lookup is rate limited.
- * @returns {"found" | "not_found" | "failed"} - The Peppol Directory result.
- */
-export const lookupPeppol = action({
-	args: { orgNumber: v.string() },
-	returns: peppolLookup,
-	handler: async (ctx, { orgNumber }) => {
-		const normalized = normalizeOrgNumber(orgNumber);
-		if (!isValidOrgNumber(normalized)) {
-			throw new ConvexError("Organisasjonsnummeret er ugyldig.");
-		}
-
-		const { ok } = await rateLimiter.limit(ctx, "peppolLookup");
-		if (!ok) throw new ConvexError(RATE_LIMITED_MESSAGE);
-
-		return lookupPeppolParticipant(normalized);
 	},
 });

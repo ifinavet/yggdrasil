@@ -1,13 +1,9 @@
+import { type ApplicationStatus, STATUS_LABELS } from "@workspace/shared/semester/labels";
 import { ConvexError, type Infer } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { editorRoles, requireRole } from "../auth/accessRights";
-import {
-	type ApplicationStatus,
-	canTransition,
-	isActiveApplicationStatus,
-	STATUS_LABELS,
-} from "./rules";
+import { canTransition, isActiveApplicationStatus } from "./rules";
 import type { activityActor, applicationActivityType } from "./schema";
 
 /** Who performed an activity. A Navet member is also recorded by user id. */
@@ -60,15 +56,6 @@ export async function logApplicationActivity(
 		...(actor.type === "internal" ? { actorUserId: actor.userId } : {}),
 		...details,
 	});
-}
-
-/** The contact person and whoever filled in the application, without duplicates. */
-export function companyRecipients(
-	application: Pick<Doc<"companyApplications">, "contact" | "filledInByEmail">,
-): string[] {
-	return [...new Set([application.contact.email, application.filledInByEmail])].filter(
-		(email): email is string => !!email,
-	);
 }
 
 /**

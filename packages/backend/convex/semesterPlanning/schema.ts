@@ -1,4 +1,5 @@
 import {
+	APPLICATION_STATUSES,
 	ESCAPE_ANSWERS,
 	EVENT_TYPES,
 	FOOD_PURCHASERS,
@@ -27,14 +28,7 @@ export const applicationPeriodStatus = v.union(
 	v.literal("closed"),
 );
 
-export const applicationStatus = v.union(
-	v.literal("applied"),
-	v.literal("offer_sent"),
-	v.literal("new_date_requested"),
-	v.literal("confirmed"),
-	v.literal("rejected"),
-	v.literal("withdrawn"),
-);
+export const applicationStatus = oneOf(APPLICATION_STATUSES);
 
 export const presentationEventType = oneOf(EVENT_TYPES);
 
@@ -52,16 +46,11 @@ export const blockedReason = v.union(
 	v.literal("liquidation"),
 );
 
-export const peppolLookup = v.union(
-	v.literal("found"),
-	v.literal("not_found"),
-	v.literal("failed"),
-);
-
 export const offerStatus = v.union(
 	v.literal("pending"),
 	v.literal("accepted"),
 	v.literal("new_date_requested"),
+	v.literal("declined"),
 	v.literal("superseded"),
 );
 
@@ -70,6 +59,7 @@ export const applicationActivityType = v.union(
 	v.literal("status_changed"),
 	v.literal("date_assigned"),
 	v.literal("date_cleared"),
+	// No longer written, since the profile is found by org.nr.; kept for older history rows.
 	v.literal("company_linked"),
 	v.literal("event_linked"),
 	v.literal("contact_changed"),
@@ -113,12 +103,10 @@ export const applicationContact = v.object({
 	phone: v.string(),
 });
 
+/** How Navet invoices the company: an email address, free text, or both. */
 export const applicationBilling = v.object({
-	email: v.string(),
-	ehf: v.boolean(),
-	reference: v.optional(v.string()),
-	peppolLookup: peppolLookup,
-	peppolCheckedAt: v.number(),
+	email: v.optional(v.string()),
+	details: v.optional(v.string()),
 });
 
 export const semesterPlanningSchema = {
@@ -177,11 +165,13 @@ export const semesterPlanningSchema = {
 		assignedDate: v.optional(v.string()),
 		companyId: v.optional(v.id("companies")),
 		responsibleUserId: v.optional(v.id("users")),
-		room: v.optional(v.string()),
-		roomBooked: v.boolean(),
-		foodOrdered: v.boolean(),
+		helperUserIds: v.optional(v.array(v.id("users"))),
 		internalNotes: v.optional(v.string()),
 		eventId: v.optional(v.id("events")),
+		// Ticked off on the event by the kontaktperson and medhjelpere. Whether a room or food is
+		// needed at all follows from the company's answers, see `logisticsNeeds`.
+		roomBooked: v.boolean(),
+		foodOrdered: v.boolean(),
 	})
 		.index("by_semesterId_and_status", ["semesterId", "status"])
 		.index("by_semesterId_and_assignedDate", ["semesterId", "assignedDate"])
@@ -195,7 +185,9 @@ export const semesterPlanningSchema = {
 		date: v.string(),
 		eventType: presentationEventType,
 		maxStudents: v.number(),
-		tokenHash: v.string(),
+		// The token in the offer link. It is stored as is, so an editor can copy the link again for
+		// Navet to email by hand; only editors can read it.
+		linkToken: v.string(),
 		sentAt: v.number(),
 		sentBy: v.id("users"),
 		status: offerStatus,
@@ -205,7 +197,7 @@ export const semesterPlanningSchema = {
 		requestedDates: v.optional(v.array(v.string())),
 		responseComment: v.optional(v.string()),
 	})
-		.index("by_tokenHash", ["tokenHash"])
+		.index("by_linkToken", ["linkToken"])
 		.index("by_applicationId", ["applicationId"]),
 
 	companyApplicationActivity: defineTable({

@@ -189,13 +189,14 @@ export const updateSettings = mutation({
 });
 
 /**
- * Closes a date with a reason (e.g. «Kickoff»), or opens it again with a null label. A date that
- * is assigned to a company cannot be closed.
+ * Closes a date, with an optional reason (e.g. «Kickoff»), or opens it again with a null label.
+ * A date closed without a reason stores an empty label, so closed always means a label is set. A
+ * date that is assigned to a company cannot be closed.
  *
  * @param {Id<"semesterDates">} dateId - The date to close or open.
- * @param {string | null} label - Why Navet uses the date, or null to open it.
+ * @param {string | null} label - Why Navet uses the date (may be empty), or null to open it.
  *
- * @throws - An error if the caller is not an editor, the label is empty, or the date is assigned.
+ * @throws - An error if the caller is not an editor, or the date is assigned.
  * @returns {null} - Returns null when the date is updated.
  */
 export const setDateClosed = mutation({
@@ -213,15 +214,12 @@ export const setDateClosed = mutation({
 			return null;
 		}
 
-		const trimmed = label.trim();
-		if (!trimmed) throw new ConvexError("Skriv hvorfor datoen er stengt.");
-
 		const holder = await findActiveApplicationOnDate(ctx, date.semesterId, date.date);
 		if (holder) {
 			throw new ConvexError(`Datoen er tildelt ${holder.registry.name}. Flytt søknaden først.`);
 		}
 
-		await ctx.db.patch(dateId, { closedLabel: trimmed });
+		await ctx.db.patch(dateId, { closedLabel: label.trim() });
 		return null;
 	},
 });

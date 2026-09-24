@@ -7,7 +7,7 @@ import { getCurrentUserOrThrow } from "../auth/currentUser";
 import { syncFeedbackCampaign } from "../feedback/delivery/campaigns";
 import { eventSlug, insertEventWithOrganizers } from "./helper";
 import { makeStatusPending } from "./registrations/mutations";
-import { organizerRoleValidator } from "./schema";
+import { newEventArgs, organizerRoleValidator } from "./schema";
 
 /**
  * Updates an existing event and synchronizes its organizers and waitlist.
@@ -287,68 +287,13 @@ export const updatePublishedStatus = mutation({
  */
 export const create = mutation({
 	args: {
-		title: v.string(),
-		teaser: v.string(),
-		description: v.string(),
-		eventStart: v.number(),
-		registrationOpens: v.number(),
-		participationLimit: v.number(),
-		location: v.string(),
-		food: v.string(),
-		language: v.string(),
-		ageRestriction: v.string(),
+		...newEventArgs,
 		externalEvent: v.boolean(),
 		externalUrl: v.optional(v.string()),
-		hostingCompany: v.id("companies"),
-		published: v.boolean(),
-		organizers: v.array(
-			v.object({
-				userId: v.id("users"),
-				role: organizerRoleValidator,
-			}),
-		),
 	},
-	handler: async (
-		ctx,
-		{
-			title,
-			teaser,
-			description,
-			eventStart,
-			registrationOpens,
-			participationLimit,
-			location,
-			food,
-			language,
-			ageRestriction,
-			externalEvent,
-			externalUrl,
-			hostingCompany,
-			published,
-			organizers,
-		},
-	) => {
+	handler: async (ctx, { organizers, ...event }) => {
 		await requireRole(ctx, internalRoles);
 
-		await insertEventWithOrganizers(
-			ctx,
-			{
-				title,
-				teaser,
-				description,
-				eventStart,
-				registrationOpens,
-				participationLimit,
-				location,
-				food,
-				language,
-				ageRestriction,
-				externalEvent,
-				externalUrl,
-				hostingCompany,
-				published,
-			},
-			organizers,
-		);
+		await insertEventWithOrganizers(ctx, event, organizers);
 	},
 });

@@ -35,7 +35,7 @@ function validForm(overrides: Record<string, unknown> = {}) {
 		wantsToUseEscape: "unsure" as const,
 		foodAndDrinks: true,
 		foodPurchasedBy: "company" as const,
-		billing: { email: "faktura@fjordkode.no", ehf: true, reference: "PO-2027-014" },
+		billing: { email: "faktura@fjordkode.no", details: "Referanse: PO-2027-014" },
 		targetDegrees: ["Bachelor" as const],
 		targetStudyPrograms: [],
 		consent: true,
@@ -95,7 +95,7 @@ afterEach(() => {
 });
 
 describe("submit", () => {
-	it("saves the application with the brreg snapshot, Peppol result and consent version", async () => {
+	it("saves the application with the brreg snapshot, billing and consent version", async () => {
 		const { t } = await setup();
 		const semesterId = await withOpenSemester(t);
 
@@ -109,8 +109,6 @@ describe("submit", () => {
 			formVersion: 1,
 			wantsToUseEscape: "unsure",
 			foodPurchasedBy: "company",
-			roomBooked: false,
-			foodOrdered: false,
 			registry: {
 				name: "FJORDKODE AS",
 				organizationForm: { code: "AS", description: "Aksjeselskap" },
@@ -124,12 +122,7 @@ describe("submit", () => {
 				website: "www.fjordkode.no",
 				employeeCount: 48,
 			},
-			billing: {
-				email: "faktura@fjordkode.no",
-				ehf: true,
-				reference: "PO-2027-014",
-				peppolLookup: "found",
-			},
+			billing: { email: "faktura@fjordkode.no", details: "Referanse: PO-2027-014" },
 			consent: { version: "2026-10" },
 		});
 		expect(application?.assignedDate).toBeUndefined();
@@ -145,28 +138,33 @@ describe("submit", () => {
 		expect(history.map((row) => [row.type, row.actor])).toEqual([["submitted", "company"]]);
 	});
 
-	it("emails a receipt to the contact person and whoever filled in the form", async () => {
+	it("emails nothing: the receipt is shown on Hugin", async () => {
 		const { t } = await setup();
 		await withOpenSemester(t);
 		await submitWith(t);
 
-		const [receipt] = (await scheduledCallsOf(t, "sendApplicationReceiptEmail")) as {
-			to: string[];
-			semesterLabel: string;
-			rows: { label: string; value: string }[];
-		}[];
-		expect(receipt?.to).toEqual(["ingrid@fjordkode.no", "assistent@fjordkode.no"]);
-		expect(receipt?.semesterLabel).toBe("våren 2027");
-		expect(receipt?.rows).toContainEqual({ label: "Datoer", value: "tir 9. feb., tir 16. feb." });
+		expect(await scheduledCallsOf(t, "sendApplicationReceiptEmail")).toEqual([]);
 	});
 
-	it("stores a failed Peppol lookup and still saves the application", async () => {
+	it.each([
+		["only an email", { email: "faktura@fjordkode.no" }],
+		["only a text", { details: "EHF til 982463718" }],
+	])("accepts billing with %s", async (_case, billing) => {
 		const { t } = await setup();
 		await withOpenSemester(t);
 
-		await submitWith(t, { stubs: { peppol: "down" } });
+		await submitWith(t, { form: validForm({ billing }) });
 
-		expect((await applications(t))[0]?.billing.peppolLookup).toBe("failed");
+		expect((await applications(t))[0]?.billing).toEqual(billing);
+	});
+
+	it("refuses billing with neither an email nor a text", async () => {
+		const { t } = await setup();
+		await withOpenSemester(t);
+
+		expect(await refusalMessageFrom(submitWith(t, { form: validForm({ billing: {} }) }))).toBe(
+			"Skriv en e-post for faktura, eller hvordan dere vil ha fakturaen.",
+		);
 	});
 
 	it("saves one application when the same submission arrives twice", async () => {

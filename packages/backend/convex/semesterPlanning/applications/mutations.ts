@@ -1,12 +1,14 @@
 import { applicationContactSchema } from "@workspace/shared/semester/application";
-import { MAX_INTERNAL_NOTES_LENGTH, MAX_ROOM_LENGTH } from "@workspace/shared/semester/limits";
+import { closedDateLabel } from "@workspace/shared/semester/labels";
+import { MAX_HELPERS, MAX_INTERNAL_NOTES_LENGTH } from "@workspace/shared/semester/limits";
 import { toCompanyProfileOrgNumber } from "@workspace/shared/semester/orgNumber";
-import { isIsoDate, osloDateTimeToEpoch } from "@workspace/shared/semester/time";
+import { formatSemesterDay, isIsoDate, osloToday } from "@workspace/shared/semester/time";
 import { ConvexError, v } from "convex/values";
 import type { Doc, Id } from "../../_generated/dataModel";
 import { type MutationCtx, mutation } from "../../_generated/server";
 import { internalRoles, userHasRole } from "../../auth/accessRights";
 import { insertEventWithOrganizers } from "../../events/helper";
+import { newEventArgs } from "../../events/schema";
 import {
 	type Actor,
 	findActiveApplicationOnDate,
@@ -98,8 +100,8 @@ export const assignDate = mutation({
 			)
 			.first();
 		if (!semesterDate) throw new ConvexError("Datoen finnes ikke i semesteret.");
-		if (semesterDate.closedLabel) {
-			throw new ConvexError(`Datoen er stengt: ${semesterDate.closedLabel}.`);
+		if (semesterDate.closedLabel !== undefined) {
+			throw new ConvexError(`Datoen er stengt: ${closedDateLabel(semesterDate.closedLabel)}.`);
 		}
 
 		const holder = await findActiveApplicationOnDate(
@@ -203,71 +205,53 @@ export const reopen = mutation({
 });
 
 /**
- * Links an application to a company profile in Bifrost. The organization numbers must match; the
- * link is never made automatically.
+ * Updates who from Navet runs the event, the kontaktperson and medhjelpere, and the internal
+ * notes. Once the event exists, its organizers are the team, so the team is changed on the event
+ * instead. These changes are not written to the history.
  *
  * @param {Id<"companyApplications">} applicationId - The application.
- * @param {Id<"companies">} companyId - The company profile.
- *
- * @throws - An error if the caller is not an editor, or the numbers do not match.
- * @returns {null} - Returns null when the application is linked.
- */
-export const linkCompany = mutation({
-	args: { applicationId: v.id("companyApplications"), companyId: v.id("companies") },
-	returns: v.null(),
-	handler: async (ctx, { applicationId, companyId }) => {
-		const actor = await requireEditorActor(ctx);
-		const application = await requireApplication(ctx, applicationId);
-		const company = await ctx.db.get(companyId);
-		if (!company) throw new ConvexError("Bedriftsprofilen ble ikke funnet.");
-
-		if (company.orgNumber !== toCompanyProfileOrgNumber(application.orgNumber)) {
-			throw new ConvexError("Bedriftsprofilen har et annet organisasjonsnummer enn søknaden.");
-		}
-		if (application.companyId === companyId) return null;
-
-		await ctx.db.patch(applicationId, { companyId });
-		await logApplicationActivity(ctx, applicationId, "company_linked", actor);
-		return null;
-	},
-});
-
-/**
- * Updates the practical planning fields: org-ansvarlig, room, whether the room is booked and the
- * food ordered, and internal notes. These changes are not written to the history.
- *
- * @param {Id<"companyApplications">} applicationId - The application.
- * @param {Id<"users"> | null} [responsibleUserId] - The org-ansvarlig, or null to clear.
- * @param {string} [room] - Room or location; an empty string clears it.
- * @param {boolean} [roomBooked] - Whether the room is booked.
- * @param {boolean} [foodOrdered] - Whether the food is ordered.
+ * @param {Id<"users"> | null} [responsibleUserId] - The kontaktperson from Navet, or null to clear.
+ * @param {Id<"users">[]} [helperUserIds] - Up to MAX_HELPERS medhjelpere; an empty list clears them.
  * @param {string} [internalNotes] - Notes for editors; an empty string clears them.
  *
- * @throws - An error if the caller is not an editor, or the org-ansvarlig is not an internal member.
+ * @throws - An error if the caller is not an editor, the team is changed after the event exists,
+ * or a team member is not an internal member or is picked twice.
  * @returns {null} - Returns null when the fields are saved.
  */
 export const updatePlanningDetails = mutation({
 	args: {
 		applicationId: v.id("companyApplications"),
 		responsibleUserId: v.optional(v.union(v.id("users"), v.null())),
-		room: v.optional(v.string()),
-		roomBooked: v.optional(v.boolean()),
-		foodOrdered: v.optional(v.boolean()),
+		helperUserIds: v.optional(v.array(v.id("users"))),
 		internalNotes: v.optional(v.string()),
 	},
 	returns: v.null(),
-	handler: async (
-		ctx,
-		{ applicationId, responsibleUserId, room, roomBooked, foodOrdered, internalNotes },
-	) => {
+	handler: async (ctx, { applicationId, responsibleUserId, helperUserIds, internalNotes }) => {
 		await requireEditorActor(ctx);
-		await requireApplication(ctx, applicationId);
+		const application = await requireApplication(ctx, applicationId);
+
+		const changesTeam = responsibleUserId !== undefined || helperUserIds !== undefined;
+		if (changesTeam && application.eventId) {
+			throw new ConvexError(
+				"Arrangementet er opprettet. Endre kontaktperson og medhjelpere på arrangementet.",
+			);
+		}
 
 		if (responsibleUserId && !(await userHasRole(ctx, responsibleUserId, internalRoles))) {
-			throw new ConvexError("Org-ansvarlig må være et internt medlem.");
+			throw new ConvexError("Kontaktpersonen fra Navet må være et internt medlem.");
 		}
-		if (room !== undefined && room.length > MAX_ROOM_LENGTH) {
-			throw new ConvexError(`Rom kan ha høyst ${MAX_ROOM_LENGTH} tegn.`);
+		if (helperUserIds !== undefined) {
+			if (new Set(helperUserIds).size !== helperUserIds.length) {
+				throw new ConvexError("Samme person er valgt som medhjelper to ganger.");
+			}
+			if (helperUserIds.length > MAX_HELPERS) {
+				throw new ConvexError(`Et arrangement kan ha høyst ${MAX_HELPERS} medhjelpere.`);
+			}
+			for (const userId of helperUserIds) {
+				if (!(await userHasRole(ctx, userId, internalRoles))) {
+					throw new ConvexError("Medhjelperne må være interne medlemmer.");
+				}
+			}
 		}
 		if (internalNotes !== undefined && internalNotes.length > MAX_INTERNAL_NOTES_LENGTH) {
 			throw new ConvexError(`Notatene kan ha høyst ${MAX_INTERNAL_NOTES_LENGTH} tegn.`);
@@ -278,9 +262,9 @@ export const updatePlanningDetails = mutation({
 			...(responsibleUserId !== undefined
 				? { responsibleUserId: responsibleUserId ?? undefined }
 				: {}),
-			...(room !== undefined ? { room: cleared(room) } : {}),
-			...(roomBooked !== undefined ? { roomBooked } : {}),
-			...(foodOrdered !== undefined ? { foodOrdered } : {}),
+			...(helperUserIds !== undefined
+				? { helperUserIds: helperUserIds.length ? helperUserIds : undefined }
+				: {}),
 			...(internalNotes !== undefined ? { internalNotes: cleared(internalNotes) } : {}),
 		});
 		return null;
@@ -318,70 +302,48 @@ export const updateContact = mutation({
 });
 
 /**
- * Creates the event for a confirmed application, with the date, company and seats filled in. The
- * event starts unpublished, like any other event, and the org-ansvarlig becomes its
- * hovedansvarlig. The application remembers the event.
+ * Creates the event for a confirmed application from Bifrost's own event form, which the
+ * application fills in: the date, company, seats and the kontaktperson and medhjelpere as
+ * organizers. The event must be on the application's date, and hosted by the company profile
+ * with the application's org.nr., which the application is then linked to. The room and food
+ * tasks follow from the company's answers, and the event is remembered on the application.
  *
  * @param {Id<"companyApplications">} applicationId - The confirmed application.
- * @param {string} startTime - When the event starts on the assigned day, as "HH:mm" Oslo time.
- * @param {number} [participationLimit] - Seats; defaults to the offered number of students.
  *
- * @throws - An error if the caller is not an editor, the application is not confirmed, has no
- * company profile, or already has an event.
+ * @throws - An error if the caller is not an editor, the application is not confirmed, already
+ * has an event, the event is on another day, or the hosting company has another org.nr.
  * @returns {Id<"events">} - The new event.
  */
 export const createEvent = mutation({
-	args: {
-		applicationId: v.id("companyApplications"),
-		title: v.string(),
-		teaser: v.string(),
-		description: v.string(),
-		startTime: v.string(),
-		registrationOpens: v.number(),
-		participationLimit: v.optional(v.number()),
-		location: v.string(),
-		food: v.string(),
-		language: v.string(),
-		ageRestriction: v.string(),
-	},
+	args: { applicationId: v.id("companyApplications"), ...newEventArgs },
 	returns: v.id("events"),
-	handler: async (ctx, { applicationId, startTime, participationLimit, ...details }) => {
+	handler: async (ctx, { applicationId, organizers, ...details }) => {
 		const actor = await requireEditorActor(ctx);
 		const application = await requireApplication(ctx, applicationId);
 
 		if (application.status !== "confirmed" || !application.assignedDate) {
 			throw new ConvexError("Bare bekreftede søknader kan få et arrangement.");
 		}
-		if (!application.companyId) {
-			throw new ConvexError("Koble søknaden til en bedriftsprofil først.");
-		}
 		if (application.eventId && (await ctx.db.get(application.eventId))) {
 			throw new ConvexError("Søknaden har allerede et arrangement.");
 		}
-
-		let eventStart: number;
-		try {
-			eventStart = osloDateTimeToEpoch(application.assignedDate, startTime);
-		} catch {
-			throw new ConvexError("Skriv starttiden som TT:MM.");
+		if (osloToday(details.eventStart) !== application.assignedDate) {
+			throw new ConvexError(
+				`Arrangementet må være ${formatSemesterDay(application.assignedDate, "long")}, datoen bedriften har fått.`,
+			);
+		}
+		const company = await ctx.db.get(details.hostingCompany);
+		if (company?.orgNumber !== toCompanyProfileOrgNumber(application.orgNumber)) {
+			throw new ConvexError("Bedriften må ha samme organisasjonsnummer som søknaden.");
 		}
 
 		const eventId = await insertEventWithOrganizers(
 			ctx,
-			{
-				...details,
-				eventStart,
-				participationLimit: participationLimit ?? application.maxStudents,
-				externalEvent: false,
-				hostingCompany: application.companyId,
-				published: false,
-			},
-			application.responsibleUserId
-				? [{ userId: application.responsibleUserId, role: "hovedansvarlig" }]
-				: [],
+			{ ...details, externalEvent: false },
+			organizers,
 		);
 
-		await ctx.db.patch(applicationId, { eventId });
+		await ctx.db.patch(applicationId, { eventId, companyId: company._id });
 		await logApplicationActivity(ctx, applicationId, "event_linked", actor);
 		return eventId;
 	},

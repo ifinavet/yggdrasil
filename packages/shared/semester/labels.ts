@@ -38,6 +38,25 @@ export const FOOD_PURCHASER_LABELS: Record<(typeof FOOD_PURCHASERS)[number], str
 	undecided: "Bestemmes senere",
 };
 
+export const APPLICATION_STATUSES = [
+	"applied",
+	"offer_sent",
+	"new_date_requested",
+	"confirmed",
+	"rejected",
+	"withdrawn",
+] as const;
+export type ApplicationStatus = (typeof APPLICATION_STATUSES)[number];
+
+export const STATUS_LABELS: Record<ApplicationStatus, string> = {
+	applied: "Søkt",
+	offer_sent: "Tilbud sendt",
+	new_date_requested: "Ny dato ønsket",
+	confirmed: "Bekreftet",
+	rejected: "Avslått",
+	withdrawn: "Trukket",
+};
+
 export const TERM_LABELS: Record<SemesterTerm, string> = { spring: "Våren", autumn: "Høsten" };
 
 /** «Våren 2027», or «våren 2027» inside a sentence. */
@@ -48,4 +67,12 @@ export function semesterName(
 ): string {
 	const label = TERM_LABELS[term];
 	return `${inSentence ? label.toLowerCase() : label} ${year}`;
+}
+
+/**
+ * What to show for a closed semester date. A date is closed whenever it has a closed label, and an
+ * empty label means it was closed without a reason.
+ */
+export function closedDateLabel(closedLabel: string): string {
+	return closedLabel.trim() || "Stengt";
 }

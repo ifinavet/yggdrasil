@@ -1,15 +1,13 @@
-import { ESCAPE_LABELS, EVENT_TYPE_LABELS, semesterName } from "@workspace/shared/semester/labels";
-import { toCompanyProfileOrgNumber } from "@workspace/shared/semester/orgNumber";
-import { formatSemesterDay } from "@workspace/shared/semester/time";
-import { asciiFilename, toCsv } from "@workspace/shared/utils";
 import { v } from "convex/values";
 import { query } from "../../_generated/server";
 import { editorRoles, internalRoles, requireRole } from "../../auth/accessRights";
+import { findCompanyLogoUrl } from "../../companies/helper";
 import schema from "../../schema";
-import { findActiveApplicationOnDate } from "../applicationLifecycle";
-import { listSemesterDates, requireSemester } from "../semesters/helper";
+import { findLatestOffer } from "../offers/helper";
 import {
+	findCompanyProfile,
 	listApplicationsInSemester,
+	loadNavetTeam,
 	planRowValidator,
 	requireApplication,
 	toPlanRow,
@@ -32,12 +30,14 @@ export const getPlan = query({
 
 		const applications = await listApplicationsInSemester(ctx, semesterId);
 		return Promise.all(
-			applications.map(async (application) =>
-				toPlanRow(
+			applications.map(async (application) => {
+				const companyId = await findCompanyProfile(ctx, application);
+				return toPlanRow(
 					application,
-					application.responsibleUserId ? await ctx.db.get(application.responsibleUserId) : null,
-				),
-			),
+					await loadNavetTeam(ctx, application),
+					companyId ? await findCompanyLogoUrl(ctx, companyId) : null,
+				);
+			}),
 		);
 	},
 });
@@ -62,13 +62,66 @@ export const listForSemester = query({
 });
 
 /**
- * One application with its offers, its history and the company profile with the same
- * organization number, if one exists and is not linked yet.
+ * How many applications a semester has, for the count on the Søknader tab.
+ *
+ * @param {Id<"semesters">} semesterId - The semester.
+ *
+ * @throws - An error if the caller is not an editor.
+ * @returns {number} - The number of applications, whatever their status.
+ */
+export const countForSemester = query({
+	args: { semesterId: v.id("semesters") },
+	returns: v.number(),
+	handler: async (ctx, { semesterId }) => {
+		await requireRole(ctx, editorRoles);
+
+		return (await listApplicationsInSemester(ctx, semesterId)).length;
+	},
+});
+
+/**
+ * The dates each company asked for instead of the one it was offered, for the applications in a
+ * semester that are waiting for a new date.
+ *
+ * @param {Id<"semesters">} semesterId - The semester.
+ *
+ * @throws - An error if the caller is not an editor.
+ * @returns {{ applicationId: Id<"companyApplications">, dates: string[] }[]} - One entry per application.
+ */
+export const listRequestedDates = query({
+	args: { semesterId: v.id("semesters") },
+	returns: v.array(
+		v.object({ applicationId: v.id("companyApplications"), dates: v.array(v.string()) }),
+	),
+	handler: async (ctx, { semesterId }) => {
+		await requireRole(ctx, editorRoles);
+
+		const waiting = await ctx.db
+			.query("companyApplications")
+			.withIndex("by_semesterId_and_status", (q) =>
+				q.eq("semesterId", semesterId).eq("status", "new_date_requested"),
+			)
+			.collect();
+		return Promise.all(
+			waiting.map(async (application) => {
+				const offer = await findLatestOffer(ctx, application._id);
+				return {
+					applicationId: application._id,
+					dates: offer?.status === "new_date_requested" ? (offer.requestedDates ?? []) : [],
+				};
+			}),
+		);
+	},
+});
+
+/**
+ * One application with its offers, its history and its company profile in Bifrost, if any: the
+ * linked one, or else the one with the same organization number, with its name and logo.
  *
  * @param {Id<"companyApplications">} applicationId - The application.
  *
  * @throws - An error if the caller is not an editor, or the application does not exist.
- * @returns {object} - The application, offers, history (oldest first) and matching profile.
+ * @returns {object} - The application, offers, history (oldest first), profile, its name and logo.
  */
 export const get = query({
 	args: { applicationId: v.id("companyApplications") },
@@ -76,7 +129,9 @@ export const get = query({
 		application: schema.doc("companyApplications"),
 		offers: v.array(schema.doc("companyApplicationOffers")),
 		activity: v.array(schema.doc("companyApplicationActivity")),
-		matchingCompanyId: v.union(v.id("companies"), v.null()),
+		companyId: v.union(v.id("companies"), v.null()),
+		companyName: v.union(v.string(), v.null()),
+		logoUrl: v.union(v.string(), v.null()),
 	}),
 	handler: async (ctx, { applicationId }) => {
 		await requireRole(ctx, editorRoles);
@@ -90,93 +145,17 @@ export const get = query({
 			.query("companyApplicationActivity")
 			.withIndex("by_applicationId", (q) => q.eq("applicationId", applicationId))
 			.collect();
-		const match = application.companyId
-			? null
-			: await ctx.db
-					.query("companies")
-					.withIndex("by_orgNumber", (q) =>
-						q.eq("orgNumber", toCompanyProfileOrgNumber(application.orgNumber)),
-					)
-					.first();
-
-		return { application, offers, activity, matchingCompanyId: match?._id ?? null };
-	},
-});
-
-// The columns of the Excel semester plan the export replaces, in the same order. Every row has the
-// day columns; a closed or free date fills only the summary, and an assigned date fills the details.
-const DAY_COLUMNS = ["Dag", "Dato"] as const;
-const SUMMARY_COLUMNS = ["Bekreftet", "Bedrift"] as const;
-const DETAIL_COLUMNS = [
-	"Sendt tilbud",
-	"Org.nummer",
-	"Arr.type",
-	"Kontaktperson",
-	"Epost",
-	"Mat",
-	"Mat bestilt",
-	"Ønsker Escape",
-	"Rom/Lokasjon",
-	"Rom booket",
-	"Org-ansvarlig",
-	"Antall plasser",
-] as const;
-const EXPORT_COLUMNS = [...DAY_COLUMNS, ...SUMMARY_COLUMNS, ...DETAIL_COLUMNS];
-const EMPTY_DETAILS = DETAIL_COLUMNS.map(() => "");
-
-const yesNo = (value: boolean) => (value ? "Ja" : "Nei");
-
-/**
- * The semester plan as a CSV file with the same columns as the old Excel sheet: one row per
- * Tuesday and Thursday, with Navet's own dates marked and free dates left empty. The file has a
- * UTF-8 byte order mark so Excel shows æøå correctly.
- *
- * @param {Id<"semesters">} semesterId - The semester.
- *
- * @throws - An error if the caller is not an editor, or the semester does not exist.
- * @returns {{ filename: string, csv: string }} - The file name and contents.
- */
-export const exportPlanCsv = query({
-	args: { semesterId: v.id("semesters") },
-	returns: v.object({ filename: v.string(), csv: v.string() }),
-	handler: async (ctx, { semesterId }) => {
-		await requireRole(ctx, editorRoles);
-
-		const semester = await requireSemester(ctx, semesterId);
-		const rows = await Promise.all(
-			(await listSemesterDates(ctx, semesterId)).map(async ({ date, closedLabel }) => {
-				const day = [formatSemesterDay(date, "weekday"), formatSemesterDay(date, "shortNumeric")];
-				if (closedLabel) return [...day, "", `${closedLabel} (internt)`, ...EMPTY_DETAILS];
-
-				const application = await findActiveApplicationOnDate(ctx, semesterId, date);
-				if (!application) return [...day, "", "Ledig", ...EMPTY_DETAILS];
-
-				const responsible = application.responsibleUserId
-					? await ctx.db.get(application.responsibleUserId)
-					: null;
-				return [
-					...day,
-					yesNo(application.status === "confirmed"),
-					application.registry.name,
-					yesNo(application.status !== "applied"),
-					application.orgNumber,
-					EVENT_TYPE_LABELS[application.eventType],
-					application.contact.name,
-					application.contact.email,
-					yesNo(application.foodAndDrinks),
-					yesNo(application.foodOrdered),
-					ESCAPE_LABELS[application.wantsToUseEscape],
-					application.room ?? "",
-					yesNo(application.roomBooked),
-					responsible ? `${responsible.firstName} ${responsible.lastName}` : "",
-					String(application.maxStudents),
-				];
-			}),
-		);
+		const companyId = await findCompanyProfile(ctx, application);
+		const company = companyId ? await ctx.db.get(companyId) : null;
+		const logoUrl = companyId ? await findCompanyLogoUrl(ctx, companyId) : null;
 
 		return {
-			filename: `semesterplan-${asciiFilename(semesterName(semester.term, semester.year))}.csv`,
-			csv: toCsv([EXPORT_COLUMNS, ...rows]),
+			application,
+			offers,
+			activity,
+			companyId,
+			companyName: company?.name ?? null,
+			logoUrl,
 		};
 	},
 });
