@@ -45,6 +45,7 @@ import type * as feedback_responses_actions from "../feedback/responses/actions.
 import type * as feedback_responses_mutations from "../feedback/responses/mutations.js";
 import type * as feedback_responses_queries from "../feedback/responses/queries.js";
 import type * as feedback_testSend_access from "../feedback/testSend/access.js";
+import type * as feedback_testSend_report from "../feedback/testSend/report.js";
 import type * as feedback_testSend_send from "../feedback/testSend/send.js";
 import type * as forms_access from "../forms/access.js";
 import type * as forms_migrations from "../forms/migrations.js";
@@ -129,6 +130,7 @@ declare const fullApi: ApiFromModules<{
   "feedback/responses/mutations": typeof feedback_responses_mutations;
   "feedback/responses/queries": typeof feedback_responses_queries;
   "feedback/testSend/access": typeof feedback_testSend_access;
+  "feedback/testSend/report": typeof feedback_testSend_report;
   "feedback/testSend/send": typeof feedback_testSend_send;
   "forms/access": typeof forms_access;
   "forms/migrations": typeof forms_migrations;

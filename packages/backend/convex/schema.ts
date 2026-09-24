@@ -4,6 +4,7 @@ import { companiesSchema } from "./companies/schema";
 import { eventsSchema } from "./events/schema";
 import { feedbackReportSchema } from "./feedback/reports/schema";
 import { feedbackSchema } from "./feedback/schema";
+import { feedbackTestSendSchema } from "./feedback/testSend/schema";
 import { formsSchema } from "./forms/schema";
 import { jobListingsSchema } from "./jobListings/schema";
 import { pagesSchema } from "./pages/schema";
@@ -25,6 +26,7 @@ export default defineSchema({
 	...formsSchema,
 	...feedbackSchema,
 	...feedbackReportSchema,
+	...feedbackTestSendSchema,
 	...accessSchema,
 	...semesterPlanningSchema,
 });

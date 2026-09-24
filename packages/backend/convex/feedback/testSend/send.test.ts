@@ -1,29 +1,132 @@
 import type { SendEmailOptions } from "@convex-dev/resend";
+import { featureFlags } from "@workspace/shared/feature-flags";
+import type { ReportTextAnswer } from "@workspace/shared/feedback/report";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	asUser,
+	DAY_IN_MS,
 	grantRole,
 	insertEvent,
 	insertUser,
 	refusalMessageFrom,
 	setup,
+	type TestBackend,
 } from "../../../test/fixtures";
-import { api } from "../../_generated/api";
+import { api, internal } from "../../_generated/api";
+import type { Id } from "../../_generated/dataModel";
+import { hashLinkToken } from "../../lib/tokens";
 import { feedbackConfig } from "../constants";
+import { defaultFeedbackFields } from "../defaultFields";
 import { feedbackResend } from "../delivery/messages";
 
 const huginBaseUrl = feedbackConfig.huginBaseUrl;
+const reportsEnabled = featureFlags.huginFeedback.reportsEnabled;
+const paginationOpts = { cursor: null, numItems: 100 };
+const companyToken = "c".repeat(43);
 
-async function fixture(email: string, role?: "internal") {
+async function fixture(email: string, role?: "internal", { publishForm = true } = {}) {
 	const { t, companyId } = await setup();
+	const admin = await insertUser(t, "super@ifinavet.no");
+	await grantRole(t, admin._id, "super-admin");
+	const adminClient = asUser(t, admin);
+	let formVersionId: Id<"formVersions"> | undefined;
+	if (publishForm) {
+		const formId = await adminClient.mutation(api.feedback.forms.mutations.saveDraft, {
+			name: "Feedback",
+			fields: defaultFeedbackFields,
+		});
+		formVersionId = await adminClient.mutation(api.feedback.forms.mutations.publish, { formId });
+		await adminClient.mutation(api.feedback.forms.mutations.setDefault, { formId });
+	}
 	const user = await insertUser(t, email);
 	if (role) await grantRole(t, user._id, role);
 	const eventId = await insertEvent(t, companyId, {
 		title: "Bedpres med Testbedrift",
 		eventStart: Date.UTC(2025, 2, 14, 16),
 	});
-	return { t, eventId, client: asUser(t, user) };
+	return { t, eventId, formVersionId, adminClient, client: asUser(t, user) };
 }
+
+async function sendAndCollect(f: Awaited<ReturnType<typeof fixture>>) {
+	const sendEmail = vi.spyOn(feedbackResend, "sendEmail");
+	await f.client.action(api.feedback.testSend.send.send, { eventId: f.eventId });
+	return sendEmail.mock.calls.map((call) => (call as unknown as [unknown, SendEmailOptions])[1]);
+}
+
+function reportTokenFrom(html: string | undefined) {
+	const token = html?.match(/\/report#token=([\w-]+)/)?.[1];
+	if (!token) throw new Error("No report link in the email");
+	return token;
+}
+
+async function insertClosedCampaignWithResponses(
+	t: TestBackend,
+	eventId: Id<"events">,
+	formVersionId: Id<"formVersions">,
+) {
+	const now = Date.now();
+	const participant = await insertUser(t, "participant@example.test");
+	return t.run(async (ctx) => {
+		const campaignId = await ctx.db.insert("feedbackCampaigns", {
+			eventId,
+			formVersionId,
+			status: "closed",
+			opensAt: now - 14 * DAY_IN_MS,
+			closesAt: now,
+			closedAt: now,
+			retentionAt: now + DAY_IN_MS,
+			generation: 1,
+		});
+		for (let i = 0; i < 3; i++) {
+			const inviteId = await ctx.db.insert("feedbackInvites", {
+				campaignId,
+				userId: participant._id,
+				responded: true,
+				bounced: false,
+				complained: false,
+				delivered: false,
+				sent: false,
+			});
+			await ctx.db.insert("formResponses", {
+				campaignId,
+				formVersionId,
+				inviteId,
+				submittedAt: now - 1,
+				data: {
+					satisfaction: i % 2 ? 3 : 5,
+					impression: 4,
+					expectation: 3,
+					toughts: `Bra ${i}`,
+					improvements: `Mer tid ${i}`,
+					want_to_work: i % 2 ? "nei" : "ja",
+					word_of_mouth: ["Ifinavet.no", `Fra noen ${i}`],
+					other: "",
+				},
+			});
+		}
+		return campaignId;
+	});
+}
+
+async function approveRealReport(
+	f: Awaited<ReturnType<typeof fixture>>,
+	campaignId: Id<"feedbackCampaigns">,
+) {
+	const reportId = await f.adminClient.mutation(api.feedback.reports.build.prepare, {
+		campaignId,
+	});
+	let cursor: string | null = null;
+	for (;;) {
+		await f.t.mutation(internal.feedback.reports.build.buildReportBatch, { reportId, cursor });
+		const report = await f.t.run((ctx) => ctx.db.get(reportId));
+		if (report?.status !== "building") break;
+		cursor = report.buildCursor;
+	}
+	const tokenHash = await hashLinkToken(companyToken);
+	await f.t.run((ctx) => ctx.db.patch(reportId, { status: "approved", tokenHash }));
+}
+
+const withoutIds = (answers: ReportTextAnswer[]) => answers.map(({ id: _id, ...answer }) => answer);
 
 describe("feedback test send", () => {
 	beforeEach(() => {
@@ -34,7 +137,9 @@ describe("feedback test send", () => {
 	afterEach(() => {
 		vi.unstubAllEnvs();
 		vi.restoreAllMocks();
+		vi.useRealTimers();
 		feedbackConfig.huginBaseUrl = huginBaseUrl;
+		featureFlags.huginFeedback.reportsEnabled = reportsEnabled;
 	});
 
 	it("sends the invitation, a reminder and the report email for a past event to the caller", async () => {
@@ -62,7 +167,62 @@ describe("feedback test send", () => {
 		expect(sent[2]?.html).toContain("14. mars");
 	});
 
-	it("stores no links, deliveries or reports", async () => {
+	it("opens the same report through the test link as the company sees once approved", async () => {
+		featureFlags.huginFeedback.reportsEnabled = true;
+		const f = await fixture("admin@ifinavet.no", "internal");
+		const campaignId = await insertClosedCampaignWithResponses(f.t, f.eventId, f.formVersionId!);
+		await approveRealReport(f, campaignId);
+		const sent = await sendAndCollect(f);
+
+		const company = await f.t.action(api.feedback.reports.public.resolveReport, {
+			token: companyToken,
+			paginationOpts,
+		});
+		const preview = await f.t.action(api.feedback.reports.public.resolveReport, {
+			token: reportTokenFrom(sent[2]?.html),
+			paginationOpts,
+		});
+
+		expect(company?.report.totalResponses).toBe(3);
+		expect(preview?.report).toEqual(company?.report);
+		expect(withoutIds(preview?.answers ?? [])).toEqual(withoutIds(company?.answers ?? []));
+		expect(preview?.isDone).toBe(true);
+	});
+
+	it("previews an empty report from the default form when the event has no campaign", async () => {
+		const f = await fixture("admin@ifinavet.no", "internal");
+		const sent = await sendAndCollect(f);
+
+		const preview = await f.t.action(api.feedback.reports.public.resolveReport, {
+			token: reportTokenFrom(sent[2]?.html),
+			paginationOpts,
+		});
+
+		expect(preview?.report).toMatchObject({
+			eventTitle: "Bedpres med Testbedrift",
+			totalResponses: 0,
+		});
+		expect(preview?.report.questions.map(({ key }) => key)).toEqual(
+			defaultFeedbackFields.map(({ key }) => key),
+		);
+		expect(preview?.answers).toEqual([]);
+	});
+
+	it("stops opening the test report after a week and deletes the link", async () => {
+		vi.useFakeTimers();
+		const f = await fixture("admin@ifinavet.no", "internal");
+		const sent = await sendAndCollect(f);
+		const token = reportTokenFrom(sent[2]?.html);
+
+		vi.advanceTimersByTime(7 * DAY_IN_MS);
+		expect(
+			await f.t.action(api.feedback.reports.public.resolveReport, { token, paginationOpts }),
+		).toBeNull();
+		await f.t.finishAllScheduledFunctions(vi.runAllTimers);
+		expect(await f.t.run((ctx) => ctx.db.query("feedbackTestReportLinks").collect())).toEqual([]);
+	});
+
+	it("stores only the test report link, no feedback links, deliveries or reports", async () => {
 		const f = await fixture("admin@ifinavet.no", "internal");
 		await f.client.action(api.feedback.testSend.send.send, { eventId: f.eventId });
 
@@ -70,8 +230,22 @@ describe("feedback test send", () => {
 			tokens: await ctx.db.query("feedbackTokens").collect(),
 			deliveries: await ctx.db.query("feedbackDeliveries").collect(),
 			reports: await ctx.db.query("feedbackReports").collect(),
+			testLinks: await ctx.db.query("feedbackTestReportLinks").collect(),
 		}));
-		expect(stored).toEqual({ tokens: [], deliveries: [], reports: [] });
+		expect(stored).toMatchObject({ tokens: [], deliveries: [], reports: [] });
+		expect(stored.testLinks).toHaveLength(1);
+	});
+
+	it("refuses to send when no feedback form is published", async () => {
+		const f = await fixture("admin@ifinavet.no", "internal", { publishForm: false });
+		const sendEmail = vi.spyOn(feedbackResend, "sendEmail");
+
+		expect(
+			await refusalMessageFrom(
+				f.client.action(api.feedback.testSend.send.send, { eventId: f.eventId }),
+			),
+		).toBe("Publiser et standardskjema før du sender test.");
+		expect(sendEmail).not.toHaveBeenCalled();
 	});
 
 	it("refuses callers without an internal role", async () => {

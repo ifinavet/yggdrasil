@@ -48,7 +48,8 @@ export function FeedbackTestSend({ eventId }: Readonly<{ eventId: Id<"events"> }
 			<CardContent className="flex flex-col items-start gap-3">
 				<p className="text-muted-foreground text-sm">
 					Sender invitasjon, påminnelse og rapportlenke for dette arrangementet til din
-					@ifinavet.no-adresse. Lenkene har riktig format, men åpner ingenting.
+					@ifinavet.no-adresse. Rapportlenken viser rapporten slik bedriften ser den etter
+					godkjenning, i en uke. Tilbakemeldingslenkene åpner ingenting.
 				</p>
 				<Button disabled={sending} onClick={sendToMe}>
 					{sending ? "Sender …" : "Send testeposter til meg"}
