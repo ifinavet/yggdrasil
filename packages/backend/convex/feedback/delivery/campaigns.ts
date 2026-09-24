@@ -25,8 +25,7 @@ export async function selectedVersion(ctx: QueryCtx, event: Doc<"events">) {
 }
 
 export async function hasSentForms(ctx: QueryCtx, campaign: Doc<"feedbackCampaigns">) {
-	if (campaign.status === "open") return true;
-	if (campaign.status !== "scheduled") return false;
+	if (campaign.status === "open" || campaign.status === "closed") return true;
 	const invite = await ctx.db
 		.query("feedbackInvites")
 		.withIndex("by_campaignId", (index) => index.eq("campaignId", campaign._id))

@@ -113,7 +113,7 @@ describe("event feedback settings", () => {
 			).rejects.toThrow();
 		}
 	});
-	it.each(["scheduled", "closed", "cancelled"] as const)(
+	it.each(["scheduled", "cancelled"] as const)(
 		"shows the latest %s campaign and lets feedback be turned off",
 		async (status) => {
 			const { backend, client, eventId } = await setupSettings();
@@ -134,11 +134,11 @@ describe("event feedback settings", () => {
 			await client.mutation(updateEventFeedbackSettings, { eventId, enabled: false });
 			expect(await backend.run((ctx) => ctx.db.get(campaignId))).toMatchObject({
 				...original,
-				status: status === "scheduled" ? "cancelled" : status,
+				status: "cancelled",
 			});
 		},
 	);
-	it.each(["open", "scheduled with a manually sent form"] as const)(
+	it.each(["open", "closed", "scheduled with a manually sent form"] as const)(
 		"refuses to turn feedback off once a %s campaign has sent forms",
 		async (kind) => {
 			const { backend, client, eventId, formId } = await setupSettings();
@@ -149,13 +149,13 @@ describe("event feedback settings", () => {
 			const campaignId = await backend.run(async (ctx) => {
 				const id = await ctx.db.insert("feedbackCampaigns", {
 					eventId,
-					status: kind === "open" ? "open" : "scheduled",
-					formVersionId: kind === "open" ? formVersionId : undefined,
+					status: kind === "scheduled with a manually sent form" ? "scheduled" : kind,
+					formVersionId: kind === "scheduled with a manually sent form" ? undefined : formVersionId,
 					opensAt: 1,
 					closesAt: 2,
 					generation: 1,
 				});
-				if (kind !== "open")
+				if (kind === "scheduled with a manually sent form")
 					await ctx.db.insert("feedbackInvites", {
 						campaignId: id,
 						responded: false,
