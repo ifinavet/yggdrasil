@@ -1,9 +1,9 @@
+import { featureFlags } from "@workspace/shared/feature-flags";
 import { feedbackTokenSchema } from "@workspace/shared/feedback";
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "../../_generated/server";
 import { isLocalDevelopment } from "../../auth/local";
 import { hashLinkToken } from "../../lib/tokens";
-import { feedbackConfig } from "../constants";
 import { feedbackResend } from "../delivery/messages";
 
 export const getDelivery = internalQuery({
@@ -23,8 +23,8 @@ export const enqueue = internalMutation({
 			return;
 		if (
 			Date.now() >= report.retentionAt ||
-			!feedbackConfig.emailsEnabled ||
-			!feedbackConfig.reportEmailsEnabled
+			!featureFlags.huginFeedback.emailsEnabled ||
+			!featureFlags.huginFeedback.reportEmailsEnabled
 		) {
 			await ctx.db.patch(report._id, { deliveryStatus: "failed" });
 			return;
