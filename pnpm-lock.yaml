@@ -529,6 +529,9 @@ importers:
       '@react-email/render':
         specifier: ^2.1.0
         version: 2.1.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      '@workspace/shared':
+        specifier: workspace:*
+        version: link:../shared
       react:
         specifier: 19.2.8
         version: 19.2.8

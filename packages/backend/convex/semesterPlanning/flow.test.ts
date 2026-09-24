@@ -1,3 +1,4 @@
+import { MIDGARD_URL } from "@workspace/shared/constants";
 import { asciiFilename, toCsv } from "@workspace/shared/utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
@@ -123,7 +124,7 @@ describe("the whole journey", () => {
 		await editor.mutation(semesters.updateSettings, {
 			semesterId,
 			applicationDeadline: "2026-12-04",
-			termsUrl: "https://ifinavet.no/vilkar",
+			termsUrl: `${MIDGARD_URL}/vilkar`,
 		});
 		await editor.mutation(semesters.setStatus, { semesterId, status: "open" });
 

@@ -1,3 +1,4 @@
+import { MIDGARD_URL } from "@workspace/shared/constants";
 import { describe, expect, it } from "vitest";
 import {
 	asUser,
@@ -43,7 +44,7 @@ describe("create", () => {
 			year: 2026,
 			term: "autumn",
 			infoText: "Velkommen",
-			termsUrl: "https://ifinavet.no/vilkar",
+			termsUrl: `${MIDGARD_URL}/vilkar`,
 			offerResponseDays: 14,
 			status: "closed",
 		});
@@ -60,7 +61,7 @@ describe("create", () => {
 			term: "spring",
 			status: "draft",
 			infoText: "Velkommen",
-			termsUrl: "https://ifinavet.no/vilkar",
+			termsUrl: `${MIDGARD_URL}/vilkar`,
 			offerResponseDays: 14,
 		});
 		expect(semester.firstDate).toBeUndefined();
@@ -374,7 +375,7 @@ describe("rolloverSemesters (rollover cron)", () => {
 			year: 2026,
 			term: "autumn",
 			status: "open",
-			termsUrl: "https://ifinavet.no/vilkar",
+			termsUrl: `${MIDGARD_URL}/vilkar`,
 		});
 
 		const result = await t.mutation(rolloverSemesters, {
@@ -388,7 +389,7 @@ describe("rolloverSemesters (rollover cron)", () => {
 			year: 2027,
 			term: "spring",
 			status: "draft",
-			termsUrl: "https://ifinavet.no/vilkar",
+			termsUrl: `${MIDGARD_URL}/vilkar`,
 		});
 		expect(created.firstDate).toBeUndefined();
 		expect(created.applicationDeadline).toBeUndefined();

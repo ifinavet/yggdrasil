@@ -18,6 +18,7 @@
 	},
 	"exports": {
 		"./constants": "./constants/index.ts",
+		"./constants/urls": "./constants/urls.ts",
 		"./local": "./local.ts",
 		"./utils": "./utils/index.ts",
 		"./feedback": "./feedback/index.ts",

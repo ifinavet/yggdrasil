@@ -1,4 +1,4 @@
-import { HUGIN_URL } from "@workspace/shared/constants";
+import { HUGIN_URL, MIDGARD_URL } from "@workspace/shared/constants";
 import { describe, expect, it } from "vitest";
 import {
 	activityFor,
@@ -26,7 +26,7 @@ async function offerSetup() {
 	await grantRole(t, editorUser._id, "editor");
 	const semesterId = await insertSemester(t, {
 		status: "open",
-		termsUrl: "https://ifinavet.no/vilkar-v27",
+		termsUrl: `${MIDGARD_URL}/vilkar-v27`,
 		offerResponseDays: 14,
 	});
 	await t.run(async (ctx) => {
@@ -166,7 +166,7 @@ describe("getByToken", () => {
 			date: "2027-02-09",
 			maxStudents: 40,
 			venue: "campus",
-			termsUrl: "https://ifinavet.no/vilkar-v27",
+			termsUrl: `${MIDGARD_URL}/vilkar-v27`,
 			openDates: ["2027-02-11", "2027-02-16"],
 		});
 		expect(JSON.stringify(offer)).not.toMatch(/ingrid|faktura|\+47/);
@@ -200,7 +200,7 @@ describe("accept", () => {
 		expect((await applicationById(t, applicationId)).status).toBe("confirmed");
 		expect((await offersOf(t, applicationId))[0]).toMatchObject({
 			status: "accepted",
-			acceptedTermsUrl: "https://ifinavet.no/vilkar-v27",
+			acceptedTermsUrl: `${MIDGARD_URL}/vilkar-v27`,
 		});
 		expect((await activityFor(t, applicationId)).at(-1)).toMatchObject({
 			type: "status_changed",

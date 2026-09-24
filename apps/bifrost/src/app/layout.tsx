@@ -1,5 +1,6 @@
 import ClerkProvider from "@workspace/auth/provider";
 import { PostHogPageView } from "@workspace/auth/telemetry-client";
+import { BIFROST_LOCAL_URL } from "@workspace/shared/constants";
 import { SidebarInset, SidebarProvider } from "@workspace/ui/components/sidebar";
 import { Toaster } from "@workspace/ui/components/sonner";
 import type { Metadata } from "next";
@@ -13,9 +14,7 @@ import BifrostSidebar from "@/components/common/sidebar/sidebar";
 import ConvexClientProvider from "@/providers/convex-client-provider";
 import UnauthorizedPage from "./unauthorized";
 
-const defaultUrl = process.env.VERCEL_URL
-	? `https://${process.env.VERCEL_URL}`
-	: "http://localhost:3001";
+const defaultUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : BIFROST_LOCAL_URL;
 
 export const metadata: Metadata = {
 	metadataBase: new URL(defaultUrl),

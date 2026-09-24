@@ -1,4 +1,5 @@
 import ClerkProvider from "@workspace/auth/provider";
+import { HUGIN_LOCAL_URL } from "@workspace/shared/constants";
 import { Toaster } from "@workspace/ui/components/sonner";
 import { eina } from "@workspace/ui/fonts/eina-font";
 import { ThemeProvider } from "@workspace/ui/providers/theme-provider";
@@ -9,9 +10,7 @@ import Header from "@/components/header";
 import ConvexClientProvider from "@/providers/convex-client-provider";
 import PageTelemetry from "@/providers/page-telemetry";
 
-const defaultUrl = process.env.VERCEL_URL
-	? `https://${process.env.VERCEL_URL}`
-	: "http://localhost:3003";
+const defaultUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : HUGIN_LOCAL_URL;
 
 export const metadata: Metadata = {
 	metadataBase: new URL(defaultUrl),

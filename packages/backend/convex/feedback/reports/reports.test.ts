@@ -1,5 +1,5 @@
 import type { EmailEvent, EmailId } from "@convex-dev/resend";
-import { DEGREES } from "@workspace/shared/constants";
+import { DEGREES, HUGIN_LOCAL_URL } from "@workspace/shared/constants";
 import { featureFlags } from "@workspace/shared/feature-flags";
 import { reportHighlights } from "@workspace/shared/feedback/report";
 import { feedbackReportCsv } from "@workspace/shared/feedback/report-csv";
@@ -83,7 +83,7 @@ async function queued(f: Awaited<ReturnType<typeof fixture>>) {
 	await f.t.mutation(jobs.messages.enqueue, {
 		reportId,
 		token,
-		url: `http://localhost:3003/report#token=${token}`,
+		url: `${HUGIN_LOCAL_URL}/report#token=${token}`,
 		html: "report",
 	});
 	return reportId;

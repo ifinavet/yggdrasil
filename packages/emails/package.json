@@ -12,6 +12,7 @@
 	"packageManager": "pnpm@10.14.0",
 	"dependencies": {
 		"@react-email/render": "^2.1.0",
+		"@workspace/shared": "workspace:*",
 		"react": "19.3.0",
 		"react-dom": "19.3.0",
 		"react-email": "^6.9.5"

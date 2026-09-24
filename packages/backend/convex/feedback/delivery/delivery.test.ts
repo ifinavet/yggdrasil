@@ -1,5 +1,5 @@
 import type { EmailEvent, EmailId } from "@convex-dev/resend";
-import { HUGIN_URL } from "@workspace/shared/constants";
+import { HUGIN_LOCAL_URL, HUGIN_URL } from "@workspace/shared/constants";
 import { featureFlags } from "@workspace/shared/feature-flags";
 import { feedbackOpensAt, feedbackRoundAt } from "@workspace/shared/feedback/time";
 import { Webhook } from "svix";
@@ -23,7 +23,7 @@ const messages = internal.feedback.delivery.messages;
 const send = internal.feedback.delivery.mail.sendFeedbackEmail;
 const opensAt = Date.UTC(2026, 8, 23, 6);
 const token = "a".repeat(43);
-const url = `http://localhost:3003/feedback#token=${token}`;
+const url = `${HUGIN_LOCAL_URL}/feedback#token=${token}`;
 
 async function fixture() {
 	const { t, companyId } = await setup();

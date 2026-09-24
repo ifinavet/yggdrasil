@@ -1,3 +1,4 @@
+import { MIDGARD_URL } from "@workspace/shared/constants/urls";
 import {
 	Container,
 	Font,
@@ -56,7 +57,7 @@ export default function LockedOutEmail() {
 						<Text className="text-gray-800">
 							Du kan se dine prikkene på{" "}
 							<a
-								href="https://ifinavet.no/profile"
+								href={`${MIDGARD_URL}/profile`}
 								className="text-primary underline dark:text-primary-light"
 							>
 								din side.
