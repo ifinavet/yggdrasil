@@ -93,7 +93,6 @@ beforeEach(() => {
 	vi.useFakeTimers();
 	vi.setSystemTime(now);
 	featureFlags.huginFeedback.reportsEnabled = true;
-	featureFlags.huginFeedback.emailsEnabled = true;
 	featureFlags.huginFeedback.reportEmailsEnabled = true;
 	vi.stubEnv("APP_ENV", "local");
 	vi.stubEnv("CONVEX_CLOUD_URL", "http://127.0.0.1:3210");
@@ -102,7 +101,6 @@ afterEach(() => {
 	vi.useRealTimers();
 	vi.unstubAllEnvs();
 	Object.assign(featureFlags.huginFeedback, {
-		emailsEnabled: false,
 		reportsEnabled: false,
 		reportEmailsEnabled: false,
 	});
@@ -248,7 +246,6 @@ describe("company feedback reports", () => {
 		const f = await fixture();
 		const reportId = await queued(f);
 		featureFlags.huginFeedback.reportsEnabled = false;
-		featureFlags.huginFeedback.emailsEnabled = false;
 		featureFlags.huginFeedback.reportEmailsEnabled = false;
 		expect(
 			await f.t.action(reports.public.resolveReport, { token, paginationOpts }),
@@ -273,17 +270,20 @@ describe("company feedback reports", () => {
 		const organizer = await insertUser(f.t, "organizer@example.test");
 		const client = asUser(f.t, organizer);
 		await insertOrganizer(f.t, f.eventId, organizer._id);
+		expect(await client.query(reports.queries.getEventReport, { eventId: f.eventId })).toEqual({
+			enabled: false,
+		});
 		await expect(
-			client.query(reports.queries.getEventReport, { eventId: f.eventId }),
+			client.query(reports.queries.getReportAnswers, { reportId, paginationOpts }),
 		).rejects.toThrow("arrangør");
 		await grantRole(f.t, organizer._id, "internal");
 		expect(
 			await client.query(reports.queries.getEventReport, { eventId: f.eventId }),
-		).not.toBeNull();
+		).toMatchObject({ enabled: true, campaignId: f.campaignId });
 		const otherEvent = await insertEvent(f.t, f.companyId);
-		await expect(
-			client.query(reports.queries.getEventReport, { eventId: otherEvent }),
-		).rejects.toThrow("arrangør");
+		expect(await client.query(reports.queries.getEventReport, { eventId: otherEvent })).toEqual({
+			enabled: false,
+		});
 		featureFlags.huginFeedback.reportsEnabled = false;
 		expect(await client.query(reports.queries.getEventReport, { eventId: f.eventId })).toEqual({
 			enabled: false,
@@ -327,23 +327,21 @@ describe("company feedback reports", () => {
 	it("rechecks email flags after approval and retries the same locked snapshot", async () => {
 		const f = await fixture();
 		const reportId = await f.prepare();
-		for (const flag of ["emailsEnabled", "reportEmailsEnabled"] as const) {
-			featureFlags.huginFeedback[flag] = false;
-			await expect(
-				f.client.mutation(reports.mutations.approve, {
-					reportId,
-					revision: 0,
-					recipientEmail: "contact@example.test",
-				}),
-			).rejects.toThrow("slått av");
-			featureFlags.huginFeedback[flag] = true;
-		}
+		featureFlags.huginFeedback.reportEmailsEnabled = false;
+		await expect(
+			f.client.mutation(reports.mutations.approve, {
+				reportId,
+				revision: 0,
+				recipientEmail: "contact@example.test",
+			}),
+		).rejects.toThrow("slått av");
+		featureFlags.huginFeedback.reportEmailsEnabled = true;
 		await f.client.mutation(reports.mutations.approve, {
 			reportId,
 			revision: 0,
 			recipientEmail: "contact@example.test",
 		});
-		featureFlags.huginFeedback.emailsEnabled = false;
+		featureFlags.huginFeedback.reportEmailsEnabled = false;
 		await f.t.mutation(jobs.messages.enqueue, { reportId, token, url: "link", html: "report" });
 		expect(await f.t.run((ctx) => ctx.db.query("feedbackReportLocalEmails").collect())).toEqual([]);
 		expect(await f.t.run((ctx) => ctx.db.get(reportId))).toMatchObject({
@@ -353,7 +351,7 @@ describe("company feedback reports", () => {
 		await expect(
 			f.client.mutation(reports.mutations.retryDelivery, { reportId, revision: 1 }),
 		).rejects.toThrow("slått av");
-		featureFlags.huginFeedback.emailsEnabled = true;
+		featureFlags.huginFeedback.reportEmailsEnabled = true;
 		await f.client.mutation(reports.mutations.retryDelivery, { reportId, revision: 1 });
 		await f.t.action(jobs.mail.sendReportEmail, { reportId });
 		const captures = await f.t.run((ctx) => ctx.db.query("feedbackReportLocalEmails").collect());

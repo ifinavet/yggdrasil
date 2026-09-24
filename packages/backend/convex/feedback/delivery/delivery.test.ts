@@ -1,6 +1,5 @@
 import type { EmailEvent, EmailId } from "@convex-dev/resend";
 import { HUGIN_LOCAL_URL, HUGIN_URL } from "@workspace/shared/constants";
-import { featureFlags } from "@workspace/shared/feature-flags";
 import { feedbackOpensAt, feedbackRoundAt } from "@workspace/shared/feedback/time";
 import { Webhook } from "svix";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -84,12 +83,10 @@ async function fixture() {
 beforeEach(() => {
 	vi.useFakeTimers();
 	vi.setSystemTime(opensAt);
-	featureFlags.huginFeedback.emailsEnabled = true;
 	vi.stubEnv("APP_ENV", "local");
 	vi.stubEnv("CONVEX_CLOUD_URL", "http://127.0.0.1:3210");
 });
 afterEach(() => {
-	featureFlags.huginFeedback.emailsEnabled = false;
 	vi.clearAllTimers();
 	vi.useRealTimers();
 	vi.unstubAllEnvs();
@@ -142,9 +139,9 @@ describe("feedback delivery", () => {
 		expect(await t.run((ctx) => ctx.db.query("feedbackLocalEmails").collect())).toHaveLength(1);
 		expect(await t.run((ctx) => ctx.db.query("feedbackTokens").collect())).toHaveLength(1);
 	});
-	it("does not render or queue mail with the master flag disabled", async () => {
-		const { t, args, email } = await fixture();
-		featureFlags.huginFeedback.emailsEnabled = false;
+	it("does not render or queue mail when feedback is turned off for the event", async () => {
+		const { t, args, email, eventId } = await fixture();
+		await t.run((ctx) => ctx.db.patch(eventId, { feedbackEnabled: false }));
 		await t.action(send, args);
 		expect(await t.mutation(messages.enqueueEmail, email)).toBeNull();
 		expect(await t.run((ctx) => ctx.db.query("feedbackDeliveries").collect())).toEqual([]);

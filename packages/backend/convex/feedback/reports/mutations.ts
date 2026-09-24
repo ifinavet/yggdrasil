@@ -42,10 +42,7 @@ export const approve = mutation({
 			throw new ConvexError("Rapporten er allerede godkjent eller utilgjengelig.");
 		const recipient = reportRecipientSchema.safeParse({ recipientEmail: args.recipientEmail });
 		if (!recipient.success) throw new ConvexError("Skriv inn en gyldig e-postadresse.");
-		if (
-			!featureFlags.huginFeedback.emailsEnabled ||
-			!featureFlags.huginFeedback.reportEmailsEnabled
-		)
+		if (!featureFlags.huginFeedback.reportEmailsEnabled)
 			throw new ConvexError("Utsending av rapporter er slått av.");
 		await ctx.db.patch(report._id, {
 			status: "approved",
@@ -66,10 +63,7 @@ export const retryDelivery = mutation({
 		const { report } = await editableReport(ctx, args.reportId, args.revision);
 		if (report.status !== "approved" || report.deliveryStatus !== "failed")
 			throw new ConvexError("Rapporten kan ikke sendes på nytt nå.");
-		if (
-			!featureFlags.huginFeedback.emailsEnabled ||
-			!featureFlags.huginFeedback.reportEmailsEnabled
-		)
+		if (!featureFlags.huginFeedback.reportEmailsEnabled)
 			throw new ConvexError("Utsending av rapporter er slått av.");
 		await ctx.db.patch(report._id, {
 			deliveryStatus: "pending",

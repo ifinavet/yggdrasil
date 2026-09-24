@@ -2,13 +2,13 @@ import { featureFlags } from "@workspace/shared/feature-flags";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import { query } from "../../_generated/server";
-import { isReportFeatureEnabled, requireReportAccess } from "./access";
+import { canViewReport, isReportFeatureEnabled, requireReportAccess } from "./access";
 
 export const getEventReport = query({
 	args: { eventId: v.id("events") },
 	handler: async (ctx, { eventId }) => {
-		await requireReportAccess(ctx, eventId);
-		if (!isReportFeatureEnabled()) return { enabled: false } as const;
+		if (!(await canViewReport(ctx, eventId)) || !isReportFeatureEnabled())
+			return { enabled: false } as const;
 		const campaign = await ctx.db
 			.query("feedbackCampaigns")
 			.withIndex("by_eventId", (index) => index.eq("eventId", eventId))
@@ -21,8 +21,7 @@ export const getEventReport = query({
 			.unique();
 		return {
 			enabled: true as const,
-			deliveryEnabled:
-				featureFlags.huginFeedback.emailsEnabled && featureFlags.huginFeedback.reportEmailsEnabled,
+			deliveryEnabled: featureFlags.huginFeedback.reportEmailsEnabled,
 			campaignId: campaign._id,
 			campaignStatus: campaign.status,
 			report: report
