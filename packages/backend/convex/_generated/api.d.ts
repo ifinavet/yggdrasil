@@ -32,6 +32,8 @@ import type * as feedback_events from "../feedback/events.js";
 import type * as feedback_forms_helpers from "../feedback/forms/helpers.js";
 import type * as feedback_forms_mutations from "../feedback/forms/mutations.js";
 import type * as feedback_forms_queries from "../feedback/forms/queries.js";
+import type * as feedback_manualSend_eligibility from "../feedback/manualSend/eligibility.js";
+import type * as feedback_manualSend_send from "../feedback/manualSend/send.js";
 import type * as feedback_reports_access from "../feedback/reports/access.js";
 import type * as feedback_reports_build from "../feedback/reports/build.js";
 import type * as feedback_reports_mail from "../feedback/reports/mail.js";
@@ -116,6 +118,8 @@ declare const fullApi: ApiFromModules<{
   "feedback/forms/helpers": typeof feedback_forms_helpers;
   "feedback/forms/mutations": typeof feedback_forms_mutations;
   "feedback/forms/queries": typeof feedback_forms_queries;
+  "feedback/manualSend/eligibility": typeof feedback_manualSend_eligibility;
+  "feedback/manualSend/send": typeof feedback_manualSend_send;
   "feedback/reports/access": typeof feedback_reports_access;
   "feedback/reports/build": typeof feedback_reports_build;
   "feedback/reports/mail": typeof feedback_reports_mail;

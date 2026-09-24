@@ -3,6 +3,7 @@ import { api } from "@workspace/backend/convex/api";
 import { fetchQuery } from "convex/nextjs";
 import { Suspense } from "react";
 import { EventFeedbackSettings } from "@/components/feedback/event-feedback-settings";
+import { FeedbackManualSend } from "@/components/feedback/feedback-manual-send";
 import { FeedbackReportLink } from "@/components/feedback/feedback-report-link";
 import { FeedbackTestSend } from "@/components/feedback/feedback-test-send";
 
@@ -22,6 +23,7 @@ async function EventFeedbackContent({ params }: Readonly<{ params: Promise<{ slu
 		<>
 			<h1 className="font-semibold text-2xl">{event.title}</h1>
 			<EventFeedbackSettings eventId={event._id} />
+			<FeedbackManualSend eventId={event._id} />
 			<FeedbackReportLink slug={slug} />
 			<FeedbackTestSend eventId={event._id} />
 		</>
