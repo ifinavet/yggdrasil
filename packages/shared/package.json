@@ -30,8 +30,7 @@
 		"./semester/application": "./semester/application.ts",
 		"./semester/labels": "./semester/labels.ts",
 		"./feedback/report": "./feedback/report.ts",
-		"./feedback/report-csv": "./feedback/report-csv.ts",
-		"./semester/logistics": "./semester/logistics.ts"
+		"./feedback/report-csv": "./feedback/report-csv.ts"
 	},
 	"scripts": {
 		"check-types": "tsc --noEmit"

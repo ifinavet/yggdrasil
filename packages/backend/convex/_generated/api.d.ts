@@ -71,9 +71,6 @@ import type * as semesterPlanning_applications_helper from "../semesterPlanning/
 import type * as semesterPlanning_applications_mutations from "../semesterPlanning/applications/mutations.js";
 import type * as semesterPlanning_applications_queries from "../semesterPlanning/applications/queries.js";
 import type * as semesterPlanning_applications_submit from "../semesterPlanning/applications/submit.js";
-import type * as semesterPlanning_logistics_helper from "../semesterPlanning/logistics/helper.js";
-import type * as semesterPlanning_logistics_mutations from "../semesterPlanning/logistics/mutations.js";
-import type * as semesterPlanning_logistics_queries from "../semesterPlanning/logistics/queries.js";
 import type * as semesterPlanning_offers_helper from "../semesterPlanning/offers/helper.js";
 import type * as semesterPlanning_offers_messages from "../semesterPlanning/offers/messages.js";
 import type * as semesterPlanning_offers_mutations from "../semesterPlanning/offers/mutations.js";
@@ -164,9 +161,6 @@ declare const fullApi: ApiFromModules<{
   "semesterPlanning/applications/mutations": typeof semesterPlanning_applications_mutations;
   "semesterPlanning/applications/queries": typeof semesterPlanning_applications_queries;
   "semesterPlanning/applications/submit": typeof semesterPlanning_applications_submit;
-  "semesterPlanning/logistics/helper": typeof semesterPlanning_logistics_helper;
-  "semesterPlanning/logistics/mutations": typeof semesterPlanning_logistics_mutations;
-  "semesterPlanning/logistics/queries": typeof semesterPlanning_logistics_queries;
   "semesterPlanning/offers/helper": typeof semesterPlanning_offers_helper;
   "semesterPlanning/offers/messages": typeof semesterPlanning_offers_messages;
   "semesterPlanning/offers/mutations": typeof semesterPlanning_offers_mutations;

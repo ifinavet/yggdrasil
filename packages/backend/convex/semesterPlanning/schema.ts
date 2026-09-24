@@ -168,10 +168,6 @@ export const semesterPlanningSchema = {
 		helperUserIds: v.optional(v.array(v.id("users"))),
 		internalNotes: v.optional(v.string()),
 		eventId: v.optional(v.id("events")),
-		// Ticked off on the event by the kontaktperson and medhjelpere. Whether a room or food is
-		// needed at all follows from the company's answers, see `logisticsNeeds`.
-		roomBooked: v.boolean(),
-		foodOrdered: v.boolean(),
 	})
 		.index("by_semesterId_and_status", ["semesterId", "status"])
 		.index("by_semesterId_and_assignedDate", ["semesterId", "assignedDate"])

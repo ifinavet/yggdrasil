@@ -169,8 +169,6 @@ export const insertSubmittedApplication = internalMutation({
 			billing,
 			consent: { version: CONSENT_VERSION, consentedAt: Date.now() },
 			status: "applied",
-			roomBooked: false,
-			foodOrdered: false,
 		});
 
 		await logApplicationActivity(ctx, applicationId, "submitted", { type: "company" });

@@ -335,8 +335,6 @@ export async function insertApplication(
 			targetStudyPrograms: [],
 			consent: { version: CONSENT_VERSION, consentedAt: Date.now() },
 			status: "applied",
-			roomBooked: false,
-			foodOrdered: false,
 			...overrides,
 		}),
 	);
