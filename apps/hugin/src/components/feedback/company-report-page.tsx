@@ -98,7 +98,7 @@ function CompanyReport({
 		};
 	}, [token, resolve]);
 	return (
-		<div className="mx-auto my-6 w-full max-w-[800px] overflow-hidden rounded-[10px] border bg-card text-left">
+		<div className="mx-auto my-6 w-full max-w-5xl overflow-hidden rounded-[10px] border bg-card text-left lg:w-5xl">
 			{state === "ready" && result ? (
 				<FeedbackReportView report={result.report} answers={result.answers} />
 			) : (
