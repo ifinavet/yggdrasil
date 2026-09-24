@@ -4,6 +4,7 @@ import { v } from "convex/values";
 import { internalMutation, internalQuery } from "../../_generated/server";
 import { isLocalDevelopment } from "../../auth/local";
 import { hashLinkToken } from "../../lib/tokens";
+import { feedbackSignature } from "../delivery/emailContext";
 import { feedbackResend, feedbackSender } from "../delivery/messages";
 
 export const reportEmailSubject = (eventTitle: string) => `Rapport fra ${eventTitle}`;
@@ -13,7 +14,11 @@ export const getDelivery = internalQuery({
 	handler: async (ctx, { reportId }) => {
 		const report = await ctx.db.get(reportId);
 		return report?.status === "approved" && !report.emailId && report.deliveryStatus === "pending"
-			? { eventTitle: report.eventTitle, eventStart: report.eventStart }
+			? {
+					eventTitle: report.eventTitle,
+					eventStart: report.eventStart,
+					signature: await feedbackSignature(ctx, report.eventId),
+				}
 			: null;
 	},
 });
@@ -33,6 +38,7 @@ export const enqueue = internalMutation({
 			? `local:${key}`
 			: await feedbackResend.sendEmail(ctx, {
 					...feedbackSender,
+					replyTo: [(await feedbackSignature(ctx, report.eventId)).email],
 					to: report.recipientEmail,
 					subject: reportEmailSubject(report.eventTitle),
 					html: args.html,

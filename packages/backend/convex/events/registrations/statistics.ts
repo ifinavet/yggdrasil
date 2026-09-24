@@ -11,20 +11,21 @@ export async function getRegistrantStatistics(ctx: QueryCtx, eventId: Id<"events
 		.filter((r) => r.eq(r.field("status"), "registered"))
 		.collect();
 
-	const studentsInfo = await Promise.all(
-		registrations.map(async (registration) => {
-			const student = await ctx.db
+	const students = await Promise.all(
+		registrations.map((registration) =>
+			ctx.db
 				.query("students")
 				.withIndex("by_userId", (q) => q.eq("userId", registration.userId))
-				.first();
-
-			return {
-				aar: student?.year ?? -1,
-				program: student?.studyProgram ?? "Ukjent",
-				degree: student ? degreeKey(student.degree) : "Ukjent",
-			};
-		}),
+				.first(),
+		),
 	);
+	const studentsInfo = students
+		.filter((student) => student !== null)
+		.map((student) => ({
+			aar: student.year,
+			program: student.studyProgram,
+			degree: degreeKey(student.degree),
+		}));
 
 	const result: {
 		[degree: string]: {

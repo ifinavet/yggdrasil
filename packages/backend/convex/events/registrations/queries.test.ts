@@ -468,7 +468,7 @@ describe("getRegistrantsInfo", () => {
 		expect(info).toEqual({});
 	});
 
-	it("files a registrant without a student record as unknown", async () => {
+	it("leaves registrants without a student record out of the statistics", async () => {
 		const { t, companyId } = await setup();
 		const eventId = await insertEvent(t, companyId);
 		const attendee = await insertUser(t, "ikkestudent@example.com");
@@ -480,7 +480,7 @@ describe("getRegistrantsInfo", () => {
 			eventIdentifier: eventId,
 		});
 
-		expect(info).toEqual({ Ukjent: { [toBase64("Ukjent")]: { "-1": 1 } } });
+		expect(info).toEqual({});
 	});
 
 	it("refuses a plain student", async () => {

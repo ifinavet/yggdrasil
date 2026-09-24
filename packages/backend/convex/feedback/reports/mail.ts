@@ -13,7 +13,7 @@ export const sendReportEmail = internalAction({
 				reportId,
 			});
 			if (!report) return;
-			const { token, html, url } = await reportEmailContent(report.eventTitle, report.eventStart);
+			const { token, html, url } = await reportEmailContent(report);
 			await ctx.runMutation(internal.feedback.reports.messages.enqueue, {
 				reportId,
 				token,
