@@ -20,14 +20,17 @@ export async function getFeedbackTokenAccess(ctx: QueryCtx, token: string, now: 
 	if (event?.feedbackEnabled !== true) return { status: "unavailable" } as const;
 	if (campaign.status === "closed" || campaign.status === "cancelled" || now >= campaign.closesAt)
 		return { status: "closed" } as const;
-	if (campaign.status !== "open" || now < campaign.opensAt) return { status: "not-open" } as const;
+	const opensWithCampaign = invite.sentBy === undefined;
+	if (opensWithCampaign && (campaign.status !== "open" || now < campaign.opensAt))
+		return { status: "not-open" } as const;
 	const previousResponse = await ctx.db
 		.query("formResponses")
 		.withIndex("by_inviteId", (index) => index.eq("inviteId", invite._id))
 		.first();
 	if (invite.responded || previousResponse) return { status: "already-submitted" } as const;
-	if (!campaign.formVersionId) return { status: "invalid" } as const;
-	const publishedVersion = await ctx.db.get(campaign.formVersionId);
+	const formVersionId = campaign.formVersionId ?? invite.formVersionId;
+	if (!formVersionId) return { status: "invalid" } as const;
+	const publishedVersion = await ctx.db.get(formVersionId);
 	if (!publishedVersion) return { status: "invalid" } as const;
 	const storedFields = await ctx.db
 		.query("formFields")

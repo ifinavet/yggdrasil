@@ -77,6 +77,8 @@ export const feedbackSchema = {
 		workflowId: v.optional(v.string()),
 		retainedAt: v.optional(v.number()),
 		failure: v.optional(v.string()),
+		sentBy: v.optional(v.id("users")),
+		formVersionId: v.optional(v.id("formVersions")),
 	})
 		.index("by_campaignId", ["campaignId"])
 		.index("by_campaignId_and_userId", ["campaignId", "userId"])

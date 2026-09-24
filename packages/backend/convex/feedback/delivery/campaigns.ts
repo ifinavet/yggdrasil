@@ -12,7 +12,7 @@ import { getLatestPublishedVersion } from "../forms/helpers";
 
 export const campaignArgs = { campaignId: v.id("feedbackCampaigns"), generation: v.number() };
 
-async function selectedVersion(ctx: QueryCtx, event: Doc<"events">) {
+export async function selectedVersion(ctx: QueryCtx, event: Doc<"events">) {
 	const formId =
 		event.feedbackFormId ??
 		(
