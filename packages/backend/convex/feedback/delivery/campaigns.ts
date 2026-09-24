@@ -24,6 +24,16 @@ export async function selectedVersion(ctx: QueryCtx, event: Doc<"events">) {
 	return formId ? getLatestPublishedVersion(ctx, formId) : null;
 }
 
+export async function hasSentForms(ctx: QueryCtx, campaign: Doc<"feedbackCampaigns">) {
+	if (campaign.status === "open") return true;
+	if (campaign.status !== "scheduled") return false;
+	const invite = await ctx.db
+		.query("feedbackInvites")
+		.withIndex("by_campaignId", (index) => index.eq("campaignId", campaign._id))
+		.first();
+	return invite !== null;
+}
+
 async function canScheduleFeedback(
 	ctx: QueryCtx,
 	event: Doc<"events">,
@@ -74,7 +84,7 @@ export async function syncFeedbackCampaign(
 		.order("desc")
 		.first();
 	if (event.feedbackEnabled !== true || !event.published || event.externalEvent) {
-		if (existing && (existing.status === "scheduled" || existing.status === "open"))
+		if (existing?.status === "scheduled" && !(await hasSentForms(ctx, existing)))
 			await finishCampaign(ctx, existing, "cancelled");
 		return;
 	}
@@ -126,7 +136,14 @@ export const openCampaign = internalMutation({
 			return false;
 		}
 		const event = await ctx.db.get(campaign.eventId);
-		if (event?.feedbackEnabled !== true || !event.published || event.externalEvent) {
+		if (!event) {
+			await finishCampaign(ctx, campaign, "cancelled");
+			return false;
+		}
+		if (
+			!(await hasSentForms(ctx, campaign)) &&
+			(event.feedbackEnabled !== true || !event.published || event.externalEvent)
+		) {
 			await finishCampaign(ctx, campaign, "cancelled");
 			return false;
 		}
@@ -174,7 +191,7 @@ export const inviteParticipants = internalMutation({
 		)
 			return null;
 		const event = await ctx.db.get(campaign.eventId);
-		if (event?.feedbackEnabled !== true || !event.published || event.externalEvent) return null;
+		if (!event) return null;
 		const registrations = await ctx.db
 			.query("registrations")
 			.withIndex("by_eventIdStatusAndRegistrationTime", (index) =>

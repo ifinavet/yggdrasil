@@ -56,7 +56,7 @@ async function deliveryContext(
 		return null;
 	if (now < feedbackRoundAt(campaign.opensAt, round) || now >= campaign.closesAt) return null;
 	const event = await ctx.db.get(campaign.eventId);
-	if (event?.feedbackEnabled !== true || !event.published || event.externalEvent) return null;
+	if (!event) return null;
 	const response = await ctx.db
 		.query("formResponses")
 		.withIndex("by_inviteId", (index) => index.eq("inviteId", inviteId))

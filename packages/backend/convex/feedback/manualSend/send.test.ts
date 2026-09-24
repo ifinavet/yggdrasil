@@ -190,15 +190,19 @@ describe("manual feedback form send", () => {
 		expect(invites.find(({ userId }) => userId === checkedIn._id)).not.toHaveProperty("sentBy");
 	});
 
-	it("stops the manually sent form when feedback is turned off for the event", async () => {
+	it("keeps feedback on once a form has been sent manually", async () => {
 		const f = await fixture();
 		const token = await sendAndReadToken(f);
-		await f.client.mutation(api.feedback.events.updateEventFeedbackSettings, {
-			eventId: f.eventId,
-			enabled: false,
-		});
 
-		expect(await f.t.action(resolveToken, { token })).toEqual({ status: "unavailable" });
+		expect(
+			await refusalMessageFrom(
+				f.client.mutation(api.feedback.events.updateEventFeedbackSettings, {
+					eventId: f.eventId,
+					enabled: false,
+				}),
+			),
+		).toContain("allerede sendt ut");
+		expect(await f.t.action(resolveToken, { token })).toMatchObject({ status: "open" });
 	});
 
 	it("captures the email locally instead of sending it in local development", async () => {

@@ -139,12 +139,15 @@ describe("feedback delivery", () => {
 		expect(await t.run((ctx) => ctx.db.query("feedbackLocalEmails").collect())).toHaveLength(1);
 		expect(await t.run((ctx) => ctx.db.query("feedbackTokens").collect())).toHaveLength(1);
 	});
-	it("does not render or queue mail when feedback is turned off for the event", async () => {
-		const { t, args, email, eventId } = await fixture();
-		await t.run((ctx) => ctx.db.patch(eventId, { feedbackEnabled: false }));
+	it.each([
+		["feedback turned off", { feedbackEnabled: false }],
+		["unpublished", { published: false }],
+		["external", { externalEvent: true }],
+	] as const)("keeps sending an open campaign after the event is %s", async (_, patch) => {
+		const { t, args, eventId } = await fixture();
+		await t.run((ctx) => ctx.db.patch(eventId, patch));
 		await t.action(send, args);
-		expect(await t.mutation(messages.enqueueEmail, email)).toBeNull();
-		expect(await t.run((ctx) => ctx.db.query("feedbackDeliveries").collect())).toEqual([]);
+		expect(await t.run((ctx) => ctx.db.query("feedbackLocalEmails").collect())).toHaveLength(1);
 	});
 	it("signs with Navet's arrangement address when the event has no lead organizer", async () => {
 		const { t, args, eventId } = await fixture();
@@ -177,15 +180,10 @@ describe("feedback delivery", () => {
 		});
 		expect(await t.query(messages.prepareEmail, { ...args, now: opensAt })).toBeNull();
 	});
-	it("rechecks flags and answers after rendering, before enqueue", async () => {
-		const { t, args, email, eventId, inviteId } = await fixture();
+	it("rechecks answers after rendering, before enqueue", async () => {
+		const { t, args, email, inviteId } = await fixture();
 		expect(await t.query(messages.prepareEmail, { ...args, now: opensAt })).not.toBeNull();
-		await t.run((ctx) => ctx.db.patch(eventId, { feedbackEnabled: false }));
-		expect(await t.mutation(messages.enqueueEmail, email)).toBeNull();
-		await t.run(async (ctx) => {
-			await ctx.db.patch(eventId, { feedbackEnabled: true });
-			await ctx.db.patch(inviteId, { responded: true });
-		});
+		await t.run((ctx) => ctx.db.patch(inviteId, { responded: true }));
 		expect(await t.mutation(messages.enqueueEmail, email)).toBeNull();
 	});
 	it.each(["responded", "bounced", "complained"] as const)(
@@ -209,9 +207,6 @@ describe("feedback delivery", () => {
 		"beforeDue",
 		"afterClose",
 		"missingEvent",
-		"disabledEvent",
-		"unpublishedEvent",
-		"externalEvent",
 		"missingUser",
 		"existingResponse",
 	])("fails closed for %s", async (scenario) => {
@@ -250,15 +245,6 @@ describe("feedback delivery", () => {
 					break;
 				case "missingEvent":
 					await ctx.db.delete(f.eventId);
-					break;
-				case "disabledEvent":
-					await ctx.db.patch(f.eventId, { feedbackEnabled: false });
-					break;
-				case "unpublishedEvent":
-					await ctx.db.patch(f.eventId, { published: false });
-					break;
-				case "externalEvent":
-					await ctx.db.patch(f.eventId, { externalEvent: true });
 					break;
 				case "missingUser":
 					await ctx.db.delete(f.user._id);
@@ -507,9 +493,10 @@ describe("campaign lifecycle", () => {
 		"cancels on %s and re-enables only an unopened campaign",
 		async (reason) => {
 			const f = await fixture();
-			await f.t.run((ctx) =>
-				ctx.db.patch(f.campaignId, { status: "scheduled", formVersionId: undefined }),
-			);
+			await f.t.run(async (ctx) => {
+				await ctx.db.patch(f.campaignId, { status: "scheduled", formVersionId: undefined });
+				await ctx.db.delete(f.inviteId);
+			});
 			vi.setSystemTime(opensAt - 86400000);
 			const patch =
 				reason === "disabled"
@@ -548,9 +535,10 @@ describe("campaign lifecycle", () => {
 		"missingForm",
 	])("does not open %s campaigns", async (reason) => {
 		const f = await fixture();
-		await f.t.run((ctx) =>
-			ctx.db.patch(f.campaignId, { status: "scheduled", formVersionId: undefined }),
-		);
+		await f.t.run(async (ctx) => {
+			await ctx.db.patch(f.campaignId, { status: "scheduled", formVersionId: undefined });
+			await ctx.db.delete(f.inviteId);
+		});
 		await f.t.run(async (ctx) => {
 			if (reason === "missing") await ctx.db.delete(f.campaignId);
 			if (reason === "expired") vi.setSystemTime(feedbackRoundAt(opensAt, 14));
@@ -599,7 +587,22 @@ describe("campaign lifecycle", () => {
 		await f.t.mutation(campaigns.inviteParticipants, args);
 		expect(await f.t.run((ctx) => ctx.db.query("feedbackInvites").collect())).toHaveLength(3);
 	});
-	it.each(["missing", "stale", "closed", "expired", "disabled", "unpublished", "external"])(
+	it("keeps inviting participants of an open campaign after the event is unpublished", async () => {
+		const f = await fixture();
+		const participant = await insertUser(f.t, "late-invite@example.test");
+		const registration = await insertRegistration(f.t, f.eventId, participant._id, "registered");
+		await f.t.run(async (ctx) => {
+			await ctx.db.patch(registration, { attendanceStatus: "confirmed" });
+			await ctx.db.patch(f.eventId, { published: false, feedbackEnabled: false });
+		});
+		await f.t.mutation(campaigns.inviteParticipants, {
+			campaignId: f.campaignId,
+			generation: 1,
+			cursor: null,
+		});
+		expect(await f.t.run((ctx) => ctx.db.query("feedbackInvites").collect())).toHaveLength(2);
+	});
+	it.each(["missing", "stale", "closed", "expired", "missingEvent"])(
 		"stops participant pagination for %s",
 		async (reason) => {
 			const f = await fixture();
@@ -608,9 +611,7 @@ describe("campaign lifecycle", () => {
 				if (reason === "stale") await ctx.db.patch(f.campaignId, { generation: 2 });
 				if (reason === "closed") await ctx.db.patch(f.campaignId, { status: "closed" });
 				if (reason === "expired") vi.setSystemTime(feedbackRoundAt(opensAt, 14));
-				if (reason === "disabled") await ctx.db.patch(f.eventId, { feedbackEnabled: false });
-				if (reason === "unpublished") await ctx.db.patch(f.eventId, { published: false });
-				if (reason === "external") await ctx.db.patch(f.eventId, { externalEvent: true });
+				if (reason === "missingEvent") await ctx.db.delete(f.eventId);
 			});
 			expect(
 				await f.t.mutation(campaigns.inviteParticipants, {
@@ -716,13 +717,32 @@ describe("feedback email webhook", () => {
 	});
 });
 
-it("cancels feedback through the existing publish-status mutation", async () => {
+it("keeps an open campaign running when the event is unpublished", async () => {
 	const f = await fixture();
 	await f.client.mutation(api.events.mutations.updatePublishedStatus, {
 		ids: [f.eventId],
 		newPublishedStatus: false,
 	});
-	expect(await f.t.run((ctx) => ctx.db.get(f.campaignId))).toMatchObject({ status: "cancelled" });
+	expect(await f.t.run((ctx) => ctx.db.get(f.campaignId))).toMatchObject({ status: "open" });
 	await f.t.action(send, f.args);
-	expect(await f.t.run((ctx) => ctx.db.query("feedbackDeliveries").collect())).toEqual([]);
+	expect(await f.t.run((ctx) => ctx.db.query("feedbackLocalEmails").collect())).toHaveLength(1);
 });
+
+it.each([
+	["disabled", { feedbackEnabled: false }],
+	["unpublished", { published: false }],
+	["external", { externalEvent: true }],
+] as const)(
+	"opens a campaign with manually sent forms even if the event is %s",
+	async (_, patch) => {
+		const f = await fixture();
+		await f.t.run(async (ctx) => {
+			await ctx.db.patch(f.campaignId, { status: "scheduled", formVersionId: undefined });
+			await ctx.db.patch(f.eventId, patch);
+			await syncFeedbackCampaign(ctx, f.eventId);
+		});
+		expect(
+			await f.t.mutation(campaigns.openCampaign, { campaignId: f.campaignId, generation: 1 }),
+		).toBe(true);
+	},
+);
