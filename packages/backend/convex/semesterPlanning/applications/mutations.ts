@@ -204,6 +204,21 @@ export const reopen = mutation({
 	},
 });
 
+/** Refuses medhjelpere picked twice, too many of them, or anyone who is not an internal member. */
+async function requireValidHelpers(ctx: MutationCtx, helperUserIds: Id<"users">[]): Promise<void> {
+	if (new Set(helperUserIds).size !== helperUserIds.length) {
+		throw new ConvexError("Samme person er valgt som medhjelper to ganger.");
+	}
+	if (helperUserIds.length > MAX_HELPERS) {
+		throw new ConvexError(`Et arrangement kan ha høyst ${MAX_HELPERS} medhjelpere.`);
+	}
+	for (const userId of helperUserIds) {
+		if (!(await userHasRole(ctx, userId, internalRoles))) {
+			throw new ConvexError("Medhjelperne må være interne medlemmer.");
+		}
+	}
+}
+
 /**
  * Updates who from Navet runs the event, the kontaktperson and medhjelpere, and the internal
  * notes. Once the event exists, its organizers are the team, so the team is changed on the event
@@ -240,19 +255,7 @@ export const updatePlanningDetails = mutation({
 		if (responsibleUserId && !(await userHasRole(ctx, responsibleUserId, internalRoles))) {
 			throw new ConvexError("Kontaktpersonen fra Navet må være et internt medlem.");
 		}
-		if (helperUserIds !== undefined) {
-			if (new Set(helperUserIds).size !== helperUserIds.length) {
-				throw new ConvexError("Samme person er valgt som medhjelper to ganger.");
-			}
-			if (helperUserIds.length > MAX_HELPERS) {
-				throw new ConvexError(`Et arrangement kan ha høyst ${MAX_HELPERS} medhjelpere.`);
-			}
-			for (const userId of helperUserIds) {
-				if (!(await userHasRole(ctx, userId, internalRoles))) {
-					throw new ConvexError("Medhjelperne må være interne medlemmer.");
-				}
-			}
-		}
+		if (helperUserIds !== undefined) await requireValidHelpers(ctx, helperUserIds);
 		if (internalNotes !== undefined && internalNotes.length > MAX_INTERNAL_NOTES_LENGTH) {
 			throw new ConvexError(`Notatene kan ha høyst ${MAX_INTERNAL_NOTES_LENGTH} tegn.`);
 		}
