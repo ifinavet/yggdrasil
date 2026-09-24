@@ -13,7 +13,7 @@ export const sendFeedbackEmail = internalAction({
 			now: Date.now(),
 		});
 		if (!context) return;
-		const content = await feedbackEmailContent(context.title, args.round);
+		const content = await feedbackEmailContent(context, args.round);
 		await ctx.runMutation(internal.feedback.delivery.messages.enqueueEmail, {
 			...args,
 			...content,

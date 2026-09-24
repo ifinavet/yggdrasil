@@ -13,14 +13,16 @@ import {
 } from "../../_generated/server";
 import { isLocalDevelopment } from "../../auth/local";
 import { hashLinkToken } from "../../lib/tokens";
+import { feedbackEmailContext } from "./emailContext";
 
 export const feedbackResend: Resend = new Resend(components.feedbackResend, {
 	testMode: false,
 	onEmailEvent: internal.feedback.delivery.messages.onEmailEvent,
 });
+export const FEEDBACK_REPLY_TO = "arrangement@ifinavet.no";
 export const feedbackSender = {
 	from: "Navet <info@ifinavet.no>",
-	replyTo: ["arrangement@ifinavet.no"],
+	replyTo: [FEEDBACK_REPLY_TO],
 };
 export const deliveryArgs = {
 	inviteId: v.id("feedbackInvites"),
@@ -71,7 +73,7 @@ export const prepareEmail = internalQuery({
 	args: { ...deliveryArgs, now: v.number() },
 	handler: async (ctx, { inviteId, generation, round, now }) => {
 		const context = await deliveryContext(ctx, inviteId, generation, round, now);
-		return context ? { title: context.event.title } : null;
+		return context ? feedbackEmailContext(ctx, context.event) : null;
 	},
 });
 

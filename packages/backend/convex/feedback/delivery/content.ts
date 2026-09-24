@@ -9,6 +9,7 @@ import type { Infer } from "convex/values";
 import { isLocalDevelopment } from "../../auth/local";
 import { generateLinkToken } from "../../lib/tokens";
 import { reportEmailSubject } from "../reports/messages";
+import type { FeedbackEmailContext } from "./emailContext";
 import type { deliveryArgs } from "./messages";
 
 type FeedbackRound = Infer<typeof deliveryArgs.round>;
@@ -24,14 +25,17 @@ function linkWithTokenOutsideHttpRequests(origin: URL, path: string) {
 	return { token, url: url.toString() };
 }
 
-export async function feedbackEmailContent(title: string, round: FeedbackRound) {
+export async function feedbackEmailContent(
+	{ title, companyName, signature }: FeedbackEmailContext,
+	round: FeedbackRound,
+) {
 	const { token, url } = linkWithTokenOutsideHttpRequests(huginOrigin(), "/feedback");
 	const reminder = round !== 0;
 	return {
 		token,
 		url,
 		subject: `${reminder ? "Påminnelse" : "Tilbakemelding"}: ${title}`,
-		html: await render(FeedbackEmail({ event: title, url, reminder })),
+		html: await render(FeedbackEmail({ companyName, signature, url, reminder })),
 	};
 }
 

@@ -141,6 +141,7 @@ describe("feedback test send", () => {
 			});
 		}
 		expect(sent[0]?.html).toContain(`${HUGIN_URL}/feedback#token=`);
+		expect(sent[0]?.html).toContain("bedriftspresentasjonen med Testbedrift!");
 		expect(sent[2]?.html).toContain(`${HUGIN_URL}/report#token=`);
 		expect(sent[2]?.html).toContain("14. mars");
 	});
@@ -242,6 +243,22 @@ describe("feedback test send", () => {
 				f.client.action(api.feedback.testSend.send.send, { eventId: f.eventId }),
 			),
 		).toBe("Fant ikke arrangementet.");
+		expect(sendEmail).not.toHaveBeenCalled();
+	});
+
+	it("refuses to send for an event whose company does not exist", async () => {
+		const f = await fixture("admin@ifinavet.no", "internal");
+		await f.t.run(async (ctx) => {
+			const event = await ctx.db.get(f.eventId);
+			if (event) await ctx.db.delete(event.hostingCompany);
+		});
+		const sendEmail = vi.spyOn(feedbackResend, "sendEmail");
+
+		expect(
+			await refusalMessageFrom(
+				f.client.action(api.feedback.testSend.send.send, { eventId: f.eventId }),
+			),
+		).toBe("Fant ikke bedriften.");
 		expect(sendEmail).not.toHaveBeenCalled();
 	});
 
