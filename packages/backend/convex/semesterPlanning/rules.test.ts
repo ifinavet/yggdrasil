@@ -1,5 +1,6 @@
 import { isValidOrgNumber, toCompanyProfileOrgNumber } from "@workspace/shared/semester/orgNumber";
 import {
+	addOsloDays,
 	isIsoDate,
 	isPresentationDay,
 	nextTermAfter,
@@ -131,6 +132,16 @@ describe("Oslo time", () => {
 	it("turns an Oslo day and time into the right instant in winter and summer", () => {
 		expect(osloDateTimeToEpoch("2027-02-09", "16:15")).toBe(Date.parse("2027-02-09T15:15:00Z"));
 		expect(osloDateTimeToEpoch("2027-06-01", "16:15")).toBe(Date.parse("2027-06-01T14:15:00Z"));
+	});
+
+	it("adds days and keeps the Oslo wall-clock time across the switch to summer time", () => {
+		// Friday 26 March 12:00 in Oslo (UTC+1) plus a week is Friday 2 April 12:00 (UTC+2).
+		expect(addOsloDays(Date.parse("2027-03-26T11:00:00Z"), 7)).toBe(
+			Date.parse("2027-04-02T10:00:00Z"),
+		);
+		expect(addOsloDays(Date.parse("2027-01-31T11:00:00Z"), 1)).toBe(
+			Date.parse("2027-02-01T11:00:00Z"),
+		);
 	});
 
 	it.each([
