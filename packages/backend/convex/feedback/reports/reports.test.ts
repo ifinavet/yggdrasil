@@ -272,6 +272,7 @@ describe("company feedback reports", () => {
 		await insertOrganizer(f.t, f.eventId, organizer._id);
 		expect(await client.query(reports.queries.getEventReport, { eventId: f.eventId })).toEqual({
 			enabled: false,
+			canView: false,
 		});
 		await expect(
 			client.query(reports.queries.getReportAnswers, { reportId, paginationOpts }),
@@ -283,10 +284,12 @@ describe("company feedback reports", () => {
 		const otherEvent = await insertEvent(f.t, f.companyId);
 		expect(await client.query(reports.queries.getEventReport, { eventId: otherEvent })).toEqual({
 			enabled: false,
+			canView: false,
 		});
 		featureFlags.huginFeedback.reportsEnabled = false;
 		expect(await client.query(reports.queries.getEventReport, { eventId: f.eventId })).toEqual({
 			enabled: false,
+			canView: true,
 		});
 		await expect(
 			client.query(reports.queries.getReportAnswers, { reportId, paginationOpts }),
@@ -446,6 +449,7 @@ describe("report boundary cases", () => {
 		await f.t.mutation(jobs.build.prepareClosedReport, { campaignId: f.campaignId });
 		expect(await f.client.query(reports.queries.getEventReport, { eventId: f.eventId })).toEqual({
 			enabled: false,
+			canView: true,
 		});
 		featureFlags.huginFeedback.reportsEnabled = true;
 		expect(

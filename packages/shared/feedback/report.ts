@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+export const reportAccessDeniedMessage =
+	"Du må være arrangør for dette arrangementet for å se rapporten.";
+
 export const reportRecipientSchema = z.object({
 	recipientEmail: z.string().trim().max(254).pipe(z.email("Skriv inn en gyldig e-postadresse.")),
 });

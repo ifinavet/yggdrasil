@@ -2,9 +2,12 @@
 
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
+import { reportAccessDeniedMessage } from "@workspace/shared/feedback/report";
+import { Card, CardContent } from "@workspace/ui/components/card";
 import { FeedbackReportResponses } from "@workspace/ui/components/feedback/report";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
+import { Lock } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import { ReportReview } from "./report-review";
 
@@ -23,9 +26,13 @@ export function EventFeedbackReport({
 	);
 }
 
-function getCampaignToPrepare(
-	data: FunctionReturnType<typeof api.feedback.reports.queries.getEventReport> | undefined,
-) {
+type EventReport = FunctionReturnType<typeof api.feedback.reports.queries.getEventReport>;
+type PreparedReport = Extract<NonNullable<EventReport>, { enabled: true }>["report"];
+type ReportAnswers = FunctionReturnType<
+	typeof api.feedback.reports.queries.getReportAnswers
+>["page"];
+
+function getCampaignToPrepare(data: EventReport | undefined) {
 	return data?.enabled && data.campaignStatus === "closed" && !data.report ? data.campaignId : null;
 }
 
@@ -58,13 +65,50 @@ function ReportContent({
 		if (status === "CanLoadMore") loadMore(100);
 	}, [status, loadMore]);
 	if (error) return <p role="alert">{error}</p>;
+	return (
+		<ReportBody
+			data={data}
+			report={report}
+			answers={answers}
+			answersLoaded={status === "Exhausted"}
+			summary={summary}
+			fallback={fallback}
+		/>
+	);
+}
+
+function ReportBody({
+	data,
+	report,
+	answers,
+	answersLoaded,
+	summary,
+	fallback,
+}: Readonly<{
+	data: EventReport | undefined;
+	report: PreparedReport;
+	answers: ReportAnswers;
+	answersLoaded: boolean;
+	summary: boolean;
+	fallback: ReactNode;
+}>) {
 	if (data === undefined) return <p>Henter rapport …</p>;
-	if (data && !data.enabled) return fallback;
+	if (data && !data.enabled) return summary || data.canView ? fallback : <ReportAccessDenied />;
 	if (!data) return summary ? fallback : <p>Dette arrangementet har ingen innsamling.</p>;
 	if (data.campaignStatus !== "closed")
 		return summary ? fallback : <p>Rapporten blir tilgjengelig når innsamlingen er avsluttet.</p>;
-	if (!report || report.status === "building" || status !== "Exhausted")
-		return <p>Klargjør rapport …</p>;
+	if (!report || report.status === "building" || !answersLoaded) return <p>Klargjør rapport …</p>;
 	if (summary) return <FeedbackReportResponses report={report} answers={answers} />;
 	return <ReportReview report={report} answers={answers} deliveryEnabled={data.deliveryEnabled} />;
+}
+
+function ReportAccessDenied() {
+	return (
+		<Card>
+			<CardContent className="flex items-center gap-3">
+				<Lock className="size-5 shrink-0 text-muted-foreground" />
+				<p>{reportAccessDeniedMessage}</p>
+			</CardContent>
+		</Card>
+	);
 }

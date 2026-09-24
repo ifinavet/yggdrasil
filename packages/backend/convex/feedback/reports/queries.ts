@@ -7,8 +7,8 @@ import { canViewReport, isReportFeatureEnabled, requireReportAccess } from "./ac
 export const getEventReport = query({
 	args: { eventId: v.id("events") },
 	handler: async (ctx, { eventId }) => {
-		if (!(await canViewReport(ctx, eventId)) || !isReportFeatureEnabled())
-			return { enabled: false } as const;
+		const canView = await canViewReport(ctx, eventId);
+		if (!canView || !isReportFeatureEnabled()) return { enabled: false, canView } as const;
 		const campaign = await ctx.db
 			.query("feedbackCampaigns")
 			.withIndex("by_eventId", (index) => index.eq("eventId", eventId))
