@@ -10,7 +10,7 @@ import { isLocalDevelopment } from "../../auth/local";
 import { generateLinkToken } from "../../lib/tokens";
 import { reportEmailSubject } from "../reports/messages";
 import type { FeedbackEmailContext } from "./emailContext";
-import type { deliveryArgs } from "./messages";
+import { deliveryArgs } from "./messages";
 
 type FeedbackRound = Infer<typeof deliveryArgs.round>;
 
@@ -30,11 +30,12 @@ export async function feedbackEmailContent(
 	round: FeedbackRound,
 ) {
 	const { token, url } = linkWithTokenOutsideHttpRequests(huginOrigin(), "/feedback");
-	const reminder = round !== 0;
+	const reminderNumber = deliveryArgs.round.members.findIndex(({ value }) => value === round);
+	const reminder = reminderNumber > 0;
 	return {
 		token,
 		url,
-		subject: `${reminder ? "Påminnelse" : "Tilbakemelding"}: ${title}`,
+		subject: `${reminder ? `${reminderNumber}. påminnelse` : "Tilbakemelding"}: ${title}`,
 		html: await render(FeedbackEmail({ companyName, signature, url, reminder })),
 	};
 }

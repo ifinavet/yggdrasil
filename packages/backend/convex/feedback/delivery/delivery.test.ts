@@ -293,7 +293,11 @@ describe("feedback delivery", () => {
 		}
 		const captures = await t.run((ctx) => ctx.db.query("feedbackLocalEmails").collect());
 		expect(captures).toHaveLength(3);
-		expect(captures[1]?.subject).toContain("Påminnelse");
+		expect(captures.map(({ subject }) => subject.split(":")[0])).toEqual([
+			"Tilbakemelding",
+			"1. påminnelse",
+			"2. påminnelse",
+		]);
 		const firstToken =
 			new URLSearchParams(new URL(captures[0]?.url ?? "").hash.slice(1)).get("token") ?? "";
 		expect(
