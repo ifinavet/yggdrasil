@@ -1,5 +1,6 @@
 "use client";
 
+import { degreeName } from "@workspace/shared/constants";
 import { fromBase64 } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
 import {
@@ -28,7 +29,7 @@ export default function DegreeTables({ data, onExport }: Readonly<DegreeTablesPr
 					<TabsList>
 						{Object.keys(data).map((degree) => (
 							<TabsTrigger value={degree} key={degree}>
-								{degree}
+								{degreeName(degree)}
 							</TabsTrigger>
 						))}
 					</TabsList>

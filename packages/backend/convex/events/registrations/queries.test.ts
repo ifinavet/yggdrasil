@@ -449,7 +449,7 @@ describe("getRegistrantsInfo", () => {
 			eventIdentifier: eventId,
 		});
 
-		expect(info).toEqual({ Bachelor: { [toBase64("Informatikk")]: { 2: 2 } } });
+		expect(info).toEqual({ bachelor: { [toBase64("Informatikk")]: { 2: 2 } } });
 	});
 
 	it("ignores registrants who are not seated", async () => {

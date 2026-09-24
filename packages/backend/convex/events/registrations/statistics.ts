@@ -1,3 +1,4 @@
+import { degreeKey } from "@workspace/shared/constants";
 import { toBase64 } from "@workspace/shared/utils";
 import type { Id } from "../../_generated/dataModel";
 import type { QueryCtx } from "../../_generated/server";
@@ -20,7 +21,7 @@ export async function getRegistrantStatistics(ctx: QueryCtx, eventId: Id<"events
 			return {
 				aar: student?.year ?? -1,
 				program: student?.studyProgram ?? "Ukjent",
-				degree: student?.degree ?? "Ukjent",
+				degree: student ? degreeKey(student.degree) : "Ukjent",
 			};
 		}),
 	);

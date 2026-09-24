@@ -1,5 +1,6 @@
 "use client";
 
+import { DEGREES } from "@workspace/shared/constants";
 import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";
 import {
 	type ChartConfig,
@@ -16,19 +17,19 @@ const chartConfig = {
 		label: "Antall",
 	},
 	bachelor: {
-		label: "Bachelor",
+		label: DEGREES.bachelor,
 		color: "#2563eb",
 	},
 	master: {
-		label: "Master",
+		label: DEGREES.master,
 		color: "var(--chart-2)",
 	},
 	phd: {
-		label: "PhD",
+		label: DEGREES.phd,
 		color: "var(--chart-3)",
 	},
-	aarsenheter: {
-		label: "Årsenheter",
+	aarsstudium: {
+		label: DEGREES.aarsstudium,
 		color: "var(--chart-4)",
 	},
 	ukjent: {
