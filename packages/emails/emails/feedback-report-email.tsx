@@ -39,9 +39,6 @@ export default function FeedbackReportEmail({
 						overflow: "hidden",
 					}}
 				>
-					<Section style={{ backgroundColor: "#ffffff", padding: "24px 34px" }}>
-						<Img src={NAVET_LOGO_URL} alt="Navet" height="34" style={{ width: "auto" }} />
-					</Section>
 					<Section style={{ padding: "34px" }}>
 						<Heading as="h1" style={{ fontSize: "26px", lineHeight: "1.3", margin: "0 0 18px" }}>
 							Takk for denne gang!

@@ -360,7 +360,7 @@ describe("company feedback reports", () => {
 		expect(captures[0].html).toContain("Se rapporten");
 		expect(captures[0].html).not.toContain(".webp");
 		expect(captures[0].html).toContain("mailto:arrangement@ifinavet.no");
-		expect(captures[0].html.split(NAVET_LOGO_URL)).toHaveLength(3);
+		expect(captures[0].html.split(NAVET_LOGO_URL)).toHaveLength(2);
 		const generatedToken = new URLSearchParams(new URL(captures[0].url).hash.slice(1)).get("token");
 		expect(generatedToken).toHaveLength(43);
 		await f.t.action(jobs.mail.sendReportEmail, { reportId });
