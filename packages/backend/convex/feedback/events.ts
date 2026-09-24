@@ -1,7 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import { internalRoles, requireRole } from "../auth/accessRights";
-import { syncFeedbackCampaign } from "./delivery/campaigns";
+import { hasSentForms, latestCampaign, syncFeedbackCampaign } from "./delivery/campaigns";
 import { getFeedbackFormOrThrow, getLatestPublishedVersion } from "./forms/helpers";
 
 export const getEventFeedbackSettings = query({
@@ -12,11 +12,7 @@ export const getEventFeedbackSettings = query({
 		if (!event) throw new ConvexError("Arrangementet finnes ikke.");
 		const [selectedForm, campaign] = await Promise.all([
 			event.feedbackFormId ? ctx.db.get(event.feedbackFormId) : null,
-			ctx.db
-				.query("feedbackCampaigns")
-				.withIndex("by_eventId", (index) => index.eq("eventId", eventId))
-				.order("desc")
-				.first(),
+			latestCampaign(ctx, eventId),
 		]);
 		// Older events have no stored flag. Requiring an explicit true keeps them off after deployment.
 		return {
@@ -24,6 +20,7 @@ export const getEventFeedbackSettings = query({
 			formId: event.feedbackFormId,
 			selectedFormName: selectedForm?.name,
 			campaignStatus: campaign?.status ?? null,
+			locked: campaign ? await hasSentForms(ctx, campaign) : false,
 		};
 	},
 });
@@ -36,7 +33,17 @@ export const updateEventFeedbackSettings = mutation({
 	},
 	handler: async (ctx, { eventId, enabled, formId }) => {
 		await requireRole(ctx, internalRoles);
-		if (!(await ctx.db.get(eventId))) throw new ConvexError("Arrangementet finnes ikke.");
+		const event = await ctx.db.get(eventId);
+		if (!event) throw new ConvexError("Arrangementet finnes ikke.");
+		const campaign = await latestCampaign(ctx, eventId);
+		if (campaign && (await hasSentForms(ctx, campaign))) {
+			if (!enabled)
+				throw new ConvexError(
+					"Skjemaet er allerede sendt ut, så tilbakemeldinger kan ikke slås av for dette arrangementet.",
+				);
+			if (formId !== event.feedbackFormId)
+				throw new ConvexError("Skjemaet er allerede sendt ut, så det kan ikke byttes.");
+		}
 		if (formId) {
 			await getFeedbackFormOrThrow(ctx, formId);
 			if (!(await getLatestPublishedVersion(ctx, formId)))

@@ -2,6 +2,7 @@ import { featureFlags } from "@workspace/shared/feature-flags";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import { query } from "../../_generated/server";
+import { latestCampaign } from "../delivery/campaigns";
 import { canViewReport, isReportFeatureEnabled, requireReportAccess } from "./access";
 
 export const getEventReport = query({
@@ -9,11 +10,7 @@ export const getEventReport = query({
 	handler: async (ctx, { eventId }) => {
 		const canView = await canViewReport(ctx, eventId);
 		if (!canView || !isReportFeatureEnabled()) return { enabled: false, canView } as const;
-		const campaign = await ctx.db
-			.query("feedbackCampaigns")
-			.withIndex("by_eventId", (index) => index.eq("eventId", eventId))
-			.order("desc")
-			.first();
+		const campaign = await latestCampaign(ctx, eventId);
 		if (!campaign) return null;
 		const report = await ctx.db
 			.query("feedbackReports")

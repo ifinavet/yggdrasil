@@ -7,19 +7,12 @@ import { internalMutation, internalQuery, type QueryCtx } from "../../_generated
 import { getRegistrantStatistics } from "../../events/registrations/statistics";
 import { hashLinkToken } from "../../lib/tokens";
 import { defaultFeedbackFields } from "../defaultFields";
+import { latestCampaign } from "../delivery/campaigns";
 import { getLatestPublishedVersion, insertFormVersion, markFormAsDefault } from "../forms/helpers";
 
 const reportLinkLifetimeMs = 7 * 24 * 60 * 60 * 1000;
 const defaultFormName = "Standardskjema";
 const maxPreviewResponses = 500;
-
-async function latestCampaign(ctx: QueryCtx, eventId: Id<"events">) {
-	return await ctx.db
-		.query("feedbackCampaigns")
-		.withIndex("by_eventId", (index) => index.eq("eventId", eventId))
-		.order("desc")
-		.first();
-}
 
 async function previewFormVersionId(
 	ctx: QueryCtx,

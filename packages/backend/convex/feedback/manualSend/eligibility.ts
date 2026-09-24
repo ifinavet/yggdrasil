@@ -5,7 +5,7 @@ import { internalMutation, internalQuery, type QueryCtx, query } from "../../_ge
 import { internalRoles, requireRole } from "../../auth/accessRights";
 import { isLocalDevelopment } from "../../auth/local";
 import { hashLinkToken } from "../../lib/tokens";
-import { selectedVersion } from "../delivery/campaigns";
+import { latestCampaign, selectedVersion } from "../delivery/campaigns";
 import { feedbackEmailContext } from "../delivery/emailContext";
 import { feedbackResend, feedbackSender } from "../delivery/messages";
 
@@ -32,11 +32,7 @@ async function manualSendContext(
 	const sender = await requireRole(ctx, internalRoles);
 	const event = await ctx.db.get(eventId);
 	if (!event) throw new ConvexError("Fant ikke arrangementet.");
-	const campaign = await ctx.db
-		.query("feedbackCampaigns")
-		.withIndex("by_eventId", (index) => index.eq("eventId", eventId))
-		.order("desc")
-		.first();
+	const campaign = await latestCampaign(ctx, eventId);
 	if (!campaign || !isCollectingFeedback(event, campaign))
 		throw new ConvexError("Arrangementet har ingen aktiv innsamling av tilbakemeldinger.");
 	const [registration, recipient, existingInvite] = await Promise.all([
@@ -97,6 +93,8 @@ export const enqueue = internalMutation({
 	handler: async (ctx, args): Promise<string> => {
 		const context = await manualSendContext(ctx, args);
 		const token = feedbackTokenSchema.parse(args.token);
+		if (!context.campaign.formVersionId)
+			await ctx.db.patch(context.campaign._id, { formVersionId: context.formVersionId });
 		const inviteId = await ctx.db.insert("feedbackInvites", {
 			campaignId: context.campaign._id,
 			userId: context.recipient._id,

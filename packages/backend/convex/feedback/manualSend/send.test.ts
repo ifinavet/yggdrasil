@@ -13,6 +13,7 @@ import {
 import { api, internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import { defaultFeedbackFields } from "../defaultFields";
+import { syncFeedbackCampaign } from "../delivery/campaigns";
 import { feedbackResend } from "../delivery/messages";
 
 const sendForm = api.feedback.manualSend.send.send;
@@ -107,6 +108,7 @@ describe("manual feedback form send", () => {
 	afterEach(() => {
 		vi.unstubAllEnvs();
 		vi.restoreAllMocks();
+		vi.useRealTimers();
 	});
 
 	it("emails the registrant a real form link before the automatic round opens", async () => {
@@ -190,15 +192,65 @@ describe("manual feedback form send", () => {
 		expect(invites.find(({ userId }) => userId === checkedIn._id)).not.toHaveProperty("sentBy");
 	});
 
-	it("stops the manually sent form when feedback is turned off for the event", async () => {
+	it("keeps feedback on once a form has been sent manually", async () => {
 		const f = await fixture();
 		const token = await sendAndReadToken(f);
-		await f.client.mutation(api.feedback.events.updateEventFeedbackSettings, {
-			eventId: f.eventId,
-			enabled: false,
+
+		expect(
+			await refusalMessageFrom(
+				f.client.mutation(api.feedback.events.updateEventFeedbackSettings, {
+					eventId: f.eventId,
+					enabled: false,
+				}),
+			),
+		).toContain("allerede sendt ut");
+		expect(await f.t.action(resolveToken, { token })).toMatchObject({ status: "open" });
+	});
+
+	it("keeps the manually sent form version for later sends and the opening round", async () => {
+		const f = await fixture();
+		await sendAndReadToken(f);
+		const admin = await insertUser(f.t, "other-admin@ifinavet.no");
+		await grantRole(f.t, admin._id, "super-admin");
+		const adminClient = asUser(f.t, admin);
+		const otherFormId = await adminClient.mutation(api.feedback.forms.mutations.saveDraft, {
+			name: "Other",
+			fields: defaultFeedbackFields,
+		});
+		await adminClient.mutation(api.feedback.forms.mutations.publish, { formId: otherFormId });
+		await adminClient.mutation(api.feedback.forms.mutations.setDefault, { formId: otherFormId });
+		const secondStudent = await insertUser(f.t, "second@example.test");
+		await insertRegistration(f.t, f.eventId, secondStudent._id, "registered");
+		await f.client.action(sendForm, { eventId: f.eventId, userId: secondStudent._id });
+		expect((await invitesOf(f)).map(({ formVersionId }) => formVersionId)).toEqual([
+			f.formVersionId,
+			f.formVersionId,
+		]);
+		vi.setSystemTime(f.campaign.opensAt);
+
+		expect(
+			await f.t.mutation(internal.feedback.delivery.campaigns.openCampaign, {
+				campaignId: f.campaign._id,
+				generation: f.campaign.generation,
+			}),
+		).toBe(true);
+		expect(await f.t.run((ctx) => ctx.db.get(f.campaign._id))).toMatchObject({
+			status: "open",
+			formVersionId: f.formVersionId,
+		});
+	});
+
+	it("keeps the campaign when the event is moved after a form was sent manually", async () => {
+		const f = await fixture();
+		await sendAndReadToken(f);
+		await f.t.run(async (ctx) => {
+			await ctx.db.patch(f.eventId, { eventStart: 0 });
+			await syncFeedbackCampaign(ctx, f.eventId);
 		});
 
-		expect(await f.t.action(resolveToken, { token })).toEqual({ status: "unavailable" });
+		expect(await f.t.run((ctx) => ctx.db.get(f.campaign._id))).toMatchObject({
+			status: "scheduled",
+		});
 	});
 
 	it("captures the email locally instead of sending it in local development", async () => {

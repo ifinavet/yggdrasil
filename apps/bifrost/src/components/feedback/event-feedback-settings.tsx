@@ -6,7 +6,7 @@ import type { Id } from "@workspace/backend/convex/dataModel";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";
 import { Checkbox } from "@workspace/ui/components/checkbox";
-import { Field, FieldLabel } from "@workspace/ui/components/field";
+import { Field, FieldContent, FieldDescription, FieldLabel } from "@workspace/ui/components/field";
 import {
 	Select,
 	SelectContent,
@@ -82,11 +82,20 @@ function SettingsForm({
 								<Checkbox
 									id="feedback-enabled"
 									checked={field.state.value}
+									disabled={settings.locked}
 									onCheckedChange={(checked) => field.handleChange(checked === true)}
 								/>
-								<FieldLabel htmlFor="feedback-enabled">
-									Tillat tilbakemeldinger for dette arrangementet
-								</FieldLabel>
+								<FieldContent>
+									<FieldLabel htmlFor="feedback-enabled">
+										Tillat tilbakemeldinger for dette arrangementet
+									</FieldLabel>
+									{settings.locked && (
+										<FieldDescription>
+											Skjemaet er allerede sendt ut. Tilbakemeldinger kan ikke slås av og skjemaet
+											kan ikke byttes, selv om arrangementet avpubliseres eller gjøres eksternt.
+										</FieldDescription>
+									)}
+								</FieldContent>
 							</Field>
 						)}
 					</form.Field>
@@ -96,6 +105,7 @@ function SettingsForm({
 								<FieldLabel htmlFor="feedback-form">Tilbakemeldingsskjema</FieldLabel>
 								<Select
 									value={field.state.value || "default"}
+									disabled={settings.locked}
 									onValueChange={(value) => field.handleChange(value === "default" ? "" : value)}
 								>
 									<SelectTrigger id="feedback-form" className="w-full">

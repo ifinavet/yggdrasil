@@ -123,8 +123,12 @@ describe("feedback form management", () => {
 			superAdminClient.mutation(feedbackMutations.setDefault, { formId }),
 		).rejects.toThrow("Publiser");
 		await expect(
-			superAdminClient.mutation(feedbackMutations.assignToEvent, { eventId, formId }),
-		).rejects.toThrow("Publiser");
+			superAdminClient.mutation(api.feedback.events.updateEventFeedbackSettings, {
+				eventId,
+				enabled: false,
+				formId,
+			}),
+		).rejects.toThrow("publisert");
 	});
 	it("keeps exactly one default, including concurrent changes and repeated selection", async () => {
 		const { backend, superAdminClient, formId } = await setupFormManagement();
@@ -197,13 +201,18 @@ describe("feedback form management", () => {
 				versionId,
 			);
 			expect(await requestClient.query(feedbackQueries.getDefault, {})).toBeNull();
-			await requestClient.mutation(feedbackMutations.assignToEvent, { eventId, formId });
+			await requestClient.mutation(api.feedback.events.updateEventFeedbackSettings, {
+				eventId,
+				enabled: false,
+				formId,
+			});
 			expect(await backend.run((ctx) => ctx.db.get(eventId))).toMatchObject({
 				feedbackFormId: formId,
 			});
-			expect(await backend.run((ctx) => ctx.db.get(eventId))).not.toHaveProperty("feedbackEnabled");
-			await backend.run((ctx) => ctx.db.patch(eventId, { feedbackEnabled: false }));
-			await requestClient.mutation(feedbackMutations.assignToEvent, { eventId });
+			await requestClient.mutation(api.feedback.events.updateEventFeedbackSettings, {
+				eventId,
+				enabled: false,
+			});
 			expect(await backend.run((ctx) => ctx.db.get(eventId))).not.toHaveProperty("feedbackFormId");
 			expect((await backend.run((ctx) => ctx.db.get(eventId)))?.feedbackEnabled).toBe(false);
 		},
@@ -254,7 +263,11 @@ describe("feedback form management", () => {
 			"Unauthorized",
 		);
 		await expect(
-			requestClient.mutation(feedbackMutations.assignToEvent, { eventId, formId }),
+			requestClient.mutation(api.feedback.events.updateEventFeedbackSettings, {
+				eventId,
+				enabled: false,
+				formId,
+			}),
 		).rejects.toThrow("Unauthorized");
 		await expect(
 			requestClient.mutation(feedbackMutations.saveDraft, {
@@ -296,18 +309,28 @@ describe("feedback form management", () => {
 			superAdminClient.mutation(feedbackMutations.setDefault, { formId }),
 		).rejects.toThrow("finnes ikke");
 		await expect(
-			superAdminClient.mutation(feedbackMutations.assignToEvent, { eventId, formId }),
+			superAdminClient.mutation(api.feedback.events.updateEventFeedbackSettings, {
+				eventId,
+				enabled: false,
+				formId,
+			}),
 		).rejects.toThrow("finnes ikke");
 		await backend.run((ctx) => ctx.db.delete(eventId));
 		await expect(
-			superAdminClient.mutation(feedbackMutations.assignToEvent, { eventId }),
+			superAdminClient.mutation(api.feedback.events.updateEventFeedbackSettings, {
+				eventId,
+				enabled: false,
+			}),
 		).rejects.toThrow("finnes ikke");
 	});
 	it("preserves feedback configuration when normal event details are edited", async () => {
 		const { backend, superAdminClient, formId, eventId } = await setupFormManagement();
 		await superAdminClient.mutation(feedbackMutations.publish, { formId });
-		await superAdminClient.mutation(feedbackMutations.assignToEvent, { eventId, formId });
-		await backend.run((ctx) => ctx.db.patch(eventId, { feedbackEnabled: false }));
+		await superAdminClient.mutation(api.feedback.events.updateEventFeedbackSettings, {
+			eventId,
+			enabled: false,
+			formId,
+		});
 		const event = await backend.run((ctx) => ctx.db.get(eventId));
 		if (!event) throw new Error("Missing fixture");
 		const {

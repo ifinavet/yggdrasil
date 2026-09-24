@@ -24,6 +24,23 @@ export async function selectedVersion(ctx: QueryCtx, event: Doc<"events">) {
 	return formId ? getLatestPublishedVersion(ctx, formId) : null;
 }
 
+export async function latestCampaign(ctx: QueryCtx, eventId: Id<"events">) {
+	return await ctx.db
+		.query("feedbackCampaigns")
+		.withIndex("by_eventId", (index) => index.eq("eventId", eventId))
+		.order("desc")
+		.first();
+}
+
+export async function hasSentForms(ctx: QueryCtx, campaign: Doc<"feedbackCampaigns">) {
+	if (campaign.status === "open" || campaign.status === "closed") return true;
+	const invite = await ctx.db
+		.query("feedbackInvites")
+		.withIndex("by_campaignId", (index) => index.eq("campaignId", campaign._id))
+		.first();
+	return invite !== null;
+}
+
 async function canScheduleFeedback(
 	ctx: QueryCtx,
 	event: Doc<"events">,
@@ -68,13 +85,9 @@ export async function syncFeedbackCampaign(
 ): Promise<void> {
 	const event = await ctx.db.get(eventId);
 	if (!event) throw new ConvexError("Arrangementet finnes ikke.");
-	const existing = await ctx.db
-		.query("feedbackCampaigns")
-		.withIndex("by_eventId", (index) => index.eq("eventId", eventId))
-		.order("desc")
-		.first();
+	const existing = await latestCampaign(ctx, eventId);
 	if (event.feedbackEnabled !== true || !event.published || event.externalEvent) {
-		if (existing && (existing.status === "scheduled" || existing.status === "open"))
+		if (existing?.status === "scheduled" && !(await hasSentForms(ctx, existing)))
 			await finishCampaign(ctx, existing, "cancelled");
 		return;
 	}
@@ -84,7 +97,8 @@ export async function syncFeedbackCampaign(
 	if (existing?.status === "scheduled" && existing.opensAt === opensAt) return;
 	// Routine event edits must still save when feedback can no longer be scheduled.
 	if (!(await canScheduleFeedback(ctx, event, opensAt, requireSchedule))) {
-		if (existing?.status === "scheduled") await finishCampaign(ctx, existing, "cancelled");
+		if (existing?.status === "scheduled" && !(await hasSentForms(ctx, existing)))
+			await finishCampaign(ctx, existing, "cancelled");
 		return;
 	}
 	const generation = (existing?.generation ?? 0) + 1;
@@ -126,11 +140,20 @@ export const openCampaign = internalMutation({
 			return false;
 		}
 		const event = await ctx.db.get(campaign.eventId);
-		if (event?.feedbackEnabled !== true || !event.published || event.externalEvent) {
+		if (!event) {
 			await finishCampaign(ctx, campaign, "cancelled");
 			return false;
 		}
-		const version = await selectedVersion(ctx, event);
+		if (
+			!(await hasSentForms(ctx, campaign)) &&
+			(event.feedbackEnabled !== true || !event.published || event.externalEvent)
+		) {
+			await finishCampaign(ctx, campaign, "cancelled");
+			return false;
+		}
+		const version = campaign.formVersionId
+			? await ctx.db.get(campaign.formVersionId)
+			: await selectedVersion(ctx, event);
 		if (!version) {
 			await finishCampaign(ctx, campaign, "cancelled");
 			await ctx.db.patch(campaignId, {
@@ -174,7 +197,7 @@ export const inviteParticipants = internalMutation({
 		)
 			return null;
 		const event = await ctx.db.get(campaign.eventId);
-		if (event?.feedbackEnabled !== true || !event.published || event.externalEvent) return null;
+		if (!event) return null;
 		const registrations = await ctx.db
 			.query("registrations")
 			.withIndex("by_eventIdStatusAndRegistrationTime", (index) =>
@@ -208,11 +231,15 @@ export const inviteParticipants = internalMutation({
 				sent: false,
 				delivered: false,
 			});
-			const workflowId = await start(ctx, internal.feedback.delivery.workflows.invitationV1, {
-				inviteId,
-				generation,
-				opensAt: campaign.opensAt,
-			});
+			const workflowId = await start(
+				ctx,
+				internal.feedback.delivery.workflows.invitationV1,
+				{ inviteId, generation, opensAt: campaign.opensAt },
+				{
+					onComplete: internal.feedback.delivery.messages.onInvitationComplete,
+					context: { inviteId },
+				},
+			);
 			await ctx.db.patch(inviteId, { workflowId });
 		}
 		return registrations.isDone ? null : registrations.continueCursor;

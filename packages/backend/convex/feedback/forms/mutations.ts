@@ -1,8 +1,7 @@
 import { feedbackFormSchema } from "@workspace/shared/feedback";
 import { ConvexError, v } from "convex/values";
 import { mutation } from "../../_generated/server";
-import { internalRoles, requireRole, superAdminRoles } from "../../auth/accessRights";
-import { syncFeedbackCampaign } from "../delivery/campaigns";
+import { requireRole, superAdminRoles } from "../../auth/accessRights";
 import { feedbackField } from "../schema";
 import {
 	getFeedbackFormOrThrow,
@@ -60,21 +59,5 @@ export const setDefault = mutation({
 		if (!(await getLatestPublishedVersion(ctx, formId)))
 			throw new ConvexError("Publiser skjemaet før det settes som standard.");
 		await markFormAsDefault(ctx, formId);
-	},
-});
-
-/** Sets the form for future campaigns; published campaign snapshots are unchanged. */
-export const assignToEvent = mutation({
-	args: { eventId: v.id("events"), formId: v.optional(v.id("feedbackForms")) },
-	handler: async (ctx, { eventId, formId }) => {
-		await requireRole(ctx, internalRoles);
-		if (!(await ctx.db.get(eventId))) throw new ConvexError("Arrangementet finnes ikke.");
-		if (formId) {
-			await getFeedbackFormOrThrow(ctx, formId);
-			if (!(await getLatestPublishedVersion(ctx, formId)))
-				throw new ConvexError("Publiser skjemaet før det brukes på et arrangement.");
-		}
-		await ctx.db.patch(eventId, { feedbackFormId: formId });
-		await syncFeedbackCampaign(ctx, eventId);
 	},
 });
