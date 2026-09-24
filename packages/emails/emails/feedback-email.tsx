@@ -1,4 +1,5 @@
-import { Body, Button, Container, Head, Heading, Hr, Html, Link, Preview, Text } from "react-email";
+import { Body, Button, Container, Head, Heading, Hr, Html, Img, Link, Preview, Text } from "react-email";
+import { NAVET_LOGO_URL } from "../constants.js";
 
 export default function FeedbackEmail({
 	event,
@@ -19,7 +20,7 @@ export default function FeedbackEmail({
 				}}
 			>
 				<Container style={{ backgroundColor: "#ffffff", padding: "32px", maxWidth: "560px" }}>
-					<Text style={{ fontWeight: "bold" }}>IFI-Navet</Text>
+					<Img src={NAVET_LOGO_URL} alt="Navet" height="40" />
 					<Heading as="h1">Hva syntes du om {event}?</Heading>
 					<Text>
 						{reminder
@@ -37,7 +38,9 @@ export default function FeedbackEmail({
 					>
 						Gi tilbakemelding
 					</Button>
-					<Text>Lenken er personlig. Svarene dine er knyttet til deg og kan leses av Navet.</Text>
+					<Text>
+						Lenken er personlig. Det er obligatorisk å svare på tilbakemeldingsskjemaene våre.
+					</Text>
 					<Hr />
 					<Text>
 						Fungerer ikke knappen? <Link href={url}>Åpne tilbakemeldingsskjemaet her.</Link>

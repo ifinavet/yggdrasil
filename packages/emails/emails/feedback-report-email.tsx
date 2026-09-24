@@ -10,7 +10,7 @@ import {
 	Section,
 	Text,
 } from "react-email";
-import { BRAND_PRIMARY_COLOR } from "../constants.js";
+import { BRAND_PRIMARY_COLOR, NAVET_LOGO_URL } from "../constants.js";
 
 export default function FeedbackReportEmail({
 	eventDate,
@@ -69,13 +69,12 @@ export default function FeedbackReportEmail({
 						<Text
 							style={{ color: "#6b6f7c", fontSize: "13px", lineHeight: "1.6", marginTop: "24px" }}
 						>
-							Lenken gir tilgang til rapporten. Del den bare med personer som skal ha tilgang.
+							Lenken gir tilgang til rapporten.
 						</Text>
-						<Text style={{ color: "#6b6f7c", fontSize: "15px", marginTop: "26px" }}>
+						<Text style={{ color: "#6b6f7c", fontSize: "15px", margin: "26px 0 10px" }}>
 							Vennlig hilsen
-							<br />
-							Navet
 						</Text>
+						<Img src={NAVET_LOGO_URL} alt="Navet" height="32" />
 					</Section>
 				</Container>
 			</Body>
