@@ -1,16 +1,5 @@
-export interface FeatureFlags {
-	huginFeedback: {
-		uiEnabled: boolean;
-		emailsEnabled: boolean;
-		reportsEnabled: boolean;
-		reportEmailsEnabled: boolean;
-	};
-}
-
-export type BrowserOptIn = "huginFeedbackPreview" | "huginFeedbackTestSend";
-
 // Central rollout registry shared by apps and backend. Changes take effect after deployment.
-export const featureFlags: FeatureFlags = {
+export const featureFlags = {
 	huginFeedback: {
 		// Makes the Bifrost UI visible without the localStorage preview opt-in.
 		uiEnabled: false,
@@ -23,7 +12,9 @@ export const featureFlags: FeatureFlags = {
 	},
 };
 
-export const browserOptInKeys: Record<BrowserOptIn, string> = {
+export const browserOptInKeys = {
 	huginFeedbackPreview: "hugin-feedback-preview",
 	huginFeedbackTestSend: "hugin-feedback-testsend",
-};
+} as const;
+
+export type BrowserOptIn = keyof typeof browserOptInKeys;
