@@ -14,7 +14,7 @@ import { feedbackResend } from "../delivery/messages";
 
 const huginBaseUrl = feedbackConfig.huginBaseUrl;
 
-async function fixture(email: string, role?: "super-admin" | "admin") {
+async function fixture(email: string, role?: "internal") {
 	const { t, companyId } = await setup();
 	const user = await insertUser(t, email);
 	if (role) await grantRole(t, user._id, role);
@@ -38,7 +38,7 @@ describe("feedback test send", () => {
 	});
 
 	it("sends the invitation, a reminder and the report email for a past event to the caller", async () => {
-		const f = await fixture("Admin@IFINAVET.no", "super-admin");
+		const f = await fixture("Admin@IFINAVET.no", "internal");
 		const sendEmail = vi.spyOn(feedbackResend, "sendEmail");
 
 		expect(await f.client.action(api.feedback.testSend.send.send, { eventId: f.eventId })).toBe(3);
@@ -63,7 +63,7 @@ describe("feedback test send", () => {
 	});
 
 	it("stores no links, deliveries or reports", async () => {
-		const f = await fixture("admin@ifinavet.no", "super-admin");
+		const f = await fixture("admin@ifinavet.no", "internal");
 		await f.client.action(api.feedback.testSend.send.send, { eventId: f.eventId });
 
 		const stored = await f.t.run(async (ctx) => ({
@@ -74,8 +74,8 @@ describe("feedback test send", () => {
 		expect(stored).toEqual({ tokens: [], deliveries: [], reports: [] });
 	});
 
-	it("refuses callers who are not super-admins", async () => {
-		const f = await fixture("admin@ifinavet.no", "admin");
+	it("refuses callers without an internal role", async () => {
+		const f = await fixture("admin@ifinavet.no");
 		const sendEmail = vi.spyOn(feedbackResend, "sendEmail");
 
 		expect(
@@ -86,8 +86,8 @@ describe("feedback test send", () => {
 		expect(sendEmail).not.toHaveBeenCalled();
 	});
 
-	it("refuses super-admins outside the ifinavet.no domain", async () => {
-		const f = await fixture("admin@ifinavet.no.example.test", "super-admin");
+	it("refuses internal users outside the ifinavet.no domain", async () => {
+		const f = await fixture("admin@ifinavet.no.example.test", "internal");
 		const sendEmail = vi.spyOn(feedbackResend, "sendEmail");
 
 		expect(
