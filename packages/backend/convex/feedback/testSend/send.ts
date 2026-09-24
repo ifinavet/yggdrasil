@@ -21,7 +21,7 @@ export const send = action({
 		const [invitation, reminder, report] = await Promise.all([
 			feedbackEmailContent(email, 0),
 			feedbackEmailContent(email, 3),
-			reportEmailContent(email.title, eventStart),
+			reportEmailContent({ eventTitle: email.title, eventStart, signature: email.signature }),
 		]);
 		await ctx.runMutation(internal.feedback.testSend.report.storeReportLink, {
 			eventId,

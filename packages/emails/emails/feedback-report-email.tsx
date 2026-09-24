@@ -6,6 +6,7 @@ import {
 	Heading,
 	Html,
 	Img,
+	Link,
 	Preview,
 	Section,
 	Text,
@@ -15,8 +16,8 @@ import { BRAND_PRIMARY_COLOR, NAVET_LOGO_URL } from "../constants.js";
 export default function FeedbackReportEmail({
 	eventDate,
 	url,
-	logoUrl,
-}: Readonly<{ eventDate: string; url: string; logoUrl: string }>) {
+	signature,
+}: Readonly<{ eventDate: string; url: string; signature: { name: string; email: string } }>) {
 	return (
 		<Html lang="nb">
 			<Head />
@@ -39,11 +40,11 @@ export default function FeedbackReportEmail({
 					}}
 				>
 					<Section style={{ backgroundColor: "#ffffff", padding: "24px 34px" }}>
-						<Img src={logoUrl} alt="Navet" height="34" style={{ width: "auto" }} />
+						<Img src={NAVET_LOGO_URL} alt="Navet" height="34" style={{ width: "auto" }} />
 					</Section>
 					<Section style={{ padding: "34px" }}>
 						<Heading as="h1" style={{ fontSize: "26px", lineHeight: "1.3", margin: "0 0 18px" }}>
-							Takk for besøket!
+							Takk for denne gang!
 						</Heading>
 						<Text style={{ fontSize: "16px", lineHeight: "1.7" }}>
 							Rapporten fra bedriftspresentasjonen deres {eventDate} er klar. Her finner dere
@@ -61,13 +62,13 @@ export default function FeedbackReportEmail({
 						>
 							Se rapporten
 						</Button>
-						<Text
-							style={{ color: "#6b6f7c", fontSize: "13px", lineHeight: "1.6", marginTop: "24px" }}
-						>
-							Lenken gir tilgang til rapporten.
-						</Text>
 						<Text style={{ color: "#6b6f7c", fontSize: "15px", margin: "26px 0 10px" }}>
 							Vennlig hilsen
+						</Text>
+						<Text style={{ fontSize: "15px", margin: "0 0 16px" }}>
+							{signature.name}
+							<br />
+							<Link href={`mailto:${signature.email}`}>{signature.email}</Link>
 						</Text>
 						<Img src={NAVET_LOGO_URL} alt="Navet" height="32" />
 					</Section>
