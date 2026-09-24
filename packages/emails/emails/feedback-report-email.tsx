@@ -38,13 +38,8 @@ export default function FeedbackReportEmail({
 						overflow: "hidden",
 					}}
 				>
-					<Section style={{ backgroundColor: BRAND_PRIMARY_COLOR, padding: "24px 34px" }}>
-						<Img
-							src={logoUrl}
-							alt="Navet"
-							height="34"
-							style={{ width: "auto", filter: "brightness(0) invert(1)" }}
-						/>
+					<Section style={{ backgroundColor: "#ffffff", padding: "24px 34px" }}>
+						<Img src={logoUrl} alt="Navet" height="34" style={{ width: "auto" }} />
 					</Section>
 					<Section style={{ padding: "34px" }}>
 						<Heading as="h1" style={{ fontSize: "26px", lineHeight: "1.3", margin: "0 0 18px" }}>
