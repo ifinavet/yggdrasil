@@ -1,6 +1,7 @@
 "use client";
 
 import { api } from "@workspace/backend/convex/api";
+import { MIDGARD_URL } from "@workspace/shared/constants";
 import { Button } from "@workspace/ui/components/button";
 import { useAction } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
@@ -87,7 +88,7 @@ function SubmissionReceipt() {
 		const countdown = window.setInterval(() => {
 			setSecondsRemaining(Math.max(0, Math.ceil((redirectAt - Date.now()) / 1000)));
 		}, 1000);
-		const redirect = window.setTimeout(() => window.location.replace("https://ifinavet.no"), 5000);
+		const redirect = window.setTimeout(() => window.location.replace(MIDGARD_URL), 5000);
 		return () => {
 			window.clearInterval(countdown);
 			window.clearTimeout(redirect);

@@ -1,7 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import { internalQuery } from "../../_generated/server";
 import { internalRoles, requireRole } from "../../auth/accessRights";
-import { requirePreviewForm } from "./report";
+import { feedbackEmailContext } from "../delivery/emailContext";
 
 const testSendDomain = "@ifinavet.no";
 
@@ -11,7 +11,15 @@ export const recipient = internalQuery({
 		const user = await requireRole(ctx, internalRoles);
 		if (!user.email.toLowerCase().endsWith(testSendDomain))
 			throw new ConvexError(`Testutsending krever en ${testSendDomain}-adresse.`);
-		const { event } = await requirePreviewForm(ctx, eventId);
-		return { to: user.email, title: event.title, eventStart: event.eventStart };
+		const event = await ctx.db.get(eventId);
+		if (!event) throw new ConvexError("Fant ikke arrangementet.");
+		const email = await feedbackEmailContext(ctx, event);
+		if (!email) throw new ConvexError("Fant ikke bedriften.");
+		return {
+			userId: user._id,
+			to: user.email,
+			email,
+			eventStart: event.eventStart,
+		};
 	},
 });

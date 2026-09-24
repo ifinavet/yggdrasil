@@ -1,10 +1,31 @@
-import { Body, Button, Container, Head, Heading, Hr, Html, Link, Preview, Text } from "react-email";
+import { MIDGARD_URL } from "@workspace/shared/constants/urls";
+import {
+	Body,
+	Button,
+	Container,
+	Head,
+	Heading,
+	Html,
+	Img,
+	Link,
+	Preview,
+	Text,
+} from "react-email";
+import { NAVET_LOGO_URL } from "../constants.js";
+
+const CONTACT_URL = `${MIDGARD_URL}/contact`;
 
 export default function FeedbackEmail({
-	event,
+	companyName,
+	signature,
 	url,
 	reminder,
-}: Readonly<{ event: string; url: string; reminder: boolean }>) {
+}: Readonly<{
+	companyName: string;
+	signature: { name: string; email: string };
+	url: string;
+	reminder: boolean;
+}>) {
 	return (
 		<Html lang="no">
 			<Head />
@@ -19,12 +40,12 @@ export default function FeedbackEmail({
 				}}
 			>
 				<Container style={{ backgroundColor: "#ffffff", padding: "32px", maxWidth: "560px" }}>
-					<Text style={{ fontWeight: "bold" }}>IFI-Navet</Text>
-					<Heading as="h1">Hva syntes du om {event}?</Heading>
+					<Img src={NAVET_LOGO_URL} alt="Navet" height="40" />
+					<Text>Hei,</Text>
+					<Text>{`Takk for deltakelse på bedriftspresentasjonen med ${companyName}!`}</Text>
 					<Text>
-						{reminder
-							? "Vi vil gjerne høre hva du syntes. Tilbakemeldingen din hjelper oss å lage bedre arrangementer."
-							: "Takk for at du deltok! Fortell oss hva som fungerte bra, og hva vi kan gjøre bedre."}
+						For å forbedre bedriftspresentasjonene må du fylle ut et obligatorisk
+						tilbakemeldingsskjema
 					</Text>
 					<Button
 						href={url}
@@ -37,15 +58,26 @@ export default function FeedbackEmail({
 					>
 						Gi tilbakemelding
 					</Button>
-					<Text>Lenken er personlig. Svarene dine er knyttet til deg og kan leses av Navet.</Text>
-					<Hr />
 					<Text>
-						Fungerer ikke knappen? <Link href={url}>Åpne tilbakemeldingsskjemaet her.</Link>
+						Etter at du har svart på tilbakemeldingsskjemaet er du med på trekningen av en premie
+						med verdi på <strong>2000 kr!</strong> Vi trekker den heldige vinneren etter den siste
+						bedriftspresentasjonen for det semesteret.
 					</Text>
+					<Text>En siste takk til deg for at du deltar på Navet sine arrangementer!</Text>
+					<Heading as="h2" style={{ fontSize: "18px" }}>
+						Opplevd noe ugreit?
+					</Heading>
 					<Text>
-						Har du spørsmål, kan du svare på denne e-posten eller kontakte{" "}
-						<Link href="mailto:arrangement@ifinavet.no">arrangement@ifinavet.no</Link>.
+						Har du andre tilbakemeldinger til Navet, eller opplevd noe ugreit oppfordrer vi deg til
+						å gi oss tilbakemelding her: <Link href={CONTACT_URL}>{CONTACT_URL}</Link>
 					</Text>
+					<Text style={{ margin: "32px 0 0" }}>Med vennlig hilsen,</Text>
+					<Text style={{ margin: "16px 0 0" }}>
+						{signature.name}
+						<br />
+						<Link href={`mailto:${signature.email}`}>{signature.email}</Link>
+					</Text>
+					<Img src={NAVET_LOGO_URL} alt="Navet" height="32" style={{ marginTop: "16px" }} />
 				</Container>
 			</Body>
 		</Html>

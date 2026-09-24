@@ -1,4 +1,5 @@
 import type { EmailEvent, EmailId } from "@convex-dev/resend";
+import { HUGIN_LOCAL_URL, HUGIN_URL } from "@workspace/shared/constants";
 import { featureFlags } from "@workspace/shared/feature-flags";
 import { feedbackOpensAt, feedbackRoundAt } from "@workspace/shared/feedback/time";
 import { Webhook } from "svix";
@@ -22,7 +23,7 @@ const messages = internal.feedback.delivery.messages;
 const send = internal.feedback.delivery.mail.sendFeedbackEmail;
 const opensAt = Date.UTC(2026, 8, 23, 6);
 const token = "a".repeat(43);
-const url = `http://localhost:3003/feedback#token=${token}`;
+const url = `${HUGIN_LOCAL_URL}/feedback#token=${token}`;
 
 async function fixture() {
 	const { t, companyId } = await setup();
@@ -126,6 +127,7 @@ describe("feedback delivery", () => {
 		if (!capture) throw new Error("Expected captured email");
 		expect(capture.subject).toBe("Tilbakemelding: Testarrangement");
 		expect(capture.html).toContain("Gi tilbakemelding");
+		expect(capture.html).toContain("bedriftspresentasjonen med Testbedrift!");
 		const link = new URL(capture.url);
 		expect(link.pathname).toBe("/feedback");
 		expect(link.search).toBe("");
@@ -146,6 +148,37 @@ describe("feedback delivery", () => {
 		await t.action(send, args);
 		expect(await t.mutation(messages.enqueueEmail, email)).toBeNull();
 		expect(await t.run((ctx) => ctx.db.query("feedbackDeliveries").collect())).toEqual([]);
+	});
+	it("signs with Navet's arrangement address when the event has no lead organizer", async () => {
+		const { t, args, eventId } = await fixture();
+		const helper = await insertUser(t, "helper@ifinavet.no", { firstName: "Mia" });
+		await t.run((ctx) =>
+			ctx.db.insert("eventOrganizers", { eventId, userId: helper._id, role: "medhjelper" }),
+		);
+		expect(await t.query(messages.prepareEmail, { ...args, now: opensAt })).toMatchObject({
+			companyName: "Testbedrift",
+			signature: { name: "Navet", email: "arrangement@ifinavet.no" },
+		});
+	});
+	it("signs with the lead organizer's name and email", async () => {
+		const { t, args, eventId } = await fixture();
+		const lead = await insertUser(t, "ola.nordmann@ifinavet.no", {
+			firstName: "Ola",
+			lastName: "Nordmann",
+		});
+		await insertOrganizer(t, eventId, lead._id);
+		await t.action(send, args);
+		const [capture] = await t.run((ctx) => ctx.db.query("feedbackLocalEmails").collect());
+		expect(capture?.html).toContain("Ola Nordmann");
+		expect(capture?.html).toContain("mailto:ola.nordmann@ifinavet.no");
+	});
+	it("does not prepare mail once the hosting company is deleted", async () => {
+		const { t, args, eventId } = await fixture();
+		await t.run(async (ctx) => {
+			const event = await ctx.db.get(eventId);
+			if (event) await ctx.db.delete(event.hostingCompany);
+		});
+		expect(await t.query(messages.prepareEmail, { ...args, now: opensAt })).toBeNull();
 	});
 	it("rechecks flags and answers after rendering, before enqueue", async () => {
 		const { t, args, email, eventId, inviteId } = await fixture();
@@ -260,7 +293,11 @@ describe("feedback delivery", () => {
 		}
 		const captures = await t.run((ctx) => ctx.db.query("feedbackLocalEmails").collect());
 		expect(captures).toHaveLength(3);
-		expect(captures[1]?.subject).toContain("Påminnelse");
+		expect(captures.map(({ subject }) => subject.split(":")[0])).toEqual([
+			"Tilbakemelding",
+			"1. påminnelse",
+			"2. påminnelse",
+		]);
 		const firstToken =
 			new URLSearchParams(new URL(captures[0]?.url ?? "").hash.slice(1)).get("token") ?? "";
 		expect(
@@ -282,7 +319,7 @@ describe("feedback delivery", () => {
 		const emailId = deliveries[0]?.emailId as EmailId;
 		const email = await t.run((ctx) => feedbackResend.get(ctx, emailId));
 		expect(email).toMatchObject({ status: "waiting" });
-		expect(email?.html).toContain("https://hugin.ifinavet.no/feedback#token=");
+		expect(email?.html).toContain(`${HUGIN_URL}/feedback#token=`);
 	});
 	it("queues through the real Resend component atomically and cancels waiting mail", async () => {
 		const { t, email, inviteId, campaignId } = await fixture();

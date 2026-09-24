@@ -1,4 +1,5 @@
 import type { SendEmailOptions } from "@convex-dev/resend";
+import { HUGIN_URL } from "@workspace/shared/constants";
 import { featureFlags } from "@workspace/shared/feature-flags";
 import type { ReportTextAnswer } from "@workspace/shared/feedback/report";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -16,11 +17,9 @@ import {
 import { api, internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import { hashLinkToken } from "../../lib/tokens";
-import { feedbackConfig } from "../constants";
 import { defaultFeedbackFields } from "../defaultFields";
 import { feedbackResend } from "../delivery/messages";
 
-const huginBaseUrl = feedbackConfig.huginBaseUrl;
 const reportsEnabled = featureFlags.huginFeedback.reportsEnabled;
 const paginationOpts = { cursor: null, numItems: 100 };
 const companyToken = "c".repeat(43);
@@ -112,14 +111,12 @@ const withoutIds = (answers: ReportTextAnswer[]) => answers.map(({ id: _id, ...a
 describe("feedback test send", () => {
 	beforeEach(() => {
 		vi.stubEnv("APP_ENV", "test");
-		feedbackConfig.huginBaseUrl = "https://hugin.example.test";
 		feedbackResend.config.apiKey = "re_test";
 	});
 	afterEach(() => {
 		vi.unstubAllEnvs();
 		vi.restoreAllMocks();
 		vi.useRealTimers();
-		feedbackConfig.huginBaseUrl = huginBaseUrl;
 		featureFlags.huginFeedback.reportsEnabled = reportsEnabled;
 	});
 
@@ -134,7 +131,7 @@ describe("feedback test send", () => {
 		);
 		expect(sent.map(({ to, subject }) => ({ to, subject }))).toEqual([
 			{ to: "Admin@IFINAVET.no", subject: "Tilbakemelding: Bedpres med Testbedrift" },
-			{ to: "Admin@IFINAVET.no", subject: "Påminnelse: Bedpres med Testbedrift" },
+			{ to: "Admin@IFINAVET.no", subject: "1. påminnelse: Bedpres med Testbedrift" },
 			{ to: "Admin@IFINAVET.no", subject: "Rapport fra Bedpres med Testbedrift" },
 		]);
 		for (const email of sent) {
@@ -143,8 +140,9 @@ describe("feedback test send", () => {
 				replyTo: ["arrangement@ifinavet.no"],
 			});
 		}
-		expect(sent[0]?.html).toContain("https://hugin.example.test/feedback#token=");
-		expect(sent[2]?.html).toContain("https://hugin.example.test/report#token=");
+		expect(sent[0]?.html).toContain(`${HUGIN_URL}/feedback#token=`);
+		expect(sent[0]?.html).toContain("bedriftspresentasjonen med Testbedrift!");
+		expect(sent[2]?.html).toContain(`${HUGIN_URL}/report#token=`);
 		expect(sent[2]?.html).toContain("14. mars");
 	});
 
@@ -217,16 +215,64 @@ describe("feedback test send", () => {
 		expect(stored.testLinks).toHaveLength(1);
 	});
 
-	it("refuses to send when no feedback form is published", async () => {
+	it("creates and publishes the default form once when none exists", async () => {
 		const f = await fixture("admin@ifinavet.no", "internal", { publishForm: false });
+		const sent = await sendAndCollect(f);
+		await f.client.action(api.feedback.testSend.send.send, { eventId: f.eventId });
+
+		const preview = await f.t.action(api.feedback.reports.public.resolveReport, {
+			token: reportTokenFrom(sent[2]?.html),
+			paginationOpts,
+		});
+		const forms = await f.t.run((ctx) => ctx.db.query("feedbackForms").collect());
+
+		expect(sent).toHaveLength(3);
+		expect(forms).toMatchObject([{ name: "Standardskjema", isDefault: true }]);
+		expect(preview?.report.questions.map(({ key }) => key)).toEqual(
+			defaultFeedbackFields.map(({ key }) => key),
+		);
+	});
+
+	it("refuses to send for an event that does not exist", async () => {
+		const f = await fixture("admin@ifinavet.no", "internal");
+		await f.t.run((ctx) => ctx.db.delete(f.eventId));
 		const sendEmail = vi.spyOn(feedbackResend, "sendEmail");
 
 		expect(
 			await refusalMessageFrom(
 				f.client.action(api.feedback.testSend.send.send, { eventId: f.eventId }),
 			),
-		).toBe("Publiser et standardskjema før du sender test.");
+		).toBe("Fant ikke arrangementet.");
 		expect(sendEmail).not.toHaveBeenCalled();
+	});
+
+	it("refuses to send for an event whose company does not exist", async () => {
+		const f = await fixture("admin@ifinavet.no", "internal");
+		await f.t.run(async (ctx) => {
+			const event = await ctx.db.get(f.eventId);
+			if (event) await ctx.db.delete(event.hostingCompany);
+		});
+		const sendEmail = vi.spyOn(feedbackResend, "sendEmail");
+
+		expect(
+			await refusalMessageFrom(
+				f.client.action(api.feedback.testSend.send.send, { eventId: f.eventId }),
+			),
+		).toBe("Fant ikke bedriften.");
+		expect(sendEmail).not.toHaveBeenCalled();
+	});
+
+	it("opens nothing through the test link once the event is deleted", async () => {
+		const f = await fixture("admin@ifinavet.no", "internal");
+		const sent = await sendAndCollect(f);
+		await f.t.run((ctx) => ctx.db.delete(f.eventId));
+
+		expect(
+			await f.t.action(api.feedback.reports.public.resolveReport, {
+				token: reportTokenFrom(sent[2]?.html),
+				paginationOpts,
+			}),
+		).toBeNull();
 	});
 
 	it("refuses callers without an internal role", async () => {

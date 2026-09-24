@@ -4,7 +4,12 @@ import { mutation } from "../../_generated/server";
 import { internalRoles, requireRole, superAdminRoles } from "../../auth/accessRights";
 import { syncFeedbackCampaign } from "../delivery/campaigns";
 import { feedbackField } from "../schema";
-import { getFeedbackFormOrThrow, getLatestPublishedVersion } from "./helpers";
+import {
+	getFeedbackFormOrThrow,
+	getLatestPublishedVersion,
+	insertFormVersion,
+	markFormAsDefault,
+} from "./helpers";
 
 export const saveDraft = mutation({
 	args: {
@@ -37,17 +42,11 @@ export const publish = mutation({
 			fields: feedbackForm.draftFields,
 		});
 		if (!validationResult.success) throw new ConvexError("Lagre et gyldig utkast før publisering.");
-		const versionId = await ctx.db.insert("formVersions", {
-			formDefinitionId: formId,
-			name: validationResult.data.name,
-			publishedAt: Date.now(),
+		const versionId = await insertFormVersion(ctx, {
+			formId,
+			...validationResult.data,
 			createdBy: publisher._id,
 		});
-		await Promise.all(
-			validationResult.data.fields.map((field, order) =>
-				ctx.db.insert("formFields", { ...field, order, formVersionId: versionId }),
-			),
-		);
 		await ctx.db.patch(formId, { draftFields: undefined });
 		return versionId;
 	},
@@ -60,12 +59,7 @@ export const setDefault = mutation({
 		await getFeedbackFormOrThrow(ctx, formId);
 		if (!(await getLatestPublishedVersion(ctx, formId)))
 			throw new ConvexError("Publiser skjemaet før det settes som standard.");
-		const previousDefaultForm = await ctx.db
-			.query("feedbackForms")
-			.withIndex("by_isDefault", (index) => index.eq("isDefault", true))
-			.unique();
-		if (previousDefaultForm) await ctx.db.patch(previousDefaultForm._id, { isDefault: false });
-		await ctx.db.patch(formId, { isDefault: true });
+		await markFormAsDefault(ctx, formId);
 	},
 });
 

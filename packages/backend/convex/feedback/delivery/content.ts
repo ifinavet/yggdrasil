@@ -3,18 +3,19 @@
 import { render } from "@react-email/render";
 import FeedbackEmail from "@workspace/emails/feedback-email";
 import FeedbackReportEmail from "@workspace/emails/feedback-report-email";
+import { HUGIN_LOCAL_URL, HUGIN_URL } from "@workspace/shared/constants";
 import { formatFeedbackDate } from "@workspace/shared/feedback/time";
 import type { Infer } from "convex/values";
 import { isLocalDevelopment } from "../../auth/local";
 import { generateLinkToken } from "../../lib/tokens";
-import { feedbackConfig } from "../constants";
 import { reportEmailSubject } from "../reports/messages";
-import type { deliveryArgs } from "./messages";
+import type { FeedbackEmailContext } from "./emailContext";
+import { deliveryArgs } from "./messages";
 
 type FeedbackRound = Infer<typeof deliveryArgs.round>;
 
 function huginOrigin() {
-	return new URL(isLocalDevelopment() ? "http://localhost:3003" : feedbackConfig.huginBaseUrl);
+	return new URL(isLocalDevelopment() ? HUGIN_LOCAL_URL : HUGIN_URL);
 }
 
 function linkWithTokenOutsideHttpRequests(origin: URL, path: string) {
@@ -24,21 +25,24 @@ function linkWithTokenOutsideHttpRequests(origin: URL, path: string) {
 	return { token, url: url.toString() };
 }
 
-export async function feedbackEmailContent(title: string, round: FeedbackRound) {
+export async function feedbackEmailContent(
+	{ title, companyName, signature }: FeedbackEmailContext,
+	round: FeedbackRound,
+) {
 	const { token, url } = linkWithTokenOutsideHttpRequests(huginOrigin(), "/feedback");
-	const reminder = round !== 0;
+	const reminderNumber = deliveryArgs.round.members.findIndex(({ value }) => value === round);
+	const reminder = reminderNumber > 0;
+	const subjectPrefix = reminder ? `${reminderNumber}. påminnelse` : "Tilbakemelding";
 	return {
 		token,
 		url,
-		subject: `${reminder ? "Påminnelse" : "Tilbakemelding"}: ${title}`,
-		html: await render(FeedbackEmail({ event: title, url, reminder })),
+		subject: `${subjectPrefix}: ${title}`,
+		html: await render(FeedbackEmail({ companyName, signature, url, reminder })),
 	};
 }
 
 export async function reportEmailContent(eventTitle: string, eventStart: number) {
 	const origin = huginOrigin();
-	if (origin.protocol !== "https:" && !isLocalDevelopment())
-		throw new Error("feedbackConfig.huginBaseUrl must use HTTPS");
 	const { token, url } = linkWithTokenOutsideHttpRequests(origin, "/report");
 	return {
 		token,

@@ -11,3 +11,10 @@ export const featureFlags = {
 		reportEmailsEnabled: false,
 	},
 };
+
+export const browserOptInKeys = {
+	huginFeedbackPreview: "hugin-feedback-preview",
+	huginFeedbackTestSend: "hugin-feedback-testsend",
+} as const;
+
+export type BrowserOptIn = keyof typeof browserOptInKeys;

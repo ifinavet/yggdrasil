@@ -1,3 +1,4 @@
+import { MIDGARD_LOCAL_URL } from "@workspace/shared/constants";
 import type { Metadata } from "next";
 import "./globals.css";
 import { nbNO } from "@clerk/localizations";
@@ -12,9 +13,7 @@ import { Consent } from "@/components/common/consent";
 import Header from "@/components/common/header";
 import ConvexClientProvider from "@/providers/convex-clerk-provider";
 
-const defaultUrl = process.env.VERCEL_URL
-	? `https://${process.env.VERCEL_URL}`
-	: "http://localhost:3000";
+const defaultUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : MIDGARD_LOCAL_URL;
 
 export const metadata: Metadata = {
 	metadataBase: new URL(defaultUrl),
