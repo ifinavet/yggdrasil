@@ -28,7 +28,7 @@ export default function DegreeTables({ data, onExport }: Readonly<DegreeTablesPr
 					<TabsList>
 						{Object.keys(data).map((degree) => (
 							<TabsTrigger value={degree} key={degree}>
-								{degree}
+								{fromBase64(degree)}
 							</TabsTrigger>
 						))}
 					</TabsList>

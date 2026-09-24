@@ -17,7 +17,7 @@ export function downloadCSV(
 			const grades = subjects[subject];
 			for (const grade in grades) {
 				const count = grades[grade];
-				const row = `"${level}","${fromBase64(subject)}","${grade}","${count}"`;
+				const row = `"${fromBase64(level)}","${fromBase64(subject)}","${grade}","${count}"`;
 				rows.push(row);
 			}
 		}

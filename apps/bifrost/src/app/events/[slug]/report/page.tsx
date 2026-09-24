@@ -35,9 +35,9 @@ export default async function RapportPage({
 			return acc + sum;
 		}, 0);
 		return {
-			degree: degree.toLowerCase(),
+			degree: fromBase64(degree).toLowerCase(),
 			num,
-			fill: `var(--color-${degree.toLowerCase()})`,
+			fill: `var(--color-${fromBase64(degree).toLowerCase()})`,
 		};
 	});
 

@@ -7,7 +7,7 @@ export function feedbackReportCsv(report: FeedbackReport, answers: ReportTextAns
 	for (const [degree, programs] of Object.entries(report.registrants ?? {})) {
 		for (const [program, years] of Object.entries(programs)) {
 			for (const [year, count] of Object.entries(years)) {
-				rows.push([`Grad: ${degree}`, `${fromBase64(program)}, år ${year}`, count]);
+				rows.push([`Grad: ${fromBase64(degree)}`, `${fromBase64(program)}, år ${year}`, count]);
 			}
 		}
 	}

@@ -34,7 +34,8 @@ export async function getRegistrantStatistics(ctx: QueryCtx, eventId: Id<"events
 	} = {};
 
 	for (const info of studentsInfo) {
-		const { degree, program, aar } = info;
+		const { program, aar } = info;
+		const degree = toBase64(info.degree);
 		const programBase = toBase64(program);
 		if (!result[degree]) result[degree] = {};
 
