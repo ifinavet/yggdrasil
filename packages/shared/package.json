@@ -29,6 +29,7 @@
 		"./semester/application": "./semester/application.ts",
 		"./semester/labels": "./semester/labels.ts",
 		"./semester/prices": "./semester/prices.ts",
+		"./semester/team": "./semester/team.ts",
 		"./feedback/report": "./feedback/report.ts",
 		"./feedback/report-csv": "./feedback/report-csv.ts"
 	},
