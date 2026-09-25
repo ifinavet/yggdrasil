@@ -21,17 +21,12 @@ export function CompanyQuestions({ form }: Readonly<{ form: ApplicationFormApi }
 					const error = fieldErrorText(field);
 					const company = field.state.value;
 					return (
-						<ApplicationQuestion
-							name="company"
-							label={COPY.company.label}
-							hint={company ? undefined : COPY.company.hint}
-							error={error}
-						>
+						<ApplicationQuestion name="company" label={COPY.company.label} error={error}>
 							<CompanySearch
 								company={company}
 								onChange={field.handleChange}
 								invalid={Boolean(error)}
-								describedBy={answerAria("company", error, { hint: !company })["aria-describedby"]}
+								describedBy={answerAria("company", error)["aria-describedby"]}
 							/>
 						</ApplicationQuestion>
 					);
@@ -42,14 +37,9 @@ export function CompanyQuestions({ form }: Readonly<{ form: ApplicationFormApi }
 				{(field) => {
 					const error = fieldErrorText(field);
 					const contact = field.state.value;
-					const aria = answerAria("contact", error, { hint: true });
+					const aria = answerAria("contact", error);
 					return (
-						<ApplicationQuestion
-							name="contact"
-							label={COPY.contact.label}
-							hint={COPY.contact.hint}
-							error={error}
-						>
+						<ApplicationQuestion name="contact" label={COPY.contact.label} error={error}>
 							<div className="grid gap-3">
 								<FieldLabel htmlFor="contact-name" label={COPY.contact.name}>
 									<TextAnswer
@@ -70,7 +60,6 @@ export function CompanyQuestions({ form }: Readonly<{ form: ApplicationFormApi }
 										onValueChange={(email) => field.handleChange({ ...contact, email })}
 										invalid={Boolean(error)}
 										autoComplete="email"
-										placeholder={COPY.contact.emailPlaceholder}
 										{...aria}
 									/>
 								</FieldLabel>
@@ -83,7 +72,6 @@ export function CompanyQuestions({ form }: Readonly<{ form: ApplicationFormApi }
 										onValueChange={(phone) => field.handleChange({ ...contact, phone })}
 										invalid={Boolean(error)}
 										autoComplete="tel"
-										placeholder={COPY.contact.phonePlaceholder}
 										{...aria}
 									/>
 								</FieldLabel>

@@ -1,9 +1,13 @@
+import { EVENT_TYPE_PRICES, formatNok } from "@workspace/shared/semester/prices";
 import { cn } from "@workspace/ui/lib/utils";
+
+/** Promotion of an external event is not a semester event type, so its price lives here. */
+const EXTERNAL_EVENT_PRICE = 15_000;
 
 export default function OfferGrid({ className }: Readonly<{ className?: string }>) {
 	return (
 		<div className={cn(className, "grid grid-cols-1 gap-6 md:grid-cols-2")}>
-			<OfferCard title="Stor bedriftspresentasjon" cost="40.000">
+			<OfferCard title="Stor bedriftspresentasjon" cost={EVENT_TYPE_PRICES.large_presentation}>
 				<li>
 					En større bedriftspresentasjon holdes enten ved IFI eller i deres egne lokaler. Dere
 					velger ønsket antall studenter selv, uten begrensninger.
@@ -13,13 +17,19 @@ export default function OfferGrid({ className }: Readonly<{ className?: string }
 					presentasjon i 45-60 minutter, før vi går videre til mingling, mat og drikke.
 				</li>
 			</OfferCard>
-			<OfferCard title="Ordinær bedriftspresentasjon" cost="30.000">
+			<OfferCard
+				title="Ordinær bedriftspresentasjon"
+				cost={EVENT_TYPE_PRICES.standard_presentation}
+			>
 				<li>
 					Her gjelder samme vilkår som ved stor bedriftspresentasjon, men med en antallsbegrensing
 					på 40 studenter.
 				</li>
 			</OfferCard>
-			<OfferCard title="Bedriftspresentasjon med fokus på faglig innhold" cost="20.000">
+			<OfferCard
+				title="Bedriftspresentasjon med fokus på faglig innhold"
+				cost={EVENT_TYPE_PRICES.workshop}
+			>
 				<li>
 					Denne typen presentasjon har en satt begrensning på maks 10 minutter presentasjon,
 					etterfulgt av annet faglig innhold, eventuelt workshop.
@@ -31,7 +41,7 @@ export default function OfferGrid({ className }: Readonly<{ className?: string }
 					gjennomføre i søknaden deres. Maks 40 studenter.
 				</li>
 			</OfferCard>
-			<OfferCard title="Eksterne arrangementer" cost="15.000">
+			<OfferCard title="Eksterne arrangementer" cost={EXTERNAL_EVENT_PRICE}>
 				<li>
 					Eksterne arrangementer er aktiviteter gjennomført og organisert av bedriften uavhengig av
 					Navet. Promotering vil skje via ifinavet.no under fanen "Eksterne arrangementer" og på
@@ -66,14 +76,14 @@ function OfferCard({
 	children,
 }: Readonly<{
 	title: string;
-	cost: string;
+	cost?: number;
 	children: React.ReactNode;
 }>) {
 	return (
 		<div className="overflow-clip rounded-lg bg-white shadow-md dark:bg-zinc-800">
 			<div className="flex h-48 flex-col justify-between bg-primary p-8 text-primary-foreground">
 				<h3 className="max-w-3/4 font-semibold text-2xl">{title}</h3>
-				<p className="">Kostnad: {cost} NOK eks. mva.</p>
+				{cost !== undefined && <p>Kostnad: {formatNok(cost)} NOK eks. mva.</p>}
 			</div>
 			<div className="max-w-[80ch] p-6">
 				<ul className="my-6 ml-6 list-disc [&>li]:mt-2 [&>li]:leading-7">{children}</ul>

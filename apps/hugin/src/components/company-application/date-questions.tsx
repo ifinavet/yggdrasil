@@ -15,8 +15,7 @@ import type { ApplicationFormApi } from "./use-application-form";
 export function DateQuestions({
 	form,
 	dates,
-	semesterLabel,
-}: Readonly<{ form: ApplicationFormApi; dates: readonly string[]; semesterLabel: string }>) {
+}: Readonly<{ form: ApplicationFormApi; dates: readonly string[] }>) {
 	return (
 		<>
 			<FormSection>{COPY.sections.dates}</FormSection>
@@ -25,12 +24,7 @@ export function DateQuestions({
 				{(field) => {
 					const error = fieldErrorText(field);
 					return (
-						<ApplicationQuestion
-							name="availableDates"
-							label={COPY.dates.label}
-							hint={COPY.dates.hint}
-							error={error}
-						>
+						<ApplicationQuestion name="availableDates" label={COPY.dates.label} error={error}>
 							{dates.length === 0 ? (
 								<Note tone="warn">{COPY.dates.none}</Note>
 							) : (
@@ -38,12 +32,9 @@ export function DateQuestions({
 									dates={dates}
 									value={field.state.value}
 									onChange={field.handleChange}
-									semesterLabel={semesterLabel}
 									invalid={Boolean(error)}
 									labelledBy={questionIds("availableDates").promptId}
-									describedBy={
-										answerAria("availableDates", error, { hint: true })["aria-describedby"]
-									}
+									describedBy={answerAria("availableDates", error)["aria-describedby"]}
 								/>
 							)}
 						</ApplicationQuestion>
@@ -68,7 +59,6 @@ export function DateQuestions({
 								invalid={Boolean(error)}
 								maxLength={TEXT_LIMITS.datePreferences}
 								rows={2}
-								placeholder={COPY.datePreferences.placeholder}
 								className="min-h-[72px]"
 								{...answerAria("datePreferences", error)}
 							/>

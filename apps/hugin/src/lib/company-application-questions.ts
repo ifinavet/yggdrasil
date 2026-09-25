@@ -8,9 +8,9 @@ export const COMPANY_APPLICATION_COPY = {
 	title: "Søk om bedriftsarrangement",
 	lede: "Det tar rundt fem minutter. Det dere skriver lagres underveis, så dere kan komme tilbake senere.",
 	loading: "Laster søknadsskjemaet …",
-	deadline: (day: string) => `søknadsfrist ${day}`,
-	deadlinePassed: (day: string) => `søknadsfristen var ${day}`,
-	lateNotice: "Fristen har gått ut, men vi tar fortsatt imot søknader. Vi kan ikke love en dato.",
+	deadline: "Søknadsfrist",
+	deadlinePassed: "Søknadsfristen var",
+	lateNotice: "Vi tar fortsatt imot søknader, men kan ikke love en dato.",
 	sections: {
 		company: "Bedriften",
 		event: "Arrangementet",
@@ -24,8 +24,6 @@ export const COMPANY_APPLICATION_COPY = {
 	honeypot: "La dette feltet stå tomt",
 	company: {
 		label: "Hvilken bedrift gjelder det?",
-		hint: "Søk på navn eller organisasjonsnummer.",
-		placeholder: "Bedriftsnavn eller org.nr.",
 		searching: "Søker i Enhetsregisteret …",
 		tooShort: "Skriv minst to tegn.",
 		noHits: "Fant ingen bedrifter. Sjekk stavemåten, eller søk på organisasjonsnummer.",
@@ -44,39 +42,33 @@ export const COMPANY_APPLICATION_COPY = {
 	} satisfies Record<BlockedReason, string>,
 	contact: {
 		label: "Kontaktperson",
-		hint: "Tilbudet sendes til denne personen.",
 		name: "Fullt navn",
 		email: "E-post",
-		emailPlaceholder: "navn@bedrift.no",
 		phone: "Telefon",
-		phonePlaceholder: "+47 412 34 567",
 	},
 	eventType: {
 		label: "Hva slags arrangement?",
 		capped: (cap: number) => `Inntil ${cap} studenter`,
 		uncapped: "Over 40 studenter",
+		price: (amount: string) => `${amount} kr eks. mva.`,
 	},
 	students: {
 		label: "Hvor mange studenter ønsker dere?",
-		hint: "Et antall, eller et spenn.",
-		placeholder: "For eksempel 30 eller 20–40",
 		unreadable: "Skriv et antall, for eksempel 30 eller 20–40.",
-		capHint: (type: string, cap: number) => `${type} har plass til ${cap}.`,
 	},
 	description: {
 		label: "Beskriv arrangementet",
-		placeholder: "Hva skal skje, og hva får studentene ut av det?",
 	},
 	dates: {
 		label: "Hvilke datoer kan dere?",
-		hint: "Kryss av alle som passer. Vi fordeler datoene etter fristen.",
 		chosen: (chosen: number, total: number) => `${chosen} av ${total} valgt`,
 		week: (week: string) => `Uke ${week}`,
+		selectAll: "Velg alle",
+		clear: "Nullstill valg",
 		none: "Det er ingen åpne datoer i semesteret ennå. Skriv til oss, så finner vi en løsning.",
 	},
 	datePreferences: {
 		label: "Har dere ønsker om dato?",
-		placeholder: "For eksempel helst i februar, eller ikke i eksamensperioden",
 	},
 	venue: { label: "Hvor vil dere holde arrangementet?" },
 	food: {
@@ -89,15 +81,11 @@ export const COMPANY_APPLICATION_COPY = {
 	},
 	billing: {
 		label: "Hvordan vil dere få fakturaen?",
-		hint: "Fyll ut ett av feltene, eller begge.",
 		emailLabel: "E-post for faktura",
-		emailPlaceholder: "faktura@bedrift.no",
 		detailsLabel: "Annen fakturainformasjon",
-		detailsPlaceholder: "Referanse, fakturaadresse eller EHF-adresse",
 	},
 	additionalInfo: {
 		label: "Noe dere vil legge til?",
-		placeholder: "Målgruppe, forbehold, spørsmål",
 	},
 	consent: {
 		label: "Vi godtar at Navet lagrer opplysningene i søknaden.",

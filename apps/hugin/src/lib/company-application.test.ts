@@ -1,3 +1,4 @@
+import { EVENT_TYPE_PRICES, formatNok } from "@workspace/shared/semester/prices";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
 	type ApplicationDraft,
@@ -13,6 +14,7 @@ import {
 import {
 	billingLines,
 	compactDateList,
+	fullDate,
 	groupDatesByMonth,
 	placeName,
 } from "./company-application-format";
@@ -220,6 +222,21 @@ describe("company application dates", () => {
 			"28. jan, 2., 4. og 9. feb",
 		);
 		expect(compactDateList(["2027-01-28"])).toBe("28. jan");
+	});
+
+	it("writes the deadline with its year", () => {
+		expect(fullDate("2026-10-15")).toBe("15. oktober 2026");
+	});
+});
+
+describe("company application prices", () => {
+	it("writes prices the Norwegian way, with a space between thousands", () => {
+		expect(formatNok(30_000).replace(/\s/g, " ")).toBe("30 000");
+	});
+
+	it("has no price for a social event", () => {
+		expect(EVENT_TYPE_PRICES.social).toBeUndefined();
+		expect(EVENT_TYPE_PRICES.standard_presentation).toBe(30_000);
 	});
 });
 

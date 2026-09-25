@@ -1,7 +1,7 @@
 import { formatSemesterDay } from "@workspace/shared/semester/time";
 import { cn } from "@workspace/ui/lib/utils";
 import { useMemo } from "react";
-import { CheckMark, ERROR_BORDER } from "@/components/form-controls";
+import { CheckMark, ERROR_BORDER, FOCUS_RING, linkClass } from "@/components/form-controls";
 import { dateCellParts, groupDatesByMonth, isTuesdayDate } from "@/lib/company-application-format";
 import { COMPANY_APPLICATION_COPY as COPY } from "@/lib/company-application-questions";
 
@@ -53,7 +53,6 @@ export function DateGrid({
 	dates,
 	value,
 	onChange,
-	semesterLabel,
 	invalid,
 	labelledBy,
 	describedBy,
@@ -61,7 +60,6 @@ export function DateGrid({
 	dates: readonly string[];
 	value: readonly string[];
 	onChange: (dates: string[]) => void;
-	semesterLabel: string;
 	invalid: boolean;
 	labelledBy: string;
 	describedBy?: string;
@@ -82,8 +80,15 @@ export function DateGrid({
 			aria-describedby={describedBy}
 			className="m-0 min-w-0 border-0 p-0"
 		>
-			<div className="-mt-0.5 flex justify-between text-[13px] tabular-nums">
-				<span className="text-muted-foreground">{semesterLabel}</span>
+			<div className="-mt-2 flex items-center justify-between gap-3 text-[13px] tabular-nums">
+				<div className="-ml-2 flex">
+					<DateAction disabled={value.length === dates.length} onClick={() => onChange([...dates])}>
+						{COPY.dates.selectAll}
+					</DateAction>
+					<DateAction disabled={value.length === 0} onClick={() => onChange([])}>
+						{COPY.dates.clear}
+					</DateAction>
+				</div>
 				<span aria-live="polite">
 					<b className="text-primary dark:text-primary-foreground">
 						{COPY.dates.chosen(value.length, dates.length)}
@@ -120,5 +125,31 @@ export function DateGrid({
 				</div>
 			))}
 		</fieldset>
+	);
+}
+
+/**
+ * «Velg alle» and «Nullstill valg»: small text buttons above the dates. One that would change
+ * nothing is `aria-disabled` rather than `disabled`, so focus stays on it after a press.
+ */
+function DateAction({
+	disabled,
+	onClick,
+	children,
+}: Readonly<{ disabled: boolean; onClick: () => void; children: string }>) {
+	return (
+		<button
+			type="button"
+			aria-disabled={disabled || undefined}
+			onClick={disabled ? undefined : onClick}
+			className={cn(
+				linkClass,
+				FOCUS_RING,
+				"min-h-11 whitespace-nowrap rounded-lg px-2 font-semibold text-[13px]",
+				disabled && "cursor-default text-muted-foreground no-underline dark:text-muted-foreground",
+			)}
+		>
+			{children}
+		</button>
 	);
 }

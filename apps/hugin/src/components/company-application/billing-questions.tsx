@@ -26,14 +26,9 @@ export function BillingQuestions({
 				{(field) => {
 					const error = fieldErrorText(field);
 					const billing = field.state.value;
-					const aria = answerAria("billing", error, { hint: true });
+					const aria = answerAria("billing", error);
 					return (
-						<ApplicationQuestion
-							name="billing"
-							label={COPY.billing.label}
-							hint={COPY.billing.hint}
-							error={error}
-						>
+						<ApplicationQuestion name="billing" label={COPY.billing.label} error={error}>
 							<div className="grid gap-3">
 								<FieldLabel htmlFor="billing-email" label={COPY.billing.emailLabel}>
 									<TextAnswer
@@ -44,7 +39,6 @@ export function BillingQuestions({
 										onValueChange={(email) => field.handleChange({ ...billing, email })}
 										invalid={Boolean(error)}
 										autoComplete="email"
-										placeholder={COPY.billing.emailPlaceholder}
 										{...aria}
 									/>
 								</FieldLabel>
@@ -56,7 +50,6 @@ export function BillingQuestions({
 										invalid={Boolean(error)}
 										maxLength={TEXT_LIMITS.billingDetails}
 										rows={2}
-										placeholder={COPY.billing.detailsPlaceholder}
 										className="min-h-[72px]"
 										{...aria}
 									/>
@@ -84,7 +77,6 @@ export function BillingQuestions({
 								invalid={Boolean(error)}
 								maxLength={TEXT_LIMITS.additionalInfo}
 								rows={3}
-								placeholder={COPY.additionalInfo.placeholder}
 								{...answerAria("additionalInfo", error)}
 							/>
 						</ApplicationQuestion>

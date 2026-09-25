@@ -1,6 +1,6 @@
-import { useStore } from "@tanstack/react-form";
 import { STUDENT_CAP } from "@workspace/shared/semester/application";
 import { EVENT_TYPE_LABELS, EVENT_TYPES } from "@workspace/shared/semester/labels";
+import { EVENT_TYPE_PRICES, formatNok } from "@workspace/shared/semester/prices";
 import { CharacterCount } from "@/components/character-count";
 import { fieldErrorText, questionIds } from "@/components/input-cards/question-block";
 import { TEXT_LIMITS } from "@/lib/company-application";
@@ -17,18 +17,17 @@ import type { ApplicationFormApi } from "./use-application-form";
 
 const EVENT_TYPE_OPTIONS: ChoiceOption<(typeof EVENT_TYPES)[number]>[] = EVENT_TYPES.map((type) => {
 	const cap = STUDENT_CAP[type];
+	const price = EVENT_TYPE_PRICES[type];
+	const size = cap === null ? COPY.eventType.uncapped : COPY.eventType.capped(cap);
 	return {
 		value: type,
 		label: EVENT_TYPE_LABELS[type],
-		description: cap === null ? COPY.eventType.uncapped : COPY.eventType.capped(cap),
+		description: price === undefined ? size : `${size} · ${COPY.eventType.price(formatNok(price))}`,
 	};
 });
 
 /** «Arrangementet»: the event type, the number of students and the description. */
 export function EventQuestions({ form }: Readonly<{ form: ApplicationFormApi }>) {
-	const eventType = useStore(form.store, (state) => state.values.eventType);
-	const cap = eventType === "" ? null : STUDENT_CAP[eventType];
-
 	return (
 		<>
 			<FormSection>{COPY.sections.event}</FormSection>
@@ -59,7 +58,6 @@ export function EventQuestions({ form }: Readonly<{ form: ApplicationFormApi }>)
 						<ApplicationQuestion
 							name="students"
 							label={COPY.students.label}
-							hint={COPY.students.hint}
 							labelFor="students"
 							error={error}
 						>
@@ -68,14 +66,8 @@ export function EventQuestions({ form }: Readonly<{ form: ApplicationFormApi }>)
 								value={field.state.value}
 								onValueChange={field.handleChange}
 								invalid={Boolean(error)}
-								placeholder={COPY.students.placeholder}
-								{...answerAria("students", error, { hint: true })}
+								{...answerAria("students", error)}
 							/>
-							{eventType !== "" && cap !== null && !error && (
-								<p className="m-0 mt-2 text-[13px] text-muted-foreground">
-									{COPY.students.capHint(EVENT_TYPE_LABELS[eventType], cap)}
-								</p>
-							)}
 						</ApplicationQuestion>
 					);
 				}}
@@ -99,7 +91,6 @@ export function EventQuestions({ form }: Readonly<{ form: ApplicationFormApi }>)
 								invalid={Boolean(error)}
 								maxLength={TEXT_LIMITS.description}
 								rows={4}
-								placeholder={COPY.description.placeholder}
 								{...aria}
 								aria-describedby={[aria["aria-describedby"], "description-count"]
 									.filter(Boolean)

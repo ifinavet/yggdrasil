@@ -63,6 +63,11 @@ export function dayAndMonth(date: string): string {
 	return format(calendarDay(date), "d. MMMM", { locale: nb });
 }
 
+/** «15. oktober 2026», a date that stands on its own, like the deadline at the top of the form. */
+export function fullDate(date: string): string {
+	return format(calendarDay(date), "d. MMMM yyyy", { locale: nb });
+}
+
 /** «28. jan, 2., 4. og 9. feb», a short list of chosen days for the receipt. */
 export function compactDateList(dates: readonly string[]): string {
 	const sorted = [...dates].sort();

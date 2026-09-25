@@ -4,8 +4,10 @@ import { useStore } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
 import { semesterName } from "@workspace/shared/semester/labels";
 import { osloToday } from "@workspace/shared/semester/time";
+import { cn } from "@workspace/ui/lib/utils";
 import { useAction } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
+import { CalendarClock } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -19,7 +21,7 @@ import {
 	firstInvalidQuestion,
 	REQUIRED_QUESTIONS,
 } from "@/lib/company-application";
-import { dayAndMonth } from "@/lib/company-application-format";
+import { fullDate } from "@/lib/company-application-format";
 import { COMPANY_APPLICATION_COPY as COPY } from "@/lib/company-application-questions";
 import {
 	clearDraft,
@@ -56,7 +58,6 @@ export function ApplicationForm({ semester }: Readonly<{ semester: OpenSemester 
 	const sent = useRef(false);
 
 	const semesterLabel = semesterName(semester.term, semester.year);
-	const deadline = dayAndMonth(semester.applicationDeadline);
 	const late = osloToday(Date.now()) > semester.applicationDeadline;
 
 	const form = useApplicationForm({
@@ -125,18 +126,12 @@ export function ApplicationForm({ semester }: Readonly<{ semester: OpenSemester 
 	return (
 		<>
 			<div className="pt-1.5">
-				<h1 className="m-0 font-bold text-[21px] text-primary leading-[1.22] tracking-[-0.015em] dark:text-primary-foreground">
+				<p className="m-0 font-semibold text-[13.5px] text-muted-foreground">{semesterLabel}</p>
+				<h1 className="m-0 mt-0.5 font-bold text-[21px] text-primary leading-[1.22] tracking-[-0.015em] dark:text-primary-foreground">
 					{COPY.title}
 				</h1>
-				<p className="m-0 mt-[5px] text-[13.5px] text-muted-foreground tabular-nums">
-					{semesterLabel} · {late ? COPY.deadlinePassed(deadline) : COPY.deadline(deadline)}
-				</p>
-				{late && (
-					<Note tone="warn" className="mt-3.5">
-						{COPY.lateNotice}
-					</Note>
-				)}
-				<p className="m-0 mt-2.5 text-[14.5px] leading-normal">{COPY.lede}</p>
+				<Deadline date={semester.applicationDeadline} late={late} />
+				<p className="m-0 mt-3.5 text-[14.5px] leading-normal">{COPY.lede}</p>
 				{semester.infoText && (
 					<Note className="mt-3.5">
 						<span className="whitespace-pre-line">{semester.infoText}</span>
@@ -175,7 +170,7 @@ export function ApplicationForm({ semester }: Readonly<{ semester: OpenSemester 
 
 					<CompanyQuestions form={form} />
 					<EventQuestions form={form} />
-					<DateQuestions form={form} dates={semester.dates} semesterLabel={semesterLabel} />
+					<DateQuestions form={form} dates={semester.dates} />
 					<PracticalQuestions form={form} />
 					<BillingQuestions form={form} termsUrl={semester.termsUrl} />
 
@@ -206,5 +201,31 @@ export function ApplicationForm({ semester }: Readonly<{ semester: OpenSemester 
 				/>
 			</form>
 		</>
+	);
+}
+
+/** The application deadline, set apart under the heading. Once it has passed, it says so. */
+function Deadline({ date, late }: Readonly<{ date: string; late: boolean }>) {
+	return (
+		<div
+			className={cn(
+				"mt-3.5 flex gap-2.5 rounded-xl border px-[14px] py-3",
+				late
+					? "border-[color-mix(in_oklab,var(--warning)_45%,var(--border))] bg-[color-mix(in_oklab,var(--warning)_10%,var(--card))]"
+					: "border-border bg-card",
+			)}
+		>
+			<CalendarClock
+				aria-hidden
+				className="mt-0.5 size-[18px] flex-none text-primary dark:text-primary-foreground"
+			/>
+			<div className="min-w-0">
+				<p className="m-0 text-[15px] tabular-nums leading-[1.35]">
+					{late ? COPY.deadlinePassed : COPY.deadline}{" "}
+					<b className="font-bold text-primary dark:text-primary-foreground">{fullDate(date)}</b>
+				</p>
+				{late && <p className="m-0 mt-1 text-[13.5px] leading-[1.45]">{COPY.lateNotice}</p>}
+			</div>
+		</div>
 	);
 }

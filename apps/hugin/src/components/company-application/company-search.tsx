@@ -163,7 +163,6 @@ export function CompanySearch({
 					aria-describedby={describedBy}
 					aria-invalid={invalid || undefined}
 					enterKeyHint="search"
-					placeholder={COPY.company.placeholder}
 					icon={
 						search.status === "searching" ? (
 							<LoaderCircle
