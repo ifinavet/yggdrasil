@@ -17,6 +17,14 @@ export const EVENT_TYPE_LABELS: Record<EventType, string> = {
 	social: "Sosialt arrangement",
 };
 
+/** Short event type names for dense tables, where the full labels do not fit. */
+export const EVENT_TYPE_SHORT_LABELS: Record<EventType, string> = {
+	standard_presentation: "Ordinær",
+	large_presentation: "Stor",
+	workshop: "Faglig",
+	social: "Sosialt",
+};
+
 /** The start of an event's title, before the company name, e.g. «Workshop med Fjordkode». */
 export const EVENT_TITLE_PREFIX: Record<EventType, string> = {
 	standard_presentation: "Bedriftspresentasjon med",
