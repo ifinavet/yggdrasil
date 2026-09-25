@@ -43,7 +43,7 @@ export function EventsOverview({
 					value={search}
 					onChange={setSearch}
 					placeholder="Arrangement, bedrift eller person"
-					className="sm:w-80"
+					className="sm:w-96"
 				/>
 				<SelectSemester preloadedPossibleSemesters={preloadedPossibleSemesters} />
 				<SelectedEvents />
