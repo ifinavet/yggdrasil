@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { insertEvent, setup } from "../../test/fixtures";
 import { internal } from "../_generated/api";
 import { guessEventProductName } from "./migrations";
@@ -170,5 +170,39 @@ describe("backfillJobListingProducts", () => {
 
 		const listing = await t.run((ctx) => ctx.db.get(listingId));
 		expect(listing?.product).toBeUndefined();
+	});
+});
+
+describe("setup", () => {
+	it("seeds an empty table once and backfills events", async () => {
+		vi.useFakeTimers();
+		const { t, companyId } = await setup();
+		const eventId = await insertEvent(t, companyId, { participationLimit: 10 });
+
+		expect(await t.mutation(internal.products.migrations.setup, {})).toEqual(
+			SEED_PRODUCTS.map((product) => product.name),
+		);
+		await t.finishAllScheduledFunctions(vi.runAllTimers);
+
+		const event = await t.run((ctx) => ctx.db.get(eventId));
+		expect(event).toMatchObject({
+			product: { name: "Ordinær bedriftspresentasjon" },
+			productGuessed: true,
+		});
+		vi.useRealTimers();
+	});
+
+	it("does not seed again after products were renamed or archived", async () => {
+		const { t } = await setup();
+		await t.mutation(internal.products.migrations.setup, {});
+		await t.run(async (ctx) => {
+			for (const product of await ctx.db.query("products").collect()) {
+				await ctx.db.patch(product._id, { name: `${product.name} (gammel)`, active: false });
+			}
+		});
+
+		expect(await t.mutation(internal.products.migrations.setup, {})).toEqual([]);
+		const products = await t.run((ctx) => ctx.db.query("products").collect());
+		expect(products).toHaveLength(SEED_PRODUCTS.length);
 	});
 });

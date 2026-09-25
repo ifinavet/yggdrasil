@@ -1,10 +1,10 @@
 import { STUDENT_CAP } from "@workspace/shared/semester/application";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
-import type { MutationCtx } from "../_generated/server";
+import { internalMutation, type MutationCtx } from "../_generated/server";
 import { migrations } from "../migrations";
 import { snapshotOf } from "./sales";
-import { SEED_PRODUCT_NAMES } from "./seed";
+import { SEED_PRODUCT_NAMES, seedProductsIfEmpty } from "./seed";
 
 const REGULAR_EVENT_CAP = STUDENT_CAP.standard_presentation as number;
 
@@ -40,7 +40,17 @@ export const backfillJobListingProducts = migrations.define({
 	},
 });
 
-export const backfillAll = migrations.runner([
+const BACKFILLS = [
 	internal.products.migrations.backfillEventProducts,
 	internal.products.migrations.backfillJobListingProducts,
-]);
+];
+
+export const backfillAll = migrations.runner(BACKFILLS);
+
+export const setup = internalMutation({
+	handler: async (ctx) => {
+		const seeded = await seedProductsIfEmpty(ctx);
+		await migrations.runSerially(ctx, BACKFILLS);
+		return seeded;
+	},
+});

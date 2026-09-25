@@ -1,7 +1,7 @@
 import { DEFAULT_VAT_RATE, kronerToOre, type ProductCategory } from "@workspace/shared/products";
 import type { WithoutSystemFields } from "convex/server";
 import type { Doc } from "../_generated/dataModel";
-import { internalMutation } from "../_generated/server";
+import { internalMutation, type MutationCtx } from "../_generated/server";
 import { diffProduct, recordChange } from "./helpers";
 
 export const SEED_PRODUCT_NAMES = {
@@ -76,21 +76,17 @@ export const SEED_PRODUCTS: readonly SeedProduct[] = [
 	},
 ];
 
-export const seedProducts = internalMutation({
-	handler: async (ctx) => {
-		const inserted: string[] = [];
-		for (const [sortOrder, seed] of SEED_PRODUCTS.entries()) {
-			const existing = await ctx.db
-				.query("products")
-				.withIndex("by_name", (q) => q.eq("name", seed.name))
-				.first();
-			if (existing) continue;
+export async function seedProductsIfEmpty(ctx: MutationCtx) {
+	if (await ctx.db.query("products").first()) return [];
 
-			const product = { ...seed, vatRate: DEFAULT_VAT_RATE, sortOrder, active: true };
-			const productId = await ctx.db.insert("products", product);
-			await recordChange(ctx, { productId, action: "created", changes: diffProduct({}, product) });
-			inserted.push(seed.name);
-		}
-		return inserted;
-	},
+	for (const [sortOrder, seed] of SEED_PRODUCTS.entries()) {
+		const product = { ...seed, vatRate: DEFAULT_VAT_RATE, sortOrder, active: true };
+		const productId = await ctx.db.insert("products", product);
+		await recordChange(ctx, { productId, action: "created", changes: diffProduct({}, product) });
+	}
+	return SEED_PRODUCTS.map((seed) => seed.name);
+}
+
+export const seedProducts = internalMutation({
+	handler: seedProductsIfEmpty,
 });
