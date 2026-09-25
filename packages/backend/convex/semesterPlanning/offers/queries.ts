@@ -2,8 +2,8 @@ import { v } from "convex/values";
 import { query } from "../../_generated/server";
 import { isActiveApplicationStatus } from "../rules";
 import { presentationEventType, venue } from "../schema";
-import { listSemesterDates, requireSemester } from "../semesters/helper";
-import { findOfferByToken } from "./helper";
+import { requireSemester } from "../semesters/helper";
+import { findOfferByToken, requestableDates } from "./helper";
 
 /**
  * The offer page on Hugin. Public: the link token is the only credential. It returns the offered
@@ -54,9 +54,7 @@ export const getByToken = query({
 		const state = offer.status === "declined" || current ? offer.status : ("inactive" as const);
 		const openDates =
 			state === "pending"
-				? (await listSemesterDates(ctx, application.semesterId))
-						.filter((date) => date.closedLabel === undefined && date.date !== offer.date)
-						.map((date) => date.date)
+				? (await requestableDates(ctx, application)).filter((date) => date !== offer.date)
 				: undefined;
 
 		return {

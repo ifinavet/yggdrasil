@@ -16,7 +16,8 @@ export const COMPANY_OFFER_COPY = {
 	},
 	offer: {
 		title: (company: string) => `Tilbud til ${company}`,
-		held: "Datoen er holdt av til dere",
+		held: "Datoen er holdt av",
+		confirmSoon: "Vi ber om at dere bekrefter så fort som mulig.",
 		termsLabel: "Vi har lest og godtar",
 		termsLink: "standardvilkårene",
 		termsLabelEnd: "for bedriftsarrangement.",
@@ -30,6 +31,7 @@ export const COMPANY_OFFER_COPY = {
 	newDate: {
 		title: "Be om en annen dato",
 		lede: "Bedriftskontakten ser ønsket og kommer tilbake med et nytt tilbud.",
+		pickSeveral: "Velg gjerne flere datoer, så er det lettere å finne en som passer.",
 		datesLabel: "Hvilke datoer passer bedre?",
 		atLimit: (max: number) => `Dere kan velge opptil ${max} datoer.`,
 		noDates: "Det er ingen andre datoer å velge her. Skriv til",

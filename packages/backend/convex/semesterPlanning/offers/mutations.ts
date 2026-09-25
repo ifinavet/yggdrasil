@@ -4,8 +4,13 @@ import { mutation } from "../../_generated/server";
 import { generateLinkToken } from "../../lib/tokens";
 import { requireEditorActor, transitionApplicationStatus } from "../applicationLifecycle";
 import { requireApplication } from "../applications/helper";
-import { listSemesterDates, requireSemester } from "../semesters/helper";
-import { findLatestOffer, findOfferByToken, requireAnswerableOffer } from "./helper";
+import { requireSemester } from "../semesters/helper";
+import {
+	findLatestOffer,
+	findOfferByToken,
+	requestableDates,
+	requireAnswerableOffer,
+} from "./helper";
 
 const NEW_DATE_ALREADY_REQUESTED_MESSAGE =
 	"Dere har allerede bedt om en annen dato. Vi sender et nytt tilbud.";
@@ -130,11 +135,7 @@ export const requestNewDate = mutation({
 			throw new ConvexError(`Kommentaren kan ha høyst ${MAX_OFFER_COMMENT_LENGTH} tegn.`);
 		}
 
-		const open = new Set(
-			(await listSemesterDates(ctx, application.semesterId))
-				.filter((date) => date.closedLabel === undefined)
-				.map((date) => date.date),
-		);
+		const open = new Set(await requestableDates(ctx, application));
 		if (!wanted.every((date) => open.has(date))) {
 			throw new ConvexError("Velg blant datoene i semesteret.");
 		}

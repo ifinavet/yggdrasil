@@ -6,8 +6,3 @@ export const HUGIN_URL = "https://hugin.ifinavet.no";
 export const MIDGARD_LOCAL_URL = "http://localhost:3000";
 export const BIFROST_LOCAL_URL = "http://localhost:3001";
 export const HUGIN_LOCAL_URL = "http://localhost:3003";
-
-/** Hugin's address, or the local Hugin while developing. */
-export function huginUrl(): string {
-	return process.env.NODE_ENV === "development" ? HUGIN_LOCAL_URL : HUGIN_URL;
-}

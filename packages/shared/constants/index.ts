@@ -10,7 +10,6 @@ export {
 	BIFROST_URL,
 	HUGIN_LOCAL_URL,
 	HUGIN_URL,
-	huginUrl,
 	MIDGARD_LOCAL_URL,
 	MIDGARD_URL,
 } from "./urls";

@@ -1,5 +1,5 @@
 import { api } from "@workspace/backend/convex/api";
-import { huginUrl } from "@workspace/shared/constants";
+import { huginUrl } from "@workspace/shared/constants/hugin-url";
 import { semesterName } from "@workspace/shared/semester/labels";
 import { formatSemesterDay, osloToday } from "@workspace/shared/time";
 import { Button } from "@workspace/ui/components/button";
@@ -48,7 +48,7 @@ export default async function ApplyForEventCard() {
 			</p>
 			<Button size="lg" className="w-full sm:w-fit dark:bg-primary-light dark:text-primary" asChild>
 				<a href={`${huginUrl()}/bestill-bedpres`}>
-					Søk på Hugin <ArrowRight aria-hidden />
+					Søk her <ArrowRight aria-hidden />
 				</a>
 			</Button>
 		</ContainerCard>

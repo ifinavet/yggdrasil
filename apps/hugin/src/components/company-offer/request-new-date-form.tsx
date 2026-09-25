@@ -64,6 +64,7 @@ export function RequestNewDateForm({
 				<StepHeader title={COPY.title} onBack={onBack}>
 					{COPY.lede}
 				</StepHeader>
+				<Note className="mt-4">{COPY.pickSeveral}</Note>
 
 				<form.Field name="dates">
 					{(field) => {
