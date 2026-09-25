@@ -4,7 +4,7 @@ import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalQuery, type QueryCtx, query } from "../_generated/server";
 import { currentUserHasRole, internalRoles } from "../auth/accessRights";
-import { getEventByIdentifier } from "./helper";
+import { eventsInSemester, getEventByIdentifier } from "./helper";
 
 /**
  * Fetches the next published events from the current week onward.
@@ -80,23 +80,7 @@ export const getAllEvents = internalQuery({
 		status: v.optional(v.string()),
 	},
 	handler: async (ctx, { semester, year }) => {
-		let range_start: Date;
-		let range_end: Date;
-		if (semester) {
-			range_start = new Date(year, 7, 1);
-			range_end = new Date(year, 11, 31);
-		} else {
-			range_start = new Date(year, 0, 1);
-			range_end = new Date(year, 6, 30);
-		}
-
-		const events = await ctx.db
-			.query("events")
-			.withIndex("by_eventStart", (q) =>
-				q.gte("eventStart", range_start.getTime()).lte("eventStart", range_end.getTime()),
-			)
-			.order("asc")
-			.collect();
+		const events = await eventsInSemester(ctx, semester, year);
 
 		const eventsWithCompany = await Promise.all(
 			events.map(async (event) => {

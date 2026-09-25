@@ -153,3 +153,16 @@ export async function insertEventWithOrganizers(
 
 	return eventId;
 }
+
+export async function eventsInSemester(ctx: QueryCtx, semester: number, year: number) {
+	const rangeStart = semester ? new Date(year, 7, 1) : new Date(year, 0, 1);
+	const rangeEnd = semester ? new Date(year, 11, 31) : new Date(year, 6, 30);
+
+	return await ctx.db
+		.query("events")
+		.withIndex("by_eventStart", (q) =>
+			q.gte("eventStart", rangeStart.getTime()).lte("eventStart", rangeEnd.getTime()),
+		)
+		.order("asc")
+		.collect();
+}

@@ -1,3 +1,4 @@
+import { getAuthToken } from "@workspace/auth";
 import { api } from "@workspace/backend/convex/api";
 import {
 	Breadcrumb,
@@ -7,19 +8,22 @@ import {
 	BreadcrumbPage,
 	BreadcrumbSeparator,
 } from "@workspace/ui/components//breadcrumb";
-import { Button } from "@workspace/ui/components/button";
-import { preloadQuery } from "convex/nextjs";
-import { Plus } from "lucide-react";
-import { headers } from "next/headers";
-import Link from "next/link";
-import EventsGrid from "@/components/events/events-grid";
-import SelectSemester from "@/components/events/select-semester";
-import SelectedEvents from "@/components/events/selected-events";
+import { fetchQuery, preloadQuery } from "convex/nextjs";
+import { EventsOverview } from "@/components/events/overview/events-overview";
 
-export default async function Events() {
-	const pathname = (await headers()).get("x-searchParams");
+export default async function Events({
+	searchParams,
+}: Readonly<{ searchParams: Promise<{ year?: string; semester?: string }> }>) {
+	const params = await searchParams;
+	const now = Date.now();
+	const year = Number.parseInt(params.year ?? "", 10) || new Date(now).getFullYear();
+	const semester = params.semester || (new Date(now).getMonth() < 7 ? "vår" : "høst");
 
-	const preloadedPossibleSemesters = await preloadQuery(api.events.queries.getPossibleSemesters);
+	const token = await getAuthToken();
+	const [preloadedPossibleSemesters, events] = await Promise.all([
+		preloadQuery(api.events.queries.getPossibleSemesters),
+		fetchQuery(api.events.overview.getOverview, { year, semester }, { token }),
+	]);
 
 	return (
 		<>
@@ -35,21 +39,11 @@ export default async function Events() {
 				</BreadcrumbList>
 			</Breadcrumb>
 
-			<div className="flex flex-wrap justify-between">
-				<div className="flex flex-wrap gap-6">
-					<SelectSemester preloadedPossibleSemesters={preloadedPossibleSemesters} />
-
-					<SelectedEvents />
-				</div>
-
-				<Button asChild>
-					<Link href="/events/new-event">
-						<Plus className="size-4" /> Lag et nytt arrangement
-					</Link>
-				</Button>
-			</div>
-
-			<EventsGrid pathname={pathname ?? ""} />
+			<EventsOverview
+				events={events}
+				now={now}
+				preloadedPossibleSemesters={preloadedPossibleSemesters}
+			/>
 		</>
 	);
 }
