@@ -4,8 +4,8 @@ import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 import CompanyForm from "@/components/companies/companies-form/company-form";
+import { notifyCompanyMutation } from "@/components/companies/companies-form/company-mutation-feedback";
 import type { CompanyFormValues } from "@/constants/schemas/companies-form-schema";
 
 export default function CreateCompanyForm() {
@@ -20,24 +20,17 @@ export default function CreateCompanyForm() {
 
 	const createCompany = useMutation(api.companies.mutations.create);
 	const handleSubmit = async (values: CompanyFormValues) => {
-		createCompany({
-			orgNumber: Number.parseInt(values.orgNumber, 10),
-			name: values.name,
-			description: values.description,
-			logo: values.image as Id<"companyLogos">,
-		})
-			.then(() => {
-				toast.success("Bedriften ble lagt til!", {
-					description: `Bedrift opprettet, ${new Date().toLocaleDateString()}`,
-				});
-				router.push("/companies");
-			})
-			.catch((error) => {
-				console.error("Noe gikk galt!", error);
-				toast.error("Noe gikk galt!", {
-					description: error.message,
-				});
-			});
+		await notifyCompanyMutation(
+			createCompany({
+				orgNumber: Number.parseInt(values.orgNumber, 10),
+				name: values.name,
+				description: values.description,
+				logo: values.image as Id<"companyLogos">,
+			}),
+			"Bedriften ble lagt til!",
+			"Bedrift opprettet",
+			router,
+		);
 	};
 
 	return <CompanyForm defaultValues={defaultValues} onPrimarySubmitAction={handleSubmit} />;
