@@ -1,4 +1,4 @@
-import { feedbackRoundAt, REMINDER_DAYS } from "@workspace/shared/feedback/time";
+import { feedbackRoundAt, REMINDER_DAYS } from "@workspace/shared/time";
 import { v } from "convex/values";
 import type { Doc } from "../../_generated/dataModel";
 import { query } from "../../_generated/server";

@@ -1,10 +1,20 @@
 import type { OrganizerRole } from "@workspace/shared/constants";
+import { EVENT_SEMESTERS, eventSemesterOf, osloMonthName } from "@workspace/shared/time";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalQuery, type QueryCtx, query } from "../_generated/server";
-import { currentUserHasRole, internalRoles } from "../auth/accessRights";
-import { getEventByIdentifier } from "./helper";
+import {
+	currentUserHasRole,
+	getAccessRole,
+	internalRoles,
+	requireRole,
+} from "../auth/accessRights";
+import { eventFeedbackStatus } from "../feedback/eventStatus";
+import { reportAccessAllowed } from "../feedback/reports/access";
+import { countRegistrationsWithStatus, eventsInSemester, getEventByIdentifier } from "./helper";
+
+const eventSemesterValidator = v.union(...EVENT_SEMESTERS.map((semester) => v.literal(semester)));
 
 /**
  * Fetches the next published events from the current week onward.
@@ -67,7 +77,7 @@ export const getUpcoming = query({
 /**
  * Fetches all events for a given semester and year.
  *
- * @param {number} semester - The semester flag where `0` is spring and `1` is fall.
+ * @param {EventSemester} semester - The semester, "vår" or "høst".
  * @param {number} year - The year to fetch events for.
  * @param {string | undefined} status - An unused optional status parameter.
  *
@@ -75,28 +85,12 @@ export const getUpcoming = query({
  */
 export const getAllEvents = internalQuery({
 	args: {
-		semester: v.number(),
+		semester: eventSemesterValidator,
 		year: v.number(),
 		status: v.optional(v.string()),
 	},
 	handler: async (ctx, { semester, year }) => {
-		let range_start: Date;
-		let range_end: Date;
-		if (semester) {
-			range_start = new Date(year, 7, 1);
-			range_end = new Date(year, 11, 31);
-		} else {
-			range_start = new Date(year, 0, 1);
-			range_end = new Date(year, 6, 30);
-		}
-
-		const events = await ctx.db
-			.query("events")
-			.withIndex("by_eventStart", (q) =>
-				q.gte("eventStart", range_start.getTime()).lte("eventStart", range_end.getTime()),
-			)
-			.order("asc")
-			.collect();
+		const events = await eventsInSemester(ctx, semester, year);
 
 		const eventsWithCompany = await Promise.all(
 			events.map(async (event) => {
@@ -110,38 +104,78 @@ export const getAllEvents = internalQuery({
 });
 
 /**
- * Fetches published and unpublished events for a semester.
+ * Fetches every event in a semester with what the internal overview needs.
  *
- * @param {string} semester - The semester name.
+ * @param {EventSemester} semester - The semester, "vår" or "høst".
  * @param {number} year - The year to fetch events for.
  *
- * @returns {{ published: Array<Doc<"events"> & { hostingCompanyName: string }>, unpublished: Array<Doc<"events"> & { hostingCompanyName: string }> }} - Events separated by publication status.
+ * @throws - An error if the caller does not have an internal role.
+ *
+ * @returns - The semester's events sorted by start, with company, organizers, registration counts and feedback status.
  */
 export const getAll = query({
 	args: {
-		semester: v.string(),
+		semester: eventSemesterValidator,
 		year: v.number(),
 	},
 	handler: async (ctx, { semester, year }) => {
-		const semesterNumber = semester === "vår" ? 0 : 1; // 0 for spring, 1 for fall
+		const user = await requireRole(ctx, internalRoles);
+		const accessRole = await getAccessRole(ctx, user._id);
+		const events = await eventsInSemester(ctx, semester, year);
 
-		const events: Array<Doc<"events"> & { hostingCompanyName: string }> = await ctx.runQuery(
-			internal.events.queries.getAllEvents,
-			{
-				semester: semesterNumber,
-				year,
-			},
-		);
-
-		const published = events.filter((event) => event.published);
-		const maySeeUnpublished = await currentUserHasRole(ctx, internalRoles);
-
-		return {
-			published,
-			unpublished: maySeeUnpublished ? events.filter((event) => !event.published) : [],
+		const companies = new Map<Id<"companies">, ReturnType<typeof companyWithLogo>>();
+		const companyOf = (companyId: Id<"companies">) => {
+			const loaded = companies.get(companyId) ?? companyWithLogo(ctx, companyId);
+			companies.set(companyId, loaded);
+			return loaded;
 		};
+
+		return await Promise.all(
+			events.map(async (event) => {
+				const organizers = await getOrganizers(ctx, event._id);
+				const myRoles = organizers
+					.filter((organizer) => organizer.userId === user._id)
+					.map((organizer) => organizer.role);
+				const myRole: OrganizerRole | null = myRoles.includes("hovedansvarlig")
+					? "hovedansvarlig"
+					: (myRoles[0] ?? null);
+				const [company, registered, pending, waitlist, feedbackStatus] = await Promise.all([
+					companyOf(event.hostingCompany),
+					countRegistrationsWithStatus(ctx, event._id, "registered"),
+					countRegistrationsWithStatus(ctx, event._id, "pending"),
+					countRegistrationsWithStatus(ctx, event._id, "waitlist"),
+					eventFeedbackStatus(ctx, event._id, reportAccessAllowed(accessRole, myRole !== null)),
+				]);
+
+				return {
+					_id: event._id,
+					slug: event.slug,
+					title: event.title,
+					eventStart: event.eventStart,
+					registrationOpens: event.registrationOpens,
+					participationLimit: event.participationLimit,
+					externalEvent: event.externalEvent,
+					published: event.published,
+					companyName: company.name,
+					companyLogoUrl: company.logoUrl,
+					leadName:
+						organizers.find((organizer) => organizer.role === "hovedansvarlig")?.name ?? null,
+					myRole,
+					registeredCount: registered + pending,
+					waitlistCount: waitlist,
+					feedbackStatus,
+				};
+			}),
+		);
 	},
 });
+
+async function companyWithLogo(ctx: QueryCtx, companyId: Id<"companies">) {
+	const company = await ctx.db.get(companyId);
+	if (!company) return { name: "Ukjent", logoUrl: null };
+	const logo = await ctx.db.get(company.logo);
+	return { name: company.name, logoUrl: logo ? await ctx.storage.getUrl(logo.image) : null };
+}
 
 /**
  * Fetches the current semester's published events grouped by month.
@@ -155,13 +189,8 @@ export const getCurrentSemester = query({
 		isExternal: v.boolean(),
 	},
 	handler: async (ctx, { isExternal }) => {
-		const semester = Date.now() < new Date().setMonth(7) ? 0 : 1; // 0 for spring, 1 for fall
-
 		const events: Array<Doc<"events"> & { hostingCompanyName: string }> = (
-			await ctx.runQuery(internal.events.queries.getAllEvents, {
-				semester,
-				year: new Date().getFullYear(),
-			})
+			await ctx.runQuery(internal.events.queries.getAllEvents, eventSemesterOf(Date.now()))
 		).filter((q) => q.published === true);
 
 		const filteredEvents = events.filter((event) => {
@@ -182,26 +211,10 @@ export const getCurrentSemester = query({
 			}),
 		);
 
-		const monthNames = [
-			"januar",
-			"februar",
-			"mars",
-			"april",
-			"mai",
-			"juni",
-			"juli",
-			"august",
-			"september",
-			"oktober",
-			"november",
-			"desember",
-		];
-
 		const eventsByMonth: Record<string, typeof eventsWithParticipationCount> = {};
 
 		eventsWithParticipationCount.forEach((event) => {
-			const eventDate = new Date(event.eventStart);
-			const monthName = monthNames[eventDate.getMonth()] as string;
+			const monthName = osloMonthName(event.eventStart);
 
 			if (!eventsByMonth[monthName]) {
 				eventsByMonth[monthName] = [];
@@ -289,7 +302,7 @@ async function getOrganizers(ctx: QueryCtx, eventId: Id<"events">) {
 /**
  * Fetches all semester options covered by the stored events.
  *
- * @returns {Array<{ year: number, semester: string }>} - The available semesters.
+ * @returns {Array<{ year: number, semester: EventSemester }>} - The available semesters.
  */
 export const getPossibleSemesters = query({
 	handler: async (ctx) => {
@@ -297,19 +310,15 @@ export const getPossibleSemesters = query({
 		const lastEvent = await ctx.db.query("events").withIndex("by_eventStart").order("desc").first();
 
 		if (!firstEvent || !lastEvent) {
-			const today = new Date();
-			const currentYear = today.getFullYear();
-			const currentMonth = today.getMonth();
-
-			return [{ year: currentYear, semester: currentMonth < 6 ? "vår" : "høst" }];
+			return [eventSemesterOf(Date.now())];
 		}
 
-		const firstYear = new Date(firstEvent.eventStart).getFullYear();
-		const lastYear = new Date(lastEvent.eventStart).getFullYear();
+		const firstYear = eventSemesterOf(firstEvent.eventStart).year;
+		const lastYear = eventSemesterOf(lastEvent.eventStart).year;
 
 		const possibleSemesters = [];
 		for (let year = firstYear; year <= lastYear; year++) {
-			possibleSemesters.push({ year, semester: "vår" }, { year, semester: "høst" });
+			possibleSemesters.push(...EVENT_SEMESTERS.map((semester) => ({ year, semester })));
 		}
 
 		return possibleSemesters;

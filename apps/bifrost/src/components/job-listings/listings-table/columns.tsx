@@ -1,8 +1,8 @@
 "use client";
 
 import type { ColumnDef } from "@tanstack/react-table";
+import { humanReadableFullDateTime } from "@workspace/shared/time";
 import type { JobListing } from "@/utils/job-listings";
-import { humanReadableDate } from "@/utils/utils";
 
 export const createColumns: ColumnDef<JobListing>[] = [
 	{
@@ -33,6 +33,6 @@ export const createColumns: ColumnDef<JobListing>[] = [
 	{
 		accessorKey: "deadline",
 		header: "Deadline",
-		cell: ({ row }) => humanReadableDate(row.original.deadline),
+		cell: ({ row }) => humanReadableFullDateTime(row.original.deadline),
 	},
 ];

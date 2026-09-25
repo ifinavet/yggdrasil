@@ -4,7 +4,6 @@
 		"module": "ESNext",
 		"moduleResolution": "bundler",
 		"types": ["next/image-types/global"],
-		"baseUrl": ".",
 		"paths": {
 			"@workspace/ui/*": ["./src/*"]
 		}

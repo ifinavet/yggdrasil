@@ -1,6 +1,7 @@
 "use client";
 
 import { api } from "@workspace/backend/convex/api";
+import { formatOsloToday } from "@workspace/shared/time";
 import { type Preloaded, useMutation, usePreloadedQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import { usePostHog } from "posthog-js/react";
@@ -34,7 +35,7 @@ export default function EditPageForm({
 		})
 			.then(() => {
 				toast.success("Siden ble oppdatert!", {
-					description: `Side oppdatert, ${new Date().toLocaleDateString()}`,
+					description: `Side oppdatert, ${formatOsloToday()}`,
 				});
 
 				posthog.capture("bifrost-page_updated", {

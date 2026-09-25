@@ -4,8 +4,8 @@ import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { useMutation, useQuery } from "convex/react";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 import CompanyForm from "@/components/companies/companies-form/company-form";
+import { notifyCompanyMutation } from "@/components/companies/companies-form/company-mutation-feedback";
 import type { CompanyFormValues } from "@/constants/schemas/companies-form-schema";
 
 export default function EditCompanyForm({
@@ -19,41 +19,27 @@ export default function EditCompanyForm({
 
 	const updateCompany = useMutation(api.companies.mutations.update);
 	const handleSubmit = (values: CompanyFormValues) =>
-		updateCompany({
-			id: company_id,
-			orgNumber: Number.parseInt(values.orgNumber, 10),
-			name: values.name,
-			description: values.description,
-			logo: values.image as Id<"companyLogos">,
-		})
-			.then(() => {
-				toast.success("Bedriften ble oppdatert!", {
-					description: `Bedrift oppdatert, ${new Date().toLocaleDateString()}`,
-				});
-				router.push("/companies");
-			})
-			.catch((error) => {
-				console.error("Noe gikk galt!", error);
-				toast.error("Noe gikk galt!", {
-					description: error.message,
-				});
-			});
+		notifyCompanyMutation(
+			updateCompany({
+				id: company_id,
+				orgNumber: Number.parseInt(values.orgNumber, 10),
+				name: values.name,
+				description: values.description,
+				logo: values.image as Id<"companyLogos">,
+			}),
+			"Bedriften ble oppdatert!",
+			"Bedrift oppdatert",
+			router,
+		);
 
 	const deleteCompany = useMutation(api.companies.mutations.remove);
 	const handleDelete = () =>
-		deleteCompany({ id: company_id })
-			.then(() => {
-				toast.success("Bediften ble slettet suksessfullt!", {
-					description: `Bedrift slettet, ${new Date().toLocaleDateString()}`,
-				});
-				router.push("/companies");
-			})
-			.catch((error) => {
-				console.error("Noe gikk galt!", error);
-				toast.error("Noe gikk galt!", {
-					description: error.message,
-				});
-			});
+		notifyCompanyMutation(
+			deleteCompany({ id: company_id }),
+			"Bediften ble slettet suksessfullt!",
+			"Bedrift slettet",
+			router,
+		);
 
 	if (!company) {
 		return <div>Loading...</div>;

@@ -1,6 +1,7 @@
 "use client";
 
 import { api } from "@workspace/backend/convex/api";
+import { formatOsloToday } from "@workspace/shared/time";
 import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -42,7 +43,7 @@ export default function NewResourceForm() {
 		})
 			.then(() => {
 				toast.success("Resource created!", {
-					description: `Resource created, ${new Date().toLocaleDateString()}`,
+					description: `Resource created, ${formatOsloToday()}`,
 				});
 				router.push("/resources");
 			})

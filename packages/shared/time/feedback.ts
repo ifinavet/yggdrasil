@@ -1,18 +1,12 @@
 import { TZDate } from "@date-fns/tz";
-import { addDays, addMonths, format, set } from "date-fns";
+import { addDays, addMonths, set } from "date-fns";
+import { OSLO_TIME_ZONE } from "./constants";
 
-import { nb } from "date-fns/locale";
-
-export function formatFeedbackDate(timestamp: number, pattern: string): string {
-	return format(new TZDate(timestamp, "Europe/Oslo"), pattern, { locale: nb });
-}
-
-export const FEEDBACK_DAY = 86_400_000;
 export const REMINDER_DAYS = [3, 7, 11] as const;
 
 /** Next calendar day at 08:00 in Oslo, including daylight-saving transitions. */
 export function feedbackOpensAt(eventStart: number): number {
-	return set(addDays(new TZDate(eventStart, "Europe/Oslo"), 1), {
+	return set(addDays(new TZDate(eventStart, OSLO_TIME_ZONE), 1), {
 		hours: 8,
 		minutes: 0,
 		seconds: 0,
@@ -27,5 +21,5 @@ export function feedbackRetentionAt(closedAt: number): number {
 
 /** Keeps reminders and closure at the same Oslo time when daylight saving changes. */
 export function feedbackRoundAt(opensAt: number, days: number): number {
-	return addDays(new TZDate(opensAt, "Europe/Oslo"), days).getTime();
+	return addDays(new TZDate(opensAt, OSLO_TIME_ZONE), days).getTime();
 }

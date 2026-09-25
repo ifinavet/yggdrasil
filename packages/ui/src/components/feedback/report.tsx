@@ -6,7 +6,7 @@ import type {
 	ReportTextAnswer,
 } from "@workspace/shared/feedback/report";
 import { reportHighlights } from "@workspace/shared/feedback/report";
-import { formatFeedbackDate } from "@workspace/shared/feedback/time";
+import { formatOsloDate } from "@workspace/shared/time";
 import { Button } from "@workspace/ui/components/button";
 import { cn } from "@workspace/ui/lib/utils";
 import { Download } from "lucide-react";
@@ -63,7 +63,7 @@ export function FeedbackReportView({
 			const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" }));
 			const link = document.createElement("a");
 			link.href = url;
-			link.download = `rapport-bedriftspresentasjon-${formatFeedbackDate(report.eventStart, "yyyy-MM-dd")}.csv`;
+			link.download = `rapport-bedriftspresentasjon-${formatOsloDate(report.eventStart, "yyyy-MM-dd")}.csv`;
 			link.click();
 			setTimeout(() => URL.revokeObjectURL(url), 1000);
 		} catch {
@@ -91,7 +91,7 @@ export function FeedbackReportView({
 			</div>
 			<h2 className={styles.heading}>Rapport fra bedriftspresentasjon</h2>
 			<div className={styles.actions}>
-				<p>{formatFeedbackDate(report.eventStart, "d. MMMM yyyy")}</p>
+				<p>{formatOsloDate(report.eventStart, "d. MMMM yyyy")}</p>
 				{allowExport ? (
 					<Button
 						variant="outline"

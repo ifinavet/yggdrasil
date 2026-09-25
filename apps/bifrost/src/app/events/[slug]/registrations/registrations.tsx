@@ -2,6 +2,7 @@
 
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
+import { humanReadableFullDateTime } from "@workspace/shared/time";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/components//tabs";
 import { Button } from "@workspace/ui/components/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui/components/popover";
@@ -12,7 +13,6 @@ import { toast } from "sonner";
 import { DataTable } from "@/components/common/tables/table";
 import QRScannerDialog from "@/components/events/registration-scanner/qr-scanner-dialog";
 import { createColumns, type Registration } from "@/components/events/registrations/columns";
-import { humanReadableDate } from "@/utils/utils";
 
 export function Registrations({
 	preloadedRegistrations,
@@ -30,7 +30,7 @@ export function Registrations({
 		})
 			.then(({ deletedRegistration }) => {
 				toast.success("Registreringen ble slettet", {
-					description: humanReadableDate(new Date()),
+					description: humanReadableFullDateTime(new Date()),
 				});
 
 				postHog.capture("bifrost-registration_deleted", {
@@ -67,7 +67,7 @@ export function Registrations({
 				});
 
 				toast.success("Registreringen ble oppdatert", {
-					description: humanReadableDate(new Date()),
+					description: humanReadableFullDateTime(new Date()),
 				});
 			})
 			.catch((error) => {

@@ -1,4 +1,10 @@
 import { api } from "@workspace/backend/convex/api";
+import {
+	EVENT_SEMESTER_LABELS,
+	eventSemesterOf,
+	MONTH_NAMES,
+	osloMonthName,
+} from "@workspace/shared/time";
 import { fetchQuery } from "convex/nextjs";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
@@ -18,28 +24,14 @@ export default async function EventsPage() {
 	const events = await fetchQuery(api.events.queries.getCurrentSemester, {
 		isExternal: isExternalEvents,
 	});
-	const today = new Date();
-	const semester = today.getMonth() < 7 ? "Vår" : "Høst";
+	const now = Date.now();
+	const { semester, year } = eventSemesterOf(now);
 
-	const monthOrder = [
-		"januar",
-		"februar",
-		"mars",
-		"april",
-		"mai",
-		"juni",
-		"juli",
-		"august",
-		"september",
-		"oktober",
-		"november",
-		"desember",
-	];
 	const months = Object.keys(events).sort(
-		(a, b) => monthOrder.indexOf(a.toLowerCase()) - monthOrder.indexOf(b.toLowerCase()),
+		(a, b) => MONTH_NAMES.indexOf(a.toLowerCase()) - MONTH_NAMES.indexOf(b.toLowerCase()),
 	);
 
-	const currentMonth = today.toLocaleString("no", { month: "long" }).toLowerCase();
+	const currentMonth = osloMonthName(now);
 	const selectedMonth = searchParams?.get("month")?.toLowerCase();
 
 	const activeMonth =
@@ -47,7 +39,7 @@ export default async function EventsPage() {
 			? selectedMonth
 			: months.includes(currentMonth)
 				? currentMonth
-				: (months[0] ?? "januar");
+				: (months[0] ?? currentMonth);
 
 	const activeMonthEvents = events[activeMonth] ?? [];
 
@@ -58,7 +50,7 @@ export default async function EventsPage() {
 					Arrangementer
 				</h1>
 				<h3 className="scroll-m-20 text-center font-semibold text-2xl text-zinc-700 tracking-tight dark:text-zinc-300">
-					{semester} {today.getFullYear()}
+					{EVENT_SEMESTER_LABELS[semester]} {year}
 				</h3>
 			</div>
 

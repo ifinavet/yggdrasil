@@ -2,6 +2,7 @@
 
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
+import { formatOsloToday } from "@workspace/shared/time";
 import { useMutation, useQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import { usePostHog } from "posthog-js/react";
@@ -41,7 +42,7 @@ export default function EditResourceForm({ id }: Readonly<{ id: Id<"resources"> 
 		})
 			.then(() => {
 				toast.success("Ressurs opprettet!", {
-					description: `Ressurs opprettet, ${new Date().toLocaleDateString()}`,
+					description: `Ressurs opprettet, ${formatOsloToday()}`,
 				});
 
 				posthog.capture("bifrost-resource_updated", {

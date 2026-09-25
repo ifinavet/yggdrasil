@@ -2,6 +2,7 @@
 
 import type { ColumnDef } from "@tanstack/react-table";
 import type { Id } from "@workspace/backend/convex/dataModel";
+import { humanReadableFullDateTime } from "@workspace/shared/time";
 import { Button } from "@workspace/ui/components//button";
 import {
 	Select,
@@ -22,7 +23,6 @@ import {
 } from "@workspace/ui/components/alert-dialog";
 import { Badge } from "@workspace/ui/components/badge";
 import { Trash } from "lucide-react";
-import { humanReadableDate } from "@/utils/utils";
 
 export type Registration = {
 	registrationId: Id<"registrations">;
@@ -88,7 +88,7 @@ export const createColumns = (
 		accessorKey: "registrationTime",
 		header: "Påmeldings tidspunkt",
 		cell: ({ row }) => {
-			return <>{humanReadableDate(row.original.registrationTime)}</>;
+			return <>{humanReadableFullDateTime(row.original.registrationTime)}</>;
 		},
 	},
 	{

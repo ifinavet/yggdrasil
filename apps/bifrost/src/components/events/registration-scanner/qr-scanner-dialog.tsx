@@ -2,6 +2,7 @@
 
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
+import { humanReadableFullDateTime } from "@workspace/shared/time";
 import { Button } from "@workspace/ui/components/button";
 import {
 	Dialog,
@@ -19,7 +20,6 @@ import { usePostHog } from "posthog-js/react";
 import type * as React from "react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { humanReadableDate } from "@/utils/utils";
 import RegisterAttendanceByQr from "./register-by-qr-code";
 
 const QRScanner = dynamic(() => import("@/components/events/registration-scanner/qr-scanner"), {
@@ -77,7 +77,7 @@ export default function QRScannerDialog({
 		})
 			.then(() => {
 				toast.success("Registration successful", {
-					description: humanReadableDate(new Date()),
+					description: humanReadableFullDateTime(new Date()),
 				});
 
 				postHog.capture("bifrost-attendance_updated", {

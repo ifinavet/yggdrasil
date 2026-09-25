@@ -1,14 +1,14 @@
 import { api } from "@workspace/backend/convex/api";
+import {
+	humanReadableDate,
+	humanReadableDateTime,
+	humanReadableTime,
+} from "@workspace/shared/time";
 import { fetchQuery } from "convex/nextjs";
 import { CalendarDays, Clock, Users } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import type { EventWithParticipationCount } from "@/constants/event-types";
-import {
-	humanReadableDate,
-	humanReadableDateTime,
-	humanReadableTime,
-} from "@/utils/dateFormatting";
 
 function getRegistrationStatus(event: EventWithParticipationCount) {
 	const now = new Date();

@@ -1,4 +1,4 @@
-import { osloToday } from "@workspace/shared/semester/time";
+import { osloToday } from "@workspace/shared/time";
 import { v } from "convex/values";
 import { query } from "../../_generated/server";
 import { internalRoles, requireRole } from "../../auth/accessRights";
