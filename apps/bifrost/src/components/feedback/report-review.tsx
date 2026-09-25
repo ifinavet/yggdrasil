@@ -18,9 +18,9 @@ import {
 import { cn } from "@workspace/ui/lib/utils";
 import { useMutation } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { ConvexError } from "convex/values";
 import { Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
+import { convexErrorMessage } from "@/utils/convex-error";
 import { REPORT_DELIVERY_LABELS, REPORT_STATUS_LABELS } from "./status-labels";
 
 type ReportResult = Extract<
@@ -55,11 +55,7 @@ export function ReportReview({
 		try {
 			await operation();
 		} catch (cause) {
-			setError(
-				cause instanceof ConvexError
-					? String(cause.data)
-					: "Kunne ikke lagre endringen. Prøv igjen.",
-			);
+			setError(convexErrorMessage(cause, "Kunne ikke lagre endringen. Prøv igjen."));
 		} finally {
 			setBusy(false);
 		}
