@@ -108,6 +108,36 @@ describe("getAll", () => {
 		expect(overview.map((event) => event.title)).toEqual(["Først", "Senere"]);
 	});
 
+	it("includes events on the last days of the semester in Oslo time", async () => {
+		const { t, companyId } = await setup();
+		const viewer = await internalUser(t, "intern@example.com");
+		await insertEvent(t, companyId, {
+			title: "Første høstdag",
+			eventStart: Date.parse("2026-07-31T22:30:00Z"),
+		});
+		await insertEvent(t, companyId, {
+			title: "Nyttårsaften",
+			eventStart: Date.parse("2026-12-31T20:00:00Z"),
+		});
+		await insertEvent(t, companyId, {
+			title: "Siste vårdag",
+			eventStart: Date.parse("2026-07-31T18:00:00Z"),
+		});
+		await insertEvent(t, companyId, {
+			title: "Nyttårsdag",
+			eventStart: Date.parse("2026-12-31T23:30:00Z"),
+		});
+
+		const autumn = await overviewFor(t, viewer);
+		const spring = await asUser(t, viewer).query(api.events.queries.getAll, {
+			semester: "vår",
+			year: 2026,
+		});
+
+		expect(autumn.map((event) => event.title)).toEqual(["Første høstdag", "Nyttårsaften"]);
+		expect(spring.map((event) => event.title)).toEqual(["Siste vårdag"]);
+	});
+
 	it("includes unpublished events, company name and logo url", async () => {
 		const { t, companyId } = await setup();
 		const viewer = await internalUser(t, "intern@example.com");

@@ -2,6 +2,7 @@
 
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
+import { formatOsloToday } from "@workspace/shared/time";
 import { useMutation, useQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -28,7 +29,7 @@ export default function EditCompanyForm({
 		})
 			.then(() => {
 				toast.success("Bedriften ble oppdatert!", {
-					description: `Bedrift oppdatert, ${new Date().toLocaleDateString()}`,
+					description: `Bedrift oppdatert, ${formatOsloToday()}`,
 				});
 				router.push("/companies");
 			})
@@ -44,7 +45,7 @@ export default function EditCompanyForm({
 		deleteCompany({ id: company_id })
 			.then(() => {
 				toast.success("Bediften ble slettet suksessfullt!", {
-					description: `Bedrift slettet, ${new Date().toLocaleDateString()}`,
+					description: `Bedrift slettet, ${formatOsloToday()}`,
 				});
 				router.push("/companies");
 			})

@@ -1,10 +1,14 @@
 import { TZDate } from "@date-fns/tz";
 import { format } from "date-fns";
 import { nb } from "date-fns/locale";
-import { OSLO_TIME_ZONE } from "./constants";
+import { DATE_PATTERNS, OSLO_TIME_ZONE } from "./constants";
 
 export function formatOsloDate(timestamp: number, pattern: string): string {
 	return format(new TZDate(timestamp, OSLO_TIME_ZONE), pattern, { locale: nb });
+}
+
+export function formatOsloToday(): string {
+	return formatOsloDate(Date.now(), DATE_PATTERNS.numericDate);
 }
 
 export const humanReadableDate = (date: Date): string =>

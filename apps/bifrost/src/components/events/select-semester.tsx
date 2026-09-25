@@ -1,6 +1,7 @@
 "use client";
 
 import type { api } from "@workspace/backend/convex/api";
+import { eventSemesterOf, isEventSemester } from "@workspace/shared/time";
 import {
 	Select,
 	SelectContent,
@@ -36,8 +37,10 @@ export default function SelectSemester(
 		[searchParams],
 	);
 
-	const year = searchParams.get("year") || new Date().getFullYear();
-	const semester = searchParams.get("semester") || (new Date().getMonth() < 7 ? "vår" : "høst");
+	const current = eventSemesterOf(Date.now());
+	const year = searchParams.get("year") || current.year;
+	const selectedSemester = searchParams.get("semester");
+	const semester = isEventSemester(selectedSemester) ? selectedSemester : current.semester;
 
 	return (
 		<Select

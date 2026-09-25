@@ -2,6 +2,7 @@
 
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
+import { formatOsloToday } from "@workspace/shared/time";
 import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -28,7 +29,7 @@ export default function CreateCompanyForm() {
 		})
 			.then(() => {
 				toast.success("Bedriften ble lagt til!", {
-					description: `Bedrift opprettet, ${new Date().toLocaleDateString()}`,
+					description: `Bedrift opprettet, ${formatOsloToday()}`,
 				});
 				router.push("/companies");
 			})

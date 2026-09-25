@@ -10,4 +10,6 @@ export const DATE_PATTERNS = {
 	dateTime: "EEEE d. MMMM, HH:mm",
 	month: "LLLL",
 	monthKey: "yyyy-MM",
+	numericDate: "dd.MM.yyyy",
+	longDate: "PPP",
 } as const;

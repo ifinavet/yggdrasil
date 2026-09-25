@@ -1,5 +1,6 @@
 import { getAuthToken } from "@workspace/auth";
 import { api } from "@workspace/backend/convex/api";
+import { eventSemesterOf, isEventSemester } from "@workspace/shared/time";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -16,8 +17,9 @@ export default async function Events({
 }: Readonly<{ searchParams: Promise<{ year?: string; semester?: string }> }>) {
 	const params = await searchParams;
 	const now = Date.now();
-	const year = Number.parseInt(params.year ?? "", 10) || new Date(now).getFullYear();
-	const semester = params.semester || (new Date(now).getMonth() < 7 ? "vår" : "høst");
+	const current = eventSemesterOf(now);
+	const year = Number.parseInt(params.year ?? "", 10) || current.year;
+	const semester = isEventSemester(params.semester) ? params.semester : current.semester;
 
 	const token = await getAuthToken();
 	const [preloadedPossibleSemesters, events] = await Promise.all([
