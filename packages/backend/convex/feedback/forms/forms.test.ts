@@ -175,12 +175,122 @@ describe("feedback form management", () => {
 		expect(firstPage.page).toHaveLength(2);
 		expect(firstPage.isDone).toBe(false);
 		expect(firstPage.page[0]).not.toHaveProperty("draftFields");
+		expect(firstPage.page[0]).toMatchObject({ isHidden: false, hasDraft: true });
+		expect(firstPage.page[1]).toMatchObject({ isHidden: false, hasDraft: true });
 		const nextPage = await superAdminClient.query(feedbackQueries.getFeedbackForms, {
 			paginationOpts: { ...paginationOptions, cursor: firstPage.continueCursor },
 		});
 		expect(nextPage.page).toHaveLength(1);
 		expect(nextPage.page[0].publishedVersion?.formDefinitionId).toBe(formId);
+		expect(nextPage.page[0]).toMatchObject({ isHidden: false, hasDraft: false });
 		expect(nextPage.isDone).toBe(true);
+	});
+	it("hides and shows a non-default form, and reports isHidden through getFeedbackForms", async () => {
+		const { superAdminClient, formId } = await setupFormManagement();
+		await superAdminClient.mutation(feedbackMutations.publish, { formId });
+		await superAdminClient.mutation(feedbackMutations.setHidden, { formId, isHidden: true });
+		const hiddenPage = await superAdminClient.query(feedbackQueries.getFeedbackForms, {
+			paginationOpts: { cursor: null, numItems: 10 },
+		});
+		expect(hiddenPage.page.find((form) => form._id === formId)).toMatchObject({ isHidden: true });
+		await superAdminClient.mutation(feedbackMutations.setHidden, { formId, isHidden: false });
+		const visiblePage = await superAdminClient.query(feedbackQueries.getFeedbackForms, {
+			paginationOpts: { cursor: null, numItems: 10 },
+		});
+		expect(visiblePage.page.find((form) => form._id === formId)).toMatchObject({ isHidden: false });
+	});
+	it("refuses to hide the default form and refuses to default a hidden form", async () => {
+		const { superAdminClient, formId } = await setupFormManagement();
+		await superAdminClient.mutation(feedbackMutations.publish, { formId });
+		await superAdminClient.mutation(feedbackMutations.setDefault, { formId });
+		await expect(
+			superAdminClient.mutation(feedbackMutations.setHidden, { formId, isHidden: true }),
+		).rejects.toThrow("kan ikke skjules");
+		const secondFormId = await superAdminClient.mutation(feedbackMutations.saveDraft, {
+			name: "Other",
+			fields: defaultFeedbackFields,
+		});
+		await superAdminClient.mutation(feedbackMutations.publish, { formId: secondFormId });
+		await superAdminClient.mutation(feedbackMutations.setHidden, {
+			formId: secondFormId,
+			isHidden: true,
+		});
+		await expect(
+			superAdminClient.mutation(feedbackMutations.setDefault, { formId: secondFormId }),
+		).rejects.toThrow("Vis skjemaet");
+	});
+	it("refuses a non-super-admin caller of setHidden", async () => {
+		const { backend, superAdminClient, formId } = await setupFormManagement();
+		await superAdminClient.mutation(feedbackMutations.publish, { formId });
+		const user = await insertUser(backend, "admin-user@example.test");
+		await grantRole(backend, user._id, "admin");
+		await expect(
+			asUser(backend, user).mutation(feedbackMutations.setHidden, { formId, isHidden: true }),
+		).rejects.toThrow("Unauthorized");
+	});
+	it("blocks assigning a hidden, non-current form to an event but allows keeping the current one", async () => {
+		const { backend, superAdminClient, formId, eventId } = await setupFormManagement();
+		await superAdminClient.mutation(feedbackMutations.publish, { formId });
+		await superAdminClient.mutation(api.feedback.events.updateEventFeedbackSettings, {
+			eventId,
+			enabled: false,
+			formId,
+		});
+		await superAdminClient.mutation(feedbackMutations.setHidden, { formId, isHidden: true });
+		await superAdminClient.mutation(api.feedback.events.updateEventFeedbackSettings, {
+			eventId,
+			enabled: false,
+			formId,
+		});
+		const secondFormId = await superAdminClient.mutation(feedbackMutations.saveDraft, {
+			name: "Other",
+			fields: defaultFeedbackFields,
+		});
+		await superAdminClient.mutation(feedbackMutations.publish, { formId: secondFormId });
+		await superAdminClient.mutation(feedbackMutations.setHidden, {
+			formId: secondFormId,
+			isHidden: true,
+		});
+		await expect(
+			superAdminClient.mutation(api.feedback.events.updateEventFeedbackSettings, {
+				eventId,
+				enabled: false,
+				formId: secondFormId,
+			}),
+		).rejects.toThrow("synlig skjema");
+		expect(await backend.run((ctx) => ctx.db.get(eventId))).toMatchObject({
+			feedbackFormId: formId,
+		});
+	});
+	it("lists versions newest first with a 1-based number, oldest at 1 (bounded to the newest 100 versions)", async () => {
+		const { superAdminClient, formId } = await setupFormManagement();
+		const versionId1 = await superAdminClient.mutation(feedbackMutations.publish, { formId });
+		await superAdminClient.mutation(feedbackMutations.saveDraft, {
+			formId,
+			name: "Feedback",
+			fields: defaultFeedbackFields,
+		});
+		const versionId2 = await superAdminClient.mutation(feedbackMutations.publish, { formId });
+		await superAdminClient.mutation(feedbackMutations.saveDraft, {
+			formId,
+			name: "Feedback",
+			fields: defaultFeedbackFields,
+		});
+		const versionId3 = await superAdminClient.mutation(feedbackMutations.publish, { formId });
+		const versions = await superAdminClient.query(feedbackQueries.getVersions, { formId });
+		expect(versions).toEqual([
+			{ _id: versionId3, publishedAt: expect.any(Number), number: 3 },
+			{ _id: versionId2, publishedAt: expect.any(Number), number: 2 },
+			{ _id: versionId1, publishedAt: expect.any(Number), number: 1 },
+		]);
+	});
+	it("denies non-internal callers of getVersions", async () => {
+		const { backend, superAdminClient, formId } = await setupFormManagement();
+		await superAdminClient.mutation(feedbackMutations.publish, { formId });
+		const user = await insertUser(backend, "student-getversions@example.test");
+		await expect(
+			asUser(backend, user).query(feedbackQueries.getVersions, { formId }),
+		).rejects.toThrow("Unauthorized");
 	});
 	it.each(["super-admin", "admin", "editor", "internal"] as AccessRole[])(
 		"allows %s to read published forms and assign events without activating feedback",

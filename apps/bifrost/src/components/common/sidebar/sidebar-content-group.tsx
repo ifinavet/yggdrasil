@@ -13,6 +13,7 @@ import {
 	BriefcaseIcon,
 	BuildingIcon,
 	CalendarIcon,
+	ClipboardListIcon,
 	FileIcon,
 	GitForkIcon,
 	UsersIcon,
@@ -21,7 +22,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const paths = {
-	superAdmin: [{ title: "Tilbakemeldingsskjemaer", icon: FileIcon, path: "/feedback-forms" }],
+	superAdmin: [{ title: "Skjemaer", icon: ClipboardListIcon, path: "/feedback-forms" }],
 	main: [
 		{
 			title: "Arrangementer",
@@ -68,9 +69,11 @@ const paths = {
 export function SidebarContentGroup({
 	title,
 	items,
+	extraItems,
 }: Readonly<{
 	title: string;
 	items: keyof typeof paths;
+	extraItems?: keyof typeof paths;
 }>) {
 	const rootPathSegment = usePathname().split("/")[1];
 
@@ -79,7 +82,7 @@ export function SidebarContentGroup({
 			<SidebarGroupLabel>{title}</SidebarGroupLabel>
 			<SidebarGroupContent>
 				<SidebarMenu>
-					{paths[items].map((item: (typeof paths)[typeof items][number]) => (
+					{[...paths[items], ...(extraItems ? paths[extraItems] : [])].map((item) => (
 						<SidebarMenuItem key={item.title}>
 							<SidebarMenuButton
 								tooltip={item.title}

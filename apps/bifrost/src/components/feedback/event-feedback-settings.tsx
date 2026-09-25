@@ -126,7 +126,11 @@ function SettingsForm({
 												</SelectItem>
 											)}
 										{feedbackForms
-											.filter((feedbackForm) => feedbackForm.publishedVersion)
+											.filter(
+												(feedbackForm) =>
+													feedbackForm.publishedVersion &&
+													(!feedbackForm.isHidden || feedbackForm._id === settings.formId),
+											)
 											.map((feedbackForm) => (
 												<SelectItem key={feedbackForm._id} value={feedbackForm._id}>
 													{feedbackForm.name}

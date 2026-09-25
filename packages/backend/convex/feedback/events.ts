@@ -45,7 +45,9 @@ export const updateEventFeedbackSettings = mutation({
 				throw new ConvexError("Skjemaet er allerede sendt ut, så det kan ikke byttes.");
 		}
 		if (formId) {
-			await getFeedbackFormOrThrow(ctx, formId);
+			const feedbackForm = await getFeedbackFormOrThrow(ctx, formId);
+			if (feedbackForm.isHidden && formId !== event.feedbackFormId)
+				throw new ConvexError("Velg et synlig skjema.");
 			if (!(await getLatestPublishedVersion(ctx, formId)))
 				throw new ConvexError("Velg et publisert skjema.");
 		} else if (enabled) {
