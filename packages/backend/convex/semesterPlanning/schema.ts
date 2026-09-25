@@ -114,6 +114,9 @@ export const semesterPlanningSchema = {
 		firstDate: v.optional(v.string()),
 		lastDate: v.optional(v.string()),
 		applicationDeadline: v.optional(v.string()),
+		// With a hard deadline, Hugin stops taking applications after the deadline day. Otherwise
+		// they are taken until an editor closes the semester.
+		hardDeadline: v.optional(v.boolean()),
 		status: applicationPeriodStatus,
 		infoText: v.optional(v.string()),
 		termsUrl: v.optional(v.string()),

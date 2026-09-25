@@ -1,3 +1,4 @@
+import { osloToday } from "@workspace/shared/semester/time";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
 	activityFor,
@@ -134,6 +135,33 @@ describe("submit", () => {
 		const [application] = await applications(t);
 		const history = await activityFor(t, application?._id as Id<"companyApplications">);
 		expect(history.map((row) => [row.type, row.actor])).toEqual([["submitted", "company"]]);
+	});
+
+	it("refuses an application after a hard deadline, and accepts one after a soft deadline", async () => {
+		const { t } = await setup();
+		const semesterId = await withOpenSemester(t);
+		await t.run((ctx) =>
+			ctx.db.patch(semesterId, { applicationDeadline: "2020-01-01", hardDeadline: true }),
+		);
+		expect(await refusalMessageFrom(submitWith(t))).toBe("Søknadsfristen har gått ut.");
+
+		await t.run((ctx) => ctx.db.patch(semesterId, { hardDeadline: false }));
+		await submitWith(t);
+		expect(await applications(t)).toHaveLength(1);
+	});
+
+	it("accepts an application on the day of a hard deadline", async () => {
+		const { t } = await setup();
+		const semesterId = await withOpenSemester(t);
+		await t.run((ctx) =>
+			ctx.db.patch(semesterId, {
+				applicationDeadline: osloToday(Date.now()),
+				hardDeadline: true,
+			}),
+		);
+
+		await submitWith(t);
+		expect(await applications(t)).toHaveLength(1);
 	});
 
 	it.each([

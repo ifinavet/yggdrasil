@@ -64,16 +64,35 @@ export async function findSemester(
 }
 
 /**
- * The settings a new semester inherits from the most recent one: information text, terms link
- * and start time for events. Dates and deadlines are never inherited; a human sets those.
+ * Whether companies can apply to the semester on the given Oslo day: it is open, and a hard
+ * deadline has not passed.
+ *
+ * @param {Doc<"semesters">} semester - The semester.
+ * @param {string} today - Today's Oslo day, as YYYY-MM-DD.
+ *
+ * @returns {boolean} - Whether an application is accepted.
+ */
+export function acceptsApplications(semester: Doc<"semesters">, today: string): boolean {
+	const deadlinePassed =
+		semester.hardDeadline === true &&
+		semester.applicationDeadline !== undefined &&
+		today > semester.applicationDeadline;
+	return semester.status === "open" && !deadlinePassed;
+}
+
+/**
+ * The settings a new semester inherits from the most recent one: information text, terms link,
+ * whether the deadline is hard, and start time for events. Dates and deadlines are never inherited; a human sets those.
  *
  * @param {MutationCtx} ctx - The Convex mutation context.
  *
- * @returns {Promise<Pick<Doc<"semesters">, "infoText" | "termsUrl" | "defaultEventStartTime">>} - The copied settings.
+ * @returns {Promise<Pick<Doc<"semesters">, "infoText" | "termsUrl" | "hardDeadline" | "defaultEventStartTime">>} - The copied settings.
  */
 export async function settingsFromLatestSemester(
 	ctx: MutationCtx,
-): Promise<Pick<Doc<"semesters">, "infoText" | "termsUrl" | "defaultEventStartTime">> {
+): Promise<
+	Pick<Doc<"semesters">, "infoText" | "termsUrl" | "hardDeadline" | "defaultEventStartTime">
+> {
 	// The index sorts terms alphabetically, so read the newest few and order them properly.
 	const newest = await ctx.db
 		.query("semesters")
@@ -86,6 +105,7 @@ export async function settingsFromLatestSemester(
 	return {
 		...(latest.infoText !== undefined ? { infoText: latest.infoText } : {}),
 		...(latest.termsUrl !== undefined ? { termsUrl: latest.termsUrl } : {}),
+		...(latest.hardDeadline !== undefined ? { hardDeadline: latest.hardDeadline } : {}),
 		...(latest.defaultEventStartTime !== undefined
 			? { defaultEventStartTime: latest.defaultEventStartTime }
 			: {}),

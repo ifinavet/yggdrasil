@@ -135,6 +135,7 @@ export const setRange = mutation({
  *
  * @param {Id<"semesters">} semesterId - The semester to update.
  * @param {string} [applicationDeadline] - The deadline, as YYYY-MM-DD.
+ * @param {boolean} [hardDeadline] - Whether Hugin stops taking applications after the deadline.
  * @param {string} [infoText] - Information shown to companies.
  * @param {string} [termsUrl] - Link to the standard terms.
  * @param {string} [defaultEventStartTime] - When events made from the plan start, as HH:mm.
@@ -146,6 +147,7 @@ export const updateSettings = mutation({
 	args: {
 		semesterId: v.id("semesters"),
 		applicationDeadline: v.optional(v.string()),
+		hardDeadline: v.optional(v.boolean()),
 		infoText: v.optional(v.string()),
 		termsUrl: v.optional(v.string()),
 		defaultEventStartTime: v.optional(v.string()),
@@ -153,7 +155,7 @@ export const updateSettings = mutation({
 	returns: v.null(),
 	handler: async (
 		ctx,
-		{ semesterId, applicationDeadline, infoText, termsUrl, defaultEventStartTime },
+		{ semesterId, applicationDeadline, hardDeadline, infoText, termsUrl, defaultEventStartTime },
 	) => {
 		await requireRole(ctx, editorRoles);
 
@@ -171,6 +173,7 @@ export const updateSettings = mutation({
 		const text = (value: string | undefined) => (value === "" ? undefined : value);
 		await ctx.db.patch(semesterId, {
 			...(applicationDeadline !== undefined ? { applicationDeadline } : {}),
+			...(hardDeadline !== undefined ? { hardDeadline } : {}),
 			...(infoText !== undefined ? { infoText: text(infoText) } : {}),
 			...(termsUrl !== undefined ? { termsUrl: text(termsUrl) } : {}),
 			...(defaultEventStartTime !== undefined

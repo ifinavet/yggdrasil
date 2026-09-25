@@ -567,6 +567,19 @@ describe("queries", () => {
 		expect(await t.query(queries.getOpenForApplications, {})).toBeNull();
 	});
 
+	it("getOpenForApplications returns null after a hard deadline, but not a soft one", async () => {
+		const { t } = await setup();
+		const semesterId = await insertSemester(t, {
+			status: "open",
+			applicationDeadline: "2020-01-01",
+		});
+		await t.run((ctx) => ctx.db.insert("semesterDates", { semesterId, date: "2027-01-21" }));
+
+		expect(await t.query(queries.getOpenForApplications, {})).not.toBeNull();
+		await t.run((ctx) => ctx.db.patch(semesterId, { hardDeadline: true }));
+		expect(await t.query(queries.getOpenForApplications, {})).toBeNull();
+	});
+
 	it("list and get require an internal member", async () => {
 		const { t } = await setup();
 		const semesterId = await insertSemester(t);

@@ -4,6 +4,7 @@ import {
 	SUBMISSION_ID_PATTERN,
 } from "@workspace/shared/semester/application";
 import { isValidOrgNumber } from "@workspace/shared/semester/orgNumber";
+import { osloToday } from "@workspace/shared/semester/time";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../../_generated/api";
 import { action, internalMutation } from "../../_generated/server";
@@ -22,7 +23,7 @@ import {
 	venue,
 	wantsToUseEscape,
 } from "../schema";
-import { listSemesterDates } from "../semesters/helper";
+import { acceptsApplications, listSemesterDates } from "../semesters/helper";
 
 /** What the Hugin form sends. The shared Zod schema checks the details. */
 const applicationFormArgs = v.object({
@@ -146,6 +147,9 @@ export const insertSubmittedApplication = internalMutation({
 			.withIndex("by_status", (q) => q.eq("status", "open"))
 			.first();
 		if (!semester) throw new ConvexError("Søknadene er stengt.");
+		if (!acceptsApplications(semester, osloToday(Date.now()))) {
+			throw new ConvexError("Søknadsfristen har gått ut.");
+		}
 
 		const openDates = new Set(
 			(await listSemesterDates(ctx, semester._id))
