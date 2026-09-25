@@ -35,7 +35,7 @@ function formatParsed(field: string, value: unknown): string {
 		case "startupPriceOre":
 			return formatNok(value as number);
 		case "vatRate":
-			return `${value} %`;
+			return `${value as number} %`;
 		case "sortOrder":
 			return String((value as number) + 1);
 		case "category":
@@ -47,7 +47,7 @@ function formatParsed(field: string, value: unknown): string {
 				.map((tier) => `${tier.quantity} for ${formatNok(tier.totalPriceOre)}`)
 				.join(", ");
 		default:
-			return String(value);
+			return typeof value === "string" ? value : JSON.stringify(value);
 	}
 }
 

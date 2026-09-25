@@ -5,7 +5,7 @@ export const MAX_PRODUCT_NAME_LENGTH = 100;
 export const MAX_SHORT_DESCRIPTION_LENGTH = 300;
 export const MAX_LONG_DESCRIPTION_LENGTH = 5000;
 export const MAX_VOLUME_TIERS = 10;
-const MAX_PRICE_ORE = 1_000_000_00;
+const MAX_PRICE_ORE = 100_000_000;
 const MAX_STUDENTS = 10_000;
 
 const priceMessage = "Prisen må være et beløp mellom 0 og 1 000 000 kr.";

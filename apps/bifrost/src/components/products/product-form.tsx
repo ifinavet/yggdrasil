@@ -21,7 +21,11 @@ import {
 import { Textarea } from "@workspace/ui/components/textarea";
 import { Plus, Save, Trash } from "lucide-react";
 import type { ReactNode } from "react";
-import { type ProductFormValues, validateProductForm } from "./product-form-values";
+import {
+	emptyTierFormValues,
+	type ProductFormValues,
+	validateProductForm,
+} from "./product-form-values";
 
 function errorsOf(field: AnyFieldApi) {
 	return field.state.meta.errors.map((message) => ({ message: String(message) }));
@@ -194,12 +198,8 @@ export default function ProductForm({
 									{(tiersField) => (
 										<Field>
 											<FieldLabel>Mengderabatter</FieldLabel>
-											{tiersField.state.value.map((_, index) => (
-												<div
-													// biome-ignore lint/suspicious/noArrayIndexKey: tiers have no stable id
-													key={index}
-													className="flex items-end gap-3"
-												>
+											{tiersField.state.value.map((tier, index) => (
+												<div key={tier.key} className="flex items-end gap-3">
 													<form.Field name={`volumeTiers[${index}].quantity`}>
 														{(field) => (
 															<LabeledField field={field} label="Antall annonser">
@@ -230,7 +230,7 @@ export default function ProductForm({
 												type="button"
 												variant="outline"
 												className="w-fit"
-												onClick={() => tiersField.pushValue({ quantity: "", totalPrice: "" })}
+												onClick={() => tiersField.pushValue(emptyTierFormValues())}
 											>
 												<Plus /> Legg til trinn
 											</Button>

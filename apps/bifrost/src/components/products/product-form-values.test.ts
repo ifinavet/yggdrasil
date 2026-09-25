@@ -11,8 +11,8 @@ const jobListing = {
 	name: "Stillingsannonse",
 	category: "job_listing" as const,
 	volumeTiers: [
-		{ quantity: "1", totalPrice: "3 000" },
-		{ quantity: "2", totalPrice: "5500,50" },
+		{ key: "a", quantity: "1", totalPrice: "3 000" },
+		{ key: "b", quantity: "2", totalPrice: "5500,50" },
 	],
 	startupPrice: "500",
 };
@@ -63,7 +63,7 @@ describe("product form values", () => {
 				name: "",
 				unitPrice: "abc",
 				vatRate: "",
-				volumeTiers: [{ quantity: "x", totalPrice: "" }],
+				volumeTiers: [{ key: "a", quantity: "x", totalPrice: "" }],
 			})?.fields,
 		).toEqual({
 			name: "Skriv et produktnavn.",

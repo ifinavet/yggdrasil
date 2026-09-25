@@ -8,7 +8,11 @@ import {
 	type VolumeTier,
 } from "@workspace/shared/products";
 
-export type TierFormValues = { quantity: string; totalPrice: string };
+export type TierFormValues = { key: string; quantity: string; totalPrice: string };
+
+export function emptyTierFormValues(): TierFormValues {
+	return { key: crypto.randomUUID(), quantity: "", totalPrice: "" };
+}
 
 export type ProductFormValues = {
 	name: string;
@@ -102,6 +106,7 @@ export function toProductFormValues(product: {
 		unitPrice: oreToKronerField(product.unitPriceOre),
 		vatRate: String(product.vatRate),
 		volumeTiers: (product.volumeTiers ?? []).map((tier) => ({
+			key: crypto.randomUUID(),
 			quantity: String(tier.quantity),
 			totalPrice: oreToKronerField(tier.totalPriceOre),
 		})),

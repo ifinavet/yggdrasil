@@ -80,8 +80,9 @@ export const reorder = mutation({
 	handler: async (ctx, { ids }) => {
 		const admin = await requireRole(ctx, adminRoles);
 		const products = await ctx.db.query("products").withIndex("by_sortOrder").take(MAX_PRODUCTS);
-		const knownIds = products.map((product) => product._id).sort();
-		const givenIds = [...ids].sort();
+		const byId = (a: string, b: string) => a.localeCompare(b);
+		const knownIds = products.map((product) => product._id).sort(byId);
+		const givenIds = [...ids].sort(byId);
 		const coversAllProducts =
 			givenIds.length === knownIds.length && givenIds.every((id, index) => id === knownIds[index]);
 		if (!coversAllProducts) {
