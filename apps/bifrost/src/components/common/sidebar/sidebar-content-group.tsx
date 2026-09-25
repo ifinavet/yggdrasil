@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { PRODUCT_ROUTES } from "@/components/products/product-routes";
 
 const paths = {
 	superAdmin: [{ title: "Skjemaer", icon: ClipboardListIcon, path: "/feedback-forms" }],
@@ -74,7 +75,7 @@ const paths = {
 		{
 			title: "Produkter",
 			icon: BanknoteIcon,
-			path: "/products",
+			path: PRODUCT_ROUTES.list,
 			requiresProducts: true,
 		},
 	],

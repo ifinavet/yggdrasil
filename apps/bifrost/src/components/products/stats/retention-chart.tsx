@@ -6,6 +6,7 @@ import { scaleLinear } from "@tanstack/charts/scales/linear";
 import { tooltip } from "@tanstack/charts/tooltip";
 import { Chart } from "@tanstack/react-charts";
 import { type CompanyActivity, compactSemesterLabel } from "@workspace/shared/products";
+import { SEMESTER_LABEL } from "@workspace/shared/semester/labels";
 import { ChartLegend } from "@workspace/ui/components/products/chart-legend";
 import { Panel, PanelBody } from "@workspace/ui/components/products/panel";
 import { useMemo } from "react";
@@ -14,7 +15,6 @@ import { SERIES_COLORS } from "./series-colors";
 const RETURNING_COLOR = SERIES_COLORS.event;
 const NEW_COLOR = SERIES_COLORS.external_event;
 
-const X_AXIS_LABEL = "Semester";
 const Y_AXIS_LABEL = "Bedrifter";
 
 const RETURNING = { label: "Tilbakevendende", color: RETURNING_COLOR };
@@ -57,7 +57,7 @@ export function RetentionChart({ activity }: Readonly<{ activity: readonly Compa
 							.domain(semesters.map((semester) => semester.key))
 							.padding(0.22),
 					axis: {
-						label: X_AXIS_LABEL,
+						label: SEMESTER_LABEL,
 						ticks: { size: 0, format: (key: string) => labels.get(key) ?? key },
 						tickLabels: { thin: false, fontSize: 10 },
 					},
@@ -74,7 +74,7 @@ export function RetentionChart({ activity }: Readonly<{ activity: readonly Compa
 				items: [
 					{
 						channel: "x",
-						label: X_AXIS_LABEL,
+						label: SEMESTER_LABEL,
 						text: (point) => labels.get(point.datum.key) ?? point.datum.key,
 					},
 					{ field: "label", label: "Type" },

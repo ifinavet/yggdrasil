@@ -6,6 +6,7 @@ import {
 	BreadcrumbPage,
 	BreadcrumbSeparator,
 } from "@workspace/ui/components/breadcrumb";
+import { PRODUCT_ROUTES } from "./product-routes";
 
 export function ProductsBreadcrumb({ current }: Readonly<{ current?: string }>) {
 	return (
@@ -17,7 +18,7 @@ export function ProductsBreadcrumb({ current }: Readonly<{ current?: string }>) 
 				<BreadcrumbSeparator />
 				<BreadcrumbItem>
 					{current ? (
-						<BreadcrumbLink href="/products">Produkter</BreadcrumbLink>
+						<BreadcrumbLink href={PRODUCT_ROUTES.list}>Produkter</BreadcrumbLink>
 					) : (
 						<BreadcrumbPage>Produkter</BreadcrumbPage>
 					)}

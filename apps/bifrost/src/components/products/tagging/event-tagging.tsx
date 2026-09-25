@@ -31,11 +31,9 @@ import {
 } from "@workspace/ui/components/table";
 import { useMutation, useQuery } from "convex/react";
 import { useState } from "react";
+import { LIST_CELL, LIST_HEAD } from "@/components/common/table-classes";
 import { notifyProductMutation } from "../notify-product-mutation";
 import { currentSemester, currentSemesterKey, SemesterSelect } from "../semester-select";
-
-const HEAD = "h-10 px-3 text-[13px] text-muted-foreground";
-const CELL = "px-3 py-2.5";
 
 export function EventTagging() {
 	const [semester, setSemester] = useState(currentSemesterKey);
@@ -114,7 +112,7 @@ export function EventTagging() {
 			<Table>
 				<TableHeader>
 					<TableRow>
-						<TableHead className={`${HEAD} w-10`}>
+						<TableHead className={`${LIST_HEAD} w-10`}>
 							<Checkbox
 								aria-label="Velg alle"
 								checked={allSelected}
@@ -123,28 +121,28 @@ export function EventTagging() {
 								}
 							/>
 						</TableHead>
-						<TableHead className={HEAD}>Arrangement</TableHead>
-						<TableHead className={HEAD}>Dato</TableHead>
-						<TableHead className={HEAD}>Bedrift</TableHead>
-						<TableHead className={HEAD}>Produkt</TableHead>
+						<TableHead className={LIST_HEAD}>Arrangement</TableHead>
+						<TableHead className={LIST_HEAD}>Dato</TableHead>
+						<TableHead className={LIST_HEAD}>Bedrift</TableHead>
+						<TableHead className={LIST_HEAD}>Produkt</TableHead>
 					</TableRow>
 				</TableHeader>
 				<TableBody>
 					{visible.map((event) => (
 						<TableRow key={event._id}>
-							<TableCell className={CELL}>
+							<TableCell className={LIST_CELL}>
 								<Checkbox
 									aria-label={`Velg ${event.title}`}
 									checked={selected.has(event._id)}
 									onCheckedChange={(checked) => toggle(event._id, checked === true)}
 								/>
 							</TableCell>
-							<TableCell className={`${CELL} font-medium`}>{event.title}</TableCell>
-							<TableCell className={`${CELL} tabular-nums`}>
+							<TableCell className={`${LIST_CELL} font-medium`}>{event.title}</TableCell>
+							<TableCell className={`${LIST_CELL} tabular-nums`}>
 								{formatOsloDate(event.eventStart, DATE_PATTERNS.numericDate)}
 							</TableCell>
-							<TableCell className={CELL}>{event.companyName ?? "Ukjent bedrift"}</TableCell>
-							<TableCell className={CELL}>
+							<TableCell className={LIST_CELL}>{event.companyName ?? "Ukjent bedrift"}</TableCell>
+							<TableCell className={LIST_CELL}>
 								{event.product ? (
 									<span className="flex items-center gap-2">
 										{event.product.name}

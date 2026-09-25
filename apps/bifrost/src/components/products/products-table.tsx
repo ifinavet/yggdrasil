@@ -19,11 +19,10 @@ import { useMutation, useQuery } from "convex/react";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { LIST_CELL, LIST_HEAD } from "@/components/common/table-classes";
 import { notifyProductMutation } from "./notify-product-mutation";
 import { moveProductId } from "./product-history-format";
-
-const HEAD = "h-10 px-3 text-[13px] text-muted-foreground";
-const CELL = "px-3 py-2.5";
+import { PRODUCT_ROUTES } from "./product-routes";
 
 export function ProductsTable() {
 	const products = useQuery(api.products.queries.listAll, {});
@@ -47,29 +46,32 @@ export function ProductsTable() {
 		<Table>
 			<TableHeader>
 				<TableRow>
-					<TableHead className={HEAD}>Produkt</TableHead>
-					<TableHead className={HEAD}>Kategori</TableHead>
-					<TableHead className={HEAD}>Pris eks. mva.</TableHead>
-					<TableHead className={HEAD}>Status</TableHead>
-					<TableHead className={`${HEAD} w-24`}>Rekkefølge</TableHead>
+					<TableHead className={LIST_HEAD}>Produkt</TableHead>
+					<TableHead className={LIST_HEAD}>Kategori</TableHead>
+					<TableHead className={LIST_HEAD}>Pris eks. mva.</TableHead>
+					<TableHead className={LIST_HEAD}>Status</TableHead>
+					<TableHead className={`${LIST_HEAD} w-24`}>Rekkefølge</TableHead>
 				</TableRow>
 			</TableHeader>
 			<TableBody>
 				{products.map((product, index) => (
 					<TableRow key={product._id}>
-						<TableCell className={CELL}>
-							<Link href={`/products/${product._id}`} className="font-medium hover:underline">
+						<TableCell className={LIST_CELL}>
+							<Link
+								href={PRODUCT_ROUTES.detail(product._id)}
+								className="font-medium hover:underline"
+							>
 								{product.name}
 							</Link>
 						</TableCell>
-						<TableCell className={CELL}>
+						<TableCell className={LIST_CELL}>
 							<ProductCategoryBadge category={product.category} />
 						</TableCell>
-						<TableCell className={CELL}>{productPriceLabel(product)}</TableCell>
-						<TableCell className={CELL}>
+						<TableCell className={LIST_CELL}>{productPriceLabel(product)}</TableCell>
+						<TableCell className={LIST_CELL}>
 							<ProductStatusBadge active={product.active} />
 						</TableCell>
-						<TableCell className={CELL}>
+						<TableCell className={LIST_CELL}>
 							<div className="flex gap-1">
 								<Button
 									variant="ghost"

@@ -17,7 +17,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@workspace/ui/components/table";
-import { STATS_CELL, STATS_HEAD } from "./table-classes";
+import { STATS_CELL, STATS_HEAD } from "@/components/common/table-classes";
 
 export function CompanyTable({
 	companies,

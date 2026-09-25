@@ -20,6 +20,7 @@ import { Delta, Kpi, KpiStrip } from "@workspace/ui/components/products/kpi";
 import { useQuery } from "convex/react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { PRODUCT_ROUTES } from "../product-routes";
 import {
 	ALL_SEMESTERS,
 	currentSemester,
@@ -86,7 +87,7 @@ export function ProductStats() {
 					tone="warning"
 					action={
 						<Button variant="outline" size="sm" asChild>
-							<Link href="/products/tag">Merk arrangementer</Link>
+							<Link href={PRODUCT_ROUTES.tag}>Merk arrangementer</Link>
 						</Button>
 					}
 				>

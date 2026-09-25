@@ -6,6 +6,7 @@ import { scaleLinear } from "@tanstack/charts/scales/linear";
 import { tooltip } from "@tanstack/charts/tooltip";
 import { Chart } from "@tanstack/react-charts";
 import { formatNokFromOre, ORE_PER_KRONE, type SemesterRevenue } from "@workspace/shared/products";
+import { SEMESTER_LABEL } from "@workspace/shared/semester/labels";
 import { ChartLegend } from "@workspace/ui/components/products/chart-legend";
 import { Panel, PanelBody } from "@workspace/ui/components/products/panel";
 import { useMemo } from "react";
@@ -15,7 +16,6 @@ const kronerFormat = new Intl.NumberFormat("nb-NO", { maximumFractionDigits: 0 }
 const MUTED = "var(--muted-foreground)";
 const DIMMED_LABEL_OPACITY = 0.6;
 
-const X_AXIS_LABEL = "Semester";
 const Y_AXIS_LABEL = "Inntekt eks. mva.";
 
 const SERIES = {
@@ -95,7 +95,7 @@ export function RevenueChart({
 							.domain(semesters.map((semester) => semester.key))
 							.padding(0.2),
 					axis: {
-						label: X_AXIS_LABEL,
+						label: SEMESTER_LABEL,
 						ticks: { size: 0, format: (key: string) => labels.get(key) ?? key },
 						tickLabels: {
 							thin: false,
@@ -120,7 +120,7 @@ export function RevenueChart({
 				items: [
 					{
 						channel: "x",
-						label: X_AXIS_LABEL,
+						label: SEMESTER_LABEL,
 						text: (point) => labels.get(point.datum.key) ?? point.datum.key,
 					},
 					{ field: "series", label: "Produkt" },

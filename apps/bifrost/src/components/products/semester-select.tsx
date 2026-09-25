@@ -1,6 +1,7 @@
 "use client";
 
 import { type SemesterRef, semesterKey, semesterLabel } from "@workspace/shared/products";
+import { SEMESTER_LABEL } from "@workspace/shared/semester/labels";
 import { eventSemesterOf } from "@workspace/shared/time";
 import {
 	Select,
@@ -40,7 +41,7 @@ export function SemesterSelect({
 
 	return (
 		<Select value={value} onValueChange={onChange}>
-			<SelectTrigger className="w-[200px]" aria-label="Semester">
+			<SelectTrigger className="w-[200px]" aria-label={SEMESTER_LABEL}>
 				<SelectValue placeholder="Velg et semester" />
 			</SelectTrigger>
 			<SelectContent>
