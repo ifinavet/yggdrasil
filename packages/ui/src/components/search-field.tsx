@@ -51,6 +51,7 @@ export function SearchField({
 					if (event.key === "Escape") event.currentTarget.blur();
 				}}
 				placeholder={placeholder}
+				aria-label={placeholder}
 				className="min-w-0 flex-1 bg-transparent text-foreground text-sm outline-none placeholder:text-muted-foreground [&::-webkit-search-cancel-button]:hidden"
 			/>
 			<span className="ml-auto inline-flex gap-0.5">
