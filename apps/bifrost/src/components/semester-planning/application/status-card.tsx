@@ -9,7 +9,8 @@ import { Fragment, type ReactNode, useState } from "react";
 import { toast } from "sonner";
 import { capitalize, formatMoment, longDay, shortDay, shortDayTitle } from "../format";
 import { OfferLink, offerEmail, offerUrl } from "../offer-link";
-import { isActiveStatus, STATUS_CALLOUT_CLASSES, STATUS_DOT_CLASSES } from "../status";
+import { isActiveStatus, STATUS_CALLOUT_CLASSES } from "../status";
+import { StatusIcon } from "../status-badge";
 import { AssignDateDialog, useAssignDate } from "./assign-date-dialog";
 import { ConfirmDialog } from "./confirm-dialog";
 import { actorName } from "./history-card";
@@ -148,10 +149,7 @@ export function StatusCard({
 					STATUS_CALLOUT_CLASSES[status],
 				)}
 			>
-				<span
-					aria-hidden
-					className={cn("size-2 shrink-0 rounded-full", STATUS_DOT_CLASSES[status])}
-				/>
+				<StatusIcon status={status} />
 				<p className="min-w-0 flex-1 basis-56">
 					<StatusMessage
 						details={details}

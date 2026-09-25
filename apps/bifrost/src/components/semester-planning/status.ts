@@ -1,4 +1,5 @@
 import type { ApplicationStatus } from "@workspace/shared/semester/labels";
+import { CalendarSync, CircleCheck, CircleX, Clock, type LucideIcon, Send } from "lucide-react";
 
 // Application statuses in Bifrost: whether one still counts, and its colour. Colour only ever means
 // the application's status. Full class names, so Tailwind sees them.
@@ -17,6 +18,17 @@ export const STATUS_DOT_CLASSES: Record<ApplicationStatus, string> = {
 	declined: "bg-status-closed",
 	rejected: "bg-status-closed",
 	withdrawn: "bg-status-closed",
+};
+
+/** The symbol for a status, in its colour: in status messages and in the Plan. */
+export const STATUS_ICONS: Record<ApplicationStatus, { icon: LucideIcon; className: string }> = {
+	applied: { icon: Send, className: "text-muted-foreground" },
+	offer_sent: { icon: Clock, className: "text-status-offer" },
+	new_date_requested: { icon: CalendarSync, className: "text-status-new-date" },
+	confirmed: { icon: CircleCheck, className: "text-status-confirmed" },
+	declined: { icon: CircleX, className: "text-muted-foreground" },
+	rejected: { icon: CircleX, className: "text-muted-foreground" },
+	withdrawn: { icon: CircleX, className: "text-muted-foreground" },
 };
 
 /** A chip filled with the status colour, like the assigned date, with text that stays readable. */
