@@ -1,5 +1,6 @@
 import type { api } from "@workspace/backend/convex/api";
 import {
+	companyChangesSchema,
 	type JobListingOrderSettings,
 	jobListingOrderSchema,
 	richTextIsEmpty,
@@ -36,6 +37,18 @@ function companyChanges(values: OrderFormValues, companyOnFile: CompanyOnFile | 
 				: description,
 		logo,
 	});
+}
+
+export function companyChangeErrors(
+	values: OrderFormValues,
+	companyOnFile: CompanyOnFile | null,
+): Record<string, string> {
+	const result = companyChangesSchema.safeParse(companyChanges(values, companyOnFile) ?? {});
+	const errors: Record<string, string> = {};
+	for (const issue of result.success ? [] : result.error.issues) {
+		errors[fieldPath(["companyChanges", ...issue.path])] ??= issue.message;
+	}
+	return errors;
 }
 
 function orderCompany({ company }: OrderFormValues): OrderFormArgs["company"] {

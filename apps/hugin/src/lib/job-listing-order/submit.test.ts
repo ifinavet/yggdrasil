@@ -4,6 +4,7 @@ import { companyCopy } from "./copy";
 import { emptyOrderForm, type OrderFormValues } from "./form-values";
 import {
 	billingRequired,
+	companyChangeErrors,
 	fieldPath,
 	type OrderContext,
 	orderFormErrors,
@@ -209,5 +210,38 @@ describe("orderFormErrors", () => {
 	it("requires the amount to be confirmed", () => {
 		const errors = orderFormErrors(validValues({ confirmAmount: false }), context, settings, today);
 		expect(errors.confirmAmount).toBe("Bekreft bestillingen og beløpet.");
+	});
+});
+
+describe("companyChangeErrors", () => {
+	const changesTo = (companyChanges: OrderFormValues["companyChanges"]) =>
+		validValues({ companyCorrect: "no", companyChanges });
+
+	it("accepts a changed display name", () => {
+		const values = changesTo({ displayName: "Acme AS", description: "<p>Om Acme</p>", logo: "" });
+		expect(companyChangeErrors(values, companyOnFile)).toEqual({});
+	});
+
+	it("accepts a new logo alone", () => {
+		const values = changesTo({
+			displayName: "Acme",
+			description: "<p>Om Acme</p>",
+			logo: "storage-1",
+		});
+		expect(companyChangeErrors(values, companyOnFile)).toEqual({});
+	});
+
+	it("rejects changes identical to what is on file", () => {
+		const values = changesTo({ displayName: " Acme ", description: "<p>Om Acme</p>", logo: "" });
+		expect(companyChangeErrors(values, companyOnFile)).toEqual({
+			companyChanges: "Endre minst ett felt, eller svar ja.",
+		});
+	});
+
+	it("reports a too long display name on its field", () => {
+		const values = changesTo({ displayName: "A".repeat(101), description: "", logo: "" });
+		expect(companyChangeErrors(values, companyOnFile)).toHaveProperty([
+			"companyChanges.displayName",
+		]);
 	});
 });

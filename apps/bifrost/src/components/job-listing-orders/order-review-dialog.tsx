@@ -272,7 +272,9 @@ function OrderItemReview({
 					<div className="flex items-center gap-3">
 						<CompanyLogo name={companyName} url={logoUrl} size="lg" />
 						<div className="flex flex-col">
-							<span className="font-semibold text-lg text-primary">{item.title}</span>
+							<span className="font-semibold text-lg text-primary dark:text-primary-light">
+								{item.title}
+							</span>
 							<span className="text-muted-foreground text-sm">{companyName}</span>
 						</div>
 					</div>
@@ -292,7 +294,7 @@ function OrderItemReview({
 					href={item.applicationUrl}
 					target="_blank"
 					rel="noreferrer"
-					className="break-all text-primary text-sm underline"
+					className="break-all text-primary text-sm underline dark:text-primary-light"
 				>
 					{item.applicationUrl}
 				</a>

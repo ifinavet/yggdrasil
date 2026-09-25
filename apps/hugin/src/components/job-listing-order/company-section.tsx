@@ -9,15 +9,17 @@ import { Input } from "@workspace/ui/components/input";
 import { RadioGroup, RadioGroupItem } from "@workspace/ui/components/radio-group";
 import { RichTextEditor } from "@workspace/ui/components/rich-text-editor";
 import type { FunctionReturnType } from "convex/server";
-import { Pencil } from "lucide-react";
+import { CircleCheck, Pencil } from "lucide-react";
 import { useState } from "react";
 import { SafeHtml } from "@/components/safe-html";
 import { companyCopy } from "@/lib/job-listing-order/copy";
 import type { CompanyValues } from "@/lib/job-listing-order/form-values";
+import { companyChangeErrors } from "@/lib/job-listing-order/submit";
 import { CompanyPicker } from "./company-picker";
 import { ErrorLine, FormRow } from "./form-row";
 import { LogoPreview, LogoUploadField, useLogoUpload } from "./logo-upload";
 import { OrderSection } from "./order-section";
+import { PACKAGE_SECTION_ID } from "./package-picker";
 import type { OrderFormApi } from "./use-order-form";
 
 type CompanyOption = FunctionReturnType<typeof api.jobListingOrders.form.companies>[number];
@@ -72,9 +74,11 @@ export function CompanySection({
 
 function CompanyConfirmCard({ form, card }: Readonly<{ form: OrderFormApi; card: CompanyCard }>) {
 	const [logoPreview, setLogoPreview] = useState<string>();
+	const [changesSaved, setChangesSaved] = useState(false);
 	const answer = useStore(form.store, (state) => state.values.companyCorrect);
 
 	const answerNo = () => {
+		setChangesSaved(false);
 		const changes = form.getFieldValue("companyChanges");
 		if (
 			form.getFieldValue("companyCorrect") !== "no" &&
@@ -159,28 +163,82 @@ function CompanyConfirmCard({ form, card }: Readonly<{ form: OrderFormApi; card:
 					</div>
 				)}
 			</form.Field>
-			{answer === "no" && <CompanyChangeFields form={form} />}
+			{answer === "no" &&
+				(changesSaved ? (
+					<SavedChanges onEdit={() => setChangesSaved(false)} />
+				) : (
+					<CompanyChangeFields
+						form={form}
+						card={card}
+						onSaved={() => {
+							setChangesSaved(true);
+							requestAnimationFrame(() =>
+								document
+									.getElementById(PACKAGE_SECTION_ID)
+									?.scrollIntoView({ behavior: "smooth", block: "nearest" }),
+							);
+						}}
+					/>
+				))}
 		</div>
 	);
 }
 
-function CompanyChangeFields({ form }: Readonly<{ form: OrderFormApi }>) {
+function SavedChanges({ onEdit }: Readonly<{ onEdit: () => void }>) {
 	return (
-		<div className="flex flex-col gap-5 border-t pt-5">
-			<span className="text-muted-foreground text-sm">{companyCopy.changesHint}</span>
+		<div
+			role="status"
+			className="flex items-start gap-3 rounded-lg bg-primary-light px-4 py-3 text-primary text-sm dark:bg-accent dark:text-accent-foreground"
+		>
+			<CircleCheck className="mt-0.5 size-4 flex-none" />
+			<div className="flex min-w-0 flex-1 flex-col gap-1">
+				<span className="font-medium">{companyCopy.changesSaved}</span>
+				<span>{companyCopy.changesSavedHint}</span>
+			</div>
+			<Button type="button" variant="outline" size="sm" onClick={onEdit}>
+				{companyCopy.editChanges}
+			</Button>
+		</div>
+	);
+}
+
+function CompanyChangeFields({
+	form,
+	card,
+	onSaved,
+}: Readonly<{ form: OrderFormApi; card: CompanyCard; onSaved: () => void }>) {
+	const [saveErrors, setSaveErrors] = useState<Record<string, string>>({});
+
+	const save = () => {
+		const errors = companyChangeErrors(form.state.values, card);
+		setSaveErrors(errors);
+		if (Object.keys(errors).length === 0) onSaved();
+	};
+
+	const errorsFor = (path: string, errors: readonly unknown[]) => [saveErrors[path], ...errors];
+
+	return (
+		<div className="flex flex-col gap-5 rounded-lg border p-4">
+			<div className="flex flex-col gap-1">
+				<span className="font-semibold">{companyCopy.changesLegend}</span>
+				<span className="text-muted-foreground text-sm">{companyCopy.changesHint}</span>
+			</div>
 			<form.Field name="companyChanges.displayName">
 				{(field) => (
 					<FormRow
 						label={companyCopy.displayName}
 						htmlFor="order-changes-name"
-						errors={field.state.meta.errors}
+						errors={errorsFor(field.name, field.state.meta.errors)}
 					>
 						<Input
 							id="order-changes-name"
 							value={field.state.value}
-							aria-invalid={field.state.meta.errors.length > 0}
+							aria-invalid={field.state.meta.errors.length > 0 || field.name in saveErrors}
 							onBlur={field.handleBlur}
-							onChange={(event) => field.handleChange(event.target.value)}
+							onChange={(event) => {
+								setSaveErrors({});
+								field.handleChange(event.target.value);
+							}}
 						/>
 					</FormRow>
 				)}
@@ -190,21 +248,27 @@ function CompanyChangeFields({ form }: Readonly<{ form: OrderFormApi }>) {
 					<FormRow
 						label={companyCopy.description}
 						htmlFor="order-changes-description"
-						errors={field.state.meta.errors}
+						errors={errorsFor(field.name, field.state.meta.errors)}
 					>
 						<RichTextEditor
 							id="order-changes-description"
 							value={field.state.value}
-							invalid={field.state.meta.errors.length > 0}
+							invalid={field.state.meta.errors.length > 0 || field.name in saveErrors}
 							onBlur={field.handleBlur}
-							onChange={field.handleChange}
+							onChange={(value) => {
+								setSaveErrors({});
+								field.handleChange(value);
+							}}
 						/>
 					</FormRow>
 				)}
 			</form.Field>
 			<form.Field name="companyChanges">
-				{(field) => <ErrorLine errors={field.state.meta.errors} />}
+				{(field) => <ErrorLine errors={errorsFor(field.name, field.state.meta.errors)} />}
 			</form.Field>
+			<Button type="button" className="w-fit" onClick={save}>
+				{companyCopy.saveChanges}
+			</Button>
 		</div>
 	);
 }

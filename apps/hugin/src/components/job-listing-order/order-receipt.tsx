@@ -23,7 +23,7 @@ export function OrderReceipt({ token, receipt }: Readonly<{ token: string; recei
 			<div className="mb-4 grid size-[46px] place-items-center rounded-xl bg-primary-light text-primary print:hidden">
 				<CircleCheck className="size-6" />
 			</div>
-			<h1 className="m-0 mb-2 font-bold text-[20px] text-primary leading-[1.22]">
+			<h1 className="m-0 mb-2 font-bold text-[20px] text-primary leading-[1.22] dark:text-primary-foreground">
 				{receiptCopy.title}
 			</h1>
 			<p className="m-0 mb-6 text-[14.5px]">{receiptCopy.body}</p>
@@ -47,7 +47,7 @@ export function OrderReceipt({ token, receipt }: Readonly<{ token: string; recei
 				</ReceiptRow>
 			</dl>
 			{receipt.updateRequested && (
-				<p className="mt-4 rounded-lg bg-primary-light px-3 py-2.5 text-primary text-sm print:bg-transparent print:px-0 print:text-foreground">
+				<p className="mt-4 rounded-lg bg-primary-light px-3 py-2.5 text-primary text-sm dark:bg-accent dark:text-accent-foreground print:bg-transparent print:px-0 print:text-foreground">
 					{receiptCopy.updateRequested}
 				</p>
 			)}

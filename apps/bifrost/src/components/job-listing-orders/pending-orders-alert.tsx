@@ -17,7 +17,7 @@ export function PendingOrdersAlert() {
 	if (!orders?.length) return null;
 
 	return (
-		<div className="flex flex-col gap-3 rounded-lg bg-primary-light px-5 py-4">
+		<div className="flex flex-col gap-3 rounded-lg bg-primary-light px-5 py-4 dark:bg-accent">
 			<p className="font-medium">
 				{orders.length === 1
 					? "1 bestilling venter på godkjenning"

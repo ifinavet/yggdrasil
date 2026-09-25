@@ -89,7 +89,9 @@ export function OrderForm({
 
 	return (
 		<div className="mx-auto w-full max-w-3xl">
-			<h1 className="mb-2 font-bold text-2xl text-primary">{orderPageCopy.title}</h1>
+			<h1 className="mb-2 font-bold text-2xl text-primary dark:text-primary-foreground">
+				{orderPageCopy.title}
+			</h1>
 			<p className="mb-8 text-muted-foreground">{settings.intro}</p>
 			<form
 				ref={formElement}

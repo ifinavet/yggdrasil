@@ -15,6 +15,8 @@ import { ErrorLine } from "./form-row";
 import { OrderSection } from "./order-section";
 import type { OrderFormApi } from "./use-order-form";
 
+export const PACKAGE_SECTION_ID = "order-package";
+
 export type ListingProduct = NonNullable<
 	FunctionReturnType<typeof api.jobListingOrders.form.product>
 >;
@@ -28,7 +30,7 @@ export function PackagePicker({
 	const offersStartup = product.startupPriceOre !== undefined;
 
 	return (
-		<OrderSection legend={packageCopy.legend}>
+		<OrderSection id={PACKAGE_SECTION_ID} legend={packageCopy.legend}>
 			<div className="flex flex-col gap-1">
 				<span className="font-medium">{product.name}</span>
 				<span className="text-muted-foreground text-sm">{product.shortDescription}</span>
@@ -49,7 +51,7 @@ export function PackagePicker({
 						</SegmentedControlItem>
 					))}
 				</SegmentedControl>
-				<p className="flex items-start gap-2 rounded-lg bg-primary-light px-3 py-2.5 text-primary text-sm">
+				<p className="flex items-start gap-2 rounded-lg bg-primary-light px-3 py-2.5 text-primary text-sm dark:bg-accent dark:text-accent-foreground">
 					<Info className="mt-0.5 size-4 flex-none" />
 					{packageCopy.quantityInfo}
 				</p>

@@ -45,7 +45,12 @@ export const companyCopy = {
 	yes: "Ja",
 	no: "Nei",
 	answerRequired: "Svar ja eller nei.",
+	changesLegend: "Endringsforslag",
 	changesHint: "Endringene sendes til Navet for godkjenning.",
+	saveChanges: "Lagre endringsforslag",
+	changesSaved: "Endringsforslaget er lagt ved bestillingen.",
+	changesSavedHint: "Navet godkjenner det før det vises. Fortsett med bestillingen under.",
+	editChanges: "Rediger",
 	billingOnFile: "Fakturainformasjon er registrert.",
 	billingMissing: "Fakturainformasjon mangler.",
 } as const;
