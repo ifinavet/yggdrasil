@@ -216,7 +216,7 @@ export default function EventForm({
 					<form.Field name="hostingCompany">
 						{(field) => (
 							<CompanySelectField
-								initialCompanyName={field.state.value.name}
+								company={field.state.value}
 								onCompanyChange={(company) => field.handleChange(company)}
 								errors={field.state.meta.errors}
 								isInvalid={field.state.meta.isTouched && !field.state.meta.isValid}

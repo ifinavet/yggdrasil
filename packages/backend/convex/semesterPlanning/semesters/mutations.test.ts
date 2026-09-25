@@ -1,9 +1,13 @@
 import { MIDGARD_URL } from "@workspace/shared/constants";
 import { describe, expect, it } from "vitest";
 import {
+	activityFor,
+	applicationById,
 	asUser,
 	grantRole,
 	insertApplication,
+	insertEvent,
+	insertOrganizer,
 	insertSemester,
 	insertUser,
 	refusalMessageFrom,
@@ -374,7 +378,7 @@ describe("setStatus", () => {
 describe("finalizePlan", () => {
 	it("records who finalized the plan and keeps the first time", async () => {
 		const { t } = await setup();
-		const semesterId = await insertSemester(t);
+		const semesterId = await insertSemester(t, { defaultEventStartTime: "16:15" });
 		const editor = await editorOf(t);
 
 		await editor.mutation(mutations.finalizePlan, { semesterId });
@@ -402,7 +406,7 @@ describe("finalizePlan", () => {
 
 	it("is undone when an application needs an offer again, and by unfinalizePlan", async () => {
 		const { t } = await setup();
-		const semesterId = await insertSemester(t);
+		const semesterId = await insertSemester(t, { defaultEventStartTime: "16:15" });
 		await t.run((ctx) => ctx.db.insert("semesterDates", { semesterId, date: "2027-02-16" }));
 		const applicationId = await insertApplication(t, semesterId, {
 			status: "confirmed",
@@ -423,6 +427,146 @@ describe("finalizePlan", () => {
 		await editor.mutation(mutations.unfinalizePlan, { semesterId });
 		const semester = await semesterById(t, semesterId);
 		expect([semester.planFinalizedAt, semester.planFinalizedBy]).toEqual([undefined, undefined]);
+	});
+
+	async function withConfirmedApplications() {
+		const { t, companyId } = await setup();
+		const [responsible, helper] = await Promise.all(
+			["emil@ifinavet.no", "ida@ifinavet.no"].map(async (email) => {
+				const user = await insertUser(t, email);
+				await grantRole(t, user._id, "internal");
+				return user;
+			}),
+		);
+		const semesterId = await insertSemester(t, { defaultEventStartTime: "16:15" });
+		const applicationId = await insertApplication(t, semesterId, {
+			status: "confirmed",
+			assignedDate: "2027-02-09",
+			// The org.nr. of the fixture's company profile, «Testbedrift».
+			orgNumber: "123456789",
+			registry: {
+				name: "TESTBEDRIFT AS",
+				organizationForm: { code: "AS", description: "Aksjeselskap" },
+				fetchedAt: Date.now(),
+			},
+			responsibleUserId: responsible._id,
+			helperUserIds: [helper._id],
+		});
+		// FJORDKODE AS has no company profile.
+		await insertApplication(t, semesterId, { status: "confirmed", assignedDate: "2027-02-11" });
+		await insertApplication(t, semesterId, { status: "declined" });
+		return {
+			t,
+			companyId,
+			semesterId,
+			applicationId,
+			responsible,
+			helper,
+			editor: await editorOf(t),
+		};
+	}
+
+	async function eventsOf(t: TestBackend) {
+		return t.run((ctx) => ctx.db.query("events").collect());
+	}
+
+	it("creates a draft event for each confirmed application, and names companies without a profile", async () => {
+		const { t, companyId, semesterId, applicationId, responsible, helper, editor } =
+			await withConfirmedApplications();
+
+		const result = await editor.mutation(mutations.finalizePlan, { semesterId });
+
+		expect(result).toEqual({ created: 1, missingProfile: ["FJORDKODE AS"] });
+		const [event] = await eventsOf(t);
+		expect(event).toMatchObject({
+			hostingCompany: companyId,
+			published: false,
+			eventStart: Date.parse("2027-02-09T15:15:00Z"),
+		});
+		expect((await applicationById(t, applicationId)).eventId).toBe(event?._id);
+		const organizers = await t.run((ctx) => ctx.db.query("eventOrganizers").collect());
+		// The hand-picked team is kept; the last medhjelper is proposed.
+		expect(organizers.map((row) => [row.userId, row.role]).slice(0, 2)).toEqual([
+			[responsible._id, "hovedansvarlig"],
+			[helper._id, "medhjelper"],
+		]);
+		expect(organizers).toHaveLength(3);
+		const [linked] = await activityFor(t, applicationId);
+		expect(linked).toMatchObject({
+			type: "event_linked",
+			actorUserId: (await semesterById(t, semesterId)).planFinalizedBy,
+		});
+	});
+
+	it("proposes a Navet team for applications without one, least loaded first", async () => {
+		const { t, companyId, semesterId, applicationId, responsible, helper, editor } =
+			await withConfirmedApplications();
+		await t.run((ctx) =>
+			ctx.db.patch(applicationId, { responsibleUserId: undefined, helperUserIds: undefined }),
+		);
+		// Emil already organizes an event in the semester, so he is picked last.
+		const otherEventId = await insertEvent(t, companyId, {
+			eventStart: Date.parse("2027-03-02T15:15:00Z"),
+		});
+		await insertOrganizer(t, otherEventId, responsible._id);
+
+		await editor.mutation(mutations.finalizePlan, { semesterId });
+
+		const { eventId, responsibleUserId, helperUserIds } = await applicationById(t, applicationId);
+		expect(helperUserIds).toHaveLength(2);
+		expect(responsibleUserId).toBe(helper._id);
+		expect(helperUserIds?.at(-1)).toBe(responsible._id);
+		const organizers = await t.run((ctx) =>
+			ctx.db
+				.query("eventOrganizers")
+				.withIndex("by_eventId", (q) => q.eq("eventId", eventId as Id<"events">))
+				.collect(),
+		);
+		expect(organizers.map((row) => row.role).sort()).toEqual([
+			"hovedansvarlig",
+			"medhjelper",
+			"medhjelper",
+		]);
+	});
+
+	it("is safe to repeat, and moves a draft whose date changed", async () => {
+		const { t, semesterId, applicationId, editor } = await withConfirmedApplications();
+		await editor.mutation(mutations.finalizePlan, { semesterId });
+
+		const again = await editor.mutation(mutations.finalizePlan, { semesterId });
+		expect(again.created).toBe(0);
+
+		await editor.mutation(mutations.unfinalizePlan, { semesterId });
+		await t.run((ctx) => ctx.db.patch(applicationId, { assignedDate: "2027-02-16" }));
+		await editor.mutation(mutations.finalizePlan, { semesterId });
+
+		const events = await eventsOf(t);
+		expect(events).toHaveLength(1);
+		expect(events[0]?.eventStart).toBe(Date.parse("2027-02-16T15:15:00Z"));
+	});
+
+	it("refuses without a start time for events, and makes nothing", async () => {
+		const { t, semesterId, editor } = await withConfirmedApplications();
+		await t.run((ctx) => ctx.db.patch(semesterId, { defaultEventStartTime: undefined }));
+
+		const message = await refusalMessageFrom(
+			editor.mutation(mutations.finalizePlan, { semesterId }),
+		);
+		expect(message).toBe("Sett starttid for arrangementer i innstillingene først.");
+		expect(await eventsOf(t)).toHaveLength(0);
+	});
+
+	it("refuses the whole run with the company's name when an event cannot be made", async () => {
+		const { t, semesterId, applicationId, responsible, editor } = await withConfirmedApplications();
+		await t.run((ctx) =>
+			ctx.db.patch(applicationId, { helperUserIds: [responsible._id, responsible._id] }),
+		);
+
+		const message = await refusalMessageFrom(
+			editor.mutation(mutations.finalizePlan, { semesterId }),
+		);
+		expect(message).toBe("TESTBEDRIFT AS: Samme person er valgt som medhjelper to ganger.");
+		expect((await semesterById(t, semesterId)).planFinalizedAt).toBeUndefined();
 	});
 });
 
