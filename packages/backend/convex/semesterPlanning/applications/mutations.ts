@@ -1,12 +1,10 @@
-import { applicationContactSchema } from "@workspace/shared/semester/application";
-import { MAX_INTERNAL_NOTES_LENGTH, MAX_ROOM_LENGTH } from "@workspace/shared/semester/limits";
-import { toCompanyProfileOrgNumber } from "@workspace/shared/semester/orgNumber";
-import { isIsoDate, osloDateTimeToEpoch } from "@workspace/shared/time";
+import { closedDateLabel } from "@workspace/shared/semester/labels";
+import { MAX_INTERNAL_NOTES_LENGTH } from "@workspace/shared/semester/limits";
+import { isIsoDate } from "@workspace/shared/time";
 import { ConvexError, v } from "convex/values";
 import type { Doc, Id } from "../../_generated/dataModel";
 import { type MutationCtx, mutation } from "../../_generated/server";
 import { internalRoles, userHasRole } from "../../auth/accessRights";
-import { insertEventWithOrganizers } from "../../events/helper";
 import {
 	type Actor,
 	findActiveApplicationOnDate,
@@ -14,14 +12,11 @@ import {
 	requireEditorActor,
 	transitionApplicationStatus,
 } from "../applicationLifecycle";
+import { deleteDraftEvent, ensureDraftEvent } from "../events";
 import { supersedePendingOffers } from "../offers/helper";
 import { isActiveApplicationStatus } from "../rules";
-import { applicationContact } from "../schema";
 import { requireSemester } from "../semesters/helper";
-import { requireApplication } from "./helper";
-
-const CONFIRMED_LOCKED_MESSAGE =
-	"Bekreftede søknader kan ikke flyttes. Trekk og gjenåpne søknaden først.";
+import { requireApplication, requireValidHelpers } from "./helper";
 
 function refuseIfApplicationInactive(application: Doc<"companyApplications">): void {
 	if (!isActiveApplicationStatus(application.status)) {
@@ -31,7 +26,8 @@ function refuseIfApplicationInactive(application: Doc<"companyApplications">): v
 
 /**
  * Moves an application to a new date or clears it. The old offer stops working, and an
- * application with an open offer goes back to «Søkt» until a new offer is sent.
+ * application with an offer goes back to «Søkt» until a new offer is sent. A confirmed
+ * application's unpublished event is deleted; a published one stops the move.
  */
 async function setAssignedDate(
 	ctx: MutationCtx,
@@ -41,11 +37,10 @@ async function setAssignedDate(
 ): Promise<void> {
 	await supersedePendingOffers(ctx, application._id);
 
-	const hasOpenOffer =
-		application.status === "offer_sent" || application.status === "new_date_requested";
-	if (hasOpenOffer) {
+	if (application.status !== "applied") {
+		await deleteDraftEvent(ctx, application);
 		await transitionApplicationStatus(ctx, application, "applied", actor, {
-			patch: { assignedDate: date },
+			patch: { assignedDate: date, eventId: undefined },
 		});
 	} else {
 		await ctx.db.patch(application._id, { assignedDate: date });
@@ -64,8 +59,8 @@ async function setAssignedDate(
 
 /**
  * Gives an application a date, or clears it with null. Refuses closed dates, dates another
- * company holds, confirmed applications and closed semesters. A date the company did not tick is
- * allowed, and reported back so Bifrost can warn.
+ * company holds and closed semesters. A confirmed application goes back to «Søkt» and needs a new
+ * offer. A date the company did not tick is allowed, and reported back so Bifrost can warn.
  *
  * @param {Id<"companyApplications">} applicationId - The application.
  * @param {string | null} date - The day as YYYY-MM-DD, or null to clear it.
@@ -80,7 +75,6 @@ export const assignDate = mutation({
 		const actor = await requireEditorActor(ctx);
 		const application = await requireApplication(ctx, applicationId);
 		refuseIfApplicationInactive(application);
-		if (application.status === "confirmed") throw new ConvexError(CONFIRMED_LOCKED_MESSAGE);
 
 		const semester = await requireSemester(ctx, application.semesterId);
 		if (semester.status === "closed") throw new ConvexError("Semesteret er stengt.");
@@ -98,8 +92,8 @@ export const assignDate = mutation({
 			)
 			.first();
 		if (!semesterDate) throw new ConvexError("Datoen finnes ikke i semesteret.");
-		if (semesterDate.closedLabel) {
-			throw new ConvexError(`Datoen er stengt: ${semesterDate.closedLabel}.`);
+		if (semesterDate.closedLabel !== undefined) {
+			throw new ConvexError(`Datoen er stengt: ${closedDateLabel(semesterDate.closedLabel)}.`);
 		}
 
 		const holder = await findActiveApplicationOnDate(
@@ -122,14 +116,16 @@ const closeApplicationArgs = {
 };
 
 /**
- * Rejects or withdraws an application and stops its offer link. Shared by reject and withdraw.
+ * Rejects or withdraws an application and stops its offer link. An unpublished event is deleted;
+ * a published one stops the change. Shared by reject and withdraw.
  *
  * @param {MutationCtx} ctx - The Convex mutation context.
  * @param {Id<"companyApplications">} applicationId - The application.
  * @param {"rejected" | "withdrawn"} status - The closing status.
  * @param {string} [comment] - Why, for the history.
  *
- * @throws - An error if the caller is not an editor, or the status does not allow the change.
+ * @throws - An error if the caller is not an editor, the status does not allow the change, or the
+ * event is published or has registrations.
  * @returns {Promise<null>} - Resolves with null when the application is closed.
  */
 async function closeApplication(
@@ -141,7 +137,11 @@ async function closeApplication(
 	const actor = await requireEditorActor(ctx);
 	const application = await requireApplication(ctx, applicationId);
 
-	await transitionApplicationStatus(ctx, application, status, actor, comment ? { comment } : {});
+	await deleteDraftEvent(ctx, application);
+	await transitionApplicationStatus(ctx, application, status, actor, {
+		patch: { eventId: undefined },
+		...(comment ? { comment } : {}),
+	});
 	await supersedePendingOffers(ctx, applicationId);
 	return null;
 }
@@ -180,8 +180,8 @@ export const withdraw = mutation({
 });
 
 /**
- * Reopens a rejected or withdrawn application as «Søkt». Its old date is cleared, since another
- * company may have been given it in the meantime.
+ * Reopens a declined, rejected or withdrawn application as «Søkt». Its old date is cleared, since
+ * another company may have been given it in the meantime, and so is a link to a deleted event.
  *
  * @param {Id<"companyApplications">} applicationId - The application.
  *
@@ -194,81 +194,55 @@ export const reopen = mutation({
 	handler: async (ctx, { applicationId }) => {
 		const actor = await requireEditorActor(ctx);
 		const application = await requireApplication(ctx, applicationId);
+		if (isActiveApplicationStatus(application.status)) {
+			throw new ConvexError("Bare avslåtte og trukne søknader kan gjenåpnes.");
+		}
+		const eventGone = application.eventId && !(await ctx.db.get(application.eventId));
 
 		await transitionApplicationStatus(ctx, application, "applied", actor, {
-			patch: { assignedDate: undefined },
+			patch: { assignedDate: undefined, ...(eventGone ? { eventId: undefined } : {}) },
 		});
 		return null;
 	},
 });
 
 /**
- * Links an application to a company profile in Bifrost. The organization numbers must match; the
- * link is never made automatically.
+ * Updates who from Navet runs the event, the kontaktperson and medhjelpere, and the internal
+ * notes. Once the event exists, its organizers are the team, so the team is changed on the event
+ * instead. These changes are not written to the history.
  *
  * @param {Id<"companyApplications">} applicationId - The application.
- * @param {Id<"companies">} companyId - The company profile.
- *
- * @throws - An error if the caller is not an editor, or the numbers do not match.
- * @returns {null} - Returns null when the application is linked.
- */
-export const linkCompany = mutation({
-	args: { applicationId: v.id("companyApplications"), companyId: v.id("companies") },
-	returns: v.null(),
-	handler: async (ctx, { applicationId, companyId }) => {
-		const actor = await requireEditorActor(ctx);
-		const application = await requireApplication(ctx, applicationId);
-		const company = await ctx.db.get(companyId);
-		if (!company) throw new ConvexError("Bedriftsprofilen ble ikke funnet.");
-
-		if (company.orgNumber !== toCompanyProfileOrgNumber(application.orgNumber)) {
-			throw new ConvexError("Bedriftsprofilen har et annet organisasjonsnummer enn søknaden.");
-		}
-		if (application.companyId === companyId) return null;
-
-		await ctx.db.patch(applicationId, { companyId });
-		await logApplicationActivity(ctx, applicationId, "company_linked", actor);
-		return null;
-	},
-});
-
-/**
- * Updates the practical planning fields: org-ansvarlig, room, whether the room is booked and the
- * food ordered, and internal notes. These changes are not written to the history.
- *
- * @param {Id<"companyApplications">} applicationId - The application.
- * @param {Id<"users"> | null} [responsibleUserId] - The org-ansvarlig, or null to clear.
- * @param {string} [room] - Room or location; an empty string clears it.
- * @param {boolean} [roomBooked] - Whether the room is booked.
- * @param {boolean} [foodOrdered] - Whether the food is ordered.
+ * @param {Id<"users"> | null} [responsibleUserId] - The kontaktperson from Navet, or null to clear.
+ * @param {Id<"users">[]} [helperUserIds] - Up to MAX_HELPERS medhjelpere; an empty list clears them.
  * @param {string} [internalNotes] - Notes for editors; an empty string clears them.
  *
- * @throws - An error if the caller is not an editor, or the org-ansvarlig is not an internal member.
+ * @throws - An error if the caller is not an editor, the team is changed after the event exists,
+ * or a team member is not an internal member or is picked twice.
  * @returns {null} - Returns null when the fields are saved.
  */
 export const updatePlanningDetails = mutation({
 	args: {
 		applicationId: v.id("companyApplications"),
 		responsibleUserId: v.optional(v.union(v.id("users"), v.null())),
-		room: v.optional(v.string()),
-		roomBooked: v.optional(v.boolean()),
-		foodOrdered: v.optional(v.boolean()),
+		helperUserIds: v.optional(v.array(v.id("users"))),
 		internalNotes: v.optional(v.string()),
 	},
 	returns: v.null(),
-	handler: async (
-		ctx,
-		{ applicationId, responsibleUserId, room, roomBooked, foodOrdered, internalNotes },
-	) => {
+	handler: async (ctx, { applicationId, responsibleUserId, helperUserIds, internalNotes }) => {
 		await requireEditorActor(ctx);
-		await requireApplication(ctx, applicationId);
+		const application = await requireApplication(ctx, applicationId);
+
+		const changesTeam = responsibleUserId !== undefined || helperUserIds !== undefined;
+		if (changesTeam && application.eventId) {
+			throw new ConvexError(
+				"Arrangementet er opprettet. Endre kontaktperson og medhjelpere på arrangementet.",
+			);
+		}
 
 		if (responsibleUserId && !(await userHasRole(ctx, responsibleUserId, internalRoles))) {
-			throw new ConvexError("Org-ansvarlig må være et internt medlem.");
+			throw new ConvexError("Kontaktpersonen fra Navet må være et internt medlem.");
 		}
-		if (room !== undefined && room.length > MAX_ROOM_LENGTH) {
-			throw new ConvexError(`Rom kan ha høyst ${MAX_ROOM_LENGTH} tegn.`);
-		}
+		if (helperUserIds !== undefined) await requireValidHelpers(ctx, helperUserIds);
 		if (internalNotes !== undefined && internalNotes.length > MAX_INTERNAL_NOTES_LENGTH) {
 			throw new ConvexError(`Notatene kan ha høyst ${MAX_INTERNAL_NOTES_LENGTH} tegn.`);
 		}
@@ -278,9 +252,9 @@ export const updatePlanningDetails = mutation({
 			...(responsibleUserId !== undefined
 				? { responsibleUserId: responsibleUserId ?? undefined }
 				: {}),
-			...(room !== undefined ? { room: cleared(room) } : {}),
-			...(roomBooked !== undefined ? { roomBooked } : {}),
-			...(foodOrdered !== undefined ? { foodOrdered } : {}),
+			...(helperUserIds !== undefined
+				? { helperUserIds: helperUserIds.length ? helperUserIds : undefined }
+				: {}),
 			...(internalNotes !== undefined ? { internalNotes: cleared(internalNotes) } : {}),
 		});
 		return null;
@@ -288,101 +262,21 @@ export const updatePlanningDetails = mutation({
 });
 
 /**
- * Replaces the contact person, e.g. when the old one has left the company. Offers go to the new
- * address. The change is written to the history.
- *
- * @param {Id<"companyApplications">} applicationId - The application.
- * @param {{ name: string, email: string, phone: string }} contact - The new contact person.
- *
- * @throws - An error if the caller is not an editor, or the contact details are invalid.
- * @returns {null} - Returns null when the contact is saved.
- */
-export const updateContact = mutation({
-	args: { applicationId: v.id("companyApplications"), contact: applicationContact },
-	returns: v.null(),
-	handler: async (ctx, { applicationId, contact }) => {
-		const actor = await requireEditorActor(ctx);
-		const application = await requireApplication(ctx, applicationId);
-
-		const parsed = applicationContactSchema.safeParse(contact);
-		if (!parsed.success) {
-			throw new ConvexError(parsed.error.issues[0]?.message ?? "Ugyldig kontaktperson.");
-		}
-
-		await ctx.db.patch(applicationId, { contact: parsed.data });
-		await logApplicationActivity(ctx, applicationId, "contact_changed", actor, {
-			comment: `${application.contact.name} → ${parsed.data.name}`,
-		});
-		return null;
-	},
-});
-
-/**
- * Creates the event for a confirmed application, with the date, company and seats filled in. The
- * event starts unpublished, like any other event, and the org-ansvarlig becomes its
- * hovedansvarlig. The application remembers the event.
+ * Creates the unpublished draft event for a confirmed application, on its date and with its
+ * kontaktperson and medhjelpere, or moves an existing unpublished one to the date. Navet fills in
+ * the details on the event before publishing it.
  *
  * @param {Id<"companyApplications">} applicationId - The confirmed application.
- * @param {string} startTime - When the event starts on the assigned day, as "HH:mm" Oslo time.
- * @param {number} [participationLimit] - Seats; defaults to the offered number of students.
  *
- * @throws - An error if the caller is not an editor, the application is not confirmed, has no
- * company profile, or already has an event.
- * @returns {Id<"events">} - The new event.
+ * @throws - An error if the caller is not an editor, the application is not confirmed, the
+ * semester has no start time for events, or the company has no profile in Bifrost.
+ * @returns {Id<"events">} - The event.
  */
 export const createEvent = mutation({
-	args: {
-		applicationId: v.id("companyApplications"),
-		title: v.string(),
-		teaser: v.string(),
-		description: v.string(),
-		startTime: v.string(),
-		registrationOpens: v.number(),
-		participationLimit: v.optional(v.number()),
-		location: v.string(),
-		food: v.string(),
-		language: v.string(),
-		ageRestriction: v.string(),
-	},
+	args: { applicationId: v.id("companyApplications") },
 	returns: v.id("events"),
-	handler: async (ctx, { applicationId, startTime, participationLimit, ...details }) => {
+	handler: async (ctx, { applicationId }) => {
 		const actor = await requireEditorActor(ctx);
-		const application = await requireApplication(ctx, applicationId);
-
-		if (application.status !== "confirmed" || !application.assignedDate) {
-			throw new ConvexError("Bare bekreftede søknader kan få et arrangement.");
-		}
-		if (!application.companyId) {
-			throw new ConvexError("Koble søknaden til en bedriftsprofil først.");
-		}
-		if (application.eventId && (await ctx.db.get(application.eventId))) {
-			throw new ConvexError("Søknaden har allerede et arrangement.");
-		}
-
-		let eventStart: number;
-		try {
-			eventStart = osloDateTimeToEpoch(application.assignedDate, startTime);
-		} catch {
-			throw new ConvexError("Skriv starttiden som TT:MM.");
-		}
-
-		const eventId = await insertEventWithOrganizers(
-			ctx,
-			{
-				...details,
-				eventStart,
-				participationLimit: participationLimit ?? application.maxStudents,
-				externalEvent: false,
-				hostingCompany: application.companyId,
-				published: false,
-			},
-			application.responsibleUserId
-				? [{ userId: application.responsibleUserId, role: "hovedansvarlig" }]
-				: [],
-		);
-
-		await ctx.db.patch(applicationId, { eventId });
-		await logApplicationActivity(ctx, applicationId, "event_linked", actor);
-		return eventId;
+		return ensureDraftEvent(ctx, await requireApplication(ctx, applicationId), actor);
 	},
 });

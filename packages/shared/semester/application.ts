@@ -42,7 +42,7 @@ const students = z
 	.min(1, "Oppgi minst 1 student.")
 	.max(MAX_STUDENTS, `Oppgi høyst ${MAX_STUDENTS} studenter.`);
 
-/** The company's contact person. The offer email goes to this address. */
+/** The company's contact person, whom Navet emails the offer link to. */
 export const applicationContactSchema = z.object({
 	name: text(100, "Skriv navnet til kontaktpersonen."),
 	email: email("Skriv en gyldig e-postadresse til kontaktpersonen."),
@@ -58,7 +58,6 @@ export const applicationFormSchema = z
 			.string({ error: "Velg bedriften fra Enhetsregisteret." })
 			.regex(/^\d{9}$/, "Velg bedriften fra Enhetsregisteret."),
 		contact: applicationContactSchema,
-		filledInByEmail: email("Skriv en gyldig e-postadresse, eller la feltet stå tomt.").optional(),
 		eventType: z.enum(EVENT_TYPES, { error: "Velg hva slags arrangement dere ønsker." }),
 		minStudents: students,
 		maxStudents: students,
@@ -80,10 +79,11 @@ export const applicationFormSchema = z
 		foodPurchasedBy: z.enum(FOOD_PURCHASERS, {
 			error: "Velg hvem som kjøper inn mat og drikke.",
 		}),
+		// How Navet invoices the company: an email address, free text (a reference, an address or
+		// an EHF address), or both. At least one is required, checked below.
 		billing: z.object({
-			email: email("Skriv en gyldig e-postadresse for faktura."),
-			ehf: z.boolean(),
-			reference: optionalText(100, "Fakturareferansen kan ha høyst 100 tegn."),
+			email: email("Skriv en gyldig e-postadresse for faktura.").optional(),
+			details: optionalText(500, "Fakturainformasjonen kan ha høyst 500 tegn."),
 		}),
 		targetDegrees: z
 			.array(z.enum(DEGREE_TYPES, { error: "Ugyldig grad." }))
@@ -95,6 +95,14 @@ export const applicationFormSchema = z
 		consent: z.literal(true, { error: "Du må godta lagring for å sende søknaden." }),
 	})
 	.superRefine((form, ctx) => {
+		if (!form.billing.email && !form.billing.details) {
+			ctx.addIssue({
+				code: "custom",
+				path: ["billing"],
+				message: "Skriv en e-post for faktura, eller hvordan dere vil ha fakturaen.",
+			});
+		}
+
 		if (form.minStudents > form.maxStudents) {
 			ctx.addIssue({
 				code: "custom",

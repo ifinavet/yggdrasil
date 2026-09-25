@@ -11,6 +11,7 @@
 import type * as auth_accessRights from "../auth/accessRights.js";
 import type * as auth_currentUser from "../auth/currentUser.js";
 import type * as auth_local from "../auth/local.js";
+import type * as companies_helper from "../companies/helper.js";
 import type * as companies_mutations from "../companies/mutations.js";
 import type * as companies_queries from "../companies/queries.js";
 import type * as crons from "../crons.js";
@@ -71,8 +72,8 @@ import type * as semesterPlanning_applications_helper from "../semesterPlanning/
 import type * as semesterPlanning_applications_mutations from "../semesterPlanning/applications/mutations.js";
 import type * as semesterPlanning_applications_queries from "../semesterPlanning/applications/queries.js";
 import type * as semesterPlanning_applications_submit from "../semesterPlanning/applications/submit.js";
+import type * as semesterPlanning_events from "../semesterPlanning/events.js";
 import type * as semesterPlanning_offers_helper from "../semesterPlanning/offers/helper.js";
-import type * as semesterPlanning_offers_messages from "../semesterPlanning/offers/messages.js";
 import type * as semesterPlanning_offers_mutations from "../semesterPlanning/offers/mutations.js";
 import type * as semesterPlanning_offers_queries from "../semesterPlanning/offers/queries.js";
 import type * as semesterPlanning_rateLimits from "../semesterPlanning/rateLimits.js";
@@ -101,6 +102,7 @@ declare const fullApi: ApiFromModules<{
   "auth/accessRights": typeof auth_accessRights;
   "auth/currentUser": typeof auth_currentUser;
   "auth/local": typeof auth_local;
+  "companies/helper": typeof companies_helper;
   "companies/mutations": typeof companies_mutations;
   "companies/queries": typeof companies_queries;
   crons: typeof crons;
@@ -161,8 +163,8 @@ declare const fullApi: ApiFromModules<{
   "semesterPlanning/applications/mutations": typeof semesterPlanning_applications_mutations;
   "semesterPlanning/applications/queries": typeof semesterPlanning_applications_queries;
   "semesterPlanning/applications/submit": typeof semesterPlanning_applications_submit;
+  "semesterPlanning/events": typeof semesterPlanning_events;
   "semesterPlanning/offers/helper": typeof semesterPlanning_offers_helper;
-  "semesterPlanning/offers/messages": typeof semesterPlanning_offers_messages;
   "semesterPlanning/offers/mutations": typeof semesterPlanning_offers_mutations;
   "semesterPlanning/offers/queries": typeof semesterPlanning_offers_queries;
   "semesterPlanning/rateLimits": typeof semesterPlanning_rateLimits;

@@ -1,13 +1,9 @@
+import { type ApplicationStatus, STATUS_LABELS } from "@workspace/shared/semester/labels";
 import { ConvexError, type Infer } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { editorRoles, requireRole } from "../auth/accessRights";
-import {
-	type ApplicationStatus,
-	canTransition,
-	isActiveApplicationStatus,
-	STATUS_LABELS,
-} from "./rules";
+import { canTransition, isActiveApplicationStatus, isUnsettledApplicationStatus } from "./rules";
 import type { activityActor, applicationActivityType } from "./schema";
 
 /** Who performed an activity. A Navet member is also recorded by user id. */
@@ -15,7 +11,7 @@ export type Actor =
 	| { type: "internal"; userId: Id<"users"> }
 	| { type: Exclude<Infer<typeof activityActor>, "internal"> };
 
-export type InternalActor = Extract<Actor, { type: "internal" }>;
+type InternalActor = Extract<Actor, { type: "internal" }>;
 
 /**
  * Requires the caller to be an editor, and returns them as the actor for the history.
@@ -62,18 +58,10 @@ export async function logApplicationActivity(
 	});
 }
 
-/** The contact person and whoever filled in the application, without duplicates. */
-export function companyRecipients(
-	application: Pick<Doc<"companyApplications">, "contact" | "filledInByEmail">,
-): string[] {
-	return [...new Set([application.contact.email, application.filledInByEmail])].filter(
-		(email): email is string => !!email,
-	);
-}
-
 /**
  * Changes an application's status and records the change in its history. This is the only code
- * that writes `status`, so the transition rules and the history cannot drift apart.
+ * that writes `status`, so the transition rules and the history cannot drift apart. A change that
+ * leaves «Bekreftet» or needs an offer or answer again reopens a finished semester plan.
  *
  * @param {MutationCtx} ctx - The Convex mutation context.
  * @param {Doc<"companyApplications">} application - The application as read in this transaction.
@@ -101,6 +89,12 @@ export async function transitionApplicationStatus(
 	}
 
 	await ctx.db.patch(application._id, { ...options.patch, status: to });
+	if (from === "confirmed" || isUnsettledApplicationStatus(to)) {
+		const semester = await ctx.db.get(application.semesterId);
+		if (semester?.planFinalizedAt !== undefined) {
+			await ctx.db.patch(semester._id, { planFinalizedAt: undefined, planFinalizedBy: undefined });
+		}
+	}
 	await logApplicationActivity(ctx, application._id, "status_changed", actor, {
 		fromStatus: from,
 		toStatus: to,

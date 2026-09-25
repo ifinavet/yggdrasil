@@ -45,7 +45,7 @@ describe("create", () => {
 			term: "autumn",
 			infoText: "Velkommen",
 			termsUrl: `${MIDGARD_URL}/vilkar`,
-			offerResponseDays: 14,
+			defaultEventStartTime: "16:15",
 			status: "closed",
 		});
 		await insertSemester(t, { year: 2026, term: "spring", infoText: "Gammel", status: "closed" });
@@ -62,7 +62,7 @@ describe("create", () => {
 			status: "draft",
 			infoText: "Velkommen",
 			termsUrl: `${MIDGARD_URL}/vilkar`,
-			offerResponseDays: 14,
+			defaultEventStartTime: "16:15",
 		});
 		expect(semester.firstDate).toBeUndefined();
 		expect(semester.lastDate).toBeUndefined();
@@ -244,17 +244,37 @@ describe("setDateClosed", () => {
 		expect((await t.run((ctx) => ctx.db.get(dateId)))?.closedLabel).toBe("Påske");
 	});
 
-	it("refuses an empty reason", async () => {
-		const { dateId, editor } = await withOneDate();
+	it("closes a date without a reason as an empty label", async () => {
+		const { t, dateId, editor } = await withOneDate();
+
+		await editor.mutation(mutations.setDateClosed, { dateId, label: "  " });
+		expect((await t.run((ctx) => ctx.db.get(dateId)))?.closedLabel).toBe("");
+
+		await editor.mutation(mutations.setDateClosed, { dateId, label: null });
+		expect((await t.run((ctx) => ctx.db.get(dateId)))?.closedLabel).toBeUndefined();
+	});
+
+	it("changes the reason of a closed date", async () => {
+		const { t, dateId, editor } = await withOneDate();
+
+		await editor.mutation(mutations.setDateClosed, { dateId, label: "" });
+		await editor.mutation(mutations.setDateClosed, { dateId, label: "Eksamen" });
+		expect((await t.run((ctx) => ctx.db.get(dateId)))?.closedLabel).toBe("Eksamen");
+	});
+
+	it("refuses to close a date that a company has been given, even without a reason", async () => {
+		const { t, semesterId, dateId, editor } = await withOneDate();
+		await insertApplication(t, semesterId, { status: "confirmed", assignedDate: "2027-02-09" });
+
 		const message = await refusalMessageFrom(
-			editor.mutation(mutations.setDateClosed, { dateId, label: " " }),
+			editor.mutation(mutations.setDateClosed, { dateId, label: "" }),
 		);
-		expect(message).toBe("Skriv hvorfor datoen er stengt.");
+		expect(message).toBe("Datoen er tildelt FJORDKODE AS. Flytt søknaden først.");
 	});
 });
 
 describe("updateSettings", () => {
-	it("saves the deadline and clears a text with an empty string", async () => {
+	it("saves the deadline and start time, and clears a text with an empty string", async () => {
 		const { t } = await setup();
 		const semesterId = await insertSemester(t, { status: "draft", infoText: "Gammel tekst" });
 
@@ -262,19 +282,20 @@ describe("updateSettings", () => {
 			semesterId,
 			applicationDeadline: "2026-12-04",
 			infoText: "",
-			offerResponseDays: 14,
+			defaultEventStartTime: "16:15",
 		});
 
 		const semester = await semesterById(t, semesterId);
 		expect(semester.applicationDeadline).toBe("2026-12-04");
 		expect(semester.infoText).toBeUndefined();
-		expect(semester.offerResponseDays).toBe(14);
+		expect(semester.defaultEventStartTime).toBe("16:15");
 	});
 
 	it.each([
 		[{ applicationDeadline: "4. desember" }, "Søknadsfristen må være en gyldig dato (ÅÅÅÅ-MM-DD)."],
 		[{ termsUrl: "ikke en lenke" }, "Lenken til standardvilkårene er ugyldig."],
-		[{ offerResponseDays: 0 }, "Svarfristen må være mellom 1 og 60 dager."],
+		[{ defaultEventStartTime: "9:00" }, "Starttiden må være et gyldig klokkeslett (TT:MM)."],
+		[{ defaultEventStartTime: "25:00" }, "Starttiden må være et gyldig klokkeslett (TT:MM)."],
 	])("refuses %o", async (settings, expected) => {
 		const { t } = await setup();
 		const semesterId = await insertSemester(t, { status: "draft" });
@@ -363,6 +384,45 @@ describe("finalizePlan", () => {
 		expect(first.planFinalizedAt).toBeDefined();
 		expect(first.planFinalizedBy).toBeDefined();
 		expect((await semesterById(t, semesterId)).planFinalizedAt).toBe(first.planFinalizedAt);
+	});
+
+	it("refuses while applications wait for an offer or an answer, and says how many", async () => {
+		const { t } = await setup();
+		const semesterId = await insertSemester(t);
+		for (const status of ["applied", "offer_sent", "confirmed", "declined"] as const) {
+			await insertApplication(t, semesterId, { status });
+		}
+
+		const message = await refusalMessageFrom(
+			(await editorOf(t)).mutation(mutations.finalizePlan, { semesterId }),
+		);
+		expect(message).toBe("2 søknader venter fortsatt på tilbud eller svar.");
+		expect((await semesterById(t, semesterId)).planFinalizedAt).toBeUndefined();
+	});
+
+	it("is undone when an application needs an offer again, and by unfinalizePlan", async () => {
+		const { t } = await setup();
+		const semesterId = await insertSemester(t);
+		await t.run((ctx) => ctx.db.insert("semesterDates", { semesterId, date: "2027-02-16" }));
+		const applicationId = await insertApplication(t, semesterId, {
+			status: "confirmed",
+			assignedDate: "2027-02-09",
+		});
+		const editor = await editorOf(t);
+
+		await editor.mutation(mutations.finalizePlan, { semesterId });
+		await editor.mutation(api.semesterPlanning.applications.mutations.assignDate, {
+			applicationId,
+			date: "2027-02-16",
+		});
+		expect((await semesterById(t, semesterId)).planFinalizedAt).toBeUndefined();
+
+		await t.run((ctx) => ctx.db.patch(applicationId, { status: "confirmed" }));
+		await editor.mutation(mutations.finalizePlan, { semesterId });
+		expect((await semesterById(t, semesterId)).planFinalizedBy).toBeDefined();
+		await editor.mutation(mutations.unfinalizePlan, { semesterId });
+		const semester = await semesterById(t, semesterId);
+		expect([semester.planFinalizedAt, semester.planFinalizedBy]).toEqual([undefined, undefined]);
 	});
 });
 
@@ -507,6 +567,19 @@ describe("queries", () => {
 		expect(await t.query(queries.getOpenForApplications, {})).toBeNull();
 	});
 
+	it("getOpenForApplications returns null after a hard deadline, but not a soft one", async () => {
+		const { t } = await setup();
+		const semesterId = await insertSemester(t, {
+			status: "open",
+			applicationDeadline: "2020-01-01",
+		});
+		await t.run((ctx) => ctx.db.insert("semesterDates", { semesterId, date: "2027-01-21" }));
+
+		expect(await t.query(queries.getOpenForApplications, {})).not.toBeNull();
+		await t.run((ctx) => ctx.db.patch(semesterId, { hardDeadline: true }));
+		expect(await t.query(queries.getOpenForApplications, {})).toBeNull();
+	});
+
 	it("list and get require an internal member", async () => {
 		const { t } = await setup();
 		const semesterId = await insertSemester(t);
@@ -516,9 +589,28 @@ describe("queries", () => {
 
 		const member = await insertUser(t, "medlem@ifinavet.no");
 		await grantRole(t, member._id, "internal");
-		const { semester, dates } = await asUser(t, member).query(queries.get, { semesterId });
+		const { semester, dates, finalizedByName } = await asUser(t, member).query(queries.get, {
+			semesterId,
+		});
 		expect(semester._id).toBe(semesterId);
 		expect(dates).toEqual([]);
+		expect(finalizedByName).toBeNull();
+	});
+
+	it("get names who finished the plan", async () => {
+		const { t } = await setup();
+		const member = await insertUser(t, "medlem@ifinavet.no", {
+			firstName: "Emil",
+			lastName: "Moe",
+		});
+		await grantRole(t, member._id, "internal");
+		const semesterId = await insertSemester(t, {
+			planFinalizedAt: Date.now(),
+			planFinalizedBy: member._id,
+		});
+
+		const { finalizedByName } = await asUser(t, member).query(queries.get, { semesterId });
+		expect(finalizedByName).toBe("Emil Moe");
 	});
 
 	it("list sorts autumn after spring in the same year", async () => {

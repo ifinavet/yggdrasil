@@ -6,10 +6,10 @@ import { listSemesterDates, requireSemester } from "../semesters/helper";
 import { findOfferByToken } from "./helper";
 
 /**
- * The offer page on Hugin. Public: the link token is the only credential. It returns what the
- * offer email already contained, plus the state of the offer, and never contact or invoice
- * details. While the offer is open it also lists the semester's open dates, for «be om en annen
- * dato», without saying which ones other companies have.
+ * The offer page on Hugin. Public: the link token is the only credential. It returns the offered
+ * date and event, the terms and the state of the offer, and never contact or invoice details.
+ * While the offer is open it also lists the semester's open dates, for «be om en annen dato»,
+ * without saying which ones other companies have.
  *
  * @param {string} token - The token from the offer link.
  *
@@ -24,6 +24,7 @@ export const getByToken = query({
 				v.literal("pending"),
 				v.literal("accepted"),
 				v.literal("new_date_requested"),
+				v.literal("declined"),
 				v.literal("superseded"),
 				v.literal("inactive"),
 			),
@@ -33,7 +34,6 @@ export const getByToken = query({
 			maxStudents: v.number(),
 			venue,
 			termsUrl: v.optional(v.string()),
-			respondBy: v.optional(v.number()),
 			respondedAt: v.optional(v.number()),
 			requestedDates: v.optional(v.array(v.string())),
 			openDates: v.optional(v.array(v.string())),
@@ -45,9 +45,13 @@ export const getByToken = query({
 		if (!offer || !application) return { state: "unknown" as const };
 
 		const semester = await requireSemester(ctx, application.semesterId);
-		const state = isActiveApplicationStatus(application.status)
-			? offer.status
-			: ("inactive" as const);
+		// A declined offer closes the application, but the company should see that it declined. An
+		// accepted offer only counts while the application is still confirmed on it.
+		const current =
+			offer.status === "accepted"
+				? application.status === "confirmed"
+				: isActiveApplicationStatus(application.status);
+		const state = offer.status === "declined" || current ? offer.status : ("inactive" as const);
 		const openDates =
 			state === "pending"
 				? (await listSemesterDates(ctx, application.semesterId))
@@ -63,7 +67,6 @@ export const getByToken = query({
 			maxStudents: offer.maxStudents,
 			venue: application.venue,
 			...(semester.termsUrl ? { termsUrl: semester.termsUrl } : {}),
-			...(offer.respondBy ? { respondBy: offer.respondBy } : {}),
 			...(offer.respondedAt ? { respondedAt: offer.respondedAt } : {}),
 			...(offer.requestedDates ? { requestedDates: offer.requestedDates } : {}),
 			...(openDates ? { openDates } : {}),

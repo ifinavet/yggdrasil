@@ -1,6 +1,6 @@
 import { vi } from "vitest";
 
-// Fakes brreg and the Peppol Directory for tests by stubbing the global fetch. Call
+// Fakes brreg for tests by stubbing the global fetch. Call
 // vi.unstubAllGlobals() after each test.
 
 type Unit = Record<string, unknown>;
@@ -33,7 +33,6 @@ export type RegistryStubs = {
 	unitStatus?: number;
 	searchHits?: Unit[];
 	brregDown?: boolean;
-	peppol?: "found" | "not_found" | "error" | "down";
 };
 
 function json(status: number, body: unknown): Response {
@@ -43,29 +42,21 @@ function json(status: number, body: unknown): Response {
 	});
 }
 
-function peppolResponse(peppol: NonNullable<RegistryStubs["peppol"]>): Response {
-	if (peppol === "down") throw new TypeError("fetch failed");
-	if (peppol === "error") return json(503, {});
-	const found = peppol === "found";
-	return json(200, { "total-result-count": found ? 1 : 0, matches: found ? [{}] : [] });
-}
-
 function brregResponse(
 	url: string,
-	{ unit, unitStatus, searchHits, brregDown }: Required<Omit<RegistryStubs, "peppol">>,
+	{ unit, unitStatus, searchHits, brregDown }: Required<RegistryStubs>,
 ): Response {
 	if (brregDown) throw new TypeError("fetch failed");
 	if (!url.includes("?")) return json(unitStatus, unit);
 	return json(200, searchHits.length ? { _embedded: { enheter: searchHits } } : { page: {} });
 }
 
-/** Replaces fetch with fake brreg and Peppol answers, and returns the URLs that were called. */
+/** Replaces fetch with fake brreg answers, and returns the URLs that were called. */
 export function stubRegistries({
 	unit = brregUnit(),
 	unitStatus = 200,
 	searchHits = [],
 	brregDown = false,
-	peppol = "found",
 }: RegistryStubs = {}): string[] {
 	const calls: string[] = [];
 
@@ -75,7 +66,6 @@ export function stubRegistries({
 			const url = input instanceof Request ? input.url : String(input);
 			calls.push(url);
 
-			if (url.startsWith("https://directory.peppol.eu/")) return peppolResponse(peppol);
 			if (url.startsWith("https://data.brreg.no/")) {
 				return brregResponse(url, { unit, unitStatus, searchHits, brregDown });
 			}
