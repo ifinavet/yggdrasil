@@ -1,7 +1,6 @@
 "use client";
 
 import { api } from "@workspace/backend/convex/api";
-import { semesterName } from "@workspace/shared/semester/labels";
 import { Button } from "@workspace/ui/components/button";
 import { cn } from "@workspace/ui/lib/utils";
 import { useMutation } from "convex/react";
@@ -253,57 +252,29 @@ export function StatusCard({
 	);
 }
 
-/** Who confirmed the application and how: via the link, with the terms, or marked by an editor. */
+/** The confirmed date, and when the company accepted it (or Navet marked it as confirmed). */
 function ConfirmedMessage({
 	details,
-	context,
 	confirmedChange,
 }: Readonly<{
 	details: ApplicationDetails;
-	context: SemesterContext;
 	confirmedChange: ReturnType<typeof lastChangeTo>;
 }>) {
-	const { application, offers } = details;
-	const assigned = application.assignedDate;
-	const headline = assigned ? (
+	const assigned = details.application.assignedDate;
+	const date = assigned ? (
 		<>
-			Bekreftet <b>{longDay(assigned)}</b>.
+			Bekreftet <b>{longDay(assigned)}</b>
 		</>
 	) : (
-		"Bekreftet."
+		"Bekreftet"
 	);
-	if (!confirmedChange) return headline;
+	if (!confirmedChange) return <>{date}.</>;
 
 	const when = formatMoment(confirmedChange._creationTime, "longDay");
-	if (confirmedChange.actor !== "company") {
-		return (
-			<>
-				{headline} Markert som bekreftet av{" "}
-				{actorName(confirmedChange, application, context.memberNames)} {when}
-				{confirmedChange.comment ? `: «${confirmedChange.comment}»` : "."}
-			</>
-		);
-	}
-
-	const termsUrl = offers.find((item) => item._id === confirmedChange.offerId)?.acceptedTermsUrl;
+	const how = confirmedChange.actor === "company" ? "godtok" : "markert som bekreftet";
 	return (
 		<>
-			{headline} Godtatt via lenken {when} kl. {formatMoment(confirmedChange._creationTime, "time")}
-			{termsUrl && (
-				<>
-					, med{" "}
-					<a
-						href={termsUrl}
-						target="_blank"
-						rel="noreferrer"
-						className="underline underline-offset-3"
-					>
-						standardvilkårene
-					</a>{" "}
-					for {semesterName(context.semester.term, context.semester.year, { inSentence: true })}
-				</>
-			)}
-			.
+			{date}, {how} {when}.
 		</>
 	);
 }
@@ -391,11 +362,7 @@ function StatusMessage({
 		}
 		case "confirmed":
 			return (
-				<ConfirmedMessage
-					details={details}
-					context={context}
-					confirmedChange={lastChangeTo(activity, "confirmed")}
-				/>
+				<ConfirmedMessage details={details} confirmedChange={lastChangeTo(activity, "confirmed")} />
 			);
 		default:
 			return <ClosedMessage details={details} context={context} />;

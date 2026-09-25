@@ -1,6 +1,6 @@
 "use client";
 
-import { huginUrl } from "@workspace/shared/constants";
+import { huginUrl } from "@workspace/shared/constants/hugin-url";
 import { formatSemesterDay } from "@workspace/shared/time";
 import { Button } from "@workspace/ui/components/button";
 import { cn } from "@workspace/ui/lib/utils";
@@ -55,21 +55,12 @@ async function copy(text: string, what: string) {
 export function OfferLink({
 	url,
 	email,
-	compact = false,
 	className,
-}: Readonly<{ url: string; email: OfferEmail; compact?: boolean; className?: string }>) {
+}: Readonly<{ url: string; email: OfferEmail; className?: string }>) {
 	const mailto = `mailto:${encodeURIComponent(email.to)}?subject=${encodeURIComponent(email.subject)}&body=${encodeURIComponent(email.body)}`;
 
 	return (
 		<div className={cn("grid gap-2", className)}>
-			{!compact && (
-				<div className="flex min-w-0 items-center gap-2 rounded-md border bg-background px-2.5 py-1.5 text-[13px]">
-					<Link2 aria-hidden className="size-3.5 shrink-0 text-muted-foreground" />
-					<span className="min-w-0 truncate font-mono text-muted-foreground" title={url}>
-						{url}
-					</span>
-				</div>
-			)}
 			<div className="flex flex-wrap gap-2">
 				<Button size="sm" variant="outline" onClick={() => copy(url, "Lenken")}>
 					<Link2 /> Kopier lenke

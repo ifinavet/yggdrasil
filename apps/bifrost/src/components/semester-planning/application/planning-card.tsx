@@ -20,7 +20,7 @@ const notesSchema = z.object({
 });
 
 /**
- * «Overlevering»: who from Navet runs the event, and notes for them. The choices save at once, and
+ * «Ansvarlige fra Navet»: who from Navet runs the event, and notes for them. The choices save at once, and
  * the notes when you leave them. Once the event exists, its organizers are the team, so the
  * pickers are locked here.
  */
@@ -44,7 +44,7 @@ export function PlanningCard({ application }: Readonly<{ application: Applicatio
 
 	const teamLocked = application.eventId !== undefined;
 	return (
-		<Section title="Overlevering">
+		<Section title="Ansvarlige fra Navet">
 			<div className="grid gap-3">
 				<TeamMember
 					id="planning-responsible"
