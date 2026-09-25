@@ -38,7 +38,7 @@ export default function SelectSemester(
 	);
 
 	const current = eventSemesterOf(Date.now());
-	const year = searchParams.get("year") || current.year;
+	const year = Number.parseInt(searchParams.get("year") ?? "", 10) || current.year;
 	const selectedSemester = searchParams.get("semester");
 	const semester = isEventSemester(selectedSemester) ? selectedSemester : current.semester;
 
