@@ -1,12 +1,17 @@
 import { api } from "@workspace/backend/convex/api";
 import { Button } from "@workspace/ui/components/button";
 import ResponsiveCenterContainer from "@workspace/ui/components/responsive-center-container";
+import { SemesterPlanningGate } from "@workspace/ui/components/semester-planning-gate";
 import { Title } from "@workspace/ui/components/title";
 import { fetchQuery } from "convex/nextjs";
 import type { Metadata } from "next";
 import { cacheLife } from "next/cache";
+import { type ReactNode, Suspense } from "react";
 import ContainerCard from "@/components/cards/container-card";
 import LargeUserCard from "@/components/cards/large-user";
+import ApplyForEventCard, {
+	ApplyForEventCardSkeleton,
+} from "@/components/companies/apply-for-event-card";
 import InformationGrid from "@/components/companies/information-grid";
 import OfferGrid from "@/components/companies/offer-grid";
 import JobListingBanner from "@/components/job-listings/job-listing-banner";
@@ -15,7 +20,26 @@ export const metadata: Metadata = {
 	title: "For bedrifter",
 };
 
-export default async function CompaniesPage() {
+export default function CompaniesPage() {
+	return (
+		<CompaniesContent
+			applyCard={
+				// Keyed: the cached page renders the element it gets, and React asks for a key.
+				<SemesterPlanningGate key="apply-card">
+					<Suspense fallback={<ApplyForEventCardSkeleton />}>
+						<ApplyForEventCard />
+					</Suspense>
+				</SemesterPlanningGate>
+			}
+		/>
+	);
+}
+
+/**
+ * The static page, cached forever. The application card is passed in, so its shorter cache life
+ * (the open semester and its deadline change) is not frozen by this cache.
+ */
+async function CompaniesContent({ applyCard }: Readonly<{ applyCard: ReactNode }>) {
 	"use cache";
 	cacheLife("hours");
 
@@ -65,6 +89,7 @@ export default async function CompaniesPage() {
 								ved neste semester gjennom våre maillister.
 							</p>
 						</ContainerCard>
+						{applyCard}
 					</div>
 					<div className="grid gap-6 md:col-span-2">
 						<LargeUserCard
