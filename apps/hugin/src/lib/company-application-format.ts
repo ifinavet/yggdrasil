@@ -1,6 +1,11 @@
+import { oreToKroner } from "@workspace/shared/products";
+import { STUDENT_CAP } from "@workspace/shared/semester/application";
+import type { EventType } from "@workspace/shared/semester/labels";
+import { formatNok } from "@workspace/shared/semester/prices";
 import { format, parse } from "date-fns";
 import { nb } from "date-fns/locale";
 import type { RegistryHit } from "@/lib/company-application";
+import { COMPANY_APPLICATION_COPY as COPY } from "./company-application-questions";
 
 // Date labels for the application form. Semester days are plain "YYYY-MM-DD" calendar days, so
 // they are parsed and formatted in one zone and no time-of-day or offset is involved.
@@ -123,4 +128,11 @@ export function hitMeta(hit: RegistryHit): string {
 	return [formatOrgNumber(hit.orgNumber), hit.organizationForm, hit.city && placeName(hit.city)]
 		.filter(Boolean)
 		.join(" · ");
+}
+
+export function eventTypeDescription(type: EventType, priceOre: number | undefined): string {
+	const cap = STUDENT_CAP[type];
+	const size = cap === null ? COPY.eventType.uncapped : COPY.eventType.capped(cap);
+	if (priceOre === undefined) return size;
+	return `${size} · ${COPY.eventType.price(formatNok(oreToKroner(priceOre)))}`;
 }

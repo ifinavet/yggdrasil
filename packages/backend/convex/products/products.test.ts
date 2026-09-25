@@ -9,6 +9,7 @@ import {
 } from "../../test/fixtures";
 import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
+import { MAX_PRODUCTS } from "./helpers";
 import { SEED_PRODUCTS } from "./seed";
 
 const newProduct = {
@@ -28,6 +29,12 @@ async function fixture() {
 	const editor = await insertUser(t, "editor@example.test");
 	await grantRole(t, editor._id, "editor");
 	return { t, admin: asUser(t, admin), editor: asUser(t, editor) };
+}
+
+function expectDefined<T>(value: T | null | undefined): T {
+	expect(value).toBeDefined();
+	expect(value).not.toBeNull();
+	return value as T;
 }
 
 async function changesFor(t: TestBackend, productId: Id<"products">) {
@@ -76,7 +83,9 @@ describe("products", () => {
 			[second, 1],
 		]);
 
-		const { changes } = await admin.query(api.products.queries.getWithChanges, { id: first });
+		const { changes } = expectDefined(
+			await admin.query(api.products.queries.getWithChanges, { id: first }),
+		);
 		expect(changes).toMatchObject([{ action: "created", changedByName: "Test Testesen" }]);
 		expect(changes[0]?.changes).toContainEqual({ field: "unitPriceOre", after: "1000000" });
 	});
@@ -184,9 +193,64 @@ describe("products", () => {
 			return id;
 		});
 
+		expect(await admin.query(api.products.queries.getWithChanges, { id: productId })).toBeNull();
 		expect(
-			await refusalMessageFrom(admin.query(api.products.queries.getWithChanges, { id: productId })),
+			await refusalMessageFrom(
+				admin.mutation(api.products.mutations.setActive, { id: productId, active: false }),
+			),
 		).toBe("Fant ikke produktet.");
+	});
+
+	it("refuses to create more than the product limit", async () => {
+		const { t, admin } = await fixture();
+		await t.run(async (ctx) => {
+			for (let index = 0; index < MAX_PRODUCTS; index++) {
+				await ctx.db.insert("products", {
+					...newProduct,
+					name: `Produkt ${index}`,
+					sortOrder: index,
+					active: true,
+				});
+			}
+		});
+
+		expect(
+			await refusalMessageFrom(admin.mutation(api.products.mutations.create, newProduct)),
+		).toBe("Maksimalt antall produkter er nådd.");
+	});
+
+	it("prices each application event type from its active product", async () => {
+		const { t, admin } = await fixture();
+		expect(await t.query(api.products.queries.eventTypePrices, {})).toEqual({});
+
+		await t.mutation(internal.products.seed.seedProducts, {});
+		expect(await t.query(api.products.queries.eventTypePrices, {})).toEqual({
+			standard_presentation: 3_000_000,
+			large_presentation: 4_000_000,
+			workshop: 2_000_000,
+		});
+
+		const products = await t.query(api.products.queries.listActive, {});
+		const large = expectDefined(
+			products.find((product) => product.eventType === "large_presentation"),
+		);
+		await admin.mutation(api.products.mutations.update, {
+			id: large._id,
+			name: large.name,
+			shortDescription: large.shortDescription,
+			longDescription: large.longDescription,
+			category: large.category,
+			vatRate: large.vatRate,
+			unitPriceOre: 4_500_000,
+		});
+		expect(await t.query(api.products.queries.eventTypePrices, {})).toMatchObject({
+			large_presentation: 4_500_000,
+		});
+
+		await admin.mutation(api.products.mutations.setActive, { id: large._id, active: false });
+		expect(await t.query(api.products.queries.eventTypePrices, {})).not.toHaveProperty(
+			"large_presentation",
+		);
 	});
 
 	it("seeds the offer page products once", async () => {
@@ -208,7 +272,9 @@ describe("products", () => {
 		]);
 
 		const seeded = products[0] as (typeof products)[number];
-		const { changes } = await admin.query(api.products.queries.getWithChanges, { id: seeded._id });
+		const { changes } = expectDefined(
+			await admin.query(api.products.queries.getWithChanges, { id: seeded._id }),
+		);
 		expect(changes).toMatchObject([{ action: "created", changedByName: null }]);
 	});
 });

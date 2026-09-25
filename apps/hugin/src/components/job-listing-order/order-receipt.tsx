@@ -1,7 +1,7 @@
 "use client";
 
 import { api } from "@workspace/backend/convex/api";
-import { formatNok } from "@workspace/shared/products";
+import { formatNokFromOre } from "@workspace/shared/products";
 import { convexErrorMessage } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
 import { FieldLabel } from "@workspace/ui/components/field";
@@ -36,7 +36,7 @@ export function OrderReceipt({ token, receipt }: Readonly<{ token: string; recei
 				<ReceiptRow label={receiptCopy.product}>{receipt.productName}</ReceiptRow>
 				<ReceiptRow label={receiptCopy.quantity}>{receipt.quantity}</ReceiptRow>
 				<ReceiptRow label={receiptCopy.price}>
-					<span className="font-semibold">{formatNok(receipt.priceOre)}</span>
+					<span className="font-semibold">{formatNokFromOre(receipt.priceOre)}</span>
 				</ReceiptRow>
 				<ReceiptRow label={receiptCopy.contact}>{receipt.contactEmail}</ReceiptRow>
 				<ReceiptRow label={receiptCopy.listings}>

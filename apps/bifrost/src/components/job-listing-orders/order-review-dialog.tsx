@@ -7,7 +7,7 @@ import {
 	type JobListingOrderSettings,
 	REJECTION_MAX_LENGTH,
 } from "@workspace/shared/job-listing-orders";
-import { formatNok } from "@workspace/shared/products";
+import { formatNokFromOre } from "@workspace/shared/products";
 import { convexErrorMessage } from "@workspace/shared/utils";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
@@ -113,7 +113,7 @@ function OrderReview({
 					</Detail>
 				)}
 				<Detail label="Antall annonser">{order.quantity}</Detail>
-				<Detail label="Pris">{formatNok(order.priceOre)}</Detail>
+				<Detail label="Pris">{formatNokFromOre(order.priceOre)}</Detail>
 				{order.note && <Detail label="Kommentar">{order.note}</Detail>}
 				{order.feedback && <Detail label="Tilbakemelding">{order.feedback}</Detail>}
 			</dl>

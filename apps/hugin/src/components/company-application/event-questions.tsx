@@ -1,10 +1,11 @@
-import { STUDENT_CAP } from "@workspace/shared/semester/application";
-import { EVENT_TYPE_LABELS, EVENT_TYPES } from "@workspace/shared/semester/labels";
-import { EVENT_TYPE_PRICES, formatNok } from "@workspace/shared/semester/prices";
+import { api } from "@workspace/backend/convex/api";
+import { EVENT_TYPE_LABELS, EVENT_TYPES, type EventType } from "@workspace/shared/semester/labels";
 import { CharacterCount } from "@workspace/ui/components/character-count";
 import { ChoiceGroup, type ChoiceOption } from "@workspace/ui/components/choice-group";
+import { useQuery } from "convex/react";
 import { fieldErrorText, questionIds } from "@/components/input-cards/question-block";
 import { TEXT_LIMITS } from "@/lib/company-application";
+import { eventTypeDescription } from "@/lib/company-application-format";
 import { COMPANY_APPLICATION_COPY as COPY } from "@/lib/company-application-questions";
 import {
 	ApplicationQuestion,
@@ -15,19 +16,20 @@ import {
 } from "./application-question";
 import type { ApplicationFormApi } from "./use-application-form";
 
-const EVENT_TYPE_OPTIONS: ChoiceOption<(typeof EVENT_TYPES)[number]>[] = EVENT_TYPES.map((type) => {
-	const cap = STUDENT_CAP[type];
-	const price = EVENT_TYPE_PRICES[type];
-	const size = cap === null ? COPY.eventType.uncapped : COPY.eventType.capped(cap);
-	return {
+function eventTypeOptions(
+	pricesOre: Partial<Record<EventType, number>>,
+): ChoiceOption<EventType>[] {
+	return EVENT_TYPES.map((type) => ({
 		value: type,
 		label: EVENT_TYPE_LABELS[type],
-		description: price === undefined ? size : `${size} · ${COPY.eventType.price(formatNok(price))}`,
-	};
-});
+		description: eventTypeDescription(type, pricesOre[type]),
+	}));
+}
 
 /** «Arrangementet»: the event type, the number of students and the description. */
 export function EventQuestions({ form }: Readonly<{ form: ApplicationFormApi }>) {
+	const pricesOre = useQuery(api.products.queries.eventTypePrices) ?? {};
+
 	return (
 		<>
 			<FormSection>{COPY.sections.event}</FormSection>
@@ -39,7 +41,7 @@ export function EventQuestions({ form }: Readonly<{ form: ApplicationFormApi }>)
 						<ApplicationQuestion name="eventType" label={COPY.eventType.label} error={error}>
 							<ChoiceGroup
 								name="eventType"
-								options={EVENT_TYPE_OPTIONS}
+								options={eventTypeOptions(pricesOre)}
 								value={field.state.value}
 								onChange={field.handleChange}
 								invalid={Boolean(error)}

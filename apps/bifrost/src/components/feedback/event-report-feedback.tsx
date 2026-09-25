@@ -1,7 +1,7 @@
 "use client";
 import { api } from "@workspace/backend/convex/api";
 import { Button } from "@workspace/ui/components/button";
-import { useFeatureEnabled } from "@workspace/ui/components/feature-gate";
+import { useFeatureEnabled } from "@workspace/ui/hooks/use-feature-enabled";
 import { type Preloaded, usePreloadedQuery, useQuery } from "convex/react";
 import Link from "next/link";
 import type { ReactNode } from "react";

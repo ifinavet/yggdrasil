@@ -1,5 +1,5 @@
 import {
-	formatNok,
+	formatNokFromOre,
 	kronerToOre,
 	oreToKroner,
 	productInputSchema,
@@ -20,7 +20,7 @@ describe("money", () => {
 	});
 
 	it("formats øre as whole Norwegian kroner", () => {
-		expect(formatNok(4_000_000).replace(/\s/g, " ")).toBe("40 000 kr");
+		expect(formatNokFromOre(4_000_000).replace(/\s/g, " ")).toBe("40 000 kr");
 	});
 
 	it.each([

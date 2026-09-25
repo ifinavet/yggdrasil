@@ -3,7 +3,7 @@
 import { useStore } from "@tanstack/react-form";
 import type { api } from "@workspace/backend/convex/api";
 import { orderPriceOre, packageSizes } from "@workspace/shared/job-listing-orders";
-import { formatNok } from "@workspace/shared/products";
+import { formatNokFromOre } from "@workspace/shared/products";
 import { FieldError, FieldLabel } from "@workspace/ui/components/field";
 import { Note } from "@workspace/ui/components/note";
 import { SegmentedControl, SegmentedControlItem } from "@workspace/ui/components/segmented-control";
@@ -73,7 +73,7 @@ export function PackagePicker({
 			<div className="flex items-baseline justify-between border-t pt-4">
 				<span className="text-muted-foreground">{packageCopy.price}</span>
 				<output className="font-semibold text-xl">
-					{formatNok(orderPriceOre(product, quantity, startup && offersStartup))}
+					{formatNokFromOre(orderPriceOre(product, quantity, startup && offersStartup))}
 				</output>
 			</div>
 		</OrderSection>

@@ -4,7 +4,7 @@ import { useStore } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { type JobListingOrderSettings, orderPriceOre } from "@workspace/shared/job-listing-orders";
-import { formatNok } from "@workspace/shared/products";
+import { formatNokFromOre } from "@workspace/shared/products";
 import { osloToday } from "@workspace/shared/time";
 import { convexErrorMessage } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
@@ -122,7 +122,7 @@ export function OrderForm({
 					<BillingFieldset form={form} required={billingRequired(values, companyOnFile)} />
 					<SubmitSection
 						form={form}
-						price={formatNok(orderPriceOre(product, values.listings.length, values.startup))}
+						price={formatNokFromOre(orderPriceOre(product, values.listings.length, values.startup))}
 					/>
 				</fieldset>
 				{submitError && (

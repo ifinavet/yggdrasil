@@ -6,7 +6,6 @@ import { defaultFeedbackFields } from "@workspace/shared/feedback";
 import { formatOsloDate } from "@workspace/shared/time";
 import { convexErrorMessage } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
-import { useFeatureEnabled } from "@workspace/ui/components/feature-gate";
 import {
 	Select,
 	SelectContent,
@@ -15,6 +14,7 @@ import {
 	SelectValue,
 } from "@workspace/ui/components/select";
 import { Tabs, TabsList, TabsTrigger } from "@workspace/ui/components/tabs";
+import { useFeatureEnabled } from "@workspace/ui/hooks/use-feature-enabled";
 import { cn } from "@workspace/ui/lib/utils";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";

@@ -20,7 +20,7 @@ import {
 	JOB_LISTING_ORDER_CONFIRM_PATH,
 	JOB_LISTINGS_PATH,
 } from "@workspace/shared/job-listing-orders";
-import { formatNok } from "@workspace/shared/products";
+import { formatNokFromOre } from "@workspace/shared/products";
 import { v } from "convex/values";
 import { components, internal } from "../_generated/api";
 import { type ActionCtx, internalAction } from "../_generated/server";
@@ -77,7 +77,7 @@ export const sendReceipt = internalAction({
 				reference: order.reference,
 				productName: order.productName,
 				quantity: order.quantity,
-				price: formatNok(order.priceOre),
+				price: formatNokFromOre(order.priceOre),
 				titles: order.listings.map((listing) => listing.title),
 				updateRequested: order.updateRequested,
 			}),
@@ -97,7 +97,7 @@ export const sendAdminNotice = internalAction({
 				companyName: order.companyName,
 				reference: order.reference,
 				quantity: order.quantity,
-				price: formatNok(order.priceOre),
+				price: formatNokFromOre(order.priceOre),
 				updateRequested: order.updateRequested,
 				reviewUrl: `${origin(BIFROST_LOCAL_URL, BIFROST_URL)}${JOB_LISTINGS_PATH}`,
 			}),

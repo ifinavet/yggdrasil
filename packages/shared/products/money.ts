@@ -9,7 +9,7 @@ const nokFormat = new Intl.NumberFormat("nb-NO", {
 	maximumFractionDigits: 0,
 });
 
-export function formatNok(ore: number): string {
+export function formatNokFromOre(ore: number): string {
 	return nokFormat.format(ore / ORE_PER_KRONE);
 }
 

@@ -17,7 +17,7 @@ import JobListingBanner from "@/components/job-listings/job-listing-banner";
 const GOOGLE_JOB_LISTING_FORM_URL =
 	"https://docs.google.com/forms/d/1pyPhN0eod6g3iwmHLfUycz1CI2KplwZRSbozwrJdaR4/edit";
 
-const jobListingFormUrl = featureFlags.jobListingOrders.enabled
+const jobListingFormUrl = featureFlags.jobListingOrders.uiEnabled
 	? `${HUGIN_URL}${JOB_LISTING_ORDER_PATH}`
 	: GOOGLE_JOB_LISTING_FORM_URL;
 
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
 
 export default async function CompaniesPage() {
 	"use cache";
-	cacheLife("max");
+	cacheLife("hours");
 
 	const companyContact = await fetchQuery(api.users.organization.queries.getBoardMemberByPosition, {
 		position: "Bedriftskontakt",

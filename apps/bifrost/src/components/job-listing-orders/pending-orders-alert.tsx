@@ -3,7 +3,7 @@
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { Badge } from "@workspace/ui/components/badge";
-import { useFeatureEnabled } from "@workspace/ui/components/feature-gate";
+import { useFeatureEnabled } from "@workspace/ui/hooks/use-feature-enabled";
 import { useQuery } from "convex/react";
 import { ChevronRight } from "lucide-react";
 import { useState } from "react";

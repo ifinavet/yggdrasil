@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 
 import batchWorkerTest from "@convex-dev/batch-worker/test";
+import migrationsTest from "@convex-dev/migrations/test";
 import rateLimiter from "@convex-dev/rate-limiter/test";
 import resendTest from "@convex-dev/resend/test";
 import workflowTest from "@convex-dev/workflow/test";
@@ -47,6 +48,7 @@ const workflowModules = Promise.all(
 export async function setup() {
 	const t = convexTest(schema, convexModules);
 	rateLimiter.register(t);
+	migrationsTest.register(t);
 	const [workflow, workpool, batchWorker] = await workflowModules;
 	t.registerComponent("workflow", workflowTest.schema, workflow);
 	t.registerComponent("workflow/workpool", workpoolTest.schema, workpool);

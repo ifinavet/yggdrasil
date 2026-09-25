@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { notifyProductMutation } from "./notify-product-mutation";
 import ProductForm from "./product-form";
 import { emptyProductFormValues, toProductInput } from "./product-form-values";
+import { PRODUCT_ROUTES } from "./product-routes";
 
 export function CreateProduct() {
 	const router = useRouter();
@@ -13,6 +14,7 @@ export function CreateProduct() {
 
 	return (
 		<ProductForm
+			title="Nytt produkt"
 			defaultValues={emptyProductFormValues}
 			submitLabel="Opprett produkt"
 			onSubmit={async (values) => {
@@ -21,7 +23,7 @@ export function CreateProduct() {
 					"Produktet er opprettet.",
 					"Kunne ikke opprette produktet.",
 				);
-				if (created) router.push("/products");
+				if (created) router.push(PRODUCT_ROUTES.list);
 			}}
 		/>
 	);

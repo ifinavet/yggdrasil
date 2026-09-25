@@ -12,7 +12,7 @@ export const featureFlags = {
 		uiEnabled: false,
 	},
 	jobListingOrders: {
-		enabled: false,
+		uiEnabled: false,
 	},
 	semesterPlanning: {
 		// Shows Semesterplan in Bifrost, the application and offer pages on Hugin and the button on
@@ -31,17 +31,11 @@ export const browserOptInKeys = {
 
 export type BrowserOptIn = keyof typeof browserOptInKeys;
 
-export const previewFeatures = {
-	huginFeedback: { released: featureFlags.huginFeedback.uiEnabled, optIn: "huginFeedbackPreview" },
-	products: { released: featureFlags.products.uiEnabled, optIn: "productsPreview" },
-	jobListingOrders: {
-		released: featureFlags.jobListingOrders.enabled,
-		optIn: "jobListingOrdersPreview",
-	},
-	semesterPlanning: {
-		released: featureFlags.semesterPlanning.uiEnabled,
-		optIn: "semesterPlanningPreview",
-	},
-} as const satisfies Record<string, { released: boolean; optIn: BrowserOptIn }>;
+export type GatedFeature = keyof typeof featureFlags;
 
-export type PreviewFeature = keyof typeof previewFeatures;
+export const featurePreviewOptIns = {
+	huginFeedback: "huginFeedbackPreview",
+	products: "productsPreview",
+	jobListingOrders: "jobListingOrdersPreview",
+	semesterPlanning: "semesterPlanningPreview",
+} as const satisfies Record<GatedFeature, BrowserOptIn>;

@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
 	emptyProductFormValues,
+	existingSalesNote,
+	perListingOre,
+	priceWithVatOre,
 	toProductFormValues,
 	toProductInput,
 	validateProductForm,
@@ -71,5 +74,28 @@ describe("product form values", () => {
 			vatRate: "Mva må være en prosent mellom 0 og 100.",
 			volumeTiers: "Antall må være et helt tall fra 1.",
 		});
+	});
+
+	it("adds mva to the price", () => {
+		expect(priceWithVatOre({ unitPrice: "30 000", vatRate: "25" })).toBe(3_750_000);
+		expect(priceWithVatOre({ unitPrice: "", vatRate: "25" })).toBeUndefined();
+		expect(priceWithVatOre({ unitPrice: "30 000", vatRate: "x" })).toBeUndefined();
+	});
+
+	it("splits a tier price per listing", () => {
+		expect(perListingOre({ quantity: "2", totalPrice: "5 500" })).toBe(275_000);
+		expect(perListingOre({ quantity: "0", totalPrice: "5 500" })).toBeUndefined();
+		expect(perListingOre({ quantity: "", totalPrice: "5 500" })).toBeUndefined();
+		expect(perListingOre({ quantity: "2", totalPrice: "abc" })).toBeUndefined();
+	});
+
+	it("explains that earlier sales keep their price", () => {
+		expect(existingSalesNote(0, "høst 2026", "30 000 kr")).toBeNull();
+		expect(existingSalesNote(1, "høst 2026", "30 000 kr")).toBe(
+			"En ny pris gjelder bare nye salg: arrangementet som allerede er solgt i høst 2026 beholder 30 000 kr.",
+		);
+		expect(existingSalesNote(5, "høst 2026", "30 000 kr")).toBe(
+			"En ny pris gjelder bare nye salg: de 5 arrangementene som allerede er solgt i høst 2026 beholder 30 000 kr.",
+		);
 	});
 });

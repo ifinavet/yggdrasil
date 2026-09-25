@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@workspace/ui/components/button";
-import { useFeatureEnabled } from "@workspace/ui/components/feature-gate";
+import { useFeatureEnabled } from "@workspace/ui/hooks/use-feature-enabled";
 import Link from "next/link";
 
 export function FeedbackReportLink({ slug }: Readonly<{ slug: string }>) {
