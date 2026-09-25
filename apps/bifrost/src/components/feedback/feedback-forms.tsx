@@ -211,26 +211,14 @@ function FormPanel({
 			initialValues={{ name: draft.name, fields }}
 			hasDraft={form.hasDraft}
 			focusName={focusName}
-			header={(nameInput) => (
-				<header className="flex items-center justify-between gap-6 border-b px-8 pt-7 pb-5">
-					<div className="flex min-w-0 flex-1 items-center gap-2.5">
-						{nameInput}
-						{!form.isDefault && <SetDefaultButton form={form} />}
-					</div>
-					<Select value={versionId} onValueChange={setVersionId}>
-						<SelectTrigger aria-label="Versjon" className="shrink-0 bg-card">
-							<SelectValue />
-						</SelectTrigger>
-						<SelectContent align="end">
-							<SelectItem value={draftVersion}>Utkast</SelectItem>
-							{versions.map((version) => (
-								<SelectItem key={version._id} value={version._id}>
-									Versjon {version.number}, {formatOsloDate(version.publishedAt, "d. MMM yyyy")}
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
-				</header>
+			renderHeader={(nameInput) => (
+				<FormPanelHeader
+					nameInput={nameInput}
+					form={form}
+					versions={versions}
+					versionId={versionId}
+					onVersionChange={setVersionId}
+				/>
 			)}
 			readOnlyContent={
 				selectedVersion && (
@@ -241,14 +229,52 @@ function FormPanel({
 	);
 }
 
+function FormPanelHeader({
+	nameInput,
+	form,
+	versions,
+	versionId,
+	onVersionChange,
+}: Readonly<{
+	nameInput: ReactNode;
+	form: FeedbackFormSummary;
+	versions: FunctionReturnType<typeof api.feedback.forms.queries.getVersions>;
+	versionId: string;
+	onVersionChange: (versionId: string) => void;
+}>) {
+	return (
+		<header className="flex items-center justify-between gap-6 border-b px-8 pt-7 pb-5">
+			<div className="flex min-w-0 flex-1 items-center gap-2.5">
+				{nameInput}
+				{!form.isDefault && <SetDefaultButton form={form} />}
+			</div>
+			<Select value={versionId} onValueChange={onVersionChange}>
+				<SelectTrigger aria-label="Versjon" className="shrink-0 bg-card">
+					<SelectValue />
+				</SelectTrigger>
+				<SelectContent align="end">
+					<SelectItem value={draftVersion}>Utkast</SelectItem>
+					{versions.map((version) => (
+						<SelectItem key={version._id} value={version._id}>
+							Versjon {version.number}, {formatOsloDate(version.publishedAt, "d. MMM yyyy")}
+						</SelectItem>
+					))}
+				</SelectContent>
+			</Select>
+		</header>
+	);
+}
+
+function setDefaultBlocker(form: FeedbackFormSummary): string | undefined {
+	if (form.isHidden) return "Vis skjemaet før det settes som standard.";
+	if (!form.publishedVersion) return "Publiser skjemaet før det settes som standard.";
+	return undefined;
+}
+
 function SetDefaultButton({ form }: Readonly<{ form: FeedbackFormSummary }>) {
 	const setDefault = useMutation(api.feedback.forms.mutations.setDefault);
 	const [saving, setSaving] = useState(false);
-	const blocker = form.isHidden
-		? "Vis skjemaet før det settes som standard."
-		: form.publishedVersion
-			? undefined
-			: "Publiser skjemaet før det settes som standard.";
+	const blocker = setDefaultBlocker(form);
 	return (
 		<Button
 			variant="outline"

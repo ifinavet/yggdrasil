@@ -1,5 +1,6 @@
 import { ConvexError, v } from "convex/values";
-import { mutation, query } from "../_generated/server";
+import type { Doc, Id } from "../_generated/dataModel";
+import { type MutationCtx, mutation, query } from "../_generated/server";
 import { internalRoles, requireRole } from "../auth/accessRights";
 import { hasSentForms, latestCampaign, syncFeedbackCampaign } from "./delivery/campaigns";
 import { getFeedbackFormOrThrow, getLatestPublishedVersion } from "./forms/helpers";
@@ -35,30 +36,48 @@ export const updateEventFeedbackSettings = mutation({
 		await requireRole(ctx, internalRoles);
 		const event = await ctx.db.get(eventId);
 		if (!event) throw new ConvexError("Arrangementet finnes ikke.");
-		const campaign = await latestCampaign(ctx, eventId);
-		if (campaign && (await hasSentForms(ctx, campaign))) {
-			if (!enabled)
-				throw new ConvexError(
-					"Skjemaet er allerede sendt ut, så tilbakemeldinger kan ikke slås av for dette arrangementet.",
-				);
-			if (formId !== event.feedbackFormId)
-				throw new ConvexError("Skjemaet er allerede sendt ut, så det kan ikke byttes.");
-		}
-		if (formId) {
-			const feedbackForm = await getFeedbackFormOrThrow(ctx, formId);
-			if (feedbackForm.isHidden && formId !== event.feedbackFormId)
-				throw new ConvexError("Velg et synlig skjema.");
-			if (!(await getLatestPublishedVersion(ctx, formId)))
-				throw new ConvexError("Velg et publisert skjema.");
-		} else if (enabled) {
-			const defaultForm = await ctx.db
-				.query("feedbackForms")
-				.withIndex("by_isDefault", (index) => index.eq("isDefault", true))
-				.unique();
-			if (!defaultForm || !(await getLatestPublishedVersion(ctx, defaultForm._id)))
-				throw new ConvexError("Publiser og velg et standardskjema før tilbakemeldinger slås på.");
-		}
+		await assertSentFormUnchanged(ctx, event, enabled, formId);
+		await assertSelectableForm(ctx, event, enabled, formId);
 		await ctx.db.patch(eventId, { feedbackEnabled: enabled, feedbackFormId: formId });
 		await syncFeedbackCampaign(ctx, eventId, { requireSchedule: enabled });
 	},
 });
+
+async function assertSentFormUnchanged(
+	ctx: MutationCtx,
+	event: Doc<"events">,
+	enabled: boolean,
+	formId: Id<"feedbackForms"> | undefined,
+) {
+	const campaign = await latestCampaign(ctx, event._id);
+	if (!campaign || !(await hasSentForms(ctx, campaign))) return;
+	if (!enabled)
+		throw new ConvexError(
+			"Skjemaet er allerede sendt ut, så tilbakemeldinger kan ikke slås av for dette arrangementet.",
+		);
+	if (formId !== event.feedbackFormId)
+		throw new ConvexError("Skjemaet er allerede sendt ut, så det kan ikke byttes.");
+}
+
+async function assertSelectableForm(
+	ctx: MutationCtx,
+	event: Doc<"events">,
+	enabled: boolean,
+	formId: Id<"feedbackForms"> | undefined,
+) {
+	if (formId) {
+		const feedbackForm = await getFeedbackFormOrThrow(ctx, formId);
+		if (feedbackForm.isHidden && formId !== event.feedbackFormId)
+			throw new ConvexError("Velg et synlig skjema.");
+		if (!(await getLatestPublishedVersion(ctx, formId)))
+			throw new ConvexError("Velg et publisert skjema.");
+		return;
+	}
+	if (!enabled) return;
+	const defaultForm = await ctx.db
+		.query("feedbackForms")
+		.withIndex("by_isDefault", (index) => index.eq("isDefault", true))
+		.unique();
+	if (!defaultForm || !(await getLatestPublishedVersion(ctx, defaultForm._id)))
+		throw new ConvexError("Publiser og velg et standardskjema før tilbakemeldinger slås på.");
+}

@@ -27,14 +27,14 @@ export function FeedbackFormEditor({
 	initialValues,
 	hasDraft,
 	focusName,
-	header,
+	renderHeader,
 	readOnlyContent,
 }: Readonly<{
 	formId: Id<"feedbackForms">;
 	initialValues: DraftValues;
 	hasDraft: boolean;
 	focusName: boolean;
-	header: (nameInput: ReactNode) => ReactNode;
+	renderHeader: (nameInput: ReactNode) => ReactNode;
 	readOnlyContent?: ReactNode;
 }>) {
 	const saveDraft = useMutation(api.feedback.forms.mutations.saveDraft);
@@ -111,7 +111,7 @@ export function FeedbackFormEditor({
 
 	return (
 		<>
-			{header(
+			{renderHeader(
 				<input
 					ref={nameInput}
 					aria-label="Skjemanavn"
@@ -185,13 +185,13 @@ export function FeedbackFormEditor({
 						</Button>
 					</section>
 					<footer className="flex items-center justify-end gap-4 border-t px-8 py-4">
-						<p role="status" className="mr-auto min-w-0 text-muted-foreground text-sm">
+						<output className="mr-auto min-w-0 text-muted-foreground text-sm">
 							{validation.success ? (
 								saveStateLabel(saveState, isDirty)
 							) : (
 								<span className="text-destructive">{validation.error.issues[0]?.message}</span>
 							)}
-						</p>
+						</output>
 						<Button type="button" disabled={!canPublish} onClick={() => void publishDraft()}>
 							{publishing ? "Publiserer …" : "Publiser ny versjon"}
 						</Button>
