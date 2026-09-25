@@ -153,6 +153,22 @@ describe("getByToken", () => {
 		expect(JSON.stringify(offer)).not.toMatch(/ingrid|faktura|\+47/);
 	});
 
+	it("leaves out dates another company has confirmed, but keeps dates only offered", async () => {
+		const { t, semesterId, applicationId, editor } = await offerSetup();
+		await insertApplication(t, semesterId, { assignedDate: "2027-02-11", status: "confirmed" });
+		await insertApplication(t, semesterId, { assignedDate: "2027-02-16", status: "offer_sent" });
+		const token = await sendAndGetToken(editor, applicationId);
+
+		expect(await t.query(offers.queries.getByToken, { token })).toMatchObject({
+			openDates: ["2027-02-16"],
+		});
+		expect(
+			await refusalMessageFrom(
+				t.mutation(offers.mutations.requestNewDate, { token, dates: ["2027-02-11"] }),
+			),
+		).toBe("Velg blant datoene i semesteret.");
+	});
+
 	it("answers «unknown» for a made-up token", async () => {
 		const { t } = await offerSetup();
 		expect(await t.query(offers.queries.getByToken, { token: "x".repeat(43) })).toEqual({
