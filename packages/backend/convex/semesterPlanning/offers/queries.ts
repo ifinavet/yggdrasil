@@ -34,7 +34,6 @@ export const getByToken = query({
 			maxStudents: v.number(),
 			venue,
 			termsUrl: v.optional(v.string()),
-			respondBy: v.optional(v.number()),
 			respondedAt: v.optional(v.number()),
 			requestedDates: v.optional(v.array(v.string())),
 			openDates: v.optional(v.array(v.string())),
@@ -46,11 +45,13 @@ export const getByToken = query({
 		if (!offer || !application) return { state: "unknown" as const };
 
 		const semester = await requireSemester(ctx, application.semesterId);
-		// A declined offer withdraws the application, but the company should see that it declined.
-		const state =
-			offer.status === "declined" || isActiveApplicationStatus(application.status)
-				? offer.status
-				: ("inactive" as const);
+		// A declined offer closes the application, but the company should see that it declined. An
+		// accepted offer only counts while the application is still confirmed on it.
+		const current =
+			offer.status === "accepted"
+				? application.status === "confirmed"
+				: isActiveApplicationStatus(application.status);
+		const state = offer.status === "declined" || current ? offer.status : ("inactive" as const);
 		const openDates =
 			state === "pending"
 				? (await listSemesterDates(ctx, application.semesterId))
@@ -66,7 +67,6 @@ export const getByToken = query({
 			maxStudents: offer.maxStudents,
 			venue: application.venue,
 			...(semester.termsUrl ? { termsUrl: semester.termsUrl } : {}),
-			...(offer.respondBy ? { respondBy: offer.respondBy } : {}),
 			...(offer.respondedAt ? { respondedAt: offer.respondedAt } : {}),
 			...(offer.requestedDates ? { requestedDates: offer.requestedDates } : {}),
 			...(openDates ? { openDates } : {}),

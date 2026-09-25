@@ -65,15 +65,15 @@ export async function findSemester(
 
 /**
  * The settings a new semester inherits from the most recent one: information text, terms link
- * and reply time. Dates and deadlines are never inherited; a human sets those.
+ * and start time for events. Dates and deadlines are never inherited; a human sets those.
  *
  * @param {MutationCtx} ctx - The Convex mutation context.
  *
- * @returns {Promise<Pick<Doc<"semesters">, "infoText" | "termsUrl" | "offerResponseDays">>} - The copied settings.
+ * @returns {Promise<Pick<Doc<"semesters">, "infoText" | "termsUrl" | "defaultEventStartTime">>} - The copied settings.
  */
 export async function settingsFromLatestSemester(
 	ctx: MutationCtx,
-): Promise<Pick<Doc<"semesters">, "infoText" | "termsUrl" | "offerResponseDays">> {
+): Promise<Pick<Doc<"semesters">, "infoText" | "termsUrl" | "defaultEventStartTime">> {
 	// The index sorts terms alphabetically, so read the newest few and order them properly.
 	const newest = await ctx.db
 		.query("semesters")
@@ -86,8 +86,8 @@ export async function settingsFromLatestSemester(
 	return {
 		...(latest.infoText !== undefined ? { infoText: latest.infoText } : {}),
 		...(latest.termsUrl !== undefined ? { termsUrl: latest.termsUrl } : {}),
-		...(latest.offerResponseDays !== undefined
-			? { offerResponseDays: latest.offerResponseDays }
+		...(latest.defaultEventStartTime !== undefined
+			? { defaultEventStartTime: latest.defaultEventStartTime }
 			: {}),
 	};
 }

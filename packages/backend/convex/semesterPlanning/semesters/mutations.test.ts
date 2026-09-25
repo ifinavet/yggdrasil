@@ -45,7 +45,7 @@ describe("create", () => {
 			term: "autumn",
 			infoText: "Velkommen",
 			termsUrl: `${MIDGARD_URL}/vilkar`,
-			offerResponseDays: 14,
+			defaultEventStartTime: "16:15",
 			status: "closed",
 		});
 		await insertSemester(t, { year: 2026, term: "spring", infoText: "Gammel", status: "closed" });
@@ -62,7 +62,7 @@ describe("create", () => {
 			status: "draft",
 			infoText: "Velkommen",
 			termsUrl: `${MIDGARD_URL}/vilkar`,
-			offerResponseDays: 14,
+			defaultEventStartTime: "16:15",
 		});
 		expect(semester.firstDate).toBeUndefined();
 		expect(semester.lastDate).toBeUndefined();
@@ -274,7 +274,7 @@ describe("setDateClosed", () => {
 });
 
 describe("updateSettings", () => {
-	it("saves the deadline and clears a text with an empty string", async () => {
+	it("saves the deadline and start time, and clears a text with an empty string", async () => {
 		const { t } = await setup();
 		const semesterId = await insertSemester(t, { status: "draft", infoText: "Gammel tekst" });
 
@@ -282,19 +282,20 @@ describe("updateSettings", () => {
 			semesterId,
 			applicationDeadline: "2026-12-04",
 			infoText: "",
-			offerResponseDays: 14,
+			defaultEventStartTime: "16:15",
 		});
 
 		const semester = await semesterById(t, semesterId);
 		expect(semester.applicationDeadline).toBe("2026-12-04");
 		expect(semester.infoText).toBeUndefined();
-		expect(semester.offerResponseDays).toBe(14);
+		expect(semester.defaultEventStartTime).toBe("16:15");
 	});
 
 	it.each([
 		[{ applicationDeadline: "4. desember" }, "Søknadsfristen må være en gyldig dato (ÅÅÅÅ-MM-DD)."],
 		[{ termsUrl: "ikke en lenke" }, "Lenken til standardvilkårene er ugyldig."],
-		[{ offerResponseDays: 0 }, "Svarfristen må være mellom 1 og 60 dager."],
+		[{ defaultEventStartTime: "9:00" }, "Starttiden må være et gyldig klokkeslett (TT:MM)."],
+		[{ defaultEventStartTime: "25:00" }, "Starttiden må være et gyldig klokkeslett (TT:MM)."],
 	])("refuses %o", async (settings, expected) => {
 		const { t } = await setup();
 		const semesterId = await insertSemester(t, { status: "draft" });
@@ -383,6 +384,45 @@ describe("finalizePlan", () => {
 		expect(first.planFinalizedAt).toBeDefined();
 		expect(first.planFinalizedBy).toBeDefined();
 		expect((await semesterById(t, semesterId)).planFinalizedAt).toBe(first.planFinalizedAt);
+	});
+
+	it("refuses while applications wait for an offer or an answer, and says how many", async () => {
+		const { t } = await setup();
+		const semesterId = await insertSemester(t);
+		for (const status of ["applied", "offer_sent", "confirmed", "declined"] as const) {
+			await insertApplication(t, semesterId, { status });
+		}
+
+		const message = await refusalMessageFrom(
+			(await editorOf(t)).mutation(mutations.finalizePlan, { semesterId }),
+		);
+		expect(message).toBe("2 søknader venter fortsatt på tilbud eller svar.");
+		expect((await semesterById(t, semesterId)).planFinalizedAt).toBeUndefined();
+	});
+
+	it("is undone when an application needs an offer again, and by unfinalizePlan", async () => {
+		const { t } = await setup();
+		const semesterId = await insertSemester(t);
+		await t.run((ctx) => ctx.db.insert("semesterDates", { semesterId, date: "2027-02-16" }));
+		const applicationId = await insertApplication(t, semesterId, {
+			status: "confirmed",
+			assignedDate: "2027-02-09",
+		});
+		const editor = await editorOf(t);
+
+		await editor.mutation(mutations.finalizePlan, { semesterId });
+		await editor.mutation(api.semesterPlanning.applications.mutations.assignDate, {
+			applicationId,
+			date: "2027-02-16",
+		});
+		expect((await semesterById(t, semesterId)).planFinalizedAt).toBeUndefined();
+
+		await t.run((ctx) => ctx.db.patch(applicationId, { status: "confirmed" }));
+		await editor.mutation(mutations.finalizePlan, { semesterId });
+		expect((await semesterById(t, semesterId)).planFinalizedBy).toBeDefined();
+		await editor.mutation(mutations.unfinalizePlan, { semesterId });
+		const semester = await semesterById(t, semesterId);
+		expect([semester.planFinalizedAt, semester.planFinalizedBy]).toEqual([undefined, undefined]);
 	});
 });
 

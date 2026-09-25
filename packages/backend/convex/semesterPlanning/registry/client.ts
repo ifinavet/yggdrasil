@@ -8,12 +8,12 @@ const BRREG_UNITS_URL = "https://data.brreg.no/enhetsregisteret/api/enheter";
 const REGISTRY_TIMEOUT_MS = 8000;
 const BRREG_SEARCH_LIMIT = 10;
 
-export type BrregSnapshot = Infer<typeof brregSnapshotAtSubmission>;
+type BrregSnapshot = Infer<typeof brregSnapshotAtSubmission>;
 
 /** Why a unit cannot apply, or null when it can. */
 export type BlockedReason = Infer<typeof blockedReason>;
 
-export type BrregLookup =
+type BrregLookup =
 	| { status: "found"; snapshot: BrregSnapshot; blockedReason: BlockedReason | null }
 	| { status: "not_found" };
 
@@ -61,7 +61,7 @@ async function getJson(url: string): Promise<{ status: number; body: unknown }> 
 }
 
 /** Why a brreg unit cannot apply: deleted, bankrupt, or being wound up. */
-export function brregBlockedReason(unit: Json): BlockedReason | null {
+function brregBlockedReason(unit: Json): BlockedReason | null {
 	if (readText(unit.slettedato)) return "deleted";
 	if (unit.konkurs === true) return "bankrupt";
 	if (unit.underAvvikling === true || unit.underTvangsavviklingEllerTvangsopplosning === true) {
@@ -71,7 +71,7 @@ export function brregBlockedReason(unit: Json): BlockedReason | null {
 }
 
 /** The fields we keep from a brreg unit, as it was at this moment. */
-export function toBrregSnapshot(unit: Json, fetchedAt: number): BrregSnapshot {
+function toBrregSnapshot(unit: Json, fetchedAt: number): BrregSnapshot {
 	const address = isObject(unit.forretningsadresse) ? unit.forretningsadresse : undefined;
 	const addressLines = Array.isArray(address?.adresse)
 		? address.adresse.filter((line): line is string => typeof line === "string" && line !== "")

@@ -1,42 +1,30 @@
 import { MAX_OFFER_COMMENT_LENGTH, MAX_REQUESTED_DATES } from "@workspace/shared/semester/limits";
-import { addOsloDays } from "@workspace/shared/semester/time";
 import { ConvexError, v } from "convex/values";
-import type { Doc } from "../../_generated/dataModel";
-import { type MutationCtx, mutation } from "../../_generated/server";
+import { mutation } from "../../_generated/server";
 import { generateLinkToken } from "../../lib/tokens";
 import { requireEditorActor, transitionApplicationStatus } from "../applicationLifecycle";
 import { requireApplication } from "../applications/helper";
-import { rateLimiter } from "../rateLimits";
 import { listSemesterDates, requireSemester } from "../semesters/helper";
-import { findOfferByToken, requireAnswerableOffer, supersedePendingOffers } from "./helper";
-import { NEW_DATE_ALREADY_REQUESTED_MESSAGE } from "./messages";
+import { findLatestOffer, findOfferByToken, requireAnswerableOffer } from "./helper";
 
-async function rateLimitOfferResponse(
-	ctx: MutationCtx,
-	offer: Doc<"companyApplicationOffers">,
-): Promise<void> {
-	const { ok } = await rateLimiter.limit(ctx, "offerResponse", { key: offer._id });
-	if (!ok) throw new ConvexError("For mange forsøk. Prøv igjen om litt.");
-}
+const NEW_DATE_ALREADY_REQUESTED_MESSAGE =
+	"Dere har allerede bedt om en annen dato. Vi sender et nytt tilbud.";
 
 /**
- * Makes an offer for the application's assigned date with a new link token, replaces any earlier
- * offer and moves the application to «Tilbud sendt». Nothing is emailed: Bifrost builds the link
+ * Makes an offer for the application's assigned date with a new link token and moves the
+ * application to «Tilbud sendt». While the offer waits for an answer, it returns the same link
+ * again, so the link Navet has emailed keeps working. Nothing is emailed: Bifrost builds the link
  * from the token, and Navet sends it by hand.
  *
  * @param {Id<"companyApplications">} applicationId - The application.
  *
  * @throws - An error if the caller is not an editor, the application has no date, or its status
  * does not allow an offer.
- * @returns {{ offerId: Id<"companyApplicationOffers">, linkToken: string, respondBy?: number }} - The offer, its link token and its deadline.
+ * @returns {{ offerId: Id<"companyApplicationOffers">, linkToken: string }} - The offer and its link token.
  */
 export const sendOffer = mutation({
 	args: { applicationId: v.id("companyApplications") },
-	returns: v.object({
-		offerId: v.id("companyApplicationOffers"),
-		linkToken: v.string(),
-		respondBy: v.optional(v.number()),
-	}),
+	returns: v.object({ offerId: v.id("companyApplicationOffers"), linkToken: v.string() }),
 	handler: async (ctx, { applicationId }) => {
 		const actor = await requireEditorActor(ctx);
 		const application = await requireApplication(ctx, applicationId);
@@ -46,30 +34,24 @@ export const sendOffer = mutation({
 		const semester = await requireSemester(ctx, application.semesterId);
 		if (semester.status === "closed") throw new ConvexError("Semesteret er stengt.");
 
-		const linkToken = generateLinkToken();
-		const sentAt = Date.now();
-		const respondBy = semester.offerResponseDays
-			? addOsloDays(sentAt, semester.offerResponseDays)
-			: undefined;
+		const latest = await findLatestOffer(ctx, applicationId);
+		if (latest?.status === "pending") return { offerId: latest._id, linkToken: latest.linkToken };
 
-		await supersedePendingOffers(ctx, applicationId);
+		const linkToken = generateLinkToken();
 		const offerId = await ctx.db.insert("companyApplicationOffers", {
 			applicationId,
 			date: application.assignedDate,
 			eventType: application.eventType,
 			maxStudents: application.maxStudents,
 			linkToken,
-			sentAt,
+			sentAt: Date.now(),
 			sentBy: actor.userId,
 			status: "pending",
-			...(respondBy ? { respondBy } : {}),
 		});
 
-		await transitionApplicationStatus(ctx, application, "offer_sent", actor, {
-			offerId,
-		});
+		await transitionApplicationStatus(ctx, application, "offer_sent", actor, { offerId });
 
-		return { offerId, linkToken, ...(respondBy ? { respondBy } : {}) };
+		return { offerId, linkToken };
 	},
 });
 
@@ -96,7 +78,6 @@ export const accept = mutation({
 		if (offer.status === "accepted") return null;
 		if (offer.status === "new_date_requested")
 			throw new ConvexError(NEW_DATE_ALREADY_REQUESTED_MESSAGE);
-		await rateLimitOfferResponse(ctx, offer);
 
 		const semester = await requireSemester(ctx, application.semesterId);
 		await ctx.db.patch(offer._id, {
@@ -139,7 +120,6 @@ export const requestNewDate = mutation({
 		if (offer.status === "accepted") throw new ConvexError("Dere har allerede godtatt tilbudet.");
 		if (offer.status === "new_date_requested")
 			throw new ConvexError(NEW_DATE_ALREADY_REQUESTED_MESSAGE);
-		await rateLimitOfferResponse(ctx, offer);
 
 		const wanted = [...new Set(dates)];
 		if (wanted.length < 1 || wanted.length > MAX_REQUESTED_DATES) {
@@ -163,7 +143,6 @@ export const requestNewDate = mutation({
 			status: "new_date_requested",
 			respondedAt: Date.now(),
 			requestedDates: wanted,
-			...(trimmed ? { responseComment: trimmed } : {}),
 		});
 		await transitionApplicationStatus(
 			ctx,
@@ -181,10 +160,10 @@ export const requestNewDate = mutation({
 });
 
 /**
- * The company declines the offer, from the link. The application is withdrawn by the company and
+ * The company declines the offer, from the link. The application is declined by the company and
  * the date is free again. Declining twice is harmless, and a company that has asked for another
  * date can still decline. Only the newest offer can be declined, and only while the application
- * waits for the company's answer, so an old link can never withdraw a confirmed application.
+ * waits for the company's answer, so an old link can never undo a confirmed application.
  * Public: the link token is the only credential.
  *
  * @param {string} token - The token from the offer link.
@@ -209,22 +188,17 @@ export const decline = mutation({
 		if (application.status !== "offer_sent" && application.status !== "new_date_requested") {
 			throw new ConvexError("Tilbudet gjelder ikke lenger.");
 		}
-		await rateLimitOfferResponse(ctx, offer);
 
 		const trimmed = comment?.trim();
 		if (trimmed && trimmed.length > MAX_OFFER_COMMENT_LENGTH) {
 			throw new ConvexError(`Kommentaren kan ha høyst ${MAX_OFFER_COMMENT_LENGTH} tegn.`);
 		}
 
-		await ctx.db.patch(offer._id, {
-			status: "declined",
-			respondedAt: Date.now(),
-			...(trimmed ? { responseComment: trimmed } : {}),
-		});
+		await ctx.db.patch(offer._id, { status: "declined", respondedAt: Date.now() });
 		await transitionApplicationStatus(
 			ctx,
 			application,
-			"withdrawn",
+			"declined",
 			{ type: "company" },
 			{ offerId: offer._id, ...(trimmed ? { comment: trimmed } : {}) },
 		);

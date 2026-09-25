@@ -83,6 +83,17 @@ describe("getPlan", () => {
 		expect(after[0]).toMatchObject({ responsibleName: "Ida Hjelp", helpers: [] });
 	});
 
+	it("leaves out declined, rejected and withdrawn applications", async () => {
+		const { t, semesterId, member } = await withPeople();
+		for (const status of ["declined", "rejected", "withdrawn"] as const) {
+			await insertApplication(t, semesterId, { status, assignedDate: "2027-02-09" });
+		}
+		const live = await insertApplication(t, semesterId, { assignedDate: "2027-02-09" });
+
+		const plan = await asUser(t, member).query(queries.getPlan, { semesterId });
+		expect(plan.map((row) => row._id)).toEqual([live]);
+	});
+
 	it("requires login", async () => {
 		const { t, semesterId } = await withPeople();
 		expect(await refusalMessageFrom(t.query(queries.getPlan, { semesterId }))).toContain(
@@ -115,7 +126,7 @@ describe("editor queries", () => {
 		expect(list[0]?.contact.email).toBe("ingrid@fjordkode.no");
 	});
 
-	it("get finds the company profile by organization number, or the linked one", async () => {
+	it("get finds the company profile by organization number", async () => {
 		const { t, semesterId, editor, companyId } = await withPeople();
 		const applicationId = await insertApplication(t, semesterId, { orgNumber: "123456789" });
 
@@ -131,36 +142,17 @@ describe("editor queries", () => {
 			companyName: null,
 			logoUrl: null,
 		});
-
-		await t.run((ctx) => ctx.db.patch(other, { companyId }));
-		expect((await asUser(t, editor).query(queries.get, { applicationId: other })).companyId).toBe(
-			companyId,
-		);
 	});
 });
 
-describe("countForSemester", () => {
-	it("counts every application in the semester, for editors only", async () => {
-		const { t, semesterId, editor, member } = await withPeople();
-		await insertApplication(t, semesterId);
-		await insertApplication(t, semesterId, { status: "withdrawn" });
-		await insertApplication(t, await insertSemester(t, { year: 2028 }));
-
-		expect(await asUser(t, editor).query(queries.countForSemester, { semesterId })).toBe(2);
-		expect(
-			await refusalMessageFrom(asUser(t, member).query(queries.countForSemester, { semesterId })),
-		).toContain("Unauthorized");
-	});
-});
-
-describe("listRequestedDates", () => {
-	it("gives the dates from the latest answered offer of each application wanting a new date", async () => {
+describe("listForSemester", () => {
+	it("shows the latest offer's answer and the company's latest comment", async () => {
 		const { t, semesterId, editor } = await withPeople();
 		const waiting = await insertApplication(t, semesterId, {
 			status: "new_date_requested",
 			assignedDate: "2027-02-09",
 		});
-		await insertApplication(t, semesterId, { status: "offer_sent", assignedDate: "2027-02-16" });
+		const fresh = await insertApplication(t, semesterId);
 		await t.run(async (ctx) => {
 			const offer = {
 				applicationId: waiting,
@@ -175,17 +167,38 @@ describe("listRequestedDates", () => {
 				sentAt: 1,
 				status: "superseded",
 			});
-			await ctx.db.insert("companyApplicationOffers", {
+			const offerId = await ctx.db.insert("companyApplicationOffers", {
 				...offer,
 				linkToken: "new",
 				sentAt: 2,
 				status: "new_date_requested",
+				respondedAt: 3,
 				requestedDates: ["2027-02-16", "2027-02-11"],
+			});
+			await ctx.db.insert("companyApplicationActivity", {
+				applicationId: waiting,
+				type: "status_changed",
+				actor: "company",
+				fromStatus: "offer_sent",
+				toStatus: "new_date_requested",
+				offerId,
+				comment: "Helst en torsdag.",
 			});
 		});
 
-		expect(await asUser(t, editor).query(queries.listRequestedDates, { semesterId })).toEqual([
-			{ applicationId: waiting, dates: ["2027-02-16", "2027-02-11"] },
+		const rows = await asUser(t, editor).query(queries.listForSemester, { semesterId });
+
+		expect(rows.map((row) => [row._id, row.latestOffer, row.companyComment])).toEqual([
+			[
+				waiting,
+				{
+					status: "new_date_requested",
+					respondedAt: 3,
+					requestedDates: ["2027-02-16", "2027-02-11"],
+				},
+				"Helst en torsdag.",
+			],
+			[fresh, null, null],
 		]);
 	});
 });

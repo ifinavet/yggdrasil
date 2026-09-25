@@ -1,6 +1,6 @@
 import type { SemesterTerm } from "./time";
 
-// Norwegian labels for the stored semester planning values, shared by Hugin, Bifrost and emails.
+// Norwegian labels for the stored semester planning values, shared by the apps and the backend.
 
 export const EVENT_TYPES = [
 	"standard_presentation",
@@ -15,6 +15,14 @@ export const EVENT_TYPE_LABELS: Record<EventType, string> = {
 	large_presentation: "Stor bedriftspresentasjon",
 	workshop: "Faglig arrangement, workshop eller kurs",
 	social: "Sosialt arrangement",
+};
+
+/** The start of an event's title, before the company name, e.g. «Workshop med Fjordkode». */
+export const EVENT_TITLE_PREFIX: Record<EventType, string> = {
+	standard_presentation: "Bedriftspresentasjon med",
+	large_presentation: "Bedriftspresentasjon med",
+	workshop: "Workshop med",
+	social: "Sosialt arrangement med",
 };
 
 export const VENUES = ["campus", "own_premises", "undecided"] as const;
@@ -43,6 +51,7 @@ export const APPLICATION_STATUSES = [
 	"offer_sent",
 	"new_date_requested",
 	"confirmed",
+	"declined",
 	"rejected",
 	"withdrawn",
 ] as const;
@@ -53,7 +62,8 @@ export const STATUS_LABELS: Record<ApplicationStatus, string> = {
 	offer_sent: "Tilbud sendt",
 	new_date_requested: "Ny dato ønsket",
 	confirmed: "Bekreftet",
-	rejected: "Avslått",
+	declined: "Avslått av bedriften",
+	rejected: "Avslått av Navet",
 	withdrawn: "Trukket",
 };
 

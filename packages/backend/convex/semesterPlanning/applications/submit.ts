@@ -25,10 +25,9 @@ import {
 import { listSemesterDates } from "../semesters/helper";
 
 /** What the Hugin form sends. The shared Zod schema checks the details. */
-export const applicationFormArgs = v.object({
+const applicationFormArgs = v.object({
 	orgNumber: v.string(),
 	contact: applicationContact,
-	filledInByEmail: v.optional(v.string()),
 	eventType: presentationEventType,
 	minStudents: v.number(),
 	maxStudents: v.number(),

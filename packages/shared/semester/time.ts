@@ -8,6 +8,7 @@ import { nb } from "date-fns/locale";
 const OSLO = "Europe/Oslo";
 const IN_OSLO = { in: tz(OSLO) };
 const DAY_FORMAT = "yyyy-MM-dd";
+const TIME_FORMAT = "HH:mm";
 
 /** First month of the autumn term, zero-based (July). January to June belongs to spring. */
 const AUTUMN_FIRST_MONTH = 6;
@@ -18,6 +19,11 @@ export type SemesterTerm = (typeof SEMESTER_TERMS)[number];
 /** Whether the value is a real calendar day written as YYYY-MM-DD. */
 export function isIsoDate(value: string): boolean {
 	return parseStrict(value, DAY_FORMAT) !== null;
+}
+
+/** Whether the value is a wall-clock time written as HH:mm, like "16:15". */
+export function isClockTime(value: string): boolean {
+	return parseStrict(value, TIME_FORMAT) !== null;
 }
 
 /** Today's calendar day in Oslo. */
@@ -40,10 +46,10 @@ function osloClock(epoch: number): string {
 
 type Clock = [year: number, month: number, day: number, hours: number, minutes: number];
 
-/** The moment an Oslo "YYYY-MM-DD HH:mm" happens, moved by a number of days. */
-function fromOsloClock(value: string, addDays = 0): number {
+/** The moment an Oslo "YYYY-MM-DD HH:mm" happens. */
+function fromOsloClock(value: string): number {
 	const [year, month, day, hours, minutes] = value.split(/[- :]/).map(Number) as Clock;
-	return new TZDate(year, month - 1, day + addDays, hours, minutes, OSLO).getTime();
+	return new TZDate(year, month - 1, day, hours, minutes, OSLO).getTime();
 }
 
 /**
@@ -57,11 +63,6 @@ export function osloDateTimeToEpoch(date: string, time: string): number {
 		throw new Error(`Invalid Oslo date or time: ${value}`);
 	}
 	return epoch;
-}
-
-/** The moment a number of Oslo calendar days after another, keeping the wall-clock time. */
-export function addOsloDays(epoch: number, days: number): number {
-	return fromOsloClock(osloClock(epoch), days);
 }
 
 /** Every presentation day (Tuesday and Thursday) from firstDate to lastDate, both inclusive. */
@@ -81,24 +82,14 @@ export function presentationDaysBetween(firstDate: string, lastDate: string): st
 const DAY_STYLES = {
 	short: "EEE d. MMM",
 	long: "PPPP",
-	weekday: "EEEE",
-	shortNumeric: "d.MM",
 } as const;
 
-/**
- * A semester day for people, in Norwegian: "tir 9. feb." (short), "tirsdag 9. februar 2027"
- * (long), "tirsdag" (weekday) or "9.02" (shortNumeric, as in the Excel plan).
- */
+/** A semester day for people, in Norwegian: "tir 9. feb." (short) or "tirsdag 9. februar 2027" (long). */
 export function formatSemesterDay(date: string, style: keyof typeof DAY_STYLES = "short"): string {
 	return format(parseStrictOrThrow(date, DAY_FORMAT), DAY_STYLES[style], {
 		...IN_OSLO,
 		locale: nb,
 	});
-}
-
-/** Whether the day is a presentation day: a Tuesday or a Thursday. */
-export function isPresentationDay(date: string): boolean {
-	return isPresentationWeekday(parseStrictOrThrow(date, DAY_FORMAT));
 }
 
 /** The term an Oslo day belongs to, and its year. */

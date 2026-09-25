@@ -2,6 +2,7 @@ import { ConvexError } from "convex/values";
 import type { Doc, Id } from "../../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../../_generated/server";
 import { LINK_TOKEN_LENGTH } from "../../lib/tokens";
+import { isActiveApplicationStatus } from "../rules";
 
 /**
  * Finds the offer behind a link token.
@@ -44,7 +45,7 @@ export async function findLatestOffer(
 
 /**
  * Loads the application behind an offer a company is answering, and refuses links that are
- * unknown, replaced by a newer offer, or belong to a withdrawn or rejected application. Unknown
+ * unknown, replaced by a newer offer, or belong to a closed application. Unknown
  * and replaced links get messages that reveal nothing about other offers.
  *
  * @param {MutationCtx} ctx - The Convex mutation context.
@@ -64,8 +65,7 @@ export async function requireAnswerableOffer(
 	if (
 		offer.status === "superseded" ||
 		latest?._id !== offer._id ||
-		application.status === "withdrawn" ||
-		application.status === "rejected"
+		!isActiveApplicationStatus(application.status)
 	) {
 		throw new ConvexError("Tilbudet gjelder ikke lenger.");
 	}

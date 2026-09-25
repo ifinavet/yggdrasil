@@ -59,10 +59,7 @@ export const applicationActivityType = v.union(
 	v.literal("status_changed"),
 	v.literal("date_assigned"),
 	v.literal("date_cleared"),
-	// No longer written, since the profile is found by org.nr.; kept for older history rows.
-	v.literal("company_linked"),
 	v.literal("event_linked"),
-	v.literal("contact_changed"),
 );
 
 // Who performed an activity: a Navet member, the company itself or the system.
@@ -120,7 +117,8 @@ export const semesterPlanningSchema = {
 		status: applicationPeriodStatus,
 		infoText: v.optional(v.string()),
 		termsUrl: v.optional(v.string()),
-		offerResponseDays: v.optional(v.number()),
+		// When events made from the plan start, as "HH:mm". Set by a human in Bifrost.
+		defaultEventStartTime: v.optional(v.string()),
 		planFinalizedAt: v.optional(v.number()),
 		planFinalizedBy: v.optional(v.id("users")),
 	})
@@ -141,7 +139,6 @@ export const semesterPlanningSchema = {
 		orgNumber: v.string(),
 		registry: brregSnapshotAtSubmission,
 		contact: applicationContact,
-		filledInByEmail: v.optional(v.string()),
 		eventType: presentationEventType,
 		minStudents: v.number(),
 		maxStudents: v.number(),
@@ -163,7 +160,6 @@ export const semesterPlanningSchema = {
 
 		status: applicationStatus,
 		assignedDate: v.optional(v.string()),
-		companyId: v.optional(v.id("companies")),
 		responsibleUserId: v.optional(v.id("users")),
 		helperUserIds: v.optional(v.array(v.id("users"))),
 		internalNotes: v.optional(v.string()),
@@ -172,7 +168,6 @@ export const semesterPlanningSchema = {
 		.index("by_semesterId_and_status", ["semesterId", "status"])
 		.index("by_semesterId_and_assignedDate", ["semesterId", "assignedDate"])
 		.index("by_semesterId_and_orgNumber", ["semesterId", "orgNumber"])
-		.index("by_companyId", ["companyId"])
 		.index("by_eventId", ["eventId"])
 		.index("by_submissionId", ["submissionId"]),
 
@@ -187,11 +182,9 @@ export const semesterPlanningSchema = {
 		sentAt: v.number(),
 		sentBy: v.id("users"),
 		status: offerStatus,
-		respondBy: v.optional(v.number()),
 		respondedAt: v.optional(v.number()),
 		acceptedTermsUrl: v.optional(v.string()),
 		requestedDates: v.optional(v.array(v.string())),
-		responseComment: v.optional(v.string()),
 	})
 		.index("by_linkToken", ["linkToken"])
 		.index("by_applicationId", ["applicationId"]),

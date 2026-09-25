@@ -4,6 +4,8 @@ import { editorRoles, internalRoles, requireRole } from "../../auth/accessRights
 import { findCompanyLogoUrl } from "../../companies/helper";
 import schema from "../../schema";
 import { findLatestOffer } from "../offers/helper";
+import { isActiveApplicationStatus } from "../rules";
+import { offerStatus } from "../schema";
 import {
 	findCompanyProfile,
 	listApplicationsInSemester,
@@ -15,12 +17,13 @@ import {
 
 /**
  * The semester plan for every internal member: dates, companies, status and org-ansvarlig, but
- * no contact person, invoice details or notes. The `returns` validator enforces that.
+ * no contact person, invoice details or notes. The `returns` validator enforces that. Declined,
+ * rejected and withdrawn applications are left out, so each date shows one company.
  *
  * @param {Id<"semesters">} semesterId - The semester.
  *
  * @throws - An error if the caller is not an internal member.
- * @returns {PlanRow[]} - One row per application.
+ * @returns {PlanRow[]} - One row per live application.
  */
 export const getPlan = query({
 	args: { semesterId: v.id("semesters") },
@@ -30,93 +33,82 @@ export const getPlan = query({
 
 		const applications = await listApplicationsInSemester(ctx, semesterId);
 		return Promise.all(
-			applications.map(async (application) => {
-				const companyId = await findCompanyProfile(ctx, application);
-				return toPlanRow(
-					application,
-					await loadNavetTeam(ctx, application),
-					companyId ? await findCompanyLogoUrl(ctx, companyId) : null,
-				);
-			}),
+			applications
+				.filter((application) => isActiveApplicationStatus(application.status))
+				.map(async (application) => {
+					const company = await findCompanyProfile(ctx, application);
+					return toPlanRow(
+						application,
+						await loadNavetTeam(ctx, application),
+						company ? await findCompanyLogoUrl(ctx, company._id) : null,
+					);
+				}),
 		);
 	},
 });
 
 /**
- * Every application in a semester with all details, for editors.
+ * Every application in a semester with all details, for editors, with what needs handling: the
+ * state of its latest offer, the dates the company asked for, and the company's latest comment.
  *
  * @param {Id<"semesters">} semesterId - The semester.
  *
  * @throws - An error if the caller is not an editor.
- * @returns {Doc<"companyApplications">[]} - The applications, oldest first.
+ * @returns {object[]} - The applications, oldest first, with `latestOffer` and `companyComment`.
  */
 export const listForSemester = query({
 	args: { semesterId: v.id("semesters") },
-	returns: v.array(schema.doc("companyApplications")),
-	handler: async (ctx, { semesterId }) => {
-		await requireRole(ctx, editorRoles);
-
-		const applications = await listApplicationsInSemester(ctx, semesterId);
-		return applications.sort((a, b) => a._creationTime - b._creationTime);
-	},
-});
-
-/**
- * How many applications a semester has, for the count on the Søknader tab.
- *
- * @param {Id<"semesters">} semesterId - The semester.
- *
- * @throws - An error if the caller is not an editor.
- * @returns {number} - The number of applications, whatever their status.
- */
-export const countForSemester = query({
-	args: { semesterId: v.id("semesters") },
-	returns: v.number(),
-	handler: async (ctx, { semesterId }) => {
-		await requireRole(ctx, editorRoles);
-
-		return (await listApplicationsInSemester(ctx, semesterId)).length;
-	},
-});
-
-/**
- * The dates each company asked for instead of the one it was offered, for the applications in a
- * semester that are waiting for a new date.
- *
- * @param {Id<"semesters">} semesterId - The semester.
- *
- * @throws - An error if the caller is not an editor.
- * @returns {{ applicationId: Id<"companyApplications">, dates: string[] }[]} - One entry per application.
- */
-export const listRequestedDates = query({
-	args: { semesterId: v.id("semesters") },
 	returns: v.array(
-		v.object({ applicationId: v.id("companyApplications"), dates: v.array(v.string()) }),
+		v.object({
+			...schema.doc("companyApplications").fields,
+			latestOffer: v.union(
+				v.null(),
+				v.object({
+					status: offerStatus,
+					respondedAt: v.optional(v.number()),
+					requestedDates: v.optional(v.array(v.string())),
+				}),
+			),
+			companyComment: v.union(v.string(), v.null()),
+		}),
 	),
 	handler: async (ctx, { semesterId }) => {
 		await requireRole(ctx, editorRoles);
 
-		const waiting = await ctx.db
-			.query("companyApplications")
-			.withIndex("by_semesterId_and_status", (q) =>
-				q.eq("semesterId", semesterId).eq("status", "new_date_requested"),
-			)
-			.collect();
-		return Promise.all(
-			waiting.map(async (application) => {
+		const applications = await listApplicationsInSemester(ctx, semesterId);
+		const rows = await Promise.all(
+			applications.map(async (application) => {
 				const offer = await findLatestOffer(ctx, application._id);
+				let companyComment: string | null = null;
+				for await (const row of ctx.db
+					.query("companyApplicationActivity")
+					.withIndex("by_applicationId", (q) => q.eq("applicationId", application._id))
+					.order("desc")) {
+					if (row.actor === "company" && row.comment) {
+						companyComment = row.comment;
+						break;
+					}
+				}
 				return {
-					applicationId: application._id,
-					dates: offer?.status === "new_date_requested" ? (offer.requestedDates ?? []) : [],
+					...application,
+					latestOffer: offer
+						? {
+								status: offer.status,
+								...(offer.respondedAt ? { respondedAt: offer.respondedAt } : {}),
+								...(offer.requestedDates ? { requestedDates: offer.requestedDates } : {}),
+							}
+						: null,
+					companyComment,
 				};
 			}),
 		);
+		return rows.sort((a, b) => a._creationTime - b._creationTime);
 	},
 });
 
 /**
- * One application with its offers, its history and its company profile in Bifrost, if any: the
- * linked one, or else the one with the same organization number, with its name and logo.
+ * One application with its offers, its history and the company profile in Bifrost with the same
+ * organization number, if any, with its name and logo.
  *
  * @param {Id<"companyApplications">} applicationId - The application.
  *
@@ -145,17 +137,15 @@ export const get = query({
 			.query("companyApplicationActivity")
 			.withIndex("by_applicationId", (q) => q.eq("applicationId", applicationId))
 			.collect();
-		const companyId = await findCompanyProfile(ctx, application);
-		const company = companyId ? await ctx.db.get(companyId) : null;
-		const logoUrl = companyId ? await findCompanyLogoUrl(ctx, companyId) : null;
+		const company = await findCompanyProfile(ctx, application);
 
 		return {
 			application,
 			offers,
 			activity,
-			companyId,
+			companyId: company?._id ?? null,
 			companyName: company?.name ?? null,
-			logoUrl,
+			logoUrl: company ? await findCompanyLogoUrl(ctx, company._id) : null,
 		};
 	},
 });

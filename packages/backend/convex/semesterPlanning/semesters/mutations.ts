@@ -1,11 +1,7 @@
 import { semesterName } from "@workspace/shared/semester/labels";
+import { MAX_SEMESTER_YEAR, MIN_SEMESTER_YEAR } from "@workspace/shared/semester/limits";
 import {
-	MAX_OFFER_RESPONSE_DAYS,
-	MAX_SEMESTER_YEAR,
-	MIN_OFFER_RESPONSE_DAYS,
-	MIN_SEMESTER_YEAR,
-} from "@workspace/shared/semester/limits";
-import {
+	isClockTime,
 	isIsoDate,
 	nextTermAfter,
 	osloToday,
@@ -17,6 +13,8 @@ import type { Doc, Id } from "../../_generated/dataModel";
 import { internalMutation, type MutationCtx, mutation } from "../../_generated/server";
 import { editorRoles, requireRole } from "../../auth/accessRights";
 import { findActiveApplicationOnDate } from "../applicationLifecycle";
+import { listApplicationsInSemester } from "../applications/helper";
+import { isUnsettledApplicationStatus } from "../rules";
 import { applicationPeriodStatus, semesterTerm } from "../schema";
 import {
 	findSemester,
@@ -49,8 +47,8 @@ async function insertDraftSemester(
 }
 
 /**
- * Creates a draft semester. Settings (information text, terms link and reply time) are copied from
- * the most recent semester; the dates and the deadline are set afterwards.
+ * Creates a draft semester. Settings (information text, terms link and event start time) are
+ * copied from the most recent semester; the dates and the deadline are set afterwards.
  *
  * @param {number} year - The year.
  * @param {"spring" | "autumn"} term - The term.
@@ -132,13 +130,14 @@ export const setRange = mutation({
 });
 
 /**
- * Updates the application deadline and the texts companies see. An empty string clears a text.
+ * Updates the application deadline, the texts companies see and when events made from the plan
+ * start. An empty string clears a text or the start time.
  *
  * @param {Id<"semesters">} semesterId - The semester to update.
  * @param {string} [applicationDeadline] - The deadline, as YYYY-MM-DD.
  * @param {string} [infoText] - Information shown to companies.
  * @param {string} [termsUrl] - Link to the standard terms.
- * @param {number} [offerResponseDays] - How many days a company has to answer an offer.
+ * @param {string} [defaultEventStartTime] - When events made from the plan start, as HH:mm.
  *
  * @throws - An error if the caller is not an editor, a value is invalid, or the semester is closed.
  * @returns {null} - Returns null when the settings are saved.
@@ -149,12 +148,12 @@ export const updateSettings = mutation({
 		applicationDeadline: v.optional(v.string()),
 		infoText: v.optional(v.string()),
 		termsUrl: v.optional(v.string()),
-		offerResponseDays: v.optional(v.number()),
+		defaultEventStartTime: v.optional(v.string()),
 	},
 	returns: v.null(),
 	handler: async (
 		ctx,
-		{ semesterId, applicationDeadline, infoText, termsUrl, offerResponseDays },
+		{ semesterId, applicationDeadline, infoText, termsUrl, defaultEventStartTime },
 	) => {
 		await requireRole(ctx, editorRoles);
 
@@ -165,15 +164,8 @@ export const updateSettings = mutation({
 		if (termsUrl !== undefined && termsUrl !== "" && !isHttpUrl(termsUrl)) {
 			throw new ConvexError("Lenken til standardvilkårene er ugyldig.");
 		}
-		if (
-			offerResponseDays !== undefined &&
-			(!Number.isInteger(offerResponseDays) ||
-				offerResponseDays < MIN_OFFER_RESPONSE_DAYS ||
-				offerResponseDays > MAX_OFFER_RESPONSE_DAYS)
-		) {
-			throw new ConvexError(
-				`Svarfristen må være mellom ${MIN_OFFER_RESPONSE_DAYS} og ${MAX_OFFER_RESPONSE_DAYS} dager.`,
-			);
+		if (defaultEventStartTime && !isClockTime(defaultEventStartTime)) {
+			throw new ConvexError("Starttiden må være et gyldig klokkeslett (TT:MM).");
 		}
 
 		const text = (value: string | undefined) => (value === "" ? undefined : value);
@@ -181,7 +173,9 @@ export const updateSettings = mutation({
 			...(applicationDeadline !== undefined ? { applicationDeadline } : {}),
 			...(infoText !== undefined ? { infoText: text(infoText) } : {}),
 			...(termsUrl !== undefined ? { termsUrl: text(termsUrl) } : {}),
-			...(offerResponseDays !== undefined ? { offerResponseDays } : {}),
+			...(defaultEventStartTime !== undefined
+				? { defaultEventStartTime: text(defaultEventStartTime) }
+				: {}),
 		});
 
 		return null;
@@ -275,11 +269,13 @@ export const setStatus = mutation({
 });
 
 /**
- * Marks the semester plan as finished. Doing it again keeps the first time and person.
+ * Marks the semester plan as finished, once no application waits for an offer or an answer. Doing
+ * it again keeps the first time and person. An application that needs an offer or answer again
+ * reopens the plan.
  *
  * @param {Id<"semesters">} semesterId - The semester to finalize.
  *
- * @throws - An error if the caller is not an editor.
+ * @throws - An error if the caller is not an editor, or applications still wait.
  * @returns {null} - Returns null when the plan is marked as finished.
  */
 export const finalizePlan = mutation({
@@ -289,10 +285,38 @@ export const finalizePlan = mutation({
 		const user = await requireRole(ctx, editorRoles);
 
 		const semester = await requireSemester(ctx, semesterId);
+		const waiting = (await listApplicationsInSemester(ctx, semesterId)).filter((application) =>
+			isUnsettledApplicationStatus(application.status),
+		).length;
+		if (waiting > 0) {
+			throw new ConvexError(
+				`${waiting} ${waiting === 1 ? "søknad venter" : "søknader venter"} fortsatt på tilbud eller svar.`,
+			);
+		}
 		if (semester.planFinalizedAt === undefined) {
 			await ctx.db.patch(semesterId, { planFinalizedAt: Date.now(), planFinalizedBy: user._id });
 		}
 
+		return null;
+	},
+});
+
+/**
+ * Marks the semester plan as not finished, so it can be changed and finished again.
+ *
+ * @param {Id<"semesters">} semesterId - The semester.
+ *
+ * @throws - An error if the caller is not an editor.
+ * @returns {null} - Returns null when the plan is no longer finished.
+ */
+export const unfinalizePlan = mutation({
+	args: { semesterId: v.id("semesters") },
+	returns: v.null(),
+	handler: async (ctx, { semesterId }) => {
+		await requireRole(ctx, editorRoles);
+		await requireSemester(ctx, semesterId);
+
+		await ctx.db.patch(semesterId, { planFinalizedAt: undefined, planFinalizedBy: undefined });
 		return null;
 	},
 });

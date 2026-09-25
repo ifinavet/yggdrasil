@@ -1,7 +1,9 @@
+import { MAX_HELPERS } from "@workspace/shared/semester/limits";
 import { toCompanyProfileOrgNumber } from "@workspace/shared/semester/orgNumber";
 import { ConvexError, type Infer, v } from "convex/values";
 import type { Doc, Id } from "../../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../../_generated/server";
+import { internalRoles, userHasRole } from "../../auth/accessRights";
 import { applicationStatus, presentationEventType } from "../schema";
 
 /**
@@ -61,7 +63,7 @@ export const planRowValidator = v.object({
 export type PlanRow = Infer<typeof planRowValidator>;
 
 /** The kontaktperson and medhjelpere from Navet for one company. */
-export type NavetTeam = { responsible: Doc<"users"> | null; helpers: Doc<"users">[] };
+type NavetTeam = { responsible: Doc<"users"> | null; helpers: Doc<"users">[] };
 
 /**
  * Who from Navet runs a company's event. Once the event exists its organizers are the truth, since
@@ -139,24 +141,47 @@ export function toPlanRow(
 }
 
 /**
- * The company profile in Bifrost for an application: the linked one, or else the profile with the
- * same organization number. The same org.nr. means the same company, so no manual linking is needed.
+ * The company profile in Bifrost with the application's organization number, if any.
  *
  * @param {QueryCtx | MutationCtx} ctx - The Convex query or mutation context.
  * @param {Doc<"companyApplications">} application - The application.
  *
- * @returns {Promise<Id<"companies"> | null>} - The company profile, or null when none exists.
+ * @returns {Promise<Doc<"companies"> | null>} - The company profile, or null when none exists.
  */
 export async function findCompanyProfile(
 	ctx: QueryCtx | MutationCtx,
 	application: Doc<"companyApplications">,
-): Promise<Id<"companies"> | null> {
-	if (application.companyId) return application.companyId;
-	const company = await ctx.db
+): Promise<Doc<"companies"> | null> {
+	return ctx.db
 		.query("companies")
 		.withIndex("by_orgNumber", (q) =>
 			q.eq("orgNumber", toCompanyProfileOrgNumber(application.orgNumber)),
 		)
 		.first();
-	return company?._id ?? null;
+}
+
+/**
+ * Refuses medhjelpere picked twice, too many of them, or anyone who is not an internal member.
+ *
+ * @param {QueryCtx | MutationCtx} ctx - The Convex query or mutation context.
+ * @param {Id<"users">[]} helperUserIds - The medhjelpere.
+ *
+ * @throws - A Norwegian error if the medhjelpere are not valid.
+ * @returns {Promise<void>} - Resolves when they are valid.
+ */
+export async function requireValidHelpers(
+	ctx: QueryCtx | MutationCtx,
+	helperUserIds: Id<"users">[],
+): Promise<void> {
+	if (new Set(helperUserIds).size !== helperUserIds.length) {
+		throw new ConvexError("Samme person er valgt som medhjelper to ganger.");
+	}
+	if (helperUserIds.length > MAX_HELPERS) {
+		throw new ConvexError(`Et arrangement kan ha høyst ${MAX_HELPERS} medhjelpere.`);
+	}
+	for (const userId of helperUserIds) {
+		if (!(await userHasRole(ctx, userId, internalRoles))) {
+			throw new ConvexError("Medhjelperne må være interne medlemmer.");
+		}
+	}
 }

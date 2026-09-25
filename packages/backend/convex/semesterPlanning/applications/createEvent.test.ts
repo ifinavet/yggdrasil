@@ -16,44 +16,33 @@ import type { Id } from "../../_generated/dataModel";
 
 const createEvent = api.semesterPlanning.applications.mutations.createEvent;
 
-type Organizer = { userId: Id<"users">; role: "hovedansvarlig" | "medhjelper" };
-
-/** What Bifrost's event form sends for the application's date, 9 February 2027 at 16:15. */
-function details(companyId: Id<"companies">, organizers: Organizer[]) {
-	return {
-		title: "Bedriftspresentasjon med Fjordkode",
-		teaser: "Bli med på presentasjon og kodeoppgave.",
-		description: "Presentasjon, kodeoppgave i grupper og mat etterpå.",
-		eventStart: Date.parse("2027-02-09T15:15:00Z"),
-		registrationOpens: Date.parse("2027-01-26T11:00:00Z"),
-		participationLimit: 35,
-		location: "Simula, Ole-Johan Dahls hus",
-		food: "Pizza",
-		language: "Norsk",
-		ageRestriction: "Ingen",
-		hostingCompany: companyId,
-		published: false,
-		organizers,
-	};
-}
-
 async function eventSetup() {
 	const { t, companyId } = await setup();
 	const editorUser = await insertUser(t, "kari@ifinavet.no");
 	await grantRole(t, editorUser._id, "editor");
 	const responsible = await insertUser(t, "emil@ifinavet.no");
 	await grantRole(t, responsible._id, "internal");
-	const semesterId = await insertSemester(t);
+	const helper = await insertUser(t, "ida@ifinavet.no");
+	await grantRole(t, helper._id, "internal");
+	const semesterId = await insertSemester(t, { defaultEventStartTime: "16:15" });
 	const applicationId = await insertApplication(t, semesterId, {
 		status: "confirmed",
 		assignedDate: "2027-02-09",
-		// The org.nr. of the fixture's company profile.
+		// The org.nr. of the fixture's company profile, «Testbedrift».
 		orgNumber: "123456789",
 		responsibleUserId: responsible._id,
+		helperUserIds: [helper._id],
 		maxStudents: 35,
 	});
-	const form = details(companyId, [{ userId: responsible._id, role: "hovedansvarlig" }]);
-	return { t, companyId, applicationId, responsible, form, editor: asUser(t, editorUser) };
+	return {
+		t,
+		companyId,
+		semesterId,
+		applicationId,
+		responsible,
+		helper,
+		editor: asUser(t, editorUser),
+	};
 }
 
 async function organizersOf(t: TestBackend, eventId: Id<"events">) {
@@ -65,91 +54,82 @@ async function organizersOf(t: TestBackend, eventId: Id<"events">) {
 	);
 }
 
+async function eventById(t: TestBackend, eventId: Id<"events">) {
+	return t.run((ctx) => ctx.db.get(eventId));
+}
+
 describe("createEvent", () => {
-	it("creates the event from the form and links it and the company profile", async () => {
-		const { t, companyId, applicationId, responsible, form, editor } = await eventSetup();
-		const helper = await insertUser(t, "helper@ifinavet.no");
+	it("creates an unpublished draft on the date with the Navet team, and links it", async () => {
+		const { t, companyId, applicationId, responsible, helper, editor } = await eventSetup();
 
-		const eventId = await editor.mutation(createEvent, {
-			applicationId,
-			...form,
-			organizers: [...form.organizers, { userId: helper._id, role: "medhjelper" }],
-		});
+		const eventId = await editor.mutation(createEvent, { applicationId });
 
-		const event = await t.run((ctx) => ctx.db.get(eventId));
+		const event = await eventById(t, eventId);
 		expect(event).toMatchObject({
-			title: form.title,
-			eventStart: form.eventStart,
+			title: "Bedriftspresentasjon med Testbedrift",
+			teaser: "Mer info kommer",
+			location: "Mer info kommer",
+			language: "Norsk",
+			eventStart: Date.parse("2027-02-09T15:15:00Z"),
+			registrationOpens: Date.parse("2027-02-09T15:15:00Z"),
 			participationLimit: 35,
 			hostingCompany: companyId,
 			published: false,
 			externalEvent: false,
 		});
-		expect(event?.slug).toMatch(/^v27-bedriftspresentasjon-med-fjordkode-/);
-		expect(event?.formId).toBeDefined();
+		expect(event?.slug).toMatch(/^v27-bedriftspresentasjon-med-testbedrift-/);
 		expect((await organizersOf(t, eventId)).map((row) => [row.userId, row.role])).toEqual([
 			[responsible._id, "hovedansvarlig"],
 			[helper._id, "medhjelper"],
 		]);
-		expect(await applicationById(t, applicationId)).toMatchObject({ eventId, companyId });
+		expect((await applicationById(t, applicationId)).eventId).toBe(eventId);
 		expect((await activityFor(t, applicationId)).map((row) => row.type)).toEqual(["event_linked"]);
 	});
 
-	it("refuses a hosting company with another org.nr. than the application", async () => {
-		const { t, companyId, applicationId, form, editor } = await eventSetup();
-		const otherId = await t.run(async (ctx) => {
-			const fixture = await ctx.db.get(companyId);
-			if (!fixture) throw new Error("Expected the fixture's company.");
-			return ctx.db.insert("companies", {
-				orgNumber: 924773189,
-				name: "Fjordkode AS",
-				description: "",
-				mainSponsor: false,
-				logo: fixture.logo,
-			});
-		});
+	it("is safe to run again, and moves an unpublished event to the application's date", async () => {
+		const { t, applicationId, editor } = await eventSetup();
+		const eventId = await editor.mutation(createEvent, { applicationId });
 
-		expect(
-			await refusalMessageFrom(
-				editor.mutation(createEvent, { applicationId, ...form, hostingCompany: otherId }),
-			),
-		).toBe("Bedriften må ha samme organisasjonsnummer som søknaden.");
+		expect(await editor.mutation(createEvent, { applicationId })).toBe(eventId);
+		expect(await activityFor(t, applicationId)).toHaveLength(1);
+
+		await t.run((ctx) => ctx.db.patch(applicationId, { assignedDate: "2027-02-11" }));
+		await editor.mutation(createEvent, { applicationId });
+		expect((await eventById(t, eventId))?.eventStart).toBe(Date.parse("2027-02-11T15:15:00Z"));
+
+		await t.run(async (ctx) => {
+			await ctx.db.patch(eventId, { published: true });
+			await ctx.db.patch(applicationId, { assignedDate: "2027-02-16" });
+		});
+		expect(await editor.mutation(createEvent, { applicationId })).toBe(eventId);
+		expect((await eventById(t, eventId))?.eventStart).toBe(Date.parse("2027-02-11T15:15:00Z"));
+	});
+
+	it("refuses until the semester has a start time for events", async () => {
+		const { t, semesterId, applicationId, editor } = await eventSetup();
+		await t.run((ctx) => ctx.db.patch(semesterId, { defaultEventStartTime: undefined }));
+
+		expect(await refusalMessageFrom(editor.mutation(createEvent, { applicationId }))).toBe(
+			"Sett starttid for arrangementer i innstillingene først.",
+		);
+	});
+
+	it("refuses a company without a profile with the same org.nr.", async () => {
+		const { t, applicationId, editor } = await eventSetup();
+		await t.run((ctx) => ctx.db.patch(applicationId, { orgNumber: "924773189" }));
+
+		expect(await refusalMessageFrom(editor.mutation(createEvent, { applicationId }))).toBe(
+			"Fant ingen bedriftsprofil med samme organisasjonsnummer. Opprett bedriften først.",
+		);
 		expect((await applicationById(t, applicationId)).eventId).toBeUndefined();
 	});
 
 	it("refuses an application that is not confirmed", async () => {
-		const { t, applicationId, form, editor } = await eventSetup();
+		const { t, applicationId, editor } = await eventSetup();
 		await t.run((ctx) => ctx.db.patch(applicationId, { status: "offer_sent" }));
 
-		expect(await refusalMessageFrom(editor.mutation(createEvent, { applicationId, ...form }))).toBe(
+		expect(await refusalMessageFrom(editor.mutation(createEvent, { applicationId }))).toBe(
 			"Bare bekreftede søknader kan få et arrangement.",
 		);
-	});
-
-	it("refuses an event on another day than the application's date", async () => {
-		const { applicationId, form, editor } = await eventSetup();
-
-		expect(
-			await refusalMessageFrom(
-				editor.mutation(createEvent, {
-					applicationId,
-					...form,
-					eventStart: Date.parse("2027-02-11T15:15:00Z"),
-				}),
-			),
-		).toBe("Arrangementet må være tirsdag 9. februar 2027, datoen bedriften har fått.");
-	});
-
-	it("refuses a second event, but allows a new one if the first was deleted", async () => {
-		const { t, applicationId, form, editor } = await eventSetup();
-		const first = await editor.mutation(createEvent, { applicationId, ...form });
-
-		expect(await refusalMessageFrom(editor.mutation(createEvent, { applicationId, ...form }))).toBe(
-			"Søknaden har allerede et arrangement.",
-		);
-
-		await t.run((ctx) => ctx.db.delete(first));
-		const second = await editor.mutation(createEvent, { applicationId, ...form });
-		expect((await applicationById(t, applicationId)).eventId).toBe(second);
 	});
 });

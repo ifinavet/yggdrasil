@@ -9,7 +9,6 @@ import {
 	insertSemester,
 	insertUser,
 	refusalMessageFrom,
-	scheduledCallsOf,
 	setup,
 	type TestBackend,
 } from "../../../test/fixtures";
@@ -25,7 +24,6 @@ async function offerSetup() {
 	const semesterId = await insertSemester(t, {
 		status: "open",
 		termsUrl: `${MIDGARD_URL}/vilkar-v27`,
-		offerResponseDays: 14,
 	});
 	await t.run(async (ctx) => {
 		await ctx.db.insert("semesterDates", {
@@ -37,10 +35,7 @@ async function offerSetup() {
 			await ctx.db.insert("semesterDates", { semesterId, date });
 		}
 	});
-	const applicationId = await insertApplication(t, semesterId, {
-		assignedDate: "2027-02-09",
-		filledInByEmail: "assistent@fjordkode.no",
-	});
+	const applicationId = await insertApplication(t, semesterId, { assignedDate: "2027-02-09" });
 	return { t, semesterId, applicationId, editorUser, editor: asUser(t, editorUser) };
 }
 
@@ -62,12 +57,10 @@ async function offersOf(t: TestBackend, applicationId: Id<"companyApplications">
 }
 
 describe("send", () => {
-	it("makes a link for Navet to send by hand, and emails nothing", async () => {
+	it("makes a link for Navet to send by hand", async () => {
 		const { t, applicationId, editor, editorUser } = await offerSetup();
 
-		const { linkToken: token, respondBy } = await editor.mutation(offers.mutations.sendOffer, {
-			applicationId,
-		});
+		const token = await sendAndGetToken(editor, applicationId);
 
 		const [offer] = await offersOf(t, applicationId);
 		expect(offer).toMatchObject({
@@ -80,9 +73,6 @@ describe("send", () => {
 		expect(token).toMatch(/^[A-Za-z0-9_-]{43}$/);
 		// The link can be copied again from Bifrost, which builds it from the token.
 		expect(offer?.linkToken).toBe(token);
-		expect(offer?.respondBy).toBeGreaterThan(Date.now());
-		expect(respondBy).toBe(offer?.respondBy);
-		expect(await scheduledCallsOf(t, "sendOfferEmail")).toEqual([]);
 		expect((await applicationById(t, applicationId)).status).toBe("offer_sent");
 		expect((await activityFor(t, applicationId)).at(-1)).toMatchObject({
 			type: "status_changed",
@@ -91,19 +81,18 @@ describe("send", () => {
 		});
 	});
 
-	it("sending again makes a new link and switches the old one off", async () => {
+	it("gives the same link again while the offer waits for an answer", async () => {
 		const { t, applicationId, editor } = await offerSetup();
 
-		const oldToken = await sendAndGetToken(editor, applicationId);
-		const newToken = await sendAndGetToken(editor, applicationId);
+		const first = await editor.mutation(offers.mutations.sendOffer, { applicationId });
+		const historyAfterFirst = (await activityFor(t, applicationId)).length;
+		const second = await editor.mutation(offers.mutations.sendOffer, { applicationId });
 
-		expect(newToken).not.toBe(oldToken);
-		expect((await offersOf(t, applicationId)).map((offer) => offer.status)).toEqual([
-			"superseded",
-			"pending",
-		]);
-		expect(await t.query(offers.queries.getByToken, { token: oldToken })).toMatchObject({
-			state: "superseded",
+		expect(second).toEqual(first);
+		expect(await offersOf(t, applicationId)).toHaveLength(1);
+		expect(await activityFor(t, applicationId)).toHaveLength(historyAfterFirst);
+		expect(await t.query(offers.queries.getByToken, { token: first.linkToken })).toMatchObject({
+			state: "pending",
 		});
 	});
 
@@ -180,10 +169,27 @@ describe("getByToken", () => {
 			state: "inactive",
 		});
 	});
+
+	it("shows an accepted offer as inactive once the application is withdrawn and reopened", async () => {
+		const { t, applicationId, editor } = await offerSetup();
+		const token = await sendAndGetToken(editor, applicationId);
+		await t.mutation(offers.mutations.accept, { token, acceptTerms: true });
+		expect(await t.query(offers.queries.getByToken, { token })).toMatchObject({
+			state: "accepted",
+		});
+
+		const applications = api.semesterPlanning.applications.mutations;
+		await editor.mutation(applications.withdraw, { applicationId });
+		await editor.mutation(applications.reopen, { applicationId });
+
+		expect(await t.query(offers.queries.getByToken, { token })).toMatchObject({
+			state: "inactive",
+		});
+	});
 });
 
 describe("accept", () => {
-	it("confirms the application and snapshots the terms, without emailing anyone", async () => {
+	it("confirms the application and snapshots the terms", async () => {
 		const { t, applicationId, editor } = await offerSetup();
 		const token = await sendAndGetToken(editor, applicationId);
 
@@ -199,8 +205,6 @@ describe("accept", () => {
 			actor: "company",
 			toStatus: "confirmed",
 		});
-		expect(await scheduledCallsOf(t, "sendOfferConfirmedEmail")).toEqual([]);
-		expect(await scheduledCallsOf(t, "sendOfferResponseNoticeEmail")).toEqual([]);
 	});
 
 	it("accepting twice changes nothing the second time", async () => {
@@ -226,6 +230,10 @@ describe("accept", () => {
 	it("refuses unknown and replaced links, and withdrawn applications", async () => {
 		const { t, applicationId, editor } = await offerSetup();
 		const oldToken = await sendAndGetToken(editor, applicationId);
+		await editor.mutation(api.semesterPlanning.applications.mutations.assignDate, {
+			applicationId,
+			date: "2027-02-11",
+		});
 		const newToken = await sendAndGetToken(editor, applicationId);
 
 		expect(
@@ -249,7 +257,7 @@ describe("accept", () => {
 });
 
 describe("requestNewDate", () => {
-	it("records the wish and keeps the date held", async () => {
+	it("records the wish and its comment, and keeps the date held", async () => {
 		const { t, applicationId, editor } = await offerSetup();
 		const token = await sendAndGetToken(editor, applicationId);
 
@@ -267,9 +275,8 @@ describe("requestNewDate", () => {
 		expect((await offersOf(t, applicationId))[0]).toMatchObject({
 			status: "new_date_requested",
 			requestedDates: ["2027-02-16", "2027-02-11"],
-			responseComment: "Maks 30 går også fint.",
 		});
-		expect(await scheduledCallsOf(t, "sendOfferResponseNoticeEmail")).toEqual([]);
+		expect((await activityFor(t, applicationId)).at(-1)?.comment).toBe("Maks 30 går også fint.");
 	});
 
 	it.each([
@@ -337,23 +344,26 @@ describe("confirmManually", () => {
 });
 
 describe("decline", () => {
-	it("withdraws the application for the company and frees the date", async () => {
-		const { t, applicationId, editor } = await offerSetup();
+	it("declines the application for the company and frees the date", async () => {
+		const { t, semesterId, applicationId, editor } = await offerSetup();
 		const token = await sendAndGetToken(editor, applicationId);
 
 		await t.mutation(offers.mutations.decline, { token, comment: " Vi rekker det ikke i år. " });
 
-		expect((await applicationById(t, applicationId)).status).toBe("withdrawn");
-		expect((await offersOf(t, applicationId))[0]).toMatchObject({
-			status: "declined",
-			responseComment: "Vi rekker det ikke i år.",
-		});
+		expect((await applicationById(t, applicationId)).status).toBe("declined");
+		expect((await offersOf(t, applicationId))[0]?.status).toBe("declined");
 		expect((await activityFor(t, applicationId)).at(-1)).toMatchObject({
 			type: "status_changed",
 			actor: "company",
-			toStatus: "withdrawn",
+			toStatus: "declined",
 			comment: "Vi rekker det ikke i år.",
 		});
+		const other = await insertApplication(t, semesterId);
+		await editor.mutation(api.semesterPlanning.applications.mutations.assignDate, {
+			applicationId: other,
+			date: "2027-02-09",
+		});
+		expect((await applicationById(t, other)).assignedDate).toBe("2027-02-09");
 		expect(await t.query(offers.queries.getByToken, { token })).toMatchObject({
 			state: "declined",
 		});
@@ -368,7 +378,7 @@ describe("decline", () => {
 		const historyAfterFirst = (await activityFor(t, applicationId)).length;
 		await t.mutation(offers.mutations.decline, { token });
 
-		expect((await applicationById(t, applicationId)).status).toBe("withdrawn");
+		expect((await applicationById(t, applicationId)).status).toBe("declined");
 		expect(await activityFor(t, applicationId)).toHaveLength(historyAfterFirst);
 	});
 

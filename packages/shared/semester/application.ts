@@ -58,7 +58,6 @@ export const applicationFormSchema = z
 			.string({ error: "Velg bedriften fra Enhetsregisteret." })
 			.regex(/^\d{9}$/, "Velg bedriften fra Enhetsregisteret."),
 		contact: applicationContactSchema,
-		filledInByEmail: email("Skriv en gyldig e-postadresse, eller la feltet stå tomt.").optional(),
 		eventType: z.enum(EVENT_TYPES, { error: "Velg hva slags arrangement dere ønsker." }),
 		minStudents: students,
 		maxStudents: students,

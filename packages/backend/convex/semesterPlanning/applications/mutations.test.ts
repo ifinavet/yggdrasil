@@ -5,6 +5,9 @@ import {
 	asUser,
 	grantRole,
 	insertApplication,
+	insertEvent,
+	insertOrganizer,
+	insertRegistration,
 	insertSemester,
 	insertUser,
 	refusalMessageFrom,
@@ -151,22 +154,35 @@ describe("assignDate", () => {
 		).toBe(expected);
 	});
 
-	it("never moves a confirmed application", async () => {
-		const { t, semesterId, editor } = await planningSetup();
+	it("moves a confirmed application back to «Søkt» and deletes its unpublished event", async () => {
+		const { t, companyId, semesterId, editor, editorUser } = await planningSetup();
+		const eventId = await insertEvent(t, companyId, { published: false });
+		await insertOrganizer(t, eventId, editorUser._id);
 		const applicationId = await insertApplication(t, semesterId, {
 			status: "confirmed",
 			assignedDate: "2027-02-09",
+			eventId,
 		});
+		const offerId = await insertOffer(t, applicationId, editorUser._id, "accepted");
 
-		for (const date of ["2027-02-16", null]) {
-			const message = await refusalMessageFrom(
-				editor.mutation(mutations.assignDate, { applicationId, date }),
-			);
-			expect(message).toBe(
-				"Bekreftede søknader kan ikke flyttes. Trekk og gjenåpne søknaden først.",
-			);
-		}
-		expect((await applicationById(t, applicationId)).assignedDate).toBe("2027-02-09");
+		await editor.mutation(mutations.assignDate, { applicationId, date: "2027-02-16" });
+
+		const application = await applicationById(t, applicationId);
+		expect([application.status, application.assignedDate, application.eventId]).toEqual([
+			"applied",
+			"2027-02-16",
+			undefined,
+		]);
+		expect((await t.run((ctx) => ctx.db.get(offerId)))?.status).toBe("accepted");
+		expect(await t.run((ctx) => ctx.db.get(eventId))).toBeNull();
+		expect(
+			await t.run((ctx) =>
+				ctx.db
+					.query("eventOrganizers")
+					.withIndex("by_eventId", (q) => q.eq("eventId", eventId))
+					.collect(),
+			),
+		).toEqual([]);
 	});
 
 	it("refuses withdrawn applications and closed semesters", async () => {
@@ -258,8 +274,41 @@ describe("reject, withdraw and reopen", () => {
 		const applicationId = await insertApplication(t, semesterId, { status: "confirmed" });
 
 		expect(await refusalMessageFrom(editor.mutation(mutations.reject, { applicationId }))).toBe(
-			"Kan ikke gå fra «Bekreftet» til «Avslått».",
+			"Kan ikke gå fra «Bekreftet» til «Avslått av Navet».",
 		);
+	});
+
+	it("withdrawing deletes an unpublished event, but refuses one that is published or has sign-ups", async () => {
+		const { t, companyId, semesterId, editor, editorUser } = await planningSetup();
+		const draft = await insertEvent(t, companyId, { published: false });
+		const withDraft = await insertApplication(t, semesterId, {
+			status: "confirmed",
+			assignedDate: "2027-02-09",
+			eventId: draft,
+		});
+
+		await editor.mutation(mutations.withdraw, { applicationId: withDraft });
+
+		expect(await t.run((ctx) => ctx.db.get(draft))).toBeNull();
+		expect((await applicationById(t, withDraft)).eventId).toBeUndefined();
+
+		const published = await insertEvent(t, companyId);
+		const signedUp = await insertEvent(t, companyId, { published: false });
+		await insertRegistration(t, signedUp, editorUser._id, "registered");
+		for (const eventId of [published, signedUp]) {
+			const applicationId = await insertApplication(t, semesterId, {
+				status: "confirmed",
+				assignedDate: "2027-02-16",
+				eventId,
+			});
+			expect(await refusalMessageFrom(editor.mutation(mutations.withdraw, { applicationId }))).toBe(
+				"Arrangementet «Testarrangement» er publisert eller har påmeldte. Avlys eller endre arrangementet først.",
+			);
+			expect(await applicationById(t, applicationId)).toMatchObject({
+				status: "confirmed",
+				eventId,
+			});
+		}
 	});
 
 	it("withdrawing a confirmed application frees its date for another company", async () => {
@@ -291,13 +340,26 @@ describe("reject, withdraw and reopen", () => {
 		expect([application.status, application.assignedDate]).toEqual(["applied", undefined]);
 	});
 
+	it("reopening clears a link to an event that is gone", async () => {
+		const { t, companyId, semesterId, editor } = await planningSetup();
+		const eventId = await insertEvent(t, companyId);
+		await t.run((ctx) => ctx.db.delete(eventId));
+		const applicationId = await insertApplication(t, semesterId, { status: "declined", eventId });
+
+		await editor.mutation(mutations.reopen, { applicationId });
+
+		expect((await applicationById(t, applicationId)).eventId).toBeUndefined();
+	});
+
 	it("refuses to reopen a live application", async () => {
 		const { t, semesterId, editor } = await planningSetup();
-		const applicationId = await insertApplication(t, semesterId);
+		for (const status of ["applied", "confirmed"] as const) {
+			const applicationId = await insertApplication(t, semesterId, { status });
 
-		expect(await refusalMessageFrom(editor.mutation(mutations.reopen, { applicationId }))).toBe(
-			"Kan ikke gå fra «Søkt» til «Søkt».",
-		);
+			expect(await refusalMessageFrom(editor.mutation(mutations.reopen, { applicationId }))).toBe(
+				"Bare avslåtte og trukne søknader kan gjenåpnes.",
+			);
+		}
 	});
 });
 
@@ -423,41 +485,5 @@ describe("updatePlanningDetails", () => {
 		}
 		await editor.mutation(mutations.updatePlanningDetails, { applicationId, internalNotes: "Ok" });
 		expect((await applicationById(t, applicationId)).internalNotes).toBe("Ok");
-	});
-});
-
-describe("updateContact", () => {
-	it("replaces the contact person and logs the change", async () => {
-		const { t, semesterId, editor } = await planningSetup();
-		const applicationId = await insertApplication(t, semesterId);
-
-		await editor.mutation(mutations.updateContact, {
-			applicationId,
-			contact: { name: " Per Aas ", email: "per@fjordkode.no", phone: "+47 900 00 000" },
-		});
-
-		expect((await applicationById(t, applicationId)).contact).toEqual({
-			name: "Per Aas",
-			email: "per@fjordkode.no",
-			phone: "+47 900 00 000",
-		});
-		expect((await activityFor(t, applicationId)).at(-1)).toMatchObject({
-			type: "contact_changed",
-			comment: "Ingrid Solberg → Per Aas",
-		});
-	});
-
-	it("uses the same rules as the Hugin form", async () => {
-		const { t, semesterId, editor } = await planningSetup();
-		const applicationId = await insertApplication(t, semesterId);
-
-		expect(
-			await refusalMessageFrom(
-				editor.mutation(mutations.updateContact, {
-					applicationId,
-					contact: { name: "Per", email: "ikke-epost", phone: "+4790000000" },
-				}),
-			),
-		).toBe("Skriv en gyldig e-postadresse til kontaktpersonen.");
 	});
 });

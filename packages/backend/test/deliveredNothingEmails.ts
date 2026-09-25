@@ -15,19 +15,3 @@ export const sendAvailableSeatEmail = internalAction({
 export const sendFreeForAll = internalAction({
 	handler: async () => {},
 });
-
-export const sendApplicationReceiptEmail = internalAction({
-	handler: async () => {},
-});
-
-export const sendOfferEmail = internalAction({
-	handler: async () => {},
-});
-
-export const sendOfferConfirmedEmail = internalAction({
-	handler: async () => {},
-});
-
-export const sendOfferResponseNoticeEmail = internalAction({
-	handler: async () => {},
-});

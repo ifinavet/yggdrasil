@@ -41,6 +41,7 @@ describe("the whole journey", () => {
 			semesterId,
 			applicationDeadline: "2026-12-04",
 			termsUrl: `${MIDGARD_URL}/vilkar`,
+			defaultEventStartTime: "16:15",
 		});
 		await editor.mutation(semesters.setStatus, { semesterId, status: "open" });
 
@@ -89,33 +90,16 @@ describe("the whole journey", () => {
 
 		// The editor creates the event, hosted by the company profile with the same org.nr.
 		await t.run((ctx) => ctx.db.patch(companyId, { orgNumber: Number(VALID_ORG_NUMBER) }));
-		const eventId = await editor.mutation(applications.createEvent, {
-			applicationId,
-			title: "Fjordkode",
-			teaser: "Presentasjon",
-			description: "Presentasjon og kodeoppgave.",
-			eventStart: Date.parse("2027-02-16T15:15:00Z"),
-			registrationOpens: Date.parse("2027-02-02T11:00:00Z"),
-			participationLimit: 40,
-			location: "Simula",
-			food: "Pizza",
-			language: "Norsk",
-			ageRestriction: "Ingen",
-			hostingCompany: companyId,
-			published: false,
-			organizers: [],
-		});
+		const eventId = await editor.mutation(applications.createEvent, { applicationId });
 
 		const final = await applicationById(t, applicationId);
-		expect(final).toMatchObject({
-			status: "confirmed",
-			assignedDate: "2027-02-16",
-			companyId,
-			eventId,
+		expect(final).toMatchObject({ status: "confirmed", assignedDate: "2027-02-16", eventId });
+		expect(await t.run((ctx) => ctx.db.get(eventId))).toMatchObject({
+			eventStart: Date.parse("2027-02-16T15:15:00Z"),
+			hostingCompany: companyId,
 		});
-		expect((await t.run((ctx) => ctx.db.get(eventId)))?.eventStart).toBe(
-			Date.parse("2027-02-16T15:15:00Z"),
-		);
+		// Nothing is emailed or scheduled: Navet emails the links by hand.
+		expect(await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect())).toEqual([]);
 
 		const history = (await activityFor(t, applicationId)).map((row) =>
 			[row.type, row.actor, row.toStatus ?? row.date ?? ""].join(" "),

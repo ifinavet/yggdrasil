@@ -7,14 +7,15 @@ export const FORM_VERSION = 1;
 export const CONSENT_VERSION = "2026-10";
 
 /**
- * Every allowed status change. A confirmed application can only be withdrawn: to move it to
- * another date, the editor withdraws it, reopens it and sends a new offer.
+ * Every allowed status change. A confirmed application goes back to «Søkt» only by moving it to
+ * another date, and every closed application can be reopened as «Søkt».
  */
 export const TRANSITIONS: Record<ApplicationStatus, readonly ApplicationStatus[]> = {
 	applied: ["offer_sent", "rejected", "withdrawn"],
-	offer_sent: ["confirmed", "new_date_requested", "offer_sent", "applied", "withdrawn"],
-	new_date_requested: ["offer_sent", "applied", "rejected", "withdrawn"],
-	confirmed: ["withdrawn"],
+	offer_sent: ["confirmed", "new_date_requested", "declined", "applied", "rejected", "withdrawn"],
+	new_date_requested: ["offer_sent", "declined", "applied", "rejected", "withdrawn"],
+	confirmed: ["applied", "withdrawn"],
+	declined: ["applied"],
 	rejected: ["applied"],
 	withdrawn: ["applied"],
 };
@@ -24,7 +25,12 @@ export function canTransition(from: ApplicationStatus, to: ApplicationStatus): b
 	return TRANSITIONS[from].includes(to);
 }
 
-/** Whether the application still holds its date and offer; rejected and withdrawn ones do not. */
+/** Whether the application still holds its date and offer; declined, rejected and withdrawn ones do not. */
 export function isActiveApplicationStatus(status: ApplicationStatus): boolean {
-	return status !== "rejected" && status !== "withdrawn";
+	return status !== "declined" && status !== "rejected" && status !== "withdrawn";
+}
+
+/** Whether the application still waits for an offer or an answer, so the plan is not finished. */
+export function isUnsettledApplicationStatus(status: ApplicationStatus): boolean {
+	return status === "applied" || status === "offer_sent" || status === "new_date_requested";
 }

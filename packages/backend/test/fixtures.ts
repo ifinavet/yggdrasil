@@ -354,10 +354,3 @@ export async function activityFor(t: TestBackend, applicationId: Id<"companyAppl
 			.collect(),
 	);
 }
-
-export async function scheduledCallsOf(t: TestBackend, functionName: string): Promise<unknown[]> {
-	return t.run(async (ctx) => {
-		const scheduled = await ctx.db.system.query("_scheduled_functions").collect();
-		return scheduled.filter((job) => job.name.endsWith(functionName)).map((job) => job.args[0]);
-	});
-}

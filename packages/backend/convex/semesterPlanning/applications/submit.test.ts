@@ -3,7 +3,6 @@ import {
 	activityFor,
 	insertSemester,
 	refusalMessageFrom,
-	scheduledCallsOf,
 	setup,
 	type TestBackend,
 } from "../../../test/fixtures";
@@ -24,7 +23,6 @@ function validForm(overrides: Record<string, unknown> = {}) {
 	return {
 		orgNumber: VALID_ORG_NUMBER,
 		contact: { name: "Ingrid Solberg", email: "ingrid@fjordkode.no", phone: "+47 412 34 567" },
-		filledInByEmail: "assistent@fjordkode.no",
 		eventType: "standard_presentation" as const,
 		minStudents: 25,
 		maxStudents: 40,
@@ -136,14 +134,6 @@ describe("submit", () => {
 		const [application] = await applications(t);
 		const history = await activityFor(t, application?._id as Id<"companyApplications">);
 		expect(history.map((row) => [row.type, row.actor])).toEqual([["submitted", "company"]]);
-	});
-
-	it("emails nothing: the receipt is shown on Hugin", async () => {
-		const { t } = await setup();
-		await withOpenSemester(t);
-		await submitWith(t);
-
-		expect(await scheduledCallsOf(t, "sendApplicationReceiptEmail")).toEqual([]);
 	});
 
 	it.each([
