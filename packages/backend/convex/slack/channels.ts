@@ -1,6 +1,5 @@
 import type { OrganizerRole } from "@workspace/shared/constants";
 import { featureFlags } from "@workspace/shared/feature-flags";
-import { channelArchiveDeadline, channelOpensAt } from "@workspace/shared/slack/time";
 import { v } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalMutation, internalQuery, type QueryCtx } from "../_generated/server";
@@ -17,8 +16,15 @@ export type Organizer = { userId: Id<"users">; name: string; email: string; role
 export type ActiveChannel = Pick<
 	Doc<"bedpresChannels">,
 	"_id" | "channelId" | "sentReminders" | "invitedUserIds" | "reportedMissingUserIds"
-> &
-	({ archive: true } | { archive: false; event: ChannelEvent; organizers: Organizer[] });
+> & {
+	// Null when the event has been deleted.
+	event: ChannelEvent | null;
+	organizers: Organizer[];
+	feedbackSent: boolean;
+};
+
+// These queries only read data. Every Oslo-time rule runs in the Node sync action, because
+// @date-fns/tz computes in UTC inside Convex's default runtime.
 
 async function channelEvent(ctx: QueryCtx, event: Doc<"events">): Promise<ChannelEvent> {
 	const company = await ctx.db.get(event.hostingCompany);
@@ -26,6 +32,7 @@ async function channelEvent(ctx: QueryCtx, event: Doc<"events">): Promise<Channe
 		title: event.title,
 		company: company?.name ?? "bedriften",
 		eventStart: event.eventStart,
+		registrationOpens: event.registrationOpens,
 	};
 }
 
@@ -43,18 +50,17 @@ async function organizers(ctx: QueryCtx, eventId: Id<"events">): Promise<Organiz
 	return result;
 }
 
-/** Done once the feedback form has gone out, or three days after the event without one. */
-async function isFinished(ctx: QueryCtx, event: Doc<"events">, now: number): Promise<boolean> {
-	if (now >= channelArchiveDeadline(event.eventStart)) return true;
-	if (now < event.eventStart || !featureFlags.huginFeedback.emailsEnabled) return false;
+async function feedbackSent(ctx: QueryCtx, eventId: Id<"events">): Promise<boolean> {
+	if (!featureFlags.huginFeedback.emailsEnabled) return false;
 	const campaign = await ctx.db
 		.query("feedbackCampaigns")
-		.withIndex("by_eventId", (index) => index.eq("eventId", event._id))
+		.withIndex("by_eventId", (index) => index.eq("eventId", eventId))
 		.order("desc")
 		.first();
 	return campaign?.status === "open" || campaign?.status === "closed";
 }
 
+/** Upcoming events without a channel; the sync action decides whether a month is left. */
 export const eventsNeedingChannels = internalQuery({
 	args: { now: v.number() },
 	handler: async (ctx, { now }): Promise<(ChannelEvent & { eventId: Id<"events"> })[]> => {
@@ -66,7 +72,7 @@ export const eventsNeedingChannels = internalQuery({
 			.take(BATCH);
 		const result = [];
 		for (const event of upcoming) {
-			if (event.externalEvent || channelOpensAt(event.eventStart) > now) continue;
+			if (event.externalEvent) continue;
 			const existing = await ctx.db
 				.query("bedpresChannels")
 				.withIndex("by_eventId", (index) => index.eq("eventId", event._id))
@@ -78,8 +84,8 @@ export const eventsNeedingChannels = internalQuery({
 });
 
 export const activeChannels = internalQuery({
-	args: { now: v.number() },
-	handler: async (ctx, { now }): Promise<ActiveChannel[]> => {
+	args: {},
+	handler: async (ctx): Promise<ActiveChannel[]> => {
 		const channels = await ctx.db
 			.query("bedpresChannels")
 			.withIndex("by_status", (index) => index.eq("status", "active"))
@@ -89,15 +95,11 @@ export const activeChannels = internalQuery({
 			const { _id, channelId, sentReminders, invitedUserIds, reportedMissingUserIds } = channel;
 			const base = { _id, channelId, sentReminders, invitedUserIds, reportedMissingUserIds };
 			const event = await ctx.db.get(channel.eventId);
-			if (!event || (await isFinished(ctx, event, now))) {
-				result.push({ ...base, archive: true });
-				continue;
-			}
 			result.push({
 				...base,
-				archive: false,
-				event: await channelEvent(ctx, event),
-				organizers: await organizers(ctx, event._id),
+				event: event && (await channelEvent(ctx, event)),
+				organizers: event ? await organizers(ctx, event._id) : [],
+				feedbackSent: await feedbackSent(ctx, channel.eventId),
 			});
 		}
 		return result;

@@ -1,4 +1,9 @@
+"use node";
+
+// Node, because @date-fns/tz computes in UTC inside Convex's default runtime and every
+// reminder and archive time here is in Oslo time.
 import { featureFlags } from "@workspace/shared/feature-flags";
+import { channelArchiveDeadline, channelOpensAt } from "@workspace/shared/slack/time";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { type ActionCtx, internalAction } from "../_generated/server";
@@ -11,6 +16,7 @@ import {
 	dueReminders,
 	membersMessage,
 	missingMemberMessage,
+	reminderMessage,
 	welcomeMessage,
 } from "./messages";
 
@@ -55,6 +61,13 @@ async function findObservers(slack: SlackClient): Promise<string[]> {
 	return ids;
 }
 
+/** Done once the feedback form has gone out, or three days after the event without one. */
+function isFinished(event: ChannelEvent, feedbackSent: boolean, now: number): boolean {
+	return (
+		now >= channelArchiveDeadline(event.eventStart) || (feedbackSent && now >= event.eventStart)
+	);
+}
+
 async function syncChannel(
 	ctx: ActionCtx,
 	slack: SlackClient,
@@ -73,7 +86,8 @@ async function syncChannel(
 			...progress,
 		});
 
-	if (channel.archive) {
+	const { event } = channel;
+	if (!event || isFinished(event, channel.feedbackSent, now)) {
 		if (!channel.sentReminders.includes("goodbye")) {
 			await slack.postMessage(channel.channelId, ARCHIVE_MESSAGE);
 			await record({ sentReminders: ["goodbye"] });
@@ -84,7 +98,7 @@ async function syncChannel(
 	}
 
 	if (!channel.sentReminders.includes("welcome")) {
-		await slack.postMessage(channel.channelId, welcomeMessage(channel.event));
+		await slack.postMessage(channel.channelId, welcomeMessage(event));
 		await record({ sentReminders: ["welcome"] });
 	}
 
@@ -121,8 +135,16 @@ async function syncChannel(
 			reportedMissingUserIds: reported,
 		});
 
-	const { post, handled } = dueReminders(channel.event.eventStart, now, channel.sentReminders);
-	if (post) await slack.postMessage(channel.channelId, post.text(channel.event));
+	const { post, handled } = dueReminders(event, now, channel.sentReminders);
+	if (post) {
+		const tagged = [];
+		for (const organizer of channel.organizers) {
+			if (organizer.role !== "hovedansvarlig") continue;
+			const slackUserId = await slack.findUserIdByEmail(organizer.email);
+			if (slackUserId) tagged.push(slackUserId);
+		}
+		await slack.postMessage(channel.channelId, reminderMessage(post.text(event), tagged));
+	}
 	if (handled.length > 0) await record({ sentReminders: handled });
 }
 
@@ -154,11 +176,11 @@ export const syncBedpresChannels = internalAction({
 			}
 		};
 
-		const events = await ctx.runQuery(internal.slack.channels.eventsNeedingChannels, { now });
-		for (const event of events)
+		const candidates = await ctx.runQuery(internal.slack.channels.eventsNeedingChannels, { now });
+		for (const event of candidates.filter(({ eventStart }) => channelOpensAt(eventStart) <= now))
 			await attempt(`create channel for ${event.eventId}`, () => createChannel(ctx, slack, event));
 
-		const channels = await ctx.runQuery(internal.slack.channels.activeChannels, { now });
+		const channels = await ctx.runQuery(internal.slack.channels.activeChannels, {});
 		for (const channel of channels)
 			await attempt(`sync channel ${channel.channelId}`, async () => {
 				try {

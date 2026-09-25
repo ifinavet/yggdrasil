@@ -15,6 +15,8 @@ import { ARCHIVE_MESSAGE, channelName, dueReminders, REMINDERS } from "./message
 // Thursday 22 October 2026 at 16:15 in Oslo (CEST).
 const EVENT_START = Date.parse("2026-10-22T14:15:00Z");
 const CHANNEL_OPENS = Date.parse("2026-09-22T07:00:00Z");
+// Registration opens one week before, at 12:00 in Oslo.
+const REGISTRATION_OPENS = Date.parse("2026-10-15T10:00:00Z");
 
 type Call = { method: string; params: Record<string, string> };
 
@@ -100,7 +102,11 @@ describe("bedpres Slack channels", () => {
 	it("follows a bedpres from one month before until it is archived", async () => {
 		const { t, companyId } = await setup();
 		const slack = fakeSlack({ users: { "leder@uio.no": "U1", "hjelper@uio.no": "U2" } });
-		const eventId = await insertEvent(t, companyId, { eventStart: EVENT_START, title: "Bedpres" });
+		const eventId = await insertEvent(t, companyId, {
+			registrationOpens: REGISTRATION_OPENS,
+			eventStart: EVENT_START,
+			title: "Bedpres",
+		});
 		await addOrganizer(t, eventId, "leder@uio.no", "hovedansvarlig");
 		await addOrganizer(t, eventId, "hjelper@uio.no", "medhjelper");
 		await addOrganizer(t, eventId, "ukjent@uio.no", "medhjelper");
@@ -111,7 +117,7 @@ describe("bedpres Slack channels", () => {
 		await sync(t, CHANNEL_OPENS);
 		expect(slack.calls[0]).toEqual({
 			method: "conversations.create",
-			params: { name: "bedpres-2026-10-22-testbedrift", is_private: "true" },
+			params: { name: "2026-10-22-testbedrift", is_private: "true" },
 		});
 		expect(slack.calls).toContainEqual({
 			method: "conversations.invite",
@@ -128,17 +134,26 @@ describe("bedpres Slack channels", () => {
 		await sync(t, CHANNEL_OPENS + HOUR_IN_MS);
 		expect(slack.calls.map((call) => call.method)).toEqual(["users.lookupByEmail"]);
 
+		// Reminders tag the hovedansvarlig, but not medhjelpere or people missing from Slack.
 		await sync(t, Date.parse("2026-10-08T07:00:00Z"));
-		expect(slack.messages().at(-1)).toContain("To uker igjen til Bedpres");
+		expect(slack.messages().at(-1)).toMatch(/^<@U1> \*To uker igjen til Bedpres/);
+
+		await sync(t, Date.parse("2026-10-14T07:00:00Z"));
+		expect(slack.messages().at(-1)).toContain(
+			"Påmeldingen til Bedpres åpner torsdag 15. oktober kl. 12:00",
+		);
 
 		// A missed reminder is skipped in favour of the newest one.
 		slack.reset();
-		await sync(t, Date.parse("2026-10-21T07:00:00Z"));
-		expect(slack.messages()).toEqual([expect.stringContaining("I morgen er det Bedpres")]);
+		await sync(t, Date.parse("2026-10-20T07:00:00Z"));
+		expect(slack.messages()).toEqual([expect.stringContaining("«22.10 – Testbedrift»")]);
 		expect((await channelRow(t, eventId))?.sentReminders).toContain("one-week");
 
+		await sync(t, Date.parse("2026-10-22T07:00:00Z"));
+		expect(slack.messages().at(-1)).toContain("I dag er det Bedpres!");
+
 		await sync(t, EVENT_START + 2 * HOUR_IN_MS);
-		expect(slack.messages().at(-1)).toContain("registrert oppmøte");
+		expect(slack.messages().at(-1)).toContain("føre utlegg");
 
 		// Summer time ends on 25 October, so three calendar days later is 16:15 CET.
 		slack.reset();
@@ -161,7 +176,10 @@ describe("bedpres Slack channels", () => {
 		const { t, companyId } = await setup();
 		featureFlags.huginFeedback.emailsEnabled = true;
 		const slack = fakeSlack();
-		const eventId = await insertEvent(t, companyId, { eventStart: EVENT_START });
+		const eventId = await insertEvent(t, companyId, {
+			registrationOpens: REGISTRATION_OPENS,
+			eventStart: EVENT_START,
+		});
 		await sync(t, EVENT_START - DAY_IN_MS);
 		const campaign = {
 			eventId,
@@ -182,10 +200,26 @@ describe("bedpres Slack channels", () => {
 		expect(slack.calls.at(-1)?.method).toBe("conversations.archive");
 	});
 
+	it("sends reminders untagged when the hovedansvarlig is not in Slack", async () => {
+		const { t, companyId } = await setup();
+		const slack = fakeSlack();
+		const eventId = await insertEvent(t, companyId, {
+			registrationOpens: REGISTRATION_OPENS,
+			eventStart: EVENT_START,
+		});
+		await addOrganizer(t, eventId, "ukjent@uio.no", "hovedansvarlig");
+
+		await sync(t, Date.parse("2026-10-08T07:00:00Z"));
+		expect(slack.messages().at(-1)).toMatch(/^\*To uker igjen/);
+	});
+
 	it("invites organizers who are added after the channel was created", async () => {
 		const { t, companyId } = await setup();
 		const slack = fakeSlack({ users: { "sen@uio.no": "U9" } });
-		const eventId = await insertEvent(t, companyId, { eventStart: EVENT_START });
+		const eventId = await insertEvent(t, companyId, {
+			registrationOpens: REGISTRATION_OPENS,
+			eventStart: EVENT_START,
+		});
 		await sync(t, CHANNEL_OPENS);
 		await addOrganizer(t, eventId, "sen@uio.no", "medhjelper");
 
@@ -196,7 +230,10 @@ describe("bedpres Slack channels", () => {
 	it("archives the channel when the event is deleted", async () => {
 		const { t, companyId } = await setup();
 		const slack = fakeSlack();
-		const eventId = await insertEvent(t, companyId, { eventStart: EVENT_START });
+		const eventId = await insertEvent(t, companyId, {
+			registrationOpens: REGISTRATION_OPENS,
+			eventStart: EVENT_START,
+		});
 		await sync(t, CHANNEL_OPENS);
 		await t.run((ctx) => ctx.db.delete(eventId));
 
@@ -207,8 +244,15 @@ describe("bedpres Slack channels", () => {
 	it("skips external events and events more than a month away", async () => {
 		const { t, companyId } = await setup();
 		const slack = fakeSlack();
-		await insertEvent(t, companyId, { eventStart: EVENT_START, externalEvent: true });
-		await insertEvent(t, companyId, { eventStart: EVENT_START + 2 * DAY_IN_MS });
+		await insertEvent(t, companyId, {
+			registrationOpens: REGISTRATION_OPENS,
+			eventStart: EVENT_START,
+			externalEvent: true,
+		});
+		await insertEvent(t, companyId, {
+			registrationOpens: REGISTRATION_OPENS,
+			eventStart: EVENT_START + 2 * DAY_IN_MS,
+		});
 
 		await sync(t, CHANNEL_OPENS);
 		expect(slack.calls).toEqual([]);
@@ -216,12 +260,15 @@ describe("bedpres Slack channels", () => {
 
 	it("picks a new name when the channel name is taken", async () => {
 		const { t, companyId } = await setup();
-		fakeSlack({ takenNames: ["bedpres-2026-10-22-testbedrift"] });
-		const eventId = await insertEvent(t, companyId, { eventStart: EVENT_START });
+		fakeSlack({ takenNames: ["2026-10-22-testbedrift"] });
+		const eventId = await insertEvent(t, companyId, {
+			registrationOpens: REGISTRATION_OPENS,
+			eventStart: EVENT_START,
+		});
 
 		await sync(t, CHANNEL_OPENS);
 		expect(await channelRow(t, eventId)).toMatchObject({
-			channelName: "bedpres-2026-10-22-testbedrift-2",
+			channelName: "2026-10-22-testbedrift-2",
 		});
 	});
 
@@ -231,8 +278,14 @@ describe("bedpres Slack channels", () => {
 			fail: ({ method, params }) =>
 				method === "chat.postMessage" && params.channel === "C1" ? "channel_not_found" : undefined,
 		});
-		await insertEvent(t, companyId, { eventStart: EVENT_START });
-		await insertEvent(t, companyId, { eventStart: EVENT_START + HOUR_IN_MS });
+		await insertEvent(t, companyId, {
+			registrationOpens: REGISTRATION_OPENS,
+			eventStart: EVENT_START,
+		});
+		await insertEvent(t, companyId, {
+			registrationOpens: REGISTRATION_OPENS,
+			eventStart: EVENT_START + HOUR_IN_MS,
+		});
 
 		vi.setSystemTime(CHANNEL_OPENS);
 		await expect(t.action(internal.slack.sync.syncBedpresChannels, {})).rejects.toThrow(
@@ -246,7 +299,10 @@ describe("bedpres Slack channels", () => {
 		fakeSlack({
 			fail: ({ method }) => (method === "chat.postMessage" ? "is_archived" : undefined),
 		});
-		const eventId = await insertEvent(t, companyId, { eventStart: EVENT_START });
+		const eventId = await insertEvent(t, companyId, {
+			registrationOpens: REGISTRATION_OPENS,
+			eventStart: EVENT_START,
+		});
 
 		await sync(t, CHANNEL_OPENS);
 		expect(await channelRow(t, eventId)).toMatchObject({ status: "archived" });
@@ -258,7 +314,10 @@ describe("bedpres Slack channels", () => {
 			users: { "leder@uio.no": "U1" },
 			fail: ({ method }) => (method === "conversations.invite" ? "already_in_channel" : undefined),
 		});
-		const eventId = await insertEvent(t, companyId, { eventStart: EVENT_START });
+		const eventId = await insertEvent(t, companyId, {
+			registrationOpens: REGISTRATION_OPENS,
+			eventStart: EVENT_START,
+		});
 		const userId = await addOrganizer(t, eventId, "leder@uio.no", "hovedansvarlig");
 
 		await sync(t, CHANNEL_OPENS);
@@ -275,7 +334,10 @@ describe("bedpres Slack channels", () => {
 			users: { "leder@uio.no": "U1" },
 			fail: ({ method }) => (method === failing ? failure : undefined),
 		});
-		const eventId = await insertEvent(t, companyId, { eventStart: EVENT_START });
+		const eventId = await insertEvent(t, companyId, {
+			registrationOpens: REGISTRATION_OPENS,
+			eventStart: EVENT_START,
+		});
 		await addOrganizer(t, eventId, "leder@uio.no", "hovedansvarlig");
 
 		vi.setSystemTime(CHANNEL_OPENS);
@@ -290,7 +352,10 @@ describe("bedpres Slack channels", () => {
 			fail: ({ method }) =>
 				method === "conversations.archive" && archiveFails ? "missing_scope" : undefined,
 		});
-		const eventId = await insertEvent(t, companyId, { eventStart: EVENT_START });
+		const eventId = await insertEvent(t, companyId, {
+			registrationOpens: REGISTRATION_OPENS,
+			eventStart: EVENT_START,
+		});
 		await sync(t, CHANNEL_OPENS);
 
 		vi.setSystemTime(EVENT_START + 4 * DAY_IN_MS);
@@ -308,7 +373,10 @@ describe("bedpres Slack channels", () => {
 		const slack = fakeSlack({
 			fail: ({ method }) => (method === "conversations.create" ? "restricted_action" : undefined),
 		});
-		await insertEvent(t, companyId, { eventStart: EVENT_START });
+		await insertEvent(t, companyId, {
+			registrationOpens: REGISTRATION_OPENS,
+			eventStart: EVENT_START,
+		});
 
 		vi.setSystemTime(CHANNEL_OPENS);
 		await expect(t.action(internal.slack.sync.syncBedpresChannels, {})).rejects.toThrow(
@@ -322,7 +390,10 @@ describe("bedpres Slack channels", () => {
 		fakeSlack({
 			fail: ({ method }) => (method === "conversations.create" ? "name_taken" : undefined),
 		});
-		const eventId = await insertEvent(t, companyId, { eventStart: EVENT_START });
+		const eventId = await insertEvent(t, companyId, {
+			registrationOpens: REGISTRATION_OPENS,
+			eventStart: EVENT_START,
+		});
 
 		vi.setSystemTime(CHANNEL_OPENS);
 		await expect(t.action(internal.slack.sync.syncBedpresChannels, {})).rejects.toThrow(
@@ -333,7 +404,10 @@ describe("bedpres Slack channels", () => {
 	it("tolerates a deleted company or organizer user", async () => {
 		const { t, companyId } = await setup();
 		const slack = fakeSlack();
-		const eventId = await insertEvent(t, companyId, { eventStart: EVENT_START });
+		const eventId = await insertEvent(t, companyId, {
+			registrationOpens: REGISTRATION_OPENS,
+			eventStart: EVENT_START,
+		});
 		const userId = await addOrganizer(t, eventId, "borte@uio.no", "medhjelper");
 		await t.run(async (ctx) => {
 			await ctx.db.delete(companyId);
@@ -347,7 +421,10 @@ describe("bedpres Slack channels", () => {
 	it("ignores progress for a channel that no longer exists", async () => {
 		const { t, companyId } = await setup();
 		fakeSlack();
-		const eventId = await insertEvent(t, companyId, { eventStart: EVENT_START });
+		const eventId = await insertEvent(t, companyId, {
+			registrationOpens: REGISTRATION_OPENS,
+			eventStart: EVENT_START,
+		});
 		await sync(t, CHANNEL_OPENS);
 		const channel = await channelRow(t, eventId);
 		if (!channel) throw new Error("channel was not created");
@@ -364,8 +441,14 @@ describe("bedpres Slack channels", () => {
 		const { t, companyId } = await setup();
 		vi.stubEnv("SLACK_OBSERVER_EMAILS", " styret@uio.no, ukjent@uio.no ,");
 		const slack = fakeSlack({ users: { "styret@uio.no": "U7" } });
-		await insertEvent(t, companyId, { eventStart: EVENT_START });
-		await insertEvent(t, companyId, { eventStart: EVENT_START + HOUR_IN_MS });
+		await insertEvent(t, companyId, {
+			registrationOpens: REGISTRATION_OPENS,
+			eventStart: EVENT_START,
+		});
+		await insertEvent(t, companyId, {
+			registrationOpens: REGISTRATION_OPENS,
+			eventStart: EVENT_START + HOUR_IN_MS,
+		});
 
 		await sync(t, CHANNEL_OPENS);
 		const invites = slack.calls.filter((call) => call.method === "conversations.invite");
@@ -385,7 +468,10 @@ describe("bedpres Slack channels", () => {
 	it("does nothing when disabled or without a token", async () => {
 		const { t, companyId } = await setup();
 		const slack = fakeSlack();
-		await insertEvent(t, companyId, { eventStart: EVENT_START });
+		await insertEvent(t, companyId, {
+			registrationOpens: REGISTRATION_OPENS,
+			eventStart: EVENT_START,
+		});
 
 		featureFlags.slackBot.enabled = false;
 		await sync(t, CHANNEL_OPENS);
@@ -397,21 +483,32 @@ describe("bedpres Slack channels", () => {
 });
 
 describe("bedpres Slack copy", () => {
+	const EVENT = {
+		title: "Bedpres",
+		company: "Testbedrift",
+		eventStart: EVENT_START,
+		registrationOpens: REGISTRATION_OPENS,
+	};
+
 	it("keeps channel names within Slack's limit", () => {
-		const event = { title: "", company: "Æøå ".repeat(40), eventStart: EVENT_START };
+		const event = {
+			title: "",
+			company: "Æøå ".repeat(40),
+			eventStart: EVENT_START,
+			registrationOpens: REGISTRATION_OPENS,
+		};
 		expect(channelName(event, 3)).toHaveLength(80);
-		expect(channelName(event, 3)).toMatch(/^bedpres-2026-10-22-aeoa-.*-3$/);
+		expect(channelName(event, 3)).toMatch(/^2026-10-22-aeoa-.*-3$/);
 	});
 
 	it("renders every reminder without em-dashes", () => {
-		const event = { title: "Bedpres", company: "Testbedrift", eventStart: EVENT_START };
 		for (const reminder of REMINDERS) {
-			expect(reminder.text(event)).not.toContain("\u2014");
-			expect(reminder.at(EVENT_START)).toBeLessThan(EVENT_START + DAY_IN_MS);
+			expect(reminder.text(EVENT)).not.toContain("\u2014");
+			expect(reminder.at(EVENT)).toBeLessThan(EVENT_START + DAY_IN_MS);
 		}
 	});
 
 	it("sends nothing before the first reminder", () => {
-		expect(dueReminders(EVENT_START, CHANNEL_OPENS, [])).toEqual({ post: null, handled: [] });
+		expect(dueReminders(EVENT, CHANNEL_OPENS, [])).toEqual({ post: null, handled: [] });
 	});
 });
