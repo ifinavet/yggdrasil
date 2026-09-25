@@ -38,6 +38,14 @@ crons.cron(
 	{},
 );
 
+// Reminders are scheduled for 09:00 Oslo, so an hourly run posts them before 10:00.
+crons.cron(
+	"Sync Slack channels for bedpresser",
+	"5 * * * *",
+	internal.slack.sync.syncBedpresChannels,
+	{},
+);
+
 /**
  * Exports the configured cron job collection.
  */

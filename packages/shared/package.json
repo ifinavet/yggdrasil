@@ -25,6 +25,7 @@
 		"./feature-flags": "./feature-flags.ts",
 		"./feedback/time": "./feedback/time.ts",
 		"./semester/time": "./semester/time.ts",
+		"./slack/time": "./slack/time.ts",
 		"./semester/orgNumber": "./semester/orgNumber.ts",
 		"./semester/limits": "./semester/limits.ts",
 		"./semester/application": "./semester/application.ts",

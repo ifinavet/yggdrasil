@@ -8,6 +8,10 @@ export const featureFlags = {
 		// Allows approved company report emails.
 		reportEmailsEnabled: true,
 	},
+	slackBot: {
+		// Creates private Slack channels for upcoming bedpresser and posts checklist reminders.
+		enabled: true,
+	},
 };
 
 export const browserOptInKeys = {
