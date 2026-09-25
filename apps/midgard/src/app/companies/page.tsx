@@ -1,7 +1,7 @@
 import { api } from "@workspace/backend/convex/api";
 import { Button } from "@workspace/ui/components/button";
+import { FeatureGate } from "@workspace/ui/components/feature-gate";
 import ResponsiveCenterContainer from "@workspace/ui/components/responsive-center-container";
-import { SemesterPlanningGate } from "@workspace/ui/components/semester-planning-gate";
 import { Title } from "@workspace/ui/components/title";
 import { fetchQuery } from "convex/nextjs";
 import type { Metadata } from "next";
@@ -25,18 +25,18 @@ export default function CompaniesPage() {
 		<CompaniesContent
 			applyCard={
 				// Keyed: the cached page renders the element it gets, and React asks for a key.
-				<SemesterPlanningGate key="apply-card">
+				<FeatureGate key="apply-card" feature="semesterPlanning">
 					<Suspense fallback={<ApplyForEventCardSkeleton />}>
 						<ApplyForEventCard />
 					</Suspense>
-				</SemesterPlanningGate>
+				</FeatureGate>
 			}
 		/>
 	);
 }
 
 /**
- * The static page, cached forever. The application card is passed in, so its shorter cache life
+ * The static page, cached for hours. The application card is passed in, so its shorter cache life
  * (the open semester and its deadline change) is not frozen by this cache.
  */
 async function CompaniesContent({ applyCard }: Readonly<{ applyCard: ReactNode }>) {
