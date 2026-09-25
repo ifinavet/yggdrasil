@@ -67,6 +67,7 @@ export function AcceptOfferForm({
 			</p>
 
 			<OfferDayCard date={offer.date} note={COPY.held} />
+			<p className="m-0 mt-2.5 text-[13.5px] text-muted-foreground">{COPY.confirmSoon}</p>
 			<OfferFacts offer={offer} />
 
 			<form.Field name="acceptTerms">

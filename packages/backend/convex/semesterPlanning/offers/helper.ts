@@ -3,6 +3,7 @@ import type { Doc, Id } from "../../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../../_generated/server";
 import { LINK_TOKEN_LENGTH } from "../../lib/tokens";
 import { isActiveApplicationStatus } from "../rules";
+import { listSemesterDates } from "../semesters/helper";
 
 /**
  * Finds the offer behind a link token.
@@ -94,4 +95,34 @@ export async function supersedePendingOffers(
 	await Promise.all(pending.map((offer) => ctx.db.patch(offer._id, { status: "superseded" })));
 
 	return pending.length;
+}
+
+/** Far more confirmed applications than a semester has dates; keeps the read bounded. */
+const MAX_CONFIRMED = 200;
+
+/**
+ * The semester dates a company can ask for instead of its offer: open dates that no other company
+ * has confirmed. Dates only offered to someone else stay, since that offer may not be accepted.
+ *
+ * @param {QueryCtx | MutationCtx} ctx - The Convex query or mutation context.
+ * @param {Doc<"companyApplications">} application - The application asking.
+ *
+ * @returns {Promise<string[]>} - The dates, in order.
+ */
+export async function requestableDates(
+	ctx: QueryCtx | MutationCtx,
+	application: Doc<"companyApplications">,
+): Promise<string[]> {
+	const confirmed = await ctx.db
+		.query("companyApplications")
+		.withIndex("by_semesterId_and_status", (q) =>
+			q.eq("semesterId", application.semesterId).eq("status", "confirmed"),
+		)
+		.take(MAX_CONFIRMED);
+	const taken = new Set(
+		confirmed.filter((other) => other._id !== application._id).map((other) => other.assignedDate),
+	);
+	return (await listSemesterDates(ctx, application.semesterId))
+		.filter((date) => date.closedLabel === undefined && !taken.has(date.date))
+		.map((date) => date.date);
 }
