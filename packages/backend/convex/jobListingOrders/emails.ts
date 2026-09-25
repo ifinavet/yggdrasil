@@ -69,7 +69,7 @@ export const sendReceipt = internalAction({
 	returns: v.null(),
 	handler: async (ctx, { orderId }) => {
 		const order = await ctx.runQuery(internal.jobListingOrders.orders.emailContext, { orderId });
-		if (!order) return null;
+		if (!order) return;
 		const html = await render(
 			JobListingOrderReceiptEmail({
 				companyName: order.companyName,
@@ -82,7 +82,6 @@ export const sendReceipt = internalAction({
 			}),
 		);
 		await deliver(ctx, order.contact.email, `Kvittering for bestilling ${order.reference}`, html);
-		return null;
 	},
 });
 
@@ -91,7 +90,7 @@ export const sendAdminNotice = internalAction({
 	returns: v.null(),
 	handler: async (ctx, { orderId }) => {
 		const order = await ctx.runQuery(internal.jobListingOrders.orders.emailContext, { orderId });
-		if (!order) return null;
+		if (!order) return;
 		const html = await render(
 			JobListingOrderAdminEmail({
 				companyName: order.companyName,
@@ -108,7 +107,6 @@ export const sendAdminNotice = internalAction({
 			`Ny bestilling ${order.reference}: ${order.companyName}`,
 			html,
 		);
-		return null;
 	},
 });
 
@@ -117,7 +115,7 @@ export const sendPublished = internalAction({
 	returns: v.null(),
 	handler: async (ctx, { orderId }) => {
 		const order = await ctx.runQuery(internal.jobListingOrders.orders.emailContext, { orderId });
-		if (!order) return null;
+		if (!order) return;
 		const midgard = origin(MIDGARD_LOCAL_URL, MIDGARD_URL);
 		const html = await render(
 			JobListingOrderPublishedEmail({
@@ -130,7 +128,6 @@ export const sendPublished = internalAction({
 			}),
 		);
 		await deliver(ctx, order.contact.email, "Stillingsannonsene er publisert", html);
-		return null;
 	},
 });
 
@@ -139,7 +136,7 @@ export const sendRejected = internalAction({
 	returns: v.null(),
 	handler: async (ctx, { orderId }) => {
 		const order = await ctx.runQuery(internal.jobListingOrders.orders.emailContext, { orderId });
-		if (!order?.rejectionReason) return null;
+		if (!order?.rejectionReason) return;
 		const html = await render(
 			JobListingOrderRejectedEmail({
 				companyName: order.companyName,
@@ -153,6 +150,5 @@ export const sendRejected = internalAction({
 			`Bestilling ${order.reference} ble ikke publisert`,
 			html,
 		);
-		return null;
 	},
 });

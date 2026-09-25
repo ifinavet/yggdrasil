@@ -85,9 +85,9 @@ function ReceiptFeedback({ token }: Readonly<{ token: string }>) {
 
 	if (state.status === "sent") {
 		return (
-			<p role="status" className="mt-8 text-muted-foreground text-sm print:hidden">
+			<output className="mt-8 block text-muted-foreground text-sm print:hidden">
 				{receiptCopy.feedbackThanks}
-			</p>
+			</output>
 		);
 	}
 

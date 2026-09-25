@@ -120,6 +120,52 @@ async function companyChangesFor(
 	return hasChanges ? changes : undefined;
 }
 
+type OrderCompany = {
+	companyId?: Id<"companies">;
+	newCompany?: Doc<"jobListingOrders">["newCompany"];
+	companyChanges?: CompanyChangesDoc;
+	companyName: string;
+	companyBillingOnFile?: Doc<"companies">["billing"];
+};
+
+async function resolveOrderCompany(
+	ctx: MutationCtx,
+	parsed: JobListingOrderForm,
+	registryName: string | undefined,
+): Promise<OrderCompany> {
+	if (parsed.company.kind === "existing") {
+		const companyId = ctx.db.normalizeId("companies", parsed.company.companyId);
+		const company = companyId ? await ctx.db.get(companyId) : null;
+		if (!company) throw new ConvexError("Fant ikke bedriften. Last inn siden på nytt.");
+		return {
+			companyId: company._id,
+			companyChanges: await companyChangesFor(ctx, company, parsed),
+			companyName: company.name,
+			companyBillingOnFile: company.billing,
+		};
+	}
+
+	if (!registryName) throw new ConvexError("Fant ikke bedriften i Enhetsregisteret.");
+	const orgNumber = Number(parsed.company.orgNumber);
+	const registered = await ctx.db
+		.query("companies")
+		.withIndex("by_orgNumber", (q) => q.eq("orgNumber", orgNumber))
+		.first();
+	if (registered) {
+		throw new ConvexError("Bedriften er allerede registrert. Velg den fra listen.");
+	}
+	return {
+		newCompany: {
+			orgNumber: parsed.company.orgNumber,
+			registryName,
+			displayName: parsed.company.displayName,
+			description: sanitizeRichText(parsed.company.description),
+			logo: await requireLogo(ctx, parsed.company.logo),
+		},
+		companyName: parsed.company.displayName,
+	};
+}
+
 const insertedOrder = v.object({
 	orderId: v.id("jobListingOrders"),
 	reference: v.string(),
@@ -164,38 +210,8 @@ export const insertOrder = internalMutation({
 			throw new ConvexError("Pakken finnes ikke lenger. Last inn siden på nytt.");
 		}
 
-		let companyId: Id<"companies"> | undefined;
-		let newCompany: Doc<"jobListingOrders">["newCompany"];
-		let companyChanges: CompanyChangesDoc | undefined;
-		let companyName: string;
-		let companyBillingOnFile: Doc<"companies">["billing"];
-
-		if (parsed.company.kind === "existing") {
-			companyId = ctx.db.normalizeId("companies", parsed.company.companyId) ?? undefined;
-			const company = companyId ? await ctx.db.get(companyId) : null;
-			if (!company) throw new ConvexError("Fant ikke bedriften. Last inn siden på nytt.");
-			companyChanges = await companyChangesFor(ctx, company, parsed);
-			companyName = company.name;
-			companyBillingOnFile = company.billing;
-		} else {
-			if (!registryName) throw new ConvexError("Fant ikke bedriften i Enhetsregisteret.");
-			const orgNumber = Number(parsed.company.orgNumber);
-			const registered = await ctx.db
-				.query("companies")
-				.withIndex("by_orgNumber", (q) => q.eq("orgNumber", orgNumber))
-				.first();
-			if (registered) {
-				throw new ConvexError("Bedriften er allerede registrert. Velg den fra listen.");
-			}
-			newCompany = {
-				orgNumber: parsed.company.orgNumber,
-				registryName,
-				displayName: parsed.company.displayName,
-				description: sanitizeRichText(parsed.company.description),
-				logo: await requireLogo(ctx, parsed.company.logo),
-			};
-			companyName = parsed.company.displayName;
-		}
+		const { companyId, newCompany, companyChanges, companyName, companyBillingOnFile } =
+			await resolveOrderCompany(ctx, parsed, registryName);
 
 		const billing = parsed.billing ?? companyBillingOnFile;
 		if (!billing) throw new ConvexError("Fyll inn fakturainformasjon.");
@@ -391,13 +407,13 @@ export const purgeUnconfirmed = internalMutation({
 	returns: v.null(),
 	handler: async (ctx, { orderId }) => {
 		const order = await ctx.db.get(orderId);
-		if (order?.status !== "awaiting_email") return null;
+		if (order?.status !== "awaiting_email") return;
 		const confirmations = await ctx.db
 			.query("jobListingOrderConfirmations")
 			.withIndex("by_orderId", (q) => q.eq("orderId", orderId))
 			.take(20);
 		const now = Date.now();
-		if (confirmations.some((confirmation) => confirmation.expiresAt > now)) return null;
+		if (confirmations.some((confirmation) => confirmation.expiresAt > now)) return;
 
 		for (const confirmation of confirmations) await ctx.db.delete(confirmation._id);
 		for (const item of await listOrderItems(ctx, orderId)) await ctx.db.delete(item._id);
@@ -405,7 +421,6 @@ export const purgeUnconfirmed = internalMutation({
 			if (storageId) await ctx.storage.delete(storageId);
 		}
 		await ctx.db.delete(orderId);
-		return null;
 	},
 });
 

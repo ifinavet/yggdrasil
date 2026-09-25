@@ -20,12 +20,13 @@ function optionalText(max: number, message: string) {
 const email = (message: string) => z.email({ error: message }).max(254, message);
 
 export function richTextIsEmpty(html: string): boolean {
-	return (
-		html
-			.replaceAll(/<[^>]*>/g, "")
-			.replaceAll("&nbsp;", "")
-			.trim().length === 0
-	);
+	let insideTag = false;
+	for (const char of html.replaceAll("&nbsp;", " ")) {
+		if (char === "<") insideTag = true;
+		else if (char === ">" && insideTag) insideTag = false;
+		else if (!insideTag && char.trim()) return false;
+	}
+	return true;
 }
 
 function richText(message: string) {

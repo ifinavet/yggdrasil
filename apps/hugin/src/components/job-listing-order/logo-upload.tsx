@@ -85,6 +85,11 @@ export function LogoPreview({
 	);
 }
 
+function uploadButtonLabel(uploading: boolean, hasLogo: boolean): string {
+	if (uploading) return companyCopy.logoUploading;
+	return hasLogo ? companyCopy.replaceLogo : companyCopy.uploadLogo;
+}
+
 export function LogoUploadField({
 	id,
 	previewUrl,
@@ -118,11 +123,7 @@ export function LogoUploadField({
 					disabled={logo.uploading}
 					onClick={logo.open}
 				>
-					{logo.uploading
-						? companyCopy.logoUploading
-						: hasLogo
-							? companyCopy.replaceLogo
-							: companyCopy.uploadLogo}
+					{uploadButtonLabel(logo.uploading, hasLogo)}
 				</Button>
 				<span className="text-muted-foreground text-sm">{companyCopy.logoHint}</span>
 				{logo.error && <FieldError>{logo.error}</FieldError>}
