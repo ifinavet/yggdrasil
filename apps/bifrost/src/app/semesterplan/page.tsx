@@ -1,17 +1,10 @@
 import { getAuthToken, hasEditRights } from "@workspace/auth";
 import { api } from "@workspace/backend/convex/api";
-import {
-	Breadcrumb,
-	BreadcrumbItem,
-	BreadcrumbLink,
-	BreadcrumbList,
-	BreadcrumbPage,
-	BreadcrumbSeparator,
-} from "@workspace/ui/components/breadcrumb";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { preloadQuery } from "convex/nextjs";
 import { Suspense } from "react";
 import { SemesterPlanner } from "@/components/semester-planning/semester-planner";
+import { SemesterplanBreadcrumb } from "@/components/semester-planning/semesterplan-breadcrumb";
 
 // Shown behind the semester planning gate, which only renders in the browser.
 export const instant = false;
@@ -19,17 +12,7 @@ export const instant = false;
 export default function SemesterPlanPage() {
 	return (
 		<>
-			<Breadcrumb>
-				<BreadcrumbList>
-					<BreadcrumbItem>
-						<BreadcrumbLink href="/">Hjem</BreadcrumbLink>
-					</BreadcrumbItem>
-					<BreadcrumbSeparator />
-					<BreadcrumbItem>
-						<BreadcrumbPage>Semesterplan</BreadcrumbPage>
-					</BreadcrumbItem>
-				</BreadcrumbList>
-			</Breadcrumb>
+			<SemesterplanBreadcrumb />
 
 			{/* Rights and data need the request, so they stream in; the page shell shows at once. */}
 			<Suspense fallback={<SemesterPlannerSkeleton />}>
@@ -57,7 +40,7 @@ function SemesterPlannerSkeleton() {
 				<Skeleton className="h-9 w-40" />
 				<Skeleton className="h-9 w-80" />
 			</div>
-			<Skeleton className="h-96 w-full rounded-xl" />
+			<Skeleton className="h-96 w-full rounded-lg" />
 		</div>
 	);
 }
