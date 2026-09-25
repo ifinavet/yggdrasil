@@ -6,7 +6,7 @@ import type { Doc } from "@workspace/backend/convex/dataModel";
 import { isClockTime, isIsoDate } from "@workspace/shared/semester/time";
 import { isHttpUrl } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
-import { Field, FieldDescription, FieldError, FieldLabel } from "@workspace/ui/components/field";
+import { Field, FieldError, FieldLabel } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
 import { Switch } from "@workspace/ui/components/switch";
 import { Textarea } from "@workspace/ui/components/textarea";
@@ -187,7 +187,6 @@ export function SemesterSettingsForm({ semester }: Readonly<{ semester: Doc<"sem
 									disabled={locked}
 									invalid={isInvalid}
 								/>
-								<FieldDescription>Vises på ifinavet.no og i skjemaet.</FieldDescription>
 								{isInvalid && <FieldError errors={field.state.meta.errors} />}
 							</Field>
 						);
@@ -233,9 +232,6 @@ export function SemesterSettingsForm({ semester }: Readonly<{ semester: Doc<"sem
 									onBlur={field.handleBlur}
 									aria-invalid={isInvalid}
 								/>
-								<FieldDescription>
-									Arrangementer som opprettes fra planen, starter på dette klokkeslettet.
-								</FieldDescription>
 								{isInvalid && <FieldError errors={field.state.meta.errors} />}
 							</Field>
 						);
@@ -257,7 +253,6 @@ export function SemesterSettingsForm({ semester }: Readonly<{ semester: Doc<"sem
 										id="semester-terms"
 										type="url"
 										inputMode="url"
-										placeholder="https://"
 										className="pl-9"
 										value={field.state.value}
 										onChange={(event) => field.handleChange(event.target.value)}
@@ -265,9 +260,6 @@ export function SemesterSettingsForm({ semester }: Readonly<{ semester: Doc<"sem
 										aria-invalid={isInvalid}
 									/>
 								</div>
-								<FieldDescription>
-									Legges ved tilbudet. Bedriften godtar dem sammen med datoen.
-								</FieldDescription>
 								{isInvalid && <FieldError errors={field.state.meta.errors} />}
 							</Field>
 						);
@@ -285,7 +277,6 @@ export function SemesterSettingsForm({ semester }: Readonly<{ semester: Doc<"sem
 								onChange={(event) => field.handleChange(event.target.value)}
 								onBlur={field.handleBlur}
 							/>
-							<FieldDescription>Vises for bedriftene når de søker på Hugin.</FieldDescription>
 						</Field>
 					)}
 				</form.Field>

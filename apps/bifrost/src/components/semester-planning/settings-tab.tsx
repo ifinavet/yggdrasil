@@ -3,20 +3,8 @@
 import { api } from "@workspace/backend/convex/api";
 import type { Doc, Id } from "@workspace/backend/convex/dataModel";
 import { Button } from "@workspace/ui/components/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@workspace/ui/components/card";
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogHeader,
-	DialogTitle,
-} from "@workspace/ui/components/dialog";
+import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@workspace/ui/components/dialog";
 import { cn } from "@workspace/ui/lib/utils";
 import { useQuery } from "convex/react";
 import { Plus } from "lucide-react";
@@ -51,7 +39,6 @@ export function SettingsTab({
 				<Card className={CARD}>
 					<CardHeader className={CARD_PART}>
 						<CardTitle className="text-base">Semester</CardTitle>
-						<CardDescription>Datoer og frist settes av deg, aldri automatisk.</CardDescription>
 					</CardHeader>
 					<CardContent className={cn(CARD_PART, "grid gap-3.5")}>
 						<StatusControl semester={semester} />
@@ -72,9 +59,6 @@ function DatesCard({ semester }: Readonly<{ semester: Doc<"semesters"> }>) {
 		<Card className={cn(CARD, "min-w-0")}>
 			<CardHeader className={CARD_PART}>
 				<CardTitle className="text-base">Datoer</CardTitle>
-				<CardDescription>
-					Tirsdager og torsdager mellom første og siste dato. Klikk en dato for å stenge den.
-				</CardDescription>
 			</CardHeader>
 			<CardContent className={CARD_PART}>
 				{data === undefined ? (
@@ -104,10 +88,9 @@ function NewSemesterButton({
 			<Button variant="outline" onClick={() => setOpen(true)}>
 				<Plus /> Nytt semester
 			</Button>
-			<DialogContent className="sm:max-w-md">
+			<DialogContent className="sm:max-w-md" aria-describedby={undefined}>
 				<DialogHeader>
 					<DialogTitle>Nytt semester</DialogTitle>
-					<DialogDescription>Velg semester og år.</DialogDescription>
 				</DialogHeader>
 				<CreateSemesterForm
 					onCancel={() => setOpen(false)}
@@ -129,10 +112,6 @@ export function FirstSemester({
 		<Card className="mx-auto w-full max-w-md gap-4 py-4 sm:py-6">
 			<CardHeader className="px-4 sm:px-6">
 				<CardTitle className="text-base">Opprett det første semesteret</CardTitle>
-				<CardDescription>
-					Det finnes ingen semestre ennå. Opprett ett for å sette datoer og ta imot søknader fra
-					bedrifter.
-				</CardDescription>
 			</CardHeader>
 			<CardContent className="px-4 sm:px-6">
 				<CreateSemesterForm onCreated={onCreated} />

@@ -115,8 +115,7 @@ export function CreateSemesterForm({
 			</div>
 
 			<p className="text-muted-foreground text-sm">
-				Semesteret lages som utkast. Informasjonstekst, vilkår og starttid hentes fra forrige
-				semester. Datoer og søknadsfrist setter du selv etterpå.
+				Tekst, vilkår og starttid kopieres fra forrige semester.
 			</p>
 
 			{saveError && (

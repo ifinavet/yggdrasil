@@ -231,20 +231,15 @@ function DateCell({
 					</div>
 					<div className="grid gap-1.5">
 						<label htmlFor={`reason-${day._id}`} className="font-medium text-sm">
-							Grunn (valgfritt)
+							Intern grunn (valgfritt)
 						</label>
 						<Input
 							id={`reason-${day._id}`}
 							autoFocus
-							placeholder="F.eks. Eksamen"
 							value={label}
 							onChange={(event) => setLabel(event.target.value)}
 							aria-invalid={error !== undefined}
-							aria-describedby={`reason-hint-${day._id}`}
 						/>
-						<p id={`reason-hint-${day._id}`} className="text-muted-foreground text-xs">
-							Bedriftene ser ikke grunnen.
-						</p>
 					</div>
 					{error && (
 						<p role="alert" className="font-medium text-destructive text-sm">
