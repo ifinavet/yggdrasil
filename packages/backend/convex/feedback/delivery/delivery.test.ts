@@ -1,7 +1,7 @@
 import type { EmailEvent, EmailId } from "@convex-dev/resend";
 import type { WorkflowId } from "@convex-dev/workflow";
 import { HUGIN_LOCAL_URL, HUGIN_URL } from "@workspace/shared/constants";
-import { feedbackOpensAt, feedbackRoundAt } from "@workspace/shared/feedback/time";
+import { feedbackOpensAt, feedbackRoundAt } from "@workspace/shared/time";
 import { Webhook } from "svix";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {

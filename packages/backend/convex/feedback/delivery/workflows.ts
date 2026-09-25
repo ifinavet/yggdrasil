@@ -1,5 +1,5 @@
 import { WorkflowManager } from "@convex-dev/workflow";
-import { feedbackRoundAt, REMINDER_DAYS } from "@workspace/shared/feedback/time";
+import { feedbackRoundAt, REMINDER_DAYS } from "@workspace/shared/time";
 import { v } from "convex/values";
 import { components, internal } from "../../_generated/api";
 import { campaignArgs } from "./campaigns";

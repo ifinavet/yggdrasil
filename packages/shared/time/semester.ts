@@ -1,12 +1,12 @@
 import { TZDate, tz } from "@date-fns/tz";
 import { eachDayOfInterval, format, isThursday, isTuesday, isValid, parse } from "date-fns";
 import { nb } from "date-fns/locale";
+import { OSLO_TIME_ZONE } from "./constants";
 
 // Semester days are Oslo-local "YYYY-MM-DD" strings. All parsing and calendar arithmetic runs in
 // the Oslo time zone, so weekdays and wall-clock times stay right across daylight-saving changes.
 
-const OSLO = "Europe/Oslo";
-const IN_OSLO = { in: tz(OSLO) };
+const IN_OSLO = { in: tz(OSLO_TIME_ZONE) };
 const DAY_FORMAT = "yyyy-MM-dd";
 
 /** First month of the autumn term, zero-based (July). January to June belongs to spring. */
@@ -28,7 +28,7 @@ export function osloToday(now: number): string {
 // In the Convex runtime, date-fns's `in` option reads a moment in UTC, not Oslo. Intl and TZDates
 // built from wall-clock parts work there, so moments are converted with those.
 const OSLO_CLOCK = new Intl.DateTimeFormat("sv-SE", {
-	timeZone: OSLO,
+	timeZone: OSLO_TIME_ZONE,
 	dateStyle: "short",
 	timeStyle: "short",
 });
@@ -41,9 +41,9 @@ function osloClock(epoch: number): string {
 type Clock = [year: number, month: number, day: number, hours: number, minutes: number];
 
 /** The moment an Oslo "YYYY-MM-DD HH:mm" happens, moved by a number of days. */
-function fromOsloClock(value: string, addDays = 0): number {
+function fromOsloClock(value: string, dayOffset = 0): number {
 	const [year, month, day, hours, minutes] = value.split(/[- :]/).map(Number) as Clock;
-	return new TZDate(year, month - 1, day + addDays, hours, minutes, OSLO).getTime();
+	return new TZDate(year, month - 1, day + dayOffset, hours, minutes, OSLO_TIME_ZONE).getTime();
 }
 
 /**

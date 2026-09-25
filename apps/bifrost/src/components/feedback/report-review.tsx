@@ -21,6 +21,7 @@ import type { FunctionReturnType } from "convex/server";
 import { ConvexError } from "convex/values";
 import { Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
+import { REPORT_DELIVERY_LABELS, REPORT_STATUS_LABELS } from "./status-labels";
 
 type ReportResult = Extract<
 	NonNullable<FunctionReturnType<typeof api.feedback.reports.queries.getEventReport>>,
@@ -30,15 +31,10 @@ type Report = NonNullable<ReportResult["report"]>;
 type Answers = FunctionReturnType<typeof api.feedback.reports.queries.getReportAnswers>["page"];
 
 function reportStatusLabel(report: Report): string {
-	if (report.status === "revoked") return "Tilgangen er trukket tilbake";
-	if (report.status === "draft") return "Klar for gjennomgang";
-	const deliveryLabels = {
-		failed: "E-post feilet",
-		delivered: "E-post levert",
-		pending: "Klargjør e-post",
-		queued: "E-post i kø",
-	};
-	return deliveryLabels[report.deliveryStatus ?? "pending"];
+	if (report.status === "revoked" || report.status === "draft") {
+		return REPORT_STATUS_LABELS[report.status];
+	}
+	return REPORT_DELIVERY_LABELS[report.deliveryStatus ?? "pending"];
 }
 
 export function ReportReview({

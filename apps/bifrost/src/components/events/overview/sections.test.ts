@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { longDate, shortDate, timeOfDay } from "./dates";
 import {
 	eventHref,
 	groupByMonth,
@@ -110,8 +109,8 @@ describe("groupByMonth", () => {
 		const groups = groupByMonth([august, lateAugustInOslo, september]);
 
 		expect(groups.map((group) => [group.label, group.events.length])).toEqual([
-			["August", 1],
-			["September", 2],
+			["august", 1],
+			["september", 2],
 		]);
 	});
 });
@@ -128,7 +127,7 @@ describe("registrations", () => {
 		});
 		expect(
 			registrations(overviewEvent({ registrationOpens: Date.parse("2026-08-27T10:00:00Z") }), NOW),
-		).toEqual({ kind: "note", text: "Åpner 27. aug" });
+		).toEqual({ kind: "note", text: "Åpner 27. aug." });
 	});
 
 	it("counts registrations once registration has opened", () => {
@@ -140,14 +139,6 @@ describe("registrations", () => {
 			limit: 60,
 			waitlist: 8,
 		});
-	});
-});
-
-describe("dates", () => {
-	it("formats in Oslo time", () => {
-		expect(longDate(AFTER_NOW)).toBe("Tirsdag 8. september, 16:15");
-		expect(shortDate(BEFORE_NOW)).toBe("11. aug");
-		expect(timeOfDay(BEFORE_NOW)).toBe("17:30");
 	});
 });
 

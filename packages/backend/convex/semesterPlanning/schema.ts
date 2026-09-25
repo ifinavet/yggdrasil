@@ -4,7 +4,7 @@ import {
 	FOOD_PURCHASERS,
 	VENUES,
 } from "@workspace/shared/semester/labels";
-import { SEMESTER_TERMS } from "@workspace/shared/semester/time";
+import { SEMESTER_TERMS } from "@workspace/shared/time";
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
 import { studentDegree } from "../users/students/schema";

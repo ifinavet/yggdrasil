@@ -1,6 +1,6 @@
 import { ESCAPE_LABELS, EVENT_TYPE_LABELS, semesterName } from "@workspace/shared/semester/labels";
 import { toCompanyProfileOrgNumber } from "@workspace/shared/semester/orgNumber";
-import { formatSemesterDay } from "@workspace/shared/semester/time";
+import { formatSemesterDay } from "@workspace/shared/time";
 import { asciiFilename, toCsv } from "@workspace/shared/utils";
 import { v } from "convex/values";
 import { query } from "../../_generated/server";

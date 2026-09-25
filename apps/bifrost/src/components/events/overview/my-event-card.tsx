@@ -1,8 +1,8 @@
+import { DATE_PATTERNS, formatOsloDate } from "@workspace/shared/time";
 import { Button } from "@workspace/ui/components/button";
 import { CompanyLogo } from "@workspace/ui/components/company-logo";
 import { cn } from "@workspace/ui/lib/utils";
 import Link from "next/link";
-import { longDate } from "./dates";
 import { eventHref, type OverviewEvent } from "./sections";
 
 export function MyEventCard({ event }: Readonly<{ event: OverviewEvent }>) {
@@ -26,7 +26,9 @@ export function MyEventCard({ event }: Readonly<{ event: OverviewEvent }>) {
 							{event.title}
 						</Link>
 					</h3>
-					<p className="mt-0.5 text-[13px] text-muted-foreground">{longDate(event.eventStart)}</p>
+					<p className="mt-0.5 text-[13px] text-muted-foreground first-letter:uppercase">
+						{formatOsloDate(event.eventStart, DATE_PATTERNS.dateTime)}
+					</p>
 				</div>
 			</div>
 			{event.feedbackStatus === "draft" ? (

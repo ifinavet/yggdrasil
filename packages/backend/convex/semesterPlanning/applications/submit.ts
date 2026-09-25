@@ -10,7 +10,7 @@ import {
 	VENUE_LABELS,
 } from "@workspace/shared/semester/labels";
 import { isValidOrgNumber } from "@workspace/shared/semester/orgNumber";
-import { formatSemesterDay } from "@workspace/shared/semester/time";
+import { formatSemesterDay } from "@workspace/shared/time";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../../_generated/api";
 import { action, internalMutation } from "../../_generated/server";

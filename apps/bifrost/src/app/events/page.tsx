@@ -22,7 +22,7 @@ export default async function Events({
 	const token = await getAuthToken();
 	const [preloadedPossibleSemesters, events] = await Promise.all([
 		preloadQuery(api.events.queries.getPossibleSemesters),
-		fetchQuery(api.events.overview.getOverview, { year, semester }, { token }),
+		fetchQuery(api.events.queries.getAll, { year, semester }, { token }),
 	]);
 
 	return (

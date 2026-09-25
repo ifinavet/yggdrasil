@@ -4,6 +4,7 @@ import { currentPlatform, searchShortcutKeys } from "@workspace/ui/lib/search-sh
 import { cn } from "@workspace/ui/lib/utils";
 import { Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useHotkeys } from "react-hotkeys-hook";
 
 export function SearchField({
 	value,
@@ -23,17 +24,15 @@ export function SearchField({
 		setShortcutKeys(searchShortcutKeys(currentPlatform()));
 	}, []);
 
-	useEffect(() => {
-		function toggleOnShortcut(event: KeyboardEvent) {
+	useHotkeys(
+		"mod+k",
+		() => {
 			const input = inputRef.current;
-			if (!input || !((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k")) return;
-			event.preventDefault();
-			if (document.activeElement === input) input.blur();
-			else input.focus();
-		}
-		window.addEventListener("keydown", toggleOnShortcut);
-		return () => window.removeEventListener("keydown", toggleOnShortcut);
-	}, []);
+			if (document.activeElement === input) input?.blur();
+			else input?.focus();
+		},
+		{ enableOnFormTags: true, preventDefault: true },
+	);
 
 	return (
 		<label

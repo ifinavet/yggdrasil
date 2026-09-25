@@ -1,5 +1,5 @@
 import type { OrganizerRole } from "@workspace/shared/constants";
-import { osloToday, termOfDay } from "@workspace/shared/semester/time";
+import { osloToday, termOfDay } from "@workspace/shared/time";
 import { ConvexError } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
@@ -165,4 +165,19 @@ export async function eventsInSemester(ctx: QueryCtx, semester: number, year: nu
 		)
 		.order("asc")
 		.collect();
+}
+
+export async function countRegistrationsWithStatus(
+	ctx: QueryCtx,
+	eventId: Doc<"events">["_id"],
+	status: Doc<"registrations">["status"],
+) {
+	const registrationsWithStatus = await ctx.db
+		.query("registrations")
+		.withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
+			q.eq("eventId", eventId).eq("status", status),
+		)
+		.collect();
+
+	return registrationsWithStatus.length;
 }

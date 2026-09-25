@@ -2,10 +2,10 @@
 
 import type { api } from "@workspace/backend/convex/api";
 import type { Doc } from "@workspace/backend/convex/dataModel";
+import { humanReadableDateTime } from "@workspace/shared/time";
 import { Button } from "@workspace/ui/components/button";
 import { type Preloaded, usePreloadedQuery } from "convex/react";
 import { CalendarDays, Globe, IdCard, MapPin, Users, Utensils } from "lucide-react";
-import { humanReadableDateTime } from "@/utils/dateFormatting";
 import QRCode from "./registration/qr-code";
 import RegistrationButton from "./registration/registration-button";
 import type { EventRegistrationSummary } from "./registration/registration-summary";

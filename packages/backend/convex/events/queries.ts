@@ -3,8 +3,15 @@ import { ConvexError, v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalQuery, type QueryCtx, query } from "../_generated/server";
-import { currentUserHasRole, internalRoles } from "../auth/accessRights";
-import { eventsInSemester, getEventByIdentifier } from "./helper";
+import {
+	currentUserHasRole,
+	getAccessRole,
+	internalRoles,
+	requireRole,
+} from "../auth/accessRights";
+import { eventFeedbackStatus } from "../feedback/eventStatus";
+import { reportAccessAllowed } from "../feedback/reports/access";
+import { countRegistrationsWithStatus, eventsInSemester, getEventByIdentifier } from "./helper";
 
 /**
  * Fetches the next published events from the current week onward.
@@ -94,12 +101,14 @@ export const getAllEvents = internalQuery({
 });
 
 /**
- * Fetches published and unpublished events for a semester.
+ * Fetches every event in a semester with what the internal overview needs.
  *
  * @param {string} semester - The semester name.
  * @param {number} year - The year to fetch events for.
  *
- * @returns {{ published: Array<Doc<"events"> & { hostingCompanyName: string }>, unpublished: Array<Doc<"events"> & { hostingCompanyName: string }> }} - Events separated by publication status.
+ * @throws - An error if the caller does not have an internal role.
+ *
+ * @returns - The semester's events sorted by start, with company, organizers, registration counts and feedback status.
  */
 export const getAll = query({
 	args: {
@@ -107,25 +116,63 @@ export const getAll = query({
 		year: v.number(),
 	},
 	handler: async (ctx, { semester, year }) => {
-		const semesterNumber = semester === "vår" ? 0 : 1; // 0 for spring, 1 for fall
+		const user = await requireRole(ctx, internalRoles);
+		const accessRole = await getAccessRole(ctx, user._id);
+		const events = await eventsInSemester(ctx, semester === "vår" ? 0 : 1, year);
 
-		const events: Array<Doc<"events"> & { hostingCompanyName: string }> = await ctx.runQuery(
-			internal.events.queries.getAllEvents,
-			{
-				semester: semesterNumber,
-				year,
-			},
-		);
-
-		const published = events.filter((event) => event.published);
-		const maySeeUnpublished = await currentUserHasRole(ctx, internalRoles);
-
-		return {
-			published,
-			unpublished: maySeeUnpublished ? events.filter((event) => !event.published) : [],
+		const companies = new Map<Id<"companies">, ReturnType<typeof companyWithLogo>>();
+		const companyOf = (companyId: Id<"companies">) => {
+			const loaded = companies.get(companyId) ?? companyWithLogo(ctx, companyId);
+			companies.set(companyId, loaded);
+			return loaded;
 		};
+
+		return await Promise.all(
+			events.map(async (event) => {
+				const organizers = await getOrganizers(ctx, event._id);
+				const myRoles = organizers
+					.filter((organizer) => organizer.userId === user._id)
+					.map((organizer) => organizer.role);
+				const myRole: OrganizerRole | null = myRoles.includes("hovedansvarlig")
+					? "hovedansvarlig"
+					: (myRoles[0] ?? null);
+				const [company, registered, pending, waitlist, feedbackStatus] = await Promise.all([
+					companyOf(event.hostingCompany),
+					countRegistrationsWithStatus(ctx, event._id, "registered"),
+					countRegistrationsWithStatus(ctx, event._id, "pending"),
+					countRegistrationsWithStatus(ctx, event._id, "waitlist"),
+					eventFeedbackStatus(ctx, event._id, reportAccessAllowed(accessRole, myRole !== null)),
+				]);
+
+				return {
+					_id: event._id,
+					slug: event.slug,
+					title: event.title,
+					eventStart: event.eventStart,
+					registrationOpens: event.registrationOpens,
+					participationLimit: event.participationLimit,
+					externalEvent: event.externalEvent,
+					published: event.published,
+					companyName: company.name,
+					companyLogoUrl: company.logoUrl,
+					leadName:
+						organizers.find((organizer) => organizer.role === "hovedansvarlig")?.name ?? null,
+					myRole,
+					registeredCount: registered + pending,
+					waitlistCount: waitlist,
+					feedbackStatus,
+				};
+			}),
+		);
 	},
 });
+
+async function companyWithLogo(ctx: QueryCtx, companyId: Id<"companies">) {
+	const company = await ctx.db.get(companyId);
+	if (!company) return { name: "Ukjent", logoUrl: null };
+	const logo = await ctx.db.get(company.logo);
+	return { name: company.name, logoUrl: logo ? await ctx.storage.getUrl(logo.image) : null };
+}
 
 /**
  * Fetches the current semester's published events grouped by month.

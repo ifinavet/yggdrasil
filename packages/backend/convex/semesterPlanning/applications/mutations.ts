@@ -1,7 +1,7 @@
 import { applicationContactSchema } from "@workspace/shared/semester/application";
 import { MAX_INTERNAL_NOTES_LENGTH, MAX_ROOM_LENGTH } from "@workspace/shared/semester/limits";
 import { toCompanyProfileOrgNumber } from "@workspace/shared/semester/orgNumber";
-import { isIsoDate, osloDateTimeToEpoch } from "@workspace/shared/semester/time";
+import { isIsoDate, osloDateTimeToEpoch } from "@workspace/shared/time";
 import { ConvexError, v } from "convex/values";
 import type { Doc, Id } from "../../_generated/dataModel";
 import { type MutationCtx, mutation } from "../../_generated/server";

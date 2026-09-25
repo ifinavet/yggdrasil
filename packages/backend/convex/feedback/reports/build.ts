@@ -1,6 +1,6 @@
 import { feedbackFieldsSchema } from "@workspace/shared/feedback";
 import { addResponseToReport, createReportQuestions } from "@workspace/shared/feedback/report";
-import { feedbackRetentionAt } from "@workspace/shared/feedback/time";
+import { feedbackRetentionAt } from "@workspace/shared/time";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";

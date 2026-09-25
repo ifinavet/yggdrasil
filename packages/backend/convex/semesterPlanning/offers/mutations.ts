@@ -1,7 +1,7 @@
 import { COMPANY_CONTACT_EMAIL } from "@workspace/emails/constants";
 import { EVENT_TYPE_LABELS } from "@workspace/shared/semester/labels";
 import { MAX_OFFER_COMMENT_LENGTH, MAX_REQUESTED_DATES } from "@workspace/shared/semester/limits";
-import { addOsloDays, formatSemesterDay, osloToday } from "@workspace/shared/semester/time";
+import { addOsloDays, formatSemesterDay, osloToday } from "@workspace/shared/time";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../../_generated/api";
 import type { Doc } from "../../_generated/dataModel";

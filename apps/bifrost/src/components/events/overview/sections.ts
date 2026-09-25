@@ -1,8 +1,8 @@
 import type { api } from "@workspace/backend/convex/api";
+import { DATE_PATTERNS, formatOsloDate } from "@workspace/shared/time";
 import type { FunctionReturnType } from "convex/server";
-import { monthLabel, osloDateParts, shortDate } from "./dates";
 
-export type OverviewEvent = FunctionReturnType<typeof api.events.overview.getOverview>[number];
+export type OverviewEvent = FunctionReturnType<typeof api.events.queries.getAll>[number];
 
 export type FeedbackStatus = NonNullable<OverviewEvent["feedbackStatus"]>;
 
@@ -48,13 +48,16 @@ export function splitIntoSections(events: OverviewEvent[], now: number, search =
 export function groupByMonth(events: OverviewEvent[]): MonthGroup[] {
 	const groups: MonthGroup[] = [];
 	for (const event of events) {
-		const { year, monthNumber } = osloDateParts(event.eventStart);
-		const key = `${year}-${monthNumber}`;
+		const key = formatOsloDate(event.eventStart, DATE_PATTERNS.monthKey);
 		const current = groups.at(-1);
 		if (current?.key === key) {
 			current.events.push(event);
 		} else {
-			groups.push({ key, label: monthLabel(event.eventStart), events: [event] });
+			groups.push({
+				key,
+				label: formatOsloDate(event.eventStart, DATE_PATTERNS.month),
+				events: [event],
+			});
 		}
 	}
 	return groups;
@@ -64,7 +67,10 @@ export function registrations(event: OverviewEvent, now: number): Registrations 
 	if (!event.published) return { kind: "note", text: "Upublisert" };
 	if (event.externalEvent) return { kind: "note", text: "Ekstern påmelding" };
 	if (event.registrationOpens > now) {
-		return { kind: "note", text: `Åpner ${shortDate(event.registrationOpens)}` };
+		return {
+			kind: "note",
+			text: `Åpner ${formatOsloDate(event.registrationOpens, DATE_PATTERNS.shortDate)}`,
+		};
 	}
 	return {
 		kind: "count",

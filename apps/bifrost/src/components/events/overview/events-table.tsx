@@ -1,5 +1,6 @@
 "use client";
 
+import { DATE_PATTERNS, formatOsloDate } from "@workspace/shared/time";
 import { Badge } from "@workspace/ui/components/badge";
 import { Checkbox } from "@workspace/ui/components/checkbox";
 import { CompanyLogo } from "@workspace/ui/components/company-logo";
@@ -13,8 +14,12 @@ import {
 } from "@workspace/ui/components/table";
 import Link from "next/link";
 import { Fragment, type ReactNode } from "react";
+import {
+	CAMPAIGN_STATUS_BADGES,
+	REPORT_DELIVERY_LABELS,
+	REPORT_STATUS_LABELS,
+} from "@/components/feedback/status-labels";
 import { useSelectedEventsStore } from "@/lib/stores/selected-events";
-import { shortDate, timeOfDay } from "./dates";
 import {
 	eventHref,
 	type FeedbackStatus,
@@ -25,10 +30,10 @@ import {
 
 const FEEDBACK_BADGE: Record<FeedbackStatus, { variant: "default" | "secondary"; label: string }> =
 	{
-		draft: { variant: "default", label: "Klar for gjennomgang" },
-		open: { variant: "default", label: "Åpen" },
-		scheduled: { variant: "secondary", label: "Planlagt" },
-		delivered: { variant: "secondary", label: "E-post levert" },
+		draft: { variant: "default", label: REPORT_STATUS_LABELS.draft },
+		delivered: { variant: "secondary", label: REPORT_DELIVERY_LABELS.delivered },
+		open: CAMPAIGN_STATUS_BADGES.open,
+		scheduled: CAMPAIGN_STATUS_BADGES.scheduled,
 	};
 
 const HEAD = "h-10 px-3 text-[13px] text-muted-foreground";
@@ -108,7 +113,7 @@ export function EventsTable({
 						<TableRow className="bg-sidebar hover:bg-sidebar">
 							<TableCell
 								colSpan={withFeedback ? 6 : 5}
-								className="px-3 py-1.5 font-semibold text-muted-foreground text-xs"
+								className="px-3 py-1.5 font-semibold text-muted-foreground text-xs first-letter:uppercase"
 							>
 								{group.label}
 							</TableCell>
@@ -119,9 +124,9 @@ export function EventsTable({
 									<SelectEvent event={event} />
 								</TableCell>
 								<TableCell className={`${CELL} whitespace-nowrap tabular-nums`}>
-									{shortDate(event.eventStart)}
+									{formatOsloDate(event.eventStart, DATE_PATTERNS.shortDate)}
 									<span className="block text-muted-foreground text-xs">
-										{timeOfDay(event.eventStart)}
+										{formatOsloDate(event.eventStart, DATE_PATTERNS.time)}
 									</span>
 								</TableCell>
 								<TableCell className={CELL}>

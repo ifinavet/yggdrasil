@@ -10,7 +10,7 @@ import {
 	nextTermAfter,
 	osloToday,
 	presentationDaysBetween,
-} from "@workspace/shared/semester/time";
+} from "@workspace/shared/time";
 import { isHttpUrl } from "@workspace/shared/utils";
 import { ConvexError, v } from "convex/values";
 import type { Doc, Id } from "../../_generated/dataModel";

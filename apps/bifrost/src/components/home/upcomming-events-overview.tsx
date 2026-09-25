@@ -2,6 +2,7 @@
 
 import { api } from "@workspace/backend/convex/api";
 import type { Doc } from "@workspace/backend/convex/dataModel";
+import { humanReadableFullDateTime } from "@workspace/shared/time";
 import { Badge } from "@workspace/ui/components/badge";
 import {
 	Card,
@@ -14,7 +15,6 @@ import {
 } from "@workspace/ui/components/card";
 import { type Preloaded, usePreloadedQuery, useQuery } from "convex/react";
 import Link from "next/link";
-import { humanReadableDate } from "@/utils/utils";
 
 export default function UpcomingEventsOverview({
 	preloadedEvents,
@@ -93,7 +93,7 @@ export function EventCard({
 				<CardHeader>
 					<CardTitle>{event.title}</CardTitle>
 					<CardDescription>
-						Registrering åpner: {humanReadableDate(new Date(event.registrationOpens))}
+						Registrering åpner: {humanReadableFullDateTime(new Date(event.registrationOpens))}
 					</CardDescription>
 					{event.registrationOpens < Date.now() &&
 						event.eventStart > Date.now() &&

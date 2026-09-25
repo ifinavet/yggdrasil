@@ -8,7 +8,7 @@ import {
 	osloToday,
 	presentationDaysBetween,
 	termOfDay,
-} from "@workspace/shared/semester/time";
+} from "@workspace/shared/time";
 import { describe, expect, it } from "vitest";
 import { generateLinkToken, hashLinkToken, LINK_TOKEN_LENGTH } from "../lib/tokens";
 import {

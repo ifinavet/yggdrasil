@@ -73,10 +73,10 @@ async function internalUser(t: TestBackend, email: string) {
 }
 
 function overviewFor(t: TestBackend, user: TestUser) {
-	return asUser(t, user).query(api.events.overview.getOverview, { semester: "høst", year: 2026 });
+	return asUser(t, user).query(api.events.queries.getAll, { semester: "høst", year: 2026 });
 }
 
-describe("getOverview", () => {
+describe("getAll", () => {
 	afterEach(() => {
 		featureFlags.huginFeedback.reportsEnabled = true;
 	});
@@ -85,7 +85,7 @@ describe("getOverview", () => {
 		const { t } = await setup();
 
 		await expect(
-			t.query(api.events.overview.getOverview, { semester: "høst", year: 2026 }),
+			t.query(api.events.queries.getAll, { semester: "høst", year: 2026 }),
 		).rejects.toThrow();
 	});
 

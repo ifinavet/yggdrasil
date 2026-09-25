@@ -4,7 +4,7 @@ import { render } from "@react-email/render";
 import FeedbackEmail from "@workspace/emails/feedback-email";
 import FeedbackReportEmail from "@workspace/emails/feedback-report-email";
 import { HUGIN_LOCAL_URL, HUGIN_URL } from "@workspace/shared/constants";
-import { formatFeedbackDate } from "@workspace/shared/feedback/time";
+import { formatOsloDate } from "@workspace/shared/time";
 import type { Infer } from "convex/values";
 import { isLocalDevelopment } from "../../auth/local";
 import { generateLinkToken } from "../../lib/tokens";
@@ -58,7 +58,7 @@ export async function reportEmailContent({
 		subject: reportEmailSubject(eventTitle),
 		html: await render(
 			FeedbackReportEmail({
-				eventDate: formatFeedbackDate(eventStart, "d. MMMM"),
+				eventDate: formatOsloDate(eventStart, "d. MMMM"),
 				url,
 				signature,
 			}),

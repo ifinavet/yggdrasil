@@ -4,6 +4,7 @@ import type { Doc } from "../../_generated/dataModel";
 import { type MutationCtx, mutation } from "../../_generated/server";
 import { getCurrentUserOrThrow } from "../../auth/currentUser";
 import {
+	countRegistrationsWithStatus,
 	isEventOrganizerOrAdmin,
 	validateRegistrationTime,
 	validateUserCanRegister,
@@ -381,19 +382,4 @@ export const fillOpenSeats = async (ctx: MutationCtx, event: Doc<"events">) => {
 		await makeStatusPending(ctx, registration, event);
 		openSeats--;
 	}
-};
-
-const countRegistrationsWithStatus = async (
-	ctx: MutationCtx,
-	eventId: Doc<"events">["_id"],
-	status: Doc<"registrations">["status"],
-) => {
-	const registrationsWithStatus = await ctx.db
-		.query("registrations")
-		.withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
-			q.eq("eventId", eventId).eq("status", status),
-		)
-		.collect();
-
-	return registrationsWithStatus.length;
 };
