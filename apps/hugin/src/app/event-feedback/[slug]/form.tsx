@@ -2,12 +2,12 @@
 
 import { useForm, useStore } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
+import { Note } from "@workspace/ui/components/note";
 import { useMutation } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
-import { Note } from "@/components/form-controls";
 import { FormProgress } from "@/components/form-progress";
 import {
 	BooleanCard,

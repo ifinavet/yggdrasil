@@ -1,4 +1,4 @@
-import { Note } from "@/components/form-controls";
+import { Note } from "@workspace/ui/components/note";
 import { fieldErrorText, questionIds } from "@/components/input-cards/question-block";
 import { TEXT_LIMITS } from "@/lib/company-application";
 import { COMPANY_APPLICATION_COPY as COPY } from "@/lib/company-application-questions";

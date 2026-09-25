@@ -1,7 +1,8 @@
 import { STUDENT_CAP } from "@workspace/shared/semester/application";
 import { EVENT_TYPE_LABELS, EVENT_TYPES } from "@workspace/shared/semester/labels";
 import { EVENT_TYPE_PRICES, formatNok } from "@workspace/shared/semester/prices";
-import { CharacterCount } from "@/components/character-count";
+import { CharacterCount } from "@workspace/ui/components/character-count";
+import { ChoiceGroup, type ChoiceOption } from "@workspace/ui/components/choice-group";
 import { fieldErrorText, questionIds } from "@/components/input-cards/question-block";
 import { TEXT_LIMITS } from "@/lib/company-application";
 import { COMPANY_APPLICATION_COPY as COPY } from "@/lib/company-application-questions";
@@ -12,7 +13,6 @@ import {
 	LongTextAnswer,
 	TextAnswer,
 } from "./application-question";
-import { ChoiceGroup, type ChoiceOption } from "./choice-group";
 import type { ApplicationFormApi } from "./use-application-form";
 
 const EVENT_TYPE_OPTIONS: ChoiceOption<(typeof EVENT_TYPES)[number]>[] = EVENT_TYPES.map((type) => {

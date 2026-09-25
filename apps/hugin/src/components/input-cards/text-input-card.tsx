@@ -1,7 +1,7 @@
 import type { AnyFieldApi } from "@tanstack/react-form";
+import { CharacterCount } from "@workspace/ui/components/character-count";
 import { Textarea } from "@workspace/ui/components/textarea";
 import { cn } from "@workspace/ui/lib/utils";
-import { CharacterCount } from "../character-count";
 import { fieldErrorText, isFieldInvalid, QuestionBlock, questionIds } from "./question-block";
 
 const MAX_LENGTH = 1000;

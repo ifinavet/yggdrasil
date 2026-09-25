@@ -6,10 +6,10 @@ import {
 	VENUE_LABELS,
 	VENUES,
 } from "@workspace/shared/semester/labels";
+import { ChoiceGroup } from "@workspace/ui/components/choice-group";
 import { fieldErrorText, questionIds } from "@/components/input-cards/question-block";
 import { COMPANY_APPLICATION_COPY as COPY } from "@/lib/company-application-questions";
 import { ApplicationQuestion, answerAria, FormSection } from "./application-question";
-import { ChoiceGroup } from "./choice-group";
 import type { ApplicationFormApi } from "./use-application-form";
 
 const VENUE_OPTIONS = VENUES.map((value) => ({ value, label: VENUE_LABELS[value] }));

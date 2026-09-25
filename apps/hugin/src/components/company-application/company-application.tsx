@@ -2,10 +2,10 @@
 
 import { api } from "@workspace/backend/convex/api";
 import { COMPANY_CONTACT_EMAIL } from "@workspace/shared/constants";
+import { Note } from "@workspace/ui/components/note";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { useQuery } from "convex/react";
 import { CalendarDays } from "lucide-react";
-import { Note } from "@/components/form-controls";
 import { FormStatePanel } from "@/components/form-state-panel";
 import { COMPANY_APPLICATION_COPY as COPY } from "@/lib/company-application-questions";
 import { ApplicationForm } from "./application-form";

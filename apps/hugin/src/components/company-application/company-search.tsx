@@ -8,12 +8,13 @@ import {
 	CommandItem,
 	CommandList,
 } from "@workspace/ui/components/command";
+import { Note } from "@workspace/ui/components/note";
 import { cn } from "@workspace/ui/lib/utils";
 import { useAction } from "convex/react";
 import { Check, CircleAlert, LoaderCircle, Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { secondaryButtonClass } from "@/components/form-buttons";
-import { ERROR_BORDER, ERROR_TEXT, inputClass, linkClass, Note } from "@/components/form-controls";
+import { ERROR_BORDER, ERROR_TEXT, inputClass, linkClass } from "@/components/form-controls";
 import type { ChosenCompany, RegistryHit } from "@/lib/company-application";
 import { formatOrgNumber, placeName } from "@/lib/company-application-format";
 import { COMPANY_APPLICATION_COPY as COPY } from "@/lib/company-application-questions";

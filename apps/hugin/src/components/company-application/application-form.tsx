@@ -4,6 +4,7 @@ import { useStore } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
 import { semesterName } from "@workspace/shared/semester/labels";
 import { osloToday } from "@workspace/shared/semester/time";
+import { Note } from "@workspace/ui/components/note";
 import { cn } from "@workspace/ui/lib/utils";
 import { useAction } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
@@ -11,7 +12,6 @@ import { CalendarClock } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Note } from "@/components/form-controls";
 import { FormProgress } from "@/components/form-progress";
 import { SubmitDock } from "@/components/submit-dock";
 import {

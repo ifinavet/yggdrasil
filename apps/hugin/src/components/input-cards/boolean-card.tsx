@@ -1,12 +1,10 @@
 import type { AnyFieldApi } from "@tanstack/react-form";
-import { Label } from "@workspace/ui/components/label";
-import { RadioGroup, RadioGroupItem } from "@workspace/ui/components/radio-group";
-import { cn } from "@workspace/ui/lib/utils";
+import { ChoiceGroup } from "@workspace/ui/components/choice-group";
 import { fieldErrorText, isFieldInvalid, QuestionBlock, questionIds } from "./question-block";
 
 const CHOICES = [
-	{ value: "ja", text: "Ja" },
-	{ value: "nei", text: "Nei" },
+	{ value: "ja", label: "Ja" },
+	{ value: "nei", label: "Nei" },
 ] as const;
 
 export function BooleanCard({
@@ -26,35 +24,17 @@ export function BooleanCard({
 			invalid={invalid}
 			error={fieldErrorText(field)}
 		>
-			<RadioGroup
+			<ChoiceGroup
+				name={field.name}
+				layout="row"
+				options={CHOICES}
 				value={field.state.value}
-				onValueChange={(next) => field.handleChange(next)}
-				className="grid grid-cols-2 gap-2"
-				aria-labelledby={promptId}
-				aria-describedby={invalid ? errorId : undefined}
-				aria-invalid={invalid}
-				aria-required={required}
-			>
-				{CHOICES.map(({ value, text }) => {
-					const id = `${field.name}_${value}`;
-					const selected = field.state.value === value;
-
-					return (
-						<div key={value} className="relative">
-							<RadioGroupItem value={value} id={id} className="peer sr-only" />
-							<Label
-								htmlFor={id}
-								className={cn(
-									"grid h-[54px] cursor-pointer place-items-center rounded-xl border bg-card font-semibold text-[15px] transition-[background-color,border-color,color] duration-150 peer-focus-visible:outline-3 peer-focus-visible:outline-[color-mix(in_oklab,var(--ring)_55%,transparent)] peer-focus-visible:outline-offset-2",
-									selected ? "border-primary bg-primary text-primary-foreground" : "border-input",
-								)}
-							>
-								{text}
-							</Label>
-						</div>
-					);
-				})}
-			</RadioGroup>
+				onChange={(next) => field.handleChange(next)}
+				invalid={invalid}
+				required={required}
+				labelledBy={promptId}
+				describedBy={invalid ? errorId : undefined}
+			/>
 		</QuestionBlock>
 	);
 }
