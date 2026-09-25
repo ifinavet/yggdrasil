@@ -1,4 +1,4 @@
-import { SemesterPlanningGate } from "@workspace/ui/components/semester-planning-gate";
+import { FeatureGate } from "@workspace/ui/components/feature-gate";
 import type { Metadata } from "next";
 import NotFound from "../not-found";
 
@@ -11,5 +11,9 @@ export default function SemesterPlanLayout({
 }: Readonly<{
 	readonly children: React.ReactNode;
 }>) {
-	return <SemesterPlanningGate fallback={<NotFound />}>{children}</SemesterPlanningGate>;
+	return (
+		<FeatureGate feature="semesterPlanning" fallback={<NotFound />}>
+			{children}
+		</FeatureGate>
+	);
 }

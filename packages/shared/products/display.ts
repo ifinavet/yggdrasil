@@ -1,4 +1,4 @@
-import { formatNok, ORE_PER_KRONE, type VolumeTier } from "./money";
+import { formatNokFromOre, ORE_PER_KRONE, type VolumeTier } from "./money";
 
 const offerCostFormat = new Intl.NumberFormat("de-DE", { maximumFractionDigits: 0 });
 
@@ -24,11 +24,11 @@ export function formatOfferCost(ore: number): string {
 }
 
 export function formatVolumeTier(tier: VolumeTier): string {
-	return `${formatNok(tier.totalPriceOre)} for ${tier.quantity}`;
+	return `${formatNokFromOre(tier.totalPriceOre)} for ${tier.quantity}`;
 }
 
 export function productPriceLabel(product: PricedProduct): string {
-	if (product.unitPriceOre !== undefined) return formatNok(product.unitPriceOre);
+	if (product.unitPriceOre !== undefined) return formatNokFromOre(product.unitPriceOre);
 	const firstTier = product.volumeTiers?.[0];
 	if (firstTier) return formatVolumeTier(firstTier);
 	return NO_FIXED_PRICE_LABEL;

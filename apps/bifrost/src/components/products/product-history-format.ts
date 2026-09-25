@@ -1,6 +1,6 @@
 import type { Doc } from "@workspace/backend/convex/dataModel";
 import {
-	formatNok,
+	formatNokFromOre,
 	formatVolumeTier,
 	PRODUCT_CATEGORY_LABELS,
 	type ProductCategory,
@@ -47,7 +47,7 @@ function formatParsed(field: string, value: unknown): string {
 	switch (field) {
 		case "unitPriceOre":
 		case "startupPriceOre":
-			return formatNok(value as number);
+			return formatNokFromOre(value as number);
 		case "vatRate":
 			return `${value as number} %`;
 		case "sortOrder":

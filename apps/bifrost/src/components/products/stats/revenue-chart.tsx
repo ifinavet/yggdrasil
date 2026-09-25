@@ -5,7 +5,7 @@ import { scaleBand } from "@tanstack/charts/scales/band";
 import { scaleLinear } from "@tanstack/charts/scales/linear";
 import { tooltip } from "@tanstack/charts/tooltip";
 import { Chart } from "@tanstack/react-charts";
-import { formatNok, ORE_PER_KRONE, type SemesterRevenue } from "@workspace/shared/products";
+import { formatNokFromOre, ORE_PER_KRONE, type SemesterRevenue } from "@workspace/shared/products";
 import { ChartLegend } from "@workspace/ui/components/products/chart-legend";
 import { Panel, PanelBody } from "@workspace/ui/components/products/panel";
 import { useMemo } from "react";
@@ -127,7 +127,7 @@ export function RevenueChart({
 					{
 						channel: "y",
 						label: Y_AXIS_LABEL,
-						text: (point) => formatNok(point.datum.kroner * ORE_PER_KRONE),
+						text: (point) => formatNokFromOre(point.datum.kroner * ORE_PER_KRONE),
 					},
 				],
 			},
@@ -143,7 +143,7 @@ export function RevenueChart({
 					initialWidth={760}
 					ariaLabel="Inntekt per semester"
 					ariaDescription={semesters
-						.map((semester) => `${semester.label}: ${formatNok(semester.revenueOre)}`)
+						.map((semester) => `${semester.label}: ${formatNokFromOre(semester.revenueOre)}`)
 						.join(", ")}
 					onSelect={(point) => {
 						const layer = point?.datum as Layer | undefined;

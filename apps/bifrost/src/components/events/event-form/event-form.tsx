@@ -19,12 +19,12 @@ import {
 	SelectValue,
 } from "@workspace/ui/components/select";
 import { Textarea } from "@workspace/ui/components/textarea";
+import { useFeatureEnabled } from "@workspace/ui/hooks/use-feature-enabled";
 import { EyeOff, Save, Send } from "lucide-react";
 import CompanySelectField from "@/components/common/forms/company-select-field";
 import DateTimePicker from "@/components/common/forms/date-time-picker";
 import FormSubmitActions from "@/components/common/forms/form-submit-actions";
 import DescriptionEditor from "@/components/common/forms/markdown-editor/editor";
-import { useProductsEnabled } from "@/components/products/use-products-enabled";
 import { type EventFormValues, eventFormSchema } from "@/constants/schemas/event-form-schema";
 import Organizers from "./organizers";
 import ProductSelectField from "./product-select-field";
@@ -48,7 +48,7 @@ export default function EventForm({
 	productRequired?: boolean;
 	currentProduct?: { productId: string; name: string };
 }>) {
-	const productsEnabled = useProductsEnabled();
+	const productsEnabled = useFeatureEnabled("products");
 	const form = useForm({
 		defaultValues,
 		validators: {

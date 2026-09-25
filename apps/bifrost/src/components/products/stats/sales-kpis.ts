@@ -1,6 +1,6 @@
 import {
 	formatCount,
-	formatNok,
+	formatNokFromOre,
 	formatPercent,
 	ORE_PER_KRONE,
 	percentChange,
@@ -49,7 +49,7 @@ export function salesKpis(overview: SalesOverview, allSemesters: boolean): Sales
 	return [
 		{
 			label: "Inntekt eks. mva.",
-			value: formatNok(totals.revenueOre),
+			value: formatNokFromOre(totals.revenueOre),
 			change: percentChange(totals.revenueOre, previous?.revenueOre ?? null),
 			suffix,
 		},
@@ -61,7 +61,7 @@ export function salesKpis(overview: SalesOverview, allSemesters: boolean): Sales
 		},
 		{
 			label: "Snittpris bedriftspresentasjon",
-			value: formatNok(roundToStep(averagePrice, PRESENTATION_PRICE_STEP_ORE)),
+			value: formatNokFromOre(roundToStep(averagePrice, PRESENTATION_PRICE_STEP_ORE)),
 			change: percentChange(averagePrice, previous?.averagePresentationPriceOre ?? null),
 			suffix,
 		},
@@ -75,7 +75,7 @@ export function salesKpis(overview: SalesOverview, allSemesters: boolean): Sales
 			label: "Stillingsannonser",
 			value: formatCount(totals.jobListings),
 			change: null,
-			suffix: `${formatNok(totals.jobListingRevenueOre)}, snitt ${formatNok(roundToStep(averageListing, LISTING_PRICE_STEP_ORE))}`,
+			suffix: `${formatNokFromOre(totals.jobListingRevenueOre)}, snitt ${formatNokFromOre(roundToStep(averageListing, LISTING_PRICE_STEP_ORE))}`,
 		},
 	];
 }

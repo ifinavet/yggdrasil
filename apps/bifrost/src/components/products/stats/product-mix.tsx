@@ -1,6 +1,6 @@
 import {
 	formatCount,
-	formatNok,
+	formatNokFromOre,
 	NO_FIXED_PRICE_LABEL,
 	type ProductMixRow,
 } from "@workspace/shared/products";
@@ -28,7 +28,7 @@ export function ProductMix({
 							</span>
 						</div>
 						<div className="text-right font-medium tabular-nums">
-							{row.revenueOre > 0 ? formatNok(row.revenueOre) : NO_FIXED_PRICE_LABEL}
+							{row.revenueOre > 0 ? formatNokFromOre(row.revenueOre) : NO_FIXED_PRICE_LABEL}
 						</div>
 						<div className="col-span-full">
 							<ShareBar
@@ -40,7 +40,7 @@ export function ProductMix({
 				))}
 				<div className={`${ROW} font-semibold`}>
 					<div>Totalt</div>
-					<div className="text-right tabular-nums">{formatNok(totalOre)}</div>
+					<div className="text-right tabular-nums">{formatNokFromOre(totalOre)}</div>
 				</div>
 			</PanelBody>
 		</Panel>

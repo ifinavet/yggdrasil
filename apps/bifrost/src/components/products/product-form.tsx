@@ -1,7 +1,11 @@
 "use client";
 
 import { type AnyFieldApi, useForm, useStore } from "@tanstack/react-form";
-import { formatNok, PRODUCT_CATEGORIES, PRODUCT_CATEGORY_LABELS } from "@workspace/shared/products";
+import {
+	formatNokFromOre,
+	PRODUCT_CATEGORIES,
+	PRODUCT_CATEGORY_LABELS,
+} from "@workspace/shared/products";
 import { Button } from "@workspace/ui/components/button";
 import { Field, FieldDescription, FieldError, FieldLabel } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
@@ -98,7 +102,7 @@ function AmountInput({
 }
 
 function formatOptionalNok(ore: number | undefined) {
-	return ore === undefined ? "" : formatNok(ore);
+	return ore === undefined ? "" : formatNokFromOre(ore);
 }
 
 export default function ProductForm({
@@ -339,8 +343,8 @@ export default function ProductForm({
 												withVat !== undefined && (
 													<Callout>
 														Bedriften betaler{" "}
-														<strong className="tabular-nums">{formatNok(withVat)}</strong> inkl.
-														mva.{priceNote && ` ${priceNote}`}
+														<strong className="tabular-nums">{formatNokFromOre(withVat)}</strong>{" "}
+														inkl. mva.{priceNote && ` ${priceNote}`}
 													</Callout>
 												)
 											}

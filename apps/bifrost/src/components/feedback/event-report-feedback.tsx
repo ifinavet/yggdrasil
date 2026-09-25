@@ -1,11 +1,11 @@
 "use client";
 import { api } from "@workspace/backend/convex/api";
 import { Button } from "@workspace/ui/components/button";
+import { useFeatureEnabled } from "@workspace/ui/hooks/use-feature-enabled";
 import { type Preloaded, usePreloadedQuery, useQuery } from "convex/react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { EventFeedbackReport } from "./event-feedback-report";
-import { useFeedbackPreviewEnabled } from "./use-feedback-preview";
 
 type Props = Readonly<{
 	preloadedEvent: Preloaded<typeof api.events.queries.getEvent>;
@@ -13,7 +13,7 @@ type Props = Readonly<{
 }>;
 export function ReportFeedbackBanner({ preloadedEvent, slug }: Props) {
 	const event = usePreloadedQuery(preloadedEvent);
-	const enabled = useFeedbackPreviewEnabled();
+	const enabled = useFeatureEnabled("huginFeedback");
 	const data = useQuery(
 		api.feedback.reports.queries.getEventReport,
 		enabled ? { eventId: event._id } : "skip",

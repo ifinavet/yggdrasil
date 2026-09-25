@@ -1,4 +1,4 @@
-import { formatNok, formatVolumeTier, type VolumeTier } from "@workspace/shared/products";
+import { formatNokFromOre, formatVolumeTier, type VolumeTier } from "@workspace/shared/products";
 
 export function VolumeTierList({
 	tiers,
@@ -11,7 +11,7 @@ export function VolumeTierList({
 			))}
 			{startupPriceOre !== undefined && (
 				<li className="text-muted-foreground">
-					Oppstartsbedrifter: {formatNok(startupPriceOre)} per annonse
+					Oppstartsbedrifter: {formatNokFromOre(startupPriceOre)} per annonse
 				</li>
 			)}
 		</ul>

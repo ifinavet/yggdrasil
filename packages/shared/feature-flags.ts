@@ -26,3 +26,11 @@ export const browserOptInKeys = {
 } as const;
 
 export type BrowserOptIn = keyof typeof browserOptInKeys;
+
+export type GatedFeature = keyof typeof featureFlags;
+
+export const featurePreviewOptIns = {
+	huginFeedback: "huginFeedbackPreview",
+	products: "productsPreview",
+	semesterPlanning: "semesterPlanningPreview",
+} as const satisfies Record<GatedFeature, BrowserOptIn>;

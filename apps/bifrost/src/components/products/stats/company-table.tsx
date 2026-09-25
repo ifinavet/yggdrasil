@@ -1,6 +1,6 @@
 import {
 	type CompanyHistory,
-	formatNok,
+	formatNokFromOre,
 	RECENT_SEMESTERS,
 	type SemesterRef,
 	semesterKey,
@@ -58,7 +58,7 @@ export function CompanyTable({
 								<TableCell className={`${STATS_CELL} font-medium`}>{company.companyName}</TableCell>
 								<TableCell className={`${STATS_CELL} text-right tabular-nums`}>
 									{inColumn > 0 ? (
-										formatNok(inColumn)
+										formatNokFromOre(inColumn)
 									) : (
 										<span className="text-muted-foreground">Ingen kjøp</span>
 									)}
@@ -71,7 +71,7 @@ export function CompanyTable({
 											return {
 												label: semesterKey(semester),
 												value,
-												title: `${semesterLabel(semester)}: ${formatNok(value)}`,
+												title: `${semesterLabel(semester)}: ${formatNokFromOre(value)}`,
 											};
 										})}
 									/>
@@ -80,7 +80,7 @@ export function CompanyTable({
 									<ActivityDots active={company.activeSemesters} total={window.length} />
 								</TableCell>
 								<TableCell className={`${STATS_CELL} text-right font-semibold tabular-nums`}>
-									{formatNok(company.totalOre)}
+									{formatNokFromOre(company.totalOre)}
 								</TableCell>
 								<TableCell className={`${STATS_CELL} text-muted-foreground`}>
 									{semesterLabel(company.customerSince)}

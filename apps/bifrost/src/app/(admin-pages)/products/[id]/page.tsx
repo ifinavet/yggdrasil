@@ -1,6 +1,6 @@
 import type { Id } from "@workspace/backend/convex/dataModel";
+import { FeatureGate } from "@workspace/ui/components/feature-gate";
 import { EditProduct } from "@/components/products/edit-product";
-import { ProductsGate } from "@/components/products/products-gate";
 
 export default async function ProductPage({
 	params,
@@ -8,8 +8,8 @@ export default async function ProductPage({
 	const { id } = await params;
 
 	return (
-		<ProductsGate>
+		<FeatureGate feature="products">
 			<EditProduct id={id} />
-		</ProductsGate>
+		</FeatureGate>
 	);
 }

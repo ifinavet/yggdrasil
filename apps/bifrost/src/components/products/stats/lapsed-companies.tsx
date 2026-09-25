@@ -1,4 +1,4 @@
-import { type CompanyHistory, formatNok, semesterLabel } from "@workspace/shared/products";
+import { type CompanyHistory, formatNokFromOre, semesterLabel } from "@workspace/shared/products";
 import { Button } from "@workspace/ui/components/button";
 import { Panel, PanelNote } from "@workspace/ui/components/products/panel";
 import {
@@ -30,7 +30,7 @@ export function LapsedCompanies({ companies }: Readonly<{ companies: readonly Co
 							<TableCell className={STATS_CELL}>{company.companyName}</TableCell>
 							<TableCell className={STATS_CELL}>{semesterLabel(company.lastPurchase)}</TableCell>
 							<TableCell className={`${STATS_CELL} text-right tabular-nums`}>
-								{formatNok(company.totalOre)}
+								{formatNokFromOre(company.totalOre)}
 							</TableCell>
 							<TableCell className={`${STATS_CELL} text-right`}>
 								<Button variant="outline" size="sm" asChild>

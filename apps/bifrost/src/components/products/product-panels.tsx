@@ -3,7 +3,7 @@
 import type { api } from "@workspace/backend/convex/api";
 import {
 	formatCount,
-	formatNok,
+	formatNokFromOre,
 	formatPercent,
 	isEventProduct,
 	type ProductSalesSummary,
@@ -70,7 +70,7 @@ export function SalesPanel({
 				/>
 				<dl className="mt-4 grid grid-cols-3 gap-3 border-t pt-3">
 					<Fact label="Solgt totalt" value={formatCount(summary.quantity)} />
-					<Fact label="Inntekt totalt" value={formatNok(summary.revenueOre)} />
+					<Fact label="Inntekt totalt" value={formatNokFromOre(summary.revenueOre)} />
 					<Fact label="Andel av inntekt" value={formatPercent(summary.shareOfRevenue ?? 0)} />
 				</dl>
 				<p className="mt-3 text-[12.5px] text-muted-foreground">{REVENUE_ESTIMATE_NOTE}</p>

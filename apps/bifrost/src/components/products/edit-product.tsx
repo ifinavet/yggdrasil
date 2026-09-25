@@ -3,7 +3,7 @@
 import { api } from "@workspace/backend/convex/api";
 import type { Doc, Id } from "@workspace/backend/convex/dataModel";
 import {
-	formatNok,
+	formatNokFromOre,
 	productSalesSummary,
 	semesterLabel,
 	statsWindow,
@@ -26,7 +26,7 @@ function priceNoteFor(product: Doc<"products">, soldThisSemester: number) {
 	return existingSalesNote(
 		soldThisSemester,
 		semesterLabel(currentSemester()).toLowerCase(),
-		formatNok(product.unitPriceOre),
+		formatNokFromOre(product.unitPriceOre),
 	);
 }
 
