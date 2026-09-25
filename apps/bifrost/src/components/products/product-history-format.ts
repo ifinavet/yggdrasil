@@ -57,7 +57,7 @@ function formatParsed(field: string, value: unknown): string {
 		case "active":
 			return value ? "Aktiv" : "Arkivert";
 		case "volumeTiers":
-			return (value as VolumeTier[]).map(formatVolumeTier).join(", ");
+			return (value as VolumeTier[]).map((tier) => formatVolumeTier(tier)).join(", ");
 		default:
 			return typeof value === "string" ? value : JSON.stringify(value);
 	}
