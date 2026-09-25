@@ -1,3 +1,4 @@
+import { Card, CardContent, CardHeader } from "@workspace/ui/components/card";
 import { cn } from "@workspace/ui/lib/utils";
 import type { ReactNode } from "react";
 
@@ -8,15 +9,15 @@ export function Panel({
 	children,
 }: Readonly<{ title?: ReactNode; aside?: ReactNode; className?: string; children: ReactNode }>) {
 	return (
-		<section className={cn("min-w-0 rounded-lg border bg-card", className)}>
+		<Card className={cn("min-w-0 gap-0 rounded-lg py-0 shadow-none", className)}>
 			{title && (
-				<header className="flex items-center justify-between gap-3 border-b px-4 py-3.5 font-semibold">
+				<CardHeader className="flex items-center justify-between gap-3 border-b px-4 py-3.5 font-semibold [.border-b]:pb-3.5">
 					{title}
 					{aside}
-				</header>
+				</CardHeader>
 			)}
 			{children}
-		</section>
+		</Card>
 	);
 }
 
@@ -24,7 +25,7 @@ export function PanelBody({
 	className,
 	children,
 }: Readonly<{ className?: string; children: ReactNode }>) {
-	return <div className={cn("p-4", className)}>{children}</div>;
+	return <CardContent className={cn("p-4", className)}>{children}</CardContent>;
 }
 
 export function PanelNote({ children }: Readonly<{ children: ReactNode }>) {
