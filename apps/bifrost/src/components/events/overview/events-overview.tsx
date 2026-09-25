@@ -56,7 +56,7 @@ export function EventsOverview({
 
 			{mine.length > 0 ? (
 				<>
-					<SectionTitle>Dine arrangementer</SectionTitle>
+					<SectionTitle>Dine bedriftspresentasjoner</SectionTitle>
 					<div className="grid gap-6 sm:grid-cols-[repeat(auto-fill,22rem)]">
 						{mine.map((event) => (
 							<MyEventCard key={event._id} event={event} />
@@ -67,7 +67,7 @@ export function EventsOverview({
 
 			{upcoming.length > 0 ? (
 				<>
-					<SectionTitle>Kommende</SectionTitle>
+					<SectionTitle>Andre bedriftspresentasjoner</SectionTitle>
 					<div className="overflow-hidden rounded-lg border bg-card">
 						<EventsTable events={upcoming} now={now} />
 					</div>

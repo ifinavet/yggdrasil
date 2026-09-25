@@ -16,7 +16,7 @@ export function MyEventCard({ event }: Readonly<{ event: OverviewEvent }>) {
 					isLead ? "bg-primary text-primary-foreground" : "bg-primary-light text-primary",
 				)}
 			>
-				{isLead ? "Hovedansvarlig" : "Medhjelper"}
+				{isLead ? "Du er ansvarlig" : "Du er medansvarlig"}
 			</div>
 			<div className="flex items-center gap-3 p-4">
 				<CompanyLogo name={event.companyName} url={event.companyLogoUrl} size="lg" />
