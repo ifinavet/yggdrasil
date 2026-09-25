@@ -9,6 +9,7 @@ import {
 } from "../../test/fixtures";
 import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
+import { MAX_PRODUCTS } from "./helpers";
 import { SEED_PRODUCTS } from "./seed";
 
 const newProduct = {
@@ -28,6 +29,11 @@ async function fixture() {
 	const editor = await insertUser(t, "editor@example.test");
 	await grantRole(t, editor._id, "editor");
 	return { t, admin: asUser(t, admin), editor: asUser(t, editor) };
+}
+
+function expectDefined<T>(value: T | null): T {
+	expect(value).not.toBeNull();
+	return value as T;
 }
 
 async function changesFor(t: TestBackend, productId: Id<"products">) {
@@ -76,7 +82,9 @@ describe("products", () => {
 			[second, 1],
 		]);
 
-		const { changes } = await admin.query(api.products.queries.getWithChanges, { id: first });
+		const { changes } = expectDefined(
+			await admin.query(api.products.queries.getWithChanges, { id: first }),
+		);
 		expect(changes).toMatchObject([{ action: "created", changedByName: "Test Testesen" }]);
 		expect(changes[0]?.changes).toContainEqual({ field: "unitPriceOre", after: "1000000" });
 	});
@@ -184,9 +192,30 @@ describe("products", () => {
 			return id;
 		});
 
+		expect(await admin.query(api.products.queries.getWithChanges, { id: productId })).toBeNull();
 		expect(
-			await refusalMessageFrom(admin.query(api.products.queries.getWithChanges, { id: productId })),
+			await refusalMessageFrom(
+				admin.mutation(api.products.mutations.setActive, { id: productId, active: false }),
+			),
 		).toBe("Fant ikke produktet.");
+	});
+
+	it("refuses to create more than the product limit", async () => {
+		const { t, admin } = await fixture();
+		await t.run(async (ctx) => {
+			for (let index = 0; index < MAX_PRODUCTS; index++) {
+				await ctx.db.insert("products", {
+					...newProduct,
+					name: `Produkt ${index}`,
+					sortOrder: index,
+					active: true,
+				});
+			}
+		});
+
+		expect(
+			await refusalMessageFrom(admin.mutation(api.products.mutations.create, newProduct)),
+		).toBe("Maksimalt antall produkter er nådd.");
 	});
 
 	it("seeds the offer page products once", async () => {
@@ -208,7 +237,9 @@ describe("products", () => {
 		]);
 
 		const seeded = products[0] as (typeof products)[number];
-		const { changes } = await admin.query(api.products.queries.getWithChanges, { id: seeded._id });
+		const { changes } = expectDefined(
+			await admin.query(api.products.queries.getWithChanges, { id: seeded._id }),
+		);
 		expect(changes).toMatchObject([{ action: "created", changedByName: null }]);
 	});
 });

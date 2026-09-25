@@ -16,6 +16,7 @@ import {
 import { useMutation, useQuery } from "convex/react";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 import { notifyProductMutation } from "./notify-product-mutation";
 import { moveProductId } from "./product-history-format";
 
@@ -32,16 +33,20 @@ function priceLabel(product: Doc<"products">) {
 export function ProductsTable() {
 	const products = useQuery(api.products.queries.listAll, {});
 	const reorder = useMutation(api.products.mutations.reorder);
+	const [reordering, setReordering] = useState(false);
 
 	if (!products) return null;
 
 	const ids = products.map((product) => product._id);
-	const move = (index: number, offset: number) =>
-		notifyProductMutation(
+	const move = async (index: number, offset: number) => {
+		setReordering(true);
+		await notifyProductMutation(
 			reorder({ ids: moveProductId(ids, index, offset) }),
 			"Rekkefølgen er lagret.",
 			"Kunne ikke endre rekkefølgen.",
 		);
+		setReordering(false);
+	};
 
 	return (
 		<Table>
@@ -75,7 +80,7 @@ export function ProductsTable() {
 									variant="ghost"
 									size="icon"
 									aria-label={`Flytt ${product.name} opp`}
-									disabled={index === 0}
+									disabled={reordering || index === 0}
 									onClick={() => move(index, -1)}
 								>
 									<ArrowUp />
@@ -84,7 +89,7 @@ export function ProductsTable() {
 									variant="ghost"
 									size="icon"
 									aria-label={`Flytt ${product.name} ned`}
-									disabled={index === products.length - 1}
+									disabled={reordering || index === products.length - 1}
 									onClick={() => move(index, 1)}
 								>
 									<ArrowDown />

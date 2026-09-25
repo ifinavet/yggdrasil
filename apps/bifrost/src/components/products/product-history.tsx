@@ -7,7 +7,9 @@ import {
 	PRODUCT_FIELD_LABELS,
 } from "./product-history-format";
 
-type ProductChanges = FunctionReturnType<typeof api.products.queries.getWithChanges>["changes"];
+type ProductChanges = NonNullable<
+	FunctionReturnType<typeof api.products.queries.getWithChanges>
+>["changes"];
 
 export function ProductHistory({ changes }: Readonly<{ changes: ProductChanges }>) {
 	return (

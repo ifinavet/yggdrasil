@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { query } from "../_generated/server";
 import { adminRoles, requireRole } from "../auth/accessRights";
-import { getProductOrThrow, MAX_PRODUCTS } from "./helpers";
+import { MAX_PRODUCTS } from "./helpers";
 
 const MAX_CHANGES_SHOWN = 50;
 
@@ -25,7 +25,8 @@ export const getWithChanges = query({
 	args: { id: v.id("products") },
 	handler: async (ctx, { id }) => {
 		await requireRole(ctx, adminRoles);
-		const product = await getProductOrThrow(ctx, id);
+		const product = await ctx.db.get(id);
+		if (product === null) return null;
 		const changes = await ctx.db
 			.query("productChanges")
 			.withIndex("by_productId", (q) => q.eq("productId", id))

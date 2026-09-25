@@ -31,6 +31,15 @@ function errorsOf(field: AnyFieldApi) {
 	return field.state.meta.errors.map((message) => ({ message: String(message) }));
 }
 
+function errorIdOf(field: AnyFieldApi) {
+	return `${field.name}-error`;
+}
+
+function errorAttributesOf(field: AnyFieldApi) {
+	const invalid = field.state.meta.errors.length > 0;
+	return { "aria-invalid": invalid, "aria-describedby": invalid ? errorIdOf(field) : undefined };
+}
+
 function LabeledField({
 	field,
 	label,
@@ -42,7 +51,7 @@ function LabeledField({
 			<FieldLabel htmlFor={field.name}>{label}</FieldLabel>
 			{children}
 			{description && <FieldDescription>{description}</FieldDescription>}
-			<FieldError errors={errorsOf(field)} />
+			<FieldError id={errorIdOf(field)} errors={errorsOf(field)} />
 		</Field>
 	);
 }
@@ -59,7 +68,7 @@ function TextInput({
 			value={field.state.value}
 			onChange={(event) => field.handleChange(event.target.value)}
 			onBlur={field.handleBlur}
-			aria-invalid={field.state.meta.errors.length > 0}
+			{...errorAttributesOf(field)}
 		/>
 	);
 }
@@ -73,6 +82,7 @@ function TextArea({ field }: Readonly<{ field: AnyFieldApi }>) {
 			value={field.state.value}
 			onChange={(event) => field.handleChange(event.target.value)}
 			onBlur={field.handleBlur}
+			{...errorAttributesOf(field)}
 		/>
 	);
 }

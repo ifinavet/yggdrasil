@@ -15,7 +15,8 @@ export function EditProduct({ id }: Readonly<{ id: Id<"products"> }>) {
 	const update = useMutation(api.products.mutations.update);
 	const setActive = useMutation(api.products.mutations.setActive);
 
-	if (!data) return null;
+	if (data === undefined) return null;
+	if (data === null) return <p className="text-muted-foreground">Fant ikke produktet.</p>;
 	const { product, changes } = data;
 
 	return (

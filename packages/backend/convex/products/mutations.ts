@@ -23,6 +23,10 @@ export const create = mutation({
 	args: productFields,
 	handler: async (ctx, args) => {
 		const admin = await requireRole(ctx, adminRoles);
+		const existing = await ctx.db.query("products").withIndex("by_sortOrder").take(MAX_PRODUCTS);
+		if (existing.length >= MAX_PRODUCTS) {
+			throw new ConvexError("Maksimalt antall produkter er nådd.");
+		}
 		const input = parseProductInput(args);
 		await requireUniqueName(ctx, input.name);
 
