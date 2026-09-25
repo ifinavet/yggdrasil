@@ -69,7 +69,8 @@ export async function proposeNavetTeams(
 			responsibleUserId,
 			helperUserIds,
 		})),
-		rights.flat().map((right) => right.userId),
+		// Someone with several internal roles is one candidate.
+		[...new Set(rights.flat().map((right) => right.userId))],
 		load,
 	);
 	await Promise.all(teams.map(({ id, ...team }) => ctx.db.patch(id, team)));
