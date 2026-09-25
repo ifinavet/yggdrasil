@@ -12,8 +12,9 @@ import { ConvexError, v } from "convex/values";
 import type { Doc, Id } from "../../_generated/dataModel";
 import { internalMutation, type MutationCtx, mutation } from "../../_generated/server";
 import { editorRoles, requireRole } from "../../auth/accessRights";
-import { findActiveApplicationOnDate } from "../applicationLifecycle";
-import { listApplicationsInSemester } from "../applications/helper";
+import { findActiveApplicationOnDate, requireEditorActor } from "../applicationLifecycle";
+import { findCompanyProfile, listApplicationsInSemester } from "../applications/helper";
+import { ensureDraftEvent } from "../events";
 import { isUnsettledApplicationStatus } from "../rules";
 import { applicationPeriodStatus, semesterTerm } from "../schema";
 import {
@@ -272,23 +273,31 @@ export const setStatus = mutation({
 });
 
 /**
- * Marks the semester plan as finished, once no application waits for an offer or an answer. Doing
- * it again keeps the first time and person. An application that needs an offer or answer again
- * reopens the plan.
+ * Marks the semester plan as finished, once no application waits for an offer or an answer, and
+ * makes sure every confirmed application has its unpublished draft event. Doing it again keeps the
+ * first time and person, and only moves drafts whose date changed. An application that needs an
+ * offer or answer again reopens the plan.
+ *
+ * A company without a profile in Bifrost is skipped and named in the result. Any other problem,
+ * such as an invalid medhjelper, refuses the whole run with the company's name, so no events are
+ * made until it is fixed.
  *
  * @param {Id<"semesters">} semesterId - The semester to finalize.
  *
- * @throws - An error if the caller is not an editor, or applications still wait.
- * @returns {null} - Returns null when the plan is marked as finished.
+ * @throws - An error if the caller is not an editor, applications still wait, the semester has no
+ * start time for events, or an event cannot be made.
+ * @returns {{ created: number, missingProfile: string[] }} - How many events were made, and the
+ * companies skipped for lack of a profile.
  */
 export const finalizePlan = mutation({
 	args: { semesterId: v.id("semesters") },
-	returns: v.null(),
+	returns: v.object({ created: v.number(), missingProfile: v.array(v.string()) }),
 	handler: async (ctx, { semesterId }) => {
-		const user = await requireRole(ctx, editorRoles);
+		const actor = await requireEditorActor(ctx);
 
 		const semester = await requireSemester(ctx, semesterId);
-		const waiting = (await listApplicationsInSemester(ctx, semesterId)).filter((application) =>
+		const applications = await listApplicationsInSemester(ctx, semesterId);
+		const waiting = applications.filter((application) =>
 			isUnsettledApplicationStatus(application.status),
 		).length;
 		if (waiting > 0) {
@@ -296,11 +305,34 @@ export const finalizePlan = mutation({
 				`${waiting} ${waiting === 1 ? "søknad venter" : "søknader venter"} fortsatt på tilbud eller svar.`,
 			);
 		}
-		if (semester.planFinalizedAt === undefined) {
-			await ctx.db.patch(semesterId, { planFinalizedAt: Date.now(), planFinalizedBy: user._id });
+		if (!semester.defaultEventStartTime) {
+			throw new ConvexError("Sett starttid for arrangementer i innstillingene først.");
 		}
 
-		return null;
+		let created = 0;
+		const missingProfile: string[] = [];
+		for (const application of applications.filter(({ status }) => status === "confirmed")) {
+			const { name } = application.registry;
+			if (!application.eventId && !(await findCompanyProfile(ctx, application))) {
+				missingProfile.push(name);
+				continue;
+			}
+			try {
+				if ((await ensureDraftEvent(ctx, application, actor)) !== application.eventId) created++;
+			} catch (error) {
+				if (error instanceof ConvexError) throw new ConvexError(`${name}: ${error.data}`);
+				throw error;
+			}
+		}
+
+		if (semester.planFinalizedAt === undefined) {
+			await ctx.db.patch(semesterId, {
+				planFinalizedAt: Date.now(),
+				planFinalizedBy: actor.userId,
+			});
+		}
+
+		return { created, missingProfile };
 	},
 });
 
