@@ -3,6 +3,7 @@
 import { api } from "@workspace/backend/convex/api";
 import type { Doc } from "@workspace/backend/convex/dataModel";
 import { formatSemesterDay } from "@workspace/shared/time";
+import { Panel } from "@workspace/ui/components/products/panel";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { useQuery } from "convex/react";
 import { type ReactNode, useState } from "react";
@@ -51,7 +52,7 @@ export function PlanTab({
 			</SemesterActions>
 
 			{loading ? (
-				<Skeleton className="h-96 w-full rounded-xl" />
+				<Skeleton className="h-96 w-full rounded-lg" />
 			) : (
 				<PlanBody
 					hasDates={details.dates.length > 0}
@@ -67,10 +68,10 @@ export function PlanTab({
 
 function EmptyState({ title, children }: Readonly<{ title: string; children: ReactNode }>) {
 	return (
-		<div className="rounded-xl border bg-card px-4 py-14 text-center shadow-xs">
+		<Panel className="px-4 py-14 text-center">
 			<p className="font-semibold text-base">{title}</p>
 			<p className="mt-1.5 mb-4 text-[13.5px] text-muted-foreground">{children}</p>
-		</div>
+		</Panel>
 	);
 }
 
@@ -105,24 +106,23 @@ function PlanBody({
 				</EmptyState>
 			)}
 
-			<section
-				aria-label="Semesterplan"
-				className="min-w-0 overflow-hidden rounded-xl border bg-card shadow-xs"
-			>
-				{days.length === 0 ? (
-					<p className="px-4 py-10 text-center text-muted-foreground text-sm">
-						Ingen datoer passer filteret.
-					</p>
-				) : (
-					<>
-						<div className="hidden md:block">
-							<PlanTable days={days} showContactDetails={canEdit} />
-						</div>
-						<div className="md:hidden">
-							<PlanCards days={days} showContactDetails={canEdit} />
-						</div>
-					</>
-				)}
+			<section aria-label="Semesterplan" className="min-w-0">
+				<Panel className="overflow-hidden">
+					{days.length === 0 ? (
+						<p className="px-4 py-10 text-center text-muted-foreground text-sm">
+							Ingen datoer passer filteret.
+						</p>
+					) : (
+						<>
+							<div className="hidden md:block">
+								<PlanTable days={days} showContactDetails={canEdit} />
+							</div>
+							<div className="md:hidden">
+								<PlanCards days={days} showContactDetails={canEdit} />
+							</div>
+						</>
+					)}
+				</Panel>
 			</section>
 		</>
 	);

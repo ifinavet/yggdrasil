@@ -4,6 +4,7 @@ import type { Doc } from "@workspace/backend/convex/dataModel";
 import { huginUrl } from "@workspace/shared/constants/hugin-url";
 import { formatSemesterDay } from "@workspace/shared/time";
 import { Button } from "@workspace/ui/components/button";
+import { Panel } from "@workspace/ui/components/products/panel";
 import { Link2 } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
@@ -52,7 +53,7 @@ export function DistributionEmpty({
 	};
 
 	return (
-		<div className="rounded-xl border bg-card px-4 py-14 text-center shadow-xs">
+		<Panel className="px-4 py-14 text-center">
 			<p className="font-semibold text-base">Ingen søknader ennå</p>
 			<p className="mx-auto mt-1.5 mb-4 max-w-prose text-[13.5px] text-muted-foreground">
 				{formStatus(semester, dates)}
@@ -68,6 +69,6 @@ export function DistributionEmpty({
 					Innstillinger
 				</Button>
 			</div>
-		</div>
+		</Panel>
 	);
 }

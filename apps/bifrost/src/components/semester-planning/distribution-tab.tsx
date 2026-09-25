@@ -2,6 +2,7 @@
 
 import { api } from "@workspace/backend/convex/api";
 import type { Doc, Id } from "@workspace/backend/convex/dataModel";
+import { Panel } from "@workspace/ui/components/products/panel";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { useQuery } from "convex/react";
 import { Hand } from "lucide-react";
@@ -44,7 +45,7 @@ export function DistributionTab({ semester }: Readonly<{ semester: Doc<"semester
 		return (
 			<div className="grid gap-4" aria-busy>
 				<Skeleton className="h-6 w-2/3" />
-				<Skeleton className="h-96 w-full rounded-xl" />
+				<Skeleton className="h-96 w-full rounded-lg" />
 			</div>
 		);
 	}
@@ -72,30 +73,29 @@ export function DistributionTab({ semester }: Readonly<{ semester: Doc<"semester
 				requestedDates={requestedDates}
 			/>
 
-			<section
-				aria-label="Fordeling av datoer"
-				className="min-w-0 rounded-xl border bg-card pt-4 pb-1 shadow-xs"
-			>
-				{!closed && (
-					<p className="flex items-center gap-2 px-4 pb-3.5 text-[12.5px] text-muted-foreground">
-						<Hand className="size-3.5 shrink-0" aria-hidden />
-						Klikk en dato for å tildele den. Med mus kan du også dra den tildelte datoen til en
-						annen.
-					</p>
-				)}
-				{details.dates.length > 0 ? (
-					<DistributionMatrix
-						applications={sorted}
-						dates={details.dates}
-						holders={summary.holders}
-						requestedDates={requestedDates}
-						semesterClosed={closed}
-					/>
-				) : (
-					<p className="border-t px-4 py-10 text-center text-muted-foreground text-sm">
-						Semesteret har ingen datoer ennå. Sett første og siste dato under Innstillinger.
-					</p>
-				)}
+			<section aria-label="Fordeling av datoer" className="min-w-0">
+				<Panel className="pt-4 pb-1">
+					{!closed && (
+						<p className="flex items-center gap-2 px-4 pb-3.5 text-[12.5px] text-muted-foreground">
+							<Hand className="size-3.5 shrink-0" aria-hidden />
+							Klikk en dato for å tildele den. Med mus kan du også dra den tildelte datoen til en
+							annen.
+						</p>
+					)}
+					{details.dates.length > 0 ? (
+						<DistributionMatrix
+							applications={sorted}
+							dates={details.dates}
+							holders={summary.holders}
+							requestedDates={requestedDates}
+							semesterClosed={closed}
+						/>
+					) : (
+						<p className="border-t px-4 py-10 text-center text-muted-foreground text-sm">
+							Semesteret har ingen datoer ennå. Sett første og siste dato under Innstillinger.
+						</p>
+					)}
+				</Panel>
 			</section>
 		</div>
 	);

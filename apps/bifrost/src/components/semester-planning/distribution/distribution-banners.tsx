@@ -1,9 +1,8 @@
 import type { Doc, Id } from "@workspace/backend/convex/dataModel";
-import { cn } from "@workspace/ui/lib/utils";
+import { Callout } from "@workspace/ui/components/products/callout";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { daysList, formatMoment } from "../format";
-import { STATUS_CALLOUT_CLASSES } from "../status";
 import { StatusIcon } from "../status-badge";
 import { UnfinalizePlanButton } from "./finalize-plan-button";
 
@@ -17,15 +16,15 @@ function Banner({
 	children: ReactNode;
 }>) {
 	return (
-		<output
-			className={cn(
-				"flex items-center gap-2.5 rounded-lg border px-3.5 py-2.5 text-[13.5px]",
-				STATUS_CALLOUT_CLASSES[status],
-			)}
-		>
-			<StatusIcon status={status} />
-			<span className="min-w-0 flex-1">{children}</span>
-			{action}
+		<output className="block">
+			<Callout
+				tone={status === "new_date_requested" ? "warning" : "info"}
+				icon={<StatusIcon status={status} />}
+				action={action}
+				className="text-[13.5px]"
+			>
+				{children}
+			</Callout>
 		</output>
 	);
 }

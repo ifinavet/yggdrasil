@@ -22,7 +22,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@workspace/ui/components/dialog";
-import { Note } from "@workspace/ui/components/note";
+import { Callout } from "@workspace/ui/components/products/callout";
 import { useMutation } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { Plus } from "lucide-react";
@@ -131,7 +131,7 @@ function FinalizeResultDialog({
 				</DialogHeader>
 
 				{missing.length > 0 && (
-					<Note tone="warn">
+					<Callout tone="warning">
 						<p className="font-medium">
 							{missing.length === 1
 								? "Denne bedriften har ingen profil i Bifrost, så arrangementet er ikke laget:"
@@ -143,7 +143,7 @@ function FinalizeResultDialog({
 							))}
 						</ul>
 						<p className="mt-1.5">Opprett profilen, og så arrangementet fra søknaden.</p>
-					</Note>
+					</Callout>
 				)}
 
 				<DialogFooter>

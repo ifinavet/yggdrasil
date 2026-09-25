@@ -3,11 +3,12 @@ import { CompanyLogo } from "@workspace/ui/components/company-logo";
 import { cn } from "@workspace/ui/lib/utils";
 import { Lock } from "lucide-react";
 import { Fragment } from "react";
+import { LIST_HEAD } from "@/components/common/table-classes";
 import { formatOrgNumber, monthLabel } from "../format";
 import type { PlanDay } from "./plan-days";
 import { CompanyName, DateTile, Person, PlanStatus, useOpenApplication } from "./plan-parts";
 
-const HEAD = "px-3 pb-2.5 text-left align-bottom font-medium text-[12.5px] text-muted-foreground";
+const HEAD = `${LIST_HEAD} text-left font-medium`;
 
 /**
  * The semester plan, one row per Tuesday and Thursday: the company and its status, and who from
