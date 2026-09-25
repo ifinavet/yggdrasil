@@ -1,8 +1,6 @@
 "use client";
 
 import { api } from "@workspace/backend/convex/api";
-import type { Id } from "@workspace/backend/convex/dataModel";
-import type { OrganizerRole } from "@workspace/shared/constants";
 import { formatOsloToday } from "@workspace/shared/time";
 import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
