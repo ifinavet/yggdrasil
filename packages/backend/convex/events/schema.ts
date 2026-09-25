@@ -1,29 +1,35 @@
 import { ORGANIZER_ROLES } from "@workspace/shared/constants";
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
+import { soldProductFields } from "../products/schema";
 
 export const organizerRoleValidator = v.union(...ORGANIZER_ROLES.map((role) => v.literal(role)));
 
+export const editableEventFields = {
+	title: v.string(),
+	teaser: v.string(),
+	description: v.string(),
+	eventStart: v.number(),
+	registrationOpens: v.number(),
+	participationLimit: v.number(),
+	location: v.string(),
+	food: v.string(),
+	language: v.string(),
+	ageRestriction: v.string(),
+	externalEvent: v.boolean(),
+	externalUrl: v.optional(v.string()),
+	hostingCompany: v.id("companies"),
+	published: v.boolean(),
+};
+
 export const eventsSchema = {
 	events: defineTable({
-		title: v.string(),
-		teaser: v.string(),
-		description: v.string(),
-		eventStart: v.number(),
-		registrationOpens: v.number(),
-		participationLimit: v.number(),
-		location: v.string(),
-		food: v.string(),
-		language: v.string(),
-		ageRestriction: v.string(),
-		externalEvent: v.boolean(),
-		externalUrl: v.optional(v.string()),
-		hostingCompany: v.id("companies"),
-		published: v.boolean(),
+		...editableEventFields,
 		feedbackEnabled: v.optional(v.boolean()),
 		feedbackFormId: v.optional(v.id("feedbackForms")),
 		slug: v.optional(v.string()),
 		formId: v.optional(v.id("form")),
+		...soldProductFields,
 	})
 		.index("by_eventStart", ["eventStart"])
 		.index("by_registrationOpens", ["registrationOpens"])

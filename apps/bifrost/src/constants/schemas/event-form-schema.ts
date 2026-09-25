@@ -30,6 +30,14 @@ export const formSchema = z.object({
 		.min(1, { message: "Må ha minst en arrangør" }),
 	externalUrl: z.string().optional(),
 	externalEvent: z.boolean(),
+	productId: z.string().optional(),
 });
+
+export function eventFormSchema(productRequired: boolean) {
+	return formSchema.refine((values) => !productRequired || Boolean(values.productId), {
+		message: "Velg et produkt",
+		path: ["productId"],
+	});
+}
 
 export type EventFormValues = z.infer<typeof formSchema>;

@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 
 export default async function CompaniesPage() {
 	"use cache";
-	cacheLife("max");
+	cacheLife("hours");
 
 	const companyContact = await fetchQuery(api.users.organization.queries.getBoardMemberByPosition, {
 		position: "Bedriftskontakt",

@@ -23,6 +23,7 @@
 		"./utils": "./utils/index.ts",
 		"./feedback": "./feedback/index.ts",
 		"./feature-flags": "./feature-flags.ts",
+		"./products": "./products/index.ts",
 		"./time": "./time/index.ts",
 		"./semester/orgNumber": "./semester/orgNumber.ts",
 		"./semester/limits": "./semester/limits.ts",

@@ -1,4 +1,4 @@
-import { EVENT_TYPE_PRICES, formatNok } from "@workspace/shared/semester/prices";
+import { formatNok } from "@workspace/shared/semester/prices";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
 	type ApplicationDraft,
@@ -14,6 +14,7 @@ import {
 import {
 	billingLines,
 	compactDateList,
+	eventTypeDescription,
 	fullDate,
 	groupDatesByMonth,
 	placeName,
@@ -234,9 +235,14 @@ describe("company application prices", () => {
 		expect(formatNok(30_000).replace(/\s/g, " ")).toBe("30 000");
 	});
 
-	it("has no price for a social event", () => {
-		expect(EVENT_TYPE_PRICES.social).toBeUndefined();
-		expect(EVENT_TYPE_PRICES.standard_presentation).toBe(30_000);
+	it("describes an event type with its product price in kroner", () => {
+		expect(eventTypeDescription("standard_presentation", 3_000_000).replace(/\s/g, " ")).toBe(
+			"Inntil 40 studenter · 30 000 kr eks. mva.",
+		);
+	});
+
+	it("leaves the price out when the event type has no priced product", () => {
+		expect(eventTypeDescription("social", undefined)).toBe("Inntil 40 studenter");
 	});
 });
 

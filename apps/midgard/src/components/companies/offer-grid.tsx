@@ -1,93 +1,40 @@
-import { EVENT_TYPE_PRICES, formatNok } from "@workspace/shared/semester/prices";
+import { api } from "@workspace/backend/convex/api";
+import { isEventProduct, type ProductCategory } from "@workspace/shared/products";
+import { ProductOfferCard } from "@workspace/ui/components/products/offer-card";
 import { cn } from "@workspace/ui/lib/utils";
+import { fetchQuery } from "convex/nextjs";
+import type { ReactNode } from "react";
 
-/** Promotion of an external event is not a semester event type, so its price lives here. */
-const EXTERNAL_EVENT_PRICE = 15_000;
+const EXTERNAL_EVENT_FORM_LINK = (
+	<a
+		href="https://forms.gle/WYjKsepiBVYddSTG7"
+		target="_blank"
+		rel="noopener noreferrer"
+		className="underline"
+	>
+		Skjema for eksterne arrangementer
+	</a>
+);
 
-export default function OfferGrid({ className }: Readonly<{ className?: string }>) {
+const LAST_ITEM_SUFFIX: Partial<Record<ProductCategory, ReactNode>> = {
+	external_event: EXTERNAL_EVENT_FORM_LINK,
+};
+
+export default async function OfferGrid({ className }: Readonly<{ className?: string }>) {
+	const products = await fetchQuery(api.products.queries.listActive);
+	const offers = products.filter(
+		(product) => isEventProduct(product) && product.unitPriceOre !== undefined,
+	);
+
 	return (
 		<div className={cn(className, "grid grid-cols-1 gap-6 md:grid-cols-2")}>
-			<OfferCard title="Stor bedriftspresentasjon" cost={EVENT_TYPE_PRICES.large_presentation}>
-				<li>
-					En større bedriftspresentasjon holdes enten ved IFI eller i deres egne lokaler. Dere
-					velger ønsket antall studenter selv, uten begrensninger.
-				</li>
-				<li>
-					Dere bestemmer selv innholdet og vi kan rådføre ved behov. Vanligvis holder bedriften
-					presentasjon i 45-60 minutter, før vi går videre til mingling, mat og drikke.
-				</li>
-			</OfferCard>
-			<OfferCard
-				title="Ordinær bedriftspresentasjon"
-				cost={EVENT_TYPE_PRICES.standard_presentation}
-			>
-				<li>
-					Her gjelder samme vilkår som ved stor bedriftspresentasjon, men med en antallsbegrensing
-					på 40 studenter.
-				</li>
-			</OfferCard>
-			<OfferCard
-				title="Bedriftspresentasjon med fokus på faglig innhold"
-				cost={EVENT_TYPE_PRICES.workshop}
-			>
-				<li>
-					Denne typen presentasjon har en satt begrensning på maks 10 minutter presentasjon,
-					etterfulgt av annet faglig innhold, eventuelt workshop.
-				</li>
-				<li>
-					Varighet for arrangementet avhenger av hva dere ønsker å gjennomføre. Av erfaring bør
-					dette ikke vare særlig mer enn 1,5 time uten å ha noen form for matservering underveis.
-					Dere står fritt til å velge innhold selv og gi gjerne en beskrivelse av hva dere ønsker å
-					gjennomføre i søknaden deres. Maks 40 studenter.
-				</li>
-			</OfferCard>
-			<OfferCard title="Eksterne arrangementer" cost={EXTERNAL_EVENT_PRICE}>
-				<li>
-					Eksterne arrangementer er aktiviteter gjennomført og organisert av bedriften uavhengig av
-					Navet. Promotering vil skje via ifinavet.no under fanen "Eksterne arrangementer" og på
-					Instagram hvor dere vil få to storyer.
-				</li>
-				<li>
-					Det at arrangementet er uavhengig av Navet betyr at Navet kun stiller med promotering av
-					arrangementet. Navet deltar ikke i organiseringen eller påmelding av arrangementet,
-					aktiviteten skal ikke ta plass på IFI, det kan ikke foregå på tirsdager og torsdager og
-					arrangementet kan ikke etterligne det en bedriftspresentasjon tilbyr for studenter.
-				</li>
-				<li>
-					Navet forebeholder seg retten til å avslå alle forespørsler om promotering av eksterne
-					arrangementer.{" "}
-					<a
-						href="https://forms.gle/WYjKsepiBVYddSTG7"
-						target="_blank"
-						rel="noopener noreferrer"
-						className="underline"
-					>
-						Skjema for eksterne arrangementer
-					</a>
-				</li>
-			</OfferCard>
-		</div>
-	);
-}
-
-function OfferCard({
-	title,
-	cost,
-	children,
-}: Readonly<{
-	title: string;
-	cost?: number;
-	children: React.ReactNode;
-}>) {
-	return (
-		<div className="overflow-clip rounded-lg bg-white shadow-md dark:bg-zinc-800">
-			<div className="flex h-48 flex-col justify-between bg-primary p-8 text-primary-foreground">
-				<h3 className="max-w-3/4 font-semibold text-2xl">{title}</h3>
-				{cost !== undefined && <p>Kostnad: {formatNok(cost)} NOK eks. mva.</p>}
-			</div>
-			<div className="max-w-[80ch] p-6">
-				<ul className="my-6 ml-6 list-disc [&>li]:mt-2 [&>li]:leading-7">{children}</ul>
-			</div>
+			{offers.map((product) => (
+				<ProductOfferCard
+					key={product._id}
+					product={product}
+					lastItemSuffix={LAST_ITEM_SUFFIX[product.category]}
+				/>
+			))}
 		</div>
 	);
 }

@@ -67,6 +67,8 @@ export const STATUS_LABELS: Record<ApplicationStatus, string> = {
 	withdrawn: "Trukket",
 };
 
+export const SEMESTER_LABEL = "Semester";
+
 export const TERM_LABELS: Record<SemesterTerm, string> = { spring: "Våren", autumn: "Høsten" };
 
 /** «Våren 2027», or «våren 2027» inside a sentence. */

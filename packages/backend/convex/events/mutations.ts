@@ -5,9 +5,21 @@ import { internalMutation, type MutationCtx, mutation } from "../_generated/serv
 import { internalRoles, requireRole } from "../auth/accessRights";
 import { getCurrentUserOrThrow } from "../auth/currentUser";
 import { syncFeedbackCampaign } from "../feedback/delivery/campaigns";
+import { eventProductFields } from "../products/sales";
 import { eventSlug, insertEventWithOrganizers } from "./helper";
 import { makeStatusPending } from "./registrations/mutations";
-import { organizerRoleValidator } from "./schema";
+import { editableEventFields, organizerRoleValidator } from "./schema";
+
+const eventMutationArgs = {
+	...editableEventFields,
+	productId: v.optional(v.id("products")),
+	organizers: v.array(
+		v.object({
+			userId: v.id("users"),
+			role: organizerRoleValidator,
+		}),
+	),
+};
 
 /**
  * Updates an existing event and synchronizes its organizers and waitlist.
@@ -32,29 +44,7 @@ import { organizerRoleValidator } from "./schema";
  * @returns {null} - Returns null when the event is updated successfully.
  */
 export const update = mutation({
-	args: {
-		id: v.id("events"),
-		title: v.string(),
-		teaser: v.string(),
-		description: v.string(),
-		eventStart: v.number(),
-		registrationOpens: v.number(),
-		participationLimit: v.number(),
-		location: v.string(),
-		food: v.string(),
-		language: v.string(),
-		ageRestriction: v.string(),
-		externalEvent: v.boolean(),
-		externalUrl: v.optional(v.string()),
-		hostingCompany: v.id("companies"),
-		published: v.boolean(),
-		organizers: v.array(
-			v.object({
-				userId: v.id("users"),
-				role: organizerRoleValidator,
-			}),
-		),
-	},
+	args: { id: v.id("events"), ...eventMutationArgs },
 	handler: async (
 		ctx,
 		{
@@ -73,6 +63,7 @@ export const update = mutation({
 			externalUrl,
 			hostingCompany,
 			published,
+			productId,
 			organizers,
 		},
 	) => {
@@ -115,6 +106,7 @@ export const update = mutation({
 			published,
 			slug,
 			formId,
+			...(await eventProductFields(ctx, productId, event)),
 		});
 
 		await syncFeedbackCampaign(ctx, eventId);
@@ -286,28 +278,7 @@ export const updatePublishedStatus = mutation({
  * @returns {null} - Returns null when the event is created successfully.
  */
 export const create = mutation({
-	args: {
-		title: v.string(),
-		teaser: v.string(),
-		description: v.string(),
-		eventStart: v.number(),
-		registrationOpens: v.number(),
-		participationLimit: v.number(),
-		location: v.string(),
-		food: v.string(),
-		language: v.string(),
-		ageRestriction: v.string(),
-		externalEvent: v.boolean(),
-		externalUrl: v.optional(v.string()),
-		hostingCompany: v.id("companies"),
-		published: v.boolean(),
-		organizers: v.array(
-			v.object({
-				userId: v.id("users"),
-				role: organizerRoleValidator,
-			}),
-		),
-	},
+	args: eventMutationArgs,
 	handler: async (
 		ctx,
 		{
@@ -325,6 +296,7 @@ export const create = mutation({
 			externalUrl,
 			hostingCompany,
 			published,
+			productId,
 			organizers,
 		},
 	) => {
@@ -347,6 +319,7 @@ export const create = mutation({
 				externalUrl,
 				hostingCompany,
 				published,
+				...(await eventProductFields(ctx, productId)),
 			},
 			organizers,
 		);

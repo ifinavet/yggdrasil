@@ -5,20 +5,19 @@ import type { Id } from "@workspace/backend/convex/dataModel";
 import { reportAccessDeniedMessage } from "@workspace/shared/feedback/report";
 import { Card, CardContent } from "@workspace/ui/components/card";
 import { FeedbackReportResponses } from "@workspace/ui/components/feedback/report";
+import { useFeatureEnabled } from "@workspace/ui/hooks/use-feature-enabled";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { Lock } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import { ReportReview } from "./report-review";
 
-import { useFeedbackPreviewEnabled } from "./use-feedback-preview";
-
 export function EventFeedbackReport({
 	eventId,
 	summary = false,
 	fallback = null,
 }: Readonly<{ eventId: Id<"events">; summary?: boolean; fallback?: ReactNode }>) {
-	const enabled = useFeedbackPreviewEnabled();
+	const enabled = useFeatureEnabled("huginFeedback");
 	return enabled ? (
 		<ReportContent eventId={eventId} summary={summary} fallback={fallback} />
 	) : (

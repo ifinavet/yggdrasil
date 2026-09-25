@@ -14,6 +14,7 @@ import {
 } from "@workspace/ui/components/table";
 import Link from "next/link";
 import { Fragment, type ReactNode } from "react";
+import { LIST_CELL, LIST_HEAD } from "@/components/common/table-classes";
 import {
 	CAMPAIGN_STATUS_BADGES,
 	REPORT_DELIVERY_LABELS,
@@ -35,9 +36,6 @@ const FEEDBACK_BADGE: Record<FeedbackStatus, { variant: "default" | "secondary";
 		open: CAMPAIGN_STATUS_BADGES.open,
 		scheduled: CAMPAIGN_STATUS_BADGES.scheduled,
 	};
-
-const HEAD = "h-10 px-3 text-[13px] text-muted-foreground";
-const CELL = "px-3 py-2.5";
 
 function Registrations({ event, now }: Readonly<{ event: OverviewEvent; now: number }>) {
 	const summary = registrations(event, now);
@@ -99,12 +97,12 @@ export function EventsTable({
 		<Table className={className}>
 			<TableHeader>
 				<TableRow className="hover:bg-transparent">
-					<TableHead className={`${HEAD} w-10 pr-0`} />
-					<TableHead className={`${HEAD} w-[90px]`}>Dato</TableHead>
-					<TableHead className={HEAD}>Arrangement</TableHead>
-					<TableHead className={HEAD}>Hovedansvarlig</TableHead>
-					<TableHead className={HEAD}>Påmeldte</TableHead>
-					{withFeedback ? <TableHead className={HEAD}>Tilbakemelding</TableHead> : null}
+					<TableHead className={`${LIST_HEAD} w-10 pr-0`} />
+					<TableHead className={`${LIST_HEAD} w-[90px]`}>Dato</TableHead>
+					<TableHead className={LIST_HEAD}>Arrangement</TableHead>
+					<TableHead className={LIST_HEAD}>Hovedansvarlig</TableHead>
+					<TableHead className={LIST_HEAD}>Påmeldte</TableHead>
+					{withFeedback ? <TableHead className={LIST_HEAD}>Tilbakemelding</TableHead> : null}
 				</TableRow>
 			</TableHeader>
 			<TableBody className="text-sm">
@@ -120,16 +118,16 @@ export function EventsTable({
 						</TableRow>
 						{group.events.map((event) => (
 							<SelectableRow key={event._id} event={event}>
-								<TableCell className={`${CELL} w-10 pr-0`}>
+								<TableCell className={`${LIST_CELL} w-10 pr-0`}>
 									<SelectEvent event={event} />
 								</TableCell>
-								<TableCell className={`${CELL} whitespace-nowrap tabular-nums`}>
+								<TableCell className={`${LIST_CELL} whitespace-nowrap tabular-nums`}>
 									{formatOsloDate(event.eventStart, DATE_PATTERNS.shortDate)}
 									<span className="block text-muted-foreground text-xs">
 										{formatOsloDate(event.eventStart, DATE_PATTERNS.time)}
 									</span>
 								</TableCell>
-								<TableCell className={CELL}>
+								<TableCell className={LIST_CELL}>
 									<div className="flex min-w-0 items-center gap-3">
 										<CompanyLogo name={event.companyName} url={event.companyLogoUrl} />
 										<div>
@@ -145,12 +143,12 @@ export function EventsTable({
 										</div>
 									</div>
 								</TableCell>
-								<TableCell className={CELL}>{event.leadName}</TableCell>
-								<TableCell className={CELL}>
+								<TableCell className={LIST_CELL}>{event.leadName}</TableCell>
+								<TableCell className={LIST_CELL}>
 									<Registrations event={event} now={now} />
 								</TableCell>
 								{withFeedback ? (
-									<TableCell className={CELL}>
+									<TableCell className={LIST_CELL}>
 										<FeedbackBadge status={event.feedbackStatus} />
 									</TableCell>
 								) : null}

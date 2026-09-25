@@ -1,13 +1,12 @@
 "use client";
 
 import { api } from "@workspace/backend/convex/api";
-import type { Id } from "@workspace/backend/convex/dataModel";
-import type { OrganizerRole } from "@workspace/shared/constants";
 import { formatOsloToday } from "@workspace/shared/time";
 import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import EventForm from "@/components/events/event-form/event-form";
+import { toEventMutationArgs } from "@/components/events/event-form/to-event-mutation-args";
 import type { EventFormValues } from "@/constants/schemas/event-form-schema";
 
 export default function CreateEventForm() {
@@ -29,31 +28,13 @@ export default function CreateEventForm() {
 			id: "",
 		},
 		externalUrl: "",
+		productId: undefined,
 	};
 
 	const router = useRouter();
 	const createEventMutation = useMutation(api.events.mutations.create);
 	const handleSubmit = (values: EventFormValues, published: boolean) =>
-		createEventMutation({
-			title: values.title,
-			teaser: values.teaser,
-			description: values.description,
-			eventStart: values.eventDate.getTime(),
-			registrationOpens: values.registrationDate.getTime(),
-			participationLimit: values.participantsLimit,
-			location: values.location,
-			food: values.food,
-			language: values.language,
-			ageRestriction: values.ageRestrictions,
-			externalEvent: values.externalEvent,
-			externalUrl: values.externalUrl,
-			hostingCompany: values.hostingCompany.id as Id<"companies">,
-			organizers: values.organizers.map((organizer) => ({
-				userId: organizer.userId as Id<"users">,
-				role: organizer.role as OrganizerRole,
-			})),
-			published,
-		})
+		createEventMutation(toEventMutationArgs(values, published))
 			.then(() => {
 				toast.success("Arrangementet ble opprettet!", {
 					description: `Arrangement opprettet, ${formatOsloToday()}`,
@@ -77,6 +58,7 @@ export default function CreateEventForm() {
 			onDefaultSubmitAction={onDefaultSubmit}
 			onSecondarySubmitAction={onHiddenSubmit}
 			defaultValues={defaultValues}
+			productRequired
 		/>
 	);
 }

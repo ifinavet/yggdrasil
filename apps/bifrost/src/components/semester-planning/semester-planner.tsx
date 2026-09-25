@@ -2,7 +2,7 @@
 
 import type { api } from "@workspace/backend/convex/api";
 import type { Doc, Id } from "@workspace/backend/convex/dataModel";
-import { semesterName } from "@workspace/shared/semester/labels";
+import { SEMESTER_LABEL, semesterName } from "@workspace/shared/semester/labels";
 import {
 	Select,
 	SelectContent,
@@ -81,7 +81,7 @@ export function SemesterPlanner({
 					value={selected._id}
 					onValueChange={(value) => navigate({ semester: value as Id<"semesters"> })}
 				>
-					<SelectTrigger className="min-w-[150px]" aria-label="Semester">
+					<SelectTrigger className="min-w-[150px]" aria-label={SEMESTER_LABEL}>
 						<SelectValue />
 					</SelectTrigger>
 					<SelectContent>

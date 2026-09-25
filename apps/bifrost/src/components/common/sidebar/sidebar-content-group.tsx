@@ -1,6 +1,5 @@
 "use client";
 
-import { useSemesterPlanningEnabled } from "@workspace/ui/components/semester-planning-gate";
 import {
 	SidebarGroup,
 	SidebarGroupContent,
@@ -9,7 +8,9 @@ import {
 	SidebarMenuButton,
 	SidebarMenuItem,
 } from "@workspace/ui/components/sidebar";
+import { useFeatureEnabled } from "@workspace/ui/hooks/use-feature-enabled";
 import {
+	BanknoteIcon,
 	BookOpenIcon,
 	BriefcaseIcon,
 	BuildingIcon,
@@ -22,6 +23,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { PRODUCT_ROUTES } from "@/components/products/product-routes";
 
 const paths = {
 	superAdmin: [{ title: "Skjemaer", icon: ClipboardListIcon, path: "/feedback-forms" }],
@@ -70,6 +72,12 @@ const paths = {
 			icon: GitForkIcon,
 			path: "/organization",
 		},
+		{
+			title: "Produkter",
+			icon: BanknoteIcon,
+			path: PRODUCT_ROUTES.list,
+			requiresProducts: true,
+		},
 	],
 };
 
@@ -83,29 +91,33 @@ export function SidebarContentGroup({
 	extraItems?: keyof typeof paths;
 }>) {
 	const rootPathSegment = usePathname().split("/")[1];
-	const semesterPlanning = useSemesterPlanningEnabled();
+	const productsEnabled = useFeatureEnabled("products");
+	const semesterPlanning = useFeatureEnabled("semesterPlanning");
+	const visibleItems = [...paths[items], ...(extraItems ? paths[extraItems] : [])].filter(
+		(item) =>
+			(productsEnabled || !("requiresProducts" in item)) &&
+			(item.path !== "/semesterplan" || semesterPlanning),
+	);
 
 	return (
 		<SidebarGroup>
 			<SidebarGroupLabel>{title}</SidebarGroupLabel>
 			<SidebarGroupContent>
 				<SidebarMenu>
-					{[...paths[items], ...(extraItems ? paths[extraItems] : [])]
-						.filter((item) => item.path !== "/semesterplan" || semesterPlanning)
-						.map((item) => (
-							<SidebarMenuItem key={item.title}>
-								<SidebarMenuButton
-									tooltip={item.title}
-									asChild
-									isActive={item.path === `/${rootPathSegment}`}
-								>
-									<Link href={item.path}>
-										{item.icon && <item.icon />}
-										<span>{item.title}</span>
-									</Link>
-								</SidebarMenuButton>
-							</SidebarMenuItem>
-						))}
+					{visibleItems.map((item) => (
+						<SidebarMenuItem key={item.title}>
+							<SidebarMenuButton
+								tooltip={item.title}
+								asChild
+								isActive={item.path === `/${rootPathSegment}`}
+							>
+								<Link href={item.path}>
+									{item.icon && <item.icon />}
+									<span>{item.title}</span>
+								</Link>
+							</SidebarMenuButton>
+						</SidebarMenuItem>
+					))}
 				</SidebarMenu>
 			</SidebarGroupContent>
 		</SidebarGroup>

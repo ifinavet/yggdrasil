@@ -8,6 +8,9 @@ export const featureFlags = {
 		// Allows approved company report emails.
 		reportEmailsEnabled: true,
 	},
+	products: {
+		uiEnabled: false,
+	},
 	semesterPlanning: {
 		// Shows Semesterplan in Bifrost, the application and offer pages on Hugin and the button on
 		// Midgard to everyone. While off, only browsers with the preview opt-in see them.
@@ -16,9 +19,18 @@ export const featureFlags = {
 };
 
 export const browserOptInKeys = {
+	productsPreview: "products-preview",
 	huginFeedbackPreview: "hugin-feedback-preview",
 	huginFeedbackTestSend: "hugin-feedback-testsend",
 	semesterPlanningPreview: "semester-planning-preview",
 } as const;
 
 export type BrowserOptIn = keyof typeof browserOptInKeys;
+
+export type GatedFeature = keyof typeof featureFlags;
+
+export const featurePreviewOptIns = {
+	huginFeedback: "huginFeedbackPreview",
+	products: "productsPreview",
+	semesterPlanning: "semesterPlanningPreview",
+} as const satisfies Record<GatedFeature, BrowserOptIn>;
