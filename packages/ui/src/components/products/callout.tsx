@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 
 const TONES = {
 	info: { className: "bg-primary-light text-primary", Icon: Info },
-	warning: { className: "bg-warning text-warning-foreground", Icon: TriangleAlert },
+	warning: { className: "bg-warning-surface text-warning-surface-foreground", Icon: TriangleAlert },
 } as const;
 
 export function Callout({

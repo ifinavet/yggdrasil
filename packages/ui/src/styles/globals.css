@@ -38,8 +38,8 @@
 	--chart-4: oklch(0.828 0.189 84.429);
 	--chart-5: oklch(0.769 0.188 70.08);
 	--positive: oklch(0.55 0.13 155);
-	--warning: oklch(0.97 0.04 85);
-	--warning-foreground: oklch(0.45 0.09 70);
+	--warning-surface: oklch(0.97 0.04 85);
+	--warning-surface-foreground: oklch(0.45 0.09 70);
 	--series-external: oklch(0.68 0.09 264);
 	--series-jobs: oklch(0.6 0.118 184.704);
 	--sidebar: oklch(0.985 0 0);
@@ -80,8 +80,8 @@
 	--chart-4: oklch(0.627 0.265 303.9);
 	--chart-5: oklch(0.645 0.246 16.439);
 	--positive: oklch(0.72 0.14 155);
-	--warning: oklch(0.3 0.05 80);
-	--warning-foreground: oklch(0.9 0.08 85);
+	--warning-surface: oklch(0.3 0.05 80);
+	--warning-surface-foreground: oklch(0.9 0.08 85);
 	--series-external: oklch(0.62 0.1 264);
 	--series-jobs: oklch(0.65 0.118 184.704);
 	--sidebar: oklch(0.21 0.006 285.885);
@@ -123,8 +123,8 @@
 	--color-chart-4: var(--chart-4);
 	--color-chart-5: var(--chart-5);
 	--color-positive: var(--positive);
-	--color-warning: var(--warning);
-	--color-warning-foreground: var(--warning-foreground);
+	--color-warning-surface: var(--warning-surface);
+	--color-warning-surface-foreground: var(--warning-surface-foreground);
 	--color-series-external: var(--series-external);
 	--color-series-jobs: var(--series-jobs);
 	--radius-sm: calc(var(--radius) - 4px);
