@@ -3,7 +3,7 @@
 import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
 import type { Doc } from "@workspace/backend/convex/dataModel";
-import { isClockTime, isIsoDate } from "@workspace/shared/semester/time";
+import { isClockTime, isIsoDate } from "@workspace/shared/time";
 import { isHttpUrl } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
 import { DatePicker } from "@workspace/ui/components/date-picker";

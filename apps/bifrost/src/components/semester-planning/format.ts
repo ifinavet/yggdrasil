@@ -1,4 +1,4 @@
-import { formatSemesterDay } from "@workspace/shared/semester/time";
+import { formatSemesterDay } from "@workspace/shared/time";
 
 // How semester planning writes days. A semester day is an Oslo "YYYY-MM-DD" string.
 

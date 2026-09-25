@@ -5,7 +5,7 @@ import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { semesterName, TERM_LABELS } from "@workspace/shared/semester/labels";
 import { MAX_SEMESTER_YEAR, MIN_SEMESTER_YEAR } from "@workspace/shared/semester/limits";
-import { nextTermAfter, osloToday, SEMESTER_TERMS } from "@workspace/shared/semester/time";
+import { nextTermAfter, osloToday, SEMESTER_TERMS } from "@workspace/shared/time";
 import { Button } from "@workspace/ui/components/button";
 import { Field, FieldError, FieldLabel } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
