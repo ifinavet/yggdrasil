@@ -42,7 +42,7 @@ export function EventsOverview({
 				<SearchField
 					value={search}
 					onChange={setSearch}
-					placeholder="Arrangement eller bedrift"
+					placeholder="Arrangement, bedrift eller person"
 					className="sm:w-80"
 				/>
 				<SelectSemester preloadedPossibleSemesters={preloadedPossibleSemesters} />

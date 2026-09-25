@@ -90,13 +90,24 @@ describe("splitIntoSections", () => {
 });
 
 describe("matchesSearch", () => {
-	it("matches title or company regardless of case, and everything when empty", () => {
-		const event = overviewEvent({ title: "Kodekveld", companyName: "Kantega" });
+	it("matches title, company or lead regardless of case, and everything when empty", () => {
+		const event = overviewEvent({
+			title: "Kodekveld",
+			companyName: "Kantega",
+			leadName: "Victor Uhnger",
+		});
 
 		expect(matchesSearch(event, "KODE")).toBe(true);
 		expect(matchesSearch(event, " kantega ")).toBe(true);
+		expect(matchesSearch(event, "uhnger")).toBe(true);
 		expect(matchesSearch(event, "")).toBe(true);
 		expect(matchesSearch(event, "bekk")).toBe(false);
+	});
+
+	it("ignores a missing lead", () => {
+		const event = overviewEvent({ leadName: null });
+
+		expect(matchesSearch(event, "uhnger")).toBe(false);
 	});
 });
 

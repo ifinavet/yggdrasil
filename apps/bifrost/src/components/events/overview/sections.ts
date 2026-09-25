@@ -17,13 +17,13 @@ export function eventHref(event: Pick<OverviewEvent, "_id" | "slug">): string {
 }
 
 export function matchesSearch(
-	event: Pick<OverviewEvent, "title" | "companyName">,
+	event: Pick<OverviewEvent, "title" | "companyName" | "leadName">,
 	search: string,
 ): boolean {
 	const needle = search.trim().toLocaleLowerCase("nb");
 	if (!needle) return true;
-	return [event.title, event.companyName].some((text) =>
-		text.toLocaleLowerCase("nb").includes(needle),
+	return [event.title, event.companyName, event.leadName].some((text) =>
+		text?.toLocaleLowerCase("nb").includes(needle),
 	);
 }
 
