@@ -1,4 +1,4 @@
-import { formatSemesterDay } from "@workspace/shared/semester/time";
+import { formatSemesterDay } from "@workspace/shared/time";
 import { cn } from "@workspace/ui/lib/utils";
 import { useMemo } from "react";
 import { CheckMark, ERROR_BORDER, FOCUS_RING, linkClass } from "@/components/form-controls";

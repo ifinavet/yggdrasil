@@ -3,7 +3,7 @@
 import { useStore } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
 import { semesterName } from "@workspace/shared/semester/labels";
-import { osloToday } from "@workspace/shared/semester/time";
+import { osloToday } from "@workspace/shared/time";
 import { Note } from "@workspace/ui/components/note";
 import { cn } from "@workspace/ui/lib/utils";
 import { useAction } from "convex/react";
