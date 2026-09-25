@@ -1,7 +1,7 @@
 import { Button } from "@workspace/ui/components/button";
+import { CompanyLogo } from "@workspace/ui/components/company-logo";
 import { cn } from "@workspace/ui/lib/utils";
 import Link from "next/link";
-import { CompanyLogo } from "./company-logo";
 import { longDate } from "./dates";
 import { eventHref, type OverviewEvent } from "./sections";
 

@@ -2,6 +2,7 @@
 
 import { Badge } from "@workspace/ui/components/badge";
 import { Checkbox } from "@workspace/ui/components/checkbox";
+import { CompanyLogo } from "@workspace/ui/components/company-logo";
 import {
 	Table,
 	TableBody,
@@ -13,7 +14,6 @@ import {
 import Link from "next/link";
 import { Fragment, type ReactNode } from "react";
 import { useSelectedEventsStore } from "@/lib/stores/selected-events";
-import { CompanyLogo } from "./company-logo";
 import { shortDate, timeOfDay } from "./dates";
 import {
 	eventHref,
