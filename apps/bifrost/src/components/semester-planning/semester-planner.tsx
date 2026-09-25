@@ -15,10 +15,14 @@ import { type Preloaded, usePreloadedQuery, useQuery } from "convex/react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useState } from "react";
 import { ApplicationsTab } from "./applications-tab";
+import { DistributionTab } from "./distribution-tab";
+import { PlanTab } from "./plan-tab";
 import { SemesterActionsSlot } from "./semester-actions";
 import { FirstSemester, SettingsTab } from "./settings-tab";
 
 const TABS = [
+	{ value: "plan", label: "Plan", editorOnly: false },
+	{ value: "fordeling", label: "Fordeling", editorOnly: true },
 	{ value: "soknader", label: "Søknader", editorOnly: true },
 	{ value: "innstillinger", label: "Innstillinger", editorOnly: true },
 ] as const;
@@ -30,9 +34,9 @@ function defaultSemester(semesters: Doc<"semesters">[]) {
 }
 
 /**
- * The Semesterplan page: a semester select and the Søknader and Innstillinger tabs. The semester
- * and tab live in the URL (`?semester=` and `?tab=`), so links and reloads keep them. Only editors
- * see the tabs.
+ * The Semesterplan page: a semester select and the Plan, Fordeling, Søknader and Innstillinger
+ * tabs. The semester and tab live in the URL (`?semester=` and `?tab=`), so links and reloads keep
+ * them. Plan opens first; internal members only see Plan.
  */
 export function SemesterPlanner({
 	preloadedSemesters,
@@ -103,13 +107,17 @@ export function SemesterPlanner({
 				</Select>
 
 				{tabs.length > 1 && (
-					<Tabs value={tab} onValueChange={(value) => navigate({ tab: value as Tab })}>
+					<Tabs
+						value={tab}
+						onValueChange={(value) => navigate({ tab: value as Tab })}
+						className="min-w-0 max-w-full"
+					>
 						<TabsList className="max-w-full overflow-x-auto">
 							{tabs.map((item) => (
 								<TabsTrigger
 									key={item.value}
 									value={item.value}
-									className="px-3 text-muted-foreground data-[state=active]:text-foreground data-[state=active]:shadow-[0_1px_3px_rgb(0_0_0/0.1)]"
+									className="px-2 text-muted-foreground data-[state=active]:text-foreground data-[state=active]:shadow-[0_1px_3px_rgb(0_0_0/0.1)] sm:px-3"
 								>
 									{item.label}
 									{item.value === "soknader" && !!applicationCount && (
@@ -130,6 +138,9 @@ export function SemesterPlanner({
 				/>
 			</div>
 
+			{/* Keyed by semester, so switching semester starts the Plan's filters over. */}
+			{tab === "plan" && <PlanTab key={selected._id} semester={selected} canEdit={canEdit} />}
+			{tab === "fordeling" && <DistributionTab semester={selected} />}
 			{tab === "soknader" && <ApplicationsTab semester={selected} />}
 			{tab === "innstillinger" && (
 				<SettingsTab

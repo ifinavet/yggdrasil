@@ -49,3 +49,30 @@ export function studentRange(min: number, max: number): string {
 export function formatOrgNumber(orgNumber: string): string {
 	return orgNumber.replace(/\D/g, "").replace(/(\d{3})(?=\d)/g, "$1 ");
 }
+
+const OR_LIST = new Intl.ListFormat("nb-NO", { type: "disjunction" });
+
+/** «tir 2. mar eller tor 4. mar» */
+export function daysList(dates: readonly string[]): string {
+	return OR_LIST.format(dates.map(shortDay));
+}
+
+/** The day of the month of a semester day: 9 for «2027-02-09». */
+export function dayOfMonth(date: string): number {
+	return Number(date.slice(8, 10));
+}
+
+/** «Februar», the month a semester day is in. */
+export function monthLabel(date: string): string {
+	return capitalize(formatSemesterDay(date, "month"));
+}
+
+/** «SK» for «Sara Kristiansen». */
+export function initials(name: string): string {
+	return name
+		.split(/\s+/)
+		.filter(Boolean)
+		.slice(0, 2)
+		.map((part) => part.charAt(0).toUpperCase())
+		.join("");
+}
