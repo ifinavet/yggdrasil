@@ -15,22 +15,37 @@ const kronerFormat = new Intl.NumberFormat("nb-NO", { maximumFractionDigits: 0 }
 const MUTED = "var(--muted-foreground)";
 const DIMMED_LABEL_OPACITY = 0.6;
 
-type Layer = { key: string; label: string; kroner: number; color: string };
+const X_AXIS_LABEL = "Semester";
+const Y_AXIS_LABEL = "Inntekt eks. mva.";
+
+const SERIES = {
+	event: { label: "Bedriftspresentasjoner", color: SERIES_COLORS.event },
+	external_event: { label: "Eksterne", color: SERIES_COLORS.external_event },
+	job_listing: { label: "Stillingsannonser", color: SERIES_COLORS.job_listing },
+	average: { label: "Snitt siste 4", color: MUTED },
+};
+
+type Layer = { key: string; series: string; kroner: number; color: string };
 
 const LEGEND = [
-	{ label: "Bedriftspresentasjoner", color: SERIES_COLORS.event },
-	{ label: "Eksterne", color: SERIES_COLORS.external_event },
-	{ label: "Stillingsannonser", color: SERIES_COLORS.job_listing },
-	{ label: "Snitt siste 4", color: MUTED, dashed: true },
+	SERIES.event,
+	SERIES.external_event,
+	SERIES.job_listing,
+	{ ...SERIES.average, dashed: true },
 ];
 
 function layers(semester: SemesterRevenue): Layer[] {
-	const { bySeries, key, label } = semester;
+	const { bySeries, key } = semester;
 	return [
-		{ key, label, kroner: bySeries.event + bySeries.other, color: SERIES_COLORS.event },
-		{ key, label, kroner: bySeries.external_event, color: SERIES_COLORS.external_event },
-		{ key, label, kroner: bySeries.job_listing, color: SERIES_COLORS.job_listing },
-	].map((layer) => ({ ...layer, kroner: layer.kroner / ORE_PER_KRONE }));
+		{ ...SERIES.event, ore: bySeries.event + bySeries.other },
+		{ ...SERIES.external_event, ore: bySeries.external_event },
+		{ ...SERIES.job_listing, ore: bySeries.job_listing },
+	].map(({ label, color, ore }) => ({
+		key,
+		series: label,
+		kroner: ore / ORE_PER_KRONE,
+		color,
+	}));
 }
 
 export function RevenueChart({
@@ -48,7 +63,13 @@ export function RevenueChart({
 		const averages = semesters.flatMap((semester) =>
 			semester.rollingAverageOre === null
 				? []
-				: [{ key: semester.key, kroner: semester.rollingAverageOre / ORE_PER_KRONE }],
+				: [
+						{
+							key: semester.key,
+							series: SERIES.average.label,
+							kroner: semester.rollingAverageOre / ORE_PER_KRONE,
+						},
+					],
 		);
 
 		return defineChart({
@@ -74,6 +95,7 @@ export function RevenueChart({
 							.domain(semesters.map((semester) => semester.key))
 							.padding(0.2),
 					axis: {
+						label: X_AXIS_LABEL,
 						ticks: { size: 0, format: (key: string) => labels.get(key) ?? key },
 						tickLabels: {
 							thin: false,
@@ -87,10 +109,28 @@ export function RevenueChart({
 					scale: scaleLinear,
 					nice: true,
 					grid: true,
-					axis: { ticks: { format: (value: number) => kronerFormat.format(value) } },
+					axis: {
+						label: Y_AXIS_LABEL,
+						ticks: { format: (value: number) => kronerFormat.format(value) },
+					},
 				},
 			},
-			tooltip,
+			tooltip: {
+				use: tooltip,
+				items: [
+					{
+						channel: "x",
+						label: X_AXIS_LABEL,
+						text: (point) => labels.get(point.datum.key) ?? point.datum.key,
+					},
+					{ field: "series", label: "Produkt" },
+					{
+						channel: "y",
+						label: Y_AXIS_LABEL,
+						text: (point) => formatNok(point.datum.kroner * ORE_PER_KRONE),
+					},
+				],
+			},
 		});
 	}, [semesters, selectedKey]);
 

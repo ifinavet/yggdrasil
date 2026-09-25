@@ -14,10 +14,13 @@ import { SERIES_COLORS } from "./series-colors";
 const RETURNING_COLOR = SERIES_COLORS.event;
 const NEW_COLOR = SERIES_COLORS.external_event;
 
-const LEGEND = [
-	{ label: "Tilbakevendende", color: RETURNING_COLOR },
-	{ label: "Nye", color: NEW_COLOR },
-];
+const X_AXIS_LABEL = "Semester";
+const Y_AXIS_LABEL = "Bedrifter";
+
+const RETURNING = { label: "Tilbakevendende", color: RETURNING_COLOR };
+const NEW = { label: "Nye", color: NEW_COLOR };
+
+const LEGEND = [RETURNING, NEW];
 
 export function RetentionChart({ activity }: Readonly<{ activity: readonly CompanyActivity[] }>) {
 	const definition = useMemo(() => {
@@ -26,8 +29,8 @@ export function RetentionChart({ activity }: Readonly<{ activity: readonly Compa
 			semesters.map((semester) => [semester.key, compactSemesterLabel(semester)]),
 		);
 		const layers = semesters.flatMap((semester) => [
-			{ key: semester.key, companies: semester.returning, color: RETURNING_COLOR },
-			{ key: semester.key, companies: semester.new, color: NEW_COLOR },
+			{ key: semester.key, companies: semester.returning, ...RETURNING },
+			{ key: semester.key, companies: semester.new, ...NEW },
 		]);
 		const totals = semesters.map((semester) => ({
 			key: semester.key,
@@ -54,13 +57,30 @@ export function RetentionChart({ activity }: Readonly<{ activity: readonly Compa
 							.domain(semesters.map((semester) => semester.key))
 							.padding(0.22),
 					axis: {
+						label: X_AXIS_LABEL,
 						ticks: { size: 0, format: (key: string) => labels.get(key) ?? key },
 						tickLabels: { thin: false, fontSize: 10 },
 					},
 				},
-				y: { scale: scaleLinear, nice: true, grid: true, axis: { ticks: { count: 3 } } },
+				y: {
+					scale: scaleLinear,
+					nice: true,
+					grid: true,
+					axis: { label: Y_AXIS_LABEL, ticks: { count: 3 } },
+				},
 			},
-			tooltip,
+			tooltip: {
+				use: tooltip,
+				items: [
+					{
+						channel: "x",
+						label: X_AXIS_LABEL,
+						text: (point) => labels.get(point.datum.key) ?? point.datum.key,
+					},
+					{ field: "label", label: "Type" },
+					{ channel: "y", label: Y_AXIS_LABEL, text: (point) => String(point.datum.companies) },
+				],
+			},
 		});
 	}, [activity]);
 
