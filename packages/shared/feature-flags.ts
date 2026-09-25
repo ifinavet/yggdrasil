@@ -10,7 +10,7 @@ export const featureFlags = {
 	},
 	slackBot: {
 		// Creates private Slack channels for upcoming bedpresser and posts checklist reminders.
-		enabled: false,
+		enabled: true,
 	},
 };
 
