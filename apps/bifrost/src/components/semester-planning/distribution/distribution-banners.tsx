@@ -3,7 +3,8 @@ import { cn } from "@workspace/ui/lib/utils";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { daysList, formatMoment } from "../format";
-import { STATUS_CALLOUT_CLASSES, STATUS_DOT_CLASSES } from "../status";
+import { STATUS_CALLOUT_CLASSES } from "../status";
+import { StatusIcon } from "../status-badge";
 import { UnfinalizePlanButton } from "./finalize-plan-button";
 
 function Banner({
@@ -22,10 +23,7 @@ function Banner({
 				STATUS_CALLOUT_CLASSES[status],
 			)}
 		>
-			<span
-				aria-hidden
-				className={cn("size-2 shrink-0 rounded-full", STATUS_DOT_CLASSES[status])}
-			/>
+			<StatusIcon status={status} />
 			<span className="min-w-0 flex-1">{children}</span>
 			{action}
 		</output>

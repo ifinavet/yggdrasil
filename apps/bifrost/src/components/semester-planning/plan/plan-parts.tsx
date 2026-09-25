@@ -4,19 +4,12 @@ import type { ApplicationStatus } from "@workspace/shared/semester/labels";
 import { formatSemesterDay } from "@workspace/shared/time";
 import { Avatar, AvatarFallback } from "@workspace/ui/components/avatar";
 import { cn } from "@workspace/ui/lib/utils";
-import {
-	CalendarCheck,
-	CalendarSync,
-	CircleCheck,
-	CircleX,
-	Clock,
-	type LucideIcon,
-	Send,
-} from "lucide-react";
+import { CalendarCheck } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { MouseEvent } from "react";
 import { dayOfMonth, initials } from "../format";
+import { StatusIcon } from "../status-badge";
 import type { PlanRow } from "./plan-days";
 
 /**
@@ -128,33 +121,26 @@ export function useOpenApplication(enabled: boolean) {
  * editors' status names in STATUS_LABELS on purpose, since the whole organisation reads the
  * Plan; its status filter uses the same words.
  */
-const STATUS_SYMBOLS: Record<
-	ApplicationStatus,
-	{ icon: LucideIcon; label: string; className: string }
-> = {
-	confirmed: { icon: CircleCheck, label: "Bekreftet", className: "text-status-confirmed" },
-	offer_sent: { icon: Clock, label: "Venter på svar", className: "text-status-offer" },
-	applied: { icon: Send, label: "Tilbud ikke sendt", className: "text-muted-foreground" },
-	new_date_requested: {
-		icon: CalendarSync,
-		label: "Vil endre dato",
-		className: "text-status-new-date",
-	},
-	declined: { icon: CircleX, label: "Takket nei", className: "text-muted-foreground" },
-	rejected: { icon: CircleX, label: "Avslått", className: "text-muted-foreground" },
-	withdrawn: { icon: CircleX, label: "Trukket", className: "text-muted-foreground" },
+const PLAN_STATUS_LABELS: Record<ApplicationStatus, string> = {
+	confirmed: "Bekreftet",
+	offer_sent: "Venter på svar",
+	applied: "Tilbud ikke sendt",
+	new_date_requested: "Vil endre dato",
+	declined: "Takket nei",
+	rejected: "Avslått",
+	withdrawn: "Trukket",
 };
 
 /** The Plan's wording for a status, also used by its status filter. */
 export function planStatusLabel(status: ApplicationStatus): string {
-	return STATUS_SYMBOLS[status].label;
+	return PLAN_STATUS_LABELS[status];
 }
 
 export function PlanStatus({ status }: Readonly<{ status: ApplicationStatus }>) {
-	const { icon: Icon, label, className } = STATUS_SYMBOLS[status];
+	const label = PLAN_STATUS_LABELS[status];
 	return (
 		<span className="inline-flex items-center gap-2 whitespace-nowrap text-[13px]" title={label}>
-			<Icon aria-hidden className={cn("size-[18px] shrink-0", className)} strokeWidth={2.25} />
+			<StatusIcon status={status} />
 			{label}
 		</span>
 	);
