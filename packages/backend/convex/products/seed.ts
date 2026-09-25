@@ -20,7 +20,7 @@ function eventProduct(
 	category: ProductCategory,
 	priceKroner: number | undefined,
 	paragraphs: string[],
-	maxStudents?: number,
+	{ maxStudents, eventType }: Pick<SeedProduct, "maxStudents" | "eventType"> = {},
 ): SeedProduct {
 	return {
 		name,
@@ -29,14 +29,21 @@ function eventProduct(
 		category,
 		unitPriceOre: priceKroner === undefined ? undefined : kronerToOre(priceKroner),
 		maxStudents,
+		eventType,
 	};
 }
 
 export const SEED_PRODUCTS: readonly SeedProduct[] = [
-	eventProduct(SEED_PRODUCT_NAMES.largeEvent, "event", 40_000, [
-		"En større bedriftspresentasjon holdes enten ved IFI eller i deres egne lokaler. Dere velger ønsket antall studenter selv, uten begrensninger.",
-		"Dere bestemmer selv innholdet og vi kan rådføre ved behov. Vanligvis holder bedriften presentasjon i 45-60 minutter, før vi går videre til mingling, mat og drikke.",
-	]),
+	eventProduct(
+		SEED_PRODUCT_NAMES.largeEvent,
+		"event",
+		40_000,
+		[
+			"En større bedriftspresentasjon holdes enten ved IFI eller i deres egne lokaler. Dere velger ønsket antall studenter selv, uten begrensninger.",
+			"Dere bestemmer selv innholdet og vi kan rådføre ved behov. Vanligvis holder bedriften presentasjon i 45-60 minutter, før vi går videre til mingling, mat og drikke.",
+		],
+		{ eventType: "large_presentation" },
+	),
 	eventProduct(
 		SEED_PRODUCT_NAMES.regularEvent,
 		"event",
@@ -44,7 +51,7 @@ export const SEED_PRODUCTS: readonly SeedProduct[] = [
 		[
 			"Her gjelder samme vilkår som ved stor bedriftspresentasjon, men med en antallsbegrensing på 40 studenter.",
 		],
-		40,
+		{ maxStudents: 40, eventType: "standard_presentation" },
 	),
 	eventProduct(
 		SEED_PRODUCT_NAMES.academicEvent,
@@ -54,9 +61,9 @@ export const SEED_PRODUCTS: readonly SeedProduct[] = [
 			"Denne typen presentasjon har en satt begrensning på maks 10 minutter presentasjon, etterfulgt av annet faglig innhold, eventuelt workshop.",
 			"Varighet for arrangementet avhenger av hva dere ønsker å gjennomføre. Av erfaring bør dette ikke vare særlig mer enn 1,5 time uten å ha noen form for matservering underveis. Dere står fritt til å velge innhold selv og gi gjerne en beskrivelse av hva dere ønsker å gjennomføre i søknaden deres. Maks 40 studenter.",
 		],
-		40,
+		{ maxStudents: 40, eventType: "workshop" },
 	),
-	eventProduct(SEED_PRODUCT_NAMES.socialEvent, "event", undefined, []),
+	eventProduct(SEED_PRODUCT_NAMES.socialEvent, "event", undefined, [], { eventType: "social" }),
 	eventProduct(SEED_PRODUCT_NAMES.externalEvent, "external_event", 15_000, [
 		'Eksterne arrangementer er aktiviteter gjennomført og organisert av bedriften uavhengig av Navet. Promotering vil skje via ifinavet.no under fanen "Eksterne arrangementer" og på Instagram hvor dere vil få to storyer.',
 		"Det at arrangementet er uavhengig av Navet betyr at Navet kun stiller med promotering av arrangementet. Navet deltar ikke i organiseringen eller påmelding av arrangementet, aktiviteten skal ikke ta plass på IFI, det kan ikke foregå på tirsdager og torsdager og arrangementet kan ikke etterligne det en bedriftspresentasjon tilbyr for studenter.",
