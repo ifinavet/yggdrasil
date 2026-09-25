@@ -19,7 +19,7 @@ export const MONTH_NAMES = Array.from({ length: 12 }, (_, month) =>
 );
 
 export function isEventSemester(value: string | null | undefined): value is EventSemester {
-	return EVENT_SEMESTERS.some((semester) => semester === value);
+	return EVENT_SEMESTERS.includes(value as EventSemester);
 }
 
 function osloYearAndMonth(timestamp: number) {
