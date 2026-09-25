@@ -9,8 +9,14 @@ import {
 	type TestBackend,
 } from "../../test/fixtures";
 import { internal } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
-import { ARCHIVE_MESSAGE, channelName, dueReminders, REMINDERS } from "./messages";
+import type { Doc, Id } from "../_generated/dataModel";
+import {
+	ARCHIVE_MESSAGE,
+	channelName,
+	dueReminders,
+	REMINDERS,
+	reportReadyMessage,
+} from "./messages";
 
 // Thursday 22 October 2026 at 16:15 in Oslo (CEST).
 const EVENT_START = Date.parse("2026-10-22T14:15:00Z");
@@ -84,6 +90,47 @@ async function channelRow(t: TestBackend, eventId: Id<"events">) {
 	);
 }
 
+async function insertCampaign(
+	t: TestBackend,
+	eventId: Id<"events">,
+	status: Doc<"feedbackCampaigns">["status"],
+) {
+	return t.run((ctx) =>
+		ctx.db.insert("feedbackCampaigns", {
+			eventId,
+			status,
+			opensAt: EVENT_START + DAY_IN_MS,
+			closesAt: EVENT_START + 15 * DAY_IN_MS,
+			generation: 1,
+		}),
+	);
+}
+
+async function insertReport(
+	t: TestBackend,
+	eventId: Id<"events">,
+	campaignId: Id<"feedbackCampaigns">,
+	status: Doc<"feedbackReports">["status"],
+	totalResponses: number,
+) {
+	return t.run((ctx) =>
+		ctx.db.insert("feedbackReports", {
+			campaignId,
+			eventId,
+			eventTitle: "Bedpres",
+			eventStart: EVENT_START,
+			companyName: "Testbedrift",
+			recipientEmail: "",
+			status,
+			questions: [],
+			totalResponses,
+			buildCursor: null,
+			revision: 0,
+			retentionAt: EVENT_START + 400 * DAY_IN_MS,
+		}),
+	);
+}
+
 beforeEach(() => {
 	vi.useFakeTimers();
 	featureFlags.slackBot.enabled = true;
@@ -145,7 +192,7 @@ describe("bedpres Slack channels", () => {
 		// A missed reminder is skipped in favour of the newest one.
 		slack.reset();
 		await sync(t, Date.parse("2026-10-20T07:00:00Z"));
-		expect(slack.messages()).toEqual([expect.stringContaining("«22.10 – Testbedrift»")]);
+		expect(slack.messages()).toEqual([expect.stringContaining("*To dager igjen.*")]);
 		expect((await channelRow(t, eventId))?.sentReminders).toContain("one-week");
 
 		await sync(t, Date.parse("2026-10-22T07:00:00Z"));
@@ -171,31 +218,95 @@ describe("bedpres Slack channels", () => {
 		expect(slack.calls).toEqual([]);
 	});
 
-	it("archives the morning the feedback form is sent", async () => {
+	it("announces the report when it is ready and archives the channel a day later", async () => {
 		const { t, companyId } = await setup();
+		const slack = fakeSlack({ users: { "leder@uio.no": "U1" } });
+		const eventId = await insertEvent(t, companyId, {
+			registrationOpens: REGISTRATION_OPENS,
+			eventStart: EVENT_START,
+			title: "Bedpres",
+			slug: "h26-bedpres",
+		});
+		await addOrganizer(t, eventId, "leder@uio.no", "hovedansvarlig");
+		await sync(t, CHANNEL_OPENS);
+		const campaignId = await insertCampaign(t, eventId, "open");
+
+		// The feedback period runs for two weeks, well past the three-day fallback.
+		await sync(t, EVENT_START + 4 * DAY_IN_MS);
+		const reportId = await insertReport(t, eventId, campaignId, "building", 0);
+		await sync(t, EVENT_START + 15 * DAY_IN_MS);
+		expect(slack.messages().some((text) => text.includes("Rapporten"))).toBe(false);
+
+		await t.run((ctx) => ctx.db.patch(reportId, { status: "draft", totalResponses: 12 }));
+		const ready = EVENT_START + 15 * DAY_IN_MS + HOUR_IN_MS;
+		slack.reset();
+		await sync(t, ready);
+		const [announcement] = slack.messages();
+		expect(slack.messages()).toHaveLength(1);
+		expect(announcement).toMatch(
+			/^<@U1> \*Rapporten fra Bedpres er klar til godkjenning\.\* 12 deltakere svarte\./,
+		);
+		expect(announcement).toContain(
+			"<https://bifrost.ifinavet.no/events/h26-bedpres/feedback/report|Åpne rapporten i Bifrost>",
+		);
+
+		slack.reset();
+		await sync(t, ready + DAY_IN_MS - 1);
+		expect(slack.messages()).toEqual([]);
+		expect(await channelRow(t, eventId)).toMatchObject({ status: "active" });
+
+		await sync(t, ready + DAY_IN_MS);
+		expect(slack.messages()).toEqual([ARCHIVE_MESSAGE]);
+		expect(await channelRow(t, eventId)).toMatchObject({ status: "archived" });
+	});
+
+	it("links to the local Bifrost and the event id in local development", async () => {
+		const { t, companyId } = await setup();
+		vi.stubEnv("CONVEX_CLOUD_URL", "http://127.0.0.1:3210");
+		vi.stubEnv("APP_ENV", "local");
 		const slack = fakeSlack();
 		const eventId = await insertEvent(t, companyId, {
 			registrationOpens: REGISTRATION_OPENS,
 			eventStart: EVENT_START,
 		});
-		await sync(t, EVENT_START - DAY_IN_MS);
-		const campaign = {
-			eventId,
-			opensAt: EVENT_START + DAY_IN_MS,
-			closesAt: EVENT_START + 15 * DAY_IN_MS,
-			generation: 1,
-		};
-		const campaignId = await t.run((ctx) =>
-			ctx.db.insert("feedbackCampaigns", { ...campaign, status: "scheduled" }),
+		await sync(t, CHANNEL_OPENS);
+		const campaignId = await insertCampaign(t, eventId, "closed");
+		await insertReport(t, eventId, campaignId, "draft", 3);
+
+		await sync(t, EVENT_START + 15 * DAY_IN_MS);
+		expect(slack.messages().at(-1)).toContain(
+			`<http://localhost:3001/events/${eventId}/feedback/report|`,
 		);
+	});
 
-		await sync(t, EVENT_START + 12 * HOUR_IN_MS);
+	it("archives three weeks after the event when the report never arrives", async () => {
+		const { t, companyId } = await setup();
+		fakeSlack();
+		const eventId = await insertEvent(t, companyId, {
+			registrationOpens: REGISTRATION_OPENS,
+			eventStart: EVENT_START,
+		});
+		await sync(t, CHANNEL_OPENS);
+		await insertCampaign(t, eventId, "open");
+
+		await sync(t, EVENT_START + 20 * DAY_IN_MS);
 		expect(await channelRow(t, eventId)).toMatchObject({ status: "active" });
-
-		await t.run((ctx) => ctx.db.patch(campaignId, { status: "open" }));
-		await sync(t, EVENT_START + 18 * HOUR_IN_MS);
+		await sync(t, EVENT_START + 22 * DAY_IN_MS);
 		expect(await channelRow(t, eventId)).toMatchObject({ status: "archived" });
-		expect(slack.calls.at(-1)?.method).toBe("conversations.archive");
+	});
+
+	it("treats a cancelled feedback campaign as no feedback", async () => {
+		const { t, companyId } = await setup();
+		fakeSlack();
+		const eventId = await insertEvent(t, companyId, {
+			registrationOpens: REGISTRATION_OPENS,
+			eventStart: EVENT_START,
+		});
+		await sync(t, CHANNEL_OPENS);
+		await insertCampaign(t, eventId, "cancelled");
+
+		await sync(t, EVENT_START + 4 * DAY_IN_MS);
+		expect(await channelRow(t, eventId)).toMatchObject({ status: "archived" });
 	});
 
 	it("sends reminders untagged when the hovedansvarlig is not in Slack", async () => {
@@ -486,6 +597,7 @@ describe("bedpres Slack copy", () => {
 		company: "Testbedrift",
 		eventStart: EVENT_START,
 		registrationOpens: REGISTRATION_OPENS,
+		slug: "h26-bedpres",
 	};
 
 	it("keeps channel names within Slack's limit", () => {
@@ -494,6 +606,7 @@ describe("bedpres Slack copy", () => {
 			company: "Æøå ".repeat(40),
 			eventStart: EVENT_START,
 			registrationOpens: REGISTRATION_OPENS,
+			slug: "",
 		};
 		expect(channelName(event, 3)).toHaveLength(80);
 		expect(channelName(event, 3)).toMatch(/^2026-10-22-aeoa-.*-3$/);
@@ -504,6 +617,13 @@ describe("bedpres Slack copy", () => {
 			expect(reminder.text(EVENT)).not.toContain("\u2014");
 			expect(reminder.at(EVENT)).toBeLessThan(EVENT_START + DAY_IN_MS);
 		}
+	});
+
+	it("words the report message by the number of answers", () => {
+		expect(reportReadyMessage(EVENT, 1, "https://x")).toContain("1 deltaker svarte.");
+		expect(reportReadyMessage(EVENT, 0, "https://x")).toBe(
+			"*Tilbakemeldingsperioden for Bedpres er over.* Ingen deltakere svarte, så det er ingen rapport å sende til bedriften. Kanalen arkiveres i morgen.",
+		);
 	});
 
 	it("sends nothing before the first reminder", () => {

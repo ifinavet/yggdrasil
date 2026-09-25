@@ -14,13 +14,24 @@ export type Organizer = { userId: Id<"users">; name: string; email: string; role
 
 export type ActiveChannel = Pick<
 	Doc<"bedpresChannels">,
-	"_id" | "channelId" | "sentReminders" | "invitedUserIds" | "reportedMissingUserIds"
+	| "_id"
+	| "channelId"
+	| "sentReminders"
+	| "invitedUserIds"
+	| "reportedMissingUserIds"
+	| "reportNotifiedAt"
 > & {
 	// Null when the event has been deleted.
 	event: ChannelEvent | null;
 	organizers: Organizer[];
-	feedbackSent: boolean;
+	feedback: FeedbackReport;
 };
+
+// "none" without a feedback campaign, "waiting" until its report is ready for approval.
+export type FeedbackReport =
+	| { status: "none" }
+	| { status: "waiting" }
+	| { status: "ready"; responses: number };
 
 // These queries only read data. Every Oslo-time rule runs in the Node sync action, because
 // @date-fns/tz computes in UTC inside Convex's default runtime.
@@ -32,6 +43,7 @@ async function channelEvent(ctx: QueryCtx, event: Doc<"events">): Promise<Channe
 		company: company?.name ?? "bedriften",
 		eventStart: event.eventStart,
 		registrationOpens: event.registrationOpens,
+		slug: event.slug ?? event._id,
 	};
 }
 
@@ -49,14 +61,19 @@ async function organizers(ctx: QueryCtx, eventId: Id<"events">): Promise<Organiz
 	return result;
 }
 
-/** Feedback forms go out automatically, so an opened campaign means the bedpres is done. */
-async function feedbackSent(ctx: QueryCtx, eventId: Id<"events">): Promise<boolean> {
+async function feedbackReport(ctx: QueryCtx, eventId: Id<"events">): Promise<FeedbackReport> {
 	const campaign = await ctx.db
 		.query("feedbackCampaigns")
 		.withIndex("by_eventId", (index) => index.eq("eventId", eventId))
 		.order("desc")
 		.first();
-	return campaign?.status === "open" || campaign?.status === "closed";
+	if (!campaign || campaign.status === "cancelled") return { status: "none" };
+	const report = await ctx.db
+		.query("feedbackReports")
+		.withIndex("by_campaignId", (index) => index.eq("campaignId", campaign._id))
+		.first();
+	if (!report || report.status === "building") return { status: "waiting" };
+	return { status: "ready", responses: report.totalResponses };
 }
 
 /** Upcoming events without a channel; the sync action decides whether a month is left. */
@@ -92,13 +109,20 @@ export const activeChannels = internalQuery({
 		const result: ActiveChannel[] = [];
 		for (const channel of channels) {
 			const { _id, channelId, sentReminders, invitedUserIds, reportedMissingUserIds } = channel;
-			const base = { _id, channelId, sentReminders, invitedUserIds, reportedMissingUserIds };
+			const base = {
+				_id,
+				channelId,
+				sentReminders,
+				invitedUserIds,
+				reportedMissingUserIds,
+				reportNotifiedAt: channel.reportNotifiedAt,
+			};
 			const event = await ctx.db.get(channel.eventId);
 			result.push({
 				...base,
 				event: event && (await channelEvent(ctx, event)),
 				organizers: event ? await organizers(ctx, event._id) : [],
-				feedbackSent: await feedbackSent(ctx, channel.eventId),
+				feedback: await feedbackReport(ctx, channel.eventId),
 			});
 		}
 		return result;
@@ -124,9 +148,10 @@ export const recordProgress = internalMutation({
 		sentReminders: v.optional(v.array(v.string())),
 		invitedUserIds: v.optional(v.array(v.id("users"))),
 		reportedMissingUserIds: v.optional(v.array(v.id("users"))),
+		reportNotifiedAt: v.optional(v.number()),
 		archived: v.optional(v.boolean()),
 	},
-	handler: async (ctx, { channelId, archived, ...added }): Promise<void> => {
+	handler: async (ctx, { channelId, archived, reportNotifiedAt, ...added }): Promise<void> => {
 		const channel = await ctx.db.get(channelId);
 		if (!channel) return;
 		await ctx.db.patch(channelId, {
@@ -135,6 +160,7 @@ export const recordProgress = internalMutation({
 			reportedMissingUserIds: [
 				...new Set([...channel.reportedMissingUserIds, ...(added.reportedMissingUserIds ?? [])]),
 			],
+			...(reportNotifiedAt === undefined ? {} : { reportNotifiedAt }),
 			...(archived ? { status: "archived" as const, archivedAt: Date.now() } : {}),
 		});
 	},

@@ -2,12 +2,18 @@
 
 // Node, because @date-fns/tz computes in UTC inside Convex's default runtime and every
 // reminder and archive time here is in Oslo time.
+import { BIFROST_LOCAL_URL, BIFROST_URL } from "@workspace/shared/constants/urls";
 import { featureFlags } from "@workspace/shared/feature-flags";
-import { channelArchiveDeadline, channelOpensAt } from "@workspace/shared/slack/time";
+import {
+	channelArchiveDeadline,
+	channelOpensAt,
+	reportWaitDeadline,
+} from "@workspace/shared/slack/time";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { type ActionCtx, internalAction } from "../_generated/server";
-import type { ActiveChannel } from "./channels";
+import { isLocalDevelopment } from "../auth/local";
+import type { ActiveChannel, Organizer } from "./channels";
 import { SlackApiError, type SlackClient, slackClient } from "./client";
 import {
 	ARCHIVE_MESSAGE,
@@ -17,6 +23,8 @@ import {
 	membersMessage,
 	missingMemberMessage,
 	reminderMessage,
+	reportReadyMessage,
+	reportUrl,
 	welcomeMessage,
 } from "./messages";
 
@@ -61,11 +69,27 @@ async function findObservers(slack: SlackClient): Promise<string[]> {
 	return ids;
 }
 
-/** Done once the feedback form has gone out, or three days after the event without one. */
-function isFinished(event: ChannelEvent, feedbackSent: boolean, now: number): boolean {
-	return (
-		now >= channelArchiveDeadline(event.eventStart) || (feedbackSent && now >= event.eventStart)
-	);
+const DAY = 24 * 60 * 60 * 1000;
+
+/**
+ * A day after the report-ready message, so people have time to see it. Without feedback the
+ * channel closes three days after the event, and three weeks after if the report never arrives.
+ */
+function isFinished(channel: ActiveChannel, event: ChannelEvent, now: number): boolean {
+	if (channel.reportNotifiedAt !== undefined) return now >= channel.reportNotifiedAt + DAY;
+	if (channel.feedback.status === "none") return now >= channelArchiveDeadline(event.eventStart);
+	return channel.feedback.status === "waiting" && now >= reportWaitDeadline(event.eventStart);
+}
+
+/** Slack IDs of the hovedansvarlig, tagged so a message notifies them. */
+async function hovedansvarligIds(slack: SlackClient, organizers: Organizer[]): Promise<string[]> {
+	const ids = [];
+	for (const organizer of organizers) {
+		if (organizer.role !== "hovedansvarlig") continue;
+		const slackUserId = await slack.findUserIdByEmail(organizer.email);
+		if (slackUserId) ids.push(slackUserId);
+	}
+	return ids;
 }
 
 async function syncChannel(
@@ -79,6 +103,7 @@ async function syncChannel(
 		sentReminders?: string[];
 		invitedUserIds?: Id<"users">[];
 		reportedMissingUserIds?: Id<"users">[];
+		reportNotifiedAt?: number;
 		archived?: boolean;
 	}) =>
 		ctx.runMutation(internal.slack.channels.recordProgress, {
@@ -87,7 +112,7 @@ async function syncChannel(
 		});
 
 	const { event } = channel;
-	if (!event || isFinished(event, channel.feedbackSent, now)) {
+	if (!event || isFinished(channel, event, now)) {
 		if (!channel.sentReminders.includes("goodbye")) {
 			await slack.postMessage(channel.channelId, ARCHIVE_MESSAGE);
 			await record({ sentReminders: ["goodbye"] });
@@ -137,15 +162,22 @@ async function syncChannel(
 
 	const { post, handled } = dueReminders(event, now, channel.sentReminders);
 	if (post) {
-		const tagged = [];
-		for (const organizer of channel.organizers) {
-			if (organizer.role !== "hovedansvarlig") continue;
-			const slackUserId = await slack.findUserIdByEmail(organizer.email);
-			if (slackUserId) tagged.push(slackUserId);
-		}
+		const tagged = await hovedansvarligIds(slack, channel.organizers);
 		await slack.postMessage(channel.channelId, reminderMessage(post.text(event), tagged));
 	}
 	if (handled.length > 0) await record({ sentReminders: handled });
+
+	if (channel.feedback.status === "ready" && channel.reportNotifiedAt === undefined) {
+		const bifrostUrl = isLocalDevelopment() ? BIFROST_LOCAL_URL : BIFROST_URL;
+		const text = reportReadyMessage(
+			event,
+			channel.feedback.responses,
+			reportUrl(event, bifrostUrl),
+		);
+		const tagged = await hovedansvarligIds(slack, channel.organizers);
+		await slack.postMessage(channel.channelId, reminderMessage(text, tagged));
+		await record({ reportNotifiedAt: now });
+	}
 }
 
 /** Reconciles Slack with Bifrost: creates, fills, reminds and archives bedpres channels. */

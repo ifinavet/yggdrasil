@@ -11,6 +11,8 @@ export const slackSchema = {
 		invitedUserIds: v.array(v.id("users")),
 		// Organizers without a Slack account are announced once, but looked up again every run.
 		reportedMissingUserIds: v.array(v.id("users")),
+		// When the channel was told the feedback report is ready; it is archived a day later.
+		reportNotifiedAt: v.optional(v.number()),
 		archivedAt: v.optional(v.number()),
 	})
 		.index("by_eventId", ["eventId"])

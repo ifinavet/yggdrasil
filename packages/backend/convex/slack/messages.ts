@@ -9,6 +9,8 @@ export type ChannelEvent = {
 	company: string;
 	eventStart: number;
 	registrationOpens: number;
+	// The event's slug, or its id when it has none; Bifrost accepts both in URLs.
+	slug: string;
 };
 
 type Reminder = {
@@ -20,12 +22,6 @@ type Reminder = {
 const HOUR = 60 * 60 * 1000;
 const CHECKLIST_URL =
 	"https://docs.google.com/document/d/1_kDHIg3P9HxWOX90wUEVhaBmFtMJig1gSMhzPERbqQA/edit?usp=sharing";
-
-/** Drive folder name from the checklist, for example «22.10 – Bekk». */
-function driveFolder({ company, eventStart }: ChannelEvent): string {
-	const [, month, day] = formatEventDate(eventStart).split("-");
-	return `${day}.${month} – ${company}`;
-}
 
 // Follows the responsible's checklist for a bedpres. Times are 09:00 in Oslo unless noted.
 export const REMINDERS: readonly Reminder[] = [
@@ -63,11 +59,9 @@ export const REMINDERS: readonly Reminder[] = [
 	{
 		key: "two-days",
 		at: ({ eventStart }) => daysBeforeAt(eventStart, 2),
-		text: (event) =>
+		text: () =>
 			[
 				"*To dager igjen.* Har dere:",
-				"• kopiert rapportmalen og tilbakemeldingsskjemaet, og fylt inn bedriftsnavnet?",
-				`• opprettet Drive-mappen «${driveFolder(event)}»?`,
 				"• laget et «Oppmøte»-ark, i tilfelle oppmøtet må tas manuelt?",
 				"• sendt ny påminnelse-mail med praktisk info, som legitimasjon og forberedelser?",
 			].join("\n"),
@@ -93,8 +87,8 @@ export const REMINDERS: readonly Reminder[] = [
 			[
 				"*Takk for i dag!* Nå gjenstår det å:",
 				"• registrere oppmøte i Bifrost, om det ikke er gjort. Tilbakemeldingsskjemaet sendes automatisk i morgen, men bare til dem som er registrert som møtt.",
-				"• fylle ut rapporten, lagre den i Drive-mappen og sende PDF til kontaktpersonen i bedriften.",
-				"• legge oppmøte-arket i samme mappe, om dere brukte det.",
+				"• se gjennom og godkjenne rapporten til bedriften. Dere får beskjed her når den er klar, om omtrent to uker.",
+				"• dele oppmøte-arket med arrangementsansvarlig, om dere brukte det.",
 				"• føre utlegg for alt som er kjøpt inn. Dette er veldig viktig, fordi Navet er pliktig til å føre regnskap.",
 			].join("\n"),
 	},
@@ -113,7 +107,7 @@ export function dueReminders(event: ChannelEvent, now: number, sent: readonly st
 export function welcomeMessage({ title, company, eventStart }: ChannelEvent): string {
 	return [
 		`:wave: Hei! Denne kanalen er for bedpressen *${title}* med ${company}, ${formatEventStart(eventStart)}.`,
-		`Her får dere påminnelser underveis, basert på <${CHECKLIST_URL}|sjekklisten>. Kanalen arkiveres når tilbakemeldingsskjemaet er sendt ut etter arrangementet.`,
+		`Her får dere påminnelser underveis, basert på <${CHECKLIST_URL}|sjekklisten>. Kanalen arkiveres dagen etter at rapporten fra tilbakemeldingene er klar, omtrent to uker etter arrangementet.`,
 		"",
 		"*Dette bør gjøres nå, 4–5 uker før:*",
 		"• Send første mail til bedriften (bruk mail-malen), eller foreslå et kort planleggingsmøte. Kontaktinfo ligger i semesterplanen.",
@@ -137,6 +131,20 @@ export function missingMemberMessage({ name, email }: { name: string; email: str
 /** Tags the hovedansvarlig, so the reminder notifies them and not only marks the channel unread. */
 export function reminderMessage(text: string, slackUserIds: string[]): string {
 	return [...slackUserIds.map((id) => `<@${id}>`), text].join(" ");
+}
+
+export function reportUrl({ slug }: ChannelEvent, bifrostUrl: string): string {
+	return `${bifrostUrl}/events/${slug}/feedback/report`;
+}
+
+export function reportReadyMessage(event: ChannelEvent, responses: number, url: string): string {
+	if (responses === 0)
+		return `*Tilbakemeldingsperioden for ${event.title} er over.* Ingen deltakere svarte, så det er ingen rapport å sende til bedriften. Kanalen arkiveres i morgen.`;
+	return [
+		`*Rapporten fra ${event.title} er klar til godkjenning.* ${responses} ${responses === 1 ? "deltaker" : "deltakere"} svarte.`,
+		`Se gjennom rapporten, skjul svar som ikke skal deles, og godkjenn den, så sendes den til bedriften: <${url}|Åpne rapporten i Bifrost>`,
+		"Kanalen arkiveres i morgen.",
+	].join("\n");
 }
 
 export const ARCHIVE_MESSAGE = "Bedpressen er ferdig, og kanalen arkiveres nå. Takk for innsatsen!";

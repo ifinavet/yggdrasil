@@ -18,6 +18,11 @@ export function channelArchiveDeadline(eventStart: number): number {
 	return addDays(new TZDate(eventStart, OSLO), 3).getTime();
 }
 
+/** Fallback when the feedback report never gets ready: three weeks after the event. */
+export function reportWaitDeadline(eventStart: number): number {
+	return addDays(new TZDate(eventStart, OSLO), 21).getTime();
+}
+
 /** 09:00 in Oslo the given number of calendar days before the event. */
 export function daysBeforeAt(eventStart: number, days: number): number {
 	return osloMorning(addDays(new TZDate(eventStart, OSLO), -days));
