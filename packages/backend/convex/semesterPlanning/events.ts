@@ -1,8 +1,10 @@
 import { EVENT_TITLE_PREFIX } from "@workspace/shared/semester/labels";
+import { proposeTeams } from "@workspace/shared/semester/team";
 import { osloDateTimeToEpoch, osloToday } from "@workspace/shared/semester/time";
 import { ConvexError } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
+import { internalRoles } from "../auth/accessRights";
 import { insertEventWithOrganizers } from "../events/helper";
 import { type Actor, logApplicationActivity } from "./applicationLifecycle";
 import { findCompanyProfile, requireValidHelpers } from "./applications/helper";
@@ -11,6 +13,70 @@ import { requireSemester } from "./semesters/helper";
 // Helpers for the events semester planning makes. They register no Convex functions.
 
 const PLACEHOLDER = "Mer info kommer";
+
+/** Well above how many members and events Navet has in a semester; keeps the reads bounded. */
+const READ_LIMIT = 500;
+
+/**
+ * Fills in the Navet team for applications that have no event yet, with {@link proposeTeams}:
+ * internal members are picked by how many events they organize in the semester's dates. Someone
+ * already chosen is kept.
+ *
+ * @param {MutationCtx} ctx - The Convex mutation context.
+ * @param {Doc<"semesters">} semester - The semester.
+ * @param {Doc<"companyApplications">[]} applications - The applications to fill in.
+ *
+ * @returns {Promise<Doc<"companyApplications">[]>} - The applications, with their teams.
+ */
+export async function proposeNavetTeams(
+	ctx: MutationCtx,
+	semester: Doc<"semesters">,
+	applications: Doc<"companyApplications">[],
+): Promise<Doc<"companyApplications">[]> {
+	const rights = await Promise.all(
+		internalRoles.map((role) =>
+			ctx.db
+				.query("accessRights")
+				.withIndex("by_role", (q) => q.eq("role", role))
+				.take(READ_LIMIT),
+		),
+	);
+
+	const load = new Map<Id<"users">, number>();
+	const { firstDate, lastDate } = semester;
+	if (firstDate && lastDate) {
+		const events = await ctx.db
+			.query("events")
+			.withIndex("by_eventStart", (q) =>
+				q
+					.gte("eventStart", osloDateTimeToEpoch(firstDate, "00:00"))
+					.lte("eventStart", osloDateTimeToEpoch(lastDate, "23:59")),
+			)
+			.take(READ_LIMIT);
+		for (const event of events) {
+			const organizers = await ctx.db
+				.query("eventOrganizers")
+				.withIndex("by_eventId", (q) => q.eq("eventId", event._id))
+				.take(READ_LIMIT);
+			for (const { userId } of organizers) load.set(userId, (load.get(userId) ?? 0) + 1);
+		}
+	}
+
+	const needTeam = applications.filter((application) => !application.eventId);
+	const teams = proposeTeams(
+		needTeam.map(({ _id, responsibleUserId, helperUserIds }) => ({
+			id: _id,
+			responsibleUserId,
+			helperUserIds,
+		})),
+		rights.flat().map((right) => right.userId),
+		load,
+	);
+	await Promise.all(teams.map(({ id, ...team }) => ctx.db.patch(id, team)));
+
+	const byId = new Map(teams.map(({ id, ...team }) => [id, team]));
+	return applications.map((application) => ({ ...application, ...byId.get(application._id) }));
+}
 
 /**
  * Makes sure a confirmed application has an unpublished draft event on its date, hosted by the

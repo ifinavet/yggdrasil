@@ -6,6 +6,8 @@ import {
 	asUser,
 	grantRole,
 	insertApplication,
+	insertEvent,
+	insertOrganizer,
 	insertSemester,
 	insertUser,
 	refusalMessageFrom,
@@ -483,15 +485,48 @@ describe("finalizePlan", () => {
 		});
 		expect((await applicationById(t, applicationId)).eventId).toBe(event?._id);
 		const organizers = await t.run((ctx) => ctx.db.query("eventOrganizers").collect());
-		expect(organizers.map((row) => [row.userId, row.role])).toEqual([
+		// The hand-picked team is kept; the last medhjelper is proposed.
+		expect(organizers.map((row) => [row.userId, row.role]).slice(0, 2)).toEqual([
 			[responsible._id, "hovedansvarlig"],
 			[helper._id, "medhjelper"],
 		]);
+		expect(organizers).toHaveLength(3);
 		const [linked] = await activityFor(t, applicationId);
 		expect(linked).toMatchObject({
 			type: "event_linked",
 			actorUserId: (await semesterById(t, semesterId)).planFinalizedBy,
 		});
+	});
+
+	it("proposes a Navet team for applications without one, least loaded first", async () => {
+		const { t, companyId, semesterId, applicationId, responsible, helper, editor } =
+			await withConfirmedApplications();
+		await t.run((ctx) =>
+			ctx.db.patch(applicationId, { responsibleUserId: undefined, helperUserIds: undefined }),
+		);
+		// Emil already organizes an event in the semester, so he is picked last.
+		const otherEventId = await insertEvent(t, companyId, {
+			eventStart: Date.parse("2027-03-02T15:15:00Z"),
+		});
+		await insertOrganizer(t, otherEventId, responsible._id);
+
+		await editor.mutation(mutations.finalizePlan, { semesterId });
+
+		const { eventId, responsibleUserId, helperUserIds } = await applicationById(t, applicationId);
+		expect(helperUserIds).toHaveLength(2);
+		expect(responsibleUserId).toBe(helper._id);
+		expect(helperUserIds?.at(-1)).toBe(responsible._id);
+		const organizers = await t.run((ctx) =>
+			ctx.db
+				.query("eventOrganizers")
+				.withIndex("by_eventId", (q) => q.eq("eventId", eventId as Id<"events">))
+				.collect(),
+		);
+		expect(organizers.map((row) => row.role).sort()).toEqual([
+			"hovedansvarlig",
+			"medhjelper",
+			"medhjelper",
+		]);
 	});
 
 	it("is safe to repeat, and moves a draft whose date changed", async () => {
