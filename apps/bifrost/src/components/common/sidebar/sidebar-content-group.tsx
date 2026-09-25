@@ -9,6 +9,7 @@ import {
 	SidebarMenuItem,
 } from "@workspace/ui/components/sidebar";
 import {
+	BanknoteIcon,
 	BookOpenIcon,
 	BriefcaseIcon,
 	BuildingIcon,
@@ -20,6 +21,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useProductsEnabled } from "@/components/products/use-products-enabled";
 
 const paths = {
 	superAdmin: [{ title: "Skjemaer", icon: ClipboardListIcon, path: "/feedback-forms" }],
@@ -63,6 +65,12 @@ const paths = {
 			icon: GitForkIcon,
 			path: "/organization",
 		},
+		{
+			title: "Produkter",
+			icon: BanknoteIcon,
+			path: "/products",
+			requiresProducts: true,
+		},
 	],
 };
 
@@ -76,13 +84,17 @@ export function SidebarContentGroup({
 	extraItems?: keyof typeof paths;
 }>) {
 	const rootPathSegment = usePathname().split("/")[1];
+	const productsEnabled = useProductsEnabled();
+	const visibleItems = [...paths[items], ...(extraItems ? paths[extraItems] : [])].filter(
+		(item) => productsEnabled || !("requiresProducts" in item),
+	);
 
 	return (
 		<SidebarGroup>
 			<SidebarGroupLabel>{title}</SidebarGroupLabel>
 			<SidebarGroupContent>
 				<SidebarMenu>
-					{[...paths[items], ...(extraItems ? paths[extraItems] : [])].map((item) => (
+					{visibleItems.map((item) => (
 						<SidebarMenuItem key={item.title}>
 							<SidebarMenuButton
 								tooltip={item.title}

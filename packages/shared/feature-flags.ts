@@ -8,9 +8,13 @@ export const featureFlags = {
 		// Allows approved company report emails.
 		reportEmailsEnabled: true,
 	},
+	products: {
+		uiEnabled: false,
+	},
 };
 
 export const browserOptInKeys = {
+	productsPreview: "products-preview",
 	huginFeedbackPreview: "hugin-feedback-preview",
 	huginFeedbackTestSend: "hugin-feedback-testsend",
 } as const;

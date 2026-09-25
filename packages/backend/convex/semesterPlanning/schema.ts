@@ -8,12 +8,8 @@ import {
 import { SEMESTER_TERMS } from "@workspace/shared/time";
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
+import { oneOf } from "../lib/validators";
 import { studentDegree } from "../users/students/schema";
-
-/** A validator for one of the values in a shared tuple, so the schema and the labels agree. */
-function oneOf<T extends string>(values: readonly [T, ...T[]]) {
-	return v.union(...values.map((value) => v.literal(value)));
-}
 
 // Calendar days are Oslo-local "YYYY-MM-DD" strings, so a Tuesday never shifts with the time zone.
 // Moments (sent, responded, consented) are epoch milliseconds, like the rest of the backend.
