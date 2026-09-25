@@ -3,7 +3,7 @@
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { defaultFeedbackFields } from "@workspace/shared/feedback";
-import { formatFeedbackDate } from "@workspace/shared/feedback/time";
+import { formatOsloDate } from "@workspace/shared/time";
 import { Button } from "@workspace/ui/components/button";
 import {
 	Select,
@@ -225,7 +225,7 @@ function FormPanel({
 							<SelectItem value={draftVersion}>Utkast</SelectItem>
 							{versions.map((version) => (
 								<SelectItem key={version._id} value={version._id}>
-									Versjon {version.number}, {formatFeedbackDate(version.publishedAt, "d. MMM yyyy")}
+									Versjon {version.number}, {formatOsloDate(version.publishedAt, "d. MMM yyyy")}
 								</SelectItem>
 							))}
 						</SelectContent>
