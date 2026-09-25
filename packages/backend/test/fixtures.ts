@@ -52,6 +52,7 @@ export async function setup() {
 	t.registerComponent("workflow/workpool", workpoolTest.schema, workpool);
 	t.registerComponent("workflow/workpool/batchWorker", batchWorkerTest.schema, batchWorker);
 	resendTest.register(t, "feedbackResend");
+	resendTest.register(t, "resend");
 
 	const companyId = await t.run(async (ctx) => {
 		const image = await ctx.storage.store(new Blob(["logo"]));

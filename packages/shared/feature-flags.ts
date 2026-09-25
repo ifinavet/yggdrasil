@@ -11,10 +11,14 @@ export const featureFlags = {
 	products: {
 		uiEnabled: false,
 	},
+	jobListingOrders: {
+		enabled: false,
+	},
 };
 
 export const browserOptInKeys = {
 	productsPreview: "products-preview",
+	jobListingOrdersPreview: "job-listing-orders-preview",
 	huginFeedbackPreview: "hugin-feedback-preview",
 	huginFeedbackTestSend: "hugin-feedback-testsend",
 } as const;
