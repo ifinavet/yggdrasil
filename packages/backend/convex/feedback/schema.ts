@@ -27,6 +27,7 @@ export const feedbackSchema = {
 	feedbackForms: defineTable({
 		name: v.string(),
 		isDefault: v.boolean(),
+		isHidden: v.optional(v.boolean()),
 		draftFields: v.optional(v.array(feedbackField)),
 	}).index("by_isDefault", ["isDefault"]),
 	formVersions: defineTable({

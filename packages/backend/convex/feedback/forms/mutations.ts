@@ -55,9 +55,21 @@ export const setDefault = mutation({
 	args: { formId: v.id("feedbackForms") },
 	handler: async (ctx, { formId }) => {
 		await requireRole(ctx, superAdminRoles);
-		await getFeedbackFormOrThrow(ctx, formId);
+		const feedbackForm = await getFeedbackFormOrThrow(ctx, formId);
+		if (feedbackForm.isHidden) throw new ConvexError("Vis skjemaet før det settes som standard.");
 		if (!(await getLatestPublishedVersion(ctx, formId)))
 			throw new ConvexError("Publiser skjemaet før det settes som standard.");
 		await markFormAsDefault(ctx, formId);
+	},
+});
+
+export const setHidden = mutation({
+	args: { formId: v.id("feedbackForms"), isHidden: v.boolean() },
+	handler: async (ctx, { formId, isHidden }) => {
+		await requireRole(ctx, superAdminRoles);
+		const feedbackForm = await getFeedbackFormOrThrow(ctx, formId);
+		if (isHidden && feedbackForm.isDefault)
+			throw new ConvexError("Standardskjemaet kan ikke skjules.");
+		await ctx.db.patch(formId, { isHidden });
 	},
 });

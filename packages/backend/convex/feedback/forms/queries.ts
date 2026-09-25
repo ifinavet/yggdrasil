@@ -16,6 +16,8 @@ export const getFeedbackForms = query({
 					_id: feedbackForm._id,
 					name: feedbackForm.name,
 					isDefault: feedbackForm.isDefault,
+					isHidden: feedbackForm.isHidden ?? false,
+					hasDraft: feedbackForm.draftFields !== undefined,
 					publishedVersion: await getLatestPublishedVersion(ctx, feedbackForm._id),
 				})),
 			),
@@ -42,6 +44,26 @@ export const getVersion = query({
 			.withIndex("by_formVersionId_and_order", (index) => index.eq("formVersionId", versionId))
 			.take(40);
 		return { ...publishedVersion, fields: versionFields };
+	},
+});
+
+export const getVersions = query({
+	args: { formId: v.id("feedbackForms") },
+	handler: async (ctx, { formId }) => {
+		await requireRole(ctx, internalRoles);
+		await getFeedbackFormOrThrow(ctx, formId);
+		const versions = await ctx.db
+			.query("formVersions")
+			.withIndex("by_formDefinitionId_and_publishedAt", (index) =>
+				index.eq("formDefinitionId", formId),
+			)
+			.order("desc")
+			.take(100);
+		return versions.map((version, index) => ({
+			_id: version._id,
+			publishedAt: version.publishedAt,
+			number: versions.length - index,
+		}));
 	},
 });
 
