@@ -23,7 +23,7 @@ export default function InternalMemberSelect({
 		<SearchSelect
 			aria-labelledby={labelId}
 			aria-invalid={invalid}
-			className="w-[200px]"
+			className="w-full sm:w-[200px]"
 			items={internalMembers?.map((member) => ({ id: member.userId, label: member.fullName }))}
 			value={value}
 			onChange={(userId) => {

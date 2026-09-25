@@ -89,7 +89,7 @@ export default function Organizers({
 		<Field className="flex flex-col">
 			<FieldLabel id={labelId}>Ansvarlige</FieldLabel>
 			<div className="flex flex-col gap-4">
-				<div className="flex gap-4">
+				<div className="flex flex-col gap-4 sm:flex-row">
 					<InternalMemberSelect
 						labelId={labelId}
 						value={pendingMemberId}
@@ -101,7 +101,7 @@ export default function Organizers({
 						}}
 						value={selectedOrganizerType}
 					>
-						<SelectTrigger className="w-[180px]">
+						<SelectTrigger className="w-full sm:w-[180px]">
 							<SelectValue placeholder="Ansvarlig type" />
 						</SelectTrigger>
 						<SelectContent>
