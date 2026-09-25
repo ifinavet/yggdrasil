@@ -22,12 +22,26 @@ export const productFields = {
 	maxStudents: v.optional(v.number()),
 };
 
+export const productSnapshot = v.object({
+	productId: v.id("products"),
+	name: v.string(),
+	unitPriceOre: v.optional(v.number()),
+});
+
+export type ProductSnapshot = Infer<typeof productSnapshot>;
+
+export const soldProductFields = {
+	product: v.optional(productSnapshot),
+	productGuessed: v.optional(v.boolean()),
+};
+
 export const productChangeAction = v.union(
 	v.literal("created"),
 	v.literal("updated"),
 	v.literal("archived"),
 	v.literal("restored"),
 	v.literal("reordered"),
+	v.literal("assigned"),
 );
 
 export const productFieldChange = v.object({

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { notifyProductMutation } from "./notify-product-mutation";
 import ProductForm from "./product-form";
 import { emptyProductFormValues, toProductInput } from "./product-form-values";
+import { OfferPreviewPanel } from "./product-panels";
 
 export function CreateProduct() {
 	const router = useRouter();
@@ -13,8 +14,10 @@ export function CreateProduct() {
 
 	return (
 		<ProductForm
+			title="Nytt produkt"
 			defaultValues={emptyProductFormValues}
 			submitLabel="Opprett produkt"
+			aside={(values) => <OfferPreviewPanel values={values} />}
 			onSubmit={async (values) => {
 				const created = await notifyProductMutation(
 					create(toProductInput(values)),

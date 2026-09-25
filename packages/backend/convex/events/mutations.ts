@@ -5,6 +5,7 @@ import { internalMutation, type MutationCtx, mutation } from "../_generated/serv
 import { internalRoles, requireRole } from "../auth/accessRights";
 import { getCurrentUserOrThrow } from "../auth/currentUser";
 import { syncFeedbackCampaign } from "../feedback/delivery/campaigns";
+import { eventProductFields } from "../products/sales";
 import { eventSlug, insertEventWithOrganizers } from "./helper";
 import { makeStatusPending } from "./registrations/mutations";
 import { organizerRoleValidator } from "./schema";
@@ -48,6 +49,7 @@ export const update = mutation({
 		externalUrl: v.optional(v.string()),
 		hostingCompany: v.id("companies"),
 		published: v.boolean(),
+		productId: v.optional(v.id("products")),
 		organizers: v.array(
 			v.object({
 				userId: v.id("users"),
@@ -73,6 +75,7 @@ export const update = mutation({
 			externalUrl,
 			hostingCompany,
 			published,
+			productId,
 			organizers,
 		},
 	) => {
@@ -115,6 +118,7 @@ export const update = mutation({
 			published,
 			slug,
 			formId,
+			...(await eventProductFields(ctx, productId, event)),
 		});
 
 		await syncFeedbackCampaign(ctx, eventId);
@@ -301,6 +305,7 @@ export const create = mutation({
 		externalUrl: v.optional(v.string()),
 		hostingCompany: v.id("companies"),
 		published: v.boolean(),
+		productId: v.optional(v.id("products")),
 		organizers: v.array(
 			v.object({
 				userId: v.id("users"),
@@ -325,6 +330,7 @@ export const create = mutation({
 			externalUrl,
 			hostingCompany,
 			published,
+			productId,
 			organizers,
 		},
 	) => {
@@ -347,6 +353,7 @@ export const create = mutation({
 				externalUrl,
 				hostingCompany,
 				published,
+				...(await eventProductFields(ctx, productId)),
 			},
 			organizers,
 		);

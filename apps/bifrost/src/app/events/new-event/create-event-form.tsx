@@ -29,6 +29,7 @@ export default function CreateEventForm() {
 			id: "",
 		},
 		externalUrl: "",
+		productId: undefined,
 	};
 
 	const router = useRouter();
@@ -47,6 +48,7 @@ export default function CreateEventForm() {
 			ageRestriction: values.ageRestrictions,
 			externalEvent: values.externalEvent,
 			externalUrl: values.externalUrl,
+			productId: values.productId as Id<"products"> | undefined,
 			hostingCompany: values.hostingCompany.id as Id<"companies">,
 			organizers: values.organizers.map((organizer) => ({
 				userId: organizer.userId as Id<"users">,
@@ -77,6 +79,7 @@ export default function CreateEventForm() {
 			onDefaultSubmitAction={onDefaultSubmit}
 			onSecondarySubmitAction={onHiddenSubmit}
 			defaultValues={defaultValues}
+			productRequired
 		/>
 	);
 }

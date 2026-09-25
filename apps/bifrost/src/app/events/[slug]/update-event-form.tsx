@@ -38,6 +38,7 @@ export default function UpdateEventForm({
 			name: event.hostingCompanyName,
 		},
 		externalUrl: event.externalUrl || "",
+		productId: event.product?.productId,
 	};
 
 	const handleSubmit = (values: EventFormValues, published: boolean) => {
@@ -55,6 +56,7 @@ export default function UpdateEventForm({
 			ageRestriction: values.ageRestrictions,
 			externalEvent: values.externalEvent,
 			externalUrl: values.externalUrl,
+			productId: values.productId as Id<"products"> | undefined,
 			hostingCompany: values.hostingCompany.id as Id<"companies">,
 			organizers: values.organizers.map((organizer) => ({
 				userId: organizer.userId as Id<"users">,
@@ -89,6 +91,7 @@ export default function UpdateEventForm({
 			onSecondarySubmitAction={onSubmit}
 			onTertiarySubmitAction={onHideSubmit}
 			defaultValues={defaultValues}
+			currentProduct={event.product}
 		/>
 	);
 }

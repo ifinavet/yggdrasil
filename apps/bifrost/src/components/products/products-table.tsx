@@ -1,10 +1,12 @@
 "use client";
 
 import { api } from "@workspace/backend/convex/api";
-import type { Doc } from "@workspace/backend/convex/dataModel";
-import { formatNok, PRODUCT_CATEGORY_LABELS } from "@workspace/shared/products";
-import { Badge } from "@workspace/ui/components/badge";
+import { productPriceLabel } from "@workspace/shared/products";
 import { Button } from "@workspace/ui/components/button";
+import {
+	ProductCategoryBadge,
+	ProductStatusBadge,
+} from "@workspace/ui/components/products/product-badges";
 import {
 	Table,
 	TableBody,
@@ -22,13 +24,6 @@ import { moveProductId } from "./product-history-format";
 
 const HEAD = "h-10 px-3 text-[13px] text-muted-foreground";
 const CELL = "px-3 py-2.5";
-
-function priceLabel(product: Doc<"products">) {
-	if (product.unitPriceOre !== undefined) return formatNok(product.unitPriceOre);
-	const firstTier = product.volumeTiers?.[0];
-	if (firstTier) return `${formatNok(firstTier.totalPriceOre)} for ${firstTier.quantity}`;
-	return "Ingen fast pris";
-}
 
 export function ProductsTable() {
 	const products = useQuery(api.products.queries.listAll, {});
@@ -67,12 +62,12 @@ export function ProductsTable() {
 								{product.name}
 							</Link>
 						</TableCell>
-						<TableCell className={CELL}>{PRODUCT_CATEGORY_LABELS[product.category]}</TableCell>
-						<TableCell className={CELL}>{priceLabel(product)}</TableCell>
 						<TableCell className={CELL}>
-							<Badge variant={product.active ? "default" : "secondary"}>
-								{product.active ? "Aktiv" : "Arkivert"}
-							</Badge>
+							<ProductCategoryBadge category={product.category} />
+						</TableCell>
+						<TableCell className={CELL}>{productPriceLabel(product)}</TableCell>
+						<TableCell className={CELL}>
+							<ProductStatusBadge active={product.active} />
 						</TableCell>
 						<TableCell className={CELL}>
 							<div className="flex gap-1">

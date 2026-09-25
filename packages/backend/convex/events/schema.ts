@@ -1,6 +1,7 @@
 import { ORGANIZER_ROLES } from "@workspace/shared/constants";
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
+import { soldProductFields } from "../products/schema";
 
 export const organizerRoleValidator = v.union(...ORGANIZER_ROLES.map((role) => v.literal(role)));
 
@@ -24,6 +25,7 @@ export const eventsSchema = {
 		feedbackFormId: v.optional(v.id("feedbackForms")),
 		slug: v.optional(v.string()),
 		formId: v.optional(v.id("form")),
+		...soldProductFields,
 	})
 		.index("by_eventStart", ["eventStart"])
 		.index("by_registrationOpens", ["registrationOpens"])

@@ -66,6 +66,32 @@ function oreToKronerField(ore: number | undefined): string {
 	return ore === undefined ? "" : String(oreToKroner(ore));
 }
 
+const isAmount = (value: number | undefined): value is number =>
+	value !== undefined && Number.isFinite(value);
+
+export function priceWithVatOre(values: Pick<ProductFormValues, "unitPrice" | "vatRate">) {
+	const priceOre = kronerFieldToOre(values.unitPrice);
+	const vatRate = parseDecimal(values.vatRate);
+	if (!isAmount(priceOre) || !isAmount(vatRate)) return undefined;
+	return Math.round(priceOre * (1 + vatRate / 100));
+}
+
+export function perListingOre(tier: Pick<TierFormValues, "quantity" | "totalPrice">) {
+	const quantity = parseDecimal(tier.quantity);
+	const totalOre = kronerFieldToOre(tier.totalPrice);
+	if (!isAmount(quantity) || !isAmount(totalOre) || quantity <= 0) return undefined;
+	return Math.round(totalOre / quantity);
+}
+
+export function existingSalesNote(soldCount: number, semesterLabel: string, priceLabel: string) {
+	if (soldCount === 0) return null;
+	const sold =
+		soldCount === 1
+			? `arrangementet som allerede er solgt i ${semesterLabel} beholder`
+			: `de ${soldCount} arrangementene som allerede er solgt i ${semesterLabel} beholder`;
+	return `En ny pris gjelder bare nye salg: ${sold} ${priceLabel}.`;
+}
+
 export function toProductInput(values: ProductFormValues): ProductInput {
 	const isJobListing = values.category === "job_listing";
 	return {
