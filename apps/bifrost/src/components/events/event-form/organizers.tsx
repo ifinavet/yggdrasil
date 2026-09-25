@@ -4,16 +4,7 @@ import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import type { OrganizerRole } from "@workspace/shared/constants";
 import { Button } from "@workspace/ui/components/button";
-import {
-	Command,
-	CommandEmpty,
-	CommandGroup,
-	CommandInput,
-	CommandItem,
-	CommandList,
-} from "@workspace/ui/components/command";
 import { Field, FieldDescription, FieldError, FieldLabel } from "@workspace/ui/components/field";
-import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui/components/popover";
 import {
 	Select,
 	SelectContent,
@@ -21,10 +12,9 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@workspace/ui/components/select";
-import { cn } from "@workspace/ui/lib/utils";
 import { useQuery } from "convex/react";
-import { Check, ChevronsUpDown } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { useId, useMemo, useState } from "react";
+import InternalMemberSelect from "@/components/common/forms/internal-member-select";
 import { createColumns } from "./columns";
 import OrganizersTable from "./data-table";
 
@@ -57,8 +47,8 @@ export default function Organizers({
 }>) {
 	const internalMembers = useQuery(api.users.organization.queries.getAll);
 
-	const [openMembers, setOpenMembers] = useState(false);
-	const selectedMember = useRef("");
+	const labelId = useId();
+	const [pendingMemberId, setPendingMemberId] = useState<Id<"users"> | null>(null);
 
 	const [selectedOrganizerType, setSelectedOrganizerType] = useState<OrganizerRole>("medhjelper");
 
@@ -97,56 +87,14 @@ export default function Organizers({
 
 	return (
 		<Field className="flex flex-col">
-			<FieldLabel>Ansvarlige</FieldLabel>
+			<FieldLabel id={labelId}>Ansvarlige</FieldLabel>
 			<div className="flex flex-col gap-4">
 				<div className="flex gap-4">
-					<Popover open={openMembers} onOpenChange={setOpenMembers}>
-						<PopoverTrigger asChild>
-							<Button
-								variant="outline"
-								aria-expanded={openMembers}
-								className="w-[200px] justify-between"
-							>
-								{selectedMember.current
-									? internalMembers.find(
-											(internalMember) => internalMember.fullName === selectedMember.current,
-										)?.fullName
-									: "Velg et medlem..."}
-								<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-							</Button>
-						</PopoverTrigger>
-						<PopoverContent className="w-[200px] p-0">
-							<Command>
-								<CommandInput placeholder="Søk etter en ansvarlig..." />
-								<CommandList>
-									<CommandEmpty>Fant ingen ansvarlige(er).</CommandEmpty>
-									<CommandGroup>
-										{internalMembers.map((internalMember) => (
-											<CommandItem
-												key={internalMember.userId}
-												value={internalMember.fullName ?? "Ukjent"}
-												onSelect={(currentValue) => {
-													selectedMember.current =
-														currentValue === selectedMember.current ? "" : currentValue;
-													setOpenMembers(false);
-												}}
-											>
-												<Check
-													className={cn(
-														"mr-2 h-4 w-4",
-														selectedMember.current === internalMember.fullName
-															? "opacity-100"
-															: "opacity-0",
-													)}
-												/>
-												{internalMember.fullName}
-											</CommandItem>
-										))}
-									</CommandGroup>
-								</CommandList>
-							</Command>
-						</PopoverContent>
-					</Popover>
+					<InternalMemberSelect
+						labelId={labelId}
+						value={pendingMemberId}
+						onChange={setPendingMemberId}
+					/>
 					<Select
 						onValueChange={(value: string) => {
 							setSelectedOrganizerType(value as OrganizerRole);
@@ -164,32 +112,20 @@ export default function Organizers({
 					<Button
 						type="button"
 						onClick={() => {
-							if (!selectedMember.current) return;
+							if (!pendingMemberId) return;
 
-							const organizerToAdd = internalMembers.find(
-								(internalMember) => internalMember.fullName === selectedMember.current,
+							const isAlreadyAdded = field.state.value.some(
+								(organizer) => organizer.userId === pendingMemberId,
 							);
-
-							if (organizerToAdd) {
-								// Check if organizer is already added
-								const currentOrganizers = field.state.value;
-								const isAlreadyAdded = currentOrganizers.some(
-									(organizer) => organizer.userId === organizerToAdd.userId,
-								);
-
-								if (!isAlreadyAdded) {
-									field.handleChange([
-										...currentOrganizers,
-										{
-											userId: organizerToAdd.userId,
-											role: selectedOrganizerType || "medhjelper",
-										},
-									]);
-								}
-
-								selectedMember.current = "";
-								setSelectedOrganizerType("medhjelper");
+							if (!isAlreadyAdded) {
+								field.handleChange([
+									...field.state.value,
+									{ userId: pendingMemberId, role: selectedOrganizerType },
+								]);
 							}
+
+							setPendingMemberId(null);
+							setSelectedOrganizerType("medhjelper");
 						}}
 					>
 						Legg til ansvarlig
