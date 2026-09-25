@@ -27,7 +27,16 @@ export function matchesSearch(
 	);
 }
 
-export function splitIntoSections(events: OverviewEvent[], now: number, search = "") {
+export type OverviewSections = Record<
+	"mine" | "upcoming" | "past" | "unpublished",
+	OverviewEvent[]
+>;
+
+export function splitIntoSections(
+	events: OverviewEvent[],
+	now: number,
+	search = "",
+): OverviewSections {
 	const isPast = (event: OverviewEvent) => event.eventStart < now;
 	const matching = events.filter((event) => matchesSearch(event, search));
 	const published = matching.filter((event) => event.published);
