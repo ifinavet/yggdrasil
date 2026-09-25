@@ -14,7 +14,7 @@ import { internalMutation, type MutationCtx, mutation } from "../../_generated/s
 import { editorRoles, requireRole } from "../../auth/accessRights";
 import { findActiveApplicationOnDate, requireEditorActor } from "../applicationLifecycle";
 import { findCompanyProfile, listApplicationsInSemester } from "../applications/helper";
-import { ensureDraftEvent } from "../events";
+import { ensureDraftEvent, proposeNavetTeams } from "../events";
 import { isUnsettledApplicationStatus } from "../rules";
 import { applicationPeriodStatus, semesterTerm } from "../schema";
 import {
@@ -274,9 +274,10 @@ export const setStatus = mutation({
 
 /**
  * Marks the semester plan as finished, once no application waits for an offer or an answer, and
- * makes sure every confirmed application has its unpublished draft event. Doing it again keeps the
- * first time and person, and only moves drafts whose date changed. An application that needs an
- * offer or answer again reopens the plan.
+ * makes sure every confirmed application has its unpublished draft event. Applications without an
+ * event get a proposed Navet team first. Doing it again keeps the first time and person, and only
+ * moves drafts whose date changed. An application that needs an offer or answer again reopens the
+ * plan.
  *
  * A company without a profile in Bifrost is skipped and named in the result. Any other problem,
  * such as an invalid medhjelper, refuses the whole run with the company's name, so no events are
@@ -311,7 +312,8 @@ export const finalizePlan = mutation({
 
 		let created = 0;
 		const missingProfile: string[] = [];
-		for (const application of applications.filter(({ status }) => status === "confirmed")) {
+		const confirmed = applications.filter(({ status }) => status === "confirmed");
+		for (const application of await proposeNavetTeams(ctx, semester, confirmed)) {
 			const { name } = application.registry;
 			if (!application.eventId && !(await findCompanyProfile(ctx, application))) {
 				missingProfile.push(name);
