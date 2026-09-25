@@ -1,15 +1,39 @@
 import { describe, expect, it, vi } from "vitest";
-import { insertEvent, setup } from "../../test/fixtures";
+import { insertEvent, setup, type TestBackend } from "../../test/fixtures";
 import { internal } from "../_generated/api";
+import type { Doc, Id } from "../_generated/dataModel";
 import { guessEventProductName } from "./migrations";
 import { SEED_PRODUCTS } from "./seed";
 
-function seedProducts(t: Awaited<ReturnType<typeof setup>>["t"]) {
+type Backfill =
+	| typeof internal.products.migrations.backfillEventProducts
+	| typeof internal.products.migrations.backfillJobListingProducts;
+
+function seedProducts(t: TestBackend) {
 	return t.run(async (ctx) => {
 		for (const [sortOrder, seed] of SEED_PRODUCTS.entries()) {
 			await ctx.db.insert("products", { ...seed, vatRate: 25, sortOrder, active: true });
 		}
 	});
+}
+
+function runOneBatch(t: TestBackend, backfill: Backfill) {
+	return t.mutation(backfill, { oneBatchOnly: true, cursor: null, dryRun: false });
+}
+
+async function manualSnapshot(t: TestBackend, category: Doc<"products">["category"]) {
+	const productId = await t.run((ctx) =>
+		ctx.db.insert("products", {
+			name: "Manuelt satt",
+			shortDescription: "",
+			longDescription: "",
+			category,
+			vatRate: 25,
+			sortOrder: 99,
+			active: true,
+		}),
+	);
+	return { productId, name: "Manuelt satt", unitPriceOre: 1 };
 }
 
 describe("guessEventProductName", () => {
@@ -33,13 +57,8 @@ describe("guessEventProductName", () => {
 });
 
 describe("backfillEventProducts", () => {
-	async function migrate(t: Awaited<ReturnType<typeof setup>>["t"]) {
-		return t.mutation(internal.products.migrations.backfillEventProducts, {
-			oneBatchOnly: true,
-			cursor: null,
-			dryRun: false,
-		});
-	}
+	const migrate = (t: TestBackend) =>
+		runOneBatch(t, internal.products.migrations.backfillEventProducts);
 
 	it("guesses a product and marks it as guessed for events missing one", async () => {
 		const { t, companyId } = await setup();
@@ -58,18 +77,7 @@ describe("backfillEventProducts", () => {
 	it("skips events that already have a product", async () => {
 		const { t, companyId } = await setup();
 		await seedProducts(t);
-		const otherProductId = await t.run((ctx) =>
-			ctx.db.insert("products", {
-				name: "Manuelt satt",
-				shortDescription: "",
-				longDescription: "",
-				category: "event" as const,
-				vatRate: 25,
-				sortOrder: 99,
-				active: true,
-			}),
-		);
-		const existing = { productId: otherProductId, name: "Manuelt satt", unitPriceOre: 1 };
+		const existing = await manualSnapshot(t, "event");
 		const eventId = await insertEvent(t, companyId, {
 			participationLimit: 10,
 			product: existing,
@@ -96,17 +104,12 @@ describe("backfillEventProducts", () => {
 });
 
 describe("backfillJobListingProducts", () => {
-	async function migrate(t: Awaited<ReturnType<typeof setup>>["t"]) {
-		return t.mutation(internal.products.migrations.backfillJobListingProducts, {
-			oneBatchOnly: true,
-			cursor: null,
-			dryRun: false,
-		});
-	}
+	const migrate = (t: TestBackend) =>
+		runOneBatch(t, internal.products.migrations.backfillJobListingProducts);
 
 	async function insertListing(
-		t: Awaited<ReturnType<typeof setup>>["t"],
-		companyId: Awaited<ReturnType<typeof setup>>["companyId"],
+		t: TestBackend,
+		companyId: Id<"companies">,
 		overrides: Record<string, unknown> = {},
 	) {
 		return t.run((ctx) =>
@@ -138,18 +141,7 @@ describe("backfillJobListingProducts", () => {
 	it("skips listings that already have a product", async () => {
 		const { t, companyId } = await setup();
 		await seedProducts(t);
-		const otherProductId = await t.run((ctx) =>
-			ctx.db.insert("products", {
-				name: "Manuelt satt",
-				shortDescription: "",
-				longDescription: "",
-				category: "job_listing" as const,
-				vatRate: 25,
-				sortOrder: 99,
-				active: true,
-			}),
-		);
-		const existing = { productId: otherProductId, name: "Manuelt satt", unitPriceOre: 1 };
+		const existing = await manualSnapshot(t, "job_listing");
 		const listingId = await insertListing(t, companyId, {
 			product: existing,
 			productGuessed: false,

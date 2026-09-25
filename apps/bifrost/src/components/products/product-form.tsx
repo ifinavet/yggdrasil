@@ -25,6 +25,7 @@ import {
 	priceWithVatOre,
 	validateProductForm,
 } from "./product-form-values";
+import { OfferPreviewPanel } from "./product-panels";
 
 const TIER_HEAD = "pb-1.5 text-left font-medium text-[13px] text-muted-foreground";
 
@@ -118,7 +119,7 @@ export default function ProductForm({
 	submitLabel: string;
 	priceNote?: string | null;
 	statusPanel?: ReactNode;
-	aside?: (values: ProductFormValues) => ReactNode;
+	aside?: ReactNode;
 	onSubmit: (values: ProductFormValues) => Promise<unknown>;
 }>) {
 	const form = useForm({
@@ -353,7 +354,10 @@ export default function ProductForm({
 					{statusPanel}
 				</div>
 
-				{aside && <div className="flex min-w-0 flex-col gap-4">{aside(values)}</div>}
+				<div className="flex min-w-0 flex-col gap-4">
+					<OfferPreviewPanel values={values} />
+					{aside}
+				</div>
 			</div>
 		</form>
 	);

@@ -17,7 +17,7 @@ import { useMemo } from "react";
 import { notifyProductMutation } from "./notify-product-mutation";
 import ProductForm from "./product-form";
 import { existingSalesNote, toProductFormValues, toProductInput } from "./product-form-values";
-import { ChangesPanel, OfferPreviewPanel, SalesPanel } from "./product-panels";
+import { ChangesPanel, SalesPanel } from "./product-panels";
 import { ProductsBreadcrumb } from "./products-breadcrumb";
 import { currentSemester } from "./semester-select";
 
@@ -82,15 +82,14 @@ export function EditProduct({ id }: Readonly<{ id: Id<"products"> }>) {
 						</PanelBody>
 					</Panel>
 				}
-				aside={(values) => (
+				aside={
 					<>
-						<OfferPreviewPanel values={values} />
 						{summary && (
 							<SalesPanel summary={summary} isJobListing={product.category === "job_listing"} />
 						)}
 						<ChangesPanel changes={changes} />
 					</>
-				)}
+				}
 				onSubmit={(values) =>
 					notifyProductMutation(
 						update({ id, ...toProductInput(values) }),

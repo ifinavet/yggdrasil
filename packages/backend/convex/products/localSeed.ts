@@ -54,7 +54,7 @@ async function productsNamed(ctx: MutationCtx, names: readonly string[]) {
 function seededRandom(seed: number) {
 	let state = seed;
 	return () => {
-		state = (state + 0x6d2b79f5) | 0;
+		state = (state + 0x6d2b79f5) % 2 ** 32;
 		let t = Math.imul(state ^ (state >>> 15), 1 | state);
 		t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
 		return ((t ^ (t >>> 14)) >>> 0) / 4_294_967_296;
@@ -101,11 +101,8 @@ export const insertLocalSales = internalMutation({
 			.first();
 		if (alreadySeeded) return { companies: 0, events: 0, listings: 0 };
 
-		const random = seededRandom(2026);
-		const between = ({ min, max }: { min: number; max: number }) =>
-			min + Math.floor(random() * (max - min + 1));
-		const pick = <T>(items: readonly T[]) => items[Math.floor(random() * items.length)] as T;
-
+		const random = randomTools(seededRandom(2026));
+		const companyIds = await insertCompanies(ctx, logoIds);
 		const handTaggedProducts = [
 			...(await productsNamed(ctx, [
 				SEED_PRODUCT_NAMES.academicEvent,
@@ -113,79 +110,119 @@ export const insertLocalSales = internalMutation({
 			])),
 			...Array.from({ length: UNTAGGED_WEIGHT }, () => undefined),
 		];
+		const seeder: Seeder = { ctx, random, companyIds, handTaggedProducts };
 
-		const companyIds: Id<"companies">[] = [];
-		for (const [index, name] of COMPANY_NAMES.entries()) {
-			const logo = await ctx.db.insert("companyLogos", {
-				name,
-				image: logoIds[index] as Id<"_storage">,
-			});
-			companyIds.push(
-				await ctx.db.insert("companies", {
-					orgNumber: FIRST_ORG_NUMBER + index,
-					name,
-					description: `${name} er en fiktiv bedrift laget for lokal utvikling.`,
-					mainSponsor: index === 0,
-					logo,
-				}),
-			);
-		}
-
-		const now = Date.now();
-		const currentYear = new Date(now).getFullYear();
 		let events = 0;
 		let listings = 0;
-		for (let year = currentYear - SEEDED_YEARS + 1; year <= currentYear; year++) {
-			for (const semester of ["vår", "høst"] as const) {
-				const { start, end } = eventSemesterRange(semester, year);
-				if (start > now) continue;
-				const lastDay = Math.min(end, now) - DAY_MS;
-				const randomDay = () =>
-					start + Math.floor(random() * ((lastDay - start) / DAY_MS)) * DAY_MS;
-
-				const eventCount = between(EVENTS_PER_SEMESTER);
-				for (let index = 0; index < eventCount; index++) {
-					const eventStart = randomDay() + 17 * 60 * 60 * 1000;
-					const company = pick(COMPANY_NAMES);
-					const externalEvent = random() < EXTERNAL_EVENT_SHARE;
-					const handTagged = externalEvent ? undefined : pick(handTaggedProducts);
-					await ctx.db.insert("events", {
-						title: `${externalEvent ? "Eksternt arrangement" : "Bedriftspresentasjon"} med ${company}`,
-						teaser: `Bli kjent med ${company}.`,
-						description: `Lokale testdata for ${company}.`,
-						eventStart,
-						registrationOpens: eventStart - 14 * DAY_MS,
-						participationLimit: pick(PARTICIPATION_LIMITS),
-						location: externalEvent ? "Hos bedriften" : "Store auditorium, IFI",
-						food: "Pizza",
-						language: "Norsk",
-						ageRestriction: "Ingen",
-						externalEvent,
-						hostingCompany: companyIds[COMPANY_NAMES.indexOf(company)] as Id<"companies">,
-						published: true,
-						...(handTagged && { product: snapshotOf(handTagged) }),
-					});
-					events++;
-				}
-
-				const listingCount = between(LISTINGS_PER_SEMESTER);
-				for (let index = 0; index < listingCount; index++) {
-					const company = pick(COMPANY_NAMES);
-					await ctx.db.insert("jobListings", {
-						title: `Sommerjobb hos ${company}`,
-						type: pick(["Sommerjobb", "Fulltid", "Deltid"]),
-						teaser: `${company} ser etter nye utviklere.`,
-						description: `Lokale testdata for ${company}.`,
-						applicationUrl: "https://example.com/soknad",
-						published: true,
-						company: companyIds[COMPANY_NAMES.indexOf(company)] as Id<"companies">,
-						deadline: randomDay(),
-					});
-					listings++;
-				}
-			}
+		for (const range of pastSemesterRanges(Date.now())) {
+			const randomDay = () => range.start + Math.floor(random.next() * range.days) * DAY_MS;
+			events += await insertSemesterEvents(seeder, randomDay);
+			listings += await insertSemesterListings(seeder, randomDay);
 		}
 
 		return { companies: companyIds.length, events, listings };
 	},
 });
+
+type RandomTools = ReturnType<typeof randomTools>;
+
+type Seeder = {
+	ctx: MutationCtx;
+	random: RandomTools;
+	companyIds: Id<"companies">[];
+	handTaggedProducts: (Doc<"products"> | undefined)[];
+};
+
+function randomTools(next: () => number) {
+	return {
+		next,
+		between: ({ min, max }: { min: number; max: number }) =>
+			min + Math.floor(next() * (max - min + 1)),
+		pick: <T>(items: readonly T[]) => items[Math.floor(next() * items.length)] as T,
+	};
+}
+
+function pastSemesterRanges(now: number) {
+	const currentYear = new Date(now).getFullYear();
+	const ranges: { start: number; days: number }[] = [];
+	for (let year = currentYear - SEEDED_YEARS + 1; year <= currentYear; year++) {
+		for (const semester of ["vår", "høst"] as const) {
+			const { start, end } = eventSemesterRange(semester, year);
+			if (start > now) continue;
+			const lastDay = Math.min(end, now) - DAY_MS;
+			ranges.push({ start, days: (lastDay - start) / DAY_MS });
+		}
+	}
+	return ranges;
+}
+
+async function insertCompanies(ctx: MutationCtx, logoIds: Id<"_storage">[]) {
+	const companyIds: Id<"companies">[] = [];
+	for (const [index, name] of COMPANY_NAMES.entries()) {
+		const logo = await ctx.db.insert("companyLogos", {
+			name,
+			image: logoIds[index] as Id<"_storage">,
+		});
+		companyIds.push(
+			await ctx.db.insert("companies", {
+				orgNumber: FIRST_ORG_NUMBER + index,
+				name,
+				description: `${name} er en fiktiv bedrift laget for lokal utvikling.`,
+				mainSponsor: index === 0,
+				logo,
+			}),
+		);
+	}
+	return companyIds;
+}
+
+function companyIdOf({ companyIds }: Seeder, company: (typeof COMPANY_NAMES)[number]) {
+	return companyIds[COMPANY_NAMES.indexOf(company)] as Id<"companies">;
+}
+
+async function insertSemesterEvents(seeder: Seeder, randomDay: () => number) {
+	const { ctx, random, handTaggedProducts } = seeder;
+	const count = random.between(EVENTS_PER_SEMESTER);
+	for (let index = 0; index < count; index++) {
+		const eventStart = randomDay() + 17 * 60 * 60 * 1000;
+		const company = random.pick(COMPANY_NAMES);
+		const externalEvent = random.next() < EXTERNAL_EVENT_SHARE;
+		const handTagged = externalEvent ? undefined : random.pick(handTaggedProducts);
+		await ctx.db.insert("events", {
+			title: `${externalEvent ? "Eksternt arrangement" : "Bedriftspresentasjon"} med ${company}`,
+			teaser: `Bli kjent med ${company}.`,
+			description: `Lokale testdata for ${company}.`,
+			eventStart,
+			registrationOpens: eventStart - 14 * DAY_MS,
+			participationLimit: random.pick(PARTICIPATION_LIMITS),
+			location: externalEvent ? "Hos bedriften" : "Store auditorium, IFI",
+			food: "Pizza",
+			language: "Norsk",
+			ageRestriction: "Ingen",
+			externalEvent,
+			hostingCompany: companyIdOf(seeder, company),
+			published: true,
+			...(handTagged && { product: snapshotOf(handTagged) }),
+		});
+	}
+	return count;
+}
+
+async function insertSemesterListings(seeder: Seeder, randomDay: () => number) {
+	const { ctx, random } = seeder;
+	const count = random.between(LISTINGS_PER_SEMESTER);
+	for (let index = 0; index < count; index++) {
+		const company = random.pick(COMPANY_NAMES);
+		await ctx.db.insert("jobListings", {
+			title: `Sommerjobb hos ${company}`,
+			type: random.pick(["Sommerjobb", "Fulltid", "Deltid"]),
+			teaser: `${company} ser etter nye utviklere.`,
+			description: `Lokale testdata for ${company}.`,
+			applicationUrl: "https://example.com/soknad",
+			published: true,
+			company: companyIdOf(seeder, company),
+			deadline: randomDay(),
+		});
+	}
+	return count;
+}
