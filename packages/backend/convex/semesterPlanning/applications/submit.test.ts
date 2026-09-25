@@ -1,4 +1,4 @@
-import { osloToday } from "@workspace/shared/semester/time";
+import { osloToday } from "@workspace/shared/time";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
 	activityFor,
