@@ -21,7 +21,7 @@ export function FormStatePanel({
 					{icon}
 				</div>
 			)}
-			<h1 className="m-0 mb-2 font-bold text-[20px] text-primary leading-[1.22] tracking-[-0.015em]">
+			<h1 className="m-0 mb-2 font-bold text-[20px] text-primary leading-[1.22] tracking-[-0.015em] dark:text-primary-foreground">
 				{title}
 			</h1>
 			<p className="m-0 mb-5 text-[14.5px] text-foreground">{body}</p>
