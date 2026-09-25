@@ -95,7 +95,7 @@ export function DistributionMatrix({
 				</colgroup>
 				<thead className="text-muted-foreground">
 					<tr>
-						<th className={cn(STICKY, "h-[26px]")} aria-hidden />
+						<td className={cn(STICKY, "h-[26px]")} />
 						{months.map((month) => (
 							<th
 								key={month.key}
@@ -106,7 +106,7 @@ export function DistributionMatrix({
 								{month.label}
 							</th>
 						))}
-						<th className={STICKY_END} aria-hidden />
+						<td className={STICKY_END} />
 					</tr>
 					<tr>
 						<th

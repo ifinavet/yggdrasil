@@ -70,13 +70,22 @@ export function Person({ name, small = false }: Readonly<{ name: string; small?:
 export function CompanyName({
 	row,
 	linkApplication,
-}: Readonly<{ row: PlanRow; linkApplication: boolean }>) {
+	stretched = false,
+}: Readonly<{
+	row: PlanRow;
+	linkApplication: boolean;
+	/** The link covers the nearest positioned ancestor, so the whole card opens the application. */
+	stretched?: boolean;
+}>) {
 	return (
 		<span className="inline-flex items-center gap-2">
 			{linkApplication ? (
 				<Link
 					href={`/semesterplan/soknad/${row._id}`}
-					className="font-semibold text-[15px] hover:underline"
+					className={cn(
+						"font-semibold text-[15px] hover:underline",
+						stretched && "after:absolute after:inset-0",
+					)}
 				>
 					{row.companyName}
 				</Link>
@@ -88,7 +97,7 @@ export function CompanyName({
 					href={`/events/${row.eventId}`}
 					title="Åpne arrangementet"
 					aria-label={`Åpne arrangementet til ${row.companyName}`}
-					className="text-muted-foreground hover:text-foreground"
+					className="relative z-10 text-muted-foreground hover:text-foreground"
 				>
 					<CalendarCheck className="size-4" aria-hidden />
 				</Link>

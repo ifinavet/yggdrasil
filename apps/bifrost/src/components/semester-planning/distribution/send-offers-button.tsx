@@ -141,7 +141,6 @@ export function SendOffersButton({
 									{application.contact.name} · {application.contact.email}
 								</span>
 								<OfferLink
-									compact
 									url={url}
 									email={offerEmail({
 										to: application.contact.email,

@@ -1,7 +1,7 @@
 "use client";
 
 import type { Doc } from "@workspace/backend/convex/dataModel";
-import { huginUrl } from "@workspace/shared/constants";
+import { huginUrl } from "@workspace/shared/constants/hugin-url";
 import { formatSemesterDay } from "@workspace/shared/time";
 import { Button } from "@workspace/ui/components/button";
 import { Link2 } from "lucide-react";

@@ -16,8 +16,7 @@ function Banner({
 	children: ReactNode;
 }>) {
 	return (
-		<div
-			role="status"
+		<output
 			className={cn(
 				"flex items-center gap-2.5 rounded-lg border px-3.5 py-2.5 text-[13.5px]",
 				STATUS_CALLOUT_CLASSES[status],
@@ -29,7 +28,7 @@ function Banner({
 			/>
 			<span className="min-w-0 flex-1">{children}</span>
 			{action}
-		</div>
+		</output>
 	);
 }
 

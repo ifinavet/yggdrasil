@@ -4,15 +4,13 @@ import { cn } from "@workspace/ui/lib/utils";
 import { Lock } from "lucide-react";
 import { formatOrgNumber } from "../format";
 import type { PlanDay } from "./plan-days";
-import { CompanyName, DateTile, Person, PlanStatus, useOpenApplication } from "./plan-parts";
+import { CompanyName, DateTile, Person, PlanStatus } from "./plan-parts";
 
 /** The plan on small screens: one stacked entry per semester date instead of a wide table. */
 export function PlanCards({
 	days,
 	showContactDetails,
 }: Readonly<{ days: readonly PlanDay[]; showContactDetails: boolean }>) {
-	const openApplication = useOpenApplication(showContactDetails);
-
 	return (
 		<ul className="divide-y text-sm">
 			{days.map((day) => {
@@ -35,20 +33,18 @@ export function PlanCards({
 				const { row, details } = day;
 				const team = row.responsibleName || row.helpers.length > 0;
 				return (
-					// biome-ignore lint/a11y/useKeyWithClickEvents: the company name link is the keyboard route
 					<li
 						key={day.date}
-						onClick={openApplication?.(row._id)}
 						className={cn(
-							"flex gap-3 px-4 py-3",
-							openApplication && "cursor-pointer hover:bg-muted/50",
+							"relative flex gap-3 px-4 py-3",
+							showContactDetails && "hover:bg-muted/50",
 						)}
 					>
 						<DateTile date={day.date} />
 						<div className="min-w-0 flex-1">
 							<div className="flex items-center gap-2">
 								<CompanyLogo name={row.companyName} url={row.logoUrl ?? null} />
-								<CompanyName row={row} linkApplication={showContactDetails} />
+								<CompanyName row={row} linkApplication={showContactDetails} stretched />
 							</div>
 							<div className="mt-0.5 text-[12.5px] text-muted-foreground">
 								{EVENT_TYPE_SHORT_LABELS[row.eventType]}
