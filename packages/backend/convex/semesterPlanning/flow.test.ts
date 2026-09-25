@@ -1,16 +1,12 @@
 import { MIDGARD_URL } from "@workspace/shared/constants";
-import { asciiFilename, toCsv } from "@workspace/shared/utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
 	activityFor,
 	applicationById,
 	asUser,
 	grantRole,
-	insertApplication,
-	insertSemester,
 	insertUser,
 	refusalMessageFrom,
-	scheduledCallsOf,
 	setup,
 } from "../../test/fixtures";
 import { stubRegistries, VALID_ORG_NUMBER } from "../../test/registryFetch";
@@ -19,86 +15,6 @@ import { api } from "../_generated/api";
 afterEach(() => {
 	vi.unstubAllGlobals();
 	vi.useRealTimers();
-});
-
-describe("toCsv", () => {
-	it("adds a byte order mark, quotes where needed and keeps æøå", () => {
-		expect(
-			toCsv([
-				["Bedrift", "Rom"],
-				["Bølge, Helse AS", 'Rom "A"'],
-				["Ås", null],
-			]),
-		).toBe('\uFEFFBedrift,Rom\r\n"Bølge, Helse AS","Rom ""A"""\r\nÅs,');
-	});
-});
-
-describe("exportPlanCsv", () => {
-	it.each([
-		["Våren 2027", "varen-2027"],
-		["Høsten 2027", "hosten-2027"],
-	])("names the file for %s as %s", (semester, name) => {
-		expect(asciiFilename(semester)).toBe(name);
-	});
-
-	it("has the Excel columns and one row per Tuesday and Thursday", async () => {
-		const { t } = await setup();
-		const editor = await insertUser(t, "kari@ifinavet.no");
-		await grantRole(t, editor._id, "editor");
-		const organizer = await insertUser(t, "emil@ifinavet.no", {
-			firstName: "Emil",
-			lastName: "Moe",
-		});
-		const semesterId = await insertSemester(t);
-		await t.run(async (ctx) => {
-			await ctx.db.insert("semesterDates", {
-				semesterId,
-				date: "2027-01-19",
-				closedLabel: "Kickoff",
-			});
-			await ctx.db.insert("semesterDates", { semesterId, date: "2027-01-21" });
-			await ctx.db.insert("semesterDates", { semesterId, date: "2027-02-09" });
-		});
-		await insertApplication(t, semesterId, {
-			status: "confirmed",
-			assignedDate: "2027-02-09",
-			responsibleUserId: organizer._id,
-			room: "Simula",
-			roomBooked: true,
-		});
-		await insertApplication(t, semesterId, { status: "withdrawn", assignedDate: "2027-01-21" });
-
-		const { filename, csv } = await asUser(t, editor).query(
-			api.semesterPlanning.applications.queries.exportPlanCsv,
-			{
-				semesterId,
-			},
-		);
-
-		expect(filename).toBe("semesterplan-varen-2027.csv");
-		expect(csv.startsWith("\uFEFF")).toBe(true);
-		expect(csv.slice(1).split("\r\n")).toEqual([
-			"Dag,Dato,Bekreftet,Bedrift,Sendt tilbud,Org.nummer,Arr.type,Kontaktperson,Epost,Mat,Mat bestilt,Ønsker Escape,Rom/Lokasjon,Rom booket,Org-ansvarlig,Antall plasser",
-			"tirsdag,19.01,,Kickoff (internt),,,,,,,,,,,,",
-			"torsdag,21.01,,Ledig,,,,,,,,,,,,",
-			"tirsdag,9.02,Ja,FJORDKODE AS,Ja,924773189,Ordinær bedriftspresentasjon,Ingrid Solberg,ingrid@fjordkode.no,Ja,Nei,Usikker,Simula,Ja,Emil Moe,40",
-		]);
-	});
-
-	it("is editor-only", async () => {
-		const { t } = await setup();
-		const member = await insertUser(t, "medlem@ifinavet.no");
-		await grantRole(t, member._id, "internal");
-		const semesterId = await insertSemester(t);
-
-		expect(
-			await refusalMessageFrom(
-				asUser(t, member).query(api.semesterPlanning.applications.queries.exportPlanCsv, {
-					semesterId,
-				}),
-			),
-		).toContain("Unauthorized");
-	});
 });
 
 describe("the whole journey", () => {
@@ -125,6 +41,7 @@ describe("the whole journey", () => {
 			semesterId,
 			applicationDeadline: "2026-12-04",
 			termsUrl: `${MIDGARD_URL}/vilkar`,
+			defaultEventStartTime: "16:15",
 		});
 		await editor.mutation(semesters.setStatus, { semesterId, status: "open" });
 
@@ -144,7 +61,7 @@ describe("the whole journey", () => {
 				wantsToUseEscape: "no",
 				foodAndDrinks: true,
 				foodPurchasedBy: "company",
-				billing: { email: "faktura@fjordkode.no", ehf: true },
+				billing: { email: "faktura@fjordkode.no" },
 				targetDegrees: [],
 				targetStudyPrograms: [],
 				consent: true,
@@ -154,51 +71,35 @@ describe("the whole journey", () => {
 		const applicationId = application?._id;
 		if (!applicationId) throw new Error("The application was not saved.");
 
-		const tokenOfLatestOffer = async () => {
-			const emails = (await scheduledCallsOf(t, "sendOfferEmail")) as { url: string }[];
-			const url = emails.at(-1)?.url ?? "";
-			return url.slice(url.lastIndexOf("/") + 1);
-		};
-
+		// Navet copies the offer link from Bifrost and emails it by hand.
 		// First offer; the company asks for another date.
 		await editor.mutation(applications.assignDate, { applicationId, date: "2027-02-09" });
-		await editor.mutation(offers.sendOffer, { applicationId });
+		const firstOffer = await editor.mutation(offers.sendOffer, { applicationId });
 		await t.mutation(offers.requestNewDate, {
-			token: await tokenOfLatestOffer(),
+			token: firstOffer.linkToken,
 			dates: ["2027-02-16"],
 		});
 
-		// Second offer; the company accepts.
+		// Second offer; the company accepts, and the first link can no longer undo that.
 		await editor.mutation(applications.assignDate, { applicationId, date: "2027-02-16" });
-		await editor.mutation(offers.sendOffer, { applicationId });
-		await t.mutation(offers.accept, { token: await tokenOfLatestOffer(), acceptTerms: true });
+		const secondOffer = await editor.mutation(offers.sendOffer, { applicationId });
+		await t.mutation(offers.accept, { token: secondOffer.linkToken, acceptTerms: true });
+		expect(
+			await refusalMessageFrom(t.mutation(offers.decline, { token: firstOffer.linkToken })),
+		).toBe("Tilbudet gjelder ikke lenger.");
 
-		// The editor links the company profile and creates the event.
+		// The editor creates the event, hosted by the company profile with the same org.nr.
 		await t.run((ctx) => ctx.db.patch(companyId, { orgNumber: Number(VALID_ORG_NUMBER) }));
-		await editor.mutation(applications.linkCompany, { applicationId, companyId });
-		const eventId = await editor.mutation(applications.createEvent, {
-			applicationId,
-			title: "Fjordkode",
-			teaser: "Presentasjon",
-			description: "Presentasjon og kodeoppgave.",
-			startTime: "16:15",
-			registrationOpens: Date.parse("2027-02-02T11:00:00Z"),
-			location: "Simula",
-			food: "Pizza",
-			language: "Norsk",
-			ageRestriction: "Ingen",
-		});
+		const eventId = await editor.mutation(applications.createEvent, { applicationId });
 
 		const final = await applicationById(t, applicationId);
-		expect(final).toMatchObject({
-			status: "confirmed",
-			assignedDate: "2027-02-16",
-			companyId,
-			eventId,
+		expect(final).toMatchObject({ status: "confirmed", assignedDate: "2027-02-16", eventId });
+		expect(await t.run((ctx) => ctx.db.get(eventId))).toMatchObject({
+			eventStart: Date.parse("2027-02-16T15:15:00Z"),
+			hostingCompany: companyId,
 		});
-		expect((await t.run((ctx) => ctx.db.get(eventId)))?.eventStart).toBe(
-			Date.parse("2027-02-16T15:15:00Z"),
-		);
+		// Nothing is emailed or scheduled: Navet emails the links by hand.
+		expect(await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect())).toEqual([]);
 
 		const history = (await activityFor(t, applicationId)).map((row) =>
 			[row.type, row.actor, row.toStatus ?? row.date ?? ""].join(" "),
@@ -212,7 +113,6 @@ describe("the whole journey", () => {
 			"date_assigned internal 2027-02-16",
 			"status_changed internal offer_sent",
 			"status_changed company confirmed",
-			"company_linked internal ",
 			"event_linked internal ",
 		]);
 	});

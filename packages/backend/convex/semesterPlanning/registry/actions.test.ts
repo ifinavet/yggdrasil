@@ -113,27 +113,3 @@ describe("searchCompanies", () => {
 		);
 	});
 });
-
-describe("lookupPeppol", () => {
-	it.each([
-		["found", "found"],
-		["not_found", "not_found"],
-		["error", "failed"],
-		["down", "failed"],
-	] as const)("maps a Peppol answer of %s to %s", async (peppol, expected) => {
-		const { t } = await setup();
-		stubRegistries({ peppol });
-
-		expect(await t.action(actions.lookupPeppol, { orgNumber: VALID_ORG_NUMBER })).toBe(expected);
-	});
-
-	it("refuses an invalid organization number without calling Peppol", async () => {
-		const { t } = await setup();
-		const calls = stubRegistries();
-
-		const message = await refusalMessageFrom(t.action(actions.lookupPeppol, { orgNumber: "123" }));
-
-		expect(message).toBe("Organisasjonsnummeret er ugyldig.");
-		expect(calls).toEqual([]);
-	});
-});

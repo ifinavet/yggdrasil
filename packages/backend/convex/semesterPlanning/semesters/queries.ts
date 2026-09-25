@@ -1,9 +1,10 @@
+import { osloToday } from "@workspace/shared/semester/time";
 import { v } from "convex/values";
 import { query } from "../../_generated/server";
 import { internalRoles, requireRole } from "../../auth/accessRights";
 import schema from "../../schema";
 import { semesterTerm } from "../schema";
-import { listSemesterDates, requireSemester, semesterSortKey } from "./helper";
+import { acceptsApplications, listSemesterDates, requireSemester, semesterSortKey } from "./helper";
 
 // Two semesters a year; this covers 50 years of history.
 const MAX_SEMESTERS = 100;
@@ -12,7 +13,8 @@ const MAX_SEMESTERS = 100;
  * Fetches the semester that is open for applications, for Hugin and Midgard. Public: it returns
  * only the open dates and the texts companies need, and nothing about other applications.
  *
- * @returns {object | null} - The open semester, or null when applications are closed.
+ * @returns {object | null} - The open semester, or null when applications are closed or a hard
+ * deadline has passed.
  */
 export const getOpenForApplications = query({
 	args: {},
@@ -34,6 +36,7 @@ export const getOpenForApplications = query({
 			.withIndex("by_status", (q) => q.eq("status", "open"))
 			.first();
 		if (!semester?.applicationDeadline) return null;
+		if (!acceptsApplications(semester, osloToday(Date.now()))) return null;
 
 		const dates = await listSemesterDates(ctx, semester._id);
 
@@ -76,20 +79,26 @@ export const list = query({
  * @param {Id<"semesters">} semesterId - The semester to fetch.
  *
  * @throws - An error if the caller is not an internal member, or the semester does not exist.
- * @returns {{ semester: Doc<"semesters">, dates: Doc<"semesterDates">[] }} - The semester and its dates.
+ * @returns {{ semester: Doc<"semesters">, dates: Doc<"semesterDates">[], finalizedByName: string | null }} - The semester, its dates and who finished its plan.
  */
 export const get = query({
 	args: { semesterId: v.id("semesters") },
 	returns: v.object({
 		semester: schema.doc("semesters"),
 		dates: v.array(schema.doc("semesterDates")),
+		finalizedByName: v.union(v.string(), v.null()),
 	}),
 	handler: async (ctx, { semesterId }) => {
 		await requireRole(ctx, internalRoles);
 
 		const semester = await requireSemester(ctx, semesterId);
 		const dates = await listSemesterDates(ctx, semesterId);
+		const finalizer = semester.planFinalizedBy ? await ctx.db.get(semester.planFinalizedBy) : null;
 
-		return { semester, dates };
+		return {
+			semester,
+			dates,
+			finalizedByName: finalizer ? `${finalizer.firstName} ${finalizer.lastName}` : null,
+		};
 	},
 });

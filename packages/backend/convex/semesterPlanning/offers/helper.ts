@@ -1,11 +1,11 @@
-import { HUGIN_URL } from "@workspace/shared/constants";
 import { ConvexError } from "convex/values";
 import type { Doc, Id } from "../../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../../_generated/server";
-import { hashLinkToken, LINK_TOKEN_LENGTH } from "../../lib/tokens";
+import { LINK_TOKEN_LENGTH } from "../../lib/tokens";
+import { isActiveApplicationStatus } from "../rules";
 
 /**
- * Finds the offer behind a link token. Only the hash is stored, so the token is hashed first.
+ * Finds the offer behind a link token.
  *
  * @param {QueryCtx | MutationCtx} ctx - The Convex query or mutation context.
  * @param {string} token - The token from the offer link.
@@ -18,46 +18,59 @@ export async function findOfferByToken(
 ): Promise<Doc<"companyApplicationOffers"> | null> {
 	if (token.length !== LINK_TOKEN_LENGTH) return null;
 
-	const tokenHash = await hashLinkToken(token);
 	return ctx.db
 		.query("companyApplicationOffers")
-		.withIndex("by_tokenHash", (q) => q.eq("tokenHash", tokenHash))
+		.withIndex("by_linkToken", (q) => q.eq("linkToken", token))
+		.unique();
+}
+
+/**
+ * The offer sent last on an application, which is the only one a company can still answer.
+ *
+ * @param {QueryCtx | MutationCtx} ctx - The Convex query or mutation context.
+ * @param {Id<"companyApplications">} applicationId - The application.
+ *
+ * @returns {Promise<Doc<"companyApplicationOffers"> | null>} - The newest offer, or null if none was sent.
+ */
+export async function findLatestOffer(
+	ctx: QueryCtx | MutationCtx,
+	applicationId: Id<"companyApplications">,
+): Promise<Doc<"companyApplicationOffers"> | null> {
+	return ctx.db
+		.query("companyApplicationOffers")
+		.withIndex("by_applicationId", (q) => q.eq("applicationId", applicationId))
+		.order("desc")
 		.first();
 }
 
 /**
- * Loads the offer and application behind a link a company is answering, and refuses links that
- * are unknown, replaced, or belong to a withdrawn or rejected application. Unknown and replaced
- * links get messages that reveal nothing about other offers.
+ * Loads the application behind an offer a company is answering, and refuses links that are
+ * unknown, replaced by a newer offer, or belong to a closed application. Unknown
+ * and replaced links get messages that reveal nothing about other offers.
  *
  * @param {MutationCtx} ctx - The Convex mutation context.
- * @param {string} token - The token from the offer link.
+ * @param {Doc<"companyApplicationOffers"> | null} offer - The offer found from the link, if any.
  *
  * @throws - A Norwegian error when the link cannot be answered.
  * @returns {Promise<{ offer: Doc<"companyApplicationOffers">, application: Doc<"companyApplications"> }>} - The offer and application.
  */
 export async function requireAnswerableOffer(
 	ctx: MutationCtx,
-	token: string,
+	offer: Doc<"companyApplicationOffers"> | null,
 ): Promise<{ offer: Doc<"companyApplicationOffers">; application: Doc<"companyApplications"> }> {
-	const offer = await findOfferByToken(ctx, token);
 	const application = offer ? await ctx.db.get(offer.applicationId) : null;
 	if (!offer || !application) throw new ConvexError("Fant ikke tilbudet.");
 
+	const latest = await findLatestOffer(ctx, application._id);
 	if (
 		offer.status === "superseded" ||
-		application.status === "withdrawn" ||
-		application.status === "rejected"
+		latest?._id !== offer._id ||
+		!isActiveApplicationStatus(application.status)
 	) {
 		throw new ConvexError("Tilbudet gjelder ikke lenger.");
 	}
 
 	return { offer, application };
-}
-
-/** Where companies answer an offer. The token is the only credential. */
-export function offerUrl(token: string): string {
-	return `${HUGIN_URL}/bestill-bedpres/tilbud/${token}`;
 }
 
 /**

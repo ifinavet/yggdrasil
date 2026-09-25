@@ -20,12 +20,12 @@ describe("supersedePendingOffers", () => {
 		const [pendingId, acceptedId] = await t.run(async (ctx) => [
 			await ctx.db.insert("companyApplicationOffers", {
 				...offerFields,
-				tokenHash: "a",
+				linkToken: "a",
 				status: "pending",
 			}),
 			await ctx.db.insert("companyApplicationOffers", {
 				...offerFields,
-				tokenHash: "b",
+				linkToken: "b",
 				status: "accepted",
 			}),
 		]);

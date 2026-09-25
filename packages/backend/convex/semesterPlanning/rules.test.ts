@@ -1,8 +1,7 @@
+import type { ApplicationStatus } from "@workspace/shared/semester/labels";
 import { isValidOrgNumber, toCompanyProfileOrgNumber } from "@workspace/shared/semester/orgNumber";
 import {
-	addOsloDays,
 	isIsoDate,
-	isPresentationDay,
 	nextTermAfter,
 	osloDateTimeToEpoch,
 	osloToday,
@@ -10,13 +9,8 @@ import {
 	termOfDay,
 } from "@workspace/shared/semester/time";
 import { describe, expect, it } from "vitest";
-import { generateLinkToken, hashLinkToken, LINK_TOKEN_LENGTH } from "../lib/tokens";
-import {
-	type ApplicationStatus,
-	canTransition,
-	isActiveApplicationStatus,
-	TRANSITIONS,
-} from "./rules";
+import { generateLinkToken, LINK_TOKEN_LENGTH } from "../lib/tokens";
+import { canTransition, isActiveApplicationStatus, TRANSITIONS } from "./rules";
 
 const STATUSES = Object.keys(TRANSITIONS) as ApplicationStatus[];
 
@@ -26,14 +20,18 @@ const ALLOWED: [ApplicationStatus, ApplicationStatus][] = [
 	["applied", "withdrawn"],
 	["offer_sent", "confirmed"],
 	["offer_sent", "new_date_requested"],
-	["offer_sent", "offer_sent"],
+	["offer_sent", "declined"],
 	["offer_sent", "applied"],
+	["offer_sent", "rejected"],
 	["offer_sent", "withdrawn"],
 	["new_date_requested", "offer_sent"],
+	["new_date_requested", "declined"],
 	["new_date_requested", "applied"],
 	["new_date_requested", "rejected"],
 	["new_date_requested", "withdrawn"],
+	["confirmed", "applied"],
 	["confirmed", "withdrawn"],
+	["declined", "applied"],
 	["rejected", "applied"],
 	["withdrawn", "applied"],
 ];
@@ -53,12 +51,13 @@ describe("status transitions", () => {
 		expect(canTransition(from, to)).toBe(false);
 	});
 
-	it("never moves a confirmed application to another offer", () => {
-		expect(TRANSITIONS.confirmed).toEqual(["withdrawn"]);
+	it("never sends a confirmed application a new offer without moving it back to «Søkt»", () => {
+		expect(TRANSITIONS.confirmed).toEqual(["applied", "withdrawn"]);
 	});
 
-	it("treats rejected and withdrawn as the only closed statuses", () => {
+	it("treats declined, rejected and withdrawn as the only closed statuses", () => {
 		expect(STATUSES.filter((status) => !isActiveApplicationStatus(status))).toEqual([
+			"declined",
 			"rejected",
 			"withdrawn",
 		]);
@@ -90,7 +89,6 @@ describe("semester days", () => {
 		const days = presentationDaysBetween("2027-01-19", "2027-05-06");
 		expect(days).toHaveLength(32);
 		expect(days.slice(0, 3)).toEqual(["2027-01-19", "2027-01-21", "2027-01-26"]);
-		expect(days.every(isPresentationDay)).toBe(true);
 	});
 
 	it("keeps weekdays across the daylight-saving change", () => {
@@ -134,16 +132,6 @@ describe("Oslo time", () => {
 		expect(osloDateTimeToEpoch("2027-06-01", "16:15")).toBe(Date.parse("2027-06-01T14:15:00Z"));
 	});
 
-	it("adds days and keeps the Oslo wall-clock time across the switch to summer time", () => {
-		// Friday 26 March 12:00 in Oslo (UTC+1) plus a week is Friday 2 April 12:00 (UTC+2).
-		expect(addOsloDays(Date.parse("2027-03-26T11:00:00Z"), 7)).toBe(
-			Date.parse("2027-04-02T10:00:00Z"),
-		);
-		expect(addOsloDays(Date.parse("2027-01-31T11:00:00Z"), 1)).toBe(
-			Date.parse("2027-02-01T11:00:00Z"),
-		);
-	});
-
 	it.each([
 		["an hour past 23", "2027-02-09", "25:00"],
 		["a single-digit hour", "2027-02-09", "9:00"],
@@ -159,11 +147,5 @@ describe("link tokens", () => {
 		expect(tokens.size).toBe(50);
 		for (const token of tokens) expect(token).toMatch(/^[A-Za-z0-9_-]{43}$/);
 		expect(LINK_TOKEN_LENGTH).toBe(43);
-	});
-
-	it("hash to the same value every time, and differently per token", async () => {
-		const token = generateLinkToken();
-		expect(await hashLinkToken(token)).toBe(await hashLinkToken(token));
-		expect(await hashLinkToken(token)).not.toBe(await hashLinkToken(generateLinkToken()));
 	});
 });

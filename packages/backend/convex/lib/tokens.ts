@@ -1,5 +1,6 @@
-// Link tokens: the plaintext goes only into an emailed URL, and the database stores the SHA-256 hash.
-// Both functions use Web Crypto, so they run in the default Convex runtime.
+// Link tokens for emailed URLs. Feedback links store only the SHA-256 hash; offer links store the
+// token itself, so an editor can copy the link again. Both functions use Web Crypto, so they run in
+// the default Convex runtime.
 
 const TOKEN_BYTES = 32;
 

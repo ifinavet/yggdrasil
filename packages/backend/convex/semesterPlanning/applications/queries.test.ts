@@ -3,6 +3,8 @@ import {
 	asUser,
 	grantRole,
 	insertApplication,
+	insertEvent,
+	insertOrganizer,
 	insertSemester,
 	insertUser,
 	refusalMessageFrom,
@@ -28,7 +30,6 @@ describe("getPlan", () => {
 		await insertApplication(t, semesterId, {
 			assignedDate: "2027-02-09",
 			responsibleUserId: member._id,
-			room: "Simula",
 			internalNotes: "Hemmelig",
 		});
 
@@ -40,7 +41,6 @@ describe("getPlan", () => {
 			assignedDate: "2027-02-09",
 			companyName: "FJORDKODE AS",
 			responsibleName: "Emil Moe",
-			room: "Simula",
 		});
 		const serialized = JSON.stringify(plan);
 		for (const secret of [
@@ -54,6 +54,44 @@ describe("getPlan", () => {
 		expect(Object.keys(plan[0] ?? {})).not.toEqual(
 			expect.arrayContaining(["contact", "billing", "internalNotes"]),
 		);
+	});
+
+	it("shows the Navet team from the application, then from the event once it exists", async () => {
+		const { t, companyId, semesterId, member } = await withPeople();
+		const helper = await insertUser(t, "helper@ifinavet.no", {
+			firstName: "Ida",
+			lastName: "Hjelp",
+		});
+		const applicationId = await insertApplication(t, semesterId, {
+			assignedDate: "2027-02-09",
+			responsibleUserId: member._id,
+			helperUserIds: [helper._id],
+		});
+
+		const before = await asUser(t, member).query(queries.getPlan, { semesterId });
+		expect(before[0]).toMatchObject({
+			responsibleName: "Emil Moe",
+			helpers: [{ userId: helper._id, name: "Ida Hjelp" }],
+		});
+
+		// Organizers changed on the event win over what the application says.
+		const eventId = await insertEvent(t, companyId);
+		await insertOrganizer(t, eventId, helper._id);
+		await t.run((ctx) => ctx.db.patch(applicationId, { eventId }));
+
+		const after = await asUser(t, member).query(queries.getPlan, { semesterId });
+		expect(after[0]).toMatchObject({ responsibleName: "Ida Hjelp", helpers: [] });
+	});
+
+	it("leaves out declined, rejected and withdrawn applications", async () => {
+		const { t, semesterId, member } = await withPeople();
+		for (const status of ["declined", "rejected", "withdrawn"] as const) {
+			await insertApplication(t, semesterId, { status, assignedDate: "2027-02-09" });
+		}
+		const live = await insertApplication(t, semesterId, { assignedDate: "2027-02-09" });
+
+		const plan = await asUser(t, member).query(queries.getPlan, { semesterId });
+		expect(plan.map((row) => row._id)).toEqual([live]);
 	});
 
 	it("requires login", async () => {
@@ -88,17 +126,79 @@ describe("editor queries", () => {
 		expect(list[0]?.contact.email).toBe("ingrid@fjordkode.no");
 	});
 
-	it("get suggests the company profile with the same organization number until it is linked", async () => {
+	it("get finds the company profile by organization number", async () => {
 		const { t, semesterId, editor, companyId } = await withPeople();
 		const applicationId = await insertApplication(t, semesterId, { orgNumber: "123456789" });
 
-		const before = await asUser(t, editor).query(queries.get, { applicationId });
-		expect(before.matchingCompanyId).toBe(companyId);
-		expect(before.offers).toEqual([]);
-		expect(before.activity).toEqual([]);
+		const matched = await asUser(t, editor).query(queries.get, { applicationId });
+		expect(matched.companyId).toBe(companyId);
+		expect(matched.companyName).toBe("Testbedrift");
+		expect(matched.offers).toEqual([]);
+		expect(matched.activity).toEqual([]);
 
-		await t.run((ctx) => ctx.db.patch(applicationId, { companyId }));
-		const after = await asUser(t, editor).query(queries.get, { applicationId });
-		expect(after.matchingCompanyId).toBeNull();
+		const other = await insertApplication(t, semesterId, { orgNumber: "924773189" });
+		expect(await asUser(t, editor).query(queries.get, { applicationId: other })).toMatchObject({
+			companyId: null,
+			companyName: null,
+			logoUrl: null,
+		});
+	});
+});
+
+describe("listForSemester", () => {
+	it("shows the latest offer's answer and the company's latest comment", async () => {
+		const { t, semesterId, editor } = await withPeople();
+		const waiting = await insertApplication(t, semesterId, {
+			status: "new_date_requested",
+			assignedDate: "2027-02-09",
+		});
+		const fresh = await insertApplication(t, semesterId);
+		await t.run(async (ctx) => {
+			const offer = {
+				applicationId: waiting,
+				date: "2027-02-09",
+				eventType: "standard_presentation" as const,
+				maxStudents: 40,
+				sentBy: editor._id,
+			};
+			await ctx.db.insert("companyApplicationOffers", {
+				...offer,
+				linkToken: "old",
+				sentAt: 1,
+				status: "superseded",
+			});
+			const offerId = await ctx.db.insert("companyApplicationOffers", {
+				...offer,
+				linkToken: "new",
+				sentAt: 2,
+				status: "new_date_requested",
+				respondedAt: 3,
+				requestedDates: ["2027-02-16", "2027-02-11"],
+			});
+			await ctx.db.insert("companyApplicationActivity", {
+				applicationId: waiting,
+				type: "status_changed",
+				actor: "company",
+				fromStatus: "offer_sent",
+				toStatus: "new_date_requested",
+				offerId,
+				comment: "Helst en torsdag.",
+			});
+		});
+
+		const rows = await asUser(t, editor).query(queries.listForSemester, { semesterId });
+
+		expect(rows.map((row) => [row._id, row.latestOffer, row.companyComment])).toEqual([
+			[
+				waiting,
+				{
+					status: "new_date_requested",
+					respondedAt: 3,
+					requestedDates: ["2027-02-16", "2027-02-11"],
+				},
+				"Helst en torsdag.",
+			],
+			[fresh, null, null],
+		]);
 	});
 });
