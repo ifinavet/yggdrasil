@@ -3,6 +3,7 @@
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import type { OrganizerRole } from "@workspace/shared/constants";
+import { formatOsloToday } from "@workspace/shared/time";
 import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -55,7 +56,7 @@ export default function CreateEventForm() {
 		})
 			.then(() => {
 				toast.success("Arrangementet ble opprettet!", {
-					description: `Arrangement opprettet, ${new Date().toLocaleDateString()}`,
+					description: `Arrangement opprettet, ${formatOsloToday()}`,
 				});
 				router.push("/events");
 			})

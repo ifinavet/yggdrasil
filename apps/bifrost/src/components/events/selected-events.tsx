@@ -1,6 +1,7 @@
 "use client";
 
 import { api } from "@workspace/backend/convex/api";
+import { humanReadableFullDateTime } from "@workspace/shared/time";
 import { Button } from "@workspace/ui/components/button";
 import {
 	DropdownMenu,
@@ -14,7 +15,6 @@ import { useRouter } from "next/navigation";
 import { usePostHog } from "posthog-js/react";
 import { toast } from "sonner";
 import { useSelectedEventsStore } from "@/lib/stores/selected-events";
-import { humanReadableDate } from "@/utils/utils";
 
 export default function SelectedEvents() {
 	const posthog = usePostHog();
@@ -29,7 +29,7 @@ export default function SelectedEvents() {
 		updateSelectedEvents({ ids: selectedEvents, newPublishedStatus: true })
 			.then(() => {
 				toast.success(`Publiserte ${selectedEvents.length} arrangementer!`, {
-					description: humanReadableDate(new Date()),
+					description: humanReadableFullDateTime(new Date()),
 				});
 
 				clearSelectedEvents();
@@ -47,7 +47,7 @@ export default function SelectedEvents() {
 		updateSelectedEvents({ ids: selectedEvents, newPublishedStatus: false })
 			.then(() => {
 				toast.success(`Avpubliserte ${selectedEvents.length} arrangementer!`, {
-					description: humanReadableDate(new Date()),
+					description: humanReadableFullDateTime(new Date()),
 				});
 
 				clearSelectedEvents();

@@ -3,6 +3,7 @@
 import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
 import type { Doc } from "@workspace/backend/convex/dataModel";
+import { humanReadableDateTime } from "@workspace/shared/time";
 import { Button } from "@workspace/ui/components/button";
 import {
 	Dialog,
@@ -25,7 +26,6 @@ import { CalendarPlus } from "lucide-react";
 import { usePostHog } from "posthog-js/react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { humanReadableDateTime } from "@/utils/dateFormatting";
 import createCalendarEventIcs from "@/utils/icsCalendarEvent";
 import Unregister from "./unregister";
 

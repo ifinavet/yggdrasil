@@ -1,3 +1,4 @@
+import { formatOsloToday } from "@workspace/shared/time";
 import type { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -10,7 +11,7 @@ export function notifyCompanyMutation(
 	return mutation
 		.then(() => {
 			toast.success(successMessage, {
-				description: `${successDescription}, ${new Date().toLocaleDateString()}`,
+				description: `${successDescription}, ${formatOsloToday()}`,
 			});
 			router.push("/companies");
 		})

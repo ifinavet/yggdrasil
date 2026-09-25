@@ -1,4 +1,4 @@
-import type { SemesterTerm } from "./time";
+import type { SemesterTerm } from "../time";
 
 // Norwegian labels for the stored semester planning values, shared by the apps and the backend.
 

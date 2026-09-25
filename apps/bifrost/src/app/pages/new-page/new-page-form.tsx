@@ -1,6 +1,7 @@
 "use client";
 
 import { api } from "@workspace/backend/convex/api";
+import { formatOsloToday } from "@workspace/shared/time";
 import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -20,7 +21,7 @@ export default function NewPageForm() {
 		createPage({ title: values.title, content: values.content, published })
 			.then(() => {
 				toast.success("Siden har blitt opprettet!", {
-					description: `Side opprettet, ${new Date().toLocaleDateString()}`,
+					description: `Side opprettet, ${formatOsloToday()}`,
 				});
 				router.push("/pages");
 			})

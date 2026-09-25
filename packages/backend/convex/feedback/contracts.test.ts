@@ -6,7 +6,7 @@ import {
 	feedbackPrefill,
 	validateFeedbackFields,
 } from "@workspace/shared/feedback";
-import { feedbackOpensAt, feedbackRetentionAt } from "@workspace/shared/feedback/time";
+import { feedbackOpensAt, feedbackRetentionAt } from "@workspace/shared/time";
 import { describe, expect, it } from "vitest";
 import { hashLinkToken } from "../lib/tokens";
 

@@ -2,7 +2,7 @@
 
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
-import { formatFeedbackDate } from "@workspace/shared/feedback/time";
+import { formatOsloDate } from "@workspace/shared/time";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";
@@ -18,23 +18,17 @@ import { cn } from "@workspace/ui/lib/utils";
 import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import Link from "next/link";
+import { CAMPAIGN_STATUS_BADGES } from "./status-labels";
 
 type DeliveryStatus = NonNullable<
 	FunctionReturnType<typeof api.feedback.delivery.status.getEventFeedbackDelivery>
 >;
 
-const statusBadges = {
-	scheduled: { label: "Planlagt", variant: "secondary" },
-	open: { label: "Åpen", variant: "default" },
-	closed: { label: "Stengt", variant: "destructive" },
-	cancelled: { label: "Avbrutt", variant: "outline" },
-} as const;
-
 const alertClassName =
 	"rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-destructive text-sm";
 
 function scheduleLine({ status, opensAt, closesAt }: DeliveryStatus) {
-	const at = (timestamp: number) => formatFeedbackDate(timestamp, "d. MMM 'kl.' HH:mm");
+	const at = (timestamp: number) => formatOsloDate(timestamp, "d. MMM 'kl.' HH:mm");
 	if (status === "scheduled") return `Sendes ${at(opensAt)}`;
 	if (status === "open") return `Stenger ${at(closesAt)}`;
 	if (status === "closed") return `Stengt ${at(closesAt)}`;
@@ -47,7 +41,7 @@ function RoundRow({ round, at, sent, delivered, failed }: DeliveryStatus["rounds
 		<TableRow className={cn(pending && "text-muted-foreground")}>
 			<TableCell>
 				{round === 0 ? "Invitasjon" : "Påminnelse"}
-				<span className="ml-2 text-muted-foreground">{formatFeedbackDate(at, "d. MMM")}</span>
+				<span className="ml-2 text-muted-foreground">{formatOsloDate(at, "d. MMM")}</span>
 			</TableCell>
 			<TableCell className="text-right">{pending ? null : sent}</TableCell>
 			<TableCell className="text-right">{pending ? null : delivered}</TableCell>
@@ -61,7 +55,7 @@ function RoundRow({ round, at, sent, delivered, failed }: DeliveryStatus["rounds
 export function FeedbackDeliveryStatus({ eventId }: Readonly<{ eventId: Id<"events"> }>) {
 	const delivery = useQuery(api.feedback.delivery.status.getEventFeedbackDelivery, { eventId });
 	if (!delivery) return null;
-	const badge = statusBadges[delivery.status];
+	const badge = CAMPAIGN_STATUS_BADGES[delivery.status];
 	const schedule = scheduleLine(delivery);
 	return (
 		<Card>
