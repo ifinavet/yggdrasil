@@ -1,19 +1,13 @@
+import type { api } from "@workspace/backend/convex/api";
 import { formatOsloDate, osloDateTimeToEpoch } from "@workspace/shared/time";
+import type { FunctionReturnType } from "convex/server";
 
-type Billing = { address: string; email: string; reference: string };
-
-export type CompanyChanges = {
-	displayName?: string;
-	description?: string;
-	logoUrl?: string | null;
-	billing?: Billing;
-};
-
-export type CompanyUpdate = {
-	status: "pending" | "approved" | "rejected";
-	changes: CompanyChanges;
-	previous: CompanyChanges;
-};
+export type ReviewOrder = NonNullable<
+	FunctionReturnType<typeof api.jobListingOrders.admin.getOrder>
+>;
+export type CompanyUpdate = NonNullable<ReviewOrder["update"]>;
+type CompanyChanges = Partial<CompanyUpdate["changes"]>;
+type Billing = NonNullable<CompanyChanges["billing"]>;
 
 export const APPROVE_BLOCKED_MESSAGE =
 	"Godkjenn eller avvis endringen i bedriftsinformasjonen først.";
@@ -40,7 +34,10 @@ export function approveBlocker(update: Pick<CompanyUpdate, "status"> | null): st
 	return update?.status === "pending" ? APPROVE_BLOCKED_MESSAGE : undefined;
 }
 
-export function companyChangeRows(update: CompanyUpdate): CompanyChangeRow[] {
+export function companyChangeRows(update: {
+	changes: CompanyChanges;
+	previous: CompanyChanges;
+}): CompanyChangeRow[] {
 	return CHANGE_KEYS.filter((key) => update.changes[key] !== undefined).map((key) => ({
 		key,
 		label: CHANGE_LABELS[key],

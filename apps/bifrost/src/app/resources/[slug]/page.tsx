@@ -11,9 +11,9 @@ import {
 } from "@workspace/ui/components//breadcrumb";
 import { Button } from "@workspace/ui/components//button";
 import { Separator } from "@workspace/ui/components//separator";
+import { SafeHtml } from "@workspace/ui/components/safe-html";
 import { fetchQuery } from "convex/nextjs";
 import Link from "next/link";
-import SafeHtml from "@/components/common/sanitize-html";
 
 export default async function ResourcePage({
 	params,

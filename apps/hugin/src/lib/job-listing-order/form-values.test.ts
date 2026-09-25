@@ -1,8 +1,6 @@
-import { MAX_LISTINGS_PER_ORDER } from "@workspace/shared/job-listing-orders";
+import { logoProblem, MAX_LISTINGS_PER_ORDER } from "@workspace/shared/job-listing-orders";
 import { describe, expect, it } from "vitest";
-import { companyCopy } from "./copy";
 import { emptyListing, resizeListings } from "./form-values";
-import { logoProblem } from "./logo";
 
 describe("resizeListings", () => {
 	const filled = { ...emptyListing(), title: "Utvikler" };
@@ -23,12 +21,13 @@ describe("resizeListings", () => {
 
 describe("logoProblem", () => {
 	it("accepts PNG and SVG within the size limit", () => {
-		expect(logoProblem({ type: "image/png", size: 1000 })).toBeNull();
-		expect(logoProblem({ type: "image/svg+xml", size: 1000 })).toBeNull();
+		expect(logoProblem("image/png", 1000)).toBeNull();
+		expect(logoProblem("image/svg+xml", 1000)).toBeNull();
 	});
 
-	it("rejects other types and large files", () => {
-		expect(logoProblem({ type: "image/jpeg", size: 1000 })).toBe(companyCopy.logoWrongType);
-		expect(logoProblem({ type: "image/png", size: 2_000_000 })).toBe(companyCopy.logoTooLarge);
+	it("rejects other types, a missing type and large files", () => {
+		expect(logoProblem(undefined, 1000)).toBe("Logoen må være PNG eller SVG.");
+		expect(logoProblem("image/jpeg", 1000)).toBe("Logoen må være PNG eller SVG.");
+		expect(logoProblem("image/png", 2_000_000)).toBe("Logoen kan være høyst 1 MB.");
 	});
 });

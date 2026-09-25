@@ -4,7 +4,9 @@ import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { defaultFeedbackFields } from "@workspace/shared/feedback";
 import { formatOsloDate } from "@workspace/shared/time";
+import { convexErrorMessage } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
+import { useFeatureEnabled } from "@workspace/ui/components/feature-gate";
 import {
 	Select,
 	SelectContent,
@@ -16,11 +18,9 @@ import { Tabs, TabsList, TabsTrigger } from "@workspace/ui/components/tabs";
 import { cn } from "@workspace/ui/lib/utils";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { ConvexError } from "convex/values";
 import { EyeIcon, EyeOffIcon, PlusIcon } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { toast } from "sonner";
-import { useJobListingOrdersEnabled } from "@/components/job-listing-orders/use-job-listing-orders-enabled";
 import { FeedbackFormEditor } from "./feedback-form-editor";
 import { JobListingOrderSettingsPanel } from "./job-listing-order-settings";
 import { QuestionCard } from "./question-card";
@@ -33,10 +33,6 @@ type FormsTab = "feedback" | "jobListing";
 
 const newFormName = "Nytt skjema";
 const draftVersion = "draft";
-
-function errorMessage(error: unknown, fallback: string) {
-	return error instanceof ConvexError ? String(error.data) : fallback;
-}
 
 function formStatus(form: FeedbackFormSummary) {
 	const published = form.publishedVersion && !form.hasDraft;
@@ -69,7 +65,7 @@ export function FeedbackForms({ intro }: Readonly<{ intro: ReactNode }>) {
 	const [creating, setCreating] = useState(false);
 	const saveDraft = useMutation(api.feedback.forms.mutations.saveDraft);
 	const [tab, setTab] = useState<FormsTab>("feedback");
-	const jobListingOrdersEnabled = useJobListingOrdersEnabled();
+	const jobListingOrdersEnabled = useFeatureEnabled("jobListingOrders");
 	const openFormId =
 		selectedFormId ??
 		feedbackForms.find((feedbackForm) => feedbackForm.isDefault)?._id ??
@@ -83,7 +79,7 @@ export function FeedbackForms({ intro }: Readonly<{ intro: ReactNode }>) {
 			setSelectedFormId(formId);
 			setCreatedFormId(formId);
 		} catch (error) {
-			toast.error(errorMessage(error, "Kunne ikke opprette skjemaet."));
+			toast.error(convexErrorMessage(error, "Kunne ikke opprette skjemaet."));
 		} finally {
 			setCreating(false);
 		}
@@ -155,7 +151,7 @@ function FeedbackFormList({
 		try {
 			await setHidden({ formId: form._id, isHidden: !form.isHidden });
 		} catch (error) {
-			toast.error(errorMessage(error, "Kunne ikke endre synligheten."));
+			toast.error(convexErrorMessage(error, "Kunne ikke endre synligheten."));
 		}
 	}
 
@@ -329,7 +325,7 @@ function SetDefaultButton({ form }: Readonly<{ form: FeedbackFormSummary }>) {
 					await setDefault({ formId: form._id });
 					toast.success("Standardskjema oppdatert");
 				} catch (error) {
-					toast.error(errorMessage(error, "Kunne ikke endre standardskjema."));
+					toast.error(convexErrorMessage(error, "Kunne ikke endre standardskjema."));
 				} finally {
 					setSaving(false);
 				}

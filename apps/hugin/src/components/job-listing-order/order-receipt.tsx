@@ -2,15 +2,16 @@
 
 import { api } from "@workspace/backend/convex/api";
 import { formatNok } from "@workspace/shared/products";
+import { convexErrorMessage } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
 import { FieldLabel } from "@workspace/ui/components/field";
+import { Note } from "@workspace/ui/components/note";
 import { Textarea } from "@workspace/ui/components/textarea";
 import { useMutation } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { CircleCheck, Printer } from "lucide-react";
 import { type FormEvent, type ReactNode, useState } from "react";
 import { receiptCopy } from "@/lib/job-listing-order/copy";
-import { convexErrorMessage } from "@/lib/job-listing-order/errors";
 
 type Receipt = Extract<
 	FunctionReturnType<typeof api.jobListingOrders.orders.confirm>,
@@ -47,9 +48,9 @@ export function OrderReceipt({ token, receipt }: Readonly<{ token: string; recei
 				</ReceiptRow>
 			</dl>
 			{receipt.updateRequested && (
-				<p className="mt-4 rounded-lg bg-primary-light px-3 py-2.5 text-primary text-sm dark:bg-accent dark:text-accent-foreground print:bg-transparent print:px-0 print:text-foreground">
+				<Note className="mt-4 print:bg-transparent print:px-0 print:text-foreground">
 					{receiptCopy.updateRequested}
-				</p>
+				</Note>
 			)}
 			<Button
 				type="button"

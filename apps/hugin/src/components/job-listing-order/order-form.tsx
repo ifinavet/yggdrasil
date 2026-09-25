@@ -6,16 +6,17 @@ import type { Id } from "@workspace/backend/convex/dataModel";
 import { type JobListingOrderSettings, orderPriceOre } from "@workspace/shared/job-listing-orders";
 import { formatNok } from "@workspace/shared/products";
 import { osloToday } from "@workspace/shared/time";
+import { convexErrorMessage } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
 import { Checkbox } from "@workspace/ui/components/checkbox";
-import { FieldLabel } from "@workspace/ui/components/field";
+import { FieldError, FieldLabel } from "@workspace/ui/components/field";
 import { Textarea } from "@workspace/ui/components/textarea";
 import { useAction, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { useEffect, useRef, useState } from "react";
+import { errorText } from "@/components/input-cards/question-block";
 import { orderPageCopy, submitCopy } from "@/lib/job-listing-order/copy";
 import { clearDraft, saveDraft } from "@/lib/job-listing-order/draft";
-import { convexErrorMessage } from "@/lib/job-listing-order/errors";
 import {
 	billingRequired,
 	type CompanyOnFile,
@@ -24,7 +25,7 @@ import {
 } from "@/lib/job-listing-order/submit";
 import { CompanySection } from "./company-section";
 import { BillingFieldset, ContactFieldset } from "./contact-billing";
-import { ErrorLine, FormRow } from "./form-row";
+import { FormRow } from "./form-row";
 import { ListingFieldset } from "./listing-fieldset";
 import { type ListingProduct, PackagePicker } from "./package-picker";
 import { type OrderFormApi, useOrderForm } from "./use-order-form";
@@ -182,7 +183,7 @@ function SubmitSection({ form, price }: Readonly<{ form: OrderFormApi; price: st
 								{submitCopy.confirmAmount(price)}
 							</FieldLabel>
 						</div>
-						<ErrorLine errors={field.state.meta.errors} />
+						<FieldError>{errorText(field.state.meta.errors)}</FieldError>
 					</div>
 				)}
 			</form.Field>

@@ -1,14 +1,15 @@
 "use client";
 
 import { api } from "@workspace/backend/convex/api";
+import { logoProblem } from "@workspace/shared/job-listing-orders";
+import { convexErrorMessage } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
 import { FieldError } from "@workspace/ui/components/field";
 import { useMutation } from "convex/react";
 import Image from "next/image";
 import { type ChangeEvent, type ReactNode, useRef, useState } from "react";
 import { companyCopy } from "@/lib/job-listing-order/copy";
-import { convexErrorMessage } from "@/lib/job-listing-order/errors";
-import { LOGO_ACCEPT, logoProblem } from "@/lib/job-listing-order/logo";
+import { LOGO_ACCEPT } from "@/lib/job-listing-order/logo";
 
 export type UploadedLogo = Readonly<{ storageId: string; previewUrl: string }>;
 
@@ -19,7 +20,7 @@ export function useLogoUpload(onUploaded: (logo: UploadedLogo) => void) {
 	const [error, setError] = useState<string>();
 
 	const upload = async (file: File) => {
-		const problem = logoProblem(file);
+		const problem = logoProblem(file.type, file.size);
 		if (problem) {
 			setError(problem);
 			return;

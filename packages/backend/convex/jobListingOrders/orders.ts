@@ -1,8 +1,7 @@
 import {
 	type JobListingOrderForm,
 	jobListingOrderSchema,
-	LOGO_CONTENT_TYPES,
-	LOGO_MAX_BYTES,
+	logoProblem,
 	orderPriceOre,
 } from "@workspace/shared/job-listing-orders";
 import { DAY_MS, osloToday } from "@workspace/shared/time";
@@ -71,11 +70,8 @@ async function requireLogo(ctx: MutationCtx, id: string): Promise<Id<"_storage">
 	const storageId = ctx.db.system.normalizeId("_storage", id);
 	const file = storageId ? await ctx.db.system.get("_storage", storageId) : null;
 	if (!storageId || !file) throw new ConvexError("Last opp logoen på nytt.");
-	const allowed: readonly string[] = LOGO_CONTENT_TYPES;
-	if (!file.contentType || !allowed.includes(file.contentType)) {
-		throw new ConvexError("Logoen må være PNG eller SVG.");
-	}
-	if (file.size > LOGO_MAX_BYTES) throw new ConvexError("Logoen kan være høyst 1 MB.");
+	const problem = logoProblem(file.contentType, file.size);
+	if (problem) throw new ConvexError(problem);
 	return storageId;
 }
 

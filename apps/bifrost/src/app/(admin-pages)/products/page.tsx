@@ -1,13 +1,13 @@
 import { Button } from "@workspace/ui/components/button";
+import { FeatureGate } from "@workspace/ui/components/feature-gate";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import { ProductsBreadcrumb } from "@/components/products/products-breadcrumb";
-import { ProductsGate } from "@/components/products/products-gate";
 import { ProductsTable } from "@/components/products/products-table";
 
 export default function Products() {
 	return (
-		<ProductsGate>
+		<FeatureGate feature="products">
 			<ProductsBreadcrumb />
 			<div className="mb-4 flex justify-end">
 				<Button asChild>
@@ -17,6 +17,6 @@ export default function Products() {
 				</Button>
 			</div>
 			<ProductsTable />
-		</ProductsGate>
+		</FeatureGate>
 	);
 }

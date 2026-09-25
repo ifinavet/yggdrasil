@@ -22,7 +22,6 @@ describe("approveBlocker", () => {
 describe("companyChangeRows", () => {
 	it("lists only changed fields in a fixed order with the previous value", () => {
 		const rows = companyChangeRows({
-			status: "pending",
 			changes: {
 				billing: { address: "Gate 1", email: "a@b.no", reference: "R1" },
 				displayName: "Nytt navn",
@@ -42,7 +41,6 @@ describe("companyChangeRows", () => {
 
 	it("keeps a removed logo as a change", () => {
 		const rows = companyChangeRows({
-			status: "pending",
 			changes: { logoUrl: null },
 			previous: { logoUrl: "https://example.com/logo.png" },
 		});
@@ -50,7 +48,7 @@ describe("companyChangeRows", () => {
 	});
 
 	it("returns no rows when nothing changed", () => {
-		expect(companyChangeRows({ status: "pending", changes: {}, previous: {} })).toEqual([]);
+		expect(companyChangeRows({ changes: {}, previous: {} })).toEqual([]);
 	});
 });
 

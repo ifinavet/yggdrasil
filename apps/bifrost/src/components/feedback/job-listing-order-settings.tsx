@@ -6,6 +6,7 @@ import {
 	type JobListingOrderSettings,
 	jobListingOrderSettingsSchema,
 } from "@workspace/shared/job-listing-orders";
+import { convexErrorMessage } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
 import {
 	Field,
@@ -19,7 +20,6 @@ import { Input } from "@workspace/ui/components/input";
 import { Switch } from "@workspace/ui/components/switch";
 import { Textarea } from "@workspace/ui/components/textarea";
 import { useMutation, useQuery } from "convex/react";
-import { ConvexError } from "convex/values";
 import { PlusIcon, TrashIcon } from "lucide-react";
 import { toast } from "sonner";
 
@@ -47,11 +47,7 @@ function JobListingOrderSettingsForm({
 				await save({ settings: jobListingOrderSettingsSchema.parse(value) });
 				toast.success("Innstillinger lagret");
 			} catch (error) {
-				toast.error(
-					error instanceof ConvexError
-						? String(error.data)
-						: "Kunne ikke lagre innstillingene. Prøv igjen.",
-				);
+				toast.error(convexErrorMessage(error, "Kunne ikke lagre innstillingene. Prøv igjen."));
 			}
 		},
 	});

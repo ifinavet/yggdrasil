@@ -1,23 +1,26 @@
 import { z } from "zod";
 import { isIsoDate } from "../time/semester";
+import { email, optionalText, orgNumber, text } from "../validation";
 import type { JobListingOrderSettings } from "./settings";
 
 export const MAX_LISTINGS_PER_ORDER = 10;
+export const REJECTION_MAX_LENGTH = 1000;
 export const LOGO_CONTENT_TYPES = ["image/png", "image/svg+xml"] as const;
 export const LOGO_MAX_BYTES = 1_000_000;
-export const ORDER_SUBMISSION_ID_PATTERN = /^[A-Za-z0-9-]{8,64}$/;
+export const LOGO_MESSAGES = {
+	wrongType: "Logoen må være PNG eller SVG.",
+	tooLarge: `Logoen kan være høyst ${LOGO_MAX_BYTES / 1_000_000} MB.`,
+} as const;
+
+const logoContentTypes: readonly string[] = LOGO_CONTENT_TYPES;
+
+export function logoProblem(contentType: string | undefined, size: number): string | null {
+	if (!contentType || !logoContentTypes.includes(contentType)) return LOGO_MESSAGES.wrongType;
+	if (size > LOGO_MAX_BYTES) return LOGO_MESSAGES.tooLarge;
+	return null;
+}
 
 const RICH_TEXT_MAX_LENGTH = 20_000;
-
-function text(max: number, message: string) {
-	return z.string({ error: message }).trim().min(1, message).max(max, message);
-}
-
-function optionalText(max: number, message: string) {
-	return z.string({ error: message }).trim().max(max, message).optional();
-}
-
-const email = (message: string) => z.email({ error: message }).max(254, message);
 
 export function richTextIsEmpty(html: string): boolean {
 	let insideTag = false;
@@ -71,7 +74,7 @@ const orderCompanySchema = z.discriminatedUnion("kind", [
 	z.object({ kind: z.literal("existing"), companyId: z.string().min(1, "Velg bedriften.") }),
 	z.object({
 		kind: z.literal("new"),
-		orgNumber: z.string().regex(/^\d{9}$/, "Velg bedriften fra Enhetsregisteret."),
+		orgNumber: orgNumber("Velg bedriften fra Enhetsregisteret."),
 		displayName: text(100, "Skriv bedriftens navn."),
 		description: richText("Skriv en beskrivelse av bedriften."),
 		logo: z.string({ error: "Last opp en logo." }).min(1, "Last opp en logo."),
@@ -99,6 +102,15 @@ export function orderListingSchema(settings: JobListingOrderSettings, today: str
 }
 
 export type OrderListing = z.infer<ReturnType<typeof orderListingSchema>>;
+
+export const LISTING_FIELD_LABELS = {
+	title: "Tittel",
+	teaser: "Intro",
+	description: "Beskrivelse",
+	applicationUrl: "Søknadslenke",
+	deadline: "Søknadsfrist",
+	type: "Ansettelsesform",
+} as const satisfies Record<keyof OrderListing, string>;
 
 export function jobListingOrderSchema(settings: JobListingOrderSettings, today: string) {
 	return z.object({

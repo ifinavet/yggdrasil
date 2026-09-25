@@ -30,3 +30,18 @@ export const browserOptInKeys = {
 } as const;
 
 export type BrowserOptIn = keyof typeof browserOptInKeys;
+
+export const previewFeatures = {
+	huginFeedback: { released: featureFlags.huginFeedback.uiEnabled, optIn: "huginFeedbackPreview" },
+	products: { released: featureFlags.products.uiEnabled, optIn: "productsPreview" },
+	jobListingOrders: {
+		released: featureFlags.jobListingOrders.enabled,
+		optIn: "jobListingOrdersPreview",
+	},
+	semesterPlanning: {
+		released: featureFlags.semesterPlanning.uiEnabled,
+		optIn: "semesterPlanningPreview",
+	},
+} as const satisfies Record<string, { released: boolean; optIn: BrowserOptIn }>;
+
+export type PreviewFeature = keyof typeof previewFeatures;

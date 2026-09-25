@@ -12,12 +12,13 @@ import {
 	BIFROST_URL,
 	HUGIN_LOCAL_URL,
 	HUGIN_URL,
+	JOB_LISTING_ORDER_EMAIL,
 	MIDGARD_LOCAL_URL,
 	MIDGARD_URL,
 } from "@workspace/shared/constants";
 import {
 	JOB_LISTING_ORDER_CONFIRM_PATH,
-	JOB_LISTING_ORDER_EMAIL,
+	JOB_LISTINGS_PATH,
 } from "@workspace/shared/job-listing-orders";
 import { formatNok } from "@workspace/shared/products";
 import { v } from "convex/values";
@@ -98,7 +99,7 @@ export const sendAdminNotice = internalAction({
 				quantity: order.quantity,
 				price: formatNok(order.priceOre),
 				updateRequested: order.updateRequested,
-				reviewUrl: `${origin(BIFROST_LOCAL_URL, BIFROST_URL)}/job-listings`,
+				reviewUrl: `${origin(BIFROST_LOCAL_URL, BIFROST_URL)}${JOB_LISTINGS_PATH}`,
 			}),
 		);
 		await deliver(
@@ -123,7 +124,7 @@ export const sendPublished = internalAction({
 				reference: order.reference,
 				listings: order.listings.map((listing) => ({
 					title: listing.title,
-					url: `${midgard}/job-listings/${listing.jobListingId ?? ""}`,
+					url: `${midgard}${JOB_LISTINGS_PATH}/${listing.jobListingId ?? ""}`,
 				})),
 			}),
 		);

@@ -1,5 +1,6 @@
 import { format, parse } from "date-fns";
 import { nb } from "date-fns/locale";
+import type { RegistryHit } from "@/lib/company-application";
 
 // Date labels for the application form. Semester days are plain "YYYY-MM-DD" calendar days, so
 // they are parsed and formatted in one zone and no time-of-day or offset is involved.
@@ -116,4 +117,10 @@ export function placeName(city: string): string {
 /** The invoice answer on the receipt: the email and the free text, each on its own line. */
 export function billingLines(billing: { email?: string; details?: string }): string[] {
 	return [billing.email, billing.details].filter((line): line is string => Boolean(line));
+}
+
+export function hitMeta(hit: RegistryHit): string {
+	return [formatOrgNumber(hit.orgNumber), hit.organizationForm, hit.city && placeName(hit.city)]
+		.filter(Boolean)
+		.join(" · ");
 }

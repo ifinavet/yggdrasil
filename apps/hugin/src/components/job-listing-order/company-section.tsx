@@ -6,17 +6,20 @@ import { Button } from "@workspace/ui/components/button";
 import { CompanyLogo } from "@workspace/ui/components/company-logo";
 import { FieldError, FieldLabel } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
+import { Note } from "@workspace/ui/components/note";
 import { RadioGroup, RadioGroupItem } from "@workspace/ui/components/radio-group";
 import { RichTextEditor } from "@workspace/ui/components/rich-text-editor";
+import { SafeHtml } from "@workspace/ui/components/safe-html";
 import type { FunctionReturnType } from "convex/server";
 import { CircleCheck, Pencil } from "lucide-react";
 import { useState } from "react";
-import { SafeHtml } from "@/components/safe-html";
+import { errorText } from "@/components/input-cards/question-block";
+import { formatOrgNumber } from "@/lib/company-application-format";
 import { companyCopy } from "@/lib/job-listing-order/copy";
 import type { CompanyValues } from "@/lib/job-listing-order/form-values";
 import { companyChangeErrors } from "@/lib/job-listing-order/submit";
 import { CompanyPicker } from "./company-picker";
-import { ErrorLine, FormRow } from "./form-row";
+import { FormRow } from "./form-row";
 import { LogoPreview, LogoUploadField, useLogoUpload } from "./logo-upload";
 import { OrderSection } from "./order-section";
 import { PACKAGE_SECTION_ID } from "./package-picker";
@@ -159,7 +162,7 @@ function CompanyConfirmCard({ form, card }: Readonly<{ form: OrderFormApi; card:
 								</label>
 							))}
 						</RadioGroup>
-						<ErrorLine errors={field.state.meta.errors} />
+						<FieldError>{errorText(field.state.meta.errors)}</FieldError>
 					</div>
 				)}
 			</form.Field>
@@ -186,19 +189,17 @@ function CompanyConfirmCard({ form, card }: Readonly<{ form: OrderFormApi; card:
 
 function SavedChanges({ onEdit }: Readonly<{ onEdit: () => void }>) {
 	return (
-		<div
-			role="status"
-			className="flex items-start gap-3 rounded-lg bg-primary-light px-4 py-3 text-primary text-sm dark:bg-accent dark:text-accent-foreground"
-		>
-			<CircleCheck className="mt-0.5 size-4 flex-none" />
-			<div className="flex min-w-0 flex-1 flex-col gap-1">
-				<span className="font-medium">{companyCopy.changesSaved}</span>
-				<span>{companyCopy.changesSavedHint}</span>
+		<Note role="status" icon={CircleCheck}>
+			<div className="flex items-start gap-3">
+				<div className="flex min-w-0 flex-1 flex-col gap-1">
+					<span className="font-medium">{companyCopy.changesSaved}</span>
+					<span>{companyCopy.changesSavedHint}</span>
+				</div>
+				<Button type="button" variant="outline" size="sm" onClick={onEdit}>
+					{companyCopy.editChanges}
+				</Button>
 			</div>
-			<Button type="button" variant="outline" size="sm" onClick={onEdit}>
-				{companyCopy.editChanges}
-			</Button>
-		</div>
+		</Note>
 	);
 }
 
@@ -264,7 +265,9 @@ function CompanyChangeFields({
 				)}
 			</form.Field>
 			<form.Field name="companyChanges">
-				{(field) => <ErrorLine errors={errorsFor(field.name, field.state.meta.errors)} />}
+				{(field) => (
+					<FieldError>{errorText(errorsFor(field.name, field.state.meta.errors))}</FieldError>
+				)}
 			</form.Field>
 			<Button type="button" className="w-fit" onClick={save}>
 				{companyCopy.saveChanges}
@@ -281,7 +284,7 @@ function NewCompanyFields({ form }: Readonly<{ form: OrderFormApi }>) {
 		<div className="flex flex-col gap-5 rounded-xl border bg-card p-5">
 			<div className="grid gap-5 sm:grid-cols-2">
 				<ReadOnlyValue label={companyCopy.registryName} value={company.registryName} />
-				<ReadOnlyValue label={companyCopy.orgNumber} value={company.orgNumber} />
+				<ReadOnlyValue label={companyCopy.orgNumber} value={formatOrgNumber(company.orgNumber)} />
 			</div>
 			<form.Field name="company.displayName">
 				{(field) => (

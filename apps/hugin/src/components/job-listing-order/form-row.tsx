@@ -1,6 +1,6 @@
 import { Field, FieldDescription, FieldError, FieldLabel } from "@workspace/ui/components/field";
 import type { ReactNode } from "react";
-import { firstError } from "@/lib/job-listing-order/errors";
+import { errorText } from "@/components/input-cards/question-block";
 
 export function FormRow({
 	label,
@@ -15,7 +15,7 @@ export function FormRow({
 	hint?: ReactNode;
 	children: ReactNode;
 }>) {
-	const error = errors ? firstError(errors) : undefined;
+	const error = errors ? errorText(errors) : undefined;
 	return (
 		<Field data-invalid={error !== undefined}>
 			<FieldLabel htmlFor={htmlFor}>{label}</FieldLabel>
@@ -24,9 +24,4 @@ export function FormRow({
 			{error && <FieldError>{error}</FieldError>}
 		</Field>
 	);
-}
-
-export function ErrorLine({ errors }: Readonly<{ errors: readonly unknown[] }>) {
-	const error = firstError(errors);
-	return error ? <FieldError>{error}</FieldError> : null;
 }

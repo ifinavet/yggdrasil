@@ -1,8 +1,7 @@
+import { JOB_LISTING_ORDER_EMAIL } from "@workspace/shared/constants/contact";
 import type { ReactNode } from "react";
 import { Body, Button, Container, Head, Html, Img, Link, Preview, Text } from "react-email";
 import { NAVET_LOGO_URL } from "../constants.js";
-
-export const ORDER_CONTACT_EMAIL = "annonse@ifinavet.no";
 
 export function OrderLayout({
 	preview,
@@ -26,7 +25,7 @@ export function OrderLayout({
 					<Text style={{ margin: "8px 0 0" }}>
 						Navet
 						<br />
-						<Link href={`mailto:${ORDER_CONTACT_EMAIL}`}>{ORDER_CONTACT_EMAIL}</Link>
+						<Link href={`mailto:${JOB_LISTING_ORDER_EMAIL}`}>{JOB_LISTING_ORDER_EMAIL}</Link>
 					</Text>
 				</Container>
 			</Body>

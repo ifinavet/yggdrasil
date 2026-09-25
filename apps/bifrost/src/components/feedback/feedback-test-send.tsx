@@ -2,13 +2,13 @@
 
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
+import { convexErrorMessage } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";
 import { useBrowserOptIn } from "@workspace/ui/hooks/use-browser-opt-in";
 import { useAction } from "convex/react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { convexErrorMessage } from "@/utils/convex-error";
 
 export function FeedbackTestSend({ eventId }: Readonly<{ eventId: Id<"events"> }>) {
 	const enabled = useBrowserOptIn("huginFeedbackTestSend");

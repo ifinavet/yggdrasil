@@ -1,4 +1,4 @@
-import { orderListingSchema } from "@workspace/shared/job-listing-orders";
+import { orderListingSchema, REJECTION_MAX_LENGTH } from "@workspace/shared/job-listing-orders";
 import { osloDateTimeToEpoch, osloToday } from "@workspace/shared/time";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../_generated/api";
@@ -13,7 +13,6 @@ import { orderContact, orderItemFields, orderStatus } from "./schema";
 import { loadOrderSettings } from "./settings";
 
 const PENDING_LIMIT = 50;
-const REJECTION_MAX_LENGTH = 1000;
 const DEADLINE_CLOCK = "23:59";
 
 async function pendingUpdateFor(ctx: QueryCtx, orderId: Id<"jobListingOrders">) {

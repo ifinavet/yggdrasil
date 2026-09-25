@@ -1,6 +1,7 @@
 "use client";
 
 import type { JobListingOrderSettings } from "@workspace/shared/job-listing-orders";
+import { CharacterCount } from "@workspace/ui/components/character-count";
 import { Input } from "@workspace/ui/components/input";
 import { RichTextEditor } from "@workspace/ui/components/rich-text-editor";
 import {
@@ -33,19 +34,20 @@ export function ListingFieldset({
 		<OrderSection legend={listingCopy.legend(index + 1)}>
 			<form.Field name={`listings[${index}].title`}>
 				{(field) => (
-					<FormRow
-						label={listingCopy.title}
-						htmlFor={id("title")}
-						errors={field.state.meta.errors}
-						hint={listingCopy.counter(field.state.value.length, settings.titleMaxLength)}
-					>
+					<FormRow label={listingCopy.title} htmlFor={id("title")} errors={field.state.meta.errors}>
 						<Input
 							id={id("title")}
 							value={field.state.value}
 							maxLength={settings.titleMaxLength}
+							aria-describedby={id("title-count")}
 							aria-invalid={field.state.meta.errors.length > 0}
 							onBlur={field.handleBlur}
 							onChange={(event) => field.handleChange(event.target.value)}
+						/>
+						<CharacterCount
+							id={id("title-count")}
+							length={field.state.value.length}
+							max={settings.titleMaxLength}
 						/>
 					</FormRow>
 				)}
@@ -56,16 +58,21 @@ export function ListingFieldset({
 						label={listingCopy.teaser}
 						htmlFor={id("teaser")}
 						errors={field.state.meta.errors}
-						hint={listingCopy.counter(field.state.value.length, settings.teaserMaxLength)}
 					>
 						<Textarea
 							id={id("teaser")}
 							rows={2}
 							value={field.state.value}
 							maxLength={settings.teaserMaxLength}
+							aria-describedby={id("teaser-count")}
 							aria-invalid={field.state.meta.errors.length > 0}
 							onBlur={field.handleBlur}
 							onChange={(event) => field.handleChange(event.target.value)}
+						/>
+						<CharacterCount
+							id={id("teaser-count")}
+							length={field.state.value.length}
+							max={settings.teaserMaxLength}
 						/>
 					</FormRow>
 				)}

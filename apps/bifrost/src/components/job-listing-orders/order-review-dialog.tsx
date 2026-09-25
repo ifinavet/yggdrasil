@@ -3,8 +3,12 @@
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { LISTING_COLORS } from "@workspace/shared/constants";
-import type { JobListingOrderSettings } from "@workspace/shared/job-listing-orders";
+import {
+	type JobListingOrderSettings,
+	REJECTION_MAX_LENGTH,
+} from "@workspace/shared/job-listing-orders";
 import { formatNok } from "@workspace/shared/products";
+import { convexErrorMessage } from "@workspace/shared/utils";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { CompanyLogo } from "@workspace/ui/components/company-logo";
@@ -17,31 +21,25 @@ import {
 	DialogTitle,
 } from "@workspace/ui/components/dialog";
 import { Label } from "@workspace/ui/components/label";
+import { SafeHtml } from "@workspace/ui/components/safe-html";
 import { Textarea } from "@workspace/ui/components/textarea";
 import { cn } from "@workspace/ui/lib/utils";
 import { useMutation, useQuery } from "convex/react";
-import type { FunctionReturnType } from "convex/server";
-import { ConvexError } from "convex/values";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useState } from "react";
 import { toast } from "sonner";
-import SafeHtml from "@/components/common/sanitize-html";
 import { OrderItemEditor } from "./order-item-editor";
 import {
 	approveBlocker,
 	type CompanyChangeRow,
+	type CompanyUpdate,
 	companyChangeRows,
 	formatBilling,
 	formatDeadline,
+	type ReviewOrder as Order,
 } from "./order-review";
 
-type Order = NonNullable<FunctionReturnType<typeof api.jobListingOrders.admin.getOrder>>;
 type OrderItem = Order["items"][number];
-type CompanyUpdate = NonNullable<Order["update"]>;
-
-function errorMessage(error: unknown, fallback: string) {
-	return error instanceof ConvexError ? String(error.data) : fallback;
-}
 
 export function OrderReviewDialog({
 	orderId,
@@ -165,7 +163,7 @@ function CompanyUpdateReview({ update }: Readonly<{ update: CompanyUpdate }>) {
 			await decideUpdate({ requestId: update._id, approve });
 			toast.success(approve ? "Endringen er godkjent" : "Endringen er avvist");
 		} catch (error) {
-			toast.error(errorMessage(error, "Kunne ikke behandle endringen."));
+			toast.error(convexErrorMessage(error, "Kunne ikke behandle endringen."));
 		} finally {
 			setDeciding(false);
 		}
@@ -320,7 +318,7 @@ function OrderDecision({ order, onClose }: Readonly<{ order: Order; onClose: () 
 			onClose();
 			router.refresh();
 		} catch (error) {
-			toast.error(errorMessage(error, fallback));
+			toast.error(convexErrorMessage(error, fallback));
 		} finally {
 			setSubmitting(false);
 		}
@@ -333,7 +331,7 @@ function OrderDecision({ order, onClose }: Readonly<{ order: Order; onClose: () 
 				<Textarea
 					id="rejection-reason"
 					rows={4}
-					maxLength={1000}
+					maxLength={REJECTION_MAX_LENGTH}
 					value={reason}
 					onChange={(event) => setReason(event.target.value)}
 				/>

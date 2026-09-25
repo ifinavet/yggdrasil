@@ -1,10 +1,10 @@
 import {
 	type ApplicationForm,
 	applicationFormSchema,
-	SUBMISSION_ID_PATTERN,
 } from "@workspace/shared/semester/application";
 import { isValidOrgNumber } from "@workspace/shared/semester/orgNumber";
 import { osloToday } from "@workspace/shared/time";
+import { SUBMISSION_ID_PATTERN } from "@workspace/shared/validation";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../../_generated/api";
 import { action, internalMutation } from "../../_generated/server";

@@ -1,7 +1,7 @@
 "use node";
 
-import { ORDER_SUBMISSION_ID_PATTERN } from "@workspace/shared/job-listing-orders";
 import { isValidOrgNumber } from "@workspace/shared/semester/orgNumber";
+import { SUBMISSION_ID_PATTERN } from "@workspace/shared/validation";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../_generated/api";
 import { action } from "../_generated/server";
@@ -45,7 +45,7 @@ export const submit = action({
 	returns: v.null(),
 	handler: async (ctx, { form, submissionId, website }) => {
 		if (website?.trim()) return null;
-		if (!ORDER_SUBMISSION_ID_PATTERN.test(submissionId)) {
+		if (!SUBMISSION_ID_PATTERN.test(submissionId)) {
 			throw new ConvexError(OUTDATED_FORM_MESSAGE);
 		}
 
@@ -89,7 +89,7 @@ export const resendConfirmation = action({
 	args: { submissionId: v.string() },
 	returns: v.null(),
 	handler: async (ctx, { submissionId }) => {
-		if (!ORDER_SUBMISSION_ID_PATTERN.test(submissionId)) {
+		if (!SUBMISSION_ID_PATTERN.test(submissionId)) {
 			throw new ConvexError(OUTDATED_FORM_MESSAGE);
 		}
 		const limit = await orderRateLimiter.limit(ctx, "resendJobListingOrderConfirmation", {

@@ -1,13 +1,13 @@
 "use client";
 
 import { api } from "@workspace/backend/convex/api";
+import { convexErrorMessage } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
 import { useAction } from "convex/react";
 import { MailCheck } from "lucide-react";
 import { useState } from "react";
 import { FormStatePanel } from "@/components/form-state-panel";
 import { checkEmailCopy } from "@/lib/job-listing-order/copy";
-import { convexErrorMessage } from "@/lib/job-listing-order/errors";
 
 type ResendState = { status: "idle" | "sending" | "sent" } | { status: "failed"; message: string };
 

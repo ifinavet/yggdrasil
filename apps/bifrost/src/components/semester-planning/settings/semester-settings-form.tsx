@@ -4,7 +4,7 @@ import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
 import type { Doc } from "@workspace/backend/convex/dataModel";
 import { isClockTime, isIsoDate } from "@workspace/shared/time";
-import { isHttpUrl } from "@workspace/shared/utils";
+import { convexErrorMessage, isHttpUrl } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
 import { DatePicker } from "@workspace/ui/components/date-picker";
 import { Field, FieldError, FieldLabel } from "@workspace/ui/components/field";
@@ -16,7 +16,6 @@ import { FileText } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
-import { convexErrorMessage } from "@/utils/convex-error";
 
 const optionalDay = z.string().refine((value) => value === "" || isIsoDate(value), "Velg en dato.");
 

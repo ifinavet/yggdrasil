@@ -1,11 +1,8 @@
-import { JOB_LISTING_ORDER_EMAIL, LOGO_MAX_BYTES } from "@workspace/shared/job-listing-orders";
+import { JOB_LISTING_ORDER_EMAIL } from "@workspace/shared/constants";
+import { LISTING_FIELD_LABELS, LOGO_MAX_BYTES } from "@workspace/shared/job-listing-orders";
 
 export const orderPageCopy = {
 	title: "Bestill stillingsannonse",
-	notFound: {
-		title: "Fant ikke siden",
-		body: "Siden du leter etter finnes ikke.",
-	},
 	closed: {
 		title: "Bestillingsskjemaet er stengt",
 		body: `Ta kontakt på ${JOB_LISTING_ORDER_EMAIL} hvis dere vil bestille stillingsannonser.`,
@@ -38,8 +35,6 @@ export const companyCopy = {
 	editLogo: "Endre logo",
 	logoHint: `PNG eller SVG, høyst ${LOGO_MAX_BYTES / 1_000_000} MB.`,
 	logoUploading: "Laster opp ...",
-	logoWrongType: "Logoen må være PNG eller SVG.",
-	logoTooLarge: `Logoen kan være høyst ${LOGO_MAX_BYTES / 1_000_000} MB.`,
 	logoFailed: "Opplastingen feilet. Prøv igjen.",
 	correctQuestion: "Stemmer informasjonen om bedriften?",
 	yes: "Ja",
@@ -65,15 +60,9 @@ export const packageCopy = {
 
 export const listingCopy = {
 	legend: (position: number) => `Annonse ${position}`,
-	title: "Tittel",
-	teaser: "Intro",
-	description: "Beskrivelse",
-	applicationUrl: "Søknadslenke",
+	...LISTING_FIELD_LABELS,
 	applicationUrlPlaceholder: "https://",
-	deadline: "Søknadsfrist",
-	type: "Ansettelsesform",
 	typePlaceholder: "Velg ansettelsesform",
-	counter: (length: number, max: number) => `${length}/${max}`,
 } as const;
 
 export const contactCopy = {

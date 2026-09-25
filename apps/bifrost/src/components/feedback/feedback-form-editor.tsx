@@ -4,9 +4,9 @@ import { useForm, useStore } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { type FeedbackField, feedbackFormSchema } from "@workspace/shared/feedback";
+import { convexErrorMessage } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
 import { useMutation } from "convex/react";
-import { ConvexError } from "convex/values";
 import { PlusIcon } from "lucide-react";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -17,10 +17,6 @@ const autosaveDelayMs = 800;
 
 type DraftValues = { name: string; fields: FeedbackField[] };
 type SaveState = "saved" | "pending" | "saving" | "failed";
-
-function errorMessage(error: unknown, fallback: string) {
-	return error instanceof ConvexError ? String(error.data) : fallback;
-}
 
 export function FeedbackFormEditor({
 	formId,
@@ -62,7 +58,7 @@ export function FeedbackFormEditor({
 				setSaveState("saved");
 			} catch (error) {
 				setSaveState("failed");
-				toast.error(errorMessage(error, "Kunne ikke lagre utkastet. Prøv igjen."));
+				toast.error(convexErrorMessage(error, "Kunne ikke lagre utkastet. Prøv igjen."));
 			}
 		},
 		[formId, saveDraft],
@@ -98,7 +94,7 @@ export function FeedbackFormEditor({
 			await publish({ formId });
 			toast.success("Ny versjon publisert");
 		} catch (error) {
-			toast.error(errorMessage(error, "Kunne ikke publisere skjemaet. Prøv igjen."));
+			toast.error(convexErrorMessage(error, "Kunne ikke publisere skjemaet. Prøv igjen."));
 		} finally {
 			setPublishing(false);
 		}

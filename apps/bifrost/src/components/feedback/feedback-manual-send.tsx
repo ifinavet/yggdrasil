@@ -2,12 +2,12 @@
 
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
+import { convexErrorMessage } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";
 import { SearchSelect } from "@workspace/ui/components/search-select";
 import { useBrowserOptIn } from "@workspace/ui/hooks/use-browser-opt-in";
 import { useAction, useQuery } from "convex/react";
-import { ConvexError } from "convex/values";
 import { useId, useState } from "react";
 import { toast } from "sonner";
 
@@ -30,7 +30,7 @@ function ManualSendCard({ eventId }: Readonly<{ eventId: Id<"events"> }>) {
 			toast.success(`Sendte skjema til ${name}`);
 			setSelectedUserId(undefined);
 		} catch (error) {
-			toast.error(error instanceof ConvexError ? String(error.data) : "Kunne ikke sende skjema");
+			toast.error(convexErrorMessage(error, "Kunne ikke sende skjema"));
 		} finally {
 			setSending(false);
 		}

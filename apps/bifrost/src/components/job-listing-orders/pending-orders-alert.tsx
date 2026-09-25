@@ -3,14 +3,14 @@
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { Badge } from "@workspace/ui/components/badge";
+import { useFeatureEnabled } from "@workspace/ui/components/feature-gate";
 import { useQuery } from "convex/react";
 import { ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { OrderReviewDialog } from "./order-review-dialog";
-import { useJobListingOrdersEnabled } from "./use-job-listing-orders-enabled";
 
 export function PendingOrdersAlert() {
-	const enabled = useJobListingOrdersEnabled();
+	const enabled = useFeatureEnabled("jobListingOrders");
 	const orders = useQuery(api.jobListingOrders.admin.listPending, enabled ? {} : "skip");
 	const [openOrderId, setOpenOrderId] = useState<Id<"jobListingOrders">>();
 

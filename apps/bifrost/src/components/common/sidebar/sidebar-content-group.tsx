@@ -1,6 +1,6 @@
 "use client";
 
-import { useSemesterPlanningEnabled } from "@workspace/ui/components/semester-planning-gate";
+import { useFeatureEnabled } from "@workspace/ui/components/feature-gate";
 import {
 	SidebarGroup,
 	SidebarGroupContent,
@@ -23,7 +23,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useProductsEnabled } from "@/components/products/use-products-enabled";
 
 const paths = {
 	superAdmin: [{ title: "Skjemaer", icon: ClipboardListIcon, path: "/feedback-forms" }],
@@ -91,8 +90,8 @@ export function SidebarContentGroup({
 	extraItems?: keyof typeof paths;
 }>) {
 	const rootPathSegment = usePathname().split("/")[1];
-	const productsEnabled = useProductsEnabled();
-	const semesterPlanning = useSemesterPlanningEnabled();
+	const productsEnabled = useFeatureEnabled("products");
+	const semesterPlanning = useFeatureEnabled("semesterPlanning");
 	const visibleItems = [...paths[items], ...(extraItems ? paths[extraItems] : [])].filter(
 		(item) =>
 			(productsEnabled || !("requiresProducts" in item)) &&

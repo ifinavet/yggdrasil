@@ -10,10 +10,10 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@workspace/ui/components/card";
+import { SafeHtml } from "@workspace/ui/components/safe-html";
 import { type Preloaded, usePreloadedQuery } from "convex/react";
 import { Pencil } from "lucide-react";
 import Link from "next/link";
-import SafeHtml from "@/components/common/sanitize-html";
 import UpdateMainSponsorForm from "./update-main-sponsor-form";
 
 export default function UpdateMainSponsor({

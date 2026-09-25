@@ -3,16 +3,19 @@ import { cn } from "@workspace/ui/lib/utils";
 import type { ReactNode } from "react";
 import { ERROR_TEXT, ErrorLine } from "../form-controls";
 
-/** The first validation message on a field, if the field has one. */
-export function fieldErrorText(field: AnyFieldApi): string | undefined {
-	if (!field.state.meta.errors?.length) return undefined;
-
-	return field.state.meta.errors
-		.map((error: { message?: string } | string) =>
-			typeof error === "string" ? error : error?.message,
+/** The validation messages in a TanStack error list, joined, if there are any. */
+export function errorText(errors: readonly unknown[]): string | undefined {
+	const messages = errors
+		.map((error) =>
+			typeof error === "string" ? error : (error as { message?: string } | undefined)?.message,
 		)
-		.filter(Boolean)
-		.join(", ");
+		.filter(Boolean);
+	return messages.length > 0 ? messages.join(", ") : undefined;
+}
+
+/** The validation messages on a field, if the field has any. */
+export function fieldErrorText(field: AnyFieldApi): string | undefined {
+	return errorText(field.state.meta.errors ?? []);
 }
 
 /** The labelled prompt, hint and error element ids for one question. */

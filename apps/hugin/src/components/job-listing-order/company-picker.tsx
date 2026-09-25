@@ -1,6 +1,6 @@
 "use client";
 
-import { api } from "@workspace/backend/convex/api";
+import type { api } from "@workspace/backend/convex/api";
 import { Button } from "@workspace/ui/components/button";
 import {
 	Command,
@@ -11,21 +11,16 @@ import {
 	CommandList,
 } from "@workspace/ui/components/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui/components/popover";
-import { useAction } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { Check, ChevronsUpDown, Search } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useRegistrySearch } from "@/components/company-application/use-registry-search";
+import type { RegistryHit } from "@/lib/company-application";
+import { hitMeta } from "@/lib/company-application-format";
 import { companyCopy } from "@/lib/job-listing-order/copy";
-import { convexErrorMessage } from "@/lib/job-listing-order/errors";
 import { type CompanyValues, emptyCompany } from "@/lib/job-listing-order/form-values";
 
 type CompanyOption = FunctionReturnType<typeof api.jobListingOrders.form.companies>[number];
-type RegistryHit = FunctionReturnType<
-	typeof api.semesterPlanning.registry.actions.searchCompanies
->[number];
-
-const SEARCH_DELAY_MS = 300;
-const MIN_QUERY_LENGTH = 2;
 
 function selectedName(value: CompanyValues, companies: readonly CompanyOption[]) {
 	if (value.kind === "new") return value.displayName || value.registryName;
@@ -136,48 +131,12 @@ export function CompanyPicker({
 	);
 }
 
-type SearchState =
-	| { status: "idle" }
-	| { status: "searching" }
-	| { status: "done"; hits: RegistryHit[] }
-	| { status: "error"; message: string };
-
 function RegistrySearch({
 	onBack,
 	onSelect,
 }: Readonly<{ onBack: () => void; onSelect: (hit: RegistryHit) => void }>) {
-	const searchCompanies = useAction(api.semesterPlanning.registry.actions.searchCompanies);
 	const [query, setQuery] = useState("");
-	const [state, setState] = useState<SearchState>({ status: "idle" });
-
-	useEffect(() => {
-		const trimmed = query.trim();
-		if (trimmed.length < MIN_QUERY_LENGTH) {
-			setState({ status: "idle" });
-			return;
-		}
-		let active = true;
-		const timer = setTimeout(() => {
-			setState({ status: "searching" });
-			searchCompanies({ query: trimmed }).then(
-				(hits) => {
-					if (active) setState({ status: "done", hits });
-				},
-				(error: unknown) => {
-					if (active) {
-						setState({
-							status: "error",
-							message: convexErrorMessage(error, companyCopy.registryEmpty),
-						});
-					}
-				},
-			);
-		}, SEARCH_DELAY_MS);
-		return () => {
-			active = false;
-			clearTimeout(timer);
-		};
-	}, [query, searchCompanies]);
+	const { search: state } = useRegistrySearch(query.trim());
 
 	return (
 		<Command shouldFilter={false}>
@@ -212,9 +171,9 @@ function RegistrySearch({
 								<div className="flex min-w-0 flex-col">
 									<span className="truncate">{hit.name}</span>
 									<span className="text-muted-foreground text-xs">
-										{[hit.orgNumber, hit.city, hit.blockedReason && companyCopy.registryBlocked]
+										{[hitMeta(hit), hit.blockedReason && companyCopy.registryBlocked]
 											.filter(Boolean)
-											.join(", ")}
+											.join(" · ")}
 									</span>
 								</div>
 							</CommandItem>

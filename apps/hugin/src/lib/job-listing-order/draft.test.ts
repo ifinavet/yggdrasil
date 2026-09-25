@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { parseDraft, serializeDraft } from "./draft";
+import { draftSnapshot, parseDraft } from "./draft";
 import { emptyOrderForm } from "./form-values";
 
 describe("order draft", () => {
 	it("round-trips the form without the confirmation or honeypot", () => {
 		const values = { ...emptyOrderForm(), note: "Hei", confirmAmount: true, website: "spam" };
-		expect(parseDraft(serializeDraft(values))).toEqual({
+		expect(parseDraft(JSON.parse(JSON.stringify(draftSnapshot(values))))).toEqual({
 			...values,
 			confirmAmount: false,
 			website: "",
@@ -13,14 +13,13 @@ describe("order draft", () => {
 	});
 
 	it("never stores the confirmation or honeypot", () => {
-		const raw = serializeDraft({ ...emptyOrderForm(), confirmAmount: true, website: "spam" });
-		expect(JSON.parse(raw)).toMatchObject({ confirmAmount: false, website: "" });
+		const snapshot = draftSnapshot({ ...emptyOrderForm(), confirmAmount: true, website: "spam" });
+		expect(snapshot).toMatchObject({ confirmAmount: false, website: "" });
 	});
 
-	it("rejects missing, malformed and outdated drafts", () => {
+	it("rejects missing and outdated drafts", () => {
 		expect(parseDraft(null)).toBeNull();
-		expect(parseDraft("{not json")).toBeNull();
-		expect(parseDraft(JSON.stringify({ note: "Hei" }))).toBeNull();
-		expect(parseDraft(JSON.stringify({ ...emptyOrderForm(), listings: [] }))).toBeNull();
+		expect(parseDraft({ note: "Hei" })).toBeNull();
+		expect(parseDraft({ ...emptyOrderForm(), listings: [] })).toBeNull();
 	});
 });

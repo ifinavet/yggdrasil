@@ -1,37 +1,27 @@
+import { readJson, removeItem, writeJson } from "../guarded-storage";
 import { type OrderFormValues, orderFormValuesSchema } from "./form-values";
 
-export const ORDER_DRAFT_KEY = "job-listing-order-draft";
+const ORDER_DRAFT_KEY = "hugin.job-listing-order.draft.v1";
 
-export function serializeDraft(values: OrderFormValues): string {
-	return JSON.stringify({ ...values, confirmAmount: false, website: "" });
+const local = () => window.localStorage;
+
+export function draftSnapshot(values: OrderFormValues): OrderFormValues {
+	return { ...values, confirmAmount: false, website: "" };
 }
 
-export function parseDraft(raw: string | null): OrderFormValues | null {
-	if (!raw) return null;
-	try {
-		const result = orderFormValuesSchema.safeParse(JSON.parse(raw));
-		return result.success ? { ...result.data, confirmAmount: false, website: "" } : null;
-	} catch {
-		return null;
-	}
+export function parseDraft(stored: unknown): OrderFormValues | null {
+	const result = orderFormValuesSchema.safeParse(stored);
+	return result.success ? draftSnapshot(result.data) : null;
 }
 
 export function loadDraft(): OrderFormValues | null {
-	try {
-		return parseDraft(localStorage.getItem(ORDER_DRAFT_KEY));
-	} catch {
-		return null;
-	}
+	return parseDraft(readJson(local, ORDER_DRAFT_KEY));
 }
 
 export function saveDraft(values: OrderFormValues) {
-	try {
-		localStorage.setItem(ORDER_DRAFT_KEY, serializeDraft(values));
-	} catch {}
+	writeJson(local, ORDER_DRAFT_KEY, draftSnapshot(values));
 }
 
 export function clearDraft() {
-	try {
-		localStorage.removeItem(ORDER_DRAFT_KEY);
-	} catch {}
+	removeItem(local, ORDER_DRAFT_KEY);
 }

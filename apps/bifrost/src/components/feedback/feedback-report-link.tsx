@@ -1,11 +1,11 @@
 "use client";
 
 import { Button } from "@workspace/ui/components/button";
+import { useFeatureEnabled } from "@workspace/ui/components/feature-gate";
 import Link from "next/link";
-import { useFeedbackPreviewEnabled } from "./use-feedback-preview";
 
 export function FeedbackReportLink({ slug }: Readonly<{ slug: string }>) {
-	const enabled = useFeedbackPreviewEnabled();
+	const enabled = useFeatureEnabled("huginFeedback");
 	if (!enabled) return null;
 	return (
 		<Button asChild variant="outline">
