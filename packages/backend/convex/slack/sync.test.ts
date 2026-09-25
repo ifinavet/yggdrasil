@@ -95,7 +95,6 @@ afterEach(() => {
 	vi.unstubAllGlobals();
 	vi.unstubAllEnvs();
 	featureFlags.slackBot.enabled = false;
-	featureFlags.huginFeedback.emailsEnabled = false;
 });
 
 describe("bedpres Slack channels", () => {
@@ -174,7 +173,6 @@ describe("bedpres Slack channels", () => {
 
 	it("archives the morning the feedback form is sent", async () => {
 		const { t, companyId } = await setup();
-		featureFlags.huginFeedback.emailsEnabled = true;
 		const slack = fakeSlack();
 		const eventId = await insertEvent(t, companyId, {
 			registrationOpens: REGISTRATION_OPENS,

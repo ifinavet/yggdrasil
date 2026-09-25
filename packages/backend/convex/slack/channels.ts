@@ -1,5 +1,4 @@
 import type { OrganizerRole } from "@workspace/shared/constants";
-import { featureFlags } from "@workspace/shared/feature-flags";
 import { v } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalMutation, internalQuery, type QueryCtx } from "../_generated/server";
@@ -50,8 +49,8 @@ async function organizers(ctx: QueryCtx, eventId: Id<"events">): Promise<Organiz
 	return result;
 }
 
+/** Feedback forms go out automatically, so an opened campaign means the bedpres is done. */
 async function feedbackSent(ctx: QueryCtx, eventId: Id<"events">): Promise<boolean> {
-	if (!featureFlags.huginFeedback.emailsEnabled) return false;
 	const campaign = await ctx.db
 		.query("feedbackCampaigns")
 		.withIndex("by_eventId", (index) => index.eq("eventId", eventId))

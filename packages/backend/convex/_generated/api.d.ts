@@ -25,6 +25,7 @@ import type * as events_waitlist_mutations from "../events/waitlist/mutations.js
 import type * as feedback_defaultFields from "../feedback/defaultFields.js";
 import type * as feedback_delivery_campaigns from "../feedback/delivery/campaigns.js";
 import type * as feedback_delivery_content from "../feedback/delivery/content.js";
+import type * as feedback_delivery_emailContext from "../feedback/delivery/emailContext.js";
 import type * as feedback_delivery_http from "../feedback/delivery/http.js";
 import type * as feedback_delivery_mail from "../feedback/delivery/mail.js";
 import type * as feedback_delivery_messages from "../feedback/delivery/messages.js";
@@ -117,6 +118,7 @@ declare const fullApi: ApiFromModules<{
   "feedback/defaultFields": typeof feedback_defaultFields;
   "feedback/delivery/campaigns": typeof feedback_delivery_campaigns;
   "feedback/delivery/content": typeof feedback_delivery_content;
+  "feedback/delivery/emailContext": typeof feedback_delivery_emailContext;
   "feedback/delivery/http": typeof feedback_delivery_http;
   "feedback/delivery/mail": typeof feedback_delivery_mail;
   "feedback/delivery/messages": typeof feedback_delivery_messages;

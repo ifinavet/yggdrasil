@@ -92,8 +92,7 @@ export const REMINDERS: readonly Reminder[] = [
 		text: () =>
 			[
 				"*Takk for i dag!* Nå gjenstår det å:",
-				"• registrere oppmøte i Bifrost, om det ikke er gjort.",
-				"• sende tilbakemeldingsskjema til deltakerne og bedriften, og purre etter et par dager.",
+				"• registrere oppmøte i Bifrost, om det ikke er gjort. Tilbakemeldingsskjemaet sendes automatisk i morgen, men bare til dem som er registrert som møtt.",
 				"• fylle ut rapporten, lagre den i Drive-mappen og sende PDF til kontaktpersonen i bedriften.",
 				"• legge oppmøte-arket i samme mappe, om dere brukte det.",
 				"• føre utlegg for alt som er kjøpt inn. Dette er veldig viktig, fordi Navet er pliktig til å føre regnskap.",
