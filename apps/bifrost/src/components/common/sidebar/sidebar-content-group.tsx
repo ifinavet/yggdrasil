@@ -1,5 +1,6 @@
 "use client";
 
+import { useSemesterPlanningEnabled } from "@workspace/ui/components/semester-planning-gate";
 import {
 	SidebarGroup,
 	SidebarGroupContent,
@@ -14,6 +15,7 @@ import {
 	BriefcaseIcon,
 	BuildingIcon,
 	CalendarIcon,
+	CalendarRangeIcon,
 	ClipboardListIcon,
 	FileIcon,
 	GitForkIcon,
@@ -30,6 +32,11 @@ const paths = {
 			title: "Arrangementer",
 			icon: CalendarIcon,
 			path: "/events",
+		},
+		{
+			title: "Semesterplan",
+			icon: CalendarRangeIcon,
+			path: "/semesterplan",
 		},
 		{
 			title: "Stillingsannonser",
@@ -85,8 +92,11 @@ export function SidebarContentGroup({
 }>) {
 	const rootPathSegment = usePathname().split("/")[1];
 	const productsEnabled = useProductsEnabled();
+	const semesterPlanning = useSemesterPlanningEnabled();
 	const visibleItems = [...paths[items], ...(extraItems ? paths[extraItems] : [])].filter(
-		(item) => productsEnabled || !("requiresProducts" in item),
+		(item) =>
+			(productsEnabled || !("requiresProducts" in item)) &&
+			(item.path !== "/semesterplan" || semesterPlanning),
 	);
 
 	return (

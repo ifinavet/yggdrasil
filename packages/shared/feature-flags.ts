@@ -14,6 +14,11 @@ export const featureFlags = {
 	jobListingOrders: {
 		enabled: false,
 	},
+	semesterPlanning: {
+		// Shows Semesterplan in Bifrost, the application and offer pages on Hugin and the button on
+		// Midgard to everyone. While off, only browsers with the preview opt-in see them.
+		uiEnabled: false,
+	},
 };
 
 export const browserOptInKeys = {
@@ -21,6 +26,7 @@ export const browserOptInKeys = {
 	jobListingOrdersPreview: "job-listing-orders-preview",
 	huginFeedbackPreview: "hugin-feedback-preview",
 	huginFeedbackTestSend: "hugin-feedback-testsend",
+	semesterPlanningPreview: "semester-planning-preview",
 } as const;
 
 export type BrowserOptIn = keyof typeof browserOptInKeys;

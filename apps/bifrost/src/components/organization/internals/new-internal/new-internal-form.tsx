@@ -1,7 +1,7 @@
 "use client";
 
 import { useForm } from "@tanstack/react-form";
-import type { Doc } from "@workspace/backend/convex/dataModel";
+import { api } from "@workspace/backend/convex/api";
 import { Button } from "@workspace/ui/components/button";
 import {
 	Dialog,
@@ -12,14 +12,15 @@ import {
 	DialogTrigger,
 } from "@workspace/ui/components/dialog";
 import { Field, FieldError, FieldLabel, FieldSet } from "@workspace/ui/components/field";
-import { useEffect, useState } from "react";
+import { SearchSelect } from "@workspace/ui/components/search-select";
+import { useConvex } from "convex/react";
+import { useEffect, useId, useState } from "react";
 import DialogSaveFooter from "@/components/common/forms/dialog-save-footer";
 import PositionGroupField from "@/components/common/forms/position-group-field";
 import {
 	type InternalMemberFormValues,
 	internalMemberFormSchema,
 } from "@/constants/schemas/internal-member-form-shcema";
-import NewInternalSearch from "./new-internal-search";
 
 export default function InternalMemberForm({
 	defaultValues,
@@ -40,7 +41,20 @@ export default function InternalMemberForm({
 	button: React.ReactNode;
 	className?: string;
 }>) {
-	const [selectedUser, setSelectedUser] = useState<Doc<"users"> | null>(null);
+	const userLabelId = useId();
+	const [selectedUserLabel, setSelectedUserLabel] = useState<string>();
+	const convex = useConvex();
+	const searchUsers = async (searchInput: string) => {
+		const { page } = await convex.query(api.users.clerk.queries.searchAfterUsers, {
+			searchInput,
+			paginationOpts: { numItems: 10, cursor: null },
+		});
+		return page.map((user) => ({
+			id: user._id,
+			label: [user.firstName, user.lastName].join(" "),
+			description: user.email,
+		}));
+	};
 
 	const form = useForm({
 		defaultValues,
@@ -55,13 +69,9 @@ export default function InternalMemberForm({
 	useEffect(() => {
 		if (!openDialog) {
 			form.reset();
+			setSelectedUserLabel(undefined);
 		}
 	}, [openDialog, form]);
-
-	const handleUserSelect = (user: Doc<"users"> | null) => {
-		setSelectedUser(user);
-		form.setFieldValue("userId", user?._id || "");
-	};
 
 	return (
 		<Dialog open={openDialog} onOpenChange={setOpenDialogAction}>
@@ -87,10 +97,20 @@ export default function InternalMemberForm({
 						<form.Field name="userId">
 							{(field) => (
 								<Field className="flex flex-col">
-									<FieldLabel>Velg bruker</FieldLabel>
-									<NewInternalSearch
-										selectedUser={selectedUser}
-										setSelectedUserAction={handleUserSelect}
+									<FieldLabel id={userLabelId}>Velg bruker</FieldLabel>
+									<SearchSelect
+										aria-labelledby={userLabelId}
+										className="w-full"
+										search={searchUsers}
+										value={field.state.value}
+										valueLabel={selectedUserLabel}
+										onChange={(userId, item) => {
+											field.handleChange(userId ?? "");
+											setSelectedUserLabel(item?.label);
+										}}
+										placeholder="Velg bruker"
+										searchPlaceholder="Søk etter epost, eks. olanord@uio.no"
+										emptyText="Fant ingen brukere."
 									/>
 									{field.state.meta.isTouched && !field.state.meta.isValid && (
 										<FieldError errors={field.state.meta.errors} />

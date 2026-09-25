@@ -4,20 +4,12 @@ import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";
-import {
-	Command,
-	CommandGroup,
-	CommandInput,
-	CommandItem,
-	CommandList,
-} from "@workspace/ui/components/command";
-import { cn } from "@workspace/ui/lib/utils";
+import { SearchSelect } from "@workspace/ui/components/search-select";
+import { useBrowserOptIn } from "@workspace/ui/hooks/use-browser-opt-in";
 import { useAction, useQuery } from "convex/react";
 import { ConvexError } from "convex/values";
-import { Check } from "lucide-react";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { toast } from "sonner";
-import { useBrowserOptIn } from "@/hooks/use-browser-opt-in";
 
 export function FeedbackManualSend({ eventId }: Readonly<{ eventId: Id<"events"> }>) {
 	const enabled = useBrowserOptIn("huginFeedbackTestSend");
@@ -29,6 +21,7 @@ function ManualSendCard({ eventId }: Readonly<{ eventId: Id<"events"> }>) {
 	const send = useAction(api.feedback.manualSend.send.send);
 	const [selectedUserId, setSelectedUserId] = useState<Id<"users">>();
 	const [sending, setSending] = useState(false);
+	const titleId = useId();
 	const sendToSelected = async () => {
 		if (!selectedUserId) return;
 		setSending(true);
@@ -45,32 +38,23 @@ function ManualSendCard({ eventId }: Readonly<{ eventId: Id<"events"> }>) {
 	return (
 		<Card>
 			<CardHeader>
-				<CardTitle>Send skjema</CardTitle>
+				<CardTitle id={titleId}>Send skjema</CardTitle>
 			</CardHeader>
 			<CardContent className="flex flex-col items-start gap-3">
-				<Command className="rounded-md border">
-					<CommandInput placeholder="Søk etter deltaker" />
-					<CommandList>
-						<CommandGroup>
-							{registrants?.map((registrant) => (
-								<CommandItem
-									key={registrant.userId}
-									value={`${registrant.name} ${registrant.email}`}
-									onSelect={() => setSelectedUserId(registrant.userId)}
-								>
-									<Check
-										className={cn(
-											"mr-2 h-4 w-4",
-											selectedUserId === registrant.userId ? "opacity-100" : "opacity-0",
-										)}
-									/>
-									{registrant.name}
-									<span className="text-muted-foreground">{registrant.email}</span>
-								</CommandItem>
-							))}
-						</CommandGroup>
-					</CommandList>
-				</Command>
+				<SearchSelect
+					aria-labelledby={titleId}
+					className="w-full max-w-sm"
+					items={registrants?.map(({ userId, name, email }) => ({
+						id: userId,
+						label: name,
+						description: email,
+					}))}
+					value={selectedUserId ?? null}
+					onChange={(userId) => setSelectedUserId(userId ? (userId as Id<"users">) : undefined)}
+					placeholder="Velg en deltaker..."
+					searchPlaceholder="Søk etter deltaker"
+					emptyText="Fant ingen deltakere."
+				/>
 				<Button disabled={!selectedUserId || sending} onClick={sendToSelected}>
 					Send skjema
 				</Button>

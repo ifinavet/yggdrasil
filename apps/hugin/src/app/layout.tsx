@@ -35,7 +35,8 @@ export default function RootLayout({
 								<PageTelemetry>
 									<div className="flex h-screen flex-col overflow-y-auto">
 										<Header />
-										<main className="wrap-break-word mx-6 mb-12 min-w-0 max-w-5xl flex-1 whitespace-normal text-balance lg:mx-auto">
+										{/* --page-gutter lets a full-width bar, such as a form's send dock, bleed past the margin. */}
+										<main className="wrap-break-word mx-(--page-gutter) mb-12 min-w-0 max-w-5xl flex-1 whitespace-normal text-balance [--page-gutter:1.5rem] lg:mx-auto">
 											{children}
 										</main>
 										<Toaster richColors position="bottom-right" />

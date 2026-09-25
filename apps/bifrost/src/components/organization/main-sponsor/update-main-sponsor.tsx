@@ -26,7 +26,7 @@ export default function UpdateMainSponsor({
 	return (
 		mainSponsor && (
 			<div className="flex flex-wrap gap-4">
-				<UpdateMainSponsorForm companyId={mainSponsor._id} />
+				<UpdateMainSponsorForm companyId={mainSponsor._id} companyName={mainSponsor.name} />
 				<Link href={`/companies/${mainSponsor._id}`} className="max-w-lg">
 					<Card>
 						<CardHeader>
