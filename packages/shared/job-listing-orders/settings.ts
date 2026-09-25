@@ -2,6 +2,8 @@ import { z } from "zod";
 import { JOB_TYPES } from "../constants/job_types";
 
 export const JOB_LISTING_ORDER_EMAIL = "annonse@ifinavet.no";
+export const JOB_LISTING_ORDER_PATH = "/bestill-stillingsannonse";
+export const JOB_LISTING_ORDER_CONFIRM_PATH = `${JOB_LISTING_ORDER_PATH}/bekreft`;
 
 export const JOB_LISTING_ORDER_DEFAULTS = {
 	intro: `Annonsene publiseres manuelt etter at vi har gått gjennom bestillingen. Spørsmål kan sendes til ${JOB_LISTING_ORDER_EMAIL}.`,

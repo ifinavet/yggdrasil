@@ -15,7 +15,10 @@ import {
 	MIDGARD_LOCAL_URL,
 	MIDGARD_URL,
 } from "@workspace/shared/constants";
-import { JOB_LISTING_ORDER_EMAIL } from "@workspace/shared/job-listing-orders";
+import {
+	JOB_LISTING_ORDER_CONFIRM_PATH,
+	JOB_LISTING_ORDER_EMAIL,
+} from "@workspace/shared/job-listing-orders";
 import { formatNok } from "@workspace/shared/products";
 import { v } from "convex/values";
 import { components, internal } from "../_generated/api";
@@ -34,7 +37,7 @@ function origin(local: string, hosted: string) {
 }
 
 export function confirmationUrl(token: string): string {
-	const url = new URL("/bestill-stillingsannonse/bekreft", origin(HUGIN_LOCAL_URL, HUGIN_URL));
+	const url = new URL(JOB_LISTING_ORDER_CONFIRM_PATH, origin(HUGIN_LOCAL_URL, HUGIN_URL));
 	url.hash = new URLSearchParams({ token }).toString();
 	return url.toString();
 }
