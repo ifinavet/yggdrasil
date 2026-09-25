@@ -1,0 +1,81 @@
+import type { Doc, Id } from "@workspace/backend/convex/dataModel";
+import { cn } from "@workspace/ui/lib/utils";
+import Link from "next/link";
+import type { ReactNode } from "react";
+import { daysList, formatMoment } from "../format";
+import { STATUS_CALLOUT_CLASSES, STATUS_DOT_CLASSES } from "../status";
+import { UnfinalizePlanButton } from "./finalize-plan-button";
+
+function Banner({
+	status,
+	action,
+	children,
+}: Readonly<{
+	status: "new_date_requested" | "confirmed";
+	action?: ReactNode;
+	children: ReactNode;
+}>) {
+	return (
+		<div
+			role="status"
+			className={cn(
+				"flex items-center gap-2.5 rounded-lg border px-3.5 py-2.5 text-[13.5px]",
+				STATUS_CALLOUT_CLASSES[status],
+			)}
+		>
+			<span
+				aria-hidden
+				className={cn("size-2 shrink-0 rounded-full", STATUS_DOT_CLASSES[status])}
+			/>
+			<span className="min-w-0 flex-1">{children}</span>
+			{action}
+		</div>
+	);
+}
+
+/** Whether the plan is finished, and which companies want another date. */
+export function DistributionBanners({
+	semester,
+	finalizedByName,
+	newDateRequests,
+	requestedDates,
+}: Readonly<{
+	semester: Doc<"semesters">;
+	/** Who finished the plan, if anyone. */
+	finalizedByName: string | null;
+	newDateRequests: readonly Doc<"companyApplications">[];
+	/** The dates each company asked for instead of its offer. */
+	requestedDates: ReadonlyMap<Id<"companyApplications">, string[]>;
+}>) {
+	return (
+		<>
+			{semester.planFinalizedAt !== undefined && (
+				<Banner
+					status="confirmed"
+					action={semester.status !== "closed" && <UnfinalizePlanButton semester={semester} />}
+				>
+					Planen ble ferdigstilt {formatMoment(semester.planFinalizedAt, "longDay")}
+					{finalizedByName ? ` av ${finalizedByName}` : ""}.
+					{semester.status === "closed" && " Søknadene er stengt."}
+				</Banner>
+			)}
+			{newDateRequests.map((application) => {
+				const requested = requestedDates.get(application._id) ?? [];
+				return (
+					<Banner key={application._id} status="new_date_requested">
+						<Link
+							href={`/semesterplan/soknad/${application._id}`}
+							className="font-semibold underline-offset-2 hover:underline"
+						>
+							{application.registry.name}
+						</Link>{" "}
+						ber om en annen dato
+						{requested.length > 0
+							? `: ${daysList(requested)}. Datoene er markert i raden.`
+							: ". Tildel en ny dato og send nytt tilbud."}
+					</Banner>
+				);
+			})}
+		</>
+	);
+}

@@ -88,6 +88,12 @@ const DAY_STYLES = {
 	longNoYear: "EEEE d. MMMM",
 	/** "tir 9.", under a month heading */
 	weekdayDay: "EEE d.",
+	/** "ti", for narrow calendar headers */
+	weekdayMin: "EEEEEE",
+	/** "februar" */
+	month: "LLLL",
+	/** "feb." */
+	monthShort: "LLL",
 } as const;
 
 /** A semester day for people, in Norwegian, in one of the styles above. */
