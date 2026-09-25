@@ -80,11 +80,17 @@ export function presentationDaysBetween(firstDate: string, lastDate: string): st
 
 // date-fns patterns for showing a semester day. "PPPP" is the locale's full date format.
 const DAY_STYLES = {
+	/** "tir 9. feb." */
 	short: "EEE d. MMM",
+	/** "tirsdag 9. februar 2027" */
 	long: "PPPP",
+	/** "tirsdag 9. februar", inside the semester where the year goes without saying */
+	longNoYear: "EEEE d. MMMM",
+	/** "tir 9.", under a month heading */
+	weekdayDay: "EEE d.",
 } as const;
 
-/** A semester day for people, in Norwegian: "tir 9. feb." (short) or "tirsdag 9. februar 2027" (long). */
+/** A semester day for people, in Norwegian, in one of the styles above. */
 export function formatSemesterDay(date: string, style: keyof typeof DAY_STYLES = "short"): string {
 	return format(parseStrictOrThrow(date, DAY_FORMAT), DAY_STYLES[style], {
 		...IN_OSLO,

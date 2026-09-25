@@ -1,5 +1,6 @@
 "use client";
 
+import { useSemesterPlanningEnabled } from "@workspace/ui/components/semester-planning-gate";
 import {
 	SidebarGroup,
 	SidebarGroupContent,
@@ -13,6 +14,7 @@ import {
 	BriefcaseIcon,
 	BuildingIcon,
 	CalendarIcon,
+	CalendarRangeIcon,
 	ClipboardListIcon,
 	FileIcon,
 	GitForkIcon,
@@ -28,6 +30,11 @@ const paths = {
 			title: "Arrangementer",
 			icon: CalendarIcon,
 			path: "/events",
+		},
+		{
+			title: "Semesterplan",
+			icon: CalendarRangeIcon,
+			path: "/semesterplan",
 		},
 		{
 			title: "Stillingsannonser",
@@ -76,26 +83,29 @@ export function SidebarContentGroup({
 	extraItems?: keyof typeof paths;
 }>) {
 	const rootPathSegment = usePathname().split("/")[1];
+	const semesterPlanning = useSemesterPlanningEnabled();
 
 	return (
 		<SidebarGroup>
 			<SidebarGroupLabel>{title}</SidebarGroupLabel>
 			<SidebarGroupContent>
 				<SidebarMenu>
-					{[...paths[items], ...(extraItems ? paths[extraItems] : [])].map((item) => (
-						<SidebarMenuItem key={item.title}>
-							<SidebarMenuButton
-								tooltip={item.title}
-								asChild
-								isActive={item.path === `/${rootPathSegment}`}
-							>
-								<Link href={item.path}>
-									{item.icon && <item.icon />}
-									<span>{item.title}</span>
-								</Link>
-							</SidebarMenuButton>
-						</SidebarMenuItem>
-					))}
+					{[...paths[items], ...(extraItems ? paths[extraItems] : [])]
+						.filter((item) => item.path !== "/semesterplan" || semesterPlanning)
+						.map((item) => (
+							<SidebarMenuItem key={item.title}>
+								<SidebarMenuButton
+									tooltip={item.title}
+									asChild
+									isActive={item.path === `/${rootPathSegment}`}
+								>
+									<Link href={item.path}>
+										{item.icon && <item.icon />}
+										<span>{item.title}</span>
+									</Link>
+								</SidebarMenuButton>
+							</SidebarMenuItem>
+						))}
 				</SidebarMenu>
 			</SidebarGroupContent>
 		</SidebarGroup>

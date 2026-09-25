@@ -16,10 +16,10 @@ import {
 } from "@workspace/ui/components/select";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { ConvexError } from "convex/values";
 import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
+import { convexErrorMessage } from "@/utils/convex-error";
 
 const settingsSchema = z.object({ enabled: z.boolean(), formId: z.string() });
 export function EventFeedbackSettings({ eventId }: Readonly<{ eventId: Id<"events"> }>) {
@@ -55,11 +55,7 @@ function SettingsForm({
 				});
 				toast.success("Innstillinger lagret");
 			} catch (error) {
-				setSaveError(
-					error instanceof ConvexError
-						? String(error.data)
-						: "Kunne ikke lagre innstillingene. Prøv igjen.",
-				);
+				setSaveError(convexErrorMessage(error, "Kunne ikke lagre innstillingene. Prøv igjen."));
 			}
 		},
 	});

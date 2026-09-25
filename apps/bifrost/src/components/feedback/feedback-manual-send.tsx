@@ -11,13 +11,13 @@ import {
 	CommandItem,
 	CommandList,
 } from "@workspace/ui/components/command";
+import { useBrowserOptIn } from "@workspace/ui/hooks/use-browser-opt-in";
 import { cn } from "@workspace/ui/lib/utils";
 import { useAction, useQuery } from "convex/react";
 import { ConvexError } from "convex/values";
 import { Check } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { useBrowserOptIn } from "@/hooks/use-browser-opt-in";
 
 export function FeedbackManualSend({ eventId }: Readonly<{ eventId: Id<"events"> }>) {
 	const enabled = useBrowserOptIn("huginFeedbackTestSend");

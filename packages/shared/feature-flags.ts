@@ -8,11 +8,17 @@ export const featureFlags = {
 		// Allows approved company report emails.
 		reportEmailsEnabled: true,
 	},
+	semesterPlanning: {
+		// Shows Semesterplan in Bifrost, the application and offer pages on Hugin and the button on
+		// Midgard to everyone. While off, only browsers with the preview opt-in see them.
+		uiEnabled: false,
+	},
 };
 
 export const browserOptInKeys = {
 	huginFeedbackPreview: "hugin-feedback-preview",
 	huginFeedbackTestSend: "hugin-feedback-testsend",
+	semesterPlanningPreview: "semester-planning-preview",
 } as const;
 
 export type BrowserOptIn = keyof typeof browserOptInKeys;
