@@ -5,6 +5,12 @@ import { CheckMark, ERROR_BORDER, FOCUS_RING, linkClass } from "@/components/for
 import { dateCellParts, groupDatesByMonth, isTuesdayDate } from "@/lib/company-application-format";
 import { COMPANY_APPLICATION_COPY as COPY } from "@/lib/company-application-questions";
 
+/** A chosen date fills with the primary colour; an unchosen one gets a red border when invalid. */
+function cellTone(checked: boolean, invalid: boolean): string {
+	if (checked) return "border-primary bg-primary text-primary-foreground";
+	return cn("bg-card", invalid ? ERROR_BORDER : "border-input");
+}
+
 function DateCell({
 	date,
 	checked,
@@ -17,9 +23,7 @@ function DateCell({
 			className={cn(
 				"relative flex h-[46px] min-w-0 cursor-pointer items-center gap-2 rounded-xl border px-3 font-semibold text-[14.5px] tabular-nums transition-[background-color,border-color,color] duration-150 active:scale-[0.98]",
 				"has-[input:focus-visible]:outline-3 has-[input:focus-visible]:outline-[color-mix(in_oklab,var(--ring)_55%,transparent)] has-[input:focus-visible]:outline-offset-2",
-				checked
-					? "border-primary bg-primary text-primary-foreground"
-					: cn("bg-card", invalid ? ERROR_BORDER : "border-input"),
+				cellTone(checked, invalid),
 			)}
 		>
 			<input

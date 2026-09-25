@@ -4,6 +4,12 @@ import { cn } from "@workspace/ui/lib/utils";
 const PEER_FOCUS =
 	"peer-focus-visible:outline-3 peer-focus-visible:outline-[color-mix(in_oklab,var(--ring)_55%,transparent)] peer-focus-visible:outline-offset-2";
 
+/** A chosen card fills with the primary colour; an unanswered one gets a red border when invalid. */
+function cardTone(selected: boolean, invalid: boolean): string {
+	if (selected) return "border-primary bg-primary text-primary-foreground";
+	return cn("bg-card text-foreground", invalid ? "border-destructive" : "border-input");
+}
+
 export type ChoiceOption<T extends string> = { value: T; label: string; description?: string };
 
 /**
@@ -58,9 +64,7 @@ export function ChoiceGroup<T extends string>({
 								"relative flex min-h-[54px] cursor-pointer items-center gap-3 rounded-xl border px-[14px] py-2.5 font-semibold text-[15px] leading-[1.3] transition-[background-color,border-color,color] duration-150 active:scale-[0.99]",
 								PEER_FOCUS,
 								layout === "row" && "h-full justify-center text-center",
-								selected
-									? "border-primary bg-primary text-primary-foreground"
-									: cn("bg-card text-foreground", invalid ? "border-destructive" : "border-input"),
+								cardTone(selected, invalid),
 							)}
 						>
 							{layout === "stack" && (

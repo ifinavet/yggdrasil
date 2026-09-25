@@ -54,6 +54,14 @@ function Highlighted({
 	);
 }
 
+/** What the live region reads out about the search: that it runs, or how it went. */
+function searchStatusText(search: SearchState): string {
+	if (search.status === "searching") return COPY.company.searching;
+	if (search.status !== "done") return "";
+	if (search.hits.length === 0) return COPY.company.noHits;
+	return COPY.company.hitCount(search.hits.length);
+}
+
 function hitMeta(hit: RegistryHit): string {
 	return [formatOrgNumber(hit.orgNumber), hit.organizationForm, hit.city && placeName(hit.city)]
 		.filter(Boolean)
@@ -249,13 +257,7 @@ export function CompanySearch({
 			</Command>
 
 			<span className="sr-only" role="status" aria-live="polite">
-				{search.status === "searching"
-					? COPY.company.searching
-					: search.status === "done"
-						? search.hits.length === 0
-							? COPY.company.noHits
-							: COPY.company.hitCount(search.hits.length)
-						: ""}
+				{searchStatusText(search)}
 			</span>
 
 			{search.status === "error" && (

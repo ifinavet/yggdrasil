@@ -24,7 +24,8 @@ const YES_NO = [
 ] as const;
 
 function yesNo(value: boolean | null): "yes" | "no" | "" {
-	return value === null ? "" : value ? "yes" : "no";
+	if (value === null) return "";
+	return value ? "yes" : "no";
 }
 
 const PURCHASER_PROMPT_ID = "food-purchaser";

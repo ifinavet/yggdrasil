@@ -23,7 +23,8 @@ export type DateMonth = { key: string; label: string; weeks: DateWeek[] };
 export function groupDatesByMonth(dates: readonly string[]): DateMonth[] {
 	const months: DateMonth[] = [];
 
-	for (const date of [...dates].sort()) {
+	// "YYYY-MM-DD" days sort as text.
+	for (const date of [...dates].sort((a, b) => a.localeCompare(b))) {
 		const day = calendarDay(date);
 		const key = date.slice(0, 7);
 		let month = months.at(-1);
@@ -70,11 +71,11 @@ export function fullDate(date: string): string {
 
 /** «28. jan, 2., 4. og 9. feb», a short list of chosen days for the receipt. */
 export function compactDateList(dates: readonly string[]): string {
-	const sorted = [...dates].sort();
+	const sorted = [...dates].sort((a, b) => a.localeCompare(b));
 	const parts = sorted.map((date, index) => {
 		const day = calendarDay(date);
 		const next = sorted[index + 1];
-		const lastInMonth = next === undefined || next.slice(0, 7) !== date.slice(0, 7);
+		const lastInMonth = next?.slice(0, 7) !== date.slice(0, 7);
 		return lastInMonth
 			? `${format(day, "d.")} ${withoutDot(format(day, "MMM", { locale: nb }))}`
 			: format(day, "d.");
