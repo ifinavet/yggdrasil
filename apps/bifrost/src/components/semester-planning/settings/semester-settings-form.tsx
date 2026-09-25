@@ -6,6 +6,7 @@ import type { Doc } from "@workspace/backend/convex/dataModel";
 import { isClockTime, isIsoDate } from "@workspace/shared/semester/time";
 import { isHttpUrl } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
+import { DatePicker } from "@workspace/ui/components/date-picker";
 import { Field, FieldError, FieldLabel } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
 import { Switch } from "@workspace/ui/components/switch";
@@ -15,7 +16,6 @@ import { FileText } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
-import { DatePicker } from "@/components/common/forms/date-picker";
 import { convexErrorMessage } from "@/utils/convex-error";
 
 const optionalDay = z.string().refine((value) => value === "" || isIsoDate(value), "Velg en dato.");
