@@ -1,6 +1,6 @@
 import { closedDateLabel } from "@workspace/shared/semester/labels";
 import { MAX_INTERNAL_NOTES_LENGTH } from "@workspace/shared/semester/limits";
-import { isIsoDate } from "@workspace/shared/semester/time";
+import { isIsoDate } from "@workspace/shared/time";
 import { ConvexError, v } from "convex/values";
 import type { Doc, Id } from "../../_generated/dataModel";
 import { type MutationCtx, mutation } from "../../_generated/server";

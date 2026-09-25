@@ -1,7 +1,7 @@
 import { type EmailId, Resend, vOnEmailEventArgs } from "@convex-dev/resend";
 import { vResultValidator, vWorkflowId } from "@convex-dev/workflow";
 import { feedbackTokenSchema } from "@workspace/shared/feedback";
-import { feedbackRoundAt } from "@workspace/shared/feedback/time";
+import { feedbackRoundAt } from "@workspace/shared/time";
 import { v } from "convex/values";
 import { components, internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";

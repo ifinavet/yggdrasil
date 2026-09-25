@@ -32,6 +32,7 @@ import type * as feedback_delivery_mail from "../feedback/delivery/mail.js";
 import type * as feedback_delivery_messages from "../feedback/delivery/messages.js";
 import type * as feedback_delivery_status from "../feedback/delivery/status.js";
 import type * as feedback_delivery_workflows from "../feedback/delivery/workflows.js";
+import type * as feedback_eventStatus from "../feedback/eventStatus.js";
 import type * as feedback_events from "../feedback/events.js";
 import type * as feedback_forms_helpers from "../feedback/forms/helpers.js";
 import type * as feedback_forms_mutations from "../feedback/forms/mutations.js";
@@ -122,6 +123,7 @@ declare const fullApi: ApiFromModules<{
   "feedback/delivery/messages": typeof feedback_delivery_messages;
   "feedback/delivery/status": typeof feedback_delivery_status;
   "feedback/delivery/workflows": typeof feedback_delivery_workflows;
+  "feedback/eventStatus": typeof feedback_eventStatus;
   "feedback/events": typeof feedback_events;
   "feedback/forms/helpers": typeof feedback_forms_helpers;
   "feedback/forms/mutations": typeof feedback_forms_mutations;

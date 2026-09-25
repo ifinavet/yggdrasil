@@ -3,6 +3,7 @@
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import type { OrganizerRole } from "@workspace/shared/constants";
+import { formatOsloToday } from "@workspace/shared/time";
 import { type Preloaded, useMutation, usePreloadedQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -63,7 +64,7 @@ export default function UpdateEventForm({
 		})
 			.then(() => {
 				toast.success("Arrangement oppdatert!", {
-					description: `Arrangement oppdatert, ${new Date().toLocaleDateString()}`,
+					description: `Arrangement oppdatert, ${formatOsloToday()}`,
 				});
 				router.push("/events");
 			})

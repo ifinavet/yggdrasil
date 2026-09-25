@@ -2,13 +2,13 @@
 
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
+import { humanReadableFullDateTime } from "@workspace/shared/time";
 import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
 import { usePostHog } from "posthog-js/react";
 import { toast } from "sonner";
 import JobListingForm from "@/components/job-listings/job-listings-form/job-listing-form";
 import type { JobListingFormValues } from "@/constants/schemas/job-listing-form-schema";
-import { humanReadableDate } from "@/utils/utils";
 
 export default function NewJobListingForm() {
 	const todayMidnight: Date = new Date();
@@ -51,7 +51,7 @@ export default function NewJobListingForm() {
 		})
 			.then(() => {
 				toast.success("Stillingsannonse opprettet!", {
-					description: `Annonse opprettet ${humanReadableDate(new Date())}`,
+					description: `Annonse opprettet ${humanReadableFullDateTime(new Date())}`,
 				});
 				router.push("/job-listings");
 			})

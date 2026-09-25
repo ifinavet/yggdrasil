@@ -1,7 +1,7 @@
 import { getAuthToken } from "@workspace/auth";
 import { auth } from "@workspace/auth/server";
 import { api } from "@workspace/backend/convex/api";
-import { humanReadableDate } from "@workspace/shared/utils";
+import { humanReadableDate } from "@workspace/shared/time";
 import { Button } from "@workspace/ui/components/button";
 import { fetchQuery } from "convex/nextjs";
 import { Check } from "lucide-react";

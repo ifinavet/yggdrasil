@@ -1,66 +1,30 @@
 import { placeholderKeys } from "@workspace/shared/utils";
-import { Button } from "@workspace/ui/components//button";
-import { Card, CardContent, CardFooter, CardHeader } from "@workspace/ui/components//card";
 import { Skeleton } from "@workspace/ui/components//skeleton";
-import { Plus, Users } from "lucide-react";
 
 export default function EventsLoading() {
 	return (
-		<>
-			<div className="flex justify-between">
-				<Skeleton className="h-9 w-48" />
-				<Button>
-					<Plus className="size-4" /> Lag et nytt arrangement
-				</Button>
+		<div>
+			<div className="flex flex-wrap items-center gap-2">
+				<Skeleton className="h-8 w-44" />
+				<span className="flex-1" />
+				<Skeleton className="h-9 w-80" />
+				<Skeleton className="h-9 w-32" />
+				<Skeleton className="h-9 w-52" />
 			</div>
 
-			<div className="grid gap-6">
-				<h2 className="scroll-m-20 border-b pb-2 font-semibold text-2xl tracking-tight first:mt-0">
-					Publiserte arrangementer
-				</h2>
-				<div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-					{placeholderKeys("published-event", 6).map((key) => (
-						<EventCardSkeleton key={key} />
-					))}
-				</div>
-				<h2 className="scroll-m-20 border-b pb-2 font-semibold text-2xl tracking-tight first:mt-0">
-					Skjulte/Påbegynte arrangementer
-				</h2>
-				<div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-					{placeholderKeys("hidden-event", 3).map((key) => (
-						<EventCardSkeleton key={key} />
-					))}
-				</div>
+			<Skeleton className="mt-7 mb-3 h-6 w-40" />
+			<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+				{placeholderKeys("my-event", 3).map((key) => (
+					<Skeleton key={key} className="h-[110px] rounded-[12px]" />
+				))}
 			</div>
-		</>
-	);
-}
 
-function EventCardSkeleton() {
-	return (
-		<Card className="h-full">
-			<CardHeader>
-				<Skeleton className="h-6 w-3/4" />
-				<Skeleton className="h-4 w-1/2" />
-			</CardHeader>
-			<CardContent className="flex flex-1 flex-col gap-4">
-				<div className="flex flex-row flex-wrap gap-2">
-					<Skeleton className="h-4 w-32" />
-				</div>
-				<div className="flex flex-wrap gap-2">
-					<Skeleton className="h-6 w-24 rounded-full" />
-					<Skeleton className="h-6 w-20 rounded-full" />
-				</div>
-			</CardContent>
-			<CardFooter className="flex-col items-start gap-1.5 text-sm">
-				<div className="line-clamp-1 flex gap-2 font-medium">
-					<Users className="size-4" /> Ansvarlige
-				</div>
-				<div className="space-y-1 text-muted-foreground">
-					<Skeleton className="h-4 w-40" />
-					<Skeleton className="h-4 w-36" />
-				</div>
-			</CardFooter>
-		</Card>
+			<Skeleton className="mt-7 mb-3 h-6 w-28" />
+			<div className="flex flex-col gap-px overflow-hidden rounded-lg border bg-card">
+				{placeholderKeys("upcoming-event", 6).map((key) => (
+					<Skeleton key={key} className="h-14 rounded-none" />
+				))}
+			</div>
+		</div>
 	);
 }

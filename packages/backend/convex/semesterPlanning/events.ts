@@ -1,5 +1,5 @@
 import { EVENT_TITLE_PREFIX } from "@workspace/shared/semester/labels";
-import { osloDateTimeToEpoch, osloToday } from "@workspace/shared/semester/time";
+import { osloDateTimeToEpoch, osloToday } from "@workspace/shared/time";
 import { ConvexError } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";

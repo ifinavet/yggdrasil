@@ -4,7 +4,8 @@
 	"type": "module",
 	"private": true,
 	"scripts": {
-		"check-types": "tsc --noEmit"
+		"check-types": "tsc --noEmit",
+		"test": "vitest run"
 	},
 	"dependencies": {
 		"@workspace/shared": "workspace:*",
@@ -20,6 +21,7 @@
 		"react": "19.3.0",
 		"react-day-picker": "^10.0.1",
 		"react-dom": "19.3.0",
+		"react-hotkeys-hook": "^5.3.3",
 		"recharts": "2.15.4",
 		"sonner": "^2.0.8",
 		"tailwind-merge": "^3.7.0",
@@ -37,7 +39,8 @@
 		"@types/react-dom": "19.3.0",
 		"@workspace/typescript-config": "workspace:*",
 		"tailwindcss": "^4.3.3",
-		"typescript": "^5.9.3"
+		"typescript": "^5.9.3",
+		"vitest": "4.1.11"
 	},
 	"exports": {
 		"./globals.css": "./src/styles/globals.css",

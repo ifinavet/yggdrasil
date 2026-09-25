@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { DEGREE_TYPES } from "../constants/degrees";
 import { STUDY_PROGRAMS } from "../constants/programs";
+import { isIsoDate } from "../time";
 import {
 	ESCAPE_ANSWERS,
 	EVENT_TYPE_LABELS,
@@ -9,7 +10,6 @@ import {
 	FOOD_PURCHASERS,
 	VENUES,
 } from "./labels";
-import { isIsoDate } from "./time";
 
 // The Hugin application form. The same rules run in the browser and again on the server.
 

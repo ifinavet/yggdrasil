@@ -2,6 +2,7 @@
 
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
+import { humanReadableFullDateTime } from "@workspace/shared/time";
 import { useMutation, useQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import { usePostHog } from "posthog-js/react";
@@ -9,7 +10,6 @@ import { toast } from "sonner";
 import JobListingFormSkeleton from "@/components/job-listings/job-listing-form-skeleton";
 import JobListingForm from "@/components/job-listings/job-listings-form/job-listing-form";
 import type { JobListingFormValues } from "@/constants/schemas/job-listing-form-schema";
-import { humanReadableDate } from "@/utils/utils";
 
 export default function EditJobListingForm({
 	listingId,
@@ -44,7 +44,7 @@ export default function EditJobListingForm({
 		})
 			.then(() => {
 				toast.success("Stillingsannonse opprettet!", {
-					description: `Annonse opprettet ${humanReadableDate(new Date())}`,
+					description: `Annonse opprettet ${humanReadableFullDateTime(new Date())}`,
 				});
 				router.push("/job-listings");
 			})
@@ -59,7 +59,7 @@ export default function EditJobListingForm({
 		deleteJobListing({ id })
 			.then(() => {
 				toast.success("Stillingsannonse slettet!", {
-					description: `Annonse slettet ${humanReadableDate(new Date())}`,
+					description: `Annonse slettet ${humanReadableFullDateTime(new Date())}`,
 				});
 				router.push("/job-listings");
 			})

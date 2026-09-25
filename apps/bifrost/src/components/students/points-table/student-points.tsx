@@ -2,10 +2,10 @@
 
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
+import { humanReadableFullDateTime } from "@workspace/shared/time";
 import { useMutation, useQuery } from "convex/react";
 import { usePostHog } from "posthog-js/react";
 import { toast } from "sonner";
-import { humanReadableDate } from "@/utils/utils";
 import { createColumns } from "./columns";
 import { PointsTable } from "./points-table";
 
@@ -23,7 +23,7 @@ export default function StudentPoints({ student_id }: Readonly<{ student_id: Id<
 		deletePoint({ id: pointId })
 			.then(() => {
 				toast.success("Prikk fjernet vellykket", {
-					description: humanReadableDate(new Date()),
+					description: humanReadableFullDateTime(new Date()),
 				});
 
 				posthog.capture("bifrost-point_deleted", {
