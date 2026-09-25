@@ -34,7 +34,7 @@ export function MyEventCard({ event }: Readonly<{ event: OverviewEvent }>) {
 			{event.feedbackStatus === "draft" ? (
 				<div className="mt-auto flex items-center justify-end px-4 pb-4">
 					<Button asChild size="sm" className="relative z-10 text-[13px]">
-						<Link href={`${eventHref(event)}/feedback`}>Se over rapport</Link>
+						<Link href={`${eventHref(event)}/feedback/report`}>Se over rapport</Link>
 					</Button>
 				</div>
 			) : null}
