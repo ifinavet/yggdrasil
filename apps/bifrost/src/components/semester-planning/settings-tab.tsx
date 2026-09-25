@@ -53,7 +53,6 @@ export function SettingsTab({
 
 function DatesCard({ semester }: Readonly<{ semester: Doc<"semesters"> }>) {
 	const data = useQuery(api.semesterPlanning.semesters.queries.get, { semesterId: semester._id });
-	const dates = data?.dates ?? [];
 
 	return (
 		<Card className={cn(CARD, "min-w-0")}>
@@ -61,21 +60,31 @@ function DatesCard({ semester }: Readonly<{ semester: Doc<"semesters"> }>) {
 				<CardTitle className="text-base">Datoer</CardTitle>
 			</CardHeader>
 			<CardContent className={CARD_PART}>
-				{data === undefined ? (
-					<output className="text-muted-foreground text-sm">Henter datoer …</output>
-				) : dates.length === 0 ? (
-					<div className="rounded-lg border border-dashed px-4 py-10 text-center">
-						<p className="font-medium text-sm">Ingen datoer ennå</p>
-						<p className="mt-1 text-muted-foreground text-sm">
-							Velg første og siste dato og lagre, så lages tirsdagene og torsdagene her.
-						</p>
-					</div>
-				) : (
-					<SemesterDates dates={dates} locked={semester.status === "closed"} />
-				)}
+				<DatesCardBody dates={data?.dates} locked={semester.status === "closed"} />
 			</CardContent>
 		</Card>
 	);
+}
+
+/** The dates, a loading line while they come, or what to do while there are none. */
+function DatesCardBody({
+	dates,
+	locked,
+}: Readonly<{ dates: Doc<"semesterDates">[] | undefined; locked: boolean }>) {
+	if (dates === undefined) {
+		return <output className="text-muted-foreground text-sm">Henter datoer …</output>;
+	}
+	if (dates.length === 0) {
+		return (
+			<div className="rounded-lg border border-dashed px-4 py-10 text-center">
+				<p className="font-medium text-sm">Ingen datoer ennå</p>
+				<p className="mt-1 text-muted-foreground text-sm">
+					Velg første og siste dato og lagre, så lages tirsdagene og torsdagene her.
+				</p>
+			</div>
+		);
+	}
+	return <SemesterDates dates={dates} locked={locked} />;
 }
 
 function NewSemesterButton({

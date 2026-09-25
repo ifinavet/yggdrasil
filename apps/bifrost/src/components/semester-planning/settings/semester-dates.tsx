@@ -12,7 +12,7 @@ import { cn } from "@workspace/ui/lib/utils";
 import { useMutation } from "convex/react";
 import { differenceInCalendarMonths, format, parse } from "date-fns";
 import { nb } from "date-fns/locale";
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useMemo, useState } from "react";
 import type { DayButtonProps, MonthProps } from "react-day-picker";
 import { toast } from "sonner";
 import { convexErrorMessage } from "@/utils/convex-error";
@@ -53,15 +53,20 @@ export function SemesterDates({
 	locked,
 }: Readonly<{ dates: SemesterDate[]; locked: boolean }>) {
 	const [openDate, setOpenDate] = useState<string | null>(null);
-	const byDate = new Map(dates.map((date) => [date.date, date]));
-	const sorted = [...byDate.keys()].sort();
+	const byDate = useMemo(() => new Map(dates.map((date) => [date.date, date])), [dates]);
+	const context = useMemo(
+		() => ({ byDate, locked, openDate, setOpenDate }),
+		[byDate, locked, openDate],
+	);
+	// "YYYY-MM-DD" days sort as text.
+	const sorted = [...byDate.keys()].sort((a, b) => a.localeCompare(b));
 	const first = sorted[0];
 	const last = sorted.at(-1);
 	if (first === undefined || last === undefined) return null;
 
 	const firstDay = toDay(first);
 	return (
-		<SemesterDatesContext.Provider value={{ byDate, locked, openDate, setOpenDate }}>
+		<SemesterDatesContext.Provider value={context}>
 			<Calendar
 				mode="single"
 				selected={openDate ? toDay(openDate) : undefined}
@@ -153,6 +158,21 @@ function DateButton({
 	return <DateCell day={semesterDate} buttonProps={props} />;
 }
 
+/** How a screen reader names a date's state: «åpen», «stengt» or «stengt: Eksamen». */
+function dateState(isClosed: boolean, reason: string | undefined): string {
+	if (!isClosed) return "åpen";
+	return reason ? `stengt: ${reason}` : "stengt";
+}
+
+/** The toast after a date is opened, closed or has its reason changed. */
+function savedMessage(dayName: string, label: string | null, wasClosed: boolean): string {
+	if (label === null) return `${capitalize(dayName)} er åpnet igjen.`;
+	if (wasClosed) return `Grunnen for ${dayName} er lagret.`;
+	const reason = label.trim();
+	const suffix = reason ? ` («${reason}»)` : "";
+	return `${capitalize(dayName)} er stengt${suffix}.`;
+}
+
 function DateCell({
 	day,
 	buttonProps,
@@ -170,7 +190,7 @@ function DateCell({
 	const isClosed = day.closedLabel !== undefined;
 	const fullDay = capitalize(longDay(day.date));
 	const reasonText = day.closedLabel?.trim();
-	const state = !isClosed ? "åpen" : reasonText ? `stengt: ${reasonText}` : "stengt";
+	const state = dateState(isClosed, reasonText);
 
 	const setOpen = (next: boolean) => {
 		if (next) setLabel(day.closedLabel ?? "");
@@ -184,13 +204,10 @@ function DateCell({
 		setError(undefined);
 		try {
 			await setDateClosed({ dateId: day._id, label: next });
-			const reason = next?.trim();
-			if (next === null) toast.success(`${capitalize(dayName)} er åpnet igjen.`);
-			else if (isClosed) toast.success(`Grunnen for ${dayName} er lagret.`);
-			else toast.success(`${capitalize(dayName)} er stengt${reason ? ` («${reason}»)` : ""}.`);
+			toast.success(savedMessage(dayName, next, isClosed));
 			setOpenDate(null);
-		} catch (caught) {
-			setError(convexErrorMessage(caught, "Kunne ikke endre datoen. Prøv igjen."));
+		} catch (error_) {
+			setError(convexErrorMessage(error_, "Kunne ikke endre datoen. Prøv igjen."));
 		} finally {
 			setSaving(undefined);
 		}
