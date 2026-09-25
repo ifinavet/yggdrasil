@@ -4,10 +4,11 @@ import {
 	FOOD_PURCHASER_LABELS,
 	VENUE_LABELS,
 } from "@workspace/shared/semester/labels";
+import { Panel, PanelBody } from "@workspace/ui/components/products/panel";
 import type { ReactNode } from "react";
 import { studentRange } from "../format";
 import type { Application } from "./model";
-import { DetailList, Section } from "./section";
+import { DetailList } from "./section";
 
 /**
  * «Søknaden»: what the company asked for in the Hugin form, led by their own description. This is
@@ -30,21 +31,23 @@ export function EventInfoCard({ application }: Readonly<{ application: Applicati
 	if (audience.length > 0) items.push(["Målgruppe", audience.join(", ")]);
 
 	return (
-		<Section title="Søknaden">
-			<p className="whitespace-pre-line break-words text-[15px] leading-relaxed">
-				{application.description}
-			</p>
-			<div className="mt-4 border-t pt-4">
-				<DetailList columns={2} items={items} />
-			</div>
-			{application.additionalInfo && (
-				<div className="mt-3 text-[13.5px]">
-					<p className="font-medium">Annet fra bedriften</p>
-					<p className="mt-1 whitespace-pre-line break-words text-muted-foreground">
-						{application.additionalInfo}
-					</p>
+		<Panel title="Søknaden">
+			<PanelBody>
+				<p className="whitespace-pre-line break-words text-[15px] leading-relaxed">
+					{application.description}
+				</p>
+				<div className="mt-4 border-t pt-4">
+					<DetailList columns={2} items={items} />
 				</div>
-			)}
-		</Section>
+				{application.additionalInfo && (
+					<div className="mt-3 text-[13.5px]">
+						<p className="font-medium">Annet fra bedriften</p>
+						<p className="mt-1 whitespace-pre-line break-words text-muted-foreground">
+							{application.additionalInfo}
+						</p>
+					</div>
+				)}
+			</PanelBody>
+		</Panel>
 	);
 }

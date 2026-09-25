@@ -9,6 +9,7 @@ import { useQuery } from "convex/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
+import { LIST_HEAD } from "@/components/common/table-classes";
 import BaseDataTable from "@/components/common/tables/data-table";
 import { shortDayTitle, studentRange } from "./format";
 import { isActiveStatus } from "./status";
@@ -24,7 +25,7 @@ const columns: ColumnDef<Row>[] = [
 		cell: ({ row }) => (
 			<Link
 				href={`/semesterplan/soknad/${row.original._id}`}
-				className="font-semibold hover:underline"
+				className="font-medium hover:underline"
 				onClick={(event) => event.stopPropagation()}
 			>
 				{row.original.registry.name}
@@ -77,7 +78,7 @@ export function ApplicationsTab({ semester }: Readonly<{ semester: Doc<"semester
 
 	if (!rows) {
 		return (
-			<div className="grid gap-2 rounded-xl border bg-card p-4">
+			<div className="grid gap-2 rounded-lg border bg-card p-4">
 				{[0, 1, 2, 3].map((index) => (
 					<Skeleton key={index} className="h-9" />
 				))}
@@ -92,10 +93,10 @@ export function ApplicationsTab({ semester }: Readonly<{ semester: Doc<"semester
 			emptyMessage={<span className="text-muted-foreground">Ingen søknader ennå.</span>}
 			onRowClick={(row) => router.push(`/semesterplan/soknad/${row.original._id}`)}
 			styles={{
-				container: "overflow-x-auto rounded-xl border bg-card shadow-xs",
-				table: "text-[13.5px]",
-				head: "whitespace-nowrap px-4",
-				row: "hover:bg-primary-light/40 [&>td]:px-4 [&>td]:whitespace-nowrap",
+				container: "overflow-x-auto rounded-lg border bg-card",
+				head: `${LIST_HEAD} whitespace-nowrap`,
+				// LIST_CELL on every cell; the shared table has no per-cell class.
+				row: "hover:bg-muted/50 [&>td]:whitespace-nowrap [&>td]:px-3 [&>td]:py-2.5",
 				emptyCell: "py-10",
 			}}
 		/>

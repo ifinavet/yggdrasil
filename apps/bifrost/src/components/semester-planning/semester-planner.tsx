@@ -74,7 +74,7 @@ export function SemesterPlanner({
 		return canEdit ? (
 			<FirstSemester onCreated={(semester) => navigate({ semester, tab: "innstillinger" })} />
 		) : (
-			<div className="rounded-xl border bg-card px-4 py-14 text-center">
+			<div className="rounded-lg border bg-card px-4 py-14 text-center">
 				<p className="font-semibold">Ingen semestre ennå</p>
 				<p className="mt-1 text-muted-foreground text-sm">
 					Bedriftskontakten oppretter semesteret i Bifrost.

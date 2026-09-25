@@ -5,13 +5,13 @@ import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { MAX_HELPERS, MAX_INTERNAL_NOTES_LENGTH } from "@workspace/shared/semester/limits";
 import { Field, FieldError, FieldLabel } from "@workspace/ui/components/field";
+import { Panel, PanelBody } from "@workspace/ui/components/products/panel";
 import { Textarea } from "@workspace/ui/components/textarea";
 import { useMutation } from "convex/react";
 import Link from "next/link";
 import { z } from "zod";
 import InternalMemberSelect from "@/components/common/forms/internal-member-select";
 import { type Application, useRunMutation } from "./model";
-import { Section } from "./section";
 
 const notesSchema = z.object({
 	internalNotes: z
@@ -44,77 +44,82 @@ export function PlanningCard({ application }: Readonly<{ application: Applicatio
 
 	const teamLocked = application.eventId !== undefined;
 	return (
-		<Section title="Ansvarlige fra Navet">
-			<div className="grid gap-3">
-				<TeamMember
-					id="planning-responsible"
-					label="Kontaktperson fra Navet"
-					clearLabel="Ingen kontaktperson"
-					value={application.responsibleUserId}
-					exclude={new Set(helpers)}
-					disabled={pending || teamLocked}
-					onChange={(responsibleUserId) => save({ responsibleUserId })}
-				/>
-				{Array.from({ length: MAX_HELPERS }, (_, slot) => (
+		<Panel title="Ansvarlige fra Navet">
+			<PanelBody>
+				<div className="grid gap-3">
 					<TeamMember
-						// The slots are fixed positions, so the index is a stable key.
-						// biome-ignore lint/suspicious/noArrayIndexKey: fixed slots
-						key={slot}
-						id={`planning-helper-${slot}`}
-						label={`Medhjelper ${slot + 1}`}
-						clearLabel="Ingen medhjelper"
-						value={helpers[slot]}
-						exclude={
-							new Set([
-								...(application.responsibleUserId ? [application.responsibleUserId] : []),
-								...helpers.filter((_, index) => index !== slot),
-							])
-						}
-						disabled={pending || teamLocked || (slot > 0 && helpers.length < slot)}
-						onChange={(userId) => {
-							const next = [...helpers];
-							if (userId) next[slot] = userId;
-							else next.splice(slot, 1);
-							void save({ helperUserIds: next });
-						}}
+						id="planning-responsible"
+						label="Kontaktperson fra Navet"
+						clearLabel="Ingen kontaktperson"
+						value={application.responsibleUserId}
+						exclude={new Set(helpers)}
+						disabled={pending || teamLocked}
+						onChange={(responsibleUserId) => save({ responsibleUserId })}
 					/>
-				))}
-				{teamLocked && (
-					<p className="text-muted-foreground text-sm">
-						Teamet endres på{" "}
-						<Link href={`/events/${application.eventId}`} className="underline underline-offset-3">
-							arrangementet
-						</Link>
-						.
-					</p>
-				)}
+					{Array.from({ length: MAX_HELPERS }, (_, slot) => (
+						<TeamMember
+							// The slots are fixed positions, so the index is a stable key.
+							// biome-ignore lint/suspicious/noArrayIndexKey: fixed slots
+							key={slot}
+							id={`planning-helper-${slot}`}
+							label={`Medhjelper ${slot + 1}`}
+							clearLabel="Ingen medhjelper"
+							value={helpers[slot]}
+							exclude={
+								new Set([
+									...(application.responsibleUserId ? [application.responsibleUserId] : []),
+									...helpers.filter((_, index) => index !== slot),
+								])
+							}
+							disabled={pending || teamLocked || (slot > 0 && helpers.length < slot)}
+							onChange={(userId) => {
+								const next = [...helpers];
+								if (userId) next[slot] = userId;
+								else next.splice(slot, 1);
+								void save({ helperUserIds: next });
+							}}
+						/>
+					))}
+					{teamLocked && (
+						<p className="text-muted-foreground text-sm">
+							Teamet endres på{" "}
+							<Link
+								href={`/events/${application.eventId}`}
+								className="underline underline-offset-3"
+							>
+								arrangementet
+							</Link>
+							.
+						</p>
+					)}
 
-				<form.Field name="internalNotes">
-					{(field) => {
-						const isInvalid = !field.state.meta.isValid;
-						return (
-							<Field data-invalid={isInvalid} className="gap-1.5">
-								<FieldLabel htmlFor="planning-notes">Interne notater</FieldLabel>
-								<Textarea
-									id="planning-notes"
-									value={field.state.value}
-									rows={3}
-									onChange={(event) => field.handleChange(event.target.value)}
-									onBlur={() => {
-										field.handleBlur();
-										saveNotes();
-									}}
-									aria-invalid={isInvalid}
-								/>
-								{isInvalid && (
-									<FieldError className="font-medium" errors={field.state.meta.errors} />
-								)}
-							</Field>
-						);
-					}}
-				</form.Field>
-			</div>
-		</Section>
+					<form.Field name="internalNotes">
+						{(field) => {
+							const isInvalid = !field.state.meta.isValid;
+							return (
+								<Field data-invalid={isInvalid} className="gap-1.5">
+									<FieldLabel htmlFor="planning-notes">Interne notater</FieldLabel>
+									<Textarea
+										id="planning-notes"
+										value={field.state.value}
+										rows={3}
+										onChange={(event) => field.handleChange(event.target.value)}
+										onBlur={() => {
+											field.handleBlur();
+											saveNotes();
+										}}
+										aria-invalid={isInvalid}
+									/>
+									{isInvalid && (
+										<FieldError className="font-medium" errors={field.state.meta.errors} />
+									)}
+								</Field>
+							);
+						}}
+					</form.Field>
+				</div>
+			</PanelBody>
+		</Panel>
 	);
 }
 

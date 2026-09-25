@@ -42,17 +42,6 @@ export const STATUS_CHIP_CLASSES: Record<ApplicationStatus, string> = {
 	withdrawn: "bg-status-closed text-status-closed-foreground",
 };
 
-/** A box tinted with the status colour, for a message about the status. */
-export const STATUS_CALLOUT_CLASSES: Record<ApplicationStatus, string> = {
-	applied: "border-status-applied/35 bg-status-applied/10",
-	offer_sent: "border-status-offer/35 bg-status-offer/10",
-	new_date_requested: "border-status-new-date/35 bg-status-new-date/10",
-	confirmed: "border-status-confirmed/35 bg-status-confirmed/10",
-	declined: "border-status-closed/35 bg-status-closed/10",
-	rejected: "border-status-closed/35 bg-status-closed/10",
-	withdrawn: "border-status-closed/35 bg-status-closed/10",
-};
-
 /** The border and soft ring around the step an application is heading for. */
 export const STATUS_RING_CLASSES: Record<ApplicationStatus, string> = {
 	applied: "border-status-applied ring-status-applied/20",

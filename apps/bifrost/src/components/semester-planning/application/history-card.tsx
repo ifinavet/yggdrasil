@@ -1,10 +1,11 @@
 import type { Doc } from "@workspace/backend/convex/dataModel";
 import { STATUS_LABELS } from "@workspace/shared/semester/labels";
-import { cn } from "@workspace/ui/lib/utils";
+import { Panel, PanelBody } from "@workspace/ui/components/products/panel";
+import { Timeline, TimelineItem } from "@workspace/ui/components/products/timeline";
+import { changeInitials } from "@/components/products/product-history-format";
 import { formatMoment, shortDay } from "../format";
-import { isActiveStatus, STATUS_DOT_CLASSES } from "../status";
+import { isActiveStatus } from "../status";
 import type { ApplicationDetails, SemesterContext } from "./model";
-import { Section } from "./section";
 
 type Activity = Doc<"companyApplicationActivity">;
 
@@ -75,26 +76,23 @@ export function HistoryCard({
 	const entries = [...details.activity].sort((a, b) => b._creationTime - a._creationTime);
 
 	return (
-		<Section title="Historikk">
-			<ol className="grid gap-3.5 text-[13px] tabular-nums">
-				{entries.map((entry) => (
-					<li key={entry._id} className="grid grid-cols-[12px_minmax(0,1fr)] gap-2.5">
-						<span
-							aria-hidden
-							className={cn(
-								"mt-1.25 size-2 rounded-full bg-ring",
-								entry.toStatus && STATUS_DOT_CLASSES[entry.toStatus],
-							)}
-						/>
-						<span className="break-words">
-							{describe(entry, details.offers, actorName(entry, details.application, memberNames))}
-							<small className="mt-px block text-muted-foreground text-xs leading-[normal]">
-								{formatMoment(entry._creationTime, "dayTime")}
-							</small>
-						</span>
-					</li>
-				))}
-			</ol>
-		</Section>
+		<Panel title="Historikk">
+			<PanelBody className="py-1">
+				<Timeline>
+					{entries.map((entry) => {
+						const who = actorName(entry, details.application, memberNames);
+						return (
+							<TimelineItem
+								key={entry._id}
+								initials={changeInitials(who)}
+								meta={formatMoment(entry._creationTime, "dayTime")}
+							>
+								<span className="break-words">{describe(entry, details.offers, who)}</span>
+							</TimelineItem>
+						);
+					})}
+				</Timeline>
+			</PanelBody>
+		</Panel>
 	);
 }

@@ -2,14 +2,15 @@
 
 import { api } from "@workspace/backend/convex/api";
 import { Button } from "@workspace/ui/components/button";
-import { cn } from "@workspace/ui/lib/utils";
+import { Callout } from "@workspace/ui/components/products/callout";
+import { Panel, PanelBody } from "@workspace/ui/components/products/panel";
 import { useMutation } from "convex/react";
 import { Link2, type LucideIcon } from "lucide-react";
 import { Fragment, type ReactNode, useState } from "react";
 import { toast } from "sonner";
 import { capitalize, formatMoment, longDay, shortDay, shortDayTitle } from "../format";
 import { OfferLink, offerEmail, offerUrl } from "../offer-link";
-import { isActiveStatus, STATUS_CALLOUT_CLASSES } from "../status";
+import { isActiveStatus } from "../status";
 import { StatusIcon } from "../status-badge";
 import { AssignDateDialog, useAssignDate } from "./assign-date-dialog";
 import { ConfirmDialog } from "./confirm-dialog";
@@ -23,7 +24,6 @@ import {
 	type SemesterContext,
 	useRunMutation,
 } from "./model";
-import { Section } from "./section";
 import { StatusSteps } from "./status-steps";
 
 type Dialog = "assign" | "reject" | "withdraw" | "confirm" | null;
@@ -140,17 +140,16 @@ export function StatusCard({
 	}
 
 	return (
-		<Section>
-			<StatusSteps details={details} />
+		<Panel>
+			<PanelBody className="grid gap-4">
+				<StatusSteps details={details} />
 
-			<div
-				className={cn(
-					"flex flex-wrap items-center gap-3 rounded-lg border px-3.5 py-3 text-[13.5px]",
-					STATUS_CALLOUT_CLASSES[status],
-				)}
-			>
-				<StatusIcon status={status} />
-				<p className="min-w-0 flex-1 basis-56">
+				<Callout
+					tone={status === "new_date_requested" ? "warning" : "info"}
+					icon={<StatusIcon status={status} />}
+					action={actions}
+					className="text-[13.5px]"
+				>
 					<StatusMessage
 						details={details}
 						context={context}
@@ -160,93 +159,92 @@ export function StatusCard({
 					{semesterClosed &&
 						(status === "applied" || status === "new_date_requested") &&
 						" Semesteret er stengt, så datoer og tilbud kan ikke endres."}
-				</p>
-				<div className="flex flex-wrap gap-2">{actions}</div>
-			</div>
+				</Callout>
 
-			{status === "offer_sent" && offer?.status === "pending" && (
-				<PendingOfferLink application={application} offer={offer} />
-			)}
+				{status === "offer_sent" && offer?.status === "pending" && (
+					<PendingOfferLink application={application} offer={offer} />
+				)}
 
-			{canAssign && (
-				<AssignDateDialog
-					open={dialog === "assign"}
-					onOpenChange={(open) => setDialog(open ? "assign" : null)}
-					application={application}
-					companyName={companyName}
-					context={context}
-					requestedDates={requestedDates}
+				{canAssign && (
+					<AssignDateDialog
+						open={dialog === "assign"}
+						onOpenChange={(open) => setDialog(open ? "assign" : null)}
+						application={application}
+						companyName={companyName}
+						context={context}
+						requestedDates={requestedDates}
+					/>
+				)}
+
+				<ConfirmDialog
+					open={dialog === "reject"}
+					onOpenChange={(open) => setDialog(open ? "reject" : null)}
+					title={`Avslå søknaden fra ${companyName}?`}
+					description="Bedriften får ikke e-post om dette. Et tilbud som er sendt, slutter å virke. Du kan gjenåpne søknaden senere."
+					comment={{ label: "Kommentar (valgfritt)" }}
+					confirmLabel="Avslå søknaden"
+					destructive
+					onConfirm={(comment) =>
+						run(
+							() => reject({ applicationId: application._id, comment }),
+							() => toast.success("Søknaden er avslått."),
+						)
+					}
 				/>
-			)}
 
-			<ConfirmDialog
-				open={dialog === "reject"}
-				onOpenChange={(open) => setDialog(open ? "reject" : null)}
-				title={`Avslå søknaden fra ${companyName}?`}
-				description="Bedriften får ikke e-post om dette. Et tilbud som er sendt, slutter å virke. Du kan gjenåpne søknaden senere."
-				comment={{ label: "Kommentar (valgfritt)" }}
-				confirmLabel="Avslå søknaden"
-				destructive
-				onConfirm={(comment) =>
-					run(
-						() => reject({ applicationId: application._id, comment }),
-						() => toast.success("Søknaden er avslått."),
-					)
-				}
-			/>
+				<ConfirmDialog
+					open={dialog === "withdraw"}
+					onOpenChange={(open) => setDialog(open ? "withdraw" : null)}
+					title={`Trekke søknaden fra ${companyName}?`}
+					description={
+						<>
+							{assigned && isActiveStatus(status)
+								? `${shortDayTitle(assigned)} blir ledig igjen. `
+								: ""}
+							Lenken i et sendt tilbud slutter å virke, og bedriften får ikke e-post om dette. Du
+							kan gjenåpne søknaden senere.
+						</>
+					}
+					comment={{ label: "Kommentar (valgfritt)" }}
+					confirmLabel="Trekk søknaden"
+					destructive
+					onConfirm={(comment) =>
+						run(
+							() => withdraw({ applicationId: application._id, comment }),
+							() =>
+								toast.success(
+									assigned
+										? `Søknaden er trukket. ${shortDay(assigned)} er ledig igjen.`
+										: "Søknaden er trukket.",
+								),
+						)
+					}
+				/>
 
-			<ConfirmDialog
-				open={dialog === "withdraw"}
-				onOpenChange={(open) => setDialog(open ? "withdraw" : null)}
-				title={`Trekke søknaden fra ${companyName}?`}
-				description={
-					<>
-						{assigned && isActiveStatus(status)
-							? `${shortDayTitle(assigned)} blir ledig igjen. `
-							: ""}
-						Lenken i et sendt tilbud slutter å virke, og bedriften får ikke e-post om dette. Du kan
-						gjenåpne søknaden senere.
-					</>
-				}
-				comment={{ label: "Kommentar (valgfritt)" }}
-				confirmLabel="Trekk søknaden"
-				destructive
-				onConfirm={(comment) =>
-					run(
-						() => withdraw({ applicationId: application._id, comment }),
-						() =>
-							toast.success(
-								assigned
-									? `Søknaden er trukket. ${shortDay(assigned)} er ledig igjen.`
-									: "Søknaden er trukket.",
-							),
-					)
-				}
-			/>
-
-			<ConfirmDialog
-				open={dialog === "confirm"}
-				onOpenChange={(open) => setDialog(open ? "confirm" : null)}
-				title="Marker som bekreftet"
-				description={[
-					"Bruk dette når bedriften har svart ja utenfor lenken, for eksempel på e-post.",
-					assigned && `${capitalize(longDay(assigned))} blir bekreftet og låst.`,
-				]
-					.filter(Boolean)
-					.join(" ")}
-				comment={{
-					label: "Hvordan bekreftet bedriften?",
-					requiredMessage: "Skriv hvordan bedriften bekreftet.",
-				}}
-				confirmLabel="Marker som bekreftet"
-				onConfirm={(comment) =>
-					run(
-						() => confirmManually({ applicationId: application._id, comment: comment ?? "" }),
-						() => toast.success("Søknaden er bekreftet manuelt."),
-					)
-				}
-			/>
-		</Section>
+				<ConfirmDialog
+					open={dialog === "confirm"}
+					onOpenChange={(open) => setDialog(open ? "confirm" : null)}
+					title="Marker som bekreftet"
+					description={[
+						"Bruk dette når bedriften har svart ja utenfor lenken, for eksempel på e-post.",
+						assigned && `${capitalize(longDay(assigned))} blir bekreftet og låst.`,
+					]
+						.filter(Boolean)
+						.join(" ")}
+					comment={{
+						label: "Hvordan bekreftet bedriften?",
+						requiredMessage: "Skriv hvordan bedriften bekreftet.",
+					}}
+					confirmLabel="Marker som bekreftet"
+					onConfirm={(comment) =>
+						run(
+							() => confirmManually({ applicationId: application._id, comment: comment ?? "" }),
+							() => toast.success("Søknaden er bekreftet manuelt."),
+						)
+					}
+				/>
+			</PanelBody>
+		</Panel>
 	);
 }
 
@@ -288,7 +286,6 @@ function PendingOfferLink({
 	const url = offerUrl(offer.linkToken);
 	return (
 		<OfferLink
-			className="mt-3"
 			url={url}
 			email={offerEmail({
 				to: application.contact.email,
