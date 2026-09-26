@@ -5,7 +5,7 @@ import {
 } from "@workspace/shared/job-listing-orders";
 import { ConvexError, v } from "convex/values";
 import { internalQuery, mutation, type QueryCtx, query } from "../_generated/server";
-import { requireRole, superAdminRoles } from "../auth/accessRights";
+import { adminRoles, requireRole } from "../auth/accessRights";
 import { orderSettingsFields } from "./schema";
 
 const settingsValidator = v.object(orderSettingsFields);
@@ -33,7 +33,7 @@ export const save = mutation({
 	args: { settings: settingsValidator },
 	returns: v.null(),
 	handler: async (ctx, { settings }) => {
-		const user = await requireRole(ctx, superAdminRoles);
+		const user = await requireRole(ctx, adminRoles);
 		const parsed = jobListingOrderSettingsSchema.safeParse(settings);
 		if (!parsed.success) {
 			throw new ConvexError(parsed.error.issues[0]?.message ?? "Innstillingene er ugyldige.");

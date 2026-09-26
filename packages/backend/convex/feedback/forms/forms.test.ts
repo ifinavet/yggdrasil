@@ -219,11 +219,11 @@ describe("feedback form management", () => {
 			superAdminClient.mutation(feedbackMutations.setDefault, { formId: secondFormId }),
 		).rejects.toThrow("Vis skjemaet");
 	});
-	it("refuses a non-super-admin caller of setHidden", async () => {
+	it("refuses a non-admin caller of setHidden", async () => {
 		const { backend, superAdminClient, formId } = await setupFormManagement();
 		await superAdminClient.mutation(feedbackMutations.publish, { formId });
-		const user = await insertUser(backend, "admin-user@example.test");
-		await grantRole(backend, user._id, "admin");
+		const user = await insertUser(backend, "editor-user@example.test");
+		await grantRole(backend, user._id, "editor");
 		await expect(
 			asUser(backend, user).mutation(feedbackMutations.setHidden, { formId, isHidden: true }),
 		).rejects.toThrow("Unauthorized");
@@ -327,7 +327,24 @@ describe("feedback form management", () => {
 			expect((await backend.run((ctx) => ctx.db.get(eventId)))?.feedbackEnabled).toBe(false);
 		},
 	);
-	it.each([null, "admin", "editor", "internal"] as const)(
+	it("lets an admin edit, publish and read drafts", async () => {
+		const { backend, formId } = await setupFormManagement();
+		const user = await insertUser(backend, "admin-user@example.test");
+		await grantRole(backend, user._id, "admin");
+		const adminClient = asUser(backend, user);
+		await adminClient.mutation(feedbackMutations.saveDraft, {
+			formId,
+			name: "Changed",
+			fields: defaultFeedbackFields,
+		});
+		await adminClient.mutation(feedbackMutations.publish, { formId });
+		await adminClient.mutation(feedbackMutations.setDefault, { formId });
+		expect(await adminClient.query(feedbackQueries.getDraft, { formId })).toMatchObject({
+			name: "Changed",
+			isDefault: true,
+		});
+	});
+	it.each([null, "editor", "internal"] as const)(
 		"denies %s form editing, publishing and draft reads",
 		async (role) => {
 			const { backend, superAdminClient, formId } = await setupFormManagement();

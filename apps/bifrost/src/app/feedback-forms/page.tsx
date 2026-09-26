@@ -1,4 +1,4 @@
-import { hasAllRights } from "@workspace/auth";
+import { hasAdminRights } from "@workspace/auth";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -20,7 +20,7 @@ export default function Page() {
 }
 
 async function AuthorizedForms() {
-	if (!(await hasAllRights())) redirect("/");
+	if (!(await hasAdminRights())) redirect("/");
 	return (
 		<FeedbackForms
 			intro={
