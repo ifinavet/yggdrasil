@@ -142,7 +142,12 @@ export function EventTagging() {
 							<TableCell className={`${LIST_CELL} tabular-nums`}>
 								{formatOsloDate(event.eventStart, DATE_PATTERNS.numericDate)}
 							</TableCell>
-							<TableCell className={LIST_CELL}>{event.companyName ?? "Ukjent bedrift"}</TableCell>
+							<TableCell className={LIST_CELL}>
+								<span className="flex items-center gap-2">
+									{event.companyName ?? "Ukjent bedrift"}
+									{event.mainSponsor && <Badge variant="outline">Hovedsponsor</Badge>}
+								</span>
+							</TableCell>
 							<TableCell className={`${LIST_CELL} text-right tabular-nums`}>
 								{event.participationLimit}
 							</TableCell>

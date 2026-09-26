@@ -70,7 +70,6 @@ describe("products stats sales", () => {
 				category: "event",
 				companyId,
 				companyName: "Testbedrift",
-				mainSponsor: false,
 				quantity: 1,
 				revenueOre: priced.unitPriceOre,
 				guessed: false,
@@ -123,7 +122,7 @@ describe("products stats sales", () => {
 		expect(await admin.query(api.products.stats.sales, {})).toEqual([]);
 	});
 
-	it("marks sales to the main sponsor", async () => {
+	it("counts a presentation by the main sponsor as zero revenue", async () => {
 		const { t, companyId, admin } = await fixture();
 		const productId = await t.run((ctx) => ctx.db.insert("products", priced));
 		await insertEvent(t, companyId, {
@@ -132,7 +131,7 @@ describe("products stats sales", () => {
 		await t.run((ctx) => ctx.db.patch(companyId, { mainSponsor: true }));
 
 		const sales = await admin.query(api.products.stats.sales, {});
-		expect(sales).toEqual([expect.objectContaining({ mainSponsor: true })]);
+		expect(sales).toEqual([expect.objectContaining({ revenueOre: 0 })]);
 	});
 
 	it("labels an event with an unknown company", async () => {

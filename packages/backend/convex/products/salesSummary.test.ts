@@ -22,7 +22,6 @@ import {
 	semesterKey,
 	semesterLabel,
 	statsWindow,
-	withoutMainSponsor,
 } from "@workspace/shared/products";
 import { describe, expect, it } from "vitest";
 
@@ -37,7 +36,6 @@ const baseSale: Sale = {
 	category: "event",
 	companyId: "c1",
 	companyName: "Bedrift A",
-	mainSponsor: false,
 	quantity: 1,
 	revenueOre: 100,
 	guessed: false,
@@ -92,13 +90,7 @@ describe("jobListingSales", () => {
 			{ quantity: 2, totalPriceOre: 550_000 },
 		],
 	};
-	const listing = {
-		...VAR_2027,
-		companyId: "c1",
-		companyName: "Bedrift",
-		mainSponsor: false,
-		guessed: false,
-	};
+	const listing = { ...VAR_2027, companyId: "c1", companyName: "Bedrift", guessed: false };
 
 	it("groups listings per company and semester, pricing by quantity", () => {
 		const sales = jobListingSales(
@@ -117,7 +109,6 @@ describe("jobListingSales", () => {
 				category: "job_listing",
 				companyId: "c1",
 				companyName: "Bedrift",
-				mainSponsor: false,
 				quantity: 2,
 				revenueOre: 550_000,
 				guessed: true,
@@ -130,7 +121,6 @@ describe("jobListingSales", () => {
 				category: "job_listing",
 				companyId: "c1",
 				companyName: "Bedrift",
-				mainSponsor: false,
 				quantity: 1,
 				revenueOre: 300_000,
 				guessed: false,
@@ -158,11 +148,6 @@ describe("sale filters", () => {
 
 	it("keeps only sales inside the window", () => {
 		expect(salesInWindow(sales, [VAR_2027, HOST_2027])).toEqual([sales[0], sales[1]]);
-	});
-
-	it("drops main sponsor sales", () => {
-		const sponsor = sale({ companyId: "c3", mainSponsor: true });
-		expect(withoutMainSponsor([baseSale, sponsor])).toEqual([baseSale]);
 	});
 
 	it("recognises job listing sales", () => {

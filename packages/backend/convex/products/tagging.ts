@@ -23,6 +23,7 @@ export const eventsForTagging = query({
 					eventStart: event.eventStart,
 					participationLimit: event.participationLimit,
 					companyName: company?.name ?? null,
+					mainSponsor: company?.mainSponsor ?? false,
 					product: event.product ?? null,
 					productGuessed: event.productGuessed ?? false,
 				};

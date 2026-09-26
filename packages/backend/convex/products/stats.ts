@@ -21,11 +21,6 @@ async function companyInfo(ctx: QueryCtx, ids: Iterable<Id<"companies">>) {
 	return companies;
 }
 
-function companyFields(companies: Map<string, CompanyInfo>, id: Id<"companies">) {
-	const { name, mainSponsor } = companies.get(id) as CompanyInfo;
-	return { companyName: name, mainSponsor };
-}
-
 async function productCategories(ctx: QueryCtx, ids: Iterable<Id<"products">>) {
 	const categories = new Map<string, ProductCategory>();
 	for (const id of new Set(ids)) {
@@ -47,18 +42,21 @@ async function eventSales(
 		ctx,
 		sold.map(({ product }) => product.productId),
 	);
-	return sold.map(({ event, product }) => ({
-		...eventSemesterOf(event.eventStart),
-		productId: product.productId,
-		productName: product.name,
-		category: categories.get(product.productId) as ProductCategory,
-		companyId: event.hostingCompany,
-		...companyFields(companies, event.hostingCompany),
-		quantity: 1,
-		revenueOre: product.unitPriceOre ?? 0,
-		guessed: event.productGuessed ?? false,
-		soldAt: event.eventStart,
-	}));
+	return sold.map(({ event, product }) => {
+		const company = companies.get(event.hostingCompany) as CompanyInfo;
+		return {
+			...eventSemesterOf(event.eventStart),
+			productId: product.productId,
+			productName: product.name,
+			category: categories.get(product.productId) as ProductCategory,
+			companyId: event.hostingCompany,
+			companyName: company.name,
+			quantity: 1,
+			revenueOre: company.mainSponsor ? 0 : (product.unitPriceOre ?? 0),
+			guessed: event.productGuessed ?? false,
+			soldAt: event.eventStart,
+		};
+	});
 }
 
 async function listingSales(
@@ -82,7 +80,7 @@ async function listingSales(
 				productListings.map((listing) => ({
 					...eventSemesterOf(listing.deadline),
 					companyId: listing.company,
-					...companyFields(companies, listing.company),
+					companyName: (companies.get(listing.company) as CompanyInfo).name,
 					soldAt: listing.deadline,
 					guessed: listing.productGuessed ?? false,
 				})),

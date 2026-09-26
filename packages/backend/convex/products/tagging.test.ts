@@ -58,6 +58,7 @@ describe("eventsForTagging", () => {
 				_id: eventId,
 				participationLimit: 40,
 				companyName: null,
+				mainSponsor: false,
 				product: null,
 				productGuessed: false,
 			}),
@@ -84,6 +85,18 @@ describe("eventsForTagging", () => {
 				productGuessed: true,
 			}),
 		]);
+	});
+
+	it("flags events hosted by the main sponsor", async () => {
+		const { t, companyId, admin } = await fixture();
+		await insertEvent(t, companyId, { eventStart: springEvent });
+		await t.run((ctx) => ctx.db.patch(companyId, { mainSponsor: true }));
+
+		const events = await admin.query(api.products.tagging.eventsForTagging, {
+			semester: "vår",
+			year: 2027,
+		});
+		expect(events).toEqual([expect.objectContaining({ mainSponsor: true })]);
 	});
 });
 
