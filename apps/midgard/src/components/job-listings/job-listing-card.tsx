@@ -25,7 +25,7 @@ export default function JobListingCard({
 			className="flex h-[450px] w-full max-w-80 flex-col overflow-clip rounded-lg bg-white shadow-md dark:bg-zinc-800"
 		>
 			<div
-				className={`py-4 text-center ${LISTING_COLORS[type] ?? "bg-gray-400"} font-semibold text-lg text-primary-foreground`}
+				className={`py-4 text-center ${LISTING_COLORS[type] ?? "bg-gray-400"} font-semibold text-lg text-primary dark:text-primary-foreground`}
 			>
 				{type}
 			</div>
@@ -34,7 +34,7 @@ export default function JobListingCard({
 			</div>
 			<div className="flex flex-1 flex-col justify-between gap-6 px-8 pb-6">
 				<div className="pt-4">
-					<h4 className="line-clamp-1 scroll-m-20 text-center font-semibold text-primary text-xl tracking-tight dark:text-primary-foreground">
+					<h4 className="line-clamp-2 scroll-m-20 font-semibold text-primary text-xl tracking-tight dark:text-primary-foreground">
 						{title}
 					</h4>
 					<p className="mt-2 line-clamp-3">{teaser}</p>
