@@ -1,5 +1,5 @@
 import { JOB_LISTING_ORDER_EMAIL } from "@workspace/shared/constants";
-import { LISTING_FIELD_LABELS, LOGO_MAX_BYTES } from "@workspace/shared/job-listing-orders";
+import { LISTING_FIELD_LABELS } from "@workspace/shared/job-listing-orders";
 
 export const orderPageCopy = {
 	title: "Bestill stillingsannonse",
@@ -33,9 +33,7 @@ export const companyCopy = {
 	uploadLogo: "Last opp logo",
 	replaceLogo: "Bytt logo",
 	editLogo: "Endre logo",
-	logoHint: `PNG eller SVG, høyst ${LOGO_MAX_BYTES / 1_000_000} MB.`,
 	logoUploading: "Laster opp ...",
-	logoFailed: "Opplastingen feilet. Prøv igjen.",
 	correctQuestion: "Stemmer informasjonen om bedriften?",
 	yes: "Ja",
 	no: "Nei",

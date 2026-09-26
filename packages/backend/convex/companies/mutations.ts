@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation } from "../_generated/server";
 import { adminRoles, requireRole } from "../auth/accessRights";
+import { requireLogo } from "./helper";
 
 /**
  * Generates a temporary upload URL for storing a company logo in Convex storage.
@@ -37,7 +38,7 @@ export const uploadCompanyLogo = mutation({
 
 		const logoId = await ctx.db.insert("companyLogos", {
 			name,
-			image: id,
+			image: await requireLogo(ctx, id),
 		});
 
 		return logoId;
