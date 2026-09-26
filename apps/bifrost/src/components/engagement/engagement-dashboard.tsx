@@ -13,6 +13,7 @@ import { AlertsPanel } from "./alerts-panel";
 import { defaultSelection } from "./engagement-format";
 import { EventAudience } from "./event-audience";
 import { PaceChart } from "./pace-chart";
+import { PastView } from "./past-view";
 import { SemesterView } from "./semester-view";
 import { UpcomingTable } from "./upcoming-table";
 
@@ -46,7 +47,11 @@ function LiveView({ now }: Readonly<{ now: number }>) {
 			<div ref={paceRef} className="grid scroll-mt-4 gap-4">
 				{selectedId && (
 					<>
-						<PaceChart eventId={selectedId} now={now} />
+						<PaceChart
+							eventId={selectedId}
+							now={now}
+							note="Viser arrangementet du klikker på i tabellen eller i et varsel. Uten valg åpnes det mest akutte varselet."
+						/>
 						<EventAudience eventId={selectedId} />
 					</>
 				)}
@@ -74,12 +79,16 @@ export function EngagementDashboard() {
 			<TabsList>
 				<TabsTrigger value="live">Nå</TabsTrigger>
 				<TabsTrigger value="semester">Semester</TabsTrigger>
+				<TabsTrigger value="past">Tidligere</TabsTrigger>
 			</TabsList>
 			<TabsContent value="live" className="mt-4">
 				<LiveView now={now} />
 			</TabsContent>
 			<TabsContent value="semester" className="mt-4">
 				<SemesterView now={now} />
+			</TabsContent>
+			<TabsContent value="past" className="mt-4">
+				<PastView now={now} />
 			</TabsContent>
 		</Tabs>
 	);

@@ -12,13 +12,13 @@ import { ChartLegend } from "@workspace/ui/components/products/chart-legend";
 import { Panel, PanelBody, PanelNote } from "@workspace/ui/components/products/panel";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { useQuery } from "convex/react";
-import { useMemo } from "react";
+import { type ReactNode, useMemo } from "react";
 import {
 	ACCENT_SERIES_COLOR,
 	MUTED_SERIES_COLOR,
 	PRIMARY_SERIES_COLOR,
 } from "@/components/common/chart-colors";
-import type { PaceCurve } from "./engagement-format";
+import { type PaceCurve, paceLabels, paceTickLabel, paceTicks } from "./engagement-format";
 
 const Y_AXIS_LABEL = "Påmeldte";
 const DASHED = "5 4";
@@ -30,8 +30,6 @@ const SERIES = {
 	projected: { label: "Prognose", color: ACCENT_SERIES_COLOR, marker: "dashed" as const },
 };
 
-const LEGEND = Object.values(SERIES);
-
 type Point = { progress: number; at: number; count: number };
 
 function series(curve: PaceCurve, key: "actual" | "expected" | "projected"): Point[] {
@@ -41,37 +39,14 @@ function series(curve: PaceCurve, key: "actual" | "expected" | "projected"): Poi
 	});
 }
 
-function tickLabel(curve: PaceCurve, progress: number) {
-	if (progress === 0) return "Åpnet";
-	if (progress === 1) return "Start";
-	return progress === curve.progress ? "I dag" : "";
+function endLabels(curve: PaceCurve) {
+	return paceLabels(curve).map((label) => ({ ...label, color: SERIES[label.key].color }));
 }
 
-function endLabels(curve: PaceCurve) {
-	return [
-		{
-			progress: curve.progress,
-			count: curve.registered,
-			label: `${curve.registered} nå`,
-			color: SERIES.actual.color,
-		},
-		{
-			progress: 1,
-			count: curve.projected,
-			label: `prognose ${curve.projected}`,
-			color: SERIES.projected.color,
-		},
-		...(curve.typical === null
-			? []
-			: [
-					{
-						progress: 1,
-						count: curve.typical,
-						label: `typisk ${curve.typical}`,
-						color: SERIES.expected.color,
-					},
-				]),
-	];
+function legendOf(curve: PaceCurve | null | undefined) {
+	return Object.entries(SERIES)
+		.filter(([key]) => key !== "projected" || curve?.projected !== null)
+		.map(([, item]) => item);
 }
 
 function PaceChartBody({ curve }: Readonly<{ curve: PaceCurve }>) {
@@ -118,8 +93,8 @@ function PaceChartBody({ curve }: Readonly<{ curve: PaceCurve }>) {
 						axis: {
 							ticks: {
 								size: 0,
-								values: [0, curve.progress, 1],
-								format: (progress: number) => tickLabel(curve, progress),
+								values: paceTicks(curve.progress),
+								format: (progress: number) => paceTickLabel(curve, progress),
 							},
 							tickLabels: { thin: false, fontSize: 11 },
 						},
@@ -127,7 +102,7 @@ function PaceChartBody({ curve }: Readonly<{ curve: PaceCurve }>) {
 					y: {
 						scale: scaleLinear().domain([
 							0,
-							Math.max(curve.limit, curve.projected, curve.typical ?? 0),
+							Math.max(curve.limit, curve.projected ?? 0, curve.typical ?? 0),
 						]),
 						nice: true,
 						grid: true,
@@ -162,7 +137,11 @@ function PaceChartBody({ curve }: Readonly<{ curve: PaceCurve }>) {
 	);
 }
 
-export function PaceChart({ eventId, now }: Readonly<{ eventId: Id<"events">; now: number }>) {
+export function PaceChart({
+	eventId,
+	now,
+	note,
+}: Readonly<{ eventId: Id<"events">; now: number; note: ReactNode }>) {
 	const curve = useQuery(api.engagement.queries.paceCurve, { eventId, now });
 
 	return (
@@ -177,14 +156,11 @@ export function PaceChart({ eventId, now }: Readonly<{ eventId: Id<"events">; no
 					"Påmeldingskurve"
 				)
 			}
-			aside={<ChartLegend items={LEGEND} />}
+			aside={<ChartLegend items={legendOf(curve)} />}
 		>
 			<PanelBody className="grid gap-3">
 				{curve ? <PaceChartBody curve={curve} /> : <Skeleton className="h-[280px] w-full" />}
-				<PanelNote>
-					Viser arrangementet du klikker på i tabellen eller i et varsel. Uten valg åpnes det mest
-					akutte varselet.
-				</PanelNote>
+				<PanelNote>{note}</PanelNote>
 			</PanelBody>
 		</Panel>
 	);

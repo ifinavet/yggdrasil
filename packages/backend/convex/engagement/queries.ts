@@ -1,5 +1,6 @@
 import {
 	DAY_MS,
+	type EventSemester,
 	eventSemesterOf,
 	eventSemesterRange,
 	formatOsloDate,
@@ -11,7 +12,7 @@ import type { Doc, Id } from "../_generated/dataModel";
 import { type QueryCtx, query } from "../_generated/server";
 import { internalRoles, requireRole } from "../auth/accessRights";
 import { eventsInSemester } from "../events/helper";
-import { companyWithLogo } from "../events/queries";
+import { companyWithLogo, eventSemesterValidator } from "../events/queries";
 import { audienceOf } from "./audience";
 import { activityBuckets, activityWindowMs, PACE_STEPS, valueAt, WAVE_RULE } from "./metrics";
 import {
@@ -172,8 +173,15 @@ export const paceCurve = query({
 		await requireRole(ctx, internalRoles);
 		const event = await ctx.db.get(eventId);
 		if (!event) return null;
-		const snapshot = await snapshotOf(ctx, event, now, await pastCurvesBefore(ctx, now));
+		const snapshot = await snapshotOf(
+			ctx,
+			event,
+			now,
+			await pastCurvesBefore(ctx, Math.min(now, event.eventStart)),
+		);
 		const limit = event.participationLimit;
+		const projecting = snapshot.progress > 0 && snapshot.progress < 1 && snapshot.registered > 0;
+		const projected = projecting ? Math.round(snapshot.projectedFill * limit) : null;
 		const times = [...(await registrationTimesOf(ctx, eventId))].sort((a, b) => a - b);
 		const span = event.eventStart - event.registrationOpens;
 		const countAt = (progress: number) =>
@@ -181,8 +189,9 @@ export const paceCurve = query({
 		const expectedAt = (progress: number) =>
 			snapshot.baseline ? Math.round(valueAt(snapshot.baseline.curve, progress) * limit) : null;
 		const projectedAt = (progress: number) => {
+			if (projected === null) return null;
 			if (progress === snapshot.progress) return snapshot.registered;
-			if (progress === 1) return Math.round(snapshot.projectedFill * limit);
+			if (progress === 1) return projected;
 			return null;
 		};
 
@@ -208,7 +217,7 @@ export const paceCurve = query({
 			limit,
 			registered: snapshot.registered,
 			progress: snapshot.progress,
-			projected: Math.round(snapshot.projectedFill * limit),
+			projected,
 			typical: expectedAt(1),
 			baselineSize: snapshot.baseline?.size ?? 0,
 			points,
@@ -221,8 +230,9 @@ type SemesterEvent = {
 	registrations: Doc<"registrations">[];
 };
 
-async function semesterEvents(ctx: QueryCtx, timestamp: number, now: number) {
-	const { semester, year } = eventSemesterOf(timestamp);
+type SemesterKey = { semester: EventSemester; year: number };
+
+async function semesterEvents(ctx: QueryCtx, { semester, year }: SemesterKey, now: number) {
 	const events = (await eventsInSemester(ctx, semester, year)).filter(
 		(event) =>
 			event.published &&
@@ -272,23 +282,32 @@ async function companyDemand(ctx: QueryCtx, events: SemesterEvent[]) {
 	);
 }
 
+function attendanceOf(semesterEvent: SemesterEvent) {
+	const registered = registeredOf(semesterEvent);
+	const recorded = registered.some((registration) => registration.attendanceStatus);
+	return {
+		registered: registered.length,
+		attended: recorded
+			? registered.filter(
+					(registration) =>
+						registration.attendanceStatus === "confirmed" ||
+						registration.attendanceStatus === "late",
+				).length
+			: null,
+	};
+}
+
 function weeklyAttendance(events: SemesterEvent[], now: number) {
 	const byWeek = new Map<number, { attended: number; registered: number }>();
 	for (const semesterEvent of events) {
 		if (semesterEvent.event.eventStart > now) continue;
-		const registered = registeredOf(semesterEvent);
-		if (!registered.some((registration) => registration.attendanceStatus)) continue;
+		const { registered, attended } = attendanceOf(semesterEvent);
+		if (attended === null) continue;
 		const week = Number(formatOsloDate(semesterEvent.event.eventStart, "I"));
 		const current = byWeek.get(week) ?? { attended: 0, registered: 0 };
 		byWeek.set(week, {
-			attended:
-				current.attended +
-				registered.filter(
-					(registration) =>
-						registration.attendanceStatus === "confirmed" ||
-						registration.attendanceStatus === "late",
-				).length,
-			registered: current.registered + registered.length,
+			attended: current.attended + attended,
+			registered: current.registered + registered,
 		});
 	}
 	return [...byWeek.entries()]
@@ -343,24 +362,44 @@ async function studentPopulation(ctx: QueryCtx) {
 	return await ctx.db.query("students").take(MAX_STUDENTS);
 }
 
-async function lateUnregistrations(ctx: QueryCtx, events: SemesterEvent[]) {
+async function logStartedAt(ctx: QueryCtx) {
+	const first = await ctx.db.query("registrationLog").first();
+	return first?._creationTime ?? null;
+}
+
+function isLogged(event: Doc<"events">, logStart: number | null) {
+	return logStart !== null && event.eventStart - DAY_MS >= logStart;
+}
+
+async function lateUnregistrationsOf(ctx: QueryCtx, event: Doc<"events">, logStart: number | null) {
+	if (!isLogged(event, logStart)) return null;
+	const late = await ctx.db
+		.query("registrationLog")
+		.withIndex("by_eventId_and_at", (q) =>
+			q
+				.eq("eventId", event._id)
+				.gt("at", event.eventStart - DAY_MS)
+				.lte("at", event.eventStart),
+		)
+		.take(MAX_REGISTRATIONS_PER_EVENT);
+	return late.filter(
+		(entry) => entry.change === "unregistered" && entry.fromStatus === "registered",
+	).length;
+}
+
+async function lateUnregistrations(
+	ctx: QueryCtx,
+	events: SemesterEvent[],
+	logStart: number | null,
+) {
 	const counts = await Promise.all(
-		events.map(async ({ event }) => {
-			const late = await ctx.db
-				.query("registrationLog")
-				.withIndex("by_eventId_and_at", (q) =>
-					q
-						.eq("eventId", event._id)
-						.gt("at", event.eventStart - DAY_MS)
-						.lte("at", event.eventStart),
-				)
-				.take(MAX_REGISTRATIONS_PER_EVENT);
-			return late.filter(
-				(entry) => entry.change === "unregistered" && entry.fromStatus === "registered",
-			).length;
-		}),
+		events.map(({ event }) => lateUnregistrationsOf(ctx, event, logStart)),
 	);
-	return counts.reduce((sum, count) => sum + count, 0);
+	return {
+		count: counts.reduce<number>((sum, count) => sum + (count ?? 0), 0),
+		uncovered: counts.some((count) => count === null),
+		empty: counts.length === 0,
+	};
 }
 
 export const semester = query({
@@ -376,27 +415,60 @@ export const semester = query({
 			previousRange.end - 1,
 		);
 		const lastYear = now - 365 * DAY_MS;
-		const events = await semesterEvents(ctx, now, now);
-		const previousEvents = await semesterEvents(ctx, previousCutoff, previousCutoff);
-		const lastYearEvents = await semesterEvents(ctx, lastYear, lastYear);
+		const events = await semesterEvents(ctx, current, now);
+		const previousEvents = await semesterEvents(ctx, previous, previousCutoff);
+		const lastYearEvents = await semesterEvents(ctx, eventSemesterOf(lastYear), lastYear);
+		const yearsSincePrevious = current.semester === "høst" ? 1 : 0;
 
 		const audience = audienceOf(
 			await semesterStudents(ctx, events),
 			await studentPopulation(ctx),
 			await semesterStudents(ctx, previousEvents),
+			yearsSincePrevious,
 		);
+		const logStart = await logStartedAt(ctx);
+		const late = await lateUnregistrations(ctx, events, logStart);
+		const lateLastYear = await lateUnregistrations(ctx, lastYearEvents, logStart);
 
 		return {
 			semester: current,
 			companies: await companyDemand(ctx, events),
 			attendance: weeklyAttendance(events, now),
 			lateUnregistrations: {
-				current: await lateUnregistrations(ctx, events),
-				lastYear: await lateUnregistrations(ctx, lastYearEvents),
+				current: late.count,
+				since: late.uncovered ? logStart : null,
+				lastYear: lateLastYear.uncovered || lateLastYear.empty ? null : lateLastYear.count,
 			},
 			timeslots: fillByTimeslot(events),
 			audience,
 		};
+	},
+});
+
+export const past = query({
+	args: { now: v.number(), semester: eventSemesterValidator, year: v.number() },
+	handler: async (ctx, { now, semester, year }) => {
+		await requireRole(ctx, internalRoles);
+		const logStart = await logStartedAt(ctx);
+		const events = (await semesterEvents(ctx, { semester, year }, now))
+			.filter(({ event }) => event.eventStart <= now)
+			.reverse();
+		return await Promise.all(
+			events.map(async (semesterEvent) => {
+				const { event } = semesterEvent;
+				const company = await companyWithLogo(ctx, event.hostingCompany);
+				return {
+					_id: event._id,
+					title: event.title,
+					companyName: company.name,
+					companyLogoUrl: company.logoUrl,
+					eventStart: event.eventStart,
+					participationLimit: event.participationLimit,
+					...attendanceOf(semesterEvent),
+					lateUnregistrations: await lateUnregistrationsOf(ctx, event, logStart),
+				};
+			}),
+		);
 	},
 });
 

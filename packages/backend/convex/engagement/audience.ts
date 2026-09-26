@@ -52,14 +52,21 @@ function programOf({ studyProgram }: Student) {
 	return studyProgram;
 }
 
+function backdate(students: readonly Student[], years: number) {
+	return students.map((student) => ({ ...student, year: student.year - years }));
+}
+
 export function audienceOf(
 	registrants: readonly Student[],
 	population: readonly Student[],
-	previous: readonly Student[] | null = null,
+	previousRegistrants: readonly Student[] | null = null,
+	yearsSincePrevious = 0,
 ) {
 	const reached = uniqueStudents(registrants);
+	const previous = previousRegistrants && backdate(previousRegistrants, yearsSincePrevious);
 	const previousReached = previous && uniqueStudents(previous);
 	const populationCohorts = countBy(population, cohortOf);
+	const previousPopulationCohorts = countBy(backdate(population, yearsSincePrevious), cohortOf);
 
 	const shareRow = (keyOf: KeyOf) => {
 		const populationCounts = countBy(population, keyOf);
@@ -89,7 +96,7 @@ export function audienceOf(
 			degree: student.degree,
 			year: student.year,
 			reach: reachOf(reached, populationCohorts, label),
-			previousReach: previousReached && reachOf(previousReached, populationCohorts, label),
+			previousReach: previousReached && reachOf(previousReached, previousPopulationCohorts, label),
 		}));
 	const cohortLabels = cohorts.map(({ label }) => label);
 

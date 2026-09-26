@@ -91,6 +91,17 @@ describe("audienceOf", () => {
 		expect(masterFour?.change).toBeCloseTo(1 / 2);
 	});
 
+	it("compares each cohort against the students who were in that year in the previous period", () => {
+		const [bachelorThree] = audienceOf([DI], POPULATION, [DI], 1).cohorts;
+		expect(bachelorThree?.label).toBe("Bachelor 3. år");
+		expect(bachelorThree?.previousReach).toBe(0);
+		expect(bachelorThree?.change).toBeCloseTo(1);
+
+		const [bachelorOne] = audienceOf([ADA], POPULATION, [ADA, BO], 1).cohorts;
+		expect(bachelorOne?.previousReach).toBe(0);
+		expect(bachelorOne?.change).toBeCloseTo(1);
+	});
+
 	it("aligns program counts with the cohort order", () => {
 		const { programs } = audienceOf([ADA, BO, CY, DI, DI], POPULATION);
 		expect(programs).toEqual([
