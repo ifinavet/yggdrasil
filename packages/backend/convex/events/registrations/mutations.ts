@@ -106,6 +106,8 @@ export const updateAttendance = mutation({
 		});
 
 		if (registration.status !== "registered") return;
+		const participant = await ctx.db.get(registration.userId);
+		if (participant?.deleted) return;
 
 		const student = await ctx.db
 			.query("students")
@@ -324,7 +326,7 @@ export const makeStatusPending = async (
 	event: Doc<"events">,
 ) => {
 	const user = await ctx.db.get(registrationToMakePending.userId);
-	if (!user) {
+	if (!user || user.deleted) {
 		throw new ConvexError(
 			`Bruker med ID ${registrationToMakePending.userId} ikke funnet. Kan ikke oppdatere registrering.`,
 		);
@@ -374,7 +376,7 @@ export const fillOpenSeats = async (ctx: MutationCtx, event: Doc<"events">) => {
 		if (openSeats <= 0) return;
 
 		const user = await ctx.db.get(registration.userId);
-		if (!user) {
+		if (!user || user.deleted) {
 			await ctx.db.delete(registration._id);
 			continue;
 		}

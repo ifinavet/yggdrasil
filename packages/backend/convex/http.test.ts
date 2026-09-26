@@ -1,6 +1,7 @@
 import { Webhook } from "svix";
 import { describe, expect, it } from "vitest";
 import { setup } from "../test/fixtures";
+import { internal } from "./_generated/api";
 
 const WEBHOOK_PATH = "/clerk-users-webhook";
 
@@ -86,4 +87,40 @@ describe("the application HTTP router", () => {
 		);
 		expect(stored?.email).toBe("signert@example.com");
 	});
+
+	it.each([true, false])(
+		"ignores stale upserts after deletion, previously synced: %s",
+		async (synced) => {
+			const { t } = await setup();
+			const externalId = "user_deleted";
+			const body = clerkUserPayload(externalId, "sletta@example.com");
+			if (synced) {
+				await t.fetch(WEBHOOK_PATH, { method: "POST", headers: signedHeaders(body), body });
+			}
+			const deletion = JSON.stringify({ type: "user.deleted", data: { id: externalId } });
+			const response = await t.fetch(WEBHOOK_PATH, {
+				method: "POST",
+				headers: signedHeaders(deletion),
+				body: deletion,
+			});
+			expect(response.status).toBe(200);
+			for (const type of ["user.created", "user.updated"]) {
+				const stale = JSON.stringify({ ...JSON.parse(body), type });
+				expect(
+					(
+						await t.fetch(WEBHOOK_PATH, {
+							method: "POST",
+							headers: signedHeaders(stale),
+							body: stale,
+						})
+					).status,
+				).toBe(200);
+			}
+			await t.mutation(internal.users.clerk.mutations.deleteFromClerk, { clerkUserId: externalId });
+			const users = await t.run((ctx) => ctx.db.query("users").collect());
+			expect(users).toHaveLength(synced ? 1 : 0);
+			expect(users.every((user) => user.deleted && user.email === "")).toBe(true);
+			expect(JSON.stringify(users)).not.toContain(externalId);
+		},
+	);
 });
