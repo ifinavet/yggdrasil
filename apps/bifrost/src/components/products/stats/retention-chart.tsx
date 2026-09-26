@@ -10,17 +10,9 @@ import { SEMESTER_LABEL } from "@workspace/shared/semester/labels";
 import { ChartLegend } from "@workspace/ui/components/products/chart-legend";
 import { Panel, PanelBody } from "@workspace/ui/components/products/panel";
 import { useMemo } from "react";
-import { SERIES_COLORS } from "./series-colors";
-
-const RETURNING_COLOR = SERIES_COLORS.event;
-const NEW_COLOR = SERIES_COLORS.external_event;
+import { NEW_SERIES, RETURNING_NEW_LEGEND, RETURNING_SERIES } from "./series-colors";
 
 const Y_AXIS_LABEL = "Bedrifter";
-
-const RETURNING = { label: "Tilbakevendende", color: RETURNING_COLOR };
-const NEW = { label: "Nye", color: NEW_COLOR };
-
-const LEGEND = [RETURNING, NEW];
 
 export function RetentionChart({ activity }: Readonly<{ activity: readonly CompanyActivity[] }>) {
 	const definition = useMemo(() => {
@@ -29,8 +21,8 @@ export function RetentionChart({ activity }: Readonly<{ activity: readonly Compa
 			semesters.map((semester) => [semester.key, compactSemesterLabel(semester)]),
 		);
 		const layers = semesters.flatMap((semester) => [
-			{ key: semester.key, companies: semester.returning, ...RETURNING },
-			{ key: semester.key, companies: semester.new, ...NEW },
+			{ key: semester.key, companies: semester.returning, ...RETURNING_SERIES },
+			{ key: semester.key, companies: semester.new, ...NEW_SERIES },
 		]);
 		const totals = semesters.map((semester) => ({
 			key: semester.key,
@@ -88,7 +80,7 @@ export function RetentionChart({ activity }: Readonly<{ activity: readonly Compa
 		<Panel
 			title="Nye og tilbakevendende bedrifter"
 			description="Hvor mange bedrifter som kjøpte noe, og hvor mange av dem som var nye. Mange som kommer tilbake er et godt tegn."
-			aside={<ChartLegend items={LEGEND} />}
+			aside={<ChartLegend items={RETURNING_NEW_LEGEND} />}
 		>
 			<PanelBody>
 				<Chart

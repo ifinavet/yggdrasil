@@ -8,6 +8,7 @@ import { Chart } from "@tanstack/react-charts";
 import {
 	compactSemesterLabel,
 	formatNokFromOre,
+	formatPercent,
 	type SemesterRevenueSources,
 	semesterLabel,
 	TOP_COMPANIES,
@@ -25,12 +26,8 @@ import {
 } from "@workspace/ui/components/table";
 import { useMemo } from "react";
 import { STATS_CELL, STATS_HEAD } from "@/components/common/table-classes";
-import { SERIES_COLORS } from "./series-colors";
-
-const Y_AXIS_LABEL = "Inntekt";
-const RETURNING = { label: "Tilbakevendende", color: SERIES_COLORS.event };
-const NEW = { label: "Nye", color: SERIES_COLORS.external_event };
-const LEGEND = [RETURNING, NEW];
+import { REVENUE_AXIS_LABEL } from "./revenue-chart";
+import { NEW_SERIES, RETURNING_NEW_LEGEND, RETURNING_SERIES } from "./series-colors";
 
 export function NewRevenueChart({
 	sources,
@@ -40,8 +37,8 @@ export function NewRevenueChart({
 			sources.map((semester) => [semester.key, compactSemesterLabel(semester)]),
 		);
 		const layers = sources.flatMap((semester) => [
-			{ key: semester.key, ore: semester.returningOre, ...RETURNING },
-			{ key: semester.key, ore: semester.newOre, ...NEW },
+			{ key: semester.key, ore: semester.returningOre, ...RETURNING_SERIES },
+			{ key: semester.key, ore: semester.newOre, ...NEW_SERIES },
 		]);
 
 		return defineChart({
@@ -63,7 +60,7 @@ export function NewRevenueChart({
 					nice: true,
 					grid: true,
 					axis: {
-						label: Y_AXIS_LABEL,
+						label: REVENUE_AXIS_LABEL,
 						ticks: { count: 3, format: (ore: number) => formatNokFromOre(ore) },
 					},
 				},
@@ -77,7 +74,11 @@ export function NewRevenueChart({
 						text: (point) => labels.get(point.datum.key) ?? point.datum.key,
 					},
 					{ field: "label", label: "Type" },
-					{ channel: "y", label: Y_AXIS_LABEL, text: (point) => formatNokFromOre(point.datum.ore) },
+					{
+						channel: "y",
+						label: REVENUE_AXIS_LABEL,
+						text: (point) => formatNokFromOre(point.datum.ore),
+					},
 				],
 			},
 		});
@@ -87,7 +88,7 @@ export function NewRevenueChart({
 		<Panel
 			title="Inntekt fra nye og tilbakevendende"
 			description="Hvor mye av inntekten som kommer fra nye bedrifter, og hvor mye som kommer fra bedrifter som har kjøpt før."
-			aside={<ChartLegend items={LEGEND} />}
+			aside={<ChartLegend items={RETURNING_NEW_LEGEND} />}
 		>
 			<PanelBody>
 				<Chart
@@ -131,7 +132,7 @@ export function RevenueConcentration({
 								{formatNokFromOre(semester.totalOre)}
 							</TableCell>
 							<TableCell className={`${STATS_CELL} text-right font-semibold tabular-nums`}>
-								{Math.round((semester.topOre / semester.totalOre) * 100)} %
+								{formatPercent((semester.topOre / semester.totalOre) * 100)}
 							</TableCell>
 						</TableRow>
 					))}

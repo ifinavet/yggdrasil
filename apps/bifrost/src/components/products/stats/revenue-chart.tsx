@@ -16,7 +16,7 @@ const kronerFormat = new Intl.NumberFormat("nb-NO", { maximumFractionDigits: 0 }
 const MUTED = "var(--muted-foreground)";
 const DIMMED_LABEL_OPACITY = 0.6;
 
-const Y_AXIS_LABEL = "Inntekt eks. mva.";
+export const REVENUE_AXIS_LABEL = "Inntekt eks. mva.";
 
 const SERIES = {
 	event: { label: "Bedriftspresentasjoner", color: SERIES_COLORS.event },
@@ -110,7 +110,7 @@ export function RevenueChart({
 					nice: true,
 					grid: true,
 					axis: {
-						label: Y_AXIS_LABEL,
+						label: REVENUE_AXIS_LABEL,
 						ticks: { format: (value: number) => kronerFormat.format(value) },
 					},
 				},
@@ -126,7 +126,7 @@ export function RevenueChart({
 					{ field: "series", label: "Produkt" },
 					{
 						channel: "y",
-						label: Y_AXIS_LABEL,
+						label: REVENUE_AXIS_LABEL,
 						text: (point) => formatNokFromOre(point.datum.kroner * ORE_PER_KRONE),
 					},
 				],
