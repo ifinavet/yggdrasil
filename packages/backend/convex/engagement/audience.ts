@@ -52,13 +52,13 @@ export function cohortGroupOf({ degree, year }: Pick<Student, "degree" | "year">
 		case "Bachelor":
 			return { degree, year: Math.min(year, 3), rank: Math.min(year, 3) };
 		case "Master": {
-			const masterYear = year === 2 || year === 5 ? 2 : 1;
-			return { degree, year: masterYear, rank: 3 + masterYear };
+			const masterYear = year === 2 || year === 5 ? 5 : 4;
+			return { degree, year: masterYear, rank: masterYear };
 		}
 		case "Årsstudium":
 			return { degree, year: null, rank: 6 };
 		case "PhD":
-			return { degree, year: null, rank: 7 };
+			return null;
 	}
 }
 
@@ -67,11 +67,7 @@ function labelOf({ degree, year }: Cohort) {
 }
 
 function codeOf({ degree, year }: Cohort) {
-	return year === null
-		? degree === "PhD"
-			? degree
-			: degree.charAt(0)
-		: `${degree.charAt(0)}${year}`;
+	return `${degree.charAt(0)}${year ?? ""}`;
 }
 
 export function cohortOf(student: Pick<Student, "degree" | "year">) {
@@ -87,12 +83,19 @@ function backdate(students: readonly Student[], years: number) {
 	return students.map((student) => ({ ...student, year: student.year - years }));
 }
 
+function withoutPhd(students: readonly Student[]) {
+	return students.filter(({ degree }) => degree !== "PhD");
+}
+
 export function audienceOf(
-	registrants: readonly Student[],
-	population: readonly Student[],
-	previousRegistrants: readonly Student[] | null = null,
+	allRegistrants: readonly Student[],
+	allPopulation: readonly Student[],
+	allPreviousRegistrants: readonly Student[] | null = null,
 	yearsSincePrevious = 0,
 ) {
+	const registrants = withoutPhd(allRegistrants);
+	const population = withoutPhd(allPopulation);
+	const previousRegistrants = allPreviousRegistrants && withoutPhd(allPreviousRegistrants);
 	const reached = uniqueStudents(registrants);
 	const previous = previousRegistrants && backdate(previousRegistrants, yearsSincePrevious);
 	const previousReached = previous && uniqueStudents(previous);

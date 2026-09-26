@@ -28,19 +28,22 @@ describe("cohortOf", () => {
 		expect(cohortOf({ degree: "Bachelor", year: 5 })).toBe("Bachelor 3. år");
 	});
 
-	it("maps master years onto the first or second master year", () => {
+	it("maps master students onto the fourth or fifth year", () => {
 		expect([1, 2, 3, 4, 5].map((year) => cohortOf({ degree: "Master", year }))).toEqual([
-			"Master 1. år",
-			"Master 2. år",
-			"Master 1. år",
-			"Master 1. år",
-			"Master 2. år",
+			"Master 4. år",
+			"Master 5. år",
+			"Master 4. år",
+			"Master 4. år",
+			"Master 5. år",
 		]);
 	});
 
-	it("keeps one cohort for årsstudium and PhD regardless of year", () => {
+	it("keeps one cohort for årsstudium regardless of year", () => {
 		expect(cohortOf({ degree: "Årsstudium", year: 2 })).toBe("Årsstudium");
-		expect(cohortOf({ degree: "PhD", year: 4 })).toBe("PhD");
+	});
+
+	it("leaves PhD students out of every cohort", () => {
+		expect(cohortGroupOf({ degree: "PhD", year: 4 })).toBeNull();
 	});
 
 	it("leaves students without a year before they started out of every cohort", () => {
@@ -61,20 +64,18 @@ describe("audienceOf", () => {
 	});
 
 	it("orders grouped cohorts by degree and then year with short codes", () => {
-		const phd = student("ph", "PhD", 2);
 		const oneYear = student("ar", "Årsstudium", 1);
-		const masterTwo = student("ms", "Master", 5);
+		const masterFive = student("ms", "Master", 5);
 		const audience = audienceOf(
-			[phd, CY, oneYear, masterTwo, DI, ADA],
-			[...POPULATION, phd, oneYear, masterTwo],
+			[CY, oneYear, masterFive, DI, ADA],
+			[...POPULATION, oneYear, masterFive],
 		);
 		expect(audience.cohorts.map(({ label, code }) => [label, code])).toEqual([
 			["Bachelor 1. år", "B1"],
 			["Bachelor 3. år", "B3"],
-			["Master 1. år", "M1"],
-			["Master 2. år", "M2"],
+			["Master 4. år", "M4"],
+			["Master 5. år", "M5"],
 			["Årsstudium", "Å"],
-			["PhD", "PhD"],
 		]);
 	});
 
@@ -93,17 +94,17 @@ describe("audienceOf", () => {
 	});
 
 	it("measures reach as unique registrants over cohort size", () => {
-		const [bachelorOne, masterOne] = audienceOf([ADA, ADA, CY], POPULATION).cohorts;
+		const [bachelorOne, masterFour] = audienceOf([ADA, ADA, CY], POPULATION).cohorts;
 		expect(bachelorOne?.reach).toBe(1 / 2);
-		expect(masterOne?.reach).toBe(1);
+		expect(masterFour?.reach).toBe(1);
 	});
 
 	it("caps reach at the whole cohort and treats unknown cohorts as unreached", () => {
 		const outsider = student("fi", "Master", 5);
-		const [masterOne, masterTwo] = audienceOf([CY, outsider], [CY]).cohorts;
-		expect(masterOne?.reach).toBe(1);
-		expect(masterTwo?.reach).toBe(0);
-		expect(masterTwo?.populationShare).toBe(0);
+		const [masterFour, masterFive] = audienceOf([CY, outsider], [CY]).cohorts;
+		expect(masterFour?.reach).toBe(1);
+		expect(masterFive?.reach).toBe(0);
+		expect(masterFive?.populationShare).toBe(0);
 	});
 
 	it("reports change and previous reach against the previous period", () => {
@@ -164,6 +165,16 @@ describe("audienceOf", () => {
 		const audience = audienceOf([ADA, student("zero", "Bachelor", 0)], POPULATION);
 		expect(audience.total).toBe(2);
 		expect(audience.cohorts.map(({ label }) => label)).toEqual(["Bachelor 1. år"]);
+	});
+
+	it("leaves PhD students out of totals and shares", () => {
+		const phd = student("ph", "PhD", 2);
+		const audience = audienceOf([ADA, phd], [...POPULATION, phd], [phd]);
+		expect(audience.total).toBe(1);
+		expect(audience.reached).toBe(1);
+		expect(audience.cohorts).toEqual([
+			expect.objectContaining({ label: "Bachelor 1. år", share: 1, populationShare: 2 / 4 }),
+		]);
 	});
 
 	it("reports zero population share when the population is empty", () => {
