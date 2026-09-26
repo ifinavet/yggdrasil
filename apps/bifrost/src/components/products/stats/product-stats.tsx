@@ -33,7 +33,12 @@ import { LapsedCompanies } from "./lapsed-companies";
 import { ProductMix } from "./product-mix";
 import { RetentionChart } from "./retention-chart";
 import { RevenueChart } from "./revenue-chart";
-import { guessedWarning, REVENUE_ESTIMATE_NOTE, salesKpis } from "./sales-kpis";
+import {
+	guessedWarning,
+	REVENUE_ESTIMATE_NOTE,
+	REVENUE_EXCLUSION_NOTE,
+	salesKpis,
+} from "./sales-kpis";
 
 const ALL_SEMESTERS_LABEL = "Alle semestre";
 
@@ -86,6 +91,7 @@ export function ProductStats() {
 			</div>
 
 			<Callout>{REVENUE_ESTIMATE_NOTE}</Callout>
+			<Callout>{REVENUE_EXCLUSION_NOTE}</Callout>
 
 			{warning && (
 				<Callout
