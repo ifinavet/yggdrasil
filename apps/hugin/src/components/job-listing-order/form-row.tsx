@@ -10,7 +10,7 @@ export function FormRow({
 	children,
 }: Readonly<{
 	label: string;
-	htmlFor: string;
+	htmlFor?: string;
 	errors?: readonly unknown[];
 	hint?: ReactNode;
 	children: ReactNode;
