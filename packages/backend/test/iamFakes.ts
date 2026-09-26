@@ -129,12 +129,15 @@ export function fakeDirectories() {
 			return json({ access_token: "google-token", expires_in: 3600 });
 		}
 		if (url.hostname === "admin.googleapis.com") {
-			const body = init.body ? (JSON.parse(String(init.body)) as Record<string, unknown>) : {};
+			const body =
+				typeof init.body === "string" ? (JSON.parse(init.body) as Record<string, unknown>) : {};
 			calls.push({ method, url: url.toString(), body });
 			return handleGoogle(method, url, body);
 		}
 		if (url.hostname === "slack.com") {
-			const params = new URLSearchParams(String(init.body ?? ""));
+			const params = new URLSearchParams(
+				init.body instanceof URLSearchParams ? init.body : undefined,
+			);
 			const slackMethod = url.pathname.replace("/api/", "");
 			calls.push({ method: slackMethod, url: url.toString(), body: Object.fromEntries(params) });
 			return handleSlack(slackMethod, params);

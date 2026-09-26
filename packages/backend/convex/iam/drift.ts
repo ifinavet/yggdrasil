@@ -13,34 +13,47 @@ export type Directory = Readonly<{
 	reservedEmails: ReadonlySet<string>;
 }>;
 
+type GoogleDirectoryUser = Omit<GoogleUser, "hasSignedIn">;
+
+const isUnknown = (directory: Directory, email: string) =>
+	!directory.memberEmails.has(email) && !directory.reservedEmails.has(email);
+
+function googleDrift(
+	directory: Directory,
+	googleUsers: readonly GoogleDirectoryUser[],
+): DriftRow[] {
+	const active = googleUsers.filter((user) => !user.suspended);
+	const activeEmails = new Set(active.map((user) => user.email));
+	const withoutMember = active
+		.filter((user) => isUnknown(directory, user.email))
+		.map((user) => ({
+			kind: "google_without_member" as const,
+			email: user.email,
+			name: user.name,
+		}));
+	const suspended = [...directory.internalWorkspaceEmails]
+		.filter((email) => !activeEmails.has(email))
+		.map((email) => ({ kind: "member_google_suspended" as const, email }));
+	return [...withoutMember, ...suspended];
+}
+
+function slackDrift(directory: Directory, slackMembers: readonly SlackMember[]): DriftRow[] {
+	return slackMembers
+		.filter((member) => !member.deactivated && isUnknown(directory, member.email))
+		.map((member) => ({
+			kind: "slack_without_member" as const,
+			email: member.email,
+			name: member.name,
+		}));
+}
+
 export function computeDrift(
 	directory: Directory,
-	googleUsers: readonly Omit<GoogleUser, "hasSignedIn">[] | null,
+	googleUsers: readonly GoogleDirectoryUser[] | null,
 	slackMembers: readonly SlackMember[] | null,
 ): DriftRow[] {
-	const unknown = (email: string) =>
-		!directory.memberEmails.has(email) && !directory.reservedEmails.has(email);
-	const rows: DriftRow[] = [];
-
-	if (googleUsers) {
-		for (const user of googleUsers) {
-			if (!user.suspended && unknown(user.email)) {
-				rows.push({ kind: "google_without_member", email: user.email, name: user.name });
-			}
-		}
-		const activeGoogle = new Set(googleUsers.filter((user) => !user.suspended).map((u) => u.email));
-		for (const email of directory.internalWorkspaceEmails) {
-			if (!activeGoogle.has(email)) rows.push({ kind: "member_google_suspended", email });
-		}
-	}
-
-	if (slackMembers) {
-		for (const member of slackMembers) {
-			if (!member.deactivated && unknown(member.email)) {
-				rows.push({ kind: "slack_without_member", email: member.email, name: member.name });
-			}
-		}
-	}
-
-	return rows;
+	return [
+		...(googleUsers ? googleDrift(directory, googleUsers) : []),
+		...(slackMembers ? slackDrift(directory, slackMembers) : []),
+	];
 }

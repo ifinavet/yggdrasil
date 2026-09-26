@@ -181,9 +181,10 @@ async function removeFromSlackChannels(slackUserId: string) {
 		if (result === "removed") removed++;
 		if (result === "failed") failed++;
 	}
+	const channels = failed === 1 ? "kanal" : "kanaler";
 	const error =
 		failed > 0
-			? `Fikk ikke fjernet personen fra ${failed} Slack-${failed === 1 ? "kanal" : "kanaler"}. Legg til Navet-appen i kanalene og prøv igjen.`
+			? `Fikk ikke fjernet personen fra ${failed} Slack-${channels}. Legg til Navet-appen i kanalene og prøv igjen.`
 			: undefined;
 	return { removed, error };
 }

@@ -56,6 +56,10 @@ function toUser(user: DirectoryUser): GoogleUser {
 	};
 }
 
+function fail(response: Response, action: string): never {
+	throw new GoogleError(`Google svarte ${response.status} da vi skulle ${action}.`);
+}
+
 export function googleClient(config: GoogleConfig) {
 	let token: Promise<string> | undefined;
 
@@ -69,10 +73,6 @@ export function googleClient(config: GoogleConfig) {
 			},
 			signal: AbortSignal.timeout(TIMEOUT_MS),
 		});
-	}
-
-	function fail(response: Response, action: string): never {
-		throw new GoogleError(`Google svarte ${response.status} da vi skulle ${action}.`);
 	}
 
 	return {

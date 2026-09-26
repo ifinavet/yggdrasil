@@ -92,7 +92,7 @@ export default function WorkspaceWelcomeEmail({
 							<a href={slackInviteLink} className="text-primary underline">
 								bli med i Slack
 							</a>
-							.
+							{"."}
 						</Text>
 					) : null}
 
