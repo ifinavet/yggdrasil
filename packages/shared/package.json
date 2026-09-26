@@ -14,7 +14,7 @@
 	"devDependencies": {
 		"@types/papaparse": "5.3.16",
 		"@workspace/typescript-config": "workspace:*",
-		"typescript": "^5.9.3"
+		"typescript": "^7.0.2"
 	},
 	"exports": {
 		"./constants": "./constants/index.ts",

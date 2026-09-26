@@ -43,6 +43,6 @@
 		"@types/sanitize-html": "^2.16.1",
 		"@workspace/typescript-config": "workspace:*",
 		"tailwindcss": "^4.3.3",
-		"typescript": "^5.9.3"
+		"typescript": "^7.0.2"
 	}
 }
