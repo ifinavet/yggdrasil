@@ -6,9 +6,10 @@ export function Fold({
 	title,
 	children,
 	className,
-}: Readonly<{ title: ReactNode; children: ReactNode; className?: string }>) {
+	open,
+}: Readonly<{ title: ReactNode; children: ReactNode; className?: string; open?: boolean }>) {
 	return (
-		<details className={cn("group rounded-lg border bg-card", className)}>
+		<details open={open} className={cn("group rounded-lg border bg-card", className)}>
 			<summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 font-medium [&::-webkit-details-marker]:hidden">
 				<ChevronRight className="size-4 text-muted-foreground transition-transform duration-200 ease-out group-open:rotate-90" />
 				{title}

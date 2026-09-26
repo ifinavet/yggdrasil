@@ -16,11 +16,20 @@ export function eventHref(event: Pick<OverviewEvent, "_id" | "slug">): string {
 	return `/events/${event.slug ?? event._id}`;
 }
 
+function normalizedSearch(search: string): string {
+	return search.trim().toLocaleLowerCase("nb");
+}
+
+export function searchFolds(search: string): { key: string; open: true | undefined } {
+	const needle = normalizedSearch(search);
+	return { key: needle, open: needle ? true : undefined };
+}
+
 export function matchesSearch(
 	event: Pick<OverviewEvent, "title" | "companyName" | "leadName">,
 	search: string,
 ): boolean {
-	const needle = search.trim().toLocaleLowerCase("nb");
+	const needle = normalizedSearch(search);
 	if (!needle) return true;
 	return [event.title, event.companyName, event.leadName].some((text) =>
 		text?.toLocaleLowerCase("nb").includes(needle),
