@@ -33,6 +33,7 @@ export function EventsOverview({
 		() => splitIntoSections(events, now, search),
 		[events, now, search],
 	);
+	const searching = search.trim() !== "" || undefined;
 
 	return (
 		<div>
@@ -75,13 +76,13 @@ export function EventsOverview({
 			) : null}
 
 			{past.length > 0 ? (
-				<Fold className="mt-3" title="Gjennomført">
+				<Fold className="mt-3" title="Gjennomført" open={searching}>
 					<EventsTable events={past} now={now} withFeedback />
 				</Fold>
 			) : null}
 
 			{unpublished.length > 0 ? (
-				<Fold className="mt-3" title="Upubliserte">
+				<Fold className="mt-3" title="Upubliserte" open={searching}>
 					<EventsTable events={unpublished} now={now} />
 				</Fold>
 			) : null}
