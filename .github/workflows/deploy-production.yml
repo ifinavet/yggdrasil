@@ -66,11 +66,6 @@ jobs:
             --cmd-url-env-var-name NEXT_PUBLIC_CONVEX_URL \
             --cmd 'echo "url=$NEXT_PUBLIC_CONVEX_URL" >> "$GITHUB_OUTPUT"'
 
-      - name: Seed products and backfill sales
-        env:
-          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
-        run: pnpm --dir packages/backend exec convex run products/migrations:setup
-
   frontends:
     name: Deploy ${{ matrix.app }}
     needs: backend

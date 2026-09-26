@@ -18,7 +18,7 @@ import {
 import { useMutation, useQuery } from "convex/react";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { LIST_CELL, LIST_HEAD } from "@/components/common/table-classes";
 import { notifyProductMutation } from "./notify-product-mutation";
 import { moveProductId } from "./product-history-format";
@@ -27,7 +27,13 @@ import { PRODUCT_ROUTES } from "./product-routes";
 export function ProductsTable() {
 	const products = useQuery(api.products.queries.listAll, {});
 	const reorder = useMutation(api.products.mutations.reorder);
+	const setup = useMutation(api.products.mutations.setup);
 	const [reordering, setReordering] = useState(false);
+	const isEmpty = products?.length === 0;
+
+	useEffect(() => {
+		if (isEmpty) void setup({});
+	}, [isEmpty, setup]);
 
 	if (!products) return null;
 
