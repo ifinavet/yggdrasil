@@ -7,13 +7,16 @@ const TONES = {
 	warning: { className: "bg-warning-surface text-warning-surface-foreground", Icon: TriangleAlert },
 } as const;
 
+/** `icon` replaces the tone's own icon; the action wraps under the text when it runs out of room. */
 export function Callout({
 	tone = "info",
+	icon,
 	action,
 	className,
 	children,
 }: Readonly<{
 	tone?: keyof typeof TONES;
+	icon?: ReactNode;
 	action?: ReactNode;
 	className?: string;
 	children: ReactNode;
@@ -22,14 +25,14 @@ export function Callout({
 	return (
 		<div
 			className={cn(
-				"flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-[13px]",
+				"flex flex-wrap items-center gap-2.5 rounded-lg px-3 py-2.5 text-[13px]",
 				toneClassName,
 				className,
 			)}
 		>
-			<Icon className="size-4 shrink-0" />
-			<span>{children}</span>
-			{action && <div className="ml-auto shrink-0">{action}</div>}
+			{icon ?? <Icon className="size-4 shrink-0" />}
+			<div className="min-w-0 flex-1 basis-48">{children}</div>
+			{action && <div className="ml-auto flex shrink-0 flex-wrap gap-2">{action}</div>}
 		</div>
 	);
 }
