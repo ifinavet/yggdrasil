@@ -12,7 +12,7 @@ import SelectSemester from "../select-semester";
 import SelectedEvents from "../selected-events";
 import { EventsTable } from "./events-table";
 import { MyEventCard } from "./my-event-card";
-import { type OverviewEvent, splitIntoSections } from "./sections";
+import { type OverviewEvent, searchFolds, splitIntoSections } from "./sections";
 
 function SectionTitle({ children }: Readonly<{ children: ReactNode }>) {
 	return <h3 className="mt-7 mb-3 font-semibold text-base">{children}</h3>;
@@ -33,7 +33,7 @@ export function EventsOverview({
 		() => splitIntoSections(events, now, search),
 		[events, now, search],
 	);
-	const searching = search.trim() !== "" || undefined;
+	const folds = searchFolds(search);
 
 	return (
 		<div>
@@ -76,13 +76,13 @@ export function EventsOverview({
 			) : null}
 
 			{past.length > 0 ? (
-				<Fold className="mt-3" title="Gjennomført" open={searching}>
+				<Fold key={folds.key} className="mt-3" title="Gjennomført" open={folds.open}>
 					<EventsTable events={past} now={now} withFeedback />
 				</Fold>
 			) : null}
 
 			{unpublished.length > 0 ? (
-				<Fold className="mt-3" title="Upubliserte" open={searching}>
+				<Fold key={folds.key} className="mt-3" title="Upubliserte" open={folds.open}>
 					<EventsTable events={unpublished} now={now} />
 				</Fold>
 			) : null}
