@@ -43,7 +43,10 @@ describe("eventsForTagging", () => {
 
 	it("returns default fields and null company name when the company is missing", async () => {
 		const { t, companyId, admin } = await fixture();
-		const eventId = await insertEvent(t, companyId, { eventStart: springEvent });
+		const eventId = await insertEvent(t, companyId, {
+			eventStart: springEvent,
+			participationLimit: 40,
+		});
 		await t.run((ctx) => ctx.db.delete(companyId));
 
 		const events = await admin.query(api.products.tagging.eventsForTagging, {
@@ -53,6 +56,7 @@ describe("eventsForTagging", () => {
 		expect(events).toEqual([
 			expect.objectContaining({
 				_id: eventId,
+				participationLimit: 40,
 				companyName: null,
 				product: null,
 				productGuessed: false,

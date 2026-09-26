@@ -124,6 +124,7 @@ export function EventTagging() {
 						<TableHead className={LIST_HEAD}>Arrangement</TableHead>
 						<TableHead className={LIST_HEAD}>Dato</TableHead>
 						<TableHead className={LIST_HEAD}>Bedrift</TableHead>
+						<TableHead className={`${LIST_HEAD} text-right`}>Kapasitet</TableHead>
 						<TableHead className={LIST_HEAD}>Produkt</TableHead>
 					</TableRow>
 				</TableHeader>
@@ -142,6 +143,9 @@ export function EventTagging() {
 								{formatOsloDate(event.eventStart, DATE_PATTERNS.numericDate)}
 							</TableCell>
 							<TableCell className={LIST_CELL}>{event.companyName ?? "Ukjent bedrift"}</TableCell>
+							<TableCell className={`${LIST_CELL} text-right tabular-nums`}>
+								{event.participationLimit}
+							</TableCell>
 							<TableCell className={LIST_CELL}>
 								{event.product ? (
 									<span className="flex items-center gap-2">

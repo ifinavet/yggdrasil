@@ -21,6 +21,7 @@ export const eventsForTagging = query({
 					_id: event._id,
 					title: event.title,
 					eventStart: event.eventStart,
+					participationLimit: event.participationLimit,
 					companyName: company?.name ?? null,
 					product: event.product ?? null,
 					productGuessed: event.productGuessed ?? false,
