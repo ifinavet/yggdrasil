@@ -13,6 +13,7 @@ export const companiesSchema = {
 		name: v.string(),
 		description: v.string(),
 		mainSponsor: v.boolean(),
+		excludedFromRevenue: v.optional(v.boolean()),
 		logo: v.id("companyLogos"),
 		registryName: v.optional(v.string()),
 		billing: v.optional(companyBilling),

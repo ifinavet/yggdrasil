@@ -14,6 +14,9 @@ const LISTING_PRICE_STEP_ORE = 50 * ORE_PER_KRONE;
 export const REVENUE_ESTIMATE_NOTE =
 	"Inntektene er estimater basert på listepris. De tar ikke hensyn til rabatter, særavtaler eller hva som faktisk er fakturert.";
 
+export const REVENUE_EXCLUSION_NOTE =
+	"Hovedsponsoren holdes utenfor inntekten som standard. Du kan også ekskludere andre bedrifter i tabellen nederst for å gjøre prognosen bedre.";
+
 export type SalesKpi = {
 	label: string;
 	value: string;
@@ -29,7 +32,7 @@ export function comparisonSuffix(overview: SalesOverview, allSemesters: boolean)
 	if (allSemesters) return "siste fem år";
 	if (!overview.comparedWith) return "ingen sammenligning";
 	const label = semesterLabel(overview.comparedWith).toLowerCase();
-	return overview.comparedToDate ? `mot samme dato i ${label}` : `mot ${label}`;
+	return `mot ${label}`;
 }
 
 function companiesDetail(overview: SalesOverview, allSemesters: boolean): string {

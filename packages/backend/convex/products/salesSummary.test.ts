@@ -2,6 +2,7 @@ import {
 	compactSemesterLabel,
 	companyActivity,
 	companyHistories,
+	countedSales,
 	isJobListingSale,
 	jobListingSales,
 	lapsedCompanies,
@@ -10,6 +11,7 @@ import {
 	productMix,
 	productSalesSummary,
 	revenuePerSemester,
+	revenueSources,
 	type Sale,
 	type SemesterRef,
 	salesInSemester,
@@ -36,6 +38,7 @@ const baseSale: Sale = {
 	category: "event",
 	companyId: "c1",
 	companyName: "Bedrift A",
+	excluded: false,
 	quantity: 1,
 	revenueOre: 100,
 	guessed: false,
@@ -90,7 +93,13 @@ describe("jobListingSales", () => {
 			{ quantity: 2, totalPriceOre: 550_000 },
 		],
 	};
-	const listing = { ...VAR_2027, companyId: "c1", companyName: "Bedrift", guessed: false };
+	const listing = {
+		...VAR_2027,
+		companyId: "c1",
+		companyName: "Bedrift",
+		excluded: false,
+		guessed: false,
+	};
 
 	it("groups listings per company and semester, pricing by quantity", () => {
 		const sales = jobListingSales(
@@ -109,6 +118,7 @@ describe("jobListingSales", () => {
 				category: "job_listing",
 				companyId: "c1",
 				companyName: "Bedrift",
+				excluded: false,
 				quantity: 2,
 				revenueOre: 550_000,
 				guessed: true,
@@ -121,6 +131,7 @@ describe("jobListingSales", () => {
 				category: "job_listing",
 				companyId: "c1",
 				companyName: "Bedrift",
+				excluded: false,
 				quantity: 1,
 				revenueOre: 300_000,
 				guessed: false,
@@ -148,6 +159,11 @@ describe("sale filters", () => {
 
 	it("keeps only sales inside the window", () => {
 		expect(salesInWindow(sales, [VAR_2027, HOST_2027])).toEqual([sales[0], sales[1]]);
+	});
+
+	it("leaves out sales from excluded companies", () => {
+		const excluded = sale({ companyId: "c2", excluded: true });
+		expect(countedSales([baseSale, excluded])).toEqual([baseSale]);
 	});
 
 	it("recognises job listing sales", () => {
@@ -199,7 +215,6 @@ describe("percentChange", () => {
 
 describe("salesOverview", () => {
 	const window = [{ semester: "høst", year: 2026 } as const, VAR_2027, HOST_2027];
-	const now = Date.parse("2027-10-15T12:00:00Z");
 
 	it("sums the whole window and counts companies buying in several semesters", () => {
 		const sales = [
@@ -208,11 +223,10 @@ describe("salesOverview", () => {
 			sale({ companyId: "c2" }),
 			sale({ year: 2020, companyId: "c2" }),
 		];
-		const overview = salesOverview(sales, window, null, now);
+		const overview = salesOverview(sales, window, null);
 		expect(overview.totals.revenueOre).toBe(300);
 		expect(overview.previous).toBeNull();
 		expect(overview.comparedWith).toBeNull();
-		expect(overview.comparedToDate).toBe(false);
 		expect(overview.returningCompanies).toBe(1);
 	});
 
@@ -222,15 +236,14 @@ describe("salesOverview", () => {
 			sale({ year: 2026, revenueOre: 100, soldAt: Date.parse("2026-06-01T00:00:00Z") }),
 			sale({ companyId: "c2", revenueOre: 50 }),
 		];
-		const overview = salesOverview(sales, window, "2027-0", now);
+		const overview = salesOverview(sales, window, "2027-0");
 		expect(overview.totals.revenueOre).toBe(350);
 		expect(overview.previous?.revenueOre).toBe(100);
 		expect(overview.comparedWith).toEqual({ semester: "vår", year: 2026 });
-		expect(overview.comparedToDate).toBe(false);
 		expect(overview.returningCompanies).toBe(1);
 	});
 
-	it("compares the running semester only up to the same date last year", () => {
+	it("compares the running semester with the whole same semester last year", () => {
 		const sales = [
 			sale({ ...HOST_2027, revenueOre: 300 }),
 			sale({ semester: "høst", year: 2026, soldAt: Date.parse("2026-09-01T00:00:00Z") }),
@@ -241,16 +254,14 @@ describe("salesOverview", () => {
 				soldAt: Date.parse("2026-11-01T00:00:00Z"),
 			}),
 		];
-		const overview = salesOverview(sales, window, "2027-1", now);
-		expect(overview.previous?.revenueOre).toBe(100);
-		expect(overview.comparedToDate).toBe(true);
+		const overview = salesOverview(sales, window, "2027-1");
+		expect(overview.previous?.revenueOre).toBe(1000);
 	});
 
 	it("has no comparison when last year sold nothing", () => {
-		const overview = salesOverview([sale(HOST_2027)], window, "2027-1", now);
+		const overview = salesOverview([sale(HOST_2027)], window, "2027-1");
 		expect(overview.previous).toBeNull();
 		expect(overview.comparedWith).toBeNull();
-		expect(overview.comparedToDate).toBe(false);
 		expect(overview.returningCompanies).toBe(0);
 	});
 });
@@ -304,6 +315,43 @@ describe("companyActivity", () => {
 	});
 });
 
+describe("revenueSources", () => {
+	it("splits revenue into new and returning and sums the top companies", () => {
+		const sales = [
+			sale({ companyId: "c1", year: 2026, revenueOre: 500 }),
+			sale({ companyId: "c1", revenueOre: 700 }),
+			...["c2", "c3", "c4", "c5", "c6"].map((companyId, index) =>
+				sale({ companyId, revenueOre: 100 * (index + 1) }),
+			),
+		];
+		expect(revenueSources(sales, [{ semester: "vår", year: 2026 }, VAR_2027])).toEqual([
+			{
+				semester: "vår",
+				year: 2026,
+				key: "2026-0",
+				newOre: 500,
+				returningOre: 0,
+				topOre: 500,
+				totalOre: 500,
+			},
+			{
+				...VAR_2027,
+				key: "2027-0",
+				newOre: 1500,
+				returningOre: 700,
+				topOre: 2100,
+				totalOre: 2200,
+			},
+		]);
+	});
+
+	it("reports zero for a semester without sales", () => {
+		expect(revenueSources([], [VAR_2027])).toEqual([
+			{ ...VAR_2027, key: "2027-0", newOre: 0, returningOre: 0, topOre: 0, totalOre: 0 },
+		]);
+	});
+});
+
 describe("companyHistories", () => {
 	const window = [{ semester: "høst", year: 2026 } as const, VAR_2027, HOST_2027];
 
@@ -327,12 +375,18 @@ describe("companyHistories", () => {
 		expect(histories[0]).toEqual({
 			companyId: "c1",
 			companyName: "Bedrift A",
+			excluded: false,
 			revenueBySemester: { "2026-1": 0, "2027-0": 100, "2027-1": 200 },
 			activeSemesters: 2,
 			totalOre: 300,
 			lastPurchase: HOST_2027,
 			customerSince: { semester: "vår", year: 2020 },
 		});
+	});
+
+	it("keeps excluded companies and marks them", () => {
+		const histories = companyHistories([sale({ companyId: "c2", excluded: true })], window);
+		expect(histories).toEqual([expect.objectContaining({ companyId: "c2", excluded: true })]);
 	});
 
 	it("flags companies that have not bought in the last two semesters", () => {

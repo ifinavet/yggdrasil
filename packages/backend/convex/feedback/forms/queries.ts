@@ -1,7 +1,7 @@
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import { query } from "../../_generated/server";
-import { internalRoles, requireRole, superAdminRoles } from "../../auth/accessRights";
+import { adminRoles, internalRoles, requireRole } from "../../auth/accessRights";
 import { getFeedbackFormOrThrow, getLatestPublishedVersion } from "./helpers";
 
 export const getFeedbackForms = query({
@@ -28,7 +28,7 @@ export const getFeedbackForms = query({
 export const getDraft = query({
 	args: { formId: v.id("feedbackForms") },
 	handler: async (ctx, { formId }) => {
-		await requireRole(ctx, superAdminRoles);
+		await requireRole(ctx, adminRoles);
 		return await getFeedbackFormOrThrow(ctx, formId);
 	},
 });

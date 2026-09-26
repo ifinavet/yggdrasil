@@ -43,7 +43,10 @@ describe("eventsForTagging", () => {
 
 	it("returns default fields and null company name when the company is missing", async () => {
 		const { t, companyId, admin } = await fixture();
-		const eventId = await insertEvent(t, companyId, { eventStart: springEvent });
+		const eventId = await insertEvent(t, companyId, {
+			eventStart: springEvent,
+			participationLimit: 40,
+		});
 		await t.run((ctx) => ctx.db.delete(companyId));
 
 		const events = await admin.query(api.products.tagging.eventsForTagging, {
@@ -53,7 +56,9 @@ describe("eventsForTagging", () => {
 		expect(events).toEqual([
 			expect.objectContaining({
 				_id: eventId,
+				participationLimit: 40,
 				companyName: null,
+				mainSponsor: false,
 				product: null,
 				productGuessed: false,
 			}),
@@ -80,6 +85,30 @@ describe("eventsForTagging", () => {
 				productGuessed: true,
 			}),
 		]);
+	});
+
+	it("leaves out unpublished events", async () => {
+		const { t, companyId, admin } = await fixture();
+		const publishedId = await insertEvent(t, companyId, { eventStart: springEvent });
+		await insertEvent(t, companyId, { eventStart: springEvent, published: false });
+
+		const events = await admin.query(api.products.tagging.eventsForTagging, {
+			semester: "vår",
+			year: 2027,
+		});
+		expect(events).toEqual([expect.objectContaining({ _id: publishedId })]);
+	});
+
+	it("flags events hosted by the main sponsor", async () => {
+		const { t, companyId, admin } = await fixture();
+		await insertEvent(t, companyId, { eventStart: springEvent });
+		await t.run((ctx) => ctx.db.patch(companyId, { mainSponsor: true }));
+
+		const events = await admin.query(api.products.tagging.eventsForTagging, {
+			semester: "vår",
+			year: 2027,
+		});
+		expect(events).toEqual([expect.objectContaining({ mainSponsor: true })]);
 	});
 });
 

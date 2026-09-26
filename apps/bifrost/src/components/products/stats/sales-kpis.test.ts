@@ -25,7 +25,6 @@ function overview(patch: Partial<SalesOverview> = {}): SalesOverview {
 			averagePresentationPriceOre: 2_000_000,
 		},
 		comparedWith: { semester: "høst", year: 2025 },
-		comparedToDate: false,
 		returningCompanies: 12,
 		...patch,
 	};
@@ -40,13 +39,7 @@ describe("comparisonSuffix", () => {
 		expect(comparisonSuffix(overview({ comparedWith: null }), false)).toBe("ingen sammenligning");
 	});
 
-	it("compares to the same date for the ongoing semester", () => {
-		expect(comparisonSuffix(overview({ comparedToDate: true }), false)).toBe(
-			"mot samme dato i høst 2025",
-		);
-	});
-
-	it("compares to the whole semester last year otherwise", () => {
+	it("compares to the whole semester last year", () => {
 		expect(comparisonSuffix(overview(), false)).toBe("mot høst 2025");
 	});
 });

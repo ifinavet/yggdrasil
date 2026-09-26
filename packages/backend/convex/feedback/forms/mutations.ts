@@ -1,7 +1,7 @@
 import { feedbackFormSchema } from "@workspace/shared/feedback";
 import { ConvexError, v } from "convex/values";
 import { mutation } from "../../_generated/server";
-import { requireRole, superAdminRoles } from "../../auth/accessRights";
+import { adminRoles, requireRole } from "../../auth/accessRights";
 import { feedbackField } from "../schema";
 import {
 	getFeedbackFormOrThrow,
@@ -17,7 +17,7 @@ export const saveDraft = mutation({
 		fields: v.array(feedbackField),
 	},
 	handler: async (ctx, { formId, ...draftInput }) => {
-		await requireRole(ctx, superAdminRoles);
+		await requireRole(ctx, adminRoles);
 		const validationResult = feedbackFormSchema.safeParse(draftInput);
 		if (!validationResult.success)
 			throw new ConvexError(validationResult.error.issues.map((issue) => issue.message).join("\n"));
@@ -34,7 +34,7 @@ export const saveDraft = mutation({
 export const publish = mutation({
 	args: { formId: v.id("feedbackForms") },
 	handler: async (ctx, { formId }) => {
-		const publisher = await requireRole(ctx, superAdminRoles);
+		const publisher = await requireRole(ctx, adminRoles);
 		const feedbackForm = await getFeedbackFormOrThrow(ctx, formId);
 		const validationResult = feedbackFormSchema.safeParse({
 			name: feedbackForm.name,
@@ -54,7 +54,7 @@ export const publish = mutation({
 export const setDefault = mutation({
 	args: { formId: v.id("feedbackForms") },
 	handler: async (ctx, { formId }) => {
-		await requireRole(ctx, superAdminRoles);
+		await requireRole(ctx, adminRoles);
 		const feedbackForm = await getFeedbackFormOrThrow(ctx, formId);
 		if (feedbackForm.isHidden) throw new ConvexError("Vis skjemaet før det settes som standard.");
 		if (!(await getLatestPublishedVersion(ctx, formId)))
@@ -66,7 +66,7 @@ export const setDefault = mutation({
 export const setHidden = mutation({
 	args: { formId: v.id("feedbackForms"), isHidden: v.boolean() },
 	handler: async (ctx, { formId, isHidden }) => {
-		await requireRole(ctx, superAdminRoles);
+		await requireRole(ctx, adminRoles);
 		const feedbackForm = await getFeedbackFormOrThrow(ctx, formId);
 		if (isHidden && feedbackForm.isDefault)
 			throw new ConvexError("Standardskjemaet kan ikke skjules.");

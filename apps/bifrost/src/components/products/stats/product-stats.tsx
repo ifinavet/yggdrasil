@@ -4,9 +4,11 @@ import { api } from "@workspace/backend/convex/api";
 import {
 	companyActivity,
 	companyHistories,
+	countedSales,
 	lapsedCompanies,
 	productMix,
 	revenuePerSemester,
+	revenueSources,
 	salesInSemester,
 	salesInWindow,
 	salesOverview,
@@ -32,7 +34,13 @@ import { LapsedCompanies } from "./lapsed-companies";
 import { ProductMix } from "./product-mix";
 import { RetentionChart } from "./retention-chart";
 import { RevenueChart } from "./revenue-chart";
-import { guessedWarning, REVENUE_ESTIMATE_NOTE, salesKpis } from "./sales-kpis";
+import { NewRevenueChart, RevenueConcentration } from "./revenue-sources";
+import {
+	guessedWarning,
+	REVENUE_ESTIMATE_NOTE,
+	REVENUE_EXCLUSION_NOTE,
+	salesKpis,
+} from "./sales-kpis";
 
 const ALL_SEMESTERS_LABEL = "Alle semestre";
 
@@ -44,20 +52,25 @@ export function ProductStats() {
 	const view = useMemo(() => {
 		if (!sales) return null;
 		const selectedKey = semester === ALL_SEMESTERS ? null : semester;
+		const counted = countedSales(sales);
 		const selected =
-			selectedKey === null ? salesInWindow(sales, window) : salesInSemester(sales, selectedKey);
-		const overview = salesOverview(sales, window, selectedKey, Date.now());
+			selectedKey === null ? salesInWindow(counted, window) : salesInSemester(counted, selectedKey);
+		const overview = salesOverview(counted, window, selectedKey);
 		const histories = companyHistories(sales, window);
 		return {
 			selectedKey,
 			overview,
 			scopeLabel:
 				selectedKey === null ? ALL_SEMESTERS_LABEL : semesterLabel(semesterFromKey(selectedKey)),
-			revenue: revenuePerSemester(sales, window),
+			revenue: revenuePerSemester(counted, window),
+			sources: revenueSources(counted, window),
 			mix: productMix(selected),
-			activity: companyActivity(sales, window),
+			activity: companyActivity(counted, window),
 			histories,
-			lapsed: lapsedCompanies(histories, window),
+			lapsed: lapsedCompanies(
+				histories.filter((history) => !history.excluded),
+				window,
+			),
 		};
 	}, [sales, semester, window]);
 
@@ -81,6 +94,7 @@ export function ProductStats() {
 			</div>
 
 			<Callout>{REVENUE_ESTIMATE_NOTE}</Callout>
+			<Callout>{REVENUE_EXCLUSION_NOTE}</Callout>
 
 			{warning && (
 				<Callout
@@ -118,6 +132,11 @@ export function ProductStats() {
 			<div className="grid gap-5 lg:grid-cols-2">
 				<RetentionChart activity={view.activity} />
 				<LapsedCompanies companies={view.lapsed} />
+			</div>
+
+			<div className="grid gap-5 lg:grid-cols-2">
+				<NewRevenueChart sources={view.sources} />
+				<RevenueConcentration sources={view.sources} />
 			</div>
 
 			<CompanyTable

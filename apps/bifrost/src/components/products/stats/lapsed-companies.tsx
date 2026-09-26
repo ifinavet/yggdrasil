@@ -14,7 +14,11 @@ import { STATS_CELL, STATS_HEAD } from "@/components/common/table-classes";
 
 export function LapsedCompanies({ companies }: Readonly<{ companies: readonly CompanyHistory[] }>) {
 	return (
-		<Panel title="Bør følges opp" aside={<PanelNote>har ikke kjøpt på to semestre</PanelNote>}>
+		<Panel
+			title="Bør følges opp"
+			description="Bedrifter som har kjøpt før, og som kan være verdt å ta kontakt med igjen."
+			aside={<PanelNote>har ikke kjøpt på to semestre</PanelNote>}
+		>
 			<Table>
 				<TableHeader>
 					<TableRow>

@@ -1,5 +1,6 @@
 import { Button } from "@workspace/ui/components/button";
 import { cn } from "@workspace/ui/lib/utils";
+import JobListingOrderLink from "./job-listing-order-link";
 
 export default function JobListingBanner({ className }: Readonly<{ className?: string }>) {
 	return (
@@ -46,13 +47,7 @@ export default function JobListingBanner({ className }: Readonly<{ className?: s
 						className="px-18 py-6 text-primary-foreground dark:bg-primary-light dark:text-primary"
 						asChild
 					>
-						<a
-							href="https://docs.google.com/forms/d/1pyPhN0eod6g3iwmHLfUycz1CI2KplwZRSbozwrJdaR4/edit"
-							rel="nofollow noopener noreferrer external"
-							target="_blank"
-						>
-							Skjema for stillingsannonse
-						</a>
+						<JobListingOrderLink>Skjema for stillingsannonse</JobListingOrderLink>
 					</Button>
 				</div>
 			</div>

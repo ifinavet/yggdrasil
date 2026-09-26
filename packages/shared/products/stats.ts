@@ -1,10 +1,4 @@
-import { subYears } from "date-fns";
-import {
-	EVENT_SEMESTER_LABELS,
-	EVENT_SEMESTERS,
-	type EventSemester,
-	eventSemesterOf,
-} from "../time/event-semester";
+import { EVENT_SEMESTER_LABELS, EVENT_SEMESTERS, type EventSemester } from "../time/event-semester";
 import type { ProductCategory } from "./categories";
 import { tierTotalOre, type VolumeTier } from "./money";
 
@@ -16,6 +10,7 @@ export type Sale = SemesterRef & {
 	category: ProductCategory;
 	companyId: string;
 	companyName: string;
+	excluded: boolean;
 	quantity: number;
 	revenueOre: number;
 	guessed: boolean;
@@ -76,6 +71,7 @@ export function sameSemesterLastYear({ semester, year }: SemesterRef): SemesterR
 export type SoldListing = SemesterRef & {
 	companyId: string;
 	companyName: string;
+	excluded: boolean;
 	soldAt: number;
 	guessed: boolean;
 };
@@ -106,6 +102,7 @@ export function jobListingSales(
 				category: product.category,
 				companyId: listing.companyId,
 				companyName: listing.companyName,
+				excluded: listing.excluded,
 				quantity: 1,
 				revenueOre: 0,
 				guessed: listing.guessed,
@@ -117,6 +114,10 @@ export function jobListingSales(
 		...sale,
 		revenueOre: tierTotalOre(product.volumeTiers, sale.quantity),
 	}));
+}
+
+export function countedSales(sales: readonly Sale[]): Sale[] {
+	return sales.filter((sale) => !sale.excluded);
 }
 
 export function salesInSemester(sales: readonly Sale[], key: string | null): Sale[] {
@@ -185,7 +186,6 @@ export type SalesOverview = {
 	totals: SalesTotals;
 	previous: SalesTotals | null;
 	comparedWith: SemesterRef | null;
-	comparedToDate: boolean;
 	returningCompanies: number;
 };
 
@@ -222,7 +222,6 @@ export function salesOverview(
 	sales: readonly Sale[],
 	window: readonly SemesterRef[],
 	selectedKey: string | null,
-	now: number,
 ): SalesOverview {
 	if (selectedKey === null) {
 		const inWindow = salesInWindow(sales, window);
@@ -230,7 +229,6 @@ export function salesOverview(
 			totals: salesTotals(inWindow),
 			previous: null,
 			comparedWith: null,
-			comparedToDate: false,
 			returningCompanies: [...purchaseSemesterCounts(inWindow).values()].filter(
 				(keys) => keys.size > 1,
 			).length,
@@ -239,18 +237,13 @@ export function salesOverview(
 
 	const selected = semesterFromKey(selectedKey);
 	const lastYear = sameSemesterLastYear(selected);
-	const comparedToDate = semesterKey(eventSemesterOf(now)) === selectedKey;
-	const cutoff = subYears(now, 1).getTime();
-	const lastYearSales = salesInSemester(sales, semesterKey(lastYear)).filter(
-		(sale) => !comparedToDate || sale.soldAt <= cutoff,
-	);
-	const hasComparison = salesInSemester(sales, semesterKey(lastYear)).length > 0;
+	const lastYearSales = salesInSemester(sales, semesterKey(lastYear));
+	const hasComparison = lastYearSales.length > 0;
 
 	return {
 		totals: salesTotals(salesInSemester(sales, selectedKey)),
 		previous: hasComparison ? salesTotals(lastYearSales) : null,
 		comparedWith: hasComparison ? lastYear : null,
-		comparedToDate: hasComparison && comparedToDate,
 		returningCompanies: returningIn(sales, selectedKey),
 	};
 }
@@ -341,9 +334,40 @@ export function companyActivity(
 	});
 }
 
+export const TOP_COMPANIES = 5;
+
+export type SemesterRevenueSources = SemesterRef & {
+	key: string;
+	newOre: number;
+	returningOre: number;
+	topOre: number;
+	totalOre: number;
+};
+
+export function revenueSources(
+	sales: readonly Sale[],
+	window: readonly SemesterRef[],
+): SemesterRevenueSources[] {
+	const first = firstPurchaseKeys(sales);
+	return window.map((semester) => {
+		const key = semesterKey(semester);
+		const byCompany = new Map<string, number>();
+		let newOre = 0;
+		for (const sale of salesInSemester(sales, key)) {
+			byCompany.set(sale.companyId, (byCompany.get(sale.companyId) ?? 0) + sale.revenueOre);
+			if (first.get(sale.companyId) === key) newOre += sale.revenueOre;
+		}
+		const amounts = [...byCompany.values()].sort((a, b) => b - a);
+		const totalOre = amounts.reduce((sum, amount) => sum + amount, 0);
+		const topOre = amounts.slice(0, TOP_COMPANIES).reduce((sum, amount) => sum + amount, 0);
+		return { ...semester, key, newOre, returningOre: totalOre - newOre, topOre, totalOre };
+	});
+}
+
 export type CompanyHistory = {
 	companyId: string;
 	companyName: string;
+	excluded: boolean;
 	revenueBySemester: Record<string, number>;
 	activeSemesters: number;
 	totalOre: number;
@@ -362,6 +386,7 @@ export function companyHistories(
 		const history = histories.get(sale.companyId) ?? {
 			companyId: sale.companyId,
 			companyName: sale.companyName,
+			excluded: sale.excluded,
 			revenueBySemester: Object.fromEntries(window.map((semester) => [semesterKey(semester), 0])),
 			activeSemesters: 0,
 			totalOre: 0,

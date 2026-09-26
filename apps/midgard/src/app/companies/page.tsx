@@ -1,7 +1,4 @@
 import { api } from "@workspace/backend/convex/api";
-import { HUGIN_URL } from "@workspace/shared/constants";
-import { featureFlags } from "@workspace/shared/feature-flags";
-import { JOB_LISTING_ORDER_PATH } from "@workspace/shared/job-listing-orders";
 import { Button } from "@workspace/ui/components/button";
 import ResponsiveCenterContainer from "@workspace/ui/components/responsive-center-container";
 import { Title } from "@workspace/ui/components/title";
@@ -13,13 +10,7 @@ import LargeUserCard from "@/components/cards/large-user";
 import InformationGrid from "@/components/companies/information-grid";
 import OfferGrid from "@/components/companies/offer-grid";
 import JobListingBanner from "@/components/job-listings/job-listing-banner";
-
-const GOOGLE_JOB_LISTING_FORM_URL =
-	"https://docs.google.com/forms/d/1pyPhN0eod6g3iwmHLfUycz1CI2KplwZRSbozwrJdaR4/edit";
-
-const jobListingFormUrl = featureFlags.jobListingOrders.uiEnabled
-	? `${HUGIN_URL}${JOB_LISTING_ORDER_PATH}`
-	: GOOGLE_JOB_LISTING_FORM_URL;
+import JobListingOrderLink from "@/components/job-listings/job-listing-order-link";
 
 export const metadata: Metadata = {
 	title: "For bedrifter",
@@ -124,9 +115,7 @@ export default async function CompaniesPage() {
 								className="bg-primary py-6 text-base text-primary-foreground dark:bg-primary-light dark:text-primary"
 								asChild
 							>
-								<a href={jobListingFormUrl} target="_blank" rel="noopener noreferrer">
-									Skjema for stillingsannonser
-								</a>
+								<JobListingOrderLink>Skjema for stillingsannonser</JobListingOrderLink>
 							</Button>
 						</ContainerCard>
 					</div>

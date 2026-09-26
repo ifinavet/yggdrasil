@@ -26,7 +26,6 @@ import { usePathname } from "next/navigation";
 import { PRODUCT_ROUTES } from "@/components/products/product-routes";
 
 const paths = {
-	superAdmin: [{ title: "Skjemaer", icon: ClipboardListIcon, path: "/feedback-forms" }],
 	main: [
 		{
 			title: "Arrangementer",
@@ -78,22 +77,25 @@ const paths = {
 			path: PRODUCT_ROUTES.list,
 			requiresProducts: true,
 		},
+		{
+			title: "Skjemaer",
+			icon: ClipboardListIcon,
+			path: "/feedback-forms",
+		},
 	],
 };
 
 export function SidebarContentGroup({
 	title,
 	items,
-	extraItems,
 }: Readonly<{
 	title: string;
 	items: keyof typeof paths;
-	extraItems?: keyof typeof paths;
 }>) {
 	const rootPathSegment = usePathname().split("/")[1];
 	const productsEnabled = useFeatureEnabled("products");
 	const semesterPlanning = useFeatureEnabled("semesterPlanning");
-	const visibleItems = [...paths[items], ...(extraItems ? paths[extraItems] : [])].filter(
+	const visibleItems = paths[items].filter(
 		(item) =>
 			(productsEnabled || !("requiresProducts" in item)) &&
 			(item.path !== "/semesterplan" || semesterPlanning),
