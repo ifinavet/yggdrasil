@@ -47,3 +47,15 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: ./.github/actions/setup-workspace
       - run: pnpm test
+
+  deploy-workflow:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Production deploy key only deploys, it cannot run functions
+        run: |
+          if grep -n "convex run" .github/workflows/deploy-production.yml; then
+            echo "::error file=.github/workflows/deploy-production.yml::convex run needs permissions the production deploy key does not have. Run migrations by hand from the Convex dashboard."
+            exit 1
+          fi
