@@ -9,7 +9,7 @@ import {
 } from "@workspace/shared/time";
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import { internalAction, internalMutation, type MutationCtx } from "../_generated/server";
 import { logoSvg, randomTools, requireLocal, seededRandom } from "../products/localSeed";
 
@@ -47,6 +47,19 @@ const YEAR_WEIGHTS = [
 	{ year: 4, share: 0.16, eagerness: 1.2 },
 	{ year: 5, share: 0.14, eagerness: 0.9 },
 ];
+const DEGREE_MIX = {
+	early: [
+		{ degree: "Bachelor", share: 0.8 },
+		{ degree: "Master", share: 0.08 },
+		{ degree: "Årsstudium", share: 0.07 },
+		{ degree: "PhD", share: 0.05 },
+	],
+	late: [
+		{ degree: "Master", share: 0.8 },
+		{ degree: "Bachelor", share: 0.12 },
+		{ degree: "PhD", share: 0.08 },
+	],
+} as const;
 const FIRST_NAMES = [
 	"Ingrid",
 	"Emma",
@@ -108,6 +121,12 @@ function weightedSample<T>(
 		.sort((a, b) => b.key - a.key)
 		.slice(0, count)
 		.map(({ item }) => item);
+}
+
+function degreeFor(random: Random, year: number) {
+	const mix: readonly { degree: Doc<"students">["degree"]; share: number }[] =
+		year <= 3 ? DEGREE_MIX.early : DEGREE_MIX.late;
+	return weightedSample(random, mix, ({ share }) => share, 1)[0]?.degree ?? "Bachelor";
 }
 
 export const seedLocalEngagement = internalAction({
@@ -200,7 +219,7 @@ export const insertFoundation = internalMutation({
 				name: `${firstName} ${lastName}`,
 				studyProgram: STUDY_PROGRAMS[programIndex] as string,
 				year,
-				degree: year <= 3 ? "Bachelor" : "Master",
+				degree: degreeFor(random, year),
 			});
 			return userId;
 		};

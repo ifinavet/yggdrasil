@@ -44,8 +44,39 @@ function reachOf(
 		: Math.min(1, (countBy(registrants, cohortOf).get(key) ?? 0) / population);
 }
 
-export function cohortOf({ degree, year }: Pick<Student, "degree" | "year">) {
-	return `${degree} ${year}. år`;
+type Cohort = { degree: Student["degree"]; year: number | null; rank: number };
+
+export function cohortGroupOf({ degree, year }: Pick<Student, "degree" | "year">): Cohort | null {
+	if (year < 1) return null;
+	switch (degree) {
+		case "Bachelor":
+			return { degree, year: Math.min(year, 3), rank: Math.min(year, 3) };
+		case "Master": {
+			const masterYear = year === 2 || year === 5 ? 2 : 1;
+			return { degree, year: masterYear, rank: 3 + masterYear };
+		}
+		case "Årsstudium":
+			return { degree, year: null, rank: 6 };
+		case "PhD":
+			return { degree, year: null, rank: 7 };
+	}
+}
+
+function labelOf({ degree, year }: Cohort) {
+	return year === null ? degree : `${degree} ${year}. år`;
+}
+
+function codeOf({ degree, year }: Cohort) {
+	return year === null
+		? degree === "PhD"
+			? degree
+			: degree.charAt(0)
+		: `${degree.charAt(0)}${year}`;
+}
+
+export function cohortOf(student: Pick<Student, "degree" | "year">) {
+	const cohort = cohortGroupOf(student);
+	return cohort ? labelOf(cohort) : "";
 }
 
 function programOf({ studyProgram }: Student) {
@@ -87,14 +118,16 @@ export function audienceOf(
 
 	const cohortRow = shareRow(cohortOf);
 	const cohorts = tally(registrants, cohortOf)
-		.sort(
-			([, a], [, b]) =>
-				a.student.year - b.student.year || a.student.degree.localeCompare(b.student.degree),
-		)
-		.map(([label, { student, count }]) => ({
+		.flatMap(([label, { student, count }]) => {
+			const cohort = cohortGroupOf(student);
+			return cohort ? [{ label, count, cohort }] : [];
+		})
+		.sort((a, b) => a.cohort.rank - b.cohort.rank)
+		.map(({ label, count, cohort }) => ({
 			...cohortRow(label, count),
-			degree: student.degree,
-			year: student.year,
+			degree: cohort.degree,
+			year: cohort.year,
+			code: codeOf(cohort),
 			reach: reachOf(reached, populationCohorts, label),
 			previousReach: previousReached && reachOf(previousReached, previousPopulationCohorts, label),
 		}));

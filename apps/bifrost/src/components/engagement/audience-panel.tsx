@@ -28,12 +28,8 @@ import {
 
 const DEGREE_COLORS = [PRIMARY_SERIES_COLOR, ACCENT_SERIES_COLOR, MUTED_SERIES_COLOR];
 const MIN_LABELLED_SEGMENT = 0.07;
-const COHORT_CODE_NOTE = "B er bachelor og M er master, tallet er årstrinnet.";
+const COHORT_CODE_NOTE = "B er bachelor, M er master og Å er årsstudium, tallet er årstrinnet.";
 const PREVIOUS_LABEL = "Forrige semester";
-
-function cohortCode(degree: string, year: number) {
-	return `${degree.charAt(0)}${year}`;
-}
 
 function useCohortColors(cohorts: readonly AudienceRow[]) {
 	return useMemo(
@@ -106,8 +102,8 @@ function CohortReach({
 	const hasPrevious = cohorts.some(({ previousReach }) => previousReach !== null);
 	const colors = useCohortColors(cohorts);
 	const definition = useMemo(() => {
-		const rows = cohorts.map(({ degree, year, reach, previousReach }, index) => ({
-			label: cohortCode(degree, year),
+		const rows = cohorts.map(({ code, reach, previousReach }, index) => ({
+			label: code,
 			color: colors[index]?.color as string,
 			reach: reach * 100,
 			previous: previousReach === null ? null : previousReach * 100,
@@ -231,9 +227,9 @@ function ProgramMatrix({
 				<thead className="text-muted-foreground">
 					<tr>
 						<th className="text-left font-medium">Studieprogram</th>
-						{cohorts.map(({ label, degree, year }) => (
+						{cohorts.map(({ label, code }) => (
 							<th key={label} className="w-10 font-medium" title={label}>
-								{cohortCode(degree, year)}
+								{code}
 							</th>
 						))}
 						<th className="min-w-32 px-2 text-left font-medium">Representasjon</th>
