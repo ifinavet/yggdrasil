@@ -2,10 +2,10 @@
 
 import type { api } from "@workspace/backend/convex/api";
 import type { Doc, Id } from "@workspace/backend/convex/dataModel";
+import { convexErrorMessage } from "@workspace/shared/utils";
 import type { FunctionReturnType } from "convex/server";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
-import { convexErrorMessage } from "@/utils/convex-error";
 import { isActiveStatus } from "../status";
 
 export type ApplicationDetails = FunctionReturnType<
