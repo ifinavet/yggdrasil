@@ -1,10 +1,4 @@
-import { subYears } from "date-fns";
-import {
-	EVENT_SEMESTER_LABELS,
-	EVENT_SEMESTERS,
-	type EventSemester,
-	eventSemesterOf,
-} from "../time/event-semester";
+import { EVENT_SEMESTER_LABELS, EVENT_SEMESTERS, type EventSemester } from "../time/event-semester";
 import type { ProductCategory } from "./categories";
 import { tierTotalOre, type VolumeTier } from "./money";
 
@@ -185,7 +179,6 @@ export type SalesOverview = {
 	totals: SalesTotals;
 	previous: SalesTotals | null;
 	comparedWith: SemesterRef | null;
-	comparedToDate: boolean;
 	returningCompanies: number;
 };
 
@@ -222,7 +215,6 @@ export function salesOverview(
 	sales: readonly Sale[],
 	window: readonly SemesterRef[],
 	selectedKey: string | null,
-	now: number,
 ): SalesOverview {
 	if (selectedKey === null) {
 		const inWindow = salesInWindow(sales, window);
@@ -230,7 +222,6 @@ export function salesOverview(
 			totals: salesTotals(inWindow),
 			previous: null,
 			comparedWith: null,
-			comparedToDate: false,
 			returningCompanies: [...purchaseSemesterCounts(inWindow).values()].filter(
 				(keys) => keys.size > 1,
 			).length,
@@ -239,18 +230,13 @@ export function salesOverview(
 
 	const selected = semesterFromKey(selectedKey);
 	const lastYear = sameSemesterLastYear(selected);
-	const comparedToDate = semesterKey(eventSemesterOf(now)) === selectedKey;
-	const cutoff = subYears(now, 1).getTime();
-	const lastYearSales = salesInSemester(sales, semesterKey(lastYear)).filter(
-		(sale) => !comparedToDate || sale.soldAt <= cutoff,
-	);
-	const hasComparison = salesInSemester(sales, semesterKey(lastYear)).length > 0;
+	const lastYearSales = salesInSemester(sales, semesterKey(lastYear));
+	const hasComparison = lastYearSales.length > 0;
 
 	return {
 		totals: salesTotals(salesInSemester(sales, selectedKey)),
 		previous: hasComparison ? salesTotals(lastYearSales) : null,
 		comparedWith: hasComparison ? lastYear : null,
-		comparedToDate: hasComparison && comparedToDate,
 		returningCompanies: returningIn(sales, selectedKey),
 	};
 }

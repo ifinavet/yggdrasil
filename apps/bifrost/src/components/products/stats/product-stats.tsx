@@ -46,7 +46,7 @@ export function ProductStats() {
 		const selectedKey = semester === ALL_SEMESTERS ? null : semester;
 		const selected =
 			selectedKey === null ? salesInWindow(sales, window) : salesInSemester(sales, selectedKey);
-		const overview = salesOverview(sales, window, selectedKey, Date.now());
+		const overview = salesOverview(sales, window, selectedKey);
 		const histories = companyHistories(sales, window);
 		return {
 			selectedKey,

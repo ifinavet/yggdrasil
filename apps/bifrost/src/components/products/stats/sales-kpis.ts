@@ -29,7 +29,7 @@ export function comparisonSuffix(overview: SalesOverview, allSemesters: boolean)
 	if (allSemesters) return "siste fem år";
 	if (!overview.comparedWith) return "ingen sammenligning";
 	const label = semesterLabel(overview.comparedWith).toLowerCase();
-	return overview.comparedToDate ? `mot samme dato i ${label}` : `mot ${label}`;
+	return `mot ${label}`;
 }
 
 function companiesDetail(overview: SalesOverview, allSemesters: boolean): string {

@@ -199,7 +199,6 @@ describe("percentChange", () => {
 
 describe("salesOverview", () => {
 	const window = [{ semester: "høst", year: 2026 } as const, VAR_2027, HOST_2027];
-	const now = Date.parse("2027-10-15T12:00:00Z");
 
 	it("sums the whole window and counts companies buying in several semesters", () => {
 		const sales = [
@@ -208,11 +207,10 @@ describe("salesOverview", () => {
 			sale({ companyId: "c2" }),
 			sale({ year: 2020, companyId: "c2" }),
 		];
-		const overview = salesOverview(sales, window, null, now);
+		const overview = salesOverview(sales, window, null);
 		expect(overview.totals.revenueOre).toBe(300);
 		expect(overview.previous).toBeNull();
 		expect(overview.comparedWith).toBeNull();
-		expect(overview.comparedToDate).toBe(false);
 		expect(overview.returningCompanies).toBe(1);
 	});
 
@@ -222,15 +220,14 @@ describe("salesOverview", () => {
 			sale({ year: 2026, revenueOre: 100, soldAt: Date.parse("2026-06-01T00:00:00Z") }),
 			sale({ companyId: "c2", revenueOre: 50 }),
 		];
-		const overview = salesOverview(sales, window, "2027-0", now);
+		const overview = salesOverview(sales, window, "2027-0");
 		expect(overview.totals.revenueOre).toBe(350);
 		expect(overview.previous?.revenueOre).toBe(100);
 		expect(overview.comparedWith).toEqual({ semester: "vår", year: 2026 });
-		expect(overview.comparedToDate).toBe(false);
 		expect(overview.returningCompanies).toBe(1);
 	});
 
-	it("compares the running semester only up to the same date last year", () => {
+	it("compares the running semester with the whole same semester last year", () => {
 		const sales = [
 			sale({ ...HOST_2027, revenueOre: 300 }),
 			sale({ semester: "høst", year: 2026, soldAt: Date.parse("2026-09-01T00:00:00Z") }),
@@ -241,16 +238,14 @@ describe("salesOverview", () => {
 				soldAt: Date.parse("2026-11-01T00:00:00Z"),
 			}),
 		];
-		const overview = salesOverview(sales, window, "2027-1", now);
-		expect(overview.previous?.revenueOre).toBe(100);
-		expect(overview.comparedToDate).toBe(true);
+		const overview = salesOverview(sales, window, "2027-1");
+		expect(overview.previous?.revenueOre).toBe(1000);
 	});
 
 	it("has no comparison when last year sold nothing", () => {
-		const overview = salesOverview([sale(HOST_2027)], window, "2027-1", now);
+		const overview = salesOverview([sale(HOST_2027)], window, "2027-1");
 		expect(overview.previous).toBeNull();
 		expect(overview.comparedWith).toBeNull();
-		expect(overview.comparedToDate).toBe(false);
 		expect(overview.returningCompanies).toBe(0);
 	});
 });
