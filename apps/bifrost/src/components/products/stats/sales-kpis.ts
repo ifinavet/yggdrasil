@@ -15,7 +15,7 @@ export const REVENUE_ESTIMATE_NOTE =
 	"Inntektene er estimater basert på listepris. De tar ikke hensyn til rabatter, særavtaler eller hva som faktisk er fakturert.";
 
 export const REVENUE_EXCLUSION_NOTE =
-	"Hovedsponsoren holdes utenfor inntekten som standard. Du kan også ekskludere andre bedrifter i tabellen nederst for å gjøre prognosen mer treffsikker.";
+	"Hovedsponsoren holdes utenfor inntekten som standard. Du kan også ekskludere andre bedrifter i tabellen nederst for å gjøre prognosen bedre.";
 
 export type SalesKpi = {
 	label: string;
