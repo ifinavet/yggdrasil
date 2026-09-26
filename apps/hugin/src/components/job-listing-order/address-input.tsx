@@ -4,7 +4,7 @@ import { Command, CommandItem, CommandList } from "@workspace/ui/components/comm
 import { Input } from "@workspace/ui/components/input";
 import { Popover, PopoverAnchor, PopoverContent } from "@workspace/ui/components/popover";
 import { Command as CommandPrimitive } from "cmdk";
-import { type KeyboardEvent, useRef, useState } from "react";
+import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { addressKeyTarget, movesSuggestionHighlight } from "@/lib/job-listing-order/address-keys";
 import { useAddressSuggestions } from "./use-address-suggestions";
 
@@ -14,18 +14,22 @@ export function AddressInput({
 	invalid,
 	onChange,
 	onBlur,
+	onInputId,
 }: Readonly<{
 	label: string;
 	value: string;
 	invalid: boolean;
 	onChange: (value: string) => void;
 	onBlur: () => void;
+	onInputId: (id: string | undefined) => void;
 }>) {
 	const inputRef = useRef<HTMLInputElement>(null);
 	const [typing, setTyping] = useState(false);
 	const [navigated, setNavigated] = useState(false);
 	const suggestions = useAddressSuggestions(value, typing);
 	const open = typing && suggestions.length > 0;
+
+	useEffect(() => onInputId(inputRef.current?.id), [onInputId]);
 
 	const pick = (address: string) => {
 		onChange(address);

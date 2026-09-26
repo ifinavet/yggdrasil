@@ -4,7 +4,7 @@ import { useStore } from "@tanstack/react-form";
 import { Checkbox } from "@workspace/ui/components/checkbox";
 import { FieldLabel } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
-import type { ComponentProps } from "react";
+import { type ComponentProps, useState } from "react";
 import { billingCopy, contactCopy } from "@/lib/job-listing-order/copy";
 import { AddressInput } from "./address-input";
 import { FormRow } from "./form-row";
@@ -77,6 +77,7 @@ export function BillingFieldset({
 	required,
 }: Readonly<{ form: OrderFormApi; required: boolean }>) {
 	const changeBilling = useStore(form.store, (state) => state.values.changeBilling);
+	const [addressId, setAddressId] = useState<string>();
 	return (
 		<OrderSection legend={billingCopy.legend}>
 			{!required && (
@@ -97,13 +98,18 @@ export function BillingFieldset({
 				<>
 					<form.Field name="billing.address">
 						{(field) => (
-							<FormRow label={billingCopy.address} errors={field.state.meta.errors}>
+							<FormRow
+								label={billingCopy.address}
+								htmlFor={addressId}
+								errors={field.state.meta.errors}
+							>
 								<AddressInput
 									label={billingCopy.address}
 									value={field.state.value}
 									invalid={field.state.meta.errors.length > 0}
 									onBlur={field.handleBlur}
 									onChange={field.handleChange}
+									onInputId={setAddressId}
 								/>
 							</FormRow>
 						)}
