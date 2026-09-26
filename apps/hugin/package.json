@@ -15,6 +15,7 @@
 		"@floating-ui/react": "^0.27.20",
 		"@sentry/nextjs": "^10.75.0",
 		"@tanstack/react-form": "^1.33.5",
+		"@tanstack/react-pacer": "0.23.0",
 		"@tanstack/react-table": "^8.21.3",
 		"@workspace/auth": "workspace:*",
 		"@workspace/backend": "workspace:*",

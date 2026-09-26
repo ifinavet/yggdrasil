@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { setup } from "../../test/fixtures";
 import { api } from "../_generated/api";
-import { formatGeonorgeAddresses } from "./addressSearch";
 
 const searchAddresses = api.jobListingOrders.addressSearch.searchAddresses;
 
@@ -22,28 +21,6 @@ afterEach(() => {
 	vi.unstubAllGlobals();
 });
 
-describe("formatGeonorgeAddresses", () => {
-	it("joins street, postcode and place, and drops duplicates and hits without a street", () => {
-		expect(
-			formatGeonorgeAddresses({
-				adresser: [
-					{ adressetekst: "Gaustadalléen 23A", postnummer: "0373", poststed: "OSLO" },
-					{ adressetekst: "Gaustadalléen 23A", postnummer: "0373", poststed: "OSLO" },
-					{ adressetekst: "Storgata 1", postnummer: "", poststed: "" },
-					{ adressetekst: "", postnummer: "0155", poststed: "OSLO" },
-					null,
-				],
-			}),
-		).toEqual(["Gaustadalléen 23A, 0373 OSLO", "Storgata 1"]);
-	});
-
-	it("returns nothing for a body without addresses", () => {
-		expect(formatGeonorgeAddresses({})).toEqual([]);
-		expect(formatGeonorgeAddresses(null)).toEqual([]);
-		expect(formatGeonorgeAddresses({ adresser: "nope" })).toEqual([]);
-	});
-});
-
 describe("searchAddresses", () => {
 	it("returns formatted suggestions from Geonorge", async () => {
 		const { t } = await setup();
@@ -60,6 +37,38 @@ describe("searchAddresses", () => {
 		expect(url.origin + url.pathname).toBe("https://ws.geonorge.no/adresser/v1/sok");
 		expect(url.searchParams.get("sok")).toBe("Gaustadalléen 23");
 	});
+
+	it("joins street, postcode and place, and drops duplicates and hits without a street", async () => {
+		const { t } = await setup();
+		stubGeonorge(() =>
+			json(200, {
+				adresser: [
+					{ adressetekst: "Gaustadalléen 23A", postnummer: "0373", poststed: "OSLO" },
+					{ adressetekst: "Gaustadalléen 23A", postnummer: "0373", poststed: "OSLO" },
+					{ adressetekst: "Storgata 1", postnummer: "", poststed: "" },
+					{ adressetekst: "Kirkeveien 2" },
+					{ adressetekst: "", postnummer: "0155", poststed: "OSLO" },
+					null,
+				],
+			}),
+		);
+
+		expect(await t.action(searchAddresses, { query: "gata" })).toEqual([
+			"Gaustadalléen 23A, 0373 OSLO",
+			"Storgata 1",
+			"Kirkeveien 2",
+		]);
+	});
+
+	it.each([{}, null, { adresser: "nope" }])(
+		"returns no suggestions for an unexpected body %j",
+		async (body) => {
+			const { t } = await setup();
+			stubGeonorge(() => json(200, body));
+
+			expect(await t.action(searchAddresses, { query: "Storgata 1" })).toEqual([]);
+		},
+	);
 
 	it("returns no suggestions when Geonorge answers with an error", async () => {
 		const { t } = await setup();
@@ -80,6 +89,16 @@ describe("searchAddresses", () => {
 		const fetchMock = stubGeonorge(() => json(200, { adresser: [] }));
 
 		await expect(t.action(searchAddresses, { query: " ab " })).rejects.toThrow(
+			"Skriv minst tre tegn.",
+		);
+		expect(fetchMock).not.toHaveBeenCalled();
+	});
+
+	it("rejects a query that is too long without calling Geonorge", async () => {
+		const { t } = await setup();
+		const fetchMock = stubGeonorge(() => json(200, { adresser: [] }));
+
+		await expect(t.action(searchAddresses, { query: "a".repeat(101) })).rejects.toThrow(
 			"Skriv minst tre tegn.",
 		);
 		expect(fetchMock).not.toHaveBeenCalled();
