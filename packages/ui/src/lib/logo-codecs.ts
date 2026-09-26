@@ -16,15 +16,15 @@ async function decode(contentType: RasterLogoContentType, bytes: ArrayBuffer): P
 	return image;
 }
 
+async function optimisePng(image: ImageData): Promise<ArrayBuffer> {
+	const { default: init, optimise_raw } = await import("@jsquash/oxipng/codec/pkg/squoosh_oxipng.js");
+	await init();
+	return optimise_raw(image.data, image.width, image.height, 2, false, true).buffer as ArrayBuffer;
+}
+
 async function encodeLossless(image: ImageData): Promise<readonly Blob[]> {
-	const [{ default: optimisePng }, { default: encodeWebp }] = await Promise.all([
-		import("@jsquash/oxipng/optimise.js"),
-		import("@jsquash/webp/encode.js"),
-	]);
-	const [png, webp] = await Promise.all([
-		optimisePng(image, { optimiseAlpha: true }),
-		encodeWebp(image, { lossless: 1 }),
-	]);
+	const { default: encodeWebp } = await import("@jsquash/webp/encode.js");
+	const [png, webp] = await Promise.all([optimisePng(image), encodeWebp(image, { lossless: 1 })]);
 	return [new Blob([png], { type: "image/png" }), new Blob([webp], { type: "image/webp" })];
 }
 
