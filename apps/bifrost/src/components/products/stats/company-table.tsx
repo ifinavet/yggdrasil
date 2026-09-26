@@ -8,6 +8,7 @@ import {
 	semesterKey,
 	semesterLabel,
 } from "@workspace/shared/products";
+import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { Checkbox } from "@workspace/ui/components/checkbox";
 import { ActivityDots } from "@workspace/ui/components/products/activity-dots";
@@ -125,7 +126,12 @@ export function CompanyTable({
 										onCheckedChange={(checked) => toggle(company.companyId, checked === true)}
 									/>
 								</TableCell>
-								<TableCell className={`${STATS_CELL} font-medium`}>{company.companyName}</TableCell>
+								<TableCell className={`${STATS_CELL} font-medium`}>
+									<span className="flex items-center gap-2">
+										{company.companyName}
+										{company.excluded && <Badge variant="outline">Ekskludert</Badge>}
+									</span>
+								</TableCell>
 								<TableCell className={`${STATS_CELL} text-right tabular-nums`}>
 									{inColumn > 0 ? (
 										formatNokFromOre(inColumn)
