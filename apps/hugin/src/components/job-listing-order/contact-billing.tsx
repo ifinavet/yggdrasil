@@ -6,15 +6,17 @@ import { FieldLabel } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
 import type { ComponentProps } from "react";
 import { billingCopy, contactCopy } from "@/lib/job-listing-order/copy";
+import { AddressInput } from "./address-input";
 import { FormRow } from "./form-row";
 import { OrderSection } from "./order-section";
 import type { OrderFormApi } from "./use-order-form";
+
+const ADDRESS_ID = "order-billing-address";
 
 type TextFieldName =
 	| "contact.name"
 	| "contact.email"
 	| "contact.phone"
-	| "billing.address"
 	| "billing.email"
 	| "billing.reference";
 
@@ -95,12 +97,24 @@ export function BillingFieldset({
 			)}
 			{(required || changeBilling) && (
 				<>
-					<TextField
-						form={form}
-						name="billing.address"
-						label={billingCopy.address}
-						autoComplete="street-address"
-					/>
+					<form.Field name="billing.address">
+						{(field) => (
+							<FormRow
+								label={billingCopy.address}
+								htmlFor={ADDRESS_ID}
+								errors={field.state.meta.errors}
+							>
+								<AddressInput
+									id={ADDRESS_ID}
+									label={billingCopy.address}
+									value={field.state.value}
+									invalid={field.state.meta.errors.length > 0}
+									onBlur={field.handleBlur}
+									onChange={field.handleChange}
+								/>
+							</FormRow>
+						)}
+					</form.Field>
 					<div className="grid gap-5 sm:grid-cols-2">
 						<TextField form={form} name="billing.email" label={billingCopy.email} type="email" />
 						<TextField form={form} name="billing.reference" label={billingCopy.reference} />

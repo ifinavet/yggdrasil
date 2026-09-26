@@ -59,6 +59,7 @@ import type * as forms_mutations from "../forms/mutations.js";
 import type * as forms_queries from "../forms/queries.js";
 import type * as forms_responses from "../forms/responses.js";
 import type * as http from "../http.js";
+import type * as jobListingOrders_addressSearch from "../jobListingOrders/addressSearch.js";
 import type * as jobListingOrders_admin from "../jobListingOrders/admin.js";
 import type * as jobListingOrders_emails from "../jobListingOrders/emails.js";
 import type * as jobListingOrders_form from "../jobListingOrders/form.js";
@@ -169,6 +170,7 @@ declare const fullApi: ApiFromModules<{
   "forms/queries": typeof forms_queries;
   "forms/responses": typeof forms_responses;
   http: typeof http;
+  "jobListingOrders/addressSearch": typeof jobListingOrders_addressSearch;
   "jobListingOrders/admin": typeof jobListingOrders_admin;
   "jobListingOrders/emails": typeof jobListingOrders_emails;
   "jobListingOrders/form": typeof jobListingOrders_form;

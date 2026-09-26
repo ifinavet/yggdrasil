@@ -7,4 +7,5 @@ export const orderRateLimiter = new RateLimiter(components.rateLimiter, {
 	resendJobListingOrderConfirmation: { kind: "token bucket", rate: 3, period: HOUR, capacity: 3 },
 	jobListingOrderLogoUpload: { kind: "fixed window", rate: 60, period: HOUR },
 	jobListingOrderFeedback: { kind: "token bucket", rate: 10, period: MINUTE, capacity: 10 },
+	jobListingOrderAddressSearch: { kind: "token bucket", rate: 120, period: MINUTE, capacity: 60 },
 });
