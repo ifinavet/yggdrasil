@@ -18,6 +18,7 @@ import {
 	paceLabels,
 	paceTickLabel,
 	paceTicks,
+	reachAxisMax,
 	semesterLabel,
 	semesterValue,
 	startedSemesters,
@@ -268,5 +269,20 @@ describe("attendanceRate", () => {
 		expect(attendanceRate({ registered: 40, attended: 30 })).toBe(0.75);
 		expect(attendanceRate({ registered: 40, attended: null })).toBeNull();
 		expect(attendanceRate({ registered: 0, attended: 0 })).toBeNull();
+	});
+});
+
+describe("reachAxisMax", () => {
+	it("rounds the highest reach up to the next axis step", () => {
+		expect(reachAxisMax([3.1, 2.4, null])).toBe(5);
+		expect(reachAxisMax([4, 12])).toBe(20);
+		expect(reachAxisMax([20, 36])).toBe(50);
+		expect(reachAxisMax([76])).toBe(100);
+	});
+
+	it("never exceeds 100 and handles empty input", () => {
+		expect(reachAxisMax([140])).toBe(100);
+		expect(reachAxisMax([])).toBe(5);
+		expect(reachAxisMax([null])).toBe(5);
 	});
 });

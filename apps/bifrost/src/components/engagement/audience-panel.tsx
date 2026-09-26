@@ -24,6 +24,7 @@ import {
 	formatPoints,
 	formatShare,
 	type ProgramRow,
+	reachAxisMax,
 } from "./engagement-format";
 
 const DEGREE_COLORS = [PRIMARY_SERIES_COLOR, ACCENT_SERIES_COLOR, MUTED_SERIES_COLOR];
@@ -139,7 +140,10 @@ function CohortReach({
 					axis: { ticks: { size: 0 }, tickLabels: { fontSize: 11 } },
 				},
 				y: {
-					scale: scaleLinear().domain([0, 100]),
+					scale: scaleLinear().domain([
+						0,
+						reachAxisMax(rows.flatMap(({ reach, previous }) => [reach, previous])),
+					]),
 					grid: true,
 					axis: {
 						label: reachLabel,
@@ -229,18 +233,32 @@ function ProgramMatrix({
 					<tr>
 						<th className="text-left font-medium">Studieprogram</th>
 						{cohorts.map(({ label, code }) => (
-							<th key={label} className="w-10 font-medium" title={label}>
+							<th key={label} className="w-7 font-medium sm:w-10" title={label}>
 								{code}
 							</th>
 						))}
-						<th className="min-w-32 px-2 text-left font-medium">Representasjon</th>
-						{showChange && <th className="text-right font-medium">Endring</th>}
+						<th className="hidden min-w-32 px-2 text-left font-medium sm:table-cell">
+							Representasjon
+						</th>
+						{showChange && <th className="hidden text-right font-medium sm:table-cell">Endring</th>}
 					</tr>
 				</thead>
 				<tbody>
 					{programs.map((row) => (
 						<tr key={row.label}>
-							<td className="py-1 pr-2 text-sm">{row.label}</td>
+							<td className="py-1 pr-2 text-sm">
+								{row.label}
+								<div className="mt-1.5 flex items-center gap-2 sm:hidden">
+									<div className="flex-1">
+										<Dumbbell row={row} scale={scale} />
+									</div>
+									{row.change !== null && (
+										<span className="text-muted-foreground text-xs tabular-nums">
+											{formatPoints(row.change)}
+										</span>
+									)}
+								</div>
+							</td>
 							{row.byCohort.map((count, index) => {
 								const heat = count / hottest;
 								return (
@@ -259,11 +277,11 @@ function ProgramMatrix({
 									</td>
 								);
 							})}
-							<td className="px-2">
+							<td className="hidden px-2 sm:table-cell">
 								<Dumbbell row={row} scale={scale} />
 							</td>
 							{showChange && (
-								<td className="text-right tabular-nums">
+								<td className="hidden text-right tabular-nums sm:table-cell">
 									{row.change === null ? null : formatPoints(row.change)}
 								</td>
 							)}

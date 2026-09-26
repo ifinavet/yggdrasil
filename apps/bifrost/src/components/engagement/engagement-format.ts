@@ -213,3 +213,10 @@ export function cohortTints(cohorts: readonly Pick<AudienceRow, "degree">[]) {
 		};
 	});
 }
+
+const REACH_AXIS_STEPS = [5, 10, 20, 25, 50, 75, 100] as const;
+
+export function reachAxisMax(percentages: readonly (number | null)[]) {
+	const highest = Math.max(0, ...percentages.filter((value) => value !== null));
+	return REACH_AXIS_STEPS.find((step) => step >= highest) ?? 100;
+}
