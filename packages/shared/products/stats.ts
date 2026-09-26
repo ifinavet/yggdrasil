@@ -16,6 +16,7 @@ export type Sale = SemesterRef & {
 	category: ProductCategory;
 	companyId: string;
 	companyName: string;
+	mainSponsor: boolean;
 	quantity: number;
 	revenueOre: number;
 	guessed: boolean;
@@ -76,6 +77,7 @@ export function sameSemesterLastYear({ semester, year }: SemesterRef): SemesterR
 export type SoldListing = SemesterRef & {
 	companyId: string;
 	companyName: string;
+	mainSponsor: boolean;
 	soldAt: number;
 	guessed: boolean;
 };
@@ -106,6 +108,7 @@ export function jobListingSales(
 				category: product.category,
 				companyId: listing.companyId,
 				companyName: listing.companyName,
+				mainSponsor: listing.mainSponsor,
 				quantity: 1,
 				revenueOre: 0,
 				guessed: listing.guessed,
@@ -121,6 +124,10 @@ export function jobListingSales(
 
 export function salesInSemester(sales: readonly Sale[], key: string | null): Sale[] {
 	return key === null ? [...sales] : sales.filter((sale) => semesterKey(sale) === key);
+}
+
+export function withoutMainSponsor(sales: readonly Sale[]): Sale[] {
+	return sales.filter((sale) => !sale.mainSponsor);
 }
 
 export function salesInWindow(sales: readonly Sale[], window: readonly SemesterRef[]): Sale[] {

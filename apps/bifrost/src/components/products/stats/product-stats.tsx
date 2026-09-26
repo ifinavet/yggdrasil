@@ -13,10 +13,13 @@ import {
 	semesterFromKey,
 	semesterLabel,
 	statsWindow,
+	withoutMainSponsor,
 } from "@workspace/shared/products";
 import { Button } from "@workspace/ui/components/button";
+import { Label } from "@workspace/ui/components/label";
 import { Callout } from "@workspace/ui/components/products/callout";
 import { Delta, Kpi, KpiStrip } from "@workspace/ui/components/products/kpi";
+import { Switch } from "@workspace/ui/components/switch";
 import { useQuery } from "convex/react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -37,12 +40,14 @@ import { guessedWarning, REVENUE_ESTIMATE_NOTE, salesKpis } from "./sales-kpis";
 const ALL_SEMESTERS_LABEL = "Alle semestre";
 
 export function ProductStats() {
-	const sales = useQuery(api.products.stats.sales);
+	const allSales = useQuery(api.products.stats.sales);
 	const [semester, setSemester] = useState(currentSemesterKey);
+	const [includeMainSponsor, setIncludeMainSponsor] = useState(false);
 	const window = useMemo(() => statsWindow(currentSemester()), []);
 
 	const view = useMemo(() => {
-		if (!sales) return null;
+		if (!allSales) return null;
+		const sales = includeMainSponsor ? allSales : withoutMainSponsor(allSales);
 		const selectedKey = semester === ALL_SEMESTERS ? null : semester;
 		const selected =
 			selectedKey === null ? salesInWindow(sales, window) : salesInSemester(sales, selectedKey);
@@ -59,7 +64,7 @@ export function ProductStats() {
 			histories,
 			lapsed: lapsedCompanies(histories, window),
 		};
-	}, [sales, semester, window]);
+	}, [allSales, includeMainSponsor, semester, window]);
 
 	if (!view) return null;
 
@@ -70,7 +75,15 @@ export function ProductStats() {
 		<section className="space-y-5">
 			<div className="flex flex-wrap items-center gap-3">
 				<h2 className="font-semibold text-[22px] tracking-[-0.3px]">Salg</h2>
-				<div className="ml-auto">
+				<div className="ml-auto flex items-center gap-2">
+					<Switch
+						id="include-main-sponsor"
+						checked={includeMainSponsor}
+						onCheckedChange={setIncludeMainSponsor}
+					/>
+					<Label htmlFor="include-main-sponsor">Ta med hovedsamarbeidspartner</Label>
+				</div>
+				<div>
 					<SemesterSelect
 						semesters={[...window].reverse()}
 						value={semester}

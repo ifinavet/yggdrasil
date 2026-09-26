@@ -7,13 +7,23 @@ import { getProductOrThrow } from "./helpers";
 
 export const MAX_SOLD_ITEMS = 4000;
 
-async function companyNames(ctx: QueryCtx, ids: Iterable<Id<"companies">>) {
-	const names = new Map<string, string>();
+type CompanyInfo = { name: string; mainSponsor: boolean };
+
+async function companyInfo(ctx: QueryCtx, ids: Iterable<Id<"companies">>) {
+	const companies = new Map<string, CompanyInfo>();
 	for (const id of new Set(ids)) {
 		const company = await ctx.db.get(id);
-		names.set(id, company?.name ?? "Ukjent bedrift");
+		companies.set(id, {
+			name: company?.name ?? "Ukjent bedrift",
+			mainSponsor: company?.mainSponsor ?? false,
+		});
 	}
-	return names;
+	return companies;
+}
+
+function companyFields(companies: Map<string, CompanyInfo>, id: Id<"companies">) {
+	const { name, mainSponsor } = companies.get(id) as CompanyInfo;
+	return { companyName: name, mainSponsor };
 }
 
 async function productCategories(ctx: QueryCtx, ids: Iterable<Id<"products">>) {
@@ -28,7 +38,7 @@ async function productCategories(ctx: QueryCtx, ids: Iterable<Id<"products">>) {
 async function eventSales(
 	ctx: QueryCtx,
 	events: readonly Doc<"events">[],
-	names: Map<string, string>,
+	companies: Map<string, CompanyInfo>,
 ): Promise<Sale[]> {
 	const sold = events.flatMap((event) =>
 		event.product ? [{ event, product: event.product }] : [],
@@ -43,7 +53,7 @@ async function eventSales(
 		productName: product.name,
 		category: categories.get(product.productId) as ProductCategory,
 		companyId: event.hostingCompany,
-		companyName: names.get(event.hostingCompany) as string,
+		...companyFields(companies, event.hostingCompany),
 		quantity: 1,
 		revenueOre: product.unitPriceOre ?? 0,
 		guessed: event.productGuessed ?? false,
@@ -54,7 +64,7 @@ async function eventSales(
 async function listingSales(
 	ctx: QueryCtx,
 	listings: readonly Doc<"jobListings">[],
-	names: Map<string, string>,
+	companies: Map<string, CompanyInfo>,
 ): Promise<Sale[]> {
 	const byProduct = new Map<Id<"products">, Doc<"jobListings">[]>();
 	for (const listing of listings) {
@@ -72,7 +82,7 @@ async function listingSales(
 				productListings.map((listing) => ({
 					...eventSemesterOf(listing.deadline),
 					companyId: listing.company,
-					companyName: names.get(listing.company) as string,
+					...companyFields(companies, listing.company),
 					soldAt: listing.deadline,
 					guessed: listing.productGuessed ?? false,
 				})),
@@ -101,14 +111,14 @@ export const sales = query({
 			.withIndex("by_deadline")
 			.order("desc")
 			.take(MAX_SOLD_ITEMS);
-		const names = await companyNames(ctx, [
+		const companies = await companyInfo(ctx, [
 			...events.map((event) => event.hostingCompany),
 			...listings.map((listing) => listing.company),
 		]);
 
 		return [
-			...(await eventSales(ctx, events, names)),
-			...(await listingSales(ctx, listings, names)),
+			...(await eventSales(ctx, events, companies)),
+			...(await listingSales(ctx, listings, companies)),
 		];
 	},
 });
