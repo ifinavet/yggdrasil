@@ -31,15 +31,20 @@ export function AddressInput({
 
 	useEffect(() => onInputId(inputRef.current?.id), [onInputId]);
 
+	const close = () => {
+		setTyping(false);
+		setNavigated(false);
+	};
+
 	const pick = (address: string) => {
 		onChange(address);
-		setTyping(false);
+		close();
 	};
 
 	const routeKey = (event: KeyboardEvent<HTMLInputElement>) => {
 		if (addressKeyTarget(event, { open, navigated }) === "input") {
 			event.stopPropagation();
-			if (event.key === "Enter") setTyping(false);
+			if (event.key === "Enter") close();
 			return;
 		}
 		if (movesSuggestionHighlight(event)) setNavigated(true);
@@ -47,7 +52,7 @@ export function AddressInput({
 
 	return (
 		<Command shouldFilter={false} label={label} className="h-auto overflow-visible bg-transparent">
-			<Popover open={open} onOpenChange={(next) => !next && setTyping(false)}>
+			<Popover open={open} onOpenChange={(next) => !next && close()}>
 				<PopoverAnchor asChild>
 					<CommandPrimitive.Input asChild value={value}>
 						<Input
@@ -57,12 +62,13 @@ export function AddressInput({
 							aria-invalid={invalid}
 							onKeyDown={routeKey}
 							onBlur={() => {
-								setTyping(false);
+								close();
 								onBlur();
 							}}
 							onChange={(event) => {
 								onChange(event.target.value);
 								setTyping(true);
+								setNavigated(false);
 							}}
 						/>
 					</CommandPrimitive.Input>
