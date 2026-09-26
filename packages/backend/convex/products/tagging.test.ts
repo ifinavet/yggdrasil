@@ -87,6 +87,18 @@ describe("eventsForTagging", () => {
 		]);
 	});
 
+	it("leaves out unpublished events", async () => {
+		const { t, companyId, admin } = await fixture();
+		const publishedId = await insertEvent(t, companyId, { eventStart: springEvent });
+		await insertEvent(t, companyId, { eventStart: springEvent, published: false });
+
+		const events = await admin.query(api.products.tagging.eventsForTagging, {
+			semester: "vår",
+			year: 2027,
+		});
+		expect(events).toEqual([expect.objectContaining({ _id: publishedId })]);
+	});
+
 	it("flags events hosted by the main sponsor", async () => {
 		const { t, companyId, admin } = await fixture();
 		await insertEvent(t, companyId, { eventStart: springEvent });

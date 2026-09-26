@@ -15,19 +15,21 @@ export const eventsForTagging = query({
 		await requireRole(ctx, adminRoles);
 		const events = await eventsInSemester(ctx, semester, year);
 		return await Promise.all(
-			events.map(async (event) => {
-				const company = await ctx.db.get(event.hostingCompany);
-				return {
-					_id: event._id,
-					title: event.title,
-					eventStart: event.eventStart,
-					participationLimit: event.participationLimit,
-					companyName: company?.name ?? null,
-					mainSponsor: company?.mainSponsor ?? false,
-					product: event.product ?? null,
-					productGuessed: event.productGuessed ?? false,
-				};
-			}),
+			events
+				.filter((event) => event.published)
+				.map(async (event) => {
+					const company = await ctx.db.get(event.hostingCompany);
+					return {
+						_id: event._id,
+						title: event.title,
+						eventStart: event.eventStart,
+						participationLimit: event.participationLimit,
+						companyName: company?.name ?? null,
+						mainSponsor: company?.mainSponsor ?? false,
+						product: event.product ?? null,
+						productGuessed: event.productGuessed ?? false,
+					};
+				}),
 		);
 	},
 });
