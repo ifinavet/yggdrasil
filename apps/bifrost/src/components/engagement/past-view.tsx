@@ -116,6 +116,32 @@ function PastTable({
 	);
 }
 
+function PastEvents({
+	events,
+	selectedId,
+	onSelect,
+}: Readonly<{
+	events: PastEvent[] | undefined;
+	selectedId: Id<"events"> | null;
+	onSelect: (eventId: Id<"events">) => void;
+}>) {
+	if (!events) {
+		return (
+			<PanelBody>
+				<Skeleton className="h-48 w-full" />
+			</PanelBody>
+		);
+	}
+	if (!events.length) {
+		return (
+			<PanelBody>
+				<PanelNote>Ingen gjennomførte arrangementer dette semesteret.</PanelNote>
+			</PanelBody>
+		);
+	}
+	return <PastTable events={events} selectedId={selectedId} onSelect={onSelect} />;
+}
+
 export function PastView({ now }: Readonly<{ now: number }>) {
 	const semesters = useQuery(api.events.queries.getPossibleSemesters);
 	const [selected, setSelected] = useState(() => eventSemesterOf(now));
@@ -156,17 +182,7 @@ export function PastView({ now }: Readonly<{ now: number }>) {
 					</Select>
 				}
 			>
-				{!events ? (
-					<PanelBody>
-						<Skeleton className="h-48 w-full" />
-					</PanelBody>
-				) : events.length ? (
-					<PastTable events={events} selectedId={selectedId} onSelect={openEvent} />
-				) : (
-					<PanelBody>
-						<PanelNote>Ingen gjennomførte arrangementer dette semesteret.</PanelNote>
-					</PanelBody>
-				)}
+				<PastEvents events={events} selectedId={selectedId} onSelect={openEvent} />
 			</Panel>
 			<div ref={paceRef} className="grid scroll-mt-4 gap-4">
 				{selectedId && (

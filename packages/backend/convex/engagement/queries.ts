@@ -397,7 +397,7 @@ async function lateUnregistrations(
 	);
 	return {
 		count: counts.reduce<number>((sum, count) => sum + (count ?? 0), 0),
-		uncovered: counts.some((count) => count === null),
+		uncovered: counts.includes(null),
 		empty: counts.length === 0,
 	};
 }
