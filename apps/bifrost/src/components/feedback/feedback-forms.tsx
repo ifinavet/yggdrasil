@@ -4,6 +4,7 @@ import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { defaultFeedbackFields } from "@workspace/shared/feedback";
 import { formatOsloDate } from "@workspace/shared/time";
+import { convexErrorMessage } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
 import {
 	Select,
@@ -13,26 +14,25 @@ import {
 	SelectValue,
 } from "@workspace/ui/components/select";
 import { Tabs, TabsList, TabsTrigger } from "@workspace/ui/components/tabs";
+import { useFeatureEnabled } from "@workspace/ui/hooks/use-feature-enabled";
 import { cn } from "@workspace/ui/lib/utils";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { ConvexError } from "convex/values";
 import { EyeIcon, EyeOffIcon, PlusIcon } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { toast } from "sonner";
 import { FeedbackFormEditor } from "./feedback-form-editor";
+import { JobListingOrderSettingsPanel } from "./job-listing-order-settings";
 import { QuestionCard } from "./question-card";
 
 type FeedbackFormSummary = FunctionReturnType<
 	typeof api.feedback.forms.queries.getFeedbackForms
 >["page"][number];
 
+type FormsTab = "feedback" | "jobListing";
+
 const newFormName = "Nytt skjema";
 const draftVersion = "draft";
-
-function errorMessage(error: unknown, fallback: string) {
-	return error instanceof ConvexError ? String(error.data) : fallback;
-}
 
 function formStatus(form: FeedbackFormSummary) {
 	const published = form.publishedVersion && !form.hasDraft;
@@ -64,7 +64,8 @@ export function FeedbackForms({ intro }: Readonly<{ intro: ReactNode }>) {
 	const [createdFormId, setCreatedFormId] = useState<Id<"feedbackForms">>();
 	const [creating, setCreating] = useState(false);
 	const saveDraft = useMutation(api.feedback.forms.mutations.saveDraft);
-	const setHidden = useMutation(api.feedback.forms.mutations.setHidden);
+	const [tab, setTab] = useState<FormsTab>("feedback");
+	const jobListingOrdersEnabled = useFeatureEnabled("jobListingOrders");
 	const openFormId =
 		selectedFormId ??
 		feedbackForms.find((feedbackForm) => feedbackForm.isDefault)?._id ??
@@ -78,17 +79,9 @@ export function FeedbackForms({ intro }: Readonly<{ intro: ReactNode }>) {
 			setSelectedFormId(formId);
 			setCreatedFormId(formId);
 		} catch (error) {
-			toast.error(errorMessage(error, "Kunne ikke opprette skjemaet."));
+			toast.error(convexErrorMessage(error, "Kunne ikke opprette skjemaet."));
 		} finally {
 			setCreating(false);
-		}
-	}
-
-	async function toggleHidden(form: FeedbackFormSummary) {
-		try {
-			await setHidden({ formId: form._id, isHidden: !form.isHidden });
-		} catch (error) {
-			toast.error(errorMessage(error, "Kunne ikke endre synligheten."));
 		}
 	}
 
@@ -96,81 +89,126 @@ export function FeedbackForms({ intro }: Readonly<{ intro: ReactNode }>) {
 		<div className="-m-4 flex min-h-[calc(100svh-4.5rem)]">
 			<div className="flex min-w-0 flex-1 flex-col gap-8 px-10 py-10">
 				{intro}
-				<Tabs defaultValue="feedback">
+				<Tabs value={tab} onValueChange={(value) => setTab(value as FormsTab)}>
 					<div className="flex items-end justify-between border-b">
 						<TabsList variant="underline" className="border-b-0">
 							<TabsTrigger value="feedback">Tilbakemeldinger</TabsTrigger>
+							{jobListingOrdersEnabled && (
+								<TabsTrigger value="jobListing">Stillingsannonse</TabsTrigger>
+							)}
 						</TabsList>
-						<Button className="mb-2" disabled={creating} onClick={() => void createForm()}>
-							<PlusIcon />
-							Nytt skjema
-						</Button>
+						{tab === "feedback" && (
+							<Button className="mb-2" disabled={creating} onClick={() => void createForm()}>
+								<PlusIcon />
+								Nytt skjema
+							</Button>
+						)}
 					</div>
 				</Tabs>
-				<div className="overflow-hidden rounded-lg border bg-card">
-					{status === "LoadingFirstPage" && (
-						<output className="block px-5 py-4 text-muted-foreground text-sm">
-							Henter skjemaer …
-						</output>
-					)}
-					{feedbackForms.map((feedbackForm) => (
-						<div
-							key={feedbackForm._id}
-							data-open={feedbackForm._id === openFormId}
-							className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-t pr-5 first:border-t-0 hover:bg-accent/50 data-[open=true]:bg-accent data-[open=true]:shadow-[inset_2px_0_0_var(--primary)]"
-						>
-							<button
-								type="button"
-								aria-pressed={feedbackForm._id === openFormId}
-								onClick={() => setSelectedFormId(feedbackForm._id)}
-								className="flex min-w-0 cursor-pointer flex-col gap-1 py-[1.1rem] pl-5 text-left"
-							>
-								<span
-									className={cn(
-										"truncate font-medium",
-										feedbackForm.isHidden && "text-muted-foreground",
-									)}
-								>
-									{feedbackForm.name}
-								</span>
-								<span className="text-[13px] text-muted-foreground">
-									{formStatus(feedbackForm)}
-								</span>
-							</button>
-							<Button
-								variant="ghost"
-								size="icon"
-								disabled={feedbackForm.isDefault}
-								className="text-muted-foreground"
-								onClick={() => void toggleHidden(feedbackForm)}
-								aria-label={`${feedbackForm.isHidden ? "Vis" : "Skjul"} ${feedbackForm.name}`}
-								aria-describedby={`${feedbackForm._id}-visibility`}
-								title={visibilityHint(feedbackForm)}
-							>
-								{feedbackForm.isHidden ? <EyeOffIcon /> : <EyeIcon />}
-							</Button>
-							<span id={`${feedbackForm._id}-visibility`} className="sr-only">
-								{visibilityHint(feedbackForm)}
-							</span>
-						</div>
-					))}
-				</div>
-				{status === "CanLoadMore" && (
-					<Button variant="outline" className="self-start" onClick={() => loadMore(20)}>
-						Hent flere skjemaer
-					</Button>
-				)}
-			</div>
-			<aside className="sticky top-0 flex h-[calc(100svh-4.5rem)] shrink-0 basis-[min(620px,46vw)] flex-col overflow-hidden border-l bg-background">
-				{openForm && (
-					<FormPanel
-						key={openForm._id}
-						form={openForm}
-						focusName={openForm._id === createdFormId}
+				{tab === "jobListing" ? (
+					<JobListingOrderSettingsPanel />
+				) : (
+					<FeedbackFormList
+						forms={feedbackForms}
+						status={status}
+						openFormId={openFormId}
+						onSelect={setSelectedFormId}
+						onLoadMore={() => loadMore(20)}
 					/>
 				)}
-			</aside>
+			</div>
+			{tab === "feedback" && (
+				<aside className="sticky top-0 flex h-[calc(100svh-4.5rem)] shrink-0 basis-[min(620px,46vw)] flex-col overflow-hidden border-l bg-background">
+					{openForm && (
+						<FormPanel
+							key={openForm._id}
+							form={openForm}
+							focusName={openForm._id === createdFormId}
+						/>
+					)}
+				</aside>
+			)}
 		</div>
+	);
+}
+
+function FeedbackFormList({
+	forms: feedbackForms,
+	status,
+	openFormId,
+	onSelect,
+	onLoadMore,
+}: Readonly<{
+	forms: FeedbackFormSummary[];
+	status: ReturnType<typeof usePaginatedQuery>["status"];
+	openFormId: Id<"feedbackForms"> | undefined;
+	onSelect: (formId: Id<"feedbackForms">) => void;
+	onLoadMore: () => void;
+}>) {
+	const setHidden = useMutation(api.feedback.forms.mutations.setHidden);
+
+	async function toggleHidden(form: FeedbackFormSummary) {
+		try {
+			await setHidden({ formId: form._id, isHidden: !form.isHidden });
+		} catch (error) {
+			toast.error(convexErrorMessage(error, "Kunne ikke endre synligheten."));
+		}
+	}
+
+	return (
+		<>
+			<div className="overflow-hidden rounded-lg border bg-card">
+				{status === "LoadingFirstPage" && (
+					<output className="block px-5 py-4 text-muted-foreground text-sm">
+						Henter skjemaer …
+					</output>
+				)}
+				{feedbackForms.map((feedbackForm) => (
+					<div
+						key={feedbackForm._id}
+						data-open={feedbackForm._id === openFormId}
+						className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-t pr-5 first:border-t-0 hover:bg-accent/50 data-[open=true]:bg-accent data-[open=true]:shadow-[inset_2px_0_0_var(--primary)]"
+					>
+						<button
+							type="button"
+							aria-pressed={feedbackForm._id === openFormId}
+							onClick={() => onSelect(feedbackForm._id)}
+							className="flex min-w-0 cursor-pointer flex-col gap-1 py-[1.1rem] pl-5 text-left"
+						>
+							<span
+								className={cn(
+									"truncate font-medium",
+									feedbackForm.isHidden && "text-muted-foreground",
+								)}
+							>
+								{feedbackForm.name}
+							</span>
+							<span className="text-[13px] text-muted-foreground">{formStatus(feedbackForm)}</span>
+						</button>
+						<Button
+							variant="ghost"
+							size="icon"
+							disabled={feedbackForm.isDefault}
+							className="text-muted-foreground"
+							onClick={() => void toggleHidden(feedbackForm)}
+							aria-label={`${feedbackForm.isHidden ? "Vis" : "Skjul"} ${feedbackForm.name}`}
+							aria-describedby={`${feedbackForm._id}-visibility`}
+							title={visibilityHint(feedbackForm)}
+						>
+							{feedbackForm.isHidden ? <EyeOffIcon /> : <EyeIcon />}
+						</Button>
+						<span id={`${feedbackForm._id}-visibility`} className="sr-only">
+							{visibilityHint(feedbackForm)}
+						</span>
+					</div>
+				))}
+			</div>
+			{status === "CanLoadMore" && (
+				<Button variant="outline" className="self-start" onClick={onLoadMore}>
+					Hent flere skjemaer
+				</Button>
+			)}
+		</>
 	);
 }
 
@@ -287,7 +325,7 @@ function SetDefaultButton({ form }: Readonly<{ form: FeedbackFormSummary }>) {
 					await setDefault({ formId: form._id });
 					toast.success("Standardskjema oppdatert");
 				} catch (error) {
-					toast.error(errorMessage(error, "Kunne ikke endre standardskjema."));
+					toast.error(convexErrorMessage(error, "Kunne ikke endre standardskjema."));
 				} finally {
 					setSaving(false);
 				}

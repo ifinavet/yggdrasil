@@ -2,6 +2,7 @@ import { z } from "zod";
 import { DEGREE_TYPES } from "../constants/degrees";
 import { STUDY_PROGRAMS } from "../constants/programs";
 import { isIsoDate } from "../time";
+import { email, optionalText, orgNumber, text } from "../validation";
 import {
 	ESCAPE_ANSWERS,
 	EVENT_TYPE_LABELS,
@@ -23,19 +24,6 @@ export const STUDENT_CAP: Record<EventType, number | null> = {
 
 const MAX_STUDENTS = 1000;
 
-/** The one-time id the Hugin form sends with a submission, so a retry saves one application. */
-export const SUBMISSION_ID_PATTERN = /^[A-Za-z0-9-]{8,64}$/;
-
-function text(max: number, message: string) {
-	return z.string({ error: message }).trim().min(1, message).max(max, message);
-}
-
-function optionalText(max: number, message: string) {
-	return z.string({ error: message }).trim().max(max, message).optional();
-}
-
-const email = (message: string) => z.email({ error: message }).max(254, message);
-
 const students = z
 	.number({ error: "Oppgi antall studenter som et helt tall." })
 	.int("Oppgi antall studenter som et helt tall.")
@@ -54,9 +42,7 @@ export const applicationContactSchema = z.object({
 
 export const applicationFormSchema = z
 	.object({
-		orgNumber: z
-			.string({ error: "Velg bedriften fra Enhetsregisteret." })
-			.regex(/^\d{9}$/, "Velg bedriften fra Enhetsregisteret."),
+		orgNumber: orgNumber("Velg bedriften fra Enhetsregisteret."),
 		contact: applicationContactSchema,
 		eventType: z.enum(EVENT_TYPES, { error: "Velg hva slags arrangement dere ønsker." }),
 		minStudents: students,

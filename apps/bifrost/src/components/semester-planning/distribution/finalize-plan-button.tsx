@@ -3,6 +3,7 @@
 import { api } from "@workspace/backend/convex/api";
 import type { Doc } from "@workspace/backend/convex/dataModel";
 import { semesterName } from "@workspace/shared/semester/labels";
+import { convexErrorMessage } from "@workspace/shared/utils";
 import {
 	AlertDialog,
 	AlertDialogCancel,
@@ -29,7 +30,6 @@ import { Plus } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
-import { convexErrorMessage } from "@/utils/convex-error";
 
 type FinalizeResult = FunctionReturnType<
 	typeof api.semesterPlanning.semesters.mutations.finalizePlan

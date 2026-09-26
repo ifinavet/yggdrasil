@@ -1,4 +1,4 @@
-import { ConvexError } from "convex/values";
+import { convexErrorMessage } from "@workspace/shared/utils";
 import { toast } from "sonner";
 
 export async function notifyProductMutation(
@@ -11,7 +11,7 @@ export async function notifyProductMutation(
 		toast.success(successMessage);
 		return true;
 	} catch (error) {
-		toast.error(error instanceof ConvexError ? String(error.data) : fallbackError);
+		toast.error(convexErrorMessage(error, fallbackError));
 		return false;
 	}
 }

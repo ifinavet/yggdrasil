@@ -1,5 +1,5 @@
 import { COMPANY_CONTACT_EMAIL } from "@workspace/shared/constants";
-import { ConvexError } from "convex/values";
+import { convexErrorMessage } from "@workspace/shared/utils";
 
 /** What a company sees when something fails that the backend did not explain. */
 export const UNEXPECTED_COMPANY_ERROR = `Noe gikk galt. Prøv igjen, eller skriv til ${COMPANY_CONTACT_EMAIL}.`;
@@ -9,6 +9,5 @@ export const UNEXPECTED_COMPANY_ERROR = `Noe gikk galt. Prøv igjen, eller skriv
  * or a general one for anything unexpected.
  */
 export function companyErrorMessage(error: unknown): string {
-	if (error instanceof ConvexError && typeof error.data === "string") return error.data;
-	return UNEXPECTED_COMPANY_ERROR;
+	return convexErrorMessage(error, UNEXPECTED_COMPANY_ERROR);
 }

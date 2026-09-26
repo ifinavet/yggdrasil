@@ -6,6 +6,7 @@ import { feedbackReportSchema } from "./feedback/reports/schema";
 import { feedbackSchema } from "./feedback/schema";
 import { feedbackTestSendSchema } from "./feedback/testSend/schema";
 import { formsSchema } from "./forms/schema";
+import { jobListingOrdersSchema } from "./jobListingOrders/schema";
 import { jobListingsSchema } from "./jobListings/schema";
 import { pagesSchema } from "./pages/schema";
 import { pointsSchema } from "./points/schema";
@@ -19,6 +20,7 @@ export default defineSchema({
 	...companiesSchema,
 	...eventsSchema,
 	...jobListingsSchema,
+	...jobListingOrdersSchema,
 	...pagesSchema,
 	...usersSchema,
 	...organizationSchema,

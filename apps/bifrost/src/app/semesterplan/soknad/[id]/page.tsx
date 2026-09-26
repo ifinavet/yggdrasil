@@ -1,6 +1,7 @@
 import { getAuthToken, hasEditRights } from "@workspace/auth";
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
+import { isMissingDocumentError } from "@workspace/shared/utils";
 import { preloadQuery } from "convex/nextjs";
 import type { Preloaded } from "convex/react";
 import type { Metadata } from "next";
@@ -10,7 +11,6 @@ import {
 	ApplicationPage,
 	ApplicationSkeleton,
 } from "@/components/semester-planning/application/application-page";
-import { isMissingDocumentError } from "@/utils/convex-error";
 
 export const metadata: Metadata = {
 	title: "Søknad",

@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/componen
 import { fetchQuery } from "convex/nextjs";
 import { Plus } from "lucide-react";
 import Link from "next/link";
+import { PendingOrdersAlert } from "@/components/job-listing-orders/pending-orders-alert";
 import { createColumns } from "@/components/job-listings/listings-table/columns";
 import { ListingsTable } from "@/components/job-listings/listings-table/listings-table";
 import { groupJobListings, type JobListing } from "@/utils/job-listings";
@@ -53,6 +54,8 @@ export default async function JobListingsPage() {
 					</Link>
 				</Button>
 			</div>
+
+			<PendingOrdersAlert />
 
 			<Tabs defaultValue="published" className="w-full">
 				<TabsList className="grid w-full grid-cols-2">

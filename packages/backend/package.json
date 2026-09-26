@@ -25,7 +25,8 @@
 		"@workspace/shared": "workspace:*",
 		"convex": "^1.46.0",
 		"convex-helpers": "^0.1.124",
-		"svix": "^1.99.1"
+		"svix": "^1.99.1",
+		"xss": "^1.0.15"
 	},
 	"devDependencies": {
 		"@convex-dev/batch-worker": "^0.2.2",

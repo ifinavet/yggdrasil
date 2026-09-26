@@ -3,6 +3,7 @@
 import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
 import { reportRecipientSchema } from "@workspace/shared/feedback/report";
+import { convexErrorMessage } from "@workspace/shared/utils";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { FeedbackReportView } from "@workspace/ui/components/feedback/report";
@@ -20,7 +21,6 @@ import { useMutation } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
-import { convexErrorMessage } from "@/utils/convex-error";
 import { REPORT_DELIVERY_LABELS, REPORT_STATUS_LABELS } from "./status-labels";
 
 type ReportResult = Extract<

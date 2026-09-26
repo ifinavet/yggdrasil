@@ -11,6 +11,9 @@ export const featureFlags = {
 	products: {
 		uiEnabled: false,
 	},
+	jobListingOrders: {
+		uiEnabled: false,
+	},
 	semesterPlanning: {
 		// Shows Semesterplan in Bifrost, the application and offer pages on Hugin and the button on
 		// Midgard to everyone. While off, only browsers with the preview opt-in see them.
@@ -20,6 +23,7 @@ export const featureFlags = {
 
 export const browserOptInKeys = {
 	productsPreview: "products-preview",
+	jobListingOrdersPreview: "job-listing-orders-preview",
 	huginFeedbackPreview: "hugin-feedback-preview",
 	huginFeedbackTestSend: "hugin-feedback-testsend",
 	semesterPlanningPreview: "semester-planning-preview",
@@ -32,5 +36,6 @@ export type GatedFeature = keyof typeof featureFlags;
 export const featurePreviewOptIns = {
 	huginFeedback: "huginFeedbackPreview",
 	products: "productsPreview",
+	jobListingOrders: "jobListingOrdersPreview",
 	semesterPlanning: "semesterPlanningPreview",
 } as const satisfies Record<GatedFeature, BrowserOptIn>;

@@ -3,6 +3,7 @@
 import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
+import { convexErrorMessage } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";
 import { Checkbox } from "@workspace/ui/components/checkbox";
@@ -19,7 +20,6 @@ import type { FunctionReturnType } from "convex/server";
 import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
-import { convexErrorMessage } from "@/utils/convex-error";
 
 const settingsSchema = z.object({ enabled: z.boolean(), formId: z.string() });
 export function EventFeedbackSettings({ eventId }: Readonly<{ eventId: Id<"events"> }>) {

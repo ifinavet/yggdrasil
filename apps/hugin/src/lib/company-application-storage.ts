@@ -4,6 +4,7 @@ import {
 } from "@workspace/shared/semester/application";
 import { z } from "zod";
 import { applicationDraftSchema, type ChosenCompany } from "./company-application";
+import { readJson, removeItem, writeJson } from "./guarded-storage";
 
 // Browser storage for the application form. Every access is guarded: storage can be missing,
 // full or blocked. What is read back is parsed, never trusted.
@@ -46,31 +47,6 @@ export function newSubmissionId(): string {
 	return crypto.randomUUID();
 }
 
-function readJson(storage: () => Storage, key: string): unknown {
-	try {
-		const raw = storage().getItem(key);
-		return raw ? JSON.parse(raw) : null;
-	} catch {
-		return null;
-	}
-}
-
-function writeJson(storage: () => Storage, key: string, value: unknown): void {
-	try {
-		storage().setItem(key, JSON.stringify(value));
-	} catch {
-		// Storage is full or blocked; the form still works, it just is not saved.
-	}
-}
-
-function remove(storage: () => Storage, key: string): void {
-	try {
-		storage().removeItem(key);
-	} catch {
-		// Nothing to clear when storage is blocked.
-	}
-}
-
 const local = () => window.localStorage;
 const session = () => window.sessionStorage;
 
@@ -85,7 +61,7 @@ export function saveDraft(draft: StoredDraft): void {
 }
 
 export function clearDraft(): void {
-	remove(local, DRAFT_KEY);
+	removeItem(local, DRAFT_KEY);
 }
 
 /** The receipt for a sent application. */

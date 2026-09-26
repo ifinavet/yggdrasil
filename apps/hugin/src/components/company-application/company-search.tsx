@@ -1,6 +1,5 @@
 "use client";
 
-import { api } from "@workspace/backend/convex/api";
 import {
 	Command,
 	CommandEmpty,
@@ -10,24 +9,14 @@ import {
 } from "@workspace/ui/components/command";
 import { Note } from "@workspace/ui/components/note";
 import { cn } from "@workspace/ui/lib/utils";
-import { useAction } from "convex/react";
 import { Check, CircleAlert, LoaderCircle, Search } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { secondaryButtonClass } from "@/components/form-buttons";
 import { ERROR_BORDER, ERROR_TEXT, inputClass, linkClass } from "@/components/form-controls";
 import type { ChosenCompany, RegistryHit } from "@/lib/company-application";
-import { formatOrgNumber, placeName } from "@/lib/company-application-format";
+import { formatOrgNumber, hitMeta, placeName } from "@/lib/company-application-format";
 import { COMPANY_APPLICATION_COPY as COPY } from "@/lib/company-application-questions";
-import { companyErrorMessage } from "@/lib/company-error-message";
-
-const DEBOUNCE_MS = 300;
-const MIN_QUERY_LENGTH = 2;
-
-type SearchState =
-	| { status: "idle" }
-	| { status: "searching" }
-	| { status: "done"; hits: RegistryHit[] }
-	| { status: "error"; message: string };
+import { type SearchState, useRegistrySearch } from "./use-registry-search";
 
 /** The query highlighted in a company name, as in «<mark>FJORDKODE</mark> AS». */
 function Highlighted({
@@ -62,12 +51,6 @@ function searchStatusText(search: SearchState): string {
 	return COPY.company.hitCount(search.hits.length);
 }
 
-function hitMeta(hit: RegistryHit): string {
-	return [formatOrgNumber(hit.orgNumber), hit.organizationForm, hit.city && placeName(hit.city)]
-		.filter(Boolean)
-		.join(" · ");
-}
-
 function chosenFrom(hit: RegistryHit): ChosenCompany {
 	return {
 		orgNumber: hit.orgNumber,
@@ -75,40 +58,6 @@ function chosenFrom(hit: RegistryHit): ChosenCompany {
 		organizationForm: hit.organizationForm,
 		...(hit.city ? { city: hit.city } : {}),
 	};
-}
-
-/** Searches Enhetsregisteret as the company types; only the newest search may show its hits. */
-function useRegistrySearch(query: string): { search: SearchState; retry: () => void } {
-	const searchCompanies = useAction(api.semesterPlanning.registry.actions.searchCompanies);
-	const [search, setSearch] = useState<SearchState>({ status: "idle" });
-	const [attempt, setAttempt] = useState(0);
-	const latest = useRef(0);
-
-	// biome-ignore lint/correctness/useExhaustiveDependencies: attempt re-runs the same search on «Prøv igjen».
-	useEffect(() => {
-		// Counted before the length check, so a search still running for a longer query is ignored.
-		const request = ++latest.current;
-		if (query.length < MIN_QUERY_LENGTH) {
-			setSearch({ status: "idle" });
-			return;
-		}
-
-		setSearch({ status: "searching" });
-		const timer = window.setTimeout(async () => {
-			try {
-				const hits = await searchCompanies({ query });
-				if (request === latest.current) setSearch({ status: "done", hits });
-			} catch (error) {
-				if (request === latest.current) {
-					setSearch({ status: "error", message: companyErrorMessage(error) });
-				}
-			}
-		}, DEBOUNCE_MS);
-
-		return () => window.clearTimeout(timer);
-	}, [query, searchCompanies, attempt]);
-
-	return { search, retry: () => setAttempt((count) => count + 1) };
 }
 
 /**

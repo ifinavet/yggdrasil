@@ -6,6 +6,7 @@ import type { Id } from "@workspace/backend/convex/dataModel";
 import { semesterName, TERM_LABELS } from "@workspace/shared/semester/labels";
 import { MAX_SEMESTER_YEAR, MIN_SEMESTER_YEAR } from "@workspace/shared/semester/limits";
 import { nextTermAfter, osloToday, SEMESTER_TERMS } from "@workspace/shared/time";
+import { convexErrorMessage } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
 import { Field, FieldError, FieldLabel } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
@@ -20,7 +21,6 @@ import { useMutation } from "convex/react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
-import { convexErrorMessage } from "@/utils/convex-error";
 
 const createSchema = z.object({
 	year: z

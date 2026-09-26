@@ -2,6 +2,7 @@
 
 import { api } from "@workspace/backend/convex/api";
 import type { Doc } from "@workspace/backend/convex/dataModel";
+import { convexErrorMessage } from "@workspace/shared/utils";
 import {
 	AlertDialog,
 	AlertDialogCancel,
@@ -25,7 +26,6 @@ import { useMutation } from "convex/react";
 import { Link2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { convexErrorMessage } from "@/utils/convex-error";
 import { shortDayTitle } from "../format";
 import { OfferLink, offerEmail, offerUrl } from "../offer-link";
 
