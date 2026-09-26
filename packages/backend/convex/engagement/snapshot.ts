@@ -107,9 +107,14 @@ export async function snapshotOf(
 }
 
 export async function upcomingEvents(ctx: QueryCtx, now: number, limit: number) {
-	const upcoming = await ctx.db
+	const eligible: Doc<"events">[] = [];
+	for await (const event of ctx.db
 		.query("events")
-		.withIndex("by_eventStart", (q) => q.gte("eventStart", now))
-		.take(limit);
-	return upcoming.filter((event) => event.published && !event.externalEvent);
+		.withIndex("by_eventStart", (q) => q.gte("eventStart", now))) {
+		if (event.published && !event.externalEvent && event.participationLimit > 0) {
+			eligible.push(event);
+		}
+		if (eligible.length === limit) break;
+	}
+	return eligible;
 }

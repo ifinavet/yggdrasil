@@ -76,7 +76,10 @@ function Attendance({ semester }: Readonly<{ semester: SemesterData }>) {
 					axis: { ticks: { size: 0 }, tickLabels: { fontSize: 11 } },
 				},
 				y: {
-					scale: scaleLinear().domain([Math.min(...weeks.map(({ percent }) => percent)), 100]),
+					scale: scaleLinear().domain([
+						weeks.length ? Math.min(...weeks.map(({ percent }) => percent)) : 0,
+						100,
+					]),
 					nice: true,
 					grid: true,
 					axis: {

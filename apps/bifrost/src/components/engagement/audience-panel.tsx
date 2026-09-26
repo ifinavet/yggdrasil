@@ -221,6 +221,7 @@ function ProgramMatrix({
 }: Readonly<{ programs: readonly ProgramRow[]; cohorts: readonly AudienceRow[] }>) {
 	const hottest = Math.max(1, ...programs.flatMap(({ byCohort }) => byCohort));
 	const scale = Math.max(
+		Number.EPSILON,
 		...programs.flatMap(({ share, populationShare }) => [share, populationShare]),
 	);
 	const showChange = programs.some(({ change }) => change !== null);

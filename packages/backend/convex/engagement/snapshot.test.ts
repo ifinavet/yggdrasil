@@ -235,16 +235,15 @@ describe("upcomingEvents", () => {
 		expect(upcoming.map((event) => event._id)).not.toContain(third);
 	});
 
-	it("applies the limit before filtering, so a low limit can exclude eligible events", async () => {
+	it("scans past ineligible events until the limit of eligible events is reached", async () => {
 		const { t, companyId } = await setup();
 		const now = OPENS;
 		await insertEvent(t, companyId, { eventStart: now + HOUR_MS, published: false });
-		const eligible = await insertEvent(t, companyId, { eventStart: now + 2 * HOUR_MS });
+		await insertEvent(t, companyId, { eventStart: now + 2 * HOUR_MS, participationLimit: 0 });
+		const eligible = await insertEvent(t, companyId, { eventStart: now + 3 * HOUR_MS });
+		await insertEvent(t, companyId, { eventStart: now + 4 * HOUR_MS });
 
 		const limited = await t.run((ctx) => upcomingEvents(ctx, now, 1));
-		expect(limited).toHaveLength(0);
-
-		const unlimited = await t.run((ctx) => upcomingEvents(ctx, now, 10));
-		expect(unlimited.map((event) => event._id)).toEqual([eligible]);
+		expect(limited.map((event) => event._id)).toEqual([eligible]);
 	});
 });

@@ -225,7 +225,7 @@ describe("notifySlack", () => {
 		);
 	});
 
-	it("throws when Slack responds with a non-ok status", async () => {
+	it("throws and schedules a retry when Slack responds with a non-ok status", async () => {
 		const { t } = await setup();
 		vi.stubEnv("SLACK_ENGAGEMENT_WEBHOOK_URL", "https://hooks.slack.test/webhook");
 		vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 500 }));
@@ -233,6 +233,24 @@ describe("notifySlack", () => {
 		await expect(t.action(internal.engagement.alerts.notifySlack, { text: "hei" })).rejects.toThrow(
 			"Slack svarte 500",
 		);
+
+		const scheduled = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
+		expect(scheduled.map(({ name, args }) => ({ name, args }))).toEqual([
+			{ name: expect.stringContaining("notifySlack"), args: [{ text: "hei", attempt: 2 }] },
+		]);
+	});
+
+	it("stops retrying after the last attempt when the request fails", async () => {
+		const { t } = await setup();
+		vi.stubEnv("SLACK_ENGAGEMENT_WEBHOOK_URL", "https://hooks.slack.test/webhook");
+		vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
+
+		await expect(
+			t.action(internal.engagement.alerts.notifySlack, { text: "hei", attempt: 3 }),
+		).rejects.toThrow("Slack svarte ikke");
+
+		const scheduled = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
+		expect(scheduled).toHaveLength(0);
 	});
 });
 

@@ -11,6 +11,8 @@ import { pastCurvesBefore, snapshotOf, upcomingEvents } from "./snapshot";
 
 const EVENTS_TO_WATCH = 50;
 const DEDUP_WINDOW_MS = DAY_MS;
+const SLACK_ATTEMPTS = 3;
+const SLACK_RETRY_STEP_MS = 5 * MINUTE_MS;
 
 type Snapshot = Awaited<ReturnType<typeof snapshotOf>>;
 
@@ -106,8 +108,8 @@ export const detectAlerts = internalMutation({
 });
 
 export const notifySlack = internalAction({
-	args: { text: v.string() },
-	handler: async (_ctx, { text }) => {
+	args: { text: v.string(), attempt: v.optional(v.number()) },
+	handler: async (ctx, { text, attempt = 1 }) => {
 		const webhookUrl = process.env.SLACK_ENGAGEMENT_WEBHOOK_URL;
 		if (!webhookUrl) return false;
 		const response = await fetch(webhookUrl, {
@@ -115,9 +117,16 @@ export const notifySlack = internalAction({
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({ text }),
 			signal: AbortSignal.timeout(10_000),
-		});
-		if (!response.ok) throw new Error(`Slack svarte ${response.status}`);
-		return true;
+		}).catch(() => null);
+		if (response?.ok) return true;
+		if (attempt < SLACK_ATTEMPTS) {
+			await ctx.scheduler.runAfter(
+				attempt * SLACK_RETRY_STEP_MS,
+				internal.engagement.alerts.notifySlack,
+				{ text, attempt: attempt + 1 },
+			);
+		}
+		throw new Error(`Slack svarte ${response?.status ?? "ikke"}`);
 	},
 });
 
