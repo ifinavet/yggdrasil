@@ -3,7 +3,6 @@
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { DATE_PATTERNS, eventSemesterOf, formatOsloDate } from "@workspace/shared/time";
-import { CompanyLogo } from "@workspace/ui/components/company-logo";
 import { Panel, PanelBody, PanelNote } from "@workspace/ui/components/products/panel";
 import { ShareBar } from "@workspace/ui/components/products/share-bar";
 import {
@@ -36,6 +35,7 @@ import {
 	startedSemesters,
 } from "./engagement-format";
 import { EventAudience } from "./event-audience";
+import { EventCell } from "./event-cell";
 import { PaceChart } from "./pace-chart";
 
 function PastTable({
@@ -70,21 +70,7 @@ function PastTable({
 							<TableCell className={`${LIST_CELL} whitespace-nowrap tabular-nums`}>
 								{formatOsloDate(event.eventStart, DATE_PATTERNS.shortDate)}
 							</TableCell>
-							<TableCell className={LIST_CELL}>
-								<div className="flex min-w-0 items-center gap-3">
-									<CompanyLogo name={event.companyName} url={event.companyLogoUrl} />
-									<div>
-										<button
-											type="button"
-											onClick={() => onSelect(event._id)}
-											className="block text-left font-medium after:absolute after:inset-0"
-										>
-											{event.title}
-										</button>
-										<span className="block text-muted-foreground text-xs">{event.companyName}</span>
-									</div>
-								</div>
-							</TableCell>
+							<EventCell event={event} onSelect={onSelect} />
 							<TableCell className={LIST_CELL}>
 								<div className="whitespace-nowrap tabular-nums">
 									{event.registered} / {event.participationLimit}
