@@ -14,7 +14,9 @@ import { eventFeedbackStatus } from "../feedback/eventStatus";
 import { reportAccessAllowed } from "../feedback/reports/access";
 import { countRegistrationsWithStatus, eventsInSemester, getEventByIdentifier } from "./helper";
 
-const eventSemesterValidator = v.union(...EVENT_SEMESTERS.map((semester) => v.literal(semester)));
+export const eventSemesterValidator = v.union(
+	...EVENT_SEMESTERS.map((semester) => v.literal(semester)),
+);
 
 /**
  * Fetches the next published events from the current week onward.

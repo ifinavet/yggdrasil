@@ -1,6 +1,12 @@
 import type { api } from "@workspace/backend/convex/api";
 import { formatPercent } from "@workspace/shared/products";
-import { DATE_PATTERNS, formatOsloDate } from "@workspace/shared/time";
+import {
+	DATE_PATTERNS,
+	EVENT_SEMESTER_LABELS,
+	type EventSemester,
+	eventSemesterRange,
+	formatOsloDate,
+} from "@workspace/shared/time";
 import type { BadgeVariant } from "@workspace/ui/components/badge";
 import type { SparkValue } from "@workspace/ui/components/products/sparkline";
 import type { FunctionReturnType } from "convex/server";
@@ -15,6 +21,7 @@ export type AudienceRow = Audience["cohorts"][number];
 export type ProgramRow = Audience["programs"][number];
 export type UnregisterLog = FunctionReturnType<typeof api.engagement.queries.unregisterLog>;
 export type PaceCurve = NonNullable<FunctionReturnType<typeof api.engagement.queries.paceCurve>>;
+export type PastEvent = FunctionReturnType<typeof api.engagement.queries.past>[number];
 
 export function statusBadge(status: EngagementStatus): { label: string; variant: BadgeVariant } {
 	switch (status.kind) {
@@ -81,8 +88,85 @@ function lastYearComparison(difference: number) {
 	return `${Math.abs(difference)} ${difference > 0 ? "flere" : "færre"} enn i fjor`;
 }
 
-export function lateUnregistrationNote({ current, lastYear }: SemesterData["lateUnregistrations"]) {
-	return `Sene avmeldinger (under 24 t): ${current} dette semesteret, ${lastYearComparison(current - lastYear)}.`;
+export function lateUnregistrationNote({
+	current,
+	since,
+	lastYear,
+}: SemesterData["lateUnregistrations"]) {
+	const period =
+		since === null ? "dette semesteret" : `siden ${formatOsloDate(since, DATE_PATTERNS.shortDate)}`;
+	const comparison = lastYear === null ? "" : `, ${lastYearComparison(current - lastYear)}`;
+	return `Sene avmeldinger (under 24 t): ${current} ${period}${comparison}.`;
+}
+
+export function paceTicks(progress: number) {
+	return [...new Set([0, progress, 1])];
+}
+
+export function paceTickLabel(curve: Pick<PaceCurve, "progress">, progress: number) {
+	if (progress === 0) return "Åpnet";
+	if (progress === 1) return "Start";
+	return progress === curve.progress ? "I dag" : "";
+}
+
+export function paceLabels(curve: PaceCurve) {
+	const actual =
+		curve.progress > 0
+			? [
+					{
+						key: "actual" as const,
+						progress: curve.progress,
+						count: curve.registered,
+						label: curve.progress < 1 ? `${curve.registered} nå` : `${curve.registered} påmeldt`,
+					},
+				]
+			: [];
+	const projected =
+		curve.projected === null
+			? []
+			: [
+					{
+						key: "projected" as const,
+						progress: 1,
+						count: curve.projected,
+						label: `prognose ${curve.projected}`,
+					},
+				];
+	const typical =
+		curve.typical === null
+			? []
+			: [
+					{
+						key: "expected" as const,
+						progress: 1,
+						count: curve.typical,
+						label: `typisk ${curve.typical}`,
+					},
+				];
+	return [...actual, ...projected, ...typical];
+}
+
+type SemesterOption = { semester: EventSemester; year: number };
+
+export function semesterValue({ semester, year }: SemesterOption) {
+	return `${year}-${semester}`;
+}
+
+export function semesterLabel({ semester, year }: SemesterOption) {
+	return `${EVENT_SEMESTER_LABELS[semester]} ${year}`;
+}
+
+export function startedSemesters(semesters: readonly SemesterOption[], now: number) {
+	return semesters
+		.filter(({ semester, year }) => eventSemesterRange(semester, year).start <= now)
+		.reverse();
+}
+
+export function attendanceRate({
+	registered,
+	attended,
+}: Pick<PastEvent, "registered" | "attended">) {
+	return attended === null || registered === 0 ? null : attended / registered;
 }
 
 const ACTIVITY_LABELS = {
@@ -128,4 +212,11 @@ export function cohortTints(cohorts: readonly Pick<AudienceRow, "degree">[]) {
 			tint: STRONGEST_COHORT_TINT - siblings.indexOf(cohort) * step,
 		};
 	});
+}
+
+const REACH_AXIS_STEPS = [5, 10, 20, 25, 50, 75, 100] as const;
+
+export function reachAxisMax(percentages: readonly (number | null)[]) {
+	const highest = Math.max(0, ...percentages.filter((value) => value !== null));
+	return REACH_AXIS_STEPS.find((step) => step >= highest) ?? 100;
 }

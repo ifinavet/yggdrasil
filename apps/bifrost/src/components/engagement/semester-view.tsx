@@ -123,7 +123,7 @@ function Attendance({ semester }: Readonly<{ semester: SemesterData }>) {
 function Timeslots({ timeslots }: Readonly<{ timeslots: SemesterData["timeslots"] }>) {
 	const { hours, fillAt } = timeslotGrid(timeslots);
 	return (
-		<Panel title="Når studentene melder seg på">
+		<Panel title="Fyllgrad etter tidspunkt">
 			<PanelBody className="overflow-x-auto">
 				<table className="w-full border-separate border-spacing-1 text-[12px]">
 					<thead>

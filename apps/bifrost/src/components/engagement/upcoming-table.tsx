@@ -1,7 +1,6 @@
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { DATE_PATTERNS, formatOsloDate } from "@workspace/shared/time";
 import { Badge } from "@workspace/ui/components/badge";
-import { CompanyLogo } from "@workspace/ui/components/company-logo";
 import { ShareBar } from "@workspace/ui/components/products/share-bar";
 import {
 	Table,
@@ -20,6 +19,7 @@ import {
 	statusBadge,
 	type UpcomingEvent,
 } from "./engagement-format";
+import { EventCell } from "./event-cell";
 
 export function StatusBadge({ status }: Readonly<{ status: UpcomingEvent["status"] }>) {
 	const { label, variant } = statusBadge(status);
@@ -81,21 +81,7 @@ export function UpcomingTable({
 								{formatOsloDate(event.eventStart, DATE_PATTERNS.time)}
 							</span>
 						</TableCell>
-						<TableCell className={LIST_CELL}>
-							<div className="flex min-w-0 items-center gap-3">
-								<CompanyLogo name={event.companyName} url={event.companyLogoUrl} />
-								<div>
-									<button
-										type="button"
-										onClick={() => onSelect(event._id)}
-										className="block text-left font-medium after:absolute after:inset-0"
-									>
-										{event.title}
-									</button>
-									<span className="block text-muted-foreground text-xs">{event.companyName}</span>
-								</div>
-							</div>
-						</TableCell>
+						<EventCell event={event} onSelect={onSelect} />
 						<TableCell className={LIST_CELL}>
 							<Registered event={event} />
 						</TableCell>

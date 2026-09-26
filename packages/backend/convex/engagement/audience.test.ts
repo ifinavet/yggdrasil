@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Doc, Id } from "../_generated/dataModel";
-import { audienceOf, cohortOf, TOP_PROGRAMS } from "./audience";
+import { audienceOf, cohortGroupOf, cohortOf, TOP_PROGRAMS } from "./audience";
 
 type Student = Pick<Doc<"students">, "_id" | "degree" | "year" | "studyProgram">;
 
@@ -21,7 +21,34 @@ const POPULATION = [ADA, BO, CY, DI];
 
 describe("cohortOf", () => {
 	it("labels a cohort by degree and year", () => {
-		expect(cohortOf({ degree: "Master", year: 5 })).toBe("Master 5. år");
+		expect(cohortOf({ degree: "Bachelor", year: 2 })).toBe("Bachelor 2. år");
+	});
+
+	it("folds late bachelor years into the third year", () => {
+		expect(cohortOf({ degree: "Bachelor", year: 5 })).toBe("Bachelor 3. år");
+	});
+
+	it("maps master students onto the fourth or fifth year", () => {
+		expect([1, 2, 3, 4, 5].map((year) => cohortOf({ degree: "Master", year }))).toEqual([
+			"Master 4. år",
+			"Master 5. år",
+			"Master 4. år",
+			"Master 4. år",
+			"Master 5. år",
+		]);
+	});
+
+	it("keeps one cohort for årsstudium regardless of year", () => {
+		expect(cohortOf({ degree: "Årsstudium", year: 2 })).toBe("Årsstudium");
+	});
+
+	it("leaves PhD students out of every cohort", () => {
+		expect(cohortGroupOf({ degree: "PhD", year: 4 })).toBeNull();
+	});
+
+	it("leaves students without a year before they started out of every cohort", () => {
+		expect(cohortGroupOf({ degree: "Bachelor", year: 0 })).toBeNull();
+		expect(cohortOf({ degree: "PhD", year: 0 })).toBe("");
 	});
 });
 
@@ -36,16 +63,19 @@ describe("audienceOf", () => {
 		expect(audience.reached).toBe(2);
 	});
 
-	it("orders cohorts by year and then degree", () => {
+	it("orders grouped cohorts by degree and then year with short codes", () => {
+		const oneYear = student("ar", "Årsstudium", 1);
+		const masterFive = student("ms", "Master", 5);
 		const audience = audienceOf(
-			[CY, DI, ADA, student("ed", "Master", 1)],
-			[...POPULATION, student("ed", "Master", 1)],
+			[CY, oneYear, masterFive, DI, ADA],
+			[...POPULATION, oneYear, masterFive],
 		);
-		expect(audience.cohorts.map(({ label }) => label)).toEqual([
-			"Bachelor 1. år",
-			"Master 1. år",
-			"Bachelor 3. år",
-			"Master 4. år",
+		expect(audience.cohorts.map(({ label, code }) => [label, code])).toEqual([
+			["Bachelor 1. år", "B1"],
+			["Bachelor 3. år", "B3"],
+			["Master 4. år", "M4"],
+			["Master 5. år", "M5"],
+			["Årsstudium", "Å"],
 		]);
 	});
 
@@ -91,6 +121,17 @@ describe("audienceOf", () => {
 		expect(masterFour?.change).toBeCloseTo(1 / 2);
 	});
 
+	it("compares each cohort against the students who were in that year in the previous period", () => {
+		const [bachelorThree] = audienceOf([DI], POPULATION, [DI], 1).cohorts;
+		expect(bachelorThree?.label).toBe("Bachelor 3. år");
+		expect(bachelorThree?.previousReach).toBe(0);
+		expect(bachelorThree?.change).toBeCloseTo(1);
+
+		const [bachelorOne] = audienceOf([ADA], POPULATION, [ADA, BO], 1).cohorts;
+		expect(bachelorOne?.previousReach).toBe(0);
+		expect(bachelorOne?.change).toBeCloseTo(1);
+	});
+
 	it("aligns program counts with the cohort order", () => {
 		const { programs } = audienceOf([ADA, BO, CY, DI, DI], POPULATION);
 		expect(programs).toEqual([
@@ -117,6 +158,22 @@ describe("audienceOf", () => {
 		expect(programs.map(({ label }) => label)).toEqual([
 			"Program 9",
 			...names.slice(0, TOP_PROGRAMS - 1),
+		]);
+	});
+
+	it("counts registrants without a valid year but leaves them out of the cohorts", () => {
+		const audience = audienceOf([ADA, student("zero", "Bachelor", 0)], POPULATION);
+		expect(audience.total).toBe(2);
+		expect(audience.cohorts.map(({ label }) => label)).toEqual(["Bachelor 1. år"]);
+	});
+
+	it("leaves PhD students out of totals and shares", () => {
+		const phd = student("ph", "PhD", 2);
+		const audience = audienceOf([ADA, phd], [...POPULATION, phd], [phd]);
+		expect(audience.total).toBe(1);
+		expect(audience.reached).toBe(1);
+		expect(audience.cohorts).toEqual([
+			expect.objectContaining({ label: "Bachelor 1. år", share: 1, populationShare: 2 / 4 }),
 		]);
 	});
 
