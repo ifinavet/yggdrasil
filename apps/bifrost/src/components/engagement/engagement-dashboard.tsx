@@ -1,11 +1,12 @@
 "use client";
 
+import { useConvexAuth } from "@workspace/auth/convex";
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { Panel } from "@workspace/ui/components/products/panel";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/components/tabs";
-import { useConvexAuth, useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { useEffect, useRef, useState } from "react";
 import { useMinute } from "@/hooks/use-minute";
 import { AlertsPanel } from "./alerts-panel";
