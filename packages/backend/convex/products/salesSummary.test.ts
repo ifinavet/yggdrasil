@@ -11,6 +11,7 @@ import {
 	productMix,
 	productSalesSummary,
 	revenuePerSemester,
+	revenueSources,
 	type Sale,
 	type SemesterRef,
 	salesInSemester,
@@ -310,6 +311,43 @@ describe("companyActivity", () => {
 		expect(companyActivity(sales, [{ semester: "vår", year: 2026 }, VAR_2027])).toEqual([
 			{ semester: "vår", year: 2026, key: "2026-0", returning: 0, new: 1 },
 			{ ...VAR_2027, key: "2027-0", returning: 1, new: 1 },
+		]);
+	});
+});
+
+describe("revenueSources", () => {
+	it("splits revenue into new and returning and sums the top companies", () => {
+		const sales = [
+			sale({ companyId: "c1", year: 2026, revenueOre: 500 }),
+			sale({ companyId: "c1", revenueOre: 700 }),
+			...["c2", "c3", "c4", "c5", "c6"].map((companyId, index) =>
+				sale({ companyId, revenueOre: 100 * (index + 1) }),
+			),
+		];
+		expect(revenueSources(sales, [{ semester: "vår", year: 2026 }, VAR_2027])).toEqual([
+			{
+				semester: "vår",
+				year: 2026,
+				key: "2026-0",
+				newOre: 500,
+				returningOre: 0,
+				topOre: 500,
+				totalOre: 500,
+			},
+			{
+				...VAR_2027,
+				key: "2027-0",
+				newOre: 1500,
+				returningOre: 700,
+				topOre: 2100,
+				totalOre: 2200,
+			},
+		]);
+	});
+
+	it("reports zero for a semester without sales", () => {
+		expect(revenueSources([], [VAR_2027])).toEqual([
+			{ ...VAR_2027, key: "2027-0", newOre: 0, returningOre: 0, topOre: 0, totalOre: 0 },
 		]);
 	});
 });

@@ -334,6 +334,36 @@ export function companyActivity(
 	});
 }
 
+export const TOP_COMPANIES = 5;
+
+export type SemesterRevenueSources = SemesterRef & {
+	key: string;
+	newOre: number;
+	returningOre: number;
+	topOre: number;
+	totalOre: number;
+};
+
+export function revenueSources(
+	sales: readonly Sale[],
+	window: readonly SemesterRef[],
+): SemesterRevenueSources[] {
+	const first = firstPurchaseKeys(sales);
+	return window.map((semester) => {
+		const key = semesterKey(semester);
+		const byCompany = new Map<string, number>();
+		let newOre = 0;
+		for (const sale of salesInSemester(sales, key)) {
+			byCompany.set(sale.companyId, (byCompany.get(sale.companyId) ?? 0) + sale.revenueOre);
+			if (first.get(sale.companyId) === key) newOre += sale.revenueOre;
+		}
+		const amounts = [...byCompany.values()].sort((a, b) => b - a);
+		const totalOre = amounts.reduce((sum, amount) => sum + amount, 0);
+		const topOre = amounts.slice(0, TOP_COMPANIES).reduce((sum, amount) => sum + amount, 0);
+		return { ...semester, key, newOre, returningOre: totalOre - newOre, topOre, totalOre };
+	});
+}
+
 export type CompanyHistory = {
 	companyId: string;
 	companyName: string;

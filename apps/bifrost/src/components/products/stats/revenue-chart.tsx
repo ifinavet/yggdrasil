@@ -135,7 +135,11 @@ export function RevenueChart({
 	}, [semesters, selectedKey]);
 
 	return (
-		<Panel title="Inntekt per semester" aside={<ChartLegend items={LEGEND} />}>
+		<Panel
+			title="Inntekt per semester"
+			description="Hvor mye vi har solgt for hvert semester. Trykk på en stolpe for å se bare det semesteret."
+			aside={<ChartLegend items={LEGEND} />}
+		>
 			<PanelBody className="cursor-pointer">
 				<Chart
 					definition={definition}

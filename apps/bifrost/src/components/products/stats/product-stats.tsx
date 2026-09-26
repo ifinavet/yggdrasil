@@ -8,6 +8,7 @@ import {
 	lapsedCompanies,
 	productMix,
 	revenuePerSemester,
+	revenueSources,
 	salesInSemester,
 	salesInWindow,
 	salesOverview,
@@ -33,6 +34,7 @@ import { LapsedCompanies } from "./lapsed-companies";
 import { ProductMix } from "./product-mix";
 import { RetentionChart } from "./retention-chart";
 import { RevenueChart } from "./revenue-chart";
+import { NewRevenueChart, RevenueConcentration } from "./revenue-sources";
 import {
 	guessedWarning,
 	REVENUE_ESTIMATE_NOTE,
@@ -61,6 +63,7 @@ export function ProductStats() {
 			scopeLabel:
 				selectedKey === null ? ALL_SEMESTERS_LABEL : semesterLabel(semesterFromKey(selectedKey)),
 			revenue: revenuePerSemester(counted, window),
+			sources: revenueSources(counted, window),
 			mix: productMix(selected),
 			activity: companyActivity(counted, window),
 			histories,
@@ -129,6 +132,11 @@ export function ProductStats() {
 			<div className="grid gap-5 lg:grid-cols-2">
 				<RetentionChart activity={view.activity} />
 				<LapsedCompanies companies={view.lapsed} />
+			</div>
+
+			<div className="grid gap-5 lg:grid-cols-2">
+				<NewRevenueChart sources={view.sources} />
+				<RevenueConcentration sources={view.sources} />
 			</div>
 
 			<CompanyTable

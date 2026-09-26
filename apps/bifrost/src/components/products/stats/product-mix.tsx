@@ -17,7 +17,11 @@ export function ProductMix({
 	const totalOre = rows.reduce((sum, row) => sum + row.revenueOre, 0);
 
 	return (
-		<Panel title="Produktmiks" aside={<PanelNote>{scopeLabel}</PanelNote>}>
+		<Panel
+			title="Produktmiks"
+			description="Hva bedriftene kjøper, og hvor mye hvert produkt har gitt i inntekt."
+			aside={<PanelNote>{scopeLabel}</PanelNote>}
+		>
 			<PanelBody className="py-1.5 text-sm">
 				{rows.map((row) => (
 					<div key={row.productId} className={ROW}>

@@ -85,7 +85,11 @@ export function RetentionChart({ activity }: Readonly<{ activity: readonly Compa
 	}, [activity]);
 
 	return (
-		<Panel title="Nye og tilbakevendende bedrifter" aside={<ChartLegend items={LEGEND} />}>
+		<Panel
+			title="Nye og tilbakevendende bedrifter"
+			description="Hvor mange bedrifter som kjøpte noe, og hvor mange av dem som var nye. Mange som kommer tilbake er et godt tegn."
+			aside={<ChartLegend items={LEGEND} />}
+		>
 			<PanelBody>
 				<Chart
 					definition={definition}

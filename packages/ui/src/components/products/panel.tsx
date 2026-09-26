@@ -5,15 +5,25 @@ import type { ReactNode } from "react";
 export function Panel({
 	title,
 	aside,
+	description,
 	className,
 	children,
-}: Readonly<{ title?: ReactNode; aside?: ReactNode; className?: string; children: ReactNode }>) {
+}: Readonly<{
+	title?: ReactNode;
+	aside?: ReactNode;
+	description?: ReactNode;
+	className?: string;
+	children: ReactNode;
+}>) {
 	return (
 		<Card className={cn("min-w-0 gap-0 rounded-lg py-0 shadow-none", className)}>
 			{title && (
-				<CardHeader className="flex items-center justify-between gap-3 border-b px-4 py-3.5 font-semibold [.border-b]:pb-3.5">
-					{title}
-					{aside}
+				<CardHeader className="block border-b px-4 py-3.5 [.border-b]:pb-3.5">
+					<div className="flex items-center justify-between gap-3 font-semibold">
+						{title}
+						{aside}
+					</div>
+					{description && <p className="mt-1 text-[13px] text-muted-foreground">{description}</p>}
 				</CardHeader>
 			)}
 			{children}
