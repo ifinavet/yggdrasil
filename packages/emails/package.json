@@ -22,7 +22,7 @@
 		"@types/react": "19.3.0",
 		"@types/react-dom": "19.3.0",
 		"@workspace/typescript-config": "workspace:*",
-		"typescript": "^5.9.3"
+		"typescript": "^7.0.2"
 	},
 	"exports": {
 		"./constants": "./constants.ts",

@@ -13,7 +13,7 @@
 	},
 	"devDependencies": {
 		"@workspace/typescript-config": "workspace:*",
-		"typescript": "^5.9.3",
+		"typescript": "^7.0.2",
 		"@types/react": "19.3.0"
 	},
 	"exports": {
