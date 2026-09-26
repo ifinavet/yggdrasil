@@ -9,7 +9,6 @@
 	},
 	"keywords": [],
 	"author": "",
-	"packageManager": "pnpm@10.14.0",
 	"dependencies": {
 		"@react-email/render": "^2.1.0",
 		"@workspace/shared": "workspace:*",

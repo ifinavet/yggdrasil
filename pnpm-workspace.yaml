@@ -7,3 +7,15 @@ overrides:
   react-dom: "19.2.8"
   "@types/react": "19.2.18"
   "@types/react-dom": "19.2.4"
+  # jayson reaches uuid through @clerk/ui -> @solana/web3.js and has no direct
+  # upgrade path, so GHSA-w5hq-g745-h8pq can only be closed here. The matching
+  # stream-json advisory is deliberately left open: its fix (3.5.0) moved the
+  # export map and jayson can no longer resolve stream-json/streamers/StreamValues.
+  uuid: "14.0.2"
+
+# Dependabot resolves the whole graph from scratch with a release-age cooldown it
+# injects itself. An exactly pinned dependency has no older version to fall back
+# on, so a pin younger than the cooldown fails every Dependabot run in the repo,
+# and the error surfaces in whichever unrelated pull request happens to run next.
+minimumReleaseAgeExclude:
+  - convex-test@0.0.59
