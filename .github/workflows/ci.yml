@@ -55,7 +55,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - name: Production deploy key only deploys, it cannot run functions
         run: |
-          if grep -n "convex run" .github/workflows/deploy-production.yml; then
+          if tr '\\\n' '  ' < .github/workflows/deploy-production.yml | grep -Eq 'convex[[:space:]]+run'; then
             echo "::error file=.github/workflows/deploy-production.yml::convex run needs permissions the production deploy key does not have. Seed data through an admin-gated mutation in the app instead."
             exit 1
           fi
