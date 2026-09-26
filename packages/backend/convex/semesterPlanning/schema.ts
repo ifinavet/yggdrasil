@@ -100,6 +100,7 @@ export const applicationContact = v.object({
 export const applicationBilling = v.object({
 	email: v.optional(v.string()),
 	details: v.optional(v.string()),
+	ehfInvoice: v.optional(v.boolean()),
 });
 
 export const semesterPlanningSchema = {

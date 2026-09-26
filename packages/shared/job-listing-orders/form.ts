@@ -109,6 +109,7 @@ export function jobListingOrderSchema(settings: JobListingOrderSettings, today: 
 			.max(MAX_LISTINGS_PER_ORDER, `Bestill høyst ${MAX_LISTINGS_PER_ORDER} annonser om gangen.`),
 		contact: orderContactSchema,
 		billing: orderBillingSchema.optional(),
+		ehfInvoice: z.boolean(),
 		note: optionalText(1000, "Tilleggsinformasjonen kan ha høyst 1000 tegn."),
 		confirmAmount: z.literal(true, { error: "Bekreft bestillingen og beløpet." }),
 	});

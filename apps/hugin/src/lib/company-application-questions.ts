@@ -83,6 +83,7 @@ export const COMPANY_APPLICATION_COPY = {
 		label: "Hvordan vil dere få fakturaen?",
 		emailLabel: "E-post for faktura",
 		detailsLabel: "Annen fakturainformasjon",
+		ehfLabel: "Send fakturaen som EHF",
 	},
 	additionalInfo: {
 		label: "Noe dere vil legge til?",

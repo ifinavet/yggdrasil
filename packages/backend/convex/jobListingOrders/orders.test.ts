@@ -78,6 +78,7 @@ function existingCompanyForm(f: Fixture, overrides: Record<string, unknown> = {}
 		listings: [listing("Backendutvikler"), listing("Frontendutvikler")],
 		contact: { name: "Ingrid Solberg", email: "ingrid@fjordkode.no", phone: "+47 412 34 567" },
 		billing,
+		ehfInvoice: false,
 		confirmAmount: true as const,
 		...overrides,
 	};
@@ -156,6 +157,16 @@ describe("submit", () => {
 		expect(emails).toHaveLength(1);
 		expect(emails[0]?.to).toBe("ingrid@fjordkode.no");
 		expect(emails[0]?.html).toContain(`${HUGIN_URL}/bestill-stillingsannonse/bekreft#token=`);
+	});
+
+	it("stores EHF on the order without touching the company billing", async () => {
+		const f = await fixture();
+		const before = await f.t.run((ctx) => ctx.db.get(f.companyId));
+		await submitOrder(f.t, existingCompanyForm(f, { ehfInvoice: true }));
+
+		expect((await onlyOrder(f.t)).ehfInvoice).toBe(true);
+		const after = await f.t.run((ctx) => ctx.db.get(f.companyId));
+		expect(after?.billing).toEqual(before?.billing);
 	});
 
 	it("prices a startup order per listing", async () => {

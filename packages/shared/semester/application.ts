@@ -70,6 +70,7 @@ export const applicationFormSchema = z
 		billing: z.object({
 			email: email("Skriv en gyldig e-postadresse for faktura.").optional(),
 			details: optionalText(500, "Fakturainformasjonen kan ha høyst 500 tegn."),
+			ehfInvoice: z.boolean(),
 		}),
 		targetDegrees: z
 			.array(z.enum(DEGREE_TYPES, { error: "Ugyldig grad." }))

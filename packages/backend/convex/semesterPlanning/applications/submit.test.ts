@@ -34,7 +34,11 @@ function validForm(overrides: Record<string, unknown> = {}) {
 		wantsToUseEscape: "unsure" as const,
 		foodAndDrinks: true,
 		foodPurchasedBy: "company" as const,
-		billing: { email: "faktura@fjordkode.no", details: "Referanse: PO-2027-014" },
+		billing: {
+			email: "faktura@fjordkode.no",
+			details: "Referanse: PO-2027-014",
+			ehfInvoice: false,
+		},
 		targetDegrees: ["Bachelor" as const],
 		targetStudyPrograms: [],
 		consent: true,
@@ -121,7 +125,11 @@ describe("submit", () => {
 				website: "www.fjordkode.no",
 				employeeCount: 48,
 			},
-			billing: { email: "faktura@fjordkode.no", details: "Referanse: PO-2027-014" },
+			billing: {
+				email: "faktura@fjordkode.no",
+				details: "Referanse: PO-2027-014",
+				ehfInvoice: false,
+			},
 			consent: { version: "2026-10" },
 		});
 		expect(application?.assignedDate).toBeUndefined();
@@ -165,8 +173,8 @@ describe("submit", () => {
 	});
 
 	it.each([
-		["only an email", { email: "faktura@fjordkode.no" }],
-		["only a text", { details: "EHF til 982463718" }],
+		["only an email", { email: "faktura@fjordkode.no", ehfInvoice: false }],
+		["only a text and EHF", { details: "EHF til 982463718", ehfInvoice: true }],
 	])("accepts billing with %s", async (_case, billing) => {
 		const { t } = await setup();
 		await withOpenSemester(t);
@@ -180,9 +188,11 @@ describe("submit", () => {
 		const { t } = await setup();
 		await withOpenSemester(t);
 
-		expect(await refusalMessageFrom(submitWith(t, { form: validForm({ billing: {} }) }))).toBe(
-			"Skriv en e-post for faktura, eller hvordan dere vil ha fakturaen.",
-		);
+		expect(
+			await refusalMessageFrom(
+				submitWith(t, { form: validForm({ billing: { ehfInvoice: false } }) }),
+			),
+		).toBe("Skriv en e-post for faktura, eller hvordan dere vil ha fakturaen.");
 	});
 
 	it("saves one application when the same submission arrives twice", async () => {

@@ -119,9 +119,17 @@ export function placeName(city: string): string {
 		.join(" ");
 }
 
-/** The invoice answer on the receipt: the email and the free text, each on its own line. */
-export function billingLines(billing: { email?: string; details?: string }): string[] {
-	return [billing.email, billing.details].filter((line): line is string => Boolean(line));
+/** The invoice answer on the receipt: the email, the free text and EHF, each on its own line. */
+export function billingLines(billing: {
+	email?: string;
+	details?: string;
+	ehfInvoice?: boolean;
+}): string[] {
+	return [
+		billing.email,
+		billing.details,
+		billing.ehfInvoice ? "Faktura som EHF" : undefined,
+	].filter((line): line is string => Boolean(line));
 }
 
 export function hitMeta(hit: RegistryHit): string {

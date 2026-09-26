@@ -66,6 +66,7 @@ export const jobListingOrdersSchema = {
 		priceOre: v.number(),
 		contact: orderContact,
 		billing: v.optional(companyBilling),
+		ehfInvoice: v.optional(v.boolean()),
 		note: v.optional(v.string()),
 		confirmedAt: v.optional(v.number()),
 		decidedAt: v.optional(v.number()),
