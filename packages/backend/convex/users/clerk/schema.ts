@@ -11,6 +11,7 @@ export const usersSchema = {
 		locked: v.boolean(),
 	})
 		.index("by_ExternalId", ["externalId"])
+		.index("by_email", ["email"])
 		.searchIndex("search_email", {
 			searchField: "email",
 		}),

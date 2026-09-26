@@ -36,6 +36,7 @@
 		"./semester/labels": "./semester/labels.ts",
 		"./semester/prices": "./semester/prices.ts",
 		"./semester/team": "./semester/team.ts",
+		"./iam": "./iam/index.ts",
 		"./feedback/report": "./feedback/report.ts",
 		"./feedback/report-csv": "./feedback/report-csv.ts"
 	},

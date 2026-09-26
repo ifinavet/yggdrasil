@@ -9,6 +9,7 @@ import {
 	revokeAccessRole,
 	superAdminRoles,
 } from "../../auth/accessRights";
+import { startOffboarding } from "../../iam/lifecycle";
 
 /**
  * Updates a board member assignment and synchronizes access rights.
@@ -143,6 +144,7 @@ export const removeInternal = mutation({
 
 		await ctx.db.delete(id);
 		await revokeAccessRole(ctx, internalToRemove.userId);
+		await startOffboarding(ctx, internalToRemove, await ctx.db.get(internalToRemove.userId));
 	},
 });
 

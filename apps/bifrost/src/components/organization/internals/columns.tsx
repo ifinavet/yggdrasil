@@ -1,6 +1,16 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import type { ACCESS_RIGHTS } from "@workspace/shared/constants";
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogTitle,
+	AlertDialogTrigger,
+} from "@workspace/ui/components/alert-dialog";
 import { Button } from "@workspace/ui/components/button";
 import { Input } from "@workspace/ui/components/input";
 import { Trash } from "lucide-react";
@@ -15,6 +25,31 @@ export type InternalsTable = {
 	group: string;
 	role: (typeof ACCESS_RIGHTS)[number];
 };
+
+function GroupInput({
+	initialGroup,
+	onSave,
+}: Readonly<{ initialGroup: string; onSave: (group: string) => void }>) {
+	const [localGroup, setLocalGroup] = useState(initialGroup);
+
+	return (
+		<Input
+			className="md:w-1/2"
+			type="text"
+			placeholder="eks. webgruppen 🦖"
+			value={localGroup}
+			onChange={(e) => setLocalGroup(e.target.value)}
+			onBlur={() => {
+				if (localGroup !== initialGroup) onSave(localGroup);
+			}}
+			onKeyDown={(e) => {
+				if (e.key === "Enter") {
+					e.currentTarget.blur();
+				}
+			}}
+		/>
+	);
+}
 
 export const createColumns = (
 	onDelete: (internalsId: Id<"internals">) => void,
@@ -39,33 +74,13 @@ export const createColumns = (
 	{
 		accessorKey: "group",
 		header: "Gruppe",
-		cell: ({ row }) => {
-			const internalsId = row.original.internalId;
-			const initialGroup = row.original.group;
-			const [localGroup, setLocalGroup] = useState(initialGroup);
-
-			const handleBlur = () => {
-				if (localGroup !== initialGroup) {
-					onUpdateGroup(internalsId, localGroup);
-				}
-			};
-
-			return (
-				<Input
-					className="md:w-1/2"
-					type="text"
-					placeholder="eks. webgruppen 🦖"
-					value={localGroup}
-					onChange={(e) => setLocalGroup(e.target.value)}
-					onBlur={handleBlur}
-					onKeyDown={(e) => {
-						if (e.key === "Enter") {
-							e.currentTarget.blur();
-						}
-					}}
-				/>
-			);
-		},
+		cell: ({ row }) => (
+			<GroupInput
+				key={row.original.internalId}
+				initialGroup={row.original.group}
+				onSave={(group) => onUpdateGroup(row.original.internalId, group)}
+			/>
+		),
 	},
 	{
 		accessorKey: "role",
@@ -84,11 +99,26 @@ export const createColumns = (
 	{
 		id: "actions",
 		cell: ({ row }) => (
-			<div className="flex gap-2">
-				<Button variant="destructive" size="icon" onClick={() => onDelete(row.original.internalId)}>
-					<Trash className="size-4" />
-				</Button>
-			</div>
+			<AlertDialog>
+				<AlertDialogTrigger asChild>
+					<Button variant="destructive" size="icon" aria-label={`Fjern ${row.original.fullName}`}>
+						<Trash className="size-4" />
+					</Button>
+				</AlertDialogTrigger>
+				<AlertDialogContent>
+					<AlertDialogTitle>Fjerne {row.original.fullName}?</AlertDialogTitle>
+					<AlertDialogDescription>
+						Google-kontoen blir suspendert, tilgangen til Bifrost fjernes og personen blir fjernet
+						fra alle Slack-kanaler. Slack-kontoen må du deaktivere selv etterpå.
+					</AlertDialogDescription>
+					<AlertDialogFooter>
+						<AlertDialogCancel>Avbryt</AlertDialogCancel>
+						<AlertDialogAction onClick={() => onDelete(row.original.internalId)}>
+							Fjern
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 		),
 	},
 ];

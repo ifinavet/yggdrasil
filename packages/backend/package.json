@@ -25,6 +25,7 @@
 		"@workspace/shared": "workspace:*",
 		"convex": "^1.46.0",
 		"convex-helpers": "^0.1.124",
+		"jose": "6.2.12",
 		"svix": "^1.99.1",
 		"xss": "^1.0.15"
 	},

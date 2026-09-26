@@ -1,0 +1,187 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+	asUser,
+	grantRole,
+	insertUser,
+	setup,
+	type TestBackend,
+	type TestUser,
+} from "../../test/fixtures";
+import { ADMIN_EMAIL, configureGoogle, configureSlack, fakeDirectories } from "../../test/iamFakes";
+import { api, internal } from "../_generated/api";
+import type { Id } from "../_generated/dataModel";
+import { matchSlack } from "./actions";
+import { computeDrift } from "./drift";
+
+const directory = {
+	memberEmails: new Set(["kari@ifinavet.no"]),
+	internalWorkspaceEmails: new Set(["kari@ifinavet.no"]),
+	reservedEmails: new Set(["styret@ifinavet.no"]),
+};
+
+describe("computeDrift", () => {
+	it("flags accounts nobody added and members who lost their Google account", () => {
+		const drift = computeDrift(
+			{ ...directory, internalWorkspaceEmails: new Set(["kari@ifinavet.no", "ola@ifinavet.no"]) },
+			[
+				{ email: "kari@ifinavet.no", name: "Kari", suspended: false },
+				{ email: "ola@ifinavet.no", name: "Ola", suspended: true },
+				{ email: "ukjent@ifinavet.no", name: "Ukjent", suspended: false },
+				{ email: "gammel@ifinavet.no", name: "Gammel", suspended: true },
+				{ email: "styret@ifinavet.no", name: "Styret", suspended: false },
+			],
+			[
+				{ id: "U1", email: "kari@ifinavet.no", name: "Kari", deactivated: false },
+				{ id: "U2", email: "gjest@gmail.com", name: "Gjest", deactivated: false },
+				{ id: "U3", email: "borte@gmail.com", name: "Borte", deactivated: true },
+			],
+		);
+
+		expect(drift).toEqual([
+			{ kind: "google_without_member", email: "ukjent@ifinavet.no", name: "Ukjent" },
+			{ kind: "member_google_suspended", email: "ola@ifinavet.no" },
+			{ kind: "slack_without_member", email: "gjest@gmail.com", name: "Gjest" },
+		]);
+	});
+
+	it("reports nothing for a directory it could not read", () => {
+		expect(computeDrift(directory, null, null)).toEqual([]);
+	});
+});
+
+describe("matchSlack", () => {
+	const accountId = "account" as Id<"memberAccounts">;
+
+	it("links members by email and notices deactivated Slack users of removed members", () => {
+		expect(
+			matchSlack(
+				[
+					{ accountId, stage: "active", email: "Kari@ifinavet.no" },
+					{ accountId, stage: "offboarded", email: "per@ifinavet.no", slackUserId: "U2" },
+				],
+				[
+					{ id: "U1", email: "kari@ifinavet.no", name: "Kari", deactivated: false },
+					{ id: "U2", email: "per@ifinavet.no", name: "Per", deactivated: true },
+				],
+			),
+		).toEqual({ slackLinks: [{ accountId, slackUserId: "U1" }], slackDeactivated: [accountId] });
+	});
+
+	it("does nothing without Slack data", () => {
+		expect(matchSlack([{ accountId, stage: "active", email: "kari@ifinavet.no" }], null)).toEqual({
+			slackLinks: [],
+			slackDeactivated: [],
+		});
+	});
+});
+
+describe("nightly reconciliation", () => {
+	let t: TestBackend;
+	let admin: TestUser;
+	let directories: ReturnType<typeof fakeDirectories>;
+
+	beforeEach(async () => {
+		({ t } = await setup());
+		admin = await insertUser(t, "leder@ifinavet.no");
+		await grantRole(t, admin._id, "admin");
+		await t.run((ctx) =>
+			ctx.db.insert("internals", { userId: admin._id, group: "Styret", position: "Leder" }),
+		);
+		await configureGoogle();
+		configureSlack();
+		directories = fakeDirectories();
+		directories.google.set(ADMIN_EMAIL, { name: "Admin", suspended: false });
+		directories.google.set("leder@ifinavet.no", { name: "Leder", suspended: false });
+		directories.google.set("snik@ifinavet.no", { name: "Snik", suspended: false });
+		directories.slackUsers.push(
+			{ id: "U1", email: "leder@ifinavet.no", name: "Leder" },
+			{ id: "U9", email: "gjest@gmail.com", name: "Gjest" },
+			{ id: "B1", email: "bot@ifinavet.no", name: "Bot", bot: true },
+		);
+	});
+
+	afterEach(() => {
+		vi.unstubAllEnvs();
+		vi.unstubAllGlobals();
+	});
+
+	async function drift() {
+		return (await asUser(t, admin).query(api.iam.queries.overview, {})).drift.map(
+			({ kind, email }) => ({
+				kind,
+				email,
+			}),
+		);
+	}
+
+	it("lists accounts created outside Bifrost and forgets the ones an admin ignores", async () => {
+		await t.action(internal.iam.actions.reconcile, {});
+
+		expect(await drift()).toEqual(
+			expect.arrayContaining([
+				{ kind: "google_without_member", email: "snik@ifinavet.no" },
+				{ kind: "slack_without_member", email: "gjest@gmail.com" },
+			]),
+		);
+		expect(await drift()).toHaveLength(2);
+
+		await asUser(t, admin).mutation(api.iam.mutations.ignoreDrift, { email: "snik@ifinavet.no" });
+		await t.action(internal.iam.actions.reconcile, {});
+
+		expect(await drift()).toEqual([{ kind: "slack_without_member", email: "gjest@gmail.com" }]);
+	});
+
+	it("leaves members alone while their removal is still running", async () => {
+		directories.google.set("borte@ifinavet.no", { name: "Borte", suspended: false });
+		await t.run((ctx) =>
+			ctx.db.insert("memberAccounts", {
+				workspaceEmail: "borte@ifinavet.no",
+				uioEmail: "borte@uio.no",
+				firstName: "Borte",
+				lastName: "Nordmann",
+				group: "Bedrift",
+				stage: "offboarding",
+				google: "created",
+				updatedAt: 0,
+			}),
+		);
+
+		await t.action(internal.iam.actions.reconcile, {});
+
+		expect(await drift()).not.toContainEqual(
+			expect.objectContaining({ email: "borte@ifinavet.no" }),
+		);
+	});
+
+	it("keeps the last Google findings when Google cannot be read", async () => {
+		await t.action(internal.iam.actions.reconcile, {});
+		directories.failures.google = true;
+		directories.slackUsers.splice(1, 1);
+
+		await t.action(internal.iam.actions.reconcile, {});
+
+		expect(await drift()).toEqual([{ kind: "google_without_member", email: "snik@ifinavet.no" }]);
+	});
+
+	it("marks Slack as deactivated for removed members once Slack reports it", async () => {
+		const accountId = await t.run((ctx) =>
+			ctx.db.insert("memberAccounts", {
+				workspaceEmail: "per@ifinavet.no",
+				firstName: "Per",
+				lastName: "Hansen",
+				group: "Bedrift",
+				stage: "offboarded",
+				google: "suspended",
+				slackUserId: "U5",
+				updatedAt: 0,
+			}),
+		);
+		directories.slackUsers.push({ id: "U5", email: "per@ifinavet.no", name: "Per", deleted: true });
+
+		await t.action(internal.iam.actions.reconcile, {});
+
+		expect((await t.run((ctx) => ctx.db.get(accountId)))?.slackDeactivatedAt).toEqual(
+			expect.any(Number),
+		);
+	});
+});
