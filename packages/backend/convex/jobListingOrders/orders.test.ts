@@ -383,6 +383,20 @@ describe("admin review", () => {
 		expect(published?.html).toContain(`/job-listings/${listings[0]?._id}`);
 	});
 
+	it("tags the published listings with the ordered product so they count as sales", async () => {
+		const f = await fixture();
+		const orderId = await confirmedOrder(f);
+
+		await f.adminClient.mutation(api.jobListingOrders.admin.approve, { orderId });
+
+		const listings = await f.t.run((ctx) => ctx.db.query("jobListings").collect());
+		const product = await f.t.run((ctx) => ctx.db.get(f.productId));
+		expect(listings.map((row) => row.product)).toEqual([
+			{ productId: f.productId, name: product?.name, unitPriceOre: product?.unitPriceOre },
+			{ productId: f.productId, name: product?.name, unitPriceOre: product?.unitPriceOre },
+		]);
+	});
+
 	it("blocks publishing until the update request is decided, then applies it", async () => {
 		const f = await fixture();
 		const orderId = await confirmedOrder(

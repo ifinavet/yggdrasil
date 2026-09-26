@@ -7,6 +7,7 @@ import { type MutationCtx, mutation, type QueryCtx, query } from "../_generated/
 import { internalRoles, requireRole } from "../auth/accessRights";
 import { findCompanyLogoUrl } from "../companies/helper";
 import { companyBilling } from "../companies/schema";
+import { jobListingProductFields, snapshotOf } from "../products/sales";
 import { listOrderItems, orderCompanyName } from "./orders";
 import { sanitizeRichText } from "./sanitize";
 import { orderContact, orderItemFields, orderStatus } from "./schema";
@@ -273,8 +274,13 @@ export const approve = mutation({
 			throw new ConvexError("Godkjenn eller avvis endringen i bedriftsinformasjonen først.");
 		}
 		const companyId = await companyForPublishing(ctx, order);
+		const orderedProduct = await ctx.db.get(order.productId);
+		const productFields = orderedProduct
+			? { product: snapshotOf(orderedProduct) }
+			: await jobListingProductFields(ctx);
 		for (const item of await listOrderItems(ctx, orderId)) {
 			const listingId = await ctx.db.insert("jobListings", {
+				...productFields,
 				title: item.title,
 				type: item.type,
 				teaser: item.teaser,
