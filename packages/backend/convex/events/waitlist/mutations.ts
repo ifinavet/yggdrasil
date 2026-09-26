@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { internal } from "../../_generated/api";
 import { internalMutation } from "../../_generated/server";
+import { logRegistrationChange } from "../../engagement/log";
 import { fillOpenSeats } from "../registrations/mutations";
 
 /**
@@ -52,6 +53,7 @@ export const checkPendingRegistrations = internalMutation({
 					status: "waitlist",
 					registrationTime: now,
 				});
+				await logRegistrationChange(ctx, registration, "expired", now);
 			}
 
 			await fillOpenSeats(ctx, event);
@@ -108,6 +110,7 @@ export const clearWaitlistAndPending = internalMutation({
 							const user = await ctx.db.get(reg.userId);
 							if (!user) {
 								await ctx.db.delete(reg._id);
+								await logRegistrationChange(ctx, reg, "cleared", now);
 								return;
 							}
 
@@ -121,6 +124,7 @@ export const clearWaitlistAndPending = internalMutation({
 
 							// Delete registrations
 							await ctx.db.delete(reg._id);
+							await logRegistrationChange(ctx, reg, "cleared", now);
 						}),
 				);
 			}),

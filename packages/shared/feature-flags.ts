@@ -19,6 +19,9 @@ export const featureFlags = {
 		// Midgard to everyone. While off, only browsers with the preview opt-in see them.
 		uiEnabled: false,
 	},
+	engagement: {
+		uiEnabled: false,
+	},
 };
 
 export const browserOptInKeys = {
@@ -27,6 +30,7 @@ export const browserOptInKeys = {
 	huginFeedbackPreview: "hugin-feedback-preview",
 	huginFeedbackTestSend: "hugin-feedback-testsend",
 	semesterPlanningPreview: "semester-planning-preview",
+	engagementPreview: "engagement-preview",
 } as const;
 
 export type BrowserOptIn = keyof typeof browserOptInKeys;
@@ -38,4 +42,5 @@ export const featurePreviewOptIns = {
 	products: "productsPreview",
 	jobListingOrders: "jobListingOrdersPreview",
 	semesterPlanning: "semesterPlanningPreview",
+	engagement: "engagementPreview",
 } as const satisfies Record<GatedFeature, BrowserOptIn>;

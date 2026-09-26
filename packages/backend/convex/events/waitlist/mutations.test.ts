@@ -11,10 +11,21 @@ import {
 	scheduledRecipientsOf,
 	setup,
 	statusOf,
+	type TestBackend,
 } from "../../../test/fixtures";
 import { internal } from "../../_generated/api";
+import type { Id } from "../../_generated/dataModel";
 
 const waitlistMutations = internal.events.waitlist.mutations;
+
+async function registrationLogFor(t: TestBackend, eventId: Id<"events">) {
+	return t.run((ctx) =>
+		ctx.db
+			.query("registrationLog")
+			.withIndex("by_eventId_and_at", (q) => q.eq("eventId", eventId))
+			.collect(),
+	);
+}
 
 const ANSWER_TIME_LIMIT_IN_MS = 16 * HOUR_IN_MS;
 const EXPIRED_OFFER_AGE_IN_MS = ANSWER_TIME_LIMIT_IN_MS + HOUR_IN_MS;
@@ -453,5 +464,77 @@ describe("fixWaitlist", () => {
 		expect(await statusOf(t, waitingId)).toBe("waitlist");
 		expect(await countRegistrationsForEvent(t, eventId)).toBe(2);
 		expect(await scheduledRecipientsOf(t, "sendAvailableSeatEmail")).toEqual([]);
+	});
+});
+
+describe("engagement logging", () => {
+	it("logs an expired change when checkPendingRegistrations moves an offer back", async () => {
+		const { t, companyId } = await setup();
+		const now = Date.now();
+		const eventId = await insertEvent(t, companyId, { participationLimit: 1 });
+		const expiredUser = await insertUser(t, "logg-utlopt@example.com");
+		await insertRegistration(t, eventId, expiredUser._id, "pending", now - EXPIRED_OFFER_AGE_IN_MS);
+
+		await t.mutation(waitlistMutations.checkPendingRegistrations, {});
+
+		const log = await registrationLogFor(t, eventId);
+		expect(log).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					userId: expiredUser._id,
+					change: "expired",
+					fromStatus: "pending",
+				}),
+			]),
+		);
+	});
+
+	it("logs a cleared change for a waitlisted registrant whose user no longer exists", async () => {
+		const { t, companyId } = await setup();
+		const now = Date.now();
+		const eventId = await insertEvent(t, companyId, { participationLimit: 10, eventStart: now });
+		const departedUser = await insertUser(t, "logg-slettet@example.com");
+		await insertRegistration(t, eventId, departedUser._id, "waitlist", now);
+		await t.run((ctx) => ctx.db.delete(departedUser._id));
+
+		await t.mutation(waitlistMutations.clearWaitlistAndPending, {});
+
+		const log = await registrationLogFor(t, eventId);
+		expect(log).toEqual([
+			expect.objectContaining({
+				userId: departedUser._id,
+				change: "cleared",
+				fromStatus: "waitlist",
+			}),
+		]);
+	});
+
+	it("logs a cleared change for every waitlisted and pending registration removed", async () => {
+		const { t, companyId } = await setup();
+		const now = Date.now();
+		const eventId = await insertEvent(t, companyId, { participationLimit: 10, eventStart: now });
+		const offeredUser = await insertUser(t, "logg-tilbudt@example.com");
+		await insertRegistration(t, eventId, offeredUser._id, "pending", now + 1);
+		const waitingUser = await insertUser(t, "logg-venter@example.com");
+		await insertRegistration(t, eventId, waitingUser._id, "waitlist", now + 2);
+
+		await t.mutation(waitlistMutations.clearWaitlistAndPending, {});
+
+		const log = await registrationLogFor(t, eventId);
+		expect(log).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					userId: offeredUser._id,
+					change: "cleared",
+					fromStatus: "pending",
+				}),
+				expect.objectContaining({
+					userId: waitingUser._id,
+					change: "cleared",
+					fromStatus: "waitlist",
+				}),
+			]),
+		);
+		expect(log).toHaveLength(2);
 	});
 });

@@ -170,7 +170,7 @@ export const getAll = query({
 	},
 });
 
-async function companyWithLogo(ctx: QueryCtx, companyId: Id<"companies">) {
+export async function companyWithLogo(ctx: QueryCtx, companyId: Id<"companies">) {
 	const company = await ctx.db.get(companyId);
 	if (!company) return { name: "Ukjent", logoUrl: null };
 	const logo = await ctx.db.get(company.logo);

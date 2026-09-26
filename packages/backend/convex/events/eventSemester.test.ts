@@ -1,7 +1,9 @@
 import {
+	DATE_PATTERNS,
 	EVENT_SEMESTER_LABELS,
 	eventSemesterOf,
 	eventSemesterRange,
+	formatOsloDate,
 	formatOsloToday,
 	isEventSemester,
 	MONTH_NAMES,
@@ -82,5 +84,26 @@ describe("formatOsloToday", () => {
 		vi.setSystemTime(Date.parse("2026-12-31T23:30:00Z"));
 
 		expect(formatOsloToday()).toBe("01.01.2027");
+	});
+});
+
+describe("formatOsloDate", () => {
+	it("shows Oslo wall-clock time in summer", () => {
+		expect(formatOsloDate(Date.parse("2026-07-01T10:15:00Z"), DATE_PATTERNS.time)).toBe("12:15");
+	});
+
+	it("shows Oslo wall-clock time in winter", () => {
+		expect(formatOsloDate(Date.parse("2026-01-15T10:15:00Z"), DATE_PATTERNS.time)).toBe("11:15");
+	});
+
+	it("rolls over to the Oslo date before UTC midnight", () => {
+		expect(formatOsloDate(Date.parse("2026-12-31T23:30:00.250Z"), "yyyy-MM-dd HH:mm:ss.SSS")).toBe(
+			"2027-01-01 00:30:00.250",
+		);
+	});
+
+	it("follows the spring daylight saving switch", () => {
+		expect(formatOsloDate(Date.parse("2026-03-29T00:59:00Z"), DATE_PATTERNS.time)).toBe("01:59");
+		expect(formatOsloDate(Date.parse("2026-03-29T01:00:00Z"), DATE_PATTERNS.time)).toBe("03:00");
 	});
 });

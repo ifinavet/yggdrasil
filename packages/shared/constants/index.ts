@@ -6,6 +6,11 @@ export { LISTING_COLORS } from "./listing_colors";
 export { ORGANIZER_ROLES, type OrganizerRole } from "./organizer_roles";
 export { STUDY_PROGRAMS } from "./programs";
 export {
+	REGISTRATION_STATUS_LABELS,
+	REGISTRATION_STATUSES,
+	type RegistrationStatus,
+} from "./registration_statuses";
+export {
 	BIFROST_LOCAL_URL,
 	BIFROST_URL,
 	HUGIN_LOCAL_URL,

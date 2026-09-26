@@ -1,6 +1,7 @@
 import { defineSchema } from "convex/server";
 import { accessSchema } from "./auth/schema";
 import { companiesSchema } from "./companies/schema";
+import { engagementSchema } from "./engagement/schema";
 import { eventsSchema } from "./events/schema";
 import { feedbackReportSchema } from "./feedback/reports/schema";
 import { feedbackSchema } from "./feedback/schema";
@@ -19,6 +20,7 @@ import { studentsSchema } from "./users/students/schema";
 export default defineSchema({
 	...companiesSchema,
 	...eventsSchema,
+	...engagementSchema,
 	...jobListingsSchema,
 	...jobListingOrdersSchema,
 	...pagesSchema,
