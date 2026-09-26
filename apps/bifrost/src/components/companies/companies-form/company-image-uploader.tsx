@@ -3,9 +3,11 @@
 import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
+import { LOGO_ACCEPT, LOGO_CONTENT_TYPES } from "@workspace/shared/logo";
 import { Button } from "@workspace/ui/components/button";
 import { Field, FieldError, FieldLabel, FieldSet } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
+import { logoUploadErrorMessage, uploadLogo } from "@workspace/ui/lib/logo-upload";
 import { useMutation } from "convex/react";
 import { Send, X } from "lucide-react";
 import { toast } from "sonner";
@@ -15,7 +17,7 @@ const schema = z.object({
 	image: z
 		.instanceof(File)
 		.refine(
-			(file) => ["image/jpeg", "image/svg+xml", "image/webp", "image/png"].includes(file.type),
+			(file) => (LOGO_CONTENT_TYPES as readonly string[]).includes(file.type),
 			"Bildet må være av type JPEG, SVG, WebP eller PNG",
 		),
 	name: z.string().min(1, "Navn er påkrevd"),
@@ -53,18 +55,10 @@ export default function CompanyImageUploader({
 			}
 
 			try {
-				const url = await generateUploadUrl();
-
-				const result = await fetch(url, {
-					method: "POST",
-					headers: { "Content-Type": value.image.type },
-					body: value.image,
-				});
-
-				const { storageId } = await result.json();
+				const { storageId } = await uploadLogo(value.image, generateUploadUrl);
 
 				const logoId = await storeCompanyImage({
-					id: storageId,
+					id: storageId as Id<"_storage">,
 					name: value.name,
 				});
 
@@ -76,7 +70,12 @@ export default function CompanyImageUploader({
 				}
 			} catch (error) {
 				console.error("Error uploading image:", error);
-				toast.error("Noe gikk galt under opplastingen av bildet. Vennligst prøv igjen.");
+				toast.error(
+					logoUploadErrorMessage(
+						error,
+						"Noe gikk galt under opplastingen av bildet. Vennligst prøv igjen.",
+					),
+				);
 			}
 		},
 	});
@@ -101,6 +100,7 @@ export default function CompanyImageUploader({
 								<Input
 									id={field.name}
 									type="file"
+									accept={LOGO_ACCEPT}
 									name={field.name}
 									onBlur={field.handleBlur}
 									aria-invalid={isInvalid}

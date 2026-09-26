@@ -1,17 +1,18 @@
 "use client";
 
 import { api } from "@workspace/backend/convex/api";
-import { logoProblem } from "@workspace/shared/job-listing-orders";
-import { convexErrorMessage } from "@workspace/shared/utils";
+import { LOGO_ACCEPT, LOGO_MESSAGES } from "@workspace/shared/logo";
 import { Button } from "@workspace/ui/components/button";
 import { FieldError } from "@workspace/ui/components/field";
+import {
+	logoUploadErrorMessage,
+	type UploadedLogo,
+	uploadLogo,
+} from "@workspace/ui/lib/logo-upload";
 import { useMutation } from "convex/react";
 import Image from "next/image";
 import { type ChangeEvent, type ReactNode, useRef, useState } from "react";
 import { companyCopy } from "@/lib/job-listing-order/copy";
-import { LOGO_ACCEPT } from "@/lib/job-listing-order/logo";
-
-export type UploadedLogo = Readonly<{ storageId: string; previewUrl: string }>;
 
 export function useLogoUpload(onUploaded: (logo: UploadedLogo) => void) {
 	const generateUploadUrl = useMutation(api.jobListingOrders.form.generateLogoUploadUrl);
@@ -20,24 +21,12 @@ export function useLogoUpload(onUploaded: (logo: UploadedLogo) => void) {
 	const [error, setError] = useState<string>();
 
 	const upload = async (file: File) => {
-		const problem = logoProblem(file.type, file.size);
-		if (problem) {
-			setError(problem);
-			return;
-		}
 		setError(undefined);
 		setUploading(true);
 		try {
-			const response = await fetch(await generateUploadUrl(), {
-				method: "POST",
-				headers: { "Content-Type": file.type },
-				body: file,
-			});
-			if (!response.ok) throw new Error(companyCopy.logoFailed);
-			const { storageId } = (await response.json()) as { storageId: string };
-			onUploaded({ storageId, previewUrl: URL.createObjectURL(file) });
+			onUploaded(await uploadLogo(file, generateUploadUrl));
 		} catch (uploadError) {
-			setError(convexErrorMessage(uploadError, companyCopy.logoFailed));
+			setError(logoUploadErrorMessage(uploadError));
 		} finally {
 			setUploading(false);
 		}
@@ -126,7 +115,7 @@ export function LogoUploadField({
 				>
 					{uploadButtonLabel(logo.uploading, hasLogo)}
 				</Button>
-				<span className="text-muted-foreground text-sm">{companyCopy.logoHint}</span>
+				<span className="text-muted-foreground text-sm">{LOGO_MESSAGES.hint}</span>
 				{logo.error && <FieldError>{logo.error}</FieldError>}
 			</div>
 			{logo.fileInput}

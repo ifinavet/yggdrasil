@@ -5,21 +5,6 @@ import type { JobListingOrderSettings } from "./settings";
 
 export const MAX_LISTINGS_PER_ORDER = 10;
 export const REJECTION_MAX_LENGTH = 1000;
-export const LOGO_CONTENT_TYPES = ["image/png", "image/svg+xml"] as const;
-export const LOGO_MAX_BYTES = 1_000_000;
-export const LOGO_MESSAGES = {
-	wrongType: "Logoen må være PNG eller SVG.",
-	tooLarge: `Logoen kan være høyst ${LOGO_MAX_BYTES / 1_000_000} MB.`,
-} as const;
-
-const logoContentTypes: readonly string[] = LOGO_CONTENT_TYPES;
-
-export function logoProblem(contentType: string | undefined, size: number): string | null {
-	if (!contentType || !logoContentTypes.includes(contentType)) return LOGO_MESSAGES.wrongType;
-	if (size > LOGO_MAX_BYTES) return LOGO_MESSAGES.tooLarge;
-	return null;
-}
-
 const RICH_TEXT_MAX_LENGTH = 20_000;
 
 export function richTextIsEmpty(html: string): boolean {

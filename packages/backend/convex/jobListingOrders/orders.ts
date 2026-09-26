@@ -1,7 +1,6 @@
 import {
 	type JobListingOrderForm,
 	jobListingOrderSchema,
-	logoProblem,
 	orderPriceOre,
 } from "@workspace/shared/job-listing-orders";
 import { DAY_MS, osloToday } from "@workspace/shared/time";
@@ -15,6 +14,7 @@ import {
 	mutation,
 	type QueryCtx,
 } from "../_generated/server";
+import { requireLogo } from "../companies/helper";
 import { companyBilling } from "../companies/schema";
 import { hashLinkToken } from "../lib/tokens";
 import { orderRateLimiter } from "./rateLimits";
@@ -64,15 +64,6 @@ export function parseOrderForm(
 		throw new ConvexError(result.error.issues[0]?.message ?? "Bestillingen er ugyldig.");
 	}
 	return result.data;
-}
-
-async function requireLogo(ctx: MutationCtx, id: string): Promise<Id<"_storage">> {
-	const storageId = ctx.db.system.normalizeId("_storage", id);
-	const file = storageId ? await ctx.db.system.get("_storage", storageId) : null;
-	if (!storageId || !file) throw new ConvexError("Last opp logoen på nytt.");
-	const problem = logoProblem(file.contentType, file.size);
-	if (problem) throw new ConvexError(problem);
-	return storageId;
 }
 
 async function nextReference(ctx: MutationCtx, now: number): Promise<string> {

@@ -28,6 +28,7 @@
 		"./feature-flags": "./feature-flags.ts",
 		"./products": "./products/index.ts",
 		"./job-listing-orders": "./job-listing-orders/index.ts",
+		"./logo": "./logo/index.ts",
 		"./time": "./time/index.ts",
 		"./semester/orgNumber": "./semester/orgNumber.ts",
 		"./semester/limits": "./semester/limits.ts",

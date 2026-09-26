@@ -1,5 +1,6 @@
 import type { EmailId, SendEmailOptions } from "@convex-dev/resend";
 import { HUGIN_URL } from "@workspace/shared/constants";
+import { LOGO_MESSAGES } from "@workspace/shared/logo";
 import { osloToday } from "@workspace/shared/time";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -237,13 +238,13 @@ describe("submit", () => {
 		expect(message).toBe("Bedriften er allerede registrert. Velg den fra listen.");
 	});
 
-	it("refuses a logo that is not PNG or SVG", async () => {
+	it("refuses a logo type the shared rules do not allow", async () => {
 		const f = await fixture();
 		const logo = await uploadLogo(f.t, "image/gif");
 		const message = await refusalMessageFrom(
 			submitOrder(f.t, existingCompanyForm(f, { companyChanges: { logo } })),
 		);
-		expect(message).toBe("Logoen må være PNG eller SVG.");
+		expect(message).toBe(LOGO_MESSAGES.wrongType);
 	});
 });
 
