@@ -291,6 +291,59 @@ function frontLoadedTimes(
 	).sort((a, b) => a - b);
 }
 
+function attendanceStatusFor(roll: number, attendanceRate: number) {
+	if (roll < attendanceRate) return "confirmed";
+	if (roll < attendanceRate + 0.06) return "late";
+	return "no_show";
+}
+
+async function registerPeople(
+	ctx: MutationCtx,
+	random: Random,
+	event: {
+		eventId: Id<"events">;
+		eventStart: number;
+		registeredCount: number;
+		attendanceRate: number;
+	},
+	people: Registrant[],
+) {
+	for (const [index, { userId, at }] of people.entries()) {
+		const status = index < event.registeredCount ? "registered" : "waitlist";
+		const registrationId = await register(ctx, event.eventId, { userId, at }, status);
+		if (status !== "registered") continue;
+		await ctx.db.patch(registrationId, {
+			attendanceStatus: attendanceStatusFor(random.next(), event.attendanceRate),
+			attendanceTime: event.eventStart + Math.floor(random.next() * 20) * MINUTE_MS,
+		});
+	}
+}
+
+async function insertLateLeavers(
+	ctx: MutationCtx,
+	random: Random,
+	event: { eventId: Id<"events">; eventStart: number; registrationOpens: number },
+	userIds: Id<"users">[],
+) {
+	for (const userId of userIds) {
+		const joined = event.registrationOpens + random.next() * DAY_MS;
+		const left = event.eventStart - (1 + random.next() * 20) * 60 * MINUTE_MS;
+		await ctx.db.insert("registrationLog", {
+			eventId: event.eventId,
+			userId,
+			change: "registered",
+			at: joined,
+		});
+		await ctx.db.insert("registrationLog", {
+			eventId: event.eventId,
+			userId,
+			change: "unregistered",
+			fromStatus: "registered",
+			at: left,
+		});
+	}
+}
+
 export const insertPastEvents = internalMutation({
 	args: {
 		companyIds: v.array(v.id("companies")),
@@ -342,37 +395,22 @@ export const insertPastEvents = internalMutation({
 			const attendanceRate =
 				0.86 - ((day - from) / DAY_MS / 120) * 0.12 + (random.next() - 0.5) * 0.08;
 
-			for (const [index, userId] of people.slice(0, interested).entries()) {
-				const at = times[index] as number;
-				const status = index < registeredCount ? "registered" : "waitlist";
-				const registrationId = await register(ctx, eventId, { userId, at }, status);
-				if (status !== "registered") continue;
-				const roll = random.next();
-				await ctx.db.patch(registrationId, {
-					attendanceStatus:
-						roll < attendanceRate ? "confirmed" : roll < attendanceRate + 0.06 ? "late" : "no_show",
-					attendanceTime: eventStart + Math.floor(random.next() * 20) * MINUTE_MS,
-				});
-			}
+			await registerPeople(
+				ctx,
+				random,
+				{ eventId, eventStart, registeredCount, attendanceRate },
+				people
+					.slice(0, interested)
+					.map((userId, index) => ({ userId, at: times[index] as number })),
+			);
 
 			const lateLeavers = random.between({ min: 0, max: 3 });
-			for (const userId of people.slice(interested, interested + lateLeavers)) {
-				const joined = registrationOpens + random.next() * DAY_MS;
-				const left = eventStart - (1 + random.next() * 20) * 60 * MINUTE_MS;
-				await ctx.db.insert("registrationLog", {
-					eventId,
-					userId,
-					change: "registered",
-					at: joined,
-				});
-				await ctx.db.insert("registrationLog", {
-					eventId,
-					userId,
-					change: "unregistered",
-					fromStatus: "registered",
-					at: left,
-				});
-			}
+			await insertLateLeavers(
+				ctx,
+				random,
+				{ eventId, eventStart, registrationOpens },
+				people.slice(interested, interested + lateLeavers),
+			);
 			events++;
 		}
 		return events;

@@ -76,13 +76,13 @@ export function followUpNote({ entries, topDestination, followUpMinutes }: Unreg
 	return `${topDestination.count} av ${entries.length} meldte seg på ${topDestination.title} innen ${followUpMinutes} minutter etter avmeldingen.`;
 }
 
+function lastYearComparison(difference: number) {
+	if (difference === 0) return "like mange som i fjor";
+	return `${Math.abs(difference)} ${difference > 0 ? "flere" : "færre"} enn i fjor`;
+}
+
 export function lateUnregistrationNote({ current, lastYear }: SemesterData["lateUnregistrations"]) {
-	const difference = current - lastYear;
-	const comparison =
-		difference === 0
-			? "like mange som i fjor"
-			: `${Math.abs(difference)} ${difference > 0 ? "flere" : "færre"} enn i fjor`;
-	return `Sene avmeldinger (under 24 t): ${current} dette semesteret, ${comparison}.`;
+	return `Sene avmeldinger (under 24 t): ${current} dette semesteret, ${lastYearComparison(current - lastYear)}.`;
 }
 
 const ACTIVITY_LABELS = {

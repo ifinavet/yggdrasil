@@ -180,6 +180,11 @@ export const paceCurve = query({
 			times.filter((time) => time <= event.registrationOpens + span * progress).length;
 		const expectedAt = (progress: number) =>
 			snapshot.baseline ? Math.round(valueAt(snapshot.baseline.curve, progress) * limit) : null;
+		const projectedAt = (progress: number) => {
+			if (progress === snapshot.progress) return snapshot.registered;
+			if (progress === 1) return Math.round(snapshot.projectedFill * limit);
+			return null;
+		};
 
 		const steps = Array.from({ length: PACE_STEPS + 1 }, (_, step) => step / PACE_STEPS);
 		const points = [
@@ -192,12 +197,7 @@ export const paceCurve = query({
 				at: event.registrationOpens + span * progress,
 				expected: expectedAt(progress),
 				actual: progress <= snapshot.progress ? countAt(progress) : null,
-				projected:
-					progress === snapshot.progress
-						? snapshot.registered
-						: progress === 1
-							? Math.round(snapshot.projectedFill * limit)
-							: null,
+				projected: projectedAt(progress),
 			}));
 
 		const company = await companyWithLogo(ctx, event.hostingCompany);
