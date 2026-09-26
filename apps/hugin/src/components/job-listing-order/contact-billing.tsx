@@ -11,8 +11,6 @@ import { FormRow } from "./form-row";
 import { OrderSection } from "./order-section";
 import type { OrderFormApi } from "./use-order-form";
 
-const ADDRESS_ID = "order-billing-address";
-
 type TextFieldName =
 	| "contact.name"
 	| "contact.email"
@@ -99,13 +97,8 @@ export function BillingFieldset({
 				<>
 					<form.Field name="billing.address">
 						{(field) => (
-							<FormRow
-								label={billingCopy.address}
-								htmlFor={ADDRESS_ID}
-								errors={field.state.meta.errors}
-							>
+							<FormRow label={billingCopy.address} errors={field.state.meta.errors}>
 								<AddressInput
-									id={ADDRESS_ID}
 									label={billingCopy.address}
 									value={field.state.value}
 									invalid={field.state.meta.errors.length > 0}

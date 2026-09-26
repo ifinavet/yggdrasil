@@ -4,27 +4,26 @@ import { Command, CommandItem, CommandList } from "@workspace/ui/components/comm
 import { Input } from "@workspace/ui/components/input";
 import { Popover, PopoverAnchor, PopoverContent } from "@workspace/ui/components/popover";
 import { Command as CommandPrimitive } from "cmdk";
-import { type KeyboardEvent, useState } from "react";
+import { type KeyboardEvent, useRef, useState } from "react";
+import { addressKeyTarget, movesSuggestionHighlight } from "@/lib/job-listing-order/address-keys";
 import { useAddressSuggestions } from "./use-address-suggestions";
 
-const TEXT_CARET_KEYS = new Set(["Home", "End"]);
-
 export function AddressInput({
-	id,
 	label,
 	value,
 	invalid,
 	onChange,
 	onBlur,
 }: Readonly<{
-	id: string;
 	label: string;
 	value: string;
 	invalid: boolean;
 	onChange: (value: string) => void;
 	onBlur: () => void;
 }>) {
+	const inputRef = useRef<HTMLInputElement>(null);
 	const [typing, setTyping] = useState(false);
+	const [navigated, setNavigated] = useState(false);
 	const suggestions = useAddressSuggestions(value, typing);
 	const open = typing && suggestions.length > 0;
 
@@ -33,8 +32,13 @@ export function AddressInput({
 		setTyping(false);
 	};
 
-	const keepKeyInInput = (event: KeyboardEvent<HTMLInputElement>) => {
-		if (!open || TEXT_CARET_KEYS.has(event.key)) event.stopPropagation();
+	const routeKey = (event: KeyboardEvent<HTMLInputElement>) => {
+		if (addressKeyTarget(event, { open, navigated }) === "input") {
+			event.stopPropagation();
+			if (event.key === "Enter") setTyping(false);
+			return;
+		}
+		if (movesSuggestionHighlight(event)) setNavigated(true);
 	};
 
 	return (
@@ -43,11 +47,11 @@ export function AddressInput({
 				<PopoverAnchor asChild>
 					<CommandPrimitive.Input asChild value={value}>
 						<Input
-							id={id}
+							ref={inputRef}
 							autoComplete="street-address"
 							aria-expanded={open}
 							aria-invalid={invalid}
-							onKeyDown={keepKeyInInput}
+							onKeyDown={routeKey}
 							onBlur={() => {
 								setTyping(false);
 								onBlur();
@@ -64,10 +68,7 @@ export function AddressInput({
 					className="w-(--radix-popover-trigger-width) min-w-72 p-1"
 					onOpenAutoFocus={(event) => event.preventDefault()}
 					onInteractOutside={(event) => {
-						if (
-							event.target instanceof Node &&
-							document.getElementById(id)?.contains(event.target)
-						) {
+						if (event.target instanceof Node && inputRef.current?.contains(event.target)) {
 							event.preventDefault();
 						}
 					}}
