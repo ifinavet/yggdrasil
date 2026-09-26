@@ -60,7 +60,9 @@ export const applicationDraftSchema = z.object({
 	foodAndDrinks: z.boolean().nullable().catch(null),
 	foodPurchasedBy: choice(FOOD_PURCHASERS),
 	wantsToUseEscape: choice(ESCAPE_ANSWERS),
-	billing: z.object({ email: answer, details: answer }).catch(() => ({ email: "", details: "" })),
+	billing: z
+		.object({ email: answer, details: answer, ehfInvoice: z.boolean().catch(false) })
+		.catch(() => ({ email: "", details: "", ehfInvoice: false })),
 	additionalInfo: answer,
 	consent: z.boolean().catch(false),
 });
@@ -157,6 +159,7 @@ export function toSubmission(draft: ApplicationDraft): SubmissionCandidate {
 		billing: {
 			email: optional(draft.billing.email),
 			details: optional(draft.billing.details),
+			ehfInvoice: draft.billing.ehfInvoice,
 		},
 		// «Hvem vil dere nå?» is no longer asked.
 		targetDegrees: [],

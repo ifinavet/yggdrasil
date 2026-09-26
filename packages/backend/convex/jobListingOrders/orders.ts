@@ -48,6 +48,7 @@ export const orderFormArgs = v.object({
 	listings: v.array(v.object(orderItemFields)),
 	contact: orderContact,
 	billing: v.optional(companyBilling),
+	ehfInvoice: v.boolean(),
 	note: v.optional(v.string()),
 	confirmAmount: v.boolean(),
 });
@@ -218,6 +219,7 @@ export const insertOrder = internalMutation({
 			priceOre: orderPriceOre(product, parsed.listings.length, parsed.startup),
 			contact: parsed.contact,
 			billing,
+			ehfInvoice: parsed.ehfInvoice,
 			note: parsed.note || undefined,
 		});
 		for (const [position, listing] of parsed.listings.entries()) {

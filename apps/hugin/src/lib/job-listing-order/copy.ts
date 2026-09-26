@@ -76,6 +76,7 @@ export const billingCopy = {
 	email: "Fakturaepost",
 	reference: "Referanse",
 	change: "Oppdater fakturainformasjonen",
+	ehfInvoice: "Send fakturaen som EHF",
 } as const;
 
 export const submitCopy = {

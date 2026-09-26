@@ -75,6 +75,7 @@ export function toOrderForm(values: OrderFormValues, context: OrderContext): Ord
 		listings: values.listings,
 		contact: { name, email, ...(phone.trim() ? { phone } : {}) },
 		...(sendBilling ? { billing: values.billing } : {}),
+		ehfInvoice: values.ehfInvoice,
 		...(note ? { note } : {}),
 		confirmAmount: values.confirmAmount,
 	};
