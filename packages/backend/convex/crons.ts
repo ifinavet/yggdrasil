@@ -18,6 +18,12 @@ crons.interval(
 	internal.points.mutations.checkIfAnyPointsShouldBeRemoved,
 );
 
+crons.interval(
+	"Detect engagement alerts",
+	{ minutes: 10 },
+	internal.engagement.alerts.detectAlerts,
+);
+
 crons.cron(
 	"Free for all on today's event",
 	"0 12 * * 2,4",

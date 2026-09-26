@@ -1,5 +1,6 @@
 "use client";
 
+import type { GatedFeature } from "@workspace/shared/feature-flags";
 import {
 	SidebarGroup,
 	SidebarGroupContent,
@@ -19,11 +20,20 @@ import {
 	ClipboardListIcon,
 	FileIcon,
 	GitForkIcon,
+	type LucideIcon,
+	TrendingUpIcon,
 	UsersIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { PRODUCT_ROUTES } from "@/components/products/product-routes";
+
+type SidebarItem = {
+	title: string;
+	icon: LucideIcon;
+	path: string;
+	feature?: GatedFeature;
+};
 
 const paths = {
 	main: [
@@ -36,11 +46,18 @@ const paths = {
 			title: "Semesterplan",
 			icon: CalendarRangeIcon,
 			path: "/semesterplan",
+			feature: "semesterPlanning",
 		},
 		{
 			title: "Stillingsannonser",
 			icon: BriefcaseIcon,
 			path: "/job-listings",
+		},
+		{
+			title: "Engasjement",
+			icon: TrendingUpIcon,
+			path: "/engasjement",
+			feature: "engagement",
 		},
 		{
 			title: "Resurser",
@@ -75,7 +92,7 @@ const paths = {
 			title: "Produkter",
 			icon: BanknoteIcon,
 			path: PRODUCT_ROUTES.list,
-			requiresProducts: true,
+			feature: "products",
 		},
 		{
 			title: "Skjemaer",
@@ -83,7 +100,7 @@ const paths = {
 			path: "/feedback-forms",
 		},
 	],
-};
+} satisfies Record<string, SidebarItem[]>;
 
 export function SidebarContentGroup({
 	title,
@@ -93,12 +110,15 @@ export function SidebarContentGroup({
 	items: keyof typeof paths;
 }>) {
 	const rootPathSegment = usePathname().split("/")[1];
-	const productsEnabled = useFeatureEnabled("products");
-	const semesterPlanning = useFeatureEnabled("semesterPlanning");
+	const enabled: Record<GatedFeature, boolean> = {
+		huginFeedback: useFeatureEnabled("huginFeedback"),
+		products: useFeatureEnabled("products"),
+		jobListingOrders: useFeatureEnabled("jobListingOrders"),
+		semesterPlanning: useFeatureEnabled("semesterPlanning"),
+		engagement: useFeatureEnabled("engagement"),
+	};
 	const visibleItems = paths[items].filter(
-		(item) =>
-			(productsEnabled || !("requiresProducts" in item)) &&
-			(item.path !== "/semesterplan" || semesterPlanning),
+		(item: SidebarItem) => item.feature === undefined || enabled[item.feature],
 	);
 
 	return (

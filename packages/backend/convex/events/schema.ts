@@ -1,9 +1,12 @@
-import { ORGANIZER_ROLES } from "@workspace/shared/constants";
+import { ORGANIZER_ROLES, REGISTRATION_STATUSES } from "@workspace/shared/constants";
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
 import { soldProductFields } from "../products/schema";
 
 export const organizerRoleValidator = v.union(...ORGANIZER_ROLES.map((role) => v.literal(role)));
+export const registrationStatusValidator = v.union(
+	...REGISTRATION_STATUSES.map((status) => v.literal(status)),
+);
 
 export const editableEventFields = {
 	title: v.string(),
@@ -47,7 +50,7 @@ export const eventsSchema = {
 	registrations: defineTable({
 		eventId: v.id("events"),
 		userId: v.id("users"),
-		status: v.union(v.literal("registered"), v.literal("pending"), v.literal("waitlist")),
+		status: registrationStatusValidator,
 		note: v.optional(v.string()),
 		registrationTime: v.number(),
 		attendanceStatus: v.optional(

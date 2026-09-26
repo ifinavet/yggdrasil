@@ -51,7 +51,7 @@ async function productsNamed(ctx: MutationCtx, names: readonly string[]) {
 	return products;
 }
 
-function seededRandom(seed: number) {
+export function seededRandom(seed: number) {
 	let state = seed;
 	return () => {
 		state = (state + 0x6d2b79f5) % 2 ** 32;
@@ -61,7 +61,7 @@ function seededRandom(seed: number) {
 	};
 }
 
-function logoSvg(name: string, hue: number) {
+export function logoSvg(name: string, hue: number) {
 	const initials = name
 		.split(" ")
 		.map((word) => word[0])
@@ -70,7 +70,7 @@ function logoSvg(name: string, hue: number) {
 	return `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="120" viewBox="0 0 240 120"><rect width="240" height="120" rx="16" fill="hsl(${hue} 55% 42%)"/><text x="120" y="76" font-family="sans-serif" font-size="48" font-weight="700" fill="white" text-anchor="middle">${initials}</text></svg>`;
 }
 
-function requireLocal() {
+export function requireLocal() {
 	if (!isLocalDevelopment()) throw new ConvexError("Lokale testdata kan bare lages lokalt.");
 }
 
@@ -133,7 +133,7 @@ type Seeder = {
 	handTaggedProducts: (Doc<"products"> | undefined)[];
 };
 
-function randomTools(next: () => number) {
+export function randomTools(next: () => number) {
 	return {
 		next,
 		between: ({ min, max }: { min: number; max: number }) =>

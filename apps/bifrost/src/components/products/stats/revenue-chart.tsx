@@ -10,10 +10,10 @@ import { SEMESTER_LABEL } from "@workspace/shared/semester/labels";
 import { ChartLegend } from "@workspace/ui/components/products/chart-legend";
 import { Panel, PanelBody } from "@workspace/ui/components/products/panel";
 import { useMemo } from "react";
-import { dimmed, SERIES_COLORS } from "./series-colors";
+import { dimmed, MUTED_SERIES_COLOR } from "@/components/common/chart-colors";
+import { SERIES_COLORS } from "./series-colors";
 
 const kronerFormat = new Intl.NumberFormat("nb-NO", { maximumFractionDigits: 0 });
-const MUTED = "var(--muted-foreground)";
 const DIMMED_LABEL_OPACITY = 0.6;
 
 export const REVENUE_AXIS_LABEL = "Inntekt eks. mva.";
@@ -22,7 +22,7 @@ const SERIES = {
 	event: { label: "Bedriftspresentasjoner", color: SERIES_COLORS.event },
 	external_event: { label: "Eksterne", color: SERIES_COLORS.external_event },
 	job_listing: { label: "Stillingsannonser", color: SERIES_COLORS.job_listing },
-	average: { label: "Snitt siste 4", color: MUTED },
+	average: { label: "Snitt siste 4", color: MUTED_SERIES_COLOR },
 };
 
 type Layer = { key: string; series: string; kroner: number; color: string };
@@ -31,7 +31,7 @@ const LEGEND = [
 	SERIES.event,
 	SERIES.external_event,
 	SERIES.job_listing,
-	{ ...SERIES.average, dashed: true },
+	{ ...SERIES.average, marker: "dashed" as const },
 ];
 
 function layers(semester: SemesterRevenue): Layer[] {
@@ -83,7 +83,7 @@ export function RevenueChart({
 				lineY(averages, {
 					x: "key",
 					y: "kroner",
-					stroke: MUTED,
+					stroke: MUTED_SERIES_COLOR,
 					strokeWidth: 1.5,
 					strokeDasharray: "5 4",
 				}),

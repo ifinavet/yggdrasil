@@ -10,6 +10,7 @@ import { SEMESTER_LABEL } from "@workspace/shared/semester/labels";
 import { ChartLegend } from "@workspace/ui/components/products/chart-legend";
 import { Panel, PanelBody } from "@workspace/ui/components/products/panel";
 import { useMemo } from "react";
+import { MUTED_SERIES_COLOR } from "@/components/common/chart-colors";
 import { NEW_SERIES, RETURNING_NEW_LEGEND, RETURNING_SERIES } from "./series-colors";
 
 const Y_AXIS_LABEL = "Bedrifter";
@@ -39,7 +40,7 @@ export function RetentionChart({ activity }: Readonly<{ activity: readonly Compa
 					text: "label",
 					dy: -6,
 					fontSize: 10.5,
-					fill: "var(--muted-foreground)",
+					fill: MUTED_SERIES_COLOR,
 				}),
 			],
 			scales: {

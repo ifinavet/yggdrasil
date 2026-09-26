@@ -13,3 +13,6 @@ export const DATE_PATTERNS = {
 	numericDate: "dd.MM.yyyy",
 	longDate: "PPP",
 } as const;
+
+export const WORKDAY_LABELS = { 1: "Man", 2: "Tir", 3: "Ons", 4: "Tor", 5: "Fre" } as const;
+export const WORKDAYS = Object.keys(WORKDAY_LABELS).map(Number);
