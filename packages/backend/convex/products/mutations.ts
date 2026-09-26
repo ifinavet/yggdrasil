@@ -10,6 +10,7 @@ import {
 	recordChange,
 	requireUniqueName,
 } from "./helpers";
+import { seedAndBackfillProducts } from "./migrations";
 import { productFields } from "./schema";
 
 const clearedOptionalFields = {
@@ -104,5 +105,13 @@ export const reorder = mutation({
 				changes: diffProduct(before, { ...before, sortOrder }),
 			});
 		}
+	},
+});
+
+export const setup = mutation({
+	args: {},
+	handler: async (ctx) => {
+		await requireRole(ctx, adminRoles);
+		return await seedAndBackfillProducts(ctx);
 	},
 });

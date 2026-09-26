@@ -62,6 +62,7 @@ describe("products", () => {
 				editor.mutation(api.products.mutations.setActive, { id: productId, active: false }),
 			),
 			refusalMessageFrom(editor.mutation(api.products.mutations.reorder, { ids: [productId] })),
+			refusalMessageFrom(editor.mutation(api.products.mutations.setup, {})),
 			refusalMessageFrom(editor.query(api.products.queries.listAll, {})),
 			refusalMessageFrom(editor.query(api.products.queries.getWithChanges, { id: productId })),
 		]);
@@ -251,6 +252,15 @@ describe("products", () => {
 		expect(await t.query(api.products.queries.eventTypePrices, {})).not.toHaveProperty(
 			"large_presentation",
 		);
+	});
+
+	it("lets an admin seed the products once from Bifrost", async () => {
+		const { admin } = await fixture();
+
+		expect(await admin.mutation(api.products.mutations.setup, {})).toEqual(
+			SEED_PRODUCTS.map((product) => product.name),
+		);
+		expect(await admin.mutation(api.products.mutations.setup, {})).toEqual([]);
 	});
 
 	it("seeds the offer page products once", async () => {

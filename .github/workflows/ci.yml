@@ -56,6 +56,6 @@ jobs:
       - name: Production deploy key only deploys, it cannot run functions
         run: |
           if grep -n "convex run" .github/workflows/deploy-production.yml; then
-            echo "::error file=.github/workflows/deploy-production.yml::convex run needs permissions the production deploy key does not have. Run migrations by hand from the Convex dashboard."
+            echo "::error file=.github/workflows/deploy-production.yml::convex run needs permissions the production deploy key does not have. Seed data through an admin-gated mutation in the app instead."
             exit 1
           fi

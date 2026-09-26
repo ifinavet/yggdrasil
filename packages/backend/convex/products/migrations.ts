@@ -47,10 +47,12 @@ const BACKFILLS = [
 
 export const backfillAll = migrations.runner(BACKFILLS);
 
+export async function seedAndBackfillProducts(ctx: MutationCtx) {
+	const seeded = await seedProductsIfEmpty(ctx);
+	if (seeded.length > 0) await migrations.runSerially(ctx, BACKFILLS);
+	return seeded;
+}
+
 export const setup = internalMutation({
-	handler: async (ctx) => {
-		const seeded = await seedProductsIfEmpty(ctx);
-		await migrations.runSerially(ctx, BACKFILLS);
-		return seeded;
-	},
+	handler: seedAndBackfillProducts,
 });
