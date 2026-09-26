@@ -7,7 +7,7 @@ import { getProductOrThrow } from "./helpers";
 
 export const MAX_SOLD_ITEMS = 4000;
 
-type CompanyInfo = { name: string; mainSponsor: boolean };
+type CompanyInfo = { name: string; mainSponsor: boolean; excluded: boolean };
 
 async function companyInfo(ctx: QueryCtx, ids: Iterable<Id<"companies">>) {
 	const companies = new Map<string, CompanyInfo>();
@@ -16,6 +16,7 @@ async function companyInfo(ctx: QueryCtx, ids: Iterable<Id<"companies">>) {
 		companies.set(id, {
 			name: company?.name ?? "Ukjent bedrift",
 			mainSponsor: company?.mainSponsor ?? false,
+			excluded: company?.excludedFromRevenue ?? false,
 		});
 	}
 	return companies;
@@ -51,6 +52,7 @@ async function eventSales(
 			category: categories.get(product.productId) as ProductCategory,
 			companyId: event.hostingCompany,
 			companyName: company.name,
+			excluded: company.excluded,
 			quantity: 1,
 			revenueOre: company.mainSponsor ? 0 : (product.unitPriceOre ?? 0),
 			guessed: event.productGuessed ?? false,
@@ -77,13 +79,17 @@ async function listingSales(
 		const product = await getProductOrThrow(ctx, productId);
 		sales.push(
 			...jobListingSales(
-				productListings.map((listing) => ({
-					...eventSemesterOf(listing.deadline),
-					companyId: listing.company,
-					companyName: (companies.get(listing.company) as CompanyInfo).name,
-					soldAt: listing.deadline,
-					guessed: listing.productGuessed ?? false,
-				})),
+				productListings.map((listing) => {
+					const company = companies.get(listing.company) as CompanyInfo;
+					return {
+						...eventSemesterOf(listing.deadline),
+						companyId: listing.company,
+						companyName: company.name,
+						excluded: company.excluded,
+						soldAt: listing.deadline,
+						guessed: listing.productGuessed ?? false,
+					};
+				}),
 				{
 					productId,
 					productName: product.name,

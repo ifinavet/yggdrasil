@@ -2,6 +2,7 @@ import {
 	compactSemesterLabel,
 	companyActivity,
 	companyHistories,
+	countedSales,
 	isJobListingSale,
 	jobListingSales,
 	lapsedCompanies,
@@ -36,6 +37,7 @@ const baseSale: Sale = {
 	category: "event",
 	companyId: "c1",
 	companyName: "Bedrift A",
+	excluded: false,
 	quantity: 1,
 	revenueOre: 100,
 	guessed: false,
@@ -90,7 +92,13 @@ describe("jobListingSales", () => {
 			{ quantity: 2, totalPriceOre: 550_000 },
 		],
 	};
-	const listing = { ...VAR_2027, companyId: "c1", companyName: "Bedrift", guessed: false };
+	const listing = {
+		...VAR_2027,
+		companyId: "c1",
+		companyName: "Bedrift",
+		excluded: false,
+		guessed: false,
+	};
 
 	it("groups listings per company and semester, pricing by quantity", () => {
 		const sales = jobListingSales(
@@ -109,6 +117,7 @@ describe("jobListingSales", () => {
 				category: "job_listing",
 				companyId: "c1",
 				companyName: "Bedrift",
+				excluded: false,
 				quantity: 2,
 				revenueOre: 550_000,
 				guessed: true,
@@ -121,6 +130,7 @@ describe("jobListingSales", () => {
 				category: "job_listing",
 				companyId: "c1",
 				companyName: "Bedrift",
+				excluded: false,
 				quantity: 1,
 				revenueOre: 300_000,
 				guessed: false,
@@ -148,6 +158,11 @@ describe("sale filters", () => {
 
 	it("keeps only sales inside the window", () => {
 		expect(salesInWindow(sales, [VAR_2027, HOST_2027])).toEqual([sales[0], sales[1]]);
+	});
+
+	it("leaves out sales from excluded companies", () => {
+		const excluded = sale({ companyId: "c2", excluded: true });
+		expect(countedSales([baseSale, excluded])).toEqual([baseSale]);
 	});
 
 	it("recognises job listing sales", () => {
@@ -322,12 +337,18 @@ describe("companyHistories", () => {
 		expect(histories[0]).toEqual({
 			companyId: "c1",
 			companyName: "Bedrift A",
+			excluded: false,
 			revenueBySemester: { "2026-1": 0, "2027-0": 100, "2027-1": 200 },
 			activeSemesters: 2,
 			totalOre: 300,
 			lastPurchase: HOST_2027,
 			customerSince: { semester: "vår", year: 2020 },
 		});
+	});
+
+	it("keeps excluded companies and marks them", () => {
+		const histories = companyHistories([sale({ companyId: "c2", excluded: true })], window);
+		expect(histories).toEqual([expect.objectContaining({ companyId: "c2", excluded: true })]);
 	});
 
 	it("flags companies that have not bought in the last two semesters", () => {

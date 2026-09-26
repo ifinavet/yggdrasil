@@ -81,6 +81,7 @@ import type * as products_localSeed from "../products/localSeed.js";
 import type * as products_migrations from "../products/migrations.js";
 import type * as products_mutations from "../products/mutations.js";
 import type * as products_queries from "../products/queries.js";
+import type * as products_revenueExclusion from "../products/revenueExclusion.js";
 import type * as products_sales from "../products/sales.js";
 import type * as products_seed from "../products/seed.js";
 import type * as products_stats from "../products/stats.js";
@@ -190,6 +191,7 @@ declare const fullApi: ApiFromModules<{
   "products/migrations": typeof products_migrations;
   "products/mutations": typeof products_mutations;
   "products/queries": typeof products_queries;
+  "products/revenueExclusion": typeof products_revenueExclusion;
   "products/sales": typeof products_sales;
   "products/seed": typeof products_seed;
   "products/stats": typeof products_stats;

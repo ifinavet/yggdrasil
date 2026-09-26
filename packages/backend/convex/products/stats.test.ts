@@ -70,6 +70,7 @@ describe("products stats sales", () => {
 				category: "event",
 				companyId,
 				companyName: "Testbedrift",
+				excluded: false,
 				quantity: 1,
 				revenueOre: priced.unitPriceOre,
 				guessed: false,
@@ -132,6 +133,20 @@ describe("products stats sales", () => {
 
 		const sales = await admin.query(api.products.stats.sales, {});
 		expect(sales).toEqual([expect.objectContaining({ revenueOre: 0 })]);
+	});
+
+	it("marks sales from a company excluded from revenue", async () => {
+		const { t, companyId, admin } = await fixture();
+		const productId = await t.run((ctx) => ctx.db.insert("products", priced));
+		await insertEvent(t, companyId, {
+			product: { productId, name: priced.name, unitPriceOre: priced.unitPriceOre },
+		});
+		await t.run((ctx) => ctx.db.patch(companyId, { excludedFromRevenue: true }));
+
+		const sales = await admin.query(api.products.stats.sales, {});
+		expect(sales).toEqual([
+			expect.objectContaining({ excluded: true, revenueOre: priced.unitPriceOre }),
+		]);
 	});
 
 	it("labels an event with an unknown company", async () => {

@@ -10,6 +10,7 @@ export type Sale = SemesterRef & {
 	category: ProductCategory;
 	companyId: string;
 	companyName: string;
+	excluded: boolean;
 	quantity: number;
 	revenueOre: number;
 	guessed: boolean;
@@ -70,6 +71,7 @@ export function sameSemesterLastYear({ semester, year }: SemesterRef): SemesterR
 export type SoldListing = SemesterRef & {
 	companyId: string;
 	companyName: string;
+	excluded: boolean;
 	soldAt: number;
 	guessed: boolean;
 };
@@ -100,6 +102,7 @@ export function jobListingSales(
 				category: product.category,
 				companyId: listing.companyId,
 				companyName: listing.companyName,
+				excluded: listing.excluded,
 				quantity: 1,
 				revenueOre: 0,
 				guessed: listing.guessed,
@@ -111,6 +114,10 @@ export function jobListingSales(
 		...sale,
 		revenueOre: tierTotalOre(product.volumeTiers, sale.quantity),
 	}));
+}
+
+export function countedSales(sales: readonly Sale[]): Sale[] {
+	return sales.filter((sale) => !sale.excluded);
 }
 
 export function salesInSemester(sales: readonly Sale[], key: string | null): Sale[] {
@@ -330,6 +337,7 @@ export function companyActivity(
 export type CompanyHistory = {
 	companyId: string;
 	companyName: string;
+	excluded: boolean;
 	revenueBySemester: Record<string, number>;
 	activeSemesters: number;
 	totalOre: number;
@@ -348,6 +356,7 @@ export function companyHistories(
 		const history = histories.get(sale.companyId) ?? {
 			companyId: sale.companyId,
 			companyName: sale.companyName,
+			excluded: sale.excluded,
 			revenueBySemester: Object.fromEntries(window.map((semester) => [semesterKey(semester), 0])),
 			activeSemesters: 0,
 			totalOre: 0,

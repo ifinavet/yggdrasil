@@ -3,6 +3,7 @@
 import { api } from "@workspace/backend/convex/api";
 import type { Doc, Id } from "@workspace/backend/convex/dataModel";
 import {
+	countedSales,
 	formatNokFromOre,
 	productSalesSummary,
 	semesterLabel,
@@ -36,7 +37,7 @@ export function EditProduct({ id }: Readonly<{ id: Id<"products"> }>) {
 	const update = useMutation(api.products.mutations.update);
 	const setActive = useMutation(api.products.mutations.setActive);
 	const summary = useMemo(
-		() => sales && productSalesSummary(sales, statsWindow(currentSemester()), id),
+		() => sales && productSalesSummary(countedSales(sales), statsWindow(currentSemester()), id),
 		[sales, id],
 	);
 

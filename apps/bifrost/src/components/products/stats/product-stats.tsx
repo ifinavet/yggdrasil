@@ -4,6 +4,7 @@ import { api } from "@workspace/backend/convex/api";
 import {
 	companyActivity,
 	companyHistories,
+	countedSales,
 	lapsedCompanies,
 	productMix,
 	revenuePerSemester,
@@ -44,20 +45,24 @@ export function ProductStats() {
 	const view = useMemo(() => {
 		if (!sales) return null;
 		const selectedKey = semester === ALL_SEMESTERS ? null : semester;
+		const counted = countedSales(sales);
 		const selected =
-			selectedKey === null ? salesInWindow(sales, window) : salesInSemester(sales, selectedKey);
-		const overview = salesOverview(sales, window, selectedKey);
+			selectedKey === null ? salesInWindow(counted, window) : salesInSemester(counted, selectedKey);
+		const overview = salesOverview(counted, window, selectedKey);
 		const histories = companyHistories(sales, window);
 		return {
 			selectedKey,
 			overview,
 			scopeLabel:
 				selectedKey === null ? ALL_SEMESTERS_LABEL : semesterLabel(semesterFromKey(selectedKey)),
-			revenue: revenuePerSemester(sales, window),
+			revenue: revenuePerSemester(counted, window),
 			mix: productMix(selected),
-			activity: companyActivity(sales, window),
+			activity: companyActivity(counted, window),
 			histories,
-			lapsed: lapsedCompanies(histories, window),
+			lapsed: lapsedCompanies(
+				histories.filter((history) => !history.excluded),
+				window,
+			),
 		};
 	}, [sales, semester, window]);
 
