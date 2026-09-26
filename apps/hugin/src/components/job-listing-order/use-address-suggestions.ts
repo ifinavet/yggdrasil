@@ -14,11 +14,12 @@ const NO_SUGGESTIONS: Suggestions = { query: "", addresses: [] };
 
 export function useAddressSuggestions(value: string, enabled: boolean): readonly string[] {
 	const searchAddresses = useAction(api.jobListingOrders.addressSearch.searchAddresses);
+	const [sessionId] = useState(() => crypto.randomUUID());
 	const [suggestions, setSuggestions] = useState<Suggestions>(NO_SUGGESTIONS);
 	const debouncer = useAsyncDebouncer(
 		async (query: string): Promise<Suggestions> => ({
 			query,
-			addresses: await searchAddresses({ query }),
+			addresses: await searchAddresses({ query, sessionId }),
 		}),
 		{
 			wait: DEBOUNCE_MS,

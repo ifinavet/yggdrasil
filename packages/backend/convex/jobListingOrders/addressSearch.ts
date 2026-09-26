@@ -1,4 +1,8 @@
-import { addressQuerySchema, geonorgeAddressesSchema } from "@workspace/shared/job-listing-orders";
+import {
+	addressQuerySchema,
+	addressSearchSessionSchema,
+	geonorgeAddressesSchema,
+} from "@workspace/shared/job-listing-orders";
 import { ConvexError, v } from "convex/values";
 import { action } from "../_generated/server";
 import { orderRateLimiter } from "./rateLimits";
@@ -28,14 +32,20 @@ async function fetchGeonorgeAddresses(query: string): Promise<string[]> {
 }
 
 export const searchAddresses = action({
-	args: { query: v.string() },
+	args: { query: v.string(), sessionId: v.string() },
 	returns: v.array(v.string()),
-	handler: async (ctx, { query }): Promise<string[]> => {
+	handler: async (ctx, { query, sessionId }): Promise<string[]> => {
 		const parsed = addressQuerySchema.safeParse(query);
 		if (!parsed.success) throw new ConvexError("Skriv minst tre tegn.");
+		const session = addressSearchSessionSchema.safeParse(sessionId);
+		if (!session.success) throw new ConvexError("Ugyldig søk.");
 
-		const { ok } = await orderRateLimiter.limit(ctx, "jobListingOrderAddressSearch");
-		if (!ok) return [];
+		const perSession = await orderRateLimiter.limit(ctx, "jobListingOrderAddressSearch", {
+			key: session.data,
+		});
+		if (!perSession.ok) return [];
+		const global = await orderRateLimiter.limit(ctx, "jobListingOrderAddressSearchGlobal");
+		if (!global.ok) return [];
 
 		return fetchGeonorgeAddresses(parsed.data);
 	},

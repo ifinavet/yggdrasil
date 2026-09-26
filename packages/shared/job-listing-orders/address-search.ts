@@ -9,6 +9,8 @@ export const addressQuerySchema = z
 	.min(ADDRESS_QUERY_MIN_LENGTH)
 	.max(ADDRESS_QUERY_MAX_LENGTH);
 
+export const addressSearchSessionSchema = z.uuid();
+
 const geonorgeAddressSchema = z
 	.object({
 		adressetekst: z.string().trim().min(1),
