@@ -245,7 +245,12 @@ describe("history", () => {
 			"vår 2026",
 			"høst 2026",
 		]);
-		expect(history[0]).toMatchObject({ company: null, average: { demand: null } });
+		expect(history[0]).toEqual({
+			semester: "vår",
+			year: 2025,
+			company: null,
+			average: { demand: null, fill: null, attendance: null },
+		});
 		expect(history[2]).toMatchObject({ company: { demand: 0 }, average: { demand: 0 } });
 		expect(history[3]).toMatchObject({ company: { demand: 2 }, average: { demand: 1.05 } });
 	});

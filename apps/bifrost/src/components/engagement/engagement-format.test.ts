@@ -328,6 +328,8 @@ describe("company metrics", () => {
 		expect(formatHours(0.5)).toBe("30 min");
 		expect(formatHours(5.4)).toBe("5 t");
 		expect(formatHours(72)).toBe("3 d");
+		expect(formatHours(0.995)).toBe("1 t");
+		expect(formatHours(47.6)).toBe("2 d");
 	});
 
 	it("formats each metric in its own unit and leaves missing values empty", () => {
@@ -361,11 +363,7 @@ describe("company metrics", () => {
 	});
 
 	it("plots the company and the average per semester and skips semesters without a value", () => {
-		const metrics = (demand: number | null) =>
-			({
-				...Object.fromEntries(Object.keys(METRICS).map((key) => [key, null])),
-				demand,
-			}) as CompanyHistory[number]["average"];
+		const metrics = (demand: number | null) => ({ demand, fill: null, attendance: null });
 		const history: CompanyHistory = [
 			{ semester: "vår", year: 2026, company: null, average: metrics(0.5) },
 			{ semester: "høst", year: 2026, company: metrics(1.2), average: metrics(null) },

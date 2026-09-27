@@ -49,17 +49,24 @@ function countWith(registrations: readonly Doc<"registrations">[], status: strin
 	return registrations.filter((registration) => registration.status === status).length;
 }
 
-function hoursToFullOf({ event, registrations }: CompanyEvent) {
-	const times = registrations
+export function registeredIn(events: readonly Pick<CompanyEvent, "registrations">[]) {
+	return events.flatMap(({ registrations }) =>
+		registrations.filter((registration) => registration.status === "registered"),
+	);
+}
+
+function hoursToFullOf(companyEvent: CompanyEvent) {
+	const times = registeredIn([companyEvent])
 		.map((registration) => registration.registrationTime)
 		.sort((a, b) => a - b);
-	const filledAt = times[event.participationLimit - 1];
-	return filledAt === undefined ? null : Math.max(0, filledAt - event.registrationOpens) / HOUR_MS;
+	const { participationLimit, registrationOpens } = companyEvent.event;
+	const filledAt = times[participationLimit - 1];
+	return filledAt === undefined ? null : Math.max(0, filledAt - registrationOpens) / HOUR_MS;
 }
 
 function attendanceOf(events: readonly CompanyEvent[]) {
-	const recorded = events.flatMap(({ registrations }) => {
-		const registered = registrations.filter((registration) => registration.status === "registered");
+	const recorded = events.flatMap((companyEvent) => {
+		const registered = registeredIn([companyEvent]);
 		return registered.some((registration) => registration.attendanceStatus) ? registered : [];
 	});
 	const showedUp = recorded.filter(
@@ -128,6 +135,10 @@ export function byCompany<T extends Pick<CompanyEvent, "event">>(events: readonl
 		grouped.set(companyId, [...(grouped.get(companyId) ?? []), companyEvent]);
 	}
 	return grouped;
+}
+
+export function pickMetrics<K extends MetricKey>(metrics: Metrics, keys: readonly K[]) {
+	return Object.fromEntries(keys.map((key) => [key, metrics[key]])) as Pick<Metrics, K>;
 }
 
 export function averageOf(all: readonly Metrics[]) {

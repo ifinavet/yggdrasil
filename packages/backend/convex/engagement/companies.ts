@@ -1,3 +1,4 @@
+import { TREND_METRICS } from "@workspace/shared/engagement";
 import { type HighlightTotals, highlightTotals } from "@workspace/shared/feedback/report";
 import { DAY_MS, eventSemesterOf, eventSemesterRange } from "@workspace/shared/time";
 import { v } from "convex/values";
@@ -12,6 +13,8 @@ import {
 	type CompanyEvent,
 	comparisonOf,
 	metricsOf,
+	pickMetrics,
+	registeredIn,
 	sumOf,
 } from "./companyMetrics";
 import {
@@ -76,7 +79,7 @@ async function earlierRegistrants(ctx: QueryCtx, companyId: Id<"companies">, key
 			.query("registrations")
 			.withIndex("by_eventId", (q) => q.eq("eventId", event._id))
 			.take(MAX_REGISTRATIONS_PER_EVENT);
-		for (const { userId } of registeredIn([{ event, registrations }])) users.add(userId);
+		for (const { userId } of registeredIn([{ registrations }])) users.add(userId);
 	}
 	return users;
 }
@@ -104,12 +107,6 @@ async function loggedEvents(ctx: QueryCtx, key: SemesterKey, now: number) {
 		}
 	}
 	return { logStart, events };
-}
-
-function registeredIn(events: readonly CompanyEvent[]) {
-	return events.flatMap(({ registrations }) =>
-		registrations.filter((registration) => registration.status === "registered"),
-	);
 }
 
 const semesterArgs = { now: v.number(), semester: eventSemesterValidator, year: v.number() };
@@ -172,8 +169,11 @@ async function semesterMetrics(
 	const companyEvents = grouped.get(companyId);
 	return {
 		...key,
-		company: companyEvents ? metricsOf(companyEvents, cutoff) : null,
-		average: averageOf([...grouped.values()].map((group) => metricsOf(group, cutoff))),
+		company: companyEvents ? pickMetrics(metricsOf(companyEvents, cutoff), TREND_METRICS) : null,
+		average: pickMetrics(
+			averageOf([...grouped.values()].map((group) => metricsOf(group, cutoff))),
+			TREND_METRICS,
+		),
 	};
 }
 

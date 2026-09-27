@@ -112,6 +112,12 @@ describe("metricsOf", () => {
 			latePerEvent: null,
 		});
 		expect(metricsOf([fullAfter(1), fullAfter(2), fullAfter(6)], NOW).hoursToFull).toBe(2);
+		const waitlistedFirst = companyEvent(
+			1,
+			[{ status: "waitlist", registrationTime: OPENS }, { registrationTime: OPENS + 5 * HOUR_MS }],
+			{ eventStart: NOW + 1 },
+		);
+		expect(metricsOf([waitlistedFirst], NOW).hoursToFull).toBe(5);
 		expect(metricsOf([companyEvent(0, [])], NOW)).toEqual(metrics({ waitlistPerEvent: 0 }));
 	});
 });

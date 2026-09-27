@@ -1,4 +1,5 @@
 import type { api } from "@workspace/backend/convex/api";
+import type { TrendMetric } from "@workspace/shared/engagement";
 import { feedbackRatingSchema } from "@workspace/shared/feedback";
 import { formatPercent } from "@workspace/shared/products";
 import {
@@ -252,8 +253,9 @@ const HOURS_PER_DAY = 24;
 const MINUTES_PER_HOUR = 60;
 
 export function formatHours(hours: number) {
-	if (hours < 1) return `${Math.round(hours * MINUTES_PER_HOUR)} min`;
-	if (hours < 2 * HOURS_PER_DAY) return `${Math.round(hours)} t`;
+	const minutes = Math.round(hours * MINUTES_PER_HOUR);
+	if (minutes < MINUTES_PER_HOUR) return `${minutes} min`;
+	if (Math.round(hours) < 2 * HOURS_PER_DAY) return `${Math.round(hours)} t`;
 	return `${Math.round(hours / HOURS_PER_DAY)} d`;
 }
 
@@ -281,8 +283,6 @@ export const METRICS = {
 	{ label: string; format: (value: number) => string; max?: number }
 >;
 
-export const TREND_METRICS = ["demand", "fill", "attendance"] as const satisfies MetricKey[];
-
 export type Standing = NonNullable<CompanyComparison["standing"]>;
 
 export const COMPARISON_GROUPS = [
@@ -301,7 +301,7 @@ export function comparisonMax({ key, value, average }: CompanyComparison) {
 	return highest === 0 ? 1 : highest * COUNT_HEADROOM;
 }
 
-export function trendSeries(history: CompanyHistory, key: MetricKey) {
+export function trendSeries(history: CompanyHistory, key: TrendMetric) {
 	const pointsOf = (read: (semester: CompanyHistory[number]) => number | null | undefined) =>
 		history.flatMap((semester, index) => {
 			const value = read(semester);

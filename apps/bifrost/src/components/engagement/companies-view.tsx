@@ -1,4 +1,6 @@
-"use client";
+import { TREND_METRICS, type TrendMetric } from "@workspace/shared/engagement";
+
+("use client");
 
 import { defineChart, dot, lineY } from "@tanstack/charts";
 import { scaleLinear } from "@tanstack/charts/scales/linear";
@@ -47,7 +49,6 @@ import {
 	type SemesterOption,
 	type Standing,
 	semesterLabel,
-	TREND_METRICS,
 	trendSeries,
 } from "./engagement-format";
 import { PaceChart } from "./pace-chart";
@@ -274,7 +275,7 @@ type TrendPoint = { index: number; value: number; semester: string; series: stri
 function TrendChart({
 	history,
 	metric,
-}: Readonly<{ history: CompanyHistory; metric: (typeof TREND_METRICS)[number] }>) {
+}: Readonly<{ history: CompanyHistory; metric: TrendMetric }>) {
 	const definition = useMemo(() => {
 		const labels = history.map(semesterLabel);
 		const { company, average } = trendSeries(history, metric);
