@@ -22,7 +22,7 @@ export const NO_REGISTRATIONS_AFTER_MS = DAY_MS;
 export const AHEAD_RATIO = 1.15;
 export const SIMILAR_CAPACITY_BAND = 0.5;
 export const BASELINE_SIZE = 12;
-export const COMPANY_BASELINE = { size: 6, minSize: 2 };
+export const COMPANY_BASELINE = { size: 6, poolWeight: 2 };
 export const ALERT_ACTIVITY = {
 	unregisterWave: { change: "unregistered", bucketMs: 10 * MINUTE_MS, buckets: 12 },
 	behindPace: { change: "registered", bucketMs: DAY_MS, buckets: 14 },
