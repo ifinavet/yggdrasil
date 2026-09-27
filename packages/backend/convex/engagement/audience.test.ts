@@ -248,3 +248,23 @@ describe("withStudyYear", () => {
 		]);
 	});
 });
+
+describe("cohort mix", () => {
+	it("splits registrations among the cohorts shown, leaving out graduates", () => {
+		const graduate = student("ed", "Bachelor", 4);
+		const { cohorts, programs } = audienceOf(
+			[ADA, CY, graduate, graduate],
+			[...POPULATION, graduate],
+		);
+
+		expect(cohorts.map(({ share }) => share)).toEqual([0.5, 0.5]);
+		expect(programs[0]?.share).toBe(1);
+	});
+
+	it("measures the change against the cohorts shown last time", () => {
+		const graduate = student("ed", "Bachelor", 5);
+		const { cohorts } = audienceOf([ADA], POPULATION, [ADA, graduate], 0);
+
+		expect(cohorts[0]?.change).toBe(0);
+	});
+});
