@@ -472,6 +472,7 @@ describe("feedback form management", () => {
 		await superAdminClient.mutation(api.events.mutations.update, {
 			...eventDetails,
 			id: eventId,
+			foodItem: "pizza",
 			title: "Updated",
 			organizers: [],
 		});

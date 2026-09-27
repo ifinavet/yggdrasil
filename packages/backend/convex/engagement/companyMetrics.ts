@@ -1,3 +1,4 @@
+import type { FoodItem } from "@workspace/shared/events/food";
 import type { HighlightTotals } from "@workspace/shared/feedback/report";
 import { HOUR_MS } from "@workspace/shared/time";
 import type { Doc, Id } from "../_generated/dataModel";
@@ -133,6 +134,15 @@ export function byCompany<T extends Pick<CompanyEvent, "event">>(events: readonl
 	for (const companyEvent of events) {
 		const companyId = companyEvent.event.hostingCompany;
 		grouped.set(companyId, [...(grouped.get(companyId) ?? []), companyEvent]);
+	}
+	return grouped;
+}
+
+export function byFood<T extends Pick<CompanyEvent, "event">>(events: readonly T[]) {
+	const grouped = new Map<FoodItem | null, T[]>();
+	for (const companyEvent of events) {
+		const foodItem = companyEvent.event.foodItem ?? null;
+		grouped.set(foodItem, [...(grouped.get(foodItem) ?? []), companyEvent]);
 	}
 	return grouped;
 }

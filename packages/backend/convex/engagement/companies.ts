@@ -10,6 +10,7 @@ import { audienceOf, uniqueStudents } from "./audience";
 import {
 	averageOf,
 	byCompany,
+	byFood,
 	type CompanyEvent,
 	comparisonOf,
 	metricsOf,
@@ -126,6 +127,22 @@ export const list = query({
 				...metricsOf(companyEvents, now),
 			})),
 		);
+		return rows.sort((a, b) => (b.demand ?? 0) - (a.demand ?? 0));
+	},
+});
+
+export const foods = query({
+	args: semesterArgs,
+	handler: async (ctx, { now, semester, year }) => {
+		await requireRole(ctx, internalRoles);
+		const { events } = await loggedEvents(ctx, { semester, year }, now);
+		const rows = [...byFood(events)].map(([foodItem, foodEvents]) => ({
+			foodItem,
+			events: foodEvents.length,
+			registered: registeredIn(foodEvents).length,
+			seats: sumOf(foodEvents, ({ event }) => event.participationLimit),
+			...metricsOf(foodEvents, now),
+		}));
 		return rows.sort((a, b) => (b.demand ?? 0) - (a.demand ?? 0));
 	},
 });

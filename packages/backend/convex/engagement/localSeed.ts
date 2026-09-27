@@ -277,7 +277,7 @@ async function insertEvent(ctx: MutationCtx, companyIds: Id<"companies">[], plan
 		registrationOpens: plan.registrationOpens,
 		participationLimit: plan.participationLimit,
 		location: plan.location ?? "Store auditorium, IFI",
-		food: "Pizza",
+		foodItem: "pizza",
 		language: "Norsk",
 		ageRestriction: "Ingen",
 		externalEvent: false,

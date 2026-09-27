@@ -196,7 +196,7 @@ async function insertSemesterEvents(seeder: Seeder, randomDay: () => number) {
 			registrationOpens: eventStart - 14 * DAY_MS,
 			participationLimit: random.pick(PARTICIPATION_LIMITS),
 			location: externalEvent ? "Hos bedriften" : "Store auditorium, IFI",
-			food: "Pizza",
+			foodItem: "pizza",
 			language: "Norsk",
 			ageRestriction: "Ingen",
 			externalEvent,

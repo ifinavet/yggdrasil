@@ -16,7 +16,7 @@ export default function CreateEventForm() {
 		eventDate: new Date(new Date().setHours(16, 0, 0, 0)),
 		registrationDate: new Date(new Date().setHours(12, 0, 0, 0)),
 		description: "",
-		food: "",
+		foodItem: undefined,
 		location: "",
 		ageRestrictions: "",
 		language: "Norsk",

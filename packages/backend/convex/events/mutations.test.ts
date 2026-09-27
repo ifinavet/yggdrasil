@@ -115,7 +115,7 @@ const eventArgs = {
 	registrationOpens: Date.now(),
 	participationLimit: 10,
 	location: "Ole-Johan Dahls hus",
-	food: "",
+	foodItem: "pizza" as const,
 	language: "norsk",
 	ageRestriction: "",
 	externalEvent: false,
@@ -192,5 +192,46 @@ describe("events.mutations.update", () => {
 			unitPriceOre: eventProduct.unitPriceOre,
 		});
 		expect(event?.productGuessed).toBeUndefined();
+	});
+});
+
+describe("event food", () => {
+	it("stores the chosen food item on create", async () => {
+		const { t, companyId, client } = await fixture();
+
+		await client.mutation(api.events.mutations.create, {
+			...eventArgs,
+			foodItem: "burritos",
+			hostingCompany: companyId,
+		});
+
+		const event = await t.run((ctx) =>
+			ctx.db
+				.query("events")
+				.filter((q) => q.eq(q.field("title"), eventArgs.title))
+				.first(),
+		);
+		expect(event?.foodItem).toBe("burritos");
+	});
+
+	it("confirms a guessed food item on update and keeps the legacy text", async () => {
+		const { t, companyId, client } = await fixture();
+		const eventId = await insertEvent(t, companyId, {
+			food: "Sushi fra Sticks",
+			foodItem: "sushi",
+			foodGuessed: true,
+		});
+
+		await client.mutation(api.events.mutations.update, {
+			...eventArgs,
+			foodItem: "sushi",
+			id: eventId,
+			hostingCompany: companyId,
+		});
+
+		const event = await t.run((ctx) => ctx.db.get(eventId));
+		expect(event?.foodItem).toBe("sushi");
+		expect(event?.foodGuessed).toBeUndefined();
+		expect(event?.food).toBe("Sushi fra Sticks");
 	});
 });

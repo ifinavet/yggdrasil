@@ -23,7 +23,7 @@ export default function UpdateEventForm({
 		eventDate: new Date(event.eventStart),
 		registrationDate: new Date(event.registrationOpens),
 		description: event.description,
-		food: event.food,
+		foodItem: event.foodItem,
 		location: event.location,
 		ageRestrictions: event.ageRestriction,
 		language: event.language,

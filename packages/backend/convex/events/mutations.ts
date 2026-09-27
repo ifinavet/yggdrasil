@@ -8,10 +8,11 @@ import { syncFeedbackCampaign } from "../feedback/delivery/campaigns";
 import { eventProductFields } from "../products/sales";
 import { eventSlug, insertEventWithOrganizers } from "./helper";
 import { makeStatusPending } from "./registrations/mutations";
-import { editableEventFields, organizerRoleValidator } from "./schema";
+import { editableEventFields, foodItemValidator, organizerRoleValidator } from "./schema";
 
 const eventMutationArgs = {
 	...editableEventFields,
+	foodItem: foodItemValidator,
 	productId: v.optional(v.id("products")),
 	organizers: v.array(
 		v.object({
@@ -32,7 +33,7 @@ const eventMutationArgs = {
  * @param {number} registrationOpens - The registration opening time as a timestamp.
  * @param {number} participationLimit - The maximum number of participants.
  * @param {string} location - The event location.
- * @param {string} food - The food information for the event.
+ * @param {FoodItem} foodItem - The food served at the event.
  * @param {string} language - The event language.
  * @param {string} ageRestriction - The event age restriction.
  * @param {string | undefined} externalUrl - The optional external registration URL.
@@ -56,7 +57,7 @@ export const update = mutation({
 			registrationOpens,
 			participationLimit,
 			location,
-			food,
+			foodItem,
 			language,
 			ageRestriction,
 			externalEvent,
@@ -97,7 +98,8 @@ export const update = mutation({
 			registrationOpens,
 			participationLimit,
 			location,
-			food,
+			foodItem,
+			foodGuessed: undefined,
 			language,
 			ageRestriction,
 			externalEvent,
@@ -266,7 +268,7 @@ export const updatePublishedStatus = mutation({
  * @param {number} registrationOpens - The registration opening time as a timestamp.
  * @param {number} participationLimit - The maximum number of participants.
  * @param {string} location - The event location.
- * @param {string} food - The food information for the event.
+ * @param {FoodItem} foodItem - The food served at the event.
  * @param {string} language - The event language.
  * @param {string} ageRestriction - The event age restriction.
  * @param {string | undefined} externalUrl - The optional external registration URL.
@@ -289,7 +291,7 @@ export const create = mutation({
 			registrationOpens,
 			participationLimit,
 			location,
-			food,
+			foodItem,
 			language,
 			ageRestriction,
 			externalEvent,
@@ -312,7 +314,7 @@ export const create = mutation({
 				registrationOpens,
 				participationLimit,
 				location,
-				food,
+				foodItem,
 				language,
 				ageRestriction,
 				externalEvent,

@@ -2,6 +2,7 @@
 
 import type { api } from "@workspace/backend/convex/api";
 import type { Doc } from "@workspace/backend/convex/dataModel";
+import { FOOD_ITEM_LABELS } from "@workspace/shared/events/food";
 import { humanReadableDateTime } from "@workspace/shared/time";
 import { Button } from "@workspace/ui/components/button";
 import { type Preloaded, usePreloadedQuery } from "convex/react";
@@ -39,7 +40,8 @@ export function EventMetadata({
 					<MapPin className="size-6 min-w-6 md:size-8" /> {event.location}
 				</p>
 				<p className="flex items-center gap-2 font-semibold md:text-lg">
-					<Utensils className="size-6 min-w-6 md:size-8" /> {event.food}
+					<Utensils className="size-6 min-w-6 md:size-8" />{" "}
+					{event.foodItem ? FOOD_ITEM_LABELS[event.foodItem] : event.food || "Mer info kommer"}
 				</p>
 				<p className="flex items-center gap-2 font-semibold md:text-lg">
 					<Users className="size-6 min-w-6 md:size-8" />{" "}

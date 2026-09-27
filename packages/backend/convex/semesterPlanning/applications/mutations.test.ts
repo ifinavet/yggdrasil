@@ -466,7 +466,7 @@ describe("updatePlanningDetails", () => {
 				registrationOpens: Date.parse("2027-01-26T11:00:00Z"),
 				participationLimit: 40,
 				location: "Simula",
-				food: "Pizza",
+				foodItem: "pizza",
 				language: "Norsk",
 				ageRestriction: "Ingen",
 				externalEvent: false,

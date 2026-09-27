@@ -154,7 +154,6 @@ export async function insertEvent(
 			registrationOpens: Date.now() - DAY_IN_MS,
 			participationLimit: 10,
 			location: "Ole-Johan Dahls hus",
-			food: "",
 			language: "norsk",
 			ageRestriction: "",
 			externalEvent: false,

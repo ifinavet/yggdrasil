@@ -1,7 +1,11 @@
 import { ORGANIZER_ROLES, REGISTRATION_STATUSES } from "@workspace/shared/constants";
+import { FOOD_ITEMS } from "@workspace/shared/events/food";
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
+import { oneOf } from "../lib/validators";
 import { soldProductFields } from "../products/schema";
+
+export const foodItemValidator = oneOf(FOOD_ITEMS);
 
 export const organizerRoleValidator = v.union(...ORGANIZER_ROLES.map((role) => v.literal(role)));
 export const registrationStatusValidator = v.union(
@@ -16,7 +20,7 @@ export const editableEventFields = {
 	registrationOpens: v.number(),
 	participationLimit: v.number(),
 	location: v.string(),
-	food: v.string(),
+	foodItem: v.optional(foodItemValidator),
 	language: v.string(),
 	ageRestriction: v.string(),
 	externalEvent: v.boolean(),
@@ -28,6 +32,8 @@ export const editableEventFields = {
 export const eventsSchema = {
 	events: defineTable({
 		...editableEventFields,
+		food: v.optional(v.string()),
+		foodGuessed: v.optional(v.boolean()),
 		feedbackEnabled: v.optional(v.boolean()),
 		feedbackFormId: v.optional(v.id("feedbackForms")),
 		slug: v.optional(v.string()),

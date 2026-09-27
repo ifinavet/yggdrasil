@@ -1,6 +1,7 @@
 "use client";
 
 import { useForm } from "@tanstack/react-form";
+import { FOOD_ITEM_LABELS, FOOD_ITEMS, type FoodItem } from "@workspace/shared/events/food";
 import {
 	Field,
 	FieldDescription,
@@ -105,21 +106,33 @@ export default function EventForm({
 				<FieldSeparator />
 
 				<FieldGroup className="grid grid-cols-1 gap-4 md:grid-cols-2">
-					<form.Field name="food">
+					<form.Field name="foodItem">
 						{(field) => {
 							const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 							return (
 								<Field>
 									<FieldLabel htmlFor={field.name}>Mat</FieldLabel>
-									<Input
-										id={field.name}
+									<Select
 										name={field.name}
-										value={field.state.value}
-										onChange={(e) => field.handleChange(e.target.value)}
-										onBlur={field.handleBlur}
-										aria-invalid={isInvalid}
-										placeholder="Sushi"
-									/>
+										value={field.state.value ?? ""}
+										onValueChange={(value) => field.handleChange(value as FoodItem)}
+									>
+										<SelectTrigger
+											id={field.name}
+											className="w-full"
+											onBlur={field.handleBlur}
+											aria-invalid={isInvalid}
+										>
+											<SelectValue placeholder="Velg mat" />
+										</SelectTrigger>
+										<SelectContent>
+											{FOOD_ITEMS.map((item) => (
+												<SelectItem key={item} value={item}>
+													{FOOD_ITEM_LABELS[item]}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
 									{isInvalid && <FieldError errors={field.state.meta.errors} />}
 								</Field>
 							);

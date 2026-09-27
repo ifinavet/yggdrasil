@@ -27,6 +27,7 @@ export type UnregisterLog = FunctionReturnType<typeof api.engagement.queries.unr
 export type PaceCurve = NonNullable<FunctionReturnType<typeof api.engagement.queries.paceCurve>>;
 export type PastEvent = FunctionReturnType<typeof api.engagement.queries.past>[number];
 export type CompanyRow = FunctionReturnType<typeof api.engagement.companies.list>[number];
+export type FoodRow = FunctionReturnType<typeof api.engagement.companies.foods>[number];
 export type CompanyDetail = FunctionReturnType<typeof api.engagement.companies.detail>;
 export type CompanyComparison = CompanyDetail["comparison"][number];
 export type CompanyHistory = FunctionReturnType<typeof api.engagement.companies.history>;

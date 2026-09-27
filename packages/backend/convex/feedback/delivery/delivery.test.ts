@@ -467,6 +467,7 @@ describe("campaign lifecycle", () => {
 			await f.client.mutation(api.events.mutations.update, {
 				...eventFields,
 				id: f.eventId,
+				foodItem: "pizza",
 				title: "Updated past event",
 				organizers: [],
 			});

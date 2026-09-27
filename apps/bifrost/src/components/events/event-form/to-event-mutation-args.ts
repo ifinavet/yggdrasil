@@ -1,5 +1,6 @@
 import type { Id } from "@workspace/backend/convex/dataModel";
 import type { OrganizerRole } from "@workspace/shared/constants";
+import type { FoodItem } from "@workspace/shared/events/food";
 import type { EventFormValues } from "@/constants/schemas/event-form-schema";
 
 export function toEventMutationArgs(values: EventFormValues, published: boolean) {
@@ -11,7 +12,7 @@ export function toEventMutationArgs(values: EventFormValues, published: boolean)
 		registrationOpens: values.registrationDate.getTime(),
 		participationLimit: values.participantsLimit,
 		location: values.location,
-		food: values.food,
+		foodItem: values.foodItem as FoodItem,
 		language: values.language,
 		ageRestriction: values.ageRestrictions,
 		externalEvent: values.externalEvent,
