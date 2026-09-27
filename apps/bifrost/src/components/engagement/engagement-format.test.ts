@@ -112,13 +112,12 @@ describe("food charts", () => {
 		event("e", burritos, 20, 10),
 	]);
 
-	it("pools demand per food across events and sorts by count, then name, unset last", () => {
+	it("pools demand per food, sorts by count then name and leaves out unset foods", () => {
 		expect(breakdown.demand).toBeCloseTo(65 / 70);
 		expect(breakdown.foods).toEqual([
 			{ name: "🍕 Pizza", events: 2, demand: 1 },
 			{ name: "🌯 Burritos", events: 1, demand: 2 },
 			{ name: "🌮 Taco", events: 1, demand: 0.5 },
-			{ name: "Ikke satt", events: 1, demand: 0 },
 		]);
 	});
 
@@ -126,10 +125,9 @@ describe("food charts", () => {
 		expect(
 			foodDistribution(breakdown).map(({ name, events, label }) => [name, events, nbsp(label)]),
 		).toEqual([
-			["🍕 Pizza", 2, "2 (40 %)"],
-			["🌯 Burritos", 1, "1 (20 %)"],
-			["🌮 Taco", 1, "1 (20 %)"],
-			["Ikke satt", 1, "1 (20 %)"],
+			["🍕 Pizza", 2, "2 (50 %)"],
+			["🌯 Burritos", 1, "1 (25 %)"],
+			["🌮 Taco", 1, "1 (25 %)"],
 		]);
 	});
 
@@ -138,11 +136,10 @@ describe("food charts", () => {
 			["🌯 Burritos", "200 %"],
 			["🍕 Pizza", "100 %"],
 			["🌮 Taco", "50 %"],
-			["Ikke satt", "0 %"],
 		]);
 	});
 
-	it("leaves out unset foods and foods served at fewer than three events", () => {
+	it("leaves out foods served at fewer than three events", () => {
 		const serve = (id: string, food: [string, string] | null, count: number, demand: number) =>
 			Array.from({ length: count }, (_, index) => event(`${id}${index}`, food, demand, 10));
 		const opportunities = foodOpportunities(
