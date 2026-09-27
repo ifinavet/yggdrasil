@@ -14,7 +14,7 @@ import { internalRoles, requireRole } from "../auth/accessRights";
 import { eventsInSemester } from "../events/helper";
 import { companyWithLogo, eventSemesterValidator } from "../events/queries";
 import { audienceOf } from "./audience";
-import { activityBuckets, activityWindowMs, PACE_STEPS, valueAt, WAVE_RULE } from "./metrics";
+import { activityBuckets, activityWindowMs, PACE_GRID, valueAt, WAVE_RULE } from "./metrics";
 import {
 	MAX_REGISTRATIONS_PER_EVENT,
 	pastCurvesBefore,
@@ -195,9 +195,8 @@ export const paceCurve = query({
 			return null;
 		};
 
-		const steps = Array.from({ length: PACE_STEPS + 1 }, (_, step) => step / PACE_STEPS);
 		const points = [
-			...steps.filter((progress) => progress !== snapshot.progress),
+			...PACE_GRID.filter((progress) => progress !== snapshot.progress),
 			snapshot.progress,
 		]
 			.sort((a, b) => a - b)

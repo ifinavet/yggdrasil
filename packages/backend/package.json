@@ -25,6 +25,8 @@
 		"@workspace/shared": "workspace:*",
 		"convex": "^1.46.0",
 		"convex-helpers": "^0.1.124",
+		"d3-array": "3.2.4",
+		"d3-scale": "4.0.2",
 		"svix": "^1.99.1",
 		"xss": "^1.0.15"
 	},
@@ -32,6 +34,8 @@
 		"@convex-dev/batch-worker": "^0.2.2",
 		"@convex-dev/workpool": "^0.4.12",
 		"@edge-runtime/vm": "5.0.0",
+		"@types/d3-array": "3.2.2",
+		"@types/d3-scale": "4.0.9",
 		"@types/node": "^20.19.43",
 		"@vitest/coverage-v8": "4.1.11",
 		"convex-test": "0.0.59",

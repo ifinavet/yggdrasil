@@ -37,7 +37,8 @@ export const eventsSchema = {
 		.index("by_eventStart", ["eventStart"])
 		.index("by_registrationOpens", ["registrationOpens"])
 		.index("by_slug", ["slug"])
-		.index("by_formId", ["formId"]),
+		.index("by_formId", ["formId"])
+		.index("by_hostingCompany_and_eventStart", ["hostingCompany", "eventStart"]),
 
 	eventOrganizers: defineTable({
 		eventId: v.id("events"),

@@ -3,13 +3,14 @@ import type { Doc, Id } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
 import {
 	BASELINE_SIZE,
+	COMPANY_BASELINE,
 	classify,
-	fillCurve,
 	isSimilarCapacity,
 	medianCurve,
 	progressOf,
 	projectFill,
 	recentUnregistrations,
+	seatCurve,
 	seatDelta,
 	valueAt,
 } from "./metrics";
@@ -47,29 +48,65 @@ export async function logSince(ctx: QueryCtx, eventId: Id<"events">, since: numb
 		.take(MAX_LOG_ENTRIES);
 }
 
-export async function pastCurvesBefore(ctx: QueryCtx, before: number): Promise<PastCurve[]> {
+function isComparable(event: Doc<"events">) {
+	return event.published && !event.externalEvent && event.participationLimit > 0;
+}
+
+async function curvesOf(ctx: QueryCtx, events: readonly Doc<"events">[]): Promise<PastCurve[]> {
+	return await Promise.all(
+		events.map(async (event) => {
+			const log = await ctx.db
+				.query("registrationLog")
+				.withIndex("by_eventId_and_at", (q) =>
+					q.eq("eventId", event._id).lte("at", event.eventStart),
+				)
+				.take(MAX_LOG_ENTRIES);
+			return {
+				limit: event.participationLimit,
+				curve: seatCurve(event, event.participationLimit, log),
+			};
+		}),
+	);
+}
+
+export async function pastCurvesBefore(ctx: QueryCtx, before: number) {
 	const past = await ctx.db
 		.query("events")
 		.withIndex("by_eventStart", (q) => q.lt("eventStart", before))
 		.order("desc")
 		.take(PAST_EVENTS_FOR_BASELINE);
-	const comparable = past.filter(
-		(event) => event.published && !event.externalEvent && event.participationLimit > 0,
-	);
-	return await Promise.all(
-		comparable.map(async (event) => ({
-			limit: event.participationLimit,
-			curve: fillCurve(event, event.participationLimit, await registrationTimesOf(ctx, event._id)),
-		})),
-	);
+	return await curvesOf(ctx, past.filter(isComparable));
 }
 
-export function baselineFor(pastCurves: readonly PastCurve[], limit: number) {
-	const similar = pastCurves
-		.filter((past) => isSimilarCapacity(limit, past.limit))
-		.slice(0, BASELINE_SIZE);
-	const curve = medianCurve(similar.map((past) => past.curve));
-	return curve ? { curve, size: similar.length } : null;
+export async function companyCurvesBefore(
+	ctx: QueryCtx,
+	companyId: Id<"companies">,
+	before: number,
+) {
+	const comparable: Doc<"events">[] = [];
+	for await (const event of ctx.db
+		.query("events")
+		.withIndex("by_hostingCompany_and_eventStart", (q) =>
+			q.eq("hostingCompany", companyId).lt("eventStart", before),
+		)
+		.order("desc")) {
+		if (isComparable(event)) comparable.push(event);
+		if (comparable.length === COMPANY_BASELINE.size) break;
+	}
+	return await curvesOf(ctx, comparable);
+}
+
+export function baselineFor(
+	pastCurves: readonly PastCurve[],
+	limit: number,
+	companyCurves: readonly PastCurve[] = [],
+) {
+	const chosen =
+		companyCurves.length >= COMPANY_BASELINE.minSize
+			? companyCurves.slice(0, COMPANY_BASELINE.size)
+			: pastCurves.filter((past) => isSimilarCapacity(limit, past.limit)).slice(0, BASELINE_SIZE);
+	const curve = medianCurve(chosen.map((past) => past.curve));
+	return curve ? { curve, size: chosen.length } : null;
 }
 
 export async function snapshotOf(
@@ -81,7 +118,12 @@ export async function snapshotOf(
 	const registrationTimes = await registrationTimesOf(ctx, event._id);
 	const recentLog = await logSince(ctx, event._id, now - DAY_MS);
 	const unregistrations = recentUnregistrations(recentLog, now);
-	const baseline = baselineFor(pastCurves, event.participationLimit);
+	const companyCurves = await companyCurvesBefore(
+		ctx,
+		event.hostingCompany,
+		Math.min(now, event.eventStart),
+	);
+	const baseline = baselineFor(pastCurves, event.participationLimit, companyCurves);
 	const progress = progressOf(event, now);
 	const registered = registrationTimes.length;
 	const currentFill = registered / event.participationLimit;
@@ -111,9 +153,7 @@ export async function upcomingEvents(ctx: QueryCtx, now: number, limit: number) 
 	for await (const event of ctx.db
 		.query("events")
 		.withIndex("by_eventStart", (q) => q.gte("eventStart", now))) {
-		if (event.published && !event.externalEvent && event.participationLimit > 0) {
-			eligible.push(event);
-		}
+		if (isComparable(event)) eligible.push(event);
 		if (eligible.length === limit) break;
 	}
 	return eligible;
