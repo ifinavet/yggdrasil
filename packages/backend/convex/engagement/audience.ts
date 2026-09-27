@@ -1,6 +1,6 @@
+import { DEGREE_YEARS, DEGREES } from "@workspace/shared/constants";
+import { DAY_MS } from "@workspace/shared/time";
 import type { Doc } from "../_generated/dataModel";
-
-export const TOP_PROGRAMS = 8;
 
 type Student = Pick<Doc<"students">, "_id" | "degree" | "year" | "studyProgram">;
 type KeyOf = (student: Student) => string;
@@ -33,33 +33,36 @@ function uniqueStudents(students: readonly Student[]) {
 	return [...new Map(students.map((student) => [student._id, student])).values()];
 }
 
-function reachOf(
-	registrants: readonly Student[],
-	populationCounts: Map<string, number>,
-	key: string,
+function reachOf(registrants: readonly Student[], cohortSizes: Map<string, number>, key: string) {
+	const size = cohortSizes.get(key) ?? 0;
+	return size === 0 ? 0 : Math.min(1, (countBy(registrants, cohortOf).get(key) ?? 0) / size);
+}
+
+export function withStudyYear<T extends Student & Pick<Doc<"students">, "graduatedAt">>(
+	students: readonly T[],
+	now: number,
 ) {
-	const population = populationCounts.get(key) ?? 0;
-	return population === 0
-		? 0
-		: Math.min(1, (countBy(registrants, cohortOf).get(key) ?? 0) / population);
+	return students.map((student) =>
+		student.graduatedAt === undefined
+			? student
+			: {
+					...student,
+					year:
+						DEGREE_YEARS[student.degree].last +
+						1 +
+						Math.floor((now - student.graduatedAt) / (365 * DAY_MS)),
+				},
+	);
 }
 
 type Cohort = { degree: Student["degree"]; year: number | null; rank: number };
 
 export function cohortGroupOf({ degree, year }: Pick<Student, "degree" | "year">): Cohort | null {
-	if (year < 1) return null;
-	switch (degree) {
-		case "Bachelor":
-			return { degree, year: Math.min(year, 3), rank: Math.min(year, 3) };
-		case "Master": {
-			const masterYear = year === 2 || year === 5 ? 5 : 4;
-			return { degree, year: masterYear, rank: masterYear };
-		}
-		case "Årsstudium":
-			return { degree, year: null, rank: 6 };
-		case "PhD":
-			return null;
-	}
+	const { first, last } = DEGREE_YEARS[degree];
+	if (degree === DEGREES.phd || year < first || year > last) return null;
+	return degree === DEGREES.aarsstudium
+		? { degree, year: null, rank: DEGREE_YEARS[DEGREES.master].last + 1 }
+		: { degree, year, rank: year };
 }
 
 function labelOf({ degree, year }: Cohort) {
@@ -72,10 +75,11 @@ function codeOf({ degree, year }: Cohort) {
 
 type GroupOf = (student: Pick<Student, "degree" | "year">) => Cohort | null;
 
-export function programCohortGroupOf({ degree, year }: Pick<Student, "degree" | "year">) {
-	return degree === "Årsstudium"
-		? cohortGroupOf({ degree: "Bachelor", year: Math.min(year, 2) })
-		: cohortGroupOf({ degree, year });
+export function programCohortGroupOf(student: Pick<Student, "degree" | "year">) {
+	const cohort = cohortGroupOf(student);
+	return cohort?.degree === DEGREES.aarsstudium
+		? cohortGroupOf({ degree: DEGREES.bachelor, year: student.year })
+		: cohort;
 }
 
 function labelledBy(groupOf: GroupOf) {
@@ -101,6 +105,21 @@ function programOf({ studyProgram }: Student) {
 	return studyProgram;
 }
 
+function cohortSizes(population: readonly Student[]) {
+	const keyOf = ({ degree, year }: Pick<Student, "degree" | "year">) => `${degree}:${year}`;
+	const counts = countBy(population, keyOf);
+	const sizes = new Map<string, number>();
+	for (const [, { student, count }] of tally(population, keyOf)) {
+		const label = cohortOf(student);
+		if (label === "") continue;
+		sizes.set(
+			label,
+			Math.max(count, counts.get(keyOf({ ...student, year: student.year + 1 })) ?? 0),
+		);
+	}
+	return sizes;
+}
+
 function backdate(students: readonly Student[], years: number) {
 	return students.map((student) => ({ ...student, year: student.year - years }));
 }
@@ -121,11 +140,12 @@ export function audienceOf(
 	const reached = uniqueStudents(registrants);
 	const previous = previousRegistrants && backdate(previousRegistrants, yearsSincePrevious);
 	const previousReached = previous && uniqueStudents(previous);
-	const populationCohorts = countBy(population, cohortOf);
-	const previousPopulationCohorts = countBy(backdate(population, yearsSincePrevious), cohortOf);
+	const current = population.filter((student) => cohortGroupOf(student) !== null);
+	const populationCohorts = cohortSizes(population);
+	const previousPopulationCohorts = cohortSizes(backdate(population, yearsSincePrevious));
 
 	const shareRow = (keyOf: KeyOf) => {
-		const populationCounts = countBy(population, keyOf);
+		const populationCounts = countBy(current, keyOf);
 		const previousCounts = previous && countBy(previous, keyOf);
 		return (label: string, registrations: number) => {
 			const share = registrations / registrants.length;
@@ -133,7 +153,7 @@ export function audienceOf(
 				label,
 				registrations,
 				share,
-				populationShare: shareOf(populationCounts, population.length, label),
+				populationShare: shareOf(populationCounts, current.length, label),
 				change: previousCounts
 					? share - shareOf(previousCounts, (previous as readonly Student[]).length, label)
 					: null,
@@ -158,7 +178,6 @@ export function audienceOf(
 	const programRow = shareRow(programOf);
 	const programs = tally(registrants, programOf)
 		.sort(([a, { count: countA }], [b, { count: countB }]) => countB - countA || a.localeCompare(b))
-		.slice(0, TOP_PROGRAMS)
 		.map(([label, { count }]) => {
 			const byCohort = countBy(
 				registrants.filter((student) => student.studyProgram === label),

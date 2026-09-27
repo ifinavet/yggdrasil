@@ -12,6 +12,7 @@ import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalAction, internalMutation, type MutationCtx } from "../_generated/server";
 import { logoSvg, randomTools, requireLocal, seededRandom } from "../products/localSeed";
+import { normalizedStudent } from "../users/students/migrations";
 
 const COMPANIES = [
 	{ name: "Kvitfjell Kode", popularity: 1.35 },
@@ -214,12 +215,16 @@ export const insertFoundation = internalMutation({
 				STUDY_PROGRAMS.length - 1,
 				Math.floor(random.next() ** programSkew * STUDY_PROGRAMS.length),
 			);
-			await ctx.db.insert("students", {
-				userId,
-				name: `${firstName} ${lastName}`,
+			const profile = {
 				studyProgram: STUDY_PROGRAMS[programIndex] as string,
 				year,
 				degree: degreeFor(random, year),
+			};
+			await ctx.db.insert("students", {
+				userId,
+				name: `${firstName} ${lastName}`,
+				...profile,
+				...normalizedStudent(profile, Date.now()),
 			});
 			return userId;
 		};

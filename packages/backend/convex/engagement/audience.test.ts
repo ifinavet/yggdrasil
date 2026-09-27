@@ -1,3 +1,4 @@
+import { DAY_MS } from "@workspace/shared/time";
 import { describe, expect, it } from "vitest";
 import type { Doc, Id } from "../_generated/dataModel";
 import {
@@ -5,7 +6,7 @@ import {
 	cohortGroupOf,
 	cohortOf,
 	programCohortGroupOf,
-	TOP_PROGRAMS,
+	withStudyYear,
 } from "./audience";
 
 type Student = Pick<Doc<"students">, "_id" | "degree" | "year" | "studyProgram">;
@@ -30,22 +31,22 @@ describe("cohortOf", () => {
 		expect(cohortOf({ degree: "Bachelor", year: 2 })).toBe("Bachelor 2. år");
 	});
 
-	it("folds late bachelor years into the third year", () => {
-		expect(cohortOf({ degree: "Bachelor", year: 5 })).toBe("Bachelor 3. år");
+	it("leaves years past the end of the degree out of every cohort", () => {
+		expect(cohortGroupOf({ degree: "Bachelor", year: 4 })).toBeNull();
+		expect(cohortGroupOf({ degree: "Master", year: 6 })).toBeNull();
+		expect(cohortGroupOf({ degree: "Årsstudium", year: 2 })).toBeNull();
 	});
 
-	it("maps master students onto the fourth or fifth year", () => {
-		expect([1, 2, 3, 4, 5].map((year) => cohortOf({ degree: "Master", year }))).toEqual([
-			"Master 4. år",
-			"Master 5. år",
-			"Master 4. år",
+	it("only places master students in the fourth or fifth year", () => {
+		expect([3, 4, 5].map((year) => cohortOf({ degree: "Master", year }))).toEqual([
+			"",
 			"Master 4. år",
 			"Master 5. år",
 		]);
 	});
 
-	it("keeps one cohort for årsstudium regardless of year", () => {
-		expect(cohortOf({ degree: "Årsstudium", year: 2 })).toBe("Årsstudium");
+	it("keeps one cohort for årsstudium", () => {
+		expect(cohortOf({ degree: "Årsstudium", year: 1 })).toBe("Årsstudium");
 	});
 
 	it("leaves PhD students out of every cohort", () => {
@@ -59,17 +60,16 @@ describe("cohortOf", () => {
 });
 
 describe("programCohortGroupOf", () => {
-	it("places årsstudium students in the first or second bachelor year", () => {
-		expect([1, 2, 3].map((year) => programCohortGroupOf({ degree: "Årsstudium", year }))).toEqual([
+	it("places årsstudium students in the first bachelor year", () => {
+		expect([1, 2].map((year) => programCohortGroupOf({ degree: "Årsstudium", year }))).toEqual([
 			{ degree: "Bachelor", year: 1, rank: 1 },
-			{ degree: "Bachelor", year: 2, rank: 2 },
-			{ degree: "Bachelor", year: 2, rank: 2 },
+			null,
 		]);
 	});
 
 	it("matches the regular cohort for other degrees", () => {
-		expect(programCohortGroupOf({ degree: "Master", year: 2 })).toEqual(
-			cohortGroupOf({ degree: "Master", year: 2 }),
+		expect(programCohortGroupOf({ degree: "Master", year: 4 })).toEqual(
+			cohortGroupOf({ degree: "Master", year: 4 }),
 		);
 		expect(programCohortGroupOf({ degree: "Årsstudium", year: 0 })).toBeNull();
 	});
@@ -176,36 +176,43 @@ describe("audienceOf", () => {
 		]);
 	});
 
-	it("counts årsstudium students under bachelor years in the program matrix only", () => {
+	it("counts årsstudium students under the first bachelor year in the program matrix only", () => {
 		const oneYear = student("ar", "Årsstudium", 1, "Årsstudium i informatikk");
-		const secondYear = student("as", "Årsstudium", 2, "Årsstudium i informatikk");
+		const graduated = student("as", "Årsstudium", 2, "Årsstudium i informatikk");
 		const { cohorts, programCohorts, programs } = audienceOf(
-			[ADA, oneYear, secondYear],
-			[...POPULATION, oneYear, secondYear],
+			[ADA, oneYear, graduated],
+			[...POPULATION, oneYear, graduated],
 		);
 		expect(cohorts.map(({ code }) => code)).toEqual(["B1", "Å"]);
-		expect(programCohorts).toEqual([
-			{ label: "Bachelor 1. år", code: "B1" },
-			{ label: "Bachelor 2. år", code: "B2" },
-		]);
+		expect(programCohorts).toEqual([{ label: "Bachelor 1. år", code: "B1" }]);
 		expect(programs).toEqual([
-			expect.objectContaining({ label: "Årsstudium i informatikk", byCohort: [1, 1] }),
-			expect.objectContaining({ label: "Informatikk", byCohort: [1, 0] }),
+			expect.objectContaining({ label: "Årsstudium i informatikk", byCohort: [1] }),
+			expect.objectContaining({ label: "Informatikk", byCohort: [1] }),
 		]);
 	});
 
-	it("keeps the most popular programs, breaking ties by name", () => {
-		const names = Array.from({ length: TOP_PROGRAMS + 2 }, (_, index) => `Program ${index}`);
+	it("sizes a cohort by the larger of itself and the year above it", () => {
+		const secondYears = ["b", "c", "d"].map((id) => student(id, "Bachelor", 2));
+		const graduates = ["e", "f", "g", "h"].map((id) => student(id, "Master", 6));
+		const population = [ADA, ...secondYears, CY, ...graduates];
+		const [bachelorOne, bachelorTwo, masterFour] = audienceOf(
+			[ADA, secondYears[0] as Student, CY],
+			population,
+		).cohorts;
+		expect(bachelorOne?.reach).toBe(1 / 3);
+		expect(bachelorTwo?.reach).toBe(1 / 3);
+		expect(masterFour?.reach).toBe(1);
+		expect(bachelorOne?.populationShare).toBe(1 / 5);
+	});
+
+	it("lists every program by popularity, breaking ties by name", () => {
+		const names = Array.from({ length: 10 }, (_, index) => `Program ${index}`);
 		const registrants = [
-			...names.map((name) => student(name, "Bachelor", 1, name)),
+			...names.map((name) => student(name, "Årsstudium", 1, name)),
 			student("extra", "Bachelor", 1, "Program 9"),
 		];
 		const { programs } = audienceOf(registrants, registrants);
-		expect(programs).toHaveLength(TOP_PROGRAMS);
-		expect(programs.map(({ label }) => label)).toEqual([
-			"Program 9",
-			...names.slice(0, TOP_PROGRAMS - 1),
-		]);
+		expect(programs.map(({ label }) => label)).toEqual(["Program 9", ...names.slice(0, 9)]);
 	});
 
 	it("counts registrants without a valid year but leaves them out of the cohorts", () => {
@@ -227,5 +234,17 @@ describe("audienceOf", () => {
 	it("reports zero population share when the population is empty", () => {
 		const [cohort] = audienceOf([ADA], []).cohorts;
 		expect(cohort).toMatchObject({ populationShare: 0, reach: 0 });
+	});
+});
+
+describe("withStudyYear", () => {
+	it("counts whole years since graduating past the last year of the degree", () => {
+		const now = Date.UTC(2026, 8, 1);
+		const current = { ...ADA, graduatedAt: undefined };
+		const recent = { ...DI, graduatedAt: now - 30 * DAY_MS };
+		const earlier = { ...CY, year: 5, graduatedAt: now - 400 * DAY_MS };
+		expect(withStudyYear([current, recent, earlier], now).map(({ year }) => year)).toEqual([
+			1, 4, 7,
+		]);
 	});
 });

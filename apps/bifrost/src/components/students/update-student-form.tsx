@@ -2,7 +2,15 @@
 
 import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
-import { DEGREE_TYPES, STUDY_PROGRAMS } from "@workspace/shared/constants";
+import {
+	DEGREE_TYPES,
+	DEGREE_YEARS,
+	degreesFor,
+	fittingDegree,
+	fittingYear,
+	refineStudentProfile,
+	STUDY_PROGRAMS,
+} from "@workspace/shared/constants";
 import { Button } from "@workspace/ui/components/button";
 import {
 	Field,
@@ -23,14 +31,16 @@ import { type Preloaded, useMutation, usePreloadedQuery } from "convex/react";
 import { toast } from "sonner";
 import { z } from "zod/v4";
 
-const formSchema = z.object({
-	firstName: z.string().min(2, "Studenten må ha et fornavn"),
-	lastName: z.string().min(2, "Studenten må ha et etternavn"),
-	email: z.email("Studenten må ha en gyldig e-postadresse"),
-	studyProgram: z.enum(STUDY_PROGRAMS, "Studenten må ha et studieprogram"),
-	year: z.number().min(1, "Studenten må gå hvertfall 1. året"),
-	degree: z.enum(DEGREE_TYPES, "Studenten må ha en gyldig grad"),
-});
+const formSchema = z
+	.object({
+		firstName: z.string().min(2, "Studenten må ha et fornavn"),
+		lastName: z.string().min(2, "Studenten må ha et etternavn"),
+		email: z.email("Studenten må ha en gyldig e-postadresse"),
+		studyProgram: z.enum(STUDY_PROGRAMS, "Studenten må ha et studieprogram"),
+		year: z.number().min(1, "Studenten må gå hvertfall 1. året"),
+		degree: z.enum(DEGREE_TYPES, "Studenten må ha en gyldig grad"),
+	})
+	.superRefine(refineStudentProfile);
 
 export default function UpdateStudentForm({
 	preloadedStudent,
@@ -154,24 +164,37 @@ export default function UpdateStudentForm({
 							return (
 								<Field>
 									<FieldLabel htmlFor={field.name}>År</FieldLabel>
-									<Input
-										id={field.name}
-										name={field.name}
-										type="number"
-										min={1}
-										max={5}
-										value={field.state.value}
-										onChange={(e) => field.handleChange(Number.parseInt(e.target.value, 10))}
-										onBlur={field.handleBlur}
-										aria-invalid={isInvalid}
-									/>
+									<form.Subscribe selector={(state) => DEGREE_YEARS[state.values.degree]}>
+										{({ first, last }) => (
+											<Input
+												id={field.name}
+												name={field.name}
+												type="number"
+												min={first}
+												max={last}
+												value={field.state.value}
+												onChange={(e) => field.handleChange(Number.parseInt(e.target.value, 10))}
+												onBlur={field.handleBlur}
+												aria-invalid={isInvalid}
+											/>
+										)}
+									</form.Subscribe>
 									{isInvalid && <FieldError errors={field.state.meta.errors} />}
 								</Field>
 							);
 						}}
 					</form.Field>
 
-					<form.Field name="studyProgram">
+					<form.Field
+						name="studyProgram"
+						listeners={{
+							onChange: ({ value }) => {
+								const degree = fittingDegree(value, form.getFieldValue("degree"));
+								form.setFieldValue("degree", degree);
+								form.setFieldValue("year", fittingYear(degree, form.getFieldValue("year")));
+							},
+						}}
+					>
 						{(field) => {
 							const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 							return (
@@ -200,7 +223,13 @@ export default function UpdateStudentForm({
 						}}
 					</form.Field>
 
-					<form.Field name="degree">
+					<form.Field
+						name="degree"
+						listeners={{
+							onChange: ({ value }) =>
+								form.setFieldValue("year", fittingYear(value, form.getFieldValue("year"))),
+						}}
+					>
 						{(field) => {
 							const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 							return (
@@ -216,11 +245,15 @@ export default function UpdateStudentForm({
 											<SelectValue placeholder="Velg studie grad" />
 										</SelectTrigger>
 										<SelectContent>
-											{DEGREE_TYPES.map((degree) => (
-												<SelectItem key={degree} value={degree}>
-													{degree}
-												</SelectItem>
-											))}
+											<form.Subscribe selector={(state) => state.values.studyProgram}>
+												{(program) =>
+													degreesFor(program).map((degree) => (
+														<SelectItem key={degree} value={degree}>
+															{degree}
+														</SelectItem>
+													))
+												}
+											</form.Subscribe>
 										</SelectContent>
 									</Select>
 									{isInvalid && <FieldError errors={field.state.meta.errors} />}

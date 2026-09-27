@@ -93,7 +93,7 @@ describe("describeAlert", () => {
 		const result = describeAlert("behindPace", eventFields, "Bedrift AS", snapshot, now);
 		expect(result.summary).toBe("Kodekveld, Bedrift AS ligger an til 40 % fylt");
 		expect(result.detail).toBe(
-			"4 av 10 plasser, 2 dager igjen. Lignende arrangementer var 75 % fylt på samme tidspunkt.",
+			"4 av 10 plasser, 2 dager igjen. Forventet på dette tidspunktet er 75 % fylt.",
 		);
 	});
 

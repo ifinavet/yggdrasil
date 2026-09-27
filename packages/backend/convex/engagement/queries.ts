@@ -13,8 +13,8 @@ import { type QueryCtx, query } from "../_generated/server";
 import { internalRoles, requireRole } from "../auth/accessRights";
 import { eventsInSemester } from "../events/helper";
 import { companyWithLogo, eventSemesterValidator } from "../events/queries";
-import { audienceOf } from "./audience";
-import { activityBuckets, activityWindowMs, PACE_STEPS, valueAt, WAVE_RULE } from "./metrics";
+import { audienceOf, withStudyYear } from "./audience";
+import { activityBuckets, activityWindowMs, PACE_GRID, valueAt, WAVE_RULE } from "./metrics";
 import {
 	MAX_REGISTRATIONS_PER_EVENT,
 	pastCurvesBefore,
@@ -195,9 +195,8 @@ export const paceCurve = query({
 			return null;
 		};
 
-		const steps = Array.from({ length: PACE_STEPS + 1 }, (_, step) => step / PACE_STEPS);
 		const points = [
-			...steps.filter((progress) => progress !== snapshot.progress),
+			...PACE_GRID.filter((progress) => progress !== snapshot.progress),
 			snapshot.progress,
 		]
 			.sort((a, b) => a - b)
@@ -336,7 +335,11 @@ function fillByTimeslot(events: SemesterEvent[]) {
 	}));
 }
 
-async function studentsOf(ctx: QueryCtx, registrations: readonly Doc<"registrations">[]) {
+async function studentsOf(
+	ctx: QueryCtx,
+	registrations: readonly Doc<"registrations">[],
+	now: number,
+) {
 	const userIds = [...new Set(registrations.map((registration) => registration.userId))];
 	const students = await Promise.all(
 		userIds.map((userId) =>
@@ -349,17 +352,20 @@ async function studentsOf(ctx: QueryCtx, registrations: readonly Doc<"registrati
 	const byUser = new Map(
 		students.filter((student) => student !== null).map((student) => [student.userId, student]),
 	);
-	return registrations
-		.map((registration) => byUser.get(registration.userId))
-		.filter((student) => student !== undefined);
+	return withStudyYear(
+		registrations
+			.map((registration) => byUser.get(registration.userId))
+			.filter((student) => student !== undefined),
+		now,
+	);
 }
 
-function semesterStudents(ctx: QueryCtx, events: SemesterEvent[]) {
-	return studentsOf(ctx, events.flatMap(registeredOf));
+function semesterStudents(ctx: QueryCtx, events: SemesterEvent[], now: number) {
+	return studentsOf(ctx, events.flatMap(registeredOf), now);
 }
 
-async function studentPopulation(ctx: QueryCtx) {
-	return await ctx.db.query("students").take(MAX_STUDENTS);
+async function studentPopulation(ctx: QueryCtx, now: number) {
+	return withStudyYear(await ctx.db.query("students").take(MAX_STUDENTS), now);
 }
 
 async function logStartedAt(ctx: QueryCtx) {
@@ -421,9 +427,9 @@ export const semester = query({
 		const yearsSincePrevious = current.semester === "høst" ? 1 : 0;
 
 		const audience = audienceOf(
-			await semesterStudents(ctx, events),
-			await studentPopulation(ctx),
-			await semesterStudents(ctx, previousEvents),
+			await semesterStudents(ctx, events, now),
+			await studentPopulation(ctx, now),
+			await semesterStudents(ctx, previousEvents, now),
 			yearsSincePrevious,
 		);
 		const logStart = await logStartedAt(ctx);
@@ -480,12 +486,14 @@ export const eventAudience = query({
 			.query("registrations")
 			.withIndex("by_eventId", (q) => q.eq("eventId", eventId))
 			.take(MAX_REGISTRATIONS_PER_EVENT);
+		const now = Date.now();
 		return audienceOf(
 			await studentsOf(
 				ctx,
 				registrations.filter((registration) => registration.status === "registered"),
+				now,
 			),
-			await studentPopulation(ctx),
+			await studentPopulation(ctx, now),
 		);
 	},
 });
