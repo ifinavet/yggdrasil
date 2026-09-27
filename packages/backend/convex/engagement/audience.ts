@@ -73,6 +73,10 @@ function codeOf({ degree, year }: Cohort) {
 	return `${degree.charAt(0)}${year ?? ""}`;
 }
 
+function hasCohort(student: Student) {
+	return cohortGroupOf(student) !== null;
+}
+
 type GroupOf = (student: Pick<Student, "degree" | "year">) => Cohort | null;
 
 export function programCohortGroupOf(student: Pick<Student, "degree" | "year">) {
@@ -140,28 +144,36 @@ export function audienceOf(
 	const reached = uniqueStudents(registrants);
 	const previous = previousRegistrants && backdate(previousRegistrants, yearsSincePrevious);
 	const previousReached = previous && uniqueStudents(previous);
-	const current = population.filter((student) => cohortGroupOf(student) !== null);
+	const current = population.filter(hasCohort);
 	const populationCohorts = cohortSizes(population);
 	const previousPopulationCohorts = cohortSizes(backdate(population, yearsSincePrevious));
 
-	const shareRow = (keyOf: KeyOf) => {
+	const shareRow = (
+		keyOf: KeyOf,
+		base: readonly Student[],
+		previousBase: readonly Student[] | null,
+	) => {
 		const populationCounts = countBy(current, keyOf);
-		const previousCounts = previous && countBy(previous, keyOf);
+		const previousCounts = previousBase && countBy(previousBase, keyOf);
 		return (label: string, registrations: number) => {
-			const share = registrations / registrants.length;
+			const share = registrations / base.length;
 			return {
 				label,
 				registrations,
 				share,
 				populationShare: shareOf(populationCounts, current.length, label),
 				change: previousCounts
-					? share - shareOf(previousCounts, (previous as readonly Student[]).length, label)
+					? share - shareOf(previousCounts, (previousBase as readonly Student[]).length, label)
 					: null,
 			};
 		};
 	};
 
-	const cohortRow = shareRow(cohortOf);
+	const cohortRow = shareRow(
+		cohortOf,
+		registrants.filter(hasCohort),
+		previous?.filter(hasCohort) ?? null,
+	);
 	const cohorts = cohortsOf(registrants, cohortGroupOf).map(({ label, count, cohort }) => ({
 		...cohortRow(label, count),
 		degree: cohort.degree,
@@ -175,7 +187,7 @@ export function audienceOf(
 		code: codeOf(cohort),
 	}));
 
-	const programRow = shareRow(programOf);
+	const programRow = shareRow(programOf, registrants, previous);
 	const programs = tally(registrants, programOf)
 		.sort(([a, { count: countA }], [b, { count: countB }]) => countB - countA || a.localeCompare(b))
 		.map(([label, { count }]) => {
