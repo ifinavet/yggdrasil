@@ -159,6 +159,14 @@ describe("submit", () => {
 		expect(emails[0]?.html).toContain(`${HUGIN_URL}/bestill-stillingsannonse/bekreft#token=`);
 	});
 
+	it("treats an order without an EHF answer as no EHF", async () => {
+		const f = await fixture();
+		const { ehfInvoice: _ehfInvoice, ...form } = existingCompanyForm(f);
+		await submitOrder(f.t, form);
+
+		expect((await onlyOrder(f.t)).ehfInvoice).toBe(false);
+	});
+
 	it("stores EHF on the order without touching the company billing", async () => {
 		const f = await fixture();
 		const before = await f.t.run((ctx) => ctx.db.get(f.companyId));

@@ -184,6 +184,18 @@ describe("submit", () => {
 		expect((await applications(t))[0]?.billing).toEqual(billing);
 	});
 
+	it("treats billing without an EHF answer as no EHF", async () => {
+		const { t } = await setup();
+		await withOpenSemester(t);
+
+		await submitWith(t, { form: validForm({ billing: { email: "faktura@fjordkode.no" } }) });
+
+		expect((await applications(t))[0]?.billing).toEqual({
+			email: "faktura@fjordkode.no",
+			ehfInvoice: false,
+		});
+	});
+
 	it("refuses billing with neither an email nor a text", async () => {
 		const { t } = await setup();
 		await withOpenSemester(t);

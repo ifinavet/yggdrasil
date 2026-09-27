@@ -48,7 +48,7 @@ export const orderFormArgs = v.object({
 	listings: v.array(v.object(orderItemFields)),
 	contact: orderContact,
 	billing: v.optional(companyBilling),
-	ehfInvoice: v.boolean(),
+	ehfInvoice: v.optional(v.boolean()),
 	note: v.optional(v.string()),
 	confirmAmount: v.boolean(),
 });
