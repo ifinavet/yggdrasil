@@ -12,6 +12,15 @@ export const DEGREE_TYPES = [
 	DEGREES.phd,
 ] as const;
 
+export type Degree = (typeof DEGREE_TYPES)[number];
+
+export const DEGREE_YEARS: Record<Degree, { first: number; last: number }> = {
+	[DEGREES.aarsstudium]: { first: 1, last: 1 },
+	[DEGREES.bachelor]: { first: 1, last: 3 },
+	[DEGREES.master]: { first: 4, last: 5 },
+	[DEGREES.phd]: { first: 1, last: 5 },
+};
+
 type DegreeKey = keyof typeof DEGREES;
 
 export const degreeKey = (name: (typeof DEGREE_TYPES)[number]) =>

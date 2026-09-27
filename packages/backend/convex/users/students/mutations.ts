@@ -1,3 +1,9 @@
+import {
+	DEGREE_YEARS,
+	DEGREES,
+	type StudentProfile,
+	studentProfileIssue,
+} from "@workspace/shared/constants";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../../_generated/api";
 import { internalMutation, mutation } from "../../_generated/server";
@@ -5,6 +11,11 @@ import { adminRoles, userHasRole } from "../../auth/accessRights";
 import { getIdentity } from "../../auth/currentUser";
 import { getCurrentUserOrThrow } from "../clerk/queries";
 import { studentDegree } from "./schema";
+
+function assertValidProfile(profile: StudentProfile) {
+	const issue = studentProfileIssue(profile);
+	if (issue) throw new ConvexError(issue.message);
+}
 
 /**
  * Creates a student record for an external user id.
@@ -26,6 +37,7 @@ export const createByExternalId = mutation({
 		name: v.string(),
 	},
 	handler: async (ctx, { externalId, degree, year, studyProgram, name }) => {
+		assertValidProfile({ studyProgram: studyProgram.trim(), degree, year });
 		const identity = await getIdentity(ctx);
 		if (identity === null) {
 			throw new ConvexError("Unauthorized: Du må være innlogget for å gjøre dette.");
@@ -47,6 +59,7 @@ export const createByExternalId = mutation({
 			year,
 			studyProgram: studyProgram.trim(),
 			name: name.trim(),
+			graduatedAt: undefined,
 		};
 
 		const existingStudent = await ctx.db
@@ -80,6 +93,7 @@ export const updateCurrent = mutation({
 		degree: studentDegree,
 	},
 	handler: async (ctx, { year, studyProgram, degree }) => {
+		assertValidProfile({ studyProgram, degree, year });
 		const user = await getCurrentUserOrThrow(ctx);
 
 		const student = await ctx.db
@@ -95,6 +109,7 @@ export const updateCurrent = mutation({
 			year,
 			studyProgram,
 			degree,
+			graduatedAt: undefined,
 		});
 	},
 });
@@ -118,6 +133,7 @@ export const update = mutation({
 		degree: studentDegree,
 	},
 	handler: async (ctx, { id, year, studyProgram, degree }) => {
+		assertValidProfile({ studyProgram, degree, year });
 		const user = await getCurrentUserOrThrow(ctx);
 
 		const student = await ctx.db.get(id);
@@ -136,25 +152,27 @@ export const update = mutation({
 			year,
 			studyProgram,
 			degree,
+			graduatedAt: undefined,
 		});
 	},
 });
 
 /**
- * Increments the year for all students, capped at five.
+ * Moves every current student up a year, and marks those in their final year as graduated.
  *
  * @returns {null} - Returns null when all student years have been updated.
  */
 export const updateYear = internalMutation({
 	handler: async (ctx) => {
-		const students = await ctx.db.query("students").collect();
-
-		await Promise.all(
-			students.map(async (student) => {
-				return await ctx.db.patch(student._id, {
-					year: Math.min((student.year ?? 1) + 1, 5),
-				});
-			}),
-		);
+		const now = Date.now();
+		for await (const student of ctx.db.query("students")) {
+			if (student.graduatedAt !== undefined) continue;
+			const { last } = DEGREE_YEARS[student.degree];
+			const graduates = student.degree !== DEGREES.phd && student.year >= last;
+			await ctx.db.patch(
+				student._id,
+				graduates ? { graduatedAt: now } : { year: Math.min(student.year + 1, last) },
+			);
+		}
 	},
 });
