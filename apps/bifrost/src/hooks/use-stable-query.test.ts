@@ -2,16 +2,24 @@ import { describe, expect, it } from "vitest";
 import { latestResult } from "./use-stable-query";
 
 describe("latestResult", () => {
-	it("keeps the stored result while the next one is loading", () => {
-		expect(latestResult({ count: 1 }, undefined)).toEqual({ count: 1 });
+	it("keeps the stored result while the same key reloads", () => {
+		expect(latestResult({ key: "a", result: 1 }, { key: "a", result: undefined })).toBe(1);
+	});
+
+	it("drops the stored result while a new key loads", () => {
+		expect(latestResult({ key: "a", result: 1 }, { key: "b", result: undefined })).toBeUndefined();
 	});
 
 	it("takes the next result once it arrives", () => {
-		expect(latestResult({ count: 1 }, { count: 2 })).toEqual({ count: 2 });
-		expect(latestResult(undefined, null)).toBeNull();
+		expect(latestResult({ key: "a", result: 1 }, { key: "b", result: 2 })).toBe(2);
+		expect(
+			latestResult<number | null>({ key: "a", result: 1 }, { key: "a", result: null }),
+		).toBeNull();
 	});
 
 	it("stays empty until the first result arrives", () => {
-		expect(latestResult(undefined, undefined)).toBeUndefined();
+		expect(
+			latestResult({ key: "", result: undefined }, { key: "", result: undefined }),
+		).toBeUndefined();
 	});
 });

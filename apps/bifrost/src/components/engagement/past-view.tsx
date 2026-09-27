@@ -132,7 +132,11 @@ function PastEvents({
 export function PastView({ now }: Readonly<{ now: number }>) {
 	const semesters = useQuery(api.events.queries.getPossibleSemesters);
 	const [selected, setSelected] = useState(() => eventSemesterOf(now));
-	const events = useStableQuery(api.engagement.queries.past, { now, ...selected });
+	const events = useStableQuery(
+		api.engagement.queries.past,
+		{ now, ...selected },
+		`${selected.semester}-${selected.year}`,
+	);
 	const [picked, setPicked] = useState<Id<"events"> | null>(null);
 	const paceRef = useRef<HTMLDivElement>(null);
 	const options = semesters ? startedSemesters(semesters, now) : [selected];

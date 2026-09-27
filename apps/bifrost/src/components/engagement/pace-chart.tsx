@@ -142,7 +142,7 @@ export function PaceChart({
 	now,
 	note,
 }: Readonly<{ eventId: Id<"events">; now: number; note: ReactNode }>) {
-	const curve = useStableQuery(api.engagement.queries.paceCurve, { eventId, now });
+	const curve = useStableQuery(api.engagement.queries.paceCurve, { eventId, now }, eventId);
 
 	return (
 		<Panel
