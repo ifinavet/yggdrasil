@@ -187,7 +187,6 @@ function serve(port: number) {
 			return;
 		}
 		const answer = directory.handle({ url, method, body: Buffer.concat(chunks).toString() });
-		console.log(JSON.stringify({ method, path: url.pathname, status: answer?.status ?? 404 }));
 		response.writeHead(answer?.status ?? 404, { "Content-Type": "application/json" });
 		response.end(answer ? await answer.text() : "{}");
 	}).listen(port, "127.0.0.1", () =>
