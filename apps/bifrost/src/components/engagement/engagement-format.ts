@@ -125,23 +125,80 @@ export function countTicks(highest: number) {
 
 export const FOOD_FEW_EVENTS = 3;
 
-const LABEL_CLEARANCE = { events: 0.1, demand: 0.06 };
 const LABEL_GAP = 8;
+const DOT_CLEARANCE = 6;
+const LABEL_CHAR_WIDTH = 7;
+const LABEL_HEIGHT = 16;
+const OPPORTUNITY_PLOT = { width: 680, height: 300 };
+const DEMAND_SPAN = { min: 0.2, stepsPerUnit: 20, padding: 0.1 };
 
-export function foodOpportunities({ foods }: Pick<FoodBreakdown, "foods">) {
-	const points = foodDemandBars({ foods }).filter((food) => food.events >= FOOD_FEW_EVENTS);
-	const widest = Math.max(1, ...points.map((point) => point.events));
-	return points.map((point) => {
-		const crowded = points.some(
-			(other) =>
-				other.events > point.events &&
-				(other.events - point.events) / widest <= LABEL_CLEARANCE.events &&
-				Math.abs(other.demand - point.demand) <= LABEL_CLEARANCE.demand,
-		);
-		return crowded
-			? { ...point, anchor: "end" as const, dx: -LABEL_GAP }
-			: { ...point, anchor: "start" as const, dx: LABEL_GAP };
+type Box = { left: number; right: number; top: number; bottom: number };
+
+function overlaps(a: Box, b: Box) {
+	return a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+}
+
+function sameSpot(
+	a: { events: number; demand: number } | undefined,
+	b: { events: number; demand: number },
+) {
+	return a?.events === b.events && a.demand === b.demand;
+}
+
+export function demandDomain(demands: readonly number[]): [number, number] {
+	const low = Math.min(...demands);
+	const high = Math.max(...demands);
+	const span = Math.max(high - low, DEMAND_SPAN.min) * (1 + 2 * DEMAND_SPAN.padding);
+	const middle = (low + high) / 2;
+	return [
+		Math.max(
+			0,
+			Math.floor((middle - span / 2) * DEMAND_SPAN.stepsPerUnit) / DEMAND_SPAN.stepsPerUnit,
+		),
+		Math.ceil((middle + span / 2) * DEMAND_SPAN.stepsPerUnit) / DEMAND_SPAN.stepsPerUnit,
+	];
+}
+
+export function foodOpportunities({ demand, foods }: FoodBreakdown) {
+	const candidates = foodDemandBars({ foods }).filter((food) => food.events >= FOOD_FEW_EVENTS);
+	const ticks = countTicks(Math.max(0, ...candidates.map((point) => point.events)));
+	const demandAxis = demandDomain([
+		...candidates.map((point) => point.demand),
+		...(demand === null ? [] : [demand]),
+	]);
+	const lastTick = ticks.at(-1) ?? 1;
+	const toPixels = (point: { events: number; demand: number }) => ({
+		x: (point.events / lastTick) * OPPORTUNITY_PLOT.width,
+		y: ((demandAxis[1] - point.demand) / (demandAxis[1] - demandAxis[0])) * OPPORTUNITY_PLOT.height,
 	});
+	const taken: Box[] = candidates.map((point) => {
+		const { x, y } = toPixels(point);
+		return {
+			left: x - DOT_CLEARANCE,
+			right: x + DOT_CLEARANCE,
+			top: y - DOT_CLEARANCE,
+			bottom: y + DOT_CLEARANCE,
+		};
+	});
+	const points = candidates.map((point) => {
+		const { x, y } = toPixels(point);
+		const width = point.name.length * LABEL_CHAR_WIDTH + LABEL_GAP;
+		const vertical = { top: y - LABEL_HEIGHT / 2, bottom: y + LABEL_HEIGHT / 2 };
+		const sides = [
+			{ anchor: "start" as const, dx: LABEL_GAP, box: { left: x, right: x + width, ...vertical } },
+			{ anchor: "end" as const, dx: -LABEL_GAP, box: { left: x - width, right: x, ...vertical } },
+		];
+		const side = sides.find(
+			({ box }) =>
+				box.left >= 0 &&
+				box.right <= OPPORTUNITY_PLOT.width &&
+				taken.every((other, index) => sameSpot(candidates[index], point) || !overlaps(box, other)),
+		);
+		if (!side) return { ...point, labelled: false, anchor: "start" as const, dx: LABEL_GAP };
+		taken.push(side.box);
+		return { ...point, labelled: true, anchor: side.anchor, dx: side.dx };
+	});
+	return { points, ticks, demandAxis };
 }
 
 export function opensLabel(opensAt: number) {
