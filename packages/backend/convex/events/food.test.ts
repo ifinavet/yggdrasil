@@ -2,7 +2,7 @@ import { guessFoodItem } from "@workspace/shared/events/food";
 import { describe, expect, it, vi } from "vitest";
 import {
 	asUser,
-	grantRole,
+	setupAdminAndEditor as fixture,
 	insertEvent,
 	insertUser,
 	refusalMessageFrom,
@@ -11,15 +11,6 @@ import {
 } from "../../test/fixtures";
 import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
-
-async function fixture() {
-	const { t, companyId } = await setup();
-	const admin = await insertUser(t, "admin@example.test");
-	await grantRole(t, admin._id, "admin");
-	const editor = await insertUser(t, "editor@example.test");
-	await grantRole(t, editor._id, "editor");
-	return { t, companyId, admin: asUser(t, admin), editor: asUser(t, editor) };
-}
 
 const springEvent = new Date("2027-02-10T10:00:00Z").getTime();
 

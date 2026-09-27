@@ -1,11 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
-	asUser,
-	grantRole,
+	setupAdminAndEditor as fixture,
 	insertEvent,
-	insertUser,
 	refusalMessageFrom,
-	setup,
 } from "../../test/fixtures";
 import { api } from "../_generated/api";
 
@@ -19,15 +16,6 @@ const eventProduct = {
 	sortOrder: 0,
 	active: true,
 };
-
-async function fixture() {
-	const { t, companyId } = await setup();
-	const admin = await insertUser(t, "admin@example.test");
-	await grantRole(t, admin._id, "admin");
-	const editor = await insertUser(t, "editor@example.test");
-	await grantRole(t, editor._id, "editor");
-	return { t, companyId, admin: asUser(t, admin), editor: asUser(t, editor) };
-}
 
 const springEvent = new Date("2027-02-10T10:00:00Z").getTime();
 

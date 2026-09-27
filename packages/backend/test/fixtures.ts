@@ -292,6 +292,15 @@ export function asUser(t: TestBackend, user: TestUser) {
 	return t.withIdentity({ subject: user.externalId });
 }
 
+export async function setupAdminAndEditor() {
+	const { t, companyId } = await setup();
+	const admin = await insertUser(t, "admin@example.test");
+	await grantRole(t, admin._id, "admin");
+	const editor = await insertUser(t, "editor@example.test");
+	await grantRole(t, editor._id, "editor");
+	return { t, companyId, admin: asUser(t, admin), editor: asUser(t, editor) };
+}
+
 export async function refusalMessageFrom(call: Promise<unknown>): Promise<string> {
 	try {
 		await call;
