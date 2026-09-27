@@ -10,6 +10,8 @@ import {
 	fillShare,
 	followUpNote,
 	formatDelta,
+	formatHours,
+	formatMetric,
 	formatPoints,
 	formatShare,
 	lateUnregistrationNote,
@@ -18,6 +20,7 @@ import {
 	paceLabels,
 	paceTickLabel,
 	paceTicks,
+	rankLabel,
 	reachAxisMax,
 	semesterLabel,
 	semesterValue,
@@ -310,5 +313,24 @@ describe("reachAxisMax", () => {
 		expect(reachAxisMax([140])).toBe(100);
 		expect(reachAxisMax([])).toBe(5);
 		expect(reachAxisMax([null])).toBe(5);
+	});
+});
+
+describe("company metrics", () => {
+	it("formats time to full in minutes, hours or days", () => {
+		expect(formatHours(0.5)).toBe("30 min");
+		expect(formatHours(5.4)).toBe("5 t");
+		expect(formatHours(72)).toBe("3 d");
+	});
+
+	it("formats each metric in its own unit and leaves missing values empty", () => {
+		expect(formatMetric("demand", 1.25)).toBe(formatShare(1.25));
+		expect(formatMetric("latePerEvent", 1.25)).toBe("1,3");
+		expect(formatMetric("attendance", null)).toBeNull();
+	});
+
+	it("labels a rank among the measured companies", () => {
+		expect(rankLabel({ rank: 2, of: 14 })).toBe("2 av 14");
+		expect(rankLabel({ rank: null, of: 0 })).toBeNull();
 	});
 });

@@ -29,7 +29,7 @@ function shareOf(counts: Map<string, number>, total: number, key: string) {
 	return total === 0 ? 0 : (counts.get(key) ?? 0) / total;
 }
 
-function uniqueStudents(students: readonly Student[]) {
+export function uniqueStudents(students: readonly Student[]) {
 	return [...new Map(students.map((student) => [student._id, student])).values()];
 }
 

@@ -1,0 +1,127 @@
+import { HOUR_MS } from "@workspace/shared/time";
+import type { Doc, Id } from "../_generated/dataModel";
+
+export type CompanyEvent = {
+	event: Doc<"events">;
+	registrations: Doc<"registrations">[];
+	lateUnregistrations?: number | null;
+};
+
+export const METRICS = {
+	demand: { higherIsBetter: true },
+	fill: { higherIsBetter: true },
+	waitlistPerEvent: { higherIsBetter: true },
+	hoursToFull: { higherIsBetter: false },
+	attendance: { higherIsBetter: true },
+	noShow: { higherIsBetter: false },
+	latePerEvent: { higherIsBetter: false },
+} as const;
+
+export type MetricKey = keyof typeof METRICS;
+export type Metrics = Record<MetricKey, number | null>;
+
+const METRIC_KEYS = Object.keys(METRICS) as MetricKey[];
+
+export function sumOf<T>(items: readonly T[], amountOf: (item: T) => number) {
+	return items.reduce((total, item) => total + amountOf(item), 0);
+}
+
+function ratio(part: number, whole: number) {
+	return whole === 0 ? null : part / whole;
+}
+
+function median(values: readonly number[]) {
+	if (values.length === 0) return null;
+	const sorted = [...values].sort((a, b) => a - b);
+	const middle = Math.floor(sorted.length / 2);
+	return sorted.length % 2 === 0
+		? ((sorted[middle - 1] as number) + (sorted[middle] as number)) / 2
+		: (sorted[middle] as number);
+}
+
+function countWith(registrations: readonly Doc<"registrations">[], status: string) {
+	return registrations.filter((registration) => registration.status === status).length;
+}
+
+function hoursToFullOf({ event, registrations }: CompanyEvent) {
+	const times = registrations
+		.map((registration) => registration.registrationTime)
+		.sort((a, b) => a - b);
+	const filledAt = times[event.participationLimit - 1];
+	return filledAt === undefined ? null : Math.max(0, filledAt - event.registrationOpens) / HOUR_MS;
+}
+
+function attendanceOf(events: readonly CompanyEvent[]) {
+	const recorded = events.flatMap(({ registrations }) => {
+		const registered = registrations.filter((registration) => registration.status === "registered");
+		return registered.some((registration) => registration.attendanceStatus) ? registered : [];
+	});
+	const showedUp = recorded.filter(
+		({ attendanceStatus }) => attendanceStatus === "confirmed" || attendanceStatus === "late",
+	).length;
+	const noShows = recorded.filter(({ attendanceStatus }) => attendanceStatus === "no_show").length;
+	return { attendance: ratio(showedUp, recorded.length), noShow: ratio(noShows, recorded.length) };
+}
+
+export function metricsOf(events: readonly CompanyEvent[], now: number): Metrics {
+	const seats = sumOf(events, ({ event }) => event.participationLimit);
+	const held = events.filter(({ event }) => event.eventStart <= now);
+	const logged = held.flatMap(({ lateUnregistrations }) =>
+		typeof lateUnregistrations === "number" ? [lateUnregistrations] : [],
+	);
+	return {
+		demand: ratio(
+			sumOf(events, ({ registrations }) => registrations.length),
+			seats,
+		),
+		fill: ratio(
+			sumOf(events, ({ registrations }) => countWith(registrations, "registered")),
+			seats,
+		),
+		waitlistPerEvent: ratio(
+			sumOf(events, ({ registrations }) => countWith(registrations, "waitlist")),
+			events.length,
+		),
+		hoursToFull: median(events.map(hoursToFullOf).filter((hours) => hours !== null)),
+		...attendanceOf(held),
+		latePerEvent: ratio(
+			sumOf(logged, (count) => count),
+			logged.length,
+		),
+	};
+}
+
+export function byCompany<T extends Pick<CompanyEvent, "event">>(events: readonly T[]) {
+	const grouped = new Map<Id<"companies">, T[]>();
+	for (const companyEvent of events) {
+		const companyId = companyEvent.event.hostingCompany;
+		grouped.set(companyId, [...(grouped.get(companyId) ?? []), companyEvent]);
+	}
+	return grouped;
+}
+
+export function averageOf(all: readonly Metrics[]) {
+	return Object.fromEntries(
+		METRIC_KEYS.map((key) => {
+			const values = all.map((metrics) => metrics[key]).filter((value) => value !== null);
+			return [key, values.length === 0 ? null : sumOf(values, (value) => value) / values.length];
+		}),
+	) as Metrics;
+}
+
+export function comparisonOf(company: Metrics, all: readonly Metrics[]) {
+	const average = averageOf(all);
+	return METRIC_KEYS.map((key) => {
+		const value = company[key];
+		const others = all.map((metrics) => metrics[key]).filter((other) => other !== null);
+		const better = (other: number) =>
+			METRICS[key].higherIsBetter ? other > (value as number) : other < (value as number);
+		return {
+			key,
+			value,
+			average: average[key],
+			rank: value === null ? null : others.filter(better).length + 1,
+			of: others.length,
+		};
+	});
+}

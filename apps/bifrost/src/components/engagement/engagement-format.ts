@@ -23,7 +23,11 @@ export type ProgramRow = Audience["programs"][number];
 export type UnregisterLog = FunctionReturnType<typeof api.engagement.queries.unregisterLog>;
 export type PaceCurve = NonNullable<FunctionReturnType<typeof api.engagement.queries.paceCurve>>;
 export type PastEvent = FunctionReturnType<typeof api.engagement.queries.past>[number];
-export type CompanyStats = FunctionReturnType<typeof api.engagement.queries.companies>[number];
+export type CompanyRow = FunctionReturnType<typeof api.engagement.companies.list>[number];
+export type CompanyDetail = FunctionReturnType<typeof api.engagement.companies.detail>;
+export type CompanyComparison = CompanyDetail["comparison"][number];
+export type CompanyHistory = FunctionReturnType<typeof api.engagement.companies.history>;
+export type MetricKey = CompanyComparison["key"];
 
 export function statusBadge(status: EngagementStatus): { label: string; variant: BadgeVariant } {
 	switch (status.kind) {
@@ -241,3 +245,39 @@ export function reachAxisMax(percentages: readonly (number | null)[]) {
 
 export const DEMAND_NOTE =
 	"Over 100 % betyr at ventelisten viser mer interesse enn det var plass til.";
+
+const HOURS_PER_DAY = 24;
+const MINUTES_PER_HOUR = 60;
+
+export function formatHours(hours: number) {
+	if (hours < 1) return `${Math.round(hours * MINUTES_PER_HOUR)} min`;
+	if (hours < 2 * HOURS_PER_DAY) return `${Math.round(hours)} t`;
+	return `${Math.round(hours / HOURS_PER_DAY)} d`;
+}
+
+function formatDecimal(value: number) {
+	return value.toLocaleString("nb-NO", { maximumFractionDigits: 1 });
+}
+
+export const METRICS = {
+	demand: { label: "Etterspørsel", format: formatShare },
+	fill: { label: "Fylte plasser", format: formatShare },
+	waitlistPerEvent: { label: "Venteliste per arrangement", format: formatDecimal },
+	hoursToFull: { label: "Tid til fullt", format: formatHours },
+	attendance: { label: "Oppmøte", format: formatShare },
+	noShow: { label: "Uteblitt", format: formatShare },
+	latePerEvent: { label: "Sene avmeldinger per arrangement", format: formatDecimal },
+} as const satisfies Record<MetricKey, { label: string; format: (value: number) => string }>;
+
+export const TREND_METRICS = ["demand", "fill", "attendance"] as const satisfies MetricKey[];
+
+export function formatMetric(key: MetricKey, value: number | null) {
+	return value === null ? null : METRICS[key].format(value);
+}
+
+export function rankLabel({ rank, of }: Pick<CompanyComparison, "rank" | "of">) {
+	return rank === null ? null : `${rank} av ${of}`;
+}
+
+export const PAST_PACE_NOTE =
+	"Viser arrangementet du klikker på i tabellen. Typisk forløp bygger på arrangementene før dette.";
