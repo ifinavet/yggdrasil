@@ -12,9 +12,11 @@ import {
 	defaultSelection,
 	type EngagementAlert,
 	type EngagementStatus,
+	type FoodEvent,
 	fillShare,
 	followUpNote,
-	foodDemandPoints,
+	foodBreakdown,
+	foodDemandBars,
 	foodDistribution,
 	formatDelta,
 	formatHours,
@@ -83,37 +85,62 @@ describe("fillShare", () => {
 });
 
 describe("food charts", () => {
-	const event = (id: string, demand: number | null) => ({
+	const event = (
+		id: string,
+		food: [string, string] | null,
+		registrations: number,
+		seats: number,
+	): FoodEvent => ({
 		_id: id as Id<"events">,
 		title: `Arrangement ${id}`,
-		demand,
+		foodItem: food ? (food[0] as Id<"foodItems">) : null,
+		name: food?.[1] ?? null,
+		registrations,
+		seats,
 	});
-	const foods = [
-		{
-			foodItem: "pizza" as Id<"foodItems">,
-			name: "🍕 Pizza",
-			demand: 0.8,
-			events: [event("a", 1), event("b", 0.6), event("c", null)],
-		},
-		{ foodItem: null, name: null, demand: null, events: [event("d", null)] },
-	];
+	const pizza: [string, string] = ["pizza", "🍕 Pizza"];
+	const taco: [string, string] = ["taco", "🌮 Taco"];
+	const burritos: [string, string] = ["burritos", "🌯 Burritos"];
+	const breakdown = foodBreakdown([
+		event("a", pizza, 30, 20),
+		event("b", taco, 5, 10),
+		event("c", null, 0, 10),
+		event("d", pizza, 10, 20),
+		event("e", burritos, 20, 10),
+	]);
 
-	it("shows each food's share of the events, with unset food named", () => {
+	it("pools demand per food across events and sorts by count, then name, unset last", () => {
+		expect(breakdown.demand).toBeCloseTo(65 / 70);
+		expect(breakdown.foods).toEqual([
+			{ name: "🍕 Pizza", events: 2, demand: 1 },
+			{ name: "🌯 Burritos", events: 1, demand: 2 },
+			{ name: "🌮 Taco", events: 1, demand: 0.5 },
+			{ name: "Ikke satt", events: 1, demand: 0 },
+		]);
+	});
+
+	it("shows each food's share of the events", () => {
 		expect(
-			foodDistribution({ foods }).map(({ name, events, label }) => [name, events, nbsp(label)]),
+			foodDistribution(breakdown).map(({ name, events, label }) => [name, events, nbsp(label)]),
 		).toEqual([
-			["🍕 Pizza", 3, "3 (75 %)"],
-			["Ikke satt", 1, "1 (25 %)"],
+			["🍕 Pizza", 2, "2 (40 %)"],
+			["🌯 Burritos", 1, "1 (20 %)"],
+			["🌮 Taco", 1, "1 (20 %)"],
+			["Ikke satt", 1, "1 (20 %)"],
 		]);
 	});
 
-	it("plots only events and foods with a measured demand", () => {
-		const points = foodDemandPoints({ foods });
-		expect(points.events.map(({ _id, demand, name }) => [_id, demand, name])).toEqual([
-			["a", 1, "🍕 Pizza"],
-			["b", 0.6, "🍕 Pizza"],
+	it("ranks foods by demand", () => {
+		expect(foodDemandBars(breakdown).map(({ name, label }) => [name, nbsp(label)])).toEqual([
+			["🌯 Burritos", "200 %"],
+			["🍕 Pizza", "100 %"],
+			["🌮 Taco", "50 %"],
+			["Ikke satt", "0 %"],
 		]);
-		expect(points.foods).toEqual([{ name: "🍕 Pizza", demand: 0.8 }]);
+	});
+
+	it("has no demand without seats", () => {
+		expect(foodBreakdown([]).demand).toBeNull();
 	});
 });
 

@@ -9,6 +9,7 @@ import {
 	eventSemesterRange,
 	formatOsloDate,
 } from "@workspace/shared/time";
+import { nameKey } from "@workspace/shared/utils";
 import type { BadgeVariant } from "@workspace/ui/components/badge";
 import type { SparkValue } from "@workspace/ui/components/products/sparkline";
 import type { FunctionReturnType } from "convex/server";
@@ -27,7 +28,7 @@ export type UnregisterLog = FunctionReturnType<typeof api.engagement.queries.unr
 export type PaceCurve = NonNullable<FunctionReturnType<typeof api.engagement.queries.paceCurve>>;
 export type PastEvent = FunctionReturnType<typeof api.engagement.queries.past>[number];
 export type CompanyRow = FunctionReturnType<typeof api.engagement.companies.list>[number];
-export type FoodBreakdown = FunctionReturnType<typeof api.engagement.companies.foods>;
+export type FoodEvent = FunctionReturnType<typeof api.engagement.companies.foods>[number];
 export type CompanyDetail = FunctionReturnType<typeof api.engagement.companies.detail>;
 export type CompanyComparison = CompanyDetail["comparison"][number];
 export type CompanyHistory = FunctionReturnType<typeof api.engagement.companies.history>;
@@ -72,26 +73,51 @@ export function fillShare(registered: number, limit: number) {
 
 const UNSET_FOOD = "Ikke satt";
 
+function pooledDemand(events: readonly FoodEvent[]) {
+	const seats = events.reduce((sum, event) => sum + event.seats, 0);
+	return seats > 0 ? events.reduce((sum, event) => sum + event.registrations, 0) / seats : null;
+}
+
+export function foodBreakdown(events: readonly FoodEvent[]) {
+	const groups = new Map<string | null, FoodEvent[]>();
+	for (const event of events) {
+		groups.set(event.foodItem, [...(groups.get(event.foodItem) ?? []), event]);
+	}
+	const foods = [...groups.values()].map((group) => ({
+		name: group[0]?.name ?? null,
+		events: group.length,
+		demand: pooledDemand(group),
+	}));
+	return {
+		demand: pooledDemand(events),
+		foods: foods
+			.sort(
+				(a, b) =>
+					b.events - a.events ||
+					Number(a.name === null) - Number(b.name === null) ||
+					nameKey(a.name ?? "").localeCompare(nameKey(b.name ?? ""), "nb"),
+			)
+			.map((food) => ({ ...food, name: food.name ?? UNSET_FOOD })),
+	};
+}
+
+export type FoodBreakdown = ReturnType<typeof foodBreakdown>;
+
 export function foodDistribution({ foods }: Pick<FoodBreakdown, "foods">) {
-	const total = foods.reduce((sum, food) => sum + food.events.length, 0);
+	const total = foods.reduce((sum, food) => sum + food.events, 0);
 	return foods.map((food) => ({
-		name: food.name ?? UNSET_FOOD,
-		events: food.events.length,
-		label: `${food.events.length} (${formatShare(food.events.length / total)})`,
+		name: food.name,
+		events: food.events,
+		label: `${food.events} (${formatShare(food.events / total)})`,
 	}));
 }
 
-export function foodDemandPoints({ foods }: Pick<FoodBreakdown, "foods">) {
-	return {
-		events: foods.flatMap((food) =>
-			food.events.flatMap(({ _id, title, demand }) =>
-				demand === null ? [] : [{ _id, title, demand, name: food.name ?? UNSET_FOOD }],
-			),
-		),
-		foods: foods.flatMap(({ name, demand }) =>
-			demand === null ? [] : [{ name: name ?? UNSET_FOOD, demand }],
-		),
-	};
+export function foodDemandBars({ foods }: Pick<FoodBreakdown, "foods">) {
+	return foods
+		.flatMap(({ name, events, demand }) =>
+			demand === null ? [] : [{ name, demand, label: formatShare(demand), events }],
+		)
+		.sort((a, b) => b.demand - a.demand);
 }
 
 export function opensLabel(opensAt: number) {

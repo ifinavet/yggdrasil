@@ -137,15 +137,6 @@ export function byCompany<T extends Pick<CompanyEvent, "event">>(events: readonl
 	return grouped;
 }
 
-export function byFood<T extends Pick<CompanyEvent, "event">>(events: readonly T[]) {
-	const grouped = new Map<Id<"foodItems"> | null, T[]>();
-	for (const companyEvent of events) {
-		const foodItem = companyEvent.event.foodItem ?? null;
-		grouped.set(foodItem, [...(grouped.get(foodItem) ?? []), companyEvent]);
-	}
-	return grouped;
-}
-
 export function pickMetrics<K extends MetricKey>(metrics: Metrics, keys: readonly K[]) {
 	return Object.fromEntries(keys.map((key) => [key, metrics[key]])) as Pick<Metrics, K>;
 }
