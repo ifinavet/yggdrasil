@@ -1,7 +1,7 @@
 "use client";
 
 import { useForm } from "@tanstack/react-form";
-import { JOB_TYPES, LISTING_COLORS } from "@workspace/shared/constants";
+import { JOB_TYPES } from "@workspace/shared/constants";
 import {
 	Field,
 	FieldDescription,
@@ -20,7 +20,6 @@ import {
 	SelectValue,
 } from "@workspace/ui/components/select";
 import { Textarea } from "@workspace/ui/components/textarea";
-import { cn } from "@workspace/ui/lib/utils";
 import { Save, Send, Trash2 } from "lucide-react";
 import CompanySelectField from "@/components/common/forms/company-select-field";
 import DateTimePicker from "@/components/common/forms/date-time-picker";
@@ -30,25 +29,12 @@ import {
 	type JobListingFormValues,
 	jobListingFormSchema,
 } from "@/constants/schemas/job-listing-form-schema";
+import { JobTypeLabel } from "../job-type-label";
 import ContactsSection from "./contacts-section";
 
 type FormMeta = {
 	submitAction: "primary" | "secondary" | "tertiary";
 };
-
-type JobType = (typeof JOB_TYPES)[number];
-
-function JobTypeLabel({ type }: Readonly<{ type: JobType }>) {
-	return (
-		<>
-			<span
-				aria-hidden="true"
-				className={cn("size-4 rounded-full", LISTING_COLORS[type] ?? "bg-gray-400")}
-			/>
-			{type}
-		</>
-	);
-}
 
 export default function JobListingForm({
 	onPrimarySubmitAction,

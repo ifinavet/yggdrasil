@@ -7,6 +7,7 @@ export const DAY_MS = 24 * HOUR_MS;
 export const DATE_PATTERNS = {
 	time: "HH:mm",
 	shortDate: "d. MMM",
+	shortDateWithYear: "d. MMM yyyy",
 	dateTime: "EEEE d. MMMM, HH:mm",
 	month: "LLLL",
 	monthKey: "yyyy-MM",
