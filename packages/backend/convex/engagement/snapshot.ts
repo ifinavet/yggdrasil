@@ -19,7 +19,7 @@ export const MAX_REGISTRATIONS_PER_EVENT = 1000;
 const MAX_LOG_ENTRIES = 1000;
 const PAST_EVENTS_FOR_BASELINE = 60;
 
-export type PastCurve = { limit: number; curve: number[] };
+export type PastCurve = { eventId: Id<"events">; limit: number; curve: number[] };
 
 export async function registrationTimesOf(ctx: QueryCtx, eventId: Id<"events">) {
 	const registered = await ctx.db
@@ -62,6 +62,7 @@ async function curvesOf(ctx: QueryCtx, events: readonly Doc<"events">[]): Promis
 				)
 				.take(MAX_LOG_ENTRIES);
 			return {
+				eventId: event._id,
 				limit: event.participationLimit,
 				curve: seatCurve(event, event.participationLimit, log),
 			};
@@ -101,12 +102,21 @@ export function baselineFor(
 	limit: number,
 	companyCurves: readonly PastCurve[] = [],
 ) {
-	const chosen =
-		companyCurves.length >= COMPANY_BASELINE.minSize
-			? companyCurves.slice(0, COMPANY_BASELINE.size)
-			: pastCurves.filter((past) => isSimilarCapacity(limit, past.limit)).slice(0, BASELINE_SIZE);
-	const curve = medianCurve(chosen.map((past) => past.curve));
-	return curve ? { curve, size: chosen.length } : null;
+	const own = companyCurves.slice(0, COMPANY_BASELINE.size);
+	const ownIds = new Set(own.map((past) => past.eventId));
+	const pool = pastCurves
+		.filter((past) => !ownIds.has(past.eventId) && isSimilarCapacity(limit, past.limit))
+		.slice(0, BASELINE_SIZE);
+	const poolCurve = medianCurve(pool.map((past) => past.curve));
+	const ownCurve = medianCurve(own.map((past) => past.curve));
+	const size = pool.length + own.length;
+	if (!ownCurve) return poolCurve && { curve: poolCurve, size };
+	if (!poolCurve) return { curve: ownCurve, size };
+	const weight = own.length / (own.length + COMPANY_BASELINE.poolWeight);
+	const curve = ownCurve.map(
+		(value, step) => weight * value + (1 - weight) * (poolCurve[step] as number),
+	);
+	return { curve, size };
 }
 
 export async function snapshotOf(

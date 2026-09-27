@@ -206,33 +206,49 @@ describe("companyCurvesBefore", () => {
 });
 
 describe("baselineFor", () => {
+	let next = 0;
+	const past = (limit: number, curve: number[], eventId = `event${next++}`) => ({
+		eventId: eventId as Id<"events">,
+		limit,
+		curve,
+	});
+
 	it("returns null when there are no similarly sized past curves", async () => {
-		expect(baselineFor([{ limit: 100, curve: [0, 1] }], 10)).toBeNull();
+		expect(baselineFor([past(100, [0, 1])], 10)).toBeNull();
 	});
 
 	it("filters by similar capacity and caps the sample size", () => {
-		const curves = Array.from({ length: 20 }, () => ({ limit: 10, curve: [0, 0.5, 1] }));
-		const baseline = baselineFor([...curves, { limit: 1000, curve: [0, 1, 1] }], 10);
+		const curves = Array.from({ length: 20 }, () => past(10, [0, 0.5, 1]));
+		const baseline = baselineFor([...curves, past(1000, [0, 1, 1])], 10);
 		expect(baseline?.size).toBe(12);
 		expect(baseline?.curve.slice(0, 3)).toEqual([0, 0.5, 1]);
 	});
 
-	it("prefers the company's own events once there are enough of them", () => {
-		const pool = Array.from({ length: 5 }, () => ({ limit: 10, curve: [0, 0.2] }));
-		const company = [
-			{ limit: 40, curve: [0, 0.9] },
-			{ limit: 40, curve: [0, 1] },
-		];
-		const baseline = baselineFor(pool, 10, company);
-		expect(baseline?.size).toBe(2);
-		expect(baseline?.curve.slice(0, 2)).toEqual([0, 0.95]);
+	it("weighs the company's own events against the pool by how many there are", () => {
+		const pool = Array.from({ length: 5 }, () => past(10, [0, 0.2]));
+		const baseline = baselineFor(pool, 10, [past(40, [0, 0.9]), past(40, [0, 1])]);
+		expect(baseline?.size).toBe(7);
+		expect(baseline?.curve[1]).toBeCloseTo(0.5 * 0.95 + 0.5 * 0.2);
 	});
 
-	it("falls back to similar capacity when the company has too little history", () => {
-		const pool = Array.from({ length: 5 }, () => ({ limit: 10, curve: [0, 0.2] }));
-		const baseline = baselineFor(pool, 10, [{ limit: 10, curve: [0, 1] }]);
-		expect(baseline?.size).toBe(5);
-		expect(baseline?.curve.slice(0, 2)).toEqual([0, 0.2]);
+	it("lets a single earlier company event move the baseline", () => {
+		const pool = Array.from({ length: 5 }, () => past(10, [0, 0.2]));
+		const baseline = baselineFor(pool, 10, [past(10, [0, 1])]);
+		expect(baseline?.size).toBe(6);
+		expect(baseline?.curve[1]).toBeCloseTo(1 / 3 + (2 / 3) * 0.2);
+	});
+
+	it("keeps the company's own events out of the pool", () => {
+		const own = past(10, [0, 1]);
+		const baseline = baselineFor([own, past(10, [0, 0.2])], 10, [own]);
+		expect(baseline?.size).toBe(2);
+		expect(baseline?.curve[1]).toBeCloseTo(1 / 3 + (2 / 3) * 0.2);
+	});
+
+	it("uses the company alone when no similar event exists", () => {
+		const baseline = baselineFor([], 10, [past(10, [0, 1])]);
+		expect(baseline?.size).toBe(1);
+		expect(baseline?.curve.slice(0, 2)).toEqual([0, 1]);
 	});
 });
 
@@ -291,7 +307,7 @@ describe("snapshotOf", () => {
 		const event = await eventDoc(t, eventId);
 		const baselineCurve = [...PACE_GRID];
 		const snapshot = await t.run((ctx) =>
-			snapshotOf(ctx, event, now, [{ limit: 10, curve: baselineCurve }]),
+			snapshotOf(ctx, event, now, [{ eventId, limit: 10, curve: baselineCurve }]),
 		);
 
 		expect(snapshot.baseline?.curve).toEqual(baselineCurve);
@@ -309,11 +325,11 @@ describe("snapshotOf", () => {
 			participationLimit: 10,
 		});
 		const event = await eventDoc(t, eventId);
-		const pool = [{ limit: 10, curve: PACE_GRID.map(() => 0.1) }];
+		const pool = [{ eventId, limit: 10, curve: PACE_GRID.map(() => 0.1) }];
 
 		const snapshot = await t.run((ctx) => snapshotOf(ctx, event, OPENS + DAY_MS, pool));
-		expect(snapshot.baseline?.size).toBe(2);
-		expect(snapshot.baseline?.curve.at(-1)).toBeCloseTo(0.8);
+		expect(snapshot.baseline?.size).toBe(3);
+		expect(snapshot.baseline?.curve.at(-1)).toBeCloseTo(0.5 * 0.8 + 0.5 * 0.1);
 	});
 });
 

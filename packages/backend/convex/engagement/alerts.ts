@@ -52,7 +52,7 @@ export function describeAlert(
 		const comparison =
 			snapshot.expectedFillNow === null
 				? ""
-				: ` Lignende arrangementer var ${percent(snapshot.expectedFillNow)} fylt på samme tidspunkt.`;
+				: ` Forventet på dette tidspunktet er ${percent(snapshot.expectedFillNow)} fylt.`;
 		return {
 			summary: `${name} ligger an til ${percent(snapshot.projectedFill)} fylt`,
 			detail: `${seats}, ${daysLeft(event.eventStart, now)}.${comparison}`,
