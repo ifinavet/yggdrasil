@@ -55,9 +55,9 @@ const paths = {
 			path: "/job-listings",
 		},
 		{
-			title: "Engasjement",
+			title: "Innsikt",
 			icon: TrendingUpIcon,
-			path: "/engasjement",
+			path: "/insight",
 			feature: "engagement",
 		},
 		{

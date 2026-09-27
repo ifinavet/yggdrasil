@@ -1,3 +1,4 @@
+import type { Id } from "@workspace/backend/convex/dataModel";
 import { DATE_PATTERNS, formatOsloDate } from "@workspace/shared/time";
 import { describe, expect, it } from "vitest";
 import {
@@ -13,6 +14,8 @@ import {
 	type EngagementStatus,
 	fillShare,
 	followUpNote,
+	foodDemandPoints,
+	foodDistribution,
 	formatDelta,
 	formatHours,
 	formatMetric,
@@ -76,6 +79,41 @@ describe("fillShare", () => {
 		expect(fillShare(30, 60)).toBe(50);
 		expect(fillShare(90, 60)).toBe(100);
 		expect(fillShare(5, 0)).toBe(0);
+	});
+});
+
+describe("food charts", () => {
+	const event = (id: string, demand: number | null) => ({
+		_id: id as Id<"events">,
+		title: `Arrangement ${id}`,
+		demand,
+	});
+	const foods = [
+		{
+			foodItem: "pizza" as Id<"foodItems">,
+			name: "🍕 Pizza",
+			demand: 0.8,
+			events: [event("a", 1), event("b", 0.6), event("c", null)],
+		},
+		{ foodItem: null, name: null, demand: null, events: [event("d", null)] },
+	];
+
+	it("shows each food's share of the events, with unset food named", () => {
+		expect(
+			foodDistribution({ foods }).map(({ name, events, label }) => [name, events, nbsp(label)]),
+		).toEqual([
+			["🍕 Pizza", 3, "3 (75 %)"],
+			["Ikke satt", 1, "1 (25 %)"],
+		]);
+	});
+
+	it("plots only events and foods with a measured demand", () => {
+		const points = foodDemandPoints({ foods });
+		expect(points.events.map(({ _id, demand, name }) => [_id, demand, name])).toEqual([
+			["a", 1, "🍕 Pizza"],
+			["b", 0.6, "🍕 Pizza"],
+		]);
+		expect(points.foods).toEqual([{ name: "🍕 Pizza", demand: 0.8 }]);
 	});
 });
 

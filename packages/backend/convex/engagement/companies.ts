@@ -1,6 +1,7 @@
 import { TREND_METRICS } from "@workspace/shared/engagement";
 import { type HighlightTotals, highlightTotals } from "@workspace/shared/feedback/report";
 import { DAY_MS, eventSemesterOf, eventSemesterRange } from "@workspace/shared/time";
+import { nameKey } from "@workspace/shared/utils";
 import { v } from "convex/values";
 import type { Id } from "../_generated/dataModel";
 import { type QueryCtx, query } from "../_generated/server";
@@ -137,17 +138,27 @@ export const foods = query({
 		await requireRole(ctx, internalRoles);
 		const { events } = await loggedEvents(ctx, { semester, year }, now);
 		const grouped = [...byFood(events)];
-		const rows = await Promise.all(
+		const foods = await Promise.all(
 			grouped.map(async ([foodItem, foodEvents]) => ({
 				foodItem,
 				name: foodItem ? ((await ctx.db.get(foodItem))?.name ?? null) : null,
-				events: foodEvents.length,
-				registered: registeredIn(foodEvents).length,
-				seats: sumOf(foodEvents, ({ event }) => event.participationLimit),
-				...metricsOf(foodEvents, now),
+				demand: metricsOf(foodEvents, now).demand,
+				events: foodEvents.map((companyEvent) => ({
+					_id: companyEvent.event._id,
+					title: companyEvent.event.title,
+					demand: metricsOf([companyEvent], now).demand,
+				})),
 			})),
 		);
-		return rows.sort((a, b) => (b.demand ?? 0) - (a.demand ?? 0));
+		return {
+			demand: metricsOf(events, now).demand,
+			foods: foods.sort(
+				(a, b) =>
+					b.events.length - a.events.length ||
+					Number(a.name === null) - Number(b.name === null) ||
+					nameKey(a.name ?? "").localeCompare(nameKey(b.name ?? ""), "nb"),
+			),
+		};
 	},
 });
 

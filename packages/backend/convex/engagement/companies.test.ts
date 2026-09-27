@@ -118,7 +118,7 @@ describe("list", () => {
 });
 
 describe("foods", () => {
-	it("ranks food items by demand and keeps unmapped events in their own group", async () => {
+	it("groups each event's demand by food item, keeps unmapped events apart and reports the overall demand", async () => {
 		const { t, held, intern } = await twoCompanies();
 		const pizza = await insertFoodItem(t, "pizza");
 		const burritos = await insertFoodItem(t, "burritos");
@@ -133,19 +133,17 @@ describe("foods", () => {
 
 		const foods = await intern.query(api.engagement.companies.foods, semester);
 
+		expect(foods.demand).toBeCloseTo(4 / 21);
 		expect(
-			foods.map(({ name, events, registered, seats, demand, attendance }) => ({
+			foods.foods.map(({ name, demand, events }) => ({
 				name,
-				events,
-				registered,
-				seats,
 				demand,
-				attendance,
+				events: events.map((event) => event.demand),
 			})),
 		).toEqual([
-			{ name: "🌯 Burritos", events: 1, registered: 1, seats: 1, demand: 2, attendance: null },
-			{ name: "🍕 Pizza", events: 1, registered: 2, seats: 10, demand: 0.2, attendance: 0.5 },
-			{ name: null, events: 1, registered: 0, seats: 10, demand: 0, attendance: null },
+			{ name: "🌯 Burritos", demand: 2, events: [2] },
+			{ name: "🍕 Pizza", demand: 0.2, events: [0.2] },
+			{ name: null, demand: 0, events: [0] },
 		]);
 	});
 });

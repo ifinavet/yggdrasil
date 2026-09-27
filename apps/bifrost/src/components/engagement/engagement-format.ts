@@ -27,7 +27,7 @@ export type UnregisterLog = FunctionReturnType<typeof api.engagement.queries.unr
 export type PaceCurve = NonNullable<FunctionReturnType<typeof api.engagement.queries.paceCurve>>;
 export type PastEvent = FunctionReturnType<typeof api.engagement.queries.past>[number];
 export type CompanyRow = FunctionReturnType<typeof api.engagement.companies.list>[number];
-export type FoodRow = FunctionReturnType<typeof api.engagement.companies.foods>[number];
+export type FoodBreakdown = FunctionReturnType<typeof api.engagement.companies.foods>;
 export type CompanyDetail = FunctionReturnType<typeof api.engagement.companies.detail>;
 export type CompanyComparison = CompanyDetail["comparison"][number];
 export type CompanyHistory = FunctionReturnType<typeof api.engagement.companies.history>;
@@ -68,6 +68,30 @@ export function formatPoints(fraction: number) {
 
 export function fillShare(registered: number, limit: number) {
 	return limit > 0 ? Math.min(100, (registered / limit) * 100) : 0;
+}
+
+const UNSET_FOOD = "Ikke satt";
+
+export function foodDistribution({ foods }: Pick<FoodBreakdown, "foods">) {
+	const total = foods.reduce((sum, food) => sum + food.events.length, 0);
+	return foods.map((food) => ({
+		name: food.name ?? UNSET_FOOD,
+		events: food.events.length,
+		label: `${food.events.length} (${formatShare(food.events.length / total)})`,
+	}));
+}
+
+export function foodDemandPoints({ foods }: Pick<FoodBreakdown, "foods">) {
+	return {
+		events: foods.flatMap((food) =>
+			food.events.flatMap(({ _id, title, demand }) =>
+				demand === null ? [] : [{ _id, title, demand, name: food.name ?? UNSET_FOOD }],
+			),
+		),
+		foods: foods.flatMap(({ name, demand }) =>
+			demand === null ? [] : [{ name: name ?? UNSET_FOOD, demand }],
+		),
+	};
 }
 
 export function opensLabel(opensAt: number) {
