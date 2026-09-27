@@ -10,6 +10,10 @@ export const FOOD_ITEMS = [
 	"salad",
 	"cake",
 	"coffee_snacks",
+	"banh_mi",
+	"bagels",
+	"poke_bowls",
+	"tapas",
 	"other",
 ] as const;
 export type FoodItem = (typeof FOOD_ITEMS)[number];
@@ -26,6 +30,10 @@ export const FOOD_ITEM_LABELS: Record<FoodItem, string> = {
 	salad: "🥗 Salat",
 	cake: "🍰 Kake",
 	coffee_snacks: "☕ Kaffe og snacks",
+	banh_mi: "🥪 Bánh mì",
+	bagels: "🥯 Bagels",
+	poke_bowls: "🥣 Pokebowls",
+	tapas: "🫒 Tapas",
 	other: "🍽️ Annet",
 };
 
@@ -41,6 +49,10 @@ const FOOD_KEYWORDS: Record<Exclude<FoodItem, "other">, readonly string[]> = {
 	salad: ["salat"],
 	cake: ["kake"],
 	coffee_snacks: ["kaffe", "snacks"],
+	banh_mi: ["bánh mì", "banh mi"],
+	bagels: ["bagel"],
+	poke_bowls: ["poke", "poké"],
+	tapas: ["tapas"],
 };
 
 export function guessFoodItem(text: string | undefined): FoodItem | null {

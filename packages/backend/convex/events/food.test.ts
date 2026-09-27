@@ -25,6 +25,12 @@ describe("guessFoodItem", () => {
 		["Bagetter", "baguettes"],
 		["Thaimat", "asian"],
 		["Kaffe og snacks", "coffee_snacks"],
+		["Bánh mì fra Hanoi", "banh_mi"],
+		["Banh mi", "banh_mi"],
+		["Bagels", "bagels"],
+		["Pokébowls", "poke_bowls"],
+		["Poke bowl", "poke_bowls"],
+		["Tapas", "tapas"],
 	] as const)("maps %s to %s", (text, expected) => {
 		expect(guessFoodItem(text)).toBe(expected);
 	});
