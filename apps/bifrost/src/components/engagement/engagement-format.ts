@@ -1,4 +1,6 @@
 import type { api } from "@workspace/backend/convex/api";
+import type { TrendMetric } from "@workspace/shared/engagement";
+import { feedbackRatingSchema } from "@workspace/shared/feedback";
 import { formatPercent } from "@workspace/shared/products";
 import {
 	DATE_PATTERNS,
@@ -10,6 +12,7 @@ import {
 import type { BadgeVariant } from "@workspace/ui/components/badge";
 import type { SparkValue } from "@workspace/ui/components/products/sparkline";
 import type { FunctionReturnType } from "convex/server";
+import { matchesAny } from "@/lib/search";
 
 export type UpcomingData = FunctionReturnType<typeof api.engagement.queries.upcoming>;
 export type UpcomingEvent = UpcomingData["events"][number];
@@ -23,6 +26,11 @@ export type ProgramRow = Audience["programs"][number];
 export type UnregisterLog = FunctionReturnType<typeof api.engagement.queries.unregisterLog>;
 export type PaceCurve = NonNullable<FunctionReturnType<typeof api.engagement.queries.paceCurve>>;
 export type PastEvent = FunctionReturnType<typeof api.engagement.queries.past>[number];
+export type CompanyRow = FunctionReturnType<typeof api.engagement.companies.list>[number];
+export type CompanyDetail = FunctionReturnType<typeof api.engagement.companies.detail>;
+export type CompanyComparison = CompanyDetail["comparison"][number];
+export type CompanyHistory = FunctionReturnType<typeof api.engagement.companies.history>;
+export type MetricKey = CompanyComparison["key"];
 
 export function statusBadge(status: EngagementStatus): { label: string; variant: BadgeVariant } {
 	switch (status.kind) {
@@ -163,7 +171,7 @@ export function paceLabels(curve: PaceCurve) {
 	});
 }
 
-type SemesterOption = { semester: EventSemester; year: number };
+export type SemesterOption = { semester: EventSemester; year: number };
 
 export function semesterValue({ semester, year }: SemesterOption) {
 	return `${year}-${semester}`;
@@ -237,3 +245,88 @@ export function reachAxisMax(percentages: readonly (number | null)[]) {
 	const highest = Math.max(0, ...percentages.filter((value) => value !== null));
 	return REACH_AXIS_STEPS.find((step) => step >= highest) ?? 100;
 }
+
+export const DEMAND_NOTE =
+	"Over 100 % betyr at ventelisten viser mer interesse enn det var plass til.";
+
+const HOURS_PER_DAY = 24;
+const MINUTES_PER_HOUR = 60;
+
+export function formatHours(hours: number) {
+	const minutes = Math.round(hours * MINUTES_PER_HOUR);
+	if (minutes < MINUTES_PER_HOUR) return `${minutes} min`;
+	if (Math.round(hours) < 2 * HOURS_PER_DAY) return `${Math.round(hours)} t`;
+	return `${Math.round(hours / HOURS_PER_DAY)} d`;
+}
+
+function formatDecimal(value: number) {
+	return value.toLocaleString("nb-NO", { maximumFractionDigits: 1 });
+}
+
+export const METRICS = {
+	demand: { label: "Etterspørsel", format: formatShare },
+	fill: { label: "Fylte plasser", format: formatShare },
+	waitlistPerEvent: { label: "Venteliste per arrangement", format: formatDecimal },
+	hoursToFull: { label: "Tid til fullt", format: formatHours },
+	attendance: { label: "Oppmøte", format: formatShare },
+	noShow: { label: "Uteblitt", format: formatShare },
+	latePerEvent: { label: "Sene avmeldinger per arrangement", format: formatDecimal },
+	satisfaction: {
+		label: "Fornøydhet",
+		format: formatDecimal,
+		max: feedbackRatingSchema.maxValue as number,
+	},
+	wantToWork: { label: "Vil jobbe der", format: formatShare },
+	returning: { label: "Kommer tilbake", format: formatShare },
+} as const satisfies Record<
+	MetricKey,
+	{ label: string; format: (value: number) => string; max?: number }
+>;
+
+export type Standing = NonNullable<CompanyComparison["standing"]>;
+
+export const COMPARISON_GROUPS = [
+	{ title: "Påmelding", metrics: ["demand", "fill", "waitlistPerEvent", "hoursToFull"] },
+	{ title: "Oppmøte og avmelding", metrics: ["attendance", "noShow", "latePerEvent"] },
+	{ title: "Inntrykk", metrics: ["satisfaction", "wantToWork", "returning"] },
+] as const satisfies { title: string; metrics: MetricKey[] }[];
+
+const COUNT_HEADROOM = 1.25;
+
+export function comparisonMax({ key, value, average }: CompanyComparison) {
+	const metric = METRICS[key];
+	if ("max" in metric) return metric.max;
+	const highest = Math.max(value ?? 0, average ?? 0);
+	if (metric.format === formatShare) return Math.max(1, highest);
+	return highest === 0 ? 1 : highest * COUNT_HEADROOM;
+}
+
+export function trendSeries(history: CompanyHistory, key: TrendMetric) {
+	const pointsOf = (read: (semester: CompanyHistory[number]) => number | null | undefined) =>
+		history.flatMap((semester, index) => {
+			const value = read(semester);
+			return value === null || value === undefined ? [] : [{ index, value }];
+		});
+	return {
+		company: pointsOf((semester) => semester.company?.[key]),
+		average: pointsOf((semester) => semester.average[key]),
+	};
+}
+
+export function matchingCompanies<T extends Pick<CompanyRow, "name">>(
+	companies: readonly T[],
+	search: string,
+) {
+	return companies.filter(({ name }) => matchesAny([name], search));
+}
+
+export function formatMetric(key: MetricKey, value: number | null) {
+	return value === null ? null : METRICS[key].format(value);
+}
+
+export function rankLabel({ rank, of }: Pick<CompanyComparison, "rank" | "of">) {
+	return rank === null ? null : `${rank} av ${of}`;
+}
+
+export const PAST_PACE_NOTE =
+	"Viser arrangementet du klikker på i tabellen. Typisk forløp bygger på arrangementene før dette.";

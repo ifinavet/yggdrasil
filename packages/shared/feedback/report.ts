@@ -7,7 +7,7 @@ export const reportRecipientSchema = z.object({
 	recipientEmail: z.string().trim().max(254).pipe(z.email("Skriv inn en gyldig e-postadresse.")),
 });
 
-import type { FeedbackAnswers, FeedbackField } from "./validation";
+import { type FeedbackAnswers, type FeedbackField, feedbackYesNoSchema } from "./validation";
 
 export interface ReportBucket {
 	value: string;
@@ -94,23 +94,33 @@ export function addResponseToReport(questions: ReportQuestion[], data: FeedbackA
 	return textAnswers;
 }
 
-export function reportHighlights(report: FeedbackReport) {
-	const satisfaction = report.questions.find(
+export function highlightTotals(questions: readonly ReportQuestion[]) {
+	const satisfaction = questions.find(
 		(question) => question.key === "satisfaction" && question.type === "rating",
 	);
-	const employment = report.questions.find(
+	const employment = questions.find(
 		(question) => question.key === "want_to_work" && question.type === "yesNo",
 	);
 	return {
-		rating: satisfaction?.answered
-			? satisfaction.buckets.reduce(
-					(total, bucket) => total + Number(bucket.value) * bucket.count,
-					0,
-				) / satisfaction.answered
-			: null,
-		employment: employment?.answered
-			? (employment.buckets.find((bucket) => bucket.value === "ja")?.count ?? 0) /
-				employment.answered
-			: null,
+		ratingSum:
+			satisfaction?.buckets.reduce(
+				(total, bucket) => total + Number(bucket.value) * bucket.count,
+				0,
+			) ?? 0,
+		ratings: satisfaction?.answered ?? 0,
+		wantToWork:
+			employment?.buckets.find((bucket) => bucket.value === feedbackYesNoSchema.enum.ja)?.count ??
+			0,
+		employmentAnswers: employment?.answered ?? 0,
+	};
+}
+
+export type HighlightTotals = ReturnType<typeof highlightTotals>;
+
+export function reportHighlights(report: FeedbackReport) {
+	const { ratingSum, ratings, wantToWork, employmentAnswers } = highlightTotals(report.questions);
+	return {
+		rating: ratings ? ratingSum / ratings : null,
+		employment: employmentAnswers ? wantToWork / employmentAnswers : null,
 	};
 }

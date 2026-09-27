@@ -25,6 +25,7 @@
 		"./utils": "./utils/index.ts",
 		"./validation": "./validation/index.ts",
 		"./feedback": "./feedback/index.ts",
+		"./engagement": "./engagement/index.ts",
 		"./feature-flags": "./feature-flags.ts",
 		"./products": "./products/index.ts",
 		"./job-listing-orders": "./job-listing-orders/index.ts",
