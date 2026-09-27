@@ -34,12 +34,14 @@ import {
 	currentSemesterKey,
 	SemesterSelect,
 } from "@/components/products/semester-select";
+import { useFoodBackfill } from "./use-food-backfill";
 
 export function FoodTagging() {
 	const [semester, setSemester] = useState(currentSemesterKey);
 	const [onlyUnconfirmed, setOnlyUnconfirmed] = useState(true);
 	const [selected, setSelected] = useState<ReadonlySet<Id<"events">>>(new Set());
 	const [foodItem, setFoodItem] = useState<FoodItem>();
+	useFoodBackfill();
 
 	const events = useQuery(api.events.food.eventsForFoodTagging, semesterFromKey(semester));
 	const assign = useMutation(api.events.food.bulkAssignFoodItem);

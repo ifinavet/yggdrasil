@@ -1,5 +1,5 @@
 import { guessFoodItem } from "@workspace/shared/events/food";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
 	asUser,
 	grantRole,
@@ -82,6 +82,43 @@ describe("backfillEventFood", () => {
 		const event = await food(t, eventId);
 		expect(event?.foodItem).toBe("sushi");
 		expect(event?.foodGuessed).toBeUndefined();
+	});
+});
+
+describe("food backfill on page open", () => {
+	it("guesses food once and reports when it is done", async () => {
+		vi.useFakeTimers();
+		const { t, companyId, editor } = await fixture();
+		const eventId = await insertEvent(t, companyId, { food: "Sushi" });
+
+		expect(await editor.query(api.events.food.backfillPending, {})).toBe(true);
+		await editor.mutation(api.events.food.setupBackfill, {});
+		await editor.mutation(api.events.food.setupBackfill, {});
+		await t.finishAllScheduledFunctions(vi.runAllTimers);
+
+		expect(await t.run((ctx) => ctx.db.get(eventId))).toMatchObject({
+			foodItem: "sushi",
+			foodGuessed: true,
+		});
+		expect(await editor.query(api.events.food.backfillPending, {})).toBe(false);
+
+		const later = await insertEvent(t, companyId, { food: "Pizza" });
+		await editor.mutation(api.events.food.setupBackfill, {});
+		await t.finishAllScheduledFunctions(vi.runAllTimers);
+		expect((await t.run((ctx) => ctx.db.get(later)))?.foodItem).toBeUndefined();
+		vi.useRealTimers();
+	});
+
+	it("refuses students", async () => {
+		const { t } = await setup();
+		const student = asUser(t, await insertUser(t, "student@example.test"));
+
+		expect(
+			await refusalMessageFrom(student.mutation(api.events.food.setupBackfill, {})),
+		).toBeTruthy();
+		expect(
+			await refusalMessageFrom(student.query(api.events.food.backfillPending, {})),
+		).toBeTruthy();
 	});
 });
 

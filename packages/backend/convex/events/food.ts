@@ -3,7 +3,7 @@ import { EVENT_SEMESTERS } from "@workspace/shared/time";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../_generated/api";
 import { mutation, query } from "../_generated/server";
-import { adminRoles, requireRole } from "../auth/accessRights";
+import { adminRoles, internalRoles, requireRole } from "../auth/accessRights";
 import { oneOf } from "../lib/validators";
 import { migrations } from "../migrations";
 import { eventsInSemester } from "./helper";
@@ -20,7 +20,24 @@ export const backfillEventFood = migrations.define({
 	},
 });
 
-export const runBackfillEventFood = migrations.runner(internal.events.food.backfillEventFood);
+const BACKFILL = internal.events.food.backfillEventFood;
+
+export const backfillPending = query({
+	args: {},
+	handler: async (ctx) => {
+		await requireRole(ctx, internalRoles);
+		const [status] = await migrations.getStatus(ctx, { migrations: [BACKFILL] });
+		return status?.state !== "success";
+	},
+});
+
+export const setupBackfill = mutation({
+	args: {},
+	handler: async (ctx) => {
+		await requireRole(ctx, internalRoles);
+		await migrations.runOne(ctx, BACKFILL);
+	},
+});
 
 export const eventsForFoodTagging = query({
 	args: { semester: oneOf(EVENT_SEMESTERS), year: v.number() },
