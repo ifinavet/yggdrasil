@@ -44,30 +44,28 @@ function reachOf(
 		: Math.min(1, (countBy(registrants, cohortOf).get(key) ?? 0) / population);
 }
 
-type Cohort = { degree: Student["degree"]; year: number | null; rank: number };
+type Cohort = { degree: Student["degree"]; year: number };
 
 export function cohortGroupOf({ degree, year }: Pick<Student, "degree" | "year">): Cohort | null {
 	if (year < 1) return null;
 	switch (degree) {
 		case "Bachelor":
-			return { degree, year: Math.min(year, 3), rank: Math.min(year, 3) };
-		case "Master": {
-			const masterYear = year === 2 || year === 5 ? 5 : 4;
-			return { degree, year: masterYear, rank: masterYear };
-		}
+			return { degree, year: Math.min(year, 3) };
 		case "Årsstudium":
-			return { degree, year: null, rank: 6 };
+			return { degree: "Bachelor", year: Math.min(year, 2) };
+		case "Master":
+			return { degree, year: year === 2 || year === 5 ? 5 : 4 };
 		case "PhD":
 			return null;
 	}
 }
 
 function labelOf({ degree, year }: Cohort) {
-	return year === null ? degree : `${degree} ${year}. år`;
+	return `${degree} ${year}. år`;
 }
 
 function codeOf({ degree, year }: Cohort) {
-	return `${degree.charAt(0)}${year ?? ""}`;
+	return `${degree.charAt(0)}${year}`;
 }
 
 export function cohortOf(student: Pick<Student, "degree" | "year">) {
@@ -125,7 +123,7 @@ export function audienceOf(
 			const cohort = cohortGroupOf(student);
 			return cohort ? [{ label, count, cohort }] : [];
 		})
-		.sort((a, b) => a.cohort.rank - b.cohort.rank)
+		.sort((a, b) => a.cohort.year - b.cohort.year)
 		.map(({ label, count, cohort }) => ({
 			...cohortRow(label, count),
 			degree: cohort.degree,

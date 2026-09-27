@@ -30,7 +30,7 @@ import {
 const DEGREE_COLORS = [PRIMARY_SERIES_COLOR, ACCENT_SERIES_COLOR, MUTED_SERIES_COLOR];
 const MIN_LABELLED_SEGMENT = 0.07;
 const COHORT_CODE_NOTE =
-	"B er bachelor, M er master og Å er årsstudium, tallet er årstrinnet. PhD-studenter er utelatt fordi de er så få.";
+	"B er bachelor og M er master, tallet er årstrinnet. PhD-studenter er utelatt fordi de er så få.";
 const PREVIOUS_LABEL = "Forrige semester";
 
 function useCohortColors(cohorts: readonly AudienceRow[]) {

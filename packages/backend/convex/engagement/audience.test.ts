@@ -38,8 +38,12 @@ describe("cohortOf", () => {
 		]);
 	});
 
-	it("keeps one cohort for årsstudium regardless of year", () => {
-		expect(cohortOf({ degree: "Årsstudium", year: 2 })).toBe("Årsstudium");
+	it("places årsstudium students in the first or second bachelor year", () => {
+		expect([1, 2, 3].map((year) => cohortOf({ degree: "Årsstudium", year }))).toEqual([
+			"Bachelor 1. år",
+			"Bachelor 2. år",
+			"Bachelor 2. år",
+		]);
 	});
 
 	it("leaves PhD students out of every cohort", () => {
@@ -75,7 +79,6 @@ describe("audienceOf", () => {
 			["Bachelor 3. år", "B3"],
 			["Master 4. år", "M4"],
 			["Master 5. år", "M5"],
-			["Årsstudium", "Å"],
 		]);
 	});
 
