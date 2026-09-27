@@ -13,11 +13,16 @@ export async function feedbackSignature(ctx: QueryCtx, eventId: Id<"events">) {
 	return { name: "Navet", email: FEEDBACK_REPLY_TO };
 }
 
-export async function feedbackEmailContext(ctx: QueryCtx, event: Doc<"events">) {
+export async function feedbackEmailContext(
+	ctx: QueryCtx,
+	event: Doc<"events">,
+	recipient: Doc<"users">,
+) {
 	const company = await ctx.db.get(event.hostingCompany);
 	if (!company) return null;
 	return {
 		title: event.title,
+		firstName: recipient.firstName.trim(),
 		companyName: company.name,
 		signature: await feedbackSignature(ctx, event._id),
 	};

@@ -13,7 +13,7 @@ export const recipient = internalQuery({
 			throw new ConvexError(`Testutsending krever en ${testSendDomain}-adresse.`);
 		const event = await ctx.db.get(eventId);
 		if (!event) throw new ConvexError("Fant ikke arrangementet.");
-		const email = await feedbackEmailContext(ctx, event);
+		const email = await feedbackEmailContext(ctx, event, user);
 		if (!email) throw new ConvexError("Fant ikke bedriften.");
 		return {
 			userId: user._id,

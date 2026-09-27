@@ -55,7 +55,7 @@ async function manualSendContext(
 	if (existingInvite) throw new ConvexError("Deltakeren har allerede fått skjemaet.");
 	const formVersionId = campaign.formVersionId ?? (await selectedVersion(ctx, event))?._id;
 	if (!formVersionId) throw new ConvexError("Velg et publisert skjema.");
-	const email = await feedbackEmailContext(ctx, event);
+	const email = await feedbackEmailContext(ctx, event, recipient);
 	if (!email) throw new ConvexError("Fant ikke bedriften.");
 	return { sender, campaign, registration, recipient, formVersionId, email };
 }

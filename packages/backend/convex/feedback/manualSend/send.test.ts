@@ -80,7 +80,7 @@ function spySentEmails() {
 }
 
 function feedbackTokenFrom(html: string | undefined) {
-	const token = html?.match(/\/feedback#token=([\w-]+)/)?.[1];
+	const token = html?.match(/\/feedback\?[^#"]*#token=([\w-]+)/)?.[1];
 	if (!token) throw new Error("No feedback link in the email");
 	return token;
 }
@@ -125,7 +125,9 @@ describe("manual feedback form send", () => {
 			from: "Navet <info@ifinavet.no>",
 			replyTo: ["arrangement@ifinavet.no"],
 		});
-		expect(email?.html).toContain(`${HUGIN_URL}/feedback#token=`);
+		expect(email?.html).toContain(
+			`${HUGIN_URL}/feedback?utm_source=email&amp;utm_medium=email&amp;utm_campaign=feedback_reminder&amp;utm_content=round_0#token=`,
+		);
 		expect(f.campaign.status).toBe("scheduled");
 		expect(await f.t.action(resolveToken, { token: feedbackTokenFrom(email?.html) })).toMatchObject(
 			{

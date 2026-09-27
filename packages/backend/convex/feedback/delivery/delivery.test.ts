@@ -126,9 +126,15 @@ describe("feedback delivery", () => {
 		expect(capture.subject).toBe("Tilbakemelding: Testarrangement");
 		expect(capture.html).toContain("Gi tilbakemelding");
 		expect(capture.html).toContain("bedriftspresentasjonen med Testbedrift!");
+		expect(capture.html).toContain("Hei Test,");
 		const link = new URL(capture.url);
 		expect(link.pathname).toBe("/feedback");
-		expect(link.search).toBe("");
+		expect(Object.fromEntries(link.searchParams)).toEqual({
+			utm_source: "email",
+			utm_medium: "email",
+			utm_campaign: "feedback_reminder",
+			utm_content: "round_0",
+		});
 		const plainToken = new URLSearchParams(link.hash.slice(1)).get("token") ?? "";
 		expect(
 			await t.action(api.feedback.responses.actions.resolveFeedbackToken, { token: plainToken }),
@@ -279,8 +285,8 @@ describe("feedback delivery", () => {
 		expect(captures).toHaveLength(3);
 		expect(captures.map(({ subject }) => subject.split(":")[0])).toEqual([
 			"Tilbakemelding",
-			"1. påminnelse",
-			"2. påminnelse",
+			"Test, vi mangler tilbakemeldingen din",
+			"Test, vi mangler tilbakemeldingen din",
 		]);
 		const firstToken =
 			new URLSearchParams(new URL(captures[0]?.url ?? "").hash.slice(1)).get("token") ?? "";
@@ -294,6 +300,34 @@ describe("feedback delivery", () => {
 		await t.action(send, { ...args, round: 11 });
 		expect(await t.run((ctx) => ctx.db.query("feedbackDeliveries").collect())).toHaveLength(3);
 	});
+	it("names the recipient and escalates reminder copy up to the last round", async () => {
+		const { t, args } = await fixture();
+		for (const round of [3, 11] as const) {
+			vi.setSystemTime(feedbackRoundAt(opensAt, round));
+			await t.action(send, { ...args, round });
+		}
+		const [reminder, last] = await t.run((ctx) => ctx.db.query("feedbackLocalEmails").collect());
+		expect(reminder?.subject).toBe("Test, vi mangler tilbakemeldingen din: Testarrangement");
+		expect(last?.subject).toBe("Siste påminnelse, Test: Testarrangement");
+		for (const email of [reminder, last]) {
+			expect(email?.html).toContain("Hei Test,");
+			expect(email?.html).toContain("Vi ser at du ikke har svart på tilbakemeldingsskjemaet");
+			expect(email?.html).toContain("Skjemaet er obligatorisk");
+			expect(email?.html).not.toContain("Takk for deltakelse");
+		}
+	});
+	it("falls back to an unnamed greeting when the recipient has no first name", async () => {
+		const { t, args } = await fixture();
+		await t.run(async (ctx) => {
+			const users = await ctx.db.query("users").collect();
+			for (const { _id } of users) await ctx.db.patch(_id, { firstName: " " });
+		});
+		vi.setSystemTime(feedbackRoundAt(opensAt, 11));
+		await t.action(send, { ...args, round: 11 });
+		const [email] = await t.run((ctx) => ctx.db.query("feedbackLocalEmails").collect());
+		expect(email?.subject).toBe("Siste påminnelse: Testarrangement");
+		expect(email?.html).toContain("Hei,");
+	});
 	it("uses the deployed Hugin URL outside local development", async () => {
 		const { t, args } = await fixture();
 		vi.stubEnv("APP_ENV", "test");
@@ -303,7 +337,9 @@ describe("feedback delivery", () => {
 		const emailId = deliveries[0]?.emailId as EmailId;
 		const email = await t.run((ctx) => feedbackResend.get(ctx, emailId));
 		expect(email).toMatchObject({ status: "waiting" });
-		expect(email?.html).toContain(`${HUGIN_URL}/feedback#token=`);
+		expect(email?.html).toContain(
+			`${HUGIN_URL}/feedback?utm_source=email&amp;utm_medium=email&amp;utm_campaign=feedback_reminder&amp;utm_content=round_0#token=`,
+		);
 	});
 	it("queues through the real Resend component atomically and cancels waiting mail", async () => {
 		const { t, email, inviteId, campaignId } = await fixture();
