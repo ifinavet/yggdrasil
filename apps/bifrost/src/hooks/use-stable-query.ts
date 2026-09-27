@@ -4,7 +4,8 @@ import { useQuery } from "convex/react";
 import { useState } from "react";
 
 export function latestResult<T>(stored: T | undefined, next: T | undefined) {
-	return next === undefined ? stored : next;
+	if (next === undefined) return stored;
+	return next;
 }
 
 export const useStableQuery: typeof useQuery = (query, ...args) => {
