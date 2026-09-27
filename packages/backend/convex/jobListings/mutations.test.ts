@@ -179,4 +179,79 @@ describe("jobListings.mutations", () => {
 		);
 		expect(refusal).toContain("6 måneder");
 	});
+
+	it("publishes a draft from the list and records the publish time", async () => {
+		const { t, companyId, client } = await fixture();
+		const listingId = await client.mutation(api.jobListings.mutations.create, {
+			...listingArgs,
+			company: companyId,
+			published: false,
+			deadline: Date.now() + DAY_IN_MS,
+		});
+		const before = Date.now();
+
+		await client.mutation(api.jobListings.mutations.setPublished, {
+			id: listingId,
+			published: true,
+		});
+
+		const listing = await t.run((ctx) => ctx.db.get(listingId));
+		expect(listing?.published).toBe(true);
+		expect(listing?.publishedAt).toBeGreaterThanOrEqual(before);
+	});
+
+	it("refuses to publish a draft whose deadline is past the cap", async () => {
+		const { t, companyId, client } = await fixture();
+		const listingId = await client.mutation(api.jobListings.mutations.create, {
+			...listingArgs,
+			company: companyId,
+			published: false,
+			deadline: jobListingLatestDeadline(Date.now()) + 30 * DAY_IN_MS,
+		});
+
+		const refusal = await refusalMessageFrom(
+			client.mutation(api.jobListings.mutations.setPublished, {
+				id: listingId,
+				published: true,
+			}),
+		);
+
+		expect(refusal).toContain("6 måneder");
+		expect((await t.run((ctx) => ctx.db.get(listingId)))?.published).toBe(false);
+	});
+
+	it("unpublishes a listing and keeps its first publish time", async () => {
+		const { t, companyId, client } = await fixture();
+		const listingId = await client.mutation(api.jobListings.mutations.create, {
+			...listingArgs,
+			company: companyId,
+		});
+		const publishedAt = (await t.run((ctx) => ctx.db.get(listingId)))?.publishedAt;
+
+		await client.mutation(api.jobListings.mutations.setPublished, {
+			id: listingId,
+			published: false,
+		});
+
+		const listing = await t.run((ctx) => ctx.db.get(listingId));
+		expect(listing?.published).toBe(false);
+		expect(listing?.publishedAt).toBe(publishedAt);
+	});
+
+	it("refuses to change the published state for users without an internal role", async () => {
+		const { t, companyId, client } = await fixture();
+		const listingId = await client.mutation(api.jobListings.mutations.create, {
+			...listingArgs,
+			company: companyId,
+		});
+		const outsider = asUser(t, await insertUser(t, "outsider@example.test"));
+
+		await expect(
+			outsider.mutation(api.jobListings.mutations.setPublished, {
+				id: listingId,
+				published: false,
+			}),
+		).rejects.toThrow();
+		expect((await t.run((ctx) => ctx.db.get(listingId)))?.published).toBe(true);
+	});
 });

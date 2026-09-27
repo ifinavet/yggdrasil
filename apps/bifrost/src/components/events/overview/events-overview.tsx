@@ -8,11 +8,12 @@ import type { Preloaded } from "convex/react";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import { type ReactNode, useMemo, useState } from "react";
+import { searchFolds } from "@/lib/search";
 import SelectSemester from "../select-semester";
 import SelectedEvents from "../selected-events";
 import { EventsTable } from "./events-table";
 import { MyEventCard } from "./my-event-card";
-import { type OverviewEvent, searchFolds, splitIntoSections } from "./sections";
+import { type OverviewEvent, splitIntoSections } from "./sections";
 
 function SectionTitle({ children }: Readonly<{ children: ReactNode }>) {
 	return <h3 className="mt-7 mb-3 font-semibold text-base">{children}</h3>;

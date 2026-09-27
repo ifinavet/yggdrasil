@@ -165,6 +165,26 @@ export const update = mutation({
 	},
 });
 
+export const setPublished = mutation({
+	args: {
+		id: v.id("jobListings"),
+		published: v.boolean(),
+	},
+	handler: async (ctx, { id, published }) => {
+		await requireRole(ctx, internalRoles);
+
+		const existing = await ctx.db.get(id);
+		if (!existing) {
+			throw new ConvexError("Stillingsannonsen ble ikke funnet.");
+		}
+
+		const publishedAt = resolvePublishedAt(existing, published, existing.deadline);
+		await ctx.db.patch(id, { published, publishedAt });
+
+		return id;
+	},
+});
+
 /**
  * Deletes a job listing and all of its contacts.
  *
