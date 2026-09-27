@@ -3,7 +3,14 @@
 import { render } from "@react-email/render";
 import FeedbackEmail from "@workspace/emails/feedback-email";
 import FeedbackReportEmail from "@workspace/emails/feedback-report-email";
-import { HUGIN_LOCAL_URL, HUGIN_URL } from "@workspace/shared/constants";
+import {
+	HUGIN_LOCAL_URL,
+	HUGIN_URL,
+	UTM_CAMPAIGN,
+	UTM_MEDIUM,
+	UTM_SOURCE,
+	utmParams,
+} from "@workspace/shared/constants";
 import { formatOsloDate } from "@workspace/shared/time";
 import type { Infer } from "convex/values";
 import { isLocalDevelopment } from "../../auth/local";
@@ -18,9 +25,14 @@ function huginOrigin() {
 	return new URL(isLocalDevelopment() ? HUGIN_LOCAL_URL : HUGIN_URL);
 }
 
-function linkWithTokenOutsideHttpRequests(origin: URL, path: string) {
+function linkWithTokenOutsideHttpRequests(
+	origin: URL,
+	path: string,
+	query: Record<string, string> = {},
+) {
 	const token = generateLinkToken();
 	const url = new URL(path, origin);
+	url.search = new URLSearchParams(query).toString();
 	url.hash = new URLSearchParams({ token }).toString();
 	return { token, url: url.toString() };
 }
@@ -40,7 +52,16 @@ export async function feedbackEmailContent(
 	{ title, firstName, companyName, signature }: FeedbackEmailContext,
 	round: FeedbackRound,
 ) {
-	const { token, url } = linkWithTokenOutsideHttpRequests(huginOrigin(), "/feedback");
+	const { token, url } = linkWithTokenOutsideHttpRequests(
+		huginOrigin(),
+		"/feedback",
+		utmParams({
+			source: UTM_SOURCE.EMAIL,
+			medium: UTM_MEDIUM.EMAIL,
+			campaign: UTM_CAMPAIGN.FEEDBACK_REMINDER,
+			content: `round_${round}`,
+		}),
+	);
 	const reminder = round !== deliveryArgs.round.members[0].value;
 	return {
 		token,

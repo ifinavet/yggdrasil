@@ -129,7 +129,12 @@ describe("feedback delivery", () => {
 		expect(capture.html).toContain("Hei Test,");
 		const link = new URL(capture.url);
 		expect(link.pathname).toBe("/feedback");
-		expect(link.search).toBe("");
+		expect(Object.fromEntries(link.searchParams)).toEqual({
+			utm_source: "email",
+			utm_medium: "email",
+			utm_campaign: "feedback_reminder",
+			utm_content: "round_0",
+		});
 		const plainToken = new URLSearchParams(link.hash.slice(1)).get("token") ?? "";
 		expect(
 			await t.action(api.feedback.responses.actions.resolveFeedbackToken, { token: plainToken }),
@@ -332,7 +337,9 @@ describe("feedback delivery", () => {
 		const emailId = deliveries[0]?.emailId as EmailId;
 		const email = await t.run((ctx) => feedbackResend.get(ctx, emailId));
 		expect(email).toMatchObject({ status: "waiting" });
-		expect(email?.html).toContain(`${HUGIN_URL}/feedback#token=`);
+		expect(email?.html).toContain(
+			`${HUGIN_URL}/feedback?utm_source=email&amp;utm_medium=email&amp;utm_campaign=feedback_reminder&amp;utm_content=round_0#token=`,
+		);
 	});
 	it("queues through the real Resend component atomically and cancels waiting mail", async () => {
 		const { t, email, inviteId, campaignId } = await fixture();

@@ -35,3 +35,4 @@ export {
 	MIDGARD_LOCAL_URL,
 	MIDGARD_URL,
 } from "./urls";
+export { UTM_CAMPAIGN, UTM_MEDIUM, UTM_SOURCE, type UtmTags, utmParams } from "./utm";

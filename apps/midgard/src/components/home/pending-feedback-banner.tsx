@@ -2,6 +2,7 @@
 
 import { Authenticated } from "@workspace/auth/convex";
 import { api } from "@workspace/backend/convex/api";
+import { UTM_CAMPAIGN, UTM_MEDIUM, UTM_SOURCE, utmParams } from "@workspace/shared/constants";
 import { huginUrl } from "@workspace/shared/constants/hugin-url";
 import { Button } from "@workspace/ui/components/button";
 import { Note } from "@workspace/ui/components/note";
@@ -21,7 +22,14 @@ function PendingFeedback() {
 	const pending = useQuery(api.feedback.responses.queries.myPendingFeedback, { now });
 	if (!pending) return null;
 	const greeting = pending.firstName ? `${pending.firstName}, vi` : "Vi";
-	const href = `${huginUrl()}/feedback?${new URLSearchParams({ invite: pending.inviteId, utm_source: "ifinavet", utm_medium: "banner", utm_campaign: "feedback_reminder" })}`;
+	const href = `${huginUrl()}/feedback?${new URLSearchParams({
+		invite: pending.inviteId,
+		...utmParams({
+			source: UTM_SOURCE.IFI_NAVET,
+			medium: UTM_MEDIUM.BANNER,
+			campaign: UTM_CAMPAIGN.FEEDBACK_REMINDER,
+		}),
+	})}`;
 	return (
 		<div className="mx-4 max-w-6xl sm:mx-auto sm:w-full sm:px-6">
 			<Note role="status">

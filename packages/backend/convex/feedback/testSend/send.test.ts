@@ -143,7 +143,9 @@ describe("feedback test send", () => {
 				replyTo: ["arrangement@ifinavet.no"],
 			});
 		}
-		expect(sent[0]?.html).toContain(`${HUGIN_URL}/feedback#token=`);
+		expect(sent[0]?.html).toContain(
+			`${HUGIN_URL}/feedback?utm_source=email&amp;utm_medium=email&amp;utm_campaign=feedback_reminder&amp;utm_content=round_0#token=`,
+		);
 		expect(sent[0]?.html).toContain("bedriftspresentasjonen med Testbedrift!");
 		expect(sent[2]?.html).toContain(`${HUGIN_URL}/report#token=`);
 		expect(sent[2]?.html).toContain("14. mars");
