@@ -12,9 +12,9 @@ import { Panel, PanelBody, PanelNote } from "@workspace/ui/components/products/p
 import { ShareBar } from "@workspace/ui/components/products/share-bar";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { cn } from "@workspace/ui/lib/utils";
-import { useQuery } from "convex/react";
 import { useMemo } from "react";
 import { heatTint, needsLightText, PRIMARY_SERIES_COLOR } from "@/components/common/chart-colors";
+import { useStableQuery } from "@/hooks/use-stable-query";
 import { AudiencePanel } from "./audience-panel";
 import {
 	formatShare,
@@ -176,7 +176,7 @@ function Timeslots({ timeslots }: Readonly<{ timeslots: SemesterData["timeslots"
 }
 
 export function SemesterView({ now }: Readonly<{ now: number }>) {
-	const semester = useQuery(api.engagement.queries.semester, { now });
+	const semester = useStableQuery(api.engagement.queries.semester, { now });
 
 	if (!semester) {
 		return (

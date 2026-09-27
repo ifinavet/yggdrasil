@@ -11,13 +11,13 @@ import { CompanyLogo } from "@workspace/ui/components/company-logo";
 import { ChartLegend } from "@workspace/ui/components/products/chart-legend";
 import { Panel, PanelBody, PanelNote } from "@workspace/ui/components/products/panel";
 import { Skeleton } from "@workspace/ui/components/skeleton";
-import { useQuery } from "convex/react";
 import { type ReactNode, useMemo } from "react";
 import {
 	ACCENT_SERIES_COLOR,
 	MUTED_SERIES_COLOR,
 	PRIMARY_SERIES_COLOR,
 } from "@/components/common/chart-colors";
+import { useStableQuery } from "@/hooks/use-stable-query";
 import { type PaceCurve, paceLabels, paceTickLabel, paceTicks } from "./engagement-format";
 
 const Y_AXIS_LABEL = "Påmeldte";
@@ -142,7 +142,7 @@ export function PaceChart({
 	now,
 	note,
 }: Readonly<{ eventId: Id<"events">; now: number; note: ReactNode }>) {
-	const curve = useQuery(api.engagement.queries.paceCurve, { eventId, now });
+	const curve = useStableQuery(api.engagement.queries.paceCurve, { eventId, now });
 
 	return (
 		<Panel
