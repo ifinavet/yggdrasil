@@ -1,6 +1,4 @@
-import { TREND_METRICS, type TrendMetric } from "@workspace/shared/engagement";
-
-("use client");
+"use client";
 
 import { defineChart, dot, lineY } from "@tanstack/charts";
 import { scaleLinear } from "@tanstack/charts/scales/linear";
@@ -8,6 +6,7 @@ import { tooltip } from "@tanstack/charts/tooltip";
 import { Chart } from "@tanstack/react-charts";
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
+import { TREND_METRICS, type TrendMetric } from "@workspace/shared/engagement";
 import { CompanyLogo } from "@workspace/ui/components/company-logo";
 import { ChartLegend, type LegendItem } from "@workspace/ui/components/products/chart-legend";
 import { Panel, PanelBody, PanelNote } from "@workspace/ui/components/products/panel";
