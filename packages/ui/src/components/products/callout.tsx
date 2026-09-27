@@ -1,11 +1,15 @@
 import { cn } from "@workspace/ui/lib/utils";
-import { Info, TriangleAlert } from "lucide-react";
+import { CircleAlert, CircleCheck, Info, TriangleAlert } from "lucide-react";
 import type { ReactNode } from "react";
 
 const TONES = {
 	info: { className: "bg-primary-light text-primary", Icon: Info },
 	warning: { className: "bg-warning-surface text-warning-surface-foreground", Icon: TriangleAlert },
+	danger: { className: "bg-destructive/10 text-destructive", Icon: CircleAlert },
+	neutral: { className: "bg-muted text-muted-foreground", Icon: CircleCheck },
 } as const;
+
+export type CalloutTone = keyof typeof TONES;
 
 /** `icon` replaces the tone's own icon; the action wraps under the text when it runs out of room. */
 export function Callout({
@@ -15,7 +19,7 @@ export function Callout({
 	className,
 	children,
 }: Readonly<{
-	tone?: keyof typeof TONES;
+	tone?: CalloutTone;
 	icon?: ReactNode;
 	action?: ReactNode;
 	className?: string;
