@@ -2,7 +2,15 @@
 
 import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
-import { DEGREE_TYPES, STUDY_PROGRAMS } from "@workspace/shared/constants";
+import {
+	DEGREE_TYPES,
+	DEGREE_YEARS,
+	degreesFor,
+	fittingDegree,
+	fittingYear,
+	refineStudentProfile,
+	STUDY_PROGRAMS,
+} from "@workspace/shared/constants";
 import { Button } from "@workspace/ui/components/button";
 import {
 	Field,
@@ -25,17 +33,19 @@ import { type Preloaded, useMutation, usePreloadedQuery } from "convex/react";
 import { toast } from "sonner";
 import { z } from "zod";
 
-const formSchema = z.object({
-	firstname: z.string().min(2, "Vennligst oppgi fornavnet ditt."),
-	lastname: z.string().min(2, "Vennligst oppgi etternavnet ditt."),
-	studyProgram: z.enum(STUDY_PROGRAMS),
-	degree: z.enum(DEGREE_TYPES),
-	year: z
-		.number()
-		.int()
-		.min(1, "Vennligst oppgi året du går")
-		.max(5, "5. året er maks, går du høyre en siste år master sett 5."),
-});
+const formSchema = z
+	.object({
+		firstname: z.string().min(2, "Vennligst oppgi fornavnet ditt."),
+		lastname: z.string().min(2, "Vennligst oppgi etternavnet ditt."),
+		studyProgram: z.enum(STUDY_PROGRAMS),
+		degree: z.enum(DEGREE_TYPES),
+		year: z
+			.number()
+			.int()
+			.min(1, "Vennligst oppgi året du går")
+			.max(5, "5. året er maks, går du høyre en siste år master sett 5."),
+	})
+	.superRefine(refineStudentProfile);
 export type ProfileFormSchema = z.infer<typeof formSchema>;
 
 export default function UpdateProfileForm({
@@ -124,7 +134,16 @@ export default function UpdateProfileForm({
 				</FieldGroup>
 
 				<FieldGroup>
-					<form.Field name="studyProgram">
+					<form.Field
+						name="studyProgram"
+						listeners={{
+							onChange: ({ value }) => {
+								const degree = fittingDegree(value, form.getFieldValue("degree"));
+								form.setFieldValue("degree", degree);
+								form.setFieldValue("year", fittingYear(degree, form.getFieldValue("year")));
+							},
+						}}
+					>
 						{(field) => {
 							const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
@@ -157,7 +176,13 @@ export default function UpdateProfileForm({
 					</form.Field>
 				</FieldGroup>
 				<FieldGroup className="flex w-full flex-col gap-4 md:flex-row">
-					<form.Field name="degree">
+					<form.Field
+						name="degree"
+						listeners={{
+							onChange: ({ value }) =>
+								form.setFieldValue("year", fittingYear(value, form.getFieldValue("year"))),
+						}}
+					>
 						{(field) => {
 							const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
@@ -177,11 +202,15 @@ export default function UpdateProfileForm({
 											<SelectValue placeholder="Velg studie grad" className="truncate" />
 										</SelectTrigger>
 										<SelectContent>
-											{DEGREE_TYPES.map((degree) => (
-												<SelectItem key={degree} value={degree}>
-													{degree}
-												</SelectItem>
-											))}
+											<form.Subscribe selector={(state) => state.values.studyProgram}>
+												{(program) =>
+													degreesFor(program).map((degree) => (
+														<SelectItem key={degree} value={degree}>
+															{degree}
+														</SelectItem>
+													))
+												}
+											</form.Subscribe>
 										</SelectContent>
 									</Select>
 								</Field>
@@ -190,24 +219,34 @@ export default function UpdateProfileForm({
 					</form.Field>
 					<form.Field name="year">
 						{(field) => {
+							const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+
 							return (
-								<Field className="w-full min-w-0">
-									<FieldLabel htmlFor={field.name}>År</FieldLabel>
-									<Input
-										id={field.name}
-										name={field.name}
-										value={field.state.value}
-										onBlur={field.handleBlur}
-										onChange={(e) => {
-											const numeric = e.target.value.replaceAll(/\D/g, "");
-											field.handleChange(Number.parseInt(numeric, 10));
-										}}
-										type="number"
-										min={1}
-										max={5}
-										className="truncate"
-										autoComplete="off"
-									/>
+								<Field className="w-full min-w-0" data-invalid={isInvalid}>
+									<FieldContent>
+										<FieldLabel htmlFor={field.name}>År</FieldLabel>
+										{isInvalid && <FieldError errors={field.state.meta.errors} />}
+									</FieldContent>
+									<form.Subscribe selector={(state) => DEGREE_YEARS[state.values.degree]}>
+										{({ first, last }) => (
+											<Input
+												id={field.name}
+												name={field.name}
+												value={field.state.value}
+												onBlur={field.handleBlur}
+												onChange={(e) => {
+													const numeric = e.target.value.replaceAll(/\D/g, "");
+													field.handleChange(Number.parseInt(numeric, 10));
+												}}
+												type="number"
+												min={first}
+												max={last}
+												className="truncate"
+												aria-invalid={isInvalid}
+												autoComplete="off"
+											/>
+										)}
+									</form.Subscribe>
 								</Field>
 							);
 						}}
