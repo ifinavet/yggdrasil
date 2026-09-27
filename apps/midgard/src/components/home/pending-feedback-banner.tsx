@@ -21,7 +21,7 @@ function PendingFeedback() {
 	const pending = useQuery(api.feedback.responses.queries.myPendingFeedback, { now });
 	if (!pending) return null;
 	const greeting = pending.firstName ? `${pending.firstName}, vi` : "Vi";
-	const href = `${huginUrl()}/feedback?${new URLSearchParams({ invite: pending.inviteId })}`;
+	const href = `${huginUrl()}/feedback?${new URLSearchParams({ invite: pending.inviteId, utm_source: "ifinavet", utm_medium: "banner", utm_campaign: "feedback_reminder" })}`;
 	return (
 		<div className="mx-4 max-w-6xl sm:mx-auto sm:w-full sm:px-6">
 			<Note role="status">
