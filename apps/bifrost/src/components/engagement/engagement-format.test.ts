@@ -9,6 +9,7 @@ import {
 	type CompanyHistory,
 	cohortTints,
 	comparisonMax,
+	countTicks,
 	defaultSelection,
 	type EngagementAlert,
 	type EngagementStatus,
@@ -169,6 +170,14 @@ describe("food charts", () => {
 			["🍣 Sushi", "end"],
 			["🍕 Pizza", "start"],
 		]);
+	});
+
+	it("ticks event counts in round whole steps from zero", () => {
+		expect(countTicks(0)).toEqual([0, 1]);
+		expect(countTicks(3)).toEqual([0, 1, 2, 3]);
+		expect(countTicks(8)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8]);
+		expect(countTicks(9)).toEqual([0, 2, 4, 6, 8, 10]);
+		expect(countTicks(121)).toEqual([0, 20, 40, 60, 80, 100, 120, 140]);
 	});
 
 	it("has no demand without seats", () => {

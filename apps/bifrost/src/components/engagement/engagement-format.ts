@@ -119,6 +119,17 @@ export function foodDemandBars({ foods }: Pick<FoodBreakdown, "foods">) {
 		.sort((a, b) => b.demand - a.demand);
 }
 
+const MAX_COUNT_TICKS = 8;
+const ROUND_STEPS = [1, 2, 5, 10];
+
+export function countTicks(highest: number) {
+	const rough = Math.max(1, highest / MAX_COUNT_TICKS);
+	const magnitude = 10 ** Math.floor(Math.log10(rough));
+	const step = (ROUND_STEPS.find((factor) => factor * magnitude >= rough) ?? 10) * magnitude;
+	const last = Math.max(step, Math.ceil(highest / step) * step);
+	return Array.from({ length: last / step + 1 }, (_, index) => index * step);
+}
+
 export const FOOD_FEW_EVENTS = 3;
 
 const LABEL_CLEARANCE = { events: 0.1, demand: 0.06 };

@@ -13,6 +13,7 @@ import { useQueries } from "convex/react";
 import { useMemo } from "react";
 import { MUTED_SERIES_COLOR, PRIMARY_SERIES_COLOR } from "@/components/common/chart-colors";
 import {
+	countTicks,
 	DEMAND_NOTE,
 	FOOD_DEMAND_NOTE,
 	FOOD_FEW_EVENTS,
@@ -46,6 +47,15 @@ function chartHeight(rows: number) {
 	return rows * ROW_HEIGHT + AXIS_HEIGHT;
 }
 
+function countAxis(counts: readonly number[]) {
+	const ticks = countTicks(Math.max(0, ...counts));
+	return {
+		scale: scaleLinear().domain([0, ticks.at(-1) ?? 1]),
+		grid: true,
+		axis: { label: "Arrangementer", ticks: { values: ticks } },
+	};
+}
+
 function bandScale() {
 	return scaleBand().padding(0.25);
 }
@@ -67,7 +77,7 @@ function DistributionChart({ breakdown }: Readonly<{ breakdown: FoodBreakdown }>
 					}),
 				],
 				scales: {
-					x: { scale: scaleLinear, nice: true, grid: true, axis: { label: "Arrangementer" } },
+					x: countAxis(rows.map((row) => row.events)),
 					y: { scale: bandScale, axis: { ticks: { size: 0 } } },
 				},
 				tooltip,
@@ -168,9 +178,9 @@ function OpportunityChart({ breakdown }: Readonly<{ breakdown: FoodBreakdown }>)
 					}),
 				],
 				scales: {
-					x: { scale: scaleLinear, nice: true, grid: true, axis: { label: "Arrangementer" } },
+					x: countAxis(points.map((point) => point.events)),
 					y: {
-						scale: scaleLinear,
+						scale: scaleLinear().domain([0, Math.max(1, ...points.map((point) => point.demand))]),
 						nice: true,
 						grid: true,
 						axis: { label: METRICS.demand.label, ticks: { format: formatShare } },

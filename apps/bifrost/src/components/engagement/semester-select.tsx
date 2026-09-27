@@ -23,7 +23,7 @@ const ALL_SEMESTERS = "all";
 export function useSemesterSelect(now: number, { withAll = false } = {}) {
 	const semesters = useQuery(api.events.queries.getPossibleSemesters);
 	const [selected, setSelected] = useState<SemesterOption>(() => eventSemesterOf(now));
-	const [all, setAll] = useState(false);
+	const [all, setAll] = useState(withAll);
 	const started = useMemo(
 		() => (semesters ? startedSemesters(semesters, now) : null),
 		[semesters, now],
