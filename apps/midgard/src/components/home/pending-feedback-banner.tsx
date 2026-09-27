@@ -7,6 +7,7 @@ import { huginUrl } from "@workspace/shared/constants/hugin-url";
 import { Button } from "@workspace/ui/components/button";
 import { Note } from "@workspace/ui/components/note";
 import { useQuery } from "convex/react";
+import { Info } from "lucide-react";
 import { useState } from "react";
 
 export default function PendingFeedbackBanner() {
@@ -32,7 +33,12 @@ function PendingFeedback() {
 	})}`;
 	return (
 		<div className="mx-4 max-w-6xl sm:mx-auto sm:w-full sm:px-6">
-			<Note role="status">
+			<Note
+				tone="warn"
+				icon={Info}
+				role="status"
+				className="bg-warning-surface text-warning-surface-foreground sm:items-center sm:[&>svg]:mt-0"
+			>
 				<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 					<p>
 						{`${greeting} ser at du ikke har svart på tilbakemeldingsskjemaet for bedriftspresentasjonen med ${pending.companyName}. Skjemaet er obligatorisk.`}
