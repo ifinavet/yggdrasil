@@ -300,6 +300,9 @@ export function reachAxisMax(percentages: readonly (number | null)[]) {
 export const DEMAND_NOTE =
 	"Over 100 % betyr at ventelisten viser mer interesse enn det var plass til.";
 
+export const FOOD_DEMAND_NOTE =
+	"Tallene viser ikke at maten er årsaken. Bedrift, type arrangement, kapasitet og semester påvirker også interessen, så en mat kan score lavt fordi den ofte serveres på mindre populære arrangementer.";
+
 const HOURS_PER_DAY = 24;
 const MINUTES_PER_HOUR = 60;
 

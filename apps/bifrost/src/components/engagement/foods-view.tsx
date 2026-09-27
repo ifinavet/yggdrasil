@@ -14,6 +14,7 @@ import { useMemo } from "react";
 import { MUTED_SERIES_COLOR, PRIMARY_SERIES_COLOR } from "@/components/common/chart-colors";
 import {
 	DEMAND_NOTE,
+	FOOD_DEMAND_NOTE,
 	type FoodBreakdown,
 	type FoodEvent,
 	foodBreakdown,
@@ -194,6 +195,7 @@ export function FoodsView({ now }: Readonly<{ now: number }>) {
 					<PanelBody className="grid gap-3">
 						<DemandChart breakdown={breakdown} />
 						<PanelNote>{DEMAND_NOTE}</PanelNote>
+						<PanelNote>{FOOD_DEMAND_NOTE}</PanelNote>
 					</PanelBody>
 				</Panel>
 			)}
