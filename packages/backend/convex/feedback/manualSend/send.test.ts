@@ -280,6 +280,9 @@ describe("manual feedback form send", () => {
 		const deleted = await insertUser(f.t, "deleted@example.test");
 		await insertRegistration(f.t, f.eventId, deleted._id, "registered");
 		await f.t.run((ctx) => ctx.db.delete(deleted._id));
+		const anonymized = await insertUser(f.t, "anonymized@example.test");
+		await insertRegistration(f.t, f.eventId, anonymized._id, "registered");
+		await f.t.run((ctx) => ctx.db.patch(anonymized._id, { deleted: true }));
 
 		expect(await f.client.query(listRegistrants, { eventId: f.eventId })).toEqual([
 			{ userId: f.participant._id, name: "Kari Nordmann", email: "student@example.test" },
@@ -317,6 +320,11 @@ describe("manual feedback form send", () => {
 				"after the campaign has closed",
 				(f) => f.t.run((ctx) => ctx.db.patch(f.campaign._id, { status: "closed" })),
 				"Arrangementet har ingen aktiv innsamling av tilbakemeldinger.",
+			],
+			[
+				"for a participant whose account was deleted",
+				(f) => f.t.run((ctx) => ctx.db.patch(f.participant._id, { deleted: true, email: "" })),
+				"Deltakeren er ikke påmeldt arrangementet.",
 			],
 			[
 				"for a participant on the waitlist",

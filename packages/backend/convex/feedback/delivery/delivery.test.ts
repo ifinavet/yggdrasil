@@ -179,6 +179,22 @@ describe("feedback delivery", () => {
 		expect(capture?.html).toContain("Ola Nordmann");
 		expect(capture?.html).toContain("mailto:ola.nordmann@ifinavet.no");
 	});
+	it("signs with Navet's address when the lead organizer's account was deleted", async () => {
+		const { t, args, eventId } = await fixture();
+		const lead = await insertUser(t, "ola.nordmann@ifinavet.no");
+		await insertOrganizer(t, eventId, lead._id);
+		await t.mutation(internal.users.clerk.mutations.deleteFromClerk, {
+			clerkUserId: lead.externalId,
+		});
+		expect(await t.query(messages.prepareEmail, { ...args, now: opensAt })).toMatchObject({
+			signature: { name: "Navet", email: "arrangement@ifinavet.no" },
+		});
+	});
+	it("does not prepare mail for a recipient whose account was deleted", async () => {
+		const { t, args, user } = await fixture();
+		await t.run((ctx) => ctx.db.patch(user._id, { deleted: true, email: "" }));
+		expect(await t.query(messages.prepareEmail, { ...args, now: opensAt })).toBeNull();
+	});
 	it("does not prepare mail once the hosting company is deleted", async () => {
 		const { t, args, eventId } = await fixture();
 		await t.run(async (ctx) => {
@@ -601,6 +617,7 @@ describe("campaign lifecycle", () => {
 			"unmarked",
 			"organizer",
 			"deleted",
+			"anonymized",
 		] as const) {
 			const user = await insertUser(f.t, `${kind}@example.test`);
 			const registration = await insertRegistration(
@@ -618,6 +635,8 @@ describe("campaign lifecycle", () => {
 				);
 			if (kind === "organizer") await insertOrganizer(f.t, f.eventId, user._id);
 			if (kind === "deleted") await f.t.run((ctx) => ctx.db.delete(user._id));
+			if (kind === "anonymized")
+				await f.t.run((ctx) => ctx.db.patch(user._id, { deleted: true, email: "" }));
 		}
 		const args = { campaignId: f.campaignId, generation: 1, cursor: null };
 		expect(await f.t.mutation(campaigns.inviteParticipants, args)).toBeNull();

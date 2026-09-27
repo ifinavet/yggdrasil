@@ -50,7 +50,7 @@ async function manualSendContext(
 			)
 			.unique(),
 	]);
-	if (registration?.status !== "registered" || !recipient)
+	if (registration?.status !== "registered" || !recipient || recipient.deleted)
 		throw new ConvexError("Deltakeren er ikke påmeldt arrangementet.");
 	if (existingInvite) throw new ConvexError("Deltakeren har allerede fått skjemaet.");
 	const formVersionId = campaign.formVersionId ?? (await selectedVersion(ctx, event))?._id;
@@ -72,7 +72,7 @@ export const listRegistrants = query({
 			.take(maxRegistrants);
 		const users = await Promise.all(registrations.map(({ userId }) => ctx.db.get(userId)));
 		return users
-			.filter((user) => user !== null)
+			.filter((user): user is Doc<"users"> => user !== null && !user.deleted)
 			.map((user) => ({ userId: user._id, name: fullName(user), email: user.email }));
 	},
 });

@@ -108,7 +108,7 @@ export const clearWaitlistAndPending = internalMutation({
 						.filter((reg) => reg.status !== "registered")
 						.map(async (reg) => {
 							const user = await ctx.db.get(reg.userId);
-							if (!user) {
+							if (!user || user.deleted) {
 								await ctx.db.delete(reg._id);
 								await logRegistrationChange(ctx, reg, "cleared", now);
 								return;
