@@ -410,6 +410,43 @@ describe("starting onboarding", () => {
 		expect(await account(accountId)).toMatchObject({ stage: "onboarding", group: "Arrangement" });
 		expect(directories.google.get(newMember.workspaceEmail)?.suspended).toBe(false);
 	});
+
+	async function formerMember() {
+		const { accountId } = await onboard();
+		await t.run((ctx) =>
+			ctx.db.patch(accountId, {
+				stage: "offboarded",
+				google: "suspended",
+				googleUserId: "G-OLD",
+				slackUserId: "U-OLD",
+			}),
+		);
+		directories.failures.google = true;
+		return accountId;
+	}
+
+	it("keeps the Google and Slack ids of a former member who comes back with the same address", async () => {
+		const accountId = await formerMember();
+
+		await onboard();
+
+		expect(await account(accountId)).toMatchObject({
+			stage: "onboarding",
+			googleUserId: "G-OLD",
+			slackUserId: "U-OLD",
+		});
+	});
+
+	it("forgets the old ids when a former member comes back with a new address", async () => {
+		const accountId = await formerMember();
+
+		await onboard({ workspaceEmail: "kari.hansen@ifinavet.no" });
+
+		const again = await account(accountId);
+		expect(again).toMatchObject({ workspaceEmail: "kari.hansen@ifinavet.no" });
+		expect(again?.googleUserId).toBeUndefined();
+		expect(again?.slackUserId).toBeUndefined();
+	});
 });
 
 describe("activating on first sign-in", () => {

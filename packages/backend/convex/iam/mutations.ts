@@ -63,8 +63,13 @@ export const startOnboarding = mutation({
 		const emails = [input.workspaceEmail, input.uioEmail];
 
 		const previous = await refuseDuplicates(ctx, emails);
+		const sameAddress = previous?.workspaceEmail === input.workspaceEmail;
 		const fields = {
 			...input,
+			...(sameAddress && {
+				googleUserId: previous.googleUserId,
+				slackUserId: previous.slackUserId,
+			}),
 			stage: "onboarding" as const,
 			google: "pending" as const,
 			invitedBy: caller._id,
