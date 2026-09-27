@@ -26,7 +26,6 @@ const eventFields: Doc<"events"> = {
 	registrationOpens: OPENS,
 	participationLimit: 10,
 	location: "Ole-Johan Dahls hus",
-	foodItem: "pizza",
 	language: "norsk",
 	ageRestriction: "",
 	externalEvent: false,

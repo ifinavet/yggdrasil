@@ -4,6 +4,7 @@ import {
 	DAY_IN_MS,
 	grantRole,
 	insertEvent,
+	insertFoodItem,
 	insertRegistration,
 	insertStudent,
 	insertUser,
@@ -119,20 +120,22 @@ describe("list", () => {
 describe("foods", () => {
 	it("ranks food items by demand and keeps unmapped events in their own group", async () => {
 		const { t, held, intern } = await twoCompanies();
+		const pizza = await insertFoodItem(t, "pizza");
+		const burritos = await insertFoodItem(t, "burritos");
 		await t.run(async (ctx) => {
-			await ctx.db.patch(held, { foodItem: "pizza" });
+			await ctx.db.patch(held, { foodItem: pizza });
 			const popular = await ctx.db
 				.query("events")
 				.filter((q) => q.eq(q.field("participationLimit"), 1))
 				.first();
-			await ctx.db.patch((popular as Doc<"events">)._id, { foodItem: "burritos" });
+			await ctx.db.patch((popular as Doc<"events">)._id, { foodItem: burritos });
 		});
 
 		const foods = await intern.query(api.engagement.companies.foods, semester);
 
 		expect(
-			foods.map(({ foodItem, events, registered, seats, demand, attendance }) => ({
-				foodItem,
+			foods.map(({ name, events, registered, seats, demand, attendance }) => ({
+				name,
 				events,
 				registered,
 				seats,
@@ -140,9 +143,9 @@ describe("foods", () => {
 				attendance,
 			})),
 		).toEqual([
-			{ foodItem: "burritos", events: 1, registered: 1, seats: 1, demand: 2, attendance: null },
-			{ foodItem: "pizza", events: 1, registered: 2, seats: 10, demand: 0.2, attendance: 0.5 },
-			{ foodItem: null, events: 1, registered: 0, seats: 10, demand: 0, attendance: null },
+			{ name: "🌯 Burritos", events: 1, registered: 1, seats: 1, demand: 2, attendance: null },
+			{ name: "🍕 Pizza", events: 1, registered: 2, seats: 10, demand: 0.2, attendance: 0.5 },
+			{ name: null, events: 1, registered: 0, seats: 10, demand: 0, attendance: null },
 		]);
 	});
 });

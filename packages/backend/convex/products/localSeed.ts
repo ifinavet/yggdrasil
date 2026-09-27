@@ -4,6 +4,7 @@ import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalAction, internalMutation, type MutationCtx } from "../_generated/server";
 import { isLocalDevelopment } from "../auth/local";
+import { builtInFoodItemId } from "../events/food";
 import { snapshotOf } from "./sales";
 import { SEED_PRODUCT_NAMES } from "./seed";
 
@@ -196,7 +197,7 @@ async function insertSemesterEvents(seeder: Seeder, randomDay: () => number) {
 			registrationOpens: eventStart - 14 * DAY_MS,
 			participationLimit: random.pick(PARTICIPATION_LIMITS),
 			location: externalEvent ? "Hos bedriften" : "Store auditorium, IFI",
-			foodItem: "pizza",
+			foodItem: await builtInFoodItemId(ctx, "pizza"),
 			language: "Norsk",
 			ageRestriction: "Ingen",
 			externalEvent,

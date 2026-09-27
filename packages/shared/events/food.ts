@@ -63,3 +63,5 @@ export function guessFoodItem(text: string | undefined): FoodItem | null {
 		.map(([item]) => item as FoodItem);
 	return matches.length === 1 ? (matches[0] ?? null) : null;
 }
+
+export const MAX_FOOD_NAME_LENGTH = 40;

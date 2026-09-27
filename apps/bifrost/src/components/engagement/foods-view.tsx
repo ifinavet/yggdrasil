@@ -1,7 +1,6 @@
 "use client";
 
 import { api } from "@workspace/backend/convex/api";
-import { FOOD_ITEM_LABELS } from "@workspace/shared/events/food";
 import { Panel, PanelBody, PanelNote } from "@workspace/ui/components/products/panel";
 import { ShareBar } from "@workspace/ui/components/products/share-bar";
 import { Skeleton } from "@workspace/ui/components/skeleton";
@@ -50,11 +49,7 @@ function FoodTable({ foods }: Readonly<{ foods: FoodRow[] }>) {
 				{foods.map((food) => (
 					<TableRow key={food.foodItem ?? "unset"}>
 						<TableCell className={`${LIST_CELL} font-medium`}>
-							{food.foodItem ? (
-								FOOD_ITEM_LABELS[food.foodItem]
-							) : (
-								<span className="text-muted-foreground">Ikke satt</span>
-							)}
+							{food.name ?? <span className="text-muted-foreground">Ikke satt</span>}
 						</TableCell>
 						<TableCell className={NUMBER_CELL}>{food.events}</TableCell>
 						<TableCell className={LIST_CELL}>

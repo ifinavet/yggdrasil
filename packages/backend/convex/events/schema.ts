@@ -5,8 +5,6 @@ import { v } from "convex/values";
 import { oneOf } from "../lib/validators";
 import { soldProductFields } from "../products/schema";
 
-export const foodItemValidator = oneOf(FOOD_ITEMS);
-
 export const organizerRoleValidator = v.union(...ORGANIZER_ROLES.map((role) => v.literal(role)));
 export const registrationStatusValidator = v.union(
 	...REGISTRATION_STATUSES.map((status) => v.literal(status)),
@@ -20,7 +18,7 @@ export const editableEventFields = {
 	registrationOpens: v.number(),
 	participationLimit: v.number(),
 	location: v.string(),
-	foodItem: v.optional(foodItemValidator),
+	foodItem: v.optional(v.id("foodItems")),
 	language: v.string(),
 	ageRestriction: v.string(),
 	externalEvent: v.boolean(),
@@ -45,6 +43,14 @@ export const eventsSchema = {
 		.index("by_slug", ["slug"])
 		.index("by_formId", ["formId"])
 		.index("by_hostingCompany_and_eventStart", ["hostingCompany", "eventStart"]),
+
+	foodItems: defineTable({
+		name: v.string(),
+		nameKey: v.string(),
+		slug: v.optional(oneOf(FOOD_ITEMS)),
+	})
+		.index("by_slug", ["slug"])
+		.index("by_nameKey", ["nameKey"]),
 
 	eventOrganizers: defineTable({
 		eventId: v.id("events"),

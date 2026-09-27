@@ -11,6 +11,7 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalAction, internalMutation, type MutationCtx } from "../_generated/server";
+import { builtInFoodItemId } from "../events/food";
 import { logoSvg, randomTools, requireLocal, seededRandom } from "../products/localSeed";
 
 const COMPANIES = [
@@ -277,7 +278,7 @@ async function insertEvent(ctx: MutationCtx, companyIds: Id<"companies">[], plan
 		registrationOpens: plan.registrationOpens,
 		participationLimit: plan.participationLimit,
 		location: plan.location ?? "Store auditorium, IFI",
-		foodItem: "pizza",
+		foodItem: await builtInFoodItemId(ctx, "pizza"),
 		language: "Norsk",
 		ageRestriction: "Ingen",
 		externalEvent: false,

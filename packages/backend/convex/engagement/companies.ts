@@ -136,13 +136,17 @@ export const foods = query({
 	handler: async (ctx, { now, semester, year }) => {
 		await requireRole(ctx, internalRoles);
 		const { events } = await loggedEvents(ctx, { semester, year }, now);
-		const rows = [...byFood(events)].map(([foodItem, foodEvents]) => ({
-			foodItem,
-			events: foodEvents.length,
-			registered: registeredIn(foodEvents).length,
-			seats: sumOf(foodEvents, ({ event }) => event.participationLimit),
-			...metricsOf(foodEvents, now),
-		}));
+		const grouped = [...byFood(events)];
+		const rows = await Promise.all(
+			grouped.map(async ([foodItem, foodEvents]) => ({
+				foodItem,
+				name: foodItem ? ((await ctx.db.get(foodItem))?.name ?? null) : null,
+				events: foodEvents.length,
+				registered: registeredIn(foodEvents).length,
+				seats: sumOf(foodEvents, ({ event }) => event.participationLimit),
+				...metricsOf(foodEvents, now),
+			})),
+		);
 		return rows.sort((a, b) => (b.demand ?? 0) - (a.demand ?? 0));
 	},
 });

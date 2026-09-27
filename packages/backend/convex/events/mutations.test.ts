@@ -4,6 +4,7 @@ import {
 	emailsWithStatus,
 	grantRole,
 	insertEvent,
+	insertFoodItem,
 	insertRegistration,
 	insertUser,
 	scheduledRecipientsOf,
@@ -104,7 +105,8 @@ async function fixture() {
 	const { t, companyId } = await setup();
 	const user = await insertUser(t, "internal@example.test");
 	await grantRole(t, user._id, "admin");
-	return { t, companyId, client: asUser(t, user) };
+	const foodItem = await insertFoodItem(t);
+	return { t, companyId, foodItem, client: asUser(t, user) };
 }
 
 const eventArgs = {
@@ -115,7 +117,6 @@ const eventArgs = {
 	registrationOpens: Date.now(),
 	participationLimit: 10,
 	location: "Ole-Johan Dahls hus",
-	foodItem: "pizza" as const,
 	language: "norsk",
 	ageRestriction: "",
 	externalEvent: false,
@@ -126,11 +127,12 @@ const eventArgs = {
 
 describe("events.mutations.create", () => {
 	it("snapshots the chosen product", async () => {
-		const { t, companyId, client } = await fixture();
+		const { t, companyId, foodItem, client } = await fixture();
 		const productId = await t.run((ctx) => ctx.db.insert("products", eventProduct));
 
 		await client.mutation(api.events.mutations.create, {
 			...eventArgs,
+			foodItem,
 			hostingCompany: companyId,
 			productId,
 		});
@@ -151,12 +153,13 @@ describe("events.mutations.create", () => {
 
 describe("events.mutations.update", () => {
 	it("snapshots a newly chosen product", async () => {
-		const { t, companyId, client } = await fixture();
+		const { t, companyId, foodItem, client } = await fixture();
 		const productId = await t.run((ctx) => ctx.db.insert("products", eventProduct));
 		const eventId = await insertEvent(t, companyId);
 
 		await client.mutation(api.events.mutations.update, {
 			...eventArgs,
+			foodItem,
 			id: eventId,
 			hostingCompany: companyId,
 			productId,
@@ -171,7 +174,7 @@ describe("events.mutations.update", () => {
 	});
 
 	it("keeps the existing snapshot when the same product is chosen again", async () => {
-		const { t, companyId, client } = await fixture();
+		const { t, companyId, foodItem, client } = await fixture();
 		const productId = await t.run((ctx) => ctx.db.insert("products", eventProduct));
 		const eventId = await insertEvent(t, companyId, {
 			product: { productId, name: eventProduct.name, unitPriceOre: eventProduct.unitPriceOre },
@@ -180,6 +183,7 @@ describe("events.mutations.update", () => {
 
 		await client.mutation(api.events.mutations.update, {
 			...eventArgs,
+			foodItem,
 			id: eventId,
 			hostingCompany: companyId,
 			productId,
@@ -198,10 +202,11 @@ describe("events.mutations.update", () => {
 describe("event food", () => {
 	it("stores the chosen food item on create", async () => {
 		const { t, companyId, client } = await fixture();
+		const burritos = await insertFoodItem(t, "burritos");
 
 		await client.mutation(api.events.mutations.create, {
 			...eventArgs,
-			foodItem: "burritos",
+			foodItem: burritos,
 			hostingCompany: companyId,
 		});
 
@@ -211,26 +216,27 @@ describe("event food", () => {
 				.filter((q) => q.eq(q.field("title"), eventArgs.title))
 				.first(),
 		);
-		expect(event?.foodItem).toBe("burritos");
+		expect(event?.foodItem).toBe(burritos);
 	});
 
 	it("confirms a guessed food item on update and keeps the legacy text", async () => {
 		const { t, companyId, client } = await fixture();
+		const sushi = await insertFoodItem(t, "sushi");
 		const eventId = await insertEvent(t, companyId, {
 			food: "Sushi fra Sticks",
-			foodItem: "sushi",
+			foodItem: sushi,
 			foodGuessed: true,
 		});
 
 		await client.mutation(api.events.mutations.update, {
 			...eventArgs,
-			foodItem: "sushi",
+			foodItem: sushi,
 			id: eventId,
 			hostingCompany: companyId,
 		});
 
 		const event = await t.run((ctx) => ctx.db.get(eventId));
-		expect(event?.foodItem).toBe("sushi");
+		expect(event?.foodItem).toBe(sushi);
 		expect(event?.foodGuessed).toBeUndefined();
 		expect(event?.food).toBe("Sushi fra Sticks");
 	});

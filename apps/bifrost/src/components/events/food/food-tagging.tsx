@@ -2,9 +2,9 @@
 
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
-import { FOOD_ITEM_LABELS, FOOD_ITEMS, type FoodItem } from "@workspace/shared/events/food";
 import { semesterFromKey } from "@workspace/shared/products";
 import { DATE_PATTERNS, formatOsloDate } from "@workspace/shared/time";
+import { convexErrorMessage } from "@workspace/shared/utils";
 import { Badge } from "@workspace/ui/components/badge";
 import {
 	Table,
@@ -16,24 +16,24 @@ import {
 } from "@workspace/ui/components/table";
 import { useMutation, useQuery } from "convex/react";
 import { useState } from "react";
+import { toast } from "sonner";
 import {
 	BulkTaggingToolbar,
 	SelectAllHead,
 	SelectRowCell,
-	TaggedValueCell,
 	useBulkSelection,
 } from "@/components/common/bulk-tagging";
 import { LIST_CELL, LIST_HEAD } from "@/components/common/table-classes";
 import { notifyProductMutation } from "@/components/products/notify-product-mutation";
 import { currentSemesterKey } from "@/components/products/semester-select";
+import { FoodItemSelect, useFoodItemOptions } from "./food-item-select";
 import { useFoodBackfill } from "./use-food-backfill";
-
-const FOOD_OPTIONS = FOOD_ITEMS.map((item) => ({ value: item, label: FOOD_ITEM_LABELS[item] }));
 
 export function FoodTagging() {
 	const [semester, setSemester] = useState(currentSemesterKey);
 	const [onlyUnconfirmed, setOnlyUnconfirmed] = useState(true);
-	const [foodItem, setFoodItem] = useState<FoodItem>();
+	const [foodItem, setFoodItem] = useState<Id<"foodItems">>();
+	const foodOptions = useFoodItemOptions() ?? [];
 	useFoodBackfill();
 
 	const events = useQuery(api.events.food.eventsForFoodTagging, semesterFromKey(semester));
@@ -54,6 +54,14 @@ export function FoodTagging() {
 		if (assigned) selection.clear();
 	};
 
+	const assignOne = async (eventId: Id<"events">, next: Id<"foodItems">) => {
+		try {
+			await assign({ eventIds: [eventId], foodItem: next });
+		} catch (error) {
+			toast.error(convexErrorMessage(error, "Kunne ikke sette mat."));
+		}
+	};
+
 	return (
 		<div className="space-y-4">
 			<BulkTaggingToolbar
@@ -64,7 +72,7 @@ export function FoodTagging() {
 				}}
 				onlyUnconfirmed={onlyUnconfirmed}
 				onOnlyUnconfirmedChange={setOnlyUnconfirmed}
-				options={FOOD_OPTIONS}
+				options={foodOptions.map(({ id, label }) => ({ value: id as Id<"foodItems">, label }))}
 				value={foodItem}
 				onValueChange={setFoodItem}
 				selectLabel="Mat"
@@ -107,10 +115,17 @@ export function FoodTagging() {
 							<TableCell className={`${LIST_CELL} text-muted-foreground`}>
 								{event.food ?? ""}
 							</TableCell>
-							<TaggedValueCell
-								label={event.foodItem ? FOOD_ITEM_LABELS[event.foodItem] : undefined}
-								guessed={event.foodGuessed}
-							/>
+							<TableCell className={LIST_CELL}>
+								<span className="flex items-center gap-2">
+									<FoodItemSelect
+										allowCreate
+										value={event.foodItem ?? undefined}
+										onChange={(next) => assignOne(event._id, next)}
+										className="w-56"
+									/>
+									{event.foodGuessed && <Badge variant="outline">Gjettet</Badge>}
+								</span>
+							</TableCell>
 						</TableRow>
 					))}
 				</TableBody>

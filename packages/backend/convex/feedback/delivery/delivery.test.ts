@@ -8,6 +8,7 @@ import {
 	asUser,
 	grantRole,
 	insertEvent,
+	insertFoodItem,
 	insertOrganizer,
 	insertRegistration,
 	insertUser,
@@ -467,7 +468,7 @@ describe("campaign lifecycle", () => {
 			await f.client.mutation(api.events.mutations.update, {
 				...eventFields,
 				id: f.eventId,
-				foodItem: "pizza",
+				foodItem: await insertFoodItem(f.t),
 				title: "Updated past event",
 				organizers: [],
 			});

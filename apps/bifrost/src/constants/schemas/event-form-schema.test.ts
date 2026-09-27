@@ -7,7 +7,7 @@ const values = {
 	eventDate: new Date(),
 	registrationDate: new Date(),
 	description: "En beskrivelse",
-	foodItem: "pizza" as const,
+	foodItem: "food-item-id",
 	location: "Ole-Johan Dahls hus",
 	ageRestrictions: "Ingen",
 	language: "norsk",

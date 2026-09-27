@@ -1,9 +1,11 @@
-import { guessFoodItem } from "@workspace/shared/events/food";
+import { FOOD_ITEMS, guessFoodItem } from "@workspace/shared/events/food";
+import { nameKey } from "@workspace/shared/utils";
 import { describe, expect, it, vi } from "vitest";
 import {
 	asUser,
 	setupAdminAndEditor as fixture,
 	insertEvent,
+	insertFoodItem,
 	insertUser,
 	refusalMessageFrom,
 	setup,
@@ -13,6 +15,12 @@ import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 
 const springEvent = new Date("2027-02-10T10:00:00Z").getTime();
+
+const slugOf = (t: TestBackend, id: Id<"events">) =>
+	t.run(async (ctx) => {
+		const event = await ctx.db.get(id);
+		return event?.foodItem ? (await ctx.db.get(event.foodItem))?.slug : undefined;
+	});
 
 describe("guessFoodItem", () => {
 	it.each([
@@ -64,7 +72,8 @@ describe("backfillEventFood", () => {
 
 		await migrate(t);
 
-		expect(await food(t, matched)).toMatchObject({ foodItem: "pizza", foodGuessed: true });
+		expect(await slugOf(t, matched)).toBe("pizza");
+		expect(await food(t, matched)).toMatchObject({ foodGuessed: true });
 		const left = await food(t, unmatched);
 		expect(left?.foodItem).toBeUndefined();
 		expect(left?.foodGuessed).toBeUndefined();
@@ -72,12 +81,13 @@ describe("backfillEventFood", () => {
 
 	it("skips events that already have a food item", async () => {
 		const { t, companyId } = await setup();
-		const eventId = await insertEvent(t, companyId, { food: "Pizza", foodItem: "sushi" });
+		const sushi = await insertFoodItem(t, "sushi");
+		const eventId = await insertEvent(t, companyId, { food: "Pizza", foodItem: sushi });
 
 		await migrate(t);
 
 		const event = await food(t, eventId);
-		expect(event?.foodItem).toBe("sushi");
+		expect(event?.foodItem).toBe(sushi);
 		expect(event?.foodGuessed).toBeUndefined();
 	});
 });
@@ -93,11 +103,12 @@ describe("food backfill on page open", () => {
 		await editor.mutation(api.events.food.setupBackfill, {});
 		await t.finishAllScheduledFunctions(vi.runAllTimers);
 
-		expect(await t.run((ctx) => ctx.db.get(eventId))).toMatchObject({
-			foodItem: "sushi",
-			foodGuessed: true,
-		});
+		expect(await slugOf(t, eventId)).toBe("sushi");
+		expect(await t.run((ctx) => ctx.db.get(eventId))).toMatchObject({ foodGuessed: true });
 		expect(await editor.query(api.events.food.backfillPending, {})).toBe(false);
+		expect(await t.run((ctx) => ctx.db.query("foodItems").collect())).toHaveLength(
+			FOOD_ITEMS.length,
+		);
 
 		const later = await insertEvent(t, companyId, { food: "Pizza" });
 		await editor.mutation(api.events.food.setupBackfill, {});
@@ -131,10 +142,11 @@ describe("eventsForFoodTagging", () => {
 
 	it("returns the legacy text and food state, drafts included", async () => {
 		const { t, companyId, admin } = await fixture();
+		const sushi = await insertFoodItem(t, "sushi");
 		const guessed = await insertEvent(t, companyId, {
 			eventStart: springEvent,
 			food: "Sushi",
-			foodItem: "sushi",
+			foodItem: sushi,
 			foodGuessed: true,
 		});
 		const draft = await insertEvent(t, companyId, { eventStart: springEvent, published: false });
@@ -148,7 +160,7 @@ describe("eventsForFoodTagging", () => {
 			expect.objectContaining({
 				_id: guessed,
 				food: "Sushi",
-				foodItem: "sushi",
+				foodItem: sushi,
 				foodGuessed: true,
 				companyName: null,
 			}),
@@ -178,11 +190,12 @@ describe("bulkAssignFoodItem", () => {
 	it("refuses callers below admin", async () => {
 		const { t, companyId, editor } = await fixture();
 		const eventId = await insertEvent(t, companyId);
+		const foodItem = await insertFoodItem(t);
 		await expect(
 			refusalMessageFrom(
 				editor.mutation(api.events.food.bulkAssignFoodItem, {
 					eventIds: [eventId],
-					foodItem: "pizza",
+					foodItem,
 				}),
 			),
 		).resolves.toContain("Unauthorized");
@@ -191,16 +204,17 @@ describe("bulkAssignFoodItem", () => {
 	it("refuses an empty selection and one above the cap", async () => {
 		const { t, companyId, admin } = await fixture();
 		const eventId = await insertEvent(t, companyId);
+		const foodItem = await insertFoodItem(t);
 		await expect(
 			refusalMessageFrom(
-				admin.mutation(api.events.food.bulkAssignFoodItem, { eventIds: [], foodItem: "pizza" }),
+				admin.mutation(api.events.food.bulkAssignFoodItem, { eventIds: [], foodItem }),
 			),
 		).resolves.toContain("Velg mellom 1 og 200");
 		await expect(
 			refusalMessageFrom(
 				admin.mutation(api.events.food.bulkAssignFoodItem, {
 					eventIds: Array.from({ length: 201 }, () => eventId),
-					foodItem: "pizza",
+					foodItem,
 				}),
 			),
 		).resolves.toContain("Velg mellom 1 og 200");
@@ -209,32 +223,112 @@ describe("bulkAssignFoodItem", () => {
 	it("refuses a missing event", async () => {
 		const { t, companyId, admin } = await fixture();
 		const eventId = await insertEvent(t, companyId);
+		const foodItem = await insertFoodItem(t);
 		await t.run((ctx) => ctx.db.delete(eventId));
 		await expect(
 			refusalMessageFrom(
-				admin.mutation(api.events.food.bulkAssignFoodItem, {
-					eventIds: [eventId],
-					foodItem: "pizza",
-				}),
+				admin.mutation(api.events.food.bulkAssignFoodItem, { eventIds: [eventId], foodItem }),
 			),
 		).resolves.toContain("ble ikke funnet");
 	});
 
+	it("refuses a missing food item", async () => {
+		const { t, companyId, admin } = await fixture();
+		const eventId = await insertEvent(t, companyId);
+		const foodItem = await insertFoodItem(t);
+		await t.run((ctx) => ctx.db.delete(foodItem));
+		await expect(
+			refusalMessageFrom(
+				admin.mutation(api.events.food.bulkAssignFoodItem, { eventIds: [eventId], foodItem }),
+			),
+		).resolves.toContain("Fant ikke matvalget");
+	});
+
 	it("sets the food item and clears the guess", async () => {
 		const { t, companyId, admin } = await fixture();
-		const first = await insertEvent(t, companyId, { foodItem: "cake", foodGuessed: true });
+		const cake = await insertFoodItem(t, "cake");
+		const burritos = await insertFoodItem(t, "burritos");
+		const first = await insertEvent(t, companyId, { foodItem: cake, foodGuessed: true });
 		const second = await insertEvent(t, companyId, { food: "Middag" });
 
 		const count = await admin.mutation(api.events.food.bulkAssignFoodItem, {
 			eventIds: [first, second],
-			foodItem: "burritos",
+			foodItem: burritos,
 		});
 
 		expect(count).toBe(2);
 		for (const id of [first, second]) {
 			const event = await t.run((ctx) => ctx.db.get(id));
-			expect(event?.foodItem).toBe("burritos");
+			expect(event?.foodItem).toBe(burritos);
 			expect(event?.foodGuessed).toBeUndefined();
 		}
+	});
+});
+
+describe("nameKey", () => {
+	it.each([
+		["🥪 Bánh mì", "banhmi"],
+		["  Banh-Mi ", "banhmi"],
+		["Kaffe og kake", "kaffeogkake"],
+		["Smørbrød", "smørbrød"],
+		["🍕", ""],
+	])("keys %j as %j", (name, key) => {
+		expect(nameKey(name)).toBe(key);
+	});
+});
+
+describe("createFoodItem", () => {
+	it("refuses callers below admin", async () => {
+		const { editor } = await fixture();
+		await expect(
+			refusalMessageFrom(editor.mutation(api.events.food.createFoodItem, { name: "Middag" })),
+		).resolves.toContain("Unauthorized");
+	});
+
+	it("trims the name and reuses an item with the same key", async () => {
+		const { t, admin } = await fixture();
+		const banhMi = await insertFoodItem(t, "banh_mi");
+
+		const created = await admin.mutation(api.events.food.createFoodItem, {
+			name: "  Middag   fra  kantina ",
+		});
+		const again = await admin.mutation(api.events.food.createFoodItem, {
+			name: "middag fra kantina",
+		});
+		const reused = await admin.mutation(api.events.food.createFoodItem, { name: "banh mi" });
+
+		expect(again).toBe(created);
+		expect(reused).toBe(banhMi);
+		expect(await t.run((ctx) => ctx.db.get(created))).toMatchObject({
+			name: "Middag fra kantina",
+			nameKey: "middagfrakantina",
+		});
+	});
+
+	it("refuses an empty name and one that is too long", async () => {
+		const { admin } = await fixture();
+		await expect(
+			refusalMessageFrom(admin.mutation(api.events.food.createFoodItem, { name: " 🍕 " })),
+		).resolves.toContain("må ha et navn");
+		await expect(
+			refusalMessageFrom(admin.mutation(api.events.food.createFoodItem, { name: "a".repeat(41) })),
+		).resolves.toContain("maks 40 tegn");
+	});
+});
+
+describe("listFoodItems", () => {
+	it("lists items sorted by name for internal members", async () => {
+		const { t, editor } = await fixture();
+		await insertFoodItem(t, "sushi");
+		await t.run((ctx) => ctx.db.insert("foodItems", { name: "Annet", nameKey: "annet" }));
+
+		const items = await editor.query(api.events.food.listFoodItems, {});
+		expect(items.map(({ name }) => name)).toEqual(["Annet", "🍣 Sushi"]);
+	});
+
+	it("refuses students", async () => {
+		const { t } = await setup();
+		const student = asUser(t, await insertUser(t, "student@example.test"));
+		expect(await refusalMessageFrom(student.query(api.events.food.listFoodItems, {}))).toBeTruthy();
 	});
 });

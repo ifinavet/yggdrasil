@@ -6,11 +6,13 @@ import rateLimiter from "@convex-dev/rate-limiter/test";
 import resendTest from "@convex-dev/resend/test";
 import workflowTest from "@convex-dev/workflow/test";
 import workpoolTest from "@convex-dev/workpool/test";
+import type { FoodItem } from "@workspace/shared/events/food";
 import type { WithoutSystemFields } from "convex/server";
 import { ConvexError } from "convex/values";
 import { convexTest } from "convex-test";
 import type { Doc, Id } from "../convex/_generated/dataModel";
 import type { AccessRole } from "../convex/auth/accessRights";
+import { builtInFoodItemId } from "../convex/events/food";
 import schema from "../convex/schema";
 import { CONSENT_VERSION, FORM_VERSION } from "../convex/semesterPlanning/rules";
 
@@ -138,6 +140,10 @@ export async function grantRole(
 	role: AccessRole,
 ): Promise<Id<"accessRights">> {
 	return t.run((ctx) => ctx.db.insert("accessRights", { userId, role }));
+}
+
+export async function insertFoodItem(t: TestBackend, slug: FoodItem = "pizza") {
+	return t.run((ctx) => builtInFoodItemId(ctx, slug));
 }
 
 export async function insertEvent(

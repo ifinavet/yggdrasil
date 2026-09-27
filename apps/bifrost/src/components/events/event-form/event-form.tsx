@@ -1,7 +1,7 @@
 "use client";
 
 import { useForm } from "@tanstack/react-form";
-import { FOOD_ITEM_LABELS, FOOD_ITEMS, type FoodItem } from "@workspace/shared/events/food";
+import type { Id } from "@workspace/backend/convex/dataModel";
 import {
 	Field,
 	FieldDescription,
@@ -26,6 +26,7 @@ import CompanySelectField from "@/components/common/forms/company-select-field";
 import DateTimePicker from "@/components/common/forms/date-time-picker";
 import FormSubmitActions from "@/components/common/forms/form-submit-actions";
 import DescriptionEditor from "@/components/common/forms/markdown-editor/editor";
+import { FoodItemSelect } from "@/components/events/food/food-item-select";
 import { type EventFormValues, eventFormSchema } from "@/constants/schemas/event-form-schema";
 import Organizers from "./organizers";
 import ProductSelectField from "./product-select-field";
@@ -112,27 +113,13 @@ export default function EventForm({
 							return (
 								<Field>
 									<FieldLabel htmlFor={field.name}>Mat</FieldLabel>
-									<Select
-										name={field.name}
-										value={field.state.value ?? ""}
-										onValueChange={(value) => field.handleChange(value as FoodItem)}
-									>
-										<SelectTrigger
-											id={field.name}
-											className="w-full"
-											onBlur={field.handleBlur}
-											aria-invalid={isInvalid}
-										>
-											<SelectValue placeholder="Velg mat" />
-										</SelectTrigger>
-										<SelectContent>
-											{FOOD_ITEMS.map((item) => (
-												<SelectItem key={item} value={item}>
-													{FOOD_ITEM_LABELS[item]}
-												</SelectItem>
-											))}
-										</SelectContent>
-									</Select>
+									<FoodItemSelect
+										id={field.name}
+										value={field.state.value as Id<"foodItems"> | undefined}
+										onChange={field.handleChange}
+										invalid={isInvalid}
+										className="w-full"
+									/>
 									{isInvalid && <FieldError errors={field.state.meta.errors} />}
 								</Field>
 							);

@@ -1,6 +1,5 @@
 import type { Id } from "@workspace/backend/convex/dataModel";
 import type { OrganizerRole } from "@workspace/shared/constants";
-import { FOOD_ITEMS } from "@workspace/shared/events/food";
 import z from "zod/v4";
 
 export const formSchema = z.object({
@@ -13,7 +12,7 @@ export const formSchema = z.object({
 	registrationDate: z.date("Dato og tid for åpning av påmelding er påkrevd"),
 	description: z.string().min(1, "Det er veldig viktig med en beskrivelse av arrangementet"),
 	foodItem: z
-		.enum(FOOD_ITEMS)
+		.string()
 		.optional()
 		.refine((foodItem) => foodItem !== undefined, "Skulle vi hatt noe mat kanskje?"),
 	location: z.string().min(1, "Hvor skal arrangementet foregå?"),
