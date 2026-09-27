@@ -9,6 +9,7 @@ import {
 	eventSemesterRange,
 	formatOsloDate,
 } from "@workspace/shared/time";
+import { nameKey } from "@workspace/shared/utils";
 import type { BadgeVariant } from "@workspace/ui/components/badge";
 import type { SparkValue } from "@workspace/ui/components/products/sparkline";
 import type { FunctionReturnType } from "convex/server";
@@ -27,6 +28,7 @@ export type UnregisterLog = FunctionReturnType<typeof api.engagement.queries.unr
 export type PaceCurve = NonNullable<FunctionReturnType<typeof api.engagement.queries.paceCurve>>;
 export type PastEvent = FunctionReturnType<typeof api.engagement.queries.past>[number];
 export type CompanyRow = FunctionReturnType<typeof api.engagement.companies.list>[number];
+export type FoodEvent = FunctionReturnType<typeof api.engagement.companies.foods>[number];
 export type CompanyDetail = FunctionReturnType<typeof api.engagement.companies.detail>;
 export type CompanyComparison = CompanyDetail["comparison"][number];
 export type CompanyHistory = FunctionReturnType<typeof api.engagement.companies.history>;
@@ -67,6 +69,77 @@ export function formatPoints(fraction: number) {
 
 export function fillShare(registered: number, limit: number) {
 	return limit > 0 ? Math.min(100, (registered / limit) * 100) : 0;
+}
+
+const UNSET_FOOD = "Ikke satt";
+
+function pooledDemand(events: readonly FoodEvent[]) {
+	const seats = events.reduce((sum, event) => sum + event.seats, 0);
+	return seats > 0 ? events.reduce((sum, event) => sum + event.registrations, 0) / seats : null;
+}
+
+export function foodBreakdown(events: readonly FoodEvent[]) {
+	const groups = new Map<string | null, FoodEvent[]>();
+	for (const event of events) {
+		groups.set(event.foodItem, [...(groups.get(event.foodItem) ?? []), event]);
+	}
+	const foods = [...groups.values()].map((group) => ({
+		name: group[0]?.name ?? null,
+		events: group.length,
+		demand: pooledDemand(group),
+	}));
+	foods.sort(
+		(a, b) =>
+			b.events - a.events ||
+			Number(a.name === null) - Number(b.name === null) ||
+			nameKey(a.name ?? "").localeCompare(nameKey(b.name ?? ""), "nb"),
+	);
+	return {
+		demand: pooledDemand(events),
+		foods: foods.map((food) => ({ ...food, name: food.name ?? UNSET_FOOD })),
+	};
+}
+
+export type FoodBreakdown = ReturnType<typeof foodBreakdown>;
+
+export function foodDistribution({ foods }: Pick<FoodBreakdown, "foods">) {
+	const total = foods.reduce((sum, food) => sum + food.events, 0);
+	return foods.map((food) => ({
+		name: food.name,
+		events: food.events,
+		label: `${food.events} (${formatShare(food.events / total)})`,
+	}));
+}
+
+export function foodDemandBars({ foods }: Pick<FoodBreakdown, "foods">) {
+	return foods
+		.flatMap(({ name, events, demand }) =>
+			demand === null ? [] : [{ name, demand, label: formatShare(demand), events }],
+		)
+		.sort((a, b) => b.demand - a.demand);
+}
+
+export const FOOD_FEW_EVENTS = 3;
+
+const LABEL_CLEARANCE = { events: 0.1, demand: 0.06 };
+const LABEL_GAP = 8;
+
+export function foodOpportunities({ foods }: Pick<FoodBreakdown, "foods">) {
+	const points = foodDemandBars({ foods }).filter(
+		(food) => food.events >= FOOD_FEW_EVENTS && food.name !== UNSET_FOOD,
+	);
+	const widest = Math.max(1, ...points.map((point) => point.events));
+	return points.map((point) => {
+		const crowded = points.some(
+			(other) =>
+				other.events > point.events &&
+				(other.events - point.events) / widest <= LABEL_CLEARANCE.events &&
+				Math.abs(other.demand - point.demand) <= LABEL_CLEARANCE.demand,
+		);
+		return crowded
+			? { ...point, anchor: "end" as const, dx: -LABEL_GAP }
+			: { ...point, anchor: "start" as const, dx: LABEL_GAP };
+	});
 }
 
 export function opensLabel(opensAt: number) {
@@ -248,6 +321,11 @@ export function reachAxisMax(percentages: readonly (number | null)[]) {
 
 export const DEMAND_NOTE =
 	"Over 100 % betyr at ventelisten viser mer interesse enn det var plass til.";
+
+export const FOOD_DEMAND_NOTE =
+	"Tallene viser ikke at maten er årsaken. Bedrift, type arrangement, kapasitet og semester påvirker også interessen, så en mat kan score lavt fordi den ofte serveres på mindre populære arrangementer.";
+
+export const FOOD_OPPORTUNITY_NOTE = `Mat oppe til venstre har høy etterspørsel, men serveres sjelden. Mat med færre enn ${FOOD_FEW_EVENTS} arrangementer er utelatt, fordi tallet der kan skyldes tilfeldigheter.`;
 
 const HOURS_PER_DAY = 24;
 const MINUTES_PER_HOUR = 60;

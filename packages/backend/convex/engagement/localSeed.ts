@@ -11,6 +11,7 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalAction, internalMutation, type MutationCtx } from "../_generated/server";
+import { builtInFoodItemId } from "../events/food";
 import { logoSvg, randomTools, requireLocal, seededRandom } from "../products/localSeed";
 
 const COMPANIES = [
@@ -258,6 +259,13 @@ async function eagernessByUser(ctx: MutationCtx, userIds: Id<"users">[]) {
 	return eagerness;
 }
 
+const LOCAL_FOODS = ["pizza", "sushi", "burritos", "taco", "salad", null] as const;
+
+async function localFoodItem(ctx: MutationCtx, title: string) {
+	const slug = LOCAL_FOODS[title.length % LOCAL_FOODS.length] ?? null;
+	return slug ? await builtInFoodItemId(ctx, slug) : undefined;
+}
+
 type EventPlan = {
 	companyIndex: number;
 	title: string;
@@ -277,7 +285,7 @@ async function insertEvent(ctx: MutationCtx, companyIds: Id<"companies">[], plan
 		registrationOpens: plan.registrationOpens,
 		participationLimit: plan.participationLimit,
 		location: plan.location ?? "Store auditorium, IFI",
-		food: "Pizza",
+		foodItem: await localFoodItem(ctx, plan.title),
 		language: "Norsk",
 		ageRestriction: "Ingen",
 		externalEvent: false,

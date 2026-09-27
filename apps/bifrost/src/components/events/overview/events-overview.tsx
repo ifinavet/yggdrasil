@@ -9,6 +9,7 @@ import { Plus } from "lucide-react";
 import Link from "next/link";
 import { type ReactNode, useMemo, useState } from "react";
 import { searchFolds } from "@/lib/search";
+import { useFoodBackfill } from "../food/use-food-backfill";
 import SelectSemester from "../select-semester";
 import SelectedEvents from "../selected-events";
 import { EventsTable } from "./events-table";
@@ -29,6 +30,7 @@ export function EventsOverview({
 	preloadedPossibleSemesters: Preloaded<typeof api.events.queries.getPossibleSemesters>;
 }>) {
 	const [search, setSearch] = useState("");
+	useFoodBackfill();
 
 	const { mine, upcoming, past, unpublished } = useMemo(
 		() => splitIntoSections(events, now, search),

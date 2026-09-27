@@ -130,6 +130,26 @@ export const list = query({
 	},
 });
 
+export const foods = query({
+	args: semesterArgs,
+	handler: async (ctx, { now, semester, year }) => {
+		await requireRole(ctx, internalRoles);
+		const events = await semesterEvents(ctx, { semester, year }, now);
+		const names = new Map<Id<"foodItems">, string | null>();
+		for (const foodItem of new Set(events.flatMap(({ event }) => event.foodItem ?? []))) {
+			names.set(foodItem, (await ctx.db.get(foodItem))?.name ?? null);
+		}
+		return events.map(({ event, registrations }) => ({
+			_id: event._id,
+			title: event.title,
+			foodItem: event.foodItem ?? null,
+			name: event.foodItem ? (names.get(event.foodItem) ?? null) : null,
+			registrations: registrations.length,
+			seats: event.participationLimit,
+		}));
+	},
+});
+
 export const detail = query({
 	args: { companyId: v.id("companies"), ...semesterArgs },
 	handler: async (ctx, { companyId, now, semester, year }) => {

@@ -24,6 +24,7 @@ import {
 	TrendingUpIcon,
 	TrophyIcon,
 	UsersIcon,
+	UtensilsIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -49,9 +50,9 @@ const paths = {
 			path: "/job-listings",
 		},
 		{
-			title: "Engasjement",
+			title: "Innsikt",
 			icon: TrendingUpIcon,
-			path: "/engasjement",
+			path: "/insight",
 			feature: "engagement",
 		},
 		{
@@ -93,6 +94,11 @@ const paths = {
 			icon: BanknoteIcon,
 			path: PRODUCT_ROUTES.list,
 			feature: "products",
+		},
+		{
+			title: "Mat",
+			icon: UtensilsIcon,
+			path: "/food",
 		},
 		{
 			title: "Skjemaer",

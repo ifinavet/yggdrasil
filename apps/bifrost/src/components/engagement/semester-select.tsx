@@ -10,7 +10,7 @@ import {
 	SelectValue,
 } from "@workspace/ui/components/select";
 import { useQuery } from "convex/react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
 	type SemesterOption,
 	semesterLabel,
@@ -18,23 +18,38 @@ import {
 	startedSemesters,
 } from "./engagement-format";
 
-export function useSemesterSelect(now: number) {
+const ALL_SEMESTERS = "all";
+
+export function useSemesterSelect(now: number, { withAll = false } = {}) {
 	const semesters = useQuery(api.events.queries.getPossibleSemesters);
 	const [selected, setSelected] = useState<SemesterOption>(() => eventSemesterOf(now));
-	const options = semesters ? startedSemesters(semesters, now) : [selected];
+	const [all, setAll] = useState(false);
+	const started = useMemo(
+		() => (semesters ? startedSemesters(semesters, now) : null),
+		[semesters, now],
+	);
+	const options = started ?? [selected];
 
 	const select = (
 		<Select
-			value={semesterValue(selected)}
+			value={all ? ALL_SEMESTERS : semesterValue(selected)}
 			onValueChange={(value) => {
+				if (value === ALL_SEMESTERS) {
+					setAll(true);
+					return;
+				}
 				const option = options.find((candidate) => semesterValue(candidate) === value);
-				if (option) setSelected(option);
+				if (option) {
+					setSelected(option);
+					setAll(false);
+				}
 			}}
 		>
 			<SelectTrigger size="sm" aria-label="Semester">
 				<SelectValue />
 			</SelectTrigger>
 			<SelectContent>
+				{withAll && <SelectItem value={ALL_SEMESTERS}>Alle semestre</SelectItem>}
 				{options.map((option) => (
 					<SelectItem key={semesterValue(option)} value={semesterValue(option)}>
 						{semesterLabel(option)}
@@ -44,5 +59,5 @@ export function useSemesterSelect(now: number) {
 		</Select>
 	);
 
-	return { selected, select };
+	return { selected, select, all, options: started };
 }

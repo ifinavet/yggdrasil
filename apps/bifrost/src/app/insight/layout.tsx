@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import NotFound from "../not-found";
 
 export const metadata: Metadata = {
-	title: "Engasjement",
+	title: "Innsikt",
 };
 
 export default function EngagementLayout({

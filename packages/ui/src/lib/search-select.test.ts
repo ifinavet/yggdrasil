@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { createLatestGate, filterSearchItems, type SearchSelectItem } from "./search-select";
+import {
+	creatableName,
+	createLatestGate,
+	filterSearchItems,
+	type SearchSelectItem,
+} from "./search-select";
 
 const items: SearchSelectItem[] = [
 	{ id: "1", label: "Ola Nordmann", description: "ola@uio.no" },
@@ -61,5 +66,23 @@ describe("createLatestGate", () => {
 		const a = createLatestGate()();
 		createLatestGate()();
 		expect(a()).toBe(true);
+	});
+});
+
+describe("creatableName", () => {
+	const foods: SearchSelectItem[] = [
+		{ id: "1", label: "🍕 Pizza" },
+		{ id: "2", label: "🥪 Bánh mì" },
+	];
+
+	it.each([
+		["  Middag   fra kantina ", "Middag fra kantina"],
+		["Pizzasnurrer", "Pizzasnurrer"],
+	])("offers %j as %j", (query, name) => {
+		expect(creatableName(foods, query)).toBe(name);
+	});
+
+	it.each(["", "   ", "🍕", "pizza", "BANH MI", "Bánh-mì"])("does not offer %j", (query) => {
+		expect(creatableName(foods, query)).toBeNull();
 	});
 });

@@ -139,7 +139,6 @@ export async function ensureDraftEvent(
 			registrationOpens: eventStart,
 			participationLimit: application.maxStudents,
 			location: PLACEHOLDER,
-			food: PLACEHOLDER,
 			language: "Norsk",
 			ageRestriction: PLACEHOLDER,
 			externalEvent: false,

@@ -251,9 +251,11 @@ export const getEvent = query({
 		if (!company) throw new ConvexError("Fant ikke bedriften som er vert for arrangementet.");
 
 		const organizers = await getOrganizers(ctx, event._id);
+		const foodItem = event.foodItem ? await ctx.db.get(event.foodItem) : null;
 
 		return {
 			...event,
+			foodName: foodItem?.name ?? null,
 			hostingCompanyName: company?.name ?? "Ukjent",
 			organizers,
 		};

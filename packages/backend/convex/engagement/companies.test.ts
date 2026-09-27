@@ -4,6 +4,7 @@ import {
 	DAY_IN_MS,
 	grantRole,
 	insertEvent,
+	insertFoodItem,
 	insertRegistration,
 	insertStudent,
 	insertUser,
@@ -112,6 +113,39 @@ describe("list", () => {
 				attendance: 0.5,
 				latePerEvent: 1,
 			},
+		]);
+	});
+});
+
+describe("foods", () => {
+	it("lists each event's food name, registrations and seats", async () => {
+		const { t, held, intern } = await twoCompanies();
+		const pizza = await insertFoodItem(t, "pizza");
+		const burritos = await insertFoodItem(t, "burritos");
+		await t.run(async (ctx) => {
+			await ctx.db.patch(held, { foodItem: pizza });
+			const popular = await ctx.db
+				.query("events")
+				.filter((q) => q.eq(q.field("participationLimit"), 1))
+				.first();
+			await ctx.db.patch((popular as Doc<"events">)._id, { foodItem: burritos });
+		});
+
+		const foods = await intern.query(api.engagement.companies.foods, semester);
+
+		expect(
+			foods
+				.map(({ foodItem, name, registrations, seats }) => ({
+					foodItem,
+					name,
+					registrations,
+					seats,
+				}))
+				.sort((a, b) => b.registrations - a.registrations || a.seats - b.seats),
+		).toEqual([
+			{ foodItem: burritos, name: "🌯 Burritos", registrations: 2, seats: 1 },
+			{ foodItem: pizza, name: "🍕 Pizza", registrations: 2, seats: 10 },
+			{ foodItem: null, name: null, registrations: 0, seats: 10 },
 		]);
 	});
 });

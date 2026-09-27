@@ -1,3 +1,4 @@
+import type { Id } from "@workspace/backend/convex/dataModel";
 import { DATE_PATTERNS, formatOsloDate } from "@workspace/shared/time";
 import { describe, expect, it } from "vitest";
 import {
@@ -11,8 +12,13 @@ import {
 	defaultSelection,
 	type EngagementAlert,
 	type EngagementStatus,
+	type FoodEvent,
 	fillShare,
 	followUpNote,
+	foodBreakdown,
+	foodDemandBars,
+	foodDistribution,
+	foodOpportunities,
 	formatDelta,
 	formatHours,
 	formatMetric,
@@ -76,6 +82,97 @@ describe("fillShare", () => {
 		expect(fillShare(30, 60)).toBe(50);
 		expect(fillShare(90, 60)).toBe(100);
 		expect(fillShare(5, 0)).toBe(0);
+	});
+});
+
+describe("food charts", () => {
+	const event = (
+		id: string,
+		food: [string, string] | null,
+		registrations: number,
+		seats: number,
+	): FoodEvent => ({
+		_id: id as Id<"events">,
+		title: `Arrangement ${id}`,
+		foodItem: food ? (food[0] as Id<"foodItems">) : null,
+		name: food?.[1] ?? null,
+		registrations,
+		seats,
+	});
+	const pizza: [string, string] = ["pizza", "🍕 Pizza"];
+	const taco: [string, string] = ["taco", "🌮 Taco"];
+	const burritos: [string, string] = ["burritos", "🌯 Burritos"];
+	const sushi: [string, string] = ["sushi", "🍣 Sushi"];
+	const breakdown = foodBreakdown([
+		event("a", pizza, 30, 20),
+		event("b", taco, 5, 10),
+		event("c", null, 0, 10),
+		event("d", pizza, 10, 20),
+		event("e", burritos, 20, 10),
+	]);
+
+	it("pools demand per food across events and sorts by count, then name, unset last", () => {
+		expect(breakdown.demand).toBeCloseTo(65 / 70);
+		expect(breakdown.foods).toEqual([
+			{ name: "🍕 Pizza", events: 2, demand: 1 },
+			{ name: "🌯 Burritos", events: 1, demand: 2 },
+			{ name: "🌮 Taco", events: 1, demand: 0.5 },
+			{ name: "Ikke satt", events: 1, demand: 0 },
+		]);
+	});
+
+	it("shows each food's share of the events", () => {
+		expect(
+			foodDistribution(breakdown).map(({ name, events, label }) => [name, events, nbsp(label)]),
+		).toEqual([
+			["🍕 Pizza", 2, "2 (40 %)"],
+			["🌯 Burritos", 1, "1 (20 %)"],
+			["🌮 Taco", 1, "1 (20 %)"],
+			["Ikke satt", 1, "1 (20 %)"],
+		]);
+	});
+
+	it("ranks foods by demand", () => {
+		expect(foodDemandBars(breakdown).map(({ name, label }) => [name, nbsp(label)])).toEqual([
+			["🌯 Burritos", "200 %"],
+			["🍕 Pizza", "100 %"],
+			["🌮 Taco", "50 %"],
+			["Ikke satt", "0 %"],
+		]);
+	});
+
+	it("leaves out unset foods and foods served at fewer than three events", () => {
+		const serve = (id: string, food: [string, string] | null, count: number, demand: number) =>
+			Array.from({ length: count }, (_, index) => event(`${id}${index}`, food, demand, 10));
+		const opportunities = foodOpportunities(
+			foodBreakdown([
+				...serve("p", pizza, 3, 10),
+				...serve("n", null, 3, 10),
+				event("t", taco, 5, 10),
+			]),
+		);
+		expect(opportunities.map(({ name, events }) => [name, events])).toEqual([["🍕 Pizza", 3]]);
+	});
+
+	it("puts a label on the left when a close neighbour to the right would overlap it", () => {
+		const serve = (id: string, food: [string, string], count: number, demand: number) =>
+			Array.from({ length: count }, (_, index) => event(`${id}${index}`, food, demand, 10));
+		const opportunities = foodOpportunities(
+			foodBreakdown([
+				...serve("s", sushi, 24, 8),
+				...serve("t", taco, 26, 8),
+				...serve("p", pizza, 100, 1),
+			]),
+		);
+		expect(opportunities.map(({ name, anchor }) => [name, anchor])).toEqual([
+			["🌮 Taco", "start"],
+			["🍣 Sushi", "end"],
+			["🍕 Pizza", "start"],
+		]);
+	});
+
+	it("has no demand without seats", () => {
+		expect(foodBreakdown([]).demand).toBeNull();
 	});
 });
 
