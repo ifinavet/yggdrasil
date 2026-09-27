@@ -192,7 +192,7 @@ export const cancelOnboarding = mutation({
 			lastError: undefined,
 			updatedAt: Date.now(),
 		});
-		if (account.google === "created") {
+		if (account.google === "created" || account.googleReactivated) {
 			await runJob(ctx, "offboard", accountId);
 		}
 	},

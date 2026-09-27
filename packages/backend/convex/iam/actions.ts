@@ -102,11 +102,17 @@ function googleKey(account: Account) {
 	return account.googleUserId ?? account.workspaceEmail;
 }
 
-async function rememberGoogleUser(ctx: ActionCtx, account: Account, user: GoogleUser) {
+async function rememberGoogleUser(
+	ctx: ActionCtx,
+	account: Account,
+	user: GoogleUser,
+	reactivated?: true,
+) {
 	await ctx.runMutation(internal.iam.internal.recordGoogleUser, {
 		accountId: account._id,
 		googleUserId: user.id,
 		workspaceEmail: user.email,
+		reactivated,
 	});
 }
 
@@ -142,9 +148,10 @@ async function ensureGoogleAccount(ctx: ActionCtx, account: Account) {
 	const existing = await google.getUser(googleKey(account));
 	if (!existing)
 		throw new Error(`Google sier at ${account.workspaceEmail} finnes, men fant den ikke.`);
-	await rememberGoogleUser(ctx, account, existing);
 	const inUseBySamePerson =
 		existing.hasSignedIn && !existing.suspended && belongsToSamePerson(existing, account);
+	const reactivating = account.googleConfirmed && existing.suspended;
+	await rememberGoogleUser(ctx, account, existing, reactivating ? true : undefined);
 	if (inUseBySamePerson) return { state: "existing" as const, password: undefined };
 	if (!account.googleConfirmed) throw new UnconfirmedGoogleAccount(existing.name);
 	if (existing.hasSignedIn) {
@@ -165,7 +172,7 @@ export const provision = internalAction({
 		try {
 			const { state, password } = await ensureGoogleAccount(ctx, account);
 			const current = await loadAccount(ctx, accountId);
-			if (current?.stage === "cancelled" && state === "created") {
+			if (current?.stage === "cancelled" && (state === "created" || current.googleReactivated)) {
 				await runJob(ctx, "offboard", accountId);
 				return;
 			}
@@ -193,7 +200,8 @@ async function suspendGoogle(
 	account: Account,
 ): Promise<Doc<"memberAccounts">["google"]> {
 	if (account.google === "suspended" || account.google === "not_applicable") return account.google;
-	if (account.stage === "cancelled" && account.google !== "created") return account.google;
+	if (account.stage === "cancelled" && account.google !== "created" && !account.googleReactivated)
+		return account.google;
 	const config = googleConfig();
 	if (!config) return account.google;
 	if (!isWorkspaceEmail(account.workspaceEmail, config.domain)) return "not_applicable";

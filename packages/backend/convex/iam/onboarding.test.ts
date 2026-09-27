@@ -559,4 +559,45 @@ describe("cancelling onboarding", () => {
 
 		expect(directories.google.get(newMember.workspaceEmail)?.suspended).toBe(false);
 	});
+
+	async function onboardWithSuspendedAccount() {
+		directories.google.set(newMember.workspaceEmail, {
+			name: "Kari Nordmann",
+			suspended: true,
+			signedIn: true,
+		});
+		const { accountId } = await onboard();
+		await asUser(t, admin).mutation(api.iam.mutations.confirmGoogleAccount, { accountId });
+		return accountId;
+	}
+
+	it("suspends a reactivated account again", async () => {
+		const accountId = await onboardWithSuspendedAccount();
+		await t.finishAllScheduledFunctions(vi.runAllTimers);
+		expect(directories.google.get(newMember.workspaceEmail)?.suspended).toBe(false);
+
+		await asUser(t, admin).mutation(api.iam.mutations.cancelOnboarding, { accountId });
+		await t.finishAllScheduledFunctions(vi.runAllTimers);
+
+		expect(directories.google.get(newMember.workspaceEmail)?.suspended).toBe(true);
+		expect(await account(accountId)).toMatchObject({ stage: "cancelled", google: "suspended" });
+	});
+
+	it("suspends a reactivated account again when cancelled while it was being reactivated", async () => {
+		const accountId = await onboardWithSuspendedAccount();
+		const directoryFetch = globalThis.fetch;
+		vi.stubGlobal("fetch", async (input: string | URL | Request, init: RequestInit = {}) => {
+			const response = await directoryFetch(input, init);
+			if (init.method === "PATCH" && String(init.body).includes('"suspended":false')) {
+				await asUser(t, admin).mutation(api.iam.mutations.cancelOnboarding, { accountId });
+			}
+			return response;
+		});
+
+		await t.finishAllScheduledFunctions(vi.runAllTimers);
+
+		expect(directories.google.get(newMember.workspaceEmail)?.suspended).toBe(true);
+		expect(await account(accountId)).toMatchObject({ stage: "cancelled", google: "suspended" });
+		expect(emails).not.toHaveBeenCalled();
+	});
 });

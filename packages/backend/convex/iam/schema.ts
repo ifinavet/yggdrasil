@@ -39,6 +39,7 @@ export const iamSchema = {
 		googleUserId: v.optional(v.string()),
 		googleOwner: v.optional(v.string()),
 		googleConfirmed: v.optional(v.boolean()),
+		googleReactivated: v.optional(v.boolean()),
 		welcomeSentAt: v.optional(v.number()),
 		slackUserId: v.optional(v.string()),
 		slackDeactivatedAt: v.optional(v.number()),

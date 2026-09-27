@@ -66,12 +66,26 @@ export const recordFailure = internalMutation({
 });
 
 export const recordGoogleUser = internalMutation({
-	args: { accountId: v.id("memberAccounts"), googleUserId: v.string(), workspaceEmail: v.string() },
-	handler: async (ctx, { accountId, googleUserId, workspaceEmail }) => {
+	args: {
+		accountId: v.id("memberAccounts"),
+		googleUserId: v.string(),
+		workspaceEmail: v.string(),
+		reactivated: v.optional(v.literal(true)),
+	},
+	handler: async (ctx, { accountId, googleUserId, workspaceEmail, reactivated }) => {
 		const account = await ctx.db.get(accountId);
 		if (!account) return;
-		if (account.googleUserId === googleUserId && account.workspaceEmail === workspaceEmail) return;
-		await ctx.db.patch(accountId, { googleUserId, workspaceEmail, updatedAt: Date.now() });
+		const unchanged =
+			account.googleUserId === googleUserId &&
+			account.workspaceEmail === workspaceEmail &&
+			(!reactivated || account.googleReactivated);
+		if (unchanged) return;
+		await ctx.db.patch(accountId, {
+			googleUserId,
+			workspaceEmail,
+			updatedAt: Date.now(),
+			...(reactivated && { googleReactivated: true }),
+		});
 	},
 });
 

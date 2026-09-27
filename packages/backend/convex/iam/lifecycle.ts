@@ -6,13 +6,15 @@ import { assignAccessRole, getAssignedAccessRole } from "../auth/accessRights";
 import { accountForEmail, accountForUser } from "./accounts";
 import { runJob } from "./jobs";
 
+const MAX_USERS_PER_EMAIL = 10;
+
 export async function usersWithEmail(ctx: QueryCtx, emails: readonly string[]) {
 	const users = await Promise.all(
 		emails.map((email) =>
 			ctx.db
 				.query("users")
 				.withIndex("by_email", (q) => q.eq("email", normalizeEmail(email)))
-				.collect(),
+				.take(MAX_USERS_PER_EMAIL),
 		),
 	);
 	return users.flat();
