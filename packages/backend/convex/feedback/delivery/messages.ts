@@ -72,7 +72,7 @@ export const prepareEmail = internalQuery({
 	args: { ...deliveryArgs, now: v.number() },
 	handler: async (ctx, { inviteId, generation, round, now }) => {
 		const context = await deliveryContext(ctx, inviteId, generation, round, now);
-		return context ? feedbackEmailContext(ctx, context.event) : null;
+		return context ? feedbackEmailContext(ctx, context.event, context.user) : null;
 	},
 });
 

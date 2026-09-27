@@ -131,7 +131,10 @@ describe("feedback test send", () => {
 		);
 		expect(sent.map(({ to, subject }) => ({ to, subject }))).toEqual([
 			{ to: "Admin@IFINAVET.no", subject: "Tilbakemelding: Bedpres med Testbedrift" },
-			{ to: "Admin@IFINAVET.no", subject: "1. påminnelse: Bedpres med Testbedrift" },
+			{
+				to: "Admin@IFINAVET.no",
+				subject: "Test, vi mangler tilbakemeldingen din: Bedpres med Testbedrift",
+			},
 			{ to: "Admin@IFINAVET.no", subject: "Rapport fra Bedpres med Testbedrift" },
 		]);
 		for (const email of sent) {

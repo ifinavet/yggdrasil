@@ -1,5 +1,7 @@
 import { feedbackFieldsSchema, feedbackTokenSchema } from "@workspace/shared/feedback";
+import type { Doc } from "../../_generated/dataModel";
 import type { QueryCtx } from "../../_generated/server";
+import { getCurrentUser } from "../../auth/currentUser";
 import { hashLinkToken } from "../../lib/tokens";
 
 /** Shared by the read-only resolver and the atomic submission mutation. */
@@ -11,7 +13,25 @@ export async function getFeedbackTokenAccess(ctx: QueryCtx, token: string, now: 
 		.withIndex("by_tokenHash", (index) => index.eq("tokenHash", tokenHash))
 		.unique();
 	if (!storedToken) return { status: "invalid" } as const;
-	const invite = await ctx.db.get(storedToken.inviteId);
+	return getFeedbackInviteAccess(ctx, await ctx.db.get(storedToken.inviteId), now);
+}
+
+/** The signed-in path: the invite id is only a pointer, ownership is the credential. */
+export async function getOwnFeedbackInviteAccess(ctx: QueryCtx, inviteId: string, now: number) {
+	const id = ctx.db.normalizeId("feedbackInvites", inviteId);
+	const user = await getCurrentUser(ctx);
+	const invite = id && (await ctx.db.get(id));
+	if (!user || !invite || invite.userId !== user._id) return { status: "invalid" } as const;
+	return getFeedbackInviteAccess(ctx, invite, now);
+}
+
+export type FeedbackAccess = Awaited<ReturnType<typeof getFeedbackInviteAccess>>;
+
+export async function getFeedbackInviteAccess(
+	ctx: QueryCtx,
+	invite: Doc<"feedbackInvites"> | null,
+	now: number,
+) {
 	if (!invite || invite.retainedAt !== undefined || !invite.userId)
 		return { status: "invalid" } as const;
 	const campaign = await ctx.db.get(invite.campaignId);
@@ -55,7 +75,17 @@ export async function getFeedbackTokenForm(
 	ctx: QueryCtx,
 	{ token, now }: { token: string; now: number },
 ) {
-	const access = await getFeedbackTokenAccess(ctx, token, now);
+	return feedbackForm(await getFeedbackTokenAccess(ctx, token, now));
+}
+
+export async function getOwnFeedbackInviteForm(
+	ctx: QueryCtx,
+	{ inviteId, now }: { inviteId: string; now: number },
+) {
+	return feedbackForm(await getOwnFeedbackInviteAccess(ctx, inviteId, now));
+}
+
+function feedbackForm(access: FeedbackAccess) {
 	if (access.status !== "open") return access;
 	return {
 		status: "open" as const,

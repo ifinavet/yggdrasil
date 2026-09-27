@@ -25,19 +25,28 @@ function linkWithTokenOutsideHttpRequests(origin: URL, path: string) {
 	return { token, url: url.toString() };
 }
 
+function feedbackSubjectPrefix(round: FeedbackRound, firstName: string) {
+	const rounds = deliveryArgs.round.members;
+	const index = rounds.findIndex(({ value }) => value === round);
+	if (index === 0) return "Tilbakemelding";
+	if (index === rounds.length - 1)
+		return firstName ? `Siste påminnelse, ${firstName}` : "Siste påminnelse";
+	return firstName
+		? `${firstName}, vi mangler tilbakemeldingen din`
+		: "Vi mangler tilbakemeldingen din";
+}
+
 export async function feedbackEmailContent(
-	{ title, companyName, signature }: FeedbackEmailContext,
+	{ title, firstName, companyName, signature }: FeedbackEmailContext,
 	round: FeedbackRound,
 ) {
 	const { token, url } = linkWithTokenOutsideHttpRequests(huginOrigin(), "/feedback");
-	const reminderNumber = deliveryArgs.round.members.findIndex(({ value }) => value === round);
-	const reminder = reminderNumber > 0;
-	const subjectPrefix = reminder ? `${reminderNumber}. påminnelse` : "Tilbakemelding";
+	const reminder = round !== deliveryArgs.round.members[0].value;
 	return {
 		token,
 		url,
-		subject: `${subjectPrefix}: ${title}`,
-		html: await render(FeedbackEmail({ companyName, signature, url, reminder })),
+		subject: `${feedbackSubjectPrefix(round, firstName)}: ${title}`,
+		html: await render(FeedbackEmail({ firstName, companyName, signature, url, reminder })),
 	};
 }
 

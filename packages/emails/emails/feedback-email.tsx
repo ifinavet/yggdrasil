@@ -16,11 +16,13 @@ import { NAVET_LOGO_URL } from "../constants.js";
 const CONTACT_URL = `${MIDGARD_URL}/contact`;
 
 export default function FeedbackEmail({
+	firstName,
 	companyName,
 	signature,
 	url,
 	reminder,
 }: Readonly<{
+	firstName: string;
 	companyName: string;
 	signature: { name: string; email: string };
 	url: string;
@@ -41,12 +43,20 @@ export default function FeedbackEmail({
 			>
 				<Container style={{ backgroundColor: "#ffffff", padding: "32px", maxWidth: "560px" }}>
 					<Img src={NAVET_LOGO_URL} alt="Navet" height="40" />
-					<Text>Hei,</Text>
-					<Text>{`Takk for deltakelse på bedriftspresentasjonen med ${companyName}!`}</Text>
-					<Text>
-						For å forbedre bedriftspresentasjonene må du fylle ut et obligatorisk
-						tilbakemeldingsskjema
-					</Text>
+					<Text>{firstName ? `Hei ${firstName},` : "Hei,"}</Text>
+					{reminder ? (
+						<Text>
+							{`Vi ser at du ikke har svart på tilbakemeldingsskjemaet for bedriftspresentasjonen med ${companyName} ennå. Skjemaet er obligatorisk for alle som deltar på bedriftspresentasjoner.`}
+						</Text>
+					) : (
+						<>
+							<Text>{`Takk for deltakelse på bedriftspresentasjonen med ${companyName}!`}</Text>
+							<Text>
+								For å forbedre bedriftspresentasjonene må du fylle ut et obligatorisk
+								tilbakemeldingsskjema
+							</Text>
+						</>
+					)}
 					<Button
 						href={url}
 						style={{
