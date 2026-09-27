@@ -182,10 +182,9 @@ export async function insertOrganizer(
 	t: TestBackend,
 	eventId: Id<"events">,
 	userId: Id<"users">,
+	role: Doc<"eventOrganizers">["role"] = "hovedansvarlig",
 ): Promise<Id<"eventOrganizers">> {
-	return t.run((ctx) =>
-		ctx.db.insert("eventOrganizers", { eventId, userId, role: "hovedansvarlig" as const }),
-	);
+	return t.run((ctx) => ctx.db.insert("eventOrganizers", { eventId, userId, role }));
 }
 
 export async function setupEventWithOneOfEachStatus(overrides: EventOverrides = {}) {
