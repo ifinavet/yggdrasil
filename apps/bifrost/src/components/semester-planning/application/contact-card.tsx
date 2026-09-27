@@ -49,6 +49,7 @@ export function BillingCard({ application }: Readonly<{ application: Application
 			</span>,
 		]);
 	}
+	if (billing.ehfInvoice) items.push(["EHF-faktura", "Ja"]);
 
 	return (
 		<CardSection title="Faktura">

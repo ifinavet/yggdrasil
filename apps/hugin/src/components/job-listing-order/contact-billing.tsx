@@ -120,6 +120,18 @@ export function BillingFieldset({
 					</div>
 				</>
 			)}
+			<form.Field name="ehfInvoice">
+				{(field) => (
+					<div className="flex items-center gap-3">
+						<Checkbox
+							id="order-ehf-invoice"
+							checked={field.state.value}
+							onCheckedChange={(checked) => field.handleChange(checked === true)}
+						/>
+						<FieldLabel htmlFor="order-ehf-invoice">{billingCopy.ehfInvoice}</FieldLabel>
+					</div>
+				)}
+			</form.Field>
 		</OrderSection>
 	);
 }

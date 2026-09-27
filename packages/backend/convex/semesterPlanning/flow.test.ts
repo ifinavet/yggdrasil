@@ -61,7 +61,7 @@ describe("the whole journey", () => {
 				wantsToUseEscape: "no",
 				foodAndDrinks: true,
 				foodPurchasedBy: "company",
-				billing: { email: "faktura@fjordkode.no" },
+				billing: { email: "faktura@fjordkode.no", ehfInvoice: false },
 				targetDegrees: [],
 				targetStudyPrograms: [],
 				consent: true,

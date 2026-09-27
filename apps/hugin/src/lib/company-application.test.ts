@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
 	type ApplicationDraft,
 	answeredCount,
+	applicationDraftSchema,
 	applicationSubmissionSchema,
 	draftErrors,
 	emptyDraft,
@@ -34,7 +35,7 @@ function completeDraft(overrides: Partial<ApplicationDraft> = {}): ApplicationDr
 		foodAndDrinks: true,
 		foodPurchasedBy: "company",
 		wantsToUseEscape: "unsure",
-		billing: { email: " faktura@fjordkode.no ", details: " PO-2027-014 " },
+		billing: { email: " faktura@fjordkode.no ", details: " PO-2027-014 ", ehfInvoice: true },
 		consent: true,
 		...overrides,
 	};
@@ -54,7 +55,11 @@ describe("company application draft", () => {
 		const form = applicationSubmissionSchema.parse(completeDraft());
 		expect(form.orgNumber).toBe("924773189");
 		expect(form.minStudents).toBe(25);
-		expect(form.billing).toEqual({ email: "faktura@fjordkode.no", details: "PO-2027-014" });
+		expect(form.billing).toEqual({
+			email: "faktura@fjordkode.no",
+			details: "PO-2027-014",
+			ehfInvoice: true,
+		});
 		expect(answeredCount({})).toBe(REQUIRED_QUESTIONS.length);
 	});
 
@@ -115,24 +120,37 @@ describe("company application draft", () => {
 
 describe("company application billing", () => {
 	it("needs an invoice email or other invoice details", () => {
-		const errors = draftErrors(completeDraft({ billing: { email: " ", details: "" } }));
+		const errors = draftErrors(
+			completeDraft({ billing: { email: " ", details: "", ehfInvoice: false } }),
+		);
 		expect(errors.billing).toBe(
 			"Skriv en e-post for faktura, eller hvordan dere vil ha fakturaen.",
 		);
 	});
 
 	it("accepts only an email, or only other details", () => {
-		const emailOnly = completeDraft({ billing: { email: "faktura@fjordkode.no", details: "" } });
+		const emailOnly = completeDraft({
+			billing: { email: "faktura@fjordkode.no", details: "", ehfInvoice: false },
+		});
 		expect(draftErrors(emailOnly)).toEqual({});
 		expect(applicationSubmissionSchema.parse(emailOnly).billing.details).toBeUndefined();
 
-		const detailsOnly = completeDraft({ billing: { email: "", details: "EHF 924773189" } });
+		const detailsOnly = completeDraft({
+			billing: { email: "", details: "EHF 924773189", ehfInvoice: false },
+		});
 		expect(draftErrors(detailsOnly)).toEqual({});
 		expect(applicationSubmissionSchema.parse(detailsOnly).billing.email).toBeUndefined();
 	});
 
+	it("keeps EHF off for a stored draft saved before the checkbox existed", () => {
+		const draft = applicationDraftSchema.parse({ billing: { email: "a@b.no", details: "" } });
+		expect(draft.billing.ehfInvoice).toBe(false);
+	});
+
 	it("reports an invalid invoice email under the billing question", () => {
-		const errors = draftErrors(completeDraft({ billing: { email: "faktura", details: "" } }));
+		const errors = draftErrors(
+			completeDraft({ billing: { email: "faktura", details: "", ehfInvoice: false } }),
+		);
 		expect(errors.billing).toBe("Skriv en gyldig e-postadresse for faktura.");
 	});
 
@@ -142,6 +160,10 @@ describe("company application billing", () => {
 			"PO-1",
 		]);
 		expect(billingLines({ details: "PO-1" })).toEqual(["PO-1"]);
+		expect(billingLines({ details: "PO-1", ehfInvoice: true })).toEqual([
+			"PO-1",
+			"Faktura som EHF",
+		]);
 	});
 });
 

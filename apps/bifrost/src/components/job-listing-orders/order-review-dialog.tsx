@@ -107,6 +107,7 @@ function OrderReview({
 						.join(", ")}
 				</Detail>
 				{billing && <Detail label="Faktura">{formatBilling(billing)}</Detail>}
+				{order.ehfInvoice && <Detail label="EHF-faktura">Ja</Detail>}
 				{order.company && order.isNewCompany && (
 					<Detail label="Organisasjonsnummer">
 						{[order.company.orgNumber, order.company.registryName].filter(Boolean).join(", ")}
