@@ -32,6 +32,8 @@ export const iamSchema = {
 		group: v.string(),
 		stage: accountStages,
 		google: googleStates,
+		googleOwner: v.optional(v.string()),
+		googleConfirmed: v.optional(v.boolean()),
 		welcomeSentAt: v.optional(v.number()),
 		slackUserId: v.optional(v.string()),
 		slackChannelsRemoved: v.optional(v.number()),

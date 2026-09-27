@@ -46,6 +46,7 @@ const TONE_CLASSES: Record<AccessTone, string> = {
 
 const ACTION_LABELS: Record<AccessAction, string> = {
 	retry: "Prøv igjen",
+	confirmGoogle: "Bruk eksisterende konto",
 	cancel: "Avbryt",
 	slackDeactivated: "Slack er deaktivert",
 };
@@ -100,9 +101,11 @@ function AccountRow({ account }: Readonly<{ account: AccessAccount }>) {
 	const retry = useMutation(api.iam.mutations.retry);
 	const cancel = useMutation(api.iam.mutations.cancelOnboarding);
 	const markSlackDeactivated = useMutation(api.iam.mutations.markSlackDeactivated);
+	const confirmGoogle = useMutation(api.iam.mutations.confirmGoogleAccount);
 	const run: Record<AccessAction, (args: { accountId: Id<"memberAccounts"> }) => Promise<unknown>> =
 		{
 			retry,
+			confirmGoogle,
 			cancel,
 			slackDeactivated: markSlackDeactivated,
 		};

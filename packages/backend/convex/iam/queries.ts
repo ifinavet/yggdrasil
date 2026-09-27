@@ -41,6 +41,7 @@ export const overview = query({
 			slackLinked: account.slackUserId !== undefined,
 			slackChannelsRemoved: account.slackChannelsRemoved,
 			lastError: account.lastError,
+			googleOwner: account.googleOwner,
 			updatedAt: account.updatedAt,
 		}));
 

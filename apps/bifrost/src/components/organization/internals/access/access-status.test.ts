@@ -21,6 +21,7 @@ function account(overrides: Partial<AccessAccount>): AccessAccount {
 		slackLinked: false,
 		slackChannelsRemoved: undefined,
 		lastError: undefined,
+		googleOwner: undefined,
 		updatedAt: 0,
 		...overrides,
 	};
@@ -52,6 +53,12 @@ describe("accountStatus", () => {
 		expect(
 			accountStatus(account({ stage: "cancelled", lastError: "Google er nede." })).actions,
 		).toEqual(["retry"]);
+	});
+
+	it("asks for confirmation instead of retry when the Google address is already taken", () => {
+		expect(
+			accountStatus(account({ lastError: "Finnes allerede.", googleOwner: "Kari Hansen" })).actions,
+		).toEqual(["confirmGoogle", "cancel"]);
 	});
 
 	it("follows onboarding from account creation to the first sign-in", () => {

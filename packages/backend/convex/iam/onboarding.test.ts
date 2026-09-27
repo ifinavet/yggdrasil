@@ -132,7 +132,28 @@ describe("starting onboarding", () => {
 		expect((await account(accountId))?.lastError).toBeUndefined();
 	});
 
-	it("reuses an existing Google account that belongs to the same person without sending a password", async () => {
+	async function confirm(accountId: Id<"memberAccounts">) {
+		await asUser(t, admin).mutation(api.iam.mutations.confirmGoogleAccount, { accountId });
+		await t.finishAllScheduledFunctions(vi.runAllTimers);
+	}
+
+	it("reuses an active Google account that belongs to the same person without touching it", async () => {
+		directories.google.set(newMember.workspaceEmail, {
+			name: "Kari Nordmann",
+			suspended: false,
+			password: "hennes-eget",
+			signedIn: true,
+		});
+
+		const { accountId } = await onboard();
+
+		expect(directories.google.get(newMember.workspaceEmail)?.password).toBe("hennes-eget");
+		expect(sentEmail().html).toContain("det samme som før");
+		expect(await account(accountId)).toMatchObject({ google: "existing" });
+		expect((await account(accountId))?.lastError).toBeUndefined();
+	});
+
+	it("waits for an admin before reopening a suspended account, even with the same name", async () => {
 		directories.google.set(newMember.workspaceEmail, {
 			name: "Kari Nordmann",
 			suspended: true,
@@ -142,16 +163,23 @@ describe("starting onboarding", () => {
 
 		const { accountId } = await onboard();
 
+		expect(directories.google.get(newMember.workspaceEmail)?.suspended).toBe(true);
+		expect(emails).not.toHaveBeenCalled();
+		expect(await account(accountId)).toMatchObject({ googleOwner: "Kari Nordmann" });
+
+		await confirm(accountId);
+
 		expect(directories.google.get(newMember.workspaceEmail)).toMatchObject({
 			suspended: false,
 			password: "hennes-eget",
 		});
 		expect(sentEmail().html).toContain("det samme som før");
 		expect(await account(accountId)).toMatchObject({ google: "existing" });
+		expect((await account(accountId))?.googleOwner).toBeUndefined();
 		expect((await account(accountId))?.lastError).toBeUndefined();
 	});
 
-	it("sends a fresh password for an account someone made outside Bifrost that was never used", async () => {
+	it("only resets the password of a never used account after an admin confirms it", async () => {
 		directories.google.set(newMember.workspaceEmail, {
 			name: "Kari Nordmann",
 			suspended: false,
@@ -159,6 +187,10 @@ describe("starting onboarding", () => {
 		});
 
 		const { accountId } = await onboard();
+		expect(directories.google.get(newMember.workspaceEmail)?.password).toBe("ukjent");
+		expect(emails).not.toHaveBeenCalled();
+
+		await confirm(accountId);
 
 		const password = directories.google.get(newMember.workspaceEmail)?.password;
 		expect(password).not.toBe("ukjent");
@@ -166,7 +198,7 @@ describe("starting onboarding", () => {
 		expect(await account(accountId)).toMatchObject({ google: "existing" });
 	});
 
-	it("never reopens a suspended account that belongs to someone else", async () => {
+	it("never reopens a suspended account that belongs to someone else on its own", async () => {
 		directories.google.set(newMember.workspaceEmail, {
 			name: "Kari Hansen",
 			suspended: true,
@@ -177,7 +209,17 @@ describe("starting onboarding", () => {
 
 		expect(directories.google.get(newMember.workspaceEmail)?.suspended).toBe(true);
 		expect(emails).not.toHaveBeenCalled();
-		expect((await account(accountId))?.lastError).toContain("brukes allerede av Kari Hansen");
+		expect(await account(accountId)).toMatchObject({ googleOwner: "Kari Hansen" });
+	});
+
+	it("refuses to confirm when there is no existing Google account to confirm", async () => {
+		const { accountId } = await onboard();
+
+		expect(
+			await refusalMessageFrom(
+				asUser(t, admin).mutation(api.iam.mutations.confirmGoogleAccount, { accountId }),
+			),
+		).toBe("Det er ingen eksisterende Google-konto å bekrefte.");
 	});
 
 	it("refuses a retry while the first attempt is still running", async () => {
@@ -199,7 +241,7 @@ describe("starting onboarding", () => {
 
 		expect(emails).not.toHaveBeenCalled();
 		expect((await account(accountId))?.lastError).toBe(
-			"kari.nordmann@ifinavet.no brukes allerede av Kari Hansen. Avbryt og legg til personen på nytt med en annen adresse.",
+			"kari.nordmann@ifinavet.no finnes allerede i Google Workspace med navnet Kari Hansen. Bruk den bare hvis den tilhører Kari Nordmann.",
 		);
 	});
 

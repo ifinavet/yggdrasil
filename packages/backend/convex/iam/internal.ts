@@ -56,9 +56,13 @@ export const recordOffboarded = internalMutation({
 });
 
 export const recordFailure = internalMutation({
-	args: { accountId: v.id("memberAccounts"), message: v.string() },
-	handler: async (ctx, { accountId, message }) => {
-		await ctx.db.patch(accountId, { lastError: message, updatedAt: Date.now() });
+	args: {
+		accountId: v.id("memberAccounts"),
+		message: v.string(),
+		googleOwner: v.optional(v.string()),
+	},
+	handler: async (ctx, { accountId, message, googleOwner }) => {
+		await ctx.db.patch(accountId, { lastError: message, googleOwner, updatedAt: Date.now() });
 	},
 });
 

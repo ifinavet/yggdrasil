@@ -6,7 +6,7 @@ export type AccessOverview = FunctionReturnType<typeof api.iam.queries.overview>
 export type AccessAccount = AccessOverview["accounts"][number];
 export type AccessDrift = AccessOverview["drift"][number];
 
-export type AccessAction = "retry" | "cancel" | "slackDeactivated";
+export type AccessAction = "retry" | "confirmGoogle" | "cancel" | "slackDeactivated";
 export type AccessTone = "working" | "waiting" | "failed" | "todo";
 
 export type AccessStatus = Readonly<{
@@ -18,10 +18,11 @@ export type AccessStatus = Readonly<{
 export function accountStatus(account: AccessAccount): AccessStatus {
 	const canCancel = account.stage === "onboarding";
 	if (account.lastError) {
+		const next: AccessAction = account.googleOwner === undefined ? "retry" : "confirmGoogle";
 		return {
 			tone: "failed",
 			text: account.lastError,
-			actions: canCancel ? ["retry", "cancel"] : ["retry"],
+			actions: canCancel ? [next, "cancel"] : [next],
 		};
 	}
 	switch (account.stage) {

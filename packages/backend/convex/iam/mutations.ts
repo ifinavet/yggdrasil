@@ -96,6 +96,24 @@ export const retry = mutation({
 	},
 });
 
+export const confirmGoogleAccount = mutation({
+	args: { accountId: v.id("memberAccounts") },
+	handler: async (ctx, { accountId }) => {
+		await requireRole(ctx, adminRoles);
+		const account = await requireAccount(ctx, accountId);
+		if (account.stage !== "onboarding" || account.googleOwner === undefined) {
+			throw new ConvexError("Det er ingen eksisterende Google-konto å bekrefte.");
+		}
+		await ctx.db.patch(accountId, {
+			googleConfirmed: true,
+			googleOwner: undefined,
+			lastError: undefined,
+			updatedAt: Date.now(),
+		});
+		await ctx.scheduler.runAfter(0, internal.iam.actions.provision, { accountId });
+	},
+});
+
 export const cancelOnboarding = mutation({
 	args: { accountId: v.id("memberAccounts") },
 	handler: async (ctx, { accountId }) => {

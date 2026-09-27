@@ -28,6 +28,17 @@ export function temporaryPassword() {
 	).join("");
 }
 
+class UnconfirmedGoogleAccount extends Error {
+	constructor(readonly owner: string) {
+		super("unconfirmed");
+	}
+}
+
+function unconfirmedMessage(account: Account, owner: string) {
+	const holder = owner ? ` med navnet ${owner}` : "";
+	return `${account.workspaceEmail} finnes allerede i Google Workspace${holder}. Bruk den bare hvis den tilhører ${account.firstName} ${account.lastName}.`;
+}
+
 function describe(error: unknown) {
 	return error instanceof Error ? error.message : "Ukjent feil.";
 }
@@ -105,11 +116,10 @@ async function ensureGoogleAccount(ctx: ActionCtx, account: Account) {
 	const existing = await google.getUser(account.workspaceEmail);
 	if (!existing)
 		throw new Error(`Google sier at ${account.workspaceEmail} finnes, men fant den ikke.`);
-	if (!belongsToSamePerson(existing, account)) {
-		throw new Error(
-			`${account.workspaceEmail} brukes allerede av ${existing.name || "en annen person"}. Avbryt og legg til personen på nytt med en annen adresse.`,
-		);
-	}
+	const inUseBySamePerson =
+		existing.hasSignedIn && !existing.suspended && belongsToSamePerson(existing, account);
+	if (inUseBySamePerson) return { state: "existing" as const, password: undefined };
+	if (!account.googleConfirmed) throw new UnconfirmedGoogleAccount(existing.name);
 	if (existing.hasSignedIn) {
 		if (existing.suspended) await google.updateUser(account.workspaceEmail, { suspended: false });
 		return { state: "existing" as const, password: undefined };
@@ -141,9 +151,11 @@ export const provision = internalAction({
 				welcomeSent: true,
 			});
 		} catch (error) {
+			const unconfirmed = error instanceof UnconfirmedGoogleAccount;
 			await ctx.runMutation(internal.iam.internal.recordFailure, {
 				accountId,
-				message: describe(error),
+				message: unconfirmed ? unconfirmedMessage(account, error.owner) : describe(error),
+				googleOwner: unconfirmed ? error.owner : undefined,
 			});
 		}
 	},
