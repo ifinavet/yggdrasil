@@ -185,16 +185,13 @@ export const prepare = internalMutation({
 
 export const recordContact = internalMutation({
 	args: { invoiceId: v.id("invoices"), fikenContactId: v.number() },
-	returns: v.null(),
 	handler: async (ctx, { invoiceId, fikenContactId }) => {
 		await ctx.db.patch(invoiceId, { fikenContactId });
-		return null;
 	},
 });
 
 export const recordDraft = internalMutation({
 	args: { invoiceId: v.id("invoices"), fikenDraftId: v.number() },
-	returns: v.null(),
 	handler: async (ctx, { invoiceId, fikenDraftId }) => {
 		await ctx.db.patch(invoiceId, {
 			status: "draft_created",
@@ -202,26 +199,23 @@ export const recordDraft = internalMutation({
 			draftCreatedAt: Date.now(),
 			lastError: undefined,
 		});
-		return null;
 	},
 });
 
 export const recordFailure = internalMutation({
 	args: { invoiceId: v.id("invoices"), error: v.string(), retryable: v.boolean() },
-	returns: v.null(),
 	handler: async (ctx, { invoiceId, error, retryable }) => {
 		const invoice = await ctx.db.get(invoiceId);
-		if (!invoice) return null;
+		if (!invoice) return;
 		if (retryable && invoice.attempts < MAX_ATTEMPTS) {
 			await ctx.db.patch(invoiceId, {
 				status: "scheduled",
 				dueAt: Date.now() + invoice.attempts * HOUR_MS,
 				lastError: error,
 			});
-			return null;
+			return;
 		}
 		await ctx.db.patch(invoiceId, { status: "failed", lastError: error });
-		return null;
 	},
 });
 
@@ -240,12 +234,11 @@ async function resolveCustomer(
 
 export const createDraft = internalAction({
 	args: { invoiceId: v.id("invoices") },
-	returns: v.null(),
 	handler: async (ctx, { invoiceId }) => {
 		const plan: InvoicePlan | null = await ctx.runMutation(internal.invoicing.processing.prepare, {
 			invoiceId,
 		});
-		if (!plan) return null;
+		if (!plan) return;
 		try {
 			const config = fikenConfig();
 			const vatType = vatTypeFor(plan.line.vatRate);
@@ -274,6 +267,5 @@ export const createDraft = internalAction({
 				retryable: error instanceof FikenError && error.retryable,
 			});
 		}
-		return null;
 	},
 });
