@@ -14,5 +14,11 @@ export const usersSchema = {
 		.index("by_email", ["email"])
 		.searchIndex("search_email", {
 			searchField: "email",
+		})
+		.searchIndex("search_firstName", {
+			searchField: "firstName",
+		})
+		.searchIndex("search_lastName", {
+			searchField: "lastName",
 		}),
 };

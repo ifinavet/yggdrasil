@@ -1,10 +1,9 @@
 import { normalizeEmail } from "@workspace/shared/iam";
-import type { SlackConfig } from "./config";
+import { directoryUrl, type SlackConfig } from "./config";
 
 const API_URL = "https://slack.com/api";
 const TIMEOUT_MS = 15_000;
 const MAX_PAGES = 20;
-const SKIPPED_KICK_ERRORS = new Set(["cant_kick_from_general", "channel_not_found", "is_archived"]);
 
 export type SlackMember = Readonly<{
 	id: string;
@@ -31,7 +30,7 @@ export class SlackError extends Error {}
 
 export function slackClient(config: SlackConfig) {
 	async function call<T>(method: string, params: Record<string, string>) {
-		const response = await fetch(`${API_URL}/${method}`, {
+		const response = await fetch(directoryUrl(`${API_URL}/${method}`), {
 			method: "POST",
 			headers: {
 				Authorization: `Bearer ${config.botToken}`,
@@ -67,22 +66,6 @@ export function slackClient(config: SlackConfig) {
 			if (body.ok) return body.user?.id ?? null;
 			if (body.error === "users_not_found") return null;
 			throw new SlackError(`Slack avviste oppslaget: ${body.error}.`);
-		},
-
-		async channelsOf(userId: string): Promise<string[]> {
-			const channels = await paginate<{ channels?: { id: string }[] }>(
-				"users.conversations",
-				{ user: userId, types: "public_channel,private_channel", exclude_archived: "true" },
-				(body) => body.channels ?? [],
-			);
-			return (channels as { id: string }[]).map((channel) => channel.id);
-		},
-
-		async kick(channel: string, userId: string): Promise<"removed" | "skipped" | "failed"> {
-			const body = await call("conversations.kick", { channel, user: userId });
-			if (body.ok) return "removed";
-			if (body.error && SKIPPED_KICK_ERRORS.has(body.error)) return "skipped";
-			return "failed";
 		},
 
 		async listMembers(): Promise<SlackMember[]> {

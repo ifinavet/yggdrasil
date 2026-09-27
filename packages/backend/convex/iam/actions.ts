@@ -8,10 +8,18 @@ import { v } from "convex/values";
 import { components, internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { type ActionCtx, internalAction } from "../_generated/server";
-import { isLocalDevelopment } from "../auth/local";
-import { googleConfig, isWorkspaceEmail, slackConfig, slackInviteLink } from "./config";
+import {
+	directoriesDisabled,
+	googleConfig,
+	isWorkspaceEmail,
+	slackConfig,
+	slackInviteLink,
+	usesFakeDirectory,
+	workspaceDomain,
+} from "./config";
 import { computeDrift, type DriftKind } from "./drift";
 import { type GoogleUser, googleClient } from "./google";
+import { runJob } from "./jobs";
 import { type SlackMember, slackClient } from "./slack";
 
 export const iamResend: Resend = new Resend(components.resend, { testMode: false });
@@ -77,12 +85,28 @@ async function sendWelcome(ctx: ActionCtx, account: Account, password?: string) 
 			}),
 		),
 	);
+	if (usesFakeDirectory()) {
+		console.log(`Local welcome email to ${account.uioEmail}, ${html.length} characters`);
+		return;
+	}
 	await iamResend.sendEmail(ctx, {
 		from: "Navet <info@ifinavet.no>",
 		replyTo: account.inviterEmail ? [account.inviterEmail] : undefined,
 		to: account.uioEmail,
 		subject: "Velkommen til Navet",
 		html,
+	});
+}
+
+function googleKey(account: Account) {
+	return account.googleUserId ?? account.workspaceEmail;
+}
+
+async function rememberGoogleUser(ctx: ActionCtx, account: Account, user: GoogleUser) {
+	await ctx.runMutation(internal.iam.internal.recordGoogleUser, {
+		accountId: account._id,
+		googleUserId: user.id,
+		workspaceEmail: user.email,
 	});
 }
 
@@ -93,8 +117,9 @@ async function ensureGoogleAccount(ctx: ActionCtx, account: Account) {
 	const password = temporaryPassword();
 
 	if (account.google === "created") {
-		const found = await google.updateUser(account.workspaceEmail, { password, suspended: false });
+		const found = await google.updateUser(googleKey(account), { password, suspended: false });
 		if (!found) throw new Error("Kontoen vi opprettet finnes ikke lenger i Google Workspace.");
+		await rememberGoogleUser(ctx, account, found);
 		return { state: "created" as const, password };
 	}
 
@@ -104,7 +129,8 @@ async function ensureGoogleAccount(ctx: ActionCtx, account: Account) {
 		lastName: account.lastName,
 		password,
 	});
-	if (result === "created") {
+	if (result !== "exists") {
+		await rememberGoogleUser(ctx, account, result);
 		await ctx.runMutation(internal.iam.internal.recordProvisioned, {
 			accountId: account._id,
 			google: "created",
@@ -113,25 +139,26 @@ async function ensureGoogleAccount(ctx: ActionCtx, account: Account) {
 		return { state: "created" as const, password };
 	}
 
-	const existing = await google.getUser(account.workspaceEmail);
+	const existing = await google.getUser(googleKey(account));
 	if (!existing)
 		throw new Error(`Google sier at ${account.workspaceEmail} finnes, men fant den ikke.`);
+	await rememberGoogleUser(ctx, account, existing);
 	const inUseBySamePerson =
 		existing.hasSignedIn && !existing.suspended && belongsToSamePerson(existing, account);
 	if (inUseBySamePerson) return { state: "existing" as const, password: undefined };
 	if (!account.googleConfirmed) throw new UnconfirmedGoogleAccount(existing.name);
 	if (existing.hasSignedIn) {
-		if (existing.suspended) await google.updateUser(account.workspaceEmail, { suspended: false });
+		if (existing.suspended) await google.updateUser(existing.id, { suspended: false });
 		return { state: "existing" as const, password: undefined };
 	}
-	await google.updateUser(account.workspaceEmail, { password, suspended: false });
+	await google.updateUser(existing.id, { password, suspended: false });
 	return { state: "existing" as const, password };
 }
 
 export const provision = internalAction({
 	args: { accountId: v.id("memberAccounts") },
 	handler: async (ctx, { accountId }) => {
-		if (isLocalDevelopment()) return;
+		if (directoriesDisabled()) return;
 		const account = await loadAccount(ctx, accountId);
 		if (!account || account.welcomeSentAt) return;
 		if (account.stage !== "onboarding" && account.stage !== "active") return;
@@ -139,12 +166,12 @@ export const provision = internalAction({
 			const { state, password } = await ensureGoogleAccount(ctx, account);
 			const current = await loadAccount(ctx, accountId);
 			if (current?.stage === "cancelled" && state === "created") {
-				await ctx.scheduler.runAfter(0, internal.iam.actions.offboard, { accountId });
+				await runJob(ctx, "offboard", accountId);
 				return;
 			}
 			if (current?.welcomeSentAt) return;
 			if (current?.stage !== "onboarding" && current?.stage !== "active") return;
-			await sendWelcome(ctx, account, password);
+			await sendWelcome(ctx, current, password);
 			await ctx.runMutation(internal.iam.internal.recordProvisioned, {
 				accountId,
 				google: state,
@@ -161,14 +188,19 @@ export const provision = internalAction({
 	},
 });
 
-async function suspendGoogle(account: Account): Promise<Doc<"memberAccounts">["google"]> {
+async function suspendGoogle(
+	ctx: ActionCtx,
+	account: Account,
+): Promise<Doc<"memberAccounts">["google"]> {
 	if (account.google === "suspended" || account.google === "not_applicable") return account.google;
 	if (account.stage === "cancelled" && account.google !== "created") return account.google;
 	const config = googleConfig();
-	if (!config) throw new Error("Google Workspace er ikke koblet til ennå.");
+	if (!config) return account.google;
 	if (!isWorkspaceEmail(account.workspaceEmail, config.domain)) return "not_applicable";
-	const found = await googleClient(config).updateUser(account.workspaceEmail, { suspended: true });
-	return found ? "suspended" : "not_applicable";
+	const found = await googleClient(config).updateUser(googleKey(account), { suspended: true });
+	if (!found) return "not_applicable";
+	await rememberGoogleUser(ctx, account, found);
+	return "suspended";
 }
 
 async function findSlackUser(account: Account) {
@@ -176,56 +208,28 @@ async function findSlackUser(account: Account) {
 	if (!config) return null;
 	const slack = slackClient(config);
 	if (account.slackUserId) return account.slackUserId;
-	return (
-		(await slack.lookupByEmail(account.workspaceEmail)) ??
-		(account.uioEmail ? await slack.lookupByEmail(account.uioEmail) : null)
-	);
-}
-
-async function removeFromSlackChannels(slackUserId: string) {
-	const config = slackConfig();
-	if (!config) throw new Error("Slack er ikke koblet til ennå.");
-	const slack = slackClient(config);
-	let removed = 0;
-	let failed = 0;
-	for (const channel of await slack.channelsOf(slackUserId)) {
-		const result = await slack.kick(channel, slackUserId).catch(() => "failed" as const);
-		if (result === "removed") removed++;
-		if (result === "failed") failed++;
-	}
-	const channels = failed === 1 ? "kanal" : "kanaler";
-	const error =
-		failed > 0
-			? `Fikk ikke fjernet personen fra ${failed} Slack-${channels}. Legg til Navet-appen i kanalene og prøv igjen.`
-			: undefined;
-	return { removed, error };
+	if (!isWorkspaceEmail(account.workspaceEmail, workspaceDomain())) return null;
+	return slack.lookupByEmail(account.workspaceEmail);
 }
 
 export const offboard = internalAction({
 	args: { accountId: v.id("memberAccounts") },
 	handler: async (ctx, { accountId }) => {
-		if (isLocalDevelopment()) return;
+		if (directoriesDisabled()) return;
 		const account = await loadAccount(ctx, accountId);
 		if (account?.stage !== "offboarding" && account?.stage !== "cancelled") return;
 		const errors: string[] = [];
 
 		let google = account.google;
 		try {
-			google = await suspendGoogle(account);
+			google = await suspendGoogle(ctx, account);
 		} catch (error) {
 			errors.push(describe(error));
 		}
 
 		let slackUserId = account.slackUserId;
-		let slackChannelsRemoved = 0;
 		try {
-			if (!slackConfig()) throw new Error("Slack er ikke koblet til ennå.");
-			slackUserId = (await findSlackUser(account)) ?? undefined;
-			if (slackUserId) {
-				const { removed, error } = await removeFromSlackChannels(slackUserId);
-				slackChannelsRemoved = removed;
-				if (error) errors.push(error);
-			}
+			if (slackConfig()) slackUserId = (await findSlackUser(account)) ?? undefined;
 		} catch (error) {
 			errors.push(describe(error));
 		}
@@ -234,7 +238,6 @@ export const offboard = internalAction({
 			accountId,
 			google,
 			slackUserId,
-			slackChannelsRemoved,
 			lastError: errors.length > 0 ? errors.join(" ") : undefined,
 		});
 	},
@@ -243,7 +246,7 @@ export const offboard = internalAction({
 export const linkSlack = internalAction({
 	args: { accountId: v.id("memberAccounts") },
 	handler: async (ctx, { accountId }) => {
-		if (isLocalDevelopment()) return;
+		if (directoriesDisabled()) return;
 		const account = await loadAccount(ctx, accountId);
 		if (!account || account.slackUserId) return;
 		const slackUserId = await findSlackUser(account).catch(() => null);
@@ -266,7 +269,7 @@ async function optional<T>(load: (() => Promise<T>) | null) {
 export const reconcile = internalAction({
 	args: {},
 	handler: async (ctx) => {
-		if (isLocalDevelopment()) return;
+		if (directoriesDisabled()) return;
 		const google = googleConfig();
 		const slack = slackConfig();
 		if (!google && !slack) return;
@@ -282,9 +285,14 @@ export const reconcile = internalAction({
 			...directory.ignoredEmails,
 			...(google ? [google.adminEmail] : []),
 		]);
+		const googleLinks = matchGoogle(directory.googleCandidates, googleUsers);
 		const drift = computeDrift(
 			{
-				memberEmails: new Set([...directory.internalEmails, ...directory.accountEmails]),
+				memberEmails: new Set([
+					...directory.internalEmails,
+					...directory.accountEmails,
+					...googleLinks.map((link) => link.workspaceEmail),
+				]),
 				internalWorkspaceEmails: new Set(
 					directory.internalEmails.filter(
 						(email) => isWorkspaceEmail(email, google?.domain ?? null) && !reserved.has(email),
@@ -300,21 +308,50 @@ export const reconcile = internalAction({
 			...(googleUsers ? (["google_without_member", "member_google_suspended"] as const) : []),
 			...(slackMembers ? (["slack_without_member"] as const) : []),
 		];
-		const { slackLinks, slackDeactivated } = matchSlack(directory.slackCandidates, slackMembers);
+		const { slackLinks, slackDeactivated, slackStillActive } = matchSlack(
+			directory.slackCandidates,
+			slackMembers,
+		);
 		await ctx.runMutation(internal.iam.internal.applyReconcile, {
 			drift,
+			googleLinks,
 			slackLinks,
 			slackDeactivated,
+			slackStillActive,
 			checkedKinds,
 		});
 	},
 });
+
+type GoogleCandidate = Readonly<{
+	accountId: Id<"memberAccounts">;
+	workspaceEmail: string;
+	googleUserId?: string;
+}>;
+
+export function matchGoogle(
+	candidates: readonly GoogleCandidate[],
+	users: readonly GoogleUser[] | null,
+) {
+	if (!users) return [];
+	const byId = new Map(users.map((user) => [user.id, user]));
+	const byEmail = new Map(users.map((user) => [user.email, user]));
+	return candidates.flatMap((candidate) => {
+		const user = candidate.googleUserId
+			? byId.get(candidate.googleUserId)
+			: byEmail.get(candidate.workspaceEmail);
+		if (!user) return [];
+		if (user.id === candidate.googleUserId && user.email === candidate.workspaceEmail) return [];
+		return [{ accountId: candidate.accountId, googleUserId: user.id, workspaceEmail: user.email }];
+	});
+}
 
 type SlackCandidate = Readonly<{
 	accountId: Id<"memberAccounts">;
 	stage: string;
 	email: string;
 	slackUserId?: string;
+	markedDeactivated?: boolean;
 }>;
 
 export function matchSlack(
@@ -323,7 +360,8 @@ export function matchSlack(
 ) {
 	const slackLinks: { accountId: Id<"memberAccounts">; slackUserId: string }[] = [];
 	const slackDeactivated: Id<"memberAccounts">[] = [];
-	if (!members) return { slackLinks, slackDeactivated };
+	const slackStillActive: Id<"memberAccounts">[] = [];
+	if (!members) return { slackLinks, slackDeactivated, slackStillActive };
 	const byId = new Map(members.map((member) => [member.id, member]));
 	const byEmail = new Map(members.map((member) => [member.email, member]));
 	for (const candidate of candidates) {
@@ -333,8 +371,12 @@ export function matchSlack(
 		if (!member) continue;
 		if (!candidate.slackUserId)
 			slackLinks.push({ accountId: candidate.accountId, slackUserId: member.id });
-		if (candidate.stage === "offboarded" && member.deactivated)
-			slackDeactivated.push(candidate.accountId);
+		if (
+			candidate.stage !== "offboarded" ||
+			member.deactivated === (candidate.markedDeactivated ?? false)
+		)
+			continue;
+		(member.deactivated ? slackDeactivated : slackStillActive).push(candidate.accountId);
 	}
-	return { slackLinks, slackDeactivated };
+	return { slackLinks, slackDeactivated, slackStillActive };
 }

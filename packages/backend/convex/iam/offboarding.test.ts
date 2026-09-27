@@ -14,7 +14,7 @@ import {
 	fakeDirectories,
 	spyOnWelcomeEmails,
 } from "../../test/iamFakes";
-import { api } from "../_generated/api";
+import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 
 let t: TestBackend;
@@ -65,119 +65,66 @@ function accountOf(userId: Id<"users">) {
 }
 
 describe("removing an internal member", () => {
-	it("suspends Google and removes them from every Slack channel, even when they were added by hand", async () => {
+	it("suspends Google and remembers the Slack account for the deactivation checklist", async () => {
 		const { user, internalId } = await internalMember("per.hansen@ifinavet.no");
 		directories.google.set("per.hansen@ifinavet.no", { name: "Per Hansen", suspended: false });
 		directories.slackUsers.push({ id: "U1", email: "per.hansen@ifinavet.no", name: "Per Hansen" });
-		directories.slackChannels.set("U1", ["C1", "C2"]);
 
 		await remove(internalId);
 
 		expect(directories.google.get("per.hansen@ifinavet.no")?.suspended).toBe(true);
-		expect(directories.slackChannels.get("U1")).toEqual([]);
 		const account = await accountOf(user._id);
 		expect(account).toMatchObject({
 			stage: "offboarded",
 			google: "suspended",
 			slackUserId: "U1",
-			slackChannelsRemoved: 2,
 		});
 		expect(account?.lastError).toBeUndefined();
 	});
 
-	it("finds the Slack user through the UiO address and skips Google for addresses outside the domain", async () => {
+	it("never looks up Slack or Google for an address outside the domain", async () => {
 		const { user, internalId } = await internalMember("perh@uio.no");
 		directories.slackUsers.push({ id: "U2", email: "perh@uio.no", name: "Per Hansen" });
-		directories.slackChannels.set("U2", ["C1"]);
 
 		await remove(internalId);
 
-		expect(await accountOf(user._id)).toMatchObject({
-			stage: "offboarded",
-			google: "not_applicable",
-			slackChannelsRemoved: 1,
-		});
+		const account = await accountOf(user._id);
+		expect(account).toMatchObject({ stage: "offboarded", google: "not_applicable" });
+		expect(account?.slackUserId).toBeUndefined();
 		expect(directories.calls.some((call) => call.url.includes("admin.googleapis.com"))).toBe(false);
 	});
 
-	it("keeps the member in the removal list with an explanation until Slack is connected", async () => {
+	it("finishes the removal without Slack and flags the Slack account once Slack is connected", async () => {
 		vi.stubEnv("SLACK_BOT_TOKEN", "");
 		const { user, internalId } = await internalMember("per.hansen@ifinavet.no");
 		directories.google.set("per.hansen@ifinavet.no", { name: "Per Hansen", suspended: false });
 
 		await remove(internalId);
 		const account = await accountOf(user._id);
-		expect(account).toMatchObject({
-			stage: "offboarding",
-			google: "suspended",
-			lastError: "Slack er ikke koblet til ennå.",
-		});
+		expect(account).toMatchObject({ stage: "offboarded", google: "suspended" });
+		expect(account?.lastError).toBeUndefined();
 
 		configureSlack();
-		await asUser(t, admin).mutation(api.iam.mutations.retry, {
-			accountId: account?._id as Id<"memberAccounts">,
-		});
-		await t.finishAllScheduledFunctions(vi.runAllTimers);
-
-		expect((await accountOf(user._id))?.stage).toBe("offboarded");
-	});
-
-	it("leaves #general alone without treating it as a failure", async () => {
-		const { user, internalId } = await internalMember("per.hansen@ifinavet.no");
-		directories.google.set("per.hansen@ifinavet.no", { name: "Per Hansen", suspended: false });
 		directories.slackUsers.push({ id: "U1", email: "per.hansen@ifinavet.no", name: "Per Hansen" });
-		directories.slackChannels.set("U1", ["CGENERAL", "C1"]);
-		directories.generalChannels.add("CGENERAL");
+		await t.action(internal.iam.actions.reconcile, {});
 
-		await remove(internalId);
-
-		const account = await accountOf(user._id);
-		expect(account).toMatchObject({ stage: "offboarded", slackChannelsRemoved: 1 });
-		expect(account?.lastError).toBeUndefined();
+		const drift = await t.run((ctx) => ctx.db.query("accessDrift").collect());
+		expect(drift).toMatchObject([
+			{ kind: "slack_without_member", email: "per.hansen@ifinavet.no" },
+		]);
 	});
 
-	it("keeps going past a channel it cannot leave and finishes it on retry", async () => {
-		const { user, internalId } = await internalMember("per.hansen@ifinavet.no");
-		directories.google.set("per.hansen@ifinavet.no", { name: "Per Hansen", suspended: false });
-		directories.slackUsers.push({ id: "U1", email: "per.hansen@ifinavet.no", name: "Per Hansen" });
-		directories.slackChannels.set("U1", ["C1", "C2", "C3"]);
-		directories.restrictedChannels.add("C2");
-
-		await remove(internalId);
-
-		const account = await accountOf(user._id);
-		expect(directories.slackChannels.get("U1")).toEqual(["C2"]);
-		expect(account).toMatchObject({
-			stage: "offboarding",
-			google: "suspended",
-			slackChannelsRemoved: 2,
-			lastError:
-				"Fikk ikke fjernet personen fra 1 Slack-kanal. Legg til Navet-appen i kanalene og prøv igjen.",
-		});
-
-		directories.restrictedChannels.clear();
-		await asUser(t, admin).mutation(api.iam.mutations.retry, {
-			accountId: account?._id as Id<"memberAccounts">,
-		});
-		await t.finishAllScheduledFunctions(vi.runAllTimers);
-
-		const retried = await accountOf(user._id);
-		expect(retried).toMatchObject({ stage: "offboarded", slackChannelsRemoved: 3 });
-		expect(retried?.lastError).toBeUndefined();
-	});
-
-	it("records Google failures without losing the Slack cleanup", async () => {
+	it("records Google failures and still finds the Slack account", async () => {
 		const { user, internalId } = await internalMember("per.hansen@ifinavet.no");
 		directories.failures.google = true;
 		directories.slackUsers.push({ id: "U1", email: "per.hansen@ifinavet.no", name: "Per Hansen" });
-		directories.slackChannels.set("U1", ["C1"]);
 
 		await remove(internalId);
 
 		expect(await accountOf(user._id)).toMatchObject({
 			stage: "offboarding",
 			google: "pending",
-			slackChannelsRemoved: 1,
+			slackUserId: "U1",
 			lastError: "Google svarte 503 da vi skulle oppdatere kontoen.",
 		});
 	});

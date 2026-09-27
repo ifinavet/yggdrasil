@@ -1,5 +1,7 @@
+import type { Id } from "@workspace/backend/convex/dataModel";
 import { cn } from "@workspace/ui/lib/utils";
 import type { ReactNode } from "react";
+import { AddUioEmail } from "./add-uio-email";
 import { GoogleMark, SlackMark } from "./brand-marks";
 import {
 	type ConnectionState,
@@ -25,39 +27,48 @@ function State({ state }: Readonly<{ state: ConnectionState }>) {
 	);
 }
 
-export function InternalDetails({ connections }: Readonly<{ connections: Connections | null }>) {
-	if (!connections) {
-		return (
-			<p className="px-2 py-1 text-muted-foreground text-sm">
-				Lagt til før Bifrost opprettet kontoer, så koblingene er ukjente.
-			</p>
-		);
-	}
+export function InternalDetails({
+	internalId,
+	connections,
+}: Readonly<{ internalId: Id<"internals">; connections: Connections | null }>) {
+	const uioEmail = connections?.uioEmail;
 	return (
 		<dl className="grid gap-x-10 gap-y-4 px-2 py-1 sm:grid-cols-3">
 			<Detail label="UiO-adresse">
-				<span className="block truncate">{connections.uioEmail ?? "Ikke registrert"}</span>
+				{uioEmail ? (
+					<span className="block truncate">{uioEmail}</span>
+				) : (
+					<AddUioEmail internalId={internalId} />
+				)}
 			</Detail>
-			<Detail
-				label={
-					<>
-						<GoogleMark aria-hidden className="size-3.5" />
-						Google Workspace
-					</>
-				}
-			>
-				<State state={googleConnection(connections)} />
-			</Detail>
-			<Detail
-				label={
-					<>
-						<SlackMark aria-hidden className="size-3.5" />
-						Slack
-					</>
-				}
-			>
-				<State state={slackConnection(connections)} />
-			</Detail>
+			{connections ? (
+				<>
+					<Detail
+						label={
+							<>
+								<GoogleMark aria-hidden className="size-3.5" />
+								Google Workspace
+							</>
+						}
+					>
+						<State state={googleConnection(connections)} />
+					</Detail>
+					<Detail
+						label={
+							<>
+								<SlackMark aria-hidden className="size-3.5" />
+								Slack
+							</>
+						}
+					>
+						<State state={slackConnection(connections)} />
+					</Detail>
+				</>
+			) : (
+				<p className="text-pretty text-muted-foreground text-sm sm:col-span-2 sm:self-center">
+					Lagt til før Bifrost opprettet kontoer, så koblingene er ukjente.
+				</p>
+			)}
 		</dl>
 	);
 }

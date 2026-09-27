@@ -4,6 +4,7 @@ import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import type { ACCESS_RIGHTS } from "@workspace/shared/constants";
 import { Button } from "@workspace/ui/components/button";
+import { SearchField } from "@workspace/ui/components/search-field";
 import { type Preloaded, useMutation, usePreloadedQuery } from "convex/react";
 import { Plus } from "lucide-react";
 import { usePostHog } from "posthog-js/react";
@@ -14,6 +15,7 @@ import { AccessList } from "./access/access-list";
 import type { OnboardingPrefill } from "./access/access-status";
 import { createColumns } from "./columns";
 import { InternalDetails } from "./internal-details";
+import { filterMembers } from "./member-search";
 import { OnboardMemberDialog } from "./onboard-member/onboard-member-dialog";
 
 export default function Internals({
@@ -25,6 +27,7 @@ export default function Internals({
 }>) {
 	const internals = usePreloadedQuery(preloadedInternals);
 	const access = usePreloadedQuery(preloadedAccess);
+	const [search, setSearch] = useState("");
 	const [onboarding, setOnboarding] = useState<{ prefill: OnboardingPrefill | null }>();
 
 	const postHog = usePostHog();
@@ -34,7 +37,7 @@ export default function Internals({
 		deleteInternal({ id: internalsId })
 			.then(() => {
 				toast("Personen er fjernet", {
-					description: "Google-kontoen suspenderes og personen fjernes fra Slack-kanalene.",
+					description: "Google-kontoen suspenderes. Husk å deaktivere Slack-kontoen.",
 				});
 
 				postHog.capture("delete-internal-member", {
@@ -91,11 +94,23 @@ export default function Internals({
 				Legg til medlem
 			</Button>
 			<AccessList overview={access} onAdd={(prefill) => setOnboarding({ prefill })} />
+			<SearchField
+				value={search}
+				onChange={setSearch}
+				placeholder="Navn, Navet-e-post eller UiO-e-post"
+				className="sm:w-96"
+			/>
 			<DataTable
 				columns={columns}
-				data={data}
+				data={filterMembers(data, search)}
+				empty_message={search.trim() ? "Fant ingen medlemmer som passer søket." : undefined}
 				className="overflow-clip rounded-lg"
-				renderExpanded={(row) => <InternalDetails connections={row.original.connections} />}
+				renderExpanded={(row) => (
+					<InternalDetails
+						internalId={row.original.internalId}
+						connections={row.original.connections}
+					/>
+				)}
 			/>
 			<OnboardMemberDialog
 				open={onboarding !== undefined}

@@ -1,3 +1,5 @@
+import { hasSearchWords, matchesSearch } from "@workspace/shared/utils";
+
 /** One choice in a `SearchSelect`. */
 export type SearchSelectItem = {
 	readonly id: string;
@@ -13,13 +15,8 @@ export function filterSearchItems(
 	items: readonly SearchSelectItem[],
 	query: string,
 ): readonly SearchSelectItem[] {
-	const words = query.toLocaleLowerCase("nb").split(/\s+/).filter(Boolean);
-	if (words.length === 0) return items;
-
-	return items.filter((item) => {
-		const haystack = [item.label, item.description ?? ""].join(" ").toLocaleLowerCase("nb");
-		return words.every((word) => haystack.includes(word));
-	});
+	if (!hasSearchWords(query)) return items;
+	return items.filter((item) => matchesSearch([item.label, item.description ?? ""], query));
 }
 
 /**

@@ -13,7 +13,7 @@ export type Directory = Readonly<{
 	reservedEmails: ReadonlySet<string>;
 }>;
 
-type GoogleDirectoryUser = Omit<GoogleUser, "hasSignedIn">;
+type GoogleDirectoryUser = Omit<GoogleUser, "hasSignedIn" | "id">;
 
 const isUnknown = (directory: Directory, email: string) =>
 	!directory.memberEmails.has(email) && !directory.reservedEmails.has(email);

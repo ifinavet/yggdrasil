@@ -64,13 +64,18 @@ describe("matchSlack", () => {
 					{ id: "U2", email: "per@ifinavet.no", name: "Per", deactivated: true },
 				],
 			),
-		).toEqual({ slackLinks: [{ accountId, slackUserId: "U1" }], slackDeactivated: [accountId] });
+		).toEqual({
+			slackLinks: [{ accountId, slackUserId: "U1" }],
+			slackDeactivated: [accountId],
+			slackStillActive: [],
+		});
 	});
 
 	it("does nothing without Slack data", () => {
 		expect(matchSlack([{ accountId, stage: "active", email: "kari@ifinavet.no" }], null)).toEqual({
 			slackLinks: [],
 			slackDeactivated: [],
+			slackStillActive: [],
 		});
 	});
 });
@@ -131,6 +136,37 @@ describe("nightly reconciliation", () => {
 		expect(await drift()).toEqual([{ kind: "slack_without_member", email: "gjest@gmail.com" }]);
 	});
 
+	it("learns the Google id of existing accounts and follows a rename made in Google", async () => {
+		const accountId = await t.run((ctx) =>
+			ctx.db.insert("memberAccounts", {
+				workspaceEmail: "leder@ifinavet.no",
+				firstName: "Leder",
+				lastName: "Nordmann",
+				group: "Styret",
+				stage: "active",
+				google: "existing",
+				userId: admin._id,
+				updatedAt: 0,
+			}),
+		);
+
+		await t.action(internal.iam.actions.reconcile, {});
+		expect(await t.run((ctx) => ctx.db.get(accountId))).toMatchObject({
+			googleUserId: "google-leder@ifinavet.no",
+		});
+
+		directories.renameGoogle("leder@ifinavet.no", "leder.ny@ifinavet.no");
+		await t.action(internal.iam.actions.reconcile, {});
+
+		expect(await t.run((ctx) => ctx.db.get(accountId))).toMatchObject({
+			googleUserId: "google-leder@ifinavet.no",
+			workspaceEmail: "leder.ny@ifinavet.no",
+		});
+		expect(await drift()).not.toContainEqual(
+			expect.objectContaining({ email: "leder.ny@ifinavet.no" }),
+		);
+	});
+
 	it("leaves members alone while their removal is still running", async () => {
 		directories.google.set("borte@ifinavet.no", { name: "Borte", suspended: false });
 		await t.run((ctx) =>
@@ -163,6 +199,23 @@ describe("nightly reconciliation", () => {
 		expect(await drift()).toEqual([{ kind: "google_without_member", email: "snik@ifinavet.no" }]);
 	});
 
+	it("stops listing an address as unknown once it is being added as a member", async () => {
+		await t.action(internal.iam.actions.reconcile, {});
+		await t.run((ctx) =>
+			ctx.db.insert("memberAccounts", {
+				workspaceEmail: "snik@ifinavet.no",
+				firstName: "Snik",
+				lastName: "Snikesen",
+				group: "Styret",
+				stage: "onboarding",
+				google: "pending",
+				updatedAt: Date.now(),
+			}),
+		);
+
+		expect(await drift()).toEqual([{ kind: "slack_without_member", email: "gjest@gmail.com" }]);
+	});
+
 	it("marks Slack as deactivated for removed members once Slack reports it", async () => {
 		const accountId = await t.run((ctx) =>
 			ctx.db.insert("memberAccounts", {
@@ -183,5 +236,54 @@ describe("nightly reconciliation", () => {
 		expect((await t.run((ctx) => ctx.db.get(accountId)))?.slackDeactivatedAt).toEqual(
 			expect.any(Number),
 		);
+	});
+
+	it("links Slack members only through ifinavet addresses", async () => {
+		const account = (workspaceEmail: string) =>
+			t.run((ctx) =>
+				ctx.db.insert("memberAccounts", {
+					workspaceEmail,
+					firstName: "Kari",
+					lastName: "Nordmann",
+					group: "Bedrift",
+					stage: "active",
+					google: "not_applicable",
+					updatedAt: 0,
+				}),
+			);
+		const outside = await account("karinor@uio.no");
+		const inside = await account("kari@ifinavet.no");
+		directories.slackUsers.push(
+			{ id: "U6", email: "karinor@uio.no", name: "Kari" },
+			{ id: "U7", email: "kari@ifinavet.no", name: "Kari" },
+		);
+
+		await t.action(internal.iam.actions.reconcile, {});
+
+		expect((await t.run((ctx) => ctx.db.get(outside)))?.slackUserId).toBeUndefined();
+		expect((await t.run((ctx) => ctx.db.get(inside)))?.slackUserId).toBe("U7");
+	});
+
+	it("brings the Slack reminder back when someone marked it done but the account is still active", async () => {
+		const accountId = await t.run((ctx) =>
+			ctx.db.insert("memberAccounts", {
+				workspaceEmail: "per@ifinavet.no",
+				firstName: "Per",
+				lastName: "Hansen",
+				group: "Bedrift",
+				stage: "offboarded",
+				google: "suspended",
+				slackUserId: "U5",
+				slackDeactivatedAt: 1,
+				updatedAt: 0,
+			}),
+		);
+		directories.slackUsers.push({ id: "U5", email: "per@ifinavet.no", name: "Per" });
+
+		await t.action(internal.iam.actions.reconcile, {});
+
+		expect((await t.run((ctx) => ctx.db.get(accountId)))?.slackDeactivatedAt).toBeUndefined();
+		const overview = await asUser(t, admin).query(api.iam.queries.overview, {});
+		expect(overview.accounts.map((account) => account.workspaceEmail)).toContain("per@ifinavet.no");
 	});
 });

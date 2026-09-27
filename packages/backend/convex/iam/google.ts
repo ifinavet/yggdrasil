@@ -1,6 +1,6 @@
 import { normalizeEmail } from "@workspace/shared/iam";
 import { importPKCS8, SignJWT } from "jose";
-import type { GoogleConfig } from "./config";
+import { directoryUrl, type GoogleConfig } from "./config";
 
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 const USERS_URL = "https://admin.googleapis.com/admin/directory/v1/users";
@@ -9,6 +9,7 @@ const TIMEOUT_MS = 15_000;
 const MAX_PAGES = 20;
 
 export type GoogleUser = Readonly<{
+	id: string;
 	email: string;
 	name: string;
 	suspended: boolean;
@@ -16,6 +17,7 @@ export type GoogleUser = Readonly<{
 }>;
 
 type DirectoryUser = {
+	id: string;
 	primaryEmail: string;
 	suspended?: boolean;
 	name?: { fullName?: string };
@@ -33,7 +35,7 @@ async function accessToken(config: GoogleConfig) {
 		.setIssuedAt()
 		.setExpirationTime("10m")
 		.sign(await importPKCS8(config.privateKey, "RS256"));
-	const response = await fetch(TOKEN_URL, {
+	const response = await fetch(directoryUrl(TOKEN_URL), {
 		method: "POST",
 		headers: { "Content-Type": "application/x-www-form-urlencoded" },
 		body: new URLSearchParams({
@@ -49,6 +51,7 @@ async function accessToken(config: GoogleConfig) {
 
 function toUser(user: DirectoryUser): GoogleUser {
 	return {
+		id: user.id,
 		email: normalizeEmail(user.primaryEmail),
 		name: user.name?.fullName ?? "",
 		suspended: user.suspended === true,
@@ -65,7 +68,7 @@ export function googleClient(config: GoogleConfig) {
 
 	async function call(path: string, init: RequestInit = {}) {
 		token ??= accessToken(config);
-		return fetch(`${USERS_URL}${path}`, {
+		return fetch(directoryUrl(`${USERS_URL}${path}`), {
 			...init,
 			headers: {
 				Authorization: `Bearer ${await token}`,
@@ -81,7 +84,7 @@ export function googleClient(config: GoogleConfig) {
 			firstName: string;
 			lastName: string;
 			password: string;
-		}): Promise<"created" | "exists"> {
+		}): Promise<GoogleUser | "exists"> {
 			const response = await call("", {
 				method: "POST",
 				body: JSON.stringify({
@@ -93,29 +96,29 @@ export function googleClient(config: GoogleConfig) {
 			});
 			if (response.status === 409) return "exists";
 			if (!response.ok) return fail(response, "opprette kontoen");
-			return "created";
+			return toUser((await response.json()) as DirectoryUser);
 		},
 
-		async getUser(email: string): Promise<GoogleUser | null> {
-			const response = await call(`/${encodeURIComponent(email)}`);
+		async getUser(key: string): Promise<GoogleUser | null> {
+			const response = await call(`/${encodeURIComponent(key)}`);
 			if (response.status === 404) return null;
 			if (!response.ok) return fail(response, "hente kontoen");
 			return toUser((await response.json()) as DirectoryUser);
 		},
 
 		async updateUser(
-			email: string,
+			key: string,
 			fields: Readonly<{ suspended?: boolean; password?: string }>,
-		): Promise<boolean> {
-			const response = await call(`/${encodeURIComponent(email)}`, {
+		): Promise<GoogleUser | null> {
+			const response = await call(`/${encodeURIComponent(key)}`, {
 				method: "PATCH",
 				body: JSON.stringify(
 					fields.password ? { ...fields, changePasswordAtNextLogin: true } : fields,
 				),
 			});
-			if (response.status === 404) return false;
+			if (response.status === 404) return null;
 			if (!response.ok) return fail(response, "oppdatere kontoen");
-			return true;
+			return toUser((await response.json()) as DirectoryUser);
 		},
 
 		async listUsers(): Promise<GoogleUser[]> {

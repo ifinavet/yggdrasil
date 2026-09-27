@@ -212,6 +212,26 @@ describe("starting onboarding", () => {
 		expect(await account(accountId)).toMatchObject({ googleOwner: "Kari Hansen" });
 	});
 
+	it("lets an admin confirm the Google account of a member who is already signed in", async () => {
+		await insertUser(t, newMember.uioEmail);
+		directories.google.set(newMember.workspaceEmail, {
+			name: "Kari Nordmann",
+			suspended: false,
+			password: "ukjent",
+		});
+
+		const { accountId } = await onboard();
+		expect(await account(accountId)).toMatchObject({
+			stage: "active",
+			googleOwner: "Kari Nordmann",
+		});
+
+		await confirm(accountId);
+
+		expect(directories.google.get(newMember.workspaceEmail)?.password).not.toBe("ukjent");
+		expect(await account(accountId)).toMatchObject({ welcomeSentAt: expect.any(Number) });
+	});
+
 	it("refuses to confirm when there is no existing Google account to confirm", async () => {
 		const { accountId } = await onboard();
 
@@ -491,6 +511,23 @@ describe("cancelling onboarding", () => {
 
 		expect(directories.google.get(newMember.workspaceEmail)?.suspended).toBe(true);
 		expect(await account(accountId)).toMatchObject({ stage: "cancelled", google: "suspended" });
+	});
+
+	it("still finds the account by its Google id after the address was renamed in Google", async () => {
+		const { accountId } = await onboard();
+		expect(await account(accountId)).toMatchObject({
+			googleUserId: `google-${newMember.workspaceEmail}`,
+		});
+		directories.renameGoogle(newMember.workspaceEmail, "kari.hansen@ifinavet.no", false);
+
+		await asUser(t, admin).mutation(api.iam.mutations.cancelOnboarding, { accountId });
+		await t.finishAllScheduledFunctions(vi.runAllTimers);
+
+		expect(directories.google.get("kari.hansen@ifinavet.no")?.suspended).toBe(true);
+		expect(await account(accountId)).toMatchObject({
+			google: "suspended",
+			workspaceEmail: "kari.hansen@ifinavet.no",
+		});
 	});
 
 	it("suspends the account when cancelled while it was being created", async () => {

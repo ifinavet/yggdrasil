@@ -1,4 +1,5 @@
 import { domainOf, normalizeEmail } from "@workspace/shared/iam";
+import { isLocalDevelopment } from "../auth/local";
 
 export type GoogleConfig = Readonly<{
 	serviceAccountEmail: string;
@@ -38,4 +39,23 @@ export function slackInviteLink() {
 
 export function isWorkspaceEmail(email: string, domain: string | null) {
 	return domain !== null && domainOf(email) === domain;
+}
+
+function fakeDirectoryUrl() {
+	return isLocalDevelopment() ? process.env.IAM_FAKE_DIRECTORY_URL || null : null;
+}
+
+export function directoryUrl(url: string) {
+	const fake = fakeDirectoryUrl();
+	if (!fake) return url;
+	const { pathname, search } = new URL(url);
+	return `${fake}${pathname}${search}`;
+}
+
+export function usesFakeDirectory() {
+	return fakeDirectoryUrl() !== null;
+}
+
+export function directoriesDisabled() {
+	return isLocalDevelopment() && !fakeDirectoryUrl();
 }

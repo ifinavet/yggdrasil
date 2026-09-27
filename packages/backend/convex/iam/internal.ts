@@ -1,7 +1,8 @@
 import { normalizeEmail } from "@workspace/shared/iam";
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "../_generated/server";
-import { driftKinds, googleStates } from "./schema";
+import { isWorkspaceEmail, workspaceDomain } from "./config";
+import { driftKinds, googleStates, isCurrentStage } from "./schema";
 
 const MAX_DIRECTORY_ROWS = 2000;
 
@@ -37,17 +38,13 @@ export const recordOffboarded = internalMutation({
 		accountId: v.id("memberAccounts"),
 		google: googleStates,
 		slackUserId: v.optional(v.string()),
-		slackChannelsRemoved: v.number(),
 		lastError: v.optional(v.string()),
 	},
-	handler: async (ctx, { accountId, lastError, slackChannelsRemoved, ...fields }) => {
+	handler: async (ctx, { accountId, lastError, ...fields }) => {
 		const account = await ctx.db.get(accountId);
 		if (account?.stage !== "offboarding" && account?.stage !== "cancelled") return;
 		await ctx.db.patch(accountId, {
 			...fields,
-			slackChannelsRemoved: fields.slackUserId
-				? (account.slackChannelsRemoved ?? 0) + slackChannelsRemoved
-				: account.slackChannelsRemoved,
 			lastError,
 			stage: account.stage === "offboarding" && !lastError ? "offboarded" : account.stage,
 			updatedAt: Date.now(),
@@ -63,6 +60,16 @@ export const recordFailure = internalMutation({
 	},
 	handler: async (ctx, { accountId, message, googleOwner }) => {
 		await ctx.db.patch(accountId, { lastError: message, googleOwner, updatedAt: Date.now() });
+	},
+});
+
+export const recordGoogleUser = internalMutation({
+	args: { accountId: v.id("memberAccounts"), googleUserId: v.string(), workspaceEmail: v.string() },
+	handler: async (ctx, { accountId, googleUserId, workspaceEmail }) => {
+		const account = await ctx.db.get(accountId);
+		if (!account) return;
+		if (account.googleUserId === googleUserId && account.workspaceEmail === workspaceEmail) return;
+		await ctx.db.patch(accountId, { googleUserId, workspaceEmail, updatedAt: Date.now() });
 	},
 });
 
@@ -84,9 +91,7 @@ export const directory = internalQuery({
 		const internalEmails = users.flatMap((user) =>
 			user?.email ? [normalizeEmail(user.email)] : [],
 		);
-		const current = accounts.filter(
-			(a) => a.stage === "onboarding" || a.stage === "active" || a.stage === "offboarding",
-		);
+		const current = accounts.filter((a) => isCurrentStage(a.stage));
 		return {
 			internalEmails,
 			accountEmails: current.flatMap((a) => [
@@ -97,14 +102,23 @@ export const directory = internalQuery({
 				m.positionEmail ? [normalizeEmail(m.positionEmail)] : [],
 			),
 			ignoredEmails: ignored.map((row) => row.email),
+			googleCandidates: accounts
+				.filter((a) => a.stage !== "cancelled" && a.google !== "not_applicable")
+				.map((a) => ({
+					accountId: a._id,
+					workspaceEmail: a.workspaceEmail,
+					googleUserId: a.googleUserId,
+				})),
 			slackCandidates: accounts
 				.filter((a) => a.stage === "active" || a.stage === "offboarded")
-				.filter((a) => (a.stage === "active" ? !a.slackUserId : !a.slackDeactivatedAt))
+				.filter((a) => a.stage === "offboarded" || !a.slackUserId)
+				.filter((a) => a.slackUserId || isWorkspaceEmail(a.workspaceEmail, workspaceDomain()))
 				.map((a) => ({
 					accountId: a._id,
 					stage: a.stage,
 					email: a.workspaceEmail,
 					slackUserId: a.slackUserId,
+					markedDeactivated: a.slackDeactivatedAt !== undefined,
 				})),
 		};
 	},
@@ -113,11 +127,22 @@ export const directory = internalQuery({
 export const applyReconcile = internalMutation({
 	args: {
 		drift: v.array(v.object({ kind: driftKinds, email: v.string(), name: v.optional(v.string()) })),
+		googleLinks: v.array(
+			v.object({
+				accountId: v.id("memberAccounts"),
+				googleUserId: v.string(),
+				workspaceEmail: v.string(),
+			}),
+		),
 		slackLinks: v.array(v.object({ accountId: v.id("memberAccounts"), slackUserId: v.string() })),
 		slackDeactivated: v.array(v.id("memberAccounts")),
+		slackStillActive: v.array(v.id("memberAccounts")),
 		checkedKinds: v.array(driftKinds),
 	},
-	handler: async (ctx, { drift, slackLinks, slackDeactivated, checkedKinds }) => {
+	handler: async (
+		ctx,
+		{ drift, googleLinks, slackLinks, slackDeactivated, slackStillActive, checkedKinds },
+	) => {
 		const now = Date.now();
 		const stale = await ctx.db.query("accessDrift").take(MAX_DIRECTORY_ROWS);
 		await Promise.all(
@@ -127,6 +152,11 @@ export const applyReconcile = internalMutation({
 			drift.map((row) => ctx.db.insert("accessDrift", { ...row, detectedAt: now })),
 		);
 		await Promise.all(
+			googleLinks.map(({ accountId, ...fields }) =>
+				ctx.db.patch(accountId, { ...fields, updatedAt: now }),
+			),
+		);
+		await Promise.all(
 			slackLinks.map(({ accountId, slackUserId }) =>
 				ctx.db.patch(accountId, { slackUserId, updatedAt: now }),
 			),
@@ -134,6 +164,11 @@ export const applyReconcile = internalMutation({
 		await Promise.all(
 			slackDeactivated.map((accountId) =>
 				ctx.db.patch(accountId, { slackDeactivatedAt: now, updatedAt: now }),
+			),
+		);
+		await Promise.all(
+			slackStillActive.map((accountId) =>
+				ctx.db.patch(accountId, { slackDeactivatedAt: undefined, updatedAt: now }),
 			),
 		);
 	},

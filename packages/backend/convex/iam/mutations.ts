@@ -1,17 +1,22 @@
-import { onboardingSchema } from "@workspace/shared/iam";
+import { domainOf, normalizeEmail, onboardingSchema, uioEmailSchema } from "@workspace/shared/iam";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { type MutationCtx, mutation } from "../_generated/server";
 import { adminRoles, requireRole } from "../auth/accessRights";
-import { accountForEmail } from "./accounts";
+import { accountForEmail, accountForUser } from "./accounts";
 import { workspaceDomain } from "./config";
+import { runJob } from "./jobs";
 import { activate, usersWithEmail } from "./lifecycle";
 
 async function requireAccount(ctx: MutationCtx, accountId: Doc<"memberAccounts">["_id"]) {
 	const account = await ctx.db.get(accountId);
 	if (!account) throw new ConvexError("Fant ikke kontoen.");
 	return account;
+}
+
+function isProvisioning(account: Doc<"memberAccounts">) {
+	return (account.stage === "onboarding" || account.stage === "active") && !account.welcomeSentAt;
 }
 
 async function refuseDuplicates(ctx: MutationCtx, emails: readonly string[]) {
@@ -72,8 +77,70 @@ export const startOnboarding = mutation({
 		const account = await requireAccount(ctx, accountId);
 		if (existingUser) await activate(ctx, account, existingUser._id);
 
-		await ctx.scheduler.runAfter(0, internal.iam.actions.provision, { accountId });
+		await runJob(ctx, "provision", accountId);
 		return { accountId, activated: existingUser !== undefined };
+	},
+});
+
+function isFormer(account: Doc<"memberAccounts">) {
+	return account.stage === "offboarded" || account.stage === "cancelled";
+}
+
+export const addUioEmail = mutation({
+	args: { internalId: v.id("internals"), uioEmail: v.string() },
+	handler: async (ctx, args) => {
+		await requireRole(ctx, adminRoles);
+		const parsed = uioEmailSchema.safeParse(args.uioEmail);
+		if (!parsed.success)
+			throw new ConvexError(parsed.error.issues[0]?.message ?? "Ugyldig adresse.");
+		const uioEmail = parsed.data;
+
+		const internalMember = await ctx.db.get(args.internalId);
+		if (!internalMember) throw new ConvexError("Fant ikke det interne medlemmet.");
+		const user = await ctx.db.get(internalMember.userId);
+		if (!user?.email) throw new ConvexError("Medlemmet har ingen e-postadresse i Bifrost.");
+		const workspaceEmail = normalizeEmail(user.email);
+
+		const own = await accountForUser(ctx, user._id, workspaceEmail);
+		const taken = await accountForEmail(ctx, uioEmail);
+		if (taken && taken._id !== own?._id && !isFormer(taken))
+			throw new ConvexError(`${uioEmail} hører allerede til ${taken.firstName} ${taken.lastName}.`);
+		for (const other of await usersWithEmail(ctx, [uioEmail])) {
+			const otherInternal = await ctx.db
+				.query("internals")
+				.withIndex("by_userId", (q) => q.eq("userId", other._id))
+				.first();
+			if (otherInternal) throw new ConvexError(`${uioEmail} er allerede internt medlem.`);
+		}
+
+		const updatedAt = Date.now();
+		if (taken && taken._id !== own?._id)
+			await ctx.db.patch(taken._id, { uioEmail: undefined, updatedAt });
+
+		if (own && !isFormer(own)) {
+			await ctx.db.patch(own._id, { uioEmail, userId: user._id, updatedAt });
+			await ctx.scheduler.runAfter(0, internal.iam.actions.linkSlack, { accountId: own._id });
+			return;
+		}
+		const fields = {
+			workspaceEmail,
+			uioEmail,
+			firstName: user.firstName,
+			lastName: user.lastName,
+			group: internalMember.group,
+			stage: "active" as const,
+			google:
+				domainOf(workspaceEmail) === workspaceDomain()
+					? ("existing" as const)
+					: ("not_applicable" as const),
+			googleUserId: own?.googleUserId,
+			slackUserId: own?.slackUserId,
+			userId: user._id,
+			updatedAt,
+		};
+		if (own) await ctx.db.replace(own._id, fields);
+		const accountId = own?._id ?? (await ctx.db.insert("memberAccounts", fields));
+		await ctx.scheduler.runAfter(0, internal.iam.actions.linkSlack, { accountId });
 	},
 });
 
@@ -82,18 +149,13 @@ export const retry = mutation({
 	handler: async (ctx, { accountId }) => {
 		await requireRole(ctx, adminRoles);
 		const account = await requireAccount(ctx, accountId);
-		const provisioning =
-			(account.stage === "onboarding" || account.stage === "active") && !account.welcomeSentAt;
+		const provisioning = isProvisioning(account);
 		const offboarding = account.stage === "offboarding" || account.stage === "cancelled";
 		if (!provisioning && !offboarding) throw new ConvexError("Det er ingenting å prøve på nytt.");
 		if (!account.lastError) throw new ConvexError("Dette kjører allerede. Vent litt.");
 
 		await ctx.db.patch(accountId, { lastError: undefined, updatedAt: Date.now() });
-		await ctx.scheduler.runAfter(
-			0,
-			provisioning ? internal.iam.actions.provision : internal.iam.actions.offboard,
-			{ accountId },
-		);
+		await runJob(ctx, provisioning ? "provision" : "offboard", accountId);
 	},
 });
 
@@ -102,7 +164,7 @@ export const confirmGoogleAccount = mutation({
 	handler: async (ctx, { accountId }) => {
 		await requireRole(ctx, adminRoles);
 		const account = await requireAccount(ctx, accountId);
-		if (account.stage !== "onboarding" || account.googleOwner === undefined) {
+		if (!isProvisioning(account) || account.googleOwner === undefined) {
 			throw new ConvexError("Det er ingen eksisterende Google-konto å bekrefte.");
 		}
 		await ctx.db.patch(accountId, {
@@ -111,7 +173,7 @@ export const confirmGoogleAccount = mutation({
 			lastError: undefined,
 			updatedAt: Date.now(),
 		});
-		await ctx.scheduler.runAfter(0, internal.iam.actions.provision, { accountId });
+		await runJob(ctx, "provision", accountId);
 	},
 });
 
@@ -131,7 +193,7 @@ export const cancelOnboarding = mutation({
 			updatedAt: Date.now(),
 		});
 		if (account.google === "created") {
-			await ctx.scheduler.runAfter(0, internal.iam.actions.offboard, { accountId });
+			await runJob(ctx, "offboard", accountId);
 		}
 	},
 });

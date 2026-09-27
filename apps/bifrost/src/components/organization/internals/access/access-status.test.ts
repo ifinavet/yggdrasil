@@ -19,7 +19,6 @@ function account(overrides: Partial<AccessAccount>): AccessAccount {
 		google: "pending",
 		welcomeSent: false,
 		slackLinked: false,
-		slackChannelsRemoved: undefined,
 		lastError: undefined,
 		googleOwner: undefined,
 		updatedAt: 0,

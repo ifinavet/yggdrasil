@@ -3,7 +3,8 @@ import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { assignAccessRole, getAssignedAccessRole } from "../auth/accessRights";
-import { accountForEmail } from "./accounts";
+import { accountForEmail, accountForUser } from "./accounts";
+import { runJob } from "./jobs";
 
 export async function usersWithEmail(ctx: QueryCtx, emails: readonly string[]) {
 	const users = await Promise.all(
@@ -50,11 +51,7 @@ export async function startOffboarding(
 	user: Doc<"users"> | null,
 ) {
 	const email = normalizeEmail(user?.email ?? "");
-	const existing =
-		(await ctx.db
-			.query("memberAccounts")
-			.withIndex("by_userId", (q) => q.eq("userId", internalMember.userId))
-			.first()) ?? (email ? await accountForEmail(ctx, email) : null);
+	const existing = await accountForUser(ctx, internalMember.userId, email);
 	const now = Date.now();
 
 	if (existing) {
@@ -64,7 +61,7 @@ export async function startOffboarding(
 			lastError: undefined,
 			updatedAt: now,
 		});
-		await ctx.scheduler.runAfter(0, internal.iam.actions.offboard, { accountId: existing._id });
+		await runJob(ctx, "offboard", existing._id);
 		return;
 	}
 
@@ -79,5 +76,5 @@ export async function startOffboarding(
 		userId: internalMember.userId,
 		updatedAt: now,
 	});
-	await ctx.scheduler.runAfter(0, internal.iam.actions.offboard, { accountId });
+	await runJob(ctx, "offboard", accountId);
 }

@@ -17,10 +17,11 @@ import { Field, FieldError, FieldGroup, FieldLabel } from "@workspace/ui/compone
 import { Input } from "@workspace/ui/components/input";
 import { useMutation } from "convex/react";
 import { ConvexError } from "convex/values";
-import { useEffect, useMemo } from "react";
+import { useEffect, useId, useMemo } from "react";
 import { toast } from "sonner";
 import PositionGroupField from "@/components/common/forms/position-group-field";
 import type { OnboardingPrefill } from "../access/access-status";
+import { type UioUser, UioUserSearch } from "../uio-user-search";
 
 const EMPTY: OnboardingPrefill = { firstName: "", lastName: "", uioEmail: "", workspaceEmail: "" };
 
@@ -84,6 +85,7 @@ export function OnboardMemberDialog({
 	prefill: OnboardingPrefill | null;
 	domain: string | null;
 }>) {
+	const uioLabelId = useId();
 	const startOnboarding = useMutation(api.iam.mutations.startOnboarding);
 	const schema = useMemo(() => onboardingSchema(domain), [domain]);
 
@@ -117,6 +119,15 @@ export function OnboardMemberDialog({
 		form.setFieldValue("workspaceEmail", suggestWorkspaceEmail(firstName, lastName, domain), {
 			dontUpdateMeta: true,
 		});
+	};
+
+	const pickUioUser = (user: UioUser) => {
+		form.setFieldValue("uioEmail", user.email);
+		if (user.firstName && !form.state.values.firstName.trim())
+			form.setFieldValue("firstName", user.firstName);
+		if (user.lastName && !form.state.values.lastName.trim())
+			form.setFieldValue("lastName", user.lastName);
+		suggestWorkspace();
 	};
 
 	return (
@@ -162,15 +173,21 @@ export function OnboardMemberDialog({
 							</form.Field>
 						</div>
 						<form.Field name="uioEmail">
-							{(field) => (
-								<TextField
-									field={field}
-									label="UiO-e-post"
-									type="email"
-									placeholder="brukernavn@uio.no"
-									autoComplete="off"
-								/>
-							)}
+							{(field) => {
+								const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+								return (
+									<Field data-invalid={isInvalid}>
+										<FieldLabel id={uioLabelId}>UiO-e-post</FieldLabel>
+										<UioUserSearch
+											aria-labelledby={uioLabelId}
+											aria-invalid={isInvalid}
+											value={field.state.value}
+											onChange={pickUioUser}
+										/>
+										{isInvalid && <FieldError errors={field.state.meta.errors} />}
+									</Field>
+								);
+							}}
 						</form.Field>
 						<form.Field name="workspaceEmail">
 							{(field) => (

@@ -36,11 +36,16 @@ const requiredName = (message: string) => z.string().trim().min(1, message).max(
 const emailAddress = () =>
 	z.string().trim().toLowerCase().pipe(z.email("Skriv en gyldig e-postadresse."));
 
+export const uioEmailSchema = emailAddress().refine(
+	isUioEmail,
+	"Bruk UiO-adressen, den som slutter på uio.no.",
+);
+
 export function onboardingSchema(domain: string | null) {
 	return z.object({
 		firstName: requiredName("Skriv fornavnet."),
 		lastName: requiredName("Skriv etternavnet."),
-		uioEmail: emailAddress().refine(isUioEmail, "Bruk UiO-adressen, den som slutter på uio.no."),
+		uioEmail: uioEmailSchema,
 		workspaceEmail: emailAddress().refine(
 			(email) => domain === null || domainOf(email) === domain,
 			domain ? `Adressen må slutte på @${domain}.` : "Skriv en gyldig e-postadresse.",

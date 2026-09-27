@@ -133,8 +133,8 @@ export const createColumns = (
 				<AlertDialogContent>
 					<AlertDialogTitle>Fjerne {row.original.fullName}?</AlertDialogTitle>
 					<AlertDialogDescription>
-						Google-kontoen blir suspendert, tilgangen til Bifrost fjernes og personen blir fjernet
-						fra alle Slack-kanaler. Slack-kontoen må du deaktivere selv etterpå.
+						Google-kontoen blir suspendert og tilgangen til Bifrost fjernes. Slack-kontoen må du
+						deaktivere selv etterpå.
 					</AlertDialogDescription>
 					<AlertDialogFooter>
 						<AlertDialogCancel>Avbryt</AlertDialogCancel>

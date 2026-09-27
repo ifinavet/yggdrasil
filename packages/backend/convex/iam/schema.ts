@@ -1,5 +1,5 @@
 import { defineTable } from "convex/server";
-import { v } from "convex/values";
+import { type Infer, v } from "convex/values";
 
 export const accountStages = v.union(
 	v.literal("onboarding"),
@@ -8,6 +8,10 @@ export const accountStages = v.union(
 	v.literal("offboarded"),
 	v.literal("cancelled"),
 );
+
+export function isCurrentStage(stage: Infer<typeof accountStages>) {
+	return stage === "onboarding" || stage === "active" || stage === "offboarding";
+}
 
 export const googleStates = v.union(
 	v.literal("pending"),
@@ -32,11 +36,11 @@ export const iamSchema = {
 		group: v.string(),
 		stage: accountStages,
 		google: googleStates,
+		googleUserId: v.optional(v.string()),
 		googleOwner: v.optional(v.string()),
 		googleConfirmed: v.optional(v.boolean()),
 		welcomeSentAt: v.optional(v.number()),
 		slackUserId: v.optional(v.string()),
-		slackChannelsRemoved: v.optional(v.number()),
 		slackDeactivatedAt: v.optional(v.number()),
 		userId: v.optional(v.id("users")),
 		invitedBy: v.optional(v.id("users")),
