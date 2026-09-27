@@ -2,7 +2,7 @@
 
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
-import { humanReadableFullDateTime } from "@workspace/shared/time";
+import { humanReadableFullDateTime, jobListingLatestDeadline } from "@workspace/shared/time";
 import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
 import { usePostHog } from "posthog-js/react";
@@ -11,14 +11,13 @@ import JobListingForm from "@/components/job-listings/job-listings-form/job-list
 import type { JobListingFormValues } from "@/constants/schemas/job-listing-form-schema";
 
 export default function NewJobListingForm() {
-	const todayMidnight: Date = new Date();
-	todayMidnight.setHours(23, 59, 0, 0);
+	const latestDeadline = new Date(jobListingLatestDeadline(Date.now()));
 
 	const defaultValues: JobListingFormValues = {
 		title: "",
 		teaser: "",
 		description: "",
-		deadline: todayMidnight,
+		deadline: latestDeadline,
 		type: "Sommerjobb",
 		company: {
 			id: "",
@@ -73,6 +72,7 @@ export default function NewJobListingForm() {
 	return (
 		<JobListingForm
 			defaultValues={defaultValues}
+			latestDeadline={latestDeadline}
 			onPrimarySubmitAction={handlePrimaryFormSubmit}
 			onSecondarySubmitAction={handleSecondaryFormSubmit}
 		/>

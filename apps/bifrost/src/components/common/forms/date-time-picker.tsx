@@ -12,6 +12,7 @@ export default function DateTimePicker({
 	field,
 	label,
 	description,
+	latestDate,
 }: Readonly<{
 	field: {
 		name: string;
@@ -28,6 +29,7 @@ export default function DateTimePicker({
 	};
 	label: string;
 	description: string;
+	latestDate?: Date;
 }>) {
 	const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
@@ -85,6 +87,8 @@ export default function DateTimePicker({
 							selected={field.state.value}
 							onSelect={handleDateChange}
 							captionLayout="dropdown"
+							disabled={latestDate ? { after: latestDate } : undefined}
+							endMonth={latestDate}
 						/>
 					</PopoverContent>
 				</Popover>

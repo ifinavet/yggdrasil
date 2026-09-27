@@ -12,6 +12,7 @@ export const jobListingsSchema = {
 		published: v.boolean(),
 		company: v.id("companies"),
 		deadline: v.number(),
+		publishedAt: v.optional(v.number()),
 		...soldProductFields,
 	})
 		.index("by_deadline", ["deadline"])
