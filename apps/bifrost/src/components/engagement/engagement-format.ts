@@ -71,33 +71,26 @@ export function fillShare(registered: number, limit: number) {
 	return limit > 0 ? Math.min(100, (registered / limit) * 100) : 0;
 }
 
-const UNSET_FOOD = "Ikke satt";
-
 function pooledDemand(events: readonly FoodEvent[]) {
 	const seats = events.reduce((sum, event) => sum + event.seats, 0);
 	return seats > 0 ? events.reduce((sum, event) => sum + event.registrations, 0) / seats : null;
 }
 
 export function foodBreakdown(events: readonly FoodEvent[]) {
-	const groups = new Map<string | null, FoodEvent[]>();
+	const groups = new Map<string, { name: string; events: FoodEvent[] }>();
 	for (const event of events) {
-		groups.set(event.foodItem, [...(groups.get(event.foodItem) ?? []), event]);
+		if (event.foodItem === null || event.name === null) continue;
+		const group = groups.get(event.foodItem) ?? { name: event.name, events: [] };
+		group.events.push(event);
+		groups.set(event.foodItem, group);
 	}
 	const foods = [...groups.values()].map((group) => ({
-		name: group[0]?.name ?? null,
-		events: group.length,
-		demand: pooledDemand(group),
+		name: group.name,
+		events: group.events.length,
+		demand: pooledDemand(group.events),
 	}));
-	foods.sort(
-		(a, b) =>
-			b.events - a.events ||
-			Number(a.name === null) - Number(b.name === null) ||
-			nameKey(a.name ?? "").localeCompare(nameKey(b.name ?? ""), "nb"),
-	);
-	return {
-		demand: pooledDemand(events),
-		foods: foods.map((food) => ({ ...food, name: food.name ?? UNSET_FOOD })),
-	};
+	foods.sort((a, b) => b.events - a.events || nameKey(a.name).localeCompare(nameKey(b.name), "nb"));
+	return { demand: pooledDemand(events), foods };
 }
 
 export type FoodBreakdown = ReturnType<typeof foodBreakdown>;
@@ -119,15 +112,24 @@ export function foodDemandBars({ foods }: Pick<FoodBreakdown, "foods">) {
 		.sort((a, b) => b.demand - a.demand);
 }
 
+const MAX_COUNT_TICKS = 8;
+const ROUND_STEPS = [1, 2, 5, 10];
+
+export function countTicks(highest: number) {
+	const rough = Math.max(1, highest / MAX_COUNT_TICKS);
+	const magnitude = 10 ** Math.floor(Math.log10(rough));
+	const step = (ROUND_STEPS.find((factor) => factor * magnitude >= rough) ?? 10) * magnitude;
+	const last = Math.max(step, Math.ceil(highest / step) * step);
+	return Array.from({ length: last / step + 1 }, (_, index) => index * step);
+}
+
 export const FOOD_FEW_EVENTS = 3;
 
 const LABEL_CLEARANCE = { events: 0.1, demand: 0.06 };
 const LABEL_GAP = 8;
 
 export function foodOpportunities({ foods }: Pick<FoodBreakdown, "foods">) {
-	const points = foodDemandBars({ foods }).filter(
-		(food) => food.events >= FOOD_FEW_EVENTS && food.name !== UNSET_FOOD,
-	);
+	const points = foodDemandBars({ foods }).filter((food) => food.events >= FOOD_FEW_EVENTS);
 	const widest = Math.max(1, ...points.map((point) => point.events));
 	return points.map((point) => {
 		const crowded = points.some(

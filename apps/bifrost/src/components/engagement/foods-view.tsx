@@ -13,6 +13,7 @@ import { useQueries } from "convex/react";
 import { useMemo } from "react";
 import { MUTED_SERIES_COLOR, PRIMARY_SERIES_COLOR } from "@/components/common/chart-colors";
 import {
+	countTicks,
 	DEMAND_NOTE,
 	FOOD_DEMAND_NOTE,
 	FOOD_FEW_EVENTS,
@@ -35,10 +36,24 @@ const AXIS_HEIGHT = 48;
 const CHART_WIDTH = 760;
 const DASHED = "5 4";
 const OPPORTUNITY_HEIGHT = 360;
+const TITLES = {
+	distribution: "Arrangementer per mat",
+	demand: `${METRICS.demand.label} per mat`,
+	opportunity: "Mat vi bestiller for sjelden",
+};
 const AVERAGE = { label: "Snitt for alle", color: MUTED_SERIES_COLOR, marker: "dashed" as const };
 
 function chartHeight(rows: number) {
 	return rows * ROW_HEIGHT + AXIS_HEIGHT;
+}
+
+function countAxis(counts: readonly number[]) {
+	const ticks = countTicks(Math.max(0, ...counts));
+	return {
+		scale: scaleLinear().domain([0, ticks.at(-1) ?? 1]),
+		grid: true,
+		axis: { label: "Arrangementer", ticks: { values: ticks } },
+	};
 }
 
 function bandScale() {
@@ -62,7 +77,7 @@ function DistributionChart({ breakdown }: Readonly<{ breakdown: FoodBreakdown }>
 					}),
 				],
 				scales: {
-					x: { scale: scaleLinear, nice: true, grid: true, axis: { label: "Arrangementer" } },
+					x: countAxis(rows.map((row) => row.events)),
 					y: { scale: bandScale, axis: { ticks: { size: 0 } } },
 				},
 				tooltip,
@@ -75,7 +90,7 @@ function DistributionChart({ breakdown }: Readonly<{ breakdown: FoodBreakdown }>
 			definition={definition}
 			height={chartHeight(rows.length)}
 			initialWidth={CHART_WIDTH}
-			ariaLabel="Arrangementer per mat"
+			ariaLabel={TITLES.distribution}
 			ariaDescription={rows.map((row) => `${row.name}: ${row.label}`).join(", ")}
 		/>
 	);
@@ -131,7 +146,7 @@ function DemandChart({ breakdown }: Readonly<{ breakdown: FoodBreakdown }>) {
 			definition={definition}
 			height={chartHeight(rows.length)}
 			initialWidth={CHART_WIDTH}
-			ariaLabel={`${METRICS.demand.label} per mat`}
+			ariaLabel={TITLES.demand}
 			ariaDescription={rows.map((row) => `${row.name}: ${row.label}`).join(", ")}
 		/>
 	);
@@ -163,9 +178,9 @@ function OpportunityChart({ breakdown }: Readonly<{ breakdown: FoodBreakdown }>)
 					}),
 				],
 				scales: {
-					x: { scale: scaleLinear, nice: true, grid: true, axis: { label: "Arrangementer" } },
+					x: countAxis(points.map((point) => point.events)),
 					y: {
-						scale: scaleLinear,
+						scale: scaleLinear().domain([0, Math.max(1, ...points.map((point) => point.demand))]),
 						nice: true,
 						grid: true,
 						axis: { label: METRICS.demand.label, ticks: { format: formatShare } },
@@ -194,7 +209,7 @@ function OpportunityChart({ breakdown }: Readonly<{ breakdown: FoodBreakdown }>)
 			definition={definition}
 			height={OPPORTUNITY_HEIGHT}
 			initialWidth={CHART_WIDTH}
-			ariaLabel="Mat vi bestiller for sjelden"
+			ariaLabel={TITLES.opportunity}
 			ariaDescription={points
 				.map((point) => `${point.name}: ${point.events} arrangementer, ${point.label}`)
 				.join(", ")}
@@ -250,7 +265,7 @@ export function FoodsView({ now }: Readonly<{ now: number }>) {
 
 	return (
 		<div className="grid gap-6">
-			<Panel title="Arrangementer per mat" aside={select}>
+			<Panel title={TITLES.distribution} aside={select}>
 				{!breakdown && <Loading />}
 				{empty && <Empty />}
 				{breakdown && !empty && (
@@ -260,7 +275,7 @@ export function FoodsView({ now }: Readonly<{ now: number }>) {
 				)}
 			</Panel>
 			{breakdown && !empty && (
-				<Panel title={`${METRICS.demand.label} per mat`} aside={<ChartLegend items={[AVERAGE]} />}>
+				<Panel title={TITLES.demand} aside={<ChartLegend items={[AVERAGE]} />}>
 					<PanelBody className="grid gap-3">
 						<DemandChart breakdown={breakdown} />
 						<PanelNote>{DEMAND_NOTE}</PanelNote>
@@ -269,7 +284,7 @@ export function FoodsView({ now }: Readonly<{ now: number }>) {
 				</Panel>
 			)}
 			{breakdown && !empty && (
-				<Panel title="Mat vi bestiller for sjelden" aside={<ChartLegend items={[AVERAGE]} />}>
+				<Panel title={TITLES.opportunity} aside={<ChartLegend items={[AVERAGE]} />}>
 					<PanelBody className="grid gap-3">
 						<OpportunityChart breakdown={breakdown} />
 						<PanelNote>{FOOD_OPPORTUNITY_NOTE}</PanelNote>
