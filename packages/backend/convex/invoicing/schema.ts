@@ -8,6 +8,24 @@ export const invoiceSource = v.union(
 
 export type InvoiceSource = Infer<typeof invoiceSource>;
 
+export const invoicePlan = v.object({
+	customer: v.object({
+		name: v.string(),
+		organizationNumber: v.string(),
+		email: v.optional(v.string()),
+	}),
+	fikenContactId: v.optional(v.number()),
+	invoiceText: v.string(),
+	yourReference: v.optional(v.string()),
+	line: v.object({
+		description: v.string(),
+		unitPrice: v.number(),
+		vatRate: v.number(),
+	}),
+});
+
+export type InvoicePlan = Infer<typeof invoicePlan>;
+
 export const invoiceStatus = v.union(
 	v.literal("scheduled"),
 	v.literal("queued"),
@@ -31,6 +49,7 @@ export const invoicingSchema = {
 		lastError: v.optional(v.string()),
 		queuedAt: v.optional(v.number()),
 		draftCreatedAt: v.optional(v.number()),
+		sentPlan: v.optional(invoicePlan),
 	})
 		.index("by_sourceKey", ["sourceKey"])
 		.index("by_status_and_dueAt", ["status", "dueAt"]),

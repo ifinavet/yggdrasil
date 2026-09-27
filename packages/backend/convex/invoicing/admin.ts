@@ -3,11 +3,10 @@ import type { Doc } from "../_generated/dataModel";
 import { mutation, type QueryCtx, query } from "../_generated/server";
 import { adminRoles, requireRole } from "../auth/accessRights";
 import { orderCompanyName } from "../jobListingOrders/orders";
-import { enqueueInvoice, invoicePlan, resolvePlan } from "./processing";
-import { invoiceStatus } from "./schema";
+import { enqueueInvoice, type Resolution, resolvePlan } from "./processing";
+import { invoicePlan, invoiceStatus } from "./schema";
 
 const LIST_LIMIT = 100;
-const PREVIEW_STATUSES = new Set<Doc<"invoices">["status"]>(["scheduled", "queued", "failed"]);
 const CANCELLABLE_STATUSES = new Set<Doc<"invoices">["status"]>(["scheduled", "failed"]);
 
 const invoiceSummary = v.object({
@@ -19,6 +18,7 @@ const invoiceSummary = v.object({
 	status: invoiceStatus,
 	fikenDraftId: v.optional(v.number()),
 	lastError: v.optional(v.string()),
+	amountOre: v.optional(v.number()),
 });
 
 const invoicePreview = v.union(
@@ -37,7 +37,15 @@ async function companyNameOf(ctx: QueryCtx, invoice: Doc<"invoices">): Promise<s
 	return application?.registry.name ?? "";
 }
 
-async function summarize(ctx: QueryCtx, invoice: Doc<"invoices">) {
+async function previewOf(ctx: QueryCtx, invoice: Doc<"invoices">): Promise<Resolution | null> {
+	if (invoice.status === "draft_created") {
+		return invoice.sentPlan ? { kind: "ready", plan: invoice.sentPlan } : null;
+	}
+	const resolution = await resolvePlan(ctx, invoice);
+	return invoice.status === "cancelled" && resolution.kind !== "ready" ? null : resolution;
+}
+
+async function summarize(ctx: QueryCtx, invoice: Doc<"invoices">, preview: Resolution | null) {
 	return {
 		_id: invoice._id,
 		kind: invoice.source.kind,
@@ -47,6 +55,7 @@ async function summarize(ctx: QueryCtx, invoice: Doc<"invoices">) {
 		status: invoice.status,
 		fikenDraftId: invoice.fikenDraftId,
 		lastError: invoice.lastError,
+		amountOre: preview?.kind === "ready" ? preview.plan.line.unitPrice : undefined,
 	};
 }
 
@@ -56,7 +65,9 @@ export const list = query({
 	handler: async (ctx) => {
 		await requireRole(ctx, adminRoles);
 		const invoices = await ctx.db.query("invoices").order("desc").take(LIST_LIMIT);
-		return await Promise.all(invoices.map((invoice) => summarize(ctx, invoice)));
+		return await Promise.all(
+			invoices.map(async (invoice) => summarize(ctx, invoice, await previewOf(ctx, invoice))),
+		);
 	},
 });
 
@@ -75,11 +86,12 @@ export const get = query({
 		await requireRole(ctx, adminRoles);
 		const invoice = await ctx.db.get(invoiceId);
 		if (!invoice) return null;
+		const preview = await previewOf(ctx, invoice);
 		return {
-			invoice: await summarize(ctx, invoice),
+			invoice: await summarize(ctx, invoice, preview),
 			attempts: invoice.attempts,
 			draftCreatedAt: invoice.draftCreatedAt,
-			preview: PREVIEW_STATUSES.has(invoice.status) ? await resolvePlan(ctx, invoice) : null,
+			preview,
 		};
 	},
 });

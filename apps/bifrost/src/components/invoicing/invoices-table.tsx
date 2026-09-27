@@ -1,6 +1,7 @@
 "use client";
 
 import { api } from "@workspace/backend/convex/api";
+import { formatNokFromOre } from "@workspace/shared/products";
 import {
 	Table,
 	TableBody,
@@ -13,6 +14,7 @@ import { useQuery } from "convex/react";
 import Link from "next/link";
 import { LIST_CELL, LIST_HEAD } from "@/components/common/table-classes";
 import { formatInvoiceDate, KIND_LABELS } from "./invoice-labels";
+import { InvoiceNextStep } from "./invoice-next-step";
 import { INVOICE_ROUTES } from "./invoice-routes";
 import { InvoiceStatusBadge } from "./invoice-status-badge";
 import { RetryInvoiceButton } from "./retry-invoice-button";
@@ -33,6 +35,7 @@ export function InvoicesTable() {
 					<TableHead className={LIST_HEAD}>Gjelder</TableHead>
 					<TableHead className={LIST_HEAD}>Levert</TableHead>
 					<TableHead className={LIST_HEAD}>Faktureres</TableHead>
+					<TableHead className={LIST_HEAD}>Beløp eks. mva</TableHead>
 					<TableHead className={LIST_HEAD}>Status</TableHead>
 				</TableRow>
 			</TableHeader>
@@ -47,6 +50,9 @@ export function InvoicesTable() {
 						<TableCell className={LIST_CELL}>{KIND_LABELS[invoice.kind]}</TableCell>
 						<TableCell className={LIST_CELL}>{formatInvoiceDate(invoice.serviceAt)}</TableCell>
 						<TableCell className={LIST_CELL}>{formatInvoiceDate(invoice.dueAt)}</TableCell>
+						<TableCell className={`${LIST_CELL} tabular-nums`}>
+							{invoice.amountOre === undefined ? "" : formatNokFromOre(invoice.amountOre)}
+						</TableCell>
 						<TableCell className={`${LIST_CELL} whitespace-normal`}>
 							<div className="flex flex-wrap items-center gap-2">
 								<InvoiceStatusBadge invoice={invoice} />
@@ -55,6 +61,7 @@ export function InvoicesTable() {
 							{invoice.lastError && invoice.status !== "draft_created" && (
 								<p className="mt-1 max-w-md text-muted-foreground text-xs">{invoice.lastError}</p>
 							)}
+							<InvoiceNextStep status={invoice.status} className="mt-1 max-w-md text-xs" />
 						</TableCell>
 					</TableRow>
 				))}

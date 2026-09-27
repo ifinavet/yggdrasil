@@ -21,6 +21,15 @@ export const STATUS_BADGES: Record<
 	cancelled: { label: "Avbrutt", variant: "outline" },
 };
 
+export const NEXT_STEPS: Record<InvoiceSummary["status"], { label: string; needsAction: boolean }> =
+	{
+		scheduled: { label: "Ingen handling. Utkastet lages i Fiken automatisk.", needsAction: false },
+		queued: { label: "Ingen handling. Utkastet lages i Fiken nå.", needsAction: false },
+		draft_created: { label: "Kontroller utkastet og send fakturaen fra Fiken.", needsAction: true },
+		failed: { label: "Rett feilen og prøv igjen, eller avbryt fakturaen.", needsAction: true },
+		cancelled: { label: "Ingen handling. Fakturaen sendes ikke.", needsAction: false },
+	};
+
 export function formatInvoiceDate(timestamp: number) {
 	return formatOsloDate(timestamp, DATE_PATTERNS.numericDate);
 }

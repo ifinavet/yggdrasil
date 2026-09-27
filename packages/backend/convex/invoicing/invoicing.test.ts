@@ -809,18 +809,58 @@ describe("admin", () => {
 		expect(detail?.preview).toEqual({ kind: "cancel" });
 	});
 
-	it("keeps the preview out of a created draft", async () => {
+	it("shows what a created draft sent to Fiken, even after the order changes", async () => {
 		const f = await fixture();
-		await approvedOrder(f);
+		const orderId = await approvedOrder(f);
 		stubFiken();
 		await runSweep(f.t, invoiceDueAt(NOW));
 		const invoice = await onlyInvoice(f.t);
+		await f.t.run((ctx) => ctx.db.patch(orderId, { status: "rejected", priceOre: 1 }));
 
 		expect(invoice.draftCreatedAt).toBeGreaterThanOrEqual(invoiceDueAt(NOW));
 		expect(await f.admin.query(api.invoicing.admin.get, { invoiceId: invoice._id })).toMatchObject({
-			invoice: { status: "draft_created", fikenDraftId: 901 },
+			invoice: { status: "draft_created", fikenDraftId: 901, amountOre: 550_000 },
 			attempts: 1,
 			draftCreatedAt: invoice.draftCreatedAt,
+			preview: {
+				kind: "ready",
+				plan: {
+					customer: { name: "Testbedrift", organizationNumber: "123456789" },
+					line: { description: "Stillingsannonse (2 stk.)", unitPrice: 550_000, vatRate: 25 },
+				},
+			},
+		});
+	});
+
+	it("has no preview for a draft created without a stored plan", async () => {
+		const f = await fixture();
+		await approvedOrder(f);
+		const invoice = await onlyInvoice(f.t);
+		await f.t.run((ctx) => ctx.db.patch(invoice._id, { status: "draft_created", fikenDraftId: 5 }));
+
+		const detail = await f.admin.query(api.invoicing.admin.get, { invoiceId: invoice._id });
+		expect(detail?.preview).toBeNull();
+		expect(detail?.invoice.amountOre).toBeUndefined();
+	});
+
+	it("lists the amount each invoice bills", async () => {
+		const f = await fixture();
+		const orderId = await approvedOrder(f);
+		const invoice = await onlyInvoice(f.t);
+
+		expect(await f.admin.query(api.invoicing.admin.list, {})).toEqual([
+			expect.objectContaining({ amountOre: 550_000 }),
+		]);
+
+		await f.admin.mutation(api.invoicing.admin.cancel, { invoiceId: invoice._id });
+		expect(await f.admin.query(api.invoicing.admin.list, {})).toEqual([
+			expect.objectContaining({ status: "cancelled", amountOre: 550_000 }),
+		]);
+
+		await f.t.run((ctx) => ctx.db.patch(orderId, { status: "rejected" }));
+		const [withdrawn] = await f.admin.query(api.invoicing.admin.list, {});
+		expect(withdrawn?.amountOre).toBeUndefined();
+		expect(await f.admin.query(api.invoicing.admin.get, { invoiceId: invoice._id })).toMatchObject({
 			preview: null,
 		});
 	});

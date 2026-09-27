@@ -1,7 +1,7 @@
 import { Workpool } from "@convex-dev/workpool";
 import { DEFAULT_VAT_RATE } from "@workspace/shared/products";
 import { HOUR_MS, invoiceDueAt, osloToday } from "@workspace/shared/time";
-import { type Infer, v } from "convex/values";
+import { v } from "convex/values";
 import { components, internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import {
@@ -22,6 +22,7 @@ import {
 	findCustomerId,
 	vatTypeFor,
 } from "./fiken";
+import { type InvoicePlan, invoicePlan } from "./schema";
 
 const MAX_ATTEMPTS = 3;
 const SWEEP_BATCH = 50;
@@ -29,24 +30,6 @@ const DAYS_UNTIL_DUE = 14;
 const DESCRIPTION_MAX_LENGTH = 200;
 
 export const fikenPool = new Workpool(components.fikenWorkpool, { maxParallelism: 1 });
-
-export const invoicePlan = v.object({
-	customer: v.object({
-		name: v.string(),
-		organizationNumber: v.string(),
-		email: v.optional(v.string()),
-	}),
-	fikenContactId: v.optional(v.number()),
-	invoiceText: v.string(),
-	yourReference: v.optional(v.string()),
-	line: v.object({
-		description: v.string(),
-		unitPrice: v.number(),
-		vatRate: v.number(),
-	}),
-});
-
-export type InvoicePlan = Infer<typeof invoicePlan>;
 
 export type Resolution =
 	| { kind: "ready"; plan: InvoicePlan }
@@ -195,11 +178,12 @@ export const recordContact = internalMutation({
 });
 
 export const recordDraft = internalMutation({
-	args: { invoiceId: v.id("invoices"), fikenDraftId: v.number() },
-	handler: async (ctx, { invoiceId, fikenDraftId }) => {
+	args: { invoiceId: v.id("invoices"), fikenDraftId: v.number(), sentPlan: invoicePlan },
+	handler: async (ctx, { invoiceId, fikenDraftId, sentPlan }) => {
 		await ctx.db.patch(invoiceId, {
 			status: "draft_created",
 			fikenDraftId,
+			sentPlan,
 			draftCreatedAt: Date.now(),
 			lastError: undefined,
 		});
@@ -263,7 +247,12 @@ export const createDraft = internalAction({
 					},
 				],
 			});
-			await ctx.runMutation(internal.invoicing.processing.recordDraft, { invoiceId, fikenDraftId });
+			const { fikenContactId: _, ...sentPlan } = plan;
+			await ctx.runMutation(internal.invoicing.processing.recordDraft, {
+				invoiceId,
+				fikenDraftId,
+				sentPlan,
+			});
 		} catch (error) {
 			await ctx.runMutation(internal.invoicing.processing.recordFailure, {
 				invoiceId,

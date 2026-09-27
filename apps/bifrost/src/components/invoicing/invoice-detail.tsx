@@ -9,6 +9,7 @@ import type { FunctionReturnType } from "convex/server";
 import type { ReactNode } from "react";
 import { CancelInvoiceButton } from "./cancel-invoice-button";
 import { formatInvoiceDate, KIND_LABELS } from "./invoice-labels";
+import { InvoiceNextStep } from "./invoice-next-step";
 import { InvoiceStatusBadge } from "./invoice-status-badge";
 import { InvoicingBreadcrumb } from "./invoicing-breadcrumb";
 import { RetryInvoiceButton } from "./retry-invoice-button";
@@ -81,6 +82,9 @@ export function InvoiceDetail({ id }: Readonly<{ id: Id<"invoices"> }>) {
 			<Panel className="max-w-3xl">
 				<PanelBody>
 					<dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-[max-content_1fr]">
+						<Detail label="Neste steg">
+							<InvoiceNextStep status={invoice.status} />
+						</Detail>
 						<Detail label="Gjelder">{KIND_LABELS[invoice.kind]}</Detail>
 						<Detail label="Levert">{formatInvoiceDate(invoice.serviceAt)}</Detail>
 						{draftCreatedAt && (
