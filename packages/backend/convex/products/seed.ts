@@ -1,8 +1,15 @@
+import { MAX_LISTINGS_PER_ORDER } from "@workspace/shared/job-listing-orders";
 import { DEFAULT_VAT_RATE, kronerToOre, type ProductCategory } from "@workspace/shared/products";
 import type { WithoutSystemFields } from "convex/server";
 import type { Doc } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx } from "../_generated/server";
 import { diffProduct, recordChange } from "./helpers";
+
+function jobListingUnitKroner(quantity: number): number {
+	if (quantity >= 4) return 2_000;
+	if (quantity >= 2) return 2_500;
+	return 3_000;
+}
 
 export const SEED_PRODUCT_NAMES = {
 	largeEvent: "Stor bedriftspresentasjon",
@@ -74,11 +81,10 @@ export const SEED_PRODUCTS: readonly SeedProduct[] = [
 		shortDescription: "",
 		longDescription: "",
 		category: "job_listing",
-		volumeTiers: [
-			{ quantity: 1, totalPriceOre: kronerToOre(3_000) },
-			{ quantity: 2, totalPriceOre: kronerToOre(5_500) },
-			{ quantity: 3, totalPriceOre: kronerToOre(7_500) },
-		],
+		volumeTiers: Array.from({ length: MAX_LISTINGS_PER_ORDER }, (_, index) => {
+			const quantity = index + 1;
+			return { quantity, totalPriceOre: kronerToOre(jobListingUnitKroner(quantity) * quantity) };
+		}),
 		startupPriceOre: kronerToOre(500),
 	},
 ];

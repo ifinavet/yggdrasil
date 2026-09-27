@@ -1,3 +1,4 @@
+import { tierTotalOre } from "@workspace/shared/products";
 import { describe, expect, it } from "vitest";
 import {
 	asUser,
@@ -280,6 +281,11 @@ describe("products", () => {
 			["Eksterne arrangementer", 1_500_000],
 			["Stillingsannonse", undefined],
 		]);
+
+		const listing = expectDefined(products.find((product) => product.name === "Stillingsannonse"));
+		expect(
+			[1, 2, 3, 4, 5, 10].map((quantity) => tierTotalOre(listing.volumeTiers ?? [], quantity)),
+		).toEqual([300_000, 500_000, 750_000, 800_000, 1_000_000, 2_000_000]);
 
 		const seeded = products[0] as (typeof products)[number];
 		const { changes } = expectDefined(
