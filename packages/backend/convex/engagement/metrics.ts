@@ -83,9 +83,8 @@ export function isSimilarCapacity(limit: number, otherLimit: number) {
 export function projectFill(currentFill: number, progress: number, baseline: number[] | null) {
 	if (progress <= 0) return currentFill;
 	if (!baseline) return Math.min(1, currentFill / progress);
-	const expectedNow = valueAt(baseline, progress);
-	if (expectedNow <= 0) return currentFill;
-	return Math.min(1, (currentFill * (baseline.at(-1) as number)) / expectedNow);
+	const remaining = (baseline.at(-1) as number) - valueAt(baseline, progress);
+	return Math.min(1, currentFill + Math.max(0, remaining));
 }
 
 export function seatDelta(entries: readonly LogEntry[]) {

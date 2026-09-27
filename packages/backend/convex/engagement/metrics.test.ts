@@ -134,12 +134,19 @@ describe("projectFill", () => {
 		expect(projectFill(0.8, 0.5, null)).toBe(1);
 	});
 
-	it("scales the baseline end fill by the current ratio", () => {
-		expect(projectFill(0.2, 0.5, linearCurve(0.8))).toBeCloseTo(0.4);
+	it("adds the growth the baseline still has ahead", () => {
+		expect(projectFill(0.2, 0.5, linearCurve(0.8))).toBeCloseTo(0.6);
 	});
 
-	it("returns the current fill when the baseline expects nothing yet", () => {
+	it("stays stable when the baseline has barely started", () => {
+		expect(projectFill(0.05, 0.0001, linearCurve(0.5))).toBeCloseTo(0.55 - 0.00005);
+	});
+
+	it("never projects below the current fill or above capacity", () => {
+		const shrinking = PACE_GRID.map((progress) => 0.8 - 0.2 * progress);
+		expect(projectFill(0.3, 0.5, shrinking)).toBe(0.3);
 		expect(projectFill(0.1, 0.5, linearCurve(0))).toBe(0.1);
+		expect(projectFill(0.9, 0.5, linearCurve(1))).toBe(1);
 	});
 });
 
