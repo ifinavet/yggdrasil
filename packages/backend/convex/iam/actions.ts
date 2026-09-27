@@ -121,9 +121,14 @@ async function ensureGoogleAccount(ctx: ActionCtx, account: Account) {
 	if (!config) throw new Error("Google Workspace er ikke koblet til ennå.");
 	const google = googleClient(config);
 	const password = temporaryPassword();
+	const recoveryEmail = account.uioEmail;
 
 	if (account.google === "created") {
-		const found = await google.updateUser(googleKey(account), { password, suspended: false });
+		const found = await google.updateUser(googleKey(account), {
+			password,
+			suspended: false,
+			recoveryEmail,
+		});
 		if (!found) throw new Error("Kontoen vi opprettet finnes ikke lenger i Google Workspace.");
 		await rememberGoogleUser(ctx, account, found);
 		return { state: "created" as const, password };
@@ -134,6 +139,7 @@ async function ensureGoogleAccount(ctx: ActionCtx, account: Account) {
 		firstName: account.firstName,
 		lastName: account.lastName,
 		password,
+		recoveryEmail,
 	});
 	if (result !== "exists") {
 		await rememberGoogleUser(ctx, account, result);
@@ -155,10 +161,11 @@ async function ensureGoogleAccount(ctx: ActionCtx, account: Account) {
 	if (inUseBySamePerson) return { state: "existing" as const, password: undefined };
 	if (!account.googleConfirmed) throw new UnconfirmedGoogleAccount(existing.name);
 	if (existing.hasSignedIn) {
-		if (existing.suspended) await google.updateUser(existing.id, { suspended: false });
+		if (existing.suspended)
+			await google.updateUser(existing.id, { suspended: false, recoveryEmail });
 		return { state: "existing" as const, password: undefined };
 	}
-	await google.updateUser(existing.id, { password, suspended: false });
+	await google.updateUser(existing.id, { password, suspended: false, recoveryEmail });
 	return { state: "existing" as const, password };
 }
 

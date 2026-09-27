@@ -69,6 +69,12 @@ function sentEmail() {
 	return options as { to: string; html: string; replyTo?: string[] };
 }
 
+function googleWrites() {
+	return directories.calls.filter(
+		(call) => call.url.startsWith("https://admin.googleapis.com") && call.method !== "GET",
+	);
+}
+
 function clerkUser(externalId: string, email: string): UserJSON {
 	return {
 		id: externalId,
@@ -82,6 +88,14 @@ function clerkUser(externalId: string, email: string): UserJSON {
 }
 
 describe("starting onboarding", () => {
+	it("lets a new member recover their Google password through the UiO address", async () => {
+		await onboard();
+
+		expect(googleWrites()).toMatchObject([
+			{ method: "POST", body: { recoveryEmail: newMember.uioEmail } },
+		]);
+	});
+
 	it("refuses members without an admin role", async () => {
 		const member = await insertUser(t, "intern@ifinavet.no");
 		await grantRole(t, member._id, "internal");
@@ -196,6 +210,18 @@ describe("starting onboarding", () => {
 		expect(password).not.toBe("ukjent");
 		expect(sentEmail().html).toContain(password);
 		expect(await account(accountId)).toMatchObject({ google: "existing" });
+	});
+
+	it("sets the UiO address for recovery once an admin confirms taking over an account", async () => {
+		directories.google.set(newMember.workspaceEmail, { name: "Kari Nordmann", suspended: false });
+		const { accountId } = await onboard();
+		expect(googleWrites().filter((call) => call.method === "PATCH")).toEqual([]);
+
+		await confirm(accountId);
+
+		expect(googleWrites().filter((call) => call.method === "PATCH")).toMatchObject([
+			{ body: { recoveryEmail: newMember.uioEmail } },
+		]);
 	});
 
 	it("never reopens a suspended account that belongs to someone else on its own", async () => {

@@ -84,6 +84,7 @@ export function googleClient(config: GoogleConfig) {
 			firstName: string;
 			lastName: string;
 			password: string;
+			recoveryEmail?: string;
 		}): Promise<GoogleUser | "exists"> {
 			const response = await call("", {
 				method: "POST",
@@ -92,6 +93,7 @@ export function googleClient(config: GoogleConfig) {
 					name: { givenName: user.firstName, familyName: user.lastName },
 					password: user.password,
 					changePasswordAtNextLogin: true,
+					recoveryEmail: user.recoveryEmail,
 				}),
 			});
 			if (response.status === 409) return "exists";
@@ -108,7 +110,7 @@ export function googleClient(config: GoogleConfig) {
 
 		async updateUser(
 			key: string,
-			fields: Readonly<{ suspended?: boolean; password?: string }>,
+			fields: Readonly<{ suspended?: boolean; password?: string; recoveryEmail?: string }>,
 		): Promise<GoogleUser | null> {
 			const response = await call(`/${encodeURIComponent(key)}`, {
 				method: "PATCH",
