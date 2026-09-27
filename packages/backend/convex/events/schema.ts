@@ -46,7 +46,8 @@ export const eventsSchema = {
 		role: organizerRoleValidator,
 	})
 		.index("by_eventId", ["eventId"])
-		.index("by_eventId_and_userId", ["eventId", "userId"]),
+		.index("by_eventId_and_userId", ["eventId", "userId"])
+		.index("by_userId", ["userId"]),
 
 	registrations: defineTable({
 		eventId: v.id("events"),

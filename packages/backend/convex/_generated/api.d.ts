@@ -80,6 +80,8 @@ import type * as jobListingOrders_settings from "../jobListingOrders/settings.js
 import type * as jobListingOrders_submit from "../jobListingOrders/submit.js";
 import type * as jobListings_mutations from "../jobListings/mutations.js";
 import type * as jobListings_queries from "../jobListings/queries.js";
+import type * as leaderboard_queries from "../leaderboard/queries.js";
+import type * as leaderboard_ranking from "../leaderboard/ranking.js";
 import type * as lib_tokens from "../lib/tokens.js";
 import type * as lib_validators from "../lib/validators.js";
 import type * as migrations from "../migrations.js";
@@ -202,6 +204,8 @@ declare const fullApi: ApiFromModules<{
   "jobListingOrders/submit": typeof jobListingOrders_submit;
   "jobListings/mutations": typeof jobListings_mutations;
   "jobListings/queries": typeof jobListings_queries;
+  "leaderboard/queries": typeof leaderboard_queries;
+  "leaderboard/ranking": typeof leaderboard_ranking;
   "lib/tokens": typeof lib_tokens;
   "lib/validators": typeof lib_validators;
   migrations: typeof migrations;

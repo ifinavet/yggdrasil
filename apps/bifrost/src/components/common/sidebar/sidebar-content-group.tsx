@@ -22,6 +22,7 @@ import {
 	GitForkIcon,
 	type LucideIcon,
 	TrendingUpIcon,
+	TrophyIcon,
 	UsersIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -52,6 +53,11 @@ const paths = {
 			icon: TrendingUpIcon,
 			path: "/engasjement",
 			feature: "engagement",
+		},
+		{
+			title: "Leaderboard",
+			icon: TrophyIcon,
+			path: "/leaderboard",
 		},
 		{
 			title: "Resurser",

@@ -18,6 +18,7 @@ export default defineConfig({
 				"convex/products/{helpers,mutations,queries,seed,sales,migrations,stats,tagging}.ts",
 				"convex/engagement/{alerts,audience,backfill,snapshot,log}.ts",
 				"convex/users/students/migrations.ts",
+				"convex/leaderboard/{queries,ranking}.ts",
 			],
 			thresholds: { 100: true },
 		},
