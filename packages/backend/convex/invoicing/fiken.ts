@@ -17,6 +17,7 @@ export type FikenDraftLine = {
 };
 
 export type FikenDraft = {
+	uuid: string;
 	customerId: number;
 	issueDate: string;
 	daysUntilDueDate: number;
@@ -96,6 +97,24 @@ export async function createCustomer(config: FikenConfig, contact: FikenContact)
 		body: JSON.stringify({ ...contact, customer: true }),
 	});
 	return createdId(response);
+}
+
+export async function draftUuid(key: string): Promise<string> {
+	const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(key));
+	const hex = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join(
+		"",
+	);
+	const variant = ((Number.parseInt(hex.slice(16, 17), 16) & 0x3) | 0x8).toString(16);
+	return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-5${hex.slice(13, 16)}-${variant}${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
+}
+
+export async function findInvoiceDraftId(
+	config: FikenConfig,
+	uuid: string,
+): Promise<number | null> {
+	const response = await request(config, `/invoices/drafts?${new URLSearchParams({ uuid })}`);
+	const drafts = (await response.json()) as { draftId: number }[];
+	return drafts[0]?.draftId ?? null;
 }
 
 export async function createInvoiceDraft(config: FikenConfig, draft: FikenDraft): Promise<number> {

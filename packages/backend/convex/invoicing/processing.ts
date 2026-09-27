@@ -14,12 +14,14 @@ import {
 import {
 	createCustomer,
 	createInvoiceDraft,
+	draftUuid,
 	type FikenConfig,
 	type FikenContact,
 	FikenError,
 	fikenConfig,
 	fikenConfigured,
 	findCustomerId,
+	findInvoiceDraftId,
 	vatTypeFor,
 } from "./fiken";
 import { type InvoicePlan, invoicePlan } from "./schema";
@@ -232,21 +234,25 @@ export const createDraft = internalAction({
 			const vatType = vatTypeFor(plan.line.vatRate);
 			const customerId =
 				plan.fikenContactId ?? (await resolveCustomer(ctx, invoiceId, config, plan.customer));
-			const fikenDraftId = await createInvoiceDraft(config, {
-				customerId,
-				issueDate: osloToday(Date.now()),
-				daysUntilDueDate: DAYS_UNTIL_DUE,
-				invoiceText: plan.invoiceText,
-				yourReference: plan.yourReference,
-				lines: [
-					{
-						description: plan.line.description.slice(0, DESCRIPTION_MAX_LENGTH),
-						unitPrice: plan.line.unitPrice,
-						quantity: 1,
-						vatType,
-					},
-				],
-			});
+			const uuid = await draftUuid(invoiceId);
+			const fikenDraftId =
+				(await findInvoiceDraftId(config, uuid)) ??
+				(await createInvoiceDraft(config, {
+					uuid,
+					customerId,
+					issueDate: osloToday(Date.now()),
+					daysUntilDueDate: DAYS_UNTIL_DUE,
+					invoiceText: plan.invoiceText,
+					yourReference: plan.yourReference,
+					lines: [
+						{
+							description: plan.line.description.slice(0, DESCRIPTION_MAX_LENGTH),
+							unitPrice: plan.line.unitPrice,
+							quantity: 1,
+							vatType,
+						},
+					],
+				}));
 			const { fikenContactId: _, ...sentPlan } = plan;
 			await ctx.runMutation(internal.invoicing.processing.recordDraft, {
 				invoiceId,

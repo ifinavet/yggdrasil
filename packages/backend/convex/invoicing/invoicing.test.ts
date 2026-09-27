@@ -15,6 +15,7 @@ import {
 import { api, internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { orderResend } from "../jobListingOrders/emails";
+import { draftUuid } from "./fiken";
 
 const BASE_URL = "https://fiken.test/api/v2";
 const NOW = Date.parse("2027-01-10T10:00:00Z");
@@ -27,6 +28,7 @@ type FikenReply = Response | Error;
 type FikenStub = {
 	contacts?: () => FikenReply;
 	createContact?: () => FikenReply;
+	drafts?: () => FikenReply;
 	createDraft?: () => FikenReply;
 };
 
@@ -49,7 +51,9 @@ function stubFiken(stub: FikenStub = {}) {
 			});
 			const reply =
 				method === "GET"
-					? (stub.contacts?.() ?? Response.json([]))
+					? path === "/invoices/drafts"
+						? (stub.drafts?.() ?? Response.json([]))
+						: (stub.contacts?.() ?? Response.json([]))
 					: path === "/contacts"
 						? (stub.createContact?.() ?? created("/companies/navet/contacts/77"))
 						: (stub.createDraft?.() ?? created("/companies/navet/invoices/drafts/901"));
@@ -198,6 +202,7 @@ describe("job listing orders", () => {
 	it("creates the customer and a draft in Fiken once the invoice is due", async () => {
 		const f = await fixture();
 		await approvedOrder(f);
+		const uuid = await draftUuid((await onlyInvoice(f.t))._id);
 		const calls = stubFiken();
 
 		expect(await runSweep(f.t, invoiceDueAt(NOW) - 1)).toBe(0);
@@ -222,11 +227,13 @@ describe("job listing orders", () => {
 					customer: true,
 				},
 			},
+			{ method: "GET", path: `/invoices/drafts?uuid=${uuid}`, body: undefined },
 			{
 				method: "POST",
 				path: "/invoices/drafts",
 				body: {
 					type: "invoice",
+					uuid,
 					customerId: 77,
 					issueDate: "2027-02-10",
 					daysUntilDueDate: 14,
@@ -259,11 +266,8 @@ describe("job listing orders", () => {
 
 		await runSweep(f.t, invoiceDueAt(NOW));
 
-		expect(calls.map((call) => call.path)).toEqual([
-			"/contacts?organizationNumber=123456789&customer=true",
-			"/invoices/drafts",
-		]);
-		expect(calls[1]?.body).toMatchObject({ customerId: 55 });
+		expect(calls.map((call) => call.method)).toEqual(["GET", "GET", "POST"]);
+		expect(calls.at(-1)?.body).toMatchObject({ customerId: 55 });
 		expect(await onlyInvoice(f.t)).toMatchObject({ status: "draft_created", fikenContactId: 55 });
 	});
 
@@ -284,7 +288,7 @@ describe("job listing orders", () => {
 			name: "TESTBEDRIFT AS",
 			email: "regnskap@testbedrift.no",
 		});
-		expect(calls[2]?.body).toMatchObject({ yourReference: "Kari" });
+		expect(calls.at(-1)?.body).toMatchObject({ yourReference: "Kari" });
 	});
 
 	it("uses the default VAT rate when the product is gone", async () => {
@@ -298,7 +302,9 @@ describe("job listing orders", () => {
 
 		await runSweep(f.t, invoiceDueAt(NOW));
 
-		expect(calls[2]?.body).toMatchObject({ lines: [expect.objectContaining({ vatType: "HIGH" })] });
+		expect(calls.at(-1)?.body).toMatchObject({
+			lines: [expect.objectContaining({ vatType: "HIGH" })],
+		});
 	});
 
 	it("cancels the invoice when the order is no longer published", async () => {
@@ -369,7 +375,7 @@ describe("company presentations", () => {
 			email: "faktura@fjordkode.no",
 			customer: true,
 		});
-		expect(calls[2]?.body).toMatchObject({
+		expect(calls.at(-1)?.body).toMatchObject({
 			invoiceText: "Bedriftspresentasjon med Testbedrift, 2027-02-09",
 			lines: [
 				{
@@ -396,7 +402,7 @@ describe("company presentations", () => {
 
 		await runSweep(f.t, invoiceDueAt(EVENT_START));
 
-		expect(calls[2]?.body).toMatchObject({
+		expect(calls.at(-1)?.body).toMatchObject({
 			lines: [
 				{
 					description: "Bedpres med rabatt",
@@ -564,6 +570,32 @@ describe("failures", () => {
 			status: "scheduled",
 			lastError: "Fiken svarte ikke: TypeError: fetch failed",
 		});
+	});
+
+	it("reuses the draft Fiken made when its reply was lost", async () => {
+		const f = await fixture();
+		await approvedOrder(f);
+		const lost = stubFiken({ createDraft: () => new TypeError("fetch failed") });
+		await runSweep(f.t, invoiceDueAt(NOW));
+		const first = await onlyInvoice(f.t);
+		expect(first).toMatchObject({ status: "scheduled" });
+
+		const retry = stubFiken({ drafts: () => Response.json([{ draftId: 902 }]) });
+		await runSweep(f.t, first.dueAt);
+
+		const uuid = lost.at(-1)?.body?.uuid;
+		expect(retry).toEqual([
+			{ method: "GET", path: `/invoices/drafts?uuid=${uuid}`, body: undefined },
+		]);
+		expect(await onlyInvoice(f.t)).toMatchObject({ status: "draft_created", fikenDraftId: 902 });
+	});
+
+	it("derives one valid draft UUID per invoice", async () => {
+		const uuid = await draftUuid("invoice-a");
+
+		expect(uuid).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+		expect(await draftUuid("invoice-a")).toBe(uuid);
+		expect(await draftUuid("invoice-b")).not.toBe(uuid);
 	});
 
 	it("fails at once when Fiken rejects the request", async () => {
@@ -756,7 +788,7 @@ describe("admin", () => {
 		await f.admin.mutation(api.invoicing.admin.retry, { invoiceId: failed._id });
 		await f.t.finishAllScheduledFunctions(vi.runAllTimers);
 
-		expect(calls.map((call) => call.path)).toEqual(["/invoices/drafts"]);
+		expect(calls.map((call) => call.method)).toEqual(["GET", "POST"]);
 		const retried = await onlyInvoice(f.t);
 		expect(retried).toMatchObject({ status: "draft_created", attempts: 1 });
 		expect(retried.lastError).toBeUndefined();
