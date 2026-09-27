@@ -88,16 +88,15 @@ export function foodBreakdown(events: readonly FoodEvent[]) {
 		events: group.length,
 		demand: pooledDemand(group),
 	}));
+	foods.sort(
+		(a, b) =>
+			b.events - a.events ||
+			Number(a.name === null) - Number(b.name === null) ||
+			nameKey(a.name ?? "").localeCompare(nameKey(b.name ?? ""), "nb"),
+	);
 	return {
 		demand: pooledDemand(events),
-		foods: foods
-			.sort(
-				(a, b) =>
-					b.events - a.events ||
-					Number(a.name === null) - Number(b.name === null) ||
-					nameKey(a.name ?? "").localeCompare(nameKey(b.name ?? ""), "nb"),
-			)
-			.map((food) => ({ ...food, name: food.name ?? UNSET_FOOD })),
+		foods: foods.map((food) => ({ ...food, name: food.name ?? UNSET_FOOD })),
 	};
 }
 
