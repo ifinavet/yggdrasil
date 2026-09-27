@@ -236,6 +236,51 @@ describe("adding a UiO address to an existing internal member", () => {
 		).toBe("perha@uio.no er allerede internt medlem.");
 	});
 
+	it("refuses to make the linked UiO login a separate internal member", async () => {
+		const { user, internalId } = await internalMember("per.hansen@ifinavet.no");
+		await t.run(async (ctx) => {
+			const right = await ctx.db
+				.query("accessRights")
+				.withIndex("by_userId", (q) => q.eq("userId", user._id))
+				.first();
+			if (right) await ctx.db.patch(right._id, { role: "admin" });
+		});
+		const uioLogin = await insertUser(t, "perha@uio.no");
+		await addUioEmail(internalId, "perha@uio.no");
+
+		expect(
+			await refusalMessageFrom(
+				asUser(t, admin).mutation(api.users.organization.mutations.createInternal, {
+					userId: uioLogin._id,
+					group: "Bedrift",
+				}),
+			),
+		).toBe("perha@uio.no er allerede internt medlem.");
+		expect(
+			await asUser(t, uioLogin).query(api.auth.accessRights.checkRights, { right: ["admin"] }),
+		).toBe(true);
+	});
+
+	it("never passes super-admin on to a linked login", async () => {
+		const superAdmin = await insertUser(t, "sjef@uio.no");
+		await grantRole(t, superAdmin._id, "super-admin");
+
+		await asUser(t, admin).mutation(api.iam.mutations.startOnboarding, {
+			firstName: "Sjef",
+			lastName: "Sjefesen",
+			workspaceEmail: "sjef@ifinavet.no",
+			uioEmail: "sjef@uio.no",
+			group: "Styret",
+		});
+		await t.finishAllScheduledFunctions(vi.runAllTimers);
+		const workspaceLogin = await insertUser(t, "sjef@ifinavet.no");
+		const rights = (right: "super-admin" | "admin") =>
+			asUser(t, workspaceLogin).query(api.auth.accessRights.checkRights, { right: [right] });
+
+		expect(await rights("super-admin")).toBe(false);
+		expect(await rights("admin")).toBe(true);
+	});
+
 	it("refuses members without an admin role", async () => {
 		const { user, internalId } = await internalMember("per.hansen@ifinavet.no");
 

@@ -11,7 +11,7 @@ export async function usersWithEmail(ctx: QueryCtx, emails: readonly string[]) {
 		emails.map((email) =>
 			ctx.db
 				.query("users")
-				.withIndex("by_email", (q) => q.eq("email", email))
+				.withIndex("by_email", (q) => q.eq("email", normalizeEmail(email)))
 				.collect(),
 		),
 	);

@@ -136,6 +136,15 @@ describe("nightly reconciliation", () => {
 		expect(await drift()).toEqual([{ kind: "slack_without_member", email: "gjest@gmail.com" }]);
 	});
 
+	it("ignores an address however an admin happens to write it", async () => {
+		await t.action(internal.iam.actions.reconcile, {});
+
+		await asUser(t, admin).mutation(api.iam.mutations.ignoreDrift, { email: " Snik@IFINAVET.no " });
+		await t.action(internal.iam.actions.reconcile, {});
+
+		expect(await drift()).toEqual([{ kind: "slack_without_member", email: "gjest@gmail.com" }]);
+	});
+
 	it("learns the Google id of existing accounts and follows a rename made in Google", async () => {
 		const accountId = await t.run((ctx) =>
 			ctx.db.insert("memberAccounts", {

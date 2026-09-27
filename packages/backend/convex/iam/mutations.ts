@@ -212,8 +212,9 @@ export const markSlackDeactivated = mutation({
 
 export const ignoreDrift = mutation({
 	args: { email: v.string() },
-	handler: async (ctx, { email }) => {
+	handler: async (ctx, args) => {
 		const caller = await requireRole(ctx, adminRoles);
+		const email = normalizeEmail(args.email);
 		const alreadyIgnored = await ctx.db
 			.query("accessDriftIgnores")
 			.withIndex("by_email", (q) => q.eq("email", email))

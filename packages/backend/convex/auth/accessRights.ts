@@ -53,7 +53,8 @@ async function linkedAccessRole(ctx: QueryCtx | MutationCtx, userId: Id<"users">
 	if (!user?.email) return null;
 	const account = await accountForEmail(ctx, user.email);
 	if (account?.stage !== "active" || !account.userId || account.userId === userId) return null;
-	return getAssignedAccessRole(ctx, account.userId);
+	const role = await getAssignedAccessRole(ctx, account.userId);
+	return role === "super-admin" ? "admin" : role;
 }
 
 /**

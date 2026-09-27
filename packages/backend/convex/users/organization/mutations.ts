@@ -10,7 +10,9 @@ import {
 	revokeAccessRole,
 	superAdminRoles,
 } from "../../auth/accessRights";
+import { accountForEmail } from "../../iam/accounts";
 import { startOffboarding } from "../../iam/lifecycle";
+import { isCurrentStage } from "../../iam/schema";
 
 /**
  * Updates a board member assignment and synchronizes access rights.
@@ -100,6 +102,11 @@ export const createInternal = mutation({
 			.first();
 		if (existingInternal) {
 			throw new ConvexError(`Brukeren med ID ${userId} er allerede intern.`);
+		}
+		const user = await ctx.db.get(userId);
+		const account = user?.email ? await accountForEmail(ctx, user.email) : null;
+		if (account && isCurrentStage(account.stage) && account.userId !== userId) {
+			throw new ConvexError(`${user?.email} er allerede internt medlem.`);
 		}
 
 		await ctx.db.insert("internals", {

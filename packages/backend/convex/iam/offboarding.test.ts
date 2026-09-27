@@ -128,6 +128,22 @@ describe("removing an internal member", () => {
 			lastError: "Google svarte 503 da vi skulle oppdatere kontoen.",
 		});
 	});
+
+	it("keeps the removal state when a welcome email finishes after the member was removed", async () => {
+		const { user, internalId } = await internalMember("per.hansen@ifinavet.no");
+		directories.failures.google = true;
+		await remove(internalId);
+		const before = await accountOf(user._id);
+		if (!before) throw new Error("missing account");
+
+		await t.mutation(internal.iam.internal.recordProvisioned, {
+			accountId: before._id,
+			google: "created",
+			welcomeSent: true,
+		});
+
+		expect(await accountOf(user._id)).toEqual(before);
+	});
 });
 
 describe("the Slack deactivation checklist", () => {

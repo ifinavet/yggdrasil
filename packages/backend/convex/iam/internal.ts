@@ -23,6 +23,8 @@ export const recordProvisioned = internalMutation({
 		welcomeSent: v.boolean(),
 	},
 	handler: async (ctx, { accountId, google, welcomeSent }) => {
+		const account = await ctx.db.get(accountId);
+		if (welcomeSent && account?.stage !== "onboarding" && account?.stage !== "active") return;
 		const now = Date.now();
 		await ctx.db.patch(accountId, {
 			google,
