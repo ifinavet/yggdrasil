@@ -80,7 +80,7 @@ function PaceChartBody({ curve }: Readonly<{ curve: PaceCurve }>) {
 							y: "count",
 							text: "label",
 							dx: -6,
-							dy: -8,
+							dy: label.dy,
 							anchor: "end",
 							fontSize: 11,
 							fill: label.color,
