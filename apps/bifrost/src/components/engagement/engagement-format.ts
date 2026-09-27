@@ -18,6 +18,7 @@ export type EngagementStatus = UpcomingEvent["status"];
 export type SemesterData = FunctionReturnType<typeof api.engagement.queries.semester>;
 export type Audience = SemesterData["audience"];
 export type AudienceRow = Audience["cohorts"][number];
+export type ProgramCohort = Audience["programCohorts"][number];
 export type ProgramRow = Audience["programs"][number];
 export type UnregisterLog = FunctionReturnType<typeof api.engagement.queries.unregisterLog>;
 export type PaceCurve = NonNullable<FunctionReturnType<typeof api.engagement.queries.paceCurve>>;

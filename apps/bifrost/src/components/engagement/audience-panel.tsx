@@ -23,6 +23,7 @@ import {
 	cohortTints,
 	formatPoints,
 	formatShare,
+	type ProgramCohort,
 	type ProgramRow,
 	reachAxisMax,
 } from "./engagement-format";
@@ -30,7 +31,7 @@ import {
 const DEGREE_COLORS = [PRIMARY_SERIES_COLOR, ACCENT_SERIES_COLOR, MUTED_SERIES_COLOR];
 const MIN_LABELLED_SEGMENT = 0.07;
 const COHORT_CODE_NOTE =
-	"B er bachelor og M er master, tallet er årstrinnet. PhD-studenter er utelatt fordi de er så få.";
+	"B er bachelor, M er master og Å er årsstudium, tallet er årstrinnet. PhD-studenter er utelatt fordi de er så få.";
 const PREVIOUS_LABEL = "Forrige semester";
 
 function useCohortColors(cohorts: readonly AudienceRow[]) {
@@ -219,7 +220,7 @@ function Dumbbell({ row, scale }: Readonly<{ row: ProgramRow; scale: number }>) 
 function ProgramMatrix({
 	programs,
 	cohorts,
-}: Readonly<{ programs: readonly ProgramRow[]; cohorts: readonly AudienceRow[] }>) {
+}: Readonly<{ programs: readonly ProgramRow[]; cohorts: readonly ProgramCohort[] }>) {
 	const hottest = Math.max(1, ...programs.flatMap(({ byCohort }) => byCohort));
 	const scale = Math.max(
 		Number.EPSILON,
@@ -338,7 +339,7 @@ export function AudiencePanel({
 								reachLabel={reachLabel}
 								reachNote={reachNote}
 							/>
-							<ProgramMatrix programs={audience.programs} cohorts={audience.cohorts} />
+							<ProgramMatrix programs={audience.programs} cohorts={audience.programCohorts} />
 						</div>
 					</>
 				)}
