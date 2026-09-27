@@ -82,7 +82,7 @@ export function EngagementDashboard() {
 				<TabsTrigger value="live">Nå</TabsTrigger>
 				<TabsTrigger value="semester">Semester</TabsTrigger>
 				<TabsTrigger value="past">Tidligere</TabsTrigger>
-				<TabsTrigger value="companies">Bedrifter</TabsTrigger>
+				<TabsTrigger value="companies">Per bedrift</TabsTrigger>
 			</TabsList>
 			<TabsContent value="live" className="mt-4">
 				<LiveView now={now} />

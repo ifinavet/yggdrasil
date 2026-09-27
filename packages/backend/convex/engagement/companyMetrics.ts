@@ -109,6 +109,14 @@ export function averageOf(all: readonly Metrics[]) {
 	) as Metrics;
 }
 
+export type Standing = "better" | "worse" | "even";
+
+function standingOf(key: MetricKey, value: number | null, average: number | null): Standing | null {
+	if (value === null || average === null) return null;
+	if (value === average) return "even";
+	return value > average === METRICS[key].higherIsBetter ? "better" : "worse";
+}
+
 export function comparisonOf(company: Metrics, all: readonly Metrics[]) {
 	const average = averageOf(all);
 	return METRIC_KEYS.map((key) => {
@@ -122,6 +130,7 @@ export function comparisonOf(company: Metrics, all: readonly Metrics[]) {
 			average: average[key],
 			rank: value === null ? null : others.filter(better).length + 1,
 			of: others.length,
+			standing: standingOf(key, value, average[key]),
 		};
 	});
 }

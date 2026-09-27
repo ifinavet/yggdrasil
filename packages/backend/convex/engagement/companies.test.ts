@@ -129,6 +129,7 @@ describe("detail", () => {
 			average: 1.05,
 			rank: 2,
 			of: 2,
+			standing: "worse",
 		});
 		expect(detail.audience.total).toBe(2);
 		expect(detail.audience.cohorts).toMatchObject([{ label: "Bachelor 2. år", reach: 1 }]);

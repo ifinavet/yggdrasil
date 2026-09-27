@@ -3,7 +3,11 @@ import { describe, expect, it } from "vitest";
 import {
 	alertActivity,
 	attendanceRate,
+	COMPARISON_GROUPS,
+	type CompanyComparison,
+	type CompanyHistory,
 	cohortTints,
+	comparisonMax,
 	defaultSelection,
 	type EngagementAlert,
 	type EngagementStatus,
@@ -15,6 +19,8 @@ import {
 	formatPoints,
 	formatShare,
 	lateUnregistrationNote,
+	METRICS,
+	matchingCompanies,
 	opensLabel,
 	type PaceCurve,
 	paceLabels,
@@ -27,6 +33,7 @@ import {
 	startedSemesters,
 	statusBadge,
 	timeslotGrid,
+	trendSeries,
 	type UnregisterLog,
 	type UpcomingData,
 } from "./engagement-format";
@@ -332,5 +339,51 @@ describe("company metrics", () => {
 	it("labels a rank among the measured companies", () => {
 		expect(rankLabel({ rank: 2, of: 14 })).toBe("2 av 14");
 		expect(rankLabel({ rank: null, of: 0 })).toBeNull();
+	});
+
+	it("groups every metric exactly once", () => {
+		expect(COMPARISON_GROUPS.flatMap(({ metrics }) => metrics).sort()).toEqual(
+			Object.keys(METRICS).sort(),
+		);
+	});
+
+	it("scales shares to at least 100 % and counts with headroom above the highest value", () => {
+		const comparison = (
+			key: CompanyComparison["key"],
+			value: number | null,
+			average: number | null,
+		) => ({ key, value, average, rank: null, of: 0, standing: null }) satisfies CompanyComparison;
+		expect(comparisonMax(comparison("fill", 0.4, 0.6))).toBe(1);
+		expect(comparisonMax(comparison("demand", 1.5, 0.8))).toBe(1.5);
+		expect(comparisonMax(comparison("latePerEvent", 2, 4))).toBe(5);
+		expect(comparisonMax(comparison("latePerEvent", null, null))).toBe(1);
+	});
+
+	it("plots the company and the average per semester and skips semesters without a value", () => {
+		const metrics = (demand: number | null) =>
+			({
+				demand,
+				fill: null,
+				waitlistPerEvent: null,
+				hoursToFull: null,
+				attendance: null,
+				noShow: null,
+				latePerEvent: null,
+			}) satisfies CompanyHistory[number]["average"];
+		const history: CompanyHistory = [
+			{ semester: "vår", year: 2026, company: null, average: metrics(0.5) },
+			{ semester: "høst", year: 2026, company: metrics(1.2), average: metrics(null) },
+		];
+
+		expect(trendSeries(history, "demand")).toEqual({
+			company: [{ index: 1, value: 1.2 }],
+			average: [{ index: 0, value: 0.5 }],
+		});
+	});
+
+	it("finds companies by any part of the name, ignoring case and spacing", () => {
+		const companies = [{ name: "Bekk" }, { name: "Kantega" }, { name: "Netcompany" }];
+		expect(matchingCompanies(companies, "  EKK ")).toEqual([{ name: "Bekk" }]);
+		expect(matchingCompanies(companies, "")).toEqual(companies);
 	});
 });

@@ -101,9 +101,12 @@ describe("comparisonOf", () => {
 				.filter(({ key }) => key !== "fill")
 				.slice(0, 3),
 		).toEqual([
-			{ key: "demand", value: 1, average: 1.5, rank: 2, of: 3 },
-			{ key: "waitlistPerEvent", value: null, average: null, rank: null, of: 0 },
-			{ key: "hoursToFull", value: 2, average: 8 / 3, rank: 2, of: 3 },
+			{ key: "demand", value: 1, average: 1.5, rank: 2, of: 3, standing: "worse" },
+			{ key: "waitlistPerEvent", value: null, average: null, rank: null, of: 0, standing: null },
+			{ key: "hoursToFull", value: 2, average: 8 / 3, rank: 2, of: 3, standing: "better" },
 		]);
+		expect(comparisonOf(company, [company]).find(({ key }) => key === "demand")?.standing).toBe(
+			"even",
+		);
 	});
 });

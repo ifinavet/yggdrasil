@@ -10,6 +10,7 @@ import {
 import type { BadgeVariant } from "@workspace/ui/components/badge";
 import type { SparkValue } from "@workspace/ui/components/products/sparkline";
 import type { FunctionReturnType } from "convex/server";
+import { matchesAny } from "@/lib/search";
 
 export type UpcomingData = FunctionReturnType<typeof api.engagement.queries.upcoming>;
 export type UpcomingEvent = UpcomingData["events"][number];
@@ -270,6 +271,40 @@ export const METRICS = {
 } as const satisfies Record<MetricKey, { label: string; format: (value: number) => string }>;
 
 export const TREND_METRICS = ["demand", "fill", "attendance"] as const satisfies MetricKey[];
+
+export type Standing = NonNullable<CompanyComparison["standing"]>;
+
+export const COMPARISON_GROUPS = [
+	{ title: "Påmelding", metrics: ["demand", "fill", "waitlistPerEvent", "hoursToFull"] },
+	{ title: "Oppmøte og avmelding", metrics: ["attendance", "noShow", "latePerEvent"] },
+] as const satisfies { title: string; metrics: MetricKey[] }[];
+
+const COUNT_HEADROOM = 1.25;
+
+export function comparisonMax({ key, value, average }: CompanyComparison) {
+	const highest = Math.max(value ?? 0, average ?? 0);
+	if (METRICS[key].format === formatShare) return Math.max(1, highest);
+	return highest === 0 ? 1 : highest * COUNT_HEADROOM;
+}
+
+export function trendSeries(history: CompanyHistory, key: MetricKey) {
+	const pointsOf = (read: (semester: CompanyHistory[number]) => number | null | undefined) =>
+		history.flatMap((semester, index) => {
+			const value = read(semester);
+			return value === null || value === undefined ? [] : [{ index, value }];
+		});
+	return {
+		company: pointsOf((semester) => semester.company?.[key]),
+		average: pointsOf((semester) => semester.average[key]),
+	};
+}
+
+export function matchingCompanies<T extends Pick<CompanyRow, "name">>(
+	companies: readonly T[],
+	search: string,
+) {
+	return companies.filter(({ name }) => matchesAny([name], search));
+}
 
 export function formatMetric(key: MetricKey, value: number | null) {
 	return value === null ? null : METRICS[key].format(value);
