@@ -20,7 +20,7 @@ export const featureFlags = {
 		uiEnabled: false,
 	},
 	engagement: {
-		uiEnabled: false,
+		uiEnabled: true,
 	},
 };
 
