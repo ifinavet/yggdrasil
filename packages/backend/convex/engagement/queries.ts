@@ -256,28 +256,38 @@ function registeredOf({ registrations }: SemesterEvent) {
 	return registrations.filter((registration) => registration.status === "registered");
 }
 
-async function companyDemand(ctx: QueryCtx, events: SemesterEvent[]) {
-	const byCompany = new Map<Id<"companies">, { interested: number; seats: number }>();
+function sumOf<T>(items: readonly T[], amountOf: (item: T) => number) {
+	return items.reduce((total, item) => total + amountOf(item), 0);
+}
+
+function companiesByDemand(events: SemesterEvent[]) {
+	const byCompany = new Map<Id<"companies">, SemesterEvent[]>();
 	for (const semesterEvent of events) {
-		const current = byCompany.get(semesterEvent.event.hostingCompany) ?? {
-			interested: 0,
-			seats: 0,
-		};
-		byCompany.set(semesterEvent.event.hostingCompany, {
-			interested: current.interested + semesterEvent.registrations.length,
-			seats: current.seats + semesterEvent.event.participationLimit,
-		});
+		const companyId = semesterEvent.event.hostingCompany;
+		byCompany.set(companyId, [...(byCompany.get(companyId) ?? []), semesterEvent]);
 	}
-	const ranked = [...byCompany.entries()]
-		.map(([companyId, totals]) => ({ companyId, demand: totals.interested / totals.seats }))
-		.sort((a, b) => b.demand - a.demand)
-		.slice(0, TOP_COMPANIES);
+	return [...byCompany.entries()]
+		.map(([companyId, companyEvents]) => {
+			const seats = sumOf(companyEvents, ({ event }) => event.participationLimit);
+			return {
+				companyId,
+				events: companyEvents,
+				seats,
+				demand: sumOf(companyEvents, ({ registrations }) => registrations.length) / seats,
+			};
+		})
+		.sort((a, b) => b.demand - a.demand);
+}
+
+async function companyDemand(ctx: QueryCtx, events: SemesterEvent[]) {
 	return await Promise.all(
-		ranked.map(async ({ companyId, demand }) => ({
-			companyId,
-			...(await companyWithLogo(ctx, companyId)),
-			demand,
-		})),
+		companiesByDemand(events)
+			.slice(0, TOP_COMPANIES)
+			.map(async ({ companyId, demand }) => ({
+				companyId,
+				...(await companyWithLogo(ctx, companyId)),
+				demand,
+			})),
 	);
 }
 
@@ -294,6 +304,14 @@ function attendanceOf(semesterEvent: SemesterEvent) {
 				).length
 			: null,
 	};
+}
+
+function attendanceRateOf(events: SemesterEvent[]) {
+	const recorded = events.map(attendanceOf).filter(({ attended }) => attended !== null);
+	return recorded.length === 0
+		? null
+		: sumOf(recorded, ({ attended }) => attended ?? 0) /
+				sumOf(recorded, ({ registered }) => registered);
 }
 
 function weeklyAttendance(events: SemesterEvent[], now: number) {
@@ -472,6 +490,31 @@ export const past = query({
 					participationLimit: event.participationLimit,
 					...attendanceOf(semesterEvent),
 					lateUnregistrations: await lateUnregistrationsOf(ctx, event, logStart),
+				};
+			}),
+		);
+	},
+});
+
+export const companies = query({
+	args: { now: v.number(), semester: eventSemesterValidator, year: v.number() },
+	handler: async (ctx, { now, semester, year }) => {
+		await requireRole(ctx, internalRoles);
+		const logStart = await logStartedAt(ctx);
+		const events = await semesterEvents(ctx, { semester, year }, now);
+		return await Promise.all(
+			companiesByDemand(events).map(async ({ companyId, events: companyEvents, seats, demand }) => {
+				const held = companyEvents.filter(({ event }) => event.eventStart <= now);
+				const late = await lateUnregistrations(ctx, held, logStart);
+				return {
+					companyId,
+					...(await companyWithLogo(ctx, companyId)),
+					events: companyEvents.length,
+					registered: sumOf(companyEvents, (semesterEvent) => registeredOf(semesterEvent).length),
+					seats,
+					demand,
+					attendance: attendanceRateOf(held),
+					lateUnregistrations: late.uncovered || late.empty ? null : late.count,
 				};
 			}),
 		);

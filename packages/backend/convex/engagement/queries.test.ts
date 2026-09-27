@@ -10,7 +10,7 @@ import {
 	setup,
 } from "../../test/fixtures";
 import { api } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 
 const at = (iso: string) => Date.parse(iso);
 
@@ -221,6 +221,97 @@ describe("past", () => {
 		).toEqual([
 			{ _id: newer, title: "Nyere", registered: 2, attended: 1, lateUnregistrations: 1 },
 			{ _id: older, title: "Eldre", registered: 1, attended: null, lateUnregistrations: null },
+		]);
+	});
+});
+
+describe("companies", () => {
+	it("ranks every company by demand with its fill, attendance and late unregistrations", async () => {
+		startLogAt(at("2026-09-20T00:00:00Z"));
+		const { t, companyId, intern } = await internTester();
+		const now = at("2026-10-20T10:00:00Z");
+		const otherId = await t.run(async (ctx) => {
+			const { _id, _creationTime, ...company } = (await ctx.db.get(companyId)) as Doc<"companies">;
+			return ctx.db.insert("companies", {
+				...company,
+				orgNumber: 987654321,
+				name: "Annen bedrift",
+			});
+		});
+		const held = await insertEvent(t, companyId, {
+			registrationOpens: at("2026-10-01T10:00:00Z"),
+			eventStart: at("2026-10-10T16:00:00Z"),
+		});
+		await insertEvent(t, companyId, {
+			registrationOpens: at("2026-10-15T10:00:00Z"),
+			eventStart: at("2026-10-25T16:00:00Z"),
+		});
+		const popular = await insertEvent(t, otherId, {
+			participationLimit: 1,
+			registrationOpens: at("2026-10-15T10:00:00Z"),
+			eventStart: at("2026-10-25T16:00:00Z"),
+		});
+		const ada = await registerStudent(t, "ada@example.com", held, 2, now - 15 * DAY_IN_MS);
+		const bo = await registerStudent(t, "bo@example.com", held, 2, now - 15 * DAY_IN_MS);
+		await registerStudent(t, "cy@example.com", popular, 2, now - DAY_IN_MS);
+		const dag = await insertUser(t, "dag@example.com");
+		await insertRegistration(t, popular, dag._id, "waitlist", now - DAY_IN_MS);
+		await t.run(async (ctx) => {
+			const registrations = await ctx.db
+				.query("registrations")
+				.withIndex("by_eventId", (q) => q.eq("eventId", held))
+				.collect();
+			for (const registration of registrations) {
+				await ctx.db.patch(registration._id, {
+					attendanceStatus: registration.userId === ada._id ? "confirmed" : "no_show",
+				});
+			}
+			await ctx.db.insert("registrationLog", {
+				eventId: held,
+				userId: bo._id,
+				change: "unregistered",
+				fromStatus: "registered",
+				at: at("2026-10-10T10:00:00Z"),
+			});
+		});
+
+		const companies = await intern.query(api.engagement.queries.companies, {
+			now,
+			semester: "høst",
+			year: 2026,
+		});
+
+		expect(
+			companies.map(
+				({ name, events, registered, seats, demand, attendance, lateUnregistrations }) => ({
+					name,
+					events,
+					registered,
+					seats,
+					demand,
+					attendance,
+					lateUnregistrations,
+				}),
+			),
+		).toEqual([
+			{
+				name: "Annen bedrift",
+				events: 1,
+				registered: 1,
+				seats: 1,
+				demand: 2,
+				attendance: null,
+				lateUnregistrations: null,
+			},
+			{
+				name: "Testbedrift",
+				events: 2,
+				registered: 2,
+				seats: 20,
+				demand: 0.1,
+				attendance: 0.5,
+				lateUnregistrations: 1,
+			},
 		]);
 	});
 });

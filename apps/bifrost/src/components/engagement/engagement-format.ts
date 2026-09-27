@@ -23,6 +23,7 @@ export type ProgramRow = Audience["programs"][number];
 export type UnregisterLog = FunctionReturnType<typeof api.engagement.queries.unregisterLog>;
 export type PaceCurve = NonNullable<FunctionReturnType<typeof api.engagement.queries.paceCurve>>;
 export type PastEvent = FunctionReturnType<typeof api.engagement.queries.past>[number];
+export type CompanyStats = FunctionReturnType<typeof api.engagement.queries.companies>[number];
 
 export function statusBadge(status: EngagementStatus): { label: string; variant: BadgeVariant } {
 	switch (status.kind) {
@@ -163,7 +164,7 @@ export function paceLabels(curve: PaceCurve) {
 	});
 }
 
-type SemesterOption = { semester: EventSemester; year: number };
+export type SemesterOption = { semester: EventSemester; year: number };
 
 export function semesterValue({ semester, year }: SemesterOption) {
 	return `${year}-${semester}`;
@@ -237,3 +238,6 @@ export function reachAxisMax(percentages: readonly (number | null)[]) {
 	const highest = Math.max(0, ...percentages.filter((value) => value !== null));
 	return REACH_AXIS_STEPS.find((step) => step >= highest) ?? 100;
 }
+
+export const DEMAND_NOTE =
+	"Over 100 % betyr at ventelisten viser mer interesse enn det var plass til.";

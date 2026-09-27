@@ -2,16 +2,9 @@
 
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
-import { DATE_PATTERNS, eventSemesterOf, formatOsloDate } from "@workspace/shared/time";
+import { DATE_PATTERNS, formatOsloDate } from "@workspace/shared/time";
 import { Panel, PanelBody, PanelNote } from "@workspace/ui/components/products/panel";
 import { ShareBar } from "@workspace/ui/components/products/share-bar";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@workspace/ui/components/select";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import {
 	Table,
@@ -21,23 +14,15 @@ import {
 	TableHeader,
 	TableRow,
 } from "@workspace/ui/components/table";
-import { useQuery } from "convex/react";
 import { useRef, useState } from "react";
 import { PRIMARY_SERIES_COLOR } from "@/components/common/chart-colors";
 import { LIST_CELL, LIST_HEAD } from "@/components/common/table-classes";
 import { useStableQuery } from "@/hooks/use-stable-query";
-import {
-	attendanceRate,
-	fillShare,
-	formatShare,
-	type PastEvent,
-	semesterLabel,
-	semesterValue,
-	startedSemesters,
-} from "./engagement-format";
+import { attendanceRate, fillShare, formatShare, type PastEvent } from "./engagement-format";
 import { EventAudience } from "./event-audience";
 import { EventCell } from "./event-cell";
 import { PaceChart } from "./pace-chart";
+import { useSemesterSelect } from "./semester-select";
 
 function PastTable({
 	events,
@@ -130,8 +115,7 @@ function PastEvents({
 }
 
 export function PastView({ now }: Readonly<{ now: number }>) {
-	const semesters = useQuery(api.events.queries.getPossibleSemesters);
-	const [selected, setSelected] = useState(() => eventSemesterOf(now));
+	const { selected, select } = useSemesterSelect(now);
 	const events = useStableQuery(
 		api.engagement.queries.past,
 		{ now, ...selected },
@@ -139,7 +123,6 @@ export function PastView({ now }: Readonly<{ now: number }>) {
 	);
 	const [picked, setPicked] = useState<Id<"events"> | null>(null);
 	const paceRef = useRef<HTMLDivElement>(null);
-	const options = semesters ? startedSemesters(semesters, now) : [selected];
 
 	const selectedId =
 		picked && events?.some((event) => event._id === picked) ? picked : (events?.[0]?._id ?? null);
@@ -150,29 +133,7 @@ export function PastView({ now }: Readonly<{ now: number }>) {
 
 	return (
 		<div className="grid gap-4">
-			<Panel
-				title="Gjennomførte arrangementer"
-				aside={
-					<Select
-						value={semesterValue(selected)}
-						onValueChange={(value) => {
-							const option = options.find((candidate) => semesterValue(candidate) === value);
-							if (option) setSelected(option);
-						}}
-					>
-						<SelectTrigger size="sm" aria-label="Semester">
-							<SelectValue />
-						</SelectTrigger>
-						<SelectContent>
-							{options.map((option) => (
-								<SelectItem key={semesterValue(option)} value={semesterValue(option)}>
-									{semesterLabel(option)}
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
-				}
-			>
+			<Panel title="Gjennomførte arrangementer" aside={select}>
 				<PastEvents events={events} selectedId={selectedId} onSelect={openEvent} />
 			</Panel>
 			<div ref={paceRef} className="grid scroll-mt-4 gap-4">
