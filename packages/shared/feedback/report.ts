@@ -7,7 +7,7 @@ export const reportRecipientSchema = z.object({
 	recipientEmail: z.string().trim().max(254).pipe(z.email("Skriv inn en gyldig e-postadresse.")),
 });
 
-import type { FeedbackAnswers, FeedbackField } from "./validation";
+import { type FeedbackAnswers, type FeedbackField, feedbackYesNoSchema } from "./validation";
 
 export interface ReportBucket {
 	value: string;
@@ -108,7 +108,9 @@ export function highlightTotals(questions: readonly ReportQuestion[]) {
 				0,
 			) ?? 0,
 		ratings: satisfaction?.answered ?? 0,
-		wantToWork: employment?.buckets.find((bucket) => bucket.value === "ja")?.count ?? 0,
+		wantToWork:
+			employment?.buckets.find((bucket) => bucket.value === feedbackYesNoSchema.enum.ja)?.count ??
+			0,
 		employmentAnswers: employment?.answered ?? 0,
 	};
 }

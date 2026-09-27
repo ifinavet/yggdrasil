@@ -1,4 +1,5 @@
 import type { api } from "@workspace/backend/convex/api";
+import { feedbackRatingSchema } from "@workspace/shared/feedback";
 import { formatPercent } from "@workspace/shared/products";
 import {
 	DATE_PATTERNS,
@@ -268,7 +269,11 @@ export const METRICS = {
 	attendance: { label: "Oppmøte", format: formatShare },
 	noShow: { label: "Uteblitt", format: formatShare },
 	latePerEvent: { label: "Sene avmeldinger per arrangement", format: formatDecimal },
-	satisfaction: { label: "Fornøydhet", format: formatDecimal, max: 5 },
+	satisfaction: {
+		label: "Fornøydhet",
+		format: formatDecimal,
+		max: feedbackRatingSchema.maxValue as number,
+	},
 	wantToWork: { label: "Vil jobbe der", format: formatShare },
 	returning: { label: "Kommer tilbake", format: formatShare },
 } as const satisfies Record<

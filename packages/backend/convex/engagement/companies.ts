@@ -22,13 +22,13 @@ import {
 	semesterEvents,
 	studentsOf,
 } from "./queries";
+import { MAX_REGISTRATIONS_PER_EVENT } from "./snapshot";
 
 const HISTORY_SEMESTERS = 4;
-const RETURNING_WINDOW_MS = 2 * 365 * DAY_MS;
 const MAX_EARLIER_EVENTS = 50;
 const MAX_CAMPAIGNS_PER_EVENT = 10;
 
-async function feedbackOf(ctx: QueryCtx, eventId: Id<"events">) {
+async function eventFeedback(ctx: QueryCtx, eventId: Id<"events">) {
 	const campaigns = await ctx.db
 		.query("feedbackCampaigns")
 		.withIndex("by_eventId", (q) => q.eq("eventId", eventId))
@@ -51,14 +51,23 @@ async function feedbackOf(ctx: QueryCtx, eventId: Id<"events">) {
 			};
 }
 
-async function earlierRegistrants(ctx: QueryCtx, companyId: Id<"companies">, before: number) {
+function semestersUpTo(key: SemesterKey) {
+	const keys = [key];
+	while (keys.length < HISTORY_SEMESTERS) {
+		const last = keys[keys.length - 1] as SemesterKey;
+		keys.push(eventSemesterOf(eventSemesterRange(last.semester, last.year).start - DAY_MS));
+	}
+	return keys.reverse();
+}
+
+async function earlierRegistrants(ctx: QueryCtx, companyId: Id<"companies">, key: SemesterKey) {
+	const before = eventSemesterRange(key.semester, key.year).start;
+	const [first] = semestersUpTo(eventSemesterOf(before - DAY_MS)) as [SemesterKey];
+	const since = eventSemesterRange(first.semester, first.year).start;
 	const events = await ctx.db
 		.query("events")
 		.withIndex("by_hostingCompany_and_eventStart", (q) =>
-			q
-				.eq("hostingCompany", companyId)
-				.gte("eventStart", before - RETURNING_WINDOW_MS)
-				.lt("eventStart", before),
+			q.eq("hostingCompany", companyId).gte("eventStart", since).lt("eventStart", before),
 		)
 		.take(MAX_EARLIER_EVENTS);
 	const users = new Set<Id<"users">>();
@@ -66,10 +75,8 @@ async function earlierRegistrants(ctx: QueryCtx, companyId: Id<"companies">, bef
 		const registrations = await ctx.db
 			.query("registrations")
 			.withIndex("by_eventId", (q) => q.eq("eventId", event._id))
-			.collect();
-		for (const registration of registrations) {
-			if (registration.status === "registered") users.add(registration.userId);
-		}
+			.take(MAX_REGISTRATIONS_PER_EVENT);
+		for (const { userId } of registeredIn([{ event, registrations }])) users.add(userId);
 	}
 	return users;
 }
@@ -80,31 +87,23 @@ function returningIn(companyEvent: CompanyEvent, earlier: Set<Id<"users">>) {
 
 async function loggedEvents(ctx: QueryCtx, key: SemesterKey, now: number) {
 	const logStart = await logStartedAt(ctx);
-	const semesterStart = eventSemesterRange(key.semester, key.year).start;
-	const events = await semesterEvents(ctx, key, now);
-	const earlier = new Map<Id<"companies">, Set<Id<"users">>>();
-	for (const companyId of new Set(events.map(({ event }) => event.hostingCompany))) {
-		earlier.set(companyId, await earlierRegistrants(ctx, companyId, semesterStart));
+	const grouped = byCompany(await semesterEvents(ctx, key, now));
+	const events: CompanyEvent[] = [];
+	for (const [companyId, companyEvents] of grouped) {
+		const earlier = await earlierRegistrants(ctx, companyId, key);
+		for (const semesterEvent of companyEvents) {
+			events.push({
+				...semesterEvent,
+				lateUnregistrations:
+					semesterEvent.event.eventStart <= now
+						? await lateUnregistrationsOf(ctx, semesterEvent.event, logStart)
+						: null,
+				feedback: await eventFeedback(ctx, semesterEvent.event._id),
+				returning: returningIn(semesterEvent, earlier),
+			});
+		}
 	}
-	return {
-		logStart,
-		events: await Promise.all(
-			events.map(
-				async (semesterEvent): Promise<CompanyEvent> => ({
-					...semesterEvent,
-					lateUnregistrations:
-						semesterEvent.event.eventStart <= now
-							? await lateUnregistrationsOf(ctx, semesterEvent.event, logStart)
-							: null,
-					feedback: await feedbackOf(ctx, semesterEvent.event._id),
-					returning: returningIn(
-						semesterEvent,
-						earlier.get(semesterEvent.event.hostingCompany) as Set<Id<"users">>,
-					),
-				}),
-			),
-		),
-	};
+	return { logStart, events };
 }
 
 function registeredIn(events: readonly CompanyEvent[]) {
@@ -182,13 +181,8 @@ export const history = query({
 	args: { companyId: v.id("companies"), now: v.number() },
 	handler: async (ctx, { companyId, now }) => {
 		await requireRole(ctx, internalRoles);
-		const keys: SemesterKey[] = [eventSemesterOf(now)];
-		while (keys.length < HISTORY_SEMESTERS) {
-			const last = keys[keys.length - 1] as SemesterKey;
-			keys.push(eventSemesterOf(eventSemesterRange(last.semester, last.year).start - DAY_MS));
-		}
 		const semesters = [];
-		for (const key of keys.reverse()) {
+		for (const key of semestersUpTo(eventSemesterOf(now))) {
 			semesters.push(await semesterMetrics(ctx, companyId, key, now));
 		}
 		return semesters;
