@@ -18,6 +18,7 @@ export type EngagementStatus = UpcomingEvent["status"];
 export type SemesterData = FunctionReturnType<typeof api.engagement.queries.semester>;
 export type Audience = SemesterData["audience"];
 export type AudienceRow = Audience["cohorts"][number];
+export type ProgramCohort = Audience["programCohorts"][number];
 export type ProgramRow = Audience["programs"][number];
 export type UnregisterLog = FunctionReturnType<typeof api.engagement.queries.unregisterLog>;
 export type PaceCurve = NonNullable<FunctionReturnType<typeof api.engagement.queries.paceCurve>>;
@@ -109,6 +110,10 @@ export function paceTickLabel(curve: Pick<PaceCurve, "progress">, progress: numb
 	return progress === curve.progress ? "I dag" : "";
 }
 
+const PACE_LABEL_ABOVE = -8;
+const PACE_LABEL_BELOW = 14;
+const PACE_LABEL_LINE = 13;
+
 export function paceLabels(curve: PaceCurve) {
 	const actual =
 		curve.progress > 0
@@ -143,7 +148,19 @@ export function paceLabels(curve: PaceCurve) {
 						label: `typisk ${curve.typical}`,
 					},
 				];
-	return [...actual, ...projected, ...typical];
+	const labels = [...actual, ...projected, ...typical];
+	return labels.map((label) => {
+		const below = labels.filter(
+			(other) =>
+				other.progress === label.progress &&
+				(other.count > label.count ||
+					(other.count === label.count && labels.indexOf(other) < labels.indexOf(label))),
+		).length;
+		return {
+			...label,
+			dy: below === 0 ? PACE_LABEL_ABOVE : PACE_LABEL_BELOW + PACE_LABEL_LINE * (below - 1),
+		};
+	});
 }
 
 type SemesterOption = { semester: EventSemester; year: number };

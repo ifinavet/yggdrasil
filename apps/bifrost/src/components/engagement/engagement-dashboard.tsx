@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/componen
 import { useMutation, useQuery } from "convex/react";
 import { useEffect, useRef, useState } from "react";
 import { useMinute } from "@/hooks/use-minute";
+import { useStableQuery } from "@/hooks/use-stable-query";
 import { AlertsPanel } from "./alerts-panel";
 import { defaultSelection } from "./engagement-format";
 import { EventAudience } from "./event-audience";
@@ -18,7 +19,7 @@ import { SemesterView } from "./semester-view";
 import { UpcomingTable } from "./upcoming-table";
 
 function LiveView({ now }: Readonly<{ now: number }>) {
-	const data = useQuery(api.engagement.queries.upcoming, { now });
+	const data = useStableQuery(api.engagement.queries.upcoming, { now });
 	const [picked, setPicked] = useState<Id<"events"> | null>(null);
 	const paceRef = useRef<HTMLDivElement>(null);
 

@@ -25,6 +25,7 @@ import { useQuery } from "convex/react";
 import { useRef, useState } from "react";
 import { PRIMARY_SERIES_COLOR } from "@/components/common/chart-colors";
 import { LIST_CELL, LIST_HEAD } from "@/components/common/table-classes";
+import { useStableQuery } from "@/hooks/use-stable-query";
 import {
 	attendanceRate,
 	fillShare,
@@ -131,7 +132,11 @@ function PastEvents({
 export function PastView({ now }: Readonly<{ now: number }>) {
 	const semesters = useQuery(api.events.queries.getPossibleSemesters);
 	const [selected, setSelected] = useState(() => eventSemesterOf(now));
-	const events = useQuery(api.engagement.queries.past, { now, ...selected });
+	const events = useStableQuery(
+		api.engagement.queries.past,
+		{ now, ...selected },
+		`${selected.semester}-${selected.year}`,
+	);
 	const [picked, setPicked] = useState<Id<"events"> | null>(null);
 	const paceRef = useRef<HTMLDivElement>(null);
 	const options = semesters ? startedSemesters(semesters, now) : [selected];

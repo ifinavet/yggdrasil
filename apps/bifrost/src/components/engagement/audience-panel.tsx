@@ -23,6 +23,7 @@ import {
 	cohortTints,
 	formatPoints,
 	formatShare,
+	type ProgramCohort,
 	type ProgramRow,
 	reachAxisMax,
 } from "./engagement-format";
@@ -219,7 +220,7 @@ function Dumbbell({ row, scale }: Readonly<{ row: ProgramRow; scale: number }>) 
 function ProgramMatrix({
 	programs,
 	cohorts,
-}: Readonly<{ programs: readonly ProgramRow[]; cohorts: readonly AudienceRow[] }>) {
+}: Readonly<{ programs: readonly ProgramRow[]; cohorts: readonly ProgramCohort[] }>) {
 	const hottest = Math.max(1, ...programs.flatMap(({ byCohort }) => byCohort));
 	const scale = Math.max(
 		Number.EPSILON,
@@ -338,7 +339,7 @@ export function AudiencePanel({
 								reachLabel={reachLabel}
 								reachNote={reachNote}
 							/>
-							<ProgramMatrix programs={audience.programs} cohorts={audience.cohorts} />
+							<ProgramMatrix programs={audience.programs} cohorts={audience.programCohorts} />
 						</div>
 					</>
 				)}

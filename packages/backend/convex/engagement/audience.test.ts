@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { Doc, Id } from "../_generated/dataModel";
-import { audienceOf, cohortGroupOf, cohortOf, TOP_PROGRAMS } from "./audience";
+import {
+	audienceOf,
+	cohortGroupOf,
+	cohortOf,
+	programCohortGroupOf,
+	TOP_PROGRAMS,
+} from "./audience";
 
 type Student = Pick<Doc<"students">, "_id" | "degree" | "year" | "studyProgram">;
 
@@ -52,9 +58,32 @@ describe("cohortOf", () => {
 	});
 });
 
+describe("programCohortGroupOf", () => {
+	it("places årsstudium students in the first or second bachelor year", () => {
+		expect([1, 2, 3].map((year) => programCohortGroupOf({ degree: "Årsstudium", year }))).toEqual([
+			{ degree: "Bachelor", year: 1, rank: 1 },
+			{ degree: "Bachelor", year: 2, rank: 2 },
+			{ degree: "Bachelor", year: 2, rank: 2 },
+		]);
+	});
+
+	it("matches the regular cohort for other degrees", () => {
+		expect(programCohortGroupOf({ degree: "Master", year: 2 })).toEqual(
+			cohortGroupOf({ degree: "Master", year: 2 }),
+		);
+		expect(programCohortGroupOf({ degree: "Årsstudium", year: 0 })).toBeNull();
+	});
+});
+
 describe("audienceOf", () => {
 	it("returns empty rows when nobody registered", () => {
-		expect(audienceOf([], POPULATION)).toEqual({ total: 0, reached: 0, cohorts: [], programs: [] });
+		expect(audienceOf([], POPULATION)).toEqual({
+			total: 0,
+			reached: 0,
+			cohorts: [],
+			programCohorts: [],
+			programs: [],
+		});
 	});
 
 	it("counts registrations and unique students separately", () => {
@@ -144,6 +173,24 @@ describe("audienceOf", () => {
 				byCohort: [1, 2, 1],
 			}),
 			expect.objectContaining({ label: "Matematikk", registrations: 1, byCohort: [1, 0, 0] }),
+		]);
+	});
+
+	it("counts årsstudium students under bachelor years in the program matrix only", () => {
+		const oneYear = student("ar", "Årsstudium", 1, "Årsstudium i informatikk");
+		const secondYear = student("as", "Årsstudium", 2, "Årsstudium i informatikk");
+		const { cohorts, programCohorts, programs } = audienceOf(
+			[ADA, oneYear, secondYear],
+			[...POPULATION, oneYear, secondYear],
+		);
+		expect(cohorts.map(({ code }) => code)).toEqual(["B1", "Å"]);
+		expect(programCohorts).toEqual([
+			{ label: "Bachelor 1. år", code: "B1" },
+			{ label: "Bachelor 2. år", code: "B2" },
+		]);
+		expect(programs).toEqual([
+			expect.objectContaining({ label: "Årsstudium i informatikk", byCohort: [1, 1] }),
+			expect.objectContaining({ label: "Informatikk", byCohort: [1, 0] }),
 		]);
 	});
 

@@ -237,6 +237,32 @@ describe("pace chart labels", () => {
 		).toEqual(["12 påmeldt"]);
 	});
 
+	it("keeps the highest label above its line and moves labels sharing its end point below", () => {
+		expect(
+			paceLabels(curve({ progress: 1, registered: 40, projected: null, typical: 40 })).map(
+				({ label, dy }) => [label, dy],
+			),
+		).toEqual([
+			["40 påmeldt", -8],
+			["typisk 40", 14],
+		]);
+		expect(
+			paceLabels(curve({ progress: 0.5, projected: 35, typical: 30 })).map(({ label, dy }) => [
+				label,
+				dy,
+			]),
+		).toEqual([
+			["12 nå", -8],
+			["prognose 35", -8],
+			["typisk 30", 14],
+		]);
+		expect(
+			paceLabels(curve({ progress: 1, registered: 20, projected: 20, typical: 20 })).map(
+				({ dy }) => dy,
+			),
+		).toEqual([-8, 14, 27]);
+	});
+
 	it("leaves out the count before registration opens", () => {
 		expect(
 			paceLabels(curve({ progress: 0, registered: 0, projected: null })).map(({ label }) => label),
