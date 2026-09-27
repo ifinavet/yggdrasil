@@ -333,6 +333,28 @@ describe("starting onboarding", () => {
 		expect(role).toMatchObject({ role: "internal" });
 	});
 
+	it("lists each internal with the connections of their account", async () => {
+		const existing = await insertUser(t, newMember.uioEmail);
+		const legacy = await insertUser(t, "gammel@ifinavet.no");
+		await t.run((ctx) =>
+			ctx.db.insert("internals", { userId: legacy._id, group: "Styret", position: "Intern" }),
+		);
+		await onboard();
+
+		const internals = await asUser(t, admin).query(
+			api.users.organization.queries.getAllInternals,
+			{},
+		);
+
+		expect(internals.find((row) => row.userId === existing._id)?.connections).toEqual({
+			uioEmail: newMember.uioEmail,
+			google: "created",
+			welcomeSent: true,
+			slackLinked: false,
+		});
+		expect(internals.find((row) => row.userId === legacy._id)?.connections).toBeNull();
+	});
+
 	it("refuses addresses that belong to two different former members", async () => {
 		const first = await onboard();
 		await t.run((ctx) =>

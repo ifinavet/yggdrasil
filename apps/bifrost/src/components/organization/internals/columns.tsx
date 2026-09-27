@@ -13,8 +13,10 @@ import {
 } from "@workspace/ui/components/alert-dialog";
 import { Button } from "@workspace/ui/components/button";
 import { Input } from "@workspace/ui/components/input";
-import { Trash } from "lucide-react";
+import { cn } from "@workspace/ui/lib/utils";
+import { ChevronRight, Trash } from "lucide-react";
 import { useState } from "react";
+import type { Connections } from "./connections";
 import UpsertInternalRole from "./upsert-internal-role";
 
 export type InternalsTable = {
@@ -24,6 +26,7 @@ export type InternalsTable = {
 	email: string;
 	group: string;
 	role: (typeof ACCESS_RIGHTS)[number];
+	connections: Connections | null;
 };
 
 function GroupInput({
@@ -56,6 +59,28 @@ export const createColumns = (
 	onUpdateGroup: (internalsId: Id<"internals">, group: string) => void,
 	onSetRole: (userId: Id<"users">, role: (typeof ACCESS_RIGHTS)[number]) => void,
 ): ColumnDef<InternalsTable>[] => [
+	{
+		id: "expand",
+		header: () => <span className="sr-only">Detaljer</span>,
+		cell: ({ row }) => (
+			<Button
+				variant="ghost"
+				size="icon"
+				className="size-8"
+				aria-expanded={row.getIsExpanded()}
+				aria-label={`Vis detaljer for ${row.original.fullName}`}
+				onClick={row.getToggleExpandedHandler()}
+			>
+				<ChevronRight
+					aria-hidden
+					className={cn(
+						"transition-transform duration-200 ease-out motion-reduce:transition-none",
+						row.getIsExpanded() && "rotate-90",
+					)}
+				/>
+			</Button>
+		),
+	},
 	{
 		id: "index",
 		header: "#",

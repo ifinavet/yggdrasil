@@ -13,6 +13,7 @@ import { DataTable } from "@/components/common/tables/table";
 import { AccessList } from "./access/access-list";
 import type { OnboardingPrefill } from "./access/access-status";
 import { createColumns } from "./columns";
+import { InternalDetails } from "./internal-details";
 import { OnboardMemberDialog } from "./onboard-member/onboard-member-dialog";
 
 export default function Internals({
@@ -80,6 +81,7 @@ export default function Internals({
 		email: internal.email,
 		group: internal.group,
 		role: internal.role as (typeof ACCESS_RIGHTS)[number],
+		connections: internal.connections,
 	}));
 
 	return (
@@ -89,7 +91,12 @@ export default function Internals({
 				Legg til medlem
 			</Button>
 			<AccessList overview={access} onAdd={(prefill) => setOnboarding({ prefill })} />
-			<DataTable columns={columns} data={data} className="overflow-clip rounded-lg" />
+			<DataTable
+				columns={columns}
+				data={data}
+				className="overflow-clip rounded-lg"
+				renderExpanded={(row) => <InternalDetails connections={row.original.connections} />}
+			/>
 			<OnboardMemberDialog
 				open={onboarding !== undefined}
 				onOpenChange={(open) => {
