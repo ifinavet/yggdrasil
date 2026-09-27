@@ -10,7 +10,7 @@ import {
 	setup,
 } from "../../test/fixtures";
 import { api } from "../_generated/api";
-import type { Doc } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 
 const at = (iso: string) => Date.parse(iso);
 const NOW = at("2026-10-20T10:00:00Z");
@@ -72,7 +72,7 @@ async function twoCompanies() {
 			at: at("2026-10-10T10:00:00Z"),
 		});
 	});
-	return { t, companyId, otherId, held, intern: asUser(t, intern) };
+	return { t, companyId, otherId, held, ada, bo, intern: asUser(t, intern) };
 }
 
 const semester = { now: NOW, semester: "høst" as const, year: 2026 };
@@ -149,6 +149,80 @@ describe("detail", () => {
 
 		expect(detail.events).toEqual([]);
 		expect(detail.comparison.every(({ value, of }) => value === null && of === 0)).toBe(true);
+	});
+});
+
+async function insertFeedback(
+	t: Awaited<ReturnType<typeof twoCompanies>>["t"],
+	eventId: Id<"events">,
+	report: { status: Doc<"feedbackReports">["status"]; ratings: [string, number][] } | null,
+) {
+	await t.run(async (ctx) => {
+		const campaignId = await ctx.db.insert("feedbackCampaigns", {
+			eventId,
+			status: "closed",
+			opensAt: NOW,
+			closesAt: NOW,
+			generation: 1,
+		});
+		if (!report) return;
+		await ctx.db.insert("feedbackReports", {
+			campaignId,
+			eventId,
+			eventTitle: "Holdt",
+			eventStart: NOW,
+			companyName: "Testbedrift",
+			recipientEmail: "bedrift@example.com",
+			status: report.status,
+			questions: [
+				{
+					key: "satisfaction",
+					type: "rating",
+					label: "Hvor fornøyd var du?",
+					required: true,
+					answered: report.ratings.reduce((total, [, count]) => total + count, 0),
+					buckets: report.ratings.map(([value, count]) => ({ value, label: value, count })),
+				},
+			] as Doc<"feedbackReports">["questions"],
+			totalResponses: 2,
+			buildCursor: null,
+			revision: 0,
+			retentionAt: NOW,
+		});
+	});
+}
+
+describe("detail feedback and returning students", () => {
+	it("scores feedback from finished reports and counts students back from earlier semesters", async () => {
+		const { t, companyId, held, ada, bo, intern } = await twoCompanies();
+		await insertFeedback(t, held, {
+			status: "approved",
+			ratings: [
+				["5", 1],
+				["4", 1],
+			],
+		});
+		await insertFeedback(t, held, { status: "building", ratings: [["1", 5]] });
+		await insertFeedback(t, held, null);
+		const earlier = await insertEvent(t, companyId, {
+			registrationOpens: at("2026-03-01T10:00:00Z"),
+			eventStart: at("2026-03-10T16:00:00Z"),
+		});
+		const hidden = await insertEvent(t, companyId, {
+			published: false,
+			registrationOpens: at("2026-03-01T10:00:00Z"),
+			eventStart: at("2026-03-12T16:00:00Z"),
+		});
+		await insertRegistration(t, earlier, ada._id, "registered", NOW);
+		await insertRegistration(t, earlier, bo._id, "waitlist", NOW);
+		await insertRegistration(t, hidden, bo._id, "registered", NOW);
+
+		const detail = await intern.query(api.engagement.companies.detail, { companyId, ...semester });
+		const measured = (key: string) => detail.comparison.find((row) => row.key === key)?.value;
+
+		expect(measured("satisfaction")).toBe(4.5);
+		expect(measured("wantToWork")).toBeNull();
+		expect(measured("returning")).toBe(1 / 2);
 	});
 });
 

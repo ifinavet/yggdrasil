@@ -357,19 +357,15 @@ describe("company metrics", () => {
 		expect(comparisonMax(comparison("demand", 1.5, 0.8))).toBe(1.5);
 		expect(comparisonMax(comparison("latePerEvent", 2, 4))).toBe(5);
 		expect(comparisonMax(comparison("latePerEvent", null, null))).toBe(1);
+		expect(comparisonMax(comparison("satisfaction", 4.2, 3.9))).toBe(5);
 	});
 
 	it("plots the company and the average per semester and skips semesters without a value", () => {
 		const metrics = (demand: number | null) =>
 			({
+				...Object.fromEntries(Object.keys(METRICS).map((key) => [key, null])),
 				demand,
-				fill: null,
-				waitlistPerEvent: null,
-				hoursToFull: null,
-				attendance: null,
-				noShow: null,
-				latePerEvent: null,
-			}) satisfies CompanyHistory[number]["average"];
+			}) as CompanyHistory[number]["average"];
 		const history: CompanyHistory = [
 			{ semester: "vår", year: 2026, company: null, average: metrics(0.5) },
 			{ semester: "høst", year: 2026, company: metrics(1.2), average: metrics(null) },

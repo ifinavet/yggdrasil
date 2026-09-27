@@ -1,3 +1,4 @@
+import { type HighlightTotals, highlightTotals } from "@workspace/shared/feedback/report";
 import { DAY_MS, eventSemesterOf, eventSemesterRange } from "@workspace/shared/time";
 import { v } from "convex/values";
 import type { Id } from "../_generated/dataModel";
@@ -23,10 +24,68 @@ import {
 } from "./queries";
 
 const HISTORY_SEMESTERS = 4;
+const RETURNING_WINDOW_MS = 2 * 365 * DAY_MS;
+const MAX_EARLIER_EVENTS = 50;
+const MAX_CAMPAIGNS_PER_EVENT = 10;
+
+async function feedbackOf(ctx: QueryCtx, eventId: Id<"events">) {
+	const campaigns = await ctx.db
+		.query("feedbackCampaigns")
+		.withIndex("by_eventId", (q) => q.eq("eventId", eventId))
+		.take(MAX_CAMPAIGNS_PER_EVENT);
+	const totals: HighlightTotals[] = [];
+	for (const campaign of campaigns) {
+		const report = await ctx.db
+			.query("feedbackReports")
+			.withIndex("by_campaignId", (q) => q.eq("campaignId", campaign._id))
+			.first();
+		if (report && report.status !== "building") totals.push(highlightTotals(report.questions));
+	}
+	return totals.length === 0
+		? null
+		: {
+				ratingSum: sumOf(totals, ({ ratingSum }) => ratingSum),
+				ratings: sumOf(totals, ({ ratings }) => ratings),
+				wantToWork: sumOf(totals, ({ wantToWork }) => wantToWork),
+				employmentAnswers: sumOf(totals, ({ employmentAnswers }) => employmentAnswers),
+			};
+}
+
+async function earlierRegistrants(ctx: QueryCtx, companyId: Id<"companies">, before: number) {
+	const events = await ctx.db
+		.query("events")
+		.withIndex("by_hostingCompany_and_eventStart", (q) =>
+			q
+				.eq("hostingCompany", companyId)
+				.gte("eventStart", before - RETURNING_WINDOW_MS)
+				.lt("eventStart", before),
+		)
+		.take(MAX_EARLIER_EVENTS);
+	const users = new Set<Id<"users">>();
+	for (const event of events.filter(({ published }) => published)) {
+		const registrations = await ctx.db
+			.query("registrations")
+			.withIndex("by_eventId", (q) => q.eq("eventId", event._id))
+			.collect();
+		for (const registration of registrations) {
+			if (registration.status === "registered") users.add(registration.userId);
+		}
+	}
+	return users;
+}
+
+function returningIn(companyEvent: CompanyEvent, earlier: Set<Id<"users">>) {
+	return registeredIn([companyEvent]).filter(({ userId }) => earlier.has(userId)).length;
+}
 
 async function loggedEvents(ctx: QueryCtx, key: SemesterKey, now: number) {
 	const logStart = await logStartedAt(ctx);
+	const semesterStart = eventSemesterRange(key.semester, key.year).start;
 	const events = await semesterEvents(ctx, key, now);
+	const earlier = new Map<Id<"companies">, Set<Id<"users">>>();
+	for (const companyId of new Set(events.map(({ event }) => event.hostingCompany))) {
+		earlier.set(companyId, await earlierRegistrants(ctx, companyId, semesterStart));
+	}
 	return {
 		logStart,
 		events: await Promise.all(
@@ -37,6 +96,11 @@ async function loggedEvents(ctx: QueryCtx, key: SemesterKey, now: number) {
 						semesterEvent.event.eventStart <= now
 							? await lateUnregistrationsOf(ctx, semesterEvent.event, logStart)
 							: null,
+					feedback: await feedbackOf(ctx, semesterEvent.event._id),
+					returning: returningIn(
+						semesterEvent,
+						earlier.get(semesterEvent.event.hostingCompany) as Set<Id<"users">>,
+					),
 				}),
 			),
 		),

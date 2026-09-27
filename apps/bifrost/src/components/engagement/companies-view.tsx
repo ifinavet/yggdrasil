@@ -240,7 +240,7 @@ function ComparisonRow({ metric }: Readonly<{ metric: CompanyComparison }>) {
 
 function ComparisonGroups({ comparison }: Readonly<{ comparison: CompanyComparison[] }>) {
 	return (
-		<div className="grid gap-4 lg:grid-cols-2">
+		<div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
 			{COMPARISON_GROUPS.map((group) => (
 				<Panel key={group.title} title={group.title}>
 					<PanelBody>

@@ -15,7 +15,12 @@ const NOW = OPENS + 1000 * HOUR_MS;
 function companyEvent(
 	participationLimit: number,
 	registrations: Partial<Doc<"registrations">>[],
-	{ eventStart = NOW - HOUR_MS, lateUnregistrations = null as number | null } = {},
+	{
+		eventStart = NOW - HOUR_MS,
+		lateUnregistrations = null as number | null,
+		feedback = null as CompanyEvent["feedback"],
+		returning = null as number | null,
+	} = {},
 ): CompanyEvent {
 	return {
 		event: {
@@ -33,6 +38,8 @@ function companyEvent(
 				}) as Doc<"registrations">,
 		),
 		lateUnregistrations,
+		feedback,
+		returning,
 	};
 }
 
@@ -44,6 +51,9 @@ const metrics = (overrides: Partial<Metrics>): Metrics => ({
 	attendance: null,
 	noShow: null,
 	latePerEvent: null,
+	satisfaction: null,
+	wantToWork: null,
+	returning: null,
 	...overrides,
 });
 
@@ -68,6 +78,26 @@ describe("metricsOf", () => {
 			attendance: 0.5,
 			noShow: 0.5,
 			latePerEvent: 2,
+			satisfaction: null,
+			wantToWork: null,
+			returning: null,
+		});
+	});
+
+	it("pools feedback from held events and counts returning students among the registered", () => {
+		const feedback = { ratingSum: 8, ratings: 2, wantToWork: 1, employmentAnswers: 2 };
+		const held = companyEvent(4, [{}, {}, { status: "waitlist" }], { feedback, returning: 1 });
+		const other = companyEvent(4, [{}, {}], {
+			feedback: { ratingSum: 5, ratings: 1, wantToWork: 0, employmentAnswers: 0 },
+			returning: 2,
+		});
+		const upcoming = companyEvent(4, [{}], { eventStart: NOW + HOUR_MS, feedback });
+		const unmeasured = companyEvent(4, [{}]);
+
+		expect(metricsOf([held, other, upcoming, unmeasured], NOW)).toMatchObject({
+			satisfaction: 13 / 3,
+			wantToWork: 1 / 2,
+			returning: 3 / 4,
 		});
 	});
 

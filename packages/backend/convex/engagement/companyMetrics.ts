@@ -1,3 +1,4 @@
+import type { HighlightTotals } from "@workspace/shared/feedback/report";
 import { HOUR_MS } from "@workspace/shared/time";
 import type { Doc, Id } from "../_generated/dataModel";
 
@@ -5,6 +6,8 @@ export type CompanyEvent = {
 	event: Doc<"events">;
 	registrations: Doc<"registrations">[];
 	lateUnregistrations?: number | null;
+	feedback?: HighlightTotals | null;
+	returning?: number | null;
 };
 
 export const METRICS = {
@@ -15,6 +18,9 @@ export const METRICS = {
 	attendance: { higherIsBetter: true },
 	noShow: { higherIsBetter: false },
 	latePerEvent: { higherIsBetter: false },
+	satisfaction: { higherIsBetter: true },
+	wantToWork: { higherIsBetter: true },
+	returning: { higherIsBetter: true },
 } as const;
 
 export type MetricKey = keyof typeof METRICS;
@@ -63,6 +69,28 @@ function attendanceOf(events: readonly CompanyEvent[]) {
 	return { attendance: ratio(showedUp, recorded.length), noShow: ratio(noShows, recorded.length) };
 }
 
+function feedbackOf(events: readonly CompanyEvent[]) {
+	const totals = events.flatMap(({ feedback }) => (feedback ? [feedback] : []));
+	return {
+		satisfaction: ratio(
+			sumOf(totals, ({ ratingSum }) => ratingSum),
+			sumOf(totals, ({ ratings }) => ratings),
+		),
+		wantToWork: ratio(
+			sumOf(totals, ({ wantToWork }) => wantToWork),
+			sumOf(totals, ({ employmentAnswers }) => employmentAnswers),
+		),
+	};
+}
+
+function returningOf(events: readonly CompanyEvent[]) {
+	const measured = events.filter(({ returning }) => typeof returning === "number");
+	return ratio(
+		sumOf(measured, ({ returning }) => returning as number),
+		sumOf(measured, ({ registrations }) => countWith(registrations, "registered")),
+	);
+}
+
 export function metricsOf(events: readonly CompanyEvent[], now: number): Metrics {
 	const seats = sumOf(events, ({ event }) => event.participationLimit);
 	const held = events.filter(({ event }) => event.eventStart <= now);
@@ -88,6 +116,8 @@ export function metricsOf(events: readonly CompanyEvent[], now: number): Metrics
 			sumOf(logged, (count) => count),
 			logged.length,
 		),
+		...feedbackOf(held),
+		returning: returningOf(events),
 	};
 }
 

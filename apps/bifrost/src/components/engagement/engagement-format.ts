@@ -268,7 +268,13 @@ export const METRICS = {
 	attendance: { label: "Oppmøte", format: formatShare },
 	noShow: { label: "Uteblitt", format: formatShare },
 	latePerEvent: { label: "Sene avmeldinger per arrangement", format: formatDecimal },
-} as const satisfies Record<MetricKey, { label: string; format: (value: number) => string }>;
+	satisfaction: { label: "Fornøydhet", format: formatDecimal, max: 5 },
+	wantToWork: { label: "Vil jobbe der", format: formatShare },
+	returning: { label: "Kommer tilbake", format: formatShare },
+} as const satisfies Record<
+	MetricKey,
+	{ label: string; format: (value: number) => string; max?: number }
+>;
 
 export const TREND_METRICS = ["demand", "fill", "attendance"] as const satisfies MetricKey[];
 
@@ -277,13 +283,16 @@ export type Standing = NonNullable<CompanyComparison["standing"]>;
 export const COMPARISON_GROUPS = [
 	{ title: "Påmelding", metrics: ["demand", "fill", "waitlistPerEvent", "hoursToFull"] },
 	{ title: "Oppmøte og avmelding", metrics: ["attendance", "noShow", "latePerEvent"] },
+	{ title: "Inntrykk", metrics: ["satisfaction", "wantToWork", "returning"] },
 ] as const satisfies { title: string; metrics: MetricKey[] }[];
 
 const COUNT_HEADROOM = 1.25;
 
 export function comparisonMax({ key, value, average }: CompanyComparison) {
+	const metric = METRICS[key];
+	if ("max" in metric) return metric.max;
 	const highest = Math.max(value ?? 0, average ?? 0);
-	if (METRICS[key].format === formatShare) return Math.max(1, highest);
+	if (metric.format === formatShare) return Math.max(1, highest);
 	return highest === 0 ? 1 : highest * COUNT_HEADROOM;
 }
 
