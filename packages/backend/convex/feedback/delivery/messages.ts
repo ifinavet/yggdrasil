@@ -64,7 +64,7 @@ async function deliveryContext(
 		.first();
 	if (response) return null;
 	const user = await ctx.db.get(invite.userId);
-	if (!user) return null;
+	if (!user || user.deleted) return null;
 	return { invite, campaign, event, user };
 }
 

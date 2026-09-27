@@ -3,6 +3,7 @@ import { ConvexError, type Validator, v } from "convex/values";
 import { internal } from "../../_generated/api";
 import type { Doc, Id } from "../../_generated/dataModel";
 import { internalMutation, type MutationCtx } from "../../_generated/server";
+import { logRegistrationChange } from "../../engagement/log";
 import { fillOpenSeats } from "../../events/registrations/mutations";
 import { userByExternalId } from "./queries";
 
@@ -157,8 +158,11 @@ async function cleanRegistrations(ctx: MutationCtx, userId: Id<"users">): Promis
 	for (const registration of registrations) {
 		const event = await ctx.db.get(registration.eventId);
 		if (!event || event.eventStart > Date.now()) {
+			if (event) {
+				await logRegistrationChange(ctx, registration, "unregistered");
+				eventsToRefill.set(event._id, event);
+			}
 			await ctx.db.delete(registration._id);
-			if (event) eventsToRefill.set(event._id, event);
 		} else {
 			await ctx.db.patch(registration._id, { note: undefined });
 		}
@@ -175,6 +179,13 @@ export const anonymizeFormResponses = internalMutation({
 			const { userId, ...data } = response.data;
 			if (typeof userId === "string" && (await hashClerkId(userId)) === externalIdHash) {
 				await ctx.db.patch(response._id, { data });
+			}
+			if (
+				"userId" in response &&
+				response.userId !== undefined &&
+				(await hashClerkId(response.userId)) === externalIdHash
+			) {
+				await ctx.db.patch(response._id, { userId: undefined });
 			}
 		}
 		if (!responses.isDone) {

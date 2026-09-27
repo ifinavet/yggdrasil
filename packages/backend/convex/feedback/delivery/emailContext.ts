@@ -9,7 +9,7 @@ export async function feedbackSignature(ctx: QueryCtx, eventId: Id<"events">) {
 		.take(20);
 	const lead = organizers.find(({ role }) => role === "hovedansvarlig");
 	const user = lead && (await ctx.db.get(lead.userId));
-	if (user) return { name: `${user.firstName} ${user.lastName}`, email: user.email };
+	if (user && !user.deleted) return { name: `${user.firstName} ${user.lastName}`, email: user.email };
 	return { name: "Navet", email: FEEDBACK_REPLY_TO };
 }
 

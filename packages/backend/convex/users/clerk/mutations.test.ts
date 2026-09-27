@@ -125,7 +125,7 @@ describe("deleting a user from Clerk", () => {
 				name: "Old name",
 				degree: "Bachelor",
 				year: 1,
-				studyProgram: "Informatikk",
+				studyProgram: "Informatikk: programmering og systemarkitektur",
 			}),
 		).rejects.toThrow("Denne brukeren er slettet.");
 		expect(await t.run((ctx) => ctx.db.query("students").collect())).toEqual([]);
@@ -161,11 +161,13 @@ describe("deleting a user from Clerk", () => {
 				for (let i = 0; i < 105; i++) {
 					await ctx.db.insert("formResponses", {
 						formId,
+						userId: user.externalId,
 						data: { userId: user.externalId, rating: 5 },
 					});
 				}
 				await ctx.db.insert("formResponses", {
 					formId,
+					userId: "someone_else",
 					data: { userId: "someone_else", rating: 3 },
 				});
 			});
@@ -175,10 +177,10 @@ describe("deleting a user from Clerk", () => {
 			expect(
 				responses.filter((response) => response.data.rating === 5).map((response) => response.data),
 			).toEqual(Array.from({ length: 105 }, () => ({ rating: 5 })));
-			expect(responses.find((response) => response.data.rating === 3)?.data).toEqual({
-				userId: "someone_else",
-				rating: 3,
-			});
+			expect(JSON.stringify(responses)).not.toContain(user.externalId);
+			const other = responses.find((response) => response.data.rating === 3);
+			expect(other && "userId" in other ? other.userId : undefined).toBe("someone_else");
+			expect(other?.data).toEqual({ userId: "someone_else", rating: 3 });
 			const tombstones = await t.run((ctx) => ctx.db.query("deletedClerkUsers").collect());
 			expect(tombstones[0]?.externalIdHash).toMatch(/^[a-f0-9]{64}$/);
 			expect(JSON.stringify(tombstones)).not.toContain(user.externalId);
@@ -273,6 +275,15 @@ describe("reading records that belong to a deleted user", () => {
 			await t.mutation(deleteFromClerk, { clerkUserId: deleted.externalId });
 			expect(await statusOf(t, registration)).toBeNull();
 			expect(await statusOf(t, waiting)).toBe("pending");
+			const log = await t.run((ctx) =>
+				ctx.db
+					.query("registrationLog")
+					.withIndex("by_userId_and_at", (q) => q.eq("userId", deleted._id))
+					.collect(),
+			);
+			expect(log.map(({ change, fromStatus }) => ({ change, fromStatus }))).toEqual([
+				{ change: "unregistered", fromStatus: status },
+			]);
 		},
 	);
 
