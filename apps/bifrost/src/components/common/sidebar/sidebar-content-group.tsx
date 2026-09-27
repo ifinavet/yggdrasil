@@ -21,6 +21,7 @@ import {
 	FileIcon,
 	GitForkIcon,
 	type LucideIcon,
+	ReceiptIcon,
 	TrendingUpIcon,
 	UsersIcon,
 } from "lucide-react";
@@ -92,6 +93,12 @@ const paths = {
 			title: "Produkter",
 			icon: BanknoteIcon,
 			path: PRODUCT_ROUTES.list,
+			feature: "products",
+		},
+		{
+			title: "Fakturaer",
+			icon: ReceiptIcon,
+			path: "/invoicing",
 			feature: "products",
 		},
 		{

@@ -24,6 +24,13 @@ crons.interval(
 	internal.engagement.alerts.detectAlerts,
 );
 
+crons.interval(
+	"Create due invoice drafts in Fiken",
+	{ hours: 1 },
+	internal.invoicing.processing.sweep,
+	{},
+);
+
 crons.cron(
 	"Free for all on today's event",
 	"0 12 * * 2,4",

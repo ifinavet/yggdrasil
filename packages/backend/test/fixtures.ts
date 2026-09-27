@@ -53,6 +53,8 @@ export async function setup() {
 	t.registerComponent("workflow", workflowTest.schema, workflow);
 	t.registerComponent("workflow/workpool", workpoolTest.schema, workpool);
 	t.registerComponent("workflow/workpool/batchWorker", batchWorkerTest.schema, batchWorker);
+	t.registerComponent("fikenWorkpool", workpoolTest.schema, workpool);
+	t.registerComponent("fikenWorkpool/batchWorker", batchWorkerTest.schema, batchWorker);
 	resendTest.register(t, "feedbackResend");
 	resendTest.register(t, "resend");
 

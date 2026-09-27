@@ -67,6 +67,10 @@ import type * as forms_mutations from "../forms/mutations.js";
 import type * as forms_queries from "../forms/queries.js";
 import type * as forms_responses from "../forms/responses.js";
 import type * as http from "../http.js";
+import type * as invoicing_admin from "../invoicing/admin.js";
+import type * as invoicing_fiken from "../invoicing/fiken.js";
+import type * as invoicing_processing from "../invoicing/processing.js";
+import type * as invoicing_schedule from "../invoicing/schedule.js";
 import type * as jobListingOrders_addressSearch from "../jobListingOrders/addressSearch.js";
 import type * as jobListingOrders_admin from "../jobListingOrders/admin.js";
 import type * as jobListingOrders_emails from "../jobListingOrders/emails.js";
@@ -186,6 +190,10 @@ declare const fullApi: ApiFromModules<{
   "forms/queries": typeof forms_queries;
   "forms/responses": typeof forms_responses;
   http: typeof http;
+  "invoicing/admin": typeof invoicing_admin;
+  "invoicing/fiken": typeof invoicing_fiken;
+  "invoicing/processing": typeof invoicing_processing;
+  "invoicing/schedule": typeof invoicing_schedule;
   "jobListingOrders/addressSearch": typeof jobListingOrders_addressSearch;
   "jobListingOrders/admin": typeof jobListingOrders_admin;
   "jobListingOrders/emails": typeof jobListingOrders_emails;
@@ -272,4 +280,5 @@ export declare const components: {
   migrations: import("@convex-dev/migrations/_generated/component.js").ComponentApi<"migrations">;
   rateLimiter: import("@convex-dev/rate-limiter/_generated/component.js").ComponentApi<"rateLimiter">;
   workflow: import("@convex-dev/workflow/_generated/component.js").ComponentApi<"workflow">;
+  fikenWorkpool: import("@convex-dev/workpool/_generated/component.js").ComponentApi<"fikenWorkpool">;
 };

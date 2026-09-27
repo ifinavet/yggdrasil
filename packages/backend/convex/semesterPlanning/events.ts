@@ -6,6 +6,7 @@ import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 import { internalRoles } from "../auth/accessRights";
 import { insertEventWithOrganizers } from "../events/helper";
+import { cancelInvoice, scheduleInvoice } from "../invoicing/schedule";
 import { type Actor, logApplicationActivity } from "./applicationLifecycle";
 import { findCompanyProfile, requireValidHelpers } from "./applications/helper";
 import { requireSemester } from "./semesters/helper";
@@ -108,6 +109,7 @@ export async function ensureDraftEvent(
 	}
 	const eventStart = osloDateTimeToEpoch(assignedDate, defaultEventStartTime);
 
+	const source = { kind: "companyApplication" as const, applicationId: application._id };
 	const existing = application.eventId ? await ctx.db.get(application.eventId) : null;
 	if (existing) {
 		if (!existing.published && osloToday(existing.eventStart) !== assignedDate) {
@@ -115,6 +117,7 @@ export async function ensureDraftEvent(
 				eventStart,
 				registrationOpens: Math.min(existing.registrationOpens, eventStart),
 			});
+			await scheduleInvoice(ctx, source, eventStart);
 		}
 		return existing._id;
 	}
@@ -155,6 +158,7 @@ export async function ensureDraftEvent(
 	);
 
 	await ctx.db.patch(application._id, { eventId });
+	await scheduleInvoice(ctx, source, eventStart);
 	await logApplicationActivity(ctx, application._id, "event_linked", actor);
 	return eventId;
 }
@@ -198,4 +202,5 @@ export async function deleteDraftEvent(
 	await Promise.all(organizers.map((organizer) => ctx.db.delete(organizer._id)));
 	if (event.formId) await ctx.db.delete(event.formId);
 	await ctx.db.delete(event._id);
+	await cancelInvoice(ctx, { kind: "companyApplication", applicationId: application._id });
 }

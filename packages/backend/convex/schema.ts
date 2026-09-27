@@ -7,6 +7,7 @@ import { feedbackReportSchema } from "./feedback/reports/schema";
 import { feedbackSchema } from "./feedback/schema";
 import { feedbackTestSendSchema } from "./feedback/testSend/schema";
 import { formsSchema } from "./forms/schema";
+import { invoicingSchema } from "./invoicing/schema";
 import { jobListingOrdersSchema } from "./jobListingOrders/schema";
 import { jobListingsSchema } from "./jobListings/schema";
 import { pagesSchema } from "./pages/schema";
@@ -35,4 +36,5 @@ export default defineSchema({
 	...accessSchema,
 	...semesterPlanningSchema,
 	...productsSchema,
+	...invoicingSchema,
 });
