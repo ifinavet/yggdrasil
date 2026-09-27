@@ -1,7 +1,28 @@
-import { v } from "convex/values";
+import {
+	JOB_LISTING_MAX_ACTIVE_MONTHS,
+	jobListingLatestDeadline,
+	jobListingPublishedAt,
+} from "@workspace/shared/time";
+import { ConvexError, v } from "convex/values";
+import type { Doc } from "../_generated/dataModel";
 import { mutation } from "../_generated/server";
 import { internalRoles, requireRole } from "../auth/accessRights";
 import { jobListingProductFields } from "../products/sales";
+
+function resolvePublishedAt(
+	existing: Doc<"jobListings"> | null,
+	publish: boolean,
+	deadline: number,
+): number | undefined {
+	const publishedAt =
+		(existing && jobListingPublishedAt(existing)) ?? (publish ? Date.now() : undefined);
+	if (publishedAt !== undefined && deadline > jobListingLatestDeadline(publishedAt)) {
+		throw new ConvexError(
+			`Fristen kan ikke være mer enn ${JOB_LISTING_MAX_ACTIVE_MONTHS} måneder etter at annonsen ble publisert.`,
+		);
+	}
+	return publishedAt;
+}
 
 /**
  * Creates a new job listing and its contact records.
@@ -40,6 +61,8 @@ export const create = mutation({
 	handler: async (ctx, args) => {
 		await requireRole(ctx, internalRoles);
 
+		const publishedAt = resolvePublishedAt(null, args.published, args.deadline);
+
 		const listing = await ctx.db.insert("jobListings", {
 			title: args.title,
 			type: args.type,
@@ -49,6 +72,7 @@ export const create = mutation({
 			published: args.published,
 			company: args.company,
 			deadline: args.deadline,
+			publishedAt,
 			...(await jobListingProductFields(ctx)),
 		});
 
@@ -102,6 +126,13 @@ export const update = mutation({
 	handler: async (ctx, args) => {
 		await requireRole(ctx, internalRoles);
 
+		const existing = await ctx.db.get(args.id);
+		if (!existing) {
+			throw new ConvexError("Stillingsannonsen ble ikke funnet.");
+		}
+
+		const publishedAt = resolvePublishedAt(existing, args.published, args.deadline);
+
 		const listing = await ctx.db.patch(args.id, {
 			title: args.title,
 			type: args.type,
@@ -111,6 +142,7 @@ export const update = mutation({
 			published: args.published,
 			company: args.company,
 			deadline: args.deadline,
+			publishedAt,
 		});
 
 		const contacts = await ctx.db

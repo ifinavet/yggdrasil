@@ -26,7 +26,10 @@ import CompanySelectField from "@/components/common/forms/company-select-field";
 import DateTimePicker from "@/components/common/forms/date-time-picker";
 import FormSubmitActions from "@/components/common/forms/form-submit-actions";
 import DescriptionEditor from "@/components/common/forms/markdown-editor/editor";
-import { formSchema, type JobListingFormValues } from "@/constants/schemas/job-listing-form-schema";
+import {
+	type JobListingFormValues,
+	jobListingFormSchema,
+} from "@/constants/schemas/job-listing-form-schema";
 import ContactsSection from "./contacts-section";
 
 type FormMeta = {
@@ -52,16 +55,18 @@ export default function JobListingForm({
 	onSecondarySubmitAction,
 	onTertiarySubmitAction,
 	defaultValues,
+	latestDeadline,
 }: Readonly<{
 	onPrimarySubmitAction: (values: JobListingFormValues) => void;
 	onSecondarySubmitAction: (values: JobListingFormValues) => void;
 	onTertiarySubmitAction?: (values: JobListingFormValues) => void;
 	defaultValues: JobListingFormValues;
+	latestDeadline: Date;
 }>) {
 	const form = useForm({
 		defaultValues,
 		validators: {
-			onSubmit: formSchema,
+			onSubmit: jobListingFormSchema(latestDeadline),
 		},
 		onSubmitMeta: {
 			submitAction: "primary",
@@ -135,6 +140,7 @@ export default function JobListingForm({
 								field={field}
 								label="Dato og tid for annonsen sin deadline"
 								description="Velg dato og tid for når annonsen løper ut"
+								latestDate={latestDeadline}
 							/>
 						)}
 					</form.Field>
