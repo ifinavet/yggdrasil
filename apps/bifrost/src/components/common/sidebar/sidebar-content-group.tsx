@@ -43,12 +43,6 @@ const paths = {
 			path: "/events",
 		},
 		{
-			title: "Semesterplan",
-			icon: CalendarRangeIcon,
-			path: "/semesterplan",
-			feature: "semesterPlanning",
-		},
-		{
 			title: "Stillingsannonser",
 			icon: BriefcaseIcon,
 			path: "/job-listings",
@@ -98,6 +92,12 @@ const paths = {
 			title: "Skjemaer",
 			icon: ClipboardListIcon,
 			path: "/feedback-forms",
+		},
+		{
+			title: "Semesterplan",
+			icon: CalendarRangeIcon,
+			path: "/semesterplan",
+			feature: "semesterPlanning",
 		},
 	],
 } satisfies Record<string, SidebarItem[]>;
