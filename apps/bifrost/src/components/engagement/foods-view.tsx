@@ -1,6 +1,6 @@
 "use client";
 
-import { barX, defineChart, ruleX, text } from "@tanstack/charts";
+import { barX, defineChart, dot, ruleX, ruleY, text } from "@tanstack/charts";
 import { scaleBand } from "@tanstack/charts/scales/band";
 import { scaleLinear } from "@tanstack/charts/scales/linear";
 import { tooltip } from "@tanstack/charts/tooltip";
@@ -15,11 +15,14 @@ import { MUTED_SERIES_COLOR, PRIMARY_SERIES_COLOR } from "@/components/common/ch
 import {
 	DEMAND_NOTE,
 	FOOD_DEMAND_NOTE,
+	FOOD_FEW_EVENTS,
+	FOOD_OPPORTUNITY_NOTE,
 	type FoodBreakdown,
 	type FoodEvent,
 	foodBreakdown,
 	foodDemandBars,
 	foodDistribution,
+	foodOpportunities,
 	formatShare,
 	METRICS,
 	type SemesterOption,
@@ -31,6 +34,7 @@ const ROW_HEIGHT = 32;
 const AXIS_HEIGHT = 48;
 const CHART_WIDTH = 760;
 const DASHED = "5 4";
+const OPPORTUNITY_HEIGHT = 360;
 const AVERAGE = { label: "Snitt for alle", color: MUTED_SERIES_COLOR, marker: "dashed" as const };
 
 function chartHeight(rows: number) {
@@ -133,6 +137,71 @@ function DemandChart({ breakdown }: Readonly<{ breakdown: FoodBreakdown }>) {
 	);
 }
 
+function OpportunityChart({ breakdown }: Readonly<{ breakdown: FoodBreakdown }>) {
+	const points = foodOpportunities(breakdown);
+	const definition = useMemo(
+		() =>
+			defineChart({
+				marks: [
+					...(breakdown.demand === null
+						? []
+						: [
+								ruleY([breakdown.demand], {
+									stroke: AVERAGE.color,
+									strokeDasharray: DASHED,
+									strokeOpacity: 1,
+								}),
+							]),
+					dot(points, { x: "events", y: "demand", r: 4, fill: PRIMARY_SERIES_COLOR }),
+					text(points, {
+						x: "events",
+						y: "demand",
+						text: "name",
+						dx: (point) => point.dx,
+						anchor: (point) => point.anchor,
+						fontSize: 11,
+					}),
+				],
+				scales: {
+					x: { scale: scaleLinear, nice: true, grid: true, axis: { label: "Arrangementer" } },
+					y: {
+						scale: scaleLinear,
+						nice: true,
+						grid: true,
+						axis: { label: METRICS.demand.label, ticks: { format: formatShare } },
+					},
+				},
+				tooltip: {
+					use: tooltip,
+					items: [
+						{ field: "name", label: "Mat" },
+						{ channel: "x", label: "Arrangementer" },
+						{ channel: "y", label: METRICS.demand.label, text: (point) => formatShare(point.y) },
+					],
+				},
+			}),
+		[breakdown.demand, points],
+	);
+
+	if (points.length === 0) {
+		return (
+			<PanelNote>Ingen mat er servert på minst {FOOD_FEW_EVENTS} arrangementer ennå.</PanelNote>
+		);
+	}
+
+	return (
+		<Chart
+			definition={definition}
+			height={OPPORTUNITY_HEIGHT}
+			initialWidth={CHART_WIDTH}
+			ariaLabel="Mat vi bestiller sjelden"
+			ariaDescription={points
+				.map((point) => `${point.name}: ${point.events} arrangementer, ${point.label}`)
+				.join(", ")}
+		/>
+	);
+}
+
 function useFoodEvents(now: number, semesters: readonly SemesterOption[] | null) {
 	const requests = useMemo(
 		() =>
@@ -196,6 +265,14 @@ export function FoodsView({ now }: Readonly<{ now: number }>) {
 						<DemandChart breakdown={breakdown} />
 						<PanelNote>{DEMAND_NOTE}</PanelNote>
 						<PanelNote>{FOOD_DEMAND_NOTE}</PanelNote>
+					</PanelBody>
+				</Panel>
+			)}
+			{breakdown && !empty && (
+				<Panel title="Mat vi bestiller sjelden" aside={<ChartLegend items={[AVERAGE]} />}>
+					<PanelBody className="grid gap-3">
+						<OpportunityChart breakdown={breakdown} />
+						<PanelNote>{FOOD_OPPORTUNITY_NOTE}</PanelNote>
 					</PanelBody>
 				</Panel>
 			)}

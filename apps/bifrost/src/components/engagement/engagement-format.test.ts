@@ -18,6 +18,7 @@ import {
 	foodBreakdown,
 	foodDemandBars,
 	foodDistribution,
+	foodOpportunities,
 	formatDelta,
 	formatHours,
 	formatMetric,
@@ -101,6 +102,7 @@ describe("food charts", () => {
 	const pizza: [string, string] = ["pizza", "🍕 Pizza"];
 	const taco: [string, string] = ["taco", "🌮 Taco"];
 	const burritos: [string, string] = ["burritos", "🌯 Burritos"];
+	const sushi: [string, string] = ["sushi", "🍣 Sushi"];
 	const breakdown = foodBreakdown([
 		event("a", pizza, 30, 20),
 		event("b", taco, 5, 10),
@@ -136,6 +138,36 @@ describe("food charts", () => {
 			["🍕 Pizza", "100 %"],
 			["🌮 Taco", "50 %"],
 			["Ikke satt", "0 %"],
+		]);
+	});
+
+	it("leaves out unset foods and foods served at fewer than three events", () => {
+		const serve = (id: string, food: [string, string] | null, count: number, demand: number) =>
+			Array.from({ length: count }, (_, index) => event(`${id}${index}`, food, demand, 10));
+		const opportunities = foodOpportunities(
+			foodBreakdown([
+				...serve("p", pizza, 3, 10),
+				...serve("n", null, 3, 10),
+				event("t", taco, 5, 10),
+			]),
+		);
+		expect(opportunities.map(({ name, events }) => [name, events])).toEqual([["🍕 Pizza", 3]]);
+	});
+
+	it("puts a label on the left when a close neighbour to the right would overlap it", () => {
+		const serve = (id: string, food: [string, string], count: number, demand: number) =>
+			Array.from({ length: count }, (_, index) => event(`${id}${index}`, food, demand, 10));
+		const opportunities = foodOpportunities(
+			foodBreakdown([
+				...serve("s", sushi, 24, 8),
+				...serve("t", taco, 26, 8),
+				...serve("p", pizza, 100, 1),
+			]),
+		);
+		expect(opportunities.map(({ name, anchor }) => [name, anchor])).toEqual([
+			["🌮 Taco", "start"],
+			["🍣 Sushi", "end"],
+			["🍕 Pizza", "start"],
 		]);
 	});
 

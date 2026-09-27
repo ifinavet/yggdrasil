@@ -119,6 +119,29 @@ export function foodDemandBars({ foods }: Pick<FoodBreakdown, "foods">) {
 		.sort((a, b) => b.demand - a.demand);
 }
 
+export const FOOD_FEW_EVENTS = 3;
+
+const LABEL_CLEARANCE = { events: 0.1, demand: 0.06 };
+const LABEL_GAP = 8;
+
+export function foodOpportunities({ foods }: Pick<FoodBreakdown, "foods">) {
+	const points = foodDemandBars({ foods }).filter(
+		(food) => food.events >= FOOD_FEW_EVENTS && food.name !== UNSET_FOOD,
+	);
+	const widest = Math.max(1, ...points.map((point) => point.events));
+	return points.map((point) => {
+		const crowded = points.some(
+			(other) =>
+				other.events > point.events &&
+				(other.events - point.events) / widest <= LABEL_CLEARANCE.events &&
+				Math.abs(other.demand - point.demand) <= LABEL_CLEARANCE.demand,
+		);
+		return crowded
+			? { ...point, anchor: "end" as const, dx: -LABEL_GAP }
+			: { ...point, anchor: "start" as const, dx: LABEL_GAP };
+	});
+}
+
 export function opensLabel(opensAt: number) {
 	return `Åpner ${formatOsloDate(opensAt, DATE_PATTERNS.shortDate)}`;
 }
@@ -301,6 +324,8 @@ export const DEMAND_NOTE =
 
 export const FOOD_DEMAND_NOTE =
 	"Tallene viser ikke at maten er årsaken. Bedrift, type arrangement, kapasitet og semester påvirker også interessen, så en mat kan score lavt fordi den ofte serveres på mindre populære arrangementer.";
+
+export const FOOD_OPPORTUNITY_NOTE = `Mat oppe til venstre har høy etterspørsel, men serveres sjelden. Mat med færre enn ${FOOD_FEW_EVENTS} arrangementer er utelatt, fordi tallet der kan skyldes tilfeldigheter.`;
 
 const HOURS_PER_DAY = 24;
 const MINUTES_PER_HOUR = 60;
