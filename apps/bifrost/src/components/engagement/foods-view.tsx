@@ -1,6 +1,7 @@
 "use client";
 
 import { barX, defineChart, dot, ruleX, ruleY, text } from "@tanstack/charts";
+import { decorative } from "@tanstack/charts/mark/decorative";
 import { scaleBand } from "@tanstack/charts/scales/band";
 import { scaleLinear } from "@tanstack/charts/scales/linear";
 import { tooltip } from "@tanstack/charts/tooltip";
@@ -48,7 +49,10 @@ function chartHeight(rows: number) {
 }
 
 function countAxis(counts: readonly number[]) {
-	const ticks = countTicks(Math.max(0, ...counts));
+	return tickAxis(countTicks(Math.max(0, ...counts)));
+}
+
+function tickAxis(ticks: readonly number[]) {
 	return {
 		scale: scaleLinear().domain([0, ticks.at(-1) ?? 1]),
 		grid: true,
@@ -153,7 +157,7 @@ function DemandChart({ breakdown }: Readonly<{ breakdown: FoodBreakdown }>) {
 }
 
 function OpportunityChart({ breakdown }: Readonly<{ breakdown: FoodBreakdown }>) {
-	const points = foodOpportunities(breakdown);
+	const { points, ticks, demandAxis } = useMemo(() => foodOpportunities(breakdown), [breakdown]);
 	const definition = useMemo(
 		() =>
 			defineChart({
@@ -168,20 +172,24 @@ function OpportunityChart({ breakdown }: Readonly<{ breakdown: FoodBreakdown }>)
 								}),
 							]),
 					dot(points, { x: "events", y: "demand", r: 4, fill: PRIMARY_SERIES_COLOR }),
-					text(points, {
-						x: "events",
-						y: "demand",
-						text: "name",
-						dx: (point) => point.dx,
-						anchor: (point) => point.anchor,
-						fontSize: 11,
-					}),
+					decorative(
+						text(
+							points.filter((point) => point.labelled),
+							{
+								x: "events",
+								y: "demand",
+								text: "name",
+								dx: (point) => point.dx,
+								anchor: (point) => point.anchor,
+								fontSize: 11,
+							},
+						),
+					),
 				],
 				scales: {
-					x: countAxis(points.map((point) => point.events)),
+					x: tickAxis(ticks),
 					y: {
-						scale: scaleLinear().domain([0, Math.max(1, ...points.map((point) => point.demand))]),
-						nice: true,
+						scale: scaleLinear().domain(demandAxis),
 						grid: true,
 						axis: { label: METRICS.demand.label, ticks: { format: formatShare } },
 					},
@@ -195,7 +203,7 @@ function OpportunityChart({ breakdown }: Readonly<{ breakdown: FoodBreakdown }>)
 					],
 				},
 			}),
-		[breakdown.demand, points],
+		[breakdown.demand, points, ticks, demandAxis],
 	);
 
 	if (points.length === 0) {

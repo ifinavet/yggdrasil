@@ -11,6 +11,7 @@ import {
 	comparisonMax,
 	countTicks,
 	defaultSelection,
+	demandDomain,
 	type EngagementAlert,
 	type EngagementStatus,
 	type FoodEvent,
@@ -149,24 +150,46 @@ describe("food charts", () => {
 				event("t", taco, 5, 10),
 			]),
 		);
-		expect(opportunities.map(({ name, events }) => [name, events])).toEqual([["🍕 Pizza", 3]]);
+		expect(opportunities.points.map(({ name, events }) => [name, events])).toEqual([
+			["🍕 Pizza", 3],
+		]);
 	});
 
-	it("puts a label on the left when a close neighbour to the right would overlap it", () => {
+	it("moves a label to the left when a close neighbour to the right would overlap it", () => {
 		const serve = (id: string, food: [string, string], count: number, demand: number) =>
 			Array.from({ length: count }, (_, index) => event(`${id}${index}`, food, demand, 10));
-		const opportunities = foodOpportunities(
+		const { points } = foodOpportunities(
 			foodBreakdown([
 				...serve("s", sushi, 24, 8),
 				...serve("t", taco, 26, 8),
 				...serve("p", pizza, 100, 1),
 			]),
 		);
-		expect(opportunities.map(({ name, anchor }) => [name, anchor])).toEqual([
-			["🌮 Taco", "start"],
-			["🍣 Sushi", "end"],
-			["🍕 Pizza", "start"],
+		expect(points.map(({ name, anchor, labelled }) => [name, anchor, labelled])).toEqual([
+			["🌮 Taco", "start", true],
+			["🍣 Sushi", "end", true],
+			["🍕 Pizza", "end", true],
 		]);
+	});
+
+	it("drops labels that would overlap on either side and keeps the dot", () => {
+		const serve = (id: string, food: [string, string], count: number, demand: number) =>
+			Array.from({ length: count }, (_, index) => event(`${id}${index}`, food, demand, 10));
+		const { points } = foodOpportunities(
+			foodBreakdown([
+				...serve("s", sushi, 10, 9),
+				...serve("t", taco, 10, 9),
+				...serve("p", pizza, 10, 9),
+			]),
+		);
+		expect(points).toHaveLength(3);
+		expect(points.filter((point) => point.labelled)).toHaveLength(1);
+	});
+
+	it("fits the demand axis to the points with a minimum span", () => {
+		expect(demandDomain([0.99, 1.02])).toEqual([0.85, 1.15]);
+		expect(demandDomain([0.4, 1.1])).toEqual([0.3, 1.2]);
+		expect(demandDomain([0.02, 0.05])).toEqual([0, 0.2]);
 	});
 
 	it("ticks event counts in round whole steps from zero", () => {
