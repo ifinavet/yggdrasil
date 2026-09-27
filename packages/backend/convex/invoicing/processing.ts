@@ -9,6 +9,7 @@ import {
 	internalAction,
 	internalMutation,
 	type MutationCtx,
+	type QueryCtx,
 } from "../_generated/server";
 import {
 	createCustomer,
@@ -29,7 +30,7 @@ const DESCRIPTION_MAX_LENGTH = 200;
 
 export const fikenPool = new Workpool(components.fikenWorkpool, { maxParallelism: 1 });
 
-const invoicePlan = v.object({
+export const invoicePlan = v.object({
 	customer: v.object({
 		name: v.string(),
 		organizationNumber: v.string(),
@@ -45,9 +46,9 @@ const invoicePlan = v.object({
 	}),
 });
 
-type InvoicePlan = Infer<typeof invoicePlan>;
+export type InvoicePlan = Infer<typeof invoicePlan>;
 
-type Resolution =
+export type Resolution =
 	| { kind: "ready"; plan: InvoicePlan }
 	| { kind: "cancel" }
 	| { kind: "reschedule"; serviceAt: number }
@@ -84,7 +85,7 @@ export const sweep = internalMutation({
 });
 
 async function jobListingOrderPlan(
-	ctx: MutationCtx,
+	ctx: QueryCtx,
 	orderId: Id<"jobListingOrders">,
 ): Promise<Resolution> {
 	const order = await ctx.db.get(orderId);
@@ -112,7 +113,7 @@ async function jobListingOrderPlan(
 }
 
 async function companyApplicationPlan(
-	ctx: MutationCtx,
+	ctx: QueryCtx,
 	invoice: Doc<"invoices">,
 	applicationId: Id<"companyApplications">,
 ): Promise<Resolution> {
@@ -152,16 +153,19 @@ async function companyApplicationPlan(
 	};
 }
 
+export async function resolvePlan(ctx: QueryCtx, invoice: Doc<"invoices">): Promise<Resolution> {
+	return invoice.source.kind === "jobListingOrder"
+		? await jobListingOrderPlan(ctx, invoice.source.orderId)
+		: await companyApplicationPlan(ctx, invoice, invoice.source.applicationId);
+}
+
 export const prepare = internalMutation({
 	args: { invoiceId: v.id("invoices") },
 	returns: v.union(v.null(), invoicePlan),
 	handler: async (ctx, { invoiceId }) => {
 		const invoice = await ctx.db.get(invoiceId);
 		if (invoice?.status !== "queued") return null;
-		const resolution =
-			invoice.source.kind === "jobListingOrder"
-				? await jobListingOrderPlan(ctx, invoice.source.orderId)
-				: await companyApplicationPlan(ctx, invoice, invoice.source.applicationId);
+		const resolution = await resolvePlan(ctx, invoice);
 		switch (resolution.kind) {
 			case "ready":
 				return { ...resolution.plan, fikenContactId: invoice.fikenContactId };

@@ -735,7 +735,13 @@ describe("admin", () => {
 
 		await expect(f.editor.query(api.invoicing.admin.list, {})).rejects.toThrow();
 		await expect(
+			f.editor.query(api.invoicing.admin.get, { invoiceId: invoice._id }),
+		).rejects.toThrow();
+		await expect(
 			f.editor.mutation(api.invoicing.admin.retry, { invoiceId: invoice._id }),
+		).rejects.toThrow();
+		await expect(
+			f.editor.mutation(api.invoicing.admin.cancel, { invoiceId: invoice._id }),
 		).rejects.toThrow();
 	});
 
@@ -766,5 +772,105 @@ describe("admin", () => {
 				f.admin.mutation(api.invoicing.admin.retry, { invoiceId: invoice._id }),
 			),
 		).toBe("Bare fakturaer som feilet kan prøves på nytt.");
+	});
+
+	it("shows what a scheduled invoice will send to Fiken", async () => {
+		const f = await fixture();
+		await approvedOrder(f);
+		const invoice = await onlyInvoice(f.t);
+
+		expect(await f.admin.query(api.invoicing.admin.get, { invoiceId: invoice._id })).toEqual({
+			invoice: expect.objectContaining({ status: "scheduled", companyName: "Testbedrift" }),
+			attempts: 0,
+			preview: {
+				kind: "ready",
+				plan: {
+					customer: {
+						name: "Testbedrift",
+						organizationNumber: "123456789",
+						email: "faktura@testbedrift.no",
+					},
+					invoiceText: "Stillingsannonser, bestilling NAV-1234",
+					yourReference: "PO-7",
+					line: { description: "Stillingsannonse (2 stk.)", unitPrice: 550_000, vatRate: 25 },
+				},
+			},
+		});
+	});
+
+	it("shows why a scheduled invoice will not be sent", async () => {
+		const f = await fixture();
+		const orderId = await approvedOrder(f);
+		const invoice = await onlyInvoice(f.t);
+		await f.t.run((ctx) => ctx.db.patch(orderId, { status: "rejected" }));
+
+		const detail = await f.admin.query(api.invoicing.admin.get, { invoiceId: invoice._id });
+
+		expect(detail?.preview).toEqual({ kind: "cancel" });
+	});
+
+	it("keeps the preview out of a created draft", async () => {
+		const f = await fixture();
+		await approvedOrder(f);
+		stubFiken();
+		await runSweep(f.t, invoiceDueAt(NOW));
+		const invoice = await onlyInvoice(f.t);
+
+		expect(invoice.draftCreatedAt).toBeGreaterThanOrEqual(invoiceDueAt(NOW));
+		expect(await f.admin.query(api.invoicing.admin.get, { invoiceId: invoice._id })).toMatchObject({
+			invoice: { status: "draft_created", fikenDraftId: 901 },
+			attempts: 1,
+			draftCreatedAt: invoice.draftCreatedAt,
+			preview: null,
+		});
+	});
+
+	it("returns nothing for an invoice that is gone", async () => {
+		const f = await fixture();
+		await approvedOrder(f);
+		const invoice = await onlyInvoice(f.t);
+		await f.t.run((ctx) => ctx.db.delete(invoice._id));
+
+		expect(await f.admin.query(api.invoicing.admin.get, { invoiceId: invoice._id })).toBeNull();
+	});
+
+	it("cancels a scheduled invoice so the sweep skips it", async () => {
+		const f = await fixture();
+		await approvedOrder(f);
+		const invoice = await onlyInvoice(f.t);
+		const calls = stubFiken();
+
+		await f.admin.mutation(api.invoicing.admin.cancel, { invoiceId: invoice._id });
+		await runSweep(f.t, invoiceDueAt(NOW));
+
+		expect(await onlyInvoice(f.t)).toMatchObject({ status: "cancelled" });
+		expect(calls).toEqual([]);
+	});
+
+	it("cancels a failed invoice", async () => {
+		const f = await fixture();
+		await approvedOrder(f);
+		stubFiken({ createDraft: () => new Response("ugyldig", { status: 400 }) });
+		await runSweep(f.t, invoiceDueAt(NOW));
+		const failed = await onlyInvoice(f.t);
+
+		await f.admin.mutation(api.invoicing.admin.cancel, { invoiceId: failed._id });
+
+		expect(await onlyInvoice(f.t)).toMatchObject({ status: "cancelled" });
+	});
+
+	it("refuses to cancel an invoice that already has a draft", async () => {
+		const f = await fixture();
+		await approvedOrder(f);
+		stubFiken();
+		await runSweep(f.t, invoiceDueAt(NOW));
+		const invoice = await onlyInvoice(f.t);
+
+		expect(
+			await refusalMessageFrom(
+				f.admin.mutation(api.invoicing.admin.cancel, { invoiceId: invoice._id }),
+			),
+		).toBe("Bare planlagte eller feilede fakturaer kan avbrytes.");
+		expect(await onlyInvoice(f.t)).toMatchObject({ status: "draft_created" });
 	});
 });
