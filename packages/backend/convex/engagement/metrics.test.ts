@@ -5,14 +5,15 @@ import {
 	activityBuckets,
 	activityWindowMs,
 	classify,
-	fillCurve,
 	isSimilarCapacity,
 	isWave,
+	type LogEntry,
 	medianCurve,
-	PACE_STEPS,
+	PACE_GRID,
 	progressOf,
 	projectFill,
 	recentUnregistrations,
+	seatCurve,
 	seatDelta,
 	valueAt,
 } from "./metrics";
@@ -22,7 +23,7 @@ const START = OPENS + 10 * DAY_MS;
 const TIMELINE = { registrationOpens: OPENS, eventStart: START };
 
 function linearCurve(finalFill: number) {
-	return Array.from({ length: PACE_STEPS + 1 }, (_, step) => (finalFill * step) / PACE_STEPS);
+	return PACE_GRID.map((progress) => finalFill * progress);
 }
 
 describe("progressOf", () => {
@@ -37,13 +38,48 @@ describe("progressOf", () => {
 	});
 });
 
-describe("fillCurve", () => {
-	it("counts registrations up to each step and caps at the limit", () => {
-		const curve = fillCurve(TIMELINE, 2, [START, OPENS, OPENS + DAY_MS, OPENS + 2 * DAY_MS]);
-		expect(curve).toHaveLength(PACE_STEPS + 1);
+describe("seatCurve", () => {
+	const at = (progress: number) => OPENS + (START - OPENS) * progress;
+
+	it("replays seats held at each grid point and caps at the limit", () => {
+		const log: LogEntry[] = [
+			{ change: "registered", at: OPENS },
+			{ change: "registered", at: at(0.1) },
+			{ change: "registered", at: at(0.2) },
+			{ change: "registered", at: START + DAY_MS },
+		];
+		const curve = seatCurve(TIMELINE, 2, log);
+		expect(curve).toHaveLength(PACE_GRID.length);
 		expect(curve[0]).toBe(0.5);
-		expect(curve[2]).toBe(1);
-		expect(curve[PACE_STEPS]).toBe(1);
+		expect(curve[PACE_GRID.indexOf(0.1)]).toBe(1);
+		expect(curve.at(-1)).toBe(1);
+	});
+
+	it("keeps a promoted seat at the time it was first taken", () => {
+		const log: LogEntry[] = [
+			{ change: "registered", at: OPENS },
+			{ change: "registered", at: OPENS + 1 },
+			{ change: "waitlisted", at: OPENS + 2 },
+			{ change: "unregistered", fromStatus: "registered", at: at(0.5) },
+			{ change: "offered", at: at(0.5) },
+			{ change: "accepted", at: at(0.6) },
+		];
+		const curve = seatCurve(TIMELINE, 2, log);
+		expect(curve[PACE_GRID.indexOf(0.0001)]).toBe(1);
+		expect(curve[PACE_GRID.indexOf(0.5)]).toBe(0.5);
+		expect(curve[PACE_GRID.indexOf(0.6)]).toBe(1);
+	});
+
+	it("resolves the first minutes of registration", () => {
+		const log: LogEntry[] = [{ change: "registered", at: at(0.0003) }];
+		const curve = seatCurve(TIMELINE, 1, log);
+		expect(curve[PACE_GRID.indexOf(0.0002)]).toBe(0);
+		expect(curve[PACE_GRID.indexOf(0.0005)]).toBe(1);
+	});
+
+	it("never drops below zero", () => {
+		const log: LogEntry[] = [{ change: "cleared", fromStatus: "registered", at: OPENS }];
+		expect(seatCurve(TIMELINE, 2, log)[0]).toBe(0);
 	});
 });
 
@@ -54,14 +90,14 @@ describe("medianCurve", () => {
 
 	it("takes the middle value for an odd count", () => {
 		const median = medianCurve([linearCurve(0.2), linearCurve(0.9), linearCurve(0.5)]);
-		expect(median?.[PACE_STEPS]).toBe(0.5);
+		expect(median?.at(-1)).toBe(0.5);
 	});
 
 	it("averages the two middle values for an even count and fills gaps with zero", () => {
 		const median = medianCurve([linearCurve(0.4), linearCurve(0.8), []]);
-		expect(median?.[PACE_STEPS]).toBeCloseTo(0.4);
+		expect(median?.at(-1)).toBeCloseTo(0.4);
 		const even = medianCurve([linearCurve(0.4), linearCurve(0.8)]);
-		expect(even?.[PACE_STEPS]).toBeCloseTo(0.6);
+		expect(even?.at(-1)).toBeCloseTo(0.6);
 	});
 });
 
@@ -70,6 +106,14 @@ describe("valueAt", () => {
 		const curve = linearCurve(1);
 		expect(valueAt(curve, 0.525)).toBeCloseTo(0.525);
 		expect(valueAt(curve, 1)).toBe(1);
+		expect(valueAt(curve, 2)).toBe(1);
+	});
+
+	it("interpolates on the dense early grid", () => {
+		const curve = PACE_GRID.map((progress) => (progress >= 0.0002 ? 1 : 0));
+		expect(valueAt(curve, 0)).toBe(0);
+		expect(valueAt(curve, 0.00015)).toBeCloseTo(0.5);
+		expect(valueAt(curve, 0.0002)).toBe(1);
 	});
 });
 
@@ -90,12 +134,19 @@ describe("projectFill", () => {
 		expect(projectFill(0.8, 0.5, null)).toBe(1);
 	});
 
-	it("scales the baseline end fill by the current ratio", () => {
-		expect(projectFill(0.2, 0.5, linearCurve(0.8))).toBeCloseTo(0.4);
+	it("adds the growth the baseline still has ahead", () => {
+		expect(projectFill(0.2, 0.5, linearCurve(0.8))).toBeCloseTo(0.6);
 	});
 
-	it("returns the current fill when the baseline expects nothing yet", () => {
+	it("stays stable when the baseline has barely started", () => {
+		expect(projectFill(0.05, 0.0001, linearCurve(0.5))).toBeCloseTo(0.55 - 0.00005);
+	});
+
+	it("never projects below the current fill or above capacity", () => {
+		const shrinking = PACE_GRID.map((progress) => 0.8 - 0.2 * progress);
+		expect(projectFill(0.3, 0.5, shrinking)).toBe(0.3);
 		expect(projectFill(0.1, 0.5, linearCurve(0))).toBe(0.1);
+		expect(projectFill(0.9, 0.5, linearCurve(1))).toBe(1);
 	});
 });
 

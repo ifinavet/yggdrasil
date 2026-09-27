@@ -1,7 +1,5 @@
 import type { Doc } from "../_generated/dataModel";
 
-export const TOP_PROGRAMS = 8;
-
 type Student = Pick<Doc<"students">, "_id" | "degree" | "year" | "studyProgram">;
 type KeyOf = (student: Student) => string;
 
@@ -158,7 +156,6 @@ export function audienceOf(
 	const programRow = shareRow(programOf);
 	const programs = tally(registrants, programOf)
 		.sort(([a, { count: countA }], [b, { count: countB }]) => countB - countA || a.localeCompare(b))
-		.slice(0, TOP_PROGRAMS)
 		.map(([label, { count }]) => {
 			const byCohort = countBy(
 				registrants.filter((student) => student.studyProgram === label),

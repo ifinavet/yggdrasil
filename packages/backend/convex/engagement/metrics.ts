@@ -1,13 +1,28 @@
 import { DAY_MS, HOUR_MS, MINUTE_MS } from "@workspace/shared/time";
+import { median } from "d3-array";
+import { scaleLinear } from "d3-scale";
 import type { AlertRule, RegistrationChange } from "./schema";
 
 export const PACE_STEPS = 20;
+export const PACE_GRID = [
+	0,
+	0.0001,
+	0.0002,
+	0.0005,
+	0.001,
+	0.002,
+	0.005,
+	0.01,
+	0.02,
+	...Array.from({ length: PACE_STEPS }, (_, step) => (step + 1) / PACE_STEPS),
+];
 export const WAVE_RULE = { windowMs: HOUR_MS, minCount: 5, minShare: 0.1 };
 export const BEHIND_RULE = { maxProjectedFill: 0.5, withinMs: 3 * DAY_MS };
 export const NO_REGISTRATIONS_AFTER_MS = DAY_MS;
 export const AHEAD_RATIO = 1.15;
 export const SIMILAR_CAPACITY_BAND = 0.5;
 export const BASELINE_SIZE = 12;
+export const COMPANY_BASELINE = { size: 6, minSize: 2 };
 export const ALERT_ACTIVITY = {
 	unregisterWave: { change: "unregistered", bucketMs: 10 * MINUTE_MS, buckets: 12 },
 	behindPace: { change: "registered", bucketMs: DAY_MS, buckets: 14 },
@@ -40,36 +55,25 @@ export function progressOf({ registrationOpens, eventStart }: Timeline, at: numb
 	return Math.min(1, Math.max(0, (at - registrationOpens) / span));
 }
 
-export function fillCurve(
+export function seatCurve(
 	{ registrationOpens, eventStart }: Timeline,
 	limit: number,
-	registrationTimes: readonly number[],
+	entries: readonly LogEntry[],
 ) {
-	const sorted = [...registrationTimes].sort((a, b) => a - b);
-	return Array.from({ length: PACE_STEPS + 1 }, (_, step) => {
-		const cutoff = registrationOpens + ((eventStart - registrationOpens) * step) / PACE_STEPS;
-		const count = sorted.filter((time) => time <= cutoff).length;
-		return Math.min(1, count / limit);
+	return PACE_GRID.map((progress) => {
+		const cutoff = registrationOpens + (eventStart - registrationOpens) * progress;
+		const seats = seatDelta(entries.filter(({ at }) => at <= cutoff));
+		return Math.min(1, Math.max(0, seats / limit));
 	});
 }
 
 export function medianCurve(curves: readonly (readonly number[])[]) {
 	if (curves.length === 0) return null;
-	return Array.from({ length: PACE_STEPS + 1 }, (_, step) => {
-		const values = curves.map((curve) => curve[step] ?? 0).sort((a, b) => a - b);
-		const middle = Math.floor(values.length / 2);
-		return values.length % 2
-			? (values[middle] as number)
-			: ((values[middle - 1] as number) + (values[middle] as number)) / 2;
-	});
+	return PACE_GRID.map((_, step) => median(curves, (curve) => curve[step] ?? 0) as number);
 }
 
 export function valueAt(curve: readonly number[], progress: number) {
-	const position = progress * PACE_STEPS;
-	const lower = Math.floor(position);
-	const upper = Math.min(PACE_STEPS, lower + 1);
-	const weight = position - lower;
-	return (curve[lower] as number) * (1 - weight) + (curve[upper] as number) * weight;
+	return scaleLinear(PACE_GRID, curve).clamp(true)(progress);
 }
 
 export function isSimilarCapacity(limit: number, otherLimit: number) {
@@ -79,9 +83,8 @@ export function isSimilarCapacity(limit: number, otherLimit: number) {
 export function projectFill(currentFill: number, progress: number, baseline: number[] | null) {
 	if (progress <= 0) return currentFill;
 	if (!baseline) return Math.min(1, currentFill / progress);
-	const expectedNow = valueAt(baseline, progress);
-	if (expectedNow <= 0) return currentFill;
-	return Math.min(1, (currentFill * (baseline[PACE_STEPS] as number)) / expectedNow);
+	const remaining = (baseline.at(-1) as number) - valueAt(baseline, progress);
+	return Math.min(1, currentFill + Math.max(0, remaining));
 }
 
 export function seatDelta(entries: readonly LogEntry[]) {

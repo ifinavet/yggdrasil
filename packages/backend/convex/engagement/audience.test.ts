@@ -1,12 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Doc, Id } from "../_generated/dataModel";
-import {
-	audienceOf,
-	cohortGroupOf,
-	cohortOf,
-	programCohortGroupOf,
-	TOP_PROGRAMS,
-} from "./audience";
+import { audienceOf, cohortGroupOf, cohortOf, programCohortGroupOf } from "./audience";
 
 type Student = Pick<Doc<"students">, "_id" | "degree" | "year" | "studyProgram">;
 
@@ -194,18 +188,14 @@ describe("audienceOf", () => {
 		]);
 	});
 
-	it("keeps the most popular programs, breaking ties by name", () => {
-		const names = Array.from({ length: TOP_PROGRAMS + 2 }, (_, index) => `Program ${index}`);
+	it("lists every program by popularity, breaking ties by name", () => {
+		const names = Array.from({ length: 10 }, (_, index) => `Program ${index}`);
 		const registrants = [
-			...names.map((name) => student(name, "Bachelor", 1, name)),
+			...names.map((name) => student(name, "Årsstudium", 1, name)),
 			student("extra", "Bachelor", 1, "Program 9"),
 		];
 		const { programs } = audienceOf(registrants, registrants);
-		expect(programs).toHaveLength(TOP_PROGRAMS);
-		expect(programs.map(({ label }) => label)).toEqual([
-			"Program 9",
-			...names.slice(0, TOP_PROGRAMS - 1),
-		]);
+		expect(programs.map(({ label }) => label)).toEqual(["Program 9", ...names.slice(0, 9)]);
 	});
 
 	it("counts registrants without a valid year but leaves them out of the cohorts", () => {

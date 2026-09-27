@@ -9,8 +9,10 @@ import {
 } from "../../test/fixtures";
 import type { Doc, Id } from "../_generated/dataModel";
 import { logRegistrationChange } from "./log";
+import { PACE_GRID } from "./metrics";
 import {
 	baselineFor,
+	companyCurvesBefore,
 	logSince,
 	pastCurvesBefore,
 	registrationTimesOf,
@@ -26,7 +28,27 @@ async function registerUsers(t: TestBackend, eventId: Id<"events">, count: numbe
 	for (let index = 0; index < count; index += 1) {
 		const user = await insertUser(t, `bruker${eventId}-${index}@example.com`);
 		await insertRegistration(t, eventId, user._id, "registered", at + index);
+		await t.run((ctx) =>
+			logRegistrationChange(ctx, { eventId, userId: user._id }, "registered", at + index),
+		);
 	}
+}
+
+async function pastEvent(
+	t: TestBackend,
+	companyId: Id<"companies">,
+	daysBefore: number,
+	seats: number,
+) {
+	const eventId = await insertEvent(t, companyId, {
+		eventStart: START - daysBefore * DAY_MS,
+		registrationOpens: OPENS - daysBefore * DAY_MS,
+		participationLimit: 10,
+		published: true,
+		externalEvent: false,
+	});
+	await registerUsers(t, eventId, seats, OPENS - daysBefore * DAY_MS + HOUR_MS);
+	return eventId;
 }
 
 async function eventDoc(t: TestBackend, eventId: Id<"events">): Promise<Doc<"events">> {
@@ -138,6 +160,49 @@ describe("pastCurvesBefore", () => {
 		expect(curves[0]?.limit).toBe(4);
 		expect(curves[0]?.curve.at(-1)).toBe(0.5);
 	});
+
+	it("replays seats from the log instead of current registration times", async () => {
+		const { t, companyId } = await setup();
+		const eventId = await insertEvent(t, companyId, {
+			eventStart: START,
+			registrationOpens: OPENS,
+			participationLimit: 2,
+		});
+		const promoted = await insertUser(t, "promoted@example.com");
+		await insertRegistration(t, eventId, promoted._id, "registered", START - HOUR_MS);
+		await t.run(async (ctx) => {
+			const registration = { eventId, userId: promoted._id };
+			await logRegistrationChange(ctx, registration, "registered", OPENS + 60_000);
+			await logRegistrationChange(ctx, registration, "registered", START + HOUR_MS);
+		});
+
+		const [past] = await t.run((ctx) => pastCurvesBefore(ctx, START + DAY_MS));
+		expect(past?.curve[PACE_GRID.indexOf(0.0002)]).toBe(0.5);
+		expect(past?.curve.at(-1)).toBe(0.5);
+	});
+});
+
+describe("companyCurvesBefore", () => {
+	it("returns the company's most recent comparable events before the cutoff", async () => {
+		const { t, companyId } = await setup();
+		for (let index = 1; index <= 8; index += 1) await pastEvent(t, companyId, index * 20, index);
+		await insertEvent(t, companyId, {
+			eventStart: START - 10 * DAY_MS,
+			registrationOpens: OPENS - 10 * DAY_MS,
+			participationLimit: 10,
+			published: false,
+		});
+		const other = await t.run(async (ctx) => {
+			const company = await ctx.db.get(companyId);
+			if (!company) throw new Error("Expected the company to exist.");
+			const { _id, _creationTime, ...fields } = company;
+			return ctx.db.insert("companies", { ...fields, name: "Annen" });
+		});
+		await pastEvent(t, other, 5, 10);
+
+		const curves = await t.run((ctx) => companyCurvesBefore(ctx, companyId, START));
+		expect(curves.map(({ curve }) => curve.at(-1))).toEqual([0.1, 0.2, 0.3, 0.4, 0.5, 0.6]);
+	});
 });
 
 describe("baselineFor", () => {
@@ -150,6 +215,24 @@ describe("baselineFor", () => {
 		const baseline = baselineFor([...curves, { limit: 1000, curve: [0, 1, 1] }], 10);
 		expect(baseline?.size).toBe(12);
 		expect(baseline?.curve.slice(0, 3)).toEqual([0, 0.5, 1]);
+	});
+
+	it("prefers the company's own events once there are enough of them", () => {
+		const pool = Array.from({ length: 5 }, () => ({ limit: 10, curve: [0, 0.2] }));
+		const company = [
+			{ limit: 40, curve: [0, 0.9] },
+			{ limit: 40, curve: [0, 1] },
+		];
+		const baseline = baselineFor(pool, 10, company);
+		expect(baseline?.size).toBe(2);
+		expect(baseline?.curve.slice(0, 2)).toEqual([0, 0.95]);
+	});
+
+	it("falls back to similar capacity when the company has too little history", () => {
+		const pool = Array.from({ length: 5 }, () => ({ limit: 10, curve: [0, 0.2] }));
+		const baseline = baselineFor(pool, 10, [{ limit: 10, curve: [0, 1] }]);
+		expect(baseline?.size).toBe(5);
+		expect(baseline?.curve.slice(0, 2)).toEqual([0, 0.2]);
 	});
 });
 
@@ -206,7 +289,7 @@ describe("snapshotOf", () => {
 		await registerUsers(t, eventId, 5, OPENS + HOUR_MS);
 
 		const event = await eventDoc(t, eventId);
-		const baselineCurve = Array.from({ length: 21 }, (_, step) => step / 20);
+		const baselineCurve = [...PACE_GRID];
 		const snapshot = await t.run((ctx) =>
 			snapshotOf(ctx, event, now, [{ limit: 10, curve: baselineCurve }]),
 		);
@@ -214,6 +297,23 @@ describe("snapshotOf", () => {
 		expect(snapshot.baseline?.curve).toEqual(baselineCurve);
 		expect(snapshot.expectedFillNow).toBeCloseTo(0.5, 5);
 		expect(snapshot.projectedFill).toBeCloseTo(1, 5);
+	});
+
+	it("builds the baseline from the hosting company's earlier events", async () => {
+		const { t, companyId } = await setup();
+		await pastEvent(t, companyId, 30, 9);
+		await pastEvent(t, companyId, 60, 7);
+		const eventId = await insertEvent(t, companyId, {
+			eventStart: START,
+			registrationOpens: OPENS,
+			participationLimit: 10,
+		});
+		const event = await eventDoc(t, eventId);
+		const pool = [{ limit: 10, curve: PACE_GRID.map(() => 0.1) }];
+
+		const snapshot = await t.run((ctx) => snapshotOf(ctx, event, OPENS + DAY_MS, pool));
+		expect(snapshot.baseline?.size).toBe(2);
+		expect(snapshot.baseline?.curve.at(-1)).toBeCloseTo(0.8);
 	});
 });
 
