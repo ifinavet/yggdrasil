@@ -83,9 +83,10 @@ export function InvoiceDetail({ id }: Readonly<{ id: Id<"invoices"> }>) {
 					<dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-[max-content_1fr]">
 						<Detail label="Gjelder">{KIND_LABELS[invoice.kind]}</Detail>
 						<Detail label="Levert">{formatInvoiceDate(invoice.serviceAt)}</Detail>
-						{draftCreatedAt ? (
+						{draftCreatedAt && (
 							<Detail label="Utkast laget">{formatInvoiceDate(draftCreatedAt)}</Detail>
-						) : (
+						)}
+						{!draftCreatedAt && invoice.status !== "cancelled" && (
 							<Detail label="Faktureres">{formatInvoiceDate(invoice.dueAt)}</Detail>
 						)}
 						<PreviewDetails preview={preview} />
