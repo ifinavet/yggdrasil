@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation } from "../_generated/server";
 import { internalRoles, requireRole } from "../auth/accessRights";
+import { jobListingProductFields } from "../products/sales";
 
 /**
  * Creates a new job listing and its contact records.
@@ -48,6 +49,7 @@ export const create = mutation({
 			published: args.published,
 			company: args.company,
 			deadline: args.deadline,
+			...(await jobListingProductFields(ctx)),
 		});
 
 		for (const contact of args.contacts) {
@@ -100,7 +102,7 @@ export const update = mutation({
 	handler: async (ctx, args) => {
 		await requireRole(ctx, internalRoles);
 
-		const listing = await ctx.db.replace(args.id, {
+		const listing = await ctx.db.patch(args.id, {
 			title: args.title,
 			type: args.type,
 			teaser: args.teaser,

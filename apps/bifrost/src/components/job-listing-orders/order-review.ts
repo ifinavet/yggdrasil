@@ -1,0 +1,56 @@
+import type { api } from "@workspace/backend/convex/api";
+import { formatOsloDate, osloDateTimeToEpoch } from "@workspace/shared/time";
+import type { FunctionReturnType } from "convex/server";
+
+export type ReviewOrder = NonNullable<
+	FunctionReturnType<typeof api.jobListingOrders.admin.getOrder>
+>;
+export type CompanyUpdate = NonNullable<ReviewOrder["update"]>;
+type CompanyChanges = Partial<CompanyUpdate["changes"]>;
+type Billing = NonNullable<CompanyChanges["billing"]>;
+
+export const APPROVE_BLOCKED_MESSAGE =
+	"Godkjenn eller avvis endringen i bedriftsinformasjonen først.";
+
+const CHANGE_LABELS = {
+	displayName: "Visningsnavn",
+	description: "Beskrivelse",
+	logoUrl: "Logo",
+	billing: "Fakturainformasjon",
+} satisfies Record<keyof CompanyChanges, string>;
+
+type ChangeKey = keyof typeof CHANGE_LABELS;
+
+export type CompanyChangeRow = {
+	key: ChangeKey;
+	label: string;
+	before: CompanyChanges[ChangeKey];
+	after: CompanyChanges[ChangeKey];
+};
+
+const CHANGE_KEYS = Object.keys(CHANGE_LABELS) as ChangeKey[];
+
+export function approveBlocker(update: Pick<CompanyUpdate, "status"> | null): string | undefined {
+	return update?.status === "pending" ? APPROVE_BLOCKED_MESSAGE : undefined;
+}
+
+export function companyChangeRows(update: {
+	changes: CompanyChanges;
+	previous: CompanyChanges;
+}): CompanyChangeRow[] {
+	return CHANGE_KEYS.filter((key) => update.changes[key] !== undefined).map((key) => ({
+		key,
+		label: CHANGE_LABELS[key],
+		before: update.previous[key],
+		after: update.changes[key],
+	}));
+}
+
+export function formatBilling(billing: Billing | undefined): string {
+	if (!billing) return "";
+	return [billing.address, billing.email, billing.reference].filter(Boolean).join(", ");
+}
+
+export function formatDeadline(deadline: string): string {
+	return formatOsloDate(osloDateTimeToEpoch(deadline, "23:59"), "d. MMMM yyyy");
+}

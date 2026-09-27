@@ -1,21 +1,13 @@
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@workspace/ui/components/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";
 
 export default function TextResponseCard({
 	responses,
 	filterKey,
 	title,
-	description,
 }: Readonly<{
 	responses: readonly { readonly _id: string; readonly data: Record<string, string> }[];
 	filterKey: string;
 	title: string;
-	description: string;
 }>) {
 	const answers = responses
 		.map((response) => ({ id: response._id, text: response.data[filterKey] }))
@@ -25,7 +17,6 @@ export default function TextResponseCard({
 		<Card>
 			<CardHeader>
 				<CardTitle>{title}</CardTitle>
-				<CardDescription>{description}</CardDescription>
 			</CardHeader>
 			<CardContent className="max-h-96 overflow-y-scroll">
 				{answers.length === 0 && (

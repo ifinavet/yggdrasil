@@ -1,0 +1,239 @@
+import type { api } from "@workspace/backend/convex/api";
+import { formatPercent } from "@workspace/shared/products";
+import {
+	DATE_PATTERNS,
+	EVENT_SEMESTER_LABELS,
+	type EventSemester,
+	eventSemesterRange,
+	formatOsloDate,
+} from "@workspace/shared/time";
+import type { BadgeVariant } from "@workspace/ui/components/badge";
+import type { SparkValue } from "@workspace/ui/components/products/sparkline";
+import type { FunctionReturnType } from "convex/server";
+
+export type UpcomingData = FunctionReturnType<typeof api.engagement.queries.upcoming>;
+export type UpcomingEvent = UpcomingData["events"][number];
+export type EngagementAlert = UpcomingData["alerts"][number];
+export type EngagementStatus = UpcomingEvent["status"];
+export type SemesterData = FunctionReturnType<typeof api.engagement.queries.semester>;
+export type Audience = SemesterData["audience"];
+export type AudienceRow = Audience["cohorts"][number];
+export type ProgramCohort = Audience["programCohorts"][number];
+export type ProgramRow = Audience["programs"][number];
+export type UnregisterLog = FunctionReturnType<typeof api.engagement.queries.unregisterLog>;
+export type PaceCurve = NonNullable<FunctionReturnType<typeof api.engagement.queries.paceCurve>>;
+export type PastEvent = FunctionReturnType<typeof api.engagement.queries.past>[number];
+
+export function statusBadge(status: EngagementStatus): { label: string; variant: BadgeVariant } {
+	switch (status.kind) {
+		case "notOpen":
+			return { label: "Venter", variant: "outline" };
+		case "wave":
+			return { label: "Avmeldingsbølge", variant: "default" };
+		case "full":
+			return { label: `Fullt på ${status.minutesToFull} min`, variant: "secondary" };
+		case "noRegistrations":
+			return { label: "Ingen påmeldte", variant: "soft" };
+		case "behind":
+			return { label: "Bak tempo", variant: "soft" };
+		case "ahead":
+			return { label: "Foran tempo", variant: "secondary" };
+		case "onPace":
+			return { label: "I rute", variant: "muted" };
+	}
+}
+
+export function formatDelta(delta: number) {
+	if (delta > 0) return `+${delta}`;
+	if (delta < 0) return `−${Math.abs(delta)}`;
+	return "0";
+}
+
+export function formatShare(fraction: number) {
+	return formatPercent(fraction * 100);
+}
+
+export function formatPoints(fraction: number) {
+	return `${formatDelta(Math.round(fraction * 100))} pp`;
+}
+
+export function fillShare(registered: number, limit: number) {
+	return limit > 0 ? Math.min(100, (registered / limit) * 100) : 0;
+}
+
+export function opensLabel(opensAt: number) {
+	return `Åpner ${formatOsloDate(opensAt, DATE_PATTERNS.shortDate)}`;
+}
+
+export function defaultSelection(data: UpcomingData) {
+	return data.alerts[0]?.eventId ?? data.events[0]?._id ?? null;
+}
+
+type Timeslot = SemesterData["timeslots"][number];
+
+export function timeslotGrid(timeslots: readonly Timeslot[]) {
+	const cells = new Map(timeslots.map((slot) => [`${slot.weekday}-${slot.hour}`, slot]));
+	return {
+		hours: [...new Set(timeslots.map((slot) => slot.hour))].sort((a, b) => a - b),
+		fillAt: (weekday: number, hour: number) => cells.get(`${weekday}-${hour}`),
+	};
+}
+
+export function followUpNote({ entries, topDestination, followUpMinutes }: UnregisterLog) {
+	if (!topDestination) return null;
+	return `${topDestination.count} av ${entries.length} meldte seg på ${topDestination.title} innen ${followUpMinutes} minutter etter avmeldingen.`;
+}
+
+function lastYearComparison(difference: number) {
+	if (difference === 0) return "like mange som i fjor";
+	return `${Math.abs(difference)} ${difference > 0 ? "flere" : "færre"} enn i fjor`;
+}
+
+export function lateUnregistrationNote({
+	current,
+	since,
+	lastYear,
+}: SemesterData["lateUnregistrations"]) {
+	const period =
+		since === null ? "dette semesteret" : `siden ${formatOsloDate(since, DATE_PATTERNS.shortDate)}`;
+	const comparison = lastYear === null ? "" : `, ${lastYearComparison(current - lastYear)}`;
+	return `Sene avmeldinger (under 24 t): ${current} ${period}${comparison}.`;
+}
+
+export function paceTicks(progress: number) {
+	return [...new Set([0, progress, 1])];
+}
+
+export function paceTickLabel(curve: Pick<PaceCurve, "progress">, progress: number) {
+	if (progress === 0) return "Åpnet";
+	if (progress === 1) return "Start";
+	return progress === curve.progress ? "I dag" : "";
+}
+
+const PACE_LABEL_ABOVE = -8;
+const PACE_LABEL_BELOW = 14;
+const PACE_LABEL_LINE = 13;
+
+export function paceLabels(curve: PaceCurve) {
+	const actual =
+		curve.progress > 0
+			? [
+					{
+						key: "actual" as const,
+						progress: curve.progress,
+						count: curve.registered,
+						label: curve.progress < 1 ? `${curve.registered} nå` : `${curve.registered} påmeldt`,
+					},
+				]
+			: [];
+	const projected =
+		curve.projected === null
+			? []
+			: [
+					{
+						key: "projected" as const,
+						progress: 1,
+						count: curve.projected,
+						label: `prognose ${curve.projected}`,
+					},
+				];
+	const typical =
+		curve.typical === null
+			? []
+			: [
+					{
+						key: "expected" as const,
+						progress: 1,
+						count: curve.typical,
+						label: `typisk ${curve.typical}`,
+					},
+				];
+	const labels = [...actual, ...projected, ...typical];
+	return labels.map((label) => {
+		const below = labels.filter(
+			(other) =>
+				other.progress === label.progress &&
+				(other.count > label.count ||
+					(other.count === label.count && labels.indexOf(other) < labels.indexOf(label))),
+		).length;
+		return {
+			...label,
+			dy: below === 0 ? PACE_LABEL_ABOVE : PACE_LABEL_BELOW + PACE_LABEL_LINE * (below - 1),
+		};
+	});
+}
+
+type SemesterOption = { semester: EventSemester; year: number };
+
+export function semesterValue({ semester, year }: SemesterOption) {
+	return `${year}-${semester}`;
+}
+
+export function semesterLabel({ semester, year }: SemesterOption) {
+	return `${EVENT_SEMESTER_LABELS[semester]} ${year}`;
+}
+
+export function startedSemesters(semesters: readonly SemesterOption[], now: number) {
+	return semesters
+		.filter(({ semester, year }) => eventSemesterRange(semester, year).start <= now)
+		.reverse();
+}
+
+export function attendanceRate({
+	registered,
+	attended,
+}: Pick<PastEvent, "registered" | "attended">) {
+	return attended === null || registered === 0 ? null : attended / registered;
+}
+
+const ACTIVITY_LABELS = {
+	unregisterWave: {
+		caption: "Avmeldinger per 10 min",
+		unit: "avmeldinger",
+		pattern: DATE_PATTERNS.time,
+	},
+	behindPace: {
+		caption: "Påmeldinger per dag",
+		unit: "påmeldinger",
+		pattern: DATE_PATTERNS.shortDate,
+	},
+	noRegistrations: {
+		caption: "Påmeldinger per dag",
+		unit: "påmeldinger",
+		pattern: DATE_PATTERNS.shortDate,
+	},
+} as const satisfies Record<
+	EngagementAlert["rule"],
+	{ caption: string; unit: string; pattern: string }
+>;
+
+export function alertActivity({ rule, activity }: EngagementAlert) {
+	const { caption, unit, pattern } = ACTIVITY_LABELS[rule];
+	const values: SparkValue[] = activity.map(({ start, count }) => {
+		const label = formatOsloDate(start, pattern);
+		return { label: String(start), value: count, title: `${label}: ${count} ${unit}` };
+	});
+	return { caption, values, max: Math.max(0, ...activity.map(({ count }) => count)) };
+}
+
+const STRONGEST_COHORT_TINT = 100;
+const FAINTEST_COHORT_TINT = 40;
+
+export function cohortTints(cohorts: readonly Pick<AudienceRow, "degree">[]) {
+	const degrees = [...new Set(cohorts.map(({ degree }) => degree))];
+	return cohorts.map((cohort) => {
+		const siblings = cohorts.filter(({ degree }) => degree === cohort.degree);
+		const step = (STRONGEST_COHORT_TINT - FAINTEST_COHORT_TINT) / Math.max(1, siblings.length - 1);
+		return {
+			series: degrees.indexOf(cohort.degree),
+			tint: STRONGEST_COHORT_TINT - siblings.indexOf(cohort) * step,
+		};
+	});
+}
+
+const REACH_AXIS_STEPS = [5, 10, 20, 25, 50, 75, 100] as const;
+
+export function reachAxisMax(percentages: readonly (number | null)[]) {
+	const highest = Math.max(0, ...percentages.filter((value) => value !== null));
+	return REACH_AXIS_STEPS.find((step) => step >= highest) ?? 100;
+}

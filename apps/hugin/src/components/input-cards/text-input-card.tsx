@@ -1,11 +1,10 @@
 import type { AnyFieldApi } from "@tanstack/react-form";
+import { CharacterCount } from "@workspace/ui/components/character-count";
 import { Textarea } from "@workspace/ui/components/textarea";
 import { cn } from "@workspace/ui/lib/utils";
 import { fieldErrorText, isFieldInvalid, QuestionBlock, questionIds } from "./question-block";
 
 const MAX_LENGTH = 1000;
-/** Start announcing only once the answer gets close to the limit. */
-const ANNOUNCE_FROM = 900;
 
 export function TextInputCard({
 	field,
@@ -24,7 +23,6 @@ export function TextInputCard({
 	const value = String(field.state.value ?? "");
 	const counterId = `${field.name}-counter`;
 	const { promptId, errorId } = questionIds(field.name);
-	const nearLimit = value.length >= ANNOUNCE_FROM;
 
 	return (
 		<QuestionBlock
@@ -51,14 +49,7 @@ export function TextInputCard({
 					invalid ? "border-destructive" : "border-input",
 				)}
 			/>
-			<span
-				id={counterId}
-				role="status"
-				aria-live={nearLimit ? "polite" : "off"}
-				className="mt-1.5 block text-right text-[12px] text-muted-foreground tabular-nums"
-			>
-				{value.length} / {MAX_LENGTH}
-			</span>
+			<CharacterCount id={counterId} length={value.length} max={MAX_LENGTH} />
 		</QuestionBlock>
 	);
 }

@@ -5,16 +5,39 @@
 	"private": true,
 	"packageManager": "pnpm@10.15.1",
 	"dependencies": {
-		"convex": "^1.46.0"
+		"@date-fns/tz": "^1.5.0",
+		"convex": "^1.46.0",
+		"date-fns": "^4.4.0",
+		"papaparse": "5.5.3",
+		"zod": "^4.6.5"
 	},
 	"devDependencies": {
+		"@types/papaparse": "5.3.16",
 		"@workspace/typescript-config": "workspace:*",
 		"typescript": "^5.9.3"
 	},
 	"exports": {
 		"./constants": "./constants/index.ts",
+		"./constants/contact": "./constants/contact.ts",
+		"./constants/urls": "./constants/urls.ts",
+		"./constants/hugin-url": "./constants/hugin-url.ts",
 		"./local": "./local.ts",
-		"./utils": "./utils/index.ts"
+		"./utils": "./utils/index.ts",
+		"./validation": "./validation/index.ts",
+		"./feedback": "./feedback/index.ts",
+		"./feature-flags": "./feature-flags.ts",
+		"./products": "./products/index.ts",
+		"./job-listing-orders": "./job-listing-orders/index.ts",
+		"./logo": "./logo/index.ts",
+		"./time": "./time/index.ts",
+		"./semester/orgNumber": "./semester/orgNumber.ts",
+		"./semester/limits": "./semester/limits.ts",
+		"./semester/application": "./semester/application.ts",
+		"./semester/labels": "./semester/labels.ts",
+		"./semester/prices": "./semester/prices.ts",
+		"./semester/team": "./semester/team.ts",
+		"./feedback/report": "./feedback/report.ts",
+		"./feedback/report-csv": "./feedback/report-csv.ts"
 	},
 	"scripts": {
 		"check-types": "tsc --noEmit"

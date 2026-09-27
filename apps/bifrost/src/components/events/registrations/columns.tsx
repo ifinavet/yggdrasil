@@ -2,6 +2,8 @@
 
 import type { ColumnDef } from "@tanstack/react-table";
 import type { Id } from "@workspace/backend/convex/dataModel";
+import { REGISTRATION_STATUS_LABELS, type RegistrationStatus } from "@workspace/shared/constants";
+import { humanReadableFullDateTime } from "@workspace/shared/time";
 import { Button } from "@workspace/ui/components//button";
 import {
 	Select,
@@ -22,13 +24,12 @@ import {
 } from "@workspace/ui/components/alert-dialog";
 import { Badge } from "@workspace/ui/components/badge";
 import { Trash } from "lucide-react";
-import { humanReadableDate } from "@/utils/utils";
 
 export type Registration = {
 	registrationId: Id<"registrations">;
 	userName: string;
 	note: string;
-	status: string;
+	status: RegistrationStatus;
 	registrationTime: Date;
 	attendanceStatus: string;
 };
@@ -52,30 +53,24 @@ export const createColumns = (
 		accessorKey: "status",
 		header: "Status",
 		cell: ({ row }) => {
-			const norwegian: Record<string, string> = {
-				registered: "Registrert",
-				pending: "Venter",
-				waitlist: "På venteliste",
-			};
-
 			if (row.original.status === "pending") {
 				return (
 					<Badge variant="secondary" className="bg-amber-400 text-white">
-						Venter
+						{REGISTRATION_STATUS_LABELS.pending}
 					</Badge>
 				);
 			}
 			if (row.original.status === "waitlist") {
 				return (
 					<Badge variant="default" className="bg-pink-500 text-white">
-						{norwegian[row.original.status]}
+						{REGISTRATION_STATUS_LABELS[row.original.status]}
 					</Badge>
 				);
 			}
 
 			return (
 				<Badge variant="default" className="text-white">
-					{norwegian[row.original.status]}
+					{REGISTRATION_STATUS_LABELS[row.original.status]}
 				</Badge>
 			);
 		},
@@ -88,7 +83,7 @@ export const createColumns = (
 		accessorKey: "registrationTime",
 		header: "Påmeldings tidspunkt",
 		cell: ({ row }) => {
-			return <>{humanReadableDate(row.original.registrationTime)}</>;
+			return <>{humanReadableFullDateTime(row.original.registrationTime)}</>;
 		},
 	},
 	{

@@ -1,5 +1,6 @@
 "use client";
 
+import { degreeName } from "@workspace/shared/constants";
 import { fromBase64 } from "@workspace/shared/utils";
 
 export function downloadCSV(
@@ -17,7 +18,7 @@ export function downloadCSV(
 			const grades = subjects[subject];
 			for (const grade in grades) {
 				const count = grades[grade];
-				const row = `"${level}","${fromBase64(subject)}","${grade}","${count}"`;
+				const row = `"${degreeName(level)}","${fromBase64(subject)}","${grade}","${count}"`;
 				rows.push(row);
 			}
 		}

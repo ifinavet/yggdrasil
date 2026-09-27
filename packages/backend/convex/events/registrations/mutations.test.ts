@@ -26,6 +26,15 @@ import type { Id } from "../../_generated/dataModel";
 
 const mutations = api.events.registrations.mutations;
 
+async function registrationLogFor(t: TestBackend, eventId: Id<"events">) {
+	return t.run((ctx) =>
+		ctx.db
+			.query("registrationLog")
+			.withIndex("by_eventId_and_at", (q) => q.eq("eventId", eventId))
+			.collect(),
+	);
+}
+
 const OFFERS_THAT_CANNOT_BE_ACCEPTED: {
 	because: string;
 	arrange: (
@@ -679,5 +688,107 @@ describe("makeStatusPending via the waitlist promotion path", () => {
 			"tidlig-venter@example.com",
 			"sen-venter@example.com",
 		]);
+	});
+});
+
+describe("engagement logging", () => {
+	it("logs a registered change when a seat is taken directly", async () => {
+		const { t, companyId } = await setup();
+		const eventId = await insertEvent(t, companyId);
+		const student = await insertUser(t, "logg-student@example.com");
+
+		await asUser(t, student).mutation(mutations.register, { eventId });
+
+		const log = await registrationLogFor(t, eventId);
+		expect(log).toHaveLength(1);
+		expect(log[0]).toMatchObject({ userId: student._id, change: "registered" });
+	});
+
+	it("logs a waitlisted change when the event is full", async () => {
+		const { t, companyId } = await setup();
+		const eventId = await insertEvent(t, companyId, { participationLimit: 1 });
+		const seated = await insertUser(t, "logg-sitter@example.com");
+		await insertRegistration(t, eventId, seated._id, "registered");
+		const latecomer = await insertUser(t, "logg-sen@example.com");
+
+		await asUser(t, latecomer).mutation(mutations.register, { eventId });
+
+		const log = await registrationLogFor(t, eventId);
+		expect(log).toEqual([expect.objectContaining({ userId: latecomer._id, change: "waitlisted" })]);
+	});
+
+	it("logs an accepted change when a pending offer is confirmed", async () => {
+		const { t, companyId } = await setup();
+		const eventId = await insertEvent(t, companyId);
+		const owner = await insertUser(t, "logg-eier@example.com");
+		const registrationId = await insertRegistration(t, eventId, owner._id, "pending");
+
+		await asUser(t, owner).mutation(mutations.acceptPendingRegistration, { id: registrationId });
+
+		const log = await registrationLogFor(t, eventId);
+		expect(log).toEqual([
+			expect.objectContaining({ userId: owner._id, change: "accepted", fromStatus: "pending" }),
+		]);
+	});
+
+	it("logs an unregistered change with the previous status", async () => {
+		const { t, companyId } = await setup();
+		const eventId = await insertEvent(t, companyId);
+		const owner = await insertUser(t, "logg-forlater@example.com");
+		const registrationId = await insertRegistration(t, eventId, owner._id, "registered");
+
+		await asUser(t, owner).mutation(mutations.unregister, { id: registrationId });
+
+		const log = await registrationLogFor(t, eventId);
+		expect(log).toEqual([
+			expect.objectContaining({
+				userId: owner._id,
+				change: "unregistered",
+				fromStatus: "registered",
+			}),
+		]);
+	});
+
+	it("logs an offered change when a freed seat is offered to the next in line", async () => {
+		const { t, companyId } = await setup();
+		const now = Date.now();
+		const eventId = await insertEvent(t, companyId, { participationLimit: 1 });
+		const owner = await insertUser(t, "logg-eier2@example.com");
+		const registrationId = await insertRegistration(t, eventId, owner._id, "registered", now);
+		const waiting = await insertUser(t, "logg-venter@example.com");
+		await insertRegistration(t, eventId, waiting._id, "waitlist", now + 1);
+
+		await asUser(t, owner).mutation(mutations.unregister, { id: registrationId });
+
+		const log = await registrationLogFor(t, eventId);
+		expect(log).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					userId: waiting._id,
+					change: "offered",
+					fromStatus: "waitlist",
+				}),
+			]),
+		);
+	});
+
+	it("logs a cleared change when a waitlisted registrant's user no longer exists", async () => {
+		const { t, companyId } = await setup();
+		const now = Date.now();
+		const eventId = await insertEvent(t, companyId, { participationLimit: 1 });
+		const owner = await insertUser(t, "logg-eier3@example.com");
+		const registrationId = await insertRegistration(t, eventId, owner._id, "registered", now);
+		const ghost = await insertUser(t, "logg-spokelse@example.com");
+		await insertRegistration(t, eventId, ghost._id, "waitlist", now + 1);
+		await t.run((ctx) => ctx.db.delete(ghost._id));
+
+		await asUser(t, owner).mutation(mutations.unregister, { id: registrationId });
+
+		const log = await registrationLogFor(t, eventId);
+		expect(log).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({ userId: ghost._id, change: "cleared", fromStatus: "waitlist" }),
+			]),
+		);
 	});
 });

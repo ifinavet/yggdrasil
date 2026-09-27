@@ -1,3 +1,4 @@
+import { DATE_PATTERNS } from "@workspace/shared/time";
 import { Button } from "@workspace/ui/components/button";
 import { Calendar } from "@workspace/ui/components/calendar";
 import { Field, FieldDescription, FieldError, FieldLabel } from "@workspace/ui/components/field";
@@ -69,7 +70,7 @@ export default function DateTimePicker({
 							)}
 						>
 							{field.state.value ? (
-								format(field.state.value, "PPP", { locale: nb })
+								format(field.state.value, DATE_PATTERNS.longDate, { locale: nb })
 							) : (
 								<span>Pick a date</span>
 							)}
@@ -92,7 +93,7 @@ export default function DateTimePicker({
 					lang="nb"
 					id={field.name}
 					name={field.name}
-					value={field.state.value ? format(field.state.value, "HH:mm") : ""}
+					value={field.state.value ? format(field.state.value, DATE_PATTERNS.time) : ""}
 					onChange={(e) => handleTimeChange(e.target.value)}
 					onBlur={field.handleBlur}
 					aria-invalid={isInvalid}

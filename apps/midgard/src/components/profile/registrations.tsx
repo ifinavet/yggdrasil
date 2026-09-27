@@ -1,5 +1,6 @@
 import { getAuthToken } from "@workspace/auth";
 import { api } from "@workspace/backend/convex/api";
+import { humanReadableDateTime } from "@workspace/shared/time";
 import { Button } from "@workspace/ui/components/button";
 import {
 	Card,
@@ -13,7 +14,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/componen
 import { cn } from "@workspace/ui/lib/utils";
 import { fetchQuery } from "convex/nextjs";
 import Link from "next/link";
-import { humanReadableDateTime } from "@/utils/dateFormatting";
 
 export default async function Registrations({ className }: Readonly<{ className?: string }>) {
 	const token = await getAuthToken();

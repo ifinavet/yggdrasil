@@ -3,7 +3,9 @@ import { internal } from "../../_generated/api";
 import type { Doc } from "../../_generated/dataModel";
 import { type MutationCtx, mutation } from "../../_generated/server";
 import { getCurrentUserOrThrow } from "../../auth/currentUser";
+import { logRegistrationChange } from "../../engagement/log";
 import {
+	countRegistrationsWithStatus,
 	isEventOrganizerOrAdmin,
 	validateRegistrationTime,
 	validateUserCanRegister,
@@ -65,6 +67,7 @@ export const acceptPendingRegistration = mutation({
 			status: "registered",
 			registrationTime: Date.now(),
 		});
+		await logRegistrationChange(ctx, registration, "accepted");
 	},
 });
 
@@ -193,6 +196,11 @@ export const register = mutation({
 			note: note,
 			registrationTime: Date.now(),
 		});
+		await logRegistrationChange(
+			ctx,
+			{ eventId, userId: user._id },
+			status === "registered" ? "registered" : "waitlisted",
+		);
 
 		return status;
 	},
@@ -268,6 +276,7 @@ export const unregister = mutation({
 		}
 
 		await ctx.db.delete(id);
+		await logRegistrationChange(ctx, registration, "unregistered");
 
 		const returnData = {
 			deletedRegistration: registration,
@@ -339,6 +348,7 @@ export const makeStatusPending = async (
 		status: "pending",
 		registrationTime: Date.now(),
 	});
+	await logRegistrationChange(ctx, registrationToMakePending, "offered");
 
 	await ctx.scheduler.runAfter(0, internal.emails.sendAvailableSeatEmail, {
 		participantEmail: user.email,
@@ -377,25 +387,11 @@ export const fillOpenSeats = async (ctx: MutationCtx, event: Doc<"events">) => {
 		const user = await ctx.db.get(registration.userId);
 		if (!user || user.deleted) {
 			await ctx.db.delete(registration._id);
+			await logRegistrationChange(ctx, registration, "cleared");
 			continue;
 		}
 
 		await makeStatusPending(ctx, registration, event);
 		openSeats--;
 	}
-};
-
-const countRegistrationsWithStatus = async (
-	ctx: MutationCtx,
-	eventId: Doc<"events">["_id"],
-	status: Doc<"registrations">["status"],
-) => {
-	const registrationsWithStatus = await ctx.db
-		.query("registrations")
-		.withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
-			q.eq("eventId", eventId).eq("status", status),
-		)
-		.collect();
-
-	return registrationsWithStatus.length;
 };

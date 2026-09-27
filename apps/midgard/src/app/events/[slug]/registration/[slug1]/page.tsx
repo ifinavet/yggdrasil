@@ -2,13 +2,13 @@ import { getAuthToken } from "@workspace/auth";
 import { auth } from "@workspace/auth/server";
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
+import { humanReadableDate } from "@workspace/shared/time";
 import ResponsiveCenterContainer from "@workspace/ui/components/responsive-center-container";
 import { Title } from "@workspace/ui/components/title";
 import { fetchQuery, preloadedQueryResult, preloadQuery } from "convex/nextjs";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { notFoundOnConvexError } from "@/lib/notFoundOnConvexError";
-import { humanReadableDate } from "@/utils/dateFormatting";
 import Register from "./register";
 
 export default async function RegistrationPage({

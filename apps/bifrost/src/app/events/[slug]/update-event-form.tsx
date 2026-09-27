@@ -1,12 +1,13 @@
 "use client";
 
 import { api } from "@workspace/backend/convex/api";
-import type { Id } from "@workspace/backend/convex/dataModel";
-import type { ORGANIZER_ROLE } from "@workspace/shared/constants";
+import type { OrganizerRole } from "@workspace/shared/constants";
+import { formatOsloToday } from "@workspace/shared/time";
 import { type Preloaded, useMutation, usePreloadedQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import EventForm from "@/components/events/event-form/event-form";
+import { toEventMutationArgs } from "@/components/events/event-form/to-event-mutation-args";
 import type { EventFormValues } from "@/constants/schemas/event-form-schema";
 
 export default function UpdateEventForm({
@@ -29,7 +30,7 @@ export default function UpdateEventForm({
 		participantsLimit: event.participationLimit,
 		organizers: event.organizers.map((organizer) => ({
 			userId: organizer.userId,
-			role: organizer.role as ORGANIZER_ROLE,
+			role: organizer.role as OrganizerRole,
 		})),
 		externalEvent: event.externalEvent ?? Boolean(event.externalUrl?.length),
 		hostingCompany: {
@@ -37,33 +38,14 @@ export default function UpdateEventForm({
 			name: event.hostingCompanyName,
 		},
 		externalUrl: event.externalUrl || "",
+		productId: event.product?.productId,
 	};
 
 	const handleSubmit = (values: EventFormValues, published: boolean) => {
-		updateEventMutation({
-			id: event._id,
-			title: values.title,
-			teaser: values.teaser,
-			description: values.description,
-			eventStart: values.eventDate.getTime(),
-			registrationOpens: values.registrationDate.getTime(),
-			participationLimit: values.participantsLimit,
-			location: values.location,
-			food: values.food,
-			language: values.language,
-			ageRestriction: values.ageRestrictions,
-			externalEvent: values.externalEvent,
-			externalUrl: values.externalUrl,
-			hostingCompany: values.hostingCompany.id as Id<"companies">,
-			organizers: values.organizers.map((organizer) => ({
-				userId: organizer.userId as Id<"users">,
-				role: organizer.role as ORGANIZER_ROLE,
-			})),
-			published,
-		})
+		updateEventMutation({ id: event._id, ...toEventMutationArgs(values, published) })
 			.then(() => {
 				toast.success("Arrangement oppdatert!", {
-					description: `Arrangement oppdatert, ${new Date().toLocaleDateString()}`,
+					description: `Arrangement oppdatert, ${formatOsloToday()}`,
 				});
 				router.push("/events");
 			})
@@ -88,6 +70,7 @@ export default function UpdateEventForm({
 			onSecondarySubmitAction={onSubmit}
 			onTertiarySubmitAction={onHideSubmit}
 			defaultValues={defaultValues}
+			currentProduct={event.product}
 		/>
 	);
 }

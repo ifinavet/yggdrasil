@@ -4,7 +4,10 @@
 // https://docs.sentry.io/platforms/javascript/guides/nextjs/
 
 import { initializeSentry } from "@workspace/auth/telemetry";
+import { isPrivateUrl } from "./src/lib/private-paths";
 
 initializeSentry(
 	"https://04d7959e133fb993cec8d4f62d3418ef@o4509833113501696.ingest.de.sentry.io/4509835991253072",
+	// The offer page has its token in the path; keep it out of Sentry.
+	{ isPrivateUrl },
 );

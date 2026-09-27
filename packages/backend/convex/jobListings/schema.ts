@@ -1,5 +1,6 @@
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
+import { soldProductFields } from "../products/schema";
 
 export const jobListingsSchema = {
 	jobListings: defineTable({
@@ -11,6 +12,7 @@ export const jobListingsSchema = {
 		published: v.boolean(),
 		company: v.id("companies"),
 		deadline: v.number(),
+		...soldProductFields,
 	})
 		.index("by_deadline", ["deadline"])
 		.index("by_deadlineAndType", ["type", "deadline"])

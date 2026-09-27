@@ -1,5 +1,6 @@
 import { getAuthToken } from "@workspace/auth";
 import { api } from "@workspace/backend/convex/api";
+import { BIFROST_URL } from "@workspace/shared/constants";
 import { Button } from "@workspace/ui/components/button";
 import ResponsiveCenterContainer from "@workspace/ui/components/responsive-center-container";
 import { Title } from "@workspace/ui/components/title";
@@ -170,7 +171,7 @@ export default async function EventPage({
 							asChild
 						>
 							<a
-								href={`https://bifrost.ifinavet.no/events/${event.slug ?? event._id}/registrations`}
+								href={`${BIFROST_URL}/events/${event.slug ?? event._id}/registrations`}
 								rel="nofollow noopener noreferrer external"
 								target="_blank"
 							>

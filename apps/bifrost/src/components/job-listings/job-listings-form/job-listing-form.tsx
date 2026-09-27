@@ -121,7 +121,7 @@ export default function JobListingForm({
 					<form.Field name="company">
 						{(field) => (
 							<CompanySelectField
-								initialCompanyName={field.state.value.name}
+								company={field.state.value}
 								onCompanyChange={(company) => field.handleChange(company)}
 								errors={field.state.meta.errors}
 								isInvalid={field.state.meta.isTouched && !field.state.meta.isValid}

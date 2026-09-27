@@ -1,5 +1,6 @@
 "use client";
 
+import { MIDGARD_URL } from "@workspace/shared/constants";
 import { Button } from "@workspace/ui/components/button";
 import {
 	Card,
@@ -54,7 +55,7 @@ export default function ErrorPage({ error, reset }: Readonly<ErrorProps>) {
 								Prøv igjen
 							</Button>
 							<Button variant="outline" asChild className="flex items-center gap-2">
-								<Link href="https://ifinavet.no" target="_blank" rel="noopener noreferrer">
+								<Link href={MIDGARD_URL} target="_blank" rel="noopener noreferrer">
 									<ExternalLink className="h-4 w-4" />
 									Gå til ifinavet.no
 								</Link>

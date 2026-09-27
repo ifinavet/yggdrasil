@@ -1,6 +1,7 @@
 "use client";
 
 import { api } from "@workspace/backend/convex/api";
+import { humanReadableFullDateTime } from "@workspace/shared/time";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -20,7 +21,6 @@ import {
 import { useQuery } from "convex/react";
 import { Plus } from "lucide-react";
 import Link from "next/link";
-import { humanReadableDate } from "@/utils/utils";
 
 export default function PagesPage() {
 	const pages = useQuery(api.pages.queries.getAll);
@@ -56,7 +56,7 @@ export default function PagesPage() {
 								<CardDescription>{page.published ? "Publisert" : "Ikke publisert"}</CardDescription>
 							</CardHeader>
 							<CardContent>
-								<p>Sist oppdatert: {humanReadableDate(new Date(page.updatedAt))}</p>
+								<p>Sist oppdatert: {humanReadableFullDateTime(new Date(page.updatedAt))}</p>
 							</CardContent>
 						</Card>
 					</Link>

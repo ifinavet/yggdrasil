@@ -2,6 +2,7 @@
 
 import type { ColumnDef } from "@tanstack/react-table";
 import type { Id } from "@workspace/backend/convex/dataModel";
+import { humanReadableFullDateTime } from "@workspace/shared/time";
 import { Button } from "@workspace/ui/components//button";
 import {
 	AlertDialog,
@@ -14,7 +15,6 @@ import {
 	AlertDialogTrigger,
 } from "@workspace/ui/components/alert-dialog";
 import { Trash } from "lucide-react";
-import { humanReadableDate } from "@/utils/utils";
 
 export type Registration = {
 	pointId: Id<"points">;
@@ -37,7 +37,7 @@ export const createColumns = (
 		accessorKey: "awaredTime",
 		header: "Tildelt tidspunkt",
 		cell: ({ row }) => {
-			return <>{humanReadableDate(row.original.awardedTime)}</>;
+			return <>{humanReadableFullDateTime(row.original.awardedTime)}</>;
 		},
 	},
 	{

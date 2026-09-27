@@ -11,10 +11,9 @@ import {
 	FieldLabel,
 	FieldSet,
 } from "@workspace/ui/components/field";
-import { Input } from "@workspace/ui/components/input";
-import { ScrollArea } from "@workspace/ui/components/scroll-area";
-import { useMutation, useQuery } from "convex/react";
-import { useState } from "react";
+import { SearchSelect } from "@workspace/ui/components/search-select";
+import { useConvex, useMutation } from "convex/react";
+import { useId, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod/v4";
 
@@ -27,12 +26,15 @@ const schema = z.object({
 
 export default function UpdateMainSponsorForm({
 	companyId,
-}: Readonly<{ companyId: Id<"companies"> }>) {
-	const [searchInput, setSearchInput] = useState<string>("");
-
-	const companies = useQuery(api.companies.queries.searchByName, {
-		searchQuery: searchInput,
-	});
+	companyName: initialCompanyName,
+}: Readonly<{ companyId: Id<"companies">; companyName: string }>) {
+	const labelId = useId();
+	const [companyName, setCompanyName] = useState(initialCompanyName);
+	const convex = useConvex();
+	const searchCompanies = async (searchQuery: string) => {
+		const companies = await convex.query(api.companies.queries.searchByName, { searchQuery });
+		return companies.map((company) => ({ id: company._id, label: company.name }));
+	};
 
 	const updateMainSponsor = useMutation(api.companies.mutations.updateMainSponsor);
 
@@ -68,33 +70,23 @@ export default function UpdateMainSponsorForm({
 						const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 						return (
 							<Field className="flex flex-col">
-								<FieldLabel>Endre hovedsamarbeidspartner</FieldLabel>
-								<div className="space-y-2">
-									<Input
-										placeholder="Søk eks. ifi-navet"
-										type="text"
-										onChange={(e) => {
-											setSearchInput(e.target.value);
-										}}
-									/>
-									<ScrollArea className="max-h-20">
-										{companies?.map((company) => (
-											<Button
-												key={company._id}
-												type="button"
-												variant="ghost"
-												onClick={() => field.handleChange(company._id)}
-												className={`mb-2 flex w-full justify-start ${
-													field.state.value === company._id
-														? "bg-primary text-primary hover:bg-primary/90 dark:text-primary-foreground"
-														: ""
-												}`}
-											>
-												{company.name}
-											</Button>
-										))}
-									</ScrollArea>
-								</div>
+								<FieldLabel id={labelId}>Endre hovedsamarbeidspartner</FieldLabel>
+								<SearchSelect
+									aria-labelledby={labelId}
+									aria-invalid={isInvalid}
+									className="w-full"
+									search={searchCompanies}
+									value={field.state.value}
+									valueLabel={companyName}
+									onChange={(id, item) => {
+										if (!id || !item) return;
+										field.handleChange(id as Id<"companies">);
+										setCompanyName(item.label);
+									}}
+									placeholder="Velg en bedrift..."
+									searchPlaceholder="Søk eks. ifi-navet"
+									emptyText="Fant ingen bedrift(er)."
+								/>
 								<FieldDescription>
 									Søk og velg en bedrift til å være hovedsamarbeidspartner.
 								</FieldDescription>

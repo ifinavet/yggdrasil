@@ -26,7 +26,7 @@ export default function ListBoardMembers({
 	return (
 		<div className="flex max-w-8xl flex-wrap gap-4">
 			{boardMembers?.map((member) => (
-				<Card key={member._id} className="w-96">
+				<Card key={member._id} className="w-full sm:w-96">
 					<CardHeader>
 						<CardTitle>{member.position}</CardTitle>
 						<CardAction>

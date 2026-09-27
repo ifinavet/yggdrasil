@@ -1,6 +1,6 @@
 "use client";
 
-import { midgardUrl } from "@workspace/ui/lib/urls";
+import { MIDGARD_URL } from "@workspace/shared/constants";
 import { cn } from "@workspace/ui/lib/utils";
 import {
 	improvementsQuestion,
@@ -109,7 +109,7 @@ export function ReadonlyEventResponseForm({ data }: Readonly<{ data: ResponseDat
 
 			<div className="sticky bottom-0 z-6 border-border border-t bg-[color-mix(in_oklab,var(--background)_92%,transparent)] py-3 backdrop-blur-[6px]">
 				<a
-					href={midgardUrl}
+					href={MIDGARD_URL}
 					className="grid h-[52px] w-full place-items-center rounded-[13px] border border-input font-semibold text-[15.5px] text-primary"
 				>
 					Tilbake til ifinavet.no

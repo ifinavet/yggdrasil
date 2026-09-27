@@ -58,11 +58,21 @@ function CommandDialog({
 
 function CommandInput({
 	className,
+	wrapperClassName,
+	icon,
 	...props
-}: React.ComponentProps<typeof CommandPrimitive.Input>) {
+}: React.ComponentProps<typeof CommandPrimitive.Input> & {
+	/** Classes for the box around the icon and the input. */
+	wrapperClassName?: string;
+	/** Replaces the search icon, for example with a spinner while results load. */
+	icon?: React.ReactNode;
+}) {
 	return (
-		<div data-slot='command-input-wrapper' className='flex h-9 items-center gap-2 border-b px-3'>
-			<SearchIcon className='size-4 shrink-0 opacity-50' />
+		<div
+			data-slot='command-input-wrapper'
+			className={cn("flex h-9 items-center gap-2 border-b px-3", wrapperClassName)}
+		>
+			{icon ?? <SearchIcon className='size-4 shrink-0 opacity-50' />}
 			<CommandPrimitive.Input
 				data-slot='command-input'
 				className={cn(

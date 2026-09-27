@@ -18,6 +18,12 @@ crons.interval(
 	internal.points.mutations.checkIfAnyPointsShouldBeRemoved,
 );
 
+crons.interval(
+	"Detect engagement alerts",
+	{ minutes: 10 },
+	internal.engagement.alerts.detectAlerts,
+);
+
 crons.cron(
 	"Free for all on today's event",
 	"0 12 * * 2,4",
@@ -28,6 +34,14 @@ crons.cron(
 	"Update the year of each student",
 	"0 0 1 8 *",
 	internal.users.students.mutations.updateYear,
+);
+
+// Convex runs crons in UTC: 03:00 UTC is 04:00 or 05:00 in Oslo.
+crons.cron(
+	"Roll over semesters",
+	"0 3 * * *",
+	internal.semesterPlanning.semesters.mutations.rolloverSemesters,
+	{},
 );
 
 /**

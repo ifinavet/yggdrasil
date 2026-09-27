@@ -1,4 +1,3 @@
-import { toBase64 } from "@workspace/shared/utils";
 import { ConvexError, v } from "convex/values";
 import { query } from "../../_generated/server";
 import { currentUserHasRole, internalRoles, requireRole } from "../../auth/accessRights";
@@ -7,6 +6,7 @@ import {
 	getCurrentUserOrThrow,
 } from "../../auth/currentUser";
 import { getEventByIdentifier, isEventOrganizerOrAdmin } from "../helper";
+import { getRegistrantStatistics } from "./statistics";
 
 /**
  * Fetches registrations for an event grouped into registered and waitlist buckets.
@@ -252,47 +252,6 @@ export const getRegistrantsInfo = query({
 
 		const event = await getEventByIdentifier(ctx, eventIdentifier);
 
-		const registrations = await ctx.db
-			.query("registrations")
-			.withIndex("by_eventId", (q) => q.eq("eventId", event._id))
-			.filter((r) => r.eq(r.field("status"), "registered"))
-			.collect();
-
-		const studentsInfo = await Promise.all(
-			registrations.map(async (registration) => {
-				const student = await ctx.db
-					.query("students")
-					.withIndex("by_userId", (q) => q.eq("userId", registration.userId))
-					.first();
-
-				return {
-					aar: student?.year ?? -1,
-					program: student?.studyProgram ?? "Ukjent",
-					degree: student?.degree ?? "Ukjent",
-				};
-			}),
-		);
-
-		const result: {
-			[degree: string]: {
-				[program: string]: {
-					[aar: number]: number;
-				};
-			};
-		} = {};
-
-		for (const info of studentsInfo) {
-			const { degree, program, aar } = info;
-			const programBase = toBase64(program);
-			if (!result[degree]) result[degree] = {};
-
-			if (!result[degree][programBase]) result[degree][programBase] = {};
-
-			result[degree][programBase][aar] ??= 0;
-
-			result[degree][programBase][aar]++;
-		}
-
-		return result;
+		return getRegistrantStatistics(ctx, event._id);
 	},
 });

@@ -1,8 +1,11 @@
 import { clerkMiddleware } from "@clerk/nextjs/server";
 import { isLocalDevelopment } from "@workspace/auth/local";
 import { type NextRequest, NextResponse } from "next/server";
+import { entryRedirect } from "@/lib/entry-redirect";
 
 const searchParamsMiddleware = (request: NextRequest) => {
+	const redirect = entryRedirect(request);
+	if (redirect) return redirect;
 	return NextResponse.next({
 		headers: {
 			"x-searchParams": request.nextUrl.searchParams.toString(),

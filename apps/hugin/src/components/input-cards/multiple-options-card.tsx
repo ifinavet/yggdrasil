@@ -16,11 +16,13 @@ export function MultipleOptionsCard({
 	number,
 	label,
 	options,
+	allowOther = true,
 }: Readonly<{
 	field: AnyFieldApi;
 	number: number;
 	label: string;
 	options: readonly string[];
+	allowOther?: boolean;
 }>) {
 	const invalid = isFieldInvalid(field);
 	const values = (field.state.value ?? []) as string[];
@@ -125,37 +127,38 @@ export function MultipleOptionsCard({
 					);
 				})}
 
-				<label
-					htmlFor={`${field.name}_other`}
-					className={cn(
-						ROW_CLASS,
-						otherChecked
-							? "border-[color-mix(in_oklab,var(--primary)_32%,var(--input))] bg-[color-mix(in_oklab,var(--primary-light)_62%,var(--card))]"
-							: "border-input bg-card",
-					)}
-				>
-					<Checkbox
-						id={`${field.name}_other`}
-						checked={otherChecked}
-						onCheckedChange={(next) => toggleOther(next === true)}
-						className="peer sr-only"
-					/>
-					<span
+				{allowOther && (
+					<label
+						htmlFor={`${field.name}_other`}
 						className={cn(
-							BOX_CLASS,
+							ROW_CLASS,
 							otherChecked
-								? "border-primary bg-primary text-primary-foreground"
-								: "border-input bg-white text-transparent",
+								? "border-[color-mix(in_oklab,var(--primary)_32%,var(--input))] bg-[color-mix(in_oklab,var(--primary-light)_62%,var(--card))]"
+								: "border-input bg-card",
 						)}
 					>
-						<Check className="size-3.5" strokeWidth={3.2} />
-					</span>
-					<span className={cn("text-[15px] leading-[1.3]", otherChecked && "font-semibold")}>
-						Annet
-					</span>
-				</label>
-
-				{otherChecked && (
+						<Checkbox
+							id={`${field.name}_other`}
+							checked={otherChecked}
+							onCheckedChange={(next) => toggleOther(next === true)}
+							className="peer sr-only"
+						/>
+						<span
+							className={cn(
+								BOX_CLASS,
+								otherChecked
+									? "border-primary bg-primary text-primary-foreground"
+									: "border-input bg-white text-transparent",
+							)}
+						>
+							<Check className="size-3.5" strokeWidth={3.2} />
+						</span>
+						<span className={cn("text-[15px] leading-[1.3]", otherChecked && "font-semibold")}>
+							Annet
+						</span>
+					</label>
+				)}
+				{allowOther && otherChecked && (
 					<div className="mt-2 ml-[34px]">
 						<Textarea
 							rows={1}

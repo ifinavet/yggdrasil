@@ -10,10 +10,10 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@workspace/ui/components/card";
+import { SafeHtml } from "@workspace/ui/components/safe-html";
 import { type Preloaded, usePreloadedQuery } from "convex/react";
 import { Pencil } from "lucide-react";
 import Link from "next/link";
-import SafeHtml from "@/components/common/sanitize-html";
 import UpdateMainSponsorForm from "./update-main-sponsor-form";
 
 export default function UpdateMainSponsor({
@@ -26,7 +26,7 @@ export default function UpdateMainSponsor({
 	return (
 		mainSponsor && (
 			<div className="flex flex-wrap gap-4">
-				<UpdateMainSponsorForm companyId={mainSponsor._id} />
+				<UpdateMainSponsorForm companyId={mainSponsor._id} companyName={mainSponsor.name} />
 				<Link href={`/companies/${mainSponsor._id}`} className="max-w-lg">
 					<Card>
 						<CardHeader>

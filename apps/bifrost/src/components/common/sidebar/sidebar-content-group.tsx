@@ -1,5 +1,6 @@
 "use client";
 
+import type { GatedFeature } from "@workspace/shared/feature-flags";
 import {
 	SidebarGroup,
 	SidebarGroupContent,
@@ -8,17 +9,31 @@ import {
 	SidebarMenuButton,
 	SidebarMenuItem,
 } from "@workspace/ui/components/sidebar";
+import { useFeatureEnabled } from "@workspace/ui/hooks/use-feature-enabled";
 import {
+	BanknoteIcon,
 	BookOpenIcon,
 	BriefcaseIcon,
 	BuildingIcon,
 	CalendarIcon,
+	CalendarRangeIcon,
+	ClipboardListIcon,
 	FileIcon,
 	GitForkIcon,
+	type LucideIcon,
+	TrendingUpIcon,
 	UsersIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { PRODUCT_ROUTES } from "@/components/products/product-routes";
+
+type SidebarItem = {
+	title: string;
+	icon: LucideIcon;
+	path: string;
+	feature?: GatedFeature;
+};
 
 const paths = {
 	main: [
@@ -28,9 +43,21 @@ const paths = {
 			path: "/events",
 		},
 		{
+			title: "Semesterplan",
+			icon: CalendarRangeIcon,
+			path: "/semesterplan",
+			feature: "semesterPlanning",
+		},
+		{
 			title: "Stillingsannonser",
 			icon: BriefcaseIcon,
 			path: "/job-listings",
+		},
+		{
+			title: "Engasjement",
+			icon: TrendingUpIcon,
+			path: "/engasjement",
+			feature: "engagement",
 		},
 		{
 			title: "Resurser",
@@ -61,8 +88,19 @@ const paths = {
 			icon: GitForkIcon,
 			path: "/organization",
 		},
+		{
+			title: "Produkter",
+			icon: BanknoteIcon,
+			path: PRODUCT_ROUTES.list,
+			feature: "products",
+		},
+		{
+			title: "Skjemaer",
+			icon: ClipboardListIcon,
+			path: "/feedback-forms",
+		},
 	],
-};
+} satisfies Record<string, SidebarItem[]>;
 
 export function SidebarContentGroup({
 	title,
@@ -72,13 +110,23 @@ export function SidebarContentGroup({
 	items: keyof typeof paths;
 }>) {
 	const rootPathSegment = usePathname().split("/")[1];
+	const enabled: Record<GatedFeature, boolean> = {
+		huginFeedback: useFeatureEnabled("huginFeedback"),
+		products: useFeatureEnabled("products"),
+		jobListingOrders: useFeatureEnabled("jobListingOrders"),
+		semesterPlanning: useFeatureEnabled("semesterPlanning"),
+		engagement: useFeatureEnabled("engagement"),
+	};
+	const visibleItems = paths[items].filter(
+		(item: SidebarItem) => item.feature === undefined || enabled[item.feature],
+	);
 
 	return (
 		<SidebarGroup>
 			<SidebarGroupLabel>{title}</SidebarGroupLabel>
 			<SidebarGroupContent>
 				<SidebarMenu>
-					{paths[items].map((item: (typeof paths)[typeof items][number]) => (
+					{visibleItems.map((item) => (
 						<SidebarMenuItem key={item.title}>
 							<SidebarMenuButton
 								tooltip={item.title}

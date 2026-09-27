@@ -1,6 +1,6 @@
+import { humanReadableDate } from "@workspace/shared/time";
 import { CalendarDays, Users } from "lucide-react";
 import Image from "next/image";
-import { humanReadableDate } from "@/utils/dateFormatting";
 
 export type EventCardType = {
 	companyImage: string;

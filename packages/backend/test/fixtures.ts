@@ -1,11 +1,18 @@
 /// <reference types="vite/client" />
 
+import batchWorkerTest from "@convex-dev/batch-worker/test";
+import migrationsTest from "@convex-dev/migrations/test";
+import rateLimiter from "@convex-dev/rate-limiter/test";
+import resendTest from "@convex-dev/resend/test";
+import workflowTest from "@convex-dev/workflow/test";
+import workpoolTest from "@convex-dev/workpool/test";
 import type { WithoutSystemFields } from "convex/server";
 import { ConvexError } from "convex/values";
 import { convexTest } from "convex-test";
 import type { Doc, Id } from "../convex/_generated/dataModel";
 import type { AccessRole } from "../convex/auth/accessRights";
 import schema from "../convex/schema";
+import { CONSENT_VERSION, FORM_VERSION } from "../convex/semesterPlanning/rules";
 
 const convexModules = {
 	...import.meta.glob(["../convex/**/*.*s", "!../convex/**/*.test.ts"]),
@@ -21,8 +28,33 @@ export type TestUser = { _id: Id<"users">; externalId: string };
 
 export type EventOverrides = Partial<WithoutSystemFields<Doc<"events">>>;
 
+// Resolve component modules before Workflow disables process during replay. Vitest's
+// dynamic-import resolver needs process.platform, unlike Convex's module loader.
+const workflowModules = Promise.all(
+	[workflowTest.modules, workpoolTest.modules, batchWorkerTest.modules].map(async (modules) =>
+		Object.fromEntries(
+			await Promise.all(
+				Object.entries(modules)
+					.filter(([path]) => !path.endsWith(".test.ts") && !path.endsWith("convex.config.ts"))
+					.map(async ([path, load]) => {
+						const loaded = await load();
+						return [path, () => Promise.resolve(loaded)];
+					}),
+			),
+		),
+	),
+);
+
 export async function setup() {
 	const t = convexTest(schema, convexModules);
+	rateLimiter.register(t);
+	migrationsTest.register(t);
+	const [workflow, workpool, batchWorker] = await workflowModules;
+	t.registerComponent("workflow", workflowTest.schema, workflow);
+	t.registerComponent("workflow/workpool", workpoolTest.schema, workpool);
+	t.registerComponent("workflow/workpool/batchWorker", batchWorkerTest.schema, batchWorker);
+	resendTest.register(t, "feedbackResend");
+	resendTest.register(t, "resend");
 
 	const companyId = await t.run(async (ctx) => {
 		const image = await ctx.storage.store(new Blob(["logo"]));
@@ -270,4 +302,74 @@ export async function refusalMessageFrom(call: Promise<unknown>): Promise<string
 	}
 
 	throw new Error("Expected the call to be refused, but it resolved.");
+}
+
+export type SemesterOverrides = Partial<WithoutSystemFields<Doc<"semesters">>>;
+export type ApplicationOverrides = Partial<WithoutSystemFields<Doc<"companyApplications">>>;
+
+export async function insertSemester(
+	t: TestBackend,
+	overrides: SemesterOverrides = {},
+): Promise<Id<"semesters">> {
+	return t.run((ctx) =>
+		ctx.db.insert("semesters", {
+			year: 2027,
+			term: "spring",
+			firstDate: "2027-01-19",
+			lastDate: "2027-05-13",
+			applicationDeadline: "2026-12-04",
+			status: "open",
+			...overrides,
+		}),
+	);
+}
+
+export async function insertApplication(
+	t: TestBackend,
+	semesterId: Id<"semesters">,
+	overrides: ApplicationOverrides = {},
+): Promise<Id<"companyApplications">> {
+	return t.run((ctx) =>
+		ctx.db.insert("companyApplications", {
+			semesterId,
+			formVersion: FORM_VERSION,
+			orgNumber: "924773189",
+			registry: {
+				name: "FJORDKODE AS",
+				organizationForm: { code: "AS", description: "Aksjeselskap" },
+				fetchedAt: Date.now(),
+			},
+			contact: { name: "Ingrid Solberg", email: "ingrid@fjordkode.no", phone: "+4741234567" },
+			eventType: "standard_presentation",
+			minStudents: 25,
+			maxStudents: 40,
+			description: "Presentasjon og kodeoppgave.",
+			availableDates: ["2027-02-09", "2027-02-16"],
+			venue: "campus",
+			wantsToUseEscape: "unsure",
+			foodAndDrinks: true,
+			foodPurchasedBy: "company",
+			billing: { email: "faktura@fjordkode.no", details: "Referanse: PO-2027-014" },
+			targetDegrees: [],
+			targetStudyPrograms: [],
+			consent: { version: CONSENT_VERSION, consentedAt: Date.now() },
+			status: "applied",
+			...overrides,
+		}),
+	);
+}
+
+export async function applicationById(t: TestBackend, applicationId: Id<"companyApplications">) {
+	const application = await t.run((ctx) => ctx.db.get(applicationId));
+	if (!application) throw new Error("Expected the application to exist.");
+	return application;
+}
+
+export async function activityFor(t: TestBackend, applicationId: Id<"companyApplications">) {
+	return t.run((ctx) =>
+		ctx.db
+			.query("companyApplicationActivity")
+			.withIndex("by_applicationId", (q) => q.eq("applicationId", applicationId))
+			.collect(),
+	);
 }

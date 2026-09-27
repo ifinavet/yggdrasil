@@ -1,6 +1,7 @@
 "use client";
 
 import * as Sentry from "@sentry/nextjs";
+import { MIDGARD_URL } from "@workspace/shared/constants";
 import { useEffect } from "react";
 
 export default function GlobalError({
@@ -115,7 +116,7 @@ export default function GlobalError({
 							Prøv igjen
 						</button>
 						<a
-							href="https://ifinavet.no"
+							href={MIDGARD_URL}
 							style={{
 								padding: "0.625rem 1.25rem",
 								backgroundColor: "transparent",

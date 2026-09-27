@@ -10,6 +10,7 @@ import LargeUserCard from "@/components/cards/large-user";
 import InformationGrid from "@/components/companies/information-grid";
 import OfferGrid from "@/components/companies/offer-grid";
 import JobListingBanner from "@/components/job-listings/job-listing-banner";
+import JobListingOrderLink from "@/components/job-listings/job-listing-order-link";
 
 export const metadata: Metadata = {
 	title: "For bedrifter",
@@ -17,7 +18,7 @@ export const metadata: Metadata = {
 
 export default async function CompaniesPage() {
 	"use cache";
-	cacheLife("max");
+	cacheLife("hours");
 
 	const companyContact = await fetchQuery(api.users.organization.queries.getBoardMemberByPosition, {
 		position: "Bedriftskontakt",
@@ -114,13 +115,7 @@ export default async function CompaniesPage() {
 								className="bg-primary py-6 text-base text-primary-foreground dark:bg-primary-light dark:text-primary"
 								asChild
 							>
-								<a
-									href="https://docs.google.com/forms/d/1pyPhN0eod6g3iwmHLfUycz1CI2KplwZRSbozwrJdaR4/edit"
-									target="_blank"
-									rel="noopener noreferrer"
-								>
-									Skjema for stillingsannonser
-								</a>
+								<JobListingOrderLink>Skjema for stillingsannonser</JobListingOrderLink>
 							</Button>
 						</ContainerCard>
 					</div>

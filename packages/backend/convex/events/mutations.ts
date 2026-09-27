@@ -4,10 +4,22 @@ import type { Id } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, mutation } from "../_generated/server";
 import { internalRoles, requireRole } from "../auth/accessRights";
 import { getCurrentUserOrThrow } from "../auth/currentUser";
+import { syncFeedbackCampaign } from "../feedback/delivery/campaigns";
+import { eventProductFields } from "../products/sales";
+import { eventSlug, insertEventWithOrganizers } from "./helper";
 import { makeStatusPending } from "./registrations/mutations";
+import { editableEventFields, organizerRoleValidator } from "./schema";
 
-// Shared validator for organizer roles
-const organizerRoleValidator = v.union(v.literal("hovedansvarlig"), v.literal("medhjelper"));
+const eventMutationArgs = {
+	...editableEventFields,
+	productId: v.optional(v.id("products")),
+	organizers: v.array(
+		v.object({
+			userId: v.id("users"),
+			role: organizerRoleValidator,
+		}),
+	),
+};
 
 /**
  * Updates an existing event and synchronizes its organizers and waitlist.
@@ -32,29 +44,7 @@ const organizerRoleValidator = v.union(v.literal("hovedansvarlig"), v.literal("m
  * @returns {null} - Returns null when the event is updated successfully.
  */
 export const update = mutation({
-	args: {
-		id: v.id("events"),
-		title: v.string(),
-		teaser: v.string(),
-		description: v.string(),
-		eventStart: v.number(),
-		registrationOpens: v.number(),
-		participationLimit: v.number(),
-		location: v.string(),
-		food: v.string(),
-		language: v.string(),
-		ageRestriction: v.string(),
-		externalEvent: v.boolean(),
-		externalUrl: v.optional(v.string()),
-		hostingCompany: v.id("companies"),
-		published: v.boolean(),
-		organizers: v.array(
-			v.object({
-				userId: v.id("users"),
-				role: organizerRoleValidator,
-			}),
-		),
-	},
+	args: { id: v.id("events"), ...eventMutationArgs },
 	handler: async (
 		ctx,
 		{
@@ -73,6 +63,7 @@ export const update = mutation({
 			externalUrl,
 			hostingCompany,
 			published,
+			productId,
 			organizers,
 		},
 	) => {
@@ -84,7 +75,7 @@ export const update = mutation({
 		}
 
 		// Create a slug if it doesn't exist
-		const slug = event.slug || slugify(title, new Date(eventStart));
+		const slug = event.slug || eventSlug(title, eventStart);
 
 		let formId: Id<"form">;
 		if (event.formId) {
@@ -98,7 +89,7 @@ export const update = mutation({
 		}
 
 		// Update the event details
-		await ctx.db.replace(eventId, {
+		await ctx.db.patch(eventId, {
 			title,
 			teaser,
 			description,
@@ -115,7 +106,10 @@ export const update = mutation({
 			published,
 			slug,
 			formId,
+			...(await eventProductFields(ctx, productId, event)),
 		});
+
+		await syncFeedbackCampaign(ctx, eventId);
 
 		await ctx.runMutation(internal.events.mutations.upsertEventOrganizer, {
 			id: eventId,
@@ -256,45 +250,11 @@ export const updatePublishedStatus = mutation({
 		await Promise.all(
 			ids.map(async (id) => {
 				await ctx.db.patch(id, { published: newPublishedStatus });
+				await syncFeedbackCampaign(ctx, id);
 			}),
 		);
 	},
 });
-
-// Not meant for security purposes
-/**
- * Creates a short deterministic hash from a string.
- *
- * @param {string} str - The input string to hash.
- *
- * @returns {string} - A four-character uppercase hash.
- */
-function simpleHash(str: string): string {
-	const hash = Math.abs(str.split("").reduce((a, b) => (a << 5) - a + (b.codePointAt(0) || 0), 0));
-	const result = hash.toString(36).toUpperCase();
-	return result.length < 4 ? result.padStart(4, "0").substring(0, 4) : result.substring(0, 4);
-}
-
-/**
- * Creates the event slug from its title and date.
- *
- * @param {string} title - The event title.
- * @param {Date} eventDate - The event date.
- *
- * @returns {string} - The generated slug.
- */
-function slugify(title: string, eventDate: Date): string {
-	let slugTitle = title
-		.normalize("NFD")
-		.toLowerCase()
-		.replaceAll(/[^a-z0-9]+/g, "-");
-
-	if (slugTitle.length === 0) slugTitle = simpleHash(title).toLowerCase();
-
-	const semester = eventDate.getMonth() >= 7 ? "h" : "v";
-
-	return `${semester}${eventDate.getFullYear().toString().slice(2)}-${slugTitle}-${simpleHash(title)}`;
-}
 
 /**
  * Creates a new event and stores its organizer assignments.
@@ -318,28 +278,7 @@ function slugify(title: string, eventDate: Date): string {
  * @returns {null} - Returns null when the event is created successfully.
  */
 export const create = mutation({
-	args: {
-		title: v.string(),
-		teaser: v.string(),
-		description: v.string(),
-		eventStart: v.number(),
-		registrationOpens: v.number(),
-		participationLimit: v.number(),
-		location: v.string(),
-		food: v.string(),
-		language: v.string(),
-		ageRestriction: v.string(),
-		externalEvent: v.boolean(),
-		externalUrl: v.optional(v.string()),
-		hostingCompany: v.id("companies"),
-		published: v.boolean(),
-		organizers: v.array(
-			v.object({
-				userId: v.id("users"),
-				role: organizerRoleValidator,
-			}),
-		),
-	},
+	args: eventMutationArgs,
 	handler: async (
 		ctx,
 		{
@@ -357,45 +296,32 @@ export const create = mutation({
 			externalUrl,
 			hostingCompany,
 			published,
+			productId,
 			organizers,
 		},
 	) => {
 		await requireRole(ctx, internalRoles);
 
-		// Creating the feedback form for after the event
-		const formId = await ctx.runMutation(internal.forms.mutations.createEventFeedbackForm);
-		if (!formId) {
-			console.error("Failed to create feedback form");
-		}
-
-		const eventId = await ctx.db.insert("events", {
-			title,
-			teaser,
-			description,
-			eventStart,
-			registrationOpens,
-			participationLimit,
-			location,
-			food,
-			language,
-			ageRestriction,
-			externalEvent,
-			externalUrl,
-			hostingCompany,
-			published,
-			slug: slugify(title, new Date(eventStart)),
-			formId,
-		});
-
-		await Promise.all(
-			organizers.map(
-				async ({ userId, role }) =>
-					await ctx.db.insert("eventOrganizers", {
-						eventId,
-						userId,
-						role,
-					}),
-			),
+		await insertEventWithOrganizers(
+			ctx,
+			{
+				title,
+				teaser,
+				description,
+				eventStart,
+				registrationOpens,
+				participationLimit,
+				location,
+				food,
+				language,
+				ageRestriction,
+				externalEvent,
+				externalUrl,
+				hostingCompany,
+				published,
+				...(await eventProductFields(ctx, productId)),
+			},
+			organizers,
 		);
 	},
 });

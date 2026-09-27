@@ -10,7 +10,15 @@ import {
 import { useConvexAuth } from "@workspace/auth/convex";
 import { isLocalDevelopment } from "@workspace/auth/local";
 import { api } from "@workspace/backend/convex/api";
-import { DEGREE_TYPES, STUDY_PROGRAMS } from "@workspace/shared/constants";
+import {
+	DEGREE_TYPES,
+	DEGREE_YEARS,
+	degreesFor,
+	fittingDegree,
+	fittingYear,
+	refineStudentProfile,
+	STUDY_PROGRAMS,
+} from "@workspace/shared/constants";
 import { Button } from "@workspace/ui/components/button";
 import { Card } from "@workspace/ui/components/card";
 import {
@@ -62,6 +70,7 @@ const signUpFormSchema = z
 		degree: z.enum(DEGREE_TYPES),
 		year: z.number().int().min(1).max(5),
 	})
+	.superRefine(refineStudentProfile)
 	.refine((data) => data.password === data.confirmPassword, {
 		path: ["confirmPassword"],
 		message: "Passordene må være like",
@@ -497,7 +506,19 @@ function ClerkSignUpPage() {
 					</FieldGroup>
 
 					<FieldGroup>
-						<signUpForm.Field name="studyProgram">
+						<signUpForm.Field
+							name="studyProgram"
+							listeners={{
+								onChange: ({ value }) => {
+									const degree = fittingDegree(value, signUpForm.getFieldValue("degree"));
+									signUpForm.setFieldValue("degree", degree);
+									signUpForm.setFieldValue(
+										"year",
+										fittingYear(degree, signUpForm.getFieldValue("year")),
+									);
+								},
+							}}
+						>
 							{(field) => {
 								const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 								return (
@@ -528,7 +549,16 @@ function ClerkSignUpPage() {
 						</signUpForm.Field>
 					</FieldGroup>
 					<FieldGroup>
-						<signUpForm.Field name="degree">
+						<signUpForm.Field
+							name="degree"
+							listeners={{
+								onChange: ({ value }) =>
+									signUpForm.setFieldValue(
+										"year",
+										fittingYear(value, signUpForm.getFieldValue("year")),
+									),
+							}}
+						>
 							{(field) => {
 								const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 								return (
@@ -542,11 +572,15 @@ function ClerkSignUpPage() {
 												<SelectValue placeholder="Velg en grad" />
 											</SelectTrigger>
 											<SelectContent>
-												{DEGREE_TYPES.map((degree) => (
-													<SelectItem key={degree} value={degree}>
-														{degree}
-													</SelectItem>
-												))}
+												<signUpForm.Subscribe selector={(state) => state.values.studyProgram}>
+													{(program) =>
+														degreesFor(program).map((degree) => (
+															<SelectItem key={degree} value={degree}>
+																{degree}
+															</SelectItem>
+														))
+													}
+												</signUpForm.Subscribe>
 											</SelectContent>
 										</Select>
 										<FieldDescription>
@@ -566,17 +600,21 @@ function ClerkSignUpPage() {
 								return (
 									<Field data-invalid={isInvalid}>
 										<FieldLabel htmlFor={field.name}>År</FieldLabel>
-										<Input
-											id={field.name}
-											name={field.name}
-											value={field.state.value}
-											onBlur={field.handleBlur}
-											onChange={(e) => field.handleChange(Number.parseInt(e.target.value, 10))}
-											type="number"
-											min={1}
-											max={5}
-											autoComplete="off"
-										/>
+										<signUpForm.Subscribe selector={(state) => DEGREE_YEARS[state.values.degree]}>
+											{({ first, last }) => (
+												<Input
+													id={field.name}
+													name={field.name}
+													value={field.state.value}
+													onBlur={field.handleBlur}
+													onChange={(e) => field.handleChange(Number.parseInt(e.target.value, 10))}
+													type="number"
+													min={first}
+													max={last}
+													autoComplete="off"
+												/>
+											)}
+										</signUpForm.Subscribe>
 										<FieldDescription>
 											Oppgi hvilket år du er på. (4. året er 1. året på master)
 										</FieldDescription>
