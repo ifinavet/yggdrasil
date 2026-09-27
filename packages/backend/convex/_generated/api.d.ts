@@ -67,6 +67,7 @@ import type * as forms_mutations from "../forms/mutations.js";
 import type * as forms_queries from "../forms/queries.js";
 import type * as forms_responses from "../forms/responses.js";
 import type * as http from "../http.js";
+import type * as iam_accounts from "../iam/accounts.js";
 import type * as iam_actions from "../iam/actions.js";
 import type * as iam_config from "../iam/config.js";
 import type * as iam_drift from "../iam/drift.js";
@@ -195,6 +196,7 @@ declare const fullApi: ApiFromModules<{
   "forms/queries": typeof forms_queries;
   "forms/responses": typeof forms_responses;
   http: typeof http;
+  "iam/accounts": typeof iam_accounts;
   "iam/actions": typeof iam_actions;
   "iam/config": typeof iam_config;
   "iam/drift": typeof iam_drift;

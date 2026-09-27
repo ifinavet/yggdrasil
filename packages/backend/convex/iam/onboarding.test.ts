@@ -421,6 +421,67 @@ describe("activating on first sign-in", () => {
 	});
 });
 
+describe("linking the UiO and ifinavet logins", () => {
+	async function hasInternalAccess(user: TestUser) {
+		return asUser(t, user).query(api.auth.accessRights.checkRights, { right: ["internal"] });
+	}
+
+	async function promoteStudent() {
+		const student = await insertUser(t, newMember.uioEmail);
+		await onboard();
+		return { student, workspaceUser: await insertUser(t, newMember.workspaceEmail) };
+	}
+
+	it("gives the ifinavet login the access of the promoted UiO user", async () => {
+		const { student, workspaceUser } = await promoteStudent();
+
+		expect(await hasInternalAccess(student)).toBe(true);
+		expect(await hasInternalAccess(workspaceUser)).toBe(true);
+		expect(await t.run((ctx) => ctx.db.query("internals").collect())).toHaveLength(1);
+	});
+
+	it("follows role changes on the promoted user", async () => {
+		const { student, workspaceUser } = await promoteStudent();
+
+		const superAdmin = await insertUser(t, "web@ifinavet.no");
+		await grantRole(t, superAdmin._id, "super-admin");
+		await asUser(t, superAdmin).mutation(api.auth.accessRights.upsertAccessRights, {
+			userId: student._id,
+			role: "admin",
+		});
+
+		expect(
+			await asUser(t, workspaceUser).query(api.auth.accessRights.checkRights, {
+				right: ["admin"],
+			}),
+		).toBe(true);
+	});
+
+	it("takes access from both logins when the member is removed", async () => {
+		const { student, workspaceUser } = await promoteStudent();
+		const internalMember = await t.run((ctx) =>
+			ctx.db
+				.query("internals")
+				.withIndex("by_userId", (q) => q.eq("userId", student._id))
+				.first(),
+		);
+
+		await asUser(t, admin).mutation(api.users.organization.mutations.removeInternal, {
+			id: internalMember?._id as Id<"internals">,
+		});
+
+		expect(await hasInternalAccess(student)).toBe(false);
+		expect(await hasInternalAccess(workspaceUser)).toBe(false);
+	});
+
+	it("gives nothing to a login whose address has no member account", async () => {
+		await promoteStudent();
+		const stranger = await insertUser(t, "annen@uio.no");
+
+		expect(await hasInternalAccess(stranger)).toBe(false);
+	});
+});
+
 describe("cancelling onboarding", () => {
 	it("suspends the account we created", async () => {
 		const { accountId } = await onboard();

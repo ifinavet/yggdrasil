@@ -2,21 +2,8 @@ import { normalizeEmail } from "@workspace/shared/iam";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
-import { assignAccessRole, getAccessRole } from "../auth/accessRights";
-
-export async function accountForEmail(ctx: QueryCtx, email: string) {
-	const normalized = normalizeEmail(email);
-	return (
-		(await ctx.db
-			.query("memberAccounts")
-			.withIndex("by_workspaceEmail", (q) => q.eq("workspaceEmail", normalized))
-			.first()) ??
-		(await ctx.db
-			.query("memberAccounts")
-			.withIndex("by_uioEmail", (q) => q.eq("uioEmail", normalized))
-			.first())
-	);
-}
+import { assignAccessRole, getAssignedAccessRole } from "../auth/accessRights";
+import { accountForEmail } from "./accounts";
 
 export async function usersWithEmail(ctx: QueryCtx, emails: readonly string[]) {
 	const users = await Promise.all(
@@ -36,7 +23,8 @@ async function makeInternal(ctx: MutationCtx, userId: Id<"users">, group: string
 		.withIndex("by_userId", (q) => q.eq("userId", userId))
 		.first();
 	if (!existing) await ctx.db.insert("internals", { userId, group, position: "Intern" });
-	if ((await getAccessRole(ctx, userId)) === null) await assignAccessRole(ctx, userId, "internal");
+	if ((await getAssignedAccessRole(ctx, userId)) === null)
+		await assignAccessRole(ctx, userId, "internal");
 }
 
 export async function activate(

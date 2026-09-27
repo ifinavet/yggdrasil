@@ -5,6 +5,7 @@ import {
 	adminRoles,
 	assignAccessRole,
 	getAccessRole,
+	getAssignedAccessRole,
 	requireRole,
 	revokeAccessRole,
 	superAdminRoles,
@@ -107,7 +108,7 @@ export const createInternal = mutation({
 			position: "Intern",
 		});
 
-		if ((await getAccessRole(ctx, userId)) === null) {
+		if ((await getAssignedAccessRole(ctx, userId)) === null) {
 			await assignAccessRole(ctx, userId, "internal");
 		}
 	},

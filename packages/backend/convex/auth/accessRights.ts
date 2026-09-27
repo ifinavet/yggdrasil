@@ -1,6 +1,7 @@
 import { ConvexError, type Infer, v } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import { type MutationCtx, mutation, type QueryCtx, query } from "../_generated/server";
+import { accountForEmail } from "../iam/accounts";
 import { getCurrentUser, getCurrentUserOrThrow } from "./currentUser";
 
 /**
@@ -28,7 +29,7 @@ export const internalRoles: readonly AccessRole[] = [...editorRoles, "internal"]
  *
  * @returns {Promise<AccessRole | null>} - The assigned role, or null when the user has none.
  */
-export async function getAccessRole(
+export async function getAssignedAccessRole(
 	ctx: QueryCtx | MutationCtx,
 	userId: Id<"users">,
 ): Promise<AccessRole | null> {
@@ -38,6 +39,21 @@ export async function getAccessRole(
 		.first();
 
 	return assignedRights?.role ?? null;
+}
+
+export async function getAccessRole(
+	ctx: QueryCtx | MutationCtx,
+	userId: Id<"users">,
+): Promise<AccessRole | null> {
+	return (await getAssignedAccessRole(ctx, userId)) ?? (await linkedAccessRole(ctx, userId));
+}
+
+async function linkedAccessRole(ctx: QueryCtx | MutationCtx, userId: Id<"users">) {
+	const user = await ctx.db.get(userId);
+	if (!user?.email) return null;
+	const account = await accountForEmail(ctx, user.email);
+	if (account?.stage !== "active" || !account.userId || account.userId === userId) return null;
+	return getAssignedAccessRole(ctx, account.userId);
 }
 
 /**
@@ -152,7 +168,7 @@ async function requireAnotherSuperAdminRemains(
 	newRole: AccessRole | null,
 ): Promise<void> {
 	if (newRole === "super-admin") return;
-	if ((await getAccessRole(ctx, userId)) !== "super-admin") return;
+	if ((await getAssignedAccessRole(ctx, userId)) !== "super-admin") return;
 
 	const superAdmins = await ctx.db
 		.query("accessRights")

@@ -4,8 +4,9 @@ import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { type MutationCtx, mutation } from "../_generated/server";
 import { adminRoles, requireRole } from "../auth/accessRights";
+import { accountForEmail } from "./accounts";
 import { workspaceDomain } from "./config";
-import { accountForEmail, activate, usersWithEmail } from "./lifecycle";
+import { activate, usersWithEmail } from "./lifecycle";
 
 async function requireAccount(ctx: MutationCtx, accountId: Doc<"memberAccounts">["_id"]) {
 	const account = await ctx.db.get(accountId);
