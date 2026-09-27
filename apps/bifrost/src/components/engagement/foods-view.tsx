@@ -194,7 +194,7 @@ function OpportunityChart({ breakdown }: Readonly<{ breakdown: FoodBreakdown }>)
 			definition={definition}
 			height={OPPORTUNITY_HEIGHT}
 			initialWidth={CHART_WIDTH}
-			ariaLabel="Mat vi bestiller sjelden"
+			ariaLabel="Mat vi bestiller for sjelden"
 			ariaDescription={points
 				.map((point) => `${point.name}: ${point.events} arrangementer, ${point.label}`)
 				.join(", ")}
@@ -269,7 +269,7 @@ export function FoodsView({ now }: Readonly<{ now: number }>) {
 				</Panel>
 			)}
 			{breakdown && !empty && (
-				<Panel title="Mat vi bestiller sjelden" aside={<ChartLegend items={[AVERAGE]} />}>
+				<Panel title="Mat vi bestiller for sjelden" aside={<ChartLegend items={[AVERAGE]} />}>
 					<PanelBody className="grid gap-3">
 						<OpportunityChart breakdown={breakdown} />
 						<PanelNote>{FOOD_OPPORTUNITY_NOTE}</PanelNote>
