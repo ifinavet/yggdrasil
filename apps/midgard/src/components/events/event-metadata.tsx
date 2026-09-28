@@ -6,11 +6,18 @@ import { humanReadableDateTime } from "@workspace/shared/time";
 import { Button } from "@workspace/ui/components/button";
 import { type Preloaded, usePreloadedQuery } from "convex/react";
 import { CalendarDays, Globe, IdCard, MapPin, Users, Utensils } from "lucide-react";
+import { useEffect, useState } from "react";
 import { countdownLabel, spotsLabel } from "@/utils/event-availability";
 import QRCode from "./registration/qr-code";
 import RegistrationButton from "./registration/registration-button";
 import type { EventRegistrationSummary } from "./registration/registration-summary";
 import WaitlistPosition from "./registration/waitlist-position";
+
+function useHasMounted() {
+	const [hasMounted, setHasMounted] = useState(false);
+	useEffect(() => setHasMounted(true), []);
+	return hasMounted;
+}
 
 export function EventMetadata({
 	preloadedEvent,
@@ -23,12 +30,13 @@ export function EventMetadata({
 }>) {
 	const event = usePreloadedQuery(preloadedEvent);
 	const registrationSummary = usePreloadedQuery(preloadedRegistrationSummary);
+	const hasMounted = useHasMounted();
 
 	const availableSpots = Math.max(
 		0,
 		event.participationLimit - registrationSummary.registeredCount,
 	);
-	const countdown = countdownLabel(event.eventStart, Date.now());
+	const countdown = hasMounted ? countdownLabel(event.eventStart, Date.now()) : null;
 
 	return (
 		<div>
@@ -66,7 +74,8 @@ export function EventMetadata({
 
 			<WaitlistPosition className="mb-6" registrationSummary={registrationSummary} />
 
-			{event.eventStart - Date.now() < 60 * 60 * 1000 &&
+			{hasMounted &&
+				event.eventStart - Date.now() < 60 * 60 * 1000 &&
 				Date.now() - event.eventStart < 60 * 60 * 1000 && (
 					<QRCode className="mb-6" registrationSummary={registrationSummary} />
 				)}
@@ -81,6 +90,7 @@ export function EventActionButton({
 	event: Doc<"events">;
 	registrationSummary: EventRegistrationSummary;
 }>) {
+	const hasMounted = useHasMounted();
 	const availableSpots = Math.max(
 		0,
 		event.participationLimit - registrationSummary.registeredCount,
@@ -100,7 +110,7 @@ export function EventActionButton({
 		);
 	}
 
-	if (event.registrationOpens > Date.now()) {
+	if (hasMounted && event.registrationOpens > Date.now()) {
 		return (
 			<Button
 				type="button"
@@ -112,7 +122,7 @@ export function EventActionButton({
 	}
 
 	const HALF_HOUR = 30 * 60 * 1000;
-	const disabledButtons = Date.now() - event.eventStart >= HALF_HOUR;
+	const disabledButtons = hasMounted && Date.now() - event.eventStart >= HALF_HOUR;
 
 	return (
 		<RegistrationButton

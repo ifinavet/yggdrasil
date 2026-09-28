@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { query } from "../_generated/server";
 import { adminRoles, requireRole } from "../auth/accessRights";
-import { getCurrentUserOrThrow } from "../users/clerk/queries";
+import { getCurrentUser } from "../users/clerk/queries";
 
 /**
  * Fetches all points records for a student.
@@ -26,11 +26,12 @@ export const getByStudentId = query({
 /**
  * Fetches all points records for the current student.
  *
- * @returns {Doc<"points">[] | null} - The points records, or null when the user has no student profile.
+ * @returns {Doc<"points">[] | null} - The points records, or null when the user has no user record or student profile.
  */
 export const getCurrentStudentsPoints = query({
 	handler: async (ctx) => {
-		const user = await getCurrentUserOrThrow(ctx);
+		const user = await getCurrentUser(ctx);
+		if (!user) return null;
 
 		const student = await ctx.db
 			.query("students")

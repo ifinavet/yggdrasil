@@ -4,6 +4,7 @@ import { defineTable } from "convex/server";
 import { v } from "convex/values";
 import { oneOf } from "../lib/validators";
 import { soldProductFields } from "../products/schema";
+import { REMINDER_KINDS } from "./reminders/schedule";
 
 export const organizerRoleValidator = v.union(...ORGANIZER_ROLES.map((role) => v.literal(role)));
 export const registrationStatusValidator = v.union(
@@ -33,6 +34,7 @@ export const eventsSchema = {
 		food: v.optional(v.string()),
 		foodGuessed: v.optional(v.boolean()),
 		feedbackEnabled: v.optional(v.boolean()),
+		remindersEnabled: v.optional(v.boolean()),
 		feedbackFormId: v.optional(v.id("feedbackForms")),
 		slug: v.optional(v.string()),
 		formId: v.optional(v.id("form")),
@@ -77,4 +79,10 @@ export const eventsSchema = {
 		.index("by_eventIdStatusAndRegistrationTime", ["eventId", "status", "registrationTime"])
 		.index("by_userId", ["userId"])
 		.index("by_eventId_and_userId", ["eventId", "userId"]),
+
+	eventReminders: defineTable({
+		eventId: v.id("events"),
+		kind: oneOf(REMINDER_KINDS),
+		queuedAt: v.number(),
+	}).index("by_eventId_and_kind", ["eventId", "kind"]),
 };
