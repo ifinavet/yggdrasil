@@ -70,7 +70,7 @@ export const prepare = mutation({
 	handler: async (ctx, { campaignId }) => {
 		const campaign = await ctx.db.get(campaignId);
 		if (!campaign) throw new ConvexError("Innsamlingen finnes ikke.");
-		await requireReportAccess(ctx, campaign.eventId);
+		await requireReportAccess(ctx);
 		return prepareReport(ctx, campaignId);
 	},
 });

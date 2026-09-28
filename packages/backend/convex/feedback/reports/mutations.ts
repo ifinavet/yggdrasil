@@ -9,7 +9,7 @@ import { isReportFeatureEnabled, requireReportAccess } from "./access";
 async function editableReport(ctx: MutationCtx, reportId: Id<"feedbackReports">, revision: number) {
 	const report = await ctx.db.get(reportId);
 	if (!report) throw new ConvexError("Rapporten finnes ikke.");
-	const user = await requireReportAccess(ctx, report.eventId);
+	const user = await requireReportAccess(ctx);
 	if (!isReportFeatureEnabled()) throw new ConvexError("Rapportfunksjonen er slått av.");
 	if (Date.now() >= report.retentionAt)
 		throw new ConvexError("Lagringstiden for rapporten er utløpt.");

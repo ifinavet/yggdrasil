@@ -222,25 +222,13 @@ describe("getAll", () => {
 		expect(overview.map((event) => event.feedbackStatus)).toEqual(["draft", "delivered"]);
 	});
 
-	it("hides report status from internals who do not organize the event", async () => {
+	it("shows report status to internals who do not organize the event", async () => {
 		const { t, companyId } = await setup();
 		const viewer = await internalUser(t, "intern@example.com");
 		const eventId = await insertEvent(t, companyId, { eventStart: FALL_EVENT_START });
 		await insertReport(t, eventId, await insertCampaign(t, eventId, "closed"), { status: "draft" });
 
 		const [event] = await overviewFor(t, viewer);
-
-		expect(event?.feedbackStatus).toBeNull();
-	});
-
-	it("shows report status to super-admins who do not organize the event", async () => {
-		const { t, companyId } = await setup();
-		const admin = await insertUser(t, "admin@example.com");
-		await grantRole(t, admin._id, "super-admin");
-		const eventId = await insertEvent(t, companyId, { eventStart: FALL_EVENT_START });
-		await insertReport(t, eventId, await insertCampaign(t, eventId, "closed"), { status: "draft" });
-
-		const [event] = await overviewFor(t, admin);
 
 		expect(event?.feedbackStatus).toBe("draft");
 	});
