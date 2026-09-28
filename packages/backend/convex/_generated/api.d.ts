@@ -38,6 +38,7 @@ import type * as events_reminders_mutations from "../events/reminders/mutations.
 import type * as events_reminders_queries from "../events/reminders/queries.js";
 import type * as events_reminders_schedule from "../events/reminders/schedule.js";
 import type * as events_waitlist_mutations from "../events/waitlist/mutations.js";
+import type * as events_waitlist_offer from "../events/waitlist/offer.js";
 import type * as feedback_defaultFields from "../feedback/defaultFields.js";
 import type * as feedback_delivery_campaigns from "../feedback/delivery/campaigns.js";
 import type * as feedback_delivery_content from "../feedback/delivery/content.js";
@@ -92,6 +93,7 @@ import type * as lib_validators from "../lib/validators.js";
 import type * as migrations from "../migrations.js";
 import type * as pages_mutations from "../pages/mutations.js";
 import type * as pages_queries from "../pages/queries.js";
+import type * as points_lifetime from "../points/lifetime.js";
 import type * as points_mutations from "../points/mutations.js";
 import type * as points_queries from "../points/queries.js";
 import type * as products_helpers from "../products/helpers.js";
@@ -110,6 +112,7 @@ import type * as semesterPlanning_applications_mutations from "../semesterPlanni
 import type * as semesterPlanning_applications_queries from "../semesterPlanning/applications/queries.js";
 import type * as semesterPlanning_applications_submit from "../semesterPlanning/applications/submit.js";
 import type * as semesterPlanning_events from "../semesterPlanning/events.js";
+import type * as semesterPlanning_offers_emails from "../semesterPlanning/offers/emails.js";
 import type * as semesterPlanning_offers_helper from "../semesterPlanning/offers/helper.js";
 import type * as semesterPlanning_offers_mutations from "../semesterPlanning/offers/mutations.js";
 import type * as semesterPlanning_offers_queries from "../semesterPlanning/offers/queries.js";
@@ -167,6 +170,7 @@ declare const fullApi: ApiFromModules<{
   "events/reminders/queries": typeof events_reminders_queries;
   "events/reminders/schedule": typeof events_reminders_schedule;
   "events/waitlist/mutations": typeof events_waitlist_mutations;
+  "events/waitlist/offer": typeof events_waitlist_offer;
   "feedback/defaultFields": typeof feedback_defaultFields;
   "feedback/delivery/campaigns": typeof feedback_delivery_campaigns;
   "feedback/delivery/content": typeof feedback_delivery_content;
@@ -221,6 +225,7 @@ declare const fullApi: ApiFromModules<{
   migrations: typeof migrations;
   "pages/mutations": typeof pages_mutations;
   "pages/queries": typeof pages_queries;
+  "points/lifetime": typeof points_lifetime;
   "points/mutations": typeof points_mutations;
   "points/queries": typeof points_queries;
   "products/helpers": typeof products_helpers;
@@ -239,6 +244,7 @@ declare const fullApi: ApiFromModules<{
   "semesterPlanning/applications/queries": typeof semesterPlanning_applications_queries;
   "semesterPlanning/applications/submit": typeof semesterPlanning_applications_submit;
   "semesterPlanning/events": typeof semesterPlanning_events;
+  "semesterPlanning/offers/emails": typeof semesterPlanning_offers_emails;
   "semesterPlanning/offers/helper": typeof semesterPlanning_offers_helper;
   "semesterPlanning/offers/mutations": typeof semesterPlanning_offers_mutations;
   "semesterPlanning/offers/queries": typeof semesterPlanning_offers_queries;

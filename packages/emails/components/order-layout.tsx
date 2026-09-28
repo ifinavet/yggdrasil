@@ -6,8 +6,9 @@ import { EmailSignature } from "./email-signature.js";
 
 export function OrderLayout({
 	preview,
+	contactEmail = JOB_LISTING_ORDER_EMAIL,
 	children,
-}: Readonly<{ preview: string; children: ReactNode }>) {
+}: Readonly<{ preview: string; contactEmail?: string; children: ReactNode }>) {
 	return (
 		<Html lang="no">
 			<Head />
@@ -22,7 +23,7 @@ export function OrderLayout({
 				<Container style={{ backgroundColor: "#ffffff", padding: "32px", maxWidth: "560px" }}>
 					<Img src={NAVET_LOGO_URL} alt="Navet" height="40" />
 					{children}
-					<EmailSignature name="Navet" email={JOB_LISTING_ORDER_EMAIL} />
+					<EmailSignature name="Navet" email={contactEmail} />
 				</Container>
 			</Body>
 		</Html>

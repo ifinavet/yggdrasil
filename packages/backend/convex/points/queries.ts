@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { query } from "../_generated/server";
 import { adminRoles, requireRole } from "../auth/accessRights";
 import { getCurrentUser } from "../users/clerk/queries";
+import { POINT_LIFETIME_MS } from "./lifetime";
 
 /**
  * Fetches all points records for a student.
@@ -43,8 +44,12 @@ export const getCurrentStudentsPoints = query({
 		const points = await ctx.db
 			.query("points")
 			.withIndex("by_studentId", (q) => q.eq("studentId", student._id))
+			.order("desc")
 			.collect();
 
-		return points;
+		return points.map((point) => ({
+			...point,
+			expiresAt: point._creationTime + POINT_LIFETIME_MS,
+		}));
 	},
 });
