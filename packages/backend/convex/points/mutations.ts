@@ -58,8 +58,9 @@ export const givePointsInternal = internalMutation({
 		id: v.id("students"),
 		reason: v.string(),
 		severity: v.number(),
+		registrationId: v.optional(v.id("registrations")),
 	},
-	handler: async (ctx, { id, reason, severity }) => {
+	handler: async (ctx, { id, reason, severity, registrationId }) => {
 		const identity = await getIdentity(ctx);
 		if (identity === null) {
 			throw new Error("Unauthenticated call to mutation");
@@ -69,6 +70,7 @@ export const givePointsInternal = internalMutation({
 			studentId: id,
 			reason,
 			severity,
+			registrationId,
 		});
 
 		const points = await ctx.db
