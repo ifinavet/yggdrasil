@@ -6,6 +6,7 @@ import { humanReadableDateTime } from "@workspace/shared/time";
 import { Button } from "@workspace/ui/components/button";
 import { type Preloaded, usePreloadedQuery } from "convex/react";
 import { CalendarDays, Globe, IdCard, MapPin, Users, Utensils } from "lucide-react";
+import { countdownLabel, spotsLabel } from "@/utils/event-availability";
 import QRCode from "./registration/qr-code";
 import RegistrationButton from "./registration/registration-button";
 import type { EventRegistrationSummary } from "./registration/registration-summary";
@@ -27,13 +28,18 @@ export function EventMetadata({
 		0,
 		event.participationLimit - registrationSummary.registeredCount,
 	);
+	const countdown = countdownLabel(event.eventStart, Date.now());
 
 	return (
 		<div>
 			<div className="grid h-80 grid-cols-2 grid-rows-3 items-center justify-start gap-4 hyphens-auto rounded-xl bg-primary px-10 py-6 text-primary-foreground md:px-16 md:py-8 dark:text-primary-foreground">
 				<p className="flex items-center gap-2 text-pretty font-semibold md:text-lg">
 					<CalendarDays className="size-6 min-w-6 md:size-8" />{" "}
-					{humanReadableDateTime(new Date(event.eventStart))}
+					<span suppressHydrationWarning>
+						{[humanReadableDateTime(new Date(event.eventStart)), countdown]
+							.filter(Boolean)
+							.join(", ")}
+					</span>
 				</p>
 				<p className="flex items-center gap-2 font-semibold md:text-lg">
 					<MapPin className="size-6 min-w-6 md:size-8" /> {event.location}
@@ -44,7 +50,7 @@ export function EventMetadata({
 				</p>
 				<p className="flex items-center gap-2 font-semibold md:text-lg">
 					<Users className="size-6 min-w-6 md:size-8" />{" "}
-					{`${availableSpots} ${availableSpots === 1 ? "plass" : "plasser"} igjen`}
+					{spotsLabel(registrationSummary.registeredCount, availableSpots)}
 				</p>
 				<p className="flex items-center gap-2 font-semibold md:text-lg">
 					<Globe className="size-6 min-w-6 md:size-8" /> {event.language}

@@ -26,7 +26,7 @@ import { useMutation } from "convex/react";
 import { usePostHog } from "posthog-js/react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { addEventToCalendar } from "./add-event-to-calendar";
+import CalendarLinks from "./calendar-links";
 
 export default function RegisterForm({
 	event,
@@ -57,12 +57,9 @@ export default function RegisterForm({
 								: "Her gikk det unna! Du står nå på ventelisten og vil få en epost dersom det skulle bli en ledig plass til deg",
 						);
 					} else if (status === "registered") {
-						toast.success("Du er påmeldt arrangementet!", {
-							duration: 10_000,
-							action: {
-								label: "Legg til i kalenderen",
-								onClick: () => addEventToCalendar(event, postHog, "registration-toast"),
-							},
+						toast.success("Du er påmeldt! Legg det i kalenderen så du ikke glemmer det.", {
+							duration: 15_000,
+							description: <CalendarLinks event={event} source="registration-toast" />,
 						});
 					}
 					postHog.capture("midgard-student_register", {

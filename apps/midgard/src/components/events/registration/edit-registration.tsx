@@ -22,11 +22,9 @@ import {
 } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
 import { useMutation } from "convex/react";
-import { CalendarPlus } from "lucide-react";
-import { usePostHog } from "posthog-js/react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { addEventToCalendar } from "./add-event-to-calendar";
+import CalendarLinks from "./calendar-links";
 import Unregister from "./unregister";
 
 export default function EditRegistration({
@@ -39,8 +37,6 @@ export default function EditRegistration({
 	event: Doc<"events">;
 }>) {
 	const [open, setOpen] = useState(false);
-
-	const postHog = usePostHog();
 
 	const updateNote = useMutation(api.events.registrations.mutations.updateNote);
 	const form = useForm({
@@ -114,13 +110,8 @@ export default function EditRegistration({
 				<DialogFooter>
 					<div className="flex w-full flex-wrap justify-between gap-2">
 						<div>
-							<Button
-								variant="outline"
-								onClick={() => addEventToCalendar(event, postHog, "edit-registration")}
-							>
-								<CalendarPlus />
-								Legg til i kalenderen
-							</Button>
+							<p className="mb-2 font-medium text-sm">Legg til i kalenderen:</p>
+							<CalendarLinks event={event} source="edit-registration" />
 						</div>
 						<div className="flex gap-2">
 							<Unregister registrationId={registration._id} eventId={event._id} />
