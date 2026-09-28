@@ -13,7 +13,7 @@ export const checkPendingRegistrations = internalMutation({
 	handler: async (ctx) => {
 		const ONE_HOUR_MS = 60 * 60 * 1000;
 		const ONE_MONTH_MS = 30 * 24 * ONE_HOUR_MS;
-		const ANSWER_TIME_LIMIT_MS = 16 * ONE_HOUR_MS;
+		const ANSWER_TIME_LIMIT_MS = 24 * ONE_HOUR_MS;
 
 		const now = Date.now();
 

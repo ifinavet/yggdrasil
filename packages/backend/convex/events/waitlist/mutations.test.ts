@@ -27,7 +27,7 @@ async function registrationLogFor(t: TestBackend, eventId: Id<"events">) {
 	);
 }
 
-const ANSWER_TIME_LIMIT_IN_MS = 16 * HOUR_IN_MS;
+const ANSWER_TIME_LIMIT_IN_MS = 24 * HOUR_IN_MS;
 const EXPIRED_OFFER_AGE_IN_MS = ANSWER_TIME_LIMIT_IN_MS + HOUR_IN_MS;
 
 const EVENTS_OUTSIDE_THE_CRONS_REACH: {
@@ -118,7 +118,7 @@ describe("checkPendingRegistrations", () => {
 			eventId,
 			offeredUser._id,
 			"pending",
-			now - HOUR_IN_MS,
+			now - 20 * HOUR_IN_MS,
 		);
 		const waitingUser = await insertUser(t, "venter@example.com");
 		const waitingId = await insertRegistration(t, eventId, waitingUser._id, "waitlist", now);
