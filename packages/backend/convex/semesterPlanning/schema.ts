@@ -176,8 +176,7 @@ export const semesterPlanningSchema = {
 		date: v.string(),
 		eventType: presentationEventType,
 		maxStudents: v.number(),
-		// The token in the offer link. It is stored as is, so an editor can copy the link again for
-		// Navet to email by hand; only editors can read it.
+		// The token in the offer link that is emailed to the company; only editors can read it.
 		linkToken: v.string(),
 		sentAt: v.number(),
 		sentBy: v.id("users"),
