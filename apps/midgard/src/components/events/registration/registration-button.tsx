@@ -7,6 +7,7 @@ import { Button } from "@workspace/ui/components/button";
 import { useQuery } from "convex/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { withRedirect } from "@/utils/auth-redirect";
 import EditRegistration from "./edit-registration";
 import RegisterForm from "./register-form";
 import type { EventRegistrationSummary } from "./registration-summary";
@@ -40,7 +41,7 @@ export default function RegistrationButton({
 				className="w-1/2 rounded-xl bg-zinc-800 py-8 text-lg text-primary-foreground hover:cursor-pointer hover:bg-zinc-700"
 				asChild
 			>
-				<Link href={`/sign-in?redirect=${path}`}>Logg inn</Link>
+				<Link href={withRedirect("/sign-in", path)}>Logg inn og meld deg på</Link>
 			</Button>
 		);
 	}
@@ -60,7 +61,7 @@ export default function RegistrationButton({
 	if (!ownRegistration) {
 		return (
 			<RegisterForm
-				eventId={event._id}
+				event={event}
 				className={`w-3/4 whitespace-normal text-balance rounded-xl bg-emerald-600 px-6 py-8 text-center font-semibold text-lg text-primary-foreground hover:cursor-pointer hover:bg-emerald-700 md:w-1/2`}
 				disabled={disabled}
 				// Mirrors the backend: anyone already waiting keeps new registrants off the free seats.

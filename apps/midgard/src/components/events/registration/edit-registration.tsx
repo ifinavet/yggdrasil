@@ -26,7 +26,7 @@ import { CalendarPlus } from "lucide-react";
 import { usePostHog } from "posthog-js/react";
 import { useState } from "react";
 import { toast } from "sonner";
-import createCalendarEventIcs from "@/utils/icsCalendarEvent";
+import { addEventToCalendar } from "./add-event-to-calendar";
 import Unregister from "./unregister";
 
 export default function EditRegistration({
@@ -116,20 +116,7 @@ export default function EditRegistration({
 						<div>
 							<Button
 								variant="outline"
-								onClick={() => {
-									createCalendarEventIcs(
-										event.title,
-										event.description,
-										event.location,
-										event.eventStart,
-									);
-
-									postHog.capture("midgard_added-event-to-calendar", {
-										site: "midgard",
-										eventId: event._id,
-										eventTitle: event.title,
-									});
-								}}
+								onClick={() => addEventToCalendar(event, postHog, "edit-registration")}
 							>
 								<CalendarPlus />
 								Legg til i kalenderen
