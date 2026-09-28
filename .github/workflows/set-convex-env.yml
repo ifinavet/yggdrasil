@@ -12,19 +12,25 @@ concurrency:
 
 jobs:
   set-env:
-    name: Push SLACK_BOT_TOKEN to Convex
+    name: Push IAM secrets to Convex
     if: github.repository == 'ifinavet/yggdrasil' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+      GOOGLE_SERVICE_ACCOUNT_EMAIL: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_EMAIL }}
+      GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY }}
+      GOOGLE_WORKSPACE_ADMIN_EMAIL: ${{ secrets.GOOGLE_WORKSPACE_ADMIN_EMAIL }}
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Check secrets
-        env:
-          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
-          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
         run: |
           : "${CONVEX_DEPLOY_KEY:?Set the production CONVEX_DEPLOY_KEY secret}"
+          : "${GOOGLE_SERVICE_ACCOUNT_EMAIL:?Set the GOOGLE_SERVICE_ACCOUNT_EMAIL secret}"
+          : "${GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY:?Set the GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY secret}"
+          : "${GOOGLE_WORKSPACE_ADMIN_EMAIL:?Set the GOOGLE_WORKSPACE_ADMIN_EMAIL secret}"
           : "${SLACK_BOT_TOKEN:?Set the SLACK_BOT_TOKEN secret}"
 
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
@@ -34,10 +40,9 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
 
-      - name: Set SLACK_BOT_TOKEN on the production deployment
-        env:
-          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
-          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+      - name: Set variables on the production deployment
         run: |
-          printf '%s' "$SLACK_BOT_TOKEN" \
-            | pnpm --dir packages/backend exec convex env set SLACK_BOT_TOKEN --force
+          for name in GOOGLE_SERVICE_ACCOUNT_EMAIL GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY GOOGLE_WORKSPACE_ADMIN_EMAIL SLACK_BOT_TOKEN; do
+            printf '%s' "${!name}" \
+              | pnpm --dir packages/backend exec convex env set "$name" --force
+          done
