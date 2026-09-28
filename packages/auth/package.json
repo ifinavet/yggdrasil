@@ -4,12 +4,12 @@
 	"type": "module",
 	"private": true,
 	"dependencies": {
-		"@clerk/nextjs": "^7.9.4",
+		"@clerk/nextjs": "^7.9.7",
 		"@sentry/nextjs": "^10.75.0",
 		"@workspace/backend": "workspace:*",
 		"@workspace/shared": "workspace:*",
 		"convex": "^1.46.0",
-		"posthog-js": "^1.434.2"
+		"posthog-js": "^1.434.13"
 	},
 	"devDependencies": {
 		"@workspace/typescript-config": "workspace:*",
