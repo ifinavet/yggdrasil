@@ -76,13 +76,15 @@ export function CheckboxLine({
 	onChange,
 	error,
 	errorId,
+	required,
 	children,
 }: Readonly<{
 	id: string;
 	checked: boolean;
 	onChange: (checked: boolean) => void;
 	error?: string;
-	errorId: string;
+	errorId?: string;
+	required?: boolean;
 	children: ReactNode;
 }>) {
 	return (
@@ -95,7 +97,7 @@ export function CheckboxLine({
 						checked={checked}
 						onChange={(event) => onChange(event.target.checked)}
 						aria-invalid={Boolean(error) || undefined}
-						aria-required
+						aria-required={required || undefined}
 						aria-describedby={error ? errorId : undefined}
 						className="sr-only"
 					/>

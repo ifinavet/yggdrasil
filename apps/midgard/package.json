@@ -7,11 +7,12 @@
 		"check-types": "next typegen && tsc --noEmit",
 		"compile": "next build --experimental-build-mode compile",
 		"build": "next build",
-		"start": "next start"
+		"start": "next start",
+		"test": "vitest run"
 	},
 	"dependencies": {
-		"@clerk/localizations": "^4.17.1",
-		"@clerk/nextjs": "^7.9.4",
+		"@clerk/localizations": "^4.20.0",
+		"@clerk/nextjs": "^7.9.7",
 		"@sentry/nextjs": "^10.75.0",
 		"@tanstack/react-form": "^1.33.5",
 		"@tanstack/react-table": "^8.21.3",
@@ -21,10 +22,11 @@
 		"@workspace/shared": "workspace:*",
 		"@workspace/ui": "workspace:*",
 		"convex": "^1.46.0",
-		"lucide-react": "^0.525.0",
-		"next": "16.3.5",
+		"date-fns": "^4.4.0",
+		"lucide-react": "^1.48.0",
+		"next": "16.3.6",
 		"next-themes": "^0.4.6",
-		"posthog-js": "^1.434.2",
+		"posthog-js": "^1.434.13",
 		"qrcode.react": "^4.2.0",
 		"radix-ui": "^1.6.7",
 		"react": "19.3.0",
@@ -43,6 +45,7 @@
 		"@types/sanitize-html": "^2.16.1",
 		"@workspace/typescript-config": "workspace:*",
 		"tailwindcss": "^4.3.3",
-		"typescript": "^5.9.3"
+		"typescript": "^5.9.3",
+		"vitest": "5.0.2"
 	}
 }

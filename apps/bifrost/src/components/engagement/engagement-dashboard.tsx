@@ -9,16 +9,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/componen
 import { useMutation, useQuery } from "convex/react";
 import { useEffect, useRef, useState } from "react";
 import { useMinute } from "@/hooks/use-minute";
+import { useStableQuery } from "@/hooks/use-stable-query";
 import { AlertsPanel } from "./alerts-panel";
+import { CompaniesView } from "./companies-view";
 import { defaultSelection } from "./engagement-format";
 import { EventAudience } from "./event-audience";
+import { FoodsView } from "./foods-view";
 import { PaceChart } from "./pace-chart";
 import { PastView } from "./past-view";
 import { SemesterView } from "./semester-view";
 import { UpcomingTable } from "./upcoming-table";
 
 function LiveView({ now }: Readonly<{ now: number }>) {
-	const data = useQuery(api.engagement.queries.upcoming, { now });
+	const data = useStableQuery(api.engagement.queries.upcoming, { now });
 	const [picked, setPicked] = useState<Id<"events"> | null>(null);
 	const paceRef = useRef<HTMLDivElement>(null);
 
@@ -80,6 +83,8 @@ export function EngagementDashboard() {
 				<TabsTrigger value="live">Nå</TabsTrigger>
 				<TabsTrigger value="semester">Semester</TabsTrigger>
 				<TabsTrigger value="past">Tidligere</TabsTrigger>
+				<TabsTrigger value="companies">Per bedrift</TabsTrigger>
+				<TabsTrigger value="foods">Per mat</TabsTrigger>
 			</TabsList>
 			<TabsContent value="live" className="mt-4">
 				<LiveView now={now} />
@@ -89,6 +94,12 @@ export function EngagementDashboard() {
 			</TabsContent>
 			<TabsContent value="past" className="mt-4">
 				<PastView now={now} />
+			</TabsContent>
+			<TabsContent value="companies" className="mt-4">
+				<CompaniesView now={now} />
+			</TabsContent>
+			<TabsContent value="foods" className="mt-4">
+				<FoodsView now={now} />
 			</TabsContent>
 		</Tabs>
 	);

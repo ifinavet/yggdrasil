@@ -70,6 +70,7 @@ export const applicationFormSchema = z
 		billing: z.object({
 			email: email("Skriv en gyldig e-postadresse for faktura.").optional(),
 			details: optionalText(500, "Fakturainformasjonen kan ha høyst 500 tegn."),
+			ehfInvoice: z.boolean().default(false),
 		}),
 		targetDegrees: z
 			.array(z.enum(DEGREE_TYPES, { error: "Ugyldig grad." }))
@@ -108,3 +109,9 @@ export const applicationFormSchema = z
 	});
 
 export type ApplicationForm = z.infer<typeof applicationFormSchema>;
+
+export const OFFER_PATH = "/bestill-bedpres/tilbud";
+
+export function offerPath(token: string): string {
+	return `${OFFER_PATH}/${token}`;
+}

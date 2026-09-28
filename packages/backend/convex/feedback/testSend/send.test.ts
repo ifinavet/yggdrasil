@@ -131,7 +131,10 @@ describe("feedback test send", () => {
 		);
 		expect(sent.map(({ to, subject }) => ({ to, subject }))).toEqual([
 			{ to: "Admin@IFINAVET.no", subject: "Tilbakemelding: Bedpres med Testbedrift" },
-			{ to: "Admin@IFINAVET.no", subject: "1. påminnelse: Bedpres med Testbedrift" },
+			{
+				to: "Admin@IFINAVET.no",
+				subject: "Test, vi mangler tilbakemeldingen din: Bedpres med Testbedrift",
+			},
 			{ to: "Admin@IFINAVET.no", subject: "Rapport fra Bedpres med Testbedrift" },
 		]);
 		for (const email of sent) {
@@ -140,7 +143,9 @@ describe("feedback test send", () => {
 				replyTo: ["arrangement@ifinavet.no"],
 			});
 		}
-		expect(sent[0]?.html).toContain(`${HUGIN_URL}/feedback#token=`);
+		expect(sent[0]?.html).toContain(
+			`${HUGIN_URL}/feedback?utm_source=email&amp;utm_medium=email&amp;utm_campaign=feedback_reminder&amp;utm_content=round_0#token=`,
+		);
 		expect(sent[0]?.html).toContain("bedriftspresentasjonen med Testbedrift!");
 		expect(sent[2]?.html).toContain(`${HUGIN_URL}/report#token=`);
 		expect(sent[2]?.html).toContain("14. mars");

@@ -9,6 +9,7 @@ export const usersSchema = {
 		image: v.string(),
 		externalId: v.string(),
 		locked: v.boolean(),
+		deleted: v.optional(v.boolean()),
 	})
 		.index("by_ExternalId", ["externalId"])
 		.index("by_email", ["email"])
@@ -21,4 +22,7 @@ export const usersSchema = {
 		.searchIndex("search_lastName", {
 			searchField: "lastName",
 		}),
+	deletedClerkUsers: defineTable({
+		externalIdHash: v.string(),
+	}).index("by_externalIdHash", ["externalIdHash"]),
 };

@@ -1,4 +1,4 @@
-import { hasSearchWords, matchesSearch } from "@workspace/shared/utils";
+import { hasSearchWords, matchesSearch, nameKey } from "@workspace/shared/utils";
 
 /** One choice in a `SearchSelect`. */
 export type SearchSelectItem = {
@@ -29,4 +29,11 @@ export function createLatestGate(): () => () => boolean {
 		const ticket = ++latest;
 		return () => ticket === latest;
 	};
+}
+
+export function creatableName(items: readonly SearchSelectItem[], query: string): string | null {
+	const name = query.trim().replace(/\s+/g, " ");
+	const key = nameKey(name);
+	if (!key || items.some((item) => nameKey(item.label) === key)) return null;
+	return name;
 }

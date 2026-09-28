@@ -22,7 +22,9 @@ import {
 	GitForkIcon,
 	type LucideIcon,
 	TrendingUpIcon,
+	TrophyIcon,
 	UsersIcon,
+	UtensilsIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -43,21 +45,20 @@ const paths = {
 			path: "/events",
 		},
 		{
-			title: "Semesterplan",
-			icon: CalendarRangeIcon,
-			path: "/semesterplan",
-			feature: "semesterPlanning",
-		},
-		{
 			title: "Stillingsannonser",
 			icon: BriefcaseIcon,
 			path: "/job-listings",
 		},
 		{
-			title: "Engasjement",
+			title: "Innsikt",
 			icon: TrendingUpIcon,
-			path: "/engasjement",
+			path: "/insight",
 			feature: "engagement",
+		},
+		{
+			title: "Leaderboard",
+			icon: TrophyIcon,
+			path: "/leaderboard",
 		},
 		{
 			title: "Resurser",
@@ -95,9 +96,20 @@ const paths = {
 			feature: "products",
 		},
 		{
+			title: "Mat",
+			icon: UtensilsIcon,
+			path: "/food",
+		},
+		{
 			title: "Skjemaer",
 			icon: ClipboardListIcon,
 			path: "/feedback-forms",
+		},
+		{
+			title: "Semesterplan",
+			icon: CalendarRangeIcon,
+			path: "/semesterplan",
+			feature: "semesterPlanning",
 		},
 	],
 } satisfies Record<string, SidebarItem[]>;
@@ -116,6 +128,7 @@ export function SidebarContentGroup({
 		jobListingOrders: useFeatureEnabled("jobListingOrders"),
 		semesterPlanning: useFeatureEnabled("semesterPlanning"),
 		engagement: useFeatureEnabled("engagement"),
+		eventReminders: useFeatureEnabled("eventReminders"),
 	};
 	const visibleItems = paths[items].filter(
 		(item: SidebarItem) => item.feature === undefined || enabled[item.feature],

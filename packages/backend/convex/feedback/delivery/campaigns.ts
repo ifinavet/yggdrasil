@@ -209,7 +209,8 @@ export const inviteParticipants = internalMutation({
 					index.eq("eventId", event._id).eq("userId", registration.userId),
 				)
 				.first();
-			if (organizer || !(await ctx.db.get(registration.userId))) continue;
+			const participant = await ctx.db.get(registration.userId);
+			if (organizer || !participant || participant.deleted) continue;
 			const existing = await ctx.db
 				.query("feedbackInvites")
 				.withIndex("by_campaignId_and_userId", (index) =>

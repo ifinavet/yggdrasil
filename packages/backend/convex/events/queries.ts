@@ -4,14 +4,8 @@ import { ConvexError, v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalQuery, type QueryCtx, query } from "../_generated/server";
-import {
-	currentUserHasRole,
-	getAccessRole,
-	internalRoles,
-	requireRole,
-} from "../auth/accessRights";
+import { currentUserHasRole, internalRoles, requireRole } from "../auth/accessRights";
 import { eventFeedbackStatus } from "../feedback/eventStatus";
-import { reportAccessAllowed } from "../feedback/reports/access";
 import { countRegistrationsWithStatus, eventsInSemester, getEventByIdentifier } from "./helper";
 
 export const eventSemesterValidator = v.union(
@@ -122,7 +116,6 @@ export const getAll = query({
 	},
 	handler: async (ctx, { semester, year }) => {
 		const user = await requireRole(ctx, internalRoles);
-		const accessRole = await getAccessRole(ctx, user._id);
 		const events = await eventsInSemester(ctx, semester, year);
 
 		const companies = new Map<Id<"companies">, ReturnType<typeof companyWithLogo>>();
@@ -146,7 +139,7 @@ export const getAll = query({
 					countRegistrationsWithStatus(ctx, event._id, "registered"),
 					countRegistrationsWithStatus(ctx, event._id, "pending"),
 					countRegistrationsWithStatus(ctx, event._id, "waitlist"),
-					eventFeedbackStatus(ctx, event._id, reportAccessAllowed(accessRole, myRole !== null)),
+					eventFeedbackStatus(ctx, event._id),
 				]);
 
 				return {
@@ -251,9 +244,11 @@ export const getEvent = query({
 		if (!company) throw new ConvexError("Fant ikke bedriften som er vert for arrangementet.");
 
 		const organizers = await getOrganizers(ctx, event._id);
+		const foodItem = event.foodItem ? await ctx.db.get(event.foodItem) : null;
 
 		return {
 			...event,
+			foodName: foodItem?.name ?? null,
 			hostingCompanyName: company?.name ?? "Ukjent",
 			organizers,
 		};

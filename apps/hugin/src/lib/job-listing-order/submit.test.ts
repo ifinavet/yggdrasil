@@ -47,8 +47,15 @@ describe("toOrderForm", () => {
 			startup: false,
 			listings: [listing],
 			contact: { name: "Kari", email: "kari@acme.no" },
+			ehfInvoice: false,
 			confirmAmount: true,
 		});
+	});
+
+	it("sends EHF even when the billing on file is kept", () => {
+		const form = toOrderForm(validValues({ ehfInvoice: true }), context);
+		expect(form.ehfInvoice).toBe(true);
+		expect(form).not.toHaveProperty("billing");
 	});
 
 	it("keeps the phone and a trimmed note when given", () => {

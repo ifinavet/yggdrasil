@@ -8,7 +8,7 @@ import { canViewReport, isReportFeatureEnabled, requireReportAccess } from "./ac
 export const getEventReport = query({
 	args: { eventId: v.id("events") },
 	handler: async (ctx, { eventId }) => {
-		const canView = await canViewReport(ctx, eventId);
+		const canView = await canViewReport(ctx);
 		if (!canView || !isReportFeatureEnabled()) return { enabled: false, canView } as const;
 		const campaign = await latestCampaign(ctx, eventId);
 		if (!campaign) return null;
@@ -38,7 +38,7 @@ export const getReportAnswers = query({
 	handler: async (ctx, { reportId, paginationOpts }) => {
 		const report = await ctx.db.get(reportId);
 		if (!report) throw new ConvexError("Rapporten finnes ikke.");
-		await requireReportAccess(ctx, report.eventId);
+		await requireReportAccess(ctx);
 		if (!isReportFeatureEnabled()) throw new ConvexError("Rapportfunksjonen er slått av.");
 		if (Date.now() >= report.retentionAt)
 			throw new ConvexError("Lagringstiden for rapporten er utløpt.");

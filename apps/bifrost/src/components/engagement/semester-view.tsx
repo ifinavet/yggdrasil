@@ -12,11 +12,12 @@ import { Panel, PanelBody, PanelNote } from "@workspace/ui/components/products/p
 import { ShareBar } from "@workspace/ui/components/products/share-bar";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { cn } from "@workspace/ui/lib/utils";
-import { useQuery } from "convex/react";
 import { useMemo } from "react";
 import { heatTint, needsLightText, PRIMARY_SERIES_COLOR } from "@/components/common/chart-colors";
+import { useStableQuery } from "@/hooks/use-stable-query";
 import { AudiencePanel } from "./audience-panel";
 import {
+	DEMAND_NOTE,
 	formatShare,
 	lateUnregistrationNote,
 	type SemesterData,
@@ -47,9 +48,7 @@ function CompanyDemand({ companies }: Readonly<{ companies: SemesterData["compan
 					</div>
 				))}
 				<div className="pt-3">
-					<PanelNote>
-						Over 100 % betyr at ventelisten viser mer interesse enn det var plass til.
-					</PanelNote>
+					<PanelNote>{DEMAND_NOTE}</PanelNote>
 				</div>
 			</PanelBody>
 		</Panel>
@@ -176,7 +175,7 @@ function Timeslots({ timeslots }: Readonly<{ timeslots: SemesterData["timeslots"
 }
 
 export function SemesterView({ now }: Readonly<{ now: number }>) {
-	const semester = useQuery(api.engagement.queries.semester, { now });
+	const semester = useStableQuery(api.engagement.queries.semester, { now });
 
 	if (!semester) {
 		return (

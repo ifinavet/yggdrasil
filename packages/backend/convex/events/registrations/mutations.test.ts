@@ -655,6 +655,107 @@ describe("updateAttendance", () => {
 			"deltaker@example.com",
 		]);
 	});
+
+	async function attendanceScenario() {
+		const { t, companyId } = await setup();
+		const eventId = await insertEvent(t, companyId);
+		const attendee = await insertUser(t, "deltaker@example.com");
+		const studentId = await insertStudent(t, attendee._id);
+		const registrationId = await insertRegistration(t, eventId, attendee._id, "registered");
+		const organizer = await insertUser(t, "arrangor@example.com");
+		await insertOrganizer(t, eventId, organizer._id);
+		const mark = (newStatus: "confirmed" | "late" | "no_show") =>
+			asUser(t, organizer).mutation(mutations.updateAttendance, { id: registrationId, newStatus });
+		return { t, studentId, eventId, registrationId, mark };
+	}
+
+	async function insertLegacyNoShow(
+		t: Awaited<ReturnType<typeof attendanceScenario>>["t"],
+		{ studentId, eventId, registrationId }: Awaited<ReturnType<typeof attendanceScenario>>,
+	) {
+		await t.run(async (ctx) => {
+			const event = await ctx.db.get(eventId);
+			await ctx.db.patch(registrationId, { attendanceStatus: "no_show" });
+			await ctx.db.insert("points", {
+				studentId,
+				severity: 2,
+				reason: `Du fikk 2 prikker for å ikke møte til arrangementet "${event?.title}".`,
+			});
+			await ctx.db.insert("points", { studentId, reason: "Manuell prikk", severity: 1 });
+		});
+	}
+
+	it("refunds a no-show penalty given before points were linked to registrations", async () => {
+		const scenario = await attendanceScenario();
+		await insertLegacyNoShow(scenario.t, scenario);
+
+		await scenario.mark("confirmed");
+
+		expect(await totalPointsFor(scenario.t, scenario.studentId)).toBe(1);
+	});
+
+	it("replaces an unlinked no-show penalty when corrected to late", async () => {
+		const scenario = await attendanceScenario();
+		await insertLegacyNoShow(scenario.t, scenario);
+
+		await scenario.mark("late");
+
+		expect(await totalPointsFor(scenario.t, scenario.studentId)).toBe(2);
+	});
+
+	it("does not recreate an expired penalty when the same status is set again", async () => {
+		const { t, studentId, mark } = await attendanceScenario();
+
+		await mark("no_show");
+		await t.run(async (ctx) => {
+			const points = await ctx.db.query("points").collect();
+			await Promise.all(points.map((point) => ctx.db.delete(point._id)));
+		});
+		await mark("no_show");
+
+		expect(await totalPointsFor(t, studentId)).toBe(0);
+		expect(await scheduledRecipientsOf(t, "sendGottenPointsEmail")).toHaveLength(1);
+	});
+
+	it("refunds the points when a no-show is corrected to confirmed", async () => {
+		const { t, studentId, mark } = await attendanceScenario();
+
+		await mark("no_show");
+		await mark("confirmed");
+
+		expect(await totalPointsFor(t, studentId)).toBe(0);
+	});
+
+	it("replaces the no-show points when corrected to late", async () => {
+		const { t, studentId, mark } = await attendanceScenario();
+
+		await mark("no_show");
+		await mark("late");
+
+		expect(await totalPointsFor(t, studentId)).toBe(1);
+	});
+
+	it("does not stack points or emails when the same status is set twice", async () => {
+		const { t, studentId, mark } = await attendanceScenario();
+
+		await mark("no_show");
+		await mark("no_show");
+
+		expect(await totalPointsFor(t, studentId)).toBe(2);
+		expect(await scheduledRecipientsOf(t, "sendGottenPointsEmail")).toHaveLength(1);
+	});
+
+	it("keeps points given for other reasons when attendance is corrected", async () => {
+		const { t, studentId, mark } = await attendanceScenario();
+		await t.run((ctx) =>
+			ctx.db.insert("points", { studentId, reason: "Manuell prikk", severity: 1 }),
+		);
+
+		await mark("no_show");
+		await mark("confirmed");
+
+		expect(await totalPointsFor(t, studentId)).toBe(1);
+	});
 });
 
 describe("makeStatusPending via the waitlist promotion path", () => {

@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { asUser, grantRole, insertEvent, insertUser, setup } from "../../../test/fixtures";
+import {
+	asUser,
+	grantRole,
+	insertEvent,
+	insertFoodItem,
+	insertUser,
+	setup,
+} from "../../../test/fixtures";
 import { api } from "../../_generated/api";
 import type { AccessRole } from "../../auth/accessRights";
 import { defaultFeedbackFields } from "../defaultFields";
@@ -472,6 +479,7 @@ describe("feedback form management", () => {
 		await superAdminClient.mutation(api.events.mutations.update, {
 			...eventDetails,
 			id: eventId,
+			foodItem: await insertFoodItem(backend),
 			title: "Updated",
 			organizers: [],
 		});

@@ -1,23 +1,12 @@
-import {
-	Body,
-	Button,
-	Container,
-	Head,
-	Heading,
-	Html,
-	Img,
-	Link,
-	Preview,
-	Section,
-	Text,
-} from "react-email";
-import { BRAND_PRIMARY_COLOR, NAVET_LOGO_URL } from "../constants.js";
+import { Body, Button, Container, Head, Heading, Html, Preview, Section, Text } from "react-email";
+import { EmailSignature, type Signature } from "../components/email-signature.js";
+import { BRAND_PRIMARY_COLOR } from "../constants.js";
 
 export default function FeedbackReportEmail({
 	eventDate,
 	url,
 	signature,
-}: Readonly<{ eventDate: string; url: string; signature: { name: string; email: string } }>) {
+}: Readonly<{ eventDate: string; url: string; signature: Signature }>) {
 	return (
 		<Html lang="nb">
 			<Head />
@@ -59,15 +48,7 @@ export default function FeedbackReportEmail({
 						>
 							Se rapporten
 						</Button>
-						<Text style={{ color: "#6b6f7c", fontSize: "15px", margin: "26px 0 10px" }}>
-							Vennlig hilsen
-						</Text>
-						<Text style={{ fontSize: "15px", margin: "0 0 16px" }}>
-							{signature.name}
-							<br />
-							<Link href={`mailto:${signature.email}`}>{signature.email}</Link>
-						</Text>
-						<Img src={NAVET_LOGO_URL} alt="Navet" height="32" />
+						<EmailSignature {...signature} />
 					</Section>
 				</Container>
 			</Body>

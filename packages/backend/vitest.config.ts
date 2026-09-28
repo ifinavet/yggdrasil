@@ -8,6 +8,7 @@ export default defineConfig({
 			provider: "v8",
 			include: [
 				"convex/events/registrations/statistics.ts",
+				"convex/events/food.ts",
 				"convex/forms/{access,mutations,queries,responses,migrations}.ts",
 				"convex/feedback/forms/{helpers,mutations,queries}.ts",
 				"convex/feedback/responses/{access,actions,mutations,queries}.ts",
@@ -17,6 +18,8 @@ export default defineConfig({
 				"convex/feedback/manualSend/{eligibility,send}.ts",
 				"convex/products/{helpers,mutations,queries,seed,sales,migrations,stats,tagging}.ts",
 				"convex/engagement/{alerts,audience,backfill,snapshot,log}.ts",
+				"convex/users/students/migrations.ts",
+				"convex/leaderboard/{queries,ranking}.ts",
 			],
 			thresholds: { 100: true },
 		},

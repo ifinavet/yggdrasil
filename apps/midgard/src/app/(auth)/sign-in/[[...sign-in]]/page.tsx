@@ -3,15 +3,12 @@ import { auth } from "@workspace/auth/server";
 import ResponsiveCenterContainer from "@workspace/ui/components/responsive-center-container";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { redirectFromSearch, withRedirect } from "@/utils/auth-redirect";
 
 export default async function SignInPage() {
 	const { isAuthenticated } = await auth();
 	const headerList = await headers();
-	const searchParam = headerList.get("x-searchParams") || "/";
-
-	const redirectUrl = searchParam.includes("=")
-		? decodeURIComponent(searchParam.split("=")[1] || "/")
-		: "/";
+	const redirectUrl = redirectFromSearch(headerList.get("x-searchParams") ?? "");
 
 	if (isAuthenticated) return redirect("/");
 
@@ -19,7 +16,7 @@ export default async function SignInPage() {
 		<ResponsiveCenterContainer>
 			<div className="flex w-full justify-center py-10">
 				<SignIn
-					signUpUrl="/sign-up"
+					signUpUrl={withRedirect("/sign-up", redirectUrl)}
 					fallbackRedirectUrl={redirectUrl}
 					forceRedirectUrl={redirectUrl}
 				/>

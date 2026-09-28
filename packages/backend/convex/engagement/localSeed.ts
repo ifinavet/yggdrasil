@@ -11,6 +11,7 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalAction, internalMutation, type MutationCtx } from "../_generated/server";
+import { builtInFoodItemId } from "../events/food";
 import { logoSvg, randomTools, requireLocal, seededRandom } from "../products/localSeed";
 
 const COMPANIES = [
@@ -29,6 +30,8 @@ const COMPANIES = [
 const FIRST_ORG_NUMBER = 913_000_000;
 const STUDENT_COUNT = 300;
 const PASSIVE_STUDENT_COUNT = 450;
+const STALE_SHARE = 0.3;
+const MASTER_YEAR_TYPO_SHARE = 0.6;
 const ACTIVE_PROGRAM_SKEW = 1.6;
 const PASSIVE_PROGRAM_SKEW = 1.1;
 const PARTICIPATION_LIMITS = [30, 40, 40, 60, 60, 80, 100];
@@ -41,11 +44,11 @@ const TIMESLOTS = [
 ] as const;
 const WEEKDAY_APPEAL: Record<number, number> = { 1: 0.9, 2: 1.05, 3: 1, 4: 1.05, 5: 0.7 };
 const YEAR_WEIGHTS = [
-	{ year: 1, share: 0.22, eagerness: 0.4 },
-	{ year: 2, share: 0.24, eagerness: 1.1 },
-	{ year: 3, share: 0.24, eagerness: 1.3 },
-	{ year: 4, share: 0.16, eagerness: 1.2 },
-	{ year: 5, share: 0.14, eagerness: 0.9 },
+	{ year: 1, share: 0.2, eagerness: 1.3 },
+	{ year: 2, share: 0.3, eagerness: 0.7 },
+	{ year: 3, share: 0.27, eagerness: 1 },
+	{ year: 4, share: 0.08, eagerness: 1.2 },
+	{ year: 5, share: 0.15, eagerness: 0.5 },
 ];
 const DEGREE_MIX = {
 	early: [
@@ -154,12 +157,16 @@ export const seedLocalEngagement = internalAction({
 		let events = 0;
 		for (const [index, semester] of [lastYear, previous, current].entries()) {
 			const range = eventSemesterRange(semester.semester, semester.year);
-			events += await ctx.runMutation(internal.engagement.localSeed.insertPastEvents, {
-				...foundation,
-				from: range.start,
-				until: Math.min(range.end, now - DAY_MS),
-				seed: 7 + index,
-			});
+			const until = Math.min(range.end, now - DAY_MS);
+			for (let from = range.start, chunk = 0; from < until; from += 14 * DAY_MS, chunk++) {
+				events += await ctx.runMutation(internal.engagement.localSeed.insertPastEvents, {
+					...foundation,
+					from,
+					until: Math.min(from + 14 * DAY_MS, until),
+					seed: 7 + index * 100 + chunk,
+				});
+				await new Promise((resolve) => setTimeout(resolve, 1500));
+			}
 		}
 		events += await ctx.runMutation(internal.engagement.localSeed.insertLiveEvents, {
 			...foundation,
@@ -214,12 +221,16 @@ export const insertFoundation = internalMutation({
 				STUDY_PROGRAMS.length - 1,
 				Math.floor(random.next() ** programSkew * STUDY_PROGRAMS.length),
 			);
+			const degree = degreeFor(random, year);
+			const enteredAsMasterYear =
+				degree === "Master" && year >= 4 && random.next() < MASTER_YEAR_TYPO_SHARE;
+			const staleYears = random.next() < STALE_SHARE ? 1 + Math.floor(random.next() * 4) : 0;
 			await ctx.db.insert("students", {
 				userId,
 				name: `${firstName} ${lastName}`,
 				studyProgram: STUDY_PROGRAMS[programIndex] as string,
-				year,
-				degree: degreeFor(random, year),
+				degree,
+				year: (enteredAsMasterYear ? year - 3 : year) + staleYears,
 			});
 			return userId;
 		};
@@ -248,6 +259,13 @@ async function eagernessByUser(ctx: MutationCtx, userIds: Id<"users">[]) {
 	return eagerness;
 }
 
+const LOCAL_FOODS = ["pizza", "sushi", "burritos", "taco", "salad", null] as const;
+
+async function localFoodItem(ctx: MutationCtx, title: string) {
+	const slug = LOCAL_FOODS[title.length % LOCAL_FOODS.length] ?? null;
+	return slug ? await builtInFoodItemId(ctx, slug) : undefined;
+}
+
 type EventPlan = {
 	companyIndex: number;
 	title: string;
@@ -267,7 +285,7 @@ async function insertEvent(ctx: MutationCtx, companyIds: Id<"companies">[], plan
 		registrationOpens: plan.registrationOpens,
 		participationLimit: plan.participationLimit,
 		location: plan.location ?? "Store auditorium, IFI",
-		food: "Pizza",
+		foodItem: await localFoodItem(ctx, plan.title),
 		language: "Norsk",
 		ageRestriction: "Ingen",
 		externalEvent: false,

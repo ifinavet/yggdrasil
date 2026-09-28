@@ -54,6 +54,15 @@ export function BillingQuestions({
 										{...aria}
 									/>
 								</FieldLabel>
+								<CheckboxLine
+									id="billing-ehf"
+									checked={billing.ehfInvoice}
+									onChange={(ehfInvoice) => field.handleChange({ ...billing, ehfInvoice })}
+								>
+									<label htmlFor="billing-ehf" className="cursor-pointer">
+										{COPY.billing.ehfLabel}
+									</label>
+								</CheckboxLine>
 							</div>
 						</ApplicationQuestion>
 					);
@@ -89,6 +98,7 @@ export function BillingQuestions({
 					<div data-question="consent" className="mt-[22px] scroll-mt-[56px]">
 						<CheckboxLine
 							id="consent"
+							required
 							checked={field.state.value}
 							onChange={field.handleChange}
 							error={fieldErrorText(field)}

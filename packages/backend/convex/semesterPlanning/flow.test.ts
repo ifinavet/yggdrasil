@@ -61,7 +61,7 @@ describe("the whole journey", () => {
 				wantsToUseEscape: "no",
 				foodAndDrinks: true,
 				foodPurchasedBy: "company",
-				billing: { email: "faktura@fjordkode.no" },
+				billing: { email: "faktura@fjordkode.no", ehfInvoice: false },
 				targetDegrees: [],
 				targetStudyPrograms: [],
 				consent: true,
@@ -71,7 +71,6 @@ describe("the whole journey", () => {
 		const applicationId = application?._id;
 		if (!applicationId) throw new Error("The application was not saved.");
 
-		// Navet copies the offer link from Bifrost and emails it by hand.
 		// First offer; the company asks for another date.
 		await editor.mutation(applications.assignDate, { applicationId, date: "2027-02-09" });
 		const firstOffer = await editor.mutation(offers.sendOffer, { applicationId });
@@ -98,8 +97,14 @@ describe("the whole journey", () => {
 			eventStart: Date.parse("2027-02-16T15:15:00Z"),
 			hostingCompany: companyId,
 		});
-		// Nothing is emailed or scheduled: Navet emails the links by hand.
-		expect(await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect())).toEqual([]);
+		expect(
+			(await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect())).map(
+				(job) => job.name,
+			),
+		).toEqual([
+			"semesterPlanning/offers/emails:sendOfferEmail",
+			"semesterPlanning/offers/emails:sendOfferEmail",
+		]);
 
 		const history = (await activityFor(t, applicationId)).map((row) =>
 			[row.type, row.actor, row.toStatus ?? row.date ?? ""].join(" "),

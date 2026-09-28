@@ -1,6 +1,7 @@
 export { fromBase64, toBase64 } from "./base";
 export { convexErrorMessage, isMissingDocumentError } from "./convex-error";
 export { humanReadableDate, humanReadableDateTime, humanReadableTime } from "./dateFormatting";
+export { nameKey } from "./name-key";
 export { placeholderKeys } from "./placeholder_keys";
 export { hasSearchWords, matchesSearch } from "./search";
 export { isHttpUrl } from "./urls";
