@@ -5,6 +5,7 @@ import { mutation } from "../../_generated/server";
 import { generateLinkToken } from "../../lib/tokens";
 import { requireEditorActor, transitionApplicationStatus } from "../applicationLifecycle";
 import { requireApplication } from "../applications/helper";
+import { rateLimiter } from "../rateLimits";
 import { listSemesterDates, requireSemester } from "../semesters/helper";
 import { findLatestOffer, findOfferByToken, requireAnswerableOffer } from "./helper";
 
@@ -55,6 +56,27 @@ export const sendOffer = mutation({
 		});
 
 		return { offerId, linkToken };
+	},
+});
+
+export const resendOfferEmail = mutation({
+	args: { applicationId: v.id("companyApplications") },
+	returns: v.null(),
+	handler: async (ctx, { applicationId }) => {
+		await requireEditorActor(ctx);
+		const application = await requireApplication(ctx, applicationId);
+		const latest = await findLatestOffer(ctx, applicationId);
+		if (application.status !== "offer_sent" || latest?.status !== "pending") {
+			throw new ConvexError("Søknaden har ikke et åpent tilbud å sende på nytt.");
+		}
+
+		const { ok } = await rateLimiter.limit(ctx, "resendOfferEmail", { key: latest._id });
+		if (!ok) throw new ConvexError("Tilbudet er sendt på nytt mange ganger. Prøv igjen senere.");
+
+		await ctx.scheduler.runAfter(0, internal.semesterPlanning.offers.emails.sendOfferEmail, {
+			offerId: latest._id,
+		});
+		return null;
 	},
 });
 

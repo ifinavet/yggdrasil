@@ -101,6 +101,16 @@ describe("send", () => {
 		});
 	});
 
+	it("has nothing to email once the application is withdrawn", async () => {
+		const { t, applicationId, editor } = await offerSetup();
+		const { offerId } = await editor.mutation(offers.mutations.sendOffer, { applicationId });
+		await t.run((ctx) => ctx.db.patch(applicationId, { status: "withdrawn" }));
+
+		expect(
+			await t.query(internal.semesterPlanning.offers.queries.emailContext, { offerId }),
+		).toBeNull();
+	});
+
 	it("has nothing to email once the offer is answered", async () => {
 		const { t, applicationId, editor } = await offerSetup();
 		const { offerId, linkToken } = await editor.mutation(offers.mutations.sendOffer, {
@@ -162,6 +172,51 @@ describe("send", () => {
 		expect(
 			await refusalMessageFrom(
 				asUser(t, member).mutation(offers.mutations.sendOffer, { applicationId }),
+			),
+		).toContain("Unauthorized");
+	});
+});
+
+describe("resendOfferEmail", () => {
+	it("emails the same open offer again, three times an hour at most", async () => {
+		const { t, applicationId, editor } = await offerSetup();
+		const { offerId } = await editor.mutation(offers.mutations.sendOffer, { applicationId });
+
+		for (let attempt = 0; attempt < 3; attempt++) {
+			await editor.mutation(offers.mutations.resendOfferEmail, { applicationId });
+		}
+
+		expect(
+			await refusalMessageFrom(
+				editor.mutation(offers.mutations.resendOfferEmail, { applicationId }),
+			),
+		).toBe("Tilbudet er sendt på nytt mange ganger. Prøv igjen senere.");
+		expect(await offersOf(t, applicationId)).toHaveLength(1);
+		expect(await scheduledOfferEmails(t)).toEqual(Array(4).fill({ offerId }));
+	});
+
+	it("refuses when there is no open offer", async () => {
+		const { t, applicationId, editor } = await offerSetup();
+		const { linkToken } = await editor.mutation(offers.mutations.sendOffer, { applicationId });
+		await t.mutation(offers.mutations.decline, { token: linkToken });
+
+		expect(
+			await refusalMessageFrom(
+				editor.mutation(offers.mutations.resendOfferEmail, { applicationId }),
+			),
+		).toBe("Søknaden har ikke et åpent tilbud å sende på nytt.");
+		expect(await scheduledOfferEmails(t)).toHaveLength(1);
+	});
+
+	it("is editor-only", async () => {
+		const { t, applicationId, editor } = await offerSetup();
+		await editor.mutation(offers.mutations.sendOffer, { applicationId });
+		const member = await insertUser(t, "medlem@ifinavet.no");
+		await grantRole(t, member._id, "internal");
+
+		expect(
+			await refusalMessageFrom(
+				asUser(t, member).mutation(offers.mutations.resendOfferEmail, { applicationId }),
 			),
 		).toContain("Unauthorized");
 	});

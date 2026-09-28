@@ -89,7 +89,7 @@ export const emailContext = internalQuery({
 		const offer = await ctx.db.get(offerId);
 		if (offer?.status !== "pending") return null;
 		const application = await ctx.db.get(offer.applicationId);
-		if (!application) return null;
+		if (application?.status !== "offer_sent") return null;
 		return {
 			to: application.contact.email,
 			contactName: application.contact.name,

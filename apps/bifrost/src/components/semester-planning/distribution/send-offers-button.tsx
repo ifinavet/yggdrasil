@@ -52,7 +52,7 @@ export function SendOffersButton({
 		}
 
 		setProgress(null);
-		if (sent > 0) toast.success(`${sent} tilbud er sendt på e-post.`);
+		if (sent > 0) toast.success(`${sent} tilbud sendes på e-post.`);
 	};
 
 	const count = applications.length;

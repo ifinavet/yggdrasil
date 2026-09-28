@@ -42,6 +42,7 @@ export function StatusCard({
 	const [dialog, setDialog] = useState<Dialog>(null);
 
 	const sendOffer = useMutation(api.semesterPlanning.offers.mutations.sendOffer);
+	const resendOfferEmail = useMutation(api.semesterPlanning.offers.mutations.resendOfferEmail);
 	const confirmManually = useMutation(api.semesterPlanning.offers.mutations.confirmManually);
 	const reject = useMutation(api.semesterPlanning.applications.mutations.reject);
 	const withdraw = useMutation(api.semesterPlanning.applications.mutations.withdraw);
@@ -91,7 +92,7 @@ export function StatusCard({
 								() =>
 									run(
 										() => sendOffer({ applicationId: application._id }),
-										() => toast.success("Tilbudet er sendt til bedriften på e-post."),
+										() => toast.success("Tilbudet sendes til bedriften på e-post."),
 									),
 								"default",
 								Send,
@@ -107,6 +108,16 @@ export function StatusCard({
 			break;
 		case "offer_sent":
 			actions = [
+				act(
+					"Send på nytt",
+					() =>
+						run(
+							() => resendOfferEmail({ applicationId: application._id }),
+							() => toast.success("Tilbudet sendes til bedriften på e-post igjen."),
+						),
+					"outline",
+					Send,
+				),
 				act("Marker som bekreftet", () => setDialog("confirm"), "outline"),
 				withdrawButton,
 			];
@@ -303,7 +314,7 @@ function StatusMessage({
 		case "offer_sent":
 			return (
 				<>
-					Tilbudet gjelder <b>{assigned ? longDay(assigned) : "datoen"}</b>. Lenken er sendt til{" "}
+					Tilbudet gjelder <b>{assigned ? longDay(assigned) : "datoen"}</b>. Lenken sendes til{" "}
 					{application.contact.name} på e-post; bedriften svarer der.
 				</>
 			);
