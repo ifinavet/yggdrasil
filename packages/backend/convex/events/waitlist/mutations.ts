@@ -3,6 +3,7 @@ import { internal } from "../../_generated/api";
 import { internalMutation } from "../../_generated/server";
 import { logRegistrationChange } from "../../engagement/log";
 import { fillOpenSeats } from "../registrations/mutations";
+import { OFFER_ANSWER_WINDOW_MS } from "./offer";
 
 /**
  * Checks pending registrations and reoffers seats when the response window expires.
@@ -13,7 +14,6 @@ export const checkPendingRegistrations = internalMutation({
 	handler: async (ctx) => {
 		const ONE_HOUR_MS = 60 * 60 * 1000;
 		const ONE_MONTH_MS = 30 * 24 * ONE_HOUR_MS;
-		const ANSWER_TIME_LIMIT_MS = 16 * ONE_HOUR_MS;
 
 		const now = Date.now();
 
@@ -43,7 +43,7 @@ export const checkPendingRegistrations = internalMutation({
 				.collect();
 
 			const expiredRegistrations = pendingRegistrations.filter(
-				(registration) => now - registration.registrationTime > ANSWER_TIME_LIMIT_MS,
+				(registration) => now - registration.registrationTime > OFFER_ANSWER_WINDOW_MS,
 			);
 			if (expiredRegistrations.length === 0) continue;
 

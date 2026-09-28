@@ -38,6 +38,7 @@ import type * as events_reminders_mutations from "../events/reminders/mutations.
 import type * as events_reminders_queries from "../events/reminders/queries.js";
 import type * as events_reminders_schedule from "../events/reminders/schedule.js";
 import type * as events_waitlist_mutations from "../events/waitlist/mutations.js";
+import type * as events_waitlist_offer from "../events/waitlist/offer.js";
 import type * as feedback_defaultFields from "../feedback/defaultFields.js";
 import type * as feedback_delivery_campaigns from "../feedback/delivery/campaigns.js";
 import type * as feedback_delivery_content from "../feedback/delivery/content.js";
@@ -167,6 +168,7 @@ declare const fullApi: ApiFromModules<{
   "events/reminders/queries": typeof events_reminders_queries;
   "events/reminders/schedule": typeof events_reminders_schedule;
   "events/waitlist/mutations": typeof events_waitlist_mutations;
+  "events/waitlist/offer": typeof events_waitlist_offer;
   "feedback/defaultFields": typeof feedback_defaultFields;
   "feedback/delivery/campaigns": typeof feedback_delivery_campaigns;
   "feedback/delivery/content": typeof feedback_delivery_content;
