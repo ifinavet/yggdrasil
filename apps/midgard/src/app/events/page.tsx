@@ -10,6 +10,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import EventsList from "@/components/events/events-list";
 import MonthSelector from "@/components/events/month-selector";
+import { nextEventMonth, sortUpcomingFirst } from "@/lib/events-feed";
 
 export const metadata: Metadata = {
 	title: "Arrangementer",
@@ -31,7 +32,7 @@ export default async function EventsPage() {
 		(a, b) => MONTH_NAMES.indexOf(a.toLowerCase()) - MONTH_NAMES.indexOf(b.toLowerCase()),
 	);
 
-	const currentMonth = osloMonthName(now);
+	const currentMonth = nextEventMonth(events, now) ?? osloMonthName(now);
 	const selectedMonth = searchParams?.get("month")?.toLowerCase();
 
 	const activeMonth =
@@ -41,7 +42,7 @@ export default async function EventsPage() {
 				? currentMonth
 				: (months[0] ?? currentMonth);
 
-	const activeMonthEvents = events[activeMonth] ?? [];
+	const activeMonthEvents = sortUpcomingFirst(events[activeMonth] ?? [], now);
 
 	return (
 		<>

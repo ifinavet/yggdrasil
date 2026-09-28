@@ -7,7 +7,8 @@
 		"check-types": "next typegen && tsc --noEmit",
 		"compile": "next build --experimental-build-mode compile",
 		"build": "next build",
-		"start": "next start"
+		"start": "next start",
+		"test": "vitest run"
 	},
 	"dependencies": {
 		"@clerk/localizations": "^4.20.0",
@@ -43,6 +44,7 @@
 		"@types/sanitize-html": "^2.16.1",
 		"@workspace/typescript-config": "workspace:*",
 		"tailwindcss": "^4.3.3",
-		"typescript": "^5.9.3"
+		"typescript": "^5.9.3",
+		"vitest": "5.0.2"
 	}
 }
