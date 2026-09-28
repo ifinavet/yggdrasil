@@ -13,6 +13,7 @@ import {
 	Clock,
 	LoaderCircle,
 	type LucideIcon,
+	RefreshCw,
 	UserRoundSearch,
 } from "lucide-react";
 import { type ReactNode, useState } from "react";
@@ -185,6 +186,35 @@ function DriftRow({
 	);
 }
 
+function CheckNowButton({ disabled }: Readonly<{ disabled: boolean }>) {
+	const checkNow = useMutation(api.iam.mutations.checkNow);
+	const [checking, setChecking] = useState(false);
+
+	return (
+		<Button
+			size="sm"
+			variant="outline"
+			disabled={disabled || checking}
+			onClick={() => {
+				setChecking(true);
+				checkNow({})
+					.then(() =>
+						toast.success("Sjekker Google og Slack", {
+							description: "Koblingene oppdateres om noen sekunder.",
+						}),
+					)
+					.catch((error) =>
+						toast.error("Kunne ikke starte sjekken", { description: refusal(error) }),
+					)
+					.finally(() => setChecking(false));
+			}}
+		>
+			<RefreshCw aria-hidden className={cn("size-4", checking && "motion-safe:animate-spin")} />
+			Sjekk Google og Slack nå
+		</Button>
+	);
+}
+
 export function AccessList({
 	overview,
 	onAdd,
@@ -194,6 +224,9 @@ export function AccessList({
 
 	return (
 		<>
+			<div className="flex justify-end">
+				<CheckNowButton disabled={!overview.google && !overview.slack} />
+			</div>
 			{missing.length > 0 && (
 				<Note tone="warn">
 					{formatList(missing)} er ikke koblet til ennå. Bifrost legger fortsatt til personen, men
