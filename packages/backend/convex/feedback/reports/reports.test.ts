@@ -261,15 +261,19 @@ describe("company feedback reports", () => {
 		await f.client.mutation(reports.mutations.revoke, { reportId, revision: 1 });
 		expect(await f.t.action(reports.public.resolveReport, { token, paginationOpts })).toBeNull();
 	});
-	it("requires assigned internal organizers or super admins, with flags off by default", async () => {
+	it("requires an internal role, with flags off by default", async () => {
 		const f = await fixture();
 		const reportId = await f.prepare();
 		await expect(
 			f.t.query(reports.queries.getEventReport, { eventId: f.eventId }),
 		).rejects.toThrow();
 		const organizer = await insertUser(f.t, "organizer@example.test");
-		const client = asUser(f.t, organizer);
 		await insertOrganizer(f.t, f.eventId, organizer._id);
+		expect(
+			await asUser(f.t, organizer).query(reports.queries.getEventReport, { eventId: f.eventId }),
+		).toEqual({ enabled: false, canView: false });
+		const internal = await insertUser(f.t, "internal@example.test");
+		const client = asUser(f.t, internal);
 		expect(await client.query(reports.queries.getEventReport, { eventId: f.eventId })).toEqual({
 			enabled: false,
 			canView: false,
@@ -277,15 +281,13 @@ describe("company feedback reports", () => {
 		await expect(
 			client.query(reports.queries.getReportAnswers, { reportId, paginationOpts }),
 		).rejects.toThrow("arrangør");
-		await grantRole(f.t, organizer._id, "internal");
+		await grantRole(f.t, internal._id, "internal");
 		expect(
 			await client.query(reports.queries.getEventReport, { eventId: f.eventId }),
 		).toMatchObject({ enabled: true, campaignId: f.campaignId });
-		const otherEvent = await insertEvent(f.t, f.companyId);
-		expect(await client.query(reports.queries.getEventReport, { eventId: otherEvent })).toEqual({
-			enabled: false,
-			canView: false,
-		});
+		expect(
+			await client.query(reports.queries.getReportAnswers, { reportId, paginationOpts }),
+		).toMatchObject({ isDone: true });
 		featureFlags.huginFeedback.reportsEnabled = false;
 		expect(await client.query(reports.queries.getEventReport, { eventId: f.eventId })).toEqual({
 			enabled: false,
