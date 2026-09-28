@@ -13,6 +13,8 @@ export const COMPANY_APPLICATION_COPY = {
 	semester: {
 		label: "Hvilket semester søker dere for?",
 		deadline: (date: string) => `Søknadsfrist ${date}`,
+		current: (name: string) =>
+			`Obs: dere søker for ${name}, som allerede er i gang. Det kan bli kort tid til planlegging, og vi kan ikke love en dato.`,
 	},
 	lateNotice: "Vi tar fortsatt imot søknader, men kan ikke love en dato.",
 	sections: {

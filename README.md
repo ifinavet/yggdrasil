@@ -1,5 +1,3 @@
-Test
-
 # 🌳 Yggdrasil Mono
 
 Welcome to the Yggdrasil monorepo! We are happy to have you here and happy to help you start contributing to your project, but first, some information about the project.

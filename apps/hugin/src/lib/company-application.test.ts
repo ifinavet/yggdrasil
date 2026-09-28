@@ -221,6 +221,23 @@ describe("company application saved draft", () => {
 		expect(loadDraft("autumn")?.values.description).toBe("Noe annet");
 	});
 
+	it("reads a draft saved before drafts were kept per semester, then moves it", () => {
+		stubStorage();
+		const values = completeDraft();
+		store.set(
+			"hugin.company-application.draft.v1",
+			JSON.stringify({ semesterId: "semester-1", submissionId: "submission-1", values }),
+		);
+
+		expect(storedDraftSemesterId()).toBe("semester-1");
+		const draft = loadDraft("semester-1");
+		expect(draft).toEqual({ semesterId: "semester-1", submissionId: "submission-1", values });
+		if (!draft) throw new Error("Expected the draft.");
+		saveDraft(draft);
+		expect(store.has("hugin.company-application.draft.v1")).toBe(false);
+		expect(loadDraft("semester-1")).toEqual(draft);
+	});
+
 	it("has no draft to restore when nothing is saved", () => {
 		stubStorage();
 		expect(storedDraftSemesterId()).toBeNull();
