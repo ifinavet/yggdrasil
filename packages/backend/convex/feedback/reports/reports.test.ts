@@ -404,6 +404,67 @@ describe("company feedback reports", () => {
 	});
 });
 
+describe("live internal report", () => {
+	it("aggregates responses while the campaign is open without materializing a report", async () => {
+		const f = await fixture();
+		await f.t.run((ctx) => ctx.db.patch(f.campaignId, { status: "open", closedAt: undefined }));
+		const before = await f.client.query(reports.live.getLiveReport, { eventId: f.eventId });
+		expect(before).toMatchObject({ campaignStatus: "open", report: { totalResponses: 2 } });
+		if (!before) throw new Error("Missing live report");
+		expect(before.report.questions.map((q) => q.label)).toEqual(
+			defaultFeedbackFields.map((q) => q.label),
+		);
+		expect(before.answers.every((answer) => answer.visible)).toBe(true);
+		expect(before.answers[0]).not.toHaveProperty("responseId");
+		await f.t.run((ctx) =>
+			insertFeedbackResponses(ctx, {
+				campaignId: f.campaignId,
+				formVersionId: f.formVersionId,
+				userId: f.user._id,
+				count: 1,
+				submittedAt: now,
+			}),
+		);
+		const after = await f.client.query(reports.live.getLiveReport, { eventId: f.eventId });
+		expect(after?.report.totalResponses).toBe(3);
+		expect(after?.answers.length).toBe(before.answers.length + 3);
+		expect(reportHighlights(after?.report ?? before.report).rating).toBeCloseTo(13 / 3);
+		expect(await f.t.run((ctx) => ctx.db.query("feedbackReports").collect())).toEqual([]);
+	});
+	it("is null without an internal role, a campaign or the report flag", async () => {
+		const f = await fixture();
+		const outsider = await insertUser(f.t, "outsider@example.test");
+		expect(
+			await asUser(f.t, outsider).query(reports.live.getLiveReport, { eventId: f.eventId }),
+		).toBeNull();
+		const otherEventId = await insertEvent(f.t, f.companyId);
+		expect(await f.client.query(reports.live.getLiveReport, { eventId: otherEventId })).toBeNull();
+		featureFlags.huginFeedback.reportsEnabled = false;
+		expect(await f.client.query(reports.live.getLiveReport, { eventId: f.eventId })).toBeNull();
+	});
+	it("tolerates a missing logo or company and rejects a corrupt form version", async () => {
+		const f = await fixture();
+		await f.t.run(async (ctx) => {
+			const company = await ctx.db.get(f.companyId);
+			if (company) await ctx.db.delete(company.logo);
+		});
+		expect(
+			(await f.client.query(reports.live.getLiveReport, { eventId: f.eventId }))?.report,
+		).toMatchObject({ companyName: "Testbedrift", companyLogoUrl: null });
+		await f.t.run((ctx) => ctx.db.delete(f.companyId));
+		expect(
+			(await f.client.query(reports.live.getLiveReport, { eventId: f.eventId }))?.report,
+		).toMatchObject({ companyName: "", companyLogoUrl: null });
+		await f.t.run(async (ctx) => {
+			const fields = await ctx.db.query("formFields").collect();
+			for (const field of fields) await ctx.db.delete(field._id);
+		});
+		await expect(
+			f.client.query(reports.live.getLiveReport, { eventId: f.eventId }),
+		).rejects.toThrow("Skjemaversjonen er ugyldig.");
+	});
+});
+
 describe("report boundary cases", () => {
 	it("prefills the event contact and tolerates a missing logo and legacy retention dates", async () => {
 		const f = await fixture();
