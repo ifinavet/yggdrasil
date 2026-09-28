@@ -11,6 +11,7 @@ import {
 	Tailwind,
 	Text,
 } from "react-email";
+import { EmailSignature, type Signature } from "../components/email-signature.js";
 import { BRAND_PRIMARY_COLOR, NAVET_LOGO_URL } from "../constants.js";
 
 const POINTS_INFO_URL =
@@ -26,7 +27,7 @@ export default function EventReminderEmail({
 	company: string;
 	time: string;
 	location: string;
-	signature: { name: string; position?: string; email: string };
+	signature: Signature;
 }>) {
 	return (
 		<Html lang="no">
@@ -102,19 +103,7 @@ export default function EventReminderEmail({
 						Les våre retningslinjer her: <a href={GUIDELINES_URL}>Navet sine retningslinjer</a>
 					</Text>
 
-					<Text>
-						Med vennlig hilsen,
-						<br />
-						{signature.name}
-						{signature.position && (
-							<>
-								<br />
-								{signature.position} - Navet
-							</>
-						)}
-						<br />
-						<a href={`mailto:${signature.email}`}>{signature.email}</a>
-					</Text>
+					<EmailSignature {...signature} />
 
 					<Hr />
 

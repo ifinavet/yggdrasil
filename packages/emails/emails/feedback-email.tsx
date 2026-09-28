@@ -11,6 +11,7 @@ import {
 	Preview,
 	Text,
 } from "react-email";
+import { EmailSignature, type Signature } from "../components/email-signature.js";
 import { NAVET_LOGO_URL } from "../constants.js";
 
 const CONTACT_URL = `${MIDGARD_URL}/contact`;
@@ -24,7 +25,7 @@ export default function FeedbackEmail({
 }: Readonly<{
 	firstName: string;
 	companyName: string;
-	signature: { name: string; email: string };
+	signature: Signature;
 	url: string;
 	reminder: boolean;
 }>) {
@@ -81,13 +82,7 @@ export default function FeedbackEmail({
 						Har du andre tilbakemeldinger til Navet, eller opplevd noe ugreit oppfordrer vi deg til
 						å gi oss tilbakemelding her: <Link href={CONTACT_URL}>{CONTACT_URL}</Link>
 					</Text>
-					<Text style={{ margin: "32px 0 0" }}>Med vennlig hilsen,</Text>
-					<Text style={{ margin: "16px 0 0" }}>
-						{signature.name}
-						<br />
-						<Link href={`mailto:${signature.email}`}>{signature.email}</Link>
-					</Text>
-					<Img src={NAVET_LOGO_URL} alt="Navet" height="32" style={{ marginTop: "16px" }} />
+					<EmailSignature {...signature} />
 				</Container>
 			</Body>
 		</Html>

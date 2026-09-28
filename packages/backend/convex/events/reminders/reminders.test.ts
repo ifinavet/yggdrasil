@@ -1,4 +1,5 @@
 import { render } from "@react-email/render";
+import { NAVET_LOGO_URL } from "@workspace/emails/constants";
 import EventReminderEmail from "@workspace/emails/event-reminder-email";
 import { describe, expect, it, vi } from "vitest";
 import {
@@ -205,5 +206,21 @@ describe("EventReminderEmail", () => {
 		expect(text).toContain("Bedriftskontakt - Navet");
 		expect(text).toContain("https://ifinavet.no/info/retningslinjer");
 		expect(text).not.toContain("+47");
+	});
+
+	it("signs off with the organizer and the Navet logo", async () => {
+		const html = await render(
+			EventReminderEmail({
+				company: "Testbedrift",
+				time: "torsdag 1. oktober, 16:15",
+				location: "Escape",
+				signature: { name: "Kari Nordmann", email: "kari@ifinavet.no" },
+			}),
+		);
+		const signature = html.slice(html.indexOf("Med vennlig hilsen,"));
+		expect(signature).toContain("Kari Nordmann");
+		expect(signature).toContain('href="mailto:kari@ifinavet.no"');
+		expect(signature).toContain(`src="${NAVET_LOGO_URL}"`);
+		expect(signature).not.toContain(" - Navet");
 	});
 });
