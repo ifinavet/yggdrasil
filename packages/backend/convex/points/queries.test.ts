@@ -40,4 +40,14 @@ describe("getCurrentStudentsPoints", () => {
 
 		expect(await asUser(t, user).query(queries.getCurrentStudentsPoints, {})).toBeNull();
 	});
+
+	it("returns null when the signed-in identity has no user record yet", async () => {
+		const { t } = await setup();
+
+		const points = await t
+			.withIdentity({ subject: "user_not_synced_from_clerk" })
+			.query(queries.getCurrentStudentsPoints, {});
+
+		expect(points).toBeNull();
+	});
 });

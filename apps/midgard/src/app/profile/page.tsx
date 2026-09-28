@@ -4,6 +4,7 @@ import { api } from "@workspace/backend/convex/api";
 import ResponsiveCenterContainer from "@workspace/ui/components/responsive-center-container";
 import { Title } from "@workspace/ui/components/title";
 import { preloadQuery } from "convex/nextjs";
+import { ConvexError } from "convex/values";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import Points from "@/components/profile/points";
@@ -20,7 +21,23 @@ export default async function ProfilePage() {
 
 	if (!userId) return redirectToSignIn();
 
-	const preloadStudent = await preloadQuery(api.users.students.queries.getCurrent, {}, { token });
+	const preloadStudent = await preloadQuery(
+		api.users.students.queries.getCurrent,
+		{},
+		{ token },
+	).catch((error) => {
+		if (error instanceof ConvexError) return null;
+		throw error;
+	});
+
+	if (!preloadStudent) {
+		return (
+			<ResponsiveCenterContainer>
+				<Title>Din Profil</Title>
+				<p>Studentprofilen din er ikke klar ennå. Prøv å laste siden på nytt om litt.</p>
+			</ResponsiveCenterContainer>
+		);
+	}
 
 	return (
 		<ResponsiveCenterContainer>

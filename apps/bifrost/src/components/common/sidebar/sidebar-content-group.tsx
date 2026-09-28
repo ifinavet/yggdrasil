@@ -128,6 +128,7 @@ export function SidebarContentGroup({
 		jobListingOrders: useFeatureEnabled("jobListingOrders"),
 		semesterPlanning: useFeatureEnabled("semesterPlanning"),
 		engagement: useFeatureEnabled("engagement"),
+		eventReminders: useFeatureEnabled("eventReminders"),
 	};
 	const visibleItems = paths[items].filter(
 		(item: SidebarItem) => item.feature === undefined || enabled[item.feature],

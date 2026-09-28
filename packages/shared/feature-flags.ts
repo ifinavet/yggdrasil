@@ -22,6 +22,9 @@ export const featureFlags = {
 	engagement: {
 		uiEnabled: true,
 	},
+	eventReminders: {
+		uiEnabled: false,
+	},
 };
 
 export const browserOptInKeys = {
@@ -31,6 +34,7 @@ export const browserOptInKeys = {
 	huginFeedbackTestSend: "hugin-feedback-testsend",
 	semesterPlanningPreview: "semester-planning-preview",
 	engagementPreview: "engagement-preview",
+	eventRemindersPreview: "event-reminders-preview",
 } as const;
 
 export type BrowserOptIn = keyof typeof browserOptInKeys;
@@ -43,4 +47,5 @@ export const featurePreviewOptIns = {
 	jobListingOrders: "jobListingOrdersPreview",
 	semesterPlanning: "semesterPlanningPreview",
 	engagement: "engagementPreview",
+	eventReminders: "eventRemindersPreview",
 } as const satisfies Record<GatedFeature, BrowserOptIn>;
