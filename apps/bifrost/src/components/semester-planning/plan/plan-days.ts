@@ -27,6 +27,43 @@ export type PlanDay =
 	| { kind: "assigned"; date: string; row: PlanRow; details?: EditorDetails }
 	| { kind: "event"; date: string; event: PlanEventRow; extraDay: boolean };
 
+/** The active applications by the date they hold, and the events their applications made. */
+function indexRows(rows: readonly PlanRow[]) {
+	const byDate = new Map<string, PlanRow>();
+	const applicationEvents = new Set<Id<"events">>();
+	for (const row of rows) {
+		if (!isActiveStatus(row.status)) continue;
+		if (row.assignedDate) byDate.set(row.assignedDate, row);
+		if (row.eventId) applicationEvents.add(row.eventId);
+	}
+	return { byDate, applicationEvents };
+}
+
+/** The plan's events by day, leaving out those an assigned application already shows. */
+function groupEventsByDate(events: readonly PlanEventRow[], skip: ReadonlySet<Id<"events">>) {
+	const byDate = new Map<string, PlanEventRow[]>();
+	for (const event of events) {
+		if (skip.has(event.eventId)) continue;
+		byDate.set(event.date, [...(byDate.get(event.date) ?? []), event]);
+	}
+	return byDate;
+}
+
+/** The day for a semester date: closed, held, or free unless an event stands in its place. */
+function semesterDateDay(
+	semesterDate: Doc<"semesterDates">,
+	row: PlanRow | undefined,
+	details: EditorDetails | undefined,
+	hasEvents: boolean,
+): PlanDay | null {
+	const { date, closedLabel } = semesterDate;
+	if (closedLabel !== undefined) {
+		return { kind: "closed", date, label: closedDateLabel(closedLabel) };
+	}
+	if (row) return { kind: "assigned", date, row, details };
+	return hasEvents ? null : { kind: "free", date };
+}
+
 /**
  * Builds the plan in calendar order: one day per semester date, plus the events in the plan on
  * their own days. An event on a free date takes its place; on a closed or held date it is shown
@@ -39,45 +76,31 @@ export function buildPlanDays(
 	editorApplications: readonly Doc<"companyApplications">[] | undefined,
 	events: readonly PlanEventRow[] = [],
 ): PlanDay[] {
-	const byDate = new Map<string, PlanRow>();
-	const applicationEvents = new Set<Id<"events">>();
-	for (const row of rows) {
-		if (!isActiveStatus(row.status)) continue;
-		if (row.assignedDate) byDate.set(row.assignedDate, row);
-		if (row.eventId) applicationEvents.add(row.eventId);
-	}
+	const { byDate, applicationEvents } = indexRows(rows);
 	const details = new Map<Id<"companyApplications">, EditorDetails>(
 		(editorApplications ?? []).map((application) => [application._id, application]),
 	);
-
-	const eventsByDate = new Map<string, PlanEventRow[]>();
-	for (const event of events) {
-		if (applicationEvents.has(event.eventId)) continue;
-		eventsByDate.set(event.date, [...(eventsByDate.get(event.date) ?? []), event]);
-	}
-
+	const eventsByDate = groupEventsByDate(events, applicationEvents);
 	const semesterDates = new Map(dates.map((date) => [date.date, date]));
 	// ISO days sort as text.
-	const allDates = [...new Set([...semesterDates.keys(), ...eventsByDate.keys()])].sort();
+	const allDates = [...new Set([...semesterDates.keys(), ...eventsByDate.keys()])].sort((a, b) =>
+		a.localeCompare(b),
+	);
 
-	const days: PlanDay[] = [];
-	for (const date of allDates) {
+	return allDates.flatMap((date) => {
 		const semesterDate = semesterDates.get(date);
 		const dayEvents = eventsByDate.get(date) ?? [];
-		if (semesterDate) {
-			if (semesterDate.closedLabel !== undefined) {
-				days.push({ kind: "closed", date, label: closedDateLabel(semesterDate.closedLabel) });
-			} else {
-				const row = byDate.get(date);
-				if (row) days.push({ kind: "assigned", date, row, details: details.get(row._id) });
-				else if (dayEvents.length === 0) days.push({ kind: "free", date });
-			}
-		}
-		for (const event of dayEvents) {
-			days.push({ kind: "event", date, event, extraDay: !semesterDate });
-		}
-	}
-	return days;
+		const row = byDate.get(date);
+		const day =
+			semesterDate &&
+			semesterDateDay(semesterDate, row, row && details.get(row._id), dayEvents.length > 0);
+		return [
+			...(day ? [day] : []),
+			...dayEvents.map(
+				(event): PlanDay => ({ kind: "event", date, event, extraDay: !semesterDate }),
+			),
+		];
+	});
 }
 
 export type PlanFilter = {

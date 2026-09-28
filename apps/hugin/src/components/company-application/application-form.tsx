@@ -3,7 +3,7 @@
 import { useStore } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
 import { semesterName } from "@workspace/shared/semester/labels";
-import { osloToday } from "@workspace/shared/time";
+import { osloToday, termOfDay } from "@workspace/shared/time";
 import { Note } from "@workspace/ui/components/note";
 import { cn } from "@workspace/ui/lib/utils";
 import { useAction } from "convex/react";
@@ -64,7 +64,10 @@ export function ApplicationForm({
 	const sent = useRef(false);
 
 	const semesterLabel = semesterName(semester.term, semester.year);
-	const late = osloToday(Date.now()) > semester.applicationDeadline;
+	const today = osloToday(Date.now());
+	const late = today > semester.applicationDeadline;
+	const running = termOfDay(today);
+	const isRunningSemester = running.year === semester.year && running.term === semester.term;
 
 	const form = useApplicationForm({
 		defaultValues: initial.values,
@@ -140,6 +143,13 @@ export function ApplicationForm({
 					{COPY.title}
 				</h1>
 				<Deadline date={semester.applicationDeadline} late={late} />
+				{isRunningSemester && (
+					<Note tone="warn" className="mt-3.5">
+						{COPY.semester.current(
+							semesterName(semester.term, semester.year, { inSentence: true }),
+						)}
+					</Note>
+				)}
 				<p className="m-0 mt-3.5 text-[14.5px] leading-normal">{COPY.lede}</p>
 				{semester.infoText && (
 					<Note className="mt-3.5">

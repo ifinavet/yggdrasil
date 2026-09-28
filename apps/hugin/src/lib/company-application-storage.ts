@@ -10,6 +10,8 @@ import { readJson, removeItem, writeJson } from "./guarded-storage";
 // full or blocked. What is read back is parsed, never trusted.
 
 const DRAFT_KEY = "hugin.company-application.drafts.v2";
+// The single draft saved before drafts were kept per semester. Read once, then written under DRAFT_KEY.
+const LEGACY_DRAFT_KEY = "hugin.company-application.draft.v1";
 const RECEIPT_KEY = "hugin.company-application.receipt.v1";
 
 /** A saved, unsent application. It belongs to one semester and carries its one-time id. */
@@ -58,7 +60,13 @@ const session = () => window.sessionStorage;
 
 function readStoredDrafts(): z.infer<typeof storedDraftsSchema> | null {
 	const stored = storedDraftsSchema.safeParse(readJson(local, DRAFT_KEY));
-	return stored.success ? stored.data : null;
+	if (stored.success) return stored.data;
+	const legacy = storedDraftSchema.safeParse(readJson(local, LEGACY_DRAFT_KEY));
+	if (!legacy.success) return null;
+	return {
+		lastSemesterId: legacy.data.semesterId,
+		drafts: { [legacy.data.semesterId]: legacy.data },
+	};
 }
 
 /** The semester the company worked on last, if a draft is saved. */
@@ -91,6 +99,7 @@ export function saveDraft(draft: StoredDraft): void {
 		lastSemesterId: draft.semesterId,
 		drafts: { ...drafts, [draft.semesterId]: draft },
 	});
+	removeItem(local, LEGACY_DRAFT_KEY);
 }
 
 /** Forgets the draft for a sent application. Drafts for other semesters are kept. */
@@ -98,6 +107,7 @@ export function clearDraft(semesterId: string): void {
 	const stored = readStoredDrafts();
 	const { [semesterId]: _sent, ...drafts } = stored?.drafts ?? {};
 	const remaining = Object.keys(drafts);
+	removeItem(local, LEGACY_DRAFT_KEY);
 	if (!stored || remaining.length === 0) {
 		removeItem(local, DRAFT_KEY);
 		return;
