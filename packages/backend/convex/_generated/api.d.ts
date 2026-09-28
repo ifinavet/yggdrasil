@@ -93,6 +93,7 @@ import type * as lib_validators from "../lib/validators.js";
 import type * as migrations from "../migrations.js";
 import type * as pages_mutations from "../pages/mutations.js";
 import type * as pages_queries from "../pages/queries.js";
+import type * as points_lifetime from "../points/lifetime.js";
 import type * as points_mutations from "../points/mutations.js";
 import type * as points_queries from "../points/queries.js";
 import type * as products_helpers from "../products/helpers.js";
@@ -223,6 +224,7 @@ declare const fullApi: ApiFromModules<{
   migrations: typeof migrations;
   "pages/mutations": typeof pages_mutations;
   "pages/queries": typeof pages_queries;
+  "points/lifetime": typeof points_lifetime;
   "points/mutations": typeof points_mutations;
   "points/queries": typeof points_queries;
   "products/helpers": typeof products_helpers;

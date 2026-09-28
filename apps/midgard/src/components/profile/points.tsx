@@ -1,5 +1,6 @@
 import { getAuthToken } from "@workspace/auth";
 import { api } from "@workspace/backend/convex/api";
+import { DATE_PATTERNS, formatOsloDate } from "@workspace/shared/time";
 import { cn } from "@workspace/ui/lib/utils";
 import { fetchQuery } from "convex/nextjs";
 
@@ -43,6 +44,21 @@ export default async function Points({ className }: Readonly<{ className?: strin
 				<p className="text-sm text-zinc-600 tracking-normal dark:text-muted-foreground">
 					{getPointsText(numberOfPoints)}
 				</p>
+				{points && points.length > 0 && (
+					<ul className="grid gap-3">
+						{points.map((point) => (
+							<li
+								key={point._id}
+								className="grid gap-1 rounded-md border border-primary/20 px-4 py-3 text-sm"
+							>
+								<span>{point.reason}</span>
+								<span className="text-zinc-600 dark:text-muted-foreground">
+									{`Forsvinner ${formatOsloDate(point.expiresAt, DATE_PATTERNS.shortDateWithYear)}`}
+								</span>
+							</li>
+						))}
+					</ul>
+				)}
 			</div>
 			<p className="text-balance font-semibold text-lg text-primary tracking-tight dark:text-primary-foreground">
 				Ved tre prikker får du ikke mulighet til å melde deg på bedriftspresentasjoner, hver prikk

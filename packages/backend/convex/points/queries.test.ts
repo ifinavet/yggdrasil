@@ -1,26 +1,44 @@
 import { describe, expect, it } from "vitest";
-import { asUser, givePointsTo, insertStudent, insertUser, setup } from "../../test/fixtures";
+import { asUser, insertStudent, insertUser, setup } from "../../test/fixtures";
 import { api } from "../_generated/api";
+import { POINT_LIFETIME_MS } from "./lifetime";
+
+const queries = api.points.queries;
 
 describe("getCurrentStudentsPoints", () => {
-	it("returns the points of the signed-in student", async () => {
+	it("returns the caller's points newest first with the time each one expires", async () => {
 		const { t } = await setup();
-		const user = await insertUser(t, "student@example.test");
-		const studentId = await insertStudent(t, user._id);
-		await givePointsTo(t, studentId, 2);
+		const student = await insertUser(t, "student@example.com");
+		const studentId = await insertStudent(t, student._id);
+		const other = await insertUser(t, "annen@example.com");
+		const otherId = await insertStudent(t, other._id);
+		const olderId = await t.run((ctx) =>
+			ctx.db.insert("points", { studentId, reason: "Sen", severity: 1 }),
+		);
+		const newerId = await t.run((ctx) =>
+			ctx.db.insert("points", { studentId, reason: "Ikke møtt", severity: 2 }),
+		);
+		await t.run((ctx) =>
+			ctx.db.insert("points", { studentId: otherId, reason: "Annen", severity: 2 }),
+		);
+		const [older, newer] = await t.run(async (ctx) => [
+			await ctx.db.get(olderId),
+			await ctx.db.get(newerId),
+		]);
 
-		const points = await asUser(t, user).query(api.points.queries.getCurrentStudentsPoints, {});
+		const points = await asUser(t, student).query(queries.getCurrentStudentsPoints, {});
 
-		expect(points?.map((point) => point.severity)).toEqual([2]);
+		expect(points).toEqual([
+			{ ...newer, expiresAt: (newer?._creationTime ?? 0) + POINT_LIFETIME_MS },
+			{ ...older, expiresAt: (older?._creationTime ?? 0) + POINT_LIFETIME_MS },
+		]);
 	});
 
-	it("returns null when the user has no student profile", async () => {
+	it("returns null when the caller has no student profile", async () => {
 		const { t } = await setup();
-		const user = await insertUser(t, "company@example.test");
+		const user = await insertUser(t, "ansatt@example.com");
 
-		const points = await asUser(t, user).query(api.points.queries.getCurrentStudentsPoints, {});
-
-		expect(points).toBeNull();
+		expect(await asUser(t, user).query(queries.getCurrentStudentsPoints, {})).toBeNull();
 	});
 
 	it("returns null when the signed-in identity has no user record yet", async () => {
@@ -28,7 +46,7 @@ describe("getCurrentStudentsPoints", () => {
 
 		const points = await t
 			.withIdentity({ subject: "user_not_synced_from_clerk" })
-			.query(api.points.queries.getCurrentStudentsPoints, {});
+			.query(queries.getCurrentStudentsPoints, {});
 
 		expect(points).toBeNull();
 	});
