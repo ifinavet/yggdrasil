@@ -4,8 +4,14 @@ import { api } from "@workspace/backend/convex/api";
 import { COMPANY_CONTACT_EMAIL } from "@workspace/shared/constants";
 import { semesterName } from "@workspace/shared/semester/labels";
 import { defaultApplicationSemester, osloToday } from "@workspace/shared/time";
-import { ChoiceGroup } from "@workspace/ui/components/choice-group";
 import { Note } from "@workspace/ui/components/note";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@workspace/ui/components/select";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { useQuery } from "convex/react";
 import { CalendarDays } from "lucide-react";
@@ -59,30 +65,53 @@ function OpenSemesters({ semesters }: Readonly<{ semesters: readonly OpenSemeste
 		defaultApplicationSemester(osloToday(Date.now()), semesters);
 	if (!semester) return null;
 
+	// Keyed by semester, so switching semester, or one opening while the page is up, starts a fresh
+	// form. The draft carries the answers over.
 	return (
-		<>
-			{semesters.length > 1 && (
-				<div className="pt-1.5">
-					<p id="semester-choice-label" className="m-0 mb-2 font-semibold text-[15px]">
-						{COPY.semester.label}
-					</p>
-					<ChoiceGroup
-						name="semester"
-						labelledBy="semester-choice-label"
-						value={semester._id}
-						onChange={setChosenId}
-						options={semesters.map((candidate) => ({
-							value: candidate._id,
-							label: semesterName(candidate.term, candidate.year),
-							description: COPY.semester.deadline(fullDate(candidate.applicationDeadline)),
-						}))}
-					/>
-				</div>
-			)}
-			{/* Keyed by semester, so switching semester, or one opening while the page is up, starts a
-			    fresh form. The draft carries the answers over. */}
-			<ApplicationForm key={semester._id} semester={semester} />
-		</>
+		<ApplicationForm
+			key={semester._id}
+			semester={semester}
+			semesterPicker={
+				semesters.length > 1 && (
+					<SemesterPicker semesters={semesters} value={semester._id} onChange={setChosenId} />
+				)
+			}
+		/>
+	);
+}
+
+/** The chosen semester with a chevron; opening it lists the other open semesters and their deadlines. */
+function SemesterPicker({
+	semesters,
+	value,
+	onChange,
+}: Readonly<{
+	semesters: readonly OpenSemester[];
+	value: string;
+	onChange: (id: string) => void;
+}>) {
+	return (
+		<Select value={value} onValueChange={onChange}>
+			<SelectTrigger
+				size="sm"
+				aria-label={COPY.semester.label}
+				className="h-auto gap-1 border-0 bg-transparent px-0 py-0 font-semibold text-[13.5px] text-muted-foreground shadow-none hover:text-foreground dark:bg-transparent dark:hover:bg-transparent"
+			>
+				<SelectValue />
+			</SelectTrigger>
+			<SelectContent align="start">
+				{semesters.map((candidate) => (
+					<SelectItem key={candidate._id} value={candidate._id}>
+						<span className="flex flex-col items-start gap-0">
+							<span className="font-semibold">{semesterName(candidate.term, candidate.year)}</span>
+							<span className="text-muted-foreground text-xs">
+								{COPY.semester.deadline(fullDate(candidate.applicationDeadline))}
+							</span>
+						</span>
+					</SelectItem>
+				))}
+			</SelectContent>
+		</Select>
 	);
 }
 

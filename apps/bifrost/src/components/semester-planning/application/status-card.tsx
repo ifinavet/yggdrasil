@@ -6,7 +6,7 @@ import { ConfirmDialog } from "@workspace/ui/components/confirm-dialog";
 import { Callout } from "@workspace/ui/components/products/callout";
 import { Panel, PanelBody } from "@workspace/ui/components/products/panel";
 import { useMutation } from "convex/react";
-import { type LucideIcon, Send } from "lucide-react";
+import { type LucideIcon, Send, Trash2 } from "lucide-react";
 import { Fragment, type ReactNode, useState } from "react";
 import { toast } from "sonner";
 import { capitalize, formatMoment, longDay, shortDay, shortDayTitle } from "../format";
@@ -78,7 +78,20 @@ export function StatusCard({
 			{label}
 		</Button>
 	);
-	const withdrawButton = act("Slett søknad", () => setDialog("withdraw"), "ghost");
+	const withdrawButton = (
+		<Button
+			key="withdraw"
+			size="icon-sm"
+			variant="ghost"
+			disabled={pending || assigning}
+			onClick={() => setDialog("withdraw")}
+			aria-label="Slett søknad"
+			title="Slett søknad"
+			className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+		>
+			<Trash2 aria-hidden />
+		</Button>
+	);
 	const rejectButton = act("Avslå", () => setDialog("reject"), "outline");
 
 	let actions: (ReactNode | false)[];
