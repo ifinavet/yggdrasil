@@ -1,7 +1,7 @@
 import { TZDate, tz } from "@date-fns/tz";
 import { eachDayOfInterval, format, isThursday, isTuesday, isValid, parse } from "date-fns";
 import { nb } from "date-fns/locale";
-import { OSLO_TIME_ZONE } from "./constants";
+import { AUTUMN_FIRST_MONTH, OSLO_TIME_ZONE } from "./constants";
 import { formatLocalDate } from "./formatting";
 
 // Semester days are Oslo-local "YYYY-MM-DD" strings. All parsing and calendar arithmetic runs in
@@ -11,11 +11,11 @@ const IN_OSLO = { in: tz(OSLO_TIME_ZONE) };
 const DAY_FORMAT = "yyyy-MM-dd";
 const TIME_FORMAT = "HH:mm";
 
-/** First month of the autumn term, zero-based (July). January to June belongs to spring. */
-const AUTUMN_FIRST_MONTH = 6;
-
 export const SEMESTER_TERMS = ["spring", "autumn"] as const;
 export type SemesterTerm = (typeof SEMESTER_TERMS)[number];
+
+/** A semester named by its year and term, like «Våren 2027». */
+export type SemesterRef = { year: number; term: SemesterTerm };
 
 /** Whether the value is a real calendar day written as YYYY-MM-DD. */
 export function isIsoDate(value: string): boolean {
@@ -103,7 +103,7 @@ export function formatSemesterDay(date: string, style: keyof typeof DAY_STYLES =
 }
 
 /** The term an Oslo day belongs to, and its year. */
-export function termOfDay(date: string): { year: number; term: SemesterTerm } {
+export function termOfDay(date: string): SemesterRef {
 	const day = parseStrictOrThrow(date, DAY_FORMAT);
 	return {
 		year: day.getFullYear(),
@@ -111,10 +111,64 @@ export function termOfDay(date: string): { year: number; term: SemesterTerm } {
 	};
 }
 
-/** The semester that follows the one running on the given Oslo day. */
-export function nextTermAfter(today: string): { year: number; term: SemesterTerm } {
-	const { year, term } = termOfDay(today);
+/** The semester after the given one: autumn follows spring, and next year's spring follows autumn. */
+export function termAfter({ year, term }: SemesterRef): SemesterRef {
 	return term === "spring" ? { year, term: "autumn" } : { year: year + 1, term: "spring" };
+}
+
+/** The semester that follows the one running on the given Oslo day. */
+export function nextTermAfter(today: string): SemesterRef {
+	return termAfter(termOfDay(today));
+}
+
+/** Orders semesters in time: spring comes before autumn in the same year. */
+export function semesterSortKey({ year, term }: SemesterRef): number {
+	return year * 2 + (term === "autumn" ? 1 : 0);
+}
+
+/** A comparator for sorting semesters earliest first. */
+export function compareSemesters(a: SemesterRef, b: SemesterRef): number {
+	return semesterSortKey(a) - semesterSortKey(b);
+}
+
+export function isSameSemester(a: SemesterRef, b: SemesterRef): boolean {
+	return a.year === b.year && a.term === b.term;
+}
+
+/**
+ * The semester a company most likely applies for on the given Oslo day: the one after the running
+ * semester when it is among the choices, else the earliest choice from the running semester on,
+ * else the latest choice (a late application for the running semester). Null with no choices.
+ */
+export function defaultApplicationSemester<T extends SemesterRef>(
+	today: string,
+	choices: readonly T[],
+): T | null {
+	const sorted = [...choices].sort(compareSemesters);
+	const current = semesterSortKey(termOfDay(today));
+	const next = semesterSortKey(nextTermAfter(today));
+	return (
+		sorted.find((choice) => semesterSortKey(choice) === next) ??
+		sorted.find((choice) => semesterSortKey(choice) >= current) ??
+		sorted.at(-1) ??
+		null
+	);
+}
+
+// How far ahead a suggested semester may be. Well beyond what anyone plans.
+const MAX_TERMS_AHEAD = 20;
+
+/**
+ * The first semester, from the one running on the given Oslo day, that is not among the existing
+ * ones. Suggested when creating a semester, so the suggestion never clashes with one that exists.
+ */
+export function firstMissingTerm(today: string, existing: readonly SemesterRef[]): SemesterRef {
+	let candidate = termOfDay(today);
+	for (let step = 0; step < MAX_TERMS_AHEAD; step++) {
+		if (!existing.some((semester) => isSameSemester(semester, candidate))) return candidate;
+		candidate = termAfter(candidate);
+	}
+	return candidate;
 }
 
 function isPresentationWeekday(day: Date): boolean {

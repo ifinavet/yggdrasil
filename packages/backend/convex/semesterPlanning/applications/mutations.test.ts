@@ -107,7 +107,7 @@ describe("assignDate", () => {
 		const message = await refusalMessageFrom(
 			editor.mutation(mutations.assignDate, { applicationId, date: "2027-02-09" }),
 		);
-		expect(message).toBe("Datoen er allerede tildelt HAVBRIS AS.");
+		expect(message).toBe("Datoen er allerede gitt til HAVBRIS AS.");
 	});
 
 	it("lets two editors race for a date, and only the first wins", async () => {
@@ -192,7 +192,7 @@ describe("assignDate", () => {
 			await refusalMessageFrom(
 				editor.mutation(mutations.assignDate, { applicationId: withdrawn, date: "2027-02-09" }),
 			),
-		).toBe("Søknaden er trukket eller avslått.");
+		).toBe("Søknaden er slettet eller avslått.");
 
 		const closedSemesterId = await insertSemester(t, {
 			year: 2026,

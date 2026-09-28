@@ -10,6 +10,10 @@ export const COMPANY_APPLICATION_COPY = {
 	loading: "Laster søknadsskjemaet …",
 	deadline: "Søknadsfrist",
 	deadlinePassed: "Søknadsfristen var",
+	semester: {
+		label: "Hvilket semester søker dere for?",
+		deadline: (date: string) => `Søknadsfrist ${date}`,
+	},
 	lateNotice: "Vi tar fortsatt imot søknader, men kan ikke love en dato.",
 	sections: {
 		company: "Bedriften",

@@ -8,7 +8,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@workspace/ui/components/select";
-import type { PlanFilter, PlanRow } from "./plan-days";
+import type { PlanEventRow, PlanFilter, PlanRow } from "./plan-days";
 import { planStatusLabel } from "./plan-parts";
 
 const FILTER_STATUSES: ApplicationStatus[] = [
@@ -24,7 +24,8 @@ export function PlanToolbar({
 	filter,
 	onFilterChange,
 }: Readonly<{
-	rows: readonly PlanRow[];
+	/** The application rows and the events in the plan, for the kontaktperson choices. */
+	rows: readonly Pick<PlanRow | PlanEventRow, "responsibleUserId" | "responsibleName">[];
 	filter: PlanFilter;
 	onFilterChange: (filter: PlanFilter) => void;
 }>) {

@@ -1,54 +1,66 @@
-import { osloToday } from "@workspace/shared/time";
+import { compareSemesters, osloToday } from "@workspace/shared/time";
 import { v } from "convex/values";
-import { query } from "../../_generated/server";
+import type { Doc } from "../../_generated/dataModel";
+import { type QueryCtx, query } from "../../_generated/server";
 import { internalRoles, requireRole } from "../../auth/accessRights";
 import schema from "../../schema";
 import { semesterTerm } from "../schema";
-import { acceptsApplications, listSemesterDates, requireSemester, semesterSortKey } from "./helper";
+import { acceptsApplications, listSemesterDates, requireSemester } from "./helper";
 
 // Two semesters a year; this covers 50 years of history.
 const MAX_SEMESTERS = 100;
 
+/** What Hugin and Midgard see of a semester that takes applications. */
+const openSemesterValidator = v.object({
+	_id: v.id("semesters"),
+	year: v.number(),
+	term: semesterTerm,
+	applicationDeadline: v.string(),
+	infoText: v.optional(v.string()),
+	termsUrl: v.optional(v.string()),
+	dates: v.array(v.string()),
+});
+
+async function toOpenSemester(
+	ctx: QueryCtx,
+	semester: Doc<"semesters"> & { applicationDeadline: string },
+) {
+	const dates = await listSemesterDates(ctx, semester._id);
+	return {
+		_id: semester._id,
+		year: semester.year,
+		term: semester.term,
+		applicationDeadline: semester.applicationDeadline,
+		...(semester.infoText !== undefined ? { infoText: semester.infoText } : {}),
+		...(semester.termsUrl !== undefined ? { termsUrl: semester.termsUrl } : {}),
+		dates: dates.filter((date) => date.closedLabel === undefined).map((date) => date.date),
+	};
+}
+
 /**
- * Fetches the semester that is open for applications, for Hugin and Midgard. Public: it returns
- * only the open dates and the texts companies need, and nothing about other applications.
+ * The semesters that take applications right now, earliest first, for Hugin and Midgard. Public:
+ * it returns only the open dates and the texts companies need, and nothing about other
+ * applications.
  *
- * @returns {object | null} - The open semester, or null when applications are closed or a hard
+ * @returns {object[]} - The open semesters; empty when applications are closed or every hard
  * deadline has passed.
  */
-export const getOpenForApplications = query({
+export const listOpenForApplications = query({
 	args: {},
-	returns: v.union(
-		v.null(),
-		v.object({
-			_id: v.id("semesters"),
-			year: v.number(),
-			term: semesterTerm,
-			applicationDeadline: v.string(),
-			infoText: v.optional(v.string()),
-			termsUrl: v.optional(v.string()),
-			dates: v.array(v.string()),
-		}),
-	),
+	returns: v.array(openSemesterValidator),
 	handler: async (ctx) => {
-		const semester = await ctx.db
+		const today = osloToday(Date.now());
+		const open = await ctx.db
 			.query("semesters")
 			.withIndex("by_status", (q) => q.eq("status", "open"))
-			.first();
-		if (!semester?.applicationDeadline) return null;
-		if (!acceptsApplications(semester, osloToday(Date.now()))) return null;
-
-		const dates = await listSemesterDates(ctx, semester._id);
-
-		return {
-			_id: semester._id,
-			year: semester.year,
-			term: semester.term,
-			applicationDeadline: semester.applicationDeadline,
-			...(semester.infoText !== undefined ? { infoText: semester.infoText } : {}),
-			...(semester.termsUrl !== undefined ? { termsUrl: semester.termsUrl } : {}),
-			dates: dates.filter((date) => date.closedLabel === undefined).map((date) => date.date),
-		};
+			.take(MAX_SEMESTERS);
+		const accepting = open
+			.filter(
+				(semester): semester is Doc<"semesters"> & { applicationDeadline: string } =>
+					semester.applicationDeadline !== undefined && acceptsApplications(semester, today),
+			)
+			.sort(compareSemesters);
+		return Promise.all(accepting.map((semester) => toOpenSemester(ctx, semester)));
 	},
 });
 
@@ -69,7 +81,7 @@ export const list = query({
 			.withIndex("by_year_and_term")
 			.order("desc")
 			.take(MAX_SEMESTERS);
-		return semesters.sort((a, b) => semesterSortKey(b) - semesterSortKey(a));
+		return semesters.sort((a, b) => compareSemesters(b, a));
 	},
 });
 

@@ -40,11 +40,11 @@ import { PracticalQuestions } from "./practical-questions";
 import { useApplicationForm } from "./use-application-form";
 import { useDraftAutosave } from "./use-draft-autosave";
 
-export type OpenSemester = NonNullable<
-	FunctionReturnType<typeof api.semesterPlanning.semesters.queries.getOpenForApplications>
->;
+export type OpenSemester = FunctionReturnType<
+	typeof api.semesterPlanning.semesters.queries.listOpenForApplications
+>[number];
 
-/** The Hugin application form for the open semester, saved as a draft while it is filled in. */
+/** The Hugin application form for one open semester, saved as a draft while it is filled in. */
 export function ApplicationForm({ semester }: Readonly<{ semester: OpenSemester }>) {
 	const router = useRouter();
 	const submit = useAction(api.semesterPlanning.applications.submit.submit);
@@ -74,6 +74,7 @@ export function ApplicationForm({ semester }: Readonly<{ semester: OpenSemester 
 
 			try {
 				await submit({
+					semesterId: semester._id,
 					form: application,
 					submissionId: initial.submissionId,
 					website: honeypot.current?.value || undefined,
@@ -91,7 +92,7 @@ export function ApplicationForm({ semester }: Readonly<{ semester: OpenSemester 
 					late,
 				}),
 			);
-			clearDraft();
+			clearDraft(semester._id);
 			router.push("/bestill-bedpres/kvittering");
 		},
 		onSubmitInvalid: (draft) => {

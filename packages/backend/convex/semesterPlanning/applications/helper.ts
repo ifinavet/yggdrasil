@@ -63,7 +63,37 @@ export const planRowValidator = v.object({
 export type PlanRow = Infer<typeof planRowValidator>;
 
 /** The kontaktperson and medhjelpere from Navet for one company. */
-type NavetTeam = { responsible: Doc<"users"> | null; helpers: Doc<"users">[] };
+export type NavetTeam = { responsible: Doc<"users"> | null; helpers: Doc<"users">[] };
+
+async function loadUsers(ctx: QueryCtx, ids: Id<"users">[]): Promise<Doc<"users">[]> {
+	return (await Promise.all(ids.map((id) => ctx.db.get(id)))).filter(
+		(user): user is Doc<"users"> => user !== null,
+	);
+}
+
+/**
+ * Who from Navet runs an event, from its organizers.
+ *
+ * @param {QueryCtx} ctx - The Convex query context.
+ * @param {Id<"events">} eventId - The event.
+ *
+ * @returns {Promise<NavetTeam>} - The hovedansvarlig, if any, and the medhjelpere.
+ */
+export async function loadEventTeam(ctx: QueryCtx, eventId: Id<"events">): Promise<NavetTeam> {
+	const organizers = await ctx.db
+		.query("eventOrganizers")
+		.withIndex("by_eventId", (q) => q.eq("eventId", eventId))
+		.collect();
+	const [responsible] = await loadUsers(
+		ctx,
+		organizers.filter((o) => o.role === "hovedansvarlig").map((o) => o.userId),
+	);
+	const helpers = await loadUsers(
+		ctx,
+		organizers.filter((o) => o.role === "medhjelper").map((o) => o.userId),
+	);
+	return { responsible: responsible ?? null, helpers };
+}
 
 /**
  * Who from Navet runs a company's event. Once the event exists its organizers are the truth, since
@@ -78,35 +108,18 @@ export async function loadNavetTeam(
 	ctx: QueryCtx,
 	application: Doc<"companyApplications">,
 ): Promise<NavetTeam> {
-	const users = async (ids: Id<"users">[]) =>
-		(await Promise.all(ids.map((id) => ctx.db.get(id)))).filter(
-			(user): user is Doc<"users"> => user !== null,
-		);
-
-	if (application.eventId) {
-		const eventId = application.eventId;
-		const organizers = await ctx.db
-			.query("eventOrganizers")
-			.withIndex("by_eventId", (q) => q.eq("eventId", eventId))
-			.collect();
-		const [responsible] = await users(
-			organizers.filter((o) => o.role === "hovedansvarlig").map((o) => o.userId),
-		);
-		const helpers = await users(
-			organizers.filter((o) => o.role === "medhjelper").map((o) => o.userId),
-		);
-		return { responsible: responsible ?? null, helpers };
-	}
+	if (application.eventId) return loadEventTeam(ctx, application.eventId);
 
 	return {
 		responsible: application.responsibleUserId
 			? await ctx.db.get(application.responsibleUserId)
 			: null,
-		helpers: await users(application.helperUserIds ?? []),
+		helpers: await loadUsers(ctx, application.helperUserIds ?? []),
 	};
 }
 
-const fullName = (user: Doc<"users">) => `${user.firstName} ${user.lastName}`;
+/** «Kari Nordmann» */
+export const fullName = (user: Doc<"users">) => `${user.firstName} ${user.lastName}`;
 
 /**
  * Builds the plan row for an application. Fields are copied one by one, so a new field on the

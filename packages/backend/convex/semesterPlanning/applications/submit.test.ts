@@ -72,14 +72,29 @@ async function applications(t: TestBackend) {
 	return t.run((ctx) => ctx.db.query("companyApplications").collect());
 }
 
+/** The semester Hugin would pick: the open one, else whatever semester exists. */
+async function chosenSemesterId(t: TestBackend): Promise<Id<"semesters">> {
+	const semester = await t.run(
+		async (ctx) =>
+			(await ctx.db
+				.query("semesters")
+				.withIndex("by_status", (q) => q.eq("status", "open"))
+				.first()) ?? (await ctx.db.query("semesters").first()),
+	);
+	if (!semester) throw new Error("Expected a semester.");
+	return semester._id;
+}
+
 async function submitWith(
 	t: TestBackend,
 	{
+		semesterId,
 		form = validForm(),
 		stubs = {},
 		submissionId = nextSubmissionId(),
 		website,
 	}: {
+		semesterId?: Id<"semesters">;
 		form?: Form;
 		stubs?: RegistryStubs;
 		submissionId?: string;
@@ -88,6 +103,7 @@ async function submitWith(
 ) {
 	stubRegistries(stubs);
 	return t.action(submit, {
+		semesterId: semesterId ?? (await chosenSemesterId(t)),
 		// biome-ignore lint/suspicious/noExplicitAny: the refusal cases deliberately send invalid forms.
 		form: form as any,
 		submissionId,
@@ -271,6 +287,7 @@ describe("submit", () => {
 
 		expect(
 			await t.action(submit, {
+				semesterId: await chosenSemesterId(t),
 				form: validForm(),
 				submissionId: nextSubmissionId(),
 				website: "http://spam",
@@ -356,11 +373,63 @@ describe("submit", () => {
 		expect(await applications(t)).toHaveLength(0);
 	});
 
-	it("refuses when no semester is open", async () => {
+	it("refuses a semester that is not open", async () => {
 		const { t } = await setup();
-		await insertSemester(t, { status: "draft" });
+		const draft = await insertSemester(t, { status: "draft" });
+		expect(await refusalMessageFrom(submitWith(t, { semesterId: draft }))).toBe(
+			"Søknadene er stengt.",
+		);
 
-		expect(await refusalMessageFrom(submitWith(t))).toBe("Søknadene er stengt.");
+		await t.run((ctx) => ctx.db.patch(draft, { status: "closed" }));
+		expect(await refusalMessageFrom(submitWith(t, { semesterId: draft }))).toBe(
+			"Søknadene er stengt.",
+		);
+	});
+
+	it("saves into the chosen semester when two are open", async () => {
+		const { t } = await setup();
+		const spring = await withOpenSemester(t);
+		const autumn = await insertSemester(t, {
+			year: 2026,
+			term: "autumn",
+			firstDate: "2026-08-18",
+			lastDate: "2026-11-26",
+			applicationDeadline: "2026-06-01",
+			status: "open",
+		});
+		await t.run((ctx) =>
+			ctx.db.insert("semesterDates", { semesterId: autumn, date: "2026-09-29" }),
+		);
+
+		await submitWith(t, {
+			semesterId: autumn,
+			form: validForm({ availableDates: ["2026-09-29"] }),
+		});
+		await submitWith(t, { semesterId: spring });
+
+		expect((await applications(t)).map((application) => application.semesterId).sort()).toEqual(
+			[autumn, spring].sort(),
+		);
+	});
+
+	it("refuses dates that belong to another open semester", async () => {
+		const { t } = await setup();
+		await withOpenSemester(t);
+		const autumn = await insertSemester(t, {
+			year: 2026,
+			term: "autumn",
+			applicationDeadline: "2026-06-01",
+			status: "open",
+		});
+		await t.run((ctx) =>
+			ctx.db.insert("semesterDates", { semesterId: autumn, date: "2026-09-29" }),
+		);
+
+		// Spring dates sent with the autumn semester.
+		expect(await refusalMessageFrom(submitWith(t, { semesterId: autumn }))).toBe(
+			"Én eller flere av datoene er ikke åpne lenger. Last inn siden på nytt.",
+		);
+		expect(await applications(t)).toHaveLength(0);
 	});
 
 	it("rate limits one company after five applications in an hour", async () => {

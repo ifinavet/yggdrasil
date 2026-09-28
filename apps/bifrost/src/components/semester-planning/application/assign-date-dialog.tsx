@@ -48,7 +48,7 @@ export function useAssignDate(application: Application, companyName: string) {
 					if (date === null) toast.success("Datoen er fjernet.");
 					else if (outsideAvailable)
 						toast.warning(
-							`${companyName} har ikke krysset av ${shortDay(date)}. Datoen er tildelt likevel.`,
+							`${companyName} har ikke krysset av ${shortDay(date)}. Datoen er valgt likevel.`,
 						);
 					else toast.success(`${companyName} har fått ${shortDay(date)}.`);
 				},
@@ -119,7 +119,7 @@ export function AssignDateDialog({
 		<Dialog open={open} onOpenChange={close}>
 			<DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
 				<DialogHeader>
-					<DialogTitle>Tildel dato til {companyName}</DialogTitle>
+					<DialogTitle>Velg dato for {companyName}</DialogTitle>
 					<DialogDescription>{assignDescription(application)}</DialogDescription>
 				</DialogHeader>
 
@@ -140,7 +140,7 @@ export function AssignDateDialog({
 
 				{pickedOption && !pickedOption.checked && !pickedOption.requested && (
 					<p role="alert" className="font-medium text-attention text-sm">
-						{companyName} har ikke krysset av {shortDay(pickedOption.date)}. Du kan tildele den
+						{companyName} har ikke krysset av {shortDay(pickedOption.date)}. Du kan velge den
 						likevel.
 					</p>
 				)}
@@ -176,8 +176,8 @@ function assignDescription(application: Application): string {
 }
 
 function assignLabel(pending: boolean, picked: string | undefined): string {
-	if (pending) return "Tildeler...";
-	return picked ? `Tildel ${shortDay(picked)}` : "Tildel dato";
+	if (pending) return "Velger …";
+	return picked ? `Velg ${shortDay(picked)}` : "Velg dato";
 }
 
 /** The chip style for a day: picked, blocked or free. */

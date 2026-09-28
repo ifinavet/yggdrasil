@@ -165,6 +165,9 @@ import type * as semesterPlanning_offers_emails from "../semesterPlanning/offers
 import type * as semesterPlanning_offers_helper from "../semesterPlanning/offers/helper.js";
 import type * as semesterPlanning_offers_mutations from "../semesterPlanning/offers/mutations.js";
 import type * as semesterPlanning_offers_queries from "../semesterPlanning/offers/queries.js";
+import type * as semesterPlanning_planEvents_helper from "../semesterPlanning/planEvents/helper.js";
+import type * as semesterPlanning_planEvents_mutations from "../semesterPlanning/planEvents/mutations.js";
+import type * as semesterPlanning_planEvents_queries from "../semesterPlanning/planEvents/queries.js";
 import type * as semesterPlanning_rateLimits from "../semesterPlanning/rateLimits.js";
 import type * as semesterPlanning_registry_actions from "../semesterPlanning/registry/actions.js";
 import type * as semesterPlanning_registry_client from "../semesterPlanning/registry/client.js";
@@ -348,6 +351,9 @@ declare const fullApi: ApiFromModules<{
   "semesterPlanning/offers/helper": typeof semesterPlanning_offers_helper;
   "semesterPlanning/offers/mutations": typeof semesterPlanning_offers_mutations;
   "semesterPlanning/offers/queries": typeof semesterPlanning_offers_queries;
+  "semesterPlanning/planEvents/helper": typeof semesterPlanning_planEvents_helper;
+  "semesterPlanning/planEvents/mutations": typeof semesterPlanning_planEvents_mutations;
+  "semesterPlanning/planEvents/queries": typeof semesterPlanning_planEvents_queries;
   "semesterPlanning/rateLimits": typeof semesterPlanning_rateLimits;
   "semesterPlanning/registry/actions": typeof semesterPlanning_registry_actions;
   "semesterPlanning/registry/client": typeof semesterPlanning_registry_client;

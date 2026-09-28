@@ -166,7 +166,7 @@ describe("setRange", () => {
 		);
 
 		expect(message).toBe(
-			"2027-02-09 er tildelt FJORDKODE AS. Flytt søknaden før du endrer perioden.",
+			"2027-02-09 er gitt til FJORDKODE AS. Flytt søknaden før du endrer perioden.",
 		);
 		expect(await datesOf(t, semesterId)).toHaveLength(8);
 	});
@@ -237,7 +237,7 @@ describe("setDateClosed", () => {
 		const message = await refusalMessageFrom(
 			editor.mutation(mutations.setDateClosed, { dateId, label: "Påske" }),
 		);
-		expect(message).toBe("Datoen er tildelt FJORDKODE AS. Flytt søknaden først.");
+		expect(message).toBe("Datoen er gitt til FJORDKODE AS. Flytt søknaden først.");
 	});
 
 	it("allows closing a date held only by a withdrawn application", async () => {
@@ -273,7 +273,7 @@ describe("setDateClosed", () => {
 		const message = await refusalMessageFrom(
 			editor.mutation(mutations.setDateClosed, { dateId, label: "" }),
 		);
-		expect(message).toBe("Datoen er tildelt FJORDKODE AS. Flytt søknaden først.");
+		expect(message).toBe("Datoen er gitt til FJORDKODE AS. Flytt søknaden først.");
 	});
 });
 
@@ -337,16 +337,21 @@ describe("setStatus", () => {
 		expect(message).toBe("Semesteret har ingen åpne datoer.");
 	});
 
-	it("refuses to open a second semester", async () => {
+	it("opens a second semester while another is open, so companies can choose", async () => {
 		const { t } = await setup();
-		await insertSemester(t, { year: 2026, term: "autumn", status: "open" });
-		const semesterId = await insertSemester(t, { status: "draft" });
+		const autumn = await insertSemester(t, {
+			year: 2026,
+			term: "autumn",
+			status: "open",
+			lastDate: "2099-11-26",
+		});
+		const semesterId = await insertSemester(t, { status: "draft", lastDate: "2099-05-13" });
 		await t.run((ctx) => ctx.db.insert("semesterDates", { semesterId, date: "2027-01-21" }));
 
-		const message = await refusalMessageFrom(
-			(await editorOf(t)).mutation(mutations.setStatus, { semesterId, status: "open" }),
-		);
-		expect(message).toBe("Høsten 2026 er allerede åpent. Steng det først.");
+		await (await editorOf(t)).mutation(mutations.setStatus, { semesterId, status: "open" });
+
+		expect((await semesterById(t, autumn)).status).toBe("open");
+		expect((await semesterById(t, semesterId)).status).toBe("open");
 	});
 
 	it("refuses to open a semester whose last date has passed", async () => {
@@ -573,6 +578,11 @@ describe("finalizePlan", () => {
 describe("rolloverSemesters (rollover cron)", () => {
 	const rolloverSemesters = internal.semesterPlanning.semesters.mutations.rolloverSemesters;
 
+	async function termsOf(t: TestBackend, ids: Id<"semesters">[]) {
+		const semesters = await Promise.all(ids.map((id) => semesterById(t, id)));
+		return semesters.map((semester) => [semester.year, semester.term]);
+	}
+
 	it("creates next semester as an empty draft with inherited settings", async () => {
 		const { t } = await setup();
 		await insertSemester(t, {
@@ -587,8 +597,8 @@ describe("rolloverSemesters (rollover cron)", () => {
 		});
 
 		expect(result.closedSemesters).toBe(0);
-		expect(result.createdSemesterId).not.toBeNull();
-		const created = await semesterById(t, result.createdSemesterId as Id<"semesters">);
+		expect(result.createdSemesterIds).toHaveLength(1);
+		const created = await semesterById(t, result.createdSemesterIds[0] as Id<"semesters">);
 		expect(created).toMatchObject({
 			year: 2027,
 			term: "spring",
@@ -600,15 +610,28 @@ describe("rolloverSemesters (rollover cron)", () => {
 		expect(await datesOf(t, created._id)).toHaveLength(0);
 	});
 
-	it("is idempotent: running twice creates one semester", async () => {
+	it("also creates the running semester when it is missing", async () => {
+		const { t } = await setup();
+
+		const result = await t.mutation(rolloverSemesters, {
+			now: Date.parse("2026-09-28T10:00:00Z"),
+		});
+
+		expect(await termsOf(t, result.createdSemesterIds)).toEqual([
+			[2026, "autumn"],
+			[2027, "spring"],
+		]);
+	});
+
+	it("is idempotent: running twice creates the semesters once", async () => {
 		const { t } = await setup();
 		const now = Date.parse("2026-09-23T10:00:00Z");
 
 		await t.mutation(rolloverSemesters, { now });
 		const second = await t.mutation(rolloverSemesters, { now });
 
-		expect(second.createdSemesterId).toBeNull();
-		expect(await t.run((ctx) => ctx.db.query("semesters").collect())).toHaveLength(1);
+		expect(second.createdSemesterIds).toEqual([]);
+		expect(await t.run((ctx) => ctx.db.query("semesters").collect())).toHaveLength(2);
 	});
 
 	it("uses the Oslo day: 30 June 23:30 in Oslo is still spring, so autumn comes next", async () => {
@@ -617,9 +640,11 @@ describe("rolloverSemesters (rollover cron)", () => {
 		const result = await t.mutation(rolloverSemesters, {
 			now: Date.parse("2026-06-30T21:30:00Z"),
 		});
-		const created = await semesterById(t, result.createdSemesterId as Id<"semesters">);
 
-		expect([created.year, created.term]).toEqual([2026, "autumn"]);
+		expect(await termsOf(t, result.createdSemesterIds)).toEqual([
+			[2026, "spring"],
+			[2026, "autumn"],
+		]);
 	});
 
 	it("uses the Oslo day: 1 July 00:30 in Oslo is autumn, so spring comes next", async () => {
@@ -628,9 +653,11 @@ describe("rolloverSemesters (rollover cron)", () => {
 		const result = await t.mutation(rolloverSemesters, {
 			now: Date.parse("2026-06-30T22:30:00Z"),
 		});
-		const created = await semesterById(t, result.createdSemesterId as Id<"semesters">);
 
-		expect([created.year, created.term]).toEqual([2027, "spring"]);
+		expect(await termsOf(t, result.createdSemesterIds)).toEqual([
+			[2026, "autumn"],
+			[2027, "spring"],
+		]);
 	});
 
 	it("closes open semesters whose last date has passed, and nothing else", async () => {
@@ -679,7 +706,7 @@ describe("rolloverSemesters (rollover cron)", () => {
 });
 
 describe("queries", () => {
-	it("getOpenForApplications returns only open dates and needs no login", async () => {
+	it("listOpenForApplications returns only open dates and needs no login", async () => {
 		const { t } = await setup();
 		const semesterId = await insertSemester(t, { status: "open", infoText: "Hei" });
 		await t.run(async (ctx) => {
@@ -692,7 +719,7 @@ describe("queries", () => {
 		});
 		await insertApplication(t, semesterId, { assignedDate: "2027-01-21", status: "confirmed" });
 
-		const open = await t.query(queries.getOpenForApplications, {});
+		const [open] = await t.query(queries.listOpenForApplications, {});
 
 		expect(open).toEqual({
 			_id: semesterId,
@@ -704,24 +731,56 @@ describe("queries", () => {
 		});
 	});
 
-	it("getOpenForApplications returns null when no semester is open", async () => {
+	it("listOpenForApplications leaves out an open semester without a deadline", async () => {
 		const { t } = await setup();
-		await insertSemester(t, { status: "draft" });
+		await insertSemester(t, { status: "open", applicationDeadline: undefined });
 
-		expect(await t.query(queries.getOpenForApplications, {})).toBeNull();
+		expect(await t.query(queries.listOpenForApplications, {})).toEqual([]);
 	});
 
-	it("getOpenForApplications returns null after a hard deadline, but not a soft one", async () => {
+	it("listOpenForApplications lists the open semesters earliest first, with their open dates", async () => {
 		const { t } = await setup();
-		const semesterId = await insertSemester(t, {
+		const spring = await insertSemester(t, { status: "open" });
+		const autumn = await insertSemester(t, {
+			year: 2026,
+			term: "autumn",
+			applicationDeadline: "2026-06-01",
+			status: "open",
+		});
+		await insertSemester(t, { year: 2027, term: "autumn", status: "draft" });
+		await t.run(async (ctx) => {
+			await ctx.db.insert("semesterDates", { semesterId: spring, date: "2027-01-21" });
+			await ctx.db.insert("semesterDates", { semesterId: autumn, date: "2026-09-29" });
+			await ctx.db.insert("semesterDates", {
+				semesterId: autumn,
+				date: "2026-10-01",
+				closedLabel: "",
+			});
+		});
+
+		const open = await t.query(queries.listOpenForApplications, {});
+
+		expect(open.map((semester) => [semester._id, semester.dates])).toEqual([
+			[autumn, ["2026-09-29"]],
+			[spring, ["2027-01-21"]],
+		]);
+	});
+
+	it("listOpenForApplications leaves out drafts and semesters past a hard deadline", async () => {
+		const { t } = await setup();
+		await insertSemester(t, { status: "draft" });
+		const passed = await insertSemester(t, {
+			year: 2026,
+			term: "autumn",
 			status: "open",
 			applicationDeadline: "2020-01-01",
+			hardDeadline: true,
 		});
-		await t.run((ctx) => ctx.db.insert("semesterDates", { semesterId, date: "2027-01-21" }));
 
-		expect(await t.query(queries.getOpenForApplications, {})).not.toBeNull();
-		await t.run((ctx) => ctx.db.patch(semesterId, { hardDeadline: true }));
-		expect(await t.query(queries.getOpenForApplications, {})).toBeNull();
+		expect(await t.query(queries.listOpenForApplications, {})).toEqual([]);
+
+		await t.run((ctx) => ctx.db.patch(passed, { hardDeadline: false }));
+		expect(await t.query(queries.listOpenForApplications, {})).toHaveLength(1);
 	});
 
 	it("list and get require an internal member", async () => {
