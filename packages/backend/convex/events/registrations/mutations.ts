@@ -73,6 +73,12 @@ export const acceptPendingRegistration = mutation({
 
 const ATTENDANCE_POINTS = { confirmed: 0, late: 1, no_show: 2 } as const;
 
+function attendancePointsReason(status: "late" | "no_show", eventTitle: string | undefined) {
+	return status === "late"
+		? `Du fikk 1 prikk for å være for sen til arrangementet "${eventTitle}".`
+		: `Du fikk 2 prikker for å ikke møte til arrangementet "${eventTitle}".`;
+}
+
 /**
  * Updates the attendance status for a registration and applies points when needed.
  *
@@ -109,6 +115,8 @@ export const updateAttendance = mutation({
 			attendanceTime: Date.now(),
 		});
 
+		const previousStatus = registration.attendanceStatus;
+		if (previousStatus === newStatus) return;
 		if (registration.status !== "registered") return;
 		const participant = await ctx.db.get(registration.userId);
 		if (participant?.deleted) return;
@@ -130,14 +138,28 @@ export const updateAttendance = mutation({
 			.query("points")
 			.withIndex("by_registrationId", (q) => q.eq("registrationId", id))
 			.take(10);
+		if (
+			previousPoints.length === 0 &&
+			(previousStatus === "late" || previousStatus === "no_show")
+		) {
+			const legacyReason = attendancePointsReason(previousStatus, event?.title);
+			const studentPoints = await ctx.db
+				.query("points")
+				.withIndex("by_studentId", (q) => q.eq("studentId", student._id))
+				.take(100);
+			const legacyPoint = studentPoints.find(
+				(point) =>
+					point.registrationId === undefined &&
+					point.reason === legacyReason &&
+					point.severity === ATTENDANCE_POINTS[previousStatus],
+			);
+			if (legacyPoint) previousPoints.push(legacyPoint);
+		}
 		if (previousPoints.reduce((sum, point) => sum + point.severity, 0) === severity) return;
 		await Promise.all(previousPoints.map((point) => ctx.db.delete(point._id)));
 
 		if (newStatus === "late" || newStatus === "no_show") {
-			const reason =
-				newStatus === "late"
-					? `Du fikk 1 prikk for å være for sen til arrangementet "${event?.title}".`
-					: `Du fikk 2 prikker for å ikke møte til arrangementet "${event?.title}".`;
+			const reason = attendancePointsReason(newStatus, event?.title);
 
 			await ctx.runMutation(internal.points.mutations.givePointsInternal, {
 				id: student._id,

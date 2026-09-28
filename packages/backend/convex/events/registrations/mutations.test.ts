@@ -666,8 +666,56 @@ describe("updateAttendance", () => {
 		await insertOrganizer(t, eventId, organizer._id);
 		const mark = (newStatus: "confirmed" | "late" | "no_show") =>
 			asUser(t, organizer).mutation(mutations.updateAttendance, { id: registrationId, newStatus });
-		return { t, studentId, mark };
+		return { t, studentId, eventId, registrationId, mark };
 	}
+
+	async function insertLegacyNoShow(
+		t: Awaited<ReturnType<typeof attendanceScenario>>["t"],
+		{ studentId, eventId, registrationId }: Awaited<ReturnType<typeof attendanceScenario>>,
+	) {
+		await t.run(async (ctx) => {
+			const event = await ctx.db.get(eventId);
+			await ctx.db.patch(registrationId, { attendanceStatus: "no_show" });
+			await ctx.db.insert("points", {
+				studentId,
+				severity: 2,
+				reason: `Du fikk 2 prikker for å ikke møte til arrangementet "${event?.title}".`,
+			});
+			await ctx.db.insert("points", { studentId, reason: "Manuell prikk", severity: 1 });
+		});
+	}
+
+	it("refunds a no-show penalty given before points were linked to registrations", async () => {
+		const scenario = await attendanceScenario();
+		await insertLegacyNoShow(scenario.t, scenario);
+
+		await scenario.mark("confirmed");
+
+		expect(await totalPointsFor(scenario.t, scenario.studentId)).toBe(1);
+	});
+
+	it("replaces an unlinked no-show penalty when corrected to late", async () => {
+		const scenario = await attendanceScenario();
+		await insertLegacyNoShow(scenario.t, scenario);
+
+		await scenario.mark("late");
+
+		expect(await totalPointsFor(scenario.t, scenario.studentId)).toBe(2);
+	});
+
+	it("does not recreate an expired penalty when the same status is set again", async () => {
+		const { t, studentId, mark } = await attendanceScenario();
+
+		await mark("no_show");
+		await t.run(async (ctx) => {
+			const points = await ctx.db.query("points").collect();
+			await Promise.all(points.map((point) => ctx.db.delete(point._id)));
+		});
+		await mark("no_show");
+
+		expect(await totalPointsFor(t, studentId)).toBe(0);
+		expect(await scheduledRecipientsOf(t, "sendGottenPointsEmail")).toHaveLength(1);
+	});
 
 	it("refunds the points when a no-show is corrected to confirmed", async () => {
 		const { t, studentId, mark } = await attendanceScenario();
