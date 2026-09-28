@@ -12,7 +12,7 @@ import {
 	setup,
 	type TestBackend,
 } from "../../../test/fixtures";
-import { api } from "../../_generated/api";
+import { api, internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 
 const offers = api.semesterPlanning.offers;
@@ -47,6 +47,14 @@ async function sendAndGetToken(
 	return linkToken;
 }
 
+async function scheduledOfferEmails(t: TestBackend) {
+	return t.run(async (ctx) =>
+		(await ctx.db.system.query("_scheduled_functions").collect())
+			.filter((job) => job.name.endsWith("sendOfferEmail"))
+			.map((job) => job.args[0] as { offerId: Id<"companyApplicationOffers"> }),
+	);
+}
+
 async function offersOf(t: TestBackend, applicationId: Id<"companyApplications">) {
 	return t.run((ctx) =>
 		ctx.db
@@ -57,10 +65,12 @@ async function offersOf(t: TestBackend, applicationId: Id<"companyApplications">
 }
 
 describe("send", () => {
-	it("makes a link for Navet to send by hand", async () => {
+	it("makes an offer and emails its link to the company", async () => {
 		const { t, applicationId, editor, editorUser } = await offerSetup();
 
-		const token = await sendAndGetToken(editor, applicationId);
+		const { offerId, linkToken: token } = await editor.mutation(offers.mutations.sendOffer, {
+			applicationId,
+		});
 
 		const [offer] = await offersOf(t, applicationId);
 		expect(offer).toMatchObject({
@@ -71,9 +81,19 @@ describe("send", () => {
 			sentBy: editorUser._id,
 		});
 		expect(token).toMatch(/^[A-Za-z0-9_-]{43}$/);
-		// The link can be copied again from Bifrost, which builds it from the token.
 		expect(offer?.linkToken).toBe(token);
-		expect((await applicationById(t, applicationId)).status).toBe("offer_sent");
+		expect(offer?._id).toBe(offerId);
+		expect(await scheduledOfferEmails(t)).toEqual([{ offerId }]);
+		const application = await applicationById(t, applicationId);
+		expect(
+			await t.query(internal.semesterPlanning.offers.queries.emailContext, { offerId }),
+		).toEqual({
+			to: application.contact.email,
+			contactName: application.contact.name,
+			date: "2027-02-09",
+			linkToken: token,
+		});
+		expect(application.status).toBe("offer_sent");
 		expect((await activityFor(t, applicationId)).at(-1)).toMatchObject({
 			type: "status_changed",
 			toStatus: "offer_sent",
@@ -81,7 +101,19 @@ describe("send", () => {
 		});
 	});
 
-	it("gives the same link again while the offer waits for an answer", async () => {
+	it("has nothing to email once the offer is answered", async () => {
+		const { t, applicationId, editor } = await offerSetup();
+		const { offerId, linkToken } = await editor.mutation(offers.mutations.sendOffer, {
+			applicationId,
+		});
+		await t.mutation(offers.mutations.decline, { token: linkToken });
+
+		expect(
+			await t.query(internal.semesterPlanning.offers.queries.emailContext, { offerId }),
+		).toBeNull();
+	});
+
+	it("gives the same link again without a new email while the offer waits for an answer", async () => {
 		const { t, applicationId, editor } = await offerSetup();
 
 		const first = await editor.mutation(offers.mutations.sendOffer, { applicationId });
@@ -90,6 +122,7 @@ describe("send", () => {
 
 		expect(second).toEqual(first);
 		expect(await offersOf(t, applicationId)).toHaveLength(1);
+		expect(await scheduledOfferEmails(t)).toHaveLength(1);
 		expect(await activityFor(t, applicationId)).toHaveLength(historyAfterFirst);
 		expect(await t.query(offers.queries.getByToken, { token: first.linkToken })).toMatchObject({
 			state: "pending",

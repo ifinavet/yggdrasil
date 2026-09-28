@@ -5,11 +5,10 @@ import { Button } from "@workspace/ui/components/button";
 import { Callout } from "@workspace/ui/components/products/callout";
 import { Panel, PanelBody } from "@workspace/ui/components/products/panel";
 import { useMutation } from "convex/react";
-import { Link2, type LucideIcon } from "lucide-react";
+import { type LucideIcon, Send } from "lucide-react";
 import { Fragment, type ReactNode, useState } from "react";
 import { toast } from "sonner";
 import { capitalize, formatMoment, longDay, shortDay, shortDayTitle } from "../format";
-import { OfferLink, offerEmail, offerUrl } from "../offer-link";
 import { isActiveStatus } from "../status";
 import { StatusIcon } from "../status-badge";
 import { AssignDateDialog, useAssignDate } from "./assign-date-dialog";
@@ -88,14 +87,14 @@ export function StatusCard({
 				? [
 						!semesterClosed &&
 							act(
-								"Lag tilbud",
+								"Send tilbud",
 								() =>
 									run(
 										() => sendOffer({ applicationId: application._id }),
-										() => toast.success("Tilbudet er klart. Send lenken til bedriften på e-post."),
+										() => toast.success("Tilbudet er sendt til bedriften på e-post."),
 									),
 								"default",
-								Link2,
+								Send,
 							),
 						!semesterClosed && act("Fjern dato", () => assign(null), "outline"),
 						withdrawButton,
@@ -160,10 +159,6 @@ export function StatusCard({
 						(status === "applied" || status === "new_date_requested") &&
 						" Semesteret er stengt, så datoer og tilbud kan ikke endres."}
 				</Callout>
-
-				{status === "offer_sent" && offer?.status === "pending" && (
-					<PendingOfferLink application={application} offer={offer} />
-				)}
 
 				{canAssign && (
 					<AssignDateDialog
@@ -275,28 +270,6 @@ function ConfirmedMessage({
 	);
 }
 
-/** The link to the open offer, and the email text to send it with. */
-function PendingOfferLink({
-	application,
-	offer,
-}: Readonly<{
-	application: ApplicationDetails["application"];
-	offer: ApplicationDetails["offers"][number];
-}>) {
-	const url = offerUrl(offer.linkToken);
-	return (
-		<OfferLink
-			url={url}
-			email={offerEmail({
-				to: application.contact.email,
-				contactName: application.contact.name,
-				date: offer.date,
-				url,
-			})}
-		/>
-	);
-}
-
 /** What the status means and what happens next, in a sentence or two. */
 function StatusMessage({
 	details,
@@ -317,8 +290,7 @@ function StatusMessage({
 			if (assigned) {
 				return (
 					<>
-						Tildelt <b>{longDay(assigned)}</b>. Lag tilbudet, så får du en lenke å sende til
-						bedriften.
+						Tildelt <b>{longDay(assigned)}</b>. Send tilbudet, så får bedriften en lenke på e-post.
 					</>
 				);
 			}
@@ -331,8 +303,8 @@ function StatusMessage({
 		case "offer_sent":
 			return (
 				<>
-					Tilbudet gjelder <b>{assigned ? longDay(assigned) : "datoen"}</b>. Send lenken under til{" "}
-					{application.contact.name}; bedriften svarer der.
+					Tilbudet gjelder <b>{assigned ? longDay(assigned) : "datoen"}</b>. Lenken er sendt til{" "}
+					{application.contact.name} på e-post; bedriften svarer der.
 				</>
 			);
 		case "new_date_requested": {

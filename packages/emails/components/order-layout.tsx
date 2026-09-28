@@ -5,8 +5,9 @@ import { NAVET_LOGO_URL } from "../constants.js";
 
 export function OrderLayout({
 	preview,
+	contactEmail = JOB_LISTING_ORDER_EMAIL,
 	children,
-}: Readonly<{ preview: string; children: ReactNode }>) {
+}: Readonly<{ preview: string; contactEmail?: string; children: ReactNode }>) {
 	return (
 		<Html lang="no">
 			<Head />
@@ -25,7 +26,7 @@ export function OrderLayout({
 					<Text style={{ margin: "8px 0 0" }}>
 						Navet
 						<br />
-						<Link href={`mailto:${JOB_LISTING_ORDER_EMAIL}`}>{JOB_LISTING_ORDER_EMAIL}</Link>
+						<Link href={`mailto:${contactEmail}`}>{contactEmail}</Link>
 					</Text>
 				</Container>
 			</Body>

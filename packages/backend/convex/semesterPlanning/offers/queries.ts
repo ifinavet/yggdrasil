@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query } from "../../_generated/server";
+import { internalQuery, query } from "../../_generated/server";
 import { isActiveApplicationStatus } from "../rules";
 import { presentationEventType, venue } from "../schema";
 import { listSemesterDates, requireSemester } from "../semesters/helper";
@@ -70,6 +70,31 @@ export const getByToken = query({
 			...(offer.respondedAt ? { respondedAt: offer.respondedAt } : {}),
 			...(offer.requestedDates ? { requestedDates: offer.requestedDates } : {}),
 			...(openDates ? { openDates } : {}),
+		};
+	},
+});
+
+export const emailContext = internalQuery({
+	args: { offerId: v.id("companyApplicationOffers") },
+	returns: v.union(
+		v.null(),
+		v.object({
+			to: v.string(),
+			contactName: v.string(),
+			date: v.string(),
+			linkToken: v.string(),
+		}),
+	),
+	handler: async (ctx, { offerId }) => {
+		const offer = await ctx.db.get(offerId);
+		if (offer?.status !== "pending") return null;
+		const application = await ctx.db.get(offer.applicationId);
+		if (!application) return null;
+		return {
+			to: application.contact.email,
+			contactName: application.contact.name,
+			date: offer.date,
+			linkToken: offer.linkToken,
 		};
 	},
 });

@@ -109,3 +109,9 @@ export const applicationFormSchema = z
 	});
 
 export type ApplicationForm = z.infer<typeof applicationFormSchema>;
+
+export const OFFER_PATH = "/bestill-bedpres/tilbud";
+
+export function offerPath(token: string): string {
+	return `${OFFER_PATH}/${token}`;
+}

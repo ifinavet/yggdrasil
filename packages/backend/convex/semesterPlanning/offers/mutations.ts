@@ -1,5 +1,6 @@
 import { MAX_OFFER_COMMENT_LENGTH, MAX_REQUESTED_DATES } from "@workspace/shared/semester/limits";
 import { ConvexError, v } from "convex/values";
+import { internal } from "../../_generated/api";
 import { mutation } from "../../_generated/server";
 import { generateLinkToken } from "../../lib/tokens";
 import { requireEditorActor, transitionApplicationStatus } from "../applicationLifecycle";
@@ -12,9 +13,8 @@ const NEW_DATE_ALREADY_REQUESTED_MESSAGE =
 
 /**
  * Makes an offer for the application's assigned date with a new link token and moves the
- * application to «Tilbud sendt». While the offer waits for an answer, it returns the same link
- * again, so the link Navet has emailed keeps working. Nothing is emailed: Bifrost builds the link
- * from the token, and Navet sends it by hand.
+ * application to «Tilbud sendt», and emails the link to the application's contact. While the offer
+ * waits for an answer, it returns the same link again without a new email.
  *
  * @param {Id<"companyApplications">} applicationId - The application.
  *
@@ -50,6 +50,9 @@ export const sendOffer = mutation({
 		});
 
 		await transitionApplicationStatus(ctx, application, "offer_sent", actor, { offerId });
+		await ctx.scheduler.runAfter(0, internal.semesterPlanning.offers.emails.sendOfferEmail, {
+			offerId,
+		});
 
 		return { offerId, linkToken };
 	},
