@@ -31,7 +31,6 @@ export const browserOptInKeys = {
 	productsPreview: "products-preview",
 	jobListingOrdersPreview: "job-listing-orders-preview",
 	huginFeedbackPreview: "hugin-feedback-preview",
-	huginFeedbackTestSend: "hugin-feedback-testsend",
 	semesterPlanningPreview: "semester-planning-preview",
 	engagementPreview: "engagement-preview",
 	eventRemindersPreview: "event-reminders-preview",
