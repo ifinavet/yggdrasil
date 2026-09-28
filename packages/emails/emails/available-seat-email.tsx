@@ -45,7 +45,7 @@ export default function AvailableSeatEmail({
 					</Heading>
 
 					<Text className="text-lg">
-						Du har nå 16 timer på deg til å godta tilbudet om plass. Hvis ikke så vil du bli flyttet
+						Du har nå 24 timer på deg til å godta tilbudet om plass. Hvis ikke så vil du bli flyttet
 						tilbake på venstelisten, og havne nederst.
 					</Text>
 

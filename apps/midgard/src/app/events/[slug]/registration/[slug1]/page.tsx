@@ -9,6 +9,7 @@ import { fetchQuery, preloadedQueryResult, preloadQuery } from "convex/nextjs";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { notFoundOnConvexError } from "@/lib/notFoundOnConvexError";
+import { withRedirect } from "@/utils/auth-redirect";
 import Register from "./register";
 
 export default async function RegistrationPage({
@@ -22,7 +23,7 @@ export default async function RegistrationPage({
 	const headerList = await headers();
 	const pathname = headerList.get("x-pathname") || "/";
 
-	if (!isAuthenticated) return redirect(`/sign-in/?redirect=${pathname}`);
+	if (!isAuthenticated) return redirect(withRedirect("/sign-in", pathname));
 
 	const token = await getAuthToken();
 	const event = await fetchQuery(

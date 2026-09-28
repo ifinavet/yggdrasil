@@ -9,6 +9,7 @@ import { ThemeProvider } from "@workspace/ui/providers/theme-provider";
 import { Suspense } from "react";
 import { Consent } from "@/components/common/consent";
 import Header from "@/components/common/header";
+import PendingOfferBanner from "@/components/common/pending-offer-banner";
 import ClerkProvider from "@/providers/clerk-provider";
 import ConvexClientProvider from "@/providers/convex-clerk-provider";
 
@@ -38,7 +39,10 @@ export default function RootLayout({
 							<ThemeProvider>
 								<div className="flex h-screen flex-col overflow-y-auto">
 									<Header />
-									<main className="mb-12 flex-1">{children}</main>
+									<main className="mb-12 flex-1">
+										<PendingOfferBanner />
+										{children}
+									</main>
 									<Footer />
 									<Toaster richColors />
 								</div>

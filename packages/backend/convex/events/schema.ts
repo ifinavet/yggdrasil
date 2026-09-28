@@ -78,6 +78,7 @@ export const eventsSchema = {
 		.index("by_eventIdAndRegistrationTime", ["eventId", "registrationTime"])
 		.index("by_eventIdStatusAndRegistrationTime", ["eventId", "status", "registrationTime"])
 		.index("by_userId", ["userId"])
+		.index("by_userIdAndStatus", ["userId", "status"])
 		.index("by_eventId_and_userId", ["eventId", "userId"]),
 
 	eventReminders: defineTable({
