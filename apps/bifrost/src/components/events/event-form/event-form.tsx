@@ -114,6 +114,7 @@ export default function EventForm({
 								<Field>
 									<FieldLabel htmlFor={field.name}>Mat</FieldLabel>
 									<FoodItemSelect
+										allowCreate
 										id={field.name}
 										value={field.state.value as Id<"foodItems"> | undefined}
 										onChange={field.handleChange}

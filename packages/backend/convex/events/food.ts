@@ -78,7 +78,7 @@ export const listFoodItems = query({
 export const createFoodItem = mutation({
 	args: { name: v.string() },
 	handler: async (ctx, args) => {
-		await requireRole(ctx, adminRoles);
+		await requireRole(ctx, internalRoles);
 		const name = args.name.trim().replace(/\s+/g, " ");
 		const key = nameKey(name);
 		if (!key) throw new ConvexError("Matvalget må ha et navn.");

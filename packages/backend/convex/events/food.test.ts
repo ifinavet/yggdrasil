@@ -278,11 +278,15 @@ describe("nameKey", () => {
 });
 
 describe("createFoodItem", () => {
-	it("refuses callers below admin", async () => {
-		const { editor } = await fixture();
+	it("lets every internal member create an item and refuses students", async () => {
+		const { t, editor } = await fixture();
+		const student = asUser(t, await insertUser(t, "student@example.test"));
+
+		const created = await editor.mutation(api.events.food.createFoodItem, { name: "Middag" });
+		expect(await t.run((ctx) => ctx.db.get(created))).toMatchObject({ name: "Middag" });
 		await expect(
-			refusalMessageFrom(editor.mutation(api.events.food.createFoodItem, { name: "Middag" })),
-		).resolves.toContain("Unauthorized");
+			refusalMessageFrom(student.mutation(api.events.food.createFoodItem, { name: "Lunsj" })),
+		).resolves.toBeTruthy();
 	});
 
 	it("trims the name and reuses an item with the same key", async () => {
