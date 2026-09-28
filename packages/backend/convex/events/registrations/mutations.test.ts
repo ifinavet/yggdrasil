@@ -655,6 +655,59 @@ describe("updateAttendance", () => {
 			"deltaker@example.com",
 		]);
 	});
+
+	async function attendanceScenario() {
+		const { t, companyId } = await setup();
+		const eventId = await insertEvent(t, companyId);
+		const attendee = await insertUser(t, "deltaker@example.com");
+		const studentId = await insertStudent(t, attendee._id);
+		const registrationId = await insertRegistration(t, eventId, attendee._id, "registered");
+		const organizer = await insertUser(t, "arrangor@example.com");
+		await insertOrganizer(t, eventId, organizer._id);
+		const mark = (newStatus: "confirmed" | "late" | "no_show") =>
+			asUser(t, organizer).mutation(mutations.updateAttendance, { id: registrationId, newStatus });
+		return { t, studentId, mark };
+	}
+
+	it("refunds the points when a no-show is corrected to confirmed", async () => {
+		const { t, studentId, mark } = await attendanceScenario();
+
+		await mark("no_show");
+		await mark("confirmed");
+
+		expect(await totalPointsFor(t, studentId)).toBe(0);
+	});
+
+	it("replaces the no-show points when corrected to late", async () => {
+		const { t, studentId, mark } = await attendanceScenario();
+
+		await mark("no_show");
+		await mark("late");
+
+		expect(await totalPointsFor(t, studentId)).toBe(1);
+	});
+
+	it("does not stack points or emails when the same status is set twice", async () => {
+		const { t, studentId, mark } = await attendanceScenario();
+
+		await mark("no_show");
+		await mark("no_show");
+
+		expect(await totalPointsFor(t, studentId)).toBe(2);
+		expect(await scheduledRecipientsOf(t, "sendGottenPointsEmail")).toHaveLength(1);
+	});
+
+	it("keeps points given for other reasons when attendance is corrected", async () => {
+		const { t, studentId, mark } = await attendanceScenario();
+		await t.run((ctx) =>
+			ctx.db.insert("points", { studentId, reason: "Manuell prikk", severity: 1 }),
+		);
+
+		await mark("no_show");
+		await mark("confirmed");
+
+		expect(await totalPointsFor(t, studentId)).toBe(1);
+	});
 });
 
 describe("makeStatusPending via the waitlist promotion path", () => {

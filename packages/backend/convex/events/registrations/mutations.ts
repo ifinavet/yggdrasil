@@ -71,6 +71,8 @@ export const acceptPendingRegistration = mutation({
 	},
 });
 
+const ATTENDANCE_POINTS = { confirmed: 0, late: 1, no_show: 2 } as const;
+
 /**
  * Updates the attendance status for a registration and applies points when needed.
  *
@@ -123,9 +125,15 @@ export const updateAttendance = mutation({
 		}
 
 		const event = await ctx.db.get(registration.eventId);
+		const severity = ATTENDANCE_POINTS[newStatus];
+		const previousPoints = await ctx.db
+			.query("points")
+			.withIndex("by_registrationId", (q) => q.eq("registrationId", id))
+			.take(10);
+		if (previousPoints.reduce((sum, point) => sum + point.severity, 0) === severity) return;
+		await Promise.all(previousPoints.map((point) => ctx.db.delete(point._id)));
 
 		if (newStatus === "late" || newStatus === "no_show") {
-			const severity = newStatus === "late" ? 1 : 2;
 			const reason =
 				newStatus === "late"
 					? `Du fikk 1 prikk for å være for sen til arrangementet "${event?.title}".`
@@ -135,6 +143,7 @@ export const updateAttendance = mutation({
 				id: student._id,
 				severity,
 				reason,
+				registrationId: id,
 			});
 
 			await ctx.runMutation(internal.points.mutations.givePointsEmail, {
