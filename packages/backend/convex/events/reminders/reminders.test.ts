@@ -203,7 +203,7 @@ describe("EventReminderEmail", () => {
 		expect(text).toContain(
 			"bedriftspresentasjon med Testbedrift torsdag 1. oktober, 16:15 Escape.",
 		);
-		expect(text).toContain("Bedriftskontakt - Navet");
+		expect(text).toContain("Bedriftskontakt | Navet");
 		expect(text).toContain("https://ifinavet.no/info/retningslinjer");
 		expect(text).not.toContain("+47");
 	});
@@ -221,6 +221,6 @@ describe("EventReminderEmail", () => {
 		expect(signature).toContain("Kari Nordmann");
 		expect(signature).toContain('href="mailto:kari@ifinavet.no"');
 		expect(signature).toContain(`src="${NAVET_LOGO_URL}"`);
-		expect(signature).not.toContain(" - Navet");
+		expect(signature).not.toContain(" | Navet");
 	});
 });

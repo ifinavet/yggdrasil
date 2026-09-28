@@ -12,7 +12,7 @@ export function EmailSignature({ name, position, email }: Signature) {
 				{position && (
 					<>
 						<br />
-						{position} - Navet
+						{position} | Navet
 					</>
 				)}
 				<br />
