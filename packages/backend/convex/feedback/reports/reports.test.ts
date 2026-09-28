@@ -2,7 +2,7 @@ import type { EmailEvent, EmailId, SendEmailOptions } from "@convex-dev/resend";
 import { NAVET_LOGO_URL } from "@workspace/emails/constants";
 import { DEGREES, HUGIN_LOCAL_URL } from "@workspace/shared/constants";
 import { featureFlags } from "@workspace/shared/feature-flags";
-import { reportHighlights } from "@workspace/shared/feedback/report";
+import { reportAccessDeniedMessage, reportHighlights } from "@workspace/shared/feedback/report";
 import { feedbackReportCsv } from "@workspace/shared/feedback/report-csv";
 import { toBase64 } from "@workspace/shared/utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -280,7 +280,7 @@ describe("company feedback reports", () => {
 		});
 		await expect(
 			client.query(reports.queries.getReportAnswers, { reportId, paginationOpts }),
-		).rejects.toThrow("arrangør");
+		).rejects.toThrow(reportAccessDeniedMessage);
 		await grantRole(f.t, internal._id, "internal");
 		expect(
 			await client.query(reports.queries.getEventReport, { eventId: f.eventId }),
