@@ -15,7 +15,7 @@
 	"author": "",
 	"packageManager": "pnpm@10.13.1",
 	"dependencies": {
-		"@clerk/backend": "^3.18.1",
+		"@clerk/backend": "^3.20.1",
 		"@convex-dev/migrations": "^0.3.6",
 		"@convex-dev/rate-limiter": "^0.4.0",
 		"@convex-dev/resend": "^0.2.8",
@@ -31,14 +31,14 @@
 		"xss": "^1.0.15"
 	},
 	"devDependencies": {
-		"@convex-dev/batch-worker": "^0.2.2",
+		"@convex-dev/batch-worker": "^0.3.4",
 		"@convex-dev/workpool": "^0.4.12",
 		"@edge-runtime/vm": "5.0.0",
 		"@types/d3-array": "3.2.2",
 		"@types/d3-scale": "4.0.9",
 		"@types/node": "^20.19.43",
 		"@vitest/coverage-v8": "4.1.11",
-		"convex-test": "0.0.59",
+		"convex-test": "0.0.60",
 		"typescript": "5.9.3",
 		"vite": "6.4.3",
 		"vitest": "4.1.11"
