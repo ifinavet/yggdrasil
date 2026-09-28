@@ -210,18 +210,27 @@ export const getCurrentSemester = query({
 			return externalEvent === isExternal;
 		});
 
-		const eventsWithParticipationCount = await Promise.all(
-			(await withHostingCompanyLogo(ctx, filteredEvents)).map(async (event) => {
-				const participationCount = (
-					await ctx.db
+		const [eventsWithLogo, participationCounts] = await Promise.all([
+			withHostingCompanyLogo(ctx, filteredEvents),
+			Promise.all(
+				filteredEvents.map(async (event) => {
+					const registrations = await ctx.db
 						.query("registrations")
 						.withIndex("by_eventIdStatusAndRegistrationTime", (q) => q.eq("eventId", event._id))
-						.collect()
-				).filter((q) => q.status === "registered" || q.status === "pending").length;
+						.collect();
+					const participationCount = registrations.filter(
+						(q) => q.status === "registered" || q.status === "pending",
+					).length;
+					return [event._id, participationCount] as const;
+				}),
+			),
+		]);
+		const countByEvent = new Map(participationCounts);
 
-				return { ...event, participationCount };
-			}),
-		);
+		const eventsWithParticipationCount = eventsWithLogo.map((event) => ({
+			...event,
+			participationCount: countByEvent.get(event._id) ?? 0,
+		}));
 
 		const eventsByMonth: Record<string, typeof eventsWithParticipationCount> = {};
 
