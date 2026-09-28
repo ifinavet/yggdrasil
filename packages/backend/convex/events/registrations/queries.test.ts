@@ -13,6 +13,7 @@ import {
 	setupEventWithOneOfEachStatus,
 } from "../../../test/fixtures";
 import { api } from "../../_generated/api";
+import { OFFER_ANSWER_WINDOW_MS } from "../waitlist/offer";
 
 const queries = api.events.registrations.queries;
 
@@ -506,5 +507,71 @@ describe("getRegistrantsInfo", () => {
 		);
 
 		expect(message).toContain("Unauthorized");
+	});
+});
+
+describe("myPendingOffers", () => {
+	it("lists the caller's open offers with the answer deadline", async () => {
+		const { t, companyId } = await setup();
+		const offeredAt = Date.now();
+		const offeredEvent = await insertEvent(t, companyId, { title: "Tilbudt" });
+		const seatedEvent = await insertEvent(t, companyId);
+		const waitingEvent = await insertEvent(t, companyId);
+		const student = await insertUser(t, "student@example.com");
+		const offerId = await insertRegistration(t, offeredEvent, student._id, "pending", offeredAt);
+		await insertRegistration(t, seatedEvent, student._id, "registered");
+		await insertRegistration(t, waitingEvent, student._id, "waitlist");
+		const other = await insertUser(t, "annen@example.com");
+		await insertRegistration(t, seatedEvent, other._id, "pending");
+
+		const offers = await asUser(t, student).query(queries.myPendingOffers, {});
+
+		expect(offers).toEqual([
+			{
+				registrationId: offerId,
+				eventId: offeredEvent,
+				title: "Tilbudt",
+				answerBy: offeredAt + OFFER_ANSWER_WINDOW_MS,
+			},
+		]);
+	});
+
+	it("hides offers for unpublished events", async () => {
+		const { t, companyId } = await setup();
+		const eventId = await insertEvent(t, companyId, { published: false });
+		const student = await insertUser(t, "student@example.com");
+		await insertRegistration(t, eventId, student._id, "pending");
+
+		expect(await asUser(t, student).query(queries.myPendingOffers, {})).toEqual([]);
+	});
+
+	it("hides offers whose answer window has closed", async () => {
+		const { t, companyId } = await setup();
+		const eventId = await insertEvent(t, companyId);
+		const student = await insertUser(t, "student@example.com");
+		await insertRegistration(
+			t,
+			eventId,
+			student._id,
+			"pending",
+			Date.now() - OFFER_ANSWER_WINDOW_MS - 1,
+		);
+
+		expect(await asUser(t, student).query(queries.myPendingOffers, {})).toEqual([]);
+	});
+
+	it("hides offers for events that have already started", async () => {
+		const { t, companyId } = await setup();
+		const eventId = await insertEvent(t, companyId, { eventStart: Date.now() - 60 * 60 * 1000 });
+		const student = await insertUser(t, "student@example.com");
+		await insertRegistration(t, eventId, student._id, "pending");
+
+		expect(await asUser(t, student).query(queries.myPendingOffers, {})).toEqual([]);
+	});
+
+	it("returns nothing for an anonymous visitor", async () => {
+		const { t } = await setup();
+
+		expect(await t.query(queries.myPendingOffers, {})).toEqual([]);
 	});
 });

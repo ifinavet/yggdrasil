@@ -69,5 +69,18 @@ export default function RegistrationButton({
 		);
 	}
 
+	if (ownRegistration.status === "pending") {
+		return (
+			<Button
+				asChild
+				className="w-3/4 whitespace-normal text-balance rounded-xl bg-emerald-600 px-6 py-8 text-center font-semibold text-lg text-primary-foreground hover:bg-emerald-700 md:w-1/2"
+			>
+				<Link href={`/events/${event._id}/registration/${ownRegistration._id}`}>
+					Svar på tilbudet
+				</Link>
+			</Button>
+		);
+	}
+
 	return <EditRegistration registration={ownRegistration} disabled={disabled} event={event} />;
 }
