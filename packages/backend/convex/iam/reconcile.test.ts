@@ -119,6 +119,59 @@ describe("nightly reconciliation", () => {
 		);
 	}
 
+	it("creates a member account for every internal and links Google and Slack by their address", async () => {
+		await t.action(internal.iam.actions.reconcile, {});
+
+		const account = await t.run((ctx) =>
+			ctx.db
+				.query("memberAccounts")
+				.withIndex("by_userId", (q) => q.eq("userId", admin._id))
+				.first(),
+		);
+		expect(account).toMatchObject({
+			workspaceEmail: "leder@ifinavet.no",
+			stage: "active",
+			google: "existing",
+			googleUserId: "google-leder@ifinavet.no",
+			slackUserId: "U1",
+		});
+		expect(account?.uioEmail).toBeUndefined();
+
+		await t.action(internal.iam.actions.reconcile, {});
+		const accounts = await t.run((ctx) => ctx.db.query("memberAccounts").collect());
+		expect(accounts).toHaveLength(1);
+	});
+
+	it("marks internals outside the workspace domain as not needing Google", async () => {
+		const guest = await insertUser(t, "ekstern@gmail.com");
+		await t.run((ctx) =>
+			ctx.db.insert("internals", { userId: guest._id, group: "Styret", position: "Ekstern" }),
+		);
+
+		await t.action(internal.iam.actions.reconcile, {});
+
+		const accounts = await t.run((ctx) => ctx.db.query("memberAccounts").collect());
+		expect(accounts.find((account) => account.userId === guest._id)).toMatchObject({
+			workspaceEmail: "ekstern@gmail.com",
+			google: "not_applicable",
+		});
+	});
+
+	it("lets an admin run the check right away", async () => {
+		vi.useFakeTimers();
+		await asUser(t, admin).mutation(api.iam.mutations.checkNow, {});
+		await t.finishAllScheduledFunctions(vi.runAllTimers);
+		vi.useRealTimers();
+
+		const accounts = await t.run((ctx) => ctx.db.query("memberAccounts").collect());
+		expect(accounts).toMatchObject([{ workspaceEmail: "leder@ifinavet.no", slackUserId: "U1" }]);
+	});
+
+	it("refuses the check for members without admin rights", async () => {
+		const member = await insertUser(t, "medlem@ifinavet.no");
+		await expect(asUser(t, member).mutation(api.iam.mutations.checkNow, {})).rejects.toThrow();
+	});
+
 	it("lists accounts created outside Bifrost and forgets the ones an admin ignores", async () => {
 		await t.action(internal.iam.actions.reconcile, {});
 

@@ -216,6 +216,14 @@ export const markSlackDeactivated = mutation({
 	},
 });
 
+export const checkNow = mutation({
+	args: {},
+	handler: async (ctx) => {
+		await requireRole(ctx, adminRoles);
+		await ctx.scheduler.runAfter(0, internal.iam.actions.reconcile, {});
+	},
+});
+
 export const ignoreDrift = mutation({
 	args: { email: v.string() },
 	handler: async (ctx, args) => {

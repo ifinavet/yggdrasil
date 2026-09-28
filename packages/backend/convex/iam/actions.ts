@@ -289,6 +289,7 @@ export const reconcile = internalAction({
 		const slack = slackConfig();
 		if (!google && !slack) return;
 
+		await ctx.runMutation(internal.iam.internal.ensureAccounts, {});
 		const directory = await ctx.runQuery(internal.iam.internal.directory, {});
 		const [googleUsers, slackMembers] = await Promise.all([
 			optional(google && (() => googleClient(google).listUsers())),

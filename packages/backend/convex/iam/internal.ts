@@ -1,6 +1,7 @@
-import { normalizeEmail } from "@workspace/shared/iam";
+import { domainOf, normalizeEmail } from "@workspace/shared/iam";
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "../_generated/server";
+import { accountForUser } from "./accounts";
 import { isWorkspaceEmail, workspaceDomain } from "./config";
 import { driftKinds, googleStates, isCurrentStage } from "./schema";
 
@@ -93,6 +94,43 @@ export const linkSlackUser = internalMutation({
 	args: { accountId: v.id("memberAccounts"), slackUserId: v.string() },
 	handler: async (ctx, { accountId, slackUserId }) => {
 		await ctx.db.patch(accountId, { slackUserId, updatedAt: Date.now() });
+	},
+});
+
+export const ensureAccounts = internalMutation({
+	args: {},
+	handler: async (ctx) => {
+		const internals = await ctx.db.query("internals").take(MAX_DIRECTORY_ROWS);
+		const domain = workspaceDomain();
+		let created = 0;
+		for (const member of internals) {
+			const user = await ctx.db.get(member.userId);
+			if (!user?.email) continue;
+			const workspaceEmail = normalizeEmail(user.email);
+			const own = await accountForUser(ctx, user._id, workspaceEmail);
+			if (own && isCurrentStage(own.stage)) {
+				if (own.userId !== user._id) await ctx.db.patch(own._id, { userId: user._id });
+				continue;
+			}
+			const fields = {
+				workspaceEmail,
+				uioEmail: own?.uioEmail,
+				firstName: user.firstName,
+				lastName: user.lastName,
+				group: member.group,
+				stage: "active" as const,
+				google:
+					domainOf(workspaceEmail) === domain ? ("existing" as const) : ("not_applicable" as const),
+				googleUserId: own?.googleUserId,
+				slackUserId: own?.slackUserId,
+				userId: user._id,
+				updatedAt: Date.now(),
+			};
+			if (own) await ctx.db.replace(own._id, fields);
+			else await ctx.db.insert("memberAccounts", fields);
+			created++;
+		}
+		return created;
 	},
 });
 
