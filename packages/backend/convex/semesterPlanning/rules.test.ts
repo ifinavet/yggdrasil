@@ -1,11 +1,16 @@
 import type { ApplicationStatus } from "@workspace/shared/semester/labels";
 import { isValidOrgNumber, toCompanyProfileOrgNumber } from "@workspace/shared/semester/orgNumber";
 import {
+	compareSemesters,
+	defaultApplicationSemester,
+	firstMissingTerm,
 	isIsoDate,
 	nextTermAfter,
 	osloDateTimeToEpoch,
 	osloToday,
 	presentationDaysBetween,
+	semesterSortKey,
+	termAfter,
 	termOfDay,
 } from "@workspace/shared/time";
 import { describe, expect, it } from "vitest";
@@ -114,6 +119,64 @@ describe("semester days", () => {
 		["2027-12-31", { year: 2027, term: "autumn" }],
 	] as const)("%s belongs to %o", (day, term) => {
 		expect(termOfDay(day)).toEqual(term);
+	});
+
+	it("orders spring before autumn in the same year", () => {
+		const semesters = [
+			{ year: 2027, term: "spring" },
+			{ year: 2026, term: "autumn" },
+			{ year: 2026, term: "spring" },
+		] as const;
+		expect([...semesters].sort(compareSemesters).map(semesterSortKey)).toEqual([
+			2026 * 2,
+			2026 * 2 + 1,
+			2027 * 2,
+		]);
+		expect(termAfter({ year: 2026, term: "autumn" })).toEqual({ year: 2027, term: "spring" });
+	});
+});
+
+const autumn26 = { year: 2026, term: "autumn" } as const;
+const spring27 = { year: 2027, term: "spring" } as const;
+const autumn27 = { year: 2027, term: "autumn" } as const;
+const spring28 = { year: 2028, term: "spring" } as const;
+
+describe("defaultApplicationSemester", () => {
+	it.each([
+		["2026-09-28", [autumn26, spring27], spring27],
+		["2026-09-28", [spring27, autumn26], spring27],
+		["2026-09-28", [autumn26], autumn26],
+		// Next spring is not open: the running semester beats one a year away.
+		["2026-09-28", [autumn26, autumn27], autumn26],
+		["2026-12-31", [autumn26, spring27], spring27],
+		["2027-01-01", [autumn26, spring27], spring27],
+		["2027-01-10", [spring27, autumn27], autumn27],
+		["2027-01-10", [spring27], spring27],
+		["2027-01-10", [spring27, autumn27, spring28], autumn27],
+		["2027-01-10", [autumn26], autumn26],
+		// Spring to autumn: 30 June is still spring, 1 July is autumn.
+		["2027-06-30", [spring27, autumn27, spring28], autumn27],
+		["2027-07-01", [spring27, autumn27, spring28], spring28],
+		["2027-07-01", [autumn27], autumn27],
+	] as const)("on %s with %j chooses %j", (today, open, expected) => {
+		expect(defaultApplicationSemester(today, [...open])).toEqual(expected);
+	});
+
+	it("is null without choices", () => {
+		expect(defaultApplicationSemester("2026-09-28", [])).toBeNull();
+	});
+});
+
+describe("firstMissingTerm", () => {
+	it.each([
+		["2026-09-28", [], autumn26],
+		["2026-09-28", [spring27], autumn26],
+		["2026-09-28", [autumn26], spring27],
+		["2026-09-28", [autumn26, spring27], autumn27],
+		["2026-06-30", [], { year: 2026, term: "spring" }],
+		["2026-07-01", [], autumn26],
+	] as const)("on %s with %j suggests %j", (today, existing, expected) => {
+		expect(firstMissingTerm(today, [...existing])).toEqual(expected);
 	});
 
 	it.each(["2027-02-29", "2027-13-01", "27-01-01", "2027-1-5"])("rejects %s as a day", (value) => {

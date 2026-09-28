@@ -4,16 +4,56 @@ import { cn } from "@workspace/ui/lib/utils";
 import { Lock } from "lucide-react";
 import { formatOrgNumber } from "../format";
 import type { PlanDay } from "./plan-days";
-import { CompanyName, DateTile, Person, PlanStatus } from "./plan-parts";
+import {
+	CompanyName,
+	DateTile,
+	EventKind,
+	EventTitle,
+	Person,
+	PlanStatus,
+	RemovePlanEventButton,
+} from "./plan-parts";
 
 /** The plan on small screens: one stacked entry per semester date instead of a wide table. */
 export function PlanCards({
 	days,
 	showContactDetails,
-}: Readonly<{ days: readonly PlanDay[]; showContactDetails: boolean }>) {
+	canEdit = false,
+}: Readonly<{ days: readonly PlanDay[]; showContactDetails: boolean; canEdit?: boolean }>) {
 	return (
 		<ul className="divide-y text-sm">
 			{days.map((day) => {
+				if (day.kind === "event") {
+					const { event } = day;
+					const team = event.responsibleName || event.helpers.length > 0;
+					return (
+						<li key={event._id} className="relative flex gap-3 px-4 py-3">
+							<DateTile date={day.date} />
+							<div className="min-w-0 flex-1">
+								<div className="flex items-center gap-2">
+									<CompanyLogo name={event.companyName} url={event.logoUrl ?? null} />
+									<EventTitle event={event} />
+								</div>
+								<div className="mt-0.5 text-[12.5px] text-muted-foreground">
+									{event.companyName}
+								</div>
+								<div className="mt-1.5">
+									<EventKind extraDay={day.extraDay} />
+								</div>
+								{team && (
+									<div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1.5 border-t pt-2.5">
+										{event.responsibleName && <Person name={event.responsibleName} small />}
+										{event.helpers.map((helper) => (
+											<Person key={helper.userId} name={helper.name} small />
+										))}
+									</div>
+								)}
+							</div>
+							{canEdit && <RemovePlanEventButton event={event} />}
+						</li>
+					);
+				}
+
 				if (day.kind !== "assigned") {
 					return (
 						<li key={day.date} className="flex items-center gap-3 px-4 py-2 text-muted-foreground">

@@ -82,7 +82,7 @@ export function StaticCell({
 }
 
 /**
- * One date in one application's row. Clicking it asks «Tildel <dag>?» (or «Fjerne <dag>?» on the
+ * One date in one application's row. Clicking it asks «Velg <dag>?» (or «Fjerne <dag>?» on the
  * assigned date) in a popover. The assigned chip can also be dragged onto another free date the
  * company ticked: the move happens at once with «Angre», unless an offer is out or accepted, which
  * asks first because the company must answer again. The backend has the last word: it refuses dates
@@ -156,7 +156,7 @@ export function AssignCell({
 			});
 			if (isOwn) toast.success("Datoen er fjernet.");
 			else if (outsideAvailable) {
-				toast.warning(`${name} har ikke krysset av ${shortDay(date)}. Datoen er tildelt likevel.`);
+				toast.warning(`${name} har ikke krysset av ${shortDay(date)}. Datoen er valgt likevel.`);
 			} else toast.success(`${name} har fått ${shortDay(date)}.`);
 			onOpenChange(false);
 		} catch (error) {
@@ -190,7 +190,7 @@ export function AssignCell({
 			<PopoverTrigger asChild>
 				<button
 					type="button"
-					aria-label={isOwn ? `Fjern ${fullDay} fra ${name}` : `Tildel ${fullDay} til ${name}`}
+					aria-label={isOwn ? `Fjern ${fullDay} fra ${name}` : `Velg ${fullDay} for ${name}`}
 					title={isOwn ? `${STATUS_LABELS[application.status]}. Dra for å flytte.` : undefined}
 					draggable={draggable}
 					onDragStart={(event) => {
@@ -221,7 +221,7 @@ export function AssignCell({
 				</button>
 			</PopoverTrigger>
 			<PopoverContent className="w-[268px] rounded-[10px] px-3.5 py-3" align="center">
-				<p className="font-semibold text-sm">{isOwn ? `Fjerne ${day}?` : `Tildel ${day}?`}</p>
+				<p className="font-semibold text-sm">{isOwn ? `Fjerne ${day}?` : `Velge ${day}?`}</p>
 				<p className="mt-1 text-[12.5px] text-muted-foreground leading-[1.45]">
 					{name} · {EVENT_TYPE_SHORT_LABELS[application.eventType].toLowerCase()},{" "}
 					{studentRange(application.minStudents, application.maxStudents)}. {!warning && note}
@@ -235,7 +235,7 @@ export function AssignCell({
 				)}
 				<div className="mt-2.5 flex gap-2">
 					<Button size="sm" className="text-[13px]" disabled={saving} onClick={submit}>
-						{isOwn ? "Fjern" : "Tildel"}
+						{isOwn ? "Fjern" : "Velg"}
 					</Button>
 					<Button
 						size="sm"

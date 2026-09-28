@@ -6,6 +6,8 @@ import {
 	nextTermAfter,
 	osloToday,
 	presentationDaysBetween,
+	type SemesterRef,
+	termOfDay,
 } from "@workspace/shared/time";
 import { isHttpUrl } from "@workspace/shared/utils";
 import { ConvexError, v } from "convex/values";
@@ -20,18 +22,13 @@ import { applicationPeriodStatus, semesterTerm } from "../schema";
 import {
 	findSemester,
 	listSemesterDates,
+	refuseIfSemesterClosed,
 	requireSemester,
 	settingsFromLatestSemester,
 } from "./helper";
 
 function requireIsoDate(value: string, label: string): void {
 	if (!isIsoDate(value)) throw new ConvexError(`${label} må være en gyldig dato (ÅÅÅÅ-MM-DD).`);
-}
-
-function refuseIfSemesterClosed(semester: Doc<"semesters">): void {
-	if (semester.status === "closed") {
-		throw new ConvexError("Semesteret er stengt og kan ikke endres.");
-	}
 }
 
 async function insertDraftSemester(
@@ -112,7 +109,7 @@ export const setRange = mutation({
 			const holder = await findActiveApplicationOnDate(ctx, semesterId, date.date);
 			if (holder) {
 				throw new ConvexError(
-					`${date.date} er tildelt ${holder.registry.name}. Flytt søknaden før du endrer perioden.`,
+					`${date.date} er gitt til ${holder.registry.name}. Flytt søknaden før du endrer perioden.`,
 				);
 			}
 		}
@@ -214,7 +211,7 @@ export const setDateClosed = mutation({
 
 		const holder = await findActiveApplicationOnDate(ctx, date.semesterId, date.date);
 		if (holder) {
-			throw new ConvexError(`Datoen er tildelt ${holder.registry.name}. Flytt søknaden først.`);
+			throw new ConvexError(`Datoen er gitt til ${holder.registry.name}. Flytt søknaden først.`);
 		}
 
 		await ctx.db.patch(dateId, { closedLabel: label.trim() });
@@ -223,8 +220,8 @@ export const setDateClosed = mutation({
 });
 
 /**
- * Moves a semester between draft, open and closed. Opening requires dates and a deadline, and
- * only one semester can be open at a time.
+ * Moves a semester between draft, open and closed. Opening requires dates and a deadline. Several
+ * semesters can be open at once, so companies can choose which one to apply for.
  *
  * @param {Id<"semesters">} semesterId - The semester to update.
  * @param {"draft" | "open" | "closed"} status - The new status.
@@ -250,16 +247,6 @@ export const setStatus = mutation({
 			);
 			if (openDates.length === 0) {
 				throw new ConvexError("Semesteret har ingen åpne datoer.");
-			}
-			const alreadyOpen = await ctx.db
-				.query("semesters")
-				.withIndex("by_status", (q) => q.eq("status", "open"))
-				.collect();
-			const other = alreadyOpen.find((open) => open._id !== semesterId);
-			if (other) {
-				throw new ConvexError(
-					`${semesterName(other.term, other.year)} er allerede åpent. Steng det først.`,
-				);
 			}
 			// The rollover job would close it again the next night.
 			if (semester.lastDate < osloToday(Date.now())) {
@@ -359,27 +346,30 @@ export const unfinalizePlan = mutation({
 });
 
 /**
- * Rollover job. Makes sure next semester exists as a draft (year and term only, with settings
- * copied from the latest semester), and closes open semesters whose last date has passed. It never
- * sets dates or deadlines and never opens a semester, so running it twice or late is harmless.
+ * Rollover job. Makes sure the running semester and the next one exist as drafts (year and term
+ * only, with settings copied from the latest semester), and closes open semesters whose last date
+ * has passed. It never sets dates or deadlines and never opens a semester, so running it twice or
+ * late is harmless.
  *
  * @param {number} [now] - The current time, for tests. Defaults to Date.now().
  *
- * @returns {{ createdSemesterId: Id<"semesters"> | null, closedSemesters: number }} - What changed.
+ * @returns {{ createdSemesterIds: Id<"semesters">[], closedSemesters: number }} - What changed.
  */
 export const rolloverSemesters = internalMutation({
 	args: { now: v.optional(v.number()) },
 	returns: v.object({
-		createdSemesterId: v.union(v.id("semesters"), v.null()),
+		createdSemesterIds: v.array(v.id("semesters")),
 		closedSemesters: v.number(),
 	}),
 	handler: async (ctx, { now }) => {
 		const today = osloToday(now ?? Date.now());
-		const next = nextTermAfter(today);
+		const wanted: SemesterRef[] = [termOfDay(today), nextTermAfter(today)];
 
-		const createdSemesterId = (await findSemester(ctx, next.year, next.term))
-			? null
-			: await insertDraftSemester(ctx, next.year, next.term);
+		const createdSemesterIds: Id<"semesters">[] = [];
+		for (const { year, term } of wanted) {
+			if (await findSemester(ctx, year, term)) continue;
+			createdSemesterIds.push(await insertDraftSemester(ctx, year, term));
+		}
 
 		const open = await ctx.db
 			.query("semesters")
@@ -388,6 +378,6 @@ export const rolloverSemesters = internalMutation({
 		const finished = open.filter((semester) => semester.lastDate && semester.lastDate < today);
 		await Promise.all(finished.map((semester) => ctx.db.patch(semester._id, { status: "closed" })));
 
-		return { createdSemesterId, closedSemesters: finished.length };
+		return { createdSemesterIds, closedSemesters: finished.length };
 	},
 });

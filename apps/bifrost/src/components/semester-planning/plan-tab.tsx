@@ -7,6 +7,7 @@ import { Panel } from "@workspace/ui/components/products/panel";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { useQuery } from "convex/react";
 import { type ReactNode, useState } from "react";
+import { AddPlanEventButton } from "./plan/add-plan-event";
 import { PlanCards } from "./plan/plan-cards";
 import {
 	buildPlanDays,
@@ -21,7 +22,8 @@ import { SemesterActions } from "./semester-actions";
 
 /**
  * The Plan tab: the semester plan with the old Excel sheet's columns, one row per Tuesday and
- * Thursday. Every internal member sees it; editors also see contact details.
+ * Thursday, plus the events editors put in the plan by hand or from the calendar. Every internal
+ * member sees it; editors also see contact details and can add and remove events.
  */
 export function PlanTab({
 	semester,
@@ -35,20 +37,29 @@ export function PlanTab({
 	const rows = useQuery(api.semesterPlanning.applications.queries.getPlan, {
 		semesterId: semester._id,
 	});
+	const events = useQuery(api.semesterPlanning.planEvents.queries.listForSemester, {
+		semesterId: semester._id,
+	});
 	const applications = useQuery(
 		api.semesterPlanning.applications.queries.listForSemester,
 		canEdit ? { semesterId: semester._id } : "skip",
 	);
 
-	const loading = !details || !rows || (canEdit && !applications);
-	const days = loading ? [] : buildPlanDays(details.dates, rows, applications);
+	const loading = !details || !rows || !events || (canEdit && !applications);
+	const days = loading ? [] : buildPlanDays(details.dates, rows, applications, events);
 	const shown = filterPlanDays(days, filter);
 	const deadline = details?.semester.applicationDeadline;
+	const editable = canEdit && semester.status !== "closed";
 
 	return (
 		<div className="grid min-w-0 gap-4">
 			<SemesterActions>
-				<PlanToolbar rows={rows ?? []} filter={filter} onFilterChange={setFilter} />
+				<PlanToolbar
+					rows={[...(rows ?? []), ...(events ?? [])]}
+					filter={filter}
+					onFilterChange={setFilter}
+				/>
+				{editable && <AddPlanEventButton semester={semester} />}
 			</SemesterActions>
 
 			{loading ? (
@@ -56,10 +67,11 @@ export function PlanTab({
 			) : (
 				<PlanBody
 					hasDates={details.dates.length > 0}
-					hasApplications={rows.length > 0}
+					hasEntries={rows.length > 0 || events.length > 0}
 					deadline={deadline}
 					days={shown}
 					canEdit={canEdit}
+					editable={editable}
 				/>
 			)}
 		</div>
@@ -78,16 +90,18 @@ function EmptyState({ title, children }: Readonly<{ title: string; children: Rea
 /** The plan once loaded: a note while it is empty, then the table, or cards on small screens. */
 function PlanBody({
 	hasDates,
-	hasApplications,
+	hasEntries,
 	deadline,
 	days,
 	canEdit,
+	editable,
 }: Readonly<{
 	hasDates: boolean;
-	hasApplications: boolean;
+	hasEntries: boolean;
 	deadline: string | undefined;
 	days: PlanDay[];
 	canEdit: boolean;
+	editable: boolean;
 }>) {
 	if (!hasDates) {
 		return (
@@ -99,10 +113,11 @@ function PlanBody({
 
 	return (
 		<>
-			{!hasApplications && (
-				<EmptyState title="Ingen søknader ennå">
+			{!hasEntries && (
+				<EmptyState title="Ingen søknader eller arrangementer ennå">
 					Alle datoene under er ledige.
 					{deadline && ` Søknadsfrist ${formatSemesterDay(deadline, "long")}.`}
+					{editable && " Arrangementer som allerede er i kalenderen kan legges til i planen."}
 				</EmptyState>
 			)}
 
@@ -115,10 +130,10 @@ function PlanBody({
 					) : (
 						<>
 							<div className="hidden md:block">
-								<PlanTable days={days} showContactDetails={canEdit} />
+								<PlanTable days={days} showContactDetails={canEdit} canEdit={editable} />
 							</div>
 							<div className="md:hidden">
-								<PlanCards days={days} showContactDetails={canEdit} />
+								<PlanCards days={days} showContactDetails={canEdit} canEdit={editable} />
 							</div>
 						</>
 					)}

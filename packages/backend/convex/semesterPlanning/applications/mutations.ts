@@ -20,7 +20,7 @@ import { requireApplication, requireValidHelpers } from "./helper";
 
 function refuseIfApplicationInactive(application: Doc<"companyApplications">): void {
 	if (!isActiveApplicationStatus(application.status)) {
-		throw new ConvexError("Søknaden er trukket eller avslått.");
+		throw new ConvexError("Søknaden er slettet eller avslått.");
 	}
 }
 
@@ -102,7 +102,7 @@ export const assignDate = mutation({
 			date,
 			applicationId,
 		);
-		if (holder) throw new ConvexError(`Datoen er allerede tildelt ${holder.registry.name}.`);
+		if (holder) throw new ConvexError(`Datoen er allerede gitt til ${holder.registry.name}.`);
 
 		if (application.assignedDate !== date) await setAssignedDate(ctx, application, date, actor);
 

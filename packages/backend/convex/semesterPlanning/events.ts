@@ -8,13 +8,13 @@ import { internalRoles } from "../auth/accessRights";
 import { insertEventWithOrganizers } from "../events/helper";
 import { type Actor, logApplicationActivity } from "./applicationLifecycle";
 import { findCompanyProfile, requireValidHelpers } from "./applications/helper";
-import { requireSemester } from "./semesters/helper";
+import { eventsInSemesterRange, requireSemester } from "./semesters/helper";
 
 // Helpers for the events semester planning makes. They register no Convex functions.
 
 const PLACEHOLDER = "Mer info kommer";
 
-/** Well above how many members and events Navet has in a semester; keeps the reads bounded. */
+/** Well above how many members Navet has; keeps the reads bounded. */
 const READ_LIMIT = 500;
 
 /**
@@ -43,23 +43,12 @@ export async function proposeNavetTeams(
 	);
 
 	const load = new Map<Id<"users">, number>();
-	const { firstDate, lastDate } = semester;
-	if (firstDate && lastDate) {
-		const events = await ctx.db
-			.query("events")
-			.withIndex("by_eventStart", (q) =>
-				q
-					.gte("eventStart", osloDateTimeToEpoch(firstDate, "00:00"))
-					.lte("eventStart", osloDateTimeToEpoch(lastDate, "23:59")),
-			)
+	for (const event of await eventsInSemesterRange(ctx, semester)) {
+		const organizers = await ctx.db
+			.query("eventOrganizers")
+			.withIndex("by_eventId", (q) => q.eq("eventId", event._id))
 			.take(READ_LIMIT);
-		for (const event of events) {
-			const organizers = await ctx.db
-				.query("eventOrganizers")
-				.withIndex("by_eventId", (q) => q.eq("eventId", event._id))
-				.take(READ_LIMIT);
-			for (const { userId } of organizers) load.set(userId, (load.get(userId) ?? 0) + 1);
-		}
+		for (const { userId } of organizers) load.set(userId, (load.get(userId) ?? 0) + 1);
 	}
 
 	const needTeam = applications.filter((application) => !application.eventId);

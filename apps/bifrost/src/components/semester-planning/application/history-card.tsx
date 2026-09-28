@@ -33,7 +33,7 @@ function describe(entry: Activity, offers: ApplicationDetails["offers"], who: st
 		case "submitted":
 			return "Søknad mottatt fra Hugin";
 		case "date_assigned":
-			return `${who} tildelte ${entry.date ? shortDay(entry.date) : "en dato"}`;
+			return `${who} valgte ${entry.date ? shortDay(entry.date) : "en dato"}`;
 		case "date_cleared":
 			return `${who} fjernet datoen${dayPart(entry.date)}`;
 		case "event_linked":
@@ -58,7 +58,7 @@ function describe(entry: Activity, offers: ApplicationDetails["offers"], who: st
 		case "withdrawn":
 			return entry.actor === "company"
 				? `${who} takket nei via lenken${quoted}`
-				: `${who} markerte søknaden som trukket${quoted}`;
+				: `${who} slettet søknaden${quoted}`;
 		case "applied":
 			return entry.fromStatus && !isActiveStatus(entry.fromStatus)
 				? `${who} gjenåpnet søknaden`

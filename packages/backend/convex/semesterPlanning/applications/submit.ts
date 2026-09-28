@@ -60,6 +60,7 @@ function parseApplicationForm(form: unknown): ApplicationForm {
  * bankrupt and liquidated companies, and rate limits per company. It returns null
  * so it never reveals stored data.
  *
+ * @param {Id<"semesters">} semesterId - The semester the company applies for.
  * @param {ApplicationForm} form - The answers.
  * @param {string} submissionId - A one-time id from the form, so a retry saves one application.
  * @param {string} [website] - A hidden honeypot field; bots fill it in, people don't.
@@ -69,12 +70,13 @@ function parseApplicationForm(form: unknown): ApplicationForm {
  */
 export const submit = action({
 	args: {
+		semesterId: v.id("semesters"),
 		form: applicationFormArgs,
 		submissionId: v.string(),
 		website: v.optional(v.string()),
 	},
 	returns: v.null(),
-	handler: async (ctx, { form, submissionId, website }) => {
+	handler: async (ctx, { semesterId, form, submissionId, website }) => {
 		// Answer a filled-in honeypot like a success, so bots learn nothing.
 		if (website?.trim()) return null;
 
@@ -112,7 +114,7 @@ export const submit = action({
 
 		await ctx.runMutation(
 			internal.semesterPlanning.applications.submit.insertSubmittedApplication,
-			{ form: parsed, submissionId, registry: lookup.snapshot },
+			{ semesterId, form: parsed, submissionId, registry: lookup.snapshot },
 		);
 
 		return null;
@@ -120,20 +122,23 @@ export const submit = action({
 });
 
 /**
- * Saves a checked application. Runs as one transaction: it re-checks the form, the open semester
- * and the dates, skips a submission it has already saved, and records «received» in the history.
+ * Saves a checked application. Runs as one transaction: it re-checks the form, that the chosen
+ * semester takes applications and the dates, skips a submission it has already saved, and records
+ * «received» in the history.
  *
- * @throws - A Norwegian error when applications are closed or a date is no longer open.
+ * @throws - A Norwegian error when the semester does not take applications or a date is no longer
+ * open.
  * @returns {Id<"companyApplications">} - The new or already saved application.
  */
 export const insertSubmittedApplication = internalMutation({
 	args: {
+		semesterId: v.id("semesters"),
 		form: applicationFormArgs,
 		submissionId: v.string(),
 		registry: brregSnapshotAtSubmission,
 	},
 	returns: v.id("companyApplications"),
-	handler: async (ctx, { form, submissionId, registry }) => {
+	handler: async (ctx, { semesterId, form, submissionId, registry }) => {
 		const already = await ctx.db
 			.query("companyApplications")
 			.withIndex("by_submissionId", (q) => q.eq("submissionId", submissionId))
@@ -142,11 +147,8 @@ export const insertSubmittedApplication = internalMutation({
 
 		const parsed = parseApplicationForm(form);
 
-		const semester = await ctx.db
-			.query("semesters")
-			.withIndex("by_status", (q) => q.eq("status", "open"))
-			.first();
-		if (!semester) throw new ConvexError("Søknadene er stengt.");
+		const semester = await ctx.db.get(semesterId);
+		if (semester?.status !== "open") throw new ConvexError("Søknadene er stengt.");
 		if (!acceptsApplications(semester, osloToday(Date.now()))) {
 			throw new ConvexError("Søknadsfristen har gått ut.");
 		}
