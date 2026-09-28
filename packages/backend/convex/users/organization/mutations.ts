@@ -5,7 +5,7 @@ import {
 	adminRoles,
 	assignAccessRole,
 	getAccessRole,
-	getAssignedAccessRole,
+	requireRightToManageRole,
 	requireRole,
 	revokeAccessRole,
 	superAdminRoles,
@@ -115,7 +115,7 @@ export const createInternal = mutation({
 			position: "Intern",
 		});
 
-		if ((await getAssignedAccessRole(ctx, userId)) === null) {
+		if ((await getAccessRole(ctx, userId)) === null) {
 			await assignAccessRole(ctx, userId, "internal");
 		}
 	},
@@ -145,10 +145,7 @@ export const removeInternal = mutation({
 			throw new ConvexError("Unauthorized: Du kan ikke fjerne deg selv.");
 		}
 
-		const roleToRemove = await getAccessRole(ctx, internalToRemove.userId);
-		if (roleToRemove !== null && roleToRemove !== "internal") {
-			await requireRole(ctx, superAdminRoles);
-		}
+		await requireRightToManageRole(ctx, internalToRemove.userId);
 
 		await ctx.db.delete(id);
 		await revokeAccessRole(ctx, internalToRemove.userId);

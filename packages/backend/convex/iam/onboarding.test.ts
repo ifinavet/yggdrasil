@@ -379,6 +379,34 @@ describe("starting onboarding", () => {
 		expect(role).toMatchObject({ role: "internal" });
 	});
 
+	it("lets only a super-admin add someone who already holds an admin role", async () => {
+		const formerBoardMember = await insertUser(t, newMember.uioEmail);
+		await grantRole(t, formerBoardMember._id, "admin");
+
+		await expect(
+			asUser(t, admin).mutation(api.iam.mutations.startOnboarding, newMember),
+		).rejects.toThrow(/Unauthorized/);
+		expect(await t.run((ctx) => ctx.db.query("memberAccounts").collect())).toHaveLength(0);
+
+		const superAdmin = await insertUser(t, "web@ifinavet.no");
+		await grantRole(t, superAdmin._id, "super-admin");
+		const { accountId } = await asUser(t, superAdmin).mutation(
+			api.iam.mutations.startOnboarding,
+			newMember,
+		);
+		await t.finishAllScheduledFunctions(vi.runAllTimers);
+
+		expect(await account(accountId)).toMatchObject({
+			stage: "active",
+			userId: formerBoardMember._id,
+		});
+		expect(
+			await asUser(t, formerBoardMember).query(api.auth.accessRights.checkRights, {
+				right: ["admin"],
+			}),
+		).toBe(true);
+	});
+
 	it("lists each internal with the connections of their account", async () => {
 		const existing = await insertUser(t, newMember.uioEmail);
 		const legacy = await insertUser(t, "gammel@ifinavet.no");

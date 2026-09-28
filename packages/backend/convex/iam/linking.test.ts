@@ -265,7 +265,7 @@ describe("adding a UiO address to an existing internal member", () => {
 		const superAdmin = await insertUser(t, "sjef@uio.no");
 		await grantRole(t, superAdmin._id, "super-admin");
 
-		await asUser(t, admin).mutation(api.iam.mutations.startOnboarding, {
+		await asUser(t, superAdmin).mutation(api.iam.mutations.startOnboarding, {
 			firstName: "Sjef",
 			lastName: "Sjefesen",
 			workspaceEmail: "sjef@ifinavet.no",

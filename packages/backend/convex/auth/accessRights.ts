@@ -231,6 +231,23 @@ export async function revokeAccessRole(ctx: MutationCtx, userId: Id<"users">): P
 }
 
 /**
+ * Requires a super-admin caller before an internal, admin or super-admin role is granted, kept or removed.
+ *
+ * @param {MutationCtx} ctx - The Convex mutation context.
+ * @param {Id<"users">} userId - The id of the user whose current role is about to be affected.
+ *
+ * @throws - An error if the user holds a role above internal and the caller is not a super-admin.
+ * @returns {Promise<void>} - Resolves when the caller may proceed.
+ */
+export async function requireRightToManageRole(
+	ctx: MutationCtx,
+	userId: Id<"users">,
+): Promise<void> {
+	const role = await getAccessRole(ctx, userId);
+	if (role !== null && role !== "internal") await requireRole(ctx, superAdminRoles);
+}
+
+/**
  * Creates or updates a user's access rights.
  *
  * @param {Id<"users">} userId - The id of the user whose rights should be updated.

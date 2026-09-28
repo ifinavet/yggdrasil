@@ -3,7 +3,7 @@ import { ConvexError, v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { type MutationCtx, mutation } from "../_generated/server";
-import { adminRoles, requireRole } from "../auth/accessRights";
+import { adminRoles, requireRightToManageRole, requireRole } from "../auth/accessRights";
 import { accountForEmail, accountForUser } from "./accounts";
 import { workspaceDomain } from "./config";
 import { runJob } from "./jobs";
@@ -63,6 +63,8 @@ export const startOnboarding = mutation({
 		const emails = [input.workspaceEmail, input.uioEmail];
 
 		const previous = await refuseDuplicates(ctx, emails);
+		const [existingUser] = await usersWithEmail(ctx, emails);
+		if (existingUser) await requireRightToManageRole(ctx, existingUser._id);
 		const sameAddress = previous?.workspaceEmail === input.workspaceEmail;
 		const fields = {
 			...input,
@@ -78,7 +80,6 @@ export const startOnboarding = mutation({
 		if (previous) await ctx.db.replace(previous._id, fields);
 		const accountId = previous?._id ?? (await ctx.db.insert("memberAccounts", fields));
 
-		const [existingUser] = await usersWithEmail(ctx, emails);
 		const account = await requireAccount(ctx, accountId);
 		if (existingUser) await activate(ctx, account, existingUser._id);
 
