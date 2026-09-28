@@ -3,6 +3,7 @@
 import { api } from "@workspace/backend/convex/api";
 import { closedDateLabel } from "@workspace/shared/semester/labels";
 import { Button } from "@workspace/ui/components/button";
+import { Calendar } from "@workspace/ui/components/calendar";
 import {
 	Dialog,
 	DialogContent,
@@ -13,10 +14,12 @@ import {
 } from "@workspace/ui/components/dialog";
 import { cn } from "@workspace/ui/lib/utils";
 import { useMutation } from "convex/react";
-import { Check } from "lucide-react";
-import { useCallback, useState } from "react";
+import { differenceInCalendarMonths, format, parse } from "date-fns";
+import { nb } from "date-fns/locale";
+import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import type { DayButtonProps } from "react-day-picker";
 import { toast } from "sonner";
-import { shortDay, shortDayTitle } from "../format";
+import { capitalize, longDay, shortDay } from "../format";
 import {
 	type Application,
 	MOVE_CONFIRMED_WARNING,
@@ -106,8 +109,6 @@ export function AssignDateDialog({
 			requested: requested.has(day.date),
 			blocked: blockedReason(day.closedLabel, context.takenBy.get(day.date)),
 		}));
-	const wanted = options.filter((option) => option.checked || option.requested);
-	const others = options.filter((option) => !option.checked && !option.requested);
 	const pickedOption = options.find((option) => option.date === picked);
 
 	const close = (next: boolean) => {
@@ -117,26 +118,13 @@ export function AssignDateDialog({
 
 	return (
 		<Dialog open={open} onOpenChange={close}>
-			<DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
+			<DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle>Velg dato for {companyName}</DialogTitle>
 					<DialogDescription>{assignDescription(application)}</DialogDescription>
 				</DialogHeader>
 
-				<DateGroup
-					title={requestedDates.length > 0 ? "Ønsket eller krysset av" : "Datoer de kan"}
-					options={wanted}
-					picked={picked}
-					onPick={setPicked}
-					empty="Bedriften krysset ikke av noen datoer i semesteret."
-				/>
-				<DateGroup
-					title="Andre datoer i semesteret"
-					options={others}
-					picked={picked}
-					onPick={setPicked}
-					empty="Ingen andre datoer."
-				/>
+				<DateCalendar options={options} picked={picked} onPick={setPicked} />
 
 				{pickedOption && !pickedOption.checked && !pickedOption.requested && (
 					<p role="alert" className="font-medium text-attention text-sm">
@@ -180,15 +168,6 @@ function assignLabel(pending: boolean, picked: string | undefined): string {
 	return picked ? `Velg ${shortDay(picked)}` : "Velg dato";
 }
 
-/** The chip style for a day: picked, blocked or free. */
-function optionClasses(isPicked: boolean, blocked: boolean): string {
-	if (isPicked) return "border-primary bg-primary text-primary-foreground";
-	if (blocked) {
-		return "bg-[repeating-linear-gradient(135deg,var(--muted)_0_3px,transparent_3px_6px)] text-muted-foreground";
-	}
-	return "bg-primary-light text-primary hover:border-primary";
-}
-
 function blockedReason(
 	closedLabel: string | undefined,
 	holder: string | undefined,
@@ -198,52 +177,168 @@ function blockedReason(
 	return undefined;
 }
 
-function DateGroup({
-	title,
+const ISO_DAY = "yyyy-MM-dd";
+
+const CELL = "grid h-9 w-full place-items-center rounded-md text-[13px] tabular-nums";
+
+const STRIPED =
+	"bg-[repeating-linear-gradient(135deg,var(--muted)_0_3px,transparent_3px_6px)] text-muted-foreground";
+
+/** The chip style for a semester day, by what the company said about it and whether it is free. */
+function dayClasses(option: DateOption, isPicked: boolean): string {
+	if (isPicked) return "border border-primary bg-primary font-semibold text-primary-foreground";
+	if (option.blocked) return cn(STRIPED, "line-through decoration-foreground/40");
+	if (option.requested) {
+		return "border-2 border-status-new-date bg-background font-semibold text-foreground hover:bg-muted";
+	}
+	if (option.checked) {
+		return "border border-primary/40 bg-primary-light font-semibold text-primary hover:border-primary";
+	}
+	return "border border-border bg-background text-foreground hover:bg-muted";
+}
+
+/** How a screen reader hears a day: «krysset av», «ønsket», «stengt: Kickoff», «tatt av X» or «ledig». */
+function dayState(option: DateOption): string {
+	if (option.blocked) return `${option.blocked.reason}: ${option.blocked.detail}`;
+	if (option.requested) return "ønsket av bedriften";
+	if (option.checked) return "krysset av av bedriften";
+	return "ledig";
+}
+
+const DateCalendarContext = createContext<{
+	byDate: ReadonlyMap<string, DateOption>;
+	picked: string | undefined;
+	onPick: (date: string) => void;
+}>({ byDate: new Map(), picked: undefined, onPick: () => {} });
+
+function toDay(date: string): Date {
+	return parse(date, ISO_DAY, new Date());
+}
+
+/**
+ * The semester as one small calendar per month. Only the semester's days can be picked; the days
+ * the company ticked are tinted, a day it asked for is ringed, and closed or taken days are
+ * striped. The picked day is filled.
+ */
+function DateCalendar({
 	options,
 	picked,
 	onPick,
-	empty,
 }: Readonly<{
-	title: string;
 	options: DateOption[];
 	picked: string | undefined;
 	onPick: (date: string) => void;
-	empty: string;
 }>) {
+	const byDate = useMemo(() => new Map(options.map((option) => [option.date, option])), [options]);
+	const context = useMemo(() => ({ byDate, picked, onPick }), [byDate, picked, onPick]);
+	const first = options[0]?.date;
+	const last = options.at(-1)?.date;
+	if (first === undefined || last === undefined) {
+		return <p className="text-muted-foreground text-sm">Semesteret har ingen datoer.</p>;
+	}
+	const firstDay = toDay(first);
+
 	return (
-		<fieldset className="grid gap-2">
-			<legend className="mb-2 font-medium text-sm">{title}</legend>
-			{options.length === 0 ? (
-				<p className="text-muted-foreground text-sm">{empty}</p>
-			) : (
-				<div className="flex flex-wrap gap-1.5">
-					{options.map((option) => {
-						const isPicked = option.date === picked;
-						return (
-							<button
-								key={option.date}
-								type="button"
-								disabled={Boolean(option.blocked)}
-								aria-pressed={isPicked}
-								title={option.blocked?.detail}
-								onClick={() => onPick(option.date)}
-								className={cn(
-									"inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-[13px] tabular-nums transition-colors",
-									"focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
-									optionClasses(isPicked, Boolean(option.blocked)),
-									option.requested && !isPicked && "ring-2 ring-status-new-date",
-								)}
-							>
-								{isPicked && <Check className="size-3.5" strokeWidth={3} />}
-								{shortDayTitle(option.date)}
-								{option.requested && !isPicked && " · ønsket"}
-								{option.blocked && ` · ${option.blocked.reason}`}
-							</button>
-						);
-					})}
-				</div>
+		<DateCalendarContext.Provider value={context}>
+			<Calendar
+				mode="single"
+				selected={picked ? toDay(picked) : undefined}
+				onSelect={(day) => day && onPick(format(day, ISO_DAY))}
+				month={firstDay}
+				numberOfMonths={differenceInCalendarMonths(toDay(last), firstDay) + 1}
+				hideNavigation
+				disableNavigation
+				showOutsideDays={false}
+				ISOWeek
+				locale={nb}
+				disabled={(day) => {
+					const option = byDate.get(format(day, ISO_DAY));
+					return !option || option.blocked !== undefined;
+				}}
+				formatters={{
+					formatCaption: (month) => capitalize(format(month, "LLLL", { locale: nb })),
+					formatWeekdayName: (weekday) => format(weekday, "EEEEE", { locale: nb }),
+				}}
+				className="w-full bg-transparent p-0"
+				classNames={{
+					root: "w-full",
+					months: "grid grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] gap-3",
+					month: "rounded-xl border bg-background/60 p-3 shadow-xs",
+					month_caption: "mb-2 border-b pb-2",
+					caption_label: "font-semibold text-sm",
+					month_grid: "w-full table-fixed border-separate border-spacing-0.5",
+					weekdays: "",
+					weekday: "pb-1 font-medium text-muted-foreground text-xs",
+					week: "",
+					day: "p-0",
+					today: "",
+					disabled: "",
+					outside: "",
+				}}
+				components={{ DayButton: DateCalendarDay }}
+			/>
+			<Legend />
+		</DateCalendarContext.Provider>
+	);
+}
+
+/** A day in the calendar: a semester date is a chip in its state, any other day is just a number. */
+function DateCalendarDay({
+	day,
+	modifiers: _modifiers,
+	className: _className,
+	...props
+}: DayButtonProps) {
+	const { byDate, picked } = useContext(DateCalendarContext);
+	const option = byDate.get(day.isoDate);
+	if (!option) {
+		return (
+			<span aria-hidden className={cn(CELL, "text-muted-foreground/60")}>
+				{day.date.getDate()}
+			</span>
+		);
+	}
+	const isPicked = option.date === picked;
+	return (
+		<button
+			{...props}
+			type="button"
+			disabled={option.blocked !== undefined}
+			aria-pressed={isPicked}
+			aria-label={`${capitalize(longDay(option.date))}, ${dayState(option)}`}
+			title={
+				option.blocked
+					? `${capitalize(option.blocked.reason)}: ${option.blocked.detail}`
+					: undefined
+			}
+			className={cn(
+				CELL,
+				"outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed",
+				dayClasses(option, isPicked),
 			)}
-		</fieldset>
+		>
+			{day.date.getDate()}
+		</button>
+	);
+}
+
+/** What the tints and stripes mean, under the calendar. */
+function Legend() {
+	const swatch = (className: string) => (
+		<span aria-hidden className={cn("inline-block size-3.5 rounded-sm border", className)} />
+	);
+	return (
+		<ul className="flex flex-wrap gap-x-4 gap-y-1.5 text-muted-foreground text-xs">
+			<li className="flex items-center gap-1.5">
+				{swatch("border-primary/40 bg-primary-light")} Krysset av av bedriften
+			</li>
+			<li className="flex items-center gap-1.5">
+				{swatch("border-2 border-status-new-date bg-background")} Ønsket av bedriften
+			</li>
+			<li className="flex items-center gap-1.5">{swatch("border-border bg-background")} Ledig</li>
+			<li className="flex items-center gap-1.5">
+				{swatch(cn(STRIPED, "border-border"))} Stengt eller tatt
+			</li>
+		</ul>
 	);
 }
