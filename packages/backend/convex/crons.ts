@@ -50,6 +50,8 @@ crons.cron(
 	{},
 );
 
+crons.cron("Reconcile workspace accounts", "30 3 * * *", internal.iam.actions.reconcile, {});
+
 /**
  * Exports the configured cron job collection.
  */

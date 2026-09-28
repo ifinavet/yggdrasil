@@ -1,10 +1,12 @@
 import type { UserJSON } from "@clerk/backend";
+import { normalizeEmail } from "@workspace/shared/iam";
 import { ConvexError, type Validator, v } from "convex/values";
 import { internal } from "../../_generated/api";
 import type { Doc, Id } from "../../_generated/dataModel";
 import { internalMutation, type MutationCtx } from "../../_generated/server";
 import { logRegistrationChange } from "../../engagement/log";
 import { fillOpenSeats } from "../../events/registrations/mutations";
+import { activateOnSignIn } from "../../iam/lifecycle";
 import { userByExternalId } from "./queries";
 
 const ANONYMIZED_USER = {
@@ -47,7 +49,7 @@ export const upsertFromClerk = internalMutation({
 			(emailAddress) => emailAddress.id === data.primary_email_address_id,
 		)?.email_address;
 		const userAttributes = {
-			email: email ?? data.email_addresses[0]?.email_address ?? "",
+			email: normalizeEmail(email ?? data.email_addresses[0]?.email_address ?? ""),
 			firstName: data.first_name ?? "",
 			lastName: data.last_name ?? "",
 			image: data.image_url ?? "",
@@ -56,11 +58,11 @@ export const upsertFromClerk = internalMutation({
 		};
 
 		const user = await userByExternalId(ctx, data.id);
-		if (user === null) {
-			await ctx.db.insert("users", userAttributes);
-		} else {
-			await ctx.db.patch(user._id, userAttributes);
-		}
+		const userId = user?._id ?? (await ctx.db.insert("users", userAttributes));
+		if (user) await ctx.db.patch(user._id, userAttributes);
+
+		const current = await ctx.db.get(userId);
+		if (current) await activateOnSignIn(ctx, current);
 	},
 });
 
@@ -94,7 +96,7 @@ export const createIfNotExists = internalMutation({
 			// Create user
 			const id = await ctx.db.insert("users", {
 				externalId,
-				email,
+				email: normalizeEmail(email),
 				firstName,
 				lastName,
 				image,

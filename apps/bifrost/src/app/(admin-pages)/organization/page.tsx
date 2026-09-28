@@ -28,6 +28,7 @@ export default async function OrganizationPage() {
 		{},
 		{ token },
 	);
+	const preloadedAccess = await preloadQuery(api.iam.queries.overview, {}, { token });
 	const preloadedMainSponsor = await preloadQuery(api.companies.queries.getMainSponsor);
 
 	return (
@@ -54,7 +55,7 @@ export default async function OrganizationPage() {
 				<h2 className="scroll-m-20 border-b pb-2 font-semibold text-3xl tracking-tight first:mt-0">
 					Interne
 				</h2>
-				<Internals preloadedInternals={preloadedInternals} />
+				<Internals preloadedInternals={preloadedInternals} preloadedAccess={preloadedAccess} />
 
 				<Separator />
 				<h2 className="scroll-m-20 border-b pb-2 font-semibold text-3xl tracking-tight first:mt-0">
