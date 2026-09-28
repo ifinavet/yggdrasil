@@ -34,7 +34,7 @@ export default async function ProfilePage() {
 						<UpdateProfileForm preloadedStudent={preloadStudent} className="mt-4" />
 					</Suspense>
 				</div>
-				<div className="row-span-2">
+				<div id="prikker" className="row-span-2 scroll-mt-24">
 					<h2 className="scroll-m-20 border-b pb-2 font-semibold text-3xl text-primary tracking-tight first:mt-0 dark:text-primary-foreground">
 						Dine prikker
 					</h2>

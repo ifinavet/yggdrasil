@@ -3,6 +3,7 @@ import { internal } from "../_generated/api";
 import { internalMutation, mutation } from "../_generated/server";
 import { adminRoles, requireRole } from "../auth/accessRights";
 import { getIdentity } from "../auth/currentUser";
+import { POINT_LIFETIME_MS } from "./lifetime";
 
 /**
  * Gives points to a student and schedules the notification email.
@@ -171,9 +172,7 @@ export const checkIfAnyPointsShouldBeRemoved = internalMutation({
 	handler: async (ctx) => {
 		const points = await ctx.db
 			.query("points")
-			.withIndex("by_creation_time", (q) =>
-				q.lt("_creationTime", Date.now() - 6 * 30 * 24 * 60 * 60 * 1000),
-			)
+			.withIndex("by_creation_time", (q) => q.lt("_creationTime", Date.now() - POINT_LIFETIME_MS))
 			.collect();
 
 		if (points.length === 0) {

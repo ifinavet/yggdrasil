@@ -48,11 +48,10 @@ export default function RegistrationButton({
 	if (numberOfPoints >= 3 && !ownRegistration) {
 		return (
 			<Button
-				type="button"
-				className="w-3/4 whitespace-normal text-balance rounded-xl bg-amber-600 py-8 text-lg text-primary-foreground opacity-100! hover:cursor-pointer hover:bg-zinc-700"
-				disabled
+				asChild
+				className="h-auto w-3/4 whitespace-normal text-balance rounded-xl bg-amber-600 py-8 text-lg text-primary-foreground hover:cursor-pointer hover:bg-amber-700"
 			>
-				For mange prikker til å kunne melde deg på.
+				<Link href="/profile#prikker">For mange prikker til å kunne melde deg på.</Link>
 			</Button>
 		);
 	}
