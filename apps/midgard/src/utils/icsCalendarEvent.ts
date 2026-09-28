@@ -1,8 +1,7 @@
 "use client";
 
-function formatToICSDate(epochMillis: number) {
-	return new Date(epochMillis).toISOString().replaceAll(/-|:|\.\d+/g, "");
-}
+import { DEFAULT_EVENT_DURATION_MS, toCompactUtc } from "./calendar-links";
+
 function htmlToPlainText(html: string): string {
 	const el = document.createElement("div");
 	el.innerHTML = html;
@@ -18,18 +17,16 @@ function escapeICSText(text: string): string {
 		.replaceAll(/;/g, "\\;");
 }
 
-const DEFAULT_EVENT_DURATION_MS = 4 * 60 * 60 * 1000; // 4 hours
-
 export default function createCalendarEventIcs(
 	title: string,
 	description: string,
 	location: string,
 	eventStart: number,
 ) {
-	const startTime = formatToICSDate(eventStart);
-	const endTime = formatToICSDate(eventStart + DEFAULT_EVENT_DURATION_MS);
+	const startTime = toCompactUtc(eventStart);
+	const endTime = toCompactUtc(eventStart + DEFAULT_EVENT_DURATION_MS);
 	const uid = `${Date.now()}@ifinavet.no`; // unique ID
-	const dtstamp = formatToICSDate(Date.now()); // creation timestamp
+	const dtstamp = toCompactUtc(Date.now()); // creation timestamp
 	const plainDescription = escapeICSText(htmlToPlainText(description));
 
 	const icsContent = `BEGIN:VCALENDAR
