@@ -28,7 +28,7 @@
 		"cmdk": "^1.1.1",
 		"convex": "^1.46.0",
 		"date-fns": "^4.4.0",
-		"lucide-react": "^0.515.0",
+		"lucide-react": "^1.48.0",
 		"next": "16.3.6",
 		"posthog-js": "^1.434.13",
 		"radix-ui": "^1.6.7",
