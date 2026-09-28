@@ -3,6 +3,7 @@
 import { api } from "@workspace/backend/convex/api";
 import type { Doc, Id } from "@workspace/backend/convex/dataModel";
 import { SEMESTER_LABEL, semesterName } from "@workspace/shared/semester/labels";
+import { Button } from "@workspace/ui/components/button";
 import {
 	Select,
 	SelectContent,
@@ -12,6 +13,7 @@ import {
 } from "@workspace/ui/components/select";
 import { Tabs, TabsList, TabsTrigger } from "@workspace/ui/components/tabs";
 import { type Preloaded, usePreloadedQuery, useQuery } from "convex/react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useState } from "react";
 import { ApplicationsTab } from "./applications-tab";
@@ -34,9 +36,9 @@ function defaultSemester(semesters: Doc<"semesters">[]) {
 }
 
 /**
- * The Semesterplan page: a semester select and the Plan, Fordeling, Søknader and Innstillinger
- * tabs. The semester and tab live in the URL (`?semester=` and `?tab=`), so links and reloads keep
- * them. Plan opens first; internal members only see Plan.
+ * The Semesterplan page: a semester select with previous and next buttons, and the Plan,
+ * Fordeling, Søknader and Innstillinger tabs. The semester and tab live in the URL (`?semester=`
+ * and `?tab=`), so links and reloads keep them. Plan opens first; internal members only see Plan.
  */
 export function SemesterPlanner({
 	preloadedSemesters,
@@ -76,7 +78,10 @@ export function SemesterPlanner({
 
 	if (!selected) {
 		return canEdit ? (
-			<FirstSemester onCreated={(semester) => navigate({ semester, tab: "innstillinger" })} />
+			<FirstSemester
+				existing={semesters}
+				onCreated={(semester) => navigate({ semester, tab: "innstillinger" })}
+			/>
 		) : (
 			<div className="rounded-lg border bg-card px-4 py-14 text-center">
 				<p className="font-semibold">Ingen semestre ennå</p>
@@ -87,24 +92,51 @@ export function SemesterPlanner({
 		);
 	}
 
+	// The list is newest first, so the next semester sits before the selected one.
+	const index = semesters.findIndex((semester) => semester._id === selected._id);
+	const previous = semesters[index + 1];
+	const next = semesters[index - 1];
+
 	return (
 		<SemesterActionsSlot.Provider value={actionsSlot}>
 			<div className="flex flex-wrap items-center gap-3">
-				<Select
-					value={selected._id}
-					onValueChange={(value) => navigate({ semester: value as Id<"semesters"> })}
-				>
-					<SelectTrigger className="min-w-[150px]" aria-label={SEMESTER_LABEL}>
-						<SelectValue />
-					</SelectTrigger>
-					<SelectContent>
-						{semesters.map((semester) => (
-							<SelectItem key={semester._id} value={semester._id}>
-								{semesterName(semester.term, semester.year)}
-							</SelectItem>
-						))}
-					</SelectContent>
-				</Select>
+				<div className="flex items-center gap-1">
+					<Button
+						type="button"
+						variant="outline"
+						size="icon"
+						aria-label="Forrige semester"
+						disabled={!previous}
+						onClick={() => previous && navigate({ semester: previous._id })}
+					>
+						<ChevronLeft aria-hidden />
+					</Button>
+					<Select
+						value={selected._id}
+						onValueChange={(value) => navigate({ semester: value as Id<"semesters"> })}
+					>
+						<SelectTrigger className="min-w-[150px]" aria-label={SEMESTER_LABEL}>
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							{semesters.map((semester) => (
+								<SelectItem key={semester._id} value={semester._id}>
+									{semesterName(semester.term, semester.year)}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+					<Button
+						type="button"
+						variant="outline"
+						size="icon"
+						aria-label="Neste semester"
+						disabled={!next}
+						onClick={() => next && navigate({ semester: next._id })}
+					>
+						<ChevronRight aria-hidden />
+					</Button>
+				</div>
 
 				{tabs.length > 1 && (
 					<Tabs
@@ -131,10 +163,11 @@ export function SemesterPlanner({
 					</Tabs>
 				)}
 
-				{/* The open tab's buttons, at the far right. */}
+				{/* The open tab's filters and buttons, at the far right. When they do not fit next to the
+				    tabs, the slot takes a line of its own instead of overflowing behind the tabs. */}
 				<div
 					ref={setActionsSlot}
-					className="flex min-w-0 flex-wrap items-center gap-3 sm:flex-1 sm:justify-end"
+					className="flex min-w-0 flex-wrap items-center gap-3 sm:min-w-fit sm:flex-1 sm:justify-end"
 				/>
 			</div>
 
@@ -145,6 +178,7 @@ export function SemesterPlanner({
 			{tab === "innstillinger" && (
 				<SettingsTab
 					semester={selected}
+					existing={semesters}
 					onCreated={(semester) => navigate({ semester, tab: "innstillinger" })}
 				/>
 			)}

@@ -25,15 +25,18 @@ const CARD_PART = "px-4 sm:px-5";
  */
 export function SettingsTab({
 	semester,
+	existing,
 	onCreated,
 }: Readonly<{
 	semester: Doc<"semesters">;
+	/** Every semester, so a new one is suggested that does not exist yet. */
+	existing: readonly Doc<"semesters">[];
 	onCreated: (semester: Id<"semesters">) => void;
 }>) {
 	return (
 		<>
 			<SemesterActions>
-				<NewSemesterButton onCreated={onCreated} />
+				<NewSemesterButton existing={existing} onCreated={onCreated} />
 			</SemesterActions>
 			<div className="grid items-start gap-4 lg:grid-cols-[380px_minmax(0,1fr)]">
 				<Card className={CARD}>
@@ -88,8 +91,12 @@ function DatesCardBody({
 }
 
 function NewSemesterButton({
+	existing,
 	onCreated,
-}: Readonly<{ onCreated: (semester: Id<"semesters">) => void }>) {
+}: Readonly<{
+	existing: readonly Doc<"semesters">[];
+	onCreated: (semester: Id<"semesters">) => void;
+}>) {
 	const [open, setOpen] = useState(false);
 
 	return (
@@ -102,6 +109,7 @@ function NewSemesterButton({
 					<DialogTitle>Nytt semester</DialogTitle>
 				</DialogHeader>
 				<CreateSemesterForm
+					existing={existing}
 					onCancel={() => setOpen(false)}
 					onCreated={(semesterId) => {
 						setOpen(false);
@@ -115,15 +123,19 @@ function NewSemesterButton({
 
 /** Shown to editors while there is no semester at all: the form for creating the first one. */
 export function FirstSemester({
+	existing,
 	onCreated,
-}: Readonly<{ onCreated: (semester: Id<"semesters">) => void }>) {
+}: Readonly<{
+	existing: readonly Doc<"semesters">[];
+	onCreated: (semester: Id<"semesters">) => void;
+}>) {
 	return (
 		<Card className="mx-auto w-full max-w-md gap-4 py-4 sm:py-6">
 			<CardHeader className="px-4 sm:px-6">
 				<CardTitle className="text-base">Opprett det første semesteret</CardTitle>
 			</CardHeader>
 			<CardContent className="px-4 sm:px-6">
-				<CreateSemesterForm onCreated={onCreated} />
+				<CreateSemesterForm existing={existing} onCreated={onCreated} />
 			</CardContent>
 		</Card>
 	);

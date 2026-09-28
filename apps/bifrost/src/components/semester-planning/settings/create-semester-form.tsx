@@ -5,7 +5,12 @@ import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { semesterName, TERM_LABELS } from "@workspace/shared/semester/labels";
 import { MAX_SEMESTER_YEAR, MIN_SEMESTER_YEAR } from "@workspace/shared/semester/limits";
-import { nextTermAfter, osloToday, SEMESTER_TERMS } from "@workspace/shared/time";
+import {
+	firstMissingTerm,
+	osloToday,
+	SEMESTER_TERMS,
+	type SemesterRef,
+} from "@workspace/shared/time";
 import { convexErrorMessage } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
 import { Field, FieldError, FieldLabel } from "@workspace/ui/components/field";
@@ -32,16 +37,22 @@ const createSchema = z.object({
 });
 
 /**
- * Picks the year and term of a new semester and creates it as a draft. It suggests the term after
- * today's, like the rollover job; dates and the deadline are set afterwards by a human.
+ * Picks the year and term of a new semester and creates it as a draft. It suggests the first
+ * semester from today's that does not exist yet, so it never clashes with the ones the rollover
+ * job made; any term and year can be chosen. Dates and the deadline are set afterwards by a human.
  */
 export function CreateSemesterForm({
+	existing,
 	onCreated,
 	onCancel,
-}: Readonly<{ onCreated: (semesterId: Id<"semesters">) => void; onCancel?: () => void }>) {
+}: Readonly<{
+	existing: readonly SemesterRef[];
+	onCreated: (semesterId: Id<"semesters">) => void;
+	onCancel?: () => void;
+}>) {
 	const create = useMutation(api.semesterPlanning.semesters.mutations.create);
 	const [saveError, setSaveError] = useState<string>();
-	const suggested = nextTermAfter(osloToday(Date.now()));
+	const [suggested] = useState(() => firstMissingTerm(osloToday(Date.now()), existing));
 
 	const form = useForm({
 		defaultValues: { year: suggested.year, term: suggested.term } as z.input<typeof createSchema>,
@@ -115,7 +126,8 @@ export function CreateSemesterForm({
 			</div>
 
 			<p className="text-muted-foreground text-sm">
-				Tekst, vilkår og starttid kopieres fra forrige semester.
+				Forslaget er det første semesteret som ikke finnes ennå. Tekst, vilkår og starttid kopieres
+				fra forrige semester.
 			</p>
 
 			{saveError && (

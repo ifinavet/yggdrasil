@@ -68,7 +68,7 @@ export function DistributionBanners({
 						ber om en annen dato
 						{requested.length > 0
 							? `: ${daysList(requested)}. Datoene er markert i raden.`
-							: ". Tildel en ny dato og send nytt tilbud."}
+							: ". Velg en ny dato og send nytt tilbud."}
 					</Banner>
 				);
 			})}

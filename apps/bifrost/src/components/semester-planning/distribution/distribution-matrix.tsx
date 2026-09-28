@@ -7,7 +7,7 @@ import { cn } from "@workspace/ui/lib/utils";
 import { MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { type CSSProperties, memo, useMemo, useState } from "react";
-import { dayOfMonth, monthLabel, shortDayTitle, studentRange } from "../format";
+import { capitalize, dayOfMonth, monthLabel, shortDayTitle, studentRange } from "../format";
 import { isActiveStatus } from "../status";
 import { StatusBadge } from "../status-badge";
 import { AssignCell, type DragState, StaticCell } from "./assign-cell";
@@ -38,16 +38,24 @@ function staticCellTitle(
 	return takenBy && `Tatt av ${takenBy}`;
 }
 
+// A month with fewer columns than this gets its short name, so «September» never runs into «Oktober».
+const SHORT_MONTH_SPAN = 2;
+
 /** Groups the dates into months for the header, remembering where each month starts. */
 function monthsOf(dates: readonly SemesterDate[]) {
-	const months: { key: string; label: string; span: number }[] = [];
+	const months: { key: string; label: string; shortLabel: string; span: number }[] = [];
 	const starts = new Set<string>();
 	for (const { date } of dates) {
 		const key = date.slice(0, 7);
 		const last = months.at(-1);
 		if (last?.key === key) last.span++;
 		else {
-			months.push({ key, label: monthLabel(date), span: 1 });
+			months.push({
+				key,
+				label: monthLabel(date),
+				shortLabel: capitalize(formatSemesterDay(date, "monthShort")),
+				span: 1,
+			});
 			starts.add(date);
 		}
 	}
@@ -101,9 +109,10 @@ export function DistributionMatrix({
 								key={month.key}
 								colSpan={month.span}
 								scope="colgroup"
-								className="h-8 border-l pl-2 text-left font-semibold text-[13px] text-foreground"
+								title={month.label}
+								className="h-8 overflow-hidden text-ellipsis whitespace-nowrap border-l pl-2 text-left font-semibold text-[13px] text-foreground"
 							>
-								{month.label}
+								{month.span <= SHORT_MONTH_SPAN ? month.shortLabel : month.label}
 							</th>
 						))}
 						<td className={STICKY_END} />

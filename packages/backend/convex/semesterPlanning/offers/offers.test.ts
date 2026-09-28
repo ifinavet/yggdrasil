@@ -106,7 +106,7 @@ describe("send", () => {
 		[
 			"a withdrawn application",
 			{ status: "withdrawn" as const },
-			"Kan ikke gå fra «Trukket» til «Tilbud sendt».",
+			"Kan ikke gå fra «Slettet» til «Tilbud sendt».",
 		],
 	])("refuses %s", async (_case, overrides, expected) => {
 		const { t, semesterId, editor } = await offerSetup();

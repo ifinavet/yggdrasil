@@ -3,14 +3,14 @@
 import { useStore } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
 import { semesterName } from "@workspace/shared/semester/labels";
-import { osloToday } from "@workspace/shared/time";
+import { osloToday, termOfDay } from "@workspace/shared/time";
 import { Note } from "@workspace/ui/components/note";
 import { cn } from "@workspace/ui/lib/utils";
 import { useAction } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { CalendarClock } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { FormProgress } from "@/components/form-progress";
 import { SubmitDock } from "@/components/submit-dock";
@@ -40,12 +40,18 @@ import { PracticalQuestions } from "./practical-questions";
 import { useApplicationForm } from "./use-application-form";
 import { useDraftAutosave } from "./use-draft-autosave";
 
-export type OpenSemester = NonNullable<
-	FunctionReturnType<typeof api.semesterPlanning.semesters.queries.getOpenForApplications>
->;
+export type OpenSemester = FunctionReturnType<
+	typeof api.semesterPlanning.semesters.queries.listOpenForApplications
+>[number];
 
-/** The Hugin application form for the open semester, saved as a draft while it is filled in. */
-export function ApplicationForm({ semester }: Readonly<{ semester: OpenSemester }>) {
+/**
+ * The Hugin application form for one open semester, saved as a draft while it is filled in. With
+ * several semesters open, `semesterPicker` stands where the semester's name would.
+ */
+export function ApplicationForm({
+	semester,
+	semesterPicker,
+}: Readonly<{ semester: OpenSemester; semesterPicker?: ReactNode }>) {
 	const router = useRouter();
 	const submit = useAction(api.semesterPlanning.applications.submit.submit);
 
@@ -58,7 +64,10 @@ export function ApplicationForm({ semester }: Readonly<{ semester: OpenSemester 
 	const sent = useRef(false);
 
 	const semesterLabel = semesterName(semester.term, semester.year);
-	const late = osloToday(Date.now()) > semester.applicationDeadline;
+	const today = osloToday(Date.now());
+	const late = today > semester.applicationDeadline;
+	const running = termOfDay(today);
+	const isRunningSemester = running.year === semester.year && running.term === semester.term;
 
 	const form = useApplicationForm({
 		defaultValues: initial.values,
@@ -74,6 +83,7 @@ export function ApplicationForm({ semester }: Readonly<{ semester: OpenSemester 
 
 			try {
 				await submit({
+					semesterId: semester._id,
 					form: application,
 					submissionId: initial.submissionId,
 					website: honeypot.current?.value || undefined,
@@ -91,7 +101,7 @@ export function ApplicationForm({ semester }: Readonly<{ semester: OpenSemester 
 					late,
 				}),
 			);
-			clearDraft();
+			clearDraft(semester._id);
 			router.push("/bestill-bedpres/kvittering");
 		},
 		onSubmitInvalid: (draft) => {
@@ -126,11 +136,20 @@ export function ApplicationForm({ semester }: Readonly<{ semester: OpenSemester 
 	return (
 		<>
 			<div className="pt-1.5">
-				<p className="m-0 font-semibold text-[13.5px] text-muted-foreground">{semesterLabel}</p>
+				{semesterPicker ?? (
+					<p className="m-0 font-semibold text-[13.5px] text-muted-foreground">{semesterLabel}</p>
+				)}
 				<h1 className="m-0 mt-0.5 font-bold text-[21px] text-primary leading-[1.22] tracking-[-0.015em] dark:text-primary-foreground">
 					{COPY.title}
 				</h1>
 				<Deadline date={semester.applicationDeadline} late={late} />
+				{isRunningSemester && (
+					<Note tone="warn" className="mt-3.5">
+						{COPY.semester.current(
+							semesterName(semester.term, semester.year, { inSentence: true }),
+						)}
+					</Note>
+				)}
 				<p className="m-0 mt-3.5 text-[14.5px] leading-normal">{COPY.lede}</p>
 				{semester.infoText && (
 					<Note className="mt-3.5">

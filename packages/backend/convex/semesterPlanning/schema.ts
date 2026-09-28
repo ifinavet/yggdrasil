@@ -131,6 +131,16 @@ export const semesterPlanningSchema = {
 		closedLabel: v.optional(v.string()),
 	}).index("by_semesterId_and_date", ["semesterId", "date"]),
 
+	// Events an editor put in the plan by hand, or imported from the calendar, on top of the ones
+	// applications make. The plan shows them on the Oslo day of their eventStart.
+	semesterPlanEvents: defineTable({
+		semesterId: v.id("semesters"),
+		eventId: v.id("events"),
+		addedBy: v.id("users"),
+	})
+		.index("by_semesterId", ["semesterId"])
+		.index("by_eventId", ["eventId"]),
+
 	companyApplications: defineTable({
 		semesterId: v.id("semesters"),
 		// One-time id from the Hugin form, so a double click or retry saves one application.

@@ -48,6 +48,7 @@ describe("the whole journey", () => {
 		// The company applies on Hugin.
 		stubRegistries();
 		await t.action(api.semesterPlanning.applications.submit.submit, {
+			semesterId,
 			submissionId: "journey-submission-1",
 			form: {
 				orgNumber: VALID_ORG_NUMBER,

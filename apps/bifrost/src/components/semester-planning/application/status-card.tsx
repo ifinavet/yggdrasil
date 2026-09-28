@@ -5,7 +5,7 @@ import { Button } from "@workspace/ui/components/button";
 import { Callout } from "@workspace/ui/components/products/callout";
 import { Panel, PanelBody } from "@workspace/ui/components/products/panel";
 import { useMutation } from "convex/react";
-import { Link2, type LucideIcon } from "lucide-react";
+import { Link2, type LucideIcon, Trash2 } from "lucide-react";
 import { Fragment, type ReactNode, useState } from "react";
 import { toast } from "sonner";
 import { capitalize, formatMoment, longDay, shortDay, shortDayTitle } from "../format";
@@ -78,7 +78,20 @@ export function StatusCard({
 			{label}
 		</Button>
 	);
-	const withdrawButton = act("Trekk", () => setDialog("withdraw"), "ghost");
+	const withdrawButton = (
+		<Button
+			key="withdraw"
+			size="icon-sm"
+			variant="ghost"
+			disabled={pending || assigning}
+			onClick={() => setDialog("withdraw")}
+			aria-label="Slett søknad"
+			title="Slett søknad"
+			className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+		>
+			<Trash2 aria-hidden />
+		</Button>
+	);
 	const rejectButton = act("Avslå", () => setDialog("reject"), "outline");
 
 	let actions: (ReactNode | false)[];
@@ -101,7 +114,7 @@ export function StatusCard({
 						withdrawButton,
 					]
 				: [
-						canAssign && act("Tildel dato", () => setDialog("assign"), "default"),
+						canAssign && act("Velg dato", () => setDialog("assign"), "default"),
 						rejectButton,
 						withdrawButton,
 					];
@@ -114,7 +127,7 @@ export function StatusCard({
 			break;
 		case "new_date_requested":
 			actions = [
-				canAssign && act("Tildel ny dato", () => setDialog("assign"), "default"),
+				canAssign && act("Velg ny dato", () => setDialog("assign"), "default"),
 				rejectButton,
 				withdrawButton,
 			];
@@ -195,18 +208,18 @@ export function StatusCard({
 				<ConfirmDialog
 					open={dialog === "withdraw"}
 					onOpenChange={(open) => setDialog(open ? "withdraw" : null)}
-					title={`Trekke søknaden fra ${companyName}?`}
+					title={`Slette søknaden fra ${companyName}?`}
 					description={
 						<>
 							{assigned && isActiveStatus(status)
 								? `${shortDayTitle(assigned)} blir ledig igjen. `
 								: ""}
-							Lenken i et sendt tilbud slutter å virke, og bedriften får ikke e-post om dette. Du
-							kan gjenåpne søknaden senere.
+							Lenken i et sendt tilbud slutter å virke, og bedriften får ikke e-post om dette.
+							Søknaden blir liggende som slettet, så du kan gjenåpne den senere.
 						</>
 					}
 					comment={{ label: "Kommentar (valgfritt)" }}
-					confirmLabel="Trekk søknaden"
+					confirmLabel="Slett søknaden"
 					destructive
 					onConfirm={(comment) =>
 						run(
@@ -214,8 +227,8 @@ export function StatusCard({
 							() =>
 								toast.success(
 									assigned
-										? `Søknaden er trukket. ${shortDay(assigned)} er ledig igjen.`
-										: "Søknaden er trukket.",
+										? `Søknaden er slettet. ${shortDay(assigned)} er ledig igjen.`
+										: "Søknaden er slettet.",
 								),
 						)
 					}
@@ -317,7 +330,7 @@ function StatusMessage({
 			if (assigned) {
 				return (
 					<>
-						Tildelt <b>{longDay(assigned)}</b>. Lag tilbudet, så får du en lenke å sende til
+						Datoen er <b>{longDay(assigned)}</b>. Lag tilbudet, så får du en lenke å sende til
 						bedriften.
 					</>
 				);
@@ -326,7 +339,7 @@ function StatusMessage({
 			const checked = application.availableDates.length;
 			const open = application.availableDates.filter((date) => free.has(date)).length;
 			const dates = checked === 1 ? "dato" : "datoer";
-			return `Ingen dato er tildelt ennå. ${companyName} krysset av ${checked} ${dates}, og ${open} av dem er ledige.`;
+			return `Ingen dato er valgt ennå. ${companyName} krysset av ${checked} ${dates}, og ${open} av dem er ledige.`;
 		}
 		case "offer_sent":
 			return (
@@ -385,7 +398,7 @@ function ClosedMessage({
 
 	return (
 		<>
-			{status === "withdrawn" ? "Trukket" : "Avslått"}
+			{status === "withdrawn" ? "Slettet" : "Avslått"}
 			{closingChange && ` ${formatMoment(closingChange._creationTime, "longDay")} av ${who}`}
 			{closingChange?.comment ? `: «${closingChange.comment}»` : "."}
 			{dateIsFree && (

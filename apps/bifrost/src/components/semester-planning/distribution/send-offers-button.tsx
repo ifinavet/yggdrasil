@@ -37,7 +37,7 @@ type MadeOffer = {
 };
 
 /**
- * «Lag tilbud til N tildelt»: makes an offer link for every application that has a date and is
+ * «Lag tilbud til N med dato»: makes an offer link for every application that has a date and is
  * waiting for one, one at a time, with progress in the button. Nothing is emailed: afterwards it
  * lists the links, each with its email text, for the editor to send by hand. A failure is
  * reported with the backend's message and does not stop the rest.
@@ -85,7 +85,7 @@ export function SendOffersButton({
 						<Link2 aria-hidden />
 						{progress
 							? `Lager ${progress.done} av ${progress.total}`
-							: `Lag tilbud til ${count} tildelt`}
+							: `Lag tilbud til ${count} med dato`}
 					</Button>
 				</AlertDialogTrigger>
 				<AlertDialogContent>

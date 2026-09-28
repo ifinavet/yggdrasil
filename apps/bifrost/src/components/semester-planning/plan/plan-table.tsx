@@ -6,19 +6,30 @@ import { Fragment } from "react";
 import { LIST_HEAD } from "@/components/common/table-classes";
 import { formatOrgNumber, monthLabel } from "../format";
 import type { PlanDay } from "./plan-days";
-import { CompanyName, DateTile, Person, PlanStatus, useOpenApplication } from "./plan-parts";
+import {
+	CompanyName,
+	DateTile,
+	EventKind,
+	EventTitle,
+	Person,
+	PlanStatus,
+	RemovePlanEventButton,
+	useOpenApplication,
+} from "./plan-parts";
 
 const HEAD = `${LIST_HEAD} text-left font-medium`;
 
 /**
- * The semester plan, one row per Tuesday and Thursday: the company and its status, and who from
- * Navet runs it. Editors also see the organization number and the company's contact person, and
- * open an application by clicking its row.
+ * The semester plan, one row per Tuesday and Thursday and per event in the plan: the company and
+ * its status, and who from Navet runs it. Editors also see the organization number and the
+ * company's contact person, open an application by clicking its row, and can take an event out of
+ * the plan.
  */
 export function PlanTable({
 	days,
 	showContactDetails,
-}: Readonly<{ days: readonly PlanDay[]; showContactDetails: boolean }>) {
+	canEdit = false,
+}: Readonly<{ days: readonly PlanDay[]; showContactDetails: boolean; canEdit?: boolean }>) {
 	const openApplication = useOpenApplication(showContactDetails);
 	const columns = showContactDetails ? 6 : 5;
 
@@ -49,6 +60,48 @@ export function PlanTable({
 							</th>
 						</tr>
 					);
+
+					if (day.kind === "event") {
+						const { event } = day;
+						return (
+							<Fragment key={event._id}>
+								{monthRow}
+								<tr>
+									<td className="border-t py-3 pl-4">
+										<DateTile date={day.date} />
+									</td>
+									<td className="border-t px-3 py-3">
+										<div className="flex items-center gap-3">
+											<CompanyLogo name={event.companyName} url={event.logoUrl ?? null} />
+											<div className="min-w-0">
+												<EventTitle event={event} />
+												<div className="mt-0.5 text-[12.5px] text-muted-foreground">
+													{event.companyName}
+												</div>
+											</div>
+										</div>
+									</td>
+									<td className="border-t px-3 py-3">
+										<EventKind extraDay={day.extraDay} />
+									</td>
+									{showContactDetails && <td className="border-t px-3 py-3" />}
+									<td className="border-t border-l px-3 py-3">
+										{event.responsibleName && <Person name={event.responsibleName} />}
+									</td>
+									<td className="border-t py-3 pr-4 pl-3">
+										<div className="flex items-start justify-between gap-2">
+											<div className="flex flex-col gap-1.5">
+												{event.helpers.map((helper) => (
+													<Person key={helper.userId} name={helper.name} small />
+												))}
+											</div>
+											{canEdit && <RemovePlanEventButton event={event} />}
+										</div>
+									</td>
+								</tr>
+							</Fragment>
+						);
+					}
 
 					if (day.kind !== "assigned") {
 						const closed = day.kind === "closed";

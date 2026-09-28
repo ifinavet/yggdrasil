@@ -78,8 +78,8 @@ export function DistributionTab({ semester }: Readonly<{ semester: Doc<"semester
 					{!closed && (
 						<p className="flex items-center gap-2 px-4 pb-3.5 text-[12.5px] text-muted-foreground">
 							<Hand className="size-3.5 shrink-0" aria-hidden />
-							Klikk en dato for å tildele den. Med mus kan du også dra den tildelte datoen til en
-							annen.
+							Klikk en dato for å velge den for bedriften. Med mus kan du også dra den valgte datoen
+							til en annen.
 						</p>
 					)}
 					{details.dates.length > 0 ? (

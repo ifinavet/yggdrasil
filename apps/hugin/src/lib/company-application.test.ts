@@ -20,7 +20,7 @@ import {
 	groupDatesByMonth,
 	placeName,
 } from "./company-application-format";
-import { loadDraft, saveDraft } from "./company-application-storage";
+import { loadDraft, saveDraft, storedDraftSemesterId } from "./company-application-storage";
 
 function completeDraft(overrides: Partial<ApplicationDraft> = {}): ApplicationDraft {
 	return {
@@ -183,33 +183,86 @@ describe("company application saved draft", () => {
 
 	afterEach(() => vi.unstubAllGlobals());
 
-	it("restores a saved draft for the same semester only", () => {
+	it("restores a saved draft for its own semester as it was", () => {
 		stubStorage();
 		const values = completeDraft();
 		saveDraft({ semesterId: "semester-1", submissionId: "submission-1", values });
 
+		expect(storedDraftSemesterId()).toBe("semester-1");
 		expect(loadDraft("semester-1")).toEqual({
 			semesterId: "semester-1",
 			submissionId: "submission-1",
 			values,
 		});
-		expect(loadDraft("semester-2")).toBeNull();
+	});
+
+	it("carries a draft over to another semester without its dates, under a new submission id", () => {
+		stubStorage();
+		const values = completeDraft();
+		saveDraft({ semesterId: "semester-1", submissionId: "submission-1", values });
+
+		const carried = loadDraft("semester-2");
+
+		expect(carried?.semesterId).toBe("semester-2");
+		expect(carried?.submissionId).not.toBe("submission-1");
+		expect(carried?.values).toEqual({ ...values, availableDates: [] });
+	});
+
+	it("keeps one draft per semester, so switching back brings the first one back untouched", () => {
+		stubStorage();
+		const spring = { semesterId: "spring", submissionId: "s-1", values: completeDraft() };
+		saveDraft(spring);
+		const autumn = loadDraft("autumn");
+		if (!autumn) throw new Error("Expected a carried-over draft.");
+		saveDraft({ ...autumn, values: { ...autumn.values, description: "Noe annet" } });
+
+		expect(storedDraftSemesterId()).toBe("autumn");
+		expect(loadDraft("spring")).toEqual(spring);
+		expect(loadDraft("autumn")?.values.description).toBe("Noe annet");
+	});
+
+	it("reads a draft saved before drafts were kept per semester, then moves it", () => {
+		stubStorage();
+		const values = completeDraft();
+		store.set(
+			"hugin.company-application.draft.v1",
+			JSON.stringify({ semesterId: "semester-1", submissionId: "submission-1", values }),
+		);
+
+		expect(storedDraftSemesterId()).toBe("semester-1");
+		const draft = loadDraft("semester-1");
+		expect(draft).toEqual({ semesterId: "semester-1", submissionId: "submission-1", values });
+		if (!draft) throw new Error("Expected the draft.");
+		saveDraft(draft);
+		expect(store.has("hugin.company-application.draft.v1")).toBe(false);
+		expect(loadDraft("semester-1")).toEqual(draft);
+	});
+
+	it("has no draft to restore when nothing is saved", () => {
+		stubStorage();
+		expect(storedDraftSemesterId()).toBeNull();
+		expect(loadDraft("semester-1")).toBeNull();
 	});
 
 	it("falls back to unanswered for anything unreadable, and drops unknown keys", () => {
 		stubStorage();
 		store.set(
-			"hugin.company-application.draft.v1",
+			"hugin.company-application.drafts.v2",
 			JSON.stringify({
-				semesterId: "semester-1",
-				submissionId: "submission-1",
-				values: {
-					description: "Presentasjon",
-					availableDates: "2027-01-28",
-					company: { name: "Uten org.nr." },
-					eventType: "picnic",
-					contact: { name: "Ingrid", email: 42 },
-					minStudents: "20",
+				lastSemesterId: "semester-1",
+				drafts: {
+					"semester-1": {
+						semesterId: "semester-1",
+						submissionId: "submission-1",
+						values: {
+							description: "Presentasjon",
+							availableDates: "2027-01-28",
+							company: { name: "Uten org.nr." },
+							eventType: "picnic",
+							contact: { name: "Ingrid", email: 42 },
+							minStudents: "20",
+						},
+					},
 				},
 			}),
 		);
