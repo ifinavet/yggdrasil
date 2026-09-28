@@ -112,6 +112,7 @@ export default function HomePage() {
 									src={Navet}
 									alt="Vi alle elsker Navet"
 									className="h-full w-full bg-gray-200 object-cover"
+									sizes="(min-width: 768px) 14rem, (min-width: 640px) 12rem, 10rem"
 								/>
 							</div>
 
@@ -120,6 +121,7 @@ export default function HomePage() {
 									src={Navet_Logo}
 									alt="Vi alle elsker Navet"
 									className="h-full w-full bg-gray-100 object-contain p-8"
+									sizes="(min-width: 768px) 14rem, (min-width: 640px) 12rem, 10rem"
 								/>
 							</div>
 						</div>

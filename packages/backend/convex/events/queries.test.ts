@@ -246,3 +246,57 @@ describe("getAll", () => {
 		expect(event?.feedbackStatus).toBeNull();
 	});
 });
+
+describe("event queries hosting company data", () => {
+	it("getUpcoming returns the hosting company name and logo url", async () => {
+		const { t, companyId } = await setup();
+		await insertEvent(t, companyId, { eventStart: Date.now() + 60_000 });
+
+		const [event] = await t.query(api.events.queries.getUpcoming, { n: 3 });
+
+		expect(event.hostingCompanyName).toBe("Testbedrift");
+		expect(event.hostingCompanyLogoUrl).toMatch(/^http/);
+	});
+
+	it("getCurrentSemester returns the hosting company logo url for every event", async () => {
+		const { t, companyId } = await setup();
+		await insertEvent(t, companyId, { eventStart: Date.now() + 60_000 });
+
+		const byMonth = await t.query(api.events.queries.getCurrentSemester, { isExternal: false });
+		const events = Object.values(byMonth).flat();
+
+		expect(events.length).toBeGreaterThan(0);
+		for (const event of events) {
+			expect(event.hostingCompanyName).toBe("Testbedrift");
+			expect(event.hostingCompanyLogoUrl).toMatch(/^http/);
+		}
+	});
+
+	it("getEvent returns the hosting company description and logo url", async () => {
+		const { t, companyId } = await setup();
+		await t.run(async (ctx) => {
+			await ctx.db.patch(companyId, { description: "<p>Om bedriften</p>" });
+		});
+		const eventId = await insertEvent(t, companyId, { eventStart: Date.now() + 60_000 });
+
+		const event = await t.query(api.events.queries.getEvent, { identifier: eventId });
+
+		expect(event.hostingCompanyName).toBe("Testbedrift");
+		expect(event.hostingCompanyDescription).toBe("<p>Om bedriften</p>");
+		expect(event.hostingCompanyLogoUrl).toMatch(/^http/);
+	});
+
+	it("getUpcoming returns a null logo url when the company has no stored logo", async () => {
+		const { t, companyId } = await setup();
+		await t.run(async (ctx) => {
+			const company = await ctx.db.get(companyId);
+			if (!company) throw new Error("missing company");
+			await ctx.db.delete(company.logo);
+		});
+		await insertEvent(t, companyId, { eventStart: Date.now() + 60_000 });
+
+		const [event] = await t.query(api.events.queries.getUpcoming, { n: 3 });
+
+		expect(event.hostingCompanyLogoUrl).toBeNull();
+	});
+});

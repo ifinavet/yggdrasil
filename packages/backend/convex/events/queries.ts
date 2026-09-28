@@ -52,7 +52,7 @@ export const getLatest = query({
  *
  * @param {number} n - The maximum number of events to return.
  *
- * @returns {Doc<"events">[]} - The upcoming published events.
+ * @returns {Array<Doc<"events"> & { hostingCompanyName: string, hostingCompanyLogoUrl: string | null }>} - The upcoming published events with hosting company names and logo urls.
  */
 export const getUpcoming = query({
 	args: {
@@ -66,9 +66,26 @@ export const getUpcoming = query({
 			.order("asc")
 			.take(n);
 
-		return events;
+		return withHostingCompanyLogo(ctx, events);
 	},
 });
+
+async function withHostingCompanyLogo<T extends Doc<"events">>(ctx: QueryCtx, events: T[]) {
+	const companies = new Map<Id<"companies">, ReturnType<typeof companyWithLogo>>();
+	return Promise.all(
+		events.map(async (event) => {
+			const loaded =
+				companies.get(event.hostingCompany) ?? companyWithLogo(ctx, event.hostingCompany);
+			companies.set(event.hostingCompany, loaded);
+			const company = await loaded;
+			return {
+				...event,
+				hostingCompanyName: company.name,
+				hostingCompanyLogoUrl: company.logoUrl,
+			};
+		}),
+	);
+}
 
 /**
  * Fetches all events for a given semester and year.
@@ -177,7 +194,7 @@ export async function companyWithLogo(ctx: QueryCtx, companyId: Id<"companies">)
  *
  * @param {boolean} isExternal - Whether to only include events with an external URL.
  *
- * @returns {Record<string, Array<Doc<"events"> & { hostingCompanyName: string, participationCount: number }>>} - Current semester events grouped by month name.
+ * @returns {Record<string, Array<Doc<"events"> & { hostingCompanyName: string, hostingCompanyLogoUrl: string | null, participationCount: number }>>} - Current semester events grouped by month name.
  */
 export const getCurrentSemester = query({
 	args: {
@@ -193,18 +210,27 @@ export const getCurrentSemester = query({
 			return externalEvent === isExternal;
 		});
 
-		const eventsWithParticipationCount = await Promise.all(
-			filteredEvents.map(async (event) => {
-				const participationCount = (
-					await ctx.db
+		const [eventsWithLogo, participationCounts] = await Promise.all([
+			withHostingCompanyLogo(ctx, filteredEvents),
+			Promise.all(
+				filteredEvents.map(async (event) => {
+					const registrations = await ctx.db
 						.query("registrations")
 						.withIndex("by_eventIdStatusAndRegistrationTime", (q) => q.eq("eventId", event._id))
-						.collect()
-				).filter((q) => q.status === "registered" || q.status === "pending").length;
+						.collect();
+					const participationCount = registrations.filter(
+						(q) => q.status === "registered" || q.status === "pending",
+					).length;
+					return [event._id, participationCount] as const;
+				}),
+			),
+		]);
+		const countByEvent = new Map(participationCounts);
 
-				return { ...event, participationCount };
-			}),
-		);
+		const eventsWithParticipationCount = eventsWithLogo.map((event) => ({
+			...event,
+			participationCount: countByEvent.get(event._id) ?? 0,
+		}));
 
 		const eventsByMonth: Record<string, typeof eventsWithParticipationCount> = {};
 
@@ -227,7 +253,7 @@ export const getCurrentSemester = query({
  * @param {string} identifier - Either the event id or event slug.
  *
  * @throws - An error if the event or hosting company cannot be resolved.
- * @returns {Doc<"events"> & { hostingCompanyName: string, organizers: Awaited<ReturnType<typeof getOrganizers>> }} - The resolved event payload.
+ * @returns {Doc<"events"> & { hostingCompanyName: string, hostingCompanyDescription: string, hostingCompanyLogoUrl: string | null, organizers: Awaited<ReturnType<typeof getOrganizers>> }} - The resolved event payload.
  */
 export const getEvent = query({
 	args: {
@@ -243,13 +269,18 @@ export const getEvent = query({
 		const company = await ctx.db.get(event.hostingCompany);
 		if (!company) throw new ConvexError("Fant ikke bedriften som er vert for arrangementet.");
 
-		const organizers = await getOrganizers(ctx, event._id);
-		const foodItem = event.foodItem ? await ctx.db.get(event.foodItem) : null;
+		const [organizers, foodItem, logo] = await Promise.all([
+			getOrganizers(ctx, event._id),
+			event.foodItem ? ctx.db.get(event.foodItem) : null,
+			ctx.db.get(company.logo),
+		]);
 
 		return {
 			...event,
 			foodName: foodItem?.name ?? null,
-			hostingCompanyName: company?.name ?? "Ukjent",
+			hostingCompanyName: company.name,
+			hostingCompanyDescription: company.description,
+			hostingCompanyLogoUrl: logo ? await ctx.storage.getUrl(logo.image) : null,
 			organizers,
 		};
 	},
