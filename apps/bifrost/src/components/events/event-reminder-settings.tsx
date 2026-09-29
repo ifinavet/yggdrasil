@@ -6,10 +6,17 @@ import { convexErrorMessage } from "@workspace/shared/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";
 import { Checkbox } from "@workspace/ui/components/checkbox";
 import { Field, FieldLabel } from "@workspace/ui/components/field";
+import { useFeatureEnabled } from "@workspace/ui/hooks/use-feature-enabled";
 import { useMutation, useQuery } from "convex/react";
 import { toast } from "sonner";
 
 export function EventReminderSettings({ eventId }: Readonly<{ eventId: Id<"events"> }>) {
+	const enabled = useFeatureEnabled("eventReminders");
+	if (!enabled) return null;
+	return <ReminderToggle eventId={eventId} />;
+}
+
+function ReminderToggle({ eventId }: Readonly<{ eventId: Id<"events"> }>) {
 	const settings = useQuery(api.events.reminders.queries.getEventReminders, { eventId });
 	const setReminders = useMutation(
 		api.events.reminders.mutations.setEventReminders,
