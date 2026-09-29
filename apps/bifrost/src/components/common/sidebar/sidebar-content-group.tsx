@@ -123,12 +123,10 @@ export function SidebarContentGroup({
 }>) {
 	const rootPathSegment = usePathname().split("/")[1];
 	const enabled: Record<GatedFeature, boolean> = {
-		huginFeedback: useFeatureEnabled("huginFeedback"),
 		products: useFeatureEnabled("products"),
 		jobListingOrders: useFeatureEnabled("jobListingOrders"),
 		semesterPlanning: useFeatureEnabled("semesterPlanning"),
 		engagement: useFeatureEnabled("engagement"),
-		eventReminders: useFeatureEnabled("eventReminders"),
 	};
 	const visibleItems = paths[items].filter(
 		(item: SidebarItem) => item.feature === undefined || enabled[item.feature],
