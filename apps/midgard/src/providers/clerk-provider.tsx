@@ -5,9 +5,5 @@ import AuthProvider from "@workspace/auth/provider";
 import type { ReactNode } from "react";
 
 export default function ClerkProvider({ children }: Readonly<{ children: ReactNode }>) {
-	return (
-		<AuthProvider localization={nbNO} prefetchUI={false}>
-			{children}
-		</AuthProvider>
-	);
+	return <AuthProvider localization={nbNO}>{children}</AuthProvider>;
 }
