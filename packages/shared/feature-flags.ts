@@ -2,7 +2,7 @@
 export const featureFlags = {
 	huginFeedback: {
 		// Makes the Bifrost UI visible without the localStorage preview opt-in.
-		uiEnabled: false,
+		uiEnabled: true,
 		// Enables internal report preparation and review. Approved public links do not use this flag.
 		reportsEnabled: true,
 		// Allows approved company report emails.
@@ -23,7 +23,7 @@ export const featureFlags = {
 		uiEnabled: true,
 	},
 	eventReminders: {
-		uiEnabled: false,
+		uiEnabled: true,
 	},
 };
 
