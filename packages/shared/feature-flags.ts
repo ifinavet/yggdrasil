@@ -12,7 +12,7 @@ export const featureFlags = {
 		uiEnabled: false,
 	},
 	jobListingOrders: {
-		uiEnabled: false,
+		uiEnabled: true,
 	},
 	semesterPlanning: {
 		// Shows Semesterplan in Bifrost, the application and offer pages on Hugin and the button on
