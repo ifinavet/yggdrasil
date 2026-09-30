@@ -22,10 +22,7 @@ async function companyInfo(ctx: QueryCtx, ids: Iterable<Id<"companies">>) {
 	return companies;
 }
 
-async function eventSales(
-	events: readonly Doc<"events">[],
-	companies: Map<string, CompanyInfo>,
-): Promise<Sale[]> {
+function eventSales(events: readonly Doc<"events">[], companies: Map<string, CompanyInfo>): Sale[] {
 	const sold = events.flatMap((event) =>
 		event.product ? [{ event, product: event.product }] : [],
 	);
@@ -109,9 +106,6 @@ export const sales = query({
 			...listings.map((listing) => listing.company),
 		]);
 
-		return [
-			...(await eventSales(events, companies)),
-			...(await listingSales(ctx, listings, companies)),
-		];
+		return [...eventSales(events, companies), ...(await listingSales(ctx, listings, companies))];
 	},
 });
