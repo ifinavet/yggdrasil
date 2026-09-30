@@ -7,6 +7,10 @@ export const EVENT_PLANNING = {
 	archiveDaysAfter: 7,
 	practicalDaysBefore: 2,
 	expensesDaysAfter: 1,
+	promotionDaysBefore: 1,
+	textDaysBefore: 14,
+	checklistDaysBefore: 7,
+	approvalDaysAfter: 3,
 };
 
 /** Calendar days before the event, at 09:00 Oslo, including across DST changes. */

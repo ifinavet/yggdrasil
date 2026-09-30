@@ -1,10 +1,11 @@
+import { featureFlags } from "@workspace/shared/feature-flags";
 import type { Doc } from "../../_generated/dataModel";
-import type { QueryCtx } from "../../_generated/server";
+import type { MutationCtx } from "../../_generated/server";
 import { latestCampaign } from "../delivery/campaigns";
 
 /** Null means feedback/report work is still outstanding; queueing email is not completion. */
 export async function followupFinishedAt(
-	ctx: QueryCtx,
+	ctx: MutationCtx,
 	event: Doc<"events">,
 ): Promise<number | null> {
 	const campaign = await latestCampaign(ctx, event._id);
@@ -15,6 +16,19 @@ export async function followupFinishedAt(
 		.query("feedbackReports")
 		.withIndex("by_campaignId", (q) => q.eq("campaignId", campaign._id))
 		.unique();
+	if (!report && (!campaign.formVersionId || !featureFlags.huginFeedback.reportsEnabled))
+		return campaign.closedAt ?? campaign.closesAt;
 	if (!report || report.status === "building" || report.deliveryStatus === "failed") return null;
-	return report.followupFinishedAt ?? null;
+	if (report.followupFinishedAt !== undefined) return report.followupFinishedAt;
+	// Legacy reports have no provider timestamp. Start their safety week on first observation.
+	if (
+		report.deliveryStatus === "delivered" ||
+		report.totalResponses === 0 ||
+		report.status === "revoked"
+	) {
+		const now = Date.now();
+		await ctx.db.patch(report._id, { followupFinishedAt: now });
+		return now;
+	}
+	return null;
 }

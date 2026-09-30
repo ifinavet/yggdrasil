@@ -2,6 +2,7 @@ import {
 	COMPANY_FIRST_CONTACT_TEMPLATE_URL,
 	EVENT_EXPENSE_TEMPLATE_URL,
 } from "@workspace/shared/constants";
+import { SYSTEM_ALERTS_CHANNEL } from "@workspace/shared/slack/channels";
 import { DAY_MS, eventPlanningAt } from "@workspace/shared/time";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -31,6 +32,7 @@ type Channel = {
 };
 function fakeSlack() {
 	const channels: Channel[] = [];
+	const systemMessages: { text: string; client_msg_id: string }[] = [];
 	let fail: string | undefined;
 	let loseCreate = false;
 	let losePost = false;
@@ -69,10 +71,15 @@ function fakeSlack() {
 				}
 				case "conversations.list":
 					return reply({ ok: true, channels });
+				case "conversations.info":
+					return reply({ ok: true, channel: { is_archived: channel?.archived } });
 				case "conversations.members":
 					return reply({ ok: true, members: channel?.members });
 				case "conversations.history":
-					return reply({ ok: true, messages: channel?.messages });
+					return reply({
+						ok: true,
+						messages: args.channel === SYSTEM_ALERTS_CHANNEL ? systemMessages : channel?.messages,
+					});
 				case "conversations.rename":
 					if (channel) channel.name = args.name as string;
 					break;
@@ -97,7 +104,12 @@ function fakeSlack() {
 						text: args.text as string,
 						client_msg_id: args.client_msg_id as string,
 					});
-					if (losePost) {
+					if (args.channel === SYSTEM_ALERTS_CHANNEL)
+						systemMessages.push({
+							text: args.text as string,
+							client_msg_id: args.client_msg_id as string,
+						});
+					if (losePost && channel) {
 						losePost = false;
 						throw new Error("lost post response");
 					}
@@ -107,6 +119,7 @@ function fakeSlack() {
 		}),
 	);
 	return {
+		systemMessages,
 		channels,
 		calls,
 		fail: (method?: string) => {
@@ -150,7 +163,7 @@ async function run(t: TestBackend, now = Date.now()) {
 beforeEach(() => {
 	vi.useFakeTimers();
 	vi.setSystemTime(NOW);
-	vi.stubEnv("SLACK_EVENT_CHANNELS_ENABLED", "true");
+	vi.stubEnv("SLACK_BOT_TOKEN", "test-token");
 	vi.stubEnv("SLACK_BOT_TOKEN", "test-token");
 });
 afterEach(() => {
@@ -172,19 +185,19 @@ describe("company semester event lifecycle", () => {
 			});
 			await organizer(t, id, `U${index}`);
 		}
-		vi.stubEnv("SLACK_EVENT_CHANNELS_ENABLED", "false");
+		vi.stubEnv("SLACK_BOT_TOKEN", "");
 		await run(t);
 		expect(slack.calls).toEqual([]);
-		vi.stubEnv("SLACK_EVENT_CHANNELS_ENABLED", "true");
+		vi.stubEnv("SLACK_BOT_TOKEN", "test-token");
 		await run(t);
 		expect(slack.channels).toHaveLength(1);
 		expect(slack.channels[0]?.name).toBe("h26-testbedrift");
 		expect(slack.channels[0]?.messages).toHaveLength(4);
 		expect(slack.channels[0]?.members).toEqual(["BOT", "U3", "U2", "U1", "U0"]);
 		await run(t);
-		vi.stubEnv("SLACK_EVENT_CHANNELS_ENABLED", "false");
+		vi.stubEnv("SLACK_BOT_TOKEN", "");
 		await run(t);
-		vi.stubEnv("SLACK_EVENT_CHANNELS_ENABLED", "true");
+		vi.stubEnv("SLACK_BOT_TOKEN", "test-token");
 		await run(t);
 		expect(slack.channels[0]?.messages).toHaveLength(4);
 		for (let index = 0; index < 4; index++)
@@ -264,8 +277,10 @@ describe("company semester event lifecycle", () => {
 		expect(slack.channels[0]?.archived).toBe(true);
 		await insertEvent(t, companyId, { eventStart: last + 20 * DAY_MS });
 		await run(t);
-		expect(slack.channels).toHaveLength(1);
-		expect(slack.channels[0]?.archived).toBe(false);
+		expect(slack.channels).toHaveLength(2);
+		expect(slack.channels[0]?.archived).toBe(true);
+		expect(slack.channels[1]?.archived).toBe(false);
+		expect(slack.calls).not.toContain("conversations.unarchive");
 	});
 	it("recovers a lost create response and a lost post response without duplicate channel or message", async () => {
 		const { t, companyId } = await setup();
@@ -346,6 +361,7 @@ describe("company semester event lifecycle", () => {
 		const user = await insertUser(t, "recipient@uio.no");
 		await t.run((ctx) =>
 			ctx.db.insert("eventReminderDeliveries", {
+				eventStart: START,
 				eventId,
 				userId: user._id,
 				kind: "week",
@@ -404,7 +420,7 @@ function emailEvent(id: string, type: "email.sent" | "email.delivered" = "email.
 
 it("uses provider callbacks once per feedback round and ignores cancelled/missing campaigns", async () => {
 	const { t, companyId } = await setup();
-	const eventId = await insertEvent(t, companyId, { eventStart: START });
+	const eventId = await insertEvent(t, companyId, { eventStart: START, remindersEnabled: true });
 	const campaignId = await t.run((ctx) =>
 		ctx.db.insert("feedbackCampaigns", {
 			eventId,
@@ -450,6 +466,7 @@ it("uses provider callbacks once per feedback round and ignores cancelled/missin
 	const user = await insertUser(t, "reminder@uio.no");
 	await t.run((ctx) =>
 		ctx.db.insert("eventReminderDeliveries", {
+			eventStart: START,
 			eventId,
 			userId: user._id,
 			kind: "twoDays",
@@ -505,7 +522,7 @@ it("keeps the channel through report approval and queueing, then archives a week
 	expect(slack.channels[0]?.archived).toBe(true);
 	await t.run((ctx) => ctx.db.patch(reportId, { deliveryStatus: "failed" }));
 	await run(t);
-	expect(slack.channels[0]?.archived).toBe(false);
+	expect(slack.channels[1]?.archived).toBe(false);
 });
 
 it("routes a company change to its new shared channel and cleans up the old one", async () => {
@@ -550,4 +567,184 @@ it("fans out an existing unregister-wave detection without a second detector or 
 	const notices = await t.run((ctx) => ctx.db.query("eventSlackNotifications").collect());
 	expect(notices).toHaveLength(1);
 	expect(notices[0]?.key).toContain("unregister-wave:");
+});
+
+it("keeps manually invited support members while removing formerly managed organizers", async () => {
+	const { t, companyId } = await setup();
+	const slack = fakeSlack();
+	const eventId = await insertEvent(t, companyId, { eventStart: START });
+	const user = await organizer(t, eventId, "MANAGED");
+	await run(t);
+	slack.channels[0]?.members.push("MANUAL");
+	await t.run(async (ctx) => {
+		const account = await ctx.db
+			.query("memberAccounts")
+			.withIndex("by_userId", (q) => q.eq("userId", user))
+			.unique();
+		if (account) await ctx.db.patch(account._id, { stage: "offboarded" });
+	});
+	await run(t);
+	expect(slack.channels[0]?.members).toContain("MANUAL");
+	expect(slack.channels[0]?.members).not.toContain("MANAGED");
+});
+
+it("rechecks conditional text/promotion/checklist reminders and avoids completed work", async () => {
+	const { dueOrganizerReminders } = await import("./reminders");
+	const { t, companyId } = await setup();
+	const eventId = await insertEvent(t, companyId, {
+		eventStart: START,
+		registrationOpens: eventPlanningAt(START, 13),
+		title: "TBD",
+		teaser: "<p>TBD</p>",
+		description: "<p>&nbsp;</p>",
+	});
+	const due = async (now: number) =>
+		t.run(async (ctx) => {
+			const event = await ctx.db.get(eventId);
+			if (!event) throw new Error("Missing event");
+			return dueOrganizerReminders(ctx, event, now);
+		});
+	const missing = await due(eventPlanningAt(START, 14));
+	expect(missing.map((r) => r.key)).toContain("missing-text");
+	expect(missing.some((r) => r.key.startsWith("promotion:"))).toBe(false);
+	expect(missing[0]?.text).not.toContain("/edit");
+	await t.run((ctx) =>
+		ctx.db.patch(eventId, { title: "Bedpres", teaser: "Lær", description: "Mer om bedriften" }),
+	);
+	expect((await due(eventPlanningAt(START, 14))).some((r) => r.key.startsWith("promotion:"))).toBe(
+		true,
+	);
+	await t.run((ctx) =>
+		ctx.db.patch(eventId, {
+			completedChecklistSteps: ["promotion", "room", "food", "helpers", "company-contact"],
+		}),
+	);
+	expect(await due(eventPlanningAt(START, 14))).toEqual([]);
+	expect(await due(eventPlanningAt(START, 7))).toEqual([]);
+	expect(await due(eventPlanningAt(START, 28))).toEqual([]);
+	await t.run((ctx) => ctx.db.patch(eventId, { completedChecklistSteps: ["room"] }));
+	const checklist = await due(eventPlanningAt(START, 7));
+	expect(checklist[0]?.text).toContain("matbestilling");
+	expect(checklist[0]?.text).not.toContain("bekreft rom");
+});
+
+it("warns about unmarked attendance only before feedback, and nudges only an unapproved report", async () => {
+	const { dueOrganizerReminders } = await import("./reminders");
+	const { feedbackOpensAt, HOUR_MS } = await import("@workspace/shared/time");
+	const { t, companyId } = await setup();
+	const eventId = await insertEvent(t, companyId, { eventStart: START, feedbackEnabled: true });
+	const user = await insertUser(t, "participant@uio.no");
+	const registration = await t.run((ctx) =>
+		ctx.db.insert("registrations", {
+			eventId,
+			userId: user._id,
+			status: "registered",
+			registrationTime: NOW,
+		}),
+	);
+	const campaignId = await t.run((ctx) =>
+		ctx.db.insert("feedbackCampaigns", {
+			eventId,
+			status: "open",
+			generation: 1,
+			opensAt: feedbackOpensAt(START),
+			closesAt: START + 15 * DAY_MS,
+		}),
+	);
+	const due = async (now: number) =>
+		t.run(async (ctx) => {
+			const event = await ctx.db.get(eventId);
+			if (!event) throw new Error("Missing event");
+			return dueOrganizerReminders(ctx, event, now);
+		});
+	expect((await due(feedbackOpensAt(START) - HOUR_MS))[0]?.text).toContain("1 påmeldte");
+	await t.run((ctx) => ctx.db.patch(registration, { attendanceStatus: "confirmed" }));
+	expect(await due(feedbackOpensAt(START) - HOUR_MS)).toEqual([]);
+	const readyAt = START + 15 * DAY_MS;
+	const reportId = await t.run((ctx) =>
+		ctx.db.insert("feedbackReports", {
+			campaignId,
+			eventId,
+			eventTitle: "Bedpres",
+			eventStart: START,
+			companyName: "Bedrift",
+			recipientEmail: "",
+			status: "draft",
+			questions: [],
+			totalResponses: 1,
+			buildCursor: null,
+			revision: 0,
+			retentionAt: START + 365 * DAY_MS,
+			readyAt,
+		}),
+	);
+	expect((await due(eventPlanningAt(readyAt, -3)))[0]?.text).toContain(
+		"venter fortsatt på gjennomgang",
+	);
+	await t.run((ctx) => ctx.db.patch(reportId, { status: "approved" }));
+	expect(await due(eventPlanningAt(readyAt, -3))).toEqual([]);
+});
+
+it("links the previous approved report and the exact stand guidelines in company contact", async () => {
+	const { dueOrganizerReminders } = await import("./reminders");
+	const { t, companyId } = await setup();
+	const prior = await insertEvent(t, companyId, {
+		eventStart: START - 100 * DAY_MS,
+		slug: "prior",
+	});
+	const current = await insertEvent(t, companyId, { eventStart: START });
+	const campaignId = await t.run((ctx) =>
+		ctx.db.insert("feedbackCampaigns", {
+			eventId: prior,
+			status: "closed",
+			generation: 1,
+			opensAt: NOW - 90 * DAY_MS,
+			closesAt: NOW - 75 * DAY_MS,
+		}),
+	);
+	await t.run((ctx) =>
+		ctx.db.insert("feedbackReports", {
+			campaignId,
+			eventId: prior,
+			eventTitle: "Prior",
+			eventStart: START - 100 * DAY_MS,
+			companyName: "Bedrift",
+			recipientEmail: "",
+			status: "approved",
+			questions: [],
+			totalResponses: 1,
+			buildCursor: null,
+			revision: 1,
+			retentionAt: START + 365 * DAY_MS,
+			approvedAt: NOW - 70 * DAY_MS,
+		}),
+	);
+	const reminders = await t.run(async (ctx) => {
+		const event = await ctx.db.get(current);
+		if (!event) throw new Error("Missing event");
+		return dueOrganizerReminders(ctx, event, eventPlanningAt(START, 28));
+	});
+	expect(reminders[0]?.text).toContain("/events/prior/report");
+	expect(reminders[0]?.text).toContain(
+		"https://www.uio.no/om/regelverk/eiendom/praktiske-retningslinjer/regler-for-reklame-og-profilering/arrangementer-og-stands/",
+	);
+});
+
+it("announces only actual channel creation to system alerts, once per generation", async () => {
+	const { t, companyId } = await setup();
+	const slack = fakeSlack();
+	const eventId = await insertEvent(t, companyId, { eventStart: START });
+	await run(t);
+	await run(t);
+	expect(slack.systemMessages).toHaveLength(1);
+	expect(slack.systemMessages[0]?.text).toContain("#h26-testbedrift");
+	expect(slack.systemMessages[0]?.text).toContain("Testbedrift (høst 2026)");
+	await t.run((ctx) => ctx.db.delete(eventId));
+	await run(t);
+	expect(slack.systemMessages).toHaveLength(1);
+	await insertEvent(t, companyId, { eventStart: START + DAY_MS });
+	await run(t);
+	await run(t);
+	expect(slack.systemMessages).toHaveLength(2);
+	expect(slack.systemMessages[1]?.text).toContain("#h26-testbedrift-2");
 });

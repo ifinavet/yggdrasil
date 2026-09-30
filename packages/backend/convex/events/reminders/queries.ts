@@ -35,6 +35,7 @@ export const emailContext = internalQuery({
 		const users = await Promise.all(registrations.map(({ userId }) => ctx.db.get(userId)));
 		return {
 			company: company.name,
+			eventStart: event.eventStart,
 			time: formatOsloDate(event.eventStart, DATE_PATTERNS.dateTime),
 			location: event.location,
 			signature: await reminderSignature(ctx, eventId),

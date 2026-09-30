@@ -1,5 +1,3 @@
-import { COMPANY_FIRST_CONTACT_TEMPLATE_URL } from "@workspace/shared/constants";
-import { SYSTEM_ALERTS_CHANNEL } from "@workspace/shared/slack/channels";
 import {
 	DAY_MS,
 	EVENT_PLANNING,
@@ -12,18 +10,21 @@ import { asciiSlug } from "@workspace/shared/utils";
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { internal } from "../../_generated/api";
-import type { Id } from "../../_generated/dataModel";
+import type { Doc, Id } from "../../_generated/dataModel";
 import { internalMutation, internalQuery, type MutationCtx } from "../../_generated/server";
 import { followupFinishedAt } from "../../feedback/reports/lifecycle";
+import { countRegistrationsWithStatus } from "../helper";
 import { getOrganizers } from "../queries";
 import { lifecycleEnabled } from "./config";
-import { eventMessage, eventUrl, timedOrganizerReminders, welcomeMessage } from "./messages";
+import { escapeSlack, eventMessage, eventUrl, welcomeMessage } from "./messages";
+import { dueOrganizerReminders } from "./reminders";
 
 export async function queueEventNotification(
 	ctx: MutationCtx,
 	eventId: Id<"events">,
 	key: string,
 	text: string,
+	options: { condition?: string; schedule?: boolean } = {},
 ) {
 	if (!lifecycleEnabled()) return;
 	const event = await ctx.db.get(eventId);
@@ -32,14 +33,19 @@ export async function queueEventNotification(
 		.query("eventSlackNotifications")
 		.withIndex("by_eventId_and_key", (q) => q.eq("eventId", eventId).eq("key", key))
 		.unique();
-	if (existing) return;
-	await ctx.db.insert("eventSlackNotifications", {
-		eventId,
-		key,
-		text,
-		eventStart: event.eventStart,
-	});
-	await ctx.scheduler.runAfter(0, internal.events.slack.lifecycle.reconcile, {});
+	if (existing && !(key === "registration-full" && existing.cancelledAt)) return;
+	if (existing)
+		await ctx.db.patch(existing._id, { cancelledAt: undefined, eventStart: event.eventStart });
+	else
+		await ctx.db.insert("eventSlackNotifications", {
+			eventId,
+			key,
+			text,
+			eventStart: event.eventStart,
+			condition: options.condition,
+		});
+	if (options.schedule !== false)
+		await ctx.scheduler.runAfter(0, internal.events.slack.lifecycle.reconcile, {});
 }
 
 export const discover = internalMutation({
@@ -49,7 +55,7 @@ export const discover = internalMutation({
 			.query("events")
 			.withIndex("by_eventStart", (q) => q.gt("eventStart", now))
 			.paginate(paginationOpts);
-		for (const event of events.page) {
+		for await (const event of events.page) {
 			if (
 				event.externalEvent ||
 				eventPlanningAt(event.eventStart, EVENT_PLANNING.channelDaysBefore) > now
@@ -115,12 +121,25 @@ export const progress = internalMutation({
 		archived: v.optional(v.boolean()),
 		release: v.optional(v.boolean()),
 		notificationId: v.optional(v.id("eventSlackNotifications")),
+		managedSlackUserIds: v.optional(v.array(v.string())),
+		creationNoticeChannelId: v.optional(v.string()),
 		error: v.optional(v.string()),
 		succeeded: v.optional(v.boolean()),
 	},
 	handler: async (
 		ctx,
-		{ channelId, token, slackChannelId, archived, release, notificationId, error, succeeded },
+		{
+			channelId,
+			token,
+			slackChannelId,
+			archived,
+			release,
+			notificationId,
+			error,
+			succeeded,
+			managedSlackUserIds,
+			creationNoticeChannelId,
+		},
 	) => {
 		const channel = await ctx.db.get(channelId);
 		if (channel?.leaseToken !== token) throw new Error("Slack channel lease expired");
@@ -131,13 +150,9 @@ export const progress = internalMutation({
 				lastError: error,
 				retryAt: Date.now() + Math.min(DAY_MS, 2 ** failureCount * 10 * MINUTE_MS),
 			});
-			if (failureCount === 1)
-				await ctx.scheduler.runAfter(0, internal.iam.notifications.sendMessage, {
-					channel: SYSTEM_ALERTS_CHANNEL,
-					clientMsgId: `channel-error-${channelId}`,
-					text: `Jeg får ikke oppdatert #${channel.name}. Sjekk Slack-tilgangene og konfigurasjonen i Convex. Jeg prøver igjen senere.`,
-				});
 		}
+		if (creationNoticeChannelId) await ctx.db.patch(channelId, { creationNoticeChannelId });
+		if (managedSlackUserIds) await ctx.db.patch(channelId, { managedSlackUserIds });
 		if (succeeded)
 			await ctx.db.patch(channelId, {
 				failureCount: undefined,
@@ -154,6 +169,62 @@ export const progress = internalMutation({
 	},
 });
 
+async function eventContext(
+	ctx: MutationCtx,
+	event: Doc<"events">,
+	channel: Doc<"companySemesterSlackChannels">,
+	now: number,
+) {
+	const followup = await followupFinishedAt(ctx, event);
+	const finishedAt = followup === null ? null : Math.max(event.eventStart, followup);
+	const organizers = await getOrganizers(ctx, event._id);
+	const members = organizers.flatMap((organizer) =>
+		organizer.slackUserId ? [organizer.slackUserId] : [],
+	);
+	if (eventPlanningAt(event.eventStart, EVENT_PLANNING.channelDaysBefore) > now)
+		return { members, finishedAt, messages: [] };
+	if (event.eventStart > now)
+		await queueEventNotification(
+			ctx,
+			event._id,
+			`welcome:${channel._id}:${channel.generation ?? 1}:${event.eventStart}`,
+			"",
+			{ schedule: false },
+		);
+	if (event.eventStart > now || followup === null)
+		await Promise.all(
+			organizers
+				.filter((organizer) => !organizer.slackUserId)
+				.map((organizer) =>
+					queueEventNotification(
+						ctx,
+						event._id,
+						`missing-slack:${organizer.userId}`,
+						`Jeg finner ingen aktiv Slack-konto for ${escapeSlack(organizer.name)}. Koble kontoen i medlemsadministrasjonen, så legger jeg dem til her.`,
+						{ schedule: false },
+					),
+				),
+		);
+
+	const reminders = await dueOrganizerReminders(ctx, event, now);
+	await Promise.all(
+		reminders.map((reminder) =>
+			queueEventNotification(ctx, event._id, `${reminder.key}:${event.eventStart}`, reminder.text, {
+				condition: reminder.key,
+				schedule: false,
+			}),
+		),
+	);
+	const notifications = await ctx.db
+		.query("eventSlackNotifications")
+		.withIndex("by_eventId_and_key", (q) => q.eq("eventId", event._id))
+		.collect();
+	const messages = notifications
+		.filter((notice) => !notice.sentAt && !notice.cancelledAt)
+		.map((notice) => ({ id: notice._id }));
+	return { members, finishedAt, messages };
+}
+
 export const context = internalMutation({
 	args: { channelId: v.id("companySemesterSlackChannels"), now: v.number() },
 	handler: async (ctx, { channelId, now }) => {
@@ -169,64 +240,27 @@ export const context = internalMutation({
 			)
 			.collect();
 		const events = companyEvents.filter((e) => !e.externalEvent);
-		const members = new Set<string>();
-		let finishedAt: number | null = 0;
-		const messages: { id: Id<"eventSlackNotifications">; text: string }[] = [];
-		for (const event of events) {
-			const followup = await followupFinishedAt(ctx, event);
-			finishedAt =
-				finishedAt === null || followup === null
-					? null
-					: Math.max(finishedAt, event.eventStart, followup);
-			const organizers = await getOrganizers(ctx, event._id);
-			for (const organizer of organizers)
-				if (organizer.slackUserId) members.add(organizer.slackUserId);
-			if (eventPlanningAt(event.eventStart, EVENT_PLANNING.channelDaysBefore) > now) continue;
-			if (event.eventStart > now) {
-				await queueEventNotification(
-					ctx,
-					event._id,
-					`welcome:${channel._id}:${event.eventStart}`,
-					"Så hyggelig at dere skal arrangere! 👋 Her holder jeg dere oppdatert underveis. Kanalen deles med de andre arrangementene med samme bedrift dette semesteret.",
-				);
-			}
-			if (
-				event.eventStart > now &&
-				eventPlanningAt(event.eventStart, EVENT_PLANNING.companyContactDaysBefore) <= now &&
-				now < eventPlanningAt(event.eventStart, EVENT_PLANNING.companyContactDaysBefore) + DAY_MS
-			) {
-				await queueEventNotification(
-					ctx,
-					event._id,
-					`company-contact:${event.eventStart}`,
-					`Nå er det på tide å ta kontakt med bedriften 😊 Send dem en e-post og avklar det praktiske. Her er <${COMPANY_FIRST_CONTACT_TEMPLATE_URL}|malen for førstegangskontakt fra Ressurser>.`,
-				);
-			}
-			for (const reminder of timedOrganizerReminders(event)) {
-				if (now >= reminder.at && now < reminder.at + DAY_MS)
-					await queueEventNotification(
-						ctx,
-						event._id,
-						`${reminder.key}:${event.eventStart}`,
-						reminder.text,
-					);
-			}
-			const notifications = await ctx.db
-				.query("eventSlackNotifications")
-				.withIndex("by_eventId_and_key", (q) => q.eq("eventId", event._id))
-				.collect();
-			for (const notification of notifications)
-				if (!notification.sentAt && !notification.cancelledAt)
-					messages.push({
-						id: notification._id,
-						text: eventMessage(event, organizers, notification.text),
-					});
-		}
+		const contexts = await Promise.all(
+			events.map((event) => eventContext(ctx, event, channel, now)),
+		);
+		const members = new Set(contexts.flatMap((context) => context.members));
+		const messages = contexts.flatMap((context) => context.messages);
+		const unfinished = contexts.some((context) => context.finishedAt === null);
+		const finishedAt = unfinished
+			? null
+			: Math.max(0, ...contexts.map((context) => context.finishedAt ?? 0));
+
 		// Every event in this company semester contributes, including events more than five weeks away.
 		const archive =
 			events.length === 0 ||
 			(finishedAt !== null && now >= finishedAt + EVENT_PLANNING.archiveDaysAfter * DAY_MS);
-		return { members: [...members], messages, archive };
+		return {
+			members: [...members],
+			messages,
+			archive,
+			finishedAt,
+			companyName: (await ctx.db.get(channel.companyId))?.name ?? channel.name,
+		};
 	},
 });
 
@@ -277,16 +311,84 @@ export const notification = internalMutation({
 			await ctx.db.patch(notice._id, { cancelledAt: now });
 			return null;
 		}
-		const text = notice.key.startsWith("welcome:")
-			? welcomeMessage(event, now)
-			: notice.key.startsWith("report-ready:")
-				? `${notice.text} <${eventUrl(event)}/report|Åpne rapporten>.`
-				: notice.text;
+		if (
+			notice.key === "registration-full" &&
+			(event.eventStart <= now ||
+				!event.published ||
+				(await countRegistrationsWithStatus(ctx, event._id, "registered")) <
+					event.participationLimit)
+		) {
+			await ctx.db.patch(notice._id, { cancelledAt: now });
+			return null;
+		}
+
+		if (notice.key.startsWith("report-ready:") || notice.key.startsWith("report-sent:")) {
+			const report = await ctx.db.get(notice.key.split(":")[1] as Id<"feedbackReports">);
+			if (
+				!report ||
+				(notice.key.startsWith("report-ready:") && report.status !== "draft") ||
+				(notice.key.startsWith("report-sent:") &&
+					(report.status !== "approved" || report.deliveryStatus === "failed"))
+			) {
+				await ctx.db.patch(notice._id, { cancelledAt: now });
+				return null;
+			}
+		}
+		const conditional = notice.condition
+			? (await dueOrganizerReminders(ctx, event, now)).find(
+					(reminder) => reminder.key === notice.condition,
+				)
+			: null;
+		if (notice.condition && !conditional) {
+			await ctx.db.patch(notice._id, { cancelledAt: now });
+			return null;
+		}
+		let text = conditional?.text ?? notice.text;
+		if (notice.key.startsWith("welcome:")) text = welcomeMessage(event, now);
+		if (notice.key.startsWith("report-ready:"))
+			text = `${notice.text} <${eventUrl(event)}/report|Åpne rapporten>.`;
+
 		const organizers = await getOrganizers(ctx, event._id);
+		if (notice.key.startsWith("missing-slack:")) {
+			const missingId = notice.key.slice("missing-slack:".length);
+			if (!organizers.some((organizer) => organizer.userId === missingId && !organizer.slackUserId)) {
+				await ctx.db.patch(notice._id, { cancelledAt: now });
+				return null;
+			}
+		}
 		const recipients =
-			notice.key.startsWith("practical:") || notice.key.startsWith("expenses:")
+			notice.key.startsWith("practical:") ||
+			notice.key.startsWith("expenses:") ||
+			notice.key.startsWith("missing-attendance:")
 				? organizers.filter(({ role }) => role === "hovedansvarlig")
 				: organizers;
-		return { id: notice._id, text: eventMessage(event, recipients, text) };
+		return {
+			id: notice._id,
+			createdAt: notice._creationTime,
+			text: eventMessage(event, recipients, text),
+		};
+	},
+});
+
+/** Slack bot tokens cannot unarchive. Reserve one replacement generation before creating it. */
+export const replaceArchivedChannel = internalMutation({
+	args: { channelId: v.id("companySemesterSlackChannels"), token: v.string() },
+	handler: async (ctx, { channelId, token }) => {
+		const channel = await ctx.db.get(channelId);
+		if (!channel || channel.leaseToken !== token) throw new Error("Slack channel lease expired");
+		const generation = (channel.generation ?? 1) + 1;
+		await ctx.db.patch(channelId, {
+			generation,
+			slackChannelId: undefined,
+			archived: false,
+			managedSlackUserIds: [],
+		});
+		return {
+			...channel,
+			generation,
+			slackChannelId: undefined,
+			archived: false,
+			managedSlackUserIds: [],
+		};
 	},
 });

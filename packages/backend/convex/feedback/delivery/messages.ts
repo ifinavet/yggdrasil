@@ -188,6 +188,33 @@ export const onInvitationComplete = internalMutation({
 	},
 });
 
+async function recordReportEvent(ctx: MutationCtx, id: string, type: string) {
+	const report = await ctx.db
+		.query("feedbackReports")
+		.withIndex("by_emailId", (index) => index.eq("emailId", id))
+		.unique();
+	if (report?.status === "approved") {
+		if (
+			(type === "email.sent" || type === "email.delivered") &&
+			report.deliveryStatus !== "failed"
+		) {
+			await ctx.db.patch(report._id, {
+				followupFinishedAt: report.followupFinishedAt ?? Date.now(),
+			});
+			await queueEventNotification(
+				ctx,
+				report.eventId,
+				`report-sent:${report._id}`,
+				"Nå har jeg sendt tilbakemeldingsrapporten til bedriften. Takk for innsatsen! 🙌",
+			);
+		}
+		if (type === "email.delivered" && report.deliveryStatus !== "failed")
+			await ctx.db.patch(report._id, { deliveryStatus: "delivered" });
+		if (type === "email.bounced" || type === "email.complained" || type === "email.failed")
+			await ctx.db.patch(report._id, { deliveryStatus: "failed" });
+	}
+}
+
 export const onEmailEvent = internalMutation({
 	args: vOnEmailEventArgs,
 	handler: async (ctx, { id, event }): Promise<void> => {
@@ -197,34 +224,7 @@ export const onEmailEvent = internalMutation({
 			.withIndex("by_emailId", (index) => index.eq("emailId", id))
 			.unique();
 		if (!delivery) {
-			const report = await ctx.db
-				.query("feedbackReports")
-				.withIndex("by_emailId", (index) => index.eq("emailId", id))
-				.unique();
-			if (report?.status === "approved") {
-				if (
-					(event.type === "email.sent" || event.type === "email.delivered") &&
-					report.deliveryStatus !== "failed"
-				) {
-					await ctx.db.patch(report._id, {
-						followupFinishedAt: report.followupFinishedAt ?? Date.now(),
-					});
-					await queueEventNotification(
-						ctx,
-						report.eventId,
-						`report-sent:${report._id}`,
-						"Nå har jeg sendt tilbakemeldingsrapporten til bedriften. Takk for innsatsen! 🙌",
-					);
-				}
-				if (event.type === "email.delivered" && report.deliveryStatus !== "failed")
-					await ctx.db.patch(report._id, { deliveryStatus: "delivered" });
-				if (
-					event.type === "email.bounced" ||
-					event.type === "email.complained" ||
-					event.type === "email.failed"
-				)
-					await ctx.db.patch(report._id, { deliveryStatus: "failed" });
-			}
+			await recordReportEvent(ctx, id, event.type);
 			return;
 		}
 		if (event.type === "email.sent" || event.type === "email.delivered") {

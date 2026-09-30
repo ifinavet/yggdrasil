@@ -32,6 +32,7 @@ export const feedbackReportSchema = {
 		approvedBy: v.optional(v.id("users")),
 		approvedAt: v.optional(v.number()),
 		followupFinishedAt: v.optional(v.number()),
+		readyAt: v.optional(v.number()),
 		tokenHash: v.optional(v.string()),
 		emailId: v.optional(v.string()),
 		deliveryAttempt: v.optional(v.number()),

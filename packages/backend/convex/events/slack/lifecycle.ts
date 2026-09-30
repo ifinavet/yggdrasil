@@ -1,82 +1,161 @@
+import { SLACK_CHANNEL_URL } from "@workspace/shared/constants";
+import { SYSTEM_ALERTS_CHANNEL } from "@workspace/shared/slack/channels";
+import { eventSemesterOf } from "@workspace/shared/time";
+import type { FunctionArgs, FunctionReturnType } from "convex/server";
 import { v } from "convex/values";
 import { internal } from "../../_generated/api";
-import type { Doc, Id } from "../../_generated/dataModel";
+import type { Doc } from "../../_generated/dataModel";
 import { type ActionCtx, internalAction } from "../../_generated/server";
 import { slackConfig } from "../../iam/config";
 import { slackClient } from "../../iam/slack";
-
 import { lifecycleEnabled } from "./config";
+import { escapeSlack } from "./messages";
 
-async function reconcileChannel(ctx: ActionCtx, channelId: Id<"companySemesterSlackChannels">) {
+type Channel = Doc<"companySemesterSlackChannels">;
+type Slack = ReturnType<typeof slackClient>;
+type Context = NonNullable<FunctionReturnType<typeof internal.events.slack.state.context>>;
+type Progress = (
+	fields: Omit<FunctionArgs<typeof internal.events.slack.state.progress>, "channelId" | "token">,
+) => Promise<unknown>;
+
+async function announceCreation(
+	slack: Slack,
+	channel: Channel,
+	slackChannelId: string,
+	name: string,
+	companyName: string,
+	progress: Progress,
+) {
+	if (channel.creationNoticeChannelId === slackChannelId) return;
+	try {
+		const key = `company-channel-created-${slackChannelId}`;
+		const { semester, year } = eventSemesterOf(channel.semesterStart);
+		let exists = false;
+		try {
+			exists = await slack.hasMessage(SYSTEM_ALERTS_CHANNEL, key, channel._creationTime);
+		} catch (error) {
+			if (!(error instanceof Error) || !error.message.includes("missing_scope")) throw error;
+		}
+		if (!exists)
+			await slack.postMessage(
+				SYSTEM_ALERTS_CHANNEL,
+				`Opprettet #${escapeSlack(name)} for ${escapeSlack(companyName)} (${semester} ${year}). 👋 <${SLACK_CHANNEL_URL}${slackChannelId}|Åpne kanal>`,
+				key,
+				true,
+			);
+		await progress({ creationNoticeChannelId: slackChannelId });
+	} catch (error) {
+		// A central-channel outage must not hold up the organizers. Retry on the next hourly run.
+		console.error(`Could not announce creation of ${slackChannelId}`, error);
+	}
+}
+
+async function deliverNotifications(
+	ctx: ActionCtx,
+	slack: Slack,
+	channelId: Channel["_id"],
+	slackChannelId: string,
+	messages: Context["messages"],
+	progress: Progress,
+) {
+	// Sequential by design: each Slack side effect is persisted before the next message.
+	for await (const queued of messages) {
+		if (!lifecycleEnabled()) return;
+		const message = await ctx.runMutation(internal.events.slack.state.notification, {
+			channelId,
+			notificationId: queued.id,
+			now: Date.now(),
+		});
+		if (!message) continue;
+		await progress({});
+		const key = `event-${message.id}`;
+		if (!(await slack.hasMessage(slackChannelId, key, message.createdAt)))
+			await slack.postMessage(slackChannelId, message.text, key, true);
+		await progress({ notificationId: message.id });
+	}
+}
+
+async function archiveFinishedChannel(
+	ctx: ActionCtx,
+	slack: Slack,
+	channel: Channel,
+	slackChannelId: string,
+	progress: Progress,
+) {
+	const current = await ctx.runMutation(internal.events.slack.state.context, {
+		channelId: channel._id,
+		now: Date.now(),
+	});
+	if (!current?.archive || !lifecycleEnabled()) return;
+	const key = `archive-${channel._id}-${channel.generation ?? 1}`;
+	if (!(await slack.hasMessage(slackChannelId, key, current.finishedAt ?? channel._creationTime)))
+		await slack.postMessage(
+			slackChannelId,
+			"Takk for innsatsen, folkens! Alle arrangementene med bedriften og rapportoppfølgingen er ferdige, så jeg arkiverer kanalen nå. 🙌",
+			key,
+			true,
+		);
+	await slack.archiveChannel(slackChannelId);
+	await progress({ archived: true });
+}
+
+async function updateChannel(
+	ctx: ActionCtx,
+	slack: Slack,
+	initial: Channel,
+	token: string,
+	progress: Progress,
+) {
+	let channel = initial;
+	let context = await ctx.runMutation(internal.events.slack.state.context, {
+		channelId: channel._id,
+		now: Date.now(),
+	});
+	if (!context || (context.archive && !channel.slackChannelId)) return;
+	if (channel.slackChannelId && (await slack.isChannelArchived(channel.slackChannelId))) {
+		if (context.archive) {
+			await progress({ archived: true });
+			return;
+		}
+		// Slack bot tokens cannot unarchive. Keep the old history and reserve one replacement.
+		channel = await ctx.runMutation(internal.events.slack.state.replaceArchivedChannel, {
+			channelId: channel._id,
+			token,
+		});
+		context = await ctx.runMutation(internal.events.slack.state.context, {
+			channelId: channel._id,
+			now: Date.now(),
+		});
+		if (!context) return;
+	}
+	const generation = channel.generation ?? 1;
+	const owner = `Yggdrasil company semester ${channel._id}`;
+	const slackChannelId =
+		channel.slackChannelId ??
+		(await slack.ensurePrivateChannel(`ygg-${channel._id}-${generation}`, owner));
+	await progress({ slackChannelId });
+	await slack.setChannelPurpose(slackChannelId, owner);
+	const name = generation === 1 ? channel.name : `${channel.name.slice(0, 75)}-${generation}`;
+	await slack.renameChannel(slackChannelId, name);
+	await announceCreation(slack, channel, slackChannelId, name, context.companyName, progress);
+	const managed = [...new Set([...(channel.managedSlackUserIds ?? []), ...context.members])];
+	await progress({ managedSlackUserIds: managed });
+	await slack.reconcileChannelMembers(slackChannelId, context.members, managed);
+	await progress({ managedSlackUserIds: context.members, archived: false });
+	await deliverNotifications(ctx, slack, channel._id, slackChannelId, context.messages, progress);
+	if (context.archive) await archiveFinishedChannel(ctx, slack, channel, slackChannelId, progress);
+}
+
+async function reconcileChannel(ctx: ActionCtx, channelId: Channel["_id"]) {
 	const config = slackConfig();
 	if (!config || !lifecycleEnabled()) return;
 	const token = crypto.randomUUID();
 	const channel = await ctx.runMutation(internal.events.slack.state.claim, { channelId, token });
 	if (!channel) return;
-	const progress = (fields: {
-		slackChannelId?: string;
-		archived?: boolean;
-		release?: boolean;
-		error?: string;
-		succeeded?: boolean;
-		notificationId?: Id<"eventSlackNotifications">;
-	}) => ctx.runMutation(internal.events.slack.state.progress, { channelId, token, ...fields });
+	const progress: Progress = (fields) =>
+		ctx.runMutation(internal.events.slack.state.progress, { channelId, token, ...fields });
 	try {
-		const context = await ctx.runMutation(internal.events.slack.state.context, {
-			channelId,
-			now: Date.now(),
-		});
-		if (!context) return;
-		const slack = slackClient(config);
-		if (
-			context.archive &&
-			(!channel.slackChannelId || (channel.archived && context.messages.length === 0))
-		)
-			return;
-		const owner = `Yggdrasil company semester ${channelId}`;
-		const slackChannelId =
-			channel.slackChannelId ?? (await slack.ensurePrivateChannel(`ygg-${channelId}`, owner));
-		await progress({ slackChannelId });
-		// Also recovers channels archived manually while there is still work to do.
-		if (!context.archive || context.messages.length > 0 || !channel.archived) {
-			await slack.setArchived(slackChannelId, false);
-			await slack.setChannelPurpose(slackChannelId, owner);
-			await slack.renameChannel(slackChannelId, channel.name);
-			await slack.reconcileChannelMembers(slackChannelId, context.members);
-			await progress({ archived: false });
-			for (const queued of context.messages) {
-				if (!lifecycleEnabled()) return;
-				const message = await ctx.runMutation(internal.events.slack.state.notification, {
-					channelId,
-					notificationId: queued.id,
-					now: Date.now(),
-				});
-				if (!message) continue;
-				// Slack and Convex cannot commit atomically. Look up the stable id before retrying.
-				const clientMsgId = `event-${message.id}`;
-				if (!(await slack.hasMessage(slackChannelId, clientMsgId)))
-					await slack.postMessage(slackChannelId, message.text, clientMsgId, true);
-				await progress({ notificationId: message.id });
-			}
-		}
-		if (
-			context.archive &&
-			(await ctx.runMutation(internal.events.slack.state.context, { channelId, now: Date.now() }))
-				?.archive
-		) {
-			if (!channel.archived) {
-				const archiveMessageId = `archive-${channelId}`;
-				if (!(await slack.hasMessage(slackChannelId, archiveMessageId)))
-					await slack.postMessage(
-						slackChannelId,
-						"Takk for innsatsen, folkens! Alle arrangementene med bedriften og rapportoppfølgingen er ferdige, så jeg arkiverer kanalen nå. 🙌",
-						archiveMessageId,
-						true,
-					);
-			}
-			await slack.setArchived(slackChannelId, true);
-			await progress({ archived: true });
-		}
+		await updateChannel(ctx, slackClient(config), channel, token, progress);
 		await progress({ succeeded: true });
 	} catch (error) {
 		await progress({ error: error instanceof Error ? error.message : "Slack operation failed" });
@@ -86,45 +165,49 @@ async function reconcileChannel(ctx: ActionCtx, channelId: Id<"companySemesterSl
 	}
 }
 
-/** Creates shared company channels, reconciles their access, delivers event notices and archives completed work. */
+async function discoverPages(
+	ctx: ActionCtx,
+	now: number,
+	cursor: string | null = null,
+): Promise<void> {
+	const page: { isDone: boolean; continueCursor: string } = await ctx.runMutation(
+		internal.events.slack.state.discover,
+		{ now, paginationOpts: { cursor, numItems: 50 } },
+	);
+	if (!page.isDone) await discoverPages(ctx, now, page.continueCursor);
+}
+async function reconcilePages(
+	ctx: ActionCtx,
+	failures: unknown[],
+	cursor: string | null = null,
+): Promise<void> {
+	const page: { page: Channel[]; isDone: boolean; continueCursor: string } = await ctx.runQuery(
+		internal.events.slack.state.listChannels,
+		{ paginationOpts: { cursor, numItems: 50 } },
+	);
+	for await (const channel of page.page) {
+		try {
+			await reconcileChannel(ctx, channel._id);
+		} catch (error) {
+			console.error(`Slack lifecycle failed for ${channel._id}`, error);
+			failures.push(error);
+		}
+	}
+	if (!page.isDone) await reconcilePages(ctx, failures, page.continueCursor);
+}
+
+/** Creates shared channels, reconciles organizer access, sends event notices and archives completed work. */
 export const reconcile = internalAction({
 	args: {},
 	handler: async (ctx): Promise<void> => {
 		if (!lifecycleEnabled()) return;
-		const now = Date.now();
+		await discoverPages(ctx, Date.now());
 		const failures: unknown[] = [];
-		let cursor: string | null = null;
-		do {
-			const page: { isDone: boolean; continueCursor: string } = await ctx.runMutation(
-				internal.events.slack.state.discover,
-				{ now, paginationOpts: { cursor, numItems: 50 } },
-			);
-			cursor = page.isDone ? null : page.continueCursor;
-		} while (cursor);
-		cursor = null;
-		do {
-			const page: {
-				page: Doc<"companySemesterSlackChannels">[];
-				isDone: boolean;
-				continueCursor: string;
-			} = await ctx.runQuery(internal.events.slack.state.listChannels, {
-				paginationOpts: { cursor, numItems: 50 },
-			});
-			for (const channel of page.page) {
-				try {
-					await reconcileChannel(ctx, channel._id);
-				} catch (error) {
-					console.error(`Slack lifecycle failed for ${channel._id}`, error);
-					failures.push(error);
-				}
-			}
-			cursor = page.isDone ? null : page.continueCursor;
-		} while (cursor);
+		await reconcilePages(ctx, failures);
 		if (failures.length)
 			throw new Error(`${failures.length} Slack channels failed to reconcile; see function logs.`);
 	},
 });
-
 export const reconcileOne = internalAction({
 	args: { channelId: v.id("companySemesterSlackChannels") },
 	handler: async (ctx, { channelId }): Promise<void> => reconcileChannel(ctx, channelId),

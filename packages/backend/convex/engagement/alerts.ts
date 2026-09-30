@@ -159,7 +159,7 @@ export const detectAlerts = internalMutation({
 						ctx,
 						event._id,
 						`unregister-wave:${now}`,
-						`Jeg la merke til mange avmeldinger på kort tid. ${summary}. ${detail}`,
+						`Jeg la merke til mange avmeldinger på kort tid. ${escapeSlack(summary)}. ${escapeSlack(detail)}`,
 					);
 				await ctx.scheduler.runAfter(0, internal.iam.notifications.sendMessage, {
 					channel: SYSTEM_ALERTS_CHANNEL,

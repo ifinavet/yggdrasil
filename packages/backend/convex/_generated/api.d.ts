@@ -160,7 +160,9 @@ import type * as events_slack_lifecycle from "../events/slack/lifecycle.js";
 import type * as events_slack_messages from "../events/slack/messages.js";
 import type * as events_slack_state from "../events/slack/state.js";
 import type * as feedback_reports_lifecycle from "../feedback/reports/lifecycle.js";
+import type * as events_slack_reminders from "../events/slack/reminders.js";
 declare const fullApi: ApiFromModules<{
+  "events/slack/reminders": typeof events_slack_reminders;
   "events/reminders/delivery": typeof events_reminders_delivery;
   "events/slack/config": typeof events_slack_config;
   "events/slack/lifecycle": typeof events_slack_lifecycle;

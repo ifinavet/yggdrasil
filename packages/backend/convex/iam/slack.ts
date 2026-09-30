@@ -108,12 +108,21 @@ export function slackClient(config: SlackConfig) {
 			const body = await call("conversations.setPurpose", { channel, purpose });
 			if (!body.ok) throw new SlackError(`Slack avviste kanalbeskrivelsen: ${body.error}.`);
 		},
-		async setArchived(channel: string, archived: boolean) {
-			const body = await call(`conversations.${archived ? "archive" : "unarchive"}`, { channel });
-			if (!body.ok && body.error !== (archived ? "already_archived" : "not_archived"))
+		async isChannelArchived(channel: string) {
+			const body = await call<{ channel?: { is_archived?: boolean } }>("conversations.info", {
+				channel,
+			});
+			if (!body.ok || !body.channel)
+				throw new SlackError(`Slack avviste kanaloppslaget: ${body.error}.`);
+			return body.channel.is_archived === true;
+		},
+		async archiveChannel(channel: string) {
+			const body = await call("conversations.archive", { channel });
+			if (!body.ok && body.error !== "already_archived")
 				throw new SlackError(`Slack avviste arkiveringen: ${body.error}.`);
 		},
-		async reconcileChannelMembers(channel: string, desired: string[]) {
+
+		async reconcileChannelMembers(channel: string, desired: string[], managed: string[]) {
 			const auth = await call<{ user_id: string }>("auth.test", {});
 			if (!auth.ok) throw new SlackError("Kunne ikke identifisere Slack-boten.");
 			const current = (await paginate<{ members?: string[] }>(
@@ -121,35 +130,47 @@ export function slackClient(config: SlackConfig) {
 				{ channel },
 				(body) => body.members ?? [],
 			)) as string[];
-			for (const user of current) {
-				if (user === auth.user_id || desired.includes(user)) continue;
+			for await (const user of current) {
+				if (user === auth.user_id || desired.includes(user) || !managed.includes(user)) continue;
 				const body = await call("conversations.kick", { channel, user });
 				if (!body.ok && body.error !== "not_in_channel" && body.error !== "user_not_in_channel")
 					throw new SlackError(`Slack avviste fjerningen: ${body.error}.`);
 			}
-			for (const user of desired) {
+			for await (const user of desired) {
 				if (current.includes(user)) continue;
 				const body = await call("conversations.invite", { channel, users: user });
 				if (!body.ok && body.error !== "already_in_channel")
 					throw new SlackError(`Slack avviste invitasjonen: ${body.error}.`);
 			}
 		},
-		async hasMessage(channel: string, clientMsgId: string) {
+		async hasMessage(channel: string, clientMsgId: string, since: number) {
 			type Message = {
 				client_msg_id?: string;
 				metadata?: { event_type?: string; event_payload?: { key?: string } };
 			};
-			const messages = (await paginate<{ messages?: Message[] }>(
-				"conversations.history",
-				{ channel, include_all_metadata: "true" },
-				(body) => body.messages ?? [],
-			)) as Message[];
-			return messages.some(
-				(message) =>
-					message.client_msg_id === clientMsgId ||
-					(message.metadata?.event_type === "yggdrasil_event_notice" &&
-						message.metadata.event_payload?.key === clientMsgId),
-			);
+			// Restrict recovery to this notice's lifetime, rather than repeatedly scanning all history.
+			const findPage = async (cursor = ""): Promise<boolean> => {
+				const body = await call<{ messages?: Message[] }>("conversations.history", {
+					channel,
+					include_all_metadata: "true",
+					oldest: String(Math.max(0, since - 1000) / 1000),
+					limit: "100",
+					...(cursor && { cursor }),
+				});
+				if (!body.ok) throw new SlackError(`Slack avviste meldingsoppslaget: ${body.error}.`);
+				if (
+					(body.messages ?? []).some(
+						(message) =>
+							message.client_msg_id === clientMsgId ||
+							(message.metadata?.event_type === "yggdrasil_event_notice" &&
+								message.metadata.event_payload?.key === clientMsgId),
+					)
+				)
+					return true;
+				const next = body.response_metadata?.next_cursor;
+				return next ? findPage(next) : false;
+			};
+			return findPage();
 		},
 
 		async postMessage(channel: string, text: string, clientMsgId: string, recoverable = false) {

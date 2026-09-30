@@ -107,6 +107,7 @@ export const buildReportBatch = internalMutation({
 			totalResponses,
 			buildCursor: responses.continueCursor,
 			status: responses.isDone ? "draft" : "building",
+			...(responses.isDone && { readyAt: Date.now() }),
 			...(responses.isDone && totalResponses === 0 && { followupFinishedAt: Date.now() }),
 		});
 		if (responses.isDone) {

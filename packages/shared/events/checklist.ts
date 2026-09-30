@@ -63,19 +63,21 @@ export function eventTextComplete(event: {
 	teaser: string;
 	description: string;
 }): boolean {
-	return [event.title, event.teaser, event.description].every((value) => {
-		let insideTag = false;
-		let text = "";
-		for (const char of value.replaceAll("&nbsp;", " ")) {
-			if (char === "<") insideTag = true;
-			else if (char === ">" && insideTag) insideTag = false;
-			else if (!insideTag) text += char;
-		}
-		text = text.trim();
-		return (
-			text.length > 0 &&
-			!text.toUpperCase().includes(EVENT_TEXT_PLACEHOLDER) &&
-			text.toLowerCase() !== "mer info kommer"
-		);
-	});
+	return [event.title, event.teaser, event.description].every(hasEventText);
+}
+
+export function hasEventText(value: string): boolean {
+	let insideTag = false;
+	let text = "";
+	for (const char of value.replaceAll("&nbsp;", " ")) {
+		if (char === "<") insideTag = true;
+		else if (char === ">" && insideTag) insideTag = false;
+		else if (!insideTag) text += char;
+	}
+	text = text.trim();
+	return (
+		text.length > 0 &&
+		!text.toUpperCase().includes(EVENT_TEXT_PLACEHOLDER) &&
+		text.toLowerCase() !== "mer info kommer"
+	);
 }

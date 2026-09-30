@@ -37,5 +37,7 @@ export {
 	MIDGARD_LOCAL_URL,
 	MIDGARD_URL,
 	SLACK_API_URL,
+	SLACK_CHANNEL_URL,
+	UIO_STAND_GUIDELINES_URL,
 } from "./urls";
 export { UTM_CAMPAIGN, UTM_MEDIUM, UTM_SOURCE, type UtmTags, utmParams } from "./utm";

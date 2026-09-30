@@ -14,16 +14,17 @@ export const sendEventReminder = internalAction({
 	handler: async (ctx, { eventId, kind }) => {
 		const context = await ctx.runQuery(internal.events.reminders.queries.emailContext, { eventId });
 		if (!context) return;
-		const { recipients, ...content } = context;
+		const { recipients, eventStart, ...content } = context;
 		const html = await pretty(await render(EventReminderEmail(content)));
 		if (isLocalDevelopment()) {
 			console.log(`Skipping ${recipients.length} ${kind} reminders for ${eventId} locally`);
 			return;
 		}
-		for (const recipient of recipients) {
+		for await (const recipient of recipients) {
 			try {
 				await ctx.runMutation(internal.events.reminders.delivery.enqueue, {
 					eventId,
+					eventStart,
 					kind,
 					userId: recipient.userId,
 					replyTo: content.signature.email,

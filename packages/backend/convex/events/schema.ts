@@ -93,6 +93,7 @@ export const eventsSchema = {
 		queuedAt: v.number(),
 	}).index("by_eventId_and_kind", ["eventId", "kind"]),
 	eventReminderDeliveries: defineTable({
+		eventStart: v.number(),
 		eventId: v.id("events"),
 		kind: oneOf(REMINDER_KINDS),
 		userId: v.id("users"),

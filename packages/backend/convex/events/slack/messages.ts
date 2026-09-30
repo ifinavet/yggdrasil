@@ -4,6 +4,7 @@ import {
 	COMPANY_FIRST_CONTACT_TEMPLATE_URL,
 	EVENT_EXPENSE_TEMPLATE_URL,
 } from "@workspace/shared/constants";
+import { featureFlags } from "@workspace/shared/feature-flags";
 import {
 	DATE_PATTERNS,
 	EVENT_PLANNING,
@@ -24,7 +25,7 @@ export function escapeSlack(text: string) {
 export function eventUrl(event: Doc<"events">) {
 	return `${isLocalDevelopment() ? BIFROST_LOCAL_URL : BIFROST_URL}/events/${event.slug ?? event._id}`;
 }
-// TODO: Let the board edit routine message templates in Bifrost Resources.
+// Planned follow-up: let the board edit routine message templates in Bifrost Resources.
 export function eventMessage(
 	event: Doc<"events">,
 	organizers: Awaited<ReturnType<typeof getOrganizers>>,
@@ -42,12 +43,18 @@ export function eventMessage(
 }
 
 /** Describe only remaining work, using the same schedule and switches as the automations. */
-export function welcomeMessage(event: Doc<"events">, now: number) {
+function upcomingAutomations(event: Doc<"events">, now: number) {
 	const when = (at: number) => formatOsloDate(at, DATE_PATTERNS.dateTime);
 	const automatic: string[] = [];
 	if (event.published && event.registrationOpens > now)
 		automatic.push(`• Åpner påmeldingen ${when(event.registrationOpens)} og sier fra her.`);
-	if (event.remindersEnabled) {
+	if (!event.remindersEnabled)
+		automatic.push("• Automatiske påminnelser til påmeldte er slått av for dette arrangementet.");
+	if (!event.feedbackEnabled)
+		automatic.push(
+			"• Automatisk innsamling av tilbakemeldinger er slått av for dette arrangementet.",
+		);
+	if (event.remindersEnabled && event.published) {
 		for (const [index, leadTime] of Object.values(REMINDER_LEAD_TIMES).entries()) {
 			const at = event.eventStart - leadTime;
 			if (at > now) automatic.push(`• Sender påminnelse ${index + 1} til de påmeldte ${when(at)}.`);
@@ -66,14 +73,25 @@ export function welcomeMessage(event: Doc<"events">, now: number) {
 			automatic.push(
 				`• Minner dem som ikke har svart på skjemaet: ${reminders.map(when).join("; ")}.`,
 			);
-		automatic.push(
-			"• Lager tilbakemeldingsrapporten når innsamlingen stenger. Jeg sender den til bedriften etter at dere har sett gjennom og godkjent den.",
-		);
+		if (featureFlags.huginFeedback.reportsEnabled)
+			automatic.push(
+				"• Lager tilbakemeldingsrapporten når innsamlingen stenger. Jeg sender den til bedriften etter at dere har sett gjennom og godkjent den.",
+			);
 	}
 	automatic.push(
 		"• Sier fra her når arrangementet blir fullt eller mange melder seg av på kort tid.",
 	);
+	return automatic;
+}
+
+export function welcomeMessage(event: Doc<"events">, now: number) {
+	const when = (at: number) => formatOsloDate(at, DATE_PATTERNS.dateTime);
+	const automatic = upcomingAutomations(event, now);
 	const contactAt = eventPlanningAt(event.eventStart, EVENT_PLANNING.companyContactDaysBefore);
+	const contact =
+		contactAt > now
+			? `Ta kontakt med bedriften innen ${when(contactAt)}`
+			: "Ta kontakt med bedriften nå, hvis dere ikke allerede har gjort det";
 	return [
 		"Så hyggelig at dere skal arrangere! 👋 Her er planen videre. Kanalen deles med de andre arrangementene med samme bedrift dette semesteret.",
 		"",
@@ -81,11 +99,8 @@ export function welcomeMessage(event: Doc<"events">, now: number) {
 		...automatic,
 		"",
 		"*Dette gjør dere*",
-		`• ${contactAt > now ? `Ta kontakt med bedriften innen ${when(contactAt)}` : "Ta kontakt med bedriften nå, hvis dere ikke allerede har gjort det"}. Bruk <${COMPANY_FIRST_CONTACT_TEMPLATE_URL}|malen for førstegangskontakt fra Ressurser>.`,
+		`• ${contact}. Bruk <${COMPANY_FIRST_CONTACT_TEMPLATE_URL}|malen for førstegangskontakt fra Ressurser>.`,
 		"• Avklar rom, mat og praktisk opplegg med bedriften, og fordel oppgavene mellom dere.",
-		...(!event.published
-			? ["• Publiser arrangementet når informasjonen er klar, så kan påmeldingen åpne."]
-			: []),
 		"• Registrer oppmøte i Bifrost på arrangementsdagen.",
 		...(eventPlanningAt(event.eventStart, EVENT_PLANNING.practicalDaysBefore) > now
 			? [
