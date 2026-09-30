@@ -18,7 +18,8 @@ export async function followupFinishedAt(
 		.unique();
 	if (!report && (!campaign.formVersionId || !featureFlags.huginFeedback.reportsEnabled))
 		return campaign.closedAt ?? campaign.closesAt;
-	if (!report || report.status === "building" || report.deliveryStatus === "failed") return null;
+	if (!report || report.status === "building") return null;
+	if (report.status !== "revoked" && report.deliveryStatus === "failed") return null;
 	if (report.followupFinishedAt !== undefined) return report.followupFinishedAt;
 	// Legacy reports have no provider timestamp. Start their safety week on first observation.
 	if (

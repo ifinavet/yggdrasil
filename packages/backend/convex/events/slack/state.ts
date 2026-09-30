@@ -269,6 +269,17 @@ export const context = internalMutation({
 	},
 });
 
+async function staleFeedbackNotification(
+	ctx: MutationCtx,
+	event: Doc<"events">,
+	notice: Doc<"eventSlackNotifications">,
+) {
+	if (!notice.key.startsWith("feedback-sent:")) return false;
+	if (!event.feedbackEnabled) return true;
+	const campaign = await ctx.db.get(notice.key.split(":")[1] as Id<"feedbackCampaigns">);
+	return !campaign || campaign.status === "cancelled";
+}
+
 async function staleReportNotification(ctx: MutationCtx, notice: Doc<"eventSlackNotifications">) {
 	if (notice.key.startsWith("report-ready:") || notice.key.startsWith("report-sent:")) {
 		const report = await ctx.db.get(notice.key.split(":")[1] as Id<"feedbackReports">);
@@ -317,7 +328,10 @@ async function staleNotification(
 		return true;
 	}
 
-	return staleReportNotification(ctx, notice);
+	return (
+		(await staleFeedbackNotification(ctx, event, notice)) ||
+		(await staleReportNotification(ctx, notice))
+	);
 }
 
 function staleWelcome(

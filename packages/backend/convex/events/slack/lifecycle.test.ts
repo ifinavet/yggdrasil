@@ -15,6 +15,7 @@ import {
 } from "../../../test/fixtures";
 import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
+import { followupFinishedAt } from "../../feedback/reports/lifecycle";
 import { slackClient } from "../../iam/slack";
 import { recordReminderSent } from "../reminders/delivery";
 import { welcomeMessage } from "./messages";
@@ -920,4 +921,107 @@ it("uses the persisted feedback campaign time in a catch-up welcome", async () =
 	expect(slack.channels[0]?.messages[0]?.text).toContain(
 		"Sender tilbakemeldingsskjemaet til dem dere registrerer som møtt, fredag 30. oktober, 09:00.",
 	);
+});
+
+it("finishes campaigns without a form and safely observes legacy or revoked reports", async () => {
+	const { t, companyId } = await setup();
+	const eventId = await insertEvent(t, companyId, { eventStart: START, feedbackEnabled: true });
+	const campaignId = await t.run((ctx) =>
+		ctx.db.insert("feedbackCampaigns", {
+			eventId,
+			status: "closed",
+			opensAt: START + DAY_MS,
+			closesAt: START + 15 * DAY_MS,
+			closedAt: START + 15 * DAY_MS,
+			generation: 1,
+		}),
+	);
+	const completion = () =>
+		t.run(async (ctx) => {
+			const event = await ctx.db.get(eventId);
+			if (!event) throw new Error("Missing event");
+			return followupFinishedAt(ctx, event);
+		});
+	expect(await completion()).toBe(START + 15 * DAY_MS);
+	const reportId = await t.run((ctx) =>
+		ctx.db.insert("feedbackReports", {
+			campaignId,
+			eventId,
+			eventTitle: "Report",
+			eventStart: START,
+			companyName: "Test",
+			recipientEmail: "test@example.test",
+			status: "approved",
+			questions: [],
+			totalResponses: 1,
+			buildCursor: null,
+			revision: 1,
+			retentionAt: START + 365 * DAY_MS,
+			deliveryStatus: "delivered",
+		}),
+	);
+	expect(await completion()).toBe(NOW);
+	vi.setSystemTime(NOW + DAY_MS);
+	expect(await completion()).toBe(NOW);
+	await t.run((ctx) =>
+		ctx.db.patch(reportId, {
+			status: "revoked",
+			deliveryStatus: "failed",
+			followupFinishedAt: NOW + DAY_MS,
+		}),
+	);
+	expect(await completion()).toBe(NOW + DAY_MS);
+});
+
+it("cancels queued feedback and report notices when their source state changes", async () => {
+	const { t, companyId } = await setup();
+	const slack = fakeSlack();
+	const eventId = await insertEvent(t, companyId, { eventStart: START, feedbackEnabled: true });
+	await run(t);
+	const campaignId = await t.run((ctx) =>
+		ctx.db.insert("feedbackCampaigns", {
+			eventId,
+			status: "open",
+			opensAt: START + DAY_MS,
+			closesAt: START + 15 * DAY_MS,
+			generation: 1,
+		}),
+	);
+	await t.run((ctx) =>
+		queueEventNotification(ctx, eventId, `feedback-sent:${campaignId}:0`, "Feedback sent"),
+	);
+	await t.run((ctx) => ctx.db.patch(eventId, { feedbackEnabled: false }));
+	await run(t);
+	expect(slack.channels[0]?.messages).toHaveLength(1);
+	const reportId = await t.run((ctx) =>
+		ctx.db.insert("feedbackReports", {
+			campaignId,
+			eventId,
+			eventTitle: "Report",
+			eventStart: START,
+			companyName: "Test",
+			recipientEmail: "test@example.test",
+			status: "approved",
+			questions: [],
+			totalResponses: 1,
+			buildCursor: null,
+			revision: 1,
+			retentionAt: START + 365 * DAY_MS,
+			deliveryStatus: "pending",
+			deliveryAttempt: 1,
+		}),
+	);
+	await t.run(async (ctx) => {
+		await queueEventNotification(ctx, eventId, `report-ready:${reportId}`, "Ready");
+		await queueEventNotification(ctx, eventId, `report-sent:${reportId}:0`, "Old attempt sent");
+	});
+	await run(t);
+	expect(slack.channels[0]?.messages).toHaveLength(1);
+	await t.run(async (ctx) => {
+		await ctx.db.patch(reportId, { followupFinishedAt: NOW, deliveryStatus: "queued" });
+		await queueEventNotification(ctx, eventId, `report-sent:${reportId}:1`, "Current attempt sent");
+	});
+	await run(t);
+	expect(slack.channels[0]?.messages).toHaveLength(2);
+	expect(slack.channels[0]?.messages.at(-1)?.text).toContain("Current attempt sent");
 });
