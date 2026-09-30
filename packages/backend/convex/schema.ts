@@ -3,6 +3,7 @@ import { accessSchema } from "./auth/schema";
 import { companiesSchema } from "./companies/schema";
 import { engagementSchema } from "./engagement/schema";
 import { eventsSchema } from "./events/schema";
+import { eventSlackSchema } from "./events/slack/schema";
 import { feedbackReportSchema } from "./feedback/reports/schema";
 import { feedbackSchema } from "./feedback/schema";
 import { formsSchema } from "./forms/schema";
@@ -21,6 +22,7 @@ import { studentsSchema } from "./users/students/schema";
 export default defineSchema({
 	...companiesSchema,
 	...eventsSchema,
+	...eventSlackSchema,
 	...engagementSchema,
 	...jobListingsSchema,
 	...jobListingOrdersSchema,

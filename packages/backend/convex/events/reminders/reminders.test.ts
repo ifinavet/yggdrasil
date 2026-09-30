@@ -19,7 +19,7 @@ import {
 } from "../../../test/fixtures";
 import { api, internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
-import { resend } from "../../emails";
+import { feedbackResend as resend } from "../../feedback/delivery/messages";
 import { dueReminder } from "./schedule";
 
 const now = Date.UTC(2026, 9, 1, 12);

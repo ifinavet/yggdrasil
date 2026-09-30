@@ -92,4 +92,13 @@ export const eventsSchema = {
 		kind: oneOf(REMINDER_KINDS),
 		queuedAt: v.number(),
 	}).index("by_eventId_and_kind", ["eventId", "kind"]),
+	eventReminderDeliveries: defineTable({
+		eventId: v.id("events"),
+		kind: oneOf(REMINDER_KINDS),
+		userId: v.id("users"),
+		emailId: v.string(),
+		sent: v.boolean(),
+	})
+		.index("by_emailId", ["emailId"])
+		.index("by_eventId_and_kind_and_userId", ["eventId", "kind", "userId"]),
 };

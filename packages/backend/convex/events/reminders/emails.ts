@@ -6,7 +6,6 @@ import { v } from "convex/values";
 import { internal } from "../../_generated/api";
 import { internalAction } from "../../_generated/server";
 import { isLocalDevelopment } from "../../auth/local";
-import { resend } from "../../emails";
 import { oneOf } from "../../lib/validators";
 import { REMINDER_KINDS } from "./schedule";
 
@@ -23,13 +22,14 @@ export const sendEventReminder = internalAction({
 		}
 		for (const recipient of recipients) {
 			try {
-				await resend.sendEmail(ctx, {
-					from: "Navet <info@ifinavet.no>",
-					replyTo: [content.signature.email],
+				await ctx.runMutation(internal.events.reminders.delivery.enqueue, {
+					eventId,
+					kind,
+					userId: recipient.userId,
+					replyTo: content.signature.email,
 					to: recipient.email,
 					subject: `Bedriftspresentasjon med ${content.company} ${content.time}`,
 					html,
-					idempotencyKey: `reminder:${eventId}:${kind}:${recipient.userId}`,
 				});
 			} catch (error) {
 				console.error(`Could not queue ${kind} reminder for ${recipient.userId}`, error);

@@ -294,7 +294,7 @@ export const getEvent = query({
  *
  * @returns {Promise<Array<{ id: Id<"eventOrganizers">, name: string, role: OrganizerRole, userId: Id<"users">, imageUrl: string, email: string }>>} - Organizer display data for the event.
  */
-async function getOrganizers(ctx: QueryCtx, eventId: Id<"events">) {
+export async function getOrganizers(ctx: QueryCtx, eventId: Id<"events">) {
 	const organizers = await ctx.db
 		.query("eventOrganizers")
 		.withIndex("by_eventId", (q) => q.eq("eventId", eventId))
@@ -302,7 +302,13 @@ async function getOrganizers(ctx: QueryCtx, eventId: Id<"events">) {
 
 	const organizersWithName = await Promise.all(
 		organizers.map(async (organizer) => {
-			const user = await ctx.db.get(organizer.userId);
+			const [user, account] = await Promise.all([
+				ctx.db.get(organizer.userId),
+				ctx.db
+					.query("memberAccounts")
+					.withIndex("by_userId", (q) => q.eq("userId", organizer.userId))
+					.unique(),
+			]);
 			if (!user)
 				return {
 					id: organizer._id,
@@ -320,6 +326,10 @@ async function getOrganizers(ctx: QueryCtx, eventId: Id<"events">) {
 				userId: organizer.userId,
 				imageUrl: user.image,
 				email: user.email,
+				slackUserId:
+					!user.deleted && account?.stage === "active" && !account.slackDeactivatedAt
+						? account.slackUserId
+						: undefined,
 			};
 		}),
 	);

@@ -9,6 +9,7 @@ import type { Id } from "../../_generated/dataModel";
 import { internalMutation, type MutationCtx, mutation } from "../../_generated/server";
 import { isLocalDevelopment } from "../../auth/local";
 import { getRegistrantStatistics } from "../../events/registrations/statistics";
+import { queueEventNotification } from "../../events/slack/state";
 import { isReportFeatureEnabled, requireReportAccess } from "./access";
 
 export async function prepareReport(ctx: MutationCtx, campaignId: Id<"feedbackCampaigns">) {
@@ -106,7 +107,18 @@ export const buildReportBatch = internalMutation({
 			totalResponses,
 			buildCursor: responses.continueCursor,
 			status: responses.isDone ? "draft" : "building",
+			...(responses.isDone && totalResponses === 0 && { followupFinishedAt: Date.now() }),
 		});
+		if (responses.isDone) {
+			await queueEventNotification(
+				ctx,
+				report.eventId,
+				`report-ready:${reportId}`,
+				totalResponses > 0
+					? "Tilbakemeldingsrapporten er klar! 📊 Se gjennom svarene og godkjenn rapporten i Bifrost, så sender jeg den til bedriften."
+					: "Tilbakemeldingsperioden er ferdig. Ingen svarte denne gangen, så det er ingen rapport å sende til bedriften.",
+			);
+		}
 		if (responses.isDone && totalResponses > 0) {
 			const event = await ctx.db.get(report.eventId);
 			const origin = isLocalDevelopment() ? BIFROST_LOCAL_URL : BIFROST_URL;

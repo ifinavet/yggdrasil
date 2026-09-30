@@ -154,7 +154,20 @@ import type {
   FunctionReference,
 } from "convex/server";
 
+import type * as events_reminders_delivery from "../events/reminders/delivery.js";
+import type * as events_slack_config from "../events/slack/config.js";
+import type * as events_slack_lifecycle from "../events/slack/lifecycle.js";
+import type * as events_slack_messages from "../events/slack/messages.js";
+import type * as events_slack_state from "../events/slack/state.js";
+import type * as feedback_reports_lifecycle from "../feedback/reports/lifecycle.js";
 declare const fullApi: ApiFromModules<{
+  "events/reminders/delivery": typeof events_reminders_delivery;
+  "events/slack/config": typeof events_slack_config;
+  "events/slack/lifecycle": typeof events_slack_lifecycle;
+  "events/slack/messages": typeof events_slack_messages;
+  "events/slack/state": typeof events_slack_state;
+  "feedback/reports/lifecycle": typeof feedback_reports_lifecycle;
+
   "auth/accessRights": typeof auth_accessRights;
   "auth/currentUser": typeof auth_currentUser;
   "auth/local": typeof auth_local;

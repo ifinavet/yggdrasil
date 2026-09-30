@@ -8,7 +8,8 @@ import type { Doc } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, mutation } from "../_generated/server";
 import { internalRoles, requireRole } from "../auth/accessRights";
 import { isLocalDevelopment } from "../auth/local";
-import { companyWithLogo } from "../events/queries";
+import { companyWithLogo, getOrganizers } from "../events/queries";
+import { queueEventNotification } from "../events/slack/state";
 import type { AlertRule } from "./schema";
 import { pastCurvesBefore, snapshotOf, upcomingEvents } from "./snapshot";
 
@@ -108,26 +109,7 @@ export function slackText(
 }
 
 async function mainOrganizers(ctx: MutationCtx, eventId: Doc<"events">["_id"]) {
-	const organizers = await ctx.db
-		.query("eventOrganizers")
-		.withIndex("by_eventId", (q) => q.eq("eventId", eventId))
-		.collect();
-	const found = await Promise.all(
-		organizers
-			.filter(({ role }) => role === "hovedansvarlig")
-			.map(async ({ userId }): Promise<Organizer | null> => {
-				const [user, account] = await Promise.all([
-					ctx.db.get(userId),
-					ctx.db
-						.query("memberAccounts")
-						.withIndex("by_userId", (q) => q.eq("userId", userId))
-						.first(),
-				]);
-				if (!user) return null;
-				return { name: `${user.firstName} ${user.lastName}`, slackUserId: account?.slackUserId };
-			}),
-	);
-	return found.filter((organizer) => organizer !== null);
+	return (await getOrganizers(ctx, eventId)).filter(({ role }) => role === "hovedansvarlig");
 }
 
 async function recentlyAlerted(
@@ -172,6 +154,13 @@ export const detectAlerts = internalMutation({
 						triggeredAt: now,
 					}),
 				]);
+				if (rule === "unregisterWave")
+					await queueEventNotification(
+						ctx,
+						event._id,
+						`unregister-wave:${now}`,
+						`Jeg la merke til mange avmeldinger på kort tid. ${summary}. ${detail}`,
+					);
 				await ctx.scheduler.runAfter(0, internal.iam.notifications.sendMessage, {
 					channel: SYSTEM_ALERTS_CHANNEL,
 					clientMsgId: `engagement-${event._id}-${rule}-${now}`,

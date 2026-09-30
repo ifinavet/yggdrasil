@@ -15,6 +15,7 @@ import { requireFoodItem } from "./food";
 import { eventSlug, insertEventWithOrganizers } from "./helper";
 import { makeStatusPending } from "./registrations/mutations";
 import { editableEventFields, organizerRoleValidator } from "./schema";
+import { queueEventNotification } from "./slack/state";
 
 const IMMEDIATE_OPEN_GRACE_MS = 10 * MINUTE_MS;
 
@@ -412,6 +413,12 @@ export const sendRegistrationOpenAlert = internalMutation({
 					registrationOpens,
 					sentAt: now,
 				});
+				await queueEventNotification(
+					ctx,
+					eventId,
+					`registration-open:${registrationOpens}`,
+					"Nå har påmeldingen åpnet! 🎉",
+				);
 				const origin = isLocalDevelopment() ? BIFROST_LOCAL_URL : BIFROST_URL;
 				const title = event.title
 					.replaceAll("&", "&amp;")
