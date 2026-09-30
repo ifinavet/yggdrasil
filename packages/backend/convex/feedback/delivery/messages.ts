@@ -1,7 +1,7 @@
 import { type EmailId, Resend, vOnEmailEventArgs } from "@convex-dev/resend";
 import { vResultValidator, vWorkflowId } from "@convex-dev/workflow";
 import { feedbackTokenSchema } from "@workspace/shared/feedback";
-import { feedbackRoundAt } from "@workspace/shared/time";
+import { feedbackRoundAt, REMINDER_DAYS } from "@workspace/shared/time";
 import { v } from "convex/values";
 import { components, internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
@@ -12,6 +12,8 @@ import {
 	type QueryCtx,
 } from "../../_generated/server";
 import { isLocalDevelopment } from "../../auth/local";
+import { recordReminderSent } from "../../events/reminders/delivery";
+import { queueEventNotification } from "../../events/slack/state";
 import { hashLinkToken } from "../../lib/tokens";
 import { feedbackEmailContext } from "./emailContext";
 
@@ -186,29 +188,56 @@ export const onInvitationComplete = internalMutation({
 	},
 });
 
+async function recordReportEvent(ctx: MutationCtx, id: string, type: string) {
+	const report = await ctx.db
+		.query("feedbackReports")
+		.withIndex("by_emailId", (index) => index.eq("emailId", id))
+		.unique();
+	if (report?.status === "approved") {
+		if (
+			(type === "email.sent" || type === "email.delivered") &&
+			report.deliveryStatus !== "failed"
+		) {
+			await ctx.db.patch(report._id, {
+				followupFinishedAt: report.followupFinishedAt ?? Date.now(),
+			});
+			await queueEventNotification(
+				ctx,
+				report.eventId,
+				`report-sent:${report._id}:${report.deliveryAttempt ?? 0}`,
+				"Nå har jeg sendt tilbakemeldingsrapporten til bedriften. Takk for innsatsen! 🙌",
+			);
+		}
+		if (type === "email.delivered" && report.deliveryStatus !== "failed")
+			await ctx.db.patch(report._id, { deliveryStatus: "delivered" });
+		if (type === "email.bounced" || type === "email.complained" || type === "email.failed")
+			await ctx.db.patch(report._id, { deliveryStatus: "failed", followupFinishedAt: undefined });
+	}
+}
+
 export const onEmailEvent = internalMutation({
 	args: vOnEmailEventArgs,
 	handler: async (ctx, { id, event }): Promise<void> => {
+		if (await recordReminderSent(ctx, id, event.type)) return;
 		const delivery = await ctx.db
 			.query("feedbackDeliveries")
 			.withIndex("by_emailId", (index) => index.eq("emailId", id))
 			.unique();
 		if (!delivery) {
-			const report = await ctx.db
-				.query("feedbackReports")
-				.withIndex("by_emailId", (index) => index.eq("emailId", id))
-				.unique();
-			if (report?.status === "approved") {
-				if (event.type === "email.delivered" && report.deliveryStatus !== "failed")
-					await ctx.db.patch(report._id, { deliveryStatus: "delivered" });
-				if (
-					event.type === "email.bounced" ||
-					event.type === "email.complained" ||
-					event.type === "email.failed"
-				)
-					await ctx.db.patch(report._id, { deliveryStatus: "failed" });
-			}
+			await recordReportEvent(ctx, id, event.type);
 			return;
+		}
+		if (event.type === "email.sent" || event.type === "email.delivered") {
+			const campaign = await ctx.db.get(delivery.campaignId);
+			if (campaign && campaign.status !== "cancelled")
+				await queueEventNotification(
+					ctx,
+					campaign.eventId,
+					`feedback-sent:${campaign._id}:${delivery.round}`,
+					delivery.round === 0
+						? "Jeg har begynt å sende ut tilbakemeldingsskjemaet til deltakerne som møtte. ✉️"
+						: `Jeg har begynt å sende påminnelse ${(REMINDER_DAYS as readonly number[]).indexOf(delivery.round) + 1} om tilbakemeldingsskjemaet til dem som ikke har svart ennå. ✉️`,
+				);
 		}
 		const outcome = deliveryOutcomes[event.type as keyof typeof deliveryOutcomes];
 		await ctx.db.patch(delivery._id, {

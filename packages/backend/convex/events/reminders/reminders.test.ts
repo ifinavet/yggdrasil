@@ -19,7 +19,7 @@ import {
 } from "../../../test/fixtures";
 import { api, internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
-import { resend } from "../../emails";
+import { feedbackResend as resend } from "../../feedback/delivery/messages";
 import { dueReminder } from "./schedule";
 
 const now = Date.UTC(2026, 9, 1, 12);
@@ -133,8 +133,18 @@ describe("emailContext", () => {
 });
 
 describe("sendEventReminder", () => {
+	it("does not send a stale scheduled round after the event moves", async () => {
+		const { t, eventId } = await setupEvent({ eventStart: Date.now() + 15 * DAY_IN_MS });
+		const user = await insertUser(t, "moved@example.test");
+		await insertRegistration(t, eventId, user._id, "registered");
+		const sendEmail = vi.spyOn(resend, "sendEmail");
+		await t.action(internal.events.reminders.emails.sendEventReminder, { eventId, kind: "week" });
+		expect(sendEmail).not.toHaveBeenCalled();
+		vi.restoreAllMocks();
+	});
+
 	it("keeps sending to the rest when one recipient fails", async () => {
-		const { t, eventId } = await setupEvent();
+		const { t, eventId } = await setupEvent({ eventStart: Date.now() + 5 * DAY_IN_MS });
 		const first = await insertUser(t, "first@example.test");
 		const second = await insertUser(t, "second@example.test");
 		await insertRegistration(t, eventId, first._id, "registered");

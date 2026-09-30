@@ -5,10 +5,11 @@ import { SYSTEM_ALERTS_CHANNEL } from "@workspace/shared/slack/channels";
 import { feedbackRetentionAt } from "@workspace/shared/time";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../../_generated/api";
-import type { Id } from "../../_generated/dataModel";
+import type { Doc, Id } from "../../_generated/dataModel";
 import { internalMutation, type MutationCtx, mutation } from "../../_generated/server";
 import { isLocalDevelopment } from "../../auth/local";
 import { getRegistrantStatistics } from "../../events/registrations/statistics";
+import { queueEventNotification } from "../../events/slack/state";
 import { isReportFeatureEnabled, requireReportAccess } from "./access";
 
 export async function prepareReport(ctx: MutationCtx, campaignId: Id<"feedbackCampaigns">) {
@@ -78,6 +79,38 @@ export const prepare = mutation({
 	},
 });
 
+async function notifyReportReady(
+	ctx: MutationCtx,
+	report: Doc<"feedbackReports">,
+	totalResponses: number,
+) {
+	await queueEventNotification(
+		ctx,
+		report.eventId,
+		`report-ready:${report._id}`,
+		totalResponses > 0
+			? "Tilbakemeldingsrapporten er klar! 📊 Se gjennom svarene og godkjenn rapporten i Bifrost, så sender jeg den til bedriften."
+			: "Tilbakemeldingsperioden er ferdig. Ingen svarte denne gangen, så det er ingen rapport å sende til bedriften.",
+	);
+	if (totalResponses > 0) {
+		const event = await ctx.db.get(report.eventId);
+		const origin = isLocalDevelopment() ? BIFROST_LOCAL_URL : BIFROST_URL;
+		const title = report.eventTitle
+			.replaceAll("&", "&amp;")
+			.replaceAll("<", "&lt;")
+			.replaceAll(">", "&gt;");
+		await ctx.scheduler.runAfter(0, internal.iam.notifications.sendMessage, {
+			channel: SYSTEM_ALERTS_CHANNEL,
+			clientMsgId: `feedback-report-${report._id}`,
+			text: [
+				"📊 *Feedbackrapporten er klar til gjennomgang*",
+				`*Arrangement:* ${title}`,
+				`<${origin}/events/${event?.slug ?? report.eventId}/report|Åpne rapporten>`,
+			].join("\n"),
+		});
+	}
+}
+
 export const buildReportBatch = internalMutation({
 	args: { reportId: v.id("feedbackReports"), cursor: v.union(v.string(), v.null()) },
 	handler: async (ctx, { reportId, cursor }) => {
@@ -106,24 +139,10 @@ export const buildReportBatch = internalMutation({
 			totalResponses,
 			buildCursor: responses.continueCursor,
 			status: responses.isDone ? "draft" : "building",
+			readyAt: responses.isDone ? Date.now() : undefined,
+			followupFinishedAt: responses.isDone && totalResponses === 0 ? Date.now() : undefined,
 		});
-		if (responses.isDone && totalResponses > 0) {
-			const event = await ctx.db.get(report.eventId);
-			const origin = isLocalDevelopment() ? BIFROST_LOCAL_URL : BIFROST_URL;
-			const title = report.eventTitle
-				.replaceAll("&", "&amp;")
-				.replaceAll("<", "&lt;")
-				.replaceAll(">", "&gt;");
-			await ctx.scheduler.runAfter(0, internal.iam.notifications.sendMessage, {
-				channel: SYSTEM_ALERTS_CHANNEL,
-				clientMsgId: `feedback-report-${reportId}`,
-				text: [
-					"📊 *Feedbackrapporten er klar til gjennomgang*",
-					`*Arrangement:* ${title}`,
-					`<${origin}/events/${event?.slug ?? report.eventId}/report|Åpne rapporten>`,
-				].join("\n"),
-			});
-		}
+		if (responses.isDone) await notifyReportReady(ctx, report, totalResponses);
 		if (!responses.isDone)
 			await ctx.scheduler.runAfter(0, internal.feedback.reports.build.buildReportBatch, {
 				reportId,

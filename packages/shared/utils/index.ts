@@ -4,5 +4,6 @@ export { humanReadableDate, humanReadableDateTime, humanReadableTime } from "./d
 export { nameKey } from "./name-key";
 export { placeholderKeys } from "./placeholder_keys";
 export { hasSearchWords, matchesSearch } from "./search";
+export { asciiSlug } from "./slug";
 export { isHttpUrl } from "./urls";
 export { toVariableName } from "./variable_names";

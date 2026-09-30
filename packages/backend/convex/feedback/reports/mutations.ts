@@ -67,6 +67,7 @@ export const retryDelivery = mutation({
 			throw new ConvexError("Utsending av rapporter er slått av.");
 		await ctx.db.patch(report._id, {
 			deliveryStatus: "pending",
+			followupFinishedAt: undefined,
 			emailId: undefined,
 			tokenHash: undefined,
 			deliveryAttempt: (report.deliveryAttempt ?? 0) + 1,
@@ -83,6 +84,7 @@ export const revoke = mutation({
 		if (report.status !== "approved") throw new ConvexError("Rapporten er ikke delt.");
 		await ctx.db.patch(report._id, {
 			status: "revoked",
+			followupFinishedAt: Date.now(),
 			tokenHash: undefined,
 			revision: report.revision + 1,
 		});

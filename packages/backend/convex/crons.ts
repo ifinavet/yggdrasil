@@ -54,4 +54,11 @@ crons.cron("Reconcile workspace accounts", "30 3 * * *", internal.iam.actions.re
 /**
  * Exports the configured cron job collection.
  */
+crons.interval(
+	"Create company Slack channels, reconcile access, send event updates and archive finished work",
+	{ hours: 1 },
+	internal.events.slack.lifecycle.reconcile,
+	{},
+);
+
 export default crons;

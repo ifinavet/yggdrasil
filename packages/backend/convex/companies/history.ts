@@ -223,3 +223,19 @@ export const getHistory = query({
 		return timeline.slice(0, 200);
 	},
 });
+
+/** Most recent approved report from an earlier company event, using the company history rules. */
+export async function previousCompanyReport(ctx: QueryCtx, event: Doc<"events">, now: number) {
+	const events = await ctx.db
+		.query("events")
+		.withIndex("by_hostingCompany_and_eventStart", (q) =>
+			q
+				.eq("hostingCompany", event.hostingCompany)
+				.lt("eventStart", Math.min(now, event.eventStart)),
+		)
+		.order("desc")
+		.take(LIMIT);
+	return (
+		(await eventHistory(ctx, events)).find((item) => item.id.startsWith("report-"))?.href ?? null
+	);
+}

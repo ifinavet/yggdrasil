@@ -24,6 +24,7 @@ import { api, internal } from "../../_generated/api";
 import { hashLinkToken } from "../../lib/tokens";
 import { defaultFeedbackFields } from "../defaultFields";
 import { feedbackResend } from "../delivery/messages";
+import { followupFinishedAt } from "./lifecycle";
 
 const reports = api.feedback.reports;
 const jobs = internal.feedback.reports;
@@ -766,4 +767,55 @@ describe("report boundary cases", () => {
 		await f.t.mutation(jobs.messages.enqueue, { reportId, token, url: "", html: "" });
 		expect(await f.t.run((ctx) => ctx.db.query("feedbackReportLocalEmails").collect())).toEqual([]);
 	});
+});
+
+it("restarts the archive safety week only after a failed report retry is actually sent", async () => {
+	const f = await fixture();
+	const reportId = await f.prepare();
+	await f.t.run((ctx) =>
+		ctx.db.patch(reportId, {
+			status: "approved",
+			deliveryStatus: "queued",
+			emailId: "first",
+			retentionAt: now + 365 * 86400000,
+			revision: 1,
+		}),
+	);
+	const outcome = async (id: string, type: "email.sent" | "email.bounced") =>
+		f.t.mutation(internal.feedback.delivery.messages.onEmailEvent, {
+			id: id as EmailId,
+			event: {
+				type,
+				created_at: new Date().toISOString(),
+				data: {
+					email_id: id,
+					created_at: new Date().toISOString(),
+					from: "info@ifinavet.no",
+					to: ["contact@example.test"],
+					subject: "Report",
+					...(type === "email.bounced"
+						? { bounce: { message: "Undeliverable", subType: "General", type: "Permanent" } }
+						: {}),
+				},
+			} as EmailEvent,
+		});
+	const completion = () =>
+		f.t.run(async (ctx) => {
+			const event = await ctx.db.get(f.eventId);
+			if (!event) throw new Error("Missing event");
+			return followupFinishedAt(ctx, event);
+		});
+	await outcome("first", "email.sent");
+	expect(await completion()).toBe(now);
+	vi.setSystemTime(now + 86400000);
+	await outcome("first", "email.bounced");
+	expect(await completion()).toBeNull();
+	vi.setSystemTime(now + 8 * 86400000);
+	await f.client.mutation(reports.mutations.retryDelivery, { reportId, revision: 1 });
+	expect(await completion()).toBeNull();
+	await f.t.run((ctx) => ctx.db.patch(reportId, { deliveryStatus: "queued", emailId: "second" }));
+	await outcome("first", "email.sent");
+	expect(await completion()).toBeNull();
+	await outcome("second", "email.sent");
+	expect(await completion()).toBe(now + 8 * 86400000);
 });

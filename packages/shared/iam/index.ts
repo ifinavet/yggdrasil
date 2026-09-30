@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const LETTER_REPLACEMENTS: Record<string, string> = { æ: "ae", ø: "o", å: "a", ß: "ss" };
+import { asciiSlug } from "../utils/slug";
 
 export function normalizeEmail(email: string) {
 	return email.trim().toLowerCase();
@@ -15,19 +15,8 @@ export function isUioEmail(email: string) {
 	return domain === "uio.no" || domain.endsWith(".uio.no");
 }
 
-function slug(name: string) {
-	return name
-		.toLowerCase()
-		.replaceAll(/[æøåß]/g, (letter) => LETTER_REPLACEMENTS[letter] ?? letter)
-		.normalize("NFKD")
-		.replaceAll(/\p{M}/gu, "")
-		.split(/[^a-z0-9]+/)
-		.filter(Boolean)
-		.join(".");
-}
-
 export function suggestWorkspaceEmail(firstName: string, lastName: string, domain: string) {
-	const local = [slug(firstName), slug(lastName)].filter(Boolean).join(".");
+	const local = [asciiSlug(firstName, "."), asciiSlug(lastName, ".")].filter(Boolean).join(".");
 	return local ? `${local}@${domain}` : "";
 }
 
