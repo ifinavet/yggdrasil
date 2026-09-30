@@ -33,7 +33,7 @@ export const EVENT_CHECKLIST = [
 		id: "event",
 		label: "Arrangementsdag",
 		steps: [
-			{ id: "welcome", label: "Ta imot bedriften og klargjør utstyr" },
+			{ id: "welcome", label: "Ta imot bedriften" },
 			{ id: "feedback-reminder", label: "Minn deltakerne om tilbakemeldinger" },
 		],
 	},

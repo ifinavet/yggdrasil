@@ -40,39 +40,35 @@ export function EventChecklistPanel({
 		const days = Math.round(
 			(Date.parse(formatOsloDate(at, "yyyy-MM-dd")) - Date.parse(today)) / DAY_MS,
 		);
-		const relative =
-			days === 0
-				? "i dag"
-				: days === 1
-					? "i morgen"
-					: days > 0
-						? `om ${days} dager`
-						: `for ${Math.abs(days)} dager siden`;
+		let relative = `for ${Math.abs(days)} dager siden`;
+		if (days === 0) relative = "i dag";
+		else if (days === 1) relative = "i morgen";
+		else if (days > 0) relative = `om ${days} dager`;
 		return `${date(at)}, ${relative}`;
 	};
 	const opensAt = campaign?.opensAt ?? feedbackOpensAt(event.eventStart);
 	const closesAt = campaign?.closesAt ?? feedbackRoundAt(opensAt, 14);
-	const reminders = event.externalEvent
-		? ["Ingen deltakerpåminnelser ved ekstern påmelding."]
-		: !event.remindersEnabled || !event.published
-			? ["Deltakerpåminnelser er av."]
-			: [
-					`${day(event.eventStart - 7 * DAY_MS)}: Systemet sender ut påminnelsesmail nr. 1.`,
-					`${day(event.eventStart - 2 * DAY_MS)}: Systemet sender ut påminnelsesmail nr. 2.`,
-				];
-	const feedback =
-		campaign === undefined
-			? ["Henter utsendelsesplan …"]
-			: !campaign || campaign.status === "cancelled"
-				? [campaign?.failure ?? "Tilbakemeldingsskjema er ikke planlagt."]
-				: [
-						`${day(opensAt)} kl. ${formatOsloDate(opensAt, "HH:mm")}: Systemet sender tilbakemeldingsskjema til fremmøtte.`,
-						...REMINDER_DAYS.map(
-							(round, index) =>
-								`${day(feedbackRoundAt(opensAt, round))}: Systemet sender purring nr. ${index + 1} til dem som ikke har svart.`,
-						),
-						`${day(closesAt)}: Systemet lager rapporten. Sendes til bedriften etter din godkjenning.`,
-					];
+	let reminders: string[];
+	if (event.externalEvent) reminders = ["Ingen deltakerpåminnelser ved ekstern påmelding."];
+	else if (!event.remindersEnabled || !event.published) reminders = ["Deltakerpåminnelser er av."];
+	else
+		reminders = [
+			`${day(event.eventStart - 7 * DAY_MS)}: Systemet sender ut påminnelsesmail nr. 1.`,
+			`${day(event.eventStart - 2 * DAY_MS)}: Systemet sender ut påminnelsesmail nr. 2.`,
+		];
+	let feedback: string[];
+	if (campaign === undefined) feedback = ["Henter utsendelsesplan …"];
+	else if (!campaign || campaign.status === "cancelled")
+		feedback = [campaign?.failure ?? "Tilbakemeldingsskjema er ikke planlagt."];
+	else
+		feedback = [
+			`${day(opensAt)} kl. ${formatOsloDate(opensAt, "HH:mm")}: Systemet sender tilbakemeldingsskjema til fremmøtte.`,
+			...REMINDER_DAYS.map(
+				(round, index) =>
+					`${day(feedbackRoundAt(opensAt, round))}: Systemet sender purring nr. ${index + 1} til dem som ikke har svart.`,
+			),
+			`${day(closesAt)}: Systemet lager rapporten. Sendes til bedriften etter din godkjenning.`,
+		];
 	const isPastDay = (at: number) => formatOsloDate(at, "yyyy-MM-dd") < today;
 	const milestones: ChecklistMilestone[] = [
 		{
