@@ -280,7 +280,11 @@ async function staleFeedbackNotification(
 	return !campaign || campaign.status === "cancelled";
 }
 
-async function staleReportNotification(ctx: MutationCtx, notice: Doc<"eventSlackNotifications">) {
+async function reportNotificationText(
+	ctx: MutationCtx,
+	event: Doc<"events">,
+	notice: Doc<"eventSlackNotifications">,
+) {
 	if (notice.key.startsWith("report-ready:") || notice.key.startsWith("report-sent:")) {
 		const report = await ctx.db.get(notice.key.split(":")[1] as Id<"feedbackReports">);
 		if (
@@ -292,10 +296,12 @@ async function staleReportNotification(ctx: MutationCtx, notice: Doc<"eventSlack
 					report.followupFinishedAt === undefined ||
 					notice.key !== `report-sent:${report._id}:${report.deliveryAttempt ?? 0}`))
 		) {
-			return true;
+			return null;
 		}
+		if (notice.key.startsWith("report-ready:") && report.totalResponses > 0)
+			return `${notice.text} <${eventUrl(event)}/report|Åpne rapporten>.`;
 	}
-	return false;
+	return notice.text;
 }
 
 async function staleNotification(
@@ -328,10 +334,7 @@ async function staleNotification(
 		return true;
 	}
 
-	return (
-		(await staleFeedbackNotification(ctx, event, notice)) ||
-		(await staleReportNotification(ctx, notice))
-	);
+	return staleFeedbackNotification(ctx, event, notice);
 }
 
 function staleWelcome(
@@ -358,8 +361,14 @@ async function renderNotification(
 		const active = campaign?.status === "scheduled" || campaign?.status === "open";
 		text = welcomeMessage(event, now, active ? campaign.opensAt : undefined);
 	}
-	if (notice.key.startsWith("report-ready:"))
-		text = `${notice.text} <${eventUrl(event)}/report|Åpne rapporten>.`;
+	if (notice.key.startsWith("report-ready:") || notice.key.startsWith("report-sent:")) {
+		const reportText = await reportNotificationText(ctx, event, notice);
+		if (reportText === null) {
+			await ctx.db.patch(notice._id, { cancelledAt: now });
+			return null;
+		}
+		text = reportText;
+	}
 
 	const organizers = await getOrganizers(ctx, event._id);
 	if (notice.key.startsWith("missing-slack:")) {

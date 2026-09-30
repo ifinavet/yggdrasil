@@ -101,8 +101,14 @@ export function slackClient(config: SlackConfig) {
 			return channel.id;
 		},
 		async renameChannel(channel: string, name: string) {
-			const body = await call("conversations.rename", { channel, name });
+			let body = await call("conversations.rename", { channel, name });
+			if (!body.ok && body.error === "name_taken") {
+				const suffix = `-${channel.toLowerCase()}`;
+				name = `${name.slice(0, 80 - suffix.length)}${suffix}`;
+				body = await call("conversations.rename", { channel, name });
+			}
 			if (!body.ok) throw new SlackError(`Slack avviste kanalnavnet: ${body.error}.`);
+			return name;
 		},
 		async setChannelPurpose(channel: string, purpose: string) {
 			const body = await call("conversations.setPurpose", { channel, purpose });

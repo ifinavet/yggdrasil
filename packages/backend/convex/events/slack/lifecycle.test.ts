@@ -84,6 +84,8 @@ function fakeSlack() {
 						messages: args.channel === SYSTEM_ALERTS_CHANNEL ? systemMessages : channel?.messages,
 					});
 				case "conversations.rename":
+					if (channels.some((item) => item.id !== args.channel && item.name === args.name))
+						return reply({ ok: false, error: "name_taken" });
 					if (channel) channel.name = args.name as string;
 					break;
 				case "conversations.setPurpose":
@@ -897,7 +899,9 @@ it("waits for the five-week window before replacing an archived channel", async 
 	await run(t);
 	const later = START + 50 * DAY_MS;
 	await insertEvent(t, companyId, { eventStart: later });
+	const calls = slack.calls.length;
 	await run(t);
+	expect(slack.calls).toHaveLength(calls);
 	expect(slack.channels).toHaveLength(1);
 	expect(slack.channels[0]?.archived).toBe(true);
 	await run(t, eventPlanningAt(later, 35));
@@ -1024,4 +1028,67 @@ it("cancels queued feedback and report notices when their source state changes",
 	await run(t);
 	expect(slack.channels[0]?.messages).toHaveLength(2);
 	expect(slack.channels[0]?.messages.at(-1)?.text).toContain("Current attempt sent");
+});
+
+it("recovers a desired name collision with a deterministic name and announces that actual name", async () => {
+	const { t, companyId } = await setup();
+	const slack = fakeSlack();
+	slack.channels.push({
+		id: "MANUAL",
+		name: "h26-testbedrift",
+		creator: "OTHER",
+		is_private: true,
+		purpose: { value: "Unrelated" },
+		archived: false,
+		members: [],
+		messages: [],
+	});
+	const eventId = await insertEvent(t, companyId, { eventStart: START });
+	await organizer(t, eventId, "LEAD");
+	await run(t);
+	await run(t);
+	expect(slack.channels[0]?.name).toBe("h26-testbedrift");
+	expect(slack.channels[1]?.name).toBe("h26-testbedrift-c2");
+	expect(slack.channels[1]?.members).toContain("LEAD");
+	expect(slack.channels[1]?.messages).toHaveLength(1);
+	expect(slack.systemMessages).toHaveLength(1);
+	expect(slack.systemMessages[0]?.text).toContain("#h26-testbedrift-c2");
+});
+
+it("does not link organizers to a zero-response report", async () => {
+	const { t, companyId } = await setup();
+	const slack = fakeSlack();
+	const eventId = await insertEvent(t, companyId, { eventStart: START, feedbackEnabled: true });
+	await run(t);
+	const campaignId = await t.run((ctx) =>
+		ctx.db.insert("feedbackCampaigns", {
+			eventId,
+			status: "closed",
+			opensAt: START + DAY_MS,
+			closesAt: START + 15 * DAY_MS,
+			generation: 1,
+		}),
+	);
+	const reportId = await t.run((ctx) =>
+		ctx.db.insert("feedbackReports", {
+			campaignId,
+			eventId,
+			eventTitle: "Report",
+			eventStart: START,
+			companyName: "Test",
+			recipientEmail: "test@example.test",
+			status: "draft",
+			questions: [],
+			totalResponses: 0,
+			buildCursor: null,
+			revision: 1,
+			retentionAt: START + 365 * DAY_MS,
+		}),
+	);
+	await t.run((ctx) =>
+		queueEventNotification(ctx, eventId, `report-ready:${reportId}`, "Ingen svarte denne gangen."),
+	);
+	await run(t);
+	expect(slack.channels[0]?.messages.at(-1)?.text).toContain("Ingen svarte");
+	expect(slack.channels[0]?.messages.at(-1)?.text).not.toContain("/report");
 });

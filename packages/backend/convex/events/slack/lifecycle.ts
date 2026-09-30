@@ -112,6 +112,7 @@ async function updateChannel(
 		now: Date.now(),
 	});
 	if (!context || (context.archive && !channel.slackChannelId)) return;
+	if (channel.archived && (context.archive || !context.actionable)) return;
 	if (channel.slackChannelId && (await slack.isChannelArchived(channel.slackChannelId))) {
 		if (context.archive || !context.actionable) {
 			await progress({ archived: true });
@@ -136,8 +137,8 @@ async function updateChannel(
 	await progress({ slackChannelId });
 	await slack.setChannelPurpose(slackChannelId, owner);
 	const name = generation === 1 ? channel.name : `${channel.name.slice(0, 75)}-${generation}`;
-	await slack.renameChannel(slackChannelId, name);
-	await announceCreation(slack, channel, slackChannelId, name, context.companyName, progress);
+	const actualName = await slack.renameChannel(slackChannelId, name);
+	await announceCreation(slack, channel, slackChannelId, actualName, context.companyName, progress);
 	await slack.reconcileChannelMembers(
 		slackChannelId,
 		context.members,
