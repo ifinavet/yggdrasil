@@ -6,15 +6,15 @@
 	"packageManager": "pnpm@10.15.1",
 	"dependencies": {
 		"@date-fns/tz": "^1.5.0",
-		"convex": "^1.46.0",
-		"date-fns": "^4.4.0",
+		"convex": "catalog:",
+		"date-fns": "catalog:",
 		"papaparse": "5.7.0",
-		"zod": "^4.6.5"
+		"zod": "catalog:"
 	},
 	"devDependencies": {
 		"@types/papaparse": "5.5.2",
 		"@workspace/typescript-config": "workspace:*",
-		"typescript": "^7.0.2"
+		"typescript": "catalog:"
 	},
 	"exports": {
 		"./constants": "./constants/index.ts",

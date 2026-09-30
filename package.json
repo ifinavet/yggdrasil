@@ -6,17 +6,18 @@
 		"dev": "node ./scripts/dev.mjs",
 		"lint": "biome check .",
 		"lint:fix": "biome check . --write",
-		"check-types": "turbo check-types",
+		"check-dependencies": "pnpm list -r --depth 0 --json | node scripts/check-shared-dependencies.mjs",
+		"check-types": "pnpm check-dependencies && turbo check-types",
 		"compile": "turbo compile",
 		"test": "turbo test",
 		"build": "turbo build"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "2.5.14",
+		"@biomejs/biome": "catalog:",
 		"@workspace/typescript-config": "workspace:*",
 		"dotenv": "^16.6.1",
 		"turbo": "^2.11.4",
-		"typescript": "7.0.2"
+		"typescript": "catalog:"
 	},
 	"packageManager": "pnpm@10.33.2",
 	"engines": {
