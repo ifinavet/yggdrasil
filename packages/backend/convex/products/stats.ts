@@ -1,4 +1,4 @@
-import { jobListingSales, type ProductCategory, type Sale } from "@workspace/shared/products";
+import { jobListingSales, type Sale } from "@workspace/shared/products";
 import { eventSemesterOf } from "@workspace/shared/time";
 import type { Doc, Id } from "../_generated/dataModel";
 import { type QueryCtx, query } from "../_generated/server";
@@ -22,26 +22,12 @@ async function companyInfo(ctx: QueryCtx, ids: Iterable<Id<"companies">>) {
 	return companies;
 }
 
-async function productCategories(ctx: QueryCtx, ids: Iterable<Id<"products">>) {
-	const categories = new Map<string, ProductCategory>();
-	for (const id of new Set(ids)) {
-		const product = await ctx.db.get(id);
-		categories.set(id, product?.category ?? "other");
-	}
-	return categories;
-}
-
 async function eventSales(
-	ctx: QueryCtx,
 	events: readonly Doc<"events">[],
 	companies: Map<string, CompanyInfo>,
 ): Promise<Sale[]> {
 	const sold = events.flatMap((event) =>
 		event.product ? [{ event, product: event.product }] : [],
-	);
-	const categories = await productCategories(
-		ctx,
-		sold.map(({ product }) => product.productId),
 	);
 	return sold.map(({ event, product }) => {
 		const company = companies.get(event.hostingCompany) as CompanyInfo;
@@ -49,7 +35,7 @@ async function eventSales(
 			...eventSemesterOf(event.eventStart),
 			productId: product.productId,
 			productName: product.name,
-			category: categories.get(product.productId) as ProductCategory,
+			category: event.externalEvent ? "external_event" : "event",
 			companyId: event.hostingCompany,
 			companyName: company.name,
 			excluded: company.excluded,
@@ -82,21 +68,24 @@ async function listingSales(
 				productListings.map((listing) => {
 					const company = companies.get(listing.company) as CompanyInfo;
 					return {
-						...eventSemesterOf(listing.deadline),
+						...eventSemesterOf(listing.publishedAt ?? listing._creationTime),
 						companyId: listing.company,
 						companyName: company.name,
 						excluded: company.excluded,
-						soldAt: listing.deadline,
+						soldAt: listing.publishedAt ?? listing._creationTime,
 						guessed: listing.productGuessed ?? false,
 					};
 				}),
 				{
 					productId,
 					productName: product.name,
-					category: product.category,
+					category: "job_listing",
 					volumeTiers: product.volumeTiers ?? [],
 				},
-			),
+			).map((sale) => ({
+				...sale,
+				revenueOre: companies.get(sale.companyId)?.mainSponsor ? 0 : sale.revenueOre,
+			})),
 		);
 	}
 	return sales;
@@ -121,7 +110,7 @@ export const sales = query({
 		]);
 
 		return [
-			...(await eventSales(ctx, events, companies)),
+			...(await eventSales(events, companies)),
 			...(await listingSales(ctx, listings, companies)),
 		];
 	},

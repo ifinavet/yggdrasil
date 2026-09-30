@@ -64,14 +64,17 @@ describe("semester", () => {
 			eventStart: at("2026-05-10T16:00:00Z"),
 		});
 		await registerStudent(t, "ada@example.com", current, 2, now - DAY_IN_MS);
-		await registerStudent(t, "bo@example.com", early, 3, now - DAY_IN_MS);
-		await registerStudent(t, "cy@example.com", late, 2, now - DAY_IN_MS);
+		await registerStudent(t, "bo@example.com", early, 3, at("2026-01-15T10:00:00Z"));
+		await registerStudent(t, "cy@example.com", late, 2, at("2026-05-02T10:00:00Z"));
 
 		const { audience } = await intern.query(api.engagement.queries.semester, { now });
 
 		expect(
 			audience.cohorts.map(({ label, reach, previousReach }) => ({ label, reach, previousReach })),
-		).toEqual([{ label: "Bachelor 2. år", reach: 1 / 2, previousReach: 1 }]);
+		).toEqual([
+			{ label: "Bachelor 2. år", reach: 1 / 2, previousReach: 1 },
+			{ label: "Bachelor 3. år", reach: 0, previousReach: 0 },
+		]);
 	});
 
 	it("keeps cohorts unshifted when comparing spring against the autumn before", async () => {
@@ -86,7 +89,7 @@ describe("semester", () => {
 			eventStart: at("2026-09-01T16:00:00Z"),
 		});
 		await registerStudent(t, "ada@example.com", current, 2, now - DAY_IN_MS);
-		await registerStudent(t, "bo@example.com", previous, 2, now - DAY_IN_MS);
+		await registerStudent(t, "bo@example.com", previous, 2, at("2026-09-01T10:00:00Z"));
 
 		const { audience } = await intern.query(api.engagement.queries.semester, { now });
 
@@ -182,9 +185,9 @@ describe("past", () => {
 			registrationOpens: at("2026-05-01T10:00:00Z"),
 			eventStart: at("2026-05-10T16:00:00Z"),
 		});
-		const ada = await registerStudent(t, "ada@example.com", newer, 2, now - 20 * DAY_IN_MS);
-		const bo = await registerStudent(t, "bo@example.com", newer, 2, now - 20 * DAY_IN_MS);
-		await registerStudent(t, "cy@example.com", older, 2, now - 50 * DAY_IN_MS);
+		const ada = await registerStudent(t, "ada@example.com", newer, 2, at("2026-10-01T11:00:00Z"));
+		const bo = await registerStudent(t, "bo@example.com", newer, 2, at("2026-10-02T11:00:00Z"));
+		await registerStudent(t, "cy@example.com", older, 2, at("2026-05-02T11:00:00Z"));
 		await t.run(async (ctx) => {
 			const registrations = await ctx.db
 				.query("registrations")
@@ -195,6 +198,8 @@ describe("past", () => {
 					attendanceStatus: registration.userId === ada._id ? "confirmed" : "no_show",
 				});
 			}
+			const canceled = registrations.find(({ userId }) => userId === bo._id);
+			if (canceled) await ctx.db.delete(canceled._id);
 			await ctx.db.insert("registrationLog", {
 				eventId: newer,
 				userId: bo._id,
@@ -219,7 +224,7 @@ describe("past", () => {
 				lateUnregistrations,
 			})),
 		).toEqual([
-			{ _id: newer, title: "Nyere", registered: 2, attended: 1, lateUnregistrations: 1 },
+			{ _id: newer, title: "Nyere", registered: 1, attended: 1, lateUnregistrations: 1 },
 			{ _id: older, title: "Eldre", registered: 1, attended: null, lateUnregistrations: null },
 		]);
 	});

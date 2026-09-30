@@ -65,6 +65,8 @@ async function twoCompanies() {
 				attendanceStatus: registration.userId === ada._id ? "confirmed" : "no_show",
 			});
 		}
+		const canceled = registrations.find(({ userId }) => userId === bo._id);
+		if (canceled) await ctx.db.delete(canceled._id);
 		await ctx.db.insert("registrationLog", {
 			eventId: held,
 			userId: bo._id,
@@ -107,10 +109,10 @@ describe("list", () => {
 			{
 				name: "Testbedrift",
 				events: 2,
-				registered: 2,
+				registered: 1,
 				seats: 20,
-				demand: 0.1,
-				attendance: 0.5,
+				demand: 0.05,
+				attendance: 1,
 				latePerEvent: 1,
 			},
 		]);
@@ -144,7 +146,7 @@ describe("foods", () => {
 				.sort((a, b) => b.registrations - a.registrations || a.seats - b.seats),
 		).toEqual([
 			{ foodItem: burritos, name: "🌯 Burritos", registrations: 2, seats: 1 },
-			{ foodItem: pizza, name: "🍕 Pizza", registrations: 2, seats: 10 },
+			{ foodItem: pizza, name: "🍕 Pizza", registrations: 1, seats: 10 },
 			{ foodItem: null, name: null, registrations: 0, seats: 10 },
 		]);
 	});
@@ -159,16 +161,16 @@ describe("detail", () => {
 		expect(detail.name).toBe("Testbedrift");
 		expect(detail.comparison.find(({ key }) => key === "demand")).toEqual({
 			key: "demand",
-			value: 0.1,
-			average: 1.05,
+			value: 0.05,
+			average: 1.025,
 			rank: 2,
 			of: 2,
 			standing: "worse",
 		});
-		expect(detail.audience.total).toBe(2);
-		expect(detail.audience.cohorts).toMatchObject([{ label: "Bachelor 2. år", reach: 1 }]);
+		expect(detail.audience.total).toBe(1);
+		expect(detail.audience.cohorts[0]).toMatchObject({ label: "Bachelor 2. år", reach: 1 });
 		expect(detail.events).toMatchObject([
-			{ _id: held, title: "Holdt", registered: 2, attended: 1, lateUnregistrations: 1 },
+			{ _id: held, title: "Holdt", registered: 1, attended: 1, lateUnregistrations: 1 },
 		]);
 	});
 
@@ -256,7 +258,7 @@ describe("detail feedback and returning students", () => {
 
 		expect(measured("satisfaction")).toBe(4.5);
 		expect(measured("wantToWork")).toBeNull();
-		expect(measured("returning")).toBe(1 / 2);
+		expect(measured("returning")).toBe(1);
 	});
 });
 
@@ -286,6 +288,6 @@ describe("history", () => {
 			average: { demand: null, fill: null, attendance: null },
 		});
 		expect(history[2]).toMatchObject({ company: { demand: 0 }, average: { demand: 0 } });
-		expect(history[3]).toMatchObject({ company: { demand: 2 }, average: { demand: 1.05 } });
+		expect(history[3]).toMatchObject({ company: { demand: 2 }, average: { demand: 1.025 } });
 	});
 });

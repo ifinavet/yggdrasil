@@ -91,7 +91,7 @@ describe("products stats sales", () => {
 		expect(sales).toEqual([expect.objectContaining({ guessed: true })]);
 	});
 
-	it("falls back to the other category when the sold product is gone", async () => {
+	it("preserves event provenance when the sold product is gone", async () => {
 		const { t, companyId, admin } = await fixture();
 		const productId = await t.run((ctx) => ctx.db.insert("products", priced));
 		await insertEvent(t, companyId, {
@@ -100,7 +100,7 @@ describe("products stats sales", () => {
 		await t.run((ctx) => ctx.db.delete(productId));
 
 		const sales = await admin.query(api.products.stats.sales, {});
-		expect(sales).toEqual([expect.objectContaining({ category: "other" })]);
+		expect(sales).toEqual([expect.objectContaining({ category: "event" })]);
 	});
 
 	it("reports zero revenue for an unpriced event snapshot", async () => {
@@ -175,6 +175,7 @@ describe("products stats sales", () => {
 				published: true,
 				company: companyId,
 				deadline,
+				publishedAt: deadline,
 				product: { productId, name: jobListingProduct.name },
 			}),
 		);
@@ -188,6 +189,7 @@ describe("products stats sales", () => {
 				published: true,
 				company: companyId,
 				deadline: deadline + 1000,
+				publishedAt: deadline + 1000,
 				product: { productId, name: jobListingProduct.name },
 				productGuessed: true,
 			}),
