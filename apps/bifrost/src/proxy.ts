@@ -16,7 +16,7 @@ const searchParamsMiddleware = (request: NextRequest) => {
 
 export const proxy = isLocalDevelopment
 	? searchParamsMiddleware
-	: clerkMiddleware(async (_, req) => {
+	: clerkMiddleware((_, req) => {
 			return searchParamsMiddleware(req);
 		});
 

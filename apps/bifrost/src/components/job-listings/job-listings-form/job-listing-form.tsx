@@ -43,9 +43,9 @@ export default function JobListingForm({
 	defaultValues,
 	latestDeadline,
 }: Readonly<{
-	onPrimarySubmitAction: (values: JobListingFormValues) => void;
-	onSecondarySubmitAction: (values: JobListingFormValues) => void;
-	onTertiarySubmitAction?: (values: JobListingFormValues) => void;
+	onPrimarySubmitAction: (values: JobListingFormValues) => void | Promise<void>;
+	onSecondarySubmitAction: (values: JobListingFormValues) => void | Promise<void>;
+	onTertiarySubmitAction?: (values: JobListingFormValues) => void | Promise<void>;
 	defaultValues: JobListingFormValues;
 	latestDeadline: Date;
 }>) {
@@ -60,13 +60,13 @@ export default function JobListingForm({
 		onSubmit: async ({ value, meta }) => {
 			switch (meta.submitAction) {
 				case "primary":
-					onPrimarySubmitAction(value);
+					await onPrimarySubmitAction(value);
 					break;
 				case "secondary":
-					onSecondarySubmitAction(value);
+					await onSecondarySubmitAction(value);
 					break;
 				case "tertiary":
-					onTertiarySubmitAction?.(value);
+					await onTertiarySubmitAction?.(value);
 					break;
 				default:
 					break;

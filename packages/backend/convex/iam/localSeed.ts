@@ -16,7 +16,7 @@ function workspaceEmail(person: Person) {
 }
 
 async function insertUser(ctx: MutationCtx, person: Person, email: string) {
-	return ctx.db.insert("users", {
+	return await ctx.db.insert("users", {
 		externalId: `${SEED_PREFIX}${person.workspace}`,
 		firstName: person.firstName,
 		lastName: person.lastName,
@@ -33,7 +33,7 @@ async function insertAccount(
 	fields: Account,
 	updatedAt: number,
 ) {
-	return ctx.db.insert("memberAccounts", {
+	return await ctx.db.insert("memberAccounts", {
 		workspaceEmail: workspaceEmail(person),
 		uioEmail: person.uio,
 		firstName: person.firstName,

@@ -69,7 +69,7 @@ export default function UpdateProfileForm({
 		validators: {
 			onSubmit: formSchema,
 		},
-		onSubmit: async ({ value }) =>
+		onSubmit: ({ value }) =>
 			updateProfile({
 				studyProgram: value.studyProgram,
 				degree: value.degree,

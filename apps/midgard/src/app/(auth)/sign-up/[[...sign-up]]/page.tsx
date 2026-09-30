@@ -207,7 +207,7 @@ function ClerkSignUpPage() {
 			}
 		};
 
-		createStudentProfile();
+		void createStudentProfile();
 	}, [isAuthenticated, pendingSignUp, signUpCompletionFailed, createStudent, postHog, router]);
 
 	const retryProfileCreation = () => {

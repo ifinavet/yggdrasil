@@ -49,7 +49,7 @@ export async function logApplicationActivity(
 	actor: Actor,
 	details: ActivityDetails = {},
 ): Promise<Id<"companyApplicationActivity">> {
-	return ctx.db.insert("companyApplicationActivity", {
+	return await ctx.db.insert("companyApplicationActivity", {
 		applicationId,
 		type,
 		actor: actor.type,

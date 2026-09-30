@@ -39,9 +39,9 @@ export default function ResourceForm({
 	onTertiarySubmitAction,
 }: Readonly<{
 	defaultValues: ResourceFormValues;
-	onPrimarySubmitAction: (values: ResourceFormValues) => void;
-	onSecondarySubmitAction: (values: ResourceFormValues) => void;
-	onTertiarySubmitAction?: (values: ResourceFormValues) => void;
+	onPrimarySubmitAction: (values: ResourceFormValues) => void | Promise<void>;
+	onSecondarySubmitAction: (values: ResourceFormValues) => void | Promise<void>;
+	onTertiarySubmitAction?: (values: ResourceFormValues) => void | Promise<void>;
 }>) {
 	const form = useForm({
 		defaultValues,
@@ -54,13 +54,13 @@ export default function ResourceForm({
 		onSubmit: async ({ value, meta }) => {
 			switch (meta.submitAction) {
 				case "primary":
-					onPrimarySubmitAction(value);
+					await onPrimarySubmitAction(value);
 					break;
 				case "secondary":
-					onSecondarySubmitAction(value);
+					await onSecondarySubmitAction(value);
 					break;
 				case "tertiary":
-					onTertiarySubmitAction?.(value);
+					await onTertiarySubmitAction?.(value);
 					break;
 				default:
 					break;

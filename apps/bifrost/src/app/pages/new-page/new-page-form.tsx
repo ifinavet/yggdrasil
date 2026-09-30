@@ -17,8 +17,8 @@ export default function NewPageForm() {
 	};
 
 	const createPage = useMutation(api.pages.mutations.createExternalPage);
-	const handleCreatePage = async (values: PageFormValues, published: boolean) => {
-		createPage({ title: values.title, content: values.content, published })
+	const handleCreatePage = (values: PageFormValues, published: boolean) => {
+		return createPage({ title: values.title, content: values.content, published })
 			.then(() => {
 				toast.success("Siden har blitt opprettet!", {
 					description: `Side opprettet, ${formatOsloToday()}`,
@@ -34,11 +34,11 @@ export default function NewPageForm() {
 			});
 	};
 	const onSubmitAndPublish = (values: PageFormValues) => {
-		handleCreatePage(values, true);
+		return handleCreatePage(values, true);
 	};
 
 	const onSubmitAndSave = (values: PageFormValues) => {
-		handleCreatePage(values, false);
+		return handleCreatePage(values, false);
 	};
 
 	return (

@@ -11,7 +11,7 @@ import { Plus } from "lucide-react";
 import Link from "next/link";
 import CompaniesGrid from "@/components/companies/companies-grid";
 
-export default async function Companies() {
+export default function Companies() {
 	return (
 		<div>
 			<Breadcrumb>

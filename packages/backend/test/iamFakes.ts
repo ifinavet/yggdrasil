@@ -41,7 +41,7 @@ export function fakeDirectories() {
 				? directory.handle({ url, method: init.method ?? "GET", body })
 				: null;
 			if (!answer) throw new Error(`Unexpected fetch to ${url}`);
-			return answer;
+			return await Promise.resolve(answer);
 		}),
 	);
 	return directory;

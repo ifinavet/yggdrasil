@@ -23,7 +23,7 @@ export default function Register({
 	const acceptRegistration = useMutation(
 		api.events.registrations.mutations.acceptPendingRegistration,
 	);
-	const handleAccept = async () =>
+	const handleAccept = () =>
 		acceptRegistration({ id: registration._id })
 			.then(() => {
 				toast.success("Registreringen er akseptert!");
@@ -36,7 +36,7 @@ export default function Register({
 			});
 
 	const unregister = useMutation(api.events.registrations.mutations.unregister);
-	const handleUnregister = async () =>
+	const handleUnregister = () =>
 		unregister({ id: registration._id })
 			.then(({ deletedRegistration, event, person }) => {
 				posthog.capture("midgard-student_unregister", {

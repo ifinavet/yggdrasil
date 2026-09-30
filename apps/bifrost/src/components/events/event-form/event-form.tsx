@@ -43,9 +43,9 @@ export default function EventForm({
 	productRequired = false,
 	currentProduct,
 }: Readonly<{
-	onDefaultSubmitAction: (values: EventFormValues) => void;
-	onSecondarySubmitAction: (values: EventFormValues) => void;
-	onTertiarySubmitAction?: (values: EventFormValues) => void;
+	onDefaultSubmitAction: (values: EventFormValues) => void | Promise<void>;
+	onSecondarySubmitAction: (values: EventFormValues) => void | Promise<void>;
+	onTertiarySubmitAction?: (values: EventFormValues) => void | Promise<void>;
 	defaultValues: EventFormValues;
 	productRequired?: boolean;
 	currentProduct?: { productId: string; name: string };
@@ -62,13 +62,13 @@ export default function EventForm({
 		onSubmit: async ({ value, meta }) => {
 			switch (meta.submitAction) {
 				case "primary":
-					onDefaultSubmitAction(value);
+					await onDefaultSubmitAction(value);
 					break;
 				case "secondary":
-					onSecondarySubmitAction(value);
+					await onSecondarySubmitAction(value);
 					break;
 				case "tertiary":
-					onTertiarySubmitAction?.(value);
+					await onTertiarySubmitAction?.(value);
 					break;
 				default:
 					break;

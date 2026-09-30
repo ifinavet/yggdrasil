@@ -36,7 +36,7 @@ export async function listApplicationsInSemester(
 	ctx: QueryCtx | MutationCtx,
 	semesterId: Id<"semesters">,
 ): Promise<Doc<"companyApplications">[]> {
-	return ctx.db
+	return await ctx.db
 		.query("companyApplications")
 		.withIndex("by_semesterId_and_status", (q) => q.eq("semesterId", semesterId))
 		.collect();
@@ -152,7 +152,7 @@ export async function findCompanyProfile(
 	ctx: QueryCtx | MutationCtx,
 	application: Doc<"companyApplications">,
 ): Promise<Doc<"companies"> | null> {
-	return ctx.db
+	return await ctx.db
 		.query("companies")
 		.withIndex("by_orgNumber", (q) =>
 			q.eq("orgNumber", toCompanyProfileOrgNumber(application.orgNumber)),

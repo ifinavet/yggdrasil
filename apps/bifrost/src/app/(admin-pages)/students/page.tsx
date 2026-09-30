@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/componen
 import StudentsOverview from "@/components/students/students-overview";
 import StudentsWithPointsOverview from "@/components/students/students-with-points-overview";
 
-export default async function StudentsPage() {
+export default function StudentsPage() {
 	return (
 		<>
 			<Breadcrumb>

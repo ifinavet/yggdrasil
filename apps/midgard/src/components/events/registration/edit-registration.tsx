@@ -43,7 +43,7 @@ export default function EditRegistration({
 		defaultValues: {
 			notes: registration.note,
 		},
-		onSubmit: async ({ value }) =>
+		onSubmit: ({ value }) =>
 			updateNote({ id: registration._id, note: value.notes })
 				.then(() => {
 					toast("Din endring ble lagret", {

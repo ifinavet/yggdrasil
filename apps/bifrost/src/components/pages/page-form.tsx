@@ -29,9 +29,9 @@ export default function PageForm({
 	onTertiarySubmitAction,
 }: Readonly<{
 	defaultValues: PageFormValues;
-	onPrimarySubmitAction: (values: PageFormValues) => void;
-	onSecondarySubmitAction: (values: PageFormValues) => void;
-	onTertiarySubmitAction?: (values: PageFormValues) => void;
+	onPrimarySubmitAction: (values: PageFormValues) => void | Promise<void>;
+	onSecondarySubmitAction: (values: PageFormValues) => void | Promise<void>;
+	onTertiarySubmitAction?: (values: PageFormValues) => void | Promise<void>;
 }>) {
 	const form = useForm({
 		defaultValues,
@@ -44,13 +44,13 @@ export default function PageForm({
 		onSubmit: async ({ value, meta }) => {
 			switch (meta.submitAction) {
 				case "primary":
-					onPrimarySubmitAction(value);
+					await onPrimarySubmitAction(value);
 					break;
 				case "secondary":
-					onSecondarySubmitAction(value);
+					await onSecondarySubmitAction(value);
 					break;
 				case "tertiary":
-					onTertiarySubmitAction?.(value);
+					await onTertiarySubmitAction?.(value);
 					break;
 				default:
 					break;

@@ -63,6 +63,9 @@ export const resolveReport = action({
 		continueCursor: string;
 		isDone: boolean;
 	} | null> => {
-		return ctx.runQuery(internal.feedback.reports.public.readPage, { ...args, now: Date.now() });
+		return await ctx.runQuery(internal.feedback.reports.public.readPage, {
+			...args,
+			now: Date.now(),
+		});
 	},
 });

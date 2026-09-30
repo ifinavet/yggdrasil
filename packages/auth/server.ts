@@ -8,7 +8,7 @@ export async function auth() {
 	return {
 		userId: localUser.id,
 		isAuthenticated: true,
-		getToken: async (_options?: { template?: string }) => null,
+		getToken: (_options?: { template?: string }) => Promise.resolve(null),
 		redirectToSignIn: () => {
 			throw new Error("Local development user is already signed in");
 		},

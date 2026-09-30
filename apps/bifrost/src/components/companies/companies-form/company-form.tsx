@@ -25,8 +25,8 @@ export default function CompanyForm({
 	onSecondarySubmitAction,
 }: Readonly<{
 	defaultValues: CompanyFormValues;
-	onPrimarySubmitAction: (values: CompanyFormValues) => void;
-	onSecondarySubmitAction?: (values: CompanyFormValues) => void;
+	onPrimarySubmitAction: (values: CompanyFormValues) => void | Promise<void>;
+	onSecondarySubmitAction?: (values: CompanyFormValues) => void | Promise<void>;
 }>) {
 	const form = useForm({
 		defaultValues,
@@ -39,10 +39,10 @@ export default function CompanyForm({
 		onSubmit: async ({ value, meta }) => {
 			switch (meta.submitAction) {
 				case "primary":
-					onPrimarySubmitAction(value);
+					await onPrimarySubmitAction(value);
 					break;
 				case "secondary":
-					onSecondarySubmitAction?.(value);
+					await onSecondarySubmitAction?.(value);
 					break;
 				default:
 					break;
