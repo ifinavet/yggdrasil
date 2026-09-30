@@ -86,6 +86,7 @@ import type * as iam_jobs from "../iam/jobs.js";
 import type * as iam_lifecycle from "../iam/lifecycle.js";
 import type * as iam_localSeed from "../iam/localSeed.js";
 import type * as iam_mutations from "../iam/mutations.js";
+import type * as iam_notifications from "../iam/notifications.js";
 import type * as iam_queries from "../iam/queries.js";
 import type * as iam_slack from "../iam/slack.js";
 import type * as jobListingOrders_addressSearch from "../jobListingOrders/addressSearch.js";
@@ -231,6 +232,7 @@ declare const fullApi: ApiFromModules<{
   "iam/lifecycle": typeof iam_lifecycle;
   "iam/localSeed": typeof iam_localSeed;
   "iam/mutations": typeof iam_mutations;
+  "iam/notifications": typeof iam_notifications;
   "iam/queries": typeof iam_queries;
   "iam/slack": typeof iam_slack;
   "jobListingOrders/addressSearch": typeof jobListingOrders_addressSearch;

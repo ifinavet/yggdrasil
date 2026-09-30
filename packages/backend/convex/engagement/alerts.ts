@@ -1,10 +1,11 @@
 import { BIFROST_LOCAL_URL, BIFROST_URL } from "@workspace/shared/constants";
 import { formatPercent } from "@workspace/shared/products";
+import { SYSTEM_ALERTS_CHANNEL } from "@workspace/shared/slack/channels";
 import { DATE_PATTERNS, DAY_MS, formatOsloDate, MINUTE_MS } from "@workspace/shared/time";
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
-import { internalAction, internalMutation, type MutationCtx, mutation } from "../_generated/server";
+import { internalMutation, type MutationCtx, mutation } from "../_generated/server";
 import { internalRoles, requireRole } from "../auth/accessRights";
 import { isLocalDevelopment } from "../auth/local";
 import { companyWithLogo } from "../events/queries";
@@ -13,8 +14,6 @@ import { pastCurvesBefore, snapshotOf, upcomingEvents } from "./snapshot";
 
 const EVENTS_TO_WATCH = 50;
 const DEDUP_WINDOW_MS = DAY_MS;
-const SLACK_ATTEMPTS = 3;
-const SLACK_RETRY_STEP_MS = 5 * MINUTE_MS;
 
 type Snapshot = Awaited<ReturnType<typeof snapshotOf>>;
 
@@ -173,35 +172,14 @@ export const detectAlerts = internalMutation({
 						triggeredAt: now,
 					}),
 				]);
-				await ctx.scheduler.runAfter(0, internal.engagement.alerts.notifySlack, {
+				await ctx.scheduler.runAfter(0, internal.iam.notifications.sendMessage, {
+					channel: SYSTEM_ALERTS_CHANNEL,
+					clientMsgId: `engagement-${event._id}-${rule}-${now}`,
 					text: slackText(rule, event._id, { summary, detail }, organizers, origin),
 				});
 			}),
 		);
 		return triggered.length;
-	},
-});
-
-export const notifySlack = internalAction({
-	args: { text: v.string(), attempt: v.optional(v.number()) },
-	handler: async (ctx, { text, attempt = 1 }) => {
-		const webhookUrl = process.env.SLACK_ENGAGEMENT_WEBHOOK_URL;
-		if (!webhookUrl) return false;
-		const response = await fetch(webhookUrl, {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ text }),
-			signal: AbortSignal.timeout(10_000),
-		}).catch(() => null);
-		if (response?.ok) return true;
-		if (attempt < SLACK_ATTEMPTS) {
-			await ctx.scheduler.runAfter(
-				attempt * SLACK_RETRY_STEP_MS,
-				internal.engagement.alerts.notifySlack,
-				{ text, attempt: attempt + 1 },
-			);
-		}
-		throw new Error(`Slack svarte ${response?.status ?? "ikke"}`);
 	},
 });
 
