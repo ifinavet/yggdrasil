@@ -113,7 +113,8 @@ describe("analytics history regressions", () => {
 			u2 = await insertUser(t, "master@example.test");
 		const b = await insertStudent(t, u1._id, { degree: "Bachelor", year: 1 });
 		const m = await insertStudent(t, u2._id, { degree: "Master", year: 4 });
-		const [bs, ms] = await t.run(async (ctx) => [(await ctx.db.get(b))!, (await ctx.db.get(m))!]);
+		const [bs, ms] = await t.run(async (ctx) => [await ctx.db.get(b), await ctx.db.get(m)]);
+		if (!bs || !ms) throw new Error("Students not found");
 		const data = audienceOf([bs], [bs, ms], [bs, ms]);
 		expect(data.cohorts).toHaveLength(2);
 		expect(data.cohorts[1]).toMatchObject({
@@ -188,8 +189,17 @@ describe("analytics history regressions", () => {
 		await insertEvent(t, companyId, {
 			product: { productId, name: "Product", unitPriceOre: product.unitPriceOre },
 		});
-		expect(salesTotals(await admin.query(api.products.stats.sales, {}))).toMatchObject({
-			eventsSold: 1,
+		await insertEvent(t, companyId, {
+			externalEvent: true,
+			product: { productId, name: "Product", unitPriceOre: product.unitPriceOre },
+		});
+		const initialSales = await admin.query(api.products.stats.sales, {});
+		expect(initialSales.map(({ category }) => category).sort()).toEqual([
+			"event",
+			"external_event",
+		]);
+		expect(salesTotals(initialSales)).toMatchObject({
+			eventsSold: 2,
 			jobListings: 0,
 		});
 		await admin.mutation(api.products.mutations.update, {
@@ -201,8 +211,13 @@ describe("analytics history regressions", () => {
 			vatRate: 25,
 			volumeTiers: [{ quantity: 1, totalPriceOre: 300000 }],
 		});
-		expect(salesTotals(await admin.query(api.products.stats.sales, {}))).toMatchObject({
-			eventsSold: 1,
+		const changedSales = await admin.query(api.products.stats.sales, {});
+		expect(changedSales.map(({ category }) => category).sort()).toEqual([
+			"event",
+			"external_event",
+		]);
+		expect(salesTotals(changedSales)).toMatchObject({
+			eventsSold: 2,
 			jobListings: 0,
 		});
 	});

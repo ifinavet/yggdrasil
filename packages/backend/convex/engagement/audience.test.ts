@@ -81,7 +81,9 @@ describe("audienceOf", () => {
 		expect(audience.total).toBe(0);
 		expect(audience.reached).toBe(0);
 		expect(audience.cohorts).toHaveLength(3);
-		expect(audience.cohorts.every(({ registrations, reach }) => registrations === 0 && reach === 0)).toBe(true);
+		expect(
+			audience.cohorts.every(({ registrations, reach }) => registrations === 0 && reach === 0),
+		).toBe(true);
 		expect(audience.programs).toHaveLength(2);
 	});
 
