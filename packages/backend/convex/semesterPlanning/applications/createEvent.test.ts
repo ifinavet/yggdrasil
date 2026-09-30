@@ -67,9 +67,10 @@ describe("createEvent", () => {
 
 		const event = await eventById(t, eventId);
 		expect(event).toMatchObject({
-			title: "Bedriftspresentasjon med Testbedrift",
-			teaser: "Mer info kommer",
-			location: "Mer info kommer",
+			title: "TBD",
+			teaser: "TBD",
+			description: "TBD",
+			location: "TBD",
 			language: "Norsk",
 			eventStart: Date.parse("2027-02-09T15:15:00Z"),
 			registrationOpens: Date.parse("2027-02-09T15:15:00Z"),
@@ -78,7 +79,7 @@ describe("createEvent", () => {
 			published: false,
 			externalEvent: false,
 		});
-		expect(event?.slug).toMatch(/^v27-bedriftspresentasjon-med-testbedrift-/);
+		expect(event?.slug).toMatch(/^v27-tbd-/);
 		expect((await organizersOf(t, eventId)).map((row) => [row.userId, row.role])).toEqual([
 			[responsible._id, "hovedansvarlig"],
 			[helper._id, "medhjelper"],

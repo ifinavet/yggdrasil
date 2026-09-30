@@ -1,4 +1,4 @@
-import { EVENT_TITLE_PREFIX } from "@workspace/shared/semester/labels";
+import { EVENT_TEXT_PLACEHOLDER } from "@workspace/shared/events/checklist";
 import { proposeTeams } from "@workspace/shared/semester/team";
 import { osloDateTimeToEpoch, osloToday } from "@workspace/shared/time";
 import { ConvexError } from "convex/values";
@@ -14,7 +14,7 @@ import { requireSemester } from "./semesters/helper";
 
 // Helpers for the events semester planning makes. They register no Convex functions.
 
-const PLACEHOLDER = "Mer info kommer";
+const PLACEHOLDER = EVENT_TEXT_PLACEHOLDER;
 
 /** Well above how many members and events Navet has in a semester; keeps the reads bounded. */
 const READ_LIMIT = 500;
@@ -142,7 +142,7 @@ export async function ensureDraftEvent(
 		ctx,
 		{
 			...(product ? { product: snapshotOf(product) } : {}),
-			title: `${EVENT_TITLE_PREFIX[application.eventType]} ${company.name}`,
+			title: EVENT_TEXT_PLACEHOLDER,
 			teaser: PLACEHOLDER,
 			description: PLACEHOLDER,
 			// Replaced with the real opening time before the event is published.

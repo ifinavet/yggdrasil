@@ -1,6 +1,7 @@
 "use client";
 
 import { api } from "@workspace/backend/convex/api";
+import { EVENT_TEXT_PLACEHOLDER } from "@workspace/shared/events/checklist";
 import { formatOsloToday } from "@workspace/shared/time";
 import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
@@ -11,11 +12,11 @@ import type { EventFormValues } from "@/constants/schemas/event-form-schema";
 
 export default function CreateEventForm() {
 	const defaultValues: EventFormValues = {
-		title: "",
-		teaser: "",
+		title: EVENT_TEXT_PLACEHOLDER,
+		teaser: EVENT_TEXT_PLACEHOLDER,
 		eventDate: new Date(new Date().setHours(16, 0, 0, 0)),
 		registrationDate: new Date(new Date().setHours(12, 0, 0, 0)),
-		description: "",
+		description: EVENT_TEXT_PLACEHOLDER,
 		foodItem: undefined,
 		location: "",
 		ageRestrictions: "",

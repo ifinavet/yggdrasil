@@ -1,4 +1,5 @@
 import { BIFROST_LOCAL_URL, BIFROST_URL } from "@workspace/shared/constants";
+import { EVENT_CHECKLIST } from "@workspace/shared/events/checklist";
 import { SYSTEM_ALERTS_CHANNEL } from "@workspace/shared/slack/channels";
 import { humanReadableFullDateTime, MINUTE_MS } from "@workspace/shared/time";
 import { ConvexError, v } from "convex/values";
@@ -429,5 +430,24 @@ export const sendRegistrationOpenAlert = internalMutation({
 			}
 		}
 		return null;
+	},
+});
+
+export const setChecklistStep = mutation({
+	args: { eventId: v.id("events"), stepId: v.string(), completed: v.boolean() },
+	handler: async (ctx, { eventId, stepId, completed }) => {
+		await requireRole(ctx, internalRoles);
+		if (
+			stepId === "description" ||
+			!EVENT_CHECKLIST.some((phase) => phase.steps.some((step) => step.id === stepId))
+		) {
+			throw new ConvexError("Ukjent sjekklistepunkt.");
+		}
+		const event = await ctx.db.get(eventId);
+		if (!event) throw new ConvexError("Arrangementet finnes ikke.");
+		const steps = new Set(event.completedChecklistSteps ?? []);
+		if (completed) steps.add(stepId);
+		else steps.delete(stepId);
+		await ctx.db.patch(eventId, { completedChecklistSteps: [...steps] });
 	},
 });
