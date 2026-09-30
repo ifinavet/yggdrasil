@@ -1,4 +1,8 @@
-import { orderListingSchema, REJECTION_MAX_LENGTH } from "@workspace/shared/job-listing-orders";
+import {
+	orderDeadlineSchema,
+	orderListingSchema,
+	REJECTION_MAX_LENGTH,
+} from "@workspace/shared/job-listing-orders";
 import { osloDateTimeToEpoch, osloToday } from "@workspace/shared/time";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../_generated/api";
@@ -225,7 +229,13 @@ export const decideUpdate = mutation({
 		const request = await ctx.db.get(requestId);
 		if (request?.status !== "pending") throw new ConvexError("Endringen er allerede behandlet.");
 		if (approve) await applyCompanyChanges(ctx, request);
-		else if (request.changes.logo) await ctx.storage.delete(request.changes.logo);
+		else if (request.changes.billing) {
+			const company = await ctx.db.get(request.companyId);
+			await ctx.db.patch(request.orderId, {
+				billing: company?.billing ?? request.previous.billing,
+			});
+		}
+		// Keep requested logos for review history; another order can reference the same upload.
 		await ctx.db.patch(requestId, {
 			status: approve ? "approved" : "rejected",
 			decidedAt: Date.now(),
@@ -281,7 +291,13 @@ export const approve = mutation({
 		const productFields = orderedProduct
 			? { product: snapshotOf(orderedProduct) }
 			: await jobListingProductFields(ctx);
+		const publishedAt = Date.now();
+		const deadlineSchema = orderDeadlineSchema(osloToday(publishedAt));
 		for (const item of await listOrderItems(ctx, orderId)) {
+			const deadline = deadlineSchema.safeParse(item.deadline);
+			if (!deadline.success) {
+				throw new ConvexError(deadline.error.issues[0]?.message ?? "Velg en søknadsfrist.");
+			}
 			const listingId = await ctx.db.insert("jobListings", {
 				...productFields,
 				title: item.title,
@@ -290,6 +306,7 @@ export const approve = mutation({
 				description: item.description,
 				applicationUrl: item.applicationUrl,
 				published: true,
+				publishedAt,
 				company: companyId,
 				deadline: osloDateTimeToEpoch(item.deadline, DEADLINE_CLOCK),
 			});

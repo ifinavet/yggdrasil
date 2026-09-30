@@ -39,7 +39,7 @@ export async function resolveInvoice(
 				line: {
 					description: `${order.productName} (${order.quantity} stk.)`,
 					unitPrice: order.priceOre,
-					vatRate: product?.vatRate ?? DEFAULT_VAT_RATE,
+					vatRate: order.vatRate ?? product?.vatRate ?? DEFAULT_VAT_RATE,
 				},
 			},
 		};
@@ -75,7 +75,7 @@ export async function resolveInvoice(
 			line: {
 				description: event.product?.name ?? product.name,
 				unitPrice,
-				vatRate: product.vatRate,
+				vatRate: event.product?.vatRate ?? product.vatRate,
 			},
 		},
 	};

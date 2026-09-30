@@ -7,6 +7,7 @@ import type { MutationCtx } from "../_generated/server";
 import { internalRoles } from "../auth/accessRights";
 import { insertEventWithOrganizers } from "../events/helper";
 import { cancelInvoice, scheduleInvoice } from "../invoicing/schedule";
+import { snapshotOf } from "../products/sales";
 import { type Actor, logApplicationActivity } from "./applicationLifecycle";
 import { findCompanyProfile, requireValidHelpers } from "./applications/helper";
 import { requireSemester } from "./semesters/helper";
@@ -131,9 +132,16 @@ export async function ensureDraftEvent(
 	const helperUserIds = application.helperUserIds ?? [];
 	await requireValidHelpers(ctx, helperUserIds);
 
+	const product = await ctx.db
+		.query("products")
+		.withIndex("by_eventType_and_active", (q) =>
+			q.eq("eventType", application.eventType).eq("active", true),
+		)
+		.first();
 	const eventId = await insertEventWithOrganizers(
 		ctx,
 		{
+			...(product ? { product: snapshotOf(product) } : {}),
 			title: `${EVENT_TITLE_PREFIX[application.eventType]} ${company.name}`,
 			teaser: PLACEHOLDER,
 			description: PLACEHOLDER,

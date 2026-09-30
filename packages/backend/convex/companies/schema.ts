@@ -26,5 +26,5 @@ export const companiesSchema = {
 	companyLogos: defineTable({
 		name: v.string(),
 		image: v.id("_storage"),
-	}),
+	}).index("by_image", ["image"]),
 };

@@ -412,8 +412,18 @@ describe("admin review", () => {
 		const listings = await f.t.run((ctx) => ctx.db.query("jobListings").collect());
 		const product = await f.t.run((ctx) => ctx.db.get(f.productId));
 		expect(listings.map((row) => row.product)).toEqual([
-			{ productId: f.productId, name: product?.name, unitPriceOre: product?.unitPriceOre },
-			{ productId: f.productId, name: product?.name, unitPriceOre: product?.unitPriceOre },
+			{
+				productId: f.productId,
+				name: product?.name,
+				unitPriceOre: product?.unitPriceOre,
+				vatRate: product?.vatRate,
+			},
+			{
+				productId: f.productId,
+				name: product?.name,
+				unitPriceOre: product?.unitPriceOre,
+				vatRate: product?.vatRate,
+			},
 		]);
 	});
 

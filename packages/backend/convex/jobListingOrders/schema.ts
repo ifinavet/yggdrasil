@@ -64,6 +64,7 @@ export const jobListingOrdersSchema = {
 		startup: v.boolean(),
 		quantity: v.number(),
 		priceOre: v.number(),
+		vatRate: v.optional(v.number()),
 		contact: orderContact,
 		billing: v.optional(companyBilling),
 		ehfInvoice: v.optional(v.boolean()),
@@ -75,7 +76,9 @@ export const jobListingOrdersSchema = {
 		feedback: v.optional(v.string()),
 	})
 		.index("by_submissionId", ["submissionId"])
-		.index("by_status", ["status"]),
+		.index("by_status", ["status"])
+		.index("by_newCompany_logo", ["newCompany.logo"])
+		.index("by_companyChanges_logo", ["companyChanges.logo"]),
 
 	jobListingOrderItems: defineTable({
 		orderId: v.id("jobListingOrders"),
