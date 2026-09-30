@@ -35,6 +35,7 @@ export const eventsSchema = {
 		foodGuessed: v.optional(v.boolean()),
 		feedbackEnabled: v.optional(v.boolean()),
 		remindersEnabled: v.optional(v.boolean()),
+		completedChecklistSteps: v.optional(v.array(v.string())),
 		feedbackFormId: v.optional(v.id("feedbackForms")),
 		slug: v.optional(v.string()),
 		formId: v.optional(v.id("form")),

@@ -1,0 +1,116 @@
+.checklist {
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	background: var(--muted);
+	padding: 16px;
+}
+.phases {
+	display: flex;
+	overflow-x: auto;
+	border-bottom: 1px solid var(--border);
+	margin-bottom: 14px;
+}
+.phase {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 10px 14px;
+	border-bottom: 2px solid transparent;
+	white-space: nowrap;
+	font-size: 14px;
+	color: var(--muted-foreground);
+	cursor: pointer;
+}
+.phase:first-child {
+	padding-left: 0;
+}
+.phase:hover {
+	color: var(--foreground);
+	background: var(--muted);
+}
+.phase[aria-pressed="true"] {
+	color: var(--primary);
+	border-color: var(--primary);
+	font-weight: 600;
+}
+[class~="dark"] .phase[aria-pressed="true"] {
+	color: var(--foreground);
+	border-color: currentColor;
+}
+.phase:focus-visible {
+	outline: 2px solid var(--ring);
+	outline-offset: -2px;
+}
+.count {
+	font-size: 12px;
+	font-weight: 400;
+	border-radius: 4px;
+	padding: 1px 5px;
+	background: var(--muted);
+	color: var(--foreground);
+}
+.title {
+	letter-spacing: -0.025em;
+	font-size: 18px;
+	font-weight: 600;
+	line-height: 1.4;
+}
+.context {
+	display: flex;
+	align-items: baseline;
+	gap: 12px;
+	flex-wrap: wrap;
+	margin-bottom: 8px;
+}
+.context h3 {
+	margin: 0;
+	line-height: 1.4;
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--foreground);
+}
+.context > span {
+	font-size: 12px;
+	color: var(--muted-foreground);
+}
+.tasks {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	background: var(--background);
+	border: 1px solid var(--border);
+	border-radius: 6px;
+	padding: 8px 12px;
+}
+.tasks li {
+	min-height: 34px;
+}
+.taskLabel {
+	cursor: pointer;
+	padding-block: 4px;
+	font-size: 16px;
+	font-weight: 400;
+	line-height: 1.5;
+}
+.automatic {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin-top: 14px;
+	font-size: 13px;
+	line-height: 1.5;
+	color: var(--muted-foreground);
+}
+
+.automationSteps {
+	display: grid;
+	gap: 4px;
+}
+
+.context > .overdue,
+.count.overdue {
+	color: var(--destructive);
+	font-weight: 500;
+}

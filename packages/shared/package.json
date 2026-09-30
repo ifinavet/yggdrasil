@@ -40,7 +40,8 @@
 		"./semester/team": "./semester/team.ts",
 		"./iam": "./iam/index.ts",
 		"./feedback/report": "./feedback/report.ts",
-		"./feedback/report-csv": "./feedback/report-csv.ts"
+		"./feedback/report-csv": "./feedback/report-csv.ts",
+		"./events/checklist": "./events/checklist.ts"
 	},
 	"scripts": {
 		"check-types": "tsc --noEmit"
