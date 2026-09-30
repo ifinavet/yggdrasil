@@ -6,10 +6,18 @@ import { humanReadableDateTime } from "@workspace/shared/time";
 import { Button } from "@workspace/ui/components/button";
 import { type Preloaded, usePreloadedQuery } from "convex/react";
 import { CalendarDays, Globe, IdCard, MapPin, Users, Utensils } from "lucide-react";
+import { useEffect, useState } from "react";
+import { countdownLabel, spotsLabel } from "@/utils/event-availability";
 import QRCode from "./registration/qr-code";
 import RegistrationButton from "./registration/registration-button";
 import type { EventRegistrationSummary } from "./registration/registration-summary";
 import WaitlistPosition from "./registration/waitlist-position";
+
+function useHasMounted() {
+	const [hasMounted, setHasMounted] = useState(false);
+	useEffect(() => setHasMounted(true), []);
+	return hasMounted;
+}
 
 export function EventMetadata({
 	preloadedEvent,
@@ -22,28 +30,35 @@ export function EventMetadata({
 }>) {
 	const event = usePreloadedQuery(preloadedEvent);
 	const registrationSummary = usePreloadedQuery(preloadedRegistrationSummary);
+	const hasMounted = useHasMounted();
 
 	const availableSpots = Math.max(
 		0,
 		event.participationLimit - registrationSummary.registeredCount,
 	);
+	const countdown = hasMounted ? countdownLabel(event.eventStart, Date.now()) : null;
 
 	return (
 		<div>
 			<div className="grid h-80 grid-cols-2 grid-rows-3 items-center justify-start gap-4 hyphens-auto rounded-xl bg-primary px-10 py-6 text-primary-foreground md:px-16 md:py-8 dark:text-primary-foreground">
 				<p className="flex items-center gap-2 text-pretty font-semibold md:text-lg">
 					<CalendarDays className="size-6 min-w-6 md:size-8" />{" "}
-					{humanReadableDateTime(new Date(event.eventStart))}
+					<span suppressHydrationWarning>
+						{[humanReadableDateTime(new Date(event.eventStart)), countdown]
+							.filter(Boolean)
+							.join(", ")}
+					</span>
 				</p>
 				<p className="flex items-center gap-2 font-semibold md:text-lg">
 					<MapPin className="size-6 min-w-6 md:size-8" /> {event.location}
 				</p>
 				<p className="flex items-center gap-2 font-semibold md:text-lg">
-					<Utensils className="size-6 min-w-6 md:size-8" /> {event.food}
+					<Utensils className="size-6 min-w-6 md:size-8" />{" "}
+					{event.foodName ?? (event.food || "Mer info kommer")}
 				</p>
 				<p className="flex items-center gap-2 font-semibold md:text-lg">
 					<Users className="size-6 min-w-6 md:size-8" />{" "}
-					{`${availableSpots} ${availableSpots === 1 ? "plass" : "plasser"} igjen`}
+					{spotsLabel(registrationSummary.registeredCount, availableSpots)}
 				</p>
 				<p className="flex items-center gap-2 font-semibold md:text-lg">
 					<Globe className="size-6 min-w-6 md:size-8" /> {event.language}
@@ -59,7 +74,8 @@ export function EventMetadata({
 
 			<WaitlistPosition className="mb-6" registrationSummary={registrationSummary} />
 
-			{event.eventStart - Date.now() < 60 * 60 * 1000 &&
+			{hasMounted &&
+				event.eventStart - Date.now() < 60 * 60 * 1000 &&
 				Date.now() - event.eventStart < 60 * 60 * 1000 && (
 					<QRCode className="mb-6" registrationSummary={registrationSummary} />
 				)}
@@ -74,6 +90,7 @@ export function EventActionButton({
 	event: Doc<"events">;
 	registrationSummary: EventRegistrationSummary;
 }>) {
+	const hasMounted = useHasMounted();
 	const availableSpots = Math.max(
 		0,
 		event.participationLimit - registrationSummary.registeredCount,
@@ -93,7 +110,7 @@ export function EventActionButton({
 		);
 	}
 
-	if (event.registrationOpens > Date.now()) {
+	if (hasMounted && event.registrationOpens > Date.now()) {
 		return (
 			<Button
 				type="button"
@@ -105,7 +122,7 @@ export function EventActionButton({
 	}
 
 	const HALF_HOUR = 30 * 60 * 1000;
-	const disabledButtons = Date.now() - event.eventStart >= HALF_HOUR;
+	const disabledButtons = hasMounted && Date.now() - event.eventStart >= HALF_HOUR;
 
 	return (
 		<RegistrationButton

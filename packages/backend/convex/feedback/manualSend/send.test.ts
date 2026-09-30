@@ -80,7 +80,7 @@ function spySentEmails() {
 }
 
 function feedbackTokenFrom(html: string | undefined) {
-	const token = html?.match(/\/feedback#token=([\w-]+)/)?.[1];
+	const token = html?.match(/\/feedback\?[^#"]*#token=([\w-]+)/)?.[1];
 	if (!token) throw new Error("No feedback link in the email");
 	return token;
 }
@@ -125,7 +125,9 @@ describe("manual feedback form send", () => {
 			from: "Navet <info@ifinavet.no>",
 			replyTo: ["arrangement@ifinavet.no"],
 		});
-		expect(email?.html).toContain(`${HUGIN_URL}/feedback#token=`);
+		expect(email?.html).toContain(
+			`${HUGIN_URL}/feedback?utm_source=email&amp;utm_medium=email&amp;utm_campaign=feedback_reminder&amp;utm_content=round_0#token=`,
+		);
 		expect(f.campaign.status).toBe("scheduled");
 		expect(await f.t.action(resolveToken, { token: feedbackTokenFrom(email?.html) })).toMatchObject(
 			{
@@ -278,6 +280,9 @@ describe("manual feedback form send", () => {
 		const deleted = await insertUser(f.t, "deleted@example.test");
 		await insertRegistration(f.t, f.eventId, deleted._id, "registered");
 		await f.t.run((ctx) => ctx.db.delete(deleted._id));
+		const anonymized = await insertUser(f.t, "anonymized@example.test");
+		await insertRegistration(f.t, f.eventId, anonymized._id, "registered");
+		await f.t.run((ctx) => ctx.db.patch(anonymized._id, { deleted: true }));
 
 		expect(await f.client.query(listRegistrants, { eventId: f.eventId })).toEqual([
 			{ userId: f.participant._id, name: "Kari Nordmann", email: "student@example.test" },
@@ -315,6 +320,11 @@ describe("manual feedback form send", () => {
 				"after the campaign has closed",
 				(f) => f.t.run((ctx) => ctx.db.patch(f.campaign._id, { status: "closed" })),
 				"Arrangementet har ingen aktiv innsamling av tilbakemeldinger.",
+			],
+			[
+				"for a participant whose account was deleted",
+				(f) => f.t.run((ctx) => ctx.db.patch(f.participant._id, { deleted: true, email: "" })),
+				"Deltakeren er ikke påmeldt arrangementet.",
 			],
 			[
 				"for a participant on the waitlist",

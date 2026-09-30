@@ -11,7 +11,7 @@ export function toEventMutationArgs(values: EventFormValues, published: boolean)
 		registrationOpens: values.registrationDate.getTime(),
 		participationLimit: values.participantsLimit,
 		location: values.location,
-		food: values.food,
+		foodItem: values.foodItem as Id<"foodItems">,
 		language: values.language,
 		ageRestriction: values.ageRestrictions,
 		externalEvent: values.externalEvent,

@@ -1,5 +1,6 @@
-import type { Doc } from "@workspace/backend/convex/dataModel";
+import type { api } from "@workspace/backend/convex/api";
+import type { FunctionReturnType } from "convex/server";
 
-export type EventWithParticipationCount = Doc<"events"> & {
-	participationCount: number;
-};
+export type EventWithParticipationCount = FunctionReturnType<
+	typeof api.events.queries.getCurrentSemester
+>[string][number];

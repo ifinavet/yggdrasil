@@ -8,11 +8,10 @@ export type EventFeedbackStatus = "draft" | "delivered" | "open" | "scheduled";
 export async function eventFeedbackStatus(
 	ctx: QueryCtx,
 	eventId: Id<"events">,
-	canViewReport: boolean,
 ): Promise<EventFeedbackStatus | null> {
 	const campaign = await latestCampaign(ctx, eventId);
 	if (!campaign) return null;
-	if (canViewReport && isReportFeatureEnabled()) {
+	if (isReportFeatureEnabled()) {
 		const report = await ctx.db
 			.query("feedbackReports")
 			.withIndex("by_campaignId", (index) => index.eq("campaignId", campaign._id))

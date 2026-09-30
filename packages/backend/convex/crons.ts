@@ -24,6 +24,11 @@ crons.interval(
 	internal.engagement.alerts.detectAlerts,
 );
 
+crons.interval(
+	"Queue event reminder emails",
+	{ hours: 1 },
+	internal.events.reminders.mutations.queueDueReminders,
+);
 crons.cron(
 	"Free for all on today's event",
 	"0 12 * * 2,4",
@@ -43,6 +48,8 @@ crons.cron(
 	internal.semesterPlanning.semesters.mutations.rolloverSemesters,
 	{},
 );
+
+crons.cron("Reconcile workspace accounts", "30 3 * * *", internal.iam.actions.reconcile, {});
 
 /**
  * Exports the configured cron job collection.

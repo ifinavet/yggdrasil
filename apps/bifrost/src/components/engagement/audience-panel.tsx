@@ -29,7 +29,7 @@ import {
 } from "./engagement-format";
 
 const DEGREE_COLORS = [PRIMARY_SERIES_COLOR, ACCENT_SERIES_COLOR, MUTED_SERIES_COLOR];
-const MIN_LABELLED_SEGMENT = 0.07;
+const MIN_LABELLED_SEGMENT = 0.04;
 const COHORT_CODE_NOTE =
 	"B er bachelor, M er master og Å er årsstudium, tallet er årstrinnet. PhD-studenter er utelatt fordi de er så få.";
 const PREVIOUS_LABEL = "Forrige semester";
@@ -75,13 +75,24 @@ function MixBar({
 	);
 }
 
-function CohortMix({ cohorts }: Readonly<{ cohorts: readonly AudienceRow[] }>) {
+export type Population = { label: string; shareOf: string; legend: string };
+
+const ALL_STUDENTS: Population = {
+	label: "Alle studenter",
+	shareOf: "av studentene",
+	legend: "Andel av alle studenter",
+};
+
+function CohortMix({
+	cohorts,
+	population,
+}: Readonly<{ cohorts: readonly AudienceRow[]; population: Population }>) {
 	const colors = useCohortColors(cohorts);
 	return (
 		<div className="grid gap-2">
 			<MixBar label="Påmeldte" shares={cohorts.map(({ share }) => share)} colors={colors} />
 			<MixBar
-				label="Alle studenter"
+				label={population.label}
 				shares={cohorts.map(({ populationShare }) => populationShare)}
 				colors={colors}
 			/>
@@ -187,14 +198,18 @@ function CohortReach({
 	);
 }
 
-function Dumbbell({ row, scale }: Readonly<{ row: ProgramRow; scale: number }>) {
+function Dumbbell({
+	row,
+	scale,
+	population,
+}: Readonly<{ row: ProgramRow; scale: number; population: Population }>) {
 	const [low, high] = [row.share, row.populationShare].sort((a, b) => a - b) as [number, number];
 	const overRepresented = row.share >= row.populationShare;
 	const position = (share: number) => `${(share / scale) * 100}%`;
 	return (
 		<div
 			className="relative h-4"
-			title={`${formatShare(row.share)} av påmeldte, ${formatShare(row.populationShare)} av studentene`}
+			title={`${formatShare(row.share)} av påmeldte, ${formatShare(row.populationShare)} ${population.shareOf}`}
 		>
 			<div className="absolute inset-x-0 top-1/2 h-px bg-border" />
 			<div
@@ -220,7 +235,12 @@ function Dumbbell({ row, scale }: Readonly<{ row: ProgramRow; scale: number }>) 
 function ProgramMatrix({
 	programs,
 	cohorts,
-}: Readonly<{ programs: readonly ProgramRow[]; cohorts: readonly ProgramCohort[] }>) {
+	population,
+}: Readonly<{
+	programs: readonly ProgramRow[];
+	cohorts: readonly ProgramCohort[];
+	population: Population;
+}>) {
 	const hottest = Math.max(1, ...programs.flatMap(({ byCohort }) => byCohort));
 	const scale = Math.max(
 		Number.EPSILON,
@@ -251,7 +271,7 @@ function ProgramMatrix({
 								{row.label}
 								<div className="mt-1.5 flex items-center gap-2 sm:hidden">
 									<div className="flex-1">
-										<Dumbbell row={row} scale={scale} />
+										<Dumbbell row={row} scale={scale} population={population} />
 									</div>
 									{row.change !== null && (
 										<span className="text-muted-foreground text-xs tabular-nums">
@@ -279,7 +299,7 @@ function ProgramMatrix({
 								);
 							})}
 							<td className="hidden px-2 sm:table-cell">
-								<Dumbbell row={row} scale={scale} />
+								<Dumbbell row={row} scale={scale} population={population} />
 							</td>
 							{showChange && (
 								<td className="hidden text-right tabular-nums sm:table-cell">
@@ -293,7 +313,7 @@ function ProgramMatrix({
 			<ChartLegend
 				items={[
 					{ label: "Andel av påmeldte", color: PRIMARY_SERIES_COLOR, marker: "dot" },
-					{ label: "Andel av alle studenter", color: MUTED_SERIES_COLOR, marker: "ring" },
+					{ label: population.legend, color: MUTED_SERIES_COLOR, marker: "ring" },
 				]}
 			/>
 			<PanelNote>
@@ -311,6 +331,7 @@ export function AudiencePanel({
 	reachNote,
 	note,
 	className,
+	population = ALL_STUDENTS,
 }: Readonly<{
 	title: string;
 	audience: Audience;
@@ -318,6 +339,7 @@ export function AudiencePanel({
 	reachNote: string;
 	note?: string;
 	className?: string;
+	population?: Population;
 }>) {
 	return (
 		<Panel
@@ -332,14 +354,18 @@ export function AudiencePanel({
 					<PanelNote>Ingen påmeldte ennå.</PanelNote>
 				) : (
 					<>
-						<CohortMix cohorts={audience.cohorts} />
+						<CohortMix cohorts={audience.cohorts} population={population} />
 						<div className="grid items-start gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
 							<CohortReach
 								cohorts={audience.cohorts}
 								reachLabel={reachLabel}
 								reachNote={reachNote}
 							/>
-							<ProgramMatrix programs={audience.programs} cohorts={audience.programCohorts} />
+							<ProgramMatrix
+								programs={audience.programs}
+								cohorts={audience.programCohorts}
+								population={population}
+							/>
 						</div>
 					</>
 				)}

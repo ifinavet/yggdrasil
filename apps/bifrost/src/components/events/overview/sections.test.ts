@@ -5,7 +5,6 @@ import {
 	matchesSearch,
 	type OverviewEvent,
 	registrations,
-	searchFolds,
 	splitIntoSections,
 } from "./sections";
 
@@ -109,17 +108,6 @@ describe("matchesSearch", () => {
 		const event = overviewEvent({ leadName: null });
 
 		expect(matchesSearch(event, "uhnger")).toBe(false);
-	});
-});
-
-describe("searchFolds", () => {
-	it("leaves the folds alone without a search", () => {
-		expect(searchFolds("  ")).toEqual({ key: "", open: undefined });
-	});
-
-	it("opens the folds under a new key for every new search", () => {
-		expect(searchFolds(" Bekk ")).toEqual({ key: "bekk", open: true });
-		expect(searchFolds("Bekk").key).not.toBe(searchFolds("Netcompany").key);
 	});
 });
 

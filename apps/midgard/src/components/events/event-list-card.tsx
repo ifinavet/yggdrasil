@@ -1,10 +1,8 @@
-import { api } from "@workspace/backend/convex/api";
 import {
 	humanReadableDate,
 	humanReadableDateTime,
 	humanReadableTime,
 } from "@workspace/shared/time";
-import { fetchQuery } from "convex/nextjs";
 import { CalendarDays, Clock, Users } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -138,26 +136,30 @@ function CompanyImage({
 	imageUrl,
 	title,
 }: Readonly<{
-	imageUrl: string;
+	imageUrl: string | null;
 	title: string;
 }>) {
 	return (
 		<div className="relative col-span-2 grid h-full min-h-32 place-content-center rounded-r-md bg-white px-6 py-4 dark:bg-zinc-100/95">
-			<Image src={imageUrl} alt={title} className="object-contain px-4 py-6 md:px-6" fill />
+			{imageUrl && (
+				<Image
+					src={imageUrl}
+					alt={title}
+					className="object-contain px-4 py-6 md:px-6"
+					sizes="(min-width: 768px) 20rem, 100vw"
+					fill
+				/>
+			)}
 		</div>
 	);
 }
 
 // Main EventCard component
-export default async function EventCard({
+export default function EventCard({
 	event,
 }: Readonly<{
 	event: EventWithParticipationCount;
 }>) {
-	const image = await fetchQuery(api.companies.queries.getById, {
-		id: event.hostingCompany,
-	});
-
 	const { showBanner, statusMessage, cardColor } = getRegistrationStatus(event);
 
 	return (
@@ -172,7 +174,7 @@ export default async function EventCard({
 			<div
 				className={`overflow-hidden rounded-lg border-3 md:h-56 ${cardColor} grid gap-4 md:grid-cols-7`}
 			>
-				<CompanyImage imageUrl={image.imageUrl} title={event.title} />
+				<CompanyImage imageUrl={event.hostingCompanyLogoUrl} title={event.title} />
 				<EventDetails event={event} />
 			</div>
 		</Link>

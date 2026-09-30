@@ -11,18 +11,21 @@ import {
 	Preview,
 	Text,
 } from "react-email";
+import { EmailSignature, type Signature } from "../components/email-signature.js";
 import { NAVET_LOGO_URL } from "../constants.js";
 
 const CONTACT_URL = `${MIDGARD_URL}/contact`;
 
 export default function FeedbackEmail({
+	firstName,
 	companyName,
 	signature,
 	url,
 	reminder,
 }: Readonly<{
+	firstName: string;
 	companyName: string;
-	signature: { name: string; email: string };
+	signature: Signature;
 	url: string;
 	reminder: boolean;
 }>) {
@@ -41,12 +44,20 @@ export default function FeedbackEmail({
 			>
 				<Container style={{ backgroundColor: "#ffffff", padding: "32px", maxWidth: "560px" }}>
 					<Img src={NAVET_LOGO_URL} alt="Navet" height="40" />
-					<Text>Hei,</Text>
-					<Text>{`Takk for deltakelse på bedriftspresentasjonen med ${companyName}!`}</Text>
-					<Text>
-						For å forbedre bedriftspresentasjonene må du fylle ut et obligatorisk
-						tilbakemeldingsskjema
-					</Text>
+					<Text>{firstName ? `Hei ${firstName},` : "Hei,"}</Text>
+					{reminder ? (
+						<Text>
+							{`Vi ser at du ikke har svart på tilbakemeldingsskjemaet for bedriftspresentasjonen med ${companyName} ennå. Skjemaet er obligatorisk for alle som deltar på bedriftspresentasjoner.`}
+						</Text>
+					) : (
+						<>
+							<Text>{`Takk for deltakelse på bedriftspresentasjonen med ${companyName}!`}</Text>
+							<Text>
+								For å forbedre bedriftspresentasjonene må du fylle ut et obligatorisk
+								tilbakemeldingsskjema
+							</Text>
+						</>
+					)}
 					<Button
 						href={url}
 						style={{
@@ -71,13 +82,7 @@ export default function FeedbackEmail({
 						Har du andre tilbakemeldinger til Navet, eller opplevd noe ugreit oppfordrer vi deg til
 						å gi oss tilbakemelding her: <Link href={CONTACT_URL}>{CONTACT_URL}</Link>
 					</Text>
-					<Text style={{ margin: "32px 0 0" }}>Med vennlig hilsen,</Text>
-					<Text style={{ margin: "16px 0 0" }}>
-						{signature.name}
-						<br />
-						<Link href={`mailto:${signature.email}`}>{signature.email}</Link>
-					</Text>
-					<Img src={NAVET_LOGO_URL} alt="Navet" height="32" style={{ marginTop: "16px" }} />
+					<EmailSignature {...signature} />
 				</Container>
 			</Body>
 		</Html>

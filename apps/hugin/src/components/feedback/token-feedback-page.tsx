@@ -5,11 +5,11 @@ import { MIDGARD_URL } from "@workspace/shared/constants";
 import { Button } from "@workspace/ui/components/button";
 import { useAction } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { FormStatePanel } from "@/components/form-state-panel";
 import { feedbackCopy, feedbackStateCopy } from "@/lib/feedback/copy";
 import { readFeedbackToken } from "@/lib/feedback/form";
-import { TokenFeedbackForm } from "./token-feedback-form";
+import { type FeedbackCredential, TokenFeedbackForm } from "./token-feedback-form";
 
 function subscribeToLink(onChange: () => void) {
 	window.addEventListener("hashchange", onChange);
@@ -22,32 +22,47 @@ export function TokenFeedbackPage() {
 		() => window.location.hash,
 		() => "",
 	);
+	const token = readFeedbackToken(fragment);
+	const credential = useMemo(() => (token ? { token } : null), [token]);
 	return (
 		<FeedbackInvitation
 			key={`${fragment}:${attempt}`}
-			token={readFeedbackToken(fragment)}
+			credential={credential}
+			onRetry={() => setAttempt(attempt + 1)}
+		/>
+	);
+}
+export function InviteFeedbackPage({ inviteId }: Readonly<{ inviteId: string }>) {
+	const [attempt, setAttempt] = useState(0);
+	const credential = useMemo(() => ({ inviteId }), [inviteId]);
+	return (
+		<FeedbackInvitation
+			key={`${inviteId}:${attempt}`}
+			credential={credential}
 			onRetry={() => setAttempt(attempt + 1)}
 		/>
 	);
 }
 function FeedbackInvitation({
-	token,
+	credential,
 	onRetry,
-}: Readonly<{ token: string | null; onRetry: () => void }>) {
+}: Readonly<{ credential: FeedbackCredential | null; onRetry: () => void }>) {
 	const resolveToken = useAction(api.feedback.responses.actions.resolveFeedbackToken);
+	const resolveInvite = useAction(api.feedback.responses.actions.resolveOwnFeedbackInvite);
 	const [result, setResult] = useState<
 		| FunctionReturnType<typeof api.feedback.responses.actions.resolveFeedbackToken>
 		| { status: "loading" | "error" | "submitted" }
 	>({ status: "loading" });
 	useEffect(() => {
-		if (!token) {
+		if (!credential) {
 			setResult({ status: "invalid" });
 			return;
 		}
 		let active = true;
 		setResult({ status: "loading" });
 		// Resolving only reads the invitation. A preview or retry must never submit a response.
-		void resolveToken({ token }).then(
+		const request = "token" in credential ? resolveToken(credential) : resolveInvite(credential);
+		void request.then(
 			(value) => {
 				if (active) setResult(value);
 			},
@@ -58,11 +73,11 @@ function FeedbackInvitation({
 		return () => {
 			active = false;
 		};
-	}, [token, resolveToken]);
+	}, [credential, resolveToken, resolveInvite]);
 	if (result.status === "submitted") return <SubmissionReceipt />;
 	if (result.status === "loading") return <output>{feedbackCopy.loading}</output>;
-	if (result.status === "open" && token)
-		return <TokenFeedbackForm token={token} feedback={result} onComplete={setResult} />;
+	if (result.status === "open" && credential)
+		return <TokenFeedbackForm credential={credential} feedback={result} onComplete={setResult} />;
 	if (result.status === "open") return null;
 	const copy = feedbackStateCopy[result.status];
 	return (

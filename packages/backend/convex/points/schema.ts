@@ -6,5 +6,8 @@ export const pointsSchema = {
 		studentId: v.id("students"),
 		reason: v.string(),
 		severity: v.number(),
-	}).index("by_studentId", ["studentId"]),
+		registrationId: v.optional(v.id("registrations")),
+	})
+		.index("by_studentId", ["studentId"])
+		.index("by_registrationId", ["registrationId"]),
 };

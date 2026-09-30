@@ -11,6 +11,7 @@ import TwoColumns from "@/components/common/two-columns";
 import EventsCarousel from "@/components/home/events-carousel";
 import JobListings from "@/components/home/job-listings";
 import MainSponsorCard from "@/components/home/main-sponsor";
+import PendingFeedbackBanner from "@/components/home/pending-feedback-banner";
 import EventsCarouselSkeleton from "@/components/loaders/home/events-carousel-skeleton";
 import JobListingsSkeleton from "@/components/loaders/home/job-listings-skeleton";
 import MainSponsorCardSkeleton from "@/components/loaders/home/main-sponsor-skeleton";
@@ -28,6 +29,8 @@ export default function HomePage() {
 				</Link>
 			</div>/*}
 			{/* Welcome banner for the new website, remove at the end of august. */}
+
+			<PendingFeedbackBanner />
 
 			<div className="mx-4 flex max-w-6xl flex-col items-center justify-center gap-6 sm:mx-auto sm:px-6 md:grid md:grid-cols-12 md:items-end">
 				<Suspense fallback={<MainSponsorCardSkeleton />}>
@@ -109,6 +112,7 @@ export default function HomePage() {
 									src={Navet}
 									alt="Vi alle elsker Navet"
 									className="h-full w-full bg-gray-200 object-cover"
+									sizes="(min-width: 768px) 14rem, (min-width: 640px) 12rem, 10rem"
 								/>
 							</div>
 
@@ -117,6 +121,7 @@ export default function HomePage() {
 									src={Navet_Logo}
 									alt="Vi alle elsker Navet"
 									className="h-full w-full bg-gray-100 object-contain p-8"
+									sizes="(min-width: 768px) 14rem, (min-width: 640px) 12rem, 10rem"
 								/>
 							</div>
 						</div>

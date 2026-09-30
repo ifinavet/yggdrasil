@@ -2,7 +2,7 @@
 export const featureFlags = {
 	huginFeedback: {
 		// Makes the Bifrost UI visible without the localStorage preview opt-in.
-		uiEnabled: false,
+		uiEnabled: true,
 		// Enables internal report preparation and review. Approved public links do not use this flag.
 		reportsEnabled: true,
 		// Allows approved company report emails.
@@ -12,7 +12,7 @@ export const featureFlags = {
 		uiEnabled: true,
 	},
 	jobListingOrders: {
-		uiEnabled: false,
+		uiEnabled: true,
 	},
 	semesterPlanning: {
 		// Shows Semesterplan in Bifrost, the application and offer pages on Hugin and the button on
@@ -22,15 +22,18 @@ export const featureFlags = {
 	engagement: {
 		uiEnabled: true,
 	},
+	eventReminders: {
+		uiEnabled: true,
+	},
 };
 
 export const browserOptInKeys = {
 	productsPreview: "products-preview",
 	jobListingOrdersPreview: "job-listing-orders-preview",
 	huginFeedbackPreview: "hugin-feedback-preview",
-	huginFeedbackTestSend: "hugin-feedback-testsend",
 	semesterPlanningPreview: "semester-planning-preview",
 	engagementPreview: "engagement-preview",
+	eventRemindersPreview: "event-reminders-preview",
 } as const;
 
 export type BrowserOptIn = keyof typeof browserOptInKeys;
@@ -43,4 +46,5 @@ export const featurePreviewOptIns = {
 	jobListingOrders: "jobListingOrdersPreview",
 	semesterPlanning: "semesterPlanningPreview",
 	engagement: "engagementPreview",
+	eventReminders: "eventRemindersPreview",
 } as const satisfies Record<GatedFeature, BrowserOptIn>;

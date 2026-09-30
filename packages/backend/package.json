@@ -15,7 +15,7 @@
 	"author": "",
 	"packageManager": "pnpm@10.13.1",
 	"dependencies": {
-		"@clerk/backend": "^3.18.1",
+		"@clerk/backend": "^3.20.1",
 		"@convex-dev/migrations": "^0.3.6",
 		"@convex-dev/rate-limiter": "^0.4.0",
 		"@convex-dev/resend": "^0.2.8",
@@ -28,20 +28,21 @@
 		"convex-helpers": "^0.1.124",
 		"d3-array": "3.2.4",
 		"d3-scale": "4.0.2",
+		"jose": "6.2.12",
 		"svix": "^1.99.1",
 		"xss": "^1.0.15"
 	},
 	"devDependencies": {
-		"@convex-dev/batch-worker": "^0.2.2",
+		"@convex-dev/batch-worker": "^0.3.4",
 		"@edge-runtime/vm": "5.0.0",
 		"@types/d3-array": "3.2.2",
 		"@types/d3-scale": "4.0.9",
 		"@types/node": "^20.19.43",
-		"@vitest/coverage-v8": "4.1.11",
-		"convex-test": "0.0.59",
+		"@vitest/coverage-v8": "5.0.2",
+		"convex-test": "0.0.60",
 		"typescript": "5.9.3",
-		"vite": "6.4.3",
-		"vitest": "4.1.11"
+		"vite": "8.3.1",
+		"vitest": "5.0.2"
 	},
 	"exports": {
 		"./convex/api": {

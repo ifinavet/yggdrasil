@@ -4,6 +4,7 @@ import {
 	asUser,
 	grantRole,
 	insertEvent,
+	insertOrganizer,
 	insertUser,
 	refusalMessageFrom,
 	setup,
@@ -11,7 +12,7 @@ import {
 } from "../../test/fixtures";
 import { api, internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
-import { describeAlert } from "./alerts";
+import { describeAlert, slackText } from "./alerts";
 
 const OPENS = Date.UTC(2026, 8, 1, 10);
 const START = OPENS + 10 * DAY_MS;
@@ -26,7 +27,6 @@ const eventFields: Doc<"events"> = {
 	registrationOpens: OPENS,
 	participationLimit: 10,
 	location: "Ole-Johan Dahls hus",
-	food: "",
 	language: "norsk",
 	ageRestriction: "",
 	externalEvent: false,
@@ -112,6 +112,39 @@ describe("describeAlert", () => {
 	});
 });
 
+describe("slackText", () => {
+	it("explains the alert and links to the event and the insight page", () => {
+		const text = slackText(
+			"noRegistrations",
+			"event123" as Id<"events">,
+			{ summary: "Ingen påmeldinger på Kodekveld, Acme", detail: "Påmeldingen åpnet 1. sep." },
+			[{ name: "Kari Nordmann", slackUserId: "U123" }, { name: "Ola <Nordmann>" }],
+			"https://bifrost.test",
+		);
+
+		expect(text.split("\n")).toEqual([
+			"🦗 Ingen har meldt seg på ennå",
+			"Ingen påmeldinger på Kodekveld, Acme. Påmeldingen åpnet 1. sep.",
+			"🙋 Hovedansvarlig: <@U123>, Ola &lt;Nordmann&gt;",
+			"💡 Sjekk at arrangementet er publisert og har blitt delt i kanalene våre.",
+			"👉 <https://bifrost.test/events/event123|Åpne arrangementet> · <https://bifrost.test/insight|Se innsikt>",
+		]);
+	});
+
+	it("escapes Slack control characters in event names", () => {
+		const text = slackText(
+			"behindPace",
+			"event123" as Id<"events">,
+			{ summary: "Fest <3 & mat", detail: "4 av 10 plasser." },
+			[],
+			"https://bifrost.test",
+		);
+
+		expect(text).toContain("Fest &lt;3 &amp; mat. 4 av 10 plasser.");
+		expect(text).not.toContain("Hovedansvarlig");
+	});
+});
+
 describe("detectAlerts", () => {
 	it("inserts an alert and schedules a Slack notification when a rule triggers", async () => {
 		const { t, companyId } = await setup();
@@ -133,8 +166,81 @@ describe("detectAlerts", () => {
 		const scheduled = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
 		expect(scheduled).toHaveLength(1);
 		expect(scheduled[0]?.name).toContain("notifySlack");
+		expect(scheduled[0]?.args[0].text).toContain(`https://bifrost.ifinavet.no/events/${eventId}`);
 
 		vi.useRealTimers();
+	});
+
+	it("tags only the linked main organizer and names the unlinked one", async () => {
+		const { t, companyId } = await setup();
+		vi.useFakeTimers();
+		vi.setSystemTime(OPENS + DAY_MS);
+		const eventId = await insertEvent(t, companyId, {
+			eventStart: START,
+			registrationOpens: OPENS,
+		});
+		const linked = await insertUser(t, "kari@ifinavet.no", {
+			firstName: "Kari",
+			lastName: "Nordmann",
+		});
+		const unlinked = await insertUser(t, "ola@ifinavet.no", {
+			firstName: "Ola",
+			lastName: "Hansen",
+		});
+		const helper = await insertUser(t, "per@ifinavet.no", { firstName: "Per", lastName: "Helper" });
+		const removed = await insertUser(t, "borte@ifinavet.no");
+		await insertOrganizer(t, eventId, linked._id);
+		await insertOrganizer(t, eventId, unlinked._id);
+		await insertOrganizer(t, eventId, helper._id, "medhjelper");
+		await insertOrganizer(t, eventId, removed._id);
+		await t.run(async (ctx) => {
+			await ctx.db.delete(removed._id);
+			for (const [userId, slackUserId] of [
+				[linked._id, "UKARI"],
+				[helper._id, "UPER"],
+			] as const) {
+				await ctx.db.insert("memberAccounts", {
+					workspaceEmail: `${slackUserId}@ifinavet.no`,
+					firstName: "",
+					lastName: "",
+					group: "styret",
+					stage: "active",
+					google: "created",
+					slackUserId,
+					userId,
+					updatedAt: 0,
+				});
+			}
+		});
+
+		await t.mutation(internal.engagement.alerts.detectAlerts, {});
+
+		const scheduled = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
+		const text: string = scheduled[0]?.args[0].text;
+		expect(text).toContain("🙋 Hovedansvarlig: <@UKARI>, Ola Hansen\n");
+		expect(text).not.toContain("UPER");
+
+		vi.useRealTimers();
+	});
+
+	it("links to the local admin app during local development", async () => {
+		const { t, companyId } = await setup();
+		vi.stubEnv("CONVEX_CLOUD_URL", "http://127.0.0.1:3210");
+		vi.stubEnv("APP_ENV", "local");
+		vi.useFakeTimers();
+		vi.setSystemTime(OPENS + DAY_MS);
+		const eventId = await insertEvent(t, companyId, {
+			eventStart: START,
+			registrationOpens: OPENS,
+		});
+
+		await t.mutation(internal.engagement.alerts.detectAlerts, {});
+
+		const scheduled = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
+		expect(scheduled[0]?.args[0].text).toContain(`http://localhost:3001/events/${eventId}`);
+
+		vi.useRealTimers();
+		vi.unstubAllEnvs();
 	});
 
 	it("skips events without a triggering rule", async () => {

@@ -10,12 +10,13 @@ import {
 } from "@workspace/ui/components/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui/components/popover";
 import {
+	creatableName,
 	createLatestGate,
 	filterSearchItems,
 	type SearchSelectItem,
 } from "@workspace/ui/lib/search-select";
 import { cn } from "@workspace/ui/lib/utils";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Check, ChevronsUpDown, Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 export type { SearchSelectItem } from "@workspace/ui/lib/search-select";
@@ -75,6 +76,8 @@ export type SearchSelectProps = Source &
 		/** Trigger text for the picked value, when the caller knows it better than the list does. */
 		valueLabel?: string;
 		disabled?: boolean;
+		onCreate?: (name: string) => void;
+		createLabel?: (name: string) => string;
 		/** Classes for the trigger button, e.g. its width. */
 		className?: string;
 	};
@@ -147,6 +150,8 @@ export function SearchSelect(props: Readonly<SearchSelectProps>) {
 		valueLabel,
 		disabled,
 		className,
+		onCreate,
+		createLabel = (name) => `Lag «${name}»`,
 	} = props;
 	const [open, setOpen] = useState(false);
 	const [query, setQuery] = useState("");
@@ -195,7 +200,17 @@ export function SearchSelect(props: Readonly<SearchSelectProps>) {
 		changeOpen(false);
 	};
 
-	const message = statusText(state, shown.length, { loadingText, errorText, emptyText });
+	const createName = onCreate && state.status === "done" ? creatableName(known, query) : null;
+	const create = (name: string) => {
+		onCreate?.(name);
+		changeOpen(false);
+	};
+
+	const message = statusText(state, shown.length + (createName ? 1 : 0), {
+		loadingText,
+		errorText,
+		emptyText,
+	});
 
 	return (
 		<Popover open={open} onOpenChange={changeOpen}>
@@ -229,11 +244,7 @@ export function SearchSelect(props: Readonly<SearchSelectProps>) {
 						)}
 						<CommandGroup>
 							{clearLabel && hasSelection && (
-								<CommandItem
-									value="__clear__"
-									onSelect={clear}
-									className="text-muted-foreground"
-								>
+								<CommandItem value="__clear__" onSelect={clear} className="text-muted-foreground">
 									<span className="size-4" />
 									{clearLabel}
 								</CommandItem>
@@ -242,9 +253,7 @@ export function SearchSelect(props: Readonly<SearchSelectProps>) {
 								<CommandItem
 									key={item.id}
 									value={item.id}
-									disabled={
-										item.disabledReason !== undefined || (isFull && !isSelected(item.id))
-									}
+									disabled={item.disabledReason !== undefined || (isFull && !isSelected(item.id))}
 									onSelect={() => pick(item)}
 								>
 									<Check
@@ -265,6 +274,12 @@ export function SearchSelect(props: Readonly<SearchSelectProps>) {
 									)}
 								</CommandItem>
 							))}
+							{createName && (
+								<CommandItem value="__create__" onSelect={() => create(createName)}>
+									<Plus className="size-4" />
+									<span className="truncate">{createLabel(createName)}</span>
+								</CommandItem>
+							)}
 						</CommandGroup>
 					</CommandList>
 				</Command>

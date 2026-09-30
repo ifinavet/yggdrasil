@@ -1,6 +1,7 @@
 "use client";
 
 import { useForm } from "@tanstack/react-form";
+import type { Id } from "@workspace/backend/convex/dataModel";
 import {
 	Field,
 	FieldDescription,
@@ -25,6 +26,7 @@ import CompanySelectField from "@/components/common/forms/company-select-field";
 import DateTimePicker from "@/components/common/forms/date-time-picker";
 import FormSubmitActions from "@/components/common/forms/form-submit-actions";
 import DescriptionEditor from "@/components/common/forms/markdown-editor/editor";
+import { FoodItemSelect } from "@/components/events/food/food-item-select";
 import { type EventFormValues, eventFormSchema } from "@/constants/schemas/event-form-schema";
 import Organizers from "./organizers";
 import ProductSelectField from "./product-select-field";
@@ -105,20 +107,19 @@ export default function EventForm({
 				<FieldSeparator />
 
 				<FieldGroup className="grid grid-cols-1 gap-4 md:grid-cols-2">
-					<form.Field name="food">
+					<form.Field name="foodItem">
 						{(field) => {
 							const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 							return (
 								<Field>
 									<FieldLabel htmlFor={field.name}>Mat</FieldLabel>
-									<Input
+									<FoodItemSelect
+										allowCreate
 										id={field.name}
-										name={field.name}
-										value={field.state.value}
-										onChange={(e) => field.handleChange(e.target.value)}
-										onBlur={field.handleBlur}
-										aria-invalid={isInvalid}
-										placeholder="Sushi"
+										value={field.state.value as Id<"foodItems"> | undefined}
+										onChange={field.handleChange}
+										invalid={isInvalid}
+										className="w-full"
 									/>
 									{isInvalid && <FieldError errors={field.state.meta.errors} />}
 								</Field>

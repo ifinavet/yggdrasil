@@ -7,11 +7,19 @@ import { Title } from "@workspace/ui/components/title";
 import { fetchQuery, preloadedQueryResult, preloadQuery } from "convex/nextjs";
 import type { Metadata } from "next";
 import Image from "next/image";
+import { cache } from "react";
 import ContainerCard from "@/components/cards/container-card";
 import LargeUserCard from "@/components/cards/large-user";
 import SanitizeHtml from "@/components/common/sanitize-html";
 import { EventMetadata } from "@/components/events/event-metadata";
 import { notFoundOnConvexError } from "@/lib/notFoundOnConvexError";
+
+const loadAuthToken = cache(getAuthToken);
+
+const preloadEvent = cache(async (identifier: string) => {
+	const token = await loadAuthToken();
+	return preloadQuery(api.events.queries.getEvent, { identifier }, { token });
+});
 
 export async function generateMetadata({
 	params,
@@ -20,27 +28,24 @@ export async function generateMetadata({
 }>): Promise<Metadata> {
 	const { slug: identifier } = await params;
 
-	const token = await getAuthToken();
-	const event = await fetchQuery(api.events.queries.getEvent, { identifier }, { token }).catch(
-		() => null,
-	);
+	const event = await preloadEvent(identifier)
+		.then(preloadedQueryResult)
+		.catch(() => null);
 
 	if (!event) return {};
 
-	const company = await fetchQuery(api.companies.queries.getById, {
-		id: event.hostingCompany,
-	});
-
 	return {
 		openGraph: {
-			images: [
-				{
-					url: company.imageUrl,
-					secureUrl: company.imageUrl,
-					type: "image/*",
-					alt: company.name,
-				},
-			],
+			images: event.hostingCompanyLogoUrl
+				? [
+						{
+							url: event.hostingCompanyLogoUrl,
+							secureUrl: event.hostingCompanyLogoUrl,
+							type: "image/*",
+							alt: event.hostingCompanyName,
+						},
+					]
+				: [],
 		},
 		title: event.title,
 		description: event.teaser,
@@ -54,29 +59,21 @@ export default async function EventPage({
 }>) {
 	const { slug: identifier } = await params;
 
-	const token = await getAuthToken();
-	const hasAdminAccess = await fetchQuery(
-		api.auth.accessRights.checkRights,
-		{ right: ["internal", "editor", "admin", "super-admin"] },
-		{ token },
-	);
-
-	const preloadedEvent = await preloadQuery(
-		api.events.queries.getEvent,
-		{ identifier },
-		{ token },
-	).catch(notFoundOnConvexError);
+	const token = await loadAuthToken();
+	const [hasAdminAccess, preloadedEvent, preloadedRegistrationSummary] = await Promise.all([
+		fetchQuery(
+			api.auth.accessRights.checkRights,
+			{ right: ["internal", "editor", "admin", "super-admin"] },
+			{ token },
+		),
+		preloadEvent(identifier).catch(notFoundOnConvexError),
+		preloadQuery(
+			api.events.registrations.queries.getEventRegistrationSummary,
+			{ eventIdentifier: identifier },
+			{ token },
+		).catch(notFoundOnConvexError),
+	]);
 	const event = preloadedQueryResult(preloadedEvent);
-
-	const company = await fetchQuery(api.companies.queries.getById, {
-		id: event.hostingCompany,
-	});
-
-	const preloadedRegistrationSummary = await preloadQuery(
-		api.events.registrations.queries.getEventRegistrationSummary,
-		{ eventIdentifier: event._id },
-		{ token },
-	);
 
 	return (
 		<ResponsiveCenterContainer>
@@ -100,12 +97,12 @@ export default async function EventPage({
 							<div className="absolute top-0 left-0 h-1/2 w-full bg-transparent"></div>
 							<div className="absolute bottom-0 left-0 h-1/2 w-full rounded-t-xl bg-zinc-100 dark:bg-zinc-800"></div>
 							<div className="absolute inset-12 grid place-content-center rounded-full border-2 border-neutral-300 bg-white dark:bg-white/90">
-								{company.imageUrl && (
+								{event.hostingCompanyLogoUrl && (
 									<Image
-										src={company.imageUrl}
+										src={event.hostingCompanyLogoUrl}
 										alt={event.hostingCompanyName}
 										fill
-										sizes="50vw"
+										sizes="(min-width: 768px) 24rem, 100vw"
 										className="object-contain p-10 sm:p-18 md:p-10 lg:p-16"
 										loading="eager"
 									/>
@@ -113,7 +110,10 @@ export default async function EventPage({
 							</div>
 						</div>
 						<div className="rounded-b-xl bg-zinc-100 px-8 pb-8 dark:bg-zinc-800">
-							<SanitizeHtml html={company.description} className="prose-lg dark:prose-invert" />
+							<SanitizeHtml
+								html={event.hostingCompanyDescription}
+								className="prose-lg dark:prose-invert"
+							/>
 						</div>
 					</div>
 					<div className="grid grid-cols-1 gap-4">

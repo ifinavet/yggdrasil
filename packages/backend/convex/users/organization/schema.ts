@@ -15,6 +15,6 @@ export const organizationSchema = {
 	internalGroups: defineTable({
 		name: v.string(),
 		description: v.string(),
-		leader: v.id("users"),
+		leader: v.optional(v.id("users")),
 	}),
 };

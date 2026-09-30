@@ -14,6 +14,10 @@ Bifrost is our administration service. It is where we create events, populate th
 
 Midgard is what the users interact with and what we normally refer to as ifinavet.no. This is the core of our service and what enables students to attend our events. Midgard is also built on Next.js with TypeScript for the same reason. Midgard also heavily uses shadcn/ui to give our users a functional and accessible experience, but the components are heavily customized to fit our design.
 
+### 📝 Hugin
+
+Hugin is our form service, it hosts our feedback and orderering forms. This is the newest addition to the realm. Hugin is built with the same stack as the other services, but currently experiments with Tanstack Charts as its chart rendering library. 
+
 ### 🗄️ Convex + Clerk
 
 Convex is the backbone of the services. Convex, at its core, is just our database, but it provides a world-class sync engine and allows us to have real-time functionality that scales and is stable. Together with Clerk, it gives us authentication and authorization for the different aspects and functions of our services.

@@ -2,7 +2,7 @@ import type { EmailEvent, EmailId, SendEmailOptions } from "@convex-dev/resend";
 import { NAVET_LOGO_URL } from "@workspace/emails/constants";
 import { DEGREES, HUGIN_LOCAL_URL } from "@workspace/shared/constants";
 import { featureFlags } from "@workspace/shared/feature-flags";
-import { reportHighlights } from "@workspace/shared/feedback/report";
+import { reportAccessDeniedMessage, reportHighlights } from "@workspace/shared/feedback/report";
 import { feedbackReportCsv } from "@workspace/shared/feedback/report-csv";
 import { toBase64 } from "@workspace/shared/utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -261,31 +261,33 @@ describe("company feedback reports", () => {
 		await f.client.mutation(reports.mutations.revoke, { reportId, revision: 1 });
 		expect(await f.t.action(reports.public.resolveReport, { token, paginationOpts })).toBeNull();
 	});
-	it("requires assigned internal organizers or super admins, with flags off by default", async () => {
+	it("requires an internal role, with flags off by default", async () => {
 		const f = await fixture();
 		const reportId = await f.prepare();
 		await expect(
 			f.t.query(reports.queries.getEventReport, { eventId: f.eventId }),
 		).rejects.toThrow();
 		const organizer = await insertUser(f.t, "organizer@example.test");
-		const client = asUser(f.t, organizer);
 		await insertOrganizer(f.t, f.eventId, organizer._id);
+		expect(
+			await asUser(f.t, organizer).query(reports.queries.getEventReport, { eventId: f.eventId }),
+		).toEqual({ enabled: false, canView: false });
+		const internal = await insertUser(f.t, "internal@example.test");
+		const client = asUser(f.t, internal);
 		expect(await client.query(reports.queries.getEventReport, { eventId: f.eventId })).toEqual({
 			enabled: false,
 			canView: false,
 		});
 		await expect(
 			client.query(reports.queries.getReportAnswers, { reportId, paginationOpts }),
-		).rejects.toThrow("arrangør");
-		await grantRole(f.t, organizer._id, "internal");
+		).rejects.toThrow(reportAccessDeniedMessage);
+		await grantRole(f.t, internal._id, "internal");
 		expect(
 			await client.query(reports.queries.getEventReport, { eventId: f.eventId }),
 		).toMatchObject({ enabled: true, campaignId: f.campaignId });
-		const otherEvent = await insertEvent(f.t, f.companyId);
-		expect(await client.query(reports.queries.getEventReport, { eventId: otherEvent })).toEqual({
-			enabled: false,
-			canView: false,
-		});
+		expect(
+			await client.query(reports.queries.getReportAnswers, { reportId, paginationOpts }),
+		).toMatchObject({ isDone: true });
 		featureFlags.huginFeedback.reportsEnabled = false;
 		expect(await client.query(reports.queries.getEventReport, { eventId: f.eventId })).toEqual({
 			enabled: false,
@@ -399,6 +401,67 @@ describe("company feedback reports", () => {
 			status: "revoked",
 			recipientEmail: "",
 		});
+	});
+});
+
+describe("live internal report", () => {
+	it("aggregates responses while the campaign is open without materializing a report", async () => {
+		const f = await fixture();
+		await f.t.run((ctx) => ctx.db.patch(f.campaignId, { status: "open", closedAt: undefined }));
+		const before = await f.client.query(reports.live.getLiveReport, { eventId: f.eventId });
+		expect(before).toMatchObject({ campaignStatus: "open", report: { totalResponses: 2 } });
+		if (!before) throw new Error("Missing live report");
+		expect(before.report.questions.map((q) => q.label)).toEqual(
+			defaultFeedbackFields.map((q) => q.label),
+		);
+		expect(before.answers.every((answer) => answer.visible)).toBe(true);
+		expect(before.answers[0]).not.toHaveProperty("responseId");
+		await f.t.run((ctx) =>
+			insertFeedbackResponses(ctx, {
+				campaignId: f.campaignId,
+				formVersionId: f.formVersionId,
+				userId: f.user._id,
+				count: 1,
+				submittedAt: now,
+			}),
+		);
+		const after = await f.client.query(reports.live.getLiveReport, { eventId: f.eventId });
+		expect(after?.report.totalResponses).toBe(3);
+		expect(after?.answers.length).toBe(before.answers.length + 3);
+		expect(reportHighlights(after?.report ?? before.report).rating).toBeCloseTo(13 / 3);
+		expect(await f.t.run((ctx) => ctx.db.query("feedbackReports").collect())).toEqual([]);
+	});
+	it("is null without an internal role, a campaign or the report flag", async () => {
+		const f = await fixture();
+		const outsider = await insertUser(f.t, "outsider@example.test");
+		expect(
+			await asUser(f.t, outsider).query(reports.live.getLiveReport, { eventId: f.eventId }),
+		).toBeNull();
+		const otherEventId = await insertEvent(f.t, f.companyId);
+		expect(await f.client.query(reports.live.getLiveReport, { eventId: otherEventId })).toBeNull();
+		featureFlags.huginFeedback.reportsEnabled = false;
+		expect(await f.client.query(reports.live.getLiveReport, { eventId: f.eventId })).toBeNull();
+	});
+	it("tolerates a missing logo or company and rejects a corrupt form version", async () => {
+		const f = await fixture();
+		await f.t.run(async (ctx) => {
+			const company = await ctx.db.get(f.companyId);
+			if (company) await ctx.db.delete(company.logo);
+		});
+		expect(
+			(await f.client.query(reports.live.getLiveReport, { eventId: f.eventId }))?.report,
+		).toMatchObject({ companyName: "Testbedrift", companyLogoUrl: null });
+		await f.t.run((ctx) => ctx.db.delete(f.companyId));
+		expect(
+			(await f.client.query(reports.live.getLiveReport, { eventId: f.eventId }))?.report,
+		).toMatchObject({ companyName: "", companyLogoUrl: null });
+		await f.t.run(async (ctx) => {
+			const fields = await ctx.db.query("formFields").collect();
+			for (const field of fields) await ctx.db.delete(field._id);
+		});
+		await expect(
+			f.client.query(reports.live.getLiveReport, { eventId: f.eventId }),
+		).rejects.toThrow("Skjemaversjonen er ugyldig.");
 	});
 });
 

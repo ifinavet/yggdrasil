@@ -8,11 +8,11 @@
 		"@date-fns/tz": "^1.5.0",
 		"convex": "^1.46.0",
 		"date-fns": "^4.4.0",
-		"papaparse": "5.5.3",
+		"papaparse": "5.7.0",
 		"zod": "^4.6.5"
 	},
 	"devDependencies": {
-		"@types/papaparse": "5.3.16",
+		"@types/papaparse": "5.5.2",
 		"@workspace/typescript-config": "workspace:*",
 		"typescript": "^5.9.3"
 	},
@@ -25,6 +25,8 @@
 		"./utils": "./utils/index.ts",
 		"./validation": "./validation/index.ts",
 		"./feedback": "./feedback/index.ts",
+		"./engagement": "./engagement/index.ts",
+		"./events/food": "./events/food.ts",
 		"./feature-flags": "./feature-flags.ts",
 		"./products": "./products/index.ts",
 		"./job-listing-orders": "./job-listing-orders/index.ts",
@@ -36,6 +38,7 @@
 		"./semester/labels": "./semester/labels.ts",
 		"./semester/prices": "./semester/prices.ts",
 		"./semester/team": "./semester/team.ts",
+		"./iam": "./iam/index.ts",
 		"./feedback/report": "./feedback/report.ts",
 		"./feedback/report-csv": "./feedback/report-csv.ts"
 	},
