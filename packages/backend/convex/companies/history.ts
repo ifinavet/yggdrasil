@@ -1,6 +1,6 @@
 import { STATUS_LABELS } from "@workspace/shared/semester/labels";
 import { v } from "convex/values";
-import type { Doc } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import { type QueryCtx, query } from "../_generated/server";
 import { internalRoles, requireRole } from "../auth/accessRights";
 
@@ -131,6 +131,34 @@ function orderHistory(orders: Doc<"jobListingOrders">[]): TimelineItem[] {
 	}));
 }
 
+async function listingHistory(
+	ctx: QueryCtx,
+	listings: Doc<"jobListings">[],
+	visibleOrderIds: ReadonlySet<Id<"jobListingOrders">>,
+): Promise<TimelineItem[]> {
+	const entries = await Promise.all(
+		listings.map(async (listing): Promise<TimelineItem[]> => {
+			const item = await ctx.db
+				.query("jobListingOrderItems")
+				.withIndex("by_jobListingId", (q) => q.eq("jobListingId", listing._id))
+				.first();
+			// Keep the listing when its order is outside the history window or no longer exists.
+			if (item && visibleOrderIds.has(item.orderId)) return [];
+			return [
+				{
+					id: `listing-${listing._id}`,
+					at: listing.publishedAt ?? listing._creationTime,
+					label: `Stillingsannonse: ${listing.title}`,
+					detail: listing.published ? "Publisert" : "Ikke publisert",
+					href: `/job-listings/${listing._id}`,
+					dateLabel: listing.publishedAt === undefined ? "Opprettet" : "Publisert",
+				},
+			];
+		}),
+	);
+	return entries.flat();
+}
+
 function requestHistory(requests: Doc<"companyUpdateRequests">[]): TimelineItem[] {
 	return requests.map((request) => ({
 		id: `request-${request._id}`,
@@ -150,7 +178,7 @@ export const getHistory = query({
 		const company = await ctx.db.get(companyId);
 		if (!company) return [];
 
-		const [events, applications, orders, ...requestsByStatus] = await Promise.all([
+		const [events, applications, orders, listings, ...requestsByStatus] = await Promise.all([
 			ctx.db
 				.query("events")
 				.withIndex("by_hostingCompany_and_eventStart", (q) => q.eq("hostingCompany", companyId))
@@ -164,6 +192,11 @@ export const getHistory = query({
 			ctx.db
 				.query("jobListingOrders")
 				.withIndex("by_companyId", (q) => q.eq("companyId", companyId))
+				.order("desc")
+				.take(LIMIT),
+			ctx.db
+				.query("jobListings")
+				.withIndex("by_company", (q) => q.eq("company", companyId))
 				.order("desc")
 				.take(LIMIT),
 			...(["pending", "approved", "rejected"] as const).map((status) =>
@@ -183,6 +216,7 @@ export const getHistory = query({
 			...(await applicationHistory(ctx, applications)),
 			...(await eventHistory(ctx, events)),
 			...orderHistory(orders),
+			...(await listingHistory(ctx, listings, new Set(orders.map((order) => order._id)))),
 			...requestHistory(requests),
 		];
 		timeline.sort((a, b) => b.at - a.at);

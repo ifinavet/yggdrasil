@@ -86,7 +86,9 @@ export const jobListingOrdersSchema = {
 		position: v.number(),
 		...orderItemFields,
 		jobListingId: v.optional(v.id("jobListings")),
-	}).index("by_orderId_and_position", ["orderId", "position"]),
+	})
+		.index("by_orderId_and_position", ["orderId", "position"])
+		.index("by_jobListingId", ["jobListingId"]),
 
 	jobListingOrderConfirmations: defineTable({
 		orderId: v.id("jobListingOrders"),
