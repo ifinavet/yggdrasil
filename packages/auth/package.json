@@ -4,17 +4,17 @@
 	"type": "module",
 	"private": true,
 	"dependencies": {
-		"@clerk/nextjs": "^7.9.7",
-		"@sentry/nextjs": "^10.75.0",
+		"@clerk/nextjs": "catalog:",
+		"@sentry/nextjs": "catalog:",
 		"@workspace/backend": "workspace:*",
 		"@workspace/shared": "workspace:*",
-		"convex": "^1.46.0",
-		"posthog-js": "^1.434.13"
+		"convex": "catalog:",
+		"posthog-js": "catalog:"
 	},
 	"devDependencies": {
 		"@workspace/typescript-config": "workspace:*",
-		"typescript": "^7.0.2",
-		"@types/react": "19.3.0"
+		"typescript": "catalog:",
+		"@types/react": "catalog:"
 	},
 	"exports": {
 		".": "./index.ts",
@@ -27,8 +27,8 @@
 		"./telemetry-client": "./telemetry-client.tsx"
 	},
 	"peerDependencies": {
-		"next": "^16.3.1",
-		"react": "^19.2.8"
+		"next": "catalog:",
+		"react": "catalog:"
 	},
 	"scripts": {
 		"check-types": "tsc --noEmit"

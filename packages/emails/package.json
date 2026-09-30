@@ -11,18 +11,18 @@
 	"author": "",
 	"packageManager": "pnpm@10.14.0",
 	"dependencies": {
-		"@react-email/render": "^2.1.0",
+		"@react-email/render": "catalog:",
 		"@workspace/shared": "workspace:*",
-		"react": "19.3.0",
-		"react-dom": "19.3.0",
+		"react": "catalog:",
+		"react-dom": "catalog:",
 		"react-email": "^6.11.0"
 	},
 	"devDependencies": {
 		"@react-email/ui": "6.11.0",
-		"@types/react": "19.3.0",
-		"@types/react-dom": "19.3.0",
+		"@types/react": "catalog:",
+		"@types/react-dom": "catalog:",
 		"@workspace/typescript-config": "workspace:*",
-		"typescript": "^7.0.2"
+		"typescript": "catalog:"
 	},
 	"exports": {
 		"./constants": "./constants.ts",
