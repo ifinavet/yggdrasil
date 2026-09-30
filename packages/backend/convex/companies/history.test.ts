@@ -136,7 +136,7 @@ describe("company history", () => {
 					productId,
 					productName: "Stillingsannonse",
 					startup: false,
-					quantity: 1,
+					quantity: status === "published" ? 2 : 1,
 					priceOre: 100_000,
 					contact: { name: "Ada", email: "ada@example.test" },
 					...(status === "published" ? { decidedAt: 5_500 } : {}),
@@ -287,14 +287,24 @@ describe("company history", () => {
 				"Søknad, vår 2027: Søknadsstatus endret",
 				"Arrangement: Vårarrangement",
 				"Tilbakemeldingsrapport godkjent: Vårarrangement",
-				"Bestilling JOB-2027-01: Stillingsannonse",
+				"Annonsekjøp JOB-2027-01: Stillingsannonse",
 				"Endring av bedriftsprofil godkjent",
 			]),
 		);
 		expect(history.find(({ detail }) => detail === "Søkt → Bekreftet")?.detail).toBe(
 			"Søkt → Bekreftet",
 		);
-		expect(history.find(({ label }) => label.includes("JOB-2027-01"))?.detail).toBe("Bekreftet");
+		const listingPurchase = history.find(({ label }) => label.includes("JOB-2027-01"));
+		expect(listingPurchase).toMatchObject({
+			at: 7_000,
+			label: "Annonsekjøp JOB-2027-01: Stillingsannonse",
+			detail: "Bekreftet · 1 annonse",
+			dateLabel: "Bekreftet",
+		});
+		expect(history.find(({ label }) => label.includes("JOB-published"))?.detail).toBe(
+			"Publisert · 2 annonser",
+		);
+		expect(history.filter(({ label }) => label.includes("JOB-2027-01"))).toHaveLength(1);
 		expect(history.find(({ label }) => label.startsWith("Arrangement:"))?.href).toBe(
 			"/events/testarrangement",
 		);

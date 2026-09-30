@@ -11,11 +11,15 @@ import {
 	CardTitle,
 } from "@workspace/ui/components//card";
 import { SafeHtml } from "@workspace/ui/components/safe-html";
-import { usePaginatedQuery } from "convex/react";
+import { SearchField } from "@workspace/ui/components/search-field";
+import { usePaginatedQuery, useQuery } from "convex/react";
 import { Pencil } from "lucide-react";
 import Link from "next/link";
+import { useMemo, useState } from "react";
+import { matchesAny } from "@/lib/search";
 
 export default function CompaniesGrid() {
+	const [search, setSearch] = useState("");
 	const {
 		results: companies,
 		isLoading,
@@ -28,11 +32,23 @@ export default function CompaniesGrid() {
 			initialNumItems: 25,
 		},
 	);
+	const matchingSource = useQuery(api.companies.queries.getAll, search.trim() ? {} : "skip");
+	const source = search.trim() ? (matchingSource ?? []) : companies;
+	const visibleCompanies = useMemo(
+		() => source.filter((company) => matchesAny([company.name, String(company.orgNumber)], search)),
+		[source, search],
+	);
 
 	return (
 		<div className="space-y-6">
+			<SearchField
+				value={search}
+				onChange={setSearch}
+				placeholder="Bedrift eller org. nr."
+				className="sm:w-96"
+			/>
 			<div className="grid max-w-7xl grid-cols-3 gap-4">
-				{companies.map((company) => (
+				{visibleCompanies.map((company) => (
 					<Link key={company._id} href={`/companies/${company._id}`}>
 						<Card>
 							<CardHeader>
@@ -59,9 +75,14 @@ export default function CompaniesGrid() {
 				))}
 			</div>
 
-			<Button onClick={() => loadMore(25)} disabled={status !== "CanLoadMore" || isLoading}>
-				{isLoading ? "Laster..." : "Last inn flere bedrifter"}
-			</Button>
+			{search.trim() && matchingSource && visibleCompanies.length === 0 ? (
+				<p className="text-muted-foreground">Ingen bedrifter samsvarer med søket.</p>
+			) : null}
+			{!search.trim() && status === "CanLoadMore" ? (
+				<Button onClick={() => loadMore(25)} disabled={isLoading}>
+					{isLoading ? "Laster..." : "Last inn flere bedrifter"}
+				</Button>
+			) : null}
 		</div>
 	);
 }

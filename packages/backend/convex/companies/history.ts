@@ -125,8 +125,8 @@ function orderHistory(orders: Doc<"jobListingOrders">[]): TimelineItem[] {
 	return orders.map((order) => ({
 		id: `order-${order._id}`,
 		at: order.decidedAt ?? order.confirmedAt ?? order._creationTime,
-		label: `Bestilling ${order.reference}: ${order.productName}`,
-		detail: orderStatusLabels[order.status],
+		label: `Annonsekjøp ${order.reference}: ${order.productName}`,
+		detail: `${orderStatusLabels[order.status]} · ${order.quantity} ${order.quantity === 1 ? "annonse" : "annonser"}`,
 		dateLabel: orderDateLabel(order),
 	}));
 }
