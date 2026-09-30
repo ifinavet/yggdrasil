@@ -77,6 +77,7 @@ export const jobListingOrdersSchema = {
 	})
 		.index("by_submissionId", ["submissionId"])
 		.index("by_status", ["status"])
+		.index("by_companyId", ["companyId"])
 		.index("by_newCompany_logo", ["newCompany.logo"])
 		.index("by_companyChanges_logo", ["companyChanges.logo"]),
 

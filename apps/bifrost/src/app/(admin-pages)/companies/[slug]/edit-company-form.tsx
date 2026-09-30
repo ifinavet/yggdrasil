@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import CompanyForm from "@/components/companies/companies-form/company-form";
 import { notifyCompanyMutation } from "@/components/companies/companies-form/company-mutation-feedback";
 import type { CompanyFormValues } from "@/constants/schemas/companies-form-schema";
+import { CompanyHistory } from "./company-history";
 
 export default function EditCompanyForm({
 	company_id,
@@ -53,10 +54,13 @@ export default function EditCompanyForm({
 	};
 
 	return (
-		<CompanyForm
-			defaultValues={defaultValues}
-			onPrimarySubmitAction={handleSubmit}
-			onSecondarySubmitAction={handleDelete}
-		/>
+		<>
+			<CompanyForm
+				defaultValues={defaultValues}
+				onPrimarySubmitAction={handleSubmit}
+				onSecondarySubmitAction={handleDelete}
+			/>
+			<CompanyHistory companyId={company_id} />
+		</>
 	);
 }

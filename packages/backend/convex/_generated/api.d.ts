@@ -12,6 +12,7 @@ import type * as auth_accessRights from "../auth/accessRights.js";
 import type * as auth_currentUser from "../auth/currentUser.js";
 import type * as auth_local from "../auth/local.js";
 import type * as companies_helper from "../companies/helper.js";
+import type * as companies_history from "../companies/history.js";
 import type * as companies_mutations from "../companies/mutations.js";
 import type * as companies_queries from "../companies/queries.js";
 import type * as crons from "../crons.js";
@@ -158,6 +159,7 @@ declare const fullApi: ApiFromModules<{
   "auth/currentUser": typeof auth_currentUser;
   "auth/local": typeof auth_local;
   "companies/helper": typeof companies_helper;
+  "companies/history": typeof companies_history;
   "companies/mutations": typeof companies_mutations;
   "companies/queries": typeof companies_queries;
   crons: typeof crons;
