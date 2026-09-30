@@ -10,6 +10,10 @@ This file is the project's committed home for project-intrinsic agent knowledge:
 - Keep related code in feature folders, share reusable contracts and rules through workspace packages, and use bounded queries and batches as data grows. Prefer small, clear modules over speculative abstractions.
 - Verify behavior through executable tests, including relevant edge cases and integration boundaries, before pushing changes.
 
+## Dependency updates
+
+External dependencies used by multiple workspace packages share exact versions in the catalog in `pnpm-workspace.yaml`. Use `"catalog:"` in their dependency and peer declarations; update the catalog and regenerate `pnpm-lock.yaml` together. React overrides also reference the catalog. `pnpm check-dependencies` rejects independent shared declarations or different installed versions and runs before type-checking in CI. Dependabot supports catalogs; keep coupled React, Tiptap and Vitest updates grouped for both version and security updates.
+
 ## Copy conventions
 
 User-facing Norwegian text, in both Hugin and Midgard, must never contain an em-dash (`—`). Use a comma, colon or full stop instead. En-dash (`–`) and hyphen (`-`) are unaffected, but only where they are correct.

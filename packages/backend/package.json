@@ -21,10 +21,10 @@
 		"@convex-dev/resend": "^0.2.8",
 		"@convex-dev/workflow": "^0.4.8",
 		"@convex-dev/workpool": "0.4.12",
-		"@react-email/render": "^2.1.0",
+		"@react-email/render": "catalog:",
 		"@workspace/emails": "workspace:*",
 		"@workspace/shared": "workspace:*",
-		"convex": "^1.46.0",
+		"convex": "catalog:",
 		"convex-helpers": "^0.1.124",
 		"d3-array": "3.2.4",
 		"d3-scale": "4.0.2",
@@ -37,12 +37,12 @@
 		"@edge-runtime/vm": "5.0.0",
 		"@types/d3-array": "3.2.2",
 		"@types/d3-scale": "4.0.9",
-		"@types/node": "^20.19.43",
+		"@types/node": "catalog:",
 		"@vitest/coverage-v8": "5.0.2",
 		"convex-test": "0.0.60",
-		"typescript": "7.0.2",
+		"typescript": "catalog:",
 		"vite": "8.3.1",
-		"vitest": "5.0.2"
+		"vitest": "catalog:"
 	},
 	"exports": {
 		"./convex/api": {
