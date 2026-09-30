@@ -113,17 +113,22 @@ async function mainOrganizers(ctx: MutationCtx, eventId: Doc<"events">["_id"]) {
 		.query("eventOrganizers")
 		.withIndex("by_eventId", (q) => q.eq("eventId", eventId))
 		.collect();
-	const result: Organizer[] = [];
-	for (const { userId } of organizers.filter(({ role }) => role === "hovedansvarlig")) {
-		const user = await ctx.db.get(userId);
-		if (!user) continue;
-		const account = await ctx.db
-			.query("memberAccounts")
-			.withIndex("by_userId", (q) => q.eq("userId", userId))
-			.first();
-		result.push({ name: `${user.firstName} ${user.lastName}`, slackUserId: account?.slackUserId });
-	}
-	return result;
+	const found = await Promise.all(
+		organizers
+			.filter(({ role }) => role === "hovedansvarlig")
+			.map(async ({ userId }): Promise<Organizer | null> => {
+				const [user, account] = await Promise.all([
+					ctx.db.get(userId),
+					ctx.db
+						.query("memberAccounts")
+						.withIndex("by_userId", (q) => q.eq("userId", userId))
+						.first(),
+				]);
+				if (!user) return null;
+				return { name: `${user.firstName} ${user.lastName}`, slackUserId: account?.slackUserId };
+			}),
+	);
+	return found.filter((organizer) => organizer !== null);
 }
 
 async function recentlyAlerted(
@@ -146,33 +151,34 @@ export const detectAlerts = internalMutation({
 		const now = Date.now();
 		const pastCurves = await pastCurvesBefore(ctx, now);
 		const origin = isLocalDevelopment() ? BIFROST_LOCAL_URL : BIFROST_URL;
-		let triggered = 0;
+		const triggered: { event: Doc<"events">; rule: AlertRule; summary: string; detail: string }[] =
+			[];
 		for (const event of await upcomingEvents(ctx, now, EVENTS_TO_WATCH)) {
 			const snapshot = await snapshotOf(ctx, event, now, pastCurves);
 			const rule = RULE_FOR_STATUS[snapshot.status.kind];
 			if (!rule || (await recentlyAlerted(ctx, event, rule, now))) continue;
 
 			const { name } = await companyWithLogo(ctx, event.hostingCompany);
-			const { summary, detail } = describeAlert(rule, event, name, snapshot, now);
-			await ctx.db.insert("engagementAlerts", {
-				eventId: event._id,
-				rule,
-				summary,
-				detail,
-				triggeredAt: now,
-			});
-			await ctx.scheduler.runAfter(0, internal.engagement.alerts.notifySlack, {
-				text: slackText(
-					rule,
-					event._id,
-					{ summary, detail },
-					await mainOrganizers(ctx, event._id),
-					origin,
-				),
-			});
-			triggered++;
+			triggered.push({ event, rule, ...describeAlert(rule, event, name, snapshot, now) });
 		}
-		return triggered;
+		await Promise.all(
+			triggered.map(async ({ event, rule, summary, detail }) => {
+				const [organizers] = await Promise.all([
+					mainOrganizers(ctx, event._id),
+					ctx.db.insert("engagementAlerts", {
+						eventId: event._id,
+						rule,
+						summary,
+						detail,
+						triggeredAt: now,
+					}),
+				]);
+				await ctx.scheduler.runAfter(0, internal.engagement.alerts.notifySlack, {
+					text: slackText(rule, event._id, { summary, detail }, organizers, origin),
+				});
+			}),
+		);
+		return triggered.length;
 	},
 });
 
