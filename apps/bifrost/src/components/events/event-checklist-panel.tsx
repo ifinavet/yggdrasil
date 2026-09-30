@@ -1,7 +1,11 @@
 "use client";
 
 import { api } from "@workspace/backend/convex/api";
-import { type ChecklistPhase, helperConfirmation } from "@workspace/shared/events/checklist";
+import {
+	type ChecklistPhase,
+	eventTextComplete,
+	helperConfirmation,
+} from "@workspace/shared/events/checklist";
 import {
 	DAY_MS,
 	feedbackOpensAt,
@@ -25,6 +29,8 @@ export function EventChecklistPanel({
 		eventId: event._id,
 	});
 	const completed = new Set(event.completedChecklistSteps ?? []);
+	if (eventTextComplete(event)) completed.add("description");
+	else completed.delete("description");
 	const [saving, setSaving] = useState(false);
 	const setStep = useMutation(api.events.mutations.setChecklistStep);
 	const day = (at: number) => formatOsloDate(at, "d. MMM");
@@ -98,7 +104,6 @@ export function EventChecklistPanel({
 						]
 					: []),
 			],
-			action: { label: "Registrer oppmøte", href: `/events/${event._id}/registrations` },
 		},
 		{
 			id: "followup",

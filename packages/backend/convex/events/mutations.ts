@@ -336,7 +336,10 @@ export const setChecklistStep = mutation({
 	args: { eventId: v.id("events"), stepId: v.string(), completed: v.boolean() },
 	handler: async (ctx, { eventId, stepId, completed }) => {
 		await requireRole(ctx, internalRoles);
-		if (!EVENT_CHECKLIST.some((phase) => phase.steps.some((step) => step.id === stepId))) {
+		if (
+			stepId === "description" ||
+			!EVENT_CHECKLIST.some((phase) => phase.steps.some((step) => step.id === stepId))
+		) {
 			throw new ConvexError("Ukjent sjekklistepunkt.");
 		}
 		const event = await ctx.db.get(eventId);

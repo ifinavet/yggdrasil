@@ -13,7 +13,7 @@ export const EVENT_CHECKLIST = [
 		id: "registration",
 		label: "Påmelding",
 		steps: [
-			{ id: "description", label: "Avklar arrangementsteksten" },
+			{ id: "description", label: "Avklar tittel, teaser og beskrivelse" },
 			{
 				id: "promotion",
 				label: "Avklar promotering med PR-ansvarlig og sjekk Innsikt for prognosen",
@@ -34,6 +34,7 @@ export const EVENT_CHECKLIST = [
 		label: "Arrangementsdag",
 		steps: [
 			{ id: "welcome", label: "Ta imot bedriften" },
+			{ id: "attendance", label: "Registrer oppmøte" },
 			{ id: "feedback-reminder", label: "Minn deltakerne om tilbakemeldinger" },
 		],
 	},
@@ -53,4 +54,28 @@ export type ChecklistStep = (typeof EVENT_CHECKLIST)[number]["steps"][number]["i
 export function helperConfirmation(names: readonly string[]): string {
 	if (names.length === 0) return "Velg medhjelpere";
 	return `Bekreft at ${new Intl.ListFormat("nb", { type: "conjunction" }).format(names)} ${names.length === 1 ? "skal være medhjelper" : "skal være medhjelpere"}`;
+}
+
+export const EVENT_TEXT_PLACEHOLDER = "TBD";
+
+export function eventTextComplete(event: {
+	title: string;
+	teaser: string;
+	description: string;
+}): boolean {
+	return [event.title, event.teaser, event.description].every((value) => {
+		let insideTag = false;
+		let text = "";
+		for (const char of value.replaceAll("&nbsp;", " ")) {
+			if (char === "<") insideTag = true;
+			else if (char === ">" && insideTag) insideTag = false;
+			else if (!insideTag) text += char;
+		}
+		text = text.trim();
+		return (
+			text.length > 0 &&
+			!text.toUpperCase().includes(EVENT_TEXT_PLACEHOLDER) &&
+			text.toLowerCase() !== "mer info kommer"
+		);
+	});
 }

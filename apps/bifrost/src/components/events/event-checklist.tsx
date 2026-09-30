@@ -16,7 +16,6 @@ export type ChecklistMilestone = {
 	date: string;
 	overdue?: boolean;
 	automation?: readonly string[];
-	action?: { label: string; href: string };
 };
 
 export function EventChecklist({
@@ -116,7 +115,8 @@ export function EventChecklist({
 							<Checkbox
 								id={`${panelId}-${step.id}`}
 								checked={completed.has(step.id)}
-								disabled={saving}
+								disabled={saving || step.id === "description"}
+								className={step.id === "description" ? "disabled:opacity-100" : undefined}
 								onCheckedChange={(checked) => onToggle(step.id, checked === true)}
 							/>
 							<label
@@ -138,23 +138,7 @@ export function EventChecklist({
 								<li key={description}>{description}</li>
 							))}
 						</ul>
-						{milestone.action && (
-							<a
-								href={milestone.action.href}
-								className="text-foreground underline underline-offset-4"
-							>
-								{milestone.action.label}
-							</a>
-						)}
 					</div>
-				)}
-				{!milestone?.automation && milestone?.action && (
-					<a
-						href={milestone.action.href}
-						className="mt-2 inline-flex text-muted-foreground text-xs underline underline-offset-4"
-					>
-						{milestone.action.label}
-					</a>
 				)}
 			</div>
 		</section>
