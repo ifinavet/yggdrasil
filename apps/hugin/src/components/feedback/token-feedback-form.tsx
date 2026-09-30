@@ -20,16 +20,18 @@ type OpenFeedback = Extract<
 type Submission = FunctionReturnType<
 	typeof api.feedback.responses.mutations.submitFeedbackResponse
 >;
+export type FeedbackCredential = { token: string } | { inviteId: string };
 export function TokenFeedbackForm({
-	token,
+	credential,
 	feedback,
 	onComplete,
 }: Readonly<{
-	token: string;
+	credential: FeedbackCredential;
 	feedback: OpenFeedback;
 	onComplete: (result: Exclude<Submission, { status: "validation-error" }>) => void;
 }>) {
-	const submit = useMutation(api.feedback.responses.mutations.submitFeedbackResponse);
+	const submitWithToken = useMutation(api.feedback.responses.mutations.submitFeedbackResponse);
+	const submitAsOwner = useMutation(api.feedback.responses.mutations.submitOwnFeedbackResponse);
 	const [submitError, setSubmitError] = useState<string>();
 	const [serverErrors, setServerErrors] = useState<Record<string, string>>({});
 	const formElement = useRef<HTMLFormElement>(null);
@@ -41,7 +43,10 @@ export function TokenFeedbackForm({
 			setSubmitError(undefined);
 			setServerErrors({});
 			try {
-				const result = await submit({ token, answers: value });
+				const result =
+					"token" in credential
+						? await submitWithToken({ ...credential, answers: value })
+						: await submitAsOwner({ ...credential, answers: value });
 				if (result.status === "validation-error") {
 					setServerErrors(result.errors);
 					setSubmitError(feedbackCopy.validationError);

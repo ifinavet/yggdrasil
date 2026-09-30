@@ -1,0 +1,60 @@
+name: Set Convex env
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production
+  cancel-in-progress: false
+
+jobs:
+  set-env:
+    name: Push IAM settings to Convex
+    if: github.repository == 'ifinavet/yggdrasil' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Check secrets
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+          GOOGLE_SERVICE_ACCOUNT_EMAIL: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_EMAIL }}
+          GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY }}
+          GOOGLE_WORKSPACE_ADMIN_EMAIL: ${{ secrets.GOOGLE_WORKSPACE_ADMIN_EMAIL }}
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_ENGAGEMENT_WEBHOOK_URL: ${{ secrets.SLACK_ENGAGEMENT_WEBHOOK_URL }}
+          SLACK_INVITE_LINK: ${{ vars.SLACK_INVITE_LINK }}
+        run: |
+          : "${CONVEX_DEPLOY_KEY:?Set the production CONVEX_DEPLOY_KEY secret}"
+          : "${GOOGLE_SERVICE_ACCOUNT_EMAIL:?Set the GOOGLE_SERVICE_ACCOUNT_EMAIL secret}"
+          : "${GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY:?Set the GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY secret}"
+          : "${GOOGLE_WORKSPACE_ADMIN_EMAIL:?Set the GOOGLE_WORKSPACE_ADMIN_EMAIL secret}"
+          : "${SLACK_BOT_TOKEN:?Set the SLACK_BOT_TOKEN secret}"
+          : "${SLACK_ENGAGEMENT_WEBHOOK_URL:?Set the SLACK_ENGAGEMENT_WEBHOOK_URL secret}"
+          : "${SLACK_INVITE_LINK:?Set the SLACK_INVITE_LINK variable}"
+
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Set variables on the production deployment
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+          GOOGLE_SERVICE_ACCOUNT_EMAIL: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_EMAIL }}
+          GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY }}
+          GOOGLE_WORKSPACE_ADMIN_EMAIL: ${{ secrets.GOOGLE_WORKSPACE_ADMIN_EMAIL }}
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_ENGAGEMENT_WEBHOOK_URL: ${{ secrets.SLACK_ENGAGEMENT_WEBHOOK_URL }}
+          SLACK_INVITE_LINK: ${{ vars.SLACK_INVITE_LINK }}
+        run: |
+          for name in GOOGLE_SERVICE_ACCOUNT_EMAIL GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY GOOGLE_WORKSPACE_ADMIN_EMAIL SLACK_BOT_TOKEN SLACK_ENGAGEMENT_WEBHOOK_URL SLACK_INVITE_LINK; do
+            printf '%s' "${!name}" \
+              | pnpm --dir packages/backend exec convex env set "$name" --force
+          done

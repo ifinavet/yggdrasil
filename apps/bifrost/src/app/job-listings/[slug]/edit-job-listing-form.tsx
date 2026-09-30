@@ -2,7 +2,11 @@
 
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
-import { humanReadableFullDateTime } from "@workspace/shared/time";
+import {
+	humanReadableFullDateTime,
+	jobListingLatestDeadline,
+	jobListingPublishedAt,
+} from "@workspace/shared/time";
 import { useMutation, useQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import { usePostHog } from "posthog-js/react";
@@ -92,6 +96,9 @@ export default function EditJobListingForm({
 		applicationUrl: jobListing.applicationUrl,
 	};
 
+	const publishedAt = jobListingPublishedAt(jobListing) ?? Date.now();
+	const latestDeadline = new Date(jobListingLatestDeadline(publishedAt));
+
 	const handlePrimaryFormSubmit = (values: JobListingFormValues) => handleUpdate(values, true);
 
 	const handleSecondaryFormSubmit = (values: JobListingFormValues) => handleUpdate(values, false);
@@ -101,6 +108,7 @@ export default function EditJobListingForm({
 	return (
 		<JobListingForm
 			defaultValues={defaultValues}
+			latestDeadline={latestDeadline}
 			onPrimarySubmitAction={handlePrimaryFormSubmit}
 			onSecondarySubmitAction={handleSecondaryFormSubmit}
 			onTertiarySubmitAction={handleTertiaryFormSubmit}

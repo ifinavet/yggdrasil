@@ -222,25 +222,13 @@ describe("getAll", () => {
 		expect(overview.map((event) => event.feedbackStatus)).toEqual(["draft", "delivered"]);
 	});
 
-	it("hides report status from internals who do not organize the event", async () => {
+	it("shows report status to internals who do not organize the event", async () => {
 		const { t, companyId } = await setup();
 		const viewer = await internalUser(t, "intern@example.com");
 		const eventId = await insertEvent(t, companyId, { eventStart: FALL_EVENT_START });
 		await insertReport(t, eventId, await insertCampaign(t, eventId, "closed"), { status: "draft" });
 
 		const [event] = await overviewFor(t, viewer);
-
-		expect(event?.feedbackStatus).toBeNull();
-	});
-
-	it("shows report status to super-admins who do not organize the event", async () => {
-		const { t, companyId } = await setup();
-		const admin = await insertUser(t, "admin@example.com");
-		await grantRole(t, admin._id, "super-admin");
-		const eventId = await insertEvent(t, companyId, { eventStart: FALL_EVENT_START });
-		await insertReport(t, eventId, await insertCampaign(t, eventId, "closed"), { status: "draft" });
-
-		const [event] = await overviewFor(t, admin);
 
 		expect(event?.feedbackStatus).toBe("draft");
 	});
@@ -256,5 +244,59 @@ describe("getAll", () => {
 		const [event] = await overviewFor(t, viewer);
 
 		expect(event?.feedbackStatus).toBeNull();
+	});
+});
+
+describe("event queries hosting company data", () => {
+	it("getUpcoming returns the hosting company name and logo url", async () => {
+		const { t, companyId } = await setup();
+		await insertEvent(t, companyId, { eventStart: Date.now() + 60_000 });
+
+		const [event] = await t.query(api.events.queries.getUpcoming, { n: 3 });
+
+		expect(event.hostingCompanyName).toBe("Testbedrift");
+		expect(event.hostingCompanyLogoUrl).toMatch(/^http/);
+	});
+
+	it("getCurrentSemester returns the hosting company logo url for every event", async () => {
+		const { t, companyId } = await setup();
+		await insertEvent(t, companyId, { eventStart: Date.now() + 60_000 });
+
+		const byMonth = await t.query(api.events.queries.getCurrentSemester, { isExternal: false });
+		const events = Object.values(byMonth).flat();
+
+		expect(events.length).toBeGreaterThan(0);
+		for (const event of events) {
+			expect(event.hostingCompanyName).toBe("Testbedrift");
+			expect(event.hostingCompanyLogoUrl).toMatch(/^http/);
+		}
+	});
+
+	it("getEvent returns the hosting company description and logo url", async () => {
+		const { t, companyId } = await setup();
+		await t.run(async (ctx) => {
+			await ctx.db.patch(companyId, { description: "<p>Om bedriften</p>" });
+		});
+		const eventId = await insertEvent(t, companyId, { eventStart: Date.now() + 60_000 });
+
+		const event = await t.query(api.events.queries.getEvent, { identifier: eventId });
+
+		expect(event.hostingCompanyName).toBe("Testbedrift");
+		expect(event.hostingCompanyDescription).toBe("<p>Om bedriften</p>");
+		expect(event.hostingCompanyLogoUrl).toMatch(/^http/);
+	});
+
+	it("getUpcoming returns a null logo url when the company has no stored logo", async () => {
+		const { t, companyId } = await setup();
+		await t.run(async (ctx) => {
+			const company = await ctx.db.get(companyId);
+			if (!company) throw new Error("missing company");
+			await ctx.db.delete(company.logo);
+		});
+		await insertEvent(t, companyId, { eventStart: Date.now() + 60_000 });
+
+		const [event] = await t.query(api.events.queries.getUpcoming, { n: 3 });
+
+		expect(event.hostingCompanyLogoUrl).toBeNull();
 	});
 });

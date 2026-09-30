@@ -16,7 +16,7 @@ export function EngagementBreadcrumb() {
 				</BreadcrumbItem>
 				<BreadcrumbSeparator />
 				<BreadcrumbItem>
-					<BreadcrumbPage>Engasjement</BreadcrumbPage>
+					<BreadcrumbPage>Innsikt</BreadcrumbPage>
 				</BreadcrumbItem>
 			</BreadcrumbList>
 		</Breadcrumb>

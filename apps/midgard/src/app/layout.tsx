@@ -1,8 +1,6 @@
 import { MIDGARD_LOCAL_URL } from "@workspace/shared/constants";
 import type { Metadata } from "next";
 import "./globals.css";
-import { nbNO } from "@clerk/localizations";
-import ClerkProvider from "@workspace/auth/provider";
 import { PostHogPageView } from "@workspace/auth/telemetry-client";
 import Footer from "@workspace/ui/components/footer";
 import { Toaster } from "@workspace/ui/components/sonner";
@@ -11,6 +9,8 @@ import { ThemeProvider } from "@workspace/ui/providers/theme-provider";
 import { Suspense } from "react";
 import { Consent } from "@/components/common/consent";
 import Header from "@/components/common/header";
+import PendingOfferBanner from "@/components/common/pending-offer-banner";
+import ClerkProvider from "@/providers/clerk-provider";
 import ConvexClientProvider from "@/providers/convex-clerk-provider";
 
 const defaultUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : MIDGARD_LOCAL_URL;
@@ -34,12 +34,15 @@ export default function RootLayout({
 		<html lang="no" suppressHydrationWarning>
 			<body className={`${eina.className} antialiased`}>
 				<Suspense fallback={null}>
-					<ClerkProvider localization={nbNO}>
+					<ClerkProvider>
 						<ConvexClientProvider>
 							<ThemeProvider>
 								<div className="flex h-screen flex-col overflow-y-auto">
 									<Header />
-									<main className="mb-12 flex-1">{children}</main>
+									<main className="mb-12 flex-1">
+										<PendingOfferBanner />
+										{children}
+									</main>
 									<Footer />
 									<Toaster richColors />
 								</div>

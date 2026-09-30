@@ -3,19 +3,32 @@
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import type { ACCESS_RIGHTS } from "@workspace/shared/constants";
+import { Button } from "@workspace/ui/components/button";
+import { SearchField } from "@workspace/ui/components/search-field";
 import { type Preloaded, useMutation, usePreloadedQuery } from "convex/react";
+import { Plus } from "lucide-react";
 import { usePostHog } from "posthog-js/react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { DataTable } from "@/components/common/tables/table";
+import { AccessList } from "./access/access-list";
+import type { OnboardingPrefill } from "./access/access-status";
 import { createColumns } from "./columns";
-import { NewInternal } from "./new-internal/new-internal";
+import { InternalDetails } from "./internal-details";
+import { filterMembers } from "./member-search";
+import { OnboardMemberDialog } from "./onboard-member/onboard-member-dialog";
 
 export default function Internals({
 	preloadedInternals,
+	preloadedAccess,
 }: Readonly<{
 	preloadedInternals: Preloaded<typeof api.users.organization.queries.getAllInternals>;
+	preloadedAccess: Preloaded<typeof api.iam.queries.overview>;
 }>) {
 	const internals = usePreloadedQuery(preloadedInternals);
+	const access = usePreloadedQuery(preloadedAccess);
+	const [search, setSearch] = useState("");
+	const [onboarding, setOnboarding] = useState<{ prefill: OnboardingPrefill | null }>();
 
 	const postHog = usePostHog();
 
@@ -23,9 +36,8 @@ export default function Internals({
 	const deleteInternalAction = (internalsId: Id<"internals">) =>
 		deleteInternal({ id: internalsId })
 			.then(() => {
-				toast("Intern medlem slettet", {
-					description:
-						"Intern medlemmet er nå slettet. Denne handlingen kan ikke angres, og blir logget.",
+				toast("Personen er fjernet", {
+					description: "Google-kontoen suspenderes. Husk å deaktivere Slack-kontoen.",
 				});
 
 				postHog.capture("delete-internal-member", {
@@ -33,7 +45,7 @@ export default function Internals({
 				});
 			})
 			.catch((error) => {
-				toast.error("Kunne ikke slette intern medlem", {
+				toast.error("Kunne ikke fjerne personen", {
 					description: "Denne hendelsen er logget. Skulle den vedvare ta kontakt med webansvarlig",
 				});
 				postHog.capture("delete-internal-member-error", {
@@ -72,12 +84,42 @@ export default function Internals({
 		email: internal.email,
 		group: internal.group,
 		role: internal.role as (typeof ACCESS_RIGHTS)[number],
+		connections: internal.connections,
 	}));
 
 	return (
-		<div className="space-y-4">
-			<NewInternal />
-			<DataTable columns={columns} data={data} className="overflow-clip rounded-lg" />
+		<div className="grid gap-4">
+			<Button className="w-fit justify-self-end" onClick={() => setOnboarding({ prefill: null })}>
+				<Plus aria-hidden />
+				Legg til medlem
+			</Button>
+			<AccessList overview={access} onAdd={(prefill) => setOnboarding({ prefill })} />
+			<SearchField
+				value={search}
+				onChange={setSearch}
+				placeholder="Navn, Navet-e-post eller UiO-e-post"
+				className="sm:w-96"
+			/>
+			<DataTable
+				columns={columns}
+				data={filterMembers(data, search)}
+				empty_message={search.trim() ? "Fant ingen medlemmer som passer søket." : undefined}
+				className="overflow-clip rounded-lg"
+				renderExpanded={(row) => (
+					<InternalDetails
+						internalId={row.original.internalId}
+						connections={row.original.connections}
+					/>
+				)}
+			/>
+			<OnboardMemberDialog
+				open={onboarding !== undefined}
+				onOpenChange={(open) => {
+					if (!open) setOnboarding(undefined);
+				}}
+				prefill={onboarding?.prefill ?? null}
+				domain={access.domain}
+			/>
 		</div>
 	);
 }

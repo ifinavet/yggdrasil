@@ -1,12 +1,14 @@
 import { JOB_LISTING_ORDER_EMAIL } from "@workspace/shared/constants/contact";
 import type { ReactNode } from "react";
-import { Body, Button, Container, Head, Html, Img, Link, Preview, Text } from "react-email";
+import { Body, Button, Container, Head, Html, Img, Preview } from "react-email";
 import { NAVET_LOGO_URL } from "../constants.js";
+import { EmailSignature } from "./email-signature.js";
 
 export function OrderLayout({
 	preview,
+	contactEmail = JOB_LISTING_ORDER_EMAIL,
 	children,
-}: Readonly<{ preview: string; children: ReactNode }>) {
+}: Readonly<{ preview: string; contactEmail?: string; children: ReactNode }>) {
 	return (
 		<Html lang="no">
 			<Head />
@@ -21,12 +23,7 @@ export function OrderLayout({
 				<Container style={{ backgroundColor: "#ffffff", padding: "32px", maxWidth: "560px" }}>
 					<Img src={NAVET_LOGO_URL} alt="Navet" height="40" />
 					{children}
-					<Text style={{ margin: "32px 0 0" }}>Med vennlig hilsen,</Text>
-					<Text style={{ margin: "8px 0 0" }}>
-						Navet
-						<br />
-						<Link href={`mailto:${JOB_LISTING_ORDER_EMAIL}`}>{JOB_LISTING_ORDER_EMAIL}</Link>
-					</Text>
+					<EmailSignature name="Navet" email={contactEmail} />
 				</Container>
 			</Body>
 		</Html>

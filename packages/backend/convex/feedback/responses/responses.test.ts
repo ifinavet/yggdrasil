@@ -339,3 +339,80 @@ describe("public token feedback", () => {
 		});
 	});
 });
+
+describe("signed-in invite feedback", () => {
+	const resolveInvite = api.feedback.responses.actions.resolveOwnFeedbackInvite;
+	const submitOwn = api.feedback.responses.mutations.submitOwnFeedbackResponse;
+	const pending = api.feedback.responses.queries.myPendingFeedback;
+	beforeEach(() => {
+		vi.useFakeTimers();
+		vi.setSystemTime(now);
+	});
+	afterEach(() => vi.useRealTimers());
+	it("opens and submits only for the invite owner", async () => {
+		const { backend, publisherClient, recipient, inviteId } = await setupTokenFeedback();
+		const owner = asUser(backend, recipient);
+		for (const client of [backend, publisherClient]) {
+			expect(await client.action(resolveInvite, { inviteId })).toEqual({ status: "invalid" });
+			expect(await client.mutation(submitOwn, { inviteId, answers })).toEqual({
+				status: "invalid",
+			});
+		}
+		expect(await owner.action(resolveInvite, { inviteId: "not-an-id" })).toEqual({
+			status: "invalid",
+		});
+		expect(await owner.action(resolveInvite, { inviteId })).toMatchObject({ status: "open" });
+		expect(await owner.mutation(submitOwn, { inviteId, answers })).toEqual({
+			status: "submitted",
+		});
+		expect(await backend.run((ctx) => ctx.db.query("formResponses").collect())).toHaveLength(1);
+		expect(await backend.action(resolveToken, { token })).toEqual({ status: "already-submitted" });
+	});
+	it("points the banner at the newest open invite until it is answered", async () => {
+		const { backend, publisherClient, recipient, eventId, versionId, inviteId } =
+			await setupTokenFeedback();
+		const owner = asUser(backend, recipient);
+		const event = await backend.run((ctx) => ctx.db.get(eventId));
+		if (!event) throw new Error("missing event");
+		const company = await backend.run((ctx) => ctx.db.get(event.hostingCompany));
+		const newerEventId = await insertEvent(backend, event.hostingCompany, {
+			feedbackEnabled: true,
+			eventStart: event.eventStart + 86_400_000,
+		});
+		const newerInviteId = await backend.run(async (ctx) => {
+			const newerCampaignId = await ctx.db.insert("feedbackCampaigns", {
+				eventId: newerEventId,
+				formVersionId: versionId,
+				status: "open",
+				opensAt: now - 1000,
+				closesAt: now + 60000,
+				generation: 1,
+			});
+			return ctx.db.insert("feedbackInvites", {
+				campaignId: newerCampaignId,
+				userId: recipient._id,
+				responded: false,
+				bounced: false,
+				complained: false,
+				delivered: false,
+				sent: false,
+			});
+		});
+		expect(await backend.query(pending, { now })).toBeNull();
+		expect(await publisherClient.query(pending, { now })).toBeNull();
+		expect(await owner.query(pending, { now })).toEqual({
+			inviteId: newerInviteId,
+			companyName: company?.name,
+			firstName: "Test",
+		});
+		await owner.mutation(submitOwn, { inviteId: newerInviteId, answers });
+		expect(await owner.query(pending, { now })).toEqual({
+			inviteId,
+			companyName: company?.name,
+			firstName: "Test",
+		});
+		expect(await owner.query(pending, { now: now + 60000 })).toBeNull();
+		await backend.run((ctx) => ctx.db.delete(event.hostingCompany));
+		expect(await owner.query(pending, { now })).toBeNull();
+	});
+});

@@ -5,8 +5,8 @@ import { engagementSchema } from "./engagement/schema";
 import { eventsSchema } from "./events/schema";
 import { feedbackReportSchema } from "./feedback/reports/schema";
 import { feedbackSchema } from "./feedback/schema";
-import { feedbackTestSendSchema } from "./feedback/testSend/schema";
 import { formsSchema } from "./forms/schema";
+import { iamSchema } from "./iam/schema";
 import { invoicingSchema } from "./invoicing/schema";
 import { jobListingOrdersSchema } from "./jobListingOrders/schema";
 import { jobListingsSchema } from "./jobListings/schema";
@@ -32,9 +32,9 @@ export default defineSchema({
 	...formsSchema,
 	...feedbackSchema,
 	...feedbackReportSchema,
-	...feedbackTestSendSchema,
 	...accessSchema,
 	...semesterPlanningSchema,
 	...productsSchema,
 	...invoicingSchema,
+	...iamSchema,
 });

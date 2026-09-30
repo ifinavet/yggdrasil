@@ -6,12 +6,14 @@ import { internalRoles, requireRole } from "../auth/accessRights";
 import { getCurrentUserOrThrow } from "../auth/currentUser";
 import { syncFeedbackCampaign } from "../feedback/delivery/campaigns";
 import { eventProductFields } from "../products/sales";
+import { requireFoodItem } from "./food";
 import { eventSlug, insertEventWithOrganizers } from "./helper";
 import { makeStatusPending } from "./registrations/mutations";
 import { editableEventFields, organizerRoleValidator } from "./schema";
 
 const eventMutationArgs = {
 	...editableEventFields,
+	foodItem: v.id("foodItems"),
 	productId: v.optional(v.id("products")),
 	organizers: v.array(
 		v.object({
@@ -32,7 +34,7 @@ const eventMutationArgs = {
  * @param {number} registrationOpens - The registration opening time as a timestamp.
  * @param {number} participationLimit - The maximum number of participants.
  * @param {string} location - The event location.
- * @param {string} food - The food information for the event.
+ * @param {Id<"foodItems">} foodItem - The food served at the event.
  * @param {string} language - The event language.
  * @param {string} ageRestriction - The event age restriction.
  * @param {string | undefined} externalUrl - The optional external registration URL.
@@ -56,7 +58,7 @@ export const update = mutation({
 			registrationOpens,
 			participationLimit,
 			location,
-			food,
+			foodItem,
 			language,
 			ageRestriction,
 			externalEvent,
@@ -68,6 +70,7 @@ export const update = mutation({
 		},
 	) => {
 		await requireRole(ctx, internalRoles);
+		await requireFoodItem(ctx, foodItem);
 
 		const event = await ctx.db.get(eventId);
 		if (!event) {
@@ -97,7 +100,8 @@ export const update = mutation({
 			registrationOpens,
 			participationLimit,
 			location,
-			food,
+			foodItem,
+			foodGuessed: undefined,
 			language,
 			ageRestriction,
 			externalEvent,
@@ -266,7 +270,7 @@ export const updatePublishedStatus = mutation({
  * @param {number} registrationOpens - The registration opening time as a timestamp.
  * @param {number} participationLimit - The maximum number of participants.
  * @param {string} location - The event location.
- * @param {string} food - The food information for the event.
+ * @param {Id<"foodItems">} foodItem - The food served at the event.
  * @param {string} language - The event language.
  * @param {string} ageRestriction - The event age restriction.
  * @param {string | undefined} externalUrl - The optional external registration URL.
@@ -289,7 +293,7 @@ export const create = mutation({
 			registrationOpens,
 			participationLimit,
 			location,
-			food,
+			foodItem,
 			language,
 			ageRestriction,
 			externalEvent,
@@ -301,6 +305,7 @@ export const create = mutation({
 		},
 	) => {
 		await requireRole(ctx, internalRoles);
+		await requireFoodItem(ctx, foodItem);
 
 		await insertEventWithOrganizers(
 			ctx,
@@ -312,7 +317,7 @@ export const create = mutation({
 				registrationOpens,
 				participationLimit,
 				location,
-				food,
+				foodItem,
 				language,
 				ageRestriction,
 				externalEvent,

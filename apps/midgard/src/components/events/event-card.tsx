@@ -3,7 +3,7 @@ import { CalendarDays, Users } from "lucide-react";
 import Image from "next/image";
 
 export type EventCardType = {
-	companyImage: string;
+	companyImage: string | null;
 	companyTitle: string;
 	title: string;
 	teaser: string;
@@ -15,13 +15,15 @@ export default function EventCard({ event }: Readonly<{ event: EventCardType }>)
 	return (
 		<div className="flex h-100 flex-col overflow-clip rounded-lg border border-primary/10 shadow-md">
 			<div className="relative grid h-32 place-content-center px-8 py-6 md:h-48 lg:h-52 dark:bg-white/95">
-				<Image
-					src={event.companyImage}
-					alt={event.companyTitle}
-					className="object-contain p-6"
-					sizes="50vw"
-					fill
-				/>
+				{event.companyImage && (
+					<Image
+						src={event.companyImage}
+						alt={event.companyTitle}
+						className="object-contain p-6"
+						sizes="(min-width: 1024px) 20rem, (min-width: 640px) 50vw, 100vw"
+						fill
+					/>
+				)}
 			</div>
 			<div className="flex flex-1 flex-col justify-between gap-4 bg-primary p-6 text-primary-foreground dark:bg-gray-800">
 				<div className="flex flex-col gap-4">

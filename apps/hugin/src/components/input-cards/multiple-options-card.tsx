@@ -166,7 +166,7 @@ export function MultipleOptionsCard({
 							placeholder="Hva da?"
 							aria-label={`Annet: ${label}`}
 							onChange={(event) => changeOtherText(event.target.value)}
-							className="block min-h-[56px] w-full resize-none rounded-xl border-input bg-card px-[14px] py-[13px] text-[15px] leading-[1.45] transition-[border-color,box-shadow] placeholder:text-[color-mix(in_oklab,var(--muted-foreground)_78%,var(--card))] focus:border-ring focus:shadow-[0_0_0_3px_color-mix(in_oklab,var(--ring)_32%,transparent)] focus:outline-none"
+							className="block min-h-[56px] w-full resize-none rounded-xl border-input bg-card px-[14px] py-[13px] text-[15px] leading-[1.45] transition-[border-color,box-shadow] contain-inline-size placeholder:text-[color-mix(in_oklab,var(--muted-foreground)_78%,var(--card))] focus:border-ring focus:shadow-[0_0_0_3px_color-mix(in_oklab,var(--ring)_32%,transparent)] focus:outline-none"
 						/>
 					</div>
 				)}

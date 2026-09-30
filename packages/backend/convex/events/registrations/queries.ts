@@ -6,6 +6,7 @@ import {
 	getCurrentUserOrThrow,
 } from "../../auth/currentUser";
 import { getEventByIdentifier, isEventOrganizerOrAdmin } from "../helper";
+import { OFFER_ANSWER_WINDOW_MS } from "../waitlist/offer";
 import { getRegistrantStatistics } from "./statistics";
 
 /**
@@ -253,5 +254,33 @@ export const getRegistrantsInfo = query({
 		const event = await getEventByIdentifier(ctx, eventIdentifier);
 
 		return getRegistrantStatistics(ctx, event._id);
+	},
+});
+
+export const myPendingOffers = query({
+	args: {},
+	handler: async (ctx) => {
+		const user = await getCurrentUserOrNull(ctx);
+		if (!user) return [];
+		const now = Date.now();
+		const registrations = await ctx.db
+			.query("registrations")
+			.withIndex("by_userIdAndStatus", (q) => q.eq("userId", user._id).eq("status", "pending"))
+			.take(20);
+		const offers = await Promise.all(
+			registrations.map(async (registration) => {
+				const answerBy = registration.registrationTime + OFFER_ANSWER_WINDOW_MS;
+				if (answerBy <= now) return null;
+				const event = await ctx.db.get(registration.eventId);
+				if (!event?.published || event.eventStart <= now) return null;
+				return {
+					registrationId: registration._id,
+					eventId: event._id,
+					title: event.title,
+					answerBy,
+				};
+			}),
+		);
+		return offers.filter((offer) => offer !== null);
 	},
 });

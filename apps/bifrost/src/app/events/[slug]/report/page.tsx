@@ -6,11 +6,7 @@ import DegreeChart from "@/components/events/report/cards/degree-chart";
 import ProgramsChart from "@/components/events/report/cards/programs-chart";
 import EventFeedbackFormResponses from "@/components/events/report/form-responses";
 import DegreeTables from "@/components/events/report/table";
-import {
-	ReportFeedbackBanner,
-	ReportFeedbackStatistics,
-} from "@/components/feedback/event-report-feedback";
-import { FeedbackPreviewLink } from "@/components/feedback/feedback-preview-link";
+import { EventFeedbackPanel } from "@/components/feedback/event-feedback-panel";
 
 export default async function RapportPage({
 	params,
@@ -61,25 +57,22 @@ export default async function RapportPage({
 
 	return (
 		<div className="space-y-4">
-			<ReportFeedbackBanner preloadedEvent={preloadedEvent} slug={slug} />
 			<h3 className="border-b pb-2 font-semibold text-3xl tracking-tight">
 				Bedriftspresentasjons rapport
 			</h3>
-			<div className="flex flex-wrap gap-3">
-				<FeedbackPreviewLink eventId={slug} />
-			</div>
 			<h4 className="scroll-m-20 font-semibold text-xl tracking-tight">
 				Grader- og Studieretninger
 			</h4>
-			<div className="grid grid-cols-2 gap-4">
+			<div className="grid gap-4 md:grid-cols-2">
 				<DegreeChart chartData={degreeTotals} />
 				<ProgramsChart chartData={programTotals} />
 			</div>
 			<DegreeTables data={registrantsInfo} />
 			<h4 className="scroll-m-20 font-semibold text-xl tracking-tight">Tilbakemeldinger</h4>
-			<ReportFeedbackStatistics preloadedEvent={preloadedEvent}>
-				<EventFeedbackFormResponses preloadedEvent={preloadedEvent} />
-			</ReportFeedbackStatistics>
+			<EventFeedbackPanel
+				preloadedEvent={preloadedEvent}
+				fallback={<EventFeedbackFormResponses preloadedEvent={preloadedEvent} />}
+			/>
 		</div>
 	);
 }

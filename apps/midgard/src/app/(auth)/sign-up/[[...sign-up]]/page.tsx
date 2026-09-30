@@ -52,6 +52,11 @@ import { useRouter } from "next/navigation";
 import { usePostHog } from "posthog-js/react";
 import { useEffect, useRef, useState } from "react";
 import z from "zod/v4";
+import { redirectFromSearch } from "@/utils/auth-redirect";
+
+function postSignUpPath() {
+	return typeof window === "undefined" ? "/" : redirectFromSearch(window.location.search);
+}
 
 const signUpFormSchema = z
 	.object({
@@ -183,7 +188,7 @@ function ClerkSignUpPage() {
 					name: pendingSignUp.student.name,
 				});
 
-				router.push("/");
+				router.push(postSignUpPath());
 			} catch (error) {
 				setErrors([
 					{
@@ -293,7 +298,7 @@ function ClerkSignUpPage() {
 	});
 
 	if (isSignedIn && !pendingSignUp && !signUpCompletionFailed) {
-		router.push("/");
+		router.push(postSignUpPath());
 		return null;
 	}
 

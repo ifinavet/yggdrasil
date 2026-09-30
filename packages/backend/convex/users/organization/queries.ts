@@ -173,6 +173,17 @@ export const getAllInternals = query({
 					.withIndex("by_userId", (q) => q.eq("userId", internal.userId))
 					.first();
 
+				const account = await ctx.db
+					.query("memberAccounts")
+					.withIndex("by_userId", (q) => q.eq("userId", internal.userId))
+					.first();
+				const connections = account && {
+					uioEmail: account.uioEmail,
+					google: account.google,
+					welcomeSent: account.welcomeSentAt !== undefined,
+					slackLinked: account.slackUserId !== undefined,
+				};
+
 				if (!user)
 					return {
 						...internal,
@@ -180,6 +191,7 @@ export const getAllInternals = query({
 						email: "Ukjent, Error",
 						image: null,
 						role: rights?.role,
+						connections,
 					};
 
 				return {
@@ -188,6 +200,7 @@ export const getAllInternals = query({
 					email: user.email,
 					image: user.image,
 					role: rights?.role,
+					connections,
 				};
 			}),
 		);

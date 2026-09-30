@@ -1,17 +1,14 @@
-import { api } from "@workspace/backend/convex/api";
-import type { Doc } from "@workspace/backend/convex/dataModel";
-import { fetchQuery } from "convex/nextjs";
+import type { api } from "@workspace/backend/convex/api";
+import type { FunctionReturnType } from "convex/server";
 import Link from "next/link";
 import EventCard, { type EventCardType } from "./event-card";
 
-export default async function EventsCard({ event }: Readonly<{ event: Doc<"events"> }>) {
-	const company = await fetchQuery(api.companies.queries.getById, {
-		id: event.hostingCompany,
-	});
+type UpcomingEvent = FunctionReturnType<typeof api.events.queries.getUpcoming>[number];
 
+export default function EventsCard({ event }: Readonly<{ event: UpcomingEvent }>) {
 	const cardData = {
-		companyImage: company.imageUrl,
-		companyTitle: company.name,
+		companyImage: event.hostingCompanyLogoUrl,
+		companyTitle: event.hostingCompanyName,
 		title: event.title,
 		teaser: event.teaser,
 		participationLimit: event.participationLimit,

@@ -17,6 +17,7 @@ import { heatTint, needsLightText, PRIMARY_SERIES_COLOR } from "@/components/com
 import { useStableQuery } from "@/hooks/use-stable-query";
 import { AudiencePanel } from "./audience-panel";
 import {
+	DEMAND_NOTE,
 	formatShare,
 	lateUnregistrationNote,
 	type SemesterData,
@@ -47,9 +48,7 @@ function CompanyDemand({ companies }: Readonly<{ companies: SemesterData["compan
 					</div>
 				))}
 				<div className="pt-3">
-					<PanelNote>
-						Over 100 % betyr at ventelisten viser mer interesse enn det var plass til.
-					</PanelNote>
+					<PanelNote>{DEMAND_NOTE}</PanelNote>
 				</div>
 			</PanelBody>
 		</Panel>

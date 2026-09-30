@@ -14,6 +14,7 @@ import { internalRoles, requireRole } from "../auth/accessRights";
 import { eventsInSemester } from "../events/helper";
 import { companyWithLogo, eventSemesterValidator } from "../events/queries";
 import { audienceOf, withStudyYear } from "./audience";
+import { byCompany, metricsOf } from "./companyMetrics";
 import { activityBuckets, activityWindowMs, PACE_GRID, valueAt, WAVE_RULE } from "./metrics";
 import {
 	MAX_REGISTRATIONS_PER_EVENT,
@@ -224,14 +225,14 @@ export const paceCurve = query({
 	},
 });
 
-type SemesterEvent = {
+export type SemesterEvent = {
 	event: Doc<"events">;
 	registrations: Doc<"registrations">[];
 };
 
-type SemesterKey = { semester: EventSemester; year: number };
+export type SemesterKey = { semester: EventSemester; year: number };
 
-async function semesterEvents(ctx: QueryCtx, { semester, year }: SemesterKey, now: number) {
+export async function semesterEvents(ctx: QueryCtx, { semester, year }: SemesterKey, now: number) {
 	const events = (await eventsInSemester(ctx, semester, year)).filter(
 		(event) =>
 			event.published &&
@@ -256,24 +257,15 @@ function registeredOf({ registrations }: SemesterEvent) {
 	return registrations.filter((registration) => registration.status === "registered");
 }
 
-async function companyDemand(ctx: QueryCtx, events: SemesterEvent[]) {
-	const byCompany = new Map<Id<"companies">, { interested: number; seats: number }>();
-	for (const semesterEvent of events) {
-		const current = byCompany.get(semesterEvent.event.hostingCompany) ?? {
-			interested: 0,
-			seats: 0,
-		};
-		byCompany.set(semesterEvent.event.hostingCompany, {
-			interested: current.interested + semesterEvent.registrations.length,
-			seats: current.seats + semesterEvent.event.participationLimit,
-		});
-	}
-	const ranked = [...byCompany.entries()]
-		.map(([companyId, totals]) => ({ companyId, demand: totals.interested / totals.seats }))
-		.sort((a, b) => b.demand - a.demand)
-		.slice(0, TOP_COMPANIES);
+async function companyDemand(ctx: QueryCtx, events: SemesterEvent[], now: number) {
+	const ranked = [...byCompany(events)]
+		.map(([companyId, companyEvents]) => ({
+			companyId,
+			demand: metricsOf(companyEvents, now).demand ?? 0,
+		}))
+		.sort((a, b) => b.demand - a.demand);
 	return await Promise.all(
-		ranked.map(async ({ companyId, demand }) => ({
+		ranked.slice(0, TOP_COMPANIES).map(async ({ companyId, demand }) => ({
 			companyId,
 			...(await companyWithLogo(ctx, companyId)),
 			demand,
@@ -335,7 +327,7 @@ function fillByTimeslot(events: SemesterEvent[]) {
 	}));
 }
 
-async function studentsOf(
+export async function studentsOf(
 	ctx: QueryCtx,
 	registrations: readonly Doc<"registrations">[],
 	now: number,
@@ -368,7 +360,7 @@ async function studentPopulation(ctx: QueryCtx, now: number) {
 	return withStudyYear(await ctx.db.query("students").take(MAX_STUDENTS), now);
 }
 
-async function logStartedAt(ctx: QueryCtx) {
+export async function logStartedAt(ctx: QueryCtx) {
 	const first = await ctx.db.query("registrationLog").first();
 	return first?._creationTime ?? null;
 }
@@ -377,7 +369,11 @@ function isLogged(event: Doc<"events">, logStart: number | null) {
 	return logStart !== null && event.eventStart - DAY_MS >= logStart;
 }
 
-async function lateUnregistrationsOf(ctx: QueryCtx, event: Doc<"events">, logStart: number | null) {
+export async function lateUnregistrationsOf(
+	ctx: QueryCtx,
+	event: Doc<"events">,
+	logStart: number | null,
+) {
 	if (!isLogged(event, logStart)) return null;
 	const late = await ctx.db
 		.query("registrationLog")
@@ -438,7 +434,7 @@ export const semester = query({
 
 		return {
 			semester: current,
-			companies: await companyDemand(ctx, events),
+			companies: await companyDemand(ctx, events, now),
 			attendance: weeklyAttendance(events, now),
 			lateUnregistrations: {
 				current: late.count,
@@ -451,6 +447,25 @@ export const semester = query({
 	},
 });
 
+export async function pastEventRow(
+	ctx: QueryCtx,
+	semesterEvent: SemesterEvent,
+	logStart: number | null,
+) {
+	const { event } = semesterEvent;
+	const company = await companyWithLogo(ctx, event.hostingCompany);
+	return {
+		_id: event._id,
+		title: event.title,
+		companyName: company.name,
+		companyLogoUrl: company.logoUrl,
+		eventStart: event.eventStart,
+		participationLimit: event.participationLimit,
+		...attendanceOf(semesterEvent),
+		lateUnregistrations: await lateUnregistrationsOf(ctx, event, logStart),
+	};
+}
+
 export const past = query({
 	args: { now: v.number(), semester: eventSemesterValidator, year: v.number() },
 	handler: async (ctx, { now, semester, year }) => {
@@ -460,20 +475,7 @@ export const past = query({
 			.filter(({ event }) => event.eventStart <= now)
 			.reverse();
 		return await Promise.all(
-			events.map(async (semesterEvent) => {
-				const { event } = semesterEvent;
-				const company = await companyWithLogo(ctx, event.hostingCompany);
-				return {
-					_id: event._id,
-					title: event.title,
-					companyName: company.name,
-					companyLogoUrl: company.logoUrl,
-					eventStart: event.eventStart,
-					participationLimit: event.participationLimit,
-					...attendanceOf(semesterEvent),
-					lateUnregistrations: await lateUnregistrationsOf(ctx, event, logStart),
-				};
-			}),
+			events.map((semesterEvent) => pastEventRow(ctx, semesterEvent, logStart)),
 		);
 	},
 });

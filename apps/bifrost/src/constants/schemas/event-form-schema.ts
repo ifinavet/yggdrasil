@@ -11,7 +11,10 @@ export const formSchema = z.object({
 	eventDate: z.date("Dato og tid for arrangementet er påkrevd"),
 	registrationDate: z.date("Dato og tid for åpning av påmelding er påkrevd"),
 	description: z.string().min(1, "Det er veldig viktig med en beskrivelse av arrangementet"),
-	food: z.string().min(1, "Skulle vi hatt noe mat kanskje?"),
+	foodItem: z
+		.string()
+		.optional()
+		.refine((foodItem) => foodItem !== undefined, "Skulle vi hatt noe mat kanskje?"),
 	location: z.string().min(1, "Hvor skal arrangementet foregå?"),
 	ageRestrictions: z.string().min(1, "Hvem alle få lov til å være på arrangementet?"),
 	language: z.string().min(1, "Husk å spesifisere språk"),

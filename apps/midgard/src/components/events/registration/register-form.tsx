@@ -2,7 +2,7 @@
 
 import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
-import type { Id } from "@workspace/backend/convex/dataModel";
+import type { Doc } from "@workspace/backend/convex/dataModel";
 import { Button } from "@workspace/ui/components/button";
 import {
 	Dialog,
@@ -26,15 +26,16 @@ import { useMutation } from "convex/react";
 import { usePostHog } from "posthog-js/react";
 import { useState } from "react";
 import { toast } from "sonner";
+import CalendarLinks from "./calendar-links";
 
 export default function RegisterForm({
-	eventId,
+	event,
 	className,
 	waitlist,
 	disabled,
 }: Readonly<{
 	className?: string;
-	eventId: Id<"events">;
+	event: Doc<"events">;
 	waitlist: boolean;
 	disabled: boolean;
 }>) {
@@ -47,7 +48,7 @@ export default function RegisterForm({
 			notes: "",
 		},
 		onSubmit: async ({ value }) =>
-			signUp({ note: value.notes, eventId })
+			signUp({ note: value.notes, eventId: event._id })
 				.then((status) => {
 					if (status === "waitlist") {
 						toast.warning(
@@ -56,10 +57,13 @@ export default function RegisterForm({
 								: "Her gikk det unna! Du står nå på ventelisten og vil få en epost dersom det skulle bli en ledig plass til deg",
 						);
 					} else if (status === "registered") {
-						toast.success("Du er påmeldt arrangementet!");
+						toast.success("Du er påmeldt! Legg det i kalenderen så du ikke glemmer det.", {
+							duration: 15_000,
+							description: <CalendarLinks event={event} source="registration-toast" />,
+						});
 					}
 					postHog.capture("midgard-student_register", {
-						eventId,
+						eventId: event._id,
 						status: status,
 					});
 					setOpen(false);
