@@ -29,7 +29,7 @@
 		"convex": "^1.46.0",
 		"date-fns": "^4.4.0",
 		"lucide-react": "^1.48.0",
-		"next": "16.3.6",
+		"next": "16.3.7",
 		"posthog-js": "^1.434.13",
 		"radix-ui": "^1.6.7",
 		"react": "19.3.0",

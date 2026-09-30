@@ -12,7 +12,7 @@
 	},
 	"devDependencies": {
 		"@workspace/typescript-config": "workspace:*",
-		"next": "^16.3.6",
+		"next": "^16.3.7",
 		"typescript": "^7.0.2"
 	},
 	"exports": {
