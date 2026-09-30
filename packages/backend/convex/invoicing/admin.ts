@@ -35,6 +35,11 @@ async function companyNameOf(ctx: QueryCtx, invoice: Doc<"invoices">): Promise<s
 }
 
 async function summarize(ctx: QueryCtx, invoice: Doc<"invoices">, preview: InvoiceResolution) {
+	let issue: string | undefined;
+	if (preview.kind === "fail") issue = preview.error;
+	else if (preview.kind === "cancel" && invoice.status === "pending") {
+		issue = "Grunnlaget er ikke lenger aktivt.";
+	}
 	return {
 		_id: invoice._id,
 		kind: invoice.source.kind,
@@ -47,12 +52,7 @@ async function summarize(ctx: QueryCtx, invoice: Doc<"invoices">, preview: Invoi
 		status: invoice.status,
 		sentAt: invoice.sentAt,
 		amountOre: preview.kind === "ready" ? preview.details.line.unitPrice : undefined,
-		issue:
-			preview.kind === "fail"
-				? preview.error
-				: preview.kind === "cancel" && invoice.status === "pending"
-					? "Grunnlaget er ikke lenger aktivt."
-					: undefined,
+		issue,
 	};
 }
 
@@ -61,6 +61,7 @@ export const list = query({
 	returns: paginationResultValidator(invoiceSummary),
 	handler: async (ctx, { status, paginationOpts }) => {
 		await requireRole(ctx, adminRoles);
+		const otherOrder = status === "pending" ? "asc" : "desc";
 		const invoices =
 			status === "sent"
 				? ctx.db
@@ -70,7 +71,7 @@ export const list = query({
 				: ctx.db
 						.query("invoices")
 						.withIndex("by_status_and_serviceAt", (q) => q.eq("status", status))
-						.order(status === "pending" ? "asc" : "desc");
+						.order(otherOrder);
 		const page = await invoices.paginate(paginationOpts);
 		return {
 			...page,

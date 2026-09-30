@@ -44,6 +44,16 @@ function LoadMore({ page }: Readonly<{ page: InvoicePage }>) {
 	);
 }
 
+function InvoicePageRows({
+	page,
+	loadingMessage,
+	emptyMessage,
+}: Readonly<{ page: InvoicePage; loadingMessage: string; emptyMessage: string }>) {
+	if (page.isLoading) return <p className="text-muted-foreground text-sm">{loadingMessage}</p>;
+	if (page.results.length === 0) return <EmptyList>{emptyMessage}</EmptyList>;
+	return <InvoiceRows invoices={page.results} />;
+}
+
 export function InvoicesTable() {
 	const pending = usePaginatedQuery(
 		api.invoicing.admin.list,
@@ -128,23 +138,19 @@ export function InvoicesTable() {
 					)}
 				</TabsContent>
 				<TabsContent value="sent" className="mt-5 space-y-3">
-					{sent.isLoading ? (
-						<p className="text-muted-foreground text-sm">Laster sendte fakturaer...</p>
-					) : sent.results.length ? (
-						<InvoiceRows invoices={sent.results} />
-					) : (
-						<EmptyList>Ingen fakturaer er merket som sendt.</EmptyList>
-					)}
+					<InvoicePageRows
+						page={sent}
+						loadingMessage="Laster sendte fakturaer..."
+						emptyMessage="Ingen fakturaer er merket som sendt."
+					/>
 					<LoadMore page={sent} />
 				</TabsContent>
 				<TabsContent value="cancelled" className="mt-5 space-y-3">
-					{cancelled.isLoading ? (
-						<p className="text-muted-foreground text-sm">Laster avbrutte fakturaer...</p>
-					) : cancelled.results.length ? (
-						<InvoiceRows invoices={cancelled.results} />
-					) : (
-						<EmptyList>Ingen avbrutte fakturaer.</EmptyList>
-					)}
+					<InvoicePageRows
+						page={cancelled}
+						loadingMessage="Laster avbrutte fakturaer..."
+						emptyMessage="Ingen avbrutte fakturaer."
+					/>
 					<LoadMore page={cancelled} />
 				</TabsContent>
 			</Tabs>

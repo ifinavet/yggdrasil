@@ -122,6 +122,49 @@ function InvoiceFields({ preview }: Readonly<{ preview: ReadyPreview }>) {
 	);
 }
 
+function InvoiceGuidance({
+	invoice,
+	preview,
+	delivered,
+}: Readonly<{
+	invoice: InvoiceDetails["invoice"];
+	preview: InvoiceDetails["preview"];
+	delivered: boolean;
+}>) {
+	if (invoice.status === "sent") {
+		return (
+			<Callout tone="neutral">
+				Merket som sendt {invoice.sentAt && formatInvoiceDate(invoice.sentAt)}. Opplysningene
+				nedenfor viser grunnlaget som ble brukt da fakturaen ble merket som sendt.
+			</Callout>
+		);
+	}
+	if (invoice.status === "cancelled") {
+		return <Callout tone="neutral">Dette grunnlaget er avbrutt og skal ikke faktureres.</Callout>;
+	}
+	if (preview.kind !== "ready") {
+		return (
+			<Callout tone="danger">
+				{preview.kind === "fail" ? preview.error : "Grunnlaget er ikke lenger aktivt."} Kontroller
+				grunnlaget før fakturering.
+			</Callout>
+		);
+	}
+	if (!delivered) {
+		return (
+			<Callout tone="neutral">
+				Leveransen er planlagt {formatInvoiceDate(invoice.serviceAt)}. Den kan merkes som sendt
+				etter at den er gjennomført.
+			</Callout>
+		);
+	}
+	return (
+		<Callout tone="info">
+			Opprett og send fakturaen i Fiken. Marker den som sendt her når du er ferdig.
+		</Callout>
+	);
+}
+
 export function InvoiceDetail({ id }: Readonly<{ id: Id<"invoices"> }>) {
 	const data = useQuery(api.invoicing.admin.get, { invoiceId: id });
 	if (data === undefined)
@@ -151,28 +194,7 @@ export function InvoiceDetail({ id }: Readonly<{ id: Id<"invoices"> }>) {
 				{invoice.status === "sent" && <MarkUnsentButton invoiceId={invoice._id} />}
 			</div>
 			<div className="max-w-5xl space-y-5">
-				{invoice.status === "sent" ? (
-					<Callout tone="neutral">
-						Merket som sendt {invoice.sentAt && formatInvoiceDate(invoice.sentAt)}. Opplysningene
-						nedenfor viser grunnlaget som ble brukt da fakturaen ble merket som sendt.
-					</Callout>
-				) : invoice.status === "cancelled" ? (
-					<Callout tone="neutral">Dette grunnlaget er avbrutt og skal ikke faktureres.</Callout>
-				) : !ready ? (
-					<Callout tone="danger">
-						{preview.kind === "fail" ? preview.error : "Grunnlaget er ikke lenger aktivt."}{" "}
-						Kontroller grunnlaget før fakturering.
-					</Callout>
-				) : !delivered ? (
-					<Callout tone="neutral">
-						Leveransen er planlagt {formatInvoiceDate(invoice.serviceAt)}. Den kan merkes som sendt
-						etter at den er gjennomført.
-					</Callout>
-				) : (
-					<Callout tone="info">
-						Opprett og send fakturaen i Fiken. Marker den som sendt her når du er ferdig.
-					</Callout>
-				)}
+				<InvoiceGuidance invoice={invoice} preview={preview} delivered={delivered} />
 				{ready && <InvoiceFields preview={preview} />}
 				{invoice.status === "pending" && (
 					<div className="pt-2">

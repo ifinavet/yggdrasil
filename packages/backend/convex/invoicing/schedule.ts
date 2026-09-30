@@ -8,7 +8,7 @@ export function sourceKeyOf(source: InvoiceSource): string {
 		: `companyApplication:${source.applicationId}`;
 }
 
-export async function invoiceFor(
+export function invoiceFor(
 	ctx: QueryCtx | MutationCtx,
 	source: InvoiceSource,
 ): Promise<Doc<"invoices"> | null> {

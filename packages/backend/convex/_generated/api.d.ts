@@ -75,7 +75,6 @@ import type * as forms_responses from "../forms/responses.js";
 import type * as http from "../http.js";
 import type * as invoicing_admin from "../invoicing/admin.js";
 import type * as invoicing_details from "../invoicing/details.js";
-import type * as invoicing_localSeed from "../invoicing/localSeed.js";
 import type * as invoicing_schedule from "../invoicing/schedule.js";
 import type * as iam_accounts from "../iam/accounts.js";
 import type * as iam_actions from "../iam/actions.js";
@@ -221,7 +220,6 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   "invoicing/admin": typeof invoicing_admin;
   "invoicing/details": typeof invoicing_details;
-  "invoicing/localSeed": typeof invoicing_localSeed;
   "invoicing/schedule": typeof invoicing_schedule;
   "iam/accounts": typeof iam_accounts;
   "iam/actions": typeof iam_actions;
