@@ -37,7 +37,7 @@ export async function listSemesterDates(
 	ctx: QueryCtx | MutationCtx,
 	semesterId: Id<"semesters">,
 ): Promise<Doc<"semesterDates">[]> {
-	return ctx.db
+	return await ctx.db
 		.query("semesterDates")
 		.withIndex("by_semesterId_and_date", (q) => q.eq("semesterId", semesterId))
 		.collect();
@@ -57,7 +57,7 @@ export async function findSemester(
 	year: number,
 	term: Doc<"semesters">["term"],
 ): Promise<Doc<"semesters"> | null> {
-	return ctx.db
+	return await ctx.db
 		.query("semesters")
 		.withIndex("by_year_and_term", (q) => q.eq("year", year).eq("term", term))
 		.first();

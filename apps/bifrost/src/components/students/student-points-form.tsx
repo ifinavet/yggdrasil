@@ -45,8 +45,8 @@ export default function StudentPointsForm({
 		validators: {
 			onSubmit: pointsSchema,
 		},
-		onSubmit: async ({ value }) => {
-			giveStudentPoints({
+		onSubmit: ({ value }) => {
+			return giveStudentPoints({
 				id: student_id,
 				reason: value.reason,
 				severity: value.severity,

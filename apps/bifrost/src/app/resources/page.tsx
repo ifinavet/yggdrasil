@@ -11,7 +11,7 @@ import { Plus } from "lucide-react";
 import Link from "next/link";
 import ResourcesGrid from "@/components/resources/resources-grid";
 
-export default async function Resources() {
+export default function Resources() {
 	return (
 		<>
 			<Breadcrumb>

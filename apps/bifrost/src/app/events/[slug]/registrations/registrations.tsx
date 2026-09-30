@@ -24,8 +24,8 @@ export function Registrations({
 	const postHog = usePostHog();
 
 	const deleteRegistration = useMutation(api.events.registrations.mutations.unregister);
-	const handleDeleteRegistration = async (registrationId: Id<"registrations">) => {
-		deleteRegistration({
+	const handleDeleteRegistration = (registrationId: Id<"registrations">) => {
+		return deleteRegistration({
 			id: registrationId,
 		})
 			.then(({ deletedRegistration }) => {
@@ -51,11 +51,8 @@ export function Registrations({
 	};
 
 	const updateRegistration = useMutation(api.events.registrations.mutations.updateAttendance);
-	const handleUpdateRegistration = async (
-		registrationId: Id<"registrations">,
-		newStatus: string,
-	) => {
-		updateRegistration({
+	const handleUpdateRegistration = (registrationId: Id<"registrations">, newStatus: string) => {
+		return updateRegistration({
 			id: registrationId,
 			newStatus: newStatus as "confirmed" | "late" | "no_show",
 		})
@@ -84,15 +81,19 @@ export function Registrations({
 			});
 	};
 
-	const handleSendEmail = (registered: boolean, copy: boolean) => {
+	const handleSendEmail = async (registered: boolean, copy: boolean) => {
 		const registrationsToUse = registered ? registrations.registered : registrations.waitlist;
 		const emails = registrationsToUse
 			.filter((reg) => reg.status !== "pending" && reg.userEmail !== "")
 			.map((reg) => reg.userEmail);
 
 		if (copy) {
-			navigator.clipboard.writeText(emails.join("\n"));
-			toast.success("E-postlisten er kopiert til utklippstavlen");
+			try {
+				await navigator.clipboard.writeText(emails.join("\n"));
+				toast.success("E-postlisten er kopiert til utklippstavlen");
+			} catch {
+				toast.error("Kunne ikke kopiere e-postlisten. Prøv igjen.");
+			}
 			return;
 		}
 
@@ -105,16 +106,19 @@ export function Registrations({
 		window.open(mailto, "_blank", "noopener,noreferrer");
 	};
 
-	const handleCopyParticipantList = () => {
+	const handleCopyParticipantList = async () => {
 		const participantList = registrations.registered
 			.map((registration) => {
 				return `${registration.userName}\t${registration.userEmail.split("@")[0]}`;
 			})
 			.join("\n");
 
-		navigator.clipboard.writeText(participantList);
-
-		toast.success("Deltaker liste kopiert");
+		try {
+			await navigator.clipboard.writeText(participantList);
+			toast.success("Deltaker liste kopiert");
+		} catch {
+			toast.error("Kunne ikke kopiere deltakerlisten. Prøv igjen.");
+		}
 	};
 
 	const columns = createColumns(

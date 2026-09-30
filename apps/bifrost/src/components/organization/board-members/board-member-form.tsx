@@ -45,7 +45,7 @@ export default function BoardMemberForm({
 	className,
 }: Readonly<{
 	defaultValues: boardMemberSchema;
-	onSubmitAction: (values: boardMemberSchema) => void;
+	onSubmitAction: (values: boardMemberSchema) => void | Promise<void>;
 	description: string;
 	title: string;
 	openDialog: boolean;
@@ -61,8 +61,8 @@ export default function BoardMemberForm({
 		validators: {
 			onSubmit: formSchema,
 		},
-		onSubmit: async ({ value }) => {
-			onSubmitAction(value);
+		onSubmit: ({ value }) => {
+			return onSubmitAction(value);
 		},
 	});
 

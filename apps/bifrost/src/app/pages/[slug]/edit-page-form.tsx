@@ -26,8 +26,8 @@ export default function EditPageForm({
 	};
 
 	const updatePage = useMutation(api.pages.mutations.updateExternalPage);
-	const hanldeUpdatePage = async (values: PageFormValues, published: boolean) => {
-		updatePage({
+	const hanldeUpdatePage = (values: PageFormValues, published: boolean) => {
+		return updatePage({
 			id: page._id,
 			title: values.title,
 			content: values.content,

@@ -11,13 +11,10 @@ import {
 } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
 import { Send, Trash } from "lucide-react";
+import { formSubmitOptions, handleFormSubmit } from "@/components/common/forms/form-submit-actions";
 import DescriptionEditor from "@/components/common/forms/markdown-editor/editor";
 import { type CompanyFormValues, formSchema } from "@/constants/schemas/companies-form-schema";
 import SelectImage from "./select-image";
-
-type FormMeta = {
-	submitAction: "primary" | "secondary";
-};
 
 export default function CompanyForm({
 	defaultValues,
@@ -25,40 +22,22 @@ export default function CompanyForm({
 	onSecondarySubmitAction,
 }: Readonly<{
 	defaultValues: CompanyFormValues;
-	onPrimarySubmitAction: (values: CompanyFormValues) => void;
-	onSecondarySubmitAction?: (values: CompanyFormValues) => void;
+	onPrimarySubmitAction: (values: CompanyFormValues) => void | Promise<void>;
+	onSecondarySubmitAction?: (values: CompanyFormValues) => void | Promise<void>;
 }>) {
 	const form = useForm({
 		defaultValues,
 		validators: {
 			onSubmit: formSchema,
 		},
-		onSubmitMeta: {
-			submitAction: "primary",
-		} as FormMeta,
-		onSubmit: async ({ value, meta }) => {
-			switch (meta.submitAction) {
-				case "primary":
-					onPrimarySubmitAction(value);
-					break;
-				case "secondary":
-					onSecondarySubmitAction?.(value);
-					break;
-				default:
-					break;
-			}
-		},
+		...formSubmitOptions({
+			primary: onPrimarySubmitAction,
+			secondary: onSecondarySubmitAction,
+		}),
 	});
 
 	return (
-		<form
-			onSubmit={(e) => {
-				e.preventDefault();
-				e.stopPropagation();
-				form.handleSubmit();
-			}}
-			className="space-y-8"
-		>
+		<form onSubmit={(event) => handleFormSubmit(event, form.handleSubmit)} className="space-y-8">
 			<FieldSet>
 				<form.Field name="name">
 					{(field) => {

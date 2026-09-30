@@ -67,7 +67,9 @@ export function stubRegistries({
 			calls.push(url);
 
 			if (url.startsWith("https://data.brreg.no/")) {
-				return brregResponse(url, { unit, unitStatus, searchHits, brregDown });
+				return await Promise.resolve(
+					brregResponse(url, { unit, unitStatus, searchHits, brregDown }),
+				);
 			}
 			throw new Error(`Unexpected fetch in test: ${url}`);
 		}),

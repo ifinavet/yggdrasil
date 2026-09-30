@@ -18,7 +18,7 @@ export async function findOfferByToken(
 ): Promise<Doc<"companyApplicationOffers"> | null> {
 	if (token.length !== LINK_TOKEN_LENGTH) return null;
 
-	return ctx.db
+	return await ctx.db
 		.query("companyApplicationOffers")
 		.withIndex("by_linkToken", (q) => q.eq("linkToken", token))
 		.unique();
@@ -36,7 +36,7 @@ export async function findLatestOffer(
 	ctx: QueryCtx | MutationCtx,
 	applicationId: Id<"companyApplications">,
 ): Promise<Doc<"companyApplicationOffers"> | null> {
-	return ctx.db
+	return await ctx.db
 		.query("companyApplicationOffers")
 		.withIndex("by_applicationId", (q) => q.eq("applicationId", applicationId))
 		.order("desc")

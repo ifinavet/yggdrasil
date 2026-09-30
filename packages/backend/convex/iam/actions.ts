@@ -70,7 +70,7 @@ async function loadAccount(
 	ctx: ActionCtx,
 	accountId: Id<"memberAccounts">,
 ): Promise<Account | null> {
-	return ctx.runQuery(internal.iam.internal.account, { accountId });
+	return await ctx.runQuery(internal.iam.internal.account, { accountId });
 }
 
 async function sendWelcome(ctx: ActionCtx, account: Account, password?: string) {

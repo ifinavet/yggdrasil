@@ -31,8 +31,8 @@ export default function NewResourceForm() {
 	};
 
 	const createResource = useMutation(api.pages.mutations.createResource);
-	const handleCreateResource = async (values: ResourceFormValues, published: boolean) => {
-		createResource({
+	const handleCreateResource = (values: ResourceFormValues, published: boolean) => {
+		return createResource({
 			title: values.title,
 			excerpt: values.excerpt,
 			content: values.content,

@@ -6,15 +6,15 @@ function htmlToPlainText(html: string): string {
 	const el = document.createElement("div");
 	el.innerHTML = html;
 	const text = el.innerText || el.textContent || "";
-	return text.replaceAll(/\r\n/g, "\n").replaceAll(/\r/g, "\n").trim();
+	return text.replaceAll("\r\n", "\n").replaceAll("\r", "\n").trim();
 }
 
 function escapeICSText(text: string): string {
 	return text
-		.replaceAll(/\\/g, "\\\\")
+		.replaceAll("\\", "\\\\")
 		.replaceAll(/\r\n|\n|\r/g, "\\n")
-		.replaceAll(/,/g, "\\,")
-		.replaceAll(/;/g, "\\;");
+		.replaceAll(",", "\\,")
+		.replaceAll(";", "\\;");
 }
 
 export default function createCalendarEventIcs(

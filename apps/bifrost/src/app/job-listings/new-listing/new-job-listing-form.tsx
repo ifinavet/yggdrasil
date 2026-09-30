@@ -32,8 +32,8 @@ export default function NewJobListingForm() {
 	const posthog = usePostHog();
 
 	const createJobListingMutation = useMutation(api.jobListings.mutations.create);
-	const handleSubmit = async (values: JobListingFormValues, published: boolean) => {
-		createJobListingMutation({
+	const handleSubmit = (values: JobListingFormValues, published: boolean) => {
+		return createJobListingMutation({
 			title: values.title,
 			teaser: values.teaser,
 			description: values.description,
@@ -62,11 +62,11 @@ export default function NewJobListingForm() {
 	};
 
 	const handlePrimaryFormSubmit = (values: JobListingFormValues) => {
-		handleSubmit(values, true);
+		return handleSubmit(values, true);
 	};
 
 	const handleSecondaryFormSubmit = (values: JobListingFormValues) => {
-		handleSubmit(values, false);
+		return handleSubmit(values, false);
 	};
 
 	return (

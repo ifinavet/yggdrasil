@@ -23,7 +23,10 @@ import { Textarea } from "@workspace/ui/components/textarea";
 import { Save, Send, Trash2 } from "lucide-react";
 import CompanySelectField from "@/components/common/forms/company-select-field";
 import DateTimePicker from "@/components/common/forms/date-time-picker";
-import FormSubmitActions from "@/components/common/forms/form-submit-actions";
+import FormSubmitActions, {
+	formSubmitOptions,
+	handleFormSubmit,
+} from "@/components/common/forms/form-submit-actions";
 import DescriptionEditor from "@/components/common/forms/markdown-editor/editor";
 import {
 	type JobListingFormValues,
@@ -32,10 +35,6 @@ import {
 import { JobTypeLabel } from "../job-type-label";
 import ContactsSection from "./contacts-section";
 
-type FormMeta = {
-	submitAction: "primary" | "secondary" | "tertiary";
-};
-
 export default function JobListingForm({
 	onPrimarySubmitAction,
 	onSecondarySubmitAction,
@@ -43,9 +42,9 @@ export default function JobListingForm({
 	defaultValues,
 	latestDeadline,
 }: Readonly<{
-	onPrimarySubmitAction: (values: JobListingFormValues) => void;
-	onSecondarySubmitAction: (values: JobListingFormValues) => void;
-	onTertiarySubmitAction?: (values: JobListingFormValues) => void;
+	onPrimarySubmitAction: (values: JobListingFormValues) => void | Promise<void>;
+	onSecondarySubmitAction: (values: JobListingFormValues) => void | Promise<void>;
+	onTertiarySubmitAction?: (values: JobListingFormValues) => void | Promise<void>;
 	defaultValues: JobListingFormValues;
 	latestDeadline: Date;
 }>) {
@@ -54,33 +53,18 @@ export default function JobListingForm({
 		validators: {
 			onSubmit: jobListingFormSchema(latestDeadline),
 		},
-		onSubmitMeta: {
-			submitAction: "primary",
-		} as FormMeta,
-		onSubmit: async ({ value, meta }) => {
-			switch (meta.submitAction) {
-				case "primary":
-					onPrimarySubmitAction(value);
-					break;
-				case "secondary":
-					onSecondarySubmitAction(value);
-					break;
-				case "tertiary":
-					onTertiarySubmitAction?.(value);
-					break;
-				default:
-					break;
-			}
-		},
+		...formSubmitOptions({
+			primary: onPrimarySubmitAction,
+			secondary: onSecondarySubmitAction,
+			tertiary: onTertiarySubmitAction,
+		}),
 	});
 
 	return (
 		<form
-			onSubmit={(e) => {
-				e.preventDefault();
-				e.stopPropagation();
-				form.handleSubmit({ submitAction: "primary" });
-			}}
+			onSubmit={(event) =>
+				handleFormSubmit(event, () => form.handleSubmit({ submitAction: "primary" }))
+			}
 		>
 			<FieldSet>
 				<FieldGroup>

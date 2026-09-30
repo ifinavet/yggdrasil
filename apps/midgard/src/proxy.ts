@@ -13,7 +13,7 @@ const searchParamsMiddleware = (request: NextRequest) => {
 
 export default isLocalDevelopment
 	? searchParamsMiddleware
-	: clerkMiddleware(async (_auth: ClerkMiddlewareAuth, req: NextRequest) => {
+	: clerkMiddleware((_auth: ClerkMiddlewareAuth, req: NextRequest) => {
 			return searchParamsMiddleware(req);
 		});
 

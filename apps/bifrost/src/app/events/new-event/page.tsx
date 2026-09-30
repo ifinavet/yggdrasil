@@ -8,7 +8,7 @@ import {
 } from "@workspace/ui/components/breadcrumb";
 import CreateEventForm from "./create-event-form";
 
-export default async function NewEvent() {
+export default function NewEvent() {
 	return (
 		<>
 			<Breadcrumb>

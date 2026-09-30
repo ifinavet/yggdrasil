@@ -1,8 +1,24 @@
 import { Button } from "@workspace/ui/components/button";
 import { cn } from "@workspace/ui/lib/utils";
-import type { ReactNode } from "react";
+import type { FormEvent, ReactNode } from "react";
 
 export type SubmitAction = "primary" | "secondary" | "tertiary";
+
+export function formSubmitOptions<T>(
+	actions: Partial<Record<SubmitAction, (value: T) => void | Promise<void>>>,
+) {
+	return {
+		onSubmitMeta: { submitAction: "primary" as SubmitAction },
+		onSubmit: ({ value, meta }: { value: T; meta: { submitAction: SubmitAction } }) =>
+			actions[meta.submitAction]?.(value),
+	};
+}
+
+export function handleFormSubmit(event: FormEvent, submit: () => void | Promise<void>) {
+	event.preventDefault();
+	event.stopPropagation();
+	return submit();
+}
 
 export type SubmitActionLabel = {
 	readonly label: string;

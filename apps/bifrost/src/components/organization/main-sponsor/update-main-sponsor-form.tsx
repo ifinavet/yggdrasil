@@ -45,12 +45,11 @@ export default function UpdateMainSponsorForm({
 		validators: {
 			onSubmit: schema,
 		},
-		onSubmit: async ({ value }) => {
-			updateMainSponsor({ companyId: value.companyId }).catch((err) => {
+		onSubmit: ({ value }) => {
+			return updateMainSponsor({ companyId: value.companyId }).catch(() => {
 				toast.error("Oi! Det oppstod en feil!", {
 					description: "Skulle feilen vedvare kontakt webansvarlig.",
 				});
-				throw err;
 			});
 		},
 	});

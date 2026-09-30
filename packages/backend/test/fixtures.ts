@@ -98,7 +98,7 @@ export async function insertStudent(
 	userId: Id<"users">,
 	overrides: Partial<WithoutSystemFields<Doc<"students">>> = {},
 ): Promise<Id<"students">> {
-	return t.run((ctx) =>
+	return await t.run((ctx) =>
 		ctx.db.insert("students", {
 			userId,
 			name: "Test Testesen",
@@ -116,7 +116,7 @@ export async function insertInternal(
 	position: string,
 	overrides: Partial<WithoutSystemFields<Doc<"internals">>> = {},
 ): Promise<Id<"internals">> {
-	return t.run((ctx) =>
+	return await t.run((ctx) =>
 		ctx.db.insert("internals", {
 			userId,
 			position,
@@ -131,7 +131,9 @@ export async function givePointsTo(
 	studentId: Id<"students">,
 	severity: number,
 ): Promise<Id<"points">> {
-	return t.run((ctx) => ctx.db.insert("points", { studentId, severity, reason: "Testprikk" }));
+	return await t.run((ctx) =>
+		ctx.db.insert("points", { studentId, severity, reason: "Testprikk" }),
+	);
 }
 
 export async function grantRole(
@@ -139,11 +141,11 @@ export async function grantRole(
 	userId: Id<"users">,
 	role: AccessRole,
 ): Promise<Id<"accessRights">> {
-	return t.run((ctx) => ctx.db.insert("accessRights", { userId, role }));
+	return await t.run((ctx) => ctx.db.insert("accessRights", { userId, role }));
 }
 
 export async function insertFoodItem(t: TestBackend, slug: FoodItem = "pizza") {
-	return t.run((ctx) => builtInFoodItemId(ctx, slug));
+	return await t.run((ctx) => builtInFoodItemId(ctx, slug));
 }
 
 export async function insertEvent(
@@ -151,7 +153,7 @@ export async function insertEvent(
 	companyId: Id<"companies">,
 	overrides: EventOverrides = {},
 ): Promise<Id<"events">> {
-	return t.run((ctx) =>
+	return await t.run((ctx) =>
 		ctx.db.insert("events", {
 			title: "Testarrangement",
 			teaser: "",
@@ -178,7 +180,7 @@ export async function insertRegistration(
 	status: Doc<"registrations">["status"],
 	registrationTime = Date.now(),
 ): Promise<Id<"registrations">> {
-	return t.run((ctx) =>
+	return await t.run((ctx) =>
 		ctx.db.insert("registrations", { eventId, userId, status, registrationTime }),
 	);
 }
@@ -189,7 +191,7 @@ export async function insertOrganizer(
 	userId: Id<"users">,
 	role: Doc<"eventOrganizers">["role"] = "hovedansvarlig",
 ): Promise<Id<"eventOrganizers">> {
-	return t.run((ctx) => ctx.db.insert("eventOrganizers", { eventId, userId, role }));
+	return await t.run((ctx) => ctx.db.insert("eventOrganizers", { eventId, userId, role }));
 }
 
 export async function setupEventWithOneOfEachStatus(overrides: EventOverrides = {}) {
@@ -211,7 +213,7 @@ export async function registrationById(
 	t: TestBackend,
 	registrationId: Id<"registrations">,
 ): Promise<Doc<"registrations"> | null> {
-	return t.run((ctx) => ctx.db.get(registrationId));
+	return await t.run((ctx) => ctx.db.get(registrationId));
 }
 
 export async function statusOf(
@@ -225,7 +227,7 @@ export async function registrationsForEvent(
 	t: TestBackend,
 	eventId: Id<"events">,
 ): Promise<Doc<"registrations">[]> {
-	return t.run((ctx) =>
+	return await t.run((ctx) =>
 		ctx.db
 			.query("registrations")
 			.withIndex("by_eventId", (q) => q.eq("eventId", eventId))
@@ -268,7 +270,7 @@ export async function pointsFor(
 	t: TestBackend,
 	studentId: Id<"students">,
 ): Promise<Doc<"points">[]> {
-	return t.run((ctx) =>
+	return await t.run((ctx) =>
 		ctx.db
 			.query("points")
 			.withIndex("by_studentId", (q) => q.eq("studentId", studentId))
@@ -285,7 +287,7 @@ export async function scheduledRecipientsOf(
 	t: TestBackend,
 	emailFunctionName: string,
 ): Promise<string[]> {
-	return t.run(async (ctx) => {
+	return await t.run(async (ctx) => {
 		const scheduled = await ctx.db.system.query("_scheduled_functions").collect();
 		return scheduled
 			.filter((job) => job.name.endsWith(emailFunctionName))
@@ -324,7 +326,7 @@ export async function insertSemester(
 	t: TestBackend,
 	overrides: SemesterOverrides = {},
 ): Promise<Id<"semesters">> {
-	return t.run((ctx) =>
+	return await t.run((ctx) =>
 		ctx.db.insert("semesters", {
 			year: 2027,
 			term: "spring",
@@ -342,7 +344,7 @@ export async function insertApplication(
 	semesterId: Id<"semesters">,
 	overrides: ApplicationOverrides = {},
 ): Promise<Id<"companyApplications">> {
-	return t.run((ctx) =>
+	return await t.run((ctx) =>
 		ctx.db.insert("companyApplications", {
 			semesterId,
 			formVersion: FORM_VERSION,
@@ -379,7 +381,7 @@ export async function applicationById(t: TestBackend, applicationId: Id<"company
 }
 
 export async function activityFor(t: TestBackend, applicationId: Id<"companyApplications">) {
-	return t.run((ctx) =>
+	return await t.run((ctx) =>
 		ctx.db
 			.query("companyApplicationActivity")
 			.withIndex("by_applicationId", (q) => q.eq("applicationId", applicationId))

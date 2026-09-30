@@ -19,7 +19,7 @@ export default function StudentPoints({ student_id }: Readonly<{ student_id: Id<
 		return <div>Loading...</div>;
 	}
 
-	const handleDeletePoint = async (pointId: Id<"points">) =>
+	const handleDeletePoint = (pointId: Id<"points">) =>
 		deletePoint({ id: pointId })
 			.then(() => {
 				toast.success("Prikk fjernet vellykket", {

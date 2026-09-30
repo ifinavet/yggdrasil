@@ -7,7 +7,7 @@ import {
 import Link from "next/link";
 import CreateCompanyForm from "./create-company-form";
 
-export default async function CreateCompany() {
+export default function CreateCompany() {
 	return (
 		<>
 			<Breadcrumb>

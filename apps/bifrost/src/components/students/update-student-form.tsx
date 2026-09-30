@@ -63,8 +63,8 @@ export default function UpdateStudentForm({
 		validators: {
 			onSubmit: formSchema,
 		},
-		onSubmit: async ({ value }) => {
-			updateStudent({
+		onSubmit: ({ value }) => {
+			return updateStudent({
 				id: student.id,
 				year: value.year,
 				studyProgram: value.studyProgram as (typeof STUDY_PROGRAMS)[number],

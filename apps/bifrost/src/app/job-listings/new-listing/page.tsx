@@ -8,7 +8,7 @@ import {
 import { Suspense } from "react";
 import NewJobListingForm from "./new-job-listing-form";
 
-export default async function NewListingPage() {
+export default function NewListingPage() {
 	return (
 		<>
 			<Breadcrumb>

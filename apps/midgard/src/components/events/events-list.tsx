@@ -1,7 +1,7 @@
 import type { EventWithParticipationCount } from "@/constants/event-types";
 import EventCard from "./event-list-card";
 
-export default async function EventsList({
+export default function EventsList({
 	events,
 }: Readonly<{
 	events: EventWithParticipationCount[];

@@ -47,7 +47,7 @@ export default function RegisterForm({
 		defaultValues: {
 			notes: "",
 		},
-		onSubmit: async ({ value }) =>
+		onSubmit: ({ value }) =>
 			signUp({ note: value.notes, eventId: event._id })
 				.then((status) => {
 					if (status === "waitlist") {
