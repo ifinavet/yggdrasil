@@ -1,3 +1,4 @@
+import { BIFROST_LOCAL_URL, BIFROST_URL } from "@workspace/shared/constants";
 import { formatPercent } from "@workspace/shared/products";
 import { DATE_PATTERNS, DAY_MS, formatOsloDate, MINUTE_MS } from "@workspace/shared/time";
 import { v } from "convex/values";
@@ -5,6 +6,7 @@ import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { internalAction, internalMutation, type MutationCtx, mutation } from "../_generated/server";
 import { internalRoles, requireRole } from "../auth/accessRights";
+import { isLocalDevelopment } from "../auth/local";
 import { companyWithLogo } from "../events/queries";
 import type { AlertRule } from "./schema";
 import { pastCurvesBefore, snapshotOf, upcomingEvents } from "./snapshot";
@@ -64,6 +66,66 @@ export function describeAlert(
 	};
 }
 
+const SLACK_INTRO: Record<AlertRule, { title: string; hint: string }> = {
+	unregisterWave: {
+		title: "🏃💨 *Mange meldte seg av på kort tid*",
+		hint: "Det kan bety at noe har endret seg, for eksempel tidspunkt, sted eller at noe annet kolliderer.",
+	},
+	behindPace: {
+		title: "🐢 *Påmeldingen går tregere enn vanlig*",
+		hint: "Farten er sammenlignet med tidligere arrangementer. Kanskje verdt å dele arrangementet en gang til?",
+	},
+	noRegistrations: {
+		title: "🦗 *Ingen har meldt seg på ennå*",
+		hint: "Sjekk at arrangementet er publisert og har blitt delt i kanalene våre.",
+	},
+};
+
+function escapeSlack(text: string) {
+	return text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+}
+
+type Organizer = { name: string; slackUserId?: string };
+
+function mention({ name, slackUserId }: Organizer) {
+	return slackUserId ? `<@${slackUserId}>` : escapeSlack(name);
+}
+
+export function slackText(
+	rule: AlertRule,
+	eventId: Doc<"events">["_id"],
+	alert: { summary: string; detail: string },
+	organizers: Organizer[],
+	origin: string,
+) {
+	const { title, hint } = SLACK_INTRO[rule];
+	return [
+		title,
+		`${escapeSlack(alert.summary)}. ${escapeSlack(alert.detail)}`,
+		...(organizers.length > 0 ? [`🙋 Hovedansvarlig: ${organizers.map(mention).join(", ")}`] : []),
+		`💡 ${hint}`,
+		`👉 <${origin}/events/${eventId}|Åpne arrangementet> · <${origin}/insight|Se innsikt>`,
+	].join("\n");
+}
+
+async function mainOrganizers(ctx: MutationCtx, eventId: Doc<"events">["_id"]) {
+	const organizers = await ctx.db
+		.query("eventOrganizers")
+		.withIndex("by_eventId", (q) => q.eq("eventId", eventId))
+		.collect();
+	const result: Organizer[] = [];
+	for (const { userId } of organizers.filter(({ role }) => role === "hovedansvarlig")) {
+		const user = await ctx.db.get(userId);
+		if (!user) continue;
+		const account = await ctx.db
+			.query("memberAccounts")
+			.withIndex("by_userId", (q) => q.eq("userId", userId))
+			.first();
+		result.push({ name: `${user.firstName} ${user.lastName}`, slackUserId: account?.slackUserId });
+	}
+	return result;
+}
+
 async function recentlyAlerted(
 	ctx: MutationCtx,
 	event: Doc<"events">,
@@ -83,6 +145,7 @@ export const detectAlerts = internalMutation({
 	handler: async (ctx) => {
 		const now = Date.now();
 		const pastCurves = await pastCurvesBefore(ctx, now);
+		const origin = isLocalDevelopment() ? BIFROST_LOCAL_URL : BIFROST_URL;
 		let triggered = 0;
 		for (const event of await upcomingEvents(ctx, now, EVENTS_TO_WATCH)) {
 			const snapshot = await snapshotOf(ctx, event, now, pastCurves);
@@ -99,7 +162,13 @@ export const detectAlerts = internalMutation({
 				triggeredAt: now,
 			});
 			await ctx.scheduler.runAfter(0, internal.engagement.alerts.notifySlack, {
-				text: `${summary}\n${detail}`,
+				text: slackText(
+					rule,
+					event._id,
+					{ summary, detail },
+					await mainOrganizers(ctx, event._id),
+					origin,
+				),
 			});
 			triggered++;
 		}
