@@ -7,6 +7,7 @@ import { type MutationCtx, mutation, type QueryCtx, query } from "../_generated/
 import { internalRoles, requireRole } from "../auth/accessRights";
 import { findCompanyLogoUrl } from "../companies/helper";
 import { companyBilling } from "../companies/schema";
+import { scheduleInvoice } from "../invoicing/schedule";
 import { jobListingProductFields, snapshotOf } from "../products/sales";
 import { listOrderItems, orderCompanyName } from "./orders";
 import { sanitizeRichText } from "./sanitize";
@@ -300,12 +301,14 @@ export const approve = mutation({
 			});
 			await ctx.db.patch(item._id, { jobListingId: listingId });
 		}
+		const decidedAt = Date.now();
 		await ctx.db.patch(orderId, {
 			status: "published",
 			companyId,
-			decidedAt: Date.now(),
+			decidedAt,
 			decidedBy: user._id,
 		});
+		await scheduleInvoice(ctx, { kind: "jobListingOrder", orderId }, decidedAt);
 		await ctx.scheduler.runAfter(0, internal.jobListingOrders.emails.sendPublished, { orderId });
 		return null;
 	},

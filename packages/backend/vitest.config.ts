@@ -18,6 +18,7 @@ export default defineConfig({
 				"convex/feedback/manualSend/{eligibility,send}.ts",
 				"convex/products/{helpers,mutations,queries,seed,sales,migrations,stats,tagging}.ts",
 				"convex/engagement/{alerts,audience,backfill,snapshot,log}.ts",
+				"convex/invoicing/{schedule,details,admin}.ts",
 				"convex/users/students/migrations.ts",
 				"convex/leaderboard/{queries,ranking}.ts",
 			],

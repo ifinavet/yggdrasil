@@ -21,6 +21,7 @@ import {
 	FileIcon,
 	GitForkIcon,
 	type LucideIcon,
+	ReceiptIcon,
 	TrendingUpIcon,
 	TrophyIcon,
 	UsersIcon,
@@ -93,6 +94,12 @@ const paths = {
 			title: "Produkter",
 			icon: BanknoteIcon,
 			path: PRODUCT_ROUTES.list,
+			feature: "products",
+		},
+		{
+			title: "Fakturaer",
+			icon: ReceiptIcon,
+			path: "/invoicing",
 			feature: "products",
 		},
 		{

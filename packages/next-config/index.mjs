@@ -15,7 +15,7 @@ if (local && process.env.CONVEX_DEPLOYMENT) {
 
 function applyLocalConvexUrl() {
 	if (local) {
-		process.env.NEXT_PUBLIC_CONVEX_URL = "http://127.0.0.1:3210";
+		process.env.NEXT_PUBLIC_CONVEX_URL ||= "http://127.0.0.1:3210";
 	}
 }
 

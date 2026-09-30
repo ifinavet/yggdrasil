@@ -29,7 +29,6 @@ crons.interval(
 	{ hours: 1 },
 	internal.events.reminders.mutations.queueDueReminders,
 );
-
 crons.cron(
 	"Free for all on today's event",
 	"0 12 * * 2,4",
