@@ -422,9 +422,11 @@ export const purgeUnconfirmed = internalMutation({
 
 		for (const confirmation of confirmations) await ctx.db.delete(confirmation._id);
 		for (const item of await listOrderItems(ctx, orderId)) await ctx.db.delete(item._id);
-		for (const storageId of [order.newCompany?.logo, order.companyChanges?.logo]) {
-			if (storageId) await ctx.storage.delete(storageId);
-		}
+		await Promise.all(
+			[order.newCompany?.logo, order.companyChanges?.logo]
+				.filter((storageId) => storageId !== undefined)
+				.map((storageId) => ctx.storage.delete(storageId)),
+		);
 		await ctx.db.delete(orderId);
 	},
 });

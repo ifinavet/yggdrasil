@@ -45,6 +45,11 @@ export const eventsSchema = {
 		.index("by_slug", ["slug"])
 		.index("by_formId", ["formId"])
 		.index("by_hostingCompany_and_eventStart", ["hostingCompany", "eventStart"]),
+	eventRegistrationOpenNotices: defineTable({
+		eventId: v.id("events"),
+		registrationOpens: v.number(),
+		sentAt: v.number(),
+	}).index("by_eventId_and_registrationOpens", ["eventId", "registrationOpens"]),
 
 	foodItems: defineTable({
 		name: v.string(),

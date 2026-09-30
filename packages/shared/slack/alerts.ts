@@ -22,12 +22,16 @@ export function formatOrderAlert({
 	url,
 }: OrderAlert) {
 	const titles = Array.isArray(title) ? title : [title];
+	const revenue =
+		estimatedRevenueOre === undefined
+			? "Ikke beregnet"
+			: `${escapeSlack(formatNokFromOre(estimatedRevenueOre))} eks. mva`;
 	return [
 		"*💸 Ny bestilling*",
 		`*Bedrift:* ${escapeSlack(company)}`,
 		`*Type:* ${escapeSlack(type)}`,
 		`*Tittel:* ${titles.map(escapeSlack).join(", ")}`,
-		`*Estimert inntekt:* ${estimatedRevenueOre === undefined ? "Ikke beregnet" : `${escapeSlack(formatNokFromOre(estimatedRevenueOre))} eks. mva`}`,
+		`*Estimert inntekt:* ${revenue}`,
 		...(additionalNotes?.trim()
 			? [`*Tilleggsinformasjon:* ${escapeSlack(additionalNotes.trim())}`]
 			: []),
