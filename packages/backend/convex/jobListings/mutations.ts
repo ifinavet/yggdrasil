@@ -16,7 +16,7 @@ function resolvePublishedAt(
 ): number | undefined {
 	const publishedAt =
 		(existing && jobListingPublishedAt(existing)) ?? (publish ? Date.now() : undefined);
-	if (publishedAt !== undefined && deadline > jobListingLatestDeadline(publishedAt)) {
+	if (publish && publishedAt !== undefined && deadline > jobListingLatestDeadline(publishedAt)) {
 		throw new ConvexError(
 			`Fristen kan ikke være mer enn ${JOB_LISTING_MAX_ACTIVE_MONTHS} måneder etter at annonsen ble publisert.`,
 		);

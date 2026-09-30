@@ -11,7 +11,10 @@ export async function findListingProduct(ctx: QueryCtx) {
 		.query("products")
 		.withIndex("by_active_and_sortOrder", (q) => q.eq("active", true))
 		.take(100);
-	return active.find((product) => product.category === "job_listing") ?? null;
+	return (
+		active.find((product) => product.category === "job_listing" && !!product.volumeTiers?.length) ??
+		null
+	);
 }
 
 export const companies = query({

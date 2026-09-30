@@ -8,7 +8,12 @@ import type { ProductSnapshot } from "./schema";
 type SoldProduct = { product?: ProductSnapshot; productGuessed?: boolean };
 
 export function snapshotOf(product: Doc<"products">): ProductSnapshot {
-	return { productId: product._id, name: product.name, unitPriceOre: product.unitPriceOre };
+	return {
+		productId: product._id,
+		name: product.name,
+		unitPriceOre: product.unitPriceOre,
+		vatRate: product.vatRate,
+	};
 }
 
 export async function eventProductFields(

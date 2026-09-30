@@ -15,11 +15,23 @@ import { eventsInSemester } from "../events/helper";
 import { companyWithLogo, eventSemesterValidator } from "../events/queries";
 import { audienceOf, withStudyYear } from "./audience";
 import { byCompany, metricsOf } from "./companyMetrics";
-import { activityBuckets, activityWindowMs, PACE_GRID, valueAt, WAVE_RULE } from "./metrics";
+import {
+	type AnalyticsRegistration,
+	firstFilledAt,
+	registrationHistory,
+	registrationsAt,
+} from "./history";
+import {
+	activityBuckets,
+	activityWindowMs,
+	PACE_GRID,
+	seatDelta,
+	valueAt,
+	WAVE_RULE,
+} from "./metrics";
 import {
 	MAX_REGISTRATIONS_PER_EVENT,
 	pastCurvesBefore,
-	registrationTimesOf,
 	snapshotOf,
 	upcomingEvents,
 	waitlistCountOf,
@@ -183,10 +195,13 @@ export const paceCurve = query({
 		const limit = event.participationLimit;
 		const projecting = snapshot.progress > 0 && snapshot.progress < 1 && snapshot.registered > 0;
 		const projected = projecting ? Math.round(snapshot.projectedFill * limit) : null;
-		const times = [...(await registrationTimesOf(ctx, eventId))].sort((a, b) => a - b);
+		const { entries } = await registrationHistory(ctx, eventId);
 		const span = event.eventStart - event.registrationOpens;
 		const countAt = (progress: number) =>
-			times.filter((time) => time <= event.registrationOpens + span * progress).length;
+			Math.max(
+				0,
+				seatDelta(entries.filter(({ at }) => at <= event.registrationOpens + span * progress)),
+			);
 		const expectedAt = (progress: number) =>
 			snapshot.baseline ? Math.round(valueAt(snapshot.baseline.curve, progress) * limit) : null;
 		const projectedAt = (progress: number) => {
@@ -227,7 +242,8 @@ export const paceCurve = query({
 
 export type SemesterEvent = {
 	event: Doc<"events">;
-	registrations: Doc<"registrations">[];
+	registrations: AnalyticsRegistration[];
+	filledAt?: number | null;
 };
 
 export type SemesterKey = { semester: EventSemester; year: number };
@@ -241,15 +257,17 @@ export async function semesterEvents(ctx: QueryCtx, { semester, year }: Semester
 			event.registrationOpens <= now,
 	);
 	return await Promise.all(
-		events.map(
-			async (event): Promise<SemesterEvent> => ({
+		events.map(async (event): Promise<SemesterEvent> => {
+			const history = await registrationHistory(ctx, event._id);
+			return {
 				event,
-				registrations: await ctx.db
-					.query("registrations")
-					.withIndex("by_eventId", (q) => q.eq("eventId", event._id))
-					.take(MAX_REGISTRATIONS_PER_EVENT),
-			}),
-		),
+				registrations: registrationsAt(history, now),
+				filledAt: firstFilledAt(
+					history.entries.filter(({ at }) => at <= now),
+					event.participationLimit,
+				),
+			};
+		}),
 	);
 }
 
@@ -329,7 +347,7 @@ function fillByTimeslot(events: SemesterEvent[]) {
 
 export async function studentsOf(
 	ctx: QueryCtx,
-	registrations: readonly Doc<"registrations">[],
+	registrations: readonly Pick<AnalyticsRegistration, "userId">[],
 	now: number,
 ) {
 	const userIds = [...new Set(registrations.map((registration) => registration.userId))];
@@ -393,9 +411,12 @@ async function lateUnregistrations(
 	ctx: QueryCtx,
 	events: SemesterEvent[],
 	logStart: number | null,
+	cutoff: number,
 ) {
 	const counts = await Promise.all(
-		events.map(({ event }) => lateUnregistrationsOf(ctx, event, logStart)),
+		events
+			.filter(({ event }) => event.eventStart <= cutoff)
+			.map(({ event }) => lateUnregistrationsOf(ctx, event, logStart)),
 	);
 	return {
 		count: counts.reduce<number>((sum, count) => sum + (count ?? 0), 0),
@@ -429,8 +450,8 @@ export const semester = query({
 			yearsSincePrevious,
 		);
 		const logStart = await logStartedAt(ctx);
-		const late = await lateUnregistrations(ctx, events, logStart);
-		const lateLastYear = await lateUnregistrations(ctx, lastYearEvents, logStart);
+		const late = await lateUnregistrations(ctx, events, logStart, now);
+		const lateLastYear = await lateUnregistrations(ctx, lastYearEvents, logStart, lastYear);
 
 		return {
 			semester: current,

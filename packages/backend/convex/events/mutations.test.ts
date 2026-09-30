@@ -235,6 +235,7 @@ describe("events.mutations.create", () => {
 			productId,
 			name: eventProduct.name,
 			unitPriceOre: eventProduct.unitPriceOre,
+			vatRate: eventProduct.vatRate,
 		});
 	});
 });
@@ -258,6 +259,7 @@ describe("events.mutations.update", () => {
 			productId,
 			name: eventProduct.name,
 			unitPriceOre: eventProduct.unitPriceOre,
+			vatRate: eventProduct.vatRate,
 		});
 	});
 

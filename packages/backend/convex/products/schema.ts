@@ -27,6 +27,7 @@ export const productFields = {
 
 export const productSnapshot = v.object({
 	productId: v.id("products"),
+	vatRate: v.optional(v.number()),
 	name: v.string(),
 	unitPriceOre: v.optional(v.number()),
 });

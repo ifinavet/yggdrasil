@@ -49,7 +49,7 @@ describe("jobListings.mutations", () => {
 		});
 
 		const listing = await t.run((ctx) => ctx.db.get(listingId));
-		expect(listing?.product).toEqual({ productId, name: jobListingProduct.name });
+		expect(listing?.product).toEqual({ productId, name: jobListingProduct.name, vatRate: 25 });
 	});
 
 	it("preserves the product snapshot when the listing is updated", async () => {
@@ -68,7 +68,7 @@ describe("jobListings.mutations", () => {
 		});
 
 		const listing = await t.run((ctx) => ctx.db.get(listingId));
-		expect(listing?.product).toEqual({ productId, name: jobListingProduct.name });
+		expect(listing?.product).toEqual({ productId, name: jobListingProduct.name, vatRate: 25 });
 		expect(listing?.title).toBe("Sommerjobb, revidert");
 	});
 
@@ -237,6 +237,41 @@ describe("jobListings.mutations", () => {
 		expect(listing?.published).toBe(false);
 		expect(listing?.publishedAt).toBe(publishedAt);
 	});
+
+	it.each(["update", "setPublished"] as const)(
+		"allows %s to unpublish a legacy listing past its deadline cap",
+		async (method) => {
+			const { t, companyId, client } = await fixture();
+			const { contacts: _contacts, ...fields } = listingArgs;
+			const deadline = jobListingLatestDeadline(Date.now()) + DAY_IN_MS;
+			const id = await t.run((ctx) =>
+				ctx.db.insert("jobListings", { ...fields, company: companyId, deadline }),
+			);
+			const original = await t.run((ctx) => ctx.db.get(id));
+			if (method === "update") {
+				await client.mutation(api.jobListings.mutations.update, {
+					...listingArgs,
+					id,
+					company: companyId,
+					deadline,
+					published: false,
+				});
+			} else {
+				await client.mutation(api.jobListings.mutations.setPublished, { id, published: false });
+			}
+			expect(await t.run((ctx) => ctx.db.get(id))).toMatchObject({
+				published: false,
+				publishedAt: original?._creationTime,
+				deadline,
+			});
+			await expect(
+				client.mutation(api.jobListings.mutations.setPublished, {
+					id,
+					published: true,
+				}),
+			).rejects.toThrow("6 måneder");
+		},
+	);
 
 	it("refuses to change the published state for users without an internal role", async () => {
 		const { t, companyId, client } = await fixture();

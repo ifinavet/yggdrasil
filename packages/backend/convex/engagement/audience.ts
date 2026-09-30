@@ -156,7 +156,7 @@ export function audienceOf(
 		const populationCounts = countBy(current, keyOf);
 		const previousCounts = previousBase && countBy(previousBase, keyOf);
 		return (label: string, registrations: number) => {
-			const share = registrations / base.length;
+			const share = base.length === 0 ? 0 : registrations / base.length;
 			return {
 				label,
 				registrations,
@@ -174,21 +174,25 @@ export function audienceOf(
 		registrants.filter(hasCohort),
 		previous?.filter(hasCohort) ?? null,
 	);
-	const cohorts = cohortsOf(registrants, cohortGroupOf).map(({ label, count, cohort }) => ({
-		...cohortRow(label, count),
+	const groups = [...population, ...registrants, ...(previous ?? [])];
+	const counts = countBy(registrants, cohortOf);
+	const cohorts = cohortsOf(groups, cohortGroupOf).map(({ label, cohort }) => ({
+		...cohortRow(label, counts.get(label) ?? 0),
 		degree: cohort.degree,
 		year: cohort.year,
 		code: codeOf(cohort),
 		reach: reachOf(reached, populationCohorts, label),
 		previousReach: previousReached && reachOf(previousReached, previousPopulationCohorts, label),
 	}));
-	const programCohorts = cohortsOf(registrants, programCohortGroupOf).map(({ label, cohort }) => ({
+	const programCohorts = cohortsOf(groups, programCohortGroupOf).map(({ label, cohort }) => ({
 		label,
 		code: codeOf(cohort),
 	}));
 
 	const programRow = shareRow(programOf, registrants, previous);
-	const programs = tally(registrants, programOf)
+	const programCounts = countBy(registrants, programOf);
+	const programs = tally(groups, programOf)
+		.map(([label, entry]) => [label, { ...entry, count: programCounts.get(label) ?? 0 }] as const)
 		.sort(([a, { count: countA }], [b, { count: countB }]) => countB - countA || a.localeCompare(b))
 		.map(([label, { count }]) => {
 			const byCohort = countBy(

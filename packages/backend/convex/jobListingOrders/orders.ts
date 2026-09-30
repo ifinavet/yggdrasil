@@ -21,6 +21,7 @@ import {
 import { requireLogo } from "../companies/helper";
 import { companyBilling } from "../companies/schema";
 import { hashLinkToken } from "../lib/tokens";
+import { deleteUnreferencedOrderLogo } from "./logos";
 import { orderRateLimiter } from "./rateLimits";
 import { sanitizeRichText } from "./sanitize";
 import { type CompanyChangesDoc, orderContact, orderItemFields } from "./schema";
@@ -198,7 +199,7 @@ export const insertOrder = internalMutation({
 
 		const productId = ctx.db.normalizeId("products", parsed.productId);
 		const product = productId ? await ctx.db.get(productId) : null;
-		if (!product?.active || product.category !== "job_listing") {
+		if (!product?.active || product.category !== "job_listing" || !product.volumeTiers?.length) {
 			throw new ConvexError("Pakken finnes ikke lenger. Last inn siden på nytt.");
 		}
 
@@ -221,6 +222,7 @@ export const insertOrder = internalMutation({
 			startup: parsed.startup,
 			quantity: parsed.listings.length,
 			priceOre: orderPriceOre(product, parsed.listings.length, parsed.startup),
+			vatRate: product.vatRate,
 			contact: parsed.contact,
 			billing,
 			ehfInvoice: parsed.ehfInvoice,
@@ -422,12 +424,15 @@ export const purgeUnconfirmed = internalMutation({
 
 		for (const confirmation of confirmations) await ctx.db.delete(confirmation._id);
 		for (const item of await listOrderItems(ctx, orderId)) await ctx.db.delete(item._id);
-		await Promise.all(
-			[order.newCompany?.logo, order.companyChanges?.logo]
-				.filter((storageId) => storageId !== undefined)
-				.map((storageId) => ctx.storage.delete(storageId)),
-		);
 		await ctx.db.delete(orderId);
+		const storageIds = new Set(
+			[order.newCompany?.logo, order.companyChanges?.logo].filter(
+				(storageId): storageId is Id<"_storage"> => storageId !== undefined,
+			),
+		);
+		await Promise.all(
+			[...storageIds].map((storageId) => deleteUnreferencedOrderLogo(ctx, storageId)),
+		);
 	},
 });
 

@@ -24,6 +24,7 @@ describe("snapshotOf", () => {
 			productId,
 			name: eventProduct.name,
 			unitPriceOre: eventProduct.unitPriceOre,
+			vatRate: eventProduct.vatRate,
 		});
 	});
 });
@@ -51,7 +52,12 @@ describe("eventProductFields", () => {
 		const productId = await t.run((ctx) => ctx.db.insert("products", eventProduct));
 		const fields = await t.run((ctx) => eventProductFields(ctx, productId));
 		expect(fields).toEqual({
-			product: { productId, name: eventProduct.name, unitPriceOre: eventProduct.unitPriceOre },
+			product: {
+				productId,
+				name: eventProduct.name,
+				unitPriceOre: eventProduct.unitPriceOre,
+				vatRate: eventProduct.vatRate,
+			},
 			productGuessed: undefined,
 		});
 	});
@@ -104,7 +110,12 @@ describe("jobListingProductFields", () => {
 		);
 		const fields = await t.run((ctx) => jobListingProductFields(ctx));
 		expect(fields).toEqual({
-			product: { productId, name: "Annonse", unitPriceOre: eventProduct.unitPriceOre },
+			product: {
+				productId,
+				name: "Annonse",
+				unitPriceOre: eventProduct.unitPriceOre,
+				vatRate: eventProduct.vatRate,
+			},
 		});
 	});
 

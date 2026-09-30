@@ -107,3 +107,14 @@ export function orderFormErrors(
 	}
 	return errors;
 }
+
+export type SubmissionAttempt = { payload: string; submissionId: string };
+
+/** Retry the same payload with the same key, but allow corrected forms to be submitted anew. */
+export function submissionAttempt(
+	form: OrderFormArgs,
+	previous?: SubmissionAttempt,
+): SubmissionAttempt {
+	const payload = JSON.stringify(form);
+	return previous?.payload === payload ? previous : { payload, submissionId: crypto.randomUUID() };
+}

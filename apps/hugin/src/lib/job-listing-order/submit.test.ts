@@ -8,6 +8,7 @@ import {
 	fieldPath,
 	type OrderContext,
 	orderFormErrors,
+	submissionAttempt,
 	toOrderForm,
 } from "./submit";
 
@@ -250,5 +251,16 @@ describe("companyChangeErrors", () => {
 		expect(companyChangeErrors(values, companyOnFile)).toHaveProperty([
 			"companyChanges.displayName",
 		]);
+	});
+});
+
+describe("submission retries", () => {
+	it("reuses the id for an identical retry and changes it after editing the payload", () => {
+		const form = toOrderForm(validValues(), context);
+		const first = submissionAttempt(form);
+		expect(submissionAttempt({ ...form }, first)).toEqual(first);
+		expect(submissionAttempt({ ...form, note: "Corrected" }, first).submissionId).not.toBe(
+			first.submissionId,
+		);
 	});
 });
