@@ -25,6 +25,8 @@ import {
 	billingRequired,
 	type CompanyOnFile,
 	type OrderContext,
+	type SubmissionAttempt,
+	submissionAttempt,
 	toOrderForm,
 } from "@/lib/job-listing-order/submit";
 import { CompanySection } from "./company-section";
@@ -52,6 +54,7 @@ export function OrderForm({
 	const submit = useAction(api.jobListingOrders.submit.submit);
 	const formElement = useRef<HTMLFormElement>(null);
 	const [submitError, setSubmitError] = useState<string>();
+	const attempt = useRef<SubmissionAttempt>(undefined);
 	const context = useRef<OrderContext>({ productId: product._id, companyOnFile: null });
 
 	const form = useOrderForm({
@@ -59,10 +62,12 @@ export function OrderForm({
 		context,
 		onSubmit: async (values) => {
 			setSubmitError(undefined);
-			const submissionId = crypto.randomUUID();
+			const orderForm = toOrderForm(values, context.current);
+			attempt.current = submissionAttempt(orderForm, attempt.current);
+			const { submissionId } = attempt.current;
 			try {
 				await submit({
-					form: toOrderForm(values, context.current),
+					form: orderForm,
 					submissionId,
 					website: values.website,
 				});

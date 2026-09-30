@@ -6,8 +6,10 @@ export type ListingProduct = Readonly<{
 }>;
 
 export function orderPriceOre(product: ListingProduct, quantity: number, startup: boolean): number {
+	if (!product.volumeTiers?.length)
+		throw new Error("Pakken mangler pris. Kontakt oss før du bestiller.");
 	if (startup && product.startupPriceOre !== undefined) return product.startupPriceOre * quantity;
-	return tierTotalOre(product.volumeTiers ?? [], quantity);
+	return tierTotalOre(product.volumeTiers, quantity);
 }
 
 export function packageSizes(product: ListingProduct): number[] {

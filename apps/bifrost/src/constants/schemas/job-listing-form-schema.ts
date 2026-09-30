@@ -1,17 +1,15 @@
-import { JOB_TYPES } from "@workspace/shared/constants";
 import { DATE_PATTERNS, formatOsloDate } from "@workspace/shared/time";
 import z from "zod/v4";
 
 const formSchema = z.object({
-	title: z.string("").min(1, "Tittel er påkrevd").min(10, "Tittelen må være minst 10 tegn"),
+	title: z.string("").min(1, "Tittel er påkrevd"),
 	teaser: z
 		.string()
 		.min(1, "Vi trenger en liten teaser!")
-		.min(10, "Teaser må være minst 10 tegn")
-		.max(250, "Teaser kan være maks 250 tegn"),
+		.max(500, "Teaser kan være maks 500 tegn"),
 	deadline: z.date("Dato og tid for når stillingsannonsen går ut"),
 	description: z.string().min(1, "Det er veldig viktig med en beskrivelse av stillingsannonsen"),
-	type: z.enum(JOB_TYPES),
+	type: z.string().min(1, "Velg en ansettelsesform"),
 	company: z.object({ name: z.string(), id: z.string() }, "Hvem utlyser stillingen?"),
 	contacts: z
 		.array(
@@ -27,7 +25,8 @@ const formSchema = z.object({
 
 export type JobListingFormValues = z.infer<typeof formSchema>;
 
-export function jobListingFormSchema(latestDeadline: Date) {
+export function jobListingFormSchema(latestDeadline?: Date) {
+	if (!latestDeadline) return formSchema;
 	return formSchema.refine((values) => values.deadline <= latestDeadline, {
 		path: ["deadline"],
 		message: `Fristen kan ikke være senere enn ${formatOsloDate(latestDeadline.getTime(), DATE_PATTERNS.dateTime)}`,

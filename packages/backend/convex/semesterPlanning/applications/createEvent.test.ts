@@ -13,6 +13,7 @@ import {
 } from "../../../test/fixtures";
 import { api } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
+import { resolveInvoice } from "../../invoicing/details";
 
 const createEvent = api.semesterPlanning.applications.mutations.createEvent;
 
@@ -131,5 +132,38 @@ describe("createEvent", () => {
 		expect(await refusalMessageFrom(editor.mutation(createEvent, { applicationId }))).toBe(
 			"Bare bekreftede søknader kan få et arrangement.",
 		);
+	});
+});
+
+it("freezes the product price and VAT when a semester application creates its event", async () => {
+	const { t, applicationId, editor } = await eventSetup();
+	const productId = await t.run((ctx) =>
+		ctx.db.insert("products", {
+			name: "Presentation",
+			category: "event",
+			eventType: "standard_presentation",
+			shortDescription: "",
+			longDescription: "",
+			unitPriceOre: 300000,
+			vatRate: 25,
+			active: true,
+			sortOrder: 0,
+		}),
+	);
+	const eventId = await editor.mutation(createEvent, { applicationId });
+	expect((await eventById(t, eventId))?.product).toMatchObject({
+		productId,
+		unitPriceOre: 300000,
+		vatRate: 25,
+	});
+	await t.run((ctx) => ctx.db.patch(productId, { unitPriceOre: 900000, vatRate: 0 }));
+	const preview = await t.run(async (ctx) => {
+		const invoice = await ctx.db.query("invoices").first();
+		if (!invoice) throw new Error("Missing invoice");
+		return resolveInvoice(ctx, invoice);
+	});
+	expect(preview).toMatchObject({
+		kind: "ready",
+		details: { line: { unitPrice: 300000, vatRate: 25 } },
 	});
 });

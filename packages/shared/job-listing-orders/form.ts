@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { isIsoDate } from "../time/semester";
+import { JOB_LISTING_MAX_ACTIVE_MONTHS, jobListingLatestDeadline } from "../time/job-listing";
+import { isIsoDate, osloDateTimeToEpoch, osloToday } from "../time/semester";
 import { email, optionalText, orgNumber, text } from "../validation";
 import type { JobListingOrderSettings } from "./settings";
 
@@ -66,6 +67,18 @@ const orderCompanySchema = z.discriminatedUnion("kind", [
 	}),
 ]);
 
+export function orderDeadlineSchema(today: string) {
+	const latest = osloToday(jobListingLatestDeadline(osloDateTimeToEpoch(today, "00:00")));
+	return z
+		.string({ error: "Velg en søknadsfrist." })
+		.refine(isIsoDate, "Velg en søknadsfrist.")
+		.refine((date) => date >= today, "Søknadsfristen har passert.")
+		.refine(
+			(date) => date <= latest,
+			`Søknadsfristen kan ikke være mer enn ${JOB_LISTING_MAX_ACTIVE_MONTHS} måneder frem i tid.`,
+		);
+}
+
 export function orderListingSchema(settings: JobListingOrderSettings, today: string) {
 	return z.object({
 		title: text(settings.titleMaxLength, `Tittelen kan ha høyst ${settings.titleMaxLength} tegn.`),
@@ -78,10 +91,7 @@ export function orderListingSchema(settings: JobListingOrderSettings, today: str
 			protocol: /^https?$/,
 			error: "Skriv en gyldig lenke som starter med https://.",
 		}),
-		deadline: z
-			.string({ error: "Velg en søknadsfrist." })
-			.refine(isIsoDate, "Velg en søknadsfrist.")
-			.refine((date) => date >= today, "Søknadsfristen har passert."),
+		deadline: orderDeadlineSchema(today),
 		type: z.string().refine((type) => settings.jobTypes.includes(type), "Velg ansettelsesform."),
 	});
 }

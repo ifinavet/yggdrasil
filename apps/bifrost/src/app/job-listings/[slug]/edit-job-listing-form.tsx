@@ -82,7 +82,7 @@ export default function EditJobListingForm({
 		teaser: jobListing.teaser,
 		description: jobListing.description,
 		deadline: new Date(jobListing.deadline),
-		type: jobListing.type as "Fulltid" | "Deltid" | "Internship" | "Sommerjobb",
+		type: jobListing.type,
 		company: {
 			id: jobListing.company,
 			name: company.name,

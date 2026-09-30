@@ -1,6 +1,7 @@
 "use client";
 
 import { useForm } from "@tanstack/react-form";
+import { api } from "@workspace/backend/convex/api";
 import { JOB_TYPES } from "@workspace/shared/constants";
 import {
 	Field,
@@ -20,7 +21,9 @@ import {
 	SelectValue,
 } from "@workspace/ui/components/select";
 import { Textarea } from "@workspace/ui/components/textarea";
+import { useQuery } from "convex/react";
 import { Save, Send, Trash2 } from "lucide-react";
+import { useRef, useTransition } from "react";
 import CompanySelectField from "@/components/common/forms/company-select-field";
 import DateTimePicker from "@/components/common/forms/date-time-picker";
 import FormSubmitActions, {
@@ -48,22 +51,33 @@ export default function JobListingForm({
 	defaultValues: JobListingFormValues;
 	latestDeadline: Date;
 }>) {
+	const settings = useQuery(api.jobListingOrders.settings.current);
+	const jobTypes = [...new Set([...(settings?.jobTypes ?? JOB_TYPES), defaultValues.type])].filter(
+		Boolean,
+	);
+	const [isDeleting, startDeleting] = useTransition();
+	const publishing = useRef(true);
 	const form = useForm({
 		defaultValues,
 		validators: {
-			onSubmit: jobListingFormSchema(latestDeadline),
+			onSubmit: ({ formApi }) =>
+				formApi.parseValuesWithSchema(
+					jobListingFormSchema(publishing.current ? latestDeadline : undefined),
+				),
 		},
 		...formSubmitOptions({
 			primary: onPrimarySubmitAction,
 			secondary: onSecondarySubmitAction,
-			tertiary: onTertiarySubmitAction,
 		}),
 	});
 
 	return (
 		<form
 			onSubmit={(event) =>
-				handleFormSubmit(event, () => form.handleSubmit({ submitAction: "primary" }))
+				handleFormSubmit(event, () => {
+					publishing.current = true;
+					return form.handleSubmit({ submitAction: "primary" });
+				})
 			}
 		>
 			<FieldSet>
@@ -123,9 +137,7 @@ export default function JobListingForm({
 								<Field>
 									<FieldLabel htmlFor={field.name}>Type</FieldLabel>
 									<Select
-										onValueChange={(value) =>
-											field.handleChange(value as (typeof JOB_TYPES)[number])
-										}
+										onValueChange={(value) => field.handleChange(value ?? "")}
 										value={field.state.value}
 									>
 										<SelectTrigger>
@@ -134,7 +146,7 @@ export default function JobListingForm({
 											</SelectValue>
 										</SelectTrigger>
 										<SelectContent>
-											{JOB_TYPES.map((type) => (
+											{jobTypes.map((type) => (
 												<SelectItem key={type} textValue={type} value={type}>
 													<JobTypeLabel type={type} />
 												</SelectItem>
@@ -214,14 +226,28 @@ export default function JobListingForm({
 				</form.Field>
 			</FieldSet>
 
-			<FormSubmitActions
-				className="mb-4"
-				isSubmitting={form.state.isSubmitting}
-				onSubmitAction={(submitAction) => form.handleSubmit({ submitAction })}
-				primary={{ label: "Lagre og publiser", icon: <Send /> }}
-				secondary={{ label: "Lagre og avpubliser", icon: <Save /> }}
-				tertiary={onTertiarySubmitAction && { label: "Slett", icon: <Trash2 /> }}
-			/>
+			<form.Subscribe selector={(state) => state.isSubmitting}>
+				{(isSubmitting) => (
+					<FormSubmitActions
+						className="mb-4"
+						isSubmitting={isSubmitting || isDeleting}
+						onSubmitAction={(submitAction) => {
+							if (submitAction === "tertiary") {
+								if (form.state.isSubmitting) return;
+								startDeleting(async () => {
+									await onTertiarySubmitAction?.(form.state.values);
+								});
+								return;
+							}
+							publishing.current = submitAction === "primary";
+							return form.handleSubmit({ submitAction });
+						}}
+						primary={{ label: "Lagre og publiser", icon: <Send /> }}
+						secondary={{ label: "Lagre og avpubliser", icon: <Save /> }}
+						tertiary={onTertiarySubmitAction && { label: "Slett", icon: <Trash2 /> }}
+					/>
+				)}
+			</form.Subscribe>
 		</form>
 	);
 }

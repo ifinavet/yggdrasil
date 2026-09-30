@@ -24,51 +24,56 @@ const volumeTierSchema = z.object({
 	totalPriceOre: priceOre,
 });
 
-export const productInputSchema = z.object({
-	name: z
-		.string()
-		.trim()
-		.min(1, "Skriv et produktnavn.")
-		.max(MAX_PRODUCT_NAME_LENGTH, `Produktnavnet kan ha maks ${MAX_PRODUCT_NAME_LENGTH} tegn.`),
-	shortDescription: z
-		.string()
-		.trim()
-		.max(
-			MAX_SHORT_DESCRIPTION_LENGTH,
-			`Kort beskrivelse kan ha maks ${MAX_SHORT_DESCRIPTION_LENGTH} tegn.`,
-		),
-	longDescription: z
-		.string()
-		.trim()
-		.max(
-			MAX_LONG_DESCRIPTION_LENGTH,
-			`Lang beskrivelse kan ha maks ${MAX_LONG_DESCRIPTION_LENGTH} tegn.`,
-		),
-	category: z.enum(PRODUCT_CATEGORIES),
-	unitPriceOre: priceOre.optional(),
-	vatRate: z
-		.number({ error: "Mva må være en prosent mellom 0 og 100." })
-		.int("Mva må være en prosent mellom 0 og 100.")
-		.min(0, "Mva må være en prosent mellom 0 og 100.")
-		.max(100, "Mva må være en prosent mellom 0 og 100."),
-	volumeTiers: z
-		.array(volumeTierSchema)
-		.min(1, tiersMessage)
-		.max(MAX_VOLUME_TIERS, tiersMessage)
-		.refine(
-			(tiers) => new Set(tiers.map((tier) => tier.quantity)).size === tiers.length,
-			tiersMessage,
-		)
-		.transform((tiers) => [...tiers].sort((a, b) => a.quantity - b.quantity))
-		.optional(),
-	startupPriceOre: priceOre.optional(),
-	maxStudents: z
-		.number({ error: "Maks antall studenter må være et helt tall fra 1." })
-		.int("Maks antall studenter må være et helt tall fra 1.")
-		.min(1, "Maks antall studenter må være et helt tall fra 1.")
-		.max(MAX_STUDENTS, `Maks antall studenter kan være opptil ${MAX_STUDENTS}.`)
-		.optional(),
-});
+export const productInputSchema = z
+	.object({
+		name: z
+			.string()
+			.trim()
+			.min(1, "Skriv et produktnavn.")
+			.max(MAX_PRODUCT_NAME_LENGTH, `Produktnavnet kan ha maks ${MAX_PRODUCT_NAME_LENGTH} tegn.`),
+		shortDescription: z
+			.string()
+			.trim()
+			.max(
+				MAX_SHORT_DESCRIPTION_LENGTH,
+				`Kort beskrivelse kan ha maks ${MAX_SHORT_DESCRIPTION_LENGTH} tegn.`,
+			),
+		longDescription: z
+			.string()
+			.trim()
+			.max(
+				MAX_LONG_DESCRIPTION_LENGTH,
+				`Lang beskrivelse kan ha maks ${MAX_LONG_DESCRIPTION_LENGTH} tegn.`,
+			),
+		category: z.enum(PRODUCT_CATEGORIES),
+		unitPriceOre: priceOre.optional(),
+		vatRate: z
+			.number({ error: "Mva må være en prosent mellom 0 og 100." })
+			.int("Mva må være en prosent mellom 0 og 100.")
+			.min(0, "Mva må være en prosent mellom 0 og 100.")
+			.max(100, "Mva må være en prosent mellom 0 og 100."),
+		volumeTiers: z
+			.array(volumeTierSchema)
+			.min(1, tiersMessage)
+			.max(MAX_VOLUME_TIERS, tiersMessage)
+			.refine(
+				(tiers) => new Set(tiers.map((tier) => tier.quantity)).size === tiers.length,
+				tiersMessage,
+			)
+			.transform((tiers) => [...tiers].sort((a, b) => a.quantity - b.quantity))
+			.optional(),
+		startupPriceOre: priceOre.optional(),
+		maxStudents: z
+			.number({ error: "Maks antall studenter må være et helt tall fra 1." })
+			.int("Maks antall studenter må være et helt tall fra 1.")
+			.min(1, "Maks antall studenter må være et helt tall fra 1.")
+			.max(MAX_STUDENTS, `Maks antall studenter kan være opptil ${MAX_STUDENTS}.`)
+			.optional(),
+	})
+	.refine((product) => product.category !== "job_listing" || !!product.volumeTiers?.length, {
+		message: "Legg til minst én pakkepris for stillingsannonser.",
+		path: ["volumeTiers"],
+	});
 
 export type ProductInput = z.input<typeof productInputSchema>;
 export type ValidProductInput = z.output<typeof productInputSchema>;
