@@ -17,7 +17,7 @@ export function FormRow({
 }>) {
 	const error = errors ? errorText(errors) : undefined;
 	return (
-		<Field data-invalid={error !== undefined}>
+		<Field data-invalid={error !== undefined} className="min-w-0 gap-2">
 			<FieldLabel htmlFor={htmlFor}>{label}</FieldLabel>
 			{children}
 			{hint && <FieldDescription>{hint}</FieldDescription>}

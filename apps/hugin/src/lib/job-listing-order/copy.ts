@@ -3,6 +3,7 @@ import { LISTING_FIELD_LABELS } from "@workspace/shared/job-listing-orders";
 
 export const orderPageCopy = {
 	title: "Bestill stillingsannonse",
+	intro: `Vi ser gjennom annonsene før publisering. Spørsmål? ${JOB_LISTING_ORDER_EMAIL}`,
 	closed: {
 		title: "Bestillingsskjemaet er stengt",
 		body: `Ta kontakt på ${JOB_LISTING_ORDER_EMAIL} hvis dere vil bestille stillingsannonser.`,
@@ -49,7 +50,15 @@ export const companyCopy = {
 } as const;
 
 export const packageCopy = {
-	legend: "Pakke",
+	legend: "Stillingsannonser",
+	multipleQuestion: "Vil dere bestille flere annonser?",
+	yes: "Ja",
+	no: "Nei",
+	add: "Legg til annonse",
+	remove: "Fjern",
+	removeLabel: (position: number) => `Fjern annonse ${position}`,
+	limit: (max: number) => `Dere kan bestille opptil ${max} annonser om gangen.`,
+	total: (quantity: number) => `Totalt for ${quantity} ${quantity === 1 ? "annonse" : "annonser"}`,
 	quantity: "Antall annonser",
 	quantityInfo: "Antall annonser på nettsiden, ikke antall stillinger dere ansetter til.",
 	startup: "Oppstartsbedrift",
