@@ -12,9 +12,9 @@ import {
 	SelectValue,
 } from "@workspace/ui/components/select";
 import { Textarea } from "@workspace/ui/components/textarea";
+import type { ReactNode } from "react";
 import { listingCopy } from "@/lib/job-listing-order/copy";
 import { FormRow } from "./form-row";
-import { OrderSection } from "./order-section";
 import type { OrderFormApi } from "./use-order-form";
 
 export function ListingFieldset({
@@ -22,16 +22,24 @@ export function ListingFieldset({
 	index,
 	settings,
 	today,
+	action,
 }: Readonly<{
 	form: OrderFormApi;
 	index: number;
 	settings: JobListingOrderSettings;
 	today: string;
+	action?: ReactNode;
 }>) {
 	const id = (name: string) => `order-listing-${index}-${name}`;
 
 	return (
-		<OrderSection legend={listingCopy.legend(index + 1)}>
+		<fieldset aria-labelledby={id("heading")} className="flex min-w-0 flex-col gap-5">
+			<div className="flex flex-wrap items-center justify-between gap-2">
+				<h3 id={id("heading")} className="font-semibold">
+					{listingCopy.legend(index + 1)}
+				</h3>
+				{action}
+			</div>
 			<form.Field name={`listings[${index}].title`}>
 				{(field) => (
 					<FormRow label={listingCopy.title} htmlFor={id("title")} errors={field.state.meta.errors}>
@@ -157,6 +165,6 @@ export function ListingFieldset({
 					)}
 				</form.Field>
 			</div>
-		</OrderSection>
+		</fieldset>
 	);
 }

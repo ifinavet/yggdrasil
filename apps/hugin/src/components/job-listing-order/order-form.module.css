@@ -1,0 +1,54 @@
+.form {
+	width: min(48rem, calc(100vw - 3rem));
+	max-width: none;
+	text-align: left;
+	text-wrap: pretty;
+}
+
+.form h1 {
+	font-size: 1.875rem;
+	line-height: 1.2;
+	letter-spacing: -0.02em;
+}
+
+.form h2 {
+	font-size: 1.375rem;
+	line-height: 1.3;
+	font-weight: 700;
+}
+
+.form h3 {
+	font-size: 1.125rem;
+}
+
+.form [data-slot="field-label"] {
+	font-size: 1rem;
+	line-height: 1.4;
+	font-weight: 600;
+}
+
+.form input,
+.form textarea,
+.form [role="combobox"] {
+	font-size: 1rem;
+}
+
+.guide {
+	max-width: 65ch;
+	margin: 0 0 2rem;
+	font-size: 1rem;
+	line-height: 1.6;
+	color: var(--foreground);
+}
+
+.form form > fieldset {
+	gap: 2rem;
+}
+
+.form form > fieldset > fieldset {
+	padding-top: 2rem;
+}
+
+.form form > fieldset > fieldset:first-child {
+	padding-top: 0;
+}
