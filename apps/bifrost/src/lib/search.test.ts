@@ -10,6 +10,10 @@ describe("matchesAny", () => {
 		expect(matchesAny([null, "Sommerjobb i Bekk"], " bekk ")).toBe(true);
 		expect(matchesAny([undefined, "Bekk"], "Netcompany")).toBe(false);
 	});
+
+	it("matches company organization numbers as text", () => {
+		expect(matchesAny(["Bekk", String(123456789)], "123456789")).toBe(true);
+	});
 });
 
 describe("searchFolds", () => {
