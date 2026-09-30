@@ -8,13 +8,14 @@ export const invoiceSource = v.union(
 
 export type InvoiceSource = Infer<typeof invoiceSource>;
 
-export const invoicePlan = v.object({
+export const invoiceDetails = v.object({
 	customer: v.object({
 		name: v.string(),
 		organizationNumber: v.string(),
 		email: v.optional(v.string()),
+		billingDetails: v.optional(v.string()),
+		ehfInvoice: v.optional(v.boolean()),
 	}),
-	fikenContactId: v.optional(v.number()),
 	invoiceText: v.string(),
 	yourReference: v.optional(v.string()),
 	line: v.object({
@@ -24,13 +25,11 @@ export const invoicePlan = v.object({
 	}),
 });
 
-export type InvoicePlan = Infer<typeof invoicePlan>;
+export type InvoiceDetails = Infer<typeof invoiceDetails>;
 
 export const invoiceStatus = v.union(
-	v.literal("scheduled"),
-	v.literal("queued"),
-	v.literal("draft_created"),
-	v.literal("failed"),
+	v.literal("pending"),
+	v.literal("sent"),
 	v.literal("cancelled"),
 );
 
@@ -41,16 +40,12 @@ export const invoicingSchema = {
 		source: invoiceSource,
 		sourceKey: v.string(),
 		serviceAt: v.number(),
-		dueAt: v.number(),
 		status: invoiceStatus,
-		attempts: v.number(),
-		fikenContactId: v.optional(v.number()),
-		fikenDraftId: v.optional(v.number()),
-		lastError: v.optional(v.string()),
-		queuedAt: v.optional(v.number()),
-		draftCreatedAt: v.optional(v.number()),
-		sentPlan: v.optional(invoicePlan),
+		sentAt: v.optional(v.number()),
+		sentBy: v.optional(v.id("users")),
+		sentDetails: v.optional(invoiceDetails),
 	})
 		.index("by_sourceKey", ["sourceKey"])
-		.index("by_status_and_dueAt", ["status", "dueAt"]),
+		.index("by_status_and_serviceAt", ["status", "serviceAt"])
+		.index("by_status_and_sentAt", ["status", "sentAt"]),
 };

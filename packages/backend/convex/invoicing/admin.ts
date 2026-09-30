@@ -1,30 +1,27 @@
+import { paginationOptsValidator, paginationResultValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import type { Doc } from "../_generated/dataModel";
 import { mutation, type QueryCtx, query } from "../_generated/server";
 import { adminRoles, requireRole } from "../auth/accessRights";
 import { orderCompanyName } from "../jobListingOrders/orders";
-import { enqueueInvoice, type Resolution, resolvePlan } from "./processing";
-import { invoicePlan, invoiceStatus } from "./schema";
-
-const LIST_LIMIT = 100;
-const CANCELLABLE_STATUSES = new Set<Doc<"invoices">["status"]>(["scheduled", "failed"]);
+import { type InvoiceResolution, resolveInvoice } from "./details";
+import { invoiceDetails, invoiceStatus } from "./schema";
 
 const invoiceSummary = v.object({
 	_id: v.id("invoices"),
 	kind: v.union(v.literal("jobListingOrder"), v.literal("companyApplication")),
 	companyName: v.string(),
+	invoiceText: v.optional(v.string()),
 	serviceAt: v.number(),
-	dueAt: v.number(),
 	status: invoiceStatus,
-	fikenDraftId: v.optional(v.number()),
-	lastError: v.optional(v.string()),
+	sentAt: v.optional(v.number()),
 	amountOre: v.optional(v.number()),
+	issue: v.optional(v.string()),
 });
 
 const invoicePreview = v.union(
-	v.object({ kind: v.literal("ready"), plan: invoicePlan }),
+	v.object({ kind: v.literal("ready"), details: invoiceDetails, serviceAt: v.number() }),
 	v.object({ kind: v.literal("cancel") }),
-	v.object({ kind: v.literal("reschedule"), serviceAt: v.number() }),
 	v.object({ kind: v.literal("fail"), error: v.string() }),
 );
 
@@ -37,75 +34,103 @@ async function companyNameOf(ctx: QueryCtx, invoice: Doc<"invoices">): Promise<s
 	return application?.registry.name ?? "";
 }
 
-async function previewOf(ctx: QueryCtx, invoice: Doc<"invoices">): Promise<Resolution | null> {
-	if (invoice.status === "draft_created") {
-		return invoice.sentPlan ? { kind: "ready", plan: invoice.sentPlan } : null;
-	}
-	const resolution = await resolvePlan(ctx, invoice);
-	return invoice.status === "cancelled" && resolution.kind !== "ready" ? null : resolution;
-}
-
-async function summarize(ctx: QueryCtx, invoice: Doc<"invoices">, preview: Resolution | null) {
+async function summarize(ctx: QueryCtx, invoice: Doc<"invoices">, preview: InvoiceResolution) {
 	return {
 		_id: invoice._id,
 		kind: invoice.source.kind,
-		companyName: await companyNameOf(ctx, invoice),
-		serviceAt: invoice.serviceAt,
-		dueAt: invoice.dueAt,
+		companyName:
+			invoice.status === "sent" && preview.kind === "ready"
+				? preview.details.customer.name
+				: await companyNameOf(ctx, invoice),
+		invoiceText: preview.kind === "ready" ? preview.details.invoiceText : undefined,
+		serviceAt: preview.kind === "ready" ? preview.serviceAt : invoice.serviceAt,
 		status: invoice.status,
-		fikenDraftId: invoice.fikenDraftId,
-		lastError: invoice.lastError,
-		amountOre: preview?.kind === "ready" ? preview.plan.line.unitPrice : undefined,
+		sentAt: invoice.sentAt,
+		amountOre: preview.kind === "ready" ? preview.details.line.unitPrice : undefined,
+		issue:
+			preview.kind === "fail"
+				? preview.error
+				: preview.kind === "cancel" && invoice.status === "pending"
+					? "Grunnlaget er ikke lenger aktivt."
+					: undefined,
 	};
 }
 
 export const list = query({
-	args: {},
-	returns: v.array(invoiceSummary),
-	handler: async (ctx) => {
+	args: { status: invoiceStatus, paginationOpts: paginationOptsValidator },
+	returns: paginationResultValidator(invoiceSummary),
+	handler: async (ctx, { status, paginationOpts }) => {
 		await requireRole(ctx, adminRoles);
-		const invoices = await ctx.db.query("invoices").order("desc").take(LIST_LIMIT);
-		return await Promise.all(
-			invoices.map(async (invoice) => summarize(ctx, invoice, await previewOf(ctx, invoice))),
-		);
+		const invoices =
+			status === "sent"
+				? ctx.db
+						.query("invoices")
+						.withIndex("by_status_and_sentAt", (q) => q.eq("status", status))
+						.order("desc")
+				: ctx.db
+						.query("invoices")
+						.withIndex("by_status_and_serviceAt", (q) => q.eq("status", status))
+						.order(status === "pending" ? "asc" : "desc");
+		const page = await invoices.paginate(paginationOpts);
+		return {
+			...page,
+			page: await Promise.all(
+				page.page.map(async (invoice) =>
+					summarize(ctx, invoice, await resolveInvoice(ctx, invoice)),
+				),
+			),
+		};
 	},
 });
 
 export const get = query({
 	args: { invoiceId: v.id("invoices") },
-	returns: v.union(
-		v.null(),
-		v.object({
-			invoice: invoiceSummary,
-			attempts: v.number(),
-			draftCreatedAt: v.optional(v.number()),
-			preview: v.union(v.null(), invoicePreview),
-		}),
-	),
+	returns: v.union(v.null(), v.object({ invoice: invoiceSummary, preview: invoicePreview })),
 	handler: async (ctx, { invoiceId }) => {
 		await requireRole(ctx, adminRoles);
 		const invoice = await ctx.db.get(invoiceId);
 		if (!invoice) return null;
-		const preview = await previewOf(ctx, invoice);
-		return {
-			invoice: await summarize(ctx, invoice, preview),
-			attempts: invoice.attempts,
-			draftCreatedAt: invoice.draftCreatedAt,
-			preview,
-		};
+		const preview = await resolveInvoice(ctx, invoice);
+		return { invoice: await summarize(ctx, invoice, preview), preview };
 	},
 });
 
-export const retry = mutation({
+export const markSent = mutation({
+	args: { invoiceId: v.id("invoices") },
+	returns: v.null(),
+	handler: async (ctx, { invoiceId }) => {
+		const user = await requireRole(ctx, adminRoles);
+		const invoice = await ctx.db.get(invoiceId);
+		if (invoice?.status !== "pending") throw new ConvexError("Fakturaen er ikke klar til merking.");
+		const preview = await resolveInvoice(ctx, invoice);
+		if (preview.kind !== "ready") throw new ConvexError("Fakturagrunnlaget må være komplett.");
+		if (preview.serviceAt > Date.now()) {
+			throw new ConvexError("Leveransen må være fullført før fakturaen kan merkes som sendt.");
+		}
+		await ctx.db.patch(invoiceId, {
+			status: "sent",
+			serviceAt: preview.serviceAt,
+			sentAt: Date.now(),
+			sentBy: user._id,
+			sentDetails: preview.details,
+		});
+		return null;
+	},
+});
+
+export const markUnsent = mutation({
 	args: { invoiceId: v.id("invoices") },
 	returns: v.null(),
 	handler: async (ctx, { invoiceId }) => {
 		await requireRole(ctx, adminRoles);
 		const invoice = await ctx.db.get(invoiceId);
-		if (invoice?.status !== "failed") {
-			throw new ConvexError("Bare fakturaer som feilet kan prøves på nytt.");
-		}
-		await enqueueInvoice(ctx, { ...invoice, attempts: 0 });
+		if (invoice?.status !== "sent") throw new ConvexError("Bare sendte fakturaer kan åpnes igjen.");
+		await ctx.db.patch(invoiceId, {
+			status: "pending",
+			sentAt: undefined,
+			sentBy: undefined,
+			sentDetails: undefined,
+		});
 		return null;
 	},
 });
@@ -116,8 +141,8 @@ export const cancel = mutation({
 	handler: async (ctx, { invoiceId }) => {
 		await requireRole(ctx, adminRoles);
 		const invoice = await ctx.db.get(invoiceId);
-		if (!invoice || !CANCELLABLE_STATUSES.has(invoice.status)) {
-			throw new ConvexError("Bare planlagte eller feilede fakturaer kan avbrytes.");
+		if (invoice?.status !== "pending") {
+			throw new ConvexError("Bare fakturaer som ikke er sendt kan avbrytes.");
 		}
 		await ctx.db.patch(invoiceId, { status: "cancelled" });
 		return null;

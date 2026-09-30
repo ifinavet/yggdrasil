@@ -1,37 +1,23 @@
 import { describe, expect, it } from "vitest";
-import { groupInvoices, type InvoiceSummary } from "./invoice-labels";
+import { groupPending, type InvoiceSummary } from "./invoice-labels";
 
-function invoice(companyName: string, status: InvoiceSummary["status"], dueAt = 0) {
-	return {
-		_id: companyName,
-		kind: "jobListingOrder",
-		companyName,
-		serviceAt: 0,
-		dueAt,
-		status,
-	} as unknown as InvoiceSummary;
+function invoice(companyName: string, serviceAt: number, issue?: string) {
+	return { companyName, serviceAt, status: "pending", issue } as InvoiceSummary;
 }
 
-describe("groupInvoices", () => {
-	it("splits invoices into failed, upcoming by due date, and previous", () => {
-		const groups = groupInvoices([
-			invoice("later", "scheduled", 30),
-			invoice("draft", "draft_created"),
-			invoice("broken", "failed"),
-			invoice("sending", "queued", 10),
-			invoice("cancelled", "cancelled"),
-			invoice("sooner", "scheduled", 20),
-		]);
-		const names = (list: InvoiceSummary[]) => list.map((entry) => entry.companyName);
-
-		expect({
-			failed: names(groups.failed),
-			upcoming: names(groups.upcoming),
-			previous: names(groups.previous),
-		}).toEqual({
-			failed: ["broken"],
-			upcoming: ["sending", "sooner", "later"],
-			previous: ["draft", "cancelled"],
-		});
+describe("groupPending", () => {
+	it("keeps delivered items in the work queue and future events separate", () => {
+		const groups = groupPending(
+			[
+				invoice("earlier", 10),
+				invoice("today", 20),
+				invoice("future", 21),
+				invoice("blocked", 10, "Mangler pris"),
+			],
+			20,
+		);
+		expect(groups.ready.map((entry) => entry.companyName)).toEqual(["earlier", "today"]);
+		expect(groups.upcoming.map((entry) => entry.companyName)).toEqual(["future"]);
+		expect(groups.blocked.map((entry) => entry.companyName)).toEqual(["blocked"]);
 	});
 });

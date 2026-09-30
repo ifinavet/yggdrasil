@@ -1,948 +1,292 @@
-import type { EmailId } from "@convex-dev/resend";
-import { invoiceDueAt } from "@workspace/shared/time";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
 	asUser,
 	grantRole,
-	HOUR_IN_MS,
 	insertApplication,
+	insertEvent,
 	insertSemester,
 	insertUser,
-	refusalMessageFrom,
 	setup,
-	type TestBackend,
 } from "../../test/fixtures";
-import { api, internal } from "../_generated/api";
-import type { Doc, Id } from "../_generated/dataModel";
-import { orderResend } from "../jobListingOrders/emails";
-import { draftUuid } from "./fiken";
+import { api } from "../_generated/api";
+import type { Id } from "../_generated/dataModel";
+import { cancelInvoice, scheduleInvoice } from "./schedule";
 
-const BASE_URL = "https://fiken.test/api/v2";
-const NOW = Date.parse("2027-01-10T10:00:00Z");
-const EVENT_START = Date.parse("2027-02-09T15:15:00Z");
-
-type FikenCall = { method: string; path: string; body: Record<string, unknown> | undefined };
-
-type FikenReply = Response | Error;
-
-type FikenStub = {
-	contacts?: () => FikenReply;
-	createContact?: () => FikenReply;
-	drafts?: () => FikenReply;
-	createDraft?: () => FikenReply;
-};
-
-function created(path: string) {
-	return new Response(null, { status: 201, headers: { Location: `${BASE_URL}${path}` } });
-}
-
-function stubFiken(stub: FikenStub = {}) {
-	const calls: FikenCall[] = [];
-	vi.stubGlobal(
-		"fetch",
-		vi.fn(async (input: string, init: RequestInit = {}) => {
-			const url = new URL(input);
-			const method = init.method ?? "GET";
-			const path = url.pathname.replace("/api/v2/companies/navet", "");
-			calls.push({
-				method,
-				path: `${path}${url.search}`,
-				body: init.body ? JSON.parse(String(init.body)) : undefined,
-			});
-			const reply =
-				method === "GET"
-					? path === "/invoices/drafts"
-						? (stub.drafts?.() ?? Response.json([]))
-						: (stub.contacts?.() ?? Response.json([]))
-					: path === "/contacts"
-						? (stub.createContact?.() ?? created("/companies/navet/contacts/77"))
-						: (stub.createDraft?.() ?? created("/companies/navet/invoices/drafts/901"));
-			if (reply instanceof Error) throw reply;
-			return reply;
-		}),
-	);
-	return calls;
-}
-
-async function fixture() {
+async function fixture(serviceAt = Date.now() - 86_400_000) {
 	const { t, companyId } = await setup();
-	const adminUser = await insertUser(t, "admin@ifinavet.no");
+	const adminUser = await insertUser(t, "cfo@example.com");
 	await grantRole(t, adminUser._id, "admin");
-	const editorUser = await insertUser(t, "kari@ifinavet.no");
-	await grantRole(t, editorUser._id, "editor");
-	return { t, companyId, admin: asUser(t, adminUser), editor: asUser(t, editorUser) };
-}
-
-type Fixture = Awaited<ReturnType<typeof fixture>>;
-
-async function insertListingProduct(t: TestBackend, vatRate = 25) {
-	return t.run((ctx) =>
+	const admin = asUser(t, adminUser);
+	const productId = await t.run((ctx) =>
 		ctx.db.insert("products", {
 			name: "Stillingsannonse",
-			shortDescription: "Annonse",
+			shortDescription: "",
 			longDescription: "",
 			category: "job_listing",
-			vatRate,
+			vatRate: 25,
 			sortOrder: 1,
 			active: true,
 		}),
 	);
-}
-
-async function insertConfirmedOrder(
-	f: Fixture,
-	overrides: Partial<Doc<"jobListingOrders">> = {},
-): Promise<Id<"jobListingOrders">> {
-	const productId = await insertListingProduct(f.t);
-	return f.t.run((ctx) =>
+	const orderId = await t.run((ctx) =>
 		ctx.db.insert("jobListingOrders", {
-			reference: "NAV-1234",
-			submissionId: `submission-${Math.random()}`,
-			status: "confirmed",
-			companyId: f.companyId,
+			reference: "2026-42",
+			submissionId: "submission-42",
+			status: "published",
+			companyId,
 			productId,
 			productName: "Stillingsannonse",
 			startup: false,
 			quantity: 2,
 			priceOre: 550_000,
-			contact: { name: "Ingrid Solberg", email: "ingrid@fjordkode.no" },
-			billing: { address: "Storgata 12", email: "faktura@testbedrift.no", reference: "PO-7" },
-			...overrides,
+			contact: { name: "Kari", email: "kari@example.com" },
+			billing: { address: "Fakturaveien 1", email: "faktura@example.com", reference: "PO-42" },
+			ehfInvoice: true,
 		}),
 	);
+	await t.run((ctx) => scheduleInvoice(ctx, { kind: "jobListingOrder", orderId }, serviceAt));
+	const invoice = await t.run((ctx) => ctx.db.query("invoices").first());
+	if (!invoice) throw new Error("Expected invoice");
+	return { t, admin, companyId, productId, orderId, invoice, serviceAt };
 }
 
-async function approvedOrder(f: Fixture, overrides: Partial<Doc<"jobListingOrders">> = {}) {
-	const orderId = await insertConfirmedOrder(f, overrides);
-	await f.admin.mutation(api.jobListingOrders.admin.approve, { orderId });
-	return orderId;
-}
-
-async function insertEventProduct(t: TestBackend, overrides: Partial<Doc<"products">> = {}) {
-	return t.run((ctx) =>
-		ctx.db.insert("products", {
-			name: "Bedriftspresentasjon",
-			shortDescription: "Bedpres",
-			longDescription: "",
-			category: "event",
-			eventType: "standard_presentation",
-			unitPriceOre: 3_000_000,
-			vatRate: 25,
-			sortOrder: 1,
-			active: true,
-			...overrides,
-		}),
-	);
-}
-
-async function confirmedApplication(f: Fixture) {
-	const semesterId = await insertSemester(f.t, { defaultEventStartTime: "16:15" });
-	return insertApplication(f.t, semesterId, {
-		status: "confirmed",
-		assignedDate: "2027-02-09",
-		orgNumber: "123456789",
+async function list(
+	admin: Awaited<ReturnType<typeof fixture>>["admin"],
+	status: "pending" | "sent" | "cancelled",
+) {
+	return admin.query(api.invoicing.admin.list, {
+		status,
+		paginationOpts: { cursor: null, numItems: 30 },
 	});
 }
 
-async function bedpres(f: Fixture) {
-	const applicationId = await confirmedApplication(f);
-	const eventId = await f.editor.mutation(api.semesterPlanning.applications.mutations.createEvent, {
-		applicationId,
-	});
-	return { applicationId, eventId };
-}
-
-async function invoices(t: TestBackend) {
-	return t.run((ctx) => ctx.db.query("invoices").collect());
-}
-
-async function onlyInvoice(t: TestBackend) {
-	const [invoice, ...rest] = await invoices(t);
-	if (!invoice || rest.length) throw new Error("Expected exactly one invoice.");
-	return invoice;
-}
-
-async function runSweep(t: TestBackend, asOf: number, maxIterations?: number) {
-	vi.setSystemTime(asOf);
-	const count = await t.mutation(internal.invoicing.processing.sweep, {});
-	await t.finishAllScheduledFunctions(vi.runAllTimers, maxIterations);
-	return count;
-}
-
-beforeEach(() => {
-	vi.useFakeTimers();
-	vi.setSystemTime(NOW);
-	vi.spyOn(orderResend, "sendEmail").mockResolvedValue("email-id" as EmailId);
-	vi.stubEnv("FIKEN_API_TOKEN", "fiken-token");
-	vi.stubEnv("FIKEN_COMPANY_SLUG", "navet");
-	vi.stubEnv("FIKEN_API_BASE_URL", BASE_URL);
-});
-
-afterEach(() => {
-	vi.restoreAllMocks();
-	vi.unstubAllGlobals();
-	vi.unstubAllEnvs();
-	vi.useRealTimers();
-});
-
-describe("job listing orders", () => {
-	it("schedules an invoice a month after the order is published", async () => {
+describe("manual invoice queue", () => {
+	it("shows copyable billing fields and moves a delivered item to sent with a frozen snapshot", async () => {
 		const f = await fixture();
-		const orderId = await approvedOrder(f);
-
-		expect(await onlyInvoice(f.t)).toMatchObject({
-			source: { kind: "jobListingOrder", orderId },
-			serviceAt: NOW,
-			dueAt: invoiceDueAt(NOW),
-			status: "scheduled",
-			attempts: 0,
-		});
-	});
-
-	it("creates the customer and a draft in Fiken once the invoice is due", async () => {
-		const f = await fixture();
-		await approvedOrder(f);
-		const uuid = await draftUuid((await onlyInvoice(f.t))._id);
-		const calls = stubFiken();
-
-		expect(await runSweep(f.t, invoiceDueAt(NOW) - 1)).toBe(0);
-		expect(calls).toEqual([]);
-
-		const dueAt = invoiceDueAt(NOW);
-		expect(await runSweep(f.t, dueAt)).toBe(1);
-
-		expect(calls).toEqual([
-			{
-				method: "GET",
-				path: "/contacts?organizationNumber=123456789&customer=true",
-				body: undefined,
-			},
-			{
-				method: "POST",
-				path: "/contacts",
-				body: {
-					name: "Testbedrift",
-					organizationNumber: "123456789",
-					email: "faktura@testbedrift.no",
-					customer: true,
+		const pending = await list(f.admin, "pending");
+		expect(pending.page).toMatchObject([{ companyName: "Testbedrift", amountOre: 550_000 }]);
+		const before = await f.admin.query(api.invoicing.admin.get, { invoiceId: f.invoice._id });
+		expect(before?.preview).toMatchObject({
+			kind: "ready",
+			details: {
+				customer: {
+					email: "faktura@example.com",
+					billingDetails: "Fakturaveien 1",
+					ehfInvoice: true,
 				},
+				yourReference: "PO-42",
+				line: { unitPrice: 550_000, vatRate: 25 },
 			},
-			{ method: "GET", path: `/invoices/drafts?uuid=${uuid}`, body: undefined },
-			{
-				method: "POST",
-				path: "/invoices/drafts",
-				body: {
-					type: "invoice",
-					uuid,
-					customerId: 77,
-					issueDate: "2027-02-10",
-					daysUntilDueDate: 14,
-					invoiceText: "Stillingsannonser, bestilling NAV-1234",
-					yourReference: "PO-7",
-					lines: [
-						{
-							description: "Stillingsannonse (2 stk.)",
-							unitPrice: 550_000,
-							quantity: 1,
-							vatType: "HIGH",
-						},
-					],
-				},
-			},
-		]);
-		expect(await onlyInvoice(f.t)).toMatchObject({
-			status: "draft_created",
-			fikenContactId: 77,
-			fikenDraftId: 901,
-			attempts: 1,
 		});
-		expect((await onlyInvoice(f.t)).draftCreatedAt).toBeGreaterThanOrEqual(dueAt);
+
+		await f.admin.mutation(api.invoicing.admin.markSent, { invoiceId: f.invoice._id });
+		await f.t.run((ctx) => ctx.db.patch(f.orderId, { priceOre: 750_000 }));
+		expect((await list(f.admin, "pending")).page).toHaveLength(0);
+		expect((await list(f.admin, "sent")).page).toMatchObject([{ amountOre: 550_000 }]);
+		expect(
+			(await f.admin.query(api.invoicing.admin.get, { invoiceId: f.invoice._id }))?.invoice.sentAt,
+		).toBeTypeOf("number");
+
+		await f.admin.mutation(api.invoicing.admin.markUnsent, { invoiceId: f.invoice._id });
+		expect((await list(f.admin, "pending")).page).toMatchObject([{ amountOre: 750_000 }]);
 	});
 
-	it("reuses a customer that already exists in Fiken", async () => {
+	it("does not allow marking a future event or an incomplete invoice as sent", async () => {
+		const f = await fixture(Date.now() + 86_400_000);
+		await expect(
+			f.admin.mutation(api.invoicing.admin.markSent, { invoiceId: f.invoice._id }),
+		).rejects.toThrow();
+		await f.t.run((ctx) => ctx.db.patch(f.orderId, { status: "rejected" }));
+		await expect(
+			f.admin.mutation(api.invoicing.admin.markSent, { invoiceId: f.invoice._id }),
+		).rejects.toThrow();
+	});
+
+	it("keeps one record per sale, updates its date, and never reopens a sent record automatically", async () => {
 		const f = await fixture();
-		await approvedOrder(f);
-		const calls = stubFiken({ contacts: () => Response.json([{ contactId: 55 }]) });
-
-		await runSweep(f.t, invoiceDueAt(NOW));
-
-		expect(calls.map((call) => call.method)).toEqual(["GET", "GET", "POST"]);
-		expect(calls.at(-1)?.body).toMatchObject({ customerId: 55 });
-		expect(await onlyInvoice(f.t)).toMatchObject({ status: "draft_created", fikenContactId: 55 });
+		await f.t.run((ctx) =>
+			scheduleInvoice(ctx, { kind: "jobListingOrder", orderId: f.orderId }, f.serviceAt + 1_000),
+		);
+		expect(await f.t.run((ctx) => ctx.db.query("invoices").collect())).toHaveLength(1);
+		await f.admin.mutation(api.invoicing.admin.markSent, { invoiceId: f.invoice._id });
+		await f.t.run((ctx) =>
+			scheduleInvoice(ctx, { kind: "jobListingOrder", orderId: f.orderId }, f.serviceAt + 2_000),
+		);
+		expect((await f.t.run((ctx) => ctx.db.get(f.invoice._id)))?.status).toBe("sent");
 	});
 
-	it("bills the company's registry name and billing when the order has none", async () => {
+	it("includes completed company events and restricts changes to admins", async () => {
+		const f = await fixture();
+		const eventProductId = await f.t.run((ctx) =>
+			ctx.db.insert("products", {
+				name: "Bedriftspresentasjon",
+				shortDescription: "",
+				longDescription: "",
+				category: "event",
+				unitPriceOre: 3_000_000,
+				vatRate: 25,
+				eventType: "standard_presentation",
+				sortOrder: 2,
+				active: true,
+			}),
+		);
+		const eventId = await insertEvent(f.t, f.companyId, {
+			eventStart: Date.now() - 86_400_000,
+			product: { productId: eventProductId, name: "Bedriftspresentasjon", unitPriceOre: 3_000_000 },
+		});
+		const semesterId = await insertSemester(f.t);
+		const applicationId = await insertApplication(f.t, semesterId, {
+			status: "confirmed",
+			eventId,
+		});
+		await f.t.run((ctx) =>
+			scheduleInvoice(ctx, { kind: "companyApplication", applicationId }, Date.now() - 86_400_000),
+		);
+		const eventInvoiceId = (await f.t.run((ctx) => ctx.db.query("invoices").order("desc").first()))
+			?._id as Id<"invoices">;
+		const detail = await f.admin.query(api.invoicing.admin.get, { invoiceId: eventInvoiceId });
+		expect(detail?.preview).toMatchObject({
+			kind: "ready",
+			details: {
+				line: { unitPrice: 3_000_000 },
+				customer: { billingDetails: "Referanse: PO-2027-014" },
+			},
+		});
+
+		const editor = await insertUser(f.t, "editor@example.com");
+		await grantRole(f.t, editor._id, "editor");
+		await expect(
+			asUser(f.t, editor).mutation(api.invoicing.admin.markSent, { invoiceId: eventInvoiceId }),
+		).rejects.toThrow();
+		await f.admin.mutation(api.invoicing.admin.cancel, { invoiceId: eventInvoiceId });
+		expect((await list(f.admin, "cancelled")).page).toHaveLength(1);
+	});
+
+	it("uses the company billing fallback and keeps invalid sources visible for review", async () => {
 		const f = await fixture();
 		await f.t.run((ctx) =>
 			ctx.db.patch(f.companyId, {
 				registryName: "TESTBEDRIFT AS",
-				billing: { address: "Gata 1", email: "regnskap@testbedrift.no", reference: "Kari" },
+				billing: {
+					address: "Selskapsgata 2",
+					email: "okonomi@example.com",
+					reference: "PO-COMPANY",
+				},
 			}),
 		);
-		await approvedOrder(f, { billing: undefined });
-		const calls = stubFiken();
-
-		await runSweep(f.t, invoiceDueAt(NOW));
-
-		expect(calls[1]?.body).toMatchObject({
-			name: "TESTBEDRIFT AS",
-			email: "regnskap@testbedrift.no",
+		await f.t.run((ctx) => ctx.db.patch(f.orderId, { billing: undefined }));
+		const fallback = await f.admin.query(api.invoicing.admin.get, { invoiceId: f.invoice._id });
+		expect(fallback?.preview).toMatchObject({
+			kind: "ready",
+			details: {
+				customer: {
+					name: "TESTBEDRIFT AS",
+					email: "okonomi@example.com",
+					billingDetails: "Selskapsgata 2",
+				},
+				yourReference: "PO-COMPANY",
+			},
 		});
-		expect(calls.at(-1)?.body).toMatchObject({ yourReference: "Kari" });
-	});
 
-	it("uses the default VAT rate when the product is gone", async () => {
-		const f = await fixture();
-		const orderId = await approvedOrder(f);
-		await f.t.run(async (ctx) => {
-			const order = await ctx.db.get(orderId);
-			if (order) await ctx.db.delete(order.productId);
-		});
-		const calls = stubFiken();
-
-		await runSweep(f.t, invoiceDueAt(NOW));
-
-		expect(calls.at(-1)?.body).toMatchObject({
-			lines: [expect.objectContaining({ vatType: "HIGH" })],
-		});
-	});
-
-	it("cancels the invoice when the order is no longer published", async () => {
-		const f = await fixture();
-		const orderId = await approvedOrder(f);
-		await f.t.run((ctx) => ctx.db.patch(orderId, { status: "rejected" }));
-		const calls = stubFiken();
-
-		await runSweep(f.t, invoiceDueAt(NOW));
-
-		expect(calls).toEqual([]);
-		expect(await onlyInvoice(f.t)).toMatchObject({ status: "cancelled" });
-	});
-
-	it("fails the invoice when the company is gone", async () => {
-		const f = await fixture();
-		await approvedOrder(f);
+		await f.t.run((ctx) => ctx.db.delete(f.productId));
+		expect(
+			(await f.admin.query(api.invoicing.admin.get, { invoiceId: f.invoice._id }))?.preview,
+		).toMatchObject({ kind: "ready", details: { line: { vatRate: 25 } } });
 		await f.t.run((ctx) => ctx.db.delete(f.companyId));
-		stubFiken();
-
-		await runSweep(f.t, invoiceDueAt(NOW));
-
-		expect(await onlyInvoice(f.t)).toMatchObject({
-			status: "failed",
-			lastError: "Fant ikke bedriften til bestillingen.",
+		expect(
+			(await f.admin.query(api.invoicing.admin.get, { invoiceId: f.invoice._id }))?.preview,
+		).toMatchObject({ kind: "fail" });
+		expect((await list(f.admin, "pending")).page[0]?.issue).toContain("Fant ikke bedriften");
+		await f.t.run((ctx) => ctx.db.delete(f.orderId));
+		expect((await list(f.admin, "pending")).page[0]).toMatchObject({
+			companyName: "",
+			issue: "Grunnlaget er ikke lenger aktivt.",
 		});
+		await expect(
+			f.admin.mutation(api.invoicing.admin.markSent, { invoiceId: f.invoice._id }),
+		).rejects.toThrow();
 	});
 
-	it("fails an invoice with a VAT rate Fiken does not know", async () => {
+	it("resolves event prices from products and reports withdrawn or missing sources", async () => {
 		const f = await fixture();
-		const orderId = await approvedOrder(f);
-		await f.t.run(async (ctx) => {
-			const order = await ctx.db.get(orderId);
-			if (order) await ctx.db.patch(order.productId, { vatRate: 7 });
-		});
-		const calls = stubFiken();
-
-		await runSweep(f.t, invoiceDueAt(NOW));
-
-		expect(calls).toEqual([]);
-		expect(await onlyInvoice(f.t)).toMatchObject({
-			status: "failed",
-			lastError: "Ukjent MVA-sats 7",
-		});
-	});
-});
-
-describe("company presentations", () => {
-	it("schedules an invoice a month after the event and bills the event's product", async () => {
-		const f = await fixture();
-		await insertEventProduct(f.t);
-		const { applicationId } = await bedpres(f);
-
-		const dueAt = invoiceDueAt(EVENT_START);
-		expect(await onlyInvoice(f.t)).toMatchObject({
-			source: { kind: "companyApplication", applicationId },
-			serviceAt: EVENT_START,
-			dueAt,
-			status: "scheduled",
-		});
-
-		const calls = stubFiken();
-		await runSweep(f.t, dueAt);
-
-		expect(calls[1]?.body).toEqual({
-			name: "FJORDKODE AS",
-			organizationNumber: "123456789",
-			email: "faktura@fjordkode.no",
-			customer: true,
-		});
-		expect(calls.at(-1)?.body).toMatchObject({
-			invoiceText: "Bedriftspresentasjon med Testbedrift, 2027-02-09",
-			lines: [
-				{
-					description: "Bedriftspresentasjon",
-					unitPrice: 3_000_000,
-					quantity: 1,
-					vatType: "HIGH",
-				},
-			],
-		});
-		expect(await onlyInvoice(f.t)).toMatchObject({ status: "draft_created" });
-	});
-
-	it("bills the product and price stored on the event", async () => {
-		const f = await fixture();
-		const productId = await insertEventProduct(f.t, { eventType: undefined, vatRate: 15 });
-		const { eventId } = await bedpres(f);
-		await f.t.run((ctx) =>
-			ctx.db.patch(eventId, {
-				product: { productId, name: "Bedpres med rabatt", unitPriceOre: 2_000_000 },
+		const productId = await f.t.run((ctx) =>
+			ctx.db.insert("products", {
+				name: "Ordinær bedriftspresentasjon",
+				shortDescription: "",
+				longDescription: "",
+				category: "event",
+				unitPriceOre: 3_000_000,
+				vatRate: 25,
+				eventType: "standard_presentation",
+				sortOrder: 2,
+				active: true,
 			}),
 		);
-		const calls = stubFiken();
-
-		await runSweep(f.t, invoiceDueAt(EVENT_START));
-
-		expect(calls.at(-1)?.body).toMatchObject({
-			lines: [
-				{
-					description: "Bedpres med rabatt",
-					unitPrice: 2_000_000,
-					quantity: 1,
-					vatType: "MEDIUM",
-				},
-			],
+		const eventId = await insertEvent(f.t, f.companyId, { eventStart: Date.now() - 86_400_000 });
+		const semesterId = await insertSemester(f.t);
+		const applicationId = await insertApplication(f.t, semesterId, {
+			status: "confirmed",
+			eventId,
 		});
-	});
-
-	it("follows the event when its date moves", async () => {
-		const f = await fixture();
-		await insertEventProduct(f.t);
-		const { applicationId } = await bedpres(f);
-
-		await f.t.run((ctx) => ctx.db.patch(applicationId, { assignedDate: "2027-03-02" }));
-		await f.editor.mutation(api.semesterPlanning.applications.mutations.createEvent, {
-			applicationId,
-		});
-
-		const movedStart = Date.parse("2027-03-02T15:15:00Z");
-		expect(await onlyInvoice(f.t)).toMatchObject({
-			serviceAt: movedStart,
-			dueAt: invoiceDueAt(movedStart),
-			status: "scheduled",
-		});
-	});
-
-	it("waits for an event that was moved later without rescheduling", async () => {
-		const f = await fixture();
-		await insertEventProduct(f.t);
-		const { eventId } = await bedpres(f);
-		const laterStart = EVENT_START + 7 * 24 * HOUR_IN_MS;
-		await f.t.run((ctx) => ctx.db.patch(eventId, { eventStart: laterStart }));
-		const calls = stubFiken();
-
-		await runSweep(f.t, invoiceDueAt(EVENT_START));
-
-		expect(calls).toEqual([]);
-		expect(await onlyInvoice(f.t)).toMatchObject({
-			status: "scheduled",
-			serviceAt: laterStart,
-			dueAt: invoiceDueAt(laterStart),
-			attempts: 0,
-		});
-	});
-
-	it("cancels the invoice when the application is withdrawn, and schedules it again later", async () => {
-		const f = await fixture();
-		await insertEventProduct(f.t);
-		const { applicationId } = await bedpres(f);
-
-		await f.editor.mutation(api.semesterPlanning.applications.mutations.withdraw, {
-			applicationId,
-		});
-		expect(await onlyInvoice(f.t)).toMatchObject({ status: "cancelled" });
-
 		await f.t.run((ctx) =>
-			ctx.db.patch(applicationId, { status: "confirmed", assignedDate: "2027-02-09" }),
+			scheduleInvoice(ctx, { kind: "companyApplication", applicationId }, Date.now() - 86_400_000),
 		);
-		await f.editor.mutation(api.semesterPlanning.applications.mutations.createEvent, {
-			applicationId,
+		const invoiceId = (await f.t.run((ctx) => ctx.db.query("invoices").order("desc").first()))
+			?._id as Id<"invoices">;
+		expect((await f.admin.query(api.invoicing.admin.get, { invoiceId }))?.preview).toMatchObject({
+			kind: "ready",
+			details: { line: { description: "Ordinær bedriftspresentasjon", unitPrice: 3_000_000 } },
 		});
-		expect(await onlyInvoice(f.t)).toMatchObject({
-			status: "scheduled",
-			dueAt: invoiceDueAt(EVENT_START),
-		});
-	});
 
-	it("cancels the invoice when the application lost its event before it was due", async () => {
-		const f = await fixture();
-		await insertEventProduct(f.t);
-		const { applicationId } = await bedpres(f);
+		await f.t.run((ctx) => ctx.db.patch(productId, { active: false }));
+		expect((await f.admin.query(api.invoicing.admin.get, { invoiceId }))?.preview).toMatchObject({
+			kind: "fail",
+		});
+		await f.t.run((ctx) =>
+			ctx.db.patch(eventId, { product: { productId, name: "Ordinær bedriftspresentasjon" } }),
+		);
+		await f.t.run((ctx) => ctx.db.patch(productId, { unitPriceOre: undefined }));
+		expect((await f.admin.query(api.invoicing.admin.get, { invoiceId }))?.preview).toMatchObject({
+			kind: "fail",
+		});
 		await f.t.run((ctx) => ctx.db.patch(applicationId, { status: "withdrawn" }));
-		stubFiken();
-
-		await runSweep(f.t, invoiceDueAt(EVENT_START));
-
-		expect(await onlyInvoice(f.t)).toMatchObject({ status: "cancelled" });
-	});
-
-	it("cancels the invoice when the application is gone", async () => {
-		const f = await fixture();
-		await insertEventProduct(f.t);
-		const { applicationId } = await bedpres(f);
+		expect((await f.admin.query(api.invoicing.admin.get, { invoiceId }))?.preview).toMatchObject({
+			kind: "cancel",
+		});
 		await f.t.run((ctx) => ctx.db.delete(applicationId));
-		stubFiken();
-
-		await runSweep(f.t, invoiceDueAt(EVENT_START));
-
-		expect(await onlyInvoice(f.t)).toMatchObject({ status: "cancelled" });
-	});
-
-	it("fails the invoice when no product has a price", async () => {
-		const f = await fixture();
-		await insertEventProduct(f.t, { unitPriceOre: undefined });
-		await bedpres(f);
-		stubFiken();
-
-		await runSweep(f.t, invoiceDueAt(EVENT_START));
-
-		expect(await onlyInvoice(f.t)).toMatchObject({
-			status: "failed",
-			lastError: "Arrangementet mangler et produkt med pris.",
-		});
-	});
-
-	it("leaves a created draft alone when the event moves or is withdrawn", async () => {
-		const f = await fixture();
-		await insertEventProduct(f.t);
-		const { applicationId } = await bedpres(f);
-		stubFiken();
-		await runSweep(f.t, invoiceDueAt(EVENT_START));
-
-		await f.t.run((ctx) => ctx.db.patch(applicationId, { assignedDate: "2027-03-02" }));
-		await f.editor.mutation(api.semesterPlanning.applications.mutations.createEvent, {
-			applicationId,
-		});
-		await f.editor.mutation(api.semesterPlanning.applications.mutations.withdraw, {
-			applicationId,
-		});
-
-		expect(await onlyInvoice(f.t)).toMatchObject({
-			status: "draft_created",
-			serviceAt: EVENT_START,
-		});
-	});
-});
-
-describe("failures", () => {
-	it("retries a Fiken outage with backoff, then gives up after three attempts", async () => {
-		const f = await fixture();
-		await approvedOrder(f);
-		const calls = stubFiken({ contacts: () => new Response("nede", { status: 503 }) });
-		const firstDue = invoiceDueAt(NOW);
-
-		await runSweep(f.t, firstDue);
-		const first = await onlyInvoice(f.t);
-		expect(first).toMatchObject({
-			status: "scheduled",
-			attempts: 1,
-			lastError: "Fiken svarte 503: nede",
-		});
-		expect(first.dueAt - firstDue).toBeGreaterThanOrEqual(HOUR_IN_MS);
-
-		await runSweep(f.t, first.dueAt);
-		const second = await onlyInvoice(f.t);
-		expect(second).toMatchObject({ status: "scheduled", attempts: 2 });
-		expect(second.dueAt - first.dueAt).toBeGreaterThanOrEqual(2 * HOUR_IN_MS);
-
-		await runSweep(f.t, second.dueAt);
-		expect(await onlyInvoice(f.t)).toMatchObject({ status: "failed", attempts: 3 });
-		expect(calls).toHaveLength(3);
-	});
-
-	it("retries when Fiken cannot be reached", async () => {
-		const f = await fixture();
-		await approvedOrder(f);
-		stubFiken({ contacts: () => new TypeError("fetch failed") });
-
-		await runSweep(f.t, invoiceDueAt(NOW));
-
-		expect(await onlyInvoice(f.t)).toMatchObject({
-			status: "scheduled",
-			lastError: "Fiken svarte ikke: TypeError: fetch failed",
-		});
-	});
-
-	it("reuses the draft Fiken made when its reply was lost", async () => {
-		const f = await fixture();
-		await approvedOrder(f);
-		const lost = stubFiken({ createDraft: () => new TypeError("fetch failed") });
-		await runSweep(f.t, invoiceDueAt(NOW));
-		const first = await onlyInvoice(f.t);
-		expect(first).toMatchObject({ status: "scheduled" });
-
-		const retry = stubFiken({ drafts: () => Response.json([{ draftId: 902 }]) });
-		await runSweep(f.t, first.dueAt);
-
-		const uuid = lost.at(-1)?.body?.uuid;
-		expect(retry).toEqual([
-			{ method: "GET", path: `/invoices/drafts?uuid=${uuid}`, body: undefined },
-		]);
-		expect(await onlyInvoice(f.t)).toMatchObject({ status: "draft_created", fikenDraftId: 902 });
-	});
-
-	it("derives one valid draft UUID per invoice", async () => {
-		const uuid = await draftUuid("invoice-a");
-
-		expect(uuid).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
-		expect(await draftUuid("invoice-a")).toBe(uuid);
-		expect(await draftUuid("invoice-b")).not.toBe(uuid);
-	});
-
-	it("fails at once when Fiken rejects the request", async () => {
-		const f = await fixture();
-		await approvedOrder(f);
-		stubFiken({ createDraft: () => new Response("ugyldig", { status: 400 }) });
-
-		await runSweep(f.t, invoiceDueAt(NOW));
-
-		expect(await onlyInvoice(f.t)).toMatchObject({
-			status: "failed",
-			fikenContactId: 77,
-			lastError: "Fiken svarte 400: ugyldig",
-		});
-	});
-
-	it("fails when Fiken does not say where the draft was created", async () => {
-		const f = await fixture();
-		await approvedOrder(f);
-		stubFiken({ createDraft: () => new Response(null, { status: 201 }) });
-
-		await runSweep(f.t, invoiceDueAt(NOW));
-
-		expect(await onlyInvoice(f.t)).toMatchObject({
-			status: "failed",
-			lastError: "Fiken svarte uten Location-header",
-		});
-	});
-
-	it("waits for Fiken to be configured before sending anything", async () => {
-		const f = await fixture();
-		await approvedOrder(f);
-		vi.stubEnv("FIKEN_COMPANY_SLUG", "");
-		const calls = stubFiken();
-
-		expect(await runSweep(f.t, invoiceDueAt(NOW))).toBe(0);
-
-		expect(calls).toEqual([]);
-		expect(await onlyInvoice(f.t)).toMatchObject({ status: "scheduled", attempts: 0 });
-	});
-
-	it("fails a retry when Fiken is not configured", async () => {
-		const f = await fixture();
-		await approvedOrder(f);
-		stubFiken({ createDraft: () => new Response("ugyldig", { status: 400 }) });
-		await runSweep(f.t, invoiceDueAt(NOW));
-		const failed = await onlyInvoice(f.t);
-		vi.stubEnv("FIKEN_API_TOKEN", "");
-
-		await f.admin.mutation(api.invoicing.admin.retry, { invoiceId: failed._id });
-		await f.t.finishAllScheduledFunctions(vi.runAllTimers);
-
-		expect(await onlyInvoice(f.t)).toMatchObject({
-			status: "failed",
-			lastError: "FIKEN_API_TOKEN og FIKEN_COMPANY_SLUG må være satt",
-		});
-	});
-
-	it("uses Fiken's own address when no base URL is set", async () => {
-		const f = await fixture();
-		await approvedOrder(f);
-		vi.stubEnv("FIKEN_API_BASE_URL", undefined);
-		const fetch = vi.fn(async () => new Response("nei", { status: 401 }));
-		vi.stubGlobal("fetch", fetch);
-
-		await runSweep(f.t, invoiceDueAt(NOW));
-
-		expect(fetch).toHaveBeenCalledWith(
-			"https://api.fiken.no/api/v2/companies/navet/contacts?organizationNumber=123456789&customer=true",
-			expect.objectContaining({
-				headers: expect.objectContaining({ Authorization: "Bearer fiken-token" }),
-			}),
+		expect((await f.admin.query(api.invoicing.admin.get, { invoiceId }))?.invoice.companyName).toBe(
+			"",
 		);
-		expect(await onlyInvoice(f.t)).toMatchObject({ status: "failed" });
 	});
 
-	it("reports an error that is not an Error", async () => {
+	it("guards status changes and lets a cancelled source be rescheduled", async () => {
 		const f = await fixture();
-		await approvedOrder(f);
-		stubFiken({
-			contacts: () =>
-				({ ok: true, json: () => Promise.reject("ikke JSON") }) as unknown as Response,
-		});
-
-		await runSweep(f.t, invoiceDueAt(NOW));
-
-		expect(await onlyInvoice(f.t)).toMatchObject({ status: "failed", lastError: "ikke JSON" });
-	});
-});
-
-describe("processing", () => {
-	it("sweeps due invoices in batches", async () => {
-		const f = await fixture();
-		const orderId = await insertConfirmedOrder(f);
-		await f.t.run(async (ctx) => {
-			for (let i = 0; i < 51; i++) {
-				await ctx.db.insert("invoices", {
-					source: { kind: "jobListingOrder", orderId },
-					sourceKey: `batch:${i}`,
-					serviceAt: NOW,
-					dueAt: NOW,
-					status: "scheduled",
-					attempts: 0,
-				});
-			}
-		});
-		stubFiken();
-
-		expect(await runSweep(f.t, NOW, 1000)).toBe(50);
-
-		const statuses = (await invoices(f.t)).map((invoice) => invoice.status);
-		expect(statuses).toEqual(Array(51).fill("cancelled"));
-	});
-
-	it("does nothing with an invoice that is not queued", async () => {
-		const f = await fixture();
-		await approvedOrder(f);
-		const invoice = await onlyInvoice(f.t);
-		const calls = stubFiken();
-
-		await f.t.action(internal.invoicing.processing.createDraft, { invoiceId: invoice._id });
-
-		expect(calls).toEqual([]);
-		expect(await onlyInvoice(f.t)).toMatchObject({ status: "scheduled" });
-	});
-
-	it("ignores a failure for an invoice that is gone", async () => {
-		const f = await fixture();
-		await approvedOrder(f);
-		const invoice = await onlyInvoice(f.t);
-		await f.t.run((ctx) => ctx.db.delete(invoice._id));
-
-		await f.t.mutation(internal.invoicing.processing.recordFailure, {
-			invoiceId: invoice._id,
-			error: "borte",
-			retryable: true,
-		});
-
-		expect(await invoices(f.t)).toEqual([]);
-	});
-});
-
-describe("admin", () => {
-	it("lists invoices with the company they bill", async () => {
-		const f = await fixture();
-		await insertEventProduct(f.t);
-		const orderId = await approvedOrder(f);
-		const { applicationId } = await bedpres(f);
-
-		const listed = await f.admin.query(api.invoicing.admin.list, {});
-
-		expect(listed).toEqual([
-			expect.objectContaining({ kind: "companyApplication", companyName: "FJORDKODE AS" }),
-			expect.objectContaining({ kind: "jobListingOrder", companyName: "Testbedrift" }),
-		]);
-
-		await f.t.run(async (ctx) => {
-			await ctx.db.delete(orderId);
-			await ctx.db.delete(applicationId);
-		});
-		const orphaned = await f.admin.query(api.invoicing.admin.list, {});
-		expect(orphaned.map((invoice) => invoice.companyName)).toEqual(["", ""]);
-	});
-
-	it("is closed to everyone but admins", async () => {
-		const f = await fixture();
-		await approvedOrder(f);
-		const invoice = await onlyInvoice(f.t);
-
-		await expect(f.editor.query(api.invoicing.admin.list, {})).rejects.toThrow();
 		await expect(
-			f.editor.query(api.invoicing.admin.get, { invoiceId: invoice._id }),
+			f.admin.mutation(api.invoicing.admin.markUnsent, { invoiceId: f.invoice._id }),
+		).rejects.toThrow();
+		await f.t.run((ctx) => cancelInvoice(ctx, { kind: "jobListingOrder", orderId: f.orderId }));
+		expect((await f.t.run((ctx) => ctx.db.get(f.invoice._id)))?.status).toBe("cancelled");
+		await f.t.run((ctx) => cancelInvoice(ctx, { kind: "jobListingOrder", orderId: f.orderId }));
+		await expect(
+			f.admin.mutation(api.invoicing.admin.cancel, { invoiceId: f.invoice._id }),
+		).rejects.toThrow();
+		await f.t.run((ctx) =>
+			scheduleInvoice(ctx, { kind: "jobListingOrder", orderId: f.orderId }, f.serviceAt),
+		);
+		expect((await f.t.run((ctx) => ctx.db.get(f.invoice._id)))?.status).toBe("pending");
+		await f.admin.mutation(api.invoicing.admin.markSent, { invoiceId: f.invoice._id });
+		await expect(
+			f.admin.mutation(api.invoicing.admin.markSent, { invoiceId: f.invoice._id }),
 		).rejects.toThrow();
 		await expect(
-			f.editor.mutation(api.invoicing.admin.retry, { invoiceId: invoice._id }),
+			f.admin.mutation(api.invoicing.admin.cancel, { invoiceId: f.invoice._id }),
 		).rejects.toThrow();
-		await expect(
-			f.editor.mutation(api.invoicing.admin.cancel, { invoiceId: invoice._id }),
-		).rejects.toThrow();
-	});
-
-	it("retries a failed invoice", async () => {
-		const f = await fixture();
-		await approvedOrder(f);
-		stubFiken({ createDraft: () => new Response("ugyldig", { status: 400 }) });
-		await runSweep(f.t, invoiceDueAt(NOW));
-		const failed = await onlyInvoice(f.t);
-		const calls = stubFiken();
-
-		await f.admin.mutation(api.invoicing.admin.retry, { invoiceId: failed._id });
-		await f.t.finishAllScheduledFunctions(vi.runAllTimers);
-
-		expect(calls.map((call) => call.method)).toEqual(["GET", "POST"]);
-		const retried = await onlyInvoice(f.t);
-		expect(retried).toMatchObject({ status: "draft_created", attempts: 1 });
-		expect(retried.lastError).toBeUndefined();
-	});
-
-	it("refuses to retry an invoice that has not failed", async () => {
-		const f = await fixture();
-		await approvedOrder(f);
-		const invoice = await onlyInvoice(f.t);
-
-		expect(
-			await refusalMessageFrom(
-				f.admin.mutation(api.invoicing.admin.retry, { invoiceId: invoice._id }),
-			),
-		).toBe("Bare fakturaer som feilet kan prøves på nytt.");
-	});
-
-	it("shows what a scheduled invoice will send to Fiken", async () => {
-		const f = await fixture();
-		await approvedOrder(f);
-		const invoice = await onlyInvoice(f.t);
-
-		expect(await f.admin.query(api.invoicing.admin.get, { invoiceId: invoice._id })).toEqual({
-			invoice: expect.objectContaining({ status: "scheduled", companyName: "Testbedrift" }),
-			attempts: 0,
-			preview: {
-				kind: "ready",
-				plan: {
-					customer: {
-						name: "Testbedrift",
-						organizationNumber: "123456789",
-						email: "faktura@testbedrift.no",
-					},
-					invoiceText: "Stillingsannonser, bestilling NAV-1234",
-					yourReference: "PO-7",
-					line: { description: "Stillingsannonse (2 stk.)", unitPrice: 550_000, vatRate: 25 },
-				},
-			},
-		});
-	});
-
-	it("shows why a scheduled invoice will not be sent", async () => {
-		const f = await fixture();
-		const orderId = await approvedOrder(f);
-		const invoice = await onlyInvoice(f.t);
-		await f.t.run((ctx) => ctx.db.patch(orderId, { status: "rejected" }));
-
-		const detail = await f.admin.query(api.invoicing.admin.get, { invoiceId: invoice._id });
-
-		expect(detail?.preview).toEqual({ kind: "cancel" });
-	});
-
-	it("shows what a created draft sent to Fiken, even after the order changes", async () => {
-		const f = await fixture();
-		const orderId = await approvedOrder(f);
-		stubFiken();
-		await runSweep(f.t, invoiceDueAt(NOW));
-		const invoice = await onlyInvoice(f.t);
-		await f.t.run((ctx) => ctx.db.patch(orderId, { status: "rejected", priceOre: 1 }));
-
-		expect(invoice.draftCreatedAt).toBeGreaterThanOrEqual(invoiceDueAt(NOW));
-		expect(await f.admin.query(api.invoicing.admin.get, { invoiceId: invoice._id })).toMatchObject({
-			invoice: { status: "draft_created", fikenDraftId: 901, amountOre: 550_000 },
-			attempts: 1,
-			draftCreatedAt: invoice.draftCreatedAt,
-			preview: {
-				kind: "ready",
-				plan: {
-					customer: { name: "Testbedrift", organizationNumber: "123456789" },
-					line: { description: "Stillingsannonse (2 stk.)", unitPrice: 550_000, vatRate: 25 },
-				},
-			},
-		});
-	});
-
-	it("has no preview for a draft created without a stored plan", async () => {
-		const f = await fixture();
-		await approvedOrder(f);
-		const invoice = await onlyInvoice(f.t);
-		await f.t.run((ctx) => ctx.db.patch(invoice._id, { status: "draft_created", fikenDraftId: 5 }));
-
-		const detail = await f.admin.query(api.invoicing.admin.get, { invoiceId: invoice._id });
-		expect(detail?.preview).toBeNull();
-		expect(detail?.invoice.amountOre).toBeUndefined();
-	});
-
-	it("lists the amount each invoice bills", async () => {
-		const f = await fixture();
-		const orderId = await approvedOrder(f);
-		const invoice = await onlyInvoice(f.t);
-
-		expect(await f.admin.query(api.invoicing.admin.list, {})).toEqual([
-			expect.objectContaining({ amountOre: 550_000 }),
-		]);
-
-		await f.admin.mutation(api.invoicing.admin.cancel, { invoiceId: invoice._id });
-		expect(await f.admin.query(api.invoicing.admin.list, {})).toEqual([
-			expect.objectContaining({ status: "cancelled", amountOre: 550_000 }),
-		]);
-
-		await f.t.run((ctx) => ctx.db.patch(orderId, { status: "rejected" }));
-		const [withdrawn] = await f.admin.query(api.invoicing.admin.list, {});
-		expect(withdrawn?.amountOre).toBeUndefined();
-		expect(await f.admin.query(api.invoicing.admin.get, { invoiceId: invoice._id })).toMatchObject({
-			preview: null,
-		});
-	});
-
-	it("returns nothing for an invoice that is gone", async () => {
-		const f = await fixture();
-		await approvedOrder(f);
-		const invoice = await onlyInvoice(f.t);
-		await f.t.run((ctx) => ctx.db.delete(invoice._id));
-
-		expect(await f.admin.query(api.invoicing.admin.get, { invoiceId: invoice._id })).toBeNull();
-	});
-
-	it("cancels a scheduled invoice so the sweep skips it", async () => {
-		const f = await fixture();
-		await approvedOrder(f);
-		const invoice = await onlyInvoice(f.t);
-		const calls = stubFiken();
-
-		await f.admin.mutation(api.invoicing.admin.cancel, { invoiceId: invoice._id });
-		await runSweep(f.t, invoiceDueAt(NOW));
-
-		expect(await onlyInvoice(f.t)).toMatchObject({ status: "cancelled" });
-		expect(calls).toEqual([]);
-	});
-
-	it("cancels a failed invoice", async () => {
-		const f = await fixture();
-		await approvedOrder(f);
-		stubFiken({ createDraft: () => new Response("ugyldig", { status: 400 }) });
-		await runSweep(f.t, invoiceDueAt(NOW));
-		const failed = await onlyInvoice(f.t);
-
-		await f.admin.mutation(api.invoicing.admin.cancel, { invoiceId: failed._id });
-
-		expect(await onlyInvoice(f.t)).toMatchObject({ status: "cancelled" });
-	});
-
-	it("refuses to cancel an invoice that already has a draft", async () => {
-		const f = await fixture();
-		await approvedOrder(f);
-		stubFiken();
-		await runSweep(f.t, invoiceDueAt(NOW));
-		const invoice = await onlyInvoice(f.t);
-
-		expect(
-			await refusalMessageFrom(
-				f.admin.mutation(api.invoicing.admin.cancel, { invoiceId: invoice._id }),
-			),
-		).toBe("Bare planlagte eller feilede fakturaer kan avbrytes.");
-		expect(await onlyInvoice(f.t)).toMatchObject({ status: "draft_created" });
+		await f.t.run((ctx) => cancelInvoice(ctx, { kind: "jobListingOrder", orderId: f.orderId }));
+		const sent = await list(f.admin, "sent");
+		expect(sent.page).toMatchObject([{ companyName: "Testbedrift" }]);
+		await f.t.run((ctx) => ctx.db.delete(f.orderId));
+		expect((await list(f.admin, "sent")).page).toMatchObject([{ companyName: "Testbedrift" }]);
+		await f.t.run((ctx) => ctx.db.delete(f.invoice._id));
+		expect(await f.admin.query(api.invoicing.admin.get, { invoiceId: f.invoice._id })).toBeNull();
 	});
 });

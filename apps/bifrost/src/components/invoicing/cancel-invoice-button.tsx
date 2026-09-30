@@ -41,7 +41,7 @@ export function CancelInvoiceButton({ invoiceId }: Readonly<{ invoiceId: Id<"inv
 				<AlertDialogHeader>
 					<AlertDialogTitle>Avbryte fakturaen?</AlertDialogTitle>
 					<AlertDialogDescription>
-						Fakturaen sendes ikke til Fiken. Dette kan ikke angres her.
+						Fakturaen fjernes fra listen over det som skal faktureres. Dette kan ikke angres her.
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>
