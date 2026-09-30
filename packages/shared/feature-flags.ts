@@ -9,7 +9,7 @@ export const featureFlags = {
 		reportEmailsEnabled: true,
 	},
 	products: {
-		uiEnabled: false,
+		uiEnabled: true,
 	},
 	jobListingOrders: {
 		uiEnabled: true,

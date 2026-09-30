@@ -1,4 +1,4 @@
-import { FieldGroup, FieldLegend, FieldSet } from "@workspace/ui/components/field";
+import { FieldLegend, FieldSet } from "@workspace/ui/components/field";
 import type { ReactNode } from "react";
 
 export function OrderSection({
@@ -15,7 +15,7 @@ export function OrderSection({
 				</FieldLegend>
 				{action}
 			</div>
-			<FieldGroup className="gap-5">{children}</FieldGroup>
+			<div className="flex w-full flex-col gap-5">{children}</div>
 		</FieldSet>
 	);
 }
