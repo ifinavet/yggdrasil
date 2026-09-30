@@ -1,6 +1,10 @@
+import { BIFROST_LOCAL_URL, BIFROST_URL } from "@workspace/shared/constants";
+import { SYSTEM_ALERTS_CHANNEL } from "@workspace/shared/slack/channels";
 import { v } from "convex/values";
+import { internal } from "../_generated/api";
 import { mutation } from "../_generated/server";
 import { adminRoles, requireRole } from "../auth/accessRights";
+import { isLocalDevelopment } from "../auth/local";
 import { requireLogo } from "./helper";
 
 /**
@@ -128,6 +132,7 @@ export const updateMainSponsor = mutation({
 			.query("companies")
 			.filter((q) => q.eq(q.field("mainSponsor"), true))
 			.first();
+		if (previousMainSponsor?._id === id) return;
 
 		if (previousMainSponsor) {
 			await ctx.db.patch(previousMainSponsor._id, { mainSponsor: false });
@@ -135,6 +140,22 @@ export const updateMainSponsor = mutation({
 
 		// Set new main sponsor
 		await ctx.db.patch(id, { mainSponsor: true });
+		const company = await ctx.db.get(id);
+		if (!company) return;
+		const origin = isLocalDevelopment() ? BIFROST_LOCAL_URL : BIFROST_URL;
+		const name = company.name
+			.replaceAll("&", "&amp;")
+			.replaceAll("<", "&lt;")
+			.replaceAll(">", "&gt;");
+		await ctx.scheduler.runAfter(0, internal.iam.notifications.sendMessage, {
+			channel: SYSTEM_ALERTS_CHANNEL,
+			clientMsgId: `main-sponsor-${id}-${Date.now()}`,
+			text: [
+				"🎉🥳💸💰 *Ny hovedsponsor!*",
+				`*Bedrift:* ${name}`,
+				`<${origin}/companies/${id}|Åpne bedriftsprofilen>`,
+			].join("\n"),
+		});
 	},
 });
 

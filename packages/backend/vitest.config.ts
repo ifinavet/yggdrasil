@@ -21,6 +21,7 @@ export default defineConfig({
 				"convex/invoicing/{schedule,details,admin}.ts",
 				"convex/users/students/migrations.ts",
 				"convex/leaderboard/{queries,ranking}.ts",
+				"convex/companies/history.ts",
 			],
 			thresholds: { 100: true },
 		},

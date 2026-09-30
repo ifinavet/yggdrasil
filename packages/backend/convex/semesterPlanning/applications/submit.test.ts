@@ -1,3 +1,5 @@
+import { formatNokFromOre } from "@workspace/shared/products";
+import { SYSTEM_ALERTS_CHANNEL } from "@workspace/shared/slack/channels";
 import { osloToday } from "@workspace/shared/time";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
@@ -98,6 +100,41 @@ afterEach(() => {
 });
 
 describe("submit", () => {
+	it("alerts once when the validated company application is received", async () => {
+		const { t } = await setup();
+		await withOpenSemester(t);
+		await t.run((ctx) =>
+			ctx.db.insert("products", {
+				name: "Ordinær bedriftspresentasjon",
+				shortDescription: "",
+				longDescription: "",
+				category: "event",
+				eventType: "standard_presentation",
+				unitPriceOre: 3_000_000,
+				vatRate: 25,
+				sortOrder: 0,
+				active: true,
+			}),
+		);
+		const submissionId = "bedpres-once-abcdef";
+		await submitWith(t, { submissionId });
+		await submitWith(t, { submissionId });
+
+		const [application] = await applications(t);
+		const scheduled = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
+		const alerts = scheduled.filter(({ name }) => name.includes("notifications:sendMessage"));
+		expect(alerts).toHaveLength(1);
+		expect(alerts[0]?.args[0]).toMatchObject({
+			channel: SYSTEM_ALERTS_CHANNEL,
+			text: expect.stringContaining("*Type:* Bedriftspresentasjon"),
+		});
+		expect(alerts[0]?.args[0].text).toContain("FJORDKODE AS");
+		expect(alerts[0]?.args[0].text).toContain("Bedriftspresentasjon med FJORDKODE AS");
+		expect(alerts[0]?.args[0].text).toContain("Presentasjon og kodeoppgave i grupper.");
+		expect(alerts[0]?.args[0].text).toContain(`${formatNokFromOre(3_000_000)} eks. mva`);
+		expect(alerts[0]?.args[0].text).toContain(`/semesterplan/soknad/${application?._id}`);
+	});
+
 	it("saves the application with the brreg snapshot, billing and consent version", async () => {
 		const { t } = await setup();
 		const semesterId = await withOpenSemester(t);

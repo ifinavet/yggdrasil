@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
 	asUser,
 	emailsWithStatus,
@@ -124,6 +124,94 @@ const eventArgs = {
 	published: true,
 	organizers: [],
 };
+
+describe("registration opening alerts", () => {
+	it("waits for the current opening time and sends once after rescheduling", async () => {
+		vi.useFakeTimers();
+		const { t, companyId, foodItem, client } = await fixture();
+		const firstOpening = Date.now() + 60_000;
+		const eventStart = firstOpening + 86_400_000;
+		await client.mutation(api.events.mutations.create, {
+			...eventArgs,
+			title: "Fjordkode bedpres",
+			eventStart,
+			registrationOpens: firstOpening,
+			foodItem,
+			hostingCompany: companyId,
+		});
+		const event = await t.run((ctx) => ctx.db.query("events").withIndex("by_eventStart").first());
+		if (!event) throw new Error("Event was not created");
+
+		await t.mutation(internal.events.mutations.sendRegistrationOpenAlert, {
+			eventId: event._id,
+			registrationOpens: firstOpening,
+		});
+		expect(await t.run((ctx) => ctx.db.query("eventRegistrationOpenNotices").collect())).toEqual(
+			[],
+		);
+
+		const secondOpening = firstOpening + 60_000;
+		await client.mutation(api.events.mutations.update, {
+			...eventArgs,
+			id: event._id,
+			title: "Fjordkode bedpres",
+			eventStart: secondOpening + 86_400_000,
+			registrationOpens: secondOpening,
+			foodItem,
+			hostingCompany: companyId,
+		});
+		vi.setSystemTime(secondOpening + 1);
+
+		await t.mutation(internal.events.mutations.sendRegistrationOpenAlert, {
+			eventId: event._id,
+			registrationOpens: firstOpening,
+		});
+		await t.mutation(internal.events.mutations.sendRegistrationOpenAlert, {
+			eventId: event._id,
+			registrationOpens: secondOpening,
+		});
+		await t.mutation(internal.events.mutations.sendRegistrationOpenAlert, {
+			eventId: event._id,
+			registrationOpens: secondOpening,
+		});
+
+		const notices = await t.run((ctx) => ctx.db.query("eventRegistrationOpenNotices").collect());
+		expect(notices).toMatchObject([{ eventId: event._id, registrationOpens: secondOpening }]);
+		const scheduled = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
+		const alerts = scheduled.filter(({ name }) => name.includes("notifications:sendMessage"));
+		expect(alerts).toHaveLength(1);
+		expect(alerts[0]?.args[0]).toMatchObject({
+			channel: "C0C5L3JPSE7",
+			text: expect.stringContaining("🔔 *Påmeldingen åpner nå*"),
+		});
+		expect(alerts[0]?.args[0].text).toContain("Fjordkode bedpres");
+		vi.useRealTimers();
+	});
+
+	it("does not queue notices for drafts, external events, or old opening times", async () => {
+		const { t, companyId, foodItem, client } = await fixture();
+		const now = Date.now();
+		for (const [title, options] of [
+			["Draft", { published: false }],
+			["External", { externalEvent: true }],
+			["Old", { registrationOpens: now - 86_400_000 }],
+		] as const) {
+			await client.mutation(api.events.mutations.create, {
+				...eventArgs,
+				title,
+				eventStart: now + 86_400_000,
+				registrationOpens: now + 60_000,
+				foodItem,
+				hostingCompany: companyId,
+				...options,
+			});
+		}
+		const scheduled = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
+		expect(scheduled.filter(({ name }) => name.includes("sendRegistrationOpenAlert"))).toHaveLength(
+			0,
+		);
+	});
+});
 
 describe("events.mutations.create", () => {
 	it("snapshots the chosen product", async () => {

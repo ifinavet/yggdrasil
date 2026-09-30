@@ -1,8 +1,12 @@
+import { BIFROST_URL } from "@workspace/shared/constants";
 import {
 	type ApplicationForm,
 	applicationFormSchema,
 } from "@workspace/shared/semester/application";
+import { EVENT_TITLE_PREFIX } from "@workspace/shared/semester/labels";
 import { isValidOrgNumber } from "@workspace/shared/semester/orgNumber";
+import { formatOrderAlert } from "@workspace/shared/slack/alerts";
+import { SYSTEM_ALERTS_CHANNEL } from "@workspace/shared/slack/channels";
 import { osloToday } from "@workspace/shared/time";
 import { SUBMISSION_ID_PATTERN } from "@workspace/shared/validation";
 import { ConvexError, v } from "convex/values";
@@ -175,6 +179,27 @@ export const insertSubmittedApplication = internalMutation({
 		});
 
 		await logApplicationActivity(ctx, applicationId, "submitted", { type: "company" });
+		const product = await ctx.db
+			.query("products")
+			.withIndex("by_eventType_and_active", (q) =>
+				q.eq("eventType", parsed.eventType).eq("active", true),
+			)
+			.first();
+		const title = `${EVENT_TITLE_PREFIX[parsed.eventType]} ${registry.name}`;
+		await ctx.scheduler.runAfter(0, internal.iam.notifications.sendMessage, {
+			channel: SYSTEM_ALERTS_CHANNEL,
+			clientMsgId: `bedpres-order-${applicationId}`,
+			text: formatOrderAlert({
+				company: registry.name,
+				type: "Bedriftspresentasjon",
+				title,
+				additionalNotes: [parsed.description.trim(), parsed.additionalInfo?.trim()]
+					.filter(Boolean)
+					.join("\n"),
+				estimatedRevenueOre: product?.unitPriceOre,
+				url: `${BIFROST_URL}/semesterplan/soknad/${applicationId}`,
+			}),
+		});
 
 		return applicationId;
 	},

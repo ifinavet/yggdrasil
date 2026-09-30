@@ -1,16 +1,54 @@
+import { BIFROST_LOCAL_URL, BIFROST_URL } from "@workspace/shared/constants";
 import { EVENT_CHECKLIST } from "@workspace/shared/events/checklist";
+import { SYSTEM_ALERTS_CHANNEL } from "@workspace/shared/slack/channels";
+import { humanReadableFullDateTime, MINUTE_MS } from "@workspace/shared/time";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, mutation } from "../_generated/server";
 import { internalRoles, requireRole } from "../auth/accessRights";
 import { getCurrentUserOrThrow } from "../auth/currentUser";
+import { isLocalDevelopment } from "../auth/local";
 import { syncFeedbackCampaign } from "../feedback/delivery/campaigns";
 import { eventProductFields } from "../products/sales";
 import { requireFoodItem } from "./food";
 import { eventSlug, insertEventWithOrganizers } from "./helper";
 import { makeStatusPending } from "./registrations/mutations";
 import { editableEventFields, organizerRoleValidator } from "./schema";
+
+const IMMEDIATE_OPEN_GRACE_MS = 10 * MINUTE_MS;
+
+async function scheduleRegistrationOpenAlert(
+	ctx: MutationCtx,
+	event: {
+		_id: Id<"events">;
+		registrationOpens: number;
+		eventStart: number;
+		published: boolean;
+		externalEvent: boolean;
+	},
+) {
+	const now = Date.now();
+	if (
+		!event.published ||
+		event.externalEvent ||
+		event.eventStart <= now ||
+		event.registrationOpens < now - IMMEDIATE_OPEN_GRACE_MS
+	) {
+		return;
+	}
+
+	const args = { eventId: event._id, registrationOpens: event.registrationOpens };
+	if (event.registrationOpens <= now) {
+		await ctx.scheduler.runAfter(0, internal.events.mutations.sendRegistrationOpenAlert, args);
+	} else {
+		await ctx.scheduler.runAt(
+			event.registrationOpens,
+			internal.events.mutations.sendRegistrationOpenAlert,
+			args,
+		);
+	}
+}
 
 const eventMutationArgs = {
 	...editableEventFields,
@@ -113,6 +151,15 @@ export const update = mutation({
 			formId,
 			...(await eventProductFields(ctx, productId, event)),
 		});
+		if (event.registrationOpens !== registrationOpens || (!event.published && published)) {
+			await scheduleRegistrationOpenAlert(ctx, {
+				_id: eventId,
+				registrationOpens,
+				eventStart,
+				published,
+				externalEvent,
+			});
+		}
 
 		await syncFeedbackCampaign(ctx, eventId);
 
@@ -308,7 +355,7 @@ export const create = mutation({
 		await requireRole(ctx, internalRoles);
 		await requireFoodItem(ctx, foodItem);
 
-		await insertEventWithOrganizers(
+		const eventId = await insertEventWithOrganizers(
 			ctx,
 			{
 				title,
@@ -329,6 +376,60 @@ export const create = mutation({
 			},
 			organizers,
 		);
+		await scheduleRegistrationOpenAlert(ctx, {
+			_id: eventId,
+			registrationOpens,
+			eventStart,
+			published,
+			externalEvent,
+		});
+	},
+});
+
+export const sendRegistrationOpenAlert = internalMutation({
+	args: { eventId: v.id("events"), registrationOpens: v.number() },
+	returns: v.null(),
+	handler: async (ctx, { eventId, registrationOpens }) => {
+		const event = await ctx.db.get(eventId);
+		const now = Date.now();
+		if (
+			event &&
+			event.registrationOpens === registrationOpens &&
+			registrationOpens <= now &&
+			event.eventStart > now &&
+			event.published &&
+			!event.externalEvent
+		) {
+			const alreadySent = await ctx.db
+				.query("eventRegistrationOpenNotices")
+				.withIndex("by_eventId_and_registrationOpens", (q) =>
+					q.eq("eventId", eventId).eq("registrationOpens", registrationOpens),
+				)
+				.first();
+			if (!alreadySent) {
+				await ctx.db.insert("eventRegistrationOpenNotices", {
+					eventId,
+					registrationOpens,
+					sentAt: now,
+				});
+				const origin = isLocalDevelopment() ? BIFROST_LOCAL_URL : BIFROST_URL;
+				const title = event.title
+					.replaceAll("&", "&amp;")
+					.replaceAll("<", "&lt;")
+					.replaceAll(">", "&gt;");
+				await ctx.scheduler.runAfter(0, internal.iam.notifications.sendMessage, {
+					channel: SYSTEM_ALERTS_CHANNEL,
+					clientMsgId: `registration-open-${eventId}-${registrationOpens}`,
+					text: [
+						"🔔 *Påmeldingen åpner nå*",
+						`*Arrangement:* ${title}`,
+						`*Tidspunkt:* ${humanReadableFullDateTime(new Date(registrationOpens))}`,
+						`<${origin}/events/${eventId}|Åpne arrangementet>`,
+					].join("\n"),
+				});
+			}
+		}
+		return null;
 	},
 });
 
