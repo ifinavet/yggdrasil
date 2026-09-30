@@ -24,16 +24,14 @@ import { useFeatureEnabled } from "@workspace/ui/hooks/use-feature-enabled";
 import { EyeOff, Save, Send } from "lucide-react";
 import CompanySelectField from "@/components/common/forms/company-select-field";
 import DateTimePicker from "@/components/common/forms/date-time-picker";
-import FormSubmitActions from "@/components/common/forms/form-submit-actions";
+import FormSubmitActions, {
+	formSubmitOptions,
+} from "@/components/common/forms/form-submit-actions";
 import DescriptionEditor from "@/components/common/forms/markdown-editor/editor";
 import { FoodItemSelect } from "@/components/events/food/food-item-select";
 import { type EventFormValues, eventFormSchema } from "@/constants/schemas/event-form-schema";
 import Organizers from "./organizers";
 import ProductSelectField from "./product-select-field";
-
-type FormMeta = {
-	submitAction: "primary" | "secondary" | "tertiary";
-};
 
 export default function EventForm({
 	onDefaultSubmitAction,
@@ -56,17 +54,11 @@ export default function EventForm({
 		validators: {
 			onSubmit: eventFormSchema(productsEnabled && productRequired),
 		},
-		onSubmitMeta: {
-			submitAction: "primary",
-		} as FormMeta,
-		onSubmit: ({ value, meta }) => {
-			const action = {
-				primary: onDefaultSubmitAction,
-				secondary: onSecondarySubmitAction,
-				tertiary: onTertiarySubmitAction,
-			}[meta.submitAction];
-			return action?.(value);
-		},
+		...formSubmitOptions({
+			primary: onDefaultSubmitAction,
+			secondary: onSecondarySubmitAction,
+			tertiary: onTertiarySubmitAction,
+		}),
 	});
 
 	return (

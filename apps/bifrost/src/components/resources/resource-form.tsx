@@ -22,15 +22,14 @@ import {
 import { Textarea } from "@workspace/ui/components/textarea";
 import { EyeOff, Save, Send } from "lucide-react";
 import { useCallback } from "react";
-import FormSubmitActions from "@/components/common/forms/form-submit-actions";
+import FormSubmitActions, {
+	formSubmitOptions,
+	handleFormSubmit,
+} from "@/components/common/forms/form-submit-actions";
 import { EditorMenu } from "@/components/common/forms/markdown-editor/markdown-editor";
 import { useContentEditor } from "@/components/common/forms/markdown-editor/use-content-editor";
 import { cardIcons } from "@/constants/resource-constants";
 import { type ResourceFormValues, resourceSchema } from "@/constants/schemas/resource-form-schema";
-
-type FormMeta = {
-	submitAction: "primary" | "secondary" | "tertiary";
-};
 
 export default function ResourceForm({
 	defaultValues,
@@ -48,17 +47,11 @@ export default function ResourceForm({
 		validators: {
 			onSubmit: resourceSchema,
 		},
-		onSubmitMeta: {
-			submitAction: "primary",
-		} as FormMeta,
-		onSubmit: ({ value, meta }) => {
-			const action = {
-				primary: onPrimarySubmitAction,
-				secondary: onSecondarySubmitAction,
-				tertiary: onTertiarySubmitAction,
-			}[meta.submitAction];
-			return action?.(value);
-		},
+		...formSubmitOptions({
+			primary: onPrimarySubmitAction,
+			secondary: onSecondarySubmitAction,
+			tertiary: onTertiarySubmitAction,
+		}),
 	});
 
 	const setContent = useCallback((html: string) => form.setFieldValue("content", html), [form]);
@@ -70,14 +63,7 @@ export default function ResourceForm({
 	});
 
 	return (
-		<form
-			onSubmit={(e) => {
-				e.preventDefault();
-				e.stopPropagation();
-				form.handleSubmit();
-			}}
-			className="space-y-4"
-		>
+		<form onSubmit={(event) => handleFormSubmit(event, form.handleSubmit)} className="space-y-4">
 			<FieldSet>
 				<FieldGroup className="flex flex-col gap-4 md:flex-row">
 					<form.Field name="title">

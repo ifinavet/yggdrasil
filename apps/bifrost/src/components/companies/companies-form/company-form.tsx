@@ -11,13 +11,10 @@ import {
 } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
 import { Send, Trash } from "lucide-react";
+import { formSubmitOptions, handleFormSubmit } from "@/components/common/forms/form-submit-actions";
 import DescriptionEditor from "@/components/common/forms/markdown-editor/editor";
 import { type CompanyFormValues, formSchema } from "@/constants/schemas/companies-form-schema";
 import SelectImage from "./select-image";
-
-type FormMeta = {
-	submitAction: "primary" | "secondary";
-};
 
 export default function CompanyForm({
 	defaultValues,
@@ -33,27 +30,14 @@ export default function CompanyForm({
 		validators: {
 			onSubmit: formSchema,
 		},
-		onSubmitMeta: {
-			submitAction: "primary",
-		} as FormMeta,
-		onSubmit: ({ value, meta }) => {
-			const action = {
-				primary: onPrimarySubmitAction,
-				secondary: onSecondarySubmitAction,
-			}[meta.submitAction];
-			return action?.(value);
-		},
+		...formSubmitOptions({
+			primary: onPrimarySubmitAction,
+			secondary: onSecondarySubmitAction,
+		}),
 	});
 
 	return (
-		<form
-			onSubmit={(e) => {
-				e.preventDefault();
-				e.stopPropagation();
-				form.handleSubmit();
-			}}
-			className="space-y-8"
-		>
+		<form onSubmit={(event) => handleFormSubmit(event, form.handleSubmit)} className="space-y-8">
 			<FieldSet>
 				<form.Field name="name">
 					{(field) => {

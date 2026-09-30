@@ -13,14 +13,13 @@ import { Input } from "@workspace/ui/components/input";
 import { Separator } from "@workspace/ui/components/separator";
 import { EyeOff, Save, Send } from "lucide-react";
 import { useCallback } from "react";
-import FormSubmitActions from "@/components/common/forms/form-submit-actions";
+import FormSubmitActions, {
+	formSubmitOptions,
+	handleFormSubmit,
+} from "@/components/common/forms/form-submit-actions";
 import { EditorMenu } from "@/components/common/forms/markdown-editor/markdown-editor";
 import { useContentEditor } from "@/components/common/forms/markdown-editor/use-content-editor";
 import { type PageFormValues, pageSchema } from "@/constants/schemas/page-form-schema";
-
-type FormMeta = {
-	submitAction: "primary" | "secondary" | "tertiary";
-};
 
 export default function PageForm({
 	defaultValues,
@@ -38,17 +37,11 @@ export default function PageForm({
 		validators: {
 			onSubmit: pageSchema,
 		},
-		onSubmitMeta: {
-			submitAction: "primary",
-		} as FormMeta,
-		onSubmit: ({ value, meta }) => {
-			const action = {
-				primary: onPrimarySubmitAction,
-				secondary: onSecondarySubmitAction,
-				tertiary: onTertiarySubmitAction,
-			}[meta.submitAction];
-			return action?.(value);
-		},
+		...formSubmitOptions({
+			primary: onPrimarySubmitAction,
+			secondary: onSecondarySubmitAction,
+			tertiary: onTertiarySubmitAction,
+		}),
 	});
 
 	const setContent = useCallback((html: string) => form.setFieldValue("content", html), [form]);
@@ -60,14 +53,7 @@ export default function PageForm({
 	});
 
 	return (
-		<form
-			onSubmit={(e) => {
-				e.preventDefault();
-				e.stopPropagation();
-				form.handleSubmit();
-			}}
-			className="space-y-2"
-		>
+		<form onSubmit={(event) => handleFormSubmit(event, form.handleSubmit)} className="space-y-2">
 			<FieldSet>
 				<form.Field name="title">
 					{(field) => {

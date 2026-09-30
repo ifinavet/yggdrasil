@@ -23,7 +23,10 @@ import { Textarea } from "@workspace/ui/components/textarea";
 import { Save, Send, Trash2 } from "lucide-react";
 import CompanySelectField from "@/components/common/forms/company-select-field";
 import DateTimePicker from "@/components/common/forms/date-time-picker";
-import FormSubmitActions from "@/components/common/forms/form-submit-actions";
+import FormSubmitActions, {
+	formSubmitOptions,
+	handleFormSubmit,
+} from "@/components/common/forms/form-submit-actions";
 import DescriptionEditor from "@/components/common/forms/markdown-editor/editor";
 import {
 	type JobListingFormValues,
@@ -31,10 +34,6 @@ import {
 } from "@/constants/schemas/job-listing-form-schema";
 import { JobTypeLabel } from "../job-type-label";
 import ContactsSection from "./contacts-section";
-
-type FormMeta = {
-	submitAction: "primary" | "secondary" | "tertiary";
-};
 
 export default function JobListingForm({
 	onPrimarySubmitAction,
@@ -54,26 +53,18 @@ export default function JobListingForm({
 		validators: {
 			onSubmit: jobListingFormSchema(latestDeadline),
 		},
-		onSubmitMeta: {
-			submitAction: "primary",
-		} as FormMeta,
-		onSubmit: ({ value, meta }) => {
-			const action = {
-				primary: onPrimarySubmitAction,
-				secondary: onSecondarySubmitAction,
-				tertiary: onTertiarySubmitAction,
-			}[meta.submitAction];
-			return action?.(value);
-		},
+		...formSubmitOptions({
+			primary: onPrimarySubmitAction,
+			secondary: onSecondarySubmitAction,
+			tertiary: onTertiarySubmitAction,
+		}),
 	});
 
 	return (
 		<form
-			onSubmit={(e) => {
-				e.preventDefault();
-				e.stopPropagation();
-				form.handleSubmit({ submitAction: "primary" });
-			}}
+			onSubmit={(event) =>
+				handleFormSubmit(event, () => form.handleSubmit({ submitAction: "primary" }))
+			}
 		>
 			<FieldSet>
 				<FieldGroup>
