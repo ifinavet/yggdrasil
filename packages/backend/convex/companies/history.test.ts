@@ -307,8 +307,8 @@ describe("company history", () => {
 		expect(history.some(({ label }) => label.includes("Other company's event"))).toBe(false);
 		expect(history.some(({ label }) => label.includes("Other company private order"))).toBe(false);
 		expect(
-			history.filter(({ label }) => label.startsWith("Endring av bedriftsprofil")).length,
-		).toBe(3);
+			history.filter(({ label }) => label.startsWith("Endring av bedriftsprofil")),
+		).toHaveLength(3);
 		expect(history.map(({ at }) => at)).toEqual(
 			[...history.map(({ at }) => at)].sort((a, b) => b - a),
 		);
