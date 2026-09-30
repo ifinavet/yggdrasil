@@ -51,20 +51,13 @@ export default function ResourceForm({
 		onSubmitMeta: {
 			submitAction: "primary",
 		} as FormMeta,
-		onSubmit: async ({ value, meta }) => {
-			switch (meta.submitAction) {
-				case "primary":
-					await onPrimarySubmitAction(value);
-					break;
-				case "secondary":
-					await onSecondarySubmitAction(value);
-					break;
-				case "tertiary":
-					await onTertiarySubmitAction?.(value);
-					break;
-				default:
-					break;
-			}
+		onSubmit: ({ value, meta }) => {
+			const action = {
+				primary: onPrimarySubmitAction,
+				secondary: onSecondarySubmitAction,
+				tertiary: onTertiarySubmitAction,
+			}[meta.submitAction];
+			return action?.(value);
 		},
 	});
 

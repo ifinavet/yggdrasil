@@ -59,20 +59,13 @@ export default function EventForm({
 		onSubmitMeta: {
 			submitAction: "primary",
 		} as FormMeta,
-		onSubmit: async ({ value, meta }) => {
-			switch (meta.submitAction) {
-				case "primary":
-					await onDefaultSubmitAction(value);
-					break;
-				case "secondary":
-					await onSecondarySubmitAction(value);
-					break;
-				case "tertiary":
-					await onTertiarySubmitAction?.(value);
-					break;
-				default:
-					break;
-			}
+		onSubmit: ({ value, meta }) => {
+			const action = {
+				primary: onDefaultSubmitAction,
+				secondary: onSecondarySubmitAction,
+				tertiary: onTertiarySubmitAction,
+			}[meta.submitAction];
+			return action?.(value);
 		},
 	});
 

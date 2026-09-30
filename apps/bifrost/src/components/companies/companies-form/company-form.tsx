@@ -36,17 +36,12 @@ export default function CompanyForm({
 		onSubmitMeta: {
 			submitAction: "primary",
 		} as FormMeta,
-		onSubmit: async ({ value, meta }) => {
-			switch (meta.submitAction) {
-				case "primary":
-					await onPrimarySubmitAction(value);
-					break;
-				case "secondary":
-					await onSecondarySubmitAction?.(value);
-					break;
-				default:
-					break;
-			}
+		onSubmit: ({ value, meta }) => {
+			const action = {
+				primary: onPrimarySubmitAction,
+				secondary: onSecondarySubmitAction,
+			}[meta.submitAction];
+			return action?.(value);
 		},
 	});
 
