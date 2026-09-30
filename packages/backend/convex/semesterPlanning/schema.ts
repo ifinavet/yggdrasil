@@ -168,6 +168,7 @@ export const semesterPlanningSchema = {
 		.index("by_semesterId_and_status", ["semesterId", "status"])
 		.index("by_semesterId_and_assignedDate", ["semesterId", "assignedDate"])
 		.index("by_semesterId_and_orgNumber", ["semesterId", "orgNumber"])
+		.index("by_orgNumber", ["orgNumber"])
 		.index("by_eventId", ["eventId"])
 		.index("by_submissionId", ["submissionId"]),
 
