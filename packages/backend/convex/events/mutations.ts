@@ -392,44 +392,42 @@ export const sendRegistrationOpenAlert = internalMutation({
 		const event = await ctx.db.get(eventId);
 		const now = Date.now();
 		if (
-			!event ||
-			event.registrationOpens !== registrationOpens ||
-			registrationOpens > now ||
-			event.eventStart <= now ||
-			!event.published ||
-			event.externalEvent
+			event &&
+			event.registrationOpens === registrationOpens &&
+			registrationOpens <= now &&
+			event.eventStart > now &&
+			event.published &&
+			!event.externalEvent
 		) {
-			return null;
+			const alreadySent = await ctx.db
+				.query("eventRegistrationOpenNotices")
+				.withIndex("by_eventId_and_registrationOpens", (q) =>
+					q.eq("eventId", eventId).eq("registrationOpens", registrationOpens),
+				)
+				.first();
+			if (!alreadySent) {
+				await ctx.db.insert("eventRegistrationOpenNotices", {
+					eventId,
+					registrationOpens,
+					sentAt: now,
+				});
+				const origin = isLocalDevelopment() ? BIFROST_LOCAL_URL : BIFROST_URL;
+				const title = event.title
+					.replaceAll("&", "&amp;")
+					.replaceAll("<", "&lt;")
+					.replaceAll(">", "&gt;");
+				await ctx.scheduler.runAfter(0, internal.iam.notifications.sendMessage, {
+					channel: SYSTEM_ALERTS_CHANNEL,
+					clientMsgId: `registration-open-${eventId}-${registrationOpens}`,
+					text: [
+						"🔔 *Påmeldingen åpner nå*",
+						`*Arrangement:* ${title}`,
+						`*Tidspunkt:* ${humanReadableFullDateTime(new Date(registrationOpens))}`,
+						`<${origin}/events/${eventId}|Åpne arrangementet>`,
+					].join("\n"),
+				});
+			}
 		}
-
-		const alreadySent = await ctx.db
-			.query("eventRegistrationOpenNotices")
-			.withIndex("by_eventId_and_registrationOpens", (q) =>
-				q.eq("eventId", eventId).eq("registrationOpens", registrationOpens),
-			)
-			.first();
-		if (alreadySent) return null;
-
-		await ctx.db.insert("eventRegistrationOpenNotices", {
-			eventId,
-			registrationOpens,
-			sentAt: now,
-		});
-		const origin = isLocalDevelopment() ? BIFROST_LOCAL_URL : BIFROST_URL;
-		const title = event.title
-			.replaceAll("&", "&amp;")
-			.replaceAll("<", "&lt;")
-			.replaceAll(">", "&gt;");
-		await ctx.scheduler.runAfter(0, internal.iam.notifications.sendMessage, {
-			channel: SYSTEM_ALERTS_CHANNEL,
-			clientMsgId: `registration-open-${eventId}-${registrationOpens}`,
-			text: [
-				"🔔 *Påmeldingen åpner nå*",
-				`*Arrangement:* ${title}`,
-				`*Tidspunkt:* ${humanReadableFullDateTime(new Date(registrationOpens))}`,
-				`<${origin}/events/${eventId}|Åpne arrangementet>`,
-			].join("\n"),
-		});
 		return null;
 	},
 });
