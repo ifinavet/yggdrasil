@@ -1,8 +1,12 @@
+import { BIFROST_URL } from "@workspace/shared/constants";
 import {
+	JOB_LISTINGS_PATH,
 	type JobListingOrderForm,
 	jobListingOrderSchema,
 	orderPriceOre,
 } from "@workspace/shared/job-listing-orders";
+import { formatOrderAlert } from "@workspace/shared/slack/alerts";
+import { SYSTEM_ALERTS_CHANNEL } from "@workspace/shared/slack/channels";
 import { DAY_MS, osloToday } from "@workspace/shared/time";
 import { ConvexError, type Infer, v } from "convex/values";
 import { internal } from "../_generated/api";
@@ -343,6 +347,18 @@ export const confirm = mutation({
 			});
 			await ctx.scheduler.runAfter(0, internal.jobListingOrders.emails.sendAdminNotice, {
 				orderId: order._id,
+			});
+			await ctx.scheduler.runAfter(0, internal.iam.notifications.sendMessage, {
+				channel: SYSTEM_ALERTS_CHANNEL,
+				clientMsgId: `job-listing-order-${order._id}`,
+				text: formatOrderAlert({
+					company: await orderCompanyName(ctx, order),
+					type: "Stillingsannonse",
+					title: (await listOrderItems(ctx, order._id)).map((item) => item.title),
+					additionalNotes: order.note,
+					estimatedRevenueOre: order.priceOre,
+					url: `${BIFROST_URL}${JOB_LISTINGS_PATH}`,
+				}),
 			});
 		}
 

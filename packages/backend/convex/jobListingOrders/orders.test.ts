@@ -1,6 +1,7 @@
 import type { EmailId, SendEmailOptions } from "@convex-dev/resend";
 import { HUGIN_URL } from "@workspace/shared/constants";
 import { LOGO_MESSAGES } from "@workspace/shared/logo";
+import { formatNokFromOre } from "@workspace/shared/products";
 import { osloToday } from "@workspace/shared/time";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -136,6 +137,7 @@ beforeEach(() => {
 
 afterEach(() => {
 	vi.restoreAllMocks();
+	vi.unstubAllEnvs();
 	vi.unstubAllGlobals();
 	vi.useRealTimers();
 });
@@ -268,6 +270,29 @@ describe("submit", () => {
 });
 
 describe("confirm", () => {
+	it("alerts once in the central channel after email confirmation", async () => {
+		const f = await fixture();
+		const { token } = await submitOrder(
+			f.t,
+			existingCompanyForm(f, { note: "Gjerne kontakt oss først." }),
+		);
+
+		await f.t.mutation(api.jobListingOrders.orders.confirm, { token: token ?? "" });
+		await f.t.mutation(api.jobListingOrders.orders.confirm, { token: token ?? "" });
+
+		const scheduled = await f.t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
+		const alerts = scheduled.filter(({ name }) => name.includes("notifications:sendMessage"));
+		expect(alerts).toHaveLength(1);
+		expect(alerts[0]?.args[0]).toMatchObject({
+			channel: "C0C5L3JPSE7",
+			text: expect.stringContaining("*Type:* Stillingsannonse"),
+		});
+		expect(alerts[0]?.args[0].text).toContain("Testbedrift");
+		expect(alerts[0]?.args[0].text).toContain("Backendutvikler, Frontendutvikler");
+		expect(alerts[0]?.args[0].text).toContain("Gjerne kontakt oss først.");
+		expect(alerts[0]?.args[0].text).toContain(`${formatNokFromOre(550_000)} eks. mva`);
+	});
+
 	it("confirms the order, returns a receipt and sends receipt and admin notice", async () => {
 		vi.useFakeTimers();
 		const f = await fixture();

@@ -102,6 +102,7 @@ describe("the whole journey", () => {
 				(job) => job.name,
 			),
 		).toEqual([
+			"iam/notifications:sendMessage",
 			"semesterPlanning/offers/emails:sendOfferEmail",
 			"semesterPlanning/offers/emails:sendOfferEmail",
 		]);

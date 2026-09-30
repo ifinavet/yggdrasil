@@ -4,6 +4,7 @@ import { DEGREES, HUGIN_LOCAL_URL } from "@workspace/shared/constants";
 import { featureFlags } from "@workspace/shared/feature-flags";
 import { reportAccessDeniedMessage, reportHighlights } from "@workspace/shared/feedback/report";
 import { feedbackReportCsv } from "@workspace/shared/feedback/report-csv";
+import { SYSTEM_ALERTS_CHANNEL } from "@workspace/shared/slack/channels";
 import { toBase64 } from "@workspace/shared/utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { insertFeedbackResponses } from "../../../test/feedbackResponses";
@@ -155,6 +156,15 @@ describe("company feedback reports", () => {
 	it("materializes all pages once with individual text entries and exact default questions", async () => {
 		const f = await fixture(28);
 		const reportId = await f.prepare();
+		const scheduled = await f.t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
+		const alerts = scheduled.filter(({ name }) => name.includes("notifications:sendMessage"));
+		expect(alerts).toHaveLength(1);
+		expect(alerts[0]?.args[0]).toMatchObject({
+			channel: SYSTEM_ALERTS_CHANNEL,
+			text: expect.stringContaining("📊 *Feedbackrapporten er klar til gjennomgang*"),
+		});
+		expect(alerts[0]?.args[0].text).toContain("Testarrangement");
+		expect(alerts[0]?.args[0].text).toContain(`/events/${f.eventId}/report`);
 		expect(await f.client.mutation(reports.build.prepare, { campaignId: f.campaignId })).toBe(
 			reportId,
 		);
@@ -508,6 +518,14 @@ describe("report boundary cases", () => {
 			await expect(f.prepare()).rejects.toThrow();
 			expect(await f.t.run((ctx) => ctx.db.query("feedbackReports").collect())).toEqual([]);
 		}
+	});
+	it("links completed reports to the hosted Bifrost when not running locally", async () => {
+		vi.stubEnv("APP_ENV", "test");
+		const f = await fixture(1);
+		await f.prepare();
+		const scheduled = await f.t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
+		const alert = scheduled.find(({ name }) => name.includes("notifications:sendMessage"));
+		expect(alert?.args[0].text).toContain("https://bifrost.ifinavet.no/events/");
 	});
 	it("starts building only when enabled and ignores stale or expired batch jobs", async () => {
 		const f = await fixture();

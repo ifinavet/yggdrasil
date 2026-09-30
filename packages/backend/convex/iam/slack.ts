@@ -61,6 +61,15 @@ export function slackClient(config: SlackConfig) {
 	}
 
 	return {
+		async postMessage(channel: string, text: string, clientMsgId: string) {
+			const body = await call("chat.postMessage", {
+				channel,
+				text,
+				client_msg_id: clientMsgId,
+			});
+			if (!body.ok) throw new SlackError(`Slack avviste meldingen: ${body.error}.`);
+		},
+
 		async lookupByEmail(email: string): Promise<string | null> {
 			const body = await call<{ user?: SlackUser }>("users.lookupByEmail", { email });
 			if (body.ok) return body.user?.id ?? null;

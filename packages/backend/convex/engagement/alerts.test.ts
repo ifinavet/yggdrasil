@@ -1,5 +1,6 @@
+import { SYSTEM_ALERTS_CHANNEL } from "@workspace/shared/slack/channels";
 import { DAY_MS, HOUR_MS, MINUTE_MS } from "@workspace/shared/time";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
 	asUser,
 	grantRole,
@@ -165,7 +166,8 @@ describe("detectAlerts", () => {
 
 		const scheduled = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
 		expect(scheduled).toHaveLength(1);
-		expect(scheduled[0]?.name).toContain("notifySlack");
+		expect(scheduled[0]?.name).toContain("notifications:sendMessage");
+		expect(scheduled[0]?.args[0]).toMatchObject({ channel: SYSTEM_ALERTS_CHANNEL });
 		expect(scheduled[0]?.args[0].text).toContain(`https://bifrost.ifinavet.no/events/${eventId}`);
 
 		vi.useRealTimers();
@@ -291,72 +293,6 @@ describe("detectAlerts", () => {
 		expect(await alertsFor(t, eventId)).toHaveLength(2);
 
 		vi.useRealTimers();
-	});
-});
-
-describe("notifySlack", () => {
-	afterEach(() => {
-		vi.unstubAllEnvs();
-		vi.unstubAllGlobals();
-	});
-
-	it("returns false and never calls fetch when the webhook url is missing", async () => {
-		const { t } = await setup();
-		vi.stubEnv("SLACK_ENGAGEMENT_WEBHOOK_URL", "");
-		const fetchMock = vi.fn();
-		vi.stubGlobal("fetch", fetchMock);
-
-		const result = await t.action(internal.engagement.alerts.notifySlack, { text: "hei" });
-
-		expect(result).toBe(false);
-		expect(fetchMock).not.toHaveBeenCalled();
-	});
-
-	it("posts the text to the webhook url and returns true on success", async () => {
-		const { t } = await setup();
-		vi.stubEnv("SLACK_ENGAGEMENT_WEBHOOK_URL", "https://hooks.slack.test/webhook");
-		const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200 });
-		vi.stubGlobal("fetch", fetchMock);
-
-		const result = await t.action(internal.engagement.alerts.notifySlack, { text: "hei alle" });
-
-		expect(result).toBe(true);
-		expect(fetchMock).toHaveBeenCalledWith(
-			"https://hooks.slack.test/webhook",
-			expect.objectContaining({
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ text: "hei alle" }),
-			}),
-		);
-	});
-
-	it("throws and schedules a retry when Slack responds with a non-ok status", async () => {
-		const { t } = await setup();
-		vi.stubEnv("SLACK_ENGAGEMENT_WEBHOOK_URL", "https://hooks.slack.test/webhook");
-		vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 500 }));
-
-		await expect(t.action(internal.engagement.alerts.notifySlack, { text: "hei" })).rejects.toThrow(
-			"Slack svarte 500",
-		);
-
-		const scheduled = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
-		expect(scheduled.map(({ name, args }) => ({ name, args }))).toEqual([
-			{ name: expect.stringContaining("notifySlack"), args: [{ text: "hei", attempt: 2 }] },
-		]);
-	});
-
-	it("stops retrying after the last attempt when the request fails", async () => {
-		const { t } = await setup();
-		vi.stubEnv("SLACK_ENGAGEMENT_WEBHOOK_URL", "https://hooks.slack.test/webhook");
-		vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
-
-		await expect(
-			t.action(internal.engagement.alerts.notifySlack, { text: "hei", attempt: 3 }),
-		).rejects.toThrow("Slack svarte ikke");
-
-		const scheduled = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
-		expect(scheduled).toHaveLength(0);
 	});
 });
 
