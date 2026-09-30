@@ -12,6 +12,7 @@ import { v } from "convex/values";
 import { internal } from "../../_generated/api";
 import type { Doc, Id } from "../../_generated/dataModel";
 import { internalMutation, internalQuery, type MutationCtx } from "../../_generated/server";
+import { latestCampaign } from "../../feedback/delivery/campaigns";
 import { followupFinishedAt } from "../../feedback/reports/lifecycle";
 import { countRegistrationsWithStatus } from "../helper";
 import { getOrganizers } from "../queries";
@@ -33,17 +34,20 @@ export async function queueEventNotification(
 		.query("eventSlackNotifications")
 		.withIndex("by_eventId_and_key", (q) => q.eq("eventId", eventId).eq("key", key))
 		.unique();
+	if (existing?.sentAt) return;
+	if (existing && key.startsWith("welcome:")) {
+		await ctx.db.patch(existing._id, { eventStart: event.eventStart, cancelledAt: undefined });
+		return;
+	}
 	if (existing && !(key === "registration-full" && existing.cancelledAt)) return;
-	if (existing)
-		await ctx.db.patch(existing._id, { cancelledAt: undefined, eventStart: event.eventStart });
-	else
-		await ctx.db.insert("eventSlackNotifications", {
-			eventId,
-			key,
-			text,
-			eventStart: event.eventStart,
-			condition: options.condition,
-		});
+	if (existing) await ctx.db.delete(existing._id);
+	await ctx.db.insert("eventSlackNotifications", {
+		eventId,
+		key,
+		text,
+		eventStart: event.eventStart,
+		condition: options.condition,
+	});
 	if (options.schedule !== false)
 		await ctx.scheduler.runAfter(0, internal.events.slack.lifecycle.reconcile, {});
 }
@@ -182,12 +186,12 @@ async function eventContext(
 		organizer.slackUserId ? [organizer.slackUserId] : [],
 	);
 	if (eventPlanningAt(event.eventStart, EVENT_PLANNING.channelDaysBefore) > now)
-		return { members, finishedAt, messages: [] };
+		return { members, finishedAt, messages: [], actionable: false };
 	if (event.eventStart > now)
 		await queueEventNotification(
 			ctx,
 			event._id,
-			`welcome:${channel._id}:${channel.generation ?? 1}:${event.eventStart}`,
+			`welcome:${channel._id}:${channel.generation ?? 1}`,
 			"",
 			{ schedule: false },
 		);
@@ -222,7 +226,7 @@ async function eventContext(
 	const messages = notifications
 		.filter((notice) => !notice.sentAt && !notice.cancelledAt)
 		.map((notice) => ({ id: notice._id }));
-	return { members, finishedAt, messages };
+	return { members, finishedAt, messages, actionable: event.eventStart > now || followup === null };
 }
 
 export const context = internalMutation({
@@ -256,6 +260,7 @@ export const context = internalMutation({
 			(finishedAt !== null && now >= finishedAt + EVENT_PLANNING.archiveDaysAfter * DAY_MS);
 		return {
 			members: [...members],
+			actionable: contexts.some((context) => context.actionable),
 			messages,
 			archive,
 			finishedAt,
@@ -263,6 +268,105 @@ export const context = internalMutation({
 		};
 	},
 });
+
+async function staleReportNotification(ctx: MutationCtx, notice: Doc<"eventSlackNotifications">) {
+	if (notice.key.startsWith("report-ready:") || notice.key.startsWith("report-sent:")) {
+		const report = await ctx.db.get(notice.key.split(":")[1] as Id<"feedbackReports">);
+		if (
+			!report ||
+			(notice.key.startsWith("report-ready:") && report.status !== "draft") ||
+			(notice.key.startsWith("report-sent:") &&
+				(report.status !== "approved" ||
+					report.deliveryStatus === "failed" ||
+					report.followupFinishedAt === undefined ||
+					notice.key !== `report-sent:${report._id}:${report.deliveryAttempt ?? 0}`))
+		) {
+			return true;
+		}
+	}
+	return false;
+}
+
+async function staleNotification(
+	ctx: MutationCtx,
+	event: Doc<"events">,
+	notice: Doc<"eventSlackNotifications">,
+	now: number,
+) {
+	if (
+		notice.key.startsWith("registration-open:") &&
+		(!event.published ||
+			event.registrationOpens > now ||
+			notice.key !== `registration-open:${event.registrationOpens}`)
+	) {
+		return true;
+	}
+	if (
+		!notice.key.startsWith("welcome:") &&
+		!notice.key.startsWith("report-") &&
+		now - notice._creationTime > DAY_MS
+	) {
+		return true;
+	}
+	if (
+		notice.key === "registration-full" &&
+		(event.eventStart <= now ||
+			!event.published ||
+			(await countRegistrationsWithStatus(ctx, event._id, "registered")) < event.participationLimit)
+	) {
+		return true;
+	}
+
+	return staleReportNotification(ctx, notice);
+}
+
+function staleWelcome(
+	event: Doc<"events">,
+	channel: Doc<"companySemesterSlackChannels">,
+	notice: Doc<"eventSlackNotifications">,
+	now: number,
+) {
+	return (
+		notice.key.startsWith("welcome:") &&
+		(event.eventStart <= now || notice.key !== `welcome:${channel._id}:${channel.generation ?? 1}`)
+	);
+}
+
+async function renderNotification(
+	ctx: MutationCtx,
+	event: Doc<"events">,
+	notice: Doc<"eventSlackNotifications">,
+	text: string,
+	now: number,
+) {
+	if (notice.key.startsWith("welcome:")) {
+		const campaign = await latestCampaign(ctx, event._id);
+		const active = campaign?.status === "scheduled" || campaign?.status === "open";
+		text = welcomeMessage(event, now, active ? campaign.opensAt : undefined);
+	}
+	if (notice.key.startsWith("report-ready:"))
+		text = `${notice.text} <${eventUrl(event)}/report|Åpne rapporten>.`;
+
+	const organizers = await getOrganizers(ctx, event._id);
+	if (notice.key.startsWith("missing-slack:")) {
+		const missingId = notice.key.slice("missing-slack:".length);
+		if (!organizers.some((organizer) => organizer.userId === missingId && !organizer.slackUserId)) {
+			await ctx.db.patch(notice._id, { cancelledAt: now });
+			return null;
+		}
+	}
+	const recipients =
+		notice.key.startsWith("practical:") ||
+		notice.key.startsWith("expenses:") ||
+		notice.key.startsWith("missing-attendance:")
+			? organizers.filter(({ role }) => role === "hovedansvarlig")
+			: organizers;
+	return {
+		id: notice._id,
+		createdAt: notice._creationTime,
+		text: eventMessage(event, recipients, text),
+	};
+}
 
 /** Re-read source state immediately before each external message, so stale jobs are harmless. */
 export const notification = internalMutation({
@@ -283,7 +387,8 @@ export const notification = internalMutation({
 			!event ||
 			event.externalEvent ||
 			event.eventStart !== notice.eventStart ||
-			(notice.key.startsWith("reminder-sent:") && !event.remindersEnabled)
+			(notice.key.startsWith("reminder-sent:") && !event.remindersEnabled) ||
+			staleWelcome(event, channel, notice, now)
 		) {
 			await ctx.db.patch(notice._id, { cancelledAt: now });
 			return null;
@@ -294,46 +399,11 @@ export const notification = internalMutation({
 			event.eventStart >= channel.semesterEnd
 		)
 			return null;
-		if (
-			notice.key.startsWith("registration-open:") &&
-			(!event.published ||
-				event.registrationOpens > now ||
-				notice.key !== `registration-open:${event.registrationOpens}`)
-		) {
-			await ctx.db.patch(notice._id, { cancelledAt: now });
-			return null;
-		}
-		if (
-			!notice.key.startsWith("welcome:") &&
-			!notice.key.startsWith("report-") &&
-			now - notice._creationTime > DAY_MS
-		) {
-			await ctx.db.patch(notice._id, { cancelledAt: now });
-			return null;
-		}
-		if (
-			notice.key === "registration-full" &&
-			(event.eventStart <= now ||
-				!event.published ||
-				(await countRegistrationsWithStatus(ctx, event._id, "registered")) <
-					event.participationLimit)
-		) {
+		if (await staleNotification(ctx, event, notice, now)) {
 			await ctx.db.patch(notice._id, { cancelledAt: now });
 			return null;
 		}
 
-		if (notice.key.startsWith("report-ready:") || notice.key.startsWith("report-sent:")) {
-			const report = await ctx.db.get(notice.key.split(":")[1] as Id<"feedbackReports">);
-			if (
-				!report ||
-				(notice.key.startsWith("report-ready:") && report.status !== "draft") ||
-				(notice.key.startsWith("report-sent:") &&
-					(report.status !== "approved" || report.deliveryStatus === "failed"))
-			) {
-				await ctx.db.patch(notice._id, { cancelledAt: now });
-				return null;
-			}
-		}
 		const conditional = notice.condition
 			? (await dueOrganizerReminders(ctx, event, now)).find(
 					(reminder) => reminder.key === notice.condition,
@@ -343,30 +413,7 @@ export const notification = internalMutation({
 			await ctx.db.patch(notice._id, { cancelledAt: now });
 			return null;
 		}
-		let text = conditional?.text ?? notice.text;
-		if (notice.key.startsWith("welcome:")) text = welcomeMessage(event, now);
-		if (notice.key.startsWith("report-ready:"))
-			text = `${notice.text} <${eventUrl(event)}/report|Åpne rapporten>.`;
-
-		const organizers = await getOrganizers(ctx, event._id);
-		if (notice.key.startsWith("missing-slack:")) {
-			const missingId = notice.key.slice("missing-slack:".length);
-			if (!organizers.some((organizer) => organizer.userId === missingId && !organizer.slackUserId)) {
-				await ctx.db.patch(notice._id, { cancelledAt: now });
-				return null;
-			}
-		}
-		const recipients =
-			notice.key.startsWith("practical:") ||
-			notice.key.startsWith("expenses:") ||
-			notice.key.startsWith("missing-attendance:")
-				? organizers.filter(({ role }) => role === "hovedansvarlig")
-				: organizers;
-		return {
-			id: notice._id,
-			createdAt: notice._creationTime,
-			text: eventMessage(event, recipients, text),
-		};
+		return renderNotification(ctx, event, notice, conditional?.text ?? notice.text, now);
 	},
 });
 

@@ -42,8 +42,20 @@ export function eventMessage(
 	].join("\n");
 }
 
+function participantReminders(event: Doc<"events">, now: number) {
+	if (!event.remindersEnabled || !event.published) return [];
+	return Object.values(REMINDER_LEAD_TIMES).flatMap((leadTime, index) => {
+		const at = event.eventStart - leadTime;
+		return at > now
+			? [
+					`• Sender påminnelse ${index + 1} til de påmeldte ${formatOsloDate(at, DATE_PATTERNS.dateTime)}.`,
+				]
+			: [];
+	});
+}
+
 /** Describe only remaining work, using the same schedule and switches as the automations. */
-function upcomingAutomations(event: Doc<"events">, now: number) {
+function upcomingAutomations(event: Doc<"events">, now: number, campaignOpensAt?: number) {
 	const when = (at: number) => formatOsloDate(at, DATE_PATTERNS.dateTime);
 	const automatic: string[] = [];
 	if (event.published && event.registrationOpens > now)
@@ -54,14 +66,9 @@ function upcomingAutomations(event: Doc<"events">, now: number) {
 		automatic.push(
 			"• Automatisk innsamling av tilbakemeldinger er slått av for dette arrangementet.",
 		);
-	if (event.remindersEnabled && event.published) {
-		for (const [index, leadTime] of Object.values(REMINDER_LEAD_TIMES).entries()) {
-			const at = event.eventStart - leadTime;
-			if (at > now) automatic.push(`• Sender påminnelse ${index + 1} til de påmeldte ${when(at)}.`);
-		}
-	}
+	automatic.push(...participantReminders(event, now));
 	if (event.feedbackEnabled) {
-		const opensAt = feedbackOpensAt(event.eventStart);
+		const opensAt = campaignOpensAt ?? feedbackOpensAt(event.eventStart);
 		if (opensAt > now)
 			automatic.push(
 				`• Sender tilbakemeldingsskjemaet til dem dere registrerer som møtt, ${when(opensAt)}.`,
@@ -84,9 +91,9 @@ function upcomingAutomations(event: Doc<"events">, now: number) {
 	return automatic;
 }
 
-export function welcomeMessage(event: Doc<"events">, now: number) {
+export function welcomeMessage(event: Doc<"events">, now: number, campaignOpensAt?: number) {
 	const when = (at: number) => formatOsloDate(at, DATE_PATTERNS.dateTime);
-	const automatic = upcomingAutomations(event, now);
+	const automatic = upcomingAutomations(event, now, campaignOpensAt);
 	const contactAt = eventPlanningAt(event.eventStart, EVENT_PLANNING.companyContactDaysBefore);
 	const contact =
 		contactAt > now

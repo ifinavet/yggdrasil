@@ -122,7 +122,12 @@ export function slackClient(config: SlackConfig) {
 				throw new SlackError(`Slack avviste arkiveringen: ${body.error}.`);
 		},
 
-		async reconcileChannelMembers(channel: string, desired: string[], managed: string[]) {
+		async reconcileChannelMembers(
+			channel: string,
+			desired: string[],
+			managed: string[],
+			persistManaged: (users: string[]) => Promise<unknown>,
+		) {
 			const auth = await call<{ user_id: string }>("auth.test", {});
 			if (!auth.ok) throw new SlackError("Kunne ikke identifisere Slack-boten.");
 			const current = (await paginate<{ members?: string[] }>(
@@ -130,18 +135,24 @@ export function slackClient(config: SlackConfig) {
 				{ channel },
 				(body) => body.members ?? [],
 			)) as string[];
-			for await (const user of current) {
-				if (user === auth.user_id || desired.includes(user) || !managed.includes(user)) continue;
+			const invited = desired.filter((user) => !current.includes(user));
+			const owned = [...new Set([...managed, ...invited])];
+			// Persist invite intent before its side effect, but never adopt a manual member.
+			await persistManaged(owned);
+			await current.reduce(async (previous, user) => {
+				await previous;
+				if (user === auth.user_id || desired.includes(user) || !managed.includes(user)) return;
 				const body = await call("conversations.kick", { channel, user });
 				if (!body.ok && body.error !== "not_in_channel" && body.error !== "user_not_in_channel")
 					throw new SlackError(`Slack avviste fjerningen: ${body.error}.`);
-			}
-			for await (const user of desired) {
-				if (current.includes(user)) continue;
+			}, Promise.resolve());
+			await invited.reduce(async (previous, user) => {
+				await previous;
 				const body = await call("conversations.invite", { channel, users: user });
 				if (!body.ok && body.error !== "already_in_channel")
 					throw new SlackError(`Slack avviste invitasjonen: ${body.error}.`);
-			}
+			}, Promise.resolve());
+			await persistManaged(owned.filter((user) => desired.includes(user)));
 		},
 		async hasMessage(channel: string, clientMsgId: string, since: number) {
 			type Message = {

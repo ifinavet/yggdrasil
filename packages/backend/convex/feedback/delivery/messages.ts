@@ -204,14 +204,14 @@ async function recordReportEvent(ctx: MutationCtx, id: string, type: string) {
 			await queueEventNotification(
 				ctx,
 				report.eventId,
-				`report-sent:${report._id}`,
+				`report-sent:${report._id}:${report.deliveryAttempt ?? 0}`,
 				"Nå har jeg sendt tilbakemeldingsrapporten til bedriften. Takk for innsatsen! 🙌",
 			);
 		}
 		if (type === "email.delivered" && report.deliveryStatus !== "failed")
 			await ctx.db.patch(report._id, { deliveryStatus: "delivered" });
 		if (type === "email.bounced" || type === "email.complained" || type === "email.failed")
-			await ctx.db.patch(report._id, { deliveryStatus: "failed" });
+			await ctx.db.patch(report._id, { deliveryStatus: "failed", followupFinishedAt: undefined });
 	}
 }
 

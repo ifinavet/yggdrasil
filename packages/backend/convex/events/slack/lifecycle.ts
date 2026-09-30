@@ -113,7 +113,7 @@ async function updateChannel(
 	});
 	if (!context || (context.archive && !channel.slackChannelId)) return;
 	if (channel.slackChannelId && (await slack.isChannelArchived(channel.slackChannelId))) {
-		if (context.archive) {
+		if (context.archive || !context.actionable) {
 			await progress({ archived: true });
 			return;
 		}
@@ -138,10 +138,13 @@ async function updateChannel(
 	const name = generation === 1 ? channel.name : `${channel.name.slice(0, 75)}-${generation}`;
 	await slack.renameChannel(slackChannelId, name);
 	await announceCreation(slack, channel, slackChannelId, name, context.companyName, progress);
-	const managed = [...new Set([...(channel.managedSlackUserIds ?? []), ...context.members])];
-	await progress({ managedSlackUserIds: managed });
-	await slack.reconcileChannelMembers(slackChannelId, context.members, managed);
-	await progress({ managedSlackUserIds: context.members, archived: false });
+	await slack.reconcileChannelMembers(
+		slackChannelId,
+		context.members,
+		channel.managedSlackUserIds ?? [],
+		(managedSlackUserIds) => progress({ managedSlackUserIds }),
+	);
+	await progress({ archived: false });
 	await deliverNotifications(ctx, slack, channel._id, slackChannelId, context.messages, progress);
 	if (context.archive) await archiveFinishedChannel(ctx, slack, channel, slackChannelId, progress);
 }
@@ -185,14 +188,15 @@ async function reconcilePages(
 		internal.events.slack.state.listChannels,
 		{ paginationOpts: { cursor, numItems: 50 } },
 	);
-	for await (const channel of page.page) {
+	await page.page.reduce(async (previous, channel) => {
+		await previous;
 		try {
 			await reconcileChannel(ctx, channel._id);
 		} catch (error) {
 			console.error(`Slack lifecycle failed for ${channel._id}`, error);
 			failures.push(error);
 		}
-	}
+	}, Promise.resolve());
 	if (!page.isDone) await reconcilePages(ctx, failures, page.continueCursor);
 }
 

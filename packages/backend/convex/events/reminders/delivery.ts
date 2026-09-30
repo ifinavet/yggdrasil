@@ -4,7 +4,7 @@ import { internalMutation } from "../../_generated/server";
 import { feedbackResend, feedbackSender } from "../../feedback/delivery/messages";
 import { oneOf } from "../../lib/validators";
 import { queueEventNotification } from "../slack/state";
-import { REMINDER_KINDS } from "./schedule";
+import { dueReminder, REMINDER_KINDS } from "./schedule";
 
 const batchArgs = { eventId: v.id("events"), kind: oneOf(REMINDER_KINDS) };
 export const enqueue = internalMutation({
@@ -27,7 +27,7 @@ export const enqueue = internalMutation({
 			!event.published ||
 			event.externalEvent ||
 			event.eventStart !== eventStart ||
-			event.eventStart <= Date.now()
+			dueReminder(event.eventStart, Date.now()) !== kind
 		)
 			return;
 		const existing = await ctx.db

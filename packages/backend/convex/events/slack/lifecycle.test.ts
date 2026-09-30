@@ -8,12 +8,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	insertEvent,
 	insertOrganizer,
+	insertRegistration,
 	insertUser,
 	setup,
 	type TestBackend,
 } from "../../../test/fixtures";
 import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
+import { slackClient } from "../../iam/slack";
 import { recordReminderSent } from "../reminders/delivery";
 import { welcomeMessage } from "./messages";
 import { queueEventNotification } from "./state";
@@ -96,8 +98,7 @@ function fakeSlack() {
 					if (channel) channel.archived = true;
 					break;
 				case "conversations.unarchive":
-					if (channel) channel.archived = false;
-					break;
+					return reply({ ok: false, error: "not_allowed_token_type" });
 				case "chat.postMessage":
 					if (channel?.archived) return reply({ ok: false, error: "is_archived" });
 					channel?.messages.push({
@@ -163,7 +164,6 @@ async function run(t: TestBackend, now = Date.now()) {
 beforeEach(() => {
 	vi.useFakeTimers();
 	vi.setSystemTime(NOW);
-	vi.stubEnv("SLACK_BOT_TOKEN", "test-token");
 	vi.stubEnv("SLACK_BOT_TOKEN", "test-token");
 });
 afterEach(() => {
@@ -264,7 +264,7 @@ describe("company semester event lifecycle", () => {
 		await run(t);
 		expect(slack.channels[0]?.members).toEqual(["BOT", "SECOND"]);
 	});
-	it("archives a week after the last event, and reuses the archived channel for new work", async () => {
+	it("archives a week after the last event, and replaces the archived channel for new work", async () => {
 		const { t, companyId } = await setup();
 		const slack = fakeSlack();
 		await insertEvent(t, companyId, { eventStart: START });
@@ -295,7 +295,7 @@ describe("company semester event lifecycle", () => {
 		expect(slack.channels).toHaveLength(1);
 		expect(slack.channels[0]?.messages).toHaveLength(1);
 	});
-	it("keeps failed invites retryable, limits retry frequency and reports the failure once", async () => {
+	it("keeps failed invites retryable and limits retry frequency", async () => {
 		const { t, companyId } = await setup();
 		const slack = fakeSlack();
 		vi.spyOn(console, "error").mockImplementation(() => {});
@@ -742,9 +742,182 @@ it("announces only actual channel creation to system alerts, once per generation
 	await t.run((ctx) => ctx.db.delete(eventId));
 	await run(t);
 	expect(slack.systemMessages).toHaveLength(1);
-	await insertEvent(t, companyId, { eventStart: START + DAY_MS });
+	await insertEvent(t, companyId, { eventStart: START });
 	await run(t);
 	await run(t);
 	expect(slack.systemMessages).toHaveLength(2);
 	expect(slack.systemMessages[1]?.text).toContain("#h26-testbedrift-2");
+});
+
+it("recovers a replacement's lost create response without another generation or repeated milestones", async () => {
+	const { t, companyId } = await setup();
+	const slack = fakeSlack();
+	vi.spyOn(console, "error").mockImplementation(() => {});
+	const first = await insertEvent(t, companyId, { eventStart: START });
+	await run(t);
+	await t.run((ctx) => ctx.db.delete(first));
+	await run(t);
+	await insertEvent(t, companyId, { eventStart: START });
+	slack.loseCreate();
+	await expect(run(t)).rejects.toThrow("failed to reconcile");
+	await run(t, NOW + DAY_MS);
+	await run(t);
+	expect(slack.channels).toHaveLength(2);
+	expect(slack.channels[0]?.archived).toBe(true);
+	expect(slack.channels[1]?.name).toBe("h26-testbedrift-2");
+	expect(slack.channels[1]?.messages).toHaveLength(1);
+	expect(slack.systemMessages).toHaveLength(2);
+});
+
+it("reports missing IAM identities once and invites an organizer after IAM catches up", async () => {
+	const { t, companyId } = await setup();
+	const slack = fakeSlack();
+	const eventId = await insertEvent(t, companyId, { eventStart: START });
+	const userId = await organizer(t, eventId, "LATE");
+	const account = await t.run((ctx) =>
+		ctx.db
+			.query("memberAccounts")
+			.withIndex("by_userId", (q) => q.eq("userId", userId))
+			.unique(),
+	);
+	if (!account) throw new Error("Missing account");
+	await t.run((ctx) => ctx.db.patch(account._id, { slackUserId: undefined }));
+	await run(t);
+	await run(t);
+	expect(slack.channels[0]?.messages).toHaveLength(2);
+	expect(slack.channels[0]?.members).not.toContain("LATE");
+	await t.run((ctx) => ctx.db.patch(account._id, { slackUserId: "LATE" }));
+	await run(t);
+	expect(slack.channels[0]?.members).toContain("LATE");
+	expect(slack.channels[0]?.messages).toHaveLength(2);
+	expect(slack.systemMessages).toHaveLength(1);
+});
+
+it("recovers a message from metadata beyond twenty history pages and bounds lookup by its creation time", async () => {
+	const fetch = vi.fn(async (_url: string, init: RequestInit) => {
+		const args = Object.fromEntries(new URLSearchParams(init.body as string));
+		expect(args.oldest).toBe(String((NOW - 1000) / 1000));
+		const page = Number(args.cursor || 0);
+		return new Response(
+			JSON.stringify({
+				ok: true,
+				messages:
+					page === 21
+						? [
+								{
+									metadata: {
+										event_type: "yggdrasil_event_notice",
+										event_payload: { key: "notice" },
+									},
+								},
+							]
+						: [],
+				response_metadata: { next_cursor: String(page + 1) },
+			}),
+		);
+	});
+	vi.stubGlobal("fetch", fetch);
+	expect(await slackClient({ botToken: "test" }).hasMessage("C1", "notice", NOW)).toBe(true);
+	expect(fetch).toHaveBeenCalledTimes(22);
+});
+
+it("preserves manual membership through a temporary organizer assignment", async () => {
+	const { t, companyId } = await setup();
+	const slack = fakeSlack();
+	const eventId = await insertEvent(t, companyId, { eventStart: START });
+	await run(t);
+	slack.channels[0]?.members.push("MANUAL");
+	const userId = await organizer(t, eventId, "MANUAL");
+	await run(t);
+	await t.run(async (ctx) => {
+		const row = await ctx.db
+			.query("eventOrganizers")
+			.withIndex("by_eventId_and_userId", (q) => q.eq("eventId", eventId).eq("userId", userId))
+			.unique();
+		if (row) await ctx.db.delete(row._id);
+	});
+	await run(t);
+	expect(slack.channels[0]?.members).toContain("MANUAL");
+});
+
+it("welcomes once through date changes, and refreshes an unsent welcome after a missed event", async () => {
+	const { t, companyId } = await setup();
+	const slack = fakeSlack();
+	const eventId = await insertEvent(t, companyId, { eventStart: START });
+	await run(t);
+	await t.run((ctx) => ctx.db.patch(eventId, { eventStart: START }));
+	await run(t);
+	expect(slack.channels[0]?.messages).toHaveLength(1);
+	const second = await insertEvent(t, companyId, { eventStart: START });
+	const channel = await t.run((ctx) => ctx.db.query("companySemesterSlackChannels").unique());
+	if (!channel) throw new Error("Missing channel");
+	const context = await t.mutation(internal.events.slack.state.context, {
+		channelId: channel._id,
+		now: NOW,
+	});
+	const pending = context?.messages[0];
+	if (!pending) throw new Error("Missing welcome");
+	expect(
+		await t.mutation(internal.events.slack.state.notification, {
+			channelId: channel._id,
+			notificationId: pending.id,
+			now: START + 1,
+		}),
+	).toBeNull();
+	await t.run((ctx) => ctx.db.patch(second, { eventStart: START + 2 * DAY_MS }));
+	await run(t, START + 1);
+	expect(
+		slack.channels[0]?.messages.filter((message) => message.text.includes("Så hyggelig")),
+	).toHaveLength(2);
+});
+
+it("allows a fresh full notification days after an unsent full notice was cancelled", async () => {
+	const { t, companyId } = await setup();
+	const slack = fakeSlack();
+	const eventId = await insertEvent(t, companyId, { eventStart: START, participationLimit: 1 });
+	await run(t);
+	await t.run((ctx) => queueEventNotification(ctx, eventId, "registration-full", "Fullt!"));
+	await run(t);
+	expect(slack.channels[0]?.messages).toHaveLength(1);
+	vi.setSystemTime(NOW + 2 * DAY_MS);
+	const user = await insertUser(t, "full@example.test");
+	await insertRegistration(t, eventId, user._id, "registered");
+	await t.run((ctx) => queueEventNotification(ctx, eventId, "registration-full", "Fullt!"));
+	await run(t);
+	expect(slack.channels[0]?.messages.at(-1)?.text).toContain("Fullt!");
+});
+
+it("waits for the five-week window before replacing an archived channel", async () => {
+	const { t, companyId } = await setup();
+	const slack = fakeSlack();
+	const first = await insertEvent(t, companyId, { eventStart: START });
+	await run(t);
+	await t.run((ctx) => ctx.db.delete(first));
+	await run(t);
+	const later = START + 50 * DAY_MS;
+	await insertEvent(t, companyId, { eventStart: later });
+	await run(t);
+	expect(slack.channels).toHaveLength(1);
+	expect(slack.channels[0]?.archived).toBe(true);
+	await run(t, eventPlanningAt(later, 35));
+	expect(slack.channels).toHaveLength(2);
+});
+
+it("uses the persisted feedback campaign time in a catch-up welcome", async () => {
+	const { t, companyId } = await setup();
+	const slack = fakeSlack();
+	const eventId = await insertEvent(t, companyId, { eventStart: START, feedbackEnabled: true });
+	await t.run((ctx) =>
+		ctx.db.insert("feedbackCampaigns", {
+			eventId,
+			status: "scheduled",
+			opensAt: Date.parse("2026-10-30T08:00:00Z"),
+			closesAt: START + 15 * DAY_MS,
+			generation: 1,
+		}),
+	);
+	await run(t);
+	expect(slack.channels[0]?.messages[0]?.text).toContain(
+		"Sender tilbakemeldingsskjemaet til dem dere registrerer som møtt, fredag 30. oktober, 09:00.",
+	);
 });
