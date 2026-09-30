@@ -1,18 +1,8 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
-import { isAbsolute, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
-const root = fileURLToPath(new URL("..", import.meta.url));
-const pnpmPath = process.env.npm_execpath;
-assert.ok(pnpmPath && isAbsolute(pnpmPath), "Run this check with pnpm check-dependencies");
-const packages = JSON.parse(
-	execFileSync(pnpmPath, ["list", "-r", "--depth", "0", "--json"], {
-		cwd: root,
-		encoding: "utf8",
-	}),
-);
+const packages = JSON.parse(readFileSync(0, "utf8"));
 const dependencies = new Map();
 
 for (const pkg of packages) {

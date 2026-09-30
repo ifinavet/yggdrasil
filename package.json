@@ -6,7 +6,7 @@
 		"dev": "node ./scripts/dev.mjs",
 		"lint": "biome check .",
 		"lint:fix": "biome check . --write",
-		"check-dependencies": "node scripts/check-shared-dependencies.mjs",
+		"check-dependencies": "pnpm list -r --depth 0 --json | node scripts/check-shared-dependencies.mjs",
 		"check-types": "pnpm check-dependencies && turbo check-types",
 		"compile": "turbo compile",
 		"test": "turbo test",
