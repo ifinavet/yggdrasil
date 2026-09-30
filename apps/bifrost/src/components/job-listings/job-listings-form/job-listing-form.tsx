@@ -226,23 +226,28 @@ export default function JobListingForm({
 				</form.Field>
 			</FieldSet>
 
-			<FormSubmitActions
-				className="mb-4"
-				isSubmitting={form.state.isSubmitting || isDeleting}
-				onSubmitAction={(submitAction) => {
-					if (submitAction === "tertiary") {
-						startDeleting(async () => {
-							await onTertiarySubmitAction?.(form.state.values);
-						});
-						return;
-					}
-					publishing.current = submitAction === "primary";
-					return form.handleSubmit({ submitAction });
-				}}
-				primary={{ label: "Lagre og publiser", icon: <Send /> }}
-				secondary={{ label: "Lagre og avpubliser", icon: <Save /> }}
-				tertiary={onTertiarySubmitAction && { label: "Slett", icon: <Trash2 /> }}
-			/>
+			<form.Subscribe selector={(state) => state.isSubmitting}>
+				{(isSubmitting) => (
+					<FormSubmitActions
+						className="mb-4"
+						isSubmitting={isSubmitting || isDeleting}
+						onSubmitAction={(submitAction) => {
+							if (submitAction === "tertiary") {
+								if (form.state.isSubmitting) return;
+								startDeleting(async () => {
+									await onTertiarySubmitAction?.(form.state.values);
+								});
+								return;
+							}
+							publishing.current = submitAction === "primary";
+							return form.handleSubmit({ submitAction });
+						}}
+						primary={{ label: "Lagre og publiser", icon: <Send /> }}
+						secondary={{ label: "Lagre og avpubliser", icon: <Save /> }}
+						tertiary={onTertiarySubmitAction && { label: "Slett", icon: <Trash2 /> }}
+					/>
+				)}
+			</form.Subscribe>
 		</form>
 	);
 }

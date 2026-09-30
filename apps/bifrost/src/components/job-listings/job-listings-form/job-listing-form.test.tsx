@@ -3,7 +3,7 @@ import { useQuery } from "convex/react";
 import type { ReactElement, ReactNode } from "react";
 import { Children, isValidElement, useTransition } from "react";
 import { beforeEach, expect, it, vi } from "vitest";
-import FormSubmitActions from "@/components/common/forms/form-submit-actions";
+import type FormSubmitActions from "@/components/common/forms/form-submit-actions";
 import JobListingForm from "./job-listing-form";
 
 vi.mock("convex/react", () => ({ useQuery: vi.fn(() => ({ jobTypes: ["Trainee"] })) }));
@@ -34,6 +34,7 @@ beforeEach(() => {
 	vi.clearAllMocks();
 	vi.mocked(useForm).mockReturnValue({
 		Field: () => null,
+		Subscribe: () => null,
 		state: { isSubmitting: false, values },
 		handleSubmit: submit,
 	} as never);
@@ -47,9 +48,14 @@ function actions() {
 		onSecondarySubmitAction: vi.fn(),
 		onTertiarySubmitAction: remove,
 	});
-	return (element.props.children as ReactElement[]).find(
-		(child) => child.type === FormSubmitActions,
-	) as ReactElement<Parameters<typeof FormSubmitActions>[0]>;
+	const form = vi.mocked(useForm).mock.results.at(-1)?.value;
+	const subscription = (element.props.children as ReactElement[]).find(
+		(child) => child.type === form.Subscribe,
+	) as ReactElement<{
+		selector: (state: { isSubmitting: boolean }) => boolean;
+		children: (isSubmitting: boolean) => ReactElement<Parameters<typeof FormSubmitActions>[0]>;
+	}>;
+	return subscription.props.children(subscription.props.selector(form.state));
 }
 
 it("deletes a listing with invalid fields without submitting or validating the form", async () => {
@@ -120,3 +126,22 @@ it.each([["Trainee"], ["Trainee", "Legacy"]])(
 		expect(options.map((node) => node.props.value)).toEqual(["Trainee", "Legacy"]);
 	},
 );
+
+it("disables actions through the subscription while saving", () => {
+	const form = vi.mocked(useForm).mock.results;
+	const buttons = actions();
+	expect(buttons.props.isSubmitting).toBe(false);
+	const current = form.at(-1)?.value;
+	if (!current) throw new Error("Expected form");
+	current.state.isSubmitting = true;
+	expect(actions().props.isSubmitting).toBe(true);
+});
+
+it("rejects deletion if a save started after the actions rendered", () => {
+	const buttons = actions();
+	const current = vi.mocked(useForm).mock.results.at(-1)?.value;
+	if (!current) throw new Error("Expected form");
+	current.state.isSubmitting = true;
+	buttons.props.onSubmitAction("tertiary");
+	expect(remove).not.toHaveBeenCalled();
+});
