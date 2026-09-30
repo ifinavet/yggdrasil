@@ -1,10 +1,12 @@
 import type { HighlightTotals } from "@workspace/shared/feedback/report";
 import { HOUR_MS } from "@workspace/shared/time";
 import type { Doc, Id } from "../_generated/dataModel";
+import type { AnalyticsRegistration } from "./history";
 
 export type CompanyEvent = {
 	event: Doc<"events">;
-	registrations: Doc<"registrations">[];
+	registrations: AnalyticsRegistration[];
+	filledAt?: number | null;
 	lateUnregistrations?: number | null;
 	feedback?: HighlightTotals | null;
 	returning?: number | null;
@@ -45,7 +47,7 @@ function median(values: readonly number[]) {
 		: (sorted[middle] as number);
 }
 
-function countWith(registrations: readonly Doc<"registrations">[], status: string) {
+function countWith(registrations: readonly AnalyticsRegistration[], status: string) {
 	return registrations.filter((registration) => registration.status === status).length;
 }
 
@@ -60,8 +62,9 @@ function hoursToFullOf(companyEvent: CompanyEvent) {
 		.map((registration) => registration.registrationTime)
 		.sort((a, b) => a - b);
 	const { participationLimit, registrationOpens } = companyEvent.event;
-	const filledAt = times[participationLimit - 1];
-	return filledAt === undefined ? null : Math.max(0, filledAt - registrationOpens) / HOUR_MS;
+	const filledAt =
+		companyEvent.filledAt === undefined ? times[participationLimit - 1] : companyEvent.filledAt;
+	return filledAt == null ? null : Math.max(0, filledAt - registrationOpens) / HOUR_MS;
 }
 
 function attendanceOf(events: readonly CompanyEvent[]) {

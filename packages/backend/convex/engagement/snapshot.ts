@@ -1,6 +1,7 @@
 import { DAY_MS } from "@workspace/shared/time";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
+import { firstFilledAt, registrationHistory } from "./history";
 import {
 	BASELINE_SIZE,
 	COMPANY_BASELINE,
@@ -126,6 +127,11 @@ export async function snapshotOf(
 	pastCurves: readonly PastCurve[],
 ) {
 	const registrationTimes = await registrationTimesOf(ctx, event._id);
+	const history = await registrationHistory(ctx, event._id);
+	const filledAt = firstFilledAt(
+		history.entries.filter(({ at }) => at <= now),
+		event.participationLimit,
+	);
 	const recentLog = await logSince(ctx, event._id, now - DAY_MS);
 	const unregistrations = recentUnregistrations(recentLog, now);
 	const companyCurves = await companyCurvesBefore(
@@ -152,6 +158,7 @@ export async function snapshotOf(
 			timeline: event,
 			limit: event.participationLimit,
 			registrationTimes,
+			filledAt,
 			unregistrations: unregistrations.length,
 			baseline: baseline?.curve ?? null,
 		}),

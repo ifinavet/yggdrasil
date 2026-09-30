@@ -115,6 +115,7 @@ export function classify({
 	timeline,
 	limit,
 	registrationTimes,
+	filledAt,
 	unregistrations,
 	baseline,
 }: {
@@ -122,6 +123,7 @@ export function classify({
 	timeline: Timeline;
 	limit: number;
 	registrationTimes: readonly number[];
+	filledAt?: number | null;
 	unregistrations: number;
 	baseline: number[] | null;
 }): EngagementStatus {
@@ -131,7 +133,7 @@ export function classify({
 	}
 	if (isWave(unregistrations, registered)) return { kind: "wave", count: unregistrations };
 	if (registered >= limit) {
-		const fullAt = [...registrationTimes].sort((a, b) => a - b)[limit - 1] as number;
+		const fullAt = filledAt ?? ([...registrationTimes].sort((a, b) => a - b)[limit - 1] as number);
 		return {
 			kind: "full",
 			minutesToFull: Math.max(1, Math.round((fullAt - timeline.registrationOpens) / MINUTE_MS)),
