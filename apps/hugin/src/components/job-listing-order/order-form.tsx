@@ -30,6 +30,7 @@ import {
 import { CompanySection } from "./company-section";
 import { BillingFieldset, ContactFieldset } from "./contact-billing";
 import { FormRow } from "./form-row";
+import styles from "./order-form.module.css";
 import { type ListingProduct, PackagePicker } from "./package-picker";
 import { type OrderFormApi, useOrderForm } from "./use-order-form";
 
@@ -92,13 +93,14 @@ export function OrderForm({
 	const today = osloToday(Date.now());
 
 	return (
-		<div className="mx-auto w-full max-w-3xl">
+		<div className={`${styles.form} mx-auto w-full max-w-3xl`}>
 			<h1 className="mb-2 font-bold text-2xl text-primary dark:text-primary-foreground">
 				{orderPageCopy.title}
 			</h1>
 			<p className="mb-8 text-muted-foreground">
 				{settings.intro === JOB_LISTING_ORDER_DEFAULTS.intro ? orderPageCopy.intro : settings.intro}
 			</p>
+			<p className={styles.guide}>{orderPageCopy.guide}</p>
 			<form
 				ref={formElement}
 				noValidate

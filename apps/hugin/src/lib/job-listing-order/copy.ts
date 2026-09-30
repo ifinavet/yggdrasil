@@ -4,6 +4,7 @@ import { LISTING_FIELD_LABELS } from "@workspace/shared/job-listing-orders";
 export const orderPageCopy = {
 	title: "Bestill stillingsannonse",
 	intro: `Vi ser gjennom annonsene før publisering. Spørsmål? ${JOB_LISTING_ORDER_EMAIL}`,
+	guide: "Velg bedrift, skriv annonsen og legg inn kontakt- og fakturainformasjon.",
 	closed: {
 		title: "Bestillingsskjemaet er stengt",
 		body: `Ta kontakt på ${JOB_LISTING_ORDER_EMAIL} hvis dere vil bestille stillingsannonser.`,
