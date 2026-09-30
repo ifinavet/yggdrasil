@@ -123,7 +123,7 @@ describe("slackText", () => {
 		);
 
 		expect(text.split("\n")).toEqual([
-			"🦗 *Ingen har meldt seg på ennå*",
+			"🦗 Ingen har meldt seg på ennå",
 			"Ingen påmeldinger på Kodekveld, Acme. Påmeldingen åpnet 1. sep.",
 			"🙋 Hovedansvarlig: <@U123>, Ola &lt;Nordmann&gt;",
 			"💡 Sjekk at arrangementet er publisert og har blitt delt i kanalene våre.",

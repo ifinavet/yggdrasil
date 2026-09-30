@@ -68,15 +68,15 @@ export function describeAlert(
 
 const SLACK_INTRO: Record<AlertRule, { title: string; hint: string }> = {
 	unregisterWave: {
-		title: "🏃💨 *Mange meldte seg av på kort tid*",
+		title: "🏃💨 Mange meldte seg av på kort tid",
 		hint: "Det kan bety at noe har endret seg, for eksempel tidspunkt, sted eller at noe annet kolliderer.",
 	},
 	behindPace: {
-		title: "🐢 *Påmeldingen går tregere enn vanlig*",
+		title: "🐢 Påmeldingen går tregere enn vanlig",
 		hint: "Farten er sammenlignet med tidligere arrangementer. Kanskje verdt å dele arrangementet en gang til?",
 	},
 	noRegistrations: {
-		title: "🦗 *Ingen har meldt seg på ennå*",
+		title: "🦗 Ingen har meldt seg på ennå",
 		hint: "Sjekk at arrangementet er publisert og har blitt delt i kanalene våre.",
 	},
 };
