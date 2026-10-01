@@ -11,10 +11,13 @@ import { OrderReviewDialog } from "./order-review-dialog";
 
 export function PendingOrdersAlert() {
 	const enabled = useFeatureEnabled("jobListingOrders");
-	const orders = useQuery(api.jobListingOrders.admin.listPending, enabled ? {} : "skip");
+	const isAdmin = useQuery(api.auth.accessRights.checkRights, {
+		right: ["admin", "super-admin"],
+	});
+	const orders = useQuery(api.jobListingOrders.admin.listPending, enabled && isAdmin ? {} : "skip");
 	const [openOrderId, setOpenOrderId] = useState<Id<"jobListingOrders">>();
 
-	if (!orders?.length) return null;
+	if (!isAdmin || !orders?.length) return null;
 
 	return (
 		<div className="flex flex-col gap-3 rounded-lg bg-primary-light px-5 py-4 dark:bg-accent">
