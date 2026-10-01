@@ -40,6 +40,7 @@ function fakeSlack() {
 	let failureCode = "missing_scope";
 	let loseCreate = false;
 	let losePost = false;
+	let rejectedText: string | undefined;
 	const calls: string[] = [];
 	vi.stubGlobal(
 		"fetch",
@@ -104,6 +105,8 @@ function fakeSlack() {
 				case "conversations.unarchive":
 					return reply({ ok: false, error: "not_allowed_token_type" });
 				case "chat.postMessage":
+					if (rejectedText && args.text?.includes(rejectedText))
+						return reply({ ok: false, error: "internal_error" });
 					if (channel?.archived) return reply({ ok: false, error: "is_archived" });
 					channel?.messages.push({
 						text: args.text as string,
@@ -124,6 +127,9 @@ function fakeSlack() {
 		}),
 	);
 	return {
+		rejectText: (text?: string) => {
+			rejectedText = text;
+		},
 		systemMessages,
 		channels,
 		calls,
@@ -1165,4 +1171,209 @@ it("replaces legacy internal descriptions with Norwegian company and semester te
 	expect(channel.purpose.value).toBe("Arrangementer med Testbedrift, høst 2026");
 	expect(slack.calls.filter((call) => call === "conversations.setPurpose")).toHaveLength(2);
 	expect(channel.messages).toHaveLength(1);
+});
+
+describe("existing and new event alert parity", () => {
+	it.each(["existing", "new"])(
+		"recovers actionable notices for a %s event without relying on creation hooks",
+		async (age) => {
+			const { t, companyId } = await setup();
+			const slack = fakeSlack();
+			vi.setSystemTime(age === "existing" ? NOW - 60 * DAY_MS : NOW);
+			const eventStart = NOW + 4 * DAY_MS;
+			const eventId = await insertEvent(t, companyId, {
+				eventStart,
+				registrationOpens: NOW - 2 * DAY_MS,
+				published: true,
+				participationLimit: 1,
+				remindersEnabled: true,
+				title: "TBD",
+				teaser: "TBD",
+				description: "TBD",
+			});
+			vi.setSystemTime(NOW);
+			const user = await insertUser(t, "parity@example.test");
+			await insertRegistration(t, eventId, user._id, "registered");
+			await t.run(async (ctx) => {
+				await ctx.db.insert("eventReminderDeliveries", {
+					eventId,
+					eventStart,
+					userId: user._id,
+					kind: "week",
+					emailId: "confirmed",
+					sent: true,
+				});
+				await ctx.db.insert("eventReminderDeliveries", {
+					eventId,
+					eventStart,
+					userId: user._id,
+					kind: "twoDays",
+					emailId: "queued-only",
+					sent: false,
+				});
+				await ctx.db.insert("engagementAlerts", {
+					eventId,
+					rule: "unregisterWave",
+					summary: "Fem avmeldinger",
+					detail: "Sjekk påmeldingen",
+					triggeredAt: NOW,
+				});
+			});
+			await run(t);
+			const texts = slack.channels[0]?.messages.map((m) => m.text).join("\n") ?? "";
+			expect(texts).toContain("Dette gjør dere");
+			expect(texts).toContain(COMPANY_FIRST_CONTACT_TEMPLATE_URL);
+			expect(texts).toContain("tittel, teaser, beskrivelse");
+			expect(texts).toContain("sjekklisten");
+			expect(texts).toContain("Alle plassene er tatt");
+			expect(texts).toContain("påminnelse 1 på e-post");
+			expect(texts).not.toContain("påminnelse 2 på e-post");
+			expect(texts).toContain("Fem avmeldinger");
+			const count = slack.channels[0]?.messages.length;
+			await run(t, NOW + DAY_MS);
+			expect(slack.channels[0]?.messages).toHaveLength(count as number);
+		},
+	);
+
+	it.each(["existing", "new"])(
+		"discovers unfinished report work and confirmed feedback rounds for a %s event",
+		async (age) => {
+			const { t, companyId } = await setup();
+			const slack = fakeSlack();
+			vi.setSystemTime(age === "existing" ? NOW - 60 * DAY_MS : NOW);
+			const eventId = await insertEvent(t, companyId, {
+				eventStart: NOW - 15 * DAY_MS,
+				feedbackEnabled: true,
+			});
+			vi.setSystemTime(NOW);
+			await t.run(async (ctx) => {
+				const campaignId = await ctx.db.insert("feedbackCampaigns", {
+					eventId,
+					status: "closed",
+					opensAt: NOW - 14 * DAY_MS,
+					closesAt: NOW,
+					generation: 1,
+				});
+				const inviteId = await ctx.db.insert("feedbackInvites", {
+					campaignId,
+					responded: false,
+					bounced: false,
+					complained: false,
+					delivered: true,
+					sent: true,
+				});
+				for (const round of [0, 3, 7, 11])
+					await ctx.db.insert("feedbackDeliveries", {
+						campaignId,
+						inviteId,
+						round,
+						emailId: `proof-${round}`,
+						queuedAt: NOW,
+						callbackAt: NOW,
+						outcome: "delivered",
+					});
+				await ctx.db.insert("feedbackReports", {
+					campaignId,
+					eventId,
+					eventTitle: "Report",
+					eventStart: NOW - 15 * DAY_MS,
+					companyName: "Test",
+					recipientEmail: "company@example.test",
+					status: "draft",
+					questions: [],
+					totalResponses: 1,
+					buildCursor: null,
+					revision: 1,
+					retentionAt: NOW + 365 * DAY_MS,
+					readyAt: NOW - 5 * DAY_MS,
+				});
+			});
+			await run(t);
+			const texts = slack.channels[0]?.messages.map((m) => m.text).join("\n") ?? "";
+			expect(texts).toContain("Tilbakemeldingsrapporten er klar");
+			expect(texts).toContain("venter fortsatt på gjennomgang");
+			expect(texts).toContain("sende ut tilbakemeldingsskjemaet");
+			for (const round of [1, 2, 3])
+				expect(texts).toContain(`påminnelse ${round} om tilbakemeldingsskjemaet`);
+			expect(texts).not.toContain("Dette gjør dere");
+			expect(slack.channels[0]?.archived).toBe(false);
+			const count = slack.channels[0]?.messages.length;
+			await run(t);
+			expect(slack.channels[0]?.messages).toHaveLength(count as number);
+		},
+	);
+
+	it("keeps sending independent events and ignores legacy channel backoff when a welcome fails", async () => {
+		const { t, companyId } = await setup();
+		const slack = fakeSlack();
+		vi.spyOn(console, "error").mockImplementation(() => {});
+		const first = await insertEvent(t, companyId, { eventStart: START });
+		const second = await insertEvent(t, companyId, { eventStart: START + DAY_MS, title: "Second" });
+		slack.rejectText("Dette gjør dere");
+		await run(t).catch(() => {});
+		await t.run(async (ctx) => {
+			const channel = await ctx.db.query("companySemesterSlackChannels").unique();
+			if (!channel) throw new Error("No channel");
+			await ctx.db.patch(channel._id, { retryAt: NOW + DAY_MS, failureCount: 10 });
+			await queueEventNotification(ctx, first, "test-first", "First independent notice");
+			await queueEventNotification(ctx, second, "test-second", "Second independent notice");
+		});
+		await run(t, NOW + 60_000).catch(() => {});
+		expect(slack.channels[0]?.messages.map((m) => m.text).join("\n")).toContain(
+			"First independent notice",
+		);
+		expect(slack.channels[0]?.messages.map((m) => m.text).join("\n")).toContain(
+			"Second independent notice",
+		);
+		slack.rejectText();
+		await run(t, NOW + 20 * 60_000);
+		expect(
+			slack.channels[0]?.messages.filter((m) => m.text.includes("Dette gjør dere")),
+		).toHaveLength(1);
+	});
+
+	it("does not block notices when inviting a member fails", async () => {
+		const { t, companyId } = await setup();
+		const slack = fakeSlack();
+		vi.spyOn(console, "error").mockImplementation(() => {});
+		const eventId = await insertEvent(t, companyId, { eventStart: START });
+		await organizer(t, eventId, "LEAD");
+		slack.fail("conversations.invite");
+		await run(t).catch(() => {});
+		expect(slack.channels[0]?.messages).toHaveLength(1);
+	});
+
+	it("records notice intent while Slack is disabled and delivers once after reenabling", async () => {
+		const { t, companyId } = await setup();
+		const slack = fakeSlack();
+		const eventId = await insertEvent(t, companyId, { eventStart: START });
+		vi.stubEnv("SLACK_BOT_TOKEN", "");
+		await t.run((ctx) => queueEventNotification(ctx, eventId, "persist-me", "Preserved notice"));
+		expect(await t.run((ctx) => ctx.db.query("eventSlackNotifications").collect())).toHaveLength(1);
+		vi.stubEnv("SLACK_BOT_TOKEN", "test-token");
+		await run(t);
+		await run(t);
+		expect(
+			slack.channels[0]?.messages.filter((m) => m.text.includes("Preserved notice")),
+		).toHaveLength(1);
+	});
+
+	it("reactivates an unsent reminder after settings are restored without repeating successful delivery", async () => {
+		const { t, companyId } = await setup();
+		const slack = fakeSlack();
+		const eventId = await insertEvent(t, companyId, { eventStart: START, remindersEnabled: false });
+		await t.run((ctx) =>
+			queueEventNotification(ctx, eventId, "reminder-sent:week", "Recovered reminder"),
+		);
+		await run(t);
+		await t.run(async (ctx) => {
+			await ctx.db.patch(eventId, { remindersEnabled: true });
+			await queueEventNotification(ctx, eventId, "reminder-sent:week", "Recovered reminder");
+		});
+		await run(t);
+		await run(t);
+		expect(
+			slack.channels[0]?.messages.filter((m) => m.text.includes("Recovered reminder")),
+		).toHaveLength(1);
+	});
 });
