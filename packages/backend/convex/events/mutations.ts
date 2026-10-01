@@ -1,7 +1,7 @@
 import { BIFROST_LOCAL_URL, BIFROST_URL } from "@workspace/shared/constants";
 import { EVENT_CHECKLIST } from "@workspace/shared/events/checklist";
 import { SYSTEM_ALERTS_CHANNEL } from "@workspace/shared/slack/channels";
-import { humanReadableFullDateTime, MINUTE_MS } from "@workspace/shared/time";
+import { DAY_MS, humanReadableFullDateTime, MINUTE_MS } from "@workspace/shared/time";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
@@ -435,6 +435,28 @@ export const sendRegistrationOpenAlert = internalMutation({
 					].join("\n"),
 				});
 			}
+		}
+		return null;
+	},
+});
+
+/** Catch up openings whose scheduled job was never created, including pre-existing events. */
+export const catchUpRegistrationOpenAlerts = internalMutation({
+	args: {},
+	returns: v.null(),
+	handler: async (ctx) => {
+		const now = Date.now();
+		const events = await ctx.db
+			.query("events")
+			.withIndex("by_registrationOpens", (q) =>
+				q.gte("registrationOpens", now - DAY_MS).lte("registrationOpens", now),
+			)
+			.take(100);
+		for (const event of events) {
+			await ctx.runMutation(internal.events.mutations.sendRegistrationOpenAlert, {
+				eventId: event._id,
+				registrationOpens: event.registrationOpens,
+			});
 		}
 		return null;
 	},

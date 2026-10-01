@@ -25,6 +25,13 @@ crons.interval(
 );
 
 crons.interval(
+	"Catch up missed registration opening alerts",
+	{ minutes: 5 },
+	internal.events.mutations.catchUpRegistrationOpenAlerts,
+	{},
+);
+
+crons.interval(
 	"Queue event reminder emails",
 	{ hours: 1 },
 	internal.events.reminders.mutations.queueDueReminders,
