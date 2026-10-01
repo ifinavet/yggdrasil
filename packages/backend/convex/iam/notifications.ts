@@ -134,7 +134,7 @@ export const complete = internalMutation({
 
 export const pending = internalQuery({
 	args: { now: v.number() },
-	handler: async (ctx, { now }) =>
+	handler: (ctx, { now }) =>
 		ctx.db
 			.query("slackSystemDeliveries")
 			.withIndex("by_status_and_nextAttemptAt", (q) =>
@@ -187,12 +187,13 @@ export const retryPending = internalAction({
 			internal.iam.notifications.pending,
 			{ now: Date.now() },
 		);
-		for await (const item of items) {
+		await items.reduce(async (previous, item) => {
+			await previous;
 			try {
 				await deliver(ctx, item._id);
 			} catch (error) {
 				console.error(`Slack message ${item._id} remains pending`, error);
 			}
-		}
+		}, Promise.resolve());
 	},
 });

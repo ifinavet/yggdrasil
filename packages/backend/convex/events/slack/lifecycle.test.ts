@@ -1472,3 +1472,11 @@ it("does not let a missing report block the next notice", async () => {
 		slack.channels[0]?.messages.some((message) => message.text.includes("Still delivered")),
 	).toBe(true);
 });
+
+it("does not create historical channels for events with no feedback campaign to follow up", async () => {
+	const { t, companyId } = await setup();
+	const slack = fakeSlack();
+	await insertEvent(t, companyId, { eventStart: NOW - 180 * DAY_MS, feedbackEnabled: true });
+	await run(t);
+	expect(slack.channels).toHaveLength(0);
+});

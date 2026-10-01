@@ -69,6 +69,15 @@ export async function queueEventNotification(
 		await ctx.scheduler.runAfter(0, internal.events.slack.lifecycle.reconcile, {});
 }
 
+async function needsPastEventChannel(ctx: MutationCtx, event: Doc<"events">, now: number) {
+	if (event.eventStart > now) return true;
+	const finishedAt = await followupFinishedAt(ctx, event);
+	const archiveDelay = EVENT_PLANNING.archiveDaysAfter * DAY_MS;
+	if (finishedAt !== null) return now < Math.max(event.eventStart, finishedAt) + archiveDelay;
+	// Old events without a campaign have no report work to recover.
+	return now < event.eventStart + archiveDelay || (await latestCampaign(ctx, event._id)) !== null;
+}
+
 export const discover = internalMutation({
 	args: { now: v.number(), paginationOpts: paginationOptsValidator },
 	handler: async (ctx, { now, paginationOpts }) => {
@@ -88,14 +97,7 @@ export const discover = internalMutation({
 				)
 				.unique();
 			if (existing) continue;
-			if (event.eventStart <= now) {
-				const finishedAt = await followupFinishedAt(ctx, event);
-				if (
-					finishedAt !== null &&
-					now >= Math.max(event.eventStart, finishedAt) + EVENT_PLANNING.archiveDaysAfter * DAY_MS
-				)
-					continue;
-			}
+			if (!(await needsPastEventChannel(ctx, event, now))) continue;
 			const company = await ctx.db.get(event.hostingCompany);
 			if (!company) continue;
 			let name =
