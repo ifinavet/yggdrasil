@@ -140,15 +140,20 @@ async function updateChannel(
 	const generation = channel.generation ?? 1;
 	const { semester, year } = eventSemesterOf(channel.semesterStart);
 	const purpose = `Arrangementer med ${context.companyName}, ${semester} ${year}`;
+	const name = generation === 1 ? channel.name : `${channel.name.slice(0, 75)}-${generation}`;
 	const slackChannelId =
 		channel.slackChannelId ??
-		(await slack.ensurePrivateChannel(`ygg-${channel._id}-${generation}`, purpose));
+		(await slack.ensurePrivateChannel(name, purpose, `${name.slice(0, 45)}-${channel._id}`));
 	await progress({ slackChannelId });
 	let maintenanceError: unknown;
 	try {
 		if (info?.purpose?.value !== purpose) await slack.setChannelPurpose(slackChannelId, purpose);
-		const name = generation === 1 ? channel.name : `${channel.name.slice(0, 75)}-${generation}`;
-		const actualName = await slack.renameChannel(slackChannelId, name, info?.name);
+		info ??= await slack.channelInfo(slackChannelId);
+		// Migrate temporary names left by the old creator, never rename an established channel.
+		const actualName =
+			info.name === `ygg-${channel._id}-${generation}`
+				? await slack.renameChannel(slackChannelId, name)
+				: info.name;
 		await announceCreation(
 			slack,
 			channel,
@@ -166,7 +171,6 @@ async function updateChannel(
 	} catch (error) {
 		maintenanceError = error;
 	}
-
 	await progress({ archived: false });
 	await deliverNotifications(ctx, slack, channel._id, slackChannelId, context.messages, progress);
 	if (maintenanceError) throw maintenanceError;

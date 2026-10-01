@@ -62,7 +62,11 @@ export function slackClient(config: SlackConfig) {
 
 	return {
 		/** Recover a bot-created channel after a successful create whose response was lost. */
-		async ensurePrivateChannel(name: string, owner: string): Promise<string> {
+		async ensurePrivateChannel(
+			name: string,
+			owner: string,
+			fallbackName?: string,
+		): Promise<string> {
 			const created = await call<{ channel?: { id: string } }>("conversations.create", {
 				name,
 				is_private: "true",
@@ -97,7 +101,10 @@ export function slackClient(config: SlackConfig) {
 					channel.creator === auth.user_id &&
 					(!channel.purpose?.value || channel.purpose.value === owner),
 			);
-			if (!channel) throw new SlackError("Kanalnavnet er i bruk av en annen kanal.");
+			if (!channel) {
+				if (fallbackName) return this.ensurePrivateChannel(fallbackName, owner);
+				throw new SlackError("Kanalnavnet er i bruk av en annen kanal.");
+			}
 			return channel.id;
 		},
 		async renameChannel(channel: string, name: string, currentName?: string) {

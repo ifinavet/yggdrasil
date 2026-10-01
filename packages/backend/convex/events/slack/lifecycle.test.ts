@@ -1073,12 +1073,12 @@ it("recovers a desired name collision with a deterministic name and announces th
 	await run(t);
 	await run(t);
 	expect(slack.channels[0]?.name).toBe("h26-testbedrift");
-	expect(slack.channels[1]?.name).toBe("h26-testbedrift-c2");
+	expect(slack.channels[1]?.name).toMatch(/^h26-testbedrift-/);
 	expect(slack.channels[1]?.members).toContain("LEAD");
 	expect(slack.channels[1]?.messages).toHaveLength(1);
 	expect(slack.systemMessages).toHaveLength(1);
-	expect(slack.systemMessages[0]?.text).toContain("#h26-testbedrift-c2");
-	expect(slack.calls.filter((call) => call === "conversations.rename")).toHaveLength(2);
+	expect(slack.systemMessages[0]?.text).toContain(`#${slack.channels[1]?.name}`);
+	expect(slack.calls).not.toContain("conversations.rename");
 });
 
 it("does not link organizers to a zero-response report", async () => {
@@ -1131,7 +1131,7 @@ it("delivers welcome and archives without history permission, without repeating 
 	expect(slack.channels[0]?.messages[0]?.text).toContain("Halla");
 	expect(slack.channels[0]?.purpose.value).toBe("Arrangementer med Testbedrift, høst 2026");
 	expect(slack.systemMessages).toHaveLength(1);
-	expect(slack.calls.filter((call) => call === "conversations.rename")).toHaveLength(1);
+	expect(slack.calls).not.toContain("conversations.rename");
 	expect(slack.calls.filter((call) => call === "conversations.setPurpose")).toHaveLength(1);
 	await t.run((ctx) => ctx.db.delete(eventId));
 	await run(t);
@@ -1152,22 +1152,21 @@ it("retries other history errors without marking an unsent welcome delivered", a
 	expect(slack.channels[0]?.messages).toHaveLength(1);
 });
 
-it("applies a changed desired name once and repairs changed channel descriptions", async () => {
+it("uses the stored ID after a manual rename and repairs changed channel descriptions", async () => {
 	const { t, companyId } = await setup();
 	const slack = fakeSlack();
 	await insertEvent(t, companyId, { eventStart: START });
 	await run(t);
-	await t.run(async (ctx) => {
-		const stored = await ctx.db.query("companySemesterSlackChannels").unique();
-		if (!stored) throw new Error("Missing channel");
-		await ctx.db.patch(stored._id, { name: "h26-new-company" });
-	});
-	await run(t);
-	await run(t);
-	expect(slack.channels[0]?.name).toBe("h26-new-company");
-	expect(slack.calls.filter((call) => call === "conversations.rename")).toHaveLength(2);
 	const channel = slack.channels[0];
 	if (!channel) throw new Error("Missing channel");
+	channel.name = "our-custom-name";
+	const callsBefore = slack.calls.length;
+	await run(t);
+	await run(t);
+	expect(channel.name).toBe("our-custom-name");
+	expect(slack.calls.slice(callsBefore)).not.toContain("conversations.list");
+	expect(slack.calls.slice(callsBefore)).not.toContain("conversations.create");
+	expect(slack.calls).not.toContain("conversations.rename");
 	channel.purpose.value = "Changed manually";
 	await run(t);
 	await run(t);
@@ -1479,4 +1478,50 @@ it("does not create historical channels for events with no feedback campaign to 
 	await insertEvent(t, companyId, { eventStart: NOW - 180 * DAY_MS, feedbackEnabled: true });
 	await run(t);
 	expect(slack.channels).toHaveLength(0);
+});
+
+it("creates with the final name and stores its Slack ID without renaming", async () => {
+	const { t, companyId } = await setup();
+	const slack = fakeSlack();
+	await insertEvent(t, companyId, { eventStart: START });
+	await run(t);
+	const stored = await t.run((ctx) => ctx.db.query("companySemesterSlackChannels").unique());
+	expect(stored?.slackChannelId).toBe(slack.channels[0]?.id);
+	expect(slack.channels[0]?.name).toBe("h26-testbedrift");
+	expect(slack.calls).not.toContain("conversations.rename");
+	expect(slack.calls).not.toContain("conversations.list");
+});
+
+it("creates a separate spring channel without renaming the autumn channel", async () => {
+	const { t, companyId } = await setup();
+	const slack = fakeSlack();
+	await insertEvent(t, companyId, { eventStart: START });
+	await run(t);
+	const autumnId = slack.channels[0]?.id;
+	const springStart = Date.parse("2027-02-15T15:15:00Z");
+	await insertEvent(t, companyId, { eventStart: springStart });
+	await run(t, eventPlanningAt(springStart, 35));
+	expect(slack.channels).toHaveLength(2);
+	expect(slack.channels[0]?.id).toBe(autumnId);
+	expect(slack.channels[0]?.name).toBe("h26-testbedrift");
+	expect(slack.channels[0]?.archived).toBe(true);
+	expect(slack.channels[1]?.name).toBe("v27-testbedrift");
+	expect(slack.channels[1]?.messages).toHaveLength(1);
+	expect(slack.calls).not.toContain("conversations.rename");
+});
+
+it("repairs an old temporary channel name once without creating a new channel", async () => {
+	const { t, companyId } = await setup();
+	const slack = fakeSlack();
+	await insertEvent(t, companyId, { eventStart: START });
+	await run(t);
+	const stored = await t.run((ctx) => ctx.db.query("companySemesterSlackChannels").unique());
+	const channel = slack.channels[0];
+	if (!stored || !channel) throw new Error("Missing channel");
+	channel.name = `ygg-${stored._id}-1`;
+	await run(t);
+	await run(t);
+	expect(slack.channels).toHaveLength(1);
+	expect(channel.name).toBe("h26-testbedrift");
+	expect(slack.calls.filter((call) => call === "conversations.rename")).toHaveLength(1);
 });
