@@ -37,6 +37,7 @@ function fakeSlack() {
 	const channels: Channel[] = [];
 	const systemMessages: { text: string; client_msg_id: string }[] = [];
 	let fail: string | undefined;
+	let failureCode = "missing_scope";
 	let loseCreate = false;
 	let losePost = false;
 	const calls: string[] = [];
@@ -47,7 +48,7 @@ function fakeSlack() {
 			const args = Object.fromEntries(new URLSearchParams(init.body as string));
 			calls.push(method);
 			const reply = (data: object) => new Response(JSON.stringify(data));
-			if (method === fail) return reply({ ok: false, error: "missing_scope" });
+			if (method === fail) return reply({ ok: false, error: failureCode });
 			const channel = channels.find((c) => c.id === args.channel);
 			switch (method) {
 				case "auth.test":
@@ -75,7 +76,7 @@ function fakeSlack() {
 				case "conversations.list":
 					return reply({ ok: true, channels });
 				case "conversations.info":
-					return reply({ ok: true, channel: { is_archived: channel?.archived } });
+					return reply({ ok: true, channel: { ...channel, is_archived: channel?.archived } });
 				case "conversations.members":
 					return reply({ ok: true, members: channel?.members });
 				case "conversations.history":
@@ -126,8 +127,9 @@ function fakeSlack() {
 		systemMessages,
 		channels,
 		calls,
-		fail: (method?: string) => {
+		fail: (method?: string, code = "missing_scope") => {
 			fail = method;
+			failureCode = code;
 		},
 		loseCreate: () => {
 			loseCreate = true;
@@ -1053,6 +1055,7 @@ it("recovers a desired name collision with a deterministic name and announces th
 	expect(slack.channels[1]?.messages).toHaveLength(1);
 	expect(slack.systemMessages).toHaveLength(1);
 	expect(slack.systemMessages[0]?.text).toContain("#h26-testbedrift-c2");
+	expect(slack.calls.filter((call) => call === "conversations.rename")).toHaveLength(2);
 });
 
 it("does not link organizers to a zero-response report", async () => {
@@ -1091,4 +1094,75 @@ it("does not link organizers to a zero-response report", async () => {
 	await run(t);
 	expect(slack.channels[0]?.messages.at(-1)?.text).toContain("Ingen svarte");
 	expect(slack.channels[0]?.messages.at(-1)?.text).not.toContain("/report");
+});
+
+it("delivers welcome and archives without history permission, without repeating channel edits", async () => {
+	const { t, companyId } = await setup();
+	const slack = fakeSlack();
+	const eventId = await insertEvent(t, companyId, { eventStart: START });
+	await organizer(t, eventId, "LEAD");
+	slack.fail("conversations.history");
+	await run(t);
+	await run(t, NOW + DAY_MS);
+	expect(slack.channels[0]?.messages).toHaveLength(1);
+	expect(slack.channels[0]?.messages[0]?.text).toContain("Halla");
+	expect(slack.channels[0]?.purpose.value).toBe("Arrangementer med Testbedrift, høst 2026");
+	expect(slack.systemMessages).toHaveLength(1);
+	expect(slack.calls.filter((call) => call === "conversations.rename")).toHaveLength(1);
+	expect(slack.calls.filter((call) => call === "conversations.setPurpose")).toHaveLength(1);
+	await t.run((ctx) => ctx.db.delete(eventId));
+	await run(t);
+	expect(slack.channels[0]?.archived).toBe(true);
+	expect(slack.channels[0]?.messages).toHaveLength(2);
+});
+
+it("retries other history errors without marking an unsent welcome delivered", async () => {
+	const { t, companyId } = await setup();
+	const slack = fakeSlack();
+	vi.spyOn(console, "error").mockImplementation(() => {});
+	await insertEvent(t, companyId, { eventStart: START });
+	slack.fail("conversations.history", "internal_error");
+	await expect(run(t)).rejects.toThrow("failed to reconcile");
+	expect(slack.channels[0]?.messages).toHaveLength(0);
+	slack.fail();
+	await run(t, NOW + DAY_MS);
+	expect(slack.channels[0]?.messages).toHaveLength(1);
+});
+
+it("applies a changed desired name once and repairs changed channel descriptions", async () => {
+	const { t, companyId } = await setup();
+	const slack = fakeSlack();
+	await insertEvent(t, companyId, { eventStart: START });
+	await run(t);
+	await t.run(async (ctx) => {
+		const stored = await ctx.db.query("companySemesterSlackChannels").unique();
+		if (!stored) throw new Error("Missing channel");
+		await ctx.db.patch(stored._id, { name: "h26-new-company" });
+	});
+	await run(t);
+	await run(t);
+	expect(slack.channels[0]?.name).toBe("h26-new-company");
+	expect(slack.calls.filter((call) => call === "conversations.rename")).toHaveLength(2);
+	const channel = slack.channels[0];
+	if (!channel) throw new Error("Missing channel");
+	channel.purpose.value = "Changed manually";
+	await run(t);
+	await run(t);
+	expect(channel.purpose.value).toBe("Arrangementer med Testbedrift, høst 2026");
+	expect(slack.calls.filter((call) => call === "conversations.setPurpose")).toHaveLength(2);
+});
+
+it("replaces legacy internal descriptions with Norwegian company and semester text once", async () => {
+	const { t, companyId } = await setup();
+	const slack = fakeSlack();
+	await insertEvent(t, companyId, { eventStart: START });
+	await run(t);
+	const channel = slack.channels[0];
+	if (!channel) throw new Error("Missing channel");
+	channel.purpose.value = "Yggdrasil company semester rs71gh91zskmjstp2544yenkn98fd0hr";
+	await run(t);
+	await run(t);
+	expect(channel.purpose.value).toBe("Arrangementer med Testbedrift, høst 2026");
+	expect(slack.calls.filter((call) => call === "conversations.setPurpose")).toHaveLength(2);
+	expect(channel.messages).toHaveLength(1);
 });

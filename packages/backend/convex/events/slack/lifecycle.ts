@@ -30,12 +30,7 @@ async function announceCreation(
 	try {
 		const key = `company-channel-created-${slackChannelId}`;
 		const { semester, year } = eventSemesterOf(channel.semesterStart);
-		let exists = false;
-		try {
-			exists = await slack.hasMessage(SYSTEM_ALERTS_CHANNEL, key, channel._creationTime);
-		} catch (error) {
-			if (!(error instanceof Error) || !error.message.includes("missing_scope")) throw error;
-		}
+		const exists = await slack.hasMessage(SYSTEM_ALERTS_CHANNEL, key, channel._creationTime);
 		if (!exists)
 			await slack.postMessage(
 				SYSTEM_ALERTS_CHANNEL,
@@ -113,7 +108,8 @@ async function updateChannel(
 	});
 	if (!context || (context.archive && !channel.slackChannelId)) return;
 	if (channel.archived && (context.archive || !context.actionable)) return;
-	if (channel.slackChannelId && (await slack.isChannelArchived(channel.slackChannelId))) {
+	let info = channel.slackChannelId ? await slack.channelInfo(channel.slackChannelId) : null;
+	if (info?.is_archived) {
 		if (context.archive || !context.actionable) {
 			await progress({ archived: true });
 			return;
@@ -128,16 +124,18 @@ async function updateChannel(
 			now: Date.now(),
 		});
 		if (!context) return;
+		info = null;
 	}
 	const generation = channel.generation ?? 1;
-	const owner = `Yggdrasil company semester ${channel._id}`;
+	const { semester, year } = eventSemesterOf(channel.semesterStart);
+	const purpose = `Arrangementer med ${context.companyName}, ${semester} ${year}`;
 	const slackChannelId =
 		channel.slackChannelId ??
-		(await slack.ensurePrivateChannel(`ygg-${channel._id}-${generation}`, owner));
+		(await slack.ensurePrivateChannel(`ygg-${channel._id}-${generation}`, purpose));
 	await progress({ slackChannelId });
-	await slack.setChannelPurpose(slackChannelId, owner);
+	if (info?.purpose?.value !== purpose) await slack.setChannelPurpose(slackChannelId, purpose);
 	const name = generation === 1 ? channel.name : `${channel.name.slice(0, 75)}-${generation}`;
-	const actualName = await slack.renameChannel(slackChannelId, name);
+	const actualName = await slack.renameChannel(slackChannelId, name, info?.name);
 	await announceCreation(slack, channel, slackChannelId, actualName, context.companyName, progress);
 	await slack.reconcileChannelMembers(
 		slackChannelId,
