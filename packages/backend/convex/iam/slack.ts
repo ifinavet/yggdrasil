@@ -100,11 +100,13 @@ export function slackClient(config: SlackConfig) {
 			if (!channel) throw new SlackError("Kanalnavnet er i bruk av en annen kanal.");
 			return channel.id;
 		},
-		async renameChannel(channel: string, name: string) {
+		async renameChannel(channel: string, name: string, currentName?: string) {
+			const suffix = `-${channel.toLowerCase()}`;
+			const fallbackName = `${name.slice(0, 80 - suffix.length)}${suffix}`;
+			if (currentName === name || currentName === fallbackName) return currentName;
 			let body = await call("conversations.rename", { channel, name });
 			if (!body.ok && body.error === "name_taken") {
-				const suffix = `-${channel.toLowerCase()}`;
-				name = `${name.slice(0, 80 - suffix.length)}${suffix}`;
+				name = fallbackName;
 				body = await call("conversations.rename", { channel, name });
 			}
 			if (!body.ok) throw new SlackError(`Slack avviste kanalnavnet: ${body.error}.`);
@@ -114,13 +116,15 @@ export function slackClient(config: SlackConfig) {
 			const body = await call("conversations.setPurpose", { channel, purpose });
 			if (!body.ok) throw new SlackError(`Slack avviste kanalbeskrivelsen: ${body.error}.`);
 		},
-		async isChannelArchived(channel: string) {
-			const body = await call<{ channel?: { is_archived?: boolean } }>("conversations.info", {
+		async channelInfo(channel: string) {
+			const body = await call<{
+				channel?: { is_archived?: boolean; name: string; purpose?: { value: string } };
+			}>("conversations.info", {
 				channel,
 			});
 			if (!body.ok || !body.channel)
 				throw new SlackError(`Slack avviste kanaloppslaget: ${body.error}.`);
-			return body.channel.is_archived === true;
+			return body.channel;
 		},
 		async archiveChannel(channel: string) {
 			const body = await call("conversations.archive", { channel });
@@ -174,6 +178,9 @@ export function slackClient(config: SlackConfig) {
 					limit: "100",
 					...(cursor && { cursor }),
 				});
+				// History access is optional: durable sentAt markers still prevent routine duplicates.
+				// Without it, a lost post response can be retried, but must not block all delivery.
+				if (!body.ok && body.error === "missing_scope") return false;
 				if (!body.ok) throw new SlackError(`Slack avviste meldingsoppslaget: ${body.error}.`);
 				if (
 					(body.messages ?? []).some(
