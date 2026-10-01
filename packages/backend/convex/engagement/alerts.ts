@@ -9,6 +9,7 @@ import { internalMutation, type MutationCtx, mutation } from "../_generated/serv
 import { internalRoles, requireRole } from "../auth/accessRights";
 import { isLocalDevelopment } from "../auth/local";
 import { companyWithLogo, getOrganizers } from "../events/queries";
+import { unregisterWaveText } from "../events/slack/messages";
 import { queueEventNotification } from "../events/slack/state";
 import type { AlertRule } from "./schema";
 import { pastCurvesBefore, snapshotOf, upcomingEvents } from "./snapshot";
@@ -159,7 +160,7 @@ export const detectAlerts = internalMutation({
 						ctx,
 						event._id,
 						`unregister-wave:${now}`,
-						`Jeg la merke til mange avmeldinger på kort tid. ${escapeSlack(summary)}. ${escapeSlack(detail)}`,
+						unregisterWaveText(summary, detail),
 					);
 				await ctx.scheduler.runAfter(0, internal.iam.notifications.sendMessage, {
 					channel: SYSTEM_ALERTS_CHANNEL,

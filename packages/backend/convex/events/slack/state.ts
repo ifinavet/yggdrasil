@@ -18,6 +18,7 @@ import { countRegistrationsWithStatus } from "../helper";
 import { getOrganizers } from "../queries";
 import { lifecycleEnabled } from "./config";
 import { escapeSlack, eventMessage, eventUrl, welcomeMessage } from "./messages";
+import { recoverableNotices } from "./recovery";
 import { dueOrganizerReminders } from "./reminders";
 
 export async function queueEventNotification(
@@ -27,7 +28,6 @@ export async function queueEventNotification(
 	text: string,
 	options: { condition?: string; schedule?: boolean } = {},
 ) {
-	if (!lifecycleEnabled()) return;
 	const event = await ctx.db.get(eventId);
 	if (!event || event.externalEvent) return;
 	const existing = await ctx.db
@@ -35,11 +35,28 @@ export async function queueEventNotification(
 		.withIndex("by_eventId_and_key", (q) => q.eq("eventId", eventId).eq("key", key))
 		.unique();
 	if (existing?.sentAt) return;
-	if (existing && key.startsWith("welcome:")) {
-		await ctx.db.patch(existing._id, { eventStart: event.eventStart, cancelledAt: undefined });
+	if (options.condition) {
+		const sent = await ctx.db
+			.query("eventSlackNotifications")
+			.withIndex("by_eventId_and_key", (q) => q.eq("eventId", eventId))
+			.filter((q) =>
+				q.and(q.eq(q.field("condition"), options.condition), q.neq(q.field("sentAt"), undefined)),
+			)
+			.first();
+		if (sent) return;
+	}
+	if (existing && !(key === "registration-full" && existing.cancelledAt)) {
+		if (existing.cancelledAt || existing.eventStart !== event.eventStart) {
+			await ctx.db.patch(existing._id, {
+				eventStart: event.eventStart,
+				text,
+				condition: options.condition,
+				cancelledAt: undefined,
+				retryAt: undefined,
+			});
+		}
 		return;
 	}
-	if (existing && !(key === "registration-full" && existing.cancelledAt)) return;
 	if (existing) await ctx.db.delete(existing._id);
 	await ctx.db.insert("eventSlackNotifications", {
 		eventId,
@@ -48,17 +65,23 @@ export async function queueEventNotification(
 		eventStart: event.eventStart,
 		condition: options.condition,
 	});
-	if (options.schedule !== false)
+	if (options.schedule !== false && lifecycleEnabled())
 		await ctx.scheduler.runAfter(0, internal.events.slack.lifecycle.reconcile, {});
+}
+
+async function needsPastEventChannel(ctx: MutationCtx, event: Doc<"events">, now: number) {
+	if (event.eventStart > now) return true;
+	const finishedAt = await followupFinishedAt(ctx, event);
+	const archiveDelay = EVENT_PLANNING.archiveDaysAfter * DAY_MS;
+	if (finishedAt !== null) return now < Math.max(event.eventStart, finishedAt) + archiveDelay;
+	// Old events without a campaign have no report work to recover.
+	return now < event.eventStart + archiveDelay || (await latestCampaign(ctx, event._id)) !== null;
 }
 
 export const discover = internalMutation({
 	args: { now: v.number(), paginationOpts: paginationOptsValidator },
 	handler: async (ctx, { now, paginationOpts }) => {
-		const events = await ctx.db
-			.query("events")
-			.withIndex("by_eventStart", (q) => q.gt("eventStart", now))
-			.paginate(paginationOpts);
+		const events = await ctx.db.query("events").withIndex("by_eventStart").paginate(paginationOpts);
 		for await (const event of events.page) {
 			if (
 				event.externalEvent ||
@@ -74,6 +97,7 @@ export const discover = internalMutation({
 				)
 				.unique();
 			if (existing) continue;
+			if (!(await needsPastEventChannel(ctx, event, now))) continue;
 			const company = await ctx.db.get(event.hostingCompany);
 			if (!company) continue;
 			let name =
@@ -110,7 +134,11 @@ export const claim = internalMutation({
 	args: { channelId: v.id("companySemesterSlackChannels"), token: v.string() },
 	handler: async (ctx, { channelId, token }) => {
 		const channel = await ctx.db.get(channelId);
-		if (!channel || (channel.leaseUntil ?? 0) > Date.now() || (channel.retryAt ?? 0) > Date.now())
+		if (
+			!channel ||
+			(channel.leaseUntil ?? 0) > Date.now() ||
+			(!channel.slackChannelId && (channel.retryAt ?? 0) > Date.now())
+		)
 			return null;
 		await ctx.db.patch(channelId, { leaseUntil: Date.now() + 10 * MINUTE_MS, leaseToken: token });
 		return channel;
@@ -125,6 +153,7 @@ export const progress = internalMutation({
 		archived: v.optional(v.boolean()),
 		release: v.optional(v.boolean()),
 		notificationId: v.optional(v.id("eventSlackNotifications")),
+		notificationError: v.optional(v.string()),
 		managedSlackUserIds: v.optional(v.array(v.string())),
 		creationNoticeChannelId: v.optional(v.string()),
 		error: v.optional(v.string()),
@@ -139,6 +168,7 @@ export const progress = internalMutation({
 			archived,
 			release,
 			notificationId,
+			notificationError,
 			error,
 			succeeded,
 			managedSlackUserIds,
@@ -152,7 +182,7 @@ export const progress = internalMutation({
 			await ctx.db.patch(channelId, {
 				failureCount,
 				lastError: error,
-				retryAt: Date.now() + Math.min(DAY_MS, 2 ** failureCount * 10 * MINUTE_MS),
+				retryAt: Date.now() + Math.min(15 * MINUTE_MS, 2 ** Math.min(failureCount, 4) * MINUTE_MS),
 			});
 		}
 		if (creationNoticeChannelId) await ctx.db.patch(channelId, { creationNoticeChannelId });
@@ -163,7 +193,27 @@ export const progress = internalMutation({
 				retryAt: undefined,
 				lastError: undefined,
 			});
-		if (notificationId) await ctx.db.patch(notificationId, { sentAt: Date.now() });
+		if (notificationId) {
+			const notice = await ctx.db.get(notificationId);
+			if (!notice) throw new Error("Slack notification missing");
+			const failureCount = (notice.failureCount ?? 0) + 1;
+			await ctx.db.patch(
+				notificationId,
+				notificationError !== undefined
+					? {
+							failureCount,
+							lastError: notificationError,
+							retryAt:
+								Date.now() + Math.min(15 * MINUTE_MS, 2 ** Math.min(failureCount, 4) * MINUTE_MS),
+						}
+					: {
+							sentAt: Date.now(),
+							retryAt: undefined,
+							failureCount: undefined,
+							lastError: undefined,
+						},
+			);
+		}
 		await ctx.db.patch(channelId, {
 			...(slackChannelId && { slackChannelId }),
 			...(archived !== undefined && { archived }),
@@ -185,9 +235,10 @@ async function eventContext(
 	const members = organizers.flatMap((organizer) =>
 		organizer.slackUserId ? [organizer.slackUserId] : [],
 	);
-	if (eventPlanningAt(event.eventStart, EVENT_PLANNING.channelDaysBefore) > now)
-		return { members, finishedAt, messages: [], actionable: false };
-	if (event.eventStart > now)
+	if (
+		event.eventStart > now &&
+		eventPlanningAt(event.eventStart, EVENT_PLANNING.channelDaysBefore) <= now
+	)
 		await queueEventNotification(
 			ctx,
 			event._id,
@@ -210,6 +261,11 @@ async function eventContext(
 				),
 		);
 
+	await Promise.all(
+		(await recoverableNotices(ctx, event, now)).map((notice) =>
+			queueEventNotification(ctx, event._id, notice.key, notice.text, { schedule: false }),
+		),
+	);
 	const reminders = await dueOrganizerReminders(ctx, event, now);
 	await Promise.all(
 		reminders.map((reminder) =>
@@ -226,7 +282,15 @@ async function eventContext(
 	const messages = notifications
 		.filter((notice) => !notice.sentAt && !notice.cancelledAt)
 		.map((notice) => ({ id: notice._id }));
-	return { members, finishedAt, messages, actionable: event.eventStart > now || followup === null };
+	return {
+		members,
+		finishedAt,
+		messages,
+		actionable:
+			(event.eventStart > now &&
+				eventPlanningAt(event.eventStart, EVENT_PLANNING.channelDaysBefore) <= now) ||
+			followup === null,
+	};
 }
 
 export const context = internalMutation({
@@ -298,8 +362,9 @@ async function reportNotificationText(
 		) {
 			return null;
 		}
-		if (notice.key.startsWith("report-ready:") && report.totalResponses > 0)
+		if (notice.key.startsWith("report-ready:") && report.totalResponses > 0) {
 			return `${notice.text} <${eventUrl(event)}/report|Åpne rapporten>.`;
+		}
 	}
 	return notice.text;
 }
@@ -313,16 +378,13 @@ async function staleNotification(
 	if (
 		notice.key.startsWith("registration-open:") &&
 		(!event.published ||
+			event.eventStart <= now ||
 			event.registrationOpens > now ||
 			notice.key !== `registration-open:${event.registrationOpens}`)
 	) {
 		return true;
 	}
-	if (
-		!notice.key.startsWith("welcome:") &&
-		!notice.key.startsWith("report-") &&
-		now - notice._creationTime > DAY_MS
-	) {
+	if (notice.key.startsWith("unregister-wave:") && now - notice._creationTime > DAY_MS) {
 		return true;
 	}
 	if (
@@ -404,7 +466,8 @@ export const notification = internalMutation({
 			ctx.db.get(channelId),
 			ctx.db.get(notificationId),
 		]);
-		if (!channel || !notice || notice.sentAt || notice.cancelledAt) return null;
+		if (!channel || !notice || notice.sentAt || notice.cancelledAt || (notice.retryAt ?? 0) > now)
+			return null;
 		const event = await ctx.db.get(notice.eventId);
 		if (
 			!event ||

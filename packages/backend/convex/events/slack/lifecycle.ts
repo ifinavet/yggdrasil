@@ -40,7 +40,7 @@ async function announceCreation(
 			);
 		await progress({ creationNoticeChannelId: slackChannelId });
 	} catch (error) {
-		// A central-channel outage must not hold up the organizers. Retry on the next hourly run.
+		// A central-channel outage must not hold up the organizers. Retry on the next reconciliation.
 		console.error(`Could not announce creation of ${slackChannelId}`, error);
 	}
 }
@@ -53,21 +53,31 @@ async function deliverNotifications(
 	messages: Context["messages"],
 	progress: Progress,
 ) {
-	// Sequential by design: each Slack side effect is persisted before the next message.
+	// Each failure belongs to its message; keep delivering the rest of the queue.
+	let failed = false;
 	for await (const queued of messages) {
 		if (!lifecycleEnabled()) return;
-		const message = await ctx.runMutation(internal.events.slack.state.notification, {
-			channelId,
-			notificationId: queued.id,
-			now: Date.now(),
-		});
-		if (!message) continue;
-		await progress({});
-		const key = `event-${message.id}`;
-		if (!(await slack.hasMessage(slackChannelId, key, message.createdAt)))
-			await slack.postMessage(slackChannelId, message.text, key, true);
-		await progress({ notificationId: message.id });
+		try {
+			const message = await ctx.runMutation(internal.events.slack.state.notification, {
+				channelId,
+				notificationId: queued.id,
+				now: Date.now(),
+			});
+			if (!message) continue;
+			await progress({});
+			const key = `event-${message.id}`;
+			if (!(await slack.hasMessage(slackChannelId, key, message.createdAt)))
+				await slack.postMessage(slackChannelId, message.text, key, true);
+			await progress({ notificationId: message.id });
+		} catch (error) {
+			failed = true;
+			await progress({
+				notificationId: queued.id,
+				notificationError: error instanceof Error ? error.message : "Slack message failed",
+			});
+		}
 	}
+	if (failed) throw new Error("Some Slack messages failed; other messages were still attempted.");
 }
 
 async function archiveFinishedChannel(
@@ -82,6 +92,7 @@ async function archiveFinishedChannel(
 		now: Date.now(),
 	});
 	if (!current?.archive || !lifecycleEnabled()) return;
+	if (current.messages.length) return;
 	const key = `archive-${channel._id}-${channel.generation ?? 1}`;
 	if (!(await slack.hasMessage(slackChannelId, key, current.finishedAt ?? channel._creationTime)))
 		await slack.postMessage(
@@ -92,6 +103,11 @@ async function archiveFinishedChannel(
 		);
 	await slack.archiveChannel(slackChannelId);
 	await progress({ archived: true });
+}
+
+function desiredChannelName(channel: Channel) {
+	const generation = channel.generation ?? 1;
+	return generation === 1 ? channel.name : `${channel.name.slice(0, 75)}-${generation}`;
 }
 
 async function updateChannel(
@@ -129,27 +145,40 @@ async function updateChannel(
 	const generation = channel.generation ?? 1;
 	const { semester, year } = eventSemesterOf(channel.semesterStart);
 	const purpose = `Arrangementer med ${context.companyName}, ${semester} ${year}`;
-	const name = generation === 1 ? channel.name : `${channel.name.slice(0, 75)}-${generation}`;
+	const name = desiredChannelName(channel);
 	const slackChannelId =
 		channel.slackChannelId ??
 		(await slack.ensurePrivateChannel(name, purpose, `${name.slice(0, 45)}-${channel._id}`));
 	await progress({ slackChannelId });
-	if (info?.purpose?.value !== purpose) await slack.setChannelPurpose(slackChannelId, purpose);
-	info ??= await slack.channelInfo(slackChannelId);
-	// Migrate temporary names left by the old creator, never rename an established channel.
-	const actualName =
-		info.name === `ygg-${channel._id}-${generation}`
-			? await slack.renameChannel(slackChannelId, name)
-			: info.name;
-	await announceCreation(slack, channel, slackChannelId, actualName, context.companyName, progress);
-	await slack.reconcileChannelMembers(
-		slackChannelId,
-		context.members,
-		channel.managedSlackUserIds ?? [],
-		(managedSlackUserIds) => progress({ managedSlackUserIds }),
-	);
+	let maintenanceError: unknown;
+	try {
+		if (info?.purpose?.value !== purpose) await slack.setChannelPurpose(slackChannelId, purpose);
+		info ??= await slack.channelInfo(slackChannelId);
+		// Migrate temporary names left by the old creator, never rename an established channel.
+		const actualName =
+			info.name === `ygg-${channel._id}-${generation}`
+				? await slack.renameChannel(slackChannelId, name)
+				: info.name;
+		await announceCreation(
+			slack,
+			channel,
+			slackChannelId,
+			actualName,
+			context.companyName,
+			progress,
+		);
+		await slack.reconcileChannelMembers(
+			slackChannelId,
+			context.members,
+			channel.managedSlackUserIds ?? [],
+			(managedSlackUserIds) => progress({ managedSlackUserIds }),
+		);
+	} catch (error) {
+		maintenanceError = error;
+	}
 	await progress({ archived: false });
 	await deliverNotifications(ctx, slack, channel._id, slackChannelId, context.messages, progress);
+	if (maintenanceError) throw maintenanceError;
 	if (context.archive) await archiveFinishedChannel(ctx, slack, channel, slackChannelId, progress);
 }
 

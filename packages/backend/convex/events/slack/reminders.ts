@@ -5,13 +5,7 @@ import {
 	UIO_STAND_GUIDELINES_URL,
 } from "@workspace/shared/constants";
 import { EVENT_CHECKLIST, hasEventText } from "@workspace/shared/events/checklist";
-import {
-	DAY_MS,
-	EVENT_PLANNING,
-	eventPlanningAt,
-	feedbackOpensAt,
-	HOUR_MS,
-} from "@workspace/shared/time";
+import { EVENT_PLANNING, eventPlanningAt, feedbackOpensAt, HOUR_MS } from "@workspace/shared/time";
 import type { Doc } from "../../_generated/dataModel";
 import type { QueryCtx } from "../../_generated/server";
 import { isLocalDevelopment } from "../../auth/local";
@@ -20,7 +14,7 @@ import { latestCampaign } from "../../feedback/delivery/campaigns";
 import { eventUrl, timedOrganizerReminders } from "./messages";
 
 type Reminder = { key: string; at: number; text: string };
-const due = (at: number, now: number) => now >= at && now < at + DAY_MS;
+const due = (at: number, now: number, until: number) => now >= at && now < until;
 
 async function contactReminder(
 	ctx: QueryCtx,
@@ -28,7 +22,8 @@ async function contactReminder(
 	now: number,
 ): Promise<Reminder[]> {
 	const at = eventPlanningAt(event.eventStart, EVENT_PLANNING.companyContactDaysBefore);
-	if (!due(at, now) || event.completedChecklistSteps?.includes("company-contact")) return [];
+	if (!due(at, now, event.eventStart) || event.completedChecklistSteps?.includes("company-contact"))
+		return [];
 	const previous = await previousCompanyReport(ctx, event, now);
 	const origin = isLocalDevelopment() ? BIFROST_LOCAL_URL : BIFROST_URL;
 	const history = previous
@@ -48,16 +43,20 @@ function promotionReminders(event: Doc<"events">, now: number): Reminder[] {
 		.filter((field) => !hasEventText(event[field]))
 		.map((field) => ({ title: "tittel", teaser: "teaser", description: "beskrivelse" })[field]);
 	const at = eventPlanningAt(event.eventStart, EVENT_PLANNING.textDaysBefore);
-	if (due(at, now) && missing.length)
+	if (due(at, now, event.eventStart) && missing.length)
 		return [
 			{
 				key: "missing-text",
 				at,
-				text: `Nå er det bare to uker igjen, og ${missing.join(", ")} mangler fortsatt ordentlig innhold. Dette må dere få på plass nå, så vi rekker å promotere arrangementet. <${eventUrl(event)}|Oppdater arrangementet>.`,
+				text: `${missing.join(", ")} mangler fortsatt ordentlig innhold. Dette må dere få på plass nå, så vi rekker å promotere arrangementet. <${eventUrl(event)}|Oppdater arrangementet>.`,
 			},
 		];
 	const promotionAt = eventPlanningAt(event.registrationOpens, EVENT_PLANNING.promotionDaysBefore);
-	if (!due(promotionAt, now) || event.completedChecklistSteps?.includes("promotion")) return [];
+	if (
+		!due(promotionAt, now, event.registrationOpens) ||
+		event.completedChecklistSteps?.includes("promotion")
+	)
+		return [];
 	const missingCopy = missing.length
 		? ` ${missing.join(", ")} mangler fortsatt ordentlig innhold. <${eventUrl(event)}|Oppdater arrangementet>.`
 		: "";
@@ -65,14 +64,14 @@ function promotionReminders(event: Doc<"events">, now: number): Reminder[] {
 		{
 			key: `promotion:${event.registrationOpens}`,
 			at: promotionAt,
-			text: `Påmeldingen åpner i morgen. Avklar promotering med PR-ansvarlig, så folk får det med seg. 📣${missingCopy}`,
+			text: `Påmeldingen åpner snart. Avklar promotering med PR-ansvarlig, så folk får det med seg. 📣${missingCopy}`,
 		},
 	];
 }
 
 function checklistReminder(event: Doc<"events">, now: number): Reminder[] {
 	const at = eventPlanningAt(event.eventStart, EVENT_PLANNING.checklistDaysBefore);
-	if (!due(at, now)) return [];
+	if (!due(at, now, event.eventStart)) return [];
 	const unfinished = EVENT_CHECKLIST.flatMap((phase) => [...phase.steps]).filter(
 		(step) =>
 			["room", "food", "helpers"].includes(step.id) &&
@@ -83,7 +82,7 @@ function checklistReminder(event: Doc<"events">, now: number): Reminder[] {
 		{
 			key: "unfinished-checklist",
 			at,
-			text: `En uke igjen! Disse punktene står fortsatt åpne i sjekklisten: ${unfinished.map((step) => step.label.toLocaleLowerCase("nb")).join(", ")}. Kan dere få dem på plass?`,
+			text: `Disse punktene står fortsatt åpne i sjekklisten: ${unfinished.map((step) => step.label.toLocaleLowerCase("nb")).join(", ")}. Kan dere få dem på plass?`,
 		},
 	];
 }
@@ -133,7 +132,7 @@ async function approvalReminder(
 		report.readyAt ?? report._creationTime,
 		-EVENT_PLANNING.approvalDaysAfter,
 	);
-	if (!due(at, now)) return [];
+	if (now < at) return [];
 	return [
 		{
 			key: `report-approval:${report._id}`,
@@ -146,7 +145,13 @@ async function approvalReminder(
 /** All conditional notices are recalculated both when queued and immediately before sending. */
 export async function dueOrganizerReminders(ctx: QueryCtx, event: Doc<"events">, now: number) {
 	const reminders = [
-		...timedOrganizerReminders(event).filter((item) => due(item.at, now)),
+		...timedOrganizerReminders(event).filter((item) =>
+			due(
+				item.at,
+				now,
+				item.key === "expenses" ? eventPlanningAt(event.eventStart, -7) : event.eventStart,
+			),
+		),
 		...(await contactReminder(ctx, event, now)),
 		...promotionReminders(event, now),
 		...checklistReminder(event, now),

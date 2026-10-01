@@ -1,7 +1,7 @@
 import { type EmailId, Resend, vOnEmailEventArgs } from "@convex-dev/resend";
 import { vResultValidator, vWorkflowId } from "@convex-dev/workflow";
 import { feedbackTokenSchema } from "@workspace/shared/feedback";
-import { feedbackRoundAt, REMINDER_DAYS } from "@workspace/shared/time";
+import { feedbackRoundAt } from "@workspace/shared/time";
 import { v } from "convex/values";
 import { components, internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
@@ -13,6 +13,7 @@ import {
 } from "../../_generated/server";
 import { isLocalDevelopment } from "../../auth/local";
 import { recordReminderSent } from "../../events/reminders/delivery";
+import { feedbackSentText, reportSentText } from "../../events/slack/messages";
 import { queueEventNotification } from "../../events/slack/state";
 import { hashLinkToken } from "../../lib/tokens";
 import { feedbackEmailContext } from "./emailContext";
@@ -205,7 +206,7 @@ async function recordReportEvent(ctx: MutationCtx, id: string, type: string) {
 				ctx,
 				report.eventId,
 				`report-sent:${report._id}:${report.deliveryAttempt ?? 0}`,
-				"Nå har jeg sendt tilbakemeldingsrapporten til bedriften. Takk for innsatsen! 🙌",
+				reportSentText,
 			);
 		}
 		if (type === "email.delivered" && report.deliveryStatus !== "failed")
@@ -228,15 +229,14 @@ export const onEmailEvent = internalMutation({
 			return;
 		}
 		if (event.type === "email.sent" || event.type === "email.delivered") {
+			await ctx.db.patch(delivery._id, { sentAt: delivery.sentAt ?? Date.now() });
 			const campaign = await ctx.db.get(delivery.campaignId);
 			if (campaign && campaign.status !== "cancelled")
 				await queueEventNotification(
 					ctx,
 					campaign.eventId,
 					`feedback-sent:${campaign._id}:${delivery.round}`,
-					delivery.round === 0
-						? "Jeg har begynt å sende ut tilbakemeldingsskjemaet til deltakerne som møtte. ✉️"
-						: `Jeg har begynt å sende påminnelse ${(REMINDER_DAYS as readonly number[]).indexOf(delivery.round) + 1} om tilbakemeldingsskjemaet til dem som ikke har svart ennå. ✉️`,
+					feedbackSentText(delivery.round),
 				);
 		}
 		const outcome = deliveryOutcomes[event.type as keyof typeof deliveryOutcomes];

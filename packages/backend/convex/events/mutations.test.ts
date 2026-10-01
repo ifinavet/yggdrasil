@@ -182,19 +182,19 @@ describe("registration opening alerts", () => {
 		expect(alerts).toHaveLength(1);
 		expect(alerts[0]?.args[0]).toMatchObject({
 			channel: "C0C5L3JPSE7",
-			text: expect.stringContaining("🔔 *Påmeldingen åpner nå*"),
+			text: expect.stringContaining("🔔 *Påmeldingen har åpnet*"),
 		});
 		expect(alerts[0]?.args[0].text).toContain("Fjordkode bedpres");
 		vi.useRealTimers();
 	});
 
-	it("does not queue notices for drafts, external events, or old opening times", async () => {
+	it("does not queue notices for drafts, external or finished events", async () => {
 		const { t, companyId, foodItem, client } = await fixture();
 		const now = Date.now();
 		for (const [title, options] of [
 			["Draft", { published: false }],
 			["External", { externalEvent: true }],
-			["Old", { registrationOpens: now - 86_400_000 }],
+			["Finished", { eventStart: now - 1, registrationOpens: now - 86_400_000 }],
 		] as const) {
 			await client.mutation(api.events.mutations.create, {
 				...eventArgs,
@@ -330,4 +330,81 @@ describe("event food", () => {
 		expect(event?.foodGuessed).toBeUndefined();
 		expect(event?.food).toBe("Sushi fra Sticks");
 	});
+});
+
+describe("registration opening catch-up", () => {
+	it("notifies both channels for an existing event with no opening job and deduplicates subsequent runs", async () => {
+		vi.useFakeTimers();
+		vi.stubEnv("SLACK_BOT_TOKEN", "test-token");
+		try {
+			const { t, companyId } = await setup();
+			const now = Date.now();
+			const registrationOpens = now - 60 * 60 * 1000;
+			const eventId = await insertEvent(t, companyId, {
+				title: "Intility",
+				registrationOpens,
+				eventStart: now + 14 * 86_400_000,
+				published: true,
+			});
+			await t.mutation(eventMutations.catchUpRegistrationOpenAlerts, {});
+			await t.mutation(eventMutations.catchUpRegistrationOpenAlerts, {});
+			await t.mutation(eventMutations.sendRegistrationOpenAlert, { eventId, registrationOpens });
+			const notices = await t.run((ctx) => ctx.db.query("eventSlackNotifications").collect());
+			expect(notices).toMatchObject([{ eventId, key: `registration-open:${registrationOpens}` }]);
+			expect(notices).toHaveLength(1);
+			const scheduled = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
+			const system = scheduled.filter(({ name }) => name.includes("notifications:sendMessage"));
+			expect(system).toHaveLength(1);
+			expect(system[0]?.args[0]).toMatchObject({
+				channel: "C0C5L3JPSE7",
+				text: expect.stringContaining("Intility"),
+			});
+		} finally {
+			vi.unstubAllEnvs();
+			vi.useRealTimers();
+		}
+	});
+
+	it("skips future openings, drafts, external and finished events", async () => {
+		const { t, companyId } = await setup();
+		const now = Date.now();
+		for (const overrides of [
+			{ registrationOpens: now + 60_000 },
+			{ published: false },
+			{ externalEvent: true },
+			{ eventStart: now - 1 },
+		]) {
+			await insertEvent(t, companyId, {
+				registrationOpens: now - 60_000,
+				eventStart: now + 86_400_000,
+				published: true,
+				...overrides,
+			});
+		}
+		await t.mutation(eventMutations.catchUpRegistrationOpenAlerts, {});
+		expect(await t.run((ctx) => ctx.db.query("eventRegistrationOpenNotices").collect())).toEqual(
+			[],
+		);
+	});
+});
+
+it("recovers openings older than a day across all pages without claiming delivery", async () => {
+	const { t, companyId } = await setup();
+	const now = Date.now();
+	for await (const index of Array.from({ length: 51 }, (_, index) => index)) {
+		await insertEvent(t, companyId, {
+			title: `Existing ${index}`,
+			eventStart: now + 7 * 86_400_000,
+			registrationOpens: now - 3 * 86_400_000,
+		});
+	}
+	await t.mutation(eventMutations.catchUpRegistrationOpenAlerts, {});
+	const scheduled = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
+	const continuation = scheduled.find(({ name }) => name.includes("catchUpRegistrationOpenAlerts"));
+	expect(continuation).toBeDefined();
+	await t.mutation(eventMutations.catchUpRegistrationOpenAlerts, continuation?.args[0]);
+	const notices = await t.run((ctx) => ctx.db.query("eventRegistrationOpenNotices").collect());
+	expect(notices).toHaveLength(51);
+	expect(notices.every((notice) => notice.sentAt === undefined)).toBe(true);
+	expect(await t.run((ctx) => ctx.db.query("slackSystemDeliveries").collect())).toHaveLength(51);
 });

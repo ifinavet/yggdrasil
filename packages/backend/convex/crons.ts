@@ -25,6 +25,13 @@ crons.interval(
 );
 
 crons.interval(
+	"Catch up missed registration opening alerts",
+	{ minutes: 5 },
+	internal.events.mutations.catchUpRegistrationOpenAlerts,
+	{},
+);
+
+crons.interval(
 	"Queue event reminder emails",
 	{ hours: 1 },
 	internal.events.reminders.mutations.queueDueReminders,
@@ -56,8 +63,15 @@ crons.cron("Reconcile workspace accounts", "30 3 * * *", internal.iam.actions.re
  */
 crons.interval(
 	"Create company Slack channels, reconcile access, send event updates and archive finished work",
-	{ hours: 1 },
+	{ minutes: 5 },
 	internal.events.slack.lifecycle.reconcile,
+	{},
+);
+
+crons.interval(
+	"Retry pending system Slack messages",
+	{ minutes: 5 },
+	internal.iam.notifications.retryPending,
 	{},
 );
 

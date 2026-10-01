@@ -79,42 +79,80 @@ describe("Slack order alert format", () => {
 					channel: SYSTEM_ALERTS_CHANNEL,
 					text: "hello",
 					client_msg_id: "order-test",
+					metadata: JSON.stringify({
+						event_type: "yggdrasil_event_notice",
+						event_payload: { key: "order-test" },
+					}),
 				}),
 			}),
 		);
 	});
+});
 
-	it("retries Slack failures twice and stops after the third attempt", async () => {
-		const { t } = await setup();
-		vi.stubEnv("SLACK_BOT_TOKEN", "xoxb-test");
+describe("durable Slack system delivery", () => {
+	it("recovers after more than three failures and does not repeat a confirmed delivery", async () => {
+		vi.useFakeTimers();
+		vi.stubEnv("SLACK_BOT_TOKEN", "test-token");
+		let failing = true;
+		let posted = 0;
 		vi.stubGlobal(
 			"fetch",
-			vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ok: false, error: "down" }) }),
-		);
-
-		await expect(
-			t.action(internal.iam.notifications.sendMessage, {
-				channel: SYSTEM_ALERTS_CHANNEL,
-				text: "hello",
-				clientMsgId: "order-test",
+			vi.fn(async (url: string) => {
+				if (url.endsWith("conversations.history"))
+					return new Response(JSON.stringify({ ok: true, messages: [] }));
+				if (failing) return new Response(JSON.stringify({ ok: false, error: "internal_error" }));
+				posted++;
+				return new Response(JSON.stringify({ ok: true }));
 			}),
-		).rejects.toThrow("Slack avviste meldingen: down.");
-		const scheduled = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
-		expect(scheduled.map(({ args }) => args)).toEqual([
-			[{ channel: SYSTEM_ALERTS_CHANNEL, text: "hello", clientMsgId: "order-test", attempt: 2 }],
-		]);
-
-		await expect(
-			t.action(internal.iam.notifications.sendMessage, {
-				channel: SYSTEM_ALERTS_CHANNEL,
-				text: "hello",
-				clientMsgId: "order-test",
-				attempt: 3,
-			}),
-		).rejects.toThrow("Slack avviste meldingen: down.");
-		const afterThirdAttempt = await t.run((ctx) =>
-			ctx.db.system.query("_scheduled_functions").collect(),
 		);
-		expect(afterThirdAttempt).toHaveLength(1);
+		try {
+			const { t } = await setup();
+			const args = { channel: SYSTEM_ALERTS_CHANNEL, text: "Opening", clientMsgId: "durable-open" };
+			for await (const attempt of [1, 2, 3, 4]) {
+				vi.setSystemTime(Date.now() + 60 * 60 * 1000);
+				await t
+					.action(internal.iam.notifications.sendMessage, { ...args, attempt })
+					.catch(() => {});
+			}
+			failing = false;
+			vi.setSystemTime(Date.now() + 60 * 60 * 1000);
+			await t.action(internal.iam.notifications.retryPending, {});
+			await t.action(internal.iam.notifications.sendMessage, args);
+			await t.action(internal.iam.notifications.retryPending, {});
+			expect(posted).toBe(1);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it("recovers a successful post whose response was lost without posting a duplicate", async () => {
+		vi.useFakeTimers();
+		vi.stubEnv("SLACK_BOT_TOKEN", "test-token");
+		const delivered: { client_msg_id: string }[] = [];
+		vi.stubGlobal(
+			"fetch",
+			vi.fn(async (url: string, init: RequestInit) => {
+				const args = Object.fromEntries(new URLSearchParams(init.body as string));
+				if (url.endsWith("conversations.history"))
+					return new Response(JSON.stringify({ ok: true, messages: delivered }));
+				delivered.push({ client_msg_id: args.client_msg_id as string });
+				throw new Error("response lost");
+			}),
+		);
+		try {
+			const { t } = await setup();
+			await t
+				.action(internal.iam.notifications.sendMessage, {
+					channel: SYSTEM_ALERTS_CHANNEL,
+					text: "Ready",
+					clientMsgId: "lost-response",
+				})
+				.catch(() => {});
+			vi.setSystemTime(Date.now() + 60 * 60 * 1000);
+			await t.action(internal.iam.notifications.retryPending, {});
+			expect(delivered).toHaveLength(1);
+		} finally {
+			vi.useRealTimers();
+		}
 	});
 });

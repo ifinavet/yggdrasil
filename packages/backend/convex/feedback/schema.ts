@@ -110,6 +110,7 @@ export const feedbackSchema = {
 		emailId: v.string(),
 		queuedAt: v.number(),
 		callbackAt: v.optional(v.number()),
+		sentAt: v.optional(v.number()),
 		alertedAt: v.optional(v.number()),
 		outcome: v.optional(v.union(v.literal("delivered"), v.literal("failed"))),
 	})
