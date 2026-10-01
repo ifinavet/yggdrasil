@@ -6,7 +6,7 @@ import { SYSTEM_ALERTS_CHANNEL } from "@workspace/shared/slack/channels";
 import { DAY_MS, eventPlanningAt } from "@workspace/shared/time";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-	insertEvent,
+	insertEvent as insertFixtureEvent,
 	insertOrganizer,
 	insertRegistration,
 	insertUser,
@@ -23,6 +23,12 @@ import { queueEventNotification } from "./state";
 
 const START = Date.parse("2026-10-29T15:15:00Z");
 const NOW = eventPlanningAt(START, 35);
+// These lifecycle fixtures open registration two weeks before the event unless overridden.
+const insertEvent: typeof insertFixtureEvent = (t, companyId, overrides = {}) =>
+	insertFixtureEvent(t, companyId, {
+		registrationOpens: eventPlanningAt(overrides.eventStart ?? START, 14),
+		...overrides,
+	});
 type Channel = {
 	id: string;
 	name: string;
@@ -238,7 +244,9 @@ describe("company semester event lifecycle", () => {
 		await run(t, eventPlanningAt(START, 28));
 		expect(slack.channels[0]?.messages.at(-1)?.text).toContain(COMPANY_FIRST_CONTACT_TEMPLATE_URL);
 		await run(t, eventPlanningAt(START, 2));
-		const practical = slack.channels[0]?.messages.at(-1)?.text;
+		const practical = slack.channels[0]?.messages.find((message) =>
+			message.text.includes("laptop"),
+		)?.text;
 		expect(practical).toContain("<@LEAD>");
 		expect(practical).not.toContain("<@HELPER>");
 		expect(practical).toContain("laptop");
@@ -249,13 +257,19 @@ describe("company semester event lifecycle", () => {
 		await run(t);
 		expect(slack.channels[0]?.messages).toHaveLength(count as number);
 	});
-	it("does not burst missed reminders on late enable", async () => {
+	it("recovers still-actionable reminders on late enable", async () => {
 		const { t, companyId } = await setup();
 		const slack = fakeSlack();
 		await insertEvent(t, companyId, { eventStart: START });
 		await run(t, START - DAY_MS);
-		expect(slack.channels[0]?.messages).toHaveLength(1);
-		expect(slack.channels[0]?.messages[0]?.text).toContain("Dette gjør dere");
+		const texts = slack.channels[0]?.messages.map((message) => message.text).join("\n");
+		expect(texts).toContain("Dette gjør dere");
+		expect(texts).toContain(COMPANY_FIRST_CONTACT_TEMPLATE_URL);
+		expect(texts).toContain("laptop");
+		expect(texts).not.toContain("del arrangementet i Ifi-studenter");
+		const count = slack.channels[0]?.messages.length;
+		await run(t);
+		expect(slack.channels[0]?.messages).toHaveLength(count as number);
 	});
 	it("reconciles membership across all events and removes users whose role or account disappeared", async () => {
 		const { t, companyId } = await setup();
@@ -306,7 +320,7 @@ describe("company semester event lifecycle", () => {
 		expect(slack.channels).toHaveLength(1);
 		expect(slack.channels[0]?.messages).toHaveLength(1);
 	});
-	it("keeps failed invites retryable and limits retry frequency", async () => {
+	it("keeps failed invites retryable without blocking messages", async () => {
 		const { t, companyId } = await setup();
 		const slack = fakeSlack();
 		vi.spyOn(console, "error").mockImplementation(() => {});
@@ -314,9 +328,8 @@ describe("company semester event lifecycle", () => {
 		await organizer(t, eventId, "U1");
 		slack.fail("conversations.invite");
 		await expect(run(t)).rejects.toThrow();
-		const calls = slack.calls.length;
-		await run(t);
-		expect(slack.calls).toHaveLength(calls);
+		await expect(run(t)).rejects.toThrow();
+		expect(slack.channels[0]?.messages).toHaveLength(1);
 		slack.fail();
 		await run(t, NOW + DAY_MS);
 		expect(slack.channels[0]?.members).toContain("U1");
@@ -618,7 +631,7 @@ it("rechecks conditional text/promotion/checklist reminders and avoids completed
 	const missing = await due(eventPlanningAt(START, 14));
 	expect(missing.map((r) => r.key)).toContain("missing-text");
 	expect(missing.some((r) => r.key.startsWith("promotion:"))).toBe(false);
-	expect(missing[0]?.text).not.toContain("/edit");
+	expect(missing.find((notice) => notice.key === "missing-text")?.text).not.toContain("/edit");
 	await t.run((ctx) =>
 		ctx.db.patch(eventId, { title: "Bedpres", teaser: "Lær", description: "Mer om bedriften" }),
 	);
@@ -635,8 +648,12 @@ it("rechecks conditional text/promotion/checklist reminders and avoids completed
 	expect(await due(eventPlanningAt(START, 28))).toEqual([]);
 	await t.run((ctx) => ctx.db.patch(eventId, { completedChecklistSteps: ["room"] }));
 	const checklist = await due(eventPlanningAt(START, 7));
-	expect(checklist[0]?.text).toContain("matbestilling");
-	expect(checklist[0]?.text).not.toContain("bekreft rom");
+	expect(checklist.find((notice) => notice.key === "unfinished-checklist")?.text).toContain(
+		"matbestilling",
+	);
+	expect(checklist.find((notice) => notice.key === "unfinished-checklist")?.text).not.toContain(
+		"bekreft rom",
+	);
 });
 
 it("warns about unmarked attendance only before feedback, and nudges only an unapproved report", async () => {
@@ -1262,7 +1279,7 @@ describe("existing and new event alert parity", () => {
 					delivered: true,
 					sent: true,
 				});
-				for (const round of [0, 3, 7, 11])
+				for await (const round of [0, 3, 7, 11])
 					await ctx.db.insert("feedbackDeliveries", {
 						campaignId,
 						inviteId,
@@ -1296,10 +1313,40 @@ describe("existing and new event alert parity", () => {
 			for (const round of [1, 2, 3])
 				expect(texts).toContain(`påminnelse ${round} om tilbakemeldingsskjemaet`);
 			expect(texts).not.toContain("Dette gjør dere");
+			const system = await t.run((ctx) => ctx.db.query("slackSystemDeliveries").collect());
+			expect(system).toHaveLength(1);
+			expect(system[0]?.text).toContain("Åpne rapporten");
+			// A missing system delivery is recovered even when the company notice was delivered.
+			await t.run((ctx) => ctx.db.delete(system[0]?._id));
+			await run(t);
+			expect(await t.run((ctx) => ctx.db.query("slackSystemDeliveries").collect())).toHaveLength(1);
+
 			expect(slack.channels[0]?.archived).toBe(false);
 			const count = slack.channels[0]?.messages.length;
 			await run(t);
 			expect(slack.channels[0]?.messages).toHaveLength(count as number);
+			const report = await t.run((ctx) => ctx.db.query("feedbackReports").unique());
+			if (!report) throw new Error("Missing report fixture");
+			await t.run((ctx) =>
+				ctx.db.patch(report._id, { status: "approved", deliveryStatus: "pending" }),
+			);
+			await run(t);
+			expect(
+				slack.channels[0]?.messages.some((message) =>
+					message.text.includes("sendt tilbakemeldingsrapporten til bedriften"),
+				),
+			).toBe(false);
+			await t.run((ctx) =>
+				ctx.db.patch(report._id, { deliveryStatus: "delivered", followupFinishedAt: NOW }),
+			);
+			await run(t);
+			expect(
+				slack.channels[0]?.messages.filter((message) =>
+					message.text.includes("sendt tilbakemeldingsrapporten til bedriften"),
+				),
+			).toHaveLength(1);
+			await run(t, NOW + 7 * DAY_MS);
+			expect(slack.channels[0]?.archived).toBe(true);
 		},
 	);
 
@@ -1376,4 +1423,52 @@ describe("existing and new event alert parity", () => {
 			slack.channels[0]?.messages.filter((m) => m.text.includes("Recovered reminder")),
 		).toHaveLength(1);
 	});
+});
+
+it("recovers a cancelled actionable reminder after a date change without repeating completed notices", async () => {
+	const { t, companyId } = await setup();
+	const slack = fakeSlack();
+	const eventId = await insertEvent(t, companyId, { eventStart: START });
+	await run(t);
+	await t.run((ctx) =>
+		queueEventNotification(ctx, eventId, `company-contact:${START}`, "Contact", {
+			condition: "company-contact",
+		}),
+	);
+	await t.run((ctx) => ctx.db.patch(eventId, { eventStart: START + DAY_MS }));
+	await run(t);
+	await t.run((ctx) => ctx.db.patch(eventId, { eventStart: START }));
+	await run(t, eventPlanningAt(START, 28));
+	expect(
+		slack.channels[0]?.messages.filter(
+			(message) =>
+				message.text.includes(COMPANY_FIRST_CONTACT_TEMPLATE_URL) &&
+				!message.text.includes("Dette gjør dere"),
+		),
+	).toHaveLength(1);
+	await t.run((ctx) => ctx.db.patch(eventId, { eventStart: START + DAY_MS }));
+	await run(t, eventPlanningAt(START + DAY_MS, 28));
+	expect(
+		slack.channels[0]?.messages.filter(
+			(message) =>
+				message.text.includes(COMPANY_FIRST_CONTACT_TEMPLATE_URL) &&
+				!message.text.includes("Dette gjør dere"),
+		),
+	).toHaveLength(1);
+});
+
+it("does not let a missing report block the next notice", async () => {
+	const { t, companyId } = await setup();
+	const slack = fakeSlack();
+	vi.spyOn(console, "error").mockImplementation(() => {});
+	const eventId = await insertEvent(t, companyId, { eventStart: START });
+	await run(t);
+	await t.run(async (ctx) => {
+		await queueEventNotification(ctx, eventId, "report-ready:invalid", "Invalid source");
+		await queueEventNotification(ctx, eventId, "z-independent", "Still delivered");
+	});
+	await run(t).catch(() => {});
+	expect(
+		slack.channels[0]?.messages.some((message) => message.text.includes("Still delivered")),
+	).toBe(true);
 });

@@ -1,6 +1,7 @@
 import type { Doc } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 import { countRegistrationsWithStatus } from "../events/helper";
+import { registrationFullText } from "../events/slack/messages";
 import { queueEventNotification } from "../events/slack/state";
 import type { RegistrationChange } from "./schema";
 
@@ -19,12 +20,7 @@ export async function logRegistrationChange(
 			event.participationLimit > 0 &&
 			(await countRegistrationsWithStatus(ctx, event._id, "registered")) >= event.participationLimit
 		) {
-			await queueEventNotification(
-				ctx,
-				event._id,
-				"registration-full",
-				"Alle plassene er tatt! 🎉 Arrangementet er nå fullt.",
-			);
+			await queueEventNotification(ctx, event._id, "registration-full", registrationFullText);
 		}
 	}
 	await ctx.db.insert("registrationLog", {

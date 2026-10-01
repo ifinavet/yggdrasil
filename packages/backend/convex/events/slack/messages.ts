@@ -131,7 +131,27 @@ export function timedOrganizerReminders(event: Doc<"events">) {
 		{
 			key: "expenses",
 			at: eventPlanningAt(event.eventStart, -EVENT_PLANNING.expensesDaysAfter),
-			text: `Takk for i går! Husk å sende inn utlegg med kvitteringer, også for kjøp med Navet-kortet. Her er <${EVENT_EXPENSE_TEMPLATE_URL}|utleggsmalen for personlige utlegg og Navet-kortet>. 🧾`,
+			text: `Takk for innsatsen! Husk å sende inn utlegg med kvitteringer, også for kjøp med Navet-kortet. Her er <${EVENT_EXPENSE_TEMPLATE_URL}|utleggsmalen for personlige utlegg og Navet-kortet>. 🧾`,
 		},
 	];
+}
+
+export const registrationFullText = "Alle plassene er tatt! 🎉 Arrangementet er nå fullt.";
+export const reportSentText =
+	"Nå har jeg sendt tilbakemeldingsrapporten til bedriften. Takk for innsatsen! 🙌";
+export function reminderSentText(kind: string) {
+	return `Jeg har begynt å sende påminnelse ${kind === "week" ? 1 : 2} på e-post til dem som er påmeldt arrangementet. ✉️`;
+}
+export function feedbackSentText(round: number) {
+	return round === 0
+		? "Jeg har begynt å sende ut tilbakemeldingsskjemaet til deltakerne som møtte. ✉️"
+		: `Jeg har begynt å sende påminnelse ${(REMINDER_DAYS as readonly number[]).indexOf(round) + 1} om tilbakemeldingsskjemaet til dem som ikke har svart ennå. ✉️`;
+}
+export function reportReadyText(totalResponses: number) {
+	return totalResponses > 0
+		? "Tilbakemeldingsrapporten er klar! 📊 Se gjennom svarene og godkjenn rapporten i Bifrost, så sender jeg den til bedriften."
+		: "Tilbakemeldingsperioden er ferdig. Ingen svarte denne gangen, så det er ingen rapport å sende til bedriften.";
+}
+export function unregisterWaveText(summary: string, detail: string) {
+	return `Jeg la merke til mange avmeldinger på kort tid. ${escapeSlack(summary)}. ${escapeSlack(detail)}`;
 }

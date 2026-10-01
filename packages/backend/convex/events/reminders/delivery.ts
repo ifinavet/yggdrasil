@@ -3,6 +3,7 @@ import type { MutationCtx } from "../../_generated/server";
 import { internalMutation } from "../../_generated/server";
 import { feedbackResend, feedbackSender } from "../../feedback/delivery/messages";
 import { oneOf } from "../../lib/validators";
+import { reminderSentText } from "../slack/messages";
 import { queueEventNotification } from "../slack/state";
 import { dueReminder, REMINDER_KINDS } from "./schedule";
 
@@ -64,14 +65,14 @@ export async function recordReminderSent(ctx: MutationCtx, emailId: string, type
 		.unique();
 	if (!delivery) return false;
 	if (delivery.sent || (type !== "email.sent" && type !== "email.delivered")) return true;
-	await ctx.db.patch(delivery._id, { sent: true });
+	await ctx.db.patch(delivery._id, { sent: true, sentAt: Date.now() });
 	const event = await ctx.db.get(delivery.eventId);
 	if (!event || event.eventStart !== delivery.eventStart || !event.remindersEnabled) return true;
 	await queueEventNotification(
 		ctx,
 		delivery.eventId,
 		`reminder-sent:${delivery.kind}`,
-		`Jeg har begynt å sende påminnelse ${delivery.kind === "week" ? 1 : 2} på e-post til dem som er påmeldt arrangementet. ✉️`,
+		reminderSentText(delivery.kind),
 	);
 	return true;
 }

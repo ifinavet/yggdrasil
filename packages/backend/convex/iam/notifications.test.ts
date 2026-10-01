@@ -79,43 +79,13 @@ describe("Slack order alert format", () => {
 					channel: SYSTEM_ALERTS_CHANNEL,
 					text: "hello",
 					client_msg_id: "order-test",
+					metadata: JSON.stringify({
+						event_type: "yggdrasil_event_notice",
+						event_payload: { key: "order-test" },
+					}),
 				}),
 			}),
 		);
-	});
-
-	it("retries Slack failures twice and stops after the third attempt", async () => {
-		const { t } = await setup();
-		vi.stubEnv("SLACK_BOT_TOKEN", "xoxb-test");
-		vi.stubGlobal(
-			"fetch",
-			vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ok: false, error: "down" }) }),
-		);
-
-		await expect(
-			t.action(internal.iam.notifications.sendMessage, {
-				channel: SYSTEM_ALERTS_CHANNEL,
-				text: "hello",
-				clientMsgId: "order-test",
-			}),
-		).rejects.toThrow("Slack avviste meldingen: down.");
-		const scheduled = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
-		expect(scheduled.map(({ args }) => args)).toEqual([
-			[{ channel: SYSTEM_ALERTS_CHANNEL, text: "hello", clientMsgId: "order-test", attempt: 2 }],
-		]);
-
-		await expect(
-			t.action(internal.iam.notifications.sendMessage, {
-				channel: SYSTEM_ALERTS_CHANNEL,
-				text: "hello",
-				clientMsgId: "order-test",
-				attempt: 3,
-			}),
-		).rejects.toThrow("Slack avviste meldingen: down.");
-		const afterThirdAttempt = await t.run((ctx) =>
-			ctx.db.system.query("_scheduled_functions").collect(),
-		);
-		expect(afterThirdAttempt).toHaveLength(1);
 	});
 });
 
@@ -138,7 +108,8 @@ describe("durable Slack system delivery", () => {
 		try {
 			const { t } = await setup();
 			const args = { channel: SYSTEM_ALERTS_CHANNEL, text: "Opening", clientMsgId: "durable-open" };
-			for (const attempt of [1, 2, 3]) {
+			for await (const attempt of [1, 2, 3, 4]) {
+				vi.setSystemTime(Date.now() + 60 * 60 * 1000);
 				await t
 					.action(internal.iam.notifications.sendMessage, { ...args, attempt })
 					.catch(() => {});

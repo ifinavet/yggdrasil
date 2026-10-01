@@ -49,7 +49,8 @@ export const eventsSchema = {
 	eventRegistrationOpenNotices: defineTable({
 		eventId: v.id("events"),
 		registrationOpens: v.number(),
-		sentAt: v.number(),
+		sentAt: v.optional(v.number()),
+		queuedAt: v.optional(v.number()),
 	}).index("by_eventId_and_registrationOpens", ["eventId", "registrationOpens"]),
 
 	foodItems: defineTable({
@@ -99,6 +100,7 @@ export const eventsSchema = {
 		userId: v.id("users"),
 		emailId: v.string(),
 		sent: v.boolean(),
+		sentAt: v.optional(v.number()),
 	})
 		.index("by_emailId", ["emailId"])
 		.index("by_eventId_and_kind_and_userId", ["eventId", "kind", "userId"]),

@@ -9,6 +9,7 @@ import type { Doc, Id } from "../../_generated/dataModel";
 import { internalMutation, type MutationCtx, mutation } from "../../_generated/server";
 import { isLocalDevelopment } from "../../auth/local";
 import { getRegistrantStatistics } from "../../events/registrations/statistics";
+import { reportReadyText } from "../../events/slack/messages";
 import { queueEventNotification } from "../../events/slack/state";
 import { isReportFeatureEnabled, requireReportAccess } from "./access";
 
@@ -88,9 +89,7 @@ async function notifyReportReady(
 		ctx,
 		report.eventId,
 		`report-ready:${report._id}`,
-		totalResponses > 0
-			? "Tilbakemeldingsrapporten er klar! 📊 Se gjennom svarene og godkjenn rapporten i Bifrost, så sender jeg den til bedriften."
-			: "Tilbakemeldingsperioden er ferdig. Ingen svarte denne gangen, så det er ingen rapport å sende til bedriften.",
+		reportReadyText(totalResponses),
 	);
 	if (totalResponses > 0) {
 		const event = await ctx.db.get(report.eventId);

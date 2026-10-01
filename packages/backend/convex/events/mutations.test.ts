@@ -182,19 +182,19 @@ describe("registration opening alerts", () => {
 		expect(alerts).toHaveLength(1);
 		expect(alerts[0]?.args[0]).toMatchObject({
 			channel: "C0C5L3JPSE7",
-			text: expect.stringContaining("🔔 *Påmeldingen åpner nå*"),
+			text: expect.stringContaining("🔔 *Påmeldingen har åpnet*"),
 		});
 		expect(alerts[0]?.args[0].text).toContain("Fjordkode bedpres");
 		vi.useRealTimers();
 	});
 
-	it("does not queue notices for drafts, external events, or old opening times", async () => {
+	it("does not queue notices for drafts, external or finished events", async () => {
 		const { t, companyId, foodItem, client } = await fixture();
 		const now = Date.now();
 		for (const [title, options] of [
 			["Draft", { published: false }],
 			["External", { externalEvent: true }],
-			["Old", { registrationOpens: now - 86_400_000 }],
+			["Finished", { eventStart: now - 1, registrationOpens: now - 86_400_000 }],
 		] as const) {
 			await client.mutation(api.events.mutations.create, {
 				...eventArgs,
@@ -365,11 +365,10 @@ describe("registration opening catch-up", () => {
 		}
 	});
 
-	it("skips old and future openings, drafts, external and finished events", async () => {
+	it("skips future openings, drafts, external and finished events", async () => {
 		const { t, companyId } = await setup();
 		const now = Date.now();
 		for (const overrides of [
-			{ registrationOpens: now - 2 * 86_400_000 },
 			{ registrationOpens: now + 60_000 },
 			{ published: false },
 			{ externalEvent: true },
@@ -387,4 +386,25 @@ describe("registration opening catch-up", () => {
 			[],
 		);
 	});
+});
+
+it("recovers openings older than a day across all pages without claiming delivery", async () => {
+	const { t, companyId } = await setup();
+	const now = Date.now();
+	for await (const index of Array.from({ length: 51 }, (_, index) => index)) {
+		await insertEvent(t, companyId, {
+			title: `Existing ${index}`,
+			eventStart: now + 7 * 86_400_000,
+			registrationOpens: now - 3 * 86_400_000,
+		});
+	}
+	await t.mutation(eventMutations.catchUpRegistrationOpenAlerts, {});
+	const scheduled = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
+	const continuation = scheduled.find(({ name }) => name.includes("catchUpRegistrationOpenAlerts"));
+	expect(continuation).toBeDefined();
+	await t.mutation(eventMutations.catchUpRegistrationOpenAlerts, continuation?.args[0]);
+	const notices = await t.run((ctx) => ctx.db.query("eventRegistrationOpenNotices").collect());
+	expect(notices).toHaveLength(51);
+	expect(notices.every((notice) => notice.sentAt === undefined)).toBe(true);
+	expect(await t.run((ctx) => ctx.db.query("slackSystemDeliveries").collect())).toHaveLength(51);
 });

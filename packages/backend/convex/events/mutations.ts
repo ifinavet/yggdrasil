@@ -1,7 +1,7 @@
 import { BIFROST_LOCAL_URL, BIFROST_URL } from "@workspace/shared/constants";
 import { EVENT_CHECKLIST } from "@workspace/shared/events/checklist";
 import { SYSTEM_ALERTS_CHANNEL } from "@workspace/shared/slack/channels";
-import { DAY_MS, humanReadableFullDateTime, MINUTE_MS } from "@workspace/shared/time";
+import { humanReadableFullDateTime } from "@workspace/shared/time";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
@@ -10,14 +10,13 @@ import { internalRoles, requireRole } from "../auth/accessRights";
 import { getCurrentUserOrThrow } from "../auth/currentUser";
 import { isLocalDevelopment } from "../auth/local";
 import { syncFeedbackCampaign } from "../feedback/delivery/campaigns";
+import { enqueueSystemMessage } from "../iam/notifications";
 import { eventProductFields } from "../products/sales";
 import { requireFoodItem } from "./food";
 import { eventSlug, insertEventWithOrganizers } from "./helper";
 import { makeStatusPending } from "./registrations/mutations";
 import { editableEventFields, organizerRoleValidator } from "./schema";
 import { queueEventNotification } from "./slack/state";
-
-const IMMEDIATE_OPEN_GRACE_MS = 10 * MINUTE_MS;
 
 async function scheduleRegistrationOpenAlert(
 	ctx: MutationCtx,
@@ -30,12 +29,7 @@ async function scheduleRegistrationOpenAlert(
 	},
 ) {
 	const now = Date.now();
-	if (
-		!event.published ||
-		event.externalEvent ||
-		event.eventStart <= now ||
-		event.registrationOpens < now - IMMEDIATE_OPEN_GRACE_MS
-	) {
+	if (!event.published || event.externalEvent || event.eventStart <= now) {
 		return;
 	}
 
@@ -401,40 +395,41 @@ export const sendRegistrationOpenAlert = internalMutation({
 			event.published &&
 			!event.externalEvent
 		) {
-			const alreadySent = await ctx.db
+			const previousNotice = await ctx.db
 				.query("eventRegistrationOpenNotices")
 				.withIndex("by_eventId_and_registrationOpens", (q) =>
 					q.eq("eventId", eventId).eq("registrationOpens", registrationOpens),
 				)
 				.first();
-			if (!alreadySent) {
+			if (!previousNotice) {
 				await ctx.db.insert("eventRegistrationOpenNotices", {
 					eventId,
 					registrationOpens,
-					sentAt: now,
-				});
-				await queueEventNotification(
-					ctx,
-					eventId,
-					`registration-open:${registrationOpens}`,
-					"Nå har påmeldingen åpnet! 🎉",
-				);
-				const origin = isLocalDevelopment() ? BIFROST_LOCAL_URL : BIFROST_URL;
-				const title = event.title
-					.replaceAll("&", "&amp;")
-					.replaceAll("<", "&lt;")
-					.replaceAll(">", "&gt;");
-				await ctx.scheduler.runAfter(0, internal.iam.notifications.sendMessage, {
-					channel: SYSTEM_ALERTS_CHANNEL,
-					clientMsgId: `registration-open-${eventId}-${registrationOpens}`,
-					text: [
-						"🔔 *Påmeldingen åpner nå*",
-						`*Arrangement:* ${title}`,
-						`*Tidspunkt:* ${humanReadableFullDateTime(new Date(registrationOpens))}`,
-						`<${origin}/events/${eventId}|Åpne arrangementet>`,
-					].join("\n"),
+					queuedAt: now,
 				});
 			}
+			await queueEventNotification(
+				ctx,
+				eventId,
+				`registration-open:${registrationOpens}`,
+				"Påmeldingen er åpen! 🎉",
+			);
+			const origin = isLocalDevelopment() ? BIFROST_LOCAL_URL : BIFROST_URL;
+			const title = event.title
+				.replaceAll("&", "&amp;")
+				.replaceAll("<", "&lt;")
+				.replaceAll(">", "&gt;");
+			await enqueueSystemMessage(ctx, {
+				since: previousNotice?._creationTime ?? now,
+				channel: SYSTEM_ALERTS_CHANNEL,
+				clientMsgId: `registration-open-${eventId}-${registrationOpens}`,
+				text: [
+					"🔔 *Påmeldingen har åpnet*",
+					`*Arrangement:* ${title}`,
+					`*Tidspunkt:* ${humanReadableFullDateTime(new Date(registrationOpens))}`,
+					`<${origin}/events/${eventId}|Åpne arrangementet>`,
+				].join("\n"),
+			});
 		}
 		return null;
 	},
@@ -442,22 +437,28 @@ export const sendRegistrationOpenAlert = internalMutation({
 
 /** Catch up openings whose scheduled job was never created, including pre-existing events. */
 export const catchUpRegistrationOpenAlerts = internalMutation({
-	args: {},
+	args: { cursor: v.optional(v.string()), now: v.optional(v.number()) },
 	returns: v.null(),
-	handler: async (ctx) => {
-		const now = Date.now();
-		const events = await ctx.db
+	handler: async (ctx, args) => {
+		const now = args.now ?? Date.now();
+		const page = await ctx.db
 			.query("events")
-			.withIndex("by_registrationOpens", (q) =>
-				q.gte("registrationOpens", now - DAY_MS).lte("registrationOpens", now),
-			)
-			.take(100);
-		for (const event of events) {
-			await ctx.runMutation(internal.events.mutations.sendRegistrationOpenAlert, {
-				eventId: event._id,
-				registrationOpens: event.registrationOpens,
+			.withIndex("by_eventStart", (q) => q.gt("eventStart", now))
+			.paginate({ cursor: args.cursor ?? null, numItems: 50 });
+		const events = page.page.filter((event) => event.registrationOpens <= now);
+		await Promise.all(
+			events.map((event) =>
+				ctx.runMutation(internal.events.mutations.sendRegistrationOpenAlert, {
+					eventId: event._id,
+					registrationOpens: event.registrationOpens,
+				}),
+			),
+		);
+		if (!page.isDone)
+			await ctx.scheduler.runAfter(0, internal.events.mutations.catchUpRegistrationOpenAlerts, {
+				cursor: page.continueCursor,
+				now,
 			});
-		}
 		return null;
 	},
 });
