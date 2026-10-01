@@ -105,6 +105,11 @@ async function archiveFinishedChannel(
 	await progress({ archived: true });
 }
 
+function desiredChannelName(channel: Channel) {
+	const generation = channel.generation ?? 1;
+	return generation === 1 ? channel.name : `${channel.name.slice(0, 75)}-${generation}`;
+}
+
 async function updateChannel(
 	ctx: ActionCtx,
 	slack: Slack,
@@ -140,7 +145,7 @@ async function updateChannel(
 	const generation = channel.generation ?? 1;
 	const { semester, year } = eventSemesterOf(channel.semesterStart);
 	const purpose = `Arrangementer med ${context.companyName}, ${semester} ${year}`;
-	const name = generation === 1 ? channel.name : `${channel.name.slice(0, 75)}-${generation}`;
+	const name = desiredChannelName(channel);
 	const slackChannelId =
 		channel.slackChannelId ??
 		(await slack.ensurePrivateChannel(name, purpose, `${name.slice(0, 45)}-${channel._id}`));
