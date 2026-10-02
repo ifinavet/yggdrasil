@@ -28,7 +28,7 @@ export default function DateTimePicker({
 		handleBlur: () => void;
 	};
 	label: string;
-	description: string;
+	description?: string;
 	latestDate?: Date;
 }>) {
 	const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
@@ -104,7 +104,7 @@ export default function DateTimePicker({
 					className="w-fit appearance-none bg-background [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
 				/>
 			</div>
-			<FieldDescription>{description}</FieldDescription>
+			{description && <FieldDescription>{description}</FieldDescription>}
 			{isInvalid && <FieldError errors={field.state.meta.errors} />}
 		</Field>
 	);

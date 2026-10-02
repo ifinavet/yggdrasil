@@ -4,7 +4,6 @@ import { useForm } from "@tanstack/react-form";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import {
 	Field,
-	FieldDescription,
 	FieldError,
 	FieldGroup,
 	FieldLabel,
@@ -82,7 +81,6 @@ export default function EventForm({
 										className="truncate"
 									/>
 									{isInvalid && <FieldError errors={field.state.meta.errors} />}
-									<FieldDescription>Dette er hva arrangementet skal hete.</FieldDescription>
 								</Field>
 							);
 						}}
@@ -222,23 +220,11 @@ export default function EventForm({
 
 				<FieldGroup className="grid gap-4 sm:grid-cols-2">
 					<form.Field name="eventDate">
-						{(field) => (
-							<DateTimePicker
-								field={field}
-								label="Dato og tid for arrangements start"
-								description="Velg dato og tid for når arrangementet starter"
-							/>
-						)}
+						{(field) => <DateTimePicker field={field} label="Arrangementet starter" />}
 					</form.Field>
 
 					<form.Field name="registrationDate">
-						{(field) => (
-							<DateTimePicker
-								field={field}
-								label="Dato og tid for åpning av påmelding"
-								description="Velg dato og tid for åpning av påmeldingen av arrangementet"
-							/>
-						)}
+						{(field) => <DateTimePicker field={field} label="Påmeldingen åpner" />}
 					</form.Field>
 				</FieldGroup>
 
@@ -262,20 +248,13 @@ export default function EventForm({
 									placeholder="Velkommen til en magisk aften med Navet"
 								/>
 								{isInvalid && <FieldError errors={field.state.meta.errors} />}
-								<FieldDescription>Dette er en liten teaser av arrangementet.</FieldDescription>
 							</Field>
 						);
 					}}
 				</form.Field>
 
 				<form.Field name="description">
-					{(field) => (
-						<DescriptionEditor
-							field={field}
-							title="Beskrivelse"
-							description="Dette er beskrivelsen for arrangementet."
-						/>
-					)}
+					{(field) => <DescriptionEditor field={field} title="Beskrivelse" />}
 				</form.Field>
 
 				<FieldSeparator />
@@ -340,9 +319,6 @@ export default function EventForm({
 									className="truncate"
 								/>
 								{isInvalid && <FieldError errors={field.state.meta.errors} />}
-								<FieldDescription>
-									Legg til en URL for ekstern påmelding til arrangementet
-								</FieldDescription>
 							</Field>
 						);
 					}}

@@ -1,7 +1,7 @@
 "use client";
 
 import { api } from "@workspace/backend/convex/api";
-import { Field, FieldDescription, FieldError, FieldLabel } from "@workspace/ui/components/field";
+import { Field, FieldError, FieldLabel } from "@workspace/ui/components/field";
 import { SearchSelect } from "@workspace/ui/components/search-select";
 import { useQuery } from "convex/react";
 import { useId } from "react";
@@ -42,7 +42,6 @@ export default function CompanySelectField({
 				emptyText="Fant ingen bedrift(er)."
 			/>
 			{isInvalid && <FieldError errors={errors} />}
-			<FieldDescription>Velg hvilken bedrift annonsen skal være knyttet til</FieldDescription>
 		</Field>
 	);
 }
