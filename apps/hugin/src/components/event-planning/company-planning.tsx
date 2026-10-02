@@ -3,7 +3,7 @@ import { api } from "@workspace/backend/convex/api";
 import { COMPANY_CONTACT_EMAIL } from "@workspace/shared/constants";
 import type { PlanningAnswers } from "@workspace/shared/events/planning";
 import type { EventType } from "@workspace/shared/semester/labels";
-import { formatSemesterDay } from "@workspace/shared/time";
+import { EVENT_SEMESTER_LABELS, eventSemesterOf, formatSemesterDay } from "@workspace/shared/time";
 import { Button } from "@workspace/ui/components/button";
 import { CompanyLogo } from "@workspace/ui/components/company-logo";
 import { EventPlanningForm } from "@workspace/ui/components/event-planning-form";
@@ -28,6 +28,7 @@ function Planning({ token }: Readonly<{ token: string }>) {
 	const [lastAnswers, setLastAnswers] = useState<PlanningAnswers>();
 	if (data === undefined) return <output>Henter arrangementet …</output>;
 	if (!data) return <Unavailable />;
+	const { semester, year } = eventSemesterOf(data.eventStart);
 	return (
 		<div className="mx-auto w-full max-w-3xl py-5 sm:py-8">
 			<header className="mb-8 space-y-5">
@@ -35,14 +36,24 @@ function Planning({ token }: Readonly<{ token: string }>) {
 					<CompanyLogo name={data.companyName} url={data.logoUrl} size="lg" />
 					<div>
 						<p className="font-semibold">{data.companyName}</p>
-						<p className="text-muted-foreground text-sm">
-							{formatSemesterDay(data.eventDate, "long")}
-							<br />
-							{data.packageName}
-						</p>
+						<p className="text-muted-foreground text-sm">{data.packageName}</p>
 					</div>
 				</div>
 				{!sent && <h1 className="font-bold text-3xl">Planlegg arrangementet</h1>}
+				<dl className="flex flex-wrap gap-3">
+					<div className="rounded-lg bg-blue-50 px-4 py-3 text-blue-950 dark:bg-blue-950 dark:text-blue-100">
+						<dt className="text-sm">Dato</dt>
+						<dd className="font-semibold">
+							<time dateTime={data.eventDate}>{formatSemesterDay(data.eventDate, "long")}</time>
+						</dd>
+					</div>
+					<div className="rounded-lg bg-blue-50 px-4 py-3 text-blue-950 dark:bg-blue-950 dark:text-blue-100">
+						<dt className="text-sm">Semester</dt>
+						<dd className="font-semibold">
+							{EVENT_SEMESTER_LABELS[semester]} {year}
+						</dd>
+					</div>
+				</dl>
 			</header>
 			{sent ? (
 				<>

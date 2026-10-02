@@ -197,7 +197,7 @@ export function EventPlanningForm({
 					</Field>
 				)}
 			</form.Field>
-			<section className="space-y-6 border-t pt-7">
+			<section className="space-y-6">
 				{choice(
 					"venue",
 					PLANNING_QUESTIONS.venue.label,
@@ -275,7 +275,7 @@ export function EventPlanningForm({
 			<form.Subscribe selector={(state) => state.values}>
 				{(values) => (
 					<>
-						<section className="space-y-6 border-t pt-7">
+						<section className="space-y-6">
 							{choice(
 								"foodAndDrinks",
 								PLANNING_QUESTIONS.foodAndDrinks.label,
@@ -290,7 +290,7 @@ export function EventPlanningForm({
 							)}
 							{choice("alcohol", "Skal det serveres alkohol?", ANSWER_CHOICES)}
 						</section>
-						<section className="space-y-6 border-t pt-7">
+						<section className="space-y-6">
 							{choice(
 								"ageRestriction",
 								PLANNING_QUESTIONS.ageRestriction.label,
@@ -301,7 +301,7 @@ export function EventPlanningForm({
 							)}
 						</section>
 						<section
-							className="space-y-6 border-t pt-7"
+							className="space-y-6"
 							aria-labelledby={`${prefix}-content-heading`}
 						>
 							<div className="space-y-3">
@@ -314,7 +314,7 @@ export function EventPlanningForm({
 							{text("teaser")}
 							{text("description")}
 						</section>
-						<section className="space-y-6 border-t pt-7">
+						<section className="space-y-6">
 							{choice(
 								"stand",
 								PLANNING_QUESTIONS.stand.label,
@@ -352,7 +352,7 @@ export function EventPlanningForm({
 			{text("notes")}
 
 			{after}
-			<div className="space-y-3 border-t pt-6">
+			<div className="space-y-3">
 				{error && (
 					<p role="alert" className="text-destructive">
 						{error}
