@@ -62,7 +62,7 @@ export default function EventForm({
 
 	return (
 		<form className="space-y-4">
-			<FieldSet>
+			<FieldSet className="min-w-0">
 				<FieldGroup>
 					<form.Field name="title">
 						{(field) => {
@@ -326,7 +326,7 @@ export default function EventForm({
 			</FieldSet>
 
 			<FormSubmitActions
-				className="mb-4"
+				className="mb-4 flex-wrap"
 				isSubmitting={form.state.isSubmitting}
 				onSubmitAction={(submitAction) => form.handleSubmit({ submitAction })}
 				primary={{ label: "Lagre og publiser", icon: <Send /> }}
