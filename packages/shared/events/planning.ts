@@ -19,38 +19,38 @@ export const AGE_CHOICES = {
 } as const;
 export const PLANNING_FIELDS = {
 	title: {
-		label: "Hva skal arrangementet hete?",
-		hint: "En kort tittel som gjør studentene nysgjerrige.",
+		label: "Tittel",
+		hint: "",
 		max: 200,
 	},
 	teaser: {
-		label: "Hvordan vil dere kort presentere arrangementet?",
+		label: "Kort introduksjon",
 		hint: "Én eller to setninger til arrangementsoversikten.",
 		max: 250,
 	},
 	description: {
-		label: "Hva får studentene oppleve?",
-		hint: "Fortell om programmet, hvem det passer for og eventuelle forberedelser.",
+		label: "Beskrivelse",
+		hint: "",
 		max: 15000,
 	},
 	location: {
-		label: "Hva er adressen eller ønsket lokale?",
+		label: "Adresse eller lokale",
 		hint: "Navet kan hjelpe med å booke rom på IFI. Escape har leiekostnader.",
 		max: 500,
 	},
 	food: {
-		label: "Hva ønsker dere å servere?",
-		hint: "Skriv gjerne forslag til mat og drikke, og hva dere trenger hjelp til.",
+		label: "Ønsket mat og drikke",
+		hint: "",
 		max: 2000,
 	},
 	standDetails: {
-		label: "Når ønsker dere stand, og trenger dere hjelp med noe?",
-		hint: "Fortell gjerne om ønsket tidspunkt, merch eller servering.",
+		label: "Tidspunkt og ønsker for standen",
+		hint: "",
 		max: 1000,
 	},
 	notes: {
-		label: "Er det noe annet dere ønsker å avklare med oss?",
-		hint: "For eksempel ønsker om en annen arrangementstype.",
+		label: "Andre ønsker",
+		hint: "",
 		max: 2000,
 	},
 } as const;

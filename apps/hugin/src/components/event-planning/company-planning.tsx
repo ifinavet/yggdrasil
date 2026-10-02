@@ -14,7 +14,7 @@ import { useEmailLinkToken } from "@/lib/use-email-link-token";
 
 export function CompanyPlanning() {
 	const token = useEmailLinkToken();
-	if (token === undefined) return <p role="status">Henter arrangementet …</p>;
+	if (token === undefined) return <output>Henter arrangementet …</output>;
 	if (!token) return <Unavailable />;
 	return <Planning key={token} token={token} />;
 }
@@ -25,23 +25,21 @@ function Planning({ token }: Readonly<{ token: string }>) {
 	const [submissionId, setSubmissionId] = useState(() => crypto.randomUUID());
 	const [sent, setSent] = useState(false);
 	const [lastAnswers, setLastAnswers] = useState<PlanningAnswers>();
-	if (data === undefined) return <p role="status">Henter arrangementet …</p>;
+	if (data === undefined) return <output>Henter arrangementet …</output>;
 	if (!data) return <Unavailable />;
 	return (
 		<div className="mx-auto w-full max-w-3xl py-5 sm:py-8">
 			<header className="mb-8 space-y-5">
-				<CompanyLogo name={data.companyName} url={data.logoUrl} size="lg" />
-				<div>
-					<p className="mb-2 font-semibold text-primary text-sm">
-						{data.companyName} · {formatSemesterDay(data.eventDate, "long")}
-					</p>
-					<h1 className="font-bold text-3xl">La oss planlegge arrangementet</h1>
-					<p className="mt-3 text-muted-foreground">{data.packageName}</p>
+				<div className="flex items-center gap-4">
+					<CompanyLogo name={data.companyName} url={data.logoUrl} size="lg" />
+					<div>
+						<p className="font-semibold">{data.companyName}</p>
+						<p className="text-muted-foreground text-sm">
+							{formatSemesterDay(data.eventDate, "long")} · {data.packageName}
+						</p>
+					</div>
 				</div>
-				<p className="leading-relaxed">
-					Vi har fylt inn det vi allerede vet. Se over opplysningene og fyll inn det dere kan. Dere
-					kan komme tilbake via samme lenke når flere detaljer er på plass.
-				</p>
+				{!sent && <h1 className="font-bold text-3xl">Planlegg arrangementet</h1>}
 			</header>
 			{sent ? (
 				<>
@@ -78,7 +76,6 @@ function Planning({ token }: Readonly<{ token: string }>) {
 				<a className="underline underline-offset-4" href={`mailto:${COMPANY_CONTACT_EMAIL}`}>
 					Kontakt Navet
 				</a>
-				.
 			</p>
 		</div>
 	);

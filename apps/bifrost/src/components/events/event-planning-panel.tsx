@@ -2,7 +2,11 @@
 
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
-import { DELIVERY_LABELS, planningCapacityLimit } from "@workspace/shared/events/planning";
+import {
+	AGE_CHOICES,
+	DELIVERY_LABELS,
+	planningCapacityLimit,
+} from "@workspace/shared/events/planning";
 import { EVENT_TYPE_LABELS, type EventType } from "@workspace/shared/semester/labels";
 import { formatOsloDate, osloDateTimeToEpoch } from "@workspace/shared/time";
 import { convexErrorMessage } from "@workspace/shared/utils";
@@ -36,6 +40,17 @@ const titles: Record<Mode, string> = {
 	delivery: "Levering og oppfølging",
 };
 
+function planningStatus(data: PlanningData) {
+	if (data.submission?.status === "ready")
+		return "Se over svarene før publisering. Nettsiden er ikke endret ennå.";
+	if (data.awaitingConfirmation) return "Venter på at bedriften bekrefter e-posten.";
+	if (data.submission?.status === "approved") return "Svarene er godkjent og publisert.";
+	if (data.planning?.status === "invited")
+		return "Invitasjonen er klargjort. Se leveringsstatus nedenfor.";
+	if (data.planning?.status === "manual") return "Fulgt opp manuelt.";
+	return "Se over mottaker og opplysninger før du sender invitasjonen.";
+}
+
 export function EventPlanningPanel({ eventId }: Readonly<{ eventId: Id<"events"> }>) {
 	const data = useQuery(api.events.planning.admin.get, { eventId });
 	const params = useSearchParams();
@@ -47,7 +62,8 @@ export function EventPlanningPanel({ eventId }: Readonly<{ eventId: Id<"events">
 		const search = new URLSearchParams(params);
 		if (next) search.set("planning", next);
 		else search.delete("planning");
-		router.replace(`${pathname}${search.size ? `?${search}` : ""}`, { scroll: false });
+		const query = search.toString();
+		router.replace(query ? pathname + "?" + query : pathname, { scroll: false });
 	}
 	if (!data) return null;
 	const ready = data.submission?.status === "ready";
@@ -66,19 +82,7 @@ export function EventPlanningPanel({ eventId }: Readonly<{ eventId: Id<"events">
 					</CardTitle>
 				</CardHeader>
 				<CardContent className="space-y-4">
-					<p className="text-muted-foreground text-sm">
-						{ready
-							? "Kontroller innholdet og det praktiske før du godkjenner og publiserer. Nettsiden er ikke endret ennå."
-							: data.awaitingConfirmation
-								? "Bedriften har sendt inn opplysninger. Vi venter på e-postbekreftelsen før gjennomgang."
-								: data.submission?.status === "approved"
-									? "Bedriftens svar er godkjent og publisert. Nye svar blir sendt til gjennomgang igjen."
-									: status === "invited"
-										? "Invitasjonen er klargjort for sending. Følg levering og bedriftens svar her."
-										: status === "manual"
-											? "Første kontakt er fulgt opp manuelt."
-											: "Kontroller kontaktperson og forhåndsutfylte opplysninger. E-post sendes først når du har sett over og trykket Send."}
-					</p>
+					<p className="text-muted-foreground text-sm">{planningStatus(data)}</p>
 					{errors.length > 0 && (
 						<div
 							role="alert"
@@ -136,21 +140,17 @@ export function EventPlanningPanel({ eventId }: Readonly<{ eventId: Id<"events">
 
 function Preparation({ data, onSaved }: Readonly<{ data: PlanningData; onSaved: () => void }>) {
 	const save = useMutation(api.events.planning.admin.savePreparation);
-	const [contactName, setName] = useState(data.initial.contactName);
-	const [contactEmail, setEmail] = useState(data.initial.contactEmail);
+	const [contactName, setContactName] = useState(data.initial.contactName);
+	const [contactEmail, setContactEmail] = useState(data.initial.contactEmail);
 	const [signature, setSignature] = useState(data.initial.signature);
-	const [eventType, setType] = useState<EventType | undefined>(data.initial.eventType);
+	const [eventType, setEventType] = useState<EventType | undefined>(data.initial.eventType);
 	return (
 		<EventPlanningForm
 			initial={data.initial.answers}
-			capacityLimit={
-				eventType
-					? Math.min(
-							planningCapacityLimit(eventType),
-							eventType === data.initial.eventType ? data.capacityLimit : 1000,
-						)
-					: 1000
-			}
+			capacityLimit={Math.min(
+				eventType ? planningCapacityLimit(eventType) : 1000,
+				eventType === data.initial.eventType ? data.capacityLimit : 1000,
+			)}
 			submitLabel="Lagre og se over e-posten"
 			onSubmit={async (answers) => {
 				await save({
@@ -176,17 +176,13 @@ function Preparation({ data, onSaved }: Readonly<{ data: PlanningData; onSaved: 
 							Les rapporten fra forrige arrangement
 						</a>
 					)}
-					<p className="text-muted-foreground text-sm">
-						Opplysningene nedenfor fyller ut bedriftens skjema. Fyll inn kontaktperson selv hvis
-						arrangementet ikke har en bestilling.
-					</p>
 					<Field>
 						<FieldLabel htmlFor="planning-contact-name">Bedriftens kontaktperson</FieldLabel>
 						<Input
 							id="planning-contact-name"
 							value={contactName}
 							maxLength={150}
-							onChange={(e) => setName(e.target.value)}
+							onChange={(e) => setContactName(e.target.value)}
 						/>
 					</Field>
 					<Field>
@@ -196,7 +192,7 @@ function Preparation({ data, onSaved }: Readonly<{ data: PlanningData; onSaved: 
 							type="email"
 							value={contactEmail}
 							maxLength={254}
-							onChange={(e) => setEmail(e.target.value)}
+							onChange={(e) => setContactEmail(e.target.value)}
 						/>
 					</Field>
 					<Field>
@@ -205,7 +201,9 @@ function Preparation({ data, onSaved }: Readonly<{ data: PlanningData; onSaved: 
 							id="planning-package"
 							className="h-10 rounded-md border bg-background px-3"
 							value={eventType ?? ""}
-							onChange={(e) => setType(e.target.value ? (e.target.value as EventType) : undefined)}
+							onChange={(e) =>
+								setEventType(e.target.value ? (e.target.value as EventType) : undefined)
+							}
 						>
 							<option value="">Velg arrangementstype</option>
 							{Object.entries(EVENT_TYPE_LABELS).map(([value, label]) => (
@@ -235,10 +233,17 @@ function ActionButton({
 	action,
 	children,
 	disabled = false,
-}: Readonly<{ action: () => Promise<unknown>; children: React.ReactNode; disabled?: boolean }>) {
+	variant = "default",
+}: Readonly<{
+	action: () => Promise<unknown>;
+	children: React.ReactNode;
+	disabled?: boolean;
+	variant?: "default" | "outline";
+}>) {
 	const [pending, setPending] = useState(false);
 	return (
 		<Button
+			variant={variant}
 			disabled={disabled || pending}
 			onClick={async () => {
 				setPending(true);
@@ -286,9 +291,6 @@ function Invitation({
 					Planlegg arrangementet
 				</div>
 			</div>
-			<p className="text-muted-foreground text-sm">
-				Knappen i e-posten åpner bedriftens private, forhåndsutfylte skjema.
-			</p>
 			{blockers.length > 0 && (
 				<ul role="alert" className="list-inside list-disc text-destructive text-sm">
 					{blockers.map((blocker) => (
@@ -331,10 +333,6 @@ function Review({ data, onDone }: Readonly<{ data: PlanningData; onDone: () => v
 	const conflict = submission.baseEvent !== expectedEvent;
 	return (
 		<div className="space-y-5">
-			<p className="text-muted-foreground text-sm">
-				Bedriften har bekreftet svarene via e-post. Praktiske ønsker blir bevart her. Velg mat til
-				nettsiden og kontroller påmeldingstid før publisering.
-			</p>
 			{conflict && (
 				<details className="space-y-3 rounded-md border p-4" open>
 					<summary className="cursor-pointer font-medium">
@@ -370,11 +368,7 @@ function Review({ data, onDone }: Readonly<{ data: PlanningData; onDone: () => v
 						<p className="text-sm">
 							{submission.draft.location} · {submission.draft.startTime} ·{" "}
 							{submission.draft.capacity} plasser · {submission.draft.language} ·{" "}
-							{submission.draft.ageRestriction === "18"
-								? "18-årsgrense"
-								: submission.draft.ageRestriction === "none"
-									? "Ingen aldersgrense"
-									: "Aldersgrense ikke avklart"}
+							{AGE_CHOICES[submission.draft.ageRestriction]}
 						</p>
 					</article>
 					<Field>
@@ -403,8 +397,7 @@ function Review({ data, onDone }: Readonly<{ data: PlanningData; onDone: () => v
 								onChange={(e) => setAcknowledged(e.target.checked)}
 								className="mt-1"
 							/>
-							Arrangementet er endret siden bedriften fylte ut skjemaet. Jeg har sammenlignet med
-							arrangementet og bekrefter at dette utkastet skal publiseres.
+							<span>Jeg har sammenlignet endringene og vil publisere dette utkastet.</span>
 						</label>
 					)}
 					<div className="flex flex-wrap gap-2">
@@ -450,8 +443,18 @@ function Delivery({ data, open }: Readonly<{ data: PlanningData; open: (mode: Mo
 			{data.emails.length === 0 && (
 				<p className="text-muted-foreground text-sm">Ingen e-post er sendt ennå.</p>
 			)}
+			<Field>
+				<FieldLabel htmlFor="planning-followup">Hva er fulgt opp?</FieldLabel>
+				<Textarea
+					id="planning-followup"
+					value={note}
+					maxLength={2000}
+					onChange={(e) => setNote(e.target.value)}
+					placeholder="Beskriv hva dere har gjort, og hva som er avtalt."
+				/>
+			</Field>
 			{data.emails.map((email) => (
-				<div key={email._id} className="space-y-2 rounded-lg border p-4 text-sm">
+				<div key={email._id} className="space-y-2 border-b pb-5 text-sm">
 					<div className="flex flex-wrap justify-between gap-2">
 						<strong>{email.kind === "invitation" ? "Invitasjon" : "E-postbekreftelse"}</strong>
 						<span>{DELIVERY_LABELS[email.status]}</span>
@@ -477,19 +480,26 @@ function Delivery({ data, open }: Readonly<{ data: PlanningData; open: (mode: Mo
 						</ActionButton>
 					)}
 					{email.error && !email.resolvedAt && (
-						<ActionButton disabled={!note.trim()} action={() => resolve({ id: email._id, note })}>
-							Marker leveringsfeilen som fulgt opp
+						<ActionButton
+							variant="outline"
+							disabled={!note.trim()}
+							action={() => resolve({ id: email._id, note })}
+						>
+							Marker som fulgt opp
 						</ActionButton>
 					)}
 				</div>
 			))}
-			<div className="space-y-3 border-t pt-5">
-				<h3 className="font-semibold">Korrigering og manuell oppfølging</h3>
+			<details className="space-y-3">
+				<summary className="cursor-pointer font-medium">
+					Ny invitasjon eller manuell oppfølging
+				</summary>
 				<p className="text-muted-foreground text-sm">
 					Klargjør en ny invitasjon for å endre mottaker. Den gamle skjemalenken slutter da å virke.
 					Ved manuell oppfølging avsluttes den digitale forespørselen.
 				</p>
 				<ActionButton
+					variant="outline"
 					action={async () => {
 						await reopen({ eventId: data.event._id });
 						open("prepare");
@@ -497,17 +507,9 @@ function Delivery({ data, open }: Readonly<{ data: PlanningData; open: (mode: Mo
 				>
 					Klargjør ny invitasjon
 				</ActionButton>
-				<Field>
-					<FieldLabel htmlFor="planning-followup">Hva er fulgt opp?</FieldLabel>
-					<Textarea
-						id="planning-followup"
-						value={note}
-						maxLength={2000}
-						onChange={(e) => setNote(e.target.value)}
-						placeholder="Beskriv hva dere har gjort, og hva som er avtalt."
-					/>
-				</Field>
+
 				<ActionButton
+					variant="outline"
 					disabled={!note.trim()}
 					action={async () => {
 						await manual({ eventId: data.event._id, note });
@@ -519,7 +521,7 @@ function Delivery({ data, open }: Readonly<{ data: PlanningData; open: (mode: Mo
 				{data.planning?.manualNote && (
 					<p className="text-sm">Tidligere oppfølging: {data.planning.manualNote}</p>
 				)}
-			</div>
+			</details>
 		</div>
 	);
 }
