@@ -31,3 +31,5 @@ The draft PR tracks verification and deployment status. Screenshots in `company-
 - Private links keep their token in the URL fragment. The server stores token hashes for lookup. Delivery records retain the outgoing URL for reliable sending, and expose it in the internal API only in protected local development. Company pages disable analytics/error capture and indexing.
 - Correcting the recipient or package, reopening, or finishing manually invalidates previous form links. Explicit retry is limited to failed invitations whose event and envelope still match; successful sends are not retried.
 - Local development records email delivery without contacting Resend and exposes local preview links in the delivery modal. Test all external integrations against a configured test environment before production rollout.
+
+Company form question order follows the original first-contact email, including its assisting text. A requested arrangement type is stored with the answers for internal review; it does not change the agreed package or its capacity limit.

@@ -89,6 +89,35 @@ afterEach(() => {
 });
 
 describe("company event planning", () => {
+	it("keeps a requested package change for review without increasing the agreed capacity", async () => {
+		const f = await invited();
+		const before = await f.t.run((ctx) => ctx.db.get(f.eventId));
+		const input = {
+			token: f.token,
+			submissionId: crypto.randomUUID(),
+			revision: f.form.revision,
+			answers: {
+				...f.form.answers,
+				requestedEventType: "large_presentation" as const,
+				capacity: 80,
+			},
+		};
+		await expect(f.t.mutation(api.events.planning.public.submit, input)).rejects.toThrow();
+		await f.t.mutation(api.events.planning.public.submit, {
+			...input,
+			answers: { ...input.answers, capacity: 40 },
+		});
+		const submission = await f.t.run((ctx) => ctx.db.query("eventPlanningSubmissions").first());
+		expect(submission?.answers.requestedEventType).toBe("large_presentation");
+		expect(submission?.draft.requestedEventType).toBe("large_presentation");
+		expect(
+			(await f.t.query(api.events.planning.public.get, { token: f.token, now: NOW }))
+				?.capacityLimit,
+		).toBe(40);
+		const event = await f.t.run((ctx) => ctx.db.get(f.eventId));
+		expect(event?.participationLimit).toBe(before?.participationLimit);
+	});
+
 	it("prepares orderless events five weeks before and queues each Slack notice only once, without emailing", async () => {
 		const { t, companyId } = await setup();
 		const eventId = await insertEvent(t, companyId, { eventStart: START });

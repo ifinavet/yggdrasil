@@ -247,6 +247,7 @@ export async function companyView(
 	const company = await ctx.db.get(planning.companyId);
 	return {
 		companyName: company?.name ?? "",
+		eventType: planning.eventType,
 		logoUrl: company ? await findCompanyLogoUrl(ctx, company._id) : null,
 		packageName: planning.eventType ? EVENT_TYPE_LABELS[planning.eventType] : "Bedriftsarrangement",
 	};

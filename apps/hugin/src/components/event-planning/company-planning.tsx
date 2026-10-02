@@ -2,6 +2,7 @@
 import { api } from "@workspace/backend/convex/api";
 import { COMPANY_CONTACT_EMAIL } from "@workspace/shared/constants";
 import type { PlanningAnswers } from "@workspace/shared/events/planning";
+import type { EventType } from "@workspace/shared/semester/labels";
 import { formatSemesterDay } from "@workspace/shared/time";
 import { Button } from "@workspace/ui/components/button";
 import { CompanyLogo } from "@workspace/ui/components/company-logo";
@@ -65,6 +66,7 @@ function Planning({ token }: Readonly<{ token: string }>) {
 					revision={data.revision}
 					initial={lastAnswers ?? data.answers}
 					capacityLimit={data.capacityLimit}
+					eventType={data.eventType}
 					onSent={(answers) => {
 						setLastAnswers(answers);
 						setSent(true);
@@ -86,6 +88,7 @@ function CompanyAnswers({
 	revision,
 	initial,
 	capacityLimit,
+	eventType,
 	onSent,
 }: Readonly<{
 	token: string;
@@ -93,6 +96,7 @@ function CompanyAnswers({
 	revision: number;
 	initial: PlanningAnswers;
 	capacityLimit: number;
+	eventType?: EventType;
 	onSent: (answers: PlanningAnswers) => void;
 }>) {
 	const submit = useMutation(api.events.planning.public.submit);
@@ -101,6 +105,7 @@ function CompanyAnswers({
 		<EventPlanningForm
 			initial={initial}
 			capacityLimit={capacityLimit}
+			eventType={eventType}
 			onSubmit={async (answers) => {
 				await submit({ token, submissionId, revision: openedRevision, answers });
 				onSent(answers);
@@ -132,7 +137,7 @@ export function ConfirmPlanning() {
 			<FormStatePanel
 				action={null}
 				title="Takk, opplysningene er bekreftet!"
-				body="Vi har mottatt svarene deres. Bruk lenken i invitasjonen hvis dere ønsker å legge til eller endre noe senere."
+				body="Bruk lenken i invitasjonen for å endre svarene senere."
 			/>
 		);
 	if (state === "invalid" || state === "expired")
@@ -140,7 +145,7 @@ export function ConfirmPlanning() {
 			<FormStatePanel
 				action={null}
 				title={state === "expired" ? "Lenken har utløpt" : "Lenken er ikke gyldig lenger"}
-				body="Gå tilbake til skjemaet via invitasjonen for å sende inn opplysningene eller be om en ny bekreftelseslenke."
+				body="Åpne skjemaet fra invitasjonen igjen. Send inn svarene, eller be om en ny bekreftelseslenke."
 			/>
 		);
 	return (

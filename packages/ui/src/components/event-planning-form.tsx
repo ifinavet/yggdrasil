@@ -4,11 +4,16 @@ import {
 	AGE_CHOICES,
 	ANSWER_CHOICES,
 	PLANNING_FIELDS,
+	PLANNING_QUESTIONS,
 	type PlanningAnswers,
 	planningFormSchema,
 	VENUE_CHOICES,
 } from "@workspace/shared/events/planning";
-import { FOOD_PURCHASER_LABELS } from "@workspace/shared/semester/labels";
+import {
+	EVENT_TYPE_LABELS,
+	type EventType,
+	FOOD_PURCHASER_LABELS,
+} from "@workspace/shared/semester/labels";
 import { convexErrorMessage } from "@workspace/shared/utils";
 import { useId, useState, type ReactNode } from "react";
 import { Button } from "./button";
@@ -29,6 +34,7 @@ const selectClass =
 export function EventPlanningForm({
 	initial,
 	capacityLimit,
+	eventType,
 	onSubmit,
 	submitLabel = "Send inn opplysninger",
 	before,
@@ -36,6 +42,7 @@ export function EventPlanningForm({
 }: Readonly<{
 	initial: PlanningAnswers;
 	capacityLimit: number;
+	eventType?: EventType;
 	onSubmit: (answers: PlanningAnswers) => Promise<unknown>;
 	submitLabel?: string;
 	before?: ReactNode;
@@ -43,8 +50,12 @@ export function EventPlanningForm({
 }>) {
 	const prefix = useId();
 	const [error, setError] = useState("");
+	const defaultValues: PlanningAnswers = {
+		...initial,
+		requestedEventType: initial.requestedEventType ?? eventType,
+	};
 	const form = useForm({
-		defaultValues: initial,
+		defaultValues,
 		validators: { onSubmit: planningFormSchema(capacityLimit) },
 		onSubmit: async ({ value }) => {
 			setError("");
@@ -152,114 +163,170 @@ export function EventPlanningForm({
 			}}
 		>
 			{before}
+			<form.Field name="requestedEventType">
+				{(field) => (
+					<Field>
+						<FieldLabel htmlFor={`${prefix}-event-type`} className="text-base">
+							{eventType
+								? `Dere har søkt om ${EVENT_TYPE_LABELS[eventType].toLowerCase()}, stemmer det eller ønsker dere noe annet?`
+								: "Hvilken type arrangement ønsker dere?"}
+						</FieldLabel>
+						<select
+							id={`${prefix}-event-type`}
+							className={selectClass}
+							value={field.state.value ?? ""}
+							onBlur={field.handleBlur}
+							onChange={(e) =>
+								field.handleChange(e.target.value ? (e.target.value as EventType) : undefined)
+							}
+						>
+							<option value="">Ikke avklart</option>
+							{Object.entries(EVENT_TYPE_LABELS).map(([value, label]) => (
+								<option key={value} value={value}>
+									{label}
+								</option>
+							))}
+						</select>
+						<FieldDescription>Endringer i arrangementstype avklares med Navet.</FieldDescription>
+						<FieldError errors={field.state.meta.errors} />
+					</Field>
+				)}
+			</form.Field>
 			<section className="space-y-6 border-t pt-7">
-				<h2 className="font-bold text-[22px]">Arrangementssiden</h2>
-				{text("title")}
-				{text("teaser")}
-				{text("description")}
-				<form.Field name="language">
-					{(field) => (
-						<Field>
-							<FieldLabel htmlFor={`${prefix}-language`} className="text-base">
-								Språk
-							</FieldLabel>
-							<Input
-								id={`${prefix}-language`}
-								list={`${prefix}-languages`}
-								value={field.state.value}
-								onChange={(e) => field.handleChange(e.target.value)}
-								onBlur={field.handleBlur}
-								placeholder="Norsk, engelsk eller et annet språk"
-								maxLength={100}
-							/>
-							<datalist id={`${prefix}-languages`}>
-								<option value="Norsk" />
-								<option value="Engelsk" />
-							</datalist>
-							<FieldError errors={field.state.meta.errors} />
-						</Field>
-					)}
-				</form.Field>
-			</section>
-			<section className="space-y-6 border-t pt-7">
-				<h2 className="font-bold text-[22px]">Tid og sted</h2>
-				<div className="grid gap-6 sm:grid-cols-2">
-					<form.Field name="startTime">
-						{(field) => (
-							<Field>
-								<FieldLabel htmlFor={`${prefix}-time`} className="text-base">
-									Starttid
-								</FieldLabel>
-								<Input
-									id={`${prefix}-time`}
-									type="time"
-									value={field.state.value}
-									onChange={(e) => field.handleChange(e.target.value)}
-									onBlur={field.handleBlur}
-								/>
-								<FieldDescription>Vi anbefaler kl. 16:15 eller senere.</FieldDescription>
-								<FieldError errors={field.state.meta.errors} />
-							</Field>
-						)}
-					</form.Field>
-					<form.Field name="capacity">
-						{(field) => (
-							<Field>
-								<FieldLabel htmlFor={`${prefix}-capacity`} className="text-base">
-									Antall studenter
-								</FieldLabel>
-								<Input
-									id={`${prefix}-capacity`}
-									type="number"
-									min={1}
-									max={capacityLimit}
-									step={1}
-									value={Number.isNaN(field.state.value) ? "" : field.state.value}
-									onChange={(e) => field.handleChange(e.target.valueAsNumber)}
-									onBlur={field.handleBlur}
-								/>
-								<FieldDescription>
-									Opptil {capacityLimit} studenter. Kontakt Navet hvis dere ønsker flere.
-								</FieldDescription>
-								<FieldError errors={field.state.meta.errors} />
-							</Field>
-						)}
-					</form.Field>
-				</div>
-				{choice("venue", "Sted", VENUE_CHOICES)}
+				{choice(
+					"venue",
+					PLANNING_QUESTIONS.venue.label,
+					VENUE_CHOICES,
+					PLANNING_QUESTIONS.venue.hint,
+				)}
 				{text("location")}
 			</section>
+			<form.Field name="capacity">
+				{(field) => (
+					<Field>
+						<FieldLabel htmlFor={`${prefix}-capacity`} className="text-base">
+							{PLANNING_QUESTIONS.capacity.label}
+						</FieldLabel>
+						<FieldDescription id={`${prefix}-capacity-hint`}>
+							{PLANNING_QUESTIONS.capacity.hint}
+						</FieldDescription>
+						<Input
+							aria-describedby={`${prefix}-capacity-hint`}
+							id={`${prefix}-capacity`}
+							type="number"
+							min={1}
+							max={capacityLimit}
+							step={1}
+							value={Number.isNaN(field.state.value) ? "" : field.state.value}
+							onChange={(e) => field.handleChange(e.target.valueAsNumber)}
+							onBlur={field.handleBlur}
+						/>
+
+						<FieldError errors={field.state.meta.errors} />
+					</Field>
+				)}
+			</form.Field>
+			<form.Field name="startTime">
+				{(field) => (
+					<Field>
+						<FieldLabel htmlFor={`${prefix}-time`} className="text-base">
+							{PLANNING_QUESTIONS.startTime.label}
+						</FieldLabel>
+						<FieldDescription id={`${prefix}-startTime-hint`}>
+							{PLANNING_QUESTIONS.startTime.hint}
+						</FieldDescription>
+						<Input
+							aria-describedby={`${prefix}-startTime-hint`}
+							id={`${prefix}-time`}
+							type="time"
+							value={field.state.value}
+							onChange={(e) => field.handleChange(e.target.value)}
+							onBlur={field.handleBlur}
+						/>
+
+						<FieldError errors={field.state.meta.errors} />
+					</Field>
+				)}
+			</form.Field>
 			<form.Subscribe selector={(state) => state.values}>
 				{(values) => (
 					<>
 						<section className="space-y-6 border-t pt-7">
-							<h2 className="font-bold text-[22px]">Mat og drikke</h2>
-							{choice("foodAndDrinks", "Servering", ANSWER_CHOICES)}
+							{choice(
+								"foodAndDrinks",
+								PLANNING_QUESTIONS.foodAndDrinks.label,
+								ANSWER_CHOICES,
+								PLANNING_QUESTIONS.foodAndDrinks.hint,
+							)}
 							{values.foodAndDrinks !== "no" && (
 								<>
 									{choice("foodPurchasedBy", "Hvem ordner serveringen?", FOOD_PURCHASER_LABELS)}
 									{text("food")}
 								</>
 							)}
-							{choice("alcohol", "Alkoholservering", ANSWER_CHOICES)}
+							{choice("alcohol", "Skal det serveres alkohol?", ANSWER_CHOICES)}
+						</section>
+						<section className="space-y-6 border-t pt-7">
 							{choice(
 								"ageRestriction",
-								"Aldersgrense",
+								PLANNING_QUESTIONS.ageRestriction.label,
 								values.venue === "escape" || values.alcohol === "yes"
 									? { "18": AGE_CHOICES["18"] }
 									: AGE_CHOICES,
-								"Escape og alkoholservering krever 18-årsgrense.",
+								PLANNING_QUESTIONS.ageRestriction.hint,
 							)}
 						</section>
+						<section
+							className="space-y-6 border-t pt-7"
+							aria-labelledby={`${prefix}-content-heading`}
+						>
+							<div className="space-y-3">
+								<h2 id={`${prefix}-content-heading`} className="text-base font-medium">
+									{PLANNING_QUESTIONS.description.label}
+								</h2>
+								<FieldDescription>{PLANNING_QUESTIONS.description.hint}</FieldDescription>
+							</div>
+							{text("title")}
+							{text("teaser")}
+							{text("description")}
+						</section>
 						<section className="space-y-6 border-t pt-7">
-							<h2 className="font-bold text-[22px]">Stand og andre ønsker</h2>
-							{choice("stand", "Ønsker dere stand på IFI i forkant?", ANSWER_CHOICES)}
+							{choice(
+								"stand",
+								PLANNING_QUESTIONS.stand.label,
+								ANSWER_CHOICES,
+								PLANNING_QUESTIONS.stand.hint,
+							)}
 							{values.stand === "yes" && text("standDetails")}
-							{text("notes")}
 						</section>
 					</>
 				)}
 			</form.Subscribe>
+			<form.Field name="language">
+				{(field) => (
+					<Field>
+						<FieldLabel htmlFor={`${prefix}-language`} className="text-base">
+							Hvilket språk skal arrangementet holdes på?
+						</FieldLabel>
+						<Input
+							id={`${prefix}-language`}
+							list={`${prefix}-languages`}
+							value={field.state.value}
+							onChange={(e) => field.handleChange(e.target.value)}
+							onBlur={field.handleBlur}
+							placeholder="Norsk, engelsk eller et annet språk"
+							maxLength={100}
+						/>
+						<datalist id={`${prefix}-languages`}>
+							<option value="Norsk" />
+							<option value="Engelsk" />
+						</datalist>
+						<FieldError errors={field.state.meta.errors} />
+					</Field>
+				)}
+			</form.Field>
+			{text("notes")}
+
 			{after}
 			<div className="space-y-3 border-t pt-6">
 				{error && (

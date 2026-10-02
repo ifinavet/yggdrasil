@@ -147,6 +147,7 @@ function Preparation({ data, onSaved }: Readonly<{ data: PlanningData; onSaved: 
 	return (
 		<EventPlanningForm
 			initial={data.initial.answers}
+			eventType={eventType}
 			capacityLimit={Math.min(
 				eventType ? planningCapacityLimit(eventType) : 1000,
 				eventType === data.initial.eventType ? data.capacityLimit : 1000,
@@ -336,11 +337,14 @@ function Review({ data, onDone }: Readonly<{ data: PlanningData; onDone: () => v
 			{conflict && (
 				<details className="space-y-3 rounded-md border p-4" open>
 					<summary className="cursor-pointer font-medium">
-						Arrangementet er endret siden innsendingen. Se gjeldende innhold
+						Arrangementet er endret. Se gjeldende innhold
 					</summary>
 					<h3 className="font-semibold">{data.event.title}</h3>
 					<p>{data.event.teaser}</p>
-					<SafeHtml html={data.event.description} className="prose prose-sm max-w-none" />
+					<SafeHtml
+						html={data.event.description}
+						className="prose prose-sm dark:prose-invert max-w-none"
+					/>
 					<p className="text-sm">
 						{data.event.location} · {formatOsloDate(data.event.eventStart, "d. MMM yyyy HH:mm")} ·{" "}
 						{data.event.participationLimit} plasser · {data.event.language} ·{" "}
@@ -352,6 +356,7 @@ function Review({ data, onDone }: Readonly<{ data: PlanningData; onDone: () => v
 				<EventPlanningForm
 					key={submission.revision}
 					initial={submission.draft}
+					eventType={data.initial.eventType}
 					capacityLimit={data.capacityLimit}
 					submitLabel="Lagre og forhåndsvis"
 					onSubmit={async (answers) => {
@@ -364,13 +369,24 @@ function Review({ data, onDone }: Readonly<{ data: PlanningData; onDone: () => v
 					<article className="space-y-4 rounded-lg border p-5">
 						<h2 className="font-bold text-2xl">{submission.draft.title}</h2>
 						<p className="font-medium">{submission.draft.teaser}</p>
-						<SafeHtml html={submission.draft.description} className="prose prose-sm max-w-none" />
+						<SafeHtml
+							html={submission.draft.description}
+							className="prose prose-sm dark:prose-invert max-w-none"
+						/>
 						<p className="text-sm">
 							{submission.draft.location} · {submission.draft.startTime} ·{" "}
 							{submission.draft.capacity} plasser · {submission.draft.language} ·{" "}
 							{AGE_CHOICES[submission.draft.ageRestriction]}
 						</p>
 					</article>
+					{submission.draft.requestedEventType &&
+						submission.draft.requestedEventType !== data.initial.eventType && (
+							<p className="text-sm">
+								Bedriften ønsker{" "}
+								{EVENT_TYPE_LABELS[submission.draft.requestedEventType].toLowerCase()}. Avklar
+								endringen med bedriften. Publisering endrer ikke den avtalte pakken.
+							</p>
+						)}
 					<Field>
 						<FieldLabel htmlFor="planning-food-item">Mat på arrangementssiden</FieldLabel>
 						<FoodItemSelect
@@ -496,7 +512,7 @@ function Delivery({ data, open }: Readonly<{ data: PlanningData; open: (mode: Mo
 				</summary>
 				<p className="text-muted-foreground text-sm">
 					Klargjør en ny invitasjon for å endre mottaker. Den gamle skjemalenken slutter da å virke.
-					Ved manuell oppfølging avsluttes den digitale forespørselen.
+					Manuell oppfølging avslutter forespørselen.
 				</p>
 				<ActionButton
 					variant="outline"

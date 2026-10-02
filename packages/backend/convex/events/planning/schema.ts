@@ -5,6 +5,7 @@ import { presentationEventType } from "../../semesterPlanning/schema";
 
 const answer = oneOf(["yes", "no", "unsure"]);
 export const answers = v.object({
+	requestedEventType: v.optional(presentationEventType),
 	title: v.string(),
 	teaser: v.string(),
 	description: v.string(),
