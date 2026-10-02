@@ -7,7 +7,7 @@ import {
 } from "@workspace/shared/job-listing-orders";
 import { formatOrderAlert } from "@workspace/shared/slack/alerts";
 import { SYSTEM_ALERTS_CHANNEL } from "@workspace/shared/slack/channels";
-import { DAY_MS, osloToday } from "@workspace/shared/time";
+import { osloToday } from "@workspace/shared/time";
 import { ConvexError, type Infer, v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
@@ -20,6 +20,11 @@ import {
 } from "../_generated/server";
 import { requireLogo } from "../companies/helper";
 import { companyBilling } from "../companies/schema";
+import {
+	CONFIRMATION_TTL_MS,
+	confirmationFields,
+	confirmationState,
+} from "../lib/emailConfirmation";
 import { hashLinkToken } from "../lib/tokens";
 import { deleteUnreferencedOrderLogo } from "./logos";
 import { orderRateLimiter } from "./rateLimits";
@@ -27,7 +32,7 @@ import { sanitizeRichText } from "./sanitize";
 import { type CompanyChangesDoc, orderContact, orderItemFields } from "./schema";
 import { loadOrderSettings } from "./settings";
 
-export const CONFIRMATION_TTL_MS = DAY_MS;
+export { CONFIRMATION_TTL_MS };
 export const FEEDBACK_MAX_LENGTH = 1000;
 
 export const orderFormArgs = v.object({
@@ -85,11 +90,11 @@ async function nextReference(ctx: MutationCtx, now: number): Promise<string> {
 }
 
 async function addConfirmation(ctx: MutationCtx, orderId: Id<"jobListingOrders">, token: string) {
-	const expiresAt = Date.now() + CONFIRMATION_TTL_MS;
+	const fields = await confirmationFields(token, Date.now());
+	const { expiresAt } = fields;
 	await ctx.db.insert("jobListingOrderConfirmations", {
 		orderId,
-		tokenHash: await hashLinkToken(token),
-		expiresAt,
+		...fields,
 	});
 	await ctx.scheduler.runAt(expiresAt, internal.jobListingOrders.orders.purgeUnconfirmed, {
 		orderId,
@@ -336,7 +341,7 @@ export const confirm = mutation({
 
 		if (!confirmation.usedAt) {
 			const now = Date.now();
-			if (confirmation.expiresAt <= now) return { state: "expired" as const };
+			if (confirmationState(confirmation, now) === "expired") return { state: "expired" as const };
 			await ctx.db.patch(confirmation._id, { usedAt: now });
 			await ctx.db.patch(order._id, { status: "confirmed", confirmedAt: now });
 			if (order.companyId && order.companyChanges) {
