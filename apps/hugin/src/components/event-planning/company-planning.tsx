@@ -1,0 +1,174 @@
+"use client";
+import { api } from "@workspace/backend/convex/api";
+import { COMPANY_CONTACT_EMAIL } from "@workspace/shared/constants";
+import type { PlanningAnswers } from "@workspace/shared/events/planning";
+import { formatSemesterDay } from "@workspace/shared/time";
+import { Button } from "@workspace/ui/components/button";
+import { CompanyLogo } from "@workspace/ui/components/company-logo";
+import { EventPlanningForm } from "@workspace/ui/components/event-planning-form";
+import { useMutation, useQuery } from "convex/react";
+import { useState } from "react";
+import { EmailCheckScreen } from "@/components/email-check-screen";
+import { FormStatePanel } from "@/components/form-state-panel";
+import { useEmailLinkToken } from "@/lib/use-email-link-token";
+
+export function CompanyPlanning() {
+	const token = useEmailLinkToken();
+	if (token === undefined) return <p role="status">Henter arrangementet …</p>;
+	if (!token) return <Unavailable />;
+	return <Planning key={token} token={token} />;
+}
+function Planning({ token }: Readonly<{ token: string }>) {
+	const [now] = useState(Date.now);
+	const data = useQuery(api.events.planning.public.get, { token, now });
+	const resend = useMutation(api.events.planning.public.resend);
+	const [submissionId, setSubmissionId] = useState(() => crypto.randomUUID());
+	const [sent, setSent] = useState(false);
+	const [lastAnswers, setLastAnswers] = useState<PlanningAnswers>();
+	if (data === undefined) return <p role="status">Henter arrangementet …</p>;
+	if (!data) return <Unavailable />;
+	return (
+		<div className="mx-auto w-full max-w-3xl py-5 sm:py-8">
+			<header className="mb-8 space-y-5">
+				<CompanyLogo name={data.companyName} url={data.logoUrl} size="lg" />
+				<div>
+					<p className="mb-2 font-semibold text-primary text-sm">
+						{data.companyName} · {formatSemesterDay(data.eventDate, "long")}
+					</p>
+					<h1 className="font-bold text-3xl">La oss planlegge arrangementet</h1>
+					<p className="mt-3 text-muted-foreground">{data.packageName}</p>
+				</div>
+				<p className="leading-relaxed">
+					Vi har fylt inn det vi allerede vet. Se over opplysningene og fyll inn det dere kan. Dere
+					kan komme tilbake via samme lenke når flere detaljer er på plass.
+				</p>
+			</header>
+			{sent ? (
+				<>
+					<EmailCheckScreen
+						email={data.contactEmail}
+						body={`Vi har sendt en lenke til ${data.contactEmail}. Bekreft e-posten for å sende opplysningene til Navet.`}
+						onResend={() => resend({ token, submissionId })}
+					/>
+					<Button
+						variant="ghost"
+						onClick={() => {
+							setSent(false);
+							setSubmissionId(crypto.randomUUID());
+						}}
+					>
+						Tilbake til skjemaet
+					</Button>
+				</>
+			) : (
+				<CompanyAnswers
+					token={token}
+					submissionId={submissionId}
+					revision={data.revision}
+					initial={lastAnswers ?? data.answers}
+					capacityLimit={data.capacityLimit}
+					onSent={(answers) => {
+						setLastAnswers(answers);
+						setSent(true);
+					}}
+				/>
+			)}
+			<p className="mt-8 text-muted-foreground text-sm">
+				Spørsmål?{" "}
+				<a className="underline underline-offset-4" href={`mailto:${COMPANY_CONTACT_EMAIL}`}>
+					Kontakt Navet
+				</a>
+				.
+			</p>
+		</div>
+	);
+}
+function CompanyAnswers({
+	token,
+	submissionId,
+	revision,
+	initial,
+	capacityLimit,
+	onSent,
+}: Readonly<{
+	token: string;
+	submissionId: string;
+	revision: number;
+	initial: PlanningAnswers;
+	capacityLimit: number;
+	onSent: (answers: PlanningAnswers) => void;
+}>) {
+	const submit = useMutation(api.events.planning.public.submit);
+	const [openedRevision] = useState(revision);
+	return (
+		<EventPlanningForm
+			initial={initial}
+			capacityLimit={capacityLimit}
+			onSubmit={async (answers) => {
+				await submit({ token, submissionId, revision: openedRevision, answers });
+				onSent(answers);
+			}}
+		/>
+	);
+}
+function Unavailable() {
+	return (
+		<FormStatePanel
+			title="Lenken er ikke tilgjengelig"
+			body="Arrangementet kan være avsluttet, eller lenken kan være erstattet. Kontakt Navet for hjelp."
+			action={
+				<a className="underline" href={`mailto:${COMPANY_CONTACT_EMAIL}`}>
+					Kontakt Navet
+				</a>
+			}
+		/>
+	);
+}
+export function ConfirmPlanning() {
+	const token = useEmailLinkToken();
+	const confirm = useMutation(api.events.planning.public.confirm);
+	const [state, setState] = useState("idle");
+	if (token === undefined) return null;
+	if (!token) return <Unavailable />;
+	if (state === "confirmed")
+		return (
+			<FormStatePanel
+				action={null}
+				title="Takk, opplysningene er bekreftet!"
+				body="Vi har mottatt svarene deres. Bruk lenken i invitasjonen hvis dere ønsker å legge til eller endre noe senere."
+			/>
+		);
+	if (state === "invalid" || state === "expired")
+		return (
+			<FormStatePanel
+				action={null}
+				title={state === "expired" ? "Lenken har utløpt" : "Lenken er ikke gyldig lenger"}
+				body="Gå tilbake til skjemaet via invitasjonen for å sende inn opplysningene eller be om en ny bekreftelseslenke."
+			/>
+		);
+	return (
+		<FormStatePanel
+			title="Bekreft opplysningene"
+			body="Klikk nedenfor for å bekrefte opplysningene dere sendte inn til Navet."
+			action={
+				<Button
+					size="lg"
+					disabled={state === "pending"}
+					onClick={async () => {
+						setState("pending");
+						try {
+							setState((await confirm({ token })).state);
+						} catch {
+							setState("error");
+						}
+					}}
+				>
+					{state === "pending" ? "Bekrefter …" : "Bekreft opplysningene"}
+				</Button>
+			}
+			quiet={
+				state === "error" ? <p role="alert">Kunne ikke bekrefte nå. Prøv igjen.</p> : undefined
+			}
+		/>
+	);
+}

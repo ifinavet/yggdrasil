@@ -5,7 +5,12 @@
 // The offer token is in the path, not a fragment, because the page preloads the offer on the
 // server. So it still reaches the host's request logs; only the offer email and those logs hold it.
 
-const PRIVATE_PAGES = new Set(["/feedback", "/report"]);
+const PRIVATE_PAGES = new Set([
+	"/feedback",
+	"/report",
+	"/planlegg-arrangement",
+	"/planlegg-arrangement/bekreft",
+]);
 const PRIVATE_PREFIXES = ["/bestill-bedpres/tilbud/"];
 
 /** Whether a pathname («/bestill-bedpres/tilbud/abc») is one of the token pages. */
