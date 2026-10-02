@@ -30,7 +30,7 @@ export const discover = internalMutation({
 			.query("events")
 			.withIndex("by_eventStart", (q) => q.gt("eventStart", now))
 			.paginate({ numItems: 40, cursor: cursor ?? null });
-		for (const event of page.page) await prepareDue(ctx, event, now);
+		await Promise.all(page.page.map((event) => prepareDue(ctx, event, now)));
 		if (!page.isDone)
 			await ctx.scheduler.runAfter(0, internal.events.planning.lifecycle.discover, {
 				cursor: page.continueCursor,

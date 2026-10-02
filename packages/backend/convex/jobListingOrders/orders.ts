@@ -20,11 +20,7 @@ import {
 } from "../_generated/server";
 import { requireLogo } from "../companies/helper";
 import { companyBilling } from "../companies/schema";
-import {
-	CONFIRMATION_TTL_MS,
-	confirmationFields,
-	confirmationState,
-} from "../lib/emailConfirmation";
+import { confirmationFields, confirmationState } from "../lib/emailConfirmation";
 import { hashLinkToken } from "../lib/tokens";
 import { deleteUnreferencedOrderLogo } from "./logos";
 import { orderRateLimiter } from "./rateLimits";

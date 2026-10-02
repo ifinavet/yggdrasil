@@ -166,14 +166,13 @@ export const recordProviderEvent = internalMutation({
 		)
 			return true;
 		const failed = ["bounced", "complained", "failed", "delayed"].includes(status);
+		const messages: Partial<Record<Doc<"eventPlanningEmails">["status"], string>> = {
+			bounced: "Mottakerens server avviste e-posten. Kontroller adressen.",
+			complained: "E-posten ble markert som søppelpost. Følg opp manuelt.",
+			delayed: "Leveringen er forsinket. Sjekk leveringsstatus før ny sending.",
+		};
 		const message =
-			status === "bounced"
-				? "Mottakerens server avviste e-posten. Kontroller adressen."
-				: status === "complained"
-					? "E-posten ble markert som søppelpost. Følg opp manuelt."
-					: status === "delayed"
-						? "Leveringen er forsinket. Sjekk leveringsstatus før ny sending."
-						: "E-posten kunne ikke sendes. Kontroller leveringsoppsettet.";
+			messages[status] ?? "E-posten kunne ikke sendes. Kontroller leveringsoppsettet.";
 		await ctx.db.patch(email._id, {
 			status,
 			...(failed ? { error: message } : { error: undefined }),
@@ -196,54 +195,48 @@ export const recover = internalMutation({
 				q.eq("status", "pending").lte("nextAttemptAt", Date.now()),
 			)
 			.take(50);
-		for (const email of pending) {
-			await ctx.db.patch(email._id, { nextAttemptAt: Date.now() + 5 * MINUTE_MS });
-			await ctx.scheduler.runAfter(0, internal.events.planning.mail.deliver, { id: email._id });
-		}
-		for (const status of ["queued", "sent", "delayed"] as const) {
-			const rows = await ctx.db
-				.query("eventPlanningEmails")
-				.withIndex("by_status_and_nextAttemptAt", (q) =>
-					q.eq("status", status).lte("nextAttemptAt", Date.now()),
-				)
-				.take(30);
-			for (const email of rows) {
-				if (!email.emailId || email.emailId.startsWith("local:")) {
-					await ctx.db.patch(email._id, { nextAttemptAt: Date.now() + HOUR_MS });
-					continue;
-				}
-				const provider = await trackedEmail.status(ctx, email.emailId as EmailId);
-				if (provider?.status === "delivered" && !provider.complained) {
-					await ctx.db.patch(email._id, {
-						status: "delivered",
-						error: undefined,
-						deliveredAt: Date.now(),
-						sentAt: email.sentAt ?? Date.now(),
-					});
-				} else if (provider?.complained) {
-					await ctx.db.patch(email._id, {
-						status: "complained",
-						error: "E-posten ble markert som søppelpost. Følg opp manuelt.",
-					});
-					await alertFailure(ctx, email, "E-posten ble markert som søppelpost.");
-				} else if (
-					provider?.status === "failed" ||
-					provider?.status === "bounced" ||
-					provider?.status === "cancelled"
-				) {
-					await ctx.db.patch(email._id, {
-						status: provider.status === "bounced" ? "bounced" : "failed",
-						error: "Leveringen feilet hos e-postleverandøren.",
-					});
-					await alertFailure(ctx, email, "Leveringen feilet hos e-postleverandøren.");
-				} else if (!email.resolvedAt) {
-					await ctx.db.patch(email._id, {
-						error: "Levering er ikke bekreftet ennå. Kontroller før eventuell ny sending.",
-					});
-					await alertFailure(ctx, email, "Levering er ikke bekreftet ennå.");
-				}
-				await ctx.db.patch(email._id, { nextAttemptAt: Date.now() + HOUR_MS });
-			}
-		}
+		await Promise.all(
+			pending.map(async (email) => {
+				await ctx.db.patch(email._id, { nextAttemptAt: Date.now() + 5 * MINUTE_MS });
+				await ctx.scheduler.runAfter(0, internal.events.planning.mail.deliver, { id: email._id });
+			}),
+		);
+		const batches = await Promise.all(
+			(["queued", "sent", "delayed"] as const).map((status) =>
+				ctx.db
+					.query("eventPlanningEmails")
+					.withIndex("by_status_and_nextAttemptAt", (q) =>
+						q.eq("status", status).lte("nextAttemptAt", Date.now()),
+					)
+					.take(30),
+			),
+		);
+		await Promise.all(batches.flat().map((email) => recoverEmail(ctx, email)));
 	},
 });
+
+async function recoverEmail(ctx: MutationCtx, email: Doc<"eventPlanningEmails">) {
+	await ctx.db.patch(email._id, { nextAttemptAt: Date.now() + HOUR_MS });
+	if (!email.emailId || email.emailId.startsWith("local:")) return;
+	const provider = await trackedEmail.status(ctx, email.emailId as EmailId);
+	if (provider?.status === "delivered" && !provider.complained) {
+		await ctx.db.patch(email._id, {
+			status: "delivered",
+			error: undefined,
+			deliveredAt: Date.now(),
+			sentAt: email.sentAt ?? Date.now(),
+		});
+		return;
+	}
+	let status = email.status;
+	let error = "Levering er ikke bekreftet ennå. Kontroller før eventuell ny sending.";
+	if (provider?.complained) {
+		status = "complained";
+		error = "E-posten ble markert som søppelpost. Følg opp manuelt.";
+	} else if (provider && ["failed", "bounced", "cancelled"].includes(provider.status)) {
+		status = provider.status === "bounced" ? "bounced" : "failed";
+		error = "Leveringen feilet hos e-postleverandøren.";
+	} else if (email.resolvedAt) return;
+	await ctx.db.patch(email._id, { status, error });
+	await alertFailure(ctx, email, error);
+}

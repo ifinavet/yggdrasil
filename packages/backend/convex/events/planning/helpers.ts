@@ -99,23 +99,22 @@ export async function initialPlanning(ctx: QueryCtx, event: Doc<"events">) {
 	]);
 	const product = event.product ? await ctx.db.get(event.product.productId) : null;
 	const known = (value: string) => (value === "Mer info kommer" ? "" : value);
+	let venue: PlanningAnswers["venue"] = "unsure";
+	if (order?.wantsToUseEscape === "yes") venue = "escape";
+	else if (order?.venue === "campus") venue = "campus";
+	else if (order?.venue === "own_premises") venue = "own";
+	let foodAndDrinks: PlanningAnswers["foodAndDrinks"] = "unsure";
+	if (order) foodAndDrinks = order.foodAndDrinks ? "yes" : "no";
 	const answers: PlanningAnswers = {
 		title: known(event.title),
 		teaser: known(event.teaser),
 		description: known(event.description) || order?.description || "",
 		capacity: event.participationLimit,
 		startTime: formatOsloDate(event.eventStart, "HH:mm"),
-		venue:
-			order?.wantsToUseEscape === "yes"
-				? "escape"
-				: order?.venue === "campus"
-					? "campus"
-					: order?.venue === "own_premises"
-						? "own"
-						: "unsure",
+		venue,
 		location: known(event.location),
 		food: food?.name ?? event.food ?? "",
-		foodAndDrinks: order ? (order.foodAndDrinks ? "yes" : "no") : "unsure",
+		foodAndDrinks,
 		foodPurchasedBy: order?.foodPurchasedBy ?? "undecided",
 		alcohol: "unsure",
 		ageRestriction:
@@ -233,8 +232,7 @@ export async function planningByToken(ctx: QueryCtx, token: string) {
 		.unique();
 	const event = planning ? await ctx.db.get(planning.eventId) : null;
 	if (
-		!planning ||
-		planning.status !== "invited" ||
+		planning?.status !== "invited" ||
 		!event ||
 		event.externalEvent ||
 		planning.companyId !== event.hostingCompany

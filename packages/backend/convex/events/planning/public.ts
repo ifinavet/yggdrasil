@@ -153,8 +153,7 @@ export const confirm = mutation({
 		const event = planning ? await ctx.db.get(planning.eventId) : null;
 		if (
 			!submission ||
-			!planning ||
-			planning.status !== "invited" ||
+			planning?.status !== "invited" ||
 			planning.generation !== submission.generation ||
 			!event ||
 			event.externalEvent ||

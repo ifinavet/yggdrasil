@@ -217,8 +217,7 @@ export const saveReview = mutation({
 			throw new ConvexError("Svarene har endret seg. Åpne gjennomgangen på nytt.");
 		const planning = await ctx.db.get(submission.planningId);
 		if (
-			!planning ||
-			planning.status !== "invited" ||
+			planning?.status !== "invited" ||
 			planning.generation !== submission.generation ||
 			planning.latestSubmissionId !== submissionId
 		)
@@ -244,8 +243,7 @@ export const approve = mutation({
 			throw new ConvexError("Svarene har endret seg. Åpne gjennomgangen på nytt.");
 		const planning = await ctx.db.get(submission.planningId);
 		if (
-			!planning ||
-			planning.status !== "invited" ||
+			planning?.status !== "invited" ||
 			planning.latestSubmissionId !== submission._id ||
 			planning.generation !== submission.generation
 		)
