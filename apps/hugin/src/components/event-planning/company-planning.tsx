@@ -36,7 +36,9 @@ function Planning({ token }: Readonly<{ token: string }>) {
 					<div>
 						<p className="font-semibold">{data.companyName}</p>
 						<p className="text-muted-foreground text-sm">
-							{formatSemesterDay(data.eventDate, "long")} · {data.packageName}
+							{formatSemesterDay(data.eventDate, "long")}
+							<br />
+							{data.packageName}
 						</p>
 					</div>
 				</div>
