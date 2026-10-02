@@ -19,7 +19,7 @@ import { hashLinkToken } from "../../lib/tokens";
 import { getOrganizers } from "../queries";
 
 export const eventArgsError = "Arrangementet er avsluttet eller utilgjengelig.";
-export async function planningForEvent(ctx: QueryCtx, eventId: Id<"events">) {
+export function planningForEvent(ctx: QueryCtx, eventId: Id<"events">) {
 	return ctx.db
 		.query("eventPlanning")
 		.withIndex("by_eventId", (q) => q.eq("eventId", eventId))
@@ -180,7 +180,7 @@ export function envelopeFingerprint(envelope: Doc<"eventPlanningEmails">["envelo
 	return JSON.stringify([
 		envelope.from,
 		envelope.to,
-		[...envelope.cc].sort(),
+		[...envelope.cc].sort((a, b) => a.localeCompare(b)),
 		envelope.replyTo,
 		envelope.subject,
 		envelope.text,

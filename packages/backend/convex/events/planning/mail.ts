@@ -10,7 +10,7 @@ export const deliver = internalAction({
 	handler: async (ctx, { id }): Promise<void> => {
 		try {
 			const email = await ctx.runQuery(internal.events.planning.delivery.getEmail, { id });
-			if (!email || email.status !== "pending") return;
+			if (email?.status !== "pending") return;
 			const html = await render(
 				EventPlanningEmail({
 					...email.envelope,

@@ -61,7 +61,12 @@ export async function stalePlanningNotice(
 	if (parts[1] === "email-error") {
 		const id = ctx.db.normalizeId("eventPlanningEmails", parts[2] ?? "");
 		const email = id ? await ctx.db.get(id) : null;
-		return !email || email.resolvedAt !== undefined || !email.error;
+		return (
+			!email ||
+			email.resolvedAt !== undefined ||
+			!email.error ||
+			(parts[3] !== undefined && parts[3] !== "send" && parts[3] !== email.status)
+		);
 	}
 	return false;
 }

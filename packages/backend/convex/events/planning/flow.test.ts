@@ -338,4 +338,20 @@ describe("company event planning", () => {
 		).rejects.toThrow();
 		expect(await f.t.run((ctx) => ctx.db.query("eventPlanningEmails").collect())).toHaveLength(2);
 	});
+	it("alerts again if a delayed message subsequently bounces", async () => {
+		const f = await invited();
+		await f.t.run((ctx) => ctx.db.patch(f.mail._id, { status: "queued", emailId: "provider-id" }));
+		await f.t.mutation(internal.events.planning.delivery.recordProviderEvent, {
+			emailId: "provider-id",
+			type: "email.delivery_delayed",
+		});
+		await f.t.mutation(internal.events.planning.delivery.recordProviderEvent, {
+			emailId: "provider-id",
+			type: "email.bounced",
+		});
+		expect(await f.t.run((ctx) => ctx.db.query("eventSlackNotifications").collect())).toHaveLength(
+			2,
+		);
+		expect((await f.t.run((ctx) => ctx.db.get(f.mail._id)))?.status).toBe("bounced");
+	});
 });

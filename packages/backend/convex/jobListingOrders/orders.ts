@@ -32,7 +32,7 @@ import { sanitizeRichText } from "./sanitize";
 import { type CompanyChangesDoc, orderContact, orderItemFields } from "./schema";
 import { loadOrderSettings } from "./settings";
 
-export { CONFIRMATION_TTL_MS };
+export { CONFIRMATION_TTL_MS } from "../lib/emailConfirmation";
 export const FEEDBACK_MAX_LENGTH = 1000;
 
 export const orderFormArgs = v.object({

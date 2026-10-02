@@ -2,7 +2,7 @@ import type { EmailId } from "@convex-dev/resend";
 import { HOUR_MS, MINUTE_MS } from "@workspace/shared/time";
 import { v } from "convex/values";
 import { internal } from "../../_generated/api";
-import type { Doc, Id } from "../../_generated/dataModel";
+import type { Doc } from "../../_generated/dataModel";
 import { internalMutation, internalQuery, type MutationCtx } from "../../_generated/server";
 import { isLocalDevelopment } from "../../auth/local";
 import { trackedEmail } from "../../lib/trackedEmail";
@@ -31,7 +31,7 @@ export const enqueueRendered = internalMutation({
 	args: { id: v.id("eventPlanningEmails"), html: v.string() },
 	handler: async (ctx, { id, html }): Promise<void> => {
 		const email = await ctx.db.get(id);
-		if (!email || email.status !== "pending") return;
+		if (email?.status !== "pending") return;
 		const planning = await ctx.db.get(email.planningId);
 		const event = planning ? await ctx.db.get(planning.eventId) : null;
 		if (
@@ -112,7 +112,7 @@ export const recordFailure = internalMutation({
 	args: { id: v.id("eventPlanningEmails"), message: v.string() },
 	handler: async (ctx, { id, message }) => {
 		const email = await ctx.db.get(id);
-		if (!email || email.status !== "pending") return;
+		if (email?.status !== "pending") return;
 		const attempts = email.attempts + 1;
 		await ctx.db.patch(id, {
 			attempts,
@@ -123,14 +123,19 @@ export const recordFailure = internalMutation({
 		await alertFailure(ctx, email, message);
 	},
 });
-async function alertFailure(ctx: MutationCtx, email: Doc<"eventPlanningEmails">, message: string) {
+async function alertFailure(
+	ctx: MutationCtx,
+	email: Doc<"eventPlanningEmails">,
+	message: string,
+	category = "send",
+) {
 	const planning = await ctx.db.get(email.planningId);
 	const event = planning ? await ctx.db.get(planning.eventId) : null;
 	if (event)
 		await notifyPlanning(
 			ctx,
 			event,
-			`email-error:${email._id}`,
+			`email-error:${email._id}:${category}`,
 			`E-post for arrangementsplanlegging trenger oppfølging: ${message}`,
 			"delivery",
 		);
@@ -177,7 +182,7 @@ export const recordProviderEvent = internalMutation({
 				? { deliveredAt: Date.now(), sentAt: email.sentAt ?? Date.now() }
 				: {}),
 		});
-		if (failed) await alertFailure(ctx, email, message);
+		if (failed) await alertFailure(ctx, email, message, status);
 		return true;
 	},
 });
