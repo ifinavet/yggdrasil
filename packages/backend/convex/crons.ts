@@ -7,6 +7,19 @@ import { internal } from "./_generated/api";
 const crons = cronJobs();
 
 crons.interval(
+	"Prepare company planning invitations",
+	{ minutes: 5 },
+	internal.events.planning.lifecycle.discover,
+	{},
+);
+crons.interval(
+	"Recover company planning email delivery",
+	{ minutes: 5 },
+	internal.events.planning.delivery.recover,
+	{},
+);
+
+crons.interval(
 	"Check and update pending registrations",
 	{ hours: 2 },
 	internal.events.waitlist.mutations.checkPendingRegistrations,

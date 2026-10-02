@@ -234,7 +234,7 @@ describe("company semester event lifecycle", () => {
 		await run(t);
 		expect(slack.channels[0]?.archived).toBe(true);
 	});
-	it("sends only fresh four-week contact and main-organizer practical/expense reminders", async () => {
+	it("links preparation and sends main-organizer practical/expense reminders", async () => {
 		const { t, companyId } = await setup();
 		const slack = fakeSlack();
 		const eventId = await insertEvent(t, companyId, { title: "Bedpres", eventStart: START });
@@ -242,7 +242,9 @@ describe("company semester event lifecycle", () => {
 		await organizer(t, eventId, "HELPER", "medhjelper");
 		await run(t);
 		await run(t, eventPlanningAt(START, 28));
-		expect(slack.channels[0]?.messages.at(-1)?.text).toContain(COMPANY_FIRST_CONTACT_TEMPLATE_URL);
+		expect(slack.channels[0]?.messages.map((m) => m.text).join("\n")).toContain(
+			"?planning=prepare",
+		);
 		await run(t, eventPlanningAt(START, 2));
 		const practical = slack.channels[0]?.messages.find((message) =>
 			message.text.includes("laptop"),
@@ -264,7 +266,7 @@ describe("company semester event lifecycle", () => {
 		await run(t, START - DAY_MS);
 		const texts = slack.channels[0]?.messages.map((message) => message.text).join("\n");
 		expect(texts).toContain("Dette gjør dere");
-		expect(texts).toContain(COMPANY_FIRST_CONTACT_TEMPLATE_URL);
+		expect(texts).toContain("?planning=prepare");
 		expect(texts).toContain("laptop");
 		expect(texts).not.toContain("del arrangementet i Ifi-studenter");
 		const count = slack.channels[0]?.messages.length;
@@ -713,49 +715,16 @@ it("warns about unmarked attendance only before feedback, and nudges only an una
 	expect(await due(eventPlanningAt(readyAt, -3))).toEqual([]);
 });
 
-it("links the previous approved report and the exact stand guidelines in company contact", async () => {
+it("does not send the retired manual first-contact template reminder", async () => {
 	const { dueOrganizerReminders } = await import("./reminders");
 	const { t, companyId } = await setup();
-	const prior = await insertEvent(t, companyId, {
-		eventStart: START - 100 * DAY_MS,
-		slug: "prior",
-	});
-	const current = await insertEvent(t, companyId, { eventStart: START });
-	const campaignId = await t.run((ctx) =>
-		ctx.db.insert("feedbackCampaigns", {
-			eventId: prior,
-			status: "closed",
-			generation: 1,
-			opensAt: NOW - 90 * DAY_MS,
-			closesAt: NOW - 75 * DAY_MS,
-		}),
+	const eventId = await insertEvent(t, companyId, { eventStart: START });
+	const reminders = await t.run(async (ctx) =>
+		dueOrganizerReminders(ctx, (await ctx.db.get(eventId))!, eventPlanningAt(START, 28)),
 	);
-	await t.run((ctx) =>
-		ctx.db.insert("feedbackReports", {
-			campaignId,
-			eventId: prior,
-			eventTitle: "Prior",
-			eventStart: START - 100 * DAY_MS,
-			companyName: "Bedrift",
-			recipientEmail: "",
-			status: "approved",
-			questions: [],
-			totalResponses: 1,
-			buildCursor: null,
-			revision: 1,
-			retentionAt: START + 365 * DAY_MS,
-			approvedAt: NOW - 70 * DAY_MS,
-		}),
-	);
-	const reminders = await t.run(async (ctx) => {
-		const event = await ctx.db.get(current);
-		if (!event) throw new Error("Missing event");
-		return dueOrganizerReminders(ctx, event, eventPlanningAt(START, 28));
-	});
-	expect(reminders[0]?.text).toContain("/events/prior/report");
-	expect(reminders[0]?.text).toContain(
-		"https://www.uio.no/om/regelverk/eiendom/praktiske-retningslinjer/regler-for-reklame-og-profilering/arrangementer-og-stands/",
-	);
+	expect(
+		reminders.some((reminder) => reminder.text.includes(COMPANY_FIRST_CONTACT_TEMPLATE_URL)),
+	).toBe(false);
 });
 
 it("announces only actual channel creation to system alerts, once per generation", async () => {
@@ -1238,7 +1207,7 @@ describe("existing and new event alert parity", () => {
 			await run(t);
 			const texts = slack.channels[0]?.messages.map((m) => m.text).join("\n") ?? "";
 			expect(texts).toContain("Dette gjør dere");
-			expect(texts).toContain(COMPANY_FIRST_CONTACT_TEMPLATE_URL);
+			expect(texts).toContain("?planning=prepare");
 			expect(texts).toContain("tittel, teaser, beskrivelse");
 			expect(texts).toContain("sjekklisten");
 			expect(texts).toContain("Alle plassene er tatt");
@@ -1424,7 +1393,7 @@ describe("existing and new event alert parity", () => {
 	});
 });
 
-it("recovers a cancelled actionable reminder after a date change without repeating completed notices", async () => {
+it("cancels queued legacy first-contact reminders after a date change", async () => {
 	const { t, companyId } = await setup();
 	const slack = fakeSlack();
 	const eventId = await insertEvent(t, companyId, { eventStart: START });
@@ -1444,7 +1413,7 @@ it("recovers a cancelled actionable reminder after a date change without repeati
 				message.text.includes(COMPANY_FIRST_CONTACT_TEMPLATE_URL) &&
 				!message.text.includes("Dette gjør dere"),
 		),
-	).toHaveLength(1);
+	).toHaveLength(0);
 	await t.run((ctx) => ctx.db.patch(eventId, { eventStart: START + DAY_MS }));
 	await run(t, eventPlanningAt(START + DAY_MS, 28));
 	expect(
@@ -1453,7 +1422,7 @@ it("recovers a cancelled actionable reminder after a date change without repeati
 				message.text.includes(COMPANY_FIRST_CONTACT_TEMPLATE_URL) &&
 				!message.text.includes("Dette gjør dere"),
 		),
-	).toHaveLength(1);
+	).toHaveLength(0);
 });
 
 it("does not let a missing report block the next notice", async () => {
@@ -1524,4 +1493,46 @@ it("repairs an old temporary channel name once without creating a new channel", 
 	expect(slack.channels).toHaveLength(1);
 	expect(channel.name).toBe("h26-testbedrift");
 	expect(slack.calls.filter((call) => call === "conversations.rename")).toHaveLength(1);
+});
+
+it("finds the previous approved report for internal planning context", async () => {
+	const { previousCompanyReport } = await import("../../companies/history");
+	const { t, companyId } = await setup();
+	const prior = await insertEvent(t, companyId, {
+		eventStart: START - 100 * DAY_MS,
+		slug: "prior",
+	});
+	const current = await insertEvent(t, companyId, { eventStart: START });
+	const campaignId = await t.run((ctx) =>
+		ctx.db.insert("feedbackCampaigns", {
+			eventId: prior,
+			status: "closed",
+			generation: 1,
+			opensAt: NOW - 90 * DAY_MS,
+			closesAt: NOW - 75 * DAY_MS,
+		}),
+	);
+	await t.run((ctx) =>
+		ctx.db.insert("feedbackReports", {
+			campaignId,
+			eventId: prior,
+			eventTitle: "Prior",
+			eventStart: START - 100 * DAY_MS,
+			companyName: "Bedrift",
+			recipientEmail: "",
+			status: "approved",
+			questions: [],
+			totalResponses: 1,
+			buildCursor: null,
+			revision: 1,
+			retentionAt: START + 365 * DAY_MS,
+			approvedAt: NOW - 70 * DAY_MS,
+		}),
+	);
+	const reminders = await t.run(async (ctx) => {
+		const event = await ctx.db.get(current);
+		if (!event) throw new Error("Missing event");
+		return previousCompanyReport(ctx, event, eventPlanningAt(START, 28));
+	});
+	expect(reminders).toContain("/events/prior/report");
 });

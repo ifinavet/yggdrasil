@@ -9,6 +9,7 @@ import {
 	internalQuery,
 	type MutationCtx,
 } from "../_generated/server";
+import { stalePlanningNotice } from "../events/planning/lifecycle";
 import { slackConfig } from "./config";
 import { slackClient } from "./slack";
 
@@ -59,6 +60,11 @@ export const enqueue = internalMutation({
 });
 
 async function obsolete(ctx: MutationCtx, item: Doc<"slackSystemDeliveries">) {
+	if (item.clientMsgId.startsWith("planning:")) {
+		const [, rawId, ...key] = item.clientMsgId.split(":");
+		const id = ctx.db.normalizeId("events", rawId ?? "");
+		return !id || (await stalePlanningNotice(ctx, id, `planning:${key.join(":")}`));
+	}
 	const opening = /^registration-open-([^-]+)-(\d+)$/.exec(item.clientMsgId);
 	if (opening) {
 		const event = await ctx.db.get(opening[1] as Id<"events">);

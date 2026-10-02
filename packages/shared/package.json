@@ -43,7 +43,8 @@
 		"./slack/alerts": "./slack/alerts.ts",
 		"./feedback/report": "./feedback/report.ts",
 		"./feedback/report-csv": "./feedback/report-csv.ts",
-		"./events/checklist": "./events/checklist.ts"
+		"./events/checklist": "./events/checklist.ts",
+		"./events/planning": "./events/planning.ts"
 	},
 	"scripts": {
 		"check-types": "tsc --noEmit"
