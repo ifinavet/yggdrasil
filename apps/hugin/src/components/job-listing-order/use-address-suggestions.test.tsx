@@ -1,15 +1,13 @@
 import { addressSearchSessionSchema } from "@workspace/shared/job-listing-orders";
+import { useAddressSuggestions } from "@workspace/ui/hooks/use-address-suggestions";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useAddressSuggestions } from "./use-address-suggestions";
 
 const searchAddresses = vi.fn(async (_args: { query: string; sessionId: string }) => []);
 
-vi.mock("convex/react", () => ({ useAction: () => searchAddresses }));
-
 function Suggestions({ value }: Readonly<{ value: string }>) {
-	useAddressSuggestions(value, true);
+	useAddressSuggestions(value, true, searchAddresses);
 	return null;
 }
 

@@ -7,7 +7,7 @@ import { formatSemesterDay } from "@workspace/shared/time";
 import { Button } from "@workspace/ui/components/button";
 import { CompanyLogo } from "@workspace/ui/components/company-logo";
 import { EventPlanningForm } from "@workspace/ui/components/event-planning-form";
-import { useMutation, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { useState } from "react";
 import { EmailCheckScreen } from "@/components/email-check-screen";
 import { FormStatePanel } from "@/components/form-state-panel";
@@ -99,10 +99,12 @@ function CompanyAnswers({
 	eventType?: EventType;
 	onSent: (answers: PlanningAnswers) => void;
 }>) {
+	const searchAddresses = useAction(api.jobListingOrders.addressSearch.searchAddresses);
 	const submit = useMutation(api.events.planning.public.submit);
 	const [openedRevision] = useState(revision);
 	return (
 		<EventPlanningForm
+			searchAddresses={searchAddresses}
 			initial={initial}
 			capacityLimit={capacityLimit}
 			eventType={eventType}

@@ -33,3 +33,5 @@ The draft PR tracks verification and deployment status. Screenshots in `company-
 - Local development records email delivery without contacting Resend and exposes local preview links in the delivery modal. Test all external integrations against a configured test environment before production rollout.
 
 Company form question order follows the original first-contact email, including its assisting text. A requested arrangement type is stored with the answers for internal review; it does not change the agreed package or its capacity limit.
+
+The address field reuses the listings address autocomplete and debounced Geonorge lookup. IFI is always the first option, even before typing; selecting it stores `IFI` as the location.

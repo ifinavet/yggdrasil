@@ -16,6 +16,8 @@ import {
 } from "@workspace/shared/semester/labels";
 import { convexErrorMessage } from "@workspace/shared/utils";
 import { useId, useState, type ReactNode } from "react";
+import { AddressInput } from "./address-input";
+import type { AddressSearch } from "../hooks/use-address-suggestions";
 import { Button } from "./button";
 import { Field, FieldDescription, FieldError, FieldLabel } from "./field";
 import { Input } from "./input";
@@ -33,6 +35,7 @@ const selectClass =
 	"h-11 w-full rounded-md border border-input bg-background px-3 text-base shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 export function EventPlanningForm({
 	initial,
+	searchAddresses,
 	capacityLimit,
 	eventType,
 	onSubmit,
@@ -41,6 +44,7 @@ export function EventPlanningForm({
 	after,
 }: Readonly<{
 	initial: PlanningAnswers;
+	searchAddresses: AddressSearch;
 	capacityLimit: number;
 	eventType?: EventType;
 	onSubmit: (answers: PlanningAnswers) => Promise<unknown>;
@@ -49,6 +53,7 @@ export function EventPlanningForm({
 	after?: ReactNode;
 }>) {
 	const prefix = useId();
+	const [locationInputId, setLocationInputId] = useState<string>();
 	const [error, setError] = useState("");
 	const defaultValues: PlanningAnswers = {
 		...initial,
@@ -199,7 +204,26 @@ export function EventPlanningForm({
 					VENUE_CHOICES,
 					PLANNING_QUESTIONS.venue.hint,
 				)}
-				{text("location")}
+				<form.Field name="location">
+					{(field) => (
+						<Field>
+							<FieldLabel htmlFor={locationInputId} className="text-base">
+								Adresse
+							</FieldLabel>
+							<AddressInput
+								onInputId={setLocationInputId}
+								label="Adresse"
+								value={field.state.value}
+								invalid={field.state.meta.errors.length > 0}
+								onChange={field.handleChange}
+								onBlur={field.handleBlur}
+								searchAddresses={searchAddresses}
+								pinnedSuggestions={["IFI"]}
+							/>
+							<FieldError errors={field.state.meta.errors} />
+						</Field>
+					)}
+				</form.Field>
 			</section>
 			<form.Field name="capacity">
 				{(field) => (

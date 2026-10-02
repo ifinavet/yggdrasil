@@ -15,7 +15,7 @@
 		"@floating-ui/react": "catalog:",
 		"@sentry/nextjs": "catalog:",
 		"@tanstack/react-form": "catalog:",
-		"@tanstack/react-pacer": "0.23.0",
+		"@tanstack/react-pacer": "catalog:",
 		"@tanstack/react-table": "catalog:",
 		"@workspace/auth": "workspace:*",
 		"@workspace/backend": "workspace:*",

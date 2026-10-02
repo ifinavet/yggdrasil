@@ -24,7 +24,7 @@ import { Field, FieldLabel } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
 import { SafeHtml } from "@workspace/ui/components/safe-html";
 import { Textarea } from "@workspace/ui/components/textarea";
-import { useMutation, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -139,6 +139,7 @@ export function EventPlanningPanel({ eventId }: Readonly<{ eventId: Id<"events">
 }
 
 function Preparation({ data, onSaved }: Readonly<{ data: PlanningData; onSaved: () => void }>) {
+	const searchAddresses = useAction(api.jobListingOrders.addressSearch.searchAddresses);
 	const save = useMutation(api.events.planning.admin.savePreparation);
 	const [contactName, setContactName] = useState(data.initial.contactName);
 	const [contactEmail, setContactEmail] = useState(data.initial.contactEmail);
@@ -146,6 +147,7 @@ function Preparation({ data, onSaved }: Readonly<{ data: PlanningData; onSaved: 
 	const [eventType, setEventType] = useState<EventType | undefined>(data.initial.eventType);
 	return (
 		<EventPlanningForm
+			searchAddresses={searchAddresses}
 			initial={data.initial.answers}
 			eventType={eventType}
 			capacityLimit={Math.min(
@@ -319,6 +321,7 @@ function Invitation({
 }
 
 function Review({ data, onDone }: Readonly<{ data: PlanningData; onDone: () => void }>) {
+	const searchAddresses = useAction(api.jobListingOrders.addressSearch.searchAddresses);
 	const save = useMutation(api.events.planning.admin.saveReview);
 	const approve = useMutation(api.events.planning.admin.approve);
 	const [preview, setPreview] = useState(false);
@@ -354,6 +357,7 @@ function Review({ data, onDone }: Readonly<{ data: PlanningData; onDone: () => v
 			)}
 			{!preview ? (
 				<EventPlanningForm
+					searchAddresses={searchAddresses}
 					key={submission.revision}
 					initial={submission.draft}
 					eventType={data.initial.eventType}
