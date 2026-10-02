@@ -35,10 +35,7 @@ function Planning({ token }: Readonly<{ token: string }>) {
 			<header className="mb-8 space-y-5">
 				<div className="flex items-center gap-4">
 					<CompanyLogo name={data.companyName} url={data.logoUrl} size="lg" />
-					<div>
-						<p className="font-semibold">{data.companyName}</p>
-						<p className="text-muted-foreground text-sm">{data.packageName}</p>
-					</div>
+					<p className="font-semibold">{data.companyName}</p>
 				</div>
 				{!sent && <h1 className="font-bold text-3xl">Planlegg arrangementet</h1>}
 				<div className="flex flex-wrap gap-3">
