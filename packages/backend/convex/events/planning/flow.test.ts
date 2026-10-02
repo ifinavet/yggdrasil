@@ -39,6 +39,7 @@ async function fixture() {
 			description: "<p>Faglig innhold</p>",
 			capacity: 40,
 			language: "Norsk",
+			alcohol: "no" as const,
 			ageRestriction: "none" as const,
 		},
 	};
@@ -222,21 +223,40 @@ describe("company event planning", () => {
 			}),
 		).rejects.toThrow();
 	});
-	it("enforces package capacity and age limits server-side", async () => {
+	it("enforces package capacity server-side", async () => {
 		const f = await invited();
-		for (const change of [
-			{ capacity: 41 },
-			{ venue: "escape" as const, ageRestriction: "none" as const },
-		]) {
-			await expect(
-				f.t.mutation(api.events.planning.public.submit, {
-					token: f.token,
-					revision: f.form.revision,
-					submissionId: crypto.randomUUID(),
-					answers: { ...f.form.answers, ...change },
-				}),
-			).rejects.toThrow();
-		}
+		await expect(
+			f.t.mutation(api.events.planning.public.submit, {
+				token: f.token,
+				revision: f.form.revision,
+				submissionId: crypto.randomUUID(),
+				answers: { ...f.form.answers, capacity: 41 },
+			}),
+		).rejects.toThrow();
+	});
+	it.each([
+		["yes", "18"],
+		["no", "none"],
+		["unsure", "unsure"],
+	] as const)("derives age restriction from alcohol %s", async (alcohol, ageRestriction) => {
+		const f = await invited();
+		await f.t.mutation(api.events.planning.public.submit, {
+			token: f.token,
+			revision: f.form.revision,
+			submissionId: crypto.randomUUID(),
+			answers: {
+				...f.form.answers,
+				venue: "escape",
+				alcohol,
+				ageRestriction: alcohol === "yes" ? "none" : "18",
+			},
+		});
+		const submissions = await f.t.run((ctx) => ctx.db.query("eventPlanningSubmissions").collect());
+		expect(submissions[0]!.answers.ageRestriction).toBe(ageRestriction);
+	});
+	it("exposes the main organizer email as the company contact", async () => {
+		const f = await invited();
+		expect(f.form.organizerEmail).toBe("lead@ifinavet.no");
 	});
 	it("expires confirmation links and invalidates old links on recipient correction", async () => {
 		const f = await submitted();

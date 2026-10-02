@@ -29,8 +29,9 @@ function Planning({ token }: Readonly<{ token: string }>) {
 	if (data === undefined) return <output>Henter arrangementet …</output>;
 	if (!data) return <Unavailable />;
 	const { semester, year } = eventSemesterOf(data.eventStart);
+	const organizerEmail = data.organizerEmail || COMPANY_CONTACT_EMAIL;
 	return (
-		<div className="mx-auto w-full max-w-3xl py-5 sm:py-8">
+		<div className="mx-auto w-full max-w-[65ch] py-5 sm:py-8">
 			<header className="mb-8 space-y-5">
 				<div className="flex items-center gap-4">
 					<CompanyLogo name={data.companyName} url={data.logoUrl} size="lg" />
@@ -40,20 +41,18 @@ function Planning({ token }: Readonly<{ token: string }>) {
 					</div>
 				</div>
 				{!sent && <h1 className="font-bold text-3xl">Planlegg arrangementet</h1>}
-				<dl className="flex flex-wrap gap-3">
+				<div className="flex flex-wrap gap-3">
 					<div className="rounded-lg bg-blue-50 px-4 py-3 text-blue-950 dark:bg-blue-950 dark:text-blue-100">
-						<dt className="text-sm">Dato</dt>
-						<dd className="font-semibold">
+						<p className="font-semibold">
 							<time dateTime={data.eventDate}>{formatSemesterDay(data.eventDate, "long")}</time>
-						</dd>
+						</p>
 					</div>
 					<div className="rounded-lg bg-blue-50 px-4 py-3 text-blue-950 dark:bg-blue-950 dark:text-blue-100">
-						<dt className="text-sm">Semester</dt>
-						<dd className="font-semibold">
+						<p className="font-semibold">
 							{EVENT_SEMESTER_LABELS[semester]} {year}
-						</dd>
+						</p>
 					</div>
-				</dl>
+				</div>
 			</header>
 			{sent ? (
 				<>
@@ -87,9 +86,8 @@ function Planning({ token }: Readonly<{ token: string }>) {
 				/>
 			)}
 			<p className="mt-8 text-muted-foreground text-sm">
-				Spørsmål?{" "}
-				<a className="underline underline-offset-4" href={`mailto:${COMPANY_CONTACT_EMAIL}`}>
-					Kontakt Navet
+				<a className="break-words underline underline-offset-4" href={`mailto:${organizerEmail}`}>
+					Kontakt {organizerEmail}
 				</a>
 			</p>
 		</div>

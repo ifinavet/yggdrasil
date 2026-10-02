@@ -20,6 +20,7 @@ import {
 	parseAnswers,
 	planningByToken,
 	publicUrl,
+	senderFor,
 } from "./helpers";
 import { notifyPlanning } from "./notifications";
 import { answers } from "./schema";
@@ -45,6 +46,7 @@ export const get = query({
 			capacityLimit: await capacityLimit(ctx, planning, event),
 			revision: planning.revision,
 			contactEmail: planning.contactEmail,
+			organizerEmail: (await senderFor(ctx, event._id)).mainEmail,
 			submitted: !!latest,
 		};
 	},

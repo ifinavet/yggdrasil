@@ -1,5 +1,6 @@
 import { HUGIN_LOCAL_URL, HUGIN_URL } from "@workspace/shared/constants";
 import {
+	AGE_BY_ALCOHOL,
 	type PlanningAnswers,
 	planningCapacityLimit,
 	planningFormSchema,
@@ -117,8 +118,7 @@ export async function initialPlanning(ctx: QueryCtx, event: Doc<"events">) {
 		foodAndDrinks,
 		foodPurchasedBy: order?.foodPurchasedBy ?? "undecided",
 		alcohol: "unsure",
-		ageRestriction:
-			order?.wantsToUseEscape === "yes" || /18/.test(event.ageRestriction) ? "18" : "unsure",
+		ageRestriction: "unsure",
 		stand: "unsure",
 		standDetails: "",
 		language: known(event.language),
@@ -173,7 +173,11 @@ export async function parseAnswers(
 	} catch {
 		throw new ConvexError("Velg et klokkeslett som finnes på arrangementsdatoen.");
 	}
-	return { ...parsed.data, description: sanitizeRichText(parsed.data.description) };
+	return {
+		...parsed.data,
+		ageRestriction: AGE_BY_ALCOHOL[parsed.data.alcohol],
+		description: sanitizeRichText(parsed.data.description),
+	};
 }
 export function envelopeFingerprint(envelope: Doc<"eventPlanningEmails">["envelope"]) {
 	return JSON.stringify([

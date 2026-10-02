@@ -1,7 +1,7 @@
 "use client";
 import { useForm } from "@tanstack/react-form";
 import {
-	AGE_CHOICES,
+	AGE_BY_ALCOHOL,
 	ANSWER_CHOICES,
 	PLANNING_FIELDS,
 	PLANNING_QUESTIONS,
@@ -29,7 +29,6 @@ type ChoiceKey =
 	| "foodAndDrinks"
 	| "foodPurchasedBy"
 	| "alcohol"
-	| "ageRestriction"
 	| "stand";
 const selectClass =
 	"h-11 w-full rounded-md border border-input bg-background px-3 text-base shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
@@ -57,6 +56,7 @@ export function EventPlanningForm({
 	const [error, setError] = useState("");
 	const defaultValues: PlanningAnswers = {
 		...initial,
+		ageRestriction: AGE_BY_ALCOHOL[initial.alcohol],
 		requestedEventType: initial.requestedEventType ?? eventType,
 	};
 	const form = useForm({
@@ -65,7 +65,7 @@ export function EventPlanningForm({
 		onSubmit: async ({ value }) => {
 			setError("");
 			try {
-				await onSubmit(value);
+				await onSubmit({ ...value, ageRestriction: AGE_BY_ALCOHOL[value.alcohol] });
 			} catch (e) {
 				setError(
 					convexErrorMessage(
@@ -82,7 +82,7 @@ export function EventPlanningForm({
 			<form.Field key={name} name={name}>
 				{(field) => (
 					<Field>
-						<FieldLabel htmlFor={`${prefix}-${name}`} className="text-base">
+						<FieldLabel htmlFor={`${prefix}-${name}`} className="text-base font-normal leading-6">
 							{copy.label}
 						</FieldLabel>
 						{copy.hint && (
@@ -127,7 +127,7 @@ export function EventPlanningForm({
 			<form.Field name={name}>
 				{(field) => (
 					<Field>
-						<FieldLabel htmlFor={`${prefix}-${name}`} className="text-base">
+						<FieldLabel htmlFor={`${prefix}-${name}`} className="text-base font-semibold leading-6">
 							{label}
 						</FieldLabel>
 						{hint && <FieldDescription id={`${prefix}-${name}-hint`}>{hint}</FieldDescription>}
@@ -139,11 +139,6 @@ export function EventPlanningForm({
 							onBlur={field.handleBlur}
 							onChange={(e) => {
 								field.handleChange(e.target.value as PlanningAnswers[ChoiceKey]);
-								if (
-									(name === "venue" && e.target.value === "escape") ||
-									(name === "alcohol" && e.target.value === "yes")
-								)
-									form.setFieldValue("ageRestriction", "18");
 							}}
 						>
 							{Object.entries(options).map(([value, label]) => (
@@ -160,7 +155,7 @@ export function EventPlanningForm({
 	}
 	return (
 		<form
-			className="space-y-10 text-left"
+			className="max-w-[65ch] space-y-12 text-left [&_[data-slot=field-description]]:max-w-[65ch] [&_[data-slot=field-description]]:whitespace-pre-line [&_[data-slot=field-description]]:text-base [&_[data-slot=field-description]]:leading-7 [&_[data-slot=field-description]]:text-wrap [&_[data-slot=field-description]]:text-foreground/80"
 			onSubmit={(e) => {
 				e.preventDefault();
 				e.stopPropagation();
@@ -171,7 +166,10 @@ export function EventPlanningForm({
 			<form.Field name="requestedEventType">
 				{(field) => (
 					<Field>
-						<FieldLabel htmlFor={`${prefix}-event-type`} className="text-base">
+						<FieldLabel
+							htmlFor={`${prefix}-event-type`}
+							className="text-base font-semibold leading-6"
+						>
 							{eventType
 								? `Dere har søkt om ${EVENT_TYPE_LABELS[eventType].toLowerCase()}, stemmer det eller ønsker dere noe annet?`
 								: "Hvilken type arrangement ønsker dere?"}
@@ -192,7 +190,6 @@ export function EventPlanningForm({
 								</option>
 							))}
 						</select>
-						<FieldDescription>Endringer i arrangementstype avklares med Navet.</FieldDescription>
 						<FieldError errors={field.state.meta.errors} />
 					</Field>
 				)}
@@ -207,7 +204,7 @@ export function EventPlanningForm({
 				<form.Field name="location">
 					{(field) => (
 						<Field>
-							<FieldLabel htmlFor={locationInputId} className="text-base">
+							<FieldLabel htmlFor={locationInputId} className="text-base font-normal leading-6">
 								Adresse
 							</FieldLabel>
 							<AddressInput
@@ -228,7 +225,10 @@ export function EventPlanningForm({
 			<form.Field name="capacity">
 				{(field) => (
 					<Field>
-						<FieldLabel htmlFor={`${prefix}-capacity`} className="text-base">
+						<FieldLabel
+							htmlFor={`${prefix}-capacity`}
+							className="text-base font-semibold leading-6"
+						>
 							{PLANNING_QUESTIONS.capacity.label}
 						</FieldLabel>
 						<FieldDescription id={`${prefix}-capacity-hint`}>
@@ -253,7 +253,7 @@ export function EventPlanningForm({
 			<form.Field name="startTime">
 				{(field) => (
 					<Field>
-						<FieldLabel htmlFor={`${prefix}-time`} className="text-base">
+						<FieldLabel htmlFor={`${prefix}-time`} className="text-base font-semibold leading-6">
 							{PLANNING_QUESTIONS.startTime.label}
 						</FieldLabel>
 						<FieldDescription id={`${prefix}-startTime-hint`}>
@@ -276,36 +276,24 @@ export function EventPlanningForm({
 				{(values) => (
 					<>
 						<section className="space-y-6">
-							{choice(
-								"foodAndDrinks",
-								PLANNING_QUESTIONS.foodAndDrinks.label,
-								ANSWER_CHOICES,
-								PLANNING_QUESTIONS.foodAndDrinks.hint,
-							)}
+							<div className="space-y-3">
+								<h2 className="text-base font-semibold leading-6">
+									{PLANNING_QUESTIONS.foodAndDrinks.label}
+								</h2>
+								<FieldDescription>{PLANNING_QUESTIONS.foodAndDrinks.hint}</FieldDescription>
+							</div>
+							{choice("foodAndDrinks", "Skal det serveres mat og drikke?", ANSWER_CHOICES)}
 							{values.foodAndDrinks !== "no" && (
 								<>
 									{choice("foodPurchasedBy", "Hvem ordner serveringen?", FOOD_PURCHASER_LABELS)}
 									{text("food")}
 								</>
 							)}
-							{choice("alcohol", "Skal det serveres alkohol?", ANSWER_CHOICES)}
+							{choice("alcohol", PLANNING_QUESTIONS.alcohol.label, ANSWER_CHOICES, PLANNING_QUESTIONS.alcohol.hint)}
 						</section>
-						<section className="space-y-6">
-							{choice(
-								"ageRestriction",
-								PLANNING_QUESTIONS.ageRestriction.label,
-								values.venue === "escape" || values.alcohol === "yes"
-									? { "18": AGE_CHOICES["18"] }
-									: AGE_CHOICES,
-								PLANNING_QUESTIONS.ageRestriction.hint,
-							)}
-						</section>
-						<section
-							className="space-y-6"
-							aria-labelledby={`${prefix}-content-heading`}
-						>
+						<section className="space-y-6" aria-labelledby={`${prefix}-content-heading`}>
 							<div className="space-y-3">
-								<h2 id={`${prefix}-content-heading`} className="text-base font-medium">
+								<h2 id={`${prefix}-content-heading`} className="text-base font-semibold leading-6">
 									{PLANNING_QUESTIONS.description.label}
 								</h2>
 								<FieldDescription>{PLANNING_QUESTIONS.description.hint}</FieldDescription>
@@ -315,12 +303,11 @@ export function EventPlanningForm({
 							{text("description")}
 						</section>
 						<section className="space-y-6">
-							{choice(
-								"stand",
-								PLANNING_QUESTIONS.stand.label,
-								ANSWER_CHOICES,
-								PLANNING_QUESTIONS.stand.hint,
-							)}
+							<div className="space-y-3">
+								<h2 className="text-base font-semibold leading-6">{PLANNING_QUESTIONS.stand.label}</h2>
+								<FieldDescription>{PLANNING_QUESTIONS.stand.hint}</FieldDescription>
+							</div>
+							{choice("stand", "Ønsker dere stand på IFI?", ANSWER_CHOICES)}
 							{values.stand === "yes" && text("standDetails")}
 						</section>
 					</>
@@ -329,7 +316,10 @@ export function EventPlanningForm({
 			<form.Field name="language">
 				{(field) => (
 					<Field>
-						<FieldLabel htmlFor={`${prefix}-language`} className="text-base">
+						<FieldLabel
+							htmlFor={`${prefix}-language`}
+							className="text-base font-semibold leading-6"
+						>
 							Hvilket språk skal arrangementet holdes på?
 						</FieldLabel>
 						<Input
