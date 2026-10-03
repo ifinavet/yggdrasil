@@ -182,6 +182,28 @@ describe("pastCurvesBefore", () => {
 	});
 });
 
+describe("baseline history coverage", () => {
+	it("excludes empty and truncated event logs instead of learning false growth", async () => {
+		const { t, companyId } = await setup();
+		await insertEvent(t, companyId, { registrationOpens: OPENS, eventStart: START });
+		const eventId = await insertEvent(t, companyId, {
+			registrationOpens: OPENS,
+			eventStart: START,
+		});
+		const user = await insertUser(t, "busy-history@example.test");
+		await t.run(async (ctx) => {
+			for (let n = 0; n < 1001; n++)
+				await ctx.db.insert("registrationLog", {
+					eventId,
+					userId: user._id,
+					change: "registered",
+					at: OPENS + n,
+				});
+		});
+		expect(await t.run((ctx) => pastCurvesBefore(ctx, START + DAY_MS))).toEqual([]);
+	});
+});
+
 describe("companyCurvesBefore", () => {
 	it("returns the company's most recent comparable events before the cutoff", async () => {
 		const { t, companyId } = await setup();

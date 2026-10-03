@@ -9,7 +9,7 @@ import {
 	insertUser,
 	setup,
 } from "../../test/fixtures";
-import { api } from "../_generated/api";
+import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 
 const at = (iso: string) => Date.parse(iso);
@@ -250,7 +250,7 @@ describe("paceCurve", () => {
 		expect(curve?.points.every(({ projected }) => projected === null)).toBe(true);
 	});
 
-	it("projects the final count while registration is open", async () => {
+	it("does not extrapolate a final count without comparable history", async () => {
 		const { t, companyId, intern } = await internTester();
 		const eventId = await insertEvent(t, companyId, {
 			registrationOpens: at("2026-10-01T10:00:00Z"),
@@ -264,7 +264,7 @@ describe("paceCurve", () => {
 		});
 
 		expect(curve?.progress).toBe(0.5);
-		expect(curve?.projected).toBe(2);
+		expect(curve?.projected).toBeNull();
 	});
 
 	it("shows no projection before anyone has registered", async () => {
@@ -280,5 +280,59 @@ describe("paceCurve", () => {
 		});
 
 		expect(curve?.projected).toBeNull();
+	});
+});
+
+describe("historical forecast scenarios", () => {
+	it("predicts both recovery and a continued decline, with no optimistic fallback", async () => {
+		vi.stubEnv("APP_ENV", "local");
+		vi.stubEnv("CONVEX_CLOUD_URL", "http://127.0.0.1:3218");
+		const { t, intern } = await internTester();
+		const image = await t.run((ctx) => ctx.storage.store(new Blob(["logo"])));
+		const seeded = await t.mutation(internal.engagement.forecastSeed.insert, { image });
+		if (!seeded.eventIds) throw new Error("Expected preview fixtures");
+		const now = Date.now();
+		const [good, bad, sparse] = await Promise.all(
+			seeded.eventIds.map((eventId) =>
+				intern.query(api.engagement.queries.paceCurve, { eventId, now }),
+			),
+		);
+		expect(good?.baselineSize).toBe(6);
+		expect(bad?.baselineSize).toBe(6);
+		for (const curve of [good, bad]) {
+			const future = curve!.points.filter((p) => p.projected !== null).map((p) => p.projected!);
+			expect(future.length).toBeGreaterThan(3);
+			expect(future[0]).toBe(curve!.registered);
+			const lowest = Math.min(...future);
+			expect(lowest).toBeLessThan(curve!.registered);
+			if (curve === good) expect(future.at(-1)).toBeGreaterThan(lowest);
+			else expect(future.at(-1)).toBe(lowest);
+			expect(future.at(-1)).toBe(curve!.projected);
+		}
+		expect(good!.projected).toBeGreaterThan(bad!.projected!);
+		expect(bad!.projected).toBeLessThan(bad!.registered);
+		expect(sparse?.projected).toBeNull();
+		expect(sparse?.reminders).toEqual([]);
+		expect(good?.reminders.map((r) => r.status)).toEqual(["Satt i kø", "Planlagt"]);
+		const user = await t.run((ctx) => ctx.db.query("users").first());
+		const event = await t.run((ctx) => ctx.db.get(seeded.eventIds![0]!));
+		await t.run((ctx) =>
+			ctx.db.insert("eventReminderDeliveries", {
+				eventId: seeded.eventIds![0]!,
+				eventStart: event!.eventStart,
+				kind: "week",
+				userId: user!._id,
+				emailId: "preview-sent",
+				sent: true,
+				sentAt: now - DAY_IN_MS,
+			}),
+		);
+		const sentCurve = await intern.query(api.engagement.queries.paceCurve, {
+			eventId: seeded.eventIds[0]!,
+			now,
+		});
+		expect(sentCurve?.reminders[0]?.status).toBe("Utsending startet");
+		expect(sentCurve?.reminders[0]?.at).toBe(now - DAY_IN_MS);
+		vi.unstubAllEnvs();
 	});
 });

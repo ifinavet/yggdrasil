@@ -341,6 +341,7 @@ function curve(overrides: Partial<PaceCurve>): PaceCurve {
 		projected: 30,
 		typical: 35,
 		baselineSize: 8,
+		reminders: [],
 		points: [],
 		...overrides,
 	};
