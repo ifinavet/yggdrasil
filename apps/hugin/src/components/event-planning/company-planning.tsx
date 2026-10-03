@@ -30,6 +30,14 @@ function Planning({ token }: Readonly<{ token: string }>) {
 	if (!data) return <Unavailable />;
 	const { semester, year } = eventSemesterOf(data.eventStart);
 	const organizerEmail = data.organizerEmail || COMPANY_CONTACT_EMAIL;
+	const contact = (
+		<p className="text-muted-foreground text-sm">
+			Spørsmål?{" "}
+			<a className="break-words underline underline-offset-4" href={`mailto:${organizerEmail}`}>
+				Kontakt {organizerEmail}
+			</a>
+		</p>
+	);
 	return (
 		<div className="mx-auto w-full max-w-[65ch] py-5 sm:py-8">
 			<header className="mb-8 space-y-5">
@@ -50,6 +58,13 @@ function Planning({ token }: Readonly<{ token: string }>) {
 						</p>
 					</div>
 				</div>
+				{contact}
+				{!sent && (
+					<p className="rounded-lg bg-muted p-4 text-base text-foreground leading-7">
+						Send inn det dere vet nå. Etter at dere har bekreftet via e-post, kan dere bruke samme
+						lenke for å endre og utfylle svarene senere.
+					</p>
+				)}
 			</header>
 			{sent ? (
 				<>
@@ -82,11 +97,7 @@ function Planning({ token }: Readonly<{ token: string }>) {
 					}}
 				/>
 			)}
-			<p className="mt-8 text-muted-foreground text-sm">
-				<a className="break-words underline underline-offset-4" href={`mailto:${organizerEmail}`}>
-					Kontakt {organizerEmail}
-				</a>
-			</p>
+			<div className="mt-8">{contact}</div>
 		</div>
 	);
 }

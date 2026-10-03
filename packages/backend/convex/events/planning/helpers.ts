@@ -111,7 +111,7 @@ export async function initialPlanning(ctx: QueryCtx, event: Doc<"events">) {
 		teaser: known(event.teaser),
 		description: known(event.description) || order?.description || "",
 		capacity: event.participationLimit,
-		startTime: formatOsloDate(event.eventStart, "HH:mm"),
+		startTime: "16:15",
 		venue,
 		location: known(event.location),
 		food: food?.name ?? event.food ?? "",

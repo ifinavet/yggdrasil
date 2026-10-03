@@ -27,6 +27,7 @@ async function fixture() {
 	await insertOrganizer(t, eventId, helper._id, "medhjelper");
 	const editor = asUser(t, lead);
 	const initial = await editor.query(api.events.planning.admin.get, { eventId });
+	expect(initial.initial.answers.startTime).toBe("16:15");
 	const preparation = {
 		...initial.initial,
 		contactName: "Bedrift",
