@@ -37,7 +37,7 @@ export const PLANNING_QUESTIONS = {
 	},
 	alcohol: {
 		label: "Skal det serveres alkohol?",
-		hint: "Med alkoholservering blir det 18-årsgrense. Uten alkohol blir det ingen aldersgrense.",
+		hint: "Med alkoholservering blir det 18-årsgrense.",
 	},
 	description: {
 		label: "Beskrivelse av arrangementet.",
