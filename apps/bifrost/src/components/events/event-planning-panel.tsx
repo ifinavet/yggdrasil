@@ -7,6 +7,7 @@ import {
 	DELIVERY_LABELS,
 	planningCapacityLimit,
 } from "@workspace/shared/events/planning";
+import { splitPlanningEmail } from "@workspace/shared/events/planning-email";
 import { EVENT_TYPE_LABELS, type EventType } from "@workspace/shared/semester/labels";
 import { formatOsloDate, osloDateTimeToEpoch } from "@workspace/shared/time";
 import { convexErrorMessage } from "@workspace/shared/utils";
@@ -271,6 +272,7 @@ function Invitation({
 	const send = useMutation(api.events.planning.admin.send);
 	if (!data.preview || !data.planning) return <p>Lagre opplysningene før du sender.</p>;
 	const { envelope, blockers, fingerprint } = data.preview;
+	const { body, signature } = splitPlanningEmail(envelope.text);
 	const revision = data.planning.revision;
 	return (
 		<div className="space-y-5">
@@ -289,10 +291,13 @@ function Invitation({
 				))}
 			</dl>
 			<div className="rounded-lg border p-5">
-				<p className="whitespace-pre-line text-sm leading-relaxed">{envelope.text}</p>
+				<p className="whitespace-pre-line text-sm leading-relaxed">{body}</p>
 				<div className="mt-5 inline-block rounded-md bg-primary px-4 py-2 text-primary-foreground">
 					Planlegg arrangementet
 				</div>
+				{signature && (
+					<p className="mt-5 whitespace-pre-line text-sm leading-relaxed">{signature}</p>
+				)}
 			</div>
 			{blockers.length > 0 && (
 				<ul role="alert" className="list-inside list-disc text-destructive text-sm">

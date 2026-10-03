@@ -1,4 +1,5 @@
 import type { EmailId } from "@convex-dev/resend";
+import { splitPlanningEmail } from "@workspace/shared/events/planning-email";
 import { HOUR_MS, MINUTE_MS } from "@workspace/shared/time";
 import { v } from "convex/values";
 import { internal } from "../../_generated/api";
@@ -92,12 +93,13 @@ export const enqueueRendered = internalMutation({
 				return;
 			}
 		}
+		const { body, signature } = splitPlanningEmail(email.envelope.text);
 		const emailId = isLocalDevelopment()
 			? `local:${id}`
 			: await trackedEmail.sendEmail(ctx, {
 					...email.envelope,
 					html,
-					text: `${email.envelope.text}\n\n${email.url}`,
+					text: [body, email.url, signature].filter(Boolean).join("\n\n"),
 					idempotencyKey: `planning:${id}`,
 				});
 		await ctx.db.patch(id, {
