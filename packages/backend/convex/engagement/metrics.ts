@@ -17,8 +17,6 @@ export const PACE_GRID = [
 	0.001,
 	0.002,
 	0.005,
-	0.01,
-	0.02,
 	...Array.from({ length: PACE_STEPS }, (_, step) => (step + 1) / PACE_STEPS),
 ];
 export const WAVE_RULE = { windowMs: HOUR_MS, minCount: 5, minShare: 0.1 };

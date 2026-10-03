@@ -12,11 +12,7 @@ import { ChartLegend } from "@workspace/ui/components/products/chart-legend";
 import { Panel, PanelBody, PanelNote } from "@workspace/ui/components/products/panel";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { type ReactNode, useMemo } from "react";
-import {
-	ACCENT_SERIES_COLOR,
-	MUTED_SERIES_COLOR,
-	PRIMARY_SERIES_COLOR,
-} from "@/components/common/chart-colors";
+import { ACCENT_SERIES_COLOR, MUTED_SERIES_COLOR } from "@/components/common/chart-colors";
 import { useStableQuery } from "@/hooks/use-stable-query";
 import { type PaceCurve, paceLabels, paceTickLabel, paceTicks } from "./engagement-format";
 
@@ -25,7 +21,7 @@ const DASHED = "5 4";
 const DOTTED = "2 4";
 
 const SERIES = {
-	actual: { label: "Påmeldte", color: PRIMARY_SERIES_COLOR },
+	actual: { label: "Påmeldte", color: "var(--pace-actual)" },
 	expected: { label: "Typisk forløp", color: MUTED_SERIES_COLOR, marker: "dashed" as const },
 	projected: { label: "Prognose", color: ACCENT_SERIES_COLOR, marker: "dashed" as const },
 };
@@ -179,6 +175,7 @@ export function PaceChart({
 
 	return (
 		<Panel
+			className="[--pace-actual:var(--primary)] dark:[--pace-actual:color-mix(in_oklch,var(--primary),white_65%)]"
 			title={
 				curve ? (
 					<span className="flex min-w-0 items-center gap-2.5">
