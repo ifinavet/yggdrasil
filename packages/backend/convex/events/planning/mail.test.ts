@@ -6,16 +6,16 @@ import { expect, it } from "vitest";
 it("places the planning link before the organizer signature", async () => {
 	const html = await render(
 		EventPlanningEmail({
-			subject: "Planlegg arrangementet",
+			subject: "Planlegg bedriftspresentasjon",
 			text: "Hei!\n\nFyll inn skjemaet.\n\nMed vennlig hilsen\nArrangør",
-			url: "https://example.test/planlegg-arrangement",
+			url: "https://example.test/event-planning",
 			confirmation: false,
 		}),
 	);
 	expect(html.indexOf("Fyll inn skjemaet.")).toBeLessThan(
-		html.indexOf('href="https://example.test/planlegg-arrangement"'),
+		html.indexOf('href="https://example.test/event-planning"'),
 	);
-	expect(html.indexOf('href="https://example.test/planlegg-arrangement"')).toBeLessThan(
+	expect(html.indexOf('href="https://example.test/event-planning"')).toBeLessThan(
 		html.indexOf("Med vennlig hilsen"),
 	);
 	expect(html).toContain("Arrangør");

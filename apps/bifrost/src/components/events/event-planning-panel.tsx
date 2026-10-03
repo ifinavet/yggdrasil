@@ -293,7 +293,7 @@ function Invitation({
 			<div className="rounded-lg border p-5">
 				<p className="whitespace-pre-line text-sm leading-relaxed">{body}</p>
 				<div className="mt-5 inline-block rounded-md bg-primary px-4 py-2 text-primary-foreground">
-					Planlegg arrangementet
+					Planlegg bedriftspresentasjon
 				</div>
 				{signature && (
 					<p className="mt-5 whitespace-pre-line text-sm leading-relaxed">{signature}</p>

@@ -87,6 +87,7 @@ export async function senderFor(ctx: QueryCtx, eventId: Id<"events">) {
 		complete: !!main && contacts.length >= 2 && contacts.every((o) => validContactEmail(o.email)),
 		mainName: main?.name ?? "",
 		mainEmail: main?.email ?? "",
+		contacts: contacts.map(({ name, email, role }) => ({ name, email, role })),
 	};
 }
 export async function initialPlanning(ctx: QueryCtx, event: Doc<"events">) {
@@ -213,7 +214,7 @@ export async function invitationPreview(
 		to: planning.contactEmail,
 		cc: sender.cc.filter((email) => email !== planning.contactEmail),
 		replyTo: sender.replyTo,
-		subject: `Planlegg arrangementet med Navet ${formatOsloDate(event.eventStart, "d. MMMM")}`,
+		subject: `Planlegg bedriftspresentasjon med Navet ${formatOsloDate(event.eventStart, "d. MMMM")}`,
 		text: `Hei ${planning.contactName}!\n\nJeg er kontaktpersonen deres fra Navet for arrangementet ${formatOsloDate(event.eventStart, "EEEE d. MMMM yyyy")}. Vi gleder oss til å møte dere!\n\nVi har gjort klart et skjema med opplysningene vi allerede har. Se gjerne over og fyll inn det dere vet om innholdet og det praktiske. Dere kan bruke samme lenke for å oppdatere senere.\n\nVi trenger tittel, introduksjon og beskrivelse før påmeldingen åpner. Kontakt meg gjerne hvis dere har spørsmål eller ønsker å ha et møte. Velg gjerne «svar alle», så får medansvarlige også med seg samtalen.\n\nMed vennlig hilsen\n${planning.signature}`,
 	};
 	return {

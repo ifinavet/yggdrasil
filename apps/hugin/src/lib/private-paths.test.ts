@@ -5,8 +5,8 @@ describe("private paths", () => {
 	it("covers the token pages and nothing else", () => {
 		expect(isPrivatePath("/feedback")).toBe(true);
 		expect(isPrivatePath("/report")).toBe(true);
-		expect(isPrivatePath("/planlegg-arrangement")).toBe(true);
-		expect(isPrivatePath("/planlegg-arrangement/bekreft")).toBe(true);
+		expect(isPrivatePath("/event-planning")).toBe(true);
+		expect(isPrivatePath("/event-planning/confirm")).toBe(true);
 		expect(isPrivatePath("/bestill-bedpres/tilbud/abc123")).toBe(true);
 		expect(isPrivatePath("/bestill-bedpres")).toBe(false);
 		expect(isPrivatePath("/bestill-bedpres/kvittering")).toBe(false);

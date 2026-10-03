@@ -258,6 +258,12 @@ describe("company event planning", () => {
 	it("exposes the main organizer email as the company contact", async () => {
 		const f = await invited();
 		expect(f.form.organizerEmail).toBe("lead@ifinavet.no");
+		expect(f.form.organizers).toEqual(
+			expect.arrayContaining([
+				{ name: expect.any(String), email: "lead@ifinavet.no", role: "hovedansvarlig" },
+				{ name: expect.any(String), email: "helper@ifinavet.no", role: "medhjelper" },
+			]),
+		);
 	});
 	it("expires confirmation links and invalidates old links on recipient correction", async () => {
 		const f = await submitted();

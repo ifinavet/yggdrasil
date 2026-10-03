@@ -14,7 +14,7 @@ export default function EventPlanningEmail({
 		<OrderLayout preview={subject} contactEmail={COMPANY_CONTACT_EMAIL} showSignature={false}>
 			<Text style={{ whiteSpace: "pre-line", lineHeight: "1.7" }}>{body}</Text>
 			<OrderButton href={url}>
-				{confirmation ? "Bekreft opplysningene" : "Planlegg arrangementet"}
+				{confirmation ? "Bekreft opplysningene" : "Planlegg bedriftspresentasjon"}
 			</OrderButton>
 			{signature && <Text style={{ whiteSpace: "pre-line", lineHeight: "1.7" }}>{signature}</Text>}
 		</OrderLayout>

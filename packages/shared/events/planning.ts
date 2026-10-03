@@ -2,8 +2,8 @@ import { z } from "zod";
 import { STUDENT_CAP } from "../semester/application";
 import { EVENT_TYPES, type EventType, FOOD_PURCHASERS } from "../semester/labels";
 
-export const PLANNING_PATH = "/planlegg-arrangement";
-export const PLANNING_CONFIRM_PATH = `${PLANNING_PATH}/bekreft`;
+export const PLANNING_PATH = "/event-planning";
+export const PLANNING_CONFIRM_PATH = `${PLANNING_PATH}/confirm`;
 export const ANSWER_CHOICES = { yes: "Ja", no: "Nei", unsure: "Ikke avklart" } as const;
 export const AGE_BY_ALCOHOL = { yes: "18", no: "none", unsure: "unsure" } as const;
 export const VENUE_CHOICES = {

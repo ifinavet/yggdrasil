@@ -35,6 +35,7 @@ export const get = query({
 		const context = await planningByToken(ctx, token);
 		if (!context || context.event.eventStart <= now) return null;
 		const { planning, event } = context;
+		const sender = await senderFor(ctx, event._id);
 		const latest = planning.latestSubmissionId
 			? await ctx.db.get(planning.latestSubmissionId)
 			: null;
@@ -46,7 +47,8 @@ export const get = query({
 			capacityLimit: await capacityLimit(ctx, planning, event),
 			revision: planning.revision,
 			contactEmail: planning.contactEmail,
-			organizerEmail: (await senderFor(ctx, event._id)).mainEmail,
+			organizerEmail: sender.mainEmail,
+			organizers: sender.contacts,
 			submitted: !!latest,
 		};
 	},

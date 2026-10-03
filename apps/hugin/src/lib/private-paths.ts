@@ -8,8 +8,8 @@
 const PRIVATE_PAGES = new Set([
 	"/feedback",
 	"/report",
-	"/planlegg-arrangement",
-	"/planlegg-arrangement/bekreft",
+	"/event-planning",
+	"/event-planning/confirm",
 ]);
 const PRIVATE_PREFIXES = ["/bestill-bedpres/tilbud/"];
 

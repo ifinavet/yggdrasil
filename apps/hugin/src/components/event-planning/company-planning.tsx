@@ -42,10 +42,10 @@ function Planning({ token }: Readonly<{ token: string }>) {
 		<div className="mx-auto w-full max-w-[65ch] py-5 sm:py-8">
 			<header className="mb-8 space-y-5">
 				<div className="flex items-center gap-4">
-					<CompanyLogo name={data.companyName} url={data.logoUrl} size="lg" />
-					<p className="font-semibold">{data.companyName}</p>
+					<CompanyLogo name={data.companyName} url={data.logoUrl} size="xl" />
+					<p className="min-w-0 break-words font-semibold text-xl">{data.companyName}</p>
 				</div>
-				{!sent && <h1 className="font-bold text-3xl">Planlegg arrangementet</h1>}
+				{!sent && <h1 className="font-bold text-3xl">Planlegg bedriftspresentasjon</h1>}
 				<div className="flex flex-wrap gap-3">
 					<div className="rounded-lg bg-blue-50 px-4 py-3 text-blue-950 dark:bg-blue-950 dark:text-blue-100">
 						<p className="font-semibold">
@@ -96,6 +96,35 @@ function Planning({ token }: Readonly<{ token: string }>) {
 						setSent(true);
 					}}
 				/>
+			)}
+			{data.organizers.length > 0 && (
+				<section className="mt-12 space-y-5" aria-labelledby="organizers-heading">
+					<h2 id="organizers-heading" className="font-semibold text-lg">
+						Kontaktpersoner fra Navet
+					</h2>
+					<ul className="grid gap-6 sm:grid-cols-2">
+						{[...data.organizers]
+							.sort(
+								(a, b) => Number(b.role === "hovedansvarlig") - Number(a.role === "hovedansvarlig"),
+							)
+							.map((organizer) => (
+								<li key={`${organizer.role}-${organizer.email}`} className="min-w-0 space-y-1">
+									<p className="text-muted-foreground text-sm">
+										{organizer.role === "hovedansvarlig" ? "Hovedansvarlig" : "Medhjelper"}
+									</p>
+									<p className="font-semibold">{organizer.name}</p>
+									{organizer.email && (
+										<a
+											className="break-words text-sm underline underline-offset-4"
+											href={`mailto:${organizer.email}`}
+										>
+											{organizer.email}
+										</a>
+									)}
+								</li>
+							))}
+					</ul>
+				</section>
 			)}
 			<div className="mt-8">{contact}</div>
 		</div>
