@@ -147,6 +147,7 @@ export function EventPlanningForm({
 								</option>
 							))}
 						</select>
+
 						<FieldError errors={field.state.meta.errors} />
 					</Field>
 				)}
@@ -190,6 +191,11 @@ export function EventPlanningForm({
 								</option>
 							))}
 						</select>
+						<FieldDescription>
+							<a href="https://ifinavet.no/companies" target="_blank" rel="noopener noreferrer" className="underline underline-offset-4">
+								Se arrangementstyper og priser
+							</a>
+						</FieldDescription>
 						<FieldError errors={field.state.meta.errors} />
 					</Field>
 				)}
