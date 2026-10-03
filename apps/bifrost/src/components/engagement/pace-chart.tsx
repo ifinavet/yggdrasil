@@ -137,7 +137,14 @@ function PaceChartBody({ curve }: Readonly<{ curve: PaceCurve }>) {
 						{
 							channel: "x",
 							label: "Tid",
-							text: (point) => formatOsloDate((point.datum as Point).at, DATE_PATTERNS.shortDate),
+							text: (point) => {
+								const start = curve.points[0]?.at ?? 0;
+								const end = curve.points.at(-1)?.at ?? start;
+								return formatOsloDate(
+									start + Number(point.xValue) * (end - start),
+									DATE_PATTERNS.shortDate,
+								);
+							},
 						},
 						{ channel: "y", label: Y_AXIS_LABEL },
 					],
