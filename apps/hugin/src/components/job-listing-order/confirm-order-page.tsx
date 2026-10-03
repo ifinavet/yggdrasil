@@ -7,28 +7,18 @@ import { useMutation } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { MailCheck } from "lucide-react";
 import Link from "next/link";
-import { useState, useSyncExternalStore } from "react";
+import { useState } from "react";
 import { FormStatePanel } from "@/components/form-state-panel";
 import { confirmCopy } from "@/lib/job-listing-order/copy";
-import { readOrderToken } from "@/lib/job-listing-order/token";
+import { useEmailLinkToken } from "@/lib/use-email-link-token";
 import { OrderReceipt } from "./order-receipt";
 
 type ConfirmResult = FunctionReturnType<typeof api.jobListingOrders.orders.confirm>;
 type ConfirmState = ConfirmResult | { state: "idle" | "confirming" | "error" };
 
-function subscribeToLink(onChange: () => void) {
-	window.addEventListener("hashchange", onChange);
-	return () => window.removeEventListener("hashchange", onChange);
-}
-
 export function ConfirmOrderPage() {
-	const fragment = useSyncExternalStore(
-		subscribeToLink,
-		() => window.location.hash,
-		() => null,
-	);
-	if (fragment === null) return null;
-	const token = readOrderToken(fragment);
+	const token = useEmailLinkToken();
+	if (token === undefined) return null;
 	if (!token) return <LinkProblem state="invalid" />;
 	return <ConfirmOrder key={token} token={token} />;
 }

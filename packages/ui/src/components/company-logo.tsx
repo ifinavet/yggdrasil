@@ -4,6 +4,7 @@ import Image from "next/image";
 const SIZES = {
 	sm: { pixels: 32, className: "size-8 rounded-md text-[10px]" },
 	lg: { pixels: 48, className: "size-12 rounded-lg text-[13px]" },
+	xl: { pixels: 64, className: "size-16 rounded-lg text-lg" },
 };
 
 export function CompanyLogo({

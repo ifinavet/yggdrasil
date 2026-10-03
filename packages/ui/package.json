@@ -39,7 +39,9 @@
 		"tailwind-merge": "catalog:",
 		"tw-animate-css": "catalog:",
 		"vaul": "^1.1.2",
-		"zod": "catalog:"
+		"zod": "catalog:",
+		"@tanstack/react-form": "catalog:",
+		"@tanstack/react-pacer": "catalog:"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "catalog:",

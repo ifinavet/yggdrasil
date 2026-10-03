@@ -1,9 +1,9 @@
-import { type EmailId, Resend, vOnEmailEventArgs } from "@convex-dev/resend";
+import { type EmailId, vOnEmailEventArgs } from "@convex-dev/resend";
 import { vResultValidator, vWorkflowId } from "@convex-dev/workflow";
 import { feedbackTokenSchema } from "@workspace/shared/feedback";
 import { feedbackRoundAt } from "@workspace/shared/time";
 import { v } from "convex/values";
-import { components, internal } from "../../_generated/api";
+import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import {
 	internalMutation,
@@ -18,10 +18,10 @@ import { queueEventNotification } from "../../events/slack/state";
 import { hashLinkToken } from "../../lib/tokens";
 import { feedbackEmailContext } from "./emailContext";
 
-export const feedbackResend: Resend = new Resend(components.feedbackResend, {
-	testMode: false,
-	onEmailEvent: internal.feedback.delivery.messages.onEmailEvent,
-});
+export { trackedEmail as feedbackResend } from "../../lib/trackedEmail";
+
+import { trackedEmail as feedbackResend } from "../../lib/trackedEmail";
+
 export const FEEDBACK_REPLY_TO = "arrangement@ifinavet.no";
 export const feedbackSender = {
 	from: "Navet <info@ifinavet.no>",
@@ -219,6 +219,13 @@ async function recordReportEvent(ctx: MutationCtx, id: string, type: string) {
 export const onEmailEvent = internalMutation({
 	args: vOnEmailEventArgs,
 	handler: async (ctx, { id, event }): Promise<void> => {
+		if (
+			await ctx.runMutation(internal.events.planning.delivery.recordProviderEvent, {
+				emailId: id,
+				type: event.type,
+			})
+		)
+			return;
 		if (await recordReminderSent(ctx, id, event.type)) return;
 		const delivery = await ctx.db
 			.query("feedbackDeliveries")

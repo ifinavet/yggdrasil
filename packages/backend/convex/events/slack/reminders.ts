@@ -1,42 +1,12 @@
-import {
-	BIFROST_LOCAL_URL,
-	BIFROST_URL,
-	COMPANY_FIRST_CONTACT_TEMPLATE_URL,
-	UIO_STAND_GUIDELINES_URL,
-} from "@workspace/shared/constants";
 import { EVENT_CHECKLIST, hasEventText } from "@workspace/shared/events/checklist";
 import { EVENT_PLANNING, eventPlanningAt, feedbackOpensAt, HOUR_MS } from "@workspace/shared/time";
 import type { Doc } from "../../_generated/dataModel";
 import type { QueryCtx } from "../../_generated/server";
-import { isLocalDevelopment } from "../../auth/local";
-import { previousCompanyReport } from "../../companies/history";
 import { latestCampaign } from "../../feedback/delivery/campaigns";
 import { eventUrl, timedOrganizerReminders } from "./messages";
 
 type Reminder = { key: string; at: number; text: string };
 const due = (at: number, now: number, until: number) => now >= at && now < until;
-
-async function contactReminder(
-	ctx: QueryCtx,
-	event: Doc<"events">,
-	now: number,
-): Promise<Reminder[]> {
-	const at = eventPlanningAt(event.eventStart, EVENT_PLANNING.companyContactDaysBefore);
-	if (!due(at, now, event.eventStart) || event.completedChecklistSteps?.includes("company-contact"))
-		return [];
-	const previous = await previousCompanyReport(ctx, event, now);
-	const origin = isLocalDevelopment() ? BIFROST_LOCAL_URL : BIFROST_URL;
-	const history = previous
-		? ` Ta gjerne med lærdom fra <${origin}${previous}|rapporten fra forrige arrangement>.`
-		: "";
-	return [
-		{
-			key: "company-contact",
-			at,
-			text: `Nå er det på tide å ta kontakt med bedriften 😊 Send dem en e-post og avklar det praktiske. Her er <${COMPANY_FIRST_CONTACT_TEMPLATE_URL}|malen for førstegangskontakt fra Ressurser>. Hør også om de vil ha stand, og bruk <${UIO_STAND_GUIDELINES_URL}|UiOs skjema og retningslinjer for stand>.${history}`,
-		},
-	];
-}
 
 function promotionReminders(event: Doc<"events">, now: number): Reminder[] {
 	const missing = (["title", "teaser", "description"] as const)
@@ -152,7 +122,7 @@ export async function dueOrganizerReminders(ctx: QueryCtx, event: Doc<"events">,
 				item.key === "expenses" ? eventPlanningAt(event.eventStart, -7) : event.eventStart,
 			),
 		),
-		...(await contactReminder(ctx, event, now)),
+
 		...promotionReminders(event, now),
 		...checklistReminder(event, now),
 	];

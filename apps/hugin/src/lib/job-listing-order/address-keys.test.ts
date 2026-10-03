@@ -1,5 +1,5 @@
+import { addressKeyTarget, movesSuggestionHighlight } from "@workspace/ui/lib/address-keys";
 import { describe, expect, it } from "vitest";
-import { addressKeyTarget, movesSuggestionHighlight } from "./address-keys";
 
 const key = (name: string, ctrlKey = false) => ({ key: name, ctrlKey });
 const open = { open: true, navigated: false };

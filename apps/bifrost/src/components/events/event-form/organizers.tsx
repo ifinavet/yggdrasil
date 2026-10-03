@@ -4,7 +4,7 @@ import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import type { OrganizerRole } from "@workspace/shared/constants";
 import { Button } from "@workspace/ui/components/button";
-import { Field, FieldDescription, FieldError, FieldLabel } from "@workspace/ui/components/field";
+import { Field, FieldError, FieldLabel } from "@workspace/ui/components/field";
 import {
 	Select,
 	SelectContent,
@@ -133,9 +133,6 @@ export default function Organizers({
 				</div>
 				<OrganizersTable columns={columns} data={selectedOrganizers} />
 			</div>
-			<FieldDescription>
-				Velg hvem som er ansvarlig for og skal organisere/planlegge arrangementet.
-			</FieldDescription>
 			{isInvalid && <FieldError errors={field.state.meta.errors} />}
 		</Field>
 	);
