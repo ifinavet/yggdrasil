@@ -1,9 +1,14 @@
 import { DAY_MS, HOUR_MS, MINUTE_MS } from "@workspace/shared/time";
 import { median } from "d3-array";
 import { scaleLinear } from "d3-scale";
+import {
+	REMINDER_KINDS,
+	REMINDER_LEAD_TIMES,
+	type ReminderKind,
+} from "../events/reminders/schedule";
 import type { AlertRule, RegistrationChange } from "./schema";
 
-export const PACE_STEPS = 20;
+export const PACE_STEPS = 100;
 export const PACE_GRID = [
 	0,
 	0.0001,
@@ -33,6 +38,35 @@ export const ALERT_ACTIVITY = {
 >;
 
 export type Timeline = { registrationOpens: number; eventStart: number };
+export type ForecastTimeline = Timeline & {
+	remindersEnabled?: boolean;
+	reminderTimes?: Partial<Record<ReminderKind, number>>;
+};
+
+// Align observed changes around the reminder windows, rather than assuming that
+// 80% through a 14-day registration period is the same as 80% through a 7-day one.
+export function alignedCurve(curve: number[], source: ForecastTimeline, target: ForecastTimeline) {
+	const anchors = [{ source: 0, target: 0 }];
+	if (source.remindersEnabled && target.remindersEnabled) {
+		for (const kind of REMINDER_KINDS) {
+			const sourceAt =
+				source.reminderTimes?.[kind] ?? source.eventStart - REMINDER_LEAD_TIMES[kind];
+			const targetAt =
+				target.reminderTimes?.[kind] ?? target.eventStart - REMINDER_LEAD_TIMES[kind];
+			const from = progressOf(source, sourceAt);
+			const to = progressOf(target, targetAt);
+			const previous = anchors[anchors.length - 1]!;
+			if (from > previous.source && from < 1 && to > previous.target && to < 1)
+				anchors.push({ source: from, target: to });
+		}
+	}
+	anchors.push({ source: 1, target: 1 });
+	const sourceProgress = scaleLinear(
+		anchors.map((a) => a.target),
+		anchors.map((a) => a.source),
+	).clamp(true);
+	return PACE_GRID.map((progress) => valueAt(curve, sourceProgress(progress)));
+}
 
 export type LogEntry = {
 	change: RegistrationChange;
@@ -80,11 +114,15 @@ export function isSimilarCapacity(limit: number, otherLimit: number) {
 	return Math.abs(otherLimit - limit) <= limit * SIMILAR_CAPACITY_BAND;
 }
 
-export function projectFill(currentFill: number, progress: number, baseline: number[] | null) {
-	if (progress <= 0) return currentFill;
-	if (!baseline) return Math.min(1, currentFill / progress);
-	const remaining = (baseline.at(-1) as number) - valueAt(baseline, progress);
-	return Math.min(1, currentFill + Math.max(0, remaining));
+export function projectFill(
+	currentFill: number,
+	progress: number,
+	baseline: number[] | null,
+	targetProgress = 1,
+) {
+	if (!baseline || progress <= 0 || targetProgress <= progress) return currentFill;
+	const change = valueAt(baseline, targetProgress) - valueAt(baseline, progress);
+	return Math.min(1, Math.max(0, currentFill + change));
 }
 
 export function seatDelta(entries: readonly LogEntry[]) {
@@ -145,6 +183,7 @@ export function classify({
 	const progress = progressOf(timeline, now);
 	const currentFill = registered / limit;
 	if (
+		baseline &&
 		timeline.eventStart - now < BEHIND_RULE.withinMs &&
 		projectFill(currentFill, progress, baseline) < BEHIND_RULE.maxProjectedFill
 	) {

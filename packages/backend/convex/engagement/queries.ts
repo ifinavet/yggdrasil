@@ -13,6 +13,7 @@ import { type QueryCtx, query } from "../_generated/server";
 import { internalRoles, requireRole } from "../auth/accessRights";
 import { eventsInSemester } from "../events/helper";
 import { companyWithLogo, eventSemesterValidator } from "../events/queries";
+import { REMINDER_KINDS, REMINDER_LEAD_TIMES } from "../events/reminders/schedule";
 import { audienceOf, withStudyYear } from "./audience";
 import { byCompany, metricsOf } from "./companyMetrics";
 import {
@@ -25,12 +26,14 @@ import {
 	activityBuckets,
 	activityWindowMs,
 	PACE_GRID,
+	projectFill,
 	seatDelta,
 	valueAt,
 	WAVE_RULE,
 } from "./metrics";
 import {
 	MAX_REGISTRATIONS_PER_EVENT,
+	MIN_FORECAST_EVENTS,
 	pastCurvesBefore,
 	snapshotOf,
 	upcomingEvents,
@@ -180,6 +183,45 @@ function topDestination(entries: { movedTo: { eventId: Id<"events">; title: stri
 	return [...counts.values()].sort((a, b) => b.count - a.count)[0] ?? null;
 }
 
+async function reminderMarkers(ctx: QueryCtx, event: Doc<"events">, now: number) {
+	const markers = await Promise.all(
+		REMINDER_KINDS.map(async (kind) => {
+			const batch = await ctx.db
+				.query("eventReminders")
+				.withIndex("by_eventId_and_kind", (q) => q.eq("eventId", event._id).eq("kind", kind))
+				.unique();
+			const deliveries = await ctx.db
+				.query("eventReminderDeliveries")
+				.withIndex("by_eventId_and_kind_and_userId", (q) =>
+					q.eq("eventId", event._id).eq("kind", kind),
+				)
+				.take(MAX_REGISTRATIONS_PER_EVENT);
+			const sentTimes = deliveries.flatMap((d) =>
+				d.eventStart === event.eventStart && d.sent && d.sentAt !== undefined && d.sentAt <= now
+					? [d.sentAt]
+					: [],
+			);
+			const sentAt = sentTimes.length ? Math.min(...sentTimes) : undefined;
+			const queuedAt = batch && batch.queuedAt <= now ? batch.queuedAt : undefined;
+			const scheduledAt = event.eventStart - REMINDER_LEAD_TIMES[kind];
+			if (sentAt === undefined && queuedAt === undefined && !event.remindersEnabled) return null;
+			const at = sentAt ?? queuedAt ?? scheduledAt;
+			if (at < event.registrationOpens || at >= event.eventStart) return null;
+			let status = scheduledAt > now ? "Planlagt" : "Ingen registrert utsending";
+			if (queuedAt !== undefined) status = "Satt i kø";
+			if (sentAt !== undefined) status = "Utsending startet";
+			return {
+				kind,
+				at,
+				progress: (at - event.registrationOpens) / (event.eventStart - event.registrationOpens),
+				status,
+				planned: sentAt === undefined && queuedAt === undefined,
+			};
+		}),
+	);
+	return markers.filter((marker) => marker !== null);
+}
+
 export const paceCurve = query({
 	args: { eventId: v.id("events"), now: v.number() },
 	handler: async (ctx, { eventId, now }) => {
@@ -193,7 +235,11 @@ export const paceCurve = query({
 			await pastCurvesBefore(ctx, Math.min(now, event.eventStart)),
 		);
 		const limit = event.participationLimit;
-		const projecting = snapshot.progress > 0 && snapshot.progress < 1 && snapshot.registered > 0;
+		const projecting =
+			snapshot.progress > 0 &&
+			snapshot.progress < 1 &&
+			snapshot.registered > 0 &&
+			(snapshot.baseline?.size ?? 0) >= MIN_FORECAST_EVENTS;
 		const projected = projecting ? Math.round(snapshot.projectedFill * limit) : null;
 		const { entries } = await registrationHistory(ctx, eventId);
 		const span = event.eventStart - event.registrationOpens;
@@ -207,8 +253,15 @@ export const paceCurve = query({
 		const projectedAt = (progress: number) => {
 			if (projected === null) return null;
 			if (progress === snapshot.progress) return snapshot.registered;
-			if (progress === 1) return projected;
-			return null;
+			if (progress < snapshot.progress) return null;
+			return Math.round(
+				projectFill(
+					snapshot.registered / limit,
+					snapshot.progress,
+					snapshot.baseline?.curve ?? null,
+					progress,
+				) * limit,
+			);
 		};
 
 		const points = [
@@ -235,6 +288,7 @@ export const paceCurve = query({
 			projected,
 			typical: expectedAt(1),
 			baselineSize: snapshot.baseline?.size ?? 0,
+			reminders: await reminderMarkers(ctx, event, now),
 			points,
 		};
 	},

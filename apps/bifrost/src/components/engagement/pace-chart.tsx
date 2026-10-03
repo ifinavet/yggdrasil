@@ -1,6 +1,6 @@
 "use client";
 
-import { defineChart, lineY, text } from "@tanstack/charts";
+import { defineChart, lineY, ruleX, text } from "@tanstack/charts";
 import { scaleLinear } from "@tanstack/charts/scales/linear";
 import { tooltip } from "@tanstack/charts/tooltip";
 import { Chart } from "@tanstack/react-charts";
@@ -54,6 +54,32 @@ function PaceChartBody({ curve }: Readonly<{ curve: PaceCurve }>) {
 		() =>
 			defineChart({
 				marks: [
+					...curve.reminders.flatMap((reminder) => [
+						ruleX([reminder.progress], {
+							stroke: MUTED_SERIES_COLOR,
+							strokeDasharray: reminder.planned ? DASHED : undefined,
+							strokeOpacity: 0.7,
+						}),
+						text(
+							[
+								{
+									progress: reminder.progress,
+									count: curve.limit,
+									label: reminder.kind === "week" ? "7-dagersmail" : "2-dagersmail",
+								},
+							],
+							{
+								x: "progress",
+								y: "count",
+								text: "label",
+								anchor: "end",
+								dx: -5,
+								dy: 12,
+								fontSize: 11,
+								fill: MUTED_SERIES_COLOR,
+							},
+						),
+					]),
 					lineY(series(curve, "expected"), {
 						x: "progress",
 						y: "count",
@@ -137,6 +163,13 @@ function PaceChartBody({ curve }: Readonly<{ curve: PaceCurve }>) {
 	);
 }
 
+function forecastNote(curve: PaceCurve | null | undefined, fallback: ReactNode) {
+	if (!curve || curve.progress <= 0 || curve.progress >= 1 || curve.registered <= 0)
+		return fallback;
+	if (curve.projected === null) return "For lite historikk til å beregne en prognose.";
+	return `Anslag basert på ${curve.baselineSize} tidligere arrangementer. Følger historiske påmeldinger, avmeldinger og nye plasser fra ventelisten. Forløpet er justert til påmeldingsperioden og eventuelle påminnelser. Ikke en garanti for oppmøte.`;
+}
+
 export function PaceChart({
 	eventId,
 	now,
@@ -160,7 +193,20 @@ export function PaceChart({
 		>
 			<PanelBody className="grid gap-3">
 				{curve ? <PaceChartBody curve={curve} /> : <Skeleton className="h-[280px] w-full" />}
-				<PanelNote>{note}</PanelNote>
+				{curve && curve.reminders.length > 0 && (
+					<ul
+						className="flex flex-wrap gap-x-6 gap-y-1 text-muted-foreground text-xs"
+						aria-label="Påminnelsesmailer"
+					>
+						{curve.reminders.map((reminder) => (
+							<li key={reminder.kind}>
+								{reminder.kind === "week" ? "7-dagersmail" : "2-dagersmail"}:{" "}
+								{formatOsloDate(reminder.at, "d. MMM HH:mm")} · {reminder.status}
+							</li>
+						))}
+					</ul>
+				)}
+				<PanelNote>{forecastNote(curve, note)}</PanelNote>
 			</PanelBody>
 		</Panel>
 	);
