@@ -11,6 +11,7 @@ export const deliver = internalAction({
 		try {
 			const email = await ctx.runQuery(internal.events.planning.delivery.getEmail, { id });
 			if (email?.status !== "pending") return;
+			if (!email.url) throw new Error("Missing pending email link");
 			const html = await render(
 				EventPlanningEmail({
 					...email.envelope,

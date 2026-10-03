@@ -7,8 +7,9 @@ import { EVENT_SEMESTER_LABELS, eventSemesterOf, formatSemesterDay } from "@work
 import { Button } from "@workspace/ui/components/button";
 import { CompanyLogo } from "@workspace/ui/components/company-logo";
 import { EventPlanningForm } from "@workspace/ui/components/event-planning-form";
-import { useAction, useMutation, useQuery } from "convex/react";
-import { useState } from "react";
+import { useAction, useMutation } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
+import { useEffect, useState } from "react";
 import { EmailCheckScreen } from "@/components/email-check-screen";
 import { FormStatePanel } from "@/components/form-state-panel";
 import { useEmailLinkToken } from "@/lib/use-email-link-token";
@@ -20,12 +21,35 @@ export function CompanyPlanning() {
 	return <Planning key={token} token={token} />;
 }
 function Planning({ token }: Readonly<{ token: string }>) {
-	const [now] = useState(Date.now);
-	const data = useQuery(api.events.planning.public.get, { token, now });
+	const load = useMutation(api.events.planning.public.get);
+	const [data, setData] = useState<FunctionReturnType<typeof api.events.planning.public.get>>();
+	const [loadError, setLoadError] = useState(false);
+	useEffect(() => {
+		let active = true;
+		void load({ token }).then(
+			(value) => {
+				if (active) setData(value);
+			},
+			() => {
+				if (active) setLoadError(true);
+			},
+		);
+		return () => {
+			active = false;
+		};
+	}, [load, token]);
 	const resend = useMutation(api.events.planning.public.resend);
 	const [submissionId, setSubmissionId] = useState(() => crypto.randomUUID());
 	const [sent, setSent] = useState(false);
 	const [lastAnswers, setLastAnswers] = useState<PlanningAnswers>();
+	if (loadError)
+		return (
+			<FormStatePanel
+				title="Kunne ikke hente skjemaet"
+				body="Prøv å laste siden på nytt."
+				action={<Button onClick={() => window.location.reload()}>Last inn på nytt</Button>}
+			/>
+		);
 	if (data === undefined) return <output>Henter arrangementet …</output>;
 	if (!data) return <Unavailable />;
 	const { semester, year } = eventSemesterOf(data.eventStart);

@@ -13,7 +13,7 @@ import { notifyPlanning } from "./notifications";
 export type EmailDraft = Omit<
 	Doc<"eventPlanningEmails">,
 	"_id" | "_creationTime" | "status" | "attempts" | "nextAttemptAt"
->;
+> & { url: string };
 export async function queueEmail(ctx: MutationCtx, draft: EmailDraft) {
 	const id = await ctx.db.insert("eventPlanningEmails", {
 		...draft,
@@ -33,6 +33,7 @@ export const enqueueRendered = internalMutation({
 	handler: async (ctx, { id, html }): Promise<void> => {
 		const email = await ctx.db.get(id);
 		if (email?.status !== "pending") return;
+		if (!email.url) throw new Error("Missing pending email link");
 		const planning = await ctx.db.get(email.planningId);
 		const event = planning ? await ctx.db.get(planning.eventId) : null;
 		if (
@@ -45,7 +46,7 @@ export const enqueueRendered = internalMutation({
 			event.eventStart <= Date.now() ||
 			(email.kind === "invitation" && event.eventStart !== email.eventStart)
 		) {
-			await ctx.db.patch(id, { status: "cancelled" });
+			await ctx.db.patch(id, { status: "cancelled", url: undefined });
 			if (
 				planning &&
 				planning.generation === email.generation &&
@@ -75,7 +76,7 @@ export const enqueueRendered = internalMutation({
 				envelopeFingerprint(preview.envelope) !== envelopeFingerprint(email.envelope)
 			) {
 				const error = "Mottaker eller arrangør er endret. Kontroller invitasjonen og send på nytt.";
-				await ctx.db.patch(id, { status: "cancelled", error });
+				await ctx.db.patch(id, { status: "cancelled", error, url: undefined });
 				await ctx.db.patch(planning._id, {
 					status: "preparing",
 					tokenHash: undefined,
@@ -89,7 +90,7 @@ export const enqueueRendered = internalMutation({
 		if (email.submissionId) {
 			const submission = await ctx.db.get(email.submissionId);
 			if (submission?.status !== "awaiting_email") {
-				await ctx.db.patch(id, { status: "cancelled" });
+				await ctx.db.patch(id, { status: "cancelled", url: undefined });
 				return;
 			}
 		}
@@ -104,6 +105,7 @@ export const enqueueRendered = internalMutation({
 				});
 		await ctx.db.patch(id, {
 			emailId,
+			url: undefined,
 			status: isLocalDevelopment() ? "sent" : "queued",
 			error: undefined,
 			nextAttemptAt: Date.now() + HOUR_MS,
@@ -120,6 +122,7 @@ export const recordFailure = internalMutation({
 			attempts,
 			error: message,
 			status: attempts >= 5 ? "failed" : "pending",
+			...(attempts >= 5 ? { url: undefined } : {}),
 			nextAttemptAt: Date.now() + Math.min(60, 2 ** attempts) * MINUTE_MS,
 		});
 		await alertFailure(ctx, email, message);
@@ -176,6 +179,7 @@ export const recordProviderEvent = internalMutation({
 		const message =
 			messages[status] ?? "E-posten kunne ikke sendes. Kontroller leveringsoppsettet.";
 		await ctx.db.patch(email._id, {
+			url: undefined,
 			status,
 			...(failed ? { error: message } : { error: undefined }),
 			...(status === "sent" ? { sentAt: email.sentAt ?? Date.now() } : {}),
@@ -218,7 +222,7 @@ export const recover = internalMutation({
 });
 
 async function recoverEmail(ctx: MutationCtx, email: Doc<"eventPlanningEmails">) {
-	await ctx.db.patch(email._id, { nextAttemptAt: Date.now() + HOUR_MS });
+	await ctx.db.patch(email._id, { nextAttemptAt: Date.now() + HOUR_MS, url: undefined });
 	if (!email.emailId || email.emailId.startsWith("local:")) return;
 	const provider = await trackedEmail.status(ctx, email.emailId as EmailId);
 	if (provider?.status === "delivered" && !provider.complained) {

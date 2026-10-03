@@ -223,6 +223,8 @@ export const saveReview = mutation({
 		)
 			throw new ConvexError("Det finnes nyere svar.");
 		const event = await requireEvent(ctx, planning.eventId, Date.now());
+		if (event.hostingCompany !== planning.companyId)
+			throw new ConvexError("Bedriften er endret. Klargjør en ny invitasjon.");
 		const draft = await parseAnswers(ctx, planning, event, input);
 		await ctx.db.patch(submissionId, { draft, revision: revision + 1 });
 	},
@@ -249,6 +251,8 @@ export const approve = mutation({
 		)
 			throw new ConvexError("Svarene gjelder ikke lenger.");
 		const event = await requireEvent(ctx, planning.eventId, Date.now());
+		if (event.hostingCompany !== planning.companyId)
+			throw new ConvexError("Bedriften er endret. Klargjør en ny invitasjon.");
 		if (eventSnapshot(event) !== args.expectedEvent)
 			throw new ConvexError("Arrangementet er endret under gjennomgangen. Last inn på nytt.");
 		if (submission.baseEvent !== args.expectedEvent && !args.acknowledgeChanges)
@@ -392,14 +396,20 @@ export const retryEmail = mutation({
 			envelopeFingerprint(preview.envelope) !== envelopeFingerprint(email.envelope)
 		)
 			throw new ConvexError("Mottaker eller arrangør er endret. Klargjør en ny invitasjon.");
-		await ctx.db.patch(email._id, { resolvedAt: Date.now(), resolution: "Ny sending bestilt" });
+		const token = generateLinkToken();
+		await ctx.db.patch(planning._id, { tokenHash: await hashLinkToken(token) });
+		await ctx.db.patch(email._id, {
+			resolvedAt: Date.now(),
+			resolution: "Ny sending bestilt",
+			url: undefined,
+		});
 		await queueEmail(ctx, {
 			planningId: email.planningId,
 			kind: email.kind,
 			generation: email.generation,
 			eventStart: event.eventStart,
 			envelope: email.envelope,
-			url: email.url,
+			url: publicUrl(PLANNING_PATH, token),
 		});
 	},
 });

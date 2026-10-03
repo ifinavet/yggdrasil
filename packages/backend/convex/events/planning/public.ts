@@ -5,7 +5,7 @@ import { SUBMISSION_ID_PATTERN } from "@workspace/shared/validation";
 import { ConvexError, v } from "convex/values";
 import { components } from "../../_generated/api";
 import type { Doc } from "../../_generated/dataModel";
-import { type MutationCtx, mutation, query } from "../../_generated/server";
+import { type MutationCtx, mutation } from "../../_generated/server";
 import {
 	confirmationFields,
 	confirmationState,
@@ -29,11 +29,11 @@ const limiter = new RateLimiter(components.rateLimiter, {
 	planningSubmit: { kind: "token bucket", rate: 10, period: HOUR, capacity: 5 },
 	planningResend: { kind: "fixed window", rate: 1, period: MINUTE },
 });
-export const get = query({
-	args: { token: v.string(), now: v.number() },
-	handler: async (ctx, { token, now }) => {
+export const get = mutation({
+	args: { token: v.string() },
+	handler: async (ctx, { token }) => {
 		const context = await planningByToken(ctx, token);
-		if (!context || context.event.eventStart <= now) return null;
+		if (!context || context.event.eventStart <= Date.now()) return null;
 		const { planning, event } = context;
 		const sender = await senderFor(ctx, event._id);
 		const latest = planning.latestSubmissionId

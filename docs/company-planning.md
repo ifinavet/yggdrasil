@@ -28,10 +28,12 @@ The draft PR tracks verification and deployment status. Screenshots in `company-
 - The existing event channel mapping and durable Slack queues are reused. Delivery and publication failures retain actionable state on the event page. Unresolved planning follow-up keeps the event channel open.
 - Email uses the existing tracked Resend component and signed `/resend-webhook` callback. Delivery recovery checks the provider queue when callbacks are delayed or missing. No additional webhook endpoint is needed.
 - Set `PLANNING_VERIFIED_SENDER_DOMAIN=ifinavet.no` only when that domain is verified for sending in the configured Resend account. Matching organizer addresses then become the From address. Otherwise invitations use `Navet <info@ifinavet.no>` with the main organizer as Reply-To. All organizers receive invitation CC; confirmation emails never include CC.
-- Private links keep their token in the URL fragment. The server stores token hashes for lookup. Delivery records retain the outgoing URL for reliable sending, and expose it in the internal API only in protected local development. Company pages disable analytics/error capture and indexing.
+- Private links keep their token in the URL fragment. The server stores token hashes for lookup. Delivery records retain the outgoing URL only while sending is pending, then erase it at provider handoff, cancellation or terminal failure. Explicit retries rotate the invitation token. Pending URLs are exposed in the internal API only in protected local development. Company pages disable analytics/error capture and indexing.
 - Correcting the recipient or package, reopening, or finishing manually invalidates previous form links. Explicit retry is limited to failed invitations whose event and envelope still match; successful sends are not retried.
-- Local development records email delivery without contacting Resend and exposes local preview links in the delivery modal. Test all external integrations against a configured test environment before production rollout.
+- Local development records email delivery without contacting Resend; pending preview links disappear after simulated handoff, just as they do in production. Test all external integrations against a configured test environment before production rollout.
 
 Company form question order follows the original first-contact email, including its assisting text. A requested arrangement type is stored with the answers for internal review; it does not change the agreed package or its capacity limit.
 
 The address field reuses the listings address autocomplete and debounced Geonorge lookup. IFI is always the first option, even before typing; selecting it stores `IFI` as the location.
+
+Company pages use `/event-planning` and `/event-planning/confirm`. Opening the form uses a server-time-checked mutation so a client clock cannot extend access past event start. Review and approval reject any change of hosting company.

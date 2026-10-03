@@ -88,7 +88,7 @@ export const planningSchema = {
 		generation: v.number(),
 		eventStart: v.number(),
 		envelope,
-		url: v.string(),
+		url: v.optional(v.string()),
 		status: oneOf([
 			"pending",
 			"queued",
