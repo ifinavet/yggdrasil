@@ -41,7 +41,7 @@ export const PLANNING_QUESTIONS = {
 	},
 	description: {
 		label: "Beskrivelse av arrangementet.",
-		hint: "Supert om dere kan skrive en liten promoteringstekst som vi bruker på arrangementet på ifinavet.no.\n\nArrangementet blir også delt i forskjellige grupper på sosiale medier 1 uke før arrangementet tar sted, det er også da påmeldingen åpnes så er viktig at denne er klar før det.",
+		hint: "Supert om dere kan skrive en liten promoteringstekst som vi bruker på arrangementet på ifinavet.no og sosiale medier.\n\nArrangementet blir også delt i forskjellige grupper på sosiale medier 1 uke før arrangementet tar sted, det er også da påmeldingen åpnes så er viktig at denne er klar før det.",
 	},
 	stand: {
 		label: "Ønsker dere å ha en stand på IFI i forkant?",
