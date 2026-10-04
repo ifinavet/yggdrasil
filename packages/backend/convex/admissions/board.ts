@@ -103,10 +103,11 @@ export const assignRooms = mutation({
 			)
 				throw new ConvexError("Rommet er allerede i bruk av et annet intervju på samme tid.");
 		}
-		for (const row of interviews) {
-			if (selected.has(row.applicationId))
-				await ctx.db.patch(row._id, { room, revision: row.revision + 1 });
-		}
+		await Promise.all(
+			interviews
+				.filter((row) => selected.has(row.applicationId))
+				.map((row) => ctx.db.patch(row._id, { room, revision: row.revision + 1 })),
+		);
 		await ctx.db.patch(period._id, { revision: period.revision + 1, status: "open" });
 	},
 });
@@ -137,23 +138,17 @@ export const changeRound = mutation({
 			if (!applications.some((app) => app.decision === "shortlist"))
 				throw new ConvexError("Flytt kandidater til Videre først.");
 		}
-		for (const app of applications) {
-			// Offers already communicated to an applicant must not be undone by a board round.
-			if (app.sent || app.decision === "accepted" || app.offerStatus !== "none") continue;
-			let decision: Doc<"admissionApplications">["decision"] = app.decision;
-			if (args.direction === "previous")
-				decision =
-					previous?.decisions.find((row) => row.applicationId === app._id)?.decision ??
-					app.decision;
-			else if (app.decision === "shortlist") decision = "pending";
-			else if (app.decision === "pending") decision = "rejected";
-			if (decision !== app.decision)
-				await ctx.db.patch(app._id, {
-					decision,
-					revision: app.revision + 1,
-					decisionRevision: app.decisionRevision + 1,
-				});
-		}
+		await Promise.all(
+			applications.map(async (app) => {
+				const decision = roundDecision(app, args.direction, previous);
+				if (decision !== app.decision)
+					await ctx.db.patch(app._id, {
+						decision,
+						revision: app.revision + 1,
+						decisionRevision: app.decisionRevision + 1,
+					});
+			}),
+		);
 		await ctx.db.patch(period._id, {
 			revision: period.revision + 1,
 			round: period.round + (args.direction === "next" ? 1 : -1),
@@ -172,3 +167,18 @@ export const changeRound = mutation({
 		});
 	},
 });
+
+function roundDecision(
+	app: Doc<"admissionApplications">,
+	direction: "next" | "previous",
+	previous: Doc<"admissionPeriods">["roundHistory"][number] | undefined,
+): Doc<"admissionApplications">["decision"] {
+	// Communicated offers and accepted candidates survive round changes.
+	if (app.sent || app.decision === "accepted" || app.offerStatus !== "none") return app.decision;
+	if (direction === "previous")
+		return (
+			previous?.decisions.find((row) => row.applicationId === app._id)?.decision ?? app.decision
+		);
+	if (app.decision === "shortlist") return "pending";
+	return app.decision === "pending" ? "rejected" : app.decision;
+}

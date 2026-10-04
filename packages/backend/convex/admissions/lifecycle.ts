@@ -25,7 +25,7 @@ export async function purgeBatch(ctx: MutationCtx, periodId: Id<"admissionPeriod
 		.query("admissionDeliveries")
 		.withIndex("by_periodId", (q) => q.eq("periodId", periodId))
 		.take(80);
-	for (const row of deliveries) await ctx.db.delete(row._id);
+	await Promise.all(deliveries.map((row) => ctx.db.delete(row._id)));
 	if (deliveries.length === 80) {
 		await ctx.scheduler.runAfter(0, internal.admissions.internal.purgeBatch, { periodId });
 		return false;
@@ -36,14 +36,14 @@ export async function purgeBatch(ctx: MutationCtx, periodId: Id<"admissionPeriod
 			q.eq("periodId", periodId).eq("status", "cancelled"),
 		)
 		.take(80);
-	for (const row of interviews) await ctx.db.delete(row._id);
+	await Promise.all(interviews.map((row) => ctx.db.delete(row._id)));
 	const scheduled = await ctx.db
 		.query("admissionInterviews")
 		.withIndex("by_periodId_and_status", (q) =>
 			q.eq("periodId", periodId).eq("status", "scheduled"),
 		)
 		.take(80);
-	for (const row of scheduled) await ctx.db.delete(row._id);
+	await Promise.all(scheduled.map((row) => ctx.db.delete(row._id)));
 	if (interviews.length + scheduled.length >= 80) {
 		await ctx.scheduler.runAfter(0, internal.admissions.internal.purgeBatch, { periodId });
 		return false;
@@ -52,21 +52,21 @@ export async function purgeBatch(ctx: MutationCtx, periodId: Id<"admissionPeriod
 		.query("admissionApplications")
 		.withIndex("by_periodId_and_status", (q) => q.eq("periodId", periodId).eq("status", "draft"))
 		.take(80);
-	for (const row of applications) await ctx.db.delete(row._id);
+	await Promise.all(applications.map((row) => ctx.db.delete(row._id)));
 	const submitted = await ctx.db
 		.query("admissionApplications")
 		.withIndex("by_periodId_and_status", (q) =>
 			q.eq("periodId", periodId).eq("status", "submitted"),
 		)
 		.take(80);
-	for (const row of submitted) await ctx.db.delete(row._id);
+	await Promise.all(submitted.map((row) => ctx.db.delete(row._id)));
 	const withdrawn = await ctx.db
 		.query("admissionApplications")
 		.withIndex("by_periodId_and_status", (q) =>
 			q.eq("periodId", periodId).eq("status", "withdrawn"),
 		)
 		.take(80);
-	for (const row of withdrawn) await ctx.db.delete(row._id);
+	await Promise.all(withdrawn.map((row) => ctx.db.delete(row._id)));
 	if (applications.length + submitted.length + withdrawn.length >= 80) {
 		await ctx.scheduler.runAfter(0, internal.admissions.internal.purgeBatch, { periodId });
 		return false;
@@ -75,7 +75,7 @@ export async function purgeBatch(ctx: MutationCtx, periodId: Id<"admissionPeriod
 		.query("admissionOutbox")
 		.withIndex("by_periodId", (q) => q.eq("periodId", periodId))
 		.take(80);
-	for (const row of jobs) await ctx.db.delete(row._id);
+	await Promise.all(jobs.map((row) => ctx.db.delete(row._id)));
 	if (jobs.length === 80) {
 		await ctx.scheduler.runAfter(0, internal.admissions.internal.purgeBatch, { periodId });
 		return false;
