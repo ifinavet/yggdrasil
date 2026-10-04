@@ -219,12 +219,7 @@ export const reset = mutation({
 			scenario === "offer-pending-declined"
 				? "accepted"
 				: "pending";
-		const ownOffer =
-			scenario === "offer-pending-declined"
-				? "declined"
-				: scenario === "decisions" || scenario === "offer-pending-accepted"
-					? "pending"
-					: "none";
+		const ownOffer: Doc<"admissionApplications">["offerStatus"] = offerScenario(scenario);
 		const ownId = await ctx.db.insert("admissionApplications", {
 			periodId,
 			userId: applicantId,
@@ -315,4 +310,9 @@ async function seedOtherCandidates(
 			});
 		}),
 	);
+}
+
+function offerScenario(scenario: string): Doc<"admissionApplications">["offerStatus"] {
+	if (scenario === "offer-pending-declined") return "declined";
+	return scenario === "decisions" || scenario === "offer-pending-accepted" ? "pending" : "none";
 }

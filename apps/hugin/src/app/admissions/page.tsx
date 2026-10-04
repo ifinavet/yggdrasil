@@ -10,34 +10,37 @@ import AdmissionsJourney from "./journey";
 
 export const instant = false;
 
+function closedPeriodPage(now: number) {
+	const month = Number(
+		new Intl.DateTimeFormat("en", { month: "numeric", timeZone: OSLO_TIME_ZONE }).format(now),
+	);
+	return (
+		<div className="mx-auto max-w-xl py-16">
+			<h1 className="font-semibold text-3xl">Søknadsperioden er avsluttet</h1>
+			<p className="mt-4 text-base leading-relaxed">
+				Søknadsperioden for dette semesteret er ferdig. Neste opptak åpner i starten av{" "}
+				{month < 7 ? "høstsemesteret" : "vårsemesteret"}.
+			</p>
+		</div>
+	);
+}
+
+function renderPreview(preview: string) {
+	if (!isLocalDevelopment) notFound();
+	const now = Date.now();
+	const open =
+		now >= Date.parse("2026-10-01T00:00:00+02:00") && now < Date.parse("2026-10-12T00:00:00+02:00");
+	if ((!open && preview !== "open") || preview === "closed") return closedPeriodPage(now);
+	return <ApplicationPreview />;
+}
+
 export default async function Page({
 	searchParams,
 }: Readonly<{
 	searchParams: Promise<{ preview?: string }>;
 }>) {
 	const { preview } = await searchParams;
-	if (preview) {
-		if (!isLocalDevelopment) notFound();
-		const now = Date.now();
-		const open =
-			now >= Date.parse("2026-10-01T00:00:00+02:00") &&
-			now < Date.parse("2026-10-12T00:00:00+02:00");
-		if ((!open && preview !== "open") || preview === "closed") {
-			const month = Number(
-				new Intl.DateTimeFormat("en", { month: "numeric", timeZone: OSLO_TIME_ZONE }).format(now),
-			);
-			return (
-				<div className="mx-auto max-w-xl py-16">
-					<h1 className="font-semibold text-3xl">Søknadsperioden er avsluttet</h1>
-					<p className="mt-4 text-base leading-relaxed">
-						Søknadsperioden for dette semesteret er ferdig. Neste opptak åpner i starten av{" "}
-						{month < 7 ? "høstsemesteret" : "vårsemesteret"}.
-					</p>
-				</div>
-			);
-		}
-		return <ApplicationPreview />;
-	}
+	if (preview) return renderPreview(preview);
 
 	const { userId, redirectToSignIn } = await auth();
 	if (!userId) return redirectToSignIn();
@@ -71,20 +74,7 @@ export default async function Page({
 	}
 
 	const openPeriod = period ?? periods[0];
-	if (!openPeriod) {
-		const month = Number(
-			new Intl.DateTimeFormat("en", { month: "numeric", timeZone: OSLO_TIME_ZONE }).format(now),
-		);
-		return (
-			<div className="mx-auto max-w-xl py-16">
-				<h1 className="font-semibold text-3xl">Søknadsperioden er avsluttet</h1>
-				<p className="mt-4 text-base leading-relaxed">
-					Søknadsperioden for dette semesteret er ferdig. Neste opptak åpner i starten av{" "}
-					{month < 7 ? "høstsemesteret" : "vårsemesteret"}.
-				</p>
-			</div>
-		);
-	}
+	if (!openPeriod) return closedPeriodPage(now);
 
 	const application =
 		currentApplication?.periodId === openPeriod._id

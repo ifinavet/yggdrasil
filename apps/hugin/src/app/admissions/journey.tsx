@@ -117,7 +117,7 @@ export default function AdmissionsJourney({
 	const [cancelledInterview, setCancelledInterview] = useState(false);
 	const [selectedDays, setSelectedDays] = useState<string[]>([]);
 	const [noSuitableTimes, setNoSuitableTimes] = useState(
-		Boolean(initialApplication && initialApplication.availability.length === 0),
+		initialApplication?.availability.length === 0,
 	);
 	const [start, setStart] = useState(9 * 60);
 	const [end, setEnd] = useState(10 * 60);
@@ -205,92 +205,19 @@ export default function AdmissionsJourney({
 		);
 	}
 
-	if (application?.status === "submitted" && !editingSubmitted) {
-		if (application.offerStatus === "pending") {
-			return (
-				<Notice title="Du har fått tilbud om plass">
-					<p>Gi beskjed om du takker ja eller nei til tilbudet.</p>
-					{application.offerDeadline && (
-						<p>Svarfrist: {formatOsloDate(application.offerDeadline, DATE_PATTERNS.dateTime)}.</p>
-					)}
-					<div className="flex flex-wrap gap-3">
-						<OfferConfirmation accept onConfirm={() => void replyToOffer(true)} />
-						<OfferConfirmation accept={false} onConfirm={() => void replyToOffer(false)} />
-					</div>
-					{message && <p role="status">{message}</p>}
-				</Notice>
-			);
-		}
-		if (application.offerStatus === "accepted") {
-			return (
-				<Notice title="Du har takket ja til plassen">
-					<p>Navet har mottatt svaret ditt.</p>
-				</Notice>
-			);
-		}
-		if (application.offerStatus === "declined") {
-			return (
-				<Notice title="Takk for at du ga beskjed">
-					<p>Vi har mottatt svaret ditt.</p>
-				</Notice>
-			);
-		}
-		if (application.decisionSentAt && application.decision === "rejected") {
-			return (
-				<Notice title="Takk for at du søkte">
-					<p>Opptaket er ferdig for denne gangen.</p>
-				</Notice>
-			);
-		}
-		if (application.interview) {
-			return (
-				<Notice title="Intervjuet ditt">
-					<p>{formatOsloDate(application.interview.startAt, DATE_PATTERNS.dateTime)}</p>
-					<p>Møterom: {application.interview.room}</p>
-					<AlertDialog>
-						<AlertDialogTrigger asChild>
-							<Button variant="outline">Avlys intervjuet</Button>
-						</AlertDialogTrigger>
-						<AlertDialogContent>
-							<AlertDialogHeader>
-								<AlertDialogTitle>Avlyse intervjuet?</AlertDialogTitle>
-								<AlertDialogDescription>
-									Intervjutiden blir avlyst når du bekrefter.
-								</AlertDialogDescription>
-							</AlertDialogHeader>
-							<AlertDialogFooter>
-								<AlertDialogCancel>Behold intervjuet</AlertDialogCancel>
-								<AlertDialogAction onClick={() => void cancelAssignedInterview()}>
-									Ja, avlys intervjuet
-								</AlertDialogAction>
-							</AlertDialogFooter>
-						</AlertDialogContent>
-					</AlertDialog>
-					{message && <p role="status">{message}</p>}
-				</Notice>
-			);
-		}
-		if (cancelledInterview) {
-			return (
-				<Notice title="Intervjuet er avlyst">
-					<p>Vi har registrert at du har avlyst intervjuet.</p>
-				</Notice>
-			);
-		}
+	if (application?.status === "submitted" && !editingSubmitted)
 		return (
-			<Notice title="Søknaden din er sendt">
-				<p>Søknaden din er lagret.</p>
-				{period.interviewStartAt > 0 &&
-					Date.now() <= period.applicationEndAt &&
-					!application.decisionSentAt && (
-						<Button variant="outline" disabled={busy} onClick={() => void reopenApplication()}>
-							Rediger søknaden
-						</Button>
-					)}
-				{message && <p role="status">{message}</p>}
-			</Notice>
+			<SubmittedApplicationView
+				application={application}
+				period={period}
+				busy={busy}
+				message={message}
+				cancelledInterview={cancelledInterview}
+				onReply={replyToOffer}
+				onCancelInterview={cancelAssignedInterview}
+				onReopen={reopenApplication}
+			/>
 		);
-	}
 
 	async function reopenApplication() {
 		if (!application) return;
@@ -727,13 +654,108 @@ export default function AdmissionsJourney({
 						);
 					}}
 				</form.Subscribe>
-				{message && (
-					<p role="status" className="text-sm">
-						{message}
-					</p>
-				)}
+				{message && <output className="text-sm">{message}</output>}
 			</form>
 		</div>
+	);
+}
+
+function SubmittedApplicationView({
+	application,
+	period,
+	busy,
+	message,
+	cancelledInterview,
+	onReply,
+	onCancelInterview,
+	onReopen,
+}: Readonly<{
+	application: NonNullable<InitialApplication>;
+	period: Period;
+	busy: boolean;
+	message: string;
+	cancelledInterview: boolean;
+	onReply: (accept: boolean) => Promise<void>;
+	onCancelInterview: () => Promise<void>;
+	onReopen: () => Promise<void>;
+}>) {
+	if (application.offerStatus === "pending")
+		return (
+			<Notice title="Du har fått tilbud om plass">
+				<p>Gi beskjed om du takker ja eller nei til tilbudet.</p>
+				{application.offerDeadline && (
+					<p>Svarfrist: {formatOsloDate(application.offerDeadline, DATE_PATTERNS.dateTime)}.</p>
+				)}
+				<div className="flex flex-wrap gap-3">
+					<OfferConfirmation accept onConfirm={() => void onReply(true)} />
+					<OfferConfirmation accept={false} onConfirm={() => void onReply(false)} />
+				</div>
+				{message && <output>{message}</output>}
+			</Notice>
+		);
+	if (application.offerStatus === "accepted")
+		return (
+			<Notice title="Du har takket ja til plassen">
+				<p>Navet har mottatt svaret ditt.</p>
+			</Notice>
+		);
+	if (application.offerStatus === "declined")
+		return (
+			<Notice title="Takk for at du ga beskjed">
+				<p>Vi har mottatt svaret ditt.</p>
+			</Notice>
+		);
+	if (application.decisionSentAt && application.decision === "rejected")
+		return (
+			<Notice title="Takk for at du søkte">
+				<p>Opptaket er ferdig for denne gangen.</p>
+			</Notice>
+		);
+	if (application.interview)
+		return (
+			<Notice title="Intervjuet ditt">
+				<p>{formatOsloDate(application.interview.startAt, DATE_PATTERNS.dateTime)}</p>
+				<p>Møterom: {application.interview.room}</p>
+				<AlertDialog>
+					<AlertDialogTrigger asChild>
+						<Button variant="outline">Avlys intervjuet</Button>
+					</AlertDialogTrigger>
+					<AlertDialogContent>
+						<AlertDialogHeader>
+							<AlertDialogTitle>Avlyse intervjuet?</AlertDialogTitle>
+							<AlertDialogDescription>
+								Intervjutiden blir avlyst når du bekrefter.
+							</AlertDialogDescription>
+						</AlertDialogHeader>
+						<AlertDialogFooter>
+							<AlertDialogCancel>Behold intervjuet</AlertDialogCancel>
+							<AlertDialogAction onClick={() => void onCancelInterview()}>
+								Ja, avlys intervjuet
+							</AlertDialogAction>
+						</AlertDialogFooter>
+					</AlertDialogContent>
+				</AlertDialog>
+				{message && <output>{message}</output>}
+			</Notice>
+		);
+	if (cancelledInterview)
+		return (
+			<Notice title="Intervjuet er avlyst">
+				<p>Vi har registrert at du har avlyst intervjuet.</p>
+			</Notice>
+		);
+	return (
+		<Notice title="Søknaden din er sendt">
+			<p>Søknaden din er lagret.</p>
+			{period.interviewStartAt > 0 &&
+				Date.now() <= period.applicationEndAt &&
+				!application.decisionSentAt && (
+					<Button variant="outline" disabled={busy} onClick={() => void onReopen()}>
+						Rediger søknaden
+					</Button>
+				)}
+			{message && <output>{message}</output>}
+		</Notice>
 	);
 }
 
@@ -781,9 +803,9 @@ function Notice({ title, children }: Readonly<{ title: string; children: React.R
 
 function JourneyLoading() {
 	return (
-		<div className="mx-auto max-w-2xl py-16" role="status" aria-label="Laster søknaden">
+		<output className="mx-auto block max-w-2xl py-16" aria-label="Laster søknaden">
 			<LoaderCircle className="size-6 animate-spin" />
-		</div>
+		</output>
 	);
 }
 
