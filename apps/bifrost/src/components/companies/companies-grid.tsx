@@ -10,6 +10,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@workspace/ui/components//card";
+import { CompanyLogo } from "@workspace/ui/components/company-logo";
 import { SafeHtml } from "@workspace/ui/components/safe-html";
 import { SearchField } from "@workspace/ui/components/search-field";
 import { usePaginatedQuery, useQuery } from "convex/react";
@@ -32,7 +33,10 @@ export default function CompaniesGrid() {
 			initialNumItems: 25,
 		},
 	);
-	const matchingSource = useQuery(api.companies.queries.getAll, search.trim() ? {} : "skip");
+	const matchingSource = useQuery(
+		api.companies.queries.getAllWithLogoUrl,
+		search.trim() ? {} : "skip",
+	);
 	const source = search.trim() ? (matchingSource ?? []) : companies;
 	const visibleCompanies = useMemo(
 		() => source.filter((company) => matchesAny([company.name, String(company.orgNumber)], search)),
@@ -52,7 +56,10 @@ export default function CompaniesGrid() {
 					<Link key={company._id} href={`/companies/${company._id}`}>
 						<Card>
 							<CardHeader>
-								<CardTitle>{company.name}</CardTitle>
+								<CardTitle className="flex items-center gap-3">
+									<CompanyLogo name={company.name} url={company.logoUrl} size="lg" />
+									{company.name}
+								</CardTitle>
 								<CardAction>
 									<Button variant="outline" size="icon">
 										<Pencil />

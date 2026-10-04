@@ -1,19 +1,21 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { query } from "../_generated/server";
+import { withLogoUrl } from "./helper";
 
 /**
- * Fetches paginated companies.
+ * Fetches paginated companies with their logo URL, which is null when the logo is missing.
  *
  * @param {PaginationOptions} paginationOpts - The Convex pagination options.
  *
- * @returns {PaginationResult<Doc<"companies">>} - The paginated companies result.
+ * @returns {PaginationResult<Doc<"companies"> & { logoUrl: string | null }>} - The paginated companies result.
  */
 export const getAllPaged = query({
 	args: { paginationOpts: paginationOptsValidator },
 	handler: async (ctx, { paginationOpts }) => {
 		const companies = await ctx.db.query("companies").paginate(paginationOpts);
-		return companies;
+		const page = await Promise.all(companies.page.map((company) => withLogoUrl(ctx, company)));
+		return { ...companies, page };
 	},
 });
 
@@ -25,6 +27,18 @@ export const getAllPaged = query({
 export const getAll = query({
 	handler: async (ctx) => {
 		return await ctx.db.query("companies").collect();
+	},
+});
+
+/**
+ * Fetches all companies with their logo URL, which is null when the logo is missing.
+ *
+ * @returns {(Doc<"companies"> & { logoUrl: string | null })[]} - All companies with logo URL.
+ */
+export const getAllWithLogoUrl = query({
+	handler: async (ctx) => {
+		const companies = await ctx.db.query("companies").collect();
+		return Promise.all(companies.map((company) => withLogoUrl(ctx, company)));
 	},
 });
 
