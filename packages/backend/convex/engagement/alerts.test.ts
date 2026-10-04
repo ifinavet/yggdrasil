@@ -132,6 +132,21 @@ describe("slackText", () => {
 		]);
 	});
 
+	it("names the main organizer without tagging when the alert only informs", () => {
+		for (const rule of ["behindPace", "unregisterWave"] as const) {
+			const text = slackText(
+				rule,
+				"event123" as Id<"events">,
+				{ summary: "Kodekveld, Acme", detail: "4 av 10 plasser." },
+				[{ name: "Kari Nordmann", slackUserId: "U123" }],
+				"https://bifrost.test",
+			);
+
+			expect(text).toContain("🙋 Hovedansvarlig: Kari Nordmann\n");
+			expect(text).not.toContain("<@");
+		}
+	});
+
 	it("escapes Slack control characters in event names", () => {
 		const text = slackText(
 			"behindPace",

@@ -259,6 +259,21 @@ describe("company semester event lifecycle", () => {
 		await run(t);
 		expect(slack.channels[0]?.messages).toHaveLength(count as number);
 	});
+	it("greets by name without tagging when the notice only informs", async () => {
+		const { t, companyId } = await setup();
+		const slack = fakeSlack();
+		const eventId = await insertEvent(t, companyId, { eventStart: START, participationLimit: 1 });
+		await organizer(t, eventId, "LEAD");
+		await run(t);
+		const user = await insertUser(t, "full@example.test");
+		await insertRegistration(t, eventId, user._id, "registered");
+		await t.run((ctx) => queueEventNotification(ctx, eventId, "registration-full", "Fullt"));
+		await run(t);
+		const full = slack.channels[0]?.messages.find((message) => message.text.includes("Fullt"));
+		expect(slack.channels[0]?.messages[0]?.text).toContain("Halla <@LEAD>!");
+		expect(full?.text).toMatch(/^Halla [^<]+!\n/);
+		expect(full?.text).not.toContain("<@");
+	});
 	it("recovers still-actionable reminders on late enable", async () => {
 		const { t, companyId } = await setup();
 		const slack = fakeSlack();
@@ -1050,43 +1065,57 @@ it("recovers a desired name collision with a deterministic name and announces th
 	expect(slack.calls).not.toContain("conversations.rename");
 });
 
-it("does not link organizers to a zero-response report", async () => {
-	const { t, companyId } = await setup();
-	const slack = fakeSlack();
-	const eventId = await insertEvent(t, companyId, { eventStart: START, feedbackEnabled: true });
-	await run(t);
-	const campaignId = await t.run((ctx) =>
-		ctx.db.insert("feedbackCampaigns", {
-			eventId,
-			status: "closed",
-			opensAt: START + DAY_MS,
-			closesAt: START + 15 * DAY_MS,
-			generation: 1,
-		}),
-	);
-	const reportId = await t.run((ctx) =>
-		ctx.db.insert("feedbackReports", {
-			campaignId,
-			eventId,
-			eventTitle: "Report",
-			eventStart: START,
-			companyName: "Test",
-			recipientEmail: "test@example.test",
-			status: "draft",
-			questions: [],
-			totalResponses: 0,
-			buildCursor: null,
-			revision: 1,
-			retentionAt: START + 365 * DAY_MS,
-		}),
-	);
-	await t.run((ctx) =>
-		queueEventNotification(ctx, eventId, `report-ready:${reportId}`, "Ingen svarte denne gangen."),
-	);
-	await run(t);
-	expect(slack.channels[0]?.messages.at(-1)?.text).toContain("Ingen svarte");
-	expect(slack.channels[0]?.messages.at(-1)?.text).not.toContain("/report");
-});
+it.each([
+	{ totalResponses: 0, tagged: false },
+	{ totalResponses: 3, tagged: true },
+])(
+	"links and tags organizers only when the report has responses to review ($totalResponses)",
+	async ({ totalResponses, tagged }) => {
+		const { t, companyId } = await setup();
+		const slack = fakeSlack();
+		const eventId = await insertEvent(t, companyId, { eventStart: START, feedbackEnabled: true });
+		await organizer(t, eventId, "LEAD");
+		await run(t);
+		const campaignId = await t.run((ctx) =>
+			ctx.db.insert("feedbackCampaigns", {
+				eventId,
+				status: "closed",
+				opensAt: START + DAY_MS,
+				closesAt: START + 15 * DAY_MS,
+				generation: 1,
+			}),
+		);
+		const reportId = await t.run((ctx) =>
+			ctx.db.insert("feedbackReports", {
+				campaignId,
+				eventId,
+				eventTitle: "Report",
+				eventStart: START,
+				companyName: "Test",
+				recipientEmail: "test@example.test",
+				status: "draft",
+				questions: [],
+				totalResponses,
+				buildCursor: null,
+				revision: 1,
+				retentionAt: START + 365 * DAY_MS,
+			}),
+		);
+		await t.run((ctx) =>
+			queueEventNotification(
+				ctx,
+				eventId,
+				`report-ready:${reportId}`,
+				"Ingen svarte denne gangen.",
+			),
+		);
+		await run(t);
+		const text = slack.channels[0]?.messages.at(-1)?.text;
+		expect(text).toContain("Ingen svarte");
+		expect(text?.includes("/report")).toBe(tagged);
+		expect(text?.includes("<@LEAD>")).toBe(tagged);
+	},
+);
 
 it("delivers welcome and archives without history permission, without repeating channel edits", async () => {
 	const { t, companyId } = await setup();

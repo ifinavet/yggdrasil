@@ -18,7 +18,13 @@ import { countRegistrationsWithStatus } from "../helper";
 import { planningFollowup, stalePlanningNotice } from "../planning/lifecycle";
 import { getOrganizers } from "../queries";
 import { lifecycleEnabled } from "./config";
-import { escapeSlack, eventMessage, eventUrl, welcomeMessage } from "./messages";
+import {
+	asksOrganizersToAct,
+	escapeSlack,
+	eventMessage,
+	eventUrl,
+	welcomeMessage,
+} from "./messages";
 import { recoverableNotices } from "./recovery";
 import { dueOrganizerReminders } from "./reminders";
 
@@ -378,10 +384,10 @@ async function reportNotificationText(
 			return null;
 		}
 		if (notice.key.startsWith("report-ready:") && report.totalResponses > 0) {
-			return `${notice.text} <${eventUrl(event)}/report|Åpne rapporten>.`;
+			return { text: `${notice.text} <${eventUrl(event)}/report|Åpne rapporten>.`, tag: true };
 		}
 	}
-	return notice.text;
+	return { text: notice.text, tag: false };
 }
 
 async function staleNotification(
@@ -435,18 +441,20 @@ async function renderNotification(
 	text: string,
 	now: number,
 ) {
+	let tag = asksOrganizersToAct(notice.key);
 	if (notice.key.startsWith("welcome:")) {
 		const campaign = await latestCampaign(ctx, event._id);
 		const active = campaign?.status === "scheduled" || campaign?.status === "open";
 		text = welcomeMessage(event, now, active ? campaign.opensAt : undefined);
 	}
 	if (notice.key.startsWith("report-ready:") || notice.key.startsWith("report-sent:")) {
-		const reportText = await reportNotificationText(ctx, event, notice);
-		if (reportText === null) {
+		const report = await reportNotificationText(ctx, event, notice);
+		if (report === null) {
 			await ctx.db.patch(notice._id, { cancelledAt: now });
 			return null;
 		}
-		text = reportText;
+		text = report.text;
+		tag = report.tag;
 	}
 
 	const organizers = await getOrganizers(ctx, event._id);
@@ -466,7 +474,7 @@ async function renderNotification(
 	return {
 		id: notice._id,
 		createdAt: notice._creationTime,
-		text: eventMessage(event, recipients, text),
+		text: eventMessage(event, recipients, text, tag),
 	};
 }
 
