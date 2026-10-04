@@ -38,7 +38,7 @@ export function SidebarContentGroup({
 			{sections.map((section) => (
 				<SidebarGroupContent key={section.title ?? items}>
 					{section.title && (
-						<SidebarGroupLabel className="font-normal text-sidebar-foreground/50">
+						<SidebarGroupLabel className="font-normal text-sidebar-foreground/50 group-data-[collapsible=icon]:hidden">
 							{section.title}
 						</SidebarGroupLabel>
 					)}
