@@ -4,6 +4,7 @@ import {
 	ALERT_ACTIVITY,
 	activityBuckets,
 	activityWindowMs,
+	alignedCurve,
 	classify,
 	isSimilarCapacity,
 	isWave,
@@ -129,9 +130,9 @@ describe("projectFill", () => {
 		expect(projectFill(0.3, 0, linearCurve(1))).toBe(0.3);
 	});
 
-	it("extrapolates linearly without a baseline", () => {
-		expect(projectFill(0.2, 0.5, null)).toBeCloseTo(0.4);
-		expect(projectFill(0.8, 0.5, null)).toBe(1);
+	it("does not invent growth without a baseline", () => {
+		expect(projectFill(0.2, 0.5, null)).toBe(0.2);
+		expect(projectFill(0.8, 0.5, null)).toBe(0.8);
 	});
 
 	it("adds the growth the baseline still has ahead", () => {
@@ -142,9 +143,10 @@ describe("projectFill", () => {
 		expect(projectFill(0.05, 0.0001, linearCurve(0.5))).toBeCloseTo(0.55 - 0.00005);
 	});
 
-	it("never projects below the current fill or above capacity", () => {
+	it("allows historical decline while clamping to zero and capacity", () => {
 		const shrinking = PACE_GRID.map((progress) => 0.8 - 0.2 * progress);
-		expect(projectFill(0.3, 0.5, shrinking)).toBe(0.3);
+		expect(projectFill(0.3, 0.5, shrinking)).toBeCloseTo(0.2);
+		expect(projectFill(0.05, 0.5, shrinking)).toBe(0);
 		expect(projectFill(0.1, 0.5, linearCurve(0))).toBe(0.1);
 		expect(projectFill(0.9, 0.5, linearCurve(1))).toBe(1);
 	});
@@ -227,7 +229,9 @@ describe("classify", () => {
 
 	it("flags events projected to stay under half full close to start", () => {
 		const registrationTimes = [OPENS + HOUR_MS, OPENS + 2 * HOUR_MS];
-		expect(classify({ ...base, now: START - DAY_MS, registrationTimes })).toEqual({
+		expect(
+			classify({ ...base, now: START - DAY_MS, registrationTimes, baseline: linearCurve(0.3) }),
+		).toEqual({
 			kind: "behind",
 		});
 		expect(classify({ ...base, now: OPENS + 2 * DAY_MS, registrationTimes })).toEqual({
@@ -288,5 +292,34 @@ describe("activityBuckets", () => {
 
 	it("returns one bucket when registration opens right now", () => {
 		expect(activityBuckets([], "behindPace", OPENS, OPENS)).toEqual([{ start: OPENS, count: 0 }]);
+	});
+});
+
+describe("historical forecast shape", () => {
+	it("rises, drops after a reminder, and recovers from the current count", () => {
+		const curve = PACE_GRID.map((p) => (p < 0.7 ? 0.4 + p / 2 : p < 0.85 ? 0.35 : 0.5));
+		expect(projectFill(0.6, 0.5, curve, 0.6)).toBeCloseTo(0.65);
+		expect(projectFill(0.6, 0.5, curve, 0.75)).toBeCloseTo(0.3);
+		expect(projectFill(0.6, 0.5, curve, 1)).toBeCloseTo(0.45);
+	});
+	it("aligns the two-day reminder across different registration windows", () => {
+		const source = { registrationOpens: 0, eventStart: 10 * DAY_MS, remindersEnabled: true };
+		const target = { registrationOpens: 0, eventStart: 20 * DAY_MS, remindersEnabled: true };
+		const curve = PACE_GRID.map((p) => (p <= 0.8 ? 0.9 : 0.4));
+		const aligned = alignedCurve(curve, source, target);
+		expect(valueAt(aligned, 0.9)).toBeCloseTo(0.9);
+		expect(valueAt(aligned, 0.92)).toBeCloseTo(0.4);
+	});
+	it("uses actual reminder timestamps when recorded", () => {
+		const source = {
+			...TIMELINE,
+			remindersEnabled: true,
+			reminderTimes: { twoDays: OPENS + 9 * DAY_MS },
+		};
+		const target = { ...TIMELINE, remindersEnabled: true };
+		const curve = PACE_GRID.map((p) => (p <= 0.9 ? 0.9 : 0.4));
+		const aligned = alignedCurve(curve, source, target);
+		expect(valueAt(aligned, 0.8)).toBeCloseTo(0.9);
+		expect(valueAt(aligned, 0.85)).toBeCloseTo(0.4);
 	});
 });
