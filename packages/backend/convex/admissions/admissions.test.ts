@@ -1,9 +1,20 @@
-import { expect, it } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { asUser, grantRole, insertStudent, insertUser, setup } from "../../test/fixtures";
 import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 
 const DAY = 24 * 60 * 60 * 1000;
+
+beforeEach(() => {
+	vi.useFakeTimers({ toFake: ["Date"] });
+	vi.setSystemTime(new Date("2026-10-04T12:00:00.000Z"));
+});
+
+afterEach(() => {
+	vi.useRealTimers();
+	delete process.env.CONVEX_CLOUD_URL;
+	delete process.env.APP_ENV;
+});
 
 async function users(t: Awaited<ReturnType<typeof setup>>["t"]) {
 	const student = await insertUser(t, "student@uio.no");
@@ -39,7 +50,7 @@ async function openPeriod(
 		applicationEndAt: now + DAY,
 		interviewStartAt: now + 2 * DAY,
 		interviewEndAt: now + 9 * DAY,
-		retentionAt: now + 45 * DAY,
+		retentionAt: now + 20 * DAY,
 		interviewers: [
 			{ userId: boardId, selectedCalendarIds: [] },
 			{ userId: secondBoardId, selectedCalendarIds: [] },
@@ -95,6 +106,26 @@ it("limits admin data to admins and applicant data to the signed-in student's ow
 			consent: true,
 		}),
 	).rejects.toThrow(/allerede/);
+});
+
+it("keeps calendar discovery and schedule generation admin-only", async () => {
+	process.env.CONVEX_CLOUD_URL = "http://127.0.0.1:3212";
+	process.env.APP_ENV = "local";
+	const { t } = await setup();
+	const { student, board, admin, boardId, secondBoardId } = await users(t);
+	const periodId = await openPeriod(admin, boardId, secondBoardId);
+	await expect(
+		student.action(api.admissions.calendar.sources, { periodId, interviewerId: boardId }),
+	).rejects.toThrow(/Unauthorized/);
+	await expect(
+		board.action(api.admissions.calendar.sources, { periodId, interviewerId: boardId }),
+	).rejects.toThrow(/Unauthorized/);
+	await expect(
+		student.action(api.admissions.calendar.generateSchedule, { periodId, expectedRevision: 0 }),
+	).rejects.toThrow(/Unauthorized/);
+	await expect(
+		board.action(api.admissions.calendar.generateSchedule, { periodId, expectedRevision: 0 }),
+	).rejects.toThrow(/Unauthorized/);
 });
 
 it("validates independent period windows, the 14-day cap, selected interviewers, and scheduling breaks", async () => {
