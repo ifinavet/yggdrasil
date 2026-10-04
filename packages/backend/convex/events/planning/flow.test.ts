@@ -342,6 +342,54 @@ describe("company event planning", () => {
 		});
 		expect(await f.t.mutation(api.events.planning.public.get, { token: f.token })).toBeNull();
 	});
+	it.each(["email.sent", "email.delivered"])(
+		"announces an invitation once in both Slack queues after %s",
+		async (first) => {
+			const f = await invited();
+			expect(
+				await f.t.run((ctx) => ctx.db.query("eventSlackNotifications").collect()),
+			).toHaveLength(0);
+			await f.t.run((ctx) =>
+				ctx.db.patch(f.mail._id, { status: "queued", emailId: "provider-id" }),
+			);
+			for (const type of [first, "email.sent", "email.delivered", "email.delivered"]) {
+				await f.t.mutation(internal.events.planning.delivery.recordProviderEvent, {
+					emailId: "provider-id",
+					type,
+				});
+			}
+			const eventNotices = await f.t.run((ctx) =>
+				ctx.db.query("eventSlackNotifications").collect(),
+			);
+			const systemNotices = await f.t.run((ctx) => ctx.db.query("slackSystemDeliveries").collect());
+			expect(eventNotices).toHaveLength(1);
+			expect(systemNotices).toHaveLength(1);
+			expect(eventNotices[0]?.text).toContain("er sendt til contact@example.com");
+			expect(eventNotices[0]?.text).toContain("planning=delivery");
+			expect(systemNotices[0]?.text).toContain("er sendt til contact@example.com");
+			await f.t.mutation(internal.events.planning.delivery.recordProviderEvent, {
+				emailId: "provider-id",
+				type: "email.bounced",
+			});
+			expect(
+				await f.t.run((ctx) => ctx.db.query("eventSlackNotifications").collect()),
+			).toHaveLength(2);
+		},
+	);
+	it("does not announce verification emails as invitations", async () => {
+		const f = await submitted();
+		await f.t.run((ctx) =>
+			ctx.db.patch(f.confirmation._id, { status: "queued", emailId: "confirmation-id" }),
+		);
+		await f.t.mutation(internal.events.planning.delivery.recordProviderEvent, {
+			emailId: "confirmation-id",
+			type: "email.sent",
+		});
+		expect(await f.t.run((ctx) => ctx.db.query("eventSlackNotifications").collect())).toHaveLength(
+			0,
+		);
+		expect(await f.t.run((ctx) => ctx.db.query("slackSystemDeliveries").collect())).toHaveLength(0);
+	});
 	it("persists bounces, alerts both Slack queues and ignores late sent callbacks", async () => {
 		const f = await invited();
 		await f.t.run((ctx) => ctx.db.patch(f.mail._id, { status: "queued", emailId: "provider-id" }));
@@ -392,6 +440,10 @@ describe("company event planning", () => {
 		});
 		await f.t.mutation(internal.events.planning.delivery.recover, {});
 		expect((await f.t.run((ctx) => ctx.db.get(f.mail._id)))?.status).toBe("delivered");
+		expect(await f.t.run((ctx) => ctx.db.query("eventSlackNotifications").collect())).toHaveLength(
+			1,
+		);
+		expect(await f.t.run((ctx) => ctx.db.query("slackSystemDeliveries").collect())).toHaveLength(1);
 		expect(await f.t.run((ctx) => ctx.db.query("eventPlanningEmails").collect())).toHaveLength(1);
 	});
 	it("sends as the organizer only on the configured verified domain", async () => {

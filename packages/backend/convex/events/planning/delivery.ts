@@ -8,7 +8,7 @@ import { internalMutation, internalQuery, type MutationCtx } from "../../_genera
 import { isLocalDevelopment } from "../../auth/local";
 import { trackedEmail } from "../../lib/trackedEmail";
 import { envelopeFingerprint, invitationPreview } from "./helpers";
-import { notifyPlanning } from "./notifications";
+import { notifyInvitationSent, notifyPlanning } from "./notifications";
 
 export type EmailDraft = Omit<
 	Doc<"eventPlanningEmails">,
@@ -187,6 +187,7 @@ export const recordProviderEvent = internalMutation({
 				: {}),
 		});
 		if (failed) await alertFailure(ctx, email, message, status);
+		await notifyInvitationSent(ctx, email, status);
 		return true;
 	},
 });
@@ -231,6 +232,7 @@ async function recoverEmail(ctx: MutationCtx, email: Doc<"eventPlanningEmails">)
 			deliveredAt: Date.now(),
 			sentAt: email.sentAt ?? Date.now(),
 		});
+		await notifyInvitationSent(ctx, email, "delivered");
 		return;
 	}
 	let status = email.status;

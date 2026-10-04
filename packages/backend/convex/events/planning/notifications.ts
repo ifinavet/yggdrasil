@@ -28,3 +28,21 @@ export async function notifyPlanning(
 		text: `${escapeSlack(event.title)}\n${message}\n${mentions.join(" ")}`,
 	});
 }
+
+export async function notifyInvitationSent(
+	ctx: MutationCtx,
+	email: Doc<"eventPlanningEmails">,
+	status: Doc<"eventPlanningEmails">["status"],
+) {
+	if (email.kind !== "invitation" || (status !== "sent" && status !== "delivered")) return;
+	const planning = await ctx.db.get(email.planningId);
+	const event = planning ? await ctx.db.get(planning.eventId) : null;
+	if (!event || event.hostingCompany !== planning?.companyId) return;
+	await notifyPlanning(
+		ctx,
+		event,
+		`email-sent:${email._id}`,
+		`Invitasjonen til å planlegge bedriftspresentasjonen er sendt til ${escapeSlack(email.envelope.to)}. Vi venter på bedriftens svar.`,
+		"delivery",
+	);
+}
