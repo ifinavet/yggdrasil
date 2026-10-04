@@ -1,3 +1,4 @@
+import { EVENT_CONTACT_EMAIL } from "@workspace/shared/constants/contact";
 import { DATE_PATTERNS, formatOsloDate } from "@workspace/shared/time";
 import { ConvexError, v } from "convex/values";
 import type { Id } from "../../_generated/dataModel";
@@ -6,7 +7,7 @@ import { internalRoles, requireRole } from "../../auth/accessRights";
 
 type Signature = { name: string; position?: string; email: string };
 
-const FALLBACK_SIGNATURE: Signature = { name: "Navet", email: "arrangement@ifinavet.no" };
+const FALLBACK_SIGNATURE: Signature = { name: "Navet", email: EVENT_CONTACT_EMAIL };
 
 export const getEventReminders = query({
 	args: { eventId: v.id("events") },
