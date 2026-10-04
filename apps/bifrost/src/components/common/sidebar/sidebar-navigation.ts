@@ -1,3 +1,4 @@
+import { isLocalDevelopment } from "@workspace/auth/local";
 import type { GatedFeature } from "@workspace/shared/feature-flags";
 import {
 	BanknoteIcon,
@@ -13,6 +14,7 @@ import {
 	ReceiptIcon,
 	TrendingUpIcon,
 	TrophyIcon,
+	UserPlusIcon,
 	UsersIcon,
 	UtensilsIcon,
 } from "lucide-react";
@@ -78,6 +80,9 @@ export const sidebarNavigation = {
 		{
 			title: "Personer",
 			items: [
+				...(isLocalDevelopment
+					? [{ title: "Opptak", icon: UserPlusIcon, path: "/admissions" }]
+					: []),
 				{
 					title: "Studenter",
 					icon: UsersIcon,

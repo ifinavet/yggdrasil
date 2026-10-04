@@ -1,0 +1,458 @@
+.admissions {
+	--admission-accent: var(--primary);
+	display: flex;
+	flex-direction: column;
+	gap: 24px;
+	min-width: 0;
+	padding: 8px 12px 32px;
+}
+.admissions button,
+.admissions select {
+	cursor: pointer;
+}
+.admissions-fullscreen {
+	position: fixed;
+	inset: 0;
+	z-index: 40;
+	overflow: auto;
+	background: var(--background);
+	padding: 24px 32px;
+}
+.admissions-preview {
+	display: flex;
+	justify-content: space-between;
+	gap: 12px;
+	font-size: 12px;
+	color: var(--muted-foreground);
+}
+.admissions a {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	text-decoration: underline;
+	text-underline-offset: 3px;
+}
+.admissions-title,
+.admissions-toolbar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	flex-wrap: wrap;
+}
+.admissions-title h1 {
+	font-size: 32px;
+	font-weight: 650;
+	letter-spacing: -0.025em;
+}
+.admissions-dates,
+.admissions-actions,
+.admissions-tabs {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	flex-wrap: wrap;
+}
+.admissions-dates {
+	margin-top: 8px;
+	font-size: 13px;
+	color: var(--muted-foreground);
+	gap: 24px;
+}
+.admissions-tabs {
+	gap: 4px;
+}
+.admissions-toolbar strong {
+	font-size: 15px;
+}
+.admissions-attention {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 12px 24px;
+	background: #fff5d5;
+	color: #69440b;
+	padding: 14px 18px;
+	border-radius: 10px;
+	font-size: 13px;
+}
+.dark .admissions-attention {
+	background: #3d3019;
+	color: #ffe3a4;
+}
+.admissions-attention button {
+	text-align: left;
+	text-decoration: underline;
+	text-underline-offset: 3px;
+}
+.admissions-attention button span {
+	display: block;
+	font-size: 11px;
+	text-decoration: none;
+	margin-top: 3px;
+}
+.admissions-calendar {
+	display: grid;
+	gap: 12px;
+	overflow-x: auto;
+	align-items: start;
+	padding-bottom: 12px;
+}
+.admissions-day {
+	min-width: 0;
+	background: var(--muted);
+	border-radius: 12px;
+	overflow: hidden;
+}
+.admissions-day-title {
+	width: 100%;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 8px;
+	padding: 14px;
+	font-size: 13px;
+	font-weight: 600;
+	text-transform: capitalize;
+}
+.admissions-day-title span {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	font-size: 12px;
+	color: var(--muted-foreground);
+}
+.admissions-day-content {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	padding: 0 8px 12px;
+}
+.admissions-interview {
+	display: flex;
+	flex-direction: column;
+	gap: 5px;
+	background: var(--background);
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	text-align: left;
+	padding: 12px;
+	width: 100%;
+	min-width: 0;
+}
+.admissions-interview:hover {
+	border-color: var(--primary);
+}
+.admissions-interview time {
+	font-size: 12px;
+	font-variant-numeric: tabular-nums;
+	color: var(--muted-foreground);
+}
+.admissions-interview strong {
+	font-size: 14px;
+	font-weight: 600;
+}
+.admissions-interview > span {
+	font-size: 11px;
+	color: var(--muted-foreground);
+	line-height: 1.5;
+}
+.admissions-interview-footer {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	font-size: 11px;
+	margin-top: 4px;
+}
+.admissions-avatars {
+	display: flex;
+	gap: 4px;
+}
+
+.admissions-break {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	padding: 12px 4px;
+	font-size: 12px;
+	color: var(--muted-foreground);
+}
+.admissions-muted {
+	padding: 20px;
+	text-align: center;
+	color: var(--muted-foreground);
+	font-size: 13px;
+}
+.admissions-filters {
+	display: flex;
+	gap: 10px;
+	flex-wrap: wrap;
+	align-items: center;
+}
+
+.admissions-board {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(210px, 1fr));
+	gap: 16px;
+	overflow: auto;
+	align-items: start;
+}
+.admissions-lane {
+	background: var(--muted);
+	border-radius: 12px;
+	min-height: 280px;
+	padding: 12px;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+.admissions-lane h2 {
+	font-size: 14px;
+	font-weight: 600;
+	display: flex;
+	justify-content: space-between;
+	padding: 4px 2px 10px;
+}
+.admissions-lane h2 span {
+	color: var(--muted-foreground);
+}
+.admissions-lane-accepted {
+	background: #e9f3ed;
+}
+.dark .admissions-lane-accepted {
+	background: #162d21;
+}
+.admissions-candidate {
+	background: var(--background);
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	padding: 12px;
+}
+.admissions-candidate > button:not([data-slot="select-trigger"]) {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	width: 100%;
+	text-align: left;
+}
+.admissions-candidate strong {
+	font-size: 14px;
+}
+.admissions-candidate button:not([data-slot="select-trigger"]) > span {
+	font-size: 12px;
+	line-height: 1.4;
+	color: var(--muted-foreground);
+}
+.admissions-candidate button > div {
+	display: flex;
+	justify-content: space-between;
+	width: 100%;
+	font-size: 12px;
+}
+
+.admissions-table-wrap {
+	overflow-x: auto;
+}
+.admissions-table {
+	width: 100%;
+	font-size: 13px;
+	border-collapse: collapse;
+	text-align: left;
+}
+.admissions-table th {
+	font-weight: 500;
+	color: var(--muted-foreground);
+	padding: 12px 16px;
+	background: var(--muted);
+}
+.admissions-table td {
+	padding: 14px 16px;
+	white-space: nowrap;
+}
+.admissions-table tbody tr:nth-child(even) {
+	background: color-mix(in srgb, var(--muted) 50%, transparent);
+}
+.admissions-table td button {
+	font-weight: 600;
+	text-align: left;
+}
+.admissions-profile {
+	display: flex;
+	flex-direction: column;
+	gap: 24px;
+	font-size: 14px;
+	line-height: 1.6;
+}
+.admissions-profile h3 {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-weight: 600;
+	margin-bottom: 8px;
+}
+.admissions-profile p {
+	max-width: 65ch;
+}
+.admissions-profile label {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	font-size: 13px;
+	font-weight: 500;
+}
+.admissions-profile-meta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px 18px;
+	color: var(--muted-foreground);
+	font-size: 13px;
+	margin-bottom: 12px;
+}
+.admissions-profile a {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	text-decoration: underline;
+}
+.admissions-profile .admissions-check {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 10px;
+	margin: 8px 0;
+}
+.admissions-settings-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 16px;
+}
+.admissions-day-picks {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+.admissions-day-picks button {
+	border: 1px solid var(--border);
+	border-radius: 6px;
+	padding: 6px 8px;
+	font-size: 12px;
+}
+.admissions-day-picks button[aria-pressed="true"] {
+	background: var(--primary);
+	color: var(--primary-foreground);
+	border-color: var(--primary);
+}
+.admissions-empty {
+	display: flex;
+	align-items: center;
+	flex-direction: column;
+	gap: 20px;
+	padding: 80px 24px;
+}
+.admissions :focus-visible {
+	outline: 2px solid var(--ring);
+	outline-offset: 3px;
+}
+@media (max-width: 700px) {
+	.admissions {
+		padding: 0;
+		gap: 18px;
+	}
+	.admissions-title h1 {
+		font-size: 26px;
+	}
+	.admissions-title {
+		align-items: start;
+	}
+	.admissions-dates {
+		gap: 5px;
+		flex-direction: column;
+		align-items: start;
+	}
+	.admissions-preview {
+		font-size: 11px;
+	}
+	.admissions-fullscreen {
+		padding: 16px;
+	}
+	.admissions-settings-grid {
+		grid-template-columns: 1fr;
+	}
+	.admissions-attention {
+		align-items: start;
+	}
+	.admissions-board {
+		grid-template-columns: repeat(4, 240px);
+	}
+}
+
+.admissions-candidate-dialog .admissions-profile-meta {
+	font-size: 1rem;
+	gap: 8px 24px;
+	margin-bottom: 16px;
+	color: var(--foreground);
+}
+.admissions-profile-layout {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	gap: 32px;
+}
+.admissions-profile-main {
+	display: flex;
+	flex-direction: column;
+	gap: 32px;
+	min-width: 0;
+}
+.admissions-candidate-dialog .admissions-profile h3 {
+	font-size: 1rem;
+	margin-bottom: 12px;
+}
+.admissions-candidate-dialog .admissions-profile p {
+	font-size: 1rem;
+	line-height: 1.65;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+}
+.admissions-candidate-dialog .admissions-profile label {
+	font-size: 0.875rem;
+	font-weight: 600;
+	gap: 12px;
+}
+.admissions-profile-interview {
+	min-width: 0;
+	padding: 20px;
+	border-radius: 12px;
+	background: var(--muted);
+	align-self: start;
+}
+.admissions-profile-interview section {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+.admissions-availability-details summary {
+	cursor: pointer;
+	font-weight: 500;
+	padding-block: 8px;
+}
+.admissions-decision {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+@media (min-width: 768px) {
+	.admissions-profile-layout {
+		grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+	}
+}
+
+.admissions-interview[aria-pressed="true"] {
+	outline: 2px solid var(--primary);
+	outline-offset: 2px;
+	background: var(--accent);
+}
+
+.admissions-candidate [data-slot="select-trigger"] {
+	margin-top: 12px;
+}
