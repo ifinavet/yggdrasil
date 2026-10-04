@@ -1,0 +1,722 @@
+import { ADMISSION_GROUPS, isValidAvailability, localWindow } from "@workspace/shared/admissions";
+import { ConvexError, v } from "convex/values";
+import { internal } from "../_generated/api";
+import type { Doc, Id } from "../_generated/dataModel";
+import { mutation } from "../_generated/server";
+import { adminRoles, internalRoles, requireRole, userHasRole } from "../auth/accessRights";
+import { getCurrentUserOrThrow } from "../auth/currentUser";
+import { startAcceptedAdmissionOnboarding } from "../iam/mutations";
+import { requireMutablePeriod } from "./access";
+import { finishClose, queueArchiveWhenReady, queueOutbox } from "./lifecycle";
+import {
+	DAY_MS,
+	MAX_APPLICATIONS,
+	MAX_INTERVIEWERS,
+	validatePeriodWindow,
+	validateSettings,
+} from "./rules";
+import { availabilityWindow, decisionValue, interviewerSelection } from "./schema";
+
+const CONSENT_VERSION = "admissions-2026-01";
+const defaultSettings = {
+	duration: 15,
+	buffer: 5,
+	breakEvery: 3,
+	breakMinutes: 15,
+	lunch: true,
+	room: "Beta",
+	dayStart: 540,
+	dayEnd: 960,
+};
+const text = (value: string, max: number) => value.trim().length <= max;
+
+function datePart(at: number, timezone: string) {
+	return new Intl.DateTimeFormat("en-CA", {
+		timeZone: timezone,
+		year: "numeric",
+		month: "2-digit",
+		day: "2-digit",
+	}).format(at);
+}
+
+function validateAvailability(
+	windows: readonly { day: string; start: number; end: number }[],
+	period: Doc<"admissionPeriods">,
+) {
+	if (!isValidAvailability(windows))
+		throw new ConvexError("Velg gyldige, ikke-overlappende tider.");
+	const first = datePart(period.interviewStartAt, period.timezone);
+	const last = datePart(period.interviewEndAt, period.timezone);
+	if (windows.some((window) => window.day < first || window.day > last))
+		throw new ConvexError("Tilgjengeligheten må ligge i intervjuperioden.");
+}
+
+export async function validateInterviewers(
+	ctx: Parameters<typeof userHasRole>[0],
+	selections: readonly { userId: Id<"users">; selectedCalendarIds: string[] }[],
+) {
+	const ids = selections.map((item) => item.userId);
+	if (ids.length < 2 || ids.length > MAX_INTERVIEWERS || new Set(ids).size !== ids.length)
+		throw new ConvexError("Velg minst to ulike intervjuere, maksimalt 30.");
+	for (const id of ids)
+		if (!(await userHasRole(ctx, id, internalRoles)))
+			throw new ConvexError("Alle intervjuere må være aktive interne medlemmer.");
+}
+
+export const createPeriod = mutation({
+	args: {
+		title: v.string(),
+		applicationStartAt: v.number(),
+		applicationEndAt: v.number(),
+		interviewStartAt: v.number(),
+		interviewEndAt: v.number(),
+		retentionAt: v.number(),
+		interviewers: v.array(interviewerSelection),
+		duration: v.optional(v.number()),
+		buffer: v.optional(v.number()),
+		breakEvery: v.optional(v.number()),
+		breakMinutes: v.optional(v.number()),
+		lunch: v.optional(v.boolean()),
+		room: v.optional(v.string()),
+		dayStart: v.optional(v.number()),
+		dayEnd: v.optional(v.number()),
+		breaks: v.optional(v.array(availabilityWindow)),
+		timezone: v.optional(v.string()),
+	},
+	handler: async (ctx, args) => {
+		const creator = await requireRole(ctx, adminRoles);
+		const title = args.title.trim();
+		if (!title || title.length > 100) throw new ConvexError("Gi opptaksperioden et navn.");
+		const fields = { ...defaultSettings, ...args, title, timezone: args.timezone ?? "Europe/Oslo" };
+		validatePeriodWindow(fields);
+		validateSettings(fields);
+		await validateInterviewers(ctx, args.interviewers);
+		const activeStatus = await Promise.all(
+			["draft", "open", "published", "closing"].map((status) =>
+				ctx.db
+					.query("admissionPeriods")
+					.withIndex("by_status", (q) =>
+						q.eq("status", status as "draft" | "open" | "published" | "closing"),
+					)
+					.take(1),
+			),
+		);
+		if (activeStatus.some((periods) => periods.length))
+			throw new ConvexError("En annen opptaksperiode pågår allerede.");
+		const status =
+			Date.now() >= fields.applicationStartAt && Date.now() <= fields.applicationEndAt
+				? "open"
+				: "draft";
+		const periodId = await ctx.db.insert("admissionPeriods", {
+			title,
+			applicationStartAt: fields.applicationStartAt,
+			applicationEndAt: fields.applicationEndAt,
+			interviewStartAt: fields.interviewStartAt,
+			interviewEndAt: fields.interviewEndAt,
+			retentionAt: fields.retentionAt,
+			status,
+			revision: 1,
+			interviewers: args.interviewers,
+			duration: fields.duration,
+			buffer: fields.buffer,
+			breakEvery: fields.breakEvery,
+			breakMinutes: fields.breakMinutes,
+			lunch: fields.lunch,
+			room: fields.room,
+			dayStart: fields.dayStart,
+			dayEnd: fields.dayEnd,
+			breaks: args.breaks ?? [],
+			timezone: fields.timezone,
+			round: 0,
+			roundHistory: [],
+			createdBy: creator._id,
+			updatedBy: creator._id,
+		});
+		await ctx.scheduler.runAt(fields.retentionAt, internal.admissions.internal.closeExpiredPeriod, {
+			periodId,
+		});
+		return periodId;
+	},
+});
+
+export const saveDraft = mutation({
+	args: {
+		periodId: v.id("admissionPeriods"),
+		about: v.string(),
+		motivation: v.string(),
+		group: v.string(),
+		availability: v.array(availabilityWindow),
+	},
+	handler: async (ctx, args) => {
+		const user = await getCurrentUserOrThrow(ctx);
+		const now = Date.now();
+		const period = await ctx.db.get(args.periodId);
+		if (
+			!period ||
+			period.status !== "open" ||
+			now < period.applicationStartAt ||
+			now > period.applicationEndAt
+		)
+			throw new ConvexError("Søknadsperioden er ikke åpen.");
+		const student = await ctx.db
+			.query("students")
+			.withIndex("by_userId", (q) => q.eq("userId", user._id))
+			.first();
+		if (!student) throw new ConvexError("Fant ingen studentprofil for brukeren din.");
+		if (
+			!(ADMISSION_GROUPS as readonly string[]).includes(args.group) ||
+			!text(args.about, 5000) ||
+			!args.about.trim() ||
+			!text(args.motivation, 5000) ||
+			!args.motivation.trim()
+		)
+			throw new ConvexError("Fyll ut alle svar med gyldig tekst.");
+		validateAvailability(args.availability, period);
+		const profile = {
+			name: student.name,
+			studyProgram: student.studyProgram,
+			year: student.year,
+			degree: student.degree,
+		};
+		const existing = await ctx.db
+			.query("admissionApplications")
+			.withIndex("by_periodId_and_userId", (q) =>
+				q.eq("periodId", args.periodId).eq("userId", user._id),
+			)
+			.unique();
+		if (existing?.status === "submitted") throw new ConvexError("Søknaden er allerede sendt.");
+		if (existing) {
+			const revision = existing.revision + 1;
+			await ctx.db.patch(existing._id, {
+				studentProfile: profile,
+				about: args.about.trim(),
+				motivation: args.motivation.trim(),
+				group: args.group,
+				availability: args.availability,
+				status: "draft",
+				revision,
+			});
+			return { applicationId: existing._id, revision };
+		}
+		const count = await ctx.db
+			.query("admissionApplications")
+			.withIndex("by_periodId_and_status", (q) =>
+				q.eq("periodId", args.periodId).eq("status", "submitted"),
+			)
+			.take(MAX_APPLICATIONS);
+		if (count.length >= MAX_APPLICATIONS) throw new ConvexError("Søknadsperioden er full.");
+		const applicationId = await ctx.db.insert("admissionApplications", {
+			periodId: args.periodId,
+			userId: user._id,
+			studentProfile: profile,
+			about: args.about.trim(),
+			motivation: args.motivation.trim(),
+			group: args.group,
+			availability: args.availability,
+			status: "draft",
+			revision: 1,
+			decisionRevision: 0,
+			decision: "pending",
+			offerStatus: "none",
+			sent: false,
+		});
+		return { applicationId, revision: 1 };
+	},
+});
+
+export const reopenApplication = mutation({
+	args: { periodId: v.id("admissionPeriods"), expectedRevision: v.number() },
+	handler: async (ctx, { periodId, expectedRevision }) => {
+		const user = await getCurrentUserOrThrow(ctx);
+		const period = await ctx.db.get(periodId);
+		const now = Date.now();
+		if (
+			!period ||
+			period.status !== "open" ||
+			now < period.applicationStartAt ||
+			now > period.applicationEndAt
+		)
+			throw new ConvexError("Søknadsperioden er ikke åpen.");
+		const application = await ctx.db
+			.query("admissionApplications")
+			.withIndex("by_periodId_and_userId", (q) => q.eq("periodId", periodId).eq("userId", user._id))
+			.unique();
+		if (!application || application.revision !== expectedRevision)
+			throw new ConvexError("Søknaden er endret. Last den inn på nytt.");
+		if (
+			application.status !== "submitted" ||
+			application.decisionSentAt ||
+			application.offerStatus !== "none"
+		)
+			throw new ConvexError("Søknaden kan ikke åpnes for endring.");
+		const interview = await ctx.db
+			.query("admissionInterviews")
+			.withIndex("by_applicationId", (q) => q.eq("applicationId", application._id))
+			.unique();
+		if (interview?.status === "scheduled")
+			throw new ConvexError("Søknaden kan ikke endres etter at intervju er planlagt.");
+		await ctx.db.patch(application._id, { status: "draft", revision: application.revision + 1 });
+		return { revision: application.revision + 1 };
+	},
+});
+
+export const submit = mutation({
+	args: { periodId: v.id("admissionPeriods"), expectedRevision: v.number(), consent: v.boolean() },
+	handler: async (ctx, { periodId, expectedRevision, consent }) => {
+		const user = await getCurrentUserOrThrow(ctx);
+		const period = await ctx.db.get(periodId);
+		if (
+			!period ||
+			period.status !== "open" ||
+			Date.now() < period.applicationStartAt ||
+			Date.now() > period.applicationEndAt
+		)
+			throw new ConvexError("Søknadsperioden er ikke åpen.");
+		const application = await ctx.db
+			.query("admissionApplications")
+			.withIndex("by_periodId_and_userId", (q) => q.eq("periodId", periodId).eq("userId", user._id))
+			.unique();
+		if (!application) throw new ConvexError("Fant ikke søknaden.");
+		if (application.status !== "draft") throw new ConvexError("Søknaden er allerede sendt.");
+		if (application.revision !== expectedRevision)
+			throw new ConvexError("Søknaden er endret. Last den inn på nytt.");
+		if (!consent) throw new ConvexError("Bekreft samtykke før du sender søknaden.");
+		if (
+			!application.about?.trim() ||
+			!application.motivation?.trim() ||
+			!application.group ||
+			!application.studentProfile
+		)
+			throw new ConvexError("Fyll ut søknaden før du sender den.");
+		await ctx.db.patch(application._id, {
+			status: "submitted",
+			revision: application.revision + 1,
+			consentedAt: Date.now(),
+			consentVersion: CONSENT_VERSION,
+		});
+		return { revision: application.revision + 1 };
+	},
+});
+
+export const withdraw = mutation({
+	args: { periodId: v.id("admissionPeriods"), expectedRevision: v.number() },
+	handler: async (ctx, { periodId, expectedRevision }) => {
+		const user = await getCurrentUserOrThrow(ctx);
+		const app = await ctx.db
+			.query("admissionApplications")
+			.withIndex("by_periodId_and_userId", (q) => q.eq("periodId", periodId).eq("userId", user._id))
+			.unique();
+		if (!app || app.revision !== expectedRevision)
+			throw new ConvexError("Søknaden er endret. Last den inn på nytt.");
+		if (app.decisionSentAt || app.offerStatus !== "none")
+			throw new ConvexError("Tilbudet må besvares før søknaden kan trekkes.");
+		await ctx.db.patch(app._id, { status: "withdrawn", revision: app.revision + 1 });
+	},
+});
+
+export const setDecision = mutation({
+	args: {
+		applicationId: v.id("admissionApplications"),
+		decision: decisionValue,
+		reviewedGroup: v.optional(v.string()),
+		reviewedWorkspaceEmail: v.optional(v.string()),
+		expectedRevision: v.number(),
+	},
+	handler: async (ctx, args) => {
+		const caller = await requireRole(ctx, adminRoles);
+		const app = await ctx.db.get(args.applicationId);
+		if (!app) throw new ConvexError("Fant ikke søknaden.");
+		const period = await requireMutablePeriod(ctx, app.periodId);
+		if (app.revision !== args.expectedRevision)
+			throw new ConvexError("Søknaden er endret. Last den inn på nytt.");
+		if (
+			app.status !== "submitted" ||
+			app.offerStatus === "pending" ||
+			app.offerStatus === "accepted" ||
+			app.offerStatus === "declined"
+		)
+			throw new ConvexError("Søknaden kan ikke vurderes nå.");
+		if (
+			args.decision === "accepted" &&
+			(!args.reviewedGroup?.trim() || !args.reviewedWorkspaceEmail?.trim())
+		)
+			throw new ConvexError("Godkjenn gruppe og e-post før du sender et tilbud.");
+		const decisionRevision = app.decisionRevision + 1;
+		const revision = app.revision + 1;
+		await ctx.db.patch(app._id, {
+			decision: args.decision,
+			decisionRevision,
+			revision,
+			decisionBy: caller._id,
+			decisionAt: Date.now(),
+			reviewedGroup: args.decision === "accepted" ? args.reviewedGroup?.trim() : undefined,
+			reviewedWorkspaceEmail:
+				args.decision === "accepted"
+					? args.reviewedWorkspaceEmail?.trim().toLowerCase()
+					: undefined,
+			decisionQueuedAt: undefined,
+			decisionSentAt: undefined,
+			sent: false,
+			offerStatus: "none",
+			offerDeadline: undefined,
+			offerRespondedAt: undefined,
+		});
+		return { revision, decisionRevision };
+	},
+});
+
+export const addNote = mutation({
+	args: {
+		applicationId: v.id("admissionApplications"),
+		note: v.string(),
+		expectedRevision: v.number(),
+	},
+	handler: async (ctx, { applicationId, note, expectedRevision }) => {
+		await requireRole(ctx, adminRoles);
+		const app = await ctx.db.get(applicationId);
+		if (!app || app.revision !== expectedRevision)
+			throw new ConvexError("Søknaden er endret. Last den inn på nytt.");
+		await requireMutablePeriod(ctx, app.periodId);
+		if (note.length > 5000) throw new ConvexError("Notatet er for langt.");
+		await ctx.db.patch(app._id, { notes: note.trim() || undefined, revision: app.revision + 1 });
+		return { revision: app.revision };
+	},
+});
+
+export const sendDecision = mutation({
+	args: {
+		applicationId: v.id("admissionApplications"),
+		expectedRevision: v.number(),
+		idempotencyKey: v.string(),
+	},
+	handler: async (ctx, { applicationId, expectedRevision, idempotencyKey }) => {
+		await requireRole(ctx, adminRoles);
+		const app = await ctx.db.get(applicationId);
+		if (!app) throw new ConvexError("Fant ikke søknaden.");
+		const period = await requireMutablePeriod(ctx, app.periodId);
+		if (app.revision !== expectedRevision)
+			throw new ConvexError("Søknaden er endret. Last den inn på nytt.");
+		if (app.decision !== "accepted" && app.decision !== "rejected")
+			throw new ConvexError("Velg endelig opptaksbeslutning først.");
+		if (app.decision === "accepted" && (!app.reviewedGroup || !app.reviewedWorkspaceEmail))
+			throw new ConvexError("Godkjenn gruppe og e-post før du sender et tilbud.");
+		if (app.decisionSentAt || app.decisionQueuedAt) return { revision: app.revision };
+		const kind = "send_decision" as const;
+		await queueOutbox(ctx, {
+			kind,
+			periodId: period._id,
+			applicationId,
+			revision: app.decisionRevision,
+			idempotencyKey,
+			state: "pending",
+			attempts: 0,
+			nextAttemptAt: Date.now(),
+			createdAt: Date.now(),
+		});
+		await ctx.db.patch(app._id, { decisionQueuedAt: Date.now() });
+		return { revision: app.revision };
+	},
+});
+
+export const respondToOffer = mutation({
+	args: { periodId: v.id("admissionPeriods"), accept: v.boolean(), expectedRevision: v.number() },
+	handler: async (ctx, { periodId, accept, expectedRevision }) => {
+		const user = await getCurrentUserOrThrow(ctx);
+		const app = await ctx.db
+			.query("admissionApplications")
+			.withIndex("by_periodId_and_userId", (q) => q.eq("periodId", periodId).eq("userId", user._id))
+			.unique();
+		if (!app || app.decision !== "accepted" || !app.decisionSentAt)
+			throw new ConvexError("Fant ikke et aktivt tilbud.");
+		if (app.offerStatus === "accepted") {
+			if (accept) return { offerStatus: app.offerStatus, revision: app.revision };
+			throw new ConvexError("Tilbudet er allerede akseptert.");
+		}
+		if (app.offerStatus === "declined") {
+			if (!accept) return { offerStatus: app.offerStatus, revision: app.revision };
+			throw new ConvexError("Et avslått tilbud kan ikke aksepteres senere.");
+		}
+		if (app.revision !== expectedRevision || app.offerStatus !== "pending")
+			throw new ConvexError("Fant ikke et aktivt tilbud.");
+		if (app.offerDeadline !== undefined && Date.now() > app.offerDeadline) {
+			await ctx.db.patch(app._id, { offerStatus: "expired", revision: app.revision + 1 });
+			throw new ConvexError("Tilbudet er utløpt.");
+		}
+		const offerStatus = accept ? "accepted" : "declined";
+		await ctx.db.patch(app._id, {
+			offerStatus,
+			offerRespondedAt: Date.now(),
+			revision: app.revision + 1,
+		});
+		if (accept) await startAcceptedAdmissionOnboarding(ctx, app._id);
+		else
+			await queueOutbox(ctx, {
+				kind: "offer_declined",
+				periodId,
+				applicationId: app._id,
+				revision: app.decisionRevision,
+				idempotencyKey: `offer-declined:${app._id}:${app.decisionRevision}`,
+				state: "pending",
+				attempts: 0,
+				nextAttemptAt: Date.now(),
+				createdAt: Date.now(),
+			});
+		return { offerStatus, revision: app.revision + 1 };
+	},
+});
+
+export const scheduleInterview = mutation({
+	args: {
+		applicationId: v.id("admissionApplications"),
+		startAt: v.number(),
+		interviewerIds: v.array(v.id("users")),
+		selectedCalendarIds: v.array(v.string()),
+		room: v.optional(v.string()),
+		expectedRevision: v.number(),
+	},
+	handler: async (ctx, args) => {
+		const caller = await requireRole(ctx, adminRoles);
+		const app = await ctx.db.get(args.applicationId);
+		if (!app) throw new ConvexError("Fant ikke søknaden.");
+		const period = await requireMutablePeriod(ctx, app.periodId);
+		if (app.revision !== args.expectedRevision)
+			throw new ConvexError("Søknaden er endret. Last den inn på nytt.");
+		const unique = [...new Set(args.interviewerIds)];
+		if (
+			unique.length < 2 ||
+			unique.length > MAX_INTERVIEWERS ||
+			unique.length !== args.interviewerIds.length
+		)
+			throw new ConvexError("Velg minst to intervjuere uten gjentakelser.");
+		const selected = new Set(period.interviewers.map((selection) => selection.userId));
+		if (unique.some((id) => !selected.has(id)))
+			throw new ConvexError("Velg intervjuere fra periodens oppsett.");
+		for (const id of unique)
+			if (!(await userHasRole(ctx, id, internalRoles)))
+				throw new ConvexError("Alle intervjuere må være aktive interne medlemmer.");
+		const interval = localWindow(args.startAt, period.duration, period.timezone);
+		if (
+			args.startAt < period.interviewStartAt ||
+			args.startAt + period.duration * 60000 > period.interviewEndAt
+		)
+			throw new ConvexError("Intervjutiden er utenfor perioden.");
+		const meeting = { ...interval, end: interval.start + period.duration };
+		if (meeting.start < period.dayStart || meeting.end + period.buffer > period.dayEnd)
+			throw new ConvexError("Intervjutiden er utenfor arbeidsdagen.");
+		if (period.lunch && meeting.start < 13 * 60 && meeting.end + period.buffer > 12 * 60)
+			throw new ConvexError("Intervjutiden kolliderer med lunsjpausen.");
+		if (
+			period.breaks.some(
+				(pause) =>
+					pause.day === meeting.day &&
+					pause.start < meeting.end + period.buffer &&
+					meeting.start < pause.end,
+			)
+		)
+			throw new ConvexError("Intervjutiden kolliderer med en pause.");
+		if (
+			app.status !== "submitted" ||
+			!app.availability.some(
+				(window) =>
+					window.day === meeting.day && window.start <= meeting.start && window.end >= meeting.end,
+			)
+		)
+			throw new ConvexError("Søkeren er ikke tilgjengelig på dette tidspunktet.");
+		const existing = await ctx.db
+			.query("admissionInterviews")
+			.withIndex("by_periodId_and_status", (q) =>
+				q.eq("periodId", period._id).eq("status", "scheduled"),
+			)
+			.take(MAX_APPLICATIONS);
+		const occupied = existing.filter((item) => item.applicationId !== app._id);
+		if (
+			occupied.some(
+				(item) =>
+					item.startAt < args.startAt + (period.duration + period.buffer) * 60000 &&
+					args.startAt < item.endAt + period.buffer * 60000 &&
+					item.interviewerIds.some((id) => unique.includes(id)),
+			)
+		)
+			throw new ConvexError("En intervjuer er allerede opptatt i denne tiden.");
+		const previous = await ctx.db
+			.query("admissionInterviews")
+			.withIndex("by_applicationId", (q) => q.eq("applicationId", app._id))
+			.unique();
+		const fields = {
+			periodId: period._id,
+			applicationId: app._id,
+			startAt: args.startAt,
+			endAt: args.startAt + period.duration * 60000,
+			interviewerIds: unique,
+			selectedCalendarIds: args.selectedCalendarIds,
+			room: args.room?.trim() || period.room,
+			status: "scheduled" as const,
+			revision: (previous?.revision ?? 0) + 1,
+			calendarEventId: previous?.calendarEventId,
+			publishedAt: undefined,
+		};
+		if (previous) await ctx.db.replace(previous._id, fields);
+		else await ctx.db.insert("admissionInterviews", fields);
+		await ctx.db.patch(app._id, { revision: app.revision + 1 });
+		await ctx.db.patch(period._id, {
+			status: "open",
+			revision: period.revision + 1,
+			updatedBy: caller._id,
+		});
+		return { revision: app.revision + 1, interviewRevision: fields.revision };
+	},
+});
+
+export const cancelInterview = mutation({
+	args: {
+		applicationId: v.id("admissionApplications"),
+		expectedRevision: v.number(),
+		idempotencyKey: v.string(),
+	},
+	handler: async (ctx, { applicationId, expectedRevision, idempotencyKey }) => {
+		const user = await getCurrentUserOrThrow(ctx);
+		const app = await ctx.db.get(applicationId);
+		if (!app || app.userId !== user._id || app.revision !== expectedRevision)
+			throw new ConvexError("Fant ikke intervjuet ditt.");
+		const period = await ctx.db.get(app.periodId);
+		if (!period || period.status === "closing") throw new ConvexError("Opptaksperioden er stengt.");
+		const interview = await ctx.db
+			.query("admissionInterviews")
+			.withIndex("by_applicationId", (q) => q.eq("applicationId", app._id))
+			.unique();
+		if (!interview || interview.status !== "scheduled" || !interview.publishedAt)
+			throw new ConvexError("Du har ikke et publisert intervju å avbestille.");
+		const revision = interview.revision + 1;
+		await ctx.db.patch(interview._id, { status: "cancelled", revision, publishedAt: undefined });
+		await ctx.db.patch(app._id, { revision: app.revision + 1 });
+		await queueOutbox(ctx, {
+			kind: "cancel_interview",
+			periodId: period._id,
+			applicationId,
+			interviewId: interview._id,
+			revision,
+			idempotencyKey,
+			refillEligible: interview.startAt - Date.now() >= 48 * 60 * 60 * 1000,
+			state: "pending",
+			attempts: 0,
+			nextAttemptAt: Date.now(),
+			createdAt: Date.now(),
+		});
+		return {
+			revision: app.revision + 1,
+			refillEligible: interview.startAt - Date.now() >= 48 * 60 * 60 * 1000,
+		};
+	},
+});
+
+export const publish = mutation({
+	args: {
+		periodId: v.id("admissionPeriods"),
+		expectedRevision: v.number(),
+		idempotencyKey: v.string(),
+	},
+	handler: async (ctx, { periodId, expectedRevision, idempotencyKey }) => {
+		await requireRole(ctx, adminRoles);
+		const period = await requireMutablePeriod(ctx, periodId);
+		if (period.revision !== expectedRevision)
+			throw new ConvexError("Opptaksperioden er endret. Last den inn på nytt.");
+		const interviews = await ctx.db
+			.query("admissionInterviews")
+			.withIndex("by_periodId_and_status", (q) =>
+				q.eq("periodId", periodId).eq("status", "scheduled"),
+			)
+			.take(MAX_APPLICATIONS);
+		if (!interviews.length) throw new ConvexError("Planlegg minst ett intervju før publisering.");
+		for (const interview of interviews)
+			if (interview.startAt < period.interviewStartAt || interview.endAt > period.interviewEndAt)
+				throw new ConvexError("Et intervju ligger utenfor vinduet.");
+		await ctx.db.patch(periodId, { status: "published", revision: period.revision + 1 });
+		for (const interview of interviews)
+			await queueOutbox(ctx, {
+				kind: "publish",
+				periodId,
+				applicationId: interview.applicationId,
+				interviewId: interview._id,
+				revision: interview.revision,
+				idempotencyKey: `${idempotencyKey}:${interview._id}`,
+				state: "pending",
+				attempts: 0,
+				nextAttemptAt: Date.now(),
+				createdAt: Date.now(),
+			});
+		return { revision: period.revision + 1, count: interviews.length };
+	},
+});
+
+export const closePeriod = mutation({
+	args: {
+		periodId: v.id("admissionPeriods"),
+		idempotencyKey: v.string(),
+		force: v.optional(v.boolean()),
+	},
+	handler: async (ctx, { periodId, idempotencyKey, force = false }) => {
+		await requireRole(ctx, adminRoles);
+		const period = await ctx.db.get(periodId);
+		if (!period) return null;
+		if (period.status === "closing") return null;
+		const applications = await ctx.db
+			.query("admissionApplications")
+			.withIndex("by_periodId_and_status", (q) =>
+				q.eq("periodId", periodId).eq("status", "submitted"),
+			)
+			.take(MAX_APPLICATIONS);
+		const interviews = await ctx.db
+			.query("admissionInterviews")
+			.withIndex("by_periodId_and_status", (q) =>
+				q.eq("periodId", periodId).eq("status", "scheduled"),
+			)
+			.take(MAX_APPLICATIONS);
+		const pendingOffers = applications.filter((app) => app.offerStatus === "pending");
+		const unsentDecisions = applications.filter(
+			(app) => (app.decision === "accepted" || app.decision === "rejected") && !app.decisionSentAt,
+		);
+		if (
+			!force &&
+			(pendingOffers.length ||
+				interviews.some((interview) => interview.startAt > Date.now()) ||
+				unsentDecisions.length)
+		) {
+			throw new ConvexError(
+				`Før du lukker, avklar ${pendingOffers.length} ventende tilbud, ${interviews.length} intervjuer og ${unsentDecisions.length} usendte beslutninger.`,
+			);
+		}
+		const now = Date.now();
+		for (const app of pendingOffers)
+			await ctx.db.patch(app._id, { offerStatus: "expired", revision: app.revision + 1 });
+		for (const interview of interviews) {
+			if (interview.publishedAt || interview.calendarEventId) {
+				await ctx.db.patch(interview._id, {
+					status: "cancelled",
+					revision: interview.revision + 1,
+					publishedAt: undefined,
+				});
+				await queueOutbox(ctx, {
+					kind: "cancel_interview",
+					periodId,
+					applicationId: interview.applicationId,
+					interviewId: interview._id,
+					revision: interview.revision + 1,
+					idempotencyKey: `${idempotencyKey}:cancel:${interview._id}`,
+					state: "pending",
+					attempts: 0,
+					nextAttemptAt: now,
+					createdAt: now,
+				});
+			} else
+				await ctx.db.patch(interview._id, {
+					status: "cancelled",
+					revision: interview.revision + 1,
+				});
+		}
+		const closing = { ...period, status: "closing" as const, revision: period.revision + 1 };
+		await ctx.db.patch(periodId, { status: "closing", revision: closing.revision });
+		if (await queueArchiveWhenReady(ctx, closing, `${idempotencyKey}:archive`, now))
+			await finishClose(ctx, closing);
+		return null;
+	},
+});

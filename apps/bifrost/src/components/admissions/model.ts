@@ -2,7 +2,12 @@ import { PREVIEW_INTERVIEW_DAYS as days } from "@workspace/shared/admissions/pre
 
 export { PREVIEW_INTERVIEW_DAYS as days } from "@workspace/shared/admissions/preview";
 
-import { type AvailabilityWindow, isAvailable } from "@workspace/shared/admissions";
+import {
+	type AvailabilityWindow,
+	interviewerAvailable as available,
+	makeSchedulingSlots,
+	matchInterviews,
+} from "@workspace/shared/admissions";
 import { STUDY_PROGRAMS, STUDY_YEARS } from "@workspace/shared/constants";
 import { formatOsloDate } from "@workspace/shared/time";
 export const decisions = ["pending", "shortlist", "accepted", "rejected"] as const;
@@ -75,73 +80,23 @@ export function dateLabel(day: string) {
 	return formatOsloDate(new Date(`${day}T12:00:00Z`).getTime(), "EEE d. MMM");
 }
 export function makeSlots(settings: Settings): Slot[] {
-	const slots: Slot[] = [];
-	for (const day of days) {
-		let start = 9 * 60;
-		let consecutive = 0;
-		while (start + settings.duration <= 16 * 60) {
-			if (
-				settings.lunch &&
-				start < 12 * 60 + 30 &&
-				start + settings.duration + settings.buffer > 12 * 60
-			) {
-				start = 12 * 60 + 30;
-				consecutive = 0;
-			}
-			slots.push({
-				id: `${day}/${start}`,
-				day,
-				start,
-				end: start + settings.duration + settings.buffer,
-				room: settings.room,
-			});
-			start += settings.duration + settings.buffer;
-			consecutive++;
-			if (consecutive === settings.breakEvery) {
-				start += settings.breakMinutes;
-				consecutive = 0;
-			}
-		}
-	}
-	return slots;
+	return makeSchedulingSlots({ ...settings, dayStart: 9 * 60, dayEnd: 16 * 60, breaks: [] }, days);
 }
 // Preview matching is a deterministic constrained heuristic, not an optimality guarantee.
 // The production scheduler must recheck live calendar conflicts before publishing.
 export function match(candidates: Candidate[], slots: Slot[], team: Interviewer[]): Interview[] {
-	const assignments: Interview[] = [];
-	const loads = new Map<string, number>();
-	const occupied = new Set<string>();
-	const eligible = (candidate: Candidate, slot: Slot) =>
-		isAvailable(candidate.availability, slot) &&
-		team.filter((p) => interviewerAvailable(p, slot)).length >= 2;
-	const sorted = [...candidates].sort(
-		(a, b) =>
-			slots.filter((s) => eligible(a, s)).length - slots.filter((s) => eligible(b, s)).length ||
-			a.id.localeCompare(b.id),
+	const availableTeam = team.map((person) =>
+		person.calendarStatus === "connected"
+			? person
+			: {
+					...person,
+					calendars: person.calendars.map((calendar) => ({ ...calendar, readable: false })),
+				},
 	);
-	for (const candidate of sorted) {
-		const slot = slots
-			.filter((s) => !occupied.has(s.id) && eligible(candidate, s))
-			.sort(
-				(a, b) =>
-					assignments.filter((i) => i.slotId.startsWith(a.day)).length -
-						assignments.filter((i) => i.slotId.startsWith(b.day)).length ||
-					a.id.localeCompare(b.id),
-			)[0];
-		if (!slot) continue;
-		const pair = team
-			.filter((p) => interviewerAvailable(p, slot))
-			.sort((a, b) => (loads.get(a.id) ?? 0) - (loads.get(b.id) ?? 0) || a.id.localeCompare(b.id))
-			.slice(0, 2);
-		occupied.add(slot.id);
-		for (const person of pair) loads.set(person.id, (loads.get(person.id) ?? 0) + 1);
-		assignments.push({
-			candidateId: candidate.id,
-			slotId: slot.id,
-			interviewers: pair.map((p) => p.id),
-		});
-	}
-	return assignments;
+	return matchInterviews(candidates, slots, availableTeam).map((assignment) => ({
+		...assignment,
+		interviewers: [...assignment.interviewers],
+	}));
 }
 export const team: Interviewer[] = [
 	"Kristin Berg",
@@ -253,18 +208,7 @@ export function advanceRound(candidates: Candidate[]): Candidate[] {
 }
 
 export function interviewerAvailable(person: Interviewer, slot: Slot) {
-	if (person.calendarStatus !== "connected") return false;
-	const calendars = person.calendars.filter((calendar) => calendar.selected);
-	return (
-		calendars.length > 0 &&
-		calendars.every(
-			(calendar) =>
-				calendar.readable &&
-				!calendar.busy.some(
-					(busy) => busy.day === slot.day && busy.start < slot.end && busy.end > slot.start,
-				),
-		)
-	);
+	return person.calendarStatus === "connected" && available(person, slot);
 }
 function candidateDays(index: number) {
 	if (index === 33) return [];

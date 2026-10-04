@@ -3,7 +3,12 @@ import { ConvexError, v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { type MutationCtx, mutation } from "../_generated/server";
-import { adminRoles, requireRightToManageRole, requireRole } from "../auth/accessRights";
+import {
+	adminRoles,
+	requireRightToManageRole,
+	requireRole,
+	userHasRole,
+} from "../auth/accessRights";
 import { accountForEmail, accountForUser } from "./accounts";
 import { workspaceDomain } from "./config";
 import { runJob } from "./jobs";
@@ -46,6 +51,73 @@ async function refuseDuplicates(ctx: MutationCtx, emails: readonly string[]) {
 	return byWorkspace ?? byUio ?? null;
 }
 
+async function startOnboardingForCaller(
+	ctx: MutationCtx,
+	caller: Doc<"users">,
+	input: {
+		firstName: string;
+		lastName: string;
+		uioEmail: string;
+		workspaceEmail: string;
+		group: string;
+	},
+) {
+	const emails = [input.workspaceEmail, input.uioEmail];
+	const previous = await refuseDuplicates(ctx, emails);
+	const [existingUser] = await usersWithEmail(ctx, emails);
+	if (existingUser) await requireRightToManageRole(ctx, existingUser._id);
+	const sameAddress = previous?.workspaceEmail === input.workspaceEmail;
+	const fields = {
+		...input,
+		...(sameAddress && { googleUserId: previous.googleUserId, slackUserId: previous.slackUserId }),
+		stage: "onboarding" as const,
+		google: "pending" as const,
+		invitedBy: caller._id,
+		updatedAt: Date.now(),
+	};
+	if (previous) await ctx.db.replace(previous._id, fields);
+	const accountId = previous?._id ?? (await ctx.db.insert("memberAccounts", fields));
+	const account = await requireAccount(ctx, accountId);
+	if (existingUser) await activate(ctx, account, existingUser._id);
+	await runJob(ctx, "provision", accountId);
+	return { accountId, activated: existingUser !== undefined };
+}
+
+export async function startAcceptedAdmissionOnboarding(
+	ctx: MutationCtx,
+	applicationId: Doc<"admissionApplications">["_id"],
+) {
+	const application = await ctx.db.get(applicationId);
+	if (
+		!application ||
+		application.decision !== "accepted" ||
+		application.offerStatus !== "accepted" ||
+		!application.reviewedGroup ||
+		!application.reviewedWorkspaceEmail ||
+		!application.decisionBy
+	) {
+		throw new ConvexError("Tilbudet er ikke godkjent av søkeren.");
+	}
+	if (application.onboardingStartedAt) return null;
+	if (!(await userHasRole(ctx, application.decisionBy, adminRoles)))
+		throw new ConvexError("Administratorgodkjenningen er ikke lenger gyldig.");
+	const approvingAdmin = await ctx.db.get(application.decisionBy);
+	if (!approvingAdmin) throw new ConvexError("Fant ikke administratoren som godkjente opptaket.");
+	const user = await ctx.db.get(application.userId);
+	if (!user?.email) throw new ConvexError("Søkerens e-postadresse mangler.");
+	const parsed = onboardingSchema(workspaceDomain()).safeParse({
+		firstName: user.firstName,
+		lastName: user.lastName,
+		uioEmail: normalizeEmail(user.email),
+		workspaceEmail: application.reviewedWorkspaceEmail,
+		group: application.reviewedGroup,
+	});
+	if (!parsed.success) throw new ConvexError(parsed.error.issues[0]?.message ?? "Ugyldig tilbud.");
+	const result = await startOnboardingForCaller(ctx, approvingAdmin, parsed.data);
+	await ctx.db.patch(applicationId, { onboardingStartedAt: Date.now() });
+	return result;
+}
+
 export const startOnboarding = mutation({
 	args: {
 		firstName: v.string(),
@@ -59,32 +131,7 @@ export const startOnboarding = mutation({
 		const parsed = onboardingSchema(workspaceDomain()).safeParse(args);
 		if (!parsed.success)
 			throw new ConvexError(parsed.error.issues[0]?.message ?? "Ugyldig skjema.");
-		const input = parsed.data;
-		const emails = [input.workspaceEmail, input.uioEmail];
-
-		const previous = await refuseDuplicates(ctx, emails);
-		const [existingUser] = await usersWithEmail(ctx, emails);
-		if (existingUser) await requireRightToManageRole(ctx, existingUser._id);
-		const sameAddress = previous?.workspaceEmail === input.workspaceEmail;
-		const fields = {
-			...input,
-			...(sameAddress && {
-				googleUserId: previous.googleUserId,
-				slackUserId: previous.slackUserId,
-			}),
-			stage: "onboarding" as const,
-			google: "pending" as const,
-			invitedBy: caller._id,
-			updatedAt: Date.now(),
-		};
-		if (previous) await ctx.db.replace(previous._id, fields);
-		const accountId = previous?._id ?? (await ctx.db.insert("memberAccounts", fields));
-
-		const account = await requireAccount(ctx, accountId);
-		if (existingUser) await activate(ctx, account, existingUser._id);
-
-		await runJob(ctx, "provision", accountId);
-		return { accountId, activated: existingUser !== undefined };
+		return startOnboardingForCaller(ctx, caller, parsed.data);
 	},
 });
 

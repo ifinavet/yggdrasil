@@ -8,6 +8,18 @@
  * @module
  */
 
+import type * as admissions_access from "../admissions/access.js";
+import type * as admissions_actions from "../admissions/actions.js";
+import type * as admissions_board from "../admissions/board.js";
+import type * as admissions_calendar from "../admissions/calendar.js";
+import type * as admissions_delivery from "../admissions/delivery.js";
+import type * as admissions_delivery_mail from "../admissions/delivery/mail.js";
+import type * as admissions_delivery_slack from "../admissions/delivery/slack.js";
+import type * as admissions_internal from "../admissions/internal.js";
+import type * as admissions_lifecycle from "../admissions/lifecycle.js";
+import type * as admissions_mutations from "../admissions/mutations.js";
+import type * as admissions_queries from "../admissions/queries.js";
+import type * as admissions_rules from "../admissions/rules.js";
 import type * as auth_accessRights from "../auth/accessRights.js";
 import type * as auth_currentUser from "../auth/currentUser.js";
 import type * as auth_local from "../auth/local.js";
@@ -96,6 +108,7 @@ import type * as iam_actions from "../iam/actions.js";
 import type * as iam_config from "../iam/config.js";
 import type * as iam_drift from "../iam/drift.js";
 import type * as iam_google from "../iam/google.js";
+import type * as iam_googleCalendar from "../iam/googleCalendar.js";
 import type * as iam_internal from "../iam/internal.js";
 import type * as iam_jobs from "../iam/jobs.js";
 import type * as iam_lifecycle from "../iam/lifecycle.js";
@@ -175,6 +188,18 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  "admissions/access": typeof admissions_access;
+  "admissions/actions": typeof admissions_actions;
+  "admissions/board": typeof admissions_board;
+  "admissions/calendar": typeof admissions_calendar;
+  "admissions/delivery": typeof admissions_delivery;
+  "admissions/delivery/mail": typeof admissions_delivery_mail;
+  "admissions/delivery/slack": typeof admissions_delivery_slack;
+  "admissions/internal": typeof admissions_internal;
+  "admissions/lifecycle": typeof admissions_lifecycle;
+  "admissions/mutations": typeof admissions_mutations;
+  "admissions/queries": typeof admissions_queries;
+  "admissions/rules": typeof admissions_rules;
   "auth/accessRights": typeof auth_accessRights;
   "auth/currentUser": typeof auth_currentUser;
   "auth/local": typeof auth_local;
@@ -263,6 +288,7 @@ declare const fullApi: ApiFromModules<{
   "iam/config": typeof iam_config;
   "iam/drift": typeof iam_drift;
   "iam/google": typeof iam_google;
+  "iam/googleCalendar": typeof iam_googleCalendar;
   "iam/internal": typeof iam_internal;
   "iam/jobs": typeof iam_jobs;
   "iam/lifecycle": typeof iam_lifecycle;

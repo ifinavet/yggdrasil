@@ -57,11 +57,15 @@ async function fail(
 	throw new GoogleError([message, detail].filter(Boolean).join(" "));
 }
 
-async function accessToken(config: GoogleConfig) {
-	const assertion = await new SignJWT({ scope: SCOPE })
+export async function googleAccessToken(
+	config: GoogleConfig,
+	subject = config.adminEmail,
+	scope = SCOPE,
+) {
+	const assertion = await new SignJWT({ scope })
 		.setProtectedHeader({ alg: "RS256", typ: "JWT" })
 		.setIssuer(config.serviceAccountEmail)
-		.setSubject(config.adminEmail)
+		.setSubject(subject)
 		.setAudience(TOKEN_URL)
 		.setIssuedAt()
 		.setExpirationTime("10m")
@@ -115,7 +119,7 @@ export function googleClient(
 			const startedAt = Date.now();
 			let value: string;
 			try {
-				value = await accessToken(config);
+				value = await googleAccessToken(config);
 			} catch (error) {
 				const message =
 					error instanceof GoogleError

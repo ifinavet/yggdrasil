@@ -1,4 +1,5 @@
 import { defineSchema } from "convex/server";
+import { admissionsSchema } from "./admissions/schema";
 import { accessSchema } from "./auth/schema";
 import { companiesSchema } from "./companies/schema";
 import { engagementSchema } from "./engagement/schema";
@@ -41,4 +42,5 @@ export default defineSchema({
 	...productsSchema,
 	...invoicingSchema,
 	...iamSchema,
+	...admissionsSchema,
 });
