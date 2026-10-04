@@ -14,7 +14,7 @@ import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { type ActionCtx, internalAction } from "../_generated/server";
 import { isLocalDevelopment } from "../auth/local";
-import { googleConfig } from "../iam/config";
+import { googleConfig, isWorkspaceEmail } from "../iam/config";
 import { externalBusyIntervals, googleCalendarClient, overlapsBusy } from "../iam/googleCalendar";
 import { sendAdmissionEmail } from "./delivery/mail";
 import {
@@ -66,7 +66,12 @@ async function deliverEmail(
 		kind: args.kind,
 		idempotencyKey: args.key,
 		emailId,
-		...(isLocalDevelopment() ? { status: "delivered" as const } : {}),
+		...(isLocalDevelopment()
+			? {
+					status: "delivered" as const,
+					localPreview: { to: args.to, subject: args.subject, html: args.html },
+				}
+			: {}),
 	});
 	return emailId;
 }
@@ -102,6 +107,8 @@ async function assertInterviewerAvailability(
 ) {
 	const { interview, period } = claimed;
 	if (!interview) throw new Error("Fant ikke intervjuet.");
+	if (!isWorkspaceEmail(person.email, config.domain))
+		throw new Error("Intervjueren mangler en Navet Workspace-konto for kalenderdelegering.");
 	const endWithBuffer = interview.endAt + period.buffer * MINUTE;
 	const client = googleCalendarClient(config, person.email);
 	const from = new Date(interview.startAt).toISOString();
@@ -313,15 +320,20 @@ async function cancelInterview(ctx: ActionCtx, claimed: CurrentClaim) {
 	if (interview.calendarEventId && !isLocalDevelopment()) {
 		if (!owner) throw new Error("Fant ikke kalenderansvarlig for avlysningen.");
 		if (!(await current(ctx, job.idempotencyKey))) throw new StaleAdmissionJob();
-		const config = googleConfig();
-		if (!config)
-			throw new Error("Google Calendar mangler tjenestekonto eller Workspace-konfigurasjon.");
+		const config = googleConfigOrThrow();
+		if (!isWorkspaceEmail(owner.email, config.domain))
+			throw new Error("Intervjueren mangler en Navet Workspace-konto for kalenderdelegering.");
 		await googleCalendarClient(config, owner.email).cancelEvent(
 			"primary",
 			interview.calendarEventId,
 		);
 	}
-	if (applicant && claimed.application) {
+	const notifyApplicant =
+		interview.calendarEventId !== undefined &&
+		interview.startAt > Date.now() &&
+		applicant !== null &&
+		claimed.application !== null;
+	if (notifyApplicant && applicant && claimed.application) {
 		if (!(await current(ctx, job.idempotencyKey))) throw new StaleAdmissionJob();
 		const key = `admission:interview:${interview._id}:${interview.revision}:cancelled`;
 		const html = await render(
@@ -341,7 +353,7 @@ async function cancelInterview(ctx: ActionCtx, claimed: CurrentClaim) {
 			html,
 			text: `Intervjuet ${when(interview.startAt)} er avlyst. Vi beklager endringen.`,
 		});
-		if (!isLocalDevelopment()) {
+		if (!isLocalDevelopment() && notifyApplicant) {
 			const slack = admissionsSlack();
 			const channel = await ensureAdmissionsChannel(slack, period, interviewers);
 			await postAdmissionsNotice(
@@ -371,6 +383,26 @@ async function sendDeclineNotice(ctx: ActionCtx, claimed: CurrentClaim, key: str
 	);
 }
 
+async function sendDeliveryFailure(ctx: ActionCtx, claimed: CurrentClaim, key: string) {
+	const delivery = claimed.delivery;
+	if (!delivery) throw new Error("Fant ikke den feilede e-postleveringen.");
+	if (isLocalDevelopment()) return;
+	if (!(await current(ctx, key))) throw new StaleAdmissionJob();
+	const context = await ctx.runQuery(internal.admissions.delivery.failureContext, {
+		periodId: claimed.period._id,
+	});
+	if (!context) throw new Error("Fant ikke opptaksperioden for e-postvarselet.");
+	const slack = admissionsSlack();
+	const channel = await ensureAdmissionsChannel(slack, context.period, context.interviewers);
+	await postAdmissionsNotice(
+		slack,
+		channel,
+		claimed.job.idempotencyKey,
+		claimed.job.createdAt,
+		`En e-postlevering trenger oppfølging (${delivery.kind}, ${delivery.status}) for ${claimed.period.title}. Kontroller opptaksoversikten.`,
+	);
+}
+
 async function runJob(ctx: ActionCtx, claimed: CurrentClaim, key: string) {
 	switch (claimed.job.kind) {
 		case "publish":
@@ -391,6 +423,9 @@ async function runJob(ctx: ActionCtx, claimed: CurrentClaim, key: string) {
 				if (!(await current(ctx, key))) throw new StaleAdmissionJob();
 				await archiveAdmissionsChannel(admissionsSlack(), claimed.period);
 			}
+			return {};
+		case "delivery_failure":
+			await sendDeliveryFailure(ctx, claimed, key);
 			return {};
 	}
 }
@@ -447,29 +482,4 @@ const claim = (ctx: ActionCtx, idempotencyKey: string) =>
 export const processOutbox = internalAction({
 	args: { idempotencyKey: v.string() },
 	handler: (ctx, { idempotencyKey }) => process(ctx, idempotencyKey),
-});
-
-export const notifyDeliveryFailure = internalAction({
-	args: {
-		periodId: v.id("admissionPeriods"),
-		key: v.string(),
-		kind: v.string(),
-		status: v.string(),
-	},
-	handler: async (ctx, args) => {
-		if (isLocalDevelopment()) return;
-		const context = await ctx.runQuery(internal.admissions.delivery.failureContext, {
-			periodId: args.periodId,
-		});
-		if (!context) return;
-		const slack = admissionsSlack();
-		const channel = await ensureAdmissionsChannel(slack, context.period, context.interviewers);
-		await postAdmissionsNotice(
-			slack,
-			channel,
-			args.key,
-			Date.now(),
-			`En e-postlevering trenger oppfølging (${args.kind}, ${args.status}) for ${context.period.title}. Kontroller opptaksoversikten.`,
-		);
-	},
 });

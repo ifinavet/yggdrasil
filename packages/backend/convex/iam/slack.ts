@@ -138,7 +138,7 @@ export function slackClient(config: SlackConfig) {
 			if (!body.ok && body.error !== "already_archived" && body.error !== "channel_not_found")
 				throw new SlackError(`Slack avviste arkiveringen: ${body.error}.`);
 		},
-		async archivePrivateChannel(name: string, owner: string) {
+		async archivePrivateChannel(name: string, owner: string, fallbackName?: string) {
 			const channels = (await paginate<{
 				channels?: {
 					id: string;
@@ -162,7 +162,7 @@ export function slackClient(config: SlackConfig) {
 			if (!auth.ok) throw new SlackError("Kunne ikke identifisere Slack-boten.");
 			const channel = channels.find(
 				(entry) =>
-					entry.name === name &&
+					(entry.name === name || entry.name === fallbackName) &&
 					entry.is_private &&
 					entry.creator === auth.user_id &&
 					entry.purpose?.value === owner,

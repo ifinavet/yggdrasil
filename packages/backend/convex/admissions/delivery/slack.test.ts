@@ -10,6 +10,7 @@ const period = {
 	_id: "admissions-id",
 	_creationTime: 1,
 	title: "Høst 2026",
+	applicationStartAt: Date.parse("2026-07-01T00:00:00Z"),
 } as never;
 
 function fakeSlack(overrides: Partial<Slack> = {}) {
@@ -42,7 +43,7 @@ describe("admissions Slack delivery", () => {
 		).resolves.toBe("channel-id");
 		expect(slack.channelInfo).toHaveBeenCalledWith("channel-id");
 		expect(slack.ensurePrivateChannel).toHaveBeenCalledWith(
-			"host-2026-opptak",
+			"h26-opptak",
 			"admissions:admissions-id",
 			expect.stringContaining("admissions-id"),
 		);
@@ -92,8 +93,9 @@ describe("admissions Slack delivery", () => {
 		const slack = fakeSlack();
 		await archiveAdmissionsChannel(slack, period);
 		expect(slack.archivePrivateChannel).toHaveBeenCalledWith(
-			"host-2026-opptak",
+			"h26-opptak",
 			"admissions:admissions-id",
+			"h26-opptak-admissions-id",
 		);
 	});
 });

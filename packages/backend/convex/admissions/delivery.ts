@@ -1,7 +1,9 @@
 import { v } from "convex/values";
-import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { internalMutation, internalQuery } from "../_generated/server";
+import { isLocalDevelopment } from "../auth/local";
+import { accountForUser } from "../iam/accounts";
+import { queueOutbox } from "./lifecycle";
 
 const deliveryKind = v.union(
 	v.literal("offer"),
@@ -19,6 +21,7 @@ export const recordQueued = internalMutation({
 		kind: deliveryKind,
 		idempotencyKey: v.string(),
 		emailId: v.string(),
+		localPreview: v.optional(v.object({ to: v.string(), subject: v.string(), html: v.string() })),
 		status: v.optional(v.union(v.literal("queued"), v.literal("delivered"))),
 	},
 	handler: async (ctx, args) => {
@@ -31,11 +34,13 @@ export const recordQueued = internalMutation({
 				emailId: args.emailId,
 				status: args.status ?? "queued",
 				error: undefined,
+				localPreview: isLocalDevelopment() ? args.localPreview : undefined,
 			});
 			return existing._id;
 		}
 		return await ctx.db.insert("admissionDeliveries", {
 			...args,
+			localPreview: isLocalDevelopment() ? args.localPreview : undefined,
 			status: args.status ?? "queued",
 		});
 	},
@@ -66,7 +71,9 @@ export const failureContext = internalQuery({
 		const interviewers = await Promise.all(
 			period.interviewers.map(async ({ userId }) => {
 				const user = await ctx.db.get(userId);
-				return user && !user.deleted ? { email: user.email } : null;
+				if (!user || user.deleted) return null;
+				const account = await accountForUser(ctx, userId, user.email);
+				return { email: account?.workspaceEmail ?? user.email };
 			}),
 		);
 		return {
@@ -93,13 +100,20 @@ export const recordProviderEvent = internalMutation({
 			return true;
 		const error = errors[status];
 		await ctx.db.patch(delivery._id, { status, error });
-		if (error)
-			await ctx.scheduler.runAfter(0, internal.admissions.actions.notifyDeliveryFailure, {
+		if (error) {
+			await queueOutbox(ctx, {
+				kind: "delivery_failure",
 				periodId: delivery.periodId,
-				key: `delivery-failure:${delivery.idempotencyKey}:${status}`,
-				kind: delivery.kind,
-				status,
+				applicationId: delivery.applicationId,
+				deliveryId: delivery._id,
+				revision: 1,
+				idempotencyKey: `delivery-failure:${delivery._id}:${status}`,
+				state: "pending",
+				attempts: 0,
+				nextAttemptAt: Date.now(),
+				createdAt: Date.now(),
 			});
+		}
 		return true;
 	},
 });

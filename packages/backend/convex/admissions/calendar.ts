@@ -15,7 +15,7 @@ import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { type ActionCtx, action } from "../_generated/server";
 import { isLocalDevelopment } from "../auth/local";
-import { googleConfig } from "../iam/config";
+import { googleConfig, isWorkspaceEmail } from "../iam/config";
 import { externalBusyIntervals, googleCalendarClient } from "../iam/googleCalendar";
 
 const localCalendars = [
@@ -47,8 +47,10 @@ export const sources = action({
 		const config = googleConfig();
 		if (!config)
 			throw new Error("Google Calendar mangler tjenestekonto eller Workspace-konfigurasjon.");
-		const calendars = await googleCalendarClient(config, access.email).listCalendars();
+		if (!isWorkspaceEmail(access.email, config.domain))
+			throw new Error("Intervjueren mangler en Navet Workspace-konto for kalenderdelegering.");
 		const calendarClient = googleCalendarClient(config, access.email);
+		const calendars = await calendarClient.listCalendars();
 		const defaults = calendars.filter((calendar) =>
 			/navet|timeplan|timetable/i.test(calendar.summary ?? ""),
 		);
@@ -207,6 +209,15 @@ export const generateSchedule = action({
 		const config = local ? null : googleConfig();
 		if (!local && !config)
 			throw new Error("Google Calendar mangler tjenestekonto eller Workspace-konfigurasjon.");
+		if (
+			!local &&
+			context.interviewers.some(
+				(person) =>
+					person.selectedCalendarIds.length > 0 &&
+					!isWorkspaceEmail(person.email, config?.domain ?? null),
+			)
+		)
+			throw new Error("En intervjuer mangler en Navet Workspace-konto for kalenderdelegering.");
 		const team: SchedulingInterviewer[] = await Promise.all(
 			context.interviewers.map(async (person) => {
 				const calendarIds = person.selectedCalendarIds;

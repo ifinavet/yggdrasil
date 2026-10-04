@@ -1,3 +1,4 @@
+import { ADMISSION_GROUPS } from "@workspace/shared/admissions";
 import { domainOf, normalizeEmail, onboardingSchema, uioEmailSchema } from "@workspace/shared/iam";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../_generated/api";
@@ -83,6 +84,30 @@ async function startOnboardingForCaller(
 	return { accountId, activated: existingUser !== undefined };
 }
 
+export async function validateAdmissionOffer(
+	ctx: MutationCtx,
+	userId: Doc<"users">["_id"],
+	group: string,
+	workspaceEmail: string,
+) {
+	const user = await ctx.db.get(userId);
+	if (!user?.email) throw new ConvexError("Søkerens e-postadresse mangler.");
+	const parsed = onboardingSchema(workspaceDomain()).safeParse({
+		firstName: user.firstName,
+		lastName: user.lastName,
+		uioEmail: normalizeEmail(user.email),
+		workspaceEmail,
+		group,
+	});
+	if (!parsed.success) throw new ConvexError(parsed.error.issues[0]?.message ?? "Ugyldig tilbud.");
+	if (
+		!ADMISSION_GROUPS.includes(parsed.data.group as (typeof ADMISSION_GROUPS)[number]) ||
+		parsed.data.group === "Usikker ennå"
+	)
+		throw new ConvexError("Velg en godkjent gruppe før du sender tilbudet.");
+	return parsed.data;
+}
+
 export async function startAcceptedAdmissionOnboarding(
 	ctx: MutationCtx,
 	applicationId: Doc<"admissionApplications">["_id"],
@@ -102,17 +127,13 @@ export async function startAcceptedAdmissionOnboarding(
 		throw new ConvexError("Administratorgodkjenningen er ikke lenger gyldig.");
 	const approvingAdmin = await ctx.db.get(application.decisionBy);
 	if (!approvingAdmin) throw new ConvexError("Fant ikke administratoren som godkjente opptaket.");
-	const user = await ctx.db.get(application.userId);
-	if (!user?.email) throw new ConvexError("Søkerens e-postadresse mangler.");
-	const parsed = onboardingSchema(workspaceDomain()).safeParse({
-		firstName: user.firstName,
-		lastName: user.lastName,
-		uioEmail: normalizeEmail(user.email),
-		workspaceEmail: application.reviewedWorkspaceEmail,
-		group: application.reviewedGroup,
-	});
-	if (!parsed.success) throw new ConvexError(parsed.error.issues[0]?.message ?? "Ugyldig tilbud.");
-	const result = await startOnboardingForCaller(ctx, approvingAdmin, parsed.data);
+	const details = await validateAdmissionOffer(
+		ctx,
+		application.userId,
+		application.reviewedGroup,
+		application.reviewedWorkspaceEmail,
+	);
+	const result = await startOnboardingForCaller(ctx, approvingAdmin, details);
 	await ctx.db.patch(applicationId, { onboardingStartedAt: Date.now() });
 	return result;
 }

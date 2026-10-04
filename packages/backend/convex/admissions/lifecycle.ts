@@ -2,6 +2,9 @@ import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 
+const CLEANUP_BATCH = 201;
+type CleanupKind = "cancel_interview" | "archive_channel";
+
 export async function queueOutbox(
 	ctx: MutationCtx,
 	fields: Omit<Doc<"admissionOutbox">, "_id" | "_creationTime">,
@@ -85,19 +88,18 @@ export async function purgeBatch(ctx: MutationCtx, periodId: Id<"admissionPeriod
 }
 
 export async function finishClose(ctx: MutationCtx, period: Doc<"admissionPeriods">) {
-	const unfinished = await ctx.db
+	if (await hasUnfinishedCleanup(ctx, period._id, "cancel_interview")) return false;
+	const archive = await ctx.db
 		.query("admissionOutbox")
-		.withIndex("by_periodId", (q) => q.eq("periodId", period._id))
-		.take(200);
-	if (
-		unfinished.some(
-			(job) =>
-				job.state === "pending" ||
-				job.state === "running" ||
-				(job.state === "failed" && job.attempts < 8),
+		.withIndex("by_periodId_and_kind", (q) =>
+			q.eq("periodId", period._id).eq("kind", "archive_channel"),
 		)
-	)
+		.take(1);
+	if (!archive.length) {
+		await queueArchiveWhenReady(ctx, period, `close-archive:${period._id}`);
 		return false;
+	}
+	if (await hasUnfinishedCleanup(ctx, period._id, "archive_channel")) return false;
 	await purgeBatch(ctx, period._id);
 	return true;
 }
@@ -108,21 +110,14 @@ export async function queueArchiveWhenReady(
 	key: string,
 	now = Date.now(),
 ) {
-	const cleanup = await ctx.db
+	if (await hasUnfinishedCleanup(ctx, period._id, "cancel_interview")) return false;
+	const archive = await ctx.db
 		.query("admissionOutbox")
-		.withIndex("by_periodId", (q) => q.eq("periodId", period._id))
-		.take(200);
-	if (
-		cleanup.some(
-			(job) =>
-				job.kind === "cancel_interview" &&
-				(job.state === "pending" ||
-					job.state === "running" ||
-					(job.state === "failed" && job.attempts < 8)),
+		.withIndex("by_periodId_and_kind", (q) =>
+			q.eq("periodId", period._id).eq("kind", "archive_channel"),
 		)
-	)
-		return false;
-	if (cleanup.some((job) => job.kind === "archive_channel")) return true;
+		.take(1);
+	if (archive.length) return true;
 	await queueOutbox(ctx, {
 		kind: "archive_channel",
 		periodId: period._id,
@@ -134,4 +129,32 @@ export async function queueArchiveWhenReady(
 		createdAt: now,
 	});
 	return true;
+}
+
+async function hasUnfinishedCleanup(
+	ctx: MutationCtx,
+	periodId: Id<"admissionPeriods">,
+	kind: CleanupKind,
+) {
+	const [pending, running, retryable] = await Promise.all([
+		ctx.db
+			.query("admissionOutbox")
+			.withIndex("by_periodId_and_kind_and_state", (q) =>
+				q.eq("periodId", periodId).eq("kind", kind).eq("state", "pending"),
+			)
+			.take(CLEANUP_BATCH),
+		ctx.db
+			.query("admissionOutbox")
+			.withIndex("by_periodId_and_kind_and_state", (q) =>
+				q.eq("periodId", periodId).eq("kind", kind).eq("state", "running"),
+			)
+			.take(CLEANUP_BATCH),
+		ctx.db
+			.query("admissionOutbox")
+			.withIndex("by_periodId_and_kind_and_state_and_attempts", (q) =>
+				q.eq("periodId", periodId).eq("kind", kind).eq("state", "failed").lt("attempts", 8),
+			)
+			.take(CLEANUP_BATCH),
+	]);
+	return pending.length > 0 || running.length > 0 || retryable.length > 0;
 }

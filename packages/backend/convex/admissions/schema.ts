@@ -119,10 +119,12 @@ export const admissionsSchema = {
 			v.literal("archive_channel"),
 			v.literal("remind_3d"),
 			v.literal("remind_1d"),
+			v.literal("delivery_failure"),
 		),
 		periodId: v.id("admissionPeriods"),
 		applicationId: v.optional(v.id("admissionApplications")),
 		interviewId: v.optional(v.id("admissionInterviews")),
+		deliveryId: v.optional(v.id("admissionDeliveries")),
 		revision: v.number(),
 		idempotencyKey: v.string(),
 		state: v.union(
@@ -145,7 +147,16 @@ export const admissionsSchema = {
 	})
 		.index("by_idempotencyKey", ["idempotencyKey"])
 		.index("by_state_and_nextAttemptAt", ["state", "nextAttemptAt"])
-		.index("by_periodId", ["periodId"]),
+		.index("by_periodId", ["periodId"])
+		.index("by_periodId_and_kind", ["periodId", "kind"])
+		.index("by_periodId_and_kind_and_state", ["periodId", "kind", "state"])
+		.index("by_periodId_and_state", ["periodId", "state"])
+		.index("by_periodId_and_kind_and_state_and_attempts", [
+			"periodId",
+			"kind",
+			"state",
+			"attempts",
+		]),
 	admissionDeliveries: defineTable({
 		periodId: v.id("admissionPeriods"),
 		applicationId: v.id("admissionApplications"),
@@ -159,6 +170,7 @@ export const admissionsSchema = {
 		),
 		idempotencyKey: v.string(),
 		emailId: v.string(),
+		localPreview: v.optional(v.object({ to: v.string(), subject: v.string(), html: v.string() })),
 		status: v.union(
 			v.literal("queued"),
 			v.literal("sent"),

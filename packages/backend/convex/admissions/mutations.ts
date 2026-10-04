@@ -5,7 +5,7 @@ import type { Doc, Id } from "../_generated/dataModel";
 import { mutation } from "../_generated/server";
 import { adminRoles, internalRoles, requireRole, userHasRole } from "../auth/accessRights";
 import { getCurrentUserOrThrow } from "../auth/currentUser";
-import { startAcceptedAdmissionOnboarding } from "../iam/mutations";
+import { startAcceptedAdmissionOnboarding, validateAdmissionOffer } from "../iam/mutations";
 import { requireMutablePeriod } from "./access";
 import { finishClose, queueArchiveWhenReady, queueOutbox } from "./lifecycle";
 import {
@@ -109,10 +109,7 @@ export const createPeriod = mutation({
 		);
 		if (activeStatus.some((periods) => periods.length))
 			throw new ConvexError("En annen opptaksperiode pågår allerede.");
-		const status =
-			Date.now() >= fields.applicationStartAt && Date.now() <= fields.applicationEndAt
-				? "open"
-				: "draft";
+		const status = "open" as const;
 		const periodId = await ctx.db.insert("admissionPeriods", {
 			title,
 			applicationStartAt: fields.applicationStartAt,
@@ -339,11 +336,16 @@ export const setDecision = mutation({
 			app.offerStatus === "declined"
 		)
 			throw new ConvexError("Søknaden kan ikke vurderes nå.");
-		if (
-			args.decision === "accepted" &&
-			(!args.reviewedGroup?.trim() || !args.reviewedWorkspaceEmail?.trim())
-		)
-			throw new ConvexError("Godkjenn gruppe og e-post før du sender et tilbud.");
+		if (args.decision === "accepted") {
+			if (!args.reviewedGroup?.trim() || !args.reviewedWorkspaceEmail?.trim())
+				throw new ConvexError("Godkjenn gruppe og e-post før du sender et tilbud.");
+			await validateAdmissionOffer(
+				ctx,
+				app.userId,
+				args.reviewedGroup,
+				args.reviewedWorkspaceEmail,
+			);
+		}
 		const decisionRevision = app.decisionRevision + 1;
 		const revision = app.revision + 1;
 		await ctx.db.patch(app._id, {
@@ -403,6 +405,13 @@ export const sendDecision = mutation({
 			throw new ConvexError("Velg endelig opptaksbeslutning først.");
 		if (app.decision === "accepted" && (!app.reviewedGroup || !app.reviewedWorkspaceEmail))
 			throw new ConvexError("Godkjenn gruppe og e-post før du sender et tilbud.");
+		if (app.decision === "accepted")
+			await validateAdmissionOffer(
+				ctx,
+				app.userId,
+				app.reviewedGroup ?? "",
+				app.reviewedWorkspaceEmail ?? "",
+			);
 		if (app.decisionSentAt || app.decisionQueuedAt) return { revision: app.revision };
 		const kind = "send_decision" as const;
 		await queueOutbox(ctx, {

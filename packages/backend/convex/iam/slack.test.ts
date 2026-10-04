@@ -63,4 +63,34 @@ describe("Slack private-channel archival", () => {
 		).resolves.toBeUndefined();
 		expect(fetch).toHaveBeenCalledTimes(3);
 	});
+
+	it("archives the bot-owned fallback name used when another period owns the preferred name", async () => {
+		const fetch = slackFetch((method) => {
+			if (method === "conversations.list")
+				return Response.json({
+					ok: true,
+					channels: [
+						{
+							id: "C456",
+							name: "host-2026-opptak-period",
+							creator: "UBOT",
+							is_private: true,
+							purpose: { value: "period" },
+						},
+					],
+				});
+			if (method === "auth.test") return Response.json({ ok: true, user_id: "UBOT" });
+			if (method === "conversations.archive") return Response.json({ ok: true });
+			throw new Error(`Unexpected Slack method ${method}`);
+		});
+		vi.stubGlobal("fetch", fetch);
+		await expect(
+			slackClient({ botToken: "xoxb-test" }).archivePrivateChannel(
+				"host-2026-opptak",
+				"period",
+				"host-2026-opptak-period",
+			),
+		).resolves.toBeUndefined();
+		expect(fetch).toHaveBeenCalledTimes(3);
+	});
 });

@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import { asUser, grantRole, insertUser, setup } from "../../test/fixtures";
-import { api } from "../_generated/api";
+import { api, internal } from "../_generated/api";
 
 async function boardFixture() {
 	const { t } = await setup();
@@ -163,4 +163,73 @@ it("saves calendar selections only for eligible interviewers and rejects stale u
 	await expect(
 		asUser(t, admin).mutation(api.admissions.board.updateInterviewers, args),
 	).rejects.toThrow();
+});
+
+it("archives the Slack channel after calendar cleanup and before purging the period", async () => {
+	const { t, periodId, ids, now } = await boardFixture();
+	const applicationId = ids[0];
+	if (!applicationId) throw new Error("Missing fixture application");
+	const interviewId = await t.run(async (ctx) => {
+		await ctx.db.patch(periodId, { status: "closing" });
+		return await ctx.db.insert("admissionInterviews", {
+			periodId,
+			applicationId,
+			startAt: now,
+			endAt: now + 900000,
+			interviewerIds: [],
+			selectedCalendarIds: [],
+			room: "Beta",
+			status: "cancelled",
+			revision: 1,
+		});
+	});
+	await t.run((ctx) =>
+		ctx.db.insert("admissionOutbox", {
+			periodId,
+			applicationId,
+			interviewId,
+			kind: "cancel_interview",
+			revision: 1,
+			idempotencyKey: "cleanup-test",
+			state: "running",
+			attempts: 1,
+			nextAttemptAt: now,
+			createdAt: now,
+		}),
+	);
+	await t.mutation(internal.admissions.internal.completeOutbox, { idempotencyKey: "cleanup-test" });
+	const archive = await t.run((ctx) =>
+		ctx.db
+			.query("admissionOutbox")
+			.filter((q) => q.eq(q.field("kind"), "archive_channel"))
+			.first(),
+	);
+	expect(archive).toMatchObject({ periodId, state: "pending" });
+	expect(await t.run((ctx) => ctx.db.get(periodId))).not.toBeNull();
+});
+
+it("uses the interviewer's managed Workspace address for calendar delegation", async () => {
+	const { t, admin, periodId, now } = await boardFixture();
+	await t.run(async (ctx) => {
+		await ctx.db.patch(admin._id, { email: "board@uio.no" });
+		await ctx.db.patch(periodId, {
+			interviewers: [{ userId: admin._id, selectedCalendarIds: ["primary"] }],
+		});
+		await ctx.db.insert("memberAccounts", {
+			userId: admin._id,
+			workspaceEmail: "board.member@ifinavet.no",
+			uioEmail: "board@uio.no",
+			firstName: "Board",
+			lastName: "Member",
+			group: "Web",
+			stage: "active",
+			google: "existing",
+			updatedAt: now,
+		});
+	});
+	const access = await asUser(t, admin).query(internal.admissions.internal.calendarAccess, {
+		periodId,
+		interviewerId: admin._id,
+	});
+	expect(access.email).toBe("board.member@ifinavet.no");
 });

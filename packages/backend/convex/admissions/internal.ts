@@ -4,6 +4,7 @@ import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalMutation, internalQuery, type MutationCtx } from "../_generated/server";
 import { adminRoles, internalRoles, requireRole, userHasRole } from "../auth/accessRights";
+import { accountForUser } from "../iam/accounts";
 import { finishClose, purgeBatch as purgeRecordsBatch, queueOutbox } from "./lifecycle";
 import { MAX_APPLICATIONS } from "./rules";
 
@@ -18,10 +19,16 @@ async function isCurrent(ctx: Parameters<typeof requireRole>[0], job: Doc<"admis
 	if (period.status === "closing") return false;
 	if (job.kind === "publish" || job.kind === "remind_3d" || job.kind === "remind_1d") {
 		const interview = job.interviewId ? await ctx.db.get(job.interviewId) : null;
+		if (interview?.status !== "scheduled" || interview.revision !== job.revision) return false;
+		return job.kind === "publish"
+			? period.status === "published"
+			: interview.publishedAt !== undefined;
+	}
+	if (job.kind === "delivery_failure") {
+		const delivery = job.deliveryId ? await ctx.db.get(job.deliveryId) : null;
 		return (
-			period.status === "published" &&
-			interview?.status === "scheduled" &&
-			interview.revision === job.revision
+			delivery?.periodId === job.periodId &&
+			["delayed", "failed", "bounced", "complained"].includes(delivery.status)
 		);
 	}
 	return isApplicationJobCurrent(ctx, job);
@@ -64,13 +71,18 @@ export const claimOutbox = internalMutation({
 		const period = await ctx.db.get(job.periodId);
 		const application = job.applicationId ? await ctx.db.get(job.applicationId) : null;
 		const interview = job.interviewId ? await ctx.db.get(job.interviewId) : null;
+		const delivery = job.deliveryId ? await ctx.db.get(job.deliveryId) : null;
 		const applicantUser = application ? await ctx.db.get(application.userId) : null;
 		const interviewerIds = interview?.interviewerIds ?? [];
 		const interviewers = await Promise.all(
 			interviewerIds.map(async (userId) => {
 				const user = await ctx.db.get(userId);
 				return user
-					? { userId, email: user.email, name: `${user.firstName} ${user.lastName}`.trim() }
+					? {
+							userId,
+							email: await workspaceEmail(ctx, user),
+							name: `${user.firstName} ${user.lastName}`.trim(),
+						}
 					: null;
 			}),
 		);
@@ -79,6 +91,7 @@ export const claimOutbox = internalMutation({
 			period,
 			application,
 			interview,
+			delivery,
 			applicant:
 				application && applicantUser
 					? {
@@ -170,7 +183,7 @@ export const calendarAccess = internalQuery({
 		if (!interviewer || !(await userHasRole(ctx, interviewerId, internalRoles)))
 			throw new ConvexError("Intervjueren er ikke valgt i denne perioden.");
 		const user = await ctx.db.get(interviewerId);
-		return { period, interviewer, email: user?.email ?? "" };
+		return { period, interviewer, email: user ? await workspaceEmail(ctx, user) : "" };
 	},
 });
 
@@ -215,7 +228,7 @@ export const scheduleContext = internalQuery({
 					? {
 							userId: user._id,
 							name: `${user.firstName} ${user.lastName}`.trim(),
-							email: user.email,
+							email: await workspaceEmail(ctx, user),
 							selectedCalendarIds: selection.selectedCalendarIds,
 						}
 					: null;
@@ -389,16 +402,6 @@ export const closeExpiredPeriod = internalMutation({
 					});
 			}),
 		);
-		await queueOutbox(ctx, {
-			kind: "archive_channel",
-			periodId,
-			revision: period.revision + 1,
-			idempotencyKey: `retention-archive:${periodId}`,
-			state: "pending",
-			attempts: 0,
-			nextAttemptAt: now,
-			createdAt: now,
-		});
 		const closing = { ...period, status: "closing" as const, revision: period.revision + 1 };
 		await ctx.db.patch(periodId, { status: "closing", revision: closing.revision });
 		await finishClose(ctx, closing);
@@ -565,4 +568,8 @@ function validateAssignmentTime(
 		)
 	)
 		throw new ConvexError("En søker er ikke tilgjengelig på tildelt tidspunkt.");
+}
+
+async function workspaceEmail(ctx: Parameters<typeof accountForUser>[0], user: Doc<"users">) {
+	return (await accountForUser(ctx, user._id, user.email))?.workspaceEmail ?? user.email;
 }

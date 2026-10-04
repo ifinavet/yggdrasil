@@ -7,17 +7,14 @@ type Period = Doc<"admissionPeriods">;
 type Person = Readonly<{ email: string }>;
 
 function channelName(period: Period) {
-	const title = period.title
-		.normalize("NFKD")
-		.replaceAll(/[\u0300-\u036f]/g, "")
-		.toLowerCase()
-		.replaceAll("ø", "o")
-		.replaceAll("æ", "ae")
-		.replaceAll("å", "a")
-		.replaceAll(/[^a-z0-9]+/g, "-")
-		.replaceAll(/^-|-$/g, "")
-		.slice(0, 50);
-	return `${title || "opptak"}-opptak`;
+	const parts = new Intl.DateTimeFormat("en", {
+		timeZone: "Europe/Oslo",
+		year: "2-digit",
+		month: "numeric",
+	}).formatToParts(period.applicationStartAt);
+	const year = parts.find((part) => part.type === "year")?.value;
+	const month = Number(parts.find((part) => part.type === "month")?.value);
+	return `${month > 6 ? "h" : "v"}${year}-opptak`;
 }
 
 export async function ensureAdmissionsChannel(slack: Slack, period: Period, people: Person[]) {
@@ -54,7 +51,11 @@ export async function postAdmissionsNotice(
 
 export async function archiveAdmissionsChannel(slack: Slack, period: Period) {
 	const name = channelName(period);
-	await slack.archivePrivateChannel(name, `admissions:${period._id}`);
+	await slack.archivePrivateChannel(
+		name,
+		`admissions:${period._id}`,
+		`${name.slice(0, 40)}-${period._id}`,
+	);
 }
 
 export function admissionsSlack() {

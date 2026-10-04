@@ -3,6 +3,7 @@ import type { Doc } from "../_generated/dataModel";
 import { query } from "../_generated/server";
 import { adminRoles, requireRole } from "../auth/accessRights";
 import { getCurrentUserOrThrow } from "../auth/currentUser";
+import { isLocalDevelopment } from "../auth/local";
 
 export const openPeriods = query({
 	args: { now: v.number() },
@@ -67,6 +68,7 @@ export const myApplication = query({
 			decisionSentAt: application.decisionSentAt,
 			offerStatus: application.decisionSentAt ? application.offerStatus : "none",
 			offerDeadline: application.decisionSentAt ? application.offerDeadline : undefined,
+			interviewStatus: interview?.status ?? null,
 			interview:
 				interview?.status === "scheduled" && interview.publishedAt
 					? {
@@ -117,6 +119,7 @@ export const currentApplication = query({
 			decisionSentAt: application.decisionSentAt,
 			offerStatus: application.decisionSentAt ? application.offerStatus : "none",
 			offerDeadline: application.decisionSentAt ? application.offerDeadline : undefined,
+			interviewStatus: interview?.status ?? null,
 			interview:
 				interview?.status === "scheduled" && interview.publishedAt
 					? { startAt: interview.startAt, endAt: interview.endAt, room: interview.room }
@@ -173,6 +176,18 @@ export const adminOverview = query({
 			.query("admissionOutbox")
 			.withIndex("by_periodId", (q) => q.eq("periodId", period._id))
 			.take(200);
+		const deliveryRows = await ctx.db
+			.query("admissionDeliveries")
+			.withIndex("by_periodId", (q) => q.eq("periodId", period._id))
+			.take(200);
+		const unresolvedDeliveries = deliveryRows
+			.filter((delivery) =>
+				["delayed", "failed", "bounced", "complained"].includes(delivery.status),
+			)
+			.map(({ _id, kind, status, error }) => ({ _id, kind, status, error }));
+		const localEmails = isLocalDevelopment()
+			? deliveryRows.flatMap(({ localPreview }) => (localPreview ? [localPreview] : []))
+			: [];
 		if (period.status === "closing")
 			return {
 				period,
@@ -180,6 +195,8 @@ export const adminOverview = query({
 				interviews: [],
 				interviewers: [],
 				jobs: outbox.filter((job) => job.state !== "done"),
+				deliveryIssues: [],
+				localEmails: [],
 			};
 		const applications = await ctx.db
 			.query("admissionApplications")
@@ -230,6 +247,8 @@ export const adminOverview = query({
 			interviews: allInterviews,
 			interviewers,
 			jobs: outbox.filter((job) => job.state !== "done"),
+			deliveryIssues: unresolvedDeliveries,
+			localEmails,
 		};
 	},
 });
