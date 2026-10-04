@@ -23,6 +23,12 @@ import { type GoogleUser, googleClient } from "./google";
 import { runJob } from "./jobs";
 import { type SlackMember, slackClient } from "./slack";
 
+function connectedGoogle(ctx: ActionCtx, config: Parameters<typeof googleClient>[0]) {
+	return googleClient(config, (message, startedAt) =>
+		ctx.runMutation(internal.iam.internal.recordGoogleConnection, { message, startedAt }),
+	);
+}
+
 export const iamResend: Resend = new Resend(components.resend, { testMode: false });
 
 const PASSWORD_ALPHABET = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -120,7 +126,7 @@ async function rememberGoogleUser(
 async function ensureGoogleAccount(ctx: ActionCtx, account: Account) {
 	const config = googleConfig();
 	if (!config) throw new Error("Google Workspace er ikke koblet til ennå.");
-	const google = googleClient(config);
+	const google = connectedGoogle(ctx, config);
 	const password = temporaryPassword();
 	const recoveryEmail = account.uioEmail;
 
@@ -213,7 +219,9 @@ async function suspendGoogle(
 	const config = googleConfig();
 	if (!config) return account.google;
 	if (!isWorkspaceEmail(account.workspaceEmail, config.domain)) return "not_applicable";
-	const found = await googleClient(config).updateUser(googleKey(account), { suspended: true });
+	const found = await connectedGoogle(ctx, config).updateUser(googleKey(account), {
+		suspended: true,
+	});
 	if (!found) return "not_applicable";
 	await rememberGoogleUser(ctx, account, found);
 	return "suspended";
@@ -293,7 +301,7 @@ export const reconcile = internalAction({
 		await ctx.runMutation(internal.iam.internal.ensureAccounts, {});
 		const directory = await ctx.runQuery(internal.iam.internal.directory, {});
 		const [googleUsers, slackMembers] = await Promise.all([
-			optional(google && (() => googleClient(google).listUsers())),
+			optional(google && (() => connectedGoogle(ctx, google).listUsers())),
 			optional(slack && (() => slackClient(slack).listMembers())),
 		]);
 

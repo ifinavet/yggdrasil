@@ -125,7 +125,7 @@ describe("removing an internal member", () => {
 			stage: "offboarding",
 			google: "pending",
 			slackUserId: "U1",
-			lastError: "Google svarte 503 da vi skulle oppdatere kontoen.",
+			lastError: "Google svarte 503 da vi skulle oppdatere kontoen. down",
 		});
 	});
 

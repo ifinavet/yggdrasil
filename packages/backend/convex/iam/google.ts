@@ -26,6 +26,37 @@ type DirectoryUser = {
 
 export class GoogleError extends Error {}
 
+async function fail(
+	response: Response,
+	message: string,
+	secrets: readonly string[] = [],
+): Promise<never> {
+	const body: unknown = await response.json().catch(() => null);
+	let detail = "";
+	if (body && typeof body === "object" && "error" in body) {
+		const error = body.error;
+		if (typeof error === "string") {
+			const description = "error_description" in body ? body.error_description : undefined;
+			detail = [error, typeof description === "string" ? description : ""]
+				.filter(Boolean)
+				.join(": ");
+		} else if (
+			error &&
+			typeof error === "object" &&
+			"message" in error &&
+			typeof error.message === "string"
+		) {
+			detail = error.message;
+		}
+	}
+	// Only Google's diagnostic fields are used; never include the response or request wholesale.
+	for (const secret of secrets) {
+		if (secret) detail = detail.replaceAll(secret, "[redacted]");
+	}
+	detail = detail.replaceAll(/\s+/g, " ").trim().slice(0, 1000);
+	throw new GoogleError(`${message}${detail ? ` ${detail}` : ""}`);
+}
+
 async function accessToken(config: GoogleConfig) {
 	const assertion = await new SignJWT({ scope: SCOPE })
 		.setProtectedHeader({ alg: "RS256", typ: "JWT" })
@@ -44,9 +75,23 @@ async function accessToken(config: GoogleConfig) {
 		}),
 		signal: AbortSignal.timeout(TIMEOUT_MS),
 	});
-	if (!response.ok) throw new GoogleError(`Google avviste innloggingen (${response.status}).`);
-	const { access_token } = (await response.json()) as { access_token: string };
-	return access_token;
+	if (!response.ok)
+		return fail(response, `Google avviste innloggingen (${response.status}).`, [
+			assertion,
+			config.privateKey,
+			config.privateKey.replaceAll("\n", String.raw`\n`),
+		]);
+	const body: unknown = await response.json();
+	if (
+		!body ||
+		typeof body !== "object" ||
+		!("access_token" in body) ||
+		typeof body.access_token !== "string" ||
+		!body.access_token.trim()
+	) {
+		throw new GoogleError("Google-tilkoblingen feilet. Google returnerte ikke et tilgangstoken.");
+	}
+	return body.access_token;
 }
 
 function toUser(user: DirectoryUser): GoogleUser {
@@ -59,15 +104,29 @@ function toUser(user: DirectoryUser): GoogleUser {
 	};
 }
 
-function fail(response: Response, action: string): never {
-	throw new GoogleError(`Google svarte ${response.status} da vi skulle ${action}.`);
-}
-
-export function googleClient(config: GoogleConfig) {
+export function googleClient(
+	config: GoogleConfig,
+	onConnection?: (message: string | undefined, startedAt: number) => Promise<unknown>,
+) {
 	let token: Promise<string> | undefined;
 
 	async function call(path: string, init: RequestInit = {}) {
-		token ??= accessToken(config);
+		token ??= (async () => {
+			const startedAt = Date.now();
+			let value: string;
+			try {
+				value = await accessToken(config);
+			} catch (error) {
+				const message =
+					error instanceof GoogleError
+						? error.message
+						: "Google-tilkoblingen feilet. Kontroller tjenestekontonøkkelen og nettverkstilgangen.";
+				await onConnection?.(message, startedAt);
+				throw new GoogleError(message);
+			}
+			await onConnection?.(undefined, startedAt);
+			return value;
+		})();
 		return fetch(directoryUrl(`${USERS_URL}${path}`), {
 			...init,
 			headers: {
@@ -97,14 +156,21 @@ export function googleClient(config: GoogleConfig) {
 				}),
 			});
 			if (response.status === 409) return "exists";
-			if (!response.ok) return fail(response, "opprette kontoen");
+			if (!response.ok)
+				return fail(response, `Google svarte ${response.status} da vi skulle opprette kontoen.`, [
+					(await token) ?? "",
+					user.password,
+				]);
 			return toUser((await response.json()) as DirectoryUser);
 		},
 
 		async getUser(key: string): Promise<GoogleUser | null> {
 			const response = await call(`/${encodeURIComponent(key)}`);
 			if (response.status === 404) return null;
-			if (!response.ok) return fail(response, "hente kontoen");
+			if (!response.ok)
+				return fail(response, `Google svarte ${response.status} da vi skulle hente kontoen.`, [
+					(await token) ?? "",
+				]);
 			return toUser((await response.json()) as DirectoryUser);
 		},
 
@@ -119,7 +185,11 @@ export function googleClient(config: GoogleConfig) {
 				),
 			});
 			if (response.status === 404) return null;
-			if (!response.ok) return fail(response, "oppdatere kontoen");
+			if (!response.ok)
+				return fail(response, `Google svarte ${response.status} da vi skulle oppdatere kontoen.`, [
+					(await token) ?? "",
+					fields.password ?? "",
+				]);
 			return toUser((await response.json()) as DirectoryUser);
 		},
 
@@ -130,7 +200,10 @@ export function googleClient(config: GoogleConfig) {
 				const params = new URLSearchParams({ domain: config.domain, maxResults: "500" });
 				if (pageToken) params.set("pageToken", pageToken);
 				const response = await call(`?${params}`);
-				if (!response.ok) return fail(response, "liste kontoene");
+				if (!response.ok)
+					return fail(response, `Google svarte ${response.status} da vi skulle liste kontoene.`, [
+						(await token) ?? "",
+					]);
 				const body = (await response.json()) as { users?: DirectoryUser[]; nextPageToken?: string };
 				users.push(...(body.users ?? []).map(toUser));
 				pageToken = body.nextPageToken;

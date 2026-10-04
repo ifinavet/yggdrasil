@@ -11,6 +11,9 @@ import { isCurrentStage } from "./schema";
 const MAX_ROWS = 200;
 const SEARCH_CANDIDATES = 20;
 const SEARCH_RESULTS = 8;
+const connectionFailure = (message?: string) =>
+	message?.startsWith("Google avviste innloggingen (") ||
+	message?.startsWith("Google-tilkoblingen feilet.");
 
 export const overview = query({
 	args: {},
@@ -46,7 +49,8 @@ export const overview = query({
 			google: account.google,
 			welcomeSent: account.welcomeSentAt !== undefined,
 			slackLinked: account.slackUserId !== undefined,
-			lastError: account.lastError,
+			lastError: connectionFailure(account.lastError) ? undefined : account.lastError,
+			googleConnectionBlocked: connectionFailure(account.lastError) === true,
 			googleOwner: account.googleOwner,
 			updatedAt: account.updatedAt,
 		}));
@@ -62,7 +66,12 @@ export const overview = query({
 		});
 		const drift = detected.filter((_, index) => !resolved[index]);
 
+		const connection = await ctx.db.query("iamGoogleConnection").unique();
+		const legacyError = [...onboarding, ...active, ...offboarding, ...cancelled]
+			.filter((account) => connectionFailure(account.lastError))
+			.sort((a, b) => b.updatedAt - a.updatedAt)[0]?.lastError;
 		return {
+			googleConnectionError: connection ? connection.message : legacyError,
 			domain: workspaceDomain(),
 			google: googleConfig() !== null,
 			slack: slackConfig() !== null,

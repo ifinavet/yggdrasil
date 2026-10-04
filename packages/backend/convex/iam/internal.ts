@@ -227,3 +227,15 @@ export const applyReconcile = internalMutation({
 		);
 	},
 });
+
+/** One shared connection result; an older request must not overwrite a newer check. */
+export const recordGoogleConnection = internalMutation({
+	args: { message: v.optional(v.string()), startedAt: v.number() },
+	handler: async (ctx, { message, startedAt }) => {
+		const current = await ctx.db.query("iamGoogleConnection").unique();
+		if (current && current.checkedAt > startedAt) return;
+		const fields = { message, checkedAt: startedAt };
+		if (current) await ctx.db.patch(current._id, fields);
+		else await ctx.db.insert("iamGoogleConnection", fields);
+	},
+});

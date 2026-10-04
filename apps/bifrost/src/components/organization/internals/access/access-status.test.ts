@@ -20,6 +20,7 @@ function account(overrides: Partial<AccessAccount>): AccessAccount {
 		welcomeSent: false,
 		slackLinked: false,
 		lastError: undefined,
+		googleConnectionBlocked: false,
 		googleOwner: undefined,
 		updatedAt: 0,
 		...overrides,
@@ -37,6 +38,13 @@ function drift(overrides: Partial<AccessDrift>): AccessDrift {
 }
 
 describe("accountStatus", () => {
+	it("keeps global Google failures out of account error messages", () => {
+		expect(accountStatus(account({ googleConnectionBlocked: true }))).toEqual({
+			tone: "waiting",
+			text: "Venter på Google-tilkoblingen",
+			actions: ["retry", "cancel"],
+		});
+	});
 	it("shows the error with retry and cancel while onboarding", () => {
 		expect(accountStatus(account({ lastError: "Resend er nede." }))).toEqual({
 			tone: "failed",
