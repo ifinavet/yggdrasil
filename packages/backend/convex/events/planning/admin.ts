@@ -296,7 +296,8 @@ export const approve = mutation({
 				organizers: organizers.map(({ userId, role }) => ({ userId, role })),
 			});
 		} catch {
-			const error = "Publisering feilet. Utkastet er bevart. Prøv igjen eller følg opp manuelt.";
+			const error =
+				"Publisering av arrangementet på nettsiden feilet. Utkastet er bevart. Prøv igjen eller følg opp manuelt.";
 			await ctx.db.patch(planning._id, { error });
 			await notifyPlanning(
 				ctx,

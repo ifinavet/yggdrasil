@@ -1,4 +1,12 @@
 import { BIFROST_LOCAL_URL, BIFROST_URL } from "@workspace/shared/constants";
+import { hasEventText } from "@workspace/shared/events/checklist";
+import {
+	AGE_CHOICES,
+	ANSWER_CHOICES,
+	type PlanningAnswers,
+	VENUE_CHOICES,
+} from "@workspace/shared/events/planning";
+import { EVENT_TYPE_LABELS, FOOD_PURCHASER_LABELS } from "@workspace/shared/semester/labels";
 import { SYSTEM_ALERTS_CHANNEL } from "@workspace/shared/slack/channels";
 import type { Doc } from "../../_generated/dataModel";
 import type { MutationCtx } from "../../_generated/server";
@@ -45,4 +53,38 @@ export async function notifyInvitationSent(
 		`Invitasjonen til å planlegge bedriftspresentasjonen er sendt til ${escapeSlack(email.envelope.to)}. Vi venter på bedriftens svar.`,
 		"delivery",
 	);
+}
+
+export function planningResponseSummary(companyName: string, answers: PlanningAnswers) {
+	const short = (value: string) => {
+		const text = value.replace(/\s+/g, " ").trim();
+		return escapeSlack(text.length > 180 ? `${text.slice(0, 180)}…` : text || "Ikke oppgitt");
+	};
+	const lines = [
+		`${short(companyName)} har svart på mail for planlegging.`,
+		"",
+		`Tittel: ${short(answers.title)}`,
+		`Kort introduksjon: ${short(answers.teaser)}`,
+		`Beskrivelse: ${hasEventText(answers.description) ? "Fylt ut" : "Ikke oppgitt"}`,
+		`Sted: ${VENUE_CHOICES[answers.venue]}`,
+		`Adresse eller lokale: ${short(answers.location)}`,
+		`Start: ${answers.startTime}`,
+		`Antall studenter: ${answers.capacity}`,
+		`Mat og drikke: ${ANSWER_CHOICES[answers.foodAndDrinks]}`,
+		`Alkohol: ${ANSWER_CHOICES[answers.alcohol]} (${AGE_CHOICES[answers.ageRestriction]})`,
+		`Stand: ${ANSWER_CHOICES[answers.stand]}`,
+		`Språk: ${short(answers.language)}`,
+	];
+	if (answers.requestedEventType)
+		lines.push(`Ønsket arrangementstype: ${EVENT_TYPE_LABELS[answers.requestedEventType]}`);
+	if (answers.foodAndDrinks === "yes") {
+		lines.push(
+			`Servering: ${short(answers.food)}`,
+			`Hvem ordner serveringen: ${answers.foodPurchasedBy === "company" ? "Bedriften" : FOOD_PURCHASER_LABELS[answers.foodPurchasedBy]}`,
+		);
+	}
+	if (answers.stand === "yes") lines.push(`Ønsker for stand: ${short(answers.standDetails)}`);
+	if (answers.notes.trim()) lines.push(`Andre ønsker: ${short(answers.notes)}`);
+	lines.push("", "Se gjennom, rediger og godkjenn før arrangementet publiseres på nettsiden.");
+	return lines.join("\n");
 }

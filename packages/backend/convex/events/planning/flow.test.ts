@@ -13,6 +13,7 @@ import {
 import { api, internal } from "../../_generated/api";
 import { trackedEmail } from "../../lib/trackedEmail";
 import { prepareDue } from "./lifecycle";
+import { planningResponseSummary } from "./notifications";
 
 const NOW = Date.parse("2026-10-01T10:00:00Z");
 const START = NOW + 30 * DAY_MS;
@@ -174,6 +175,39 @@ describe("company event planning", () => {
 		});
 		expect(await f.t.run((ctx) => ctx.db.query("eventPlanningEmails").collect())).toHaveLength(1);
 	});
+	it("summarizes practical answers safely and keeps lengthy answers bounded", async () => {
+		const f = await fixture();
+		const text = planningResponseSummary("Bedrift <@everyone>", {
+			...f.preparation.answers,
+			foodAndDrinks: "yes",
+			food: "Pizza",
+			foodPurchasedBy: "company",
+			stand: "yes",
+			standDetails: "Kaffe kl. 12",
+			requestedEventType: "large_presentation",
+			notes: "a".repeat(2000),
+			description: "<p></p>",
+			language: "",
+		});
+		expect(text).toContain("Bedrift &lt;@everyone&gt; har svart");
+		expect(text).not.toContain("<@everyone>");
+		expect(text).toContain("Servering: Pizza");
+		expect(text).toContain("Hvem ordner serveringen: Bedriften");
+		expect(text).toContain("Ønsker for stand: Kaffe kl. 12");
+		expect(text).toContain("Ønsket arrangementstype:");
+		expect(text).toContain("Beskrivelse: Ikke oppgitt");
+		expect(text).toContain("Språk: Ikke oppgitt");
+		expect(text).not.toContain("a".repeat(181));
+		const without = planningResponseSummary("Bedrift", {
+			...f.preparation.answers,
+			foodAndDrinks: "no",
+			food: "Old food",
+			stand: "no",
+			standDetails: "Old stand",
+		});
+		expect(without).not.toContain("Old food");
+		expect(without).not.toContain("Old stand");
+	});
 	it("keeps verified content unpublished until an internal approves, preserving draft edits", async () => {
 		const f = await submitted();
 		expect(f.confirmation.envelope.to).toBe("contact@example.com");
@@ -189,6 +223,17 @@ describe("company event planning", () => {
 		expect(
 			await f.t.mutation(api.events.planning.public.confirm, { token: f.confirmationToken }),
 		).toEqual({ state: "confirmed" });
+		const eventNotices = await f.t.run((ctx) => ctx.db.query("eventSlackNotifications").collect());
+		const systemNotices = await f.t.run((ctx) => ctx.db.query("slackSystemDeliveries").collect());
+		expect(eventNotices).toHaveLength(1);
+		expect(systemNotices).toHaveLength(1);
+		for (const notice of [...eventNotices, ...systemNotices]) {
+			expect(notice.text).toContain("Testbedrift har svart på mail for planlegging.");
+			expect(notice.text).toContain("Tittel: Bli kjent med oss");
+			expect(notice.text).toContain("Antall studenter: 40");
+			expect(notice.text).toContain("Start: 16:15");
+			expect(notice.text).toContain("planning=review");
+		}
 		let review = await f.editor.query(api.events.planning.admin.get, { eventId: f.eventId });
 		expect(review.event.published).toBe(false);
 		expect(review.submission?.status).toBe("ready");

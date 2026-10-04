@@ -23,7 +23,7 @@ import {
 	publicUrl,
 	senderFor,
 } from "./helpers";
-import { notifyPlanning } from "./notifications";
+import { notifyPlanning, planningResponseSummary } from "./notifications";
 import { answers } from "./schema";
 
 const limiter = new RateLimiter(components.rateLimiter, {
@@ -186,11 +186,12 @@ export const confirm = mutation({
 			revision: planning.revision + 1,
 			error: undefined,
 		});
+		const company = await ctx.db.get(planning.companyId);
 		await notifyPlanning(
 			ctx,
 			event,
 			`review:${submission._id}`,
-			"Bedriften har bekreftet opplysningene til arrangementet. Se gjennom, rediger og godkjenn før publisering.",
+			planningResponseSummary(company?.name ?? "Bedriften", submission.answers),
 			"review",
 		);
 		return { state: "confirmed" };

@@ -19,7 +19,7 @@ export async function prepareDue(ctx: MutationCtx, event: Doc<"events">, now: nu
 			ctx,
 			event,
 			`ready:${planning._id}`,
-			"Førstegangskontakten er klar for gjennomgang. Kontroller mottaker, signatur og forhåndsutfylte opplysninger før du sender.",
+			"Mail for førstegangskontakt er klar for gjennomgang. Kontroller kontaktperson i bedriften og forhåndsutfylte opplysninger før du sender.",
 		);
 }
 export const discover = internalMutation({
