@@ -227,6 +227,20 @@ export function AccessList({
 			<div className="flex justify-end">
 				<CheckNowButton disabled={!overview.google && !overview.slack} />
 			</div>
+			{overview.googleConnectionError && (
+				<Note tone="bad" role="alert">
+					<p>Google Workspace kan ikke kobles til</p>
+					<p className="mt-1 max-w-prose font-normal">
+						Kontroller Google-oppsettet og bruk «Sjekk Google og Slack nå» for å teste igjen.
+					</p>
+					<details className="mt-2 font-normal">
+						<summary className="cursor-pointer">Tekniske detaljer</summary>
+						<p className="mt-2 max-w-prose whitespace-pre-wrap break-words">
+							{overview.googleConnectionError}
+						</p>
+					</details>
+				</Note>
+			)}
 			{missing.length > 0 && (
 				<Note tone="warn">
 					{formatList(missing)} er ikke koblet til ennå. Bifrost legger fortsatt til personen, men

@@ -17,6 +17,13 @@ export type AccessStatus = Readonly<{
 
 export function accountStatus(account: AccessAccount): AccessStatus {
 	const canCancel = account.stage === "onboarding";
+	if (account.googleConnectionBlocked) {
+		return {
+			tone: "waiting",
+			text: "Venter på Google-tilkoblingen",
+			actions: canCancel ? ["retry", "cancel"] : ["retry"],
+		};
+	}
 	if (account.lastError) {
 		const next: AccessAction = account.googleOwner === undefined ? "retry" : "confirmGoogle";
 		return {

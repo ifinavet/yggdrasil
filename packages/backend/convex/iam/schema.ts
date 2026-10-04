@@ -28,6 +28,7 @@ export const driftKinds = v.union(
 );
 
 export const iamSchema = {
+	iamGoogleConnection: defineTable({ message: v.optional(v.string()), checkedAt: v.number() }),
 	memberAccounts: defineTable({
 		workspaceEmail: v.string(),
 		uioEmail: v.optional(v.string()),

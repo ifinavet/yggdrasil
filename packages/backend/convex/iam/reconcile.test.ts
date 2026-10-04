@@ -110,6 +110,73 @@ describe("nightly reconciliation", () => {
 		vi.unstubAllGlobals();
 	});
 
+	it("exposes a shared Google failure and clears it after a successful check", async () => {
+		vi.stubGlobal(
+			"fetch",
+			vi
+				.fn()
+				.mockResolvedValue(
+					Response.json(
+						{ error: "invalid_client", error_description: "Client rejected" },
+						{ status: 401 },
+					),
+				),
+		);
+		await t.action(internal.iam.actions.reconcile, {});
+		expect(
+			(await asUser(t, admin).query(api.iam.queries.overview, {})).googleConnectionError,
+		).toContain("invalid_client: Client rejected");
+		fakeDirectories();
+		await t.action(internal.iam.actions.reconcile, {});
+		expect(
+			(await asUser(t, admin).query(api.iam.queries.overview, {})).googleConnectionError,
+		).toBeUndefined();
+	});
+
+	it("keeps a newer connection result when an older check finishes late", async () => {
+		await t.mutation(internal.iam.internal.recordGoogleConnection, { startedAt: 200 });
+		await t.mutation(internal.iam.internal.recordGoogleConnection, {
+			startedAt: 100,
+			message: "Old failure",
+		});
+		expect(
+			(await asUser(t, admin).query(api.iam.queries.overview, {})).googleConnectionError,
+		).toBeUndefined();
+	});
+
+	it("moves saved OAuth errors into the banner without losing account-specific errors", async () => {
+		await t.run(async (ctx) => {
+			for (const [email, message] of [
+				["oauth@example.test", "Google avviste innloggingen (401)."],
+				["other@example.test", "Resend er nede."],
+			]) {
+				await ctx.db.insert("memberAccounts", {
+					workspaceEmail: email,
+					firstName: "Test",
+					lastName: "User",
+					group: "Web",
+					stage: "onboarding",
+					google: "pending",
+					lastError: message,
+					updatedAt: 1,
+				});
+			}
+		});
+		const overview = await asUser(t, admin).query(api.iam.queries.overview, {});
+		expect(overview.googleConnectionError).toBe("Google avviste innloggingen (401).");
+		expect(
+			overview.accounts.find((account) => account.workspaceEmail === "oauth@example.test"),
+		).toMatchObject({ googleConnectionBlocked: true });
+		expect(
+			overview.accounts.find((account) => account.workspaceEmail === "oauth@example.test")
+				?.lastError,
+		).toBeUndefined();
+		expect(
+			overview.accounts.find((account) => account.workspaceEmail === "other@example.test")
+				?.lastError,
+		).toBe("Resend er nede.");
+	});
+
 	async function drift() {
 		return (await asUser(t, admin).query(api.iam.queries.overview, {})).drift.map(
 			({ kind, email }) => ({
