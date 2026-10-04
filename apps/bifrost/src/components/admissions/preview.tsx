@@ -413,14 +413,17 @@ export default function AdmissionsPreview() {
 										type="number"
 										min={min}
 										max={max}
-										value={settings[key]}
-										onChange={(e) => {
-											const n = Number(e.target.value);
-											if (n >= min && n <= max) {
-												setSettings({ ...settings, [key]: n });
-												setInterviews([]);
-												setApproved(false);
-											}
+										defaultValue={settings[key]}
+										onBlur={(event) => {
+											const value = Math.min(
+												max,
+												Math.max(min, Math.round(Number(event.target.value) || min)),
+											);
+											event.target.value = String(value);
+											if (value === settings[key]) return;
+											setSettings((current) => ({ ...current, [key]: value }));
+											setInterviews([]);
+											setApproved(false);
 										}}
 									/>
 								</Label>

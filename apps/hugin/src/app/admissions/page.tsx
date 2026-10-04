@@ -13,7 +13,7 @@ export default async function Page({
 	const now = new Date();
 	const open =
 		now >= new Date("2026-10-01T00:00:00+02:00") && now < new Date("2026-10-12T00:00:00+02:00");
-	if (!open || preview === "closed") {
+	if ((!open && preview !== "open") || preview === "closed") {
 		const month = Number(
 			new Intl.DateTimeFormat("en", { month: "numeric", timeZone: OSLO_TIME_ZONE }).format(now),
 		);
