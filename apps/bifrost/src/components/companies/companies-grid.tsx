@@ -51,7 +51,7 @@ export default function CompaniesGrid() {
 				placeholder="Bedrift eller org. nr."
 				className="sm:w-96"
 			/>
-			<div className="grid max-w-7xl grid-cols-3 gap-4">
+			<div className="grid max-w-7xl grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
 				{visibleCompanies.map((company) => (
 					<Link key={company._id} href={`/companies/${company._id}`}>
 						<Card>
