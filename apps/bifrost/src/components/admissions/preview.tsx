@@ -45,6 +45,7 @@ import {
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
+	type AvailabilityWindow,
 	advanceRound,
 	type Candidate,
 	clock,
@@ -71,6 +72,7 @@ export default function AdmissionsPreview() {
 	const [candidates, setCandidates] = useState(seedCandidates);
 	const [settings, setSettings] = useState<Settings>(defaults);
 	const [interviewers, setInterviewers] = useState(team);
+	const [savedWindows, setSavedWindows] = useState<Record<string, AvailabilityWindow[]>>({});
 	const slots = useMemo(() => makeSlots(settings), [settings]);
 	const [interviews, setInterviews] = useState<Interview[]>(() =>
 		match(seedCandidates(), makeSlots(defaults), team),
@@ -799,6 +801,7 @@ export default function AdmissionsPreview() {
 				onOpenChange={setAvailabilityOpen}
 				interviewers={interviewers}
 				onSave={(id, windows) => {
+					setSavedWindows((current) => ({ ...current, [id]: windows }));
 					setInterviewers((current) =>
 						current.map((person) => (person.id === id ? { ...person, windows } : person)),
 					);
@@ -880,7 +883,7 @@ export default function AdmissionsPreview() {
 										onCheckedChange={(checked) => {
 											setInterviewers(
 												checked === true
-													? [...interviewers, p]
+													? [...interviewers, { ...p, windows: savedWindows[p.id] ?? p.windows }]
 													: interviewers.filter((i) => i.id !== p.id),
 											);
 											setInterviews([]);

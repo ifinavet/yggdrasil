@@ -54,7 +54,6 @@ export default function ApplicationPreview() {
 		onSubmit: () => {
 			if (!profileConfirmed || editingProfile) return;
 			setSent(true);
-			void cookieStore.set({ name: "admissions_preview_submitted", value: "true", path: "/" });
 		},
 	});
 	if (sent)
@@ -182,9 +181,6 @@ export default function ApplicationPreview() {
 									</form.Field>
 								))}
 							</div>
-							<p className="text-muted-foreground text-sm">
-								Endringene oppdaterer også profilen din på ifinavet.no.
-							</p>
 							<form.Subscribe selector={(state) => [state.values.program, state.values.year]}>
 								{([program, year]) => (
 									<Button
