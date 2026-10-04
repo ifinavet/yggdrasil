@@ -5,7 +5,6 @@ import {
 	Font,
 	Head,
 	Heading,
-	Hr,
 	Html,
 	Img,
 	Preview,
@@ -96,14 +95,8 @@ export default function WorkspaceWelcomeEmail({
 						</Text>
 					) : null}
 
-					<Hr />
-
 					<Text className="py-4 text-gray-700 text-sm">
 						Har du spørsmål, kan du svare på denne e-posten.
-					</Text>
-
-					<Text className="pt-16 text-center text-gray-400 text-lg leading-[18px]">
-						© {new Date().getFullYear()} IFI-Navet
 					</Text>
 				</Container>
 			</Tailwind>
