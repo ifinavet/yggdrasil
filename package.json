@@ -10,10 +10,12 @@
 		"check-types": "pnpm check-dependencies && turbo check-types",
 		"compile": "turbo compile",
 		"test": "turbo test",
+		"test:e2e:admissions": "playwright test",
 		"build": "turbo build"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "catalog:",
+		"@playwright/test": "1.63.0",
 		"@workspace/typescript-config": "workspace:*",
 		"dotenv": "^16.6.1",
 		"turbo": "^2.11.4",
