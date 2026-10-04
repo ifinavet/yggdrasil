@@ -1,14 +1,9 @@
 import type { Page } from "@playwright/test";
 import { api } from "@workspace/backend/convex/api";
 import { ConvexHttpClient } from "convex/browser";
+import type { FunctionArgs } from "convex/server";
 
-export type AdmissionSeedScenario =
-	| "empty"
-	| "missing-profile"
-	| "empty"
-	| "open"
-	| "scheduled"
-	| "decisions";
+export type AdmissionSeedScenario = FunctionArgs<typeof api.admissions.localSeed.reset>["scenario"];
 
 function localOrigin(name: string, fallback: string) {
 	const value = process.env[name] ?? fallback;
