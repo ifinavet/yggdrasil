@@ -9,7 +9,6 @@ import { startAcceptedAdmissionOnboarding } from "../iam/mutations";
 import { requireMutablePeriod } from "./access";
 import { finishClose, queueArchiveWhenReady, queueOutbox } from "./lifecycle";
 import {
-	DAY_MS,
 	MAX_APPLICATIONS,
 	MAX_INTERVIEWERS,
 	validatePeriodWindow,
@@ -58,9 +57,16 @@ export async function validateInterviewers(
 	const ids = selections.map((item) => item.userId);
 	if (ids.length < 2 || ids.length > MAX_INTERVIEWERS || new Set(ids).size !== ids.length)
 		throw new ConvexError("Velg minst to ulike intervjuere, maksimalt 30.");
-	for (const id of ids)
-		if (!(await userHasRole(ctx, id, internalRoles)))
-			throw new ConvexError("Alle intervjuere må være aktive interne medlemmer.");
+	await requireActiveInterviewers(ctx, ids);
+}
+
+async function requireActiveInterviewers(
+	ctx: Parameters<typeof userHasRole>[0],
+	ids: Id<"users">[],
+) {
+	const eligible = await Promise.all(ids.map((id) => userHasRole(ctx, id, internalRoles)));
+	if (eligible.some((value) => !value))
+		throw new ConvexError("Alle intervjuere må være aktive interne medlemmer.");
 }
 
 export const createPeriod = mutation({
@@ -152,8 +158,7 @@ export const saveDraft = mutation({
 		const now = Date.now();
 		const period = await ctx.db.get(args.periodId);
 		if (
-			!period ||
-			period.status !== "open" ||
+			period?.status !== "open" ||
 			now < period.applicationStartAt ||
 			now > period.applicationEndAt
 		)
@@ -231,8 +236,7 @@ export const reopenApplication = mutation({
 		const period = await ctx.db.get(periodId);
 		const now = Date.now();
 		if (
-			!period ||
-			period.status !== "open" ||
+			period?.status !== "open" ||
 			now < period.applicationStartAt ||
 			now > period.applicationEndAt
 		)
@@ -266,8 +270,7 @@ export const submit = mutation({
 		const user = await getCurrentUserOrThrow(ctx);
 		const period = await ctx.db.get(periodId);
 		if (
-			!period ||
-			period.status !== "open" ||
+			period?.status !== "open" ||
 			Date.now() < period.applicationStartAt ||
 			Date.now() > period.applicationEndAt
 		)
@@ -326,7 +329,7 @@ export const setDecision = mutation({
 		const caller = await requireRole(ctx, adminRoles);
 		const app = await ctx.db.get(args.applicationId);
 		if (!app) throw new ConvexError("Fant ikke søknaden.");
-		const period = await requireMutablePeriod(ctx, app.periodId);
+		await requireMutablePeriod(ctx, app.periodId);
 		if (app.revision !== args.expectedRevision)
 			throw new ConvexError("Søknaden er endret. Last den inn på nytt.");
 		if (
@@ -426,7 +429,7 @@ export const respondToOffer = mutation({
 			.query("admissionApplications")
 			.withIndex("by_periodId_and_userId", (q) => q.eq("periodId", periodId).eq("userId", user._id))
 			.unique();
-		if (!app || app.decision !== "accepted" || !app.decisionSentAt)
+		if (app?.decision !== "accepted" || !app.decisionSentAt)
 			throw new ConvexError("Fant ikke et aktivt tilbud.");
 		if (app.offerStatus === "accepted") {
 			if (accept) return { offerStatus: app.offerStatus, revision: app.revision };
@@ -491,9 +494,7 @@ export const scheduleInterview = mutation({
 		const selected = new Set(period.interviewers.map((selection) => selection.userId));
 		if (unique.some((id) => !selected.has(id)))
 			throw new ConvexError("Velg intervjuere fra periodens oppsett.");
-		for (const id of unique)
-			if (!(await userHasRole(ctx, id, internalRoles)))
-				throw new ConvexError("Alle intervjuere må være aktive interne medlemmer.");
+		await requireActiveInterviewers(ctx, unique);
 		const interval = localWindow(args.startAt, period.duration, period.timezone);
 		if (
 			args.startAt < period.interviewStartAt ||
@@ -584,7 +585,7 @@ export const cancelInterview = mutation({
 			.query("admissionInterviews")
 			.withIndex("by_applicationId", (q) => q.eq("applicationId", app._id))
 			.unique();
-		if (!interview || interview.status !== "scheduled" || !interview.publishedAt)
+		if (interview?.status !== "scheduled" || !interview.publishedAt)
 			throw new ConvexError("Du har ikke et publisert intervju å avbestille.");
 		const revision = interview.revision + 1;
 		await ctx.db.patch(interview._id, { status: "cancelled", revision, publishedAt: undefined });
@@ -631,19 +632,22 @@ export const publish = mutation({
 			if (interview.startAt < period.interviewStartAt || interview.endAt > period.interviewEndAt)
 				throw new ConvexError("Et intervju ligger utenfor vinduet.");
 		await ctx.db.patch(periodId, { status: "published", revision: period.revision + 1 });
-		for (const interview of interviews)
-			await queueOutbox(ctx, {
-				kind: "publish",
-				periodId,
-				applicationId: interview.applicationId,
-				interviewId: interview._id,
-				revision: interview.revision,
-				idempotencyKey: `${idempotencyKey}:${interview._id}`,
-				state: "pending",
-				attempts: 0,
-				nextAttemptAt: Date.now(),
-				createdAt: Date.now(),
-			});
+		await Promise.all(
+			interviews.map((interview) =>
+				queueOutbox(ctx, {
+					kind: "publish",
+					periodId,
+					applicationId: interview.applicationId,
+					interviewId: interview._id,
+					revision: interview.revision,
+					idempotencyKey: `${idempotencyKey}:${interview._id}`,
+					state: "pending",
+					attempts: 0,
+					nextAttemptAt: Date.now(),
+					createdAt: Date.now(),
+				}),
+			),
+		);
 		return { revision: period.revision + 1, count: interviews.length };
 	},
 });
@@ -686,33 +690,38 @@ export const closePeriod = mutation({
 			);
 		}
 		const now = Date.now();
-		for (const app of pendingOffers)
-			await ctx.db.patch(app._id, { offerStatus: "expired", revision: app.revision + 1 });
-		for (const interview of interviews) {
-			if (interview.publishedAt || interview.calendarEventId) {
-				await ctx.db.patch(interview._id, {
-					status: "cancelled",
-					revision: interview.revision + 1,
-					publishedAt: undefined,
-				});
-				await queueOutbox(ctx, {
-					kind: "cancel_interview",
-					periodId,
-					applicationId: interview.applicationId,
-					interviewId: interview._id,
-					revision: interview.revision + 1,
-					idempotencyKey: `${idempotencyKey}:cancel:${interview._id}`,
-					state: "pending",
-					attempts: 0,
-					nextAttemptAt: now,
-					createdAt: now,
-				});
-			} else
-				await ctx.db.patch(interview._id, {
-					status: "cancelled",
-					revision: interview.revision + 1,
-				});
-		}
+		await Promise.all(
+			pendingOffers.map((app) =>
+				ctx.db.patch(app._id, { offerStatus: "expired", revision: app.revision + 1 }),
+			),
+		);
+		await Promise.all(
+			interviews.map(async (interview) => {
+				if (interview.publishedAt || interview.calendarEventId) {
+					await ctx.db.patch(interview._id, {
+						status: "cancelled",
+						revision: interview.revision + 1,
+						publishedAt: undefined,
+					});
+					await queueOutbox(ctx, {
+						kind: "cancel_interview",
+						periodId,
+						applicationId: interview.applicationId,
+						interviewId: interview._id,
+						revision: interview.revision + 1,
+						idempotencyKey: `${idempotencyKey}:cancel:${interview._id}`,
+						state: "pending",
+						attempts: 0,
+						nextAttemptAt: now,
+						createdAt: now,
+					});
+				} else
+					await ctx.db.patch(interview._id, {
+						status: "cancelled",
+						revision: interview.revision + 1,
+					});
+			}),
+		);
 		const closing = { ...period, status: "closing" as const, revision: period.revision + 1 };
 		await ctx.db.patch(periodId, { status: "closing", revision: closing.revision });
 		if (await queueArchiveWhenReady(ctx, closing, `${idempotencyKey}:archive`, now))

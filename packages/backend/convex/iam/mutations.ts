@@ -89,8 +89,7 @@ export async function startAcceptedAdmissionOnboarding(
 ) {
 	const application = await ctx.db.get(applicationId);
 	if (
-		!application ||
-		application.decision !== "accepted" ||
+		application?.decision !== "accepted" ||
 		application.offerStatus !== "accepted" ||
 		!application.reviewedGroup ||
 		!application.reviewedWorkspaceEmail ||
