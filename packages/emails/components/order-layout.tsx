@@ -52,21 +52,14 @@ export function OrderSummary({
 	rows,
 }: Readonly<{ rows: ReadonlyArray<readonly [label: string, value: string]> }>) {
 	return (
-		<table
-			cellPadding={0}
-			cellSpacing={0}
-			style={{ width: "100%", borderTop: "1px solid #dde3ea", margin: "16px 0" }}
-		>
+		<table cellPadding={0} cellSpacing={0} style={{ width: "100%", margin: "16px 0" }}>
 			<tbody>
 				{rows.map(([label, value]) => (
 					<tr key={label}>
-						<td style={{ padding: "8px 0", borderBottom: "1px solid #dde3ea", color: "#5b6b7f" }}>
-							{label}
-						</td>
+						<td style={{ padding: "8px 0", color: "#5b6b7f" }}>{label}</td>
 						<td
 							style={{
 								padding: "8px 0",
-								borderBottom: "1px solid #dde3ea",
 								textAlign: "right",
 								fontWeight: 600,
 							}}
