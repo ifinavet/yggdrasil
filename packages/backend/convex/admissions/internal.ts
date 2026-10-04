@@ -1,4 +1,4 @@
-import { localWindow } from "@workspace/shared/admissions";
+import { isAvailable, localWindow, overlapsLunch } from "@workspace/shared/admissions";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
@@ -507,8 +507,8 @@ function validateAssignment(
 	if (!application || application.periodId !== period._id || application.status !== "submitted")
 		throw new ConvexError("En søknad i planen finnes ikke lenger.");
 	const interviewerIds = [...new Set(assignment.interviewerIds)];
-	if (interviewerIds.length < 2 || interviewerIds.length !== assignment.interviewerIds.length)
-		throw new ConvexError("Hvert intervju må ha to ulike intervjuere.");
+	if (interviewerIds.length !== 2 || interviewerIds.length !== assignment.interviewerIds.length)
+		throw new ConvexError("Hvert intervju må ha nøyaktig to ulike intervjuere.");
 	if (interviewerIds.some((userId) => !selectionByUser.has(userId) || !active.has(userId)))
 		throw new ConvexError("En intervjuer er ikke lenger valgt eller aktiv.");
 	validateAssignmentTime(assignment, period, application);
@@ -563,27 +563,18 @@ function validateAssignmentTime(
 	)
 		throw new ConvexError("Et intervju ligger utenfor perioden eller har feil varighet.");
 	const window = localWindow(assignment.startAt, duration, period.timezone);
-	const meeting = { ...window, end: window.start + duration };
+	const meeting = { ...window, end: window.start + duration + period.buffer };
 	if (
 		meeting.start < period.dayStart ||
-		meeting.end + period.buffer > period.dayEnd ||
-		(period.lunch && meeting.start < 13 * 60 && meeting.end + period.buffer > 12 * 60) ||
+		meeting.end > period.dayEnd ||
+		(period.lunch && overlapsLunch(meeting)) ||
 		period.breaks.some(
 			(pause) =>
-				pause.day === meeting.day &&
-				pause.start < meeting.end + period.buffer &&
-				meeting.start < pause.end,
+				pause.day === meeting.day && pause.start < meeting.end && meeting.start < pause.end,
 		)
 	)
 		throw new ConvexError("Et intervju kolliderer med arbeidstid eller pause.");
-	if (
-		!application.availability.some(
-			(available) =>
-				available.day === meeting.day &&
-				available.start <= meeting.start &&
-				available.end >= meeting.end,
-		)
-	)
+	if (!isAvailable(application.availability, meeting))
 		throw new ConvexError("En søker er ikke tilgjengelig på tildelt tidspunkt.");
 }
 

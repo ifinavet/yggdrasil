@@ -2,7 +2,6 @@ import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 
-const CLEANUP_BATCH = 201;
 type CleanupKind = "cancel_interview" | "archive_channel";
 
 export async function queueOutbox(
@@ -142,19 +141,19 @@ async function hasUnfinishedCleanup(
 			.withIndex("by_periodId_and_kind_and_state", (q) =>
 				q.eq("periodId", periodId).eq("kind", kind).eq("state", "pending"),
 			)
-			.take(CLEANUP_BATCH),
+			.take(1),
 		ctx.db
 			.query("admissionOutbox")
 			.withIndex("by_periodId_and_kind_and_state", (q) =>
 				q.eq("periodId", periodId).eq("kind", kind).eq("state", "running"),
 			)
-			.take(CLEANUP_BATCH),
+			.take(1),
 		ctx.db
 			.query("admissionOutbox")
 			.withIndex("by_periodId_and_kind_and_state_and_attempts", (q) =>
 				q.eq("periodId", periodId).eq("kind", kind).eq("state", "failed").lt("attempts", 8),
 			)
-			.take(CLEANUP_BATCH),
+			.take(1),
 	]);
 	return pending.length > 0 || running.length > 0 || retryable.length > 0;
 }

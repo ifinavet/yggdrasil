@@ -1,4 +1,10 @@
-import { ADMISSION_GROUPS, isValidAvailability, localWindow } from "@workspace/shared/admissions";
+import {
+	ADMISSION_GROUPS,
+	isAvailable,
+	isValidAvailability,
+	localWindow,
+	overlapsLunch,
+} from "@workspace/shared/admissions";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
@@ -494,12 +500,8 @@ export const scheduleInterview = mutation({
 		if (app.revision !== args.expectedRevision)
 			throw new ConvexError("Søknaden er endret. Last den inn på nytt.");
 		const unique = [...new Set(args.interviewerIds)];
-		if (
-			unique.length < 2 ||
-			unique.length > MAX_INTERVIEWERS ||
-			unique.length !== args.interviewerIds.length
-		)
-			throw new ConvexError("Velg minst to intervjuere uten gjentakelser.");
+		if (unique.length !== 2 || unique.length !== args.interviewerIds.length)
+			throw new ConvexError("Velg nøyaktig to intervjuere uten gjentakelser.");
 		const selected = new Set(period.interviewers.map((selection) => selection.userId));
 		if (unique.some((id) => !selected.has(id)))
 			throw new ConvexError("Velg intervjuere fra periodens oppsett.");
@@ -510,27 +512,22 @@ export const scheduleInterview = mutation({
 			args.startAt + period.duration * 60000 > period.interviewEndAt
 		)
 			throw new ConvexError("Intervjutiden er utenfor perioden.");
-		const meeting = { ...interval, end: interval.start + period.duration };
-		if (meeting.start < period.dayStart || meeting.end + period.buffer > period.dayEnd)
+		const meeting = {
+			...interval,
+			end: interval.start + period.duration + period.buffer,
+		};
+		if (meeting.start < period.dayStart || meeting.end > period.dayEnd)
 			throw new ConvexError("Intervjutiden er utenfor arbeidsdagen.");
-		if (period.lunch && meeting.start < 13 * 60 && meeting.end + period.buffer > 12 * 60)
+		if (period.lunch && overlapsLunch(meeting))
 			throw new ConvexError("Intervjutiden kolliderer med lunsjpausen.");
 		if (
 			period.breaks.some(
 				(pause) =>
-					pause.day === meeting.day &&
-					pause.start < meeting.end + period.buffer &&
-					meeting.start < pause.end,
+					pause.day === meeting.day && pause.start < meeting.end && meeting.start < pause.end,
 			)
 		)
 			throw new ConvexError("Intervjutiden kolliderer med en pause.");
-		if (
-			app.status !== "submitted" ||
-			!app.availability.some(
-				(window) =>
-					window.day === meeting.day && window.start <= meeting.start && window.end >= meeting.end,
-			)
-		)
+		if (app.status !== "submitted" || !isAvailable(app.availability, meeting))
 			throw new ConvexError("Søkeren er ikke tilgjengelig på dette tidspunktet.");
 		const existing = await ctx.db
 			.query("admissionInterviews")

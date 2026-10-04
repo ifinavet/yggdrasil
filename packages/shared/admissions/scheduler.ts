@@ -1,5 +1,12 @@
 import { type AvailabilityWindow, isAvailable } from "./availability";
 
+export const LUNCH_START_MINUTE = 12 * 60;
+export const LUNCH_END_MINUTE = 13 * 60;
+
+export function overlapsLunch(window: AvailabilityWindow) {
+	return window.start < LUNCH_END_MINUTE && window.end > LUNCH_START_MINUTE;
+}
+
 export type SchedulingSettings = Readonly<{
 	duration: number;
 	buffer: number;
@@ -73,7 +80,7 @@ export function makeSchedulingSlots(settings: SchedulingSettings, days: readonly
 				consecutive = 0;
 				continue;
 			}
-			if (settings.lunch && start < 780 && end > 720) {
+			if (settings.lunch && overlapsLunch({ day, start, end })) {
 				start = 780;
 				consecutive = 0;
 				continue;
