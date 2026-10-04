@@ -9,7 +9,7 @@ import { internalMutation, type MutationCtx, mutation } from "../_generated/serv
 import { internalRoles, requireRole } from "../auth/accessRights";
 import { isLocalDevelopment } from "../auth/local";
 import { companyWithLogo, getOrganizers } from "../events/queries";
-import { unregisterWaveText } from "../events/slack/messages";
+import { escapeSlack, organizerNames, unregisterWaveText } from "../events/slack/messages";
 import { queueEventNotification } from "../events/slack/state";
 import type { AlertRule } from "./schema";
 import { pastCurvesBefore, snapshotOf, upcomingEvents } from "./snapshot";
@@ -67,30 +67,25 @@ export function describeAlert(
 	};
 }
 
-const SLACK_INTRO: Record<AlertRule, { title: string; hint: string }> = {
+const SLACK_INTRO: Record<AlertRule, { title: string; hint: string; tag: boolean }> = {
 	unregisterWave: {
 		title: "🏃💨 Mange meldte seg av på kort tid",
 		hint: "Det kan bety at noe har endret seg, for eksempel tidspunkt, sted eller at noe annet kolliderer.",
+		tag: false,
 	},
 	behindPace: {
 		title: "🐢 Påmeldingen går tregere enn vanlig",
 		hint: "Farten er sammenlignet med tidligere arrangementer. Kanskje verdt å dele arrangementet en gang til?",
+		tag: false,
 	},
 	noRegistrations: {
 		title: "🦗 Ingen har meldt seg på ennå",
 		hint: "Sjekk at arrangementet er publisert og har blitt delt i kanalene våre.",
+		tag: true,
 	},
 };
 
-function escapeSlack(text: string) {
-	return text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
-}
-
 type Organizer = { name: string; slackUserId?: string };
-
-function mention({ name, slackUserId }: Organizer) {
-	return slackUserId ? `<@${slackUserId}>` : escapeSlack(name);
-}
 
 export function slackText(
 	rule: AlertRule,
@@ -99,11 +94,13 @@ export function slackText(
 	organizers: Organizer[],
 	origin: string,
 ) {
-	const { title, hint } = SLACK_INTRO[rule];
+	const { title, hint, tag } = SLACK_INTRO[rule];
 	return [
 		title,
 		`${escapeSlack(alert.summary)}. ${escapeSlack(alert.detail)}`,
-		...(organizers.length > 0 ? [`🙋 Hovedansvarlig: ${organizers.map(mention).join(", ")}`] : []),
+		...(organizers.length > 0
+			? [`🙋 Hovedansvarlig: ${organizerNames(organizers, tag).join(", ")}`]
+			: []),
 		`💡 ${hint}`,
 		`👉 <${origin}/events/${eventId}|Åpne arrangementet> · <${origin}/insight|Se innsikt>`,
 	].join("\n");

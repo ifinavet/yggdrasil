@@ -259,6 +259,21 @@ describe("company semester event lifecycle", () => {
 		await run(t);
 		expect(slack.channels[0]?.messages).toHaveLength(count as number);
 	});
+	it("greets by name without tagging when the notice only informs", async () => {
+		const { t, companyId } = await setup();
+		const slack = fakeSlack();
+		const eventId = await insertEvent(t, companyId, { eventStart: START, participationLimit: 1 });
+		await organizer(t, eventId, "LEAD");
+		await run(t);
+		const user = await insertUser(t, "full@example.test");
+		await insertRegistration(t, eventId, user._id, "registered");
+		await t.run((ctx) => queueEventNotification(ctx, eventId, "registration-full", "Fullt"));
+		await run(t);
+		const full = slack.channels[0]?.messages.find((message) => message.text.includes("Fullt"));
+		expect(slack.channels[0]?.messages[0]?.text).toContain("Halla <@LEAD>!");
+		expect(full?.text).toMatch(/^Halla [^<]+!\n/);
+		expect(full?.text).not.toContain("<@");
+	});
 	it("recovers still-actionable reminders on late enable", async () => {
 		const { t, companyId } = await setup();
 		const slack = fakeSlack();

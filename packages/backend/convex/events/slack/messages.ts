@@ -24,17 +24,38 @@ export function escapeSlack(text: string) {
 export function eventUrl(event: Doc<"events">) {
 	return `${isLocalDevelopment() ? BIFROST_LOCAL_URL : BIFROST_URL}/events/${event.slug ?? event._id}`;
 }
+const ACTION_NOTICES = [
+	"welcome:",
+	"missing-slack:",
+	"practical:",
+	"expenses:",
+	"missing-text:",
+	"promotion:",
+	"unfinished-checklist:",
+	"missing-attendance:",
+	"report-approval:",
+	"planning:ready:",
+	"planning:review:",
+	"planning:publish-error:",
+	"planning:email-error:",
+];
+export function asksOrganizersToAct(key: string) {
+	return ACTION_NOTICES.some((prefix) => key.startsWith(prefix));
+}
+export function organizerNames(organizers: { name: string; slackUserId?: string }[], tag: boolean) {
+	return organizers.map(({ name, slackUserId }) =>
+		tag && slackUserId ? `<@${slackUserId}>` : escapeSlack(name),
+	);
+}
 // Planned follow-up: let the board edit routine message templates in Bifrost Resources.
 export function eventMessage(
 	event: Doc<"events">,
 	organizers: Awaited<ReturnType<typeof getOrganizers>>,
 	text: string,
+	tag: boolean,
 ) {
-	const mentions = organizers.map(({ name, slackUserId }) =>
-		slackUserId ? `<@${slackUserId}>` : escapeSlack(name),
-	);
 	return [
-		`Halla ${mentions.join(" og ") || "folkens"}!`,
+		`Halla ${organizerNames(organizers, tag).join(" og ") || "folkens"}!`,
 		`*${escapeSlack(event.title)}*, ${formatOsloDate(event.eventStart, DATE_PATTERNS.shortDateWithYear)}.`,
 		text,
 		`<${eventUrl(event)}|Åpne arrangementet og sjekklisten i Bifrost>`,
