@@ -1,4 +1,4 @@
-const localConvex = /^http:\/\/(127\.0\.0\.1|localhost):3210$/.test(
+const localConvex = /^http:\/\/(127\.0\.0\.1|localhost):321[02468]$/.test(
 	process.env.CONVEX_CLOUD_URL ?? "",
 );
 
