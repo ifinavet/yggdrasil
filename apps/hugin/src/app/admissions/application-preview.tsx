@@ -359,7 +359,7 @@ function AvailabilityGrid({
 						<th className="w-14" aria-label="Klokkeslett" />
 						{days.slice(week * 5, week * 5 + 5).map((d) => (
 							<th key={d} className="pb-2 font-medium">
-								{formatOsloDate(Date.parse(d + "T12:00:00Z"), DATE_PATTERNS.shortDate)}
+								{dayLabel(d)}
 							</th>
 						))}
 					</tr>
@@ -378,7 +378,7 @@ function AvailabilityGrid({
 									<td key={d}>
 										<button
 											type="button"
-											aria-label={`${formatOsloDate(Date.parse(d + "T12:00:00Z"), DATE_PATTERNS.shortDate)} klokken ${time}`}
+											aria-label={`${dayLabel(d)} klokken ${time}`}
 											aria-pressed={checked}
 											className={`flex h-10 w-full items-center justify-center rounded-md border transition-colors ${checked ? "border-primary bg-primary text-primary-foreground" : "border-input bg-muted hover:bg-accent"}`}
 											onClick={() =>
@@ -400,4 +400,8 @@ function AvailabilityGrid({
 			</table>
 		</div>
 	);
+}
+
+function dayLabel(day: string) {
+	return formatOsloDate(Date.parse(`${day}T12:00:00Z`), DATE_PATTERNS.shortDate);
 }
