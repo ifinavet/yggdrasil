@@ -43,7 +43,6 @@ import {
 	METRICS,
 	type MetricKey,
 	matchingCompanies,
-	PAST_PACE_NOTE,
 	rankLabel,
 	type SemesterOption,
 	type Standing,
@@ -389,7 +388,7 @@ function CompanyEvents({ detail, now }: Readonly<{ detail: CompanyDetail; now: n
 				)}
 			</Panel>
 			<div ref={paceRef} className="scroll-mt-4">
-				{selectedId && <PaceChart eventId={selectedId} now={now} note={PAST_PACE_NOTE} />}
+				{selectedId && <PaceChart eventId={selectedId} now={now} />}
 			</div>
 		</>
 	);

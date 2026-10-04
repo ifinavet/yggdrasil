@@ -464,6 +464,3 @@ export function formatMetric(key: MetricKey, value: number | null) {
 export function rankLabel({ rank, of }: Pick<CompanyComparison, "rank" | "of">) {
 	return rank === null ? null : `${rank} av ${of}`;
 }
-
-export const PAST_PACE_NOTE =
-	"Viser arrangementet du klikker på i tabellen. Typisk forløp bygger på arrangementene før dette.";

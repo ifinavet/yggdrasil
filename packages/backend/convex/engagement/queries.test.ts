@@ -284,6 +284,29 @@ describe("paceCurve", () => {
 });
 
 describe("historical forecast scenarios", () => {
+	it("uses legacy history without a reminder setting for events with reminders enabled", async () => {
+		vi.stubEnv("APP_ENV", "local");
+		vi.stubEnv("CONVEX_CLOUD_URL", "http://127.0.0.1:3218");
+		const { t, intern } = await internTester();
+		const image = await t.run((ctx) => ctx.storage.store(new Blob(["logo"])));
+		const seeded = await t.mutation(internal.engagement.forecastSeed.insert, { image });
+		const eventId = seeded.eventIds?.[1];
+		if (!eventId) throw new Error("Expected preview fixtures");
+		const now = Date.now();
+		await t.run(async (ctx) => {
+			const events = await ctx.db.query("events").take(100);
+			await Promise.all(
+				events
+					.filter((event) => event.eventStart < now)
+					.map((event) => ctx.db.patch(event._id, { remindersEnabled: undefined })),
+			);
+		});
+		const curve = await intern.query(api.engagement.queries.paceCurve, { eventId, now });
+		expect(curve?.baselineSize).toBe(6);
+		expect(curve?.projected).toBe(5);
+		vi.unstubAllEnvs();
+	});
+
 	it("predicts both recovery and a continued decline, with no optimistic fallback", async () => {
 		vi.stubEnv("APP_ENV", "local");
 		vi.stubEnv("CONVEX_CLOUD_URL", "http://127.0.0.1:3218");

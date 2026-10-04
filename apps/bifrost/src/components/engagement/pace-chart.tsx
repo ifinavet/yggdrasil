@@ -9,9 +9,9 @@ import type { Id } from "@workspace/backend/convex/dataModel";
 import { DATE_PATTERNS, formatOsloDate } from "@workspace/shared/time";
 import { CompanyLogo } from "@workspace/ui/components/company-logo";
 import { ChartLegend } from "@workspace/ui/components/products/chart-legend";
-import { Panel, PanelBody, PanelNote } from "@workspace/ui/components/products/panel";
+import { Panel, PanelBody } from "@workspace/ui/components/products/panel";
 import { Skeleton } from "@workspace/ui/components/skeleton";
-import { type ReactNode, useMemo } from "react";
+import { useMemo } from "react";
 import { ACCENT_SERIES_COLOR, MUTED_SERIES_COLOR } from "@/components/common/chart-colors";
 import { useStableQuery } from "@/hooks/use-stable-query";
 import { type PaceCurve, paceLabels, paceTickLabel, paceTicks } from "./engagement-format";
@@ -166,18 +166,7 @@ function PaceChartBody({ curve }: Readonly<{ curve: PaceCurve }>) {
 	);
 }
 
-function forecastNote(curve: PaceCurve | null | undefined, fallback: ReactNode) {
-	if (!curve || curve.progress <= 0 || curve.progress >= 1 || curve.registered <= 0)
-		return fallback;
-	if (curve.projected === null) return "For lite historikk til å beregne en prognose.";
-	return `Anslag basert på ${curve.baselineSize} tidligere arrangementer. Følger historiske påmeldinger, avmeldinger og nye plasser fra ventelisten. Forløpet er justert til påmeldingsperioden og eventuelle påminnelser. Ikke en garanti for oppmøte.`;
-}
-
-export function PaceChart({
-	eventId,
-	now,
-	note,
-}: Readonly<{ eventId: Id<"events">; now: number; note: ReactNode }>) {
+export function PaceChart({ eventId, now }: Readonly<{ eventId: Id<"events">; now: number }>) {
 	const curve = useStableQuery(api.engagement.queries.paceCurve, { eventId, now }, eventId);
 
 	return (
@@ -197,20 +186,6 @@ export function PaceChart({
 		>
 			<PanelBody className="grid gap-3">
 				{curve ? <PaceChartBody curve={curve} /> : <Skeleton className="h-[280px] w-full" />}
-				{curve && curve.reminders.length > 0 && (
-					<ul
-						className="flex flex-wrap gap-x-6 gap-y-1 text-muted-foreground text-xs"
-						aria-label="Påminnelsesmailer"
-					>
-						{curve.reminders.map((reminder) => (
-							<li key={reminder.kind}>
-								{reminder.kind === "week" ? "7-dagersmail" : "2-dagersmail"}:{" "}
-								{formatOsloDate(reminder.at, "d. MMM HH:mm")} · {reminder.status}
-							</li>
-						))}
-					</ul>
-				)}
-				<PanelNote>{forecastNote(curve, note)}</PanelNote>
 			</PanelBody>
 		</Panel>
 	);
