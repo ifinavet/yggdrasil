@@ -35,11 +35,8 @@ export async function ensureAdmissionsChannel(slack: Slack, period: Period, peop
 		throw new Error(
 			"En eller flere intervjuere mangler en aktiv Slack-konto med samme e-postadresse.",
 		);
-	await slack.reconcileChannelMembers(
-		channel,
-		[...new Set(members as string[])],
-		[],
-		async () => undefined,
+	await slack.reconcileChannelMembers(channel, [...new Set(members as string[])], [], () =>
+		Promise.resolve(undefined),
 	);
 	return channel;
 }

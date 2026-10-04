@@ -322,7 +322,7 @@ export const generateSchedule = action({
 							.filter((person) => assignment.interviewers.includes(person.userId))
 							.flatMap((person) => person.selectedCalendarIds),
 					),
-				].sort(),
+				].sort((a, b) => a.localeCompare(b)),
 				room: period.room,
 			};
 		});

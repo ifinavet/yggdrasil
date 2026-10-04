@@ -1,5 +1,9 @@
+import {
+	makeSchedulingDays,
+	makeSchedulingSlots,
+	matchInterviews,
+} from "@workspace/shared/admissions";
 import { describe, expect, it } from "vitest";
-import { makeSchedulingDays, makeSchedulingSlots, matchInterviews } from "./scheduler";
 
 const settings = {
 	duration: 20,
@@ -39,7 +43,7 @@ describe("production admissions scheduling", () => {
 		const slots = makeSchedulingSlots({ ...settings, breakEvery: 100 }, [day]);
 		const candidates = [
 			{ id: "flexible", availability: [{ day, start: 540, end: 960 }] },
-			{ id: "scarce", availability: [{ day, start: 600, end: 630 }] },
+			{ id: "scarce", availability: [{ day, start: 615, end: 645 }] },
 		];
 		const team = ["a", "b", "c"].map((id) => ({
 			id,
@@ -71,6 +75,6 @@ describe("production admissions scheduling", () => {
 		}));
 		const assignments = matchInterviews(candidates, slots, readable);
 		expect(assignments).toHaveLength(1);
-		expect(assignments[0]?.slotId).toBe(`${day}/600`);
+		expect(assignments[0]?.slotId).toBe(`${day}/615`);
 	});
 });
