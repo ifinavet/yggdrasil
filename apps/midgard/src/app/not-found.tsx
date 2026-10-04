@@ -1,3 +1,4 @@
+import { WEB_CONTACT_EMAIL } from "@workspace/shared/constants/contact";
 import { Button } from "@workspace/ui/components/button";
 import ResponsiveCenterContainer from "@workspace/ui/components/responsive-center-container";
 import { Home } from "lucide-react";
@@ -47,7 +48,10 @@ export default function NotFound() {
 						<p className="text-muted-foreground text-sm">
 							Trenger du hjelp? Ta kontakt med support hvis problemet vedvarer.
 						</p>
-						<a className="text-muted-foreground text-sm italic" href="mailto:web@ifinavet.no">
+						<a
+							className="text-muted-foreground text-sm italic"
+							href={`mailto:${WEB_CONTACT_EMAIL}`}
+						>
 							Send oss en mail
 						</a>
 					</div>

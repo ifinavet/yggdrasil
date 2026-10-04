@@ -1,4 +1,5 @@
 import { api } from "@workspace/backend/convex/api";
+import { BOARD_CONTACT_EMAIL } from "@workspace/shared/constants/contact";
 import ResponsiveCenterContainer from "@workspace/ui/components/responsive-center-container";
 import { Title } from "@workspace/ui/components/title";
 import { fetchQuery } from "convex/nextjs";
@@ -71,8 +72,8 @@ export default async function ContactPage() {
 						}
 						email={
 							studentContact
-								? (studentContact.positionEmail ?? studentContact.email ?? "styret@ifinavet.no")
-								: "styret@ifinavet.no"
+								? (studentContact.positionEmail ?? studentContact.email ?? BOARD_CONTACT_EMAIL)
+								: BOARD_CONTACT_EMAIL
 						}
 						imageUrl={studentContact?.image}
 						initials="SK"
