@@ -3,7 +3,6 @@ import {
 	Container,
 	Font,
 	Head,
-	Hr,
 	Html,
 	Img,
 	Preview,
@@ -104,12 +103,6 @@ export default function EventReminderEmail({
 					</Text>
 
 					<EmailSignature {...signature} />
-
-					<Hr />
-
-					<Text className="pt-16 text-center text-gray-400 text-lg leading-[18px]">
-						© {new Date().getFullYear()} IFI-Navet
-					</Text>
 				</Container>
 			</Tailwind>
 		</Html>

@@ -16,6 +16,7 @@ import {
 	MIDGARD_LOCAL_URL,
 	MIDGARD_URL,
 } from "@workspace/shared/constants";
+import { INFO_EMAIL } from "@workspace/shared/constants/contact";
 import {
 	JOB_LISTING_ORDER_CONFIRM_PATH,
 	JOB_LISTINGS_PATH,
@@ -29,7 +30,7 @@ import { isLocalDevelopment } from "../auth/local";
 export const orderResend: Resend = new Resend(components.resend, { testMode: false });
 
 const orderSender = {
-	from: "Navet <info@ifinavet.no>",
+	from: `Navet <${INFO_EMAIL}>`,
 	replyTo: [JOB_LISTING_ORDER_EMAIL],
 };
 

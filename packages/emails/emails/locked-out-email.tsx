@@ -4,7 +4,6 @@ import {
 	Font,
 	Head,
 	Heading,
-	Hr,
 	Html,
 	Img,
 	Preview,
@@ -65,15 +64,9 @@ export default function LockedOutEmail() {
 						</Text>
 					</Section>
 
-					<Hr />
-
 					<Text className="py-4 text-gray-700 text-sm">
 						Dersom du mener at dette er en feil kan du svare på eposten, eller sende en epost til{" "}
 						<a href="mailto:arrangement@ifinavet.no">arrangement@finavet.no</a>
-					</Text>
-
-					<Text className="pt-16 text-center text-gray-400 text-lg leading-[18px]">
-						© {new Date().getFullYear()} IFI-Navet
 					</Text>
 				</Container>
 			</Tailwind>
