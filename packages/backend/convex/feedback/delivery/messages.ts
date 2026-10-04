@@ -17,9 +17,8 @@ import { recordReminderSent } from "../../events/reminders/delivery";
 import { feedbackSentText, reportSentText } from "../../events/slack/messages";
 import { queueEventNotification } from "../../events/slack/state";
 import { hashLinkToken } from "../../lib/tokens";
-import { feedbackEmailContext } from "./emailContext";
-
 import { trackedEmail as feedbackResend } from "../../lib/trackedEmail";
+import { feedbackEmailContext } from "./emailContext";
 
 export { feedbackResend };
 

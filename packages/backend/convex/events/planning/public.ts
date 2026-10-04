@@ -1,7 +1,7 @@
 import { HOUR, MINUTE, RateLimiter } from "@convex-dev/rate-limiter";
+import { INFO_EMAIL } from "@workspace/shared/constants/contact";
 import { PLANNING_CONFIRM_PATH } from "@workspace/shared/events/planning";
 import { osloToday } from "@workspace/shared/time";
-import { INFO_EMAIL } from "@workspace/shared/constants/contact";
 import { SUBMISSION_ID_PATTERN } from "@workspace/shared/validation";
 import { ConvexError, v } from "convex/values";
 import { components } from "../../_generated/api";
