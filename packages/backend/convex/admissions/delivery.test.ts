@@ -165,3 +165,33 @@ it("exposes captured email content only in local admin previews", async () => {
 		delete process.env.APP_ENV;
 	}
 });
+
+it("routes admission mail webhooks through the shared callback without touching feedback", async () => {
+	const { t, periodId, applicationId } = await overviewFixture();
+	const deliveryId = await t.run((ctx) =>
+		ctx.db.insert("admissionDeliveries", {
+			periodId,
+			applicationId,
+			kind: "offer",
+			idempotencyKey: "admission-webhook",
+			emailId: "admission-email",
+			status: "queued",
+		}),
+	);
+	await t.mutation(internal.feedback.delivery.messages.onEmailEvent, {
+		id: "admission-email" as import("@convex-dev/resend").EmailId,
+		event: {
+			type: "email.delivered",
+			created_at: new Date().toISOString(),
+			data: {
+				email_id: "admission-email",
+				created_at: new Date().toISOString(),
+				from: "info@ifinavet.no",
+				to: ["applicant@uio.no"],
+				subject: "Tilbud om opptak",
+			},
+		},
+	});
+	expect((await t.run((ctx) => ctx.db.get(deliveryId)))?.status).toBe("delivered");
+	expect(await t.run((ctx) => ctx.db.query("feedbackInvites").collect())).toEqual([]);
+});
