@@ -85,7 +85,7 @@
 	text-decoration: underline;
 	text-underline-offset: 3px;
 }
-.admissions-attention button span {
+.admissions-attention :where(button) span {
 	display: block;
 	font-size: 11px;
 	text-decoration: none;
@@ -115,13 +115,7 @@
 	font-weight: 600;
 	text-transform: capitalize;
 }
-.admissions-day-title span {
-	display: flex;
-	align-items: center;
-	gap: 4px;
-	font-size: 12px;
-	color: var(--muted-foreground);
-}
+
 .admissions-day-content {
 	display: flex;
 	flex-direction: column;
@@ -253,29 +247,6 @@
 
 .admissions-table-wrap {
 	overflow-x: auto;
-}
-.admissions-table {
-	width: 100%;
-	font-size: 13px;
-	border-collapse: collapse;
-	text-align: left;
-}
-.admissions-table th {
-	font-weight: 500;
-	color: var(--muted-foreground);
-	padding: 12px 16px;
-	background: var(--muted);
-}
-.admissions-table td {
-	padding: 14px 16px;
-	white-space: nowrap;
-}
-.admissions-table tbody tr:nth-child(even) {
-	background: color-mix(in srgb, var(--muted) 50%, transparent);
-}
-.admissions-table td button {
-	font-weight: 600;
-	text-align: left;
 }
 .admissions-profile {
 	display: flex;

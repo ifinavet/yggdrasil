@@ -1,5 +1,6 @@
 "use client";
 import { useForm } from "@tanstack/react-form";
+import { MIDGARD_URL, STUDY_PROGRAMS, STUDY_YEARS } from "@workspace/shared/constants";
 import { Button } from "@workspace/ui/components/button";
 import { Checkbox } from "@workspace/ui/components/checkbox";
 import {
@@ -46,7 +47,7 @@ export default function ApplicationPreview() {
 			about: "",
 			motivation: "",
 			group: "",
-			program: "Programmering og systemarkitektur",
+			program: STUDY_PROGRAMS[0] as string,
 			year: "1",
 			availability: [] as string[],
 			consent: false,
@@ -113,10 +114,10 @@ export default function ApplicationPreview() {
 					{!editingProfile && (
 						<div className="mt-4 flex flex-wrap items-center gap-3">
 							{profileConfirmed ? (
-								<span className="inline-flex items-center gap-2 text-sm" role="status">
+								<output className="inline-flex items-center gap-2 text-sm">
 									<Check size={16} />
 									Bekreftet
-								</span>
+								</output>
 							) : (
 								<>
 									<span className="text-sm">Stemmer dette?</span>
@@ -143,18 +144,8 @@ export default function ApplicationPreview() {
 							<div className="grid gap-5 sm:grid-cols-2">
 								{(
 									[
-										[
-											"program",
-											"Studieprogram",
-											[
-												"Programmering og systemarkitektur",
-												"Design, bruk, interaksjon",
-												"Digital økonomi og ledelse",
-												"Robotikk og intelligente systemer",
-												"Språkteknologi",
-											],
-										],
-										["year", "Studieår", ["1", "2", "3", "4", "5"]],
+										["program", "Studieprogram", STUDY_PROGRAMS],
+										["year", "Studieår", STUDY_YEARS.map(String)],
 									] as const
 								).map(([name, label, options]) => (
 									<form.Field key={name} name={name}>
@@ -239,13 +230,12 @@ export default function ApplicationPreview() {
 							hint={
 								<span id="group-hint">
 									<a
-										href="https://ifinavet.no/organization"
+										href={`${MIDGARD_URL}/organization`}
 										target="_blank"
 										rel="noopener noreferrer"
 										className="text-primary underline underline-offset-4"
 									>
-										Les om arbeidsgruppene
-										<span className="sr-only"> (åpnes i ny fane)</span>
+										Les om arbeidsgruppene <span className="sr-only"> (åpnes i ny fane)</span>
 									</a>{" "}
 									Usikker? Det går helt fint, vi kan finne ut av det sammen på intervjuet.
 								</span>
@@ -303,50 +293,11 @@ export default function ApplicationPreview() {
 					<form.Field name="availability">
 						{(field) => (
 							<>
-								<div className="overflow-x-auto">
-									<table className="w-full min-w-[480px] border-separate border-spacing-1 text-sm">
-										<thead>
-											<tr>
-												<th className="w-14" aria-label="Klokkeslett" />
-												{days.slice(week * 5, week * 5 + 5).map((d) => (
-													<th key={d} className="pb-2 font-medium">
-														{d}
-													</th>
-												))}
-											</tr>
-										</thead>
-										<tbody>
-											{hours.map((time) => (
-												<tr key={time}>
-													<th className="pr-2 font-normal text-muted-foreground">{time}</th>
-													{days.slice(week * 5, week * 5 + 5).map((d) => {
-														const id = `${d} ${time}`;
-														const checked = field.state.value.includes(id);
-														return (
-															<td key={d}>
-																<button
-																	type="button"
-																	aria-label={`${d} klokken ${time}`}
-																	aria-pressed={checked}
-																	className={`flex h-10 w-full items-center justify-center rounded-md border transition-colors ${checked ? "border-primary bg-primary text-primary-foreground" : "border-input bg-muted hover:bg-accent"}`}
-																	onClick={() =>
-																		field.handleChange(
-																			checked
-																				? field.state.value.filter((x) => x !== id)
-																				: [...field.state.value, id],
-																		)
-																	}
-																>
-																	{checked ? <Check size={16} /> : null}
-																</button>
-															</td>
-														);
-													})}
-												</tr>
-											))}
-										</tbody>
-									</table>
-								</div>
+								<AvailabilityGrid
+									week={week}
+									value={field.state.value}
+									onChange={field.handleChange}
+								/>
 								<p className="mt-3 text-muted-foreground text-sm">
 									{field.state.value.length} tidsrom valgt
 								</p>
@@ -396,6 +347,55 @@ export default function ApplicationPreview() {
 					)}
 				</form.Subscribe>
 			</form>
+		</div>
+	);
+}
+
+function AvailabilityGrid({
+	week,
+	value,
+	onChange,
+}: Readonly<{ week: number; value: string[]; onChange: (value: string[]) => void }>) {
+	return (
+		<div className="overflow-x-auto">
+			<table className="w-full min-w-[480px] border-separate border-spacing-1 text-sm">
+				<thead>
+					<tr>
+						<th className="w-14" aria-label="Klokkeslett" />
+						{days.slice(week * 5, week * 5 + 5).map((d) => (
+							<th key={d} className="pb-2 font-medium">
+								{d}
+							</th>
+						))}
+					</tr>
+				</thead>
+				<tbody>
+					{hours.map((time) => (
+						<tr key={time}>
+							<th className="pr-2 font-normal text-muted-foreground">{time}</th>
+							{days.slice(week * 5, week * 5 + 5).map((d) => {
+								const id = `${d} ${time}`;
+								const checked = value.includes(id);
+								return (
+									<td key={d}>
+										<button
+											type="button"
+											aria-label={`${d} klokken ${time}`}
+											aria-pressed={checked}
+											className={`flex h-10 w-full items-center justify-center rounded-md border transition-colors ${checked ? "border-primary bg-primary text-primary-foreground" : "border-input bg-muted hover:bg-accent"}`}
+											onClick={() =>
+												onChange(checked ? value.filter((x) => x !== id) : [...value, id])
+											}
+										>
+											{checked ? <Check size={16} /> : null}
+										</button>
+									</td>
+								);
+							})}
+						</tr>
+					))}
+				</tbody>
+			</table>
 		</div>
 	);
 }

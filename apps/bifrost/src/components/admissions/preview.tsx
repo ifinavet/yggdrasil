@@ -1,11 +1,12 @@
 "use client";
-
+import { STUDY_YEARS } from "@workspace/shared/constants";
 import { Avatar, AvatarFallback, AvatarImage } from "@workspace/ui/components/avatar";
 import { Button } from "@workspace/ui/components/button";
 import { Checkbox } from "@workspace/ui/components/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@workspace/ui/components/dialog";
 import { Input } from "@workspace/ui/components/input";
 import { Label } from "@workspace/ui/components/label";
+import { Callout } from "@workspace/ui/components/products/callout";
 import { SearchField } from "@workspace/ui/components/search-field";
 import {
 	Select,
@@ -22,7 +23,6 @@ import {
 	TableHeader,
 	TableRow,
 } from "@workspace/ui/components/table";
-import { Textarea } from "@workspace/ui/components/textarea";
 import {
 	AlertTriangle,
 	CalendarDays,
@@ -44,8 +44,8 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { CandidateDialog } from "./candidate-dialog";
 import {
-	type AvailabilityWindow,
 	advanceRound,
 	type Candidate,
 	clock,
@@ -53,8 +53,10 @@ import {
 	dateLabel,
 	days,
 	decisionLabels,
+	decisions,
 	defaults,
 	type Interview,
+	type Interviewer,
 	makeSlots,
 	match,
 	programs,
@@ -67,12 +69,12 @@ import "./preview.css";
 import { AvailabilityDialog } from "./availability-dialog";
 
 type View = "calendar" | "candidates" | "selection";
-const decisions: Decision[] = ["pending", "shortlist", "accepted", "rejected"];
+
 export default function AdmissionsPreview() {
 	const [candidates, setCandidates] = useState(seedCandidates);
 	const [settings, setSettings] = useState<Settings>(defaults);
 	const [interviewers, setInterviewers] = useState(team);
-	const [savedWindows, setSavedWindows] = useState<Record<string, AvailabilityWindow[]>>({});
+	const [savedCalendars, setSavedCalendars] = useState<Record<string, Interviewer>>({});
 	const slots = useMemo(() => makeSlots(settings), [settings]);
 	const [interviews, setInterviews] = useState<Interview[]>(() =>
 		match(seedCandidates(), makeSlots(defaults), team),
@@ -238,7 +240,7 @@ export default function AdmissionsPreview() {
 									</Button>
 									<Button
 										variant={day ? "secondary" : "outline"}
-										onClick={() => setDay(days[week * 5]!)}
+										onClick={() => setDay(days[week * 5] ?? null)}
 									>
 										Dag
 									</Button>
@@ -256,7 +258,7 @@ export default function AdmissionsPreview() {
 									</Button>
 									<Button variant="outline" onClick={() => setAvailabilityOpen(true)}>
 										<CalendarDays />
-										Tilgjengelighet
+										Kalendere
 									</Button>
 									<Button variant="outline" onClick={rebuild}>
 										<WandSparkles />
@@ -366,8 +368,9 @@ export default function AdmissionsPreview() {
 														(slots.find((s) => s.id === b.slotId)?.start ?? 0),
 												)
 												.map((i) => {
-													const c = candidates.find((c) => c.id === i.candidateId)!;
-													const slot = slots.find((s) => s.id === i.slotId)!;
+													const c = candidates.find((c) => c.id === i.candidateId);
+													const slot = slots.find((s) => s.id === i.slotId);
+													if (!c || !slot) return null;
 													return (
 														<button
 															type="button"
@@ -399,24 +402,7 @@ export default function AdmissionsPreview() {
 															<div className="admissions-interview-footer">
 																<span>{c.year}. år</span>
 																<div className="admissions-avatars">
-																	{i.interviewers.map((id) => {
-																		const p = team.find((p) => p.id === id)!;
-																		return (
-																			<Avatar key={id} title={p.name} className="size-9">
-																				<AvatarImage
-																					src={p.image}
-																					alt={p.name}
-																					className="object-cover"
-																				/>
-																				<AvatarFallback>
-																					{p.name
-																						.split(" ")
-																						.map((n) => n[0])
-																						.join("")}
-																				</AvatarFallback>
-																			</Avatar>
-																		);
-																	})}
+																	<InterviewerAvatars ids={i.interviewers} />
 																</div>
 															</div>
 														</button>
@@ -471,7 +457,7 @@ export default function AdmissionsPreview() {
 										</SelectTrigger>
 										<SelectContent>
 											<SelectItem value="all">Alle år</SelectItem>
-											{[1, 2, 3, 4, 5].map((y) => (
+											{STUDY_YEARS.map((y) => (
 												<SelectItem key={y} value={String(y)}>
 													{y}. år
 												</SelectItem>
@@ -491,7 +477,7 @@ export default function AdmissionsPreview() {
 												setCandidates((list) =>
 													list.map((c) =>
 														previous[c.id] && previous[c.id] !== c.decision
-															? { ...c, decision: previous[c.id]!, sent: false }
+															? { ...c, decision: previous[c.id] ?? c.decision, sent: false }
 															: c,
 													),
 												);
@@ -518,7 +504,7 @@ export default function AdmissionsPreview() {
 								)}
 							</div>
 							{view === "selection" && (
-								<div className="mb-6 rounded-xl bg-blue-50 p-4 text-blue-950 dark:bg-blue-950 dark:text-blue-100">
+								<Callout className="mb-6">
 									<p className="max-w-prose text-sm leading-relaxed">
 										Dra kandidatene du vil beholde til «Videre», eller bruk menyen på kortet. Trykk
 										«Neste runde» for å vurdere dem på nytt. De som står igjen i «Til vurdering»
@@ -528,7 +514,7 @@ export default function AdmissionsPreview() {
 										Du kan hente kandidater tilbake fra «Avslått». «Forrige runde» gjenoppretter
 										fordelingen før siste rundebytte. Ingen svar sendes før du velger «Send svar».
 									</p>
-								</div>
+								</Callout>
 							)}
 							{view === "selection" ? (
 								<div className="admissions-board">
@@ -638,174 +624,32 @@ export default function AdmissionsPreview() {
 					)}
 				</>
 			)}
-			<Dialog
-				open={Boolean(candidate)}
-				onOpenChange={(open) => {
-					if (!open) setSelected(null);
+			<CandidateDialog
+				candidate={candidate}
+				selectedSlot={selectedSlot}
+				interview={interview}
+				settings={settings}
+				room={rooms[selected ?? ""] ?? selectedSlot?.room ?? ""}
+				onClose={() => setSelected(null)}
+				onPatch={(id, data) => {
+					patch(id, data);
+					if (data.availability) setApproved(false);
 				}}
-			>
-				<DialogContent
-					className="admissions-candidate-dialog max-h-[90dvh] overflow-y-auto p-6 sm:max-w-5xl sm:p-8"
-					aria-describedby={undefined}
-				>
-					{candidate && (
-						<>
-							<DialogHeader>
-								<DialogTitle className="text-left text-2xl">{candidate.name}</DialogTitle>
-							</DialogHeader>
-							<div className="admissions-profile-meta">
-								<span>{candidate.program}</span>
-								<span>{candidate.year}. år</span>
-								<span>{candidate.group}</span>
-							</div>
-							<div className="admissions-profile admissions-profile-layout">
-								<div className="admissions-profile-main">
-									<section>
-										<h3>Fortell litt om deg selv</h3>
-										<p>{candidate.about}</p>
-									</section>
-									<section>
-										<h3>Hvorfor vil du bli med i Navet?</h3>
-										<p>{candidate.motivation}</p>
-									</section>
-
-									<Label htmlFor="interview-notes">
-										Intervjunotater
-										<Textarea
-											id="interview-notes"
-											className="font-normal text-base leading-relaxed"
-											rows={4}
-											value={candidate.notes}
-											onChange={(e) => patch(candidate.id, { notes: e.target.value })}
-											placeholder="Notater fra samtalen"
-										/>
-									</Label>
-									<div className="admissions-decision">
-										<Label htmlFor="candidate-decision">Vedtak</Label>
-										<Select
-											value={candidate.decision}
-											onValueChange={(value) =>
-												patch(candidate.id, { decision: value as Decision, sent: false })
-											}
-										>
-											<SelectTrigger id="candidate-decision" className="w-full">
-												<SelectValue />
-											</SelectTrigger>
-											<SelectContent>
-												{decisions.map((d) => (
-													<SelectItem key={d} value={d}>
-														{decisionLabels[d]}
-													</SelectItem>
-												))}
-											</SelectContent>
-										</Select>
-									</div>
-								</div>
-								<aside className="admissions-profile-interview">
-									<section>
-										<h3>
-											<CalendarDays size={16} />
-											Intervju
-										</h3>
-										{selectedSlot ? (
-											<>
-												<p>
-													{dateLabel(selectedSlot.day)} kl. {clock(selectedSlot.start)}–
-													{clock(selectedSlot.start + settings.duration)}
-												</p>
-												<Label htmlFor="candidate-room">
-													Rom
-													<Input
-														id="candidate-room"
-														value={rooms[candidate.id] ?? selectedSlot.room}
-														onChange={(event) => {
-															setRooms((current) => ({
-																...current,
-																[candidate.id]: event.target.value,
-															}));
-															setApproved(false);
-														}}
-														onBlur={(event) => {
-															if (!event.target.value.trim())
-																assignRoom([candidate.id], settings.room);
-														}}
-													/>
-												</Label>
-												<a
-													href={roomUrl(rooms[candidate.id] || selectedSlot.room)}
-													target="_blank"
-													rel="noreferrer"
-												>
-													<MapPin size={15} />
-													{rooms[candidate.id] || selectedSlot.room}
-													<ExternalLink size={13} />
-												</a>
-												<p>
-													{interview?.interviewers
-														.map((id) => team.find((p) => p.id === id)?.name)
-														.join(" og ")}
-												</p>
-											</>
-										) : (
-											<div>
-												<p>
-													{candidate.availability.length
-														? "Ingen felles tid med to intervjuere."
-														: "Kandidaten har ikke oppgitt tilgjengelighet."}
-												</p>
-												<Button
-													variant="outline"
-													onClick={() =>
-														toast.info("Forhåndsvisning: forespørselen er ikke sendt.")
-													}
-												>
-													<Mail />
-													Be om flere tider
-												</Button>
-											</div>
-										)}
-										<details className="admissions-availability-details">
-											<summary>Tilgjengelige dager</summary>
-											<fieldset>
-												<legend className="sr-only">Tilgjengelige dager</legend>
-												<div className="admissions-day-picks">
-													{days.map((d) => (
-														<button
-															type="button"
-															key={d}
-															aria-pressed={candidate.availability.includes(d)}
-															onClick={() => {
-																patch(candidate.id, {
-																	availability: candidate.availability.includes(d)
-																		? candidate.availability.filter((x) => x !== d)
-																		: [...candidate.availability, d],
-																});
-																setApproved(false);
-															}}
-														>
-															{dateLabel(d)}
-														</button>
-													))}
-												</div>
-											</fieldset>
-										</details>
-									</section>
-								</aside>
-							</div>
-						</>
-					)}
-				</DialogContent>
-			</Dialog>
+				onRoomChange={(room) => {
+					if (!selected) return;
+					setRooms((current) => ({ ...current, [selected]: room }));
+					setApproved(false);
+				}}
+			/>
 			<AvailabilityDialog
 				open={availabilityOpen}
 				onOpenChange={setAvailabilityOpen}
 				interviewers={interviewers}
-				onSave={(id, windows) => {
-					setSavedWindows((current) => ({ ...current, [id]: windows }));
-					setInterviewers((current) =>
-						current.map((person) => (person.id === id ? { ...person, windows } : person)),
-					);
-					setInterviews([]);
+				onSave={(updated) => {
+					setSavedCalendars((current) => ({ ...current, [updated.id]: updated }));
+					const next = interviewers.map((person) => (person.id === updated.id ? updated : person));
+					setInterviewers(next);
+					setInterviews(match(candidates, slots, next));
 					setApproved(false);
 				}}
 			/>
@@ -883,7 +727,7 @@ export default function AdmissionsPreview() {
 										onCheckedChange={(checked) => {
 											setInterviewers(
 												checked === true
-													? [...interviewers, { ...p, windows: savedWindows[p.id] ?? p.windows }]
+													? [...interviewers, savedCalendars[p.id] ?? p]
 													: interviewers.filter((i) => i.id !== p.id),
 											);
 											setInterviews([]);
@@ -962,4 +806,22 @@ export default function AdmissionsPreview() {
 			</Dialog>
 		</section>
 	);
+}
+
+function InterviewerAvatars({ ids }: Readonly<{ ids: string[] }>) {
+	return ids.map((id) => {
+		const person = team.find((member) => member.id === id);
+		if (!person) return null;
+		return (
+			<Avatar key={id} title={person.name} className="size-9">
+				<AvatarImage src={person.image} alt={person.name} className="object-cover" />
+				<AvatarFallback>
+					{person.name
+						.split(" ")
+						.map((part) => part[0])
+						.join("")}
+				</AvatarFallback>
+			</Avatar>
+		);
+	});
 }

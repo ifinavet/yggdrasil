@@ -7,6 +7,7 @@ export {
 	type Degree,
 	degreeKey,
 	degreeName,
+	STUDY_YEARS,
 } from "./degrees";
 export { JOB_TYPES } from "./job_types";
 export { LISTING_COLORS } from "./listing_colors";

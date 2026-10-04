@@ -1,3 +1,6 @@
+import { STUDY_PROGRAMS, STUDY_YEARS } from "@workspace/shared/constants";
+import { OSLO_TIME_ZONE } from "@workspace/shared/time";
+export const decisions = ["pending", "shortlist", "accepted", "rejected"] as const;
 export type Decision = "pending" | "shortlist" | "accepted" | "rejected";
 export type Candidate = {
 	id: string;
@@ -13,13 +16,19 @@ export type Candidate = {
 	sent: boolean;
 };
 export type AvailabilityWindow = { day: string; start: number; end: number };
+export type CalendarSource = {
+	id: string;
+	name: string;
+	selected: boolean;
+	readable: boolean;
+	busy: AvailabilityWindow[];
+};
 export type Interviewer = {
-	windows?: AvailabilityWindow[];
+	calendarStatus: "connected" | "disconnected" | "error";
+	calendars: CalendarSource[];
 	id: string;
 	name: string;
 	image?: string;
-	available: string[];
-	busy: string[];
 };
 export type Slot = { id: string; day: string; start: number; end: number; room: string };
 export type Interview = { candidateId: string; slotId: string; interviewers: string[] };
@@ -39,13 +48,7 @@ export const defaults: Settings = {
 	lunch: true,
 	room: "Beta",
 };
-export const programs = [
-	"Programmering og systemarkitektur",
-	"Design, bruk, interaksjon",
-	"Digital økonomi og ledelse",
-	"Robotikk og intelligente systemer",
-	"Språkteknologi",
-];
+export const programs = STUDY_PROGRAMS;
 export const groups = ["Bedrift", "Web", "Promo", "Intern", "Økonomi"];
 export const decisionLabels: Record<Decision, string> = {
 	pending: "Til vurdering",
@@ -78,7 +81,7 @@ export function dateLabel(day: string) {
 		weekday: "short",
 		day: "numeric",
 		month: "short",
-		timeZone: "Europe/Oslo",
+		timeZone: OSLO_TIME_ZONE,
 	}).format(new Date(`${day}T12:00:00Z`));
 }
 export function makeSlots(settings: Settings): Slot[] {
@@ -161,8 +164,32 @@ export const team: Interviewer[] = [
 	id: `person-${i}`,
 	name,
 	image: `https://randomuser.me/api/portraits/${i % 2 === 0 ? "women" : "men"}/${i + 41}.jpg`,
-	available: days.filter((_, d) => d < 5 && (d + i) % 5 !== 4),
-	busy: i < 2 ? [`${days[0]}/540`] : [],
+	calendarStatus: "connected",
+	calendars: [
+		{
+			id: "navet",
+			name: "Navet",
+			selected: true,
+			readable: true,
+			busy: days
+				.filter((_, day) => day >= 5 || (day + i) % 5 === 4)
+				.map((day) => ({ day, start: 540, end: 960 })),
+		},
+		{
+			id: "timetable",
+			name: "Timeplan",
+			selected: true,
+			readable: true,
+			busy: i < 2 ? [{ day: "2026-10-12", start: 540, end: 560 }] : [],
+		},
+		{
+			id: "personal",
+			name: "Privat",
+			selected: false,
+			readable: true,
+			busy: [{ day: "2026-10-13", start: 540, end: 720 }],
+		},
+	],
 }));
 const names = [
 	"Anna Berg",
@@ -206,27 +233,21 @@ export function seedCandidates(): Candidate[] {
 	return names.map((name, i) => ({
 		id: `candidate-${i}`,
 		name,
-		program: programs[i % programs.length] ?? programs[0]!,
-		year: (i % 5) + 1,
-		group: groups[i % groups.length]!,
-		about: [
-			"Jeg liker å samle folk og finne på ting sammen. På fritiden går jeg på tur og spiller brettspill.",
-			"Jeg har flyttet til Oslo for å studere og vil gjerne bli bedre kjent med miljøet på IFI. Jeg liker å lage ting sammen med andre.",
-			"Jeg er glad i problemløsing, musikk og klatring. Har tidligere vært med på å organisere fadderuke.",
-		][i % 3]!,
+		program: programs[i % programs.length] ?? STUDY_PROGRAMS[0],
+		year: STUDY_YEARS[i % STUDY_YEARS.length] ?? 1,
+		group: groups[i % groups.length] ?? "Web",
+		about:
+			[
+				"Jeg liker å samle folk og finne på ting sammen. På fritiden går jeg på tur og spiller brettspill.",
+				"Jeg har flyttet til Oslo for å studere og vil gjerne bli bedre kjent med miljøet på IFI. Jeg liker å lage ting sammen med andre.",
+				"Jeg er glad i problemløsing, musikk og klatring. Har tidligere vært med på å organisere fadderuke.",
+			][i % 3] ?? "",
 		motivation:
 			"Jeg vil bidra til at flere føler seg hjemme på IFI, og lære hvordan vi lager gode arrangementer sammen.",
-		availability:
-			i === 33
-				? []
-				: i === 34
-					? [days[8]!]
-					: i === 35
-						? [days[7]!]
-						: days.filter((_, d) => d < 5 && (i + d) % 3 !== 0),
+		availability: candidateDays(i),
 		notes:
 			i % 6 === 0 ? "Har erfaring fra frivillig arbeid. Vil gjerne bidra med planlegging." : "",
-		decision: i < 3 ? "accepted" : i < 8 ? "shortlist" : i > 29 ? "pending" : "pending",
+		decision: initialDecision(i),
 		sent: false,
 	}));
 }
@@ -241,11 +262,28 @@ export function advanceRound(candidates: Candidate[]): Candidate[] {
 	});
 }
 
-function interviewerAvailable(person: Interviewer, slot: Slot) {
-	const available = person.windows
-		? person.windows.some(
-				(window) => window.day === slot.day && window.start <= slot.start && window.end >= slot.end,
-			)
-		: person.available.includes(slot.day);
-	return available && !person.busy.includes(slot.id);
+export function interviewerAvailable(person: Interviewer, slot: Slot) {
+	if (person.calendarStatus !== "connected") return false;
+	const calendars = person.calendars.filter((calendar) => calendar.selected);
+	return (
+		calendars.length > 0 &&
+		calendars.every(
+			(calendar) =>
+				calendar.readable &&
+				!calendar.busy.some(
+					(busy) => busy.day === slot.day && busy.start < slot.end && busy.end > slot.start,
+				),
+		)
+	);
+}
+function candidateDays(index: number) {
+	if (index === 33) return [];
+	if (index === 34) return ["2026-10-22"];
+	if (index === 35) return ["2026-10-21"];
+	return days.filter((_, day) => day < 5 && (index + day) % 3 !== 0);
+}
+function initialDecision(index: number): Decision {
+	if (index < 3) return "accepted";
+	if (index < 8) return "shortlist";
+	return "pending";
 }
