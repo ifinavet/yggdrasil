@@ -18,13 +18,7 @@ import { useRef, useState } from "react";
 import { PRIMARY_SERIES_COLOR } from "@/components/common/chart-colors";
 import { LIST_CELL, LIST_HEAD } from "@/components/common/table-classes";
 import { useStableQuery } from "@/hooks/use-stable-query";
-import {
-	attendanceRate,
-	fillShare,
-	formatShare,
-	PAST_PACE_NOTE,
-	type PastEvent,
-} from "./engagement-format";
+import { attendanceRate, fillShare, formatShare, type PastEvent } from "./engagement-format";
 import { EventAudience } from "./event-audience";
 import { EventCell } from "./event-cell";
 import { PaceChart } from "./pace-chart";
@@ -145,7 +139,7 @@ export function PastView({ now }: Readonly<{ now: number }>) {
 			<div ref={paceRef} className="grid scroll-mt-4 gap-4">
 				{selectedId && (
 					<>
-						<PaceChart eventId={selectedId} now={now} note={PAST_PACE_NOTE} />
+						<PaceChart eventId={selectedId} now={now} />
 						<EventAudience eventId={selectedId} />
 					</>
 				)}

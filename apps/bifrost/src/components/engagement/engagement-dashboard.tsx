@@ -50,11 +50,7 @@ function LiveView({ now }: Readonly<{ now: number }>) {
 			<div ref={paceRef} className="grid scroll-mt-4 gap-4">
 				{selectedId && (
 					<>
-						<PaceChart
-							eventId={selectedId}
-							now={now}
-							note="Viser arrangementet du klikker på i tabellen eller i et varsel. Uten valg åpnes det mest akutte varselet."
-						/>
+						<PaceChart eventId={selectedId} now={now} />
 						<EventAudience eventId={selectedId} />
 					</>
 				)}

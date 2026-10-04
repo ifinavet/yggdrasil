@@ -1,11 +1,14 @@
 import { DAY_MS } from "@workspace/shared/time";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
+import { REMINDER_KINDS } from "../events/reminders/schedule";
 import { firstFilledAt, registrationHistory } from "./history";
 import {
+	alignedCurve,
 	BASELINE_SIZE,
 	COMPANY_BASELINE,
 	classify,
+	type ForecastTimeline,
 	isSimilarCapacity,
 	medianCurve,
 	progressOf,
@@ -20,7 +23,30 @@ export const MAX_REGISTRATIONS_PER_EVENT = 1000;
 const MAX_LOG_ENTRIES = 1000;
 const PAST_EVENTS_FOR_BASELINE = 60;
 
-export type PastCurve = { eventId: Id<"events">; limit: number; curve: number[] };
+export type PastCurve = {
+	eventId: Id<"events">;
+	limit: number;
+	curve: number[];
+	timeline?: ForecastTimeline;
+};
+export const MIN_FORECAST_EVENTS = 3;
+
+async function forecastTimeline(ctx: QueryCtx, event: Doc<"events">): Promise<ForecastTimeline> {
+	const reminders = await Promise.all(
+		REMINDER_KINDS.map((kind) =>
+			ctx.db
+				.query("eventReminders")
+				.withIndex("by_eventId_and_kind", (q) => q.eq("eventId", event._id).eq("kind", kind))
+				.unique(),
+		),
+	);
+	return {
+		registrationOpens: event.registrationOpens,
+		eventStart: event.eventStart,
+		remindersEnabled: event.remindersEnabled,
+		reminderTimes: Object.fromEntries(reminders.flatMap((r) => (r ? [[r.kind, r.queuedAt]] : []))),
+	};
+}
 
 export async function registrationTimesOf(ctx: QueryCtx, eventId: Id<"events">) {
 	const registered = await ctx.db
@@ -54,21 +80,24 @@ function isComparable(event: Doc<"events">) {
 }
 
 async function curvesOf(ctx: QueryCtx, events: readonly Doc<"events">[]): Promise<PastCurve[]> {
-	return await Promise.all(
+	const curves = await Promise.all(
 		events.map(async (event) => {
 			const log = await ctx.db
 				.query("registrationLog")
 				.withIndex("by_eventId_and_at", (q) =>
 					q.eq("eventId", event._id).lte("at", event.eventStart),
 				)
-				.take(MAX_LOG_ENTRIES);
+				.take(MAX_LOG_ENTRIES + 1);
+			if (log.length === 0 || log.length > MAX_LOG_ENTRIES) return null;
 			return {
 				eventId: event._id,
 				limit: event.participationLimit,
 				curve: seatCurve(event, event.participationLimit, log),
+				timeline: await forecastTimeline(ctx, event),
 			};
 		}),
 	);
+	return curves.filter((curve) => curve !== null);
 }
 
 export async function pastCurvesBefore(ctx: QueryCtx, before: number) {
@@ -102,15 +131,28 @@ export function baselineFor(
 	pastCurves: readonly PastCurve[],
 	limit: number,
 	companyCurves: readonly PastCurve[] = [],
+	timeline?: ForecastTimeline,
 ) {
-	const own = companyCurves.slice(0, COMPANY_BASELINE.size);
+	const comparable = (past: PastCurve) =>
+		// Missing settings on legacy events mean unknown, not explicitly disabled.
+		past.timeline?.remindersEnabled === undefined ||
+		timeline?.remindersEnabled === undefined ||
+		past.timeline.remindersEnabled === timeline.remindersEnabled;
+	const aligned = (past: PastCurve) =>
+		timeline && past.timeline ? alignedCurve(past.curve, past.timeline, timeline) : past.curve;
+	const own = companyCurves.filter(comparable).slice(0, COMPANY_BASELINE.size);
 	const ownIds = new Set(own.map((past) => past.eventId));
 	const pool = pastCurves
-		.filter((past) => !ownIds.has(past.eventId) && isSimilarCapacity(limit, past.limit))
+		.filter(
+			(past) =>
+				comparable(past) && !ownIds.has(past.eventId) && isSimilarCapacity(limit, past.limit),
+		)
 		.slice(0, BASELINE_SIZE);
-	const poolCurve = medianCurve(pool.map((past) => past.curve));
-	const ownCurve = medianCurve(own.map((past) => past.curve));
+	const poolCurve = medianCurve(pool.map(aligned));
+	const ownCurve = medianCurve(own.map(aligned));
 	const size = pool.length + own.length;
+	// Avoid reversing a company’s established pattern with unrelated companies.
+	if (ownCurve && own.length >= MIN_FORECAST_EVENTS) return { curve: ownCurve, size: own.length };
 	if (!ownCurve) return poolCurve && { curve: poolCurve, size };
 	if (!poolCurve) return { curve: ownCurve, size };
 	const weight = own.length / (own.length + COMPANY_BASELINE.poolWeight);
@@ -139,7 +181,12 @@ export async function snapshotOf(
 		event.hostingCompany,
 		Math.min(now, event.eventStart),
 	);
-	const baseline = baselineFor(pastCurves, event.participationLimit, companyCurves);
+	const baseline = baselineFor(
+		pastCurves,
+		event.participationLimit,
+		companyCurves,
+		await forecastTimeline(ctx, event),
+	);
 	const progress = progressOf(event, now);
 	const registered = registrationTimes.length;
 	const currentFill = registered / event.participationLimit;

@@ -182,6 +182,28 @@ describe("pastCurvesBefore", () => {
 	});
 });
 
+describe("baseline history coverage", () => {
+	it("excludes empty and truncated event logs instead of learning false growth", async () => {
+		const { t, companyId } = await setup();
+		await insertEvent(t, companyId, { registrationOpens: OPENS, eventStart: START });
+		const eventId = await insertEvent(t, companyId, {
+			registrationOpens: OPENS,
+			eventStart: START,
+		});
+		const user = await insertUser(t, "busy-history@example.test");
+		await t.run(async (ctx) => {
+			for (let n = 0; n < 1001; n++)
+				await ctx.db.insert("registrationLog", {
+					eventId,
+					userId: user._id,
+					change: "registered",
+					at: OPENS + n,
+				});
+		});
+		expect(await t.run((ctx) => pastCurvesBefore(ctx, START + DAY_MS))).toEqual([]);
+	});
+});
+
 describe("companyCurvesBefore", () => {
 	it("returns the company's most recent comparable events before the cutoff", async () => {
 		const { t, companyId } = await setup();
@@ -215,6 +237,17 @@ describe("baselineFor", () => {
 
 	it("returns null when there are no similarly sized past curves", async () => {
 		expect(baselineFor([past(100, [0, 1])], 10)).toBeNull();
+	});
+
+	it("excludes explicitly different reminder settings but retains unknown legacy settings", () => {
+		const timeline = { registrationOpens: OPENS, eventStart: START, remindersEnabled: true };
+		const legacy = {
+			...past(10, PACE_GRID),
+			timeline: { ...timeline, remindersEnabled: undefined },
+		};
+		const disabled = { ...past(10, PACE_GRID), timeline: { ...timeline, remindersEnabled: false } };
+		expect(baselineFor([disabled], 10, [], timeline)).toBeNull();
+		expect(baselineFor([legacy, disabled], 10, [], timeline)?.size).toBe(1);
 	});
 
 	it("filters by similar capacity and caps the sample size", () => {

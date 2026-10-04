@@ -37,7 +37,9 @@ function withDevelopment(config, sentryOptions) {
 			dangerouslyAllowLocalIP: local,
 			remotePatterns: [
 				...(config.images?.remotePatterns ?? []),
-				{ protocol: "https", hostname: getConvexSite(), port: "", pathname: "**" },
+				local
+					? new URL("/**", process.env.NEXT_PUBLIC_CONVEX_URL)
+					: { protocol: "https", hostname: getConvexSite(), port: "", pathname: "**" },
 			],
 		},
 	};
