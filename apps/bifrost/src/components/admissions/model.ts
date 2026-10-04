@@ -1,5 +1,10 @@
+import { PREVIEW_INTERVIEW_DAYS as days } from "@workspace/shared/admissions/preview";
+
+export { PREVIEW_INTERVIEW_DAYS as days } from "@workspace/shared/admissions/preview";
+
+import { type AvailabilityWindow, isAvailable } from "@workspace/shared/admissions";
 import { STUDY_PROGRAMS, STUDY_YEARS } from "@workspace/shared/constants";
-import { OSLO_TIME_ZONE } from "@workspace/shared/time";
+import { formatOsloDate } from "@workspace/shared/time";
 export const decisions = ["pending", "shortlist", "accepted", "rejected"] as const;
 export type Decision = "pending" | "shortlist" | "accepted" | "rejected";
 export type Candidate = {
@@ -10,12 +15,13 @@ export type Candidate = {
 	group: string;
 	about: string;
 	motivation: string;
-	availability: string[];
+	availability: AvailabilityWindow[];
 	notes: string;
 	decision: Decision;
 	sent: boolean;
 };
-export type AvailabilityWindow = { day: string; start: number; end: number };
+export type CandidateEdit = Partial<Pick<Candidate, "notes" | "decision" | "availability">>;
+
 export type CalendarSource = {
 	id: string;
 	name: string;
@@ -64,25 +70,9 @@ export function clock(minutes: number) {
 export function roomUrl(room: string) {
 	return `https://ifirom.no/${encodeURIComponent(room.trim().toLocaleLowerCase("nb"))}`;
 }
-export const days = [
-	"2026-10-12",
-	"2026-10-13",
-	"2026-10-14",
-	"2026-10-15",
-	"2026-10-16",
-	"2026-10-19",
-	"2026-10-20",
-	"2026-10-21",
-	"2026-10-22",
-	"2026-10-23",
-];
+
 export function dateLabel(day: string) {
-	return new Intl.DateTimeFormat("nb-NO", {
-		weekday: "short",
-		day: "numeric",
-		month: "short",
-		timeZone: OSLO_TIME_ZONE,
-	}).format(new Date(`${day}T12:00:00Z`));
+	return formatOsloDate(new Date(`${day}T12:00:00Z`).getTime(), "EEE d. MMM");
 }
 export function makeSlots(settings: Settings): Slot[] {
 	const slots: Slot[] = [];
@@ -122,7 +112,7 @@ export function match(candidates: Candidate[], slots: Slot[], team: Interviewer[
 	const loads = new Map<string, number>();
 	const occupied = new Set<string>();
 	const eligible = (candidate: Candidate, slot: Slot) =>
-		candidate.availability.includes(slot.day) &&
+		isAvailable(candidate.availability, slot) &&
 		team.filter((p) => interviewerAvailable(p, slot)).length >= 2;
 	const sorted = [...candidates].sort(
 		(a, b) =>
@@ -244,7 +234,7 @@ export function seedCandidates(): Candidate[] {
 			][i % 3] ?? "",
 		motivation:
 			"Jeg vil bidra til at flere føler seg hjemme på IFI, og lære hvordan vi lager gode arrangementer sammen.",
-		availability: candidateDays(i),
+		availability: candidateDays(i).map((day) => ({ day, start: 540, end: 960 })),
 		notes:
 			i % 6 === 0 ? "Har erfaring fra frivillig arbeid. Vil gjerne bidra med planlegging." : "",
 		decision: initialDecision(i),

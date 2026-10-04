@@ -15,10 +15,10 @@ import { CalendarDays, ExternalLink, Mail, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import {
 	type Candidate,
+	type CandidateEdit,
 	clock,
 	type Decision,
 	dateLabel,
-	days,
 	decisionLabels,
 	decisions,
 	type Interview,
@@ -35,7 +35,7 @@ export function CandidateDialog({
 	settings,
 	room,
 	onClose,
-	onPatch,
+	onEdit,
 	onRoomChange,
 }: Readonly<{
 	candidate: Candidate | undefined;
@@ -44,7 +44,7 @@ export function CandidateDialog({
 	settings: Settings;
 	room: string;
 	onClose: () => void;
-	onPatch: (id: string, data: Partial<Candidate>) => void;
+	onEdit: (data: CandidateEdit) => void;
 	onRoomChange: (room: string) => void;
 }>) {
 	return (
@@ -86,7 +86,7 @@ export function CandidateDialog({
 										className="font-normal text-base leading-relaxed"
 										rows={4}
 										value={candidate.notes}
-										onChange={(e) => onPatch(candidate.id, { notes: e.target.value })}
+										onChange={(e) => onEdit({ notes: e.target.value })}
 										placeholder="Notater fra samtalen"
 									/>
 								</Label>
@@ -94,9 +94,7 @@ export function CandidateDialog({
 									<Label htmlFor="candidate-decision">Vedtak</Label>
 									<Select
 										value={candidate.decision}
-										onValueChange={(value) =>
-											onPatch(candidate.id, { decision: value as Decision, sent: false })
-										}
+										onValueChange={(value) => onEdit({ decision: value as Decision })}
 									>
 										<SelectTrigger id="candidate-decision" className="w-full">
 											<SelectValue />
@@ -162,28 +160,14 @@ export function CandidateDialog({
 										</div>
 									)}
 									<details className="admissions-availability-details">
-										<summary>Tilgjengelige dager</summary>
-										<fieldset>
-											<legend className="sr-only">Tilgjengelige dager</legend>
-											<div className="admissions-day-picks">
-												{days.map((d) => (
-													<button
-														type="button"
-														key={d}
-														aria-pressed={candidate.availability.includes(d)}
-														onClick={() => {
-															onPatch(candidate.id, {
-																availability: candidate.availability.includes(d)
-																	? candidate.availability.filter((x) => x !== d)
-																	: [...candidate.availability, d],
-															});
-														}}
-													>
-														{dateLabel(d)}
-													</button>
-												))}
-											</div>
-										</fieldset>
+										<summary>Tilgjengelige tider</summary>
+										<div className="flex flex-col gap-2">
+											{candidate.availability.map((window) => (
+												<p key={`${window.day}-${window.start}-${window.end}`}>
+													{dateLabel(window.day)} {clock(window.start)}–{clock(window.end)}
+												</p>
+											))}
+										</div>
 									</details>
 								</section>
 							</aside>

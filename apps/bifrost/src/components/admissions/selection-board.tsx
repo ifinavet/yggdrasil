@@ -11,11 +11,11 @@ import { type Candidate, type Decision, decisionLabels, decisions } from "./mode
 export function SelectionBoard({
 	candidates,
 	onSelect,
-	onPatch,
+	onDecisionChange,
 }: Readonly<{
 	candidates: Candidate[];
 	onSelect: (id: string) => void;
-	onPatch: (id: string, patch: Partial<Candidate>) => void;
+	onDecisionChange: (id: string, decision: Decision) => void;
 }>) {
 	const [dragging, setDragging] = useState<string | null>(null);
 	return (
@@ -28,7 +28,7 @@ export function SelectionBoard({
 					onDrop={(e) => {
 						e.preventDefault();
 						if (dragging) {
-							onPatch(dragging, { decision: status, sent: false });
+							onDecisionChange(dragging, status);
 							setDragging(null);
 						}
 					}}
@@ -58,9 +58,7 @@ export function SelectionBoard({
 								</button>
 								<Select
 									value={c.decision}
-									onValueChange={(value) =>
-										onPatch(c.id, { decision: value as Decision, sent: false })
-									}
+									onValueChange={(value) => onDecisionChange(c.id, value as Decision)}
 								>
 									<SelectTrigger aria-label={`Flytt ${c.name}`} className="w-full">
 										<SelectValue />

@@ -1,3 +1,4 @@
+import { isAvailable } from "@workspace/shared/admissions";
 import { assert, describe, expect, it } from "vitest";
 import { advanceRound, defaults, makeSlots, match, seedCandidates, team } from "./model";
 
@@ -11,9 +12,11 @@ describe("admissions preview scheduling", () => {
 		for (const interview of result) {
 			const slot = slots.find((s) => s.id === interview.slotId);
 			assert(slot);
-			expect(candidates.find((c) => c.id === interview.candidateId)?.availability).toContain(
-				slot.day,
-			);
+			expect(
+				candidates
+					.find((c) => c.id === interview.candidateId)
+					?.availability.map((window) => window.day),
+			).toContain(slot.day);
 			expect(new Set(interview.interviewers).size).toBe(2);
 			for (const id of interview.interviewers) {
 				const person = team.find((p) => p.id === id);
@@ -60,7 +63,7 @@ it("requires both interviewers to be available through the interview and buffer"
 	const day = "2026-10-12";
 	const candidates = seedCandidates()
 		.slice(0, 10)
-		.map((candidate) => ({ ...candidate, availability: [day] }));
+		.map((candidate) => ({ ...candidate, availability: [{ day, start: 540, end: 960 }] }));
 	const people = team.slice(0, 2).map((person) => ({
 		...person,
 		calendars: [
@@ -113,4 +116,34 @@ it("does not treat failed or unreadable calendars as free", () => {
 			})),
 		),
 	).toEqual([]);
+});
+
+it("keeps an applicant interview inside their submitted time block", () => {
+	const candidate = seedCandidates()[0];
+	assert(candidate);
+	const result = match(
+		[{ ...candidate, availability: [{ day: "2026-10-12", start: 600, end: 620 }] }],
+		makeSlots({ ...defaults, breakEvery: 100 }),
+		team,
+	);
+	expect(result).toHaveLength(1);
+	expect(result[0]?.slotId).toBe("2026-10-12/600");
+});
+
+it("joins adjacent applicant blocks without filling gaps", () => {
+	const day = "2026-10-12";
+	const blocks = [
+		{ day, start: 540, end: 600 },
+		{ day, start: 600, end: 660 },
+	];
+	expect(isAvailable(blocks, { day, start: 590, end: 610 })).toBe(true);
+	expect(
+		isAvailable(
+			[
+				{ day, start: 540, end: 590 },
+				{ day, start: 600, end: 660 },
+			],
+			{ day, start: 580, end: 610 },
+		),
+	).toBe(false);
 });

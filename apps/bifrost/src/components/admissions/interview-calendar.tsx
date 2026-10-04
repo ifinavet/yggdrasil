@@ -32,11 +32,11 @@ export function InterviewCalendar({
 	settings,
 	rooms,
 	approved,
-	setApproved,
-	setSelected,
-	setAvailabilityOpen,
-	assignRoom,
-	rebuild,
+	onApprove,
+	onOpenCandidate,
+	onOpenCalendars,
+	onAssignRoom,
+	onGenerateSchedule,
 }: Readonly<{
 	candidates: Candidate[];
 	interviews: Interview[];
@@ -44,11 +44,11 @@ export function InterviewCalendar({
 	settings: Settings;
 	rooms: Record<string, string>;
 	approved: boolean;
-	setApproved: (approved: boolean) => void;
-	setSelected: (id: string) => void;
-	setAvailabilityOpen: (open: boolean) => void;
-	assignRoom: (ids: string[], room: string) => void;
-	rebuild: () => void;
+	onApprove: () => void;
+	onOpenCandidate: (id: string) => void;
+	onOpenCalendars: () => void;
+	onAssignRoom: (ids: string[], room: string) => void;
+	onGenerateSchedule: () => void;
 }>) {
 	const [week, setWeek] = useState(0);
 	const [day, setDay] = useState<string | null>(null);
@@ -61,7 +61,7 @@ export function InterviewCalendar({
 	const visibleDays = day ? [day] : days.slice(week * 5, week * 5 + 5);
 	const selectCandidate = (id: string) => {
 		if (!selectingRooms) {
-			setSelected(id);
+			onOpenCandidate(id);
 			return;
 		}
 		setRoomSelection((ids) =>
@@ -119,18 +119,18 @@ export function InterviewCalendar({
 						<MapPin />
 						{selectingRooms ? "Avslutt romvalg" : "Sett rom"}
 					</Button>
-					<Button variant="outline" onClick={() => setAvailabilityOpen(true)}>
+					<Button variant="outline" onClick={() => onOpenCalendars()}>
 						<CalendarDays />
 						Kalendere
 					</Button>
-					<Button variant="outline" onClick={rebuild}>
+					<Button variant="outline" onClick={onGenerateSchedule}>
 						<WandSparkles />
 						Finn tider
 					</Button>
 					<Button
 						disabled={approved || interviews.length === 0}
 						onClick={() => {
-							setApproved(true);
+							onApprove();
 							toast.success("Planen er godkjent i forhåndsvisningen. Ingen invitasjoner sendes.");
 						}}
 					>
@@ -145,7 +145,7 @@ export function InterviewCalendar({
 					onSubmit={(event) => {
 						event.preventDefault();
 						if (!bulkRoom.trim() || !roomSelection.length) return;
-						assignRoom(roomSelection, bulkRoom);
+						onAssignRoom(roomSelection, bulkRoom);
 						toast.success(`Rom satt til ${bulkRoom.trim()} for ${roomSelection.length} intervjuer`);
 						setRoomSelection([]);
 						setSelectingRooms(false);
@@ -192,7 +192,7 @@ export function InterviewCalendar({
 					<AlertTriangle size={18} />
 					<strong>{unmatched.length} trenger en tid</strong>
 					{unmatched.map((c) => (
-						<button type="button" key={c.id} onClick={() => setSelected(c.id)}>
+						<button type="button" key={c.id} onClick={() => onOpenCandidate(c.id)}>
 							{c.name}
 							<span>{c.availability.length ? "Ingen felles tid" : "Mangler tilgjengelighet"}</span>
 						</button>

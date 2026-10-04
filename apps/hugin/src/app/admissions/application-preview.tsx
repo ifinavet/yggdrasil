@@ -1,6 +1,9 @@
 "use client";
 import { useForm } from "@tanstack/react-form";
+import type { AvailabilityWindow } from "@workspace/shared/admissions";
+import { PREVIEW_INTERVIEW_DAYS as days } from "@workspace/shared/admissions/preview";
 import { MIDGARD_URL, STUDY_PROGRAMS, STUDY_YEARS } from "@workspace/shared/constants";
+import { DATE_PATTERNS, formatOsloDate } from "@workspace/shared/time";
 import { Button } from "@workspace/ui/components/button";
 import { Checkbox } from "@workspace/ui/components/checkbox";
 import {
@@ -24,18 +27,6 @@ import { useState } from "react";
 import { textareaClass } from "@/components/form-controls";
 import { FormRow } from "@/components/job-listing-order/form-row";
 
-const days = [
-	"12. okt.",
-	"13. okt.",
-	"14. okt.",
-	"15. okt.",
-	"16. okt.",
-	"19. okt.",
-	"20. okt.",
-	"21. okt.",
-	"22. okt.",
-	"23. okt.",
-];
 const hours = ["09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00"];
 export default function ApplicationPreview() {
 	const [week, setWeek] = useState(0);
@@ -49,7 +40,7 @@ export default function ApplicationPreview() {
 			group: "",
 			program: STUDY_PROGRAMS[0] as string,
 			year: "1",
-			availability: [] as string[],
+			availability: [] as AvailabilityWindow[],
 			consent: false,
 		},
 		onSubmit: () => {
@@ -355,7 +346,11 @@ function AvailabilityGrid({
 	week,
 	value,
 	onChange,
-}: Readonly<{ week: number; value: string[]; onChange: (value: string[]) => void }>) {
+}: Readonly<{
+	week: number;
+	value: AvailabilityWindow[];
+	onChange: (value: AvailabilityWindow[]) => void;
+}>) {
 	return (
 		<div className="overflow-x-auto">
 			<table className="w-full min-w-[480px] border-separate border-spacing-1 text-sm">
@@ -364,7 +359,7 @@ function AvailabilityGrid({
 						<th className="w-14" aria-label="Klokkeslett" />
 						{days.slice(week * 5, week * 5 + 5).map((d) => (
 							<th key={d} className="pb-2 font-medium">
-								{d}
+								{formatOsloDate(new Date(`${d}T12:00:00Z`).getTime(), DATE_PATTERNS.shortDate)}
 							</th>
 						))}
 					</tr>
@@ -374,17 +369,24 @@ function AvailabilityGrid({
 						<tr key={time}>
 							<th className="pr-2 font-normal text-muted-foreground">{time}</th>
 							{days.slice(week * 5, week * 5 + 5).map((d) => {
-								const id = `${d} ${time}`;
-								const checked = value.includes(id);
+								const day = d;
+								const start = Number(time.split(":")[0]) * 60;
+								const checked = value.some(
+									(window) => window.day === day && window.start === start,
+								);
 								return (
 									<td key={d}>
 										<button
 											type="button"
-											aria-label={`${d} klokken ${time}`}
+											aria-label={`${formatOsloDate(new Date(`${d}T12:00:00Z`).getTime(), DATE_PATTERNS.shortDate)} klokken ${time}`}
 											aria-pressed={checked}
 											className={`flex h-10 w-full items-center justify-center rounded-md border transition-colors ${checked ? "border-primary bg-primary text-primary-foreground" : "border-input bg-muted hover:bg-accent"}`}
 											onClick={() =>
-												onChange(checked ? value.filter((x) => x !== id) : [...value, id])
+												onChange(
+													checked
+														? value.filter((window) => window.day !== day || window.start !== start)
+														: [...value, { day, start, end: start + 60 }],
+												)
 											}
 										>
 											{checked ? <Check size={16} /> : null}

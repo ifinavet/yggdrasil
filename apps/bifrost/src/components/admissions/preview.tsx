@@ -204,11 +204,11 @@ export default function AdmissionsPreview() {
 							settings={settings}
 							rooms={rooms}
 							approved={approved}
-							setApproved={setApproved}
-							setSelected={setSelected}
-							setAvailabilityOpen={setAvailabilityOpen}
-							assignRoom={assignRoom}
-							rebuild={rebuild}
+							onApprove={() => setApproved(true)}
+							onOpenCandidate={setSelected}
+							onOpenCalendars={() => setAvailabilityOpen(true)}
+							onAssignRoom={assignRoom}
+							onGenerateSchedule={rebuild}
 						/>
 					) : (
 						<>
@@ -305,7 +305,11 @@ export default function AdmissionsPreview() {
 								</Callout>
 							)}
 							{view === "selection" ? (
-								<SelectionBoard candidates={filtered} onSelect={setSelected} onPatch={patch} />
+								<SelectionBoard
+									candidates={filtered}
+									onSelect={setSelected}
+									onDecisionChange={(id, decision) => patch(id, { decision, sent: false })}
+								/>
 							) : (
 								<div className="admissions-table-wrap">
 									<Table className="admissions-table">
@@ -361,8 +365,9 @@ export default function AdmissionsPreview() {
 				settings={settings}
 				room={rooms[selected ?? ""] ?? selectedSlot?.room ?? ""}
 				onClose={() => setSelected(null)}
-				onPatch={(id, data) => {
-					patch(id, data);
+				onEdit={(data) => {
+					if (!candidate) return;
+					patch(candidate.id, { ...data, sent: data.decision ? false : candidate.sent });
 					if (data.availability) setApproved(false);
 				}}
 				onRoomChange={(room) => {
