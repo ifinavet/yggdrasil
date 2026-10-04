@@ -54,7 +54,7 @@ async function fail(
 		if (secret) detail = detail.replaceAll(secret, "[redacted]");
 	}
 	detail = detail.replaceAll(/\s+/g, " ").trim().slice(0, 1000);
-	throw new GoogleError(`${message}${detail ? ` ${detail}` : ""}`);
+	throw new GoogleError([message, detail].filter(Boolean).join(" "));
 }
 
 async function accessToken(config: GoogleConfig) {
