@@ -8,7 +8,7 @@ import {
 } from "@workspace/shared/events/planning";
 import { EVENT_TYPE_LABELS, FOOD_PURCHASER_LABELS } from "@workspace/shared/semester/labels";
 import { SYSTEM_ALERTS_CHANNEL } from "@workspace/shared/slack/channels";
-import type { Doc } from "../../_generated/dataModel";
+import type { Doc, Id } from "../../_generated/dataModel";
 import type { MutationCtx } from "../../_generated/server";
 import { isLocalDevelopment } from "../../auth/local";
 import { enqueueSystemMessage } from "../../iam/notifications";
@@ -87,4 +87,20 @@ export function planningResponseSummary(companyName: string, answers: PlanningAn
 	if (answers.notes.trim()) lines.push(`Andre ønsker: ${short(answers.notes)}`);
 	lines.push("", "Se gjennom, rediger og godkjenn før arrangementet publiseres på nettsiden.");
 	return lines.join("\n");
+}
+
+export async function notifyInvitationApproved(
+	ctx: MutationCtx,
+	event: Doc<"events">,
+	user: Doc<"users">,
+	emailId: Id<"eventPlanningEmails">,
+	recipient: string,
+) {
+	const company = await ctx.db.get(event.hostingCompany);
+	const name = `${user.firstName} ${user.lastName}`.trim() || user.email;
+	await enqueueSystemMessage(ctx, {
+		channel: SYSTEM_ALERTS_CHANNEL,
+		clientMsgId: `planning:${event._id}:send-approved:${emailId}`,
+		text: `${escapeSlack(name)} har godkjent mail for førstegangskontakt til ${escapeSlack(company?.name ?? event.title)} (${escapeSlack(recipient)}). E-posten er lagt i kø for utsending. <${planningUrl(event, "delivery")}|Åpne i Bifrost>.`,
+	});
 }

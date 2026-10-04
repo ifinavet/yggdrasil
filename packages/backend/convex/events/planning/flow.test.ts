@@ -92,6 +92,27 @@ afterEach(() => {
 });
 
 describe("company event planning", () => {
+	it("records who approved sending in the system channel without claiming delivery", async () => {
+		const f = await invited();
+		const notices = await f.t.run((ctx) => ctx.db.query("slackSystemDeliveries").collect());
+		expect(notices).toHaveLength(1);
+		expect(notices[0]?.text).toContain(
+			"Test Testesen har godkjent mail for førstegangskontakt til Testbedrift (contact@example.com)",
+		);
+		expect(notices[0]?.text).toContain("lagt i kø for utsending");
+		expect(notices[0]?.text).toContain("planning=delivery");
+		expect(await f.t.run((ctx) => ctx.db.query("eventSlackNotifications").collect())).toHaveLength(
+			0,
+		);
+		await expect(
+			f.editor.mutation(api.events.planning.admin.send, {
+				eventId: f.eventId,
+				revision: f.data.planning!.revision,
+				fingerprint: f.data.preview!.fingerprint,
+			}),
+		).rejects.toThrow();
+		expect(await f.t.run((ctx) => ctx.db.query("slackSystemDeliveries").collect())).toHaveLength(1);
+	});
 	it("keeps a requested package change for review without increasing the agreed capacity", async () => {
 		const f = await invited();
 		const before = await f.t.run((ctx) => ctx.db.get(f.eventId));
@@ -224,7 +245,9 @@ describe("company event planning", () => {
 			await f.t.mutation(api.events.planning.public.confirm, { token: f.confirmationToken }),
 		).toEqual({ state: "confirmed" });
 		const eventNotices = await f.t.run((ctx) => ctx.db.query("eventSlackNotifications").collect());
-		const systemNotices = await f.t.run((ctx) => ctx.db.query("slackSystemDeliveries").collect());
+		const systemNotices = (
+			await f.t.run((ctx) => ctx.db.query("slackSystemDeliveries").collect())
+		).filter((notice) => !notice.clientMsgId.includes(":send-approved:"));
 		expect(eventNotices).toHaveLength(1);
 		expect(systemNotices).toHaveLength(1);
 		for (const notice of [...eventNotices, ...systemNotices]) {
@@ -406,7 +429,9 @@ describe("company event planning", () => {
 			const eventNotices = await f.t.run((ctx) =>
 				ctx.db.query("eventSlackNotifications").collect(),
 			);
-			const systemNotices = await f.t.run((ctx) => ctx.db.query("slackSystemDeliveries").collect());
+			const systemNotices = (
+				await f.t.run((ctx) => ctx.db.query("slackSystemDeliveries").collect())
+			).filter((notice) => !notice.clientMsgId.includes(":send-approved:"));
 			expect(eventNotices).toHaveLength(1);
 			expect(systemNotices).toHaveLength(1);
 			expect(eventNotices[0]?.text).toContain("er sendt til contact@example.com");
@@ -433,7 +458,7 @@ describe("company event planning", () => {
 		expect(await f.t.run((ctx) => ctx.db.query("eventSlackNotifications").collect())).toHaveLength(
 			0,
 		);
-		expect(await f.t.run((ctx) => ctx.db.query("slackSystemDeliveries").collect())).toHaveLength(0);
+		expect(await f.t.run((ctx) => ctx.db.query("slackSystemDeliveries").collect())).toHaveLength(1);
 	});
 	it("persists bounces, alerts both Slack queues and ignores late sent callbacks", async () => {
 		const f = await invited();
@@ -463,7 +488,7 @@ describe("company event planning", () => {
 		expect(await f.t.run((ctx) => ctx.db.query("eventSlackNotifications").collect())).toHaveLength(
 			1,
 		);
-		expect(await f.t.run((ctx) => ctx.db.query("slackSystemDeliveries").collect())).toHaveLength(1);
+		expect(await f.t.run((ctx) => ctx.db.query("slackSystemDeliveries").collect())).toHaveLength(2);
 		await expect(
 			f.editor.mutation(api.events.planning.admin.retryEmail, { id: f.mail._id }),
 		).rejects.toThrow();
@@ -488,7 +513,7 @@ describe("company event planning", () => {
 		expect(await f.t.run((ctx) => ctx.db.query("eventSlackNotifications").collect())).toHaveLength(
 			1,
 		);
-		expect(await f.t.run((ctx) => ctx.db.query("slackSystemDeliveries").collect())).toHaveLength(1);
+		expect(await f.t.run((ctx) => ctx.db.query("slackSystemDeliveries").collect())).toHaveLength(2);
 		expect(await f.t.run((ctx) => ctx.db.query("eventPlanningEmails").collect())).toHaveLength(1);
 	});
 	it("sends as the organizer only on the configured verified domain", async () => {

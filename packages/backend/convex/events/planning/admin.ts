@@ -30,7 +30,7 @@ import {
 	publicUrl,
 	requireEvent,
 } from "./helpers";
-import { notifyPlanning } from "./notifications";
+import { notifyInvitationApproved, notifyPlanning } from "./notifications";
 import { answers, preparation } from "./schema";
 
 const eventArgs = { eventId: v.id("events") };
@@ -198,7 +198,7 @@ export const send = mutation({
 			error: undefined,
 			revision: revision + 1,
 		});
-		await queueEmail(ctx, {
+		const emailId = await queueEmail(ctx, {
 			planningId: planning._id,
 			kind: "invitation",
 			generation,
@@ -206,6 +206,7 @@ export const send = mutation({
 			envelope: preview.envelope,
 			url: publicUrl(PLANNING_PATH, token),
 		});
+		await notifyInvitationApproved(ctx, event, user, emailId, preview.envelope.to);
 	},
 });
 export const saveReview = mutation({
@@ -377,7 +378,7 @@ export const resolveEmail = mutation({
 export const retryEmail = mutation({
 	args: { id: v.id("eventPlanningEmails") },
 	handler: async (ctx, { id }) => {
-		await requireRole(ctx, internalRoles);
+		const user = await requireRole(ctx, internalRoles);
 		const email = await ctx.db.get(id);
 		if (!email || !(["failed", "bounced", "cancelled"] as string[]).includes(email.status))
 			throw new ConvexError("Kontroller leveringsstatus før ny sending.");
@@ -404,7 +405,7 @@ export const retryEmail = mutation({
 			resolution: "Ny sending bestilt",
 			url: undefined,
 		});
-		await queueEmail(ctx, {
+		const emailId = await queueEmail(ctx, {
 			planningId: email.planningId,
 			kind: email.kind,
 			generation: email.generation,
@@ -412,5 +413,6 @@ export const retryEmail = mutation({
 			envelope: email.envelope,
 			url: publicUrl(PLANNING_PATH, token),
 		});
+		await notifyInvitationApproved(ctx, event, user, emailId, email.envelope.to);
 	},
 });
