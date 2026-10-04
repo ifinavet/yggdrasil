@@ -1,6 +1,7 @@
 import { HOUR, MINUTE, RateLimiter } from "@convex-dev/rate-limiter";
 import { PLANNING_CONFIRM_PATH } from "@workspace/shared/events/planning";
 import { osloToday } from "@workspace/shared/time";
+import { INFO_EMAIL } from "@workspace/shared/constants/contact";
 import { SUBMISSION_ID_PATTERN } from "@workspace/shared/validation";
 import { ConvexError, v } from "convex/values";
 import { components } from "../../_generated/api";
@@ -71,7 +72,7 @@ async function sendConfirmation(
 		generation: planning.generation,
 		eventStart: event.eventStart,
 		envelope: {
-			from: "Navet <info@ifinavet.no>",
+			from: `Navet <${INFO_EMAIL}>`,
 			to: planning.contactEmail,
 			cc: [],
 			replyTo: [],

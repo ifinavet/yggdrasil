@@ -19,9 +19,9 @@ import { queueEventNotification } from "../../events/slack/state";
 import { hashLinkToken } from "../../lib/tokens";
 import { feedbackEmailContext } from "./emailContext";
 
-export { trackedEmail as feedbackResend } from "../../lib/trackedEmail";
-
 import { trackedEmail as feedbackResend } from "../../lib/trackedEmail";
+
+export { feedbackResend };
 
 export const FEEDBACK_REPLY_TO = EVENT_CONTACT_EMAIL;
 export const feedbackSender = {
