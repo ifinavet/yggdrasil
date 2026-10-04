@@ -1,4 +1,5 @@
 import { HUGIN_LOCAL_URL, HUGIN_URL } from "@workspace/shared/constants";
+import { INFO_EMAIL } from "@workspace/shared/constants/contact";
 import {
 	AGE_BY_ALCOHOL,
 	type PlanningAnswers,
@@ -78,7 +79,7 @@ export async function senderFor(ctx: QueryCtx, eventId: Id<"events">) {
 	return {
 		from: canSendAs
 			? `${main.name.replace(/[<>\r\n]/g, "")} <${main.email}>`
-			: "Navet <info@ifinavet.no>",
+			: `Navet <${INFO_EMAIL}>`,
 		cc: [...new Set(contacts.map((o) => o.email).filter(Boolean))],
 		replyTo: main?.email ? [main.email] : [],
 		signature: main

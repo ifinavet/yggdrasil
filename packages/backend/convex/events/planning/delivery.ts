@@ -46,27 +46,7 @@ export const enqueueRendered = internalMutation({
 			event.eventStart <= Date.now() ||
 			(email.kind === "invitation" && event.eventStart !== email.eventStart)
 		) {
-			await ctx.db.patch(id, { status: "cancelled", url: undefined });
-			if (
-				planning &&
-				planning.generation === email.generation &&
-				planning.status === "invited" &&
-				email.kind === "invitation"
-			) {
-				await ctx.db.patch(planning._id, {
-					status: "preparing",
-					tokenHash: undefined,
-					error: "Arrangementet er endret. Kontroller invitasjonen og send på nytt.",
-				});
-				await ctx.db.patch(id, {
-					error: "Arrangementet er endret. Kontroller invitasjonen og send på nytt.",
-				});
-				await alertFailure(
-					ctx,
-					email,
-					"Arrangementet er endret. Kontroller invitasjonen og send på nytt.",
-				);
-			}
+			await cancelOutdatedEmail(ctx, email, planning);
 			return;
 		}
 		if (email.kind === "invitation") {
@@ -112,6 +92,25 @@ export const enqueueRendered = internalMutation({
 		});
 	},
 });
+async function cancelOutdatedEmail(
+	ctx: MutationCtx,
+	email: Doc<"eventPlanningEmails">,
+	planning: Doc<"eventPlanning"> | null,
+) {
+	await ctx.db.patch(email._id, { status: "cancelled", url: undefined });
+	if (
+		!planning ||
+		planning.generation !== email.generation ||
+		planning.status !== "invited" ||
+		email.kind !== "invitation"
+	)
+		return;
+	const error = "Arrangementet er endret. Kontroller invitasjonen og send på nytt.";
+	await ctx.db.patch(planning._id, { status: "preparing", tokenHash: undefined, error });
+	await ctx.db.patch(email._id, { error });
+	await alertFailure(ctx, email, error);
+}
+
 export const recordFailure = internalMutation({
 	args: { id: v.id("eventPlanningEmails"), message: v.string() },
 	handler: async (ctx, { id, message }) => {

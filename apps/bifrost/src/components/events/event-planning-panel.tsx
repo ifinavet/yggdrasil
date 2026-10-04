@@ -117,8 +117,9 @@ export function EventPlanningPanel({ eventId }: Readonly<{ eventId: Id<"events">
 				<DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-3xl">
 					<DialogHeader>
 						<DialogTitle>{mode ? titles[mode] : "Planlegging"}</DialogTitle>
-						<DialogDescription>
-							{data.company.companyName} · {formatOsloDate(data.event.eventStart, "d. MMMM yyyy")}
+						<DialogDescription className="flex flex-wrap gap-x-4 gap-y-1">
+							<span>{data.company.companyName}</span>
+							<span>{formatOsloDate(data.event.eventStart, "d. MMMM yyyy")}</span>
 						</DialogDescription>
 					</DialogHeader>
 					{mode === "prepare" && (
@@ -353,11 +354,13 @@ function Review({ data, onDone }: Readonly<{ data: PlanningData; onDone: () => v
 						html={data.event.description}
 						className="prose prose-sm dark:prose-invert max-w-none"
 					/>
-					<p className="text-sm">
-						{data.event.location} · {formatOsloDate(data.event.eventStart, "d. MMM yyyy HH:mm")} ·{" "}
-						{data.event.participationLimit} plasser · {data.event.language} ·{" "}
-						{data.event.ageRestriction}
-					</p>
+					<div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+						<span>{data.event.location}</span>
+						<span>{formatOsloDate(data.event.eventStart, "d. MMM yyyy HH:mm")}</span>
+						<span>{data.event.participationLimit} plasser</span>
+						<span>{data.event.language}</span>
+						<span>{data.event.ageRestriction}</span>
+					</div>
 				</details>
 			)}
 			{!preview ? (
@@ -382,11 +385,13 @@ function Review({ data, onDone }: Readonly<{ data: PlanningData; onDone: () => v
 							html={submission.draft.description}
 							className="prose prose-sm dark:prose-invert max-w-none"
 						/>
-						<p className="text-sm">
-							{submission.draft.location} · {submission.draft.startTime} ·{" "}
-							{submission.draft.capacity} plasser · {submission.draft.language} ·{" "}
-							{AGE_CHOICES[submission.draft.ageRestriction]}
-						</p>
+						<div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+							<span>{submission.draft.location}</span>
+							<span>{submission.draft.startTime}</span>
+							<span>{submission.draft.capacity} plasser</span>
+							<span>{submission.draft.language}</span>
+							<span>{AGE_CHOICES[submission.draft.ageRestriction]}</span>
+						</div>
 					</article>
 					{submission.draft.requestedEventType &&
 						submission.draft.requestedEventType !== data.initial.eventType && (
