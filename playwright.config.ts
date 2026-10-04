@@ -13,14 +13,15 @@ function localBaseURL(value: string | undefined, fallback: string) {
 
 export default defineConfig({
 	testDir: "./e2e/admissions",
-	fullyParallel: true,
+	fullyParallel: false,
+	workers: 1,
 	forbidOnly: Boolean(process.env.CI),
 	retries: 0,
 	reporter: "list",
 	projects: [
 		{
 			name: "student",
-			testMatch: "student.spec.ts",
+			testMatch: "student*.spec.ts",
 			use: {
 				...devices["Desktop Chrome"],
 				// biome-ignore lint/suspicious/noUndeclaredEnvVars: Playwright runs outside Turbo.
@@ -29,7 +30,7 @@ export default defineConfig({
 		},
 		{
 			name: "board",
-			testMatch: "board.spec.ts",
+			testMatch: "board*.spec.ts",
 			use: {
 				...devices["Desktop Chrome"],
 				// biome-ignore lint/suspicious/noUndeclaredEnvVars: Playwright runs outside Turbo.

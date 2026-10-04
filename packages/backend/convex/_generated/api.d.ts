@@ -17,6 +17,7 @@ import type * as admissions_delivery_mail from "../admissions/delivery/mail.js";
 import type * as admissions_delivery_slack from "../admissions/delivery/slack.js";
 import type * as admissions_internal from "../admissions/internal.js";
 import type * as admissions_lifecycle from "../admissions/lifecycle.js";
+import type * as admissions_localSeed from "../admissions/localSeed.js";
 import type * as admissions_mutations from "../admissions/mutations.js";
 import type * as admissions_queries from "../admissions/queries.js";
 import type * as admissions_rules from "../admissions/rules.js";
@@ -197,6 +198,7 @@ declare const fullApi: ApiFromModules<{
   "admissions/delivery/slack": typeof admissions_delivery_slack;
   "admissions/internal": typeof admissions_internal;
   "admissions/lifecycle": typeof admissions_lifecycle;
+  "admissions/localSeed": typeof admissions_localSeed;
   "admissions/mutations": typeof admissions_mutations;
   "admissions/queries": typeof admissions_queries;
   "admissions/rules": typeof admissions_rules;
