@@ -99,14 +99,16 @@ it("limits admin data to admins and applicant data to the signed-in student's ow
 	await expect(
 		student.query(api.admissions.queries.myApplication, { periodId }),
 	).resolves.toMatchObject({ about: "Om meg", motivation: "Jeg vil bidra" });
-	await expect(student.query(api.admissions.queries.currentApplication, {})).resolves.toMatchObject({
-		period: {
-			applicationEndAt: Date.now() + DAY,
-			interviewStartAt: Date.now() + 2 * DAY,
-			interviewEndAt: Date.now() + 9 * DAY,
-			retentionAt: Date.now() + 20 * DAY,
+	await expect(student.query(api.admissions.queries.currentApplication, {})).resolves.toMatchObject(
+		{
+			period: {
+				applicationEndAt: Date.now() + DAY,
+				interviewStartAt: Date.now() + 2 * DAY,
+				interviewEndAt: Date.now() + 9 * DAY,
+				retentionAt: Date.now() + 20 * DAY,
+			},
 		},
-	});
+	);
 	await expect(
 		student.mutation(api.admissions.mutations.submit, {
 			periodId,
@@ -346,6 +348,69 @@ it("provisions only after an authenticated applicant accepts an offer; decline g
 				(await student.query(api.admissions.queries.myApplication, { periodId }))?.revision ?? 0,
 		}),
 	).rejects.toThrow(/allerede/i);
+});
+
+it("hides conflicting member identities when accepted-offer onboarding fails", async () => {
+	const { t } = await setup();
+	const { student, admin, boardId, secondBoardId } = await users(t);
+	const periodId = await openPeriod(admin, boardId, secondBoardId);
+	const draft = await student.mutation(api.admissions.mutations.saveDraft, {
+		periodId,
+		about: "Om meg",
+		motivation: "Jeg vil bidra",
+		group: "Bedrift",
+		availability: [],
+	});
+	await student.mutation(api.admissions.mutations.submit, {
+		periodId,
+		expectedRevision: draft.revision,
+		consent: true,
+	});
+	const application = (await admin.query(api.admissions.queries.adminOverview, { periodId }))
+		?.candidates[0];
+	if (!application) throw new Error("Expected submitted candidate");
+	const decision = await admin.mutation(api.admissions.mutations.setDecision, {
+		applicationId: application._id,
+		decision: "accepted",
+		reviewedGroup: "Bedrift",
+		reviewedWorkspaceEmail: "private-member@ifinavet.no",
+		expectedRevision: application.revision,
+	});
+	const offerKey = `private-conflict:${application._id}`;
+	await admin.mutation(api.admissions.mutations.sendDecision, {
+		applicationId: application._id,
+		expectedRevision: decision.revision,
+		idempotencyKey: offerKey,
+	});
+	await t.mutation(internal.admissions.internal.claimOutbox, { idempotencyKey: offerKey });
+	await t.mutation(internal.admissions.internal.completeOutbox, { idempotencyKey: offerKey });
+	await t.run((ctx) =>
+		ctx.db.insert("memberAccounts", {
+			workspaceEmail: "private-member@ifinavet.no",
+			uioEmail: "former-member@uio.no",
+			firstName: "Privat navn",
+			lastName: "Medlem",
+			group: "Bedrift",
+			stage: "active",
+			google: "existing",
+			updatedAt: Date.now(),
+		}),
+	);
+	const pending = await student.query(api.admissions.queries.myApplication, { periodId });
+	const failure = await student
+		.mutation(api.admissions.mutations.respondToOffer, {
+			periodId,
+			accept: true,
+			expectedRevision: pending?.revision ?? 0,
+		})
+		.catch((error: unknown) => error);
+	expect(String(failure)).toContain("Svaret kunne ikke registreres akkurat nå.");
+	expect(String(failure)).not.toContain("private-member@ifinavet.no");
+	expect(String(failure)).not.toContain("former-member@uio.no");
+	expect(String(failure)).not.toContain("Privat navn");
+	await expect(
+		student.query(api.admissions.queries.myApplication, { periodId }),
+	).resolves.toMatchObject({ offerStatus: "pending" });
 });
 
 it("allows applicant cancellation and marks refill eligible only when 48 hours remain", async () => {

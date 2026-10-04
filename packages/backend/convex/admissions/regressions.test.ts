@@ -686,6 +686,206 @@ it("allows admins to cancel published applicant interviews and preserves notice 
 	expect(result.job?.notifyApplicant).toBe(true);
 });
 
+it("rejects overlapping interviews that use the same room even with different interviewers", async () => {
+	const value = await scheduleFixture(10, 0, []);
+	const thirdInterviewer = await insertUser(value.t, "third@ifinavet.no");
+	const fourthInterviewer = await insertUser(value.t, "fourth@ifinavet.no");
+	await grantRole(value.t, thirdInterviewer._id, "internal");
+	await grantRole(value.t, fourthInterviewer._id, "internal");
+	await value.admin.mutation(api.admissions.board.updateInterviewers, {
+		periodId: value.periodId,
+		expectedRevision: 1,
+		interviewers: [
+			{ userId: value.interviewer._id, selectedCalendarIds: [] },
+			{ userId: value.otherInterviewer._id, selectedCalendarIds: [] },
+			{ userId: thirdInterviewer._id, selectedCalendarIds: [] },
+			{ userId: fourthInterviewer._id, selectedCalendarIds: [] },
+		],
+	});
+	const secondApplicant = await insertUser(value.t, "candidate2@uio.no");
+	await insertStudent(value.t, secondApplicant._id);
+	const secondApplicationId = await value.t.run((ctx) =>
+		ctx.db.insert("admissionApplications", {
+			periodId: value.periodId,
+			userId: secondApplicant._id,
+			availability: [{ day: value.day, start: 600, end: 620 }],
+			status: "submitted",
+			revision: 1,
+			decisionRevision: 0,
+			decision: "pending",
+			offerStatus: "none",
+			sent: false,
+		}),
+	);
+	await value.t.run(async (ctx) => {
+		await ctx.db.patch(value.applicationId, {
+			availability: [{ day: value.day, start: 600, end: 620 }],
+		});
+		await ctx.db.patch(secondApplicationId, {
+			availability: [{ day: value.day, start: 600, end: 620 }],
+		});
+	});
+	const args = {
+		startAt: value.startAt,
+		selectedCalendarIds: [] as string[],
+		room: "Beta",
+	};
+	await value.admin.mutation(api.admissions.mutations.scheduleInterview, {
+		...args,
+		applicationId: value.applicationId,
+		interviewerIds: [value.interviewer._id, value.otherInterviewer._id],
+		expectedRevision: 1,
+	});
+	await expect(
+		value.admin.mutation(api.admissions.mutations.scheduleInterview, {
+			...args,
+			applicationId: secondApplicationId,
+			interviewerIds: [thirdInterviewer._id, fourthInterviewer._id],
+			expectedRevision: 1,
+		}),
+	).rejects.toThrow(/rom/i);
+});
+
+it("rejects generated assignments that double-book a room", async () => {
+	const value = await scheduleFixture(10, 0, []);
+	const thirdInterviewer = await insertUser(value.t, "third-plan@ifinavet.no");
+	const fourthInterviewer = await insertUser(value.t, "fourth-plan@ifinavet.no");
+	await grantRole(value.t, thirdInterviewer._id, "internal");
+	await grantRole(value.t, fourthInterviewer._id, "internal");
+	await value.admin.mutation(api.admissions.board.updateInterviewers, {
+		periodId: value.periodId,
+		expectedRevision: 1,
+		interviewers: [
+			{ userId: value.interviewer._id, selectedCalendarIds: [] },
+			{ userId: value.otherInterviewer._id, selectedCalendarIds: [] },
+			{ userId: thirdInterviewer._id, selectedCalendarIds: [] },
+			{ userId: fourthInterviewer._id, selectedCalendarIds: [] },
+		],
+	});
+	const secondApplicant = await insertUser(value.t, "candidate-plan2@uio.no");
+	const secondApplicationId = await value.t.run(async (ctx) => {
+		await ctx.db.patch(value.applicationId, {
+			availability: [{ day: value.day, start: 600, end: 620 }],
+		});
+		return await ctx.db.insert("admissionApplications", {
+			periodId: value.periodId,
+			userId: secondApplicant._id,
+			availability: [{ day: value.day, start: 600, end: 620 }],
+			status: "submitted",
+			revision: 1,
+			decisionRevision: 0,
+			decision: "pending",
+			offerStatus: "none",
+			sent: false,
+		});
+	});
+	const shared = {
+		startAt: value.startAt,
+		endAt: value.startAt + 15 * MINUTE,
+		selectedCalendarIds: [] as string[],
+		room: "Beta",
+	};
+	await expect(
+		value.t.mutation(internal.admissions.internal.saveSchedule, {
+			periodId: value.periodId,
+			expectedRevision: 2,
+			assignments: [
+				{
+					...shared,
+					applicationId: value.applicationId,
+					interviewerIds: [value.interviewer._id, value.otherInterviewer._id],
+				},
+				{
+					...shared,
+					applicationId: secondApplicationId,
+					interviewerIds: [thirdInterviewer._id, fourthInterviewer._id],
+				},
+			],
+		}),
+	).rejects.toThrow(/rom/i);
+});
+
+it("requires explicit candidate agreement before manually rebooking a cancelled interview", async () => {
+	const value = await scheduleFixture(10, 0, []);
+	await value.t.run((ctx) =>
+		ctx.db.patch(value.applicationId, {
+			availability: [{ day: value.day, start: 600, end: 620 }],
+		}),
+	);
+	await value.t.run((ctx) =>
+		ctx.db.insert("admissionInterviews", {
+			periodId: value.periodId,
+			applicationId: value.applicationId,
+			startAt: value.startAt,
+			endAt: value.startAt + 15 * MINUTE,
+			interviewerIds: [value.interviewer._id, value.otherInterviewer._id],
+			selectedCalendarIds: [],
+			room: "Beta",
+			status: "cancelled",
+			revision: 2,
+		}),
+	);
+	const args = {
+		applicationId: value.applicationId,
+		startAt: value.startAt,
+		interviewerIds: [value.interviewer._id, value.otherInterviewer._id],
+		selectedCalendarIds: [],
+		expectedRevision: 1,
+	};
+	await expect(
+		value.admin.mutation(api.admissions.mutations.scheduleInterview, args),
+	).rejects.toThrow(/bekreft|avtalt/i);
+	await value.admin.mutation(api.admissions.mutations.scheduleInterview, {
+		...args,
+		candidateConfirmedOutsideForm: true,
+	});
+	const interview = await value.t.run((ctx) =>
+		ctx.db
+			.query("admissionInterviews")
+			.withIndex("by_applicationId", (q) => q.eq("applicationId", value.applicationId))
+			.unique(),
+	);
+	expect(interview).toMatchObject({ status: "scheduled", candidateConfirmedOutsideForm: true });
+});
+
+it("does not let generated plans resurrect a cancelled interview", async () => {
+	const value = await scheduleFixture(10, 0, []);
+	await value.t.run((ctx) =>
+		ctx.db.patch(value.applicationId, {
+			availability: [{ day: value.day, start: 600, end: 620 }],
+		}),
+	);
+	await value.t.run((ctx) =>
+		ctx.db.insert("admissionInterviews", {
+			periodId: value.periodId,
+			applicationId: value.applicationId,
+			startAt: value.startAt,
+			endAt: value.startAt + 15 * MINUTE,
+			interviewerIds: [value.interviewer._id, value.otherInterviewer._id],
+			selectedCalendarIds: [],
+			room: "Beta",
+			status: "cancelled",
+			revision: 2,
+		}),
+	);
+	await expect(
+		value.t.mutation(internal.admissions.internal.saveSchedule, {
+			periodId: value.periodId,
+			expectedRevision: 1,
+			assignments: [
+				{
+					applicationId: value.applicationId,
+					startAt: value.startAt,
+					endAt: value.startAt + 15 * MINUTE,
+					interviewerIds: [value.interviewer._id, value.otherInterviewer._id],
+					selectedCalendarIds: [],
+					room: "Beta",
+				},
+			],
+		}),
+	).rejects.toThrow(/avlyst|cancel/i);
+});
+
 it("rejects invalid reviewed account details before sending an accepted offer", async () => {
 	process.env.GOOGLE_WORKSPACE_ADMIN_EMAIL = "admin@ifinavet.no";
 	const { t, admin, applicant, interviewer, otherInterviewer } = await fixture();

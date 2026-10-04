@@ -16,14 +16,14 @@ export function CandidateFilters({
 	setProgram,
 	year,
 	setYear,
-}: {
+}: Readonly<{
 	query: string;
 	setQuery: (value: string) => void;
 	program: string;
 	setProgram: (value: string) => void;
 	year: string;
 	setYear: (value: string) => void;
-}) {
+}>) {
 	return (
 		<div className="admissions-filters">
 			<SearchField

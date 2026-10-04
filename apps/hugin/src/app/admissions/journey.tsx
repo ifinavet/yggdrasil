@@ -68,7 +68,14 @@ type InitialApplication = {
 	offerStatus: "none" | "pending" | "accepted" | "declined" | "expired";
 	offerDeadline?: number;
 	interview: { startAt: number; endAt: number; room: string } | null;
-	period: { title: string; timezone: string };
+	period: {
+		title: string;
+		timezone: string;
+		applicationEndAt?: number;
+		interviewStartAt?: number;
+		interviewEndAt?: number;
+		retentionAt?: number;
+	};
 } | null;
 
 const applicationSchema = z.object({
@@ -95,7 +102,7 @@ export default function AdmissionsJourney({
 	const application = useQuery(api.admissions.queries.myApplication, { periodId: period._id }) as
 		| InitialApplication
 		| undefined;
-	const profile = useQuery(api.users.students.queries.getCurrent, {});
+	const profile = useQuery(api.users.students.queries.getCurrentForAdmissions, {});
 	const updateProfile = useMutation(api.users.students.mutations.updateCurrent);
 	const saveDraft = useMutation(api.admissions.mutations.saveDraft);
 	const submit = useMutation(api.admissions.mutations.submit);

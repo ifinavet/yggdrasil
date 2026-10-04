@@ -106,6 +106,7 @@ type ScheduleContext = {
 	candidates: Array<{
 		applicationId: Id<"admissionApplications">;
 		availability: Array<{ day: string; start: number; end: number }>;
+		existingInterview?: { status: string; publishedAt?: number } | null;
 	}>;
 	interviewers: Array<{
 		userId: Id<"users">;
@@ -115,6 +116,10 @@ type ScheduleContext = {
 	existingInterviews: Array<{
 		_id: Id<"admissionInterviews">;
 		interviewerIds: Id<"users">[];
+		selectedCalendarIds: string[];
+		startAt: number;
+		endAt: number;
+		publishedAt?: number;
 	}>;
 };
 
@@ -136,6 +141,27 @@ function busyWindows(intervals: ReadonlyArray<{ start: number; end: number }>, t
 		}
 		return windows;
 	});
+}
+
+function publishedCalendarBusy(
+	context: ScheduleContext,
+	interviewerId: Id<"users">,
+	calendarId: string,
+) {
+	return busyWindows(
+		context.existingInterviews
+			.filter(
+				(interview) =>
+					interview.publishedAt !== undefined &&
+					interview.interviewerIds.includes(interviewerId) &&
+					interview.selectedCalendarIds.includes(calendarId),
+			)
+			.map(({ startAt, endAt }) => ({
+				start: startAt,
+				end: endAt + context.period.buffer * 60_000,
+			})),
+		context.period.timezone,
+	);
 }
 
 function localDateAndMinute(at: number, timeZone: string) {
@@ -225,7 +251,11 @@ export const generateSchedule = action({
 				if (local)
 					return {
 						id: person.userId,
-						calendars: calendarIds.map(() => ({ selected: true, readable: true, busy: [] })),
+						calendars: calendarIds.map((calendarId) => ({
+							selected: true,
+							readable: true,
+							busy: publishedCalendarBusy(context, person.userId, calendarId),
+						})),
 					};
 				if (!config) throw new Error("Google Calendar mangler konfigurasjon.");
 				const client = googleCalendarClient(config, person.email);
@@ -243,8 +273,9 @@ export const generateSchedule = action({
 					id: person.userId,
 					calendars: await Promise.all(
 						calendarIds.map(async (calendarId) => {
+							const pinned = publishedCalendarBusy(context, person.userId, calendarId);
 							const freeBusy = calendars?.[calendarId]?.busy ?? [];
-							if (!freeBusy.length) return { selected: true, readable: true, busy: [] };
+							if (!freeBusy.length) return { selected: true, readable: true, busy: pinned };
 							const events = await client.listEvents(
 								calendarId,
 								new Date(period.interviewStartAt).toISOString(),
@@ -283,7 +314,7 @@ export const generateSchedule = action({
 							return {
 								selected: true,
 								readable: true,
-								busy: busyWindows(external, period.timezone),
+								busy: [...busyWindows(external, period.timezone), ...pinned],
 							};
 						}),
 					),
@@ -309,7 +340,12 @@ export const generateSchedule = action({
 			},
 			days,
 		);
-		const candidates: SchedulingCandidate[] = context.candidates.map((candidate) => ({
+		const eligibleCandidates = context.candidates.filter(
+			(candidate) =>
+				candidate.existingInterview?.publishedAt === undefined &&
+				candidate.existingInterview?.status !== "cancelled",
+		);
+		const candidates: SchedulingCandidate[] = eligibleCandidates.map((candidate) => ({
 			id: candidate.applicationId,
 			availability: candidate.availability,
 		}));
@@ -343,7 +379,7 @@ export const generateSchedule = action({
 			assignments: savedAssignments,
 		});
 		const assignedIds = new Set(assignments.map((assignment) => assignment.candidateId));
-		const unmatched = context.candidates
+		const unmatched = eligibleCandidates
 			.filter((candidate) => !assignedIds.has(candidate.applicationId))
 			.map((candidate) => ({
 				applicationId: candidate.applicationId,

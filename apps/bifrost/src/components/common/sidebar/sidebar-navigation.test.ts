@@ -23,7 +23,7 @@ describe("visibleSections", () => {
 		const sections = visibleSections("admin", flags({ products: true, semesterPlanning: true }));
 
 		expect(titles(sections)).toEqual([
-			["Personer", ["Studenter", "Organisasjon"]],
+			["Personer", ["Opptak", "Studenter", "Organisasjon"]],
 			["Bedrifter og økonomi", ["Bedrifter", "Produkter", "Fakturaer"]],
 			["Planlegging", ["Semesterplan", "Mat", "Skjemaer"]],
 		]);
@@ -33,7 +33,7 @@ describe("visibleSections", () => {
 		const sections = visibleSections("admin", flags());
 
 		expect(titles(sections)).toEqual([
-			["Personer", ["Studenter", "Organisasjon"]],
+			["Personer", ["Opptak", "Studenter", "Organisasjon"]],
 			["Bedrifter og økonomi", ["Bedrifter"]],
 			["Planlegging", ["Mat", "Skjemaer"]],
 		]);

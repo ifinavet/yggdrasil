@@ -32,6 +32,17 @@ function studentOf(t: TestBackend, id: Id<"students">) {
 	return t.run((ctx) => ctx.db.get(id));
 }
 
+it("returns no profile for an authenticated user without a student record", async () => {
+	const { t } = await setup();
+	const user = await insertUser(t, "member@uio.no");
+	await expect(
+		asUser(t, user).query(api.users.students.queries.getCurrentForAdmissions, {}),
+	).resolves.toBeNull();
+	await expect(t.query(api.users.students.queries.getCurrentForAdmissions, {})).rejects.toThrow(
+		/Unauthorized/,
+	);
+});
+
 describe("studentProfileIssue", () => {
 	it("accepts a valid profile", () => {
 		expect(studentProfileIssue({ studyProgram: HEALTH, degree: "Master", year: 4 })).toBeNull();

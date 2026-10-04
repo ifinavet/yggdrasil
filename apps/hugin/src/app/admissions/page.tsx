@@ -60,12 +60,7 @@ export default async function Page({
 				period={
 					period ?? {
 						_id: currentApplication.periodId,
-						title: currentApplication.period.title,
-						applicationEndAt: currentApplication.period.applicationEndAt,
-						interviewStartAt: 0,
-						interviewEndAt: 0,
-						retentionAt: 0,
-						timezone: currentApplication.period.timezone,
+						...currentApplication.period,
 					}
 				}
 				initialApplication={currentApplication}

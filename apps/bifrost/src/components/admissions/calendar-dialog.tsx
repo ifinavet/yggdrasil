@@ -39,6 +39,14 @@ export function CalendarDialog({
 			setPending(null);
 		}
 	}
+	function toggleCalendar(personId: string, calendarId: string, selected: boolean) {
+		setCalendars((value) => ({
+			...value,
+			[personId]: (value[personId] ?? []).map((entry) =>
+				entry.id === calendarId ? { ...entry, selected } : entry,
+			),
+		}));
+	}
 	async function persist() {
 		setPending("save");
 		setError("");
@@ -121,12 +129,7 @@ export function CalendarDialog({
 									disabled={!calendar.readable || pending !== null}
 									checked={calendar.selected}
 									onCheckedChange={(checked) =>
-										setCalendars((value) => ({
-											...value,
-											[person.id]: (value[person.id] ?? []).map((entry) =>
-												entry.id === calendar.id ? { ...entry, selected: checked === true } : entry,
-											),
-										}))
+										toggleCalendar(person.id, calendar.id, checked === true)
 									}
 								/>
 								{calendar.name}

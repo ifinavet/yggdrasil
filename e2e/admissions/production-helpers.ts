@@ -2,7 +2,13 @@ import type { Page } from "@playwright/test";
 import { api } from "@workspace/backend/convex/api";
 import { ConvexHttpClient } from "convex/browser";
 
-export type AdmissionSeedScenario = "open" | "scheduled" | "decisions";
+export type AdmissionSeedScenario =
+	| "empty"
+	| "missing-profile"
+	| "empty"
+	| "open"
+	| "scheduled"
+	| "decisions";
 
 function localOrigin(name: string, fallback: string) {
 	const value = process.env[name] ?? fallback;
@@ -30,6 +36,6 @@ export async function clearCookieNotice(page: Page) {
 	if (await issueBadge.isVisible().catch(() => false)) await issueBadge.click();
 }
 
-export async function admissionsOverview() {
+export function admissionsOverview() {
 	return convex.query(api.admissions.queries.adminOverview, {});
 }

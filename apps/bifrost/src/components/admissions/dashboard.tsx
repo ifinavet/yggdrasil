@@ -541,12 +541,17 @@ export default function AdmissionsDashboard() {
 						disabled={busy}
 						onClick={() =>
 							void perform(async () => {
-								for (const entry of pending)
-									await sendDecision({
-										applicationId: entry._id,
-										expectedRevision: entry.revision,
-										idempotencyKey: `decision-${entry._id}-${entry.decisionRevision}`,
-									});
+								const results = await Promise.allSettled(
+									pending.map((entry) =>
+										sendDecision({
+											applicationId: entry._id,
+											expectedRevision: entry.revision,
+											idempotencyKey: `decision-${entry._id}-${entry.decisionRevision}`,
+										}),
+									),
+								);
+								const failed = results.find((result) => result.status === "rejected");
+								if (failed?.status === "rejected") throw failed.reason;
 								setConfirmSend(false);
 							}, "Svarene er lagt i kø for utsending")
 						}

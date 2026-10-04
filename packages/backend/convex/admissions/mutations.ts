@@ -35,6 +35,40 @@ const defaultSettings = {
 };
 const text = (value: string, max: number) => value.trim().length <= max;
 
+function manualInterviewWindow(startAt: number, period: Doc<"admissionPeriods">) {
+	if (
+		startAt < period.interviewStartAt ||
+		startAt + period.duration * 60000 > period.interviewEndAt
+	)
+		throw new ConvexError("Intervjutiden er utenfor perioden.");
+	const window = localWindow(startAt, period.duration, period.timezone);
+	const meeting = { ...window, end: window.start + period.duration + period.buffer };
+	if (meeting.start < period.dayStart || meeting.end > period.dayEnd)
+		throw new ConvexError("Intervjutiden er utenfor arbeidsdagen.");
+	if (period.lunch && overlapsLunch(meeting))
+		throw new ConvexError("Intervjutiden kolliderer med lunsjpausen.");
+	if (
+		period.breaks.some(
+			(pause) =>
+				pause.day === meeting.day && pause.start < meeting.end && meeting.start < pause.end,
+		)
+	)
+		throw new ConvexError("Intervjutiden kolliderer med en pause.");
+	return meeting;
+}
+
+function assertApplicantAvailable(
+	app: Doc<"admissionApplications">,
+	meeting: ReturnType<typeof manualInterviewWindow>,
+	confirmedOutsideForm: boolean | undefined,
+) {
+	if (
+		app.status !== "submitted" ||
+		(!isAvailable(app.availability, meeting) && !confirmedOutsideForm)
+	)
+		throw new ConvexError("Søkeren er ikke tilgjengelig på dette tidspunktet.");
+}
+
 async function cancelScheduledInterview(
 	ctx: MutationCtx,
 	app: Doc<"admissionApplications">,
@@ -496,8 +530,15 @@ export const respondToOffer = mutation({
 			offerRespondedAt: Date.now(),
 			revision: app.revision + 1,
 		});
-		if (accept) await startAcceptedAdmissionOnboarding(ctx, app._id);
-		else
+		if (accept) {
+			try {
+				await startAcceptedAdmissionOnboarding(ctx, app._id);
+			} catch {
+				throw new ConvexError(
+					"Svaret kunne ikke registreres akkurat nå. Kontakt opptaksansvarlig for hjelp.",
+				);
+			}
+		} else
 			await queueOutbox(ctx, {
 				kind: "offer_declined",
 				periodId,
@@ -538,32 +579,8 @@ export const scheduleInterview = mutation({
 		if (unique.some((id) => !selected.has(id)))
 			throw new ConvexError("Velg intervjuere fra periodens oppsett.");
 		await requireActiveInterviewers(ctx, unique);
-		const interval = localWindow(args.startAt, period.duration, period.timezone);
-		if (
-			args.startAt < period.interviewStartAt ||
-			args.startAt + period.duration * 60000 > period.interviewEndAt
-		)
-			throw new ConvexError("Intervjutiden er utenfor perioden.");
-		const meeting = {
-			...interval,
-			end: interval.start + period.duration + period.buffer,
-		};
-		if (meeting.start < period.dayStart || meeting.end > period.dayEnd)
-			throw new ConvexError("Intervjutiden er utenfor arbeidsdagen.");
-		if (period.lunch && overlapsLunch(meeting))
-			throw new ConvexError("Intervjutiden kolliderer med lunsjpausen.");
-		if (
-			period.breaks.some(
-				(pause) =>
-					pause.day === meeting.day && pause.start < meeting.end && meeting.start < pause.end,
-			)
-		)
-			throw new ConvexError("Intervjutiden kolliderer med en pause.");
-		if (
-			app.status !== "submitted" ||
-			(!isAvailable(app.availability, meeting) && !args.candidateConfirmedOutsideForm)
-		)
-			throw new ConvexError("Søkeren er ikke tilgjengelig på dette tidspunktet.");
+		const meeting = manualInterviewWindow(args.startAt, period);
+		assertApplicantAvailable(app, meeting, args.candidateConfirmedOutsideForm);
 		const configuredCalendarIds = [
 			...new Set(
 				unique.flatMap(
@@ -581,6 +598,15 @@ export const scheduleInterview = mutation({
 			configuredCalendarIds.some((calendarId, index) => calendarId !== requestedCalendarIds[index])
 		)
 			throw new ConvexError("Kalendervalgene må komme fra periodens oppsett.");
+		const previous = await ctx.db
+			.query("admissionInterviews")
+			.withIndex("by_applicationId", (q) => q.eq("applicationId", app._id))
+			.unique();
+		if (previous?.status === "cancelled" && !args.candidateConfirmedOutsideForm)
+			throw new ConvexError(
+				"Bekreft at søkeren har avtalt et nytt tidspunkt før du booker på nytt.",
+			);
+		const room = args.room?.trim() || period.room;
 		const existing = await ctx.db
 			.query("admissionInterviews")
 			.withIndex("by_periodId_and_status", (q) =>
@@ -593,15 +619,10 @@ export const scheduleInterview = mutation({
 				(item) =>
 					item.startAt < args.startAt + (period.duration + period.buffer) * 60000 &&
 					args.startAt < item.endAt + period.buffer * 60000 &&
-					item.interviewerIds.some((id) => unique.includes(id)),
+					(item.room === room || item.interviewerIds.some((id) => unique.includes(id))),
 			)
 		)
-			throw new ConvexError("En intervjuer er allerede opptatt i denne tiden.");
-		const previous = await ctx.db
-			.query("admissionInterviews")
-			.withIndex("by_applicationId", (q) => q.eq("applicationId", app._id))
-			.unique();
-		const room = args.room?.trim() || period.room;
+			throw new ConvexError("En intervjuer eller rommet er allerede opptatt i denne tiden.");
 		const sameSchedule =
 			previous?.startAt === args.startAt &&
 			previous.endAt === args.startAt + period.duration * 60_000 &&

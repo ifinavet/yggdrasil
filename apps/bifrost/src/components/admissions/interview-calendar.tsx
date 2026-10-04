@@ -138,7 +138,7 @@ export function InterviewCalendar({
 						<WandSparkles />
 						Finn tider
 					</Button>
-					<Button disabled={approved || interviews.length === 0} onClick={() => void onApprove()}>
+					<Button disabled={approved || interviews.length === 0} onClick={onApprove}>
 						<Check />
 						{approved ? "Godkjent forslag" : "Godkjenn forslag"}
 					</Button>

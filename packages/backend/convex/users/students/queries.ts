@@ -117,6 +117,17 @@ export const getCurrent = query({
 	},
 });
 
+export const getCurrentForAdmissions = query({
+	handler: async (ctx) => {
+		const user = await getCurrentUserOrThrow(ctx);
+		const student = await ctx.db
+			.query("students")
+			.withIndex("by_userId", (q) => q.eq("userId", user._id))
+			.first();
+		return student ? { ...student, ...user } : null;
+	},
+});
+
 /**
  * Fetches a student by id with selected linked user data.
  *

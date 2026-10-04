@@ -327,6 +327,21 @@ export const saveSchedule = internalMutation({
 			.take(MAX_APPLICATIONS + 1);
 		if (existingInterviews.length > MAX_APPLICATIONS)
 			throw new ConvexError("For mange intervjuer i opptaket.");
+		const cancelledInterviews = await ctx.db
+			.query("admissionInterviews")
+			.withIndex("by_periodId_and_status", (q) =>
+				q.eq("periodId", periodId).eq("status", "cancelled"),
+			)
+			.take(MAX_APPLICATIONS + 1);
+		if (cancelledInterviews.length > MAX_APPLICATIONS)
+			throw new ConvexError("For mange avlyste intervjuer i opptaket.");
+		const cancelledApplicationIds = new Set(
+			cancelledInterviews.map((interview) => interview.applicationId),
+		);
+		if (assignments.some((assignment) => cancelledApplicationIds.has(assignment.applicationId)))
+			throw new ConvexError(
+				"Et avlyst intervju må bookes på nytt manuelt etter avtale med søkeren.",
+			);
 		const published = existingInterviews.filter((interview) => interview.publishedAt !== undefined);
 		const assignmentsByApplication = new Map(
 			assignments.map((assignment) => [assignment.applicationId, assignment]),
