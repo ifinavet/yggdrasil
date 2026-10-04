@@ -1,7 +1,6 @@
 import {
 	BIFROST_LOCAL_URL,
 	BIFROST_URL,
-	COMPANY_FIRST_CONTACT_TEMPLATE_URL,
 	EVENT_EXPENSE_TEMPLATE_URL,
 } from "@workspace/shared/constants";
 import { featureFlags } from "@workspace/shared/feature-flags";
@@ -94,11 +93,11 @@ function upcomingAutomations(event: Doc<"events">, now: number, campaignOpensAt?
 export function welcomeMessage(event: Doc<"events">, now: number, campaignOpensAt?: number) {
 	const when = (at: number) => formatOsloDate(at, DATE_PATTERNS.dateTime);
 	const automatic = upcomingAutomations(event, now, campaignOpensAt);
-	const contactAt = eventPlanningAt(event.eventStart, EVENT_PLANNING.companyContactDaysBefore);
+	const contactAt = eventPlanningAt(event.eventStart, EVENT_PLANNING.channelDaysBefore);
 	const contact =
 		contactAt > now
-			? `Ta kontakt med bedriften innen ${when(contactAt)}`
-			: "Ta kontakt med bedriften nå, hvis dere ikke allerede har gjort det";
+			? `Klargjør første kontakt med bedriften ${when(contactAt)}`
+			: "Klargjør første kontakt med bedriften hvis dere ikke allerede har gjort det";
 	return [
 		"Så hyggelig at dere skal arrangere! 👋 Her er planen videre. Kanalen deles med de andre arrangementene med samme bedrift dette semesteret.",
 		"",
@@ -106,7 +105,7 @@ export function welcomeMessage(event: Doc<"events">, now: number, campaignOpensA
 		...automatic,
 		"",
 		"*Dette gjør dere*",
-		`• ${contact}. Bruk <${COMPANY_FIRST_CONTACT_TEMPLATE_URL}|malen for førstegangskontakt fra Ressurser>.`,
+		`• ${contact}. <${eventUrl(event)}?planning=prepare|Se over og send invitasjonen i Bifrost>.`,
 		"• Avklar rom, mat og praktisk opplegg med bedriften, og fordel oppgavene mellom dere.",
 		"• Registrer oppmøte i Bifrost på arrangementsdagen.",
 		...(eventPlanningAt(event.eventStart, EVENT_PLANNING.practicalDaysBefore) > now

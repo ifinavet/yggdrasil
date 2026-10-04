@@ -30,6 +30,9 @@ catalogs:
     '@tanstack/react-form':
       specifier: 1.33.5
       version: 1.33.5
+    '@tanstack/react-pacer':
+      specifier: 0.23.0
+      version: 0.23.0
     '@tanstack/react-table':
       specifier: 8.21.3
       version: 8.21.3
@@ -319,7 +322,7 @@ importers:
         specifier: 'catalog:'
         version: 1.33.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@tanstack/react-pacer':
-        specifier: 0.23.0
+        specifier: 'catalog:'
         version: 0.23.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@tanstack/react-table':
         specifier: 'catalog:'
@@ -756,6 +759,12 @@ importers:
       '@jsquash/webp':
         specifier: 1.5.0
         version: 1.5.0
+      '@tanstack/react-form':
+        specifier: 'catalog:'
+        version: 1.33.5(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      '@tanstack/react-pacer':
+        specifier: 'catalog:'
+        version: 0.23.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@tiptap/extension-placeholder':
         specifier: 'catalog:'
         version: 3.31.3(@tiptap/extensions@3.31.3(@tiptap/core@3.31.3(@tiptap/pm@3.31.3))(@tiptap/pm@3.31.3))

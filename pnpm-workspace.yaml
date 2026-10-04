@@ -4,6 +4,7 @@ packages:
 
 # Dependabot updates shared versions once for every consuming app/package.
 catalog:
+  "@tanstack/react-pacer": "0.23.0"
   "@biomejs/biome": "2.5.14"
   "@clerk/nextjs": "7.9.7"
   "@floating-ui/react": "0.27.20"

@@ -15,6 +15,7 @@ import { internalMutation, internalQuery, type MutationCtx } from "../../_genera
 import { latestCampaign } from "../../feedback/delivery/campaigns";
 import { followupFinishedAt } from "../../feedback/reports/lifecycle";
 import { countRegistrationsWithStatus } from "../helper";
+import { planningFollowup, stalePlanningNotice } from "../planning/lifecycle";
 import { getOrganizers } from "../queries";
 import { lifecycleEnabled } from "./config";
 import { escapeSlack, eventMessage, eventUrl, welcomeMessage } from "./messages";
@@ -71,11 +72,20 @@ export async function queueEventNotification(
 
 async function needsPastEventChannel(ctx: MutationCtx, event: Doc<"events">, now: number) {
 	if (event.eventStart > now) return true;
-	const finishedAt = await followupFinishedAt(ctx, event);
+	const reportFinished = await followupFinishedAt(ctx, event);
+	const planFinished = await planningFollowup(ctx, event);
+	const finishedAt =
+		reportFinished === null || planFinished === null
+			? null
+			: Math.max(reportFinished, planFinished);
 	const archiveDelay = EVENT_PLANNING.archiveDaysAfter * DAY_MS;
 	if (finishedAt !== null) return now < Math.max(event.eventStart, finishedAt) + archiveDelay;
 	// Old events without a campaign have no report work to recover.
-	return now < event.eventStart + archiveDelay || (await latestCampaign(ctx, event._id)) !== null;
+	return (
+		planFinished === null ||
+		now < event.eventStart + archiveDelay ||
+		(await latestCampaign(ctx, event._id)) !== null
+	);
 }
 
 export const discover = internalMutation({
@@ -229,7 +239,12 @@ async function eventContext(
 	channel: Doc<"companySemesterSlackChannels">,
 	now: number,
 ) {
-	const followup = await followupFinishedAt(ctx, event);
+	const reportFollowup = await followupFinishedAt(ctx, event);
+	const planFollowup = await planningFollowup(ctx, event);
+	const followup =
+		reportFollowup === null || planFollowup === null
+			? null
+			: Math.max(reportFollowup, planFollowup);
 	const finishedAt = followup === null ? null : Math.max(event.eventStart, followup);
 	const organizers = await getOrganizers(ctx, event._id);
 	const members = organizers.flatMap((organizer) =>
@@ -396,6 +411,8 @@ async function staleNotification(
 		return true;
 	}
 
+	if (notice.condition === "company-contact") return true;
+	if (await stalePlanningNotice(ctx, event._id, notice.key)) return true;
 	return staleFeedbackNotification(ctx, event, notice);
 }
 

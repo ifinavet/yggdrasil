@@ -11,7 +11,7 @@ import ContentEditor from "@/components/common/forms/markdown-editor/markdown-ed
 
 export default function DescriptionEditor({
 	title = "Beskrivelse",
-	description = "Dette er beskrivelsen.",
+	description,
 	field,
 }: Readonly<{
 	title?: string;
@@ -88,7 +88,7 @@ export default function DescriptionEditor({
 		<Field data-invalid={isInvalid}>
 			<FieldLabel htmlFor={field.name}>{title}</FieldLabel>
 			<ContentEditor editor={editor} />
-			<FieldDescription>{description}</FieldDescription>
+			{description && <FieldDescription>{description}</FieldDescription>}
 			{isInvalid && <FieldError errors={field.state.meta.errors} />}
 		</Field>
 	);

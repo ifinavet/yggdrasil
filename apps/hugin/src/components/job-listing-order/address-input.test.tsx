@@ -3,9 +3,13 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AddressInput } from "./address-input";
 
+vi.mock("convex/react", () => ({ useAction: () => vi.fn() }));
+
 const suggestions = vi.hoisted(() => ({ current: [] as string[] }));
 
-vi.mock("./use-address-suggestions", () => ({ useAddressSuggestions: () => suggestions.current }));
+vi.mock("@workspace/ui/hooks/use-address-suggestions", () => ({
+	useAddressSuggestions: () => suggestions.current,
+}));
 
 function LabelledAddress() {
 	const [inputId, setInputId] = useState<string>();
@@ -24,12 +28,16 @@ function LabelledAddress() {
 	);
 }
 
-function ControlledAddress({ onChange }: Readonly<{ onChange: (value: string) => void }>) {
+function ControlledAddress({
+	onChange,
+	pinnedSuggestions,
+}: Readonly<{ onChange: (value: string) => void; pinnedSuggestions?: readonly string[] }>) {
 	const [value, setValue] = useState("");
 	return (
 		<AddressInput
 			label="Adresse"
 			value={value}
+			pinnedSuggestions={pinnedSuggestions}
 			invalid={false}
 			onChange={(next) => {
 				setValue(next);
@@ -108,6 +116,24 @@ describe("AddressInput", () => {
 		press(input, "Enter");
 
 		expect(onChange).toHaveBeenLastCalledWith("Storgata 1, 0155 OSLO");
+	});
+
+	it("keeps IFI first on focus and while searching, and lets it be selected", () => {
+		const onChange = vi.fn();
+		act(() => root.render(<ControlledAddress onChange={onChange} pinnedSuggestions={["IFI"]} />));
+		const input = container.querySelector<HTMLInputElement>("input[cmdk-input]");
+		if (!input) throw new Error("Address input did not render");
+		act(() => input.focus());
+		expect(document.querySelector("[cmdk-item]")?.textContent).toBe("IFI");
+		suggestions.current = ["Storgata 1, 0155 OSLO", "IFI"];
+		type(input, "Stor");
+		expect([...document.querySelectorAll("[cmdk-item]")].map((el) => el.textContent)).toEqual([
+			"IFI",
+			"Storgata 1, 0155 OSLO",
+		]);
+		act(() => document.querySelector<HTMLElement>("[cmdk-item]")?.click());
+		expect(onChange).toHaveBeenLastCalledWith("IFI");
+		expect(input.value).toBe("IFI");
 	});
 
 	it("keeps the typed text on Enter when typing after arrow navigation", () => {
