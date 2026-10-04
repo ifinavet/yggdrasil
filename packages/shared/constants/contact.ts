@@ -2,6 +2,8 @@
 export const COMPANY_CONTACT_EMAIL = "bedrift@ifinavet.no";
 export const JOB_LISTING_ORDER_EMAIL = "annonse@ifinavet.no";
 
+/** Contact for student questions about registrations and participation. */
+export const EVENT_CONTACT_EMAIL = "arrangement@ifinavet.no";
 export const WEB_CONTACT_EMAIL = "web@ifinavet.no";
 export const BOARD_CONTACT_EMAIL = "styret@ifinavet.no";
 export const COORDINATOR_CONTACT_EMAIL = "koordinator@ifinavet.no";

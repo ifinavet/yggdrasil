@@ -1,3 +1,4 @@
+import { EVENT_CONTACT_EMAIL } from "@workspace/shared/constants/contact";
 import { MIDGARD_URL } from "@workspace/shared/constants/urls";
 import {
 	Container,
@@ -66,7 +67,7 @@ export default function LockedOutEmail() {
 
 					<Text className="py-4 text-gray-700 text-sm">
 						Dersom du mener at dette er en feil kan du svare på eposten, eller sende en epost til{" "}
-						<a href="mailto:arrangement@ifinavet.no">arrangement@finavet.no</a>
+						<a href={`mailto:${EVENT_CONTACT_EMAIL}`}>{EVENT_CONTACT_EMAIL}</a>
 					</Text>
 				</Container>
 			</Tailwind>

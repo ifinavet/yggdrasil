@@ -1,6 +1,6 @@
 import { type EmailId, Resend, vOnEmailEventArgs } from "@convex-dev/resend";
 import { vResultValidator, vWorkflowId } from "@convex-dev/workflow";
-import { INFO_EMAIL } from "@workspace/shared/constants/contact";
+import { EVENT_CONTACT_EMAIL, INFO_EMAIL } from "@workspace/shared/constants/contact";
 import { feedbackTokenSchema } from "@workspace/shared/feedback";
 import { feedbackRoundAt } from "@workspace/shared/time";
 import { v } from "convex/values";
@@ -23,7 +23,7 @@ export const feedbackResend: Resend = new Resend(components.feedbackResend, {
 	testMode: false,
 	onEmailEvent: internal.feedback.delivery.messages.onEmailEvent,
 });
-export const FEEDBACK_REPLY_TO = "arrangement@ifinavet.no";
+export const FEEDBACK_REPLY_TO = EVENT_CONTACT_EMAIL;
 export const feedbackSender = {
 	from: `Navet <${INFO_EMAIL}>`,
 	replyTo: [FEEDBACK_REPLY_TO],

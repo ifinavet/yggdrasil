@@ -1,5 +1,6 @@
 import { getAuthToken } from "@workspace/auth";
 import { api } from "@workspace/backend/convex/api";
+import { EVENT_CONTACT_EMAIL } from "@workspace/shared/constants/contact";
 import { DATE_PATTERNS, formatOsloDate } from "@workspace/shared/time";
 import { cn } from "@workspace/ui/lib/utils";
 import { fetchQuery } from "convex/nextjs";
@@ -91,10 +92,10 @@ export default async function Points({ className }: Readonly<{ className?: strin
 			<p>
 				Ved spørsmål kan du sende en epost til:{" "}
 				<a
-					href="mailto:arrangement@ifinavet.no"
+					href={`mailto:${EVENT_CONTACT_EMAIL}`}
 					className="cursor-pointer text-primary hover:underline dark:text-primary-foreground"
 				>
-					arrangement@ifinavet.no
+					{EVENT_CONTACT_EMAIL}
 				</a>
 			</p>
 		</div>
