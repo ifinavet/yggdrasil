@@ -369,7 +369,7 @@ async function cancelInterview(ctx: ActionCtx, claimed: CurrentClaim) {
 	const { interview, applicant, application } = claimed;
 	if (!interview) return {};
 	await cancelCalendarEvent(ctx, claimed);
-	if (!interview.calendarEventId || interview.startAt <= Date.now() || !applicant || !application)
+	if (!claimed.job.notifyApplicant || interview.startAt <= Date.now() || !applicant || !application)
 		return {};
 	const emailId = await sendCancellationEmail(ctx, claimed);
 	await sendCancellationNotice(ctx, claimed);

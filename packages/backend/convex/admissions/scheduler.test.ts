@@ -2,6 +2,7 @@ import {
 	makeSchedulingDays,
 	makeSchedulingSlots,
 	matchInterviews,
+	overlapsLunch,
 } from "@workspace/shared/admissions";
 import { describe, expect, it } from "vitest";
 
@@ -35,7 +36,7 @@ describe("production admissions scheduling", () => {
 		);
 		expect(slots.every((slot) => slot.start >= 540 && slot.end <= 960)).toBe(true);
 		expect(slots.some((slot) => slot.start < 660 && slot.end > 600)).toBe(false);
-		expect(slots.some((slot) => slot.start < 780 && slot.end > 720)).toBe(false);
+		expect(slots.every((slot) => !overlapsLunch(slot))).toBe(true);
 	});
 
 	it("balances interviewers, uses scarce applicant availability first and never invents availability", () => {

@@ -1,12 +1,16 @@
 import { isAvailable, localWindow, overlapsLunch } from "@workspace/shared/admissions";
+import { SYSTEM_ALERTS_CHANNEL } from "@workspace/shared/slack/channels";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalMutation, internalQuery, type MutationCtx } from "../_generated/server";
 import { adminRoles, internalRoles, requireRole, userHasRole } from "../auth/accessRights";
 import { accountForUser } from "../iam/accounts";
+import { enqueueSystemMessage } from "../iam/notifications";
 import { finishClose, purgeBatch as purgeRecordsBatch, queueOutbox } from "./lifecycle";
 import { MAX_APPLICATIONS } from "./rules";
+
+const OUTBOX_LEASE_MS = 5 * 60_000;
 
 async function isCurrent(ctx: Parameters<typeof requireRole>[0], job: Doc<"admissionOutbox">) {
 	const period = await ctx.db.get(job.periodId);
@@ -83,6 +87,7 @@ export const claimOutbox = internalMutation({
 		await ctx.db.patch(job._id, {
 			state: "running",
 			attempts: job.attempts + 1,
+			nextAttemptAt: Date.now() + OUTBOX_LEASE_MS,
 			lastError: undefined,
 		});
 		const period = await ctx.db.get(job.periodId);
@@ -180,13 +185,24 @@ export const failOutbox = internalMutation({
 			if (period?.status === "closing") await finishClose(ctx, period);
 			return { stale: true };
 		}
+		const exhausted = job.attempts >= 8;
 		await ctx.db.patch(job._id, { state: "failed", lastError: error.slice(0, 500), nextAttemptAt });
-		await ctx.scheduler.runAfter(
-			Math.max(0, nextAttemptAt - Date.now()),
-			internal.admissions.actions.processOutbox,
-			{ idempotencyKey },
-		);
-		return { stale: false };
+		if (exhausted && (job.kind === "cancel_interview" || job.kind === "archive_channel")) {
+			await enqueueSystemMessage(ctx, {
+				channel: SYSTEM_ALERTS_CHANNEL,
+				text: "An admissions cleanup job reached its retry limit. Review admissions operations.",
+				clientMsgId: `admissions-cleanup-exhausted:${job._id}`,
+			});
+		}
+		if (!exhausted)
+			await ctx.scheduler.runAfter(
+				Math.max(0, nextAttemptAt - Date.now()),
+				internal.admissions.actions.processOutbox,
+				{ idempotencyKey },
+			);
+		const period = await ctx.db.get(job.periodId);
+		if (exhausted && period?.status === "closing") await finishClose(ctx, period);
+		return { stale: false, exhausted };
 	},
 });
 
@@ -303,6 +319,23 @@ export const saveSchedule = internalMutation({
 		const selectionByUser = new Map(
 			period.interviewers.map((selection) => [selection.userId, selection]),
 		);
+		const existingInterviews = await ctx.db
+			.query("admissionInterviews")
+			.withIndex("by_periodId_and_status", (q) =>
+				q.eq("periodId", periodId).eq("status", "scheduled"),
+			)
+			.take(MAX_APPLICATIONS + 1);
+		if (existingInterviews.length > MAX_APPLICATIONS)
+			throw new ConvexError("For mange intervjuer i opptaket.");
+		const published = existingInterviews.filter((interview) => interview.publishedAt !== undefined);
+		const assignmentsByApplication = new Map(
+			assignments.map((assignment) => [assignment.applicationId, assignment]),
+		);
+		for (const interview of published) {
+			const assignment = assignmentsByApplication.get(interview.applicationId);
+			if (assignment && !samePublishedSchedule(assignment, interview, period, selectionByUser))
+				throw new ConvexError("Et publisert intervju må endres gjennom en bekreftet ny plan.");
+		}
 		const eligibility = await Promise.all(
 			period.interviewers.map(async ({ userId }) => ({
 				userId,
@@ -312,10 +345,22 @@ export const saveSchedule = internalMutation({
 		const active = new Set(
 			eligibility.filter((entry) => entry.active).map((entry) => entry.userId),
 		);
-		const scheduled = assignments.map((assignment) =>
-			validateAssignment(assignment, period, applications, selectionByUser, active),
-		);
-		assertNoScheduleConflicts(scheduled, period.buffer);
+		const scheduled = assignments
+			.filter(
+				(assignment) =>
+					!published.some((interview) => interview.applicationId === assignment.applicationId),
+			)
+			.map((assignment) =>
+				validateAssignment(assignment, period, applications, selectionByUser, active),
+			);
+		const pinned = published.map((interview) => ({
+			applicationId: interview.applicationId,
+			startAt: interview.startAt,
+			endAt: interview.endAt,
+			interviewerIds: interview.interviewerIds,
+			room: interview.room,
+		}));
+		assertNoScheduleConflicts([...pinned, ...scheduled], period.buffer, pinned.length);
 		const saved = await Promise.all(
 			scheduled.map(async (assignment) => {
 				const previous = await ctx.db
@@ -342,8 +387,12 @@ export const saveSchedule = internalMutation({
 				return assignment.applicationId;
 			}),
 		);
-		await ctx.db.patch(periodId, { status: "open", revision: period.revision + 1 });
-		return { count: saved.length, unmatched: applicationsNotScheduled(applications, saved) };
+		await ctx.db.patch(periodId, {
+			status: scheduled.length > 0 ? "open" : period.status,
+			revision: period.revision + 1,
+		});
+		const assigned = [...published.map((interview) => interview.applicationId), ...saved];
+		return { count: assigned.length, unmatched: applicationsNotScheduled(applications, assigned) };
 	},
 });
 
@@ -534,19 +583,52 @@ function validateAssignment(
 function assertNoScheduleConflicts(
 	scheduled: Omit<ScheduleAssignment, "selectedCalendarIds">[],
 	buffer: number,
+	fixedCount = 0,
 ) {
 	const conflict = scheduled.some((assignment, index) =>
-		scheduled
-			.slice(index + 1)
-			.some(
-				(other) =>
-					other.startAt < assignment.endAt + buffer * 60_000 &&
-					assignment.startAt < other.endAt + buffer * 60_000 &&
-					(other.room === assignment.room ||
-						other.interviewerIds.some((id) => assignment.interviewerIds.includes(id))),
-			),
+		scheduled.slice(index + 1).some((other, nextIndex) => {
+			const otherIndex = index + 1 + nextIndex;
+			if (index < fixedCount && otherIndex < fixedCount) return false;
+			return (
+				other.startAt < assignment.endAt + buffer * 60_000 &&
+				assignment.startAt < other.endAt + buffer * 60_000 &&
+				(other.room === assignment.room ||
+					other.interviewerIds.some((id) => assignment.interviewerIds.includes(id)))
+			);
+		}),
 	);
 	if (conflict) throw new ConvexError("Intervjuer eller rom er allerede opptatt i denne tiden.");
+}
+
+function samePublishedSchedule(
+	assignment: ScheduleAssignment,
+	interview: Doc<"admissionInterviews">,
+	period: Doc<"admissionPeriods">,
+	selectionByUser: Map<Id<"users">, Doc<"admissionPeriods">["interviewers"][number]>,
+) {
+	const interviewerIds = [...assignment.interviewerIds].sort((a, b) =>
+		String(a).localeCompare(String(b)),
+	);
+	const existingInterviewerIds = [...interview.interviewerIds].sort((a, b) =>
+		String(a).localeCompare(String(b)),
+	);
+	const calendarIds = [
+		...new Set(
+			assignment.interviewerIds.flatMap(
+				(userId) => selectionByUser.get(userId)?.selectedCalendarIds ?? [],
+			),
+		),
+	].sort((a, b) => a.localeCompare(b));
+	const room = assignment.room.trim() || period.room;
+	return (
+		assignment.startAt === interview.startAt &&
+		assignment.endAt === interview.endAt &&
+		room === interview.room &&
+		interviewerIds.length === existingInterviewerIds.length &&
+		interviewerIds.every((userId, index) => userId === existingInterviewerIds[index]) &&
+		calendarIds.length === interview.selectedCalendarIds.length &&
+		calendarIds.every((id) => interview.selectedCalendarIds.includes(id))
+	);
 }
 
 function validateAssignmentTime(

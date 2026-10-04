@@ -8,7 +8,7 @@ import {
 import { ConvexError, v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
-import { mutation } from "../_generated/server";
+import { type MutationCtx, mutation } from "../_generated/server";
 import { adminRoles, internalRoles, requireRole, userHasRole } from "../auth/accessRights";
 import { getCurrentUserOrThrow } from "../auth/currentUser";
 import { startAcceptedAdmissionOnboarding, validateAdmissionOffer } from "../iam/mutations";
@@ -34,6 +34,36 @@ const defaultSettings = {
 	dayEnd: 960,
 };
 const text = (value: string, max: number) => value.trim().length <= max;
+
+async function cancelScheduledInterview(
+	ctx: MutationCtx,
+	app: Doc<"admissionApplications">,
+	period: Doc<"admissionPeriods">,
+	interview: Doc<"admissionInterviews">,
+	idempotencyKey: string,
+	notifyApplicant: boolean,
+) {
+	const now = Date.now();
+	const revision = interview.revision + 1;
+	const refillEligible = interview.startAt - now >= 48 * 60 * 60 * 1000;
+	await ctx.db.patch(interview._id, { status: "cancelled", revision, publishedAt: undefined });
+	await ctx.db.patch(app._id, { revision: app.revision + 1 });
+	await queueOutbox(ctx, {
+		kind: "cancel_interview",
+		periodId: period._id,
+		applicationId: app._id,
+		interviewId: interview._id,
+		revision,
+		idempotencyKey,
+		state: "pending",
+		attempts: 0,
+		nextAttemptAt: now,
+		createdAt: now,
+		refillEligible,
+		notifyApplicant,
+	});
+	return { revision: app.revision + 1, refillEligible };
+}
 
 function datePart(at: number, timezone: string) {
 	return new Intl.DateTimeFormat("en-CA", {
@@ -490,6 +520,8 @@ export const scheduleInterview = mutation({
 		interviewerIds: v.array(v.id("users")),
 		selectedCalendarIds: v.array(v.string()),
 		room: v.optional(v.string()),
+		candidateConfirmedOutsideForm: v.optional(v.boolean()),
+		confirmPublishedReschedule: v.optional(v.boolean()),
 		expectedRevision: v.number(),
 	},
 	handler: async (ctx, args) => {
@@ -527,8 +559,28 @@ export const scheduleInterview = mutation({
 			)
 		)
 			throw new ConvexError("Intervjutiden kolliderer med en pause.");
-		if (app.status !== "submitted" || !isAvailable(app.availability, meeting))
+		if (
+			app.status !== "submitted" ||
+			(!isAvailable(app.availability, meeting) && !args.candidateConfirmedOutsideForm)
+		)
 			throw new ConvexError("Søkeren er ikke tilgjengelig på dette tidspunktet.");
+		const configuredCalendarIds = [
+			...new Set(
+				unique.flatMap(
+					(userId) =>
+						period.interviewers.find((selection) => selection.userId === userId)
+							?.selectedCalendarIds ?? [],
+				),
+			),
+		].sort((left, right) => left.localeCompare(right));
+		const requestedCalendarIds = [...new Set(args.selectedCalendarIds)].sort((left, right) =>
+			left.localeCompare(right),
+		);
+		if (
+			configuredCalendarIds.length !== requestedCalendarIds.length ||
+			configuredCalendarIds.some((calendarId, index) => calendarId !== requestedCalendarIds[index])
+		)
+			throw new ConvexError("Kalendervalgene må komme fra periodens oppsett.");
 		const existing = await ctx.db
 			.query("admissionInterviews")
 			.withIndex("by_periodId_and_status", (q) =>
@@ -549,18 +601,30 @@ export const scheduleInterview = mutation({
 			.query("admissionInterviews")
 			.withIndex("by_applicationId", (q) => q.eq("applicationId", app._id))
 			.unique();
+		const room = args.room?.trim() || period.room;
+		const sameSchedule =
+			previous?.startAt === args.startAt &&
+			previous.endAt === args.startAt + period.duration * 60_000 &&
+			previous.room === room &&
+			previous.interviewerIds.length === unique.length &&
+			previous.interviewerIds.every((id) => unique.includes(id)) &&
+			previous.selectedCalendarIds.length === configuredCalendarIds.length &&
+			previous.selectedCalendarIds.every((id) => configuredCalendarIds.includes(id));
+		if (previous?.publishedAt && !sameSchedule && !args.confirmPublishedReschedule)
+			throw new ConvexError("Bekreft endring av det publiserte intervjuet før du lagrer.");
 		const fields = {
 			periodId: period._id,
 			applicationId: app._id,
 			startAt: args.startAt,
 			endAt: args.startAt + period.duration * 60000,
 			interviewerIds: unique,
-			selectedCalendarIds: args.selectedCalendarIds,
-			room: args.room?.trim() || period.room,
+			selectedCalendarIds: configuredCalendarIds,
+			candidateConfirmedOutsideForm: args.candidateConfirmedOutsideForm || undefined,
+			room,
 			status: "scheduled" as const,
 			revision: (previous?.revision ?? 0) + 1,
 			calendarEventId: previous?.calendarEventId,
-			publishedAt: undefined,
+			publishedAt: sameSchedule ? previous?.publishedAt : undefined,
 		};
 		if (previous) await ctx.db.replace(previous._id, fields);
 		else await ctx.db.insert("admissionInterviews", fields);
@@ -571,6 +635,45 @@ export const scheduleInterview = mutation({
 			updatedBy: caller._id,
 		});
 		return { revision: app.revision + 1, interviewRevision: fields.revision };
+	},
+});
+
+export const cancelInterviewByBoard = mutation({
+	args: {
+		applicationId: v.id("admissionApplications"),
+		expectedRevision: v.number(),
+		idempotencyKey: v.string(),
+	},
+	handler: async (ctx, { applicationId, expectedRevision, idempotencyKey }) => {
+		await requireRole(ctx, adminRoles);
+		const app = await ctx.db.get(applicationId);
+		if (!app) throw new ConvexError("Fant ikke søknaden.");
+		const existingJob = await ctx.db
+			.query("admissionOutbox")
+			.withIndex("by_idempotencyKey", (q) => q.eq("idempotencyKey", idempotencyKey))
+			.unique();
+		if (existingJob) {
+			if (existingJob.kind !== "cancel_interview" || existingJob.applicationId !== app._id)
+				throw new ConvexError("Idempotensnøkkelen er allerede brukt.");
+			return { revision: app.revision, refillEligible: existingJob.refillEligible ?? false };
+		}
+		if (app.revision !== expectedRevision)
+			throw new ConvexError("Søknaden er endret. Last den inn på nytt.");
+		const period = await ctx.db.get(app.periodId);
+		if (!period || period.status === "closing") throw new ConvexError("Opptaksperioden er stengt.");
+		const interview = await ctx.db
+			.query("admissionInterviews")
+			.withIndex("by_applicationId", (q) => q.eq("applicationId", app._id))
+			.unique();
+		if (interview?.status !== "scheduled") throw new ConvexError("Fant ikke et planlagt intervju.");
+		return await cancelScheduledInterview(
+			ctx,
+			app,
+			period,
+			interview,
+			idempotencyKey,
+			interview.publishedAt !== undefined,
+		);
 	},
 });
 
@@ -593,26 +696,7 @@ export const cancelInterview = mutation({
 			.unique();
 		if (interview?.status !== "scheduled" || !interview.publishedAt)
 			throw new ConvexError("Du har ikke et publisert intervju å avbestille.");
-		const revision = interview.revision + 1;
-		await ctx.db.patch(interview._id, { status: "cancelled", revision, publishedAt: undefined });
-		await ctx.db.patch(app._id, { revision: app.revision + 1 });
-		await queueOutbox(ctx, {
-			kind: "cancel_interview",
-			periodId: period._id,
-			applicationId,
-			interviewId: interview._id,
-			revision,
-			idempotencyKey,
-			refillEligible: interview.startAt - Date.now() >= 48 * 60 * 60 * 1000,
-			state: "pending",
-			attempts: 0,
-			nextAttemptAt: Date.now(),
-			createdAt: Date.now(),
-		});
-		return {
-			revision: app.revision + 1,
-			refillEligible: interview.startAt - Date.now() >= 48 * 60 * 60 * 1000,
-		};
+		return await cancelScheduledInterview(ctx, app, period, interview, idempotencyKey, false);
 	},
 });
 

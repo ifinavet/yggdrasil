@@ -20,6 +20,7 @@ import type * as admissions_lifecycle from "../admissions/lifecycle.js";
 import type * as admissions_localSeed from "../admissions/localSeed.js";
 import type * as admissions_mutations from "../admissions/mutations.js";
 import type * as admissions_queries from "../admissions/queries.js";
+import type * as admissions_recovery from "../admissions/recovery.js";
 import type * as admissions_rules from "../admissions/rules.js";
 import type * as auth_accessRights from "../auth/accessRights.js";
 import type * as auth_currentUser from "../auth/currentUser.js";
@@ -201,6 +202,7 @@ declare const fullApi: ApiFromModules<{
   "admissions/localSeed": typeof admissions_localSeed;
   "admissions/mutations": typeof admissions_mutations;
   "admissions/queries": typeof admissions_queries;
+  "admissions/recovery": typeof admissions_recovery;
   "admissions/rules": typeof admissions_rules;
   "auth/accessRights": typeof auth_accessRights;
   "auth/currentUser": typeof auth_currentUser;

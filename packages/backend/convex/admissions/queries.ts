@@ -172,10 +172,36 @@ export const adminOverview = query({
 			}
 		}
 		if (!period) return null;
-		const outbox = await ctx.db
+		const pendingQuery = ctx.db
 			.query("admissionOutbox")
-			.withIndex("by_periodId", (q) => q.eq("periodId", period._id))
-			.take(200);
+			.withIndex("by_periodId_and_state", (q) =>
+				q.eq("periodId", period._id).eq("state", "pending"),
+			)
+			.order("desc")
+			.take(201);
+		const runningQuery = ctx.db
+			.query("admissionOutbox")
+			.withIndex("by_periodId_and_state", (q) =>
+				q.eq("periodId", period._id).eq("state", "running"),
+			)
+			.order("desc")
+			.take(201);
+		const failedQuery = ctx.db
+			.query("admissionOutbox")
+			.withIndex("by_periodId_and_state", (q) => q.eq("periodId", period._id).eq("state", "failed"))
+			.order("desc")
+			.take(201);
+		const [pendingJobs, runningJobs, failedJobs] = await Promise.all([
+			pendingQuery,
+			runningQuery,
+			failedQuery,
+		]);
+		const jobs = [pendingJobs, runningJobs, failedJobs].flatMap((batch) => batch.slice(0, 200));
+		const jobsTruncated = {
+			pending: pendingJobs.length > 200,
+			running: runningJobs.length > 200,
+			failed: failedJobs.length > 200,
+		};
 		const deliveryRows = await ctx.db
 			.query("admissionDeliveries")
 			.withIndex("by_periodId", (q) => q.eq("periodId", period._id))
@@ -194,7 +220,8 @@ export const adminOverview = query({
 				candidates: [],
 				interviews: [],
 				interviewers: [],
-				jobs: outbox.filter((job) => job.state !== "done"),
+				jobs,
+				jobsTruncated,
 				deliveryIssues: [],
 				localEmails: [],
 			};
@@ -246,7 +273,8 @@ export const adminOverview = query({
 			candidates,
 			interviews: allInterviews,
 			interviewers,
-			jobs: outbox.filter((job) => job.state !== "done"),
+			jobs,
+			jobsTruncated,
 			deliveryIssues: unresolvedDeliveries,
 			localEmails,
 		};

@@ -35,6 +35,31 @@ export const updateInterviewers = mutation({
 			)
 		)
 			throw new ConvexError("Velg gyldige kalendere, maksimalt 30 per intervjuer.");
+		const nextInterviewerIds = new Set(args.interviewers.map((person) => person.userId));
+		const removedInterviewerIds = new Set(
+			period.interviewers
+				.filter((person) => !nextInterviewerIds.has(person.userId))
+				.map((person) => person.userId),
+		);
+		if (removedInterviewerIds.size) {
+			const scheduled = await ctx.db
+				.query("admissionInterviews")
+				.withIndex("by_periodId_and_status", (q) =>
+					q.eq("periodId", period._id).eq("status", "scheduled"),
+				)
+				.take(MAX_APPLICATIONS + 1);
+			if (
+				scheduled.some(
+					(interview) =>
+						interview.publishedAt &&
+						interview.startAt > Date.now() &&
+						interview.interviewerIds.some((id) => removedInterviewerIds.has(id)),
+				)
+			)
+				throw new ConvexError(
+					"Intervjuere kan ikke fjernes når de er tildelt publiserte intervjuer.",
+				);
+		}
 		await ctx.db.patch(period._id, {
 			interviewers: args.interviewers,
 			revision: period.revision + 1,

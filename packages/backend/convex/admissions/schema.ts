@@ -105,6 +105,7 @@ export const admissionsSchema = {
 		room: v.string(),
 		calendarEventId: v.optional(v.string()),
 		publishedAt: v.optional(v.number()),
+		candidateConfirmedOutsideForm: v.optional(v.boolean()),
 		status: v.union(v.literal("scheduled"), v.literal("cancelled")),
 		revision: v.number(),
 	})
@@ -144,6 +145,7 @@ export const admissionsSchema = {
 			}),
 		),
 		refillEligible: v.optional(v.boolean()),
+		notifyApplicant: v.optional(v.boolean()),
 	})
 		.index("by_idempotencyKey", ["idempotencyKey"])
 		.index("by_state_and_nextAttemptAt", ["state", "nextAttemptAt"])

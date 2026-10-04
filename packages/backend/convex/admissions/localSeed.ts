@@ -81,7 +81,7 @@ async function syntheticUser(ctx: MutationCtx, index: number) {
 	return { userId, firstName, lastName, email };
 }
 
-async function boardUser(ctx: MutationCtx, name: string, email: string) {
+async function boardUser(ctx: MutationCtx, name: string, email: string, image: string) {
 	const [firstName, ...rest] = name.split(" ");
 	const lastName = rest.join(" ");
 	const externalId = `${seedPrefix}${email.split("@")[0]}`;
@@ -96,9 +96,10 @@ async function boardUser(ctx: MutationCtx, name: string, email: string) {
 			firstName: firstName ?? "Styremedlem",
 			lastName,
 			email,
-			image: "",
+			image,
 			locked: false,
 		}));
+	if (existing) await ctx.db.patch(userId, { image });
 	const internal = await ctx.db
 		.query("internals")
 		.withIndex("by_userId", (q) => q.eq("userId", userId))
@@ -153,6 +154,11 @@ function isoDay(at: number) {
 	return formatOsloDate(at, "yyyy-MM-dd");
 }
 
+function periodTitle(at: number) {
+	const month = Number(formatOsloDate(at, "M"));
+	return `${month >= 7 ? "Høst" : "Vår"} ${formatOsloDate(at, "yyyy")}`;
+}
+
 export const reset = mutation({
 	args: {
 		scenario: v.union(
@@ -171,8 +177,24 @@ export const reset = mutation({
 		if (scenario === "empty") return null;
 		const now = Date.now();
 		const applicantId = await localUser(ctx);
-		const secondId = await boardUser(ctx, "Kristin Berg", "kristin.berg@ifinavet.no");
-		const thirdId = await boardUser(ctx, "Daniel Holm", "daniel.holm@ifinavet.no");
+		const secondId = await boardUser(
+			ctx,
+			"Kristin Berg",
+			"kristin.berg@ifinavet.no",
+			"https://randomuser.me/api/portraits/women/41.jpg",
+		);
+		const thirdId = await boardUser(
+			ctx,
+			"Daniel Holm",
+			"daniel.holm@ifinavet.no",
+			"https://randomuser.me/api/portraits/men/42.jpg",
+		);
+		await boardUser(
+			ctx,
+			"Aksel Nilsen",
+			"aksel.nilsen@ifinavet.no",
+			"https://randomuser.me/api/portraits/men/43.jpg",
+		);
 		const admin = await getCurrentUserOrThrow(ctx);
 		const applicationStartAt = now - DAY;
 		const applicationEndAt = now + 7 * DAY;
@@ -180,7 +202,7 @@ export const reset = mutation({
 		const interviewEndAt = now + 15 * DAY;
 		const retentionAt = interviewEndAt + 45 * DAY;
 		const periodId = await ctx.db.insert("admissionPeriods", {
-			title: "Vår 2027",
+			title: periodTitle(now),
 			applicationStartAt,
 			applicationEndAt,
 			interviewStartAt,
@@ -298,7 +320,7 @@ async function seedOtherCandidates(
 				about: `${person.firstName} liker å lage digitale løsninger.`,
 				motivation: "Jeg vil bli kjent med flere i Navet.",
 				group: ADMISSION_GROUPS[index % (ADMISSION_GROUPS.length - 1)] ?? "Web",
-				availability: [{ day, start: 540, end: 960 }],
+				availability: index % 7 === 0 ? [] : [{ day, start: 540, end: 960 }],
 				consentedAt: now - 60_000,
 				consentVersion: "admissions-2026-01",
 				status: "submitted",

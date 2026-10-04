@@ -470,13 +470,13 @@ it("requires exactly two interviewers in both manual and generated schedules", a
 	).rejects.toThrow(/to ulike intervjuere/);
 });
 
-it("uses the same 12:00 to 13:00 lunch block as the shared scheduler", async () => {
-	const value = await scheduleFixture(12, 30, [{ day: "2026-10-08", start: 720, end: 800 }]);
+it("uses the same 12:00 to 12:30 lunch block as the shared scheduler", async () => {
+	const value = await scheduleFixture(12, 15, []);
 	const day = value.day;
-	const startAt = osloAt(day, 12, 30);
+	const startAt = osloAt(day, 12, 15);
 	const availability = [
+		{ day, start: 735, end: 750 },
 		{ day, start: 750, end: 770 },
-		{ day, start: 780, end: 800 },
 	];
 	await value.t.run((ctx) => ctx.db.patch(value.applicationId, { availability }));
 	await expect(
@@ -491,7 +491,7 @@ it("uses the same 12:00 to 13:00 lunch block as the shared scheduler", async () 
 	await expect(
 		value.admin.mutation(api.admissions.mutations.scheduleInterview, {
 			applicationId: value.applicationId,
-			startAt: osloAt(day, 13, 0),
+			startAt: osloAt(day, 12, 30),
 			interviewerIds: [value.interviewer._id, value.otherInterviewer._id],
 			selectedCalendarIds: [],
 			expectedRevision: 1,
@@ -534,6 +534,156 @@ it("covers applicant availability across adjacent windows in manual and generate
 			],
 		}),
 	).resolves.toMatchObject({ count: 1 });
+});
+
+it("requires explicit admin confirmation to manually schedule outside applicant availability", async () => {
+	const value = await scheduleFixture(10, 0, []);
+	const args = {
+		applicationId: value.applicationId,
+		startAt: value.startAt,
+		interviewerIds: [value.interviewer._id, value.otherInterviewer._id],
+		selectedCalendarIds: [],
+		expectedRevision: 1,
+	};
+	await expect(
+		value.admin.mutation(api.admissions.mutations.scheduleInterview, args),
+	).rejects.toThrow(/ikke tilgjengelig/);
+	await value.admin.mutation(api.admissions.mutations.scheduleInterview, {
+		...args,
+		candidateConfirmedOutsideForm: true,
+	});
+	const interview = await value.t.run((ctx) =>
+		ctx.db
+			.query("admissionInterviews")
+			.withIndex("by_applicationId", (q) => q.eq("applicationId", value.applicationId))
+			.unique(),
+	);
+	expect(interview?.candidateConfirmedOutsideForm).toBe(true);
+});
+
+it("derives manual interview calendars from the period's interviewer selections", async () => {
+	const value = await scheduleFixture(10, 0, []);
+	await value.t.run((ctx) =>
+		ctx.db.patch(value.applicationId, {
+			availability: [{ day: value.day, start: 600, end: 620 }],
+		}),
+	);
+	await value.admin.mutation(api.admissions.board.updateInterviewers, {
+		periodId: value.periodId,
+		expectedRevision: 1,
+		interviewers: [
+			{ userId: value.interviewer._id, selectedCalendarIds: ["primary"] },
+			{ userId: value.otherInterviewer._id, selectedCalendarIds: ["primary"] },
+		],
+	});
+	const args = {
+		applicationId: value.applicationId,
+		startAt: value.startAt,
+		interviewerIds: [value.interviewer._id, value.otherInterviewer._id],
+		expectedRevision: 1,
+	};
+	await expect(
+		value.admin.mutation(api.admissions.mutations.scheduleInterview, {
+			...args,
+			selectedCalendarIds: ["unselected-calendar"],
+		}),
+	).rejects.toThrow(/periodens oppsett/);
+	await value.admin.mutation(api.admissions.mutations.scheduleInterview, {
+		...args,
+		selectedCalendarIds: ["primary"],
+	});
+	const interview = await value.t.run((ctx) =>
+		ctx.db
+			.query("admissionInterviews")
+			.withIndex("by_applicationId", (q) => q.eq("applicationId", value.applicationId))
+			.unique(),
+	);
+	expect(interview?.selectedCalendarIds).toEqual(["primary"]);
+});
+
+it("keeps a published interview unchanged during generated replanning", async () => {
+	const value = await scheduleFixture(10, 0, []);
+	await value.t.run((ctx) =>
+		ctx.db.patch(value.applicationId, {
+			availability: [{ day: value.day, start: 600, end: 620 }],
+		}),
+	);
+	const endAt = value.startAt + 15 * MINUTE;
+	await value.t.run((ctx) =>
+		ctx.db.insert("admissionInterviews", {
+			periodId: value.periodId,
+			applicationId: value.applicationId,
+			startAt: value.startAt,
+			endAt,
+			interviewerIds: [value.interviewer._id, value.otherInterviewer._id],
+			selectedCalendarIds: [],
+			room: "Beta",
+			calendarEventId: "published-event",
+			publishedAt: Date.now(),
+			status: "scheduled",
+			revision: 3,
+		}),
+	);
+	await value.t.mutation(internal.admissions.internal.saveSchedule, {
+		periodId: value.periodId,
+		expectedRevision: 1,
+		assignments: [
+			{
+				applicationId: value.applicationId,
+				startAt: value.startAt,
+				endAt,
+				interviewerIds: [value.interviewer._id, value.otherInterviewer._id],
+				selectedCalendarIds: [],
+				room: "Beta",
+			},
+		],
+	});
+	const saved = await value.t.run((ctx) =>
+		ctx.db
+			.query("admissionInterviews")
+			.withIndex("by_applicationId", (q) => q.eq("applicationId", value.applicationId))
+			.unique(),
+	);
+	expect(saved).toMatchObject({
+		publishedAt: expect.any(Number),
+		calendarEventId: "published-event",
+	});
+});
+
+it("allows admins to cancel published applicant interviews and preserves notice intent", async () => {
+	const value = await scheduleFixture(10, 0, []);
+	const interviewId = await value.t.run((ctx) =>
+		ctx.db.insert("admissionInterviews", {
+			periodId: value.periodId,
+			applicationId: value.applicationId,
+			startAt: value.startAt,
+			endAt: value.startAt + 15 * MINUTE,
+			interviewerIds: [value.interviewer._id, value.otherInterviewer._id],
+			selectedCalendarIds: [],
+			room: "Beta",
+			publishedAt: Date.now(),
+			status: "scheduled",
+			revision: 3,
+		}),
+	);
+	const args = {
+		applicationId: value.applicationId,
+		expectedRevision: 1,
+		idempotencyKey: "board-cancel-test",
+	};
+	await expect(
+		value.t.mutation(api.admissions.mutations.cancelInterviewByBoard, args),
+	).rejects.toThrow();
+	await value.admin.mutation(api.admissions.mutations.cancelInterviewByBoard, args);
+	const result = await value.t.run(async (ctx) => ({
+		interview: await ctx.db.get(interviewId),
+		job: await ctx.db
+			.query("admissionOutbox")
+			.withIndex("by_idempotencyKey", (q) => q.eq("idempotencyKey", args.idempotencyKey))
+			.unique(),
+	}));
+	expect(result.interview?.status).toBe("cancelled");
+	expect(result.job?.notifyApplicant).toBe(true);
 });
 
 it("rejects invalid reviewed account details before sending an accepted offer", async () => {
