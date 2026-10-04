@@ -1,5 +1,6 @@
 import { type EmailId, Resend, vOnEmailEventArgs } from "@convex-dev/resend";
 import { vResultValidator, vWorkflowId } from "@convex-dev/workflow";
+import { INFO_EMAIL } from "@workspace/shared/constants/contact";
 import { feedbackTokenSchema } from "@workspace/shared/feedback";
 import { feedbackRoundAt } from "@workspace/shared/time";
 import { v } from "convex/values";
@@ -24,7 +25,7 @@ export const feedbackResend: Resend = new Resend(components.feedbackResend, {
 });
 export const FEEDBACK_REPLY_TO = "arrangement@ifinavet.no";
 export const feedbackSender = {
-	from: "Navet <info@ifinavet.no>",
+	from: `Navet <${INFO_EMAIL}>`,
 	replyTo: [FEEDBACK_REPLY_TO],
 };
 export const deliveryArgs = {

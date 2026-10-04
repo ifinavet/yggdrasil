@@ -1,6 +1,7 @@
 "use client";
 
 import { MIDGARD_URL } from "@workspace/shared/constants";
+import { WEB_CONTACT_EMAIL } from "@workspace/shared/constants/contact";
 import { Button } from "@workspace/ui/components/button";
 import {
 	Card,
@@ -66,7 +67,7 @@ export default function ErrorPage({ error, reset }: Readonly<ErrorProps>) {
 							<p className="text-muted-foreground text-sm">
 								Trenger du hjelp?{" "}
 								<a
-									href="mailto:web@ifinavet.no"
+									href={`mailto:${WEB_CONTACT_EMAIL}`}
 									className="inline-flex items-center gap-1 text-primary hover:underline dark:text-primary-light"
 								>
 									<Mail className="h-3 w-3" />

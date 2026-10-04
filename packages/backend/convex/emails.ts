@@ -7,6 +7,7 @@ import FreeForAllEmail from "@workspace/emails/free-for-all-email";
 import LockedOutEmail from "@workspace/emails/locked-out-email";
 import PointsEmail from "@workspace/emails/point-email";
 import { MIDGARD_URL } from "@workspace/shared/constants";
+import { INFO_EMAIL, POINTS_EMAIL } from "@workspace/shared/constants/contact";
 import { v } from "convex/values";
 import { components } from "./_generated/api";
 import { internalAction } from "./_generated/server";
@@ -47,7 +48,7 @@ export const sendGottenPointsEmail = internalAction({
 		);
 
 		await resend.sendEmail(ctx, {
-			from: "Navet <prikker@ifinavet.no>",
+			from: `Navet <${POINTS_EMAIL}>`,
 			replyTo: ["arrangement@ifinavet.no"],
 			to: participantEmail,
 			subject: "Du har fått prikk(er).",
@@ -73,7 +74,7 @@ export const sendTooManyPointsEmail = internalAction({
 		const html = await pretty(await render(LockedOutEmail()));
 
 		await resend.sendEmail(ctx, {
-			from: "Navet <prikker@ifinavet.no>",
+			from: `Navet <${POINTS_EMAIL}>`,
 			replyTo: ["arrangement@ifinavet.no"],
 			to: participantEmail,
 			subject: "Du har fått for mange prikker.",
@@ -114,7 +115,7 @@ export const sendAvailableSeatEmail = internalAction({
 		);
 
 		await resend.sendEmail(ctx, {
-			from: "Navet <info@ifinavet.no>",
+			from: `Navet <${INFO_EMAIL}>`,
 			replyTo: ["arrangement@ifinavet.no"],
 			to: participantEmail,
 			subject: `Godta plass på ${eventTitle}`,
@@ -156,7 +157,7 @@ export const sendFreeForAll = internalAction({
 		);
 
 		await resend.sendEmail(ctx, {
-			from: "Navet <info@ifinavet.no>",
+			from: `Navet <${INFO_EMAIL}>`,
 			replyTo: ["arrangement@ifinavet.no"],
 			to: participantEmail,
 			subject: `Det er ${availableSeats} ledige plasser, første mann til mølla!`,

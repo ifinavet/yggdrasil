@@ -3,6 +3,7 @@
 import { Resend } from "@convex-dev/resend";
 import { pretty, render } from "@react-email/render";
 import WorkspaceWelcomeEmail from "@workspace/emails/workspace-welcome-email";
+import { INFO_EMAIL } from "@workspace/shared/constants/contact";
 import { normalizeEmail } from "@workspace/shared/iam";
 import { v } from "convex/values";
 import { components, internal } from "../_generated/api";
@@ -90,7 +91,7 @@ async function sendWelcome(ctx: ActionCtx, account: Account, password?: string) 
 		return;
 	}
 	await iamResend.sendEmail(ctx, {
-		from: "Navet <info@ifinavet.no>",
+		from: `Navet <${INFO_EMAIL}>`,
 		replyTo: account.inviterEmail ? [account.inviterEmail] : undefined,
 		to: account.uioEmail,
 		subject: "Velkommen til Navet",

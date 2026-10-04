@@ -1,4 +1,9 @@
 import { api } from "@workspace/backend/convex/api";
+import {
+	BOARD_CONTACT_EMAIL,
+	COORDINATOR_CONTACT_EMAIL,
+	WEB_CONTACT_EMAIL,
+} from "@workspace/shared/constants/contact";
 import ResponsiveCenterContainer from "@workspace/ui/components/responsive-center-container";
 import { Title } from "@workspace/ui/components/title";
 import { fetchQuery } from "convex/nextjs";
@@ -35,15 +40,15 @@ export default async function StudentsPage() {
 								Her har vi forsøkt å samle de mest vanlige spørsmålene om Navet. Hvis du har et
 								spørsmål du ikke finner svar på her, kontakt oss gjerne på våre SoMe-kanaler eller
 								send en mail til{" "}
-								<a href="mailto:koordinator@ifinavet.no" className="underline">
-									koordinator@ifinavet.no
+								<a href={`mailto:${COORDINATOR_CONTACT_EMAIL}`} className="underline">
+									{COORDINATOR_CONTACT_EMAIL}
 								</a>
 								!
 								<br />
 								<br />
 								Dersom du opplever problemer med nettsiden send mail til{" "}
-								<a href="mailto:web@ifinavet.no" className="underline">
-									web@ifinavet.no
+								<a href={`mailto:${WEB_CONTACT_EMAIL}`} className="underline">
+									{WEB_CONTACT_EMAIL}
 								</a>
 								<br />
 								<br />
@@ -63,7 +68,7 @@ export default async function StudentsPage() {
 							fullName={
 								(coordinator && `${coordinator.firstName} ${coordinator.lastName}`) ?? "Koordinator"
 							}
-							email={coordinator?.positionEmail ?? coordinator?.email ?? "styret@ifinavet.no"}
+							email={coordinator?.positionEmail ?? coordinator?.email ?? BOARD_CONTACT_EMAIL}
 							imageUrl={coordinator?.image}
 							initials="KO"
 						/>

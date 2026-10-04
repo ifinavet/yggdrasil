@@ -1,4 +1,5 @@
 import { api } from "@workspace/backend/convex/api";
+import { BOARD_CONTACT_EMAIL } from "@workspace/shared/constants/contact";
 import { Button } from "@workspace/ui/components/button";
 import ResponsiveCenterContainer from "@workspace/ui/components/responsive-center-container";
 import { Title } from "@workspace/ui/components/title";
@@ -74,7 +75,7 @@ export default async function CompaniesPage() {
 								(companyContact && `${companyContact.firstName} ${companyContact.lastName}`) ??
 								"Bedriftskontakt"
 							}
-							email={companyContact?.positionEmail ?? companyContact?.email ?? "styret@ifinavet.no"}
+							email={companyContact?.positionEmail ?? companyContact?.email ?? BOARD_CONTACT_EMAIL}
 							imageUrl={companyContact?.image}
 							initials="BK"
 						/>
