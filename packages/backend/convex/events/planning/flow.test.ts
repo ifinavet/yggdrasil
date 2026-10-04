@@ -92,6 +92,34 @@ afterEach(() => {
 });
 
 describe("company event planning", () => {
+	it("does not tag organizers in system planning notices", async () => {
+		const f = await fixture();
+		await f.t.run(async (ctx) => {
+			const organizers = await ctx.db.query("eventOrganizers").collect();
+			for (const [index, organizer] of organizers.entries()) {
+				await ctx.db.insert("memberAccounts", {
+					userId: organizer.userId,
+					workspaceEmail: `organizer${index}@ifinavet.no`,
+					firstName: "Test",
+					lastName: "Person",
+					group: "Bedrift",
+					stage: "active",
+					google: "created",
+					slackUserId: `UORGANIZER${index}`,
+					updatedAt: NOW,
+				});
+			}
+			await prepareDue(ctx, (await ctx.db.get(f.eventId))!, NOW);
+		});
+		const notices = await f.t.run((ctx) => ctx.db.query("slackSystemDeliveries").collect());
+		expect(notices).toHaveLength(1);
+		expect(notices[0]?.text).not.toContain("<@");
+		expect(notices[0]?.text).toContain("Mail for førstegangskontakt");
+		expect(notices[0]?.text).toContain("Åpne i Bifrost");
+		expect(await f.t.run((ctx) => ctx.db.query("eventSlackNotifications").collect())).toHaveLength(
+			1,
+		);
+	});
 	it("records who approved sending in the system channel without claiming delivery", async () => {
 		const f = await invited();
 		const notices = await f.t.run((ctx) => ctx.db.query("slackSystemDeliveries").collect());

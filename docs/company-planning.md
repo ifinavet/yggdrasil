@@ -25,7 +25,7 @@ The draft PR tracks verification and deployment status. Screenshots in `company-
 ## Runtime and operations
 
 - `events/planning/lifecycle.discover` catches up eligible events once an hour. It creates preparation records and Slack notices; it never sends an invitation automatically.
-- The existing event channel mapping and durable Slack queues are reused. Delivery and publication failures retain actionable state on the event page. Unresolved planning follow-up keeps the event channel open.
+- The existing event channel mapping and durable Slack queues are reused. System planning notices do not tag people; organizer mentions remain in event channels. Delivery and publication failures retain actionable state on the event page. Unresolved planning follow-up keeps the event channel open.
 - Confirmed company replies include the company name and a bounded overview of content, venue, start time, capacity, food, alcohol, stand, language and other wishes in both Slack channels. Publication errors explicitly refer to publishing the event on the website.
 - Internal approval to send (including an explicit retry) records the acting internal, company and recipient in the system Slack channel immediately after the invitation is queued. This is separate from provider-confirmed sending.
 - Confirmed invitation sends notify both the system and event Slack channels once per email. Delivered callbacks and delivery recovery also cover missed sent callbacks. Confirmation emails do not trigger invitation-sent notices.
