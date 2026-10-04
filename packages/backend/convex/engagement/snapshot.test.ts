@@ -239,6 +239,17 @@ describe("baselineFor", () => {
 		expect(baselineFor([past(100, [0, 1])], 10)).toBeNull();
 	});
 
+	it("excludes explicitly different reminder settings but retains unknown legacy settings", () => {
+		const timeline = { registrationOpens: OPENS, eventStart: START, remindersEnabled: true };
+		const legacy = {
+			...past(10, PACE_GRID),
+			timeline: { ...timeline, remindersEnabled: undefined },
+		};
+		const disabled = { ...past(10, PACE_GRID), timeline: { ...timeline, remindersEnabled: false } };
+		expect(baselineFor([disabled], 10, [], timeline)).toBeNull();
+		expect(baselineFor([legacy, disabled], 10, [], timeline)?.size).toBe(1);
+	});
+
 	it("filters by similar capacity and caps the sample size", () => {
 		const curves = Array.from({ length: 20 }, () => past(10, [0, 0.5, 1]));
 		const baseline = baselineFor([...curves, past(1000, [0, 1, 1])], 10);

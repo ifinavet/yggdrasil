@@ -134,7 +134,10 @@ export function baselineFor(
 	timeline?: ForecastTimeline,
 ) {
 	const comparable = (past: PastCurve) =>
-		!timeline || !past.timeline || !!past.timeline.remindersEnabled === !!timeline.remindersEnabled;
+		// Missing settings on legacy events mean unknown, not explicitly disabled.
+		past.timeline?.remindersEnabled === undefined ||
+		timeline?.remindersEnabled === undefined ||
+		past.timeline.remindersEnabled === timeline.remindersEnabled;
 	const aligned = (past: PastCurve) =>
 		timeline && past.timeline ? alignedCurve(past.curve, past.timeline, timeline) : past.curve;
 	const own = companyCurves.filter(comparable).slice(0, COMPANY_BASELINE.size);

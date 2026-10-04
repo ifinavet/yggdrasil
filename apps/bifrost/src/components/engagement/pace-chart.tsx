@@ -197,19 +197,6 @@ export function PaceChart({
 		>
 			<PanelBody className="grid gap-3">
 				{curve ? <PaceChartBody curve={curve} /> : <Skeleton className="h-[280px] w-full" />}
-				{curve && curve.reminders.length > 0 && (
-					<ul
-						className="flex flex-wrap gap-x-6 gap-y-1 text-muted-foreground text-xs"
-						aria-label="Påminnelsesmailer"
-					>
-						{curve.reminders.map((reminder) => (
-							<li key={reminder.kind}>
-								{reminder.kind === "week" ? "7-dagersmail" : "2-dagersmail"}:{" "}
-								{formatOsloDate(reminder.at, "d. MMM HH:mm")} · {reminder.status}
-							</li>
-						))}
-					</ul>
-				)}
 				<PanelNote>{forecastNote(curve, note)}</PanelNote>
 			</PanelBody>
 		</Panel>
