@@ -24,7 +24,7 @@ The draft PR tracks verification and deployment status. Screenshots in `company-
 
 ## Runtime and operations
 
-- `events/planning/lifecycle.discover` catches up eligible events every five minutes. It creates preparation records and Slack notices; it never sends an invitation automatically.
+- `events/planning/lifecycle.discover` catches up eligible events once an hour. It creates preparation records and Slack notices; it never sends an invitation automatically.
 - The existing event channel mapping and durable Slack queues are reused. Delivery and publication failures retain actionable state on the event page. Unresolved planning follow-up keeps the event channel open.
 - Email uses the existing tracked Resend component and signed `/resend-webhook` callback. Delivery recovery checks the provider queue when callbacks are delayed or missing. No additional webhook endpoint is needed.
 - Set `PLANNING_VERIFIED_SENDER_DOMAIN=ifinavet.no` only when that domain is verified for sending in the configured Resend account. Matching organizer addresses then become the From address. Otherwise invitations use `Navet <info@ifinavet.no>` with the main organizer as Reply-To. All organizers receive invitation CC; confirmation emails never include CC.

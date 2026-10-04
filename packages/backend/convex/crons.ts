@@ -8,7 +8,7 @@ const crons = cronJobs();
 
 crons.interval(
 	"Prepare company planning invitations",
-	{ minutes: 5 },
+	{ hours: 1 },
 	internal.events.planning.lifecycle.discover,
 	{},
 );
