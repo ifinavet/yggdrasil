@@ -1,6 +1,4 @@
-import { EVENT_CONTACT_EMAIL } from "@workspace/shared/constants/contact";
-
-("use node");
+"use node";
 
 import { Resend } from "@convex-dev/resend";
 import { pretty, render } from "@react-email/render";
@@ -9,6 +7,7 @@ import FreeForAllEmail from "@workspace/emails/free-for-all-email";
 import LockedOutEmail from "@workspace/emails/locked-out-email";
 import PointsEmail from "@workspace/emails/point-email";
 import { MIDGARD_URL } from "@workspace/shared/constants";
+import { EVENT_CONTACT_EMAIL } from "@workspace/shared/constants/contact";
 import { v } from "convex/values";
 import { components } from "./_generated/api";
 import { internalAction } from "./_generated/server";
