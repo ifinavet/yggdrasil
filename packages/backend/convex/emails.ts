@@ -1,4 +1,6 @@
-"use node";
+import { EVENT_CONTACT_EMAIL } from "@workspace/shared/constants/contact";
+
+("use node");
 
 import { Resend } from "@convex-dev/resend";
 import { pretty, render } from "@react-email/render";
@@ -48,7 +50,7 @@ export const sendGottenPointsEmail = internalAction({
 
 		await resend.sendEmail(ctx, {
 			from: "Navet <prikker@ifinavet.no>",
-			replyTo: ["arrangement@ifinavet.no"],
+			replyTo: [EVENT_CONTACT_EMAIL],
 			to: participantEmail,
 			subject: "Du har fått prikk(er).",
 			html,
@@ -74,7 +76,7 @@ export const sendTooManyPointsEmail = internalAction({
 
 		await resend.sendEmail(ctx, {
 			from: "Navet <prikker@ifinavet.no>",
-			replyTo: ["arrangement@ifinavet.no"],
+			replyTo: [EVENT_CONTACT_EMAIL],
 			to: participantEmail,
 			subject: "Du har fått for mange prikker.",
 			html,
@@ -115,7 +117,7 @@ export const sendAvailableSeatEmail = internalAction({
 
 		await resend.sendEmail(ctx, {
 			from: "Navet <info@ifinavet.no>",
-			replyTo: ["arrangement@ifinavet.no"],
+			replyTo: [EVENT_CONTACT_EMAIL],
 			to: participantEmail,
 			subject: `Godta plass på ${eventTitle}`,
 			html,
@@ -157,7 +159,7 @@ export const sendFreeForAll = internalAction({
 
 		await resend.sendEmail(ctx, {
 			from: "Navet <info@ifinavet.no>",
-			replyTo: ["arrangement@ifinavet.no"],
+			replyTo: [EVENT_CONTACT_EMAIL],
 			to: participantEmail,
 			subject: `Det er ${availableSeats} ledige plasser, første mann til mølla!`,
 			html,
