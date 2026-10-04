@@ -10,123 +10,16 @@ import {
 	SidebarMenuItem,
 } from "@workspace/ui/components/sidebar";
 import { useFeatureEnabled } from "@workspace/ui/hooks/use-feature-enabled";
-import {
-	BanknoteIcon,
-	BookOpenIcon,
-	BriefcaseIcon,
-	BuildingIcon,
-	CalendarIcon,
-	CalendarRangeIcon,
-	ClipboardListIcon,
-	FileIcon,
-	GitForkIcon,
-	type LucideIcon,
-	ReceiptIcon,
-	TrendingUpIcon,
-	TrophyIcon,
-	UsersIcon,
-	UtensilsIcon,
-} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { PRODUCT_ROUTES } from "@/components/products/product-routes";
-
-type SidebarItem = {
-	title: string;
-	icon: LucideIcon;
-	path: string;
-	feature?: GatedFeature;
-};
-
-const paths = {
-	main: [
-		{
-			title: "Arrangementer",
-			icon: CalendarIcon,
-			path: "/events",
-		},
-		{
-			title: "Stillingsannonser",
-			icon: BriefcaseIcon,
-			path: "/job-listings",
-		},
-		{
-			title: "Innsikt",
-			icon: TrendingUpIcon,
-			path: "/insight",
-			feature: "engagement",
-		},
-		{
-			title: "Leaderboard",
-			icon: TrophyIcon,
-			path: "/leaderboard",
-		},
-		{
-			title: "Resurser",
-			icon: BookOpenIcon,
-			path: "/resources",
-		},
-	],
-	pages: [
-		{
-			title: "Sider",
-			icon: FileIcon,
-			path: "/pages",
-		},
-	],
-	admin: [
-		{
-			title: "Studenter",
-			icon: UsersIcon,
-			path: "/students",
-		},
-		{
-			title: "Bedrifter",
-			icon: BuildingIcon,
-			path: "/companies",
-		},
-		{
-			title: "Organisasjon",
-			icon: GitForkIcon,
-			path: "/organization",
-		},
-		{
-			title: "Produkter",
-			icon: BanknoteIcon,
-			path: PRODUCT_ROUTES.list,
-			feature: "products",
-		},
-		{
-			title: "Fakturaer",
-			icon: ReceiptIcon,
-			path: "/invoicing",
-			feature: "products",
-		},
-		{
-			title: "Mat",
-			icon: UtensilsIcon,
-			path: "/food",
-		},
-		{
-			title: "Skjemaer",
-			icon: ClipboardListIcon,
-			path: "/feedback-forms",
-		},
-		{
-			title: "Semesterplan",
-			icon: CalendarRangeIcon,
-			path: "/semesterplan",
-			feature: "semesterPlanning",
-		},
-	],
-} satisfies Record<string, SidebarItem[]>;
+import { type SidebarGroupKey, visibleSections } from "./sidebar-navigation";
 
 export function SidebarContentGroup({
 	title,
 	items,
 }: Readonly<{
 	title: string;
-	items: keyof typeof paths;
+	items: SidebarGroupKey;
 }>) {
 	const rootPathSegment = usePathname().split("/")[1];
 	const enabled: Record<GatedFeature, boolean> = {
@@ -137,31 +30,36 @@ export function SidebarContentGroup({
 		engagement: useFeatureEnabled("engagement"),
 		eventReminders: useFeatureEnabled("eventReminders"),
 	};
-	const visibleItems = paths[items].filter(
-		(item: SidebarItem) => item.feature === undefined || enabled[item.feature],
-	);
+	const sections = visibleSections(items, enabled);
 
 	return (
 		<SidebarGroup>
 			<SidebarGroupLabel>{title}</SidebarGroupLabel>
-			<SidebarGroupContent>
-				<SidebarMenu>
-					{visibleItems.map((item) => (
-						<SidebarMenuItem key={item.title}>
-							<SidebarMenuButton
-								tooltip={item.title}
-								asChild
-								isActive={item.path === `/${rootPathSegment}`}
-							>
-								<Link href={item.path}>
-									{item.icon && <item.icon />}
-									<span>{item.title}</span>
-								</Link>
-							</SidebarMenuButton>
-						</SidebarMenuItem>
-					))}
-				</SidebarMenu>
-			</SidebarGroupContent>
+			{sections.map((section) => (
+				<SidebarGroupContent key={section.title ?? items}>
+					{section.title && (
+						<SidebarGroupLabel className="font-normal text-sidebar-foreground/50 group-data-[collapsible=icon]:hidden">
+							{section.title}
+						</SidebarGroupLabel>
+					)}
+					<SidebarMenu>
+						{section.items.map((item) => (
+							<SidebarMenuItem key={item.title}>
+								<SidebarMenuButton
+									tooltip={item.title}
+									asChild
+									isActive={item.path === `/${rootPathSegment}`}
+								>
+									<Link href={item.path}>
+										<item.icon />
+										<span>{item.title}</span>
+									</Link>
+								</SidebarMenuButton>
+							</SidebarMenuItem>
+						))}
+					</SidebarMenu>
+				</SidebarGroupContent>
+			))}
 		</SidebarGroup>
 	);
 }

@@ -1,6 +1,6 @@
 import { logoProblem } from "@workspace/shared/logo";
 import { ConvexError } from "convex/values";
-import type { Id } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
 
 export async function requireLogo(ctx: QueryCtx, id: string): Promise<Id<"_storage">> {
@@ -26,6 +26,17 @@ export async function findCompanyLogoUrl(
 	companyId: Id<"companies">,
 ): Promise<string | null> {
 	const company = await ctx.db.get(companyId);
-	const logo = company ? await ctx.db.get(company.logo) : null;
+	return company ? companyLogoUrl(ctx, company) : null;
+}
+
+export async function companyLogoUrl(
+	ctx: QueryCtx,
+	company: Doc<"companies">,
+): Promise<string | null> {
+	const logo = await ctx.db.get(company.logo);
 	return logo ? ctx.storage.getUrl(logo.image) : null;
+}
+
+export async function withLogoUrl(ctx: QueryCtx, company: Doc<"companies">) {
+	return { ...company, logoUrl: await companyLogoUrl(ctx, company) };
 }
