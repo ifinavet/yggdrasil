@@ -12,26 +12,43 @@ async function isCurrent(ctx: Parameters<typeof requireRole>[0], job: Doc<"admis
 	const period = await ctx.db.get(job.periodId);
 	if (job.kind === "archive_channel") return period?.status === "closing";
 	if (!period) return false;
-	if (job.kind === "cancel_interview") {
-		const interview = job.interviewId ? await ctx.db.get(job.interviewId) : null;
-		return interview?.status === "cancelled" && interview.revision === job.revision;
-	}
+	if (job.kind === "cancel_interview") return isCancellationCurrent(ctx, job);
 	if (period.status === "closing") return false;
-	if (job.kind === "publish" || job.kind === "remind_3d" || job.kind === "remind_1d") {
-		const interview = job.interviewId ? await ctx.db.get(job.interviewId) : null;
-		if (interview?.status !== "scheduled" || interview.revision !== job.revision) return false;
-		return job.kind === "publish"
-			? period.status === "published"
-			: interview.publishedAt !== undefined;
-	}
-	if (job.kind === "delivery_failure") {
-		const delivery = job.deliveryId ? await ctx.db.get(job.deliveryId) : null;
-		return (
-			delivery?.periodId === job.periodId &&
-			["delayed", "failed", "bounced", "complained"].includes(delivery.status)
-		);
-	}
+	if (job.kind === "delivery_failure") return isDeliveryFailureCurrent(ctx, job);
+	if (job.kind === "publish" || job.kind === "remind_3d" || job.kind === "remind_1d")
+		return isInterviewJobCurrent(ctx, job, period.status);
 	return isApplicationJobCurrent(ctx, job);
+}
+
+async function isCancellationCurrent(
+	ctx: Parameters<typeof requireRole>[0],
+	job: Doc<"admissionOutbox">,
+) {
+	const interview = job.interviewId ? await ctx.db.get(job.interviewId) : null;
+	return interview?.status === "cancelled" && interview.revision === job.revision;
+}
+
+async function isDeliveryFailureCurrent(
+	ctx: Parameters<typeof requireRole>[0],
+	job: Doc<"admissionOutbox">,
+) {
+	const delivery = job.deliveryId ? await ctx.db.get(job.deliveryId) : null;
+	return (
+		delivery?.periodId === job.periodId &&
+		["delayed", "failed", "bounced", "complained"].includes(delivery.status)
+	);
+}
+
+async function isInterviewJobCurrent(
+	ctx: Parameters<typeof requireRole>[0],
+	job: Doc<"admissionOutbox">,
+	periodStatus: Doc<"admissionPeriods">["status"],
+) {
+	const interview = job.interviewId ? await ctx.db.get(job.interviewId) : null;
+	if (interview?.status !== "scheduled" || interview.revision !== job.revision) return false;
+	return job.kind === "publish"
+		? periodStatus === "published"
+		: interview.publishedAt !== undefined;
 }
 
 async function isApplicationJobCurrent(

@@ -313,60 +313,67 @@ async function remind(ctx: ActionCtx, claimed: CurrentClaim, days: 1 | 3) {
 	return { deliveryIds: [emailId] };
 }
 
-async function cancelInterview(ctx: ActionCtx, claimed: CurrentClaim) {
-	const { period, interview, applicant, interviewers, job } = claimed;
-	if (!interview) return {};
+async function cancelCalendarEvent(ctx: ActionCtx, claimed: CurrentClaim) {
+	const { interview, interviewers, job } = claimed;
+	if (!interview?.calendarEventId || isLocalDevelopment()) return;
 	const owner = interviewers.find((person) => person.userId === interview.interviewerIds[0]);
-	if (interview.calendarEventId && !isLocalDevelopment()) {
-		if (!owner) throw new Error("Fant ikke kalenderansvarlig for avlysningen.");
-		if (!(await current(ctx, job.idempotencyKey))) throw new StaleAdmissionJob();
-		const config = googleConfigOrThrow();
-		if (!isWorkspaceEmail(owner.email, config.domain))
-			throw new Error("Intervjueren mangler en Navet Workspace-konto for kalenderdelegering.");
-		await googleCalendarClient(config, owner.email).cancelEvent(
-			"primary",
-			interview.calendarEventId,
-		);
-	}
-	const notifyApplicant =
-		interview.calendarEventId !== undefined &&
-		interview.startAt > Date.now() &&
-		applicant !== null &&
-		claimed.application !== null;
-	if (notifyApplicant && applicant && claimed.application) {
-		if (!(await current(ctx, job.idempotencyKey))) throw new StaleAdmissionJob();
-		const key = `admission:interview:${interview._id}:${interview.revision}:cancelled`;
-		const html = await render(
-			AdmissionsCancellationEmail({
-				firstName: applicant.name.split(/\s+/)[0] ?? "",
-				periodTitle: period.title,
-				when: when(interview.startAt),
-			}),
-		);
-		const emailId = await deliverEmail(ctx, {
-			periodId: period._id,
-			applicationId: claimed.application._id,
-			kind: "cancelled",
-			key,
-			to: applicant.email,
-			subject: `Intervjuet er avlyst, ${period.title}`,
-			html,
-			text: `Intervjuet ${when(interview.startAt)} er avlyst. Vi beklager endringen.`,
-		});
-		if (!isLocalDevelopment() && notifyApplicant) {
-			const slack = admissionsSlack();
-			const channel = await ensureAdmissionsChannel(slack, period, interviewers);
-			await postAdmissionsNotice(
-				slack,
-				channel,
-				`cancelled:${interview._id}:${interview.revision}`,
-				interview._creationTime,
-				`Et intervju i ${period.title} er avlyst. Kalenderinvitasjonen er oppdatert.`,
-			);
-		}
-		return { deliveryIds: [emailId] };
-	}
-	return {};
+	if (!owner) throw new Error("Fant ikke kalenderansvarlig for avlysningen.");
+	if (!(await current(ctx, job.idempotencyKey))) throw new StaleAdmissionJob();
+	const config = googleConfigOrThrow();
+	if (!isWorkspaceEmail(owner.email, config.domain))
+		throw new Error("Intervjueren mangler en Navet Workspace-konto for kalenderdelegering.");
+	await googleCalendarClient(config, owner.email).cancelEvent("primary", interview.calendarEventId);
+}
+
+async function sendCancellationEmail(ctx: ActionCtx, claimed: CurrentClaim) {
+	const { period, interview, applicant, application, job } = claimed;
+	if (!interview || !applicant || !application) throw new StaleAdmissionJob();
+	if (!(await current(ctx, job.idempotencyKey))) throw new StaleAdmissionJob();
+	const key = `admission:interview:${interview._id}:${interview.revision}:cancelled`;
+	const html = await render(
+		AdmissionsCancellationEmail({
+			firstName: applicant.name.split(/\s+/)[0] ?? "",
+			periodTitle: period.title,
+			when: when(interview.startAt),
+		}),
+	);
+	return deliverEmail(ctx, {
+		periodId: period._id,
+		applicationId: application._id,
+		kind: "cancelled",
+		key,
+		to: applicant.email,
+		subject: `Intervjuet er avlyst, ${period.title}`,
+		html,
+		text: `Intervjuet ${when(interview.startAt)} er avlyst. Vi beklager endringen.`,
+	});
+}
+
+async function sendCancellationNotice(ctx: ActionCtx, claimed: CurrentClaim) {
+	if (isLocalDevelopment()) return;
+	const { period, interview, interviewers, job } = claimed;
+	if (!interview) return;
+	if (!(await current(ctx, job.idempotencyKey))) throw new StaleAdmissionJob();
+	const slack = admissionsSlack();
+	const channel = await ensureAdmissionsChannel(slack, period, interviewers);
+	await postAdmissionsNotice(
+		slack,
+		channel,
+		`cancelled:${interview._id}:${interview.revision}`,
+		interview._creationTime,
+		`Et intervju i ${period.title} er avlyst. Kalenderinvitasjonen er oppdatert.`,
+	);
+}
+
+async function cancelInterview(ctx: ActionCtx, claimed: CurrentClaim) {
+	const { interview, applicant, application } = claimed;
+	if (!interview) return {};
+	await cancelCalendarEvent(ctx, claimed);
+	if (!interview.calendarEventId || interview.startAt <= Date.now() || !applicant || !application)
+		return {};
+	const emailId = await sendCancellationEmail(ctx, claimed);
+	await sendCancellationNotice(ctx, claimed);
+	return { deliveryIds: [emailId] };
 }
 
 async function sendDeclineNotice(ctx: ActionCtx, claimed: CurrentClaim, key: string) {
