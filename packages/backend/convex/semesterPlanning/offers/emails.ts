@@ -3,7 +3,7 @@
 import { render } from "@react-email/render";
 import CompanyOfferEmail from "@workspace/emails/company-offer-email";
 import { HUGIN_LOCAL_URL, HUGIN_URL } from "@workspace/shared/constants";
-import { COMPANY_CONTACT_EMAIL } from "@workspace/shared/constants/contact";
+import { COMPANY_CONTACT_EMAIL, INFO_EMAIL } from "@workspace/shared/constants/contact";
 import { offerPath } from "@workspace/shared/semester/application";
 import { formatSemesterDay } from "@workspace/shared/time";
 import { v } from "convex/values";
@@ -34,7 +34,7 @@ export const sendOfferEmail = internalAction({
 		const firstName = offer.contactName.split(/\s+/)[0] ?? offer.contactName;
 		const html = await render(CompanyOfferEmail({ firstName, day, url }));
 		await orderResend.sendEmail(ctx, {
-			from: "Navet <info@ifinavet.no>",
+			from: `Navet <${INFO_EMAIL}>`,
 			replyTo: [COMPANY_CONTACT_EMAIL],
 			to: offer.to,
 			subject: `Tilbud om bedriftsarrangement ${day}`,

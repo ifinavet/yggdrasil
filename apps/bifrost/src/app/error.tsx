@@ -1,5 +1,7 @@
 "use client";
 
+import { WEB_CONTACT_EMAIL } from "@workspace/shared/constants/contact";
+
 import { Button } from "@workspace/ui/components/button";
 import {
 	Card,
@@ -93,7 +95,7 @@ export default function ErrorPage({ error, reset }: Readonly<ErrorProps>) {
 							<p className="text-muted-foreground text-sm">
 								Hvis problemet vedvarer, vennligst{" "}
 								<a
-									href="mailto:web@ifinavet.no"
+									href={`mailto:${WEB_CONTACT_EMAIL}`}
 									className="text-primary-foreground hover:underline"
 								>
 									kontakt webansvarlig

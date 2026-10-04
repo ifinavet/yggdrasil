@@ -1,6 +1,7 @@
 import { getAuthToken } from "@workspace/auth";
 import { auth } from "@workspace/auth/server";
 import { api } from "@workspace/backend/convex/api";
+import { WEB_CONTACT_EMAIL } from "@workspace/shared/constants/contact";
 import { humanReadableDate } from "@workspace/shared/time";
 import { Button } from "@workspace/ui/components/button";
 import { fetchQuery } from "convex/nextjs";
@@ -60,7 +61,7 @@ export default async function EventResponse({
 						<>
 							Svarte du feil?{" "}
 							<a
-								href="mailto:web@ifinavet.no"
+								href={`mailto:${WEB_CONTACT_EMAIL}`}
 								className="text-primary underline underline-offset-[3px]"
 							>
 								Gi beskjed til webansvarlig

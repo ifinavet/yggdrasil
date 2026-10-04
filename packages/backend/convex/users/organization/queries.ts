@@ -1,3 +1,4 @@
+import { BOARD_CONTACT_EMAIL } from "@workspace/shared/constants/contact";
 import { ConvexError, v } from "convex/values";
 import { query } from "../../_generated/server";
 import { adminRoles, internalRoles, requireRole } from "../../auth/accessRights";
@@ -54,7 +55,7 @@ export const getTheBoard = query({
 				return {
 					...member,
 					fullName: (user && `${user.firstName} ${user.lastName}`) ?? "Styremedlem",
-					email: user?.email ?? "styret@ifinavet.no",
+					email: user?.email ?? BOARD_CONTACT_EMAIL,
 					image: user?.image,
 				};
 			}),
