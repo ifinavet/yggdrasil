@@ -12,7 +12,8 @@ import {
 } from "@workspace/ui/components/select";
 import { Textarea } from "@workspace/ui/components/textarea";
 import { CalendarDays, ExternalLink, Mail, MapPin } from "lucide-react";
-import { toast } from "sonner";
+import type { ReactNode } from "react";
+import { useState } from "react";
 import {
 	type Candidate,
 	type CandidateEdit,
@@ -21,11 +22,12 @@ import {
 	dateLabel,
 	decisionLabels,
 	decisions,
+	team as fixtureTeam,
 	type Interview,
+	type Interviewer,
 	roomUrl,
 	type Settings,
 	type Slot,
-	team,
 } from "./model";
 
 export function CandidateDialog({
@@ -37,6 +39,10 @@ export function CandidateDialog({
 	onClose,
 	onEdit,
 	onRoomChange,
+	team = fixtureTeam,
+	onSaveNotes,
+	onRequestAvailability,
+	actions,
 }: Readonly<{
 	candidate: Candidate | undefined;
 	selectedSlot: Slot | undefined;
@@ -46,7 +52,12 @@ export function CandidateDialog({
 	onClose: () => void;
 	onEdit: (data: CandidateEdit) => void;
 	onRoomChange: (room: string) => void;
+	team?: Interviewer[];
+	onSaveNotes?: (notes: string) => Promise<void>;
+	onRequestAvailability?: () => void;
+	actions?: ReactNode;
 }>) {
+	const [noteDraft, setNoteDraft] = useState(candidate?.notes ?? "");
 	return (
 		<Dialog
 			open={Boolean(candidate)}
@@ -85,15 +96,21 @@ export function CandidateDialog({
 										id="interview-notes"
 										className="font-normal text-base leading-relaxed"
 										rows={4}
-										value={candidate.notes}
-										onChange={(e) => onEdit({ notes: e.target.value })}
+										value={onSaveNotes ? noteDraft : candidate.notes}
+										onChange={(e) =>
+											onSaveNotes ? setNoteDraft(e.target.value) : onEdit({ notes: e.target.value })
+										}
 										placeholder="Notater fra samtalen"
 									/>
 								</Label>
+								{onSaveNotes && (
+									<Button onClick={() => void onSaveNotes(noteDraft)}>Lagre notater</Button>
+								)}
 								<div className="admissions-decision">
 									<Label htmlFor="candidate-decision">Vedtak</Label>
 									<Select
 										value={candidate.decision}
+										disabled={candidate.decisionLocked}
 										onValueChange={(value) => onEdit({ decision: value as Decision })}
 									>
 										<SelectTrigger id="candidate-decision" className="w-full">
@@ -119,7 +136,7 @@ export function CandidateDialog({
 										<>
 											<p>
 												{dateLabel(selectedSlot.day)} kl. {clock(selectedSlot.start)}–
-												{clock(selectedSlot.start + settings.duration)}
+												{clock(selectedSlot.end - settings.buffer)}
 											</p>
 											<Label htmlFor="candidate-room">
 												Rom
@@ -150,13 +167,12 @@ export function CandidateDialog({
 													? "Ingen felles tid med to intervjuere."
 													: "Kandidaten har ikke oppgitt tilgjengelighet."}
 											</p>
-											<Button
-												variant="outline"
-												onClick={() => toast.info("Forhåndsvisning: forespørselen er ikke sendt.")}
-											>
-												<Mail />
-												Be om flere tider
-											</Button>
+											{onRequestAvailability && (
+												<Button variant="outline" onClick={onRequestAvailability}>
+													<Mail />
+													Be om flere tider
+												</Button>
+											)}
 										</div>
 									)}
 									<details className="admissions-availability-details">
@@ -170,6 +186,7 @@ export function CandidateDialog({
 										</div>
 									</details>
 								</section>
+								{actions}
 							</aside>
 						</div>
 					</>

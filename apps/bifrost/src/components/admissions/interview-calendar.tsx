@@ -14,16 +14,16 @@ import {
 	WandSparkles,
 } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 import {
 	type Candidate,
 	clock,
 	dateLabel,
-	days,
+	days as fixtureDays,
+	team as fixtureTeam,
 	type Interview,
+	type Interviewer,
 	type Settings,
 	type Slot,
-	team,
 } from "./model";
 export function InterviewCalendar({
 	candidates,
@@ -37,6 +37,9 @@ export function InterviewCalendar({
 	onOpenCalendars,
 	onAssignRoom,
 	onGenerateSchedule,
+	days = fixtureDays,
+	team = fixtureTeam,
+	daysPerPage = 5,
 }: Readonly<{
 	candidates: Candidate[];
 	interviews: Interview[];
@@ -45,9 +48,12 @@ export function InterviewCalendar({
 	rooms: Record<string, string>;
 	approved: boolean;
 	onApprove: () => void;
+	days?: string[];
+	team?: Interviewer[];
+	daysPerPage?: 5 | 7;
 	onOpenCandidate: (id: string) => void;
 	onOpenCalendars: () => void;
-	onAssignRoom: (ids: string[], room: string) => void;
+	onAssignRoom: (ids: string[], room: string) => boolean | Promise<boolean>;
 	onGenerateSchedule: () => void;
 }>) {
 	const [week, setWeek] = useState(0);
@@ -58,7 +64,9 @@ export function InterviewCalendar({
 	const unmatched = candidates.filter(
 		(candidate) => !interviews.some((interview) => interview.candidateId === candidate.id),
 	);
-	const visibleDays = day ? [day] : days.slice(week * 5, week * 5 + 5);
+	const visibleDays = day
+		? [day]
+		: days.slice(week * daysPerPage, week * daysPerPage + daysPerPage);
 	const selectCandidate = (id: string) => {
 		if (!selectingRooms) {
 			onOpenCandidate(id);
@@ -79,20 +87,23 @@ export function InterviewCalendar({
 						aria-label="Forrige uke"
 						disabled={week === 0}
 						onClick={() => {
-							setWeek(0);
+							setWeek((current) => Math.max(0, current - 1));
 							setDay(null);
 						}}
 					>
 						<ChevronLeft />
 					</Button>
-					<strong>{week === 0 ? "12.–16. oktober" : "19.–23. oktober"}</strong>
+					<strong>
+						{dateLabel(days[week * daysPerPage] ?? "")}–
+						{dateLabel(days[Math.min(week * daysPerPage + daysPerPage - 1, days.length - 1)] ?? "")}
+					</strong>
 					<Button
 						variant="outline"
 						size="icon"
 						aria-label="Neste uke"
-						disabled={week === 1}
+						disabled={(week + 1) * daysPerPage >= days.length}
 						onClick={() => {
-							setWeek(1);
+							setWeek((current) => current + 1);
 							setDay(null);
 						}}
 					>
@@ -103,7 +114,7 @@ export function InterviewCalendar({
 					</Button>
 					<Button
 						variant={day ? "secondary" : "outline"}
-						onClick={() => setDay(days[week * 5] ?? null)}
+						onClick={() => setDay(days[week * daysPerPage] ?? null)}
 					>
 						Dag
 					</Button>
@@ -127,13 +138,7 @@ export function InterviewCalendar({
 						<WandSparkles />
 						Finn tider
 					</Button>
-					<Button
-						disabled={approved || interviews.length === 0}
-						onClick={() => {
-							onApprove();
-							toast.success("Planen er godkjent i forhåndsvisningen. Ingen invitasjoner sendes.");
-						}}
-					>
+					<Button disabled={approved || interviews.length === 0} onClick={() => void onApprove()}>
 						<Check />
 						{approved ? "Godkjent forslag" : "Godkjenn forslag"}
 					</Button>
@@ -142,11 +147,11 @@ export function InterviewCalendar({
 			{selectingRooms && (
 				<form
 					className="admissions-toolbar"
-					onSubmit={(event) => {
+					onSubmit={async (event) => {
 						event.preventDefault();
 						if (!bulkRoom.trim() || !roomSelection.length) return;
-						onAssignRoom(roomSelection, bulkRoom);
-						toast.success(`Rom satt til ${bulkRoom.trim()} for ${roomSelection.length} intervjuer`);
+						const saved = await onAssignRoom(roomSelection, bulkRoom);
+						if (saved === false) return;
 						setRoomSelection([]);
 						setSelectingRooms(false);
 					}}
@@ -215,6 +220,7 @@ export function InterviewCalendar({
 						slots={slots}
 						settings={settings}
 						rooms={rooms}
+						team={team}
 						selectingRooms={selectingRooms}
 						roomSelection={roomSelection}
 						onSelect={selectCandidate}
@@ -225,7 +231,7 @@ export function InterviewCalendar({
 	);
 }
 
-function InterviewerAvatars({ ids }: Readonly<{ ids: string[] }>) {
+function InterviewerAvatars({ ids, team }: Readonly<{ ids: string[]; team: Interviewer[] }>) {
 	return ids.map((id) => {
 		const person = team.find((member) => member.id === id);
 		if (!person) return null;
@@ -254,6 +260,7 @@ function InterviewDay({
 	selectingRooms,
 	roomSelection,
 	onSelect,
+	team,
 }: Readonly<{
 	date: string;
 	onDayClick: () => void;
@@ -265,6 +272,7 @@ function InterviewDay({
 	selectingRooms: boolean;
 	roomSelection: string[];
 	onSelect: (id: string) => void;
+	team: Interviewer[];
 }>) {
 	return (
 		<div className="admissions-day">
@@ -293,7 +301,7 @@ function InterviewDay({
 								onClick={() => onSelect(c.id)}
 							>
 								<time>
-									{clock(slot.start)}–{clock(slot.start + settings.duration)}
+									{clock(slot.start)}–{clock(slot.end - settings.buffer)}
 								</time>
 								<strong>{c.name}</strong>
 								<span>{c.program}</span>
@@ -304,7 +312,7 @@ function InterviewDay({
 								<div className="admissions-interview-footer">
 									<span>{c.year}. år</span>
 									<div className="admissions-avatars">
-										<InterviewerAvatars ids={i.interviewers} />
+										<InterviewerAvatars ids={i.interviewers} team={team} />
 									</div>
 								</div>
 							</button>

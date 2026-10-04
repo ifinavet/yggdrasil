@@ -44,7 +44,7 @@ export function SelectionBoard({
 							<article
 								className="admissions-candidate"
 								key={c.id}
-								draggable
+								draggable={!c.decisionLocked}
 								onDragStart={() => setDragging(c.id)}
 								onDragEnd={() => setDragging(null)}
 							>
@@ -58,6 +58,7 @@ export function SelectionBoard({
 								</button>
 								<Select
 									value={c.decision}
+									disabled={c.decisionLocked}
 									onValueChange={(value) => onDecisionChange(c.id, value as Decision)}
 								>
 									<SelectTrigger aria-label={`Flytt ${c.name}`} className="w-full">

@@ -1,19 +1,10 @@
 "use client";
-import { STUDY_YEARS } from "@workspace/shared/constants";
 import { Button } from "@workspace/ui/components/button";
 import { Checkbox } from "@workspace/ui/components/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@workspace/ui/components/dialog";
 import { Input } from "@workspace/ui/components/input";
 import { Label } from "@workspace/ui/components/label";
 import { Callout } from "@workspace/ui/components/products/callout";
-import { SearchField } from "@workspace/ui/components/search-field";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@workspace/ui/components/select";
 import {
 	Table,
 	TableBody,
@@ -41,6 +32,7 @@ import {
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { CandidateDialog } from "./candidate-dialog";
+import { CandidateFilters } from "./candidate-filters";
 import { InterviewCalendar } from "./interview-calendar";
 import {
 	advanceRound,
@@ -54,7 +46,6 @@ import {
 	type Interviewer,
 	makeSlots,
 	match,
-	programs,
 	roomUrl,
 	type Settings,
 	seedCandidates,
@@ -93,6 +84,7 @@ export default function AdmissionsPreview() {
 			...Object.fromEntries(ids.map((id) => [id, room.trim()])),
 		}));
 		setApproved(false);
+		return true;
 	};
 	const [roundHistory, setRoundHistory] = useState<Record<string, Decision>[]>([]);
 	const round = roundHistory.length + 1;
@@ -213,46 +205,14 @@ export default function AdmissionsPreview() {
 					) : (
 						<>
 							<div className="admissions-toolbar">
-								<div className="admissions-filters">
-									<SearchField
-										value={query}
-										onChange={setQuery}
-										placeholder="Søk etter kandidat"
-										className="sm:w-72"
-									/>
-									<Select
-										value={program || "all"}
-										onValueChange={(value) => setProgram(value === "all" ? "" : value)}
-									>
-										<SelectTrigger aria-label="Studieprogram" className="w-full sm:w-72">
-											<SelectValue />
-										</SelectTrigger>
-										<SelectContent>
-											<SelectItem value="all">Alle linjer</SelectItem>
-											{programs.map((p) => (
-												<SelectItem key={p} value={p}>
-													{p}
-												</SelectItem>
-											))}
-										</SelectContent>
-									</Select>
-									<Select
-										value={year || "all"}
-										onValueChange={(value) => setYear(value === "all" ? "" : value)}
-									>
-										<SelectTrigger aria-label="Studieår" className="w-full sm:w-36">
-											<SelectValue />
-										</SelectTrigger>
-										<SelectContent>
-											<SelectItem value="all">Alle år</SelectItem>
-											{STUDY_YEARS.map((y) => (
-												<SelectItem key={y} value={String(y)}>
-													{y}. år
-												</SelectItem>
-											))}
-										</SelectContent>
-									</Select>
-								</div>
+								<CandidateFilters
+									query={query}
+									setQuery={setQuery}
+									program={program}
+									setProgram={setProgram}
+									year={year}
+									setYear={setYear}
+								/>
 								{view === "selection" && (
 									<div className="admissions-actions">
 										<span>Runde {round}</span>
@@ -360,6 +320,7 @@ export default function AdmissionsPreview() {
 			)}
 			<CandidateDialog
 				candidate={candidate}
+				onRequestAvailability={() => toast.info("Forhåndsvisning: forespørselen er ikke sendt.")}
 				selectedSlot={selectedSlot}
 				interview={interview}
 				settings={settings}

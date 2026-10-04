@@ -29,3 +29,7 @@ export async function clearCookieNotice(page: Page) {
 	const issueBadge = page.getByRole("button", { name: "Collapse issues badge" });
 	if (await issueBadge.isVisible().catch(() => false)) await issueBadge.click();
 }
+
+export async function admissionsOverview() {
+	return convex.query(api.admissions.queries.adminOverview, {});
+}

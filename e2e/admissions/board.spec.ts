@@ -3,7 +3,7 @@ import { captureScreenshot } from "./capture-screenshot";
 
 test.describe("Bifrost admissions preview", () => {
 	test.beforeEach(async ({ page }) => {
-		await page.goto("/admissions");
+		await page.goto("/admissions?preview=fixture");
 		await expect(page.getByRole("heading", { name: "Opptak" })).toBeVisible();
 	});
 
@@ -60,7 +60,7 @@ test.describe("Bifrost admissions preview", () => {
 		await approval.click();
 		await expect(page.getByRole("button", { name: "Godkjent forslag" })).toBeDisabled();
 		await page.getByRole("button", { name: "Neste uke" }).click();
-		await expect(page.getByText("19.–23. oktober")).toBeVisible();
+		await expect(page.getByText("man. 19. okt.–fre. 23. okt.")).toBeVisible();
 		await page.getByRole("button", { name: "Dag" }).click();
 		await expect(page.locator(".admissions-day")).toHaveCount(1);
 		await page.getByRole("button", { name: "Uke", exact: true }).click();

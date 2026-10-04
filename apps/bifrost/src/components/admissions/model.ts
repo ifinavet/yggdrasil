@@ -24,6 +24,7 @@ export type Candidate = {
 	notes: string;
 	decision: Decision;
 	sent: boolean;
+	decisionLocked?: boolean;
 };
 export type CandidateEdit = Partial<Pick<Candidate, "notes" | "decision" | "availability">>;
 
