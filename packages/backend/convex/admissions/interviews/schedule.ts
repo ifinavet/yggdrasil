@@ -89,8 +89,7 @@ export const saveSchedule = internalMutation({
 			throw new ConvexError("For mange søknader til å lagre en plan.");
 
 		const result = await commitSchedule(ctx, period, applications, assignments);
-		const assigned = result.assigned;
-		return { count: assigned.length, unmatched: applicationsNotScheduled(applications, assigned) };
+		return { count: result.count };
 	},
 });
 
@@ -172,10 +171,7 @@ export async function commitSchedule(
 		...(updatedBy && { updatedBy }),
 	});
 	return {
-		assigned: [
-			...fixed.map((item) => item.applicationId),
-			...changes.map((item) => item.applicationId),
-		],
+		count: fixed.length + changes.length,
 		changes,
 	};
 }
@@ -195,16 +191,6 @@ function validateScheduleEdit(
 		throw new ConvexError("Nye intervjuer må planlegges minst 48 timer fram i tid.");
 	if (previous?.publishedAt && !desired.confirmPublishedReschedule)
 		throw new ConvexError("Bekreft endring av det publiserte intervjuet før du lagrer.");
-}
-
-function applicationsNotScheduled(
-	applications: Doc<"admissionApplications">[],
-	scheduled: Id<"admissionApplications">[],
-) {
-	const assigned = new Set(scheduled);
-	return applications
-		.filter((application) => !assigned.has(application._id))
-		.map((application) => application._id);
 }
 
 type ScheduleAssignment = Pick<
