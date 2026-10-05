@@ -7,14 +7,7 @@ import { convexErrorMessage } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
 import { ConfirmDialog } from "@workspace/ui/components/confirm-dialog";
 import { Callout } from "@workspace/ui/components/products/callout";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@workspace/ui/components/table";
+
 import { useAction, useMutation, useQuery } from "convex/react";
 import {
 	CalendarDays,
@@ -30,6 +23,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { DataTable } from "@/components/common/tables/table";
 import { CandidateDialog } from "./candidates/candidate-dialog";
 import { CandidateFilters } from "./candidates/candidate-filters";
 import { OfferDialog } from "./candidates/offer-dialog";
@@ -326,31 +320,25 @@ export default function AdmissionsDashboard() {
 							/>
 						</>
 					) : (
-						<Table className="admissions-table">
-							<TableHeader>
-								<TableRow>
-									{["Kandidat", "Linje", "År", "Arbeidsgruppe", "Vedtak", "Svar"].map((label) => (
-										<TableHead key={label}>{label}</TableHead>
-									))}
-								</TableRow>
-							</TableHeader>
-							<TableBody>
-								{filtered.map((entry) => (
-									<TableRow key={entry._id}>
-										<TableCell>
-											<Button variant="link" onClick={() => openCandidate(entry._id)}>
-												{entry.name}
-											</Button>
-										</TableCell>
-										<TableCell>{entry.program}</TableCell>
-										<TableCell>{entry.year}</TableCell>
-										<TableCell>{entry.group}</TableCell>
-										<TableCell>{decisionLabels[entry.decision]}</TableCell>
-										<TableCell>{offerLabels[entry.offerStatus]}</TableCell>
-									</TableRow>
-								))}
-							</TableBody>
-						</Table>
+						<DataTable
+							data={filtered}
+							columns={[
+								{
+									accessorKey: "name",
+									header: "Kandidat",
+									cell: ({ row }) => (
+										<Button variant="link" onClick={() => openCandidate(row.original._id)}>
+											{row.original.name}
+										</Button>
+									),
+								},
+								{ accessorKey: "program", header: "Linje" },
+								{ accessorKey: "year", header: "År" },
+								{ accessorKey: "group", header: "Arbeidsgruppe" },
+								{ accessorFn: (entry) => decisionLabels[entry.decision], header: "Vedtak" },
+								{ accessorFn: (entry) => offerLabels[entry.offerStatus], header: "Svar" },
+							]}
+						/>
 					)}
 				</>
 			)}
