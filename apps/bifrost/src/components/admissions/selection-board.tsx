@@ -7,7 +7,7 @@ import {
 	SelectValue,
 } from "@workspace/ui/components/select";
 import { useState } from "react";
-import { type Candidate, type Decision, decisionLabels, decisions } from "./model";
+import { type Candidate, type Decision, decisionLabels, decisionLocked, decisions } from "./model";
 export function SelectionBoard({
 	candidates,
 	onSelect,
@@ -43,12 +43,12 @@ export function SelectionBoard({
 						.map((c) => (
 							<article
 								className="admissions-candidate"
-								key={c.id}
-								draggable={!c.decisionLocked}
-								onDragStart={() => setDragging(c.id)}
+								key={c._id}
+								draggable={!decisionLocked(c)}
+								onDragStart={() => setDragging(c._id)}
 								onDragEnd={() => setDragging(null)}
 							>
-								<button type="button" onClick={() => onSelect(c.id)}>
+								<button type="button" onClick={() => onSelect(c._id)}>
 									<strong>{c.name}</strong>
 									<span>{c.program}</span>
 									<div>
@@ -58,8 +58,8 @@ export function SelectionBoard({
 								</button>
 								<Select
 									value={c.decision}
-									disabled={c.decisionLocked}
-									onValueChange={(value) => onDecisionChange(c.id, value as Decision)}
+									disabled={decisionLocked(c)}
+									onValueChange={(value) => onDecisionChange(c._id, value as Decision)}
 								>
 									<SelectTrigger aria-label={`Flytt ${c.name}`} className="w-full">
 										<SelectValue />

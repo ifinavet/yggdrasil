@@ -144,58 +144,26 @@ export const adminOverview = query({
 		let period: Doc<"admissionPeriods"> | null = null;
 		if (periodId) period = await ctx.db.get(periodId);
 		else {
-			const periods = await ctx.db
-				.query("admissionPeriods")
-				.withIndex("by_status", (q) => q.eq("status", "open"))
-				.take(1);
-			period = periods[0] ?? null;
-			if (!period) {
-				const published = await ctx.db
+			for (const status of ["open", "published", "draft", "closing"] as const) {
+				period = await ctx.db
 					.query("admissionPeriods")
-					.withIndex("by_status", (q) => q.eq("status", "published"))
-					.take(1);
-				period = published[0] ?? null;
-			}
-			if (!period) {
-				const draft = await ctx.db
-					.query("admissionPeriods")
-					.withIndex("by_status", (q) => q.eq("status", "draft"))
-					.take(1);
-				period = draft[0] ?? null;
-			}
-			if (!period) {
-				const closing = await ctx.db
-					.query("admissionPeriods")
-					.withIndex("by_status", (q) => q.eq("status", "closing"))
-					.take(1);
-				period = closing[0] ?? null;
+					.withIndex("by_status", (q) => q.eq("status", status))
+					.first();
+				if (period) break;
 			}
 		}
 		if (!period) return null;
-		const pendingQuery = ctx.db
-			.query("admissionOutbox")
-			.withIndex("by_periodId_and_state", (q) =>
-				q.eq("periodId", period._id).eq("state", "pending"),
-			)
-			.order("desc")
-			.take(201);
-		const runningQuery = ctx.db
-			.query("admissionOutbox")
-			.withIndex("by_periodId_and_state", (q) =>
-				q.eq("periodId", period._id).eq("state", "running"),
-			)
-			.order("desc")
-			.take(201);
-		const failedQuery = ctx.db
-			.query("admissionOutbox")
-			.withIndex("by_periodId_and_state", (q) => q.eq("periodId", period._id).eq("state", "failed"))
-			.order("desc")
-			.take(201);
-		const [pendingJobs, runningJobs, failedJobs] = await Promise.all([
-			pendingQuery,
-			runningQuery,
-			failedQuery,
-		]);
+		const [pendingJobs = [], runningJobs = [], failedJobs = []] = await Promise.all(
+			(["pending", "running", "failed"] as const).map((state) =>
+				ctx.db
+					.query("admissionOutbox")
+					.withIndex("by_periodId_and_state", (q) =>
+						q.eq("periodId", period._id).eq("state", state),
+					)
+					.order("desc")
+					.take(201),
+			),
+		);
 		const jobs = [pendingJobs, runningJobs, failedJobs].flatMap((batch) => batch.slice(0, 200));
 		const jobsTruncated = {
 			pending: pendingJobs.length > 200,
@@ -236,13 +204,16 @@ export const adminOverview = query({
 			.withIndex("by_name")
 			.take(MAX_INTERNAL_GROUPS);
 		const groupNames = new Map(groups.map((group) => [group._id, group.name]));
+		const allInterviews = await ctx.db
+			.query("admissionInterviews")
+			.withIndex("by_periodId_and_status", (q) =>
+				q.eq("periodId", period._id).eq("status", "scheduled"),
+			)
+			.take(200);
 		const candidates = await Promise.all(
 			applications.map(async (application) => {
 				const user = await ctx.db.get(application.userId);
-				const interview = await ctx.db
-					.query("admissionInterviews")
-					.withIndex("by_applicationId", (q) => q.eq("applicationId", application._id))
-					.unique();
+				const interview = allInterviews.find((row) => row.applicationId === application._id);
 				let groupName = "";
 				if (application.group === "unsure") groupName = "Usikker ennå";
 				else if (application.group)
@@ -261,12 +232,7 @@ export const adminOverview = query({
 				};
 			}),
 		);
-		const allInterviews = await ctx.db
-			.query("admissionInterviews")
-			.withIndex("by_periodId_and_status", (q) =>
-				q.eq("periodId", period._id).eq("status", "scheduled"),
-			)
-			.take(200);
+
 		const interviewers = await Promise.all(
 			period.interviewers.map(async (selection) => {
 				const user = await ctx.db.get(selection.userId);

@@ -9,27 +9,64 @@ import { startDelivery } from "./workflow";
 
 type CleanupKind = "cancel_interview" | "publish" | "offer_declined" | "archive_channel";
 
-export async function cancelInterviewForClose(
+export async function beginClose(
 	ctx: MutationCtx,
-	periodId: Id<"admissionPeriods">,
-	interview: Doc<"admissionInterviews">,
-	idempotencyKey: string,
-	now: number,
-	queueCleanup: boolean,
+	period: Doc<"admissionPeriods">,
+	force: boolean,
+	key: string,
 ) {
-	const revision = interview.revision + 1;
-	await ctx.db.patch(interview._id, { status: "cancelled", revision, publishedAt: undefined });
-	if (!queueCleanup) return;
-	await queueOutbox(ctx, {
-		kind: "cancel_interview",
-		periodId,
-		applicationId: interview.applicationId,
-		interviewId: interview._id,
-		revision,
-		idempotencyKey,
-		nextAttemptAt: now,
-		notifyApplicant: Boolean(interview.publishedAt && interview.startAt > now),
-	});
+	const applications = await ctx.db
+		.query("admissionApplications")
+		.withIndex("by_periodId_and_status", (q) =>
+			q.eq("periodId", period._id).eq("status", "submitted"),
+		)
+		.take(MAX_APPLICATIONS);
+	const interviews = await ctx.db
+		.query("admissionInterviews")
+		.withIndex("by_periodId_and_status", (q) =>
+			q.eq("periodId", period._id).eq("status", "scheduled"),
+		)
+		.take(MAX_APPLICATIONS);
+	const pendingOffers = applications.filter((app) => app.offerStatus === "pending");
+	const unsentDecisions = applications.filter(
+		(app) => (app.decision === "accepted" || app.decision === "rejected") && !app.decisionSentAt,
+	);
+	const now = Date.now();
+	if (
+		!force &&
+		(pendingOffers.length ||
+			interviews.some((interview) => interview.startAt > now) ||
+			unsentDecisions.length)
+	)
+		throw new ConvexError(
+			`Før du lukker, avklar ${pendingOffers.length} ventende tilbud, ${interviews.length} intervjuer og ${unsentDecisions.length} usendte beslutninger.`,
+		);
+	const publishing = await activePublishInterviewIds(ctx, period._id);
+	await Promise.all(
+		pendingOffers.map((app) =>
+			ctx.db.patch(app._id, { offerStatus: "expired", revision: app.revision + 1 }),
+		),
+	);
+	await Promise.all(
+		interviews.map(async (interview) => {
+			const revision = interview.revision + 1;
+			await ctx.db.patch(interview._id, { status: "cancelled", revision, publishedAt: undefined });
+			if (interview.publishedAt || interview.calendarEventId || publishing.has(interview._id))
+				await queueOutbox(ctx, {
+					kind: "cancel_interview",
+					periodId: period._id,
+					applicationId: interview.applicationId,
+					interviewId: interview._id,
+					revision,
+					idempotencyKey: `${key}:cancel:${interview._id}`,
+					nextAttemptAt: now,
+					notifyApplicant: Boolean(interview.publishedAt && interview.startAt > now),
+				});
+		}),
+	);
+	const closing = { ...period, status: "closing" as const, revision: period.revision + 1 };
+	await ctx.db.patch(period._id, { status: closing.status, revision: closing.revision });
+	await finishClose(ctx, closing, `${key}:archive`);
 }
 
 export async function queueOutbox(
@@ -54,22 +91,6 @@ export async function queueOutbox(
 	return jobId;
 }
 
-export async function expirePendingOffers(
-	ctx: MutationCtx,
-	applications: readonly Doc<"admissionApplications">[],
-) {
-	await Promise.all(
-		applications
-			.filter((application) => application.offerStatus === "pending")
-			.map((application) =>
-				ctx.db.patch(application._id, {
-					offerStatus: "expired",
-					revision: application.revision + 1,
-				}),
-			),
-	);
-}
-
 export async function purgeBatch(ctx: MutationCtx, periodId: Id<"admissionPeriods">) {
 	const queries = [
 		ctx.db.query("admissionDeliveries").withIndex("by_periodId", (q) => q.eq("periodId", periodId)),
@@ -85,7 +106,7 @@ export async function purgeBatch(ctx: MutationCtx, periodId: Id<"admissionPeriod
 		const rows = await query.take(80);
 		await Promise.all(
 			rows.map(async (row) => {
-				if ("workflowId" in row && row.workflowId)
+				if ("workflowId" in row && row.workflowId && row.state !== "done")
 					await cancel(ctx, components.workflow, row.workflowId);
 				await ctx.db.delete(row._id);
 			}),
@@ -99,7 +120,11 @@ export async function purgeBatch(ctx: MutationCtx, periodId: Id<"admissionPeriod
 	return true;
 }
 
-export async function finishClose(ctx: MutationCtx, period: Doc<"admissionPeriods">) {
+export async function finishClose(
+	ctx: MutationCtx,
+	period: Doc<"admissionPeriods">,
+	archiveKey = `close-archive:${period._id}`,
+) {
 	if (await hasRunningOutbox(ctx, period._id)) return false;
 	if (await hasUnfinishedCleanup(ctx, period._id, "cancel_interview")) return false;
 	if (await hasUnfinishedCleanup(ctx, period._id, "publish")) return false;
@@ -111,7 +136,13 @@ export async function finishClose(ctx: MutationCtx, period: Doc<"admissionPeriod
 		)
 		.take(1);
 	if (!archive.length) {
-		await queueArchiveWhenReady(ctx, period, `close-archive:${period._id}`);
+		await queueOutbox(ctx, {
+			kind: "archive_channel",
+			periodId: period._id,
+			revision: period.revision,
+			idempotencyKey: archiveKey,
+			nextAttemptAt: Date.now(),
+		});
 		return false;
 	}
 	if (await hasUnfinishedCleanup(ctx, period._id, "archive_channel")) return false;
@@ -151,33 +182,6 @@ export async function activePublishInterviewIds(
 	if (jobs.length > MAX_APPLICATIONS * 3)
 		throw new ConvexError("For mange publiseringsjobber i opptaket.");
 	return new Set(jobs.flatMap((job) => (job.interviewId ? [job.interviewId] : [])));
-}
-
-export async function queueArchiveWhenReady(
-	ctx: MutationCtx,
-	period: Doc<"admissionPeriods">,
-	key: string,
-	now = Date.now(),
-) {
-	if (await hasRunningOutbox(ctx, period._id)) return false;
-	if (await hasUnfinishedCleanup(ctx, period._id, "cancel_interview")) return false;
-	if (await hasUnfinishedCleanup(ctx, period._id, "publish")) return false;
-	if (await hasUnfinishedCleanup(ctx, period._id, "offer_declined")) return false;
-	const archive = await ctx.db
-		.query("admissionOutbox")
-		.withIndex("by_periodId_and_kind", (q) =>
-			q.eq("periodId", period._id).eq("kind", "archive_channel"),
-		)
-		.take(1);
-	if (archive.length) return true;
-	await queueOutbox(ctx, {
-		kind: "archive_channel",
-		periodId: period._id,
-		revision: period.revision,
-		idempotencyKey: key,
-		nextAttemptAt: now,
-	});
-	return true;
 }
 
 async function hasRunningOutbox(ctx: MutationCtx, periodId: Id<"admissionPeriods">) {

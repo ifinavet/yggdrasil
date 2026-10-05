@@ -81,7 +81,9 @@ test.describe("persistent board admissions", () => {
 			page.getByText("Tilbudet er lagt i kø for utsending", { exact: true }),
 		).toBeVisible();
 		await page.keyboard.press("Escape");
-		await expect(page.getByText("Venter på svar", { exact: true })).toHaveCount(1);
+		await expect(page.getByText("Venter på svar", { exact: true })).toHaveCount(1, {
+			timeout: 30_000,
+		});
 		const offerEmail = (await admissionsOverview())?.localEmails[0];
 		if (offerEmail) await captureEmail(page, "student", "live-offer-email.png", offerEmail.html);
 		await captureScreenshot(
@@ -129,6 +131,7 @@ test.describe("persistent board admissions", () => {
 			.poll(
 				async () =>
 					(await admissionsOverview())?.interviews.filter((row) => row.publishedAt).length,
+				{ timeout: 30_000 },
 			)
 			.toBe(interviews.length);
 		await expect

@@ -1,6 +1,6 @@
 "use node";
 
-import { render } from "@react-email/render";
+import { render, toPlainText } from "@react-email/render";
 import AdmissionsCancellationEmail from "@workspace/emails/admissions-cancellation-email";
 import AdmissionsInterviewEmail from "@workspace/emails/admissions-interview-email";
 import AdmissionsOfferEmail from "@workspace/emails/admissions-offer-email";
@@ -11,7 +11,7 @@ import { huginUrl } from "@workspace/shared/constants/hugin-url";
 import { formatOsloDate } from "@workspace/shared/time";
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
-import type { Doc, Id } from "../_generated/dataModel";
+import type { Doc } from "../_generated/dataModel";
 import { type ActionCtx, internalAction } from "../_generated/server";
 import { isLocalDevelopment } from "../auth/local";
 import { googleConfig, isWorkspaceEmail } from "../iam/config";
@@ -69,38 +69,52 @@ async function queueLatePublishCleanup(ctx: ActionCtx, claimed: CurrentClaim) {
 
 async function deliverEmail(
 	ctx: ActionCtx,
-	args: {
-		periodId: Id<"admissionPeriods">;
-		applicationId: Id<"admissionApplications">;
-		kind: "offer" | "rejection" | "interview_invite" | "reminder_3d" | "reminder_1d" | "cancelled";
-		key: string;
-		to: string;
-		subject: string;
-		html: string;
-		text: string;
-	},
+	claimed: CurrentClaim,
+	kind: Doc<"admissionDeliveries">["kind"],
+	key: string,
+	subject: string,
+	template: Parameters<typeof render>[0],
 ) {
+	const { period, application, applicant, job } = claimed;
+	if (!application || !applicant) throw new Error("Fant ikke søknaden eller søkeren.");
+	const html = await render(template);
+	if (job.kind === "publish") await requireCurrentPublish(ctx, claimed);
+	else if (!(await current(ctx, job.idempotencyKey))) throw new StaleAdmissionJob();
 	const emailId = await sendAdmissionEmail(ctx, {
-		to: args.to,
-		subject: args.subject,
-		html: args.html,
-		text: args.text,
-		idempotencyKey: args.key,
+		to: applicant.email,
+		subject,
+		html,
+		text: toPlainText(html),
+		idempotencyKey: key,
 	});
 	await ctx.runMutation(internal.admissions.delivery.recordQueued, {
-		periodId: args.periodId,
-		applicationId: args.applicationId,
-		kind: args.kind,
-		idempotencyKey: args.key,
+		periodId: period._id,
+		applicationId: application._id,
+		kind,
+		idempotencyKey: key,
 		emailId,
 		...(isLocalDevelopment()
-			? {
-					status: "delivered" as const,
-					localPreview: { to: args.to, subject: args.subject, html: args.html },
-				}
+			? { status: "delivered" as const, localPreview: { to: applicant.email, subject, html } }
 			: {}),
 	});
 	return emailId;
+}
+
+function emailProps(claimed: CurrentClaim) {
+	return {
+		firstName: claimed.applicant?.name.trim().split(/\s+/)[0] ?? "",
+		periodTitle: claimed.period.title,
+	};
+}
+
+function interviewEmailProps(claimed: CurrentClaim) {
+	if (!claimed.interview) throw new StaleAdmissionJob();
+	return {
+		...emailProps(claimed),
+		when: when(claimed.interview.startAt),
+		room: claimed.interview.room,
+		applicationUrl: ADMISSIONS_URL,
+	};
 }
 
 type ClaimedOutbox = NonNullable<Awaited<ReturnType<typeof claim>>>;
@@ -239,26 +253,14 @@ async function publish(ctx: ActionCtx, claimed: CurrentClaim) {
 	await requireCurrentPublish(ctx, claimed);
 
 	const emailKey = `admission:interview:${interview._id}:${interview.revision}:invite`;
-	const firstName = applicant.name.trim().split(/\s+/)[0] || "";
-	const html = await render(
-		AdmissionsInterviewEmail({
-			firstName,
-			periodTitle: period.title,
-			when: when(interview.startAt),
-			room: interview.room,
-			applicationUrl: ADMISSIONS_URL,
-		}),
+	const emailId = await deliverEmail(
+		ctx,
+		claimed,
+		"interview_invite",
+		emailKey,
+		`Intervju for ${period.title}`,
+		AdmissionsInterviewEmail(interviewEmailProps(claimed)),
 	);
-	const emailId = await deliverEmail(ctx, {
-		periodId: period._id,
-		applicationId: application._id,
-		kind: "interview_invite",
-		key: emailKey,
-		to: applicant.email,
-		subject: `Intervju for ${period.title}`,
-		html,
-		text: `Hei ${firstName},\n\nVi vil gjerne invitere deg til intervju for ${period.title}.\nTid: ${when(interview.startAt)}\nSted: ${interview.room} (${roomUrl(interview.room)})\nSe eller avlys intervjuet: ${ADMISSIONS_URL}\n\nSvar på denne e-posten hvis tidspunktet ikke passer.`,
-	});
 	await requireCurrentPublish(ctx, claimed);
 	const slack = local ? null : admissionsSlack();
 	if (slack) {
@@ -280,39 +282,28 @@ async function publish(ctx: ActionCtx, claimed: CurrentClaim) {
 }
 
 async function sendDecision(ctx: ActionCtx, claimed: CurrentClaim) {
-	const { period, application, applicant, job } = claimed;
+	const { period, application, applicant } = claimed;
 	if (!application || !applicant) throw new Error("Fant ikke søknaden eller søkeren.");
 	if (application.decision !== "accepted" && application.decision !== "rejected")
 		throw new Error("Søknaden har ikke et endelig svar.");
 	const offer = application.decision === "accepted";
 	const kind = offer ? "offer" : "rejection";
 	const key = `admission:decision:${application._id}:${application.decisionRevision}:${kind}`;
-	const firstName = applicant.name.trim().split(/\s+/)[0] || "";
-	const html = await render(
+	const emailId = await deliverEmail(
+		ctx,
+		claimed,
+		kind,
+		key,
+		offer ? `Tilbud om plass i Navet, ${period.title}` : `Svar på søknaden til ${period.title}`,
 		offer
 			? AdmissionsOfferEmail({
-					firstName,
-					periodTitle: period.title,
+					...emailProps(claimed),
 					group: application.reviewedGroup ?? "Navet",
 					responseUrl: ADMISSIONS_URL,
 				})
-			: AdmissionsRejectionEmail({ firstName, periodTitle: period.title }),
+			: AdmissionsRejectionEmail(emailProps(claimed)),
 	);
-	if (!(await current(ctx, job.idempotencyKey))) throw new StaleAdmissionJob();
-	const emailId = await deliverEmail(ctx, {
-		periodId: period._id,
-		applicationId: application._id,
-		kind,
-		key,
-		to: applicant.email,
-		subject: offer
-			? `Tilbud om plass i Navet, ${period.title}`
-			: `Svar på søknaden til ${period.title}`,
-		html,
-		text: offer
-			? `Hei ${firstName},\n\nVi vil gjerne tilby deg plass i ${application.reviewedGroup ?? "Navet"} gjennom ${period.title}. Åpne tilbudet nedenfor for å takke ja eller nei: ${ADMISSIONS_URL}`
-			: `Hei ${firstName},\n\nTakk for søknaden til ${period.title}. Denne gangen kan vi dessverre ikke tilby deg plass i Navet.`,
-	});
+
 	return { deliveryIds: [emailId] };
 }
 
@@ -322,27 +313,14 @@ async function remind(ctx: ActionCtx, claimed: CurrentClaim, days: 1 | 3) {
 		throw new Error("Intervjuet finnes ikke lenger eller er avlyst.");
 	const kind = days === 3 ? "reminder_3d" : "reminder_1d";
 	const key = `admission:interview:${interview._id}:${interview.revision}:reminder-${days}d`;
-	const firstName = applicant.name.trim().split(/\s+/)[0] || "";
-	const html = await render(
-		AdmissionsReminderEmail({
-			firstName,
-			periodTitle: period.title,
-			when: when(interview.startAt),
-			room: interview.room,
-			applicationUrl: ADMISSIONS_URL,
-		}),
-	);
-	if (!(await current(ctx, job.idempotencyKey))) throw new StaleAdmissionJob();
-	const emailId = await deliverEmail(ctx, {
-		periodId: period._id,
-		applicationId: application._id,
+	const emailId = await deliverEmail(
+		ctx,
+		claimed,
 		kind,
 		key,
-		to: applicant.email,
-		subject: `Påminnelse om intervju, ${period.title}`,
-		html,
-		text: `Hei ${firstName},\n\nEn påminnelse om intervjuet ${when(interview.startAt)} i ${interview.room} (${roomUrl(interview.room)}).\nSe eller avlys intervjuet: ${ADMISSIONS_URL}\nKontakt oss hvis tidspunktet ikke passer.`,
-	});
+		`Påminnelse om intervju, ${period.title}`,
+		AdmissionsReminderEmail(interviewEmailProps(claimed)),
+	);
 	if (days === 1 && !isLocalDevelopment()) {
 		if (!(await current(ctx, job.idempotencyKey))) throw new StaleAdmissionJob();
 		const slack = admissionsSlack();
@@ -385,23 +363,14 @@ async function sendCancellationEmail(ctx: ActionCtx, claimed: CurrentClaim) {
 	if (!interview || !applicant || !application) throw new StaleAdmissionJob();
 	if (!(await current(ctx, job.idempotencyKey))) throw new StaleAdmissionJob();
 	const key = `admission:interview:${interview._id}:${interview.revision}:cancelled`;
-	const html = await render(
-		AdmissionsCancellationEmail({
-			firstName: applicant.name.split(/\s+/)[0] ?? "",
-			periodTitle: period.title,
-			when: when(interview.startAt),
-		}),
-	);
-	return deliverEmail(ctx, {
-		periodId: period._id,
-		applicationId: application._id,
-		kind: "cancelled",
+	return deliverEmail(
+		ctx,
+		claimed,
+		"cancelled",
 		key,
-		to: applicant.email,
-		subject: `Intervjuet er avlyst, ${period.title}`,
-		html,
-		text: `Intervjuet ${when(interview.startAt)} er avlyst. Vi beklager endringen.`,
-	});
+		`Intervjuet er avlyst, ${period.title}`,
+		AdmissionsCancellationEmail(interviewEmailProps(claimed)),
+	);
 }
 
 async function sendCancellationNotice(ctx: ActionCtx, claimed: CurrentClaim) {

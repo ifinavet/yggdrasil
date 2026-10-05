@@ -33,7 +33,6 @@ export async function startDelivery(
 		internal.admissions.workflow.deliver,
 		{ idempotencyKey, dueAt },
 		{
-			startAsync: true,
 			onComplete: internal.admissions.workflow.completed,
 			context: idempotencyKey,
 		},

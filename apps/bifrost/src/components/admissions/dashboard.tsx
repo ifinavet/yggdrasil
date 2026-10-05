@@ -3,7 +3,6 @@
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { makeSchedulingDays } from "@workspace/shared/admissions";
-import { localWindow } from "@workspace/shared/time";
 import { convexErrorMessage } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@workspace/ui/components/dialog";
@@ -38,7 +37,7 @@ import { CandidateFilters } from "./candidate-filters";
 import { DeliveryStatus } from "./delivery-status";
 import { InterviewCalendar } from "./interview-calendar";
 import { InterviewDialog } from "./interview-dialog";
-import { type Candidate, type Decision, decisionLabels, type Interviewer } from "./model";
+import { type Decision, decisionLabels } from "./model";
 import { OfferDialog } from "./offer-dialog";
 import { SelectionBoard } from "./selection-board";
 import { SettingsDialog } from "./settings-dialog";
@@ -112,50 +111,10 @@ export default function AdmissionsDashboard() {
 			</section>
 		);
 	const { period } = overview;
-	const candidates: Candidate[] = overview.candidates.map((candidate) => ({
-		id: candidate._id,
-		name: candidate.name,
-		program: candidate.program,
-		year: candidate.year,
-		group: candidate.group ?? "",
-		about: candidate.about ?? "",
-		motivation: candidate.motivation ?? "",
-		availability: candidate.availability,
-		notes: candidate.notes ?? "",
-		decision: candidate.decision,
-		sent: candidate.sent,
-		decisionLocked: ["pending", "accepted", "declined"].includes(candidate.offerStatus),
-	}));
-	const team: Interviewer[] = overview.interviewers.map((person) => ({
-		...person,
-		calendarStatus: "connected",
-		calendars: person.calendars.map((id) => ({
-			id,
-			name: id,
-			selected: true,
-			readable: true,
-			busy: [],
-		})),
-	}));
-	const slots = overview.interviews.map((interview) => ({
-		id: interview._id,
-		...localWindow(
-			interview.startAt,
-			(interview.endAt - interview.startAt) / 60_000 + period.buffer,
-			period.timezone,
-		),
-		room: interview.room,
-	}));
-	const interviews = overview.interviews.map((interview) => ({
-		candidateId: interview.applicationId,
-		slotId: interview._id,
-		interviewers: interview.interviewerIds,
-	}));
+	const { candidates, interviewers: team, interviews } = overview;
 	const days = makeSchedulingDays(period.interviewStartAt, period.interviewEndAt, period.timezone);
 	const current = overview.candidates.find((candidate) => candidate._id === selected);
-	const candidate = candidates.find((entry) => entry.id === selected);
-	const interview = interviews.find((entry) => entry.candidateId === selected);
-	const slot = slots.find((entry) => entry.id === interview?.slotId);
+	const interview = current?.interview;
 	const pending = overview.candidates.filter(
 		(entry) => !entry.sent && (entry.decision === "accepted" || entry.decision === "rejected"),
 	);
@@ -259,11 +218,8 @@ export default function AdmissionsDashboard() {
 				<InterviewCalendar
 					candidates={candidates}
 					interviews={interviews}
-					slots={slots}
 					settings={period}
-					rooms={{}}
 					days={days}
-					daysPerPage={7}
 					team={team}
 					approved={period.status === "published"}
 					onOpenCandidate={openCandidate}
@@ -374,9 +330,9 @@ export default function AdmissionsDashboard() {
 							</TableHeader>
 							<TableBody>
 								{filtered.map((entry) => (
-									<TableRow key={entry.id}>
+									<TableRow key={entry._id}>
 										<TableCell>
-											<Button variant="link" onClick={() => openCandidate(entry.id)}>
+											<Button variant="link" onClick={() => openCandidate(entry._id)}>
 												{entry.name}
 											</Button>
 										</TableCell>
@@ -384,14 +340,7 @@ export default function AdmissionsDashboard() {
 										<TableCell>{entry.year}</TableCell>
 										<TableCell>{entry.group}</TableCell>
 										<TableCell>{decisionLabels[entry.decision]}</TableCell>
-										<TableCell>
-											{
-												offerLabels[
-													overview.candidates.find((row) => row._id === entry.id)?.offerStatus ??
-														"none"
-												]
-											}
-										</TableCell>
+										<TableCell>{offerLabels[entry.offerStatus]}</TableCell>
 									</TableRow>
 								))}
 							</TableBody>
@@ -401,16 +350,15 @@ export default function AdmissionsDashboard() {
 			)}
 			<CandidateDialog
 				key={selected}
-				candidate={candidate}
-				selectedSlot={slot}
-				interview={interview}
+				candidate={current}
+				interview={interview ?? undefined}
 				settings={period}
 				room={roomDraft}
 				team={team}
 				onClose={() => setSelected(null)}
 				onRoomChange={setRoomDraft}
-				onEdit={(data) => {
-					if (selected && data.decision) decide(selected, data.decision);
+				onDecisionChange={(decision) => {
+					if (selected) decide(selected, decision);
 				}}
 				onSaveNotes={async (notes) => {
 					if (current)
@@ -428,17 +376,17 @@ export default function AdmissionsDashboard() {
 					current && (
 						<div className="grid gap-3">
 							{error && <Callout tone="danger">{error}</Callout>}
-							{!slot && (
+							{!interview && (
 								<Button variant="outline" onClick={() => setManualInterview(true)}>
 									Sett intervjutid
 								</Button>
 							)}
-							{slot && (
+							{interview && (
 								<Button variant="outline" onClick={() => setCancelInterview(true)}>
 									Avlys intervju
 								</Button>
 							)}
-							{slot && (
+							{interview && (
 								<Button
 									disabled={busy || !roomDraft.trim()}
 									onClick={() =>

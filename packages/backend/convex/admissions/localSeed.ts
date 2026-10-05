@@ -1,3 +1,4 @@
+import { cancel } from "@convex-dev/workflow";
 import {
 	ADMISSION_SCHEDULING_DEFAULTS,
 	ADMISSION_UNSURE_GROUP,
@@ -6,7 +7,7 @@ import { STUDY_PROGRAMS } from "@workspace/shared/constants";
 import { localIdentity } from "@workspace/shared/local";
 import { formatOsloDate, osloDateTimeToEpoch } from "@workspace/shared/time";
 import { v } from "convex/values";
-import { internal } from "../_generated/api";
+import { components, internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { type MutationCtx, mutation } from "../_generated/server";
 import { adminRoles, requireRole } from "../auth/accessRights";
@@ -174,7 +175,13 @@ async function clearAdmissions(ctx: MutationCtx) {
 	const applications = await ctx.db.query("admissionApplications").take(1000);
 	await Promise.all(applications.map((item) => ctx.db.delete(item._id)));
 	const jobs = await ctx.db.query("admissionOutbox").take(1000);
-	await Promise.all(jobs.map((item) => ctx.db.delete(item._id)));
+	await Promise.all(
+		jobs.map(async (item) => {
+			if (item.workflowId && item.state !== "done")
+				await cancel(ctx, components.workflow, item.workflowId);
+			await ctx.db.delete(item._id);
+		}),
+	);
 	const periods = await ctx.db.query("admissionPeriods").take(10);
 	await Promise.all(periods.map((item) => ctx.db.delete(item._id)));
 }

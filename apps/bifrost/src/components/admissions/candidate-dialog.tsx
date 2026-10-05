@@ -1,4 +1,5 @@
 "use client";
+import { formatOsloDate } from "@workspace/shared/time";
 import { Button } from "@workspace/ui/components/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@workspace/ui/components/dialog";
 import { Input } from "@workspace/ui/components/input";
@@ -11,49 +12,44 @@ import {
 	SelectValue,
 } from "@workspace/ui/components/select";
 import { Textarea } from "@workspace/ui/components/textarea";
-import { CalendarDays, ExternalLink, Mail, MapPin } from "lucide-react";
+import { CalendarDays, ExternalLink, MapPin } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import {
 	type Candidate,
-	type CandidateEdit,
 	clock,
 	type Decision,
 	dateLabel,
 	decisionLabels,
+	decisionLocked,
 	decisions,
 	type Interview,
 	type Interviewer,
 	roomUrl,
 	type Settings,
-	type Slot,
 } from "./model";
 
 export function CandidateDialog({
 	candidate,
-	selectedSlot,
 	interview,
 	settings,
 	room,
 	onClose,
-	onEdit,
+	onDecisionChange,
 	onRoomChange,
 	team,
 	onSaveNotes,
-	onRequestAvailability,
 	actions,
 }: Readonly<{
 	candidate: Candidate | undefined;
-	selectedSlot: Slot | undefined;
 	interview: Interview | undefined;
 	settings: Settings;
 	room: string;
 	onClose: () => void;
-	onEdit: (data: CandidateEdit) => void;
+	onDecisionChange: (decision: Decision) => void;
 	onRoomChange: (room: string) => void;
 	team: Interviewer[];
-	onSaveNotes?: (notes: string) => Promise<void>;
-	onRequestAvailability?: () => void;
+	onSaveNotes: (notes: string) => Promise<void>;
 	actions?: ReactNode;
 }>) {
 	const [noteDraft, setNoteDraft] = useState(candidate?.notes ?? "");
@@ -95,22 +91,18 @@ export function CandidateDialog({
 										id="interview-notes"
 										className="font-normal text-base leading-relaxed"
 										rows={4}
-										value={onSaveNotes ? noteDraft : candidate.notes}
-										onChange={(e) =>
-											onSaveNotes ? setNoteDraft(e.target.value) : onEdit({ notes: e.target.value })
-										}
+										value={noteDraft}
+										onChange={(e) => setNoteDraft(e.target.value)}
 										placeholder="Notater fra samtalen"
 									/>
 								</Label>
-								{onSaveNotes && (
-									<Button onClick={() => void onSaveNotes(noteDraft)}>Lagre notater</Button>
-								)}
+								<Button onClick={() => void onSaveNotes(noteDraft)}>Lagre notater</Button>
 								<div className="admissions-decision">
 									<Label htmlFor="candidate-decision">Vedtak</Label>
 									<Select
 										value={candidate.decision}
-										disabled={candidate.decisionLocked}
-										onValueChange={(value) => onEdit({ decision: value as Decision })}
+										disabled={decisionLocked(candidate)}
+										onValueChange={(value) => onDecisionChange(value as Decision)}
 									>
 										<SelectTrigger id="candidate-decision" className="w-full">
 											<SelectValue />
@@ -131,11 +123,11 @@ export function CandidateDialog({
 										<CalendarDays size={16} />
 										Intervju
 									</h3>
-									{selectedSlot ? (
+									{interview ? (
 										<>
 											<p>
-												{dateLabel(selectedSlot.day)} kl. {clock(selectedSlot.start)}–
-												{clock(selectedSlot.end - settings.buffer)}
+												{formatOsloDate(interview.startAt, "EEE d. MMM HH:mm")}–
+												{formatOsloDate(interview.endAt, "HH:mm")}
 											</p>
 											<Label htmlFor="candidate-room">
 												Rom
@@ -148,13 +140,13 @@ export function CandidateDialog({
 													}}
 												/>
 											</Label>
-											<a href={roomUrl(room || selectedSlot.room)} target="_blank" rel="noreferrer">
+											<a href={roomUrl(room || interview.room)} target="_blank" rel="noreferrer">
 												<MapPin size={15} />
-												{room || selectedSlot.room}
+												{room || interview.room}
 												<ExternalLink size={13} />
 											</a>
 											<p>
-												{interview?.interviewers
+												{interview.interviewerIds
 													.map((id) => team.find((p) => p.id === id)?.name)
 													.join(" og ")}
 											</p>
@@ -166,12 +158,6 @@ export function CandidateDialog({
 													? "Ingen felles tid med to intervjuere."
 													: "Kandidaten har ikke oppgitt tilgjengelighet."}
 											</p>
-											{onRequestAvailability && (
-												<Button variant="outline" onClick={onRequestAvailability}>
-													<Mail />
-													Be om flere tider
-												</Button>
-											)}
 										</div>
 									)}
 									<details className="admissions-availability-details">

@@ -1,4 +1,5 @@
 "use client";
+import { localWindow } from "@workspace/shared/time";
 import { Avatar, AvatarFallback, AvatarImage } from "@workspace/ui/components/avatar";
 import { Button } from "@workspace/ui/components/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@workspace/ui/components/dialog";
@@ -22,14 +23,11 @@ import {
 	type Interview,
 	type Interviewer,
 	type Settings,
-	type Slot,
 } from "./model";
 export function InterviewCalendar({
 	candidates,
 	interviews,
-	slots,
 	settings,
-	rooms,
 	approved,
 	onApprove,
 	onOpenCandidate,
@@ -38,18 +36,14 @@ export function InterviewCalendar({
 	onGenerateSchedule,
 	days,
 	team,
-	daysPerPage,
 }: Readonly<{
 	candidates: Candidate[];
 	interviews: Interview[];
-	slots: Slot[];
 	settings: Settings;
-	rooms: Record<string, string>;
 	approved: boolean;
 	onApprove: () => void;
 	days: string[];
 	team: Interviewer[];
-	daysPerPage: 5 | 7;
 	onOpenCandidate: (id: string) => void;
 	onOpenCalendars: () => void;
 	onAssignRoom: (ids: string[], room: string) => boolean | Promise<boolean>;
@@ -62,11 +56,9 @@ export function InterviewCalendar({
 	const [unmatchedOpen, setUnmatchedOpen] = useState(false);
 	const [bulkRoom, setBulkRoom] = useState("");
 	const unmatched = candidates.filter(
-		(candidate) => !interviews.some((interview) => interview.candidateId === candidate.id),
+		(candidate) => !interviews.some((interview) => interview.applicationId === candidate._id),
 	);
-	const visibleDays = day
-		? [day]
-		: days.slice(week * daysPerPage, week * daysPerPage + daysPerPage);
+	const visibleDays = day ? [day] : days.slice(week * 7, week * 7 + 7);
 	const selectCandidate = (id: string) => {
 		if (!selectingRooms) {
 			onOpenCandidate(id);
@@ -94,14 +86,14 @@ export function InterviewCalendar({
 						<ChevronLeft />
 					</Button>
 					<strong>
-						{dateLabel(days[week * daysPerPage] ?? "")}–
-						{dateLabel(days[Math.min(week * daysPerPage + daysPerPage - 1, days.length - 1)] ?? "")}
+						{dateLabel(days[week * 7] ?? "")}–
+						{dateLabel(days[Math.min(week * 7 + 7 - 1, days.length - 1)] ?? "")}
 					</strong>
 					<Button
 						variant="outline"
 						size="icon"
 						aria-label="Neste uke"
-						disabled={(week + 1) * daysPerPage >= days.length}
+						disabled={(week + 1) * 7 >= days.length}
 						onClick={() => {
 							setWeek((current) => current + 1);
 							setDay(null);
@@ -114,7 +106,7 @@ export function InterviewCalendar({
 					</Button>
 					<Button
 						variant={day ? "secondary" : "outline"}
-						onClick={() => setDay(days[week * daysPerPage] ?? null)}
+						onClick={() => setDay(days[week * 7] ?? null)}
 					>
 						Dag
 					</Button>
@@ -164,9 +156,9 @@ export function InterviewCalendar({
 								setRoomSelection(
 									interviews
 										.filter((i) =>
-											visibleDays.includes(slots.find((slot) => slot.id === i.slotId)?.day ?? ""),
+											visibleDays.includes(localWindow(i.startAt, 0, settings.timezone).day),
 										)
-										.map((i) => i.candidateId),
+										.map((i) => i.applicationId),
 								)
 							}
 						>
@@ -207,12 +199,12 @@ export function InterviewCalendar({
 							<div className="grid gap-2">
 								{unmatched.map((candidate) => (
 									<Button
-										key={candidate.id}
+										key={candidate._id}
 										variant="ghost"
 										className="h-auto justify-between gap-4 py-3 text-left"
 										onClick={() => {
 											setUnmatchedOpen(false);
-											onOpenCandidate(candidate.id);
+											onOpenCandidate(candidate._id);
 										}}
 									>
 										<span>{candidate.name}</span>
@@ -240,10 +232,10 @@ export function InterviewCalendar({
 						date={date}
 						onDayClick={() => setDay(day ? null : date)}
 						candidates={candidates}
-						interviews={interviews}
-						slots={slots}
+						interviews={interviews
+							.filter((i) => localWindow(i.startAt, 0, settings.timezone).day === date)
+							.sort((a, b) => a.startAt - b.startAt)}
 						settings={settings}
-						rooms={rooms}
 						team={team}
 						selectingRooms={selectingRooms}
 						roomSelection={roomSelection}
@@ -278,9 +270,7 @@ function InterviewDay({
 	onDayClick,
 	candidates,
 	interviews,
-	slots,
 	settings,
-	rooms,
 	selectingRooms,
 	roomSelection,
 	onSelect,
@@ -290,9 +280,7 @@ function InterviewDay({
 	onDayClick: () => void;
 	candidates: Candidate[];
 	interviews: Interview[];
-	slots: Slot[];
 	settings: Settings;
-	rooms: Record<string, string>;
 	selectingRooms: boolean;
 	roomSelection: string[];
 	onSelect: (id: string) => void;
@@ -304,53 +292,44 @@ function InterviewDay({
 				{dateLabel(date)}
 			</button>
 			<div className="admissions-day-content">
-				{interviews
-					.filter((i) => slots.find((s) => s.id === i.slotId)?.day === date)
-					.sort(
-						(a, b) =>
-							(slots.find((s) => s.id === a.slotId)?.start ?? 0) -
-							(slots.find((s) => s.id === b.slotId)?.start ?? 0),
-					)
-					.map((i) => {
-						const c = candidates.find((c) => c.id === i.candidateId);
-						const slot = slots.find((s) => s.id === i.slotId);
-						if (!c || !slot) return null;
-						return (
-							<button
-								type="button"
-								className="admissions-interview"
-								style={{ order: slot.start }}
-								key={i.candidateId}
-								aria-pressed={selectingRooms ? roomSelection.includes(c.id) : undefined}
-								onClick={() => onSelect(c.id)}
-							>
-								<time>
-									{clock(slot.start)}–{clock(slot.end - settings.buffer)}
-								</time>
-								<strong>{c.name}</strong>
-								<span>{c.program}</span>
-								<span className="inline-flex items-center gap-1">
-									<MapPin size={13} />
-									{rooms[c.id] || slot.room}
-								</span>
-								<div className="admissions-interview-footer">
-									<span>{c.year}. år</span>
-									<div className="admissions-avatars">
-										<InterviewerAvatars ids={i.interviewers} team={team} />
-									</div>
+				{interviews.map((i) => {
+					const c = candidates.find((c) => c._id === i.applicationId);
+					if (!c) return null;
+					const slot = localWindow(i.startAt, (i.endAt - i.startAt) / 60_000, settings.timezone);
+					return (
+						<button
+							type="button"
+							className="admissions-interview"
+							style={{ order: slot.start }}
+							key={i.applicationId}
+							aria-pressed={selectingRooms ? roomSelection.includes(c._id) : undefined}
+							onClick={() => onSelect(c._id)}
+						>
+							<time>
+								{clock(slot.start)}–{clock(slot.end)}
+							</time>
+							<strong>{c.name}</strong>
+							<span>{c.program}</span>
+							<span className="inline-flex items-center gap-1">
+								<MapPin size={13} />
+								{i.room}
+							</span>
+							<div className="admissions-interview-footer">
+								<span>{c.year}. år</span>
+								<div className="admissions-avatars">
+									<InterviewerAvatars ids={i.interviewerIds} team={team} />
 								</div>
-							</button>
-						);
-					})}
+							</div>
+						</button>
+					);
+				})}
 				{settings.lunch && (
 					<div className="admissions-break" style={{ order: 720 }}>
 						<Coffee size={14} />
 						12:00–12:30 Lunsj
 					</div>
 				)}
-				{!interviews.some((i) => slots.find((s) => s.id === i.slotId)?.day === date) && (
-					<p className="admissions-muted">Ingen intervjuer</p>
-				)}
+				{interviews.length === 0 && <p className="admissions-muted">Ingen intervjuer</p>}
 			</div>
 		</div>
 	);

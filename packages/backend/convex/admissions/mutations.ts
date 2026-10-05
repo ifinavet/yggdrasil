@@ -14,14 +14,7 @@ import { adminRoles, internalRoles, requireRole, userHasRole } from "../auth/acc
 import { getCurrentUserOrThrow } from "../auth/currentUser";
 import { startAcceptedAdmissionOnboarding, validateAdmissionOffer } from "../iam/mutations";
 import { requireMutablePeriod } from "./access";
-import {
-	activePublishInterviewIds,
-	cancelInterviewForClose,
-	expirePendingOffers,
-	finishClose,
-	queueArchiveWhenReady,
-	queueOutbox,
-} from "./lifecycle";
+import { activePublishInterviewIds, beginClose, queueOutbox } from "./lifecycle";
 import {
 	MAX_APPLICATIONS,
 	MAX_INTERVIEWERS,
@@ -808,55 +801,7 @@ export const closePeriod = mutation({
 		const period = await ctx.db.get(periodId);
 		if (!period) return null;
 		if (period.status === "closing") return null;
-		const applications = await ctx.db
-			.query("admissionApplications")
-			.withIndex("by_periodId_and_status", (q) =>
-				q.eq("periodId", periodId).eq("status", "submitted"),
-			)
-			.take(MAX_APPLICATIONS);
-		const interviews = await ctx.db
-			.query("admissionInterviews")
-			.withIndex("by_periodId_and_status", (q) =>
-				q.eq("periodId", periodId).eq("status", "scheduled"),
-			)
-			.take(MAX_APPLICATIONS);
-		const interviewsBeingPublished = await activePublishInterviewIds(ctx, periodId);
-		const pendingOffers = applications.filter((app) => app.offerStatus === "pending");
-		const unsentDecisions = applications.filter(
-			(app) => (app.decision === "accepted" || app.decision === "rejected") && !app.decisionSentAt,
-		);
-		if (
-			!force &&
-			(pendingOffers.length ||
-				interviews.some((interview) => interview.startAt > Date.now()) ||
-				unsentDecisions.length)
-		) {
-			throw new ConvexError(
-				`Før du lukker, avklar ${pendingOffers.length} ventende tilbud, ${interviews.length} intervjuer og ${unsentDecisions.length} usendte beslutninger.`,
-			);
-		}
-		const now = Date.now();
-		await expirePendingOffers(ctx, pendingOffers);
-		await Promise.all(
-			interviews.map(async (interview) => {
-				await cancelInterviewForClose(
-					ctx,
-					periodId,
-					interview,
-					`${idempotencyKey}:cancel:${interview._id}`,
-					now,
-					Boolean(
-						interview.publishedAt ||
-							interview.calendarEventId ||
-							interviewsBeingPublished.has(interview._id),
-					),
-				);
-			}),
-		);
-		const closing = { ...period, status: "closing" as const, revision: period.revision + 1 };
-		await ctx.db.patch(periodId, { status: "closing", revision: closing.revision });
-		if (await queueArchiveWhenReady(ctx, closing, `${idempotencyKey}:archive`, now))
-			await finishClose(ctx, closing);
+		await beginClose(ctx, period, force, idempotencyKey);
 		return null;
 	},
 });

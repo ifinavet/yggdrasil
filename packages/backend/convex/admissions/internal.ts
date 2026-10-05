@@ -11,8 +11,7 @@ import { enqueueSystemMessage } from "../iam/notifications";
 import { admissionsChannelNames } from "./channelNames";
 import {
 	activePublishInterviewIds,
-	cancelInterviewForClose,
-	expirePendingOffers,
+	beginClose,
 	finishClose,
 	purgeBatch as purgeRecordsBatch,
 	queueOutbox,
@@ -128,39 +127,28 @@ export const claimOutbox = internalMutation({
 			job.kind === "sync_channel"
 				? (period?.interviewers.map(({ userId }) => userId) ?? [])
 				: (interview?.interviewerIds ?? []);
-		const selectedInterviewers = await Promise.all(
-			(period?.interviewers.map(({ userId }) => userId) ?? []).map(async (userId) => {
-				const user = await ctx.db.get(userId);
-				return user
-					? {
-							userId,
-							email: await workspaceEmail(ctx, user),
-							name: `${user.firstName} ${user.lastName}`.trim(),
-						}
-					: null;
-			}),
-		);
-		const interviewers = await Promise.all(
-			interviewerIds.map(async (userId) => {
-				const user = await ctx.db.get(userId);
-				return user
-					? {
-							userId,
-							email: await workspaceEmail(ctx, user),
-							name: `${user.firstName} ${user.lastName}`.trim(),
-						}
-					: null;
-			}),
-		);
+		const selectedIds = period?.interviewers.map(({ userId }) => userId) ?? [];
+		const people = (
+			await Promise.all(
+				[...new Set([...selectedIds, ...interviewerIds])].map(async (userId) => {
+					const user = await ctx.db.get(userId);
+					return user
+						? {
+								userId,
+								email: await workspaceEmail(ctx, user),
+								name: `${user.firstName} ${user.lastName}`.trim(),
+							}
+						: null;
+				}),
+			)
+		).filter((user) => user !== null);
 		return {
 			job: { ...job, state: "running" as const, attempts: job.attempts + 1 },
 			period,
 			application,
 			interview,
 			delivery,
-			selectedInterviewers: selectedInterviewers.filter(
-				(user): user is NonNullable<typeof user> => user !== null,
-			),
+			selectedInterviewers: people.filter((person) => selectedIds.includes(person.userId)),
 			applicant:
 				application && applicantUser
 					? {
@@ -169,7 +157,7 @@ export const claimOutbox = internalMutation({
 							name: `${applicantUser.firstName} ${applicantUser.lastName}`.trim(),
 						}
 					: null,
-			interviewers: interviewers.filter((user): user is NonNullable<typeof user> => user !== null),
+			interviewers: people.filter((person) => interviewerIds.includes(person.userId)),
 			revisionIsCurrent: true,
 		};
 	},
@@ -516,41 +504,7 @@ export const closeExpiredPeriod = internalMutation({
 	handler: async (ctx, { periodId }) => {
 		const period = await ctx.db.get(periodId);
 		if (!period || period.status === "closing") return false;
-		const now = Date.now();
-		const applications = await ctx.db
-			.query("admissionApplications")
-			.withIndex("by_periodId_and_status", (q) =>
-				q.eq("periodId", periodId).eq("status", "submitted"),
-			)
-			.take(MAX_APPLICATIONS);
-		const interviewsBeingPublished = await activePublishInterviewIds(ctx, periodId);
-		await expirePendingOffers(ctx, applications);
-		const interviews = await ctx.db
-			.query("admissionInterviews")
-			.withIndex("by_periodId_and_status", (q) =>
-				q.eq("periodId", periodId).eq("status", "scheduled"),
-			)
-			.take(MAX_APPLICATIONS);
-		await Promise.all(
-			interviews.map(async (interview) => {
-				const revision = interview.revision + 1;
-				await cancelInterviewForClose(
-					ctx,
-					periodId,
-					interview,
-					`retention-cancel:${interview._id}:${revision}`,
-					now,
-					Boolean(
-						interview.calendarEventId ||
-							interview.publishedAt ||
-							interviewsBeingPublished.has(interview._id),
-					),
-				);
-			}),
-		);
-		const closing = { ...period, status: "closing" as const, revision: period.revision + 1 };
-		await ctx.db.patch(periodId, { status: "closing", revision: closing.revision });
-		await finishClose(ctx, closing);
+		await beginClose(ctx, period, true, `retention:${periodId}`);
 		return true;
 	},
 });

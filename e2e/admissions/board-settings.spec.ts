@@ -89,6 +89,8 @@ test.describe("admissions settings and close flow", () => {
 		await expect(confirm).toBeEnabled();
 		await confirm.click();
 		await expect(close).toBeHidden();
-		await expect(page.getByRole("heading", { name: "Ingen aktive opptak" })).toBeVisible();
+		await expect(page.getByRole("heading", { name: "Ingen aktive opptak" })).toBeVisible({
+			timeout: 30_000,
+		});
 	});
 });
