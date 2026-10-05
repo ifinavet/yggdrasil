@@ -32,17 +32,30 @@ it("keeps group management admin-only and prevents deleting a referenced group",
 	const adminClient = asUser(t, admin);
 
 	await expect(
-		studentClient.mutation(api.users.organization.groups.create, {
+		studentClient.mutation(api.users.organization.groups.save, {
 			name: "Web",
 			description: "",
 		}),
 	).rejects.toThrow(/Unauthorized/);
 
-	const groupId = await adminClient.mutation(api.users.organization.groups.create, {
+	const groupId = await adminClient.mutation(api.users.organization.groups.save, {
 		name: "Web",
 		description: "Web group",
+		leader: admin._id,
 	});
-	await adminClient.mutation(api.users.organization.groups.update, {
+	const update = { groupId, name: "Web", description: "Updated description" };
+	await expect(studentClient.mutation(api.users.organization.groups.save, update)).rejects.toThrow(
+		/Unauthorized/,
+	);
+	await expect(
+		adminClient.mutation(api.users.organization.groups.save, {
+			name: "Web",
+			description: "Duplicate",
+		}),
+	).rejects.toThrow(/allerede i bruk/);
+	await adminClient.mutation(api.users.organization.groups.save, update);
+	expect(await t.run((ctx) => ctx.db.get(groupId))).toMatchObject({ leader: admin._id });
+	await adminClient.mutation(api.users.organization.groups.save, {
 		groupId,
 		name: "Web",
 		description: "Updated description",
@@ -62,6 +75,10 @@ it("keeps group management admin-only and prevents deleting a referenced group",
 			offerStatus: "none",
 		}),
 	);
+	await expect(
+		adminClient.mutation(api.users.organization.groups.save, { ...update, name: "Renamed" }),
+	).rejects.toThrow(/kan ikke endres/);
+	expect((await t.run((ctx) => ctx.db.get(groupId)))?.leader).toBeUndefined();
 	await expect(
 		adminClient.mutation(api.users.organization.groups.remove, { groupId }),
 	).rejects.toThrow(/Flytt medlemmer/);

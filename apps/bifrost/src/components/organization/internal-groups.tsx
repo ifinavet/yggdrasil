@@ -17,8 +17,7 @@ type Group = Doc<"internalGroups">;
 
 export function InternalGroups() {
 	const groups = useQuery(api.users.organization.groups.list, {});
-	const createGroup = useMutation(api.users.organization.groups.create);
-	const updateGroup = useMutation(api.users.organization.groups.update);
+	const saveGroup = useMutation(api.users.organization.groups.save);
 	const removeGroup = useMutation(api.users.organization.groups.remove);
 	const [removing, setRemoving] = useState<Group | null>(null);
 	const [editing, setEditing] = useState<Group | null>(null);
@@ -39,16 +38,12 @@ export function InternalGroups() {
 		event.preventDefault();
 		return run(
 			async () => {
-				if (editing) {
-					await updateGroup({
-						groupId: editing._id,
-						name,
-						description,
-						leader: editing.leader ?? null,
-					});
-				} else {
-					await createGroup({ name, description });
-				}
+				await saveGroup({
+					groupId: editing?._id,
+					name,
+					description,
+					leader: editing?.leader ?? null,
+				});
 				setDialogOpen(false);
 			},
 			undefined,

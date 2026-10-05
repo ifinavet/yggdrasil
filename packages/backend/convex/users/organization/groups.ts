@@ -53,54 +53,43 @@ export const list = query({
 	},
 });
 
-export const create = mutation({
+export const save = mutation({
 	args: {
+		groupId: v.optional(v.id("internalGroups")),
 		name: v.string(),
 		description: v.string(),
-		leader: v.optional(v.id("users")),
+		leader: v.optional(v.union(v.id("users"), v.null())),
 	},
 	handler: async (ctx, args) => {
 		await requireRole(ctx, adminRoles);
+		const group = args.groupId ? await ctx.db.get(args.groupId) : null;
+		if (args.groupId && !group) throw new ConvexError("Fant ikke arbeidsgruppen.");
 		const name = groupName(args.name);
 		const description = groupDescription(args.description);
-		await requireUniqueName(ctx, name);
-		const count = await ctx.db
-			.query("internalGroups")
-			.withIndex("by_name")
-			.take(MAX_INTERNAL_GROUPS);
-		if (count.length >= MAX_INTERNAL_GROUPS)
-			throw new ConvexError("Maksimalt antall arbeidsgrupper er nådd.");
+		await requireUniqueName(ctx, name, group?._id);
+		if (group) {
+			if (name !== group.name && (await hasReferences(ctx, group)))
+				throw new ConvexError(
+					"Gruppenavnet kan ikke endres mens medlemmer eller søkere bruker gruppen.",
+				);
+		} else {
+			const count = await ctx.db
+				.query("internalGroups")
+				.withIndex("by_name")
+				.take(MAX_INTERNAL_GROUPS);
+			if (count.length >= MAX_INTERNAL_GROUPS)
+				throw new ConvexError("Maksimalt antall arbeidsgrupper er nådd.");
+		}
 		if (args.leader && !(await userHasRole(ctx, args.leader, internalRoles)))
 			throw new ConvexError("Gruppelederen må være et aktivt internt medlem.");
-		return await ctx.db.insert("internalGroups", { name, description, leader: args.leader });
-	},
-});
-
-export const update = mutation({
-	args: {
-		groupId: v.id("internalGroups"),
-		name: v.string(),
-		description: v.string(),
-		leader: v.union(v.id("users"), v.null()),
-	},
-	handler: async (ctx, args) => {
-		await requireRole(ctx, adminRoles);
-		const group = await ctx.db.get(args.groupId);
-		if (!group) throw new ConvexError("Fant ikke arbeidsgruppen.");
-		const name = groupName(args.name);
-		const description = groupDescription(args.description);
-		await requireUniqueName(ctx, name, group._id);
-		if (name !== group.name && (await hasReferences(ctx, group)))
-			throw new ConvexError(
-				"Gruppenavnet kan ikke endres mens medlemmer eller søkere bruker gruppen.",
-			);
-		if (args.leader && !(await userHasRole(ctx, args.leader, internalRoles)))
-			throw new ConvexError("Gruppelederen må være et aktivt internt medlem.");
-		await ctx.db.patch(group._id, {
+		const fields = {
 			name,
 			description,
-			leader: args.leader ?? undefined,
-		});
+			leader: args.leader === undefined ? group?.leader : (args.leader ?? undefined),
+		};
+		if (!group) return ctx.db.insert("internalGroups", fields);
+		await ctx.db.patch(group._id, fields);
+		return group._id;
 	},
 });
 
