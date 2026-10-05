@@ -15,7 +15,7 @@
 	"author": "",
 	"packageManager": "pnpm@10.13.1",
 	"dependencies": {
-		"@clerk/backend": "^3.20.1",
+		"@clerk/backend": "^3.22.0",
 		"@convex-dev/migrations": "^0.3.6",
 		"@convex-dev/rate-limiter": "^0.4.0",
 		"@convex-dev/resend": "^0.2.8",
@@ -41,7 +41,7 @@
 		"@vitest/coverage-v8": "5.0.2",
 		"convex-test": "0.0.60",
 		"typescript": "catalog:",
-		"vite": "8.3.1",
+		"vite": "8.3.2",
 		"vitest": "catalog:"
 	},
 	"exports": {
