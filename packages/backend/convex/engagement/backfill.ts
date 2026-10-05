@@ -30,6 +30,7 @@ export const backfillRegistrationLog = migrations.define({
 
 const BACKFILL = internal.engagement.backfill.backfillRegistrationLog;
 const MAX_IMPORT_ATTEMPTS = 3;
+const IMPORT_REVISION = 2;
 const IMPORT_DEADLINE_MS = 15 * 60_000;
 
 async function backfillPending(ctx: QueryCtx) {
@@ -41,9 +42,14 @@ async function unregistrationImportOf(ctx: QueryCtx) {
 	return await ctx.db.query("unregistrationImports").first();
 }
 
+function isCurrentRevision(current: Doc<"unregistrationImports">) {
+	return current.revision === IMPORT_REVISION;
+}
+
 function importPending(current: Doc<"unregistrationImports"> | null) {
 	if (!process.env.POSTHOG_PERSONAL_API_KEY) return false;
-	return !current || (current.state === "failed" && current.attempts < MAX_IMPORT_ATTEMPTS);
+	if (!current || !isCurrentRevision(current)) return true;
+	return current.state === "failed" && current.attempts < MAX_IMPORT_ATTEMPTS;
 }
 
 export const pending = query({
@@ -55,6 +61,17 @@ export const pending = query({
 	},
 });
 
+export const importOutcome = query({
+	args: {},
+	handler: async (ctx) => {
+		await requireRole(ctx, internalRoles);
+		const current = await unregistrationImportOf(ctx);
+		if (!current || !isCurrentRevision(current)) return null;
+		const { state, attempts, imported, error } = current;
+		return { state, attempts, imported, error };
+	},
+});
+
 export const setup = mutation({
 	args: {},
 	handler: async (ctx) => {
@@ -63,11 +80,12 @@ export const setup = mutation({
 		if (await backfillPending(ctx)) return;
 		const current = await unregistrationImportOf(ctx);
 		if (!importPending(current)) return;
-		const attempts = (current?.attempts ?? 0) + 1;
+		const attempts = current && isCurrentRevision(current) ? current.attempts + 1 : 1;
+		const next = { state: "running" as const, attempts, revision: IMPORT_REVISION };
 		if (current) {
-			await ctx.db.patch(current._id, { state: "running", attempts });
+			await ctx.db.patch(current._id, { ...next, imported: undefined, error: undefined });
 		} else {
-			await ctx.db.insert("unregistrationImports", { state: "running", attempts });
+			await ctx.db.insert("unregistrationImports", next);
 		}
 		await ctx.scheduler.runAfter(0, internal.engagement.unregistrationImport.run, {});
 		await ctx.scheduler.runAfter(

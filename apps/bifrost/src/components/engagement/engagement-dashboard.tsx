@@ -62,11 +62,16 @@ function LiveView({ now }: Readonly<{ now: number }>) {
 function useRegistrationLogBackfill() {
 	const { isAuthenticated } = useConvexAuth();
 	const pending = useQuery(api.engagement.backfill.pending, isAuthenticated ? {} : "skip");
+	const outcome = useQuery(api.engagement.backfill.importOutcome, isAuthenticated ? {} : "skip");
 	const setup = useMutation(api.engagement.backfill.setup);
 
 	useEffect(() => {
 		if (pending) void setup({});
 	}, [pending, setup]);
+
+	useEffect(() => {
+		if (outcome?.state === "failed") console.error("Unregistration import failed", outcome);
+	}, [outcome]);
 }
 
 export function EngagementDashboard() {

@@ -278,6 +278,36 @@ describe("importing unregistrations from PostHog", () => {
 			"unregistered",
 		]);
 		expect(await intern.query(api.engagement.backfill.pending, {})).toBe(false);
+		expect(await intern.query(api.engagement.backfill.importOutcome, {})).toEqual({
+			state: "done",
+			attempts: 1,
+			imported: 2,
+			error: undefined,
+		});
+	});
+
+	it("runs again when an earlier revision of the import gave up", async () => {
+		vi.useFakeTimers();
+		vi.stubEnv("POSTHOG_PERSONAL_API_KEY", "phx_test");
+		const { t, companyId } = await setup();
+		const eventId = await pastEventOf(t, companyId);
+		const ada = await insertUser(t, "ada@example.com");
+		const fetchMock = stubPosthog(() => results([posthogRow(eventId, ada._id)]));
+		await t.run((ctx) => ctx.db.insert("unregistrationImports", { state: "failed", attempts: 3 }));
+		const intern = await internalUser(t);
+
+		expect(await intern.query(api.engagement.backfill.importOutcome, {})).toBeNull();
+		expect(await intern.query(api.engagement.backfill.pending, {})).toBe(true);
+		await intern.mutation(api.engagement.backfill.setup, {});
+		await settle(t);
+
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+		expect(await logsFor(t, eventId)).toHaveLength(2);
+		expect(await intern.query(api.engagement.backfill.importOutcome, {})).toMatchObject({
+			state: "done",
+			attempts: 1,
+			imported: 2,
+		});
 	});
 
 	it("waits for the registration backfill to finish before importing", async () => {
@@ -359,7 +389,10 @@ describe("importing unregistrations from PostHog", () => {
 		expect(await importState(t)).toBe("running");
 
 		await t.mutation(internal.engagement.unregistrationImport.expire, { attempts: 2 });
-		expect(await importState(t)).toBe("failed");
+		expect(await t.run((ctx) => ctx.db.query("unregistrationImports").first())).toMatchObject({
+			state: "failed",
+			error: "The import did not report back before its deadline",
+		});
 	});
 
 	it("stays idle without a key", async () => {
@@ -380,7 +413,9 @@ describe("importing unregistrations from PostHog", () => {
 	it("gives up after three failed attempts", async () => {
 		vi.useFakeTimers();
 		vi.stubEnv("POSTHOG_PERSONAL_API_KEY", "phx_revoked");
-		const fetchMock = stubPosthog(() => new Response("{}", { status: 401 }));
+		const fetchMock = stubPosthog(
+			() => new Response(JSON.stringify({ detail: "Invalid API key" }), { status: 401 }),
+		);
 		const { t } = await setup();
 		const intern = await internalUser(t);
 
@@ -394,5 +429,11 @@ describe("importing unregistrations from PostHog", () => {
 
 		expect(fetchMock).toHaveBeenCalledTimes(3);
 		expect(await intern.query(api.engagement.backfill.pending, {})).toBe(false);
+		expect(await intern.query(api.engagement.backfill.importOutcome, {})).toEqual({
+			state: "failed",
+			attempts: 3,
+			imported: undefined,
+			error: 'Error: PostHog responded with 401 {"detail":"Invalid API key"}',
+		});
 	});
 });

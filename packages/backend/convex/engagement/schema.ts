@@ -38,6 +38,9 @@ export const engagementSchema = {
 	unregistrationImports: defineTable({
 		state: v.union(v.literal("running"), v.literal("done"), v.literal("failed")),
 		attempts: v.number(),
+		revision: v.optional(v.number()),
+		imported: v.optional(v.number()),
+		error: v.optional(v.string()),
 	}),
 
 	engagementAlerts: defineTable({

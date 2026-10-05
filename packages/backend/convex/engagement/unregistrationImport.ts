@@ -13,6 +13,8 @@ const MAX_PAGES = 20;
 const BATCH_SIZE = 100;
 const TIMEOUT_MS = 30_000;
 const MAX_LOGS_PER_REGISTRATION = 100;
+const MAX_ERROR_LENGTH = 300;
+const EXPIRED_ERROR = "The import did not report back before its deadline";
 
 const UNREGISTRATIONS_QUERY = `
 	select
@@ -36,7 +38,10 @@ async function fetchPage(key: string, offset: number) {
 		}),
 		signal: AbortSignal.timeout(TIMEOUT_MS),
 	});
-	if (!response.ok) throw new Error(`PostHog responded with ${response.status}`);
+	if (!response.ok) {
+		const reason = await response.text().catch(() => "");
+		throw new Error(`PostHog responded with ${response.status} ${reason}`.trim());
+	}
 	return posthogUnregistrationsSchema.parse(await response.json()).results;
 }
 
@@ -46,6 +51,7 @@ export const run = internalAction({
 		try {
 			const key = process.env.POSTHOG_PERSONAL_API_KEY;
 			if (!key) throw new Error("POSTHOG_PERSONAL_API_KEY is not set");
+			let imported = 0;
 			for (let page = 0; page < MAX_PAGES; page += 1) {
 				const results = await fetchPage(key, page * PAGE_SIZE);
 				const rows = results.filter((row) => row !== null);
@@ -55,21 +61,26 @@ export const run = internalAction({
 				const batches = Array.from({ length: Math.ceil(rows.length / BATCH_SIZE) }, (_, index) =>
 					rows.slice(index * BATCH_SIZE, (index + 1) * BATCH_SIZE),
 				);
-				await Promise.all(
+				const added: number[] = await Promise.all(
 					batches.map((batch) =>
 						ctx.runMutation(internal.engagement.unregistrationImport.apply, { rows: batch }),
 					),
 				);
+				imported += added.reduce((sum, count) => sum + count, 0);
 				if (results.length < PAGE_SIZE) {
 					await ctx.runMutation(internal.engagement.unregistrationImport.finish, {
 						state: "done",
+						imported,
 					});
 					return;
 				}
 			}
 			throw new Error("PostHog returned more pages than expected");
 		} catch (error) {
-			await ctx.runMutation(internal.engagement.unregistrationImport.finish, { state: "failed" });
+			await ctx.runMutation(internal.engagement.unregistrationImport.finish, {
+				state: "failed",
+				error: String(error).slice(0, MAX_ERROR_LENGTH),
+			});
 			throw error;
 		}
 	},
@@ -104,7 +115,7 @@ type Registration = { eventId: string; userId: string; rows: Row[] };
 async function applyTo(ctx: MutationCtx, registration: Registration) {
 	const eventId = ctx.db.normalizeId("events", registration.eventId);
 	const userId = ctx.db.normalizeId("users", registration.userId);
-	if (!eventId || !userId) return;
+	if (!eventId || !userId) return 0;
 	const [event, user, logged] = await Promise.all([
 		ctx.db.get(eventId),
 		ctx.db.get(userId),
@@ -113,7 +124,7 @@ async function applyTo(ctx: MutationCtx, registration: Registration) {
 			.withIndex("by_eventId_and_userId", (q) => q.eq("eventId", eventId).eq("userId", userId))
 			.take(MAX_LOGS_PER_REGISTRATION),
 	]);
-	if (!event || !user) return;
+	if (!event || !user) return 0;
 	const known: Pick<Doc<"registrationLog">, "change" | "at">[] = [...logged];
 	const added: Pick<Doc<"registrationLog">, "change" | "fromStatus" | "at">[] = [];
 	for (const row of registration.rows) {
@@ -131,6 +142,7 @@ async function applyTo(ctx: MutationCtx, registration: Registration) {
 	await Promise.all(
 		added.map((entry) => ctx.db.insert("registrationLog", { eventId, userId, ...entry })),
 	);
+	return added.length;
 }
 
 export const apply = internalMutation({
@@ -149,9 +161,10 @@ export const apply = internalMutation({
 			registration.rows.push(row);
 			registrations.set(key, registration);
 		}
-		await Promise.all(
+		const added = await Promise.all(
 			[...registrations.values()].map((registration) => applyTo(ctx, registration)),
 		);
+		return added.reduce((sum, count) => sum + count, 0);
 	},
 });
 
@@ -160,14 +173,18 @@ export const expire = internalMutation({
 	handler: async (ctx, { attempts }) => {
 		const current = await ctx.db.query("unregistrationImports").first();
 		if (current?.state !== "running" || current.attempts !== attempts) return;
-		await ctx.db.patch(current._id, { state: "failed" });
+		await ctx.db.patch(current._id, { state: "failed", error: EXPIRED_ERROR });
 	},
 });
 
 export const finish = internalMutation({
-	args: { state: v.union(v.literal("done"), v.literal("failed")) },
-	handler: async (ctx, { state }) => {
+	args: {
+		state: v.union(v.literal("done"), v.literal("failed")),
+		imported: v.optional(v.number()),
+		error: v.optional(v.string()),
+	},
+	handler: async (ctx, { state, imported, error }) => {
 		const current = await ctx.db.query("unregistrationImports").first();
-		if (current) await ctx.db.patch(current._id, { state });
+		if (current) await ctx.db.patch(current._id, { state, imported, error });
 	},
 });
