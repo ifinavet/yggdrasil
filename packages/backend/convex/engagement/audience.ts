@@ -1,4 +1,4 @@
-import { DEGREE_YEARS, DEGREES } from "@workspace/shared/constants";
+import { DEGREE_YEARS, DEGREES, GRADUATES, NO_COHORT } from "@workspace/shared/constants";
 import { DAY_MS } from "@workspace/shared/time";
 import type { Doc } from "../_generated/dataModel";
 
@@ -77,8 +77,6 @@ function hasCohort(student: Student) {
 	return cohortGroupOf(student) !== null;
 }
 
-const NO_COHORT = "";
-
 type GroupOf = (student: Pick<Student, "degree" | "year">) => Cohort | null;
 
 export function programCohortGroupOf(student: Pick<Student, "degree" | "year">) {
@@ -97,7 +95,6 @@ function labelledBy(groupOf: GroupOf) {
 
 export const cohortOf = labelledBy(cohortGroupOf);
 const programCohortOf = labelledBy(programCohortGroupOf);
-const GRADUATES = { label: "Uteksaminert", code: "Ute" };
 
 function cohortsOf(students: readonly Student[], groupOf: GroupOf) {
 	return tally(students, labelledBy(groupOf))

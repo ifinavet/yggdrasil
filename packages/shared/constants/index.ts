@@ -11,7 +11,13 @@ export {
 export { JOB_TYPES } from "./job_types";
 export { LISTING_COLORS } from "./listing_colors";
 export { ORGANIZER_ROLES, type OrganizerRole } from "./organizer_roles";
-export { PROGRAM_DEGREES, STUDY_PROGRAMS, type StudyProgram } from "./programs";
+export {
+	GRADUATES,
+	NO_COHORT,
+	PROGRAM_DEGREES,
+	STUDY_PROGRAMS,
+	type StudyProgram,
+} from "./programs";
 export {
 	REGISTRATION_STATUS_LABELS,
 	REGISTRATION_STATUSES,

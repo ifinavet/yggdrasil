@@ -28,3 +28,7 @@ export const PROGRAM_DEGREES = {
 export type StudyProgram = keyof typeof PROGRAM_DEGREES;
 
 export const STUDY_PROGRAMS = Object.keys(PROGRAM_DEGREES) as [StudyProgram, ...StudyProgram[]];
+
+export const NO_COHORT = "";
+
+export const GRADUATES = { label: "Uteksaminert", code: "Ute" } as const;
