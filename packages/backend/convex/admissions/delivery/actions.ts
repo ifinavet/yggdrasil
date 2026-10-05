@@ -12,7 +12,7 @@ import { formatOsloDate } from "@workspace/shared/time";
 import { internal } from "../../_generated/api";
 import type { Doc } from "../../_generated/dataModel";
 import { type ActionCtx, internalAction } from "../../_generated/server";
-import { googleConfig, isWorkspaceEmail } from "../../iam/config";
+import { googleConfig } from "../../iam/config";
 import {
 	calendarEventId,
 	googleCalendarClient,
@@ -122,13 +122,6 @@ function interviewEmailProps(claimed: DeliveryContext) {
 
 type DeliveryContext = NonNullable<Awaited<ReturnType<typeof context>>>;
 
-function googleConfigOrThrow() {
-	const config = googleConfig();
-	if (!config)
-		throw new Error("Google Calendar mangler tjenestekonto eller Workspace-konfigurasjon.");
-	return config;
-}
-
 function interviewContacts(claimed: DeliveryContext) {
 	const { period, interview, interviewers } = claimed;
 	if (!interview) throw new Error("Fant ikke intervjuet.");
@@ -144,14 +137,12 @@ function interviewContacts(claimed: DeliveryContext) {
 }
 
 async function assertInterviewerAvailability(
-	config: NonNullable<ReturnType<typeof googleConfig>>,
+	config: ReturnType<typeof googleConfig>,
 	person: ReturnType<typeof interviewContacts>[number],
 	claimed: DeliveryContext,
 ) {
 	const { interview, period } = claimed;
 	if (!interview) throw new Error("Fant ikke intervjuet.");
-	if (!isWorkspaceEmail(person.email, config.domain))
-		throw new Error("Intervjueren mangler en Navet Workspace-konto for kalenderdelegering.");
 	const endWithBuffer = interview.endAt + period.buffer * MINUTE;
 	const client = googleCalendarClient(config, person.email);
 	const from = new Date(interview.startAt).toISOString();
@@ -179,7 +170,7 @@ async function publish(ctx: ActionCtx, claimed: DeliveryContext) {
 	if (!application || !interview || !applicant || interview.status !== "scheduled")
 		throw new Error("Intervjuet finnes ikke lenger eller er avlyst.");
 	const contacts = interviewContacts(claimed);
-	const config = googleConfigOrThrow();
+	const config = googleConfig();
 	await Promise.all(
 		contacts.map((person) => assertInterviewerAvailability(config, person, claimed)),
 	);
@@ -296,9 +287,7 @@ async function cancelCalendarEvent(ctx: ActionCtx, claimed: DeliveryContext) {
 	const owner = interviewers.find((person) => person.userId === interview.interviewerIds[0]);
 	if (!owner) throw new Error("Fant ikke kalenderansvarlig for avlysningen.");
 	if (!(await current(ctx, job))) throw new StaleAdmissionJob();
-	const config = googleConfigOrThrow();
-	if (!isWorkspaceEmail(owner.email, config.domain))
-		throw new Error("Intervjueren mangler en Navet Workspace-konto for kalenderdelegering.");
+	const config = googleConfig();
 	const client = googleCalendarClient(config, owner.email);
 	const eventId =
 		interview.calendarEventId ?? (await calendarEventId(`navet-admissions:${interview._id}`));

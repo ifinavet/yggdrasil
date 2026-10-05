@@ -18,7 +18,7 @@ import { v } from "convex/values";
 import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import { type ActionCtx, action } from "../../_generated/server";
-import { googleConfig, isWorkspaceEmail } from "../../iam/config";
+import { googleConfig } from "../../iam/config";
 import {
 	calendarEventId,
 	googleCalendarClient,
@@ -38,10 +38,6 @@ export const sources = action({
 		});
 		const selectedIds: string[] = access.interviewer.selectedCalendarIds;
 		const config = googleConfig();
-		if (!config)
-			throw new Error("Google Calendar mangler tjenestekonto eller Workspace-konfigurasjon.");
-		if (!isWorkspaceEmail(access.email, config.domain))
-			throw new Error("Intervjueren mangler en Navet Workspace-konto for kalenderdelegering.");
 		const calendarClient = googleCalendarClient(config, access.email);
 		const calendars = await calendarClient.listCalendars();
 		const defaults = calendars.filter((calendar) =>
@@ -102,14 +98,6 @@ export const generateSchedule = action({
 		const config = googleConfig();
 		if (!config)
 			throw new Error("Google Calendar mangler tjenestekonto eller Workspace-konfigurasjon.");
-		if (
-			context.interviewers.some(
-				(person) =>
-					person.selectedCalendarIds.length > 0 &&
-					!isWorkspaceEmail(person.email, config?.domain ?? null),
-			)
-		)
-			throw new Error("En intervjuer mangler en Navet Workspace-konto for kalenderdelegering.");
 		const team: SchedulingInterviewer[] = await Promise.all(
 			context.interviewers.map(async (person) => {
 				const calendarIds = person.selectedCalendarIds;

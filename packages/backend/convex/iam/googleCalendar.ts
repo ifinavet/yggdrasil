@@ -7,7 +7,7 @@ import {
 } from "@workspace/shared/constants";
 import { coversInterval } from "@workspace/shared/time";
 import { sha256 } from "../lib/tokens";
-import { directoryUrl, type GoogleConfig } from "./config";
+import { directoryUrl, type GoogleConfig, isWorkspaceEmail } from "./config";
 import { googleAuth } from "./google";
 
 const TIMEOUT_MS = 15_000;
@@ -152,7 +152,11 @@ async function pages<T>(
 	throw new GoogleCalendarError("Google Calendar returnerte for mange sider.");
 }
 
-export function googleCalendarClient(config: GoogleConfig, subject: string) {
+export function googleCalendarClient(config: GoogleConfig | null, subject: string) {
+	if (!config)
+		throw new Error("Google Calendar mangler tjenestekonto eller Workspace-konfigurasjon.");
+	if (!isWorkspaceEmail(subject, config.domain))
+		throw new Error("Intervjueren mangler en Navet Workspace-konto for kalenderdelegering.");
 	const auth = googleAuth(config, subject, googleCalendarScope());
 	const client = calendar({
 		version: "v3",

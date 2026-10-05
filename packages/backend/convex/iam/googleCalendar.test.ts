@@ -31,6 +31,20 @@ afterEach(() => {
 });
 
 describe("delegated Google Calendar client", () => {
+	it.each([
+		[null, "interviewer@example.test"],
+		[config, "student@uio.no"],
+		[config, ""],
+	] as const)(
+		"rejects invalid delegation before contacting Google (%s, %s)",
+		(settings, subject) => {
+			const fetch = vi.fn();
+			vi.stubGlobal("fetch", fetch);
+			expect(() => googleCalendarClient(settings, subject)).toThrow(/Workspace/);
+			expect(fetch).not.toHaveBeenCalled();
+		},
+	);
+
 	it("uses the requested interviewer subject and Calendar scope", async () => {
 		const calls: Array<{ url: string; init: RequestInit }> = [];
 		vi.stubEnv("CONVEX_CLOUD_URL", "http://localhost:3212");

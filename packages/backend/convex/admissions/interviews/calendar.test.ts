@@ -28,7 +28,11 @@ beforeEach(() => {
 		adminEmail: "admin@ifinavet.no",
 		domain: "ifinavet.no",
 	});
-	vi.spyOn(google, "googleCalendarClient").mockReturnValue(provider);
+	const createClient = google.googleCalendarClient;
+	vi.spyOn(google, "googleCalendarClient").mockImplementation((...args) => {
+		createClient(...args);
+		return provider;
+	});
 	provider.listCalendars.mockResolvedValue([
 		{ id: "navet", summary: "Navet" },
 		{ id: "timetable", summary: "Timeplan" },
