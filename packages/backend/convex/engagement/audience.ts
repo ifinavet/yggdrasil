@@ -2,7 +2,7 @@ import { DEGREE_YEARS, DEGREES } from "@workspace/shared/constants";
 import { DAY_MS } from "@workspace/shared/time";
 import type { Doc } from "../_generated/dataModel";
 
-type Student = Pick<Doc<"students">, "_id" | "degree" | "year" | "studyProgram" | "graduatedAt">;
+type Student = Pick<Doc<"students">, "_id" | "degree" | "year" | "studyProgram">;
 type KeyOf = (student: Student) => string | null;
 
 function countBy(students: readonly Student[], keyOf: KeyOf) {
@@ -71,10 +71,6 @@ function labelOf({ degree, year }: Cohort) {
 
 function codeOf({ degree, year }: Cohort) {
 	return `${degree.charAt(0)}${year ?? ""}`;
-}
-
-function isGraduate({ graduatedAt }: Student) {
-	return graduatedAt !== undefined;
 }
 
 function hasCohort(student: Student) {
@@ -203,12 +199,13 @@ export function audienceOf(
 		.map(([label, entry]) => [label, { ...entry, count: programCounts.get(label) ?? 0 }] as const)
 		.sort(([a, { count: countA }], [b, { count: countB }]) => countB - countA || a.localeCompare(b))
 		.map(([label, { count }]) => {
-			const programRegistrants = registrants.filter((student) => student.studyProgram === label);
-			const byCohort = countBy(programRegistrants, programCohortOf);
+			const byCohort = countBy(
+				registrants.filter((student) => student.studyProgram === label),
+				programCohortOf,
+			);
 			return {
 				...programRow(label, count),
 				byCohort: programCohorts.map((cohort) => byCohort.get(cohort.label) ?? 0),
-				graduates: programRegistrants.filter(isGraduate).length,
 			};
 		});
 

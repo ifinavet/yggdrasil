@@ -9,7 +9,7 @@ import {
 	withStudyYear,
 } from "./audience";
 
-type Student = Pick<Doc<"students">, "_id" | "degree" | "year" | "studyProgram" | "graduatedAt">;
+type Student = Pick<Doc<"students">, "_id" | "degree" | "year" | "studyProgram">;
 
 function student(
 	id: string,
@@ -189,10 +189,7 @@ describe("audienceOf", () => {
 
 	it("counts årsstudium students under the first bachelor year in the program matrix only", () => {
 		const oneYear = student("ar", "Årsstudium", 1, "Årsstudium i informatikk");
-		const graduated = {
-			...student("as", "Årsstudium", 2, "Årsstudium i informatikk"),
-			graduatedAt: 0,
-		};
+		const graduated = student("as", "Årsstudium", 2, "Årsstudium i informatikk");
 		const { cohorts, programCohorts, programs } = audienceOf(
 			[ADA, oneYear, graduated],
 			[...POPULATION, oneYear, graduated],
@@ -204,40 +201,10 @@ describe("audienceOf", () => {
 			{ label: "Master 4. år", code: "M4" },
 		]);
 		expect(programs).toEqual([
-			expect.objectContaining({
-				label: "Årsstudium i informatikk",
-				byCohort: [1, 0, 0],
-				graduates: 1,
-			}),
-			expect.objectContaining({ label: "Informatikk", byCohort: [1, 0, 0], graduates: 0 }),
-			expect.objectContaining({
-				label: "Matematikk",
-				registrations: 0,
-				byCohort: [0, 0, 0],
-				graduates: 0,
-			}),
+			expect.objectContaining({ label: "Årsstudium i informatikk", byCohort: [1, 0, 0] }),
+			expect.objectContaining({ label: "Informatikk", byCohort: [1, 0, 0] }),
+			expect.objectContaining({ label: "Matematikk", registrations: 0, byCohort: [0, 0, 0] }),
 		]);
-	});
-
-	it("adds up every program row to its registrations, graduates included", () => {
-		const [graduate] = withStudyYear(
-			[{ ...student("dj", "Bachelor", 3, "Programmering"), graduatedAt: 0 }],
-			DAY_MS,
-		) as [Student];
-		const { total, programs } = audienceOf(
-			[ADA, CY, DI, graduate, graduate],
-			[...POPULATION, graduate],
-		);
-		const sumOf = (counts: readonly number[]) => counts.reduce((sum, count) => sum + count, 0);
-		for (const { registrations, byCohort, graduates } of programs) {
-			expect(sumOf(byCohort) + graduates).toBe(registrations);
-		}
-		expect(sumOf(programs.map(({ byCohort, graduates }) => sumOf(byCohort) + graduates))).toBe(
-			total,
-		);
-		expect(programs.find(({ label }) => label === "Programmering")).toEqual(
-			expect.objectContaining({ byCohort: [0, 0, 0], graduates: 2 }),
-		);
 	});
 
 	it("sizes a cohort by the larger of itself and the year above it", () => {
