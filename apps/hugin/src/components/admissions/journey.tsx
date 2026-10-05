@@ -244,12 +244,9 @@ export default function AdmissionsJourney({
 					accept,
 					expectedRevision: application.revision,
 				});
+				const confirmation = accept ? "Du har takket ja til plassen" : "Takk for at du ga beskjed";
 				setMessage(
-					result.offerStatus === "expired"
-						? "Svarfristen for tilbudet har gått ut."
-						: accept
-							? "Du har takket ja til plassen"
-							: "Takk for at du ga beskjed",
+					result.offerStatus === "expired" ? "Svarfristen for tilbudet har gått ut." : confirmation,
 				);
 			}, "Svaret ditt kunne ikke lagres. Prøv igjen.");
 	}
