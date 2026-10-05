@@ -36,30 +36,28 @@ export function scheduledInterviews(
 		.take(limit);
 }
 
-export const openPeriods = query({
+export const openPeriod = query({
 	args: { now: v.number() },
 	handler: async (ctx, { now }) => {
-		const periods = await ctx.db
-			.query("admissionPeriods")
-			.withIndex("by_status", (q) => q.eq("status", "open"))
-			.take(10);
-		return periods
-			.filter((period) => period.applicationStartAt <= now && now <= period.applicationEndAt)
-			.map((period) =>
-				pick(period, [
-					"_id",
-					"title",
-					"applicationStartAt",
-					"applicationEndAt",
-					"interviewStartAt",
-					"interviewEndAt",
-					"retentionAt",
-					"dayStart",
-					"dayEnd",
-					"timezone",
-					"revision",
-				]),
-			);
+		const period = await ctx.db.query("admissionPeriods").first();
+		if (
+			period?.status !== "open" ||
+			!(period.applicationStartAt <= now && now <= period.applicationEndAt)
+		)
+			return null;
+		return pick(period, [
+			"_id",
+			"title",
+			"applicationStartAt",
+			"applicationEndAt",
+			"interviewStartAt",
+			"interviewEndAt",
+			"retentionAt",
+			"dayStart",
+			"dayEnd",
+			"timezone",
+			"revision",
+		]);
 	},
 });
 

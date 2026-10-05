@@ -29,8 +29,7 @@ export default async function Page() {
 	const token = await getAuthToken();
 	const currentApplication = await fetchQuery(api.admissions.queries.myApplication, {}, { token });
 	const now = Date.now();
-	const periods = await fetchQuery(api.admissions.queries.openPeriods, { now }, { token });
-	const period = periods.find((item) => item._id === currentApplication?.periodId);
+	const period = await fetchQuery(api.admissions.queries.openPeriod, { now }, { token });
 	if (currentApplication?.status === "submitted") {
 		return (
 			<AdmissionsApplication
@@ -44,8 +43,7 @@ export default async function Page() {
 		);
 	}
 
-	const openPeriod = period ?? periods[0];
-	if (!openPeriod) return closedPeriodPage(now);
+	if (!period) return closedPeriodPage(now);
 
-	return <AdmissionsApplication period={openPeriod} />;
+	return <AdmissionsApplication period={period} />;
 }

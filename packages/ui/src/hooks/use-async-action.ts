@@ -33,5 +33,5 @@ export function useAsyncAction(onError?: (message: string) => void, allowConcurr
 		},
 		[onError, allowConcurrent],
 	);
-	return { pending, error, run };
+	return { pending, error, run, clearError: () => setError("") };
 }

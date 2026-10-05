@@ -560,3 +560,25 @@ it("purges sensitive history and applicant identity on close", async () => {
 	).resolves.toHaveLength(0);
 	await expect(t.run((ctx) => ctx.db.get(periodId))).resolves.toBeNull();
 });
+
+it("returns only the public singleton period within its application window", async () => {
+	const { t } = await setup();
+	const now = Date.now();
+	expect(await t.query(api.admissions.queries.openPeriod, { now })).toBeNull();
+	const { admin, boardId, secondBoardId } = await users(t);
+	const periodId = await openPeriod(admin, boardId, secondBoardId);
+	const period = await t.run((ctx) => ctx.db.get(periodId));
+	if (!period) throw new Error("Missing period");
+	for (const at of [period.applicationStartAt, period.applicationEndAt]) {
+		const result = await t.query(api.admissions.queries.openPeriod, { now: at });
+		expect(result?._id).toBe(periodId);
+		expect(result).not.toHaveProperty("interviewers");
+		expect(result).not.toHaveProperty("roundHistory");
+	}
+	for (const at of [period.applicationStartAt - 1, period.applicationEndAt + 1, Number.NaN])
+		expect(await t.query(api.admissions.queries.openPeriod, { now: at })).toBeNull();
+	for (const status of ["draft", "published", "closing"] as const) {
+		await t.run((ctx) => ctx.db.patch(periodId, { status }));
+		expect(await t.query(api.admissions.queries.openPeriod, { now })).toBeNull();
+	}
+});

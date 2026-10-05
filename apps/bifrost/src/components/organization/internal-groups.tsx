@@ -1,24 +1,19 @@
 "use client";
 
 import { api } from "@workspace/backend/convex/api";
-import type { Id } from "@workspace/backend/convex/dataModel";
-import { convexErrorMessage } from "@workspace/shared/utils";
+import type { Doc } from "@workspace/backend/convex/dataModel";
 import { Button } from "@workspace/ui/components/button";
 import { ConfirmDialog } from "@workspace/ui/components/confirm-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@workspace/ui/components/dialog";
 import { Input } from "@workspace/ui/components/input";
 import { Label } from "@workspace/ui/components/label";
 import { Textarea } from "@workspace/ui/components/textarea";
+import { useAsyncAction } from "@workspace/ui/hooks/use-async-action";
 import { useMutation, useQuery } from "convex/react";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { type FormEvent, useState } from "react";
 
-type Group = {
-	_id: Id<"internalGroups">;
-	name: string;
-	description: string;
-	leader?: Id<"users">;
-};
+type Group = Doc<"internalGroups">;
 
 export function InternalGroups() {
 	const groups = useQuery(api.users.organization.groups.list, {});
@@ -30,49 +25,35 @@ export function InternalGroups() {
 	const [dialogOpen, setDialogOpen] = useState(false);
 	const [name, setName] = useState("");
 	const [description, setDescription] = useState("");
-	const [error, setError] = useState("");
-	const [busy, setBusy] = useState(false);
+	const { pending: busy, error, run, clearError } = useAsyncAction();
 
 	function open(group?: Group) {
 		setEditing(group ?? null);
 		setName(group?.name ?? "");
 		setDescription(group?.description ?? "");
-		setError("");
+		clearError();
 		setDialogOpen(true);
 	}
 
-	async function save(event: FormEvent<HTMLFormElement>) {
+	function save(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
-		setBusy(true);
-		setError("");
-		try {
-			if (editing) {
-				await updateGroup({
-					groupId: editing._id,
-					name,
-					description,
-					leader: editing.leader ?? null,
-				});
-			} else {
-				await createGroup({ name, description });
-			}
-			setDialogOpen(false);
-		} catch (cause) {
-			setError(convexErrorMessage(cause, "Kunne ikke lagre arbeidsgruppen."));
-		} finally {
-			setBusy(false);
-		}
-	}
-
-	async function remove(groupId: Id<"internalGroups">) {
-		setError("");
-		try {
-			await removeGroup({ groupId });
-			return true;
-		} catch (cause) {
-			setError(convexErrorMessage(cause, "Kunne ikke slette arbeidsgruppen."));
-			return false;
-		}
+		return run(
+			async () => {
+				if (editing) {
+					await updateGroup({
+						groupId: editing._id,
+						name,
+						description,
+						leader: editing.leader ?? null,
+					});
+				} else {
+					await createGroup({ name, description });
+				}
+				setDialogOpen(false);
+			},
+			undefined,
+			"Kunne ikke lagre arbeidsgruppen.",
+		);
 	}
 
 	return (
@@ -119,7 +100,7 @@ export function InternalGroups() {
 									size="icon"
 									aria-label={`Slett ${group.name}`}
 									onClick={() => {
-										setError("");
+										clearError();
 										setRemoving(group);
 									}}
 								>
@@ -143,7 +124,15 @@ export function InternalGroups() {
 				confirmLabel="Slett arbeidsgruppe"
 				destructive
 				error={error}
-				onConfirm={() => (removing ? remove(removing._id) : Promise.resolve(false))}
+				onConfirm={() =>
+					removing
+						? run(
+								() => removeGroup({ groupId: removing._id }),
+								undefined,
+								"Kunne ikke slette arbeidsgruppen.",
+							)
+						: Promise.resolve(false)
+				}
 			/>
 			<Dialog
 				open={dialogOpen}

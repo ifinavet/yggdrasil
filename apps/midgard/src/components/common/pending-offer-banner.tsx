@@ -2,7 +2,6 @@
 
 import { Authenticated } from "@workspace/auth/convex";
 import { api } from "@workspace/backend/convex/api";
-import type { Id } from "@workspace/backend/convex/dataModel";
 import { huginUrl } from "@workspace/shared/constants/hugin-url";
 import { DATE_PATTERNS, formatOsloDate } from "@workspace/shared/time";
 import { Button } from "@workspace/ui/components/button";
@@ -23,31 +22,20 @@ export default function PendingOfferBanner() {
 
 function AdmissionsBanner() {
 	const [now, setNow] = useState(() => Date.now());
-	const periods = useQuery(api.admissions.queries.openPeriods, { now });
+	const period = useQuery(api.admissions.queries.openPeriod, { now });
+	const application = useQuery(
+		api.admissions.queries.myApplication,
+		period ? { periodId: period._id } : "skip",
+	);
 	useEffect(() => {
-		if (!periods?.length) return;
-		const nextDeadline = Math.min(...periods.map((period) => period.applicationEndAt));
+		if (!period) return;
 		const timer = window.setTimeout(
 			() => setNow(Date.now()),
-			Math.max(0, nextDeadline - Date.now() + 1),
+			Math.max(0, period.applicationEndAt - Date.now() + 1),
 		);
 		return () => window.clearTimeout(timer);
-	}, [periods]);
-	if (!periods?.length) return null;
-	return (
-		<>
-			{periods.map((period) => (
-				<OpenAdmission key={period._id} period={period} />
-			))}
-		</>
-	);
-}
-
-function OpenAdmission({
-	period,
-}: Readonly<{ period: { _id: Id<"admissionPeriods">; title: string } }>) {
-	const application = useQuery(api.admissions.queries.myApplication, { periodId: period._id });
-	if (application === undefined || application?.status === "submitted") return null;
+	}, [period]);
+	if (!period || application === undefined || application?.status === "submitted") return null;
 	return (
 		<div className="mx-4 mb-6 flex max-w-6xl flex-col gap-3 sm:mx-auto sm:w-full sm:px-6">
 			<Note
