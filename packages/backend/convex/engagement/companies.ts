@@ -19,11 +19,11 @@ import {
 } from "./companyMetrics";
 import {
 	lateUnregistrationsOf,
-	logStartedAt,
 	pastEventRow,
 	type SemesterKey,
 	semesterEvents,
 	studentsOf,
+	unregistrationsLoggedFrom,
 } from "./queries";
 import { MAX_REGISTRATIONS_PER_EVENT } from "./snapshot";
 
@@ -89,7 +89,7 @@ function returningIn(companyEvent: CompanyEvent, earlier: Set<Id<"users">>) {
 }
 
 async function loggedEvents(ctx: QueryCtx, key: SemesterKey, now: number) {
-	const logStart = await logStartedAt(ctx);
+	const logStart = await unregistrationsLoggedFrom(ctx);
 	const grouped = byCompany(await semesterEvents(ctx, key, now));
 	const events: CompanyEvent[] = [];
 	for (const [companyId, companyEvents] of grouped) {
