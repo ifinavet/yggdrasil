@@ -67,6 +67,7 @@ type InitialApplication = {
 	decisionSentAt?: number;
 	offerStatus: "none" | "pending" | "accepted" | "declined" | "expired";
 	offerDeadline?: number;
+	interviewStatus: "scheduled" | "cancelled" | null;
 	interview: { startAt: number; endAt: number; room: string } | null;
 	period: {
 		title: string;
@@ -260,11 +261,15 @@ export default function AdmissionsJourney({
 		if (!application) return;
 		setBusy(true);
 		try {
-			await respondToOffer({
+			const result = await respondToOffer({
 				periodId: period._id,
 				accept,
 				expectedRevision: application.revision,
 			});
+			if (result.offerStatus === "expired") {
+				setMessage("Svarfristen for tilbudet har gått ut.");
+				return;
+			}
 			setMessage(accept ? "Du har takket ja til plassen" : "Takk for at du ga beskjed");
 		} catch (error) {
 			setMessage(convexErrorMessage(error, "Svaret ditt kunne ikke lagres. Prøv igjen."));
@@ -686,6 +691,12 @@ function SubmittedApplicationView({
 	onCancelInterview: () => Promise<void>;
 	onReopen: () => Promise<void>;
 }>) {
+	if (application.offerStatus === "expired")
+		return (
+			<Notice title="Svarfristen er passert">
+				<p>Fristen for å svare på tilbudet har gått ut. Tilbudet er ikke lenger tilgjengelig.</p>
+			</Notice>
+		);
 	if (application.offerStatus === "pending")
 		return (
 			<Notice title="Du har fått tilbud om plass">
@@ -745,7 +756,7 @@ function SubmittedApplicationView({
 				{message && <output>{message}</output>}
 			</Notice>
 		);
-	if (cancelledInterview)
+	if (cancelledInterview || application.interviewStatus === "cancelled")
 		return (
 			<Notice title="Intervjuet er avlyst">
 				<p>Vi har registrert at du har avlyst intervjuet.</p>

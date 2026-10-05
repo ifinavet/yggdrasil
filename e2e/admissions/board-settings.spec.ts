@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { captureScreenshot } from "./capture-screenshot";
 import { bifrostUrl, clearCookieNotice, resetAdmissions } from "./production-helpers";
 
 test.describe("admissions settings and close flow", () => {
@@ -22,6 +23,7 @@ test.describe("admissions settings and close flow", () => {
 		await expect(daniel).toBeChecked();
 		await aksel.check();
 		await daniel.uncheck();
+		await captureScreenshot(page, "board", "live-07-settings.png", settings);
 		await settings.getByRole("button", { name: "Lagre innstillinger" }).click();
 		await expect(settings).toBeHidden();
 
@@ -36,6 +38,7 @@ test.describe("admissions settings and close flow", () => {
 		const settings = page.getByRole("dialog", { name: "Opptaksinnstillinger" });
 		await settings.getByRole("checkbox", { name: "Aksel Nilsen" }).check();
 		await settings.getByRole("checkbox", { name: "Daniel Holm" }).uncheck();
+		await captureScreenshot(page, "board", "live-07-settings.png", settings);
 		await settings.getByRole("button", { name: "Lagre innstillinger" }).click();
 		await expect(settings.getByRole("alert")).toContainText("publiserte intervjuer");
 		await page.keyboard.press("Escape");
@@ -59,6 +62,7 @@ test.describe("admissions settings and close flow", () => {
 		await expect(close).toContainText("10 usendte beslutninger");
 		const confirm = close.getByRole("button", { name: "Bekreft avslutning" });
 		await expect(confirm).toBeDisabled();
+		await captureScreenshot(page, "board", "live-08-close.png", close);
 		await close.getByRole("checkbox", { name: /avslutte opptaket nå/i }).check();
 		await expect(confirm).toBeEnabled();
 		await confirm.click();

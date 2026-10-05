@@ -1,4 +1,7 @@
-import { PREVIEW_INTERVIEW_DAYS as days } from "@workspace/shared/admissions/preview";
+import {
+	PREVIEW_INTERVIEW_DAYS as days,
+	PREVIEW_INTERVIEWER_IMAGES,
+} from "@workspace/shared/admissions/preview";
 
 export { PREVIEW_INTERVIEW_DAYS as days } from "@workspace/shared/admissions/preview";
 
@@ -109,7 +112,7 @@ export const team: Interviewer[] = [
 ].map((name, i) => ({
 	id: `person-${i}`,
 	name,
-	image: `https://randomuser.me/api/portraits/${i % 2 === 0 ? "women" : "men"}/${i + 41}.jpg`,
+	image: PREVIEW_INTERVIEWER_IMAGES[i],
 	calendarStatus: "connected",
 	calendars: [
 		{

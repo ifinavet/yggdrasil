@@ -1,6 +1,7 @@
 "use client";
 import { Avatar, AvatarFallback, AvatarImage } from "@workspace/ui/components/avatar";
 import { Button } from "@workspace/ui/components/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@workspace/ui/components/dialog";
 import { Input } from "@workspace/ui/components/input";
 import { Label } from "@workspace/ui/components/label";
 import {
@@ -60,6 +61,7 @@ export function InterviewCalendar({
 	const [day, setDay] = useState<string | null>(null);
 	const [selectingRooms, setSelectingRooms] = useState(false);
 	const [roomSelection, setRoomSelection] = useState<string[]>([]);
+	const [unmatchedOpen, setUnmatchedOpen] = useState(false);
 	const [bulkRoom, setBulkRoom] = useState("");
 	const unmatched = candidates.filter(
 		(candidate) => !interviews.some((interview) => interview.candidateId === candidate.id),
@@ -196,12 +198,36 @@ export function InterviewCalendar({
 				<div className="admissions-attention">
 					<AlertTriangle size={18} />
 					<strong>{unmatched.length} trenger en tid</strong>
-					{unmatched.map((c) => (
-						<button type="button" key={c.id} onClick={() => onOpenCandidate(c.id)}>
-							{c.name}
-							<span>{c.availability.length ? "Ingen felles tid" : "Mangler tilgjengelighet"}</span>
-						</button>
-					))}
+					<Button variant="ghost" onClick={() => setUnmatchedOpen(true)}>
+						Vis kandidater
+					</Button>
+					<Dialog open={unmatchedOpen} onOpenChange={setUnmatchedOpen}>
+						<DialogContent aria-describedby={undefined} className="max-h-[85dvh] overflow-y-auto">
+							<DialogHeader>
+								<DialogTitle>Kandidater uten intervjutid</DialogTitle>
+							</DialogHeader>
+							<div className="grid gap-2">
+								{unmatched.map((candidate) => (
+									<Button
+										key={candidate.id}
+										variant="ghost"
+										className="h-auto justify-between gap-4 py-3 text-left"
+										onClick={() => {
+											setUnmatchedOpen(false);
+											onOpenCandidate(candidate.id);
+										}}
+									>
+										<span>{candidate.name}</span>
+										<span className="text-muted-foreground text-xs">
+											{candidate.availability.length
+												? "Ingen felles tid"
+												: "Mangler tilgjengelighet"}
+										</span>
+									</Button>
+								))}
+							</div>
+						</DialogContent>
+					</Dialog>
 				</div>
 			)}
 			<div

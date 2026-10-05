@@ -1,108 +1,81 @@
 # Styrets reise
 
-Opprettelse av en faktisk opptaksperiode, Google-tilkobling, Slack, mailutsending, automatisk IAM-overføring og varig sletting mangler. Bildene viser lokale UI-tilstander og separat eksisterende IAM. Alternative testforløp kan ha forskjellige rom og vedtak.
+Bildene viser den lokale Convex-baserte flyten med syntetiske kandidater. Eksterne tjenester bruker lokale testadaptere. Faktisk Google-, Slack-, IAM- og Resend-levering er ikke verifisert av disse bildene.
 
-Alle kandidatdata er syntetiske. IAM-mailen viser malens eksempelpassord, ingen ekte innloggingsopplysninger.
+[Integrasjoner og testdekning](integration-coverage.md)
 
-[Gjenstående integrasjoner og tester](integration-coverage.md)
+## Ingen aktive opptak
 
+![Ingen aktive opptak](screenshots/board/live-11-empty.png)
 
-## Ingen aktive opptak / etter sletting av testdata
+## Opprett opptak
 
-![Ingen aktive opptak / etter sletting av testdata](screenshots/board/01-no-active-admissions.webp)
+![Opprett opptak](screenshots/board/live-12-create.png)
 
-## Intervjuregler, rom og intervjuere
+## Intervjuregler og intervjuere
 
-![Intervjuregler, rom og intervjuere](screenshots/board/02-settings.webp)
+![Intervjuregler og intervjuere](screenshots/board/live-07-settings.png)
 
-## Forslag til intervjuplan
+## Velg kalendere
 
-![Forslag til intervjuplan](screenshots/board/03-schedule-proposal.png)
+![Velg kalendere](screenshots/board/live-13-calendars.png)
 
-## Valg av testkalendere
+## Generert intervjuplan
 
-![Valg av testkalendere](screenshots/board/04-calendar-sources.webp)
+![Generert intervjuplan](screenshots/board/live-06-generated-schedule.png)
 
-## Velg intervjuer for romfordeling
+## Intervjukalender
 
-![Velg intervjuer for romfordeling](screenshots/board/05-bulk-room-selection.webp)
+![Intervjukalender](screenshots/board/live-01-calendar.png)
 
-## Felles rom for valgte intervjuer
+## Rom for flere intervjuer
 
-![Felles rom for valgte intervjuer](screenshots/board/06-bulk-room-selected.webp)
+![Rom for flere intervjuer](screenshots/board/live-02-bulk-room.png)
 
-## Godkjent forslag, uten faktisk utsending
+## Manuelt intervju
 
-![Godkjent forslag, uten faktisk utsending](screenshots/board/07-approved-schedule.webp)
+![Manuelt intervju](screenshots/board/live-09-manual-interview.png)
 
-## Kandidatprofil og intervjunotater
+## Kandidat og notater
 
-![Kandidatprofil og intervjunotater](screenshots/board/08-candidate-interview.webp)
+![Kandidat og notater](screenshots/board/live-03-candidate-notes.png)
 
-## Individuelt rom og kandidatens tilgjengelighet
+## Avlys intervju
 
-![Individuelt rom og kandidatens tilgjengelighet](screenshots/board/09-individual-room-availability.webp)
+![Avlys intervju](screenshots/board/live-10-cancel-interview.png)
 
-## Kandidatliste
+## Utvelgelse
 
-![Kandidatliste](screenshots/board/10-candidates.png)
+![Utvelgelse](screenshots/board/live-14-selection.png)
 
-## Kandidatsøk
+## Send vedtak
 
-![Kandidatsøk](screenshots/board/11-search.webp)
+![Send vedtak](screenshots/board/live-15-send-decisions.png)
 
-## Søk uten treff
+## Kandidatenes vedtak
 
-![Søk uten treff](screenshots/board/12-no-search-results.webp)
+![Kandidatenes vedtak](screenshots/board/live-05-candidate-decisions.png)
 
-## Utvelgelse, første runde
+## Nytt tilbud etter avslag
 
-![Utvelgelse, første runde](screenshots/board/13-selection-round-one.png)
+![Nytt tilbud etter avslag](screenshots/board/live-04-replacement-offer.png)
 
-## Utvelgelse, neste runde
+## Mislykket utsending og nytt forsøk
 
-![Utvelgelse, neste runde](screenshots/board/14-selection-round-two.png)
+![Mislykket utsending og nytt forsøk](screenshots/board/live-18-delivery-failure.png)
 
-## Forrige runde gjenopprettet
+## Avslutt opptak
 
-![Forrige runde gjenopprettet](screenshots/board/15-previous-round-restored.png)
+![Avslutt opptak](screenshots/board/live-08-close.png)
 
-## Bekreft utsending av vedtak
+## Lyst tema
 
-![Bekreft utsending av vedtak](screenshots/board/16-confirm-decisions.webp)
+![Lyst tema](screenshots/board/live-16-calendar-light.png)
 
-## Vedtak etter simulert utsending
+## Mørkt tema
 
-![Vedtak etter simulert utsending](screenshots/board/17-decisions-sent.png)
+![Mørkt tema](screenshots/board/live-16-calendar-dark.png)
 
-## Bekreft avslutning og sletting
+## Mobil
 
-![Bekreft avslutning og sletting](screenshots/board/18-close-confirmation.webp)
-
-## Kandidat uten oppgitt tilgjengelighet
-
-![Kandidat uten oppgitt tilgjengelighet](screenshots/board/19-no-availability.webp)
-
-## Kandidat uten felles intervjutid
-
-![Kandidat uten felles intervjutid](screenshots/board/20-no-matching-time.webp)
-
-## Dagsvisning
-
-![Dagsvisning](screenshots/board/21-day-view.webp)
-
-## Uke uten fordelte intervjuer
-
-![Uke uten fordelte intervjuer](screenshots/board/22-empty-second-week.webp)
-
-## Utvelgelse på storskjerm
-
-![Utvelgelse på storskjerm](screenshots/board/23-selection-large-screen.webp)
-
-## Eksisterende IAM: eksterne tjenester ikke konfigurert lokalt
-
-![Eksisterende IAM: eksterne tjenester ikke konfigurert lokalt](screenshots/board/24-existing-iam-unconfigured.webp)
-
-## Eksisterende IAM: legg til medlem
-
-![Eksisterende IAM: legg til medlem](screenshots/board/25-existing-iam-onboarding-dialog.webp)
+![Mobil](screenshots/board/live-17-mobile.png)

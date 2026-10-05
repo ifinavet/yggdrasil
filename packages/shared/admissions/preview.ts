@@ -11,3 +11,8 @@ export const PREVIEW_INTERVIEW_DAYS = [
 	"2026-10-22",
 	"2026-10-23",
 ];
+
+export const PREVIEW_INTERVIEWER_IMAGES = Array.from(
+	{ length: 6 },
+	(_, index) => `/admissions/interviewer-${index}.jpg`,
+);

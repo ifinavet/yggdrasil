@@ -1,4 +1,6 @@
 import { ADMISSION_GROUPS } from "@workspace/shared/admissions";
+import { PREVIEW_INTERVIEWER_IMAGES } from "@workspace/shared/admissions/preview";
+import { STUDY_PROGRAMS } from "@workspace/shared/constants";
 import { localIdentity } from "@workspace/shared/local";
 import { formatOsloDate, osloDateTimeToEpoch } from "@workspace/shared/time";
 import { v } from "convex/values";
@@ -12,7 +14,7 @@ import { requireLocal } from "../products/localSeed";
 const DAY = 24 * 60 * 60 * 1000;
 const seedPrefix = "seed-admissions-";
 
-async function localUser(ctx: MutationCtx) {
+async function localUser(ctx: MutationCtx, ensureStudentProfile = true) {
 	const existing = await ctx.db
 		.query("users")
 		.withIndex("by_ExternalId", (q) => q.eq("externalId", localIdentity.subject))
@@ -31,7 +33,7 @@ async function localUser(ctx: MutationCtx) {
 		.query("students")
 		.withIndex("by_userId", (q) => q.eq("userId", userId))
 		.first();
-	if (!student)
+	if (!student && ensureStudentProfile)
 		await ctx.db.insert("students", {
 			userId,
 			name: `${localIdentity.givenName} ${localIdentity.familyName}`,
@@ -39,6 +41,7 @@ async function localUser(ctx: MutationCtx) {
 			year: 1,
 			degree: "Bachelor",
 		});
+	if (student && !ensureStudentProfile) await ctx.db.delete(student._id);
 	const rights = await ctx.db
 		.query("accessRights")
 		.withIndex("by_userId", (q) => q.eq("userId", userId))
@@ -74,7 +77,7 @@ async function syntheticUser(ctx: MutationCtx, index: number) {
 		await ctx.db.insert("students", {
 			userId,
 			name: `${firstName} ${lastName}`,
-			studyProgram: "Informatikk",
+			studyProgram: STUDY_PROGRAMS[index % 8] ?? STUDY_PROGRAMS[0],
 			year: (index % 5) + 1,
 			degree: index % 3 ? "Bachelor" : "Master",
 		});
@@ -163,11 +166,14 @@ export const reset = mutation({
 	args: {
 		scenario: v.union(
 			v.literal("empty"),
+			v.literal("missing-profile"),
 			v.literal("open"),
 			v.literal("scheduled"),
+			v.literal("delivery-failed"),
 			v.literal("decisions"),
 			v.literal("offer-pending-accepted"),
 			v.literal("offer-pending-declined"),
+			v.literal("offer-expired"),
 		),
 	},
 	handler: async (ctx, { scenario }) => {
@@ -176,24 +182,24 @@ export const reset = mutation({
 		await clearAdmissions(ctx);
 		if (scenario === "empty") return null;
 		const now = Date.now();
-		const applicantId = await localUser(ctx);
+		const applicantId = await localUser(ctx, scenario !== "missing-profile");
 		const secondId = await boardUser(
 			ctx,
 			"Kristin Berg",
 			"kristin.berg@ifinavet.no",
-			"https://randomuser.me/api/portraits/women/41.jpg",
+			PREVIEW_INTERVIEWER_IMAGES[0] ?? "",
 		);
 		const thirdId = await boardUser(
 			ctx,
 			"Daniel Holm",
 			"daniel.holm@ifinavet.no",
-			"https://randomuser.me/api/portraits/men/42.jpg",
+			PREVIEW_INTERVIEWER_IMAGES[1] ?? "",
 		);
 		await boardUser(
 			ctx,
 			"Aksel Nilsen",
 			"aksel.nilsen@ifinavet.no",
-			"https://randomuser.me/api/portraits/men/43.jpg",
+			PREVIEW_INTERVIEWER_IMAGES[2] ?? "",
 		);
 		const admin = await getCurrentUserOrThrow(ctx);
 		const applicationStartAt = now - DAY;
@@ -232,16 +238,23 @@ export const reset = mutation({
 		await ctx.scheduler.runAt(retentionAt, internal.admissions.internal.closeExpiredPeriod, {
 			periodId,
 		});
+		if (scenario === "missing-profile") return { periodId, applicantId, candidateCount: 0 };
 		const ownDay = isoDay(interviewStartAt + 2 * DAY);
 		await ctx.db.patch(applicantId, { email: "developer@uio.no" });
 		const ownStatus = scenario === "open" ? "draft" : "submitted";
 		const ownDecision =
 			scenario === "decisions" ||
 			scenario === "offer-pending-accepted" ||
-			scenario === "offer-pending-declined"
+			scenario === "offer-pending-declined" ||
+			scenario === "offer-expired"
 				? "accepted"
 				: "pending";
 		const ownOffer: Doc<"admissionApplications">["offerStatus"] = offerScenario(scenario);
+		let offerDeadline: number | undefined;
+		if (ownOffer === "pending") {
+			offerDeadline = now + 3 * DAY;
+			if (scenario === "offer-expired") offerDeadline = now - DAY;
+		}
 		const ownId = await ctx.db.insert("admissionApplications", {
 			periodId,
 			userId: applicantId,
@@ -269,13 +282,13 @@ export const reset = mutation({
 			decisionSentAt: ownOffer !== "none" ? now - 30_000 : undefined,
 			decisionQueuedAt: undefined,
 			offerStatus: ownOffer,
-			offerDeadline: ownOffer === "pending" ? now + 3 * DAY : undefined,
+			offerDeadline,
 			offerRespondedAt: ownOffer === "declined" ? now - 10_000 : undefined,
 			sent: ownOffer !== "none",
 		});
-		if (scenario === "scheduled" || ownOffer !== "none") {
+		if (scenario === "scheduled" || scenario === "delivery-failed" || ownOffer !== "none") {
 			const startAt = osloDateTimeToEpoch(ownDay, "10:00");
-			await ctx.db.insert("admissionInterviews", {
+			const interviewId = await ctx.db.insert("admissionInterviews", {
 				periodId,
 				applicationId: ownId,
 				startAt,
@@ -288,6 +301,23 @@ export const reset = mutation({
 				calendarEventId: `local:${ownId}`,
 				publishedAt: now - 30_000,
 			});
+			if (scenario === "delivery-failed") {
+				for (const kind of ["remind_3d", "remind_1d"] as const) {
+					await ctx.db.insert("admissionOutbox", {
+						periodId,
+						applicationId: ownId,
+						interviewId,
+						kind,
+						revision: 1,
+						idempotencyKey: `local-failed-${kind}-${interviewId}`,
+						state: "failed",
+						attempts: 8,
+						nextAttemptAt: now,
+						createdAt: now,
+						lastError: "E-posttjenesten svarte ikke. Prøv igjen eller følg opp manuelt.",
+					});
+				}
+			}
 		}
 		await seedOtherCandidates(ctx, periodId, interviewStartAt, scenario === "decisions", now);
 		return { periodId, applicantId, candidateCount: 31 };
@@ -313,7 +343,7 @@ async function seedOtherCandidates(
 				userId: person.userId,
 				studentProfile: {
 					name: `${person.firstName} ${person.lastName}`,
-					studyProgram: "Informatikk",
+					studyProgram: STUDY_PROGRAMS[index % 8] ?? STUDY_PROGRAMS[0],
 					year: (index % 5) + 1,
 					degree: "Bachelor",
 				},
@@ -336,5 +366,9 @@ async function seedOtherCandidates(
 
 function offerScenario(scenario: string): Doc<"admissionApplications">["offerStatus"] {
 	if (scenario === "offer-pending-declined") return "declined";
-	return scenario === "decisions" || scenario === "offer-pending-accepted" ? "pending" : "none";
+	return scenario === "decisions" ||
+		scenario === "offer-pending-accepted" ||
+		scenario === "offer-expired"
+		? "pending"
+		: "none";
 }

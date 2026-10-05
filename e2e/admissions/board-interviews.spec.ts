@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { captureEmail, captureScreenshot } from "./capture-screenshot";
 import {
 	admissionsOverview,
 	bifrostUrl,
@@ -24,6 +25,7 @@ test.describe("manual interview follow-up", () => {
 		await dialog.getByRole("checkbox", { name: "Kristin Berg" }).check();
 		await dialog.getByRole("checkbox", { name: "Daniel Holm" }).check();
 		await dialog.getByRole("checkbox", { name: /Søkeren har bekreftet/ }).check();
+		await captureScreenshot(page, "board", "live-09-manual-interview.png", dialog);
 		await dialog.getByRole("button", { name: "Lagre intervjutid" }).click();
 		await expect(dialog).toBeHidden();
 		const saved = (await admissionsOverview())?.interviews.find(
@@ -47,6 +49,7 @@ test.describe("manual interview follow-up", () => {
 		await page.getByRole("button", { name: candidate?.name ?? "", exact: true }).click();
 		await page.getByRole("button", { name: "Avlys intervju", exact: true }).click();
 		const confirmation = page.getByRole("alertdialog", { name: "Avlyse intervjuet?" });
+		await captureScreenshot(page, "board", "live-10-cancel-interview.png", confirmation);
 		await confirmation.getByRole("button", { name: "Bekreft avlysning" }).click();
 		await expect(confirmation).toBeHidden();
 		await expect.poll(async () => (await admissionsOverview())?.interviews.length).toBe(0);
@@ -55,5 +58,8 @@ test.describe("manual interview follow-up", () => {
 				(await admissionsOverview())?.localEmails.some((mail) => mail.subject.includes("avlyst")),
 			)
 			.toBe(true);
+		const cancellation = (await admissionsOverview())?.localEmails[0];
+		if (cancellation)
+			await captureEmail(page, "student", "live-cancellation-email.png", cancellation.html);
 	});
 });

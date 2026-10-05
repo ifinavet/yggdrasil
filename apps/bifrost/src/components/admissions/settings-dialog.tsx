@@ -272,7 +272,7 @@ export function SettingsDialog({
 					</form.Subscribe>
 				</form>
 				{period && (
-					<div className="border-t pt-4">
+					<div className="pt-4">
 						<Button type="button" variant="destructive" onClick={() => setCloseOpen(true)}>
 							Avslutt opptaket
 						</Button>
