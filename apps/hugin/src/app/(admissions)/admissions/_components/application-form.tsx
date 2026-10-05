@@ -57,8 +57,8 @@ export function ApplicationForm({
 }>) {
 	const groups = useQuery(api.admissions.queries.availableGroups, {});
 	const updateProfile = useMutation(api.users.students.mutations.updateCurrent);
-	const saveDraft = useMutation(api.admissions.mutations.saveDraft);
-	const submit = useMutation(api.admissions.mutations.submit);
+	const saveApplication = useMutation(api.admissions.mutations.saveApplication);
+	const [revision, setRevision] = useState(initialApplication?.revision ?? 0);
 	const [availability, setAvailability] = useState<AvailabilityWindow[]>(
 		initialApplication?.availability ?? [],
 	);
@@ -119,13 +119,16 @@ export function ApplicationForm({
 			return;
 		await perform(
 			async () => {
-				const saved = await saveDraft({
+				const saved = await saveApplication({
 					periodId: period._id,
+					expectedRevision: revision,
+					submit: send,
+					consent,
 					...value,
 					group: value.group as Id<"internalGroups"> | typeof ADMISSION_UNSURE_GROUP,
 					availability,
 				});
-				if (send) await submit({ periodId: period._id, expectedRevision: saved.revision, consent });
+				setRevision(saved.revision);
 				setMessage(send ? "Søknaden din er sendt." : "Utkastet er lagret.");
 			},
 			send ? "Søknaden kunne ikke sendes. Prøv igjen." : "Utkastet kunne ikke lagres. Prøv igjen.",

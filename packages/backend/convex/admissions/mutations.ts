@@ -153,9 +153,12 @@ export const createPeriod = mutation({
 	},
 });
 
-export const saveDraft = mutation({
+export const saveApplication = mutation({
 	args: {
 		periodId: v.id("admissionPeriods"),
+		expectedRevision: v.number(),
+		submit: v.boolean(),
+		consent: v.boolean(),
 		about: v.string(),
 		motivation: v.string(),
 		group: admissionGroupChoice,
@@ -186,21 +189,29 @@ export const saveDraft = mutation({
 			)
 			.unique();
 		if (existing?.status === "submitted") throw new ConvexError("Søknaden er allerede sendt.");
+		if (!existing && args.expectedRevision !== 0) throw new ConvexError("Fant ikke søknaden.");
+		if ((existing?.revision ?? 0) !== args.expectedRevision)
+			throw new ConvexError("Søknaden er endret. Last den inn på nytt.");
+		if (args.submit && !args.consent)
+			throw new ConvexError("Bekreft samtykke før du sender søknaden.");
+		if (!existing || args.submit) {
+			const submitted = await submittedApplications(ctx, args.periodId);
+			if (submitted.length >= MAX_APPLICATIONS) throw new ConvexError("Søknadsperioden er full.");
+		}
 		const fields = {
 			studentProfile: profile,
 			about: args.about.trim(),
 			motivation: args.motivation.trim(),
 			group: args.group,
 			availability: args.availability,
-			status: "draft" as const,
+			status: args.submit ? ("submitted" as const) : ("draft" as const),
+			...(args.submit && { consentedAt: Date.now(), consentVersion: ADMISSION_CONSENT.version }),
 			revision: (existing?.revision ?? 0) + 1,
 		};
 		if (existing) {
 			await ctx.db.patch(existing._id, fields);
 			return { applicationId: existing._id, revision: fields.revision };
 		}
-		const count = await submittedApplications(ctx, args.periodId);
-		if (count.length >= MAX_APPLICATIONS) throw new ConvexError("Søknadsperioden er full.");
 		const applicationId = await ctx.db.insert("admissionApplications", {
 			periodId: args.periodId,
 			userId: user._id,
@@ -240,39 +251,6 @@ export const reopenApplication = mutation({
 		if (interview?.status === "scheduled")
 			throw new ConvexError("Søknaden kan ikke endres etter at intervju er planlagt.");
 		await ctx.db.patch(application._id, { status: "draft", revision: application.revision + 1 });
-		return { revision: application.revision + 1 };
-	},
-});
-
-export const submit = mutation({
-	args: { periodId: v.id("admissionPeriods"), expectedRevision: v.number(), consent: v.boolean() },
-	handler: async (ctx, { periodId, expectedRevision, consent }) => {
-		const user = await getCurrentUserOrThrow(ctx);
-		await requireOpenApplications(ctx, periodId);
-		const application = await ctx.db
-			.query("admissionApplications")
-			.withIndex("by_periodId_and_userId", (q) => q.eq("periodId", periodId).eq("userId", user._id))
-			.unique();
-		if (!application) throw new ConvexError("Fant ikke søknaden.");
-		if (application.status !== "draft") throw new ConvexError("Søknaden er allerede sendt.");
-		if (application.revision !== expectedRevision)
-			throw new ConvexError("Søknaden er endret. Last den inn på nytt.");
-		const submitted = await submittedApplications(ctx, periodId);
-		if (submitted.length >= MAX_APPLICATIONS) throw new ConvexError("Søknadsperioden er full.");
-		if (!consent) throw new ConvexError("Bekreft samtykke før du sender søknaden.");
-		if (
-			!application.about?.trim() ||
-			!application.motivation?.trim() ||
-			!application.group ||
-			!application.studentProfile
-		)
-			throw new ConvexError("Fyll ut søknaden før du sender den.");
-		await ctx.db.patch(application._id, {
-			status: "submitted",
-			revision: application.revision + 1,
-			consentedAt: Date.now(),
-			consentVersion: ADMISSION_CONSENT.version,
-		});
 		return { revision: application.revision + 1 };
 	},
 });

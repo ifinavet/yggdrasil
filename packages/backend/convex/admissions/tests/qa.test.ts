@@ -166,7 +166,12 @@ it("rechecks the application cap when submitting an existing draft", async () =>
 	const draft = await t.run((ctx) => ctx.db.get(applicationId));
 	if (!draft) throw new Error("Missing draft");
 	await expect(
-		applicant.mutation(api.admissions.mutations.submit, {
+		applicant.mutation(api.admissions.mutations.saveApplication, {
+			about: draft.about ?? "",
+			motivation: draft.motivation ?? "",
+			group: "unsure",
+			availability: draft.availability,
+			submit: true,
 			periodId,
 			expectedRevision: draft.revision,
 			consent: true,

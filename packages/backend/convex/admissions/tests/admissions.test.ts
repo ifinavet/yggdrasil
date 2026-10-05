@@ -1,3 +1,4 @@
+import { ADMISSION_CONSENT } from "@workspace/shared/admissions";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { insertInternalGroup } from "../../../test/admissions-fixtures";
 import { allOperations, finishOperation } from "../../../test/admissions-workflow";
@@ -76,14 +77,12 @@ async function submitAnswers(
 		answers.group === "Usikker ennå" || answers.group === "unsure"
 			? "unsure"
 			: await insertInternalGroup(t, answers.group);
-	const draft = await student.mutation(api.admissions.mutations.saveDraft, {
+	await student.mutation(api.admissions.mutations.saveApplication, {
 		periodId,
 		...answers,
 		group,
-	});
-	await student.mutation(api.admissions.mutations.submit, {
-		periodId,
-		expectedRevision: draft.revision,
+		expectedRevision: 0,
+		submit: true,
 		consent: true,
 	});
 }
@@ -118,7 +117,7 @@ it("limits admin data to admins and applicant data to the signed-in student's ow
 		/Unauthorized/,
 	);
 
-	const saved = await student.mutation(api.admissions.mutations.saveDraft, {
+	const answers = {
 		periodId,
 		about: "Om meg",
 		motivation: "Jeg vil bidra",
@@ -126,18 +125,28 @@ it("limits admin data to admins and applicant data to the signed-in student's ow
 		availability: [
 			{ day: new Date(Date.now() + 3 * DAY).toISOString().slice(0, 10), start: 540, end: 720 },
 		],
+	};
+	const saved = await student.mutation(api.admissions.mutations.saveApplication, {
+		...answers,
+		expectedRevision: 0,
+		submit: false,
+		consent: false,
 	});
 	await expect(
 		otherStudent.query(api.admissions.queries.myApplication, { periodId }),
 	).resolves.toBeNull();
 	await expect(
-		otherStudent.mutation(api.admissions.mutations.submit, {
+		otherStudent.mutation(api.admissions.mutations.saveApplication, {
+			...answers,
+			submit: true,
 			periodId,
 			expectedRevision: saved.revision,
 			consent: true,
 		}),
 	).rejects.toThrow(/Fant ikke søknaden/);
-	await student.mutation(api.admissions.mutations.submit, {
+	await student.mutation(api.admissions.mutations.saveApplication, {
+		...answers,
+		submit: true,
 		periodId,
 		expectedRevision: saved.revision,
 		consent: true,
@@ -154,12 +163,69 @@ it("limits admin data to admins and applicant data to the signed-in student's ow
 		},
 	});
 	await expect(
-		student.mutation(api.admissions.mutations.submit, {
+		student.mutation(api.admissions.mutations.saveApplication, {
+			...answers,
+			submit: true,
 			periodId,
 			expectedRevision: saved.revision,
 			consent: true,
 		}),
 	).rejects.toThrow(/allerede/);
+});
+
+it("saves and submits atomically while rejecting stale edits and missing consent", async () => {
+	const { t } = await setup();
+	const { student, admin, boardId, secondBoardId } = await users(t);
+	const periodId = await openPeriod(admin, boardId, secondBoardId);
+	const answers = {
+		periodId,
+		about: "Original answer",
+		motivation: "I want to contribute",
+		group: "unsure" as const,
+		availability: [],
+	};
+	const saved = await student.mutation(api.admissions.mutations.saveApplication, {
+		...answers,
+		expectedRevision: 0,
+		submit: false,
+		consent: false,
+	});
+	await expect(
+		student.mutation(api.admissions.mutations.saveApplication, {
+			...answers,
+			about: "Stale answer",
+			expectedRevision: 0,
+			submit: false,
+			consent: false,
+		}),
+	).rejects.toThrow(/endret/);
+	await expect(
+		student.mutation(api.admissions.mutations.saveApplication, {
+			...answers,
+			about: "Unconfirmed answer",
+			expectedRevision: saved.revision,
+			submit: true,
+			consent: false,
+		}),
+	).rejects.toThrow(/samtykke/);
+	const draft = await t.run((ctx) => ctx.db.get(saved.applicationId));
+	expect(draft).toMatchObject({ about: answers.about, status: "draft", revision: saved.revision });
+	expect(draft?.consentedAt).toBeUndefined();
+	const sent = await student.mutation(api.admissions.mutations.saveApplication, {
+		...answers,
+		about: "Final answer",
+		expectedRevision: saved.revision,
+		submit: true,
+		consent: true,
+	});
+	expect(await t.run((ctx) => ctx.db.get(saved.applicationId))).toMatchObject({
+		about: "Final answer",
+		status: "submitted",
+		revision: saved.revision + 1,
+		consentVersion: ADMISSION_CONSENT.version,
+		consentedAt: expect.any(Number),
+	});
+	expect(sent.applicationId).toBe(saved.applicationId);
 });
 
 it("keeps calendar discovery and schedule generation admin-only", async () => {
