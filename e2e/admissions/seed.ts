@@ -199,7 +199,6 @@ export async function seedAdmissions(url: string, scenario: AdmissionSeedScenari
 		"aksel.nilsen@ifinavet.no",
 		previewInterviewerImages[2] ?? "",
 	);
-	const admin = { _id: applicantId };
 	const applicationStartAt = now - DAY;
 	const applicationEndAt = now + 7 * DAY;
 	const interviewStartAt = now + 8 * DAY;
@@ -223,8 +222,8 @@ export async function seedAdmissions(url: string, scenario: AdmissionSeedScenari
 		timezone: "Europe/Oslo",
 		round: 0,
 		roundHistory: [],
-		createdBy: admin._id,
-		updatedBy: admin._id,
+		createdBy: applicantId,
+		updatedBy: applicantId,
 	});
 	if (scenario === "missing-profile") return { periodId, applicantId, candidateCount: 0 };
 	const ownDay = isoDay(interviewStartAt + 2 * DAY);
@@ -261,12 +260,16 @@ export async function seedAdmissions(url: string, scenario: AdmissionSeedScenari
 		revision: 2,
 		decisionRevision: ownDecision === "accepted" ? 1 : 0,
 		decision: ownDecision,
-		reviewedGroup: ownDecision === "accepted" ? "Web" : undefined,
-		reviewedGroupId: ownDecision === "accepted" ? groups.get("Web") : undefined,
-		reviewedWorkspaceEmail: ownDecision === "accepted" ? "developer@ifinavet.no" : undefined,
+		...(ownDecision === "accepted"
+			? {
+					reviewedGroup: "Web",
+					reviewedGroupId: groups.get("Web"),
+					reviewedWorkspaceEmail: "developer@ifinavet.no",
+					decisionBy: applicantId,
+					decisionAt: now - 60_000,
+				}
+			: {}),
 		notes: "Local demo note.",
-		decisionBy: ownDecision === "accepted" ? admin._id : undefined,
-		decisionAt: ownDecision === "accepted" ? now - 60_000 : undefined,
 		decisionSentAt: ownOffer !== "none" ? now - 30_000 : undefined,
 		decisionQueuedAt: undefined,
 		offerStatus: ownOffer,

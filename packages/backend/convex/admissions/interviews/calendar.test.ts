@@ -21,6 +21,7 @@ const provider = {
 	cancelEvent: vi.fn(),
 };
 beforeEach(() => {
+	vi.spyOn(Date, "now").mockReturnValue(Date.parse("2026-10-05T08:00:00Z"));
 	vi.spyOn(config, "googleConfig").mockReturnValue({
 		serviceAccountEmail: "service@example.test",
 		privateKey: "test-key",
