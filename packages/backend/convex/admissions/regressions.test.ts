@@ -46,6 +46,21 @@ async function scheduleFixture(
 	return { ...value, periodId, applicationId, startAt, day };
 }
 
+async function periodApplicationFixture() {
+	const value = await fixture();
+	const now = Date.now();
+	const periodId = await createPeriod(
+		value.admin,
+		now - DAY,
+		[value.interviewer],
+		value.otherInterviewer,
+	);
+	const applicationId = await value.t.run((ctx) =>
+		ctx.db.insert("admissionApplications", applicationFields(periodId, value.applicant._id)),
+	);
+	return { ...value, now, periodId, applicationId };
+}
+
 afterEach(() => {
 	delete process.env.GOOGLE_WORKSPACE_ADMIN_EMAIL;
 });
@@ -100,12 +115,8 @@ it("opens a future period when its application window starts", async () => {
 });
 
 it("keeps a published interview reminder current after unrelated period settings change", async () => {
-	const { t, admin, applicant, interviewer, otherInterviewer } = await fixture();
-	const now = Date.now();
-	const periodId = await createPeriod(admin, now - DAY, [interviewer], otherInterviewer);
-	const applicationId = await t.run((ctx) =>
-		ctx.db.insert("admissionApplications", applicationFields(periodId, applicant._id)),
-	);
+	const { t, admin, interviewer, otherInterviewer, now, periodId, applicationId } =
+		await periodApplicationFixture();
 	const interviewId = await t.run((ctx) =>
 		ctx.db.insert("admissionInterviews", {
 			periodId,
@@ -209,12 +220,8 @@ it("cleans future and past calendar events on close without sending cancellation
 });
 
 it("closes an in-flight publish with calendar cleanup without notifying the applicant", async () => {
-	const { t, admin, applicant, interviewer, otherInterviewer } = await fixture();
-	const now = Date.now();
-	const periodId = await createPeriod(admin, now - DAY, [interviewer], otherInterviewer);
-	const applicationId = await t.run((ctx) =>
-		ctx.db.insert("admissionApplications", applicationFields(periodId, applicant._id)),
-	);
+	const { t, admin, interviewer, otherInterviewer, now, periodId, applicationId } =
+		await periodApplicationFixture();
 	const interviewId = await t.run((ctx) =>
 		ctx.db.insert("admissionInterviews", {
 			periodId,
@@ -368,12 +375,8 @@ it("retention cleanup cancels an in-flight publish even before an event id is sa
 });
 
 it("archives only after cancellation cleanup and purges only after archive succeeds", async () => {
-	const { t, admin, applicant, interviewer, otherInterviewer } = await fixture();
-	const now = Date.now();
-	const periodId = await createPeriod(admin, now - DAY, [interviewer], otherInterviewer);
-	const applicationId = await t.run((ctx) =>
-		ctx.db.insert("admissionApplications", applicationFields(periodId, applicant._id)),
-	);
+	const { t, admin, interviewer, otherInterviewer, now, periodId, applicationId } =
+		await periodApplicationFixture();
 	const interviewId = await t.run((ctx) =>
 		ctx.db.insert("admissionInterviews", {
 			periodId,
@@ -421,12 +424,8 @@ it("archives only after cancellation cleanup and purges only after archive succe
 });
 
 it("finds pending cleanup beyond 200 completed outbox rows and purges in bounded batches", async () => {
-	const { t, admin, applicant, interviewer, otherInterviewer } = await fixture();
-	const now = Date.now();
-	const periodId = await createPeriod(admin, now - DAY, [interviewer], otherInterviewer);
-	const applicationId = await t.run((ctx) =>
-		ctx.db.insert("admissionApplications", applicationFields(periodId, applicant._id)),
-	);
+	const { t, admin, interviewer, otherInterviewer, now, periodId, applicationId } =
+		await periodApplicationFixture();
 	const interviewId = await t.run(async (ctx) => {
 		for (let index = 0; index < 205; index++)
 			await ctx.db.insert("admissionOutbox", {
@@ -497,12 +496,8 @@ it("finds pending cleanup beyond 200 completed outbox rows and purges in bounded
 });
 
 it("waits for retention calendar cleanup before queueing the archive job", async () => {
-	const { t, admin, applicant, interviewer, otherInterviewer } = await fixture();
-	const now = Date.now();
-	const periodId = await createPeriod(admin, now - DAY, [interviewer], otherInterviewer);
-	const applicationId = await t.run((ctx) =>
-		ctx.db.insert("admissionApplications", applicationFields(periodId, applicant._id)),
-	);
+	const { t, interviewer, otherInterviewer, now, periodId, applicationId } =
+		await periodApplicationFixture();
 	const interviewId = await t.run((ctx) =>
 		ctx.db.insert("admissionInterviews", {
 			periodId,
