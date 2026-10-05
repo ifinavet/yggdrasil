@@ -21,3 +21,17 @@ export async function requireMutablePeriod(
 	if (period.status === "closing") throw new ConvexError("Opptaksperioden er stengt.");
 	return period;
 }
+
+export async function requireMutableApplication(
+	ctx: MutationCtx,
+	applicationId: Id<"admissionApplications">,
+	expectedRevision: number,
+) {
+	const caller = await requireRole(ctx, adminRoles);
+	const app = await ctx.db.get(applicationId);
+	if (!app) throw new ConvexError("Fant ikke søknaden.");
+	const period = await requireMutablePeriod(ctx, app.periodId);
+	if (app.revision !== expectedRevision)
+		throw new ConvexError("Søknaden er endret. Last den inn på nytt.");
+	return { caller, app, period };
+}

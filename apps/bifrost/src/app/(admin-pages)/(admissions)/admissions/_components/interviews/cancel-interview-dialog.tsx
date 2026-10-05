@@ -2,9 +2,9 @@
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { convexErrorMessage } from "@workspace/shared/utils";
+import { ConfirmDialog } from "@workspace/ui/components/confirm-dialog";
 import { useMutation } from "convex/react";
 import { useState } from "react";
-import { ConfirmDialog } from "@/components/common/confirm-dialog";
 
 export function CancelInterviewDialog({
 	candidate,

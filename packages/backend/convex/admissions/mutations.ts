@@ -6,16 +6,19 @@ import {
 } from "@workspace/shared/admissions";
 import { localDateAndMinute } from "@workspace/shared/time";
 import { ConvexError, v } from "convex/values";
+import { pick } from "convex-helpers";
+import { getOneFrom } from "convex-helpers/server/relationships";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { type MutationCtx, mutation } from "../_generated/server";
 import { adminRoles, internalRoles, requireRole, userHasRole } from "../auth/accessRights";
 import { getCurrentUserOrThrow } from "../auth/currentUser";
 import { startAcceptedAdmissionOnboarding, validateAdmissionOffer } from "../iam/mutations";
-import { requireMutablePeriod } from "./access";
+import { requireMutableApplication, requireMutablePeriod } from "./access";
 import { readOperation, startDelivery } from "./delivery/workflow";
 import { commitSchedule } from "./interviews/schedule";
 import { beginClose } from "./lifecycle";
+import { scheduledInterviews, submittedApplications } from "./queries";
 import {
 	MAX_APPLICATIONS,
 	MAX_INTERVIEWERS,
@@ -93,13 +96,6 @@ export async function validateInterviewers(
 	const ids = selections.map((item) => item.userId);
 	if (ids.length < 2 || ids.length > MAX_INTERVIEWERS || new Set(ids).size !== ids.length)
 		throw new ConvexError("Velg minst to ulike intervjuere, maksimalt 30.");
-	await requireActiveInterviewers(ctx, ids);
-}
-
-async function requireActiveInterviewers(
-	ctx: Parameters<typeof userHasRole>[0],
-	ids: Id<"users">[],
-) {
 	const eligible = await Promise.all(ids.map((id) => userHasRole(ctx, id, internalRoles)));
 	if (eligible.some((value) => !value))
 		throw new ConvexError("Alle intervjuere må være aktive interne medlemmer.");
@@ -182,12 +178,7 @@ export const saveDraft = mutation({
 			throw new ConvexError("Fyll ut alle svar med gyldig tekst.");
 		await validateGroupChoice(ctx, args.group);
 		validateAvailability(args.availability, period);
-		const profile = {
-			name: student.name,
-			studyProgram: student.studyProgram,
-			year: student.year,
-			degree: student.degree,
-		};
+		const profile = pick(student, ["name", "studyProgram", "year", "degree"]);
 		const existing = await ctx.db
 			.query("admissionApplications")
 			.withIndex("by_periodId_and_userId", (q) =>
@@ -208,12 +199,7 @@ export const saveDraft = mutation({
 			await ctx.db.patch(existing._id, fields);
 			return { applicationId: existing._id, revision: fields.revision };
 		}
-		const count = await ctx.db
-			.query("admissionApplications")
-			.withIndex("by_periodId_and_status", (q) =>
-				q.eq("periodId", args.periodId).eq("status", "submitted"),
-			)
-			.take(MAX_APPLICATIONS);
+		const count = await submittedApplications(ctx, args.periodId);
 		if (count.length >= MAX_APPLICATIONS) throw new ConvexError("Søknadsperioden er full.");
 		const applicationId = await ctx.db.insert("admissionApplications", {
 			periodId: args.periodId,
@@ -245,10 +231,12 @@ export const reopenApplication = mutation({
 			application.offerStatus !== "none"
 		)
 			throw new ConvexError("Søknaden kan ikke åpnes for endring.");
-		const interview = await ctx.db
-			.query("admissionInterviews")
-			.withIndex("by_applicationId", (q) => q.eq("applicationId", application._id))
-			.unique();
+		const interview = await getOneFrom(
+			ctx.db,
+			"admissionInterviews",
+			"by_applicationId",
+			application._id,
+		);
 		if (interview?.status === "scheduled")
 			throw new ConvexError("Søknaden kan ikke endres etter at intervju er planlagt.");
 		await ctx.db.patch(application._id, { status: "draft", revision: application.revision + 1 });
@@ -269,12 +257,7 @@ export const submit = mutation({
 		if (application.status !== "draft") throw new ConvexError("Søknaden er allerede sendt.");
 		if (application.revision !== expectedRevision)
 			throw new ConvexError("Søknaden er endret. Last den inn på nytt.");
-		const submitted = await ctx.db
-			.query("admissionApplications")
-			.withIndex("by_periodId_and_status", (q) =>
-				q.eq("periodId", periodId).eq("status", "submitted"),
-			)
-			.take(MAX_APPLICATIONS);
+		const submitted = await submittedApplications(ctx, periodId);
 		if (submitted.length >= MAX_APPLICATIONS) throw new ConvexError("Søknadsperioden er full.");
 		if (!consent) throw new ConvexError("Bekreft samtykke før du sender søknaden.");
 		if (
@@ -303,12 +286,11 @@ export const setDecision = mutation({
 		expectedRevision: v.number(),
 	},
 	handler: async (ctx, args) => {
-		const caller = await requireRole(ctx, adminRoles);
-		const app = await ctx.db.get(args.applicationId);
-		if (!app) throw new ConvexError("Fant ikke søknaden.");
-		await requireMutablePeriod(ctx, app.periodId);
-		if (app.revision !== args.expectedRevision)
-			throw new ConvexError("Søknaden er endret. Last den inn på nytt.");
+		const { caller, app } = await requireMutableApplication(
+			ctx,
+			args.applicationId,
+			args.expectedRevision,
+		);
 		if (
 			app.status !== "submitted" ||
 			app.decisionQueuedAt !== undefined ||
@@ -376,12 +358,7 @@ export const sendDecision = mutation({
 		idempotencyKey: v.string(),
 	},
 	handler: async (ctx, { applicationId, expectedRevision, idempotencyKey }) => {
-		await requireRole(ctx, adminRoles);
-		const app = await ctx.db.get(applicationId);
-		if (!app) throw new ConvexError("Fant ikke søknaden.");
-		const period = await requireMutablePeriod(ctx, app.periodId);
-		if (app.revision !== expectedRevision)
-			throw new ConvexError("Søknaden er endret. Last den inn på nytt.");
+		const { app, period } = await requireMutableApplication(ctx, applicationId, expectedRevision);
 		if (app.decision !== "accepted" && app.decision !== "rejected")
 			throw new ConvexError("Velg endelig opptaksbeslutning først.");
 		if (app.decision === "accepted" && (!app.reviewedGroup || !app.reviewedWorkspaceEmail))
@@ -471,12 +448,11 @@ export const scheduleInterview = mutation({
 		expectedRevision: v.number(),
 	},
 	handler: async (ctx, args) => {
-		const caller = await requireRole(ctx, adminRoles);
-		const app = await ctx.db.get(args.applicationId);
-		if (!app) throw new ConvexError("Fant ikke søknaden.");
-		const period = await requireMutablePeriod(ctx, app.periodId);
-		if (app.revision !== args.expectedRevision)
-			throw new ConvexError("Søknaden er endret. Last den inn på nytt.");
+		const { caller, app, period } = await requireMutableApplication(
+			ctx,
+			args.applicationId,
+			args.expectedRevision,
+		);
 
 		const result = await commitSchedule(
 			ctx,
@@ -527,10 +503,7 @@ export const cancelInterviewByBoard = mutation({
 			throw new ConvexError("Søknaden er endret. Last den inn på nytt.");
 		const period = await ctx.db.get(app.periodId);
 		if (!period || period.status === "closing") throw new ConvexError("Opptaksperioden er stengt.");
-		const interview = await ctx.db
-			.query("admissionInterviews")
-			.withIndex("by_applicationId", (q) => q.eq("applicationId", app._id))
-			.unique();
+		const interview = await getOneFrom(ctx.db, "admissionInterviews", "by_applicationId", app._id);
 		if (interview?.status !== "scheduled") throw new ConvexError("Fant ikke et planlagt intervju.");
 		return await cancelScheduledInterview(
 			ctx,
@@ -556,10 +529,7 @@ export const cancelInterview = mutation({
 			throw new ConvexError("Fant ikke intervjuet ditt.");
 		const period = await ctx.db.get(app.periodId);
 		if (!period || period.status === "closing") throw new ConvexError("Opptaksperioden er stengt.");
-		const interview = await ctx.db
-			.query("admissionInterviews")
-			.withIndex("by_applicationId", (q) => q.eq("applicationId", app._id))
-			.unique();
+		const interview = await getOneFrom(ctx.db, "admissionInterviews", "by_applicationId", app._id);
 		if (interview?.status !== "scheduled" || !interview.publishedAt)
 			throw new ConvexError("Du har ikke et publisert intervju å avbestille.");
 		return await cancelScheduledInterview(ctx, app, period, interview, idempotencyKey, false);
@@ -577,12 +547,7 @@ export const publish = mutation({
 		const period = await requireMutablePeriod(ctx, periodId);
 		if (period.revision !== expectedRevision)
 			throw new ConvexError("Opptaksperioden er endret. Last den inn på nytt.");
-		const interviews = await ctx.db
-			.query("admissionInterviews")
-			.withIndex("by_periodId_and_status", (q) =>
-				q.eq("periodId", periodId).eq("status", "scheduled"),
-			)
-			.take(MAX_APPLICATIONS);
+		const interviews = await scheduledInterviews(ctx, periodId);
 		if (!interviews.length) throw new ConvexError("Planlegg minst ett intervju før publisering.");
 		for (const interview of interviews)
 			if (interview.startAt < period.interviewStartAt || interview.endAt > period.interviewEndAt)

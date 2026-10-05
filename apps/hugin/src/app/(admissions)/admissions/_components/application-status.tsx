@@ -4,18 +4,8 @@ import { api } from "@workspace/backend/convex/api";
 import { roomUrl } from "@workspace/shared/admissions";
 import { DATE_PATTERNS, formatOsloDate } from "@workspace/shared/time";
 import { convexErrorMessage } from "@workspace/shared/utils";
-import {
-	AlertDialog,
-	AlertDialogAction,
-	AlertDialogCancel,
-	AlertDialogContent,
-	AlertDialogDescription,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle,
-	AlertDialogTrigger,
-} from "@workspace/ui/components/alert-dialog";
 import { Button } from "@workspace/ui/components/button";
+import { ConfirmDialog } from "@workspace/ui/components/confirm-dialog";
 import { useMutation } from "convex/react";
 import { Check } from "lucide-react";
 import { useState } from "react";
@@ -34,174 +24,157 @@ export function ApplicationStatus({
 	const cancelInterview = useMutation(api.admissions.mutations.cancelInterview);
 	const respondToOffer = useMutation(api.admissions.mutations.respondToOffer);
 	const [busy, setBusy] = useState(false);
+	const [confirmation, setConfirmation] = useState<"cancel" | "accept" | "decline" | null>(null);
 	const [message, setMessage] = useState("");
 	async function perform(action: () => Promise<void>, fallback: string) {
-		if (busy) return;
+		if (busy) return false;
 		setBusy(true);
 		setMessage("");
 		try {
 			await action();
+			return true;
 		} catch (error) {
 			setMessage(convexErrorMessage(error, fallback));
+			return false;
 		} finally {
 			setBusy(false);
 		}
 	}
 
 	async function onReopen() {
-		if (application)
-			await perform(async () => {
-				await reopen({ periodId: period._id, expectedRevision: application.revision });
-			}, "Søknaden kunne ikke åpnes for endring.");
+		return perform(async () => {
+			await reopen({ periodId: period._id, expectedRevision: application.revision });
+		}, "Søknaden kunne ikke åpnes for endring.");
 	}
 
 	async function onCancelInterview() {
-		if (application)
-			await perform(async () => {
-				await cancelInterview({
-					applicationId: application._id,
-					expectedRevision: application.revision,
-					idempotencyKey: crypto.randomUUID(),
-				});
-			}, "Intervjuet kunne ikke avlyses. Prøv igjen.");
+		return perform(async () => {
+			await cancelInterview({
+				applicationId: application._id,
+				expectedRevision: application.revision,
+				idempotencyKey: crypto.randomUUID(),
+			});
+		}, "Intervjuet kunne ikke avlyses. Prøv igjen.");
 	}
 
 	async function onReply(accept: boolean) {
-		if (application)
-			await perform(async () => {
-				const result = await respondToOffer({
-					periodId: period._id,
-					accept,
-					expectedRevision: application.revision,
-				});
-				const confirmation = accept ? "Du har takket ja til plassen" : "Takk for at du ga beskjed";
-				setMessage(
-					result.offerStatus === "expired" ? "Svarfristen for tilbudet har gått ut." : confirmation,
-				);
-			}, "Svaret ditt kunne ikke lagres. Prøv igjen.");
+		return perform(async () => {
+			const result = await respondToOffer({
+				periodId: period._id,
+				accept,
+				expectedRevision: application.revision,
+			});
+			const confirmation = accept ? "Du har takket ja til plassen" : "Takk for at du ga beskjed";
+			setMessage(
+				result.offerStatus === "expired" ? "Svarfristen for tilbudet har gått ut." : confirmation,
+			);
+		}, "Svaret ditt kunne ikke lagres. Prøv igjen.");
 	}
 
-	if (application.offerStatus === "expired")
+	function renderStatus() {
+		if (application.offerStatus === "expired")
+			return (
+				<ApplicationNotice title="Svarfristen er passert">
+					<p>Fristen for å svare på tilbudet har gått ut. Tilbudet er ikke lenger tilgjengelig.</p>
+				</ApplicationNotice>
+			);
+		if (application.offerStatus === "pending")
+			return (
+				<ApplicationNotice title="Du har fått tilbud om plass">
+					<p>Gi beskjed om du takker ja eller nei til tilbudet.</p>
+					{application.offerDeadline && (
+						<p>Svarfrist: {formatOsloDate(application.offerDeadline, DATE_PATTERNS.dateTime)}.</p>
+					)}
+					<div className="flex flex-wrap gap-3">
+						<Button disabled={busy} onClick={() => setConfirmation("accept")}>
+							Takk ja
+						</Button>
+						<Button variant="outline" disabled={busy} onClick={() => setConfirmation("decline")}>
+							Takk nei
+						</Button>
+					</div>
+					{message && <output>{message}</output>}
+				</ApplicationNotice>
+			);
+		if (application.offerStatus === "accepted")
+			return (
+				<ApplicationNotice title="Du har takket ja til plassen">
+					<p>Navet har mottatt svaret ditt.</p>
+				</ApplicationNotice>
+			);
+		if (application.offerStatus === "declined")
+			return (
+				<ApplicationNotice title="Takk for at du ga beskjed">
+					<p>Vi har mottatt svaret ditt.</p>
+				</ApplicationNotice>
+			);
+		if (application.decisionSentAt && application.decision === "rejected")
+			return (
+				<ApplicationNotice title="Takk for at du søkte">
+					<p>Opptaket er ferdig for denne gangen.</p>
+				</ApplicationNotice>
+			);
+		if (application.interview)
+			return (
+				<ApplicationNotice title="Intervjuet ditt">
+					<p>{formatOsloDate(application.interview.startAt, DATE_PATTERNS.dateTime)}</p>
+					<p>
+						Møterom:{" "}
+						<a
+							href={roomUrl(application.interview.room)}
+							target="_blank"
+							rel="noreferrer"
+							className="text-primary underline underline-offset-4"
+						>
+							{application.interview.room}
+						</a>
+					</p>
+					<Button variant="outline" disabled={busy} onClick={() => setConfirmation("cancel")}>
+						Avlys intervjuet
+					</Button>
+					{message && <output>{message}</output>}
+				</ApplicationNotice>
+			);
+		if (application.interviewStatus === "cancelled")
+			return (
+				<ApplicationNotice title="Intervjuet er avlyst">
+					<p>Vi har registrert at du har avlyst intervjuet.</p>
+				</ApplicationNotice>
+			);
 		return (
-			<ApplicationNotice title="Svarfristen er passert">
-				<p>Fristen for å svare på tilbudet har gått ut. Tilbudet er ikke lenger tilgjengelig.</p>
-			</ApplicationNotice>
-		);
-	if (application.offerStatus === "pending")
-		return (
-			<ApplicationNotice title="Du har fått tilbud om plass">
-				<p>Gi beskjed om du takker ja eller nei til tilbudet.</p>
-				{application.offerDeadline && (
-					<p>Svarfrist: {formatOsloDate(application.offerDeadline, DATE_PATTERNS.dateTime)}.</p>
+			<ApplicationNotice title="Søknaden din er sendt">
+				<p>Søknaden din er lagret.</p>
+				{period.interviewStartAt > 0 && !applicationWindowClosed && !application.decisionSentAt && (
+					<Button variant="outline" disabled={busy} onClick={() => void onReopen()}>
+						Rediger søknaden
+					</Button>
 				)}
-				<div className="flex flex-wrap gap-3">
-					<OfferConfirmation accept onConfirm={() => void onReply(true)} />
-					<OfferConfirmation accept={false} onConfirm={() => void onReply(false)} />
-				</div>
 				{message && <output>{message}</output>}
 			</ApplicationNotice>
 		);
-	if (application.offerStatus === "accepted")
-		return (
-			<ApplicationNotice title="Du har takket ja til plassen">
-				<p>Navet har mottatt svaret ditt.</p>
-			</ApplicationNotice>
-		);
-	if (application.offerStatus === "declined")
-		return (
-			<ApplicationNotice title="Takk for at du ga beskjed">
-				<p>Vi har mottatt svaret ditt.</p>
-			</ApplicationNotice>
-		);
-	if (application.decisionSentAt && application.decision === "rejected")
-		return (
-			<ApplicationNotice title="Takk for at du søkte">
-				<p>Opptaket er ferdig for denne gangen.</p>
-			</ApplicationNotice>
-		);
-	if (application.interview)
-		return (
-			<ApplicationNotice title="Intervjuet ditt">
-				<p>{formatOsloDate(application.interview.startAt, DATE_PATTERNS.dateTime)}</p>
-				<p>
-					Møterom:{" "}
-					<a
-						href={roomUrl(application.interview.room)}
-						target="_blank"
-						rel="noreferrer"
-						className="text-primary underline underline-offset-4"
-					>
-						{application.interview.room}
-					</a>
-				</p>
-				<AlertDialog>
-					<AlertDialogTrigger asChild>
-						<Button variant="outline">Avlys intervjuet</Button>
-					</AlertDialogTrigger>
-					<AlertDialogContent>
-						<AlertDialogHeader>
-							<AlertDialogTitle>Avlyse intervjuet?</AlertDialogTitle>
-							<AlertDialogDescription>
-								Intervjutiden blir avlyst når du bekrefter.
-							</AlertDialogDescription>
-						</AlertDialogHeader>
-						<AlertDialogFooter>
-							<AlertDialogCancel>Behold intervjuet</AlertDialogCancel>
-							<AlertDialogAction onClick={() => void onCancelInterview()}>
-								Ja, avlys intervjuet
-							</AlertDialogAction>
-						</AlertDialogFooter>
-					</AlertDialogContent>
-				</AlertDialog>
-				{message && <output>{message}</output>}
-			</ApplicationNotice>
-		);
-	if (application.interviewStatus === "cancelled")
-		return (
-			<ApplicationNotice title="Intervjuet er avlyst">
-				<p>Vi har registrert at du har avlyst intervjuet.</p>
-			</ApplicationNotice>
-		);
+	}
+	const cancel = confirmation === "cancel";
+	const verb = confirmation === "accept" ? "ja" : "nei";
 	return (
-		<ApplicationNotice title="Søknaden din er sendt">
-			<p>Søknaden din er lagret.</p>
-			{period.interviewStartAt > 0 && !applicationWindowClosed && !application.decisionSentAt && (
-				<Button variant="outline" disabled={busy} onClick={() => void onReopen()}>
-					Rediger søknaden
-				</Button>
-			)}
-			{message && <output>{message}</output>}
-		</ApplicationNotice>
-	);
-}
-
-function OfferConfirmation({
-	accept,
-	onConfirm,
-}: Readonly<{ accept: boolean; onConfirm: () => void }>) {
-	const verb = accept ? "ja" : "nei";
-	return (
-		<AlertDialog>
-			<AlertDialogTrigger asChild>
-				<Button variant={accept ? "default" : "outline"}>{`Takk ${verb}`}</Button>
-			</AlertDialogTrigger>
-			<AlertDialogContent>
-				<AlertDialogHeader>
-					<AlertDialogTitle>{`Takke ${verb} til plassen?`}</AlertDialogTitle>
-					<AlertDialogDescription>
-						{accept
-							? "Når du bekrefter, registrerer vi at du takker ja."
-							: "Når du bekrefter, registrerer vi at du takker nei."}
-					</AlertDialogDescription>
-				</AlertDialogHeader>
-				<AlertDialogFooter>
-					<AlertDialogCancel>Tilbake</AlertDialogCancel>
-					<AlertDialogAction
-						onClick={onConfirm}
-					>{`Bekreft at jeg takker ${verb}`}</AlertDialogAction>
-				</AlertDialogFooter>
-			</AlertDialogContent>
-		</AlertDialog>
+		<>
+			{renderStatus()}
+			<ConfirmDialog
+				open={confirmation !== null}
+				onOpenChange={(open) => {
+					if (!open) setConfirmation(null);
+				}}
+				title={cancel ? "Avlyse intervjuet?" : `Takke ${verb} til plassen?`}
+				description={
+					cancel
+						? "Intervjutiden blir avlyst når du bekrefter."
+						: `Når du bekrefter, registrerer vi at du takker ${verb}.`
+				}
+				confirmLabel={cancel ? "Ja, avlys intervjuet" : `Bekreft at jeg takker ${verb}`}
+				cancelLabel={cancel ? "Behold intervjuet" : "Tilbake"}
+				error={message}
+				onConfirm={() => (cancel ? onCancelInterview() : onReply(confirmation === "accept"))}
+			/>
+		</>
 	);
 }
 

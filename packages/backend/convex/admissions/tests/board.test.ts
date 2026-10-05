@@ -53,6 +53,38 @@ it("requires admin and a current revision for valid settings changes", async () 
 	expect(await t.run((ctx) => ctx.db.get(periodId))).toMatchObject({ duration: 30, revision: 1 });
 });
 
+it("commits team and settings atomically once and ignores an unchanged resave", async () => {
+	const { t, admin, periodId } = await boardFixture();
+	const helper = await insertUser(t, "atomic-helper@ifinavet.no");
+	await grantRole(t, helper._id, "internal");
+	const interviewers = [
+		{ userId: admin._id, selectedCalendarIds: ["primary"] },
+		{ userId: helper._id, selectedCalendarIds: ["primary"] },
+	];
+	const args = { periodId, expectedRevision: 0, settings: { duration: 30 }, interviewers };
+	await expect(
+		asUser(t, admin).mutation(api.admissions.board.updateSettings, {
+			...args,
+			settings: { duration: -1 },
+		}),
+	).rejects.toThrow();
+	expect(await t.run((ctx) => ctx.db.get(periodId))).toMatchObject({ revision: 0, duration: 15 });
+	expect(await t.run((ctx) => allOperations(ctx))).toHaveLength(0);
+	await asUser(t, admin).mutation(api.admissions.board.updateSettings, args);
+	expect(await t.run((ctx) => ctx.db.get(periodId))).toMatchObject({
+		revision: 1,
+		duration: 30,
+		interviewers,
+	});
+	expect(await t.run((ctx) => allOperations(ctx))).toHaveLength(1);
+	await asUser(t, admin).mutation(api.admissions.board.updateSettings, {
+		...args,
+		expectedRevision: 1,
+	});
+	expect(await t.run((ctx) => ctx.db.get(periodId))).toMatchObject({ revision: 1 });
+	expect(await t.run((ctx) => allOperations(ctx))).toHaveLength(1);
+});
+
 it("reverses selection rounds without sending offers or changing accepted candidates", async () => {
 	const { t, admin, periodId, ids } = await boardFixture();
 	await asUser(t, admin).mutation(api.admissions.board.changeRound, {
@@ -121,10 +153,11 @@ it("saves calendar selections only for eligible interviewers and rejects stale u
 		],
 	};
 	await expect(
-		asUser(t, student).mutation(api.admissions.board.updateInterviewers, args),
+		asUser(t, student).mutation(api.admissions.board.updateSettings, { ...args, settings: {} }),
 	).rejects.toThrow();
 	await expect(
-		asUser(t, admin).mutation(api.admissions.board.updateInterviewers, {
+		asUser(t, admin).mutation(api.admissions.board.updateSettings, {
+			settings: {},
 			...args,
 			interviewers: [
 				...args.interviewers,
@@ -132,10 +165,10 @@ it("saves calendar selections only for eligible interviewers and rejects stale u
 			],
 		}),
 	).rejects.toThrow();
-	await asUser(t, admin).mutation(api.admissions.board.updateInterviewers, args);
+	await asUser(t, admin).mutation(api.admissions.board.updateSettings, { ...args, settings: {} });
 	expect((await t.run((ctx) => ctx.db.get(periodId)))?.interviewers).toEqual(args.interviewers);
 	await expect(
-		asUser(t, admin).mutation(api.admissions.board.updateInterviewers, args),
+		asUser(t, admin).mutation(api.admissions.board.updateSettings, { ...args, settings: {} }),
 	).rejects.toThrow();
 });
 

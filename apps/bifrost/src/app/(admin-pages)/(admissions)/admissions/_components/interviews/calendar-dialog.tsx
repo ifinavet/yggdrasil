@@ -21,7 +21,7 @@ export function CalendarDialog({
 	onClose: () => void;
 }>) {
 	const sources = useAction(api.admissions.interviews.calendar.sources);
-	const save = useMutation(api.admissions.board.updateInterviewers);
+	const save = useMutation(api.admissions.board.updateSettings);
 	const [calendars, setCalendars] = useState<
 		Record<string, { items: SearchSelectItem[]; selectedIds: string[] }>
 	>({});
@@ -58,6 +58,7 @@ export function CalendarDialog({
 			await save({
 				periodId: period._id,
 				expectedRevision: period.revision,
+				settings: {},
 				interviewers: period.interviewers.map((person) => ({
 					...person,
 					selectedCalendarIds: calendars[person.userId]?.selectedIds ?? person.selectedCalendarIds,

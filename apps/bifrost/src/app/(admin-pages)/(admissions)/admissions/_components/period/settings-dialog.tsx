@@ -13,30 +13,26 @@ import { Input } from "@workspace/ui/components/input";
 import { SearchSelect } from "@workspace/ui/components/search-select";
 import { useMutation, useQuery } from "convex/react";
 import { useEffect, useState } from "react";
-import { defaults } from "../model";
+import { defaults, type Overview } from "../model";
 import { CloseDialog } from "./close-dialog";
 
 export function SettingsDialog({
 	open,
 	onOpenChange,
-	period,
+	overview,
 	onSaved,
 	onClosed,
 }: Readonly<{
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	period?: Doc<"admissionPeriods">;
+	overview?: Overview;
 	onSaved: () => void;
 	onClosed?: () => void;
 }>) {
 	const board = useQuery(api.users.organization.queries.getTheBoard, {});
-	const overview = useQuery(
-		api.admissions.queries.adminOverview,
-		period ? { periodId: period._id } : "skip",
-	);
+	const period = overview?.period;
 	const create = useMutation(api.admissions.mutations.createPeriod);
 	const update = useMutation(api.admissions.board.updateSettings);
-	const updateInterviewers = useMutation(api.admissions.board.updateInterviewers);
 	const [error, setError] = useState("");
 	const [closeOpen, setCloseOpen] = useState(false);
 	const form = useForm({
@@ -53,30 +49,17 @@ export function SettingsDialog({
 					room: value.room,
 				};
 				if (period) {
-					const interviewerChanges =
-						value.interviewerIds.length !== period.interviewers.length ||
-						value.interviewerIds.some(
-							(id) => !period.interviewers.some((person) => person.userId === id),
-						);
-					const settingsChanges = Object.entries(settings).some(
-						([key, next]) => period[key as keyof typeof settings] !== next,
-					);
-					let revision = period.revision;
-					if (interviewerChanges) {
-						await updateInterviewers({
-							periodId: period._id,
-							expectedRevision: revision,
-							interviewers: value.interviewerIds.map((userId) => ({
-								userId,
-								selectedCalendarIds:
-									period.interviewers.find((person) => person.userId === userId)
-										?.selectedCalendarIds ?? [],
-							})),
-						});
-						revision += 1;
-					}
-					if (settingsChanges)
-						await update({ periodId: period._id, expectedRevision: revision, settings });
+					await update({
+						periodId: period._id,
+						expectedRevision: period.revision,
+						settings,
+						interviewers: value.interviewerIds.map((userId) => ({
+							userId,
+							selectedCalendarIds:
+								period.interviewers.find((person) => person.userId === userId)
+									?.selectedCalendarIds ?? [],
+						})),
+					});
 				} else {
 					const epoch = (input: string) => {
 						const [day, time] = input.split("T");

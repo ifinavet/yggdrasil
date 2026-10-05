@@ -71,7 +71,8 @@ it("reconciles Slack membership as soon as interviewer selection changes", async
 			}),
 		),
 	);
-	await asUser(t, admin).mutation(api.admissions.board.updateInterviewers, {
+	await asUser(t, admin).mutation(api.admissions.board.updateSettings, {
+		settings: {},
 		periodId,
 		expectedRevision: 1,
 		interviewers: [staying, added, alsoStaying].map(({ _id }) => ({

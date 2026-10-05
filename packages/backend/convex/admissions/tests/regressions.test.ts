@@ -98,7 +98,8 @@ async function addInterviewerPair(
 	const fourth = await insertUser(value.t, fourthEmail);
 	await grantRole(value.t, third._id, "internal");
 	await grantRole(value.t, fourth._id, "internal");
-	await value.admin.mutation(api.admissions.board.updateInterviewers, {
+	await value.admin.mutation(api.admissions.board.updateSettings, {
+		settings: {},
 		periodId: value.periodId,
 		expectedRevision: 1,
 		interviewers: [value.interviewer, value.otherInterviewer, third, fourth].map(({ _id }) => ({
@@ -461,7 +462,8 @@ it("requires exactly two interviewers in both manual and generated schedules", a
 	const value = await scheduleFixture(10, 0, [{ day: "2026-10-08", start: 590, end: 630 }]);
 	const third = await insertUser(value.t, "third@ifinavet.no");
 	await grantRole(value.t, third._id, "internal");
-	await value.admin.mutation(api.admissions.board.updateInterviewers, {
+	await value.admin.mutation(api.admissions.board.updateSettings, {
+		settings: {},
 		periodId: value.periodId,
 		expectedRevision: 1,
 		interviewers: [
@@ -569,7 +571,8 @@ it("requires explicit admin confirmation to manually schedule outside applicant 
 it("derives manual interview calendars from the period's interviewer selections", async () => {
 	const value = await scheduleFixture(10, 0, []);
 	await setAvailability(value.t, value.applicationId, value.day);
-	await value.admin.mutation(api.admissions.board.updateInterviewers, {
+	await value.admin.mutation(api.admissions.board.updateSettings, {
+		settings: {},
 		periodId: value.periodId,
 		expectedRevision: 1,
 		interviewers: [

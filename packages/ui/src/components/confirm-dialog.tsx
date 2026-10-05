@@ -45,6 +45,9 @@ export function ConfirmDialog({
 	error,
 	confirmLabel,
 	destructive = false,
+	disabled = false,
+	cancelLabel = "Avbryt",
+	children,
 	onConfirm,
 }: Readonly<{
 	open: boolean;
@@ -55,12 +58,16 @@ export function ConfirmDialog({
 	error?: string;
 	confirmLabel: string;
 	destructive?: boolean;
+	disabled?: boolean;
+	cancelLabel?: string;
+	children?: ReactNode;
 	onConfirm: (comment: string | undefined) => Promise<boolean>;
 }>) {
 	const form = useForm({
 		defaultValues: { comment: "" },
 		validators: { onSubmit: commentSchema(comment) },
 		onSubmit: async ({ value, formApi }) => {
+			if (disabled) return;
 			const trimmed = value.comment.trim();
 			if (await onConfirm(trimmed || undefined)) {
 				formApi.reset();
@@ -90,6 +97,7 @@ export function ConfirmDialog({
 						<AlertDialogDescription>{description}</AlertDialogDescription>
 					</AlertDialogHeader>
 
+					{children}
 					{comment && (
 						<form.Field name="comment">
 							{(field) => {
@@ -121,14 +129,14 @@ export function ConfirmDialog({
 					)}
 					<AlertDialogFooter>
 						<Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-							Avbryt
+							{cancelLabel}
 						</Button>
 						<form.Subscribe selector={(state) => state.isSubmitting}>
 							{(isSubmitting) => (
 								<Button
 									type="submit"
 									variant={destructive ? "destructive" : "default"}
-									disabled={isSubmitting}
+									disabled={disabled || isSubmitting}
 								>
 									{isSubmitting ? "Jobber..." : confirmLabel}
 								</Button>

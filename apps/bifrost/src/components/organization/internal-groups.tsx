@@ -3,18 +3,8 @@
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { convexErrorMessage } from "@workspace/shared/utils";
-import {
-	AlertDialog,
-	AlertDialogAction,
-	AlertDialogCancel,
-	AlertDialogContent,
-	AlertDialogDescription,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle,
-	AlertDialogTrigger,
-} from "@workspace/ui/components/alert-dialog";
 import { Button } from "@workspace/ui/components/button";
+import { ConfirmDialog } from "@workspace/ui/components/confirm-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@workspace/ui/components/dialog";
 import { Input } from "@workspace/ui/components/input";
 import { Label } from "@workspace/ui/components/label";
@@ -35,6 +25,7 @@ export function InternalGroups() {
 	const createGroup = useMutation(api.users.organization.groups.create);
 	const updateGroup = useMutation(api.users.organization.groups.update);
 	const removeGroup = useMutation(api.users.organization.groups.remove);
+	const [removing, setRemoving] = useState<Group | null>(null);
 	const [editing, setEditing] = useState<Group | null>(null);
 	const [dialogOpen, setDialogOpen] = useState(false);
 	const [name, setName] = useState("");
@@ -77,8 +68,10 @@ export function InternalGroups() {
 		setError("");
 		try {
 			await removeGroup({ groupId });
+			return true;
 		} catch (cause) {
 			setError(convexErrorMessage(cause, "Kunne ikke slette arbeidsgruppen."));
+			return false;
 		}
 	}
 
@@ -126,27 +119,17 @@ export function InternalGroups() {
 								>
 									<Pencil aria-hidden />
 								</Button>
-								<AlertDialog>
-									<AlertDialogTrigger asChild>
-										<Button variant="outline" size="icon" aria-label={`Slett ${group.name}`}>
-											<Trash2 aria-hidden />
-										</Button>
-									</AlertDialogTrigger>
-									<AlertDialogContent>
-										<AlertDialogHeader>
-											<AlertDialogTitle>Slette {group.name}?</AlertDialogTitle>
-											<AlertDialogDescription>
-												En arbeidsgruppe som brukes av medlemmer eller søkere kan ikke slettes.
-											</AlertDialogDescription>
-										</AlertDialogHeader>
-										<AlertDialogFooter>
-											<AlertDialogCancel>Avbryt</AlertDialogCancel>
-											<AlertDialogAction onClick={() => void remove(group._id)}>
-												Slett arbeidsgruppe
-											</AlertDialogAction>
-										</AlertDialogFooter>
-									</AlertDialogContent>
-								</AlertDialog>
+								<Button
+									variant="outline"
+									size="icon"
+									aria-label={`Slett ${group.name}`}
+									onClick={() => {
+										setError("");
+										setRemoving(group);
+									}}
+								>
+									<Trash2 aria-hidden />
+								</Button>
 							</div>
 						</li>
 					))}
@@ -155,6 +138,18 @@ export function InternalGroups() {
 			{groups?.length === 0 && (
 				<p className="text-muted-foreground text-sm">Ingen arbeidsgrupper er lagt til ennå.</p>
 			)}
+			<ConfirmDialog
+				open={Boolean(removing)}
+				onOpenChange={(open) => {
+					if (!open) setRemoving(null);
+				}}
+				title={`Slette ${removing?.name}?`}
+				description="En arbeidsgruppe som brukes av medlemmer eller søkere kan ikke slettes."
+				confirmLabel="Slett arbeidsgruppe"
+				destructive
+				error={error}
+				onConfirm={() => (removing ? remove(removing._id) : Promise.resolve(false))}
+			/>
 			<Dialog
 				open={dialogOpen}
 				onOpenChange={(open) => {

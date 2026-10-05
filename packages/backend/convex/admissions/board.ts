@@ -5,6 +5,7 @@ import schema from "../schema";
 import { requireMutablePeriod } from "./access";
 import { startDelivery } from "./delivery/workflow";
 import { validateInterviewers } from "./mutations";
+import { scheduledInterviews, submittedApplications } from "./queries";
 import { MAX_APPLICATIONS, MAX_ROUNDS, validateSettings } from "./rules";
 import { interviewerSelection } from "./schema";
 
@@ -18,55 +19,69 @@ function requireRevision(period: Doc<"admissionPeriods">, revision: number) {
 		throw new ConvexError("Opptaket er endret av noen andre. Oppdater siden og prøv igjen.");
 }
 
-export const updateInterviewers = mutation({
+export const updateSettings = mutation({
 	args: {
 		periodId: v.id("admissionPeriods"),
 		expectedRevision: v.number(),
-		interviewers: v.array(interviewerSelection),
+		settings,
+		interviewers: v.optional(v.array(interviewerSelection)),
 	},
 	handler: async (ctx, args) => {
 		const period = await requireMutablePeriod(ctx, args.periodId);
 		requireRevision(period, args.expectedRevision);
-		await validateInterviewers(ctx, args.interviewers);
+		const next = { ...period, ...args.settings };
+		validateSettings(next);
+		const { interviewers } = args;
+		let membershipChanged = false;
+		if (interviewers) {
+			await validateInterviewers(ctx, interviewers);
+			if (
+				interviewers.some(
+					(person) =>
+						person.selectedCalendarIds.length > 30 ||
+						person.selectedCalendarIds.some((id) => !id.trim() || id.length > 320),
+				)
+			)
+				throw new ConvexError("Velg gyldige kalendere, maksimalt 30 per intervjuer.");
+			const nextInterviewerIds = new Set(interviewers.map((person) => person.userId));
+			membershipChanged =
+				nextInterviewerIds.size !== period.interviewers.length ||
+				period.interviewers.some((person) => !nextInterviewerIds.has(person.userId));
+			const removedInterviewerIds = new Set(
+				period.interviewers
+					.filter((person) => !nextInterviewerIds.has(person.userId))
+					.map((person) => person.userId),
+			);
+			if (removedInterviewerIds.size) {
+				const scheduled = await scheduledInterviews(ctx, period._id, MAX_APPLICATIONS + 1);
+				if (
+					scheduled.some(
+						(interview) =>
+							interview.publishedAt &&
+							interview.startAt > Date.now() &&
+							interview.interviewerIds.some((id) => removedInterviewerIds.has(id)),
+					)
+				)
+					throw new ConvexError(
+						"Intervjuere kan ikke fjernes når de er tildelt publiserte intervjuer.",
+					);
+			}
+		}
+		const changes = {
+			...args.settings,
+			room: next.room.trim(),
+			...(interviewers && { interviewers }),
+		};
 		if (
-			args.interviewers.some(
-				(person) =>
-					person.selectedCalendarIds.length > 30 ||
-					person.selectedCalendarIds.some((id) => !id.trim() || id.length > 320),
+			Object.entries(changes).every(
+				([key, value]) =>
+					JSON.stringify(value) === JSON.stringify(period[key as keyof typeof changes]),
 			)
 		)
-			throw new ConvexError("Velg gyldige kalendere, maksimalt 30 per intervjuer.");
-		const nextInterviewerIds = new Set(args.interviewers.map((person) => person.userId));
-		const membershipChanged =
-			nextInterviewerIds.size !== period.interviewers.length ||
-			period.interviewers.some((person) => !nextInterviewerIds.has(person.userId));
-		const removedInterviewerIds = new Set(
-			period.interviewers
-				.filter((person) => !nextInterviewerIds.has(person.userId))
-				.map((person) => person.userId),
-		);
-		if (removedInterviewerIds.size) {
-			const scheduled = await ctx.db
-				.query("admissionInterviews")
-				.withIndex("by_periodId_and_status", (q) =>
-					q.eq("periodId", period._id).eq("status", "scheduled"),
-				)
-				.take(MAX_APPLICATIONS + 1);
-			if (
-				scheduled.some(
-					(interview) =>
-						interview.publishedAt &&
-						interview.startAt > Date.now() &&
-						interview.interviewerIds.some((id) => removedInterviewerIds.has(id)),
-				)
-			)
-				throw new ConvexError(
-					"Intervjuere kan ikke fjernes når de er tildelt publiserte intervjuer.",
-				);
-		}
+			return;
 		const revision = period.revision + 1;
 		await ctx.db.patch(period._id, {
-			interviewers: args.interviewers,
+			...changes,
 			revision,
 			status: "open",
 		});
@@ -78,22 +93,6 @@ export const updateInterviewers = mutation({
 				idempotencyKey: `sync-channel:${period._id}:${revision}`,
 				dueAt: Date.now(),
 			});
-	},
-});
-
-export const updateSettings = mutation({
-	args: { periodId: v.id("admissionPeriods"), expectedRevision: v.number(), settings },
-	handler: async (ctx, args) => {
-		const period = await requireMutablePeriod(ctx, args.periodId);
-		requireRevision(period, args.expectedRevision);
-		const next = { ...period, ...args.settings };
-		validateSettings(next);
-		await ctx.db.patch(period._id, {
-			...args.settings,
-			room: next.room.trim(),
-			status: "open",
-			revision: period.revision + 1,
-		});
 	},
 });
 
@@ -112,12 +111,7 @@ export const assignRooms = mutation({
 		const selected = new Set(args.applicationIds);
 		if (!selected.size || selected.size > MAX_APPLICATIONS)
 			throw new ConvexError("Velg intervjuer først.");
-		const interviews = await ctx.db
-			.query("admissionInterviews")
-			.withIndex("by_periodId_and_status", (q) =>
-				q.eq("periodId", period._id).eq("status", "scheduled"),
-			)
-			.take(MAX_APPLICATIONS + 1);
+		const interviews = await scheduledInterviews(ctx, period._id, MAX_APPLICATIONS + 1);
 		if (
 			interviews.length > MAX_APPLICATIONS ||
 			[...selected].some((id) => !interviews.some((row) => row.applicationId === id))
@@ -182,12 +176,7 @@ export const changeRound = mutation({
 	handler: async (ctx, args) => {
 		const period = await requireMutablePeriod(ctx, args.periodId);
 		requireRevision(period, args.expectedRevision);
-		const applications = await ctx.db
-			.query("admissionApplications")
-			.withIndex("by_periodId_and_status", (q) =>
-				q.eq("periodId", period._id).eq("status", "submitted"),
-			)
-			.take(MAX_APPLICATIONS + 1);
+		const applications = await submittedApplications(ctx, period._id, MAX_APPLICATIONS + 1);
 		if (applications.length > MAX_APPLICATIONS)
 			throw new ConvexError("For mange kandidater i opptaket.");
 		const previous = period.roundHistory.at(-1);

@@ -5,6 +5,7 @@ import { internalMutation, internalQuery, type MutationCtx } from "../../_genera
 import { adminRoles, internalRoles, requireRole, userHasRole } from "../../auth/accessRights";
 import { workspaceEmail } from "../../iam/accounts";
 import { activePublishInterviewIds } from "../lifecycle";
+import { submittedApplications } from "../queries";
 import {
 	interviewCalendarIds,
 	MAX_APPLICATIONS,
@@ -19,27 +20,20 @@ export const scheduleContext = internalQuery({
 		const period = await ctx.db.get(periodId);
 		if (!period || period.status === "closing")
 			throw new ConvexError("Fant ikke en aktiv opptaksperiode.");
-		const applications = await ctx.db
-			.query("admissionApplications")
-			.withIndex("by_periodId_and_status", (q) =>
-				q.eq("periodId", periodId).eq("status", "submitted"),
-			)
-			.take(MAX_APPLICATIONS + 1);
+		const applications = await submittedApplications(ctx, periodId, MAX_APPLICATIONS + 1);
 		if (applications.length > MAX_APPLICATIONS)
 			throw new ConvexError("For mange søknader til å lage en plan.");
-		const candidates = await Promise.all(
-			applications.map(async (application) => {
-				const existingInterview = await ctx.db
-					.query("admissionInterviews")
-					.withIndex("by_applicationId", (q) => q.eq("applicationId", application._id))
-					.unique();
-				return {
-					applicationId: application._id,
-					availability: application.availability,
-					existingInterview,
-				};
-			}),
-		);
+		const allInterviews = await ctx.db
+			.query("admissionInterviews")
+			.withIndex("by_periodId_and_status", (q) => q.eq("periodId", periodId))
+			.take(MAX_APPLICATIONS + 1);
+		if (allInterviews.length > MAX_APPLICATIONS)
+			throw new ConvexError("For mange intervjuer i opptaket.");
+		const candidates = applications.map((application) => ({
+			applicationId: application._id,
+			availability: application.availability,
+			existingInterview: allInterviews.find((row) => row.applicationId === application._id) ?? null,
+		}));
 		const interviewers = await Promise.all(
 			period.interviewers.map(async (selection) => {
 				const user = await ctx.db.get(selection.userId);
@@ -52,12 +46,7 @@ export const scheduleContext = internalQuery({
 					: null;
 			}),
 		);
-		const existingInterviews = await ctx.db
-			.query("admissionInterviews")
-			.withIndex("by_periodId_and_status", (q) =>
-				q.eq("periodId", periodId).eq("status", "scheduled"),
-			)
-			.take(MAX_APPLICATIONS);
+		const existingInterviews = allInterviews.filter((row) => row.status === "scheduled");
 		return {
 			period,
 			candidates,
@@ -95,12 +84,7 @@ export const saveSchedule = internalMutation({
 			new Set(assignments.map((row) => row.applicationId)).size !== assignments.length
 		)
 			throw new ConvexError("Ugyldig plan.");
-		const applications = await ctx.db
-			.query("admissionApplications")
-			.withIndex("by_periodId_and_status", (q) =>
-				q.eq("periodId", periodId).eq("status", "submitted"),
-			)
-			.take(MAX_APPLICATIONS + 1);
+		const applications = await submittedApplications(ctx, periodId, MAX_APPLICATIONS + 1);
 		if (applications.length > MAX_APPLICATIONS)
 			throw new ConvexError("For mange søknader til å lagre en plan.");
 

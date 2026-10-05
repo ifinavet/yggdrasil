@@ -1,11 +1,40 @@
 import { v } from "convex/values";
-import type { Doc } from "../_generated/dataModel";
+import { pick } from "convex-helpers";
+import { getOneFrom } from "convex-helpers/server/relationships";
+import type { Doc, Id } from "../_generated/dataModel";
 import { type QueryCtx, query } from "../_generated/server";
 import { adminRoles, requireRole } from "../auth/accessRights";
 import { getCurrentUserOrThrow } from "../auth/currentUser";
 import { isEmailDeliveryFailure } from "../lib/emailDelivery";
 import { MAX_INTERNAL_GROUPS } from "../users/organization/groups";
 import { listOperations } from "./delivery/workflow";
+import { MAX_APPLICATIONS } from "./rules";
+
+export function submittedApplications(
+	ctx: QueryCtx,
+	periodId: Id<"admissionPeriods">,
+	limit = MAX_APPLICATIONS,
+) {
+	return ctx.db
+		.query("admissionApplications")
+		.withIndex("by_periodId_and_status", (q) =>
+			q.eq("periodId", periodId).eq("status", "submitted"),
+		)
+		.take(limit);
+}
+
+export function scheduledInterviews(
+	ctx: QueryCtx,
+	periodId: Id<"admissionPeriods">,
+	limit = MAX_APPLICATIONS,
+) {
+	return ctx.db
+		.query("admissionInterviews")
+		.withIndex("by_periodId_and_status", (q) =>
+			q.eq("periodId", periodId).eq("status", "scheduled"),
+		)
+		.take(limit);
+}
 
 export const openPeriods = query({
 	args: { now: v.number() },
@@ -16,32 +45,20 @@ export const openPeriods = query({
 			.take(10);
 		return periods
 			.filter((period) => period.applicationStartAt <= now && now <= period.applicationEndAt)
-			.map(
-				({
-					_id,
-					title,
-					applicationStartAt,
-					applicationEndAt,
-					interviewStartAt,
-					interviewEndAt,
-					retentionAt,
-					dayStart,
-					dayEnd,
-					timezone,
-					revision,
-				}) => ({
-					_id,
-					title,
-					applicationStartAt,
-					applicationEndAt,
-					interviewStartAt,
-					interviewEndAt,
-					retentionAt,
-					dayStart,
-					dayEnd,
-					timezone,
-					revision,
-				}),
+			.map((period) =>
+				pick(period, [
+					"_id",
+					"title",
+					"applicationStartAt",
+					"applicationEndAt",
+					"interviewStartAt",
+					"interviewEndAt",
+					"retentionAt",
+					"dayStart",
+					"dayEnd",
+					"timezone",
+					"revision",
+				]),
 			);
 	},
 });
@@ -51,19 +68,23 @@ async function applicantView(
 	application: Doc<"admissionApplications">,
 	period: Doc<"admissionPeriods">,
 ) {
-	const interview = await ctx.db
-		.query("admissionInterviews")
-		.withIndex("by_applicationId", (q) => q.eq("applicationId", application._id))
-		.unique();
+	const interview = await getOneFrom(
+		ctx.db,
+		"admissionInterviews",
+		"by_applicationId",
+		application._id,
+	);
 	return {
-		_id: application._id,
+		...pick(application, [
+			"_id",
+			"status",
+			"revision",
+			"about",
+			"motivation",
+			"group",
+			"availability",
+		]),
 		periodId: period._id,
-		status: application.status,
-		revision: application.revision,
-		about: application.about,
-		motivation: application.motivation,
-		group: application.group,
-		availability: application.availability,
 		decision: application.decisionSentAt ? application.decision : "pending",
 		decisionSentAt: application.decisionSentAt,
 		offerStatus: application.decisionSentAt ? application.offerStatus : "none",
@@ -73,17 +94,17 @@ async function applicantView(
 			interview?.status === "scheduled" && interview.publishedAt
 				? { startAt: interview.startAt, endAt: interview.endAt, room: interview.room }
 				: null,
-		period: {
-			title: period.title,
-			applicationStartAt: period.applicationStartAt,
-			applicationEndAt: period.applicationEndAt,
-			interviewStartAt: period.interviewStartAt,
-			interviewEndAt: period.interviewEndAt,
-			retentionAt: period.retentionAt,
-			timezone: period.timezone,
-			dayStart: period.dayStart,
-			dayEnd: period.dayEnd,
-		},
+		period: pick(period, [
+			"title",
+			"applicationStartAt",
+			"applicationEndAt",
+			"interviewStartAt",
+			"interviewEndAt",
+			"retentionAt",
+			"timezone",
+			"dayStart",
+			"dayEnd",
+		]),
 	};
 }
 
@@ -144,23 +165,13 @@ export const adminOverview = query({
 				jobs,
 				deliveryIssues: [],
 			};
-		const applications = await ctx.db
-			.query("admissionApplications")
-			.withIndex("by_periodId_and_status", (q) =>
-				q.eq("periodId", period._id).eq("status", "submitted"),
-			)
-			.take(200);
+		const applications = await submittedApplications(ctx, period._id);
 		const groups = await ctx.db
 			.query("internalGroups")
 			.withIndex("by_name")
 			.take(MAX_INTERNAL_GROUPS);
 		const groupNames = new Map(groups.map((group) => [group._id, group.name]));
-		const allInterviews = await ctx.db
-			.query("admissionInterviews")
-			.withIndex("by_periodId_and_status", (q) =>
-				q.eq("periodId", period._id).eq("status", "scheduled"),
-			)
-			.take(200);
+		const allInterviews = await scheduledInterviews(ctx, period._id);
 		const candidates = await Promise.all(
 			applications.map(async (application) => {
 				const user = await ctx.db.get(application.userId);

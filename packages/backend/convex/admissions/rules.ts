@@ -57,26 +57,14 @@ export function validateSettings(settings: {
 	dayStart: number;
 	dayEnd: number;
 }) {
-	if (!Number.isInteger(settings.duration) || settings.duration < 5 || settings.duration > 120) {
-		throw new ConvexError("Intervjuer må vare fra 5 til 120 minutter.");
-	}
-	if (!Number.isInteger(settings.buffer) || settings.buffer < 0 || settings.buffer > 60) {
-		throw new ConvexError("Pausen mellom intervjuer må være fra 0 til 60 minutter.");
-	}
-	if (
-		!Number.isInteger(settings.breakEvery) ||
-		settings.breakEvery < 1 ||
-		settings.breakEvery > 12
-	) {
-		throw new ConvexError("Antall intervjuer mellom pauser må være fra 1 til 12.");
-	}
-	if (
-		!Number.isInteger(settings.breakMinutes) ||
-		settings.breakMinutes < 0 ||
-		settings.breakMinutes > 60
-	) {
-		throw new ConvexError("Pauselengden må være fra 0 til 60 minutter.");
-	}
+	const bounds = [
+		[settings.duration, 5, 120, "Intervjuer må vare fra 5 til 120 minutter."],
+		[settings.buffer, 0, 60, "Pausen mellom intervjuer må være fra 0 til 60 minutter."],
+		[settings.breakEvery, 1, 12, "Antall intervjuer mellom pauser må være fra 1 til 12."],
+		[settings.breakMinutes, 0, 60, "Pauselengden må være fra 0 til 60 minutter."],
+	] as const;
+	for (const [value, min, max, message] of bounds)
+		if (!Number.isInteger(value) || value < min || value > max) throw new ConvexError(message);
 	if (
 		!Number.isInteger(settings.dayStart) ||
 		!Number.isInteger(settings.dayEnd) ||

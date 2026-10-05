@@ -5,6 +5,7 @@ import type { Id } from "@workspace/backend/convex/dataModel";
 import { makeSchedulingDays } from "@workspace/shared/admissions";
 import { convexErrorMessage } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
+import { ConfirmDialog } from "@workspace/ui/components/confirm-dialog";
 import { Callout } from "@workspace/ui/components/products/callout";
 import {
 	Table,
@@ -29,7 +30,6 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { CandidateDialog } from "./candidates/candidate-dialog";
 import { CandidateFilters } from "./candidates/candidate-filters";
 import { OfferDialog } from "./candidates/offer-dialog";
@@ -39,7 +39,7 @@ import { CalendarDialog } from "./interviews/calendar-dialog";
 import { CancelInterviewDialog } from "./interviews/cancel-interview-dialog";
 import { InterviewCalendar } from "./interviews/interview-calendar";
 import { InterviewDialog } from "./interviews/interview-dialog";
-import { type Decision, decisionLabels } from "./model";
+import { type Candidate, type Decision, decisionLabels } from "./model";
 import { SettingsDialog } from "./period/settings-dialog";
 
 const offerLabels = {
@@ -131,6 +131,23 @@ export default function AdmissionsDashboard() {
 		setSelected(id);
 		setRoomDraft(overview.interviews.find((row) => row.applicationId === id)?.room ?? period.room);
 	};
+	const saveRooms = (ids: string[], room: string) =>
+		perform(
+			() =>
+				assignRooms({
+					periodId: period._id,
+					expectedRevision: period.revision,
+					applicationIds: ids as Id<"admissionApplications">[],
+					room,
+				}),
+			"Romfordelingen er lagret",
+		);
+	const sendReply = (entry: Candidate) =>
+		sendDecision({
+			applicationId: entry._id,
+			expectedRevision: entry.revision,
+			idempotencyKey: `decision-${entry._id}-${entry.decisionRevision}`,
+		});
 	const decide = (id: string, decision: Decision) => {
 		const row = overview.candidates.find((entry) => entry._id === id);
 		if (!row) return;
@@ -240,18 +257,7 @@ export default function AdmissionsDashboard() {
 							"Intervjuplanen er klar for utsending",
 						)
 					}
-					onAssignRoom={(ids, room) =>
-						perform(
-							() =>
-								assignRooms({
-									periodId: period._id,
-									expectedRevision: period.revision,
-									applicationIds: ids as Id<"admissionApplications">[],
-									room,
-								}),
-							"Romfordelingen er lagret",
-						)
-					}
+					onAssignRoom={saveRooms}
 				/>
 			) : (
 				<>
@@ -267,41 +273,35 @@ export default function AdmissionsDashboard() {
 						{view === "selection" && (
 							<div className="admissions-actions">
 								<span>Runde {period.round + 1}</span>
-								<Button
-									variant="outline"
-									disabled={busy || !period.roundHistory.length}
-									onClick={() =>
-										void perform(
-											() =>
-												changeRound({
-													periodId: period._id,
-													expectedRevision: period.revision,
-													direction: "previous",
-												}),
-											"Forrige runde er gjenopprettet",
-										)
-									}
-								>
-									<ChevronLeft />
-									Forrige runde
-								</Button>
-								<Button
-									disabled={busy || !candidates.some((entry) => entry.decision === "shortlist")}
-									onClick={() =>
-										void perform(
-											() =>
-												changeRound({
-													periodId: period._id,
-													expectedRevision: period.revision,
-													direction: "next",
-												}),
-											"Neste runde er klar",
-										)
-									}
-								>
-									Neste runde
-									<ChevronRight />
-								</Button>
+								{(["previous", "next"] as const).map((direction) => (
+									<Button
+										key={direction}
+										variant={direction === "previous" ? "outline" : "default"}
+										disabled={
+											busy ||
+											(direction === "previous"
+												? !period.roundHistory.length
+												: !candidates.some((entry) => entry.decision === "shortlist"))
+										}
+										onClick={() =>
+											void perform(
+												() =>
+													changeRound({
+														periodId: period._id,
+														expectedRevision: period.revision,
+														direction,
+													}),
+												direction === "previous"
+													? "Forrige runde er gjenopprettet"
+													: "Neste runde er klar",
+											)
+										}
+									>
+										{direction === "previous" && <ChevronLeft />}
+										{direction === "previous" ? "Forrige runde" : "Neste runde"}
+										{direction === "next" && <ChevronRight />}
+									</Button>
+								))}
 							</div>
 						)}
 					</div>
@@ -388,18 +388,7 @@ export default function AdmissionsDashboard() {
 							{interview && (
 								<Button
 									disabled={busy || !roomDraft.trim()}
-									onClick={() =>
-										void perform(
-											() =>
-												assignRooms({
-													periodId: period._id,
-													expectedRevision: period.revision,
-													applicationIds: [current._id],
-													room: roomDraft,
-												}),
-											"Romfordelingen er lagret",
-										)
-									}
+									onClick={() => void saveRooms([current._id], roomDraft)}
 								>
 									Lagre rom
 								</Button>
@@ -408,15 +397,7 @@ export default function AdmissionsDashboard() {
 								<Button
 									disabled={busy || Boolean(current.decisionQueuedAt)}
 									onClick={() =>
-										void perform(
-											() =>
-												sendDecision({
-													applicationId: current._id,
-													expectedRevision: current.revision,
-													idempotencyKey: `decision-${current._id}-${current.decisionRevision}`,
-												}),
-											"Tilbudet er lagt i kø for utsending",
-										)
+										void perform(() => sendReply(current), "Tilbudet er lagt i kø for utsending")
 									}
 								>
 									<Mail />
@@ -465,7 +446,7 @@ export default function AdmissionsDashboard() {
 				key={period._id}
 				open={configure}
 				onOpenChange={setConfigure}
-				period={period}
+				overview={overview}
 				onSaved={() => toast.success("Innstillingene er lagret")}
 			/>
 			{calendars && (
@@ -484,15 +465,7 @@ export default function AdmissionsDashboard() {
 				error={error}
 				onConfirm={() =>
 					perform(async () => {
-						const results = await Promise.allSettled(
-							pending.map((entry) =>
-								sendDecision({
-									applicationId: entry._id,
-									expectedRevision: entry.revision,
-									idempotencyKey: `decision-${entry._id}-${entry.decisionRevision}`,
-								}),
-							),
-						);
+						const results = await Promise.allSettled(pending.map(sendReply));
 						const failed = results.find((result) => result.status === "rejected");
 						if (failed?.status === "rejected") throw failed.reason;
 					}, "Svarene er lagt i kø for utsending")

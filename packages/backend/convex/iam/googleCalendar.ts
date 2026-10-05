@@ -1,6 +1,6 @@
 "use node";
 
-import { calendar } from "@googleapis/calendar";
+import { calendar, type calendar_v3 } from "@googleapis/calendar";
 import {
 	GOOGLE_CALENDAR_API_URL,
 	GOOGLE_CALENDAR_DEFAULT_SCOPES,
@@ -20,17 +20,9 @@ export function googleCalendarScope() {
 
 export class GoogleCalendarError extends Error {}
 
-type Calendar = Readonly<{ id: string; summary?: string; primary?: boolean }>;
+type Calendar = calendar_v3.Schema$CalendarListEntry & { id: string };
 type Busy = Readonly<{ start: string; end: string }>;
-export type CalendarEvent = Readonly<{
-	id: string;
-	iCalUID?: string;
-	status?: string;
-	transparency?: string;
-	extendedProperties?: { shared?: Record<string, string> };
-	start?: { dateTime?: string; date?: string };
-	end?: { dateTime?: string; date?: string };
-}>;
+export type CalendarEvent = calendar_v3.Schema$Event & { id: string };
 
 export type BusyInterval = Readonly<{ start: number; end: number }>;
 export type OwnedAdmissionEvent = Readonly<{
@@ -60,7 +52,7 @@ function eventBusyInterval(event: CalendarEvent): BusyInterval {
 	return { start, end };
 }
 
-function eventTime(value: { dateTime?: string; date?: string } | undefined) {
+function eventTime(value: calendar_v3.Schema$EventDateTime | undefined) {
 	const raw = value?.dateTime ?? (value?.date ? `${value.date}T00:00:00Z` : undefined);
 	const time = raw ? Date.parse(raw) : Number.NaN;
 	if (!Number.isFinite(time))
@@ -166,47 +158,38 @@ export function googleCalendarClient(config: GoogleConfig, subject: string) {
 		fetchImplementation: globalThis.fetch,
 	});
 
+	async function pages<T>(
+		load: (pageToken?: string) => Promise<{ data: { items?: T[]; nextPageToken?: string | null } }>,
+		action: string,
+	): Promise<T[]> {
+		const items: T[] = [];
+		let pageToken: string | undefined;
+		for (let page = 0; page < MAX_PAGES; page++) {
+			try {
+				const { data } = await load(pageToken);
+				items.push(...(data.items ?? []));
+				pageToken = data.nextPageToken ?? undefined;
+				if (!pageToken) return items;
+			} catch (error) {
+				throw apiError(error, action);
+			}
+		}
+		throw new GoogleCalendarError("Google Calendar returnerte for mange sider.");
+	}
+
 	return {
 		async listCalendars(): Promise<Calendar[]> {
-			const calendars: Calendar[] = [];
-			let pageToken: string | undefined;
-			for (let page = 0; page < MAX_PAGES; page++) {
-				try {
-					const { data } = await client.calendarList.list({ maxResults: 250, pageToken });
-					calendars.push(
-						...(data.items ?? []).flatMap((item) =>
-							item.id
-								? [
-										{
-											id: item.id,
-											summary: item.summary ?? undefined,
-											primary: item.primary ?? undefined,
-										},
-									]
-								: [],
-						),
-					);
-					pageToken = data.nextPageToken ?? undefined;
-					if (!pageToken) return calendars;
-				} catch (error) {
-					throw apiError(error, "kunne ikke lese kalenderlisten");
-				}
-			}
-			throw new GoogleCalendarError("Google Calendar returnerte for mange kalendere.");
+			const calendars = await pages(
+				(pageToken) => client.calendarList.list({ maxResults: 250, pageToken }),
+				"kunne ikke lese kalenderlisten",
+			);
+			return calendars.filter((item): item is Calendar => Boolean(item.id));
 		},
 
 		async freeBusy(calendarIds: string[], timeMin: string, timeMax: string) {
 			if (!calendarIds.length)
 				throw new GoogleCalendarError("Velg minst én kalender per intervjuer.");
-			let body: {
-				calendars?: Record<
-					string,
-					{
-						busy?: Array<{ start?: string | null; end?: string | null }>;
-						errors?: { reason?: string | null }[];
-					} | null
-				>;
-			};
+			let body: calendar_v3.Schema$FreeBusyResponse;
 			try {
 				const { data } = await client.freebusy.query({
 					requestBody: {
@@ -216,7 +199,7 @@ export function googleCalendarClient(config: GoogleConfig, subject: string) {
 						items: calendarIds.map((id) => ({ id })),
 					},
 				});
-				body = { calendars: data.calendars ?? undefined };
+				body = data;
 			} catch (error) {
 				throw apiError(error, "kunne ikke lese opptattstatus");
 			}
@@ -247,29 +230,22 @@ export function googleCalendarClient(config: GoogleConfig, subject: string) {
 			timeMin: string,
 			timeMax: string,
 		): Promise<CalendarEvent[]> {
-			const events: CalendarEvent[] = [];
-			let pageToken: string | undefined;
-			for (let page = 0; page < MAX_PAGES; page++) {
-				try {
-					const { data } = await client.events.list({
+			const events = await pages(
+				(pageToken) =>
+					client.events.list({
 						calendarId,
 						timeMin,
 						timeMax,
 						singleEvents: true,
 						showDeleted: false,
 						maxResults: 2500,
+						pageToken,
 						fields:
 							"items(id,iCalUID,status,transparency,start,end,extendedProperties),nextPageToken",
-						pageToken,
-					});
-					events.push(...((data.items ?? []) as CalendarEvent[]));
-					pageToken = data.nextPageToken ?? undefined;
-					if (!pageToken) return events;
-				} catch (error) {
-					throw apiError(error, "kunne ikke lese kalenderhendelser");
-				}
-			}
-			throw new GoogleCalendarError("Google Calendar returnerte for mange hendelser.");
+					}),
+				"kunne ikke lese kalenderhendelser",
+			);
+			return events as CalendarEvent[];
 		},
 
 		async getEvent(calendarId: string, eventId: string): Promise<CalendarEvent | null> {

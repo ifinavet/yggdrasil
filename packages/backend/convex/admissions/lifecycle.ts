@@ -4,7 +4,7 @@ import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 import { workflow } from "../lib/workflow";
 import { listOperations, readOperation, startDelivery } from "./delivery/workflow";
-import { MAX_APPLICATIONS } from "./rules";
+import { scheduledInterviews, submittedApplications } from "./queries";
 
 export async function beginClose(
 	ctx: MutationCtx,
@@ -12,18 +12,8 @@ export async function beginClose(
 	force: boolean,
 	key: string,
 ) {
-	const applications = await ctx.db
-		.query("admissionApplications")
-		.withIndex("by_periodId_and_status", (q) =>
-			q.eq("periodId", period._id).eq("status", "submitted"),
-		)
-		.take(MAX_APPLICATIONS);
-	const interviews = await ctx.db
-		.query("admissionInterviews")
-		.withIndex("by_periodId_and_status", (q) =>
-			q.eq("periodId", period._id).eq("status", "scheduled"),
-		)
-		.take(MAX_APPLICATIONS);
+	const applications = await submittedApplications(ctx, period._id);
+	const interviews = await scheduledInterviews(ctx, period._id);
 	const pendingOffers = applications.filter((app) => app.offerStatus === "pending");
 	const unsentDecisions = applications.filter(
 		(app) => (app.decision === "accepted" || app.decision === "rejected") && !app.decisionSentAt,

@@ -5,25 +5,13 @@ import {
 	EMAIL_DELIVERY_ERRORS,
 	EMAIL_DELIVERY_EVENT_STATUSES,
 } from "../../lib/emailDelivery";
+import schema from "../../schema";
 import { startDelivery } from "./workflow";
 
-const deliveryKind = v.union(
-	v.literal("offer"),
-	v.literal("rejection"),
-	v.literal("interview_invite"),
-	v.literal("cancelled"),
-	v.literal("reminder_3d"),
-	v.literal("reminder_1d"),
-);
-
 export const recordQueued = internalMutation({
-	args: {
-		periodId: v.id("admissionPeriods"),
-		applicationId: v.id("admissionApplications"),
-		kind: deliveryKind,
-		idempotencyKey: v.string(),
-		emailId: v.string(),
-	},
+	args: schema
+		.doc("admissionDeliveries")
+		.pick("periodId", "applicationId", "kind", "idempotencyKey", "emailId").fields,
 	handler: async (ctx, args) => {
 		const existing = await ctx.db
 			.query("admissionDeliveries")

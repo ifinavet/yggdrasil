@@ -9,26 +9,21 @@ export const interviewerSelection = v.object({
 	userId: v.id("users"),
 	selectedCalendarIds: v.array(v.string()),
 });
-export const decisionValue = v.union(
-	v.literal("pending"),
-	v.literal("shortlist"),
-	v.literal("accepted"),
-	v.literal("rejected"),
-);
+export const decisionValue = oneOf(["pending", "shortlist", "accepted", "rejected"]);
 export const admissionGroupChoice = v.union(v.id("internalGroups"), v.literal("unsure"));
 
 export const operationValidator = v.object({
-	kind: v.union(
-		v.literal("publish"),
-		v.literal("send_decision"),
-		v.literal("cancel_interview"),
-		v.literal("offer_declined"),
-		v.literal("archive_channel"),
-		v.literal("remind_3d"),
-		v.literal("remind_1d"),
-		v.literal("delivery_failure"),
-		v.literal("sync_channel"),
-	),
+	kind: oneOf([
+		"publish",
+		"send_decision",
+		"cancel_interview",
+		"offer_declined",
+		"archive_channel",
+		"remind_3d",
+		"remind_1d",
+		"delivery_failure",
+		"sync_channel",
+	]),
 	periodId: v.id("admissionPeriods"),
 	applicationId: v.optional(v.id("admissionApplications")),
 	interviewId: v.optional(v.id("admissionInterviews")),
@@ -54,12 +49,7 @@ export const admissionsSchema = {
 		interviewStartAt: v.number(),
 		interviewEndAt: v.number(),
 		retentionAt: v.number(),
-		status: v.union(
-			v.literal("draft"),
-			v.literal("open"),
-			v.literal("published"),
-			v.literal("closing"),
-		),
+		status: oneOf(["draft", "open", "published", "closing"]),
 		revision: v.number(),
 		slackManagedMemberIds: v.optional(v.array(v.string())),
 		interviewers: v.array(interviewerSelection),
@@ -97,7 +87,7 @@ export const admissionsSchema = {
 		availability: v.array(availabilityWindow),
 		consentedAt: v.optional(v.number()),
 		consentVersion: v.optional(v.string()),
-		status: v.union(v.literal("draft"), v.literal("submitted"), v.literal("withdrawn")),
+		status: oneOf(["draft", "submitted", "withdrawn"]),
 		revision: v.number(),
 		decisionRevision: v.number(),
 		notes: v.optional(v.string()),
@@ -109,13 +99,7 @@ export const admissionsSchema = {
 		decisionBy: v.optional(v.id("users")),
 		decisionQueuedAt: v.optional(v.number()),
 		decisionSentAt: v.optional(v.number()),
-		offerStatus: v.union(
-			v.literal("none"),
-			v.literal("pending"),
-			v.literal("accepted"),
-			v.literal("declined"),
-			v.literal("expired"),
-		),
+		offerStatus: oneOf(["none", "pending", "accepted", "declined", "expired"]),
 		offerDeadline: v.optional(v.number()),
 		offerRespondedAt: v.optional(v.number()),
 		onboardingStartedAt: v.optional(v.number()),
@@ -137,7 +121,7 @@ export const admissionsSchema = {
 		calendarEventId: v.optional(v.string()),
 		publishedAt: v.optional(v.number()),
 		candidateConfirmedOutsideForm: v.optional(v.boolean()),
-		status: v.union(v.literal("scheduled"), v.literal("cancelled")),
+		status: oneOf(["scheduled", "cancelled"]),
 		revision: v.number(),
 	})
 		.index("by_applicationId", ["applicationId"])
@@ -156,14 +140,14 @@ export const admissionsSchema = {
 	admissionDeliveries: defineTable({
 		periodId: v.id("admissionPeriods"),
 		applicationId: v.id("admissionApplications"),
-		kind: v.union(
-			v.literal("offer"),
-			v.literal("rejection"),
-			v.literal("interview_invite"),
-			v.literal("cancelled"),
-			v.literal("reminder_3d"),
-			v.literal("reminder_1d"),
-		),
+		kind: oneOf([
+			"offer",
+			"rejection",
+			"interview_invite",
+			"cancelled",
+			"reminder_3d",
+			"reminder_1d",
+		]),
 		idempotencyKey: v.string(),
 		emailId: v.string(),
 		status: oneOf(EMAIL_DELIVERY_STATUSES),

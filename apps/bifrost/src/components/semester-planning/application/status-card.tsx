@@ -2,13 +2,13 @@
 
 import { api } from "@workspace/backend/convex/api";
 import { Button } from "@workspace/ui/components/button";
+import { ConfirmDialog } from "@workspace/ui/components/confirm-dialog";
 import { Callout } from "@workspace/ui/components/products/callout";
 import { Panel, PanelBody } from "@workspace/ui/components/products/panel";
 import { useMutation } from "convex/react";
 import { type LucideIcon, Send } from "lucide-react";
 import { Fragment, type ReactNode, useState } from "react";
 import { toast } from "sonner";
-import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { capitalize, formatMoment, longDay, shortDay, shortDayTitle } from "../format";
 import { isActiveStatus } from "../status";
 import { StatusIcon } from "../status-badge";

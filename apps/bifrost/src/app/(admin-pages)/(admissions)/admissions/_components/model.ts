@@ -5,7 +5,7 @@ import type { FunctionReturnType } from "convex/server";
 
 export { ADMISSION_SCHEDULING_DEFAULTS as defaults, roomUrl } from "@workspace/shared/admissions";
 
-type Overview = NonNullable<FunctionReturnType<typeof api.admissions.queries.adminOverview>>;
+export type Overview = NonNullable<FunctionReturnType<typeof api.admissions.queries.adminOverview>>;
 export type Candidate = Overview["candidates"][number];
 export type Interviewer = Overview["interviewers"][number];
 export type Interview = Doc<"admissionInterviews">;

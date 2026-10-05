@@ -3,17 +3,8 @@
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { convexErrorMessage } from "@workspace/shared/utils";
-import {
-	AlertDialog,
-	AlertDialogCancel,
-	AlertDialogContent,
-	AlertDialogDescription,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle,
-} from "@workspace/ui/components/alert-dialog";
-import { Button } from "@workspace/ui/components/button";
 import { Checkbox } from "@workspace/ui/components/checkbox";
+import { ConfirmDialog } from "@workspace/ui/components/confirm-dialog";
 import { useMutation } from "convex/react";
 import { useState } from "react";
 
@@ -32,14 +23,12 @@ export function CloseDialog({
 }>) {
 	const close = useMutation(api.admissions.mutations.closePeriod);
 	const [confirmed, setConfirmed] = useState(false);
-	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState("");
 	const forceRequired = Object.values(counts).some((count) => count > 0);
 	const canClose = !forceRequired || confirmed;
 
 	async function submit() {
-		if (!canClose || busy) return;
-		setBusy(true);
+		if (!canClose) return false;
 		setError("");
 		try {
 			await close({
@@ -47,65 +36,45 @@ export function CloseDialog({
 				idempotencyKey: `close-${periodId}`,
 				force: forceRequired,
 			});
-			onOpenChange(false);
 			onClosed();
+			return true;
 		} catch (cause) {
 			setError(convexErrorMessage(cause, "Opptaket kunne ikke avsluttes."));
-		} finally {
-			setBusy(false);
+			return false;
 		}
 	}
 
 	return (
-		<AlertDialog
+		<ConfirmDialog
 			open={open}
 			onOpenChange={(nextOpen) => {
 				onOpenChange(nextOpen);
 				if (!nextOpen) setConfirmed(false);
 			}}
+			title="Avslutte opptaket?"
+			description="Opptaksdataene slettes når opptaket avsluttes."
+			confirmLabel="Bekreft avslutning"
+			cancelLabel="Behold opptaket"
+			destructive
+			disabled={!canClose}
+			error={error}
+			onConfirm={submit}
 		>
-			<AlertDialogContent aria-describedby="close-admissions-description">
-				<AlertDialogHeader>
-					<AlertDialogTitle>Avslutte opptaket?</AlertDialogTitle>
-					<AlertDialogDescription id="close-admissions-description">
-						Opptaksdataene slettes når opptaket avsluttes.
-					</AlertDialogDescription>
-				</AlertDialogHeader>
-				<ul className="grid gap-2 text-sm">
-					<Count label="ventende tilbud" count={counts.pendingOffers} />
-					<Count label="kommende intervju" count={counts.futureInterviews} />
-					<Count label="usendte beslutninger" count={counts.unsentDecisions} />
-				</ul>
-				{forceRequired && (
-					<div className="flex items-start gap-3 text-sm">
-						<Checkbox
-							aria-label="Jeg vil avslutte opptaket nå selv om dette ikke er avklart"
-							checked={confirmed}
-							onCheckedChange={(checked) => setConfirmed(checked === true)}
-						/>
-						<span>Jeg vil avslutte opptaket nå selv om dette ikke er avklart.</span>
-					</div>
-				)}
-				{error && (
-					<p role="alert" className="text-destructive">
-						{error}
-					</p>
-				)}
-				<AlertDialogFooter>
-					<AlertDialogCancel disabled={busy}>Behold opptaket</AlertDialogCancel>
-					<Button variant="destructive" disabled={!canClose || busy} onClick={() => void submit()}>
-						Bekreft avslutning
-					</Button>
-				</AlertDialogFooter>
-			</AlertDialogContent>
-		</AlertDialog>
-	);
-}
-
-function Count({ label, count }: Readonly<{ label: string; count: number }>) {
-	return (
-		<li>
-			{count} {label}
-		</li>
+			<ul className="grid gap-2 text-sm">
+				<li>{counts.pendingOffers} ventende tilbud</li>
+				<li>{counts.futureInterviews} kommende intervju</li>
+				<li>{counts.unsentDecisions} usendte beslutninger</li>
+			</ul>
+			{forceRequired && (
+				<div className="flex items-start gap-3 text-sm">
+					<Checkbox
+						aria-label="Jeg vil avslutte opptaket nå selv om dette ikke er avklart"
+						checked={confirmed}
+						onCheckedChange={(checked) => setConfirmed(checked === true)}
+					/>
+					<span>Jeg vil avslutte opptaket nå selv om dette ikke er avklart.</span>
+				</div>
+			)}
+		</ConfirmDialog>
 	);
 }
