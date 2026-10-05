@@ -196,6 +196,21 @@ describe("applying imported unregistrations", () => {
 		expect(logged).toEqual([]);
 	});
 
+	it("skips rows dated outside the event's registration period", async () => {
+		const { t, companyId } = await setup();
+		const eventId = await pastEventOf(t, companyId);
+		const ada = await insertUser(t, "ada@example.com");
+
+		await t.mutation(internal.engagement.unregistrationImport.apply, {
+			rows: [
+				unregistration(eventId, ada._id, { registrationTime: OPENS - HOUR_MS }),
+				unregistration(eventId, ada._id, { at: START + HOUR_MS }),
+			],
+		});
+
+		expect(await logsFor(t, eventId)).toEqual([]);
+	});
+
 	it("leaves unregistrations the live log already covers", async () => {
 		const { t, companyId } = await setup();
 		const eventId = await pastEventOf(t, companyId);

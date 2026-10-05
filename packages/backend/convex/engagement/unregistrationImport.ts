@@ -106,7 +106,9 @@ export const apply = internalMutation({
 			const eventId = ctx.db.normalizeId("events", row.eventId);
 			const userId = ctx.db.normalizeId("users", row.userId);
 			if (!eventId || !userId) continue;
-			if (!(await ctx.db.get(eventId)) || !(await ctx.db.get(userId))) continue;
+			const event = await ctx.db.get(eventId);
+			if (!event || !(await ctx.db.get(userId))) continue;
+			if (row.registrationTime < event.registrationOpens || row.at > event.eventStart) continue;
 			const logged = await ctx.db
 				.query("registrationLog")
 				.withIndex("by_eventId_and_userId", (q) => q.eq("eventId", eventId).eq("userId", userId))
