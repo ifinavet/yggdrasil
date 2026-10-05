@@ -18,7 +18,10 @@ test("student can complete the local application preview", async ({ page }) => {
 		"01-application.png",
 		page.getByRole("heading", { name: "Bli med i Navet" }),
 	);
-	await expect(page.getByText("Lokalt førsteutkast med testdata")).toBeVisible();
+	await expect(
+		page.getByText("Forhåndsvisning med testdata. Opplysningene blir ikke lagret eller sendt."),
+	).toBeVisible();
+	await expect(page.getByText(/Vi lagrer navn|Opptaksdata slettes/)).toHaveCount(0);
 	await expect(page.getByRole("heading", { name: "Bli med i Navet" })).toBeVisible();
 	await expect(page.getByText(/hvor gammel|hvor du kommer fra/i)).toHaveCount(0);
 

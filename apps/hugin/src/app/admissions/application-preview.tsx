@@ -67,7 +67,9 @@ export default function ApplicationPreview() {
 		);
 	return (
 		<div className="mx-auto max-w-2xl py-10 text-left">
-			<p className="mb-6 text-muted-foreground text-xs">Lokalt førsteutkast med testdata</p>
+			<p className="mb-6 text-muted-foreground text-xs">
+				Forhåndsvisning med testdata. Opplysningene blir ikke lagret eller sendt.
+			</p>
 			<h1 className="font-semibold text-3xl tracking-tight">
 				Bli med i Navet <span aria-hidden="true">👋</span>
 			</h1>
@@ -273,13 +275,8 @@ export default function ApplicationPreview() {
 				<div className="rounded-xl bg-muted p-5">
 					<h2 className="mb-3 flex items-center gap-2 font-semibold">
 						<ShieldCheck size={18} />
-						Opplysningene dine
+						Samtykke
 					</h2>
-					<p className="max-w-prose text-sm leading-relaxed">
-						Vi lagrer navn, e-post, studieprogram, studieår, søknadssvar og tilgjengelighet. Bare de
-						som gjennomfører opptaket har tilgang. Opptaksdata slettes når opptaket avsluttes,
-						senest 30. oktober 2026.
-					</p>
 					<form.Field name="consent">
 						{(field) => (
 							<label

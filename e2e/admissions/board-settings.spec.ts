@@ -33,16 +33,26 @@ test.describe("admissions settings and close flow", () => {
 		await expect(updated.getByRole("checkbox", { name: "Aksel Nilsen" })).toBeChecked();
 	});
 
-	test("requires exactly two interviewers before saving settings", async ({ page }) => {
+	test("allows teams of three and requires at least two interviewers", async ({ page }) => {
 		await resetAdmissions("open");
 		await page.reload();
 		await page.getByRole("button", { name: "Innstillinger" }).click();
 		const settings = page.getByRole("dialog", { name: "Opptaksinnstillinger" });
 		const save = settings.getByRole("button", { name: "Lagre innstillinger" });
+		await expect(settings.getByRole("checkbox", { name: "Kristin Berg" })).toBeChecked();
+		await expect(settings.getByRole("checkbox", { name: "Daniel Holm" })).toBeChecked();
 		await settings.getByRole("checkbox", { name: "Aksel Nilsen" }).check();
-		await expect(save).toBeDisabled();
-		await settings.getByRole("checkbox", { name: "Daniel Holm" }).uncheck();
 		await expect(save).toBeEnabled();
+		await save.click();
+		await expect(settings).toBeHidden();
+		await page.getByRole("button", { name: "Innstillinger" }).click();
+		const updated = page.getByRole("dialog", { name: "Opptaksinnstillinger" });
+		await expect(updated.getByRole("checkbox", { name: "Aksel Nilsen" })).toBeChecked();
+		await expect(updated.getByRole("checkbox", { name: "Kristin Berg" })).toBeChecked();
+		await expect(updated.getByRole("checkbox", { name: "Daniel Holm" })).toBeChecked();
+		await updated.getByRole("checkbox", { name: "Daniel Holm" }).uncheck();
+		await updated.getByRole("checkbox", { name: "Kristin Berg" }).uncheck();
+		await expect(updated.getByRole("button", { name: "Lagre innstillinger" })).toBeDisabled();
 	});
 
 	test("keeps interviewers assigned to a published future interview", async ({ page }) => {
