@@ -92,33 +92,29 @@ afterEach(() => {
 });
 
 describe("applying imported unregistrations", () => {
-	it("restores the registration and its unregistration", async () => {
+	it.each([
+		{
+			title: "restores the registration and its unregistration",
+			status: "registered",
+			change: "registered",
+		},
+		{
+			title: "keeps a waitlisted student off the seat count",
+			status: "waitlist",
+			change: "waitlisted",
+		},
+	] as const)("$title", async ({ status, change }) => {
 		const { t, companyId } = await setup();
 		const eventId = await pastEventOf(t, companyId);
 		const ada = await insertUser(t, "ada@example.com");
 
 		await t.mutation(internal.engagement.unregistrationImport.apply, {
-			rows: [unregistration(eventId, ada._id)],
+			rows: [unregistration(eventId, ada._id, { status })],
 		});
 
 		expect(await logsFor(t, eventId)).toEqual([
-			{ userId: ada._id, change: "registered", fromStatus: undefined, at: REGISTERED_AT },
-			{ userId: ada._id, change: "unregistered", fromStatus: "registered", at: UNREGISTERED_AT },
-		]);
-	});
-
-	it("keeps a waitlisted student off the seat count", async () => {
-		const { t, companyId } = await setup();
-		const eventId = await pastEventOf(t, companyId);
-		const ada = await insertUser(t, "ada@example.com");
-
-		await t.mutation(internal.engagement.unregistrationImport.apply, {
-			rows: [unregistration(eventId, ada._id, { status: "waitlist" })],
-		});
-
-		expect(await logsFor(t, eventId)).toEqual([
-			{ userId: ada._id, change: "waitlisted", fromStatus: undefined, at: REGISTERED_AT },
-			{ userId: ada._id, change: "unregistered", fromStatus: "waitlist", at: UNREGISTERED_AT },
+			{ userId: ada._id, change, fromStatus: undefined, at: REGISTERED_AT },
+			{ userId: ada._id, change: "unregistered", fromStatus: status, at: UNREGISTERED_AT },
 		]);
 	});
 
