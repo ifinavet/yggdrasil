@@ -7,6 +7,7 @@ export {
 	type Degree,
 	degreeKey,
 	degreeName,
+	NEXT_DEGREE,
 } from "./degrees";
 export { JOB_TYPES } from "./job_types";
 export { LISTING_COLORS } from "./listing_colors";
@@ -22,6 +23,7 @@ export {
 	fittingDegree,
 	fittingYear,
 	isStudyProgram,
+	nextStudy,
 	refineStudentProfile,
 	type StudentProfile,
 	studentProfileIssue,
