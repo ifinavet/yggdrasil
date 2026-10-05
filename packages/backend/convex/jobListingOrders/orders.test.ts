@@ -327,6 +327,41 @@ describe("confirm", () => {
 		expect(again).toEqual(first);
 	});
 
+	it("tells an unused link apart before it is confirmed", async () => {
+		const f = await fixture();
+		const { token = "" } = await submitOrder(f.t, existingCompanyForm(f));
+		expect(await f.t.query(api.jobListingOrders.orders.link, { token })).toEqual({
+			state: "pending",
+		});
+		expect((await onlyOrder(f.t)).status).toBe("awaiting_email");
+		expect(await f.t.query(api.jobListingOrders.orders.link, { token: "x".repeat(43) })).toEqual({
+			state: "invalid",
+		});
+	});
+
+	it("answers expired when a used link is opened after a day", async () => {
+		vi.useFakeTimers();
+		const f = await fixture();
+		const { token = "" } = await submitOrder(f.t, existingCompanyForm(f));
+		await f.t.mutation(api.jobListingOrders.orders.confirm, { token });
+
+		const receipt = await f.t.query(api.jobListingOrders.orders.link, { token });
+		expect(receipt).toMatchObject({ state: "confirmed", receipt: { quantity: 2 } });
+
+		vi.advanceTimersByTime(DAY_IN_MS + 1);
+		expect(await f.t.query(api.jobListingOrders.orders.link, { token })).toEqual({
+			state: "expired",
+		});
+		expect(await f.t.mutation(api.jobListingOrders.orders.confirm, { token })).toEqual({
+			state: "expired",
+		});
+		const late = await refusalMessageFrom(
+			f.t.mutation(api.jobListingOrders.orders.saveFeedback, { token, feedback: "Fint" }),
+		);
+		expect(late).toBeTruthy();
+		expect((await onlyOrder(f.t)).feedback).toBeUndefined();
+	});
+
 	it("answers invalid for an unknown token", async () => {
 		const f = await fixture();
 		const result = await f.t.mutation(api.jobListingOrders.orders.confirm, {

@@ -199,12 +199,32 @@ describe("audienceOf", () => {
 			{ label: "Bachelor 1. år", code: "B1" },
 			{ label: "Bachelor 3. år", code: "B3" },
 			{ label: "Master 4. år", code: "M4" },
+			{ label: "Uteksaminert", code: "Ute" },
 		]);
 		expect(programs).toEqual([
-			expect.objectContaining({ label: "Årsstudium i informatikk", byCohort: [1, 0, 0] }),
-			expect.objectContaining({ label: "Informatikk", byCohort: [1, 0, 0] }),
-			expect.objectContaining({ label: "Matematikk", registrations: 0, byCohort: [0, 0, 0] }),
+			expect.objectContaining({ label: "Årsstudium i informatikk", byCohort: [1, 0, 0, 1] }),
+			expect.objectContaining({ label: "Informatikk", byCohort: [1, 0, 0, 0] }),
+			expect.objectContaining({ label: "Matematikk", registrations: 0, byCohort: [0, 0, 0, 0] }),
 		]);
+	});
+
+	it("adds up every program row to its registrations, graduates included", () => {
+		const continuing = student("dj", "Bachelor", 4, "Programmering");
+		const { total, programCohorts, programs } = audienceOf(
+			[ADA, CY, DI, continuing, continuing],
+			[...POPULATION, continuing],
+		);
+		expect(programCohorts.at(-1)).toEqual({ label: "Uteksaminert", code: "Ute" });
+		for (const { registrations, byCohort } of programs) {
+			expect(byCohort.reduce((sum, count) => sum + count, 0)).toBe(registrations);
+		}
+		expect(programs.flatMap(({ byCohort }) => byCohort).reduce((sum, n) => sum + n, 0)).toBe(total);
+		expect(programs.find(({ label }) => label === "Programmering")?.byCohort.at(-1)).toBe(2);
+	});
+
+	it("leaves out the graduate column when every registrant has a cohort", () => {
+		const { programCohorts } = audienceOf([ADA, CY], POPULATION);
+		expect(programCohorts.map(({ code }) => code)).not.toContain("Ute");
 	});
 
 	it("sizes a cohort by the larger of itself and the year above it", () => {

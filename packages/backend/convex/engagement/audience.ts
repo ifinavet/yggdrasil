@@ -77,6 +77,8 @@ function hasCohort(student: Student) {
 	return cohortGroupOf(student) !== null;
 }
 
+const NO_COHORT = "";
+
 type GroupOf = (student: Pick<Student, "degree" | "year">) => Cohort | null;
 
 export function programCohortGroupOf(student: Pick<Student, "degree" | "year">) {
@@ -89,12 +91,13 @@ export function programCohortGroupOf(student: Pick<Student, "degree" | "year">) 
 function labelledBy(groupOf: GroupOf) {
 	return (student: Pick<Student, "degree" | "year">) => {
 		const cohort = groupOf(student);
-		return cohort ? labelOf(cohort) : "";
+		return cohort ? labelOf(cohort) : NO_COHORT;
 	};
 }
 
 export const cohortOf = labelledBy(cohortGroupOf);
 const programCohortOf = labelledBy(programCohortGroupOf);
+const GRADUATES = { label: "Uteksaminert", code: "Ute" };
 
 function cohortsOf(students: readonly Student[], groupOf: GroupOf) {
 	return tally(students, labelledBy(groupOf))
@@ -115,7 +118,7 @@ function cohortSizes(population: readonly Student[]) {
 	const sizes = new Map<string, number>();
 	for (const [, { student, count }] of tally(population, keyOf)) {
 		const label = cohortOf(student);
-		if (label === "") continue;
+		if (label === NO_COHORT) continue;
 		sizes.set(
 			label,
 			Math.max(count, counts.get(keyOf({ ...student, year: student.year + 1 })) ?? 0),
@@ -184,10 +187,13 @@ export function audienceOf(
 		reach: reachOf(reached, populationCohorts, label),
 		previousReach: previousReached && reachOf(previousReached, previousPopulationCohorts, label),
 	}));
-	const programCohorts = cohortsOf(groups, programCohortGroupOf).map(({ label, cohort }) => ({
-		label,
-		code: codeOf(cohort),
-	}));
+	const programCohorts = [
+		...cohortsOf(groups, programCohortGroupOf).map(({ label, cohort }) => ({
+			label,
+			code: codeOf(cohort),
+		})),
+		...(registrants.every(hasCohort) ? [] : [GRADUATES]),
+	];
 
 	const programRow = shareRow(programOf, registrants, previous);
 	const programCounts = countBy(registrants, programOf);
@@ -201,7 +207,9 @@ export function audienceOf(
 			);
 			return {
 				...programRow(label, count),
-				byCohort: programCohorts.map((cohort) => byCohort.get(cohort.label) ?? 0),
+				byCohort: programCohorts.map(
+					(cohort) => byCohort.get(cohort === GRADUATES ? NO_COHORT : cohort.label) ?? 0,
+				),
 			};
 		});
 
