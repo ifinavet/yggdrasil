@@ -41,7 +41,10 @@ function GraduatedProfile() {
 			<DialogContent showCloseButton={false}>
 				<DialogHeader>
 					<DialogTitle>Hva studerer du nå?</DialogTitle>
-					<DialogDescription>Hjelp oss å holde informasjonen din oppdatert.</DialogDescription>
+					<DialogDescription>
+						Hjelp oss å holde informasjonen din oppdatert. Stemmer det vi har registrert om deg
+						fortsatt?
+					</DialogDescription>
 				</DialogHeader>
 				<StudyForm profile={profile} />
 			</DialogContent>
