@@ -1,6 +1,5 @@
-import { MIN_INTERVIEW_NOTICE_MS, overlapsLunch } from "@workspace/shared/admissions";
+import { MIN_INTERVIEW_NOTICE_MS } from "@workspace/shared/admissions";
 import { SYSTEM_ALERTS_CHANNEL } from "@workspace/shared/slack/channels";
-import { coversWindow, localWindow } from "@workspace/shared/time";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
@@ -16,7 +15,13 @@ import {
 	purgeBatch as purgeRecordsBatch,
 	queueOutbox,
 } from "./lifecycle";
-import { MAX_APPLICATIONS, MAX_OUTBOX_ATTEMPTS } from "./rules";
+import {
+	interviewCalendarIds,
+	MAX_APPLICATIONS,
+	MAX_OUTBOX_ATTEMPTS,
+	sameInterviewSchedule,
+	validateInterviewWindow,
+} from "./rules";
 
 async function isCurrent(ctx: Parameters<typeof requireRole>[0], job: Doc<"admissionOutbox">) {
 	const period = await ctx.db.get(job.periodId);
@@ -300,18 +305,12 @@ export const scheduleContext = internalQuery({
 			throw new ConvexError("For mange søknader til å lage en plan.");
 		const candidates = await Promise.all(
 			applications.map(async (application) => {
-				const user = await ctx.db.get(application.userId);
 				const existingInterview = await ctx.db
 					.query("admissionInterviews")
 					.withIndex("by_applicationId", (q) => q.eq("applicationId", application._id))
 					.unique();
 				return {
-					_id: application._id,
 					applicationId: application._id,
-					userId: application.userId,
-					studentProfile: application.studentProfile,
-					name: application.studentProfile?.name ?? "",
-					email: user?.email ?? "",
 					availability: application.availability,
 					existingInterview,
 				};
@@ -323,7 +322,6 @@ export const scheduleContext = internalQuery({
 				return user
 					? {
 							userId: user._id,
-							name: `${user.firstName} ${user.lastName}`.trim(),
 							email: await workspaceEmail(ctx, user),
 							selectedCalendarIds: selection.selectedCalendarIds,
 						}
@@ -379,9 +377,7 @@ export const saveSchedule = internalMutation({
 			.take(MAX_APPLICATIONS + 1);
 		if (applications.length > MAX_APPLICATIONS)
 			throw new ConvexError("For mange søknader til å lagre en plan.");
-		const selectionByUser = new Map(
-			period.interviewers.map((selection) => [selection.userId, selection]),
-		);
+
 		const existingInterviews = await ctx.db
 			.query("admissionInterviews")
 			.withIndex("by_periodId_and_status", (q) =>
@@ -415,7 +411,14 @@ export const saveSchedule = internalMutation({
 		);
 		for (const interview of immutable) {
 			const assignment = assignmentsByApplication.get(interview.applicationId);
-			if (assignment && !samePublishedSchedule(assignment, interview, period, selectionByUser))
+			if (
+				assignment &&
+				!sameInterviewSchedule(interview, {
+					...assignment,
+					room: assignment.room.trim() || period.room,
+					selectedCalendarIds: interviewCalendarIds(period, assignment.interviewerIds),
+				})
+			)
 				throw new ConvexError(
 					interview.publishedAt !== undefined
 						? "Et publisert intervju må endres gjennom en bekreftet ny plan."
@@ -433,17 +436,8 @@ export const saveSchedule = internalMutation({
 		);
 		const scheduled = assignments
 			.filter((assignment) => !immutableApplicationIds.has(assignment.applicationId))
-			.map((assignment) =>
-				validateAssignment(assignment, period, applications, selectionByUser, active),
-			);
-		const pinned = immutable.map((interview) => ({
-			applicationId: interview.applicationId,
-			startAt: interview.startAt,
-			endAt: interview.endAt,
-			interviewerIds: interview.interviewerIds,
-			room: interview.room,
-		}));
-		assertNoScheduleConflicts([...pinned, ...scheduled], period.buffer, pinned.length);
+			.map((assignment) => validateAssignment(assignment, period, applications, active));
+		assertNoScheduleConflicts([...immutable, ...scheduled], period.buffer, immutable.length);
 		const saved = await Promise.all(
 			scheduled.map(async (assignment) => {
 				const previous = await ctx.db
@@ -453,13 +447,6 @@ export const saveSchedule = internalMutation({
 				const fields = {
 					periodId,
 					...assignment,
-					selectedCalendarIds: [
-						...new Set(
-							assignment.interviewerIds.flatMap(
-								(id) => selectionByUser.get(id)?.selectedCalendarIds ?? [],
-							),
-						),
-					],
 					status: "scheduled" as const,
 					revision: (previous?.revision ?? 0) + 1,
 					calendarEventId: previous?.calendarEventId,
@@ -610,7 +597,6 @@ function validateAssignment(
 	assignment: ScheduleAssignment,
 	period: Doc<"admissionPeriods">,
 	applications: Doc<"admissionApplications">[],
-	selectionByUser: Map<Id<"users">, Doc<"admissionPeriods">["interviewers"][number]>,
 	active: Set<Id<"users">>,
 ) {
 	const application = applications.find((entry) => entry._id === assignment.applicationId);
@@ -619,14 +605,10 @@ function validateAssignment(
 	const interviewerIds = [...new Set(assignment.interviewerIds)];
 	if (interviewerIds.length !== 2 || interviewerIds.length !== assignment.interviewerIds.length)
 		throw new ConvexError("Hvert intervju må ha nøyaktig to ulike intervjuere.");
-	if (interviewerIds.some((userId) => !selectionByUser.has(userId) || !active.has(userId)))
+	if (interviewerIds.some((userId) => !active.has(userId)))
 		throw new ConvexError("En intervjuer er ikke lenger valgt eller aktiv.");
 	validateAssignmentTime(assignment, period, application);
-	const selected = [
-		...new Set(
-			interviewerIds.flatMap((userId) => selectionByUser.get(userId)?.selectedCalendarIds ?? []),
-		),
-	].sort((a, b) => a.localeCompare(b));
+	const selected = interviewCalendarIds(period, interviewerIds);
 	if (
 		selected.some((calendarId) => !assignment.selectedCalendarIds.includes(calendarId)) ||
 		assignment.selectedCalendarIds.some((calendarId) => !selected.includes(calendarId))
@@ -638,6 +620,7 @@ function validateAssignment(
 		startAt: assignment.startAt,
 		endAt: assignment.endAt,
 		interviewerIds,
+		selectedCalendarIds: selected,
 		room,
 	};
 }
@@ -661,37 +644,6 @@ function assertNoScheduleConflicts(
 	if (conflict) throw new ConvexError("Intervjuer eller rom er allerede opptatt i denne tiden.");
 }
 
-function samePublishedSchedule(
-	assignment: ScheduleAssignment,
-	interview: Doc<"admissionInterviews">,
-	period: Doc<"admissionPeriods">,
-	selectionByUser: Map<Id<"users">, Doc<"admissionPeriods">["interviewers"][number]>,
-) {
-	const interviewerIds = [...assignment.interviewerIds].sort((a, b) =>
-		String(a).localeCompare(String(b)),
-	);
-	const existingInterviewerIds = [...interview.interviewerIds].sort((a, b) =>
-		String(a).localeCompare(String(b)),
-	);
-	const calendarIds = [
-		...new Set(
-			assignment.interviewerIds.flatMap(
-				(userId) => selectionByUser.get(userId)?.selectedCalendarIds ?? [],
-			),
-		),
-	].sort((a, b) => a.localeCompare(b));
-	const room = assignment.room.trim() || period.room;
-	return (
-		assignment.startAt === interview.startAt &&
-		assignment.endAt === interview.endAt &&
-		room === interview.room &&
-		interviewerIds.length === existingInterviewerIds.length &&
-		interviewerIds.every((userId, index) => userId === existingInterviewerIds[index]) &&
-		calendarIds.length === interview.selectedCalendarIds.length &&
-		calendarIds.every((id) => interview.selectedCalendarIds.includes(id))
-	);
-}
-
 function validateAssignmentTime(
 	assignment: ScheduleAssignment,
 	period: Doc<"admissionPeriods">,
@@ -700,27 +652,9 @@ function validateAssignmentTime(
 	const duration = (assignment.endAt - assignment.startAt) / 60_000;
 	if (assignment.startAt < Date.now() + MIN_INTERVIEW_NOTICE_MS)
 		throw new ConvexError("Nye intervjuer må planlegges minst 48 timer fram i tid.");
-	if (
-		!Number.isInteger(duration) ||
-		duration !== period.duration ||
-		assignment.startAt < period.interviewStartAt ||
-		assignment.endAt > period.interviewEndAt
-	)
+	if (!Number.isInteger(duration) || duration !== period.duration)
 		throw new ConvexError("Et intervju ligger utenfor perioden eller har feil varighet.");
-	const window = localWindow(assignment.startAt, duration, period.timezone);
-	const meeting = { ...window, end: window.start + duration + period.buffer };
-	if (
-		meeting.start < period.dayStart ||
-		meeting.end > period.dayEnd ||
-		(period.lunch && overlapsLunch(meeting)) ||
-		period.breaks.some(
-			(pause) =>
-				pause.day === meeting.day && pause.start < meeting.end && meeting.start < pause.end,
-		)
-	)
-		throw new ConvexError("Et intervju kolliderer med arbeidstid eller pause.");
-	if (!coversWindow(application.availability, meeting))
-		throw new ConvexError("En søker er ikke tilgjengelig på tildelt tidspunkt.");
+	validateInterviewWindow(assignment.startAt, period, application);
 }
 
 async function workspaceEmail(ctx: Parameters<typeof accountForUser>[0], user: Doc<"users">) {

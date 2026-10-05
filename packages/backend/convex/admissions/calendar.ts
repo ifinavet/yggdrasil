@@ -8,7 +8,11 @@ import {
 	type SchedulingCandidate,
 	type SchedulingInterviewer,
 } from "@workspace/shared/admissions";
-import { localDateAndMinute, osloDateTimeToEpoch } from "@workspace/shared/time";
+import {
+	calendarDaysBetween,
+	localDateAndMinute,
+	osloDateTimeToEpoch,
+} from "@workspace/shared/time";
 import type { FunctionReturnType } from "convex/server";
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
@@ -23,6 +27,7 @@ import {
 	ownedBusyIntervals,
 } from "../iam/googleCalendar";
 import { admissionCalendarEventId } from "./delivery/eventId";
+import { interviewCalendarIds } from "./rules";
 
 const localCalendars = [
 	{ id: "navet", name: "Navet" },
@@ -40,7 +45,6 @@ export const sources = action({
 			periodId,
 			interviewerId,
 		});
-		if (!access) throw new Error("Fant ikke valgt intervjuer.");
 		const selectedIds: string[] = access.interviewer.selectedCalendarIds;
 		if (isLocalDevelopment())
 			return localCalendars.map((calendar) => ({
@@ -99,19 +103,11 @@ function busyWindows(intervals: ReadonlyArray<{ start: number; end: number }>, t
 	return intervals.flatMap((interval) => {
 		const first = localDateAndMinute(interval.start, timeZone);
 		const last = localDateAndMinute(interval.end - 1, timeZone);
-		const windows: Array<{ day: string; start: number; end: number }> = [];
-		const day = new Date(`${first.day}T00:00:00Z`);
-		const lastDay = Date.parse(`${last.day}T00:00:00Z`);
-		while (day.getTime() <= lastDay) {
-			const currentDay = day.toISOString().slice(0, 10);
-			windows.push({
-				day: currentDay,
-				start: currentDay === first.day ? first.minute : 0,
-				end: currentDay === last.day ? last.minute + 1 : 1440,
-			});
-			day.setUTCDate(day.getUTCDate() + 1);
-		}
-		return windows;
+		return calendarDaysBetween(first.day, last.day, timeZone).map((day) => ({
+			day,
+			start: day === first.day ? first.minute : 0,
+			end: day === last.day ? last.minute + 1 : 1440,
+		}));
 	});
 }
 
@@ -248,14 +244,15 @@ export const generateSchedule = action({
 			period.interviewEndAt,
 			period.timezone,
 		);
-		const allSlots = makeSchedulingSlots(period, days);
-		const slots = allSlots.filter((slot) => {
-			const startAt = osloDateTimeToEpoch(
-				slot.day,
-				`${String(Math.floor(slot.start / 60)).padStart(2, "0")}:${String(slot.start % 60).padStart(2, "0")}`,
-			);
-			return startAt >= Date.now() + MIN_INTERVIEW_NOTICE_MS;
-		});
+		const slots = makeSchedulingSlots(period, days)
+			.map((slot) => ({
+				...slot,
+				startAt: osloDateTimeToEpoch(
+					slot.day,
+					`${String(Math.floor(slot.start / 60)).padStart(2, "0")}:${String(slot.start % 60).padStart(2, "0")}`,
+				),
+			}))
+			.filter((slot) => slot.startAt >= Date.now() + MIN_INTERVIEW_NOTICE_MS);
 		const eligibleCandidates = context.candidates.filter(
 			(candidate) =>
 				candidate.existingInterview?.publishedAt === undefined &&
@@ -270,22 +267,13 @@ export const generateSchedule = action({
 		const savedAssignments = assignments.map((assignment) => {
 			const slot = bySlot.get(assignment.slotId);
 			if (!slot) throw new Error("Kunne ikke bygge en gyldig intervjutid.");
-			const startAt = osloDateTimeToEpoch(
-				slot.day,
-				`${String(Math.floor(slot.start / 60)).padStart(2, "0")}:${String(slot.start % 60).padStart(2, "0")}`,
-			);
+
 			return {
 				applicationId: assignment.candidateId as Id<"admissionApplications">,
-				startAt,
-				endAt: startAt + period.duration * 60_000,
+				startAt: slot.startAt,
+				endAt: slot.startAt + period.duration * 60_000,
 				interviewerIds: assignment.interviewers as Id<"users">[],
-				selectedCalendarIds: [
-					...new Set(
-						context.interviewers
-							.filter((person) => assignment.interviewers.includes(person.userId))
-							.flatMap((person) => person.selectedCalendarIds),
-					),
-				].sort((a, b) => a.localeCompare(b)),
+				selectedCalendarIds: interviewCalendarIds(period, assignment.interviewers as Id<"users">[]),
 				room: period.room,
 			};
 		});

@@ -1,5 +1,7 @@
+import { overlapsLunch } from "@workspace/shared/admissions";
+import { coversWindow, localWindow, overlaps } from "@workspace/shared/time";
 import { ConvexError } from "convex/values";
-import type { Doc } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 
 export const MAX_APPLICATIONS = 200;
 export const MAX_INTERVIEWERS = 30;
@@ -90,4 +92,63 @@ export function validateSettings(settings: {
 	}
 	if (!settings.room.trim() || settings.room.length > 100)
 		throw new ConvexError("Velg et gyldig intervjuerom.");
+}
+
+export function validateInterviewWindow(
+	startAt: number,
+	period: Doc<"admissionPeriods">,
+	app: Doc<"admissionApplications">,
+	confirmedOutsideForm = false,
+) {
+	if (
+		startAt < period.interviewStartAt ||
+		startAt + period.duration * 60000 > period.interviewEndAt
+	)
+		throw new ConvexError("Intervjutiden er utenfor perioden.");
+	const window = localWindow(startAt, period.duration, period.timezone);
+	const meeting = { ...window, end: window.start + period.duration + period.buffer };
+	if (meeting.start < period.dayStart || meeting.end > period.dayEnd)
+		throw new ConvexError("Intervjutiden er utenfor arbeidsdagen.");
+	if (period.lunch && overlapsLunch(meeting))
+		throw new ConvexError("Intervjutiden kolliderer med lunsjpausen.");
+	if (period.breaks.some((pause) => overlaps(pause, meeting)))
+		throw new ConvexError("Intervjutiden kolliderer med en pause.");
+	if (
+		app.status !== "submitted" ||
+		(!coversWindow(app.availability, meeting) && !confirmedOutsideForm)
+	)
+		throw new ConvexError("Søkeren er ikke tilgjengelig på dette tidspunktet.");
+}
+
+export function interviewCalendarIds(
+	period: Doc<"admissionPeriods">,
+	interviewerIds: Id<"users">[],
+) {
+	return [
+		...new Set(
+			interviewerIds.flatMap(
+				(userId) =>
+					period.interviewers.find((selection) => selection.userId === userId)
+						?.selectedCalendarIds ?? [],
+			),
+		),
+	].sort((a, b) => a.localeCompare(b));
+}
+
+export function sameInterviewSchedule(
+	previous: Pick<
+		Doc<"admissionInterviews">,
+		"startAt" | "endAt" | "room" | "interviewerIds" | "selectedCalendarIds"
+	>,
+	desired: typeof previous,
+) {
+	return (
+		previous.startAt === desired.startAt &&
+		previous.endAt === desired.endAt &&
+		previous.room === desired.room &&
+		previous.interviewerIds.length === desired.interviewerIds.length &&
+		previous.interviewerIds.every((id) => desired.interviewerIds.includes(id)) &&
+		previous.selectedCalendarIds.length === desired.selectedCalendarIds.length &&
+		previous.selectedCalendarIds.every((id) => desired.selectedCalendarIds.includes(id))
+	);
 }
