@@ -6,6 +6,7 @@ import {
 	googleCalendarClient,
 	overlapsBusy,
 	ownedBusyIntervals,
+	readExternalBusy,
 } from "./googleCalendar";
 
 const config = {
@@ -211,5 +212,35 @@ describe("admissions event conflict filtering", () => {
 it("preserves stable calendar identities across retries", async () => {
 	expect(await calendarEventId("navet-admissions:interview-id")).toBe(
 		"42f3def0525c8dae93a2c9e26ccccd9675aeef59e2065c4febe2e87124c33692",
+	);
+});
+
+it("reconciles owned and external busy intervals without treating adjacent owned time as free", async () => {
+	const owned = new Map([
+		["interview", { eventId: "owned", interviewId: "interview", periodId: "period" }],
+	]);
+	const at = (minutes: number) => new Date(Date.UTC(2026, 9, 12, 10, minutes)).toISOString();
+	const provider = {
+		freeBusy: vi.fn().mockResolvedValue({ primary: { busy: [{ start: at(0), end: at(30) }] } }),
+		listEvents: vi.fn().mockResolvedValue([
+			{
+				id: "owned",
+				start: { dateTime: at(0) },
+				end: { dateTime: at(15) },
+				extendedProperties: {
+					shared: { navetAdmissionsInterviewId: "interview", navetAdmissionsPeriodId: "period" },
+				},
+			},
+			{ id: "external", start: { dateTime: at(15) }, end: { dateTime: at(30) } },
+		]),
+	};
+	await expect(readExternalBusy(provider, ["primary"], at(0), at(30), owned)).resolves.toEqual([
+		[{ start: Date.parse(at(15)), end: Date.parse(at(30)) }],
+	]);
+	provider.listEvents.mockResolvedValue([
+		{ id: "external", start: { dateTime: at(15) }, end: { dateTime: at(30) } },
+	]);
+	await expect(readExternalBusy(provider, ["primary"], at(0), at(30), owned)).rejects.toThrow(
+		"opptattstatus som ikke kan kontrolleres",
 	);
 });

@@ -22,8 +22,10 @@ test.describe("manual interview follow-up", () => {
 		const dialog = page.getByRole("dialog", { name: "Sett intervjutid" });
 		await dialog.getByLabel("Tidspunkt").fill(`${day}T10:00`);
 		await dialog.getByLabel("Rom", { exact: true }).fill("Java");
-		await dialog.getByRole("checkbox", { name: "Kristin Berg" }).check();
-		await dialog.getByRole("checkbox", { name: "Daniel Holm" }).check();
+		await dialog.getByRole("combobox", { name: "To intervjuere", exact: true }).click();
+		await page.getByRole("option", { name: "Kristin Berg", exact: true }).click();
+		await page.getByRole("option", { name: "Daniel Holm", exact: true }).click();
+		await page.keyboard.press("Escape");
 		await dialog.getByRole("checkbox", { name: /Søkeren har bekreftet/ }).check();
 		await captureScreenshot(page, "board", "live-09-manual-interview.png", dialog);
 		await dialog.getByRole("button", { name: "Lagre intervjutid" }).click();

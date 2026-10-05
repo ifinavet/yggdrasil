@@ -36,11 +36,14 @@ it("returns no profile for an authenticated user without a student record", asyn
 	const { t } = await setup();
 	const user = await insertUser(t, "member@uio.no");
 	await expect(
-		asUser(t, user).query(api.users.students.queries.getCurrentForAdmissions, {}),
+		asUser(t, user).query(api.users.students.queries.getCurrent, { allowMissing: true }),
 	).resolves.toBeNull();
-	await expect(t.query(api.users.students.queries.getCurrentForAdmissions, {})).rejects.toThrow(
-		/Unauthorized/,
+	await expect(asUser(t, user).query(api.users.students.queries.getCurrent, {})).rejects.toThrow(
+		"Fant ingen studentprofil",
 	);
+	await expect(
+		t.query(api.users.students.queries.getCurrent, { allowMissing: true }),
+	).rejects.toThrow(/Unauthorized/);
 });
 
 describe("studentProfileIssue", () => {

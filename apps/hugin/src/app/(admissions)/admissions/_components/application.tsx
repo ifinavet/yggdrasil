@@ -15,7 +15,7 @@ export type Period = NonNullable<InitialApplication>["period"] & { _id: Id<"admi
 
 export default function AdmissionsApplication({ period }: Readonly<{ period: Period }>) {
 	const application = useQuery(api.admissions.queries.myApplication, { periodId: period._id });
-	const profile = useQuery(api.users.students.queries.getCurrentForAdmissions, {});
+	const profile = useQuery(api.users.students.queries.getCurrent, { allowMissing: true });
 	const [applicationWindowClosed, setApplicationWindowClosed] = useState(
 		() => Date.now() > period.applicationEndAt,
 	);

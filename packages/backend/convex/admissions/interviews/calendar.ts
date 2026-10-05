@@ -21,10 +21,9 @@ import { type ActionCtx, action } from "../../_generated/server";
 import { googleConfig, isWorkspaceEmail } from "../../iam/config";
 import {
 	calendarEventId,
-	externalBusyIntervals,
 	googleCalendarClient,
 	type OwnedAdmissionEvent,
-	ownedBusyIntervals,
+	readExternalBusy,
 } from "../../iam/googleCalendar";
 import { interviewCalendarIds } from "../rules";
 
@@ -117,19 +116,6 @@ function publishedCalendarBusy(
 	);
 }
 
-function coversBusyInterval(
-	target: { start: number; end: number },
-	intervals: ReadonlyArray<{ start: number; end: number }>,
-) {
-	let coveredUntil = target.start;
-	for (const interval of [...intervals].sort((a, b) => a.start - b.start)) {
-		if (interval.start > coveredUntil) return false;
-		coveredUntil = Math.max(coveredUntil, interval.end);
-		if (coveredUntil >= target.end) return true;
-	}
-	return false;
-}
-
 export const generateSchedule = action({
 	args: { periodId: v.id("admissionPeriods"), expectedRevision: v.number() },
 	handler: async (ctx: ActionCtx, { periodId, expectedRevision }): Promise<{ count: number }> => {
@@ -155,11 +141,6 @@ export const generateSchedule = action({
 				const calendarIds = person.selectedCalendarIds;
 				if (!calendarIds.length) return { id: person.userId, calendars: [] };
 				const client = googleCalendarClient(config, person.email);
-				const calendars = await client.freeBusy(
-					calendarIds,
-					new Date(period.interviewStartAt).toISOString(),
-					new Date(period.interviewEndAt).toISOString(),
-				);
 				const ownedEvents = new Map<string, OwnedAdmissionEvent>(
 					await Promise.all(
 						context.existingInterviews
@@ -177,43 +158,23 @@ export const generateSchedule = action({
 							),
 					),
 				);
+				const external = await readExternalBusy(
+					client,
+					calendarIds,
+					new Date(period.interviewStartAt).toISOString(),
+					new Date(period.interviewEndAt).toISOString(),
+					ownedEvents,
+				);
 				return {
 					id: person.userId,
-					calendars: await Promise.all(
-						calendarIds.map(async (calendarId) => {
-							const pinned = publishedCalendarBusy(context, person.userId, calendarId);
-							const freeBusy = calendars?.[calendarId]?.busy ?? [];
-							if (!freeBusy.length) return { selected: true, readable: true, busy: pinned };
-							const events = await client.listEvents(
-								calendarId,
-								new Date(period.interviewStartAt).toISOString(),
-								new Date(period.interviewEndAt).toISOString(),
-							);
-							const external = externalBusyIntervals(events, ownedEvents);
-							const known = [...external, ...ownedBusyIntervals(events, ownedEvents)];
-							const parsed = freeBusy.map((entry) => ({
-								start: Date.parse(entry.start),
-								end: Date.parse(entry.end),
-							}));
-							if (
-								parsed.some(
-									(interval) =>
-										!Number.isFinite(interval.start) ||
-										!Number.isFinite(interval.end) ||
-										interval.end <= interval.start ||
-										!coversBusyInterval(interval, known),
-								)
-							)
-								throw new Error(
-									"En valgt Google-kalender har opptattstatus som ikke kan kontrolleres.",
-								);
-							return {
-								selected: true,
-								readable: true,
-								busy: [...busyWindows(external, period.timezone), ...pinned],
-							};
-						}),
-					),
+					calendars: calendarIds.map((calendarId, index) => ({
+						selected: true,
+						readable: true,
+						busy: [
+							...busyWindows(external[index] ?? [], period.timezone),
+							...publishedCalendarBusy(context, person.userId, calendarId),
+						],
+					})),
 				};
 			}),
 		);

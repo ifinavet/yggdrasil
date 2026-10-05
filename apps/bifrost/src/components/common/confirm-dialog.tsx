@@ -42,6 +42,7 @@ export function ConfirmDialog({
 	title,
 	description,
 	comment,
+	error,
 	confirmLabel,
 	destructive = false,
 	onConfirm,
@@ -51,6 +52,7 @@ export function ConfirmDialog({
 	title: string;
 	description: ReactNode;
 	comment?: CommentField;
+	error?: string;
 	confirmLabel: string;
 	destructive?: boolean;
 	onConfirm: (comment: string | undefined) => Promise<boolean>;
@@ -112,6 +114,11 @@ export function ConfirmDialog({
 						</form.Field>
 					)}
 
+					{error && (
+						<p role="alert" className="text-destructive">
+							{error}
+						</p>
+					)}
 					<AlertDialogFooter>
 						<Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
 							Avbryt

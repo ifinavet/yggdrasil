@@ -4,13 +4,13 @@ import { api } from "@workspace/backend/convex/api";
 import type { Doc, Id } from "@workspace/backend/convex/dataModel";
 import { formatOsloDate, osloDateTimeToEpoch } from "@workspace/shared/time";
 import { convexErrorMessage } from "@workspace/shared/utils";
-import { Avatar, AvatarFallback, AvatarImage } from "@workspace/ui/components/avatar";
 import { Button } from "@workspace/ui/components/button";
 import { Checkbox } from "@workspace/ui/components/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@workspace/ui/components/dialog";
 import { Field, FieldLabel } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
 import { Callout } from "@workspace/ui/components/products/callout";
+import { SearchSelect } from "@workspace/ui/components/search-select";
 import { useMutation } from "convex/react";
 import { useState } from "react";
 
@@ -109,37 +109,27 @@ export function InterviewDialog({
 							</Field>
 						)}
 					</form.Field>
-					<fieldset className="grid gap-3">
-						<legend className="mb-3 font-medium">To intervjuere</legend>
-						<form.Field name="interviewerIds">
-							{(field) =>
-								people.map((person) => (
-									<label
-										htmlFor={`manual-interviewer-${person.id}`}
-										key={person.id}
-										className="flex items-center gap-3"
-									>
-										<Checkbox
-											id={`manual-interviewer-${person.id}`}
-											checked={field.state.value.includes(person.id)}
-											onCheckedChange={(checked) =>
-												field.handleChange(
-													checked
-														? [...field.state.value, person.id]
-														: field.state.value.filter((id) => id !== person.id),
-												)
-											}
-										/>
-										<Avatar className="size-9">
-											<AvatarImage src={person.image} alt="" />
-											<AvatarFallback>{person.name.slice(0, 1)}</AvatarFallback>
-										</Avatar>
-										<span>{person.name}</span>
-									</label>
-								))
-							}
-						</form.Field>
-					</fieldset>
+					<form.Field name="interviewerIds">
+						{(field) => (
+							<Field>
+								<FieldLabel id="manual-interviewers-label">To intervjuere</FieldLabel>
+								<SearchSelect
+									multiple
+									max={2}
+									aria-labelledby="manual-interviewers-label"
+									items={people.map((person) => ({
+										id: person.id,
+										label: person.name,
+										image: person.image,
+									}))}
+									value={field.state.value}
+									onChange={(ids) => field.handleChange(ids as Id<"users">[])}
+									placeholder="Velg to intervjuere"
+									searchPlaceholder="Søk etter intervjuer"
+								/>
+							</Field>
+						)}
+					</form.Field>
 					<form.Field name="confirmed">
 						{(field) => (
 							<label htmlFor="manual-confirmed" className="flex items-start gap-3 text-sm">

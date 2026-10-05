@@ -36,8 +36,10 @@ test("creates a period and exposes calendar provider configuration errors", asyn
 			.getByLabel(label, { exact: true })
 			.fill(formatOsloDate(fixture?.period[key] ?? 0, "yyyy-MM-dd'T'HH:mm"));
 	}
-	await settings.getByRole("checkbox", { name: "Kristin Berg" }).check();
-	await settings.getByRole("checkbox", { name: "Daniel Holm" }).check();
+	await settings.getByRole("combobox", { name: "Intervjuere", exact: true }).click();
+	await page.getByRole("option", { name: "Kristin Berg", exact: true }).click();
+	await page.getByRole("option", { name: "Daniel Holm", exact: true }).click();
+	await page.keyboard.press("Escape");
 	await captureScreenshot(page, "board", "live-12-create.png", settings);
 	await settings.getByRole("button", { name: "Start opptak", exact: true }).click();
 	await expect(settings).toBeHidden();
@@ -83,7 +85,7 @@ test("selection rounds are reversible and decisions send only on explicit confir
 	await resetAdmissions("decisions");
 	await page.reload();
 	await page.getByRole("button", { name: /^Send svar \(/ }).click();
-	const send = page.getByRole("dialog", { name: "Send svar til kandidatene?" });
+	const send = page.getByRole("alertdialog", { name: "Send svar til kandidatene?" });
 	await expect(send).toContainText("10 avslag");
 	await captureScreenshot(page, "board", "live-15-send-decisions.png", send);
 	expect(

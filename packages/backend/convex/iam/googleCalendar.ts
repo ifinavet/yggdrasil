@@ -4,11 +4,11 @@ import { calendar } from "@googleapis/calendar";
 import {
 	GOOGLE_CALENDAR_API_URL,
 	GOOGLE_CALENDAR_DEFAULT_SCOPES,
-	GOOGLE_OAUTH_TOKEN_URL,
 } from "@workspace/shared/constants";
-import { JWT } from "google-auth-library";
+import { coversInterval } from "@workspace/shared/time";
 import { sha256 } from "../lib/tokens";
 import { directoryUrl, type GoogleConfig } from "./config";
+import { googleAuth } from "./google";
 
 const TIMEOUT_MS = 15_000;
 const MAX_PAGES = 20;
@@ -98,6 +98,44 @@ export function ownedBusyIntervals(
 	});
 }
 
+export async function readExternalBusy(
+	client: Pick<ReturnType<typeof googleCalendarClient>, "freeBusy" | "listEvents">,
+	calendarIds: string[],
+	timeMin: string,
+	timeMax: string,
+	ownedEvents: ReadonlyMap<string, OwnedAdmissionEvent>,
+): Promise<BusyInterval[][]> {
+	const calendars = await client.freeBusy(calendarIds, timeMin, timeMax);
+	return Promise.all(
+		calendarIds.map(async (calendarId) => {
+			const busy = calendars[calendarId]?.busy;
+			if (!busy)
+				throw new GoogleCalendarError(
+					"En valgt Google-kalender kan ikke leses. Kontroller kalenderens tilgang.",
+				);
+			if (!busy.length) return [];
+			const events = await client.listEvents(calendarId, timeMin, timeMax);
+			const external = externalBusyIntervals(events, ownedEvents);
+			const known = [...external, ...ownedBusyIntervals(events, ownedEvents)];
+			if (
+				busy.some((entry) => {
+					const interval = { start: Date.parse(entry.start), end: Date.parse(entry.end) };
+					return (
+						!Number.isFinite(interval.start) ||
+						!Number.isFinite(interval.end) ||
+						interval.end <= interval.start ||
+						!coversInterval(known, interval)
+					);
+				})
+			)
+				throw new GoogleCalendarError(
+					"En valgt Google-kalender har opptattstatus som ikke kan kontrolleres.",
+				);
+			return external;
+		}),
+	);
+}
+
 export function overlapsBusy(interval: BusyInterval, start: number, end: number) {
 	return interval.start < end && start < interval.end;
 }
@@ -119,21 +157,7 @@ function apiError(error: unknown, action: string): GoogleCalendarError {
 }
 
 export function googleCalendarClient(config: GoogleConfig, subject: string) {
-	const auth = new JWT({
-		email: config.serviceAccountEmail,
-		key: config.privateKey,
-		scopes: googleCalendarScope(),
-		subject,
-	});
-	auth.transporter.defaults.fetchImplementation = globalThis.fetch;
-	auth.transporter.defaults.timeout = TIMEOUT_MS;
-	auth.transporter.interceptors.request.add({
-		resolved: (options) =>
-			Promise.resolve({
-				...options,
-				url: new URL(directoryUrl(String(options.url ?? GOOGLE_OAUTH_TOKEN_URL))),
-			}),
-	});
+	const auth = googleAuth(config, subject, googleCalendarScope());
 	const client = calendar({
 		version: "v3",
 		auth,

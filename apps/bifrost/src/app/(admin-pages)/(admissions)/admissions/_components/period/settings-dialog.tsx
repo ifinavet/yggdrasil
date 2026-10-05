@@ -10,6 +10,7 @@ import { Checkbox } from "@workspace/ui/components/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@workspace/ui/components/dialog";
 import { Field, FieldLabel } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
+import { SearchSelect } from "@workspace/ui/components/search-select";
 import { useMutation, useQuery } from "convex/react";
 import { useEffect, useState } from "react";
 import { defaults } from "../model";
@@ -184,29 +185,18 @@ export function SettingsDialog({
 					)}
 					<form.Field name="interviewerIds">
 						{(field) => (
-							<fieldset className="grid gap-3">
-								<legend className="font-medium">Intervjuere</legend>
-								{board?.map((person) => (
-									<label
-										htmlFor={`interviewer-${person.userId}`}
-										key={person.userId}
-										className="flex items-center gap-3"
-									>
-										<Checkbox
-											id={`interviewer-${person.userId}`}
-											checked={field.state.value.includes(person.userId)}
-											onCheckedChange={(checked) =>
-												field.handleChange(
-													checked === true
-														? [...field.state.value, person.userId]
-														: field.state.value.filter((id) => id !== person.userId),
-												)
-											}
-										/>
-										{person.fullName}
-									</label>
-								))}
-							</fieldset>
+							<Field>
+								<FieldLabel id="interviewers-label">Intervjuere</FieldLabel>
+								<SearchSelect
+									multiple
+									aria-labelledby="interviewers-label"
+									items={board?.map((person) => ({ id: person.userId, label: person.fullName }))}
+									value={field.state.value}
+									onChange={(ids) => field.handleChange(ids as Id<"users">[])}
+									placeholder="Velg intervjuere"
+									searchPlaceholder="Søk etter intervjuer"
+								/>
+							</Field>
 						)}
 					</form.Field>
 					<div className="grid grid-cols-2 gap-5">

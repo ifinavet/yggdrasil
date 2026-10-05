@@ -23,19 +23,24 @@ test.describe("admissions settings and close flow", () => {
 		await page.reload();
 		await page.getByRole("button", { name: "Innstillinger" }).click();
 		const settings = page.getByRole("dialog", { name: "Opptaksinnstillinger" });
-		const daniel = settings.getByRole("checkbox", { name: "Daniel Holm" });
-		const aksel = settings.getByRole("checkbox", { name: "Aksel Nilsen" });
-		await expect(daniel).toBeChecked();
-		await aksel.check();
-		await daniel.uncheck();
+		const team = settings.getByRole("combobox", { name: "Intervjuere", exact: true });
+		await expect(team).toContainText("Daniel Holm");
+		await team.click();
+		await page.getByRole("option", { name: "Aksel Nilsen", exact: true }).click();
+		await page.getByRole("option", { name: "Daniel Holm", exact: true }).click();
+		await page.keyboard.press("Escape");
 		await captureScreenshot(page, "board", "live-07-settings.png", settings);
 		await settings.getByRole("button", { name: "Lagre innstillinger" }).click();
 		await expect(settings).toBeHidden();
 
 		await page.getByRole("button", { name: "Innstillinger" }).click();
 		const updated = page.getByRole("dialog", { name: "Opptaksinnstillinger" });
-		await expect(updated.getByRole("checkbox", { name: "Daniel Holm" })).not.toBeChecked();
-		await expect(updated.getByRole("checkbox", { name: "Aksel Nilsen" })).toBeChecked();
+		await expect(
+			updated.getByRole("combobox", { name: "Intervjuere", exact: true }),
+		).not.toContainText("Daniel Holm");
+		await expect(updated.getByRole("combobox", { name: "Intervjuere", exact: true })).toContainText(
+			"Aksel Nilsen",
+		);
 	});
 
 	test("allows teams of three and requires at least two interviewers", async ({ page }) => {
@@ -44,35 +49,56 @@ test.describe("admissions settings and close flow", () => {
 		await page.getByRole("button", { name: "Innstillinger" }).click();
 		const settings = page.getByRole("dialog", { name: "Opptaksinnstillinger" });
 		const save = settings.getByRole("button", { name: "Lagre innstillinger" });
-		await expect(settings.getByRole("checkbox", { name: "Kristin Berg" })).toBeChecked();
-		await expect(settings.getByRole("checkbox", { name: "Daniel Holm" })).toBeChecked();
-		await settings.getByRole("checkbox", { name: "Aksel Nilsen" }).check();
+		await expect(
+			settings.getByRole("combobox", { name: "Intervjuere", exact: true }),
+		).toContainText("Kristin Berg");
+		await expect(
+			settings.getByRole("combobox", { name: "Intervjuere", exact: true }),
+		).toContainText("Daniel Holm");
+		await settings.getByRole("combobox", { name: "Intervjuere", exact: true }).click();
+		await page.getByRole("option", { name: "Aksel Nilsen", exact: true }).click();
+		await page.keyboard.press("Escape");
 		await expect(save).toBeEnabled();
 		await save.click();
 		await expect(settings).toBeHidden();
 		await page.getByRole("button", { name: "Innstillinger" }).click();
 		const updated = page.getByRole("dialog", { name: "Opptaksinnstillinger" });
-		await expect(updated.getByRole("checkbox", { name: "Aksel Nilsen" })).toBeChecked();
-		await expect(updated.getByRole("checkbox", { name: "Kristin Berg" })).toBeChecked();
-		await expect(updated.getByRole("checkbox", { name: "Daniel Holm" })).toBeChecked();
-		await updated.getByRole("checkbox", { name: "Daniel Holm" }).uncheck();
-		await updated.getByRole("checkbox", { name: "Kristin Berg" }).uncheck();
+		await expect(updated.getByRole("combobox", { name: "Intervjuere", exact: true })).toContainText(
+			"Aksel Nilsen",
+		);
+		await expect(updated.getByRole("combobox", { name: "Intervjuere", exact: true })).toContainText(
+			"Kristin Berg",
+		);
+		await expect(updated.getByRole("combobox", { name: "Intervjuere", exact: true })).toContainText(
+			"Daniel Holm",
+		);
+		await updated.getByRole("combobox", { name: "Intervjuere", exact: true }).click();
+		await page.getByRole("option", { name: "Daniel Holm", exact: true }).click();
+		await page.getByRole("option", { name: "Kristin Berg", exact: true }).click();
+		await page.keyboard.press("Escape");
 		await expect(updated.getByRole("button", { name: "Lagre innstillinger" })).toBeDisabled();
 	});
 
 	test("keeps interviewers assigned to a published future interview", async ({ page }) => {
 		await page.getByRole("button", { name: "Innstillinger" }).click();
 		const settings = page.getByRole("dialog", { name: "Opptaksinnstillinger" });
-		await settings.getByRole("checkbox", { name: "Aksel Nilsen" }).check();
-		await settings.getByRole("checkbox", { name: "Daniel Holm" }).uncheck();
+		await settings.getByRole("combobox", { name: "Intervjuere", exact: true }).click();
+		await page.getByRole("option", { name: "Aksel Nilsen", exact: true }).click();
+		await page.getByRole("option", { name: "Daniel Holm", exact: true }).click();
+		await page.keyboard.press("Escape");
 		await captureScreenshot(page, "board", "live-07-settings.png", settings);
 		await settings.getByRole("button", { name: "Lagre innstillinger" }).click();
 		await expect(settings.getByRole("alert")).toContainText("publiserte intervjuer");
-		await page.keyboard.press("Escape");
+		await settings.getByRole("button", { name: "Close", exact: true }).click();
+		await expect(settings).toBeHidden();
 		await page.getByRole("button", { name: "Innstillinger" }).click();
 		const reopened = page.getByRole("dialog", { name: "Opptaksinnstillinger" });
-		await expect(reopened.getByRole("checkbox", { name: "Daniel Holm" })).toBeChecked();
-		await expect(reopened.getByRole("checkbox", { name: "Aksel Nilsen" })).not.toBeChecked();
+		await expect(
+			reopened.getByRole("combobox", { name: "Intervjuere", exact: true }),
+		).toContainText("Daniel Holm");
+		await expect(
+			reopened.getByRole("combobox", { name: "Intervjuere", exact: true }),
+		).not.toContainText("Aksel Nilsen");
 	});
 
 	test("shows closure counts and requires explicit confirmation before forced close", async ({

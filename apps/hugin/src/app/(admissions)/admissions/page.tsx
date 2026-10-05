@@ -27,11 +27,7 @@ export default async function Page() {
 	if (!userId) return redirectToSignIn();
 
 	const token = await getAuthToken();
-	const currentApplication = await fetchQuery(
-		api.admissions.queries.currentApplication,
-		{},
-		{ token },
-	);
+	const currentApplication = await fetchQuery(api.admissions.queries.myApplication, {}, { token });
 	const now = Date.now();
 	const periods = await fetchQuery(api.admissions.queries.openPeriods, { now }, { token });
 	const period = periods.find((item) => item._id === currentApplication?.periodId);

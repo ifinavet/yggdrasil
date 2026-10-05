@@ -5,7 +5,6 @@ import type { Id } from "@workspace/backend/convex/dataModel";
 import { makeSchedulingDays } from "@workspace/shared/admissions";
 import { convexErrorMessage } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@workspace/ui/components/dialog";
 import { Callout } from "@workspace/ui/components/products/callout";
 import {
 	Table,
@@ -30,6 +29,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { CandidateDialog } from "./candidates/candidate-dialog";
 import { CandidateFilters } from "./candidates/candidate-filters";
 import { OfferDialog } from "./candidates/offer-dialog";
@@ -475,38 +475,29 @@ export default function AdmissionsDashboard() {
 					onClose={() => setCalendars(false)}
 				/>
 			)}
-			<Dialog open={confirmSend} onOpenChange={setConfirmSend}>
-				<DialogContent aria-describedby={undefined}>
-					<DialogHeader>
-						<DialogTitle>Send svar til kandidatene?</DialogTitle>
-					</DialogHeader>
-					<p>
-						{pending.filter((entry) => entry.decision === "accepted").length} tilbud og{" "}
-						{pending.filter((entry) => entry.decision === "rejected").length} avslag.
-					</p>
-					<Button
-						disabled={busy}
-						onClick={() =>
-							void perform(async () => {
-								const results = await Promise.allSettled(
-									pending.map((entry) =>
-										sendDecision({
-											applicationId: entry._id,
-											expectedRevision: entry.revision,
-											idempotencyKey: `decision-${entry._id}-${entry.decisionRevision}`,
-										}),
-									),
-								);
-								const failed = results.find((result) => result.status === "rejected");
-								if (failed?.status === "rejected") throw failed.reason;
-								setConfirmSend(false);
-							}, "Svarene er lagt i kø for utsending")
-						}
-					>
-						Send svar
-					</Button>
-				</DialogContent>
-			</Dialog>
+			<ConfirmDialog
+				open={confirmSend}
+				onOpenChange={setConfirmSend}
+				title="Send svar til kandidatene?"
+				description={`${pending.filter((entry) => entry.decision === "accepted").length} tilbud og ${pending.filter((entry) => entry.decision === "rejected").length} avslag.`}
+				confirmLabel="Send svar"
+				error={error}
+				onConfirm={() =>
+					perform(async () => {
+						const results = await Promise.allSettled(
+							pending.map((entry) =>
+								sendDecision({
+									applicationId: entry._id,
+									expectedRevision: entry.revision,
+									idempotencyKey: `decision-${entry._id}-${entry.decisionRevision}`,
+								}),
+							),
+						);
+						const failed = results.find((result) => result.status === "rejected");
+						if (failed?.status === "rejected") throw failed.reason;
+					}, "Svarene er lagt i kø for utsending")
+				}
+			/>
 		</section>
 	);
 }

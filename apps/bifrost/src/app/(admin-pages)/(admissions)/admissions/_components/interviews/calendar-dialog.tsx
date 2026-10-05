@@ -4,9 +4,9 @@ import type { Doc, Id } from "@workspace/backend/convex/dataModel";
 import { convexErrorMessage } from "@workspace/shared/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@workspace/ui/components/avatar";
 import { Button } from "@workspace/ui/components/button";
-import { Checkbox } from "@workspace/ui/components/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@workspace/ui/components/dialog";
 import { Callout } from "@workspace/ui/components/products/callout";
+import { SearchSelect, type SearchSelectItem } from "@workspace/ui/components/search-select";
 import { useAction, useMutation } from "convex/react";
 import { RefreshCw } from "lucide-react";
 import { useState } from "react";
@@ -23,7 +23,7 @@ export function CalendarDialog({
 	const sources = useAction(api.admissions.interviews.calendar.sources);
 	const save = useMutation(api.admissions.board.updateInterviewers);
 	const [calendars, setCalendars] = useState<
-		Record<string, { id: string; name: string; selected: boolean; readable: boolean }[]>
+		Record<string, { items: SearchSelectItem[]; selectedIds: string[] }>
 	>({});
 	const [pending, setPending] = useState<string | null>(null);
 	const [error, setError] = useState("");
@@ -32,20 +32,24 @@ export function CalendarDialog({
 		setError("");
 		try {
 			const result = await sources({ periodId: period._id, interviewerId: id });
-			setCalendars((value) => ({ ...value, [id]: result }));
+			setCalendars((value) => ({
+				...value,
+				[id]: {
+					items: result.map((calendar) => ({
+						id: calendar.id,
+						label: calendar.name,
+						disabledReason: calendar.readable ? undefined : "Mangler tilgang",
+					})),
+					selectedIds: result
+						.filter((calendar) => calendar.selected && calendar.readable)
+						.map((calendar) => calendar.id),
+				},
+			}));
 		} catch (cause) {
 			setError(convexErrorMessage(cause, "Kunne ikke hente kalenderne."));
 		} finally {
 			setPending(null);
 		}
-	}
-	function toggleCalendar(personId: string, calendarId: string, selected: boolean) {
-		setCalendars((value) => ({
-			...value,
-			[personId]: (value[personId] ?? []).map((entry) =>
-				entry.id === calendarId ? { ...entry, selected } : entry,
-			),
-		}));
 	}
 	async function persist() {
 		setPending("save");
@@ -56,10 +60,7 @@ export function CalendarDialog({
 				expectedRevision: period.revision,
 				interviewers: period.interviewers.map((person) => ({
 					...person,
-					selectedCalendarIds:
-						calendars[person.userId]
-							?.filter((entry) => entry.selected && entry.readable)
-							.map((entry) => entry.id) ?? person.selectedCalendarIds,
+					selectedCalendarIds: calendars[person.userId]?.selectedIds ?? person.selectedCalendarIds,
 				})),
 			});
 			onClose();
@@ -100,44 +101,48 @@ export function CalendarDialog({
 						{error}
 					</p>
 				)}
-				{people.map((person) => (
-					<section key={person.id} className="grid gap-3">
-						<div className="flex items-center gap-3">
-							<Avatar>
-								<AvatarImage src={person.image} alt="" />
-								<AvatarFallback>{person.name.charAt(0)}</AvatarFallback>
-							</Avatar>
-							<h3 className="flex-1 font-medium">{person.name}</h3>
-							<Button
-								variant="outline"
-								disabled={pending !== null}
-								onClick={() => void refresh(person.id)}
-								aria-label={`Hent kalendere for ${person.name}`}
-							>
-								<RefreshCw />
-								Hent kalendere
-							</Button>
-						</div>
-						{calendars[person.id]?.map((calendar) => (
-							<label
-								htmlFor={`calendar-${person.id}-${calendar.id}`}
-								key={calendar.id}
-								className="flex items-center gap-3 pl-11"
-							>
-								<Checkbox
-									id={`calendar-${person.id}-${calendar.id}`}
-									disabled={!calendar.readable || pending !== null}
-									checked={calendar.selected}
-									onCheckedChange={(checked) =>
-										toggleCalendar(person.id, calendar.id, checked === true)
+				{people.map((person) => {
+					const selection = calendars[person.id];
+					return (
+						<section key={person.id} className="grid gap-3">
+							<div className="flex items-center gap-3">
+								<Avatar>
+									<AvatarImage src={person.image} alt="" />
+									<AvatarFallback>{person.name.charAt(0)}</AvatarFallback>
+								</Avatar>
+								<h3 id={`calendar-person-${person.id}`} className="flex-1 font-medium">
+									{person.name}
+								</h3>
+								<Button
+									variant="outline"
+									disabled={pending !== null}
+									onClick={() => void refresh(person.id)}
+									aria-label={`Hent kalendere for ${person.name}`}
+								>
+									<RefreshCw />
+									Hent kalendere
+								</Button>
+							</div>
+							{selection && (
+								<SearchSelect
+									multiple
+									aria-labelledby={`calendar-person-${person.id}`}
+									items={selection.items}
+									value={selection.selectedIds}
+									onChange={(selectedIds) =>
+										setCalendars((current) => ({
+											...current,
+											[person.id]: { ...selection, selectedIds },
+										}))
 									}
+									disabled={pending !== null}
+									placeholder="Velg kalendere"
+									searchPlaceholder="Søk etter kalender"
 								/>
-								{calendar.name}
-								{!calendar.readable && <span className="text-destructive">Mangler tilgang</span>}
-							</label>
-						))}
-					</section>
-				))}
+							)}
+						</section>
+					);
+				})}
 				<Button disabled={pending !== null} onClick={() => void persist()}>
 					Lagre kalendere
 				</Button>

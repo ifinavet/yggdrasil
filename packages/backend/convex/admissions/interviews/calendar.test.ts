@@ -34,7 +34,9 @@ beforeEach(() => {
 		{ id: "timetable", summary: "Timeplan" },
 		{ id: "personal", summary: "Privat" },
 	]);
-	provider.freeBusy.mockResolvedValue({});
+	provider.freeBusy.mockImplementation(async (ids: string[]) =>
+		Object.fromEntries(ids.map((id) => [id, { busy: [] }])),
+	);
 	provider.listEvents.mockResolvedValue([]);
 });
 afterEach(() => {

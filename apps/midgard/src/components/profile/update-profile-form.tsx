@@ -2,32 +2,11 @@
 
 import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
-import {
-	DEGREE_TYPES,
-	DEGREE_YEARS,
-	degreesFor,
-	fittingDegree,
-	fittingYear,
-	refineStudentProfile,
-	STUDY_PROGRAMS,
-} from "@workspace/shared/constants";
+import { DEGREE_TYPES, refineStudentProfile, STUDY_PROGRAMS } from "@workspace/shared/constants";
 import { Button } from "@workspace/ui/components/button";
-import {
-	Field,
-	FieldContent,
-	FieldError,
-	FieldGroup,
-	FieldLabel,
-	FieldSet,
-} from "@workspace/ui/components/field";
+import { Field, FieldGroup, FieldLabel, FieldSet } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@workspace/ui/components/select";
+import { StudentProfileFields } from "@workspace/ui/components/student-profile-fields";
 import { cn } from "@workspace/ui/lib/utils";
 import { type Preloaded, useMutation, usePreloadedQuery } from "convex/react";
 import { toast } from "sonner";
@@ -56,6 +35,7 @@ export default function UpdateProfileForm({
 	className?: string;
 }>) {
 	const student = usePreloadedQuery(preloadedStudent);
+	if (!student) throw new Error("Studentprofilen finnes ikke.");
 
 	const updateProfile = useMutation(api.users.students.mutations.updateCurrent);
 	const form = useForm({
@@ -133,125 +113,19 @@ export default function UpdateProfileForm({
 					</form.Field>
 				</FieldGroup>
 
-				<FieldGroup>
-					<form.Field
-						name="studyProgram"
-						listeners={{
-							onChange: ({ value }) => {
-								const degree = fittingDegree(value, form.getFieldValue("degree"));
-								form.setFieldValue("degree", degree);
-								form.setFieldValue("year", fittingYear(degree, form.getFieldValue("year")));
-							},
-						}}
-					>
-						{(field) => {
-							const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
-
-							return (
-								<Field className="w-full" data-invalid={isInvalid}>
-									<FieldContent>
-										<FieldLabel htmlFor={field.name}>Studieprogram</FieldLabel>
-										{isInvalid && <FieldError errors={field.state.meta.errors} />}
-									</FieldContent>
-									<Select
-										onValueChange={(value) =>
-											field.handleChange(value as ProfileFormSchema["studyProgram"])
-										}
-										value={field.state.value}
-									>
-										<SelectTrigger className="w-full truncate" aria-invalid={isInvalid}>
-											<SelectValue placeholder="Velg et studieprogram" className="truncate" />
-										</SelectTrigger>
-										<SelectContent>
-											{STUDY_PROGRAMS.map((program) => (
-												<SelectItem key={program} value={program}>
-													{program}
-												</SelectItem>
-											))}
-										</SelectContent>
-									</Select>
-								</Field>
-							);
-						}}
-					</form.Field>
-				</FieldGroup>
-				<FieldGroup className="flex w-full flex-col gap-4 md:flex-row">
-					<form.Field
-						name="degree"
-						listeners={{
-							onChange: ({ value }) =>
-								form.setFieldValue("year", fittingYear(value, form.getFieldValue("year"))),
-						}}
-					>
-						{(field) => {
-							const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
-
-							return (
-								<Field className="w-full" data-invalid={isInvalid}>
-									<FieldContent>
-										<FieldLabel htmlFor={field.name}>Grad</FieldLabel>
-										{isInvalid && <FieldError errors={field.state.meta.errors} />}
-									</FieldContent>
-									<Select
-										onValueChange={(value) =>
-											field.handleChange(value as ProfileFormSchema["degree"])
-										}
-										value={field.state.value}
-									>
-										<SelectTrigger className="w-full truncate" aria-invalid={isInvalid}>
-											<SelectValue placeholder="Velg studie grad" className="truncate" />
-										</SelectTrigger>
-										<SelectContent>
-											<form.Subscribe selector={(state) => state.values.studyProgram}>
-												{(program) =>
-													degreesFor(program).map((degree) => (
-														<SelectItem key={degree} value={degree}>
-															{degree}
-														</SelectItem>
-													))
-												}
-											</form.Subscribe>
-										</SelectContent>
-									</Select>
-								</Field>
-							);
-						}}
-					</form.Field>
-					<form.Field name="year">
-						{(field) => {
-							const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
-
-							return (
-								<Field className="w-full min-w-0" data-invalid={isInvalid}>
-									<FieldContent>
-										<FieldLabel htmlFor={field.name}>År</FieldLabel>
-										{isInvalid && <FieldError errors={field.state.meta.errors} />}
-									</FieldContent>
-									<form.Subscribe selector={(state) => DEGREE_YEARS[state.values.degree]}>
-										{({ first, last }) => (
-											<Input
-												id={field.name}
-												name={field.name}
-												value={field.state.value}
-												onBlur={field.handleBlur}
-												onChange={(e) => {
-													const numeric = e.target.value.replaceAll(/\D/g, "");
-													field.handleChange(Number.parseInt(numeric, 10));
-												}}
-												type="number"
-												min={first}
-												max={last}
-												className="truncate"
-												aria-invalid={isInvalid}
-												autoComplete="off"
-											/>
-										)}
-									</form.Subscribe>
-								</Field>
-							);
-						}}
-					</form.Field>
-				</FieldGroup>
+				<form.Field name="studyProgram">
+					{(studyProgram) => (
+						<form.Field name="degree">
+							{(degree) => (
+								<form.Field name="year">
+									{(year) => (
+										<StudentProfileFields studyProgram={studyProgram} degree={degree} year={year} />
+									)}
+								</form.Field>
+							)}
+						</form.Field>
+					)}
+				</form.Field>
 			</FieldSet>
 			<Button type="submit" className="text-primary-foreground">
 				Oppdater profil

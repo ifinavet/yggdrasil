@@ -16,9 +16,9 @@ import { type ActionCtx, internalAction } from "../../_generated/server";
 import { googleConfig, isWorkspaceEmail } from "../../iam/config";
 import {
 	calendarEventId,
-	externalBusyIntervals,
 	googleCalendarClient,
 	overlapsBusy,
+	readExternalBusy,
 } from "../../iam/googleCalendar";
 import { postSlackNotice } from "../../iam/slack";
 import { trackedEmail } from "../../lib/trackedEmail";
@@ -158,43 +158,22 @@ async function assertInterviewerAvailability(
 	const client = googleCalendarClient(config, person.email);
 	const from = new Date(interview.startAt).toISOString();
 	const to = new Date(endWithBuffer).toISOString();
-	const calendars = await client.freeBusy(person.calendars, from, to);
-	await Promise.all(
-		person.calendars.map(async (calendarId) => {
-			const busy = calendars?.[calendarId]?.busy ?? [];
-			if (
-				!busy.some((interval) =>
-					overlapsBusy(
-						{ start: Date.parse(interval.start), end: Date.parse(interval.end) },
-						interview.startAt,
-						endWithBuffer,
-					),
-				)
-			)
-				return;
-			const events = await client.listEvents(calendarId, from, to);
-			const ownedEvents = new Map([
-				[
-					interview._id,
-					{
-						eventId:
-							interview.calendarEventId ??
-							(await calendarEventId(`navet-admissions:${interview._id}`)),
-						interviewId: interview._id,
-						periodId: period._id,
-					},
-				],
-			]);
-			if (
-				externalBusyIntervals(events, ownedEvents).some((interval) =>
-					overlapsBusy(interval, interview.startAt, endWithBuffer),
-				)
-			)
-				throw new Error(
-					"En intervjuer er opptatt i en valgt kalender. Endre tidspunktet før publisering.",
-				);
-		}),
-	);
+	const ownedEvents = new Map([
+		[
+			interview._id,
+			{
+				eventId:
+					interview.calendarEventId ?? (await calendarEventId(`navet-admissions:${interview._id}`)),
+				interviewId: interview._id,
+				periodId: period._id,
+			},
+		],
+	]);
+	const busy = await readExternalBusy(client, person.calendars, from, to, ownedEvents);
+	if (busy.flat().some((interval) => overlapsBusy(interval, interview.startAt, endWithBuffer)))
+		throw new Error(
+			"En intervjuer er opptatt i en valgt kalender. Endre tidspunktet før publisering.",
+		);
 }
 
 async function assertScheduleAvailable(

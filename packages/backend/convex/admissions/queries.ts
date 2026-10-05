@@ -88,41 +88,20 @@ async function applicantView(
 }
 
 export const myApplication = query({
-	args: { periodId: v.id("admissionPeriods") },
+	args: { periodId: v.optional(v.id("admissionPeriods")) },
 	handler: async (ctx, { periodId }) => {
 		const user = await getCurrentUserOrThrow(ctx);
-		const period = await ctx.db.get(periodId);
+		const period = periodId
+			? await ctx.db.get(periodId)
+			: await ctx.db.query("admissionPeriods").first();
 		if (!period || period.status === "closing") return null;
 		const application = await ctx.db
 			.query("admissionApplications")
-			.withIndex("by_periodId_and_userId", (q) => q.eq("periodId", periodId).eq("userId", user._id))
+			.withIndex("by_periodId_and_userId", (q) =>
+				q.eq("periodId", period._id).eq("userId", user._id),
+			)
 			.unique();
-		if (!application) return null;
-		return applicantView(ctx, application, period);
-	},
-});
-
-export const currentApplication = query({
-	args: {},
-	handler: async (ctx) => {
-		const user = await getCurrentUserOrThrow(ctx);
-		const submitted = await ctx.db
-			.query("admissionApplications")
-			.withIndex("by_userId_and_status", (q) => q.eq("userId", user._id).eq("status", "submitted"))
-			.order("desc")
-			.take(1);
-		const drafts = submitted.length
-			? []
-			: await ctx.db
-					.query("admissionApplications")
-					.withIndex("by_userId_and_status", (q) => q.eq("userId", user._id).eq("status", "draft"))
-					.order("desc")
-					.take(1);
-		const application = submitted[0] ?? drafts[0];
-		if (!application) return null;
-		const period = await ctx.db.get(application.periodId);
-		if (!period || period.status === "closing") return null;
-		return applicantView(ctx, application, period);
+		return application ? applicantView(ctx, application, period) : null;
 	},
 });
 
@@ -142,17 +121,9 @@ export const adminOverview = query({
 	args: { periodId: v.optional(v.id("admissionPeriods")) },
 	handler: async (ctx, { periodId }) => {
 		await requireRole(ctx, adminRoles);
-		let period: Doc<"admissionPeriods"> | null = null;
-		if (periodId) period = await ctx.db.get(periodId);
-		else {
-			for (const status of ["open", "published", "draft", "closing"] as const) {
-				period = await ctx.db
-					.query("admissionPeriods")
-					.withIndex("by_status", (q) => q.eq("status", status))
-					.first();
-				if (period) break;
-			}
-		}
+		const period = periodId
+			? await ctx.db.get(periodId)
+			: await ctx.db.query("admissionPeriods").first();
 		if (!period) return null;
 		const jobs = (await listOperations(ctx, period._id, true)).filter(
 			(job) => job.state === "inProgress" || job.state === "failed",

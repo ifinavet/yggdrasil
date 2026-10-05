@@ -476,7 +476,7 @@ it("requires exactly two interviewers in both manual and generated schedules", a
 			...value.scheduleArgs,
 			interviewerIds: tooMany,
 		}),
-	).rejects.toThrow(/to intervjuere/);
+	).rejects.toThrow(/to ulike intervjuere/);
 	await expect(
 		value.t.mutation(internal.admissions.internal.saveSchedule, {
 			periodId: value.periodId,

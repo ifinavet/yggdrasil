@@ -8,11 +8,11 @@ import { useMutation } from "convex/react";
 import { type LucideIcon, Send } from "lucide-react";
 import { Fragment, type ReactNode, useState } from "react";
 import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { capitalize, formatMoment, longDay, shortDay, shortDayTitle } from "../format";
 import { isActiveStatus } from "../status";
 import { StatusIcon } from "../status-badge";
 import { AssignDateDialog, useAssignDate } from "./assign-date-dialog";
-import { ConfirmDialog } from "./confirm-dialog";
 import { actorName } from "./history-card";
 import {
 	type ApplicationDetails,

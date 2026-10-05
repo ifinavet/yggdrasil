@@ -13,6 +13,17 @@ async function apply(page: Page) {
 	await page.getByRole("button", { name: "Ja" }).click();
 	await page.getByRole("button", { name: "Endre" }).click();
 	await captureScreenshot(page, "student", "live-03-profile-edit.png", page.getByRole("main"));
+	await page.getByRole("combobox", { name: "Studieprogram" }).click();
+	await page.getByRole("option", { name: "Informasjonssikkerhet", exact: true }).click();
+	await expect(page.getByRole("combobox", { name: "Grad", exact: true })).toContainText("Master");
+	await expect(page.getByRole("combobox", { name: "Studieår" })).toContainText("4");
+	await page.getByRole("combobox", { name: "Studieprogram" }).click();
+	await page
+		.getByRole("option", { name: "Informatikk: programmering og systemarkitektur", exact: true })
+		.click();
+	await page.getByRole("combobox", { name: "Grad", exact: true }).click();
+	await page.getByRole("option", { name: "Bachelor", exact: true }).click();
+	await expect(page.getByRole("combobox", { name: "Studieår" })).toContainText("3");
 	await page.getByRole("combobox", { name: "Studieår" }).click();
 	await page.getByRole("option", { name: "2" }).click();
 	await page.getByRole("button", { name: "Lagre og bekreft" }).click();
@@ -42,6 +53,11 @@ async function apply(page: Page) {
 	}
 	await page.getByRole("checkbox", { name: /Velg/ }).nth(0).check();
 	await page.getByRole("checkbox", { name: /Velg/ }).nth(1).check();
+	await page.getByLabel("Fra", { exact: true }).fill("09:07");
+	await expect(
+		page.getByRole("button", { name: "Legg til tidsrom på valgte dager" }),
+	).toBeDisabled();
+	await page.getByLabel("Fra", { exact: true }).fill("09:00");
 	await page.getByRole("button", { name: "Legg til tidsrom på valgte dager" }).click();
 	await expect(page.getByText("2 tidsrom valgt")).toBeVisible();
 	await captureScreenshot(
@@ -111,7 +127,7 @@ test.describe("real applicant journeys", () => {
 		await expect(page.getByRole("link", { name: "Søk her" })).toHaveCount(0);
 
 		await page.goto(`${midgardUrl}/profile`);
-		await expect(page.getByRole("spinbutton", { name: "År" })).toHaveValue("2");
+		await expect(page.getByRole("combobox", { name: "Studieår" })).toContainText("2");
 	});
 
 	test("removes the Midgard application banner when the application window closes in an open tab", async ({

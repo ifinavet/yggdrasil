@@ -2,19 +2,9 @@
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { convexErrorMessage } from "@workspace/shared/utils";
-import {
-	AlertDialog,
-	AlertDialogCancel,
-	AlertDialogContent,
-	AlertDialogDescription,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle,
-} from "@workspace/ui/components/alert-dialog";
-import { Button } from "@workspace/ui/components/button";
-import { Callout } from "@workspace/ui/components/products/callout";
 import { useMutation } from "convex/react";
 import { useState } from "react";
+import { ConfirmDialog } from "@/components/common/confirm-dialog";
 
 export function CancelInterviewDialog({
 	candidate,
@@ -24,10 +14,8 @@ export function CancelInterviewDialog({
 	onClose: () => void;
 }>) {
 	const cancel = useMutation(api.admissions.mutations.cancelInterviewByBoard);
-	const [pending, setPending] = useState(false);
 	const [error, setError] = useState("");
 	async function confirm() {
-		setPending(true);
 		setError("");
 		try {
 			await cancel({
@@ -35,40 +23,24 @@ export function CancelInterviewDialog({
 				expectedRevision: candidate.revision,
 				idempotencyKey: `cancel-${candidate._id}-${candidate.revision}`,
 			});
-			onClose();
+			return true;
 		} catch (cause) {
 			setError(convexErrorMessage(cause, "Kunne ikke avlyse intervjuet."));
-		} finally {
-			setPending(false);
+			return false;
 		}
 	}
 	return (
-		<AlertDialog
+		<ConfirmDialog
 			open
 			onOpenChange={(open) => {
 				if (!open) onClose();
 			}}
-		>
-			<AlertDialogContent>
-				<AlertDialogHeader>
-					<AlertDialogTitle>Avlyse intervjuet?</AlertDialogTitle>
-					<AlertDialogDescription>
-						Intervjuet med {candidate.name} avlyses. En allerede sendt invitasjon følges opp med
-						e-post til søkeren.
-					</AlertDialogDescription>
-				</AlertDialogHeader>
-				{error && (
-					<div role="alert">
-						<Callout tone="danger">{error}</Callout>
-					</div>
-				)}
-				<AlertDialogFooter>
-					<AlertDialogCancel disabled={pending}>Tilbake</AlertDialogCancel>
-					<Button variant="destructive" disabled={pending} onClick={() => void confirm()}>
-						Bekreft avlysning
-					</Button>
-				</AlertDialogFooter>
-			</AlertDialogContent>
-		</AlertDialog>
+			title="Avlyse intervjuet?"
+			description={`Intervjuet med ${candidate.name} avlyses. En allerede sendt invitasjon følges opp med e-post til søkeren.`}
+			confirmLabel="Bekreft avlysning"
+			destructive
+			error={error}
+			onConfirm={confirm}
+		/>
 	);
 }

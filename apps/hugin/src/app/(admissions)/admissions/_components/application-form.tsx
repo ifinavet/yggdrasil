@@ -4,14 +4,7 @@ import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { ADMISSION_UNSURE_GROUP, type AvailabilityWindow } from "@workspace/shared/admissions";
-import {
-	type DEGREE_TYPES,
-	DEGREE_YEARS,
-	degreesFor,
-	fittingDegree,
-	fittingYear,
-	STUDY_PROGRAMS,
-} from "@workspace/shared/constants";
+import type { DEGREE_TYPES } from "@workspace/shared/constants";
 import { midgardUrl } from "@workspace/shared/constants/hugin-url";
 import {
 	calendarDaysBetween,
@@ -22,6 +15,7 @@ import {
 import { convexErrorMessage } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
 import { Checkbox } from "@workspace/ui/components/checkbox";
+import { Input } from "@workspace/ui/components/input";
 import {
 	Select,
 	SelectContent,
@@ -29,6 +23,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@workspace/ui/components/select";
+import { StudentProfileFields } from "@workspace/ui/components/student-profile-fields";
 import { Textarea } from "@workspace/ui/components/textarea";
 import { useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
@@ -54,9 +49,7 @@ export function ApplicationForm({
 }: Readonly<{
 	period: Period;
 	initialApplication: InitialApplication;
-	profile: NonNullable<
-		FunctionReturnType<typeof api.users.students.queries.getCurrentForAdmissions>
-	>;
+	profile: NonNullable<FunctionReturnType<typeof api.users.students.queries.getCurrent>>;
 }>) {
 	const groups = useQuery(api.admissions.queries.availableGroups, {});
 	const updateProfile = useMutation(api.users.students.mutations.updateCurrent);
@@ -92,13 +85,12 @@ export function ApplicationForm({
 	});
 
 	const dates = interviewDays(period.interviewStartAt, period.interviewEndAt, period.timezone);
-	const timeOptions = Array.from(
-		{ length: Math.floor((period.dayEnd - period.dayStart) / 15) + 1 },
-		(_, index) => {
-			const minutes = period.dayStart + index * 15;
-			return { minutes, label: formatTime(minutes) };
-		},
-	);
+	const validTime =
+		start >= period.dayStart &&
+		end <= period.dayEnd &&
+		start < end &&
+		(start - period.dayStart) % 15 === 0 &&
+		(end - period.dayStart) % 15 === 0;
 	const selectedCount = availability.length;
 	async function perform(action: () => Promise<void>, fallback: string) {
 		if (busy) return;
@@ -146,7 +138,7 @@ export function ApplicationForm({
 	}
 
 	function addAvailability() {
-		if (start >= end || !selectedDays.length) return;
+		if (!validTime || !selectedDays.length) return;
 		const merged = [...availability, ...selectedDays.map((day) => ({ day, start, end }))]
 			.sort((a, b) => a.day.localeCompare(b.day) || a.start - b.start)
 			.reduce<AvailabilityWindow[]>((result, item) => {
@@ -195,68 +187,11 @@ export function ApplicationForm({
 						setProfileConfirmed(false);
 					}}
 				>
-					<div className="grid gap-5 sm:grid-cols-3">
-						<FormRow htmlFor="profile-program" label="Studieprogram">
-							<Select
-								value={studyProgram}
-								onValueChange={(value) => {
-									setStudyProgram(value);
-									const nextDegree = fittingDegree(value, degree);
-									setDegree(nextDegree);
-									setYear(fittingYear(nextDegree, year));
-								}}
-							>
-								<SelectTrigger id="profile-program" className="w-full">
-									<SelectValue placeholder="Velg" />
-								</SelectTrigger>
-								<SelectContent>
-									{STUDY_PROGRAMS.map((item) => (
-										<SelectItem key={item} value={item}>
-											{item}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-						</FormRow>
-						<FormRow htmlFor="profile-degree" label="Grad">
-							<Select
-								value={degree}
-								onValueChange={(value) => {
-									const nextDegree = value as typeof degree;
-									setDegree(nextDegree);
-									setYear(fittingYear(nextDegree, year));
-								}}
-							>
-								<SelectTrigger id="profile-degree" className="w-full">
-									<SelectValue placeholder="Velg" />
-								</SelectTrigger>
-								<SelectContent>
-									{degreesFor(studyProgram).map((item) => (
-										<SelectItem key={item} value={item}>
-											{item}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-						</FormRow>
-						<FormRow htmlFor="profile-year" label="Studieår">
-							<Select value={String(year)} onValueChange={(value) => setYear(Number(value))}>
-								<SelectTrigger id="profile-year" className="w-full">
-									<SelectValue placeholder="Velg" />
-								</SelectTrigger>
-								<SelectContent>
-									{Array.from(
-										{ length: DEGREE_YEARS[degree].last - DEGREE_YEARS[degree].first + 1 },
-										(_, index) => DEGREE_YEARS[degree].first + index,
-									).map((item) => (
-										<SelectItem key={item} value={String(item)}>
-											{item}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-						</FormRow>
-					</div>
+					<StudentProfileFields
+						studyProgram={{ state: { value: studyProgram }, handleChange: setStudyProgram }}
+						degree={{ state: { value: degree }, handleChange: setDegree }}
+						year={{ state: { value: year }, handleChange: setYear }}
+					/>
 					<Button
 						type="button"
 						disabled={busy || !studyProgram}
@@ -369,46 +304,39 @@ export function ApplicationForm({
 					</div>
 					<div className="mt-4 flex flex-wrap items-end gap-3">
 						<FormRow htmlFor="availability-start" label="Fra">
-							<Select
-								value={String(start)}
-								onValueChange={(value) => {
-									const next = Number(value);
+							<Input
+								id="availability-start"
+								type="time"
+								disabled={noSuitableTimes}
+								step={900}
+								min={formatTime(period.dayStart)}
+								max={formatTime(period.dayEnd - 15)}
+								value={Number.isFinite(start) ? formatTime(start) : ""}
+								onChange={(event) => {
+									const next = event.currentTarget.valueAsNumber / 60_000;
 									setStart(next);
 									if (end <= next) setEnd(Math.min(next + 60, period.dayEnd));
 								}}
-							>
-								<SelectTrigger id="availability-start" className="w-32">
-									<SelectValue />
-								</SelectTrigger>
-								<SelectContent>
-									{timeOptions.slice(0, -1).map((item) => (
-										<SelectItem key={item.minutes} value={String(item.minutes)}>
-											{item.label}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
+								className="w-32"
+							/>
 						</FormRow>
 						<FormRow htmlFor="availability-end" label="Til">
-							<Select value={String(end)} onValueChange={(value) => setEnd(Number(value))}>
-								<SelectTrigger id="availability-end" className="w-32">
-									<SelectValue />
-								</SelectTrigger>
-								<SelectContent>
-									{timeOptions
-										.filter((item) => item.minutes > start)
-										.map((item) => (
-											<SelectItem key={item.minutes} value={String(item.minutes)}>
-												{item.label}
-											</SelectItem>
-										))}
-								</SelectContent>
-							</Select>
+							<Input
+								id="availability-end"
+								type="time"
+								disabled={noSuitableTimes}
+								step={900}
+								min={formatTime(start + 15)}
+								max={formatTime(period.dayEnd)}
+								value={Number.isFinite(end) ? formatTime(end) : ""}
+								onChange={(event) => setEnd(event.currentTarget.valueAsNumber / 60_000)}
+								className="w-32"
+							/>
 						</FormRow>
 						<Button
 							type="button"
 							variant="outline"
-							disabled={!selectedDays.length || start >= end}
+							disabled={!selectedDays.length || !validTime}
 							onClick={addAvailability}
 						>
 							Legg til tidsrom på valgte dager

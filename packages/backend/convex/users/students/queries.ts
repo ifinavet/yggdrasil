@@ -98,33 +98,15 @@ export const getAllWithPoints = query({
  * @returns {Doc<"students"> & Doc<"users">} - The merged student and user data.
  */
 export const getCurrent = query({
-	handler: async (ctx) => {
+	args: { allowMissing: v.optional(v.boolean()) },
+	handler: async (ctx, { allowMissing }) => {
 		const user = await getCurrentUserOrThrow(ctx);
-
 		const student = await ctx.db
 			.query("students")
 			.withIndex("by_userId", (q) => q.eq("userId", user._id))
 			.first();
-
-		if (!student) {
+		if (!student && !allowMissing)
 			throw new ConvexError("Fant ingen studentprofil for brukeren din.");
-		}
-
-		return {
-			...student,
-			...user,
-		};
-	},
-});
-
-export const getCurrentForAdmissions = query({
-	args: {},
-	handler: async (ctx) => {
-		const user = await getCurrentUserOrThrow(ctx);
-		const student = await ctx.db
-			.query("students")
-			.withIndex("by_userId", (q) => q.eq("userId", user._id))
-			.first();
 		return student ? { ...student, ...user } : null;
 	},
 });

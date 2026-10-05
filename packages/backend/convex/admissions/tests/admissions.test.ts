@@ -145,16 +145,14 @@ it("limits admin data to admins and applicant data to the signed-in student's ow
 	await expect(
 		student.query(api.admissions.queries.myApplication, { periodId }),
 	).resolves.toMatchObject({ about: "Om meg", motivation: "Jeg vil bidra" });
-	await expect(student.query(api.admissions.queries.currentApplication, {})).resolves.toMatchObject(
-		{
-			period: {
-				applicationEndAt: Date.now() + DAY,
-				interviewStartAt: Date.now() + 2 * DAY,
-				interviewEndAt: Date.now() + 9 * DAY,
-				retentionAt: Date.now() + 20 * DAY,
-			},
+	await expect(student.query(api.admissions.queries.myApplication, {})).resolves.toMatchObject({
+		period: {
+			applicationEndAt: Date.now() + DAY,
+			interviewStartAt: Date.now() + 2 * DAY,
+			interviewEndAt: Date.now() + 9 * DAY,
+			retentionAt: Date.now() + 20 * DAY,
 		},
-	);
+	});
 	await expect(
 		student.mutation(api.admissions.mutations.submit, {
 			periodId,
@@ -233,7 +231,7 @@ it("validates independent period windows, the 14-day cap, selected interviewers,
 			selectedCalendarIds: [],
 			expectedRevision: overview.candidates[0].revision,
 		}),
-	).rejects.toThrow(/to intervjuere/);
+	).rejects.toThrow(/to ulike intervjuere/);
 	await expect(
 		admin.mutation(api.admissions.mutations.scheduleInterview, {
 			applicationId,

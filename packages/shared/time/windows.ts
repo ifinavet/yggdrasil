@@ -4,7 +4,8 @@ import { MINUTES_PER_DAY, WORKDAYS } from "./constants";
 import { formatLocalDate } from "./formatting";
 import { isIsoDate } from "./semester";
 
-export type LocalMinuteWindow = Readonly<{ day: string; start: number; end: number }>;
+export type TimeInterval = Readonly<{ start: number; end: number }>;
+export type LocalMinuteWindow = TimeInterval & Readonly<{ day: string }>;
 
 export function isValidTimeWindows(windows: readonly LocalMinuteWindow[], maxWindows = Infinity) {
 	if (windows.length > maxWindows) return false;
@@ -63,10 +64,15 @@ export function coversWindow(
 	windows: readonly LocalMinuteWindow[],
 	target: LocalMinuteWindow,
 ): boolean {
+	return coversInterval(
+		windows.filter((window) => window.day === target.day),
+		target,
+	);
+}
+
+export function coversInterval(windows: readonly TimeInterval[], target: TimeInterval): boolean {
 	let coveredUntil = target.start;
-	const ordered = windows
-		.filter((window) => window.day === target.day)
-		.sort((a, b) => a.start - b.start);
+	const ordered = [...windows].sort((a, b) => a.start - b.start);
 	for (const window of ordered) {
 		if (window.start > coveredUntil) return false;
 		coveredUntil = Math.max(coveredUntil, window.end);
