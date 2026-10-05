@@ -1,3 +1,5 @@
+"use node";
+
 import { createHash } from "node:crypto";
 
 export function admissionCalendarEventId(interviewId: string) {

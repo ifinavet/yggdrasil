@@ -1,6 +1,6 @@
 # Admissions security review
 
-Reviewed the real applicant and board flows on `feat/member-admissions` on 2026-10-05, including backend authorization, offer handling, profile recovery, close/retention behavior, and the local Playwright journeys. The review found and fixed an applicant-facing identity leak on offer acceptance; no known high-confidence issue remains in the reviewed paths.
+Reviewed the real applicant and board flows on 2026-10-05, including backend authorization, offer handling, profile recovery, close/retention behavior, and the local Playwright journeys. The review found and fixed an applicant-facing identity leak on offer acceptance; no known high-confidence issue remains in the reviewed paths.
 
 ## Verified controls
 
@@ -12,7 +12,7 @@ Reviewed the real applicant and board flows on `feat/member-admissions` on 2026-
 - The onboarding acceptance boundary converts expected IAM identity conflicts to a generic applicant error. The transaction rolls back, leaving the offer pending, and the regression test verifies that private email addresses and names do not appear in the error.
 - Missing student profiles now use an authenticated nullable query, allowing Hugin to show a recovery link to the existing Midgard profile route instead of failing before the recovery UI can render.
 - Closing blocks admissions reads and writes, waits for interview calendar cleanup and Slack archive work, and purges admissions data in bounded batches. The student's ordinary profile and independent member account are outside the admissions purge.
-- The local admissions seed mutation is local-mode and admin gated. The normal Hugin `/admissions` route uses real Convex queries and mutations; the separate `?preview=` route remains local-only.
+- The local admissions seed mutation is local-mode and admin gated. The Hugin `/admissions` route uses real Convex queries and mutations. Static demo routes and their client-only state have been removed.
 
 Relevant implementation and regression coverage: [admissions queries](../../packages/backend/convex/admissions/queries.ts), [admissions mutations](../../packages/backend/convex/admissions/mutations.ts), [lifecycle cleanup](../../packages/backend/convex/admissions/lifecycle.ts), [student profile queries](../../packages/backend/convex/users/students/queries.ts), [admissions backend tests](../../packages/backend/convex/admissions/admissions.test.ts), [student profile tests](../../packages/backend/convex/users/students/students.test.ts), and [real applicant journeys](../../e2e/admissions/student-production.spec.ts).
 

@@ -1,6 +1,6 @@
 # Admissions integration coverage
 
-Status describes the real Convex-backed journeys on `feat/member-admissions`. Local acceptance runs use an isolated Convex deployment and synthetic accounts. They do not write to live Google, Slack, IAM, or Resend services.
+Status describes the real Convex-backed journeys. Local acceptance runs use an isolated Convex deployment and synthetic accounts. They do not write to live Google, Slack, IAM, or Resend services.
 
 | Journey | Current evidence | Remaining verification |
 | --- | --- | --- |
@@ -23,6 +23,6 @@ ADMISSIONS_SCREENSHOTS=1 pnpm exec playwright test e2e/admissions/student-produc
 ADMISSIONS_SCREENSHOTS=1 pnpm exec playwright test e2e/admissions/board-production.spec.ts e2e/admissions/board-workflow.spec.ts e2e/admissions/board-interviews.spec.ts e2e/admissions/board-settings.spec.ts --project=board
 ```
 
-`student.spec.ts` and `board.spec.ts` remain explicitly local preview tests for Hugin and Bifrost. Opt-in screenshots use the `live-` prefix under the ignored `test-results/admissions/screenshots/` directory and are not committed. Captured email previews come from the local admissions delivery capture; they are not proof of external delivery.
+The browser suites exercise the authenticated Hugin and Bifrost flows with local test providers. Opt-in screenshots use the `live-` prefix under the ignored `test-results/admissions/screenshots/` directory and are not committed. Captured email previews come from the local admissions delivery capture; they are not proof of external delivery.
 
 Never capture credentials, tokens, or real applicant data. The production journey suite uses synthetic data seeded only into the isolated local Convex deployment.

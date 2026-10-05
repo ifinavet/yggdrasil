@@ -1,3 +1,5 @@
+"use node";
+
 import { calendar } from "@googleapis/calendar";
 import {
 	GOOGLE_CALENDAR_API_URL,
