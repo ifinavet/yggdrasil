@@ -15,19 +15,19 @@ import {
 } from "@workspace/shared/time";
 import type { FunctionReturnType } from "convex/server";
 import { v } from "convex/values";
-import { internal } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
-import { type ActionCtx, action } from "../_generated/server";
-import { isLocalDevelopment } from "../auth/local";
-import { googleConfig, isWorkspaceEmail } from "../iam/config";
+import { internal } from "../../_generated/api";
+import type { Id } from "../../_generated/dataModel";
+import { type ActionCtx, action } from "../../_generated/server";
+import { isLocalDevelopment } from "../../auth/local";
+import { googleConfig, isWorkspaceEmail } from "../../iam/config";
 import {
 	externalBusyIntervals,
 	googleCalendarClient,
 	type OwnedAdmissionEvent,
 	ownedBusyIntervals,
-} from "../iam/googleCalendar";
-import { admissionCalendarEventId } from "./delivery/eventId";
-import { interviewCalendarIds } from "./rules";
+} from "../../iam/googleCalendar";
+import { admissionCalendarEventId } from "../delivery/eventId";
+import { interviewCalendarIds } from "../rules";
 
 const localCalendars = [
 	{ id: "navet", name: "Navet" },

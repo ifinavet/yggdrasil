@@ -58,7 +58,7 @@ export default function AdmissionsDashboard() {
 	const changeRound = useMutation(api.admissions.board.changeRound);
 	const sendDecision = useMutation(api.admissions.mutations.sendDecision);
 	const publish = useMutation(api.admissions.mutations.publish);
-	const generate = useAction(api.admissions.calendar.generateSchedule);
+	const generate = useAction(api.admissions.interviews.calendar.generateSchedule);
 	const [view, setView] = useState<"calendar" | "candidates" | "selection">("calendar");
 	const [selected, setSelected] = useState<string | null>(null);
 	const [query, setQuery] = useState("");

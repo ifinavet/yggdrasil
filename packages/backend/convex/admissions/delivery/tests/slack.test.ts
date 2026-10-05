@@ -4,7 +4,7 @@ import {
 	ensureAdmissionsChannel,
 	postAdmissionsNotice,
 	type Slack,
-} from "./slack";
+} from "../slack";
 
 const period = {
 	_id: "admissions-id",

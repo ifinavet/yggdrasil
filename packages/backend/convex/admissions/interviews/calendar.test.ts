@@ -1,8 +1,12 @@
 import { osloDateTimeToEpoch } from "@workspace/shared/time";
 import { expect, it } from "vitest";
-import { applicationFields, interviewFields, periodFields } from "../../test/admissions-fixtures";
-import { asUser, grantRole, insertUser, setup } from "../../test/fixtures";
-import { api } from "../_generated/api";
+import {
+	applicationFields,
+	interviewFields,
+	periodFields,
+} from "../../../test/admissions-fixtures";
+import { asUser, grantRole, insertUser, setup } from "../../../test/fixtures";
+import { api } from "../../_generated/api";
 
 it("keeps published slots pinned and does not rebook cancelled interviews automatically", async () => {
 	const { t } = await setup();
@@ -85,10 +89,13 @@ it("keeps published slots pinned and does not rebook cancelled interviews automa
 	process.env.CONVEX_CLOUD_URL = "http://127.0.0.1:3210";
 	process.env.APP_ENV = "local";
 	try {
-		const result = await asUser(t, admin).action(api.admissions.calendar.generateSchedule, {
-			periodId,
-			expectedRevision: 0,
-		});
+		const result = await asUser(t, admin).action(
+			api.admissions.interviews.calendar.generateSchedule,
+			{
+				periodId,
+				expectedRevision: 0,
+			},
+		);
 		expect(result.count).toBe(2);
 		const interviews = await t.run((ctx) =>
 			ctx.db

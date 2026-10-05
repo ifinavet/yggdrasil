@@ -6,14 +6,14 @@ import {
 	insertInternalGroup,
 	interviewFields,
 	periodFields,
-} from "../../test/admissions-fixtures";
+} from "../../../test/admissions-fixtures";
 import {
 	finishOperation,
 	firstOperation,
 	operationArgs,
 	operationByKey,
 	stageOperation,
-} from "../../test/admissions-workflow";
+} from "../../../test/admissions-workflow";
 import {
 	asUser,
 	grantRole,
@@ -21,10 +21,10 @@ import {
 	insertUser,
 	setup,
 	type TestBackend,
-} from "../../test/fixtures";
-import { api, internal } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
-import { listOperations } from "./workflow";
+} from "../../../test/fixtures";
+import { api, internal } from "../../_generated/api";
+import type { Id } from "../../_generated/dataModel";
+import { listOperations } from "../delivery/workflow";
 
 const DAY = 86400000;
 const MINUTE = 60000;
@@ -1031,4 +1031,57 @@ it("schedules offer expiration when an accepted decision email is delivered", as
 	} finally {
 		vi.useRealTimers();
 	}
+});
+
+it("cleans a failed calendar publish before archiving even without a saved event id", async () => {
+	const { t, admin, interviewer, otherInterviewer, now, periodId, applicationId } =
+		await periodApplicationFixture();
+	const interviewId = await t.run(async (ctx) => {
+		await ctx.db.patch(periodId, { status: "published" });
+		const id = await ctx.db.insert(
+			"admissionInterviews",
+			interviewFields(periodId, applicationId, {
+				startAt: now + DAY,
+				endAt: now + DAY + 15 * MINUTE,
+				interviewerIds: [interviewer._id, otherInterviewer._id],
+			}),
+		);
+		await stageOperation(ctx, {
+			kind: "publish",
+			periodId,
+			applicationId,
+			interviewId: id,
+			revision: 1,
+			idempotencyKey: "publish-failed-before-recording",
+			dueAt: now,
+			state: "failed",
+		});
+		return id;
+	});
+	const interview = await t.run((ctx) => ctx.db.get(interviewId));
+	expect(interview?.calendarEventId).toBeUndefined();
+	expect(interview?.publishedAt).toBeUndefined();
+	expect(
+		await t.run((ctx) => operationByKey(ctx, "publish-failed-before-recording")),
+	).toMatchObject({ state: "failed" });
+	await admin.mutation(api.admissions.mutations.closePeriod, {
+		periodId,
+		idempotencyKey: "close-failed-publish",
+		force: true,
+	});
+	const cleanup = await t.run((ctx) =>
+		operationByKey(ctx, `close-failed-publish:cancel:${interviewId}`),
+	);
+	expect(cleanup).toMatchObject({
+		kind: "cancel_interview",
+		interviewId,
+		notifyApplicant: false,
+		state: "inProgress",
+	});
+	expect(await firstAdmissionOperation(t, periodId, "archive_channel")).toBeNull();
+	expect(await t.run((ctx) => ctx.db.get(interviewId))).not.toBeNull();
+	await finishOperation(t, `close-failed-publish:cancel:${interviewId}`);
+	expect(await firstAdmissionOperation(t, periodId, "archive_channel")).toMatchObject({
+		state: "inProgress",
+	});
 });

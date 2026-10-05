@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { insertInternalGroup } from "../../test/admissions-fixtures";
-import { allOperations, finishOperation } from "../../test/admissions-workflow";
-import { asUser, grantRole, insertStudent, insertUser, setup } from "../../test/fixtures";
-import { api } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
-import { listOperations } from "./workflow";
+import { insertInternalGroup } from "../../../test/admissions-fixtures";
+import { allOperations, finishOperation } from "../../../test/admissions-workflow";
+import { asUser, grantRole, insertStudent, insertUser, setup } from "../../../test/fixtures";
+import { api } from "../../_generated/api";
+import type { Id } from "../../_generated/dataModel";
+import { listOperations } from "../delivery/workflow";
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -155,16 +155,25 @@ it("keeps calendar discovery and schedule generation admin-only", async () => {
 	const { student, board, admin, boardId, secondBoardId } = await users(t);
 	const periodId = await openPeriod(admin, boardId, secondBoardId);
 	await expect(
-		student.action(api.admissions.calendar.sources, { periodId, interviewerId: boardId }),
+		student.action(api.admissions.interviews.calendar.sources, {
+			periodId,
+			interviewerId: boardId,
+		}),
 	).rejects.toThrow(/Unauthorized/);
 	await expect(
-		board.action(api.admissions.calendar.sources, { periodId, interviewerId: boardId }),
+		board.action(api.admissions.interviews.calendar.sources, { periodId, interviewerId: boardId }),
 	).rejects.toThrow(/Unauthorized/);
 	await expect(
-		student.action(api.admissions.calendar.generateSchedule, { periodId, expectedRevision: 0 }),
+		student.action(api.admissions.interviews.calendar.generateSchedule, {
+			periodId,
+			expectedRevision: 0,
+		}),
 	).rejects.toThrow(/Unauthorized/);
 	await expect(
-		board.action(api.admissions.calendar.generateSchedule, { periodId, expectedRevision: 0 }),
+		board.action(api.admissions.interviews.calendar.generateSchedule, {
+			periodId,
+			expectedRevision: 0,
+		}),
 	).rejects.toThrow(/Unauthorized/);
 });
 

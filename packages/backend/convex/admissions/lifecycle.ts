@@ -3,8 +3,8 @@ import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 import { workflow } from "../lib/workflow";
+import { listOperations, readOperation, startDelivery } from "./delivery/workflow";
 import { MAX_APPLICATIONS } from "./rules";
-import { listOperations, readOperation, startDelivery } from "./workflow";
 
 export async function beginClose(
 	ctx: MutationCtx,
@@ -38,7 +38,7 @@ export async function beginClose(
 		throw new ConvexError(
 			`Før du lukker, avklar ${pendingOffers.length} ventende tilbud, ${interviews.length} intervjuer og ${unsentDecisions.length} usendte beslutninger.`,
 		);
-	const publishing = await activePublishInterviewIds(ctx, period._id);
+	const publishing = await activePublishInterviewIds(ctx, period._id, true);
 	await Promise.all(
 		pendingOffers.map((app) =>
 			ctx.db.patch(app._id, { offerStatus: "expired", revision: app.revision + 1 }),
@@ -132,11 +132,16 @@ export async function finishClose(ctx: MutationCtx, period: Doc<"admissionPeriod
 export async function activePublishInterviewIds(
 	ctx: MutationCtx,
 	periodId: Id<"admissionPeriods">,
+	includeFailed = false,
 ) {
 	const jobs = await listOperations(ctx, periodId, true);
 	return new Set(
 		jobs
-			.filter((job) => job.kind === "publish" && job.state === "inProgress")
+			.filter(
+				(job) =>
+					job.kind === "publish" &&
+					(job.state === "inProgress" || (includeFailed && job.state === "failed")),
+			)
 			.flatMap((job) => (job.interviewId ? [job.interviewId] : [])),
 	);
 }

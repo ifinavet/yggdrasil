@@ -20,7 +20,7 @@ export function CalendarDialog({
 	people: { id: Id<"users">; name: string; image: string }[];
 	onClose: () => void;
 }>) {
-	const sources = useAction(api.admissions.calendar.sources);
+	const sources = useAction(api.admissions.interviews.calendar.sources);
 	const save = useMutation(api.admissions.board.updateInterviewers);
 	const [calendars, setCalendars] = useState<
 		Record<string, { id: string; name: string; selected: boolean; readable: boolean }[]>

@@ -5,7 +5,7 @@ import { adminRoles, requireRole } from "../auth/accessRights";
 import { getCurrentUserOrThrow } from "../auth/currentUser";
 import { isLocalDevelopment } from "../auth/local";
 import { MAX_INTERNAL_GROUPS } from "../users/organization/groups";
-import { listOperations } from "./workflow";
+import { listOperations } from "./delivery/workflow";
 
 export const openPeriods = query({
 	args: { now: v.number() },

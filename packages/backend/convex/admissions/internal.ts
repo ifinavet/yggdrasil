@@ -7,7 +7,8 @@ import { internalMutation, internalQuery, type MutationCtx } from "../_generated
 import { adminRoles, internalRoles, requireRole, userHasRole } from "../auth/accessRights";
 import { accountForUser } from "../iam/accounts";
 import { enqueueSystemMessage } from "../iam/notifications";
-import { admissionsChannelNames } from "./channelNames";
+import { admissionsChannelNames } from "./delivery/channelNames";
+import { type Operation, startDelivery } from "./delivery/workflow";
 import {
 	activePublishInterviewIds,
 	beginClose,
@@ -20,7 +21,6 @@ import {
 	validateInterviewWindow,
 } from "./rules";
 import { operationValidator } from "./schema";
-import { type Operation, startDelivery } from "./workflow";
 
 async function isCurrent(ctx: Parameters<typeof requireRole>[0], job: Operation) {
 	const period = await ctx.db.get(job.periodId);
@@ -78,10 +78,12 @@ function exhaustedResource(
 	period: Doc<"admissionPeriods"> | null,
 	interview: Doc<"admissionInterviews"> | null,
 ) {
-	if (job.kind === "cancel_interview") {
+	if (job.kind === "cancel_interview" || job.kind === "publish") {
 		if (interview?.calendarEventId) return `Google Calendar event ${interview.calendarEventId}`;
 		return `Google Calendar interview ${job.interviewId ?? "unknown"}; search shared metadata navetAdmissionsInterviewId=${job.interviewId ?? "unknown"} and navetAdmissionsPeriodId=${job.periodId}`;
 	}
+	if (job.kind === "send_decision" || job.kind === "remind_3d" || job.kind === "remind_1d")
+		return `Email delivery ${job.idempotencyKey}`;
 	if (!period) return `Slack channel owned by admissions:${job.periodId}`;
 	const { name, fallbackName } = admissionsChannelNames(period.applicationStartAt, period._id);
 	return `Slack channel ${name} or ${fallbackName}, owner admissions:${period._id}`;
@@ -140,17 +142,12 @@ export const operationIsCurrent = internalQuery({
 	handler: (ctx, { operation }) => isCurrent(ctx, operation),
 });
 
-export const deliveryResult = v.object({
-	calendarEventId: v.optional(v.string()),
-	deliveryIds: v.optional(v.array(v.string())),
-});
-type DeliveryResult = { calendarEventId?: string; deliveryIds?: string[] };
 export const completeDelivery = internalMutation({
-	args: { operation: operationValidator, result: v.optional(deliveryResult) },
-	handler: async (ctx, { operation: job, result }) => {
+	args: { operation: operationValidator, calendarEventId: v.optional(v.string()) },
+	handler: async (ctx, { operation: job, calendarEventId }) => {
 		if (!(await isCurrent(ctx, job))) return { stale: true };
 		if (job.kind === "publish" && job.interviewId)
-			await completePublication(ctx, job, job.interviewId, result);
+			await completePublication(ctx, job, job.interviewId, calendarEventId);
 		if (job.kind === "send_decision" && job.applicationId)
 			await completeDecision(ctx, job, job.applicationId);
 		return { stale: false };
@@ -436,12 +433,12 @@ async function completePublication(
 	ctx: MutationCtx,
 	job: Operation,
 	interviewId: Id<"admissionInterviews">,
-	result: DeliveryResult | undefined,
+	calendarEventId: string | undefined,
 ) {
 	const interview = await ctx.db.get(interviewId);
 	if (interview?.revision === job.revision && interview.status === "scheduled") {
 		await ctx.db.patch(interview._id, {
-			calendarEventId: result?.calendarEventId ?? interview.calendarEventId,
+			calendarEventId: calendarEventId ?? interview.calendarEventId,
 			publishedAt: Date.now(),
 		});
 		await Promise.all(

@@ -1,13 +1,17 @@
 import { expect, it } from "vitest";
-import { applicationFields, interviewFields, periodFields } from "../../test/admissions-fixtures";
+import {
+	applicationFields,
+	interviewFields,
+	periodFields,
+} from "../../../test/admissions-fixtures";
 import {
 	allOperations,
 	finishOperation,
 	firstOperation,
 	stageOperation,
-} from "../../test/admissions-workflow";
-import { asUser, grantRole, insertUser, setup } from "../../test/fixtures";
-import { api, internal } from "../_generated/api";
+} from "../../../test/admissions-workflow";
+import { asUser, grantRole, insertUser, setup } from "../../../test/fixtures";
+import { api, internal } from "../../_generated/api";
 
 async function boardFixture() {
 	const { t } = await setup();

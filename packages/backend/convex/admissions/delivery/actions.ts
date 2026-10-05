@@ -9,22 +9,26 @@ import AdmissionsReminderEmail from "@workspace/emails/admissions-reminder-email
 import { roomUrl } from "@workspace/shared/admissions";
 import { huginUrl } from "@workspace/shared/constants/hugin-url";
 import { formatOsloDate } from "@workspace/shared/time";
-import { internal } from "../_generated/api";
-import type { Doc } from "../_generated/dataModel";
-import { type ActionCtx, internalAction } from "../_generated/server";
-import { isLocalDevelopment } from "../auth/local";
-import { googleConfig, isWorkspaceEmail } from "../iam/config";
-import { externalBusyIntervals, googleCalendarClient, overlapsBusy } from "../iam/googleCalendar";
-import { admissionCalendarEventId } from "./delivery/eventId";
-import { sendAdmissionEmail } from "./delivery/mail";
+import { internal } from "../../_generated/api";
+import type { Doc } from "../../_generated/dataModel";
+import { type ActionCtx, internalAction } from "../../_generated/server";
+import { isLocalDevelopment } from "../../auth/local";
+import { googleConfig, isWorkspaceEmail } from "../../iam/config";
+import {
+	externalBusyIntervals,
+	googleCalendarClient,
+	overlapsBusy,
+} from "../../iam/googleCalendar";
+import { operationValidator } from "../schema";
+import { admissionCalendarEventId } from "./eventId";
+import { sendAdmissionEmail } from "./mail";
 import {
 	admissionsSlack,
 	archiveAdmissionsChannel,
 	ensureAdmissionsChannel,
 	postAdmissionsNotice,
 	type Slack,
-} from "./delivery/slack";
-import { operationValidator } from "./schema";
+} from "./slack";
 import type { Operation } from "./workflow";
 
 const ADMISSIONS_URL = `${huginUrl()}/admissions`;
@@ -34,7 +38,7 @@ function when(startAt: number) {
 	return formatOsloDate(startAt, "EEEE d. MMMM yyyy, HH:mm");
 }
 
-async function current(ctx: ActionCtx, operation: Operation) {
+function current(ctx: ActionCtx, operation: Operation) {
 	return ctx.runQuery(internal.admissions.internal.operationIsCurrent, { operation });
 }
 
@@ -53,15 +57,15 @@ async function admissionsChannel(
 	);
 }
 
-async function requireCurrentPublish(ctx: ActionCtx, claimed: CurrentClaim) {
+async function requireCurrentPublish(ctx: ActionCtx, claimed: DeliveryContext) {
 	if (await current(ctx, claimed.job)) return;
 	await queueLatePublishCleanup(ctx, claimed);
 	throw new StaleAdmissionJob();
 }
 
-async function queueLatePublishCleanup(ctx: ActionCtx, claimed: CurrentClaim) {
+async function queueLatePublishCleanup(ctx: ActionCtx, claimed: DeliveryContext) {
 	if (isLocalDevelopment() || !claimed.interview) return;
-	await ctx.runMutation(internal.admissions.compensation.queueStalePublishCleanup, {
+	await ctx.runMutation(internal.admissions.delivery.compensation.queueStalePublishCleanup, {
 		periodId: claimed.period._id,
 		interviewId: claimed.interview._id,
 		publishedRevision: claimed.job.revision,
@@ -70,7 +74,7 @@ async function queueLatePublishCleanup(ctx: ActionCtx, claimed: CurrentClaim) {
 
 async function deliverEmail(
 	ctx: ActionCtx,
-	claimed: CurrentClaim,
+	claimed: DeliveryContext,
 	kind: Doc<"admissionDeliveries">["kind"],
 	key: string,
 	subject: string,
@@ -88,7 +92,7 @@ async function deliverEmail(
 		text: toPlainText(html),
 		idempotencyKey: key,
 	});
-	await ctx.runMutation(internal.admissions.delivery.recordQueued, {
+	await ctx.runMutation(internal.admissions.delivery.tracking.recordQueued, {
 		periodId: period._id,
 		applicationId: application._id,
 		kind,
@@ -101,14 +105,14 @@ async function deliverEmail(
 	return emailId;
 }
 
-function emailProps(claimed: CurrentClaim) {
+function emailProps(claimed: DeliveryContext) {
 	return {
 		firstName: claimed.applicant?.name.trim().split(/\s+/)[0] ?? "",
 		periodTitle: claimed.period.title,
 	};
 }
 
-function interviewEmailProps(claimed: CurrentClaim) {
+function interviewEmailProps(claimed: DeliveryContext) {
 	if (!claimed.interview) throw new StaleAdmissionJob();
 	return {
 		...emailProps(claimed),
@@ -118,8 +122,8 @@ function interviewEmailProps(claimed: CurrentClaim) {
 	};
 }
 
-type ClaimedOutbox = NonNullable<Awaited<ReturnType<typeof context>>>;
-type CurrentClaim = Omit<ClaimedOutbox, "period"> & { period: Doc<"admissionPeriods"> };
+type LoadedDelivery = NonNullable<Awaited<ReturnType<typeof context>>>;
+type DeliveryContext = Omit<LoadedDelivery, "period"> & { period: Doc<"admissionPeriods"> };
 
 function googleConfigOrThrow() {
 	const config = googleConfig();
@@ -128,7 +132,7 @@ function googleConfigOrThrow() {
 	return config;
 }
 
-function interviewContacts(claimed: CurrentClaim) {
+function interviewContacts(claimed: DeliveryContext) {
 	const { period, interview, interviewers } = claimed;
 	if (!interview) throw new Error("Fant ikke intervjuet.");
 	if (interview.interviewerIds.length < 2)
@@ -145,7 +149,7 @@ function interviewContacts(claimed: CurrentClaim) {
 async function assertInterviewerAvailability(
 	config: NonNullable<ReturnType<typeof googleConfig>>,
 	person: ReturnType<typeof interviewContacts>[number],
-	claimed: CurrentClaim,
+	claimed: DeliveryContext,
 ) {
 	const { interview, period } = claimed;
 	if (!interview) throw new Error("Fant ikke intervjuet.");
@@ -193,7 +197,7 @@ async function assertInterviewerAvailability(
 }
 
 async function assertScheduleAvailable(
-	claimed: CurrentClaim,
+	claimed: DeliveryContext,
 	contacts: ReturnType<typeof interviewContacts>,
 ) {
 	if (isLocalDevelopment()) return;
@@ -203,7 +207,7 @@ async function assertScheduleAvailable(
 	);
 }
 
-async function publish(ctx: ActionCtx, claimed: CurrentClaim) {
+async function publish(ctx: ActionCtx, claimed: DeliveryContext) {
 	const { period, application, interview, applicant, job } = claimed;
 	if (!application || !interview || !applicant || interview.status !== "scheduled")
 		throw new Error("Intervjuet finnes ikke lenger eller er avlyst.");
@@ -254,7 +258,7 @@ async function publish(ctx: ActionCtx, claimed: CurrentClaim) {
 	await requireCurrentPublish(ctx, claimed);
 
 	const emailKey = `admission:interview:${interview._id}:${interview.revision}:invite`;
-	const emailId = await deliverEmail(
+	await deliverEmail(
 		ctx,
 		claimed,
 		"interview_invite",
@@ -279,10 +283,10 @@ async function publish(ctx: ActionCtx, claimed: CurrentClaim) {
 			`Intervju publisert ${when(interview.startAt)} i ${interview.room} (${roomUrl(interview.room)}). Intervjuere: ${tags}`,
 		);
 	}
-	return { calendarEventId: eventId, deliveryIds: [emailId] };
+	return eventId;
 }
 
-async function sendDecision(ctx: ActionCtx, claimed: CurrentClaim) {
+async function sendDecision(ctx: ActionCtx, claimed: DeliveryContext) {
 	const { period, application, applicant } = claimed;
 	if (!application || !applicant) throw new Error("Fant ikke søknaden eller søkeren.");
 	if (application.decision !== "accepted" && application.decision !== "rejected")
@@ -290,7 +294,7 @@ async function sendDecision(ctx: ActionCtx, claimed: CurrentClaim) {
 	const offer = application.decision === "accepted";
 	const kind = offer ? "offer" : "rejection";
 	const key = `admission:decision:${application._id}:${application.decisionRevision}:${kind}`;
-	const emailId = await deliverEmail(
+	await deliverEmail(
 		ctx,
 		claimed,
 		kind,
@@ -304,17 +308,15 @@ async function sendDecision(ctx: ActionCtx, claimed: CurrentClaim) {
 				})
 			: AdmissionsRejectionEmail(emailProps(claimed)),
 	);
-
-	return { deliveryIds: [emailId] };
 }
 
-async function remind(ctx: ActionCtx, claimed: CurrentClaim, days: 1 | 3) {
+async function remind(ctx: ActionCtx, claimed: DeliveryContext, days: 1 | 3) {
 	const { period, application, interview, applicant } = claimed;
 	if (!application || !interview || !applicant || interview.status !== "scheduled")
 		throw new Error("Intervjuet finnes ikke lenger eller er avlyst.");
 	const kind = days === 3 ? "reminder_3d" : "reminder_1d";
 	const key = `admission:interview:${interview._id}:${interview.revision}:reminder-${days}d`;
-	const emailId = await deliverEmail(
+	await deliverEmail(
 		ctx,
 		claimed,
 		kind,
@@ -329,10 +331,9 @@ async function remind(ctx: ActionCtx, claimed: CurrentClaim, days: 1 | 3) {
 			`Påminnelse: intervjuet er ${when(interview.startAt)} i ${interview.room} (${roomUrl(interview.room)}).`,
 			`reminder-1d:${interview._id}:${interview.revision}`,
 		);
-	return { deliveryIds: [emailId] };
 }
 
-async function cancelCalendarEvent(ctx: ActionCtx, claimed: CurrentClaim) {
+async function cancelCalendarEvent(ctx: ActionCtx, claimed: DeliveryContext) {
 	const { interview, interviewers, job } = claimed;
 	if (!interview || isLocalDevelopment()) return;
 	const owner = interviewers.find((person) => person.userId === interview.interviewerIds[0]);
@@ -354,7 +355,7 @@ async function cancelCalendarEvent(ctx: ActionCtx, claimed: CurrentClaim) {
 	await client.cancelEvent("primary", eventId);
 }
 
-async function sendCancellationEmail(ctx: ActionCtx, claimed: CurrentClaim) {
+async function sendCancellationEmail(ctx: ActionCtx, claimed: DeliveryContext) {
 	const { period, interview, applicant, application, job } = claimed;
 	if (!interview || !applicant || !application) throw new StaleAdmissionJob();
 	if (!(await current(ctx, job))) throw new StaleAdmissionJob();
@@ -369,25 +370,24 @@ async function sendCancellationEmail(ctx: ActionCtx, claimed: CurrentClaim) {
 	);
 }
 
-async function cancelInterview(ctx: ActionCtx, claimed: CurrentClaim) {
+async function cancelInterview(ctx: ActionCtx, claimed: DeliveryContext) {
 	const { interview, applicant, application } = claimed;
-	if (!interview) return {};
+	if (!interview) return;
 	await cancelCalendarEvent(ctx, claimed);
 	if (!claimed.job.notifyApplicant || interview.startAt <= Date.now() || !applicant || !application)
-		return {};
-	const emailId = await sendCancellationEmail(ctx, claimed);
+		return;
+	await sendCancellationEmail(ctx, claimed);
 	await sendNotice(
 		ctx,
 		claimed,
 		`Et intervju i ${claimed.period.title} er avlyst. Kalenderinvitasjonen er oppdatert.`,
 		`cancelled:${interview._id}:${interview.revision}`,
 	);
-	return { deliveryIds: [emailId] };
 }
 
 async function sendNotice(
 	ctx: ActionCtx,
-	claimed: CurrentClaim,
+	claimed: DeliveryContext,
 	message: string,
 	key = claimed.job.idempotencyKey,
 ) {
@@ -404,7 +404,7 @@ async function sendNotice(
 	);
 }
 
-async function runJob(ctx: ActionCtx, claimed: CurrentClaim) {
+async function runJob(ctx: ActionCtx, claimed: DeliveryContext) {
 	switch (claimed.job.kind) {
 		case "publish":
 			return publish(ctx, claimed);
@@ -422,13 +422,13 @@ async function runJob(ctx: ActionCtx, claimed: CurrentClaim) {
 				claimed,
 				`En søker takket nei til tilbudet fra ${claimed.period.title}. Kandidaten er tilgjengelig for ny vurdering.`,
 			);
-			return {};
+			return;
 		case "archive_channel":
 			if (!isLocalDevelopment()) {
 				if (!(await current(ctx, claimed.job))) throw new StaleAdmissionJob();
 				await archiveAdmissionsChannel(admissionsSlack(), claimed.period);
 			}
-			return {};
+			return;
 		case "delivery_failure":
 			if (!claimed.delivery) throw new Error("Fant ikke den feilede e-postleveringen.");
 			await sendNotice(
@@ -436,7 +436,7 @@ async function runJob(ctx: ActionCtx, claimed: CurrentClaim) {
 				claimed,
 				`En e-postlevering trenger oppfølging (${claimed.delivery.kind}, ${claimed.delivery.status}) for ${claimed.period.title}. Kontroller opptaksoversikten.`,
 			);
-			return {};
+			return;
 		case "sync_channel":
 			if (!isLocalDevelopment()) {
 				if (!(await current(ctx, claimed.job))) throw new StaleAdmissionJob();
@@ -447,7 +447,7 @@ async function runJob(ctx: ActionCtx, claimed: CurrentClaim) {
 					claimed.selectedInterviewers,
 				);
 			}
-			return {};
+			return;
 	}
 }
 
@@ -462,8 +462,11 @@ export const execute = internalAction({
 		const claimed = await context(ctx, operation);
 		if (!claimed?.period) return;
 		try {
-			const result = await runJob(ctx, claimed as CurrentClaim);
-			await ctx.runMutation(internal.admissions.internal.completeDelivery, { operation, result });
+			const calendarEventId = await runJob(ctx, claimed as DeliveryContext);
+			await ctx.runMutation(internal.admissions.internal.completeDelivery, {
+				operation,
+				calendarEventId: calendarEventId ?? undefined,
+			});
 		} catch (error) {
 			if (!(error instanceof StaleAdmissionJob)) throw error;
 		}

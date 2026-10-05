@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { internalMutation } from "../_generated/server";
+import { internalMutation } from "../../_generated/server";
 import { startDelivery } from "./workflow";
 
 export const queueStalePublishCleanup = internalMutation({

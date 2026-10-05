@@ -13,7 +13,7 @@ import { adminRoles, requireRole } from "../auth/accessRights";
 import { getCurrentUserOrThrow } from "../auth/currentUser";
 import { workflow } from "../lib/workflow";
 import { requireLocal } from "../products/localSeed";
-import { startDelivery } from "./workflow";
+import { startDelivery } from "./delivery/workflow";
 
 const DAY = 24 * 60 * 60 * 1000;
 const seedPrefix = "seed-admissions-";

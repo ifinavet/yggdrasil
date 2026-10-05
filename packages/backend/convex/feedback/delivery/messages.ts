@@ -220,7 +220,7 @@ export const onEmailEvent = internalMutation({
 	args: vOnEmailEventArgs,
 	handler: async (ctx, { id, event }): Promise<void> => {
 		if (
-			await ctx.runMutation(internal.admissions.delivery.recordProviderEvent, {
+			await ctx.runMutation(internal.admissions.delivery.tracking.recordProviderEvent, {
 				emailId: id,
 				type: event.type,
 			})

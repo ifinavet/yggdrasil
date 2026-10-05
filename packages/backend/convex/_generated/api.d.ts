@@ -9,22 +9,22 @@
  */
 
 import type * as admissions_access from "../admissions/access.js";
-import type * as admissions_actions from "../admissions/actions.js";
 import type * as admissions_board from "../admissions/board.js";
-import type * as admissions_calendar from "../admissions/calendar.js";
-import type * as admissions_channelNames from "../admissions/channelNames.js";
-import type * as admissions_compensation from "../admissions/compensation.js";
-import type * as admissions_delivery from "../admissions/delivery.js";
+import type * as admissions_delivery_actions from "../admissions/delivery/actions.js";
+import type * as admissions_delivery_channelNames from "../admissions/delivery/channelNames.js";
+import type * as admissions_delivery_compensation from "../admissions/delivery/compensation.js";
 import type * as admissions_delivery_eventId from "../admissions/delivery/eventId.js";
 import type * as admissions_delivery_mail from "../admissions/delivery/mail.js";
 import type * as admissions_delivery_slack from "../admissions/delivery/slack.js";
+import type * as admissions_delivery_tracking from "../admissions/delivery/tracking.js";
+import type * as admissions_delivery_workflow from "../admissions/delivery/workflow.js";
 import type * as admissions_internal from "../admissions/internal.js";
+import type * as admissions_interviews_calendar from "../admissions/interviews/calendar.js";
 import type * as admissions_lifecycle from "../admissions/lifecycle.js";
 import type * as admissions_localSeed from "../admissions/localSeed.js";
 import type * as admissions_mutations from "../admissions/mutations.js";
 import type * as admissions_queries from "../admissions/queries.js";
 import type * as admissions_rules from "../admissions/rules.js";
-import type * as admissions_workflow from "../admissions/workflow.js";
 import type * as auth_accessRights from "../auth/accessRights.js";
 import type * as auth_currentUser from "../auth/currentUser.js";
 import type * as auth_local from "../auth/local.js";
@@ -196,22 +196,22 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   "admissions/access": typeof admissions_access;
-  "admissions/actions": typeof admissions_actions;
   "admissions/board": typeof admissions_board;
-  "admissions/calendar": typeof admissions_calendar;
-  "admissions/channelNames": typeof admissions_channelNames;
-  "admissions/compensation": typeof admissions_compensation;
-  "admissions/delivery": typeof admissions_delivery;
+  "admissions/delivery/actions": typeof admissions_delivery_actions;
+  "admissions/delivery/channelNames": typeof admissions_delivery_channelNames;
+  "admissions/delivery/compensation": typeof admissions_delivery_compensation;
   "admissions/delivery/eventId": typeof admissions_delivery_eventId;
   "admissions/delivery/mail": typeof admissions_delivery_mail;
   "admissions/delivery/slack": typeof admissions_delivery_slack;
+  "admissions/delivery/tracking": typeof admissions_delivery_tracking;
+  "admissions/delivery/workflow": typeof admissions_delivery_workflow;
   "admissions/internal": typeof admissions_internal;
+  "admissions/interviews/calendar": typeof admissions_interviews_calendar;
   "admissions/lifecycle": typeof admissions_lifecycle;
   "admissions/localSeed": typeof admissions_localSeed;
   "admissions/mutations": typeof admissions_mutations;
   "admissions/queries": typeof admissions_queries;
   "admissions/rules": typeof admissions_rules;
-  "admissions/workflow": typeof admissions_workflow;
   "auth/accessRights": typeof auth_accessRights;
   "auth/currentUser": typeof auth_currentUser;
   "auth/local": typeof auth_local;

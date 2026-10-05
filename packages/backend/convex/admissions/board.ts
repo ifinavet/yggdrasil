@@ -3,10 +3,10 @@ import type { Doc } from "../_generated/dataModel";
 import { mutation } from "../_generated/server";
 import schema from "../schema";
 import { requireMutablePeriod } from "./access";
+import { startDelivery } from "./delivery/workflow";
 import { validateInterviewers } from "./mutations";
 import { MAX_APPLICATIONS, MAX_ROUNDS, validateSettings } from "./rules";
 import { interviewerSelection } from "./schema";
-import { startDelivery } from "./workflow";
 
 const settings = schema
 	.doc("admissionPeriods")

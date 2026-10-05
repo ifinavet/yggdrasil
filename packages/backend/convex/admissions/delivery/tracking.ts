@@ -1,7 +1,7 @@
 import { v } from "convex/values";
-import type { Doc } from "../_generated/dataModel";
-import { internalMutation } from "../_generated/server";
-import { isLocalDevelopment } from "../auth/local";
+import type { Doc } from "../../_generated/dataModel";
+import { internalMutation } from "../../_generated/server";
+import { isLocalDevelopment } from "../../auth/local";
 import { startDelivery } from "./workflow";
 
 const deliveryKind = v.union(

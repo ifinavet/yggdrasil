@@ -3,10 +3,14 @@ import {
 	applicationFields,
 	firstAdmissionOperation,
 	periodFields,
-} from "../../test/admissions-fixtures";
-import { deliveryContext, finishOperation, stageOperation } from "../../test/admissions-workflow";
-import { asUser, grantRole, insertUser, setup } from "../../test/fixtures";
-import { api } from "../_generated/api";
+} from "../../../test/admissions-fixtures";
+import {
+	deliveryContext,
+	finishOperation,
+	stageOperation,
+} from "../../../test/admissions-workflow";
+import { asUser, grantRole, insertUser, setup } from "../../../test/fixtures";
+import { api } from "../../_generated/api";
 
 it("keeps closing data until an already-running decision and reminder settle", async () => {
 	const { t } = await setup();

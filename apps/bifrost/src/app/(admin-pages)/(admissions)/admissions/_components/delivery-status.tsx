@@ -31,7 +31,7 @@ export function DeliveryStatus({
 	jobs: Job[];
 	closing: boolean;
 }>) {
-	const retry = useMutation(api.admissions.workflow.retry);
+	const retry = useMutation(api.admissions.delivery.workflow.retry);
 	const [retrying, setRetrying] = useState<string | null>(null);
 	const [error, setError] = useState("");
 	const failures = jobs.filter((job) => job.state === "failed");

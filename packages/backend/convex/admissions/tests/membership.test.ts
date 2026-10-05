@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
-import { periodFields } from "../../test/admissions-fixtures";
-import { insertUser, setup } from "../../test/fixtures";
-import { internal } from "../_generated/api";
+import { periodFields } from "../../../test/admissions-fixtures";
+import { insertUser, setup } from "../../../test/fixtures";
+import { internal } from "../../_generated/api";
 
 it("stores bounded Slack-managed ids only for the current open period revision", async () => {
 	const { t } = await setup();

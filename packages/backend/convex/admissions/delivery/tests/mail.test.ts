@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { trackedEmail } from "../../lib/trackedEmail";
-import { sendAdmissionEmail } from "./mail";
+import { trackedEmail } from "../../../lib/trackedEmail";
+import { sendAdmissionEmail } from "../mail";
 
 const email = {
 	to: "applicant@example.test",

@@ -1,14 +1,19 @@
 import { vResultValidator, vWorkflowId } from "@convex-dev/workflow";
 import { ConvexError, type Infer, v } from "convex/values";
 import { parse } from "convex-helpers/validators";
-import { components, internal } from "../_generated/api";
-import type { Doc, Id } from "../_generated/dataModel";
-import { internalMutation, type MutationCtx, mutation, type QueryCtx } from "../_generated/server";
-import { adminRoles, requireRole } from "../auth/accessRights";
-import { workflow } from "../lib/workflow";
-import { finishClose } from "./lifecycle";
-import { MAX_APPLICATIONS } from "./rules";
-import { operationValidator } from "./schema";
+import { components, internal } from "../../_generated/api";
+import type { Doc, Id } from "../../_generated/dataModel";
+import {
+	internalMutation,
+	type MutationCtx,
+	mutation,
+	type QueryCtx,
+} from "../../_generated/server";
+import { adminRoles, requireRole } from "../../auth/accessRights";
+import { workflow } from "../../lib/workflow";
+import { finishClose } from "../lifecycle";
+import { MAX_APPLICATIONS } from "../rules";
+import { operationValidator } from "../schema";
 
 export type Operation = Infer<typeof operationValidator>;
 
@@ -16,7 +21,7 @@ export const deliver = workflow
 	.define({ args: { operation: operationValidator } })
 	.handler(async (step, { operation }): Promise<void> => {
 		await step.runAction(
-			internal.admissions.actions.execute,
+			internal.admissions.delivery.actions.execute,
 			{ operation },
 			{
 				runAt: operation.dueAt,
@@ -33,10 +38,10 @@ export async function startDelivery(ctx: MutationCtx, operation: Operation) {
 	if (existing) return existing._id;
 	const workflowId = await workflow.start(
 		ctx,
-		internal.admissions.workflow.deliver,
+		internal.admissions.delivery.workflow.deliver,
 		{ operation },
 		{
-			onComplete: internal.admissions.workflow.completed,
+			onComplete: internal.admissions.delivery.workflow.completed,
 			context: operation.idempotencyKey,
 		},
 	);

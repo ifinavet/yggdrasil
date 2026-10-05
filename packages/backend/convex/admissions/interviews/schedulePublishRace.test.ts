@@ -1,8 +1,12 @@
 import { expect, it } from "vitest";
-import { applicationFields, interviewFields, periodFields } from "../../test/admissions-fixtures";
-import { stageOperation } from "../../test/admissions-workflow";
-import { grantRole, insertUser, setup } from "../../test/fixtures";
-import { internal } from "../_generated/api";
+import {
+	applicationFields,
+	interviewFields,
+	periodFields,
+} from "../../../test/admissions-fixtures";
+import { stageOperation } from "../../../test/admissions-workflow";
+import { grantRole, insertUser, setup } from "../../../test/fixtures";
+import { internal } from "../../_generated/api";
 
 it("keeps a schedule immutable while its first calendar publish is in flight", async () => {
 	const { t } = await setup();

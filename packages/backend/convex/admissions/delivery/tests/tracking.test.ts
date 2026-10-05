@@ -1,8 +1,12 @@
 import { expect, it } from "vitest";
-import { applicationFields, periodFields } from "../../test/admissions-fixtures";
-import { allOperations, finishOperation, operationByKey } from "../../test/admissions-workflow";
-import { asUser, grantRole, insertUser, setup } from "../../test/fixtures";
-import { api, internal } from "../_generated/api";
+import { applicationFields, periodFields } from "../../../../test/admissions-fixtures";
+import {
+	allOperations,
+	finishOperation,
+	operationByKey,
+} from "../../../../test/admissions-workflow";
+import { asUser, grantRole, insertUser, setup } from "../../../../test/fixtures";
+import { api, internal } from "../../../_generated/api";
 
 async function overviewFixture() {
 	const { t } = await setup();
@@ -68,11 +72,11 @@ it("queues one retryable Slack alert when a provider reports a failed email", as
 			status: "queued",
 		}),
 	);
-	await t.mutation(internal.admissions.delivery.recordProviderEvent, {
+	await t.mutation(internal.admissions.delivery.tracking.recordProviderEvent, {
 		emailId: "resend-email-1",
 		type: "email.bounced",
 	});
-	await t.mutation(internal.admissions.delivery.recordProviderEvent, {
+	await t.mutation(internal.admissions.delivery.tracking.recordProviderEvent, {
 		emailId: "resend-email-1",
 		type: "email.bounced",
 	});
@@ -171,14 +175,16 @@ it.each(["delivered", "bounced", "complained", "failed"] as const)(
 			idempotencyKey: "offer:retry",
 			emailId: "resend-stable-id",
 		};
-		const deliveryId = await t.mutation(internal.admissions.delivery.recordQueued, input);
-		await t.mutation(internal.admissions.delivery.recordProviderEvent, {
+		const deliveryId = await t.mutation(internal.admissions.delivery.tracking.recordQueued, input);
+		await t.mutation(internal.admissions.delivery.tracking.recordProviderEvent, {
 			emailId: input.emailId,
 			type: `email.${status}`,
 		});
 		const before = await t.run((ctx) => ctx.db.get(deliveryId));
 		expect(before?.status).toBe(status);
-		expect(await t.mutation(internal.admissions.delivery.recordQueued, input)).toBe(deliveryId);
+		expect(await t.mutation(internal.admissions.delivery.tracking.recordQueued, input)).toBe(
+			deliveryId,
+		);
 		expect(await t.run((ctx) => ctx.db.get(deliveryId))).toEqual(before);
 	},
 );

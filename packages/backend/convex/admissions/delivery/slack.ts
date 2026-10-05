@@ -1,7 +1,7 @@
 import type { Doc } from "../../_generated/dataModel";
 import { slackConfig } from "../../iam/config";
 import { slackClient } from "../../iam/slack";
-import { admissionsChannelNames } from "../channelNames";
+import { admissionsChannelNames } from "./channelNames";
 
 export type Slack = ReturnType<typeof slackClient>;
 type Period = Doc<"admissionPeriods">;

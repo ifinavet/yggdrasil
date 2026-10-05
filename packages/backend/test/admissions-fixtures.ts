@@ -1,6 +1,6 @@
 import type { WithoutSystemFields } from "convex/server";
 import type { Doc, Id } from "../convex/_generated/dataModel";
-import type { Operation } from "../convex/admissions/workflow";
+import type { Operation } from "../convex/admissions/delivery/workflow";
 import { firstOperation } from "./admissions-workflow";
 import type { TestBackend } from "./fixtures";
 
@@ -88,7 +88,7 @@ export async function insertInternalGroup(t: TestBackend, name = "Bedrift") {
 	});
 }
 
-export async function firstAdmissionOperation(
+export function firstAdmissionOperation(
 	t: TestBackend,
 	periodId: Id<"admissionPeriods">,
 	kind: Operation["kind"],

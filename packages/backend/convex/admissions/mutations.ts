@@ -13,6 +13,7 @@ import { adminRoles, internalRoles, requireRole, userHasRole } from "../auth/acc
 import { getCurrentUserOrThrow } from "../auth/currentUser";
 import { startAcceptedAdmissionOnboarding, validateAdmissionOffer } from "../iam/mutations";
 import { requireMutablePeriod } from "./access";
+import { readOperation, startDelivery } from "./delivery/workflow";
 import { activePublishInterviewIds, beginClose } from "./lifecycle";
 import {
 	interviewCalendarIds,
@@ -29,7 +30,6 @@ import {
 	decisionValue,
 	interviewerSelection,
 } from "./schema";
-import { readOperation, startDelivery } from "./workflow";
 
 const CONSENT_VERSION = "admissions-2026-01";
 const text = (value: string, max: number) => value.trim().length <= max;

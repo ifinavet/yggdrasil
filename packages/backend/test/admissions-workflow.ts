@@ -6,7 +6,7 @@ import {
 	type Operation,
 	readOperation,
 	startDelivery,
-} from "../convex/admissions/workflow";
+} from "../convex/admissions/delivery/workflow";
 import type { TestBackend } from "./fixtures";
 
 export async function allOperations(ctx: QueryCtx) {
@@ -39,15 +39,14 @@ export async function stageOperation(
 		const { workflow } = await ctx.runQuery(components.workflow.workflow.getStatus, {
 			workflowId: ref.workflowId,
 		});
+		let runResult: NonNullable<typeof workflow.runResult>;
+		if (state === "success") runResult = { kind: "success", returnValue: null };
+		else if (state === "failed") runResult = { kind: "failed", error: "Provider unavailable" };
+		else runResult = { kind: "canceled" };
 		await ctx.runMutation(components.workflow.workflow.complete, {
 			workflowId: ref.workflowId,
 			generationNumber: workflow.generationNumber,
-			runResult:
-				state === "success"
-					? { kind: "success", returnValue: null }
-					: state === "failed"
-						? { kind: "failed", error: "Provider unavailable" }
-						: { kind: "canceled" },
+			runResult,
 		});
 	}
 	return id;

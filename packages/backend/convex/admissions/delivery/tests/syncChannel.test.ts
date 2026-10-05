@@ -1,13 +1,17 @@
 import { afterEach, expect, it, vi } from "vitest";
-import { applicationFields, interviewFields, periodFields } from "../../test/admissions-fixtures";
+import {
+	applicationFields,
+	interviewFields,
+	periodFields,
+} from "../../../../test/admissions-fixtures";
 import {
 	allOperations,
 	deliveryContext,
 	operationArgs,
 	stageOperation,
-} from "../../test/admissions-workflow";
-import { asUser, grantRole, insertUser, setup } from "../../test/fixtures";
-import { api, internal } from "../_generated/api";
+} from "../../../../test/admissions-workflow";
+import { asUser, grantRole, insertUser, setup } from "../../../../test/fixtures";
+import { api, internal } from "../../../_generated/api";
 
 afterEach(() => {
 	vi.unstubAllGlobals();
@@ -77,7 +81,7 @@ it("reconciles Slack membership as soon as interviewer selection changes", async
 	});
 	const job = await t.run((ctx) => allOperations(ctx).then((jobs) => jobs[0]));
 	expect(job).toMatchObject({ kind: "sync_channel", state: "inProgress", revision: 2 });
-	await t.action(internal.admissions.actions.execute, {
+	await t.action(internal.admissions.delivery.actions.execute, {
 		operation: await operationArgs(t, job?.idempotencyKey ?? ""),
 	});
 

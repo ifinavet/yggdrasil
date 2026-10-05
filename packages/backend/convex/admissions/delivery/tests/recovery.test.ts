@@ -1,8 +1,12 @@
 import { expect, it } from "vitest";
-import { applicationFields, periodFields } from "../../test/admissions-fixtures";
-import { allOperations, finishOperation, stageOperation } from "../../test/admissions-workflow";
-import { asUser, grantRole, insertUser, setup } from "../../test/fixtures";
-import { api } from "../_generated/api";
+import { applicationFields, periodFields } from "../../../../test/admissions-fixtures";
+import {
+	allOperations,
+	finishOperation,
+	stageOperation,
+} from "../../../../test/admissions-workflow";
+import { asUser, grantRole, insertUser, setup } from "../../../../test/fixtures";
+import { api } from "../../../_generated/api";
 
 async function recoveryFixture() {
 	const { t } = await setup();
@@ -54,16 +58,16 @@ it("lets admins retry terminal failures without starting concurrent workers", as
 		await stageOperation(ctx, operationFixture(periodId, "done-job", "success", now));
 	});
 	await expect(
-		admin.mutation(api.admissions.workflow.retry, { idempotencyKey: "failed-job" }),
+		admin.mutation(api.admissions.delivery.workflow.retry, { idempotencyKey: "failed-job" }),
 	).resolves.toMatchObject({ queued: true });
 	await expect(
-		admin.mutation(api.admissions.workflow.retry, { idempotencyKey: "expired-running" }),
+		admin.mutation(api.admissions.delivery.workflow.retry, { idempotencyKey: "expired-running" }),
 	).resolves.toMatchObject({ queued: false });
 	await expect(
-		admin.mutation(api.admissions.workflow.retry, { idempotencyKey: "active-running" }),
+		admin.mutation(api.admissions.delivery.workflow.retry, { idempotencyKey: "active-running" }),
 	).resolves.toMatchObject({ queued: false });
 	await expect(
-		admin.mutation(api.admissions.workflow.retry, { idempotencyKey: "done-job" }),
+		admin.mutation(api.admissions.delivery.workflow.retry, { idempotencyKey: "done-job" }),
 	).resolves.toMatchObject({ queued: false });
 	const jobs = await t.run((ctx) => allOperations(ctx));
 	expect(jobs.filter((job) => job.state === "inProgress")).toHaveLength(3);
@@ -147,7 +151,7 @@ it("keeps retry controls admin-only", async () => {
 		stageOperation(ctx, operationFixture(periodId, "private-job", "failed", Date.now())),
 	);
 	await expect(
-		asUser(t, student).mutation(api.admissions.workflow.retry, {
+		asUser(t, student).mutation(api.admissions.delivery.workflow.retry, {
 			idempotencyKey: "private-job",
 		}),
 	).rejects.toThrow(/Unauthorized/);

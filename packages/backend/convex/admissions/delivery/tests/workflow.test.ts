@@ -1,14 +1,14 @@
 import { getStatus } from "@convex-dev/workflow";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { periodFields } from "../../test/admissions-fixtures";
-import { allOperations } from "../../test/admissions-workflow";
-import { asUser, grantRole, insertUser, setup } from "../../test/fixtures";
-import { api, components } from "../_generated/api";
-import { purgeBatch } from "./lifecycle";
-import { readOperation, startDelivery } from "./workflow";
+import { periodFields } from "../../../../test/admissions-fixtures";
+import { allOperations } from "../../../../test/admissions-workflow";
+import { asUser, grantRole, insertUser, setup } from "../../../../test/fixtures";
+import { api, components } from "../../../_generated/api";
+import { purgeBatch } from "../../lifecycle";
+import { readOperation, startDelivery } from "../workflow";
 
 const { archive, channel } = vi.hoisted(() => ({ archive: vi.fn(), channel: vi.fn() }));
-vi.mock("./delivery/slack", () => ({
+vi.mock("../slack", () => ({
 	admissionsSlack: () => ({}),
 	archiveAdmissionsChannel: archive,
 	ensureAdmissionsChannel: channel,
@@ -120,12 +120,12 @@ it("restarts a failed native workflow once and retains successful idempotency", 
 	channel.mockResolvedValue("C-admissions");
 	const authenticated = asUser(t, admin);
 	expect(
-		await authenticated.mutation(api.admissions.workflow.retry, {
+		await authenticated.mutation(api.admissions.delivery.workflow.retry, {
 			idempotencyKey: operation.idempotencyKey,
 		}),
 	).toEqual({ queued: true });
 	expect(
-		await authenticated.mutation(api.admissions.workflow.retry, {
+		await authenticated.mutation(api.admissions.delivery.workflow.retry, {
 			idempotencyKey: operation.idempotencyKey,
 		}),
 	).toEqual({ queued: false });
@@ -137,7 +137,7 @@ it("restarts a failed native workflow once and retains successful idempotency", 
 	});
 	expect(await t.run((ctx) => startDelivery(ctx, operation))).toBe(refId);
 	expect(
-		await authenticated.mutation(api.admissions.workflow.retry, {
+		await authenticated.mutation(api.admissions.delivery.workflow.retry, {
 			idempotencyKey: operation.idempotencyKey,
 		}),
 	).toEqual({ queued: false });
