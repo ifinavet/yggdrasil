@@ -108,6 +108,21 @@ describe("delegated Google Calendar client", () => {
 		expect(String(fetch.mock.calls[3][0])).toContain("events/0123456789abcdef0123456789abcdef");
 	});
 
+	it("treats an insert conflict as success for the stable event id", async () => {
+		const fetch = vi
+			.fn()
+			.mockResolvedValueOnce(Response.json({ access_token: "calendar-token", expires_in: 3600 }))
+			.mockResolvedValueOnce(new Response(null, { status: 404 }))
+			.mockResolvedValueOnce(new Response(null, { status: 409 }));
+		vi.stubGlobal("fetch", fetch);
+		const eventId = "0123456789abcdef0123456789abcdef";
+
+		await expect(
+			googleCalendarClient(config, "interviewer@example.test").upsertEvent("primary", eventId, {}),
+		).resolves.toBe(eventId);
+		expect(fetch.mock.calls.map(([, init]) => init?.method)).toEqual(["POST", "PUT", "POST"]);
+	});
+
 	it("includes Google’s HTTP status without echoing provider messages or tokens", async () => {
 		vi.stubGlobal(
 			"fetch",

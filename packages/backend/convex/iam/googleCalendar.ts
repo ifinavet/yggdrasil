@@ -44,9 +44,8 @@ function isOwnedAdmissionEvent(
 	if (!interviewId) return false;
 	const owner = ownedEvents?.get(interviewId);
 	return (
-		owner !== undefined &&
-		owner.eventId === event.id &&
-		owner.periodId === event.extendedProperties?.shared?.navetAdmissionsPeriodId
+		owner?.eventId === event.id &&
+		owner?.periodId === event.extendedProperties?.shared?.navetAdmissionsPeriodId
 	);
 }
 
@@ -126,10 +125,11 @@ export function googleCalendarClient(config: GoogleConfig, subject: string) {
 	auth.transporter.defaults.fetchImplementation = globalThis.fetch;
 	auth.transporter.defaults.timeout = TIMEOUT_MS;
 	auth.transporter.interceptors.request.add({
-		resolved: async (options) => ({
-			...options,
-			url: new URL(directoryUrl(String(options.url ?? GOOGLE_OAUTH_TOKEN_URL))),
-		}),
+		resolved: (options) =>
+			Promise.resolve({
+				...options,
+				url: new URL(directoryUrl(String(options.url ?? GOOGLE_OAUTH_TOKEN_URL))),
+			}),
 	});
 	const client = calendar({
 		version: "v3",
