@@ -60,10 +60,9 @@ it("generates and publishes ten interviews through the delivery actions", async 
 		.spyOn(trackedEmail, "sendEmail")
 		.mockImplementation(async (_ctx, rawEmail) => {
 			if (!isSendEmailOptions(rawEmail)) throw new Error("Unexpected interview email options");
-			const email = rawEmail;
-			const recipient = typeof email.to === "string" ? email.to : email.to.join(",");
-			sentEmails.push(email);
-			return `email:${recipient}` as EmailId;
+			if (!rawEmail.idempotencyKey) throw new Error("Interview email had no idempotency key");
+			sentEmails.push(rawEmail);
+			return `email:${rawEmail.idempotencyKey}` as EmailId;
 		});
 
 	const { t } = await setup();
@@ -228,21 +227,31 @@ it("generates and publishes ten interviews through the delivery actions", async 
 	}
 	expect([...eventsPerApplication.values()]).toEqual(Array(10).fill(1));
 	expect(sendEmail).toHaveBeenCalledTimes(10);
-	const emailsPerApplicant = new Map<string, number>();
-	for (const email of sentEmails) {
+	const publicationEmails = [...sentEmails];
+	const assertEmailMatchesInterview = (
+		email: SendEmailOptions,
+		expectedApplicant: (typeof applicants)[number],
+	) => {
 		const recipient = typeof email.to === "string" ? email.to : email.to[0];
 		if (!recipient) throw new Error("Email had no recipient");
-		const applicant = applicants.find(({ email: address }) => address === recipient);
-		if (!applicant) throw new Error(`Email sent to an unknown applicant: ${recipient}`);
+		expect(recipient).toBe(expectedApplicant.email);
 		const interview = interviews.find(
-			({ applicationId }) => applicationId === applicant.applicationId,
+			({ applicationId }) => applicationId === expectedApplicant.applicationId,
 		);
 		if (!interview) throw new Error("Applicant email has no matching interview");
 		if (typeof email.text !== "string") throw new Error("Interview invitation had no text body");
 		expect(email.text).toContain(formatOsloDate(interview.startAt, "EEEE d. MMMM yyyy, HH:mm"));
-		emailsPerApplicant.set(recipient, (emailsPerApplicant.get(recipient) ?? 0) + 1);
-	}
-	expect(applicants.map(({ email }) => emailsPerApplicant.get(email))).toEqual(Array(10).fill(1));
+		expect(email.text).toContain(interview.room);
+		return interview;
+	};
+	const publicationRecipients = publicationEmails.map((email) => {
+		const recipient = typeof email.to === "string" ? email.to : email.to[0];
+		const applicant = applicants.find(({ email: address }) => address === recipient);
+		if (!applicant) throw new Error(`Email sent to an unknown applicant: ${recipient}`);
+		assertEmailMatchesInterview(email, applicant);
+		return recipient;
+	});
+	expect([...publicationRecipients].sort()).toEqual(applicants.map(({ email }) => email).sort());
 	expect(
 		slackCalls
 			.filter(({ method }) => method === "conversations.invite")
@@ -255,17 +264,117 @@ it("generates and publishes ten interviews through the delivery actions", async 
 			.filter(({ method }) => method === "chat.postMessage")
 			.every(({ params }) => params.get("channel") === "C-admissions"),
 	).toBe(true);
-	const reminders = (await t.run((ctx) => allOperations(ctx))).filter(
+	const reminderOperations = (await t.run((ctx) => allOperations(ctx))).filter(
 		({ kind }) => kind === "remind_3d" || kind === "remind_1d",
 	);
-	expect(reminders).toHaveLength(20);
-	expect(reminders.filter(({ kind }) => kind === "remind_3d")).toHaveLength(10);
-	expect(reminders.filter(({ kind }) => kind === "remind_1d")).toHaveLength(10);
-	for (const reminder of reminders) {
+	expect(reminderOperations).toHaveLength(20);
+	const threeDayReminders = reminderOperations
+		.filter(({ kind }) => kind === "remind_3d")
+		.sort((a, b) => a.dueAt - b.dueAt);
+	const oneDayReminders = reminderOperations
+		.filter(({ kind }) => kind === "remind_1d")
+		.sort((a, b) => a.dueAt - b.dueAt);
+	expect(threeDayReminders).toHaveLength(10);
+	expect(oneDayReminders).toHaveLength(10);
+	for (const reminder of reminderOperations) {
 		const interview = reminder.interviewId ? byId.get(reminder.interviewId) : undefined;
 		if (!interview) throw new Error("Reminder did not reference a stored interview");
 		expect(reminder.dueAt).toBe(
 			interview.startAt - (reminder.kind === "remind_3d" ? 3 : 1) * 86400000,
 		);
+	}
+	const slackNoticeCount = () =>
+		slackCalls.filter(({ method }) => method === "chat.postMessage").length;
+	for (const reminder of threeDayReminders) {
+		vi.setSystemTime(reminder.dueAt);
+		await t.action(internal.admissions.delivery.actions.execute, {
+			operation: await operationArgs(t, reminder.idempotencyKey),
+		});
+	}
+	expect(sendEmail).toHaveBeenCalledTimes(20);
+	expect(slackNoticeCount()).toBe(10);
+	for (const email of sentEmails.slice(10)) {
+		const recipient = typeof email.to === "string" ? email.to : email.to[0];
+		const applicant = applicants.find(({ email: address }) => address === recipient);
+		if (!applicant) throw new Error(`Reminder sent to an unknown applicant: ${recipient}`);
+		assertEmailMatchesInterview(email, applicant);
+		expect(email.idempotencyKey).toBe(
+			`admission:interview:${interviews.find(({ applicationId }) => applicationId === applicant.applicationId)?._id}:1:reminder-3d`,
+		);
+	}
+
+	const cancelledApplicant = applicants[0];
+	if (!cancelledApplicant) throw new Error("Missing applicant for cancellation check");
+	const cancelledInterview = interviews.find(
+		({ applicationId }) => applicationId === cancelledApplicant.applicationId,
+	);
+	if (!cancelledInterview) throw new Error("Cancellation applicant has no interview");
+	const application = await t.run((ctx) => ctx.db.get(cancelledApplicant.applicationId));
+	if (!application) throw new Error("Cancellation applicant has no application");
+	await asUser(t, cancelledApplicant).mutation(api.admissions.mutations.cancelInterview, {
+		applicationId: cancelledApplicant.applicationId,
+		expectedRevision: application.revision,
+		idempotencyKey: "cancel-before-one-day-reminder",
+	});
+
+	for (const reminder of oneDayReminders) {
+		vi.setSystemTime(reminder.dueAt);
+		await t.action(internal.admissions.delivery.actions.execute, {
+			operation: await operationArgs(t, reminder.idempotencyKey),
+		});
+	}
+	expect(sendEmail).toHaveBeenCalledTimes(29);
+	expect(slackNoticeCount()).toBe(19);
+	const oneDayEmails = sentEmails.slice(20);
+	const oneDayRecipients = oneDayEmails.map((email) => {
+		const recipient = typeof email.to === "string" ? email.to : email.to[0];
+		const applicant = applicants.find(({ email: address }) => address === recipient);
+		if (!applicant) throw new Error(`Reminder sent to an unknown applicant: ${recipient}`);
+		assertEmailMatchesInterview(email, applicant);
+		return recipient;
+	});
+	expect([...oneDayRecipients].sort()).toEqual(
+		applicants
+			.filter(({ applicationId }) => applicationId !== cancelledApplicant.applicationId)
+			.map(({ email }) => email)
+			.sort(),
+	);
+	const reminderDeliveries = await t.run((ctx) =>
+		ctx.db
+			.query("admissionDeliveries")
+			.filter((q) => q.eq(q.field("periodId"), periodId))
+			.collect(),
+	);
+	const threeDayDeliveries = reminderDeliveries.filter(({ kind }) => kind === "reminder_3d");
+	const oneDayDeliveries = reminderDeliveries.filter(({ kind }) => kind === "reminder_1d");
+	expect(threeDayDeliveries).toHaveLength(10);
+	expect(oneDayDeliveries).toHaveLength(9);
+	const deliveriesPerApplication = new Map<string, { reminder_3d: number; reminder_1d: number }>();
+	for (const [days, deliveries] of [
+		[3, threeDayDeliveries],
+		[1, oneDayDeliveries],
+	] as const) {
+		for (const delivery of deliveries) {
+			const interview = interviews.find(
+				({ applicationId }) => applicationId === delivery.applicationId,
+			);
+			if (!interview) throw new Error("Reminder delivery has no interview");
+			const count = deliveriesPerApplication.get(delivery.applicationId) ?? {
+				reminder_3d: 0,
+				reminder_1d: 0,
+			};
+			count[days === 3 ? "reminder_3d" : "reminder_1d"]++;
+			deliveriesPerApplication.set(delivery.applicationId, count);
+			expect(delivery).toMatchObject({
+				status: "queued",
+				idempotencyKey: `admission:interview:${interview._id}:1:reminder-${days}d`,
+			});
+		}
+	}
+	for (const applicant of applicants) {
+		expect(deliveriesPerApplication.get(applicant.applicationId)).toEqual({
+			reminder_3d: 1,
+			reminder_1d: applicant.applicationId === cancelledApplicant.applicationId ? 0 : 1,
+		});
 	}
 });
