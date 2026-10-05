@@ -287,42 +287,63 @@ export const reset = mutation({
 			sent: ownOffer !== "none",
 		});
 		if (scenario === "scheduled" || scenario === "delivery-failed" || ownOffer !== "none") {
-			const startAt = osloDateTimeToEpoch(ownDay, "10:00");
-			const interviewId = await ctx.db.insert("admissionInterviews", {
+			await seedPublishedInterview(
+				ctx,
 				periodId,
-				applicationId: ownId,
-				startAt,
-				endAt: startAt + 15 * 60_000,
-				interviewerIds: [secondId, thirdId],
-				selectedCalendarIds: ["navet", "timetable"],
-				room: "Beta",
-				status: "scheduled",
-				revision: 1,
-				calendarEventId: `local:${ownId}`,
-				publishedAt: now - 30_000,
-			});
-			if (scenario === "delivery-failed") {
-				for (const kind of ["remind_3d", "remind_1d"] as const) {
-					await ctx.db.insert("admissionOutbox", {
-						periodId,
-						applicationId: ownId,
-						interviewId,
-						kind,
-						revision: 1,
-						idempotencyKey: `local-failed-${kind}-${interviewId}`,
-						state: "failed",
-						attempts: 8,
-						nextAttemptAt: now,
-						createdAt: now,
-						lastError: "E-posttjenesten svarte ikke. Prøv igjen eller følg opp manuelt.",
-					});
-				}
-			}
+				ownId,
+				ownDay,
+				[secondId, thirdId],
+				scenario === "delivery-failed",
+				now,
+			);
 		}
 		await seedOtherCandidates(ctx, periodId, interviewStartAt, scenario === "decisions", now);
 		return { periodId, applicantId, candidateCount: 31 };
 	},
 });
+
+async function seedPublishedInterview(
+	ctx: MutationCtx,
+	periodId: Id<"admissionPeriods">,
+	applicationId: Id<"admissionApplications">,
+	day: string,
+	interviewerIds: Id<"users">[],
+	failedDelivery: boolean,
+	now: number,
+) {
+	const startAt = osloDateTimeToEpoch(day, "10:00");
+	const interviewId = await ctx.db.insert("admissionInterviews", {
+		periodId,
+		applicationId,
+		startAt,
+		endAt: startAt + 15 * 60_000,
+		interviewerIds,
+		selectedCalendarIds: ["navet", "timetable"],
+		room: "Beta",
+		status: "scheduled",
+		revision: 1,
+		calendarEventId: `local:${applicationId}`,
+		publishedAt: now - 30_000,
+	});
+	if (!failedDelivery) return;
+	await Promise.all(
+		(["remind_3d", "remind_1d"] as const).map((kind) =>
+			ctx.db.insert("admissionOutbox", {
+				periodId,
+				applicationId,
+				interviewId,
+				kind,
+				revision: 1,
+				idempotencyKey: `local-failed-${kind}-${interviewId}`,
+				state: "failed",
+				attempts: 8,
+				nextAttemptAt: now,
+				createdAt: now,
+				lastError: "E-posttjenesten svarte ikke. Prøv igjen eller følg opp manuelt.",
+			}),
+		),
+	);
+}
 
 async function seedOtherCandidates(
 	ctx: MutationCtx,
