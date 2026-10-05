@@ -9,17 +9,26 @@ export default function AdmissionsInterviewEmail({
 	when,
 	room,
 	applicationUrl,
+	reminder = false,
 }: Readonly<{
 	firstName: string;
 	periodTitle: string;
 	when: string;
 	room: string;
 	applicationUrl: string;
+	reminder?: boolean;
 }>) {
 	return (
-		<OrderLayout preview={`Intervju for ${periodTitle}`} contactEmail={EVENT_CONTACT_EMAIL}>
+		<OrderLayout
+			preview={`${reminder ? "Påminnelse om intervju" : "Intervju"} for ${periodTitle}`}
+			contactEmail={EVENT_CONTACT_EMAIL}
+		>
 			<Text>{`Hei ${firstName},`}</Text>
-			<Text>{`Vi vil gjerne invitere deg til intervju i forbindelse med ${periodTitle}.`}</Text>
+			<Text>
+				{reminder
+					? `Dette er en påminnelse om intervjuet ditt for ${periodTitle}.`
+					: `Vi vil gjerne invitere deg til intervju i forbindelse med ${periodTitle}.`}
+			</Text>
 			<Section style={{ backgroundColor: "#f6f7f9", padding: "16px" }}>
 				<Text>{`Tid: ${when}`}</Text>
 				<Text>
@@ -27,8 +36,8 @@ export default function AdmissionsInterviewEmail({
 				</Text>
 			</Section>
 			<Text>
-				Vi gleder oss til å bli kjent med deg. Bruk lenken nedenfor hvis du vil se eller avlyse
-				intervjuet.
+				{reminder ? "Vi gleder oss til å prate med deg." : "Vi gleder oss til å bli kjent med deg."}{" "}
+				Bruk lenken nedenfor hvis du vil se eller avlyse intervjuet.
 			</Text>
 			<OrderButton href={applicationUrl}>Se eller avlys intervjuet</OrderButton>
 		</OrderLayout>

@@ -3,7 +3,6 @@ import AdmissionsCancellationEmail from "@workspace/emails/admissions-cancellati
 import AdmissionsInterviewEmail from "@workspace/emails/admissions-interview-email";
 import AdmissionsOfferEmail from "@workspace/emails/admissions-offer-email";
 import AdmissionsRejectionEmail from "@workspace/emails/admissions-rejection-email";
-import AdmissionsReminderEmail from "@workspace/emails/admissions-reminder-email";
 import { expect, it } from "vitest";
 
 const applicationUrl = "https://hugin.example.test/admissions";
@@ -17,7 +16,7 @@ const interview = {
 
 it.each([
 	["interview", AdmissionsInterviewEmail(interview)],
-	["reminder", AdmissionsReminderEmail(interview)],
+	["reminder", AdmissionsInterviewEmail({ ...interview, reminder: true })],
 	[
 		"offer",
 		AdmissionsOfferEmail({

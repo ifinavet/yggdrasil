@@ -75,21 +75,6 @@ export function externalBusyIntervals(
 	});
 }
 
-export function ownedBusyIntervals(
-	events: readonly CalendarEvent[],
-	ownedEvents: ReadonlyMap<string, OwnedAdmissionEvent>,
-) {
-	return events.flatMap((event): BusyInterval[] => {
-		if (
-			event.status === "cancelled" ||
-			event.transparency === "transparent" ||
-			!isOwnedAdmissionEvent(event, ownedEvents)
-		)
-			return [];
-		return [eventBusyInterval(event)];
-	});
-}
-
 export async function readExternalBusy(
 	client: Pick<ReturnType<typeof googleCalendarClient>, "freeBusy" | "listEvents">,
 	calendarIds: string[],
@@ -108,7 +93,7 @@ export async function readExternalBusy(
 			if (!busy.length) return [];
 			const events = await client.listEvents(calendarId, timeMin, timeMax);
 			const external = externalBusyIntervals(events, ownedEvents);
-			const known = [...external, ...ownedBusyIntervals(events, ownedEvents)];
+			const known = externalBusyIntervals(events);
 			if (
 				busy.some((entry) => {
 					const interval = { start: Date.parse(entry.start), end: Date.parse(entry.end) };

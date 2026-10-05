@@ -5,7 +5,6 @@ import AdmissionsCancellationEmail from "@workspace/emails/admissions-cancellati
 import AdmissionsInterviewEmail from "@workspace/emails/admissions-interview-email";
 import AdmissionsOfferEmail from "@workspace/emails/admissions-offer-email";
 import AdmissionsRejectionEmail from "@workspace/emails/admissions-rejection-email";
-import AdmissionsReminderEmail from "@workspace/emails/admissions-reminder-email";
 import { roomUrl } from "@workspace/shared/admissions";
 import { EVENT_CONTACT_EMAIL, INFO_EMAIL } from "@workspace/shared/constants/contact";
 import { huginUrl } from "@workspace/shared/constants/hugin-url";
@@ -121,8 +120,7 @@ function interviewEmailProps(claimed: DeliveryContext) {
 	};
 }
 
-type LoadedDelivery = NonNullable<Awaited<ReturnType<typeof context>>>;
-type DeliveryContext = Omit<LoadedDelivery, "period"> & { period: Doc<"admissionPeriods"> };
+type DeliveryContext = NonNullable<Awaited<ReturnType<typeof context>>>;
 
 function googleConfigOrThrow() {
 	const config = googleConfig();
@@ -176,22 +174,15 @@ async function assertInterviewerAvailability(
 		);
 }
 
-async function assertScheduleAvailable(
-	claimed: DeliveryContext,
-	contacts: ReturnType<typeof interviewContacts>,
-) {
-	const config = googleConfigOrThrow();
-	await Promise.all(
-		contacts.map((person) => assertInterviewerAvailability(config, person, claimed)),
-	);
-}
-
 async function publish(ctx: ActionCtx, claimed: DeliveryContext) {
 	const { period, application, interview, applicant, job } = claimed;
 	if (!application || !interview || !applicant || interview.status !== "scheduled")
 		throw new Error("Intervjuet finnes ikke lenger eller er avlyst.");
 	const contacts = interviewContacts(claimed);
-	await assertScheduleAvailable(claimed, contacts);
+	const config = googleConfigOrThrow();
+	await Promise.all(
+		contacts.map((person) => assertInterviewerAvailability(config, person, claimed)),
+	);
 
 	if (!(await current(ctx, job))) throw new StaleAdmissionJob();
 	const owner = contacts[0];
@@ -221,11 +212,7 @@ async function publish(ctx: ActionCtx, claimed: DeliveryContext) {
 		},
 	};
 	try {
-		await googleCalendarClient(googleConfigOrThrow(), owner.email).upsertEvent(
-			"primary",
-			eventId,
-			event,
-		);
+		await googleCalendarClient(config, owner.email).upsertEvent("primary", eventId, event);
 	} catch (error) {
 		if (!(await current(ctx, job))) await queueLatePublishCleanup(ctx, claimed);
 		throw error;
@@ -294,7 +281,7 @@ async function remind(ctx: ActionCtx, claimed: DeliveryContext, days: 1 | 3) {
 		kind,
 		key,
 		`Påminnelse om intervju, ${period.title}`,
-		AdmissionsReminderEmail(interviewEmailProps(claimed)),
+		AdmissionsInterviewEmail({ ...interviewEmailProps(claimed), reminder: true }),
 	);
 	if (days === 1)
 		await sendNotice(
@@ -328,28 +315,20 @@ async function cancelCalendarEvent(ctx: ActionCtx, claimed: DeliveryContext) {
 	await client.cancelEvent("primary", eventId);
 }
 
-async function sendCancellationEmail(ctx: ActionCtx, claimed: DeliveryContext) {
-	const { period, interview, applicant, application, job } = claimed;
-	if (!interview || !applicant || !application) throw new StaleAdmissionJob();
-	if (!(await current(ctx, job))) throw new StaleAdmissionJob();
-	const key = `admission:interview:${interview._id}:${interview.revision}:cancelled`;
-	return deliverEmail(
-		ctx,
-		claimed,
-		"cancelled",
-		key,
-		`Intervjuet er avlyst, ${period.title}`,
-		AdmissionsCancellationEmail(interviewEmailProps(claimed)),
-	);
-}
-
 async function cancelInterview(ctx: ActionCtx, claimed: DeliveryContext) {
 	const { interview, applicant, application } = claimed;
 	if (!interview) return;
 	await cancelCalendarEvent(ctx, claimed);
 	if (!claimed.job.notifyApplicant || interview.startAt <= Date.now() || !applicant || !application)
 		return;
-	await sendCancellationEmail(ctx, claimed);
+	await deliverEmail(
+		ctx,
+		claimed,
+		"cancelled",
+		`admission:interview:${interview._id}:${interview.revision}:cancelled`,
+		`Intervjuet er avlyst, ${claimed.period.title}`,
+		AdmissionsCancellationEmail(interviewEmailProps(claimed)),
+	);
 	await sendNotice(
 		ctx,
 		claimed,
@@ -423,9 +402,9 @@ export const execute = internalAction({
 	args: { operation: operationValidator },
 	handler: async (ctx, { operation }) => {
 		const claimed = await context(ctx, operation);
-		if (!claimed?.period) return;
+		if (!claimed) return;
 		try {
-			const calendarEventId = await runJob(ctx, claimed as DeliveryContext);
+			const calendarEventId = await runJob(ctx, claimed);
 			await ctx.runMutation(internal.admissions.internal.completeDelivery, {
 				operation,
 				calendarEventId: calendarEventId ?? undefined,

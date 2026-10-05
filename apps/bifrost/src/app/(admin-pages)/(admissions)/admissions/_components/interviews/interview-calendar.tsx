@@ -226,22 +226,66 @@ export function InterviewCalendar({
 					gridTemplateColumns: `repeat(${visibleDays.length}, minmax(${day ? "280" : "175"}px, 1fr))`,
 				}}
 			>
-				{visibleDays.map((date) => (
-					<InterviewDay
-						key={date}
-						date={date}
-						onDayClick={() => setDay(day ? null : date)}
-						candidates={candidates}
-						interviews={interviews
-							.filter((i) => localWindow(i.startAt, 0, settings.timezone).day === date)
-							.sort((a, b) => a.startAt - b.startAt)}
-						settings={settings}
-						team={team}
-						selectingRooms={selectingRooms}
-						roomSelection={roomSelection}
-						onSelect={selectCandidate}
-					/>
-				))}
+				{visibleDays.map((date) => {
+					const dayInterviews = interviews
+						.filter((i) => localWindow(i.startAt, 0, settings.timezone).day === date)
+						.sort((a, b) => a.startAt - b.startAt);
+					return (
+						<div key={date} className="admissions-day">
+							<button
+								type="button"
+								className="admissions-day-title"
+								onClick={() => setDay(day ? null : date)}
+							>
+								{dateLabel(date)}
+							</button>
+							<div className="admissions-day-content">
+								{dayInterviews.map((i) => {
+									const c = candidates.find((c) => c._id === i.applicationId);
+									if (!c) return null;
+									const slot = localWindow(
+										i.startAt,
+										(i.endAt - i.startAt) / 60_000,
+										settings.timezone,
+									);
+									return (
+										<button
+											type="button"
+											className="admissions-interview"
+											style={{ order: slot.start }}
+											key={i.applicationId}
+											aria-pressed={selectingRooms ? roomSelection.includes(c._id) : undefined}
+											onClick={() => selectCandidate(c._id)}
+										>
+											<time>
+												{clock(slot.start)}–{clock(slot.end)}
+											</time>
+											<strong>{c.name}</strong>
+											<span>{c.program}</span>
+											<span className="inline-flex items-center gap-1">
+												<MapPin size={13} />
+												{i.room}
+											</span>
+											<div className="admissions-interview-footer">
+												<span>{c.year}. år</span>
+												<div className="admissions-avatars">
+													<InterviewerAvatars ids={i.interviewerIds} team={team} />
+												</div>
+											</div>
+										</button>
+									);
+								})}
+								{settings.lunch && (
+									<div className="admissions-break" style={{ order: 720 }}>
+										<Coffee size={14} />
+										12:00–12:30 Lunsj
+									</div>
+								)}
+								{dayInterviews.length === 0 && <p className="admissions-muted">Ingen intervjuer</p>}
+							</div>
+						</div>
+					);
+				})}
 			</div>
 		</>
 	);
@@ -263,74 +307,4 @@ function InterviewerAvatars({ ids, team }: Readonly<{ ids: string[]; team: Inter
 			</Avatar>
 		);
 	});
-}
-
-function InterviewDay({
-	date,
-	onDayClick,
-	candidates,
-	interviews,
-	settings,
-	selectingRooms,
-	roomSelection,
-	onSelect,
-	team,
-}: Readonly<{
-	date: string;
-	onDayClick: () => void;
-	candidates: Candidate[];
-	interviews: Interview[];
-	settings: Settings;
-	selectingRooms: boolean;
-	roomSelection: string[];
-	onSelect: (id: string) => void;
-	team: Interviewer[];
-}>) {
-	return (
-		<div className="admissions-day">
-			<button type="button" className="admissions-day-title" onClick={onDayClick}>
-				{dateLabel(date)}
-			</button>
-			<div className="admissions-day-content">
-				{interviews.map((i) => {
-					const c = candidates.find((c) => c._id === i.applicationId);
-					if (!c) return null;
-					const slot = localWindow(i.startAt, (i.endAt - i.startAt) / 60_000, settings.timezone);
-					return (
-						<button
-							type="button"
-							className="admissions-interview"
-							style={{ order: slot.start }}
-							key={i.applicationId}
-							aria-pressed={selectingRooms ? roomSelection.includes(c._id) : undefined}
-							onClick={() => onSelect(c._id)}
-						>
-							<time>
-								{clock(slot.start)}–{clock(slot.end)}
-							</time>
-							<strong>{c.name}</strong>
-							<span>{c.program}</span>
-							<span className="inline-flex items-center gap-1">
-								<MapPin size={13} />
-								{i.room}
-							</span>
-							<div className="admissions-interview-footer">
-								<span>{c.year}. år</span>
-								<div className="admissions-avatars">
-									<InterviewerAvatars ids={i.interviewerIds} team={team} />
-								</div>
-							</div>
-						</button>
-					);
-				})}
-				{settings.lunch && (
-					<div className="admissions-break" style={{ order: 720 }}>
-						<Coffee size={14} />
-						12:00–12:30 Lunsj
-					</div>
-				)}
-				{interviews.length === 0 && <p className="admissions-muted">Ingen intervjuer</p>}
-			</div>
-		</div>
-	);
 }

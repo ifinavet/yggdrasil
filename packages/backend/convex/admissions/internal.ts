@@ -1,7 +1,7 @@
 import { admissionsChannelNames, SYSTEM_ALERTS_CHANNEL } from "@workspace/shared/slack/channels";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../_generated/api";
-import type { Doc, Id } from "../_generated/dataModel";
+import type { Doc } from "../_generated/dataModel";
 import { internalMutation, internalQuery, type MutationCtx } from "../_generated/server";
 import { adminRoles, internalRoles, requireRole, userHasRole } from "../auth/accessRights";
 import { workspaceEmail } from "../iam/accounts";
@@ -11,52 +11,33 @@ import { type Operation, startDelivery } from "./delivery/workflow";
 import { beginClose, purgeBatch as purgeRecordsBatch } from "./lifecycle";
 import { operationValidator } from "./schema";
 
-async function isCurrent(ctx: Parameters<typeof requireRole>[0], job: Operation) {
+async function currentResources(ctx: Parameters<typeof requireRole>[0], job: Operation) {
 	const period = await ctx.db.get(job.periodId);
-	if (job.kind === "archive_channel") return period?.status === "closing";
-	if (!period) return false;
-	if (job.kind === "sync_channel") return period.status !== "closing";
-	if (job.kind === "cancel_interview") return isCancellationCurrent(ctx, job);
-	if (job.kind === "offer_declined") return isApplicationJobCurrent(ctx, job);
-	if (period.status === "closing") return false;
-	if (job.kind === "delivery_failure") return isDeliveryFailureCurrent(ctx, job);
-	if (job.kind === "publish" || job.kind === "remind_3d" || job.kind === "remind_1d")
-		return isInterviewJobCurrent(ctx, job, period.status);
-	return isApplicationJobCurrent(ctx, job);
-}
-
-async function isCancellationCurrent(ctx: Parameters<typeof requireRole>[0], job: Operation) {
-	const interview = job.interviewId ? await ctx.db.get(job.interviewId) : null;
-	return interview?.status === "cancelled" && interview.revision === job.revision;
-}
-
-async function isDeliveryFailureCurrent(ctx: Parameters<typeof requireRole>[0], job: Operation) {
-	const delivery = job.deliveryId ? await ctx.db.get(job.deliveryId) : null;
-	return delivery?.periodId === job.periodId && isEmailDeliveryFailure(delivery.status);
-}
-
-async function isInterviewJobCurrent(
-	ctx: Parameters<typeof requireRole>[0],
-	job: Operation,
-	periodStatus: Doc<"admissionPeriods">["status"],
-) {
-	const interview = job.interviewId ? await ctx.db.get(job.interviewId) : null;
-	if (interview?.status !== "scheduled" || interview.revision !== job.revision) return false;
-	return job.kind === "publish"
-		? periodStatus === "published"
-		: interview.publishedAt !== undefined;
-}
-
-async function isApplicationJobCurrent(ctx: Parameters<typeof requireRole>[0], job: Operation) {
+	if (!period) return null;
+	if (
+		period.status === "closing" &&
+		!["archive_channel", "cancel_interview", "offer_declined"].includes(job.kind)
+	)
+		return null;
 	const application = job.applicationId ? await ctx.db.get(job.applicationId) : null;
-	if (!application) return false;
-	if (job.kind === "send_decision")
-		return (
-			application.decisionQueuedAt !== undefined && application.decisionRevision === job.revision
-		);
-	if (job.kind === "offer_declined")
-		return application.offerStatus === "declined" && application.decisionRevision === job.revision;
-	return false;
+	const interview = job.interviewId ? await ctx.db.get(job.interviewId) : null;
+	const delivery = job.deliveryId ? await ctx.db.get(job.deliveryId) : null;
+	const scheduled = interview?.status === "scheduled" && interview.revision === job.revision;
+	const reminder = scheduled && interview?.publishedAt !== undefined;
+	const decisionCurrent = application?.decisionRevision === job.revision;
+	const current = {
+		archive_channel: period.status === "closing",
+		sync_channel: period.status !== "closing",
+		cancel_interview: interview?.status === "cancelled" && interview.revision === job.revision,
+		delivery_failure:
+			delivery?.periodId === job.periodId && isEmailDeliveryFailure(delivery.status),
+		publish: scheduled && period.status === "published",
+		remind_3d: reminder,
+		remind_1d: reminder,
+		send_decision: decisionCurrent && application?.decisionQueuedAt !== undefined,
+		offer_declined: decisionCurrent && application?.offerStatus === "declined",
+	}[job.kind];
+	return current ? { period, application, interview, delivery } : null;
 }
 
 function exhaustedResource(
@@ -78,17 +59,15 @@ function exhaustedResource(
 export const deliveryContext = internalQuery({
 	args: { operation: operationValidator },
 	handler: async (ctx, { operation: job }) => {
-		if (!(await isCurrent(ctx, job))) return null;
-		const period = await ctx.db.get(job.periodId);
-		const application = job.applicationId ? await ctx.db.get(job.applicationId) : null;
-		const interview = job.interviewId ? await ctx.db.get(job.interviewId) : null;
-		const delivery = job.deliveryId ? await ctx.db.get(job.deliveryId) : null;
+		const resources = await currentResources(ctx, job);
+		if (!resources) return null;
+		const { period, application, interview, delivery } = resources;
 		const applicantUser = application ? await ctx.db.get(application.userId) : null;
 		const interviewerIds =
 			job.kind === "sync_channel"
-				? (period?.interviewers.map(({ userId }) => userId) ?? [])
+				? period.interviewers.map(({ userId }) => userId)
 				: (interview?.interviewerIds ?? []);
-		const selectedIds = period?.interviewers.map(({ userId }) => userId) ?? [];
+		const selectedIds = period.interviewers.map(({ userId }) => userId);
 		const people = (
 			await Promise.all(
 				[...new Set([...selectedIds, ...interviewerIds])].map(async (userId) => {
@@ -125,17 +104,18 @@ export const deliveryContext = internalQuery({
 
 export const operationIsCurrent = internalQuery({
 	args: { operation: operationValidator },
-	handler: (ctx, { operation }) => isCurrent(ctx, operation),
+	handler: async (ctx, { operation }) => (await currentResources(ctx, operation)) !== null,
 });
 
 export const completeDelivery = internalMutation({
 	args: { operation: operationValidator, calendarEventId: v.optional(v.string()) },
 	handler: async (ctx, { operation: job, calendarEventId }) => {
-		if (!(await isCurrent(ctx, job))) return { stale: true };
-		if (job.kind === "publish" && job.interviewId)
-			await completePublication(ctx, job, job.interviewId, calendarEventId);
-		if (job.kind === "send_decision" && job.applicationId)
-			await completeDecision(ctx, job, job.applicationId);
+		const resources = await currentResources(ctx, job);
+		if (!resources) return { stale: true };
+		if (job.kind === "publish" && resources.interview)
+			await completePublication(ctx, resources.interview, calendarEventId);
+		if (job.kind === "send_decision" && resources.application)
+			await completeDecision(ctx, resources.application, resources.period);
 		return { stale: false };
 	},
 });
@@ -143,9 +123,9 @@ export const completeDelivery = internalMutation({
 export const reportFailure = internalMutation({
 	args: { operation: operationValidator },
 	handler: async (ctx, { operation: job }) => {
-		if (!(await isCurrent(ctx, job))) return;
-		const period = await ctx.db.get(job.periodId);
-		const interview = job.interviewId ? await ctx.db.get(job.interviewId) : null;
+		const resources = await currentResources(ctx, job);
+		if (!resources) return;
+		const { period, interview } = resources;
 		await enqueueSystemMessage(ctx, {
 			channel: SYSTEM_ALERTS_CHANNEL,
 			text: `Admissions integration retry limit reached. Period: ${period?.title ?? job.periodId} (${job.periodId}). Job: ${job.kind}. Resource: ${exhaustedResource(job, period, interview)}. Check provider status and complete cleanup manually if needed.`,
@@ -229,71 +209,59 @@ export const expireOffer = internalMutation({
 
 async function completePublication(
 	ctx: MutationCtx,
-	job: Operation,
-	interviewId: Id<"admissionInterviews">,
+	interview: Doc<"admissionInterviews">,
 	calendarEventId: string | undefined,
 ) {
-	const interview = await ctx.db.get(interviewId);
-	if (interview?.revision === job.revision && interview.status === "scheduled") {
-		await ctx.db.patch(interview._id, {
-			calendarEventId: calendarEventId ?? interview.calendarEventId,
-			publishedAt: Date.now(),
-		});
-		await Promise.all(
-			(
-				[
-					["remind_3d", 3 * 86400000],
-					["remind_1d", 86400000],
-				] as const
-			).map(async ([kind, offset]) => {
-				const dueAt = interview.startAt - offset;
-				if (dueAt > Date.now())
-					await startDelivery(ctx, {
-						kind,
-						periodId: interview.periodId,
-						applicationId: interview.applicationId,
-						interviewId: interview._id,
-						revision: interview.revision,
-						idempotencyKey: `${kind}:${interview._id}:${interview.revision}`,
-						dueAt,
-					});
-			}),
-		);
-	}
+	await ctx.db.patch(interview._id, {
+		calendarEventId: calendarEventId ?? interview.calendarEventId,
+		publishedAt: Date.now(),
+	});
+	await Promise.all(
+		(
+			[
+				["remind_3d", 3 * 86400000],
+				["remind_1d", 86400000],
+			] as const
+		).map(async ([kind, offset]) => {
+			const dueAt = interview.startAt - offset;
+			if (dueAt > Date.now())
+				await startDelivery(ctx, {
+					kind,
+					periodId: interview.periodId,
+					applicationId: interview.applicationId,
+					interviewId: interview._id,
+					revision: interview.revision,
+					idempotencyKey: `${kind}:${interview._id}:${interview.revision}`,
+					dueAt,
+				});
+		}),
+	);
 }
 
 async function completeDecision(
 	ctx: MutationCtx,
-	job: Operation,
-	applicationId: Id<"admissionApplications">,
+	application: Doc<"admissionApplications">,
+	currentPeriod: Doc<"admissionPeriods">,
 ) {
-	const application = await ctx.db.get(applicationId);
-	const currentPeriod = await ctx.db.get(job.periodId);
-	if (
-		application &&
-		currentPeriod &&
-		application.decisionRevision === job.revision &&
-		!application.decisionSentAt
-	) {
-		const decisionSentAt = Date.now();
-		let offerDeadline: number | undefined;
-		let offerStatus: Doc<"admissionApplications">["offerStatus"] = "none";
-		if (application.decision === "accepted") {
-			offerDeadline = Math.min(currentPeriod.retentionAt, decisionSentAt + 7 * 86400000);
-			offerStatus = offerDeadline <= decisionSentAt ? "expired" : "pending";
-		}
-		await ctx.db.patch(application._id, {
-			decisionQueuedAt: undefined,
-			decisionSentAt,
-			sent: true,
-			offerStatus,
-			offerDeadline,
-			revision: application.revision + 1,
-		});
-		if (offerStatus === "pending" && offerDeadline !== undefined)
-			await ctx.scheduler.runAt(offerDeadline, internal.admissions.internal.expireOffer, {
-				applicationId: application._id,
-				decisionRevision: job.revision,
-			});
+	if (application.decisionSentAt) return;
+	const decisionSentAt = Date.now();
+	let offerDeadline: number | undefined;
+	let offerStatus: Doc<"admissionApplications">["offerStatus"] = "none";
+	if (application.decision === "accepted") {
+		offerDeadline = Math.min(currentPeriod.retentionAt, decisionSentAt + 7 * 86400000);
+		offerStatus = offerDeadline <= decisionSentAt ? "expired" : "pending";
 	}
+	await ctx.db.patch(application._id, {
+		decisionQueuedAt: undefined,
+		decisionSentAt,
+		sent: true,
+		offerStatus,
+		offerDeadline,
+		revision: application.revision + 1,
+	});
+	if (offerStatus === "pending" && offerDeadline !== undefined)
+		await ctx.scheduler.runAt(offerDeadline, internal.admissions.internal.expireOffer, {
+			applicationId: application._id,
+			decisionRevision: application.decisionRevision,
+		});
 }

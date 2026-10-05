@@ -5,7 +5,6 @@ import {
 	externalBusyIntervals,
 	googleCalendarClient,
 	overlapsBusy,
-	ownedBusyIntervals,
 	readExternalBusy,
 } from "./googleCalendar";
 
@@ -188,9 +187,7 @@ describe("admissions event conflict filtering", () => {
 		]);
 		const busy = externalBusyIntervals([own, external, wrongPeriod, spoofedId], ownedEvents);
 		expect(busy).toHaveLength(3);
-		expect(ownedBusyIntervals([own, external, wrongPeriod, spoofedId], ownedEvents)).toHaveLength(
-			1,
-		);
+		expect(externalBusyIntervals([own, external, wrongPeriod, spoofedId])).toHaveLength(4);
 		const overlap = busy[0];
 		if (!overlap) throw new Error("Expected an external busy interval");
 		expect(
