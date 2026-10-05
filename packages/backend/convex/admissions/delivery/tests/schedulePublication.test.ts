@@ -1,3 +1,4 @@
+import type { EmailId, SendEmailOptions } from "@convex-dev/resend";
 import { formatOsloDate, osloDateTimeToEpoch } from "@workspace/shared/time";
 import { afterEach, expect, it, vi } from "vitest";
 import { applicationFields, periodFields } from "../../../../test/admissions-fixtures";
@@ -16,6 +17,20 @@ const provider = {
 	upsertEvent: vi.fn(),
 	cancelEvent: vi.fn(),
 };
+
+function isObject(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null;
+}
+
+function isSendEmailOptions(value: unknown): value is SendEmailOptions {
+	return (
+		isObject(value) &&
+		typeof value.from === "string" &&
+		(typeof value.to === "string" || Array.isArray(value.to)) &&
+		typeof value.subject === "string" &&
+		typeof value.text === "string"
+	);
+}
 
 afterEach(() => {
 	vi.restoreAllMocks();
@@ -40,9 +55,16 @@ it("generates and publishes ten interviews through the delivery actions", async 
 	);
 	provider.listEvents.mockResolvedValue([]);
 	provider.upsertEvent.mockResolvedValue(undefined);
+	const sentEmails: SendEmailOptions[] = [];
 	const sendEmail = vi
 		.spyOn(trackedEmail, "sendEmail")
-		.mockImplementation(async (_ctx, email) => `email:${email.to}` as never);
+		.mockImplementation(async (_ctx, rawEmail) => {
+			if (!isSendEmailOptions(rawEmail)) throw new Error("Unexpected interview email options");
+			const email = rawEmail;
+			const recipient = typeof email.to === "string" ? email.to : email.to.join(",");
+			sentEmails.push(email);
+			return `email:${recipient}` as EmailId;
+		});
 
 	const { t } = await setup();
 	const admin = await insertUser(t, "admin@example.test");
@@ -179,8 +201,7 @@ it("generates and publishes ten interviews through the delivery actions", async 
 	expect(provider.upsertEvent).toHaveBeenCalledTimes(10);
 	const eventsPerApplication = new Map<string, number>();
 	for (const [calendar, eventId, event] of provider.upsertEvent.mock.calls) {
-		const interviewId = event.extendedProperties.shared.navetAdmissionsInterviewId;
-		const interview = byId.get(interviewId);
+		const interview = interviews.find(({ calendarEventId }) => calendarEventId === eventId);
 		if (!interview) throw new Error("Calendar event did not reference a stored interview");
 		const applicant = applicants.find(
 			({ applicationId }) => applicationId === interview.applicationId,
@@ -188,31 +209,38 @@ it("generates and publishes ten interviews through the delivery actions", async 
 		if (!applicant) throw new Error("Interview has no matching applicant");
 		expect(calendar).toBe("primary");
 		expect(eventId).toBe(interview.calendarEventId);
-		expect(event.start.dateTime).toBe(new Date(interview.startAt).toISOString());
-		expect(event.end.dateTime).toBe(new Date(interview.endAt).toISOString());
-		expect(event.location).toBe(interview.room);
+		expect(event).toMatchObject({
+			start: { dateTime: new Date(interview.startAt).toISOString() },
+			end: { dateTime: new Date(interview.endAt).toISOString() },
+			location: interview.room,
+			extendedProperties: { shared: { navetAdmissionsInterviewId: interview._id } },
+		});
 		eventsPerApplication.set(
 			interview.applicationId,
 			(eventsPerApplication.get(interview.applicationId) ?? 0) + 1,
 		);
 		const nonOwner = interview.interviewerIds.find((id) => id !== interview.interviewerIds[0]);
 		const nonOwnerEmail = interviewers.find(({ _id }) => _id === nonOwner)?.email;
-		expect(new Set(event.attendees.map(({ email }) => email))).toEqual(
-			new Set([applicant.email, nonOwnerEmail]),
+		expect(event.attendees).toHaveLength(2);
+		expect(event.attendees).toEqual(
+			expect.arrayContaining([{ email: applicant.email }, { email: nonOwnerEmail }]),
 		);
 	}
 	expect([...eventsPerApplication.values()]).toEqual(Array(10).fill(1));
 	expect(sendEmail).toHaveBeenCalledTimes(10);
 	const emailsPerApplicant = new Map<string, number>();
-	for (const [, email] of sendEmail.mock.calls) {
-		const applicant = applicants.find(({ email: address }) => address === email.to);
-		if (!applicant) throw new Error(`Email sent to an unknown applicant: ${email.to}`);
+	for (const email of sentEmails) {
+		const recipient = typeof email.to === "string" ? email.to : email.to[0];
+		if (!recipient) throw new Error("Email had no recipient");
+		const applicant = applicants.find(({ email: address }) => address === recipient);
+		if (!applicant) throw new Error(`Email sent to an unknown applicant: ${recipient}`);
 		const interview = interviews.find(
 			({ applicationId }) => applicationId === applicant.applicationId,
 		);
 		if (!interview) throw new Error("Applicant email has no matching interview");
+		if (typeof email.text !== "string") throw new Error("Interview invitation had no text body");
 		expect(email.text).toContain(formatOsloDate(interview.startAt, "EEEE d. MMMM yyyy, HH:mm"));
-		emailsPerApplicant.set(email.to, (emailsPerApplicant.get(email.to) ?? 0) + 1);
+		emailsPerApplicant.set(recipient, (emailsPerApplicant.get(recipient) ?? 0) + 1);
 	}
 	expect(applicants.map(({ email }) => emailsPerApplicant.get(email))).toEqual(Array(10).fill(1));
 	expect(

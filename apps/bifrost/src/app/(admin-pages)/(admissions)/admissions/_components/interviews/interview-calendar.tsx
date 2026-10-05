@@ -232,9 +232,7 @@ export function InterviewCalendar({
 			<div
 				className="admissions-calendar grid min-w-0 items-start gap-3 overflow-x-auto pb-3"
 				style={{
-					gridTemplateColumns: visibleDays.length
-						? `repeat(${visibleDays.length}, minmax(${day ? "280" : "175"}px, 1fr))`
-						: "none",
+					gridTemplateColumns: `repeat(${Math.max(visibleDays.length, 1)}, minmax(${day ? "280" : "175"}px, 1fr))`,
 				}}
 			>
 				{visibleDays.map((date) => {

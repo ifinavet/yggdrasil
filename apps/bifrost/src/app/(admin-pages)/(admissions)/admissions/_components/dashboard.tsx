@@ -87,7 +87,7 @@ export default function AdmissionsDashboard() {
 			...makeSchedulingDays(period.interviewStartAt, period.interviewEndAt, period.timezone),
 			...interviews.map(({ startAt }) => localDateAndMinute(startAt, period.timezone).day),
 		]),
-	].sort();
+	].sort((a, b) => a.localeCompare(b));
 	const current = overview.candidates.find((candidate) => candidate._id === selected);
 	const offer = overview.candidates.find((candidate) => candidate._id === offerCandidate);
 	const pending = overview.candidates.filter(
