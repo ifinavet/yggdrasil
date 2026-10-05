@@ -28,7 +28,6 @@ import {
 
 const ADMISSIONS_URL = `${huginUrl()}/admissions`;
 const MINUTE = 60_000;
-const MAX_RETRY = 30 * MINUTE;
 
 function when(startAt: number) {
 	return formatOsloDate(startAt, "EEEE d. MMMM yyyy, HH:mm");
@@ -515,20 +514,14 @@ async function complete(
 	});
 }
 
-async function fail(
-	ctx: ActionCtx,
-	claimed: ClaimedOutbox,
-	idempotencyKey: string,
-	error: unknown,
-) {
-	const attempts = claimed.job.attempts + 1;
+async function fail(ctx: ActionCtx, idempotencyKey: string, error: unknown) {
 	await ctx.runMutation(internal.admissions.internal.failOutbox, {
 		idempotencyKey,
 		error:
 			error instanceof Error
 				? error.message.slice(0, 500)
 				: "Admissions provider operation failed.",
-		nextAttemptAt: Date.now() + Math.min(MAX_RETRY, 60_000 * 2 ** Math.min(attempts, 5)),
+		nextAttemptAt: Date.now(),
 	});
 }
 
@@ -544,7 +537,8 @@ async function process(ctx: ActionCtx, idempotencyKey: string) {
 		await complete(ctx, idempotencyKey, result);
 	} catch (error) {
 		if (error instanceof StaleAdmissionJob) return await complete(ctx, idempotencyKey);
-		await fail(ctx, claimed, idempotencyKey, error);
+		await fail(ctx, idempotencyKey, error);
+		throw error;
 	}
 }
 

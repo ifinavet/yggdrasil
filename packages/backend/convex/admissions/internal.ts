@@ -19,8 +19,6 @@ import {
 } from "./lifecycle";
 import { MAX_APPLICATIONS, MAX_OUTBOX_ATTEMPTS } from "./rules";
 
-const OUTBOX_LEASE_MS = 5 * 60_000;
-
 async function isCurrent(ctx: Parameters<typeof requireRole>[0], job: Doc<"admissionOutbox">) {
 	const period = await ctx.db.get(job.periodId);
 	if (job.kind === "archive_channel") return period?.status === "closing";
@@ -102,7 +100,12 @@ export const claimOutbox = internalMutation({
 			.query("admissionOutbox")
 			.withIndex("by_idempotencyKey", (q) => q.eq("idempotencyKey", idempotencyKey))
 			.unique();
-		if (!job || job.state === "done" || job.state === "running" || job.nextAttemptAt > Date.now())
+		if (
+			!job ||
+			job.state === "done" ||
+			(job.state === "running" && !job.workflowId) ||
+			job.nextAttemptAt > Date.now()
+		)
 			return null;
 		const current = await isCurrent(ctx, job);
 		if (!current) {
@@ -114,7 +117,6 @@ export const claimOutbox = internalMutation({
 		await ctx.db.patch(job._id, {
 			state: "running",
 			attempts: job.attempts + 1,
-			nextAttemptAt: Date.now() + OUTBOX_LEASE_MS,
 			lastError: undefined,
 		});
 		const period = await ctx.db.get(job.periodId);
@@ -217,8 +219,13 @@ export const completeOutbox = internalMutation({
 });
 
 export const failOutbox = internalMutation({
-	args: { idempotencyKey: v.string(), error: v.string(), nextAttemptAt: v.number() },
-	handler: async (ctx, { idempotencyKey, error, nextAttemptAt }) => {
+	args: {
+		idempotencyKey: v.string(),
+		error: v.string(),
+		nextAttemptAt: v.number(),
+		terminal: v.optional(v.boolean()),
+	},
+	handler: async (ctx, { idempotencyKey, error, nextAttemptAt, terminal }) => {
 		const job = await ctx.db
 			.query("admissionOutbox")
 			.withIndex("by_idempotencyKey", (q) => q.eq("idempotencyKey", idempotencyKey))
@@ -230,8 +237,13 @@ export const failOutbox = internalMutation({
 			if (period?.status === "closing") await finishClose(ctx, period);
 			return { stale: true };
 		}
-		const exhausted = job.attempts >= MAX_OUTBOX_ATTEMPTS;
-		await ctx.db.patch(job._id, { state: "failed", lastError: error.slice(0, 500), nextAttemptAt });
+		const exhausted = terminal || job.attempts >= MAX_OUTBOX_ATTEMPTS;
+		await ctx.db.patch(job._id, {
+			state: "failed",
+			lastError: error.slice(0, 500),
+			nextAttemptAt,
+			attempts: exhausted ? MAX_OUTBOX_ATTEMPTS : job.attempts,
+		});
 		if (
 			exhausted &&
 			(job.kind === "cancel_interview" ||
@@ -246,12 +258,7 @@ export const failOutbox = internalMutation({
 				clientMsgId: `admissions-integration-exhausted:${job._id}`,
 			});
 		}
-		if (!exhausted)
-			await ctx.scheduler.runAfter(
-				Math.max(0, nextAttemptAt - Date.now()),
-				internal.admissions.actions.processOutbox,
-				{ idempotencyKey },
-			);
+
 		const period = await ctx.db.get(job.periodId);
 		if (exhausted && period?.status === "closing") await finishClose(ctx, period);
 		return { stale: false, exhausted };

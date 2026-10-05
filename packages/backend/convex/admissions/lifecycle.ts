@@ -1,8 +1,11 @@
+import { cancel } from "@convex-dev/workflow";
 import { ConvexError } from "convex/values";
-import { internal } from "../_generated/api";
+import { components, internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 import { MAX_APPLICATIONS, MAX_OUTBOX_ATTEMPTS } from "./rules";
+
+import { startDelivery } from "./workflow";
 
 type CleanupKind = "cancel_interview" | "publish" | "offer_declined" | "archive_channel";
 
@@ -47,11 +50,7 @@ export async function queueOutbox(
 		attempts: 0,
 		createdAt: Date.now(),
 	});
-	await ctx.scheduler.runAfter(
-		Math.max(0, fields.nextAttemptAt - Date.now()),
-		internal.admissions.actions.processOutbox,
-		{ idempotencyKey: fields.idempotencyKey },
-	);
+	await startDelivery(ctx, jobId, fields.idempotencyKey, fields.nextAttemptAt);
 	return jobId;
 }
 
@@ -84,7 +83,13 @@ export async function purgeBatch(ctx: MutationCtx, periodId: Id<"admissionPeriod
 	];
 	for (const query of queries) {
 		const rows = await query.take(80);
-		await Promise.all(rows.map((row) => ctx.db.delete(row._id)));
+		await Promise.all(
+			rows.map(async (row) => {
+				if ("workflowId" in row && row.workflowId)
+					await cancel(ctx, components.workflow, row.workflowId);
+				await ctx.db.delete(row._id);
+			}),
+		);
 		if (rows.length === 80) {
 			await ctx.scheduler.runAfter(0, internal.admissions.internal.purgeBatch, { periodId });
 			return false;

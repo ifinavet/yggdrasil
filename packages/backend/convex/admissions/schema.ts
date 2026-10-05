@@ -1,3 +1,4 @@
+import { vWorkflowId } from "@convex-dev/workflow";
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
 
@@ -117,6 +118,7 @@ export const admissionsSchema = {
 		.index("by_applicationId", ["applicationId"])
 		.index("by_periodId_and_status", ["periodId", "status"]),
 	admissionOutbox: defineTable({
+		workflowId: v.optional(vWorkflowId),
 		kind: v.union(
 			v.literal("publish"),
 			v.literal("send_decision"),

@@ -240,7 +240,6 @@ export const createPeriod = mutation({
 			createdBy: creator._id,
 			updatedBy: creator._id,
 		});
-		await ctx.scheduler.runAfter(0, internal.admissions.recovery.recoverPeriod, { periodId });
 		await ctx.scheduler.runAt(fields.retentionAt, internal.admissions.internal.closeExpiredPeriod, {
 			periodId,
 		});

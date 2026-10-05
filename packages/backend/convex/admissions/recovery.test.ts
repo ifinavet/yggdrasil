@@ -54,7 +54,7 @@ function outboxJob(
 	};
 }
 
-it("lets admins retry failed jobs and only running jobs with expired leases", async () => {
+it("lets admins retry terminal failures without starting concurrent workers", async () => {
 	const { t, admin, periodId } = await recoveryFixture();
 	const now = Date.now();
 	await t.run(async (ctx) => {
@@ -74,65 +74,16 @@ it("lets admins retry failed jobs and only running jobs with expired leases", as
 	).resolves.toMatchObject({ queued: true });
 	await expect(
 		admin.mutation(api.admissions.recovery.retryOutbox, { idempotencyKey: "expired-running" }),
-	).resolves.toMatchObject({ queued: true });
+	).resolves.toMatchObject({ queued: false, reason: "running" });
 	await expect(
 		admin.mutation(api.admissions.recovery.retryOutbox, { idempotencyKey: "active-running" }),
-	).resolves.toMatchObject({ queued: false, reason: "lease_active" });
+	).resolves.toMatchObject({ queued: false, reason: "running" });
 	await expect(
 		admin.mutation(api.admissions.recovery.retryOutbox, { idempotencyKey: "done-job" }),
 	).resolves.toMatchObject({ queued: false, reason: "done" });
 	const jobs = await t.run((ctx) => ctx.db.query("admissionOutbox").collect());
-	expect(jobs.filter((job) => job.state === "pending")).toHaveLength(2);
+	expect(jobs.filter((job) => job.state === "pending")).toHaveLength(1);
 	expect(jobs.find((job) => job.idempotencyKey === "failed-job")?.attempts).toBe(0);
-});
-
-it("recovers expired outbox leases automatically", async () => {
-	const { t, periodId } = await recoveryFixture();
-	await t.run(async (ctx) => {
-		await ctx.db.insert(
-			"admissionOutbox",
-			outboxJob(periodId, "expired", "running", Date.now() - 1),
-		);
-		await ctx.db.insert(
-			"admissionOutbox",
-			outboxJob(periodId, "still-leased", "running", Date.now() + 60000),
-		);
-		await ctx.db.insert("admissionOutbox", {
-			...outboxJob(periodId, "maxed-lease", "running", Date.now() - 1),
-			attempts: 8,
-		});
-		await ctx.db.insert("admissionOutbox", {
-			...outboxJob(periodId, "terminal-failure", "failed", Date.now() - 1),
-			attempts: 8,
-		});
-	});
-	await t.mutation(internal.admissions.recovery.recoverPeriod, { periodId });
-	const jobs = await t.run((ctx) => ctx.db.query("admissionOutbox").collect());
-	expect(jobs.find((job) => job.idempotencyKey === "expired")?.state).toBe("pending");
-	expect(jobs.find((job) => job.idempotencyKey === "still-leased")?.state).toBe("running");
-	expect(jobs.find((job) => job.idempotencyKey === "maxed-lease")?.state).toBe("failed");
-	expect(jobs.find((job) => job.idempotencyKey === "terminal-failure")?.state).toBe("failed");
-});
-
-it("sets a five-minute lease when a worker claims an outbox job", async () => {
-	const { t, periodId } = await recoveryFixture();
-	await t.run(async (ctx) => {
-		await ctx.db.patch(periodId, { status: "closing" });
-		await ctx.db.insert("admissionOutbox", {
-			...outboxJob(periodId, "archive-now", "pending", Date.now()),
-			kind: "archive_channel",
-		});
-	});
-	const beforeClaim = Date.now();
-	await t.mutation(internal.admissions.internal.claimOutbox, { idempotencyKey: "archive-now" });
-	const claimed = await t.run((ctx) =>
-		ctx.db
-			.query("admissionOutbox")
-			.withIndex("by_idempotencyKey", (q) => q.eq("idempotencyKey", "archive-now"))
-			.unique(),
-	);
-	expect(claimed).toMatchObject({ state: "running" });
-	expect(claimed?.nextAttemptAt).toBeGreaterThanOrEqual(beforeClaim + 5 * 60_000);
 });
 
 it("alerts #system and purges closing data after cleanup exhausts its retries", async () => {
@@ -232,28 +183,4 @@ it("keeps retry controls admin-only", async () => {
 			idempotencyKey: "private-job",
 		}),
 	).rejects.toThrow(/Unauthorized/);
-});
-
-it("recovers only the active period and stops scheduling after its deletion", async () => {
-	const { t, periodId } = await recoveryFixture();
-	const due = Date.now() - 1;
-	await t.run(async (ctx) => {
-		const period = await ctx.db.get(periodId);
-		if (!period) throw new Error("Missing test period");
-		const { _id, _creationTime, ...fields } = period;
-		const otherId = await ctx.db.insert("admissionPeriods", fields);
-		await ctx.db.insert("admissionOutbox", outboxJob(periodId, "current-period", "running", due));
-		await ctx.db.insert("admissionOutbox", outboxJob(otherId, "other-period", "running", due));
-	});
-	expect(await t.mutation(internal.admissions.recovery.recoverPeriod, { periodId })).toBe(1);
-	const jobs = await t.run((ctx) => ctx.db.query("admissionOutbox").collect());
-	expect(jobs.find((job) => job.idempotencyKey === "current-period")?.state).toBe("pending");
-	expect(jobs.find((job) => job.idempotencyKey === "other-period")?.state).toBe("running");
-	const scheduled = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
-	expect(scheduled.some((job) => job.name.includes("recoverPeriod"))).toBe(true);
-	await t.run((ctx) => ctx.db.delete(periodId));
-	expect(await t.mutation(internal.admissions.recovery.recoverPeriod, { periodId })).toBe(0);
-	expect(await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect())).toHaveLength(
-		scheduled.length,
-	);
 });
