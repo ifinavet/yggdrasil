@@ -5,6 +5,7 @@ import { Button } from "@workspace/ui/components/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@workspace/ui/components/dialog";
 import { Input } from "@workspace/ui/components/input";
 import { Label } from "@workspace/ui/components/label";
+import { format, parseISO } from "date-fns";
 import {
 	AlertTriangle,
 	CalendarDays,
@@ -55,10 +56,17 @@ export function InterviewCalendar({
 	const [roomSelection, setRoomSelection] = useState<string[]>([]);
 	const [unmatchedOpen, setUnmatchedOpen] = useState(false);
 	const [bulkRoom, setBulkRoom] = useState("");
+	const weeks = new Map<string, string[]>();
+	for (const date of days) {
+		const key = format(parseISO(date), "RRRR-II");
+		weeks.set(key, [...(weeks.get(key) ?? []), date]);
+	}
+	const calendarWeeks = [...weeks.values()];
+	const currentWeek = calendarWeeks[week] ?? [];
 	const unmatched = candidates.filter(
 		(candidate) => !interviews.some((interview) => interview.applicationId === candidate._id),
 	);
-	const visibleDays = day ? [day] : days.slice(week * 7, week * 7 + 7);
+	const visibleDays = day ? [day] : currentWeek;
 	const selectCandidate = (id: string) => {
 		if (!selectingRooms) {
 			onOpenCandidate(id);
@@ -86,14 +94,13 @@ export function InterviewCalendar({
 						<ChevronLeft />
 					</Button>
 					<strong>
-						{dateLabel(days[week * 7] ?? "")}–
-						{dateLabel(days[Math.min(week * 7 + 7 - 1, days.length - 1)] ?? "")}
+						{dateLabel(currentWeek[0] ?? "")}–{dateLabel(currentWeek.at(-1) ?? "")}
 					</strong>
 					<Button
 						variant="outline"
 						size="icon"
 						aria-label="Neste uke"
-						disabled={(week + 1) * 7 >= days.length}
+						disabled={week + 1 >= calendarWeeks.length}
 						onClick={() => {
 							setWeek((current) => current + 1);
 							setDay(null);
@@ -106,7 +113,7 @@ export function InterviewCalendar({
 					</Button>
 					<Button
 						variant={day ? "secondary" : "outline"}
-						onClick={() => setDay(days[week * 7] ?? null)}
+						onClick={() => setDay(currentWeek[0] ?? null)}
 					>
 						Dag
 					</Button>

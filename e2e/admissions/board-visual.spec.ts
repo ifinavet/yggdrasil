@@ -1,6 +1,54 @@
 import { expect, test } from "@playwright/test";
+import { formatOsloDate, osloDateTimeToEpoch } from "@workspace/shared/time";
+import { addDays, format, nextWednesday, startOfISOWeek } from "date-fns";
 import { captureScreenshot } from "./capture-screenshot";
-import { bifrostUrl, clearCookieNotice, resetAdmissions } from "./production-helpers";
+import {
+	admissionsOverview,
+	bifrostUrl,
+	clearCookieNotice,
+	convexUrl,
+	resetAdmissions,
+} from "./production-helpers";
+import { LocalDatabase } from "./seed-database";
+
+test("calendar navigation groups weekday dates into Monday to Friday weeks", async ({ page }) => {
+	await resetAdmissions("scheduled");
+	const overview = await admissionsOverview();
+	if (!overview) throw new Error("Calendar fixture requires an admission period");
+	const firstWednesday = nextWednesday(
+		new Date(`${formatOsloDate(Date.now(), "yyyy-MM-dd")}T12:00:00Z`),
+	);
+	const nextMonday = addDays(startOfISOWeek(firstWednesday), 7);
+	const lastFriday = addDays(nextMonday, 4);
+	const firstDate = format(firstWednesday, "yyyy-MM-dd");
+	const lastDate = format(lastFriday, "yyyy-MM-dd");
+	const db = new LocalDatabase(convexUrl);
+	await db.patch("admissionPeriods", overview.period._id, {
+		interviewStartAt: osloDateTimeToEpoch(firstDate, "09:00"),
+		interviewEndAt: osloDateTimeToEpoch(lastDate, "17:00"),
+	});
+	await page.goto(`${bifrostUrl}/admissions`);
+	await clearCookieNotice(page);
+
+	const dayTitles = page.locator(".admissions-day-title");
+	const weekRange = page.locator(".admissions-toolbar").first().locator("strong");
+	const labels = (start: Date, count: number) =>
+		Array.from({ length: count }, (_, index) =>
+			formatOsloDate(
+				osloDateTimeToEpoch(format(addDays(start, index), "yyyy-MM-dd"), "09:00"),
+				"EEE d. MMM",
+			),
+		);
+	await expect(dayTitles).toHaveText(labels(firstWednesday, 3));
+	await expect(weekRange).toHaveText(
+		`${labels(firstWednesday, 1)[0]}–${labels(addDays(firstWednesday, 2), 1)[0]}`,
+	);
+	await page.getByRole("button", { name: "Neste uke", exact: true }).click();
+	await expect(dayTitles).toHaveText(labels(nextMonday, 5));
+	await expect(page.getByRole("button", { name: "Neste uke", exact: true })).toBeDisabled();
+	await page.getByRole("button", { name: "Forrige uke", exact: true }).click();
+	await expect(dayTitles).toHaveText(labels(firstWednesday, 3));
+});
 
 test("keeps board controls in the viewport and shows interviewer photos in both themes", async ({
 	page,
