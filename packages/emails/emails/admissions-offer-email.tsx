@@ -17,11 +17,11 @@ export default function AdmissionsOfferEmail({
 		<OrderLayout preview={`Tilbud om opptak i ${group}`} contactEmail={EVENT_CONTACT_EMAIL}>
 			<Text>{`Hei ${firstName},`}</Text>
 			<Text>{`Vi vil gjerne tilby deg plass i ${group} i Navet gjennom opptaket ${periodTitle}.`}</Text>
-			<Text>Logg inn på Hugin for å svare på tilbudet. Du kan takke ja eller nei.</Text>
+			<Text>Åpne tilbudet nedenfor for å takke ja eller nei.</Text>
 			<Section style={{ margin: "24px 0" }}>
 				<OrderButton href={responseUrl}>Svar på tilbudet</OrderButton>
 			</Section>
-			<Text>Tilbudet er personlig og kan bare besvares fra din egen Hugin-konto.</Text>
+			<Text>Tilbudet er personlig og kan bare besvares av deg.</Text>
 		</OrderLayout>
 	);
 }

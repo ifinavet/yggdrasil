@@ -294,7 +294,7 @@ async function sendDecision(ctx: ActionCtx, claimed: CurrentClaim) {
 			? AdmissionsOfferEmail({
 					firstName,
 					periodTitle: period.title,
-					group: application.reviewedGroup ?? application.group ?? "Navet",
+					group: application.reviewedGroup ?? "Navet",
 					responseUrl: ADMISSIONS_URL,
 				})
 			: AdmissionsRejectionEmail({ firstName, periodTitle: period.title }),
@@ -311,7 +311,7 @@ async function sendDecision(ctx: ActionCtx, claimed: CurrentClaim) {
 			: `Svar på søknaden til ${period.title}`,
 		html,
 		text: offer
-			? `Hei ${firstName},\n\nVi vil gjerne tilby deg plass i ${application.reviewedGroup ?? application.group ?? "Navet"} gjennom ${period.title}. Logg inn på Hugin for å takke ja eller nei: ${ADMISSIONS_URL}`
+			? `Hei ${firstName},\n\nVi vil gjerne tilby deg plass i ${application.reviewedGroup ?? "Navet"} gjennom ${period.title}. Åpne tilbudet nedenfor for å takke ja eller nei: ${ADMISSIONS_URL}`
 			: `Hei ${firstName},\n\nTakk for søknaden til ${period.title}. Denne gangen kan vi dessverre ikke tilby deg plass i Navet.`,
 	});
 	return { deliveryIds: [emailId] };

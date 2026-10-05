@@ -27,10 +27,10 @@ export default function AdmissionsInterviewEmail({
 				</Text>
 			</Section>
 			<Text>
-				Vi gleder oss til å bli kjent med deg! Du kan avlyse intervjuet i Hugin hvis du ikke kan
-				møte.
+				Vi gleder oss til å bli kjent med deg. Bruk lenken nedenfor hvis du vil se eller avlyse
+				intervjuet.
 			</Text>
-			<OrderButton href={applicationUrl}>Se intervjuet ditt</OrderButton>
+			<OrderButton href={applicationUrl}>Se eller avlys intervjuet</OrderButton>
 		</OrderLayout>
 	);
 }

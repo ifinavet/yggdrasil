@@ -17,7 +17,7 @@ it.each([AdmissionsInterviewEmail, AdmissionsReminderEmail])(
 		);
 		expect(html).toContain('href="https://ifirom.no/store%20beta"');
 		expect(html).toContain('href="https://hugin.example.test/admissions"');
-		expect(html).toContain("Se intervjuet ditt");
+		expect(html).toContain("Se eller avlys intervjuet");
 		expect(html).toContain("12. oktober kl. 10:00");
 	},
 );

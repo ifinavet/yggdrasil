@@ -28,9 +28,10 @@ export default function AdmissionsReminderEmail({
 				Sted: <Link href={roomUrl(room)}>{room}</Link>
 			</Text>
 			<Text>
-				Vi gleder oss til å prate med deg! Du kan avlyse intervjuet i Hugin hvis du ikke kan møte.
+				Vi gleder oss til å prate med deg. Bruk lenken nedenfor hvis du vil se eller avlyse
+				intervjuet.
 			</Text>
-			<OrderButton href={applicationUrl}>Se intervjuet ditt</OrderButton>
+			<OrderButton href={applicationUrl}>Se eller avlys intervjuet</OrderButton>
 		</OrderLayout>
 	);
 }
