@@ -7,6 +7,7 @@ import {
 	GOOGLE_OAUTH_TOKEN_URL,
 } from "@workspace/shared/constants";
 import { JWT } from "google-auth-library";
+import { sha256 } from "../lib/tokens";
 import { directoryUrl, type GoogleConfig } from "./config";
 
 const TIMEOUT_MS = 15_000;
@@ -293,4 +294,8 @@ export function googleCalendarClient(config: GoogleConfig, subject: string) {
 			}
 		},
 	};
+}
+
+export function calendarEventId(key: string) {
+	return sha256(key);
 }

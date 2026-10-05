@@ -1,12 +1,45 @@
 import { osloDateTimeToEpoch } from "@workspace/shared/time";
-import { expect, it } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import {
+	admissionPeriodFixture,
 	applicationFields,
 	interviewFields,
 	periodFields,
 } from "../../../test/admissions-fixtures";
 import { asUser, grantRole, insertUser, setup } from "../../../test/fixtures";
 import { api } from "../../_generated/api";
+
+import * as config from "../../iam/config";
+import * as google from "../../iam/googleCalendar";
+
+const provider = {
+	listCalendars: vi.fn(),
+	freeBusy: vi.fn(),
+	listEvents: vi.fn(),
+	getEvent: vi.fn(),
+	upsertEvent: vi.fn(),
+	cancelEvent: vi.fn(),
+};
+beforeEach(() => {
+	vi.spyOn(config, "googleConfig").mockReturnValue({
+		serviceAccountEmail: "service@example.test",
+		privateKey: "test-key",
+		adminEmail: "admin@ifinavet.no",
+		domain: "ifinavet.no",
+	});
+	vi.spyOn(google, "googleCalendarClient").mockReturnValue(provider);
+	provider.listCalendars.mockResolvedValue([
+		{ id: "navet", summary: "Navet" },
+		{ id: "timetable", summary: "Timeplan" },
+		{ id: "personal", summary: "Privat" },
+	]);
+	provider.freeBusy.mockResolvedValue({});
+	provider.listEvents.mockResolvedValue([]);
+});
+afterEach(() => {
+	vi.restoreAllMocks();
+	vi.clearAllMocks();
+});
 
 it("keeps published slots pinned and does not rebook cancelled interviews automatically", async () => {
 	const { t } = await setup();
@@ -86,41 +119,90 @@ it("keeps published slots pinned and does not rebook cancelled interviews automa
 			revision: 2,
 		});
 	});
-	process.env.CONVEX_CLOUD_URL = "http://127.0.0.1:3210";
-	process.env.APP_ENV = "local";
-	try {
-		const result = await asUser(t, admin).action(
-			api.admissions.interviews.calendar.generateSchedule,
-			{
-				periodId,
-				expectedRevision: 0,
-			},
-		);
-		expect(result.count).toBe(2);
-		const interviews = await t.run((ctx) =>
-			ctx.db
-				.query("admissionInterviews")
-				.withIndex("by_periodId_and_status", (q) =>
-					q.eq("periodId", periodId).eq("status", "scheduled"),
-				)
-				.collect(),
-		);
-		expect(interviews).toHaveLength(2);
-		expect(
-			interviews.find(({ applicationId }) => applicationId === applications.published)?.startAt,
-		).toBe(startAt);
-		expect(
-			interviews.find(({ applicationId }) => applicationId === applications.available)?.startAt,
-		).toBeGreaterThanOrEqual(startAt + 20 * 60000);
-		const cancelled = await t.run((ctx) =>
-			ctx.db
-				.query("admissionInterviews")
-				.withIndex("by_applicationId", (q) => q.eq("applicationId", applications.cancelled))
-				.unique(),
-		);
-		expect(cancelled?.status).toBe("cancelled");
-	} finally {
-		delete process.env.CONVEX_CLOUD_URL;
-		delete process.env.APP_ENV;
-	}
+	const result = await asUser(t, admin).action(
+		api.admissions.interviews.calendar.generateSchedule,
+		{
+			periodId,
+			expectedRevision: 0,
+		},
+	);
+	expect(result.count).toBe(2);
+	const interviews = await t.run((ctx) =>
+		ctx.db
+			.query("admissionInterviews")
+			.withIndex("by_periodId_and_status", (q) =>
+				q.eq("periodId", periodId).eq("status", "scheduled"),
+			)
+			.collect(),
+	);
+	expect(interviews).toHaveLength(2);
+	expect(
+		interviews.find(({ applicationId }) => applicationId === applications.published)?.startAt,
+	).toBe(startAt);
+	expect(
+		interviews.find(({ applicationId }) => applicationId === applications.available)?.startAt,
+	).toBeGreaterThanOrEqual(startAt + 20 * 60000);
+	const cancelled = await t.run((ctx) =>
+		ctx.db
+			.query("admissionInterviews")
+			.withIndex("by_applicationId", (q) => q.eq("applicationId", applications.cancelled))
+			.unique(),
+	);
+	expect(cancelled?.status).toBe("cancelled");
+});
+
+it("uses provider calendars for defaults and saved selections, with admin authorization", async () => {
+	const { t, admin, adminClient, periodId } = await admissionPeriodFixture();
+	await t.run(async (ctx) => {
+		await ctx.db.patch(admin._id, { email: "admin@ifinavet.no" });
+		await ctx.db.patch(periodId, {
+			interviewers: [{ userId: admin._id, selectedCalendarIds: [] }],
+		});
+	});
+	const args = { periodId, interviewerId: admin._id };
+	await expect(t.action(api.admissions.interviews.calendar.sources, args)).rejects.toThrow(
+		/Unauthorized/,
+	);
+	expect(provider.listCalendars).not.toHaveBeenCalled();
+	expect(await adminClient.action(api.admissions.interviews.calendar.sources, args)).toEqual([
+		{ id: "navet", name: "Navet", selected: true, readable: true },
+		{ id: "timetable", name: "Timeplan", selected: true, readable: true },
+		{ id: "personal", name: "Privat", selected: false, readable: true },
+	]);
+	expect(provider.freeBusy).toHaveBeenCalledTimes(3);
+	expect(provider.listEvents).toHaveBeenCalledTimes(3);
+	await t.run((ctx) =>
+		ctx.db.patch(periodId, {
+			interviewers: [{ userId: admin._id, selectedCalendarIds: ["personal"] }],
+		}),
+	);
+	expect(
+		(await adminClient.action(api.admissions.interviews.calendar.sources, args))
+			.filter((calendar) => calendar.selected)
+			.map((calendar) => calendar.id),
+	).toEqual(["personal"]);
+});
+
+it("fails calendar discovery and scheduling when Google configuration is missing", async () => {
+	const { t, admin, adminClient, periodId } = await admissionPeriodFixture();
+	await t.run((ctx) =>
+		ctx.db.patch(periodId, {
+			interviewers: [{ userId: admin._id, selectedCalendarIds: ["navet"] }],
+		}),
+	);
+	vi.mocked(config.googleConfig).mockReturnValue(null);
+	await expect(
+		adminClient.action(api.admissions.interviews.calendar.sources, {
+			periodId,
+			interviewerId: admin._id,
+		}),
+	).rejects.toThrow(/mangler tjenestekonto/);
+	await expect(
+		adminClient.action(api.admissions.interviews.calendar.generateSchedule, {
+			periodId,
+			expectedRevision: 1,
+		}),
+	).rejects.toThrow(/mangler tjenestekonto/);
+	expect(provider.listCalendars).not.toHaveBeenCalled();
+	expect(provider.freeBusy).not.toHaveBeenCalled();
 });

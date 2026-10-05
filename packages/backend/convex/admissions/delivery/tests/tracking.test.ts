@@ -1,36 +1,18 @@
 import { expect, it } from "vitest";
-import { applicationFields, periodFields } from "../../../../test/admissions-fixtures";
+import { admissionApplicationFixture } from "../../../../test/admissions-fixtures";
 import {
 	allOperations,
 	finishOperation,
 	operationByKey,
 } from "../../../../test/admissions-workflow";
-import { asUser, grantRole, insertUser, setup } from "../../../../test/fixtures";
+import { asUser } from "../../../../test/fixtures";
 import { api, internal } from "../../../_generated/api";
 
-async function overviewFixture() {
-	const { t } = await setup();
-	const admin = await insertUser(t, "admin@example.test");
-	await grantRole(t, admin._id, "admin");
-	const applicant = await insertUser(t, "applicant@uio.no");
-	const now = Date.now();
-	const periodId = await t.run((ctx) =>
-		ctx.db.insert(
-			"admissionPeriods",
-			periodFields(admin._id, { revision: 0, interviewEndAt: now + 7 * 86400000 }),
-		),
-	);
-	const applicationId = await t.run((ctx) =>
-		ctx.db.insert(
-			"admissionApplications",
-			applicationFields(periodId, applicant._id, { revision: 0 }),
-		),
-	);
-	return { t, admin, periodId, applicationId };
-}
-
 it("shows unresolved mail delivery failures in the admin overview", async () => {
-	const { t, admin, periodId, applicationId } = await overviewFixture();
+	const { t, admin, periodId, applicationId } = await admissionApplicationFixture(
+		{ revision: 0 },
+		{ revision: 0 },
+	);
 	const statuses = ["queued", "delivered", "delayed", "failed", "bounced", "complained"] as const;
 	await t.run(async (ctx) => {
 		for (const status of statuses) {
@@ -61,7 +43,10 @@ it("shows unresolved mail delivery failures in the admin overview", async () => 
 });
 
 it("queues one retryable Slack alert when a provider reports a failed email", async () => {
-	const { t, periodId, applicationId } = await overviewFixture();
+	const { t, periodId, applicationId } = await admissionApplicationFixture(
+		{ revision: 0 },
+		{ revision: 0 },
+	);
 	await t.run((ctx) =>
 		ctx.db.insert("admissionDeliveries", {
 			periodId,
@@ -97,45 +82,29 @@ it("queues one retryable Slack alert when a provider reports a failed email", as
 	expect(retried).toMatchObject({ state: "failed", lastError: "Slack API unavailable" });
 });
 
-it("exposes captured email content only in local admin previews", async () => {
-	const { t, admin, periodId, applicationId } = await overviewFixture();
-	await t.run((ctx) =>
-		ctx.db.insert("admissionDeliveries", {
-			periodId,
-			applicationId,
-			kind: "offer",
-			idempotencyKey: "local-capture",
-			emailId: "local:offer",
-			status: "delivered",
-			localPreview: {
-				to: "applicant@example.test",
-				subject: "Tilbud om plass",
-				html: "<p>Hei</p>",
-			},
-		}),
-	);
-	process.env.CONVEX_CLOUD_URL = "http://127.0.0.1:3210";
-	process.env.APP_ENV = "local";
-	try {
-		const preview = await asUser(t, admin).query(api.admissions.queries.adminOverview, {
-			periodId,
-		});
-		expect(preview?.localEmails).toEqual([
-			{ to: "applicant@example.test", subject: "Tilbud om plass", html: "<p>Hei</p>" },
-		]);
-		process.env.CONVEX_CLOUD_URL = "https://production.convex.cloud";
-		const production = await asUser(t, admin).query(api.admissions.queries.adminOverview, {
-			periodId,
-		});
-		expect(production?.localEmails).toEqual([]);
-	} finally {
-		delete process.env.CONVEX_CLOUD_URL;
-		delete process.env.APP_ENV;
-	}
+it("keeps queued mail pending until the provider confirms delivery", async () => {
+	const { t, periodId, applicationId } = await admissionApplicationFixture();
+	const emailId = "provider-confirmation";
+	const deliveryId = await t.mutation(internal.admissions.delivery.tracking.recordQueued, {
+		periodId,
+		applicationId,
+		kind: "offer",
+		idempotencyKey: emailId,
+		emailId,
+	});
+	expect((await t.run((ctx) => ctx.db.get(deliveryId)))?.status).toBe("queued");
+	await t.mutation(internal.admissions.delivery.tracking.recordProviderEvent, {
+		emailId,
+		type: "email.delivered",
+	});
+	expect((await t.run((ctx) => ctx.db.get(deliveryId)))?.status).toBe("delivered");
 });
 
 it("routes admission mail webhooks through the shared callback without touching feedback", async () => {
-	const { t, periodId, applicationId } = await overviewFixture();
+	const { t, periodId, applicationId } = await admissionApplicationFixture(
+		{ revision: 0 },
+		{ revision: 0 },
+	);
 	const deliveryId = await t.run((ctx) =>
 		ctx.db.insert("admissionDeliveries", {
 			periodId,
@@ -167,7 +136,10 @@ it("routes admission mail webhooks through the shared callback without touching 
 it.each(["delivered", "bounced", "complained", "failed"] as const)(
 	"preserves provider status %s when recording the same queued email again",
 	async (status) => {
-		const { t, periodId, applicationId } = await overviewFixture();
+		const { t, periodId, applicationId } = await admissionApplicationFixture(
+			{ revision: 0 },
+			{ revision: 0 },
+		);
 		const input = {
 			periodId,
 			applicationId,
@@ -188,3 +160,24 @@ it.each(["delivered", "bounced", "complained", "failed"] as const)(
 		expect(await t.run((ctx) => ctx.db.get(deliveryId))).toEqual(before);
 	},
 );
+
+it.each([
+	[["email.delivered", "email.delivery_delayed", "email.sent"], "delivered"],
+	[["email.bounced", "email.delivered"], "bounced"],
+	[["email.complained", "email.delivered"], "complained"],
+	[["email.suppressed", "email.sent"], "failed"],
+	[["email.delivery_delayed", "email.delivered", "email.opened"], "delivered"],
+] as const)("keeps provider sequence %j at %s", async (events, expected) => {
+	const { t, periodId, applicationId } = await admissionApplicationFixture();
+	const emailId = "provider-transition";
+	const deliveryId = await t.mutation(internal.admissions.delivery.tracking.recordQueued, {
+		periodId,
+		applicationId,
+		kind: "offer",
+		idempotencyKey: emailId,
+		emailId,
+	});
+	for (const type of events)
+		await t.mutation(internal.admissions.delivery.tracking.recordProviderEvent, { emailId, type });
+	expect((await t.run((ctx) => ctx.db.get(deliveryId)))?.status).toBe(expected);
+});

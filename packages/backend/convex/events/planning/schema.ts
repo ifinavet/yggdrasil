@@ -1,5 +1,6 @@
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
+import { EMAIL_DELIVERY_STATUSES } from "../../lib/emailDelivery";
 import { oneOf } from "../../lib/validators";
 import { presentationEventType } from "../../semesterPlanning/schema";
 
@@ -89,17 +90,7 @@ export const planningSchema = {
 		eventStart: v.number(),
 		envelope,
 		url: v.optional(v.string()),
-		status: oneOf([
-			"pending",
-			"queued",
-			"sent",
-			"delivered",
-			"delayed",
-			"failed",
-			"bounced",
-			"complained",
-			"cancelled",
-		]),
+		status: oneOf(["pending", ...EMAIL_DELIVERY_STATUSES, "cancelled"]),
 		emailId: v.optional(v.string()),
 		error: v.optional(v.string()),
 		attempts: v.number(),

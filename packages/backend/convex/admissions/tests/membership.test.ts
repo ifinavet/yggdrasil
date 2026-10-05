@@ -1,12 +1,9 @@
 import { expect, it } from "vitest";
-import { periodFields } from "../../../test/admissions-fixtures";
-import { insertUser, setup } from "../../../test/fixtures";
+import { admissionPeriodFixture } from "../../../test/admissions-fixtures";
 import { internal } from "../../_generated/api";
 
 it("stores bounded Slack-managed ids only for the current open period revision", async () => {
-	const { t } = await setup();
-	const admin = await insertUser(t, "admin@example.test");
-	const periodId = await t.run((ctx) => ctx.db.insert("admissionPeriods", periodFields(admin._id)));
+	const { t, periodId } = await admissionPeriodFixture();
 	const args = { periodId, expectedRevision: 1, memberIds: ["U-old", "U-old"] };
 
 	await t.mutation(internal.admissions.internal.saveSlackManagedMembers, args);
@@ -28,11 +25,7 @@ it("stores bounded Slack-managed ids only for the current open period revision",
 });
 
 it("allows an already-running close notice to persist Slack membership before archival", async () => {
-	const { t } = await setup();
-	const admin = await insertUser(t, "admin@example.test");
-	const periodId = await t.run((ctx) =>
-		ctx.db.insert("admissionPeriods", periodFields(admin._id, { status: "closing", revision: 2 })),
-	);
+	const { t, periodId } = await admissionPeriodFixture({ status: "closing", revision: 2 });
 
 	await expect(
 		t.mutation(internal.admissions.internal.saveSlackManagedMembers, {

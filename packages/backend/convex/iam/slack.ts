@@ -256,3 +256,14 @@ export function slackClient(config: SlackConfig) {
 		},
 	};
 }
+
+export async function postSlackNotice(
+	slack: ReturnType<typeof slackClient>,
+	channel: string,
+	key: string,
+	since: number,
+	text: string,
+) {
+	if (!(await slack.hasMessage(channel, key, since)))
+		await slack.postMessage(channel, text, key, true);
+}

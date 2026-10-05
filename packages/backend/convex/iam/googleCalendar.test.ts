@@ -1,6 +1,7 @@
 import { exportPKCS8, generateKeyPair } from "jose";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import {
+	calendarEventId,
 	externalBusyIntervals,
 	googleCalendarClient,
 	overlapsBusy,
@@ -205,4 +206,10 @@ describe("admissions event conflict filtering", () => {
 		).toEqual([]);
 		expect(() => externalBusyIntervals([{ id: "unreadable" }])).toThrow("ugyldig hendelsestid");
 	});
+});
+
+it("preserves stable calendar identities across retries", async () => {
+	expect(await calendarEventId("navet-admissions:interview-id")).toBe(
+		"42f3def0525c8dae93a2c9e26ccccd9675aeef59e2065c4febe2e87124c33692",
+	);
 });

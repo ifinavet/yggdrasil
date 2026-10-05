@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import {
 	applicationFields,
-	interviewFields,
+	insertInterview,
 	periodFields,
 } from "../../../test/admissions-fixtures";
 import { stageOperation } from "../../../test/admissions-workflow";
@@ -33,17 +33,12 @@ it("keeps a schedule immutable while its first calendar publish is in flight", a
 		ctx.db.insert("admissionApplications", applicationFields(periodId, applicant._id)),
 	);
 	const startAt = now + 3 * 24 * 60 * 60 * 1000;
-	const interviewId = await t.run((ctx) =>
-		ctx.db.insert(
-			"admissionInterviews",
-			interviewFields(periodId, applicationId, {
-				startAt,
-				endAt: startAt + 15 * 60 * 1000,
-				interviewerIds: [firstInterviewer._id, secondInterviewer._id],
-				revision: 1,
-			}),
-		),
-	);
+	const interviewId = await insertInterview(t, periodId, applicationId, {
+		startAt,
+		endAt: startAt + 15 * 60 * 1000,
+		interviewerIds: [firstInterviewer._id, secondInterviewer._id],
+		revision: 1,
+	});
 	await t.run((ctx) =>
 		stageOperation(ctx, {
 			kind: "publish",

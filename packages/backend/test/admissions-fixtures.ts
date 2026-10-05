@@ -2,7 +2,7 @@ import type { WithoutSystemFields } from "convex/server";
 import type { Doc, Id } from "../convex/_generated/dataModel";
 import type { Operation } from "../convex/admissions/delivery/workflow";
 import { firstOperation } from "./admissions-workflow";
-import type { TestBackend } from "./fixtures";
+import { asUser, grantRole, insertUser, setup, type TestBackend } from "./fixtures";
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -94,4 +94,53 @@ export function firstAdmissionOperation(
 	kind: Operation["kind"],
 ) {
 	return t.run((ctx) => firstOperation(ctx, periodId, kind));
+}
+
+export function insertInterview(
+	t: TestBackend,
+	periodId: Id<"admissionPeriods">,
+	applicationId: Id<"admissionApplications">,
+	overrides: Parameters<typeof interviewFields>[2] = {},
+) {
+	return t.run((ctx) =>
+		ctx.db.insert("admissionInterviews", interviewFields(periodId, applicationId, overrides)),
+	);
+}
+
+export function interviewForApplication(
+	t: TestBackend,
+	applicationId: Id<"admissionApplications">,
+) {
+	return t.run((ctx) =>
+		ctx.db
+			.query("admissionInterviews")
+			.withIndex("by_applicationId", (q) => q.eq("applicationId", applicationId))
+			.unique(),
+	);
+}
+
+export async function admissionPeriodFixture(overrides: Parameters<typeof periodFields>[1] = {}) {
+	const { t } = await setup();
+	const admin = await insertUser(t, "admin@example.test");
+	await grantRole(t, admin._id, "admin");
+	const now = Date.now();
+	const periodId = await t.run((ctx) =>
+		ctx.db.insert("admissionPeriods", periodFields(admin._id, overrides)),
+	);
+	return { t, admin, adminClient: asUser(t, admin), periodId, now };
+}
+
+export async function admissionApplicationFixture(
+	periodOverrides: Parameters<typeof periodFields>[1] = {},
+	applicationOverrides: Parameters<typeof applicationFields>[2] = {},
+) {
+	const value = await admissionPeriodFixture(periodOverrides);
+	const applicant = await insertUser(value.t, "applicant@uio.no");
+	const applicationId = await value.t.run((ctx) =>
+		ctx.db.insert(
+			"admissionApplications",
+			applicationFields(value.periodId, applicant._id, applicationOverrides),
+		),
+	);
+	return { ...value, applicant, applicantClient: asUser(value.t, applicant), applicationId };
 }

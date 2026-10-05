@@ -1,8 +1,8 @@
 import { expect, it } from "vitest";
 import {
+	admissionPeriodFixture,
 	applicationFields,
 	interviewFields,
-	periodFields,
 } from "../../../test/admissions-fixtures";
 import {
 	allOperations,
@@ -10,21 +10,12 @@ import {
 	firstOperation,
 	stageOperation,
 } from "../../../test/admissions-workflow";
-import { asUser, grantRole, insertUser, setup } from "../../../test/fixtures";
+import { asUser, grantRole, insertUser } from "../../../test/fixtures";
 import { api, internal } from "../../_generated/api";
 
 async function boardFixture() {
-	const { t } = await setup();
-	const admin = await insertUser(t, "board@ifinavet.no");
-	await grantRole(t, admin._id, "admin");
+	const { t, admin, periodId, now } = await admissionPeriodFixture({ revision: 0 });
 	const student = await insertUser(t, "applicant@uio.no");
-	const now = Date.now();
-	const periodId = await t.run((ctx) =>
-		ctx.db.insert(
-			"admissionPeriods",
-			periodFields(admin._id, { revision: 0, interviewEndAt: now + 7 * 86400000 }),
-		),
-	);
 	const ids = await t.run(async (ctx) => {
 		const result = [];
 		for (const decision of ["pending", "shortlist", "accepted"] as const) {

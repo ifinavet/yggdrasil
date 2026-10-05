@@ -18,22 +18,15 @@ import { v } from "convex/values";
 import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import { type ActionCtx, action } from "../../_generated/server";
-import { isLocalDevelopment } from "../../auth/local";
 import { googleConfig, isWorkspaceEmail } from "../../iam/config";
 import {
+	calendarEventId,
 	externalBusyIntervals,
 	googleCalendarClient,
 	type OwnedAdmissionEvent,
 	ownedBusyIntervals,
 } from "../../iam/googleCalendar";
-import { admissionCalendarEventId } from "../delivery/eventId";
 import { interviewCalendarIds } from "../rules";
-
-const localCalendars = [
-	{ id: "navet", name: "Navet" },
-	{ id: "timetable", name: "Timeplan" },
-	{ id: "personal", name: "Privat" },
-];
 
 export const sources = action({
 	args: { periodId: v.id("admissionPeriods"), interviewerId: v.id("users") },
@@ -46,14 +39,6 @@ export const sources = action({
 			interviewerId,
 		});
 		const selectedIds: string[] = access.interviewer.selectedCalendarIds;
-		if (isLocalDevelopment())
-			return localCalendars.map((calendar) => ({
-				...calendar,
-				selected: selectedIds.length
-					? selectedIds.includes(calendar.id)
-					: calendar.id !== "personal",
-				readable: true,
-			}));
 		const config = googleConfig();
 		if (!config)
 			throw new Error("Google Calendar mangler tjenestekonto eller Workspace-konfigurasjon.");
@@ -154,12 +139,10 @@ export const generateSchedule = action({
 		if (context.period.revision !== expectedRevision)
 			throw new Error("Opptaket er endret. Last inn på nytt før du lager planen.");
 		const { period } = context;
-		const local = isLocalDevelopment();
-		const config = local ? null : googleConfig();
-		if (!local && !config)
+		const config = googleConfig();
+		if (!config)
 			throw new Error("Google Calendar mangler tjenestekonto eller Workspace-konfigurasjon.");
 		if (
-			!local &&
 			context.interviewers.some(
 				(person) =>
 					person.selectedCalendarIds.length > 0 &&
@@ -171,16 +154,6 @@ export const generateSchedule = action({
 			context.interviewers.map(async (person) => {
 				const calendarIds = person.selectedCalendarIds;
 				if (!calendarIds.length) return { id: person.userId, calendars: [] };
-				if (local)
-					return {
-						id: person.userId,
-						calendars: calendarIds.map((calendarId) => ({
-							selected: true,
-							readable: true,
-							busy: publishedCalendarBusy(context, person.userId, calendarId),
-						})),
-					};
-				if (!config) throw new Error("Google Calendar mangler konfigurasjon.");
 				const client = googleCalendarClient(config, person.email);
 				const calendars = await client.freeBusy(
 					calendarIds,
@@ -188,16 +161,21 @@ export const generateSchedule = action({
 					new Date(period.interviewEndAt).toISOString(),
 				);
 				const ownedEvents = new Map<string, OwnedAdmissionEvent>(
-					context.existingInterviews
-						.filter((interview) => interview.interviewerIds.includes(person.userId))
-						.map((interview) => [
-							interview._id,
-							{
-								eventId: admissionCalendarEventId(interview._id),
-								interviewId: interview._id,
-								periodId: period._id,
-							},
-						]),
+					await Promise.all(
+						context.existingInterviews
+							.filter((interview) => interview.interviewerIds.includes(person.userId))
+							.map(
+								async (interview) =>
+									[
+										interview._id,
+										{
+											eventId: await calendarEventId(`navet-admissions:${interview._id}`),
+											interviewId: interview._id,
+											periodId: period._id,
+										},
+									] as const,
+							),
+					),
 				);
 				return {
 					id: person.userId,

@@ -6,6 +6,11 @@ import { internal } from "../../_generated/api";
 import type { Doc } from "../../_generated/dataModel";
 import { internalMutation, internalQuery, type MutationCtx } from "../../_generated/server";
 import { isLocalDevelopment } from "../../auth/local";
+import {
+	canUpdateEmailDeliveryStatus,
+	EMAIL_DELIVERY_EVENT_STATUSES,
+	isEmailDeliveryFailure,
+} from "../../lib/emailDelivery";
 import { trackedEmail } from "../../lib/trackedEmail";
 import { envelopeFingerprint, invitationPreview } from "./helpers";
 import { notifyInvitationSent, notifyPlanning } from "./notifications";
@@ -152,24 +157,11 @@ export const recordProviderEvent = internalMutation({
 			.withIndex("by_emailId", (q) => q.eq("emailId", emailId))
 			.unique();
 		if (!email) return false;
-		const statuses: Record<string, Doc<"eventPlanningEmails">["status"]> = {
-			"email.sent": "sent",
-			"email.delivered": "delivered",
-			"email.delivery_delayed": "delayed",
-			"email.bounced": "bounced",
-			"email.complained": "complained",
-			"email.failed": "failed",
-			"email.suppressed": "failed",
-		};
-		const status = statuses[type];
+
+		const status = EMAIL_DELIVERY_EVENT_STATUSES[type];
 		if (!status || email.status === "cancelled") return true;
-		const terminal = ["bounced", "complained", "failed"].includes(email.status);
-		if (
-			terminal ||
-			(email.status === "delivered" && ["queued", "sent", "delayed"].includes(status))
-		)
-			return true;
-		const failed = ["bounced", "complained", "failed", "delayed"].includes(status);
+		if (!canUpdateEmailDeliveryStatus(email.status, status)) return true;
+		const failed = isEmailDeliveryFailure(status);
 		const messages: Partial<Record<Doc<"eventPlanningEmails">["status"], string>> = {
 			bounced: "Mottakerens server avviste e-posten. Kontroller adressen.",
 			complained: "E-posten ble markert som søppelpost. Følg opp manuelt.",

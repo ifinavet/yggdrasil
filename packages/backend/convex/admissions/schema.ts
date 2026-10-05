@@ -1,6 +1,8 @@
 import { vWorkflowId } from "@convex-dev/workflow";
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
+import { EMAIL_DELIVERY_STATUSES } from "../lib/emailDelivery";
+import { oneOf } from "../lib/validators";
 
 export const availabilityWindow = v.object({ day: v.string(), start: v.number(), end: v.number() });
 export const interviewerSelection = v.object({
@@ -164,16 +166,7 @@ export const admissionsSchema = {
 		),
 		idempotencyKey: v.string(),
 		emailId: v.string(),
-		localPreview: v.optional(v.object({ to: v.string(), subject: v.string(), html: v.string() })),
-		status: v.union(
-			v.literal("queued"),
-			v.literal("sent"),
-			v.literal("delivered"),
-			v.literal("delayed"),
-			v.literal("failed"),
-			v.literal("bounced"),
-			v.literal("complained"),
-		),
+		status: oneOf(EMAIL_DELIVERY_STATUSES),
 		error: v.optional(v.string()),
 	})
 		.index("by_emailId", ["emailId"])

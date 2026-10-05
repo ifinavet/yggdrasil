@@ -1,7 +1,7 @@
+import { admissionsChannelNames } from "@workspace/shared/slack/channels";
 import type { Doc } from "../../_generated/dataModel";
 import { slackConfig } from "../../iam/config";
 import { slackClient } from "../../iam/slack";
-import { admissionsChannelNames } from "./channelNames";
 
 export type Slack = ReturnType<typeof slackClient>;
 type Period = Doc<"admissionPeriods">;
@@ -31,17 +31,6 @@ export async function ensureAdmissionsChannel(
 		true,
 	);
 	return channel;
-}
-
-export async function postAdmissionsNotice(
-	slack: Slack,
-	channel: string,
-	key: string,
-	since: number,
-	text: string,
-) {
-	if (!(await slack.hasMessage(channel, key, since)))
-		await slack.postMessage(channel, text, key, true);
 }
 
 export async function archiveAdmissionsChannel(slack: Slack, period: Period) {

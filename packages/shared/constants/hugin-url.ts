@@ -1,4 +1,4 @@
-import { HUGIN_LOCAL_URL, HUGIN_URL, MIDGARD_LOCAL_URL, MIDGARD_URL } from "./urls";
+import { HUGIN_LOCAL_URL, HUGIN_URL, MIDGARD_URL } from "./urls";
 
 export function huginUrl(): string {
 	return (
@@ -8,8 +8,5 @@ export function huginUrl(): string {
 }
 
 export function midgardUrl(): string {
-	return (
-		process.env.NEXT_PUBLIC_MIDGARD_URL ??
-		(process.env.NODE_ENV === "development" ? MIDGARD_LOCAL_URL : MIDGARD_URL)
-	);
+	return process.env.NEXT_PUBLIC_MIDGARD_URL ?? MIDGARD_URL;
 }

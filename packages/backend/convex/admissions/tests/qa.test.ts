@@ -1,34 +1,17 @@
 import { expect, it } from "vitest";
 import {
+	admissionApplicationFixture,
 	applicationFields,
 	interviewFields,
-	periodFields,
 } from "../../../test/admissions-fixtures";
 import { allOperations, stageOperation } from "../../../test/admissions-workflow";
-import { asUser, grantRole, insertStudent, insertUser, setup } from "../../../test/fixtures";
+import { grantRole, insertStudent, insertUser } from "../../../test/fixtures";
 import { api } from "../../_generated/api";
 
 async function boardFixture() {
-	const { t } = await setup();
-	const admin = await insertUser(t, "qa-admin@ifinavet.no");
-	await grantRole(t, admin._id, "admin");
-	const applicant = await insertUser(t, "qa-applicant@uio.no");
-	await insertStudent(t, applicant._id);
-	const now = Date.now();
-	const periodId = await t.run((ctx) =>
-		ctx.db.insert("admissionPeriods", periodFields(admin._id, { revision: 0 })),
-	);
-	const applicationId = await t.run((ctx) =>
-		ctx.db.insert("admissionApplications", applicationFields(periodId, applicant._id)),
-	);
-	return {
-		t,
-		admin: asUser(t, admin),
-		applicant: asUser(t, applicant),
-		periodId,
-		applicationId,
-		now,
-	};
+	const value = await admissionApplicationFixture({ revision: 0 });
+	await insertStudent(value.t, value.applicant._id);
+	return { ...value, admin: value.adminClient, applicant: value.applicantClient };
 }
 
 it("republishes an already-published interview after a room change", async () => {

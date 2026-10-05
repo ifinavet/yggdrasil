@@ -1,5 +1,5 @@
 import { MIN_INTERVIEW_NOTICE_MS } from "@workspace/shared/admissions";
-import { SYSTEM_ALERTS_CHANNEL } from "@workspace/shared/slack/channels";
+import { admissionsChannelNames, SYSTEM_ALERTS_CHANNEL } from "@workspace/shared/slack/channels";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
@@ -7,7 +7,7 @@ import { internalMutation, internalQuery, type MutationCtx } from "../_generated
 import { adminRoles, internalRoles, requireRole, userHasRole } from "../auth/accessRights";
 import { accountForUser } from "../iam/accounts";
 import { enqueueSystemMessage } from "../iam/notifications";
-import { admissionsChannelNames } from "./delivery/channelNames";
+import { isEmailDeliveryFailure } from "../lib/emailDelivery";
 import { type Operation, startDelivery } from "./delivery/workflow";
 import {
 	activePublishInterviewIds,
@@ -43,10 +43,7 @@ async function isCancellationCurrent(ctx: Parameters<typeof requireRole>[0], job
 
 async function isDeliveryFailureCurrent(ctx: Parameters<typeof requireRole>[0], job: Operation) {
 	const delivery = job.deliveryId ? await ctx.db.get(job.deliveryId) : null;
-	return (
-		delivery?.periodId === job.periodId &&
-		["delayed", "failed", "bounced", "complained"].includes(delivery.status)
-	);
+	return delivery?.periodId === job.periodId && isEmailDeliveryFailure(delivery.status);
 }
 
 async function isInterviewJobCurrent(

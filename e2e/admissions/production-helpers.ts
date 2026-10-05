@@ -1,9 +1,11 @@
 import type { Page } from "@playwright/test";
 import { api } from "@workspace/backend/convex/api";
 import { ConvexHttpClient } from "convex/browser";
-import type { FunctionArgs } from "convex/server";
+import { seedAdmissions } from "./seed";
 
-export type AdmissionSeedScenario = FunctionArgs<typeof api.admissions.localSeed.reset>["scenario"];
+export type { AdmissionSeedScenario } from "./seed";
+
+import type { AdmissionSeedScenario } from "./seed";
 
 function localOrigin(name: string, fallback: string) {
 	const value = process.env[name] ?? fallback;
@@ -21,7 +23,7 @@ const convexUrl = localOrigin("NEXT_PUBLIC_CONVEX_URL", "http://127.0.0.1:3212")
 const convex = new ConvexHttpClient(convexUrl);
 
 export async function resetAdmissions(scenario: AdmissionSeedScenario) {
-	await convex.mutation(api.admissions.localSeed.reset, { scenario });
+	await seedAdmissions(convexUrl, scenario);
 }
 
 export async function clearCookieNotice(page: Page) {

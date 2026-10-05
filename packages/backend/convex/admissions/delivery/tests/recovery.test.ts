@@ -1,31 +1,20 @@
 import { expect, it } from "vitest";
-import { applicationFields, periodFields } from "../../../../test/admissions-fixtures";
+import { admissionPeriodFixture, applicationFields } from "../../../../test/admissions-fixtures";
 import {
 	allOperations,
 	finishOperation,
 	stageOperation,
 } from "../../../../test/admissions-workflow";
-import { asUser, grantRole, insertUser, setup } from "../../../../test/fixtures";
+import { asUser, insertUser } from "../../../../test/fixtures";
 import { api } from "../../../_generated/api";
 
 async function recoveryFixture() {
-	const { t } = await setup();
-	const admin = await insertUser(t, "admin@example.test");
-	await grantRole(t, admin._id, "admin");
-	const periodId = await t.run((ctx) =>
-		ctx.db.insert(
-			"admissionPeriods",
-			periodFields(admin._id, {
-				applicationStartAt: Date.now() - 86400000,
-				applicationEndAt: Date.now() + 86400000,
-				interviewStartAt: Date.now() + 172800000,
-				interviewEndAt: Date.now() + 604800000,
-				retentionAt: Date.now() + 1209600000,
-				revision: 0,
-			}),
-		),
-	);
-	return { t, admin: asUser(t, admin), periodId };
+	const {
+		t,
+		adminClient: admin,
+		periodId,
+	} = await admissionPeriodFixture({ revision: 0, applicationStartAt: Date.now() - 86400000 });
+	return { t, admin, periodId };
 }
 
 function operationFixture(

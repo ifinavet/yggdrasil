@@ -3,7 +3,7 @@ import type { Doc } from "../_generated/dataModel";
 import { type QueryCtx, query } from "../_generated/server";
 import { adminRoles, requireRole } from "../auth/accessRights";
 import { getCurrentUserOrThrow } from "../auth/currentUser";
-import { isLocalDevelopment } from "../auth/local";
+import { isEmailDeliveryFailure } from "../lib/emailDelivery";
 import { MAX_INTERNAL_GROUPS } from "../users/organization/groups";
 import { listOperations } from "./delivery/workflow";
 
@@ -162,13 +162,8 @@ export const adminOverview = query({
 			.withIndex("by_periodId", (q) => q.eq("periodId", period._id))
 			.take(200);
 		const unresolvedDeliveries = deliveryRows
-			.filter((delivery) =>
-				["delayed", "failed", "bounced", "complained"].includes(delivery.status),
-			)
+			.filter((delivery) => isEmailDeliveryFailure(delivery.status))
 			.map(({ _id, kind, status, error }) => ({ _id, kind, status, error }));
-		const localEmails = isLocalDevelopment()
-			? deliveryRows.flatMap(({ localPreview }) => (localPreview ? [localPreview] : []))
-			: [];
 		if (period.status === "closing")
 			return {
 				period,
@@ -177,7 +172,6 @@ export const adminOverview = query({
 				interviewers: [],
 				jobs,
 				deliveryIssues: [],
-				localEmails: [],
 			};
 		const applications = await ctx.db
 			.query("admissionApplications")
@@ -238,7 +232,6 @@ export const adminOverview = query({
 			interviewers,
 			jobs,
 			deliveryIssues: unresolvedDeliveries,
-			localEmails,
 		};
 	},
 });

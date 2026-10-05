@@ -1,7 +1,7 @@
 import { afterEach, expect, it, vi } from "vitest";
 import {
 	applicationFields,
-	interviewFields,
+	insertInterview,
 	periodFields,
 } from "../../../../test/admissions-fixtures";
 import {
@@ -124,14 +124,9 @@ it("keeps full selected interviewer membership separate from an interview's assi
 	const applicationId = await t.run((ctx) =>
 		ctx.db.insert("admissionApplications", applicationFields(periodId, candidate._id)),
 	);
-	const interviewId = await t.run((ctx) =>
-		ctx.db.insert(
-			"admissionInterviews",
-			interviewFields(periodId, applicationId, {
-				interviewerIds: selected.slice(0, 2).map(({ _id }) => _id),
-			}),
-		),
-	);
+	const interviewId = await insertInterview(t, periodId, applicationId, {
+		interviewerIds: selected.slice(0, 2).map(({ _id }) => _id),
+	});
 	await t.run((ctx) =>
 		stageOperation(ctx, {
 			kind: "publish",

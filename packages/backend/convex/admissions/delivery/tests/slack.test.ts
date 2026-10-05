@@ -1,10 +1,7 @@
+import { admissionsChannelNames } from "@workspace/shared/slack/channels";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-	archiveAdmissionsChannel,
-	ensureAdmissionsChannel,
-	postAdmissionsNotice,
-	type Slack,
-} from "../slack";
+import { postSlackNotice } from "../../../iam/slack";
+import { archiveAdmissionsChannel, ensureAdmissionsChannel, type Slack } from "../slack";
 
 const period = {
 	_id: "admissions-id",
@@ -90,19 +87,19 @@ describe("admissions Slack delivery", () => {
 	it("uses the durable notice key to avoid duplicates and surfaces provider failures for retry", async () => {
 		const slack = fakeSlack();
 		vi.mocked(slack.hasMessage).mockResolvedValueOnce(true);
-		await postAdmissionsNotice(slack, "channel-id", "offer-declined:one", 10, "Tilbud avslått");
+		await postSlackNotice(slack, "channel-id", "offer-declined:one", 10, "Tilbud avslått");
 		expect(slack.postMessage).not.toHaveBeenCalled();
 
 		vi.mocked(slack.postMessage).mockRejectedValueOnce(new Error("Slack unavailable"));
 		await expect(
-			postAdmissionsNotice(slack, "channel-id", "offer-declined:two", 10, "Tilbud avslått"),
+			postSlackNotice(slack, "channel-id", "offer-declined:two", 10, "Tilbud avslått"),
 		).rejects.toThrow("Slack unavailable");
 	});
 
 	it("keeps offer-declined notices free of applicant notes and answers", async () => {
 		const slack = fakeSlack();
 		const notice = "En søker takket nei til tilbudet. Kandidaten er tilgjengelig for ny vurdering.";
-		await postAdmissionsNotice(slack, "channel-id", "offer-declined:one", 10, notice);
+		await postSlackNotice(slack, "channel-id", "offer-declined:one", 10, notice);
 		expect(slack.postMessage).toHaveBeenCalledWith(
 			"channel-id",
 			notice,
@@ -128,5 +125,16 @@ describe("admissions Slack delivery", () => {
 		await archiveAdmissionsChannel(slack, period);
 		expect(slack.ensurePrivateChannel).not.toHaveBeenCalled();
 		expect(slack.archiveChannel).not.toHaveBeenCalled();
+	});
+});
+
+it.each([
+	["2026-06-30T21:59:59Z", "v26-opptak"],
+	["2026-06-30T22:00:00Z", "h26-opptak"],
+	["2026-12-31T23:00:00Z", "v27-opptak"],
+])("names channels using the Oslo semester boundary at %s", (date, name) => {
+	expect(admissionsChannelNames(Date.parse(date), "period-id")).toEqual({
+		name,
+		fallbackName: `${name}-period-id`,
 	});
 });

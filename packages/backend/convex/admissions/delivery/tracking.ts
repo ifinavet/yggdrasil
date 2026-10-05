@@ -1,7 +1,10 @@
 import { v } from "convex/values";
-import type { Doc } from "../../_generated/dataModel";
 import { internalMutation } from "../../_generated/server";
-import { isLocalDevelopment } from "../../auth/local";
+import {
+	canUpdateEmailDeliveryStatus,
+	EMAIL_DELIVERY_EVENT_STATUSES,
+	type EmailDeliveryStatus,
+} from "../../lib/emailDelivery";
 import { startDelivery } from "./workflow";
 
 const deliveryKind = v.union(
@@ -20,8 +23,6 @@ export const recordQueued = internalMutation({
 		kind: deliveryKind,
 		idempotencyKey: v.string(),
 		emailId: v.string(),
-		localPreview: v.optional(v.object({ to: v.string(), subject: v.string(), html: v.string() })),
-		status: v.optional(v.union(v.literal("queued"), v.literal("delivered"))),
 	},
 	handler: async (ctx, args) => {
 		const existing = await ctx.db
@@ -32,31 +33,19 @@ export const recordQueued = internalMutation({
 		if (existing) {
 			await ctx.db.patch(existing._id, {
 				emailId: args.emailId,
-				status: args.status ?? "queued",
+				status: "queued",
 				error: undefined,
-				localPreview: isLocalDevelopment() ? args.localPreview : undefined,
 			});
 			return existing._id;
 		}
 		return await ctx.db.insert("admissionDeliveries", {
 			...args,
-			localPreview: isLocalDevelopment() ? args.localPreview : undefined,
-			status: args.status ?? "queued",
+			status: "queued",
 		});
 	},
 });
 
-const statuses: Record<string, Doc<"admissionDeliveries">["status"]> = {
-	"email.sent": "sent",
-	"email.delivered": "delivered",
-	"email.delivery_delayed": "delayed",
-	"email.bounced": "bounced",
-	"email.complained": "complained",
-	"email.failed": "failed",
-	"email.suppressed": "failed",
-};
-
-const errors: Partial<Record<Doc<"admissionDeliveries">["status"], string>> = {
+const errors: Partial<Record<EmailDeliveryStatus, string>> = {
 	delayed: "E-posten er forsinket. Kontroller leveringsstatus.",
 	bounced: "Mottakerens server avviste e-posten. Kontroller adressen.",
 	complained: "E-posten ble markert som søppelpost. Følg opp manuelt.",
@@ -66,16 +55,14 @@ const errors: Partial<Record<Doc<"admissionDeliveries">["status"], string>> = {
 export const recordProviderEvent = internalMutation({
 	args: { emailId: v.string(), type: v.string() },
 	handler: async (ctx, { emailId, type }) => {
-		const status = statuses[type];
+		const status = EMAIL_DELIVERY_EVENT_STATUSES[type];
 		if (!status) return false;
 		const delivery = await ctx.db
 			.query("admissionDeliveries")
 			.withIndex("by_emailId", (q) => q.eq("emailId", emailId))
 			.unique();
 		if (!delivery) return false;
-		if (["bounced", "complained", "failed"].includes(delivery.status)) return true;
-		if (delivery.status === "delivered" && ["queued", "sent", "delayed"].includes(status))
-			return true;
+		if (!canUpdateEmailDeliveryStatus(delivery.status, status)) return true;
 		const error = errors[status];
 		await ctx.db.patch(delivery._id, { status, error });
 		if (error) {

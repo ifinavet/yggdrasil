@@ -88,6 +88,22 @@ async function submitAnswers(
 	});
 }
 
+async function acceptApplication(
+	t: Awaited<ReturnType<typeof setup>>["t"],
+	admin: ReturnType<typeof asUser>,
+	candidate: { _id: Id<"admissionApplications">; revision: number },
+	reviewedWorkspaceEmail: string,
+	group = "Bedrift",
+) {
+	return admin.mutation(api.admissions.mutations.setDecision, {
+		applicationId: candidate._id,
+		decision: "accepted",
+		reviewedGroupId: await insertInternalGroup(t, group),
+		reviewedWorkspaceEmail,
+		expectedRevision: candidate.revision,
+	});
+}
+
 it("limits admin data to admins and applicant data to the signed-in student's own application", async () => {
 	const { t } = await setup();
 	const { student, otherStudent, board, admin, boardId, secondBoardId } = await users(t);
@@ -246,14 +262,7 @@ it("keeps an accepted decision separate from sending and makes send idempotent",
 	const overview = await admin.query(api.admissions.queries.adminOverview, { periodId });
 	const candidate = overview?.candidates[0];
 	if (!candidate) throw new Error("Expected submitted candidate");
-	const reviewedGroupId = await insertInternalGroup(t, "Bedrift");
-	const decision = await admin.mutation(api.admissions.mutations.setDecision, {
-		applicationId: candidate._id,
-		decision: "accepted",
-		reviewedGroupId,
-		reviewedWorkspaceEmail: "new.member@ifinavet.no",
-		expectedRevision: candidate.revision,
-	});
+	const decision = await acceptApplication(t, admin, candidate, "new.member@ifinavet.no");
 	expect(
 		(await admin.query(api.admissions.queries.adminOverview, { periodId }))?.candidates[0]
 			?.decisionSentAt,
@@ -285,14 +294,7 @@ it("provisions only after an authenticated applicant accepts an offer; decline g
 	const overview = await admin.query(api.admissions.queries.adminOverview, { periodId });
 	const candidate = overview?.candidates[0];
 	if (!candidate) throw new Error("Expected submitted candidate");
-	const reviewedGroupId = await insertInternalGroup(t, "Bedrift");
-	const decision = await admin.mutation(api.admissions.mutations.setDecision, {
-		applicationId: candidate._id,
-		decision: "accepted",
-		reviewedGroupId,
-		reviewedWorkspaceEmail: "student@ifinavet.no",
-		expectedRevision: candidate.revision,
-	});
+	const decision = await acceptApplication(t, admin, candidate, "student@ifinavet.no");
 	await expect(t.run((ctx) => ctx.db.query("memberAccounts").collect())).resolves.toHaveLength(0);
 	await admin.mutation(api.admissions.mutations.sendDecision, {
 		applicationId: candidate._id,
@@ -319,14 +321,7 @@ it("provisions only after an authenticated applicant accepts an offer; decline g
 	const latest = await admin.query(api.admissions.queries.adminOverview, { periodId });
 	const second = latest?.candidates.find((item) => item.userId !== candidate.userId);
 	if (!second) throw new Error("Expected second candidate");
-	const reviewedWebGroupId = await insertInternalGroup(t, "Web");
-	const declinedDecision = await admin.mutation(api.admissions.mutations.setDecision, {
-		applicationId: second._id,
-		decision: "accepted",
-		reviewedGroupId: reviewedWebGroupId,
-		reviewedWorkspaceEmail: "other@ifinavet.no",
-		expectedRevision: second.revision,
-	});
+	const declinedDecision = await acceptApplication(t, admin, second, "other@ifinavet.no", "Web");
 	const secondKey = `offer:${second._id}`;
 	await admin.mutation(api.admissions.mutations.sendDecision, {
 		applicationId: second._id,
@@ -379,14 +374,7 @@ it("hides conflicting member identities when accepted-offer onboarding fails", a
 	const application = (await admin.query(api.admissions.queries.adminOverview, { periodId }))
 		?.candidates[0];
 	if (!application) throw new Error("Expected submitted candidate");
-	const reviewedGroupId = await insertInternalGroup(t, "Bedrift");
-	const decision = await admin.mutation(api.admissions.mutations.setDecision, {
-		applicationId: application._id,
-		decision: "accepted",
-		reviewedGroupId,
-		reviewedWorkspaceEmail: "private-member@ifinavet.no",
-		expectedRevision: application.revision,
-	});
+	const decision = await acceptApplication(t, admin, application, "private-member@ifinavet.no");
 	const offerKey = `private-conflict:${application._id}`;
 	await admin.mutation(api.admissions.mutations.sendDecision, {
 		applicationId: application._id,

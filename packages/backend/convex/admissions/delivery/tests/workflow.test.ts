@@ -1,8 +1,8 @@
 import { getStatus } from "@convex-dev/workflow";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { periodFields } from "../../../../test/admissions-fixtures";
+import { admissionPeriodFixture } from "../../../../test/admissions-fixtures";
 import { allOperations } from "../../../../test/admissions-workflow";
-import { asUser, grantRole, insertUser, setup } from "../../../../test/fixtures";
+import { asUser } from "../../../../test/fixtures";
 import { api, components } from "../../../_generated/api";
 import { purgeBatch } from "../../lifecycle";
 import { readOperation, startDelivery } from "../workflow";
@@ -12,7 +12,6 @@ vi.mock("../slack", () => ({
 	admissionsSlack: () => ({}),
 	archiveAdmissionsChannel: archive,
 	ensureAdmissionsChannel: channel,
-	postAdmissionsNotice: vi.fn(),
 }));
 beforeEach(() => {
 	vi.useFakeTimers();
@@ -20,41 +19,39 @@ beforeEach(() => {
 	channel.mockReset();
 });
 afterEach(() => {
+	vi.unstubAllEnvs();
 	vi.useRealTimers();
 });
 
-it("retries provider failures through Workflow then removes completed workflow storage", async () => {
-	const { t } = await setup();
-	const admin = await insertUser(t, "admin@example.test");
-	const periodId = await t.run((ctx) =>
-		ctx.db.insert("admissionPeriods", periodFields(admin._id, { status: "closing" })),
-	);
-	archive.mockRejectedValueOnce(new Error("Temporary Slack outage")).mockResolvedValue(undefined);
-	const jobId = await t.run((ctx) =>
-		startDelivery(ctx, {
-			periodId,
-			kind: "archive_channel",
-			revision: 1,
-			idempotencyKey: "workflow-retry",
-			dueAt: Date.now(),
-		}),
-	);
-	const job = await t.run((ctx) => ctx.db.get(jobId));
-	if (!job?.workflowId) throw new Error("Missing workflow");
-	const workflowId = job.workflowId;
-	await t.finishAllScheduledFunctions(() => vi.runAllTimers());
-	expect(archive).toHaveBeenCalledTimes(2);
-	await expect(t.run((ctx) => getStatus(ctx, components.workflow, workflowId))).rejects.toThrow();
-	expect(await t.run((ctx) => ctx.db.get(periodId))).toBeNull();
-	expect(await t.run((ctx) => allOperations(ctx))).toEqual([]);
-});
+it.each(["local", "production"])(
+	"retries provider failures through Workflow in %s and removes completed workflow storage",
+	async (environment) => {
+		vi.stubEnv("APP_ENV", environment);
+		vi.stubEnv("CONVEX_CLOUD_URL", "http://127.0.0.1:3210");
+		const { t, periodId } = await admissionPeriodFixture({ status: "closing" });
+		archive.mockRejectedValueOnce(new Error("Temporary Slack outage")).mockResolvedValue(undefined);
+		const jobId = await t.run((ctx) =>
+			startDelivery(ctx, {
+				periodId,
+				kind: "archive_channel",
+				revision: 1,
+				idempotencyKey: "workflow-retry",
+				dueAt: Date.now(),
+			}),
+		);
+		const job = await t.run((ctx) => ctx.db.get(jobId));
+		if (!job?.workflowId) throw new Error("Missing workflow");
+		const workflowId = job.workflowId;
+		await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+		expect(archive).toHaveBeenCalledTimes(2);
+		await expect(t.run((ctx) => getStatus(ctx, components.workflow, workflowId))).rejects.toThrow();
+		expect(await t.run((ctx) => ctx.db.get(periodId))).toBeNull();
+		expect(await t.run((ctx) => allOperations(ctx))).toEqual([]);
+	},
+);
 
 it("exhausts provider retries and alerts before deleting closing data", async () => {
-	const { t } = await setup();
-	const admin = await insertUser(t, "admin@example.test");
-	const periodId = await t.run((ctx) =>
-		ctx.db.insert("admissionPeriods", periodFields(admin._id, { status: "closing" })),
-	);
+	const { t, periodId } = await admissionPeriodFixture({ status: "closing" });
 	archive.mockRejectedValue(new Error("Slack unavailable"));
 	await t.run((ctx) =>
 		startDelivery(ctx, {
@@ -74,11 +71,7 @@ it("exhausts provider retries and alerts before deleting closing data", async ()
 });
 
 it("cancels future deliveries and removes their workflow storage when purging a period", async () => {
-	const { t } = await setup();
-	const admin = await insertUser(t, "admin@example.test");
-	const periodId = await t.run((ctx) =>
-		ctx.db.insert("admissionPeriods", periodFields(admin._id, { status: "closing" })),
-	);
+	const { t, periodId } = await admissionPeriodFixture({ status: "closing" });
 	const jobId = await t.run((ctx) =>
 		startDelivery(ctx, {
 			periodId,
@@ -99,10 +92,7 @@ it("cancels future deliveries and removes their workflow storage when purging a 
 });
 
 it("restarts a failed native workflow once and retains successful idempotency", async () => {
-	const { t } = await setup();
-	const admin = await insertUser(t, "admin@example.test");
-	await grantRole(t, admin._id, "admin");
-	const periodId = await t.run((ctx) => ctx.db.insert("admissionPeriods", periodFields(admin._id)));
+	const { t, admin, periodId } = await admissionPeriodFixture();
 	const operation = {
 		kind: "sync_channel" as const,
 		periodId,

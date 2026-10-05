@@ -1,33 +1,16 @@
 import { expect, it } from "vitest";
-import {
-	applicationFields,
-	interviewFields,
-	periodFields,
-} from "../../../../test/admissions-fixtures";
+import { admissionApplicationFixture, insertInterview } from "../../../../test/admissions-fixtures";
 import { allOperations } from "../../../../test/admissions-workflow";
-import { insertUser, setup } from "../../../../test/fixtures";
 import { internal } from "../../../_generated/api";
 
 async function cancelledInterviewFixture() {
-	const { t } = await setup();
-	const admin = await insertUser(t, "admin@example.test");
-	const applicant = await insertUser(t, "applicant@uio.no");
-	const now = Date.now();
-	const periodId = await t.run((ctx) => ctx.db.insert("admissionPeriods", periodFields(admin._id)));
-	const applicationId = await t.run((ctx) =>
-		ctx.db.insert("admissionApplications", applicationFields(periodId, applicant._id)),
-	);
-	const interviewId = await t.run((ctx) =>
-		ctx.db.insert(
-			"admissionInterviews",
-			interviewFields(periodId, applicationId, {
-				startAt: now + 172_800_000,
-				endAt: now + 173_700_000,
-				status: "cancelled",
-				revision: 2,
-			}),
-		),
-	);
+	const { t, periodId, applicationId, now } = await admissionApplicationFixture();
+	const interviewId = await insertInterview(t, periodId, applicationId, {
+		startAt: now + 172_800_000,
+		endAt: now + 173_700_000,
+		status: "cancelled",
+		revision: 2,
+	});
 	return { t, periodId, applicationId, interviewId };
 }
 
@@ -44,12 +27,12 @@ it("compensates for a late publish after board cancellation and notifies if its 
 		}),
 	);
 
-	await t.mutation(internal.admissions.delivery.compensation.queueStalePublishCleanup, {
+	await t.mutation(internal.admissions.delivery.cancellation.queueStalePublishCleanup, {
 		periodId,
 		interviewId,
 		publishedRevision: 1,
 	});
-	await t.mutation(internal.admissions.delivery.compensation.queueStalePublishCleanup, {
+	await t.mutation(internal.admissions.delivery.cancellation.queueStalePublishCleanup, {
 		periodId,
 		interviewId,
 		publishedRevision: 1,
@@ -70,7 +53,7 @@ it("compensates for a late publish after board cancellation and notifies if its 
 it("does not notify after open-period cancellation when no invite was delivered", async () => {
 	const { t, periodId, interviewId } = await cancelledInterviewFixture();
 
-	await t.mutation(internal.admissions.delivery.compensation.queueStalePublishCleanup, {
+	await t.mutation(internal.admissions.delivery.cancellation.queueStalePublishCleanup, {
 		periodId,
 		interviewId,
 		publishedRevision: 1,
