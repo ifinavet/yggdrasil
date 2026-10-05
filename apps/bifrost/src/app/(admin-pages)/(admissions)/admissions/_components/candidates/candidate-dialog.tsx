@@ -69,13 +69,13 @@ export function CandidateDialog({
 						<DialogHeader>
 							<DialogTitle className="text-left text-2xl">{candidate.name}</DialogTitle>
 						</DialogHeader>
-						<div className="admissions-profile-meta">
+						<div className="admissions-profile-meta mb-4 flex flex-wrap gap-x-6 gap-y-2 text-base">
 							<span>{candidate.program}</span>
 							<span>{candidate.year}. år</span>
 							<span>{candidate.group}</span>
 						</div>
-						<div className="admissions-profile admissions-profile-layout">
-							<div className="admissions-profile-main">
+						<div className="admissions-profile admissions-profile-layout [&_p]:wrap-anywhere grid grid-cols-1 gap-8 text-base leading-relaxed md:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] [&_a]:inline-flex [&_a]:items-center [&_a]:gap-1.5 [&_a]:underline [&_h3]:mb-3 [&_h3]:flex [&_h3]:items-center [&_h3]:gap-2 [&_h3]:font-semibold [&_label]:flex [&_label]:flex-col [&_label]:items-start [&_label]:gap-3 [&_p]:max-w-prose [&_p]:whitespace-pre-wrap">
+							<div className="admissions-profile-main flex min-w-0 flex-col gap-8">
 								<section>
 									<h3>Fortell litt om deg selv</h3>
 									<p>{candidate.about}</p>
@@ -97,7 +97,7 @@ export function CandidateDialog({
 									/>
 								</Label>
 								<Button onClick={() => void onSaveNotes(noteDraft)}>Lagre notater</Button>
-								<div className="admissions-decision">
+								<div className="admissions-decision flex flex-col gap-3">
 									<Label htmlFor="candidate-decision">Vedtak</Label>
 									<Select
 										value={candidate.decision}
@@ -117,7 +117,7 @@ export function CandidateDialog({
 									</Select>
 								</div>
 							</div>
-							<aside className="admissions-profile-interview">
+							<aside className="admissions-profile-interview min-w-0 self-start rounded-xl bg-muted p-5 [&_section]:mb-4 [&_section]:flex [&_section]:flex-col [&_section]:gap-4">
 								<section>
 									<h3>
 										<CalendarDays size={16} />
@@ -160,7 +160,7 @@ export function CandidateDialog({
 											</p>
 										</div>
 									)}
-									<details className="admissions-availability-details">
+									<details className="admissions-availability-details [&_summary]:cursor-pointer [&_summary]:py-2 [&_summary]:font-medium">
 										<summary>Tilgjengelige tider</summary>
 										<div className="flex flex-col gap-2">
 											{candidate.availability.map((window) => (

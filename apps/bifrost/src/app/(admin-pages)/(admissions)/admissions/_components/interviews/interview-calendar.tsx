@@ -71,8 +71,8 @@ export function InterviewCalendar({
 
 	return (
 		<>
-			<div className="admissions-toolbar">
-				<div className="admissions-actions">
+			<div className="admissions-toolbar flex flex-wrap items-center justify-between gap-4">
+				<div className="admissions-actions flex flex-wrap items-center gap-3">
 					<Button
 						variant="outline"
 						size="icon"
@@ -111,7 +111,7 @@ export function InterviewCalendar({
 						Dag
 					</Button>
 				</div>
-				<div className="admissions-actions">
+				<div className="admissions-actions flex flex-wrap items-center gap-3">
 					<Button
 						variant={selectingRooms ? "secondary" : "outline"}
 						onClick={() => {
@@ -138,7 +138,7 @@ export function InterviewCalendar({
 			</div>
 			{selectingRooms && (
 				<form
-					className="admissions-toolbar"
+					className="admissions-toolbar flex flex-wrap items-center justify-between gap-4"
 					onSubmit={async (event) => {
 						event.preventDefault();
 						if (!bulkRoom.trim() || !roomSelection.length) return;
@@ -148,7 +148,7 @@ export function InterviewCalendar({
 						setSelectingRooms(false);
 					}}
 				>
-					<div className="admissions-actions">
+					<div className="admissions-actions flex flex-wrap items-center gap-3">
 						<Button
 							type="button"
 							variant="outline"
@@ -169,7 +169,7 @@ export function InterviewCalendar({
 						</Button>
 						<span>{roomSelection.length} valgt</span>
 					</div>
-					<div className="admissions-actions">
+					<div className="admissions-actions flex flex-wrap items-center gap-3">
 						<Label htmlFor="bulk-interview-room">Rom</Label>
 						<Input
 							id="bulk-interview-room"
@@ -185,7 +185,7 @@ export function InterviewCalendar({
 				</form>
 			)}
 			{unmatched.length > 0 && (
-				<div className="admissions-attention">
+				<div className="admissions-attention flex flex-wrap items-center gap-x-6 gap-y-3 rounded-lg bg-amber-50 px-4 py-3 text-amber-950 text-sm dark:bg-amber-950 dark:text-amber-100">
 					<AlertTriangle size={18} />
 					<strong>{unmatched.length} trenger en tid</strong>
 					<Button variant="ghost" onClick={() => setUnmatchedOpen(true)}>
@@ -221,7 +221,7 @@ export function InterviewCalendar({
 				</div>
 			)}
 			<div
-				className="admissions-calendar"
+				className="admissions-calendar grid min-w-0 items-start gap-3 overflow-x-auto pb-3"
 				style={{
 					gridTemplateColumns: `repeat(${visibleDays.length}, minmax(${day ? "280" : "175"}px, 1fr))`,
 				}}
@@ -231,15 +231,15 @@ export function InterviewCalendar({
 						.filter((i) => localWindow(i.startAt, 0, settings.timezone).day === date)
 						.sort((a, b) => a.startAt - b.startAt);
 					return (
-						<div key={date} className="admissions-day">
+						<div key={date} className="admissions-day min-w-0 overflow-hidden rounded-xl bg-muted">
 							<button
 								type="button"
-								className="admissions-day-title"
+								className="admissions-day-title flex w-full cursor-pointer items-center justify-between gap-2 p-3.5 font-semibold text-sm capitalize focus-visible:outline-2 focus-visible:outline-ring"
 								onClick={() => setDay(day ? null : date)}
 							>
 								{dateLabel(date)}
 							</button>
-							<div className="admissions-day-content">
+							<div className="admissions-day-content flex flex-col gap-2 px-2 pb-3">
 								{dayInterviews.map((i) => {
 									const c = candidates.find((c) => c._id === i.applicationId);
 									if (!c) return null;
@@ -251,7 +251,7 @@ export function InterviewCalendar({
 									return (
 										<button
 											type="button"
-											className="admissions-interview"
+											className="admissions-interview flex w-full min-w-0 cursor-pointer flex-col gap-1.5 rounded-lg border bg-background p-3 text-left hover:border-primary focus-visible:outline-2 focus-visible:outline-ring aria-pressed:border-primary aria-pressed:bg-accent [&>span]:text-muted-foreground [&>span]:text-xs [&>span]:leading-relaxed [&_strong]:text-sm [&_time]:text-muted-foreground [&_time]:text-xs [&_time]:tabular-nums"
 											style={{ order: slot.start }}
 											key={i.applicationId}
 											aria-pressed={selectingRooms ? roomSelection.includes(c._id) : undefined}
@@ -266,9 +266,9 @@ export function InterviewCalendar({
 												<MapPin size={13} />
 												{i.room}
 											</span>
-											<div className="admissions-interview-footer">
+											<div className="admissions-interview-footer mt-1 flex items-center justify-between gap-2 text-xs">
 												<span>{c.year}. år</span>
-												<div className="admissions-avatars">
+												<div className="admissions-avatars flex gap-1">
 													<InterviewerAvatars ids={i.interviewerIds} team={team} />
 												</div>
 											</div>
@@ -276,12 +276,19 @@ export function InterviewCalendar({
 									);
 								})}
 								{settings.lunch && (
-									<div className="admissions-break" style={{ order: 720 }}>
+									<div
+										className="admissions-break flex items-center justify-center gap-1.5 px-1 py-3 text-muted-foreground text-xs"
+										style={{ order: 720 }}
+									>
 										<Coffee size={14} />
 										12:00–12:30 Lunsj
 									</div>
 								)}
-								{dayInterviews.length === 0 && <p className="admissions-muted">Ingen intervjuer</p>}
+								{dayInterviews.length === 0 && (
+									<p className="admissions-muted p-5 text-center text-muted-foreground text-sm">
+										Ingen intervjuer
+									</p>
+								)}
 							</div>
 						</div>
 					);

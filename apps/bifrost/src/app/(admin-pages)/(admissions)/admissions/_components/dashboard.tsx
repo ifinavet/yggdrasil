@@ -93,9 +93,11 @@ export default function AdmissionsDashboard() {
 	if (overview === undefined) return <output>Laster opptaket…</output>;
 	if (!overview)
 		return (
-			<section className={`admissions ${fullscreen ? "admissions-fullscreen" : ""}`}>
+			<section
+				className={`admissions flex min-w-0 flex-col gap-6 pb-8 ${fullscreen ? "admissions-fullscreen fixed inset-0 z-40 overflow-auto bg-background p-4 md:px-8 md:py-6" : ""}`}
+			>
 				<h1>Opptak</h1>
-				<div className="admissions-empty">
+				<div className="admissions-empty flex flex-col items-center gap-5 px-6 py-20">
 					<Users size={36} />
 					<h2>Ingen aktive opptak</h2>
 					<Button onClick={() => setConfigure(true)}>
@@ -161,13 +163,15 @@ export default function AdmissionsDashboard() {
 		);
 	};
 	return (
-		<section className={`admissions ${fullscreen ? "admissions-fullscreen" : ""}`}>
-			<div className="admissions-title">
+		<section
+			className={`admissions flex min-w-0 flex-col gap-6 pb-8 ${fullscreen ? "admissions-fullscreen fixed inset-0 z-40 overflow-auto bg-background p-4 md:px-8 md:py-6" : ""}`}
+		>
+			<div className="admissions-title flex flex-wrap items-center justify-between gap-4 [&_h1]:font-semibold [&_h1]:text-3xl [&_h1]:tracking-tight">
 				<div>
 					<h1>Opptak</h1>
 					<p>{period.title}</p>
 				</div>
-				<div className="admissions-actions">
+				<div className="admissions-actions flex flex-wrap items-center gap-3">
 					<Button
 						variant="outline"
 						aria-label={fullscreen ? "Avslutt storskjerm" : "Storskjerm"}
@@ -211,7 +215,10 @@ export default function AdmissionsDashboard() {
 				</Callout>
 			)}
 			<DeliveryStatus jobs={overview.jobs} closing={period.status === "closing"} />
-			<nav className="admissions-tabs" aria-label="Opptaksvisninger">
+			<nav
+				className="admissions-tabs flex flex-wrap items-center gap-1"
+				aria-label="Opptaksvisninger"
+			>
 				{(
 					[
 						["calendar", CalendarDays, "Intervjuer"],
@@ -261,7 +268,7 @@ export default function AdmissionsDashboard() {
 				/>
 			) : (
 				<>
-					<div className="admissions-toolbar">
+					<div className="admissions-toolbar flex flex-wrap items-center justify-between gap-4">
 						<CandidateFilters
 							query={query}
 							setQuery={setQuery}
@@ -271,7 +278,7 @@ export default function AdmissionsDashboard() {
 							setYear={setYear}
 						/>
 						{view === "selection" && (
-							<div className="admissions-actions">
+							<div className="admissions-actions flex flex-wrap items-center gap-3">
 								<span>Runde {period.round + 1}</span>
 								{(["previous", "next"] as const).map((direction) => (
 									<Button

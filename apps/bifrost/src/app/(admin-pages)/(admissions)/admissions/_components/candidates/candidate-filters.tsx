@@ -25,7 +25,7 @@ export function CandidateFilters({
 	setYear: (value: string) => void;
 }>) {
 	return (
-		<div className="admissions-filters">
+		<div className="admissions-filters flex flex-wrap items-center gap-3">
 			<SearchField
 				value={query}
 				onChange={setQuery}
