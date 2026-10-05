@@ -1,6 +1,11 @@
 import { expect, test } from "@playwright/test";
 import { captureScreenshot } from "./capture-screenshot";
-import { bifrostUrl, clearCookieNotice, resetAdmissions } from "./production-helpers";
+import {
+	admissionsOverview,
+	bifrostUrl,
+	clearCookieNotice,
+	resetAdmissions,
+} from "./production-helpers";
 
 test.describe("admissions settings and close flow", () => {
 	test.describe.configure({ mode: "serial" });
@@ -89,8 +94,10 @@ test.describe("admissions settings and close flow", () => {
 		await expect(confirm).toBeEnabled();
 		await confirm.click();
 		await expect(close).toBeHidden();
-		await expect(page.getByRole("heading", { name: "Ingen aktive opptak" })).toBeVisible({
-			timeout: 30_000,
-		});
+		await expect(page.getByText("Opptaket avsluttes.", { exact: false })).toBeVisible();
+		expect((await admissionsOverview())?.period.status).toBe("closing");
+		expect((await admissionsOverview())?.jobs.some((job) => job.kind === "cancel_interview")).toBe(
+			true,
+		);
 	});
 });

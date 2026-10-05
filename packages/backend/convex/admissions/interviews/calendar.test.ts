@@ -206,3 +206,53 @@ it("fails calendar discovery and scheduling when Google configuration is missing
 	expect(provider.listCalendars).not.toHaveBeenCalled();
 	expect(provider.freeBusy).not.toHaveBeenCalled();
 });
+
+it("generates twelve provider-checked interviews without overlapping interviewers or buffers", async () => {
+	const { t, admin, adminClient, periodId } = await admissionPeriodFixture({ lunch: false });
+	const second = await insertUser(t, "second@ifinavet.no");
+	await grantRole(t, second._id, "internal");
+	const day = "2026-10-12";
+	await t.run(async (ctx) => {
+		await ctx.db.patch(admin._id, { email: "admin@ifinavet.no" });
+		await ctx.db.patch(periodId, {
+			interviewStartAt: osloDateTimeToEpoch(day, "09:00"),
+			interviewEndAt: osloDateTimeToEpoch(day, "16:00"),
+			interviewers: [admin, second].map((person) => ({
+				userId: person._id,
+				selectedCalendarIds: ["primary"],
+			})),
+		});
+	});
+	await Promise.all(
+		Array.from({ length: 12 }, async (_, index) => {
+			const applicant = await insertUser(t, `candidate-${index}@uio.no`);
+			await t.run((ctx) =>
+				ctx.db.insert(
+					"admissionApplications",
+					applicationFields(periodId, applicant._id, {
+						availability: [{ day, start: 540, end: 960 }],
+					}),
+				),
+			);
+		}),
+	);
+	expect(
+		await adminClient.action(api.admissions.interviews.calendar.generateSchedule, {
+			periodId,
+			expectedRevision: 1,
+		}),
+	).toEqual({ count: 12 });
+	expect(provider.freeBusy).toHaveBeenCalledTimes(2);
+	const interviews = (await t.run((ctx) => ctx.db.query("admissionInterviews").collect())).sort(
+		(a, b) => a.startAt - b.startAt,
+	);
+	expect(interviews).toHaveLength(12);
+	for (const [index, interview] of interviews.entries()) {
+		expect(new Set(interview.interviewerIds)).toEqual(new Set([admin._id, second._id]));
+		expect(interview.endAt - interview.startAt).toBe(15 * 60_000);
+		expect(interview.room).toBe("Beta");
+		expect(interview.publishedAt).toBeUndefined();
+		const previous = interviews[index - 1];
+		if (previous) expect(interview.startAt).toBeGreaterThanOrEqual(previous.endAt + 5 * 60_000);
+	}
+});

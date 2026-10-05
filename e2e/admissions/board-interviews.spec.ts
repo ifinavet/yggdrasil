@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { captureEmail, captureScreenshot } from "./capture-screenshot";
+import { captureScreenshot } from "./capture-screenshot";
 import {
 	admissionsOverview,
 	bifrostUrl,
@@ -54,14 +54,14 @@ test.describe("manual interview follow-up", () => {
 		await expect(confirmation).toBeHidden();
 		await expect.poll(async () => (await admissionsOverview())?.interviews.length).toBe(0);
 		await expect
-			.poll(
-				async () =>
-					(await admissionsOverview())?.localEmails.some((mail) => mail.subject.includes("avlyst")),
-				{ timeout: 30_000 },
+			.poll(async () =>
+				(await admissionsOverview())?.jobs.filter((job) => job.kind === "cancel_interview"),
 			)
-			.toBe(true);
-		const cancellation = (await admissionsOverview())?.localEmails[0];
-		if (cancellation)
-			await captureEmail(page, "student", "live-cancellation-email.png", cancellation.html);
+			.toMatchObject([{ interviewId: interview?._id, notifyApplicant: true, state: "inProgress" }]);
+		await page.reload();
+		expect((await admissionsOverview())?.interviews).toHaveLength(0);
+		expect(
+			(await admissionsOverview())?.jobs.filter((job) => job.kind === "cancel_interview"),
+		).toHaveLength(1);
 	});
 });

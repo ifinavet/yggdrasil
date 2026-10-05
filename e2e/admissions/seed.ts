@@ -1,6 +1,9 @@
 import {
 	ADMISSION_SCHEDULING_DEFAULTS,
 	ADMISSION_UNSURE_GROUP,
+	makeSchedulingDays,
+	makeSchedulingSlots,
+	matchInterviews,
 } from "@workspace/shared/admissions";
 import { STUDY_PROGRAMS } from "@workspace/shared/constants";
 import { localIdentity } from "@workspace/shared/local";
@@ -17,17 +20,18 @@ const previewInterviewerImages = Array.from(
 );
 
 async function localAdmissionGroups(db: LocalDatabase) {
-	const groups: Array<readonly [string, Id<"internalGroups">]> = [];
-	for (const name of seedGroupNames) {
-		const existing = await db.find("internalGroups", "name", name);
-		const id =
-			existing?._id ??
-			(await db.insert("internalGroups", {
-				name,
-				description: `${name} arbeidsgruppe`,
-			}));
-		groups.push([name, id]);
-	}
+	const groups = await Promise.all(
+		seedGroupNames.map(async (name) => {
+			const existing = await db.find("internalGroups", "name", name);
+			const id =
+				existing?._id ??
+				(await db.insert("internalGroups", {
+					name,
+					description: `${name} arbeidsgruppe`,
+				}));
+			return [name, id] as const;
+		}),
+	);
 	return new Map(groups);
 }
 
@@ -125,23 +129,28 @@ async function clearAdmissions(db: LocalDatabase) {
 		});
 	const jobs = await db.all("admissionWorkflows");
 	await db.clear("admissionWorkflows");
-	for (const job of jobs) {
-		const { workflow } = await db.call(
-			"workflow:getStatus",
-			{ workflowId: job.workflowId },
-			"workflow",
-		);
-		if (!workflow.runResult)
-			await db.call("workflow:cancel", { workflowId: job.workflowId }, "workflow");
-		await db.call("workflow:cleanup", { workflowId: job.workflowId }, "workflow");
-	}
-	for (const table of [
-		"admissionDeliveries",
-		"admissionInterviews",
-		"admissionApplications",
-		"admissionPeriods",
-	] as const)
-		await db.clear(table);
+	await Promise.all(
+		jobs.map(async (job) => {
+			const { workflow } = await db.call(
+				"workflow:getStatus",
+				{ workflowId: job.workflowId },
+				"workflow",
+			);
+			if (!workflow.runResult)
+				await db.call("workflow:cancel", { workflowId: job.workflowId }, "workflow");
+			await db.call("workflow:cleanup", { workflowId: job.workflowId }, "workflow");
+		}),
+	);
+	await Promise.all(
+		(
+			[
+				"admissionDeliveries",
+				"admissionInterviews",
+				"admissionApplications",
+				"admissionPeriods",
+			] as const
+		).map((table) => db.clear(table)),
+	);
 }
 
 function isoDay(at: number) {
@@ -158,6 +167,7 @@ export type AdmissionSeedScenario =
 	| "missing-profile"
 	| "open"
 	| "scheduled"
+	| "planned"
 	| "delivery-failed"
 	| "decisions"
 	| "offer-pending-accepted"
@@ -276,6 +286,7 @@ export async function seedAdmissions(url: string, scenario: AdmissionSeedScenari
 		);
 	}
 	await seedOtherCandidates(db, periodId, interviewStartAt, scenario === "decisions", now, groups);
+	if (scenario === "planned") await seedPlannedInterviews(db, periodId);
 	return { periodId, applicantId, candidateCount: 31 };
 }
 
@@ -315,26 +326,29 @@ async function seedPublishedInterview(
 			dueAt: now,
 		},
 	});
-	for (const ref of await db.all("admissionWorkflows")) {
-		if (ref.kind !== "remind_3d" && ref.kind !== "remind_1d") continue;
-		const { workflow } = await db.call(
-			"workflow:getStatus",
-			{ workflowId: ref.workflowId },
-			"workflow",
-		);
-		await db.call(
-			"workflow:complete",
-			{
-				workflowId: ref.workflowId,
-				generationNumber: workflow.generationNumber,
-				runResult: {
-					kind: "failed",
-					error: "E-posttjenesten svarte ikke. Prøv igjen eller følg opp manuelt.",
-				},
-			},
-			"workflow",
-		);
-	}
+	await Promise.all(
+		(await db.all("admissionWorkflows"))
+			.filter((ref) => ref.kind === "remind_3d" || ref.kind === "remind_1d")
+			.map(async (ref) => {
+				const { workflow } = await db.call(
+					"workflow:getStatus",
+					{ workflowId: ref.workflowId },
+					"workflow",
+				);
+				await db.call(
+					"workflow:complete",
+					{
+						workflowId: ref.workflowId,
+						generationNumber: workflow.generationNumber,
+						runResult: {
+							kind: "failed",
+							error: "E-posttjenesten svarte ikke. Prøv igjen eller følg opp manuelt.",
+						},
+					},
+					"workflow",
+				);
+			}),
+	);
 }
 
 async function seedOtherCandidates(
@@ -345,35 +359,37 @@ async function seedOtherCandidates(
 	now: number,
 	groups: ReadonlyMap<string, Id<"internalGroups">>,
 ) {
-	for (let index = 0; index < 30; index++) {
-		const person = await syntheticUser(db, index);
-		const day = isoDay(interviewStartAt + ((index % 5) + 1) * DAY);
-		const decision: Doc<"admissionApplications">["decision"] = decisions
-			? ((["shortlist", "rejected", "pending"] as const)[index % 3] ?? "pending")
-			: "pending";
-		await db.insert("admissionApplications", {
-			periodId,
-			userId: person.userId,
-			studentProfile: {
-				name: `${person.firstName} ${person.lastName}`,
-				studyProgram: STUDY_PROGRAMS[index % 8] ?? STUDY_PROGRAMS[0],
-				year: (index % 5) + 1,
-				degree: "Bachelor",
-			},
-			about: `${person.firstName} liker å lage digitale løsninger.`,
-			motivation: "Jeg vil bli kjent med flere i Navet.",
-			group: groups.get(seedGroupNames[index % seedGroupNames.length] ?? "Web"),
-			availability: index % 7 === 0 ? [] : [{ day, start: 540, end: 960 }],
-			consentedAt: now - 60_000,
-			consentVersion: "admissions-2026-01",
-			status: "submitted",
-			revision: 1,
-			decisionRevision: decision === "pending" ? 0 : 1,
-			decision,
-			sent: false,
-			offerStatus: "none",
-		});
-	}
+	await Promise.all(
+		Array.from({ length: 30 }, async (_, index) => {
+			const person = await syntheticUser(db, index);
+			const day = isoDay(interviewStartAt + ((index % 5) + 1) * DAY);
+			const decision: Doc<"admissionApplications">["decision"] = decisions
+				? ((["shortlist", "rejected", "pending"] as const)[index % 3] ?? "pending")
+				: "pending";
+			await db.insert("admissionApplications", {
+				periodId,
+				userId: person.userId,
+				studentProfile: {
+					name: `${person.firstName} ${person.lastName}`,
+					studyProgram: STUDY_PROGRAMS[index % 8] ?? STUDY_PROGRAMS[0],
+					year: (index % 5) + 1,
+					degree: "Bachelor",
+				},
+				about: `${person.firstName} liker å lage digitale løsninger.`,
+				motivation: "Jeg vil bli kjent med flere i Navet.",
+				group: groups.get(seedGroupNames[index % seedGroupNames.length] ?? "Web"),
+				availability: index % 7 === 0 ? [] : [{ day, start: 540, end: 960 }],
+				consentedAt: now - 60_000,
+				consentVersion: "admissions-2026-01",
+				status: "submitted",
+				revision: 1,
+				decisionRevision: decision === "pending" ? 0 : 1,
+				decision,
+				sent: false,
+				offerStatus: "none",
+			});
+		}),
+	);
 }
 
 function offerScenario(scenario: string): Doc<"admissionApplications">["offerStatus"] {
@@ -383,4 +399,46 @@ function offerScenario(scenario: string): Doc<"admissionApplications">["offerSta
 		scenario === "offer-expired"
 		? "pending"
 		: "none";
+}
+
+async function seedPlannedInterviews(db: LocalDatabase, periodId: Id<"admissionPeriods">) {
+	const period = await db.find("admissionPeriods", "_id", periodId);
+	if (!period) throw new Error("Missing seeded period");
+	const slots = makeSchedulingSlots(
+		period,
+		makeSchedulingDays(period.interviewStartAt, period.interviewEndAt, period.timezone),
+	);
+	const candidates = (await db.all("admissionApplications")).map(({ _id, availability }) => ({
+		id: _id,
+		availability,
+	}));
+	const assignments = matchInterviews(
+		candidates,
+		slots,
+		period.interviewers.map(({ userId }) => ({
+			id: userId,
+			calendars: [{ selected: true, readable: true, busy: [] }],
+		})),
+	).slice(0, 10);
+	await Promise.all(
+		assignments.map(async (assignment) => {
+			const slot = slots.find((item) => item.id === assignment.slotId);
+			if (!slot) throw new Error("Missing seeded slot");
+			const startAt = osloDateTimeToEpoch(
+				slot.day,
+				`${String(Math.floor(slot.start / 60)).padStart(2, "0")}:${String(slot.start % 60).padStart(2, "0")}`,
+			);
+			await db.insert("admissionInterviews", {
+				periodId,
+				applicationId: assignment.candidateId as Id<"admissionApplications">,
+				startAt,
+				endAt: startAt + period.duration * 60000,
+				interviewerIds: assignment.interviewers as Id<"users">[],
+				selectedCalendarIds: ["navet", "timetable"],
+				room: period.room,
+				status: "scheduled",
+				revision: 1,
+			});
+		}),
+	);
 }

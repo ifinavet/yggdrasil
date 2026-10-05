@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { captureEmail, captureScreenshot } from "./capture-screenshot";
+import { captureScreenshot } from "./capture-screenshot";
 import {
 	admissionsOverview,
 	bifrostUrl,
@@ -7,10 +7,11 @@ import {
 	resetAdmissions,
 } from "./production-helpers";
 
-test("failed reminders are visible and can be retried without duplicate delivery", async ({
+test("seeded failed reminders retry the same native workflows without duplicating jobs", async ({
 	page,
 }) => {
 	await resetAdmissions("delivery-failed");
+	const before = (await admissionsOverview())?.jobs;
 	await page.goto(`${bifrostUrl}/admissions`);
 	await clearCookieNotice(page);
 	await expect(page.getByRole("button", { name: "Prøv igjen", exact: true })).toHaveCount(2);
@@ -24,12 +25,13 @@ test("failed reminders are visible and can be retried without duplicate delivery
 	await expect(page.getByRole("button", { name: "Prøv igjen", exact: true })).toHaveCount(1);
 	await page.getByRole("button", { name: "Prøv igjen", exact: true }).click();
 	await expect(page.getByRole("button", { name: "Prøv igjen", exact: true })).toHaveCount(0);
-	await expect.poll(async () => (await admissionsOverview())?.localEmails.length).toBe(2);
-	const emails = (await admissionsOverview())?.localEmails ?? [];
-	for (const [index, mail] of emails.entries()) {
-		await captureEmail(page, "student", `live-reminder-${index + 1}-email.png`, mail.html);
-	}
+	await expect
+		.poll(async () => (await admissionsOverview())?.jobs.map((job) => job.state))
+		.toEqual(["inProgress", "inProgress"]);
+	expect((await admissionsOverview())?.jobs.map((job) => job.workflowId)).toEqual(
+		before?.map((job) => job.workflowId),
+	);
 	await page.reload();
 	await expect(page.getByRole("heading", { name: "Opptak", exact: true })).toBeVisible();
-	expect((await admissionsOverview())?.localEmails).toHaveLength(2);
+	expect((await admissionsOverview())?.jobs).toHaveLength(2);
 });

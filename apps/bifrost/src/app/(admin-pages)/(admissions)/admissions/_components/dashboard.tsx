@@ -116,7 +116,10 @@ export default function AdmissionsDashboard() {
 	const current = overview.candidates.find((candidate) => candidate._id === selected);
 	const interview = current?.interview;
 	const pending = overview.candidates.filter(
-		(entry) => !entry.sent && (entry.decision === "accepted" || entry.decision === "rejected"),
+		(entry) =>
+			!entry.sent &&
+			entry.decisionQueuedAt === undefined &&
+			(entry.decision === "accepted" || entry.decision === "rejected"),
 	);
 	const filtered = candidates.filter(
 		(entry) =>

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { captureEmail, captureScreenshot } from "./capture-screenshot";
+import { captureScreenshot } from "./capture-screenshot";
 import {
 	admissionsOverview,
 	bifrostUrl,
@@ -81,11 +81,20 @@ test.describe("persistent board admissions", () => {
 			page.getByText("Tilbudet er lagt i kø for utsending", { exact: true }),
 		).toBeVisible();
 		await page.keyboard.press("Escape");
-		await expect(page.getByText("Venter på svar", { exact: true })).toHaveCount(1, {
-			timeout: 30_000,
+		await expect
+			.poll(
+				async () =>
+					(await admissionsOverview())?.jobs.filter((job) => job.kind === "send_decision").length,
+			)
+			.toBe(1);
+		const queued = (await admissionsOverview())?.candidates.filter(
+			(candidate) => candidate.decisionQueuedAt !== undefined,
+		);
+		expect(queued).toHaveLength(1);
+		expect(queued?.[0]).toMatchObject({
+			reviewedWorkspaceEmail: "replacement@ifinavet.no",
+			sent: false,
 		});
-		const offerEmail = (await admissionsOverview())?.localEmails[0];
-		if (offerEmail) await captureEmail(page, "student", "live-offer-email.png", offerEmail.html);
 		await captureScreenshot(
 			page,
 			"board",
@@ -93,34 +102,43 @@ test.describe("persistent board admissions", () => {
 			page.getByRole("heading", { name: "Opptak", exact: true }),
 		);
 	});
-	test("schedules and publishes at least ten interviews without overlapping the same interviewers", async ({
+	test("reports scheduling provider failure without inventing interview times", async ({
 		page,
 	}) => {
 		await resetAdmissions("open");
 		await page.reload();
 		await page.getByRole("button", { name: "Finn tider", exact: true }).click();
-		await expect(page.getByText("Nytt forslag er klart", { exact: true })).toBeVisible();
-		const overview = await admissionsOverview();
-		expect(overview).not.toBeNull();
-		const interviews = overview?.interviews ?? [];
-		expect(interviews.length).toBeGreaterThanOrEqual(10);
+		await expect(
+			page.getByRole("alert").filter({ hasText: "Handlingen mislyktes. Prøv igjen." }),
+		).toBeVisible();
+		expect((await admissionsOverview())?.interviews).toHaveLength(0);
+		await page.reload();
+		expect((await admissionsOverview())?.interviews).toHaveLength(0);
+	});
+	test("publishes a seeded ten-interview proposal by persisting provider jobs", async ({
+		page,
+	}) => {
+		await resetAdmissions("planned");
+		await page.reload();
+		const interviews = (await admissionsOverview())?.interviews ?? [];
+		expect(interviews).toHaveLength(10);
 		for (const interview of interviews) {
 			expect(new Set(interview.interviewerIds).size).toBe(2);
 			expect(interview.endAt - interview.startAt).toBe(15 * 60_000);
 			expect(interview.room).toBe("Beta");
+			expect(interview.publishedAt).toBeUndefined();
 			for (const other of interviews.filter((row) => row._id !== interview._id)) {
-				if (other.interviewerIds.some((id) => interview.interviewerIds.includes(id))) {
+				if (other.interviewerIds.some((id) => interview.interviewerIds.includes(id)))
 					expect(
 						other.endAt + 5 * 60_000 <= interview.startAt ||
 							interview.endAt + 5 * 60_000 <= other.startAt,
 					).toBe(true);
-				}
 			}
 		}
 		await captureScreenshot(
 			page,
 			"board",
-			"live-06-generated-schedule.png",
+			"live-06-seeded-schedule.png",
 			page.getByRole("heading", { name: "Opptak", exact: true }),
 		);
 		await page.getByRole("button", { name: "Godkjenn forslag", exact: true }).click();
@@ -130,15 +148,17 @@ test.describe("persistent board admissions", () => {
 		await expect
 			.poll(
 				async () =>
-					(await admissionsOverview())?.interviews.filter((row) => row.publishedAt).length,
-				{ timeout: 30_000 },
+					(await admissionsOverview())?.jobs.filter((job) => job.kind === "publish").length,
 			)
-			.toBe(interviews.length);
-		await expect
-			.poll(async () => (await admissionsOverview())?.localEmails.length)
-			.toBe(interviews.length);
-		const invitation = (await admissionsOverview())?.localEmails[0];
-		if (invitation)
-			await captureEmail(page, "student", "live-invitation-email.png", invitation.html);
+			.toBe(10);
+		expect(
+			(await admissionsOverview())?.interviews.every(
+				(interview) => interview.publishedAt === undefined,
+			),
+		).toBe(true);
+		await page.reload();
+		expect((await admissionsOverview())?.jobs.filter((job) => job.kind === "publish")).toHaveLength(
+			10,
+		);
 	});
 });

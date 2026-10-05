@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { formatOsloDate } from "@workspace/shared/time";
-import { captureEmail, captureScreenshot } from "./capture-screenshot";
+import { captureScreenshot } from "./capture-screenshot";
 import {
 	admissionsOverview,
 	bifrostUrl,
@@ -8,7 +8,7 @@ import {
 	resetAdmissions,
 } from "./production-helpers";
 
-test("creates a period and selects connected calendars", async ({ page }) => {
+test("creates a period and exposes calendar provider configuration errors", async ({ page }) => {
 	await resetAdmissions("open");
 	const fixture = await admissionsOverview();
 	expect(fixture).not.toBeNull();
@@ -44,14 +44,15 @@ test("creates a period and selects connected calendars", async ({ page }) => {
 	await page.getByRole("button", { name: "Kalendere", exact: true }).click();
 	const calendars = page.getByRole("dialog", { name: "Kalendere" });
 	await calendars.getByRole("button", { name: "Hent kalendere for Kristin Berg" }).click();
-	await calendars.getByRole("button", { name: "Hent kalendere for Daniel Holm" }).click();
-	await calendars.getByRole("checkbox", { name: "Privat", exact: true }).first().check();
+	await expect(calendars.getByRole("alert")).toContainText(/kalender|Calendar/i);
+	await expect(calendars.getByRole("checkbox", { name: "Privat", exact: true })).toHaveCount(0);
 	await captureScreenshot(page, "board", "live-13-calendars.png", calendars);
-	await calendars.getByRole("button", { name: "Lagre kalendere" }).click();
-	await expect(calendars).toBeHidden();
+	await page.keyboard.press("Escape");
 	const saved = await admissionsOverview();
 	expect(saved?.period.interviewers).toHaveLength(2);
-	expect(saved?.period.interviewers[0]?.selectedCalendarIds).toContain("personal");
+	expect(
+		saved?.period.interviewers.every((person) => person.selectedCalendarIds.length === 0),
+	).toBe(true);
 });
 
 test("selection rounds are reversible and decisions send only on explicit confirmation", async ({
@@ -74,7 +75,9 @@ test("selection rounds are reversible and decisions send only on explicit confir
 		"live-14-selection.png",
 		page.getByRole("heading", { name: "Opptak", exact: true }),
 	);
-	expect((await admissionsOverview())?.localEmails).toHaveLength(0);
+	expect(
+		(await admissionsOverview())?.jobs.filter((job) => job.kind === "send_decision"),
+	).toHaveLength(0);
 	await page.getByRole("button", { name: "Forrige runde", exact: true }).click();
 	await expect(page.getByText("Runde 1", { exact: true })).toBeVisible();
 	await resetAdmissions("decisions");
@@ -83,11 +86,25 @@ test("selection rounds are reversible and decisions send only on explicit confir
 	const send = page.getByRole("dialog", { name: "Send svar til kandidatene?" });
 	await expect(send).toContainText("10 avslag");
 	await captureScreenshot(page, "board", "live-15-send-decisions.png", send);
-	expect((await admissionsOverview())?.localEmails).toHaveLength(0);
+	expect(
+		(await admissionsOverview())?.jobs.filter((job) => job.kind === "send_decision"),
+	).toHaveLength(0);
 	await send.getByRole("button", { name: "Send svar", exact: true }).click();
 	await expect(send).toBeHidden();
-	await expect.poll(async () => (await admissionsOverview())?.localEmails.length).toBe(10);
+	await expect
+		.poll(
+			async () =>
+				(await admissionsOverview())?.jobs.filter((job) => job.kind === "send_decision").length,
+		)
+		.toBe(10);
 	await expect(page.getByRole("button", { name: "Send svar (0)", exact: true })).toBeDisabled();
-	const rejection = (await admissionsOverview())?.localEmails[0];
-	if (rejection) await captureEmail(page, "student", "live-rejection-email.png", rejection.html);
+	expect(
+		(await admissionsOverview())?.candidates.filter(
+			(candidate) => candidate.decisionQueuedAt !== undefined,
+		),
+	).toHaveLength(10);
+	await page.reload();
+	expect(
+		(await admissionsOverview())?.jobs.filter((job) => job.kind === "send_decision"),
+	).toHaveLength(10);
 });

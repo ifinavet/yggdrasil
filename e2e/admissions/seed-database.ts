@@ -1,10 +1,11 @@
 import { readFileSync } from "node:fs";
+import { isDeepStrictEqual } from "node:util";
 import type { WithoutSystemFields } from "convex/server";
 import type { Doc, Id, TableNames } from "../../packages/backend/convex/_generated/dataModel";
 
 export class LocalDatabase {
 	private readonly adminKey: string;
- private readonly url: string;
+	private readonly url: string;
 	constructor(url: string) {
 		const parsed = new URL(url);
 		if (
@@ -18,35 +19,39 @@ export class LocalDatabase {
 		if (Number(parsed.port) !== config.ports.cloud)
 			throw new Error("Seed database port does not match local deployment");
 		this.url = url;
- this.adminKey = config.adminKey;
+		this.adminKey = config.adminKey;
 	}
- async call(path: string, args: Record<string, unknown>, componentPath?: string) {
-  let type = "function";
-  if (path.startsWith("_system/cli/")) type = "query";
-  if (path.startsWith("_system/frontend/")) type = "mutation";
-  const response = await fetch(`${this.url}/api/${type}`, {
-   method:"POST", headers:{"Content-Type":"application/json",Authorization:`Convex ${this.adminKey}`},
-   body:JSON.stringify({path,args: type === "function" ? args : [args], format:"json", componentPath}),
-  });
-  const result = await response.json();
-  if (!response.ok || result.status !== "success") throw new Error(result.errorMessage ?? "Local database request failed");
-  return result.value;
- }
+	async call(path: string, args: Record<string, unknown>, componentPath?: string) {
+		let type = "function";
+		if (path.startsWith("_system/cli/")) type = "query";
+		if (path.startsWith("_system/frontend/")) type = "mutation";
+		const response = await fetch(`${this.url}/api/${type}`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json", Authorization: `Convex ${this.adminKey}` },
+			body: JSON.stringify({
+				path,
+				args: type === "function" ? args : [args],
+				format: "json",
+				componentPath,
+			}),
+		});
+		const result = await response.json();
+		if (!response.ok || result.status !== "success")
+			throw new Error(result.errorMessage ?? "Local database request failed");
+		return result.value;
+	}
 
-	async all<T extends TableNames>(table: T): Promise<Doc<T>[]> {
-		const rows: Doc<T>[] = [];
-		let cursor: string | null = null;
-		do {
-			const page = await this.call("_system/cli/tableData", {
-				table,
-				order: "asc",
-				paginationOpts: { numItems: 1000, cursor },
-			});
-			rows.push(...page.page);
-			cursor = page.isDone ? null : page.continueCursor;
-		} while (cursor);
-		return rows;
+	async all<T extends TableNames>(table: T, cursor: string | null = null): Promise<Doc<T>[]> {
+		const page = await this.call("_system/cli/tableData", {
+			table,
+			order: "asc",
+			paginationOpts: { numItems: 1000, cursor },
+		});
+		return page.isDone
+			? page.page
+			: [...page.page, ...(await this.all(table, page.continueCursor))];
 	}
+
 	async find<T extends TableNames, K extends keyof Doc<T>>(table: T, field: K, value: Doc<T>[K]) {
 		return (await this.all(table)).find((row) => row[field] === value);
 	}
@@ -59,13 +64,14 @@ export class LocalDatabase {
 			documents: [document],
 		});
 		if (!result.success) throw new Error(result.error);
-		const { page } = await this.call("_system/cli/tableData", {
-			table,
-			order: "desc",
-			paginationOpts: { numItems: 1, cursor: null },
-		});
-		if (!page[0]) throw new Error(`Seed insert failed for ${table}`);
-		return page[0]._id;
+		const matches = (await this.all(table)).filter((row) =>
+			Object.entries(document).every(([key, value]) =>
+				isDeepStrictEqual(Reflect.get(row, key), value),
+			),
+		);
+		if (matches.length !== 1 || !matches[0])
+			throw new Error(`Seed insert could not identify one ${table} document`);
+		return matches[0]._id;
 	}
 	async patch<T extends TableNames>(
 		table: T,

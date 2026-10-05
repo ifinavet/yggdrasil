@@ -14,20 +14,3 @@ export async function captureScreenshot(
 	await target.scrollIntoViewIfNeeded();
 	await page.screenshot({ path: join("test-results/admissions/screenshots", app, name) });
 }
-
-export async function captureEmail(
-	page: Page,
-	app: "student" | "board",
-	name: string,
-	html: string,
-) {
-	// biome-ignore lint/suspicious/noUndeclaredEnvVars: Screenshot artifacts are opt-in and outside Turbo.
-	if (process.env.ADMISSIONS_SCREENSHOTS !== "1") return;
-	const preview = await page.context().newPage();
-	await preview.setContent(html);
-	await captureScreenshot(preview, app, name, preview.locator("body"), {
-		width: 900,
-		height: 1100,
-	});
-	await preview.close();
-}
