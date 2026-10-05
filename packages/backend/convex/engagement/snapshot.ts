@@ -22,6 +22,7 @@ import {
 export const MAX_REGISTRATIONS_PER_EVENT = 1000;
 const MAX_LOG_ENTRIES = 1000;
 const PAST_EVENTS_FOR_BASELINE = 60;
+export const UNREGISTRATION_HISTORY_START = Date.UTC(2025, 7, 10);
 
 export type PastCurve = {
 	eventId: Id<"events">;
@@ -79,6 +80,10 @@ function isComparable(event: Doc<"events">) {
 	return event.published && !event.externalEvent && event.participationLimit > 0;
 }
 
+function hasComparableHistory(event: Doc<"events">) {
+	return isComparable(event) && event.registrationOpens >= UNREGISTRATION_HISTORY_START;
+}
+
 async function curvesOf(ctx: QueryCtx, events: readonly Doc<"events">[]): Promise<PastCurve[]> {
 	const curves = await Promise.all(
 		events.map(async (event) => {
@@ -106,7 +111,7 @@ export async function pastCurvesBefore(ctx: QueryCtx, before: number) {
 		.withIndex("by_eventStart", (q) => q.lt("eventStart", before))
 		.order("desc")
 		.take(PAST_EVENTS_FOR_BASELINE);
-	return await curvesOf(ctx, past.filter(isComparable));
+	return await curvesOf(ctx, past.filter(hasComparableHistory));
 }
 
 export async function companyCurvesBefore(
@@ -121,7 +126,7 @@ export async function companyCurvesBefore(
 			q.eq("hostingCompany", companyId).lt("eventStart", before),
 		)
 		.order("desc")) {
-		if (isComparable(event)) comparable.push(event);
+		if (hasComparableHistory(event)) comparable.push(event);
 		if (comparable.length === COMPANY_BASELINE.size) break;
 	}
 	return await curvesOf(ctx, comparable);

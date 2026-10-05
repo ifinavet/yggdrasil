@@ -17,6 +17,7 @@ import {
 	pastCurvesBefore,
 	registrationTimesOf,
 	snapshotOf,
+	UNREGISTRATION_HISTORY_START,
 	upcomingEvents,
 	waitlistCountOf,
 } from "./snapshot";
@@ -201,6 +202,29 @@ describe("baseline history coverage", () => {
 				});
 		});
 		expect(await t.run((ctx) => pastCurvesBefore(ctx, START + DAY_MS))).toEqual([]);
+	});
+});
+
+describe("events without unregistration history", () => {
+	it("stay out of the typical and company curves", async () => {
+		const { t, companyId } = await setup();
+		const untracked = UNREGISTRATION_HISTORY_START - DAY_MS;
+		const old = await insertEvent(t, companyId, {
+			registrationOpens: untracked,
+			eventStart: untracked + 10 * DAY_MS,
+		});
+		await registerUsers(t, old, 3, untracked + HOUR_MS);
+		const tracked = await insertEvent(t, companyId, {
+			registrationOpens: UNREGISTRATION_HISTORY_START,
+			eventStart: UNREGISTRATION_HISTORY_START + 10 * DAY_MS,
+		});
+		await registerUsers(t, tracked, 3, UNREGISTRATION_HISTORY_START + HOUR_MS);
+
+		const past = await t.run((ctx) => pastCurvesBefore(ctx, START));
+		const own = await t.run((ctx) => companyCurvesBefore(ctx, companyId, START));
+
+		expect(past.map(({ eventId }) => eventId)).toEqual([tracked]);
+		expect(own.map(({ eventId }) => eventId)).toEqual([tracked]);
 	});
 });
 
