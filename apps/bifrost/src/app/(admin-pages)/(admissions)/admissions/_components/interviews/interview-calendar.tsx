@@ -94,7 +94,8 @@ export function InterviewCalendar({
 						<ChevronLeft />
 					</Button>
 					<strong>
-						{dateLabel(currentWeek[0] ?? "")}–{dateLabel(currentWeek.at(-1) ?? "")}
+						{currentWeek.length > 0 &&
+							`${dateLabel(currentWeek[0] ?? "")}–${dateLabel(currentWeek.at(-1) ?? "")}`}
 					</strong>
 					<Button
 						variant="outline"
@@ -113,6 +114,7 @@ export function InterviewCalendar({
 					</Button>
 					<Button
 						variant={day ? "secondary" : "outline"}
+						disabled={!currentWeek.length}
 						onClick={() => setDay(currentWeek[0] ?? null)}
 					>
 						Dag
@@ -230,7 +232,9 @@ export function InterviewCalendar({
 			<div
 				className="admissions-calendar grid min-w-0 items-start gap-3 overflow-x-auto pb-3"
 				style={{
-					gridTemplateColumns: `repeat(${visibleDays.length}, minmax(${day ? "280" : "175"}px, 1fr))`,
+					gridTemplateColumns: visibleDays.length
+						? `repeat(${visibleDays.length}, minmax(${day ? "280" : "175"}px, 1fr))`
+						: "none",
 				}}
 			>
 				{visibleDays.map((date) => {

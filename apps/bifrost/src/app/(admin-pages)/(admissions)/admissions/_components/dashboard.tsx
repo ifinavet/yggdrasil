@@ -4,6 +4,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { makeSchedulingDays } from "@workspace/shared/admissions";
+import { localDateAndMinute } from "@workspace/shared/time";
 import { Button } from "@workspace/ui/components/button";
 import { ConfirmDialog } from "@workspace/ui/components/confirm-dialog";
 import { Callout } from "@workspace/ui/components/products/callout";
@@ -81,7 +82,12 @@ export default function AdmissionsDashboard() {
 		);
 	const { period } = overview;
 	const { candidates, interviewers: team, interviews } = overview;
-	const days = makeSchedulingDays(period.interviewStartAt, period.interviewEndAt, period.timezone);
+	const days = [
+		...new Set([
+			...makeSchedulingDays(period.interviewStartAt, period.interviewEndAt, period.timezone),
+			...interviews.map(({ startAt }) => localDateAndMinute(startAt, period.timezone).day),
+		]),
+	].sort();
 	const current = overview.candidates.find((candidate) => candidate._id === selected);
 	const offer = overview.candidates.find((candidate) => candidate._id === offerCandidate);
 	const pending = overview.candidates.filter(

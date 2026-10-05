@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { formatOsloDate, osloDateTimeToEpoch } from "@workspace/shared/time";
-import { addDays, format, nextWednesday, startOfISOWeek } from "date-fns";
+import { addDays, format, nextSaturday, nextWednesday, startOfISOWeek } from "date-fns";
 import { captureScreenshot } from "./capture-screenshot";
 import {
 	admissionsOverview,
@@ -48,6 +48,57 @@ test("calendar navigation groups weekday dates into Monday to Friday weeks", asy
 	await expect(page.getByRole("button", { name: "Neste uke", exact: true })).toBeDisabled();
 	await page.getByRole("button", { name: "Forrige uke", exact: true }).click();
 	await expect(dayTitles).toHaveText(labels(firstWednesday, 3));
+});
+
+test("calendar stays usable for a weekend-only period and shows a scheduled Saturday interview", async ({
+	page,
+}) => {
+	await resetAdmissions("open");
+	const overview = await admissionsOverview();
+	if (!overview) throw new Error("Calendar fixture requires an admission period");
+	const candidate = overview.candidates[0];
+	const saturday = nextSaturday(new Date(`${formatOsloDate(Date.now(), "yyyy-MM-dd")}T12:00:00Z`));
+	const sunday = addDays(saturday, 1);
+	const saturdayDate = format(saturday, "yyyy-MM-dd");
+	const db = new LocalDatabase(convexUrl);
+	await db.patch("admissionPeriods", overview.period._id, {
+		interviewStartAt: osloDateTimeToEpoch(saturdayDate, "09:00"),
+		interviewEndAt: osloDateTimeToEpoch(format(sunday, "yyyy-MM-dd"), "17:00"),
+	});
+	if (!candidate) throw new Error("Calendar fixture requires an applicant");
+
+	const pageErrors: string[] = [];
+	page.on("pageerror", (error) => pageErrors.push(error.message));
+	await page.goto(`${bifrostUrl}/admissions`);
+	await clearCookieNotice(page);
+	await expect(page.getByRole("heading", { name: "Opptak", exact: true })).toBeVisible();
+	await expect(page.locator(".admissions-calendar")).toBeVisible();
+	await expect(page.locator(".admissions-day-title")).toHaveCount(0);
+	await expect(page.getByRole("button", { name: "Dag", exact: true })).toBeDisabled();
+	await page.getByRole("button", { name: "Vis kandidater", exact: true }).click();
+	const unmatched = page.getByRole("dialog", { name: "Kandidater uten intervjutid" });
+	await expect(unmatched.getByRole("button", { name: candidate.name })).toBeVisible();
+	await unmatched.getByRole("button", { name: candidate.name }).click();
+	await expect(page.getByRole("dialog", { name: candidate.name })).toBeVisible();
+	await page.keyboard.press("Escape");
+
+	const startAt = osloDateTimeToEpoch(saturdayDate, "10:00");
+	await db.insert("admissionInterviews", {
+		periodId: overview.period._id,
+		applicationId: candidate._id,
+		startAt,
+		endAt: startAt + 30 * 60_000,
+		interviewerIds: overview.period.interviewers.slice(0, 2).map(({ userId }) => userId),
+		selectedCalendarIds: [],
+		room: "Beta",
+		status: "scheduled",
+		revision: 1,
+	});
+	await expect(page.locator(".admissions-day-title")).toHaveText([
+		formatOsloDate(startAt, "EEE d. MMM"),
+	]);
+	await expect(page.locator(".admissions-interview")).toContainText(candidate.name);
+	expect(pageErrors).toEqual([]);
 });
 
 test("keeps board controls in the viewport and shows interviewer photos in both themes", async ({
