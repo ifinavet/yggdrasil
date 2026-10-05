@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import type { Doc } from "../_generated/dataModel";
-import { query } from "../_generated/server";
+import { type QueryCtx, query } from "../_generated/server";
 import { adminRoles, requireRole } from "../auth/accessRights";
 import { getCurrentUserOrThrow } from "../auth/currentUser";
 import { isLocalDevelopment } from "../auth/local";
@@ -45,6 +45,47 @@ export const openPeriods = query({
 	},
 });
 
+async function applicantView(
+	ctx: QueryCtx,
+	application: Doc<"admissionApplications">,
+	period: Doc<"admissionPeriods">,
+) {
+	const interview = await ctx.db
+		.query("admissionInterviews")
+		.withIndex("by_applicationId", (q) => q.eq("applicationId", application._id))
+		.unique();
+	return {
+		_id: application._id,
+		periodId: period._id,
+		status: application.status,
+		revision: application.revision,
+		about: application.about,
+		motivation: application.motivation,
+		group: application.group,
+		availability: application.availability,
+		decision: application.decisionSentAt ? application.decision : "pending",
+		decisionSentAt: application.decisionSentAt,
+		offerStatus: application.decisionSentAt ? application.offerStatus : "none",
+		offerDeadline: application.decisionSentAt ? application.offerDeadline : undefined,
+		interviewStatus: interview?.status ?? null,
+		interview:
+			interview?.status === "scheduled" && interview.publishedAt
+				? { startAt: interview.startAt, endAt: interview.endAt, room: interview.room }
+				: null,
+		period: {
+			title: period.title,
+			applicationStartAt: period.applicationStartAt,
+			applicationEndAt: period.applicationEndAt,
+			interviewStartAt: period.interviewStartAt,
+			interviewEndAt: period.interviewEndAt,
+			retentionAt: period.retentionAt,
+			timezone: period.timezone,
+			dayStart: period.dayStart,
+			dayEnd: period.dayEnd,
+		},
+	};
+}
+
 export const myApplication = query({
 	args: { periodId: v.id("admissionPeriods") },
 	handler: async (ctx, { periodId }) => {
@@ -56,39 +97,7 @@ export const myApplication = query({
 			.withIndex("by_periodId_and_userId", (q) => q.eq("periodId", periodId).eq("userId", user._id))
 			.unique();
 		if (!application) return null;
-		const interview = await ctx.db
-			.query("admissionInterviews")
-			.withIndex("by_applicationId", (q) => q.eq("applicationId", application._id))
-			.unique();
-		return {
-			_id: application._id,
-			periodId,
-			status: application.status,
-			revision: application.revision,
-			about: application.about,
-			motivation: application.motivation,
-			group: application.group,
-			availability: application.availability,
-			decision: application.decisionSentAt ? application.decision : "pending",
-			decisionSentAt: application.decisionSentAt,
-			offerStatus: application.decisionSentAt ? application.offerStatus : "none",
-			offerDeadline: application.decisionSentAt ? application.offerDeadline : undefined,
-			interviewStatus: interview?.status ?? null,
-			interview:
-				interview?.status === "scheduled" && interview.publishedAt
-					? {
-							startAt: interview.startAt,
-							endAt: interview.endAt,
-							room: interview.room,
-						}
-					: null,
-			period: {
-				title: period.title,
-				timezone: period.timezone,
-				dayStart: period.dayStart,
-				dayEnd: period.dayEnd,
-			},
-		};
+		return applicantView(ctx, application, period);
 	},
 });
 
@@ -112,40 +121,7 @@ export const currentApplication = query({
 		if (!application) return null;
 		const period = await ctx.db.get(application.periodId);
 		if (!period || period.status === "closing") return null;
-		const interview = await ctx.db
-			.query("admissionInterviews")
-			.withIndex("by_applicationId", (q) => q.eq("applicationId", application._id))
-			.unique();
-		return {
-			_id: application._id,
-			periodId: period._id,
-			status: application.status,
-			revision: application.revision,
-			about: application.about,
-			motivation: application.motivation,
-			group: application.group,
-			availability: application.availability,
-			decision: application.decisionSentAt ? application.decision : "pending",
-			decisionSentAt: application.decisionSentAt,
-			offerStatus: application.decisionSentAt ? application.offerStatus : "none",
-			offerDeadline: application.decisionSentAt ? application.offerDeadline : undefined,
-			interviewStatus: interview?.status ?? null,
-			interview:
-				interview?.status === "scheduled" && interview.publishedAt
-					? { startAt: interview.startAt, endAt: interview.endAt, room: interview.room }
-					: null,
-			period: {
-				title: period.title,
-				applicationStartAt: period.applicationStartAt,
-				applicationEndAt: period.applicationEndAt,
-				interviewStartAt: period.interviewStartAt,
-				interviewEndAt: period.interviewEndAt,
-				retentionAt: period.retentionAt,
-				timezone: period.timezone,
-				dayStart: period.dayStart,
-				dayEnd: period.dayEnd,
-			},
-		};
+		return applicantView(ctx, application, period);
 	},
 });
 

@@ -272,10 +272,8 @@ export const reset = mutation({
 			: "pending";
 		const ownOffer: Doc<"admissionApplications">["offerStatus"] = offerScenario(scenario);
 		let offerDeadline: number | undefined;
-		if (ownOffer === "pending") {
-			offerDeadline = now + 3 * DAY;
-			if (scenario === "offer-expired") offerDeadline = now - DAY;
-		}
+		if (ownOffer === "pending") offerDeadline = now + 3 * DAY;
+		if (scenario === "offer-expired") offerDeadline = now - DAY;
 		const ownId = await ctx.db.insert("admissionApplications", {
 			periodId,
 			userId: applicantId,

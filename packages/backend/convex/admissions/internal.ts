@@ -599,10 +599,7 @@ async function completePublication(
 						interviewId: interview._id,
 						revision: interview.revision,
 						idempotencyKey: `${kind}:${interview._id}:${interview.revision}`,
-						state: "pending",
-						attempts: 0,
 						nextAttemptAt,
-						createdAt: Date.now(),
 					});
 			}),
 		);

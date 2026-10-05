@@ -168,7 +168,6 @@ export function slackClient(config: SlackConfig) {
 			)) as string[];
 			const invited = desired.filter((user) => !current.includes(user));
 			const owned = [...new Set([...managed, ...(adoptDesired ? desired : invited)])];
-			// Managed membership intent is stored before invitation side effects.
 			await persistManaged(owned);
 			await current.reduce(async (previous, user) => {
 				await previous;

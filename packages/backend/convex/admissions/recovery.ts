@@ -30,7 +30,6 @@ export const retryOutbox = mutation({
 	},
 });
 
-/** Runs only for an existing admission period, including its final cleanup. */
 export const recoverPeriod = internalMutation({
 	args: { periodId: v.id("admissionPeriods") },
 	handler: async (ctx, { periodId }) => {

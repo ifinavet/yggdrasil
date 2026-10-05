@@ -5,7 +5,7 @@ import {
 	MIN_INTERVIEW_NOTICE_MS,
 	overlapsLunch,
 } from "@workspace/shared/admissions";
-import { coversWindow, localWindow } from "@workspace/shared/time";
+import { coversWindow, localDateAndMinute, localWindow, overlaps } from "@workspace/shared/time";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
@@ -58,12 +58,7 @@ function manualInterviewWindow(startAt: number, period: Doc<"admissionPeriods">)
 		throw new ConvexError("Intervjutiden er utenfor arbeidsdagen.");
 	if (period.lunch && overlapsLunch(meeting))
 		throw new ConvexError("Intervjutiden kolliderer med lunsjpausen.");
-	if (
-		period.breaks.some(
-			(pause) =>
-				pause.day === meeting.day && pause.start < meeting.end && meeting.start < pause.end,
-		)
-	)
+	if (period.breaks.some((pause) => overlaps(pause, meeting)))
 		throw new ConvexError("Intervjutiden kolliderer med en pause.");
 	return meeting;
 }
@@ -136,23 +131,11 @@ async function cancelScheduledInterview(
 		interviewId: interview._id,
 		revision,
 		idempotencyKey,
-		state: "pending",
-		attempts: 0,
 		nextAttemptAt: now,
-		createdAt: now,
 		refillEligible,
 		notifyApplicant,
 	});
 	return { revision: app.revision + 1, refillEligible };
-}
-
-function datePart(at: number, timezone: string) {
-	return new Intl.DateTimeFormat("en-CA", {
-		timeZone: timezone,
-		year: "numeric",
-		month: "2-digit",
-		day: "2-digit",
-	}).format(at);
 }
 
 function validateAvailability(
@@ -161,8 +144,8 @@ function validateAvailability(
 ) {
 	if (!isValidAvailability(windows))
 		throw new ConvexError("Velg gyldige, ikke-overlappende tider.");
-	const first = datePart(period.interviewStartAt, period.timezone);
-	const last = datePart(period.interviewEndAt, period.timezone);
+	const first = localDateAndMinute(period.interviewStartAt, period.timezone).day;
+	const last = localDateAndMinute(period.interviewEndAt, period.timezone).day;
 	if (windows.some((window) => window.day < first || window.day > last))
 		throw new ConvexError("Tilgjengeligheten må ligge i intervjuperioden.");
 }
@@ -551,10 +534,7 @@ export const sendDecision = mutation({
 			applicationId,
 			revision: app.decisionRevision,
 			idempotencyKey,
-			state: "pending",
-			attempts: 0,
 			nextAttemptAt: Date.now(),
-			createdAt: Date.now(),
 		});
 		await ctx.db.patch(app._id, { decisionQueuedAt: Date.now() });
 		return { revision: app.revision };
@@ -606,10 +586,7 @@ export const respondToOffer = mutation({
 				applicationId: app._id,
 				revision: app.decisionRevision,
 				idempotencyKey: `offer-declined:${app._id}:${app.decisionRevision}`,
-				state: "pending",
-				attempts: 0,
 				nextAttemptAt: Date.now(),
-				createdAt: Date.now(),
 			});
 		return { offerStatus, revision: app.revision + 1 };
 	},
@@ -813,10 +790,7 @@ export const publish = mutation({
 					interviewId: interview._id,
 					revision: interview.revision,
 					idempotencyKey: `${idempotencyKey}:${interview._id}`,
-					state: "pending",
-					attempts: 0,
 					nextAttemptAt: Date.now(),
-					createdAt: Date.now(),
 				}),
 			),
 		);

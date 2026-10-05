@@ -46,6 +46,7 @@ import {
 } from "@workspace/ui/components/select";
 import { Textarea } from "@workspace/ui/components/textarea";
 import { useMutation, useQuery } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { CalendarDays, Check, LoaderCircle, ShieldCheck, UserRound } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -54,44 +55,8 @@ import { ProfileConfirmation } from "@/components/admissions/profile-confirmatio
 import { textareaClass } from "@/components/form-controls";
 import { FormRow } from "@/components/job-listing-order/form-row";
 
-type Period = {
-	_id: Id<"admissionPeriods">;
-	title: string;
-	applicationEndAt: number;
-	interviewStartAt: number;
-	interviewEndAt: number;
-	retentionAt: number;
-	timezone: string;
-	dayStart: number;
-	dayEnd: number;
-};
-
-type InitialApplication = {
-	_id: Id<"admissionApplications">;
-	periodId: Id<"admissionPeriods">;
-	status: "draft" | "submitted" | "withdrawn";
-	revision: number;
-	about?: string;
-	motivation?: string;
-	group?: string;
-	availability: AvailabilityWindow[];
-	decision: "pending" | "shortlist" | "accepted" | "rejected";
-	decisionSentAt?: number;
-	offerStatus: "none" | "pending" | "accepted" | "declined" | "expired";
-	offerDeadline?: number;
-	interviewStatus: "scheduled" | "cancelled" | null;
-	interview: { startAt: number; endAt: number; room: string } | null;
-	period: {
-		title: string;
-		timezone: string;
-		applicationEndAt?: number;
-		interviewStartAt?: number;
-		interviewEndAt?: number;
-		retentionAt?: number;
-		dayStart: number;
-		dayEnd: number;
-	};
-} | null;
+type InitialApplication = FunctionReturnType<typeof api.admissions.queries.myApplication>;
+type Period = NonNullable<InitialApplication>["period"] & { _id: Id<"admissionPeriods"> };
 
 const applicationSchema = z.object({
 	about: z.string().trim().min(10, "Skriv minst 10 tegn."),
@@ -107,9 +72,7 @@ export default function AdmissionsJourney({
 	period: Period;
 	initialApplication: InitialApplication;
 }>) {
-	const application = useQuery(api.admissions.queries.myApplication, { periodId: period._id }) as
-		| InitialApplication
-		| undefined;
+	const application = useQuery(api.admissions.queries.myApplication, { periodId: period._id });
 	const profile = useQuery(api.users.students.queries.getCurrentForAdmissions, {});
 	const groups = useQuery(api.admissions.queries.availableGroups, {});
 	const updateProfile = useMutation(api.users.students.mutations.updateCurrent);

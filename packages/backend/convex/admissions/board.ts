@@ -76,10 +76,7 @@ export const updateInterviewers = mutation({
 				periodId: period._id,
 				revision,
 				idempotencyKey: `sync-channel:${period._id}:${revision}`,
-				state: "pending",
-				attempts: 0,
 				nextAttemptAt: Date.now(),
-				createdAt: Date.now(),
 			});
 	},
 });
@@ -165,10 +162,7 @@ export const assignRooms = mutation({
 						interviewId: row._id,
 						revision,
 						idempotencyKey: `publish:${row._id}:${revision}`,
-						state: "pending",
-						attempts: 0,
 						nextAttemptAt: Date.now(),
-						createdAt: Date.now(),
 					});
 			}),
 		);
@@ -240,7 +234,6 @@ function roundDecision(
 	direction: "next" | "previous",
 	previous: Doc<"admissionPeriods">["roundHistory"][number] | undefined,
 ): Doc<"admissionApplications">["decision"] {
-	// Communicated offers and accepted candidates survive round changes.
 	if (app.sent || app.decision === "accepted" || app.offerStatus !== "none") return app.decision;
 	if (direction === "previous")
 		return (

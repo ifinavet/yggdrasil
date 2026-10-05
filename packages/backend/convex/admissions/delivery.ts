@@ -109,10 +109,7 @@ export const recordProviderEvent = internalMutation({
 				deliveryId: delivery._id,
 				revision: 1,
 				idempotencyKey: `delivery-failure:${delivery._id}:${status}`,
-				state: "pending",
-				attempts: 0,
 				nextAttemptAt: Date.now(),
-				createdAt: Date.now(),
 			});
 		}
 		return true;

@@ -11,6 +11,7 @@ import {
 	type SchedulingSlot,
 } from "@workspace/shared/admissions";
 import { localDateAndMinute, osloDateTimeToEpoch } from "@workspace/shared/time";
+import type { FunctionReturnType } from "convex/server";
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
@@ -92,43 +93,9 @@ export const sources = action({
 	},
 });
 
-type ScheduleContext = {
-	period: {
-		_id: Id<"admissionPeriods">;
-		revision: number;
-		interviewStartAt: number;
-		interviewEndAt: number;
-		duration: number;
-		buffer: number;
-		breakEvery: number;
-		breakMinutes: number;
-		lunch: boolean;
-		room: string;
-		dayStart: number;
-		dayEnd: number;
-		breaks: Array<{ day: string; start: number; end: number }>;
-		timezone: string;
-		interviewers: Array<{ userId: Id<"users">; selectedCalendarIds: string[] }>;
-	};
-	candidates: Array<{
-		applicationId: Id<"admissionApplications">;
-		availability: Array<{ day: string; start: number; end: number }>;
-		existingInterview?: { status: string; publishedAt?: number } | null;
-	}>;
-	interviewers: Array<{
-		userId: Id<"users">;
-		email: string;
-		selectedCalendarIds: string[];
-	}>;
-	existingInterviews: Array<{
-		_id: Id<"admissionInterviews">;
-		interviewerIds: Id<"users">[];
-		selectedCalendarIds: string[];
-		startAt: number;
-		endAt: number;
-		publishedAt?: number;
-	}>;
-};
+type ScheduleContext = NonNullable<
+	FunctionReturnType<typeof internal.admissions.internal.scheduleContext>
+>;
 
 function busyWindows(intervals: ReadonlyArray<{ start: number; end: number }>, timeZone: string) {
 	return intervals.flatMap((interval) => {
@@ -214,9 +181,9 @@ export const generateSchedule = action({
 		count: number;
 		unmatched: Array<{ applicationId: Id<"admissionApplications">; reason: string }>;
 	}> => {
-		const context = (await ctx.runQuery(internal.admissions.internal.scheduleContext, {
+		const context = await ctx.runQuery(internal.admissions.internal.scheduleContext, {
 			periodId,
-		})) as ScheduleContext;
+		});
 		if (context.period.revision !== expectedRevision)
 			throw new Error("Opptaket er endret. Last inn på nytt før du lager planen.");
 		const { period } = context;

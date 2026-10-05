@@ -2,9 +2,6 @@ import { v } from "convex/values";
 import { internalMutation } from "../_generated/server";
 import { queueOutbox } from "./lifecycle";
 
-// A publish action can finish its Google request after close queued its first
-// cancellation. Queue a second durable cleanup when that late publish detects
-// the closed interview, so the event cannot survive a previously completed 404.
 export const queueStalePublishCleanup = internalMutation({
 	args: {
 		periodId: v.id("admissionPeriods"),
@@ -29,10 +26,7 @@ export const queueStalePublishCleanup = internalMutation({
 			interviewId,
 			revision: interview.revision,
 			idempotencyKey: `late-publish-cancel:${interviewId}:${interview.revision}`,
-			state: "pending",
-			attempts: 0,
 			nextAttemptAt: now,
-			createdAt: now,
 			notifyApplicant: invite !== null,
 		});
 		return true;
