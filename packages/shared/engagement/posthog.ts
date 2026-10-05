@@ -10,14 +10,12 @@ const posthogUnregistrationSchema = z
 		z.enum(REGISTRATION_STATUSES),
 		z.number().positive(),
 		z.number().positive(),
+		z.uuid(),
 	])
 	.refine(([, , , registrationTime, at]) => registrationTime < at + TIMESTAMP_PRECISION_MS)
-	.transform(([eventId, userId, status, registrationTime, at]) => ({
-		eventId,
-		userId,
-		status,
-		registrationTime,
-		at: Math.max(at, registrationTime),
+	.transform(([eventId, userId, status, registrationTime, at, uuid]) => ({
+		position: { at, uuid },
+		row: { eventId, userId, status, registrationTime, at: Math.max(at, registrationTime) },
 	}))
 	.nullable()
 	.catch(null);

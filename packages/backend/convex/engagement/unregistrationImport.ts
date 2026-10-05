@@ -15,6 +15,7 @@ const TIMEOUT_MS = 30_000;
 const MAX_LOGS_PER_REGISTRATION = 100;
 const MAX_ERROR_LENGTH = 300;
 const EXPIRED_ERROR = "The import did not report back before its deadline";
+const START = { at: 0, uuid: "" };
 
 const UNREGISTRATIONS_QUERY = `
 	select
@@ -22,19 +23,21 @@ const UNREGISTRATIONS_QUERY = `
 		properties.deletedRegistration.userId,
 		properties.deletedRegistration.status,
 		toFloat(properties.deletedRegistration.registrationTime),
-		toUnixTimestamp(timestamp) * 1000
+		toUnixTimestamp(timestamp) * 1000,
+		toString(uuid)
 	from events
 	where event = 'midgard-student_unregister'
 		and properties.$host in ('ifinavet.no', 'www.ifinavet.no')
-	order by timestamp, uuid
+		and (toUnixTimestamp(timestamp) * 1000, toString(uuid)) > ({at}, {uuid})
+	order by toUnixTimestamp(timestamp) * 1000, toString(uuid)
 	limit ${PAGE_SIZE}`;
 
-async function fetchPage(key: string, offset: number) {
+async function fetchPage(key: string, after: typeof START) {
 	const response = await fetch(POSTHOG_QUERY_URL, {
 		method: "POST",
 		headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
 		body: JSON.stringify({
-			query: { kind: "HogQLQuery", query: `${UNREGISTRATIONS_QUERY} offset ${offset}` },
+			query: { kind: "HogQLQuery", query: UNREGISTRATIONS_QUERY, values: after },
 		}),
 		signal: AbortSignal.timeout(TIMEOUT_MS),
 	});
@@ -52,9 +55,10 @@ export const run = internalAction({
 			const key = process.env.POSTHOG_PERSONAL_API_KEY;
 			if (!key) throw new Error("POSTHOG_PERSONAL_API_KEY is not set");
 			let imported = 0;
+			let after = START;
 			for (let page = 0; page < MAX_PAGES; page += 1) {
-				const results = await fetchPage(key, page * PAGE_SIZE);
-				const rows = results.filter((row) => row !== null);
+				const results = await fetchPage(key, after);
+				const rows = results.flatMap((result) => (result ? [result.row] : []));
 				if (results.length > 0 && rows.length === 0) {
 					throw new Error("PostHog returned no readable unregistrations");
 				}
@@ -74,6 +78,9 @@ export const run = internalAction({
 					});
 					return;
 				}
+				const last = results.at(-1);
+				if (!last) throw new Error("PostHog returned a page that cannot be continued");
+				after = last.position;
 			}
 			throw new Error("PostHog returned more pages than expected");
 		} catch (error) {

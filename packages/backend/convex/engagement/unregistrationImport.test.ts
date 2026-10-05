@@ -50,15 +50,22 @@ function unregistration(eventId: string, userId: string, overrides = {}) {
 	};
 }
 
+const POSTHOG_UUID = "0199a1b2-c3d4-7e5f-8a6b-7c8d9e0f1a2b";
+
 function posthogRow(eventId: string, userId: string) {
-	return [eventId, userId, "registered", REGISTERED_AT, UNREGISTERED_AT];
+	return [eventId, userId, "registered", REGISTERED_AT, UNREGISTERED_AT, POSTHOG_UUID];
 }
 
-function stubPosthog(respond: (offset: number) => Response) {
-	const fetchMock = vi.fn((_input: RequestInfo | URL, init?: RequestInit) => {
-		const { query } = JSON.parse(String(init?.body)) as { query: { query: string } };
-		return Promise.resolve(respond(Number(/offset (\d+)$/.exec(query.query)?.[1])));
-	});
+type PosthogQuery = { query: string; values: { at: number; uuid: string } };
+
+function queryOf(init?: RequestInit) {
+	return (JSON.parse(String(init?.body)) as { query: PosthogQuery }).query;
+}
+
+function stubPosthog(respond: (after: PosthogQuery["values"]) => Response) {
+	const fetchMock = vi.fn((_input: RequestInfo | URL, init?: RequestInit) =>
+		Promise.resolve(respond(queryOf(init).values)),
+	);
 	vi.stubGlobal("fetch", fetchMock);
 	return fetchMock;
 }
@@ -336,9 +343,9 @@ describe("importing unregistrations from PostHog", () => {
 		const { t, companyId } = await setup();
 		const eventId = await pastEventOf(t, companyId);
 		const ada = await insertUser(t, "ada@example.com");
-		const fetchMock = stubPosthog((offset) =>
+		const fetchMock = stubPosthog((after) =>
 			results(
-				offset === 0
+				after.at === 0
 					? Array.from({ length: PAGE_SIZE }, () => posthogRow("not-an-id", ada._id))
 					: [posthogRow(eventId, ada._id)],
 			),
@@ -346,8 +353,34 @@ describe("importing unregistrations from PostHog", () => {
 
 		await t.action(internal.engagement.unregistrationImport.run, {});
 
-		expect(fetchMock).toHaveBeenCalledTimes(2);
+		const queries = fetchMock.mock.calls.map(([, init]) => queryOf(init));
+		expect(queries.map(({ values }) => values)).toEqual([
+			{ at: 0, uuid: "" },
+			{ at: UNREGISTERED_AT, uuid: POSTHOG_UUID },
+		]);
+		expect(queries[0]?.query).not.toMatch(/offset/i);
 		expect(await logsFor(t, eventId)).toHaveLength(2);
+	});
+
+	it("fails when a full page ends in a row it cannot continue from", async () => {
+		vi.stubEnv("POSTHOG_PERSONAL_API_KEY", "phx_test");
+		const { t, companyId } = await setup();
+		const eventId = await pastEventOf(t, companyId);
+		const ada = await insertUser(t, "ada@example.com");
+		await t.run((ctx) => ctx.db.insert("unregistrationImports", { state: "running", attempts: 1 }));
+		const fetchMock = stubPosthog(() =>
+			results([
+				...Array.from({ length: PAGE_SIZE - 1 }, () => posthogRow(eventId, ada._id)),
+				["malformed"],
+			]),
+		);
+
+		await expect(t.action(internal.engagement.unregistrationImport.run, {})).rejects.toThrow(
+			"PostHog returned a page that cannot be continued",
+		);
+
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+		expect(await importState(t)).toBe("failed");
 	});
 
 	it("keeps an unregistration whose timestamp was rounded down to the second", async () => {
@@ -356,7 +389,7 @@ describe("importing unregistrations from PostHog", () => {
 		const eventId = await pastEventOf(t, companyId);
 		const ada = await insertUser(t, "ada@example.com");
 		stubPosthog(() =>
-			results([[eventId, ada._id, "registered", REGISTERED_AT + 400, REGISTERED_AT]]),
+			results([[eventId, ada._id, "registered", REGISTERED_AT + 400, REGISTERED_AT, POSTHOG_UUID]]),
 		);
 
 		await t.action(internal.engagement.unregistrationImport.run, {});
