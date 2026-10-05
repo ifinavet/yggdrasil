@@ -6,13 +6,13 @@ The admissions E2E suite now contains separate preview checks and real Convex-ba
 
 `student.spec.ts` covers the Hugin `?preview=open` and `?preview=closed` examples. These remain in-memory previews.
 
-`student-production.spec.ts` covers the Midgard application banner, existing profile confirmation and edit, answers, work group, multi-day availability, consent, persistent submission and reopen/edit, updated Midgard profile, assigned interview and cancellation, explicit no-suitable-times submission, pending offer acceptance and decline, expired offer response, cancellation state after reload, closed-period state, and missing-profile recovery. The tests also check that the offer is not exposed before sending and that applicant pages do not show board notes. The real flow screenshots use the `live-` prefix under `docs/admissions/screenshots/student/`.
+`student-production.spec.ts` covers the Midgard application banner, existing profile confirmation and edit, answers, work group, multi-day availability, consent, persistent submission and reopen/edit, updated Midgard profile, assigned interview and cancellation, explicit no-suitable-times submission, pending offer acceptance and decline, expired offer response, cancellation state after reload, closed-period state, and missing-profile recovery. The tests also check that the offer is not exposed before sending and that applicant pages do not show board notes. The real flow screenshots use the `live-` prefix under `test-results/admissions/screenshots/student/`.
 
 ## Board
 
 `board.spec.ts` covers the local Bifrost preview and simulated client state only.
 
-The production browser suites cover persistent room updates and notes, declined-offer replacement, schedule generation and publication, period creation and calendar selection, selection rounds and explicit decision sending, manual interview actions/cancellation, interviewer-team editing and published-slot protection, and close confirmation. Local email HTML can be captured for invitations, offers, rejections, and cancellation notices when the corresponding flow queues the message. The screenshots are saved under `docs/admissions/screenshots/board/` and `docs/admissions/screenshots/student/` with `live-` names.
+The production browser suites cover persistent room updates and notes, declined-offer replacement, schedule generation and publication, period creation and calendar selection, selection rounds and explicit decision sending, manual interview actions/cancellation, interviewer-team editing and published-slot protection, and close confirmation. Local email HTML can be captured for invitations, offers, rejections, and cancellation notices when the corresponding flow queues the message. The screenshots are saved under `test-results/admissions/screenshots/board/` and `test-results/admissions/screenshots/student/` with `live-` names.
 
 ## Backend and limits
 

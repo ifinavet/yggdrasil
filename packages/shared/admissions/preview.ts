@@ -14,5 +14,5 @@ export const PREVIEW_INTERVIEW_DAYS = [
 
 export const PREVIEW_INTERVIEWER_IMAGES = Array.from(
 	{ length: 6 },
-	(_, index) => `/admissions/interviewer-${index}.jpg`,
+	(_, index) => `https://i.pravatar.cc/96?img=${index + 11}`,
 );

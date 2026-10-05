@@ -23,6 +23,6 @@ ADMISSIONS_SCREENSHOTS=1 pnpm exec playwright test e2e/admissions/student-produc
 ADMISSIONS_SCREENSHOTS=1 pnpm exec playwright test e2e/admissions/board-production.spec.ts e2e/admissions/board-workflow.spec.ts e2e/admissions/board-interviews.spec.ts e2e/admissions/board-settings.spec.ts --project=board
 ```
 
-`student.spec.ts` and `board.spec.ts` remain explicitly local preview tests for Hugin and Bifrost. Real-flow screenshots use the `live-` prefix in [student](student.md) and [board](board.md). Captured email previews come from the local admissions delivery capture; they are not proof of external delivery.
+`student.spec.ts` and `board.spec.ts` remain explicitly local preview tests for Hugin and Bifrost. Opt-in screenshots use the `live-` prefix under the ignored `test-results/admissions/screenshots/` directory and are not committed. Captured email previews come from the local admissions delivery capture; they are not proof of external delivery.
 
 Never capture credentials, tokens, or real applicant data. The production journey suite uses synthetic data seeded only into the isolated local Convex deployment.

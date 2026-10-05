@@ -1,11 +1,9 @@
-# Opptak: bilder og testdekning
+# Opptak: testdekning
 
-Opptakssiden bruker Convex for student- og styreflyten. Bilder med `live-` i filnavnet viser reelle UI-steg mot en lokal, isolert backend med syntetiske data. De dokumenterer ikke leveranser fra eksterne Google-, Slack-, IAM- eller Resend-kontoer. Andre nummererte bilder i bildemappene er eldre UI-eksempler.
+Opptakssiden bruker Convex for student- og styreflyten. Testene kjører mot en lokal, isolert backend med syntetiske kontoer. De verifiserer ikke levering fra eksterne Google-, Slack-, IAM- eller Resend-kontoer.
 
-- [Studentreisen](student.md)
-- [Styrets opptaksflyt](board.md)
 - [Integrasjonsdekning og gjenstående kontroller](integration-coverage.md)
 - [Playwright-dekning](../../e2e/admissions/COVERAGE.md)
 - [Sikkerhetsvurdering](security-review.md)
 
-Kjør student- og styretestene med Playwright etter lokalt utviklingsoppsett i rotens README. Sett `ADMISSIONS_SCREENSHOTS=1` for å oppdatere bildene. Skjermbilder og tester bruker bare syntetiske kontoer.
+Kjør student- og styretestene med Playwright etter lokalt utviklingsoppsett i rotens README. Sett `ADMISSIONS_SCREENSHOTS=1` for å lagre skjermbilder lokalt i `test-results/admissions/screenshots/`. Disse filene ignoreres av Git.

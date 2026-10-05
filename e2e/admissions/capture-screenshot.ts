@@ -12,7 +12,7 @@ export async function captureScreenshot(
 	if (process.env.ADMISSIONS_SCREENSHOTS !== "1") return;
 	if (viewport) await page.setViewportSize(viewport);
 	await target.scrollIntoViewIfNeeded();
-	await page.screenshot({ path: join("docs/admissions/screenshots", app, name) });
+	await page.screenshot({ path: join("test-results/admissions/screenshots", app, name) });
 }
 
 export async function captureEmail(
