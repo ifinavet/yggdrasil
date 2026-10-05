@@ -30,7 +30,7 @@ export const backfillRegistrationLog = migrations.define({
 
 const BACKFILL = internal.engagement.backfill.backfillRegistrationLog;
 const MAX_IMPORT_ATTEMPTS = 3;
-const IMPORT_REVISION = 2;
+const IMPORT_REVISION = 3;
 const IMPORT_DEADLINE_MS = 15 * 60_000;
 
 async function backfillPending(ctx: QueryCtx) {
