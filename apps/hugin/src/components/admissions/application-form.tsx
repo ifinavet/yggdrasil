@@ -3,13 +3,9 @@
 import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
+import { ADMISSION_UNSURE_GROUP, type AvailabilityWindow } from "@workspace/shared/admissions";
 import {
-	ADMISSION_UNSURE_GROUP,
-	type AvailabilityWindow,
-	roomUrl,
-} from "@workspace/shared/admissions";
-import {
-	DEGREE_TYPES,
+	type DEGREE_TYPES,
 	DEGREE_YEARS,
 	degreesFor,
 	fittingDegree,
@@ -24,17 +20,6 @@ import {
 	localDateAndMinute,
 } from "@workspace/shared/time";
 import { convexErrorMessage } from "@workspace/shared/utils";
-import {
-	AlertDialog,
-	AlertDialogAction,
-	AlertDialogCancel,
-	AlertDialogContent,
-	AlertDialogDescription,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle,
-	AlertDialogTrigger,
-} from "@workspace/ui/components/alert-dialog";
 import { Button } from "@workspace/ui/components/button";
 import { Checkbox } from "@workspace/ui/components/checkbox";
 import {
@@ -47,16 +32,14 @@ import {
 import { Textarea } from "@workspace/ui/components/textarea";
 import { useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { CalendarDays, Check, LoaderCircle, ShieldCheck, UserRound } from "lucide-react";
-import Link from "next/link";
-import { useEffect, useState } from "react";
+import { CalendarDays, LoaderCircle, ShieldCheck, UserRound } from "lucide-react";
+import { useState } from "react";
 import { z } from "zod";
 import { ProfileConfirmation } from "@/components/admissions/profile-confirmation";
 import { textareaClass } from "@/components/form-controls";
 import { FormRow } from "@/components/job-listing-order/form-row";
 
-type InitialApplication = FunctionReturnType<typeof api.admissions.queries.myApplication>;
-type Period = NonNullable<InitialApplication>["period"] & { _id: Id<"admissionPeriods"> };
+import type { InitialApplication, Period } from "./application";
 
 const applicationSchema = z.object({
 	about: z.string().trim().min(10, "Skriv minst 10 tegn."),
@@ -65,28 +48,29 @@ const applicationSchema = z.object({
 });
 type ApplicationValues = z.infer<typeof applicationSchema>;
 
-export default function AdmissionsJourney({
+export function ApplicationForm({
 	period,
 	initialApplication,
+	profile,
 }: Readonly<{
 	period: Period;
 	initialApplication: InitialApplication;
+	profile: NonNullable<
+		FunctionReturnType<typeof api.users.students.queries.getCurrentForAdmissions>
+	>;
 }>) {
-	const application = useQuery(api.admissions.queries.myApplication, { periodId: period._id });
-	const profile = useQuery(api.users.students.queries.getCurrentForAdmissions, {});
 	const groups = useQuery(api.admissions.queries.availableGroups, {});
 	const updateProfile = useMutation(api.users.students.mutations.updateCurrent);
 	const saveDraft = useMutation(api.admissions.mutations.saveDraft);
 	const submit = useMutation(api.admissions.mutations.submit);
-	const reopen = useMutation(api.admissions.mutations.reopenApplication);
-	const cancelInterview = useMutation(api.admissions.mutations.cancelInterview);
-	const respondToOffer = useMutation(api.admissions.mutations.respondToOffer);
 	const [availability, setAvailability] = useState<AvailabilityWindow[]>(
 		initialApplication?.availability ?? [],
 	);
-	const [studyProgram, setStudyProgram] = useState("");
-	const [degree, setDegree] = useState<(typeof DEGREE_TYPES)[number]>(DEGREE_TYPES[0]);
-	const [year, setYear] = useState(1);
+	const [studyProgram, setStudyProgram] = useState(profile.studyProgram);
+	const [degree, setDegree] = useState<(typeof DEGREE_TYPES)[number]>(
+		profile.degree as (typeof DEGREE_TYPES)[number],
+	);
+	const [year, setYear] = useState(profile.year);
 	const [profileConfirmed, setProfileConfirmed] = useState(false);
 	const [editingProfile, setEditingProfile] = useState(false);
 	const [consent, setConsent] = useState(false);
@@ -95,9 +79,6 @@ export default function AdmissionsJourney({
 	const [selectedDays, setSelectedDays] = useState<string[]>([]);
 	const [noSuitableTimes, setNoSuitableTimes] = useState(
 		initialApplication?.availability.length === 0,
-	);
-	const [applicationWindowClosed, setApplicationWindowClosed] = useState(
-		() => Date.now() > period.applicationEndAt,
 	);
 	const [start, setStart] = useState(period.dayStart);
 	const [end, setEnd] = useState(Math.min(period.dayStart + 60, period.dayEnd));
@@ -110,23 +91,6 @@ export default function AdmissionsJourney({
 		validators: { onSubmit: applicationSchema },
 		onSubmit: ({ value }) => persistApplication(value, true),
 	});
-
-	useEffect(() => {
-		if (profile && !studyProgram) {
-			setStudyProgram(profile.studyProgram);
-			setDegree(profile.degree as (typeof DEGREE_TYPES)[number]);
-			setYear(profile.year);
-		}
-	}, [profile, studyProgram]);
-
-	useEffect(() => {
-		if (applicationWindowClosed) return;
-		const timer = window.setTimeout(
-			() => setApplicationWindowClosed(Date.now() > period.applicationEndAt),
-			Math.max(0, period.applicationEndAt - Date.now() + 1),
-		);
-		return () => window.clearTimeout(timer);
-	}, [applicationWindowClosed, period.applicationEndAt]);
 
 	const dates = interviewDays(period.interviewStartAt, period.interviewEndAt, period.timezone);
 	const timeOptions = Array.from(
@@ -180,75 +144,6 @@ export default function AdmissionsJourney({
 			setEditingProfile(false);
 			setMessage("Studentprofilen er oppdatert.");
 		}, "Studentprofilen kunne ikke oppdateres. Prøv igjen.");
-	}
-
-	if (profile === undefined || application === undefined) return <JourneyLoading />;
-	if (!profile) {
-		return (
-			<Notice title="Studentprofilen din er ikke klar ennå">
-				<p>Opprett studentprofilen din på Midgard før du søker.</p>
-				<Button asChild variant="outline">
-					<Link href={`${midgardUrl()}/profile`}>Åpne profilen</Link>
-				</Button>
-			</Notice>
-		);
-	}
-
-	if (application?.status === "submitted")
-		return (
-			<SubmittedApplicationView
-				application={application}
-				period={period}
-				busy={busy}
-				applicationWindowClosed={applicationWindowClosed}
-				message={message}
-				onReply={replyToOffer}
-				onCancelInterview={cancelAssignedInterview}
-				onReopen={reopenApplication}
-			/>
-		);
-
-	if (applicationWindowClosed) {
-		return (
-			<Notice title="Søknadsperioden er avsluttet">
-				<p>
-					Søknadsperioden for dette semesteret er ferdig. Neste opptak åpner i et nytt semester.
-				</p>
-			</Notice>
-		);
-	}
-
-	async function reopenApplication() {
-		if (application)
-			await perform(async () => {
-				await reopen({ periodId: period._id, expectedRevision: application.revision });
-			}, "Søknaden kunne ikke åpnes for endring.");
-	}
-
-	async function cancelAssignedInterview() {
-		if (application)
-			await perform(async () => {
-				await cancelInterview({
-					applicationId: application._id,
-					expectedRevision: application.revision,
-					idempotencyKey: crypto.randomUUID(),
-				});
-			}, "Intervjuet kunne ikke avlyses. Prøv igjen.");
-	}
-
-	async function replyToOffer(accept: boolean) {
-		if (application)
-			await perform(async () => {
-				const result = await respondToOffer({
-					periodId: period._id,
-					accept,
-					expectedRevision: application.revision,
-				});
-				const confirmation = accept ? "Du har takket ja til plassen" : "Takk for at du ga beskjed";
-				setMessage(
-					result.offerStatus === "expired" ? "Svarfristen for tilbudet har gått ut." : confirmation,
-				);
-			}, "Svaret ditt kunne ikke lagres. Prøv igjen.");
 	}
 
 	function addAvailability() {
@@ -618,169 +513,6 @@ export default function AdmissionsJourney({
 				{message && <output className="text-sm">{message}</output>}
 			</form>
 		</div>
-	);
-}
-
-function SubmittedApplicationView({
-	application,
-	period,
-	busy,
-	applicationWindowClosed,
-	message,
-	onReply,
-	onCancelInterview,
-	onReopen,
-}: Readonly<{
-	application: NonNullable<InitialApplication>;
-	period: Period;
-	busy: boolean;
-	applicationWindowClosed: boolean;
-	message: string;
-	onReply: (accept: boolean) => Promise<void>;
-	onCancelInterview: () => Promise<void>;
-	onReopen: () => Promise<void>;
-}>) {
-	if (application.offerStatus === "expired")
-		return (
-			<Notice title="Svarfristen er passert">
-				<p>Fristen for å svare på tilbudet har gått ut. Tilbudet er ikke lenger tilgjengelig.</p>
-			</Notice>
-		);
-	if (application.offerStatus === "pending")
-		return (
-			<Notice title="Du har fått tilbud om plass">
-				<p>Gi beskjed om du takker ja eller nei til tilbudet.</p>
-				{application.offerDeadline && (
-					<p>Svarfrist: {formatOsloDate(application.offerDeadline, DATE_PATTERNS.dateTime)}.</p>
-				)}
-				<div className="flex flex-wrap gap-3">
-					<OfferConfirmation accept onConfirm={() => void onReply(true)} />
-					<OfferConfirmation accept={false} onConfirm={() => void onReply(false)} />
-				</div>
-				{message && <output>{message}</output>}
-			</Notice>
-		);
-	if (application.offerStatus === "accepted")
-		return (
-			<Notice title="Du har takket ja til plassen">
-				<p>Navet har mottatt svaret ditt.</p>
-			</Notice>
-		);
-	if (application.offerStatus === "declined")
-		return (
-			<Notice title="Takk for at du ga beskjed">
-				<p>Vi har mottatt svaret ditt.</p>
-			</Notice>
-		);
-	if (application.decisionSentAt && application.decision === "rejected")
-		return (
-			<Notice title="Takk for at du søkte">
-				<p>Opptaket er ferdig for denne gangen.</p>
-			</Notice>
-		);
-	if (application.interview)
-		return (
-			<Notice title="Intervjuet ditt">
-				<p>{formatOsloDate(application.interview.startAt, DATE_PATTERNS.dateTime)}</p>
-				<p>
-					Møterom:{" "}
-					<a
-						href={roomUrl(application.interview.room)}
-						target="_blank"
-						rel="noreferrer"
-						className="text-primary underline underline-offset-4"
-					>
-						{application.interview.room}
-					</a>
-				</p>
-				<AlertDialog>
-					<AlertDialogTrigger asChild>
-						<Button variant="outline">Avlys intervjuet</Button>
-					</AlertDialogTrigger>
-					<AlertDialogContent>
-						<AlertDialogHeader>
-							<AlertDialogTitle>Avlyse intervjuet?</AlertDialogTitle>
-							<AlertDialogDescription>
-								Intervjutiden blir avlyst når du bekrefter.
-							</AlertDialogDescription>
-						</AlertDialogHeader>
-						<AlertDialogFooter>
-							<AlertDialogCancel>Behold intervjuet</AlertDialogCancel>
-							<AlertDialogAction onClick={() => void onCancelInterview()}>
-								Ja, avlys intervjuet
-							</AlertDialogAction>
-						</AlertDialogFooter>
-					</AlertDialogContent>
-				</AlertDialog>
-				{message && <output>{message}</output>}
-			</Notice>
-		);
-	if (application.interviewStatus === "cancelled")
-		return (
-			<Notice title="Intervjuet er avlyst">
-				<p>Vi har registrert at du har avlyst intervjuet.</p>
-			</Notice>
-		);
-	return (
-		<Notice title="Søknaden din er sendt">
-			<p>Søknaden din er lagret.</p>
-			{period.interviewStartAt > 0 && !applicationWindowClosed && !application.decisionSentAt && (
-				<Button variant="outline" disabled={busy} onClick={() => void onReopen()}>
-					Rediger søknaden
-				</Button>
-			)}
-			{message && <output>{message}</output>}
-		</Notice>
-	);
-}
-
-function OfferConfirmation({
-	accept,
-	onConfirm,
-}: Readonly<{ accept: boolean; onConfirm: () => void }>) {
-	const verb = accept ? "ja" : "nei";
-	return (
-		<AlertDialog>
-			<AlertDialogTrigger asChild>
-				<Button variant={accept ? "default" : "outline"}>{`Takk ${verb}`}</Button>
-			</AlertDialogTrigger>
-			<AlertDialogContent>
-				<AlertDialogHeader>
-					<AlertDialogTitle>{`Takke ${verb} til plassen?`}</AlertDialogTitle>
-					<AlertDialogDescription>
-						{accept
-							? "Når du bekrefter, registrerer vi at du takker ja."
-							: "Når du bekrefter, registrerer vi at du takker nei."}
-					</AlertDialogDescription>
-				</AlertDialogHeader>
-				<AlertDialogFooter>
-					<AlertDialogCancel>Tilbake</AlertDialogCancel>
-					<AlertDialogAction
-						onClick={onConfirm}
-					>{`Bekreft at jeg takker ${verb}`}</AlertDialogAction>
-				</AlertDialogFooter>
-			</AlertDialogContent>
-		</AlertDialog>
-	);
-}
-
-function Notice({ title, children }: Readonly<{ title: string; children: React.ReactNode }>) {
-	return (
-		<section className="mx-auto max-w-xl py-16">
-			<Check className="mb-4 size-7 text-primary" aria-hidden />
-			<h1 className="font-semibold text-3xl tracking-tight">{title}</h1>
-			<div className="mt-4 flex flex-col items-start gap-3 text-base leading-relaxed">
-				{children}
-			</div>
-		</section>
-	);
-}
-
-function JourneyLoading() {
-	return (
-		<output className="mx-auto block max-w-2xl py-16" aria-label="Laster søknaden">
-			<LoaderCircle className="size-6 animate-spin" />
-		</output>
 	);
 }
 

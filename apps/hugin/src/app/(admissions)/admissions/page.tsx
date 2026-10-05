@@ -3,7 +3,7 @@ import { auth } from "@workspace/auth/server";
 import { api } from "@workspace/backend/convex/api";
 import { OSLO_TIME_ZONE } from "@workspace/shared/time";
 import { fetchQuery } from "convex/nextjs";
-import AdmissionsJourney from "@/components/admissions/journey";
+import AdmissionsApplication from "@/components/admissions/application";
 
 export const instant = false;
 
@@ -37,14 +37,13 @@ export default async function Page() {
 	const period = periods.find((item) => item._id === currentApplication?.periodId);
 	if (currentApplication?.status === "submitted") {
 		return (
-			<AdmissionsJourney
+			<AdmissionsApplication
 				period={
 					period ?? {
 						_id: currentApplication.periodId,
 						...currentApplication.period,
 					}
 				}
-				initialApplication={currentApplication}
 			/>
 		);
 	}
@@ -52,14 +51,5 @@ export default async function Page() {
 	const openPeriod = period ?? periods[0];
 	if (!openPeriod) return closedPeriodPage(now);
 
-	const application =
-		currentApplication?.periodId === openPeriod._id
-			? currentApplication
-			: await fetchQuery(
-					api.admissions.queries.myApplication,
-					{ periodId: openPeriod._id },
-					{ token },
-				);
-
-	return <AdmissionsJourney period={openPeriod} initialApplication={application} />;
+	return <AdmissionsApplication period={openPeriod} />;
 }
