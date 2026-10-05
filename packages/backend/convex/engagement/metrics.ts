@@ -86,15 +86,15 @@ export function progressOf({ registrationOpens, eventStart }: Timeline, at: numb
 	return Math.min(1, Math.max(0, (at - registrationOpens) / span));
 }
 
-export function seatCurve(
+export function demandCurve(
 	{ registrationOpens, eventStart }: Timeline,
 	limit: number,
 	entries: readonly LogEntry[],
 ) {
 	return PACE_GRID.map((progress) => {
 		const cutoff = registrationOpens + (eventStart - registrationOpens) * progress;
-		const seats = seatDelta(entries.filter(({ at }) => at <= cutoff));
-		return Math.min(1, Math.max(0, seats / limit));
+		const demand = demandDelta(entries.filter(({ at }) => at <= cutoff));
+		return Math.max(0, demand / limit);
 	});
 }
 
@@ -124,6 +124,14 @@ export function seatDelta(entries: readonly LogEntry[]) {
 		if ((change === "unregistered" || change === "cleared") && fromStatus === "registered") {
 			return delta - 1;
 		}
+		return delta;
+	}, 0);
+}
+
+export function demandDelta(entries: readonly LogEntry[]) {
+	return entries.reduce((delta, { change }) => {
+		if (change === "registered" || change === "waitlisted") return delta + 1;
+		if (change === "unregistered" || change === "cleared") return delta - 1;
 		return delta;
 	}, 0);
 }

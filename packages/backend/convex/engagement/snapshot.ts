@@ -8,12 +8,12 @@ import {
 	BASELINE_SIZE,
 	COMPANY_BASELINE,
 	classify,
+	demandCurve,
 	type ForecastTimeline,
 	medianCurve,
 	progressOf,
 	projectFill,
 	recentUnregistrations,
-	seatCurve,
 	seatDelta,
 	valueAt,
 } from "./metrics";
@@ -96,7 +96,7 @@ async function curvesOf(ctx: QueryCtx, events: readonly Doc<"events">[]): Promis
 			return {
 				eventId: event._id,
 				limit: event.participationLimit,
-				curve: seatCurve(event, event.participationLimit, log),
+				curve: demandCurve(event, event.participationLimit, log),
 				timeline: await forecastTimeline(ctx, event),
 			};
 		}),

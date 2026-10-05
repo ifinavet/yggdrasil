@@ -302,6 +302,11 @@ describe("baselineFor", () => {
 		expect(baselineFor(soldOut, 80)?.curve.slice(0, 3)).toEqual([0, 0.25, 0.5]);
 	});
 
+	it("counts students who waited for a seat at a sold out event", () => {
+		const oversubscribed = Array.from({ length: 3 }, () => past(40, [0, 1, 1.5]));
+		expect(baselineFor(oversubscribed, 80)?.curve.slice(0, 3)).toEqual([0, 0.5, 0.75]);
+	});
+
 	it("caps the expected headcount at the seats of the event", () => {
 		const larger = Array.from({ length: 3 }, () => past(60, [0, 0.5, 1]));
 		expect(baselineFor(larger, 40)?.curve.slice(0, 3)).toEqual([0, 0.75, 1]);
