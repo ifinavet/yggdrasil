@@ -2,6 +2,7 @@ import { TZDate, tz } from "@date-fns/tz";
 import { eachDayOfInterval, format, isThursday, isTuesday, isValid, parse } from "date-fns";
 import { nb } from "date-fns/locale";
 import { OSLO_TIME_ZONE } from "./constants";
+import { formatLocalDate } from "./formatting";
 
 // Semester days are Oslo-local "YYYY-MM-DD" strings. All parsing and calendar arithmetic runs in
 // the Oslo time zone, so weekdays and wall-clock times stay right across daylight-saving changes.
@@ -31,8 +32,6 @@ export function osloToday(now: number): string {
 	return osloClock(now).slice(0, DAY_FORMAT.length);
 }
 
-// In the Convex runtime, date-fns's `in` option reads a moment in UTC, not Oslo. Intl and TZDates
-// built from wall-clock parts work there, so moments are converted with those.
 const OSLO_CLOCK = new Intl.DateTimeFormat("sv-SE", {
 	timeZone: OSLO_TIME_ZONE,
 	dateStyle: "short",
@@ -46,23 +45,22 @@ function osloClock(epoch: number): string {
 
 type Clock = [year: number, month: number, day: number, hours: number, minutes: number];
 
-/** The moment an Oslo "YYYY-MM-DD HH:mm" happens. */
-function fromOsloClock(value: string): number {
+function fromLocalClock(value: string, timeZone: string): number {
 	const [year, month, day, hours, minutes] = value.split(/[- :]/).map(Number) as Clock;
-	return new TZDate(year, month - 1, day, hours, minutes, OSLO_TIME_ZONE).getTime();
+	return new TZDate(year, month - 1, day, hours, minutes, timeZone).getTime();
 }
 
-/**
- * An Oslo-local day and "HH:mm" time as epoch milliseconds, across daylight-saving changes. A value
- * that does not come back the same, like "9:00" or a time skipped when summer time starts, is refused.
- */
-export function osloDateTimeToEpoch(date: string, time: string): number {
+export function localDateTimeToEpoch(date: string, time: string, timeZone: string): number {
 	const value = `${date} ${time}`;
-	const epoch = fromOsloClock(value);
-	if (Number.isNaN(epoch) || osloClock(epoch) !== value) {
-		throw new Error(`Invalid Oslo date or time: ${value}`);
+	const epoch = fromLocalClock(value, timeZone);
+	if (Number.isNaN(epoch) || formatLocalDate(epoch, timeZone, "yyyy-MM-dd HH:mm") !== value) {
+		throw new Error(`Invalid local date or time (${timeZone}): ${value}`);
 	}
 	return epoch;
+}
+
+export function osloDateTimeToEpoch(date: string, time: string): number {
+	return localDateTimeToEpoch(date, time, OSLO_TIME_ZONE);
 }
 
 /** Every presentation day (Tuesday and Thursday) from firstDate to lastDate, both inclusive. */

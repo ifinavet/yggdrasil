@@ -154,6 +154,64 @@ describe("delegated Google Calendar client", () => {
 	});
 });
 
+it.each([
+	[
+		"Europe/Oslo",
+		"2026-10-12",
+		"2026-10-13",
+		"2026-10-11T22:00:00.000Z",
+		"2026-10-12T22:00:00.000Z",
+	],
+	[
+		"Europe/Oslo",
+		"2026-10-25",
+		"2026-10-26",
+		"2026-10-24T22:00:00.000Z",
+		"2026-10-25T23:00:00.000Z",
+	],
+	[
+		"America/New_York",
+		"2026-10-12",
+		"2026-10-13",
+		"2026-10-12T04:00:00.000Z",
+		"2026-10-13T04:00:00.000Z",
+	],
+] as const)(
+	"reads all-day events using the calendar timezone (%s, %s to %s)",
+	async (timeZone, startDate, endDate, busyStart, busyEnd) => {
+		vi.stubEnv("CONVEX_CLOUD_URL", "http://localhost:3212");
+		vi.stubEnv("APP_ENV", "local");
+		vi.stubEnv("IAM_FAKE_DIRECTORY_URL", "https://calendar.test");
+		let requestedFields: string | null = null;
+		vi.stubGlobal(
+			"fetch",
+			vi.fn(async (url: string) => {
+				const { pathname, searchParams } = new URL(url);
+				if (pathname.endsWith("/token"))
+					return Response.json({ access_token: "calendar-token", expires_in: 3600 });
+				if (pathname.endsWith("/freeBusy"))
+					return Response.json({
+						calendars: { primary: { busy: [{ start: busyStart, end: busyEnd }] } },
+					});
+				if (pathname.endsWith("/events")) {
+					requestedFields = searchParams.get("fields");
+					return Response.json({
+						timeZone,
+						items: [{ id: "all-day", start: { date: startDate }, end: { date: endDate } }],
+					});
+				}
+				throw new Error(`Unexpected Calendar request: ${pathname}`);
+			}),
+		);
+		const client = googleCalendarClient(config, "interviewer@example.test");
+
+		await expect(
+			readExternalBusy(client, ["primary"], busyStart, busyEnd, new Map()),
+		).resolves.toEqual([[{ start: Date.parse(busyStart), end: Date.parse(busyEnd) }]]);
+		expect(requestedFields).toContain("timeZone");
+	},
+);
+
 describe("admissions event conflict filtering", () => {
 	it("ignores only the matching owned event id and preserves metadata spoofing as busy", () => {
 		const own = {

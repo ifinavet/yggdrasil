@@ -5,7 +5,7 @@ import {
 	GOOGLE_CALENDAR_API_URL,
 	GOOGLE_CALENDAR_DEFAULT_SCOPES,
 } from "@workspace/shared/constants";
-import { coversInterval } from "@workspace/shared/time";
+import { coversInterval, localDateTimeToEpoch } from "@workspace/shared/time";
 import { sha256 } from "../lib/tokens";
 import { directoryUrl, type GoogleConfig, isWorkspaceEmail } from "./config";
 import { googleAuth } from "./google";
@@ -22,7 +22,10 @@ export class GoogleCalendarError extends Error {}
 
 type Calendar = calendar_v3.Schema$CalendarListEntry & { id: string };
 type Busy = Readonly<{ start: string; end: string }>;
-export type CalendarEvent = calendar_v3.Schema$Event & { id: string };
+export type CalendarEvent = calendar_v3.Schema$Event & {
+	id: string;
+	calendarTimeZone?: string;
+};
 
 export type BusyInterval = Readonly<{ start: number; end: number }>;
 export type OwnedAdmissionEvent = Readonly<{
@@ -45,16 +48,21 @@ function isOwnedAdmissionEvent(
 }
 
 function eventBusyInterval(event: CalendarEvent): BusyInterval {
-	const start = eventTime(event.start);
-	const end = eventTime(event.end);
+	const start = eventTime(event.start, event.calendarTimeZone);
+	const end = eventTime(event.end, event.calendarTimeZone);
 	if (end <= start)
 		throw new GoogleCalendarError("Google Calendar returnerte en ugyldig hendelse.");
 	return { start, end };
 }
 
-function eventTime(value: calendar_v3.Schema$EventDateTime | undefined) {
-	const raw = value?.dateTime ?? (value?.date ? `${value.date}T00:00:00Z` : undefined);
-	const time = raw ? Date.parse(raw) : Number.NaN;
+function eventTime(value: calendar_v3.Schema$EventDateTime | undefined, calendarTimeZone?: string) {
+	let time = value?.dateTime ? Date.parse(value.dateTime) : Number.NaN;
+	try {
+		if (value?.date && calendarTimeZone)
+			time = localDateTimeToEpoch(value.date, "00:00", calendarTimeZone);
+	} catch {
+		time = Number.NaN;
+	}
 	if (!Number.isFinite(time))
 		throw new GoogleCalendarError("Google Calendar returnerte en ugyldig hendelsestid.");
 	return time;
@@ -219,21 +227,28 @@ export function googleCalendarClient(config: GoogleConfig | null, subject: strin
 			timeMin: string,
 			timeMax: string,
 		): Promise<CalendarEvent[]> {
-			const events = await pages(
-				(pageToken) =>
-					client.events.list({
-						calendarId,
-						timeMin,
-						timeMax,
-						singleEvents: true,
-						showDeleted: false,
-						maxResults: 2500,
-						pageToken,
-						fields:
-							"items(id,iCalUID,status,transparency,start,end,extendedProperties),nextPageToken",
-					}),
-				"kunne ikke lese kalenderhendelser",
-			);
+			const events = await pages(async (pageToken) => {
+				const { data } = await client.events.list({
+					calendarId,
+					timeMin,
+					timeMax,
+					singleEvents: true,
+					showDeleted: false,
+					maxResults: 2500,
+					pageToken,
+					fields:
+						"timeZone,items(id,iCalUID,status,transparency,start,end,extendedProperties),nextPageToken",
+				});
+				return {
+					data: {
+						...data,
+						items: data.items?.map((event) => ({
+							...event,
+							calendarTimeZone: data.timeZone ?? undefined,
+						})),
+					},
+				};
+			}, "kunne ikke lese kalenderhendelser");
 			return events as CalendarEvent[];
 		},
 
