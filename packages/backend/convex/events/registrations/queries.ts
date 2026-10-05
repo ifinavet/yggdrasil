@@ -132,46 +132,6 @@ export const getById = query({
 });
 
 /**
- * Checks whether the current user is registered for an event identified by slug.
- *
- * @param {string} slug - The event slug to inspect.
- *
- * @throws - An error if the event does not exist or the user is not registered.
- * @returns {Id<"users">} - The current user's id when they are registered.
- */
-export const getCurrentUserRegistertToEventBySlug = query({
-	args: {
-		slug: v.string(),
-	},
-	handler: async (ctx, { slug }) => {
-		const event = await ctx.db
-			.query("events")
-			.withIndex("by_slug", (q) => q.eq("slug", slug))
-			.first();
-
-		if (!event) {
-			throw new ConvexError(`Arrangement med slug ${slug} ikke funnet.`);
-		}
-
-		const user = await getCurrentUserOrThrow(ctx);
-
-		const registrations = await ctx.db
-			.query("registrations")
-			.withIndex("by_eventIdStatusAndRegistrationTime", (q) =>
-				q.eq("eventId", event._id).eq("status", "registered"),
-			)
-			.filter((q) => q.eq(q.field("userId"), user._id))
-			.first();
-
-		if (!registrations) {
-			throw new ConvexError(`Bruker er ikke registrert på arrangementet med slug ${slug}.`);
-		}
-
-		return user._id;
-	},
-});
-
-/**
  * Fetches all registrations for the current user with event metadata.
  *
  * @throws - An error if the current user or any linked event cannot be resolved.

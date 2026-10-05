@@ -67,7 +67,7 @@ Import global styles (if not already included):
 
 ## Available Components
 
-- AlertDialog, Avatar, Badge, Breadcrumb, Button, Calendar, Card, Command, Dialog, DropdownMenu, Form, Input, Label, Popover, ScrollArea, Select, Separator, Sheet, Sidebar, Skeleton, Sonner (Toaster), Table, Tabs, Textarea, Tooltip
+- AlertDialog, Avatar, Badge, Breadcrumb, Button, Calendar, Card, Command, Dialog, DropdownMenu, Form, Input, Label, Popover, Select, Separator, Sheet, Sidebar, Skeleton, Sonner (Toaster), Table, Tabs, Textarea, Tooltip
 
 All components are accessible, themeable, and composable. For detailed usage and props, refer to the source files.
 

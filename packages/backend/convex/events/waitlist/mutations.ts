@@ -1,4 +1,3 @@
-import { v } from "convex/values";
 import { internal } from "../../_generated/api";
 import { internalMutation } from "../../_generated/server";
 import { logRegistrationChange } from "../../engagement/log";
@@ -129,24 +128,5 @@ export const clearWaitlistAndPending = internalMutation({
 				);
 			}),
 		);
-	},
-});
-
-/**
- * Repairs the waitlist for an event by offering every open seat to the front of the waitlist.
- *
- * @param {Id<"events">} eventId - The id of the event to repair.
- *
- * @returns {Promise<"No event found" | void>} - A status message when no event is found, otherwise resolves after processing.
- */
-export const fixWaitlist = internalMutation({
-	args: {
-		eventId: v.id("events"),
-	},
-	handler: async (ctx, { eventId }) => {
-		const event = await ctx.db.get(eventId);
-		if (!event) return "No event found";
-
-		await fillOpenSeats(ctx, event);
 	},
 });
