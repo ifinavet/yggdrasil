@@ -20,6 +20,7 @@ test("student can complete the local application preview", async ({ page }) => {
 	);
 	await expect(page.getByText("Lokalt førsteutkast med testdata")).toBeVisible();
 	await expect(page.getByRole("heading", { name: "Bli med i Navet" })).toBeVisible();
+	await expect(page.getByText(/hvor gammel|hvor du kommer fra/i)).toHaveCount(0);
 
 	const about = page.getByLabel("Fortell litt om deg selv");
 	const motivation = page.getByLabel("Hvorfor vil du bli med i Navet?");

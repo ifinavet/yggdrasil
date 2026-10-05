@@ -33,6 +33,18 @@ test.describe("admissions settings and close flow", () => {
 		await expect(updated.getByRole("checkbox", { name: "Aksel Nilsen" })).toBeChecked();
 	});
 
+	test("requires exactly two interviewers before saving settings", async ({ page }) => {
+		await resetAdmissions("open");
+		await page.reload();
+		await page.getByRole("button", { name: "Innstillinger" }).click();
+		const settings = page.getByRole("dialog", { name: "Opptaksinnstillinger" });
+		const save = settings.getByRole("button", { name: "Lagre innstillinger" });
+		await settings.getByRole("checkbox", { name: "Aksel Nilsen" }).check();
+		await expect(save).toBeDisabled();
+		await settings.getByRole("checkbox", { name: "Daniel Holm" }).uncheck();
+		await expect(save).toBeEnabled();
+	});
+
 	test("keeps interviewers assigned to a published future interview", async ({ page }) => {
 		await page.getByRole("button", { name: "Innstillinger" }).click();
 		const settings = page.getByRole("dialog", { name: "Opptaksinnstillinger" });

@@ -26,7 +26,14 @@ export async function resetAdmissions(scenario: AdmissionSeedScenario) {
 
 export async function clearCookieNotice(page: Page) {
 	const rejectCookies = page.getByRole("button", { name: "Avslå bruk av cookies" });
-	if (await rejectCookies.isVisible().catch(() => false)) await rejectCookies.click();
+	const cookieNoticeShown = await rejectCookies
+		.waitFor({ state: "visible", timeout: 1500 })
+		.then(() => true)
+		.catch(() => false);
+	if (cookieNoticeShown) {
+		await rejectCookies.click();
+		await rejectCookies.waitFor({ state: "hidden" });
+	}
 	const issueBadge = page.getByRole("button", { name: "Collapse issues badge" });
 	if (await issueBadge.isVisible().catch(() => false)) await issueBadge.click();
 }

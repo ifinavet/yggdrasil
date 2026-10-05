@@ -3,7 +3,7 @@
 import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
-import { ADMISSION_GROUPS, type AvailabilityWindow } from "@workspace/shared/admissions";
+import { ADMISSION_GROUPS, type AvailabilityWindow, roomUrl } from "@workspace/shared/admissions";
 import {
 	DEGREE_TYPES,
 	DEGREE_YEARS,
@@ -41,6 +41,7 @@ import { CalendarDays, Check, LoaderCircle, ShieldCheck, UserRound } from "lucid
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { z } from "zod";
+import { ProfileConfirmation } from "@/components/admissions/profile-confirmation";
 import { textareaClass } from "@/components/form-controls";
 import { FormRow } from "@/components/job-listing-order/form-row";
 
@@ -127,6 +128,9 @@ export default function AdmissionsJourney({
 	const [noSuitableTimes, setNoSuitableTimes] = useState(
 		initialApplication?.availability.length === 0,
 	);
+	const [applicationWindowClosed, setApplicationWindowClosed] = useState(
+		() => Date.now() > period.applicationEndAt,
+	);
 	const [start, setStart] = useState(9 * 60);
 	const [end, setEnd] = useState(10 * 60);
 	const form = useForm({
@@ -146,6 +150,15 @@ export default function AdmissionsJourney({
 			setYear(profile.year);
 		}
 	}, [profile, studyProgram]);
+
+	useEffect(() => {
+		if (applicationWindowClosed) return;
+		const timer = window.setTimeout(
+			() => setApplicationWindowClosed(Date.now() > period.applicationEndAt),
+			Math.max(0, period.applicationEndAt - Date.now() + 1),
+		);
+		return () => window.clearTimeout(timer);
+	}, [applicationWindowClosed, period.applicationEndAt]);
 
 	const dates = interviewDays(period.interviewStartAt, period.interviewEndAt, period.timezone);
 	const selectedCount = availability.length;
@@ -179,9 +192,7 @@ export default function AdmissionsJourney({
 			setMessage("Søknaden din er sendt.");
 			setEditingSubmitted(false);
 		} catch (error) {
-			setMessage(
-				error instanceof Error ? error.message : "Søknaden kunne ikke sendes. Prøv igjen.",
-			);
+			setMessage(convexErrorMessage(error, "Søknaden kunne ikke sendes. Prøv igjen."));
 		} finally {
 			setBusy(false);
 		}
@@ -219,6 +230,7 @@ export default function AdmissionsJourney({
 				application={application}
 				period={period}
 				busy={busy}
+				applicationWindowClosed={applicationWindowClosed}
 				message={message}
 				cancelledInterview={cancelledInterview}
 				onReply={replyToOffer}
@@ -226,6 +238,16 @@ export default function AdmissionsJourney({
 				onReopen={reopenApplication}
 			/>
 		);
+
+	if (applicationWindowClosed) {
+		return (
+			<Notice title="Søknadsperioden er avsluttet">
+				<p>
+					Søknadsperioden for dette semesteret er ferdig. Neste opptak åpner i et nytt semester.
+				</p>
+			</Notice>
+		);
+	}
 
 	async function reopenApplication() {
 		if (!application) return;
@@ -317,114 +339,88 @@ export default function AdmissionsJourney({
 					void form.handleSubmit();
 				}}
 			>
-				<section className="rounded-xl bg-muted p-5" aria-label="Studieopplysninger">
-					<p className="mb-3 text-sm">Vi har registrert dette på deg:</p>
-					<p className="font-medium">
-						{profile.studyProgram}
-						<span className="mt-1 block text-sm">{profile.year}. år</span>
-					</p>
-					{!editingProfile ? (
-						<div className="mt-4 flex flex-wrap items-center gap-3">
-							{profileConfirmed ? (
-								<output className="inline-flex items-center gap-2 text-sm">
-									<Check size={16} />
-									Bekreftet
-								</output>
-							) : (
-								<>
-									<span className="text-sm">Stemmer dette?</span>
-									<Button type="button" size="sm" onClick={() => setProfileConfirmed(true)}>
-										Ja
-									</Button>
-								</>
-							)}
-							<Button
-								type="button"
-								variant="outline"
-								size="sm"
-								onClick={() => {
-									setEditingProfile(true);
-									setProfileConfirmed(false);
+				<ProfileConfirmation
+					program={profile.studyProgram}
+					year={profile.year}
+					confirmed={profileConfirmed}
+					editing={editingProfile}
+					onConfirm={() => setProfileConfirmed(true)}
+					onEdit={() => {
+						setEditingProfile(true);
+						setProfileConfirmed(false);
+					}}
+				>
+					<div className="grid gap-5 sm:grid-cols-3">
+						<FormRow htmlFor="profile-program" label="Studieprogram">
+							<Select
+								value={studyProgram}
+								onValueChange={(value) => {
+									setStudyProgram(value);
+									const nextDegree = fittingDegree(value, degree);
+									setDegree(nextDegree);
+									setYear(fittingYear(nextDegree, year));
 								}}
 							>
-								{profileConfirmed ? "Endre" : "Nei, endre"}
-							</Button>
-						</div>
-					) : (
-						<div className="mt-5 flex flex-col gap-4">
-							<div className="grid gap-5 sm:grid-cols-3">
-								<FormRow htmlFor="profile-program" label="Studieprogram">
-									<Select
-										value={studyProgram}
-										onValueChange={(value) => {
-											setStudyProgram(value);
-											const nextDegree = fittingDegree(value, degree);
-											setDegree(nextDegree);
-											setYear(fittingYear(nextDegree, year));
-										}}
-									>
-										<SelectTrigger id="profile-program" className="w-full">
-											<SelectValue placeholder="Velg" />
-										</SelectTrigger>
-										<SelectContent>
-											{STUDY_PROGRAMS.map((item) => (
-												<SelectItem key={item} value={item}>
-													{item}
-												</SelectItem>
-											))}
-										</SelectContent>
-									</Select>
-								</FormRow>
-								<FormRow htmlFor="profile-degree" label="Grad">
-									<Select
-										value={degree}
-										onValueChange={(value) => {
-											const nextDegree = value as typeof degree;
-											setDegree(nextDegree);
-											setYear(fittingYear(nextDegree, year));
-										}}
-									>
-										<SelectTrigger id="profile-degree" className="w-full">
-											<SelectValue placeholder="Velg" />
-										</SelectTrigger>
-										<SelectContent>
-											{degreesFor(studyProgram).map((item) => (
-												<SelectItem key={item} value={item}>
-													{item}
-												</SelectItem>
-											))}
-										</SelectContent>
-									</Select>
-								</FormRow>
-								<FormRow htmlFor="profile-year" label="Studieår">
-									<Select value={String(year)} onValueChange={(value) => setYear(Number(value))}>
-										<SelectTrigger id="profile-year" className="w-full">
-											<SelectValue placeholder="Velg" />
-										</SelectTrigger>
-										<SelectContent>
-											{Array.from(
-												{ length: DEGREE_YEARS[degree].last - DEGREE_YEARS[degree].first + 1 },
-												(_, index) => DEGREE_YEARS[degree].first + index,
-											).map((item) => (
-												<SelectItem key={item} value={String(item)}>
-													{item}
-												</SelectItem>
-											))}
-										</SelectContent>
-									</Select>
-								</FormRow>
-							</div>
-							<Button
-								type="button"
-								disabled={busy || !studyProgram}
-								className="self-start"
-								onClick={() => void saveStudentProfile()}
+								<SelectTrigger id="profile-program" className="w-full">
+									<SelectValue placeholder="Velg" />
+								</SelectTrigger>
+								<SelectContent>
+									{STUDY_PROGRAMS.map((item) => (
+										<SelectItem key={item} value={item}>
+											{item}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</FormRow>
+						<FormRow htmlFor="profile-degree" label="Grad">
+							<Select
+								value={degree}
+								onValueChange={(value) => {
+									const nextDegree = value as typeof degree;
+									setDegree(nextDegree);
+									setYear(fittingYear(nextDegree, year));
+								}}
 							>
-								Lagre og bekreft
-							</Button>
-						</div>
-					)}
-				</section>
+								<SelectTrigger id="profile-degree" className="w-full">
+									<SelectValue placeholder="Velg" />
+								</SelectTrigger>
+								<SelectContent>
+									{degreesFor(studyProgram).map((item) => (
+										<SelectItem key={item} value={item}>
+											{item}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</FormRow>
+						<FormRow htmlFor="profile-year" label="Studieår">
+							<Select value={String(year)} onValueChange={(value) => setYear(Number(value))}>
+								<SelectTrigger id="profile-year" className="w-full">
+									<SelectValue placeholder="Velg" />
+								</SelectTrigger>
+								<SelectContent>
+									{Array.from(
+										{ length: DEGREE_YEARS[degree].last - DEGREE_YEARS[degree].first + 1 },
+										(_, index) => DEGREE_YEARS[degree].first + index,
+									).map((item) => (
+										<SelectItem key={item} value={String(item)}>
+											{item}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</FormRow>
+					</div>
+					<Button
+						type="button"
+						disabled={busy || !studyProgram}
+						className="self-start"
+						onClick={() => void saveStudentProfile()}
+					>
+						Lagre og bekreft
+					</Button>
+				</ProfileConfirmation>
 				{(
 					[
 						[
@@ -676,6 +672,7 @@ function SubmittedApplicationView({
 	application,
 	period,
 	busy,
+	applicationWindowClosed,
 	message,
 	cancelledInterview,
 	onReply,
@@ -685,6 +682,7 @@ function SubmittedApplicationView({
 	application: NonNullable<InitialApplication>;
 	period: Period;
 	busy: boolean;
+	applicationWindowClosed: boolean;
 	message: string;
 	cancelledInterview: boolean;
 	onReply: (accept: boolean) => Promise<void>;
@@ -733,7 +731,17 @@ function SubmittedApplicationView({
 		return (
 			<Notice title="Intervjuet ditt">
 				<p>{formatOsloDate(application.interview.startAt, DATE_PATTERNS.dateTime)}</p>
-				<p>Møterom: {application.interview.room}</p>
+				<p>
+					Møterom:{" "}
+					<a
+						href={roomUrl(application.interview.room)}
+						target="_blank"
+						rel="noreferrer"
+						className="text-primary underline underline-offset-4"
+					>
+						{application.interview.room}
+					</a>
+				</p>
 				<AlertDialog>
 					<AlertDialogTrigger asChild>
 						<Button variant="outline">Avlys intervjuet</Button>
@@ -765,13 +773,11 @@ function SubmittedApplicationView({
 	return (
 		<Notice title="Søknaden din er sendt">
 			<p>Søknaden din er lagret.</p>
-			{period.interviewStartAt > 0 &&
-				Date.now() <= period.applicationEndAt &&
-				!application.decisionSentAt && (
-					<Button variant="outline" disabled={busy} onClick={() => void onReopen()}>
-						Rediger søknaden
-					</Button>
-				)}
+			{period.interviewStartAt > 0 && !applicationWindowClosed && !application.decisionSentAt && (
+				<Button variant="outline" disabled={busy} onClick={() => void onReopen()}>
+					Rediger søknaden
+				</Button>
+			)}
 			{message && <output>{message}</output>}
 		</Notice>
 	);

@@ -24,6 +24,7 @@ import {
 	UserRound,
 } from "lucide-react";
 import { useState } from "react";
+import { ProfileConfirmation } from "@/components/admissions/profile-confirmation";
 import { textareaClass } from "@/components/form-controls";
 import { FormRow } from "@/components/job-listing-order/form-row";
 
@@ -92,46 +93,19 @@ export default function ApplicationPreview() {
 					void form.handleSubmit();
 				}}
 			>
-				<section className="rounded-xl bg-muted p-5" aria-label="Studieopplysninger">
-					<p className="mb-3 text-sm">Vi har registrert dette på deg:</p>
-					<form.Subscribe selector={(state) => [state.values.program, state.values.year]}>
-						{([program, year]) => (
-							<p className="font-medium">
-								{program}
-								<span className="mt-1 block text-sm">{year}. år</span>
-							</p>
-						)}
-					</form.Subscribe>
-					{!editingProfile && (
-						<div className="mt-4 flex flex-wrap items-center gap-3">
-							{profileConfirmed ? (
-								<output className="inline-flex items-center gap-2 text-sm">
-									<Check size={16} />
-									Bekreftet
-								</output>
-							) : (
-								<>
-									<span className="text-sm">Stemmer dette?</span>
-									<Button type="button" size="sm" onClick={() => setProfileConfirmed(true)}>
-										Ja
-									</Button>
-								</>
-							)}
-							<Button
-								type="button"
-								variant="outline"
-								size="sm"
-								onClick={() => {
-									setEditingProfile(true);
-									setProfileConfirmed(false);
-								}}
-							>
-								{profileConfirmed ? "Endre" : "Nei, endre"}
-							</Button>
-						</div>
-					)}
-					{editingProfile && (
-						<div className="mt-5 flex flex-col gap-4">
+				<form.Subscribe selector={(state) => [state.values.program, state.values.year]}>
+					{([program, year]) => (
+						<ProfileConfirmation
+							program={program ?? ""}
+							year={year ?? ""}
+							confirmed={profileConfirmed}
+							editing={editingProfile}
+							onConfirm={() => setProfileConfirmed(true)}
+							onEdit={() => {
+								setEditingProfile(true);
+								setProfileConfirmed(false);
+							}}
+						>
 							<div className="grid gap-5 sm:grid-cols-2">
 								{(
 									[
@@ -178,15 +152,15 @@ export default function ApplicationPreview() {
 									</Button>
 								)}
 							</form.Subscribe>
-						</div>
+						</ProfileConfirmation>
 					)}
-				</section>
+				</form.Subscribe>
 				{(
 					[
 						[
 							"about",
 							"Fortell litt om deg selv",
-							"Hvem er du utenom studiene? Fortell gjerne hvor du kommer fra, hvor gammel du er eller hva du liker å gjøre på fritiden. Kanskje har du studert noe annet eller vært med i en forening før? Velg det du har lyst til å dele 😊",
+							"Hvem er du utenom studiene? Fortell gjerne hva du liker å gjøre på fritiden eller om erfaringer du vil dele.",
 						],
 						[
 							"motivation",

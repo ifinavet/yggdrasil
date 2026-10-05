@@ -262,7 +262,7 @@ export function SettingsDialog({
 						)}
 					</form.Field>
 					<form.Subscribe
-						selector={(state) => state.isSubmitting || state.values.interviewerIds.length < 2}
+						selector={(state) => state.isSubmitting || state.values.interviewerIds.length !== 2}
 					>
 						{(disabled) => (
 							<Button type="submit" disabled={disabled}>

@@ -10,7 +10,7 @@ import { Note } from "@workspace/ui/components/note";
 import { useQuery } from "convex/react";
 import { Info } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function PendingOfferBanner() {
 	return (
@@ -22,8 +22,17 @@ export default function PendingOfferBanner() {
 }
 
 function AdmissionsBanner() {
-	const [now] = useState(() => Date.now());
+	const [now, setNow] = useState(() => Date.now());
 	const periods = useQuery(api.admissions.queries.openPeriods, { now });
+	useEffect(() => {
+		if (!periods?.length) return;
+		const nextDeadline = Math.min(...periods.map((period) => period.applicationEndAt));
+		const timer = window.setTimeout(
+			() => setNow(Date.now()),
+			Math.max(0, nextDeadline - Date.now() + 1),
+		);
+		return () => window.clearTimeout(timer);
+	}, [periods]);
 	if (!periods?.length) return null;
 	return (
 		<>

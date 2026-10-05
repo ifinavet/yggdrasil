@@ -9,3 +9,5 @@ export const ADMISSION_GROUPS = [
 	"Økonomi",
 	"Usikker ennå",
 ] as const;
+
+export { roomUrl } from "../constants/urls";

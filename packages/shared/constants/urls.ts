@@ -17,3 +17,7 @@ export const EVENT_EXPENSE_TEMPLATE_URL =
 	"https://docs.google.com/document/d/145cmreHoMfoTP42c8-NKPad-QEshoL7JOMRHdUnBqnM/edit";
 export const UIO_STAND_GUIDELINES_URL =
 	"https://www.uio.no/om/regelverk/eiendom/praktiske-retningslinjer/regler-for-reklame-og-profilering/arrangementer-og-stands/";
+
+export function roomUrl(room: string) {
+	return `https://ifirom.no/${encodeURIComponent(room.trim().toLocaleLowerCase("nb"))}`;
+}

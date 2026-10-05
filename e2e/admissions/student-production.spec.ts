@@ -1,6 +1,12 @@
 import { expect, type Page, test } from "@playwright/test";
 import { captureScreenshot } from "./capture-screenshot";
-import { clearCookieNotice, huginUrl, midgardUrl, resetAdmissions } from "./production-helpers";
+import {
+	admissionsOverview,
+	clearCookieNotice,
+	huginUrl,
+	midgardUrl,
+	resetAdmissions,
+} from "./production-helpers";
 
 async function apply(page: Page) {
 	await captureScreenshot(page, "student", "live-02-profile-confirm.png", page.getByRole("main"));
@@ -108,12 +114,47 @@ test.describe("real applicant journeys", () => {
 		await expect(page.getByRole("spinbutton", { name: "År" })).toHaveValue("2");
 	});
 
+	test("removes the Midgard application banner when the application window closes in an open tab", async ({
+		page,
+	}) => {
+		await resetAdmissions("open");
+		const overview = await admissionsOverview();
+		const deadline = overview?.period.applicationEndAt;
+		expect(deadline).toBeDefined();
+		await page.clock.install();
+		await page.goto(midgardUrl);
+		await clearCookieNotice(page);
+		await expect(page.getByRole("link", { name: "Søk her" })).toBeVisible();
+		await page.clock.fastForward((deadline ?? Date.now()) - Date.now() + 1000);
+		await expect(page.getByRole("link", { name: "Søk her" })).toHaveCount(0);
+	});
+
+	test("closes the Hugin application form when the application window closes in an open tab", async ({
+		page,
+	}) => {
+		await resetAdmissions("open");
+		const overview = await admissionsOverview();
+		const deadline = overview?.period.applicationEndAt;
+		expect(deadline).toBeDefined();
+		await page.clock.install();
+		await page.goto(`${huginUrl}/admissions`);
+		await clearCookieNotice(page);
+		await expect(page.getByRole("heading", { name: "Bli med i Navet" })).toBeVisible();
+		await page.clock.fastForward((deadline ?? Date.now()) - Date.now() + 1000);
+		await expect(page.getByRole("heading", { name: "Søknadsperioden er avsluttet" })).toBeVisible();
+		await expect(page.getByLabel("Fortell litt om deg selv")).toHaveCount(0);
+	});
+
 	test("shows an assigned interview and always lets the applicant cancel it", async ({ page }) => {
 		await resetAdmissions("scheduled");
 		await page.goto(`${huginUrl}/admissions`);
 		await clearCookieNotice(page);
 		await expect(page.getByRole("heading", { name: "Intervjuet ditt" })).toBeVisible();
 		await expect(page.getByText("Møterom", { exact: false })).toBeVisible();
+		await expect(page.getByRole("link", { name: "Beta" })).toHaveAttribute(
+			"href",
+			"https://ifirom.no/beta",
+		);
 		await captureScreenshot(
 			page,
 			"student",

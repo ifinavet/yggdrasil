@@ -1,13 +1,21 @@
 import { EVENT_CONTACT_EMAIL } from "@workspace/shared/constants/contact";
-import { Text } from "react-email";
-import { OrderLayout } from "../components/order-layout.js";
+import { roomUrl } from "@workspace/shared/constants/urls";
+import { Link, Text } from "react-email";
+import { OrderButton, OrderLayout } from "../components/order-layout.js";
 
 export default function AdmissionsReminderEmail({
 	firstName,
 	periodTitle,
 	when,
 	room,
-}: Readonly<{ firstName: string; periodTitle: string; when: string; room: string }>) {
+	applicationUrl,
+}: Readonly<{
+	firstName: string;
+	periodTitle: string;
+	when: string;
+	room: string;
+	applicationUrl: string;
+}>) {
 	return (
 		<OrderLayout
 			preview={`Påminnelse om intervju for ${periodTitle}`}
@@ -16,8 +24,13 @@ export default function AdmissionsReminderEmail({
 			<Text>{`Hei ${firstName},`}</Text>
 			<Text>{`Dette er en påminnelse om intervjuet ditt for ${periodTitle}.`}</Text>
 			<Text>{`Tid: ${when}`}</Text>
-			<Text>{`Sted: ${room}`}</Text>
-			<Text>Svar på denne e-posten hvis tidspunktet ikke lenger passer.</Text>
+			<Text>
+				Sted: <Link href={roomUrl(room)}>{room}</Link>
+			</Text>
+			<Text>
+				Vi gleder oss til å prate med deg! Du kan avlyse intervjuet i Hugin hvis du ikke kan møte.
+			</Text>
+			<OrderButton href={applicationUrl}>Se intervjuet ditt</OrderButton>
 		</OrderLayout>
 	);
 }
@@ -27,4 +40,5 @@ AdmissionsReminderEmail.PreviewProps = {
 	periodTitle: "Høstopptak 2026",
 	when: "mandag 12. oktober kl. 10:00",
 	room: "Beta",
+	applicationUrl: "https://hugin.ifinavet.no/admissions",
 };

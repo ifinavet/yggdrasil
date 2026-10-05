@@ -13,6 +13,8 @@ import {
 } from "@workspace/shared/admissions";
 import { STUDY_PROGRAMS, STUDY_YEARS } from "@workspace/shared/constants";
 import { formatOsloDate } from "@workspace/shared/time";
+
+export { roomUrl } from "@workspace/shared/admissions";
 export const decisions = ["pending", "shortlist", "accepted", "rejected"] as const;
 export type Decision = "pending" | "shortlist" | "accepted" | "rejected";
 export type Candidate = {
@@ -76,10 +78,6 @@ export function clock(minutes: number) {
 		.toString()
 		.padStart(2, "0")}:${(minutes % 60).toString().padStart(2, "0")}`;
 }
-export function roomUrl(room: string) {
-	return `https://ifirom.no/${encodeURIComponent(room.trim().toLocaleLowerCase("nb"))}`;
-}
-
 export function dateLabel(day: string) {
 	return formatOsloDate(new Date(`${day}T12:00:00Z`).getTime(), "EEE d. MMM");
 }
