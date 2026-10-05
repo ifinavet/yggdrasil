@@ -4,7 +4,9 @@ import { insertUser } from "../../../../test/fixtures";
 import { internal } from "../../../_generated/api";
 import * as config from "../../../iam/config";
 import * as google from "../../../iam/googleCalendar";
+import * as slack from "../../../iam/slack";
 import { trackedEmail } from "../../../lib/trackedEmail";
+import * as admissionsSlack from "../slack";
 
 afterEach(() => {
 	vi.restoreAllMocks();
@@ -123,3 +125,54 @@ it("refuses publication when Google busy time cannot be accounted for by visible
 	expect(send).not.toHaveBeenCalled();
 	expect((await t.run((ctx) => ctx.db.get(interviewId)))?.publishedAt).toBeUndefined();
 });
+
+it.each([false, true])(
+	"notifies the board when an interview is cancelled (applicant email: %s)",
+	async (notifyApplicant) => {
+		const { t, periodId, applicationId } = await admissionApplicationFixture();
+		const owner = await insertUser(t, "interviewer@ifinavet.no");
+		const interviewId = await insertInterview(t, periodId, applicationId, {
+			status: "cancelled",
+			interviewerIds: [owner._id],
+			startAt: Date.now() + 86400000,
+		});
+		vi.spyOn(config, "googleConfig").mockReturnValue({
+			serviceAccountEmail: "service@example.test",
+			privateKey: "test-key",
+			adminEmail: "admin@ifinavet.no",
+			domain: "ifinavet.no",
+		});
+		vi.spyOn(google, "googleCalendarClient").mockReturnValue({
+			listCalendars: vi.fn(),
+			freeBusy: vi.fn(),
+			listEvents: vi.fn(),
+			getEvent: vi.fn().mockResolvedValue(null),
+			upsertEvent: vi.fn(),
+			cancelEvent: vi.fn(),
+		});
+		vi.stubEnv("SLACK_BOT_TOKEN", "test-token");
+		vi.spyOn(admissionsSlack, "ensureAdmissionsChannel").mockResolvedValue("C-admissions");
+		const notice = vi.spyOn(slack, "postSlackNotice").mockResolvedValue(undefined);
+		const email = vi.spyOn(trackedEmail, "sendEmail").mockResolvedValue("cancel-email" as never);
+		await t.action(internal.admissions.delivery.actions.execute, {
+			operation: {
+				kind: "cancel_interview",
+				periodId,
+				applicationId,
+				interviewId,
+				revision: 1,
+				idempotencyKey: "cancel-notice",
+				dueAt: Date.now(),
+				notifyApplicant,
+			},
+		});
+		expect(notice).toHaveBeenCalledExactlyOnceWith(
+			expect.anything(),
+			"C-admissions",
+			`cancelled:${interviewId}:1`,
+			expect.any(Number),
+			expect.stringContaining("avlyst"),
+		);
+		expect(email).toHaveBeenCalledTimes(notifyApplicant ? 1 : 0);
+	},
+);

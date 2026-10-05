@@ -230,17 +230,15 @@ async function publish(ctx: ActionCtx, claimed: DeliveryContext) {
 	);
 	await requireCurrentPublish(ctx, claimed);
 	const slack = admissionsSlack();
-	const channel = await admissionsChannel(ctx, slack, period, claimed.selectedInterviewers);
 	const tags = (await Promise.all(contacts.map((person) => slack.lookupByEmail(person.email))))
 		.filter((id): id is string => id !== null)
 		.map((id) => `<@${id}>`)
 		.join(", ");
-	await postSlackNotice(
-		slack,
-		channel,
-		`published:${interview._id}:${interview.revision}`,
-		interview._creationTime,
+	await sendNotice(
+		ctx,
+		claimed,
 		`Intervju publisert ${when(interview.startAt)} i ${interview.room} (${roomUrl(interview.room)}). Intervjuere: ${tags}`,
+		`published:${interview._id}:${interview.revision}`,
 	);
 	return eventId;
 }
@@ -319,6 +317,12 @@ async function cancelInterview(ctx: ActionCtx, claimed: DeliveryContext) {
 	const { interview, applicant, application } = claimed;
 	if (!interview) return;
 	await cancelCalendarEvent(ctx, claimed);
+	await sendNotice(
+		ctx,
+		claimed,
+		`Et intervju i ${claimed.period.title} er avlyst. Kalenderinvitasjonen er oppdatert.`,
+		`cancelled:${interview._id}:${interview.revision}`,
+	);
 	if (!claimed.job.notifyApplicant || interview.startAt <= Date.now() || !applicant || !application)
 		return;
 	await deliverEmail(
@@ -328,12 +332,6 @@ async function cancelInterview(ctx: ActionCtx, claimed: DeliveryContext) {
 		`admission:interview:${interview._id}:${interview.revision}:cancelled`,
 		`Intervjuet er avlyst, ${claimed.period.title}`,
 		AdmissionsCancellationEmail(interviewEmailProps(claimed)),
-	);
-	await sendNotice(
-		ctx,
-		claimed,
-		`Et intervju i ${claimed.period.title} er avlyst. Kalenderinvitasjonen er oppdatert.`,
-		`cancelled:${interview._id}:${interview.revision}`,
 	);
 }
 
