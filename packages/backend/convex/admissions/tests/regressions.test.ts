@@ -478,7 +478,7 @@ it("requires exactly two interviewers in both manual and generated schedules", a
 		}),
 	).rejects.toThrow(/to ulike intervjuere/);
 	await expect(
-		value.t.mutation(internal.admissions.internal.saveSchedule, {
+		value.t.mutation(internal.admissions.interviews.schedule.saveSchedule, {
 			periodId: value.periodId,
 			expectedRevision: 2,
 			assignments: [
@@ -535,7 +535,7 @@ it("covers applicant availability across adjacent windows in manual and generate
 
 	const generated = await scheduleFixture(10, 0, availability);
 	await expect(
-		generated.t.mutation(internal.admissions.internal.saveSchedule, {
+		generated.t.mutation(internal.admissions.interviews.schedule.saveSchedule, {
 			periodId: generated.periodId,
 			expectedRevision: 1,
 			assignments: [
@@ -616,7 +616,7 @@ it("keeps a published interview unchanged during generated replanning", async ()
 			...value.scheduleArgs,
 			startAt,
 		});
-		await value.t.mutation(internal.admissions.internal.saveSchedule, {
+		await value.t.mutation(internal.admissions.interviews.schedule.saveSchedule, {
 			periodId: value.periodId,
 			expectedRevision: 2,
 			assignments: [
@@ -727,7 +727,7 @@ it("rejects generated assignments that double-book a room", async () => {
 		room: "Beta",
 	};
 	await expect(
-		value.t.mutation(internal.admissions.internal.saveSchedule, {
+		value.t.mutation(internal.admissions.interviews.schedule.saveSchedule, {
 			periodId: value.periodId,
 			expectedRevision: 2,
 			assignments: [
@@ -767,7 +767,7 @@ it("does not let generated plans resurrect a cancelled interview", async () => {
 	await setAvailability(value.t, value.applicationId, value.day);
 	await insertCancelledInterview(value);
 	await expect(
-		value.t.mutation(internal.admissions.internal.saveSchedule, {
+		value.t.mutation(internal.admissions.interviews.schedule.saveSchedule, {
 			periodId: value.periodId,
 			expectedRevision: 1,
 			assignments: [
@@ -805,7 +805,7 @@ it("requires two days of notice for generated assignments", async () => {
 	const startAt = osloAt(nearDay, 10, 0);
 	await setAvailability(value.t, value.applicationId, nearDay);
 	await expect(
-		value.t.mutation(internal.admissions.internal.saveSchedule, {
+		value.t.mutation(internal.admissions.interviews.schedule.saveSchedule, {
 			periodId: value.periodId,
 			expectedRevision: 1,
 			assignments: [
@@ -1007,7 +1007,7 @@ async function saveScheduleProposal(
 			...value.scheduleArgs,
 			selectedCalendarIds,
 		});
-	return value.t.mutation(internal.admissions.internal.saveSchedule, {
+	return value.t.mutation(internal.admissions.interviews.schedule.saveSchedule, {
 		periodId: value.periodId,
 		expectedRevision: 1,
 		assignments: [

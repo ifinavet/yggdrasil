@@ -1,4 +1,5 @@
 import {
+	ADMISSION_CONSENT,
 	ADMISSION_SCHEDULING_DEFAULTS,
 	ADMISSION_UNSURE_GROUP,
 	isValidAvailability,
@@ -13,7 +14,7 @@ import { getCurrentUserOrThrow } from "../auth/currentUser";
 import { startAcceptedAdmissionOnboarding, validateAdmissionOffer } from "../iam/mutations";
 import { requireMutablePeriod } from "./access";
 import { readOperation, startDelivery } from "./delivery/workflow";
-import { commitSchedule } from "./internal";
+import { commitSchedule } from "./interviews/schedule";
 import { beginClose } from "./lifecycle";
 import {
 	MAX_APPLICATIONS,
@@ -28,7 +29,6 @@ import {
 	interviewerSelection,
 } from "./schema";
 
-const CONSENT_VERSION = "admissions-2026-01";
 const text = (value: string, max: number) => value.trim().length <= max;
 
 async function requireOpenApplications(ctx: MutationCtx, periodId: Id<"admissionPeriods">) {
@@ -288,7 +288,7 @@ export const submit = mutation({
 			status: "submitted",
 			revision: application.revision + 1,
 			consentedAt: Date.now(),
-			consentVersion: CONSENT_VERSION,
+			consentVersion: ADMISSION_CONSENT.version,
 		});
 		return { revision: application.revision + 1 };
 	},

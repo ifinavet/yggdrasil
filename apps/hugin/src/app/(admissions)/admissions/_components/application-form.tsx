@@ -3,7 +3,11 @@
 import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
-import { ADMISSION_UNSURE_GROUP, type AvailabilityWindow } from "@workspace/shared/admissions";
+import {
+	ADMISSION_CONSENT,
+	ADMISSION_UNSURE_GROUP,
+	type AvailabilityWindow,
+} from "@workspace/shared/admissions";
 import type { DEGREE_TYPES } from "@workspace/shared/constants";
 import { midgardUrl } from "@workspace/shared/constants/hugin-url";
 import {
@@ -384,14 +388,12 @@ export function ApplicationForm({
 				<section className="rounded-xl bg-muted p-5">
 					<h2 className="mb-3 flex items-center gap-2 font-semibold">
 						<ShieldCheck size={18} />
-						Slik bruker vi opplysningene dine
+						{ADMISSION_CONSENT.title}
 					</h2>
 					<p className="max-w-prose text-sm leading-relaxed">
-						Vi behandler navn, e-post, studieprogram, grad, studieår, søknadssvar, tilgjengeligheten
-						din, eller at ingen av de foreslåtte tidene passer, eventuell intervjutid og
-						opptaksbeslutning for å gjennomføre opptaket. Søknadsopplysningene slettes{" "}
-						{formatOsloDate(period.retentionAt, DATE_PATTERNS.longDate)}. Studentprofilen din på
-						Midgard blir ikke slettet som del av dette.
+						{ADMISSION_CONSENT.description(
+							formatOsloDate(period.retentionAt, DATE_PATTERNS.longDate),
+						)}
 					</p>
 					<label
 						htmlFor="admission-consent"
@@ -402,7 +404,7 @@ export function ApplicationForm({
 							checked={consent}
 							onCheckedChange={(checked) => setConsent(checked === true)}
 						/>
-						<span>Jeg godtar at opplysningene over brukes til å gjennomføre opptaket.</span>
+						<span>{ADMISSION_CONSENT.label}</span>
 					</label>
 				</section>
 				<form.Subscribe

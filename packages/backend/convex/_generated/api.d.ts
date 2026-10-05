@@ -17,6 +17,7 @@ import type * as admissions_delivery_tracking from "../admissions/delivery/track
 import type * as admissions_delivery_workflow from "../admissions/delivery/workflow.js";
 import type * as admissions_internal from "../admissions/internal.js";
 import type * as admissions_interviews_calendar from "../admissions/interviews/calendar.js";
+import type * as admissions_interviews_schedule from "../admissions/interviews/schedule.js";
 import type * as admissions_lifecycle from "../admissions/lifecycle.js";
 import type * as admissions_mutations from "../admissions/mutations.js";
 import type * as admissions_queries from "../admissions/queries.js";
@@ -201,6 +202,7 @@ declare const fullApi: ApiFromModules<{
   "admissions/delivery/workflow": typeof admissions_delivery_workflow;
   "admissions/internal": typeof admissions_internal;
   "admissions/interviews/calendar": typeof admissions_interviews_calendar;
+  "admissions/interviews/schedule": typeof admissions_interviews_schedule;
   "admissions/lifecycle": typeof admissions_lifecycle;
   "admissions/mutations": typeof admissions_mutations;
   "admissions/queries": typeof admissions_queries;

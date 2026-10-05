@@ -80,7 +80,7 @@ export const sources = action({
 });
 
 type ScheduleContext = NonNullable<
-	FunctionReturnType<typeof internal.admissions.internal.scheduleContext>
+	FunctionReturnType<typeof internal.admissions.interviews.schedule.scheduleContext>
 >;
 
 function busyWindows(intervals: ReadonlyArray<{ start: number; end: number }>, timeZone: string) {
@@ -119,7 +119,7 @@ function publishedCalendarBusy(
 export const generateSchedule = action({
 	args: { periodId: v.id("admissionPeriods"), expectedRevision: v.number() },
 	handler: async (ctx: ActionCtx, { periodId, expectedRevision }): Promise<{ count: number }> => {
-		const context = await ctx.runQuery(internal.admissions.internal.scheduleContext, {
+		const context = await ctx.runQuery(internal.admissions.interviews.schedule.scheduleContext, {
 			periodId,
 		});
 		if (context.period.revision !== expectedRevision)
@@ -216,7 +216,7 @@ export const generateSchedule = action({
 				room: period.room,
 			};
 		});
-		const result = await ctx.runMutation(internal.admissions.internal.saveSchedule, {
+		const result = await ctx.runMutation(internal.admissions.interviews.schedule.saveSchedule, {
 			periodId,
 			expectedRevision,
 			assignments: savedAssignments,

@@ -53,7 +53,7 @@ it("keeps a schedule immutable while its first calendar publish is in flight", a
 	);
 
 	await expect(
-		t.mutation(internal.admissions.internal.saveSchedule, {
+		t.mutation(internal.admissions.interviews.schedule.saveSchedule, {
 			periodId,
 			expectedRevision: 1,
 			assignments: [
