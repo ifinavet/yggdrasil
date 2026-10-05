@@ -33,7 +33,7 @@ const MIN_LABELLED_SEGMENT = 0.04;
 const COHORT_CODE_NOTE =
 	"B er bachelor, M er master og Å er årsstudium, tallet er årstrinnet. PhD-studenter er utelatt fordi de er så få.";
 const PREVIOUS_LABEL = "Forrige semester";
-const GRADUATES_COLUMN = { label: "Uteksaminert", code: "Ute" };
+const GRADUATES_COLUMN = { label: "Ferdig med graden", code: "Ferdig" };
 
 function useCohortColors(cohorts: readonly AudienceRow[]) {
 	return useMemo(
