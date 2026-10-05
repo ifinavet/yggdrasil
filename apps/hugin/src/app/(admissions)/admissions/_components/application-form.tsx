@@ -20,13 +20,7 @@ import {
 import { Button } from "@workspace/ui/components/button";
 import { Checkbox } from "@workspace/ui/components/checkbox";
 import { Input } from "@workspace/ui/components/input";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@workspace/ui/components/select";
+import { SearchSelect } from "@workspace/ui/components/search-select";
 import { StudentProfileFields } from "@workspace/ui/components/student-profile-fields";
 import { Textarea } from "@workspace/ui/components/textarea";
 import { useAsyncAction } from "@workspace/ui/hooks/use-async-action";
@@ -253,24 +247,22 @@ export function ApplicationForm({
 				>
 					<form.Field name="group">
 						{(field) => (
-							<Select value={field.state.value} onValueChange={field.handleChange}>
-								<SelectTrigger
-									id="admission-group"
-									aria-describedby="group-hint"
-									className="w-full"
-									disabled={groups === undefined}
-								>
-									<SelectValue placeholder="Velg arbeidsgruppe" />
-								</SelectTrigger>
-								<SelectContent>
-									{groups?.map((item) => (
-										<SelectItem key={item._id} value={item._id}>
-											{item.name}
-										</SelectItem>
-									))}
-									<SelectItem value={ADMISSION_UNSURE_GROUP}>Usikker ennå</SelectItem>
-								</SelectContent>
-							</Select>
+							<SearchSelect
+								id="admission-group"
+								aria-describedby="group-hint"
+								className="w-full"
+								disabled={groups === undefined}
+								value={field.state.value}
+								onChange={(value) => field.handleChange(value ?? "")}
+								placeholder="Velg arbeidsgruppe"
+								searchPlaceholder="Søk etter arbeidsgruppe"
+								items={
+									groups && [
+										...groups.map(({ _id, name }) => ({ id: _id, label: name })),
+										{ id: ADMISSION_UNSURE_GROUP, label: "Usikker ennå" },
+									]
+								}
+							/>
 						)}
 					</form.Field>
 				</FormRow>
@@ -403,15 +395,9 @@ export function ApplicationForm({
 						<span>{ADMISSION_CONSENT.label}</span>
 					</label>
 				</section>
-				<form.Subscribe
-					selector={(state) => [state.values.about, state.values.motivation, state.values.group]}
-				>
-					{([aboutValue, motivationValue, groupValue]) => {
-						const about = aboutValue ?? "";
-						const motivation = motivationValue ?? "";
-						const group = groupValue ?? "";
-						const answersReady =
-							about.trim().length >= 10 && motivation.trim().length >= 10 && Boolean(group);
+				<form.Subscribe selector={(state) => state.values}>
+					{(values) => {
+						const answersReady = applicationSchema.safeParse(values).success;
 						const canSave =
 							answersReady &&
 							(availability.length > 0 || noSuitableTimes) &&
@@ -424,7 +410,7 @@ export function ApplicationForm({
 									type="button"
 									variant="outline"
 									disabled={busy || !canSave}
-									onClick={() => void persistApplication({ about, motivation, group })}
+									onClick={() => void persistApplication(values)}
 								>
 									{busy ? <LoaderCircle className="animate-spin" /> : null}Lagre utkast
 								</Button>

@@ -6,13 +6,7 @@ import { Button } from "@workspace/ui/components/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@workspace/ui/components/dialog";
 import { Field, FieldLabel } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@workspace/ui/components/select";
+import { SearchSelect } from "@workspace/ui/components/search-select";
 import { useAsyncAction } from "@workspace/ui/hooks/use-async-action";
 import { useQuery } from "convex/react";
 import { ConvexError } from "convex/values";
@@ -77,22 +71,15 @@ export function OfferDialog({
 						{(field) => (
 							<Field>
 								<FieldLabel htmlFor="offer-group">Arbeidsgruppe</FieldLabel>
-								<Select
+								<SearchSelect
+									id="offer-group"
 									value={field.state.value}
-									onValueChange={field.handleChange}
+									onChange={(value) => field.handleChange(value ?? "")}
 									disabled={!groups?.length}
-								>
-									<SelectTrigger id="offer-group">
-										<SelectValue placeholder="Velg arbeidsgruppe" />
-									</SelectTrigger>
-									<SelectContent>
-										{groups?.map((group) => (
-											<SelectItem key={group._id} value={group._id}>
-												{group.name}
-											</SelectItem>
-										))}
-									</SelectContent>
-								</Select>
+									placeholder="Velg arbeidsgruppe"
+									searchPlaceholder="Søk etter arbeidsgruppe"
+									items={groups?.map(({ _id, name }) => ({ id: _id, label: name }))}
+								/>
 							</Field>
 						)}
 					</form.Field>

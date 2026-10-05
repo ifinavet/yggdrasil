@@ -26,7 +26,7 @@ export function CalendarDialog({
 		Record<string, { items: SearchSelectItem[]; selectedIds: string[] }>
 	>({});
 	const { pending, error, run } = useAsyncAction();
-	async function refresh(id: Id<"users">) {
+	function refresh(id: Id<"users">) {
 		return run(
 			async () => {
 				const result = await sources({ periodId: period._id, interviewerId: id });
@@ -48,7 +48,7 @@ export function CalendarDialog({
 			"Kunne ikke hente kalenderne.",
 		);
 	}
-	async function persist() {
+	function persist() {
 		return run(
 			async () => {
 				await save({

@@ -27,8 +27,8 @@ export function CloseDialog({
 	const forceRequired = Object.values(counts).some((count) => count > 0);
 	const canClose = !forceRequired || confirmed;
 
-	async function submit() {
-		if (!canClose) return false;
+	function submit() {
+		if (!canClose) return Promise.resolve(false);
 		return run(
 			() => close({ periodId, idempotencyKey: `close-${periodId}`, force: forceRequired }),
 			onClosed,

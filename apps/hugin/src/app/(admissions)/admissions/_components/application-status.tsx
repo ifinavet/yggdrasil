@@ -26,7 +26,7 @@ export function ApplicationStatus({
 	const { pending: busy, error: message, run } = useAsyncAction();
 	const [confirmation, setConfirmation] = useState<"cancel" | "accept" | "decline" | null>(null);
 
-	async function onReopen() {
+	function onReopen() {
 		return run(
 			() => reopen({ periodId: period._id, expectedRevision: application.revision }),
 			undefined,
@@ -34,7 +34,7 @@ export function ApplicationStatus({
 		);
 	}
 
-	async function onCancelInterview() {
+	function onCancelInterview() {
 		return run(
 			() =>
 				cancelInterview({
@@ -47,7 +47,7 @@ export function ApplicationStatus({
 		);
 	}
 
-	async function onReply(accept: boolean) {
+	function onReply(accept: boolean) {
 		return run(
 			() =>
 				respondToOffer({
