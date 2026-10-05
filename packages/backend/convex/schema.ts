@@ -7,7 +7,6 @@ import { eventsSchema } from "./events/schema";
 import { eventSlackSchema } from "./events/slack/schema";
 import { feedbackReportSchema } from "./feedback/reports/schema";
 import { feedbackSchema } from "./feedback/schema";
-import { formsSchema } from "./forms/schema";
 import { iamSchema } from "./iam/schema";
 import { invoicingSchema } from "./invoicing/schema";
 import { jobListingOrdersSchema } from "./jobListingOrders/schema";
@@ -33,7 +32,6 @@ export default defineSchema({
 	...organizationSchema,
 	...studentsSchema,
 	...pointsSchema,
-	...formsSchema,
 	...feedbackSchema,
 	...feedbackReportSchema,
 	...accessSchema,

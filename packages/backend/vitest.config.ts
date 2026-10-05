@@ -9,7 +9,6 @@ export default defineConfig({
 			include: [
 				"convex/events/registrations/statistics.ts",
 				"convex/events/food.ts",
-				"convex/forms/{access,mutations,queries,responses,migrations}.ts",
 				"convex/feedback/forms/{helpers,mutations,queries}.ts",
 				"convex/feedback/responses/{access,actions,mutations,queries}.ts",
 				"convex/feedback/events.ts",

@@ -207,7 +207,6 @@ export async function deleteDraftEvent(
 		.withIndex("by_eventId", (q) => q.eq("eventId", event._id))
 		.collect();
 	await Promise.all(organizers.map((organizer) => ctx.db.delete(organizer._id)));
-	if (event.formId) await ctx.db.delete(event.formId);
 	await ctx.db.delete(event._id);
 	await cancelInvoice(ctx, { kind: "companyApplication", applicationId: application._id });
 }
