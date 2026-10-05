@@ -58,6 +58,27 @@ async function openPeriod(
 	});
 }
 
+async function submitAnswers(
+	student: ReturnType<typeof asUser>,
+	periodId: Id<"admissionPeriods">,
+	answers: {
+		about: string;
+		motivation: string;
+		group: string;
+		availability: { day: string; start: number; end: number }[];
+	},
+) {
+	const draft = await student.mutation(api.admissions.mutations.saveDraft, {
+		periodId,
+		...answers,
+	});
+	await student.mutation(api.admissions.mutations.submit, {
+		periodId,
+		expectedRevision: draft.revision,
+		consent: true,
+	});
+}
+
 it("limits admin data to admins and applicant data to the signed-in student's own application", async () => {
 	const { t } = await setup();
 	const { student, otherStudent, board, admin, boardId, secondBoardId } = await users(t);
@@ -157,19 +178,13 @@ it("validates independent period windows, the 14-day cap, selected interviewers,
 		}),
 	).rejects.toThrow(/14 dager/);
 	const periodId = await openPeriod(admin, boardId, secondBoardId);
-	const draft = await student.mutation(api.admissions.mutations.saveDraft, {
-		periodId,
+	await submitAnswers(student, periodId, {
 		about: "Om meg",
 		motivation: "Motivasjon",
 		group: "Bedrift",
 		availability: [
 			{ day: new Date(now + 3 * DAY).toISOString().slice(0, 10), start: 540, end: 720 },
 		],
-	});
-	await student.mutation(api.admissions.mutations.submit, {
-		periodId,
-		expectedRevision: draft.revision,
-		consent: true,
 	});
 	const overview = await admin.query(api.admissions.queries.adminOverview, { periodId });
 	const applicationId = overview?.candidates[0]?._id;
@@ -202,19 +217,13 @@ it("keeps an accepted decision separate from sending and makes send idempotent",
 	const { t } = await setup();
 	const { student, admin, boardId, secondBoardId } = await users(t);
 	const periodId = await openPeriod(admin, boardId, secondBoardId);
-	const draft = await student.mutation(api.admissions.mutations.saveDraft, {
-		periodId,
+	await submitAnswers(student, periodId, {
 		about: "Om meg",
 		motivation: "Motivasjon",
 		group: "Bedrift",
 		availability: [
 			{ day: new Date(Date.now() + 3 * DAY).toISOString().slice(0, 10), start: 540, end: 720 },
 		],
-	});
-	await student.mutation(api.admissions.mutations.submit, {
-		periodId,
-		expectedRevision: draft.revision,
-		consent: true,
 	});
 	const overview = await admin.query(api.admissions.queries.adminOverview, { periodId });
 	const candidate = overview?.candidates[0];
@@ -248,17 +257,11 @@ it("provisions only after an authenticated applicant accepts an offer; decline g
 	const { t } = await setup();
 	const { student, otherStudent, admin, boardId, secondBoardId } = await users(t);
 	const periodId = await openPeriod(admin, boardId, secondBoardId);
-	const draft = await student.mutation(api.admissions.mutations.saveDraft, {
-		periodId,
+	await submitAnswers(student, periodId, {
 		about: "Om",
 		motivation: "Hvorfor",
 		group: "Bedrift",
 		availability: [],
-	});
-	await student.mutation(api.admissions.mutations.submit, {
-		periodId,
-		expectedRevision: draft.revision,
-		consent: true,
 	});
 	const overview = await admin.query(api.admissions.queries.adminOverview, { periodId });
 	const candidate = overview?.candidates[0];
@@ -287,17 +290,11 @@ it("provisions only after an authenticated applicant accepts an offer; decline g
 	const firstKey = `offer:${candidate._id}`;
 	await t.mutation(internal.admissions.internal.claimOutbox, { idempotencyKey: firstKey });
 	await t.mutation(internal.admissions.internal.completeOutbox, { idempotencyKey: firstKey });
-	const otherDraft = await otherStudent.mutation(api.admissions.mutations.saveDraft, {
-		periodId,
+	await submitAnswers(otherStudent, periodId, {
 		about: "Om",
 		motivation: "Hvorfor",
 		group: "Web",
 		availability: [],
-	});
-	await otherStudent.mutation(api.admissions.mutations.submit, {
-		periodId,
-		expectedRevision: otherDraft.revision,
-		consent: true,
 	});
 	const latest = await admin.query(api.admissions.queries.adminOverview, { periodId });
 	const second = latest?.candidates.find((item) => item.userId !== candidate.userId);
@@ -354,17 +351,11 @@ it("hides conflicting member identities when accepted-offer onboarding fails", a
 	const { t } = await setup();
 	const { student, admin, boardId, secondBoardId } = await users(t);
 	const periodId = await openPeriod(admin, boardId, secondBoardId);
-	const draft = await student.mutation(api.admissions.mutations.saveDraft, {
-		periodId,
+	await submitAnswers(student, periodId, {
 		about: "Om meg",
 		motivation: "Jeg vil bidra",
 		group: "Bedrift",
 		availability: [],
-	});
-	await student.mutation(api.admissions.mutations.submit, {
-		periodId,
-		expectedRevision: draft.revision,
-		consent: true,
 	});
 	const application = (await admin.query(api.admissions.queries.adminOverview, { periodId }))
 		?.candidates[0];
@@ -418,17 +409,11 @@ it("allows applicant cancellation and marks refill eligible only when 48 hours r
 	const { student, admin, boardId, secondBoardId } = await users(t);
 	const periodId = await openPeriod(admin, boardId, secondBoardId);
 	const day = new Date(Date.now() + 4 * DAY).toISOString().slice(0, 10);
-	const draft = await student.mutation(api.admissions.mutations.saveDraft, {
-		periodId,
+	await submitAnswers(student, periodId, {
 		about: "Om",
 		motivation: "Hvorfor",
 		group: "Bedrift",
 		availability: [{ day, start: 540, end: 720 }],
-	});
-	await student.mutation(api.admissions.mutations.submit, {
-		periodId,
-		expectedRevision: draft.revision,
-		consent: true,
 	});
 	const overview = await admin.query(api.admissions.queries.adminOverview, { periodId });
 	const candidate = overview?.candidates[0];
@@ -469,17 +454,11 @@ it("purges sensitive history and applicant identity on close", async () => {
 	const { t } = await setup();
 	const { student, admin, boardId, secondBoardId } = await users(t);
 	const periodId = await openPeriod(admin, boardId, secondBoardId);
-	const draft = await student.mutation(api.admissions.mutations.saveDraft, {
-		periodId,
+	await submitAnswers(student, periodId, {
 		about: "Private detail",
 		motivation: "Private reason",
 		group: "Bedrift",
 		availability: [],
-	});
-	await student.mutation(api.admissions.mutations.submit, {
-		periodId,
-		expectedRevision: draft.revision,
-		consent: true,
 	});
 	const overview = await admin.query(api.admissions.queries.adminOverview, { periodId });
 	const candidate = overview?.candidates[0];

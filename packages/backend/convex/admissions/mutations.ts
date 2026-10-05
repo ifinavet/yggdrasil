@@ -16,6 +16,7 @@ import { startAcceptedAdmissionOnboarding, validateAdmissionOffer } from "../iam
 import { requireMutablePeriod } from "./access";
 import {
 	activePublishInterviewIds,
+	expirePendingOffers,
 	finishClose,
 	queueArchiveWhenReady,
 	queueOutbox,
@@ -211,6 +212,7 @@ export const createPeriod = mutation({
 			createdBy: creator._id,
 			updatedBy: creator._id,
 		});
+		await ctx.scheduler.runAfter(0, internal.admissions.recovery.recoverPeriod, { periodId });
 		await ctx.scheduler.runAt(fields.retentionAt, internal.admissions.internal.closeExpiredPeriod, {
 			periodId,
 		});
@@ -356,6 +358,13 @@ export const submit = mutation({
 		if (application.status !== "draft") throw new ConvexError("Søknaden er allerede sendt.");
 		if (application.revision !== expectedRevision)
 			throw new ConvexError("Søknaden er endret. Last den inn på nytt.");
+		const submitted = await ctx.db
+			.query("admissionApplications")
+			.withIndex("by_periodId_and_status", (q) =>
+				q.eq("periodId", periodId).eq("status", "submitted"),
+			)
+			.take(MAX_APPLICATIONS);
+		if (submitted.length >= MAX_APPLICATIONS) throw new ConvexError("Søknadsperioden er full.");
 		if (!consent) throw new ConvexError("Bekreft samtykke før du sender søknaden.");
 		if (
 			!application.about?.trim() ||
@@ -407,6 +416,7 @@ export const setDecision = mutation({
 			throw new ConvexError("Søknaden er endret. Last den inn på nytt.");
 		if (
 			app.status !== "submitted" ||
+			app.decisionQueuedAt !== undefined ||
 			app.offerStatus === "pending" ||
 			app.offerStatus === "accepted" ||
 			app.offerStatus === "declined"
@@ -608,6 +618,8 @@ export const scheduleInterview = mutation({
 			.query("admissionInterviews")
 			.withIndex("by_applicationId", (q) => q.eq("applicationId", app._id))
 			.unique();
+		if (previous && (await activePublishInterviewIds(ctx, period._id)).has(previous._id))
+			throw new ConvexError("Intervjuet publiseres nå. Vent før du endrer planen.");
 		if (previous?.status === "cancelled" && !args.candidateConfirmedOutsideForm)
 			throw new ConvexError(
 				"Bekreft at søkeren har avtalt et nytt tidspunkt før du booker på nytt.",
@@ -814,11 +826,7 @@ export const closePeriod = mutation({
 			);
 		}
 		const now = Date.now();
-		await Promise.all(
-			pendingOffers.map((app) =>
-				ctx.db.patch(app._id, { offerStatus: "expired", revision: app.revision + 1 }),
-			),
-		);
+		await expirePendingOffers(ctx, pendingOffers);
 		await Promise.all(
 			interviews.map(async (interview) => {
 				if (

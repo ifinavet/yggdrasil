@@ -1,4 +1,5 @@
 import { SYSTEM_ALERTS_CHANNEL } from "@workspace/shared/slack/channels";
+import { MINUTE_MS } from "@workspace/shared/time";
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
@@ -29,22 +30,27 @@ export const retryOutbox = mutation({
 	},
 });
 
-export const recoverExpired = internalMutation({
-	args: {},
-	handler: async (ctx) => {
+/** Runs only for an existing admission period, including its final cleanup. */
+export const recoverPeriod = internalMutation({
+	args: { periodId: v.id("admissionPeriods") },
+	handler: async (ctx, { periodId }) => {
+		if (!(await ctx.db.get(periodId))) return 0;
 		const now = Date.now();
 		const batches = await Promise.all(
 			recoverableStates.map((state) =>
 				ctx.db
 					.query("admissionOutbox")
-					.withIndex("by_state_and_nextAttemptAt", (q) =>
-						q.eq("state", state).lte("nextAttemptAt", now),
-					)
+					.withIndex("by_periodId_and_state", (q) => q.eq("periodId", periodId).eq("state", state))
+					.filter((q) => q.lte(q.field("nextAttemptAt"), now))
 					.take(RECOVERY_BATCH),
 			),
 		);
 		const jobs = batches.flat();
 		await Promise.all(jobs.map((job) => recoverJob(ctx, job, now)));
+		if (await ctx.db.get(periodId))
+			await ctx.scheduler.runAfter(5 * MINUTE_MS, internal.admissions.recovery.recoverPeriod, {
+				periodId,
+			});
 		return jobs.length;
 	},
 });

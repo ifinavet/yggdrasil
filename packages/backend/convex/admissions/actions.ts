@@ -1,12 +1,12 @@
 "use node";
 
-import { createHash } from "node:crypto";
 import { render } from "@react-email/render";
 import AdmissionsCancellationEmail from "@workspace/emails/admissions-cancellation-email";
 import AdmissionsInterviewEmail from "@workspace/emails/admissions-interview-email";
 import AdmissionsOfferEmail from "@workspace/emails/admissions-offer-email";
 import AdmissionsRejectionEmail from "@workspace/emails/admissions-rejection-email";
 import AdmissionsReminderEmail from "@workspace/emails/admissions-reminder-email";
+import { roomUrl } from "@workspace/shared/admissions";
 import { huginUrl } from "@workspace/shared/constants/hugin-url";
 import { formatOsloDate } from "@workspace/shared/time";
 import { v } from "convex/values";
@@ -16,21 +16,19 @@ import { type ActionCtx, internalAction } from "../_generated/server";
 import { isLocalDevelopment } from "../auth/local";
 import { googleConfig, isWorkspaceEmail } from "../iam/config";
 import { externalBusyIntervals, googleCalendarClient, overlapsBusy } from "../iam/googleCalendar";
+import { admissionCalendarEventId } from "./delivery/eventId";
 import { sendAdmissionEmail } from "./delivery/mail";
 import {
 	admissionsSlack,
 	archiveAdmissionsChannel,
 	ensureAdmissionsChannel,
 	postAdmissionsNotice,
+	type Slack,
 } from "./delivery/slack";
 
-const OFFER_URL = `${huginUrl()}/admissions`;
+const ADMISSIONS_URL = `${huginUrl()}/admissions`;
 const MINUTE = 60_000;
 const MAX_RETRY = 30 * MINUTE;
-
-function stableEventId(interviewId: string) {
-	return createHash("sha256").update(`navet-admissions:${interviewId}`).digest("hex");
-}
 
 function when(startAt: number) {
 	return formatOsloDate(startAt, "EEEE d. MMMM yyyy, HH:mm");
@@ -38,6 +36,21 @@ function when(startAt: number) {
 
 async function current(ctx: ActionCtx, idempotencyKey: string) {
 	return await ctx.runQuery(internal.admissions.internal.outboxIsCurrent, { idempotencyKey });
+}
+
+async function admissionsChannel(
+	ctx: ActionCtx,
+	slack: Slack,
+	period: Doc<"admissionPeriods">,
+	people: Array<{ email: string }>,
+): Promise<string> {
+	return ensureAdmissionsChannel(slack, period, people, (memberIds) =>
+		ctx.runMutation(internal.admissions.internal.saveSlackManagedMembers, {
+			periodId: period._id,
+			expectedRevision: period.revision,
+			memberIds,
+		}),
+	);
 }
 
 async function requireCurrentPublish(ctx: ActionCtx, claimed: CurrentClaim) {
@@ -143,8 +156,18 @@ async function assertInterviewerAvailability(
 			)
 				return;
 			const events = await client.listEvents(calendarId, from, to);
+			const ownedEvents = new Map([
+				[
+					interview._id,
+					{
+						eventId: interview.calendarEventId ?? admissionCalendarEventId(interview._id),
+						interviewId: interview._id,
+						periodId: period._id,
+					},
+				],
+			]);
 			if (
-				externalBusyIntervals(events, interview._id, period._id).some((interval) =>
+				externalBusyIntervals(events, ownedEvents).some((interval) =>
 					overlapsBusy(interval, interview.startAt, endWithBuffer),
 				)
 			)
@@ -167,7 +190,7 @@ async function assertScheduleAvailable(
 }
 
 async function publish(ctx: ActionCtx, claimed: CurrentClaim) {
-	const { period, application, interview, applicant, interviewers, job } = claimed;
+	const { period, application, interview, applicant, job } = claimed;
 	if (!application || !interview || !applicant || interview.status !== "scheduled")
 		throw new Error("Intervjuet finnes ikke lenger eller er avlyst.");
 	const local = isLocalDevelopment();
@@ -179,7 +202,7 @@ async function publish(ctx: ActionCtx, claimed: CurrentClaim) {
 	if (!owner) throw new Error("Fant ingen kalenderansvarlig for intervjuet.");
 	const eventId =
 		interview.calendarEventId ??
-		(local ? `local:${job.idempotencyKey}` : stableEventId(interview._id));
+		(local ? `local:${job.idempotencyKey}` : admissionCalendarEventId(interview._id));
 	const event = {
 		summary: `Opptaksintervju, ${period.title}`,
 		location: interview.room,
@@ -224,6 +247,7 @@ async function publish(ctx: ActionCtx, claimed: CurrentClaim) {
 			periodTitle: period.title,
 			when: when(interview.startAt),
 			room: interview.room,
+			applicationUrl: ADMISSIONS_URL,
 		}),
 	);
 	const emailId = await deliverEmail(ctx, {
@@ -234,13 +258,13 @@ async function publish(ctx: ActionCtx, claimed: CurrentClaim) {
 		to: applicant.email,
 		subject: `Intervju for ${period.title}`,
 		html,
-		text: `Hei ${firstName},\n\nVi vil gjerne invitere deg til intervju for ${period.title}.\nTid: ${when(interview.startAt)}\nSted: ${interview.room}\n\nSvar på denne e-posten hvis tidspunktet ikke passer.`,
+		text: `Hei ${firstName},\n\nVi vil gjerne invitere deg til intervju for ${period.title}.\nTid: ${when(interview.startAt)}\nSted: ${interview.room} (${roomUrl(interview.room)})\nSe eller avlys intervjuet: ${ADMISSIONS_URL}\n\nSvar på denne e-posten hvis tidspunktet ikke passer.`,
 	});
 	await requireCurrentPublish(ctx, claimed);
 	const slack = local ? null : admissionsSlack();
 	if (slack) {
 		await requireCurrentPublish(ctx, claimed);
-		const channel = await ensureAdmissionsChannel(slack, period, interviewers);
+		const channel = await admissionsChannel(ctx, slack, period, claimed.selectedInterviewers);
 		const tags = (await Promise.all(contacts.map((person) => slack.lookupByEmail(person.email))))
 			.filter((id): id is string => id !== null)
 			.map((id) => `<@${id}>`)
@@ -250,7 +274,7 @@ async function publish(ctx: ActionCtx, claimed: CurrentClaim) {
 			channel,
 			`published:${interview._id}:${interview.revision}`,
 			interview._creationTime,
-			`Intervju publisert ${when(interview.startAt)} i ${interview.room}. Intervjuere: ${tags}`,
+			`Intervju publisert ${when(interview.startAt)} i ${interview.room} (${roomUrl(interview.room)}). Intervjuere: ${tags}`,
 		);
 	}
 	return { calendarEventId: eventId, deliveryIds: [emailId] };
@@ -271,7 +295,7 @@ async function sendDecision(ctx: ActionCtx, claimed: CurrentClaim) {
 					firstName,
 					periodTitle: period.title,
 					group: application.reviewedGroup ?? application.group ?? "Navet",
-					responseUrl: OFFER_URL,
+					responseUrl: ADMISSIONS_URL,
 				})
 			: AdmissionsRejectionEmail({ firstName, periodTitle: period.title }),
 	);
@@ -287,14 +311,14 @@ async function sendDecision(ctx: ActionCtx, claimed: CurrentClaim) {
 			: `Svar på søknaden til ${period.title}`,
 		html,
 		text: offer
-			? `Hei ${firstName},\n\nVi vil gjerne tilby deg plass i ${application.reviewedGroup ?? application.group ?? "Navet"} gjennom ${period.title}. Logg inn på Hugin for å takke ja eller nei: ${OFFER_URL}`
+			? `Hei ${firstName},\n\nVi vil gjerne tilby deg plass i ${application.reviewedGroup ?? application.group ?? "Navet"} gjennom ${period.title}. Logg inn på Hugin for å takke ja eller nei: ${ADMISSIONS_URL}`
 			: `Hei ${firstName},\n\nTakk for søknaden til ${period.title}. Denne gangen kan vi dessverre ikke tilby deg plass i Navet.`,
 	});
 	return { deliveryIds: [emailId] };
 }
 
 async function remind(ctx: ActionCtx, claimed: CurrentClaim, days: 1 | 3) {
-	const { period, application, interview, applicant, interviewers, job } = claimed;
+	const { period, application, interview, applicant, job } = claimed;
 	if (!application || !interview || !applicant || interview.status !== "scheduled")
 		throw new Error("Intervjuet finnes ikke lenger eller er avlyst.");
 	const kind = days === 3 ? "reminder_3d" : "reminder_1d";
@@ -306,6 +330,7 @@ async function remind(ctx: ActionCtx, claimed: CurrentClaim, days: 1 | 3) {
 			periodTitle: period.title,
 			when: when(interview.startAt),
 			room: interview.room,
+			applicationUrl: ADMISSIONS_URL,
 		}),
 	);
 	if (!(await current(ctx, job.idempotencyKey))) throw new StaleAdmissionJob();
@@ -317,18 +342,18 @@ async function remind(ctx: ActionCtx, claimed: CurrentClaim, days: 1 | 3) {
 		to: applicant.email,
 		subject: `Påminnelse om intervju, ${period.title}`,
 		html,
-		text: `Hei ${firstName},\n\nEn påminnelse om intervjuet ${when(interview.startAt)} i ${interview.room}. Kontakt oss hvis tidspunktet ikke passer.`,
+		text: `Hei ${firstName},\n\nEn påminnelse om intervjuet ${when(interview.startAt)} i ${interview.room} (${roomUrl(interview.room)}).\nSe eller avlys intervjuet: ${ADMISSIONS_URL}\nKontakt oss hvis tidspunktet ikke passer.`,
 	});
 	if (days === 1 && !isLocalDevelopment()) {
 		if (!(await current(ctx, job.idempotencyKey))) throw new StaleAdmissionJob();
 		const slack = admissionsSlack();
-		const channel = await ensureAdmissionsChannel(slack, period, interviewers);
+		const channel = await admissionsChannel(ctx, slack, period, claimed.selectedInterviewers);
 		await postAdmissionsNotice(
 			slack,
 			channel,
 			`reminder-1d:${interview._id}:${interview.revision}`,
 			interview._creationTime,
-			`Påminnelse: intervjuet er ${when(interview.startAt)} i ${interview.room}.`,
+			`Påminnelse: intervjuet er ${when(interview.startAt)} i ${interview.room} (${roomUrl(interview.room)}).`,
 		);
 	}
 	return { deliveryIds: [emailId] };
@@ -344,7 +369,7 @@ async function cancelCalendarEvent(ctx: ActionCtx, claimed: CurrentClaim) {
 	if (!isWorkspaceEmail(owner.email, config.domain))
 		throw new Error("Intervjueren mangler en Navet Workspace-konto for kalenderdelegering.");
 	const client = googleCalendarClient(config, owner.email);
-	const eventId = interview.calendarEventId ?? stableEventId(interview._id);
+	const eventId = interview.calendarEventId ?? admissionCalendarEventId(interview._id);
 	const event = await client.getEvent("primary", eventId);
 	if (!event) return;
 	if (
@@ -382,11 +407,11 @@ async function sendCancellationEmail(ctx: ActionCtx, claimed: CurrentClaim) {
 
 async function sendCancellationNotice(ctx: ActionCtx, claimed: CurrentClaim) {
 	if (isLocalDevelopment()) return;
-	const { period, interview, interviewers, job } = claimed;
+	const { period, interview, job } = claimed;
 	if (!interview) return;
 	if (!(await current(ctx, job.idempotencyKey))) throw new StaleAdmissionJob();
 	const slack = admissionsSlack();
-	const channel = await ensureAdmissionsChannel(slack, period, interviewers);
+	const channel = await admissionsChannel(ctx, slack, period, claimed.selectedInterviewers);
 	await postAdmissionsNotice(
 		slack,
 		channel,
@@ -411,7 +436,7 @@ async function sendDeclineNotice(ctx: ActionCtx, claimed: CurrentClaim, key: str
 	if (isLocalDevelopment()) return;
 	if (!(await current(ctx, key))) throw new StaleAdmissionJob();
 	const slack = admissionsSlack();
-	const channel = await ensureAdmissionsChannel(slack, claimed.period, claimed.interviewers);
+	const channel = await admissionsChannel(ctx, slack, claimed.period, claimed.selectedInterviewers);
 	await postAdmissionsNotice(
 		slack,
 		channel,
@@ -431,7 +456,7 @@ async function sendDeliveryFailure(ctx: ActionCtx, claimed: CurrentClaim, key: s
 	});
 	if (!context) throw new Error("Fant ikke opptaksperioden for e-postvarselet.");
 	const slack = admissionsSlack();
-	const channel = await ensureAdmissionsChannel(slack, context.period, context.interviewers);
+	const channel = await admissionsChannel(ctx, slack, context.period, context.interviewers);
 	await postAdmissionsNotice(
 		slack,
 		channel,
@@ -464,6 +489,17 @@ async function runJob(ctx: ActionCtx, claimed: CurrentClaim, key: string) {
 			return {};
 		case "delivery_failure":
 			await sendDeliveryFailure(ctx, claimed, key);
+			return {};
+		case "sync_channel":
+			if (!isLocalDevelopment()) {
+				if (!(await current(ctx, key))) throw new StaleAdmissionJob();
+				await admissionsChannel(
+					ctx,
+					admissionsSlack(),
+					claimed.period,
+					claimed.selectedInterviewers,
+				);
+			}
 			return {};
 	}
 }

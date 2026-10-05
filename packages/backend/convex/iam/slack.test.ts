@@ -24,7 +24,7 @@ describe("Slack private-channel archival", () => {
 		},
 	);
 
-	it("does not recreate a deleted admissions channel when it is absent", async () => {
+	it("returns no channel when a deleted admissions channel is absent", async () => {
 		const fetch = slackFetch((method) => {
 			if (method === "conversations.list") return Response.json({ ok: true, channels: [] });
 			if (method === "auth.test") return Response.json({ ok: true, user_id: "UBOT" });
@@ -32,12 +32,15 @@ describe("Slack private-channel archival", () => {
 		});
 		vi.stubGlobal("fetch", fetch);
 		await expect(
-			slackClient({ botToken: "xoxb-test" }).archivePrivateChannel("host-2026-opptak", "period"),
-		).resolves.toBeUndefined();
+			slackClient({ botToken: "xoxb-test" }).findOwnedPrivateChannel(
+				["host-2026-opptak"],
+				"period",
+			),
+		).resolves.toBeNull();
 		expect(fetch).toHaveBeenCalledTimes(2);
 	});
 
-	it("finds the period channel by its private owner marker and archives it", async () => {
+	it("finds the bot-owned private channel by its owner marker", async () => {
 		const fetch = slackFetch((method) => {
 			if (method === "conversations.list")
 				return Response.json({
@@ -53,18 +56,19 @@ describe("Slack private-channel archival", () => {
 					],
 				});
 			if (method === "auth.test") return Response.json({ ok: true, user_id: "UBOT" });
-			if (method === "conversations.archive")
-				return Response.json({ ok: false, error: "already_archived" });
 			throw new Error(`Unexpected Slack method ${method}`);
 		});
 		vi.stubGlobal("fetch", fetch);
 		await expect(
-			slackClient({ botToken: "xoxb-test" }).archivePrivateChannel("host-2026-opptak", "period"),
-		).resolves.toBeUndefined();
-		expect(fetch).toHaveBeenCalledTimes(3);
+			slackClient({ botToken: "xoxb-test" }).findOwnedPrivateChannel(
+				["host-2026-opptak"],
+				"period",
+			),
+		).resolves.toBe("C123");
+		expect(fetch).toHaveBeenCalledTimes(2);
 	});
 
-	it("archives the bot-owned fallback name used when another period owns the preferred name", async () => {
+	it("finds the bot-owned fallback name used when another period owns the preferred name", async () => {
 		const fetch = slackFetch((method) => {
 			if (method === "conversations.list")
 				return Response.json({
@@ -80,17 +84,77 @@ describe("Slack private-channel archival", () => {
 					],
 				});
 			if (method === "auth.test") return Response.json({ ok: true, user_id: "UBOT" });
-			if (method === "conversations.archive") return Response.json({ ok: true });
 			throw new Error(`Unexpected Slack method ${method}`);
 		});
 		vi.stubGlobal("fetch", fetch);
 		await expect(
-			slackClient({ botToken: "xoxb-test" }).archivePrivateChannel(
-				"host-2026-opptak",
+			slackClient({ botToken: "xoxb-test" }).findOwnedPrivateChannel(
+				["host-2026-opptak", "host-2026-opptak-period"],
 				"period",
-				"host-2026-opptak-period",
 			),
-		).resolves.toBeUndefined();
-		expect(fetch).toHaveBeenCalledTimes(3);
+		).resolves.toBe("C456");
+		expect(fetch).toHaveBeenCalledTimes(2);
+	});
+
+	it("does not return channels without the exact private owner marker", async () => {
+		vi.stubGlobal(
+			"fetch",
+			slackFetch((method) => {
+				if (method === "conversations.list")
+					return Response.json({
+						ok: true,
+						channels: [
+							{
+								id: "C123",
+								name: "host-2026-opptak",
+								creator: "UBOT",
+								is_private: true,
+								purpose: { value: "another-period" },
+							},
+						],
+					});
+				if (method === "auth.test") return Response.json({ ok: true, user_id: "UBOT" });
+				throw new Error(`Unexpected Slack method ${method}`);
+			}),
+		);
+		await expect(
+			slackClient({ botToken: "xoxb-test" }).findOwnedPrivateChannel(
+				["host-2026-opptak"],
+				"period",
+			),
+		).resolves.toBeNull();
+	});
+});
+
+describe("Slack managed channel membership", () => {
+	it("removes a departed managed member but preserves manual members", async () => {
+		const fetch = slackFetch((method, params) => {
+			if (method === "auth.test") return Response.json({ ok: true, user_id: "UBOT" });
+			if (method === "conversations.members")
+				return Response.json({ ok: true, members: ["UBOT", "U-old", "U-manual"] });
+			if (method === "conversations.kick" || method === "conversations.invite")
+				return Response.json({ ok: true });
+			throw new Error(`Unexpected Slack method ${method} ${params}`);
+		});
+		vi.stubGlobal("fetch", fetch);
+		const persistManaged = vi.fn().mockResolvedValue(undefined);
+
+		await slackClient({ botToken: "xoxb-test" }).reconcileChannelMembers(
+			"C123",
+			["U-new"],
+			["U-old"],
+			persistManaged,
+		);
+
+		expect(fetch).toHaveBeenCalledTimes(4);
+		expect(fetch).toHaveBeenNthCalledWith(
+			3,
+			expect.any(String),
+			expect.objectContaining({ body: expect.any(URLSearchParams) }),
+		);
+		expect(String(fetch.mock.calls[2]?.[1].body)).toContain("user=U-old");
+		expect(String(fetch.mock.calls[3]?.[1].body)).toContain("users=U-new");
+		expect(persistManaged).toHaveBeenNthCalledWith(1, ["U-old", "U-new"]);
+		expect(persistManaged).toHaveBeenNthCalledWith(2, ["U-new"]);
 	});
 });

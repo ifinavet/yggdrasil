@@ -3,7 +3,7 @@ import { applicationFields, interviewFields, periodFields } from "../../test/adm
 import { insertUser, setup } from "../../test/fixtures";
 import { internal } from "../_generated/api";
 
-it("compensates for a late publish after board cancellation and notifies if its invite was delivered", async () => {
+async function cancelledInterviewFixture() {
 	const { t } = await setup();
 	const admin = await insertUser(t, "admin@example.test");
 	const applicant = await insertUser(t, "applicant@uio.no");
@@ -23,6 +23,11 @@ it("compensates for a late publish after board cancellation and notifies if its 
 			}),
 		),
 	);
+	return { t, periodId, applicationId, interviewId };
+}
+
+it("compensates for a late publish after board cancellation and notifies if its invite was delivered", async () => {
+	const { t, periodId, applicationId, interviewId } = await cancelledInterviewFixture();
 	await t.run((ctx) =>
 		ctx.db.insert("admissionDeliveries", {
 			periodId,
@@ -58,25 +63,7 @@ it("compensates for a late publish after board cancellation and notifies if its 
 });
 
 it("does not notify after open-period cancellation when no invite was delivered", async () => {
-	const { t } = await setup();
-	const admin = await insertUser(t, "admin@example.test");
-	const applicant = await insertUser(t, "applicant@uio.no");
-	const now = Date.now();
-	const periodId = await t.run((ctx) => ctx.db.insert("admissionPeriods", periodFields(admin._id)));
-	const applicationId = await t.run((ctx) =>
-		ctx.db.insert("admissionApplications", applicationFields(periodId, applicant._id)),
-	);
-	const interviewId = await t.run((ctx) =>
-		ctx.db.insert(
-			"admissionInterviews",
-			interviewFields(periodId, applicationId, {
-				startAt: now + 172_800_000,
-				endAt: now + 173_700_000,
-				status: "cancelled",
-				revision: 2,
-			}),
-		),
-	);
+	const { t, periodId, interviewId } = await cancelledInterviewFixture();
 
 	await t.mutation(internal.admissions.compensation.queueStalePublishCleanup, {
 		periodId,

@@ -7,13 +7,6 @@ import { internal } from "./_generated/api";
 const crons = cronJobs();
 
 crons.interval(
-	"Recover admission outbox jobs",
-	{ minutes: 5 },
-	internal.admissions.recovery.recoverExpired,
-	{},
-);
-
-crons.interval(
 	"Prepare company planning invitations",
 	{ hours: 1 },
 	internal.events.planning.lifecycle.discover,

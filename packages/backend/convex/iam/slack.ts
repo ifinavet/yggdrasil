@@ -26,6 +26,14 @@ type SlackResponse = {
 	response_metadata?: { next_cursor?: string };
 };
 
+type PrivateChannel = {
+	id: string;
+	name: string;
+	creator: string;
+	is_private: boolean;
+	purpose?: { value: string };
+};
+
 export class SlackError extends Error {}
 
 export function slackClient(config: SlackConfig) {
@@ -59,6 +67,35 @@ export function slackClient(config: SlackConfig) {
 		}
 		throw new SlackError(`Slack returnerte for mange sider fra ${method}.`);
 	}
+	async function privateChannels(): Promise<PrivateChannel[]> {
+		return (await paginate<{ channels?: PrivateChannel[] }>(
+			"conversations.list",
+			{ types: "private_channel", exclude_archived: "false" },
+			(body) => body.channels ?? [],
+		)) as PrivateChannel[];
+	}
+	async function findOwnedPrivateChannel(
+		names: readonly (string | undefined)[],
+		owner: string,
+		allowMissingOwnerMarker = false,
+	): Promise<string | null> {
+		const [channels, auth] = await Promise.all([
+			privateChannels(),
+			call<{ user_id: string }>("auth.test", {}),
+		]);
+		if (!auth.ok) throw new SlackError("Kunne ikke identifisere Slack-boten.");
+		return (
+			(
+				channels.find(
+					(entry) =>
+						names.includes(entry.name) &&
+						entry.is_private &&
+						entry.creator === auth.user_id &&
+						(entry.purpose?.value === owner || (allowMissingOwnerMarker && !entry.purpose?.value)),
+				) ?? null
+			)?.id ?? null
+		);
+	}
 
 	return {
 		/** Recover a bot-created channel after a successful create whose response was lost. */
@@ -74,38 +111,15 @@ export function slackClient(config: SlackConfig) {
 			if (created.ok && created.channel) return created.channel.id;
 			if (created.error !== "name_taken")
 				throw new SlackError(`Slack avviste kanalen: ${created.error}.`);
-			const channels = (await paginate<{
-				channels?: {
-					id: string;
-					name: string;
-					creator: string;
-					is_private: boolean;
-					purpose?: { value: string };
-				}[];
-			}>(
-				"conversations.list",
-				{ types: "private_channel", exclude_archived: "false" },
-				(body) => body.channels ?? [],
-			)) as {
-				id: string;
-				name: string;
-				creator: string;
-				is_private: boolean;
-				purpose?: { value: string };
-			}[];
-			const auth = await call<{ user_id: string }>("auth.test", {});
-			const channel = channels.find(
-				(channel) =>
-					channel.name === name &&
-					channel.is_private &&
-					channel.creator === auth.user_id &&
-					(!channel.purpose?.value || channel.purpose.value === owner),
-			);
+			const channel = await findOwnedPrivateChannel([name], owner, true);
 			if (!channel) {
 				if (fallbackName) return this.ensurePrivateChannel(fallbackName, owner);
 				throw new SlackError("Kanalnavnet er i bruk av en annen kanal.");
 			}
-			return channel.id;
+			return channel;
+		},
+		async findOwnedPrivateChannel(names: readonly (string | undefined)[], owner: string) {
+			return findOwnedPrivateChannel(names, owner);
 		},
 		async renameChannel(channel: string, name: string, currentName?: string) {
 			const suffix = `-${channel.toLowerCase()}`;
@@ -138,43 +152,12 @@ export function slackClient(config: SlackConfig) {
 			if (!body.ok && body.error !== "already_archived" && body.error !== "channel_not_found")
 				throw new SlackError(`Slack avviste arkiveringen: ${body.error}.`);
 		},
-		async archivePrivateChannel(name: string, owner: string, fallbackName?: string) {
-			const channels = (await paginate<{
-				channels?: {
-					id: string;
-					name: string;
-					creator: string;
-					is_private: boolean;
-					purpose?: { value: string };
-				}[];
-			}>(
-				"conversations.list",
-				{ types: "private_channel", exclude_archived: "false" },
-				(body) => body.channels ?? [],
-			)) as {
-				id: string;
-				name: string;
-				creator: string;
-				is_private: boolean;
-				purpose?: { value: string };
-			}[];
-			const auth = await call<{ user_id: string }>("auth.test", {});
-			if (!auth.ok) throw new SlackError("Kunne ikke identifisere Slack-boten.");
-			const channel = channels.find(
-				(entry) =>
-					(entry.name === name || entry.name === fallbackName) &&
-					entry.is_private &&
-					entry.creator === auth.user_id &&
-					entry.purpose?.value === owner,
-			);
-			if (channel) await this.archiveChannel(channel.id);
-		},
-
 		async reconcileChannelMembers(
 			channel: string,
 			desired: string[],
 			managed: string[],
 			persistManaged: (users: string[]) => Promise<unknown>,
+			adoptDesired = false,
 		) {
 			const auth = await call<{ user_id: string }>("auth.test", {});
 			if (!auth.ok) throw new SlackError("Kunne ikke identifisere Slack-boten.");
@@ -184,8 +167,8 @@ export function slackClient(config: SlackConfig) {
 				(body) => body.members ?? [],
 			)) as string[];
 			const invited = desired.filter((user) => !current.includes(user));
-			const owned = [...new Set([...managed, ...invited])];
-			// Persist invite intent before its side effect, but never adopt a manual member.
+			const owned = [...new Set([...managed, ...(adoptDesired ? desired : invited)])];
+			// Managed membership intent is stored before invitation side effects.
 			await persistManaged(owned);
 			await current.reduce(async (previous, user) => {
 				await previous;

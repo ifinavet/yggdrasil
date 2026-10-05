@@ -1,12 +1,34 @@
 import { localWindow } from "@workspace/shared/admissions";
 import { afterEach, expect, it, vi } from "vitest";
-import { applicationFields } from "../../test/admissions-fixtures";
-import { asUser, grantRole, insertStudent, insertUser, setup } from "../../test/fixtures";
+import {
+	applicationFields,
+	firstAdmissionOutboxJob,
+	interviewFields,
+} from "../../test/admissions-fixtures";
+import {
+	asUser,
+	grantRole,
+	insertStudent,
+	insertUser,
+	setup,
+	type TestBackend,
+} from "../../test/fixtures";
 import { api, internal } from "../_generated/api";
+import type { Id } from "../_generated/dataModel";
 
 const DAY = 86400000;
 const MINUTE = 60000;
 const TIME_ZONE = "Europe/Oslo";
+
+async function withFixedDate<T>(isoDate: string, run: () => Promise<T>) {
+	vi.useFakeTimers();
+	vi.setSystemTime(new Date(isoDate));
+	try {
+		return await run();
+	} finally {
+		vi.useRealTimers();
+	}
+}
 
 function osloAt(day: string, hour: number, minute: number) {
 	const utcNoon = Date.parse(`${day}T12:00:00Z`);
@@ -44,6 +66,36 @@ async function scheduleFixture(
 		}),
 	);
 	return { ...value, periodId, applicationId, startAt, day };
+}
+
+async function setAvailability(
+	t: TestBackend,
+	applicationId: Id<"admissionApplications">,
+	day: string,
+) {
+	await t.run((ctx) =>
+		ctx.db.patch(applicationId, { availability: [{ day, start: 600, end: 620 }] }),
+	);
+}
+
+async function addInterviewerPair(
+	value: Awaited<ReturnType<typeof scheduleFixture>>,
+	thirdEmail: string,
+	fourthEmail: string,
+) {
+	const third = await insertUser(value.t, thirdEmail);
+	const fourth = await insertUser(value.t, fourthEmail);
+	await grantRole(value.t, third._id, "internal");
+	await grantRole(value.t, fourth._id, "internal");
+	await value.admin.mutation(api.admissions.board.updateInterviewers, {
+		periodId: value.periodId,
+		expectedRevision: 1,
+		interviewers: [value.interviewer, value.otherInterviewer, third, fourth].map(({ _id }) => ({
+			userId: _id,
+			selectedCalendarIds: [],
+		})),
+	});
+	return { third, fourth };
 }
 
 async function periodApplicationFixture() {
@@ -269,29 +321,14 @@ it("closes an in-flight publish with calendar cleanup without notifying the appl
 	await t.mutation(internal.admissions.internal.completeOutbox, {
 		idempotencyKey: cleanup?.idempotencyKey ?? "",
 	});
-	expect(
-		await t.run((ctx) =>
-			ctx.db
-				.query("admissionOutbox")
-				.withIndex("by_periodId_and_kind", (q) =>
-					q.eq("periodId", periodId).eq("kind", "archive_channel"),
-				)
-				.first(),
-		),
-	).toBeNull();
+	expect(await firstAdmissionOutboxJob(t, periodId, "archive_channel")).toBeNull();
 	await t.mutation(internal.admissions.internal.completeOutbox, {
 		idempotencyKey: "publish-in-flight-close",
 	});
-	expect(
-		await t.run((ctx) =>
-			ctx.db
-				.query("admissionOutbox")
-				.withIndex("by_periodId_and_kind", (q) =>
-					q.eq("periodId", periodId).eq("kind", "archive_channel"),
-				)
-				.first(),
-		),
-	).toMatchObject({ kind: "archive_channel", state: "pending" });
+	expect(await firstAdmissionOutboxJob(t, periodId, "archive_channel")).toMatchObject({
+		kind: "archive_channel",
+		state: "pending",
+	});
 });
 
 it("retention cleanup cancels an in-flight publish even before an event id is saved", async () => {
@@ -683,11 +720,7 @@ it("requires explicit admin confirmation to manually schedule outside applicant 
 
 it("derives manual interview calendars from the period's interviewer selections", async () => {
 	const value = await scheduleFixture(10, 0, []);
-	await value.t.run((ctx) =>
-		ctx.db.patch(value.applicationId, {
-			availability: [{ day: value.day, start: 600, end: 620 }],
-		}),
-	);
+	await setAvailability(value.t, value.applicationId, value.day);
 	await value.admin.mutation(api.admissions.board.updateInterviewers, {
 		periodId: value.periodId,
 		expectedRevision: 1,
@@ -722,60 +755,58 @@ it("derives manual interview calendars from the period's interviewer selections"
 });
 
 it("keeps a published interview unchanged during generated replanning", async () => {
-	const value = await scheduleFixture(10, 0, []);
-	const nearDay = localWindow(Date.now() + DAY, 0, TIME_ZONE).day;
-	const startAt = osloAt(nearDay, 10, 0);
-	await value.t.run((ctx) =>
-		ctx.db.patch(value.applicationId, {
-			availability: [{ day: nearDay, start: 600, end: 620 }],
-		}),
-	);
-	const endAt = startAt + 15 * MINUTE;
-	await value.t.run((ctx) =>
-		ctx.db.insert("admissionInterviews", {
-			periodId: value.periodId,
-			applicationId: value.applicationId,
-			startAt,
-			endAt,
-			interviewerIds: [value.interviewer._id, value.otherInterviewer._id],
-			selectedCalendarIds: [],
-			room: "Beta",
-			calendarEventId: "published-event",
-			publishedAt: Date.now(),
-			status: "scheduled",
-			revision: 3,
-		}),
-	);
-	await value.admin.mutation(api.admissions.mutations.scheduleInterview, {
-		applicationId: value.applicationId,
-		startAt,
-		interviewerIds: [value.interviewer._id, value.otherInterviewer._id],
-		selectedCalendarIds: [],
-		expectedRevision: 1,
-	});
-	await value.t.mutation(internal.admissions.internal.saveSchedule, {
-		periodId: value.periodId,
-		expectedRevision: 2,
-		assignments: [
-			{
+	await withFixedDate("2026-01-05T07:00:00.000Z", async () => {
+		const value = await scheduleFixture(10, 0, []);
+		const nearDay = localWindow(Date.now() + DAY, 0, TIME_ZONE).day;
+		const startAt = osloAt(nearDay, 10, 0);
+		await setAvailability(value.t, value.applicationId, nearDay);
+		const endAt = startAt + 15 * MINUTE;
+		await value.t.run((ctx) =>
+			ctx.db.insert("admissionInterviews", {
+				periodId: value.periodId,
 				applicationId: value.applicationId,
 				startAt,
 				endAt,
 				interviewerIds: [value.interviewer._id, value.otherInterviewer._id],
 				selectedCalendarIds: [],
 				room: "Beta",
-			},
-		],
-	});
-	const saved = await value.t.run((ctx) =>
-		ctx.db
-			.query("admissionInterviews")
-			.withIndex("by_applicationId", (q) => q.eq("applicationId", value.applicationId))
-			.unique(),
-	);
-	expect(saved).toMatchObject({
-		publishedAt: expect.any(Number),
-		calendarEventId: "published-event",
+				calendarEventId: "published-event",
+				publishedAt: Date.now(),
+				status: "scheduled",
+				revision: 3,
+			}),
+		);
+		await value.admin.mutation(api.admissions.mutations.scheduleInterview, {
+			applicationId: value.applicationId,
+			startAt,
+			interviewerIds: [value.interviewer._id, value.otherInterviewer._id],
+			selectedCalendarIds: [],
+			expectedRevision: 1,
+		});
+		await value.t.mutation(internal.admissions.internal.saveSchedule, {
+			periodId: value.periodId,
+			expectedRevision: 2,
+			assignments: [
+				{
+					applicationId: value.applicationId,
+					startAt,
+					endAt,
+					interviewerIds: [value.interviewer._id, value.otherInterviewer._id],
+					selectedCalendarIds: [],
+					room: "Beta",
+				},
+			],
+		});
+		const saved = await value.t.run((ctx) =>
+			ctx.db
+				.query("admissionInterviews")
+				.withIndex("by_applicationId", (q) => q.eq("applicationId", value.applicationId))
+				.unique(),
+		);
+		expect(saved).toMatchObject({
+			publishedAt: expect.any(Number),
+			calendarEventId: "published-event",
+		});
 	});
 });
 
@@ -817,43 +848,22 @@ it("allows admins to cancel published applicant interviews and preserves notice 
 
 it("rejects overlapping interviews that use the same room even with different interviewers", async () => {
 	const value = await scheduleFixture(10, 0, []);
-	const thirdInterviewer = await insertUser(value.t, "third@ifinavet.no");
-	const fourthInterviewer = await insertUser(value.t, "fourth@ifinavet.no");
-	await grantRole(value.t, thirdInterviewer._id, "internal");
-	await grantRole(value.t, fourthInterviewer._id, "internal");
-	await value.admin.mutation(api.admissions.board.updateInterviewers, {
-		periodId: value.periodId,
-		expectedRevision: 1,
-		interviewers: [
-			{ userId: value.interviewer._id, selectedCalendarIds: [] },
-			{ userId: value.otherInterviewer._id, selectedCalendarIds: [] },
-			{ userId: thirdInterviewer._id, selectedCalendarIds: [] },
-			{ userId: fourthInterviewer._id, selectedCalendarIds: [] },
-		],
-	});
+	const { third, fourth } = await addInterviewerPair(
+		value,
+		"third@ifinavet.no",
+		"fourth@ifinavet.no",
+	);
 	const secondApplicant = await insertUser(value.t, "candidate2@uio.no");
 	await insertStudent(value.t, secondApplicant._id);
 	const secondApplicationId = await value.t.run((ctx) =>
-		ctx.db.insert("admissionApplications", {
-			periodId: value.periodId,
-			userId: secondApplicant._id,
-			availability: [{ day: value.day, start: 600, end: 620 }],
-			status: "submitted",
-			revision: 1,
-			decisionRevision: 0,
-			decision: "pending",
-			offerStatus: "none",
-			sent: false,
-		}),
+		ctx.db.insert(
+			"admissionApplications",
+			applicationFields(value.periodId, secondApplicant._id, {
+				availability: [{ day: value.day, start: 600, end: 620 }],
+			}),
+		),
 	);
-	await value.t.run(async (ctx) => {
-		await ctx.db.patch(value.applicationId, {
-			availability: [{ day: value.day, start: 600, end: 620 }],
-		});
-		await ctx.db.patch(secondApplicationId, {
-			availability: [{ day: value.day, start: 600, end: 620 }],
-		});
-	});
+	await setAvailability(value.t, value.applicationId, value.day);
 	const args = {
 		startAt: value.startAt,
 		selectedCalendarIds: [] as string[],
@@ -869,7 +879,7 @@ it("rejects overlapping interviews that use the same room even with different in
 		value.admin.mutation(api.admissions.mutations.scheduleInterview, {
 			...args,
 			applicationId: secondApplicationId,
-			interviewerIds: [thirdInterviewer._id, fourthInterviewer._id],
+			interviewerIds: [third._id, fourth._id],
 			expectedRevision: 1,
 		}),
 	).rejects.toThrow(/rom/i);
@@ -877,37 +887,21 @@ it("rejects overlapping interviews that use the same room even with different in
 
 it("rejects generated assignments that double-book a room", async () => {
 	const value = await scheduleFixture(10, 0, []);
-	const thirdInterviewer = await insertUser(value.t, "third-plan@ifinavet.no");
-	const fourthInterviewer = await insertUser(value.t, "fourth-plan@ifinavet.no");
-	await grantRole(value.t, thirdInterviewer._id, "internal");
-	await grantRole(value.t, fourthInterviewer._id, "internal");
-	await value.admin.mutation(api.admissions.board.updateInterviewers, {
-		periodId: value.periodId,
-		expectedRevision: 1,
-		interviewers: [
-			{ userId: value.interviewer._id, selectedCalendarIds: [] },
-			{ userId: value.otherInterviewer._id, selectedCalendarIds: [] },
-			{ userId: thirdInterviewer._id, selectedCalendarIds: [] },
-			{ userId: fourthInterviewer._id, selectedCalendarIds: [] },
-		],
-	});
+	const { third, fourth } = await addInterviewerPair(
+		value,
+		"third-plan@ifinavet.no",
+		"fourth-plan@ifinavet.no",
+	);
 	const secondApplicant = await insertUser(value.t, "candidate-plan2@uio.no");
-	const secondApplicationId = await value.t.run(async (ctx) => {
-		await ctx.db.patch(value.applicationId, {
-			availability: [{ day: value.day, start: 600, end: 620 }],
-		});
-		return await ctx.db.insert("admissionApplications", {
-			periodId: value.periodId,
-			userId: secondApplicant._id,
-			availability: [{ day: value.day, start: 600, end: 620 }],
-			status: "submitted",
-			revision: 1,
-			decisionRevision: 0,
-			decision: "pending",
-			offerStatus: "none",
-			sent: false,
-		});
-	});
+	await setAvailability(value.t, value.applicationId, value.day);
+	const secondApplicationId = await value.t.run((ctx) =>
+		ctx.db.insert(
+			"admissionApplications",
+			applicationFields(value.periodId, secondApplicant._id, {
+				availability: [{ day: value.day, start: 600, end: 620 }],
+			}),
+		),
+	);
 	const shared = {
 		startAt: value.startAt,
 		endAt: value.startAt + 15 * MINUTE,
@@ -927,7 +921,7 @@ it("rejects generated assignments that double-book a room", async () => {
 				{
 					...shared,
 					applicationId: secondApplicationId,
-					interviewerIds: [thirdInterviewer._id, fourthInterviewer._id],
+					interviewerIds: [third._id, fourth._id],
 				},
 			],
 		}),
@@ -936,23 +930,18 @@ it("rejects generated assignments that double-book a room", async () => {
 
 it("requires explicit candidate agreement before manually rebooking a cancelled interview", async () => {
 	const value = await scheduleFixture(10, 0, []);
+	await setAvailability(value.t, value.applicationId, value.day);
 	await value.t.run((ctx) =>
-		ctx.db.patch(value.applicationId, {
-			availability: [{ day: value.day, start: 600, end: 620 }],
-		}),
-	);
-	await value.t.run((ctx) =>
-		ctx.db.insert("admissionInterviews", {
-			periodId: value.periodId,
-			applicationId: value.applicationId,
-			startAt: value.startAt,
-			endAt: value.startAt + 15 * MINUTE,
-			interviewerIds: [value.interviewer._id, value.otherInterviewer._id],
-			selectedCalendarIds: [],
-			room: "Beta",
-			status: "cancelled",
-			revision: 2,
-		}),
+		ctx.db.insert(
+			"admissionInterviews",
+			interviewFields(value.periodId, value.applicationId, {
+				startAt: value.startAt,
+				endAt: value.startAt + 15 * MINUTE,
+				interviewerIds: [value.interviewer._id, value.otherInterviewer._id],
+				status: "cancelled",
+				revision: 2,
+			}),
+		),
 	);
 	const args = {
 		applicationId: value.applicationId,
@@ -979,23 +968,18 @@ it("requires explicit candidate agreement before manually rebooking a cancelled 
 
 it("does not let generated plans resurrect a cancelled interview", async () => {
 	const value = await scheduleFixture(10, 0, []);
+	await setAvailability(value.t, value.applicationId, value.day);
 	await value.t.run((ctx) =>
-		ctx.db.patch(value.applicationId, {
-			availability: [{ day: value.day, start: 600, end: 620 }],
-		}),
-	);
-	await value.t.run((ctx) =>
-		ctx.db.insert("admissionInterviews", {
-			periodId: value.periodId,
-			applicationId: value.applicationId,
-			startAt: value.startAt,
-			endAt: value.startAt + 15 * MINUTE,
-			interviewerIds: [value.interviewer._id, value.otherInterviewer._id],
-			selectedCalendarIds: [],
-			room: "Beta",
-			status: "cancelled",
-			revision: 2,
-		}),
+		ctx.db.insert(
+			"admissionInterviews",
+			interviewFields(value.periodId, value.applicationId, {
+				startAt: value.startAt,
+				endAt: value.startAt + 15 * MINUTE,
+				interviewerIds: [value.interviewer._id, value.otherInterviewer._id],
+				status: "cancelled",
+				revision: 2,
+			}),
+		),
 	);
 	await expect(
 		value.t.mutation(internal.admissions.internal.saveSchedule, {
@@ -1016,34 +1000,28 @@ it("does not let generated plans resurrect a cancelled interview", async () => {
 });
 
 it("requires two days of notice for a new manual interview", async () => {
-	const value = await scheduleFixture(10, 0, []);
-	const nearDay = localWindow(Date.now() + DAY, 0, TIME_ZONE).day;
-	const startAt = osloAt(nearDay, 10, 0);
-	await value.t.run((ctx) =>
-		ctx.db.patch(value.applicationId, {
-			availability: [{ day: nearDay, start: 600, end: 620 }],
-		}),
-	);
-	await expect(
-		value.admin.mutation(api.admissions.mutations.scheduleInterview, {
-			applicationId: value.applicationId,
-			startAt,
-			interviewerIds: [value.interviewer._id, value.otherInterviewer._id],
-			selectedCalendarIds: [],
-			expectedRevision: 1,
-		}),
-	).rejects.toThrow(/48|to dager/i);
+	await withFixedDate("2026-01-05T07:00:00.000Z", async () => {
+		const value = await scheduleFixture(10, 0, []);
+		const nearDay = localWindow(Date.now() + DAY, 0, TIME_ZONE).day;
+		const startAt = osloAt(nearDay, 10, 0);
+		await setAvailability(value.t, value.applicationId, nearDay);
+		await expect(
+			value.admin.mutation(api.admissions.mutations.scheduleInterview, {
+				applicationId: value.applicationId,
+				startAt,
+				interviewerIds: [value.interviewer._id, value.otherInterviewer._id],
+				selectedCalendarIds: [],
+				expectedRevision: 1,
+			}),
+		).rejects.toThrow(/48|to dager/i);
+	});
 });
 
 it("requires two days of notice for generated assignments", async () => {
 	const value = await scheduleFixture(10, 0, []);
 	const nearDay = localWindow(Date.now() + DAY, 0, TIME_ZONE).day;
 	const startAt = osloAt(nearDay, 10, 0);
-	await value.t.run((ctx) =>
-		ctx.db.patch(value.applicationId, {
-			availability: [{ day: nearDay, start: 600, end: 620 }],
-		}),
-	);
+	await setAvailability(value.t, value.applicationId, nearDay);
 	await expect(
 		value.t.mutation(internal.admissions.internal.saveSchedule, {
 			periodId: value.periodId,

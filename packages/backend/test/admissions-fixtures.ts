@@ -1,5 +1,6 @@
 import type { WithoutSystemFields } from "convex/server";
 import type { Doc, Id } from "../convex/_generated/dataModel";
+import type { TestBackend } from "./fixtures";
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -73,4 +74,17 @@ export function interviewFields(
 		revision: 1,
 		...overrides,
 	};
+}
+
+export async function firstAdmissionOutboxJob(
+	t: TestBackend,
+	periodId: Id<"admissionPeriods">,
+	kind: Doc<"admissionOutbox">["kind"],
+) {
+	return await t.run((ctx) =>
+		ctx.db
+			.query("admissionOutbox")
+			.withIndex("by_periodId_and_kind", (q) => q.eq("periodId", periodId).eq("kind", kind))
+			.first(),
+	);
 }

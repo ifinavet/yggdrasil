@@ -11,6 +11,7 @@ const period = {
 	_creationTime: 1,
 	title: "Høst 2026",
 	applicationStartAt: Date.parse("2026-07-01T00:00:00Z"),
+	slackManagedMemberIds: ["U-old"],
 } as never;
 
 function fakeSlack(overrides: Partial<Slack> = {}) {
@@ -25,7 +26,7 @@ function fakeSlack(overrides: Partial<Slack> = {}) {
 		hasMessage: vi.fn().mockResolvedValue(false),
 		postMessage: vi.fn().mockResolvedValue(undefined),
 		archiveChannel: vi.fn().mockResolvedValue(undefined),
-		archivePrivateChannel: vi.fn().mockResolvedValue(undefined),
+		findOwnedPrivateChannel: vi.fn().mockResolvedValue("channel-id"),
 		...overrides,
 	} as unknown as Slack;
 }
@@ -36,10 +37,12 @@ describe("admissions Slack delivery", () => {
 	it("creates a period channel and invites every interviewer by workspace email", async () => {
 		const slack = fakeSlack();
 		await expect(
-			ensureAdmissionsChannel(slack, period, [
-				{ email: "one@example.test" },
-				{ email: "two@example.test" },
-			]),
+			ensureAdmissionsChannel(
+				slack,
+				period,
+				[{ email: "one@example.test" }, { email: "two@example.test" }],
+				vi.fn(),
+			),
 		).resolves.toBe("channel-id");
 		expect(slack.channelInfo).toHaveBeenCalledWith("channel-id");
 		expect(slack.ensurePrivateChannel).toHaveBeenCalledWith(
@@ -50,15 +53,36 @@ describe("admissions Slack delivery", () => {
 		expect(slack.reconcileChannelMembers).toHaveBeenCalledWith(
 			"channel-id",
 			["U-one@example.test", "U-two@example.test"],
-			[],
+			["U-old"],
 			expect.any(Function),
+			true,
 		);
+	});
+
+	it("persists managed membership before and after reconciliation", async () => {
+		const persistManaged = vi.fn().mockResolvedValue(undefined);
+		const slack = fakeSlack({
+			reconcileChannelMembers: vi.fn(async (_channel, desired, managed, persist) => {
+				await persist([...managed, ...desired]);
+				await persist(desired);
+			}),
+		});
+		await ensureAdmissionsChannel(slack, period, [{ email: "new@example.test" }], persistManaged);
+		expect(slack.reconcileChannelMembers).toHaveBeenCalledWith(
+			"channel-id",
+			["U-new@example.test"],
+			["U-old"],
+			persistManaged,
+			true,
+		);
+		expect(persistManaged).toHaveBeenNthCalledWith(1, ["U-old", "U-new@example.test"]);
+		expect(persistManaged).toHaveBeenNthCalledWith(2, ["U-new@example.test"]);
 	});
 
 	it("fails visibly instead of leaving a selected interviewer out of the channel", async () => {
 		const slack = fakeSlack();
 		await expect(
-			ensureAdmissionsChannel(slack, period, [{ email: "missing@example.test" }]),
+			ensureAdmissionsChannel(slack, period, [{ email: "missing@example.test" }], vi.fn()),
 		).rejects.toThrow("mangler en aktiv Slack-konto");
 		expect(slack.reconcileChannelMembers).not.toHaveBeenCalled();
 	});
@@ -89,13 +113,20 @@ describe("admissions Slack delivery", () => {
 		expect(notice).not.toContain("private notes");
 	});
 
-	it("archives the period channel by identity without recreating a deleted channel", async () => {
+	it("finds the period channel by identity and uses the shared archive operation", async () => {
 		const slack = fakeSlack();
 		await archiveAdmissionsChannel(slack, period);
-		expect(slack.archivePrivateChannel).toHaveBeenCalledWith(
-			"h26-opptak",
+		expect(slack.findOwnedPrivateChannel).toHaveBeenCalledWith(
+			["h26-opptak", "h26-opptak-admissions-id"],
 			"admissions:admissions-id",
-			"h26-opptak-admissions-id",
 		);
+		expect(slack.archiveChannel).toHaveBeenCalledWith("channel-id");
+	});
+
+	it("does not create or archive a missing period channel", async () => {
+		const slack = fakeSlack({ findOwnedPrivateChannel: vi.fn().mockResolvedValue(null) });
+		await archiveAdmissionsChannel(slack, period);
+		expect(slack.ensurePrivateChannel).not.toHaveBeenCalled();
+		expect(slack.archiveChannel).not.toHaveBeenCalled();
 	});
 });

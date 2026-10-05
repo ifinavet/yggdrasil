@@ -13,6 +13,7 @@ const jobLabels: Record<Doc<"admissionOutbox">["kind"], string> = {
 	cancel_interview: "Avlysning",
 	offer_declined: "Avslått tilbud",
 	archive_channel: "Arkivering av Slack-kanal",
+	sync_channel: "Synkronisering av Slack-medlemmer",
 	remind_3d: "Påminnelse før intervju",
 	remind_1d: "Påminnelse dagen før",
 	delivery_failure: "Varsel om mislykket e-post",

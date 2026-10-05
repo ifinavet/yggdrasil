@@ -17,7 +17,13 @@ import type { Id } from "../_generated/dataModel";
 import { type ActionCtx, action } from "../_generated/server";
 import { isLocalDevelopment } from "../auth/local";
 import { googleConfig, isWorkspaceEmail } from "../iam/config";
-import { externalBusyIntervals, googleCalendarClient } from "../iam/googleCalendar";
+import {
+	externalBusyIntervals,
+	googleCalendarClient,
+	type OwnedAdmissionEvent,
+	ownedBusyIntervals,
+} from "../iam/googleCalendar";
+import { admissionCalendarEventId } from "./delivery/eventId";
 
 const localCalendars = [
 	{ id: "navet", name: "Navet" },
@@ -265,10 +271,17 @@ export const generateSchedule = action({
 					new Date(period.interviewStartAt).toISOString(),
 					new Date(period.interviewEndAt).toISOString(),
 				);
-				const ownIds = new Set<string>(
+				const ownedEvents = new Map<string, OwnedAdmissionEvent>(
 					context.existingInterviews
 						.filter((interview) => interview.interviewerIds.includes(person.userId))
-						.map((interview) => interview._id),
+						.map((interview) => [
+							interview._id,
+							{
+								eventId: admissionCalendarEventId(interview._id),
+								interviewId: interview._id,
+								periodId: period._id,
+							},
+						]),
 				);
 				return {
 					id: person.userId,
@@ -282,20 +295,8 @@ export const generateSchedule = action({
 								new Date(period.interviewStartAt).toISOString(),
 								new Date(period.interviewEndAt).toISOString(),
 							);
-							const external = externalBusyIntervals(events, ownIds, period._id);
-							const known = [
-								...external,
-								...events.flatMap((event) => {
-									const id = event.extendedProperties?.shared?.navetAdmissionsInterviewId;
-									if (
-										!id ||
-										!ownIds.has(id) ||
-										event.extendedProperties?.shared?.navetAdmissionsPeriodId !== period._id
-									)
-										return [];
-									return externalBusyIntervals([event]);
-								}),
-							];
+							const external = externalBusyIntervals(events, ownedEvents);
+							const known = [...external, ...ownedBusyIntervals(events, ownedEvents)];
 							const parsed = freeBusy.map((entry) => ({
 								start: Date.parse(entry.start),
 								end: Date.parse(entry.end),

@@ -24,6 +24,22 @@ export async function queueOutbox(
 	return jobId;
 }
 
+export async function expirePendingOffers(
+	ctx: MutationCtx,
+	applications: readonly Doc<"admissionApplications">[],
+) {
+	await Promise.all(
+		applications
+			.filter((application) => application.offerStatus === "pending")
+			.map((application) =>
+				ctx.db.patch(application._id, {
+					offerStatus: "expired",
+					revision: application.revision + 1,
+				}),
+			),
+	);
+}
+
 export async function purgeBatch(ctx: MutationCtx, periodId: Id<"admissionPeriods">) {
 	const deliveries = await ctx.db
 		.query("admissionDeliveries")

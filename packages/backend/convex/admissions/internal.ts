@@ -12,8 +12,10 @@ import { internalMutation, internalQuery, type MutationCtx } from "../_generated
 import { adminRoles, internalRoles, requireRole, userHasRole } from "../auth/accessRights";
 import { accountForUser } from "../iam/accounts";
 import { enqueueSystemMessage } from "../iam/notifications";
+import { admissionsChannelNames } from "./channelNames";
 import {
 	activePublishInterviewIds,
+	expirePendingOffers,
 	finishClose,
 	purgeBatch as purgeRecordsBatch,
 	queueOutbox,
@@ -26,6 +28,7 @@ async function isCurrent(ctx: Parameters<typeof requireRole>[0], job: Doc<"admis
 	const period = await ctx.db.get(job.periodId);
 	if (job.kind === "archive_channel") return period?.status === "closing";
 	if (!period) return false;
+	if (job.kind === "sync_channel") return period.status !== "closing";
 	if (job.kind === "cancel_interview") return isCancellationCurrent(ctx, job);
 	if (job.kind === "offer_declined") return isApplicationJobCurrent(ctx, job);
 	if (period.status === "closing") return false;
@@ -81,6 +84,20 @@ async function isApplicationJobCurrent(
 	return false;
 }
 
+function exhaustedResource(
+	job: Doc<"admissionOutbox">,
+	period: Doc<"admissionPeriods"> | null,
+	interview: Doc<"admissionInterviews"> | null,
+) {
+	if (job.kind === "cancel_interview") {
+		if (interview?.calendarEventId) return `Google Calendar event ${interview.calendarEventId}`;
+		return `Google Calendar interview ${job.interviewId ?? "unknown"}; search shared metadata navetAdmissionsInterviewId=${job.interviewId ?? "unknown"} and navetAdmissionsPeriodId=${job.periodId}`;
+	}
+	if (!period) return `Slack channel owned by admissions:${job.periodId}`;
+	const { name, fallbackName } = admissionsChannelNames(period.applicationStartAt, period._id);
+	return `Slack channel ${name} or ${fallbackName}, owner admissions:${period._id}`;
+}
+
 export const claimOutbox = internalMutation({
 	args: { idempotencyKey: v.string() },
 	handler: async (ctx, { idempotencyKey }) => {
@@ -108,7 +125,22 @@ export const claimOutbox = internalMutation({
 		const interview = job.interviewId ? await ctx.db.get(job.interviewId) : null;
 		const delivery = job.deliveryId ? await ctx.db.get(job.deliveryId) : null;
 		const applicantUser = application ? await ctx.db.get(application.userId) : null;
-		const interviewerIds = interview?.interviewerIds ?? [];
+		const interviewerIds =
+			job.kind === "sync_channel"
+				? (period?.interviewers.map(({ userId }) => userId) ?? [])
+				: (interview?.interviewerIds ?? []);
+		const selectedInterviewers = await Promise.all(
+			(period?.interviewers.map(({ userId }) => userId) ?? []).map(async (userId) => {
+				const user = await ctx.db.get(userId);
+				return user
+					? {
+							userId,
+							email: await workspaceEmail(ctx, user),
+							name: `${user.firstName} ${user.lastName}`.trim(),
+						}
+					: null;
+			}),
+		);
 		const interviewers = await Promise.all(
 			interviewerIds.map(async (userId) => {
 				const user = await ctx.db.get(userId);
@@ -127,6 +159,9 @@ export const claimOutbox = internalMutation({
 			application,
 			interview,
 			delivery,
+			selectedInterviewers: selectedInterviewers.filter(
+				(user): user is NonNullable<typeof user> => user !== null,
+			),
 			applicant:
 				application && applicantUser
 					? {
@@ -206,9 +241,11 @@ export const failOutbox = internalMutation({
 				job.kind === "archive_channel" ||
 				job.kind === "offer_declined")
 		) {
+			const period = await ctx.db.get(job.periodId);
+			const interview = job.interviewId ? await ctx.db.get(job.interviewId) : null;
 			await enqueueSystemMessage(ctx, {
 				channel: SYSTEM_ALERTS_CHANNEL,
-				text: "An admissions integration job reached its retry limit. Review admissions operations.",
+				text: `Admissions integration retry limit reached. Period: ${period?.title ?? job.periodId} (${job.periodId}). Job: ${job.kind}. Resource: ${exhaustedResource(job, period, interview)}. Check provider status and complete cleanup manually if needed.`,
 				clientMsgId: `admissions-integration-exhausted:${job._id}`,
 			});
 		}
@@ -235,6 +272,23 @@ export const calendarAccess = internalQuery({
 			throw new ConvexError("Intervjueren er ikke valgt i denne perioden.");
 		const user = await ctx.db.get(interviewerId);
 		return { period, interviewer, email: user ? await workspaceEmail(ctx, user) : "" };
+	},
+});
+
+export const saveSlackManagedMembers = internalMutation({
+	args: {
+		periodId: v.id("admissionPeriods"),
+		expectedRevision: v.number(),
+		memberIds: v.array(v.string()),
+	},
+	handler: async (ctx, { periodId, expectedRevision, memberIds }) => {
+		const members = [...new Set(memberIds)];
+		if (members.length > 60 || members.some((member) => !member))
+			throw new ConvexError("Medlemslisten for opptakskanalen er ugyldig.");
+		const period = await ctx.db.get(periodId);
+		if (!period || (period.status !== "closing" && period.revision !== expectedRevision))
+			throw new ConvexError("Opptaket ble endret mens Slack-kanalen ble oppdatert.");
+		await ctx.db.patch(periodId, { slackManagedMemberIds: members });
 	},
 });
 
@@ -360,14 +414,22 @@ export const saveSchedule = internalMutation({
 			throw new ConvexError(
 				"Et avlyst intervju må bookes på nytt manuelt etter avtale med søkeren.",
 			);
-		const published = existingInterviews.filter((interview) => interview.publishedAt !== undefined);
+		const activePublishIds = await activePublishInterviewIds(ctx, periodId);
+		const immutable = existingInterviews.filter(
+			(interview) => interview.publishedAt !== undefined || activePublishIds.has(interview._id),
+		);
+		const immutableApplicationIds = new Set(immutable.map((interview) => interview.applicationId));
 		const assignmentsByApplication = new Map(
 			assignments.map((assignment) => [assignment.applicationId, assignment]),
 		);
-		for (const interview of published) {
+		for (const interview of immutable) {
 			const assignment = assignmentsByApplication.get(interview.applicationId);
 			if (assignment && !samePublishedSchedule(assignment, interview, period, selectionByUser))
-				throw new ConvexError("Et publisert intervju må endres gjennom en bekreftet ny plan.");
+				throw new ConvexError(
+					interview.publishedAt !== undefined
+						? "Et publisert intervju må endres gjennom en bekreftet ny plan."
+						: "Et intervju kan ikke endres mens kalenderpubliseringen pågår.",
+				);
 		}
 		const eligibility = await Promise.all(
 			period.interviewers.map(async ({ userId }) => ({
@@ -379,14 +441,11 @@ export const saveSchedule = internalMutation({
 			eligibility.filter((entry) => entry.active).map((entry) => entry.userId),
 		);
 		const scheduled = assignments
-			.filter(
-				(assignment) =>
-					!published.some((interview) => interview.applicationId === assignment.applicationId),
-			)
+			.filter((assignment) => !immutableApplicationIds.has(assignment.applicationId))
 			.map((assignment) =>
 				validateAssignment(assignment, period, applications, selectionByUser, active),
 			);
-		const pinned = published.map((interview) => ({
+		const pinned = immutable.map((interview) => ({
 			applicationId: interview.applicationId,
 			startAt: interview.startAt,
 			endAt: interview.endAt,
@@ -424,7 +483,7 @@ export const saveSchedule = internalMutation({
 			status: scheduled.length > 0 ? "open" : period.status,
 			revision: period.revision + 1,
 		});
-		const assigned = [...published.map((interview) => interview.applicationId), ...saved];
+		const assigned = [...immutable.map((interview) => interview.applicationId), ...saved];
 		return { count: assigned.length, unmatched: applicationsNotScheduled(applications, assigned) };
 	},
 });
@@ -461,13 +520,7 @@ export const closeExpiredPeriod = internalMutation({
 			)
 			.take(MAX_APPLICATIONS);
 		const interviewsBeingPublished = await activePublishInterviewIds(ctx, periodId);
-		await Promise.all(
-			applications
-				.filter((app) => app.offerStatus === "pending")
-				.map((app) =>
-					ctx.db.patch(app._id, { offerStatus: "expired", revision: app.revision + 1 }),
-				),
-		);
+		await expirePendingOffers(ctx, applications);
 		const interviews = await ctx.db
 			.query("admissionInterviews")
 			.withIndex("by_periodId_and_status", (q) =>

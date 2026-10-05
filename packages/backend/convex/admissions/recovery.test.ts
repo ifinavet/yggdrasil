@@ -106,7 +106,7 @@ it("recovers expired outbox leases automatically", async () => {
 			attempts: 8,
 		});
 	});
-	await t.mutation(internal.admissions.recovery.recoverExpired, {});
+	await t.mutation(internal.admissions.recovery.recoverPeriod, { periodId });
 	const jobs = await t.run((ctx) => ctx.db.query("admissionOutbox").collect());
 	expect(jobs.find((job) => job.idempotencyKey === "expired")?.state).toBe("pending");
 	expect(jobs.find((job) => job.idempotencyKey === "still-leased")?.state).toBe("running");
@@ -153,7 +153,11 @@ it("alerts #system and purges closing data after cleanup exhausts its retries", 
 	const alerts = await t.run((ctx) => ctx.db.query("slackSystemDeliveries").collect());
 	expect(period).toBeNull();
 	expect(alerts).toHaveLength(1);
-	expect(alerts[0]?.text).toContain("admissions integration job reached its retry limit");
+	expect(alerts[0]?.text).toContain("Admissions integration retry limit reached");
+	expect(alerts[0]?.text).toContain("Høst 2026");
+	expect(alerts[0]?.text).toContain(`Slack channel h26-opptak or h26-opptak-${periodId}`);
+	expect(alerts[0]?.text).toContain(`owner admissions:${periodId}`);
+	expect(alerts[0]?.text).not.toContain("Slack unavailable");
 });
 
 it("alerts before closing when the declined-offer notice exhausts retries", async () => {
@@ -193,8 +197,12 @@ it("alerts before closing when the declined-offer notice exhausts retries", asyn
 	});
 	const alerts = await t.run((ctx) => ctx.db.query("slackSystemDeliveries").collect());
 	expect(alerts).toHaveLength(1);
-	expect(alerts[0]?.text).toContain("admissions integration job reached its retry limit");
+	expect(alerts[0]?.text).toContain("Admissions integration retry limit reached");
+	expect(alerts[0]?.text).toContain("Høst 2026");
+	expect(alerts[0]?.text).toContain(`Slack channel h26-opptak or h26-opptak-${periodId}`);
+	expect(alerts[0]?.text).toContain(`owner admissions:${periodId}`);
 	expect(alerts[0]?.text).not.toContain("applicant@uio.no");
+	expect(alerts[0]?.text).not.toContain("Slack unavailable");
 	expect(await t.run((ctx) => ctx.db.get(applicationId))).not.toBeNull();
 });
 
@@ -224,4 +232,28 @@ it("keeps retry controls admin-only", async () => {
 			idempotencyKey: "private-job",
 		}),
 	).rejects.toThrow(/Unauthorized/);
+});
+
+it("recovers only the active period and stops scheduling after its deletion", async () => {
+	const { t, periodId } = await recoveryFixture();
+	const due = Date.now() - 1;
+	await t.run(async (ctx) => {
+		const period = await ctx.db.get(periodId);
+		if (!period) throw new Error("Missing test period");
+		const { _id, _creationTime, ...fields } = period;
+		const otherId = await ctx.db.insert("admissionPeriods", fields);
+		await ctx.db.insert("admissionOutbox", outboxJob(periodId, "current-period", "running", due));
+		await ctx.db.insert("admissionOutbox", outboxJob(otherId, "other-period", "running", due));
+	});
+	expect(await t.mutation(internal.admissions.recovery.recoverPeriod, { periodId })).toBe(1);
+	const jobs = await t.run((ctx) => ctx.db.query("admissionOutbox").collect());
+	expect(jobs.find((job) => job.idempotencyKey === "current-period")?.state).toBe("pending");
+	expect(jobs.find((job) => job.idempotencyKey === "other-period")?.state).toBe("running");
+	const scheduled = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
+	expect(scheduled.some((job) => job.name.includes("recoverPeriod"))).toBe(true);
+	await t.run((ctx) => ctx.db.delete(periodId));
+	expect(await t.mutation(internal.admissions.recovery.recoverPeriod, { periodId })).toBe(0);
+	expect(await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect())).toHaveLength(
+		scheduled.length,
+	);
 });

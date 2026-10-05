@@ -3,6 +3,7 @@ import type { Doc } from "../_generated/dataModel";
 import { mutation } from "../_generated/server";
 import schema from "../schema";
 import { requireMutablePeriod } from "./access";
+import { queueOutbox } from "./lifecycle";
 import { validateInterviewers } from "./mutations";
 import { MAX_APPLICATIONS, MAX_ROUNDS, validateSettings } from "./rules";
 import { interviewerSelection } from "./schema";
@@ -36,6 +37,9 @@ export const updateInterviewers = mutation({
 		)
 			throw new ConvexError("Velg gyldige kalendere, maksimalt 30 per intervjuer.");
 		const nextInterviewerIds = new Set(args.interviewers.map((person) => person.userId));
+		const membershipChanged =
+			nextInterviewerIds.size !== period.interviewers.length ||
+			period.interviewers.some((person) => !nextInterviewerIds.has(person.userId));
 		const removedInterviewerIds = new Set(
 			period.interviewers
 				.filter((person) => !nextInterviewerIds.has(person.userId))
@@ -60,11 +64,23 @@ export const updateInterviewers = mutation({
 					"Intervjuere kan ikke fjernes når de er tildelt publiserte intervjuer.",
 				);
 		}
+		const revision = period.revision + 1;
 		await ctx.db.patch(period._id, {
 			interviewers: args.interviewers,
-			revision: period.revision + 1,
+			revision,
 			status: "open",
 		});
+		if (membershipChanged)
+			await queueOutbox(ctx, {
+				kind: "sync_channel",
+				periodId: period._id,
+				revision,
+				idempotencyKey: `sync-channel:${period._id}:${revision}`,
+				state: "pending",
+				attempts: 0,
+				nextAttemptAt: Date.now(),
+				createdAt: Date.now(),
+			});
 	},
 });
 
@@ -128,12 +144,38 @@ export const assignRooms = mutation({
 			)
 				throw new ConvexError("Rommet er allerede i bruk av et annet intervju på samme tid.");
 		}
-		await Promise.all(
-			interviews
-				.filter((row) => selected.has(row.applicationId))
-				.map((row) => ctx.db.patch(row._id, { room, revision: row.revision + 1 })),
+		const changed = interviews.filter(
+			(row) => selected.has(row.applicationId) && row.room !== room,
 		);
-		await ctx.db.patch(period._id, { revision: period.revision + 1, status: "open" });
+		const republish =
+			period.status === "published" || changed.some((row) => row.publishedAt !== undefined);
+		await Promise.all(
+			changed.map(async (row) => {
+				const revision = row.revision + 1;
+				await ctx.db.patch(row._id, {
+					room,
+					revision,
+					publishedAt: undefined,
+				});
+				if (republish)
+					await queueOutbox(ctx, {
+						kind: "publish",
+						periodId: period._id,
+						applicationId: row.applicationId,
+						interviewId: row._id,
+						revision,
+						idempotencyKey: `publish:${row._id}:${revision}`,
+						state: "pending",
+						attempts: 0,
+						nextAttemptAt: Date.now(),
+						createdAt: Date.now(),
+					});
+			}),
+		);
+		await ctx.db.patch(period._id, {
+			revision: period.revision + 1,
+			status: republish ? "published" : "open",
+		});
 	},
 });
 

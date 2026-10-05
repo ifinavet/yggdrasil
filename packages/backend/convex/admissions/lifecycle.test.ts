@@ -1,5 +1,9 @@
 import { expect, it } from "vitest";
-import { applicationFields, periodFields } from "../../test/admissions-fixtures";
+import {
+	applicationFields,
+	firstAdmissionOutboxJob,
+	periodFields,
+} from "../../test/admissions-fixtures";
 import { asUser, grantRole, insertUser, setup } from "../../test/fixtures";
 import { api, internal } from "../_generated/api";
 
@@ -97,38 +101,17 @@ it("sends a declined-offer notice before archiving the channel during close", as
 		idempotencyKey: "declined-before-close",
 	});
 	expect(claimed?.job.state).toBe("running");
-	expect(
-		await t.run((ctx) =>
-			ctx.db
-				.query("admissionOutbox")
-				.withIndex("by_periodId_and_kind", (q) =>
-					q.eq("periodId", periodId).eq("kind", "archive_channel"),
-				)
-				.first(),
-		),
-	).toBeNull();
+	expect(await firstAdmissionOutboxJob(t, periodId, "archive_channel")).toBeNull();
 
 	await t.mutation(internal.admissions.internal.completeOutbox, {
 		idempotencyKey: "declined-before-close",
 	});
-	expect(
-		await t.run((ctx) =>
-			ctx.db
-				.query("admissionOutbox")
-				.withIndex("by_periodId_and_kind", (q) =>
-					q.eq("periodId", periodId).eq("kind", "offer_declined"),
-				)
-				.first(),
-		),
-	).toMatchObject({ applicationId, state: "done" });
-	expect(
-		await t.run((ctx) =>
-			ctx.db
-				.query("admissionOutbox")
-				.withIndex("by_periodId_and_kind", (q) =>
-					q.eq("periodId", periodId).eq("kind", "archive_channel"),
-				)
-				.first(),
-		),
-	).toMatchObject({ kind: "archive_channel", state: "pending" });
+	expect(await firstAdmissionOutboxJob(t, periodId, "offer_declined")).toMatchObject({
+		applicationId,
+		state: "done",
+	});
+	expect(await firstAdmissionOutboxJob(t, periodId, "archive_channel")).toMatchObject({
+		kind: "archive_channel",
+		state: "pending",
+	});
 });
