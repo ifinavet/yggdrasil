@@ -143,8 +143,11 @@ export function baselineFor(
 		past.timeline?.remindersEnabled === undefined ||
 		timeline?.remindersEnabled === undefined ||
 		past.timeline.remindersEnabled === timeline.remindersEnabled;
-	const aligned = (past: PastCurve) =>
-		timeline && past.timeline ? alignedCurve(past.curve, past.timeline, timeline) : past.curve;
+	const aligned = (past: PastCurve) => {
+		const curve =
+			timeline && past.timeline ? alignedCurve(past.curve, past.timeline, timeline) : past.curve;
+		return curve.map((fill) => Math.min(1, fill * (past.limit / limit)));
+	};
 	const own = companyCurves.filter(comparable).slice(0, COMPANY_BASELINE.size);
 	const ownIds = new Set(own.map((past) => past.eventId));
 	const pool = pastCurves

@@ -283,9 +283,19 @@ describe("baselineFor", () => {
 
 	it("weighs the company's own events against the pool by how many there are", () => {
 		const pool = Array.from({ length: 5 }, () => past(10, [0, 0.2]));
-		const baseline = baselineFor(pool, 10, [past(40, [0, 0.9]), past(40, [0, 1])]);
+		const baseline = baselineFor(pool, 10, [past(10, [0, 0.9]), past(10, [0, 1])]);
 		expect(baseline?.size).toBe(7);
 		expect(baseline?.curve[1]).toBeCloseTo(0.5 * 0.95 + 0.5 * 0.2);
+	});
+
+	it("expects the headcount of past events rather than their fill", () => {
+		const soldOut = Array.from({ length: 3 }, () => past(40, [0, 0.5, 1]));
+		expect(baselineFor(soldOut, 80)?.curve.slice(0, 3)).toEqual([0, 0.25, 0.5]);
+	});
+
+	it("caps the expected headcount at the seats of the event", () => {
+		const larger = Array.from({ length: 3 }, () => past(60, [0, 0.5, 1]));
+		expect(baselineFor(larger, 40)?.curve.slice(0, 3)).toEqual([0, 0.75, 1]);
 	});
 
 	it("lets a single earlier company event move the baseline", () => {
