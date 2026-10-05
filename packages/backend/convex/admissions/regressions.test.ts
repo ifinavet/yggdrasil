@@ -1,5 +1,6 @@
 import { localWindow } from "@workspace/shared/admissions";
 import { afterEach, expect, it, vi } from "vitest";
+import { applicationFields } from "../../test/admissions-fixtures";
 import { asUser, grantRole, insertStudent, insertUser, setup } from "../../test/fixtures";
 import { api, internal } from "../_generated/api";
 
@@ -103,17 +104,7 @@ it("keeps a published interview reminder current after unrelated period settings
 	const now = Date.now();
 	const periodId = await createPeriod(admin, now - DAY, [interviewer], otherInterviewer);
 	const applicationId = await t.run((ctx) =>
-		ctx.db.insert("admissionApplications", {
-			periodId,
-			userId: applicant._id,
-			availability: [],
-			status: "submitted",
-			revision: 1,
-			decisionRevision: 0,
-			decision: "pending",
-			offerStatus: "none",
-			sent: false,
-		}),
+		ctx.db.insert("admissionApplications", applicationFields(periodId, applicant._id)),
 	);
 	const interviewId = await t.run((ctx) =>
 		ctx.db.insert("admissionInterviews", {
@@ -222,17 +213,7 @@ it("closes an in-flight publish with calendar cleanup without notifying the appl
 	const now = Date.now();
 	const periodId = await createPeriod(admin, now - DAY, [interviewer], otherInterviewer);
 	const applicationId = await t.run((ctx) =>
-		ctx.db.insert("admissionApplications", {
-			periodId,
-			userId: applicant._id,
-			availability: [],
-			status: "submitted",
-			revision: 1,
-			decisionRevision: 0,
-			decision: "pending",
-			offerStatus: "none",
-			sent: false,
-		}),
+		ctx.db.insert("admissionApplications", applicationFields(periodId, applicant._id)),
 	);
 	const interviewId = await t.run((ctx) =>
 		ctx.db.insert("admissionInterviews", {
@@ -391,17 +372,7 @@ it("archives only after cancellation cleanup and purges only after archive succe
 	const now = Date.now();
 	const periodId = await createPeriod(admin, now - DAY, [interviewer], otherInterviewer);
 	const applicationId = await t.run((ctx) =>
-		ctx.db.insert("admissionApplications", {
-			periodId,
-			userId: applicant._id,
-			availability: [],
-			status: "submitted",
-			revision: 1,
-			decisionRevision: 0,
-			decision: "pending",
-			offerStatus: "none",
-			sent: false,
-		}),
+		ctx.db.insert("admissionApplications", applicationFields(periodId, applicant._id)),
 	);
 	const interviewId = await t.run((ctx) =>
 		ctx.db.insert("admissionInterviews", {
@@ -454,17 +425,7 @@ it("finds pending cleanup beyond 200 completed outbox rows and purges in bounded
 	const now = Date.now();
 	const periodId = await createPeriod(admin, now - DAY, [interviewer], otherInterviewer);
 	const applicationId = await t.run((ctx) =>
-		ctx.db.insert("admissionApplications", {
-			periodId,
-			userId: applicant._id,
-			availability: [],
-			status: "submitted",
-			revision: 1,
-			decisionRevision: 0,
-			decision: "pending",
-			offerStatus: "none",
-			sent: false,
-		}),
+		ctx.db.insert("admissionApplications", applicationFields(periodId, applicant._id)),
 	);
 	const interviewId = await t.run(async (ctx) => {
 		for (let index = 0; index < 205; index++)
@@ -540,17 +501,7 @@ it("waits for retention calendar cleanup before queueing the archive job", async
 	const now = Date.now();
 	const periodId = await createPeriod(admin, now - DAY, [interviewer], otherInterviewer);
 	const applicationId = await t.run((ctx) =>
-		ctx.db.insert("admissionApplications", {
-			periodId,
-			userId: applicant._id,
-			availability: [],
-			status: "submitted",
-			revision: 1,
-			decisionRevision: 0,
-			decision: "pending",
-			offerStatus: "none",
-			sent: false,
-		}),
+		ctx.db.insert("admissionApplications", applicationFields(periodId, applicant._id)),
 	);
 	const interviewId = await t.run((ctx) =>
 		ctx.db.insert("admissionInterviews", {
@@ -1121,17 +1072,7 @@ it("rejects invalid reviewed account details before sending an accepted offer", 
 	const { t, admin, applicant, interviewer, otherInterviewer } = await fixture();
 	const periodId = await createPeriod(admin, Date.now() - DAY, [interviewer], otherInterviewer);
 	const applicationId = await t.run((ctx) =>
-		ctx.db.insert("admissionApplications", {
-			periodId,
-			userId: applicant._id,
-			availability: [],
-			status: "submitted",
-			revision: 1,
-			decisionRevision: 0,
-			decision: "pending",
-			offerStatus: "none",
-			sent: false,
-		}),
+		ctx.db.insert("admissionApplications", applicationFields(periodId, applicant._id)),
 	);
 	await expect(
 		admin.mutation(api.admissions.mutations.setDecision, {

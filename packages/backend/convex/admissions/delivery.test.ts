@@ -1,4 +1,5 @@
 import { expect, it } from "vitest";
+import { applicationFields, periodFields } from "../../test/admissions-fixtures";
 import { asUser, grantRole, insertUser, setup } from "../../test/fixtures";
 import { api, internal } from "../_generated/api";
 
@@ -9,44 +10,16 @@ async function overviewFixture() {
 	const applicant = await insertUser(t, "applicant@uio.no");
 	const now = Date.now();
 	const periodId = await t.run((ctx) =>
-		ctx.db.insert("admissionPeriods", {
-			title: "Høst 2026",
-			applicationStartAt: now - 1000,
-			applicationEndAt: now + 86400000,
-			interviewStartAt: now + 172800000,
-			interviewEndAt: now + 604800000,
-			retentionAt: now + 1209600000,
-			status: "open",
-			revision: 0,
-			interviewers: [],
-			duration: 15,
-			buffer: 5,
-			breakEvery: 3,
-			breakMinutes: 15,
-			lunch: true,
-			room: "Beta",
-			dayStart: 540,
-			dayEnd: 960,
-			breaks: [],
-			timezone: "Europe/Oslo",
-			round: 1,
-			roundHistory: [],
-			createdBy: admin._id,
-			updatedBy: admin._id,
-		}),
+		ctx.db.insert(
+			"admissionPeriods",
+			periodFields(admin._id, { revision: 0, interviewEndAt: now + 7 * 86400000 }),
+		),
 	);
 	const applicationId = await t.run((ctx) =>
-		ctx.db.insert("admissionApplications", {
-			periodId,
-			userId: applicant._id,
-			availability: [],
-			status: "submitted",
-			revision: 0,
-			decisionRevision: 0,
-			decision: "pending",
-			offerStatus: "none",
-			sent: false,
-		}),
+		ctx.db.insert(
+			"admissionApplications",
+			applicationFields(periodId, applicant._id, { revision: 0 }),
+		),
 	);
 	return { t, admin, periodId, applicationId };
 }
