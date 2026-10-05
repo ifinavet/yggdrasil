@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { admissionApplicationFixture } from "../../../../test/admissions-fixtures";
+import { admissionApplicationFixture, periodFields } from "../../../../test/admissions-fixtures";
 import {
 	allOperations,
 	finishOperation,
@@ -39,6 +39,50 @@ it("shows unresolved mail delivery failures in the admin overview", async () => 
 		"status:failed",
 		"status:bounced",
 		"status:complained",
+	]);
+});
+
+it("keeps current-period delivery failures visible after successful history", async () => {
+	const { t, admin, periodId, applicationId } = await admissionApplicationFixture(
+		{ revision: 0 },
+		{ revision: 0 },
+	);
+	const otherPeriodId = await t.run((ctx) =>
+		ctx.db.insert("admissionPeriods", periodFields(admin._id, { revision: 0 })),
+	);
+	await t.run(async (ctx) => {
+		for (let index = 0; index < 201; index++) {
+			await ctx.db.insert("admissionDeliveries", {
+				periodId,
+				applicationId,
+				kind: "offer",
+				idempotencyKey: `delivered:${index}`,
+				emailId: `delivered:${index}`,
+				status: "delivered",
+			});
+		}
+		for (const [status, scope] of [
+			["failed", periodId],
+			["bounced", periodId],
+			["failed", otherPeriodId],
+		] as const) {
+			await ctx.db.insert("admissionDeliveries", {
+				periodId: scope,
+				applicationId,
+				kind: "offer",
+				idempotencyKey: `failure:${scope}:${status}`,
+				emailId: `failure:${scope}:${status}`,
+				status,
+				error: `error:${scope}:${status}`,
+			});
+		}
+	});
+
+	const overview = await asUser(t, admin).query(api.admissions.queries.adminOverview, { periodId });
+	expect(overview?.deliveryIssues).toHaveLength(2);
+	expect(overview?.deliveryIssues.map(({ status, error }) => ({ status, error }))).toEqual([
+		{ status: "failed", error: `error:${periodId}:failed` },
+		{ status: "bounced", error: `error:${periodId}:bounced` },
 	]);
 });
 

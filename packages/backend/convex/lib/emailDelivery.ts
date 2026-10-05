@@ -1,7 +1,17 @@
 import type { EmailEvent } from "@convex-dev/resend";
 
-const failureStatuses = ["delayed", "failed", "bounced", "complained"] as const;
-export const EMAIL_DELIVERY_STATUSES = ["queued", "sent", "delivered", ...failureStatuses] as const;
+export const EMAIL_DELIVERY_FAILURE_STATUSES = [
+	"delayed",
+	"failed",
+	"bounced",
+	"complained",
+] as const;
+export const EMAIL_DELIVERY_STATUSES = [
+	"queued",
+	"sent",
+	"delivered",
+	...EMAIL_DELIVERY_FAILURE_STATUSES,
+] as const;
 export type EmailDeliveryStatus = (typeof EMAIL_DELIVERY_STATUSES)[number];
 
 export const EMAIL_DELIVERY_ERRORS: Partial<Record<EmailDeliveryStatus, string>> = {
@@ -24,7 +34,7 @@ export const EMAIL_DELIVERY_EVENT_STATUSES: Readonly<
 } satisfies Partial<Record<EmailEvent["type"] | "email.suppressed", EmailDeliveryStatus>>;
 
 export function isEmailDeliveryFailure(status: string) {
-	return (failureStatuses as readonly string[]).includes(status);
+	return (EMAIL_DELIVERY_FAILURE_STATUSES as readonly string[]).includes(status);
 }
 
 function isTerminalFailure(status: string) {

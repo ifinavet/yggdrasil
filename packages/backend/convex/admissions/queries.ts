@@ -5,7 +5,7 @@ import type { Doc, Id } from "../_generated/dataModel";
 import { type QueryCtx, query } from "../_generated/server";
 import { adminRoles, requireRole } from "../auth/accessRights";
 import { getCurrentUserOrThrow } from "../auth/currentUser";
-import { isEmailDeliveryFailure } from "../lib/emailDelivery";
+import { EMAIL_DELIVERY_FAILURE_STATUSES } from "../lib/emailDelivery";
 import { MAX_INTERNAL_GROUPS } from "../users/organization/groups";
 import { listOperations } from "./delivery/workflow";
 import { MAX_APPLICATIONS } from "./rules";
@@ -122,12 +122,19 @@ export const adminOverview = query({
 		const jobs = (await listOperations(ctx, period._id, true)).filter(
 			(job) => job.state === "inProgress" || job.state === "failed",
 		);
-		const deliveryRows = await ctx.db
-			.query("admissionDeliveries")
-			.withIndex("by_periodId", (q) => q.eq("periodId", period._id))
-			.take(200);
-		const unresolvedDeliveries = deliveryRows
-			.filter((delivery) => isEmailDeliveryFailure(delivery.status))
+		const unresolvedDeliveries = (
+			await Promise.all(
+				EMAIL_DELIVERY_FAILURE_STATUSES.map((status) =>
+					ctx.db
+						.query("admissionDeliveries")
+						.withIndex("by_periodId_and_status", (q) =>
+							q.eq("periodId", period._id).eq("status", status),
+						)
+						.take(MAX_APPLICATIONS),
+				),
+			)
+		)
+			.flat()
 			.map(({ _id, kind, status, error }) => ({ _id, kind, status, error }));
 		if (period.status === "closing")
 			return {

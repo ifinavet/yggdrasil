@@ -153,5 +153,6 @@ export const admissionsSchema = {
 	})
 		.index("by_emailId", ["emailId"])
 		.index("by_periodId", ["periodId"])
+		.index("by_periodId_and_status", ["periodId", "status"])
 		.index("by_idempotencyKey", ["idempotencyKey"]),
 };
