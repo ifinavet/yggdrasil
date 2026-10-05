@@ -12,7 +12,7 @@
 	},
 	"dependencies": {
 		"@clerk/nextjs": "catalog:",
-		"@clerk/ui": "^1.36.0",
+		"@clerk/ui": "^1.38.1",
 		"@floating-ui/react": "catalog:",
 		"@sentry/nextjs": "catalog:",
 		"@tanstack/charts": "0.18.0",
