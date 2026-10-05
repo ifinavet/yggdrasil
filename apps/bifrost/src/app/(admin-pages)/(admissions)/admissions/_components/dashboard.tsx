@@ -31,24 +31,13 @@ import { OfferDialog } from "./candidates/offer-dialog";
 import { SelectionBoard } from "./candidates/selection-board";
 import { DeliveryStatus } from "./delivery-status";
 import { CalendarDialog } from "./interviews/calendar-dialog";
-import { CancelInterviewDialog } from "./interviews/cancel-interview-dialog";
 import { InterviewCalendar } from "./interviews/interview-calendar";
-import { InterviewDialog } from "./interviews/interview-dialog";
-import { type Candidate, type Decision, decisionLabels } from "./model";
+import { type Candidate, type Decision, decisionLabels, offerLabels } from "./model";
 import { SettingsDialog } from "./period/settings-dialog";
-
-const offerLabels = {
-	none: "",
-	pending: "Venter på svar",
-	accepted: "Takket ja",
-	declined: "Takket nei",
-	expired: "Svarfristen er ute",
-};
 
 export default function AdmissionsDashboard() {
 	const overview = useQuery(api.admissions.queries.adminOverview, {});
 	const setDecision = useMutation(api.admissions.mutations.setDecision);
-	const addNote = useMutation(api.admissions.mutations.addNote);
 	const assignRooms = useMutation(api.admissions.board.assignRooms);
 	const changeRound = useMutation(api.admissions.board.changeRound);
 	const sendDecision = useMutation(api.admissions.mutations.sendDecision);
@@ -65,9 +54,6 @@ export default function AdmissionsDashboard() {
 	const [confirmSend, setConfirmSend] = useState(false);
 	const [configure, setConfigure] = useState(false);
 	const [calendars, setCalendars] = useState(false);
-	const [roomDraft, setRoomDraft] = useState("");
-	const [manualInterview, setManualInterview] = useState(false);
-	const [cancelInterview, setCancelInterview] = useState(false);
 
 	const perform = (action: () => Promise<unknown>, message: string) =>
 		run(action, () => toast.success(message), "Handlingen mislyktes. Prøv igjen.");
@@ -97,7 +83,7 @@ export default function AdmissionsDashboard() {
 	const { candidates, interviewers: team, interviews } = overview;
 	const days = makeSchedulingDays(period.interviewStartAt, period.interviewEndAt, period.timezone);
 	const current = overview.candidates.find((candidate) => candidate._id === selected);
-	const interview = current?.interview;
+	const offer = overview.candidates.find((candidate) => candidate._id === offerCandidate);
 	const pending = overview.candidates.filter(
 		(entry) =>
 			!entry.decisionSentAt &&
@@ -110,10 +96,7 @@ export default function AdmissionsDashboard() {
 			(!program || entry.program === program) &&
 			(!year || entry.year === Number(year)),
 	);
-	const openCandidate = (id: string) => {
-		setSelected(id);
-		setRoomDraft(overview.interviews.find((row) => row.applicationId === id)?.room ?? period.room);
-	};
+	const openCandidate = (id: string) => setSelected(id);
 	const saveRooms = (ids: string[], room: string) =>
 		perform(
 			() =>
@@ -309,101 +292,23 @@ export default function AdmissionsDashboard() {
 					)}
 				</>
 			)}
-			<CandidateDialog
-				key={selected}
-				candidate={current}
-				interview={interview ?? undefined}
-				settings={period}
-				room={roomDraft}
-				team={team}
-				onClose={() => setSelected(null)}
-				onRoomChange={setRoomDraft}
-				onDecisionChange={(decision) => {
-					if (selected) decide(selected, decision);
-				}}
-				onSaveNotes={async (notes) => {
-					if (current)
-						await perform(
-							() =>
-								addNote({
-									applicationId: current._id,
-									expectedRevision: current.revision,
-									note: notes,
-								}),
-							"Notatene er lagret",
-						);
-				}}
-				actions={
-					current && (
-						<div className="grid gap-3">
-							{error && <Callout tone="danger">{error}</Callout>}
-							{!interview && (
-								<Button variant="outline" onClick={() => setManualInterview(true)}>
-									Sett intervjutid
-								</Button>
-							)}
-							{interview && (
-								<Button variant="outline" onClick={() => setCancelInterview(true)}>
-									Avlys intervju
-								</Button>
-							)}
-							{interview && (
-								<Button
-									disabled={busy || !roomDraft.trim()}
-									onClick={() => void saveRooms([current._id], roomDraft)}
-								>
-									Lagre rom
-								</Button>
-							)}
-							{current.decision === "accepted" && !current.decisionSentAt && (
-								<Button
-									disabled={busy || Boolean(current.decisionQueuedAt)}
-									onClick={() =>
-										void perform(() => sendReply(current), "Tilbudet er lagt i kø for utsending")
-									}
-								>
-									<Mail />
-									{current.decisionQueuedAt ? "Tilbudet sendes" : "Send tilbud"}
-								</Button>
-							)}
-							{current.offerStatus !== "none" && <p>{offerLabels[current.offerStatus]}</p>}
-						</div>
-					)
-				}
-			/>
-			{manualInterview && current && (
-				<InterviewDialog
-					period={period}
+			{current && (
+				<CandidateDialog
+					key={current._id}
 					candidate={current}
-					people={overview.interviewers}
-					onClose={() => setManualInterview(false)}
+					settings={period}
+					team={team}
+					error={error}
+					busy={busy}
+					onClose={() => setSelected(null)}
+					onDecisionChange={(decision) => decide(current._id, decision)}
+					onSaveRoom={(room) => void saveRooms([current._id], room)}
+					onSendReply={() =>
+						void perform(() => sendReply(current), "Tilbudet er lagt i kø for utsending")
+					}
 				/>
 			)}
-			{cancelInterview && current && (
-				<CancelInterviewDialog candidate={current} onClose={() => setCancelInterview(false)} />
-			)}
-			{offerCandidate &&
-				(() => {
-					const row = overview.candidates.find((entry) => entry._id === offerCandidate);
-					return row ? (
-						<OfferDialog
-							name={row.name}
-							initialGroup={row.reviewedGroupId ?? row.groupId}
-							initialEmail={row.reviewedWorkspaceEmail ?? ""}
-							onClose={() => setOfferCandidate(null)}
-							onSave={async (group, email) => {
-								await setDecision({
-									applicationId: row._id,
-									expectedRevision: row.revision,
-									decision: "accepted",
-									reviewedGroupId: group,
-									reviewedWorkspaceEmail: email,
-								});
-								toast.success("Tilbudet er lagret");
-							}}
-						/>
-					) : null;
-				})()}
+			{offer && <OfferDialog candidate={offer} onClose={() => setOfferCandidate(null)} />}
 			<SettingsDialog
 				key={period._id}
 				open={configure}

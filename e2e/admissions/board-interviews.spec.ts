@@ -30,6 +30,7 @@ test.describe("manual interview follow-up", () => {
 		await captureScreenshot(page, "board", "live-09-manual-interview.png", dialog);
 		await dialog.getByRole("button", { name: "Lagre intervjutid" }).click();
 		await expect(dialog).toBeHidden();
+		await expect(page.getByLabel("Rom", { exact: true })).toHaveValue("Java");
 		const saved = (await admissionsOverview())?.interviews.find(
 			(row) => row.applicationId === candidate?._id,
 		);

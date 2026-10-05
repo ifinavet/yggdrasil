@@ -1,45 +1,49 @@
 "use client";
 import { api } from "@workspace/backend/convex/api";
-import type { Id } from "@workspace/backend/convex/dataModel";
 import { Button } from "@workspace/ui/components/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@workspace/ui/components/dialog";
 import { Field, FieldLabel } from "@workspace/ui/components/field";
 import { useAppForm } from "@workspace/ui/components/form";
 import { SearchSelect } from "@workspace/ui/components/search-select";
 import { useAsyncAction } from "@workspace/ui/hooks/use-async-action";
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { ConvexError } from "convex/values";
 import Link from "next/link";
+import { toast } from "sonner";
+import type { Candidate } from "../model";
 
 export function OfferDialog({
-	name,
-	initialGroup,
-	initialEmail,
-	onSave,
+	candidate,
 	onClose,
 }: Readonly<{
-	name: string;
-	initialGroup?: Id<"internalGroups">;
-	initialEmail: string;
-	onSave: (group: Id<"internalGroups">, email: string) => Promise<void>;
+	candidate: Candidate;
 	onClose: () => void;
 }>) {
 	const { error, run } = useAsyncAction();
+	const setDecision = useMutation(api.admissions.mutations.setDecision);
 	const groups = useQuery(api.admissions.queries.availableGroups, {});
 	const form = useAppForm({
 		defaultValues: {
-			group: initialGroup ?? "",
-			email: initialEmail,
+			group: candidate.reviewedGroupId ?? candidate.groupId ?? "",
+			email: candidate.reviewedWorkspaceEmail ?? "",
 		},
 		onSubmit: ({ value }) =>
 			run(
 				async () => {
 					const selected = groups?.find((group) => group._id === value.group);
 					if (!selected) throw new ConvexError("Velg en arbeidsgruppe.");
-					await onSave(selected._id, value.email);
+					await setDecision({
+						applicationId: candidate._id,
+						expectedRevision: candidate.revision,
+						decision: "accepted",
+						reviewedGroupId: selected._id,
+						reviewedWorkspaceEmail: value.email,
+					});
+				},
+				() => {
+					toast.success("Tilbudet er lagret");
 					onClose();
 				},
-				undefined,
 				"Kunne ikke lagre tilbudet.",
 			),
 	});
@@ -52,7 +56,7 @@ export function OfferDialog({
 		>
 			<DialogContent aria-describedby={undefined}>
 				<DialogHeader>
-					<DialogTitle>Tilbud til {name}</DialogTitle>
+					<DialogTitle>Tilbud til {candidate.name}</DialogTitle>
 				</DialogHeader>
 				<form
 					className="grid gap-6"

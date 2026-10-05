@@ -11,6 +11,13 @@ export type Interviewer = Overview["interviewers"][number];
 export type Interview = Doc<"admissionInterviews">;
 export type Settings = Doc<"admissionPeriods">;
 export type Decision = Candidate["decision"];
+export const offerLabels = {
+	none: "",
+	pending: "Venter på svar",
+	accepted: "Takket ja",
+	declined: "Takket nei",
+	expired: "Svarfristen er ute",
+};
 export const decisions = ["pending", "shortlist", "accepted", "rejected"] as const;
 export function decisionLocked(candidate: Candidate) {
 	return ["pending", "accepted", "declined"].includes(candidate.offerStatus);
