@@ -2,6 +2,7 @@
 
 import {
 	interviewerAvailable,
+	MIN_INTERVIEW_NOTICE_MS,
 	makeSchedulingDays,
 	makeSchedulingSlots,
 	matchInterviews,
@@ -326,7 +327,7 @@ export const generateSchedule = action({
 			period.interviewEndAt,
 			period.timezone,
 		);
-		const slots = makeSchedulingSlots(
+		const allSlots = makeSchedulingSlots(
 			{
 				duration: period.duration,
 				buffer: period.buffer,
@@ -340,6 +341,13 @@ export const generateSchedule = action({
 			},
 			days,
 		);
+		const slots = allSlots.filter((slot) => {
+			const startAt = osloDateTimeToEpoch(
+				slot.day,
+				`${String(Math.floor(slot.start / 60)).padStart(2, "0")}:${String(slot.start % 60).padStart(2, "0")}`,
+			);
+			return startAt >= Date.now() + MIN_INTERVIEW_NOTICE_MS;
+		});
 		const eligibleCandidates = context.candidates.filter(
 			(candidate) =>
 				candidate.existingInterview?.publishedAt === undefined &&

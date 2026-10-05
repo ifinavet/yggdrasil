@@ -2,6 +2,7 @@ import { type AvailabilityWindow, isAvailable } from "./availability";
 
 export const LUNCH_START_MINUTE = 12 * 60;
 export const LUNCH_END_MINUTE = 12 * 60 + 30;
+export const MIN_INTERVIEW_NOTICE_MS = 48 * 60 * 60 * 1000;
 
 export function overlapsLunch(window: AvailabilityWindow) {
 	return window.start < LUNCH_END_MINUTE && window.end > LUNCH_START_MINUTE;

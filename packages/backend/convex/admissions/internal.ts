@@ -1,4 +1,9 @@
-import { isAvailable, localWindow, overlapsLunch } from "@workspace/shared/admissions";
+import {
+	isAvailable,
+	localWindow,
+	MIN_INTERVIEW_NOTICE_MS,
+	overlapsLunch,
+} from "@workspace/shared/admissions";
 import { SYSTEM_ALERTS_CHANNEL } from "@workspace/shared/slack/channels";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../_generated/api";
@@ -7,8 +12,13 @@ import { internalMutation, internalQuery, type MutationCtx } from "../_generated
 import { adminRoles, internalRoles, requireRole, userHasRole } from "../auth/accessRights";
 import { accountForUser } from "../iam/accounts";
 import { enqueueSystemMessage } from "../iam/notifications";
-import { finishClose, purgeBatch as purgeRecordsBatch, queueOutbox } from "./lifecycle";
-import { MAX_APPLICATIONS } from "./rules";
+import {
+	activePublishInterviewIds,
+	finishClose,
+	purgeBatch as purgeRecordsBatch,
+	queueOutbox,
+} from "./lifecycle";
+import { MAX_APPLICATIONS, MAX_OUTBOX_ATTEMPTS } from "./rules";
 
 const OUTBOX_LEASE_MS = 5 * 60_000;
 
@@ -17,6 +27,7 @@ async function isCurrent(ctx: Parameters<typeof requireRole>[0], job: Doc<"admis
 	if (job.kind === "archive_channel") return period?.status === "closing";
 	if (!period) return false;
 	if (job.kind === "cancel_interview") return isCancellationCurrent(ctx, job);
+	if (job.kind === "offer_declined") return isApplicationJobCurrent(ctx, job);
 	if (period.status === "closing") return false;
 	if (job.kind === "delivery_failure") return isDeliveryFailureCurrent(ctx, job);
 	if (job.kind === "publish" || job.kind === "remind_3d" || job.kind === "remind_1d")
@@ -82,6 +93,8 @@ export const claimOutbox = internalMutation({
 		const current = await isCurrent(ctx, job);
 		if (!current) {
 			await ctx.db.patch(job._id, { state: "done", lastError: undefined });
+			const period = await ctx.db.get(job.periodId);
+			if (period?.status === "closing") await finishClose(ctx, period);
 			return null;
 		}
 		await ctx.db.patch(job._id, {
@@ -185,13 +198,18 @@ export const failOutbox = internalMutation({
 			if (period?.status === "closing") await finishClose(ctx, period);
 			return { stale: true };
 		}
-		const exhausted = job.attempts >= 8;
+		const exhausted = job.attempts >= MAX_OUTBOX_ATTEMPTS;
 		await ctx.db.patch(job._id, { state: "failed", lastError: error.slice(0, 500), nextAttemptAt });
-		if (exhausted && (job.kind === "cancel_interview" || job.kind === "archive_channel")) {
+		if (
+			exhausted &&
+			(job.kind === "cancel_interview" ||
+				job.kind === "archive_channel" ||
+				job.kind === "offer_declined")
+		) {
 			await enqueueSystemMessage(ctx, {
 				channel: SYSTEM_ALERTS_CHANNEL,
-				text: "An admissions cleanup job reached its retry limit. Review admissions operations.",
-				clientMsgId: `admissions-cleanup-exhausted:${job._id}`,
+				text: "An admissions integration job reached its retry limit. Review admissions operations.",
+				clientMsgId: `admissions-integration-exhausted:${job._id}`,
 			});
 		}
 		if (!exhausted)
@@ -442,6 +460,7 @@ export const closeExpiredPeriod = internalMutation({
 				q.eq("periodId", periodId).eq("status", "submitted"),
 			)
 			.take(MAX_APPLICATIONS);
+		const interviewsBeingPublished = await activePublishInterviewIds(ctx, periodId);
 		await Promise.all(
 			applications
 				.filter((app) => app.offerStatus === "pending")
@@ -457,7 +476,11 @@ export const closeExpiredPeriod = internalMutation({
 			.take(MAX_APPLICATIONS);
 		await Promise.all(
 			interviews.map(async (interview) => {
-				if (interview.calendarEventId || interview.publishedAt) {
+				if (
+					interview.calendarEventId ||
+					interview.publishedAt ||
+					interviewsBeingPublished.has(interview._id)
+				) {
 					const revision = interview.revision + 1;
 					await ctx.db.patch(interview._id, {
 						status: "cancelled",
@@ -475,6 +498,7 @@ export const closeExpiredPeriod = internalMutation({
 						attempts: 0,
 						nextAttemptAt: now,
 						createdAt: now,
+						notifyApplicant: Boolean(interview.publishedAt && interview.startAt > now),
 					});
 				} else
 					await ctx.db.patch(interview._id, {
@@ -486,6 +510,29 @@ export const closeExpiredPeriod = internalMutation({
 		const closing = { ...period, status: "closing" as const, revision: period.revision + 1 };
 		await ctx.db.patch(periodId, { status: "closing", revision: closing.revision });
 		await finishClose(ctx, closing);
+		return true;
+	},
+});
+
+export const expireOffer = internalMutation({
+	args: {
+		applicationId: v.id("admissionApplications"),
+		decisionRevision: v.number(),
+	},
+	handler: async (ctx, { applicationId, decisionRevision }) => {
+		const application = await ctx.db.get(applicationId);
+		if (
+			!application ||
+			application.decisionRevision !== decisionRevision ||
+			application.offerStatus !== "pending" ||
+			application.offerDeadline === undefined ||
+			application.offerDeadline > Date.now()
+		)
+			return false;
+		await ctx.db.patch(applicationId, {
+			offerStatus: "expired",
+			revision: application.revision + 1,
+		});
 		return true;
 	},
 });
@@ -542,17 +589,29 @@ async function completeDecision(
 		!application.decisionSentAt
 	) {
 		const decisionSentAt = Date.now();
+		const offerDeadline =
+			application.decision === "accepted"
+				? Math.min(currentPeriod.retentionAt, decisionSentAt + 7 * 86400000)
+				: undefined;
+		const offerStatus =
+			application.decision === "accepted"
+				? offerDeadline !== undefined && offerDeadline <= decisionSentAt
+					? "expired"
+					: "pending"
+				: "none";
 		await ctx.db.patch(application._id, {
 			decisionQueuedAt: undefined,
 			decisionSentAt,
 			sent: true,
-			offerStatus: application.decision === "accepted" ? "pending" : "none",
-			offerDeadline:
-				application.decision === "accepted"
-					? Math.min(currentPeriod.retentionAt, decisionSentAt + 7 * 86400000)
-					: undefined,
+			offerStatus,
+			offerDeadline,
 			revision: application.revision + 1,
 		});
+		if (offerStatus === "pending" && offerDeadline !== undefined)
+			await ctx.scheduler.runAt(offerDeadline, internal.admissions.internal.expireOffer, {
+				applicationId: application._id,
+				decisionRevision: job.revision,
+			});
 	}
 }
 
@@ -652,6 +711,8 @@ function validateAssignmentTime(
 	application: Doc<"admissionApplications">,
 ) {
 	const duration = (assignment.endAt - assignment.startAt) / 60_000;
+	if (assignment.startAt < Date.now() + MIN_INTERVIEW_NOTICE_MS)
+		throw new ConvexError("Nye intervjuer må planlegges minst 48 timer fram i tid.");
 	if (
 		!Number.isInteger(duration) ||
 		duration !== period.duration ||

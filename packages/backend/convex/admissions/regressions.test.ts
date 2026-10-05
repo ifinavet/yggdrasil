@@ -1,5 +1,5 @@
 import { localWindow } from "@workspace/shared/admissions";
-import { afterEach, expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import { asUser, grantRole, insertStudent, insertUser, setup } from "../../test/fixtures";
 import { api, internal } from "../_generated/api";
 
@@ -210,6 +210,180 @@ it("cleans future and past calendar events on close without sending cancellation
 			.collect(),
 	);
 	expect(cancellations.filter((job) => job.kind === "cancel_interview")).toHaveLength(2);
+	const cancellationNotices = cancellations
+		.filter((job) => job.kind === "cancel_interview")
+		.map((job) => job.notifyApplicant)
+		.sort();
+	expect(cancellationNotices).toEqual([false, true]);
+});
+
+it("closes an in-flight publish with calendar cleanup without notifying the applicant", async () => {
+	const { t, admin, applicant, interviewer, otherInterviewer } = await fixture();
+	const now = Date.now();
+	const periodId = await createPeriod(admin, now - DAY, [interviewer], otherInterviewer);
+	const applicationId = await t.run((ctx) =>
+		ctx.db.insert("admissionApplications", {
+			periodId,
+			userId: applicant._id,
+			availability: [],
+			status: "submitted",
+			revision: 1,
+			decisionRevision: 0,
+			decision: "pending",
+			offerStatus: "none",
+			sent: false,
+		}),
+	);
+	const interviewId = await t.run((ctx) =>
+		ctx.db.insert("admissionInterviews", {
+			periodId,
+			applicationId,
+			startAt: now + DAY,
+			endAt: now + DAY + 15 * MINUTE,
+			interviewerIds: [interviewer._id, otherInterviewer._id],
+			selectedCalendarIds: [],
+			room: "Beta",
+			status: "scheduled",
+			revision: 1,
+		}),
+	);
+	await t.run((ctx) =>
+		ctx.db.insert("admissionOutbox", {
+			kind: "publish",
+			periodId,
+			applicationId,
+			interviewId,
+			revision: 1,
+			idempotencyKey: "publish-in-flight-close",
+			state: "running",
+			attempts: 1,
+			nextAttemptAt: now + DAY,
+			createdAt: now,
+		}),
+	);
+	await admin.mutation(api.admissions.mutations.closePeriod, {
+		periodId,
+		idempotencyKey: "close-in-flight-publish",
+		force: true,
+	});
+	const cleanup = await t.run((ctx) =>
+		ctx.db
+			.query("admissionOutbox")
+			.withIndex("by_idempotencyKey", (q) =>
+				q.eq("idempotencyKey", `close-in-flight-publish:cancel:${interviewId}`),
+			)
+			.unique(),
+	);
+	expect(cleanup).toMatchObject({ kind: "cancel_interview", notifyApplicant: false });
+	await t.mutation(internal.admissions.internal.claimOutbox, {
+		idempotencyKey: cleanup?.idempotencyKey ?? "",
+	});
+	await t.mutation(internal.admissions.internal.completeOutbox, {
+		idempotencyKey: cleanup?.idempotencyKey ?? "",
+	});
+	expect(
+		await t.run((ctx) =>
+			ctx.db
+				.query("admissionOutbox")
+				.withIndex("by_periodId_and_kind", (q) =>
+					q.eq("periodId", periodId).eq("kind", "archive_channel"),
+				)
+				.first(),
+		),
+	).toBeNull();
+	await t.mutation(internal.admissions.internal.completeOutbox, {
+		idempotencyKey: "publish-in-flight-close",
+	});
+	expect(
+		await t.run((ctx) =>
+			ctx.db
+				.query("admissionOutbox")
+				.withIndex("by_periodId_and_kind", (q) =>
+					q.eq("periodId", periodId).eq("kind", "archive_channel"),
+				)
+				.first(),
+		),
+	).toMatchObject({ kind: "archive_channel", state: "pending" });
+});
+
+it("retention cleanup cancels an in-flight publish even before an event id is saved", async () => {
+	const { t, applicant, interviewer, otherInterviewer } = await fixture();
+	const now = Date.now();
+	const periodId = await t.run(async (ctx) => {
+		const id = await ctx.db.insert("admissionPeriods", {
+			title: "Retention test",
+			applicationStartAt: now - 2 * DAY,
+			applicationEndAt: now - DAY,
+			interviewStartAt: now - DAY,
+			interviewEndAt: now + DAY,
+			retentionAt: now - 1,
+			status: "published",
+			revision: 1,
+			interviewers: [
+				{ userId: interviewer._id, selectedCalendarIds: [] },
+				{ userId: otherInterviewer._id, selectedCalendarIds: [] },
+			],
+			duration: 15,
+			buffer: 5,
+			breakEvery: 3,
+			breakMinutes: 15,
+			lunch: true,
+			room: "Beta",
+			dayStart: 540,
+			dayEnd: 960,
+			breaks: [],
+			timezone: TIME_ZONE,
+			round: 1,
+			roundHistory: [],
+			createdBy: interviewer._id,
+			updatedBy: interviewer._id,
+		});
+		const applicationId = await ctx.db.insert("admissionApplications", {
+			periodId: id,
+			userId: applicant._id,
+			availability: [],
+			status: "submitted",
+			revision: 1,
+			decisionRevision: 0,
+			decision: "pending",
+			offerStatus: "none",
+			sent: false,
+		});
+		const interviewId = await ctx.db.insert("admissionInterviews", {
+			periodId: id,
+			applicationId,
+			startAt: now + DAY,
+			endAt: now + DAY + 15 * MINUTE,
+			interviewerIds: [interviewer._id, otherInterviewer._id],
+			selectedCalendarIds: [],
+			room: "Beta",
+			status: "scheduled",
+			revision: 1,
+		});
+		await ctx.db.insert("admissionOutbox", {
+			kind: "publish",
+			periodId: id,
+			applicationId,
+			interviewId,
+			revision: 1,
+			idempotencyKey: "retention-publish-in-flight",
+			state: "pending",
+			attempts: 0,
+			nextAttemptAt: now,
+			createdAt: now,
+		});
+		return id;
+	});
+	await t.mutation(internal.admissions.internal.closeExpiredPeriod, { periodId });
+	const cleanup = await t.run((ctx) =>
+		ctx.db
+			.query("admissionOutbox")
+			.withIndex("by_periodId_and_kind", (q) =>
+				q.eq("periodId", periodId).eq("kind", "cancel_interview"),
+			)
+			.first(),
+	);
+	expect(cleanup).toMatchObject({ kind: "cancel_interview", notifyApplicant: false });
 });
 
 it("archives only after cancellation cleanup and purges only after archive succeeds", async () => {
@@ -410,7 +584,7 @@ it("waits for retention calendar cleanup before queueing the archive job", async
 			)
 			.first(),
 	);
-	expect(cancelJob).toMatchObject({ interviewId, state: "pending" });
+	expect(cancelJob).toMatchObject({ interviewId, state: "pending", notifyApplicant: true });
 	expect(await t.run((ctx) => ctx.db.get(applicationId))).not.toBeNull();
 	if (!cancelJob) throw new Error("Calendar cleanup job was not queued");
 	await t.mutation(internal.admissions.internal.claimOutbox, {
@@ -603,17 +777,19 @@ it("derives manual interview calendars from the period's interviewer selections"
 
 it("keeps a published interview unchanged during generated replanning", async () => {
 	const value = await scheduleFixture(10, 0, []);
+	const nearDay = localWindow(Date.now() + DAY, 0, TIME_ZONE).day;
+	const startAt = osloAt(nearDay, 10, 0);
 	await value.t.run((ctx) =>
 		ctx.db.patch(value.applicationId, {
-			availability: [{ day: value.day, start: 600, end: 620 }],
+			availability: [{ day: nearDay, start: 600, end: 620 }],
 		}),
 	);
-	const endAt = value.startAt + 15 * MINUTE;
+	const endAt = startAt + 15 * MINUTE;
 	await value.t.run((ctx) =>
 		ctx.db.insert("admissionInterviews", {
 			periodId: value.periodId,
 			applicationId: value.applicationId,
-			startAt: value.startAt,
+			startAt,
 			endAt,
 			interviewerIds: [value.interviewer._id, value.otherInterviewer._id],
 			selectedCalendarIds: [],
@@ -624,13 +800,20 @@ it("keeps a published interview unchanged during generated replanning", async ()
 			revision: 3,
 		}),
 	);
+	await value.admin.mutation(api.admissions.mutations.scheduleInterview, {
+		applicationId: value.applicationId,
+		startAt,
+		interviewerIds: [value.interviewer._id, value.otherInterviewer._id],
+		selectedCalendarIds: [],
+		expectedRevision: 1,
+	});
 	await value.t.mutation(internal.admissions.internal.saveSchedule, {
 		periodId: value.periodId,
-		expectedRevision: 1,
+		expectedRevision: 2,
 		assignments: [
 			{
 				applicationId: value.applicationId,
-				startAt: value.startAt,
+				startAt,
 				endAt,
 				interviewerIds: [value.interviewer._id, value.otherInterviewer._id],
 				selectedCalendarIds: [],
@@ -886,6 +1069,53 @@ it("does not let generated plans resurrect a cancelled interview", async () => {
 	).rejects.toThrow(/avlyst|cancel/i);
 });
 
+it("requires two days of notice for a new manual interview", async () => {
+	const value = await scheduleFixture(10, 0, []);
+	const nearDay = localWindow(Date.now() + DAY, 0, TIME_ZONE).day;
+	const startAt = osloAt(nearDay, 10, 0);
+	await value.t.run((ctx) =>
+		ctx.db.patch(value.applicationId, {
+			availability: [{ day: nearDay, start: 600, end: 620 }],
+		}),
+	);
+	await expect(
+		value.admin.mutation(api.admissions.mutations.scheduleInterview, {
+			applicationId: value.applicationId,
+			startAt,
+			interviewerIds: [value.interviewer._id, value.otherInterviewer._id],
+			selectedCalendarIds: [],
+			expectedRevision: 1,
+		}),
+	).rejects.toThrow(/48|to dager/i);
+});
+
+it("requires two days of notice for generated assignments", async () => {
+	const value = await scheduleFixture(10, 0, []);
+	const nearDay = localWindow(Date.now() + DAY, 0, TIME_ZONE).day;
+	const startAt = osloAt(nearDay, 10, 0);
+	await value.t.run((ctx) =>
+		ctx.db.patch(value.applicationId, {
+			availability: [{ day: nearDay, start: 600, end: 620 }],
+		}),
+	);
+	await expect(
+		value.t.mutation(internal.admissions.internal.saveSchedule, {
+			periodId: value.periodId,
+			expectedRevision: 1,
+			assignments: [
+				{
+					applicationId: value.applicationId,
+					startAt,
+					endAt: startAt + 15 * MINUTE,
+					interviewerIds: [value.interviewer._id, value.otherInterviewer._id],
+					selectedCalendarIds: [],
+					room: "Beta",
+				},
+			],
+		}),
+	).rejects.toThrow(/48|to dager/i);
+});
+
 it("rejects invalid reviewed account details before sending an accepted offer", async () => {
 	process.env.GOOGLE_WORKSPACE_ADMIN_EMAIL = "admin@ifinavet.no";
 	const { t, admin, applicant, interviewer, otherInterviewer } = await fixture();
@@ -912,4 +1142,131 @@ it("rejects invalid reviewed account details before sending an accepted offer", 
 			expectedRevision: 1,
 		}),
 	).rejects.toThrow();
+});
+
+it("persists expired offer status instead of rolling it back when a candidate responds late", async () => {
+	const value = await fixture();
+	const periodId = await createPeriod(
+		value.admin,
+		Date.now() - DAY,
+		[value.interviewer],
+		value.otherInterviewer,
+	);
+	const now = Date.now();
+	const applicationId = await value.t.run((ctx) =>
+		ctx.db.insert("admissionApplications", {
+			periodId,
+			userId: value.applicant._id,
+			availability: [],
+			status: "submitted",
+			revision: 1,
+			decisionRevision: 2,
+			decision: "accepted",
+			decisionSentAt: now - DAY,
+			offerStatus: "pending",
+			offerDeadline: now - 1,
+			sent: true,
+		}),
+	);
+	await expect(
+		asUser(value.t, value.applicant).mutation(api.admissions.mutations.respondToOffer, {
+			periodId,
+			accept: true,
+			expectedRevision: 1,
+		}),
+	).resolves.toMatchObject({ offerStatus: "expired", revision: 2 });
+	expect(await value.t.run((ctx) => ctx.db.get(applicationId))).toMatchObject({
+		offerStatus: "expired",
+	});
+	await value.admin.mutation(api.admissions.mutations.setDecision, {
+		applicationId,
+		decision: "rejected",
+		expectedRevision: 2,
+	});
+	expect(await value.t.run((ctx) => ctx.db.get(applicationId))).toMatchObject({
+		decision: "rejected",
+		offerStatus: "none",
+	});
+});
+
+it("schedules offer expiration when an accepted decision email is delivered", async () => {
+	vi.useFakeTimers();
+	try {
+		const now = Date.now();
+		vi.setSystemTime(now);
+		const value = await fixture();
+		const periodId = await value.t.run((ctx) =>
+			ctx.db.insert("admissionPeriods", {
+				title: "Offer expiry test",
+				applicationStartAt: now - 2 * DAY,
+				applicationEndAt: now - DAY,
+				interviewStartAt: now - DAY,
+				interviewEndAt: now + DAY,
+				retentionAt: now + 1_000,
+				status: "open",
+				revision: 1,
+				interviewers: [
+					{ userId: value.interviewer._id, selectedCalendarIds: [] },
+					{ userId: value.otherInterviewer._id, selectedCalendarIds: [] },
+				],
+				duration: 15,
+				buffer: 5,
+				breakEvery: 3,
+				breakMinutes: 15,
+				lunch: true,
+				room: "Beta",
+				dayStart: 540,
+				dayEnd: 960,
+				breaks: [],
+				timezone: TIME_ZONE,
+				round: 1,
+				roundHistory: [],
+				createdBy: value.adminId,
+				updatedBy: value.adminId,
+			}),
+		);
+		const applicationId = await value.t.run((ctx) =>
+			ctx.db.insert("admissionApplications", {
+				periodId,
+				userId: value.applicant._id,
+				availability: [],
+				status: "submitted",
+				revision: 1,
+				decisionRevision: 3,
+				decision: "accepted",
+				decisionQueuedAt: now,
+				offerStatus: "none",
+				sent: false,
+			}),
+		);
+		await value.t.run((ctx) =>
+			ctx.db.insert("admissionOutbox", {
+				kind: "send_decision",
+				periodId,
+				applicationId,
+				revision: 3,
+				idempotencyKey: "decision-expiry-test",
+				state: "pending",
+				attempts: 0,
+				nextAttemptAt: now,
+				createdAt: now,
+			}),
+		);
+		await value.t.mutation(internal.admissions.internal.claimOutbox, {
+			idempotencyKey: "decision-expiry-test",
+		});
+		await value.t.mutation(internal.admissions.internal.completeOutbox, {
+			idempotencyKey: "decision-expiry-test",
+		});
+		expect(await value.t.run((ctx) => ctx.db.get(applicationId))).toMatchObject({
+			offerStatus: "pending",
+			offerDeadline: now + 1_000,
+		});
+		await value.t.finishAllScheduledFunctions(vi.runAllTimers);
+		expect(await value.t.run((ctx) => ctx.db.get(applicationId))).toMatchObject({
+			offerStatus: "expired",
+		});
+	} finally {
+		vi.useRealTimers();
+	}
 });

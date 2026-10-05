@@ -153,7 +153,49 @@ it("alerts #system and purges closing data after cleanup exhausts its retries", 
 	const alerts = await t.run((ctx) => ctx.db.query("slackSystemDeliveries").collect());
 	expect(period).toBeNull();
 	expect(alerts).toHaveLength(1);
-	expect(alerts[0]?.text).toContain("admissions cleanup job reached its retry limit");
+	expect(alerts[0]?.text).toContain("admissions integration job reached its retry limit");
+});
+
+it("alerts before closing when the declined-offer notice exhausts retries", async () => {
+	const { t, periodId } = await recoveryFixture();
+	const applicant = await insertUser(t, "applicant@uio.no");
+	const applicationId = await t.run(async (ctx) => {
+		await ctx.db.patch(periodId, { status: "closing" });
+		const applicationId = await ctx.db.insert("admissionApplications", {
+			periodId,
+			userId: applicant._id,
+			availability: [],
+			status: "submitted",
+			revision: 2,
+			decisionRevision: 3,
+			decision: "accepted",
+			decisionSentAt: Date.now() - 1_000,
+			offerStatus: "declined",
+			sent: true,
+		});
+		await ctx.db.insert("admissionOutbox", {
+			kind: "offer_declined",
+			periodId,
+			applicationId,
+			revision: 3,
+			idempotencyKey: "decline-exhausted",
+			state: "running",
+			attempts: 8,
+			nextAttemptAt: Date.now() + 60_000,
+			createdAt: Date.now(),
+		});
+		return applicationId;
+	});
+	await t.mutation(internal.admissions.internal.failOutbox, {
+		idempotencyKey: "decline-exhausted",
+		error: "Slack unavailable",
+		nextAttemptAt: Date.now() + 60_000,
+	});
+	const alerts = await t.run((ctx) => ctx.db.query("slackSystemDeliveries").collect());
+	expect(alerts).toHaveLength(1);
+	expect(alerts[0]?.text).toContain("admissions integration job reached its retry limit");
+	expect(alerts[0]?.text).not.toContain("applicant@uio.no");
+	expect(await t.run((ctx) => ctx.db.get(applicationId))).not.toBeNull();
 });
 
 it("finds an actionable failure beyond old completed history in the admin overview", async () => {

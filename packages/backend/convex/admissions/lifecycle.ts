@@ -1,8 +1,10 @@
+import { ConvexError } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
+import { MAX_APPLICATIONS, MAX_OUTBOX_ATTEMPTS } from "./rules";
 
-type CleanupKind = "cancel_interview" | "archive_channel";
+type CleanupKind = "cancel_interview" | "publish" | "offer_declined" | "archive_channel";
 
 export async function queueOutbox(
 	ctx: MutationCtx,
@@ -87,7 +89,10 @@ export async function purgeBatch(ctx: MutationCtx, periodId: Id<"admissionPeriod
 }
 
 export async function finishClose(ctx: MutationCtx, period: Doc<"admissionPeriods">) {
+	if (await hasRunningOutbox(ctx, period._id)) return false;
 	if (await hasUnfinishedCleanup(ctx, period._id, "cancel_interview")) return false;
+	if (await hasUnfinishedCleanup(ctx, period._id, "publish")) return false;
+	if (await hasUnfinishedCleanup(ctx, period._id, "offer_declined")) return false;
 	const archive = await ctx.db
 		.query("admissionOutbox")
 		.withIndex("by_periodId_and_kind", (q) =>
@@ -103,13 +108,50 @@ export async function finishClose(ctx: MutationCtx, period: Doc<"admissionPeriod
 	return true;
 }
 
+export async function activePublishInterviewIds(
+	ctx: MutationCtx,
+	periodId: Id<"admissionPeriods">,
+) {
+	const [pending, running, retryable] = await Promise.all([
+		ctx.db
+			.query("admissionOutbox")
+			.withIndex("by_periodId_and_kind_and_state", (q) =>
+				q.eq("periodId", periodId).eq("kind", "publish").eq("state", "pending"),
+			)
+			.take(MAX_APPLICATIONS + 1),
+		ctx.db
+			.query("admissionOutbox")
+			.withIndex("by_periodId_and_kind_and_state", (q) =>
+				q.eq("periodId", periodId).eq("kind", "publish").eq("state", "running"),
+			)
+			.take(MAX_APPLICATIONS + 1),
+		ctx.db
+			.query("admissionOutbox")
+			.withIndex("by_periodId_and_kind_and_state_and_attempts", (q) =>
+				q
+					.eq("periodId", periodId)
+					.eq("kind", "publish")
+					.eq("state", "failed")
+					.lt("attempts", MAX_OUTBOX_ATTEMPTS),
+			)
+			.take(MAX_APPLICATIONS + 1),
+	]);
+	const jobs = [...pending, ...running, ...retryable];
+	if (jobs.length > MAX_APPLICATIONS * 3)
+		throw new ConvexError("For mange publiseringsjobber i opptaket.");
+	return new Set(jobs.flatMap((job) => (job.interviewId ? [job.interviewId] : [])));
+}
+
 export async function queueArchiveWhenReady(
 	ctx: MutationCtx,
 	period: Doc<"admissionPeriods">,
 	key: string,
 	now = Date.now(),
 ) {
+	if (await hasRunningOutbox(ctx, period._id)) return false;
 	if (await hasUnfinishedCleanup(ctx, period._id, "cancel_interview")) return false;
+	if (await hasUnfinishedCleanup(ctx, period._id, "publish")) return false;
+	if (await hasUnfinishedCleanup(ctx, period._id, "offer_declined")) return false;
 	const archive = await ctx.db
 		.query("admissionOutbox")
 		.withIndex("by_periodId_and_kind", (q) =>
@@ -128,6 +170,14 @@ export async function queueArchiveWhenReady(
 		createdAt: now,
 	});
 	return true;
+}
+
+async function hasRunningOutbox(ctx: MutationCtx, periodId: Id<"admissionPeriods">) {
+	const jobs = await ctx.db
+		.query("admissionOutbox")
+		.withIndex("by_periodId_and_state", (q) => q.eq("periodId", periodId).eq("state", "running"))
+		.take(1);
+	return jobs.length > 0;
 }
 
 async function hasUnfinishedCleanup(
@@ -151,7 +201,11 @@ async function hasUnfinishedCleanup(
 		ctx.db
 			.query("admissionOutbox")
 			.withIndex("by_periodId_and_kind_and_state_and_attempts", (q) =>
-				q.eq("periodId", periodId).eq("kind", kind).eq("state", "failed").lt("attempts", 8),
+				q
+					.eq("periodId", periodId)
+					.eq("kind", kind)
+					.eq("state", "failed")
+					.lt("attempts", MAX_OUTBOX_ATTEMPTS),
 			)
 			.take(1),
 	]);

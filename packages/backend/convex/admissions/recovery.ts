@@ -6,6 +6,7 @@ import { internalMutation, type MutationCtx, mutation } from "../_generated/serv
 import { adminRoles, requireRole } from "../auth/accessRights";
 import { enqueueSystemMessage } from "../iam/notifications";
 import { finishClose } from "./lifecycle";
+import { MAX_OUTBOX_ATTEMPTS } from "./rules";
 
 const RECOVERY_BATCH = 100;
 const recoverableStates = ["pending", "running"] as const;
@@ -63,16 +64,20 @@ async function enqueueRetry(ctx: MutationCtx, job: Doc<"admissionOutbox">) {
 async function recoverJob(ctx: MutationCtx, job: Doc<"admissionOutbox">, now: number) {
 	const latest = await ctx.db.get(job._id);
 	if (!latest || latest.state !== job.state || latest.nextAttemptAt > now) return;
-	if (latest.state === "running" && latest.attempts >= 8) {
+	if (latest.state === "running" && latest.attempts >= MAX_OUTBOX_ATTEMPTS) {
 		await ctx.db.patch(latest._id, {
 			state: "failed",
 			lastError: "Worker lease expired after eight attempts; manual retry required.",
 		});
-		if (latest.kind === "cancel_interview" || latest.kind === "archive_channel")
+		if (
+			latest.kind === "cancel_interview" ||
+			latest.kind === "archive_channel" ||
+			latest.kind === "offer_declined"
+		)
 			await enqueueSystemMessage(ctx, {
 				channel: SYSTEM_ALERTS_CHANNEL,
-				text: "An admissions cleanup job reached its retry limit. Review admissions operations.",
-				clientMsgId: `admissions-cleanup-exhausted:${latest._id}`,
+				text: "An admissions integration job reached its retry limit. Review admissions operations.",
+				clientMsgId: `admissions-integration-exhausted:${latest._id}`,
 			});
 		const period = await ctx.db.get(latest.periodId);
 		if (period?.status === "closing") await finishClose(ctx, period);

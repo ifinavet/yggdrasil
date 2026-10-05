@@ -40,6 +40,21 @@ async function current(ctx: ActionCtx, idempotencyKey: string) {
 	return await ctx.runQuery(internal.admissions.internal.outboxIsCurrent, { idempotencyKey });
 }
 
+async function requireCurrentPublish(ctx: ActionCtx, claimed: CurrentClaim) {
+	if (await current(ctx, claimed.job.idempotencyKey)) return;
+	await queueLatePublishCleanup(ctx, claimed);
+	throw new StaleAdmissionJob();
+}
+
+async function queueLatePublishCleanup(ctx: ActionCtx, claimed: CurrentClaim) {
+	if (isLocalDevelopment() || !claimed.interview) return;
+	await ctx.runMutation(internal.admissions.compensation.queueStalePublishCleanup, {
+		periodId: claimed.period._id,
+		interviewId: claimed.interview._id,
+		publishedRevision: claimed.job.revision,
+	});
+}
+
 async function deliverEmail(
 	ctx: ActionCtx,
 	args: {
@@ -187,13 +202,19 @@ async function publish(ctx: ActionCtx, claimed: CurrentClaim) {
 			},
 		},
 	};
-	if (!local)
-		await googleCalendarClient(googleConfigOrThrow(), owner.email).upsertEvent(
-			"primary",
-			eventId,
-			event,
-		);
-	if (!(await current(ctx, job.idempotencyKey))) throw new StaleAdmissionJob();
+	if (!local) {
+		try {
+			await googleCalendarClient(googleConfigOrThrow(), owner.email).upsertEvent(
+				"primary",
+				eventId,
+				event,
+			);
+		} catch (error) {
+			if (!(await current(ctx, job.idempotencyKey))) await queueLatePublishCleanup(ctx, claimed);
+			throw error;
+		}
+	}
+	await requireCurrentPublish(ctx, claimed);
 
 	const emailKey = `admission:interview:${interview._id}:${interview.revision}:invite`;
 	const firstName = applicant.name.trim().split(/\s+/)[0] || "";
@@ -215,10 +236,10 @@ async function publish(ctx: ActionCtx, claimed: CurrentClaim) {
 		html,
 		text: `Hei ${firstName},\n\nVi vil gjerne invitere deg til intervju for ${period.title}.\nTid: ${when(interview.startAt)}\nSted: ${interview.room}\n\nSvar på denne e-posten hvis tidspunktet ikke passer.`,
 	});
-	if (!(await current(ctx, job.idempotencyKey))) throw new StaleAdmissionJob();
+	await requireCurrentPublish(ctx, claimed);
 	const slack = local ? null : admissionsSlack();
 	if (slack) {
-		if (!(await current(ctx, job.idempotencyKey))) throw new StaleAdmissionJob();
+		await requireCurrentPublish(ctx, claimed);
 		const channel = await ensureAdmissionsChannel(slack, period, interviewers);
 		const tags = (await Promise.all(contacts.map((person) => slack.lookupByEmail(person.email))))
 			.filter((id): id is string => id !== null)
@@ -315,14 +336,24 @@ async function remind(ctx: ActionCtx, claimed: CurrentClaim, days: 1 | 3) {
 
 async function cancelCalendarEvent(ctx: ActionCtx, claimed: CurrentClaim) {
 	const { interview, interviewers, job } = claimed;
-	if (!interview?.calendarEventId || isLocalDevelopment()) return;
+	if (!interview || isLocalDevelopment()) return;
 	const owner = interviewers.find((person) => person.userId === interview.interviewerIds[0]);
 	if (!owner) throw new Error("Fant ikke kalenderansvarlig for avlysningen.");
 	if (!(await current(ctx, job.idempotencyKey))) throw new StaleAdmissionJob();
 	const config = googleConfigOrThrow();
 	if (!isWorkspaceEmail(owner.email, config.domain))
 		throw new Error("Intervjueren mangler en Navet Workspace-konto for kalenderdelegering.");
-	await googleCalendarClient(config, owner.email).cancelEvent("primary", interview.calendarEventId);
+	const client = googleCalendarClient(config, owner.email);
+	const eventId = interview.calendarEventId ?? stableEventId(interview._id);
+	const event = await client.getEvent("primary", eventId);
+	if (!event) return;
+	if (
+		event.extendedProperties?.shared?.navetAdmissionsPeriodId !== interview.periodId ||
+		event.extendedProperties?.shared?.navetAdmissionsInterviewId !== interview._id
+	)
+		throw new Error("Kalenderhendelsen mangler opptakets eierskapsmetadata; den ble ikke slettet.");
+	if (!(await current(ctx, job.idempotencyKey))) throw new StaleAdmissionJob();
+	await client.cancelEvent("primary", eventId);
 }
 
 async function sendCancellationEmail(ctx: ActionCtx, claimed: CurrentClaim) {

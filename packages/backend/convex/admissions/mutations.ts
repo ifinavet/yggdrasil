@@ -3,6 +3,7 @@ import {
 	isAvailable,
 	isValidAvailability,
 	localWindow,
+	MIN_INTERVIEW_NOTICE_MS,
 	overlapsLunch,
 } from "@workspace/shared/admissions";
 import { ConvexError, v } from "convex/values";
@@ -13,7 +14,12 @@ import { adminRoles, internalRoles, requireRole, userHasRole } from "../auth/acc
 import { getCurrentUserOrThrow } from "../auth/currentUser";
 import { startAcceptedAdmissionOnboarding, validateAdmissionOffer } from "../iam/mutations";
 import { requireMutablePeriod } from "./access";
-import { finishClose, queueArchiveWhenReady, queueOutbox } from "./lifecycle";
+import {
+	activePublishInterviewIds,
+	finishClose,
+	queueArchiveWhenReady,
+	queueOutbox,
+} from "./lifecycle";
 import {
 	MAX_APPLICATIONS,
 	MAX_INTERVIEWERS,
@@ -520,9 +526,9 @@ export const respondToOffer = mutation({
 		}
 		if (app.revision !== expectedRevision || app.offerStatus !== "pending")
 			throw new ConvexError("Fant ikke et aktivt tilbud.");
-		if (app.offerDeadline !== undefined && Date.now() > app.offerDeadline) {
+		if (app.offerDeadline !== undefined && Date.now() >= app.offerDeadline) {
 			await ctx.db.patch(app._id, { offerStatus: "expired", revision: app.revision + 1 });
-			throw new ConvexError("Tilbudet er utløpt.");
+			return { offerStatus: "expired" as const, revision: app.revision + 1 };
 		}
 		const offerStatus = accept ? "accepted" : "declined";
 		await ctx.db.patch(app._id, {
@@ -631,6 +637,7 @@ export const scheduleInterview = mutation({
 			previous.interviewerIds.every((id) => unique.includes(id)) &&
 			previous.selectedCalendarIds.length === configuredCalendarIds.length &&
 			previous.selectedCalendarIds.every((id) => configuredCalendarIds.includes(id));
+		if (!sameSchedule || !previous?.publishedAt) assertInterviewNotice(args.startAt);
 		if (previous?.publishedAt && !sameSchedule && !args.confirmPublishedReschedule)
 			throw new ConvexError("Bekreft endring av det publiserte intervjuet før du lagrer.");
 		const fields = {
@@ -658,6 +665,11 @@ export const scheduleInterview = mutation({
 		return { revision: app.revision + 1, interviewRevision: fields.revision };
 	},
 });
+
+function assertInterviewNotice(startAt: number) {
+	if (startAt < Date.now() + MIN_INTERVIEW_NOTICE_MS)
+		throw new ConvexError("Nye intervjuer må planlegges minst 48 timer fram i tid.");
+}
 
 export const cancelInterviewByBoard = mutation({
 	args: {
@@ -786,6 +798,7 @@ export const closePeriod = mutation({
 				q.eq("periodId", periodId).eq("status", "scheduled"),
 			)
 			.take(MAX_APPLICATIONS);
+		const interviewsBeingPublished = await activePublishInterviewIds(ctx, periodId);
 		const pendingOffers = applications.filter((app) => app.offerStatus === "pending");
 		const unsentDecisions = applications.filter(
 			(app) => (app.decision === "accepted" || app.decision === "rejected") && !app.decisionSentAt,
@@ -808,7 +821,11 @@ export const closePeriod = mutation({
 		);
 		await Promise.all(
 			interviews.map(async (interview) => {
-				if (interview.publishedAt || interview.calendarEventId) {
+				if (
+					interview.publishedAt ||
+					interview.calendarEventId ||
+					interviewsBeingPublished.has(interview._id)
+				) {
 					await ctx.db.patch(interview._id, {
 						status: "cancelled",
 						revision: interview.revision + 1,
@@ -825,6 +842,7 @@ export const closePeriod = mutation({
 						attempts: 0,
 						nextAttemptAt: now,
 						createdAt: now,
+						notifyApplicant: Boolean(interview.publishedAt && interview.startAt > now),
 					});
 				} else
 					await ctx.db.patch(interview._id, {
