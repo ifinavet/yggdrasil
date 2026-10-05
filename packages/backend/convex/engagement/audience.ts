@@ -14,11 +14,10 @@ function countBy(students: readonly Student[], keyOf: KeyOf) {
 	return counts;
 }
 
-function tally(students: readonly Student[], keyOf: KeyOf) {
+function tally(students: readonly Student[], keyOf: (student: Student) => string) {
 	const tallies = new Map<string, { student: Student; count: number }>();
 	for (const student of students) {
 		const key = keyOf(student);
-		if (key === null) continue;
 		const entry = tallies.get(key);
 		if (entry) entry.count += 1;
 		else tallies.set(key, { student, count: 1 });
@@ -102,12 +101,16 @@ export const cohortOf = labelledBy(cohortGroupOf);
 const programCohortOf = labelledBy(programCohortGroupOf);
 
 function cohortsOf(students: readonly Student[], groupOf: GroupOf) {
-	return tally(students, labelledBy(groupOf))
-		.flatMap(([label, { student, count }]) => {
-			const cohort = groupOf(student);
-			return cohort ? [{ label, count, cohort }] : [];
-		})
-		.sort((a, b) => a.cohort.rank - b.cohort.rank);
+	const cohorts = new Map<string, { label: string; count: number; cohort: Cohort }>();
+	for (const student of students) {
+		const cohort = groupOf(student);
+		if (!cohort) continue;
+		const label = labelOf(cohort);
+		const entry = cohorts.get(label);
+		if (entry) entry.count += 1;
+		else cohorts.set(label, { label, count: 1, cohort });
+	}
+	return [...cohorts.values()].sort((a, b) => a.cohort.rank - b.cohort.rank);
 }
 
 function programOf({ studyProgram }: Student) {
