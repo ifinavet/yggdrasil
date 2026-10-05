@@ -110,3 +110,39 @@ test("selection rounds are reversible and decisions send only on explicit confir
 		(await admissionsOverview())?.jobs.filter((job) => job.kind === "send_decision"),
 	).toHaveLength(10);
 });
+
+test("candidate program and year filters combine and can be cleared", async ({ page }) => {
+	await resetAdmissions("open");
+	const candidates = (await admissionsOverview())?.candidates ?? [];
+	const candidate = candidates.find((entry) => entry.program && entry.year);
+	expect(candidate).toBeDefined();
+	if (!candidate) throw new Error("Fixture requires a candidate with a study profile");
+	await page.goto(`${bifrostUrl}/admissions`);
+	await clearCookieNotice(page);
+	await page.getByRole("button", { name: /^Kandidater/ }).click();
+	const rows = page.getByRole("table").getByRole("row");
+	await expect(rows).toHaveCount(candidates.length + 1);
+	const program = page.getByRole("combobox", { name: "Studieprogram", exact: true });
+	const year = page.getByRole("combobox", { name: "Studieår", exact: true });
+	await program.click();
+	await page.getByRole("option", { name: candidate.program, exact: true }).click();
+	const sameProgram = candidates.filter((entry) => entry.program === candidate.program);
+	await expect(rows).toHaveCount(sameProgram.length + 1);
+	await year.click();
+	await page.getByRole("option", { name: `${candidate.year}. år`, exact: true }).click();
+	const matched = sameProgram.filter((entry) => entry.year === candidate.year);
+	await expect(rows).toHaveCount(matched.length + 1);
+	for (const entry of matched) {
+		await expect(rows.getByRole("button", { name: entry.name, exact: true })).toBeVisible();
+	}
+	await program.click();
+	await page.getByRole("option", { name: "Alle linjer", exact: true }).click();
+	await expect(rows).toHaveCount(
+		candidates.filter((entry) => entry.year === candidate.year).length + 1,
+	);
+	await year.click();
+	await page.getByRole("option", { name: "Alle år", exact: true }).click();
+	await expect(rows).toHaveCount(candidates.length + 1);
+	await expect(program).toHaveText("Alle linjer");
+	await expect(year).toHaveText("Alle år");
+});

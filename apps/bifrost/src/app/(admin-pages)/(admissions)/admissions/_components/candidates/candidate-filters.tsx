@@ -1,13 +1,7 @@
 "use client";
 import { STUDY_PROGRAMS as programs, STUDY_YEARS } from "@workspace/shared/constants";
 import { SearchField } from "@workspace/ui/components/search-field";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@workspace/ui/components/select";
+import { SearchSelect } from "@workspace/ui/components/search-select";
 
 export function CandidateFilters({
 	query,
@@ -32,38 +26,26 @@ export function CandidateFilters({
 				placeholder="Søk etter kandidat"
 				className="sm:w-72"
 			/>
-			<Select
-				value={program || "all"}
-				onValueChange={(value) => setProgram(value === "all" ? "" : value)}
-			>
-				<SelectTrigger aria-label="Studieprogram" className="w-full sm:w-72">
-					<SelectValue />
-				</SelectTrigger>
-				<SelectContent>
-					<SelectItem value="all">Alle linjer</SelectItem>
-					{programs.map((p) => (
-						<SelectItem key={p} value={p}>
-							{p}
-						</SelectItem>
-					))}
-				</SelectContent>
-			</Select>
-			<Select
-				value={year || "all"}
-				onValueChange={(value) => setYear(value === "all" ? "" : value)}
-			>
-				<SelectTrigger aria-label="Studieår" className="w-full sm:w-36">
-					<SelectValue />
-				</SelectTrigger>
-				<SelectContent>
-					<SelectItem value="all">Alle år</SelectItem>
-					{STUDY_YEARS.map((y) => (
-						<SelectItem key={y} value={String(y)}>
-							{y}. år
-						</SelectItem>
-					))}
-				</SelectContent>
-			</Select>
+			<SearchSelect
+				aria-label="Studieprogram"
+				className="w-full sm:w-72"
+				value={program}
+				onChange={(value) => setProgram(value ?? "")}
+				items={[
+					{ id: "", label: "Alle linjer" },
+					...programs.map((program) => ({ id: program, label: program })),
+				]}
+			/>
+			<SearchSelect
+				aria-label="Studieår"
+				className="w-full sm:w-36"
+				value={year}
+				onChange={(value) => setYear(value ?? "")}
+				items={[
+					{ id: "", label: "Alle år" },
+					...STUDY_YEARS.map((year) => ({ id: String(year), label: `${year}. år` })),
+				]}
+			/>
 		</div>
 	);
 }
