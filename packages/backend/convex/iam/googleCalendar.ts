@@ -1,16 +1,18 @@
+import { calendar } from "@googleapis/calendar";
+import {
+	GOOGLE_CALENDAR_API_URL,
+	GOOGLE_CALENDAR_DEFAULT_SCOPES,
+	GOOGLE_OAUTH_TOKEN_URL,
+} from "@workspace/shared/constants";
+import { JWT } from "google-auth-library";
 import { directoryUrl, type GoogleConfig } from "./config";
-import { googleAccessToken } from "./google";
 
-const API = "https://www.googleapis.com/calendar/v3";
-const DEFAULT_SCOPES = [
-	"https://www.googleapis.com/auth/calendar.events",
-	"https://www.googleapis.com/auth/calendar.calendarlist.readonly",
-	"https://www.googleapis.com/auth/calendar.freebusy",
-].join(" ");
+const TIMEOUT_MS = 15_000;
+const MAX_PAGES = 20;
 
 export function googleCalendarScope() {
 	const scopes = process.env.GOOGLE_CALENDAR_SCOPES?.trim();
-	return scopes || DEFAULT_SCOPES;
+	return scopes || GOOGLE_CALENDAR_DEFAULT_SCOPES;
 }
 
 export class GoogleCalendarError extends Error {}
@@ -28,6 +30,33 @@ export type CalendarEvent = Readonly<{
 }>;
 
 export type BusyInterval = Readonly<{ start: number; end: number }>;
+export type OwnedAdmissionEvent = Readonly<{
+	eventId: string;
+	interviewId: string;
+	periodId: string;
+}>;
+
+function isOwnedAdmissionEvent(
+	event: CalendarEvent,
+	ownedEvents: ReadonlyMap<string, OwnedAdmissionEvent> | undefined,
+) {
+	const interviewId = event.extendedProperties?.shared?.navetAdmissionsInterviewId;
+	if (!interviewId) return false;
+	const owner = ownedEvents?.get(interviewId);
+	return (
+		owner !== undefined &&
+		owner.eventId === event.id &&
+		owner.periodId === event.extendedProperties?.shared?.navetAdmissionsPeriodId
+	);
+}
+
+function eventBusyInterval(event: CalendarEvent): BusyInterval {
+	const start = eventTime(event.start);
+	const end = eventTime(event.end);
+	if (end <= start)
+		throw new GoogleCalendarError("Google Calendar returnerte en ugyldig hendelse.");
+	return { start, end };
+}
 
 function eventTime(value: { dateTime?: string; date?: string } | undefined) {
 	const raw = value?.dateTime ?? (value?.date ? `${value.date}T00:00:00Z` : undefined);
@@ -39,27 +68,31 @@ function eventTime(value: { dateTime?: string; date?: string } | undefined) {
 
 export function externalBusyIntervals(
 	events: readonly CalendarEvent[],
-	ownInterviewId?: string | ReadonlySet<string>,
-	ownPeriodId?: string,
+	ownedEvents?: ReadonlyMap<string, OwnedAdmissionEvent>,
 ) {
 	return events.flatMap((event): BusyInterval[] => {
-		const markedInterviewId = event.extendedProperties?.shared?.navetAdmissionsInterviewId;
-		const isOwnInterview =
-			markedInterviewId !== undefined &&
-			(typeof ownInterviewId === "string"
-				? markedInterviewId === ownInterviewId &&
-					(event.extendedProperties?.shared?.navetAdmissionsPeriodId === ownPeriodId ||
-						ownPeriodId === undefined)
-				: ownInterviewId?.has(markedInterviewId) === true &&
-					(event.extendedProperties?.shared?.navetAdmissionsPeriodId === ownPeriodId ||
-						ownPeriodId === undefined));
-		if (event.status === "cancelled" || event.transparency === "transparent" || isOwnInterview)
+		if (
+			event.status === "cancelled" ||
+			event.transparency === "transparent" ||
+			isOwnedAdmissionEvent(event, ownedEvents)
+		)
 			return [];
-		const start = eventTime(event.start);
-		const end = eventTime(event.end);
-		if (end <= start)
-			throw new GoogleCalendarError("Google Calendar returnerte en ugyldig hendelse.");
-		return [{ start, end }];
+		return [eventBusyInterval(event)];
+	});
+}
+
+export function ownedBusyIntervals(
+	events: readonly CalendarEvent[],
+	ownedEvents: ReadonlyMap<string, OwnedAdmissionEvent>,
+) {
+	return events.flatMap((event): BusyInterval[] => {
+		if (
+			event.status === "cancelled" ||
+			event.transparency === "transparent" ||
+			!isOwnedAdmissionEvent(event, ownedEvents)
+		)
+			return [];
+		return [eventBusyInterval(event)];
 	});
 }
 
@@ -67,55 +100,70 @@ export function overlapsBusy(interval: BusyInterval, start: number, end: number)
 	return interval.start < end && start < interval.end;
 }
 
-async function error(response: Response, action: string): Promise<never> {
-	const body: unknown = await response.json().catch(() => null);
-	const detail =
-		body &&
-		typeof body === "object" &&
-		"error" in body &&
-		body.error &&
-		typeof body.error === "object" &&
-		"message" in body.error &&
-		typeof body.error.message === "string"
-			? body.error.message.replaceAll(/\s+/g, " ").slice(0, 500)
-			: "";
-	throw new GoogleCalendarError(
-		[`Google Calendar svarte ${response.status} ${action}.`, detail].filter(Boolean).join(" "),
+function statusCode(error: unknown): number | undefined {
+	if (!error || typeof error !== "object") return;
+	const candidate = error as { code?: unknown; response?: { status?: unknown } };
+	if (typeof candidate.response?.status === "number") return candidate.response.status;
+	return typeof candidate.code === "number" ? candidate.code : undefined;
+}
+
+function apiError(error: unknown, action: string): GoogleCalendarError {
+	const status = statusCode(error);
+	return new GoogleCalendarError(
+		status
+			? `Google Calendar svarte ${status} ${action}.`
+			: `Google Calendar feilet da tjenesten forsøkte å ${action}.`,
 	);
 }
 
 export function googleCalendarClient(config: GoogleConfig, subject: string) {
-	let token: Promise<string> | undefined;
-	const accessToken = () => (token ??= googleAccessToken(config, subject, googleCalendarScope()));
-	async function call(path: string, init: RequestInit = {}) {
-		const response = await fetch(directoryUrl(`${API}${path}`), {
-			...init,
-			headers: {
-				Authorization: `Bearer ${await accessToken()}`,
-				"Content-Type": "application/json",
-				...init.headers,
-			},
-			signal: AbortSignal.timeout(15_000),
-		});
-		return response;
-	}
+	const auth = new JWT({
+		email: config.serviceAccountEmail,
+		key: config.privateKey,
+		scopes: googleCalendarScope(),
+		subject,
+	});
+	auth.transporter.defaults.fetchImplementation = globalThis.fetch;
+	auth.transporter.defaults.timeout = TIMEOUT_MS;
+	auth.transporter.interceptors.request.add({
+		resolved: async (options) => ({
+			...options,
+			url: new URL(directoryUrl(String(options.url ?? GOOGLE_OAUTH_TOKEN_URL))),
+		}),
+	});
+	const client = calendar({
+		version: "v3",
+		auth,
+		rootUrl: directoryUrl(GOOGLE_CALENDAR_API_URL),
+		timeout: TIMEOUT_MS,
+		fetchImplementation: globalThis.fetch,
+	});
 
 	return {
 		async listCalendars(): Promise<Calendar[]> {
 			const calendars: Calendar[] = [];
 			let pageToken: string | undefined;
-			for (let page = 0; page < 20; page++) {
-				const params = new URLSearchParams({ maxResults: "250" });
-				if (pageToken) params.set("pageToken", pageToken);
-				const response = await call(`/users/me/calendarList?${params}`);
-				if (!response.ok) return error(response, "kunne ikke lese kalenderlisten");
-				const body = (await response.json()) as {
-					items?: Calendar[];
-					nextPageToken?: string;
-				};
-				calendars.push(...(body.items ?? []));
-				pageToken = body.nextPageToken;
-				if (!pageToken) return calendars;
+			for (let page = 0; page < MAX_PAGES; page++) {
+				try {
+					const { data } = await client.calendarList.list({ maxResults: 250, pageToken });
+					calendars.push(
+						...(data.items ?? []).flatMap((item) =>
+							item.id
+								? [
+										{
+											id: item.id,
+											summary: item.summary ?? undefined,
+											primary: item.primary ?? undefined,
+										},
+									]
+								: [],
+						),
+					);
+					pageToken = data.nextPageToken ?? undefined;
+					if (!pageToken) return calendars;
+				} catch (error) {
+					throw apiError(error, "kunne ikke lese kalenderlisten");
+				}
 			}
 			throw new GoogleCalendarError("Google Calendar returnerte for mange kalendere.");
 		},
@@ -123,19 +171,29 @@ export function googleCalendarClient(config: GoogleConfig, subject: string) {
 		async freeBusy(calendarIds: string[], timeMin: string, timeMax: string) {
 			if (!calendarIds.length)
 				throw new GoogleCalendarError("Velg minst én kalender per intervjuer.");
-			const response = await call("/freeBusy", {
-				method: "POST",
-				body: JSON.stringify({
-					timeMin,
-					timeMax,
-					timeZone: "Europe/Oslo",
-					items: calendarIds.map((id) => ({ id })),
-				}),
-			});
-			if (!response.ok) return error(response, "kunne ikke lese opptattstatus");
-			const body = (await response.json()) as {
-				calendars?: Record<string, { busy?: Busy[]; errors?: { reason?: string }[] }>;
+			let body: {
+				calendars?: Record<
+					string,
+					{
+						busy?: Array<{ start?: string | null; end?: string | null }>;
+						errors?: { reason?: string | null }[];
+					} | null
+				>;
 			};
+			try {
+				const { data } = await client.freebusy.query({
+					requestBody: {
+						timeMin,
+						timeMax,
+						timeZone: "Europe/Oslo",
+						items: calendarIds.map((id) => ({ id })),
+					},
+				});
+				body = { calendars: data.calendars ?? undefined };
+			} catch (error) {
+				throw apiError(error, "kunne ikke lese opptattstatus");
+			}
+			const readableCalendars: Record<string, { busy: Busy[] }> = {};
 			for (const id of calendarIds) {
 				const calendar = body.calendars?.[id];
 				if (!calendar || calendar.errors?.length || !Array.isArray(calendar.busy)) {
@@ -143,8 +201,18 @@ export function googleCalendarClient(config: GoogleConfig, subject: string) {
 						"En valgt Google-kalender kan ikke leses. Kontroller kalenderens tilgang.",
 					);
 				}
+				const busy = calendar.busy.flatMap((interval) =>
+					typeof interval.start === "string" && typeof interval.end === "string"
+						? [{ start: interval.start, end: interval.end }]
+						: [],
+				);
+				if (busy.length !== calendar.busy.length)
+					throw new GoogleCalendarError(
+						"En valgt Google-kalender returnerte ugyldige opptattdata.",
+					);
+				readableCalendars[id] = { busy };
 			}
-			return body.calendars;
+			return readableCalendars;
 		},
 
 		async listEvents(
@@ -154,64 +222,73 @@ export function googleCalendarClient(config: GoogleConfig, subject: string) {
 		): Promise<CalendarEvent[]> {
 			const events: CalendarEvent[] = [];
 			let pageToken: string | undefined;
-			for (let page = 0; page < 20; page++) {
-				const params = new URLSearchParams({
-					timeMin,
-					timeMax,
-					singleEvents: "true",
-					showDeleted: "false",
-					maxResults: "2500",
-					fields:
-						"items(id,iCalUID,status,transparency,start,end,extendedProperties),nextPageToken",
-				});
-				if (pageToken) params.set("pageToken", pageToken);
-				const response = await call(
-					`/calendars/${encodeURIComponent(calendarId)}/events?${params}`,
-				);
-				if (!response.ok) return error(response, "kunne ikke lese kalenderhendelser");
-				const body = (await response.json()) as {
-					items?: CalendarEvent[];
-					nextPageToken?: string;
-				};
-				events.push(...(body.items ?? []));
-				pageToken = body.nextPageToken;
-				if (!pageToken) return events;
+			for (let page = 0; page < MAX_PAGES; page++) {
+				try {
+					const { data } = await client.events.list({
+						calendarId,
+						timeMin,
+						timeMax,
+						singleEvents: true,
+						showDeleted: false,
+						maxResults: 2500,
+						fields:
+							"items(id,iCalUID,status,transparency,start,end,extendedProperties),nextPageToken",
+						pageToken,
+					});
+					events.push(...((data.items ?? []) as CalendarEvent[]));
+					pageToken = data.nextPageToken ?? undefined;
+					if (!pageToken) return events;
+				} catch (error) {
+					throw apiError(error, "kunne ikke lese kalenderhendelser");
+				}
 			}
 			throw new GoogleCalendarError("Google Calendar returnerte for mange hendelser.");
 		},
 
 		async getEvent(calendarId: string, eventId: string): Promise<CalendarEvent | null> {
-			const response = await call(`/calendars/${encodeURIComponent(calendarId)}/events/${eventId}`);
-			if (response.status === 404 || response.status === 410) return null;
-			if (!response.ok) return error(response, "kunne ikke hente intervjuet");
-			return (await response.json()) as CalendarEvent;
+			try {
+				const { data } = await client.events.get({ calendarId, eventId });
+				return data as CalendarEvent;
+			} catch (error) {
+				if ([404, 410].includes(statusCode(error) ?? 0)) return null;
+				throw apiError(error, "kunne ikke hente intervjuet");
+			}
 		},
 
 		async upsertEvent(calendarId: string, eventId: string, event: Record<string, unknown>) {
 			if (!/^[a-v0-9]{5,1024}$/.test(eventId))
 				throw new GoogleCalendarError("Ugyldig stabil Google Calendar event-id.");
-			const path = `/calendars/${encodeURIComponent(calendarId)}/events/${eventId}?sendUpdates=all`;
-			const update = await call(path, { method: "PUT", body: JSON.stringify(event) });
-			if (update.ok) return eventId;
-			if (update.status !== 404) return error(update, "kunne ikke oppdatere intervjuet");
-			const create = await call(
-				`/calendars/${encodeURIComponent(calendarId)}/events?sendUpdates=all`,
-				{
-					method: "POST",
-					body: JSON.stringify({ ...event, id: eventId }),
-				},
-			);
-			if (create.ok || create.status === 409) return eventId;
-			return error(create, "kunne ikke opprette intervjuet");
+			try {
+				await client.events.update({
+					calendarId,
+					eventId,
+					sendUpdates: "all",
+					requestBody: event,
+				});
+				return eventId;
+			} catch (error) {
+				if (statusCode(error) !== 404) throw apiError(error, "kunne ikke oppdatere intervjuet");
+			}
+			try {
+				await client.events.insert({
+					calendarId,
+					sendUpdates: "all",
+					requestBody: { ...event, id: eventId },
+				});
+				return eventId;
+			} catch (error) {
+				if (statusCode(error) === 409) return eventId;
+				throw apiError(error, "kunne ikke opprette intervjuet");
+			}
 		},
 
 		async cancelEvent(calendarId: string, eventId: string) {
-			const response = await call(
-				`/calendars/${encodeURIComponent(calendarId)}/events/${eventId}?sendUpdates=all`,
-				{ method: "DELETE" },
-			);
-			if (!response.ok && response.status !== 404 && response.status !== 410)
-				return error(response, "kunne ikke avlyse intervjuet");
+			try {
+				await client.events.delete({ calendarId, eventId, sendUpdates: "all" });
+			} catch (error) {
+				if (![404, 410].includes(statusCode(error) ?? 0))
+					throw apiError(error, "kunne ikke avlyse intervjuet");
+			}
 		},
 	};
 }

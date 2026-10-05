@@ -1,6 +1,11 @@
 import { exportPKCS8, generateKeyPair } from "jose";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { externalBusyIntervals, googleCalendarClient, overlapsBusy } from "./googleCalendar";
+import {
+	externalBusyIntervals,
+	googleCalendarClient,
+	overlapsBusy,
+	ownedBusyIntervals,
+} from "./googleCalendar";
 
 const config = {
 	serviceAccountEmail: "service@example.test",
@@ -19,23 +24,30 @@ beforeAll(async () => {
 		(await generateKeyPair("RS256", { extractable: true })).privateKey,
 	);
 });
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+	vi.unstubAllGlobals();
+	vi.unstubAllEnvs();
+});
 
 describe("delegated Google Calendar client", () => {
 	it("uses the requested interviewer subject and Calendar scope", async () => {
 		const calls: Array<{ url: string; init: RequestInit }> = [];
+		vi.stubEnv("CONVEX_CLOUD_URL", "http://localhost:3212");
+		vi.stubEnv("APP_ENV", "local");
+		vi.stubEnv("IAM_FAKE_DIRECTORY_URL", "https://calendar.test");
 		vi.stubGlobal(
 			"fetch",
 			vi.fn(async (url: string, init: RequestInit) => {
-				calls.push({ url, init });
-				if (url.endsWith("/token")) {
+				const requestUrl = String(url);
+				calls.push({ url: requestUrl, init });
+				if (requestUrl.endsWith("/token")) {
 					const assertion = new URLSearchParams(String(init.body)).get("assertion");
 					if (!assertion) throw new Error("Missing service-account assertion");
 					const [, payload] = assertion.split(".");
 					const jwt = JSON.parse(Buffer.from(payload, "base64url").toString());
 					expect(jwt.sub).toBe("interviewer@example.test");
 					expect(jwt.scope).toBe(scopes);
-					return Response.json({ access_token: "calendar-token" });
+					return Response.json({ access_token: "calendar-token", expires_in: 3600 });
 				}
 				return Response.json({ items: [{ id: "primary", summary: "Primary" }] });
 			}),
@@ -45,12 +57,13 @@ describe("delegated Google Calendar client", () => {
 			googleCalendarClient(config, "interviewer@example.test").listCalendars(),
 		).resolves.toEqual([{ id: "primary", summary: "Primary" }]);
 		expect(calls.at(-1)?.url).toContain("calendar/v3/users/me/calendarList");
+		expect(calls.every(({ url }) => url.startsWith("https://calendar.test/"))).toBe(true);
 	});
 
 	it("reads free busy for the selected calendars and fails closed on inaccessible calendars", async () => {
 		const fetch = vi
 			.fn()
-			.mockResolvedValueOnce(Response.json({ access_token: "calendar-token" }))
+			.mockResolvedValueOnce(Response.json({ access_token: "calendar-token", expires_in: 3600 }))
 			.mockResolvedValueOnce(
 				Response.json({
 					calendars: { private: { busy: [] }, timetable: { errors: [{ reason: "notFound" }] } },
@@ -69,7 +82,7 @@ describe("delegated Google Calendar client", () => {
 	it("upserts by stable event id and deletes the same id on cancellation", async () => {
 		const fetch = vi
 			.fn()
-			.mockResolvedValueOnce(Response.json({ access_token: "calendar-token" }))
+			.mockResolvedValueOnce(Response.json({ access_token: "calendar-token", expires_in: 3600 }))
 			.mockResolvedValueOnce(new Response(null, { status: 404 }))
 			.mockResolvedValueOnce(Response.json({ id: "0123456789abcdef0123456789abcdef" }))
 			.mockResolvedValueOnce(Response.json({ id: "0123456789abcdef0123456789abcdef" }))
@@ -82,9 +95,7 @@ describe("delegated Google Calendar client", () => {
 			end: { dateTime: "2026-10-12T08:15:00Z", timeZone: "Europe/Oslo" },
 		};
 
-		await expect(
-			client.upsertEvent("primary", "0123456789abcdef0123456789abcdef", event),
-		).resolves.toBe("0123456789abcdef0123456789abcdef");
+		await client.upsertEvent("primary", "0123456789abcdef0123456789abcdef", event);
 		await client.upsertEvent("primary", "0123456789abcdef0123456789abcdef", event);
 		await client.cancelEvent("primary", "0123456789abcdef0123456789abcdef");
 		expect(fetch.mock.calls.slice(1).map(([, init]) => init?.method)).toEqual([
@@ -97,26 +108,24 @@ describe("delegated Google Calendar client", () => {
 		expect(String(fetch.mock.calls[3][0])).toContain("events/0123456789abcdef0123456789abcdef");
 	});
 
-	it("includes Google’s status and diagnostic in failures without echoing tokens", async () => {
+	it("includes Google’s HTTP status without echoing provider messages or tokens", async () => {
 		vi.stubGlobal(
 			"fetch",
 			vi
 				.fn()
-				.mockResolvedValueOnce(Response.json({ access_token: "secret-token" }))
+				.mockResolvedValueOnce(Response.json({ access_token: "secret-token", expires_in: 3600 }))
 				.mockResolvedValueOnce(
 					Response.json({ error: { message: "Calendar access denied" } }, { status: 403 }),
 				),
 		);
 		await expect(
 			googleCalendarClient(config, "interviewer@example.test").listCalendars(),
-		).rejects.toThrow(
-			"Google Calendar svarte 403 kunne ikke lese kalenderlisten. Calendar access denied",
-		);
+		).rejects.toThrow("Google Calendar svarte 403 kunne ikke lese kalenderlisten.");
 	});
 });
 
 describe("admissions event conflict filtering", () => {
-	it("ignores only the matching server-marked interview and preserves overlapping events", () => {
+	it("ignores only the matching owned event id and preserves metadata spoofing as busy", () => {
 		const own = {
 			id: "own-copy",
 			start: { dateTime: "2026-10-12T08:00:00Z" },
@@ -149,12 +158,22 @@ describe("admissions event conflict filtering", () => {
 				},
 			},
 		};
-		const busy = externalBusyIntervals(
-			[own, external, wrongPeriod],
-			new Set(["interview-server-id"]),
-			"period-server-id",
+		const spoofedId = { ...own, id: "candidate-controlled-event" };
+		const ownedEvents = new Map([
+			[
+				"interview-server-id",
+				{
+					interviewId: "interview-server-id",
+					periodId: "period-server-id",
+					eventId: "own-copy",
+				},
+			],
+		]);
+		const busy = externalBusyIntervals([own, external, wrongPeriod, spoofedId], ownedEvents);
+		expect(busy).toHaveLength(3);
+		expect(ownedBusyIntervals([own, external, wrongPeriod, spoofedId], ownedEvents)).toHaveLength(
+			1,
 		);
-		expect(busy).toHaveLength(2);
 		const overlap = busy[0];
 		if (!overlap) throw new Error("Expected an external busy interval");
 		expect(

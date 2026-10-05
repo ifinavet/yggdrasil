@@ -7,6 +7,14 @@ export const MIDGARD_LOCAL_URL = "http://localhost:3000";
 export const BIFROST_LOCAL_URL = "http://localhost:3001";
 export const HUGIN_LOCAL_URL = "http://localhost:3003";
 
+export const GOOGLE_CALENDAR_API_URL = "https://www.googleapis.com/";
+export const GOOGLE_OAUTH_TOKEN_URL = "https://oauth2.googleapis.com/token";
+export const GOOGLE_CALENDAR_DEFAULT_SCOPES = [
+	"https://www.googleapis.com/auth/calendar.events",
+	"https://www.googleapis.com/auth/calendar.calendarlist.readonly",
+	"https://www.googleapis.com/auth/calendar.freebusy",
+].join(" ");
+
 export const SLACK_CHANNEL_URL = "https://slack.com/app_redirect?channel=";
 export const SLACK_API_URL = "https://slack.com/api";
 // Resources → Hvordan holde bedpress → Førstegangskontakt med bedrift.

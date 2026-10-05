@@ -21,6 +21,7 @@
 		"@convex-dev/resend": "^0.2.8",
 		"@convex-dev/workflow": "^0.4.8",
 		"@convex-dev/workpool": "0.4.12",
+		"@googleapis/calendar": "^20.1.0",
 		"@react-email/render": "catalog:",
 		"@workspace/emails": "workspace:*",
 		"@workspace/shared": "workspace:*",
@@ -28,6 +29,7 @@
 		"convex-helpers": "^0.1.124",
 		"d3-array": "3.2.4",
 		"d3-scale": "4.0.2",
+		"google-auth-library": "^11.1.0",
 		"jose": "6.2.12",
 		"svix": "^1.99.1",
 		"xss": "^1.0.15"
