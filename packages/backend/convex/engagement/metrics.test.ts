@@ -6,7 +6,7 @@ import {
 	activityWindowMs,
 	alignedCurve,
 	classify,
-	isSimilarCapacity,
+	demandCurve,
 	isWave,
 	type LogEntry,
 	medianCurve,
@@ -14,7 +14,6 @@ import {
 	progressOf,
 	projectFill,
 	recentUnregistrations,
-	seatCurve,
 	seatDelta,
 	valueAt,
 } from "./metrics";
@@ -39,24 +38,24 @@ describe("progressOf", () => {
 	});
 });
 
-describe("seatCurve", () => {
+describe("demandCurve", () => {
 	const at = (progress: number) => OPENS + (START - OPENS) * progress;
 
-	it("replays seats held at each grid point and caps at the limit", () => {
+	it("replays the students signed up at each grid point, beyond the limit", () => {
 		const log: LogEntry[] = [
 			{ change: "registered", at: OPENS },
 			{ change: "registered", at: at(0.1) },
 			{ change: "registered", at: at(0.2) },
 			{ change: "registered", at: START + DAY_MS },
 		];
-		const curve = seatCurve(TIMELINE, 2, log);
+		const curve = demandCurve(TIMELINE, 2, log);
 		expect(curve).toHaveLength(PACE_GRID.length);
 		expect(curve[0]).toBe(0.5);
 		expect(curve[PACE_GRID.indexOf(0.1)]).toBe(1);
-		expect(curve.at(-1)).toBe(1);
+		expect(curve.at(-1)).toBe(1.5);
 	});
 
-	it("keeps a promoted seat at the time it was first taken", () => {
+	it("counts the waitlist and ignores moves between the waitlist and a seat", () => {
 		const log: LogEntry[] = [
 			{ change: "registered", at: OPENS },
 			{ change: "registered", at: OPENS + 1 },
@@ -65,22 +64,22 @@ describe("seatCurve", () => {
 			{ change: "offered", at: at(0.5) },
 			{ change: "accepted", at: at(0.6) },
 		];
-		const curve = seatCurve(TIMELINE, 2, log);
-		expect(curve[PACE_GRID.indexOf(0.0001)]).toBe(1);
-		expect(curve[PACE_GRID.indexOf(0.5)]).toBe(0.5);
+		const curve = demandCurve(TIMELINE, 2, log);
+		expect(curve[PACE_GRID.indexOf(0.0001)]).toBe(1.5);
+		expect(curve[PACE_GRID.indexOf(0.5)]).toBe(1);
 		expect(curve[PACE_GRID.indexOf(0.6)]).toBe(1);
 	});
 
 	it("resolves the first minutes of registration", () => {
 		const log: LogEntry[] = [{ change: "registered", at: at(0.0003) }];
-		const curve = seatCurve(TIMELINE, 1, log);
+		const curve = demandCurve(TIMELINE, 1, log);
 		expect(curve[PACE_GRID.indexOf(0.0002)]).toBe(0);
 		expect(curve[PACE_GRID.indexOf(0.0005)]).toBe(1);
 	});
 
 	it("never drops below zero", () => {
 		const log: LogEntry[] = [{ change: "cleared", fromStatus: "registered", at: OPENS }];
-		expect(seatCurve(TIMELINE, 2, log)[0]).toBe(0);
+		expect(demandCurve(TIMELINE, 2, log)[0]).toBe(0);
 	});
 });
 
@@ -115,13 +114,6 @@ describe("valueAt", () => {
 		expect(valueAt(curve, 0)).toBe(0);
 		expect(valueAt(curve, 0.00015)).toBeCloseTo(0.5);
 		expect(valueAt(curve, 0.0002)).toBe(1);
-	});
-});
-
-describe("isSimilarCapacity", () => {
-	it("accepts limits within half the capacity", () => {
-		expect(isSimilarCapacity(40, 60)).toBe(true);
-		expect(isSimilarCapacity(40, 61)).toBe(false);
 	});
 });
 

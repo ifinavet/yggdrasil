@@ -8,13 +8,12 @@ import {
 	BASELINE_SIZE,
 	COMPANY_BASELINE,
 	classify,
+	demandCurve,
 	type ForecastTimeline,
-	isSimilarCapacity,
 	medianCurve,
 	progressOf,
 	projectFill,
 	recentUnregistrations,
-	seatCurve,
 	seatDelta,
 	valueAt,
 } from "./metrics";
@@ -97,7 +96,7 @@ async function curvesOf(ctx: QueryCtx, events: readonly Doc<"events">[]): Promis
 			return {
 				eventId: event._id,
 				limit: event.participationLimit,
-				curve: seatCurve(event, event.participationLimit, log),
+				curve: demandCurve(event, event.participationLimit, log),
 				timeline: await forecastTimeline(ctx, event),
 			};
 		}),
@@ -143,15 +142,15 @@ export function baselineFor(
 		past.timeline?.remindersEnabled === undefined ||
 		timeline?.remindersEnabled === undefined ||
 		past.timeline.remindersEnabled === timeline.remindersEnabled;
-	const aligned = (past: PastCurve) =>
-		timeline && past.timeline ? alignedCurve(past.curve, past.timeline, timeline) : past.curve;
+	const aligned = (past: PastCurve) => {
+		const curve =
+			timeline && past.timeline ? alignedCurve(past.curve, past.timeline, timeline) : past.curve;
+		return curve.map((fill) => Math.min(1, fill * (past.limit / limit)));
+	};
 	const own = companyCurves.filter(comparable).slice(0, COMPANY_BASELINE.size);
 	const ownIds = new Set(own.map((past) => past.eventId));
 	const pool = pastCurves
-		.filter(
-			(past) =>
-				comparable(past) && !ownIds.has(past.eventId) && isSimilarCapacity(limit, past.limit),
-		)
+		.filter((past) => comparable(past) && !ownIds.has(past.eventId))
 		.slice(0, BASELINE_SIZE);
 	const poolCurve = medianCurve(pool.map(aligned));
 	const ownCurve = medianCurve(own.map(aligned));
