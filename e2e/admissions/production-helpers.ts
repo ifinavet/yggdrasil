@@ -19,7 +19,7 @@ function localOrigin(name: string, fallback: string) {
 export const huginUrl = localOrigin("HUGIN_URL", "http://localhost:3023");
 export const bifrostUrl = localOrigin("BIFROST_URL", "http://localhost:3021");
 export const midgardUrl = localOrigin("MIDGARD_URL", "http://localhost:3020");
-const convexUrl = localOrigin("NEXT_PUBLIC_CONVEX_URL", "http://127.0.0.1:3212");
+export const convexUrl = localOrigin("NEXT_PUBLIC_CONVEX_URL", "http://127.0.0.1:3212");
 const convex = new ConvexHttpClient(convexUrl);
 
 export async function resetAdmissions(scenario: AdmissionSeedScenario) {

@@ -55,7 +55,9 @@ it("republishes an already-published interview after a room change", async () =>
 			state: "inProgress",
 		}),
 	);
-	const ownApplication = await applicant.query(api.admissions.queries.myApplication, { periodId });
+	const ownApplication = (
+		await applicant.query(api.admissions.queries.applicationContext, { now: Date.now() })
+	)?.application;
 	expect(ownApplication?.interview).toBeNull();
 });
 

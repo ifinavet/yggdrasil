@@ -36,36 +36,7 @@ export function scheduledInterviews(
 		.take(limit);
 }
 
-export const openPeriod = query({
-	args: { now: v.number() },
-	handler: async (ctx, { now }) => {
-		const period = await ctx.db.query("admissionPeriods").first();
-		if (
-			period?.status !== "open" ||
-			!(period.applicationStartAt <= now && now <= period.applicationEndAt)
-		)
-			return null;
-		return pick(period, [
-			"_id",
-			"title",
-			"applicationStartAt",
-			"applicationEndAt",
-			"interviewStartAt",
-			"interviewEndAt",
-			"retentionAt",
-			"dayStart",
-			"dayEnd",
-			"timezone",
-			"revision",
-		]);
-	},
-});
-
-async function applicantView(
-	ctx: QueryCtx,
-	application: Doc<"admissionApplications">,
-	period: Doc<"admissionPeriods">,
-) {
+async function applicantView(ctx: QueryCtx, application: Doc<"admissionApplications">) {
 	const interview = await getOneFrom(
 		ctx.db,
 		"admissionInterviews",
@@ -82,7 +53,6 @@ async function applicantView(
 			"group",
 			"availability",
 		]),
-		periodId: period._id,
 		decision: application.decisionSentAt ? application.decision : "pending",
 		decisionSentAt: application.decisionSentAt,
 		offerStatus: application.decisionSentAt ? application.offerStatus : "none",
@@ -92,27 +62,14 @@ async function applicantView(
 			interview?.status === "scheduled" && interview.publishedAt
 				? { startAt: interview.startAt, endAt: interview.endAt, room: interview.room }
 				: null,
-		period: pick(period, [
-			"title",
-			"applicationStartAt",
-			"applicationEndAt",
-			"interviewStartAt",
-			"interviewEndAt",
-			"retentionAt",
-			"timezone",
-			"dayStart",
-			"dayEnd",
-		]),
 	};
 }
 
-export const myApplication = query({
-	args: { periodId: v.optional(v.id("admissionPeriods")) },
-	handler: async (ctx, { periodId }) => {
+export const applicationContext = query({
+	args: { now: v.number() },
+	handler: async (ctx, { now }) => {
 		const user = await getCurrentUserOrThrow(ctx);
-		const period = periodId
-			? await ctx.db.get(periodId)
-			: await ctx.db.query("admissionPeriods").first();
+		const period = await ctx.db.query("admissionPeriods").first();
 		if (!period || period.status === "closing") return null;
 		const application = await ctx.db
 			.query("admissionApplications")
@@ -120,7 +77,25 @@ export const myApplication = query({
 				q.eq("periodId", period._id).eq("userId", user._id),
 			)
 			.unique();
-		return application ? applicantView(ctx, application, period) : null;
+		return {
+			period: pick(period, [
+				"_id",
+				"title",
+				"applicationStartAt",
+				"applicationEndAt",
+				"interviewStartAt",
+				"interviewEndAt",
+				"retentionAt",
+				"timezone",
+				"dayStart",
+				"dayEnd",
+			]),
+			isOpen:
+				period.status === "open" &&
+				period.applicationStartAt <= now &&
+				now <= period.applicationEndAt,
+			application: application ? await applicantView(ctx, application) : null,
+		};
 	},
 });
 

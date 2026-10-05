@@ -113,9 +113,9 @@ it("limits admin data to admins and applicant data to the signed-in student's ow
 	await expect(student.query(api.admissions.queries.adminOverview, { periodId })).rejects.toThrow(
 		/Unauthorized/,
 	);
-	await expect(t.query(api.admissions.queries.myApplication, { periodId })).rejects.toThrow(
-		/Unauthorized/,
-	);
+	await expect(
+		t.query(api.admissions.queries.applicationContext, { now: Date.now() }),
+	).rejects.toThrow(/Unauthorized/);
 
 	const answers = {
 		periodId,
@@ -133,8 +133,8 @@ it("limits admin data to admins and applicant data to the signed-in student's ow
 		consent: false,
 	});
 	await expect(
-		otherStudent.query(api.admissions.queries.myApplication, { periodId }),
-	).resolves.toBeNull();
+		otherStudent.query(api.admissions.queries.applicationContext, { now: Date.now() }),
+	).resolves.toMatchObject({ application: null });
 	await expect(
 		otherStudent.mutation(api.admissions.mutations.saveApplication, {
 			...answers,
@@ -152,9 +152,11 @@ it("limits admin data to admins and applicant data to the signed-in student's ow
 		consent: true,
 	});
 	await expect(
-		student.query(api.admissions.queries.myApplication, { periodId }),
-	).resolves.toMatchObject({ about: "Om meg", motivation: "Jeg vil bidra" });
-	await expect(student.query(api.admissions.queries.myApplication, {})).resolves.toMatchObject({
+		student.query(api.admissions.queries.applicationContext, { now: Date.now() }),
+	).resolves.toMatchObject({ application: { about: "Om meg", motivation: "Jeg vil bidra" } });
+	await expect(
+		student.query(api.admissions.queries.applicationContext, { now: Date.now() }),
+	).resolves.toMatchObject({
 		period: {
 			applicationEndAt: Date.now() + DAY,
 			interviewStartAt: Date.now() + 2 * DAY,
@@ -365,7 +367,9 @@ it("provisions only after an authenticated applicant accepts an offer; decline g
 		expectedRevision: decision.revision,
 		idempotencyKey: `offer:${candidate._id}`,
 	});
-	const pending = await student.query(api.admissions.queries.myApplication, { periodId });
+	const pending = (
+		await student.query(api.admissions.queries.applicationContext, { now: Date.now() })
+	)?.application;
 	await expect(
 		student.mutation(api.admissions.mutations.respondToOffer, {
 			periodId,
@@ -394,7 +398,9 @@ it("provisions only after an authenticated applicant accepts an offer; decline g
 	});
 
 	await finishOperation(t, secondKey);
-	const otherPending = await otherStudent.query(api.admissions.queries.myApplication, { periodId });
+	const otherPending = (
+		await otherStudent.query(api.admissions.queries.applicationContext, { now: Date.now() })
+	)?.application;
 	await otherStudent.mutation(api.admissions.mutations.respondToOffer, {
 		periodId,
 		accept: false,
@@ -408,7 +414,8 @@ it("provisions only after an authenticated applicant accepts an offer; decline g
 			),
 		),
 	).resolves.toHaveLength(1);
-	const self = await student.query(api.admissions.queries.myApplication, { periodId });
+	const self = (await student.query(api.admissions.queries.applicationContext, { now: Date.now() }))
+		?.application;
 	await student.mutation(api.admissions.mutations.respondToOffer, {
 		periodId,
 		accept: true,
@@ -420,7 +427,8 @@ it("provisions only after an authenticated applicant accepts an offer; decline g
 			periodId,
 			accept: false,
 			expectedRevision:
-				(await student.query(api.admissions.queries.myApplication, { periodId }))?.revision ?? 0,
+				(await student.query(api.admissions.queries.applicationContext, { now: Date.now() }))
+					?.application?.revision ?? 0,
 		}),
 	).rejects.toThrow(/allerede/i);
 });
@@ -459,7 +467,9 @@ it("hides conflicting member identities when accepted-offer onboarding fails", a
 			updatedAt: Date.now(),
 		}),
 	);
-	const pending = await student.query(api.admissions.queries.myApplication, { periodId });
+	const pending = (
+		await student.query(api.admissions.queries.applicationContext, { now: Date.now() })
+	)?.application;
 	const failure = await student
 		.mutation(api.admissions.mutations.respondToOffer, {
 			periodId,
@@ -472,8 +482,8 @@ it("hides conflicting member identities when accepted-offer onboarding fails", a
 	expect(String(failure)).not.toContain("former-member@uio.no");
 	expect(String(failure)).not.toContain("Privat navn");
 	await expect(
-		student.query(api.admissions.queries.myApplication, { periodId }),
-	).resolves.toMatchObject({ offerStatus: "pending" });
+		student.query(api.admissions.queries.applicationContext, { now: Date.now() }),
+	).resolves.toMatchObject({ application: { offerStatus: "pending" } });
 });
 
 it("allows applicant cancellation and marks refill eligible only when 48 hours remain", async () => {
@@ -510,7 +520,9 @@ it("allows applicant cancellation and marks refill eligible only when 48 hours r
 			publishedAt: Date.now(),
 		});
 	});
-	const current = await student.query(api.admissions.queries.myApplication, { periodId });
+	const current = (
+		await student.query(api.admissions.queries.applicationContext, { now: Date.now() })
+	)?.application;
 	const cancelled = await student.mutation(api.admissions.mutations.cancelInterview, {
 		applicationId: candidate._id,
 		expectedRevision: current?.revision ?? scheduled.revision,
@@ -552,7 +564,7 @@ it("purges sensitive history and applicant identity on close", async () => {
 
 	await finishOperation(t, `close-archive:${periodId}`);
 	await expect(
-		student.query(api.admissions.queries.myApplication, { periodId }),
+		student.query(api.admissions.queries.applicationContext, { now: Date.now() }),
 	).resolves.toBeNull();
 	await expect(admin.query(api.admissions.queries.adminOverview, { periodId })).resolves.toBeNull();
 	await expect(
@@ -561,24 +573,32 @@ it("purges sensitive history and applicant identity on close", async () => {
 	await expect(t.run((ctx) => ctx.db.get(periodId))).resolves.toBeNull();
 });
 
-it("returns only the public singleton period within its application window", async () => {
+it("returns a safe reactive applicant context across the application lifecycle", async () => {
 	const { t } = await setup();
 	const now = Date.now();
-	expect(await t.query(api.admissions.queries.openPeriod, { now })).toBeNull();
-	const { admin, boardId, secondBoardId } = await users(t);
+	const { student, admin, boardId, secondBoardId } = await users(t);
+	expect(await student.query(api.admissions.queries.applicationContext, { now })).toBeNull();
 	const periodId = await openPeriod(admin, boardId, secondBoardId);
 	const period = await t.run((ctx) => ctx.db.get(periodId));
 	if (!period) throw new Error("Missing period");
 	for (const at of [period.applicationStartAt, period.applicationEndAt]) {
-		const result = await t.query(api.admissions.queries.openPeriod, { now: at });
-		expect(result?._id).toBe(periodId);
-		expect(result).not.toHaveProperty("interviewers");
-		expect(result).not.toHaveProperty("roundHistory");
+		const result = await student.query(api.admissions.queries.applicationContext, { now: at });
+		expect(result).toMatchObject({ period: { _id: periodId }, isOpen: true, application: null });
+		expect(result?.period).not.toHaveProperty("interviewers");
+		expect(result?.period).not.toHaveProperty("roundHistory");
 	}
 	for (const at of [period.applicationStartAt - 1, period.applicationEndAt + 1, Number.NaN])
-		expect(await t.query(api.admissions.queries.openPeriod, { now: at })).toBeNull();
-	for (const status of ["draft", "published", "closing"] as const) {
+		expect(
+			await student.query(api.admissions.queries.applicationContext, { now: at }),
+		).toMatchObject({ isOpen: false });
+	for (const status of ["draft", "published"] as const) {
 		await t.run((ctx) => ctx.db.patch(periodId, { status }));
-		expect(await t.query(api.admissions.queries.openPeriod, { now })).toBeNull();
+		expect(await student.query(api.admissions.queries.applicationContext, { now })).toMatchObject({
+			isOpen: false,
+		});
 	}
+	await t.run((ctx) => ctx.db.patch(periodId, { status: "closing" }));
+	expect(await student.query(api.admissions.queries.applicationContext, { now })).toBeNull();
+	await t.run((ctx) => ctx.db.delete(periodId));
+	expect(await student.query(api.admissions.queries.applicationContext, { now })).toBeNull();
 });

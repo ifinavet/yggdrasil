@@ -125,7 +125,7 @@ export function ApplicationStatus({
 		if (application.interviewStatus === "cancelled")
 			return (
 				<ApplicationNotice title="Intervjuet er avlyst">
-					<p>Vi har registrert at du har avlyst intervjuet.</p>
+					<p>Intervjutiden din er avlyst.</p>
 				</ApplicationNotice>
 			);
 		return (

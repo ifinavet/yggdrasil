@@ -3,10 +3,13 @@ import { captureScreenshot } from "./capture-screenshot";
 import {
 	admissionsOverview,
 	clearCookieNotice,
+	convexUrl,
 	huginUrl,
 	midgardUrl,
 	resetAdmissions,
 } from "./production-helpers";
+
+import { LocalDatabase } from "./seed-database";
 
 async function apply(page: Page) {
 	await captureScreenshot(page, "student", "live-02-profile-confirm.png", page.getByRole("main"));
@@ -160,6 +163,38 @@ test.describe("real applicant journeys", () => {
 		await expect(page.getByRole("heading", { name: "Søknadsperioden er avsluttet" })).toBeVisible();
 		await expect(page.getByLabel("Fortell litt om deg selv")).toHaveCount(0);
 	});
+
+	for (const scenario of ["open", "scheduled"] as const) {
+		test(`removes the ${scenario} applicant view when the board closes the period without reloading`, async ({
+			page,
+			context,
+		}) => {
+			await resetAdmissions(scenario);
+			const overview = await admissionsOverview();
+			if (!overview) throw new Error("Missing admissions period");
+			await page.goto(`${huginUrl}/admissions`);
+			await clearCookieNotice(page);
+			await expect(
+				page.getByRole("heading", {
+					name: scenario === "open" ? "Bli med i Navet" : "Intervjuet ditt",
+				}),
+			).toBeVisible();
+			const midgard = await context.newPage();
+			await midgard.goto(midgardUrl);
+			await clearCookieNotice(midgard);
+			if (scenario === "open")
+				await expect(midgard.getByRole("link", { name: "Søk her" })).toBeVisible();
+			const db = new LocalDatabase(convexUrl);
+			await db.patch("admissionPeriods", overview.period._id, { status: "closing" });
+			await expect(
+				page.getByRole("heading", { name: "Søknadsperioden er avsluttet" }),
+			).toBeVisible();
+			await expect(page.getByLabel("Fortell litt om deg selv")).toHaveCount(0);
+			await expect(page.getByRole("button", { name: "Avlys intervjuet" })).toHaveCount(0);
+			await expect(midgard.getByRole("link", { name: "Søk her" })).toHaveCount(0);
+			await midgard.close();
+		});
+	}
 
 	test("shows an assigned interview and always lets the applicant cancel it", async ({ page }) => {
 		await resetAdmissions("scheduled");

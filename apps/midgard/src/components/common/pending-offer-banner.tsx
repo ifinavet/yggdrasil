@@ -22,20 +22,20 @@ export default function PendingOfferBanner() {
 
 function AdmissionsBanner() {
 	const [now, setNow] = useState(() => Date.now());
-	const period = useQuery(api.admissions.queries.openPeriod, { now });
-	const application = useQuery(
-		api.admissions.queries.myApplication,
-		period ? { periodId: period._id } : "skip",
-	);
+	const context = useQuery(api.admissions.queries.applicationContext, { now });
+	const period = context?.period;
 	useEffect(() => {
 		if (!period) return;
+		const boundary =
+			now < period.applicationStartAt ? period.applicationStartAt : period.applicationEndAt + 1;
+		if (boundary <= now) return;
 		const timer = window.setTimeout(
 			() => setNow(Date.now()),
-			Math.max(0, period.applicationEndAt - Date.now() + 1),
+			Math.min(boundary - now, 2_147_483_647),
 		);
 		return () => window.clearTimeout(timer);
-	}, [period]);
-	if (!period || application === undefined || application?.status === "submitted") return null;
+	}, [now, period]);
+	if (!period || !context?.isOpen || context.application?.status === "submitted") return null;
 	return (
 		<div className="mx-4 mb-6 flex max-w-6xl flex-col gap-3 sm:mx-auto sm:w-full sm:px-6">
 			<Note
