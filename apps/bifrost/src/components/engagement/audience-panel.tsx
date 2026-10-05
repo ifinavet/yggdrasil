@@ -33,6 +33,7 @@ const MIN_LABELLED_SEGMENT = 0.04;
 const COHORT_CODE_NOTE =
 	"B er bachelor, M er master og Å er årsstudium, tallet er årstrinnet. PhD-studenter er utelatt fordi de er så få.";
 const PREVIOUS_LABEL = "Forrige semester";
+const GRADUATES_COLUMN = { label: "Uteksaminert", code: "Ute" };
 
 function useCohortColors(cohorts: readonly AudienceRow[]) {
 	return useMemo(
@@ -241,7 +242,11 @@ function ProgramMatrix({
 	cohorts: readonly ProgramCohort[];
 	population: Population;
 }>) {
-	const hottest = Math.max(1, ...programs.flatMap(({ byCohort }) => byCohort));
+	const showGraduates = programs.some(({ graduates }) => graduates > 0);
+	const columns = showGraduates ? [...cohorts, GRADUATES_COLUMN] : cohorts;
+	const cellsOf = ({ byCohort, graduates }: ProgramRow) =>
+		showGraduates ? [...byCohort, graduates] : byCohort;
+	const hottest = Math.max(1, ...programs.flatMap(cellsOf));
 	const scale = Math.max(
 		Number.EPSILON,
 		...programs.flatMap(({ share, populationShare }) => [share, populationShare]),
@@ -253,7 +258,7 @@ function ProgramMatrix({
 				<thead className="text-muted-foreground">
 					<tr>
 						<th className="text-left font-medium">Studieprogram</th>
-						{cohorts.map(({ label, code }) => (
+						{columns.map(({ label, code }) => (
 							<th key={label} className="w-7 font-medium sm:w-10" title={label}>
 								{code}
 							</th>
@@ -280,12 +285,12 @@ function ProgramMatrix({
 									)}
 								</div>
 							</td>
-							{row.byCohort.map((count, index) => {
+							{cellsOf(row).map((count, index) => {
 								const heat = count / hottest;
 								return (
 									<td
-										key={cohorts[index]?.label}
-										title={`${row.label}, ${cohorts[index]?.label}: ${count} påmeldinger`}
+										key={columns[index]?.label}
+										title={`${row.label}, ${columns[index]?.label}: ${count} påmeldinger`}
 										className={cn(
 											"h-8 rounded-sm text-center tabular-nums",
 											count > 0 && needsLightText(heat) && "text-primary-foreground",

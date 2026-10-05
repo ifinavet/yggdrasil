@@ -9,7 +9,7 @@ import {
 	withStudyYear,
 } from "./audience";
 
-type Student = Pick<Doc<"students">, "_id" | "degree" | "year" | "studyProgram">;
+type Student = Pick<Doc<"students">, "_id" | "degree" | "year" | "studyProgram" | "graduatedAt">;
 
 function student(
 	id: string,
@@ -39,7 +39,7 @@ describe("cohortOf", () => {
 
 	it("only places master students in the fourth or fifth year", () => {
 		expect([3, 4, 5].map((year) => cohortOf({ degree: "Master", year }))).toEqual([
-			"",
+			null,
 			"Master 4. år",
 			"Master 5. år",
 		]);
@@ -55,7 +55,7 @@ describe("cohortOf", () => {
 
 	it("leaves students without a year before they started out of every cohort", () => {
 		expect(cohortGroupOf({ degree: "Bachelor", year: 0 })).toBeNull();
-		expect(cohortOf({ degree: "PhD", year: 0 })).toBe("");
+		expect(cohortOf({ degree: "PhD", year: 0 })).toBeNull();
 	});
 });
 
@@ -189,7 +189,10 @@ describe("audienceOf", () => {
 
 	it("counts årsstudium students under the first bachelor year in the program matrix only", () => {
 		const oneYear = student("ar", "Årsstudium", 1, "Årsstudium i informatikk");
-		const graduated = student("as", "Årsstudium", 2, "Årsstudium i informatikk");
+		const graduated = {
+			...student("as", "Årsstudium", 2, "Årsstudium i informatikk"),
+			graduatedAt: 0,
+		};
 		const { cohorts, programCohorts, programs } = audienceOf(
 			[ADA, oneYear, graduated],
 			[...POPULATION, oneYear, graduated],
@@ -199,32 +202,42 @@ describe("audienceOf", () => {
 			{ label: "Bachelor 1. år", code: "B1" },
 			{ label: "Bachelor 3. år", code: "B3" },
 			{ label: "Master 4. år", code: "M4" },
-			{ label: "Uteksaminert", code: "Ute" },
 		]);
 		expect(programs).toEqual([
-			expect.objectContaining({ label: "Årsstudium i informatikk", byCohort: [1, 0, 0, 1] }),
-			expect.objectContaining({ label: "Informatikk", byCohort: [1, 0, 0, 0] }),
-			expect.objectContaining({ label: "Matematikk", registrations: 0, byCohort: [0, 0, 0, 0] }),
+			expect.objectContaining({
+				label: "Årsstudium i informatikk",
+				byCohort: [1, 0, 0],
+				graduates: 1,
+			}),
+			expect.objectContaining({ label: "Informatikk", byCohort: [1, 0, 0], graduates: 0 }),
+			expect.objectContaining({
+				label: "Matematikk",
+				registrations: 0,
+				byCohort: [0, 0, 0],
+				graduates: 0,
+			}),
 		]);
 	});
 
 	it("adds up every program row to its registrations, graduates included", () => {
-		const continuing = student("dj", "Bachelor", 4, "Programmering");
-		const { total, programCohorts, programs } = audienceOf(
-			[ADA, CY, DI, continuing, continuing],
-			[...POPULATION, continuing],
+		const [graduate] = withStudyYear(
+			[{ ...student("dj", "Bachelor", 3, "Programmering"), graduatedAt: 0 }],
+			DAY_MS,
+		) as [Student];
+		const { total, programs } = audienceOf(
+			[ADA, CY, DI, graduate, graduate],
+			[...POPULATION, graduate],
 		);
-		expect(programCohorts.at(-1)).toEqual({ label: "Uteksaminert", code: "Ute" });
-		for (const { registrations, byCohort } of programs) {
-			expect(byCohort.reduce((sum, count) => sum + count, 0)).toBe(registrations);
+		const sumOf = (counts: readonly number[]) => counts.reduce((sum, count) => sum + count, 0);
+		for (const { registrations, byCohort, graduates } of programs) {
+			expect(sumOf(byCohort) + graduates).toBe(registrations);
 		}
-		expect(programs.flatMap(({ byCohort }) => byCohort).reduce((sum, n) => sum + n, 0)).toBe(total);
-		expect(programs.find(({ label }) => label === "Programmering")?.byCohort.at(-1)).toBe(2);
-	});
-
-	it("leaves out the graduate column when every registrant has a cohort", () => {
-		const { programCohorts } = audienceOf([ADA, CY], POPULATION);
-		expect(programCohorts.map(({ code }) => code)).not.toContain("Ute");
+		expect(sumOf(programs.map(({ byCohort, graduates }) => sumOf(byCohort) + graduates))).toBe(
+			total,
+		);
+		expect(programs.find(({ label }) => label === "Programmering")).toEqual(
+			expect.objectContaining({ byCohort: [0, 0, 0], graduates: 2 }),
+		);
 	});
 
 	it("sizes a cohort by the larger of itself and the year above it", () => {
