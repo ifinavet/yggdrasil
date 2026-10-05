@@ -38,7 +38,10 @@ async function fetchPage(key: string, offset: number) {
 		}),
 		signal: AbortSignal.timeout(TIMEOUT_MS),
 	});
-	if (!response.ok) throw new Error(`PostHog responded with ${response.status}`);
+	if (!response.ok) {
+		const reason = await response.text().catch(() => "");
+		throw new Error(`PostHog responded with ${response.status} ${reason}`.trim());
+	}
 	return posthogUnregistrationsSchema.parse(await response.json()).results;
 }
 

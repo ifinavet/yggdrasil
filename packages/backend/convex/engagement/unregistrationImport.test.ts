@@ -413,7 +413,9 @@ describe("importing unregistrations from PostHog", () => {
 	it("gives up after three failed attempts", async () => {
 		vi.useFakeTimers();
 		vi.stubEnv("POSTHOG_PERSONAL_API_KEY", "phx_revoked");
-		const fetchMock = stubPosthog(() => new Response("{}", { status: 401 }));
+		const fetchMock = stubPosthog(
+			() => new Response(JSON.stringify({ detail: "Invalid API key" }), { status: 401 }),
+		);
 		const { t } = await setup();
 		const intern = await internalUser(t);
 
@@ -431,7 +433,7 @@ describe("importing unregistrations from PostHog", () => {
 			state: "failed",
 			attempts: 3,
 			imported: undefined,
-			error: "Error: PostHog responded with 401",
+			error: 'Error: PostHog responded with 401 {"detail":"Invalid API key"}',
 		});
 	});
 });
