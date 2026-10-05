@@ -131,6 +131,38 @@ describe("semester", () => {
 		expect(lateUnregistrations).toEqual({ current: 1, since: logStart, lastYear: null });
 	});
 
+	it("counts imported late unregistrations from before the log started once the import is done", async () => {
+		startLogAt(at("2026-09-10T12:00:00Z"));
+		const { t, companyId, intern } = await internTester();
+		const now = at("2026-10-20T10:00:00Z");
+		const beforeLog = await insertEvent(t, companyId, {
+			registrationOpens: at("2026-08-20T10:00:00Z"),
+			eventStart: at("2026-09-01T16:00:00Z"),
+		});
+		const user = await insertUser(t, "ada@example.com");
+		await t.run((ctx) =>
+			ctx.db.insert("registrationLog", {
+				eventId: beforeLog,
+				userId: user._id,
+				change: "unregistered",
+				fromStatus: "registered",
+				at: at("2026-09-01T15:00:00Z"),
+			}),
+		);
+		const semester = () => intern.query(api.engagement.queries.semester, { now });
+
+		const running = await t.run((ctx) =>
+			ctx.db.insert("unregistrationImports", { state: "running", attempts: 1 }),
+		);
+		expect((await semester()).lateUnregistrations).toMatchObject({
+			current: 0,
+			since: await firstLogCreation(t),
+		});
+
+		await t.run((ctx) => ctx.db.patch(running, { state: "done" }));
+		expect((await semester()).lateUnregistrations).toMatchObject({ current: 1, since: null });
+	});
+
 	it("compares late unregistrations against last year once the log covers both", async () => {
 		startLogAt(at("2025-01-01T00:00:00Z"));
 		const { t, companyId, intern } = await internTester();
