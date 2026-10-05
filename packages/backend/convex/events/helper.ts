@@ -148,6 +148,8 @@ export async function insertEventWithOrganizers(
 		...event,
 		slug: eventSlug(event.title, event.eventStart),
 		formId,
+		feedbackEnabled: event.feedbackEnabled ?? true,
+		remindersEnabled: event.remindersEnabled ?? true,
 	});
 
 	await Promise.all(

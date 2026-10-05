@@ -6,17 +6,10 @@ import { convexErrorMessage } from "@workspace/shared/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";
 import { Checkbox } from "@workspace/ui/components/checkbox";
 import { Field, FieldLabel } from "@workspace/ui/components/field";
-import { useFeatureEnabled } from "@workspace/ui/hooks/use-feature-enabled";
 import { useMutation, useQuery } from "convex/react";
 import { toast } from "sonner";
 
 export function EventReminderSettings({ eventId }: Readonly<{ eventId: Id<"events"> }>) {
-	const enabled = useFeatureEnabled("eventReminders");
-	if (!enabled) return null;
-	return <ReminderToggle eventId={eventId} />;
-}
-
-function ReminderToggle({ eventId }: Readonly<{ eventId: Id<"events"> }>) {
 	const settings = useQuery(api.events.reminders.queries.getEventReminders, { eventId });
 	const setReminders = useMutation(
 		api.events.reminders.mutations.setEventReminders,
@@ -41,7 +34,8 @@ function ReminderToggle({ eventId }: Readonly<{ eventId: Id<"events"> }>) {
 						onCheckedChange={(checked) => onCheckedChange(checked === true)}
 					/>
 					<FieldLabel htmlFor="event-reminders-enabled">
-						Send påminnelse på e-post til påmeldte en uke og to dager før arrangementet
+						Påminnelser på e-post sendes til påmeldte en uke og to dager før arrangementet. Fjern
+						haken for å slå dem av.
 					</FieldLabel>
 				</Field>
 			</CardContent>

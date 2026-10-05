@@ -1,4 +1,3 @@
-import { featureFlags } from "@workspace/shared/feature-flags";
 import { afterEach, describe, expect, it } from "vitest";
 import {
 	asUser,
@@ -77,10 +76,6 @@ function overviewFor(t: TestBackend, user: TestUser) {
 }
 
 describe("getAll", () => {
-	afterEach(() => {
-		featureFlags.huginFeedback.reportsEnabled = true;
-	});
-
 	it("refuses callers who are not signed in", async () => {
 		const { t } = await setup();
 
@@ -231,19 +226,6 @@ describe("getAll", () => {
 		const [event] = await overviewFor(t, viewer);
 
 		expect(event?.feedbackStatus).toBe("draft");
-	});
-
-	it("hides report status when the report feature is off", async () => {
-		const { t, companyId } = await setup();
-		const viewer = await internalUser(t, "intern@example.com");
-		const eventId = await insertEvent(t, companyId, { eventStart: FALL_EVENT_START });
-		await insertOrganizerWithRole(t, eventId, viewer._id, "hovedansvarlig");
-		await insertReport(t, eventId, await insertCampaign(t, eventId, "closed"), { status: "draft" });
-		featureFlags.huginFeedback.reportsEnabled = false;
-
-		const [event] = await overviewFor(t, viewer);
-
-		expect(event?.feedbackStatus).toBeNull();
 	});
 });
 

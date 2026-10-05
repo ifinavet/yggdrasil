@@ -5,7 +5,6 @@ import type { Id } from "@workspace/backend/convex/dataModel";
 import { reportAccessDeniedMessage } from "@workspace/shared/feedback/report";
 import { Card, CardContent } from "@workspace/ui/components/card";
 import { FeedbackReportResponses } from "@workspace/ui/components/feedback/report";
-import { useFeatureEnabled } from "@workspace/ui/hooks/use-feature-enabled";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { Lock } from "lucide-react";
@@ -16,8 +15,7 @@ export function EventFeedbackReport({
 	eventId,
 	fallback = null,
 }: Readonly<{ eventId: Id<"events">; fallback?: ReactNode }>) {
-	const enabled = useFeatureEnabled("huginFeedback");
-	return enabled ? <ReportContent eventId={eventId} fallback={fallback} /> : fallback;
+	return <ReportContent eventId={eventId} fallback={fallback} />;
 }
 
 type EventReport = FunctionReturnType<typeof api.feedback.reports.queries.getEventReport>;
@@ -70,29 +68,20 @@ function ClosedReport({ data }: Readonly<{ data: EnabledReport }>) {
 		if (status === "CanLoadMore") loadMore(100);
 	}, [status, loadMore]);
 	if (error) return <p role="alert">{error}</p>;
-	return (
-		<ReportBody
-			report={report}
-			answers={answers}
-			answersLoaded={status === "Exhausted"}
-			deliveryEnabled={data.deliveryEnabled}
-		/>
-	);
+	return <ReportBody report={report} answers={answers} answersLoaded={status === "Exhausted"} />;
 }
 
 function ReportBody({
 	report,
 	answers,
 	answersLoaded,
-	deliveryEnabled,
 }: Readonly<{
 	report: PreparedReport;
 	answers: ReportAnswers;
 	answersLoaded: boolean;
-	deliveryEnabled: boolean;
 }>) {
 	if (!report || report.status === "building" || !answersLoaded) return <p>Klargjør rapport …</p>;
-	return <ReportReview report={report} answers={answers} deliveryEnabled={deliveryEnabled} />;
+	return <ReportReview report={report} answers={answers} />;
 }
 
 function ReportAccessDenied() {

@@ -1,4 +1,3 @@
-import { featureFlags } from "@workspace/shared/feature-flags";
 import { feedbackTokenSchema } from "@workspace/shared/feedback";
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "../../_generated/server";
@@ -28,7 +27,7 @@ export const enqueue = internalMutation({
 		const report = await ctx.db.get(args.reportId);
 		if (report?.status !== "approved" || report.emailId || report.deliveryStatus !== "pending")
 			return;
-		if (Date.now() >= report.retentionAt || !featureFlags.huginFeedback.reportEmailsEnabled) {
+		if (Date.now() >= report.retentionAt) {
 			await ctx.db.patch(report._id, { deliveryStatus: "failed" });
 			return;
 		}

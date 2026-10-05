@@ -12,6 +12,7 @@ import {
 	statusOf,
 } from "../../test/fixtures";
 import { api, internal } from "../_generated/api";
+import type { Id } from "../_generated/dataModel";
 
 const eventMutations = internal.events.mutations;
 
@@ -237,6 +238,66 @@ describe("events.mutations.create", () => {
 			unitPriceOre: eventProduct.unitPriceOre,
 			vatRate: eventProduct.vatRate,
 		});
+	});
+
+	it("turns reminder and feedback emails on for a new event", async () => {
+		const { t, companyId, foodItem, client } = await fixture();
+
+		await client.mutation(api.events.mutations.create, {
+			...eventArgs,
+			foodItem,
+			hostingCompany: companyId,
+		});
+
+		const event = await t.run((ctx) =>
+			ctx.db
+				.query("events")
+				.filter((q) => q.eq(q.field("title"), eventArgs.title))
+				.first(),
+		);
+		expect(event).toMatchObject({ remindersEnabled: true, feedbackEnabled: true });
+		expect(
+			await client.query(api.events.reminders.queries.getEventReminders, {
+				eventId: event?._id as Id<"events">,
+			}),
+		).toEqual({ enabled: true });
+	});
+
+	it("lets the board opt out of reminders on a new event", async () => {
+		const { t, companyId, foodItem, client } = await fixture();
+		await client.mutation(api.events.mutations.create, {
+			...eventArgs,
+			foodItem,
+			hostingCompany: companyId,
+		});
+		const event = await t.run((ctx) =>
+			ctx.db
+				.query("events")
+				.filter((q) => q.eq(q.field("title"), eventArgs.title))
+				.first(),
+		);
+		const eventId = event?._id as Id<"events">;
+
+		await client.mutation(api.events.reminders.mutations.setEventReminders, {
+			eventId,
+			enabled: false,
+		});
+
+		expect(await client.query(api.events.reminders.queries.getEventReminders, { eventId })).toEqual(
+			{ enabled: false },
+		);
+	});
+
+	it("leaves existing events without the flags switched off", async () => {
+		const { t, companyId, client } = await fixture();
+		const eventId = await insertEvent(t, companyId);
+		await t.run((ctx) =>
+			ctx.db.patch(eventId, { remindersEnabled: undefined, feedbackEnabled: undefined }),
+		);
+
+		expect(await client.query(api.events.reminders.queries.getEventReminders, { eventId })).toEqual(
+			{ enabled: false },
+		);
 	});
 });
 

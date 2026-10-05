@@ -14,7 +14,6 @@ import {
 	SelectValue,
 } from "@workspace/ui/components/select";
 import { Tabs, TabsList, TabsTrigger } from "@workspace/ui/components/tabs";
-import { useFeatureEnabled } from "@workspace/ui/hooks/use-feature-enabled";
 import { cn } from "@workspace/ui/lib/utils";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
@@ -65,7 +64,6 @@ export function FeedbackForms({ intro }: Readonly<{ intro: ReactNode }>) {
 	const [creating, setCreating] = useState(false);
 	const saveDraft = useMutation(api.feedback.forms.mutations.saveDraft);
 	const [tab, setTab] = useState<FormsTab>("feedback");
-	const jobListingOrdersEnabled = useFeatureEnabled("jobListingOrders");
 	const openFormId =
 		selectedFormId ??
 		feedbackForms.find((feedbackForm) => feedbackForm.isDefault)?._id ??
@@ -93,9 +91,7 @@ export function FeedbackForms({ intro }: Readonly<{ intro: ReactNode }>) {
 					<div className="flex items-end justify-between border-b">
 						<TabsList variant="underline" className="border-b-0">
 							<TabsTrigger value="feedback">Tilbakemeldinger</TabsTrigger>
-							{jobListingOrdersEnabled && (
-								<TabsTrigger value="jobListing">Stillingsannonse</TabsTrigger>
-							)}
+							<TabsTrigger value="jobListing">Stillingsannonse</TabsTrigger>
 						</TabsList>
 						{tab === "feedback" && (
 							<Button className="mb-2" disabled={creating} onClick={() => void createForm()}>

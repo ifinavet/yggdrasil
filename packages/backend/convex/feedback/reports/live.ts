@@ -4,14 +4,14 @@ import { ConvexError, v } from "convex/values";
 import { query } from "../../_generated/server";
 import { getRegistrantStatistics } from "../../events/registrations/statistics";
 import { latestCampaign } from "../delivery/campaigns";
-import { canViewReport, isReportFeatureEnabled } from "./access";
+import { canViewReport } from "./access";
 
 export const maxLiveResponses = 500;
 
 export const getLiveReport = query({
 	args: { eventId: v.id("events") },
 	handler: async (ctx, { eventId }) => {
-		if (!(await canViewReport(ctx)) || !isReportFeatureEnabled()) return null;
+		if (!(await canViewReport(ctx))) return null;
 		const event = await ctx.db.get(eventId);
 		const campaign = await latestCampaign(ctx, eventId);
 		const formVersionId = campaign?.formVersionId;

@@ -1,4 +1,3 @@
-import { featureFlags } from "@workspace/shared/feature-flags";
 import { reportAccessDeniedMessage } from "@workspace/shared/feedback/report";
 import { ConvexError } from "convex/values";
 import type { Doc } from "../../_generated/dataModel";
@@ -19,8 +18,4 @@ export async function requireReportAccess(ctx: QueryCtx) {
 	const user = await getCurrentUserOrThrow(ctx);
 	if (!(await hasReportAccess(ctx, user))) throw new ConvexError(reportAccessDeniedMessage);
 	return user;
-}
-
-export function isReportFeatureEnabled(): boolean {
-	return featureFlags.huginFeedback.reportsEnabled;
 }
