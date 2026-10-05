@@ -6,7 +6,6 @@ import {
 	activityWindowMs,
 	alignedCurve,
 	classify,
-	isSimilarCapacity,
 	isWave,
 	type LogEntry,
 	medianCurve,
@@ -115,13 +114,6 @@ describe("valueAt", () => {
 		expect(valueAt(curve, 0)).toBe(0);
 		expect(valueAt(curve, 0.00015)).toBeCloseTo(0.5);
 		expect(valueAt(curve, 0.0002)).toBe(1);
-	});
-});
-
-describe("isSimilarCapacity", () => {
-	it("accepts limits within half the capacity", () => {
-		expect(isSimilarCapacity(40, 60)).toBe(true);
-		expect(isSimilarCapacity(40, 61)).toBe(false);
 	});
 });
 

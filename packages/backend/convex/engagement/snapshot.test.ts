@@ -259,8 +259,8 @@ describe("baselineFor", () => {
 		curve,
 	});
 
-	it("returns null when there are no similarly sized past curves", async () => {
-		expect(baselineFor([past(100, [0, 1])], 10)).toBeNull();
+	it("returns null when there are no past curves", () => {
+		expect(baselineFor([], 10)).toBeNull();
 	});
 
 	it("excludes explicitly different reminder settings but retains unknown legacy settings", () => {
@@ -274,11 +274,20 @@ describe("baselineFor", () => {
 		expect(baselineFor([legacy, disabled], 10, [], timeline)?.size).toBe(1);
 	});
 
-	it("filters by similar capacity and caps the sample size", () => {
+	it("caps the sample size", () => {
 		const curves = Array.from({ length: 20 }, () => past(10, [0, 0.5, 1]));
-		const baseline = baselineFor([...curves, past(1000, [0, 1, 1])], 10);
+		const baseline = baselineFor(curves, 10);
 		expect(baseline?.size).toBe(12);
 		expect(baseline?.curve.slice(0, 3)).toEqual([0, 0.5, 1]);
+	});
+
+	it("compares with past events of any size", () => {
+		const baseline = baselineFor(
+			[past(20, [0, 1]), past(200, [0, 0.1]), past(1000, [0, 0.03])],
+			80,
+		);
+		expect(baseline?.size).toBe(3);
+		expect(baseline?.curve[1]).toBeCloseTo(0.25);
 	});
 
 	it("weighs the company's own events against the pool by how many there are", () => {
@@ -312,7 +321,7 @@ describe("baselineFor", () => {
 		expect(baseline?.curve[1]).toBeCloseTo(1 / 3 + (2 / 3) * 0.2);
 	});
 
-	it("uses the company alone when no similar event exists", () => {
+	it("uses the company alone when no other event exists", () => {
 		const baseline = baselineFor([], 10, [past(10, [0, 1])]);
 		expect(baseline?.size).toBe(1);
 		expect(baseline?.curve.slice(0, 2)).toEqual([0, 1]);

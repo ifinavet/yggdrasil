@@ -23,7 +23,6 @@ export const WAVE_RULE = { windowMs: HOUR_MS, minCount: 5, minShare: 0.1 };
 export const BEHIND_RULE = { maxProjectedFill: 0.5, withinMs: 3 * DAY_MS };
 export const NO_REGISTRATIONS_AFTER_MS = DAY_MS;
 export const AHEAD_RATIO = 1.15;
-export const SIMILAR_CAPACITY_BAND = 0.5;
 export const BASELINE_SIZE = 12;
 export const COMPANY_BASELINE = { size: 6, poolWeight: 2 };
 export const ALERT_ACTIVITY = {
@@ -106,10 +105,6 @@ export function medianCurve(curves: readonly (readonly number[])[]) {
 
 export function valueAt(curve: readonly number[], progress: number) {
 	return scaleLinear(PACE_GRID, curve).clamp(true)(progress);
-}
-
-export function isSimilarCapacity(limit: number, otherLimit: number) {
-	return Math.abs(otherLimit - limit) <= limit * SIMILAR_CAPACITY_BAND;
 }
 
 export function projectFill(

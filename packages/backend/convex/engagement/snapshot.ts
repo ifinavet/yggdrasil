@@ -9,7 +9,6 @@ import {
 	COMPANY_BASELINE,
 	classify,
 	type ForecastTimeline,
-	isSimilarCapacity,
 	medianCurve,
 	progressOf,
 	projectFill,
@@ -151,10 +150,7 @@ export function baselineFor(
 	const own = companyCurves.filter(comparable).slice(0, COMPANY_BASELINE.size);
 	const ownIds = new Set(own.map((past) => past.eventId));
 	const pool = pastCurves
-		.filter(
-			(past) =>
-				comparable(past) && !ownIds.has(past.eventId) && isSimilarCapacity(limit, past.limit),
-		)
+		.filter((past) => comparable(past) && !ownIds.has(past.eventId))
 		.slice(0, BASELINE_SIZE);
 	const poolCurve = medianCurve(pool.map(aligned));
 	const ownCurve = medianCurve(own.map(aligned));
