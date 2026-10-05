@@ -16,6 +16,7 @@ import { startAcceptedAdmissionOnboarding, validateAdmissionOffer } from "../iam
 import { requireMutablePeriod } from "./access";
 import {
 	activePublishInterviewIds,
+	cancelInterviewForClose,
 	expirePendingOffers,
 	finishClose,
 	queueArchiveWhenReady,
@@ -865,34 +866,18 @@ export const closePeriod = mutation({
 		await expirePendingOffers(ctx, pendingOffers);
 		await Promise.all(
 			interviews.map(async (interview) => {
-				if (
-					interview.publishedAt ||
-					interview.calendarEventId ||
-					interviewsBeingPublished.has(interview._id)
-				) {
-					await ctx.db.patch(interview._id, {
-						status: "cancelled",
-						revision: interview.revision + 1,
-						publishedAt: undefined,
-					});
-					await queueOutbox(ctx, {
-						kind: "cancel_interview",
-						periodId,
-						applicationId: interview.applicationId,
-						interviewId: interview._id,
-						revision: interview.revision + 1,
-						idempotencyKey: `${idempotencyKey}:cancel:${interview._id}`,
-						state: "pending",
-						attempts: 0,
-						nextAttemptAt: now,
-						createdAt: now,
-						notifyApplicant: Boolean(interview.publishedAt && interview.startAt > now),
-					});
-				} else
-					await ctx.db.patch(interview._id, {
-						status: "cancelled",
-						revision: interview.revision + 1,
-					});
+				await cancelInterviewForClose(
+					ctx,
+					periodId,
+					interview,
+					`${idempotencyKey}:cancel:${interview._id}`,
+					now,
+					Boolean(
+						interview.publishedAt ||
+							interview.calendarEventId ||
+							interviewsBeingPublished.has(interview._id),
+					),
+				);
 			}),
 		);
 		const closing = { ...period, status: "closing" as const, revision: period.revision + 1 };

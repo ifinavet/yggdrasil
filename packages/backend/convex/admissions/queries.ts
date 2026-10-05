@@ -267,15 +267,14 @@ export const adminOverview = query({
 					.query("admissionInterviews")
 					.withIndex("by_applicationId", (q) => q.eq("applicationId", application._id))
 					.unique();
+				let groupName = "";
+				if (application.group === "unsure") groupName = "Usikker ennå";
+				else if (application.group)
+					groupName = groupNames.get(application.group) ?? "Arbeidsgruppen finnes ikke lenger";
 				return {
 					...application,
 					groupId: application.group === "unsure" ? undefined : application.group,
-					group:
-						application.group === "unsure"
-							? "Usikker ennå"
-							: application.group
-								? (groupNames.get(application.group) ?? "Arbeidsgruppen finnes ikke lenger")
-								: "",
+					group: groupName,
 					name:
 						application.studentProfile?.name ??
 						[user?.firstName, user?.lastName].filter(Boolean).join(" "),

@@ -2,7 +2,8 @@
 
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
-import { localWindow, makeSchedulingDays } from "@workspace/shared/admissions";
+import { makeSchedulingDays } from "@workspace/shared/admissions";
+import { localWindow } from "@workspace/shared/time";
 import { convexErrorMessage } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@workspace/ui/components/dialog";

@@ -11,6 +11,7 @@ import { enqueueSystemMessage } from "../iam/notifications";
 import { admissionsChannelNames } from "./channelNames";
 import {
 	activePublishInterviewIds,
+	cancelInterviewForClose,
 	expirePendingOffers,
 	finishClose,
 	purgeBatch as purgeRecordsBatch,
@@ -525,35 +526,19 @@ export const closeExpiredPeriod = internalMutation({
 			.take(MAX_APPLICATIONS);
 		await Promise.all(
 			interviews.map(async (interview) => {
-				if (
-					interview.calendarEventId ||
-					interview.publishedAt ||
-					interviewsBeingPublished.has(interview._id)
-				) {
-					const revision = interview.revision + 1;
-					await ctx.db.patch(interview._id, {
-						status: "cancelled",
-						revision,
-						publishedAt: undefined,
-					});
-					await queueOutbox(ctx, {
-						kind: "cancel_interview",
-						periodId,
-						applicationId: interview.applicationId,
-						interviewId: interview._id,
-						revision,
-						idempotencyKey: `retention-cancel:${interview._id}:${revision}`,
-						state: "pending",
-						attempts: 0,
-						nextAttemptAt: now,
-						createdAt: now,
-						notifyApplicant: Boolean(interview.publishedAt && interview.startAt > now),
-					});
-				} else
-					await ctx.db.patch(interview._id, {
-						status: "cancelled",
-						revision: interview.revision + 1,
-					});
+				const revision = interview.revision + 1;
+				await cancelInterviewForClose(
+					ctx,
+					periodId,
+					interview,
+					`retention-cancel:${interview._id}:${revision}`,
+					now,
+					Boolean(
+						interview.calendarEventId ||
+							interview.publishedAt ||
+							interviewsBeingPublished.has(interview._id),
+					),
+				);
 			}),
 		);
 		const closing = { ...period, status: "closing" as const, revision: period.revision + 1 };

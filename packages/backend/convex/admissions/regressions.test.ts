@@ -1,4 +1,4 @@
-import { localWindow } from "@workspace/shared/admissions";
+import { localWindow } from "@workspace/shared/time";
 import { afterEach, expect, it, vi } from "vitest";
 import {
 	applicationFields,
@@ -76,6 +76,21 @@ async function setAvailability(
 ) {
 	await t.run((ctx) =>
 		ctx.db.patch(applicationId, { availability: [{ day, start: 600, end: 620 }] }),
+	);
+}
+
+async function insertCancelledInterview(value: Awaited<ReturnType<typeof scheduleFixture>>) {
+	return await value.t.run((ctx) =>
+		ctx.db.insert(
+			"admissionInterviews",
+			interviewFields(value.periodId, value.applicationId, {
+				startAt: value.startAt,
+				endAt: value.startAt + 15 * MINUTE,
+				interviewerIds: [value.interviewer._id, value.otherInterviewer._id],
+				status: "cancelled",
+				revision: 2,
+			}),
+		),
 	);
 }
 
@@ -932,18 +947,7 @@ it("rejects generated assignments that double-book a room", async () => {
 it("requires explicit candidate agreement before manually rebooking a cancelled interview", async () => {
 	const value = await scheduleFixture(10, 0, []);
 	await setAvailability(value.t, value.applicationId, value.day);
-	await value.t.run((ctx) =>
-		ctx.db.insert(
-			"admissionInterviews",
-			interviewFields(value.periodId, value.applicationId, {
-				startAt: value.startAt,
-				endAt: value.startAt + 15 * MINUTE,
-				interviewerIds: [value.interviewer._id, value.otherInterviewer._id],
-				status: "cancelled",
-				revision: 2,
-			}),
-		),
-	);
+	await insertCancelledInterview(value);
 	const args = {
 		applicationId: value.applicationId,
 		startAt: value.startAt,
@@ -970,18 +974,7 @@ it("requires explicit candidate agreement before manually rebooking a cancelled 
 it("does not let generated plans resurrect a cancelled interview", async () => {
 	const value = await scheduleFixture(10, 0, []);
 	await setAvailability(value.t, value.applicationId, value.day);
-	await value.t.run((ctx) =>
-		ctx.db.insert(
-			"admissionInterviews",
-			interviewFields(value.periodId, value.applicationId, {
-				startAt: value.startAt,
-				endAt: value.startAt + 15 * MINUTE,
-				interviewerIds: [value.interviewer._id, value.otherInterviewer._id],
-				status: "cancelled",
-				revision: 2,
-			}),
-		),
-	);
+	await insertCancelledInterview(value);
 	await expect(
 		value.t.mutation(internal.admissions.internal.saveSchedule, {
 			periodId: value.periodId,

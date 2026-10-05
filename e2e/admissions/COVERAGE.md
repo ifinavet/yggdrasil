@@ -8,7 +8,7 @@ The admissions E2E suite exercises the real Convex-backed journeys. Real-flow te
 
 ## Board
 
-The production browser suites cover persistent room updates and notes, declined-offer replacement, schedule generation and publication, period creation and calendar selection, selection rounds and explicit decision sending, manual interview actions/cancellation, interviewer-team editing and published-slot protection, and close confirmation. Local email HTML can be captured for invitations, offers, rejections, and cancellation notices when the corresponding flow queues the message. The screenshots are saved under `test-results/admissions/screenshots/board/` and `test-results/admissions/screenshots/student/` with `live-` names.
+The production browser suites cover persistent room updates and notes, declined-offer replacement, schedule generation and publication, period creation and calendar selection, selection rounds and explicit decision sending, manual interview actions/cancellation, interviewer-team editing and published-slot protection, and close confirmation. `board-groups.spec.ts` verifies group creation in Bifrost, the live Hugin applicant options, and server protection against renaming or deleting referenced groups. Local email HTML can be captured for invitations, offers, rejections, and cancellation notices when the corresponding flow queues the message. The screenshots are saved under `test-results/admissions/screenshots/board/` and `test-results/admissions/screenshots/student/` with `live-` names.
 
 ## Backend and limits
 

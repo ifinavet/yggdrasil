@@ -40,43 +40,18 @@ describe("Slack private-channel archival", () => {
 		expect(fetch).toHaveBeenCalledTimes(2);
 	});
 
-	it("finds the bot-owned private channel by its owner marker", async () => {
+	it.each([
+		{ description: "preferred name", name: "host-2026-opptak", id: "C123" },
+		{ description: "fallback name", name: "host-2026-opptak-period", id: "C456" },
+	])("finds the bot-owned private channel by its $description", async ({ name, id }) => {
 		const fetch = slackFetch((method) => {
 			if (method === "conversations.list")
 				return Response.json({
 					ok: true,
 					channels: [
 						{
-							id: "C123",
-							name: "host-2026-opptak",
-							creator: "UBOT",
-							is_private: true,
-							purpose: { value: "period" },
-						},
-					],
-				});
-			if (method === "auth.test") return Response.json({ ok: true, user_id: "UBOT" });
-			throw new Error(`Unexpected Slack method ${method}`);
-		});
-		vi.stubGlobal("fetch", fetch);
-		await expect(
-			slackClient({ botToken: "xoxb-test" }).findOwnedPrivateChannel(
-				["host-2026-opptak"],
-				"period",
-			),
-		).resolves.toBe("C123");
-		expect(fetch).toHaveBeenCalledTimes(2);
-	});
-
-	it("finds the bot-owned fallback name used when another period owns the preferred name", async () => {
-		const fetch = slackFetch((method) => {
-			if (method === "conversations.list")
-				return Response.json({
-					ok: true,
-					channels: [
-						{
-							id: "C456",
-							name: "host-2026-opptak-period",
+							id,
+							name,
 							creator: "UBOT",
 							is_private: true,
 							purpose: { value: "period" },
@@ -92,7 +67,7 @@ describe("Slack private-channel archival", () => {
 				["host-2026-opptak", "host-2026-opptak-period"],
 				"period",
 			),
-		).resolves.toBe("C456");
+		).resolves.toBe(id);
 		expect(fetch).toHaveBeenCalledTimes(2);
 	});
 

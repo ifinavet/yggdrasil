@@ -1,4 +1,4 @@
-import { coversWindow, localDateAndMinute, weekdaysBetween } from "../time";
+import { coversWindow, localDateAndMinute, overlaps, weekdaysBetween } from "../time";
 import type { AvailabilityWindow } from "./availability";
 
 export const LUNCH_START_MINUTE = 12 * 60;
@@ -65,9 +65,7 @@ export function makeSchedulingSlots(settings: SchedulingSettings, days: readonly
 		let consecutive = 0;
 		while (start + settings.duration + settings.buffer <= settings.dayEnd) {
 			const end = start + settings.duration + settings.buffer;
-			const pause = settings.breaks.find(
-				(entry) => entry.day === day && entry.start < end && start < entry.end,
-			);
+			const pause = settings.breaks.find((entry) => overlaps(entry, { day, start, end }));
 			if (pause) {
 				start = pause.end;
 				consecutive = 0;
@@ -95,11 +93,7 @@ export function interviewerAvailable(person: SchedulingInterviewer, slot: Availa
 	return (
 		calendars.length > 0 &&
 		calendars.every(
-			(calendar) =>
-				calendar.readable &&
-				!calendar.busy.some(
-					(busy) => busy.day === slot.day && busy.start < slot.end && busy.end > slot.start,
-				),
+			(calendar) => calendar.readable && !calendar.busy.some((busy) => overlaps(busy, slot)),
 		)
 	);
 }

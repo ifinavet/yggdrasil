@@ -262,13 +262,14 @@ export const reset = mutation({
 		const ownDay = isoDay(interviewStartAt + 2 * DAY);
 		await ctx.db.patch(applicantId, { email: "developer@uio.no" });
 		const ownStatus = scenario === "open" ? "draft" : "submitted";
-		const ownDecision =
-			scenario === "decisions" ||
-			scenario === "offer-pending-accepted" ||
-			scenario === "offer-pending-declined" ||
-			scenario === "offer-expired"
-				? "accepted"
-				: "pending";
+		const ownDecision = [
+			"decisions",
+			"offer-pending-accepted",
+			"offer-pending-declined",
+			"offer-expired",
+		].includes(scenario)
+			? "accepted"
+			: "pending";
 		const ownOffer: Doc<"admissionApplications">["offerStatus"] = offerScenario(scenario);
 		let offerDeadline: number | undefined;
 		if (ownOffer === "pending") {

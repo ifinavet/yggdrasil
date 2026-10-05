@@ -101,9 +101,8 @@ export function InternalGroups() {
 					{error}
 				</p>
 			)}
-			{groups === undefined ? (
-				<output>Laster arbeidsgrupper…</output>
-			) : groups.length ? (
+			{groups === undefined && <output>Laster arbeidsgrupper…</output>}
+			{groups !== undefined && groups.length > 0 && (
 				<ul className="grid gap-3 sm:grid-cols-2">
 					{groups.map((group) => (
 						<li
@@ -152,7 +151,8 @@ export function InternalGroups() {
 						</li>
 					))}
 				</ul>
-			) : (
+			)}
+			{groups?.length === 0 && (
 				<p className="text-muted-foreground text-sm">Ingen arbeidsgrupper er lagt til ennå.</p>
 			)}
 			<Dialog

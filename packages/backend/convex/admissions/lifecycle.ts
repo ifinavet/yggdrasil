@@ -6,6 +6,32 @@ import { MAX_APPLICATIONS, MAX_OUTBOX_ATTEMPTS } from "./rules";
 
 type CleanupKind = "cancel_interview" | "publish" | "offer_declined" | "archive_channel";
 
+export async function cancelInterviewForClose(
+	ctx: MutationCtx,
+	periodId: Id<"admissionPeriods">,
+	interview: Doc<"admissionInterviews">,
+	idempotencyKey: string,
+	now: number,
+	queueCleanup: boolean,
+) {
+	const revision = interview.revision + 1;
+	await ctx.db.patch(interview._id, { status: "cancelled", revision, publishedAt: undefined });
+	if (!queueCleanup) return;
+	await queueOutbox(ctx, {
+		kind: "cancel_interview",
+		periodId,
+		applicationId: interview.applicationId,
+		interviewId: interview._id,
+		revision,
+		idempotencyKey,
+		state: "pending",
+		attempts: 0,
+		nextAttemptAt: now,
+		createdAt: now,
+		notifyApplicant: Boolean(interview.publishedAt && interview.startAt > now),
+	});
+}
+
 export async function queueOutbox(
 	ctx: MutationCtx,
 	fields: Omit<Doc<"admissionOutbox">, "_id" | "_creationTime">,
