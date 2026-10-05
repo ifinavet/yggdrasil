@@ -29,6 +29,7 @@ import type * as engagement_log from "../engagement/log.js";
 import type * as engagement_metrics from "../engagement/metrics.js";
 import type * as engagement_queries from "../engagement/queries.js";
 import type * as engagement_snapshot from "../engagement/snapshot.js";
+import type * as engagement_unregistrationImport from "../engagement/unregistrationImport.js";
 import type * as events_food from "../events/food.js";
 import type * as events_helper from "../events/helper.js";
 import type * as events_mutations from "../events/mutations.js";
@@ -196,6 +197,7 @@ declare const fullApi: ApiFromModules<{
   "engagement/metrics": typeof engagement_metrics;
   "engagement/queries": typeof engagement_queries;
   "engagement/snapshot": typeof engagement_snapshot;
+  "engagement/unregistrationImport": typeof engagement_unregistrationImport;
   "events/food": typeof events_food;
   "events/helper": typeof events_helper;
   "events/mutations": typeof events_mutations;
