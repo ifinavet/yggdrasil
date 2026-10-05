@@ -1,5 +1,6 @@
 "use client";
 
+import type { ColumnDef } from "@tanstack/react-table";
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { makeSchedulingDays } from "@workspace/shared/admissions";
@@ -320,25 +321,7 @@ export default function AdmissionsDashboard() {
 							/>
 						</>
 					) : (
-						<DataTable
-							data={filtered}
-							columns={[
-								{
-									accessorKey: "name",
-									header: "Kandidat",
-									cell: ({ row }) => (
-										<Button variant="link" onClick={() => openCandidate(row.original._id)}>
-											{row.original.name}
-										</Button>
-									),
-								},
-								{ accessorKey: "program", header: "Linje" },
-								{ accessorKey: "year", header: "År" },
-								{ accessorKey: "group", header: "Arbeidsgruppe" },
-								{ accessorFn: (entry) => decisionLabels[entry.decision], header: "Vedtak" },
-								{ accessorFn: (entry) => offerLabels[entry.offerStatus], header: "Svar" },
-							]}
-						/>
+						<DataTable data={filtered} columns={candidateColumns(openCandidate)} />
 					)}
 				</>
 			)}
@@ -468,4 +451,23 @@ export default function AdmissionsDashboard() {
 			/>
 		</section>
 	);
+}
+
+function candidateColumns(openCandidate: (id: string) => void): ColumnDef<Candidate>[] {
+	return [
+		{
+			accessorKey: "name",
+			header: "Kandidat",
+			cell: ({ row }) => (
+				<Button variant="link" onClick={() => openCandidate(row.original._id)}>
+					{row.original.name}
+				</Button>
+			),
+		},
+		{ accessorKey: "program", header: "Linje" },
+		{ accessorKey: "year", header: "År" },
+		{ accessorKey: "group", header: "Arbeidsgruppe" },
+		{ accessorFn: (entry) => decisionLabels[entry.decision], header: "Vedtak" },
+		{ accessorFn: (entry) => offerLabels[entry.offerStatus], header: "Svar" },
+	];
 }
