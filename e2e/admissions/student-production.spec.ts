@@ -215,6 +215,11 @@ test.describe("real applicant journeys", () => {
 		const cancel = page.getByRole("button", { name: "Avlys intervjuet" });
 		await expect(cancel).toBeVisible();
 		await cancel.click();
+		await expect(
+			page
+				.getByRole("alertdialog")
+				.getByText("Du får ikke automatisk en ny intervjutid hvis du avlyser."),
+		).toBeVisible();
 		await page.getByRole("button", { name: "Ja, avlys intervjuet" }).click();
 		await expect(page.getByText("Intervjuet er avlyst")).toBeVisible();
 		await page.reload();

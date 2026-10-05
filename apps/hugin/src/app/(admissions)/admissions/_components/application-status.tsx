@@ -153,7 +153,7 @@ export function ApplicationStatus({
 				title={cancel ? "Avlyse intervjuet?" : `Takke ${verb} til plassen?`}
 				description={
 					cancel
-						? "Intervjutiden blir avlyst når du bekrefter."
+						? "Intervjutiden blir avlyst når du bekrefter. Du får ikke automatisk en ny intervjutid hvis du avlyser."
 						: `Når du bekrefter, registrerer vi at du takker ${verb}.`
 				}
 				confirmLabel={cancel ? "Ja, avlys intervjuet" : `Bekreft at jeg takker ${verb}`}
