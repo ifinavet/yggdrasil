@@ -19,8 +19,3 @@ export default function AdmissionsCancellationEmail({
 	);
 }
 
-AdmissionsCancellationEmail.PreviewProps = {
-	firstName: "Kari",
-	periodTitle: "Høstopptak 2026",
-	when: "mandag 12. oktober kl. 10:00",
-};

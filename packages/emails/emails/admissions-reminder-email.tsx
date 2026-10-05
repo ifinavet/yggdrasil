@@ -35,10 +35,3 @@ export default function AdmissionsReminderEmail({
 	);
 }
 
-AdmissionsReminderEmail.PreviewProps = {
-	firstName: "Kari",
-	periodTitle: "Høstopptak 2026",
-	when: "mandag 12. oktober kl. 10:00",
-	room: "Beta",
-	applicationUrl: "https://hugin.ifinavet.no/admissions",
-};

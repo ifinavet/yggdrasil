@@ -26,9 +26,3 @@ export default function AdmissionsOfferEmail({
 	);
 }
 
-AdmissionsOfferEmail.PreviewProps = {
-	firstName: "Kari",
-	periodTitle: "Høstopptak 2026",
-	group: "Promo",
-	responseUrl: "https://hugin.ifinavet.no/admissions",
-};

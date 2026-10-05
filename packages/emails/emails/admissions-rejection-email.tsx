@@ -18,7 +18,3 @@ export default function AdmissionsRejectionEmail({
 	);
 }
 
-AdmissionsRejectionEmail.PreviewProps = {
-	firstName: "Kari",
-	periodTitle: "Høstopptak 2026",
-};
