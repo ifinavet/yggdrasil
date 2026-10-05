@@ -96,7 +96,6 @@ it("alerts before closing when the declined-offer notice exhausts retries", asyn
 				decision: "accepted",
 				decisionSentAt: Date.now() - 1_000,
 				offerStatus: "declined",
-				sent: true,
 			}),
 		);
 		await stageOperation(ctx, {

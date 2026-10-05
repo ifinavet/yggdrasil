@@ -852,7 +852,6 @@ it("persists expired offer status instead of rolling it back when a candidate re
 				decisionSentAt: now - DAY,
 				offerStatus: "pending",
 				offerDeadline: now - 1,
-				sent: true,
 			}),
 		),
 	);

@@ -220,7 +220,6 @@ export async function seedAdmissions(url: string, scenario: AdmissionSeedScenari
 		...ADMISSION_SCHEDULING_DEFAULTS,
 		breaks: [],
 		timezone: "Europe/Oslo",
-		round: 0,
 		roundHistory: [],
 		createdBy: applicantId,
 		updatedBy: applicantId,
@@ -275,7 +274,6 @@ export async function seedAdmissions(url: string, scenario: AdmissionSeedScenari
 		offerStatus: ownOffer,
 		offerDeadline,
 		offerRespondedAt: ownOffer === "declined" ? now - 10_000 : undefined,
-		sent: ownOffer !== "none",
 	});
 	if (scenario === "scheduled" || scenario === "delivery-failed" || ownOffer !== "none") {
 		await seedPublishedInterview(
@@ -388,7 +386,6 @@ async function seedOtherCandidates(
 				revision: 1,
 				decisionRevision: decision === "pending" ? 0 : 1,
 				decision,
-				sent: false,
 				offerStatus: "none",
 			});
 		}),

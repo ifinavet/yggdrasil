@@ -187,7 +187,6 @@ export const changeRound = mutation({
 		);
 		await ctx.db.patch(period._id, {
 			revision: period.revision + 1,
-			round: period.round + (args.direction === "next" ? 1 : -1),
 			roundHistory:
 				args.direction === "previous"
 					? period.roundHistory.slice(0, -1)
@@ -209,7 +208,8 @@ function roundDecision(
 	direction: "next" | "previous",
 	previous: Doc<"admissionPeriods">["roundHistory"][number] | undefined,
 ): Doc<"admissionApplications">["decision"] {
-	if (app.sent || app.decision === "accepted" || app.offerStatus !== "none") return app.decision;
+	if (app.decisionSentAt || app.decision === "accepted" || app.offerStatus !== "none")
+		return app.decision;
 	if (direction === "previous")
 		return (
 			previous?.decisions.find((row) => row.applicationId === app._id)?.decision ?? app.decision

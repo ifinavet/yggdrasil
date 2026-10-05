@@ -100,7 +100,7 @@ export default function AdmissionsDashboard() {
 	const interview = current?.interview;
 	const pending = overview.candidates.filter(
 		(entry) =>
-			!entry.sent &&
+			!entry.decisionSentAt &&
 			entry.decisionQueuedAt === undefined &&
 			(entry.decision === "accepted" || entry.decision === "rejected"),
 	);
@@ -260,7 +260,7 @@ export default function AdmissionsDashboard() {
 						/>
 						{view === "selection" && (
 							<div className="admissions-actions flex flex-wrap items-center gap-3">
-								<span>Runde {period.round + 1}</span>
+								<span>Runde {period.roundHistory.length + 1}</span>
 								{(["previous", "next"] as const).map((direction) => (
 									<Button
 										key={direction}
@@ -357,7 +357,7 @@ export default function AdmissionsDashboard() {
 									Lagre rom
 								</Button>
 							)}
-							{current.decision === "accepted" && !current.sent && (
+							{current.decision === "accepted" && !current.decisionSentAt && (
 								<Button
 									disabled={busy || Boolean(current.decisionQueuedAt)}
 									onClick={() =>

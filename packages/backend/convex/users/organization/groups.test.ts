@@ -60,7 +60,6 @@ it("keeps group management admin-only and prevents deleting a referenced group",
 			decisionRevision: 0,
 			decision: "pending",
 			offerStatus: "none",
-			sent: false,
 		}),
 	);
 	await expect(

@@ -94,7 +94,7 @@ it("reverses selection rounds without sending offers or changing accepted candid
 	});
 	const after = await t.run(async (ctx) => Promise.all(ids.map((id) => ctx.db.get(id))));
 	expect(after.map((app) => app?.decision)).toEqual(["rejected", "pending", "accepted"]);
-	expect(after.every((app) => !app?.sent)).toBe(true);
+	expect(after.every((app) => !app?.decisionSentAt)).toBe(true);
 	await asUser(t, admin).mutation(api.admissions.board.changeRound, {
 		periodId,
 		expectedRevision: 1,

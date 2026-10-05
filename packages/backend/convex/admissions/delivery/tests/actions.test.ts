@@ -33,7 +33,9 @@ it("retries decision email through the provider with a stable key and records on
 	await expect(
 		t.action(internal.admissions.delivery.actions.execute, { operation }),
 	).rejects.toThrow("Resend unavailable");
-	expect(await t.run((ctx) => ctx.db.get(applicationId))).toMatchObject({ sent: false });
+	const unsent = await t.run((ctx) => ctx.db.get(applicationId));
+	expect(unsent).not.toBeNull();
+	expect(unsent?.decisionSentAt).toBeUndefined();
 	expect(await t.run((ctx) => ctx.db.query("admissionDeliveries").collect())).toEqual([]);
 	await t.action(internal.admissions.delivery.actions.execute, { operation });
 	expect(send).toHaveBeenCalledTimes(2);
@@ -48,7 +50,9 @@ it("retries decision email through the provider with a stable key and records on
 	expect(await t.run((ctx) => ctx.db.query("admissionDeliveries").collect())).toMatchObject([
 		{ emailId: "provider-email-id", kind: "rejection", status: "queued" },
 	]);
-	expect(await t.run((ctx) => ctx.db.get(applicationId))).toMatchObject({ sent: true });
+	expect(await t.run((ctx) => ctx.db.get(applicationId))).toMatchObject({
+		decisionSentAt: expect.any(Number),
+	});
 	await t.mutation(internal.admissions.delivery.tracking.recordProviderEvent, {
 		emailId: "provider-email-id",
 		type: "email.delivered",

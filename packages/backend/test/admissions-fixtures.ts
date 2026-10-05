@@ -31,7 +31,6 @@ export function periodFields(
 		dayEnd: 960,
 		breaks: [],
 		timezone: "Europe/Oslo",
-		round: 1,
 		roundHistory: [],
 		createdBy: userId,
 		updatedBy: userId,
@@ -53,7 +52,6 @@ export function applicationFields(
 		decisionRevision: 0,
 		decision: "pending",
 		offerStatus: "none",
-		sent: false,
 		...overrides,
 	};
 }

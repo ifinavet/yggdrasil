@@ -91,9 +91,9 @@ test.describe("persistent board admissions", () => {
 			(candidate) => candidate.decisionQueuedAt !== undefined,
 		);
 		expect(queued).toHaveLength(1);
+		expect(queued?.[0]?.decisionSentAt).toBeUndefined();
 		expect(queued?.[0]).toMatchObject({
 			reviewedWorkspaceEmail: "replacement@ifinavet.no",
-			sent: false,
 		});
 		await captureScreenshot(
 			page,

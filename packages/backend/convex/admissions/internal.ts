@@ -254,7 +254,6 @@ async function completeDecision(
 	await ctx.db.patch(application._id, {
 		decisionQueuedAt: undefined,
 		decisionSentAt,
-		sent: true,
 		offerStatus,
 		offerDeadline,
 		revision: application.revision + 1,

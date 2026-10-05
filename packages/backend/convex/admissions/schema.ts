@@ -63,7 +63,6 @@ export const admissionsSchema = {
 		dayEnd: v.number(),
 		breaks: v.array(availabilityWindow),
 		timezone: v.string(),
-		round: v.number(),
 		roundHistory: v.array(roundSnapshot),
 		createdBy: v.id("users"),
 		updatedBy: v.id("users"),
@@ -103,7 +102,6 @@ export const admissionsSchema = {
 		offerDeadline: v.optional(v.number()),
 		offerRespondedAt: v.optional(v.number()),
 		onboardingStartedAt: v.optional(v.number()),
-		sent: v.boolean(),
 	})
 		.index("by_periodId_and_userId", ["periodId", "userId"])
 		.index("by_userId_and_status", ["userId", "status"])

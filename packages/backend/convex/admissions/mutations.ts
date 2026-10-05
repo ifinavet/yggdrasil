@@ -148,7 +148,6 @@ export const createPeriod = mutation({
 			status: "open",
 			revision: 1,
 			breaks: args.breaks ?? [],
-			round: 0,
 			roundHistory: [],
 			createdBy: creator._id,
 			updatedBy: creator._id,
@@ -226,7 +225,6 @@ export const saveApplication = mutation({
 			decisionRevision: 0,
 			decision: "pending",
 			offerStatus: "none",
-			sent: false,
 		});
 		return { applicationId, revision: 1 };
 	},
@@ -309,7 +307,6 @@ export const setDecision = mutation({
 					: undefined,
 			decisionQueuedAt: undefined,
 			decisionSentAt: undefined,
-			sent: false,
 			offerStatus: "none",
 			offerDeadline: undefined,
 			offerRespondedAt: undefined,

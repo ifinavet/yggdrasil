@@ -78,7 +78,6 @@ it("sends a declined-offer notice before archiving the channel during close", as
 				decision: "accepted",
 				decisionSentAt: now - 1_000,
 				offerStatus: "declined",
-				sent: true,
 			}),
 		);
 		await stageOperation(ctx, {
