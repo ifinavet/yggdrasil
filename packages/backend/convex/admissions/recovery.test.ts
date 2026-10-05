@@ -1,4 +1,5 @@
 import { expect, it } from "vitest";
+import { applicationFields, periodFields } from "../../test/admissions-fixtures";
 import { asUser, grantRole, insertUser, setup } from "../../test/fixtures";
 import { api, internal } from "../_generated/api";
 
@@ -7,31 +8,17 @@ async function recoveryFixture() {
 	const admin = await insertUser(t, "admin@example.test");
 	await grantRole(t, admin._id, "admin");
 	const periodId = await t.run((ctx) =>
-		ctx.db.insert("admissionPeriods", {
-			title: "Høst 2026",
-			applicationStartAt: Date.now() - 86400000,
-			applicationEndAt: Date.now() + 86400000,
-			interviewStartAt: Date.now() + 172800000,
-			interviewEndAt: Date.now() + 604800000,
-			retentionAt: Date.now() + 1209600000,
-			status: "open",
-			revision: 0,
-			interviewers: [],
-			duration: 15,
-			buffer: 5,
-			breakEvery: 3,
-			breakMinutes: 15,
-			lunch: true,
-			room: "Beta",
-			dayStart: 540,
-			dayEnd: 960,
-			breaks: [],
-			timezone: "Europe/Oslo",
-			round: 1,
-			roundHistory: [],
-			createdBy: admin._id,
-			updatedBy: admin._id,
-		}),
+		ctx.db.insert(
+			"admissionPeriods",
+			periodFields(admin._id, {
+				applicationStartAt: Date.now() - 86400000,
+				applicationEndAt: Date.now() + 86400000,
+				interviewStartAt: Date.now() + 172800000,
+				interviewEndAt: Date.now() + 604800000,
+				retentionAt: Date.now() + 1209600000,
+				revision: 0,
+			}),
+		),
 	);
 	return { t, admin: asUser(t, admin), periodId };
 }
@@ -116,18 +103,17 @@ it("alerts before closing when the declined-offer notice exhausts retries", asyn
 	const applicant = await insertUser(t, "applicant@uio.no");
 	const applicationId = await t.run(async (ctx) => {
 		await ctx.db.patch(periodId, { status: "closing" });
-		const applicationId = await ctx.db.insert("admissionApplications", {
-			periodId,
-			userId: applicant._id,
-			availability: [],
-			status: "submitted",
-			revision: 2,
-			decisionRevision: 3,
-			decision: "accepted",
-			decisionSentAt: Date.now() - 1_000,
-			offerStatus: "declined",
-			sent: true,
-		});
+		const applicationId = await ctx.db.insert(
+			"admissionApplications",
+			applicationFields(periodId, applicant._id, {
+				revision: 2,
+				decisionRevision: 3,
+				decision: "accepted",
+				decisionSentAt: Date.now() - 1_000,
+				offerStatus: "declined",
+				sent: true,
+			}),
+		);
 		await ctx.db.insert("admissionOutbox", {
 			kind: "offer_declined",
 			periodId,

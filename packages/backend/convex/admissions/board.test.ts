@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { periodFields } from "../../test/admissions-fixtures";
+import { applicationFields, interviewFields, periodFields } from "../../test/admissions-fixtures";
 import { asUser, grantRole, insertUser, setup } from "../../test/fixtures";
 import { api, internal } from "../_generated/api";
 
@@ -19,17 +19,13 @@ async function boardFixture() {
 		const result = [];
 		for (const decision of ["pending", "shortlist", "accepted"] as const) {
 			result.push(
-				await ctx.db.insert("admissionApplications", {
-					periodId,
-					userId: student._id,
-					availability: [],
-					status: "submitted",
-					revision: 0,
-					decision,
-					sent: false,
-					offerStatus: "none",
-					decisionRevision: 0,
-				}),
+				await ctx.db.insert(
+					"admissionApplications",
+					applicationFields(periodId, student._id, {
+						revision: 0,
+						decision: decision,
+					}),
+				),
 			);
 		}
 		return result;
@@ -80,17 +76,14 @@ it("bulk room changes affect only selected interviews and reject empty rooms", a
 	const { t, admin, periodId, ids, now } = await boardFixture();
 	await t.run(async (ctx) => {
 		for (const [index, applicationId] of ids.entries()) {
-			await ctx.db.insert("admissionInterviews", {
-				periodId,
-				applicationId,
-				startAt: now + 172800000 + index * 1200000,
-				endAt: now + 173700000 + index * 1200000,
-				interviewerIds: [],
-				selectedCalendarIds: [],
-				room: "Beta",
-				status: "scheduled",
-				revision: 0,
-			});
+			await ctx.db.insert(
+				"admissionInterviews",
+				interviewFields(periodId, applicationId, {
+					startAt: now + 172800000 + index * 1200000,
+					endAt: now + 173700000 + index * 1200000,
+					revision: 0,
+				}),
+			);
 		}
 	});
 	const first = ids[0];
@@ -151,17 +144,14 @@ it("archives the Slack channel after calendar cleanup and before purging the per
 	if (!applicationId) throw new Error("Missing fixture application");
 	const interviewId = await t.run(async (ctx) => {
 		await ctx.db.patch(periodId, { status: "closing" });
-		return await ctx.db.insert("admissionInterviews", {
-			periodId,
-			applicationId,
-			startAt: now,
-			endAt: now + 900000,
-			interviewerIds: [],
-			selectedCalendarIds: [],
-			room: "Beta",
-			status: "cancelled",
-			revision: 1,
-		});
+		return await ctx.db.insert(
+			"admissionInterviews",
+			interviewFields(periodId, applicationId, {
+				startAt: now,
+				endAt: now + 900000,
+				status: "cancelled",
+			}),
+		);
 	});
 	await t.run((ctx) =>
 		ctx.db.insert("admissionOutbox", {

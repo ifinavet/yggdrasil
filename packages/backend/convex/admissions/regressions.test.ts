@@ -5,6 +5,7 @@ import {
 	firstAdmissionOutboxJob,
 	insertInternalGroup,
 	interviewFields,
+	periodFields,
 } from "../../test/admissions-fixtures";
 import {
 	asUser,
@@ -54,17 +55,12 @@ async function scheduleFixture(
 	const day = localWindow(now + 4 * DAY, 0, TIME_ZONE).day;
 	const startAt = osloAt(day, hour, minute);
 	const applicationId = await value.t.run((ctx) =>
-		ctx.db.insert("admissionApplications", {
-			periodId,
-			userId: value.applicant._id,
-			availability,
-			status: "submitted",
-			revision: 1,
-			decisionRevision: 0,
-			decision: "pending",
-			offerStatus: "none",
-			sent: false,
-		}),
+		ctx.db.insert(
+			"admissionApplications",
+			applicationFields(periodId, value.applicant._id, {
+				availability: availability,
+			}),
+		),
 	);
 	return { ...value, periodId, applicationId, startAt, day };
 }
@@ -186,18 +182,16 @@ it("keeps a published interview reminder current after unrelated period settings
 	const { t, admin, interviewer, otherInterviewer, now, periodId, applicationId } =
 		await periodApplicationFixture();
 	const interviewId = await t.run((ctx) =>
-		ctx.db.insert("admissionInterviews", {
-			periodId,
-			applicationId,
-			startAt: now + 5 * DAY,
-			endAt: now + 5 * DAY + 15 * 60000,
-			interviewerIds: [interviewer._id, otherInterviewer._id],
-			selectedCalendarIds: [],
-			room: "Beta",
-			status: "scheduled",
-			revision: 4,
-			publishedAt: now,
-		}),
+		ctx.db.insert(
+			"admissionInterviews",
+			interviewFields(periodId, applicationId, {
+				startAt: now + 5 * DAY,
+				endAt: now + 5 * DAY + 15 * 60000,
+				interviewerIds: [interviewer._id, otherInterviewer._id],
+				revision: 4,
+				publishedAt: now,
+			}),
+		),
 	);
 	await t.run(async (ctx) => {
 		await ctx.db.patch(periodId, { status: "published" });
@@ -234,38 +228,24 @@ it("cleans future and past calendar events on close without sending cancellation
 	const applicationIds = await t.run(async (ctx) => {
 		const ids = [];
 		for (const userId of [applicant._id, applicant._id]) {
-			ids.push(
-				await ctx.db.insert("admissionApplications", {
-					periodId,
-					userId,
-					availability: [],
-					status: "submitted",
-					revision: 1,
-					decisionRevision: 0,
-					decision: "pending",
-					offerStatus: "none",
-					sent: false,
-				}),
-			);
+			ids.push(await ctx.db.insert("admissionApplications", applicationFields(periodId, userId)));
 		}
 		return ids;
 	});
 	await t.run(async (ctx) => {
 		for (const [index, applicationId] of applicationIds.entries()) {
 			const startAt = now + (index === 0 ? DAY : -DAY);
-			await ctx.db.insert("admissionInterviews", {
-				periodId,
-				applicationId,
-				startAt,
-				endAt: startAt + 15 * 60000,
-				interviewerIds: [interviewer._id, otherInterviewer._id],
-				selectedCalendarIds: [],
-				room: "Beta",
-				calendarEventId: `event-${index}`,
-				publishedAt: startAt - DAY,
-				status: "scheduled",
-				revision: 2,
-			});
+			await ctx.db.insert(
+				"admissionInterviews",
+				interviewFields(periodId, applicationId, {
+					startAt: startAt,
+					endAt: startAt + 15 * 60000,
+					interviewerIds: [interviewer._id, otherInterviewer._id],
+					calendarEventId: `event-${index}`,
+					publishedAt: startAt - DAY,
+					revision: 2,
+				}),
+			);
 		}
 	});
 	await admin.mutation(api.admissions.mutations.closePeriod, {
@@ -291,17 +271,14 @@ it("closes an in-flight publish with calendar cleanup without notifying the appl
 	const { t, admin, interviewer, otherInterviewer, now, periodId, applicationId } =
 		await periodApplicationFixture();
 	const interviewId = await t.run((ctx) =>
-		ctx.db.insert("admissionInterviews", {
-			periodId,
-			applicationId,
-			startAt: now + DAY,
-			endAt: now + DAY + 15 * MINUTE,
-			interviewerIds: [interviewer._id, otherInterviewer._id],
-			selectedCalendarIds: [],
-			room: "Beta",
-			status: "scheduled",
-			revision: 1,
-		}),
+		ctx.db.insert(
+			"admissionInterviews",
+			interviewFields(periodId, applicationId, {
+				startAt: now + DAY,
+				endAt: now + DAY + 15 * MINUTE,
+				interviewerIds: [interviewer._id, otherInterviewer._id],
+			}),
+		),
 	);
 	await t.run((ctx) =>
 		ctx.db.insert("admissionOutbox", {
@@ -351,56 +328,35 @@ it("retention cleanup cancels an in-flight publish even before an event id is sa
 	const { t, applicant, interviewer, otherInterviewer } = await fixture();
 	const now = Date.now();
 	const periodId = await t.run(async (ctx) => {
-		const id = await ctx.db.insert("admissionPeriods", {
-			title: "Retention test",
-			applicationStartAt: now - 2 * DAY,
-			applicationEndAt: now - DAY,
-			interviewStartAt: now - DAY,
-			interviewEndAt: now + DAY,
-			retentionAt: now - 1,
-			status: "published",
-			revision: 1,
-			interviewers: [
-				{ userId: interviewer._id, selectedCalendarIds: [] },
-				{ userId: otherInterviewer._id, selectedCalendarIds: [] },
-			],
-			duration: 15,
-			buffer: 5,
-			breakEvery: 3,
-			breakMinutes: 15,
-			lunch: true,
-			room: "Beta",
-			dayStart: 540,
-			dayEnd: 960,
-			breaks: [],
-			timezone: TIME_ZONE,
-			round: 1,
-			roundHistory: [],
-			createdBy: interviewer._id,
-			updatedBy: interviewer._id,
-		});
-		const applicationId = await ctx.db.insert("admissionApplications", {
-			periodId: id,
-			userId: applicant._id,
-			availability: [],
-			status: "submitted",
-			revision: 1,
-			decisionRevision: 0,
-			decision: "pending",
-			offerStatus: "none",
-			sent: false,
-		});
-		const interviewId = await ctx.db.insert("admissionInterviews", {
-			periodId: id,
-			applicationId,
-			startAt: now + DAY,
-			endAt: now + DAY + 15 * MINUTE,
-			interviewerIds: [interviewer._id, otherInterviewer._id],
-			selectedCalendarIds: [],
-			room: "Beta",
-			status: "scheduled",
-			revision: 1,
-		});
+		const id = await ctx.db.insert(
+			"admissionPeriods",
+			periodFields(interviewer._id, {
+				title: "Retention test",
+				applicationStartAt: now - 2 * DAY,
+				applicationEndAt: now - DAY,
+				interviewStartAt: now - DAY,
+				interviewEndAt: now + DAY,
+				retentionAt: now - 1,
+				status: "published",
+				interviewers: [
+					{ userId: interviewer._id, selectedCalendarIds: [] },
+					{ userId: otherInterviewer._id, selectedCalendarIds: [] },
+				],
+				timezone: TIME_ZONE,
+			}),
+		);
+		const applicationId = await ctx.db.insert(
+			"admissionApplications",
+			applicationFields(id, applicant._id),
+		);
+		const interviewId = await ctx.db.insert(
+			"admissionInterviews",
+			interviewFields(id, applicationId, {
+				startAt: now + DAY,
+				endAt: now + DAY + 15 * MINUTE,
+				interviewerIds: [interviewer._id, otherInterviewer._id],
+			}),
+		);
 		await ctx.db.insert("admissionOutbox", {
 			kind: "publish",
 			periodId: id,
@@ -431,19 +387,17 @@ it("archives only after cancellation cleanup and purges only after archive succe
 	const { t, admin, interviewer, otherInterviewer, now, periodId, applicationId } =
 		await periodApplicationFixture();
 	const interviewId = await t.run((ctx) =>
-		ctx.db.insert("admissionInterviews", {
-			periodId,
-			applicationId,
-			startAt: now + DAY,
-			endAt: now + DAY + 15 * 60000,
-			interviewerIds: [interviewer._id, otherInterviewer._id],
-			selectedCalendarIds: [],
-			room: "Beta",
-			calendarEventId: "event-close-cleanup",
-			publishedAt: now,
-			status: "scheduled",
-			revision: 2,
-		}),
+		ctx.db.insert(
+			"admissionInterviews",
+			interviewFields(periodId, applicationId, {
+				startAt: now + DAY,
+				endAt: now + DAY + 15 * 60000,
+				interviewerIds: [interviewer._id, otherInterviewer._id],
+				calendarEventId: "event-close-cleanup",
+				publishedAt: now,
+				revision: 2,
+			}),
+		),
 	);
 	await admin.mutation(api.admissions.mutations.closePeriod, {
 		periodId,
@@ -491,19 +445,17 @@ it("finds pending cleanup beyond 200 completed outbox rows and purges in bounded
 				nextAttemptAt: now,
 				createdAt: now + index,
 			});
-		const id = await ctx.db.insert("admissionInterviews", {
-			periodId,
-			applicationId,
-			startAt: now + DAY,
-			endAt: now + DAY + 15 * 60000,
-			interviewerIds: [interviewer._id, otherInterviewer._id],
-			selectedCalendarIds: [],
-			room: "Beta",
-			calendarEventId: "event-many-history",
-			publishedAt: now,
-			status: "scheduled",
-			revision: 2,
-		});
+		const id = await ctx.db.insert(
+			"admissionInterviews",
+			interviewFields(periodId, applicationId, {
+				startAt: now + DAY,
+				endAt: now + DAY + 15 * 60000,
+				interviewerIds: [interviewer._id, otherInterviewer._id],
+				calendarEventId: "event-many-history",
+				publishedAt: now,
+				revision: 2,
+			}),
+		);
 		return id;
 	});
 	await admin.mutation(api.admissions.mutations.closePeriod, {
@@ -552,19 +504,17 @@ it("waits for retention calendar cleanup before queueing the archive job", async
 	const { t, interviewer, otherInterviewer, now, periodId, applicationId } =
 		await periodApplicationFixture();
 	const interviewId = await t.run((ctx) =>
-		ctx.db.insert("admissionInterviews", {
-			periodId,
-			applicationId,
-			startAt: now + DAY,
-			endAt: now + DAY + 15 * 60000,
-			interviewerIds: [interviewer._id, otherInterviewer._id],
-			selectedCalendarIds: [],
-			room: "Beta",
-			calendarEventId: "event-retention-cleanup",
-			publishedAt: now,
-			status: "scheduled",
-			revision: 2,
-		}),
+		ctx.db.insert(
+			"admissionInterviews",
+			interviewFields(periodId, applicationId, {
+				startAt: now + DAY,
+				endAt: now + DAY + 15 * 60000,
+				interviewerIds: [interviewer._id, otherInterviewer._id],
+				calendarEventId: "event-retention-cleanup",
+				publishedAt: now,
+				revision: 2,
+			}),
+		),
 	);
 	await t.mutation(internal.admissions.internal.closeExpiredPeriod, { periodId });
 	const archiveKey = `close-archive:${periodId}`;
@@ -778,19 +728,17 @@ it("keeps a published interview unchanged during generated replanning", async ()
 		await setAvailability(value.t, value.applicationId, nearDay);
 		const endAt = startAt + 15 * MINUTE;
 		await value.t.run((ctx) =>
-			ctx.db.insert("admissionInterviews", {
-				periodId: value.periodId,
-				applicationId: value.applicationId,
-				startAt,
-				endAt,
-				interviewerIds: [value.interviewer._id, value.otherInterviewer._id],
-				selectedCalendarIds: [],
-				room: "Beta",
-				calendarEventId: "published-event",
-				publishedAt: Date.now(),
-				status: "scheduled",
-				revision: 3,
-			}),
+			ctx.db.insert(
+				"admissionInterviews",
+				interviewFields(value.periodId, value.applicationId, {
+					startAt: startAt,
+					endAt: endAt,
+					interviewerIds: [value.interviewer._id, value.otherInterviewer._id],
+					calendarEventId: "published-event",
+					publishedAt: Date.now(),
+					revision: 3,
+				}),
+			),
 		);
 		await value.admin.mutation(api.admissions.mutations.scheduleInterview, {
 			applicationId: value.applicationId,
@@ -829,18 +777,16 @@ it("keeps a published interview unchanged during generated replanning", async ()
 it("allows admins to cancel published applicant interviews and preserves notice intent", async () => {
 	const value = await scheduleFixture(10, 0, []);
 	const interviewId = await value.t.run((ctx) =>
-		ctx.db.insert("admissionInterviews", {
-			periodId: value.periodId,
-			applicationId: value.applicationId,
-			startAt: value.startAt,
-			endAt: value.startAt + 15 * MINUTE,
-			interviewerIds: [value.interviewer._id, value.otherInterviewer._id],
-			selectedCalendarIds: [],
-			room: "Beta",
-			publishedAt: Date.now(),
-			status: "scheduled",
-			revision: 3,
-		}),
+		ctx.db.insert(
+			"admissionInterviews",
+			interviewFields(value.periodId, value.applicationId, {
+				startAt: value.startAt,
+				endAt: value.startAt + 15 * MINUTE,
+				interviewerIds: [value.interviewer._id, value.otherInterviewer._id],
+				publishedAt: Date.now(),
+				revision: 3,
+			}),
+		),
 	);
 	const args = {
 		applicationId: value.applicationId,
@@ -1063,19 +1009,17 @@ it("persists expired offer status instead of rolling it back when a candidate re
 	);
 	const now = Date.now();
 	const applicationId = await value.t.run((ctx) =>
-		ctx.db.insert("admissionApplications", {
-			periodId,
-			userId: value.applicant._id,
-			availability: [],
-			status: "submitted",
-			revision: 1,
-			decisionRevision: 2,
-			decision: "accepted",
-			decisionSentAt: now - DAY,
-			offerStatus: "pending",
-			offerDeadline: now - 1,
-			sent: true,
-		}),
+		ctx.db.insert(
+			"admissionApplications",
+			applicationFields(periodId, value.applicant._id, {
+				decisionRevision: 2,
+				decision: "accepted",
+				decisionSentAt: now - DAY,
+				offerStatus: "pending",
+				offerDeadline: now - 1,
+				sent: true,
+			}),
+		),
 	);
 	await expect(
 		asUser(value.t, value.applicant).mutation(api.admissions.mutations.respondToOffer, {
@@ -1105,48 +1049,32 @@ it("schedules offer expiration when an accepted decision email is delivered", as
 		vi.setSystemTime(now);
 		const value = await fixture();
 		const periodId = await value.t.run((ctx) =>
-			ctx.db.insert("admissionPeriods", {
-				title: "Offer expiry test",
-				applicationStartAt: now - 2 * DAY,
-				applicationEndAt: now - DAY,
-				interviewStartAt: now - DAY,
-				interviewEndAt: now + DAY,
-				retentionAt: now + 1_000,
-				status: "open",
-				revision: 1,
-				interviewers: [
-					{ userId: value.interviewer._id, selectedCalendarIds: [] },
-					{ userId: value.otherInterviewer._id, selectedCalendarIds: [] },
-				],
-				duration: 15,
-				buffer: 5,
-				breakEvery: 3,
-				breakMinutes: 15,
-				lunch: true,
-				room: "Beta",
-				dayStart: 540,
-				dayEnd: 960,
-				breaks: [],
-				timezone: TIME_ZONE,
-				round: 1,
-				roundHistory: [],
-				createdBy: value.adminId,
-				updatedBy: value.adminId,
-			}),
+			ctx.db.insert(
+				"admissionPeriods",
+				periodFields(value.adminId, {
+					title: "Offer expiry test",
+					applicationStartAt: now - 2 * DAY,
+					applicationEndAt: now - DAY,
+					interviewStartAt: now - DAY,
+					interviewEndAt: now + DAY,
+					retentionAt: now + 1_000,
+					interviewers: [
+						{ userId: value.interviewer._id, selectedCalendarIds: [] },
+						{ userId: value.otherInterviewer._id, selectedCalendarIds: [] },
+					],
+					timezone: TIME_ZONE,
+				}),
+			),
 		);
 		const applicationId = await value.t.run((ctx) =>
-			ctx.db.insert("admissionApplications", {
-				periodId,
-				userId: value.applicant._id,
-				availability: [],
-				status: "submitted",
-				revision: 1,
-				decisionRevision: 3,
-				decision: "accepted",
-				decisionQueuedAt: now,
-				offerStatus: "none",
-				sent: false,
-			}),
+			ctx.db.insert(
+				"admissionApplications",
+				applicationFields(periodId, value.applicant._id, {
+					decisionRevision: 3,
+					decision: "accepted",
+					decisionQueuedAt: now,
+				}),
+			),
 		);
 		await value.t.run((ctx) =>
 			ctx.db.insert("admissionOutbox", {

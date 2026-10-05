@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { applicationFields, periodFields } from "../../test/admissions-fixtures";
+import { applicationFields, interviewFields, periodFields } from "../../test/admissions-fixtures";
 import { asUser, grantRole, insertStudent, insertUser, setup } from "../../test/fixtures";
 import { api } from "../_generated/api";
 
@@ -30,19 +30,17 @@ it("republishes an already-published interview after a room change", async () =>
 	const { t, admin, applicant, periodId, applicationId, now } = await boardFixture();
 	const interviewId = await t.run(async (ctx) => {
 		await ctx.db.patch(periodId, { status: "published" });
-		return await ctx.db.insert("admissionInterviews", {
-			periodId,
-			applicationId,
-			startAt: now + 5 * 86400000,
-			endAt: now + 5 * 86400000 + 900000,
-			interviewerIds: [],
-			selectedCalendarIds: [],
-			room: "Old room",
-			status: "scheduled",
-			revision: 3,
-			publishedAt: now,
-			calendarEventId: "stable-event",
-		});
+		return await ctx.db.insert(
+			"admissionInterviews",
+			interviewFields(periodId, applicationId, {
+				startAt: now + 5 * 86400000,
+				endAt: now + 5 * 86400000 + 900000,
+				room: "Old room",
+				revision: 3,
+				publishedAt: now,
+				calendarEventId: "stable-event",
+			}),
+		);
 	});
 
 	await admin.mutation(api.admissions.board.assignRooms, {
@@ -77,18 +75,16 @@ it("reopens the published schedule when settings had reopened its period before 
 	const { t, admin, periodId, applicationId, now } = await boardFixture();
 	const interviewId = await t.run(
 		async (ctx) =>
-			await ctx.db.insert("admissionInterviews", {
-				periodId,
-				applicationId,
-				startAt: now + 5 * 86400000,
-				endAt: now + 5 * 86400000 + 900000,
-				interviewerIds: [],
-				selectedCalendarIds: [],
-				room: "Old room",
-				status: "scheduled",
-				revision: 3,
-				publishedAt: now,
-			}),
+			await ctx.db.insert(
+				"admissionInterviews",
+				interviewFields(periodId, applicationId, {
+					startAt: now + 5 * 86400000,
+					endAt: now + 5 * 86400000 + 900000,
+					room: "Old room",
+					revision: 3,
+					publishedAt: now,
+				}),
+			),
 	);
 	await admin.mutation(api.admissions.board.assignRooms, {
 		periodId,
@@ -120,17 +116,15 @@ it("prevents manual rescheduling while the first publish is in flight", async ()
 				{ userId: secondInterviewer._id, selectedCalendarIds: ["primary"] },
 			],
 		});
-		const id = await ctx.db.insert("admissionInterviews", {
-			periodId,
-			applicationId,
-			startAt: now + 5 * 86400000,
-			endAt: now + 5 * 86400000 + 900000,
-			interviewerIds: [firstInterviewer._id, secondInterviewer._id],
-			selectedCalendarIds: ["primary"],
-			room: "Beta",
-			status: "scheduled",
-			revision: 1,
-		});
+		const id = await ctx.db.insert(
+			"admissionInterviews",
+			interviewFields(periodId, applicationId, {
+				startAt: now + 5 * 86400000,
+				endAt: now + 5 * 86400000 + 900000,
+				interviewerIds: [firstInterviewer._id, secondInterviewer._id],
+				selectedCalendarIds: ["primary"],
+			}),
+		);
 		await ctx.db.insert("admissionOutbox", {
 			kind: "publish",
 			periodId,

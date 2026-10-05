@@ -1,5 +1,6 @@
 import { osloDateTimeToEpoch } from "@workspace/shared/time";
 import { expect, it } from "vitest";
+import { applicationFields, interviewFields, periodFields } from "../../test/admissions-fixtures";
 import { asUser, grantRole, insertUser, setup } from "../../test/fixtures";
 import { api } from "../_generated/api";
 
@@ -18,55 +19,39 @@ it("keeps published slots pinned and does not rebook cancelled interviews automa
 	const startAt = osloDateTimeToEpoch(day, "09:00");
 	const now = Date.now();
 	const periodId = await t.run((ctx) =>
-		ctx.db.insert("admissionPeriods", {
-			title: "Høst 2026",
-			applicationStartAt: now - 86400000,
-			applicationEndAt: now + 86400000,
-			interviewStartAt: startAt,
-			interviewEndAt: osloDateTimeToEpoch(day, "11:00"),
-			retentionAt: now + 1209600000,
-			status: "open",
-			revision: 0,
-			interviewers: [
-				{ userId: interviewerOne._id, selectedCalendarIds: ["navet"] },
-				{ userId: interviewerTwo._id, selectedCalendarIds: ["navet"] },
-			],
-			duration: 15,
-			buffer: 5,
-			breakEvery: 3,
-			breakMinutes: 15,
-			lunch: false,
-			room: "Beta",
-			dayStart: 540,
-			dayEnd: 660,
-			breaks: [],
-			timezone: "Europe/Oslo",
-			round: 1,
-			roundHistory: [],
-			createdBy: admin._id,
-			updatedBy: admin._id,
-		}),
+		ctx.db.insert(
+			"admissionPeriods",
+			periodFields(admin._id, {
+				applicationStartAt: now - 86400000,
+				applicationEndAt: now + 86400000,
+				interviewStartAt: startAt,
+				interviewEndAt: osloDateTimeToEpoch(day, "11:00"),
+				retentionAt: now + 1209600000,
+				revision: 0,
+				interviewers: [
+					{ userId: interviewerOne._id, selectedCalendarIds: ["navet"] },
+					{ userId: interviewerTwo._id, selectedCalendarIds: ["navet"] },
+				],
+				lunch: false,
+				dayEnd: 660,
+			}),
+		),
 	);
 	const availability = [{ day, start: 540, end: 660 }];
 	const applications = await t.run(async (ctx) => {
 		const createApplication = async (userId: typeof publishedApplicant._id) =>
-			ctx.db.insert("admissionApplications", {
-				periodId,
-				userId,
-				studentProfile: {
-					name: "Applicant",
-					studyProgram: "Informatikk",
-					year: 1,
-					degree: "Bachelor",
-				},
-				availability,
-				status: "submitted",
-				revision: 1,
-				decisionRevision: 0,
-				decision: "pending",
-				offerStatus: "none",
-				sent: false,
-			});
+			ctx.db.insert(
+				"admissionApplications",
+				applicationFields(periodId, userId, {
+					studentProfile: {
+						name: "Applicant",
+						studyProgram: "Informatikk",
+						year: 1,
+						degree: "Bachelor",
+					},
+					availability: availability,
+				}),
+			);
 		return {
 			published: await createApplication(publishedApplicant._id),
 			cancelled: await createApplication(cancelledApplicant._id),
@@ -74,19 +59,17 @@ it("keeps published slots pinned and does not rebook cancelled interviews automa
 		};
 	});
 	await t.run(async (ctx) => {
-		await ctx.db.insert("admissionInterviews", {
-			periodId,
-			applicationId: applications.published,
-			startAt,
-			endAt: startAt + 15 * 60000,
-			interviewerIds: [interviewerOne._id, interviewerTwo._id],
-			selectedCalendarIds: ["navet"],
-			room: "Beta",
-			calendarEventId: "published-event",
-			publishedAt: now,
-			status: "scheduled",
-			revision: 1,
-		});
+		await ctx.db.insert(
+			"admissionInterviews",
+			interviewFields(periodId, applications.published, {
+				startAt: startAt,
+				endAt: startAt + 15 * 60000,
+				interviewerIds: [interviewerOne._id, interviewerTwo._id],
+				selectedCalendarIds: ["navet"],
+				calendarEventId: "published-event",
+				publishedAt: now,
+			}),
+		);
 		await ctx.db.insert("admissionInterviews", {
 			periodId,
 			applicationId: applications.cancelled,
