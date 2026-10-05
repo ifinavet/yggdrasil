@@ -3,7 +3,7 @@
 import { api } from "@workspace/backend/convex/api";
 import { JOB_LISTING_ORDER_PATH } from "@workspace/shared/job-listing-orders";
 import { Button } from "@workspace/ui/components/button";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { MailCheck } from "lucide-react";
 import Link from "next/link";
@@ -24,18 +24,21 @@ export function ConfirmOrderPage() {
 }
 
 function ConfirmOrder({ token }: Readonly<{ token: string }>) {
+	const link = useQuery(api.jobListingOrders.orders.link, { token });
 	const confirm = useMutation(api.jobListingOrders.orders.confirm);
-	const [result, setResult] = useState<ConfirmState>({ state: "idle" });
+	const [attempt, setAttempt] = useState<ConfirmState>({ state: "idle" });
+	const result = attempt.state === "idle" && link && link.state !== "pending" ? link : attempt;
 
 	const onConfirm = async () => {
-		setResult({ state: "confirming" });
+		setAttempt({ state: "confirming" });
 		try {
-			setResult(await confirm({ token }));
+			setAttempt(await confirm({ token }));
 		} catch {
-			setResult({ state: "error" });
+			setAttempt({ state: "error" });
 		}
 	};
 
+	if (link === undefined) return null;
 	if (result.state === "confirmed") return <OrderReceipt token={token} receipt={result.receipt} />;
 	if (result.state === "expired" || result.state === "invalid")
 		return <LinkProblem state={result.state} />;

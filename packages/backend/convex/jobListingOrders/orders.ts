@@ -17,6 +17,7 @@ import {
 	type MutationCtx,
 	mutation,
 	type QueryCtx,
+	query,
 } from "../_generated/server";
 import { requireLogo } from "../companies/helper";
 import { companyBilling } from "../companies/schema";
@@ -320,24 +321,44 @@ async function findConfirmation(ctx: QueryCtx, token: string) {
 		.unique();
 }
 
+async function openLink(ctx: QueryCtx, token: string, now: number) {
+	const confirmation = await findConfirmation(ctx, token);
+	const order = confirmation ? await ctx.db.get(confirmation.orderId) : null;
+	if (!confirmation || !order) return { state: "invalid" as const };
+	if (confirmationState(confirmation, now) === "expired") return { state: "expired" as const };
+	if (confirmation.usedAt) return { state: "confirmed" as const, confirmation, order };
+	if (order.status !== "awaiting_email") return { state: "invalid" as const };
+	return { state: "pending" as const, confirmation, order };
+}
+
+const closedLink = [
+	v.object({ state: v.literal("confirmed"), receipt }),
+	v.object({ state: v.literal("expired") }),
+	v.object({ state: v.literal("invalid") }),
+] as const;
+
+export const link = query({
+	args: { token: v.string() },
+	returns: v.union(v.object({ state: v.literal("pending") }), ...closedLink),
+	handler: async (ctx, { token }) => {
+		const link = await openLink(ctx, token, Date.now());
+		if (link.state === "confirmed") {
+			return { state: link.state, receipt: await receiptFor(ctx, link.order) };
+		}
+		return { state: link.state };
+	},
+});
+
 export const confirm = mutation({
 	args: { token: v.string() },
-	returns: v.union(
-		v.object({ state: v.literal("confirmed"), receipt }),
-		v.object({ state: v.literal("expired") }),
-		v.object({ state: v.literal("invalid") }),
-	),
+	returns: v.union(...closedLink),
 	handler: async (ctx, { token }) => {
-		const confirmation = await findConfirmation(ctx, token);
-		const order = confirmation ? await ctx.db.get(confirmation.orderId) : null;
-		if (!confirmation || !order) return { state: "invalid" as const };
-		if (!confirmation.usedAt && order.status !== "awaiting_email") {
-			return { state: "invalid" as const };
-		}
+		const now = Date.now();
+		const link = await openLink(ctx, token, now);
+		if (link.state === "expired" || link.state === "invalid") return { state: link.state };
+		const { confirmation, order } = link;
 
-		if (!confirmation.usedAt) {
-			const now = Date.now();
-			if (confirmationState(confirmation, now) === "expired") return { state: "expired" as const };
+		if (link.state === "pending") {
 			await ctx.db.patch(confirmation._id, { usedAt: now });
 			await ctx.db.patch(order._id, { status: "confirmed", confirmedAt: now });
 			if (order.companyId && order.companyChanges) {
@@ -395,7 +416,9 @@ export const saveFeedback = mutation({
 	returns: v.null(),
 	handler: async (ctx, { token, feedback }) => {
 		const confirmation = await findConfirmation(ctx, token);
-		if (!confirmation?.usedAt) throw new ConvexError("Lenken er ugyldig.");
+		if (!confirmation?.usedAt || confirmationState(confirmation, Date.now()) === "expired") {
+			throw new ConvexError("Lenken er ugyldig.");
+		}
 		const limit = await orderRateLimiter.limit(ctx, "jobListingOrderFeedback", {
 			key: confirmation.tokenHash,
 		});

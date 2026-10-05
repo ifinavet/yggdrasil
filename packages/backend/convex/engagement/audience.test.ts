@@ -39,7 +39,7 @@ describe("cohortOf", () => {
 
 	it("only places master students in the fourth or fifth year", () => {
 		expect([3, 4, 5].map((year) => cohortOf({ degree: "Master", year }))).toEqual([
-			"",
+			null,
 			"Master 4. år",
 			"Master 5. år",
 		]);
@@ -55,7 +55,7 @@ describe("cohortOf", () => {
 
 	it("leaves students without a year before they started out of every cohort", () => {
 		expect(cohortGroupOf({ degree: "Bachelor", year: 0 })).toBeNull();
-		expect(cohortOf({ degree: "PhD", year: 0 })).toBe("");
+		expect(cohortOf({ degree: "PhD", year: 0 })).toBeNull();
 	});
 });
 

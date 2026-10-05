@@ -2,6 +2,7 @@ import {
 	degreesFor,
 	fittingDegree,
 	fittingYear,
+	nextStudy,
 	studentProfileIssue,
 	yearsFor,
 } from "@workspace/shared/constants";
@@ -63,6 +64,24 @@ describe("studentProfileIssue", () => {
 		expect(degreesFor("Ukjent")).toHaveLength(4);
 		expect(yearsFor("Master")).toEqual([4, 5]);
 		expect(yearsFor("Årsstudium")).toEqual([1]);
+	});
+
+	it("suggests a master after a bachelor and the last year of other degrees", () => {
+		expect(nextStudy({ studyProgram: PROGRAMMING, degree: "Bachelor", year: 3 })).toEqual({
+			studyProgram: PROGRAMMING,
+			degree: "Master",
+			year: 4,
+		});
+		expect(nextStudy({ studyProgram: HEALTH, degree: "Master", year: 5 })).toEqual({
+			studyProgram: HEALTH,
+			degree: "Master",
+			year: 5,
+		});
+		expect(nextStudy({ studyProgram: "Ukjent", degree: "Årsstudium", year: 1 })).toEqual({
+			studyProgram: "Ukjent",
+			degree: "Årsstudium",
+			year: 1,
+		});
 	});
 });
 
@@ -209,5 +228,34 @@ describe("profile updates", () => {
 		const updated = await studentOf(t, student);
 		expect(updated).toMatchObject({ studyProgram: HEALTH, degree: "Master" });
 		expect(updated?.graduatedAt).toBeUndefined();
+	});
+});
+
+describe("graduatedProfile", () => {
+	it("suggests the next degree to a graduated student", async () => {
+		const { t } = await setup();
+		const user = await insertUser(t, "a@example.com");
+		await insertStudent(t, user._id, { studyProgram: PROGRAMMING, year: 3, graduatedAt: 1 });
+
+		expect(await asUser(t, user).query(api.users.students.queries.graduatedProfile, {})).toEqual({
+			studyProgram: PROGRAMMING,
+			degree: "Master",
+			year: 4,
+		});
+	});
+
+	it("returns null for a current student, a user without a profile and a signed out visitor", async () => {
+		const { t } = await setup();
+		const current = await insertUser(t, "a@example.com");
+		await insertStudent(t, current._id, { year: 2 });
+		const withoutProfile = await insertUser(t, "b@example.com");
+
+		expect(
+			await asUser(t, current).query(api.users.students.queries.graduatedProfile, {}),
+		).toBeNull();
+		expect(
+			await asUser(t, withoutProfile).query(api.users.students.queries.graduatedProfile, {}),
+		).toBeNull();
+		expect(await t.query(api.users.students.queries.graduatedProfile, {})).toBeNull();
 	});
 });

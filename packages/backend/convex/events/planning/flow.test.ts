@@ -423,6 +423,16 @@ describe("company event planning", () => {
 			]),
 		);
 	});
+	it("expires a used confirmation link after a day", async () => {
+		const f = await submitted();
+		expect(
+			await f.t.mutation(api.events.planning.public.confirm, { token: f.confirmationToken }),
+		).toEqual({ state: "confirmed" });
+		vi.setSystemTime(NOW + DAY_MS);
+		expect(
+			await f.t.mutation(api.events.planning.public.confirm, { token: f.confirmationToken }),
+		).toEqual({ state: "expired" });
+	});
 	it("expires confirmation links and invalidates old links on recipient correction", async () => {
 		const f = await submitted();
 		vi.setSystemTime(NOW + DAY_MS);
