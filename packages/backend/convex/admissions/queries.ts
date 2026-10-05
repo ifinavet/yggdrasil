@@ -5,6 +5,7 @@ import { adminRoles, requireRole } from "../auth/accessRights";
 import { getCurrentUserOrThrow } from "../auth/currentUser";
 import { isLocalDevelopment } from "../auth/local";
 import { MAX_INTERNAL_GROUPS } from "../users/organization/groups";
+import { listOperations } from "./workflow";
 
 export const openPeriods = query({
 	args: { now: v.number() },
@@ -153,23 +154,9 @@ export const adminOverview = query({
 			}
 		}
 		if (!period) return null;
-		const [pendingJobs = [], runningJobs = [], failedJobs = []] = await Promise.all(
-			(["pending", "running", "failed"] as const).map((state) =>
-				ctx.db
-					.query("admissionOutbox")
-					.withIndex("by_periodId_and_state", (q) =>
-						q.eq("periodId", period._id).eq("state", state),
-					)
-					.order("desc")
-					.take(201),
-			),
+		const jobs = (await listOperations(ctx, period._id, true)).filter(
+			(job) => job.state === "inProgress" || job.state === "failed",
 		);
-		const jobs = [pendingJobs, runningJobs, failedJobs].flatMap((batch) => batch.slice(0, 200));
-		const jobsTruncated = {
-			pending: pendingJobs.length > 200,
-			running: runningJobs.length > 200,
-			failed: failedJobs.length > 200,
-		};
 		const deliveryRows = await ctx.db
 			.query("admissionDeliveries")
 			.withIndex("by_periodId", (q) => q.eq("periodId", period._id))
@@ -189,7 +176,6 @@ export const adminOverview = query({
 				interviews: [],
 				interviewers: [],
 				jobs,
-				jobsTruncated,
 				deliveryIssues: [],
 				localEmails: [],
 			};
@@ -251,7 +237,6 @@ export const adminOverview = query({
 			interviews: allInterviews,
 			interviewers,
 			jobs,
-			jobsTruncated,
 			deliveryIssues: unresolvedDeliveries,
 			localEmails,
 		};

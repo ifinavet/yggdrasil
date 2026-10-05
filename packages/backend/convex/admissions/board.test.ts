@@ -1,5 +1,11 @@
 import { expect, it } from "vitest";
 import { applicationFields, interviewFields, periodFields } from "../../test/admissions-fixtures";
+import {
+	allOperations,
+	finishOperation,
+	firstOperation,
+	stageOperation,
+} from "../../test/admissions-workflow";
 import { asUser, grantRole, insertUser, setup } from "../../test/fixtures";
 import { api, internal } from "../_generated/api";
 
@@ -69,7 +75,7 @@ it("reverses selection rounds without sending offers or changing accepted candid
 	});
 	const restored = await t.run(async (ctx) => Promise.all(ids.map((id) => ctx.db.get(id))));
 	expect(restored.map((app) => app?.decision)).toEqual(["pending", "shortlist", "accepted"]);
-	expect(await t.run((ctx) => ctx.db.query("admissionOutbox").collect())).toEqual([]);
+	expect(await t.run((ctx) => allOperations(ctx))).toEqual([]);
 });
 
 it("bulk room changes affect only selected interviews and reject empty rooms", async () => {
@@ -154,27 +160,20 @@ it("archives the Slack channel after calendar cleanup and before purging the per
 		);
 	});
 	await t.run((ctx) =>
-		ctx.db.insert("admissionOutbox", {
+		stageOperation(ctx, {
 			periodId,
 			applicationId,
 			interviewId,
 			kind: "cancel_interview",
 			revision: 1,
 			idempotencyKey: "cleanup-test",
-			state: "running",
-			attempts: 1,
-			nextAttemptAt: now,
-			createdAt: now,
+			state: "inProgress",
+			dueAt: now,
 		}),
 	);
-	await t.mutation(internal.admissions.internal.completeOutbox, { idempotencyKey: "cleanup-test" });
-	const archive = await t.run((ctx) =>
-		ctx.db
-			.query("admissionOutbox")
-			.filter((q) => q.eq(q.field("kind"), "archive_channel"))
-			.first(),
-	);
-	expect(archive).toMatchObject({ periodId, state: "pending" });
+	await finishOperation(t, "cleanup-test");
+	const archive = await t.run((ctx) => firstOperation(ctx, periodId, "archive_channel"));
+	expect(archive).toMatchObject({ periodId, state: "inProgress" });
 	expect(await t.run((ctx) => ctx.db.get(periodId))).not.toBeNull();
 });
 

@@ -1,5 +1,11 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { applicationFields, interviewFields, periodFields } from "../../test/admissions-fixtures";
+import {
+	allOperations,
+	deliveryContext,
+	operationArgs,
+	stageOperation,
+} from "../../test/admissions-workflow";
 import { asUser, grantRole, insertUser, setup } from "../../test/fixtures";
 import { api, internal } from "../_generated/api";
 
@@ -69,10 +75,10 @@ it("reconciles Slack membership as soon as interviewer selection changes", async
 			selectedCalendarIds: ["primary"],
 		})),
 	});
-	const job = await t.run((ctx) => ctx.db.query("admissionOutbox").unique());
-	expect(job).toMatchObject({ kind: "sync_channel", state: "pending", revision: 2 });
-	await t.action(internal.admissions.actions.processOutbox, {
-		idempotencyKey: job?.idempotencyKey ?? "",
+	const job = await t.run((ctx) => allOperations(ctx).then((jobs) => jobs[0]));
+	expect(job).toMatchObject({ kind: "sync_channel", state: "inProgress", revision: 2 });
+	await t.action(internal.admissions.actions.execute, {
+		operation: await operationArgs(t, job?.idempotencyKey ?? ""),
 	});
 
 	expect(calls.find((call) => call.method === "conversations.kick")?.params.get("user")).toBe(
@@ -123,22 +129,18 @@ it("keeps full selected interviewer membership separate from an interview's assi
 		),
 	);
 	await t.run((ctx) =>
-		ctx.db.insert("admissionOutbox", {
+		stageOperation(ctx, {
 			kind: "publish",
 			periodId,
 			applicationId,
 			interviewId,
 			revision: 1,
 			idempotencyKey: `publish:${interviewId}:1`,
-			state: "pending",
-			attempts: 0,
-			nextAttemptAt: Date.now(),
-			createdAt: Date.now(),
+			state: "inProgress",
+			dueAt: Date.now(),
 		}),
 	);
-	const claimed = await t.mutation(internal.admissions.internal.claimOutbox, {
-		idempotencyKey: `publish:${interviewId}:1`,
-	});
+	const claimed = await deliveryContext(t, `publish:${interviewId}:1`);
 	expect(claimed?.interviewers).toHaveLength(2);
 	expect(claimed?.selectedInterviewers).toHaveLength(3);
 });

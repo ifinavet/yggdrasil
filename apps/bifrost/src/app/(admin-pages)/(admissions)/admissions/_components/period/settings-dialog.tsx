@@ -12,8 +12,8 @@ import { Field, FieldLabel } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
 import { useMutation, useQuery } from "convex/react";
 import { useEffect, useState } from "react";
+import { defaults } from "../model";
 import { CloseDialog } from "./close-dialog";
-import { defaults } from "./model";
 
 export function SettingsDialog({
 	open,

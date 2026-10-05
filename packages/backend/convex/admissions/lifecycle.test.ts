@@ -1,11 +1,12 @@
 import { expect, it } from "vitest";
 import {
 	applicationFields,
-	firstAdmissionOutboxJob,
+	firstAdmissionOperation,
 	periodFields,
 } from "../../test/admissions-fixtures";
+import { deliveryContext, finishOperation, stageOperation } from "../../test/admissions-workflow";
 import { asUser, grantRole, insertUser, setup } from "../../test/fixtures";
-import { api, internal } from "../_generated/api";
+import { api } from "../_generated/api";
 
 it("keeps closing data until an already-running decision and reminder settle", async () => {
 	const { t } = await setup();
@@ -31,30 +32,28 @@ it("keeps closing data until an already-running decision and reminder settle", a
 				idempotencyKey: "decision-running",
 			},
 			{ kind: "remind_1d" as const, idempotencyKey: "reminder-running" },
-			{ kind: "archive_channel" as const, idempotencyKey: "archive-done", state: "done" as const },
+			{
+				kind: "archive_channel" as const,
+				idempotencyKey: "archive-done",
+				state: "success" as const,
+			},
 		];
 		for (const job of jobs)
-			await ctx.db.insert("admissionOutbox", {
+			await stageOperation(ctx, {
 				...job,
 				periodId,
 				revision: 1,
-				state: job.state ?? "running",
-				attempts: 1,
-				nextAttemptAt: Date.now() + 300_000,
-				createdAt: Date.now(),
+				state: job.state ?? "inProgress",
+				dueAt: Date.now(),
 			});
 		return { periodId, applicationId };
 	});
 
-	await t.mutation(internal.admissions.internal.completeOutbox, {
-		idempotencyKey: "decision-running",
-	});
+	await finishOperation(t, "decision-running");
 	expect(await t.run((ctx) => ctx.db.get(periodId))).not.toBeNull();
 	expect(await t.run((ctx) => ctx.db.get(applicationId))).not.toBeNull();
 
-	await t.mutation(internal.admissions.internal.completeOutbox, {
-		idempotencyKey: "reminder-running",
-	});
+	await finishOperation(t, "reminder-running");
 	expect(await t.run((ctx) => ctx.db.get(periodId))).toBeNull();
 	expect(await t.run((ctx) => ctx.db.get(applicationId))).toBeNull();
 });
@@ -78,16 +77,14 @@ it("sends a declined-offer notice before archiving the channel during close", as
 				sent: true,
 			}),
 		);
-		await ctx.db.insert("admissionOutbox", {
+		await stageOperation(ctx, {
 			kind: "offer_declined",
 			periodId,
 			applicationId,
 			revision: 3,
 			idempotencyKey: "declined-before-close",
-			state: "pending",
-			attempts: 0,
-			nextAttemptAt: now,
-			createdAt: now,
+			state: "inProgress",
+			dueAt: now,
 		});
 		return { periodId, applicationId };
 	});
@@ -97,21 +94,17 @@ it("sends a declined-offer notice before archiving the channel during close", as
 		idempotencyKey: "close-after-decline",
 		force: true,
 	});
-	const claimed = await t.mutation(internal.admissions.internal.claimOutbox, {
-		idempotencyKey: "declined-before-close",
-	});
-	expect(claimed?.job.state).toBe("running");
-	expect(await firstAdmissionOutboxJob(t, periodId, "archive_channel")).toBeNull();
+	const claimed = await deliveryContext(t, "declined-before-close");
+	expect(claimed?.job.idempotencyKey).toBe("declined-before-close");
+	expect(await firstAdmissionOperation(t, periodId, "archive_channel")).toBeNull();
 
-	await t.mutation(internal.admissions.internal.completeOutbox, {
-		idempotencyKey: "declined-before-close",
-	});
-	expect(await firstAdmissionOutboxJob(t, periodId, "offer_declined")).toMatchObject({
+	await finishOperation(t, "declined-before-close");
+	expect(await firstAdmissionOperation(t, periodId, "offer_declined")).toMatchObject({
 		applicationId,
-		state: "done",
+		state: "success",
 	});
-	expect(await firstAdmissionOutboxJob(t, periodId, "archive_channel")).toMatchObject({
+	expect(await firstAdmissionOperation(t, periodId, "archive_channel")).toMatchObject({
 		kind: "archive_channel",
-		state: "pending",
+		state: "inProgress",
 	});
 });

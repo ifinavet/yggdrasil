@@ -1,5 +1,6 @@
 import { expect, it } from "vitest";
 import { applicationFields, interviewFields, periodFields } from "../../test/admissions-fixtures";
+import { allOperations, stageOperation } from "../../test/admissions-workflow";
 import { asUser, grantRole, insertStudent, insertUser, setup } from "../../test/fixtures";
 import { api } from "../_generated/api";
 
@@ -58,13 +59,13 @@ it("republishes an already-published interview after a room change", async () =>
 	});
 	expect(updated?.publishedAt).toBeUndefined();
 	expect(await t.run((ctx) => ctx.db.get(periodId))).toMatchObject({ status: "published" });
-	expect(await t.run((ctx) => ctx.db.query("admissionOutbox").collect())).toContainEqual(
+	expect(await t.run((ctx) => allOperations(ctx))).toContainEqual(
 		expect.objectContaining({
 			kind: "publish",
 			interviewId,
 			revision: 4,
 			idempotencyKey: `publish:${interviewId}:4`,
-			state: "pending",
+			state: "inProgress",
 		}),
 	);
 	const ownApplication = await applicant.query(api.admissions.queries.myApplication, { periodId });
@@ -97,7 +98,7 @@ it("reopens the published schedule when settings had reopened its period before 
 		revision: 4,
 		room: "New room",
 	});
-	expect(await t.run((ctx) => ctx.db.query("admissionOutbox").collect())).toContainEqual(
+	expect(await t.run((ctx) => allOperations(ctx))).toContainEqual(
 		expect.objectContaining({ kind: "publish", interviewId, revision: 4 }),
 	);
 });
@@ -125,17 +126,15 @@ it("prevents manual rescheduling while the first publish is in flight", async ()
 				selectedCalendarIds: ["primary"],
 			}),
 		);
-		await ctx.db.insert("admissionOutbox", {
+		await stageOperation(ctx, {
 			kind: "publish",
 			periodId,
 			applicationId,
 			interviewId: id,
 			revision: 1,
 			idempotencyKey: `publish:${id}:1`,
-			state: "running",
-			attempts: 1,
-			nextAttemptAt: now + 60000,
-			createdAt: now,
+			state: "inProgress",
+			dueAt: now + 60000,
 		});
 		return id;
 	});
@@ -198,16 +197,14 @@ it("does not allow changing a decision while its delivery is queued", async () =
 			decisionRevision: 2,
 			decisionQueuedAt: now,
 		});
-		await ctx.db.insert("admissionOutbox", {
+		await stageOperation(ctx, {
 			kind: "send_decision",
 			periodId,
 			applicationId,
 			revision: 2,
 			idempotencyKey: "decision-race",
-			state: "running",
-			attempts: 1,
-			nextAttemptAt: now + 60000,
-			createdAt: now,
+			state: "inProgress",
+			dueAt: now + 60000,
 		});
 	});
 	const app = await t.run((ctx) => ctx.db.get(applicationId));

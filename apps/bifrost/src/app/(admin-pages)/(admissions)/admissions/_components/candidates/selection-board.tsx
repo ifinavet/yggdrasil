@@ -7,7 +7,7 @@ import {
 	SelectValue,
 } from "@workspace/ui/components/select";
 import { useState } from "react";
-import { type Candidate, type Decision, decisionLabels, decisionLocked, decisions } from "./model";
+import { type Candidate, type Decision, decisionLabels, decisionLocked, decisions } from "../model";
 export function SelectionBoard({
 	candidates,
 	onSelect,

@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import type { Doc } from "../_generated/dataModel";
 import { internalMutation } from "../_generated/server";
 import { isLocalDevelopment } from "../auth/local";
-import { queueOutbox } from "./lifecycle";
+import { startDelivery } from "./workflow";
 
 const deliveryKind = v.union(
 	v.literal("offer"),
@@ -79,14 +79,14 @@ export const recordProviderEvent = internalMutation({
 		const error = errors[status];
 		await ctx.db.patch(delivery._id, { status, error });
 		if (error) {
-			await queueOutbox(ctx, {
+			await startDelivery(ctx, {
 				kind: "delivery_failure",
 				periodId: delivery.periodId,
 				applicationId: delivery.applicationId,
 				deliveryId: delivery._id,
 				revision: 1,
 				idempotencyKey: `delivery-failure:${delivery._id}:${status}`,
-				nextAttemptAt: Date.now(),
+				dueAt: Date.now(),
 			});
 		}
 		return true;

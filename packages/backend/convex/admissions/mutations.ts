@@ -13,7 +13,7 @@ import { adminRoles, internalRoles, requireRole, userHasRole } from "../auth/acc
 import { getCurrentUserOrThrow } from "../auth/currentUser";
 import { startAcceptedAdmissionOnboarding, validateAdmissionOffer } from "../iam/mutations";
 import { requireMutablePeriod } from "./access";
-import { activePublishInterviewIds, beginClose, queueOutbox } from "./lifecycle";
+import { activePublishInterviewIds, beginClose } from "./lifecycle";
 import {
 	interviewCalendarIds,
 	MAX_APPLICATIONS,
@@ -29,6 +29,7 @@ import {
 	decisionValue,
 	interviewerSelection,
 } from "./schema";
+import { readOperation, startDelivery } from "./workflow";
 
 const CONSENT_VERSION = "admissions-2026-01";
 const text = (value: string, max: number) => value.trim().length <= max;
@@ -91,14 +92,14 @@ async function cancelScheduledInterview(
 	const refillEligible = interview.startAt - now >= 48 * 60 * 60 * 1000;
 	await ctx.db.patch(interview._id, { status: "cancelled", revision, publishedAt: undefined });
 	await ctx.db.patch(app._id, { revision: app.revision + 1 });
-	await queueOutbox(ctx, {
+	await startDelivery(ctx, {
 		kind: "cancel_interview",
 		periodId: period._id,
 		applicationId: app._id,
 		interviewId: interview._id,
 		revision,
 		idempotencyKey,
-		nextAttemptAt: now,
+		dueAt: now,
 		refillEligible,
 		notifyApplicant,
 	});
@@ -436,13 +437,13 @@ export const sendDecision = mutation({
 			);
 		if (app.decisionSentAt || app.decisionQueuedAt) return { revision: app.revision };
 		const kind = "send_decision" as const;
-		await queueOutbox(ctx, {
+		await startDelivery(ctx, {
 			kind,
 			periodId: period._id,
 			applicationId,
 			revision: app.decisionRevision,
 			idempotencyKey,
-			nextAttemptAt: Date.now(),
+			dueAt: Date.now(),
 		});
 		await ctx.db.patch(app._id, { decisionQueuedAt: Date.now() });
 		return { revision: app.revision };
@@ -488,13 +489,13 @@ export const respondToOffer = mutation({
 				);
 			}
 		} else
-			await queueOutbox(ctx, {
+			await startDelivery(ctx, {
 				kind: "offer_declined",
 				periodId,
 				applicationId: app._id,
 				revision: app.decisionRevision,
 				idempotencyKey: `offer-declined:${app._id}:${app.decisionRevision}`,
-				nextAttemptAt: Date.now(),
+				dueAt: Date.now(),
 			});
 		return { offerStatus, revision: app.revision + 1 };
 	},
@@ -604,11 +605,12 @@ export const cancelInterviewByBoard = mutation({
 		await requireRole(ctx, adminRoles);
 		const app = await ctx.db.get(applicationId);
 		if (!app) throw new ConvexError("Fant ikke søknaden.");
-		const existingJob = await ctx.db
-			.query("admissionOutbox")
+		const existingRef = await ctx.db
+			.query("admissionWorkflows")
 			.withIndex("by_idempotencyKey", (q) => q.eq("idempotencyKey", idempotencyKey))
 			.unique();
-		if (existingJob) {
+		if (existingRef) {
+			const existingJob = await readOperation(ctx, existingRef);
 			if (existingJob.kind !== "cancel_interview" || existingJob.applicationId !== app._id)
 				throw new ConvexError("Idempotensnøkkelen er allerede brukt.");
 			return { revision: app.revision, refillEligible: existingJob.refillEligible ?? false };
@@ -680,14 +682,14 @@ export const publish = mutation({
 		await ctx.db.patch(periodId, { status: "published", revision: period.revision + 1 });
 		await Promise.all(
 			interviews.map((interview) =>
-				queueOutbox(ctx, {
+				startDelivery(ctx, {
 					kind: "publish",
 					periodId,
 					applicationId: interview.applicationId,
 					interviewId: interview._id,
 					revision: interview.revision,
 					idempotencyKey: `${idempotencyKey}:${interview._id}`,
-					nextAttemptAt: Date.now(),
+					dueAt: Date.now(),
 				}),
 			),
 		);

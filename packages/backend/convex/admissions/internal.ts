@@ -11,19 +11,18 @@ import { admissionsChannelNames } from "./channelNames";
 import {
 	activePublishInterviewIds,
 	beginClose,
-	finishClose,
 	purgeBatch as purgeRecordsBatch,
-	queueOutbox,
 } from "./lifecycle";
 import {
 	interviewCalendarIds,
 	MAX_APPLICATIONS,
-	MAX_OUTBOX_ATTEMPTS,
 	sameInterviewSchedule,
 	validateInterviewWindow,
 } from "./rules";
+import { operationValidator } from "./schema";
+import { type Operation, startDelivery } from "./workflow";
 
-async function isCurrent(ctx: Parameters<typeof requireRole>[0], job: Doc<"admissionOutbox">) {
+async function isCurrent(ctx: Parameters<typeof requireRole>[0], job: Operation) {
 	const period = await ctx.db.get(job.periodId);
 	if (job.kind === "archive_channel") return period?.status === "closing";
 	if (!period) return false;
@@ -37,18 +36,12 @@ async function isCurrent(ctx: Parameters<typeof requireRole>[0], job: Doc<"admis
 	return isApplicationJobCurrent(ctx, job);
 }
 
-async function isCancellationCurrent(
-	ctx: Parameters<typeof requireRole>[0],
-	job: Doc<"admissionOutbox">,
-) {
+async function isCancellationCurrent(ctx: Parameters<typeof requireRole>[0], job: Operation) {
 	const interview = job.interviewId ? await ctx.db.get(job.interviewId) : null;
 	return interview?.status === "cancelled" && interview.revision === job.revision;
 }
 
-async function isDeliveryFailureCurrent(
-	ctx: Parameters<typeof requireRole>[0],
-	job: Doc<"admissionOutbox">,
-) {
+async function isDeliveryFailureCurrent(ctx: Parameters<typeof requireRole>[0], job: Operation) {
 	const delivery = job.deliveryId ? await ctx.db.get(job.deliveryId) : null;
 	return (
 		delivery?.periodId === job.periodId &&
@@ -58,7 +51,7 @@ async function isDeliveryFailureCurrent(
 
 async function isInterviewJobCurrent(
 	ctx: Parameters<typeof requireRole>[0],
-	job: Doc<"admissionOutbox">,
+	job: Operation,
 	periodStatus: Doc<"admissionPeriods">["status"],
 ) {
 	const interview = job.interviewId ? await ctx.db.get(job.interviewId) : null;
@@ -68,10 +61,7 @@ async function isInterviewJobCurrent(
 		: interview.publishedAt !== undefined;
 }
 
-async function isApplicationJobCurrent(
-	ctx: Parameters<typeof requireRole>[0],
-	job: Doc<"admissionOutbox">,
-) {
+async function isApplicationJobCurrent(ctx: Parameters<typeof requireRole>[0], job: Operation) {
 	const application = job.applicationId ? await ctx.db.get(job.applicationId) : null;
 	if (!application) return false;
 	if (job.kind === "send_decision")
@@ -84,7 +74,7 @@ async function isApplicationJobCurrent(
 }
 
 function exhaustedResource(
-	job: Doc<"admissionOutbox">,
+	job: Operation,
 	period: Doc<"admissionPeriods"> | null,
 	interview: Doc<"admissionInterviews"> | null,
 ) {
@@ -97,32 +87,10 @@ function exhaustedResource(
 	return `Slack channel ${name} or ${fallbackName}, owner admissions:${period._id}`;
 }
 
-export const claimOutbox = internalMutation({
-	args: { idempotencyKey: v.string() },
-	handler: async (ctx, { idempotencyKey }) => {
-		const job = await ctx.db
-			.query("admissionOutbox")
-			.withIndex("by_idempotencyKey", (q) => q.eq("idempotencyKey", idempotencyKey))
-			.unique();
-		if (
-			!job ||
-			job.state === "done" ||
-			(job.state === "running" && !job.workflowId) ||
-			job.nextAttemptAt > Date.now()
-		)
-			return null;
-		const current = await isCurrent(ctx, job);
-		if (!current) {
-			await ctx.db.patch(job._id, { state: "done", lastError: undefined });
-			const period = await ctx.db.get(job.periodId);
-			if (period?.status === "closing") await finishClose(ctx, period);
-			return null;
-		}
-		await ctx.db.patch(job._id, {
-			state: "running",
-			attempts: job.attempts + 1,
-			lastError: undefined,
-		});
+export const deliveryContext = internalQuery({
+	args: { operation: operationValidator },
+	handler: async (ctx, { operation: job }) => {
+		if (!(await isCurrent(ctx, job))) return null;
 		const period = await ctx.db.get(job.periodId);
 		const application = job.applicationId ? await ctx.db.get(job.applicationId) : null;
 		const interview = job.interviewId ? await ctx.db.get(job.interviewId) : null;
@@ -148,7 +116,7 @@ export const claimOutbox = internalMutation({
 			)
 		).filter((user) => user !== null);
 		return {
-			job: { ...job, state: "running" as const, attempts: job.attempts + 1 },
+			job,
 			period,
 			application,
 			interview,
@@ -167,93 +135,39 @@ export const claimOutbox = internalMutation({
 	},
 });
 
-export const outboxIsCurrent = internalQuery({
-	args: { idempotencyKey: v.string() },
-	handler: async (ctx, { idempotencyKey }) => {
-		const job = await ctx.db
-			.query("admissionOutbox")
-			.withIndex("by_idempotencyKey", (q) => q.eq("idempotencyKey", idempotencyKey))
-			.unique();
-		return job?.state === "running" ? isCurrent(ctx, job) : false;
-	},
+export const operationIsCurrent = internalQuery({
+	args: { operation: operationValidator },
+	handler: (ctx, { operation }) => isCurrent(ctx, operation),
 });
 
-export const completeOutbox = internalMutation({
-	args: {
-		idempotencyKey: v.string(),
-		result: v.optional(
-			v.object({
-				calendarEventId: v.optional(v.string()),
-				deliveryIds: v.optional(v.array(v.string())),
-			}),
-		),
-	},
-	handler: async (ctx, { idempotencyKey, result }) => {
-		const job = await ctx.db
-			.query("admissionOutbox")
-			.withIndex("by_idempotencyKey", (q) => q.eq("idempotencyKey", idempotencyKey))
-			.unique();
-		if (!job || job.state === "done") return null;
-		const current = await isCurrent(ctx, job);
-		await ctx.db.patch(job._id, {
-			state: "done",
-			result: current ? result : undefined,
-			lastError: undefined,
-		});
-		if (current && job.kind === "publish" && job.interviewId)
+export const deliveryResult = v.object({
+	calendarEventId: v.optional(v.string()),
+	deliveryIds: v.optional(v.array(v.string())),
+});
+type DeliveryResult = { calendarEventId?: string; deliveryIds?: string[] };
+export const completeDelivery = internalMutation({
+	args: { operation: operationValidator, result: v.optional(deliveryResult) },
+	handler: async (ctx, { operation: job, result }) => {
+		if (!(await isCurrent(ctx, job))) return { stale: true };
+		if (job.kind === "publish" && job.interviewId)
 			await completePublication(ctx, job, job.interviewId, result);
-		if (current && job.kind === "send_decision" && job.applicationId)
+		if (job.kind === "send_decision" && job.applicationId)
 			await completeDecision(ctx, job, job.applicationId);
-		const period = await ctx.db.get(job.periodId);
-		if (period?.status === "closing") await finishClose(ctx, period);
-		return { stale: !current };
+		return { stale: false };
 	},
 });
 
-export const failOutbox = internalMutation({
-	args: {
-		idempotencyKey: v.string(),
-		error: v.string(),
-		nextAttemptAt: v.number(),
-		terminal: v.optional(v.boolean()),
-	},
-	handler: async (ctx, { idempotencyKey, error, nextAttemptAt, terminal }) => {
-		const job = await ctx.db
-			.query("admissionOutbox")
-			.withIndex("by_idempotencyKey", (q) => q.eq("idempotencyKey", idempotencyKey))
-			.unique();
-		if (!job || job.state === "done") return null;
-		if (!(await isCurrent(ctx, job))) {
-			await ctx.db.patch(job._id, { state: "done", lastError: undefined });
-			const period = await ctx.db.get(job.periodId);
-			if (period?.status === "closing") await finishClose(ctx, period);
-			return { stale: true };
-		}
-		const exhausted = terminal || job.attempts >= MAX_OUTBOX_ATTEMPTS;
-		await ctx.db.patch(job._id, {
-			state: "failed",
-			lastError: error.slice(0, 500),
-			nextAttemptAt,
-			attempts: exhausted ? MAX_OUTBOX_ATTEMPTS : job.attempts,
-		});
-		if (
-			exhausted &&
-			(job.kind === "cancel_interview" ||
-				job.kind === "archive_channel" ||
-				job.kind === "offer_declined")
-		) {
-			const period = await ctx.db.get(job.periodId);
-			const interview = job.interviewId ? await ctx.db.get(job.interviewId) : null;
-			await enqueueSystemMessage(ctx, {
-				channel: SYSTEM_ALERTS_CHANNEL,
-				text: `Admissions integration retry limit reached. Period: ${period?.title ?? job.periodId} (${job.periodId}). Job: ${job.kind}. Resource: ${exhaustedResource(job, period, interview)}. Check provider status and complete cleanup manually if needed.`,
-				clientMsgId: `admissions-integration-exhausted:${job._id}`,
-			});
-		}
-
+export const reportFailure = internalMutation({
+	args: { operation: operationValidator },
+	handler: async (ctx, { operation: job }) => {
+		if (!(await isCurrent(ctx, job))) return;
 		const period = await ctx.db.get(job.periodId);
-		if (exhausted && period?.status === "closing") await finishClose(ctx, period);
-		return { stale: false, exhausted };
+		const interview = job.interviewId ? await ctx.db.get(job.interviewId) : null;
+		await enqueueSystemMessage(ctx, {
+			channel: SYSTEM_ALERTS_CHANNEL,
+			text: `Admissions integration retry limit reached. Period: ${period?.title ?? job.periodId} (${job.periodId}). Job: ${job.kind}. Resource: ${exhaustedResource(job, period, interview)}. Check provider status and complete cleanup manually if needed.`,
+			clientMsgId: `admissions-integration-exhausted:${job.idempotencyKey}`,
+		});
 	},
 });
 
@@ -520,9 +434,9 @@ export const expireOffer = internalMutation({
 
 async function completePublication(
 	ctx: MutationCtx,
-	job: Doc<"admissionOutbox">,
+	job: Operation,
 	interviewId: Id<"admissionInterviews">,
-	result: Doc<"admissionOutbox">["result"],
+	result: DeliveryResult | undefined,
 ) {
 	const interview = await ctx.db.get(interviewId);
 	if (interview?.revision === job.revision && interview.status === "scheduled") {
@@ -537,16 +451,16 @@ async function completePublication(
 					["remind_1d", 86400000],
 				] as const
 			).map(async ([kind, offset]) => {
-				const nextAttemptAt = interview.startAt - offset;
-				if (nextAttemptAt > Date.now())
-					await queueOutbox(ctx, {
+				const dueAt = interview.startAt - offset;
+				if (dueAt > Date.now())
+					await startDelivery(ctx, {
 						kind,
 						periodId: interview.periodId,
 						applicationId: interview.applicationId,
 						interviewId: interview._id,
 						revision: interview.revision,
 						idempotencyKey: `${kind}:${interview._id}:${interview.revision}`,
-						nextAttemptAt,
+						dueAt,
 					});
 			}),
 		);
@@ -555,7 +469,7 @@ async function completePublication(
 
 async function completeDecision(
 	ctx: MutationCtx,
-	job: Doc<"admissionOutbox">,
+	job: Operation,
 	applicationId: Id<"admissionApplications">,
 ) {
 	const application = await ctx.db.get(applicationId);

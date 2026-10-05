@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { internalMutation } from "../_generated/server";
-import { queueOutbox } from "./lifecycle";
+import { startDelivery } from "./workflow";
 
 export const queueStalePublishCleanup = internalMutation({
 	args: {
@@ -19,14 +19,14 @@ export const queueStalePublishCleanup = internalMutation({
 			)
 			.unique();
 		const now = Date.now();
-		await queueOutbox(ctx, {
+		await startDelivery(ctx, {
 			kind: "cancel_interview",
 			periodId,
 			applicationId: interview.applicationId,
 			interviewId,
 			revision: interview.revision,
 			idempotencyKey: `late-publish-cancel:${interviewId}:${interview.revision}`,
-			nextAttemptAt: now,
+			dueAt: now,
 			notifyApplicant: invite !== null,
 		});
 		return true;

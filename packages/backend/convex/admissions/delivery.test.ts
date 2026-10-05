@@ -1,5 +1,6 @@
 import { expect, it } from "vitest";
 import { applicationFields, periodFields } from "../../test/admissions-fixtures";
+import { allOperations, finishOperation, operationByKey } from "../../test/admissions-workflow";
 import { asUser, grantRole, insertUser, setup } from "../../test/fixtures";
 import { api, internal } from "../_generated/api";
 
@@ -75,7 +76,7 @@ it("queues one retryable Slack alert when a provider reports a failed email", as
 		emailId: "resend-email-1",
 		type: "email.bounced",
 	});
-	const jobs = await t.run((ctx) => ctx.db.query("admissionOutbox").collect());
+	const jobs = await t.run((ctx) => allOperations(ctx));
 	expect(jobs).toHaveLength(1);
 	expect(jobs[0]).toMatchObject({
 		kind: "delivery_failure",
@@ -83,23 +84,13 @@ it("queues one retryable Slack alert when a provider reports a failed email", as
 		applicationId,
 		deliveryId: expect.any(String),
 		idempotencyKey: expect.stringContaining("delivery-failure:"),
-		state: "pending",
+		state: "inProgress",
 	});
 	const idempotencyKey = jobs[0]?.idempotencyKey;
 	if (!idempotencyKey) throw new Error("Missing delivery failure idempotency key");
-	await t.mutation(internal.admissions.internal.failOutbox, {
-		idempotencyKey,
-		error: "Slack API unavailable",
-		nextAttemptAt: Date.now() + 60_000,
-	});
-	const retried = await t.run((ctx) =>
-		ctx.db
-			.query("admissionOutbox")
-			.withIndex("by_idempotencyKey", (q) => q.eq("idempotencyKey", idempotencyKey))
-			.unique(),
-	);
+	await finishOperation(t, idempotencyKey, "Slack API unavailable");
+	const retried = await t.run((ctx) => operationByKey(ctx, idempotencyKey));
 	expect(retried).toMatchObject({ state: "failed", lastError: "Slack API unavailable" });
-	expect(retried?.nextAttemptAt).toBeGreaterThan(Date.now());
 });
 
 it("exposes captured email content only in local admin previews", async () => {

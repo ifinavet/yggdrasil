@@ -3,10 +3,10 @@ import type { Doc } from "../_generated/dataModel";
 import { mutation } from "../_generated/server";
 import schema from "../schema";
 import { requireMutablePeriod } from "./access";
-import { queueOutbox } from "./lifecycle";
 import { validateInterviewers } from "./mutations";
 import { MAX_APPLICATIONS, MAX_ROUNDS, validateSettings } from "./rules";
 import { interviewerSelection } from "./schema";
+import { startDelivery } from "./workflow";
 
 const settings = schema
 	.doc("admissionPeriods")
@@ -71,12 +71,12 @@ export const updateInterviewers = mutation({
 			status: "open",
 		});
 		if (membershipChanged)
-			await queueOutbox(ctx, {
+			await startDelivery(ctx, {
 				kind: "sync_channel",
 				periodId: period._id,
 				revision,
 				idempotencyKey: `sync-channel:${period._id}:${revision}`,
-				nextAttemptAt: Date.now(),
+				dueAt: Date.now(),
 			});
 	},
 });
@@ -155,14 +155,14 @@ export const assignRooms = mutation({
 					publishedAt: undefined,
 				});
 				if (republish)
-					await queueOutbox(ctx, {
+					await startDelivery(ctx, {
 						kind: "publish",
 						periodId: period._id,
 						applicationId: row.applicationId,
 						interviewId: row._id,
 						revision,
 						idempotencyKey: `publish:${row._id}:${revision}`,
-						nextAttemptAt: Date.now(),
+						dueAt: Date.now(),
 					});
 			}),
 		);

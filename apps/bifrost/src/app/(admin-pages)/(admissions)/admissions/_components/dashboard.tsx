@@ -30,17 +30,17 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { CalendarDialog } from "./calendar-dialog";
-import { CancelInterviewDialog } from "./cancel-interview-dialog";
-import { CandidateDialog } from "./candidate-dialog";
-import { CandidateFilters } from "./candidate-filters";
+import { CandidateDialog } from "./candidates/candidate-dialog";
+import { CandidateFilters } from "./candidates/candidate-filters";
+import { OfferDialog } from "./candidates/offer-dialog";
+import { SelectionBoard } from "./candidates/selection-board";
 import { DeliveryStatus } from "./delivery-status";
-import { InterviewCalendar } from "./interview-calendar";
-import { InterviewDialog } from "./interview-dialog";
+import { CalendarDialog } from "./interviews/calendar-dialog";
+import { CancelInterviewDialog } from "./interviews/cancel-interview-dialog";
+import { InterviewCalendar } from "./interviews/interview-calendar";
+import { InterviewDialog } from "./interviews/interview-dialog";
 import { type Decision, decisionLabels } from "./model";
-import { OfferDialog } from "./offer-dialog";
-import { SelectionBoard } from "./selection-board";
-import { SettingsDialog } from "./settings-dialog";
+import { SettingsDialog } from "./period/settings-dialog";
 
 const offerLabels = {
 	none: "",
@@ -190,11 +190,7 @@ export default function AdmissionsDashboard() {
 					har takket nei.
 				</Callout>
 			)}
-			<DeliveryStatus
-				jobs={overview.jobs}
-				truncated={Object.values(overview.jobsTruncated).some(Boolean)}
-				closing={period.status === "closing"}
-			/>
+			<DeliveryStatus jobs={overview.jobs} closing={period.status === "closing"} />
 			<nav className="admissions-tabs" aria-label="Opptaksvisninger">
 				{(
 					[

@@ -1,13 +1,10 @@
-import { cancel } from "@convex-dev/workflow";
 import { ConvexError } from "convex/values";
-import { components, internal } from "../_generated/api";
+import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
-import { MAX_APPLICATIONS, MAX_OUTBOX_ATTEMPTS } from "./rules";
-
-import { startDelivery } from "./workflow";
-
-type CleanupKind = "cancel_interview" | "publish" | "offer_declined" | "archive_channel";
+import { workflow } from "../lib/workflow";
+import { MAX_APPLICATIONS } from "./rules";
+import { listOperations, readOperation, startDelivery } from "./workflow";
 
 export async function beginClose(
 	ctx: MutationCtx,
@@ -52,43 +49,21 @@ export async function beginClose(
 			const revision = interview.revision + 1;
 			await ctx.db.patch(interview._id, { status: "cancelled", revision, publishedAt: undefined });
 			if (interview.publishedAt || interview.calendarEventId || publishing.has(interview._id))
-				await queueOutbox(ctx, {
+				await startDelivery(ctx, {
 					kind: "cancel_interview",
 					periodId: period._id,
 					applicationId: interview.applicationId,
 					interviewId: interview._id,
 					revision,
 					idempotencyKey: `${key}:cancel:${interview._id}`,
-					nextAttemptAt: now,
+					dueAt: now,
 					notifyApplicant: Boolean(interview.publishedAt && interview.startAt > now),
 				});
 		}),
 	);
 	const closing = { ...period, status: "closing" as const, revision: period.revision + 1 };
 	await ctx.db.patch(period._id, { status: closing.status, revision: closing.revision });
-	await finishClose(ctx, closing, `${key}:archive`);
-}
-
-export async function queueOutbox(
-	ctx: MutationCtx,
-	fields: Omit<
-		Doc<"admissionOutbox">,
-		"_id" | "_creationTime" | "state" | "attempts" | "createdAt"
-	>,
-) {
-	const existing = await ctx.db
-		.query("admissionOutbox")
-		.withIndex("by_idempotencyKey", (q) => q.eq("idempotencyKey", fields.idempotencyKey))
-		.unique();
-	if (existing) return existing._id;
-	const jobId = await ctx.db.insert("admissionOutbox", {
-		...fields,
-		state: "pending",
-		attempts: 0,
-		createdAt: Date.now(),
-	});
-	await startDelivery(ctx, jobId, fields.idempotencyKey, fields.nextAttemptAt);
-	return jobId;
+	await finishClose(ctx, closing);
 }
 
 export async function purgeBatch(ctx: MutationCtx, periodId: Id<"admissionPeriods">) {
@@ -100,15 +75,18 @@ export async function purgeBatch(ctx: MutationCtx, periodId: Id<"admissionPeriod
 		ctx.db
 			.query("admissionApplications")
 			.withIndex("by_periodId_and_status", (q) => q.eq("periodId", periodId)),
-		ctx.db.query("admissionOutbox").withIndex("by_periodId", (q) => q.eq("periodId", periodId)),
+		ctx.db.query("admissionWorkflows").withIndex("by_periodId", (q) => q.eq("periodId", periodId)),
 	];
 	for (const query of queries) {
 		const rows = await query.take(80);
 		await Promise.all(
 			rows.map(async (row) => {
-				if ("workflowId" in row && row.workflowId && row.state !== "done")
-					await cancel(ctx, components.workflow, row.workflowId);
 				await ctx.db.delete(row._id);
+				if ("workflowId" in row) {
+					if ((await workflow.status(ctx, row.workflowId)).type === "inProgress")
+						await workflow.cancel(ctx, row.workflowId);
+					else await workflow.cleanup(ctx, row.workflowId);
+				}
 			}),
 		);
 		if (rows.length === 80) {
@@ -120,32 +98,33 @@ export async function purgeBatch(ctx: MutationCtx, periodId: Id<"admissionPeriod
 	return true;
 }
 
-export async function finishClose(
-	ctx: MutationCtx,
-	period: Doc<"admissionPeriods">,
-	archiveKey = `close-archive:${period._id}`,
-) {
-	if (await hasRunningOutbox(ctx, period._id)) return false;
-	if (await hasUnfinishedCleanup(ctx, period._id, "cancel_interview")) return false;
-	if (await hasUnfinishedCleanup(ctx, period._id, "publish")) return false;
-	if (await hasUnfinishedCleanup(ctx, period._id, "offer_declined")) return false;
+export async function finishClose(ctx: MutationCtx, period: Doc<"admissionPeriods">) {
+	const jobs = await listOperations(ctx, period._id, true);
+	const cleanup = new Set(["cancel_interview", "publish", "offer_declined", "archive_channel"]);
+	if (
+		jobs.some(
+			(job) => job.state === "inProgress" && (cleanup.has(job.kind) || job.dueAt <= Date.now()),
+		)
+	)
+		return false;
+	const archiveKey = `close-archive:${period._id}`;
 	const archive = await ctx.db
-		.query("admissionOutbox")
+		.query("admissionWorkflows")
 		.withIndex("by_periodId_and_kind", (q) =>
 			q.eq("periodId", period._id).eq("kind", "archive_channel"),
 		)
-		.take(1);
-	if (!archive.length) {
-		await queueOutbox(ctx, {
+		.first();
+	if (!archive) {
+		await startDelivery(ctx, {
 			kind: "archive_channel",
 			periodId: period._id,
 			revision: period.revision,
 			idempotencyKey: archiveKey,
-			nextAttemptAt: Date.now(),
+			dueAt: Date.now(),
 		});
 		return false;
 	}
-	if (await hasUnfinishedCleanup(ctx, period._id, "archive_channel")) return false;
+	if ((await readOperation(ctx, archive)).state === "inProgress") return false;
 	await purgeBatch(ctx, period._id);
 	return true;
 }
@@ -154,72 +133,10 @@ export async function activePublishInterviewIds(
 	ctx: MutationCtx,
 	periodId: Id<"admissionPeriods">,
 ) {
-	const [pending, running, retryable] = await Promise.all([
-		ctx.db
-			.query("admissionOutbox")
-			.withIndex("by_periodId_and_kind_and_state", (q) =>
-				q.eq("periodId", periodId).eq("kind", "publish").eq("state", "pending"),
-			)
-			.take(MAX_APPLICATIONS + 1),
-		ctx.db
-			.query("admissionOutbox")
-			.withIndex("by_periodId_and_kind_and_state", (q) =>
-				q.eq("periodId", periodId).eq("kind", "publish").eq("state", "running"),
-			)
-			.take(MAX_APPLICATIONS + 1),
-		ctx.db
-			.query("admissionOutbox")
-			.withIndex("by_periodId_and_kind_and_state_and_attempts", (q) =>
-				q
-					.eq("periodId", periodId)
-					.eq("kind", "publish")
-					.eq("state", "failed")
-					.lt("attempts", MAX_OUTBOX_ATTEMPTS),
-			)
-			.take(MAX_APPLICATIONS + 1),
-	]);
-	const jobs = [...pending, ...running, ...retryable];
-	if (jobs.length > MAX_APPLICATIONS * 3)
-		throw new ConvexError("For mange publiseringsjobber i opptaket.");
-	return new Set(jobs.flatMap((job) => (job.interviewId ? [job.interviewId] : [])));
-}
-
-async function hasRunningOutbox(ctx: MutationCtx, periodId: Id<"admissionPeriods">) {
-	const jobs = await ctx.db
-		.query("admissionOutbox")
-		.withIndex("by_periodId_and_state", (q) => q.eq("periodId", periodId).eq("state", "running"))
-		.take(1);
-	return jobs.length > 0;
-}
-
-async function hasUnfinishedCleanup(
-	ctx: MutationCtx,
-	periodId: Id<"admissionPeriods">,
-	kind: CleanupKind,
-) {
-	const [pending, running, retryable] = await Promise.all([
-		ctx.db
-			.query("admissionOutbox")
-			.withIndex("by_periodId_and_kind_and_state", (q) =>
-				q.eq("periodId", periodId).eq("kind", kind).eq("state", "pending"),
-			)
-			.take(1),
-		ctx.db
-			.query("admissionOutbox")
-			.withIndex("by_periodId_and_kind_and_state", (q) =>
-				q.eq("periodId", periodId).eq("kind", kind).eq("state", "running"),
-			)
-			.take(1),
-		ctx.db
-			.query("admissionOutbox")
-			.withIndex("by_periodId_and_kind_and_state_and_attempts", (q) =>
-				q
-					.eq("periodId", periodId)
-					.eq("kind", kind)
-					.eq("state", "failed")
-					.lt("attempts", MAX_OUTBOX_ATTEMPTS),
-			)
-			.take(1),
-	]);
-	return pending.length > 0 || running.length > 0 || retryable.length > 0;
+	const jobs = await listOperations(ctx, periodId, true);
+	return new Set(
+		jobs
+			.filter((job) => job.kind === "publish" && job.state === "inProgress")
+			.flatMap((job) => (job.interviewId ? [job.interviewId] : [])),
+	);
 }

@@ -15,6 +15,29 @@ export const decisionValue = v.union(
 );
 export const admissionGroupChoice = v.union(v.id("internalGroups"), v.literal("unsure"));
 
+export const operationValidator = v.object({
+	kind: v.union(
+		v.literal("publish"),
+		v.literal("send_decision"),
+		v.literal("cancel_interview"),
+		v.literal("offer_declined"),
+		v.literal("archive_channel"),
+		v.literal("remind_3d"),
+		v.literal("remind_1d"),
+		v.literal("delivery_failure"),
+		v.literal("sync_channel"),
+	),
+	periodId: v.id("admissionPeriods"),
+	applicationId: v.optional(v.id("admissionApplications")),
+	interviewId: v.optional(v.id("admissionInterviews")),
+	deliveryId: v.optional(v.id("admissionDeliveries")),
+	revision: v.number(),
+	idempotencyKey: v.string(),
+	dueAt: v.number(),
+	refillEligible: v.optional(v.boolean()),
+	notifyApplicant: v.optional(v.boolean()),
+});
+
 const roundSnapshot = v.object({
 	decisions: v.array(
 		v.object({ applicationId: v.id("admissionApplications"), decision: decisionValue }),
@@ -117,56 +140,17 @@ export const admissionsSchema = {
 	})
 		.index("by_applicationId", ["applicationId"])
 		.index("by_periodId_and_status", ["periodId", "status"]),
-	admissionOutbox: defineTable({
-		workflowId: v.optional(vWorkflowId),
-		kind: v.union(
-			v.literal("publish"),
-			v.literal("send_decision"),
-			v.literal("cancel_interview"),
-			v.literal("offer_declined"),
-			v.literal("archive_channel"),
-			v.literal("remind_3d"),
-			v.literal("remind_1d"),
-			v.literal("delivery_failure"),
-			v.literal("sync_channel"),
-		),
+	admissionWorkflows: defineTable({
+		kind: operationValidator.fields.kind,
 		periodId: v.id("admissionPeriods"),
-		applicationId: v.optional(v.id("admissionApplications")),
-		interviewId: v.optional(v.id("admissionInterviews")),
-		deliveryId: v.optional(v.id("admissionDeliveries")),
-		revision: v.number(),
 		idempotencyKey: v.string(),
-		state: v.union(
-			v.literal("pending"),
-			v.literal("running"),
-			v.literal("done"),
-			v.literal("failed"),
-		),
-		attempts: v.number(),
-		nextAttemptAt: v.number(),
-		lastError: v.optional(v.string()),
-		createdAt: v.number(),
-		result: v.optional(
-			v.object({
-				calendarEventId: v.optional(v.string()),
-				deliveryIds: v.optional(v.array(v.string())),
-			}),
-		),
-		refillEligible: v.optional(v.boolean()),
-		notifyApplicant: v.optional(v.boolean()),
+		workflowId: vWorkflowId,
+		completedAt: v.optional(v.number()),
 	})
-		.index("by_idempotencyKey", ["idempotencyKey"])
-		.index("by_state_and_nextAttemptAt", ["state", "nextAttemptAt"])
 		.index("by_periodId", ["periodId"])
+		.index("by_periodId_and_completedAt", ["periodId", "completedAt"])
 		.index("by_periodId_and_kind", ["periodId", "kind"])
-		.index("by_periodId_and_kind_and_state", ["periodId", "kind", "state"])
-		.index("by_periodId_and_state", ["periodId", "state"])
-		.index("by_periodId_and_kind_and_state_and_attempts", [
-			"periodId",
-			"kind",
-			"state",
-			"attempts",
-		]),
+		.index("by_idempotencyKey", ["idempotencyKey"]),
 	admissionDeliveries: defineTable({
 		periodId: v.id("admissionPeriods"),
 		applicationId: v.id("admissionApplications"),

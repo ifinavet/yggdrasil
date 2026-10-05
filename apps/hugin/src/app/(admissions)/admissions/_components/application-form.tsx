@@ -35,11 +35,10 @@ import type { FunctionReturnType } from "convex/server";
 import { CalendarDays, LoaderCircle, ShieldCheck, UserRound } from "lucide-react";
 import { useState } from "react";
 import { z } from "zod";
-import { ProfileConfirmation } from "@/components/admissions/profile-confirmation";
 import { textareaClass } from "@/components/form-controls";
 import { FormRow } from "@/components/job-listing-order/form-row";
-
 import type { InitialApplication, Period } from "./application";
+import { ProfileConfirmation } from "./profile-confirmation";
 
 const applicationSchema = z.object({
 	about: z.string().trim().min(10, "Skriv minst 10 tegn."),

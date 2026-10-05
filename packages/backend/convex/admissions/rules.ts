@@ -6,7 +6,6 @@ import type { Doc, Id } from "../_generated/dataModel";
 export const MAX_APPLICATIONS = 200;
 export const MAX_INTERVIEWERS = 30;
 export const MAX_ROUNDS = 20;
-export const MAX_OUTBOX_ATTEMPTS = 8;
 export const DAY_MS = 24 * 60 * 60 * 1000;
 
 export type PeriodWindowInput = Pick<

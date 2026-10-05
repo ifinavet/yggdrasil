@@ -1,5 +1,7 @@
 import type { WithoutSystemFields } from "convex/server";
 import type { Doc, Id } from "../convex/_generated/dataModel";
+import type { Operation } from "../convex/admissions/workflow";
+import { firstOperation } from "./admissions-workflow";
 import type { TestBackend } from "./fixtures";
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -86,15 +88,10 @@ export async function insertInternalGroup(t: TestBackend, name = "Bedrift") {
 	});
 }
 
-export async function firstAdmissionOutboxJob(
+export async function firstAdmissionOperation(
 	t: TestBackend,
 	periodId: Id<"admissionPeriods">,
-	kind: Doc<"admissionOutbox">["kind"],
+	kind: Operation["kind"],
 ) {
-	return await t.run((ctx) =>
-		ctx.db
-			.query("admissionOutbox")
-			.withIndex("by_periodId_and_kind", (q) => q.eq("periodId", periodId).eq("kind", kind))
-			.first(),
-	);
+	return t.run((ctx) => firstOperation(ctx, periodId, kind));
 }

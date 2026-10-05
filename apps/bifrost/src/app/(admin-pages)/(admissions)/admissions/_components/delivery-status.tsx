@@ -1,13 +1,18 @@
 "use client";
 import { api } from "@workspace/backend/convex/api";
-import type { Doc } from "@workspace/backend/convex/dataModel";
+import type { FunctionReturnType } from "convex/server";
+
+type Job = NonNullable<
+	FunctionReturnType<typeof api.admissions.queries.adminOverview>
+>["jobs"][number];
+
 import { convexErrorMessage } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
 import { Callout } from "@workspace/ui/components/products/callout";
 import { useMutation } from "convex/react";
 import { useState } from "react";
 
-const jobLabels: Record<Doc<"admissionOutbox">["kind"], string> = {
+const jobLabels: Record<Job["kind"], string> = {
 	publish: "Intervjuinvitasjon",
 	send_decision: "Svar på søknad",
 	cancel_interview: "Avlysning",
@@ -21,21 +26,17 @@ const jobLabels: Record<Doc<"admissionOutbox">["kind"], string> = {
 
 export function DeliveryStatus({
 	jobs,
-	truncated,
 	closing,
 }: Readonly<{
-	jobs: Doc<"admissionOutbox">[];
-	truncated: boolean;
+	jobs: Job[];
 	closing: boolean;
 }>) {
-	const retry = useMutation(api.admissions.recovery.retryOutbox);
+	const retry = useMutation(api.admissions.workflow.retry);
 	const [retrying, setRetrying] = useState<string | null>(null);
 	const [error, setError] = useState("");
 	const failures = jobs.filter((job) => job.state === "failed");
-	const active = jobs.filter(
-		(job) =>
-			job.state === "running" || (job.state === "pending" && job.nextAttemptAt <= Date.now()),
-	);
+	const active = jobs.filter((job) => job.state === "inProgress" && job.dueAt <= Date.now());
+
 	async function retryJob(idempotencyKey: string) {
 		setRetrying(idempotencyKey);
 		setError("");
@@ -68,10 +69,10 @@ export function DeliveryStatus({
 					action={
 						<Button
 							variant="outline"
-							disabled={retrying !== null || Boolean(job.workflowId)}
+							disabled={retrying !== null}
 							onClick={() => void retryJob(job.idempotencyKey)}
 						>
-							{job.workflowId ? "Prøver automatisk igjen" : "Prøv igjen"}
+							Prøv igjen
 						</Button>
 					}
 				>
@@ -79,12 +80,6 @@ export function DeliveryStatus({
 					<p>{job.lastError ?? "Handlingen feilet. Prøv igjen eller følg opp manuelt."}</p>
 				</Callout>
 			))}
-			{truncated && (
-				<Callout tone="warning">
-					Det er flere ventende handlinger enn det som vises her. Listen oppdateres etter hvert som
-					de behandles.
-				</Callout>
-			)}
 		</>
 	);
 }

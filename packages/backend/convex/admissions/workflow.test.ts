@@ -1,20 +1,23 @@
 import { getStatus } from "@convex-dev/workflow";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { periodFields } from "../../test/admissions-fixtures";
-import { insertUser, setup } from "../../test/fixtures";
-import { components } from "../_generated/api";
-import { purgeBatch, queueOutbox } from "./lifecycle";
+import { allOperations } from "../../test/admissions-workflow";
+import { asUser, grantRole, insertUser, setup } from "../../test/fixtures";
+import { api, components } from "../_generated/api";
+import { purgeBatch } from "./lifecycle";
+import { readOperation, startDelivery } from "./workflow";
 
-const archive = vi.hoisted(() => vi.fn());
+const { archive, channel } = vi.hoisted(() => ({ archive: vi.fn(), channel: vi.fn() }));
 vi.mock("./delivery/slack", () => ({
 	admissionsSlack: () => ({}),
 	archiveAdmissionsChannel: archive,
-	ensureAdmissionsChannel: vi.fn(),
+	ensureAdmissionsChannel: channel,
 	postAdmissionsNotice: vi.fn(),
 }));
 beforeEach(() => {
 	vi.useFakeTimers();
 	archive.mockReset();
+	channel.mockReset();
 });
 afterEach(() => {
 	vi.useRealTimers();
@@ -28,12 +31,12 @@ it("retries provider failures through Workflow then removes completed workflow s
 	);
 	archive.mockRejectedValueOnce(new Error("Temporary Slack outage")).mockResolvedValue(undefined);
 	const jobId = await t.run((ctx) =>
-		queueOutbox(ctx, {
+		startDelivery(ctx, {
 			periodId,
 			kind: "archive_channel",
 			revision: 1,
 			idempotencyKey: "workflow-retry",
-			nextAttemptAt: Date.now(),
+			dueAt: Date.now(),
 		}),
 	);
 	const job = await t.run((ctx) => ctx.db.get(jobId));
@@ -43,7 +46,7 @@ it("retries provider failures through Workflow then removes completed workflow s
 	expect(archive).toHaveBeenCalledTimes(2);
 	await expect(t.run((ctx) => getStatus(ctx, components.workflow, workflowId))).rejects.toThrow();
 	expect(await t.run((ctx) => ctx.db.get(periodId))).toBeNull();
-	expect(await t.run((ctx) => ctx.db.query("admissionOutbox").collect())).toEqual([]);
+	expect(await t.run((ctx) => allOperations(ctx))).toEqual([]);
 });
 
 it("exhausts provider retries and alerts before deleting closing data", async () => {
@@ -54,12 +57,12 @@ it("exhausts provider retries and alerts before deleting closing data", async ()
 	);
 	archive.mockRejectedValue(new Error("Slack unavailable"));
 	await t.run((ctx) =>
-		queueOutbox(ctx, {
+		startDelivery(ctx, {
 			periodId,
 			kind: "archive_channel",
 			revision: 1,
 			idempotencyKey: "workflow-exhausted",
-			nextAttemptAt: Date.now(),
+			dueAt: Date.now(),
 		}),
 	);
 	await t.finishAllScheduledFunctions(() => vi.runAllTimers());
@@ -77,12 +80,12 @@ it("cancels future deliveries and removes their workflow storage when purging a 
 		ctx.db.insert("admissionPeriods", periodFields(admin._id, { status: "closing" })),
 	);
 	const jobId = await t.run((ctx) =>
-		queueOutbox(ctx, {
+		startDelivery(ctx, {
 			periodId,
 			kind: "archive_channel",
 			revision: 1,
 			idempotencyKey: "future-cancelled",
-			nextAttemptAt: Date.now() + 86400000,
+			dueAt: Date.now() + 86400000,
 		}),
 	);
 	const job = await t.run((ctx) => ctx.db.get(jobId));
@@ -93,4 +96,50 @@ it("cancels future deliveries and removes their workflow storage when purging a 
 	expect(archive).not.toHaveBeenCalled();
 	expect(await t.run((ctx) => ctx.db.get(periodId))).toBeNull();
 	await expect(t.run((ctx) => getStatus(ctx, components.workflow, workflowId))).rejects.toThrow();
+});
+
+it("restarts a failed native workflow once and retains successful idempotency", async () => {
+	const { t } = await setup();
+	const admin = await insertUser(t, "admin@example.test");
+	await grantRole(t, admin._id, "admin");
+	const periodId = await t.run((ctx) => ctx.db.insert("admissionPeriods", periodFields(admin._id)));
+	const operation = {
+		kind: "sync_channel" as const,
+		periodId,
+		revision: 1,
+		idempotencyKey: "native-restart",
+		dueAt: Date.now(),
+	};
+	channel.mockRejectedValue(new Error("Slack temporarily unavailable"));
+	const refId = await t.run((ctx) => startDelivery(ctx, operation));
+	await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+	const ref = await t.run((ctx) => ctx.db.get(refId));
+	if (!ref) throw new Error("Missing workflow reference");
+	expect(await t.run((ctx) => readOperation(ctx, ref))).toMatchObject({ state: "failed" });
+	expect(channel).toHaveBeenCalledTimes(8);
+	channel.mockResolvedValue("C-admissions");
+	const authenticated = asUser(t, admin);
+	expect(
+		await authenticated.mutation(api.admissions.workflow.retry, {
+			idempotencyKey: operation.idempotencyKey,
+		}),
+	).toEqual({ queued: true });
+	expect(
+		await authenticated.mutation(api.admissions.workflow.retry, {
+			idempotencyKey: operation.idempotencyKey,
+		}),
+	).toEqual({ queued: false });
+	await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+	expect(channel).toHaveBeenCalledTimes(9);
+	expect(await t.run((ctx) => readOperation(ctx, ref))).toMatchObject({
+		state: "success",
+		workflowId: ref.workflowId,
+	});
+	expect(await t.run((ctx) => startDelivery(ctx, operation))).toBe(refId);
+	expect(
+		await authenticated.mutation(api.admissions.workflow.retry, {
+			idempotencyKey: operation.idempotencyKey,
+		}),
+	).toEqual({ queued: false });
+	expect(await t.run((ctx) => allOperations(ctx))).toHaveLength(1);
 });

@@ -9,7 +9,6 @@ import AdmissionsReminderEmail from "@workspace/emails/admissions-reminder-email
 import { roomUrl } from "@workspace/shared/admissions";
 import { huginUrl } from "@workspace/shared/constants/hugin-url";
 import { formatOsloDate } from "@workspace/shared/time";
-import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { type ActionCtx, internalAction } from "../_generated/server";
@@ -25,6 +24,8 @@ import {
 	postAdmissionsNotice,
 	type Slack,
 } from "./delivery/slack";
+import { operationValidator } from "./schema";
+import type { Operation } from "./workflow";
 
 const ADMISSIONS_URL = `${huginUrl()}/admissions`;
 const MINUTE = 60_000;
@@ -33,8 +34,8 @@ function when(startAt: number) {
 	return formatOsloDate(startAt, "EEEE d. MMMM yyyy, HH:mm");
 }
 
-async function current(ctx: ActionCtx, idempotencyKey: string) {
-	return await ctx.runQuery(internal.admissions.internal.outboxIsCurrent, { idempotencyKey });
+async function current(ctx: ActionCtx, operation: Operation) {
+	return ctx.runQuery(internal.admissions.internal.operationIsCurrent, { operation });
 }
 
 async function admissionsChannel(
@@ -53,7 +54,7 @@ async function admissionsChannel(
 }
 
 async function requireCurrentPublish(ctx: ActionCtx, claimed: CurrentClaim) {
-	if (await current(ctx, claimed.job.idempotencyKey)) return;
+	if (await current(ctx, claimed.job)) return;
 	await queueLatePublishCleanup(ctx, claimed);
 	throw new StaleAdmissionJob();
 }
@@ -79,7 +80,7 @@ async function deliverEmail(
 	if (!application || !applicant) throw new Error("Fant ikke søknaden eller søkeren.");
 	const html = await render(template);
 	if (job.kind === "publish") await requireCurrentPublish(ctx, claimed);
-	else if (!(await current(ctx, job.idempotencyKey))) throw new StaleAdmissionJob();
+	else if (!(await current(ctx, job))) throw new StaleAdmissionJob();
 	const emailId = await sendAdmissionEmail(ctx, {
 		to: applicant.email,
 		subject,
@@ -117,7 +118,7 @@ function interviewEmailProps(claimed: CurrentClaim) {
 	};
 }
 
-type ClaimedOutbox = NonNullable<Awaited<ReturnType<typeof claim>>>;
+type ClaimedOutbox = NonNullable<Awaited<ReturnType<typeof context>>>;
 type CurrentClaim = Omit<ClaimedOutbox, "period"> & { period: Doc<"admissionPeriods"> };
 
 function googleConfigOrThrow() {
@@ -210,7 +211,7 @@ async function publish(ctx: ActionCtx, claimed: CurrentClaim) {
 	const contacts = interviewContacts(claimed);
 	await assertScheduleAvailable(claimed, contacts);
 
-	if (!(await current(ctx, job.idempotencyKey))) throw new StaleAdmissionJob();
+	if (!(await current(ctx, job))) throw new StaleAdmissionJob();
 	const owner = contacts[0];
 	if (!owner) throw new Error("Fant ingen kalenderansvarlig for intervjuet.");
 	const eventId =
@@ -246,7 +247,7 @@ async function publish(ctx: ActionCtx, claimed: CurrentClaim) {
 				event,
 			);
 		} catch (error) {
-			if (!(await current(ctx, job.idempotencyKey))) await queueLatePublishCleanup(ctx, claimed);
+			if (!(await current(ctx, job))) await queueLatePublishCleanup(ctx, claimed);
 			throw error;
 		}
 	}
@@ -336,7 +337,7 @@ async function cancelCalendarEvent(ctx: ActionCtx, claimed: CurrentClaim) {
 	if (!interview || isLocalDevelopment()) return;
 	const owner = interviewers.find((person) => person.userId === interview.interviewerIds[0]);
 	if (!owner) throw new Error("Fant ikke kalenderansvarlig for avlysningen.");
-	if (!(await current(ctx, job.idempotencyKey))) throw new StaleAdmissionJob();
+	if (!(await current(ctx, job))) throw new StaleAdmissionJob();
 	const config = googleConfigOrThrow();
 	if (!isWorkspaceEmail(owner.email, config.domain))
 		throw new Error("Intervjueren mangler en Navet Workspace-konto for kalenderdelegering.");
@@ -349,14 +350,14 @@ async function cancelCalendarEvent(ctx: ActionCtx, claimed: CurrentClaim) {
 		event.extendedProperties?.shared?.navetAdmissionsInterviewId !== interview._id
 	)
 		throw new Error("Kalenderhendelsen mangler opptakets eierskapsmetadata; den ble ikke slettet.");
-	if (!(await current(ctx, job.idempotencyKey))) throw new StaleAdmissionJob();
+	if (!(await current(ctx, job))) throw new StaleAdmissionJob();
 	await client.cancelEvent("primary", eventId);
 }
 
 async function sendCancellationEmail(ctx: ActionCtx, claimed: CurrentClaim) {
 	const { period, interview, applicant, application, job } = claimed;
 	if (!interview || !applicant || !application) throw new StaleAdmissionJob();
-	if (!(await current(ctx, job.idempotencyKey))) throw new StaleAdmissionJob();
+	if (!(await current(ctx, job))) throw new StaleAdmissionJob();
 	const key = `admission:interview:${interview._id}:${interview.revision}:cancelled`;
 	return deliverEmail(
 		ctx,
@@ -391,19 +392,19 @@ async function sendNotice(
 	key = claimed.job.idempotencyKey,
 ) {
 	if (isLocalDevelopment()) return;
-	if (!(await current(ctx, claimed.job.idempotencyKey))) throw new StaleAdmissionJob();
+	if (!(await current(ctx, claimed.job))) throw new StaleAdmissionJob();
 	const slack = admissionsSlack();
 	const channel = await admissionsChannel(ctx, slack, claimed.period, claimed.selectedInterviewers);
 	await postAdmissionsNotice(
 		slack,
 		channel,
 		key,
-		claimed.interview?._creationTime ?? claimed.job.createdAt,
+		claimed.interview?._creationTime ?? claimed.period._creationTime,
 		message,
 	);
 }
 
-async function runJob(ctx: ActionCtx, claimed: CurrentClaim, key: string) {
+async function runJob(ctx: ActionCtx, claimed: CurrentClaim) {
 	switch (claimed.job.kind) {
 		case "publish":
 			return publish(ctx, claimed);
@@ -424,7 +425,7 @@ async function runJob(ctx: ActionCtx, claimed: CurrentClaim, key: string) {
 			return {};
 		case "archive_channel":
 			if (!isLocalDevelopment()) {
-				if (!(await current(ctx, key))) throw new StaleAdmissionJob();
+				if (!(await current(ctx, claimed.job))) throw new StaleAdmissionJob();
 				await archiveAdmissionsChannel(admissionsSlack(), claimed.period);
 			}
 			return {};
@@ -438,7 +439,7 @@ async function runJob(ctx: ActionCtx, claimed: CurrentClaim, key: string) {
 			return {};
 		case "sync_channel":
 			if (!isLocalDevelopment()) {
-				if (!(await current(ctx, key))) throw new StaleAdmissionJob();
+				if (!(await current(ctx, claimed.job))) throw new StaleAdmissionJob();
 				await admissionsChannel(
 					ctx,
 					admissionsSlack(),
@@ -450,51 +451,21 @@ async function runJob(ctx: ActionCtx, claimed: CurrentClaim, key: string) {
 	}
 }
 
-async function complete(
-	ctx: ActionCtx,
-	idempotencyKey: string,
-	result?: { calendarEventId?: string; deliveryIds?: string[] },
-) {
-	await ctx.runMutation(internal.admissions.internal.completeOutbox, {
-		idempotencyKey,
-		...(result ? { result } : {}),
-	});
-}
-
-async function fail(ctx: ActionCtx, idempotencyKey: string, error: unknown) {
-	await ctx.runMutation(internal.admissions.internal.failOutbox, {
-		idempotencyKey,
-		error:
-			error instanceof Error
-				? error.message.slice(0, 500)
-				: "Admissions provider operation failed.",
-		nextAttemptAt: Date.now(),
-	});
-}
-
-async function process(ctx: ActionCtx, idempotencyKey: string) {
-	const claimed = await claim(ctx, idempotencyKey);
-	if (!claimed) return;
-	if (!claimed.period) {
-		await complete(ctx, idempotencyKey);
-		return;
-	}
-	try {
-		const result = await runJob(ctx, claimed as CurrentClaim, idempotencyKey);
-		await complete(ctx, idempotencyKey, result);
-	} catch (error) {
-		if (error instanceof StaleAdmissionJob) return await complete(ctx, idempotencyKey);
-		await fail(ctx, idempotencyKey, error);
-		throw error;
-	}
-}
-
 class StaleAdmissionJob extends Error {}
 
-const claim = (ctx: ActionCtx, idempotencyKey: string) =>
-	ctx.runMutation(internal.admissions.internal.claimOutbox, { idempotencyKey });
+const context = (ctx: ActionCtx, operation: Operation) =>
+	ctx.runQuery(internal.admissions.internal.deliveryContext, { operation });
 
-export const processOutbox = internalAction({
-	args: { idempotencyKey: v.string() },
-	handler: (ctx, { idempotencyKey }) => process(ctx, idempotencyKey),
+export const execute = internalAction({
+	args: { operation: operationValidator },
+	handler: async (ctx, { operation }) => {
+		const claimed = await context(ctx, operation);
+		if (!claimed?.period) return;
+		try {
+			const result = await runJob(ctx, claimed as CurrentClaim);
+			await ctx.runMutation(internal.admissions.internal.completeDelivery, { operation, result });
+		} catch (error) {
+			if (!(error instanceof StaleAdmissionJob)) throw error;
+		}
+	},
 });

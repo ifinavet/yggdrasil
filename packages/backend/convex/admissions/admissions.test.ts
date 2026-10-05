@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { insertInternalGroup } from "../../test/admissions-fixtures";
+import { allOperations, finishOperation } from "../../test/admissions-workflow";
 import { asUser, grantRole, insertStudent, insertUser, setup } from "../../test/fixtures";
-import { api, internal } from "../_generated/api";
+import { api } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
+import { listOperations } from "./workflow";
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -258,7 +260,7 @@ it("keeps an accepted decision separate from sending and makes send idempotent",
 		expectedRevision: decision.revision,
 		idempotencyKey: key,
 	});
-	await expect(t.run((ctx) => ctx.db.query("admissionOutbox").collect())).resolves.toHaveLength(1);
+	await expect(t.run((ctx) => allOperations(ctx))).resolves.toHaveLength(1);
 });
 
 it("provisions only after an authenticated applicant accepts an offer; decline grants no access", async () => {
@@ -297,8 +299,8 @@ it("provisions only after an authenticated applicant accepts an offer; decline g
 		}),
 	).rejects.toThrow(/tilbud/i);
 	const firstKey = `offer:${candidate._id}`;
-	await t.mutation(internal.admissions.internal.claimOutbox, { idempotencyKey: firstKey });
-	await t.mutation(internal.admissions.internal.completeOutbox, { idempotencyKey: firstKey });
+
+	await finishOperation(t, firstKey);
 	await submitAnswers(t, otherStudent, periodId, {
 		about: "Om",
 		motivation: "Hvorfor",
@@ -322,8 +324,8 @@ it("provisions only after an authenticated applicant accepts an offer; decline g
 		expectedRevision: declinedDecision.revision,
 		idempotencyKey: secondKey,
 	});
-	await t.mutation(internal.admissions.internal.claimOutbox, { idempotencyKey: secondKey });
-	await t.mutation(internal.admissions.internal.completeOutbox, { idempotencyKey: secondKey });
+
+	await finishOperation(t, secondKey);
 	const otherPending = await otherStudent.query(api.admissions.queries.myApplication, { periodId });
 	await otherStudent.mutation(api.admissions.mutations.respondToOffer, {
 		periodId,
@@ -333,11 +335,9 @@ it("provisions only after an authenticated applicant accepts an offer; decline g
 	await expect(t.run((ctx) => ctx.db.query("memberAccounts").collect())).resolves.toHaveLength(0);
 	await expect(
 		t.run((ctx) =>
-			ctx.db
-				.query("admissionOutbox")
-				.withIndex("by_periodId", (q) => q.eq("periodId", periodId))
-				.collect()
-				.then((jobs) => jobs.filter((job) => job.kind === "offer_declined")),
+			listOperations(ctx, periodId).then((jobs) =>
+				jobs.filter((job) => job.kind === "offer_declined"),
+			),
 		),
 	).resolves.toHaveLength(1);
 	const self = await student.query(api.admissions.queries.myApplication, { periodId });
@@ -384,8 +384,8 @@ it("hides conflicting member identities when accepted-offer onboarding fails", a
 		expectedRevision: decision.revision,
 		idempotencyKey: offerKey,
 	});
-	await t.mutation(internal.admissions.internal.claimOutbox, { idempotencyKey: offerKey });
-	await t.mutation(internal.admissions.internal.completeOutbox, { idempotencyKey: offerKey });
+
+	await finishOperation(t, offerKey);
 	await t.run((ctx) =>
 		ctx.db.insert("memberAccounts", {
 			workspaceEmail: "private-member@ifinavet.no",
@@ -488,12 +488,8 @@ it("purges sensitive history and applicant identity on close", async () => {
 		periodId,
 		idempotencyKey: "close:test",
 	});
-	await t.mutation(internal.admissions.internal.claimOutbox, {
-		idempotencyKey: "close:test:archive",
-	});
-	await t.mutation(internal.admissions.internal.completeOutbox, {
-		idempotencyKey: "close:test:archive",
-	});
+
+	await finishOperation(t, `close-archive:${periodId}`);
 	await expect(
 		student.query(api.admissions.queries.myApplication, { periodId }),
 	).resolves.toBeNull();

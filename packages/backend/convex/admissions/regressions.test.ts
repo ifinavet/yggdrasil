@@ -2,11 +2,18 @@ import { localWindow } from "@workspace/shared/time";
 import { afterEach, expect, it, vi } from "vitest";
 import {
 	applicationFields,
-	firstAdmissionOutboxJob,
+	firstAdmissionOperation,
 	insertInternalGroup,
 	interviewFields,
 	periodFields,
 } from "../../test/admissions-fixtures";
+import {
+	finishOperation,
+	firstOperation,
+	operationArgs,
+	operationByKey,
+	stageOperation,
+} from "../../test/admissions-workflow";
 import {
 	asUser,
 	grantRole,
@@ -17,6 +24,7 @@ import {
 } from "../../test/fixtures";
 import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
+import { listOperations } from "./workflow";
 
 const DAY = 86400000;
 const MINUTE = 60000;
@@ -195,29 +203,27 @@ it("keeps a published interview reminder current after unrelated period settings
 	);
 	await t.run(async (ctx) => {
 		await ctx.db.patch(periodId, { status: "published" });
-		await ctx.db.insert("admissionOutbox", {
+		await stageOperation(ctx, {
 			kind: "remind_1d",
 			periodId,
 			applicationId,
 			interviewId,
 			revision: 4,
 			idempotencyKey: "reminder-current",
-			state: "pending",
-			attempts: 0,
-			nextAttemptAt: now,
-			createdAt: now,
+			state: "inProgress",
+			dueAt: now,
 		});
 	});
-	await t.mutation(internal.admissions.internal.claimOutbox, {
-		idempotencyKey: "reminder-current",
-	});
+
 	await admin.mutation(api.admissions.board.updateSettings, {
 		periodId,
 		expectedRevision: 1,
 		settings: { room: "Alfa" },
 	});
 	await expect(
-		t.query(internal.admissions.internal.outboxIsCurrent, { idempotencyKey: "reminder-current" }),
+		t.query(internal.admissions.internal.operationIsCurrent, {
+			operation: await operationArgs(t, "reminder-current"),
+		}),
 	).resolves.toBe(true);
 });
 
@@ -253,12 +259,7 @@ it("cleans future and past calendar events on close without sending cancellation
 		idempotencyKey: "close-regression",
 		force: true,
 	});
-	const cancellations = await t.run((ctx) =>
-		ctx.db
-			.query("admissionOutbox")
-			.withIndex("by_periodId", (q) => q.eq("periodId", periodId))
-			.collect(),
-	);
+	const cancellations = await t.run((ctx) => listOperations(ctx, periodId));
 	expect(cancellations.filter((job) => job.kind === "cancel_interview")).toHaveLength(2);
 	const cancellationNotices = cancellations
 		.filter((job) => job.kind === "cancel_interview")
@@ -281,17 +282,15 @@ it("closes an in-flight publish with calendar cleanup without notifying the appl
 		),
 	);
 	await t.run((ctx) =>
-		ctx.db.insert("admissionOutbox", {
+		stageOperation(ctx, {
 			kind: "publish",
 			periodId,
 			applicationId,
 			interviewId,
 			revision: 1,
 			idempotencyKey: "publish-in-flight-close",
-			state: "running",
-			attempts: 1,
-			nextAttemptAt: now + DAY,
-			createdAt: now,
+			state: "inProgress",
+			dueAt: now + DAY,
 		}),
 	);
 	await admin.mutation(api.admissions.mutations.closePeriod, {
@@ -300,27 +299,16 @@ it("closes an in-flight publish with calendar cleanup without notifying the appl
 		force: true,
 	});
 	const cleanup = await t.run((ctx) =>
-		ctx.db
-			.query("admissionOutbox")
-			.withIndex("by_idempotencyKey", (q) =>
-				q.eq("idempotencyKey", `close-in-flight-publish:cancel:${interviewId}`),
-			)
-			.unique(),
+		operationByKey(ctx, `close-in-flight-publish:cancel:${interviewId}`),
 	);
 	expect(cleanup).toMatchObject({ kind: "cancel_interview", notifyApplicant: false });
-	await t.mutation(internal.admissions.internal.claimOutbox, {
-		idempotencyKey: cleanup?.idempotencyKey ?? "",
-	});
-	await t.mutation(internal.admissions.internal.completeOutbox, {
-		idempotencyKey: cleanup?.idempotencyKey ?? "",
-	});
-	expect(await firstAdmissionOutboxJob(t, periodId, "archive_channel")).toBeNull();
-	await t.mutation(internal.admissions.internal.completeOutbox, {
-		idempotencyKey: "publish-in-flight-close",
-	});
-	expect(await firstAdmissionOutboxJob(t, periodId, "archive_channel")).toMatchObject({
+
+	await finishOperation(t, cleanup?.idempotencyKey ?? "");
+	expect(await firstAdmissionOperation(t, periodId, "archive_channel")).toBeNull();
+	await finishOperation(t, "publish-in-flight-close");
+	expect(await firstAdmissionOperation(t, periodId, "archive_channel")).toMatchObject({
 		kind: "archive_channel",
-		state: "pending",
+		state: "inProgress",
 	});
 });
 
@@ -357,29 +345,20 @@ it("retention cleanup cancels an in-flight publish even before an event id is sa
 				interviewerIds: [interviewer._id, otherInterviewer._id],
 			}),
 		);
-		await ctx.db.insert("admissionOutbox", {
+		await stageOperation(ctx, {
 			kind: "publish",
 			periodId: id,
 			applicationId,
 			interviewId,
 			revision: 1,
 			idempotencyKey: "retention-publish-in-flight",
-			state: "pending",
-			attempts: 0,
-			nextAttemptAt: now,
-			createdAt: now,
+			state: "inProgress",
+			dueAt: now,
 		});
 		return id;
 	});
 	await t.mutation(internal.admissions.internal.closeExpiredPeriod, { periodId });
-	const cleanup = await t.run((ctx) =>
-		ctx.db
-			.query("admissionOutbox")
-			.withIndex("by_periodId_and_kind", (q) =>
-				q.eq("periodId", periodId).eq("kind", "cancel_interview"),
-			)
-			.first(),
-	);
+	const cleanup = await t.run((ctx) => firstOperation(ctx, periodId, "cancel_interview"));
 	expect(cleanup).toMatchObject({ kind: "cancel_interview", notifyApplicant: false });
 });
 
@@ -406,44 +385,31 @@ it("archives only after cancellation cleanup and purges only after archive succe
 	});
 	const cancellationKey = `close-after-cancel:cancel:${interviewId}`;
 	expect(await t.run((ctx) => ctx.db.get(applicationId))).not.toBeNull();
-	await t.mutation(internal.admissions.internal.claimOutbox, { idempotencyKey: cancellationKey });
-	await t.mutation(internal.admissions.internal.completeOutbox, {
-		idempotencyKey: cancellationKey,
-	});
-	const jobs = await t.run((ctx) =>
-		ctx.db
-			.query("admissionOutbox")
-			.withIndex("by_periodId", (q) => q.eq("periodId", periodId))
-			.collect(),
-	);
+
+	await finishOperation(t, cancellationKey);
+	const jobs = await t.run((ctx) => listOperations(ctx, periodId));
 	const archive = jobs.find((job) => job.kind === "archive_channel");
 	expect(archive).toBeDefined();
 	expect(await t.run((ctx) => ctx.db.get(applicationId))).not.toBeNull();
 	if (!archive) throw new Error("Archive job was not queued");
-	await t.mutation(internal.admissions.internal.claimOutbox, {
-		idempotencyKey: archive.idempotencyKey,
-	});
-	await t.mutation(internal.admissions.internal.completeOutbox, {
-		idempotencyKey: archive.idempotencyKey,
-	});
+
+	await finishOperation(t, archive.idempotencyKey);
 	expect(await t.run((ctx) => ctx.db.get(periodId))).toBeNull();
 	expect(await t.run((ctx) => ctx.db.get(applicationId))).toBeNull();
 });
 
-it("finds pending cleanup beyond 200 completed outbox rows and purges in bounded batches", async () => {
+it("finds pending cleanup beyond 200 completed workflows and purges in bounded batches", async () => {
 	const { t, admin, interviewer, otherInterviewer, now, periodId, applicationId } =
 		await periodApplicationFixture();
 	const interviewId = await t.run(async (ctx) => {
 		for (let index = 0; index < 205; index++)
-			await ctx.db.insert("admissionOutbox", {
+			await stageOperation(ctx, {
 				kind: "publish",
 				periodId,
 				revision: index,
 				idempotencyKey: `finished-history-${index}`,
-				state: "done",
-				attempts: 1,
-				nextAttemptAt: now,
-				createdAt: now + index,
+				state: "success",
+				dueAt: now,
 			});
 		const id = await ctx.db.insert(
 			"admissionInterviews",
@@ -458,6 +424,8 @@ it("finds pending cleanup beyond 200 completed outbox rows and purges in bounded
 		);
 		return id;
 	});
+	expect(await t.run((ctx) => listOperations(ctx, periodId, true))).toEqual([]);
+
 	await admin.mutation(api.admissions.mutations.closePeriod, {
 		periodId,
 		idempotencyKey: "close-many-history",
@@ -465,32 +433,18 @@ it("finds pending cleanup beyond 200 completed outbox rows and purges in bounded
 	});
 	const cancellationKey = `close-many-history:cancel:${interviewId}`;
 	const archiveBeforeCancellation = await t.run((ctx) =>
-		ctx.db
-			.query("admissionOutbox")
-			.withIndex("by_idempotencyKey", (q) => q.eq("idempotencyKey", `close-archive:${periodId}`))
-			.unique(),
+		operationByKey(ctx, `close-archive:${periodId}`),
 	);
 	expect(archiveBeforeCancellation).toBeNull();
 	expect(await t.run((ctx) => ctx.db.get(applicationId))).not.toBeNull();
-	await t.mutation(internal.admissions.internal.claimOutbox, { idempotencyKey: cancellationKey });
-	await t.mutation(internal.admissions.internal.completeOutbox, {
-		idempotencyKey: cancellationKey,
-	});
-	const archive = await t.run((ctx) =>
-		ctx.db
-			.query("admissionOutbox")
-			.withIndex("by_idempotencyKey", (q) => q.eq("idempotencyKey", `close-archive:${periodId}`))
-			.unique(),
-	);
+
+	await finishOperation(t, cancellationKey);
+	const archive = await t.run((ctx) => operationByKey(ctx, `close-archive:${periodId}`));
 	expect(archive?.kind).toBe("archive_channel");
 	expect(await t.run((ctx) => ctx.db.get(applicationId))).not.toBeNull();
 	if (!archive) throw new Error("Archive job was not queued");
-	await t.mutation(internal.admissions.internal.claimOutbox, {
-		idempotencyKey: archive.idempotencyKey,
-	});
-	await t.mutation(internal.admissions.internal.completeOutbox, {
-		idempotencyKey: archive.idempotencyKey,
-	});
+
+	await finishOperation(t, archive.idempotencyKey);
 	expect(await t.run((ctx) => ctx.db.get(periodId))).not.toBeNull();
 	for (let batch = 0; batch < 5; batch++) {
 		if (!(await t.run((ctx) => ctx.db.get(periodId)))) break;
@@ -498,7 +452,7 @@ it("finds pending cleanup beyond 200 completed outbox rows and purges in bounded
 	}
 	expect(await t.run((ctx) => ctx.db.get(periodId))).toBeNull();
 	expect(await t.run((ctx) => ctx.db.get(applicationId))).toBeNull();
-});
+}, 20_000);
 
 it("waits for retention calendar cleanup before queueing the archive job", async () => {
 	const { t, interviewer, otherInterviewer, now, periodId, applicationId } =
@@ -518,38 +472,18 @@ it("waits for retention calendar cleanup before queueing the archive job", async
 	);
 	await t.mutation(internal.admissions.internal.closeExpiredPeriod, { periodId });
 	const archiveKey = `close-archive:${periodId}`;
-	const archiveBeforeCancel = await t.run((ctx) =>
-		ctx.db
-			.query("admissionOutbox")
-			.withIndex("by_idempotencyKey", (q) => q.eq("idempotencyKey", archiveKey))
-			.unique(),
-	);
+	const archiveBeforeCancel = await t.run((ctx) => operationByKey(ctx, archiveKey));
 	expect(archiveBeforeCancel).toBeNull();
-	const cancelJob = await t.run((ctx) =>
-		ctx.db
-			.query("admissionOutbox")
-			.withIndex("by_periodId_and_kind", (q) =>
-				q.eq("periodId", periodId).eq("kind", "cancel_interview"),
-			)
-			.first(),
-	);
-	expect(cancelJob).toMatchObject({ interviewId, state: "pending", notifyApplicant: true });
+	const cancelJob = await t.run((ctx) => firstOperation(ctx, periodId, "cancel_interview"));
+	expect(cancelJob).toMatchObject({ interviewId, state: "inProgress", notifyApplicant: true });
 	expect(await t.run((ctx) => ctx.db.get(applicationId))).not.toBeNull();
 	if (!cancelJob) throw new Error("Calendar cleanup job was not queued");
-	await t.mutation(internal.admissions.internal.claimOutbox, {
-		idempotencyKey: cancelJob.idempotencyKey,
+
+	await finishOperation(t, cancelJob.idempotencyKey);
+	expect(await t.run((ctx) => operationByKey(ctx, archiveKey))).toMatchObject({
+		kind: "archive_channel",
+		state: "inProgress",
 	});
-	await t.mutation(internal.admissions.internal.completeOutbox, {
-		idempotencyKey: cancelJob.idempotencyKey,
-	});
-	expect(
-		await t.run((ctx) =>
-			ctx.db
-				.query("admissionOutbox")
-				.withIndex("by_idempotencyKey", (q) => q.eq("idempotencyKey", archiveKey))
-				.unique(),
-		),
-	).toMatchObject({ kind: "archive_channel", state: "pending" });
 });
 
 it("requires exactly two interviewers in both manual and generated schedules", async () => {
@@ -799,10 +733,7 @@ it("allows admins to cancel published applicant interviews and preserves notice 
 	await value.admin.mutation(api.admissions.mutations.cancelInterviewByBoard, args);
 	const result = await value.t.run(async (ctx) => ({
 		interview: await ctx.db.get(interviewId),
-		job: await ctx.db
-			.query("admissionOutbox")
-			.withIndex("by_idempotencyKey", (q) => q.eq("idempotencyKey", args.idempotencyKey))
-			.unique(),
+		job: await operationByKey(ctx, args.idempotencyKey),
 	}));
 	expect(result.interview?.status).toBe("cancelled");
 	expect(result.job?.notifyApplicant).toBe(true);
@@ -1077,24 +1008,18 @@ it("schedules offer expiration when an accepted decision email is delivered", as
 			),
 		);
 		await value.t.run((ctx) =>
-			ctx.db.insert("admissionOutbox", {
+			stageOperation(ctx, {
 				kind: "send_decision",
 				periodId,
 				applicationId,
 				revision: 3,
 				idempotencyKey: "decision-expiry-test",
-				state: "pending",
-				attempts: 0,
-				nextAttemptAt: now,
-				createdAt: now,
+				state: "inProgress",
+				dueAt: now,
 			}),
 		);
-		await value.t.mutation(internal.admissions.internal.claimOutbox, {
-			idempotencyKey: "decision-expiry-test",
-		});
-		await value.t.mutation(internal.admissions.internal.completeOutbox, {
-			idempotencyKey: "decision-expiry-test",
-		});
+
+		await finishOperation(value.t, "decision-expiry-test");
 		expect(await value.t.run((ctx) => ctx.db.get(applicationId))).toMatchObject({
 			offerStatus: "pending",
 			offerDeadline: now + 1_000,

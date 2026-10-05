@@ -1,5 +1,6 @@
 import { expect, it } from "vitest";
 import { applicationFields, interviewFields, periodFields } from "../../test/admissions-fixtures";
+import { allOperations } from "../../test/admissions-workflow";
 import { insertUser, setup } from "../../test/fixtures";
 import { internal } from "../_generated/api";
 
@@ -49,7 +50,7 @@ it("compensates for a late publish after board cancellation and notifies if its 
 		interviewId,
 		publishedRevision: 1,
 	});
-	const jobs = await t.run((ctx) => ctx.db.query("admissionOutbox").collect());
+	const jobs = await t.run((ctx) => allOperations(ctx));
 	expect(jobs).toHaveLength(1);
 	expect(jobs[0]).toMatchObject({
 		kind: "cancel_interview",
@@ -58,7 +59,7 @@ it("compensates for a late publish after board cancellation and notifies if its 
 		interviewId,
 		revision: 2,
 		notifyApplicant: true,
-		state: "pending",
+		state: "inProgress",
 	});
 });
 
@@ -70,7 +71,7 @@ it("does not notify after open-period cancellation when no invite was delivered"
 		interviewId,
 		publishedRevision: 1,
 	});
-	const jobs = await t.run((ctx) => ctx.db.query("admissionOutbox").collect());
+	const jobs = await t.run((ctx) => allOperations(ctx));
 	expect(jobs).toHaveLength(1);
 	expect(jobs[0]?.notifyApplicant).toBe(false);
 });

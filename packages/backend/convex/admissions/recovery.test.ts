@@ -1,7 +1,8 @@
 import { expect, it } from "vitest";
 import { applicationFields, periodFields } from "../../test/admissions-fixtures";
+import { allOperations, finishOperation, stageOperation } from "../../test/admissions-workflow";
 import { asUser, grantRole, insertUser, setup } from "../../test/fixtures";
-import { api, internal } from "../_generated/api";
+import { api } from "../_generated/api";
 
 async function recoveryFixture() {
 	const { t } = await setup();
@@ -23,11 +24,11 @@ async function recoveryFixture() {
 	return { t, admin: asUser(t, admin), periodId };
 }
 
-function outboxJob(
+function operationFixture(
 	periodId: Awaited<ReturnType<typeof recoveryFixture>>["periodId"],
 	idempotencyKey: string,
-	state: "pending" | "running" | "failed" | "done",
-	nextAttemptAt: number,
+	state: "inProgress" | "failed" | "success",
+	dueAt: number,
 ) {
 	return {
 		kind: "archive_channel" as const,
@@ -35,9 +36,8 @@ function outboxJob(
 		revision: 0,
 		idempotencyKey,
 		state,
-		attempts: 1,
-		nextAttemptAt,
-		createdAt: Date.now(),
+
+		dueAt,
 	};
 }
 
@@ -45,48 +45,40 @@ it("lets admins retry terminal failures without starting concurrent workers", as
 	const { t, admin, periodId } = await recoveryFixture();
 	const now = Date.now();
 	await t.run(async (ctx) => {
-		await ctx.db.insert("admissionOutbox", outboxJob(periodId, "failed-job", "failed", now));
-		await ctx.db.insert(
-			"admissionOutbox",
-			outboxJob(periodId, "expired-running", "running", now - 1),
+		await stageOperation(ctx, operationFixture(periodId, "failed-job", "failed", now));
+		await stageOperation(ctx, operationFixture(periodId, "expired-running", "inProgress", now - 1));
+		await stageOperation(
+			ctx,
+			operationFixture(periodId, "active-running", "inProgress", now + 60000),
 		);
-		await ctx.db.insert(
-			"admissionOutbox",
-			outboxJob(periodId, "active-running", "running", now + 60000),
-		);
-		await ctx.db.insert("admissionOutbox", outboxJob(periodId, "done-job", "done", now));
+		await stageOperation(ctx, operationFixture(periodId, "done-job", "success", now));
 	});
 	await expect(
-		admin.mutation(api.admissions.recovery.retryOutbox, { idempotencyKey: "failed-job" }),
+		admin.mutation(api.admissions.workflow.retry, { idempotencyKey: "failed-job" }),
 	).resolves.toMatchObject({ queued: true });
 	await expect(
-		admin.mutation(api.admissions.recovery.retryOutbox, { idempotencyKey: "expired-running" }),
-	).resolves.toMatchObject({ queued: false, reason: "running" });
+		admin.mutation(api.admissions.workflow.retry, { idempotencyKey: "expired-running" }),
+	).resolves.toMatchObject({ queued: false });
 	await expect(
-		admin.mutation(api.admissions.recovery.retryOutbox, { idempotencyKey: "active-running" }),
-	).resolves.toMatchObject({ queued: false, reason: "running" });
+		admin.mutation(api.admissions.workflow.retry, { idempotencyKey: "active-running" }),
+	).resolves.toMatchObject({ queued: false });
 	await expect(
-		admin.mutation(api.admissions.recovery.retryOutbox, { idempotencyKey: "done-job" }),
-	).resolves.toMatchObject({ queued: false, reason: "done" });
-	const jobs = await t.run((ctx) => ctx.db.query("admissionOutbox").collect());
-	expect(jobs.filter((job) => job.state === "pending")).toHaveLength(1);
-	expect(jobs.find((job) => job.idempotencyKey === "failed-job")?.attempts).toBe(0);
+		admin.mutation(api.admissions.workflow.retry, { idempotencyKey: "done-job" }),
+	).resolves.toMatchObject({ queued: false });
+	const jobs = await t.run((ctx) => allOperations(ctx));
+	expect(jobs.filter((job) => job.state === "inProgress")).toHaveLength(3);
+	expect(jobs.find((job) => job.idempotencyKey === "failed-job")?.state).toBe("inProgress");
 });
 
 it("alerts #system and purges closing data after cleanup exhausts its retries", async () => {
 	const { t, periodId } = await recoveryFixture();
 	await t.run(async (ctx) => {
 		await ctx.db.patch(periodId, { status: "closing" });
-		await ctx.db.insert("admissionOutbox", {
-			...outboxJob(periodId, "archive-exhausted", "running", Date.now()),
-			attempts: 8,
+		await stageOperation(ctx, {
+			...operationFixture(periodId, "archive-exhausted", "inProgress", Date.now()),
 		});
 	});
-	await t.mutation(internal.admissions.internal.failOutbox, {
-		idempotencyKey: "archive-exhausted",
-		error: "Slack unavailable",
-		nextAttemptAt: Date.now() + 60_000,
-	});
+	await finishOperation(t, "archive-exhausted", "Slack unavailable");
 	const period = await t.run((ctx) => ctx.db.get(periodId));
 	const alerts = await t.run((ctx) => ctx.db.query("slackSystemDeliveries").collect());
 	expect(period).toBeNull();
@@ -114,24 +106,18 @@ it("alerts before closing when the declined-offer notice exhausts retries", asyn
 				sent: true,
 			}),
 		);
-		await ctx.db.insert("admissionOutbox", {
+		await stageOperation(ctx, {
 			kind: "offer_declined",
 			periodId,
 			applicationId,
 			revision: 3,
 			idempotencyKey: "decline-exhausted",
-			state: "running",
-			attempts: 8,
-			nextAttemptAt: Date.now() + 60_000,
-			createdAt: Date.now(),
+			state: "inProgress",
+			dueAt: Date.now() + 60_000,
 		});
 		return applicationId;
 	});
-	await t.mutation(internal.admissions.internal.failOutbox, {
-		idempotencyKey: "decline-exhausted",
-		error: "Slack unavailable",
-		nextAttemptAt: Date.now() + 60_000,
-	});
+	await finishOperation(t, "decline-exhausted", "Slack unavailable");
 	const alerts = await t.run((ctx) => ctx.db.query("slackSystemDeliveries").collect());
 	expect(alerts).toHaveLength(1);
 	expect(alerts[0]?.text).toContain("Admissions integration retry limit reached");
@@ -147,25 +133,21 @@ it("finds an actionable failure beyond old completed history in the admin overvi
 	const { t, admin, periodId } = await recoveryFixture();
 	await t.run(async (ctx) => {
 		for (let index = 0; index < 205; index++)
-			await ctx.db.insert("admissionOutbox", outboxJob(periodId, `done-${index}`, "done", 0));
-		await ctx.db.insert(
-			"admissionOutbox",
-			outboxJob(periodId, "later-failure", "failed", Date.now()),
-		);
+			await stageOperation(ctx, operationFixture(periodId, `done-${index}`, "success", 0));
+		await stageOperation(ctx, operationFixture(periodId, "later-failure", "failed", Date.now()));
 	});
 	const overview = await admin.query(api.admissions.queries.adminOverview, { periodId });
 	expect(overview?.jobs.map(({ idempotencyKey }) => idempotencyKey)).toContain("later-failure");
-	expect(overview?.jobsTruncated).toEqual({ pending: false, running: false, failed: false });
-});
+}, 20_000);
 
 it("keeps retry controls admin-only", async () => {
 	const { t, periodId } = await recoveryFixture();
 	const student = await insertUser(t, "student@uio.no");
 	await t.run((ctx) =>
-		ctx.db.insert("admissionOutbox", outboxJob(periodId, "private-job", "failed", Date.now())),
+		stageOperation(ctx, operationFixture(periodId, "private-job", "failed", Date.now())),
 	);
 	await expect(
-		asUser(t, student).mutation(api.admissions.recovery.retryOutbox, {
+		asUser(t, student).mutation(api.admissions.workflow.retry, {
 			idempotencyKey: "private-job",
 		}),
 	).rejects.toThrow(/Unauthorized/);

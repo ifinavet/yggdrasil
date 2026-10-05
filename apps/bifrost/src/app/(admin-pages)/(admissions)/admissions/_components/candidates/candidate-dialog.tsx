@@ -27,7 +27,7 @@ import {
 	type Interviewer,
 	roomUrl,
 	type Settings,
-} from "./model";
+} from "../model";
 
 export function CandidateDialog({
 	candidate,

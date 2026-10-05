@@ -1,4 +1,3 @@
-import { cancel } from "@convex-dev/workflow";
 import {
 	ADMISSION_SCHEDULING_DEFAULTS,
 	ADMISSION_UNSURE_GROUP,
@@ -12,7 +11,9 @@ import type { Doc, Id } from "../_generated/dataModel";
 import { type MutationCtx, mutation } from "../_generated/server";
 import { adminRoles, requireRole } from "../auth/accessRights";
 import { getCurrentUserOrThrow } from "../auth/currentUser";
+import { workflow } from "../lib/workflow";
 import { requireLocal } from "../products/localSeed";
+import { startDelivery } from "./workflow";
 
 const DAY = 24 * 60 * 60 * 1000;
 const seedPrefix = "seed-admissions-";
@@ -174,12 +175,13 @@ async function clearAdmissions(ctx: MutationCtx) {
 	await Promise.all(interviews.map((item) => ctx.db.delete(item._id)));
 	const applications = await ctx.db.query("admissionApplications").take(1000);
 	await Promise.all(applications.map((item) => ctx.db.delete(item._id)));
-	const jobs = await ctx.db.query("admissionOutbox").take(1000);
+	const jobs = await ctx.db.query("admissionWorkflows").take(1000);
 	await Promise.all(
 		jobs.map(async (item) => {
-			if (item.workflowId && item.state !== "done")
-				await cancel(ctx, components.workflow, item.workflowId);
 			await ctx.db.delete(item._id);
+			if ((await workflow.status(ctx, item.workflowId)).type === "inProgress")
+				await workflow.cancel(ctx, item.workflowId);
+			else await workflow.cleanup(ctx, item.workflowId);
 		}),
 	);
 	const periods = await ctx.db.query("admissionPeriods").take(10);
@@ -361,21 +363,30 @@ async function seedPublishedInterview(
 	});
 	if (!failedDelivery) return;
 	await Promise.all(
-		(["remind_3d", "remind_1d"] as const).map((kind) =>
-			ctx.db.insert("admissionOutbox", {
+		(["remind_3d", "remind_1d"] as const).map(async (kind) => {
+			const id = await startDelivery(ctx, {
 				periodId,
 				applicationId,
 				interviewId,
 				kind,
 				revision: 1,
 				idempotencyKey: `local-failed-${kind}-${interviewId}`,
-				state: "failed",
-				attempts: 8,
-				nextAttemptAt: now,
-				createdAt: now,
-				lastError: "E-posttjenesten svarte ikke. Prøv igjen eller følg opp manuelt.",
-			}),
-		),
+				dueAt: now,
+			});
+			const ref = await ctx.db.get(id);
+			if (!ref) throw new Error("Missing workflow");
+			const { workflow: run } = await ctx.runQuery(components.workflow.workflow.getStatus, {
+				workflowId: ref.workflowId,
+			});
+			await ctx.runMutation(components.workflow.workflow.complete, {
+				workflowId: ref.workflowId,
+				generationNumber: run.generationNumber,
+				runResult: {
+					kind: "failed",
+					error: "E-posttjenesten svarte ikke. Prøv igjen eller følg opp manuelt.",
+				},
+			});
+		}),
 	);
 }
 

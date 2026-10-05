@@ -1,5 +1,6 @@
 import { expect, it } from "vitest";
 import { applicationFields, interviewFields, periodFields } from "../../test/admissions-fixtures";
+import { stageOperation } from "../../test/admissions-workflow";
 import { grantRole, insertUser, setup } from "../../test/fixtures";
 import { internal } from "../_generated/api";
 
@@ -40,17 +41,15 @@ it("keeps a schedule immutable while its first calendar publish is in flight", a
 		),
 	);
 	await t.run((ctx) =>
-		ctx.db.insert("admissionOutbox", {
+		stageOperation(ctx, {
 			kind: "publish",
 			periodId,
 			applicationId,
 			interviewId,
 			revision: 1,
 			idempotencyKey: `publish:${interviewId}:1`,
-			state: "running",
-			attempts: 1,
-			nextAttemptAt: now + 5 * 60 * 1000,
-			createdAt: now,
+			state: "inProgress",
+			dueAt: now + 5 * 60 * 1000,
 		}),
 	);
 

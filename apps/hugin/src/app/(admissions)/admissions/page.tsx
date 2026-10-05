@@ -3,7 +3,7 @@ import { auth } from "@workspace/auth/server";
 import { api } from "@workspace/backend/convex/api";
 import { OSLO_TIME_ZONE } from "@workspace/shared/time";
 import { fetchQuery } from "convex/nextjs";
-import AdmissionsApplication from "@/components/admissions/application";
+import AdmissionsApplication from "./_components/application";
 
 export const instant = false;
 

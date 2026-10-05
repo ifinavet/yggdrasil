@@ -23,7 +23,7 @@ import {
 	type Interview,
 	type Interviewer,
 	type Settings,
-} from "./model";
+} from "../model";
 export function InterviewCalendar({
 	candidates,
 	interviews,
