@@ -133,6 +133,25 @@ function apiError(error: unknown, action: string): GoogleCalendarError {
 	);
 }
 
+async function pages<T>(
+	load: (pageToken?: string) => Promise<{ data: { items?: T[]; nextPageToken?: string | null } }>,
+	action: string,
+): Promise<T[]> {
+	const items: T[] = [];
+	let pageToken: string | undefined;
+	for (let page = 0; page < MAX_PAGES; page++) {
+		try {
+			const { data } = await load(pageToken);
+			items.push(...(data.items ?? []));
+			pageToken = data.nextPageToken ?? undefined;
+			if (!pageToken) return items;
+		} catch (error) {
+			throw apiError(error, action);
+		}
+	}
+	throw new GoogleCalendarError("Google Calendar returnerte for mange sider.");
+}
+
 export function googleCalendarClient(config: GoogleConfig, subject: string) {
 	const auth = googleAuth(config, subject, googleCalendarScope());
 	const client = calendar({
@@ -142,25 +161,6 @@ export function googleCalendarClient(config: GoogleConfig, subject: string) {
 		timeout: TIMEOUT_MS,
 		fetchImplementation: globalThis.fetch,
 	});
-
-	async function pages<T>(
-		load: (pageToken?: string) => Promise<{ data: { items?: T[]; nextPageToken?: string | null } }>,
-		action: string,
-	): Promise<T[]> {
-		const items: T[] = [];
-		let pageToken: string | undefined;
-		for (let page = 0; page < MAX_PAGES; page++) {
-			try {
-				const { data } = await load(pageToken);
-				items.push(...(data.items ?? []));
-				pageToken = data.nextPageToken ?? undefined;
-				if (!pageToken) return items;
-			} catch (error) {
-				throw apiError(error, action);
-			}
-		}
-		throw new GoogleCalendarError("Google Calendar returnerte for mange sider.");
-	}
 
 	return {
 		async listCalendars(): Promise<Calendar[]> {
