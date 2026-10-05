@@ -118,7 +118,7 @@ describe("production admissions scheduling", () => {
 		];
 		const team = ["a", "b", "c"].map((id) => ({
 			id,
-			calendars: [{ selected: true, readable: true, busy: [] }],
+			busy: [],
 		}));
 		const assignments = matchInterviews(candidates, slots, team);
 		expect(assignments).toHaveLength(2);
@@ -128,21 +128,18 @@ describe("production admissions scheduling", () => {
 		expect(matchInterviews(candidates, slots, team.slice(0, 1))).toEqual([]);
 	});
 
-	it("requires every selected calendar to be readable and free through the buffer", () => {
+	it("excludes unavailable interviewers and respects combined busy time through the buffer", () => {
 		const day = "2027-03-29";
 		const slots = makeSchedulingSlots({ ...settings, breakEvery: 100 }, [day]);
 		const candidates = [{ id: "candidate", availability: [{ day, start: 540, end: 960 }] }];
 		const team = ["a", "b"].map((id) => ({
 			id,
-			calendars: [
-				{ selected: true, readable: true, busy: [{ day, start: 0, end: 600 }] },
-				{ selected: true, readable: false, busy: [] },
-			],
+			busy: null,
 		}));
 		expect(matchInterviews(candidates, slots, team)).toEqual([]);
 		const readable = team.map((person) => ({
 			...person,
-			calendars: person.calendars.slice(0, 1),
+			busy: [{ day, start: 0, end: 600 }],
 		}));
 		const assignments = matchInterviews(candidates, slots, readable);
 		expect(assignments).toHaveLength(1);

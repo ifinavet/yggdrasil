@@ -417,7 +417,7 @@ async function seedPlannedInterviews(db: LocalDatabase, periodId: Id<"admissionP
 		slots,
 		period.interviewers.map(({ userId }) => ({
 			id: userId,
-			calendars: [{ selected: true, readable: true, busy: [] }],
+			busy: [],
 		})),
 	).slice(0, 10);
 	await Promise.all(

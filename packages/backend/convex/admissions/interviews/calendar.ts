@@ -14,7 +14,6 @@ import {
 	minutesToClock,
 	osloDateTimeToEpoch,
 } from "@workspace/shared/time";
-import type { FunctionReturnType } from "convex/server";
 import { v } from "convex/values";
 import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
@@ -79,10 +78,6 @@ export const sources = action({
 	},
 });
 
-type ScheduleContext = NonNullable<
-	FunctionReturnType<typeof internal.admissions.interviews.schedule.scheduleContext>
->;
-
 function busyWindows(intervals: ReadonlyArray<{ start: number; end: number }>, timeZone: string) {
 	return intervals.flatMap((interval) => {
 		const first = localDateAndMinute(interval.start, timeZone);
@@ -93,27 +88,6 @@ function busyWindows(intervals: ReadonlyArray<{ start: number; end: number }>, t
 			end: day === last.day ? last.minute + 1 : 1440,
 		}));
 	});
-}
-
-function publishedCalendarBusy(
-	context: ScheduleContext,
-	interviewerId: Id<"users">,
-	calendarId: string,
-) {
-	return busyWindows(
-		context.existingInterviews
-			.filter(
-				(interview) =>
-					interview.publishedAt !== undefined &&
-					interview.interviewerIds.includes(interviewerId) &&
-					interview.selectedCalendarIds.includes(calendarId),
-			)
-			.map(({ startAt, endAt }) => ({
-				start: startAt,
-				end: endAt + context.period.buffer * 60_000,
-			})),
-		context.period.timezone,
-	);
 }
 
 export const generateSchedule = action({
@@ -139,7 +113,7 @@ export const generateSchedule = action({
 		const team: SchedulingInterviewer[] = await Promise.all(
 			context.interviewers.map(async (person) => {
 				const calendarIds = person.selectedCalendarIds;
-				if (!calendarIds.length) return { id: person.userId, calendars: [] };
+				if (!calendarIds.length) return { id: person.userId, busy: null };
 				const client = googleCalendarClient(config, person.email);
 				const ownedEvents = new Map<string, OwnedAdmissionEvent>(
 					await Promise.all(
@@ -165,16 +139,20 @@ export const generateSchedule = action({
 					new Date(period.interviewEndAt).toISOString(),
 					ownedEvents,
 				);
+				const published = context.existingInterviews
+					.filter(
+						(interview) =>
+							interview.publishedAt !== undefined &&
+							interview.interviewerIds.includes(person.userId) &&
+							interview.selectedCalendarIds.some((id) => calendarIds.includes(id)),
+					)
+					.map(({ startAt, endAt }) => ({
+						start: startAt,
+						end: endAt + period.buffer * 60_000,
+					}));
 				return {
 					id: person.userId,
-					calendars: calendarIds.map((calendarId, index) => ({
-						selected: true,
-						readable: true,
-						busy: [
-							...busyWindows(external[index] ?? [], period.timezone),
-							...publishedCalendarBusy(context, person.userId, calendarId),
-						],
-					})),
+					busy: busyWindows([...external.flat(), ...published], period.timezone),
 				};
 			}),
 		);

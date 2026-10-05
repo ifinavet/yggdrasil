@@ -31,14 +31,9 @@ export type SchedulingSettings = Readonly<{
 	breaks: readonly AvailabilityWindow[];
 }>;
 export type SchedulingSlot = AvailabilityWindow & Readonly<{ id: string; room: string }>;
-export type SchedulingCalendar = Readonly<{
-	selected: boolean;
-	readable: boolean;
-	busy: readonly AvailabilityWindow[];
-}>;
 export type SchedulingInterviewer = Readonly<{
 	id: string;
-	calendars: readonly SchedulingCalendar[];
+	busy: readonly AvailabilityWindow[] | null;
 }>;
 export type SchedulingCandidate = Readonly<{
 	id: string;
@@ -89,13 +84,7 @@ export function makeSchedulingSlots(settings: SchedulingSettings, days: readonly
 }
 
 export function interviewerAvailable(person: SchedulingInterviewer, slot: AvailabilityWindow) {
-	const calendars = person.calendars.filter((calendar) => calendar.selected);
-	return (
-		calendars.length > 0 &&
-		calendars.every(
-			(calendar) => calendar.readable && !calendar.busy.some((busy) => overlaps(busy, slot)),
-		)
-	);
+	return person.busy !== null && !person.busy.some((busy) => overlaps(busy, slot));
 }
 
 export function matchInterviews(
