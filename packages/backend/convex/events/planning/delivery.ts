@@ -8,8 +8,8 @@ import { internalMutation, internalQuery, type MutationCtx } from "../../_genera
 import { isLocalDevelopment } from "../../auth/local";
 import {
 	canUpdateEmailDeliveryStatus,
+	EMAIL_DELIVERY_ERRORS,
 	EMAIL_DELIVERY_EVENT_STATUSES,
-	isEmailDeliveryFailure,
 } from "../../lib/emailDelivery";
 import { trackedEmail } from "../../lib/trackedEmail";
 import { envelopeFingerprint, invitationPreview } from "./helpers";
@@ -161,24 +161,17 @@ export const recordProviderEvent = internalMutation({
 		const status = EMAIL_DELIVERY_EVENT_STATUSES[type];
 		if (!status || email.status === "cancelled") return true;
 		if (!canUpdateEmailDeliveryStatus(email.status, status)) return true;
-		const failed = isEmailDeliveryFailure(status);
-		const messages: Partial<Record<Doc<"eventPlanningEmails">["status"], string>> = {
-			bounced: "Mottakerens server avviste e-posten. Kontroller adressen.",
-			complained: "E-posten ble markert som søppelpost. Følg opp manuelt.",
-			delayed: "Leveringen er forsinket. Sjekk leveringsstatus før ny sending.",
-		};
-		const message =
-			messages[status] ?? "E-posten kunne ikke sendes. Kontroller leveringsoppsettet.";
+		const error = EMAIL_DELIVERY_ERRORS[status];
 		await ctx.db.patch(email._id, {
 			url: undefined,
 			status,
-			...(failed ? { error: message } : { error: undefined }),
+			error,
 			...(status === "sent" ? { sentAt: email.sentAt ?? Date.now() } : {}),
 			...(status === "delivered"
 				? { deliveredAt: Date.now(), sentAt: email.sentAt ?? Date.now() }
 				: {}),
 		});
-		if (failed) await alertFailure(ctx, email, message, status);
+		if (error) await alertFailure(ctx, email, error, status);
 		await notifyInvitationSent(ctx, email, status);
 		return true;
 	},

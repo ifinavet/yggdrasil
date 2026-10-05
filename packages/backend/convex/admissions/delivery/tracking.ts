@@ -2,8 +2,8 @@ import { v } from "convex/values";
 import { internalMutation } from "../../_generated/server";
 import {
 	canUpdateEmailDeliveryStatus,
+	EMAIL_DELIVERY_ERRORS,
 	EMAIL_DELIVERY_EVENT_STATUSES,
-	type EmailDeliveryStatus,
 } from "../../lib/emailDelivery";
 import { startDelivery } from "./workflow";
 
@@ -45,13 +45,6 @@ export const recordQueued = internalMutation({
 	},
 });
 
-const errors: Partial<Record<EmailDeliveryStatus, string>> = {
-	delayed: "E-posten er forsinket. Kontroller leveringsstatus.",
-	bounced: "Mottakerens server avviste e-posten. Kontroller adressen.",
-	complained: "E-posten ble markert som søppelpost. Følg opp manuelt.",
-	failed: "E-posten kunne ikke leveres. Kontroller Resend-oppsettet.",
-};
-
 export const recordProviderEvent = internalMutation({
 	args: { emailId: v.string(), type: v.string() },
 	handler: async (ctx, { emailId, type }) => {
@@ -63,7 +56,7 @@ export const recordProviderEvent = internalMutation({
 			.unique();
 		if (!delivery) return false;
 		if (!canUpdateEmailDeliveryStatus(delivery.status, status)) return true;
-		const error = errors[status];
+		const error = EMAIL_DELIVERY_ERRORS[status];
 		await ctx.db.patch(delivery._id, { status, error });
 		if (error) {
 			await startDelivery(ctx, {
