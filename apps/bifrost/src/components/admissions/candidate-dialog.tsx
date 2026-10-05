@@ -22,7 +22,6 @@ import {
 	dateLabel,
 	decisionLabels,
 	decisions,
-	team as fixtureTeam,
 	type Interview,
 	type Interviewer,
 	roomUrl,
@@ -39,7 +38,7 @@ export function CandidateDialog({
 	onClose,
 	onEdit,
 	onRoomChange,
-	team = fixtureTeam,
+	team,
 	onSaveNotes,
 	onRequestAvailability,
 	actions,
@@ -52,7 +51,7 @@ export function CandidateDialog({
 	onClose: () => void;
 	onEdit: (data: CandidateEdit) => void;
 	onRoomChange: (room: string) => void;
-	team?: Interviewer[];
+	team: Interviewer[];
 	onSaveNotes?: (notes: string) => Promise<void>;
 	onRequestAvailability?: () => void;
 	actions?: ReactNode;

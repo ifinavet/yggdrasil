@@ -10,7 +10,7 @@ import {
 	type SchedulingInterviewer,
 	type SchedulingSlot,
 } from "@workspace/shared/admissions";
-import { osloDateTimeToEpoch } from "@workspace/shared/time";
+import { localDateAndMinute, osloDateTimeToEpoch } from "@workspace/shared/time";
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
@@ -169,24 +169,6 @@ function publishedCalendarBusy(
 			})),
 		context.period.timezone,
 	);
-}
-
-function localDateAndMinute(at: number, timeZone: string) {
-	const parts = new Intl.DateTimeFormat("en-CA", {
-		timeZone,
-		year: "numeric",
-		month: "2-digit",
-		day: "2-digit",
-		hour: "2-digit",
-		minute: "2-digit",
-		hourCycle: "h23",
-	}).formatToParts(at);
-	const value = (type: Intl.DateTimeFormatPartTypes) =>
-		parts.find((part) => part.type === type)?.value ?? "";
-	return {
-		day: `${value("year")}-${value("month")}-${value("day")}`,
-		minute: Number(value("hour")) * 60 + Number(value("minute")),
-	};
 }
 
 function reasonForUnmatched(

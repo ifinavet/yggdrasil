@@ -76,6 +76,16 @@ export function interviewFields(
 	};
 }
 
+export async function insertInternalGroup(t: TestBackend, name = "Bedrift") {
+	return await t.run(async (ctx) => {
+		const existing = await ctx.db
+			.query("internalGroups")
+			.withIndex("by_name", (q) => q.eq("name", name))
+			.unique();
+		return existing?._id ?? (await ctx.db.insert("internalGroups", { name, description: "" }));
+	});
+}
+
 export async function firstAdmissionOutboxJob(
 	t: TestBackend,
 	periodId: Id<"admissionPeriods">,

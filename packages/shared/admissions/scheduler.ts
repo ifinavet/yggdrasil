@@ -1,8 +1,19 @@
-import { type AvailabilityWindow, isAvailable } from "./availability";
+import { coversWindow, localDateAndMinute, weekdaysBetween } from "../time";
+import type { AvailabilityWindow } from "./availability";
 
 export const LUNCH_START_MINUTE = 12 * 60;
 export const LUNCH_END_MINUTE = 12 * 60 + 30;
 export const MIN_INTERVIEW_NOTICE_MS = 48 * 60 * 60 * 1000;
+export const ADMISSION_SCHEDULING_DEFAULTS = {
+	duration: 15,
+	buffer: 5,
+	breakEvery: 3,
+	breakMinutes: 15,
+	lunch: true,
+	room: "Beta",
+	dayStart: 9 * 60,
+	dayEnd: 16 * 60,
+} as const;
 
 export function overlapsLunch(window: AvailabilityWindow) {
 	return window.start < LUNCH_END_MINUTE && window.end > LUNCH_START_MINUTE;
@@ -40,30 +51,11 @@ export type SchedulingAssignment = Readonly<{
 }>;
 
 function localDay(at: number, timeZone: string) {
-	const parts = new Intl.DateTimeFormat("en-CA", {
-		timeZone,
-		year: "numeric",
-		month: "2-digit",
-		day: "2-digit",
-	}).formatToParts(at);
-	const part = (kind: Intl.DateTimeFormatPartTypes) =>
-		parts.find(({ type }) => type === kind)?.value ?? "";
-	return `${part("year")}-${part("month")}-${part("day")}`;
+	return localDateAndMinute(at, timeZone).day;
 }
 
 export function makeSchedulingDays(startAt: number, endAt: number, timeZone: string) {
-	const first = localDay(startAt, timeZone).split("-").map(Number);
-	const last = localDay(endAt, timeZone).split("-").map(Number);
-	const [firstYear = 0, firstMonth = 1, firstDay = 1] = first;
-	const [lastYear = 0, lastMonth = 1, lastDay = 1] = last;
-	const date = new Date(Date.UTC(firstYear, firstMonth - 1, firstDay));
-	const lastDate = Date.UTC(lastYear, lastMonth - 1, lastDay);
-	const days: string[] = [];
-	while (date.getTime() <= lastDate) {
-		if (date.getUTCDay() >= 1 && date.getUTCDay() <= 5) days.push(date.toISOString().slice(0, 10));
-		date.setUTCDate(date.getUTCDate() + 1);
-	}
-	return days;
+	return weekdaysBetween(localDay(startAt, timeZone), localDay(endAt, timeZone), timeZone);
 }
 
 export function makeSchedulingSlots(settings: SchedulingSettings, days: readonly string[]) {
@@ -121,7 +113,7 @@ export function matchInterviews(
 	const loads = new Map<string, number>();
 	const occupied = new Set<string>();
 	const eligible = (candidate: SchedulingCandidate, slot: SchedulingSlot) =>
-		isAvailable(candidate.availability, slot) &&
+		coversWindow(candidate.availability, slot) &&
 		team.filter((person) => interviewerAvailable(person, slot)).length >= 2;
 	const sorted = [...candidates].sort(
 		(a, b) =>

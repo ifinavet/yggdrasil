@@ -1,6 +1,7 @@
 "use client";
 import { useForm } from "@tanstack/react-form";
-import { ADMISSION_GROUPS } from "@workspace/shared/admissions";
+import { api } from "@workspace/backend/convex/api";
+import type { Id } from "@workspace/backend/convex/dataModel";
 import { convexErrorMessage } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@workspace/ui/components/dialog";
@@ -13,6 +14,8 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@workspace/ui/components/select";
+import { useQuery } from "convex/react";
+import Link from "next/link";
 import { useState } from "react";
 
 export function OfferDialog({
@@ -23,21 +26,27 @@ export function OfferDialog({
 	onClose,
 }: Readonly<{
 	name: string;
-	initialGroup: string;
+	initialGroup?: Id<"internalGroups">;
 	initialEmail: string;
-	onSave: (group: string, email: string) => Promise<void>;
+	onSave: (group: Id<"internalGroups">, email: string) => Promise<void>;
 	onClose: () => void;
 }>) {
 	const [error, setError] = useState("");
+	const groups = useQuery(api.admissions.queries.availableGroups, {});
 	const form = useForm({
 		defaultValues: {
-			group: initialGroup === "Usikker ennå" ? "" : initialGroup,
+			group: initialGroup ?? "",
 			email: initialEmail,
 		},
 		onSubmit: async ({ value }) => {
 			setError("");
 			try {
-				await onSave(value.group, value.email);
+				const selected = groups?.find((group) => group._id === value.group);
+				if (!selected) {
+					setError("Velg en arbeidsgruppe.");
+					return;
+				}
+				await onSave(selected._id, value.email);
 				onClose();
 			} catch (cause) {
 				setError(convexErrorMessage(cause, "Kunne ikke lagre tilbudet."));
@@ -71,14 +80,18 @@ export function OfferDialog({
 						{(field) => (
 							<Field>
 								<FieldLabel htmlFor="offer-group">Arbeidsgruppe</FieldLabel>
-								<Select value={field.state.value} onValueChange={field.handleChange}>
+								<Select
+									value={field.state.value}
+									onValueChange={field.handleChange}
+									disabled={!groups?.length}
+								>
 									<SelectTrigger id="offer-group">
 										<SelectValue placeholder="Velg arbeidsgruppe" />
 									</SelectTrigger>
 									<SelectContent>
-										{ADMISSION_GROUPS.filter((group) => group !== "Usikker ennå").map((group) => (
-											<SelectItem key={group} value={group}>
-												{group}
+										{groups?.map((group) => (
+											<SelectItem key={group._id} value={group._id}>
+												{group.name}
 											</SelectItem>
 										))}
 									</SelectContent>
@@ -86,6 +99,11 @@ export function OfferDialog({
 							</Field>
 						)}
 					</form.Field>
+					{groups?.length === 0 && (
+						<Link href="/organization" className="text-primary underline">
+							Legg til en arbeidsgruppe
+						</Link>
+					)}
 					<form.Field name="email">
 						{(field) => (
 							<Field>
@@ -100,7 +118,11 @@ export function OfferDialog({
 							</Field>
 						)}
 					</form.Field>
-					<form.Subscribe selector={(state) => state.isSubmitting}>
+					<form.Subscribe
+						selector={(state) =>
+							state.isSubmitting || !groups?.some((group) => group._id === state.values.group)
+						}
+					>
 						{(submitting) => (
 							<Button type="submit" disabled={submitting}>
 								Lagre tilbud

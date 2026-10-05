@@ -10,11 +10,12 @@ export const organizationSchema = {
 		rank: v.optional(v.number()),
 	})
 		.index("by_position", ["position"])
-		.index("by_userId", ["userId"]),
+		.index("by_userId", ["userId"])
+		.index("by_group", ["group"]),
 
 	internalGroups: defineTable({
 		name: v.string(),
 		description: v.string(),
 		leader: v.optional(v.id("users")),
-	}),
+	}).index("by_name", ["name"]),
 };

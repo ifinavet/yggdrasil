@@ -12,8 +12,10 @@ import type * as admissions_access from "../admissions/access.js";
 import type * as admissions_actions from "../admissions/actions.js";
 import type * as admissions_board from "../admissions/board.js";
 import type * as admissions_calendar from "../admissions/calendar.js";
+import type * as admissions_channelNames from "../admissions/channelNames.js";
 import type * as admissions_compensation from "../admissions/compensation.js";
 import type * as admissions_delivery from "../admissions/delivery.js";
+import type * as admissions_delivery_eventId from "../admissions/delivery/eventId.js";
 import type * as admissions_delivery_mail from "../admissions/delivery/mail.js";
 import type * as admissions_delivery_slack from "../admissions/delivery/slack.js";
 import type * as admissions_internal from "../admissions/internal.js";
@@ -178,6 +180,7 @@ import type * as semesterPlanning_semesters_queries from "../semesterPlanning/se
 import type * as users_clerk_http from "../users/clerk/http.js";
 import type * as users_clerk_mutations from "../users/clerk/mutations.js";
 import type * as users_clerk_queries from "../users/clerk/queries.js";
+import type * as users_organization_groups from "../users/organization/groups.js";
 import type * as users_organization_mutations from "../users/organization/mutations.js";
 import type * as users_organization_queries from "../users/organization/queries.js";
 import type * as users_students_migrations from "../users/students/migrations.js";
@@ -195,8 +198,10 @@ declare const fullApi: ApiFromModules<{
   "admissions/actions": typeof admissions_actions;
   "admissions/board": typeof admissions_board;
   "admissions/calendar": typeof admissions_calendar;
+  "admissions/channelNames": typeof admissions_channelNames;
   "admissions/compensation": typeof admissions_compensation;
   "admissions/delivery": typeof admissions_delivery;
+  "admissions/delivery/eventId": typeof admissions_delivery_eventId;
   "admissions/delivery/mail": typeof admissions_delivery_mail;
   "admissions/delivery/slack": typeof admissions_delivery_slack;
   "admissions/internal": typeof admissions_internal;
@@ -361,6 +366,7 @@ declare const fullApi: ApiFromModules<{
   "users/clerk/http": typeof users_clerk_http;
   "users/clerk/mutations": typeof users_clerk_mutations;
   "users/clerk/queries": typeof users_clerk_queries;
+  "users/organization/groups": typeof users_organization_groups;
   "users/organization/mutations": typeof users_organization_mutations;
   "users/organization/queries": typeof users_organization_queries;
   "users/students/migrations": typeof users_students_migrations;

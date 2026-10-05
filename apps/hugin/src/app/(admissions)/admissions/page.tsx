@@ -1,12 +1,9 @@
 import { getAuthToken } from "@workspace/auth";
-import { isLocalDevelopment } from "@workspace/auth/local";
 import { auth } from "@workspace/auth/server";
 import { api } from "@workspace/backend/convex/api";
 import { OSLO_TIME_ZONE } from "@workspace/shared/time";
 import { fetchQuery } from "convex/nextjs";
-import { notFound } from "next/navigation";
-import ApplicationPreview from "./application-preview";
-import AdmissionsJourney from "./journey";
+import AdmissionsJourney from "@/components/admissions/journey";
 
 export const instant = false;
 
@@ -25,23 +22,7 @@ function closedPeriodPage(now: number) {
 	);
 }
 
-function renderPreview(preview: string) {
-	if (!isLocalDevelopment) notFound();
-	const now = Date.now();
-	const open =
-		now >= Date.parse("2026-10-01T00:00:00+02:00") && now < Date.parse("2026-10-12T00:00:00+02:00");
-	if ((!open && preview !== "open") || preview === "closed") return closedPeriodPage(now);
-	return <ApplicationPreview />;
-}
-
-export default async function Page({
-	searchParams,
-}: Readonly<{
-	searchParams: Promise<{ preview?: string }>;
-}>) {
-	const { preview } = await searchParams;
-	if (preview) return renderPreview(preview);
-
+export default async function Page() {
 	const { userId, redirectToSignIn } = await auth();
 	if (!userId) return redirectToSignIn();
 

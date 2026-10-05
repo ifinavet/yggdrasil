@@ -1,11 +1,11 @@
 import {
-	ADMISSION_GROUPS,
-	isAvailable,
+	ADMISSION_SCHEDULING_DEFAULTS,
+	ADMISSION_UNSURE_GROUP,
 	isValidAvailability,
-	localWindow,
 	MIN_INTERVIEW_NOTICE_MS,
 	overlapsLunch,
 } from "@workspace/shared/admissions";
+import { coversWindow, localWindow } from "@workspace/shared/time";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
@@ -27,20 +27,23 @@ import {
 	validatePeriodWindow,
 	validateSettings,
 } from "./rules";
-import { availabilityWindow, decisionValue, interviewerSelection } from "./schema";
+import {
+	admissionGroupChoice,
+	availabilityWindow,
+	decisionValue,
+	interviewerSelection,
+} from "./schema";
 
 const CONSENT_VERSION = "admissions-2026-01";
-const defaultSettings = {
-	duration: 15,
-	buffer: 5,
-	breakEvery: 3,
-	breakMinutes: 15,
-	lunch: true,
-	room: "Beta",
-	dayStart: 540,
-	dayEnd: 960,
-};
 const text = (value: string, max: number) => value.trim().length <= max;
+
+async function validateGroupChoice(
+	ctx: MutationCtx,
+	group: Id<"internalGroups"> | typeof ADMISSION_UNSURE_GROUP,
+) {
+	if (group !== ADMISSION_UNSURE_GROUP && !(await ctx.db.get(group)))
+		throw new ConvexError("Velg en arbeidsgruppe som fortsatt finnes.");
+}
 
 function manualInterviewWindow(startAt: number, period: Doc<"admissionPeriods">) {
 	if (
@@ -71,9 +74,45 @@ function assertApplicantAvailable(
 ) {
 	if (
 		app.status !== "submitted" ||
-		(!isAvailable(app.availability, meeting) && !confirmedOutsideForm)
+		(!coversWindow(app.availability, meeting) && !confirmedOutsideForm)
 	)
 		throw new ConvexError("Søkeren er ikke tilgjengelig på dette tidspunktet.");
+}
+
+async function validatePreviousInterviewEdit(
+	ctx: MutationCtx,
+	periodId: Id<"admissionPeriods">,
+	previous: Doc<"admissionInterviews"> | null,
+	desired: {
+		startAt: number;
+		endAt: number;
+		room: string;
+		interviewerIds: Id<"users">[];
+		calendarIds: string[];
+		confirmedOutsideForm?: boolean;
+		confirmPublishedReschedule?: boolean;
+	},
+) {
+	if (!previous) {
+		assertInterviewNotice(desired.startAt);
+		return false;
+	}
+	if ((await activePublishInterviewIds(ctx, periodId)).has(previous._id))
+		throw new ConvexError("Intervjuet publiseres nå. Vent før du endrer planen.");
+	if (previous.status === "cancelled" && !desired.confirmedOutsideForm)
+		throw new ConvexError("Bekreft at søkeren har avtalt et nytt tidspunkt før du booker på nytt.");
+	const sameSchedule =
+		previous.startAt === desired.startAt &&
+		previous.endAt === desired.endAt &&
+		previous.room === desired.room &&
+		previous.interviewerIds.length === desired.interviewerIds.length &&
+		previous.interviewerIds.every((id) => desired.interviewerIds.includes(id)) &&
+		previous.selectedCalendarIds.length === desired.calendarIds.length &&
+		previous.selectedCalendarIds.every((id) => desired.calendarIds.includes(id));
+	if (!sameSchedule || !previous.publishedAt) assertInterviewNotice(desired.startAt);
+	if (previous.publishedAt && !sameSchedule && !desired.confirmPublishedReschedule)
+		throw new ConvexError("Bekreft endring av det publiserte intervjuet før du lagrer.");
+	return sameSchedule;
 }
 
 async function cancelScheduledInterview(
@@ -170,7 +209,12 @@ export const createPeriod = mutation({
 		const creator = await requireRole(ctx, adminRoles);
 		const title = args.title.trim();
 		if (!title || title.length > 100) throw new ConvexError("Gi opptaksperioden et navn.");
-		const fields = { ...defaultSettings, ...args, title, timezone: args.timezone ?? "Europe/Oslo" };
+		const fields = {
+			...ADMISSION_SCHEDULING_DEFAULTS,
+			...args,
+			title,
+			timezone: args.timezone ?? "Europe/Oslo",
+		};
 		validatePeriodWindow(fields);
 		validateSettings(fields);
 		await validateInterviewers(ctx, args.interviewers);
@@ -225,7 +269,7 @@ export const saveDraft = mutation({
 		periodId: v.id("admissionPeriods"),
 		about: v.string(),
 		motivation: v.string(),
-		group: v.string(),
+		group: admissionGroupChoice,
 		availability: v.array(availabilityWindow),
 	},
 	handler: async (ctx, args) => {
@@ -244,13 +288,13 @@ export const saveDraft = mutation({
 			.first();
 		if (!student) throw new ConvexError("Fant ingen studentprofil for brukeren din.");
 		if (
-			!(ADMISSION_GROUPS as readonly string[]).includes(args.group) ||
 			!text(args.about, 5000) ||
 			!args.about.trim() ||
 			!text(args.motivation, 5000) ||
 			!args.motivation.trim()
 		)
 			throw new ConvexError("Fyll ut alle svar med gyldig tekst.");
+		await validateGroupChoice(ctx, args.group);
 		validateAvailability(args.availability, period);
 		const profile = {
 			name: student.name,
@@ -403,7 +447,7 @@ export const setDecision = mutation({
 	args: {
 		applicationId: v.id("admissionApplications"),
 		decision: decisionValue,
-		reviewedGroup: v.optional(v.string()),
+		reviewedGroupId: v.optional(v.id("internalGroups")),
 		reviewedWorkspaceEmail: v.optional(v.string()),
 		expectedRevision: v.number(),
 	},
@@ -422,15 +466,14 @@ export const setDecision = mutation({
 			app.offerStatus === "declined"
 		)
 			throw new ConvexError("Søknaden kan ikke vurderes nå.");
+		let reviewedGroup: string | undefined;
 		if (args.decision === "accepted") {
-			if (!args.reviewedGroup?.trim() || !args.reviewedWorkspaceEmail?.trim())
+			if (!args.reviewedGroupId || !args.reviewedWorkspaceEmail?.trim())
 				throw new ConvexError("Godkjenn gruppe og e-post før du sender et tilbud.");
-			await validateAdmissionOffer(
-				ctx,
-				app.userId,
-				args.reviewedGroup,
-				args.reviewedWorkspaceEmail,
-			);
+			const group = await ctx.db.get(args.reviewedGroupId);
+			if (!group) throw new ConvexError("Den valgte arbeidsgruppen finnes ikke lenger.");
+			reviewedGroup = group.name;
+			await validateAdmissionOffer(ctx, app.userId, reviewedGroup, args.reviewedWorkspaceEmail);
 		}
 		const decisionRevision = app.decisionRevision + 1;
 		const revision = app.revision + 1;
@@ -440,7 +483,8 @@ export const setDecision = mutation({
 			revision,
 			decisionBy: caller._id,
 			decisionAt: Date.now(),
-			reviewedGroup: args.decision === "accepted" ? args.reviewedGroup?.trim() : undefined,
+			reviewedGroup: args.decision === "accepted" ? reviewedGroup : undefined,
+			reviewedGroupId: args.decision === "accepted" ? args.reviewedGroupId : undefined,
 			reviewedWorkspaceEmail:
 				args.decision === "accepted"
 					? args.reviewedWorkspaceEmail?.trim().toLowerCase()
@@ -618,12 +662,6 @@ export const scheduleInterview = mutation({
 			.query("admissionInterviews")
 			.withIndex("by_applicationId", (q) => q.eq("applicationId", app._id))
 			.unique();
-		if (previous && (await activePublishInterviewIds(ctx, period._id)).has(previous._id))
-			throw new ConvexError("Intervjuet publiseres nå. Vent før du endrer planen.");
-		if (previous?.status === "cancelled" && !args.candidateConfirmedOutsideForm)
-			throw new ConvexError(
-				"Bekreft at søkeren har avtalt et nytt tidspunkt før du booker på nytt.",
-			);
 		const room = args.room?.trim() || period.room;
 		const existing = await ctx.db
 			.query("admissionInterviews")
@@ -641,17 +679,15 @@ export const scheduleInterview = mutation({
 			)
 		)
 			throw new ConvexError("En intervjuer eller rommet er allerede opptatt i denne tiden.");
-		const sameSchedule =
-			previous?.startAt === args.startAt &&
-			previous.endAt === args.startAt + period.duration * 60_000 &&
-			previous.room === room &&
-			previous.interviewerIds.length === unique.length &&
-			previous.interviewerIds.every((id) => unique.includes(id)) &&
-			previous.selectedCalendarIds.length === configuredCalendarIds.length &&
-			previous.selectedCalendarIds.every((id) => configuredCalendarIds.includes(id));
-		if (!sameSchedule || !previous?.publishedAt) assertInterviewNotice(args.startAt);
-		if (previous?.publishedAt && !sameSchedule && !args.confirmPublishedReschedule)
-			throw new ConvexError("Bekreft endring av det publiserte intervjuet før du lagrer.");
+		const sameSchedule = await validatePreviousInterviewEdit(ctx, period._id, previous, {
+			startAt: args.startAt,
+			endAt: args.startAt + period.duration * 60_000,
+			room,
+			interviewerIds: unique,
+			calendarIds: configuredCalendarIds,
+			confirmedOutsideForm: args.candidateConfirmedOutsideForm,
+			confirmPublishedReschedule: args.confirmPublishedReschedule,
+		});
 		const fields = {
 			periodId: period._id,
 			applicationId: app._id,

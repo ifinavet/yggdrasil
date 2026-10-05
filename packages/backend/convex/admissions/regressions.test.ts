@@ -3,6 +3,7 @@ import { afterEach, expect, it, vi } from "vitest";
 import {
 	applicationFields,
 	firstAdmissionOutboxJob,
+	insertInternalGroup,
 	interviewFields,
 } from "../../test/admissions-fixtures";
 import {
@@ -1044,6 +1045,7 @@ it("rejects invalid reviewed account details before sending an accepted offer", 
 	process.env.GOOGLE_WORKSPACE_ADMIN_EMAIL = "admin@ifinavet.no";
 	const { t, admin, applicant, interviewer, otherInterviewer } = await fixture();
 	const periodId = await createPeriod(admin, Date.now() - DAY, [interviewer], otherInterviewer);
+	const reviewedGroupId = await insertInternalGroup(t, "Bedrift");
 	const applicationId = await t.run((ctx) =>
 		ctx.db.insert("admissionApplications", applicationFields(periodId, applicant._id)),
 	);
@@ -1051,7 +1053,7 @@ it("rejects invalid reviewed account details before sending an accepted offer", 
 		admin.mutation(api.admissions.mutations.setDecision, {
 			applicationId,
 			decision: "accepted",
-			reviewedGroup: "Bedrift",
+			reviewedGroupId,
 			reviewedWorkspaceEmail: "candidate@wrong-domain.example",
 			expectedRevision: 1,
 		}),

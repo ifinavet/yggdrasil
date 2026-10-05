@@ -12,6 +12,7 @@ export const decisionValue = v.union(
 	v.literal("accepted"),
 	v.literal("rejected"),
 );
+export const admissionGroupChoice = v.union(v.id("internalGroups"), v.literal("unsure"));
 
 const roundSnapshot = v.object({
 	decisions: v.array(
@@ -66,7 +67,7 @@ export const admissionsSchema = {
 		),
 		about: v.optional(v.string()),
 		motivation: v.optional(v.string()),
-		group: v.optional(v.string()),
+		group: v.optional(admissionGroupChoice),
 		availability: v.array(availabilityWindow),
 		consentedAt: v.optional(v.number()),
 		consentVersion: v.optional(v.string()),
@@ -76,6 +77,7 @@ export const admissionsSchema = {
 		notes: v.optional(v.string()),
 		decision: decisionValue,
 		reviewedGroup: v.optional(v.string()),
+		reviewedGroupId: v.optional(v.id("internalGroups")),
 		reviewedWorkspaceEmail: v.optional(v.string()),
 		decisionAt: v.optional(v.number()),
 		decisionBy: v.optional(v.id("users")),
@@ -95,7 +97,9 @@ export const admissionsSchema = {
 	})
 		.index("by_periodId_and_userId", ["periodId", "userId"])
 		.index("by_userId_and_status", ["userId", "status"])
-		.index("by_periodId_and_status", ["periodId", "status"]),
+		.index("by_periodId_and_status", ["periodId", "status"])
+		.index("by_group", ["group"])
+		.index("by_reviewedGroupId", ["reviewedGroupId"]),
 	admissionInterviews: defineTable({
 		periodId: v.id("admissionPeriods"),
 		applicationId: v.id("admissionApplications"),

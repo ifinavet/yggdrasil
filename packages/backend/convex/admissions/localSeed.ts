@@ -1,5 +1,7 @@
-import { ADMISSION_GROUPS } from "@workspace/shared/admissions";
-import { PREVIEW_INTERVIEWER_IMAGES } from "@workspace/shared/admissions/preview";
+import {
+	ADMISSION_SCHEDULING_DEFAULTS,
+	ADMISSION_UNSURE_GROUP,
+} from "@workspace/shared/admissions";
 import { STUDY_PROGRAMS } from "@workspace/shared/constants";
 import { localIdentity } from "@workspace/shared/local";
 import { formatOsloDate, osloDateTimeToEpoch } from "@workspace/shared/time";
@@ -13,6 +15,30 @@ import { requireLocal } from "../products/localSeed";
 
 const DAY = 24 * 60 * 60 * 1000;
 const seedPrefix = "seed-admissions-";
+const seedGroupNames = ["Bedrift", "Web", "Promo", "Intern", "Økonomi"] as const;
+const previewInterviewerImages = Array.from(
+	{ length: 6 },
+	(_, index) => `https://i.pravatar.cc/96?img=${index + 11}`,
+);
+
+async function localAdmissionGroups(ctx: MutationCtx) {
+	const groups = await Promise.all(
+		seedGroupNames.map(async (name) => {
+			const existing = await ctx.db
+				.query("internalGroups")
+				.withIndex("by_name", (q) => q.eq("name", name))
+				.unique();
+			const id =
+				existing?._id ??
+				(await ctx.db.insert("internalGroups", {
+					name,
+					description: `${name} arbeidsgruppe`,
+				}));
+			return [name, id] as const;
+		}),
+	);
+	return new Map(groups);
+}
 
 async function localUser(ctx: MutationCtx, ensureStudentProfile = true) {
 	const existing = await ctx.db
@@ -181,25 +207,26 @@ export const reset = mutation({
 		await requireRole(ctx, adminRoles);
 		await clearAdmissions(ctx);
 		if (scenario === "empty") return null;
+		const groups = await localAdmissionGroups(ctx);
 		const now = Date.now();
 		const applicantId = await localUser(ctx, scenario !== "missing-profile");
 		const secondId = await boardUser(
 			ctx,
 			"Kristin Berg",
 			"kristin.berg@ifinavet.no",
-			PREVIEW_INTERVIEWER_IMAGES[0] ?? "",
+			previewInterviewerImages[0] ?? "",
 		);
 		const thirdId = await boardUser(
 			ctx,
 			"Daniel Holm",
 			"daniel.holm@ifinavet.no",
-			PREVIEW_INTERVIEWER_IMAGES[1] ?? "",
+			previewInterviewerImages[1] ?? "",
 		);
 		await boardUser(
 			ctx,
 			"Aksel Nilsen",
 			"aksel.nilsen@ifinavet.no",
-			PREVIEW_INTERVIEWER_IMAGES[2] ?? "",
+			previewInterviewerImages[2] ?? "",
 		);
 		const admin = await getCurrentUserOrThrow(ctx);
 		const applicationStartAt = now - DAY;
@@ -220,14 +247,7 @@ export const reset = mutation({
 				{ userId: secondId, selectedCalendarIds: ["navet", "timetable"] },
 				{ userId: thirdId, selectedCalendarIds: ["navet", "timetable"] },
 			],
-			duration: 15,
-			buffer: 5,
-			breakEvery: 3,
-			breakMinutes: 15,
-			lunch: true,
-			room: "Beta",
-			dayStart: 540,
-			dayEnd: 960,
+			...ADMISSION_SCHEDULING_DEFAULTS,
 			breaks: [],
 			timezone: "Europe/Oslo",
 			round: 0,
@@ -266,7 +286,7 @@ export const reset = mutation({
 			},
 			about: "Jeg liker å bygge ting sammen med andre studenter.",
 			motivation: "Jeg vil bidra i et godt fagmiljø og lære mer.",
-			group: "Usikker ennå",
+			group: ADMISSION_UNSURE_GROUP,
 			availability: [{ day: ownDay, start: 540, end: 960 }],
 			consentedAt: now - 60_000,
 			consentVersion: "admissions-2026-01",
@@ -275,6 +295,7 @@ export const reset = mutation({
 			decisionRevision: ownDecision === "accepted" ? 1 : 0,
 			decision: ownDecision,
 			reviewedGroup: ownDecision === "accepted" ? "Web" : undefined,
+			reviewedGroupId: ownDecision === "accepted" ? groups.get("Web") : undefined,
 			reviewedWorkspaceEmail: ownDecision === "accepted" ? "developer@ifinavet.no" : undefined,
 			notes: "Local demo note.",
 			decisionBy: ownDecision === "accepted" ? admin._id : undefined,
@@ -297,7 +318,14 @@ export const reset = mutation({
 				now,
 			);
 		}
-		await seedOtherCandidates(ctx, periodId, interviewStartAt, scenario === "decisions", now);
+		await seedOtherCandidates(
+			ctx,
+			periodId,
+			interviewStartAt,
+			scenario === "decisions",
+			now,
+			groups,
+		);
 		return { periodId, applicantId, candidateCount: 31 };
 	},
 });
@@ -351,6 +379,7 @@ async function seedOtherCandidates(
 	interviewStartAt: number,
 	decisions: boolean,
 	now: number,
+	groups: ReadonlyMap<string, Id<"internalGroups">>,
 ) {
 	await Promise.all(
 		Array.from({ length: 30 }, async (_, index) => {
@@ -370,7 +399,7 @@ async function seedOtherCandidates(
 				},
 				about: `${person.firstName} liker å lage digitale løsninger.`,
 				motivation: "Jeg vil bli kjent med flere i Navet.",
-				group: ADMISSION_GROUPS[index % (ADMISSION_GROUPS.length - 1)] ?? "Web",
+				group: groups.get(seedGroupNames[index % seedGroupNames.length] ?? "Web"),
 				availability: index % 7 === 0 ? [] : [{ day, start: 540, end: 960 }],
 				consentedAt: now - 60_000,
 				consentVersion: "admissions-2026-01",

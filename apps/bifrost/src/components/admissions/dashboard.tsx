@@ -41,7 +41,6 @@ import { type Candidate, type Decision, decisionLabels, type Interviewer } from 
 import { OfferDialog } from "./offer-dialog";
 import { SelectionBoard } from "./selection-board";
 import { SettingsDialog } from "./settings-dialog";
-import "./preview.css";
 
 const offerLabels = {
 	none: "",
@@ -498,7 +497,7 @@ export default function AdmissionsDashboard() {
 					return row ? (
 						<OfferDialog
 							name={row.name}
-							initialGroup={row.reviewedGroup ?? row.group ?? ""}
+							initialGroup={row.reviewedGroupId ?? row.groupId}
 							initialEmail={row.reviewedWorkspaceEmail ?? ""}
 							onClose={() => setOfferCandidate(null)}
 							onSave={async (group, email) => {
@@ -506,7 +505,7 @@ export default function AdmissionsDashboard() {
 									applicationId: row._id,
 									expectedRevision: row.revision,
 									decision: "accepted",
-									reviewedGroup: group,
+									reviewedGroupId: group,
 									reviewedWorkspaceEmail: email,
 								});
 								toast.success("Tilbudet er lagret");

@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { insertInternalGroup } from "../../test/admissions-fixtures";
 import { asUser, grantRole, insertStudent, insertUser, setup } from "../../test/fixtures";
 import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
@@ -59,6 +60,7 @@ async function openPeriod(
 }
 
 async function submitAnswers(
+	t: Awaited<ReturnType<typeof setup>>["t"],
 	student: ReturnType<typeof asUser>,
 	periodId: Id<"admissionPeriods">,
 	answers: {
@@ -68,9 +70,14 @@ async function submitAnswers(
 		availability: { day: string; start: number; end: number }[];
 	},
 ) {
+	const group =
+		answers.group === "Usikker ennå" || answers.group === "unsure"
+			? "unsure"
+			: await insertInternalGroup(t, answers.group);
 	const draft = await student.mutation(api.admissions.mutations.saveDraft, {
 		periodId,
 		...answers,
+		group,
 	});
 	await student.mutation(api.admissions.mutations.submit, {
 		periodId,
@@ -97,7 +104,7 @@ it("limits admin data to admins and applicant data to the signed-in student's ow
 		periodId,
 		about: "Om meg",
 		motivation: "Jeg vil bidra",
-		group: "Bedrift",
+		group: await insertInternalGroup(t, "Bedrift"),
 		availability: [
 			{ day: new Date(Date.now() + 3 * DAY).toISOString().slice(0, 10), start: 540, end: 720 },
 		],
@@ -178,7 +185,7 @@ it("validates independent period windows, the 14-day cap, selected interviewers,
 		}),
 	).rejects.toThrow(/14 dager/);
 	const periodId = await openPeriod(admin, boardId, secondBoardId);
-	await submitAnswers(student, periodId, {
+	await submitAnswers(t, student, periodId, {
 		about: "Om meg",
 		motivation: "Motivasjon",
 		group: "Bedrift",
@@ -217,7 +224,7 @@ it("keeps an accepted decision separate from sending and makes send idempotent",
 	const { t } = await setup();
 	const { student, admin, boardId, secondBoardId } = await users(t);
 	const periodId = await openPeriod(admin, boardId, secondBoardId);
-	await submitAnswers(student, periodId, {
+	await submitAnswers(t, student, periodId, {
 		about: "Om meg",
 		motivation: "Motivasjon",
 		group: "Bedrift",
@@ -228,10 +235,11 @@ it("keeps an accepted decision separate from sending and makes send idempotent",
 	const overview = await admin.query(api.admissions.queries.adminOverview, { periodId });
 	const candidate = overview?.candidates[0];
 	if (!candidate) throw new Error("Expected submitted candidate");
+	const reviewedGroupId = await insertInternalGroup(t, "Bedrift");
 	const decision = await admin.mutation(api.admissions.mutations.setDecision, {
 		applicationId: candidate._id,
 		decision: "accepted",
-		reviewedGroup: "Bedrift",
+		reviewedGroupId,
 		reviewedWorkspaceEmail: "new.member@ifinavet.no",
 		expectedRevision: candidate.revision,
 	});
@@ -257,7 +265,7 @@ it("provisions only after an authenticated applicant accepts an offer; decline g
 	const { t } = await setup();
 	const { student, otherStudent, admin, boardId, secondBoardId } = await users(t);
 	const periodId = await openPeriod(admin, boardId, secondBoardId);
-	await submitAnswers(student, periodId, {
+	await submitAnswers(t, student, periodId, {
 		about: "Om",
 		motivation: "Hvorfor",
 		group: "Bedrift",
@@ -266,10 +274,11 @@ it("provisions only after an authenticated applicant accepts an offer; decline g
 	const overview = await admin.query(api.admissions.queries.adminOverview, { periodId });
 	const candidate = overview?.candidates[0];
 	if (!candidate) throw new Error("Expected submitted candidate");
+	const reviewedGroupId = await insertInternalGroup(t, "Bedrift");
 	const decision = await admin.mutation(api.admissions.mutations.setDecision, {
 		applicationId: candidate._id,
 		decision: "accepted",
-		reviewedGroup: "Bedrift",
+		reviewedGroupId,
 		reviewedWorkspaceEmail: "student@ifinavet.no",
 		expectedRevision: candidate.revision,
 	});
@@ -290,7 +299,7 @@ it("provisions only after an authenticated applicant accepts an offer; decline g
 	const firstKey = `offer:${candidate._id}`;
 	await t.mutation(internal.admissions.internal.claimOutbox, { idempotencyKey: firstKey });
 	await t.mutation(internal.admissions.internal.completeOutbox, { idempotencyKey: firstKey });
-	await submitAnswers(otherStudent, periodId, {
+	await submitAnswers(t, otherStudent, periodId, {
 		about: "Om",
 		motivation: "Hvorfor",
 		group: "Web",
@@ -299,10 +308,11 @@ it("provisions only after an authenticated applicant accepts an offer; decline g
 	const latest = await admin.query(api.admissions.queries.adminOverview, { periodId });
 	const second = latest?.candidates.find((item) => item.userId !== candidate.userId);
 	if (!second) throw new Error("Expected second candidate");
+	const reviewedWebGroupId = await insertInternalGroup(t, "Web");
 	const declinedDecision = await admin.mutation(api.admissions.mutations.setDecision, {
 		applicationId: second._id,
 		decision: "accepted",
-		reviewedGroup: "Web",
+		reviewedGroupId: reviewedWebGroupId,
 		reviewedWorkspaceEmail: "other@ifinavet.no",
 		expectedRevision: second.revision,
 	});
@@ -351,7 +361,7 @@ it("hides conflicting member identities when accepted-offer onboarding fails", a
 	const { t } = await setup();
 	const { student, admin, boardId, secondBoardId } = await users(t);
 	const periodId = await openPeriod(admin, boardId, secondBoardId);
-	await submitAnswers(student, periodId, {
+	await submitAnswers(t, student, periodId, {
 		about: "Om meg",
 		motivation: "Jeg vil bidra",
 		group: "Bedrift",
@@ -360,10 +370,11 @@ it("hides conflicting member identities when accepted-offer onboarding fails", a
 	const application = (await admin.query(api.admissions.queries.adminOverview, { periodId }))
 		?.candidates[0];
 	if (!application) throw new Error("Expected submitted candidate");
+	const reviewedGroupId = await insertInternalGroup(t, "Bedrift");
 	const decision = await admin.mutation(api.admissions.mutations.setDecision, {
 		applicationId: application._id,
 		decision: "accepted",
-		reviewedGroup: "Bedrift",
+		reviewedGroupId,
 		reviewedWorkspaceEmail: "private-member@ifinavet.no",
 		expectedRevision: application.revision,
 	});
@@ -409,7 +420,7 @@ it("allows applicant cancellation and marks refill eligible only when 48 hours r
 	const { student, admin, boardId, secondBoardId } = await users(t);
 	const periodId = await openPeriod(admin, boardId, secondBoardId);
 	const day = new Date(Date.now() + 4 * DAY).toISOString().slice(0, 10);
-	await submitAnswers(student, periodId, {
+	await submitAnswers(t, student, periodId, {
 		about: "Om",
 		motivation: "Hvorfor",
 		group: "Bedrift",
@@ -454,7 +465,7 @@ it("purges sensitive history and applicant identity on close", async () => {
 	const { t } = await setup();
 	const { student, admin, boardId, secondBoardId } = await users(t);
 	const periodId = await openPeriod(admin, boardId, secondBoardId);
-	await submitAnswers(student, periodId, {
+	await submitAnswers(t, student, periodId, {
 		about: "Private detail",
 		motivation: "Private reason",
 		group: "Bedrift",

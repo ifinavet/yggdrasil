@@ -1,4 +1,3 @@
-import { ADMISSION_GROUPS } from "@workspace/shared/admissions";
 import { domainOf, normalizeEmail, onboardingSchema, uioEmailSchema } from "@workspace/shared/iam";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../_generated/api";
@@ -100,11 +99,11 @@ export async function validateAdmissionOffer(
 		group,
 	});
 	if (!parsed.success) throw new ConvexError(parsed.error.issues[0]?.message ?? "Ugyldig tilbud.");
-	if (
-		!ADMISSION_GROUPS.includes(parsed.data.group as (typeof ADMISSION_GROUPS)[number]) ||
-		parsed.data.group === "Usikker ennå"
-	)
-		throw new ConvexError("Velg en godkjent gruppe før du sender tilbudet.");
+	const storedGroup = await ctx.db
+		.query("internalGroups")
+		.withIndex("by_name", (q) => q.eq("name", parsed.data.group))
+		.unique();
+	if (!storedGroup) throw new ConvexError("Velg en godkjent arbeidsgruppe før du sender tilbudet.");
 	return parsed.data;
 }
 
@@ -116,7 +115,7 @@ export async function startAcceptedAdmissionOnboarding(
 	if (
 		application?.decision !== "accepted" ||
 		application.offerStatus !== "accepted" ||
-		!application.reviewedGroup ||
+		!application.reviewedGroupId ||
 		!application.reviewedWorkspaceEmail ||
 		!application.decisionBy
 	) {
@@ -127,10 +126,12 @@ export async function startAcceptedAdmissionOnboarding(
 		throw new ConvexError("Administratorgodkjenningen er ikke lenger gyldig.");
 	const approvingAdmin = await ctx.db.get(application.decisionBy);
 	if (!approvingAdmin) throw new ConvexError("Fant ikke administratoren som godkjente opptaket.");
+	const group = await ctx.db.get(application.reviewedGroupId);
+	if (!group) throw new ConvexError("Den godkjente arbeidsgruppen finnes ikke lenger.");
 	const details = await validateAdmissionOffer(
 		ctx,
 		application.userId,
-		application.reviewedGroup,
+		group.name,
 		application.reviewedWorkspaceEmail,
 	);
 	const result = await startOnboardingForCaller(ctx, approvingAdmin, details);

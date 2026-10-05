@@ -1,10 +1,6 @@
-import {
-	isAvailable,
-	localWindow,
-	MIN_INTERVIEW_NOTICE_MS,
-	overlapsLunch,
-} from "@workspace/shared/admissions";
+import { MIN_INTERVIEW_NOTICE_MS, overlapsLunch } from "@workspace/shared/admissions";
 import { SYSTEM_ALERTS_CHANNEL } from "@workspace/shared/slack/channels";
+import { coversWindow, localWindow } from "@workspace/shared/time";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
@@ -781,7 +777,7 @@ function validateAssignmentTime(
 		)
 	)
 		throw new ConvexError("Et intervju kolliderer med arbeidstid eller pause.");
-	if (!isAvailable(application.availability, meeting))
+	if (!coversWindow(application.availability, meeting))
 		throw new ConvexError("En søker er ikke tilgjengelig på tildelt tidspunkt.");
 }
 

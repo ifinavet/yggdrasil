@@ -4,6 +4,7 @@ import { query } from "../_generated/server";
 import { adminRoles, requireRole } from "../auth/accessRights";
 import { getCurrentUserOrThrow } from "../auth/currentUser";
 import { isLocalDevelopment } from "../auth/local";
+import { MAX_INTERNAL_GROUPS } from "../users/organization/groups";
 
 export const openPeriods = query({
 	args: { now: v.number() },
@@ -23,6 +24,8 @@ export const openPeriods = query({
 					interviewStartAt,
 					interviewEndAt,
 					retentionAt,
+					dayStart,
+					dayEnd,
 					timezone,
 					revision,
 				}) => ({
@@ -33,6 +36,8 @@ export const openPeriods = query({
 					interviewStartAt,
 					interviewEndAt,
 					retentionAt,
+					dayStart,
+					dayEnd,
 					timezone,
 					revision,
 				}),
@@ -77,7 +82,12 @@ export const myApplication = query({
 							room: interview.room,
 						}
 					: null,
-			period: { title: period.title, timezone: period.timezone },
+			period: {
+				title: period.title,
+				timezone: period.timezone,
+				dayStart: period.dayStart,
+				dayEnd: period.dayEnd,
+			},
 		};
 	},
 });
@@ -132,8 +142,22 @@ export const currentApplication = query({
 				interviewEndAt: period.interviewEndAt,
 				retentionAt: period.retentionAt,
 				timezone: period.timezone,
+				dayStart: period.dayStart,
+				dayEnd: period.dayEnd,
 			},
 		};
+	},
+});
+
+export const availableGroups = query({
+	args: {},
+	handler: async (ctx) => {
+		await getCurrentUserOrThrow(ctx);
+		return await ctx.db
+			.query("internalGroups")
+			.withIndex("by_name")
+			.take(MAX_INTERNAL_GROUPS)
+			.then((groups) => groups.map(({ _id, name }) => ({ _id, name })));
 	},
 });
 
@@ -231,6 +255,11 @@ export const adminOverview = query({
 				q.eq("periodId", period._id).eq("status", "submitted"),
 			)
 			.take(200);
+		const groups = await ctx.db
+			.query("internalGroups")
+			.withIndex("by_name")
+			.take(MAX_INTERNAL_GROUPS);
+		const groupNames = new Map(groups.map((group) => [group._id, group.name]));
 		const candidates = await Promise.all(
 			applications.map(async (application) => {
 				const user = await ctx.db.get(application.userId);
@@ -240,6 +269,13 @@ export const adminOverview = query({
 					.unique();
 				return {
 					...application,
+					groupId: application.group === "unsure" ? undefined : application.group,
+					group:
+						application.group === "unsure"
+							? "Usikker ennå"
+							: application.group
+								? (groupNames.get(application.group) ?? "Arbeidsgruppen finnes ikke lenger")
+								: "",
 					name:
 						application.studentProfile?.name ??
 						[user?.firstName, user?.lastName].filter(Boolean).join(" "),
@@ -290,6 +326,15 @@ export const applicationById = query({
 		const period = await ctx.db.get(application.periodId);
 		if (!period || period.status === "closing") return null;
 		const user = await ctx.db.get(application.userId);
-		return { ...application, email: user?.email ?? "" };
+		const group =
+			application.group && application.group !== "unsure"
+				? await ctx.db.get(application.group)
+				: null;
+		return {
+			...application,
+			groupId: application.group === "unsure" ? undefined : application.group,
+			group: application.group === "unsure" ? "Usikker ennå" : (group?.name ?? ""),
+			email: user?.email ?? "",
+		};
 	},
 });

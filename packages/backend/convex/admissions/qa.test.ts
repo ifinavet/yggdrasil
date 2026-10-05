@@ -147,10 +147,12 @@ it("prevents manual rescheduling while the first publish is in flight", async ()
 	});
 	const application = await t.run((ctx) => ctx.db.get(applicationId));
 	if (!application) throw new Error("Missing application");
+	const validWorkdayAt = new Date(now + 6 * 86400000);
+	validWorkdayAt.setUTCHours(8, 0, 0, 0);
 	await expect(
 		admin.mutation(api.admissions.mutations.scheduleInterview, {
 			applicationId,
-			startAt: now + 6 * 86400000,
+			startAt: validWorkdayAt.getTime(),
 			interviewerIds: [firstInterviewer._id, secondInterviewer._id],
 			selectedCalendarIds: ["primary"],
 			candidateConfirmedOutsideForm: true,
@@ -172,7 +174,7 @@ it("rechecks the application cap when submitting an existing draft", async () =>
 			status: "draft",
 			about: "About me",
 			motivation: "My motivation",
-			group: "Bedrift",
+			group: "unsure",
 			studentProfile: {
 				name: "Candidate",
 				studyProgram: "Informatics",

@@ -19,8 +19,6 @@ import {
 	type Candidate,
 	clock,
 	dateLabel,
-	days as fixtureDays,
-	team as fixtureTeam,
 	type Interview,
 	type Interviewer,
 	type Settings,
@@ -38,9 +36,9 @@ export function InterviewCalendar({
 	onOpenCalendars,
 	onAssignRoom,
 	onGenerateSchedule,
-	days = fixtureDays,
-	team = fixtureTeam,
-	daysPerPage = 5,
+	days,
+	team,
+	daysPerPage,
 }: Readonly<{
 	candidates: Candidate[];
 	interviews: Interview[];
@@ -49,9 +47,9 @@ export function InterviewCalendar({
 	rooms: Record<string, string>;
 	approved: boolean;
 	onApprove: () => void;
-	days?: string[];
-	team?: Interviewer[];
-	daysPerPage?: 5 | 7;
+	days: string[];
+	team: Interviewer[];
+	daysPerPage: 5 | 7;
 	onOpenCandidate: (id: string) => void;
 	onOpenCalendars: () => void;
 	onAssignRoom: (ids: string[], room: string) => boolean | Promise<boolean>;

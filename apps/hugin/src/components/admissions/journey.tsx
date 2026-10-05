@@ -3,7 +3,11 @@
 import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
-import { ADMISSION_GROUPS, type AvailabilityWindow, roomUrl } from "@workspace/shared/admissions";
+import {
+	ADMISSION_UNSURE_GROUP,
+	type AvailabilityWindow,
+	roomUrl,
+} from "@workspace/shared/admissions";
 import {
 	DEGREE_TYPES,
 	DEGREE_YEARS,
@@ -13,7 +17,12 @@ import {
 	STUDY_PROGRAMS,
 } from "@workspace/shared/constants";
 import { midgardUrl } from "@workspace/shared/constants/hugin-url";
-import { DATE_PATTERNS, formatOsloDate } from "@workspace/shared/time";
+import {
+	calendarDaysBetween,
+	DATE_PATTERNS,
+	formatOsloDate,
+	localDateAndMinute,
+} from "@workspace/shared/time";
 import { convexErrorMessage } from "@workspace/shared/utils";
 import {
 	AlertDialog,
@@ -53,6 +62,8 @@ type Period = {
 	interviewEndAt: number;
 	retentionAt: number;
 	timezone: string;
+	dayStart: number;
+	dayEnd: number;
 };
 
 type InitialApplication = {
@@ -77,22 +88,17 @@ type InitialApplication = {
 		interviewStartAt?: number;
 		interviewEndAt?: number;
 		retentionAt?: number;
+		dayStart: number;
+		dayEnd: number;
 	};
 } | null;
 
 const applicationSchema = z.object({
 	about: z.string().trim().min(10, "Skriv minst 10 tegn."),
 	motivation: z.string().trim().min(10, "Skriv minst 10 tegn."),
-	group: z.enum(ADMISSION_GROUPS),
+	group: z.string().min(1, "Velg en arbeidsgruppe."),
 });
 type ApplicationValues = { about: string; motivation: string; group: string };
-const timeOptions = Array.from({ length: 33 }, (_, index) => {
-	const minutes = 9 * 60 + index * 15;
-	return {
-		minutes,
-		label: `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`,
-	};
-});
 
 export default function AdmissionsJourney({
 	period,
@@ -105,6 +111,7 @@ export default function AdmissionsJourney({
 		| InitialApplication
 		| undefined;
 	const profile = useQuery(api.users.students.queries.getCurrentForAdmissions, {});
+	const groups = useQuery(api.admissions.queries.availableGroups, {});
 	const updateProfile = useMutation(api.users.students.mutations.updateCurrent);
 	const saveDraft = useMutation(api.admissions.mutations.saveDraft);
 	const submit = useMutation(api.admissions.mutations.submit);
@@ -131,8 +138,8 @@ export default function AdmissionsJourney({
 	const [applicationWindowClosed, setApplicationWindowClosed] = useState(
 		() => Date.now() > period.applicationEndAt,
 	);
-	const [start, setStart] = useState(9 * 60);
-	const [end, setEnd] = useState(10 * 60);
+	const [start, setStart] = useState(period.dayStart);
+	const [end, setEnd] = useState(Math.min(period.dayStart + 60, period.dayEnd));
 	const form = useForm({
 		defaultValues: {
 			about: initialApplication?.about ?? "",
@@ -161,13 +168,25 @@ export default function AdmissionsJourney({
 	}, [applicationWindowClosed, period.applicationEndAt]);
 
 	const dates = interviewDays(period.interviewStartAt, period.interviewEndAt, period.timezone);
+	const timeOptions = Array.from(
+		{ length: Math.floor((period.dayEnd - period.dayStart) / 15) + 1 },
+		(_, index) => {
+			const minutes = period.dayStart + index * 15;
+			return { minutes, label: formatTime(minutes) };
+		},
+	);
 	const selectedCount = availability.length;
 	async function persistDraft(value: ApplicationValues = form.state.values) {
 		if (!profileConfirmed || editingProfile || (!availability.length && !noSuitableTimes)) return;
 		setBusy(true);
 		setMessage("");
 		try {
-			await saveDraft({ periodId: period._id, ...value, availability });
+			await saveDraft({
+				periodId: period._id,
+				...value,
+				group: value.group as Id<"internalGroups"> | typeof ADMISSION_UNSURE_GROUP,
+				availability,
+			});
 			setMessage("Utkastet er lagret.");
 		} catch {
 			setMessage("Utkastet kunne ikke lagres. Prøv igjen.");
@@ -187,7 +206,12 @@ export default function AdmissionsJourney({
 		setBusy(true);
 		setMessage("");
 		try {
-			const saved = await saveDraft({ periodId: period._id, ...value, availability });
+			const saved = await saveDraft({
+				periodId: period._id,
+				...value,
+				group: value.group as Id<"internalGroups"> | typeof ADMISSION_UNSURE_GROUP,
+				availability,
+			});
 			await submit({ periodId: period._id, expectedRevision: saved.revision, consent });
 			setMessage("Søknaden din er sendt.");
 			setEditingSubmitted(false);
@@ -478,15 +502,17 @@ export default function AdmissionsJourney({
 									id="admission-group"
 									aria-describedby="group-hint"
 									className="w-full"
+									disabled={groups === undefined}
 								>
 									<SelectValue placeholder="Velg arbeidsgruppe" />
 								</SelectTrigger>
 								<SelectContent>
-									{ADMISSION_GROUPS.map((item) => (
-										<SelectItem key={item} value={item}>
-											{item}
+									{groups?.map((item) => (
+										<SelectItem key={item._id} value={item._id}>
+											{item.name}
 										</SelectItem>
 									))}
+									<SelectItem value={ADMISSION_UNSURE_GROUP}>Usikker ennå</SelectItem>
 								</SelectContent>
 							</Select>
 						)}
@@ -527,7 +553,7 @@ export default function AdmissionsJourney({
 								onValueChange={(value) => {
 									const next = Number(value);
 									setStart(next);
-									if (end <= next) setEnd(Math.min(next + 60, 17 * 60));
+									if (end <= next) setEnd(Math.min(next + 60, period.dayEnd));
 								}}
 							>
 								<SelectTrigger id="availability-start" className="w-32">
@@ -834,21 +860,9 @@ function JourneyLoading() {
 }
 
 function interviewDays(startAt: number, endAt: number, timeZone: string) {
-	const getDay = (timestamp: number) =>
-		new Intl.DateTimeFormat("en-CA", {
-			timeZone,
-			year: "numeric",
-			month: "2-digit",
-			day: "2-digit",
-		}).format(timestamp);
-	const first = new Date(`${getDay(startAt)}T00:00:00Z`);
-	const last = new Date(`${getDay(endAt)}T00:00:00Z`);
-	const days: { day: string; label: string }[] = [];
-	for (const cursor = first; cursor <= last; cursor.setUTCDate(cursor.getUTCDate() + 1)) {
-		const day = cursor.toISOString().slice(0, 10);
-		days.push({ day, label: formatDay(day) });
-	}
-	return days;
+	const first = localDateAndMinute(startAt, timeZone).day;
+	const last = localDateAndMinute(endAt, timeZone).day;
+	return calendarDaysBetween(first, last, timeZone).map((day) => ({ day, label: formatDay(day) }));
 }
 
 function formatDay(day: string) {
