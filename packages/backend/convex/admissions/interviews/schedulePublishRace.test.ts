@@ -60,9 +60,7 @@ it("keeps a schedule immutable while its first calendar publish is in flight", a
 				{
 					applicationId,
 					startAt: startAt + 15 * 60 * 1000,
-					endAt: startAt + 30 * 60 * 1000,
 					interviewerIds: [firstInterviewer._id, secondInterviewer._id],
-					selectedCalendarIds: [],
 					room: "Beta",
 				},
 			],

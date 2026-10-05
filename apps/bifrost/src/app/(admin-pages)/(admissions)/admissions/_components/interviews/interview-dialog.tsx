@@ -45,9 +45,7 @@ export function InterviewDialog({
 					startAt,
 					room: value.room,
 					interviewerIds: value.interviewerIds,
-					selectedCalendarIds: period.interviewers
-						.filter((person) => value.interviewerIds.includes(person.userId))
-						.flatMap((person) => person.selectedCalendarIds),
+					expectedPeriodRevision: period.revision,
 					candidateConfirmedOutsideForm: value.confirmed,
 				});
 				onClose();

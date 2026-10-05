@@ -11,6 +11,7 @@ import {
 import {
 	calendarDaysBetween,
 	localDateAndMinute,
+	minutesToClock,
 	osloDateTimeToEpoch,
 } from "@workspace/shared/time";
 import type { FunctionReturnType } from "convex/server";
@@ -25,7 +26,6 @@ import {
 	type OwnedAdmissionEvent,
 	readExternalBusy,
 } from "../../iam/googleCalendar";
-import { interviewCalendarIds } from "../rules";
 
 export const sources = action({
 	args: { periodId: v.id("admissionPeriods"), interviewerId: v.id("users") },
@@ -186,10 +186,7 @@ export const generateSchedule = action({
 		const slots = makeSchedulingSlots(period, days)
 			.map((slot) => ({
 				...slot,
-				startAt: osloDateTimeToEpoch(
-					slot.day,
-					`${String(Math.floor(slot.start / 60)).padStart(2, "0")}:${String(slot.start % 60).padStart(2, "0")}`,
-				),
+				startAt: osloDateTimeToEpoch(slot.day, minutesToClock(slot.start)),
 			}))
 			.filter((slot) => slot.startAt >= Date.now() + MIN_INTERVIEW_NOTICE_MS);
 		const eligibleCandidates = context.candidates.filter(
@@ -210,9 +207,7 @@ export const generateSchedule = action({
 			return {
 				applicationId: assignment.candidateId as Id<"admissionApplications">,
 				startAt: slot.startAt,
-				endAt: slot.startAt + period.duration * 60_000,
 				interviewerIds: assignment.interviewers as Id<"users">[],
-				selectedCalendarIds: interviewCalendarIds(period, assignment.interviewers as Id<"users">[]),
 				room: period.room,
 			};
 		});

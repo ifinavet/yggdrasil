@@ -14,6 +14,7 @@ import {
 	calendarDaysBetween,
 	DATE_PATTERNS,
 	formatOsloDate,
+	minutesToClock as formatTime,
 	localDateAndMinute,
 } from "@workspace/shared/time";
 import { convexErrorMessage } from "@workspace/shared/utils";
@@ -456,8 +457,4 @@ function interviewDays(startAt: number, endAt: number, timeZone: string) {
 
 function formatDay(day: string) {
 	return formatOsloDate(Date.parse(`${day}T12:00:00Z`), DATE_PATTERNS.shortDate);
-}
-
-function formatTime(minutes: number) {
-	return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
 }

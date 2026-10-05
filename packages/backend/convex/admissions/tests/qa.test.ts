@@ -131,10 +131,10 @@ it("prevents manual rescheduling while the first publish is in flight", async ()
 	validWorkdayAt.setUTCHours(8, 0, 0, 0);
 	await expect(
 		admin.mutation(api.admissions.mutations.scheduleInterview, {
+			expectedPeriodRevision: 0,
 			applicationId,
 			startAt: validWorkdayAt.getTime(),
 			interviewerIds: [firstInterviewer._id, secondInterviewer._id],
-			selectedCalendarIds: ["primary"],
 			candidateConfirmedOutsideForm: true,
 			expectedRevision: application.revision,
 		}),

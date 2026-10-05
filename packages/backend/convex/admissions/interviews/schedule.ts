@@ -66,9 +66,7 @@ export const saveSchedule = internalMutation({
 			v.object({
 				applicationId: v.id("admissionApplications"),
 				startAt: v.number(),
-				endAt: v.number(),
 				interviewerIds: v.array(v.id("users")),
-				selectedCalendarIds: v.array(v.string()),
 				room: v.string(),
 				candidateConfirmedOutsideForm: v.optional(v.boolean()),
 				confirmPublishedReschedule: v.optional(v.boolean()),
@@ -118,15 +116,10 @@ export async function commitSchedule(
 			(interview) => interview.applicationId === assignment.applicationId,
 		);
 
-		const selectedCalendarIds = interviewCalendarIds(period, assignment.interviewerIds);
-		if (
-			selectedCalendarIds.some((id) => !assignment.selectedCalendarIds.includes(id)) ||
-			assignment.selectedCalendarIds.some((id) => !selectedCalendarIds.includes(id))
-		)
-			throw new ConvexError("Kalendervalgene må komme fra periodens oppsett. Oppdater planen.");
 		const desired = {
 			...assignment,
-			selectedCalendarIds,
+			selectedCalendarIds: interviewCalendarIds(period, assignment.interviewerIds),
+			endAt: assignment.startAt + period.duration * 60_000,
 			room: assignment.room.trim() || period.room,
 		};
 		if (before?.status === "scheduled" && sameInterviewSchedule(before, desired)) return [];
@@ -195,10 +188,11 @@ function validateScheduleEdit(
 
 type ScheduleAssignment = Pick<
 	Doc<"admissionInterviews">,
-	"applicationId" | "startAt" | "endAt" | "interviewerIds" | "selectedCalendarIds" | "room"
+	"applicationId" | "startAt" | "interviewerIds" | "room"
 > & { candidateConfirmedOutsideForm?: boolean; confirmPublishedReschedule?: boolean };
 function validateAssignment(
-	assignment: ScheduleAssignment,
+	assignment: ScheduleAssignment &
+		Pick<Doc<"admissionInterviews">, "endAt" | "selectedCalendarIds">,
 	period: Doc<"admissionPeriods">,
 	applications: Doc<"admissionApplications">[],
 	active: Set<Id<"users">>,
@@ -212,8 +206,6 @@ function validateAssignment(
 		throw new ConvexError("Velg nøyaktig to ulike intervjuere.");
 	if (interviewerIds.some((userId) => !active.has(userId)))
 		throw new ConvexError("En intervjuer er ikke lenger valgt eller aktiv.");
-	if ((assignment.endAt - assignment.startAt) / 60000 !== period.duration)
-		throw new ConvexError("Et intervju ligger utenfor perioden eller har feil varighet.");
 	validateInterviewWindow(assignment.startAt, period, application, confirmedOutsideForm);
 	const room = assignment.room.trim() || period.room;
 	return {
@@ -226,7 +218,7 @@ function validateAssignment(
 	};
 }
 function assertNoScheduleConflicts(
-	scheduled: Omit<ScheduleAssignment, "selectedCalendarIds">[],
+	scheduled: (ScheduleAssignment & { endAt: number })[],
 	buffer: number,
 	fixedCount = 0,
 ) {

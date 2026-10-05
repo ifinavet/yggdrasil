@@ -289,23 +289,23 @@ it("validates independent period windows, the 14-day cap, selected interviewers,
 	if (!applicationId) throw new Error("Expected submitted candidate");
 	await expect(
 		admin.mutation(api.admissions.mutations.scheduleInterview, {
+			expectedPeriodRevision: 1,
 			applicationId,
 			startAt: new Date(
 				`${new Date(now + 3 * DAY).toISOString().slice(0, 10)}T10:00:00+02:00`,
 			).getTime(),
 			interviewerIds: [boardId],
-			selectedCalendarIds: [],
 			expectedRevision: overview.candidates[0].revision,
 		}),
 	).rejects.toThrow(/to ulike intervjuere/);
 	await expect(
 		admin.mutation(api.admissions.mutations.scheduleInterview, {
+			expectedPeriodRevision: 1,
 			applicationId,
 			startAt: new Date(
 				`${new Date(now + 3 * DAY).toISOString().slice(0, 10)}T12:15:00+02:00`,
 			).getTime(),
 			interviewerIds: [boardId, secondBoardId],
-			selectedCalendarIds: [],
 			expectedRevision: overview.candidates[0].revision,
 		}),
 	).rejects.toThrow(/pause/);
@@ -492,10 +492,10 @@ it("allows applicant cancellation and marks refill eligible only when 48 hours r
 	if (!candidate) throw new Error("Expected submitted candidate");
 	const startAt = new Date(`${day}T10:00:00+02:00`).getTime();
 	const scheduled = await admin.mutation(api.admissions.mutations.scheduleInterview, {
+		expectedPeriodRevision: 1,
 		applicationId: candidate._id,
 		startAt,
 		interviewerIds: [boardId, secondBoardId],
-		selectedCalendarIds: [],
 		expectedRevision: candidate.revision,
 	});
 	await t.run(async (ctx) => {

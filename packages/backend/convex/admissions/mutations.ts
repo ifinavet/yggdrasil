@@ -419,7 +419,7 @@ export const scheduleInterview = mutation({
 		applicationId: v.id("admissionApplications"),
 		startAt: v.number(),
 		interviewerIds: v.array(v.id("users")),
-		selectedCalendarIds: v.array(v.string()),
+		expectedPeriodRevision: v.number(),
 		room: v.optional(v.string()),
 		candidateConfirmedOutsideForm: v.optional(v.boolean()),
 		confirmPublishedReschedule: v.optional(v.boolean()),
@@ -432,6 +432,8 @@ export const scheduleInterview = mutation({
 			args.expectedRevision,
 		);
 
+		if (period.revision !== args.expectedPeriodRevision)
+			throw new ConvexError("Opptaket er endret. Last inn på nytt før du lagrer planen.");
 		const result = await commitSchedule(
 			ctx,
 			period,
@@ -440,9 +442,7 @@ export const scheduleInterview = mutation({
 				{
 					applicationId: app._id,
 					startAt: args.startAt,
-					endAt: args.startAt + period.duration * 60000,
 					interviewerIds: args.interviewerIds,
-					selectedCalendarIds: args.selectedCalendarIds,
 					room: args.room ?? period.room,
 					candidateConfirmedOutsideForm: args.candidateConfirmedOutsideForm,
 					confirmPublishedReschedule: args.confirmPublishedReschedule,

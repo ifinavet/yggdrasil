@@ -63,7 +63,7 @@ async function scheduleFixture(
 		applicationId,
 		startAt,
 		interviewerIds: [value.interviewer._id, value.otherInterviewer._id],
-		selectedCalendarIds: [] as string[],
+		expectedPeriodRevision: 1,
 		expectedRevision: 1,
 	};
 	return { ...value, periodId, applicationId, startAt, day, scheduleArgs };
@@ -476,6 +476,7 @@ it("requires exactly two interviewers in both manual and generated schedules", a
 	await expect(
 		value.admin.mutation(api.admissions.mutations.scheduleInterview, {
 			...value.scheduleArgs,
+			expectedPeriodRevision: 2,
 			interviewerIds: tooMany,
 		}),
 	).rejects.toThrow(/to ulike intervjuere/);
@@ -487,9 +488,7 @@ it("requires exactly two interviewers in both manual and generated schedules", a
 				{
 					applicationId: value.applicationId,
 					startAt: value.startAt,
-					endAt: value.startAt + 15 * MINUTE,
 					interviewerIds: tooMany,
-					selectedCalendarIds: [],
 					room: "Beta",
 				},
 			],
@@ -544,9 +543,7 @@ it("covers applicant availability across adjacent windows in manual and generate
 				{
 					applicationId: generated.applicationId,
 					startAt: osloAt(generated.day, 10, 0),
-					endAt: osloAt(generated.day, 10, 15),
 					interviewerIds: [generated.interviewer._id, generated.otherInterviewer._id],
-					selectedCalendarIds: [],
 					room: "Beta",
 				},
 			],
@@ -589,12 +586,12 @@ it("derives manual interview calendars from the period's interviewer selections"
 	await expect(
 		value.admin.mutation(api.admissions.mutations.scheduleInterview, {
 			...args,
-			selectedCalendarIds: ["unselected-calendar"],
+			expectedPeriodRevision: 1,
 		}),
-	).rejects.toThrow(/periodens oppsett/);
+	).rejects.toThrow(/Opptaket er endret/);
 	await value.admin.mutation(api.admissions.mutations.scheduleInterview, {
+		expectedPeriodRevision: 2,
 		...args,
-		selectedCalendarIds: ["primary"],
 	});
 	const interview = await interviewForApplication(value.t, value.applicationId);
 	expect(interview?.selectedCalendarIds).toEqual(["primary"]);
@@ -626,9 +623,7 @@ it("keeps a published interview unchanged during generated replanning", async ()
 				{
 					applicationId: value.applicationId,
 					startAt,
-					endAt,
 					interviewerIds: [value.interviewer._id, value.otherInterviewer._id],
-					selectedCalendarIds: [],
 					room: "Beta",
 				},
 			],
@@ -687,11 +682,11 @@ it("rejects overlapping interviews that use the same room even with different in
 	await setAvailability(value.t, value.applicationId, value.day);
 	const args = {
 		startAt: value.startAt,
-		selectedCalendarIds: [] as string[],
 		room: "Beta",
 	};
 	await value.admin.mutation(api.admissions.mutations.scheduleInterview, {
 		...args,
+		expectedPeriodRevision: 2,
 		applicationId: value.applicationId,
 		interviewerIds: [value.interviewer._id, value.otherInterviewer._id],
 		expectedRevision: 1,
@@ -699,6 +694,7 @@ it("rejects overlapping interviews that use the same room even with different in
 	await expect(
 		value.admin.mutation(api.admissions.mutations.scheduleInterview, {
 			...args,
+			expectedPeriodRevision: 3,
 			applicationId: secondApplicationId,
 			interviewerIds: [third._id, fourth._id],
 			expectedRevision: 1,
@@ -725,8 +721,6 @@ it("rejects generated assignments that double-book a room", async () => {
 	);
 	const shared = {
 		startAt: value.startAt,
-		endAt: value.startAt + 15 * MINUTE,
-		selectedCalendarIds: [] as string[],
 		room: "Beta",
 	};
 	await expect(
@@ -777,9 +771,7 @@ it("does not let generated plans resurrect a cancelled interview", async () => {
 				{
 					applicationId: value.applicationId,
 					startAt: value.startAt,
-					endAt: value.startAt + 15 * MINUTE,
 					interviewerIds: [value.interviewer._id, value.otherInterviewer._id],
-					selectedCalendarIds: [],
 					room: "Beta",
 				},
 			],
@@ -815,9 +807,7 @@ it("requires two days of notice for generated assignments", async () => {
 				{
 					applicationId: value.applicationId,
 					startAt,
-					endAt: startAt + 15 * MINUTE,
 					interviewerIds: [value.interviewer._id, value.otherInterviewer._id],
-					selectedCalendarIds: [],
 					room: "Beta",
 				},
 			],
@@ -1003,23 +993,21 @@ it("cleans a failed calendar publish before archiving even without a saved event
 async function saveScheduleProposal(
 	value: Awaited<ReturnType<typeof scheduleFixture>>,
 	trigger: "manual" | "generated",
-	selectedCalendarIds: string[] = [],
+	expectedPeriodRevision = 1,
 ) {
 	if (trigger === "manual")
 		return value.admin.mutation(api.admissions.mutations.scheduleInterview, {
 			...value.scheduleArgs,
-			selectedCalendarIds,
+			expectedPeriodRevision,
 		});
 	return value.t.mutation(internal.admissions.interviews.schedule.saveSchedule, {
 		periodId: value.periodId,
-		expectedRevision: 1,
+		expectedRevision: expectedPeriodRevision,
 		assignments: [
 			{
 				applicationId: value.applicationId,
 				startAt: value.startAt,
-				endAt: value.startAt + 15 * MINUTE,
 				interviewerIds: value.scheduleArgs.interviewerIds,
-				selectedCalendarIds,
 				room: "Beta",
 			},
 		],
@@ -1053,6 +1041,7 @@ it.each(["manual", "generated"] as const)(
 		const value = await scheduleFixture(10, 0, []);
 		await value.t.run((ctx) =>
 			ctx.db.patch(value.periodId, {
+				revision: 2,
 				interviewers: value.scheduleArgs.interviewerIds.map((userId) => ({
 					userId,
 					selectedCalendarIds: ["primary"],
@@ -1066,9 +1055,7 @@ it.each(["manual", "generated"] as const)(
 			selectedCalendarIds: ["old-calendar"],
 		});
 		const before = await value.t.run((ctx) => ctx.db.get(interviewId));
-		await expect(saveScheduleProposal(value, trigger, ["old-calendar"])).rejects.toThrow(
-			/periodens oppsett/,
-		);
+		await expect(saveScheduleProposal(value, trigger)).rejects.toThrow(/Opptaket er endret/);
 		expect(await value.t.run((ctx) => ctx.db.get(interviewId))).toEqual(before);
 	},
 );
@@ -1120,3 +1107,62 @@ it.each([
 		});
 	},
 );
+
+it.each(["manual", "generated"] as const)(
+	"%s scheduling derives duration and calendars from the current period",
+	async (trigger) => {
+		const value = await scheduleFixture(10, 0, []);
+		await value.t.run((ctx) =>
+			ctx.db.patch(value.applicationId, {
+				availability: [{ day: value.day, start: 600, end: 660 }],
+			}),
+		);
+		await value.admin.mutation(api.admissions.board.updateSettings, {
+			periodId: value.periodId,
+			expectedRevision: 1,
+			settings: { duration: 30 },
+			interviewers: value.scheduleArgs.interviewerIds.map((userId) => ({
+				userId,
+				selectedCalendarIds: ["primary"],
+			})),
+		});
+		await expect(saveScheduleProposal(value, trigger)).rejects.toThrow(/Opptaket er endret/);
+		expect(await interviewForApplication(value.t, value.applicationId)).toBeNull();
+		await saveScheduleProposal(value, trigger, 2);
+		expect(await interviewForApplication(value.t, value.applicationId)).toMatchObject({
+			startAt: value.startAt,
+			endAt: value.startAt + 30 * MINUTE,
+			selectedCalendarIds: ["primary"],
+		});
+	},
+);
+
+it.each([
+	["manual", "endAt"],
+	["generated", "endAt"],
+	["manual", "selectedCalendarIds"],
+	["generated", "selectedCalendarIds"],
+] as const)("%s scheduling rejects client-supplied %s", async (trigger, field) => {
+	const value = await scheduleFixture(10, 0, []);
+	const assignment = {
+		applicationId: value.applicationId,
+		startAt: value.startAt,
+		interviewerIds: value.scheduleArgs.interviewerIds,
+		room: "Beta",
+		[field]: field === "endAt" ? value.startAt + MINUTE : ["unselected-calendar"],
+	};
+	const attempt =
+		trigger === "manual"
+			? value.admin.mutation(api.admissions.mutations.scheduleInterview, {
+					...assignment,
+					expectedRevision: 1,
+					expectedPeriodRevision: 1,
+				})
+			: value.t.mutation(internal.admissions.interviews.schedule.saveSchedule, {
+					periodId: value.periodId,
+					expectedRevision: 1,
+					assignments: [assignment],
+				});
+	await expect(attempt).rejects.toThrow(/Unexpected field/);
+	expect(await interviewForApplication(value.t, value.applicationId)).toBeNull();
+});

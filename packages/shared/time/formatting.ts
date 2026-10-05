@@ -91,3 +91,7 @@ export const humanReadableFullDateTime = (date: Date): string =>
 		minute: "2-digit",
 		timeZone: OSLO_TIME_ZONE,
 	});
+
+export function minutesToClock(minutes: number) {
+	return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+}

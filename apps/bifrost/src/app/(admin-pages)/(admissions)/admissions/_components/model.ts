@@ -21,11 +21,7 @@ export const decisionLabels: Record<Decision, string> = {
 	accepted: "Tatt opp",
 	rejected: "Avslått",
 };
-export function clock(minutes: number) {
-	return `${Math.floor(minutes / 60)
-		.toString()
-		.padStart(2, "0")}:${(minutes % 60).toString().padStart(2, "0")}`;
-}
+export { minutesToClock as clock } from "@workspace/shared/time";
 export function dateLabel(day: string) {
 	return formatOsloDate(new Date(`${day}T12:00:00Z`).getTime(), "EEE d. MMM");
 }
