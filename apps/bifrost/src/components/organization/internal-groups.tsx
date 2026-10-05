@@ -89,11 +89,6 @@ export function InternalGroups() {
 					Legg til arbeidsgruppe
 				</Button>
 			</div>
-			{error && (
-				<p role="alert" className="text-destructive text-sm">
-					{error}
-				</p>
-			)}
 			{groups === undefined && <output>Laster arbeidsgrupper…</output>}
 			{groups !== undefined && groups.length > 0 && (
 				<ul className="grid gap-3 sm:grid-cols-2">

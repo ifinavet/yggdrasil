@@ -59,15 +59,11 @@ export function ApplicationStatus({
 
 	async function onReply(accept: boolean) {
 		return perform(async () => {
-			const result = await respondToOffer({
+			await respondToOffer({
 				periodId: period._id,
 				accept,
 				expectedRevision: application.revision,
 			});
-			const confirmation = accept ? "Du har takket ja til plassen" : "Takk for at du ga beskjed";
-			setMessage(
-				result.offerStatus === "expired" ? "Svarfristen for tilbudet har gått ut." : confirmation,
-			);
 		}, "Svaret ditt kunne ikke lagres. Prøv igjen.");
 	}
 
@@ -93,7 +89,6 @@ export function ApplicationStatus({
 							Takk nei
 						</Button>
 					</div>
-					{message && <output>{message}</output>}
 				</ApplicationNotice>
 			);
 		if (application.offerStatus === "accepted")
@@ -132,7 +127,6 @@ export function ApplicationStatus({
 					<Button variant="outline" disabled={busy} onClick={() => setConfirmation("cancel")}>
 						Avlys intervjuet
 					</Button>
-					{message && <output>{message}</output>}
 				</ApplicationNotice>
 			);
 		if (application.interviewStatus === "cancelled")
@@ -149,7 +143,6 @@ export function ApplicationStatus({
 						Rediger søknaden
 					</Button>
 				)}
-				{message && <output>{message}</output>}
 			</ApplicationNotice>
 		);
 	}
@@ -158,6 +151,7 @@ export function ApplicationStatus({
 	return (
 		<>
 			{renderStatus()}
+			{message && confirmation === null && <p role="alert">{message}</p>}
 			<ConfirmDialog
 				open={confirmation !== null}
 				onOpenChange={(open) => {

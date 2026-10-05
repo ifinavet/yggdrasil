@@ -67,7 +67,7 @@ async function apply(page: Page) {
 		page.getByRole("heading", { name: "Når kan du komme på intervju?" }),
 	);
 	await expect(page.getByText(/Søknadsopplysningene slettes/)).toBeVisible();
-	await expect(page.getByText(/Studentprofilen din på Midgard blir ikke slettet/)).toBeVisible();
+	await expect(page.getByText(/Studentprofilen din blir ikke slettet/)).toBeVisible();
 	await captureScreenshot(
 		page,
 		"student",

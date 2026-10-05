@@ -28,6 +28,7 @@ test("organization groups appear in the applicant form and referenced groups sta
 		}),
 	).toBeVisible();
 
+	await deleteDialog.getByRole("button", { name: "Avbryt" }).click();
 	const groupName = `Opptakstest ${Date.now()}`;
 	await page.getByRole("button", { name: "Legg til arbeidsgruppe" }).click();
 	const createDialog = page.getByRole("dialog");
