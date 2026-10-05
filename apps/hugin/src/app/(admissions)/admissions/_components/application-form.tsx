@@ -26,13 +26,12 @@ import { Textarea } from "@workspace/ui/components/textarea";
 import { useAsyncAction } from "@workspace/ui/hooks/use-async-action";
 import { useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { CalendarDays, LoaderCircle, ShieldCheck, UserRound } from "lucide-react";
+import { CalendarDays, Check, LoaderCircle, ShieldCheck, UserRound } from "lucide-react";
 import { useState } from "react";
 import { z } from "zod";
 import { textareaClass } from "@/components/form-controls";
 import { FormRow } from "@/components/job-listing-order/form-row";
 import type { InitialApplication, Period } from "./application";
-import { ProfileConfirmation } from "./profile-confirmation";
 
 const applicationSchema = z.object({
 	about: z.string().trim().min(10, "Skriv minst 10 tegn."),
@@ -170,31 +169,57 @@ export function ApplicationForm({
 					void form.handleSubmit();
 				}}
 			>
-				<ProfileConfirmation
-					program={profile.studyProgram}
-					year={profile.year}
-					confirmed={profileConfirmed}
-					editing={editingProfile}
-					onConfirm={() => setProfileConfirmed(true)}
-					onEdit={() => {
-						setEditingProfile(true);
-						setProfileConfirmed(false);
-					}}
-				>
-					<StudentProfileFields
-						studyProgram={{ state: { value: studyProgram }, handleChange: setStudyProgram }}
-						degree={{ state: { value: degree }, handleChange: setDegree }}
-						year={{ state: { value: year }, handleChange: setYear }}
-					/>
-					<Button
-						type="button"
-						disabled={busy || !studyProgram}
-						className="self-start"
-						onClick={() => void saveStudentProfile()}
-					>
-						Lagre og bekreft
-					</Button>
-				</ProfileConfirmation>
+				<section className="rounded-xl bg-muted p-5" aria-label="Studieopplysninger">
+					<p className="mb-3 text-sm">Vi har registrert dette på deg:</p>
+					<p className="font-medium">
+						{profile.studyProgram}
+						<span className="mt-1 block text-sm">{profile.year}. år</span>
+					</p>
+					{editingProfile ? (
+						<div className="mt-5 flex flex-col gap-4">
+							<StudentProfileFields
+								studyProgram={{ state: { value: studyProgram }, handleChange: setStudyProgram }}
+								degree={{ state: { value: degree }, handleChange: setDegree }}
+								year={{ state: { value: year }, handleChange: setYear }}
+							/>
+							<Button
+								type="button"
+								disabled={busy || !studyProgram}
+								className="self-start"
+								onClick={() => void saveStudentProfile()}
+							>
+								Lagre og bekreft
+							</Button>
+						</div>
+					) : (
+						<div className="mt-4 flex flex-wrap items-center gap-3">
+							{profileConfirmed ? (
+								<output className="inline-flex items-center gap-2 text-sm">
+									<Check size={16} />
+									Bekreftet
+								</output>
+							) : (
+								<>
+									<span className="text-sm">Stemmer dette?</span>
+									<Button type="button" size="sm" onClick={() => setProfileConfirmed(true)}>
+										Ja
+									</Button>
+								</>
+							)}
+							<Button
+								type="button"
+								variant="outline"
+								size="sm"
+								onClick={() => {
+									setEditingProfile(true);
+									setProfileConfirmed(false);
+								}}
+							>
+								{profileConfirmed ? "Endre" : "Nei, endre"}
+							</Button>
+						</div>
+					)}
+				</section>
 				{(
 					[
 						[

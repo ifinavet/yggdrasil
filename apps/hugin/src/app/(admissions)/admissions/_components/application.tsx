@@ -32,7 +32,7 @@ export default function AdmissionsApplication({ period }: Readonly<{ period: Per
 	if (!profile)
 		return (
 			<ApplicationNotice title="Studentprofilen din er ikke klar ennå">
-				<p>Opprett studentprofilen din på Midgard før du søker.</p>
+				<p>Opprett studentprofilen din før du søker.</p>
 				<Button asChild variant="outline">
 					<Link href={`${midgardUrl()}/profile`}>Åpne profilen</Link>
 				</Button>
