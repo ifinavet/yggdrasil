@@ -1,14 +1,12 @@
 "use node";
 
 import {
-	interviewerAvailable,
 	MIN_INTERVIEW_NOTICE_MS,
 	makeSchedulingDays,
 	makeSchedulingSlots,
 	matchInterviews,
 	type SchedulingCandidate,
 	type SchedulingInterviewer,
-	type SchedulingSlot,
 } from "@workspace/shared/admissions";
 import { localDateAndMinute, osloDateTimeToEpoch } from "@workspace/shared/time";
 import type { FunctionReturnType } from "convex/server";
@@ -138,27 +136,6 @@ function publishedCalendarBusy(
 	);
 }
 
-function reasonForUnmatched(
-	candidate: SchedulingCandidate,
-	slots: readonly SchedulingSlot[],
-	team: readonly SchedulingInterviewer[],
-) {
-	const available = slots.filter((slot) =>
-		candidate.availability.some(
-			(window) =>
-				window.day === slot.day &&
-				window.start <= slot.start &&
-				window.end >= slot.start + (slot.end - slot.start),
-		),
-	);
-	if (!available.length) return "no_applicant_availability";
-	return available.some(
-		(slot) => team.filter((person) => interviewerAvailable(person, slot)).length >= 2,
-	)
-		? "schedule_capacity_reached"
-		: "no_interviewer_availability";
-}
-
 function coversBusyInterval(
 	target: { start: number; end: number },
 	intervals: ReadonlyArray<{ start: number; end: number }>,
@@ -174,13 +151,7 @@ function coversBusyInterval(
 
 export const generateSchedule = action({
 	args: { periodId: v.id("admissionPeriods"), expectedRevision: v.number() },
-	handler: async (
-		ctx: ActionCtx,
-		{ periodId, expectedRevision },
-	): Promise<{
-		count: number;
-		unmatched: Array<{ applicationId: Id<"admissionApplications">; reason: string }>;
-	}> => {
+	handler: async (ctx: ActionCtx, { periodId, expectedRevision }): Promise<{ count: number }> => {
 		const context = await ctx.runQuery(internal.admissions.internal.scheduleContext, {
 			periodId,
 		});
@@ -277,20 +248,7 @@ export const generateSchedule = action({
 			period.interviewEndAt,
 			period.timezone,
 		);
-		const allSlots = makeSchedulingSlots(
-			{
-				duration: period.duration,
-				buffer: period.buffer,
-				breakEvery: period.breakEvery,
-				breakMinutes: period.breakMinutes,
-				lunch: period.lunch,
-				room: period.room,
-				dayStart: period.dayStart,
-				dayEnd: period.dayEnd,
-				breaks: period.breaks,
-			},
-			days,
-		);
+		const allSlots = makeSchedulingSlots(period, days);
 		const slots = allSlots.filter((slot) => {
 			const startAt = osloDateTimeToEpoch(
 				slot.day,
@@ -336,17 +294,6 @@ export const generateSchedule = action({
 			expectedRevision,
 			assignments: savedAssignments,
 		});
-		const assignedIds = new Set(assignments.map((assignment) => assignment.candidateId));
-		const unmatched = eligibleCandidates
-			.filter((candidate) => !assignedIds.has(candidate.applicationId))
-			.map((candidate) => ({
-				applicationId: candidate.applicationId,
-				reason: reasonForUnmatched(
-					{ id: candidate.applicationId, availability: candidate.availability },
-					slots,
-					team,
-				),
-			}));
-		return { count: result.count, unmatched };
+		return { count: result.count };
 	},
 });

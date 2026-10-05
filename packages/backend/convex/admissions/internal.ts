@@ -132,7 +132,7 @@ export const claimOutbox = internalMutation({
 			await Promise.all(
 				[...new Set([...selectedIds, ...interviewerIds])].map(async (userId) => {
 					const user = await ctx.db.get(userId);
-					return user
+					return user && !user.deleted
 						? {
 								userId,
 								email: await workspaceEmail(ctx, user),
@@ -158,7 +158,6 @@ export const claimOutbox = internalMutation({
 						}
 					: null,
 			interviewers: people.filter((person) => interviewerIds.includes(person.userId)),
-			revisionIsCurrent: true,
 		};
 	},
 });

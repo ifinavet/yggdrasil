@@ -3,7 +3,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { periodFields } from "../../test/admissions-fixtures";
 import { insertUser, setup } from "../../test/fixtures";
 import { components } from "../_generated/api";
-import { queueOutbox } from "./lifecycle";
+import { purgeBatch, queueOutbox } from "./lifecycle";
 
 const archive = vi.hoisted(() => vi.fn());
 vi.mock("./delivery/slack", () => ({
@@ -68,4 +68,29 @@ it("exhausts provider retries and alerts before deleting closing data", async ()
 	const alerts = await t.run((ctx) => ctx.db.query("slackSystemDeliveries").collect());
 	expect(alerts).toHaveLength(1);
 	expect(alerts[0]?.text).toContain("Admissions integration retry limit reached");
+});
+
+it("cancels future deliveries and removes their workflow storage when purging a period", async () => {
+	const { t } = await setup();
+	const admin = await insertUser(t, "admin@example.test");
+	const periodId = await t.run((ctx) =>
+		ctx.db.insert("admissionPeriods", periodFields(admin._id, { status: "closing" })),
+	);
+	const jobId = await t.run((ctx) =>
+		queueOutbox(ctx, {
+			periodId,
+			kind: "archive_channel",
+			revision: 1,
+			idempotencyKey: "future-cancelled",
+			nextAttemptAt: Date.now() + 86400000,
+		}),
+	);
+	const job = await t.run((ctx) => ctx.db.get(jobId));
+	if (!job?.workflowId) throw new Error("Missing workflow");
+	const workflowId = job.workflowId;
+	await t.run((ctx) => purgeBatch(ctx, periodId));
+	await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+	expect(archive).not.toHaveBeenCalled();
+	expect(await t.run((ctx) => ctx.db.get(periodId))).toBeNull();
+	await expect(t.run((ctx) => getStatus(ctx, components.workflow, workflowId))).rejects.toThrow();
 });

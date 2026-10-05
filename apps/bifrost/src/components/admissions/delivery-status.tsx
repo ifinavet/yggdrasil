@@ -68,10 +68,10 @@ export function DeliveryStatus({
 					action={
 						<Button
 							variant="outline"
-							disabled={retrying !== null}
+							disabled={retrying !== null || Boolean(job.workflowId)}
 							onClick={() => void retryJob(job.idempotencyKey)}
 						>
-							Prøv igjen
+							{job.workflowId ? "Prøver automatisk igjen" : "Prøv igjen"}
 						</Button>
 					}
 				>

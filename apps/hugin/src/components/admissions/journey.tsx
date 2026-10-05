@@ -63,7 +63,7 @@ const applicationSchema = z.object({
 	motivation: z.string().trim().min(10, "Skriv minst 10 tegn."),
 	group: z.string().min(1, "Velg en arbeidsgruppe."),
 });
-type ApplicationValues = { about: string; motivation: string; group: string };
+type ApplicationValues = z.infer<typeof applicationSchema>;
 
 export default function AdmissionsJourney({
 	period,
@@ -92,8 +92,6 @@ export default function AdmissionsJourney({
 	const [consent, setConsent] = useState(false);
 	const [busy, setBusy] = useState(false);
 	const [message, setMessage] = useState("");
-	const [editingSubmitted, setEditingSubmitted] = useState(false);
-	const [cancelledInterview, setCancelledInterview] = useState(false);
 	const [selectedDays, setSelectedDays] = useState<string[]>([]);
 	const [noSuitableTimes, setNoSuitableTimes] = useState(
 		initialApplication?.availability.length === 0,
@@ -110,7 +108,7 @@ export default function AdmissionsJourney({
 			group: initialApplication?.group ?? "",
 		},
 		validators: { onSubmit: applicationSchema },
-		onSubmit: ({ value }) => sendApplication(value),
+		onSubmit: ({ value }) => persistApplication(value, true),
 	});
 
 	useEffect(() => {
@@ -139,64 +137,49 @@ export default function AdmissionsJourney({
 		},
 	);
 	const selectedCount = availability.length;
-	async function persistDraft(value: ApplicationValues = form.state.values) {
-		if (!profileConfirmed || editingProfile || (!availability.length && !noSuitableTimes)) return;
+	async function perform(action: () => Promise<void>, fallback: string) {
+		if (busy) return;
 		setBusy(true);
 		setMessage("");
 		try {
-			await saveDraft({
-				periodId: period._id,
-				...value,
-				group: value.group as Id<"internalGroups"> | typeof ADMISSION_UNSURE_GROUP,
-				availability,
-			});
-			setMessage("Utkastet er lagret.");
-		} catch {
-			setMessage("Utkastet kunne ikke lagres. Prøv igjen.");
+			await action();
+		} catch (error) {
+			setMessage(convexErrorMessage(error, fallback));
 		} finally {
 			setBusy(false);
 		}
 	}
 
-	async function sendApplication(value: ApplicationValues) {
+	async function persistApplication(value: ApplicationValues, send = false) {
 		if (
-			!consent ||
 			!profileConfirmed ||
 			editingProfile ||
-			(!availability.length && !noSuitableTimes)
+			(!availability.length && !noSuitableTimes) ||
+			(send && !consent)
 		)
 			return;
-		setBusy(true);
-		setMessage("");
-		try {
-			const saved = await saveDraft({
-				periodId: period._id,
-				...value,
-				group: value.group as Id<"internalGroups"> | typeof ADMISSION_UNSURE_GROUP,
-				availability,
-			});
-			await submit({ periodId: period._id, expectedRevision: saved.revision, consent });
-			setMessage("Søknaden din er sendt.");
-			setEditingSubmitted(false);
-		} catch (error) {
-			setMessage(convexErrorMessage(error, "Søknaden kunne ikke sendes. Prøv igjen."));
-		} finally {
-			setBusy(false);
-		}
+		await perform(
+			async () => {
+				const saved = await saveDraft({
+					periodId: period._id,
+					...value,
+					group: value.group as Id<"internalGroups"> | typeof ADMISSION_UNSURE_GROUP,
+					availability,
+				});
+				if (send) await submit({ periodId: period._id, expectedRevision: saved.revision, consent });
+				setMessage(send ? "Søknaden din er sendt." : "Utkastet er lagret.");
+			},
+			send ? "Søknaden kunne ikke sendes. Prøv igjen." : "Utkastet kunne ikke lagres. Prøv igjen.",
+		);
 	}
 
 	async function saveStudentProfile() {
-		setBusy(true);
-		try {
+		await perform(async () => {
 			await updateProfile({ studyProgram, degree, year });
 			setProfileConfirmed(true);
 			setEditingProfile(false);
 			setMessage("Studentprofilen er oppdatert.");
-		} catch {
-			setMessage("Studentprofilen kunne ikke oppdateres. Prøv igjen.");
-		} finally {
-			setBusy(false);
-		}
+		}, "Studentprofilen kunne ikke oppdateres. Prøv igjen.");
 	}
 
 	if (profile === undefined || application === undefined) return <JourneyLoading />;
@@ -211,7 +194,7 @@ export default function AdmissionsJourney({
 		);
 	}
 
-	if (application?.status === "submitted" && !editingSubmitted)
+	if (application?.status === "submitted")
 		return (
 			<SubmittedApplicationView
 				application={application}
@@ -219,7 +202,6 @@ export default function AdmissionsJourney({
 				busy={busy}
 				applicationWindowClosed={applicationWindowClosed}
 				message={message}
-				cancelledInterview={cancelledInterview}
 				onReply={replyToOffer}
 				onCancelInterview={cancelAssignedInterview}
 				onReopen={reopenApplication}
@@ -237,54 +219,39 @@ export default function AdmissionsJourney({
 	}
 
 	async function reopenApplication() {
-		if (!application) return;
-		setBusy(true);
-		try {
-			await reopen({ periodId: period._id, expectedRevision: application.revision });
-			setEditingSubmitted(true);
-		} catch {
-			setMessage("Søknaden kunne ikke åpnes for endring.");
-		} finally {
-			setBusy(false);
-		}
+		if (application)
+			await perform(async () => {
+				await reopen({ periodId: period._id, expectedRevision: application.revision });
+			}, "Søknaden kunne ikke åpnes for endring.");
 	}
 
 	async function cancelAssignedInterview() {
-		if (!application) return;
-		setBusy(true);
-		try {
-			await cancelInterview({
-				applicationId: application._id,
-				expectedRevision: application.revision,
-				idempotencyKey: crypto.randomUUID(),
-			});
-			setCancelledInterview(true);
-		} catch {
-			setMessage("Intervjuet kunne ikke avlyses. Prøv igjen.");
-		} finally {
-			setBusy(false);
-		}
+		if (application)
+			await perform(async () => {
+				await cancelInterview({
+					applicationId: application._id,
+					expectedRevision: application.revision,
+					idempotencyKey: crypto.randomUUID(),
+				});
+			}, "Intervjuet kunne ikke avlyses. Prøv igjen.");
 	}
 
 	async function replyToOffer(accept: boolean) {
-		if (!application) return;
-		setBusy(true);
-		try {
-			const result = await respondToOffer({
-				periodId: period._id,
-				accept,
-				expectedRevision: application.revision,
-			});
-			if (result.offerStatus === "expired") {
-				setMessage("Svarfristen for tilbudet har gått ut.");
-				return;
-			}
-			setMessage(accept ? "Du har takket ja til plassen" : "Takk for at du ga beskjed");
-		} catch (error) {
-			setMessage(convexErrorMessage(error, "Svaret ditt kunne ikke lagres. Prøv igjen."));
-		} finally {
-			setBusy(false);
-		}
+		if (application)
+			await perform(async () => {
+				const result = await respondToOffer({
+					periodId: period._id,
+					accept,
+					expectedRevision: application.revision,
+				});
+				setMessage(
+					result.offerStatus === "expired"
+						? "Svarfristen for tilbudet har gått ut."
+						: accept
+							? "Du har takket ja til plassen"
+							: "Takk for at du ga beskjed",
+				);
+			}, "Svaret ditt kunne ikke lagres. Prøv igjen.");
 	}
 
 	function addAvailability() {
@@ -640,7 +607,7 @@ export default function AdmissionsJourney({
 									type="button"
 									variant="outline"
 									disabled={busy || !canSave}
-									onClick={() => void persistDraft({ about, motivation, group })}
+									onClick={() => void persistApplication({ about, motivation, group })}
 								>
 									{busy ? <LoaderCircle className="animate-spin" /> : null}Lagre utkast
 								</Button>
@@ -663,7 +630,6 @@ function SubmittedApplicationView({
 	busy,
 	applicationWindowClosed,
 	message,
-	cancelledInterview,
 	onReply,
 	onCancelInterview,
 	onReopen,
@@ -673,7 +639,6 @@ function SubmittedApplicationView({
 	busy: boolean;
 	applicationWindowClosed: boolean;
 	message: string;
-	cancelledInterview: boolean;
 	onReply: (accept: boolean) => Promise<void>;
 	onCancelInterview: () => Promise<void>;
 	onReopen: () => Promise<void>;
@@ -753,7 +718,7 @@ function SubmittedApplicationView({
 				{message && <output>{message}</output>}
 			</Notice>
 		);
-	if (cancelledInterview || application.interviewStatus === "cancelled")
+	if (application.interviewStatus === "cancelled")
 		return (
 			<Notice title="Intervjuet er avlyst">
 				<p>Vi har registrert at du har avlyst intervjuet.</p>

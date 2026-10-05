@@ -257,25 +257,3 @@ export const adminOverview = query({
 		};
 	},
 });
-
-export const applicationById = query({
-	args: { applicationId: v.id("admissionApplications") },
-	handler: async (ctx, { applicationId }) => {
-		await requireRole(ctx, adminRoles);
-		const application = await ctx.db.get(applicationId);
-		if (!application) return null;
-		const period = await ctx.db.get(application.periodId);
-		if (!period || period.status === "closing") return null;
-		const user = await ctx.db.get(application.userId);
-		const group =
-			application.group && application.group !== "unsure"
-				? await ctx.db.get(application.group)
-				: null;
-		return {
-			...application,
-			groupId: application.group === "unsure" ? undefined : application.group,
-			group: application.group === "unsure" ? "Usikker ennå" : (group?.name ?? ""),
-			email: user?.email ?? "",
-		};
-	},
-});

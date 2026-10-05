@@ -308,7 +308,7 @@ async function sendDecision(ctx: ActionCtx, claimed: CurrentClaim) {
 }
 
 async function remind(ctx: ActionCtx, claimed: CurrentClaim, days: 1 | 3) {
-	const { period, application, interview, applicant, job } = claimed;
+	const { period, application, interview, applicant } = claimed;
 	if (!application || !interview || !applicant || interview.status !== "scheduled")
 		throw new Error("Intervjuet finnes ikke lenger eller er avlyst.");
 	const kind = days === 3 ? "reminder_3d" : "reminder_1d";
@@ -321,18 +321,13 @@ async function remind(ctx: ActionCtx, claimed: CurrentClaim, days: 1 | 3) {
 		`Påminnelse om intervju, ${period.title}`,
 		AdmissionsReminderEmail(interviewEmailProps(claimed)),
 	);
-	if (days === 1 && !isLocalDevelopment()) {
-		if (!(await current(ctx, job.idempotencyKey))) throw new StaleAdmissionJob();
-		const slack = admissionsSlack();
-		const channel = await admissionsChannel(ctx, slack, period, claimed.selectedInterviewers);
-		await postAdmissionsNotice(
-			slack,
-			channel,
-			`reminder-1d:${interview._id}:${interview.revision}`,
-			interview._creationTime,
+	if (days === 1)
+		await sendNotice(
+			ctx,
+			claimed,
 			`Påminnelse: intervjuet er ${when(interview.startAt)} i ${interview.room} (${roomUrl(interview.room)}).`,
+			`reminder-1d:${interview._id}:${interview.revision}`,
 		);
-	}
 	return { deliveryIds: [emailId] };
 }
 
@@ -373,22 +368,6 @@ async function sendCancellationEmail(ctx: ActionCtx, claimed: CurrentClaim) {
 	);
 }
 
-async function sendCancellationNotice(ctx: ActionCtx, claimed: CurrentClaim) {
-	if (isLocalDevelopment()) return;
-	const { period, interview, job } = claimed;
-	if (!interview) return;
-	if (!(await current(ctx, job.idempotencyKey))) throw new StaleAdmissionJob();
-	const slack = admissionsSlack();
-	const channel = await admissionsChannel(ctx, slack, period, claimed.selectedInterviewers);
-	await postAdmissionsNotice(
-		slack,
-		channel,
-		`cancelled:${interview._id}:${interview.revision}`,
-		interview._creationTime,
-		`Et intervju i ${period.title} er avlyst. Kalenderinvitasjonen er oppdatert.`,
-	);
-}
-
 async function cancelInterview(ctx: ActionCtx, claimed: CurrentClaim) {
 	const { interview, applicant, application } = claimed;
 	if (!interview) return {};
@@ -396,41 +375,31 @@ async function cancelInterview(ctx: ActionCtx, claimed: CurrentClaim) {
 	if (!claimed.job.notifyApplicant || interview.startAt <= Date.now() || !applicant || !application)
 		return {};
 	const emailId = await sendCancellationEmail(ctx, claimed);
-	await sendCancellationNotice(ctx, claimed);
+	await sendNotice(
+		ctx,
+		claimed,
+		`Et intervju i ${claimed.period.title} er avlyst. Kalenderinvitasjonen er oppdatert.`,
+		`cancelled:${interview._id}:${interview.revision}`,
+	);
 	return { deliveryIds: [emailId] };
 }
 
-async function sendDeclineNotice(ctx: ActionCtx, claimed: CurrentClaim, key: string) {
+async function sendNotice(
+	ctx: ActionCtx,
+	claimed: CurrentClaim,
+	message: string,
+	key = claimed.job.idempotencyKey,
+) {
 	if (isLocalDevelopment()) return;
-	if (!(await current(ctx, key))) throw new StaleAdmissionJob();
+	if (!(await current(ctx, claimed.job.idempotencyKey))) throw new StaleAdmissionJob();
 	const slack = admissionsSlack();
 	const channel = await admissionsChannel(ctx, slack, claimed.period, claimed.selectedInterviewers);
 	await postAdmissionsNotice(
 		slack,
 		channel,
-		claimed.job.idempotencyKey,
-		claimed.job.createdAt,
-		`En søker takket nei til tilbudet fra ${claimed.period.title}. Kandidaten er tilgjengelig for ny vurdering.`,
-	);
-}
-
-async function sendDeliveryFailure(ctx: ActionCtx, claimed: CurrentClaim, key: string) {
-	const delivery = claimed.delivery;
-	if (!delivery) throw new Error("Fant ikke den feilede e-postleveringen.");
-	if (isLocalDevelopment()) return;
-	if (!(await current(ctx, key))) throw new StaleAdmissionJob();
-	const context = await ctx.runQuery(internal.admissions.delivery.failureContext, {
-		periodId: claimed.period._id,
-	});
-	if (!context) throw new Error("Fant ikke opptaksperioden for e-postvarselet.");
-	const slack = admissionsSlack();
-	const channel = await admissionsChannel(ctx, slack, context.period, context.interviewers);
-	await postAdmissionsNotice(
-		slack,
-		channel,
-		claimed.job.idempotencyKey,
-		claimed.job.createdAt,
-		`En e-postlevering trenger oppfølging (${delivery.kind}, ${delivery.status}) for ${claimed.period.title}. Kontroller opptaksoversikten.`,
+		key,
+		claimed.interview?._creationTime ?? claimed.job.createdAt,
+		message,
 	);
 }
 
@@ -447,7 +416,11 @@ async function runJob(ctx: ActionCtx, claimed: CurrentClaim, key: string) {
 		case "cancel_interview":
 			return cancelInterview(ctx, claimed);
 		case "offer_declined":
-			await sendDeclineNotice(ctx, claimed, key);
+			await sendNotice(
+				ctx,
+				claimed,
+				`En søker takket nei til tilbudet fra ${claimed.period.title}. Kandidaten er tilgjengelig for ny vurdering.`,
+			);
 			return {};
 		case "archive_channel":
 			if (!isLocalDevelopment()) {
@@ -456,7 +429,12 @@ async function runJob(ctx: ActionCtx, claimed: CurrentClaim, key: string) {
 			}
 			return {};
 		case "delivery_failure":
-			await sendDeliveryFailure(ctx, claimed, key);
+			if (!claimed.delivery) throw new Error("Fant ikke den feilede e-postleveringen.");
+			await sendNotice(
+				ctx,
+				claimed,
+				`En e-postlevering trenger oppfølging (${claimed.delivery.kind}, ${claimed.delivery.status}) for ${claimed.period.title}. Kontroller opptaksoversikten.`,
+			);
 			return {};
 		case "sync_channel":
 			if (!isLocalDevelopment()) {
@@ -497,7 +475,7 @@ async function fail(ctx: ActionCtx, idempotencyKey: string, error: unknown) {
 async function process(ctx: ActionCtx, idempotencyKey: string) {
 	const claimed = await claim(ctx, idempotencyKey);
 	if (!claimed) return;
-	if (!claimed.period || !claimed.revisionIsCurrent) {
+	if (!claimed.period) {
 		await complete(ctx, idempotencyKey);
 		return;
 	}

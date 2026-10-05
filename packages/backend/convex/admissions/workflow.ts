@@ -43,7 +43,7 @@ export async function startDelivery(
 export const completed = internalMutation({
 	args: { workflowId: vWorkflowId, result: vResultValidator, context: v.string() },
 	handler: async (ctx, { workflowId, result, context: idempotencyKey }): Promise<void> => {
-		if (result.kind !== "success")
+		if (result.kind === "failed")
 			await ctx.runMutation(internal.admissions.internal.failOutbox, {
 				idempotencyKey,
 				error: "Utsendingen kunne ikke fullføres. Prøv igjen eller følg opp manuelt.",

@@ -403,22 +403,6 @@ export const submit = mutation({
 	},
 });
 
-export const withdraw = mutation({
-	args: { periodId: v.id("admissionPeriods"), expectedRevision: v.number() },
-	handler: async (ctx, { periodId, expectedRevision }) => {
-		const user = await getCurrentUserOrThrow(ctx);
-		const app = await ctx.db
-			.query("admissionApplications")
-			.withIndex("by_periodId_and_userId", (q) => q.eq("periodId", periodId).eq("userId", user._id))
-			.unique();
-		if (!app || app.revision !== expectedRevision)
-			throw new ConvexError("Søknaden er endret. Last den inn på nytt.");
-		if (app.decisionSentAt || app.offerStatus !== "none")
-			throw new ConvexError("Tilbudet må besvares før søknaden kan trekkes.");
-		await ctx.db.patch(app._id, { status: "withdrawn", revision: app.revision + 1 });
-	},
-});
-
 export const setDecision = mutation({
 	args: {
 		applicationId: v.id("admissionApplications"),
@@ -799,9 +783,6 @@ export const closePeriod = mutation({
 	handler: async (ctx, { periodId, idempotencyKey, force = false }) => {
 		await requireRole(ctx, adminRoles);
 		const period = await ctx.db.get(periodId);
-		if (!period) return null;
-		if (period.status === "closing") return null;
-		await beginClose(ctx, period, force, idempotencyKey);
-		return null;
+		if (period && period.status !== "closing") await beginClose(ctx, period, force, idempotencyKey);
 	},
 });

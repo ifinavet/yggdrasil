@@ -1,8 +1,7 @@
 import { v } from "convex/values";
 import type { Doc } from "../_generated/dataModel";
-import { internalMutation, internalQuery } from "../_generated/server";
+import { internalMutation } from "../_generated/server";
 import { isLocalDevelopment } from "../auth/local";
-import { accountForUser } from "../iam/accounts";
 import { queueOutbox } from "./lifecycle";
 
 const deliveryKind = v.union(
@@ -63,28 +62,6 @@ const errors: Partial<Record<Doc<"admissionDeliveries">["status"], string>> = {
 	complained: "E-posten ble markert som søppelpost. Følg opp manuelt.",
 	failed: "E-posten kunne ikke leveres. Kontroller Resend-oppsettet.",
 };
-
-export const failureContext = internalQuery({
-	args: { periodId: v.id("admissionPeriods") },
-	handler: async (ctx, { periodId }) => {
-		const period = await ctx.db.get(periodId);
-		if (!period) return null;
-		const interviewers = await Promise.all(
-			period.interviewers.map(async ({ userId }) => {
-				const user = await ctx.db.get(userId);
-				if (!user || user.deleted) return null;
-				const account = await accountForUser(ctx, userId, user.email);
-				return { email: account?.workspaceEmail ?? user.email };
-			}),
-		);
-		return {
-			period,
-			interviewers: interviewers.filter(
-				(entry): entry is NonNullable<typeof entry> => entry !== null,
-			),
-		};
-	},
-});
 
 export const recordProviderEvent = internalMutation({
 	args: { emailId: v.string(), type: v.string() },
