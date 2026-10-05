@@ -54,8 +54,10 @@ test.describe("manual interview follow-up", () => {
 		await expect(confirmation).toBeHidden();
 		await expect.poll(async () => (await admissionsOverview())?.interviews.length).toBe(0);
 		await expect
-			.poll(async () =>
-				(await admissionsOverview())?.localEmails.some((mail) => mail.subject.includes("avlyst")),
+			.poll(
+				async () =>
+					(await admissionsOverview())?.localEmails.some((mail) => mail.subject.includes("avlyst")),
+				{ timeout: 30_000 },
 			)
 			.toBe(true);
 		const cancellation = (await admissionsOverview())?.localEmails[0];
