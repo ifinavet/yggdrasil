@@ -589,16 +589,12 @@ async function completeDecision(
 		!application.decisionSentAt
 	) {
 		const decisionSentAt = Date.now();
-		const offerDeadline =
-			application.decision === "accepted"
-				? Math.min(currentPeriod.retentionAt, decisionSentAt + 7 * 86400000)
-				: undefined;
-		const offerStatus =
-			application.decision === "accepted"
-				? offerDeadline !== undefined && offerDeadline <= decisionSentAt
-					? "expired"
-					: "pending"
-				: "none";
+		let offerDeadline: number | undefined;
+		let offerStatus: Doc<"admissionApplications">["offerStatus"] = "none";
+		if (application.decision === "accepted") {
+			offerDeadline = Math.min(currentPeriod.retentionAt, decisionSentAt + 7 * 86400000);
+			offerStatus = offerDeadline <= decisionSentAt ? "expired" : "pending";
+		}
 		await ctx.db.patch(application._id, {
 			decisionQueuedAt: undefined,
 			decisionSentAt,
