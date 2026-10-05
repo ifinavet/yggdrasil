@@ -168,3 +168,26 @@ it("routes admission mail webhooks through the shared callback without touching 
 	expect((await t.run((ctx) => ctx.db.get(deliveryId)))?.status).toBe("delivered");
 	expect(await t.run((ctx) => ctx.db.query("feedbackInvites").collect())).toEqual([]);
 });
+
+it.each(["delivered", "bounced", "complained", "failed"] as const)(
+	"preserves provider status %s when recording the same queued email again",
+	async (status) => {
+		const { t, periodId, applicationId } = await overviewFixture();
+		const input = {
+			periodId,
+			applicationId,
+			kind: "offer" as const,
+			idempotencyKey: "offer:retry",
+			emailId: "resend-stable-id",
+		};
+		const deliveryId = await t.mutation(internal.admissions.delivery.recordQueued, input);
+		await t.mutation(internal.admissions.delivery.recordProviderEvent, {
+			emailId: input.emailId,
+			type: `email.${status}`,
+		});
+		const before = await t.run((ctx) => ctx.db.get(deliveryId));
+		expect(before?.status).toBe(status);
+		expect(await t.mutation(internal.admissions.delivery.recordQueued, input)).toBe(deliveryId);
+		expect(await t.run((ctx) => ctx.db.get(deliveryId))).toEqual(before);
+	},
+);

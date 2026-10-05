@@ -29,6 +29,7 @@ export const recordQueued = internalMutation({
 			.query("admissionDeliveries")
 			.withIndex("by_idempotencyKey", (q) => q.eq("idempotencyKey", args.idempotencyKey))
 			.unique();
+		if (existing?.emailId === args.emailId) return existing._id;
 		if (existing) {
 			await ctx.db.patch(existing._id, {
 				emailId: args.emailId,

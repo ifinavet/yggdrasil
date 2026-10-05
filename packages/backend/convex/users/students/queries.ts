@@ -118,6 +118,7 @@ export const getCurrent = query({
 });
 
 export const getCurrentForAdmissions = query({
+	args: {},
 	handler: async (ctx) => {
 		const user = await getCurrentUserOrThrow(ctx);
 		const student = await ctx.db
