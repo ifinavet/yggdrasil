@@ -38,7 +38,6 @@ import {
 	snapshotOf,
 	UNREGISTRATION_HISTORY_START,
 	upcomingEvents,
-	waitlistCountOf,
 } from "./snapshot";
 
 const UPCOMING_EVENTS = 30;
@@ -67,7 +66,7 @@ export const upcoming = query({
 					registrationOpens: event.registrationOpens,
 					participationLimit: event.participationLimit,
 					registered: snapshot.registered,
-					waitlist: await waitlistCountOf(ctx, event._id),
+					waitlist: snapshot.waitlist,
 					delta24h: snapshot.delta24h,
 					status: snapshot.status,
 				};
@@ -257,7 +256,7 @@ export const paceCurve = query({
 			if (progress < snapshot.progress) return null;
 			return Math.round(
 				projectFill(
-					snapshot.registered / limit,
+					snapshot.demandFill,
 					snapshot.progress,
 					snapshot.baseline?.curve ?? null,
 					progress,
