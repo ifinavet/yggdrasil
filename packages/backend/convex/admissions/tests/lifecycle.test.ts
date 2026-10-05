@@ -94,7 +94,6 @@ it("sends a declined-offer notice before archiving the channel during close", as
 
 	await asUser(t, admin).mutation(api.admissions.mutations.closePeriod, {
 		periodId,
-		idempotencyKey: "close-after-decline",
 		force: true,
 	});
 	const claimed = await deliveryContext(t, "declined-before-close");

@@ -333,16 +333,13 @@ it("keeps an accepted decision separate from sending and makes send idempotent",
 		(await admin.query(api.admissions.queries.adminOverview, { periodId }))?.candidates[0]
 			?.decisionSentAt,
 	).toBeUndefined();
-	const key = `send:${candidate._id}:${decision.revision}`;
 	await admin.mutation(api.admissions.mutations.sendDecision, {
 		applicationId: candidate._id,
 		expectedRevision: decision.revision,
-		idempotencyKey: key,
 	});
 	await admin.mutation(api.admissions.mutations.sendDecision, {
 		applicationId: candidate._id,
 		expectedRevision: decision.revision,
-		idempotencyKey: key,
 	});
 	await expect(t.run((ctx) => allOperations(ctx))).resolves.toHaveLength(1);
 });
@@ -365,7 +362,6 @@ it("provisions only after an authenticated applicant accepts an offer; decline g
 	await admin.mutation(api.admissions.mutations.sendDecision, {
 		applicationId: candidate._id,
 		expectedRevision: decision.revision,
-		idempotencyKey: `offer:${candidate._id}`,
 	});
 	const pending = (
 		await student.query(api.admissions.queries.applicationContext, { now: Date.now() })
@@ -377,7 +373,7 @@ it("provisions only after an authenticated applicant accepts an offer; decline g
 			expectedRevision: pending?.revision ?? 0,
 		}),
 	).rejects.toThrow(/tilbud/i);
-	const firstKey = `offer:${candidate._id}`;
+	const firstKey = `decision:${candidate._id}:${decision.decisionRevision}`;
 
 	await finishOperation(t, firstKey);
 	await submitAnswers(t, otherStudent, periodId, {
@@ -390,11 +386,10 @@ it("provisions only after an authenticated applicant accepts an offer; decline g
 	const second = latest?.candidates.find((item) => item.userId !== candidate.userId);
 	if (!second) throw new Error("Expected second candidate");
 	const declinedDecision = await acceptApplication(t, admin, second, "other@ifinavet.no", "Web");
-	const secondKey = `offer:${second._id}`;
+	const secondKey = `decision:${second._id}:${declinedDecision.decisionRevision}`;
 	await admin.mutation(api.admissions.mutations.sendDecision, {
 		applicationId: second._id,
 		expectedRevision: declinedDecision.revision,
-		idempotencyKey: secondKey,
 	});
 
 	await finishOperation(t, secondKey);
@@ -447,11 +442,10 @@ it("hides conflicting member identities when accepted-offer onboarding fails", a
 		?.candidates[0];
 	if (!application) throw new Error("Expected submitted candidate");
 	const decision = await acceptApplication(t, admin, application, "private-member@ifinavet.no");
-	const offerKey = `private-conflict:${application._id}`;
+	const offerKey = `decision:${application._id}:${decision.decisionRevision}`;
 	await admin.mutation(api.admissions.mutations.sendDecision, {
 		applicationId: application._id,
 		expectedRevision: decision.revision,
-		idempotencyKey: offerKey,
 	});
 
 	await finishOperation(t, offerKey);
@@ -559,7 +553,6 @@ it("purges sensitive history and applicant identity on close", async () => {
 	});
 	await admin.mutation(api.admissions.mutations.closePeriod, {
 		periodId,
-		idempotencyKey: "close:test",
 	});
 
 	await finishOperation(t, `close-archive:${periodId}`);

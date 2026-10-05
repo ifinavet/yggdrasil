@@ -30,7 +30,7 @@ export function CloseDialog({
 	function submit() {
 		if (!canClose) return Promise.resolve(false);
 		return run(
-			() => close({ periodId, idempotencyKey: `close-${periodId}`, force: forceRequired }),
+			() => close({ periodId, force: forceRequired }),
 			onClosed,
 			"Opptaket kunne ikke avsluttes.",
 		);

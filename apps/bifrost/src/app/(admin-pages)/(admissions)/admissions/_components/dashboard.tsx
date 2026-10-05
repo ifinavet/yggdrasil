@@ -129,7 +129,6 @@ export default function AdmissionsDashboard() {
 		sendDecision({
 			applicationId: entry._id,
 			expectedRevision: entry.revision,
-			idempotencyKey: `decision-${entry._id}-${entry.decisionRevision}`,
 		});
 	const decide = (id: string, decision: Decision) => {
 		const row = overview.candidates.find((entry) => entry._id === id);
@@ -240,7 +239,6 @@ export default function AdmissionsDashboard() {
 								publish({
 									periodId: period._id,
 									expectedRevision: period.revision,
-									idempotencyKey: `publish-${period.revision}`,
 								}),
 							"Intervjuplanen er klar for utsending",
 						)

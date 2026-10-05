@@ -266,3 +266,30 @@ it("limits bulk room conflict checks to rooms without rejecting unchanged interv
 		}),
 	).rejects.toThrow(/Rommet er allerede i bruk/);
 });
+
+it("manual publication reuses the workflow queued by a room update", async () => {
+	const { t, admin, periodId, ids, now } = await boardFixture();
+	const applicationId = ids[0];
+	if (!applicationId) throw new Error("Missing fixture application");
+	const interviewId = await t.run(async (ctx) => {
+		await ctx.db.patch(periodId, { status: "published" });
+		return ctx.db.insert(
+			"admissionInterviews",
+			interviewFields(periodId, applicationId, {
+				startAt: now + 172800000,
+				endAt: now + 173700000,
+			}),
+		);
+	});
+	const client = asUser(t, admin);
+	await client.mutation(api.admissions.board.assignRooms, {
+		periodId,
+		expectedRevision: 0,
+		applicationIds: [applicationId],
+		room: "Alfa",
+	});
+	await client.mutation(api.admissions.mutations.publish, { periodId, expectedRevision: 1 });
+	const operations = await t.run((ctx) => allOperations(ctx));
+	expect(operations).toHaveLength(1);
+	expect(operations[0]).toMatchObject({ idempotencyKey: `publish:${interviewId}:2` });
+});

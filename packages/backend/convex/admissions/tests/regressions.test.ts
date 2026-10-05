@@ -243,7 +243,6 @@ it("cleans future and past calendar events on close without sending cancellation
 	});
 	await admin.mutation(api.admissions.mutations.closePeriod, {
 		periodId,
-		idempotencyKey: "close-regression",
 		force: true,
 	});
 	const cancellations = await t.run((ctx) => listOperations(ctx, periodId));
@@ -277,11 +276,10 @@ it("closes an in-flight publish with calendar cleanup without notifying the appl
 	);
 	await admin.mutation(api.admissions.mutations.closePeriod, {
 		periodId,
-		idempotencyKey: "close-in-flight-publish",
 		force: true,
 	});
 	const cleanup = await t.run((ctx) =>
-		operationByKey(ctx, `close-in-flight-publish:cancel:${interviewId}`),
+		operationByKey(ctx, `close:${periodId}:cancel:${interviewId}`),
 	);
 	expect(cleanup).toMatchObject({ kind: "cancel_interview", notifyApplicant: false });
 
@@ -357,10 +355,9 @@ it("archives only after cancellation cleanup and purges only after archive succe
 	});
 	await admin.mutation(api.admissions.mutations.closePeriod, {
 		periodId,
-		idempotencyKey: "close-after-cancel",
 		force: true,
 	});
-	const cancellationKey = `close-after-cancel:cancel:${interviewId}`;
+	const cancellationKey = `close:${periodId}:cancel:${interviewId}`;
 	expect(await t.run((ctx) => ctx.db.get(applicationId))).not.toBeNull();
 
 	await finishOperation(t, cancellationKey);
@@ -405,10 +402,9 @@ it("finds pending cleanup beyond 200 completed workflows and purges in bounded b
 
 	await admin.mutation(api.admissions.mutations.closePeriod, {
 		periodId,
-		idempotencyKey: "close-many-history",
 		force: true,
 	});
-	const cancellationKey = `close-many-history:cancel:${interviewId}`;
+	const cancellationKey = `close:${periodId}:cancel:${interviewId}`;
 	const archiveBeforeCancellation = await t.run((ctx) =>
 		operationByKey(ctx, `close-archive:${periodId}`),
 	);
@@ -969,11 +965,10 @@ it("cleans a failed calendar publish before archiving even without a saved event
 	).toMatchObject({ state: "failed" });
 	await admin.mutation(api.admissions.mutations.closePeriod, {
 		periodId,
-		idempotencyKey: "close-failed-publish",
 		force: true,
 	});
 	const cleanup = await t.run((ctx) =>
-		operationByKey(ctx, `close-failed-publish:cancel:${interviewId}`),
+		operationByKey(ctx, `close:${periodId}:cancel:${interviewId}`),
 	);
 	expect(cleanup).toMatchObject({
 		kind: "cancel_interview",
@@ -983,7 +978,7 @@ it("cleans a failed calendar publish before archiving even without a saved event
 	});
 	expect(await firstAdmissionOperation(t, periodId, "archive_channel")).toBeNull();
 	expect(await t.run((ctx) => ctx.db.get(interviewId))).not.toBeNull();
-	await finishOperation(t, `close-failed-publish:cancel:${interviewId}`);
+	await finishOperation(t, `close:${periodId}:cancel:${interviewId}`);
 	expect(await firstAdmissionOperation(t, periodId, "archive_channel")).toMatchObject({
 		state: "inProgress",
 	});

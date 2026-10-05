@@ -337,9 +337,8 @@ export const sendDecision = mutation({
 	args: {
 		applicationId: v.id("admissionApplications"),
 		expectedRevision: v.number(),
-		idempotencyKey: v.string(),
 	},
-	handler: async (ctx, { applicationId, expectedRevision, idempotencyKey }) => {
+	handler: async (ctx, { applicationId, expectedRevision }) => {
 		const { app, period } = await requireMutableApplication(ctx, applicationId, expectedRevision);
 		if (app.decision !== "accepted" && app.decision !== "rejected")
 			throw new ConvexError("Velg endelig opptaksbeslutning først.");
@@ -359,7 +358,7 @@ export const sendDecision = mutation({
 			periodId: period._id,
 			applicationId,
 			revision: app.decisionRevision,
-			idempotencyKey,
+			idempotencyKey: `decision:${app._id}:${app.decisionRevision}`,
 			dueAt: Date.now(),
 		});
 		await ctx.db.patch(app._id, { decisionQueuedAt: Date.now() });
@@ -506,9 +505,8 @@ export const publish = mutation({
 	args: {
 		periodId: v.id("admissionPeriods"),
 		expectedRevision: v.number(),
-		idempotencyKey: v.string(),
 	},
-	handler: async (ctx, { periodId, expectedRevision, idempotencyKey }) => {
+	handler: async (ctx, { periodId, expectedRevision }) => {
 		await requireRole(ctx, adminRoles);
 		const period = await requireMutablePeriod(ctx, periodId);
 		if (period.revision !== expectedRevision)
@@ -527,7 +525,7 @@ export const publish = mutation({
 					applicationId: interview.applicationId,
 					interviewId: interview._id,
 					revision: interview.revision,
-					idempotencyKey: `${idempotencyKey}:${interview._id}`,
+					idempotencyKey: `publish:${interview._id}:${interview.revision}`,
 					dueAt: Date.now(),
 				}),
 			),
@@ -539,12 +537,12 @@ export const publish = mutation({
 export const closePeriod = mutation({
 	args: {
 		periodId: v.id("admissionPeriods"),
-		idempotencyKey: v.string(),
 		force: v.optional(v.boolean()),
 	},
-	handler: async (ctx, { periodId, idempotencyKey, force = false }) => {
+	handler: async (ctx, { periodId, force = false }) => {
 		await requireRole(ctx, adminRoles);
 		const period = await ctx.db.get(periodId);
-		if (period && period.status !== "closing") await beginClose(ctx, period, force, idempotencyKey);
+		if (period && period.status !== "closing")
+			await beginClose(ctx, period, force, `close:${periodId}`);
 	},
 });
