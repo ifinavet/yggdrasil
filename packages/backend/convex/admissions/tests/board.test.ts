@@ -230,3 +230,39 @@ it("uses the interviewer's managed Workspace address for calendar delegation", a
 	});
 	expect(access.email).toBe("board.member@ifinavet.no");
 });
+
+it("limits bulk room conflict checks to rooms without rejecting unchanged interviewer overlaps", async () => {
+	const { t, admin, periodId, ids, now } = await boardFixture();
+	const first = ids[0];
+	const second = ids[1];
+	if (!first || !second) throw new Error("Missing candidates");
+	await t.run(async (ctx) => {
+		for (const [applicationId, room] of [
+			[first, "Beta"],
+			[second, "Alfa"],
+		] as const)
+			await ctx.db.insert(
+				"admissionInterviews",
+				interviewFields(periodId, applicationId, {
+					startAt: now + 3 * 86400000,
+					endAt: now + 3 * 86400000 + 900000,
+					interviewerIds: [admin._id],
+					room,
+				}),
+			);
+	});
+	await asUser(t, admin).mutation(api.admissions.board.assignRooms, {
+		periodId,
+		expectedRevision: 0,
+		applicationIds: [first],
+		room: "Gamma",
+	});
+	await expect(
+		asUser(t, admin).mutation(api.admissions.board.assignRooms, {
+			periodId,
+			expectedRevision: 1,
+			applicationIds: [first],
+			room: "Alfa",
+		}),
+	).rejects.toThrow(/Rommet er allerede i bruk/);
+});

@@ -2,7 +2,6 @@
 import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
-import { convexErrorMessage } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@workspace/ui/components/dialog";
 import { Field, FieldLabel } from "@workspace/ui/components/field";
@@ -14,9 +13,10 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@workspace/ui/components/select";
+import { useAsyncAction } from "@workspace/ui/hooks/use-async-action";
 import { useQuery } from "convex/react";
+import { ConvexError } from "convex/values";
 import Link from "next/link";
-import { useState } from "react";
 
 export function OfferDialog({
 	name,
@@ -31,27 +31,24 @@ export function OfferDialog({
 	onSave: (group: Id<"internalGroups">, email: string) => Promise<void>;
 	onClose: () => void;
 }>) {
-	const [error, setError] = useState("");
+	const { error, run } = useAsyncAction();
 	const groups = useQuery(api.admissions.queries.availableGroups, {});
 	const form = useForm({
 		defaultValues: {
 			group: initialGroup ?? "",
 			email: initialEmail,
 		},
-		onSubmit: async ({ value }) => {
-			setError("");
-			try {
-				const selected = groups?.find((group) => group._id === value.group);
-				if (!selected) {
-					setError("Velg en arbeidsgruppe.");
-					return;
-				}
-				await onSave(selected._id, value.email);
-				onClose();
-			} catch (cause) {
-				setError(convexErrorMessage(cause, "Kunne ikke lagre tilbudet."));
-			}
-		},
+		onSubmit: ({ value }) =>
+			run(
+				async () => {
+					const selected = groups?.find((group) => group._id === value.group);
+					if (!selected) throw new ConvexError("Velg en arbeidsgruppe.");
+					await onSave(selected._id, value.email);
+					onClose();
+				},
+				undefined,
+				"Kunne ikke lagre tilbudet.",
+			),
 	});
 	return (
 		<Dialog

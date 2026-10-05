@@ -1,10 +1,9 @@
 "use client";
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
-import { convexErrorMessage } from "@workspace/shared/utils";
 import { ConfirmDialog } from "@workspace/ui/components/confirm-dialog";
+import { useAsyncAction } from "@workspace/ui/hooks/use-async-action";
 import { useMutation } from "convex/react";
-import { useState } from "react";
 
 export function CancelInterviewDialog({
 	candidate,
@@ -14,21 +13,7 @@ export function CancelInterviewDialog({
 	onClose: () => void;
 }>) {
 	const cancel = useMutation(api.admissions.mutations.cancelInterviewByBoard);
-	const [error, setError] = useState("");
-	async function confirm() {
-		setError("");
-		try {
-			await cancel({
-				applicationId: candidate._id,
-				expectedRevision: candidate.revision,
-				idempotencyKey: `cancel-${candidate._id}-${candidate.revision}`,
-			});
-			return true;
-		} catch (cause) {
-			setError(convexErrorMessage(cause, "Kunne ikke avlyse intervjuet."));
-			return false;
-		}
-	}
+	const { error, run } = useAsyncAction();
 	return (
 		<ConfirmDialog
 			open
@@ -40,7 +25,18 @@ export function CancelInterviewDialog({
 			confirmLabel="Bekreft avlysning"
 			destructive
 			error={error}
-			onConfirm={confirm}
+			onConfirm={() =>
+				run(
+					() =>
+						cancel({
+							applicationId: candidate._id,
+							expectedRevision: candidate.revision,
+							idempotencyKey: `cancel-${candidate._id}-${candidate.revision}`,
+						}),
+					undefined,
+					"Kunne ikke avlyse intervjuet.",
+				)
+			}
 		/>
 	);
 }

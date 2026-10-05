@@ -3,9 +3,9 @@
 import { api } from "@workspace/backend/convex/api";
 import { roomUrl } from "@workspace/shared/admissions";
 import { DATE_PATTERNS, formatOsloDate } from "@workspace/shared/time";
-import { convexErrorMessage } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
 import { ConfirmDialog } from "@workspace/ui/components/confirm-dialog";
+import { useAsyncAction } from "@workspace/ui/hooks/use-async-action";
 import { useMutation } from "convex/react";
 import { Check } from "lucide-react";
 import { useState } from "react";
@@ -23,48 +23,41 @@ export function ApplicationStatus({
 	const reopen = useMutation(api.admissions.mutations.reopenApplication);
 	const cancelInterview = useMutation(api.admissions.mutations.cancelInterview);
 	const respondToOffer = useMutation(api.admissions.mutations.respondToOffer);
-	const [busy, setBusy] = useState(false);
+	const { pending: busy, error: message, run } = useAsyncAction();
 	const [confirmation, setConfirmation] = useState<"cancel" | "accept" | "decline" | null>(null);
-	const [message, setMessage] = useState("");
-	async function perform(action: () => Promise<void>, fallback: string) {
-		if (busy) return false;
-		setBusy(true);
-		setMessage("");
-		try {
-			await action();
-			return true;
-		} catch (error) {
-			setMessage(convexErrorMessage(error, fallback));
-			return false;
-		} finally {
-			setBusy(false);
-		}
-	}
 
 	async function onReopen() {
-		return perform(async () => {
-			await reopen({ periodId: period._id, expectedRevision: application.revision });
-		}, "Søknaden kunne ikke åpnes for endring.");
+		return run(
+			() => reopen({ periodId: period._id, expectedRevision: application.revision }),
+			undefined,
+			"Søknaden kunne ikke åpnes for endring.",
+		);
 	}
 
 	async function onCancelInterview() {
-		return perform(async () => {
-			await cancelInterview({
-				applicationId: application._id,
-				expectedRevision: application.revision,
-				idempotencyKey: crypto.randomUUID(),
-			});
-		}, "Intervjuet kunne ikke avlyses. Prøv igjen.");
+		return run(
+			() =>
+				cancelInterview({
+					applicationId: application._id,
+					expectedRevision: application.revision,
+					idempotencyKey: crypto.randomUUID(),
+				}),
+			undefined,
+			"Intervjuet kunne ikke avlyses. Prøv igjen.",
+		);
 	}
 
 	async function onReply(accept: boolean) {
-		return perform(async () => {
-			await respondToOffer({
-				periodId: period._id,
-				accept,
-				expectedRevision: application.revision,
-			});
-		}, "Svaret ditt kunne ikke lagres. Prøv igjen.");
+		return run(
+			() =>
+				respondToOffer({
+					periodId: period._id,
+					accept,
+					expectedRevision: application.revision,
+				}),
+			undefined,
+			"Svaret ditt kunne ikke lagres. Prøv igjen.",
+		);
 	}
 
 	function renderStatus() {

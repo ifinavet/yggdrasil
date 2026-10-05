@@ -6,7 +6,7 @@ import { requireMutablePeriod } from "./access";
 import { startDelivery } from "./delivery/workflow";
 import { validateInterviewers } from "./mutations";
 import { scheduledInterviews, submittedApplications } from "./queries";
-import { MAX_APPLICATIONS, MAX_ROUNDS, validateSettings } from "./rules";
+import { assertNoScheduleConflicts, MAX_APPLICATIONS, MAX_ROUNDS, validateSettings } from "./rules";
 import { interviewerSelection } from "./schema";
 
 const settings = schema
@@ -120,21 +120,7 @@ export const assignRooms = mutation({
 		const proposed = interviews.map((row) =>
 			selected.has(row.applicationId) ? { ...row, room } : row,
 		);
-		for (let index = 0; index < proposed.length; index++) {
-			const interview = proposed[index];
-			if (!interview) continue;
-			if (
-				proposed
-					.slice(index + 1)
-					.some(
-						(other) =>
-							other.room === interview.room &&
-							other.startAt < interview.endAt + period.buffer * 60_000 &&
-							other.endAt + period.buffer * 60_000 > interview.startAt,
-					)
-			)
-				throw new ConvexError("Rommet er allerede i bruk av et annet intervju på samme tid.");
-		}
+		assertNoScheduleConflicts(proposed, period.buffer, 0, true);
 		const changed = interviews.filter(
 			(row) => selected.has(row.applicationId) && row.room !== room,
 		);

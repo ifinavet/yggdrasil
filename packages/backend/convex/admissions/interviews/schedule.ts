@@ -7,6 +7,7 @@ import { workspaceEmail } from "../../iam/accounts";
 import { activePublishInterviewIds } from "../lifecycle";
 import { submittedApplications } from "../queries";
 import {
+	assertNoScheduleConflicts,
 	interviewCalendarIds,
 	MAX_APPLICATIONS,
 	sameInterviewSchedule,
@@ -216,23 +217,4 @@ function validateAssignment(
 		selectedCalendarIds: assignment.selectedCalendarIds,
 		room,
 	};
-}
-function assertNoScheduleConflicts(
-	scheduled: (ScheduleAssignment & { endAt: number })[],
-	buffer: number,
-	fixedCount = 0,
-) {
-	const conflict = scheduled.some((assignment, index) =>
-		scheduled.slice(index + 1).some((other, nextIndex) => {
-			const otherIndex = index + 1 + nextIndex;
-			if (index < fixedCount && otherIndex < fixedCount) return false;
-			return (
-				other.startAt < assignment.endAt + buffer * 60_000 &&
-				assignment.startAt < other.endAt + buffer * 60_000 &&
-				(other.room === assignment.room ||
-					other.interviewerIds.some((id) => assignment.interviewerIds.includes(id)))
-			);
-		}),
-	);
-	if (conflict) throw new ConvexError("Intervjuer eller rom er allerede opptatt i denne tiden.");
 }

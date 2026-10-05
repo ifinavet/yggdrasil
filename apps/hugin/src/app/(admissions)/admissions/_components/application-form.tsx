@@ -17,7 +17,6 @@ import {
 	minutesToClock as formatTime,
 	localDateAndMinute,
 } from "@workspace/shared/time";
-import { convexErrorMessage } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
 import { Checkbox } from "@workspace/ui/components/checkbox";
 import { Input } from "@workspace/ui/components/input";
@@ -30,6 +29,7 @@ import {
 } from "@workspace/ui/components/select";
 import { StudentProfileFields } from "@workspace/ui/components/student-profile-fields";
 import { Textarea } from "@workspace/ui/components/textarea";
+import { useAsyncAction } from "@workspace/ui/hooks/use-async-action";
 import { useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { CalendarDays, LoaderCircle, ShieldCheck, UserRound } from "lucide-react";
@@ -71,7 +71,7 @@ export function ApplicationForm({
 	const [profileConfirmed, setProfileConfirmed] = useState(false);
 	const [editingProfile, setEditingProfile] = useState(false);
 	const [consent, setConsent] = useState(false);
-	const [busy, setBusy] = useState(false);
+	const { pending: busy, error, run } = useAsyncAction();
 	const [message, setMessage] = useState("");
 	const [selectedDays, setSelectedDays] = useState<string[]>([]);
 	const [noSuitableTimes, setNoSuitableTimes] = useState(
@@ -97,17 +97,9 @@ export function ApplicationForm({
 		(start - period.dayStart) % 15 === 0 &&
 		(end - period.dayStart) % 15 === 0;
 	const selectedCount = availability.length;
-	async function perform(action: () => Promise<void>, fallback: string) {
-		if (busy) return;
-		setBusy(true);
+	function perform(action: () => Promise<void>, fallback: string) {
 		setMessage("");
-		try {
-			await action();
-		} catch (error) {
-			setMessage(convexErrorMessage(error, fallback));
-		} finally {
-			setBusy(false);
-		}
+		return run(action, undefined, fallback);
 	}
 
 	async function persistApplication(value: ApplicationValues, send = false) {
@@ -443,7 +435,7 @@ export function ApplicationForm({
 						);
 					}}
 				</form.Subscribe>
-				{message && <output className="text-sm">{message}</output>}
+				{(error || message) && <output className="text-sm">{error || message}</output>}
 			</form>
 		</div>
 	);

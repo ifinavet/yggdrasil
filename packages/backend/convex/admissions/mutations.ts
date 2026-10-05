@@ -53,11 +53,18 @@ async function validateGroupChoice(
 async function cancelScheduledInterview(
 	ctx: MutationCtx,
 	app: Doc<"admissionApplications">,
-	period: Doc<"admissionPeriods">,
-	interview: Doc<"admissionInterviews">,
 	idempotencyKey: string,
-	notifyApplicant: boolean,
+	byBoard: boolean,
 ) {
+	const period = await ctx.db.get(app.periodId);
+	if (!period || period.status === "closing") throw new ConvexError("Opptaksperioden er stengt.");
+	const interview = await getOneFrom(ctx.db, "admissionInterviews", "by_applicationId", app._id);
+	if (interview?.status !== "scheduled" || (!byBoard && !interview.publishedAt))
+		throw new ConvexError(
+			byBoard
+				? "Fant ikke et planlagt intervju."
+				: "Du har ikke et publisert intervju å avbestille.",
+		);
 	const now = Date.now();
 	const revision = interview.revision + 1;
 	const refillEligible = interview.startAt - now >= 48 * 60 * 60 * 1000;
@@ -72,7 +79,7 @@ async function cancelScheduledInterview(
 		idempotencyKey,
 		dueAt: now,
 		refillEligible,
-		notifyApplicant,
+		notifyApplicant: byBoard && interview.publishedAt !== undefined,
 	});
 	return { revision: app.revision + 1, refillEligible };
 }
@@ -479,18 +486,7 @@ export const cancelInterviewByBoard = mutation({
 		}
 		if (app.revision !== expectedRevision)
 			throw new ConvexError("Søknaden er endret. Last den inn på nytt.");
-		const period = await ctx.db.get(app.periodId);
-		if (!period || period.status === "closing") throw new ConvexError("Opptaksperioden er stengt.");
-		const interview = await getOneFrom(ctx.db, "admissionInterviews", "by_applicationId", app._id);
-		if (interview?.status !== "scheduled") throw new ConvexError("Fant ikke et planlagt intervju.");
-		return await cancelScheduledInterview(
-			ctx,
-			app,
-			period,
-			interview,
-			idempotencyKey,
-			interview.publishedAt !== undefined,
-		);
+		return await cancelScheduledInterview(ctx, app, idempotencyKey, true);
 	},
 });
 
@@ -505,12 +501,7 @@ export const cancelInterview = mutation({
 		const app = await ctx.db.get(applicationId);
 		if (!app || app.userId !== user._id || app.revision !== expectedRevision)
 			throw new ConvexError("Fant ikke intervjuet ditt.");
-		const period = await ctx.db.get(app.periodId);
-		if (!period || period.status === "closing") throw new ConvexError("Opptaksperioden er stengt.");
-		const interview = await getOneFrom(ctx.db, "admissionInterviews", "by_applicationId", app._id);
-		if (interview?.status !== "scheduled" || !interview.publishedAt)
-			throw new ConvexError("Du har ikke et publisert intervju å avbestille.");
-		return await cancelScheduledInterview(ctx, app, period, interview, idempotencyKey, false);
+		return await cancelScheduledInterview(ctx, app, idempotencyKey, false);
 	},
 });
 

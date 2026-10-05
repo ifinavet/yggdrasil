@@ -3,7 +3,6 @@ import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
 import type { Doc, Id } from "@workspace/backend/convex/dataModel";
 import { formatOsloDate, osloDateTimeToEpoch } from "@workspace/shared/time";
-import { convexErrorMessage } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
 import { Checkbox } from "@workspace/ui/components/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@workspace/ui/components/dialog";
@@ -11,8 +10,8 @@ import { Field, FieldLabel } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
 import { Callout } from "@workspace/ui/components/products/callout";
 import { SearchSelect } from "@workspace/ui/components/search-select";
+import { useAsyncAction } from "@workspace/ui/hooks/use-async-action";
 import { useMutation } from "convex/react";
-import { useState } from "react";
 
 export function InterviewDialog({
 	period,
@@ -26,7 +25,7 @@ export function InterviewDialog({
 	onClose: () => void;
 }>) {
 	const schedule = useMutation(api.admissions.mutations.scheduleInterview);
-	const [error, setError] = useState("");
+	const { error, run } = useAsyncAction();
 	const form = useForm({
 		defaultValues: {
 			start: "",
@@ -34,25 +33,25 @@ export function InterviewDialog({
 			interviewerIds: [] as Id<"users">[],
 			confirmed: false,
 		},
-		onSubmit: async ({ value }) => {
-			setError("");
-			try {
-				const [day, time] = value.start.split("T");
-				const startAt = osloDateTimeToEpoch(day ?? "", time ?? "");
-				await schedule({
-					applicationId: candidate._id,
-					expectedRevision: candidate.revision,
-					startAt,
-					room: value.room,
-					interviewerIds: value.interviewerIds,
-					expectedPeriodRevision: period.revision,
-					candidateConfirmedOutsideForm: value.confirmed,
-				});
-				onClose();
-			} catch (cause) {
-				setError(convexErrorMessage(cause, "Kunne ikke lagre intervjutiden."));
-			}
-		},
+		onSubmit: ({ value }) =>
+			run(
+				async () => {
+					const [day, time] = value.start.split("T");
+					const startAt = osloDateTimeToEpoch(day ?? "", time ?? "");
+					await schedule({
+						applicationId: candidate._id,
+						expectedRevision: candidate.revision,
+						startAt,
+						room: value.room,
+						interviewerIds: value.interviewerIds,
+						expectedPeriodRevision: period.revision,
+						candidateConfirmedOutsideForm: value.confirmed,
+					});
+					onClose();
+				},
+				undefined,
+				"Kunne ikke lagre intervjutiden.",
+			),
 	});
 	return (
 		<Dialog

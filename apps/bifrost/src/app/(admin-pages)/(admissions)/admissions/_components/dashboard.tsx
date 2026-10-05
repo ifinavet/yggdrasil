@@ -4,10 +4,10 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { makeSchedulingDays } from "@workspace/shared/admissions";
-import { convexErrorMessage } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
 import { ConfirmDialog } from "@workspace/ui/components/confirm-dialog";
 import { Callout } from "@workspace/ui/components/products/callout";
+import { useAsyncAction } from "@workspace/ui/hooks/use-async-action";
 
 import { useAction, useMutation, useQuery } from "convex/react";
 import {
@@ -60,8 +60,7 @@ export default function AdmissionsDashboard() {
 	const [program, setProgram] = useState("");
 	const [year, setYear] = useState("");
 	const [fullscreen, setFullscreen] = useState(false);
-	const [busy, setBusy] = useState(false);
-	const [error, setError] = useState("");
+	const { pending: busy, error, run } = useAsyncAction();
 	const [offerCandidate, setOfferCandidate] = useState<string | null>(null);
 	const [confirmSend, setConfirmSend] = useState(false);
 	const [configure, setConfigure] = useState(false);
@@ -70,21 +69,8 @@ export default function AdmissionsDashboard() {
 	const [manualInterview, setManualInterview] = useState(false);
 	const [cancelInterview, setCancelInterview] = useState(false);
 
-	async function perform(action: () => Promise<unknown>, message: string) {
-		if (busy) return false;
-		setBusy(true);
-		setError("");
-		try {
-			await action();
-			toast.success(message);
-			return true;
-		} catch (cause) {
-			setError(convexErrorMessage(cause, "Handlingen mislyktes. Prøv igjen."));
-			return false;
-		} finally {
-			setBusy(false);
-		}
-	}
+	const perform = (action: () => Promise<unknown>, message: string) =>
+		run(action, () => toast.success(message), "Handlingen mislyktes. Prøv igjen.");
 	if (overview === undefined) return <output>Laster opptaket…</output>;
 	if (!overview)
 		return (

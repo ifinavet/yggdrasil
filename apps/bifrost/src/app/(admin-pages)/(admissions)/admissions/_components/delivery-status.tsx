@@ -6,11 +6,10 @@ type Job = NonNullable<
 	FunctionReturnType<typeof api.admissions.queries.adminOverview>
 >["jobs"][number];
 
-import { convexErrorMessage } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
 import { Callout } from "@workspace/ui/components/products/callout";
+import { useAsyncAction } from "@workspace/ui/hooks/use-async-action";
 import { useMutation } from "convex/react";
-import { useState } from "react";
 
 const jobLabels: Record<Job["kind"], string> = {
 	publish: "Intervjuinvitasjon",
@@ -32,22 +31,10 @@ export function DeliveryStatus({
 	closing: boolean;
 }>) {
 	const retry = useMutation(api.admissions.delivery.workflow.retry);
-	const [retrying, setRetrying] = useState<string | null>(null);
-	const [error, setError] = useState("");
+	const { pending: retrying, error, run } = useAsyncAction();
 	const failures = jobs.filter((job) => job.state === "failed");
 	const active = jobs.filter((job) => job.state === "inProgress" && job.dueAt <= Date.now());
 
-	async function retryJob(idempotencyKey: string) {
-		setRetrying(idempotencyKey);
-		setError("");
-		try {
-			await retry({ idempotencyKey });
-		} catch (cause) {
-			setError(convexErrorMessage(cause, "Kunne ikke prøve på nytt."));
-		} finally {
-			setRetrying(null);
-		}
-	}
 	return (
 		<>
 			{error && (
@@ -69,8 +56,14 @@ export function DeliveryStatus({
 					action={
 						<Button
 							variant="outline"
-							disabled={retrying !== null}
-							onClick={() => void retryJob(job.idempotencyKey)}
+							disabled={retrying}
+							onClick={() =>
+								void run(
+									() => retry({ idempotencyKey: job.idempotencyKey }),
+									undefined,
+									"Kunne ikke prøve på nytt.",
+								)
+							}
 						>
 							Prøv igjen
 						</Button>

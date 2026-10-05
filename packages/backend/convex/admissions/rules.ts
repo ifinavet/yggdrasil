@@ -139,3 +139,29 @@ export function sameInterviewSchedule(
 		previous.selectedCalendarIds.every((id) => desired.selectedCalendarIds.includes(id))
 	);
 }
+
+export function assertNoScheduleConflicts(
+	scheduled: Pick<Doc<"admissionInterviews">, "startAt" | "endAt" | "room" | "interviewerIds">[],
+	buffer: number,
+	fixedCount = 0,
+	roomsOnly = false,
+) {
+	const conflict = scheduled.some((assignment, index) =>
+		scheduled.slice(index + 1).some((other, nextIndex) => {
+			const otherIndex = index + 1 + nextIndex;
+			if (index < fixedCount && otherIndex < fixedCount) return false;
+			return (
+				other.startAt < assignment.endAt + buffer * 60_000 &&
+				assignment.startAt < other.endAt + buffer * 60_000 &&
+				(other.room === assignment.room ||
+					(!roomsOnly && other.interviewerIds.some((id) => assignment.interviewerIds.includes(id))))
+			);
+		}),
+	);
+	if (conflict)
+		throw new ConvexError(
+			roomsOnly
+				? "Rommet er allerede i bruk av et annet intervju på samme tid."
+				: "Intervjuer eller rom er allerede opptatt i denne tiden.",
+		);
+}

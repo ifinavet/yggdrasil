@@ -2,9 +2,8 @@
 
 import type { api } from "@workspace/backend/convex/api";
 import type { Doc, Id } from "@workspace/backend/convex/dataModel";
-import { convexErrorMessage } from "@workspace/shared/utils";
+import { useAsyncAction } from "@workspace/ui/hooks/use-async-action";
 import type { FunctionReturnType } from "convex/server";
-import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { isActiveStatus } from "../status";
 
@@ -68,24 +67,5 @@ export function lastChangeTo(
  * the button that started it can be disabled.
  */
 export function useRunMutation() {
-	const [pending, setPending] = useState(false);
-
-	const run = useCallback(
-		async <T>(mutation: () => Promise<T>, onSuccess?: (result: T) => void): Promise<boolean> => {
-			setPending(true);
-			try {
-				const result = await mutation();
-				onSuccess?.(result);
-				return true;
-			} catch (error) {
-				toast.error(convexErrorMessage(error));
-				return false;
-			} finally {
-				setPending(false);
-			}
-		},
-		[],
-	);
-
-	return { pending, run };
+	return useAsyncAction(toast.error, true);
 }

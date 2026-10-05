@@ -2,9 +2,9 @@
 
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
-import { convexErrorMessage } from "@workspace/shared/utils";
 import { Checkbox } from "@workspace/ui/components/checkbox";
 import { ConfirmDialog } from "@workspace/ui/components/confirm-dialog";
+import { useAsyncAction } from "@workspace/ui/hooks/use-async-action";
 import { useMutation } from "convex/react";
 import { useState } from "react";
 
@@ -23,25 +23,17 @@ export function CloseDialog({
 }>) {
 	const close = useMutation(api.admissions.mutations.closePeriod);
 	const [confirmed, setConfirmed] = useState(false);
-	const [error, setError] = useState("");
+	const { error, run } = useAsyncAction();
 	const forceRequired = Object.values(counts).some((count) => count > 0);
 	const canClose = !forceRequired || confirmed;
 
 	async function submit() {
 		if (!canClose) return false;
-		setError("");
-		try {
-			await close({
-				periodId,
-				idempotencyKey: `close-${periodId}`,
-				force: forceRequired,
-			});
-			onClosed();
-			return true;
-		} catch (cause) {
-			setError(convexErrorMessage(cause, "Opptaket kunne ikke avsluttes."));
-			return false;
-		}
+		return run(
+			() => close({ periodId, idempotencyKey: `close-${periodId}`, force: forceRequired }),
+			onClosed,
+			"Opptaket kunne ikke avsluttes.",
+		);
 	}
 
 	return (

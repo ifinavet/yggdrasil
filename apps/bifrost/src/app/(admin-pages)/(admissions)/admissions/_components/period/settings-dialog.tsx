@@ -4,13 +4,13 @@ import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
 import type { Doc, Id } from "@workspace/backend/convex/dataModel";
 import { formatOsloDate, osloDateTimeToEpoch } from "@workspace/shared/time";
-import { convexErrorMessage } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
 import { Checkbox } from "@workspace/ui/components/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@workspace/ui/components/dialog";
 import { Field, FieldLabel } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
 import { SearchSelect } from "@workspace/ui/components/search-select";
+import { useAsyncAction } from "@workspace/ui/hooks/use-async-action";
 import { useMutation, useQuery } from "convex/react";
 import { useEffect, useState } from "react";
 import { defaults, type Overview } from "../model";
@@ -33,58 +33,58 @@ export function SettingsDialog({
 	const period = overview?.period;
 	const create = useMutation(api.admissions.mutations.createPeriod);
 	const update = useMutation(api.admissions.board.updateSettings);
-	const [error, setError] = useState("");
+	const { error, run } = useAsyncAction();
 	const [closeOpen, setCloseOpen] = useState(false);
 	const form = useForm({
 		defaultValues: formValues(period),
-		onSubmit: async ({ value }) => {
-			setError("");
-			try {
-				const settings = {
-					duration: value.duration,
-					buffer: value.buffer,
-					breakEvery: value.breakEvery,
-					breakMinutes: value.breakMinutes,
-					lunch: value.lunch,
-					room: value.room,
-				};
-				if (period) {
-					await update({
-						periodId: period._id,
-						expectedRevision: period.revision,
-						settings,
-						interviewers: value.interviewerIds.map((userId) => ({
-							userId,
-							selectedCalendarIds:
-								period.interviewers.find((person) => person.userId === userId)
-									?.selectedCalendarIds ?? [],
-						})),
-					});
-				} else {
-					const epoch = (input: string) => {
-						const [day, time] = input.split("T");
-						return osloDateTimeToEpoch(day ?? "", time ?? "");
+		onSubmit: ({ value }) =>
+			run(
+				async () => {
+					const settings = {
+						duration: value.duration,
+						buffer: value.buffer,
+						breakEvery: value.breakEvery,
+						breakMinutes: value.breakMinutes,
+						lunch: value.lunch,
+						room: value.room,
 					};
-					await create({
-						...settings,
-						title: value.title,
-						applicationStartAt: epoch(value.applicationStartAt),
-						applicationEndAt: epoch(value.applicationEndAt),
-						interviewStartAt: epoch(value.interviewStartAt),
-						interviewEndAt: epoch(value.interviewEndAt),
-						retentionAt: epoch(value.retentionAt),
-						interviewers: value.interviewerIds.map((userId) => ({
-							userId,
-							selectedCalendarIds: [],
-						})),
-					});
-				}
-				onSaved();
-				onOpenChange(false);
-			} catch (cause) {
-				setError(convexErrorMessage(cause, "Kunne ikke lagre opptaket."));
-			}
-		},
+					if (period) {
+						await update({
+							periodId: period._id,
+							expectedRevision: period.revision,
+							settings,
+							interviewers: value.interviewerIds.map((userId) => ({
+								userId,
+								selectedCalendarIds:
+									period.interviewers.find((person) => person.userId === userId)
+										?.selectedCalendarIds ?? [],
+							})),
+						});
+					} else {
+						const epoch = (input: string) => {
+							const [day, time] = input.split("T");
+							return osloDateTimeToEpoch(day ?? "", time ?? "");
+						};
+						await create({
+							...settings,
+							title: value.title,
+							applicationStartAt: epoch(value.applicationStartAt),
+							applicationEndAt: epoch(value.applicationEndAt),
+							interviewStartAt: epoch(value.interviewStartAt),
+							interviewEndAt: epoch(value.interviewEndAt),
+							retentionAt: epoch(value.retentionAt),
+							interviewers: value.interviewerIds.map((userId) => ({
+								userId,
+								selectedCalendarIds: [],
+							})),
+						});
+					}
+					onSaved();
+					onOpenChange(false);
+				},
+				undefined,
+				"Kunne ikke lagre opptaket.",
+			),
 	});
 	useEffect(() => {
 		if (open) form.reset(formValues(period));
