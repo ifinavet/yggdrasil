@@ -193,17 +193,20 @@ export async function snapshotOf(
 	);
 	const progress = progressOf(event, now);
 	const registered = registrationTimes.length;
-	const currentFill = registered / event.participationLimit;
+	const waitlist = await waitlistCountOf(ctx, event._id);
+	const demandFill = (registered + waitlist) / event.participationLimit;
 
 	return {
 		registered,
+		waitlist,
+		demandFill,
 		registrationTimes,
 		unregistrations,
 		delta24h: seatDelta(recentLog),
 		progress,
 		baseline,
 		expectedFillNow: baseline ? valueAt(baseline.curve, progress) : null,
-		projectedFill: projectFill(currentFill, progress, baseline?.curve ?? null),
+		projectedFill: projectFill(demandFill, progress, baseline?.curve ?? null),
 		status: classify({
 			now,
 			timeline: event,

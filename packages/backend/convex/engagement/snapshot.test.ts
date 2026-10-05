@@ -396,6 +396,30 @@ describe("snapshotOf", () => {
 		expect(snapshot.projectedFill).toBeCloseTo(1, 5);
 	});
 
+	it("lets the waitlist refill the seats the baseline expects to be cancelled", async () => {
+		const { t, companyId } = await setup();
+		const eventId = await insertEvent(t, companyId, {
+			eventStart: START,
+			registrationOpens: OPENS,
+			participationLimit: 4,
+		});
+		const now = OPENS + 5 * DAY_MS;
+		await registerUsers(t, eventId, 4, OPENS + HOUR_MS);
+		const event = await eventDoc(t, eventId);
+		const declining = [{ eventId, limit: 4, curve: PACE_GRID.map((progress) => 1 - progress / 2) }];
+
+		const withoutWaitlist = await t.run((ctx) => snapshotOf(ctx, event, now, declining));
+		expect(withoutWaitlist.projectedFill).toBeCloseTo(0.75, 5);
+
+		for (const email of ["venter4@example.com", "venter5@example.com"]) {
+			const waiting = await insertUser(t, email);
+			await insertRegistration(t, eventId, waiting._id, "waitlist");
+		}
+		const withWaitlist = await t.run((ctx) => snapshotOf(ctx, event, now, declining));
+		expect(withWaitlist.waitlist).toBe(2);
+		expect(withWaitlist.projectedFill).toBe(1);
+	});
+
 	it("builds the baseline from the hosting company's earlier events", async () => {
 		const { t, companyId } = await setup();
 		await pastEvent(t, companyId, 30, 9);
