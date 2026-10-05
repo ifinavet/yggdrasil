@@ -11,7 +11,7 @@
 		"test": "vitest run"
 	},
 	"dependencies": {
-		"@clerk/localizations": "^4.20.0",
+		"@clerk/localizations": "^4.21.2",
 		"@clerk/nextjs": "catalog:",
 		"@sentry/nextjs": "catalog:",
 		"@tanstack/react-form": "catalog:",
@@ -31,7 +31,7 @@
 		"radix-ui": "catalog:",
 		"react": "catalog:",
 		"react-dom": "catalog:",
-		"sanitize-html": "^2.17.7",
+		"sanitize-html": "^2.18.0",
 		"sonner": "catalog:",
 		"zod": "catalog:"
 	},
@@ -42,7 +42,7 @@
 		"@types/node": "catalog:",
 		"@types/react": "catalog:",
 		"@types/react-dom": "catalog:",
-		"@types/sanitize-html": "^2.16.1",
+		"@types/sanitize-html": "^2.16.2",
 		"@workspace/typescript-config": "workspace:*",
 		"tailwindcss": "catalog:",
 		"typescript": "catalog:",

@@ -35,6 +35,14 @@ export const engagementSchema = {
 		.index("by_userId_and_at", ["userId", "at"])
 		.index("by_at", ["at"]),
 
+	unregistrationImports: defineTable({
+		state: v.union(v.literal("running"), v.literal("done"), v.literal("failed")),
+		attempts: v.number(),
+		revision: v.optional(v.number()),
+		imported: v.optional(v.number()),
+		error: v.optional(v.string()),
+	}),
+
 	engagementAlerts: defineTable({
 		eventId: v.id("events"),
 		rule: alertRule,

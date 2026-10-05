@@ -3,18 +3,18 @@ import { DAY_MS } from "@workspace/shared/time";
 import type { Doc } from "../_generated/dataModel";
 
 type Student = Pick<Doc<"students">, "_id" | "degree" | "year" | "studyProgram">;
-type KeyOf = (student: Student) => string;
+type KeyOf = (student: Student) => string | null;
 
 function countBy(students: readonly Student[], keyOf: KeyOf) {
 	const counts = new Map<string, number>();
 	for (const student of students) {
 		const key = keyOf(student);
-		counts.set(key, (counts.get(key) ?? 0) + 1);
+		if (key !== null) counts.set(key, (counts.get(key) ?? 0) + 1);
 	}
 	return counts;
 }
 
-function tally(students: readonly Student[], keyOf: KeyOf) {
+function tally(students: readonly Student[], keyOf: (student: Student) => string) {
 	const tallies = new Map<string, { student: Student; count: number }>();
 	for (const student of students) {
 		const key = keyOf(student);
@@ -89,7 +89,7 @@ export function programCohortGroupOf(student: Pick<Student, "degree" | "year">) 
 function labelledBy(groupOf: GroupOf) {
 	return (student: Pick<Student, "degree" | "year">) => {
 		const cohort = groupOf(student);
-		return cohort ? labelOf(cohort) : "";
+		return cohort && labelOf(cohort);
 	};
 }
 
@@ -97,12 +97,16 @@ export const cohortOf = labelledBy(cohortGroupOf);
 const programCohortOf = labelledBy(programCohortGroupOf);
 
 function cohortsOf(students: readonly Student[], groupOf: GroupOf) {
-	return tally(students, labelledBy(groupOf))
-		.flatMap(([label, { student, count }]) => {
-			const cohort = groupOf(student);
-			return cohort ? [{ label, count, cohort }] : [];
-		})
-		.sort((a, b) => a.cohort.rank - b.cohort.rank);
+	const cohorts = new Map<string, { label: string; count: number; cohort: Cohort }>();
+	for (const student of students) {
+		const cohort = groupOf(student);
+		if (!cohort) continue;
+		const label = labelOf(cohort);
+		const entry = cohorts.get(label);
+		if (entry) entry.count += 1;
+		else cohorts.set(label, { label, count: 1, cohort });
+	}
+	return [...cohorts.values()].sort((a, b) => a.cohort.rank - b.cohort.rank);
 }
 
 function programOf({ studyProgram }: Student) {
@@ -115,7 +119,7 @@ function cohortSizes(population: readonly Student[]) {
 	const sizes = new Map<string, number>();
 	for (const [, { student, count }] of tally(population, keyOf)) {
 		const label = cohortOf(student);
-		if (label === "") continue;
+		if (label === null) continue;
 		sizes.set(
 			label,
 			Math.max(count, counts.get(keyOf({ ...student, year: student.year + 1 })) ?? 0),

@@ -1,5 +1,5 @@
 import type { RefinementCtx } from "zod";
-import { DEGREE_TYPES, DEGREE_YEARS, type Degree } from "./degrees";
+import { DEGREE_TYPES, DEGREE_YEARS, type Degree, NEXT_DEGREE } from "./degrees";
 import { PROGRAM_DEGREES, STUDY_PROGRAMS, type StudyProgram } from "./programs";
 
 export function isStudyProgram(program: string): program is StudyProgram {
@@ -26,6 +26,11 @@ export function yearsFor(degree: Degree) {
 }
 
 export type StudentProfile = { studyProgram: string; degree: Degree; year: number };
+
+export function nextStudy({ studyProgram, degree, year }: StudentProfile): StudentProfile {
+	const next = fittingDegree(studyProgram, NEXT_DEGREE[degree] ?? degree);
+	return { studyProgram, degree: next, year: fittingYear(next, year + 1) };
+}
 
 export function studentProfileIssue({ studyProgram, degree, year }: StudentProfile) {
 	if (!isStudyProgram(studyProgram)) {

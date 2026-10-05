@@ -8,13 +8,12 @@ import {
 	BASELINE_SIZE,
 	COMPANY_BASELINE,
 	classify,
+	demandCurve,
 	type ForecastTimeline,
-	isSimilarCapacity,
 	medianCurve,
 	progressOf,
 	projectFill,
 	recentUnregistrations,
-	seatCurve,
 	seatDelta,
 	valueAt,
 } from "./metrics";
@@ -22,6 +21,7 @@ import {
 export const MAX_REGISTRATIONS_PER_EVENT = 1000;
 const MAX_LOG_ENTRIES = 1000;
 const PAST_EVENTS_FOR_BASELINE = 60;
+export const UNREGISTRATION_HISTORY_START = Date.UTC(2025, 7, 10);
 
 export type PastCurve = {
 	eventId: Id<"events">;
@@ -79,6 +79,10 @@ function isComparable(event: Doc<"events">) {
 	return event.published && !event.externalEvent && event.participationLimit > 0;
 }
 
+function hasComparableHistory(event: Doc<"events">) {
+	return isComparable(event) && event.registrationOpens >= UNREGISTRATION_HISTORY_START;
+}
+
 async function curvesOf(ctx: QueryCtx, events: readonly Doc<"events">[]): Promise<PastCurve[]> {
 	const curves = await Promise.all(
 		events.map(async (event) => {
@@ -92,7 +96,7 @@ async function curvesOf(ctx: QueryCtx, events: readonly Doc<"events">[]): Promis
 			return {
 				eventId: event._id,
 				limit: event.participationLimit,
-				curve: seatCurve(event, event.participationLimit, log),
+				curve: demandCurve(event, event.participationLimit, log),
 				timeline: await forecastTimeline(ctx, event),
 			};
 		}),
@@ -106,7 +110,7 @@ export async function pastCurvesBefore(ctx: QueryCtx, before: number) {
 		.withIndex("by_eventStart", (q) => q.lt("eventStart", before))
 		.order("desc")
 		.take(PAST_EVENTS_FOR_BASELINE);
-	return await curvesOf(ctx, past.filter(isComparable));
+	return await curvesOf(ctx, past.filter(hasComparableHistory));
 }
 
 export async function companyCurvesBefore(
@@ -121,7 +125,7 @@ export async function companyCurvesBefore(
 			q.eq("hostingCompany", companyId).lt("eventStart", before),
 		)
 		.order("desc")) {
-		if (isComparable(event)) comparable.push(event);
+		if (hasComparableHistory(event)) comparable.push(event);
 		if (comparable.length === COMPANY_BASELINE.size) break;
 	}
 	return await curvesOf(ctx, comparable);
@@ -138,15 +142,15 @@ export function baselineFor(
 		past.timeline?.remindersEnabled === undefined ||
 		timeline?.remindersEnabled === undefined ||
 		past.timeline.remindersEnabled === timeline.remindersEnabled;
-	const aligned = (past: PastCurve) =>
-		timeline && past.timeline ? alignedCurve(past.curve, past.timeline, timeline) : past.curve;
+	const aligned = (past: PastCurve) => {
+		const curve =
+			timeline && past.timeline ? alignedCurve(past.curve, past.timeline, timeline) : past.curve;
+		return curve.map((fill) => Math.min(1, fill * (past.limit / limit)));
+	};
 	const own = companyCurves.filter(comparable).slice(0, COMPANY_BASELINE.size);
 	const ownIds = new Set(own.map((past) => past.eventId));
 	const pool = pastCurves
-		.filter(
-			(past) =>
-				comparable(past) && !ownIds.has(past.eventId) && isSimilarCapacity(limit, past.limit),
-		)
+		.filter((past) => comparable(past) && !ownIds.has(past.eventId))
 		.slice(0, BASELINE_SIZE);
 	const poolCurve = medianCurve(pool.map(aligned));
 	const ownCurve = medianCurve(own.map(aligned));
@@ -189,17 +193,20 @@ export async function snapshotOf(
 	);
 	const progress = progressOf(event, now);
 	const registered = registrationTimes.length;
-	const currentFill = registered / event.participationLimit;
+	const waitlist = await waitlistCountOf(ctx, event._id);
+	const demandFill = (registered + waitlist) / event.participationLimit;
 
 	return {
 		registered,
+		waitlist,
+		demandFill,
 		registrationTimes,
 		unregistrations,
 		delta24h: seatDelta(recentLog),
 		progress,
 		baseline,
 		expectedFillNow: baseline ? valueAt(baseline.curve, progress) : null,
-		projectedFill: projectFill(currentFill, progress, baseline?.curve ?? null),
+		projectedFill: projectFill(demandFill, progress, baseline?.curve ?? null),
 		status: classify({
 			now,
 			timeline: event,

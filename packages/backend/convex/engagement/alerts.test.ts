@@ -41,6 +41,8 @@ type Snapshot = Parameters<typeof describeAlert>[3];
 function snapshotBase(): Snapshot {
 	return {
 		registered: 4,
+		waitlist: 0,
+		demandFill: 0.4,
 		registrationTimes: [],
 		unregistrations: [],
 		delta24h: 0,

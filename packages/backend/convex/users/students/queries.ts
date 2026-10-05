@@ -1,9 +1,10 @@
+import { nextStudy } from "@workspace/shared/constants";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import type { Doc, Id } from "../../_generated/dataModel";
 import { query } from "../../_generated/server";
 import { adminRoles, requireRole } from "../../auth/accessRights";
-import { getCurrentUserOrThrow } from "../clerk/queries";
+import { getCurrentUser, getCurrentUserOrThrow } from "../clerk/queries";
 
 /**
  * Fetches paginated students, optionally filtered by search.
@@ -143,5 +144,25 @@ export const getById = query({
 			year: student.year,
 			degree: student.degree,
 		};
+	},
+});
+
+/**
+ * Suggests the next study information for the current student when they are marked as graduated.
+ *
+ * @returns {StudentProfile | null} - The suggested study information, or null when signed out or not graduated.
+ */
+export const graduatedProfile = query({
+	handler: async (ctx) => {
+		const user = await getCurrentUser(ctx);
+		if (!user) return null;
+
+		const student = await ctx.db
+			.query("students")
+			.withIndex("by_userId", (q) => q.eq("userId", user._id))
+			.first();
+
+		if (student?.graduatedAt === undefined) return null;
+		return nextStudy(student);
 	},
 });

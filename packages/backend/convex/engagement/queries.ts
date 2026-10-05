@@ -36,8 +36,8 @@ import {
 	MIN_FORECAST_EVENTS,
 	pastCurvesBefore,
 	snapshotOf,
+	UNREGISTRATION_HISTORY_START,
 	upcomingEvents,
-	waitlistCountOf,
 } from "./snapshot";
 
 const UPCOMING_EVENTS = 30;
@@ -66,7 +66,7 @@ export const upcoming = query({
 					registrationOpens: event.registrationOpens,
 					participationLimit: event.participationLimit,
 					registered: snapshot.registered,
-					waitlist: await waitlistCountOf(ctx, event._id),
+					waitlist: snapshot.waitlist,
 					delta24h: snapshot.delta24h,
 					status: snapshot.status,
 				};
@@ -256,7 +256,7 @@ export const paceCurve = query({
 			if (progress < snapshot.progress) return null;
 			return Math.round(
 				projectFill(
-					snapshot.registered / limit,
+					snapshot.demandFill,
 					snapshot.progress,
 					snapshot.baseline?.curve ?? null,
 					progress,
@@ -437,6 +437,15 @@ export async function logStartedAt(ctx: QueryCtx) {
 	return first?._creationTime ?? null;
 }
 
+export async function unregistrationsLoggedFrom(ctx: QueryCtx) {
+	const logStart = await logStartedAt(ctx);
+	if (logStart === null) return null;
+	const historyImport = await ctx.db.query("unregistrationImports").first();
+	return historyImport?.state === "done"
+		? Math.min(logStart, UNREGISTRATION_HISTORY_START)
+		: logStart;
+}
+
 function isLogged(event: Doc<"events">, logStart: number | null) {
 	return logStart !== null && event.eventStart - DAY_MS >= logStart;
 }
@@ -503,7 +512,7 @@ export const semester = query({
 			await semesterStudents(ctx, previousEvents, now),
 			yearsSincePrevious,
 		);
-		const logStart = await logStartedAt(ctx);
+		const logStart = await unregistrationsLoggedFrom(ctx);
 		const late = await lateUnregistrations(ctx, events, logStart, now);
 		const lateLastYear = await lateUnregistrations(ctx, lastYearEvents, logStart, lastYear);
 
@@ -545,7 +554,7 @@ export const past = query({
 	args: { now: v.number(), semester: eventSemesterValidator, year: v.number() },
 	handler: async (ctx, { now, semester, year }) => {
 		await requireRole(ctx, internalRoles);
-		const logStart = await logStartedAt(ctx);
+		const logStart = await unregistrationsLoggedFrom(ctx);
 		const events = (await semesterEvents(ctx, { semester, year }, now))
 			.filter(({ event }) => event.eventStart <= now)
 			.reverse();

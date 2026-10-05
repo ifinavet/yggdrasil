@@ -1,28 +1,21 @@
 "use client";
 
-import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
-import { DEGREE_TYPES, refineStudentProfile, STUDY_PROGRAMS } from "@workspace/shared/constants";
+import { refineStudentProfile } from "@workspace/shared/constants";
 import { Button } from "@workspace/ui/components/button";
 import { Field, FieldGroup, FieldLabel, FieldSet } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
-import { StudentProfileFields } from "@workspace/ui/components/student-profile-fields";
 import { cn } from "@workspace/ui/lib/utils";
 import { type Preloaded, useMutation, usePreloadedQuery } from "convex/react";
 import { toast } from "sonner";
 import { z } from "zod";
+import { STUDY_FIELDS, StudyFields, studySchema } from "@/components/profile/study-fields";
+import { useAppForm } from "@/lib/form";
 
-const formSchema = z
-	.object({
+const formSchema = studySchema
+	.extend({
 		firstname: z.string().min(2, "Vennligst oppgi fornavnet ditt."),
 		lastname: z.string().min(2, "Vennligst oppgi etternavnet ditt."),
-		studyProgram: z.enum(STUDY_PROGRAMS),
-		degree: z.enum(DEGREE_TYPES),
-		year: z
-			.number()
-			.int()
-			.min(1, "Vennligst oppgi året du går")
-			.max(5, "5. året er maks, går du høyre en siste år master sett 5."),
 	})
 	.superRefine(refineStudentProfile);
 export type ProfileFormSchema = z.infer<typeof formSchema>;
@@ -38,7 +31,7 @@ export default function UpdateProfileForm({
 	if (!student) throw new Error("Studentprofilen finnes ikke.");
 
 	const updateProfile = useMutation(api.users.students.mutations.updateCurrent);
-	const form = useForm({
+	const form = useAppForm({
 		defaultValues: {
 			firstname: student.firstName,
 			lastname: student.lastName,
@@ -113,19 +106,7 @@ export default function UpdateProfileForm({
 					</form.Field>
 				</FieldGroup>
 
-				<form.Field name="studyProgram">
-					{(studyProgram) => (
-						<form.Field name="degree">
-							{(degree) => (
-								<form.Field name="year">
-									{(year) => (
-										<StudentProfileFields studyProgram={studyProgram} degree={degree} year={year} />
-									)}
-								</form.Field>
-							)}
-						</form.Field>
-					)}
-				</form.Field>
+				<StudyFields form={form} fields={STUDY_FIELDS} />
 			</FieldSet>
 			<Button type="submit" className="text-primary-foreground">
 				Oppdater profil

@@ -17,6 +17,7 @@ import {
 	pastCurvesBefore,
 	registrationTimesOf,
 	snapshotOf,
+	UNREGISTRATION_HISTORY_START,
 	upcomingEvents,
 	waitlistCountOf,
 } from "./snapshot";
@@ -204,6 +205,29 @@ describe("baseline history coverage", () => {
 	});
 });
 
+describe("events without unregistration history", () => {
+	it("stay out of the typical and company curves", async () => {
+		const { t, companyId } = await setup();
+		const untracked = UNREGISTRATION_HISTORY_START - DAY_MS;
+		const old = await insertEvent(t, companyId, {
+			registrationOpens: untracked,
+			eventStart: untracked + 10 * DAY_MS,
+		});
+		await registerUsers(t, old, 3, untracked + HOUR_MS);
+		const tracked = await insertEvent(t, companyId, {
+			registrationOpens: UNREGISTRATION_HISTORY_START,
+			eventStart: UNREGISTRATION_HISTORY_START + 10 * DAY_MS,
+		});
+		await registerUsers(t, tracked, 3, UNREGISTRATION_HISTORY_START + HOUR_MS);
+
+		const past = await t.run((ctx) => pastCurvesBefore(ctx, START));
+		const own = await t.run((ctx) => companyCurvesBefore(ctx, companyId, START));
+
+		expect(past.map(({ eventId }) => eventId)).toEqual([tracked]);
+		expect(own.map(({ eventId }) => eventId)).toEqual([tracked]);
+	});
+});
+
 describe("companyCurvesBefore", () => {
 	it("returns the company's most recent comparable events before the cutoff", async () => {
 		const { t, companyId } = await setup();
@@ -235,8 +259,8 @@ describe("baselineFor", () => {
 		curve,
 	});
 
-	it("returns null when there are no similarly sized past curves", async () => {
-		expect(baselineFor([past(100, [0, 1])], 10)).toBeNull();
+	it("returns null when there are no past curves", () => {
+		expect(baselineFor([], 10)).toBeNull();
 	});
 
 	it("excludes explicitly different reminder settings but retains unknown legacy settings", () => {
@@ -250,18 +274,42 @@ describe("baselineFor", () => {
 		expect(baselineFor([legacy, disabled], 10, [], timeline)?.size).toBe(1);
 	});
 
-	it("filters by similar capacity and caps the sample size", () => {
+	it("caps the sample size", () => {
 		const curves = Array.from({ length: 20 }, () => past(10, [0, 0.5, 1]));
-		const baseline = baselineFor([...curves, past(1000, [0, 1, 1])], 10);
+		const baseline = baselineFor(curves, 10);
 		expect(baseline?.size).toBe(12);
 		expect(baseline?.curve.slice(0, 3)).toEqual([0, 0.5, 1]);
 	});
 
+	it("compares with past events of any size", () => {
+		const baseline = baselineFor(
+			[past(20, [0, 1]), past(200, [0, 0.1]), past(1000, [0, 0.03])],
+			80,
+		);
+		expect(baseline?.size).toBe(3);
+		expect(baseline?.curve[1]).toBeCloseTo(0.25);
+	});
+
 	it("weighs the company's own events against the pool by how many there are", () => {
 		const pool = Array.from({ length: 5 }, () => past(10, [0, 0.2]));
-		const baseline = baselineFor(pool, 10, [past(40, [0, 0.9]), past(40, [0, 1])]);
+		const baseline = baselineFor(pool, 10, [past(10, [0, 0.9]), past(10, [0, 1])]);
 		expect(baseline?.size).toBe(7);
 		expect(baseline?.curve[1]).toBeCloseTo(0.5 * 0.95 + 0.5 * 0.2);
+	});
+
+	it("expects the headcount of past events rather than their fill", () => {
+		const soldOut = Array.from({ length: 3 }, () => past(40, [0, 0.5, 1]));
+		expect(baselineFor(soldOut, 80)?.curve.slice(0, 3)).toEqual([0, 0.25, 0.5]);
+	});
+
+	it("counts students who waited for a seat at a sold out event", () => {
+		const oversubscribed = Array.from({ length: 3 }, () => past(40, [0, 1, 1.5]));
+		expect(baselineFor(oversubscribed, 80)?.curve.slice(0, 3)).toEqual([0, 0.5, 0.75]);
+	});
+
+	it("caps the expected headcount at the seats of the event", () => {
+		const larger = Array.from({ length: 3 }, () => past(60, [0, 0.5, 1]));
+		expect(baselineFor(larger, 40)?.curve.slice(0, 3)).toEqual([0, 0.75, 1]);
 	});
 
 	it("lets a single earlier company event move the baseline", () => {
@@ -278,7 +326,7 @@ describe("baselineFor", () => {
 		expect(baseline?.curve[1]).toBeCloseTo(1 / 3 + (2 / 3) * 0.2);
 	});
 
-	it("uses the company alone when no similar event exists", () => {
+	it("uses the company alone when no other event exists", () => {
 		const baseline = baselineFor([], 10, [past(10, [0, 1])]);
 		expect(baseline?.size).toBe(1);
 		expect(baseline?.curve.slice(0, 2)).toEqual([0, 1]);
@@ -346,6 +394,30 @@ describe("snapshotOf", () => {
 		expect(snapshot.baseline?.curve).toEqual(baselineCurve);
 		expect(snapshot.expectedFillNow).toBeCloseTo(0.5, 5);
 		expect(snapshot.projectedFill).toBeCloseTo(1, 5);
+	});
+
+	it("lets the waitlist refill the seats the baseline expects to be cancelled", async () => {
+		const { t, companyId } = await setup();
+		const eventId = await insertEvent(t, companyId, {
+			eventStart: START,
+			registrationOpens: OPENS,
+			participationLimit: 4,
+		});
+		const now = OPENS + 5 * DAY_MS;
+		await registerUsers(t, eventId, 4, OPENS + HOUR_MS);
+		const event = await eventDoc(t, eventId);
+		const declining = [{ eventId, limit: 4, curve: PACE_GRID.map((progress) => 1 - progress / 2) }];
+
+		const withoutWaitlist = await t.run((ctx) => snapshotOf(ctx, event, now, declining));
+		expect(withoutWaitlist.projectedFill).toBeCloseTo(0.75, 5);
+
+		for (const email of ["venter4@example.com", "venter5@example.com"]) {
+			const waiting = await insertUser(t, email);
+			await insertRegistration(t, eventId, waiting._id, "waitlist");
+		}
+		const withWaitlist = await t.run((ctx) => snapshotOf(ctx, event, now, declining));
+		expect(withWaitlist.waitlist).toBe(2);
+		expect(withWaitlist.projectedFill).toBe(1);
 	});
 
 	it("builds the baseline from the hosting company's earlier events", async () => {
