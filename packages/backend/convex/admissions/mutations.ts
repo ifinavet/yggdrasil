@@ -490,16 +490,16 @@ export const scheduleInterview = mutation({
 					interviewerIds: args.interviewerIds,
 					selectedCalendarIds: args.selectedCalendarIds,
 					room: args.room ?? period.room,
+					candidateConfirmedOutsideForm: args.candidateConfirmedOutsideForm,
+					confirmPublishedReschedule: args.confirmPublishedReschedule,
 				},
 			],
-			{
-				updatedBy: caller._id,
-				candidateConfirmedOutsideForm: args.candidateConfirmedOutsideForm,
-				confirmPublishedReschedule: args.confirmPublishedReschedule,
-			},
+			caller._id,
 		);
-		await ctx.db.patch(app._id, { revision: app.revision + 1 });
-		return { revision: app.revision + 1, interviewRevision: result.changes[0]?.revision };
+		return {
+			revision: app.revision + result.changes.length,
+			interviewRevision: result.changes[0]?.revision,
+		};
 	},
 });
 

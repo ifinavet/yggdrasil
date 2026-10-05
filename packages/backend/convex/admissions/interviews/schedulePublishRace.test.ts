@@ -67,7 +67,7 @@ it("keeps a schedule immutable while its first calendar publish is in flight", a
 				},
 			],
 		}),
-	).rejects.toThrow(/kalenderpubliseringen pågår/);
+	).rejects.toThrow(/publiseres nå/);
 	const saved = await t.run((ctx) => ctx.db.get(interviewId));
 	expect(saved).toMatchObject({ revision: 1, startAt });
 	expect(saved?.publishedAt).toBeUndefined();

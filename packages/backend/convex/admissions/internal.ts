@@ -265,6 +265,8 @@ export const saveSchedule = internalMutation({
 				interviewerIds: v.array(v.id("users")),
 				selectedCalendarIds: v.array(v.string()),
 				room: v.string(),
+				candidateConfirmedOutsideForm: v.optional(v.boolean()),
+				confirmPublishedReschedule: v.optional(v.boolean()),
 			}),
 		),
 	},
@@ -292,18 +294,12 @@ export const saveSchedule = internalMutation({
 	},
 });
 
-type ManualSchedule = {
-	updatedBy: Id<"users">;
-	candidateConfirmedOutsideForm?: boolean;
-	confirmPublishedReschedule?: boolean;
-};
-
 export async function commitSchedule(
 	ctx: MutationCtx,
 	period: Doc<"admissionPeriods">,
 	applications: Doc<"admissionApplications">[],
 	assignments: ScheduleAssignment[],
-	manual?: ManualSchedule,
+	updatedBy?: Id<"users">,
 ) {
 	const previous = await ctx.db
 		.query("admissionInterviews")
@@ -311,13 +307,6 @@ export async function commitSchedule(
 		.take(MAX_APPLICATIONS + 1);
 	if (previous.length > MAX_APPLICATIONS) throw new ConvexError("For mange intervjuer i opptaket.");
 	const publishing = await activePublishInterviewIds(ctx, period._id);
-	const fixed = previous.filter(
-		(interview) =>
-			interview.status === "scheduled" &&
-			(manual
-				? !assignments.some((item) => item.applicationId === interview.applicationId)
-				: interview.publishedAt !== undefined || publishing.has(interview._id)),
-	);
 	const eligibility = await Promise.all(
 		period.interviewers.map(async ({ userId }) => ({
 			userId,
@@ -330,27 +319,25 @@ export async function commitSchedule(
 			(interview) => interview.applicationId === assignment.applicationId,
 		);
 
+		const selectedCalendarIds = interviewCalendarIds(period, assignment.interviewerIds);
+		if (
+			selectedCalendarIds.some((id) => !assignment.selectedCalendarIds.includes(id)) ||
+			assignment.selectedCalendarIds.some((id) => !selectedCalendarIds.includes(id))
+		)
+			throw new ConvexError("Kalendervalgene må komme fra periodens oppsett. Oppdater planen.");
 		const desired = {
 			...assignment,
+			selectedCalendarIds,
 			room: assignment.room.trim() || period.room,
-			selectedCalendarIds: interviewCalendarIds(period, assignment.interviewerIds),
 		};
-		if (!manual && before && fixed.includes(before)) {
-			if (!sameInterviewSchedule(before, desired))
-				throw new ConvexError(
-					before.publishedAt !== undefined
-						? "Et publisert intervju må endres gjennom en bekreftet ny plan."
-						: "Et intervju kan ikke endres mens kalenderpubliseringen pågår.",
-				);
-			return [];
-		}
-		const unchanged = validateScheduleEdit(before, desired, publishing, manual);
+		if (before?.status === "scheduled" && sameInterviewSchedule(before, desired)) return [];
+		validateScheduleEdit(before, desired, publishing);
 		const normalized = validateAssignment(
-			assignment,
+			desired,
 			period,
 			applications,
 			active,
-			manual?.candidateConfirmedOutsideForm,
+			assignment.candidateConfirmedOutsideForm,
 		);
 		return [
 			{
@@ -359,23 +346,30 @@ export async function commitSchedule(
 				status: "scheduled" as const,
 				revision: (before?.revision ?? 0) + 1,
 				calendarEventId: before?.calendarEventId,
-				publishedAt: unchanged ? before?.publishedAt : undefined,
-				candidateConfirmedOutsideForm: manual?.candidateConfirmedOutsideForm || undefined,
+				publishedAt: undefined,
+				candidateConfirmedOutsideForm: assignment.candidateConfirmedOutsideForm || undefined,
 			},
 		];
 	});
+	const fixed = previous.filter(
+		(interview) =>
+			interview.status === "scheduled" &&
+			!changes.some((item) => item.applicationId === interview.applicationId),
+	);
 	assertNoScheduleConflicts([...fixed, ...changes], period.buffer, fixed.length);
 	await Promise.all(
 		changes.map(async (fields) => {
 			const before = previous.find((interview) => interview.applicationId === fields.applicationId);
 			if (before) await ctx.db.replace(before._id, fields);
 			else await ctx.db.insert("admissionInterviews", fields);
+			const application = applications.find((item) => item._id === fields.applicationId);
+			if (application) await ctx.db.patch(application._id, { revision: application.revision + 1 });
 		}),
 	);
 	await ctx.db.patch(period._id, {
-		status: manual || changes.length ? "open" : period.status,
+		status: changes.length ? "open" : period.status,
 		revision: period.revision + 1,
-		...(manual && { updatedBy: manual.updatedBy }),
+		...(updatedBy && { updatedBy }),
 	});
 	return {
 		assigned: [
@@ -390,23 +384,17 @@ function validateScheduleEdit(
 	previous: Doc<"admissionInterviews"> | undefined,
 	desired: ScheduleAssignment,
 	publishing: Set<Id<"admissionInterviews">>,
-	manual?: ManualSchedule,
 ) {
 	if (previous && publishing.has(previous._id))
 		throw new ConvexError("Intervjuet publiseres nå. Vent før du endrer planen.");
-	if (previous?.status === "cancelled" && !manual?.candidateConfirmedOutsideForm)
+	if (previous?.status === "cancelled" && !desired.candidateConfirmedOutsideForm)
 		throw new ConvexError(
 			"Bekreft at søkeren har avtalt et nytt tidspunkt før et avlyst intervju bookes på nytt.",
 		);
-	const unchanged = Boolean(manual && previous && sameInterviewSchedule(previous, desired));
-	if (
-		(!unchanged || !previous?.publishedAt) &&
-		desired.startAt < Date.now() + MIN_INTERVIEW_NOTICE_MS
-	)
+	if (desired.startAt < Date.now() + MIN_INTERVIEW_NOTICE_MS)
 		throw new ConvexError("Nye intervjuer må planlegges minst 48 timer fram i tid.");
-	if (previous?.publishedAt && !unchanged && !manual?.confirmPublishedReschedule)
+	if (previous?.publishedAt && !desired.confirmPublishedReschedule)
 		throw new ConvexError("Bekreft endring av det publiserte intervjuet før du lagrer.");
-	return unchanged;
 }
 
 function applicationsNotScheduled(
@@ -535,7 +523,7 @@ async function completeDecision(
 type ScheduleAssignment = Pick<
 	Doc<"admissionInterviews">,
 	"applicationId" | "startAt" | "endAt" | "interviewerIds" | "selectedCalendarIds" | "room"
->;
+> & { candidateConfirmedOutsideForm?: boolean; confirmPublishedReschedule?: boolean };
 function validateAssignment(
 	assignment: ScheduleAssignment,
 	period: Doc<"admissionPeriods">,
@@ -554,19 +542,13 @@ function validateAssignment(
 	if ((assignment.endAt - assignment.startAt) / 60000 !== period.duration)
 		throw new ConvexError("Et intervju ligger utenfor perioden eller har feil varighet.");
 	validateInterviewWindow(assignment.startAt, period, application, confirmedOutsideForm);
-	const selected = interviewCalendarIds(period, interviewerIds);
-	if (
-		selected.some((calendarId) => !assignment.selectedCalendarIds.includes(calendarId)) ||
-		assignment.selectedCalendarIds.some((calendarId) => !selected.includes(calendarId))
-	)
-		throw new ConvexError("Kalendervalgene må komme fra periodens oppsett. Oppdater planen.");
 	const room = assignment.room.trim() || period.room;
 	return {
 		applicationId: assignment.applicationId,
 		startAt: assignment.startAt,
 		endAt: assignment.endAt,
 		interviewerIds,
-		selectedCalendarIds: selected,
+		selectedCalendarIds: assignment.selectedCalendarIds,
 		room,
 	};
 }

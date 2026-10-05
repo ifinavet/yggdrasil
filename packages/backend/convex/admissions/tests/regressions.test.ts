@@ -996,3 +996,124 @@ it("cleans a failed calendar publish before archiving even without a saved event
 		state: "inProgress",
 	});
 });
+
+async function saveScheduleProposal(
+	value: Awaited<ReturnType<typeof scheduleFixture>>,
+	trigger: "manual" | "generated",
+	selectedCalendarIds: string[] = [],
+) {
+	if (trigger === "manual")
+		return value.admin.mutation(api.admissions.mutations.scheduleInterview, {
+			...value.scheduleArgs,
+			selectedCalendarIds,
+		});
+	return value.t.mutation(internal.admissions.internal.saveSchedule, {
+		periodId: value.periodId,
+		expectedRevision: 1,
+		assignments: [
+			{
+				applicationId: value.applicationId,
+				startAt: value.startAt,
+				endAt: value.startAt + 15 * MINUTE,
+				interviewerIds: value.scheduleArgs.interviewerIds,
+				selectedCalendarIds,
+				room: "Beta",
+			},
+		],
+	});
+}
+
+it.each(["manual", "generated"] as const)(
+	"%s scheduling preserves omitted drafts and rejects their conflicts",
+	async (trigger) => {
+		const value = await scheduleFixture(10, 0, []);
+		await setAvailability(value.t, value.applicationId, value.day);
+		const other = await insertUser(value.t, "omitted@uio.no");
+		const otherId = await value.t.run((ctx) =>
+			ctx.db.insert("admissionApplications", applicationFields(value.periodId, other._id)),
+		);
+		const interviewId = await insertInterview(value.t, value.periodId, otherId, {
+			startAt: value.startAt,
+			endAt: value.startAt + 15 * MINUTE,
+			interviewerIds: value.scheduleArgs.interviewerIds,
+		});
+		const before = await value.t.run((ctx) => ctx.db.get(interviewId));
+		await expect(saveScheduleProposal(value, trigger)).rejects.toThrow(/allerede opptatt/);
+		expect(await value.t.run((ctx) => ctx.db.get(interviewId))).toEqual(before);
+		expect(await interviewForApplication(value.t, value.applicationId)).toBeNull();
+	},
+);
+
+it.each(["manual", "generated"] as const)(
+	"%s scheduling rejects stale calendar selections even for unchanged interviews",
+	async (trigger) => {
+		const value = await scheduleFixture(10, 0, []);
+		await value.t.run((ctx) =>
+			ctx.db.patch(value.periodId, {
+				interviewers: value.scheduleArgs.interviewerIds.map((userId) => ({
+					userId,
+					selectedCalendarIds: ["primary"],
+				})),
+			}),
+		);
+		const interviewId = await insertInterview(value.t, value.periodId, value.applicationId, {
+			startAt: value.startAt,
+			endAt: value.startAt + 15 * MINUTE,
+			interviewerIds: value.scheduleArgs.interviewerIds,
+			selectedCalendarIds: ["old-calendar"],
+		});
+		const before = await value.t.run((ctx) => ctx.db.get(interviewId));
+		await expect(saveScheduleProposal(value, trigger, ["old-calendar"])).rejects.toThrow(
+			/periodens oppsett/,
+		);
+		expect(await value.t.run((ctx) => ctx.db.get(interviewId))).toEqual(before);
+	},
+);
+
+it.each([
+	["manual", "published"],
+	["generated", "published"],
+	["manual", "publishing"],
+	["generated", "publishing"],
+] as const)(
+	"%s scheduling leaves unchanged %s interviews and applications intact",
+	async (trigger, state) => {
+		const value = await scheduleFixture(10, 0, []);
+		const interviewId = await insertInterview(value.t, value.periodId, value.applicationId, {
+			startAt: value.startAt,
+			endAt: value.startAt + 15 * MINUTE,
+			interviewerIds: value.scheduleArgs.interviewerIds,
+			calendarEventId: "stable-event",
+			publishedAt: state === "published" ? Date.now() : undefined,
+			revision: 3,
+		});
+		await value.t.run(async (ctx) => {
+			await ctx.db.patch(value.periodId, { status: "published" });
+			if (state === "publishing")
+				await stageOperation(ctx, {
+					kind: "publish",
+					periodId: value.periodId,
+					applicationId: value.applicationId,
+					interviewId,
+					revision: 3,
+					idempotencyKey: `publish:${interviewId}:3`,
+					state: "inProgress",
+					dueAt: Date.now() + DAY,
+				});
+		});
+		const before = await value.t.run(async (ctx) => ({
+			interview: await ctx.db.get(interviewId),
+			application: await ctx.db.get(value.applicationId),
+		}));
+		await saveScheduleProposal(value, trigger);
+		const after = await value.t.run(async (ctx) => ({
+			interview: await ctx.db.get(interviewId),
+			application: await ctx.db.get(value.applicationId),
+		}));
+		expect(after).toEqual(before);
+		expect(await value.t.run((ctx) => ctx.db.get(value.periodId))).toMatchObject({
+			status: "published",
+			revision: 2,
+		});
+	},
+);
