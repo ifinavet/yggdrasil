@@ -1,5 +1,4 @@
 "use client";
-import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
 import type { Doc, Id } from "@workspace/backend/convex/dataModel";
 import { formatOsloDate, osloDateTimeToEpoch } from "@workspace/shared/time";
@@ -7,7 +6,7 @@ import { Button } from "@workspace/ui/components/button";
 import { Checkbox } from "@workspace/ui/components/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@workspace/ui/components/dialog";
 import { Field, FieldLabel } from "@workspace/ui/components/field";
-import { Input } from "@workspace/ui/components/input";
+import { useAppForm } from "@workspace/ui/components/form";
 import { Callout } from "@workspace/ui/components/products/callout";
 import { SearchSelect } from "@workspace/ui/components/search-select";
 import { useAsyncAction } from "@workspace/ui/hooks/use-async-action";
@@ -26,7 +25,7 @@ export function InterviewDialog({
 }>) {
 	const schedule = useMutation(api.admissions.mutations.scheduleInterview);
 	const { error, run } = useAsyncAction();
-	const form = useForm({
+	const form = useAppForm({
 		defaultValues: {
 			start: "",
 			room: period.room,
@@ -77,35 +76,21 @@ export function InterviewDialog({
 							<Callout tone="danger">{error}</Callout>
 						</div>
 					)}
-					<form.Field name="start">
+					<form.AppField name="start">
 						{(field) => (
-							<Field>
-								<FieldLabel htmlFor="interview-time">Tidspunkt</FieldLabel>
-								<Input
-									id="interview-time"
-									type="datetime-local"
-									required
-									min={formatOsloDate(period.interviewStartAt, "yyyy-MM-dd'T'HH:mm")}
-									max={formatOsloDate(period.interviewEndAt, "yyyy-MM-dd'T'HH:mm")}
-									value={field.state.value}
-									onChange={(event) => field.handleChange(event.target.value)}
-								/>
-							</Field>
+							<field.Input
+								label="Tidspunkt"
+								id="interview-time"
+								type="datetime-local"
+								required
+								min={formatOsloDate(period.interviewStartAt, "yyyy-MM-dd'T'HH:mm")}
+								max={formatOsloDate(period.interviewEndAt, "yyyy-MM-dd'T'HH:mm")}
+							/>
 						)}
-					</form.Field>
-					<form.Field name="room">
-						{(field) => (
-							<Field>
-								<FieldLabel htmlFor="interview-room">Rom</FieldLabel>
-								<Input
-									id="interview-room"
-									required
-									value={field.state.value}
-									onChange={(event) => field.handleChange(event.target.value)}
-								/>
-							</Field>
-						)}
-					</form.Field>
+					</form.AppField>
+					<form.AppField name="room">
+						{(field) => <field.Input label="Rom" id="interview-room" required />}
+					</form.AppField>
 					<form.Field name="interviewerIds">
 						{(field) => (
 							<Field>

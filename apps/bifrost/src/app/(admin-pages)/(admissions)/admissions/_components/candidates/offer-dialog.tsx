@@ -1,11 +1,10 @@
 "use client";
-import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { Button } from "@workspace/ui/components/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@workspace/ui/components/dialog";
 import { Field, FieldLabel } from "@workspace/ui/components/field";
-import { Input } from "@workspace/ui/components/input";
+import { useAppForm } from "@workspace/ui/components/form";
 import { SearchSelect } from "@workspace/ui/components/search-select";
 import { useAsyncAction } from "@workspace/ui/hooks/use-async-action";
 import { useQuery } from "convex/react";
@@ -27,7 +26,7 @@ export function OfferDialog({
 }>) {
 	const { error, run } = useAsyncAction();
 	const groups = useQuery(api.admissions.queries.availableGroups, {});
-	const form = useForm({
+	const form = useAppForm({
 		defaultValues: {
 			group: initialGroup ?? "",
 			email: initialEmail,
@@ -88,20 +87,11 @@ export function OfferDialog({
 							Legg til en arbeidsgruppe
 						</Link>
 					)}
-					<form.Field name="email">
+					<form.AppField name="email">
 						{(field) => (
-							<Field>
-								<FieldLabel htmlFor="offer-email">Navet-adresse</FieldLabel>
-								<Input
-									id="offer-email"
-									type="email"
-									required
-									value={field.state.value}
-									onChange={(event) => field.handleChange(event.target.value)}
-								/>
-							</Field>
+							<field.Input label="Navet-adresse" id="offer-email" type="email" required />
 						)}
-					</form.Field>
+					</form.AppField>
 					<form.Subscribe
 						selector={(state) =>
 							state.isSubmitting || !groups?.some((group) => group._id === state.values.group)

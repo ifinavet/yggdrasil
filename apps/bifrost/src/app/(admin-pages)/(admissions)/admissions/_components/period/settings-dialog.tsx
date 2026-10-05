@@ -1,6 +1,5 @@
 "use client";
 
-import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
 import type { Doc, Id } from "@workspace/backend/convex/dataModel";
 import { formatOsloDate, osloDateTimeToEpoch } from "@workspace/shared/time";
@@ -8,7 +7,7 @@ import { Button } from "@workspace/ui/components/button";
 import { Checkbox } from "@workspace/ui/components/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@workspace/ui/components/dialog";
 import { Field, FieldLabel } from "@workspace/ui/components/field";
-import { Input } from "@workspace/ui/components/input";
+import { useAppForm } from "@workspace/ui/components/form";
 import { SearchSelect } from "@workspace/ui/components/search-select";
 import { useAsyncAction } from "@workspace/ui/hooks/use-async-action";
 import { useMutation, useQuery } from "convex/react";
@@ -35,7 +34,7 @@ export function SettingsDialog({
 	const update = useMutation(api.admissions.board.updateSettings);
 	const { error, run } = useAsyncAction();
 	const [closeOpen, setCloseOpen] = useState(false);
-	const form = useForm({
+	const form = useAppForm({
 		defaultValues: formValues(period),
 		onSubmit: ({ value }) =>
 			run(
@@ -127,19 +126,9 @@ export function SettingsDialog({
 					)}
 					{!period && (
 						<>
-							<form.Field name="title">
-								{(field) => (
-									<Field>
-										<FieldLabel htmlFor="admissions-title">Navn</FieldLabel>
-										<Input
-											id="admissions-title"
-											required
-											value={field.state.value}
-											onChange={(event) => field.handleChange(event.target.value)}
-										/>
-									</Field>
-								)}
-							</form.Field>
+							<form.AppField name="title">
+								{(field) => <field.Input label="Navn" id="admissions-title" required />}
+							</form.AppField>
 							{(
 								[
 									["applicationStartAt", "Søknader åpner"],
@@ -149,20 +138,9 @@ export function SettingsDialog({
 									["retentionAt", "Slett opplysningene"],
 								] as const
 							).map(([key, label]) => (
-								<form.Field key={key} name={key}>
-									{(field) => (
-										<Field>
-											<FieldLabel htmlFor={key}>{label}</FieldLabel>
-											<Input
-												id={key}
-												required
-												type="datetime-local"
-												value={field.state.value}
-												onChange={(event) => field.handleChange(event.target.value)}
-											/>
-										</Field>
-									)}
-								</form.Field>
+								<form.AppField key={key} name={key}>
+									{(field) => <field.Input label={label} id={key} required type="datetime-local" />}
+								</form.AppField>
 							))}
 						</>
 					)}
@@ -191,37 +169,16 @@ export function SettingsDialog({
 								["breakMinutes", "Pause (min)", 0, 60],
 							] as const
 						).map(([key, label, min, max]) => (
-							<form.Field key={key} name={key}>
+							<form.AppField key={key} name={key}>
 								{(field) => (
-									<Field>
-										<FieldLabel htmlFor={key}>{label}</FieldLabel>
-										<Input
-											id={key}
-											type="number"
-											min={min}
-											max={max}
-											required
-											value={field.state.value}
-											onChange={(event) => field.handleChange(Number(event.target.value))}
-										/>
-									</Field>
+									<field.Input label={label} id={key} type="number" min={min} max={max} required />
 								)}
-							</form.Field>
+							</form.AppField>
 						))}
 					</div>
-					<form.Field name="room">
-						{(field) => (
-							<Field>
-								<FieldLabel htmlFor="default-room">Rom</FieldLabel>
-								<Input
-									id="default-room"
-									required
-									value={field.state.value}
-									onChange={(event) => field.handleChange(event.target.value)}
-								/>
-							</Field>
-						)}
-					</form.Field>
+					<form.AppField name="room">
+						{(field) => <field.Input label="Rom" id="default-room" required />}
+					</form.AppField>
 					<form.Field name="lunch">
 						{(field) => (
 							<label htmlFor="admissions-lunch" className="flex items-center gap-3">
