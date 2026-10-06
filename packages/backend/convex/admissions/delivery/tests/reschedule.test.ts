@@ -17,16 +17,21 @@ import { trackedEmail } from "../../../lib/trackedEmail";
 const calendars = new Map<string, ReturnType<typeof calendarClient>>();
 
 function calendarClient() {
-	return {
+	const client = {
 		listCalendars: vi.fn(),
-		freeBusy: vi.fn(async (ids: string[]) =>
-			Object.fromEntries(ids.map((id) => [id, { busy: [] }])),
-		),
-		listEvents: vi.fn(async () => []),
+		freeBusy: vi.fn(),
+		listEvents: vi.fn(),
 		getEvent: vi.fn(),
-		upsertEvent: vi.fn(async () => undefined),
-		cancelEvent: vi.fn(async () => undefined),
+		upsertEvent: vi.fn(),
+		cancelEvent: vi.fn(),
 	};
+	client.freeBusy.mockImplementation(async (ids: string[]) =>
+		Object.fromEntries(ids.map((id) => [id, { busy: [] }])),
+	);
+	client.listEvents.mockResolvedValue([]);
+	client.upsertEvent.mockResolvedValue(undefined);
+	client.cancelEvent.mockResolvedValue(undefined);
+	return client;
 }
 
 function calendarFor(email: string) {
@@ -35,6 +40,10 @@ function calendarFor(email: string) {
 	const client = calendarClient();
 	calendars.set(email, client);
 	return client;
+}
+
+function isSendEmailOptions(value: unknown): value is SendEmailOptions {
+	return typeof value === "object" && value !== null && "subject" in value && "to" in value;
 }
 
 const sentEmails: SendEmailOptions[] = [];
@@ -55,9 +64,9 @@ beforeEach(() => {
 		calendarFor(email),
 	);
 	vi.spyOn(trackedEmail, "sendEmail").mockImplementation(async (_ctx, email) => {
-		const options = email as SendEmailOptions;
-		sentEmails.push(options);
-		return `email:${options.idempotencyKey}` as EmailId;
+		if (!isSendEmailOptions(email)) throw new Error("Unexpected email");
+		sentEmails.push(email);
+		return `email:${email.idempotencyKey}` as EmailId;
 	});
 	vi.stubGlobal(
 		"fetch",

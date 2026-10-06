@@ -16,20 +16,26 @@ export function InterviewDialog({
 	period,
 	candidate,
 	people,
+	initial,
+	existing,
 	onClose,
 }: Readonly<{
 	period: Doc<"admissionPeriods">;
 	candidate: { _id: Id<"admissionApplications">; revision: number; name: string };
 	people: { id: Id<"users">; name: string; image: string }[];
+	initial?: { startAt: number; interviewerIds: Id<"users">[] };
+	existing?: Doc<"admissionInterviews">;
 	onClose: () => void;
 }>) {
+	const preset = existing ?? initial;
+	const published = existing?.publishedAt !== undefined;
 	const schedule = useMutation(api.admissions.mutations.scheduleInterview);
 	const { error, run } = useAsyncAction();
 	const form = useAppForm({
 		defaultValues: {
-			start: "",
-			room: period.room,
-			interviewerIds: [] as Id<"users">[],
+			start: preset ? formatOsloDate(preset.startAt, "yyyy-MM-dd'T'HH:mm") : "",
+			room: existing?.room ?? period.room,
+			interviewerIds: preset ? [...preset.interviewerIds] : ([] as Id<"users">[]),
 			confirmed: false,
 		},
 		onSubmit: ({ value }) =>
@@ -45,6 +51,7 @@ export function InterviewDialog({
 						interviewerIds: value.interviewerIds,
 						expectedPeriodRevision: period.revision,
 						candidateConfirmedOutsideForm: value.confirmed,
+						confirmPublishedReschedule: published,
 					});
 					onClose();
 				},
@@ -61,9 +68,14 @@ export function InterviewDialog({
 		>
 			<DialogContent aria-describedby={undefined} className="max-h-[90dvh] overflow-y-auto">
 				<DialogHeader>
-					<DialogTitle>Sett intervjutid</DialogTitle>
+					<DialogTitle>{existing ? "Flytt intervju" : "Sett intervjutid"}</DialogTitle>
 				</DialogHeader>
 				<p className="font-medium">{candidate.name}</p>
+				{published && (
+					<Callout tone="info">
+						Intervjuet er publisert. Kandidaten og intervjuerne får beskjed om den nye tiden.
+					</Callout>
+				)}
 				<form
 					className="grid gap-6"
 					onSubmit={(event) => {
@@ -132,7 +144,7 @@ export function InterviewDialog({
 					>
 						{({ submitting, count }) => (
 							<Button type="submit" disabled={submitting || count !== 2}>
-								Lagre intervjutid
+								{existing ? "Flytt intervju" : "Lagre intervjutid"}
 							</Button>
 						)}
 					</form.Subscribe>

@@ -34,6 +34,7 @@ import {
 	roomUrl,
 	type Settings,
 } from "../model";
+import { type TimeSuggestion, TimeSuggestions } from "./time-suggestions";
 
 export function CandidateDialog({
 	candidate,
@@ -59,6 +60,8 @@ export function CandidateDialog({
 	const [noteDraft, setNoteDraft] = useState(candidate.notes ?? "");
 	const [roomEdit, setRoomEdit] = useState<string>();
 	const [manualInterview, setManualInterview] = useState(false);
+	const [suggestion, setSuggestion] = useState<TimeSuggestion>();
+	const [moveInterview, setMoveInterview] = useState(false);
 	const [cancelInterview, setCancelInterview] = useState(false);
 	const addNote = useMutation(api.admissions.mutations.addNote);
 	const { pending: savingNotes, error: noteError, run: saveNotes } = useAsyncAction();
@@ -174,12 +177,18 @@ export function CandidateDialog({
 										</p>
 									</>
 								) : (
-									<div>
+									<div className="grid gap-3">
 										<p>
 											{candidate.availability.length
 												? "Ingen felles tid med to intervjuere."
 												: "Kandidaten har ikke oppgitt tilgjengelighet."}
 										</p>
+										<TimeSuggestions
+											applicationId={candidate._id}
+											periodId={settings._id}
+											team={team}
+											onPick={setSuggestion}
+										/>
 									</div>
 								)}
 								<details className="admissions-availability-details [&_summary]:cursor-pointer [&_summary]:py-2 [&_summary]:font-medium">
@@ -198,6 +207,11 @@ export function CandidateDialog({
 								{!interview && (
 									<Button variant="outline" onClick={() => setManualInterview(true)}>
 										Sett intervjutid
+									</Button>
+								)}
+								{interview && (
+									<Button variant="outline" onClick={() => setMoveInterview(true)}>
+										Flytt intervju
 									</Button>
 								)}
 								{interview && (
@@ -228,12 +242,25 @@ export function CandidateDialog({
 					</div>
 				</DialogContent>
 			</Dialog>
-			{manualInterview && (
+			{(manualInterview || suggestion) && (
 				<InterviewDialog
 					period={settings}
 					candidate={candidate}
 					people={team}
-					onClose={() => setManualInterview(false)}
+					initial={suggestion}
+					onClose={() => {
+						setManualInterview(false);
+						setSuggestion(undefined);
+					}}
+				/>
+			)}
+			{moveInterview && interview && (
+				<InterviewDialog
+					period={settings}
+					candidate={candidate}
+					people={team}
+					existing={interview}
+					onClose={() => setMoveInterview(false)}
 				/>
 			)}
 			{cancelInterview && (

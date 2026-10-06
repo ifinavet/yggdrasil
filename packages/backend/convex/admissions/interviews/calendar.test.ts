@@ -304,3 +304,92 @@ it.each(["free", "busy", "missing", "unreadable", "unselected"] as const)(
 		}
 	},
 );
+
+it("suggests free times with two interviewers, ranked by the candidate's availability", async () => {
+	const { t } = await setup();
+	const admin = await insertUser(t, "admin@example.test");
+	await grantRole(t, admin._id, "admin");
+	const interviewerOne = await insertUser(t, "one@ifinavet.no");
+	const interviewerTwo = await insertUser(t, "two@ifinavet.no");
+	await grantRole(t, interviewerOne._id, "internal");
+	await grantRole(t, interviewerTwo._id, "internal");
+	const day = "2026-10-12";
+	const startAt = osloDateTimeToEpoch(day, "09:00");
+	const now = Date.now();
+	const periodId = await t.run((ctx) =>
+		ctx.db.insert(
+			"admissionPeriods",
+			periodFields(admin._id, {
+				applicationStartAt: now - 86400000,
+				applicationEndAt: now + 86400000,
+				interviewStartAt: startAt,
+				interviewEndAt: osloDateTimeToEpoch(day, "11:00"),
+				retentionAt: now + 1209600000,
+				revision: 0,
+				interviewers: [
+					{ userId: interviewerOne._id, selectedCalendarIds: ["navet"] },
+					{ userId: interviewerTwo._id, selectedCalendarIds: ["navet"] },
+				],
+				lunch: false,
+				dayEnd: 660,
+			}),
+		),
+	);
+	const insertApplication = async (
+		email: string,
+		availability: { day: string; start: number; end: number }[],
+	) => {
+		const user = await insertUser(t, email);
+		return t.run((ctx) =>
+			ctx.db.insert(
+				"admissionApplications",
+				applicationFields(periodId, user._id, { availability }),
+			),
+		);
+	};
+	const booked = await insertApplication("booked@uio.no", [{ day, start: 540, end: 660 }]);
+	const nearby = await insertApplication("nearby@uio.no", [{ day, start: 600, end: 640 }]);
+	const otherDay = await insertApplication("other@uio.no", [
+		{ day: "2026-10-13", start: 540, end: 660 },
+	]);
+	await t.run((ctx) =>
+		ctx.db.insert(
+			"admissionInterviews",
+			interviewFields(periodId, booked, {
+				startAt,
+				endAt: startAt + 15 * 60000,
+				interviewerIds: [interviewerOne._id, interviewerTwo._id],
+				selectedCalendarIds: ["navet"],
+			}),
+		),
+	);
+	const client = asUser(t, admin);
+	const suggestions = await client.action(api.admissions.interviews.calendar.suggestTimes, {
+		periodId,
+		applicationId: nearby,
+	});
+	expect(suggestions.length).toBeGreaterThan(0);
+	expect(suggestions.length).toBeLessThanOrEqual(5);
+	expect(suggestions.every(({ startAt: time }) => time !== startAt)).toBe(true);
+	expect(suggestions.every(({ interviewerIds }) => interviewerIds.length === 2)).toBe(true);
+	expect(suggestions[0]?.withinAvailability).toBe(true);
+	for (const suggestion of suggestions.filter(({ withinAvailability }) => withinAvailability)) {
+		expect(suggestion.startAt).toBeGreaterThanOrEqual(osloDateTimeToEpoch(day, "10:00"));
+		expect(suggestion.startAt + 15 * 60000).toBeLessThanOrEqual(osloDateTimeToEpoch(day, "10:40"));
+	}
+	expect(suggestions.at(-1)?.withinAvailability).toBe(false);
+
+	const fallback = await client.action(api.admissions.interviews.calendar.suggestTimes, {
+		periodId,
+		applicationId: otherDay,
+	});
+	expect(fallback.map(({ withinAvailability }) => withinAvailability)).not.toContain(true);
+	expect(fallback[0]?.startAt).toBe(startAt + 20 * 60000);
+
+	await expect(
+		asUser(t, interviewerOne).action(api.admissions.interviews.calendar.suggestTimes, {
+			periodId,
+			applicationId: nearby,
+		}),
+	).rejects.toThrow();
+});

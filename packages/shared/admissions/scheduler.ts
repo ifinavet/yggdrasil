@@ -127,3 +127,48 @@ export function matchInterviews(
 	}
 	return assignments;
 }
+
+export const MAX_SLOT_SUGGESTIONS = 5;
+
+export type SlotSuggestion<Slot extends SchedulingSlot> = Readonly<{
+	slot: Slot;
+	interviewers: readonly string[];
+	withinAvailability: boolean;
+}>;
+
+function minutesOutside(availability: readonly AvailabilityWindow[], slot: AvailabilityWindow) {
+	const sameDay = availability.filter((window) => window.day === slot.day);
+	if (!sameDay.length) return Number.POSITIVE_INFINITY;
+	return Math.min(
+		...sameDay.map(
+			(window) => Math.max(0, window.start - slot.start) + Math.max(0, slot.end - window.end),
+		),
+	);
+}
+
+export function suggestSlots<Slot extends SchedulingSlot>(
+	candidate: SchedulingCandidate,
+	slots: readonly Slot[],
+	team: readonly SchedulingInterviewer[],
+	taken: readonly AvailabilityWindow[],
+	limit = MAX_SLOT_SUGGESTIONS,
+): SlotSuggestion<Slot>[] {
+	return slots
+		.filter((slot) => !taken.some((window) => overlaps(window, slot)))
+		.map((slot) => ({
+			slot,
+			interviewers: team
+				.filter((person) => interviewerAvailable(person, slot))
+				.map(({ id }) => id)
+				.slice(0, 2),
+			distance: minutesOutside(candidate.availability, slot),
+		}))
+		.filter(({ interviewers }) => interviewers.length >= 2)
+		.sort((a, b) => a.distance - b.distance || a.slot.id.localeCompare(b.slot.id))
+		.slice(0, limit)
+		.map(({ slot, interviewers, distance }) => ({
+			slot,
+			interviewers,
+			withinAvailability: distance === 0,
+		}));
+}
