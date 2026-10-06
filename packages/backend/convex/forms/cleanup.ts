@@ -1,20 +1,50 @@
+import type { AnyDataModel, GenericDatabaseWriter } from "convex/server";
 import { v } from "convex/values";
-import { internal } from "../_generated/api";
 import { internalMutation } from "../_generated/server";
 
-export const deleteLegacyResponses = internalMutation({
-	args: { cursor: v.optional(v.union(v.string(), v.null())) },
-	handler: async (ctx, { cursor }): Promise<void> => {
-		const responses = await ctx.db
-			.query("formResponses")
-			.paginate({ cursor: cursor ?? null, numItems: 100 });
-		for (const response of responses.page) {
-			if ("formId" in response) await ctx.db.delete(response._id);
+const PAGE_SIZE = 200;
+const DELETES_PER_CALL = 500;
+
+export const deleteLegacyBatch = internalMutation({
+	args: {},
+	returns: v.object({
+		deletedResponses: v.number(),
+		deletedForms: v.number(),
+		done: v.boolean(),
+	}),
+	handler: async (ctx) => {
+		let deletedResponses = 0;
+		let after = -1;
+		let responsesDone = false;
+		while (!responsesDone && deletedResponses < DELETES_PER_CALL) {
+			const page = await ctx.db
+				.query("formResponses")
+				.withIndex("by_creation_time", (q) => q.gt("_creationTime", after))
+				.take(PAGE_SIZE);
+			responsesDone = page.length < PAGE_SIZE;
+			for (const response of page) {
+				if (deletedResponses === DELETES_PER_CALL) {
+					responsesDone = false;
+					break;
+				}
+				if ("formId" in response) {
+					await ctx.db.delete(response._id);
+					deletedResponses++;
+				}
+				after = response._creationTime;
+			}
 		}
-		if (!responses.isDone) {
-			await ctx.scheduler.runAfter(0, internal.forms.cleanup.deleteLegacyResponses, {
-				cursor: responses.continueCursor,
-			});
+
+		const schemalessDb = ctx.db as unknown as GenericDatabaseWriter<AnyDataModel>;
+		const forms = await schemalessDb.query("form").take(DELETES_PER_CALL);
+		for (const form of forms) {
+			await schemalessDb.delete(form._id);
 		}
+
+		return {
+			deletedResponses,
+			deletedForms: forms.length,
+			done: responsesDone && forms.length < DELETES_PER_CALL,
+		};
 	},
 });
