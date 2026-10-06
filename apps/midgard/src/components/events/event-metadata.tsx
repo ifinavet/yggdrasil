@@ -57,8 +57,7 @@ export function EventMetadata({
 					{event.foodName ?? (event.food || "Mer info kommer")}
 				</p>
 				<p className="flex items-center gap-2 font-semibold md:text-lg">
-					<Users className="size-6 min-w-6 md:size-8" />{" "}
-					{spotsLabel(registrationSummary.registeredCount, availableSpots)}
+					<Users className="size-6 min-w-6 md:size-8" /> {spotsLabel(availableSpots)}
 				</p>
 				<p className="flex items-center gap-2 font-semibold md:text-lg">
 					<Globe className="size-6 min-w-6 md:size-8" /> {event.language}

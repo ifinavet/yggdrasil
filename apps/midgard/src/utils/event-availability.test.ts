@@ -2,13 +2,13 @@ import { describe, expect, it } from "vitest";
 import { countdownLabel, spotsLabel } from "./event-availability";
 
 describe("spotsLabel", () => {
-	it("shows only the remaining spots while the event has room", () => {
-		expect(spotsLabel(12, 28)).toBe("28 plasser igjen");
-		expect(spotsLabel(49, 1)).toBe("1 plass igjen");
+	it("shows the remaining spots", () => {
+		expect(spotsLabel(28)).toBe("28 plasser igjen");
+		expect(spotsLabel(0)).toBe("0 plasser igjen");
 	});
 
-	it("shows only the registered count when the event is full", () => {
-		expect(spotsLabel(50, 0)).toBe("50 påmeldt");
+	it("uses singular for one spot", () => {
+		expect(spotsLabel(1)).toBe("1 plass igjen");
 	});
 });
 

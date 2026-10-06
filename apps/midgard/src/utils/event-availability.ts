@@ -1,8 +1,7 @@
 import { formatDistanceStrict } from "date-fns";
 import { nb } from "date-fns/locale";
 
-export function spotsLabel(registeredCount: number, availableSpots: number): string {
-	if (availableSpots === 0) return `${registeredCount} påmeldt`;
+export function spotsLabel(availableSpots: number): string {
 	return `${availableSpots} ${availableSpots === 1 ? "plass" : "plasser"} igjen`;
 }
 
