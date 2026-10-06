@@ -228,9 +228,9 @@ export function SearchSelect(props: Readonly<SearchSelectProps>) {
 					aria-describedby={props["aria-describedby"]}
 					aria-invalid={props["aria-invalid"]}
 					disabled={disabled}
-					className={cn("justify-between font-normal", className)}
+					className={cn("w-full min-w-0 justify-between font-normal contain-inline-size", className)}
 				>
-					<span className={cn("truncate", !triggerText && "text-muted-foreground")}>
+					<span className={cn("min-w-0 truncate", !triggerText && "text-muted-foreground")}>
 						{triggerText ?? placeholder}
 					</span>
 					<ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />

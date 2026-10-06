@@ -113,6 +113,28 @@ async function boardUser(db: LocalDatabase, name: string, email: string, image: 
 	return userId;
 }
 
+export async function addBoardMembers(url: string, names: readonly string[]) {
+	const db = new LocalDatabase(url);
+	const userIds = await Promise.all(
+		names.map((name) =>
+			boardUser(db, name, `${name.toLowerCase().replaceAll(" ", ".")}@ifinavet.no`, ""),
+		),
+	);
+	return () => Promise.all(userIds.map((userId) => removeBoardUser(db, userId)));
+}
+
+async function removeBoardUser(db: LocalDatabase, userId: Id<"users">) {
+	const [internal, role] = await Promise.all([
+		db.find("internals", "userId", userId),
+		db.find("accessRights", "userId", userId),
+	]);
+	await Promise.all([
+		internal && db.delete("internals", internal._id),
+		role && db.delete("accessRights", role._id),
+	]);
+	await db.delete("users", userId);
+}
+
 async function clearAdmissions(db: LocalDatabase) {
 	const applicant = await db.find("users", "externalId", localIdentity.subject);
 	if (applicant) {
