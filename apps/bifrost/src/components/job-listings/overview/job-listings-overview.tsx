@@ -182,7 +182,8 @@ export function JobListingsOverview({
 	now: number;
 }>) {
 	const listings = usePreloadedQuery(preloadedListings);
-	const orders = useQuery(api.jobListingOrders.admin.listPending, {}) ?? [];
+	const pendingOrders = useQuery(api.jobListingOrders.admin.listPending, {});
+	const orders = pendingOrders ?? [];
 	const [search, setSearch] = useState("");
 
 	const { unpublished, published, expired } = useMemo(
@@ -195,10 +196,13 @@ export function JobListingsOverview({
 		{ label: "Publiserte", listings: published },
 	].filter((group) => group.listings.length > 0);
 
-	const guideSteps = new Set<JobListingsGuideStep>(["search", "create"]);
-	if (orders.length > 0) guideSteps.add("orders");
-	if (unpublished.length > 0) guideSteps.add("publish");
-	if (expired.length > 0) guideSteps.add("expired");
+	const guideSteps = new Set<JobListingsGuideStep>();
+	if (pendingOrders) {
+		guideSteps.add("search").add("create");
+		if (orders.length > 0) guideSteps.add("orders");
+		if (unpublished.length > 0) guideSteps.add("publish");
+		if (expired.length > 0) guideSteps.add("expired");
+	}
 
 	return (
 		<GuideProvider available={guideSteps}>

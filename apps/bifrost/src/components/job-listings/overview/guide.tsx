@@ -8,7 +8,7 @@ import { createGuide } from "@/components/common/guide";
 const hints: Record<JobListingsGuideStep, string> = {
 	orders:
 		"Åpne en bestilling og se over annonsene. Godkjenner du, publiseres de og bedriften får e-post. Avviser du, skriver du en begrunnelse.",
-	search: "Søket gjelder også utløpte annonser. Trykk Ctrl+K eller ⌘K for å hoppe hit.",
+	search: "Søket gjelder også utløpte annonser.",
 	create: "Lag en annonse selv når bedriften ikke har sendt en bestilling.",
 	publish:
 		"Upubliserte annonser vises ikke på nettsiden. Bruk Publiser-knappen i raden når den er klar.",
