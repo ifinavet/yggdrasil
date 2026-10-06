@@ -109,11 +109,9 @@ test.describe("persistent board admissions", () => {
 		await page.reload();
 		await page.getByRole("button", { name: "Finn tider", exact: true }).click();
 		await expect(
-			page
-				.getByRole("alert")
-				.filter({
-					hasText: "Google Calendar mangler tjenestekonto eller Workspace-konfigurasjon.",
-				}),
+			page.getByRole("alert").filter({
+				hasText: "Google Calendar mangler tjenestekonto eller Workspace-konfigurasjon.",
+			}),
 		).toBeVisible();
 		await captureScreenshot(
 			page,
