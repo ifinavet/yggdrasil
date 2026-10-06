@@ -1,7 +1,7 @@
 import { Button } from "@workspace/ui/components/button";
 import { ChartPie, Pencil, Users } from "lucide-react";
 import Link from "next/link";
-import { EventGuideHint, EventGuideReplay } from "./guide";
+import { EventGuideHint } from "./guide";
 
 export function EventNav({ identifier }: Readonly<{ identifier: string }>) {
 	return (
@@ -25,7 +25,6 @@ export function EventNav({ identifier }: Readonly<{ identifier: string }>) {
 					</Link>
 				</Button>
 			</EventGuideHint>
-			<EventGuideReplay />
 		</div>
 	);
 }
