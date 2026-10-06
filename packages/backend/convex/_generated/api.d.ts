@@ -8,6 +8,20 @@
  * @module
  */
 
+import type * as admissions_access from "../admissions/access.js";
+import type * as admissions_board from "../admissions/board.js";
+import type * as admissions_delivery_actions from "../admissions/delivery/actions.js";
+import type * as admissions_delivery_cancellation from "../admissions/delivery/cancellation.js";
+import type * as admissions_delivery_slack from "../admissions/delivery/slack.js";
+import type * as admissions_delivery_tracking from "../admissions/delivery/tracking.js";
+import type * as admissions_delivery_workflow from "../admissions/delivery/workflow.js";
+import type * as admissions_internal from "../admissions/internal.js";
+import type * as admissions_interviews_calendar from "../admissions/interviews/calendar.js";
+import type * as admissions_interviews_schedule from "../admissions/interviews/schedule.js";
+import type * as admissions_lifecycle from "../admissions/lifecycle.js";
+import type * as admissions_mutations from "../admissions/mutations.js";
+import type * as admissions_queries from "../admissions/queries.js";
+import type * as admissions_rules from "../admissions/rules.js";
 import type * as auth_accessRights from "../auth/accessRights.js";
 import type * as auth_currentUser from "../auth/currentUser.js";
 import type * as auth_local from "../auth/local.js";
@@ -93,6 +107,7 @@ import type * as iam_actions from "../iam/actions.js";
 import type * as iam_config from "../iam/config.js";
 import type * as iam_drift from "../iam/drift.js";
 import type * as iam_google from "../iam/google.js";
+import type * as iam_googleCalendar from "../iam/googleCalendar.js";
 import type * as iam_internal from "../iam/internal.js";
 import type * as iam_jobs from "../iam/jobs.js";
 import type * as iam_lifecycle from "../iam/lifecycle.js";
@@ -119,9 +134,11 @@ import type * as jobListings_queries from "../jobListings/queries.js";
 import type * as leaderboard_queries from "../leaderboard/queries.js";
 import type * as leaderboard_ranking from "../leaderboard/ranking.js";
 import type * as lib_emailConfirmation from "../lib/emailConfirmation.js";
+import type * as lib_emailDelivery from "../lib/emailDelivery.js";
 import type * as lib_tokens from "../lib/tokens.js";
 import type * as lib_trackedEmail from "../lib/trackedEmail.js";
 import type * as lib_validators from "../lib/validators.js";
+import type * as lib_workflow from "../lib/workflow.js";
 import type * as migrations from "../migrations.js";
 import type * as pages_mutations from "../pages/mutations.js";
 import type * as pages_queries from "../pages/queries.js";
@@ -159,6 +176,7 @@ import type * as semesterPlanning_semesters_queries from "../semesterPlanning/se
 import type * as users_clerk_http from "../users/clerk/http.js";
 import type * as users_clerk_mutations from "../users/clerk/mutations.js";
 import type * as users_clerk_queries from "../users/clerk/queries.js";
+import type * as users_organization_groups from "../users/organization/groups.js";
 import type * as users_organization_mutations from "../users/organization/mutations.js";
 import type * as users_organization_queries from "../users/organization/queries.js";
 import type * as users_students_mutations from "../users/students/mutations.js";
@@ -171,6 +189,20 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  "admissions/access": typeof admissions_access;
+  "admissions/board": typeof admissions_board;
+  "admissions/delivery/actions": typeof admissions_delivery_actions;
+  "admissions/delivery/cancellation": typeof admissions_delivery_cancellation;
+  "admissions/delivery/slack": typeof admissions_delivery_slack;
+  "admissions/delivery/tracking": typeof admissions_delivery_tracking;
+  "admissions/delivery/workflow": typeof admissions_delivery_workflow;
+  "admissions/internal": typeof admissions_internal;
+  "admissions/interviews/calendar": typeof admissions_interviews_calendar;
+  "admissions/interviews/schedule": typeof admissions_interviews_schedule;
+  "admissions/lifecycle": typeof admissions_lifecycle;
+  "admissions/mutations": typeof admissions_mutations;
+  "admissions/queries": typeof admissions_queries;
+  "admissions/rules": typeof admissions_rules;
   "auth/accessRights": typeof auth_accessRights;
   "auth/currentUser": typeof auth_currentUser;
   "auth/local": typeof auth_local;
@@ -256,6 +288,7 @@ declare const fullApi: ApiFromModules<{
   "iam/config": typeof iam_config;
   "iam/drift": typeof iam_drift;
   "iam/google": typeof iam_google;
+  "iam/googleCalendar": typeof iam_googleCalendar;
   "iam/internal": typeof iam_internal;
   "iam/jobs": typeof iam_jobs;
   "iam/lifecycle": typeof iam_lifecycle;
@@ -282,9 +315,11 @@ declare const fullApi: ApiFromModules<{
   "leaderboard/queries": typeof leaderboard_queries;
   "leaderboard/ranking": typeof leaderboard_ranking;
   "lib/emailConfirmation": typeof lib_emailConfirmation;
+  "lib/emailDelivery": typeof lib_emailDelivery;
   "lib/tokens": typeof lib_tokens;
   "lib/trackedEmail": typeof lib_trackedEmail;
   "lib/validators": typeof lib_validators;
+  "lib/workflow": typeof lib_workflow;
   migrations: typeof migrations;
   "pages/mutations": typeof pages_mutations;
   "pages/queries": typeof pages_queries;
@@ -322,6 +357,7 @@ declare const fullApi: ApiFromModules<{
   "users/clerk/http": typeof users_clerk_http;
   "users/clerk/mutations": typeof users_clerk_mutations;
   "users/clerk/queries": typeof users_clerk_queries;
+  "users/organization/groups": typeof users_organization_groups;
   "users/organization/mutations": typeof users_organization_mutations;
   "users/organization/queries": typeof users_organization_queries;
   "users/students/mutations": typeof users_students_mutations;

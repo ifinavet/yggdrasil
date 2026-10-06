@@ -70,7 +70,7 @@ async function AuthorizedContent({ children }: Readonly<{ children: React.ReactN
 	return (
 		<>
 			<BifrostSidebar />
-			<SidebarInset className="max-h-full">
+			<SidebarInset className="max-h-full min-w-0">
 				<Header />
 				<main className="flex max-h-full flex-col gap-4 p-4">{children}</main>
 			</SidebarInset>

@@ -3,7 +3,7 @@ import { format } from "date-fns";
 import { nb } from "date-fns/locale";
 import { DATE_PATTERNS, OSLO_TIME_ZONE } from "./constants";
 
-const OSLO_PARTS = new Intl.DateTimeFormat("en-US", {
+const OSLO_WALL_CLOCK = new Intl.DateTimeFormat("en-US", {
 	timeZone: OSLO_TIME_ZONE,
 	hourCycle: "h23",
 	year: "numeric",
@@ -14,9 +14,23 @@ const OSLO_PARTS = new Intl.DateTimeFormat("en-US", {
 	second: "numeric",
 });
 
-function osloWallClock(timestamp: number) {
+function localWallClock(timestamp: number, timeZone: string) {
 	const parts = new Map(
-		OSLO_PARTS.formatToParts(timestamp).map(({ type, value }) => [type, Number(value)]),
+		(timeZone === OSLO_TIME_ZONE
+			? OSLO_WALL_CLOCK
+			: new Intl.DateTimeFormat("en-US", {
+					timeZone,
+					hourCycle: "h23",
+					year: "numeric",
+					month: "numeric",
+					day: "numeric",
+					hour: "numeric",
+					minute: "numeric",
+					second: "numeric",
+				})
+		)
+			.formatToParts(timestamp)
+			.map(({ type, value }) => [type, Number(value)]),
 	);
 	const part = (type: Intl.DateTimeFormatPartTypes) => parts.get(type) as number;
 	return new TZDate(
@@ -31,8 +45,12 @@ function osloWallClock(timestamp: number) {
 	);
 }
 
+export function formatLocalDate(timestamp: number, timeZone: string, pattern: string): string {
+	return format(localWallClock(timestamp, timeZone), pattern, { locale: nb });
+}
+
 export function formatOsloDate(timestamp: number, pattern: string): string {
-	return format(osloWallClock(timestamp), pattern, { locale: nb });
+	return formatLocalDate(timestamp, OSLO_TIME_ZONE, pattern);
 }
 
 export function formatOsloToday(): string {
@@ -73,3 +91,7 @@ export const humanReadableFullDateTime = (date: Date): string =>
 		minute: "2-digit",
 		timeZone: OSLO_TIME_ZONE,
 	});
+
+export function minutesToClock(minutes: number) {
+	return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+}

@@ -13,6 +13,7 @@ import {
 	ReceiptIcon,
 	TrendingUpIcon,
 	TrophyIcon,
+	UserPlusIcon,
 	UsersIcon,
 	UtensilsIcon,
 } from "lucide-react";
@@ -77,6 +78,7 @@ export const sidebarNavigation = {
 		{
 			title: "Personer",
 			items: [
+				{ title: "Opptak", icon: UserPlusIcon, path: "/admissions" },
 				{
 					title: "Studenter",
 					icon: UsersIcon,

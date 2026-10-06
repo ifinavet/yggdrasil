@@ -2,6 +2,7 @@
 
 import { api } from "@workspace/backend/convex/api";
 import { Button } from "@workspace/ui/components/button";
+import { ConfirmDialog } from "@workspace/ui/components/confirm-dialog";
 import { Callout } from "@workspace/ui/components/products/callout";
 import { Panel, PanelBody } from "@workspace/ui/components/products/panel";
 import { useMutation } from "convex/react";
@@ -12,7 +13,6 @@ import { capitalize, formatMoment, longDay, shortDay, shortDayTitle } from "../f
 import { isActiveStatus } from "../status";
 import { StatusIcon } from "../status-badge";
 import { AssignDateDialog, useAssignDate } from "./assign-date-dialog";
-import { ConfirmDialog } from "./confirm-dialog";
 import { actorName } from "./history-card";
 import {
 	type ApplicationDetails,

@@ -8,6 +8,7 @@ export {
 	degreeKey,
 	degreeName,
 	NEXT_DEGREE,
+	STUDY_YEARS,
 } from "./degrees";
 export { JOB_TYPES } from "./job_types";
 export { LISTING_COLORS } from "./listing_colors";
@@ -34,6 +35,9 @@ export {
 	BIFROST_URL,
 	COMPANY_FIRST_CONTACT_TEMPLATE_URL,
 	EVENT_EXPENSE_TEMPLATE_URL,
+	GOOGLE_CALENDAR_API_URL,
+	GOOGLE_CALENDAR_DEFAULT_SCOPES,
+	GOOGLE_OAUTH_TOKEN_URL,
 	HUGIN_LOCAL_URL,
 	HUGIN_URL,
 	MIDGARD_LOCAL_URL,

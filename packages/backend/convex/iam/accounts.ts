@@ -1,5 +1,5 @@
 import { normalizeEmail } from "@workspace/shared/iam";
-import type { Id } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
 
 export async function accountForEmail(ctx: QueryCtx, email: string) {
@@ -23,4 +23,11 @@ export async function accountForUser(ctx: QueryCtx, userId: Id<"users">, email: 
 			.withIndex("by_userId", (q) => q.eq("userId", userId))
 			.first()) ?? (email ? await accountForEmail(ctx, email) : null)
 	);
+}
+
+export async function workspaceEmail(
+	ctx: Parameters<typeof accountForUser>[0],
+	user: Doc<"users">,
+) {
+	return (await accountForUser(ctx, user._id, user.email))?.workspaceEmail ?? user.email;
 }

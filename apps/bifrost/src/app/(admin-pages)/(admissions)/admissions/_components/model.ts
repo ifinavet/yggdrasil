@@ -1,0 +1,34 @@
+import type { api } from "@workspace/backend/convex/api";
+import type { Doc } from "@workspace/backend/convex/dataModel";
+import { formatOsloDate } from "@workspace/shared/time";
+import type { FunctionReturnType } from "convex/server";
+
+export { ADMISSION_SCHEDULING_DEFAULTS as defaults, roomUrl } from "@workspace/shared/admissions";
+
+export type Overview = NonNullable<FunctionReturnType<typeof api.admissions.queries.adminOverview>>;
+export type Candidate = Overview["candidates"][number];
+export type Interviewer = Overview["interviewers"][number];
+export type Interview = Doc<"admissionInterviews">;
+export type Settings = Doc<"admissionPeriods">;
+export type Decision = Candidate["decision"];
+export const offerLabels = {
+	none: "",
+	pending: "Venter på svar",
+	accepted: "Takket ja",
+	declined: "Takket nei",
+	expired: "Svarfristen er ute",
+};
+export const decisions = ["pending", "shortlist", "accepted", "rejected"] as const;
+export function decisionLocked(candidate: Candidate) {
+	return ["pending", "accepted", "declined"].includes(candidate.offerStatus);
+}
+export const decisionLabels: Record<Decision, string> = {
+	pending: "Til vurdering",
+	shortlist: "Videre",
+	accepted: "Tatt opp",
+	rejected: "Avslått",
+};
+export { minutesToClock as clock } from "@workspace/shared/time";
+export function dateLabel(day: string) {
+	return formatOsloDate(new Date(`${day}T12:00:00Z`).getTime(), "EEE d. MMM");
+}

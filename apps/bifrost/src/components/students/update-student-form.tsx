@@ -2,15 +2,7 @@
 
 import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
-import {
-	DEGREE_TYPES,
-	DEGREE_YEARS,
-	degreesFor,
-	fittingDegree,
-	fittingYear,
-	refineStudentProfile,
-	STUDY_PROGRAMS,
-} from "@workspace/shared/constants";
+import { DEGREE_TYPES, refineStudentProfile, STUDY_PROGRAMS } from "@workspace/shared/constants";
 import { Button } from "@workspace/ui/components/button";
 import {
 	Field,
@@ -20,13 +12,7 @@ import {
 	FieldSet,
 } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@workspace/ui/components/select";
+import { StudentProfileFields } from "@workspace/ui/components/student-profile-fields";
 import { type Preloaded, useMutation, usePreloadedQuery } from "convex/react";
 import { toast } from "sonner";
 import { z } from "zod/v4";
@@ -157,111 +143,19 @@ export default function UpdateStudentForm({
 					}}
 				</form.Field>
 
-				<FieldGroup className="flex flex-wrap gap-4">
-					<form.Field name="year">
-						{(field) => {
-							const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
-							return (
-								<Field>
-									<FieldLabel htmlFor={field.name}>År</FieldLabel>
-									<form.Subscribe selector={(state) => DEGREE_YEARS[state.values.degree]}>
-										{({ first, last }) => (
-											<Input
-												id={field.name}
-												name={field.name}
-												type="number"
-												min={first}
-												max={last}
-												value={field.state.value}
-												onChange={(e) => field.handleChange(Number.parseInt(e.target.value, 10))}
-												onBlur={field.handleBlur}
-												aria-invalid={isInvalid}
-											/>
-										)}
-									</form.Subscribe>
-									{isInvalid && <FieldError errors={field.state.meta.errors} />}
-								</Field>
-							);
-						}}
-					</form.Field>
-
-					<form.Field
-						name="studyProgram"
-						listeners={{
-							onChange: ({ value }) => {
-								const degree = fittingDegree(value, form.getFieldValue("degree"));
-								form.setFieldValue("degree", degree);
-								form.setFieldValue("year", fittingYear(degree, form.getFieldValue("year")));
-							},
-						}}
-					>
-						{(field) => {
-							const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
-							return (
-								<Field>
-									<FieldLabel htmlFor={field.name}>Studieprogram</FieldLabel>
-									<Select
-										onValueChange={(value) =>
-											field.handleChange(value as (typeof STUDY_PROGRAMS)[number])
-										}
-										value={field.state.value}
-									>
-										<SelectTrigger>
-											<SelectValue placeholder="Velg et studieprogram" />
-										</SelectTrigger>
-										<SelectContent>
-											{STUDY_PROGRAMS.map((program) => (
-												<SelectItem key={program} value={program}>
-													{program}
-												</SelectItem>
-											))}
-										</SelectContent>
-									</Select>
-									{isInvalid && <FieldError errors={field.state.meta.errors} />}
-								</Field>
-							);
-						}}
-					</form.Field>
-
-					<form.Field
-						name="degree"
-						listeners={{
-							onChange: ({ value }) =>
-								form.setFieldValue("year", fittingYear(value, form.getFieldValue("year"))),
-						}}
-					>
-						{(field) => {
-							const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
-							return (
-								<Field>
-									<FieldLabel htmlFor={field.name}>Studiegrad</FieldLabel>
-									<Select
-										onValueChange={(value) =>
-											field.handleChange(value as (typeof DEGREE_TYPES)[number])
-										}
-										value={field.state.value}
-									>
-										<SelectTrigger>
-											<SelectValue placeholder="Velg studie grad" />
-										</SelectTrigger>
-										<SelectContent>
-											<form.Subscribe selector={(state) => state.values.studyProgram}>
-												{(program) =>
-													degreesFor(program).map((degree) => (
-														<SelectItem key={degree} value={degree}>
-															{degree}
-														</SelectItem>
-													))
-												}
-											</form.Subscribe>
-										</SelectContent>
-									</Select>
-									{isInvalid && <FieldError errors={field.state.meta.errors} />}
-								</Field>
-							);
-						}}
-					</form.Field>
-				</FieldGroup>
+				<form.Field name="studyProgram">
+					{(studyProgram) => (
+						<form.Field name="degree">
+							{(degree) => (
+								<form.Field name="year">
+									{(year) => (
+										<StudentProfileFields studyProgram={studyProgram} degree={degree} year={year} />
+									)}
+								</form.Field>
+							)}
+						</form.Field>
+					)}
+				</form.Field>
 			</FieldSet>
 
 			<Button type="submit" className="mt-4" disabled={form.state.isSubmitting}>

@@ -37,7 +37,7 @@ export default function ThemeSwitcher() {
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger asChild>
-				<Button variant='ghost' size={"sm"}>
+				<Button variant='ghost' size={"sm"} aria-label="Velg fargetema">
 					<CurrentIcon size={ICON_SIZE} />
 				</Button>
 			</DropdownMenuTrigger>

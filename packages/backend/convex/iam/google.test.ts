@@ -69,3 +69,49 @@ describe("Google diagnostics", () => {
 		expect(status).toHaveBeenCalledWith(undefined, expect.any(Number));
 	});
 });
+
+it.each([
+	[400, "invalid_grant"],
+	[401, "unauthorized_client"],
+	[404, "not_found"],
+])(
+	"preserves OAuth HTTP %s diagnostics and never calls Directory after rejection",
+	async (httpStatus, code) => {
+		const status = vi.fn();
+		const fetch = vi
+			.fn()
+			.mockImplementation(async () =>
+				Response.json(
+					{ error: code, error_description: "Rejected delegation" },
+					{ status: httpStatus as number },
+				),
+			);
+		vi.stubGlobal("fetch", fetch);
+		await expect(googleClient(config, status).listUsers()).rejects.toThrow(
+			`Google avviste innloggingen (${httpStatus}). ${code}: Rejected delegation`,
+		);
+		expect(fetch).toHaveBeenCalledTimes(1);
+		expect(status).toHaveBeenCalledWith(expect.stringContaining(String(code)), expect.any(Number));
+	},
+);
+
+it("uses delegated Directory credentials once and rejects empty access tokens", async () => {
+	const status = vi.fn();
+	const fetch = vi.fn(async (_url, init) => {
+		const assertion = new URLSearchParams(String(init.body)).get("assertion");
+		if (!assertion) throw new Error("Missing assertion");
+		const payload = JSON.parse(Buffer.from(assertion.split(".")[1] ?? "", "base64url").toString());
+		expect(payload).toMatchObject({
+			iss: config.serviceAccountEmail,
+			sub: config.adminEmail,
+			scope: "https://www.googleapis.com/auth/admin.directory.user",
+		});
+		return Response.json({ access_token: "" });
+	});
+	vi.stubGlobal("fetch", fetch);
+	await expect(googleClient(config, status).listUsers()).rejects.toThrow(
+		"Google returnerte ikke et tilgangstoken",
+	);
+	expect(fetch).toHaveBeenCalledTimes(1);
+	expect(status).not.toHaveBeenCalledWith(undefined, expect.any(Number));
+});

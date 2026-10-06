@@ -6,6 +6,11 @@ import { internal } from "../../_generated/api";
 import type { Doc } from "../../_generated/dataModel";
 import { internalMutation, internalQuery, type MutationCtx } from "../../_generated/server";
 import { isLocalDevelopment } from "../../auth/local";
+import {
+	canUpdateEmailDeliveryStatus,
+	EMAIL_DELIVERY_ERRORS,
+	EMAIL_DELIVERY_EVENT_STATUSES,
+} from "../../lib/emailDelivery";
 import { trackedEmail } from "../../lib/trackedEmail";
 import { envelopeFingerprint, invitationPreview } from "./helpers";
 import { notifyInvitationSent, notifyPlanning } from "./notifications";
@@ -152,41 +157,21 @@ export const recordProviderEvent = internalMutation({
 			.withIndex("by_emailId", (q) => q.eq("emailId", emailId))
 			.unique();
 		if (!email) return false;
-		const statuses: Record<string, Doc<"eventPlanningEmails">["status"]> = {
-			"email.sent": "sent",
-			"email.delivered": "delivered",
-			"email.delivery_delayed": "delayed",
-			"email.bounced": "bounced",
-			"email.complained": "complained",
-			"email.failed": "failed",
-			"email.suppressed": "failed",
-		};
-		const status = statuses[type];
+
+		const status = EMAIL_DELIVERY_EVENT_STATUSES[type];
 		if (!status || email.status === "cancelled") return true;
-		const terminal = ["bounced", "complained", "failed"].includes(email.status);
-		if (
-			terminal ||
-			(email.status === "delivered" && ["queued", "sent", "delayed"].includes(status))
-		)
-			return true;
-		const failed = ["bounced", "complained", "failed", "delayed"].includes(status);
-		const messages: Partial<Record<Doc<"eventPlanningEmails">["status"], string>> = {
-			bounced: "Mottakerens server avviste e-posten. Kontroller adressen.",
-			complained: "E-posten ble markert som søppelpost. Følg opp manuelt.",
-			delayed: "Leveringen er forsinket. Sjekk leveringsstatus før ny sending.",
-		};
-		const message =
-			messages[status] ?? "E-posten kunne ikke sendes. Kontroller leveringsoppsettet.";
+		if (!canUpdateEmailDeliveryStatus(email.status, status)) return true;
+		const error = EMAIL_DELIVERY_ERRORS[status];
 		await ctx.db.patch(email._id, {
 			url: undefined,
 			status,
-			...(failed ? { error: message } : { error: undefined }),
+			error,
 			...(status === "sent" ? { sentAt: email.sentAt ?? Date.now() } : {}),
 			...(status === "delivered"
 				? { deliveredAt: Date.now(), sentAt: email.sentAt ?? Date.now() }
 				: {}),
 		});
-		if (failed) await alertFailure(ctx, email, message, status);
+		if (error) await alertFailure(ctx, email, error, status);
 		await notifyInvitationSent(ctx, email, status);
 		return true;
 	},

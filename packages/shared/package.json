@@ -17,6 +17,7 @@
 		"typescript": "catalog:"
 	},
 	"exports": {
+		"./admissions": "./admissions/index.ts",
 		"./constants": "./constants/index.ts",
 		"./constants/contact": "./constants/contact.ts",
 		"./constants/urls": "./constants/urls.ts",

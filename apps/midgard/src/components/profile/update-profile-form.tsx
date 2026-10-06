@@ -28,6 +28,7 @@ export default function UpdateProfileForm({
 	className?: string;
 }>) {
 	const student = usePreloadedQuery(preloadedStudent);
+	if (!student) throw new Error("Studentprofilen finnes ikke.");
 
 	const updateProfile = useMutation(api.users.students.mutations.updateCurrent);
 	const form = useAppForm({

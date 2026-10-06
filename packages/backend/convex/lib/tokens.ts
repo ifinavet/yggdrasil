@@ -16,8 +16,9 @@ export function generateLinkToken(): string {
 		.replaceAll("=", "");
 }
 
-/** The lowercase hex SHA-256 of a link token, used as the lookup key. */
-export async function hashLinkToken(token: string): Promise<string> {
+export async function sha256(token: string): Promise<string> {
 	const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token));
 	return Array.from(new Uint8Array(hash), (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
+
+export { sha256 as hashLinkToken };

@@ -1,5 +1,6 @@
 "use client";
 
+import { Avatar, AvatarFallback, AvatarImage } from "@workspace/ui/components/avatar";
 import { Button } from "@workspace/ui/components/button";
 import {
 	Command,
@@ -62,6 +63,7 @@ type Selection =
 export type SearchSelectProps = Source &
 	Selection & {
 		id?: string;
+		"aria-label"?: string;
 		"aria-labelledby"?: string;
 		"aria-describedby"?: string;
 		"aria-invalid"?: boolean;
@@ -221,6 +223,7 @@ export function SearchSelect(props: Readonly<SearchSelectProps>) {
 					variant="outline"
 					role="combobox"
 					aria-expanded={open}
+					aria-label={props["aria-label"]}
 					aria-labelledby={props["aria-labelledby"]}
 					aria-describedby={props["aria-describedby"]}
 					aria-invalid={props["aria-invalid"]}
@@ -259,6 +262,12 @@ export function SearchSelect(props: Readonly<SearchSelectProps>) {
 									<Check
 										className={cn("size-4", isSelected(item.id) ? "opacity-100" : "opacity-0")}
 									/>
+									{item.image !== undefined && (
+										<Avatar className="size-8">
+											<AvatarImage src={item.image} alt="" />
+											<AvatarFallback>{item.label.charAt(0)}</AvatarFallback>
+										</Avatar>
+									)}
 									<span className="min-w-0 flex-1">
 										<span className="block truncate">{item.label}</span>
 										{item.description && (

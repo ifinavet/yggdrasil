@@ -4,6 +4,7 @@ import { hasSearchWords, matchesSearch, nameKey } from "@workspace/shared/utils"
 export type SearchSelectItem = {
 	readonly id: string;
 	readonly label: string;
+	readonly image?: string;
 	/** A second, muted line, e.g. an email or an org number. Also searched in a static list. */
 	readonly description?: string;
 	/** Shown instead of a check mark, and makes the item impossible to pick, e.g. «Slettet». */

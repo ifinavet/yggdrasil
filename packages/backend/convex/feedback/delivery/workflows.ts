@@ -1,12 +1,8 @@
-import { WorkflowManager } from "@convex-dev/workflow";
 import { feedbackRoundAt, REMINDER_DAYS } from "@workspace/shared/time";
 import { v } from "convex/values";
-import { components, internal } from "../../_generated/api";
+import { internal } from "../../_generated/api";
+import { workflow } from "../../lib/workflow";
 import { campaignArgs } from "./campaigns";
-
-const workflow = new WorkflowManager(components.workflow, {
-	workpoolOptions: { maxParallelism: 10 },
-});
 
 // Keep these definitions stable while campaigns are sleeping; changed sequences need a new version.
 export const campaignV1 = workflow

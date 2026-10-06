@@ -12,6 +12,8 @@
 				"CLERK_SECRET_KEY",
 				"NEXT_PUBLIC_CONVEX_URL",
 				"NEXT_PUBLIC_CONVEX_HOSTNAME",
+				"NEXT_PUBLIC_HUGIN_URL",
+				"NEXT_PUBLIC_MIDGARD_URL",
 				"RESEND_API_KEY",
 				"SENTRY_AUTH_TOKEN",
 				"CONVEX_DEPLOY_KEY"
@@ -21,13 +23,13 @@
 		"compile": {
 			"dependsOn": ["^compile"],
 			"inputs": ["$TURBO_DEFAULT$"],
-			"env": ["NEXT_PUBLIC_CONVEX_URL"],
+			"env": ["NEXT_PUBLIC_CONVEX_URL", "NEXT_PUBLIC_HUGIN_URL", "NEXT_PUBLIC_MIDGARD_URL"],
 			"outputs": []
 		},
 		"check-types": {
 			"dependsOn": ["^check-types"],
 			"inputs": ["$TURBO_DEFAULT$"],
-			"env": ["NEXT_PUBLIC_CONVEX_URL"],
+			"env": ["NEXT_PUBLIC_CONVEX_URL", "NEXT_PUBLIC_HUGIN_URL", "NEXT_PUBLIC_MIDGARD_URL"],
 			"outputs": []
 		},
 		"test": {
@@ -39,7 +41,14 @@
 			"cache": false,
 			"persistent": true,
 			"inputs": ["$TURBO_DEFAULT$", ".env", ".env.local"],
-			"env": ["APP_ENV", "CONVEX_AGENT_MODE", "CONVEX_DEPLOYMENT", "NEXT_PUBLIC_CONVEX_URL"]
+			"env": [
+				"APP_ENV",
+				"CONVEX_AGENT_MODE",
+				"CONVEX_DEPLOYMENT",
+				"NEXT_PUBLIC_CONVEX_URL",
+				"NEXT_PUBLIC_HUGIN_URL",
+				"NEXT_PUBLIC_MIDGARD_URL"
+			]
 		}
 	}
 }

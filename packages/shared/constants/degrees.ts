@@ -31,3 +31,11 @@ export const degreeKey = (name: (typeof DEGREE_TYPES)[number]) =>
 	(Object.keys(DEGREES) as DegreeKey[]).find((key) => DEGREES[key] === name) as DegreeKey;
 
 export const degreeName = (key: string) => DEGREES[key as DegreeKey] ?? key;
+
+export const STUDY_YEARS = Array.from(
+	new Set(
+		Object.values(DEGREE_YEARS).flatMap(({ first, last }) =>
+			Array.from({ length: last - first + 1 }, (_, index) => first + index),
+		),
+	),
+).sort((a, b) => a - b);

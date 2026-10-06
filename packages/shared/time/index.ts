@@ -5,3 +5,4 @@ export * from "./feedback";
 export * from "./formatting";
 export * from "./job-listing";
 export * from "./semester";
+export * from "./windows";

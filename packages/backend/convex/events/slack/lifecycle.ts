@@ -6,7 +6,7 @@ import { internal } from "../../_generated/api";
 import type { Doc } from "../../_generated/dataModel";
 import { type ActionCtx, internalAction } from "../../_generated/server";
 import { slackConfig } from "../../iam/config";
-import { slackClient } from "../../iam/slack";
+import { postSlackNotice, slackClient } from "../../iam/slack";
 import { lifecycleEnabled } from "./config";
 import { escapeSlack } from "./messages";
 
@@ -29,14 +29,14 @@ async function announceCreation(
 	try {
 		const key = `company-channel-created-${slackChannelId}`;
 		const { semester, year } = eventSemesterOf(channel.semesterStart);
-		const exists = await slack.hasMessage(SYSTEM_ALERTS_CHANNEL, key, channel._creationTime);
-		if (!exists)
-			await slack.postMessage(
-				SYSTEM_ALERTS_CHANNEL,
-				`Opprettet #${escapeSlack(name)} for ${escapeSlack(companyName)} (${semester} ${year}). 👋 <${SLACK_CHANNEL_URL}${slackChannelId}|Åpne kanal>`,
-				key,
-				true,
-			);
+		await postSlackNotice(
+			slack,
+			SYSTEM_ALERTS_CHANNEL,
+			key,
+			channel._creationTime,
+			`Opprettet #${escapeSlack(name)} for ${escapeSlack(companyName)} (${semester} ${year}). 👋 <${SLACK_CHANNEL_URL}${slackChannelId}|Åpne kanal>`,
+		);
+
 		await progress({ creationNoticeChannelId: slackChannelId });
 	} catch (error) {
 		// A central-channel outage must not hold up the organizers. Retry on the next reconciliation.

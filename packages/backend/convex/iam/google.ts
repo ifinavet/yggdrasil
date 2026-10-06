@@ -1,8 +1,10 @@
+"use node";
+
+import { GOOGLE_OAUTH_TOKEN_URL } from "@workspace/shared/constants";
 import { normalizeEmail } from "@workspace/shared/iam";
-import { importPKCS8, SignJWT } from "jose";
+import { JWT } from "google-auth-library";
 import { directoryUrl, type GoogleConfig } from "./config";
 
-const TOKEN_URL = "https://oauth2.googleapis.com/token";
 const USERS_URL = "https://admin.googleapis.com/admin/directory/v1/users";
 const SCOPE = "https://www.googleapis.com/auth/admin.directory.user";
 const TIMEOUT_MS = 15_000;
@@ -53,45 +55,56 @@ async function fail(
 	for (const secret of secrets) {
 		if (secret) detail = detail.replaceAll(secret, "[redacted]");
 	}
-	detail = detail.replaceAll(/\s+/g, " ").trim().slice(0, 1000);
+	detail = detail
+		.replaceAll(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, "[redacted]")
+		.replaceAll(/\s+/g, " ")
+		.trim()
+		.slice(0, 1000);
 	throw new GoogleError([message, detail].filter(Boolean).join(" "));
 }
 
-async function accessToken(config: GoogleConfig) {
-	const assertion = await new SignJWT({ scope: SCOPE })
-		.setProtectedHeader({ alg: "RS256", typ: "JWT" })
-		.setIssuer(config.serviceAccountEmail)
-		.setSubject(config.adminEmail)
-		.setAudience(TOKEN_URL)
-		.setIssuedAt()
-		.setExpirationTime("10m")
-		.sign(await importPKCS8(config.privateKey, "RS256"));
-	const response = await fetch(directoryUrl(TOKEN_URL), {
-		method: "POST",
-		headers: { "Content-Type": "application/x-www-form-urlencoded" },
-		body: new URLSearchParams({
-			grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
-			assertion,
-		}),
-		signal: AbortSignal.timeout(TIMEOUT_MS),
+export function googleAuth(config: GoogleConfig, subject = config.adminEmail, scopes = SCOPE) {
+	const auth = new JWT({
+		email: config.serviceAccountEmail,
+		key: config.privateKey,
+		subject,
+		scopes,
 	});
-	if (!response.ok)
-		return fail(response, `Google avviste innloggingen (${response.status}).`, [
-			assertion,
-			config.privateKey,
-			config.privateKey.replaceAll("\n", String.raw`\n`),
-		]);
-	const body: unknown = await response.json();
-	if (
-		!body ||
-		typeof body !== "object" ||
-		!("access_token" in body) ||
-		typeof body.access_token !== "string" ||
-		!body.access_token.trim()
-	) {
-		throw new GoogleError("Google-tilkoblingen feilet. Google returnerte ikke et tilgangstoken.");
+	auth.transporter.defaults.fetchImplementation = globalThis.fetch;
+	auth.transporter.defaults.timeout = TIMEOUT_MS;
+	auth.transporter.interceptors.request.add({
+		resolved: (options) =>
+			Promise.resolve({
+				...options,
+				url: new URL(directoryUrl(String(options.url ?? GOOGLE_OAUTH_TOKEN_URL))),
+			}),
+	});
+	return auth;
+}
+
+async function googleAccessToken(config: GoogleConfig) {
+	try {
+		const auth = googleAuth(config);
+		auth.transporter.interceptors.request.add({
+			resolved: (options) =>
+				Promise.resolve({ ...options, retry: false, retryConfig: { retry: 0 } }),
+		});
+		const credentials = await auth.authorize();
+		if (typeof credentials.access_token !== "string" || !credentials.access_token.trim())
+			throw new GoogleError("Google-tilkoblingen feilet. Google returnerte ikke et tilgangstoken.");
+		return credentials.access_token;
+	} catch (error) {
+		if (error && typeof error === "object" && "response" in error) {
+			const response = error.response as { status?: number; data?: unknown } | undefined;
+			if (response?.status)
+				return fail(
+					Response.json(response.data ?? null, { status: response.status }),
+					`Google avviste innloggingen (${response.status}).`,
+					[config.privateKey, config.privateKey.replaceAll("\n", String.raw`\n`)],
+				);
+		}
+		throw error;
 	}
-	return body.access_token;
 }
 
 function toUser(user: DirectoryUser): GoogleUser {
@@ -115,7 +128,7 @@ export function googleClient(
 			const startedAt = Date.now();
 			let value: string;
 			try {
-				value = await accessToken(config);
+				value = await googleAccessToken(config);
 			} catch (error) {
 				const message =
 					error instanceof GoogleError
