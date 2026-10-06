@@ -1,7 +1,6 @@
 import { api } from "@workspace/backend/convex/api";
-import { localIdentity } from "@workspace/shared/local";
 import { ConvexHttpClient } from "convex/browser";
-import { LocalDatabase } from "./seed-database";
+import { LocalDatabase, localAdmin } from "./seed-database";
 
 const DAY = 24 * 60 * 60 * 1000;
 const seedOrgNumberBase = 990000000;
@@ -13,23 +12,6 @@ const pixel = Uint8Array.from(
 );
 
 export type JobListingSeedScenario = "empty" | "listings" | "orders" | "full";
-
-async function localAdmin(db: LocalDatabase) {
-	const existing = await db.find("users", "externalId", localIdentity.subject);
-	const userId =
-		existing?._id ??
-		(await db.insert("users", {
-			externalId: localIdentity.subject,
-			firstName: localIdentity.givenName,
-			lastName: localIdentity.familyName,
-			email: localIdentity.email,
-			image: localIdentity.profileUrl,
-			locked: false,
-		}));
-	const rights = await db.find("accessRights", "userId", userId);
-	if (!rights) await db.insert("accessRights", { userId, role: "super-admin" });
-	return userId;
-}
 
 async function logo(url: string, db: LocalDatabase, name: string) {
 	const client = new ConvexHttpClient(url);

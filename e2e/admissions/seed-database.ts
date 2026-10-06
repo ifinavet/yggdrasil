@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { isDeepStrictEqual } from "node:util";
+import { localIdentity } from "@workspace/shared/local";
 import type { WithoutSystemFields } from "convex/server";
 import type { Doc, Id, TableNames } from "../../packages/backend/convex/_generated/dataModel";
 
@@ -99,4 +100,21 @@ export class LocalDatabase {
 		});
 		if (!result.success) throw new Error(result.error);
 	}
+}
+
+export async function localAdmin(db: LocalDatabase) {
+	const existing = await db.find("users", "externalId", localIdentity.subject);
+	const userId =
+		existing?._id ??
+		(await db.insert("users", {
+			externalId: localIdentity.subject,
+			firstName: localIdentity.givenName,
+			lastName: localIdentity.familyName,
+			email: localIdentity.email,
+			image: localIdentity.profileUrl,
+			locked: false,
+		}));
+	const rights = await db.find("accessRights", "userId", userId);
+	if (!rights) await db.insert("accessRights", { userId, role: "super-admin" });
+	return userId;
 }

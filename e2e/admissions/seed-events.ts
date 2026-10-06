@@ -1,28 +1,10 @@
-import { localIdentity } from "@workspace/shared/local";
 import type { Id } from "../../packages/backend/convex/_generated/dataModel";
-import { LocalDatabase } from "./seed-database";
+import { LocalDatabase, localAdmin } from "./seed-database";
 
 export type EventsSeedScenario = "empty" | "organizer" | "external";
 
 const DAY = 24 * 60 * 60 * 1000;
 const slugPrefix = "seed-events-";
-
-async function localUser(db: LocalDatabase) {
-	const existing = await db.find("users", "externalId", localIdentity.subject);
-	const userId =
-		existing?._id ??
-		(await db.insert("users", {
-			externalId: localIdentity.subject,
-			firstName: localIdentity.givenName,
-			lastName: localIdentity.familyName,
-			email: localIdentity.email,
-			image: localIdentity.profileUrl,
-			locked: false,
-		}));
-	const rights = await db.find("accessRights", "userId", userId);
-	if (!rights) await db.insert("accessRights", { userId, role: "super-admin" });
-	return userId;
-}
 
 async function hostingCompany(db: LocalDatabase) {
 	const existing = (await db.all("companies"))[0];
@@ -116,7 +98,7 @@ const scenarios: Record<Exclude<EventsSeedScenario, "empty">, EventPlan[]> = {
 export async function seedEvents(url: string, scenario: EventsSeedScenario) {
 	const db = new LocalDatabase(url);
 	await clearEvents(db);
-	const me = await localUser(db);
+	const me = await localAdmin(db);
 	if (scenario === "empty") return null;
 	const company = await hostingCompany(db);
 	const plans = scenarios[scenario];
