@@ -23,7 +23,7 @@ const hints: Record<AdmissionsGuideStep, string> = {
 	generate: "Lager et forslag til intervjuplan ut fra kalenderne og intervjudagene.",
 	approve:
 		"Godkjenn når forslaget ser riktig ut. Da får kandidatene tiden på e-post, intervjuene legges i kalenderen og intervjuerne får beskjed i Slack.",
-	candidates: "Etter intervjuene vurderer du hver kandidat her.",
+	candidates: "Åpne en kandidat for å skrive intervjunotater fra samtalen og sette vedtak.",
 	selection: "Flytt kandidatene mellom kolonnene, én runde om gangen, til du vet hvem som tas opp.",
 	send: "Ingen svar går ut før du trykker her. De som er tatt opp får tilbud og resten får avslag, på e-post.",
 };
