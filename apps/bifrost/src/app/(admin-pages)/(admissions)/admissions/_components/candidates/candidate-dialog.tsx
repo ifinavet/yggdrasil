@@ -124,12 +124,20 @@ export function CandidateDialog({
 							</Button>
 							<div className="admissions-decision flex flex-col gap-3">
 								<Label htmlFor="candidate-decision">Vedtak</Label>
+								<p id="candidate-decision-help" className="text-muted-foreground text-sm">
+									Bruk denne hvis noen takker nei og plassen skal gå til en annen kandidat. Ellers
+									setter du vedtak i Utvelgelse.
+								</p>
 								<Select
 									value={candidate.decision}
 									disabled={savingNotes || decisionLocked(candidate)}
 									onValueChange={(value) => onDecisionChange(value as Decision)}
 								>
-									<SelectTrigger id="candidate-decision" className="w-full">
+									<SelectTrigger
+										id="candidate-decision"
+										aria-describedby="candidate-decision-help"
+										className="w-full"
+									>
 										<SelectValue />
 									</SelectTrigger>
 									<SelectContent>

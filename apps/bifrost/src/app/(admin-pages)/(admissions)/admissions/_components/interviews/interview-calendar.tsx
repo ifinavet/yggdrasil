@@ -17,6 +17,7 @@ import {
 	WandSparkles,
 } from "lucide-react";
 import { useState } from "react";
+import { GuideHint } from "../guide/guide";
 import {
 	type Candidate,
 	clock,
@@ -131,18 +132,24 @@ export function InterviewCalendar({
 						<MapPin />
 						{selectingRooms ? "Avslutt romvalg" : "Sett rom"}
 					</Button>
-					<Button variant="outline" onClick={() => onOpenCalendars()}>
-						<CalendarDays />
-						Kalendere
-					</Button>
-					<Button variant="outline" onClick={onGenerateSchedule}>
-						<WandSparkles />
-						Finn tider
-					</Button>
-					<Button disabled={approved || interviews.length === 0} onClick={onApprove}>
-						<Check />
-						{approved ? "Godkjent forslag" : "Godkjenn forslag"}
-					</Button>
+					<GuideHint step="calendars">
+						<Button variant="outline" onClick={() => onOpenCalendars()}>
+							<CalendarDays />
+							Kalendere
+						</Button>
+					</GuideHint>
+					<GuideHint step="generate">
+						<Button variant="outline" onClick={onGenerateSchedule}>
+							<WandSparkles />
+							Finn tider
+						</Button>
+					</GuideHint>
+					<GuideHint step="approve">
+						<Button disabled={approved || interviews.length === 0} onClick={onApprove}>
+							<Check />
+							{approved ? "Godkjent forslag" : "Godkjenn forslag"}
+						</Button>
+					</GuideHint>
 				</div>
 			</div>
 			{selectingRooms && (

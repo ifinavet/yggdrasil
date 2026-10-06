@@ -1,4 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
+import { ADMISSIONS_GUIDE_STEPS, ADMISSIONS_GUIDE_STORAGE_KEY } from "@workspace/shared/admissions";
 
 function localBaseURL(value: string | undefined, fallback: string) {
 	const baseURL = new URL(value ?? fallback);
@@ -10,6 +11,9 @@ function localBaseURL(value: string | undefined, fallback: string) {
 	}
 	return baseURL.origin;
 }
+
+// biome-ignore lint/suspicious/noUndeclaredEnvVars: Playwright runs outside Turbo.
+const bifrostURL = localBaseURL(process.env.BIFROST_URL, "http://localhost:3021");
 
 export default defineConfig({
 	testDir: "./e2e/admissions",
@@ -33,8 +37,21 @@ export default defineConfig({
 			testMatch: "board*.spec.ts",
 			use: {
 				...devices["Desktop Chrome"],
-				// biome-ignore lint/suspicious/noUndeclaredEnvVars: Playwright runs outside Turbo.
-				baseURL: localBaseURL(process.env.BIFROST_URL, "http://localhost:3021"),
+				baseURL: bifrostURL,
+				storageState: {
+					cookies: [],
+					origins: [
+						{
+							origin: bifrostURL,
+							localStorage: [
+								{
+									name: ADMISSIONS_GUIDE_STORAGE_KEY,
+									value: JSON.stringify(ADMISSIONS_GUIDE_STEPS),
+								},
+							],
+						},
+					],
+				},
 			},
 		},
 	],
