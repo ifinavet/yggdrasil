@@ -4,6 +4,10 @@ import {
 	JOB_LISTINGS_GUIDE_STEPS,
 	JOB_LISTINGS_GUIDE_STORAGE_KEY,
 } from "@workspace/shared/job-listings";
+import {
+	ORGANIZATION_GUIDE_STEPS,
+	ORGANIZATION_GUIDE_STORAGE_KEY,
+} from "@workspace/shared/organization";
 
 function localBaseURL(value: string | undefined, fallback: string) {
 	const baseURL = new URL(value ?? fallback);
@@ -55,6 +59,10 @@ export default defineConfig({
 								{
 									name: JOB_LISTINGS_GUIDE_STORAGE_KEY,
 									value: JSON.stringify(JOB_LISTINGS_GUIDE_STEPS),
+								},
+								{
+									name: ORGANIZATION_GUIDE_STORAGE_KEY,
+									value: JSON.stringify(ORGANIZATION_GUIDE_STEPS),
 								},
 							],
 						},

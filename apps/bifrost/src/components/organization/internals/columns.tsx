@@ -16,6 +16,7 @@ import { Input } from "@workspace/ui/components/input";
 import { cn } from "@workspace/ui/lib/utils";
 import { ChevronRight, Trash } from "lucide-react";
 import { useState } from "react";
+import { GuideHint } from "../guide";
 import type { Connections } from "./connections";
 import UpsertInternalRole from "./upsert-internal-role";
 
@@ -123,27 +124,36 @@ export const createColumns = (
 	},
 	{
 		id: "actions",
-		cell: ({ row }) => (
-			<AlertDialog>
+		cell: ({ row, table }) => {
+			const trigger = (
 				<AlertDialogTrigger asChild>
 					<Button variant="destructive" size="icon" aria-label={`Fjern ${row.original.fullName}`}>
 						<Trash className="size-4" />
 					</Button>
 				</AlertDialogTrigger>
-				<AlertDialogContent>
-					<AlertDialogTitle>Fjerne {row.original.fullName}?</AlertDialogTitle>
-					<AlertDialogDescription>
-						Google-kontoen blir suspendert og tilgangen til Bifrost fjernes. Slack-kontoen må du
-						deaktivere selv etterpå.
-					</AlertDialogDescription>
-					<AlertDialogFooter>
-						<AlertDialogCancel>Avbryt</AlertDialogCancel>
-						<AlertDialogAction onClick={() => onDelete(row.original.internalId)}>
-							Fjern
-						</AlertDialogAction>
-					</AlertDialogFooter>
-				</AlertDialogContent>
-			</AlertDialog>
-		),
+			);
+			return (
+				<AlertDialog>
+					{table.getRowModel().rows[0]?.id === row.id ? (
+						<GuideHint step="remove">{trigger}</GuideHint>
+					) : (
+						trigger
+					)}
+					<AlertDialogContent>
+						<AlertDialogTitle>Fjerne {row.original.fullName}?</AlertDialogTitle>
+						<AlertDialogDescription>
+							Google-kontoen blir suspendert og tilgangen til Bifrost fjernes. Slack-kontoen må du
+							deaktivere selv etterpå.
+						</AlertDialogDescription>
+						<AlertDialogFooter>
+							<AlertDialogCancel>Avbryt</AlertDialogCancel>
+							<AlertDialogAction onClick={() => onDelete(row.original.internalId)}>
+								Fjern
+							</AlertDialogAction>
+						</AlertDialogFooter>
+					</AlertDialogContent>
+				</AlertDialog>
+			);
+		},
 	},
 ];

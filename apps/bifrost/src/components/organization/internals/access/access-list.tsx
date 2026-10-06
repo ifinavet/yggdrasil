@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { toast } from "sonner";
+import { GuideHint } from "../../guide";
 import {
 	type AccessAccount,
 	type AccessAction,
@@ -96,7 +97,7 @@ function Status({
 	);
 }
 
-function AccountRow({ account }: Readonly<{ account: AccessAccount }>) {
+function AccountRow({ account, guided }: Readonly<{ account: AccessAccount; guided: boolean }>) {
 	const status = accountStatus(account);
 	const [pending, setPending] = useState<AccessAction>();
 	const retry = useMutation(api.iam.mutations.retry);
@@ -128,17 +129,26 @@ function AccountRow({ account }: Readonly<{ account: AccessAccount }>) {
 			detail={account.workspaceEmail}
 			status={<Status tone={status.tone} text={status.text} />}
 		>
-			{status.actions.map((action) => (
-				<Button
-					key={action}
-					size="sm"
-					variant={action === "cancel" ? "ghost" : "outline"}
-					disabled={pending !== undefined}
-					onClick={() => act(action)}
-				>
-					{ACTION_LABELS[action]}
-				</Button>
-			))}
+			{status.actions.map((action) => {
+				const button = (
+					<Button
+						key={action}
+						size="sm"
+						variant={action === "cancel" ? "ghost" : "outline"}
+						disabled={pending !== undefined}
+						onClick={() => act(action)}
+					>
+						{ACTION_LABELS[action]}
+					</Button>
+				);
+				return guided && action === "slackDeactivated" ? (
+					<GuideHint key={action} step="slack">
+						{button}
+					</GuideHint>
+				) : (
+					button
+				);
+			})}
 		</Row>
 	);
 }
@@ -221,6 +231,9 @@ export function AccessList({
 }: Readonly<{ overview: AccessOverview; onAdd: (prefill: OnboardingPrefill) => void }>) {
 	const missing = missingIntegrations(overview);
 	const hasRows = overview.accounts.length > 0 || overview.drift.length > 0;
+	const guidedAccountId = overview.accounts.find((account) =>
+		accountStatus(account).actions.includes("slackDeactivated"),
+	)?._id;
 
 	return (
 		<>
@@ -253,7 +266,11 @@ export function AccessList({
 					className="divide-y rounded-lg border bg-card"
 				>
 					{overview.accounts.map((account) => (
-						<AccountRow key={account._id} account={account} />
+						<AccountRow
+							key={account._id}
+							account={account}
+							guided={account._id === guidedAccountId}
+						/>
 					))}
 					{overview.drift.map((drift) => (
 						<DriftRow key={drift._id} drift={drift} onAdd={onAdd} />

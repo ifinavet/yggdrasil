@@ -11,6 +11,7 @@ import { usePostHog } from "posthog-js/react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { DataTable } from "@/components/common/tables/table";
+import { GuideHint } from "../guide";
 import { AccessList } from "./access/access-list";
 import type { OnboardingPrefill } from "./access/access-status";
 import { createColumns } from "./columns";
@@ -89,10 +90,12 @@ export default function Internals({
 
 	return (
 		<div className="grid gap-4">
-			<Button className="w-fit justify-self-end" onClick={() => setOnboarding({ prefill: null })}>
-				<Plus aria-hidden />
-				Legg til medlem
-			</Button>
+			<GuideHint step="add">
+				<Button className="w-fit justify-self-end" onClick={() => setOnboarding({ prefill: null })}>
+					<Plus aria-hidden />
+					Legg til medlem
+				</Button>
+			</GuideHint>
 			<AccessList overview={access} onAdd={(prefill) => setOnboarding({ prefill })} />
 			<SearchField
 				value={search}
