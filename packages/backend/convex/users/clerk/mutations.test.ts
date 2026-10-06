@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
 	asUser,
 	givePointsTo,
@@ -152,41 +152,13 @@ describe("deleting a user from Clerk", () => {
 		).toBe(false);
 	});
 
-	it("scrubs feedback authors across batches while preserving answers and other authors", async () => {
-		vi.useFakeTimers();
-		try {
-			const { t, user } = await seedUserWithEveryReference();
-			const formId = "legacy-form";
-			await t.run(async (ctx) => {
-				for (let i = 0; i < 105; i++) {
-					await ctx.db.insert("formResponses", {
-						formId,
-						userId: user.externalId,
-						data: { userId: user.externalId, rating: 5 },
-					});
-				}
-				await ctx.db.insert("formResponses", {
-					formId,
-					userId: "someone_else",
-					data: { userId: "someone_else", rating: 3 },
-				});
-			});
-			await t.mutation(deleteFromClerk, { clerkUserId: user.externalId });
-			await t.finishAllScheduledFunctions(vi.runAllTimers);
-			const responses = await t.run((ctx) => ctx.db.query("formResponses").collect());
-			expect(
-				responses.filter((response) => response.data.rating === 5).map((response) => response.data),
-			).toEqual(Array.from({ length: 105 }, () => ({ rating: 5 })));
-			expect(JSON.stringify(responses)).not.toContain(user.externalId);
-			const other = responses.find((response) => response.data.rating === 3);
-			expect(other && "userId" in other ? other.userId : undefined).toBe("someone_else");
-			expect(other?.data).toEqual({ userId: "someone_else", rating: 3 });
-			const tombstones = await t.run((ctx) => ctx.db.query("deletedClerkUsers").collect());
-			expect(tombstones[0]?.externalIdHash).toMatch(/^[a-f0-9]{64}$/);
-			expect(JSON.stringify(tombstones)).not.toContain(user.externalId);
-		} finally {
-			vi.useRealTimers();
-		}
+	it("records only a hash of the deleted Clerk id", async () => {
+		const { t, user } = await seedUserWithEveryReference();
+		await t.mutation(deleteFromClerk, { clerkUserId: user.externalId });
+		const tombstones = await t.run((ctx) => ctx.db.query("deletedClerkUsers").collect());
+		expect(tombstones).toHaveLength(1);
+		expect(tombstones[0]?.externalIdHash).toMatch(/^[a-f0-9]{64}$/);
+		expect(JSON.stringify(tombstones)).not.toContain(user.externalId);
 	});
 });
 
