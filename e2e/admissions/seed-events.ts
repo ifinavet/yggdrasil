@@ -15,12 +15,14 @@ async function hostingCompany(db: LocalDatabase) {
 	return seeded._id;
 }
 
-async function clearEvents(db: LocalDatabase) {
+async function clearEvents(db: LocalDatabase, me: string) {
 	const seeded = (await db.all("events")).filter((event) => event.slug?.startsWith(slugPrefix));
 	const ids = new Set(seeded.map((event) => event._id));
 	await Promise.all(
 		(["eventOrganizers", "registrations"] as const).map(async (table) => {
-			const rows = (await db.all(table)).filter((row) => ids.has(row.eventId));
+			const rows = (await db.all(table)).filter(
+				(row) => ids.has(row.eventId) || ("role" in row && row.userId === me),
+			);
 			await Promise.all(rows.map((row) => db.delete(table, row._id)));
 		}),
 	);
@@ -97,8 +99,8 @@ const scenarios: Record<Exclude<EventsSeedScenario, "empty">, EventPlan[]> = {
 
 export async function seedEvents(url: string, scenario: EventsSeedScenario) {
 	const db = new LocalDatabase(url);
-	await clearEvents(db);
 	const me = await localAdmin(db);
+	await clearEvents(db, me);
 	if (scenario === "empty") return null;
 	const company = await hostingCompany(db);
 	const plans = scenarios[scenario];
