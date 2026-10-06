@@ -137,8 +137,8 @@ function apiError(error: unknown, action: string): GoogleCalendarError {
 	const status = statusCode(error);
 	return new GoogleCalendarError(
 		status
-			? `Google Calendar svarte ${status} ${action}.`
-			: `Google Calendar feilet da tjenesten forsøkte å ${action}.`,
+			? `Google Calendar svarte ${status} da vi skulle ${action}.`
+			: `Fikk ikke kontakt med Google Calendar da vi skulle ${action}.`,
 	);
 }
 
@@ -179,7 +179,7 @@ export function googleCalendarClient(config: GoogleConfig | null, subject: strin
 		async listCalendars(): Promise<Calendar[]> {
 			const calendars = await pages(
 				(pageToken) => client.calendarList.list({ maxResults: 250, pageToken }),
-				"kunne ikke lese kalenderlisten",
+				"lese kalenderlisten",
 			);
 			return calendars.filter((item): item is Calendar => Boolean(item.id));
 		},
@@ -199,7 +199,7 @@ export function googleCalendarClient(config: GoogleConfig | null, subject: strin
 				});
 				body = data;
 			} catch (error) {
-				throw apiError(error, "kunne ikke lese opptattstatus");
+				throw apiError(error, "lese opptattstatus");
 			}
 			const readableCalendars: Record<string, { busy: Busy[] }> = {};
 			for (const id of calendarIds) {
@@ -249,7 +249,7 @@ export function googleCalendarClient(config: GoogleConfig | null, subject: strin
 						})),
 					},
 				};
-			}, "kunne ikke lese kalenderhendelser");
+			}, "lese kalenderhendelser");
 			return events as CalendarEvent[];
 		},
 
@@ -259,7 +259,7 @@ export function googleCalendarClient(config: GoogleConfig | null, subject: strin
 				return data as CalendarEvent;
 			} catch (error) {
 				if ([404, 410].includes(statusCode(error) ?? 0)) return null;
-				throw apiError(error, "kunne ikke hente intervjuet");
+				throw apiError(error, "hente intervjuet");
 			}
 		},
 
@@ -275,7 +275,7 @@ export function googleCalendarClient(config: GoogleConfig | null, subject: strin
 				});
 				return eventId;
 			} catch (error) {
-				if (statusCode(error) !== 404) throw apiError(error, "kunne ikke oppdatere intervjuet");
+				if (statusCode(error) !== 404) throw apiError(error, "oppdatere intervjuet");
 			}
 			try {
 				await client.events.insert({
@@ -286,7 +286,7 @@ export function googleCalendarClient(config: GoogleConfig | null, subject: strin
 				return eventId;
 			} catch (error) {
 				if (statusCode(error) === 409) return eventId;
-				throw apiError(error, "kunne ikke opprette intervjuet");
+				throw apiError(error, "opprette intervjuet");
 			}
 		},
 
@@ -295,7 +295,7 @@ export function googleCalendarClient(config: GoogleConfig | null, subject: strin
 				await client.events.delete({ calendarId, eventId, sendUpdates: "all" });
 			} catch (error) {
 				if (![404, 410].includes(statusCode(error) ?? 0))
-					throw apiError(error, "kunne ikke avlyse intervjuet");
+					throw apiError(error, "avlyse intervjuet");
 			}
 		},
 	};

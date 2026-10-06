@@ -117,7 +117,7 @@ test.describe("manual interview follow-up", () => {
 		await failGoogle(true);
 		await page.getByRole("button", { name: "Foreslå tider", exact: true }).click();
 		await expect(
-			page.getByText("Google Calendar svarte 503 kunne ikke lese opptattstatus.", {
+			page.getByText("Google Calendar svarte 503 da vi skulle lese opptattstatus.", {
 				exact: true,
 			}),
 		).toBeVisible();
@@ -125,7 +125,7 @@ test.describe("manual interview follow-up", () => {
 			page,
 			"board",
 			"live-35-suggestion-failure-mobile.png",
-			page.getByText("Google Calendar svarte 503 kunne ikke lese opptattstatus.", {
+			page.getByText("Google Calendar svarte 503 da vi skulle lese opptattstatus.", {
 				exact: true,
 			}),
 		);

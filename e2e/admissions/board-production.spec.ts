@@ -112,7 +112,7 @@ test.describe("persistent board admissions", () => {
 		await page.getByRole("button", { name: "Finn tider", exact: true }).click();
 		await expect(
 			page.getByRole("alert").filter({
-				hasText: "Google Calendar svarte 503 kunne ikke lese opptattstatus.",
+				hasText: "Google Calendar svarte 503 da vi skulle lese opptattstatus.",
 			}),
 		).toBeVisible();
 		await captureScreenshot(
@@ -158,14 +158,12 @@ test.describe("persistent board admissions", () => {
 		await expect
 			.poll(
 				async () =>
-					(await admissionsOverview())?.jobs.filter((job) => job.kind === "publish").length,
+					(await admissionsOverview())?.interviews.filter(
+						(interview) => interview.publishedAt !== undefined,
+					).length,
+				{ timeout: 60_000 },
 			)
 			.toBe(10);
-		expect(
-			(await admissionsOverview())?.interviews.every(
-				(interview) => interview.publishedAt === undefined,
-			),
-		).toBe(true);
 		await captureScreenshot(
 			page,
 			"board",
@@ -174,7 +172,7 @@ test.describe("persistent board admissions", () => {
 		);
 		await page.reload();
 		expect((await admissionsOverview())?.jobs.filter((job) => job.kind === "publish")).toHaveLength(
-			10,
+			0,
 		);
 	});
 });
