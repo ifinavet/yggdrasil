@@ -14,6 +14,7 @@ import {
 } from "@workspace/ui/components/table";
 import Link from "next/link";
 import { Fragment, type ReactNode } from "react";
+import { organizerMarker } from "@/components/common/organizer-role";
 import { LIST_CELL, LIST_HEAD } from "@/components/common/table-classes";
 import {
 	CAMPAIGN_STATUS_BADGES,
@@ -71,11 +72,16 @@ function SelectEvent({ event }: Readonly<{ event: OverviewEvent }>) {
 
 function SelectableRow({
 	event,
+	now,
 	children,
-}: Readonly<{ event: OverviewEvent; children: ReactNode }>) {
+}: Readonly<{ event: OverviewEvent; now: number; children: ReactNode }>) {
 	const selected = useSelectedEventsStore((state) => state.events.includes(event._id));
 	return (
-		<TableRow data-state={selected ? "selected" : undefined} className="relative">
+		<TableRow
+			data-state={selected ? "selected" : undefined}
+			marker={organizerMarker(event.myRole, event.eventStart < now)}
+			className="relative"
+		>
 			{children}
 		</TableRow>
 	);
@@ -117,7 +123,7 @@ export function EventsTable({
 							</TableCell>
 						</TableRow>
 						{group.events.map((event) => (
-							<SelectableRow key={event._id} event={event}>
+							<SelectableRow key={event._id} event={event} now={now}>
 								<TableCell className={`${LIST_CELL} w-10 pr-0`}>
 									<SelectEvent event={event} />
 								</TableCell>

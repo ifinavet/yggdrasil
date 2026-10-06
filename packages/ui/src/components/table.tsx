@@ -39,16 +39,39 @@ function TableFooter({ className, ...props }: React.ComponentProps<"tfoot">) {
 	);
 }
 
-function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
+type TableRowMarker = { label: string; className: string };
+
+function TableRow({
+	className,
+	marker,
+	children,
+	...props
+}: React.ComponentProps<"tr"> & { marker?: TableRowMarker | null }) {
 	return (
 		<tr
 			data-slot='table-row'
 			className={cn(
 				"border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted",
+				marker && "relative",
 				className,
 			)}
 			{...props}
-		/>
+		>
+			{children}
+			{marker && (
+				<td
+					data-slot='table-row-marker'
+					className={cn(
+						"group/marker absolute inset-y-0 left-0 z-10 flex w-max max-w-1.5 items-center overflow-hidden p-0 transition-[max-width] duration-150 ease-out hover:max-w-56",
+						marker.className,
+					)}
+				>
+					<span className='whitespace-nowrap px-3 font-medium text-xs opacity-0 transition-opacity group-hover/marker:opacity-100'>
+						{marker.label}
+					</span>
+				</td>
+			)}
+		</tr>
 	);
 }
 
@@ -89,3 +112,4 @@ function TableCaption({ className, ...props }: React.ComponentProps<"caption">) 
 }
 
 export { Table, TableHeader, TableBody, TableFooter, TableHead, TableRow, TableCell, TableCaption };
+export type { TableRowMarker };

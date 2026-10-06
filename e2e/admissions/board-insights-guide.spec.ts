@@ -71,3 +71,29 @@ test.describe("insight guide", () => {
 		).toBe(0);
 	});
 });
+
+test.describe("organizer accent", () => {
+	test("marks only the events the signed-in user organizes", async ({ page }) => {
+		await openInsights(page, "full");
+		const accent = (title: string) =>
+			page.getByRole("row").filter({ hasText: title }).locator("[data-slot=table-row-marker]");
+		await expect(accent(insightSeedTitles.lead)).toHaveText("Du er ansvarlig");
+		await expect(accent(insightSeedTitles.lead)).toHaveClass(/(^|\s)bg-primary(\s|$)/);
+		await expect(accent(insightSeedTitles.helper)).toHaveText("Du er medansvarlig");
+		await expect(accent(insightSeedTitles.helper)).toHaveClass(/(^|\s)bg-primary\/40(\s|$)/);
+		await expect(accent(insightSeedTitles.other)).toHaveCount(0);
+	});
+
+	test("expands to show the role on hover", async ({ page }) => {
+		await openInsights(page, "full");
+		const accent = page
+			.getByRole("row")
+			.filter({ hasText: insightSeedTitles.helper })
+			.locator("[data-slot=table-row-marker]");
+		const width = () => accent.evaluate((element) => element.getBoundingClientRect().width);
+		expect(await width()).toBeLessThanOrEqual(10);
+		await accent.hover();
+		await expect.poll(width).toBeGreaterThan(80);
+		await expect(accent).toHaveClass(/hover:bg-primary-light/);
+	});
+});

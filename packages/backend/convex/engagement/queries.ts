@@ -11,7 +11,7 @@ import { v } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import { type QueryCtx, query } from "../_generated/server";
 import { internalRoles, requireRole } from "../auth/accessRights";
-import { eventsInSemester } from "../events/helper";
+import { eventsInSemester, organizerRoleOf } from "../events/helper";
 import { companyWithLogo, eventSemesterValidator } from "../events/queries";
 import { REMINDER_KINDS, REMINDER_LEAD_TIMES } from "../events/reminders/schedule";
 import { audienceOf, withStudyYear } from "./audience";
@@ -51,7 +51,7 @@ const TOP_COMPANIES = 8;
 export const upcoming = query({
 	args: { now: v.number() },
 	handler: async (ctx, { now }) => {
-		await requireRole(ctx, internalRoles);
+		const user = await requireRole(ctx, internalRoles);
 		const pastCurves = await pastCurvesBefore(ctx, now);
 		const events = await Promise.all(
 			(await upcomingEvents(ctx, now, UPCOMING_EVENTS)).map(async (event) => {
@@ -62,6 +62,7 @@ export const upcoming = query({
 					title: event.title,
 					companyName: company.name,
 					companyLogoUrl: company.logoUrl,
+					myRole: await organizerRoleOf(ctx, event._id, user._id),
 					eventStart: event.eventStart,
 					registrationOpens: event.registrationOpens,
 					participationLimit: event.participationLimit,
@@ -535,6 +536,7 @@ export async function pastEventRow(
 	ctx: QueryCtx,
 	semesterEvent: SemesterEvent,
 	logStart: number | null,
+	userId: Id<"users">,
 ) {
 	const { event } = semesterEvent;
 	const company = await companyWithLogo(ctx, event.hostingCompany);
@@ -543,6 +545,7 @@ export async function pastEventRow(
 		title: event.title,
 		companyName: company.name,
 		companyLogoUrl: company.logoUrl,
+		myRole: await organizerRoleOf(ctx, event._id, userId),
 		eventStart: event.eventStart,
 		participationLimit: event.participationLimit,
 		...attendanceOf(semesterEvent),
@@ -553,13 +556,13 @@ export async function pastEventRow(
 export const past = query({
 	args: { now: v.number(), semester: eventSemesterValidator, year: v.number() },
 	handler: async (ctx, { now, semester, year }) => {
-		await requireRole(ctx, internalRoles);
+		const user = await requireRole(ctx, internalRoles);
 		const logStart = await unregistrationsLoggedFrom(ctx);
 		const events = (await semesterEvents(ctx, { semester, year }, now))
 			.filter(({ event }) => event.eventStart <= now)
 			.reverse();
 		return await Promise.all(
-			events.map((semesterEvent) => pastEventRow(ctx, semesterEvent, logStart)),
+			events.map((semesterEvent) => pastEventRow(ctx, semesterEvent, logStart, user._id)),
 		);
 	},
 });

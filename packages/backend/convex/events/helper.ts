@@ -10,6 +10,22 @@ import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { internalRoles, userHasRole } from "../auth/accessRights";
 
+export function leadingRole(roles: readonly OrganizerRole[]): OrganizerRole | null {
+	return roles.includes("hovedansvarlig") ? "hovedansvarlig" : (roles[0] ?? null);
+}
+
+export async function organizerRoleOf(
+	ctx: QueryCtx,
+	eventId: Id<"events">,
+	userId: Id<"users">,
+): Promise<OrganizerRole | null> {
+	const assignments = await ctx.db
+		.query("eventOrganizers")
+		.withIndex("by_eventId_and_userId", (q) => q.eq("eventId", eventId).eq("userId", userId))
+		.collect();
+	return leadingRole(assignments.map(({ role }) => role));
+}
+
 export async function getEventByIdentifier(
 	ctx: QueryCtx,
 	identifier: string,

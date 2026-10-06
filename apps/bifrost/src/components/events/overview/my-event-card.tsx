@@ -3,19 +3,16 @@ import { Button } from "@workspace/ui/components/button";
 import { CompanyLogo } from "@workspace/ui/components/company-logo";
 import { cn } from "@workspace/ui/lib/utils";
 import Link from "next/link";
+import { ORGANIZER_ROLE_CLASSES } from "@/components/common/organizer-role";
 import { eventHref, type OverviewEvent } from "./sections";
 
 export function MyEventCard({ event }: Readonly<{ event: OverviewEvent }>) {
 	const isLead = event.myRole === "hovedansvarlig";
+	const roleClasses = ORGANIZER_ROLE_CLASSES[isLead ? "hovedansvarlig" : "medhjelper"];
 
 	return (
 		<article className="relative flex flex-col overflow-hidden rounded-[12px] border bg-card shadow-xs transition-[border-color,box-shadow] duration-150 ease-out hover:border-ring hover:shadow-[0_2px_6px_rgb(0_0_0/0.07)]">
-			<div
-				className={cn(
-					"px-4 py-1.5 font-medium text-xs",
-					isLead ? "bg-primary text-primary-foreground" : "bg-primary-light text-primary",
-				)}
-			>
+			<div className={cn("px-4 py-1.5 font-medium text-xs", roleClasses)}>
 				{isLead ? "Du er ansvarlig" : "Du er medansvarlig"}
 			</div>
 			<div className="flex items-center gap-3 p-4">

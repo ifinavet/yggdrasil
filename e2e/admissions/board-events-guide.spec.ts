@@ -98,3 +98,14 @@ test.describe("events guide", () => {
 		}
 	});
 });
+
+test.describe("organizer marker", () => {
+	test("marks only the rows the signed-in user organizes", async ({ page }) => {
+		await open(page, "/events", "organizer");
+		const marker = (title: string) =>
+			page.getByRole("row").filter({ hasText: title }).locator("[data-slot=table-row-marker]");
+		await expect(marker("Kodekveld")).toHaveText("Du er ansvarlig");
+		await expect(marker("Kodekveld")).toHaveClass(/(^|\s)bg-primary(\s|$)/);
+		await expect(marker("Bedriftspresentasjon")).toHaveCount(0);
+	});
+});
