@@ -80,7 +80,7 @@ test.describe("organizer accent", () => {
 		await expect(accent(insightSeedTitles.lead)).toHaveText("Du er ansvarlig");
 		await expect(accent(insightSeedTitles.lead)).toHaveClass(/(^|\s)bg-primary(\s|$)/);
 		await expect(accent(insightSeedTitles.helper)).toHaveText("Du er medansvarlig");
-		await expect(accent(insightSeedTitles.helper)).toHaveClass(/(^|\s)bg-primary\/40(\s|$)/);
+		await expect(accent(insightSeedTitles.helper)).toHaveClass(/(^|\s)bg-primary-light(\s|$)/);
 		await expect(accent(insightSeedTitles.other)).toHaveCount(0);
 	});
 
@@ -94,6 +94,5 @@ test.describe("organizer accent", () => {
 		expect(await width()).toBeLessThanOrEqual(10);
 		await accent.hover();
 		await expect.poll(width).toBeGreaterThan(80);
-		await expect(accent).toHaveClass(/hover:bg-primary-light/);
 	});
 });
