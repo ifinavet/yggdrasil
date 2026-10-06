@@ -13,6 +13,8 @@ import {
 } from "../../../test/admissions-workflow";
 import { asUser, grantRole, insertUser, setup } from "../../../test/fixtures";
 import { api, internal } from "../../_generated/api";
+import type { Doc, Id } from "../../_generated/dataModel";
+import type { MutationCtx } from "../../_generated/server";
 import { finishClose } from "../lifecycle";
 
 afterEach(() => {
@@ -20,30 +22,32 @@ afterEach(() => {
 	vi.restoreAllMocks();
 });
 
-it("preserves closing data while a failed archive still needs retry", async () => {
-	vi.useFakeTimers();
-	const { t } = await setup();
-	const admin = await insertUser(t, "admin@example.test");
-	await grantRole(t, admin._id, "admin");
-	const applicant = await insertUser(t, "applicant@uio.no");
-	const { periodId, applicationId } = await t.run(async (ctx) => {
-		const periodId = await ctx.db.insert("admissionPeriods", periodFields(admin._id));
+type TestConvex = Awaited<ReturnType<typeof setup>>["t"];
+
+async function seedClosingPeriod(
+	t: TestConvex,
+	adminId: Id<"users">,
+	applicantId: Id<"users">,
+	stage: (
+		ctx: MutationCtx,
+		periodId: Id<"admissionPeriods">,
+		applicationId: Id<"admissionApplications">,
+	) => Promise<void>,
+	period: Partial<Doc<"admissionPeriods">> = {},
+) {
+	return await t.run(async (ctx) => {
+		const periodId = await ctx.db.insert("admissionPeriods", periodFields(adminId, period));
 		const applicationId = await ctx.db.insert(
 			"admissionApplications",
-			applicationFields(periodId, applicant._id),
+			applicationFields(periodId, applicantId),
 		);
-		await stageOperation(ctx, {
-			kind: "archive_channel",
-			periodId,
-			revision: 2,
-			idempotencyKey: "archive-retryable",
-			dueAt: Date.now(),
-			state: "failed",
-		});
+		await stage(ctx, periodId, applicationId);
 		await ctx.db.patch(periodId, { status: "closing" });
 		return { periodId, applicationId };
 	});
+}
 
+async function expectCloseBlocked(t: TestConvex, periodId: Id<"admissionPeriods">) {
 	expect(
 		await t.run(async (ctx) => {
 			const period = await ctx.db.get(periodId);
@@ -51,6 +55,33 @@ it("preserves closing data while a failed archive still needs retry", async () =
 			return finishClose(ctx, period);
 		}),
 	).toBe(false);
+}
+
+async function failedArchive(ctx: MutationCtx, periodId: Id<"admissionPeriods">, key: string) {
+	await stageOperation(ctx, {
+		kind: "archive_channel",
+		periodId,
+		revision: 2,
+		idempotencyKey: key,
+		dueAt: Date.now(),
+		state: "failed",
+	});
+}
+
+it("preserves closing data while a failed archive still needs retry", async () => {
+	vi.useFakeTimers();
+	const { t } = await setup();
+	const admin = await insertUser(t, "admin@example.test");
+	await grantRole(t, admin._id, "admin");
+	const applicant = await insertUser(t, "applicant@uio.no");
+	const { periodId, applicationId } = await seedClosingPeriod(
+		t,
+		admin._id,
+		applicant._id,
+		(ctx, id) => failedArchive(ctx, id, "archive-retryable"),
+	);
+
+	await expectCloseBlocked(t, periodId);
 	expect(await t.run((ctx) => ctx.db.get(periodId))).not.toBeNull();
 	expect(await t.run((ctx) => ctx.db.get(applicationId))).not.toBeNull();
 	expect(await t.run((ctx) => operationByKey(ctx, "archive-retryable"))).toMatchObject({
@@ -71,34 +102,15 @@ it("rechecks a failed archive at retention and then purges closing data", async 
 	const admin = await insertUser(t, "admin@example.test");
 	const applicant = await insertUser(t, "applicant@uio.no");
 	const retentionAt = Date.now() + 1_000;
-	const { periodId, applicationId } = await t.run(async (ctx) => {
-		const periodId = await ctx.db.insert(
-			"admissionPeriods",
-			periodFields(admin._id, { retentionAt }),
-		);
-		const applicationId = await ctx.db.insert(
-			"admissionApplications",
-			applicationFields(periodId, applicant._id),
-		);
-		await stageOperation(ctx, {
-			kind: "archive_channel",
-			periodId,
-			revision: 2,
-			idempotencyKey: "archive-expires-at-retention",
-			dueAt: Date.now(),
-			state: "failed",
-		});
-		await ctx.db.patch(periodId, { status: "closing" });
-		return { periodId, applicationId };
-	});
+	const { periodId, applicationId } = await seedClosingPeriod(
+		t,
+		admin._id,
+		applicant._id,
+		(ctx, id) => failedArchive(ctx, id, "archive-expires-at-retention"),
+		{ retentionAt },
+	);
 
-	expect(
-		await t.run(async (ctx) => {
-			const period = await ctx.db.get(periodId);
-			if (!period) throw new Error("Missing closing period");
-			return finishClose(ctx, period);
-		}),
-	).toBe(false);
+	await expectCloseBlocked(t, periodId);
 	expect(await t.run((ctx) => ctx.db.get(applicationId))).not.toBeNull();
 	vi.setSystemTime(retentionAt);
 	expect(await t.mutation(internal.admissions.internal.closeExpiredPeriod, { periodId })).toBe(
@@ -114,37 +126,29 @@ it("waits for a failed interview cancellation before queueing archive", async ()
 	const admin = await insertUser(t, "admin@example.test");
 	await grantRole(t, admin._id, "admin");
 	const applicant = await insertUser(t, "applicant@uio.no");
-	const { periodId, applicationId } = await t.run(async (ctx) => {
-		const periodId = await ctx.db.insert("admissionPeriods", periodFields(admin._id));
-		const applicationId = await ctx.db.insert(
-			"admissionApplications",
-			applicationFields(periodId, applicant._id),
-		);
-		const interviewId = await ctx.db.insert(
-			"admissionInterviews",
-			interviewFields(periodId, applicationId, { status: "cancelled", revision: 2 }),
-		);
-		await stageOperation(ctx, {
-			kind: "cancel_interview",
-			periodId,
-			applicationId,
-			interviewId,
-			revision: 2,
-			idempotencyKey: "cancel-retryable",
-			dueAt: Date.now(),
-			state: "failed",
-		});
-		await ctx.db.patch(periodId, { status: "closing" });
-		return { periodId, applicationId };
-	});
+	const { periodId, applicationId } = await seedClosingPeriod(
+		t,
+		admin._id,
+		applicant._id,
+		async (ctx, periodId, applicationId) => {
+			const interviewId = await ctx.db.insert(
+				"admissionInterviews",
+				interviewFields(periodId, applicationId, { status: "cancelled", revision: 2 }),
+			);
+			await stageOperation(ctx, {
+				kind: "cancel_interview",
+				periodId,
+				applicationId,
+				interviewId,
+				revision: 2,
+				idempotencyKey: "cancel-retryable",
+				dueAt: Date.now(),
+				state: "failed",
+			});
+		},
+	);
 
-	expect(
-		await t.run(async (ctx) => {
-			const period = await ctx.db.get(periodId);
-			if (!period) throw new Error("Missing closing period");
-			return finishClose(ctx, period);
-		}),
-	).toBe(false);
+	await expectCloseBlocked(t, periodId);
 	expect(await firstAdmissionOperation(t, periodId, "archive_channel")).toBeNull();
 	expect(await t.run((ctx) => ctx.db.get(applicationId))).not.toBeNull();
 	expect(await t.run((ctx) => operationByKey(ctx, "cancel-retryable"))).toMatchObject({
