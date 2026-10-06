@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { insertEvent, setup, type TestBackend } from "../../test/fixtures";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
-import { guessEventProductName } from "./migrations";
+import { guessEventProductName, seedAndBackfillProducts } from "./migrations";
 import { SEED_PRODUCTS } from "./seed";
 
 type Backfill =
@@ -165,13 +165,13 @@ describe("backfillJobListingProducts", () => {
 	});
 });
 
-describe("setup", () => {
+describe("seedAndBackfillProducts", () => {
 	it("seeds an empty table once and backfills events", async () => {
 		vi.useFakeTimers();
 		const { t, companyId } = await setup();
 		const eventId = await insertEvent(t, companyId, { participationLimit: 10 });
 
-		expect(await t.mutation(internal.products.migrations.setup, {})).toEqual(
+		expect(await t.run((ctx) => seedAndBackfillProducts(ctx))).toEqual(
 			SEED_PRODUCTS.map((product) => product.name),
 		);
 		await t.finishAllScheduledFunctions(vi.runAllTimers);
@@ -186,14 +186,14 @@ describe("setup", () => {
 
 	it("does not seed again after products were renamed or archived", async () => {
 		const { t } = await setup();
-		await t.mutation(internal.products.migrations.setup, {});
+		await t.run((ctx) => seedAndBackfillProducts(ctx));
 		await t.run(async (ctx) => {
 			for (const product of await ctx.db.query("products").collect()) {
 				await ctx.db.patch(product._id, { name: `${product.name} (gammel)`, active: false });
 			}
 		});
 
-		expect(await t.mutation(internal.products.migrations.setup, {})).toEqual([]);
+		expect(await t.run((ctx) => seedAndBackfillProducts(ctx))).toEqual([]);
 		const products = await t.run((ctx) => ctx.db.query("products").collect());
 		expect(products).toHaveLength(SEED_PRODUCTS.length);
 	});
