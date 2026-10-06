@@ -18,6 +18,7 @@ export const invoiceDetails = v.object({
 	}),
 	invoiceText: v.string(),
 	yourReference: v.optional(v.string()),
+	comment: v.optional(v.string()),
 	line: v.object({
 		description: v.string(),
 		unitPrice: v.number(),

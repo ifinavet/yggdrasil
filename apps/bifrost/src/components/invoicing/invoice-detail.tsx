@@ -54,7 +54,7 @@ function CopyField({
 }
 
 function InvoiceFields({ preview }: Readonly<{ preview: ReadyPreview }>) {
-	const { customer, invoiceText, yourReference, line } = preview.details;
+	const { customer, invoiceText, yourReference, comment, line } = preview.details;
 	const allFields = [
 		`Kunde: ${customer.name}`,
 		`Organisasjonsnummer: ${customer.organizationNumber}`,
@@ -62,6 +62,7 @@ function InvoiceFields({ preview }: Readonly<{ preview: ReadyPreview }>) {
 		customer.billingDetails && `Fakturadetaljer: ${customer.billingDetails}`,
 		`EHF: ${customer.ehfInvoice ? "Ja" : "Nei"}`,
 		yourReference && `Deres referanse: ${yourReference}`,
+		comment && `Kommentar: ${comment}`,
 		`Fakturatekst: ${invoiceText}`,
 		`Fakturalinje: ${line.description}`,
 		`Beløp eks. mva: ${String(line.unitPrice / 100).replace(".", ",")}`,
@@ -99,6 +100,7 @@ function InvoiceFields({ preview }: Readonly<{ preview: ReadyPreview }>) {
 							)}
 							<CopyField label="EHF" value={customer.ehfInvoice ? "Ja" : "Nei"} />
 							{yourReference && <CopyField label="Deres referanse" value={yourReference} />}
+							{comment && <CopyField label="Kommentar" value={comment} />}
 						</dl>
 					</PanelBody>
 				</Panel>
