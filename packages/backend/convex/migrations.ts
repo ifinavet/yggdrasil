@@ -7,14 +7,3 @@ export const migrations = new Migrations(components.migrations, {
 });
 
 export const run = migrations.runner();
-
-export const backfillExternalEvent = migrations.define({
-	table: "events",
-	migrateOne: (_ctx, event) => {
-		if (event.externalEvent === undefined) {
-			return {
-				externalEvent: Boolean(event.externalUrl?.length),
-			};
-		}
-	},
-});

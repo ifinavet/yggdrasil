@@ -161,7 +161,6 @@ import type * as users_clerk_mutations from "../users/clerk/mutations.js";
 import type * as users_clerk_queries from "../users/clerk/queries.js";
 import type * as users_organization_mutations from "../users/organization/mutations.js";
 import type * as users_organization_queries from "../users/organization/queries.js";
-import type * as users_students_migrations from "../users/students/migrations.js";
 import type * as users_students_mutations from "../users/students/mutations.js";
 import type * as users_students_queries from "../users/students/queries.js";
 
@@ -325,7 +324,6 @@ declare const fullApi: ApiFromModules<{
   "users/clerk/queries": typeof users_clerk_queries;
   "users/organization/mutations": typeof users_organization_mutations;
   "users/organization/queries": typeof users_organization_queries;
-  "users/students/migrations": typeof users_students_migrations;
   "users/students/mutations": typeof users_students_mutations;
   "users/students/queries": typeof users_students_queries;
 }>;
