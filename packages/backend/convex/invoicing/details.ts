@@ -36,6 +36,7 @@ export async function resolveInvoice(
 				},
 				invoiceText: `Stillingsannonser, bestilling ${order.reference}`,
 				yourReference: order.billing?.reference || company.billing?.reference,
+				comment: order.note?.trim() || undefined,
 				line: {
 					description: `${order.productName} (${order.quantity} stk.)`,
 					unitPrice: order.priceOre,

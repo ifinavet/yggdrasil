@@ -42,6 +42,7 @@ async function fixture(serviceAt = Date.now() - 86_400_000) {
 			contact: { name: "Kari", email: "kari@example.com" },
 			billing: { address: "Fakturaveien 1", email: "faktura@example.com", reference: "PO-42" },
 			ehfInvoice: true,
+			note: "Faktura merkes med prosjekt 7781",
 		}),
 	);
 	await t.run((ctx) => scheduleInvoice(ctx, { kind: "jobListingOrder", orderId }, serviceAt));
@@ -75,12 +76,18 @@ describe("manual invoice queue", () => {
 					ehfInvoice: true,
 				},
 				yourReference: "PO-42",
+				comment: "Faktura merkes med prosjekt 7781",
 				line: { unitPrice: 550_000, vatRate: 25 },
 			},
 		});
 
 		await f.admin.mutation(api.invoicing.admin.markSent, { invoiceId: f.invoice._id });
-		await f.t.run((ctx) => ctx.db.patch(f.orderId, { priceOre: 750_000 }));
+		await f.t.run((ctx) =>
+			ctx.db.patch(f.orderId, { priceOre: 750_000, note: "Endret etter sending" }),
+		);
+		expect(
+			(await f.admin.query(api.invoicing.admin.get, { invoiceId: f.invoice._id }))?.preview,
+		).toMatchObject({ details: { comment: "Faktura merkes med prosjekt 7781" } });
 		expect((await list(f.admin, "pending")).page).toHaveLength(0);
 		expect((await list(f.admin, "sent")).page).toMatchObject([{ amountOre: 550_000 }]);
 		expect(
