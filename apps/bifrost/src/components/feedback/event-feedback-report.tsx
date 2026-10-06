@@ -11,17 +11,8 @@ import { Lock } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ReportReview } from "./report-review";
 
-<<<<<<< HEAD
-export function EventFeedbackReport({
-	eventId,
-	fallback = null,
-}: Readonly<{ eventId: Id<"events">; fallback?: ReactNode }>) {
-	return <ReportContent eventId={eventId} fallback={fallback} />;
-=======
 export function EventFeedbackReport({ eventId }: Readonly<{ eventId: Id<"events"> }>) {
-	const enabled = useFeatureEnabled("huginFeedback");
-	return enabled ? <ReportContent eventId={eventId} /> : null;
->>>>>>> origin/main
+	return <ReportContent eventId={eventId} />;
 }
 
 type EventReport = FunctionReturnType<typeof api.feedback.reports.queries.getEventReport>;
