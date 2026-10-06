@@ -63,10 +63,10 @@ it("lets admins retry terminal failures without starting concurrent workers", as
 	expect(jobs.find((job) => job.idempotencyKey === "failed-job")?.state).toBe("inProgress");
 });
 
-it("alerts #system and purges closing data after cleanup exhausts its retries", async () => {
+it("alerts #system and purges expired data after cleanup exhausts its retries", async () => {
 	const { t, periodId } = await recoveryFixture();
 	await t.run(async (ctx) => {
-		await ctx.db.patch(periodId, { status: "closing" });
+		await ctx.db.patch(periodId, { status: "closing", retentionAt: Date.now() });
 		await stageOperation(ctx, {
 			...operationFixture(periodId, "archive-exhausted", "inProgress", Date.now()),
 		});
