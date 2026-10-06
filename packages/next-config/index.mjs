@@ -1,4 +1,4 @@
-import { withSentryConfig } from "@sentry/nextjs";
+import { withSentryConfig } from "@sentry/nextjs/config";
 
 if (process.env.APP_ENV && process.env.APP_ENV !== "local") {
 	throw new Error(`APP_ENV must be "local" or unset, got "${process.env.APP_ENV}".`);
@@ -92,7 +92,9 @@ export function createNextConfig({ project, widenClientFileUpload, devIndicators
 		project,
 		silent: !process.env.CI,
 		widenClientFileUpload,
-		disableLogger: true,
-		automaticVercelMonitors: true,
+		webpack: {
+			treeshake: { removeDebugLogging: true },
+			automaticVercelMonitors: true,
+		},
 	});
 }
