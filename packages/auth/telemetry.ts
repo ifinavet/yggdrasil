@@ -1,6 +1,25 @@
 import * as Sentry from "@sentry/nextjs";
 import { isLocalDevelopment } from "./local";
 
+// Preserve v10 data collection and transaction filtering when upgrading to v11.
+export const sentryPrivacyOptions = {
+	traceLifecycle: "static" as const,
+	dataCollection: {
+		userInfo: false,
+		cookies: false,
+		httpHeaders: {
+			request: { deny: ["forwarded", "-ip", "remote-", "via", "-user"] },
+			response: { deny: ["forwarded", "-ip", "remote-", "via", "-user"] },
+		},
+		httpBodies: [],
+		urlQueryParams: { deny: ["forwarded", "-ip", "remote-", "via", "-user"] },
+		genAI: { inputs: false, outputs: false },
+		databaseQueryData: false,
+		queues: false,
+		graphQL: { document: false, variables: false },
+	},
+};
+
 export function withTelemetry<T extends object>(options: T): T & { enabled?: boolean } {
 	return isLocalDevelopment ? { ...options, enabled: false } : options;
 }
@@ -41,8 +60,7 @@ export function initializeSentry(
 
 			// Define how likely traces are sampled. Adjust this value in production, or use tracesSampler for greater control.
 			tracesSampleRate: 1,
-			// Enable logs to be sent to Sentry
-			enableLogs: true,
+			...sentryPrivacyOptions,
 
 			// Setting this option to true will print useful information to the console while you're setting up Sentry.
 			debug: false,
