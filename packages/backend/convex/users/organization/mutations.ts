@@ -4,15 +4,12 @@ import {
 	accessRoles,
 	adminRoles,
 	assignAccessRole,
-	getAccessRole,
 	requireRightToManageRole,
 	requireRole,
 	revokeAccessRole,
 	superAdminRoles,
 } from "../../auth/accessRights";
-import { accountForEmail } from "../../iam/accounts";
 import { startOffboarding } from "../../iam/lifecycle";
-import { isCurrentStage } from "../../iam/schema";
 
 /**
  * Updates a board member assignment and synchronizes access rights.
@@ -75,48 +72,6 @@ export const upsertBoardMember = mutation({
 				position,
 				rank: currentBoardMember.rank,
 			});
-		}
-	},
-});
-
-/**
- * Creates an internal member record and assigns the internal access role.
- *
- * @param {Id<"users">} userId - The user to create an internal record for.
- * @param {string} group - The internal group name.
- *
- * @throws - An error if the current user cannot be resolved or the internal record already exists.
- * @returns {null} - Returns null when the internal member is created successfully.
- */
-export const createInternal = mutation({
-	args: {
-		userId: v.id("users"),
-		group: v.string(),
-	},
-	handler: async (ctx, { userId, group }) => {
-		await requireRole(ctx, adminRoles);
-
-		const existingInternal = await ctx.db
-			.query("internals")
-			.withIndex("by_userId", (q) => q.eq("userId", userId))
-			.first();
-		if (existingInternal) {
-			throw new ConvexError(`Brukeren med ID ${userId} er allerede intern.`);
-		}
-		const user = await ctx.db.get(userId);
-		const account = user?.email ? await accountForEmail(ctx, user.email) : null;
-		if (account && isCurrentStage(account.stage) && account.userId !== userId) {
-			throw new ConvexError(`${user?.email} er allerede internt medlem.`);
-		}
-
-		await ctx.db.insert("internals", {
-			userId,
-			group,
-			position: "Intern",
-		});
-
-		if ((await getAccessRole(ctx, userId)) === null) {
-			await assignAccessRole(ctx, userId, "internal");
 		}
 	},
 });

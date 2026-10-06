@@ -8,14 +8,20 @@ import { FeedbackReportResponses } from "@workspace/ui/components/feedback/repor
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { Lock } from "lucide-react";
-import { type ReactNode, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { ReportReview } from "./report-review";
 
+<<<<<<< HEAD
 export function EventFeedbackReport({
 	eventId,
 	fallback = null,
 }: Readonly<{ eventId: Id<"events">; fallback?: ReactNode }>) {
 	return <ReportContent eventId={eventId} fallback={fallback} />;
+=======
+export function EventFeedbackReport({ eventId }: Readonly<{ eventId: Id<"events"> }>) {
+	const enabled = useFeatureEnabled("huginFeedback");
+	return enabled ? <ReportContent eventId={eventId} /> : null;
+>>>>>>> origin/main
 }
 
 type EventReport = FunctionReturnType<typeof api.feedback.reports.queries.getEventReport>;
@@ -25,14 +31,11 @@ type ReportAnswers = FunctionReturnType<
 	typeof api.feedback.reports.queries.getReportAnswers
 >["page"];
 
-function ReportContent({
-	eventId,
-	fallback,
-}: Readonly<{ eventId: Id<"events">; fallback: ReactNode }>) {
+function ReportContent({ eventId }: Readonly<{ eventId: Id<"events"> }>) {
 	const data = useQuery(api.feedback.reports.queries.getEventReport, { eventId });
 	if (data === undefined) return <p>Henter rapport …</p>;
-	if (data && !data.enabled) return data.canView ? fallback : <ReportAccessDenied />;
-	if (!data) return fallback;
+	if (data && !data.enabled) return data.canView ? null : <ReportAccessDenied />;
+	if (!data) return null;
 	if (data.campaignStatus !== "closed") return <LiveReport eventId={eventId} />;
 	return <ClosedReport data={data} />;
 }

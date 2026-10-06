@@ -16,7 +16,7 @@ Midgard is what the users interact with and what we normally refer to as ifinave
 
 ### 📝 Hugin
 
-Hugin is our form service, it hosts our feedback and orderering forms. This is the newest addition to the realm. Hugin is built with the same stack as the other services, but currently experiments with Tanstack Charts as its chart rendering library. 
+Hugin is our form service, it hosts our feedback and orderering forms. This is the newest addition to the realm. Hugin is built with the same stack as the other services.
 
 ### 🗄️ Convex + Clerk
 
@@ -29,14 +29,18 @@ The project uses Turborepo to manage the different services and is structured li
 ```
 🌳 yggdrasil/
 ├── 📁 apps/
-│   ├── 🌈 bifrost/      # Admin dashboard and backend
+│   ├── 🌈 bifrost/      # Admin dashboard
+│   ├── 📝 hugin/        # Feedback and ordering forms
 │   └── 🌍 midgard/      # Main website for ifinavet.no
 ├── 📦 packages/
+│   ├── 🔐 auth/            # Shared authentication code
 │   ├── 🗄️ backend/         # Convex backend logic
-│   ├── 📧 emails /        # The react-emails components
+│   ├── 📧 emails/         # The react-emails components
+│   ├── ⚙️ next-config/     # Shared Next.js configuration
+│   ├── 🧩 shared/          # Shared constants, validation and rules
 │   ├── 🔧 typescript-config/ # Shared TypeScript configuration
 │   └── 🎨 ui/           # Shared React component library
-├── 📁 documentation/      # Documentation files
+├── 📁 docs/               # Documentation files
 ├── 📜 package.json      # Monorepo-level scripts and dependencies
 └── ...
 ```

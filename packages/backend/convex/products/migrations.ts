@@ -1,7 +1,7 @@
 import { STUDENT_CAP } from "@workspace/shared/semester/application";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
-import { internalMutation, type MutationCtx } from "../_generated/server";
+import type { MutationCtx } from "../_generated/server";
 import { migrations } from "../migrations";
 import { snapshotOf } from "./sales";
 import { SEED_PRODUCT_NAMES, seedProductsIfEmpty } from "./seed";
@@ -45,14 +45,8 @@ const BACKFILLS = [
 	internal.products.migrations.backfillJobListingProducts,
 ];
 
-export const backfillAll = migrations.runner(BACKFILLS);
-
 export async function seedAndBackfillProducts(ctx: MutationCtx) {
 	const seeded = await seedProductsIfEmpty(ctx);
 	if (seeded.length > 0) await migrations.runSerially(ctx, BACKFILLS);
 	return seeded;
 }
-
-export const setup = internalMutation({
-	handler: seedAndBackfillProducts,
-});
