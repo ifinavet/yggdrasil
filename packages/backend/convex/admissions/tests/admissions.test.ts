@@ -10,11 +10,12 @@ import { listOperations } from "../delivery/workflow";
 const DAY = 24 * 60 * 60 * 1000;
 
 beforeEach(() => {
-	vi.useFakeTimers({ toFake: ["Date"] });
+	vi.useFakeTimers();
 	vi.setSystemTime(new Date("2026-10-04T12:00:00.000Z"));
 });
 
 afterEach(() => {
+	vi.clearAllTimers();
 	vi.useRealTimers();
 	delete process.env.CONVEX_CLOUD_URL;
 	delete process.env.APP_ENV;
