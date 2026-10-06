@@ -3,7 +3,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { admissionPeriodFixture } from "../../../../test/admissions-fixtures";
 import { allOperations } from "../../../../test/admissions-workflow";
 import { asUser } from "../../../../test/fixtures";
-import { api, components } from "../../../_generated/api";
+import { api, components, internal } from "../../../_generated/api";
 import { purgeBatch } from "../../lifecycle";
 import { readOperation, startDelivery } from "../workflow";
 
@@ -50,7 +50,7 @@ it.each(["local", "production"])(
 	},
 );
 
-it("exhausts provider retries and alerts before deleting closing data", async () => {
+it("alerts after exhausted retries and retains recovery until the deletion deadline", async () => {
 	const { t, periodId } = await admissionPeriodFixture({ status: "closing" });
 	archive.mockRejectedValue(new Error("Slack unavailable"));
 	await t.run((ctx) =>
@@ -64,10 +64,14 @@ it("exhausts provider retries and alerts before deleting closing data", async ()
 	);
 	await t.finishAllScheduledFunctions(() => vi.runAllTimers());
 	expect(archive).toHaveBeenCalledTimes(8);
-	expect(await t.run((ctx) => ctx.db.get(periodId))).toBeNull();
+	const period = await t.run((ctx) => ctx.db.get(periodId));
+	if (!period) throw new Error("Failed cleanup must remain retryable");
 	const alerts = await t.run((ctx) => ctx.db.query("slackSystemDeliveries").collect());
 	expect(alerts).toHaveLength(1);
 	expect(alerts[0]?.text).toContain("Admissions integration retry limit reached");
+	vi.setSystemTime(period.retentionAt);
+	await t.mutation(internal.admissions.internal.closeExpiredPeriod, { periodId });
+	expect(await t.run((ctx) => ctx.db.get(periodId))).toBeNull();
 });
 
 it("cancels future deliveries and removes their workflow storage when purging a period", async () => {

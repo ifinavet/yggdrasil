@@ -8,7 +8,7 @@ import { workspaceEmail } from "../iam/accounts";
 import { enqueueSystemMessage } from "../iam/notifications";
 import { isEmailDeliveryFailure } from "../lib/emailDelivery";
 import { type Operation, startDelivery } from "./delivery/workflow";
-import { beginClose, purgeBatch as purgeRecordsBatch } from "./lifecycle";
+import { beginClose, finishClose, purgeBatch as purgeRecordsBatch } from "./lifecycle";
 import { operationValidator } from "./schema";
 
 async function currentResources(ctx: Parameters<typeof requireRole>[0], job: Operation) {
@@ -178,7 +178,11 @@ export const closeExpiredPeriod = internalMutation({
 	args: { periodId: v.id("admissionPeriods") },
 	handler: async (ctx, { periodId }) => {
 		const period = await ctx.db.get(periodId);
-		if (!period || period.status === "closing") return false;
+		if (!period) return false;
+		if (period.status === "closing") {
+			if (Date.now() < period.retentionAt) return false;
+			return await finishClose(ctx, period);
+		}
 		await beginClose(ctx, period, true, `retention:${periodId}`);
 		return true;
 	},

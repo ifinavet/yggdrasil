@@ -90,7 +90,11 @@ export async function purgeBatch(ctx: MutationCtx, periodId: Id<"admissionPeriod
 
 export async function finishClose(ctx: MutationCtx, period: Doc<"admissionPeriods">) {
 	const jobs = await listOperations(ctx, period._id, true);
+	const expired = Date.now() >= period.retentionAt;
 	const cleanup = new Set(["cancel_interview", "publish", "offer_declined", "archive_channel"]);
+	const required = new Set(["cancel_interview", "archive_channel"]);
+	if (!expired && jobs.some((job) => required.has(job.kind) && job.state !== "success"))
+		return false;
 	if (
 		jobs.some(
 			(job) => job.state === "inProgress" && (cleanup.has(job.kind) || job.dueAt <= Date.now()),
@@ -114,7 +118,7 @@ export async function finishClose(ctx: MutationCtx, period: Doc<"admissionPeriod
 		});
 		return false;
 	}
-	if ((await readOperation(ctx, archive)).state === "inProgress") return false;
+	if (!expired && (await readOperation(ctx, archive)).state !== "success") return false;
 	await purgeBatch(ctx, period._id);
 	return true;
 }
