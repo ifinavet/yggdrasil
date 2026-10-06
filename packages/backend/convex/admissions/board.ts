@@ -143,6 +143,7 @@ export const assignRooms = mutation({
 						revision,
 						idempotencyKey: `publish:${row._id}:${revision}`,
 						dueAt: Date.now(),
+						rescheduled: row.publishedAt !== undefined,
 					});
 			}),
 		);

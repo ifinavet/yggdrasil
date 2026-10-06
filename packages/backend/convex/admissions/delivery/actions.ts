@@ -178,8 +178,14 @@ async function publish(ctx: ActionCtx, claimed: DeliveryContext) {
 	if (!(await current(ctx, job))) throw new StaleAdmissionJob();
 	const owner = contacts[0];
 	if (!owner) throw new Error("Fant ingen kalenderansvarlig for intervjuet.");
-	const eventId =
-		interview.calendarEventId ?? (await calendarEventId(`navet-admissions:${interview._id}`));
+	const ownerChanged =
+		interview.calendarEventId !== undefined &&
+		interview.calendarOwnerId !== undefined &&
+		interview.calendarOwnerId !== owner.userId;
+	if (ownerChanged) await cancelCalendarEvent(ctx, claimed);
+	const eventId = ownerChanged
+		? await calendarEventId(`navet-admissions:${interview._id}:${interview.revision}`)
+		: (interview.calendarEventId ?? (await calendarEventId(`navet-admissions:${interview._id}`)));
 	const event = {
 		summary: `Opptaksintervju, ${period.title}`,
 		location: interview.room,
@@ -216,8 +222,8 @@ async function publish(ctx: ActionCtx, claimed: DeliveryContext) {
 		claimed,
 		"interview_invite",
 		emailKey,
-		`Intervju for ${period.title}`,
-		AdmissionsInterviewEmail(interviewEmailProps(claimed)),
+		job.rescheduled ? `Ny intervjutid, ${period.title}` : `Intervju for ${period.title}`,
+		AdmissionsInterviewEmail({ ...interviewEmailProps(claimed), changed: job.rescheduled }),
 	);
 	await requireCurrentPublish(ctx, claimed);
 	const slack = admissionsSlack();
@@ -228,10 +234,10 @@ async function publish(ctx: ActionCtx, claimed: DeliveryContext) {
 	await sendNotice(
 		ctx,
 		claimed,
-		`Intervju publisert ${when(interview.startAt)} i ${interview.room} (${roomUrl(interview.room)}). Intervjuere: ${tags}`,
+		`${job.rescheduled ? "Intervju flyttet til" : "Intervju publisert"} ${when(interview.startAt)} i ${interview.room} (${roomUrl(interview.room)}). Intervjuere: ${tags}`,
 		`published:${interview._id}:${interview.revision}`,
 	);
-	return eventId;
+	return { eventId, ownerId: owner.userId };
 }
 
 async function sendDecision(ctx: ActionCtx, claimed: DeliveryContext) {
@@ -282,9 +288,10 @@ async function remind(ctx: ActionCtx, claimed: DeliveryContext, days: 1 | 3) {
 }
 
 async function cancelCalendarEvent(ctx: ActionCtx, claimed: DeliveryContext) {
-	const { interview, interviewers, job } = claimed;
+	const { interview, interviewers, calendarOwner, job } = claimed;
 	if (!interview) return;
-	const owner = interviewers.find((person) => person.userId === interview.interviewerIds[0]);
+	const owner =
+		calendarOwner ?? interviewers.find((person) => person.userId === interview.interviewerIds[0]);
 	if (!owner) throw new Error("Fant ikke kalenderansvarlig for avlysningen.");
 	if (!(await current(ctx, job))) throw new StaleAdmissionJob();
 	const config = googleConfig();
@@ -391,10 +398,11 @@ export const execute = internalAction({
 		const claimed = await context(ctx, operation);
 		if (!claimed) return;
 		try {
-			const calendarEventId = await runJob(ctx, claimed);
+			const published = await runJob(ctx, claimed);
 			await ctx.runMutation(internal.admissions.internal.completeDelivery, {
 				operation,
-				calendarEventId: calendarEventId ?? undefined,
+				calendarEventId: published?.eventId,
+				calendarOwnerId: published?.ownerId,
 			});
 		} catch (error) {
 			if (!(error instanceof StaleAdmissionJob)) throw error;

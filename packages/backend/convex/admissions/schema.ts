@@ -33,6 +33,7 @@ export const operationValidator = v.object({
 	dueAt: v.number(),
 	refillEligible: v.optional(v.boolean()),
 	notifyApplicant: v.optional(v.boolean()),
+	rescheduled: v.optional(v.boolean()),
 });
 
 const roundSnapshot = v.object({
@@ -117,6 +118,7 @@ export const admissionsSchema = {
 		selectedCalendarIds: v.array(v.string()),
 		room: v.string(),
 		calendarEventId: v.optional(v.string()),
+		calendarOwnerId: v.optional(v.id("users")),
 		publishedAt: v.optional(v.number()),
 		candidateConfirmedOutsideForm: v.optional(v.boolean()),
 		status: oneOf(["scheduled", "cancelled"]),

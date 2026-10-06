@@ -4,6 +4,7 @@ import type { Doc, Id } from "../../_generated/dataModel";
 import { internalMutation, internalQuery, type MutationCtx } from "../../_generated/server";
 import { adminRoles, internalRoles, requireRole, userHasRole } from "../../auth/accessRights";
 import { workspaceEmail } from "../../iam/accounts";
+import { startDelivery } from "../delivery/workflow";
 import { activePublishInterviewIds } from "../lifecycle";
 import { submittedApplications } from "../queries";
 import {
@@ -117,9 +118,17 @@ export async function commitSchedule(
 			(interview) => interview.applicationId === assignment.applicationId,
 		);
 
+		const calendarOwnerId = before?.calendarEventId
+			? (before.calendarOwnerId ?? before.interviewerIds[0])
+			: undefined;
+		const interviewerIds =
+			calendarOwnerId && assignment.interviewerIds.includes(calendarOwnerId)
+				? [calendarOwnerId, ...assignment.interviewerIds.filter((id) => id !== calendarOwnerId)]
+				: assignment.interviewerIds;
 		const desired = {
 			...assignment,
-			selectedCalendarIds: interviewCalendarIds(period, assignment.interviewerIds),
+			interviewerIds,
+			selectedCalendarIds: interviewCalendarIds(period, interviewerIds),
 			endAt: assignment.startAt + period.duration * 60_000,
 			room: assignment.room.trim() || period.room,
 		};
@@ -139,6 +148,7 @@ export async function commitSchedule(
 				status: "scheduled" as const,
 				revision: (before?.revision ?? 0) + 1,
 				calendarEventId: before?.calendarEventId,
+				calendarOwnerId,
 				publishedAt: undefined,
 				candidateConfirmedOutsideForm: assignment.candidateConfirmedOutsideForm || undefined,
 			},
@@ -150,6 +160,7 @@ export async function commitSchedule(
 			!changes.some((item) => item.applicationId === interview.applicationId),
 	);
 	assertNoScheduleConflicts([...fixed, ...changes], period.buffer, fixed.length);
+	const republished = new Set<Id<"admissionApplications">>();
 	await Promise.all(
 		changes.map(async (fields) => {
 			const before = previous.find((interview) => interview.applicationId === fields.applicationId);
@@ -157,10 +168,22 @@ export async function commitSchedule(
 			else await ctx.db.insert("admissionInterviews", fields);
 			const application = applications.find((item) => item._id === fields.applicationId);
 			if (application) await ctx.db.patch(application._id, { revision: application.revision + 1 });
+			if (before?.status !== "scheduled" || before.publishedAt === undefined) return;
+			republished.add(fields.applicationId);
+			await startDelivery(ctx, {
+				kind: "publish",
+				periodId: period._id,
+				applicationId: fields.applicationId,
+				interviewId: before._id,
+				revision: fields.revision,
+				idempotencyKey: `publish:${before._id}:${fields.revision}`,
+				dueAt: Date.now(),
+				rescheduled: true,
+			});
 		}),
 	);
 	await ctx.db.patch(period._id, {
-		status: changes.length ? "open" : period.status,
+		status: changes.some((item) => !republished.has(item.applicationId)) ? "open" : period.status,
 		revision: period.revision + 1,
 		...(updatedBy && { updatedBy }),
 	});

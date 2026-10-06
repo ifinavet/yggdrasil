@@ -1,7 +1,7 @@
 import { admissionsChannelNames, SYSTEM_ALERTS_CHANNEL } from "@workspace/shared/slack/channels";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../_generated/api";
-import type { Doc } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import { internalMutation, internalQuery, type MutationCtx } from "../_generated/server";
 import { adminRoles, internalRoles, requireRole, userHasRole } from "../auth/accessRights";
 import { workspaceEmail } from "../iam/accounts";
@@ -31,7 +31,7 @@ async function currentResources(ctx: Parameters<typeof requireRole>[0], job: Ope
 		cancel_interview: interview?.status === "cancelled" && interview.revision === job.revision,
 		delivery_failure:
 			delivery?.periodId === job.periodId && isEmailDeliveryFailure(delivery.status),
-		publish: scheduled && period.status === "published",
+		publish: scheduled && (period.status === "published" || job.rescheduled === true),
 		remind_3d: reminder,
 		remind_1d: reminder,
 		send_decision: decisionCurrent && application?.decisionQueuedAt !== undefined,
@@ -68,9 +68,10 @@ export const deliveryContext = internalQuery({
 				? period.interviewers.map(({ userId }) => userId)
 				: (interview?.interviewerIds ?? []);
 		const selectedIds = period.interviewers.map(({ userId }) => userId);
+		const ownerIds = interview?.calendarOwnerId ? [interview.calendarOwnerId] : [];
 		const people = (
 			await Promise.all(
-				[...new Set([...selectedIds, ...interviewerIds])].map(async (userId) => {
+				[...new Set([...selectedIds, ...interviewerIds, ...ownerIds])].map(async (userId) => {
 					const user = await ctx.db.get(userId);
 					return user && !user.deleted
 						? {
@@ -98,6 +99,7 @@ export const deliveryContext = internalQuery({
 						}
 					: null,
 			interviewers: people.filter((person) => interviewerIds.includes(person.userId)),
+			calendarOwner: people.find((person) => person.userId === interview?.calendarOwnerId) ?? null,
 		};
 	},
 });
@@ -108,12 +110,16 @@ export const operationIsCurrent = internalQuery({
 });
 
 export const completeDelivery = internalMutation({
-	args: { operation: operationValidator, calendarEventId: v.optional(v.string()) },
-	handler: async (ctx, { operation: job, calendarEventId }) => {
+	args: {
+		operation: operationValidator,
+		calendarEventId: v.optional(v.string()),
+		calendarOwnerId: v.optional(v.id("users")),
+	},
+	handler: async (ctx, { operation: job, calendarEventId, calendarOwnerId }) => {
 		const resources = await currentResources(ctx, job);
 		if (!resources) return { stale: true };
 		if (job.kind === "publish" && resources.interview)
-			await completePublication(ctx, resources.interview, calendarEventId);
+			await completePublication(ctx, resources.interview, calendarEventId, calendarOwnerId);
 		if (job.kind === "send_decision" && resources.application)
 			await completeDecision(ctx, resources.application, resources.period);
 		return { stale: false };
@@ -215,9 +221,11 @@ async function completePublication(
 	ctx: MutationCtx,
 	interview: Doc<"admissionInterviews">,
 	calendarEventId: string | undefined,
+	calendarOwnerId: Id<"users"> | undefined,
 ) {
 	await ctx.db.patch(interview._id, {
 		calendarEventId: calendarEventId ?? interview.calendarEventId,
+		calendarOwnerId: calendarOwnerId ?? interview.calendarOwnerId,
 		publishedAt: Date.now(),
 	});
 	await Promise.all(
