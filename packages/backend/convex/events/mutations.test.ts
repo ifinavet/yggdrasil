@@ -126,6 +126,30 @@ const eventArgs = {
 	organizers: [],
 };
 
+async function createEventAndFind() {
+	const { t, companyId, foodItem, client } = await fixture();
+	await client.mutation(api.events.mutations.create, {
+		...eventArgs,
+		foodItem,
+		hostingCompany: companyId,
+	});
+	const event = await t.run((ctx) =>
+		ctx.db
+			.query("events")
+			.filter((q) => q.eq(q.field("title"), eventArgs.title))
+			.first(),
+	);
+	return { t, client, eventId: event?._id as Id<"events"> };
+}
+
+async function remindersEnabled(
+	client: Awaited<ReturnType<typeof fixture>>["client"],
+	eventId: Id<"events">,
+) {
+	const settings = await client.query(api.events.reminders.queries.getEventReminders, { eventId });
+	return settings.enabled;
+}
+
 describe("registration opening alerts", () => {
 	it("waits for the current opening time and sends once after rescheduling", async () => {
 		vi.useFakeTimers();
@@ -241,51 +265,24 @@ describe("events.mutations.create", () => {
 	});
 
 	it("turns reminder and feedback emails on for a new event", async () => {
-		const { t, companyId, foodItem, client } = await fixture();
+		const { t, client, eventId } = await createEventAndFind();
 
-		await client.mutation(api.events.mutations.create, {
-			...eventArgs,
-			foodItem,
-			hostingCompany: companyId,
+		expect(await t.run((ctx) => ctx.db.get(eventId))).toMatchObject({
+			remindersEnabled: true,
+			feedbackEnabled: true,
 		});
-
-		const event = await t.run((ctx) =>
-			ctx.db
-				.query("events")
-				.filter((q) => q.eq(q.field("title"), eventArgs.title))
-				.first(),
-		);
-		expect(event).toMatchObject({ remindersEnabled: true, feedbackEnabled: true });
-		expect(
-			await client.query(api.events.reminders.queries.getEventReminders, {
-				eventId: event?._id as Id<"events">,
-			}),
-		).toEqual({ enabled: true });
+		expect(await remindersEnabled(client, eventId)).toBe(true);
 	});
 
 	it("lets the board opt out of reminders on a new event", async () => {
-		const { t, companyId, foodItem, client } = await fixture();
-		await client.mutation(api.events.mutations.create, {
-			...eventArgs,
-			foodItem,
-			hostingCompany: companyId,
-		});
-		const event = await t.run((ctx) =>
-			ctx.db
-				.query("events")
-				.filter((q) => q.eq(q.field("title"), eventArgs.title))
-				.first(),
-		);
-		const eventId = event?._id as Id<"events">;
+		const { client, eventId } = await createEventAndFind();
 
 		await client.mutation(api.events.reminders.mutations.setEventReminders, {
 			eventId,
 			enabled: false,
 		});
 
-		expect(await client.query(api.events.reminders.queries.getEventReminders, { eventId })).toEqual(
-			{ enabled: false },
-		);
+		expect(await remindersEnabled(client, eventId)).toBe(false);
 	});
 
 	it("leaves existing events without the flags switched off", async () => {
@@ -295,9 +292,7 @@ describe("events.mutations.create", () => {
 			ctx.db.patch(eventId, { remindersEnabled: undefined, feedbackEnabled: undefined }),
 		);
 
-		expect(await client.query(api.events.reminders.queries.getEventReminders, { eventId })).toEqual(
-			{ enabled: false },
-		);
+		expect(await remindersEnabled(client, eventId)).toBe(false);
 	});
 });
 
