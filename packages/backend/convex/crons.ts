@@ -88,11 +88,4 @@ crons.interval(
 	{},
 );
 
-crons.interval(
-	"Delete legacy feedback forms and responses",
-	{ minutes: 10 },
-	internal.forms.cleanup.deleteLegacyBatch,
-	{},
-);
-
 export default crons;
