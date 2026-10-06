@@ -4,7 +4,6 @@ import { fromBase64, toVariableName } from "@workspace/shared/utils";
 import { fetchQuery, preloadQuery } from "convex/nextjs";
 import DegreeChart from "@/components/events/report/cards/degree-chart";
 import ProgramsChart from "@/components/events/report/cards/programs-chart";
-import EventFeedbackFormResponses from "@/components/events/report/form-responses";
 import DegreeTables from "@/components/events/report/table";
 import { EventFeedbackPanel } from "@/components/feedback/event-feedback-panel";
 
@@ -69,10 +68,7 @@ export default async function RapportPage({
 			</div>
 			<DegreeTables data={registrantsInfo} />
 			<h4 className="scroll-m-20 font-semibold text-xl tracking-tight">Tilbakemeldinger</h4>
-			<EventFeedbackPanel
-				preloadedEvent={preloadedEvent}
-				fallback={<EventFeedbackFormResponses preloadedEvent={preloadedEvent} />}
-			/>
+			<EventFeedbackPanel preloadedEvent={preloadedEvent} />
 		</div>
 	);
 }

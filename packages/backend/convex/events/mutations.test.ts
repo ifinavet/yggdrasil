@@ -159,9 +159,46 @@ describe("events.mutations.create", () => {
 			vatRate: eventProduct.vatRate,
 		});
 	});
+
+	it("does not attach a legacy feedback form", async () => {
+		const { t, companyId, foodItem, client } = await fixture();
+
+		await client.mutation(api.events.mutations.create, {
+			...eventArgs,
+			foodItem,
+			hostingCompany: companyId,
+		});
+
+		const event = await t.run((ctx) =>
+			ctx.db
+				.query("events")
+				.filter((q) => q.eq(q.field("title"), eventArgs.title))
+				.first(),
+		);
+		expect(event).not.toBeNull();
+		expect(event).not.toHaveProperty("formId");
+	});
 });
 
 describe("events.mutations.update", () => {
+	it("does not attach a legacy feedback form and keeps a stored legacy reference untouched", async () => {
+		const { t, companyId, foodItem, client } = await fixture();
+		const plain = await insertEvent(t, companyId);
+		const legacy = await insertEvent(t, companyId, { formId: "legacy-form" });
+
+		for (const id of [plain, legacy]) {
+			await client.mutation(api.events.mutations.update, {
+				...eventArgs,
+				foodItem,
+				id,
+				hostingCompany: companyId,
+			});
+		}
+
+		expect((await t.run((ctx) => ctx.db.get(plain)))?.formId).toBeUndefined();
+		expect((await t.run((ctx) => ctx.db.get(legacy)))?.formId).toBe("legacy-form");
+	});
+
 	it("snapshots a newly chosen product", async () => {
 		const { t, companyId, foodItem, client } = await fixture();
 		const productId = await t.run((ctx) => ctx.db.insert("products", eventProduct));
