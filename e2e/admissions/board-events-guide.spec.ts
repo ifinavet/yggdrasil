@@ -42,7 +42,8 @@ test.describe("events guide", () => {
 	test("skips the own-events step when the user organizes nothing", async ({ page }) => {
 		await open(page, "/events", "empty");
 		for (const step of [search, semester, create]) await dismiss(page, step);
-		await expect(page.locator('[role="dialog"]')).toHaveCount(0);
+		await expect(hint(page, mine)).toBeHidden();
+		await expect(page.locator('[data-tour="mine"]')).toHaveCount(0);
 	});
 
 	test("a dismissed hint stays away until replayed", async ({ page }) => {

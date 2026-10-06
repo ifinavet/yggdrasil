@@ -116,7 +116,12 @@ export function EventsOverview({
 			) : null}
 
 			{unpublished.length > 0 ? (
-				<Fold key={`unpublished-${folds.key}`} className="mt-3" title="Upubliserte" open={folds.open}>
+				<Fold
+					key={`unpublished-${folds.key}`}
+					className="mt-3"
+					title="Upubliserte"
+					open={folds.open}
+				>
 					<EventsTable events={unpublished} now={now} />
 				</Fold>
 			) : null}
