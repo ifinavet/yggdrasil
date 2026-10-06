@@ -11,8 +11,8 @@ describe("spotsLabel", () => {
 		expect(spotsLabel(49, 1)).toBe("49 påmeldt, bare 1 plass igjen!");
 	});
 
-	it("drops urgency when the event is full", () => {
-		expect(spotsLabel(50, 0)).toBe("50 påmeldt, 0 plasser igjen");
+	it("shows only the registered count when the event is full", () => {
+		expect(spotsLabel(50, 0)).toBe("50 påmeldt");
 	});
 });
 

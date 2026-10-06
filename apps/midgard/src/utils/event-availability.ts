@@ -4,10 +4,12 @@ import { nb } from "date-fns/locale";
 export const LOW_SPOTS_THRESHOLD = 10;
 
 export function spotsLabel(registeredCount: number, availableSpots: number): string {
+	const registered = `${registeredCount} påmeldt`;
+	if (availableSpots === 0) return registered;
 	const spots = `${availableSpots} ${availableSpots === 1 ? "plass" : "plasser"} igjen`;
-	const isLow = availableSpots > 0 && availableSpots <= LOW_SPOTS_THRESHOLD;
+	const isLow = availableSpots <= LOW_SPOTS_THRESHOLD;
 	const availability = isLow ? `bare ${spots}!` : spots;
-	return `${registeredCount} påmeldt, ${availability}`;
+	return `${registered}, ${availability}`;
 }
 
 export function countdownLabel(eventStart: number, now: number): string | null {
