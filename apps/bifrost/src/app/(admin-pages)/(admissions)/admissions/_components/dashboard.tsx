@@ -2,7 +2,7 @@
 
 import type { ColumnDef } from "@tanstack/react-table";
 import { api } from "@workspace/backend/convex/api";
-import type { Id } from "@workspace/backend/convex/dataModel";
+import type { Doc, Id } from "@workspace/backend/convex/dataModel";
 import { type AdmissionsGuideStep, makeSchedulingDays } from "@workspace/shared/admissions";
 import { localDateAndMinute } from "@workspace/shared/time";
 import { Button } from "@workspace/ui/components/button";
@@ -121,17 +121,7 @@ export default function AdmissionsDashboard() {
 			entry.decisionQueuedAt === undefined &&
 			(entry.decision === "accepted" || entry.decision === "rejected"),
 	);
-	const guideSteps = new Set<AdmissionsGuideStep>();
-	if (period.status === "open" && interviews.length === 0) {
-		guideSteps.add("calendars");
-		guideSteps.add("generate");
-	}
-	if (period.status === "open" && interviews.length > 0) guideSteps.add("approve");
-	if (period.status === "published") {
-		guideSteps.add("candidates");
-		guideSteps.add("selection");
-	}
-	if (pending.length > 0) guideSteps.add("send");
+	const guideSteps = availableGuideSteps(period.status, interviews.length, pending.length);
 	const filtered = candidates.filter(
 		(entry) =>
 			entry.name.toLocaleLowerCase("nb").includes(query.toLocaleLowerCase("nb")) &&
@@ -396,6 +386,25 @@ export default function AdmissionsDashboard() {
 			</section>
 		</GuideProvider>
 	);
+}
+
+function availableGuideSteps(
+	status: Doc<"admissionPeriods">["status"],
+	interviewCount: number,
+	pendingCount: number,
+) {
+	const steps = new Set<AdmissionsGuideStep>();
+	if (status === "open" && interviewCount === 0) {
+		steps.add("calendars");
+		steps.add("generate");
+	}
+	if (status === "open" && interviewCount > 0) steps.add("approve");
+	if (status === "published") {
+		steps.add("candidates");
+		steps.add("selection");
+	}
+	if (pendingCount > 0) steps.add("send");
+	return steps;
 }
 
 function candidateColumns(openCandidate: (id: string) => void): ColumnDef<Candidate>[] {

@@ -15,7 +15,7 @@ import {
 import { useSeenSteps } from "@workspace/ui/hooks/use-seen-steps";
 import { nextUnseenStep } from "@workspace/ui/lib/seen-steps";
 import { CircleHelp } from "lucide-react";
-import { createContext, type ReactNode, useContext, useId } from "react";
+import { createContext, type ReactNode, useContext, useId, useMemo } from "react";
 
 const hints: Record<AdmissionsGuideStep, string> = {
 	start: "Trykk her for å sette opp opptaket.",
@@ -43,11 +43,8 @@ export function GuideProvider({
 }: Readonly<{ available: ReadonlySet<AdmissionsGuideStep>; children: ReactNode }>) {
 	const { seen, markSeen, reset } = useSeenSteps(ADMISSIONS_GUIDE_STORAGE_KEY);
 	const active = seen ? nextUnseenStep(ADMISSIONS_GUIDE_STEPS, available, seen) : null;
-	return (
-		<GuideContext.Provider value={{ active, markSeen, replay: reset }}>
-			{children}
-		</GuideContext.Provider>
-	);
+	const guide = useMemo(() => ({ active, markSeen, replay: reset }), [active, markSeen, reset]);
+	return <GuideContext.Provider value={guide}>{children}</GuideContext.Provider>;
 }
 
 export function GuideHint({
