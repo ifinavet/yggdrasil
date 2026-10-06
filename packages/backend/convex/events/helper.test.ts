@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { eventSlug } from "./helper";
+import { eventSlug, leadingRole } from "./helper";
 
 describe("eventSlug", () => {
 	it.each([
@@ -10,5 +10,16 @@ describe("eventSlug", () => {
 		["2026-12-31T23:30:00Z", "v27"],
 	])("prefixes an event starting %s with %s", (start, prefix) => {
 		expect(eventSlug("Bedpres", Date.parse(start))).toMatch(new RegExp(`^${prefix}-bedpres-`));
+	});
+});
+
+describe("leadingRole", () => {
+	it.each([
+		[[], null],
+		[["medhjelper"], "medhjelper"],
+		[["hovedansvarlig"], "hovedansvarlig"],
+		[["medhjelper", "hovedansvarlig"], "hovedansvarlig"],
+	] as const)("resolves %j to %s", (roles, expected) => {
+		expect(leadingRole(roles)).toBe(expected);
 	});
 });

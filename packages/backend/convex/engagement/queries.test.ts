@@ -4,6 +4,7 @@ import {
 	DAY_IN_MS,
 	grantRole,
 	insertEvent,
+	insertOrganizer,
 	insertRegistration,
 	insertStudent,
 	insertUser,
@@ -258,6 +259,48 @@ describe("past", () => {
 		).toEqual([
 			{ _id: newer, title: "Nyere", registered: 1, attended: 1, lateUnregistrations: 1 },
 			{ _id: older, title: "Eldre", registered: 1, attended: null, lateUnregistrations: null },
+		]);
+	});
+});
+
+describe("organizer role", () => {
+	it("marks past events with the caller's own role, preferring the lead role", async () => {
+		const { t, companyId } = await setup();
+		const now = at("2026-10-20T10:00:00Z");
+		const internUser = await insertUser(t, "intern@example.com");
+		await grantRole(t, internUser._id, "internal");
+		const intern = asUser(t, internUser);
+		const other = await insertUser(t, "other@example.com");
+		const leading = await insertEvent(t, companyId, {
+			title: "Ansvarlig",
+			registrationOpens: at("2026-09-01T10:00:00Z"),
+			eventStart: at("2026-09-10T16:00:00Z"),
+		});
+		const helping = await insertEvent(t, companyId, {
+			title: "Medhjelper",
+			registrationOpens: at("2026-09-02T10:00:00Z"),
+			eventStart: at("2026-09-11T16:00:00Z"),
+		});
+		const others = await insertEvent(t, companyId, {
+			title: "Andres",
+			registrationOpens: at("2026-09-03T10:00:00Z"),
+			eventStart: at("2026-09-12T16:00:00Z"),
+		});
+		await insertOrganizer(t, leading, internUser._id, "medhjelper");
+		await insertOrganizer(t, leading, internUser._id, "hovedansvarlig");
+		await insertOrganizer(t, helping, internUser._id, "medhjelper");
+		await insertOrganizer(t, others, other._id, "hovedansvarlig");
+
+		const events = await intern.query(api.engagement.queries.past, {
+			now,
+			semester: "høst",
+			year: 2026,
+		});
+
+		expect(events.map(({ title, myRole }) => [title, myRole])).toEqual([
+			["Andres", null],
+			["Medhjelper", "medhjelper"],
+			["Ansvarlig", "hovedansvarlig"],
 		]);
 	});
 });

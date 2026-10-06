@@ -153,7 +153,7 @@ export const foods = query({
 export const detail = query({
 	args: { companyId: v.id("companies"), ...semesterArgs },
 	handler: async (ctx, { companyId, now, semester, year }) => {
-		await requireRole(ctx, internalRoles);
+		const user = await requireRole(ctx, internalRoles);
 		const { events, logStart } = await loggedEvents(ctx, { semester, year }, now);
 		const grouped = byCompany(events);
 		const companyEvents = grouped.get(companyId) ?? [];
@@ -172,7 +172,7 @@ export const detail = query({
 				companyEvents
 					.filter(({ event }) => event.eventStart <= now)
 					.reverse()
-					.map((companyEvent) => pastEventRow(ctx, companyEvent, logStart)),
+					.map((companyEvent) => pastEventRow(ctx, companyEvent, logStart, user._id)),
 			),
 		};
 	},

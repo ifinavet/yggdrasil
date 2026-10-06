@@ -11,6 +11,7 @@ import {
 	TableRow,
 } from "@workspace/ui/components/table";
 import { PRIMARY_SERIES_COLOR } from "@/components/common/chart-colors";
+import { organizerMarker } from "@/components/common/organizer-role";
 import { LIST_CELL, LIST_HEAD } from "@/components/common/table-classes";
 import {
 	fillShare,
@@ -61,7 +62,7 @@ export function UpcomingTable({
 		<Table>
 			<TableHeader>
 				<TableRow className="hover:bg-transparent">
-					<TableHead className={`${LIST_HEAD} w-[90px]`}>Dato</TableHead>
+					<TableHead className={`${LIST_HEAD} w-[90px] pl-4`}>Dato</TableHead>
 					<TableHead className={LIST_HEAD}>Arrangement</TableHead>
 					<TableHead className={LIST_HEAD}>Påmeldte</TableHead>
 					<TableHead className={`${LIST_HEAD} text-right`}>Siste 24 t</TableHead>
@@ -73,9 +74,10 @@ export function UpcomingTable({
 					<TableRow
 						key={event._id}
 						data-state={event._id === selectedId ? "selected" : undefined}
+						marker={organizerMarker(event.myRole, false)}
 						className="relative"
 					>
-						<TableCell className={`${LIST_CELL} whitespace-nowrap tabular-nums`}>
+						<TableCell className={`${LIST_CELL} whitespace-nowrap pl-4 tabular-nums`}>
 							{formatOsloDate(event.eventStart, DATE_PATTERNS.shortDate)}
 							<span className="block text-muted-foreground text-xs">
 								{formatOsloDate(event.eventStart, DATE_PATTERNS.time)}

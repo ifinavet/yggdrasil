@@ -16,6 +16,7 @@ import {
 } from "@workspace/ui/components/table";
 import { useRef, useState } from "react";
 import { PRIMARY_SERIES_COLOR } from "@/components/common/chart-colors";
+import { organizerMarker } from "@/components/common/organizer-role";
 import { LIST_CELL, LIST_HEAD } from "@/components/common/table-classes";
 import { useStableQuery } from "@/hooks/use-stable-query";
 import { attendanceRate, fillShare, formatShare, type PastEvent } from "./engagement-format";
@@ -37,7 +38,7 @@ export function PastTable({
 		<Table>
 			<TableHeader>
 				<TableRow className="hover:bg-transparent">
-					<TableHead className={`${LIST_HEAD} w-[90px]`}>Dato</TableHead>
+					<TableHead className={`${LIST_HEAD} w-[90px] pl-4`}>Dato</TableHead>
 					<TableHead className={LIST_HEAD}>Arrangement</TableHead>
 					<TableHead className={LIST_HEAD}>Påmeldte</TableHead>
 					<TableHead className={`${LIST_HEAD} text-right`}>Oppmøte</TableHead>
@@ -51,9 +52,10 @@ export function PastTable({
 						<TableRow
 							key={event._id}
 							data-state={event._id === selectedId ? "selected" : undefined}
+							marker={organizerMarker(event.myRole, true)}
 							className="relative"
 						>
-							<TableCell className={`${LIST_CELL} whitespace-nowrap tabular-nums`}>
+							<TableCell className={`${LIST_CELL} whitespace-nowrap pl-4 tabular-nums`}>
 								{formatOsloDate(event.eventStart, DATE_PATTERNS.shortDate)}
 							</TableCell>
 							<EventCell event={event} onSelect={onSelect} />

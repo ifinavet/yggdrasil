@@ -6,7 +6,12 @@ import type { Doc, Id } from "../_generated/dataModel";
 import { internalQuery, type QueryCtx, query } from "../_generated/server";
 import { currentUserHasRole, internalRoles, requireRole } from "../auth/accessRights";
 import { eventFeedbackStatus } from "../feedback/eventStatus";
-import { countRegistrationsWithStatus, eventsInSemester, getEventByIdentifier } from "./helper";
+import {
+	countRegistrationsWithStatus,
+	eventsInSemester,
+	getEventByIdentifier,
+	leadingRole,
+} from "./helper";
 
 export const eventSemesterValidator = v.union(
 	...EVENT_SEMESTERS.map((semester) => v.literal(semester)),
@@ -145,12 +150,11 @@ export const getAll = query({
 		return await Promise.all(
 			events.map(async (event) => {
 				const organizers = await getOrganizers(ctx, event._id);
-				const myRoles = organizers
-					.filter((organizer) => organizer.userId === user._id)
-					.map((organizer) => organizer.role);
-				const myRole: OrganizerRole | null = myRoles.includes("hovedansvarlig")
-					? "hovedansvarlig"
-					: (myRoles[0] ?? null);
+				const myRole = leadingRole(
+					organizers
+						.filter((organizer) => organizer.userId === user._id)
+						.map((organizer) => organizer.role),
+				);
 				const [company, registered, pending, waitlist, feedbackStatus] = await Promise.all([
 					companyOf(event.hostingCompany),
 					countRegistrationsWithStatus(ctx, event._id, "registered"),
