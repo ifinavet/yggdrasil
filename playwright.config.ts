@@ -1,5 +1,9 @@
 import { defineConfig, devices } from "@playwright/test";
 import { ADMISSIONS_GUIDE_STEPS, ADMISSIONS_GUIDE_STORAGE_KEY } from "@workspace/shared/admissions";
+import {
+	JOB_LISTINGS_GUIDE_STEPS,
+	JOB_LISTINGS_GUIDE_STORAGE_KEY,
+} from "@workspace/shared/job-listings";
 
 function localBaseURL(value: string | undefined, fallback: string) {
 	const baseURL = new URL(value ?? fallback);
@@ -47,6 +51,10 @@ export default defineConfig({
 								{
 									name: ADMISSIONS_GUIDE_STORAGE_KEY,
 									value: JSON.stringify(ADMISSIONS_GUIDE_STEPS),
+								},
+								{
+									name: JOB_LISTINGS_GUIDE_STORAGE_KEY,
+									value: JSON.stringify(JOB_LISTINGS_GUIDE_STEPS),
 								},
 							],
 						},

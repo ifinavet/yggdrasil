@@ -31,6 +31,7 @@
 		"./feature-flags": "./feature-flags.ts",
 		"./products": "./products/index.ts",
 		"./job-listing-orders": "./job-listing-orders/index.ts",
+		"./job-listings": "./job-listings/index.ts",
 		"./logo": "./logo/index.ts",
 		"./time": "./time/index.ts",
 		"./semester/orgNumber": "./semester/orgNumber.ts",

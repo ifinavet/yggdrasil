@@ -1,18 +1,19 @@
 "use client";
 
-import { api } from "@workspace/backend/convex/api";
+import type { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { Badge } from "@workspace/ui/components/badge";
-import { useQuery } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { OrderReviewDialog } from "./order-review-dialog";
 
-export function PendingOrdersAlert() {
-	const orders = useQuery(api.jobListingOrders.admin.listPending, {});
+export function PendingOrdersAlert({
+	orders,
+}: Readonly<{ orders: FunctionReturnType<typeof api.jobListingOrders.admin.listPending> }>) {
 	const [openOrderId, setOpenOrderId] = useState<Id<"jobListingOrders">>();
 
-	if (!orders?.length) return null;
+	if (!orders.length) return null;
 
 	return (
 		<div className="flex flex-col gap-3 rounded-lg bg-primary-light px-5 py-4 dark:bg-accent">

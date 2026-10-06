@@ -1,6 +1,7 @@
 "use client";
 
 import { api } from "@workspace/backend/convex/api";
+import type { JobListingsGuideStep } from "@workspace/shared/job-listings";
 import { DATE_PATTERNS, formatOsloDate } from "@workspace/shared/time";
 import { convexErrorMessage } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
@@ -16,7 +17,7 @@ import {
 	TableRow,
 } from "@workspace/ui/components/table";
 import { cn } from "@workspace/ui/lib/utils";
-import { type Preloaded, useMutation, usePreloadedQuery } from "convex/react";
+import { type Preloaded, useMutation, usePreloadedQuery, useQuery } from "convex/react";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import { Fragment, useMemo, useState } from "react";
@@ -25,6 +26,7 @@ import { LIST_CELL, LIST_HEAD } from "@/components/common/table-classes";
 import { PendingOrdersAlert } from "@/components/job-listing-orders/pending-orders-alert";
 import { searchFolds } from "@/lib/search";
 import { JobTypeLabel } from "../job-type-label";
+import { GuideHint, GuideProvider, GuideReplay } from "./guide";
 import {
 	deadlineIsSoon,
 	type OverviewListing,
@@ -63,24 +65,29 @@ function ListingRow({
 	listing,
 	now,
 	archived,
-}: Readonly<{ listing: OverviewListing; now: number; archived: boolean }>) {
+	guided,
+}: Readonly<{ listing: OverviewListing; now: number; archived: boolean; guided: boolean }>) {
 	const soon = !archived && listing.published && deadlineIsSoon(listing, now);
+
+	const identity = (
+		<div className="flex min-w-0 items-center gap-3">
+			<CompanyLogo name={listing.companyName} url={listing.companyLogo} />
+			<div>
+				<Link
+					href={`/job-listings/${listing._id}`}
+					className="block font-medium after:absolute after:inset-0"
+				>
+					{listing.title}
+				</Link>
+				<span className="block text-muted-foreground text-xs">{listing.companyName}</span>
+			</div>
+		</div>
+	);
 
 	return (
 		<TableRow className="relative">
 			<TableCell className={LIST_CELL}>
-				<div className="flex min-w-0 items-center gap-3">
-					<CompanyLogo name={listing.companyName} url={listing.companyLogo} />
-					<div>
-						<Link
-							href={`/job-listings/${listing._id}`}
-							className="block font-medium after:absolute after:inset-0"
-						>
-							{listing.title}
-						</Link>
-						<span className="block text-muted-foreground text-xs">{listing.companyName}</span>
-					</div>
-				</div>
+				{guided ? <GuideHint step="publish">{identity}</GuideHint> : identity}
 			</TableCell>
 			<TableCell className={cn(LIST_CELL, "hidden sm:table-cell")}>
 				<span className="inline-flex items-center gap-2">
@@ -128,10 +135,12 @@ function ListingsTable({
 	groups,
 	now,
 	archived,
+	guidedId,
 }: Readonly<{
 	groups: { label?: string; listings: OverviewListing[] }[];
 	now: number;
 	archived: boolean;
+	guidedId?: string;
 }>) {
 	return (
 		<Table>
@@ -150,7 +159,13 @@ function ListingsTable({
 					<Fragment key={group.label ?? "all"}>
 						{group.label ? <GroupRow label={group.label} count={group.listings.length} /> : null}
 						{group.listings.map((listing) => (
-							<ListingRow key={listing._id} listing={listing} now={now} archived={archived} />
+							<ListingRow
+								key={listing._id}
+								listing={listing}
+								now={now}
+								archived={archived}
+								guided={listing._id === guidedId}
+							/>
 						))}
 					</Fragment>
 				))}
@@ -167,6 +182,8 @@ export function JobListingsOverview({
 	now: number;
 }>) {
 	const listings = usePreloadedQuery(preloadedListings);
+	const pendingOrders = useQuery(api.jobListingOrders.admin.listPending, {});
+	const orders = pendingOrders ?? [];
 	const [search, setSearch] = useState("");
 
 	const { unpublished, published, expired } = useMemo(
@@ -179,37 +196,68 @@ export function JobListingsOverview({
 		{ label: "Publiserte", listings: published },
 	].filter((group) => group.listings.length > 0);
 
+	const guideSteps = new Set<JobListingsGuideStep>();
+	if (pendingOrders) {
+		guideSteps.add("search").add("create");
+		if (orders.length > 0) guideSteps.add("orders");
+		if (unpublished.length > 0) guideSteps.add("publish");
+		if (expired.length > 0) guideSteps.add("expired");
+	}
+
 	return (
-		<div className="flex flex-col gap-4">
-			<div className="flex flex-wrap items-center gap-2">
-				<h2 className="font-semibold text-2xl tracking-[-0.015em]">Stillingsannonser</h2>
-				<span className="flex-1" />
-				<SearchField
-					value={search}
-					onChange={setSearch}
-					placeholder="Tittel, bedrift eller type"
-					className="sm:w-96"
-				/>
-				<Button asChild>
-					<Link href="/job-listings/new-listing">
-						<Plus className="size-4" /> Opprett en ny stillingsannonse
-					</Link>
-				</Button>
-			</div>
-
-			<PendingOrdersAlert />
-
-			{activeGroups.length > 0 ? (
-				<div className="overflow-hidden rounded-lg border bg-card">
-					<ListingsTable groups={activeGroups} now={now} archived={false} />
+		<GuideProvider available={guideSteps}>
+			<div className="flex flex-col gap-4">
+				<div className="flex flex-wrap items-center gap-2">
+					<h2 className="font-semibold text-2xl tracking-[-0.015em]">Stillingsannonser</h2>
+					<span className="flex-1" />
+					<GuideReplay />
+					<GuideHint step="search">
+						<div className="w-full sm:w-96">
+							<SearchField
+								value={search}
+								onChange={setSearch}
+								placeholder="Tittel, bedrift eller type"
+							/>
+						</div>
+					</GuideHint>
+					<GuideHint step="create">
+						<Button asChild>
+							<Link href="/job-listings/new-listing">
+								<Plus className="size-4" /> Opprett en ny stillingsannonse
+							</Link>
+						</Button>
+					</GuideHint>
 				</div>
-			) : null}
 
-			{expired.length > 0 ? (
-				<Fold key={folds.key} title={`Utløpte, ${expired.length}`} open={folds.open}>
-					<ListingsTable groups={[{ listings: expired }]} now={now} archived />
-				</Fold>
-			) : null}
-		</div>
+				{orders.length > 0 ? (
+					<GuideHint step="orders">
+						<div>
+							<PendingOrdersAlert orders={orders} />
+						</div>
+					</GuideHint>
+				) : null}
+
+				{activeGroups.length > 0 ? (
+					<div className="overflow-hidden rounded-lg border bg-card">
+						<ListingsTable
+							groups={activeGroups}
+							now={now}
+							archived={false}
+							guidedId={unpublished[0]?._id}
+						/>
+					</div>
+				) : null}
+
+				{expired.length > 0 ? (
+					<GuideHint step="expired">
+						<div>
+							<Fold key={folds.key} title={`Utløpte, ${expired.length}`} open={folds.open}>
+								<ListingsTable groups={[{ listings: expired }]} now={now} archived />
+							</Fold>
+						</div>
+					</GuideHint>
+				) : null}
+			</div>
+		</GuideProvider>
 	);
 }
