@@ -19,7 +19,7 @@ export function googleCalendarScope() {
 	return scopes || GOOGLE_CALENDAR_DEFAULT_SCOPES;
 }
 
-export class GoogleCalendarError extends Error {}
+export class GoogleCalendarError extends ConvexError<string> {}
 
 type Calendar = calendar_v3.Schema$CalendarListEntry & { id: string };
 type Busy = Readonly<{ start: string; end: string }>;

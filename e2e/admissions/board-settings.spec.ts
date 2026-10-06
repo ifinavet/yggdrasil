@@ -4,6 +4,7 @@ import {
 	admissionsOverview,
 	bifrostUrl,
 	clearCookieNotice,
+	failGoogle,
 	resetAdmissions,
 } from "./production-helpers";
 
@@ -120,6 +121,7 @@ test.describe("admissions settings and close flow", () => {
 		await captureScreenshot(page, "board", "live-08-close.png", close);
 		await close.getByRole("checkbox", { name: /avslutte opptaket nå/i }).check();
 		await expect(confirm).toBeEnabled();
+		await failGoogle(true);
 		await confirm.click();
 		await expect(close).toBeHidden();
 		await expect(page.getByText("Opptaket avsluttes.", { exact: false })).toBeVisible();

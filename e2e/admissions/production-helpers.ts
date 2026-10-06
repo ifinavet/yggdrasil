@@ -20,10 +20,25 @@ export const huginUrl = localOrigin("HUGIN_URL", "http://localhost:3023");
 export const bifrostUrl = localOrigin("BIFROST_URL", "http://localhost:3021");
 export const midgardUrl = localOrigin("MIDGARD_URL", "http://localhost:3020");
 export const convexUrl = localOrigin("NEXT_PUBLIC_CONVEX_URL", "http://127.0.0.1:3212");
+export const fakeDirectoryUrl = localOrigin("IAM_FAKE_DIRECTORY_URL", "http://127.0.0.1:3299");
 const convex = new ConvexHttpClient(convexUrl);
 
 export async function resetAdmissions(scenario: AdmissionSeedScenario) {
+	await fetch(`${fakeDirectoryUrl}/reset`);
 	await seedAdmissions(convexUrl, scenario);
+}
+
+export async function failGoogle(failing: boolean) {
+	await fetch(`${fakeDirectoryUrl}/fail?google=${failing ? 1 : 0}`);
+}
+
+export async function fakeDirectoryState() {
+	const response = await fetch(`${fakeDirectoryUrl}/state`);
+	return (await response.json()) as {
+		google: Record<string, { name: string; suspended: boolean }>;
+		slackChannels: { name: string; members: string[]; messages: { text: string }[] }[];
+		calendarEvents: Record<string, { id: string; summary?: string; status?: string }[]>;
+	};
 }
 
 export async function clearCookieNotice(page: Page) {
@@ -38,6 +53,10 @@ export async function clearCookieNotice(page: Page) {
 	}
 	const issueBadge = page.getByRole("button", { name: "Collapse issues badge" });
 	if (await issueBadge.isVisible().catch(() => false)) await issueBadge.click();
+}
+
+export function internalMembers() {
+	return convex.query(api.users.organization.queries.getAllInternals, {});
 }
 
 export function admissionsOverview() {

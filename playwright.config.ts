@@ -39,4 +39,10 @@ export default defineConfig({
 		},
 	],
 	use: { trace: "retain-on-failure" },
+	webServer: {
+		command: "node packages/backend/test/fakeDirectory.ts",
+		env: { PORT: "3299" },
+		url: "http://127.0.0.1:3299/status",
+		reuseExistingServer: true,
+	},
 });

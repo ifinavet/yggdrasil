@@ -5,6 +5,8 @@ import {
 	admissionsOverview,
 	bifrostUrl,
 	clearCookieNotice,
+	failGoogle,
+	fakeDirectoryState,
 	resetAdmissions,
 } from "./production-helpers";
 
@@ -59,14 +61,18 @@ test.describe("manual interview follow-up", () => {
 		await expect.poll(async () => (await admissionsOverview())?.interviews.length).toBe(0);
 		await expect
 			.poll(async () =>
+				(await fakeDirectoryState()).slackChannels.flatMap((channel) =>
+					channel.messages.filter((message) => message.text.includes("er avlyst")),
+				),
+			)
+			.toHaveLength(1);
+		await expect
+			.poll(async () =>
 				(await admissionsOverview())?.jobs.filter((job) => job.kind === "cancel_interview"),
 			)
-			.toMatchObject([{ interviewId: interview?._id, notifyApplicant: true, state: "inProgress" }]);
+			.toHaveLength(0);
 		await page.reload();
 		expect((await admissionsOverview())?.interviews).toHaveLength(0);
-		expect(
-			(await admissionsOverview())?.jobs.filter((job) => job.kind === "cancel_interview"),
-		).toHaveLength(1);
 	});
 
 	test("moving a published interview republishes it with a new time", async ({ page }) => {
@@ -108,9 +114,10 @@ test.describe("manual interview follow-up", () => {
 		await clearCookieNotice(page);
 		await page.getByRole("button", { name: /^Kandidater/ }).click();
 		await page.getByRole("button", { name: candidate?.name ?? "", exact: true }).click();
+		await failGoogle(true);
 		await page.getByRole("button", { name: "Foreslå tider", exact: true }).click();
 		await expect(
-			page.getByText("Google Calendar mangler tjenestekonto eller Workspace-konfigurasjon.", {
+			page.getByText("Google Calendar svarte 503 kunne ikke lese opptattstatus.", {
 				exact: true,
 			}),
 		).toBeVisible();
@@ -118,7 +125,7 @@ test.describe("manual interview follow-up", () => {
 			page,
 			"board",
 			"live-35-suggestion-failure-mobile.png",
-			page.getByText("Google Calendar mangler tjenestekonto eller Workspace-konfigurasjon.", {
+			page.getByText("Google Calendar svarte 503 kunne ikke lese opptattstatus.", {
 				exact: true,
 			}),
 		);

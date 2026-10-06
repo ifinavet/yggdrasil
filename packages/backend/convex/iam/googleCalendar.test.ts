@@ -1,3 +1,4 @@
+import { ConvexError } from "convex/values";
 import { exportPKCS8, generateKeyPair } from "jose";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import {
@@ -151,6 +152,23 @@ describe("delegated Google Calendar client", () => {
 		await expect(
 			googleCalendarClient(config, "interviewer@example.test").listCalendars(),
 		).rejects.toThrow("Google Calendar svarte 403 kunne ikke lese kalenderlisten.");
+	});
+
+	it("exposes provider failures to the client as ConvexError data", async () => {
+		vi.stubGlobal(
+			"fetch",
+			vi
+				.fn()
+				.mockResolvedValueOnce(Response.json({ access_token: "secret-token", expires_in: 3600 }))
+				.mockImplementation(async () => Response.json({ error: "down" }, { status: 503 })),
+		);
+		const error = await googleCalendarClient(config, "interviewer@example.test")
+			.listCalendars()
+			.catch((caught: unknown) => caught);
+		expect(error).toBeInstanceOf(ConvexError);
+		expect((error as ConvexError<string>).data).toBe(
+			"Google Calendar svarte 503 kunne ikke lese kalenderlisten.",
+		);
 	});
 });
 

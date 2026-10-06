@@ -4,6 +4,7 @@ import {
 	admissionsOverview,
 	bifrostUrl,
 	clearCookieNotice,
+	failGoogle,
 	huginUrl,
 	resetAdmissions,
 } from "./production-helpers";
@@ -106,11 +107,12 @@ test.describe("persistent board admissions", () => {
 		page,
 	}) => {
 		await resetAdmissions("open");
+		await failGoogle(true);
 		await page.reload();
 		await page.getByRole("button", { name: "Finn tider", exact: true }).click();
 		await expect(
 			page.getByRole("alert").filter({
-				hasText: "Google Calendar mangler tjenestekonto eller Workspace-konfigurasjon.",
+				hasText: "Google Calendar svarte 503 kunne ikke lese opptattstatus.",
 			}),
 		).toBeVisible();
 		await captureScreenshot(

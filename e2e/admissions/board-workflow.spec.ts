@@ -5,6 +5,7 @@ import {
 	admissionsOverview,
 	bifrostUrl,
 	clearCookieNotice,
+	failGoogle,
 	resetAdmissions,
 } from "./production-helpers";
 
@@ -43,6 +44,7 @@ test("creates a period and exposes calendar provider configuration errors", asyn
 	await captureScreenshot(page, "board", "live-12-create.png", settings);
 	await settings.getByRole("button", { name: "Start opptak", exact: true }).click();
 	await expect(settings).toBeHidden();
+	await failGoogle(true);
 	await page.getByRole("button", { name: "Kalendere", exact: true }).click();
 	const calendars = page.getByRole("dialog", { name: "Kalendere" });
 	await calendars.getByRole("button", { name: "Hent kalendere for Kristin Berg" }).click();
@@ -91,24 +93,22 @@ test("selection rounds are reversible and decisions send only on explicit confir
 	expect(
 		(await admissionsOverview())?.jobs.filter((job) => job.kind === "send_decision"),
 	).toHaveLength(0);
+	const handled = (
+		candidates: NonNullable<Awaited<ReturnType<typeof admissionsOverview>>>["candidates"],
+	) =>
+		candidates.filter(
+			(candidate) =>
+				candidate.decisionQueuedAt !== undefined || candidate.decisionSentAt !== undefined,
+		).length;
+	const before = handled((await admissionsOverview())?.candidates ?? []);
 	await send.getByRole("button", { name: "Send svar", exact: true }).click();
 	await expect(send).toBeHidden();
-	await expect
-		.poll(
-			async () =>
-				(await admissionsOverview())?.jobs.filter((job) => job.kind === "send_decision").length,
-		)
-		.toBe(10);
 	await expect(page.getByRole("button", { name: "Send svar (0)", exact: true })).toBeDisabled();
-	expect(
-		(await admissionsOverview())?.candidates.filter(
-			(candidate) => candidate.decisionQueuedAt !== undefined,
-		),
-	).toHaveLength(10);
+	await expect
+		.poll(async () => handled((await admissionsOverview())?.candidates ?? []))
+		.toBe(before + 10);
 	await page.reload();
-	expect(
-		(await admissionsOverview())?.jobs.filter((job) => job.kind === "send_decision"),
-	).toHaveLength(10);
+	await expect(page.getByRole("button", { name: "Send svar (0)", exact: true })).toBeDisabled();
 });
 
 test("candidate program and year filters combine and can be cleared", async ({ page }) => {
