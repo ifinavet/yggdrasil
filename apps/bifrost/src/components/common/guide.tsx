@@ -10,7 +10,7 @@ import {
 import { useSeenSteps } from "@workspace/ui/hooks/use-seen-steps";
 import { nextUnseenStep } from "@workspace/ui/lib/seen-steps";
 import { CircleHelp } from "lucide-react";
-import { createContext, type ReactNode, useContext, useId, useMemo } from "react";
+import { createContext, type ReactNode, useContext, useEffect, useId, useMemo } from "react";
 
 type GuideConfig<Step extends string> = {
 	steps: readonly Step[];
@@ -41,9 +41,16 @@ export function createGuide<Step extends string>({ steps, storageKey, hints }: G
 		const guide = useContext(GuideContext);
 		const textId = useId();
 		const dismiss = () => guide?.markSeen(step);
+		const open = guide?.active === step;
+		useEffect(() => {
+			if (!open) return;
+			document
+				.querySelector(`[data-tour="${step}"]`)
+				?.scrollIntoView({ block: "center", inline: "nearest", behavior: "smooth" });
+		}, [open, step]);
 		return (
 			<Popover
-				open={guide?.active === step}
+				open={open}
 				onOpenChange={(open) => {
 					if (!open) dismiss();
 				}}
