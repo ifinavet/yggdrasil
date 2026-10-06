@@ -1,8 +1,14 @@
 import type { UserJSON } from "@clerk/backend";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+	applicationFields,
+	insertInternalGroup,
+	periodFields,
+} from "../../test/admissions-fixtures";
+import {
 	asUser,
 	grantRole,
+	insertStudent,
 	insertUser,
 	refusalMessageFrom,
 	setup,
@@ -88,6 +94,97 @@ function clerkUser(externalId: string, email: string): UserJSON {
 }
 
 describe("starting onboarding", () => {
+	it("provisions an accepted admission offer once and links the existing student account", async () => {
+		const applicant = await insertUser(t, newMember.uioEmail, {
+			firstName: newMember.firstName,
+			lastName: newMember.lastName,
+		});
+		await insertStudent(t, applicant._id);
+		const groupId = await insertInternalGroup(t, newMember.group);
+		const periodId = await t.run((ctx) =>
+			ctx.db.insert("admissionPeriods", periodFields(admin._id)),
+		);
+		await t.run((ctx) =>
+			ctx.db.insert(
+				"admissionApplications",
+				applicationFields(periodId, applicant._id, {
+					decision: "accepted",
+					decisionRevision: 1,
+					decisionBy: admin._id,
+					decisionAt: Date.now(),
+					decisionSentAt: Date.now(),
+					offerStatus: "pending",
+					offerDeadline: Date.now() + 24 * 60 * 60 * 1000,
+					reviewedGroup: newMember.group,
+					reviewedGroupId: groupId,
+					reviewedWorkspaceEmail: newMember.workspaceEmail,
+					studentProfile: {
+						name: "Kari Nordmann",
+						studyProgram: "Informatikk",
+						year: 2,
+						degree: "Bachelor",
+					},
+				}),
+			),
+		);
+		const studentClient = asUser(t, applicant);
+		const pending = await studentClient.query(api.admissions.queries.applicationContext, {
+			now: Date.now(),
+		});
+		expect(pending?.application).toMatchObject({ decision: "accepted", offerStatus: "pending" });
+		await studentClient.mutation(api.admissions.mutations.respondToOffer, {
+			periodId,
+			accept: true,
+			expectedRevision: pending?.application?.revision ?? 0,
+		});
+		await t.finishAllScheduledFunctions(vi.runAllTimers);
+
+		const [accountRecord] = await t.run((ctx) => ctx.db.query("memberAccounts").collect());
+		const [internalMember] = await t.run((ctx) =>
+			ctx.db
+				.query("internals")
+				.withIndex("by_userId", (q) => q.eq("userId", applicant._id))
+				.collect(),
+		);
+		const [role] = await t.run((ctx) =>
+			ctx.db
+				.query("accessRights")
+				.withIndex("by_userId", (q) => q.eq("userId", applicant._id))
+				.collect(),
+		);
+		expect(accountRecord).toMatchObject({
+			stage: "active",
+			userId: applicant._id,
+			workspaceEmail: newMember.workspaceEmail,
+			group: newMember.group,
+		});
+		expect(internalMember).toMatchObject({ group: newMember.group, position: "Intern" });
+		expect(role).toMatchObject({ role: "internal" });
+		expect(googleWrites()).toMatchObject([
+			{
+				method: "POST",
+				body: { primaryEmail: newMember.workspaceEmail, recoveryEmail: newMember.uioEmail },
+			},
+		]);
+		expect(sentEmail().to).toBe(newMember.uioEmail);
+		const initialWrites = googleWrites();
+		const initialEmailCount = emails.mock.calls.length;
+
+		const accepted = await studentClient.query(api.admissions.queries.applicationContext, {
+			now: Date.now(),
+		});
+		await studentClient.mutation(api.admissions.mutations.respondToOffer, {
+			periodId,
+			accept: true,
+			expectedRevision: accepted?.application?.revision ?? 0,
+		});
+		await t.finishAllScheduledFunctions(vi.runAllTimers);
+
+		expect(await t.run((ctx) => ctx.db.query("memberAccounts").collect())).toHaveLength(1);
+		expect(googleWrites()).toEqual(initialWrites);
+		expect(emails).toHaveBeenCalledTimes(initialEmailCount);
+	});
+
 	it("lets a new member recover their Google password through the UiO address", async () => {
 		await onboard();
 
