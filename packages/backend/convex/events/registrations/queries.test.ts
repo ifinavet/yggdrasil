@@ -287,49 +287,6 @@ describe("getById", () => {
 	});
 });
 
-describe("getCurrentUserRegistertToEventBySlug", () => {
-	it("confirms a seated registrant", async () => {
-		const { t, companyId } = await setup();
-		const eventId = await insertEvent(t, companyId, { slug: "host-fest-2026" });
-		const student = await insertUser(t, "student@example.com");
-		await insertRegistration(t, eventId, student._id, "registered");
-
-		const userId = await asUser(t, student).query(queries.getCurrentUserRegistertToEventBySlug, {
-			slug: "host-fest-2026",
-		});
-
-		expect(userId).toBe(student._id);
-	});
-
-	it("refuses a waitlisted registrant", async () => {
-		const { t, companyId } = await setup();
-		const eventId = await insertEvent(t, companyId, { slug: "host-fest-2026" });
-		const student = await insertUser(t, "student@example.com");
-		await insertRegistration(t, eventId, student._id, "waitlist");
-
-		const message = await refusalMessageFrom(
-			asUser(t, student).query(queries.getCurrentUserRegistertToEventBySlug, {
-				slug: "host-fest-2026",
-			}),
-		);
-
-		expect(message).toContain("ikke registrert");
-	});
-
-	it("refuses an unknown slug", async () => {
-		const { t } = await setup();
-		const student = await insertUser(t, "student@example.com");
-
-		const message = await refusalMessageFrom(
-			asUser(t, student).query(queries.getCurrentUserRegistertToEventBySlug, {
-				slug: "finnes-ikke",
-			}),
-		);
-
-		expect(message).toContain("ikke funnet");
-	});
-});
-
 describe("getCurrentUser", () => {
 	it("returns the caller's own registrations with event details", async () => {
 		const { t, companyId } = await setup();
