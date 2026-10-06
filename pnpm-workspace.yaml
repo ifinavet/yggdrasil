@@ -45,8 +45,11 @@ catalog:
   "zod": "4.6.5"
   "zustand": "5.0.15"
 
-# Keep transitive React copies aligned with the same updatable catalog.
+# Keep transitive framework copies aligned with the same updatable catalog.
 overrides:
+  "next": "catalog:"
+  # Typography pins a vulnerable parser; use the patched release until upstream updates.
+  "@tailwindcss/typography>postcss-selector-parser": "7.1.6"
   "react": "catalog:"
   "react-dom": "catalog:"
   "@types/react": "catalog:"
