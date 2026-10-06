@@ -1,6 +1,12 @@
 import { defineConfig, devices } from "@playwright/test";
 import { ADMISSIONS_GUIDE_STEPS, ADMISSIONS_GUIDE_STORAGE_KEY } from "@workspace/shared/admissions";
 import {
+	EVENT_GUIDE_STEPS,
+	EVENT_GUIDE_STORAGE_KEY,
+	EVENTS_LIST_GUIDE_STEPS,
+	EVENTS_LIST_GUIDE_STORAGE_KEY,
+} from "@workspace/shared/events/guide";
+import {
 	JOB_LISTINGS_GUIDE_STEPS,
 	JOB_LISTINGS_GUIDE_STORAGE_KEY,
 } from "@workspace/shared/job-listings";
@@ -63,6 +69,14 @@ export default defineConfig({
 								{
 									name: ORGANIZATION_GUIDE_STORAGE_KEY,
 									value: JSON.stringify(ORGANIZATION_GUIDE_STEPS),
+								},
+								{
+									name: EVENTS_LIST_GUIDE_STORAGE_KEY,
+									value: JSON.stringify(EVENTS_LIST_GUIDE_STEPS),
+								},
+								{
+									name: EVENT_GUIDE_STORAGE_KEY,
+									value: JSON.stringify(EVENT_GUIDE_STEPS),
 								},
 							],
 						},

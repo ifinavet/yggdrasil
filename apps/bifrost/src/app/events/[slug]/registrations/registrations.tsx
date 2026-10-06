@@ -11,6 +11,7 @@ import { Copy, Mails } from "lucide-react";
 import { usePostHog } from "posthog-js/react";
 import { toast } from "sonner";
 import { DataTable } from "@/components/common/tables/table";
+import { EventGuideHint } from "@/components/events/guide";
 import QRScannerDialog from "@/components/events/registration-scanner/qr-scanner-dialog";
 import { createColumns, type Registration } from "@/components/events/registrations/columns";
 
@@ -168,25 +169,31 @@ export function Registrations({
 					<h2 className="scroll-m-20 font-semibold text-2xl tracking-tight first:mt-0">Påmeldte</h2>
 
 					<div className="flex flex-wrap gap-2 md:gap-4">
-						<Popover>
-							<PopoverTrigger asChild>
-								<Button variant="outline" className="mb-3">
-									<Mails size={4} /> Send e-post
-								</Button>
-							</PopoverTrigger>
-							<PopoverContent>
-								<div className="flex flex-col gap-4">
-									<Button
-										onClick={() => handleSendEmail(true, false)}
-										type="button"
-										variant="default"
-									>
-										Send epost til deltakerne
-									</Button>
-									<Button onClick={() => handleSendEmail(true, true)}>Kopier epost listen</Button>
-								</div>
-							</PopoverContent>
-						</Popover>
+						<EventGuideHint step="email">
+							<div className="mb-3">
+								<Popover>
+									<PopoverTrigger asChild>
+										<Button variant="outline">
+											<Mails size={4} /> Send e-post
+										</Button>
+									</PopoverTrigger>
+									<PopoverContent>
+										<div className="flex flex-col gap-4">
+											<Button
+												onClick={() => handleSendEmail(true, false)}
+												type="button"
+												variant="default"
+											>
+												Send epost til deltakerne
+											</Button>
+											<Button onClick={() => handleSendEmail(true, true)}>
+												Kopier epost listen
+											</Button>
+										</div>
+									</PopoverContent>
+								</Popover>
+							</div>
+						</EventGuideHint>
 						<Button variant="outline" className="mb-3" onClick={handleCopyParticipantList}>
 							<Copy size={4} /> Kopier deltakerliste
 						</Button>

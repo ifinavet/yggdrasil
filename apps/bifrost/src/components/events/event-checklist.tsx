@@ -10,6 +10,7 @@ import { cn } from "@workspace/ui/lib/utils";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useId, useState } from "react";
 import styles from "./event-checklist.module.css";
+import { EventGuideHint } from "./guide";
 
 export type ChecklistMilestone = {
 	id: ChecklistPhase;
@@ -50,12 +51,14 @@ export function EventChecklist({
 	return (
 		<section aria-label="Sjekkliste" className={cn(styles.checklist, "mb-2")} id="event-checklist">
 			<div className="mb-4 flex items-center justify-between gap-3">
-				<div className="flex items-baseline gap-3">
-					<h2 className={styles.title}>Sjekkliste</h2>
-					<span className="text-muted-foreground text-xs tabular-nums">
-						{completedCount} av {allSteps.length} fullført
-					</span>
-				</div>
+				<EventGuideHint step="checklist">
+					<div className="flex items-baseline gap-3">
+						<h2 className={styles.title}>Sjekkliste</h2>
+						<span className="text-muted-foreground text-xs tabular-nums">
+							{completedCount} av {allSteps.length} fullført
+						</span>
+					</div>
+				</EventGuideHint>
 				<button
 					type="button"
 					aria-expanded={expanded}
