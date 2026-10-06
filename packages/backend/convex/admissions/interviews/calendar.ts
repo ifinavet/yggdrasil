@@ -16,7 +16,7 @@ import {
 	osloDateTimeToEpoch,
 } from "@workspace/shared/time";
 import type { FunctionReturnType } from "convex/server";
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import { type ActionCtx, action } from "../../_generated/server";
@@ -100,7 +100,7 @@ async function loadSchedulingInputs(
 	const { period } = context;
 	const config = googleConfig();
 	if (!config)
-		throw new Error("Google Calendar mangler tjenestekonto eller Workspace-konfigurasjon.");
+		throw new ConvexError("Google Calendar mangler tjenestekonto eller Workspace-konfigurasjon.");
 	const team: SchedulingInterviewer[] = await Promise.all(
 		context.interviewers.map(async (person) => {
 			const calendarIds = person.selectedCalendarIds;
@@ -166,7 +166,7 @@ export const generateSchedule = action({
 			periodId,
 		});
 		if (context.period.revision !== expectedRevision)
-			throw new Error("Opptaket er endret. Last inn på nytt før du lager planen.");
+			throw new ConvexError("Opptaket er endret. Last inn på nytt før du lager planen.");
 		const { period } = context;
 		const { team, slots } = await loadSchedulingInputs(
 			context,
@@ -185,7 +185,7 @@ export const generateSchedule = action({
 		const bySlot = new Map(slots.map((slot) => [slot.id, slot]));
 		const savedAssignments = assignments.map((assignment) => {
 			const slot = bySlot.get(assignment.slotId);
-			if (!slot) throw new Error("Kunne ikke bygge en gyldig intervjutid.");
+			if (!slot) throw new ConvexError("Kunne ikke bygge en gyldig intervjutid.");
 
 			return {
 				applicationId: assignment.candidateId as Id<"admissionApplications">,
@@ -213,7 +213,7 @@ export const suggestTimes = action({
 			periodId,
 		});
 		const candidate = context.candidates.find((item) => item.applicationId === applicationId);
-		if (!candidate) throw new Error("Fant ikke søknaden i opptaket.");
+		if (!candidate) throw new ConvexError("Fant ikke søknaden i opptaket.");
 		const others = context.existingInterviews.filter(
 			(interview) => interview.applicationId !== applicationId,
 		);

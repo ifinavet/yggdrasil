@@ -109,12 +109,18 @@ test.describe("manual interview follow-up", () => {
 		await page.getByRole("button", { name: /^Kandidater/ }).click();
 		await page.getByRole("button", { name: candidate?.name ?? "", exact: true }).click();
 		await page.getByRole("button", { name: "Foreslå tider", exact: true }).click();
-		await expect(page.getByText("Kunne ikke hente ledige tider.")).toBeVisible();
+		await expect(
+			page.getByText("Google Calendar mangler tjenestekonto eller Workspace-konfigurasjon.", {
+				exact: true,
+			}),
+		).toBeVisible();
 		await captureScreenshot(
 			page,
 			"board",
 			"live-35-suggestion-failure-mobile.png",
-			page.getByText("Kunne ikke hente ledige tider."),
+			page.getByText("Google Calendar mangler tjenestekonto eller Workspace-konfigurasjon.", {
+				exact: true,
+			}),
 		);
 		expect((await admissionsOverview())?.interviews).toHaveLength(0);
 	});

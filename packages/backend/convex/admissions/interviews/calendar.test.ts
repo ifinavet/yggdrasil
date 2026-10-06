@@ -209,13 +209,17 @@ it("fails calendar discovery and scheduling when Google configuration is missing
 			periodId,
 			interviewerId: admin._id,
 		}),
-	).rejects.toThrow(/mangler tjenestekonto/);
+	).rejects.toMatchObject({
+		data: "Google Calendar mangler tjenestekonto eller Workspace-konfigurasjon.",
+	});
 	await expect(
 		adminClient.action(api.admissions.interviews.calendar.generateSchedule, {
 			periodId,
 			expectedRevision: 1,
 		}),
-	).rejects.toThrow(/mangler tjenestekonto/);
+	).rejects.toMatchObject({
+		data: "Google Calendar mangler tjenestekonto eller Workspace-konfigurasjon.",
+	});
 	expect(provider.listCalendars).not.toHaveBeenCalled();
 	expect(provider.freeBusy).not.toHaveBeenCalled();
 });

@@ -6,6 +6,7 @@ import {
 	GOOGLE_CALENDAR_DEFAULT_SCOPES,
 } from "@workspace/shared/constants";
 import { coversInterval, localDateTimeToEpoch } from "@workspace/shared/time";
+import { ConvexError } from "convex/values";
 import { sha256 } from "../lib/tokens";
 import { directoryUrl, type GoogleConfig, isWorkspaceEmail } from "./config";
 import { googleAuth } from "./google";
@@ -162,9 +163,9 @@ async function pages<T>(
 
 export function googleCalendarClient(config: GoogleConfig | null, subject: string) {
 	if (!config)
-		throw new Error("Google Calendar mangler tjenestekonto eller Workspace-konfigurasjon.");
+		throw new ConvexError("Google Calendar mangler tjenestekonto eller Workspace-konfigurasjon.");
 	if (!isWorkspaceEmail(subject, config.domain))
-		throw new Error("Intervjueren mangler en Navet Workspace-konto for kalenderdelegering.");
+		throw new ConvexError("Intervjueren mangler en Navet Workspace-konto for kalenderdelegering.");
 	const auth = googleAuth(config, subject, googleCalendarScope());
 	const client = calendar({
 		version: "v3",
