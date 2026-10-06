@@ -1,6 +1,7 @@
 import type { UserJSON } from "@clerk/backend";
 import { normalizeEmail } from "@workspace/shared/iam";
 import { ConvexError, type Validator, v } from "convex/values";
+import { internal } from "../../_generated/api";
 import type { Doc, Id } from "../../_generated/dataModel";
 import { internalMutation, type MutationCtx } from "../../_generated/server";
 import { logRegistrationChange } from "../../engagement/log";
@@ -171,6 +172,33 @@ async function cleanRegistrations(ctx: MutationCtx, userId: Id<"users">): Promis
 	for (const event of eventsToRefill.values()) await fillOpenSeats(ctx, event);
 }
 
+// Feedback has no author index. Scan bounded batches, keeping only the hash in scheduled work.
+export const anonymizeFormResponses = internalMutation({
+	args: { externalIdHash: v.string(), cursor: v.union(v.string(), v.null()) },
+	handler: async (ctx, { externalIdHash, cursor }): Promise<void> => {
+		const responses = await ctx.db.query("formResponses").paginate({ cursor, numItems: 100 });
+		for (const response of responses.page) {
+			const { userId, ...data } = response.data;
+			if (typeof userId === "string" && (await hashClerkId(userId)) === externalIdHash) {
+				await ctx.db.patch(response._id, { data });
+			}
+			if (
+				"userId" in response &&
+				response.userId !== undefined &&
+				(await hashClerkId(response.userId)) === externalIdHash
+			) {
+				await ctx.db.patch(response._id, { userId: undefined });
+			}
+		}
+		if (!responses.isDone) {
+			await ctx.scheduler.runAfter(0, internal.users.clerk.mutations.anonymizeFormResponses, {
+				externalIdHash,
+				cursor: responses.continueCursor,
+			});
+		}
+	},
+});
+
 /**
  * Anonymizes a user that was deleted in Clerk and removes their personal records.
  *
@@ -186,6 +214,10 @@ export const deleteFromClerk = internalMutation({
 		if (await wasDeleted(ctx, clerkUserId)) return;
 		const externalIdHash = await hashClerkId(clerkUserId);
 		await ctx.db.insert("deletedClerkUsers", { externalIdHash });
+		await ctx.runMutation(internal.users.clerk.mutations.anonymizeFormResponses, {
+			externalIdHash,
+			cursor: null,
+		});
 		const user = await userByExternalId(ctx, clerkUserId);
 
 		if (user === null) return;

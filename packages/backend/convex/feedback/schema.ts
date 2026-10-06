@@ -23,8 +23,13 @@ export const feedbackResponse = v.object({
 	data: feedbackAnswers,
 	submittedAt: v.number(),
 });
+export const legacyFormResponse = v.object({
+	formId: v.string(),
+	userId: v.optional(v.string()),
+	data: v.record(v.string(), v.any()),
+});
 export const feedbackSchema = {
-	formResponses: defineTable(feedbackResponse)
+	formResponses: defineTable(v.union(legacyFormResponse, feedbackResponse))
 		.index("by_inviteId", ["inviteId"])
 		.index("by_campaignId", ["campaignId"]),
 	feedbackForms: defineTable({

@@ -19,6 +19,7 @@ export default defineConfig({
 				"convex/engagement/{alerts,audience,backfill,snapshot,log}.ts",
 				"convex/invoicing/{schedule,details,admin}.ts",
 				"convex/users/students/migrations.ts",
+				"convex/forms/cleanup.ts",
 				"convex/leaderboard/{queries,ranking}.ts",
 				"convex/companies/history.ts",
 			],
