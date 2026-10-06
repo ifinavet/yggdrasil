@@ -7,8 +7,8 @@ export const ORGANIZER_ROLE_CLASSES: Record<OrganizerRole, string> = {
 };
 
 const ORGANIZER_ROLE_MARKERS: Record<OrganizerRole, string> = {
-	hovedansvarlig: "bg-primary text-primary-foreground",
-	medhjelper: "bg-primary/40 text-primary hover:bg-primary-light",
+	hovedansvarlig: ORGANIZER_ROLE_CLASSES.hovedansvarlig,
+	medhjelper: "bg-[color-mix(in_oklch,var(--primary),white_60%)] text-primary",
 };
 
 export function organizerMarker(
