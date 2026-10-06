@@ -130,6 +130,7 @@ test("candidate program and year filters combine and can be cleared", async ({ p
 	await expect(rows).toHaveCount(sameProgram.length + 1);
 	await year.click();
 	await page.getByRole("option", { name: `${candidate.year}. år`, exact: true }).click();
+	await captureScreenshot(page, "board", "live-25-candidate-filters.png", page.getByRole("table"));
 	const matched = sameProgram.filter((entry) => entry.year === candidate.year);
 	await expect(rows).toHaveCount(matched.length + 1);
 	for (const entry of matched) {

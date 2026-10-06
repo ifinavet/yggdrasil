@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { captureScreenshot } from "./capture-screenshot";
 import { bifrostUrl, clearCookieNotice, huginUrl, resetAdmissions } from "./production-helpers";
 
 test("organization groups appear in the applicant form and referenced groups stay protected", async ({
@@ -17,6 +18,7 @@ test("organization groups appear in the applicant form and referenced groups sta
 	await expect(editDialog.getByRole("alert")).toHaveText(
 		"Gruppenavnet kan ikke endres mens medlemmer eller søkere bruker gruppen.",
 	);
+	await captureScreenshot(page, "board", "live-26-group-rename-protected.png", editDialog);
 	await page.keyboard.press("Escape");
 
 	await webGroup.getByRole("button", { name: "Slett Web" }).click();
@@ -28,12 +30,14 @@ test("organization groups appear in the applicant form and referenced groups sta
 		}),
 	).toBeVisible();
 
+	await captureScreenshot(page, "board", "live-27-group-delete-protected.png", deleteDialog);
 	await deleteDialog.getByRole("button", { name: "Avbryt" }).click();
 	const groupName = `Opptakstest ${Date.now()}`;
 	await page.getByRole("button", { name: "Legg til arbeidsgruppe" }).click();
 	const createDialog = page.getByRole("dialog");
 	await createDialog.getByLabel("Navn").fill(groupName);
 	await createDialog.getByLabel("Beskrivelse").fill("Opprettet for å verifisere opptaksvalgene.");
+	await captureScreenshot(page, "board", "live-28-create-group.png", createDialog);
 	await createDialog.getByRole("button", { name: "Opprett arbeidsgruppe" }).click();
 	await expect(createDialog).toBeHidden();
 	await expect(page.getByRole("listitem").filter({ hasText: groupName })).toBeVisible();

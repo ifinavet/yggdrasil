@@ -117,6 +117,12 @@ test.describe("real applicant journeys", () => {
 		await page.reload();
 		await expect(page.getByRole("heading", { name: "Søknaden din er sendt" })).toBeVisible();
 		await page.getByRole("button", { name: "Rediger søknaden" }).click();
+		await captureScreenshot(
+			page,
+			"student",
+			"live-20-edit-application.png",
+			page.getByRole("main"),
+		);
 		await expect(page.getByLabel("Fortell litt om deg selv")).toHaveValue(
 			"Jeg liker å lage ting sammen med andre studenter.",
 		);
@@ -220,6 +226,15 @@ test.describe("real applicant journeys", () => {
 				.getByRole("alertdialog")
 				.getByText("Du får ikke automatisk en ny intervjutid hvis du avlyser."),
 		).toBeVisible();
+		await captureScreenshot(
+			page,
+			"student",
+			"live-16-cancel-confirmation.png",
+			page.getByRole("alertdialog"),
+		);
+		await page.getByRole("button", { name: "Behold intervjuet" }).click();
+		await expect(page.getByRole("heading", { name: "Intervjuet ditt" })).toBeVisible();
+		await cancel.click();
 		await page.getByRole("button", { name: "Ja, avlys intervjuet" }).click();
 		await expect(page.getByText("Intervjuet er avlyst")).toBeVisible();
 		await page.reload();
@@ -250,6 +265,7 @@ test.describe("real applicant journeys", () => {
 		const noSuitableTimes = page.getByRole("checkbox", { name: "Ingen av tidene passer" });
 		await noSuitableTimes.check();
 		await expect(noSuitableTimes).toBeChecked();
+		await captureScreenshot(page, "student", "live-17-no-suitable-times.png", noSuitableTimes);
 		await page.getByRole("checkbox", { name: /godtar/i }).check();
 		await page.getByRole("button", { name: "Send søknad" }).click();
 		await expect(page.getByRole("heading", { name: "Søknaden din er sendt" })).toBeVisible();
@@ -271,6 +287,15 @@ test.describe("real applicant journeys", () => {
 		);
 		await page.getByRole("button", { name: "Takk ja" }).click();
 		await expect(page.getByRole("alertdialog", { name: "Takke ja til plassen?" })).toBeVisible();
+		await captureScreenshot(
+			page,
+			"student",
+			"live-18-accept-confirmation.png",
+			page.getByRole("alertdialog"),
+		);
+		await page.getByRole("button", { name: "Tilbake", exact: true }).click();
+		await expect(page.getByRole("heading", { name: "Du har fått tilbud om plass" })).toBeVisible();
+		await page.getByRole("button", { name: "Takk ja", exact: true }).click();
 		await page.getByRole("button", { name: "Bekreft at jeg takker ja" }).click();
 		await expect(page.getByText("Du har takket ja til plassen")).toBeVisible();
 		await captureScreenshot(
@@ -289,6 +314,12 @@ test.describe("real applicant journeys", () => {
 		await clearCookieNotice(page);
 		await page.getByRole("button", { name: "Takk nei" }).click();
 		await expect(page.getByRole("alertdialog", { name: "Takke nei til plassen?" })).toBeVisible();
+		await captureScreenshot(
+			page,
+			"student",
+			"live-19-decline-confirmation.png",
+			page.getByRole("alertdialog"),
+		);
 		await page.getByRole("button", { name: "Bekreft at jeg takker nei" }).click();
 		await expect(page.getByText("Takk for at du ga beskjed")).toBeVisible();
 		await expect(page.getByText(/notat|styrets vurdering|søk på nytt/i)).toHaveCount(0);

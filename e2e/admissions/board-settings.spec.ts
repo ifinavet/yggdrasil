@@ -77,6 +77,7 @@ test.describe("admissions settings and close flow", () => {
 		await page.getByRole("option", { name: "Kristin Berg", exact: true }).click();
 		await page.keyboard.press("Escape");
 		await expect(updated.getByRole("button", { name: "Lagre innstillinger" })).toBeDisabled();
+		await captureScreenshot(page, "board", "live-21-invalid-team.png", updated);
 	});
 
 	test("keeps interviewers assigned to a published future interview", async ({ page }) => {
@@ -86,9 +87,10 @@ test.describe("admissions settings and close flow", () => {
 		await page.getByRole("option", { name: "Aksel Nilsen", exact: true }).click();
 		await page.getByRole("option", { name: "Daniel Holm", exact: true }).click();
 		await page.keyboard.press("Escape");
-		await captureScreenshot(page, "board", "live-07-settings.png", settings);
+
 		await settings.getByRole("button", { name: "Lagre innstillinger" }).click();
 		await expect(settings.getByRole("alert")).toContainText("publiserte intervjuer");
+		await captureScreenshot(page, "board", "live-20-protected-interviewers.png", settings);
 		await settings.getByRole("button", { name: "Close", exact: true }).click();
 		await expect(settings).toBeHidden();
 		await page.getByRole("button", { name: "Innstillinger" }).click();
@@ -121,6 +123,7 @@ test.describe("admissions settings and close flow", () => {
 		await confirm.click();
 		await expect(close).toBeHidden();
 		await expect(page.getByText("Opptaket avsluttes.", { exact: false })).toBeVisible();
+		await captureScreenshot(page, "board", "live-22-closing.png", page.getByRole("main").last());
 		expect((await admissionsOverview())?.period.status).toBe("closing");
 		expect((await admissionsOverview())?.jobs.some((job) => job.kind === "cancel_interview")).toBe(
 			true,

@@ -111,6 +111,12 @@ test.describe("persistent board admissions", () => {
 		await expect(
 			page.getByRole("alert").filter({ hasText: "Handlingen mislyktes. Prøv igjen." }),
 		).toBeVisible();
+		await captureScreenshot(
+			page,
+			"board",
+			"live-23-scheduling-error.png",
+			page.getByRole("main").last(),
+		);
 		expect((await admissionsOverview())?.interviews).toHaveLength(0);
 		await page.reload();
 		expect((await admissionsOverview())?.interviews).toHaveLength(0);
@@ -156,6 +162,12 @@ test.describe("persistent board admissions", () => {
 				(interview) => interview.publishedAt === undefined,
 			),
 		).toBe(true);
+		await captureScreenshot(
+			page,
+			"board",
+			"live-24-publication-queued.png",
+			page.getByRole("main").last(),
+		);
 		await page.reload();
 		expect((await admissionsOverview())?.jobs.filter((job) => job.kind === "publish")).toHaveLength(
 			10,
