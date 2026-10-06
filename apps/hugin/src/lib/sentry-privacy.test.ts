@@ -20,9 +20,15 @@ it("keeps private-page filtering active and preserves restrictive collection in 
 		queues: false,
 		graphQL: { document: false, variables: false },
 	});
-	const privateEvent = { request: { url: "https://hugin.ifinavet.no/report#invite=secret" } };
+	const privateEvent = {
+		request: { url: "https://hugin.ifinavet.no/report#invite=secret" },
+		type: undefined,
+	};
 	expect(options?.beforeSend?.(privateEvent, {})).toBeNull();
 	expect(options?.beforeSendTransaction?.({ ...privateEvent, type: "transaction" }, {})).toBeNull();
-	const publicEvent = { request: { url: "https://hugin.ifinavet.no/bestill-bedpres" } };
+	const publicEvent = {
+		request: { url: "https://hugin.ifinavet.no/bestill-bedpres" },
+		type: undefined,
+	};
 	expect(options?.beforeSend?.(publicEvent, {})).toBe(publicEvent);
 });
