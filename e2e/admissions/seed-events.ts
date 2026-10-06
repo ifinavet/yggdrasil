@@ -36,12 +36,13 @@ async function hostingCompany(db: LocalDatabase) {
 async function clearEvents(db: LocalDatabase) {
 	const seeded = (await db.all("events")).filter((event) => event.slug?.startsWith(slugPrefix));
 	const ids = new Set(seeded.map((event) => event._id));
-	for (const table of ["eventOrganizers", "registrations"] as const) {
-		for (const row of await db.all(table)) {
-			if (ids.has(row.eventId)) await db.delete(table, row._id);
-		}
-	}
-	for (const event of seeded) await db.delete("events", event._id);
+	await Promise.all(
+		(["eventOrganizers", "registrations"] as const).map(async (table) => {
+			const rows = (await db.all(table)).filter((row) => ids.has(row.eventId));
+			await Promise.all(rows.map((row) => db.delete(table, row._id)));
+		}),
+	);
+	await Promise.all(seeded.map((event) => db.delete("events", event._id)));
 }
 
 async function otherUser(db: LocalDatabase, index: number) {
@@ -118,20 +119,30 @@ export async function seedEvents(url: string, scenario: EventsSeedScenario) {
 	const me = await localUser(db);
 	if (scenario === "empty") return null;
 	const company = await hostingCompany(db);
-	const slugs: Record<string, string> = {};
-	for (const plan of scenarios[scenario]) {
-		const eventId = await insertEvent(db, company, plan);
-		slugs[plan.slug] = eventId;
-		if (plan.mine)
-			await db.insert("eventOrganizers", { eventId, userId: me, role: "hovedansvarlig" });
-		for (let index = 0; index < (plan.registrations ?? 0); index++) {
-			await db.insert("registrations", {
-				eventId,
-				userId: await otherUser(db, index),
-				status: "registered",
-				registrationTime: Date.now() - (index + 1) * DAY,
-			});
-		}
-	}
-	return slugs;
+	const plans = scenarios[scenario];
+	const most = Math.max(0, ...plans.map((plan) => plan.registrations ?? 0));
+	const students = await Promise.all(
+		Array.from({ length: most }, (_, index) => otherUser(db, index)),
+	);
+	const entries = await Promise.all(
+		plans.map(async (plan) => {
+			const eventId = await insertEvent(db, company, plan);
+			const rows: Promise<unknown>[] = [];
+			if (plan.mine)
+				rows.push(db.insert("eventOrganizers", { eventId, userId: me, role: "hovedansvarlig" }));
+			for (let index = 0; index < (plan.registrations ?? 0); index++) {
+				rows.push(
+					db.insert("registrations", {
+						eventId,
+						userId: students[index],
+						status: "registered",
+						registrationTime: Date.now() - (index + 1) * DAY,
+					}),
+				);
+			}
+			await Promise.all(rows);
+			return [plan.slug, eventId] as const;
+		}),
+	);
+	return Object.fromEntries(entries) as Record<string, string>;
 }
