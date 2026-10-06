@@ -9,7 +9,7 @@ const pixel = Uint8Array.from(
 	atob(
 		"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
 	),
-	(char) => char.charCodeAt(0),
+	(char) => char.codePointAt(0) ?? 0,
 );
 
 export type JobListingSeedScenario = "empty" | "listings" | "orders" | "full";
@@ -46,18 +46,24 @@ async function logo(url: string, db: LocalDatabase, name: string) {
 const seedProductName = "Stillingsannonse";
 
 async function clearJobListings(db: LocalDatabase) {
-	for (const table of [
-		"jobListingOrderItems",
-		"jobListingOrders",
-		"jobListingContacts",
-		"jobListings",
-	] as const)
-		await db.clear(table);
-	for (const product of await db.all("products"))
-		if (product.name === seedProductName) await db.delete("products", product._id);
-	for (const company of await db.all("companies"))
-		if (company.orgNumber >= seedOrgNumberBase && company.orgNumber < seedOrgNumberBase + 100)
-			await db.delete("companies", company._id);
+	await Promise.all(
+		(
+			["jobListingOrderItems", "jobListingOrders", "jobListingContacts", "jobListings"] as const
+		).map((table) => db.clear(table)),
+	);
+	const products = await db.all("products");
+	const companies = await db.all("companies");
+	await Promise.all([
+		...products
+			.filter((product) => product.name === seedProductName)
+			.map((product) => db.delete("products", product._id)),
+		...companies
+			.filter(
+				(company) =>
+					company.orgNumber >= seedOrgNumberBase && company.orgNumber < seedOrgNumberBase + 100,
+			)
+			.map((company) => db.delete("companies", company._id)),
+	]);
 }
 
 export async function seedJobListings(url: string, scenario: JobListingSeedScenario) {
