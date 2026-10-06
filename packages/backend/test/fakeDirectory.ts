@@ -197,7 +197,7 @@ export function createFakeDirectory() {
 		const events = eventsOf(subject, calendarId);
 		if (eventId) return handleEvent(method, events, eventId, body);
 		if (method === "POST") {
-			const id = String(body.id ?? `event${events.size + 1}`);
+			const id = typeof body.id === "string" ? body.id : `event${events.size + 1}`;
 			if (events.has(id)) return json({ error: "exists" }, 409);
 			events.set(id, { ...body, id });
 			return json(events.get(id));
@@ -210,87 +210,112 @@ export function createFakeDirectory() {
 		});
 	}
 
-	function handleSlack(method: string, params: URLSearchParams) {
-		if (failures.slack) return json({ ok: false, error: "service_unavailable" });
-		if (method === "users.lookupByEmail") {
-			const user = slackUsers.find((candidate) => candidate.email === params.get("email"));
-			return json(
-				user ? { ok: true, user: { id: user.id } } : { ok: false, error: "users_not_found" },
-			);
-		}
-		if (method === "users.list") {
-			return json({
-				ok: true,
-				members: slackUsers.map((user) => ({
-					id: user.id,
-					deleted: user.deleted ?? false,
-					is_bot: user.bot ?? false,
-					profile: { email: user.email, real_name: user.name },
-				})),
-			});
-		}
-		if (method === "auth.test") return json({ ok: true, user_id: SLACK_BOT_ID });
-		if (method === "conversations.create") {
-			const name = params.get("name") ?? "";
-			if ([...slackChannels.values()].some((channel) => channel.name === name))
-				return json({ ok: false, error: "name_taken" });
-			const id = `C${String(slackChannels.size + 1).padStart(3, "0")}`;
-			slackChannels.set(id, {
-				id,
-				name,
-				is_private: true,
-				is_archived: false,
-				creator: SLACK_BOT_ID,
-				purpose: { value: "" },
-				members: [SLACK_BOT_ID],
-				messages: [],
-			});
-			return json({ ok: true, channel: { id } });
-		}
-		if (method === "conversations.list")
-			return json({ ok: true, channels: [...slackChannels.values()] });
-		const channel = slackChannels.get(params.get("channel") ?? "");
-		if (!channel) return json({ ok: false, error: "channel_not_found" });
-		if (method === "conversations.info") return json({ ok: true, channel });
-		if (method === "conversations.members") return json({ ok: true, members: channel.members });
-		if (method === "conversations.setPurpose") {
+	type SlackParams = URLSearchParams;
+	type FakeResponse = ReturnType<typeof json>;
+	const ok = (extra: Record<string, unknown> = {}) => json({ ok: true, ...extra });
+	const slackError = (error: string) => json({ ok: false, error });
+
+	function lookupSlackUser(params: SlackParams) {
+		const user = slackUsers.find((candidate) => candidate.email === params.get("email"));
+		return user ? ok({ user: { id: user.id } }) : slackError("users_not_found");
+	}
+
+	function listSlackUsers() {
+		return ok({
+			members: slackUsers.map((user) => ({
+				id: user.id,
+				deleted: user.deleted ?? false,
+				is_bot: user.bot ?? false,
+				profile: { email: user.email, real_name: user.name },
+			})),
+		});
+	}
+
+	function createSlackChannel(params: SlackParams) {
+		const name = params.get("name") ?? "";
+		if ([...slackChannels.values()].some((channel) => channel.name === name))
+			return slackError("name_taken");
+		const id = `C${String(slackChannels.size + 1).padStart(3, "0")}`;
+		slackChannels.set(id, {
+			id,
+			name,
+			is_private: true,
+			is_archived: false,
+			creator: SLACK_BOT_ID,
+			purpose: { value: "" },
+			members: [SLACK_BOT_ID],
+			messages: [],
+		});
+		return ok({ channel: { id } });
+	}
+
+	function inviteToSlackChannel(channel: FakeSlackChannel, params: SlackParams) {
+		const users = (params.get("users") ?? "").split(",").filter(Boolean);
+		const added = users.filter((user) => !channel.members.includes(user));
+		if (!added.length) return slackError("already_in_channel");
+		channel.members.push(...added);
+		return ok();
+	}
+
+	function kickFromSlackChannel(channel: FakeSlackChannel, params: SlackParams) {
+		const user = params.get("user") ?? "";
+		if (!channel.members.includes(user)) return slackError("not_in_channel");
+		channel.members = channel.members.filter((member) => member !== user);
+		return ok();
+	}
+
+	function postSlackMessage(channel: FakeSlackChannel, params: SlackParams) {
+		const ts = `${Date.now() / 1000}`;
+		const metadata = params.get("metadata");
+		channel.messages.unshift({
+			ts,
+			text: params.get("text") ?? "",
+			client_msg_id: params.get("client_msg_id") ?? undefined,
+			metadata: metadata ? JSON.parse(metadata) : undefined,
+		});
+		return ok({ ts, channel: channel.id });
+	}
+
+	const slackMethods: Record<string, (params: SlackParams) => FakeResponse> = {
+		"users.lookupByEmail": lookupSlackUser,
+		"users.list": listSlackUsers,
+		"auth.test": () => ok({ user_id: SLACK_BOT_ID }),
+		"conversations.create": createSlackChannel,
+		"conversations.list": () => ok({ channels: [...slackChannels.values()] }),
+	};
+
+	const slackChannelMethods: Record<
+		string,
+		(channel: FakeSlackChannel, params: SlackParams) => FakeResponse
+	> = {
+		"conversations.info": (channel) => ok({ channel }),
+		"conversations.members": (channel) => ok({ members: channel.members }),
+		"conversations.history": (channel) => ok({ messages: channel.messages }),
+		"conversations.setPurpose": (channel, params) => {
 			channel.purpose = { value: params.get("purpose") ?? "" };
-			return json({ ok: true });
-		}
-		if (method === "conversations.rename") {
+			return ok();
+		},
+		"conversations.rename": (channel, params) => {
 			channel.name = params.get("name") ?? channel.name;
-			return json({ ok: true });
-		}
-		if (method === "conversations.archive") {
+			return ok();
+		},
+		"conversations.archive": (channel) => {
 			channel.is_archived = true;
-			return json({ ok: true });
-		}
-		if (method === "conversations.invite") {
-			const users = (params.get("users") ?? "").split(",").filter(Boolean);
-			if (users.every((user) => channel.members.includes(user)))
-				return json({ ok: false, error: "already_in_channel" });
-			channel.members.push(...users.filter((user) => !channel.members.includes(user)));
-			return json({ ok: true });
-		}
-		if (method === "conversations.kick") {
-			const user = params.get("user") ?? "";
-			if (!channel.members.includes(user)) return json({ ok: false, error: "not_in_channel" });
-			channel.members = channel.members.filter((member) => member !== user);
-			return json({ ok: true });
-		}
-		if (method === "conversations.history") return json({ ok: true, messages: channel.messages });
-		if (method === "chat.postMessage") {
-			const ts = `${Date.now() / 1000}`;
-			const metadata = params.get("metadata");
-			channel.messages.unshift({
-				ts,
-				text: params.get("text") ?? "",
-				client_msg_id: params.get("client_msg_id") ?? undefined,
-				metadata: metadata ? JSON.parse(metadata) : undefined,
-			});
-			return json({ ok: true, ts, channel: channel.id });
-		}
-		return json({ ok: false, error: "unknown_method" });
+			return ok();
+		},
+		"conversations.invite": inviteToSlackChannel,
+		"conversations.kick": kickFromSlackChannel,
+		"chat.postMessage": postSlackMessage,
+	};
+
+	function routeSlackMethod(method: string, params: SlackParams) {
+		if (failures.slack) return slackError("service_unavailable");
+		const global = slackMethods[method];
+		if (global) return global(params);
+		const onChannel = slackChannelMethods[method];
+		if (!onChannel) return slackError("unknown_method");
+		const channel = slackChannels.get(params.get("channel") ?? "");
+		return channel ? onChannel(channel, params) : slackError("channel_not_found");
 	}
 
 	function handle({ url, method, body, authorization }: FakeRequest) {
@@ -312,7 +337,7 @@ export function createFakeDirectory() {
 			const params = new URLSearchParams(body);
 			const slackMethod = url.pathname.slice(SLACK_PATH.length);
 			calls.push({ method: slackMethod, url: url.toString(), body: Object.fromEntries(params) });
-			return handleSlack(slackMethod, params);
+			return routeSlackMethod(slackMethod, params);
 		}
 		return null;
 	}
