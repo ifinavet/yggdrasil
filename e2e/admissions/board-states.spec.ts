@@ -27,8 +27,7 @@ test("unmatched candidates, day view, and abandoning a decision keep data unchan
 	await page.getByRole("combobox", { name: "Vedtak" }).click();
 	await page.getByRole("option", { name: "Tatt opp", exact: true }).click();
 	const offer = page.getByRole("dialog", { name: /^Tilbud til/ });
-	await offer.getByRole("button", { name: "Lagre tilbud" }).click();
-	await expect(offer).toBeVisible();
+	await expect(offer.getByRole("button", { name: "Lagre tilbud" })).toBeDisabled();
 	await expect(offer.getByLabel("Navet-adresse")).toHaveValue("");
 	await captureScreenshot(page, "board", "live-32-incomplete-offer.png", offer);
 	await page.keyboard.press("Escape");

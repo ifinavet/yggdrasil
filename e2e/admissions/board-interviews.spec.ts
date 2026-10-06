@@ -103,12 +103,19 @@ test.describe("manual interview follow-up", () => {
 		await resetAdmissions("open");
 		const initial = await admissionsOverview();
 		const candidate = initial?.candidates.find((row) => row.availability.length > 0);
+		await page.setViewportSize({ width: 390, height: 844 });
 		await page.goto(`${bifrostUrl}/admissions`);
 		await clearCookieNotice(page);
 		await page.getByRole("button", { name: /^Kandidater/ }).click();
 		await page.getByRole("button", { name: candidate?.name ?? "", exact: true }).click();
 		await page.getByRole("button", { name: "Foreslå tider", exact: true }).click();
 		await expect(page.getByText("Kunne ikke hente ledige tider.")).toBeVisible();
+		await captureScreenshot(
+			page,
+			"board",
+			"live-35-suggestion-failure-mobile.png",
+			page.getByText("Kunne ikke hente ledige tider."),
+		);
 		expect((await admissionsOverview())?.interviews).toHaveLength(0);
 	});
 });
