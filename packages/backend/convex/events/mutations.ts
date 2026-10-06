@@ -114,17 +114,6 @@ export const update = mutation({
 		// Create a slug if it doesn't exist
 		const slug = event.slug || eventSlug(title, eventStart);
 
-		let formId: Id<"form">;
-		if (event.formId) {
-			formId = event.formId;
-		} else {
-			// Creating the feedback form for after the event, if it does not already exist
-			formId = await ctx.runMutation(internal.forms.mutations.createEventFeedbackForm);
-			if (!formId) {
-				console.error("Failed to create feedback form");
-			}
-		}
-
 		// Update the event details
 		await ctx.db.patch(eventId, {
 			title,
@@ -143,7 +132,6 @@ export const update = mutation({
 			hostingCompany,
 			published,
 			slug,
-			formId,
 			...(await eventProductFields(ctx, productId, event)),
 		});
 		if (event.registrationOpens !== registrationOpens || (!event.published && published)) {

@@ -156,7 +156,7 @@ describe("deleting a user from Clerk", () => {
 		vi.useFakeTimers();
 		try {
 			const { t, user } = await seedUserWithEveryReference();
-			const formId = await t.mutation(internal.forms.mutations.createEventFeedbackForm, {});
+			const formId = "legacy-form";
 			await t.run(async (ctx) => {
 				for (let i = 0; i < 105; i++) {
 					await ctx.db.insert("formResponses", {
