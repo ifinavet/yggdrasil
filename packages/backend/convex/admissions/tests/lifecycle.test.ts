@@ -11,7 +11,7 @@ import {
 	operationByKey,
 	stageOperation,
 } from "../../../test/admissions-workflow";
-import { asUser, grantRole, insertUser, setup } from "../../../test/fixtures";
+import { asUser, grantRole, insertUser, setup, type TestBackend } from "../../../test/fixtures";
 import { api, internal } from "../../_generated/api";
 import type { Doc, Id } from "../../_generated/dataModel";
 import type { MutationCtx } from "../../_generated/server";
@@ -22,10 +22,8 @@ afterEach(() => {
 	vi.restoreAllMocks();
 });
 
-type TestConvex = Awaited<ReturnType<typeof setup>>["t"];
-
 async function seedClosingPeriod(
-	t: TestConvex,
+	t: TestBackend,
 	adminId: Id<"users">,
 	applicantId: Id<"users">,
 	stage: (
@@ -47,7 +45,7 @@ async function seedClosingPeriod(
 	});
 }
 
-async function expectCloseBlocked(t: TestConvex, periodId: Id<"admissionPeriods">) {
+async function expectCloseBlocked(t: TestBackend, periodId: Id<"admissionPeriods">) {
 	expect(
 		await t.run(async (ctx) => {
 			const period = await ctx.db.get(periodId);
@@ -171,6 +169,7 @@ it("keeps closing data until an already-running decision and reminder settle", a
 	const { t } = await setup();
 	const admin = await insertUser(t, "admin@example.test");
 	const applicant = await insertUser(t, "applicant@uio.no");
+	const membership = await grantRole(t, applicant._id, "internal");
 	const { periodId, applicationId } = await t.run(async (ctx) => {
 		const periodId = await ctx.db.insert(
 			"admissionPeriods",
@@ -215,6 +214,8 @@ it("keeps closing data until an already-running decision and reminder settle", a
 	await finishOperation(t, "reminder-running");
 	expect(await t.run((ctx) => ctx.db.get(periodId))).toBeNull();
 	expect(await t.run((ctx) => ctx.db.get(applicationId))).toBeNull();
+	expect(await t.run((ctx) => ctx.db.get(applicant._id))).not.toBeNull();
+	expect(await t.run((ctx) => ctx.db.get(membership))).toMatchObject({ role: "internal" });
 });
 
 it("sends a declined-offer notice before archiving the channel during close", async () => {
