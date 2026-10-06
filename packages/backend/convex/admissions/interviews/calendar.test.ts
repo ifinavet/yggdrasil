@@ -48,7 +48,7 @@ afterEach(() => {
 	vi.clearAllMocks();
 });
 
-it("keeps published slots pinned and does not rebook cancelled interviews automatically", async () => {
+async function seedSchedulingPeriod() {
 	const { t } = await setup();
 	const admin = await insertUser(t, "admin@example.test");
 	await grantRole(t, admin._id, "admin");
@@ -56,9 +56,6 @@ it("keeps published slots pinned and does not rebook cancelled interviews automa
 	const interviewerTwo = await insertUser(t, "two@ifinavet.no");
 	await grantRole(t, interviewerOne._id, "internal");
 	await grantRole(t, interviewerTwo._id, "internal");
-	const publishedApplicant = await insertUser(t, "published@uio.no");
-	const cancelledApplicant = await insertUser(t, "cancelled@uio.no");
-	const availableApplicant = await insertUser(t, "available@uio.no");
 	const day = "2026-10-12";
 	const startAt = osloDateTimeToEpoch(day, "09:00");
 	const now = Date.now();
@@ -81,6 +78,15 @@ it("keeps published slots pinned and does not rebook cancelled interviews automa
 			}),
 		),
 	);
+	return { t, admin, interviewerOne, interviewerTwo, day, startAt, now, periodId };
+}
+
+it("keeps published slots pinned and does not rebook cancelled interviews automatically", async () => {
+	const { t, admin, interviewerOne, interviewerTwo, day, startAt, now, periodId } =
+		await seedSchedulingPeriod();
+	const publishedApplicant = await insertUser(t, "published@uio.no");
+	const cancelledApplicant = await insertUser(t, "cancelled@uio.no");
+	const availableApplicant = await insertUser(t, "available@uio.no");
 	const availability = [{ day, start: 540, end: 660 }];
 	const applications = await t.run(async (ctx) => {
 		const createApplication = async (userId: typeof publishedApplicant._id) =>
@@ -306,35 +312,8 @@ it.each(["free", "busy", "missing", "unreadable", "unselected"] as const)(
 );
 
 it("suggests free times with two interviewers, ranked by the candidate's availability", async () => {
-	const { t } = await setup();
-	const admin = await insertUser(t, "admin@example.test");
-	await grantRole(t, admin._id, "admin");
-	const interviewerOne = await insertUser(t, "one@ifinavet.no");
-	const interviewerTwo = await insertUser(t, "two@ifinavet.no");
-	await grantRole(t, interviewerOne._id, "internal");
-	await grantRole(t, interviewerTwo._id, "internal");
-	const day = "2026-10-12";
-	const startAt = osloDateTimeToEpoch(day, "09:00");
-	const now = Date.now();
-	const periodId = await t.run((ctx) =>
-		ctx.db.insert(
-			"admissionPeriods",
-			periodFields(admin._id, {
-				applicationStartAt: now - 86400000,
-				applicationEndAt: now + 86400000,
-				interviewStartAt: startAt,
-				interviewEndAt: osloDateTimeToEpoch(day, "11:00"),
-				retentionAt: now + 1209600000,
-				revision: 0,
-				interviewers: [
-					{ userId: interviewerOne._id, selectedCalendarIds: ["navet"] },
-					{ userId: interviewerTwo._id, selectedCalendarIds: ["navet"] },
-				],
-				lunch: false,
-				dayEnd: 660,
-			}),
-		),
-	);
+	const { t, admin, interviewerOne, interviewerTwo, day, startAt, periodId } =
+		await seedSchedulingPeriod();
 	const insertApplication = async (
 		email: string,
 		availability: { day: string; start: number; end: number }[],
