@@ -78,13 +78,21 @@ export default function AdmissionsDashboard() {
 							går opptaket slik:
 						</p>
 						<ol className="grid list-decimal gap-1 pl-5">
-							<li>Studentene søker på Hugin mens søknadsperioden er åpen.</li>
 							<li>
-								Dere velger kalendere for intervjuerne og får et forslag til intervjutider som
-								passer alle.
+								Studentene søker i Hugin, via lenker fra ifinavet.no, Instagram og andre kanaler,
+								mens søknadsperioden er åpen.
+							</li>
+							<li>
+								Dere velger Google-kalenderne til intervjuernes @ifinavet.no-kontoer og får et
+								forslag til intervjutider som passer alle. Hver intervjuer kobler sine egne
+								kalendere til ifinavet-kalenderen sin, eller blokkerer tidene der de ikke vil
+								intervjue manuelt.
 							</li>
 							<li>Når dere godkjenner forslaget, får kandidatene tiden sin på e-post.</li>
-							<li>Etter intervjuene vurderer dere kandidatene i runder.</li>
+							<li>
+								Etter intervjuene vurderer dere kandidatene i runder. I hver runde går noen
+								kandidater videre, og resten blir slått ut.
+							</li>
 							<li>Dere sender tilbud og avslag herfra, og kandidatene svarer på tilbudet.</li>
 						</ol>
 					</div>
