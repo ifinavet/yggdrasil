@@ -9,7 +9,7 @@ import {
 
 export function EngagementBreadcrumb() {
 	return (
-		<Breadcrumb className="mb-4">
+		<Breadcrumb>
 			<BreadcrumbList>
 				<BreadcrumbItem>
 					<BreadcrumbLink href="/">Hjem</BreadcrumbLink>

@@ -27,6 +27,7 @@
 		"./validation": "./validation/index.ts",
 		"./feedback": "./feedback/index.ts",
 		"./engagement": "./engagement/index.ts",
+		"./engagement/guide": "./engagement/guide.ts",
 		"./events/food": "./events/food.ts",
 		"./feature-flags": "./feature-flags.ts",
 		"./products": "./products/index.ts",
