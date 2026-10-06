@@ -113,6 +113,24 @@ async function boardUser(db: LocalDatabase, name: string, email: string, image: 
 	return userId;
 }
 
+export async function addBoardMembers(url: string, names: readonly string[]) {
+	const db = new LocalDatabase(url);
+	const userIds: Id<"users">[] = [];
+	for (const name of names) {
+		const email = `${name.toLowerCase().replaceAll(" ", ".")}@ifinavet.no`;
+		userIds.push(await boardUser(db, name, email, ""));
+	}
+	return async () => {
+		for (const userId of userIds) {
+			const internal = await db.find("internals", "userId", userId);
+			if (internal) await db.delete("internals", internal._id);
+			const role = await db.find("accessRights", "userId", userId);
+			if (role) await db.delete("accessRights", role._id);
+			await db.delete("users", userId);
+		}
+	};
+}
+
 async function clearAdmissions(db: LocalDatabase) {
 	const applicant = await db.find("users", "externalId", localIdentity.subject);
 	if (applicant) {

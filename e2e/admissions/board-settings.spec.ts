@@ -6,6 +6,7 @@ import {
 	clearCookieNotice,
 	failGoogle,
 	resetAdmissions,
+	withBoardMembers,
 } from "./production-helpers";
 
 test.describe("admissions settings and close flow", () => {
@@ -130,5 +131,45 @@ test.describe("admissions settings and close flow", () => {
 		expect((await admissionsOverview())?.jobs.some((job) => job.kind === "cancel_interview")).toBe(
 			true,
 		);
+	});
+
+	test("a long interviewer selection keeps the dialog from scrolling sideways", async ({
+		page,
+	}) => {
+		const names = [
+			"Ingrid Solberg",
+			"Magnus Haugen",
+			"Sofie Lunde",
+			"Henrik Bakke",
+			"Thea Johansen",
+			"Jonas Eriksen",
+			"Nora Strand",
+			"Elias Moen",
+			"Maja Kristiansen",
+			"Sander Dahl",
+			"Ida Andreassen",
+			"Oskar Lie",
+		];
+		await withBoardMembers(names, async () => {
+			await page.reload();
+			for (const width of [390, 768, 1280]) {
+				await page.setViewportSize({ width, height: 900 });
+				await page.getByRole("button", { name: "Innstillinger" }).click();
+				const settings = page.getByRole("dialog", { name: "Opptaksinnstillinger" });
+				await settings.getByRole("combobox", { name: "Intervjuere", exact: true }).click();
+				const unpicked = page
+					.getByRole("option")
+					.filter({ has: page.locator("svg.lucide-check.opacity-0") });
+				while ((await unpicked.count()) > 0) await unpicked.first().click();
+				await page.keyboard.press("Escape");
+				await expect(
+					settings.getByRole("combobox", { name: "Intervjuere", exact: true }),
+				).toContainText("Oskar Lie");
+				const overflow = await settings.evaluate((node) => node.scrollWidth - node.clientWidth);
+				expect(overflow).toBe(0);
+				await settings.getByRole("button", { name: "Close" }).click();
+				await expect(settings).toBeHidden();
+			}
+		});
 	});
 });

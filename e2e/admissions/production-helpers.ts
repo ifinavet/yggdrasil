@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test";
 import { api } from "@workspace/backend/convex/api";
 import { ConvexHttpClient } from "convex/browser";
-import { seedAdmissions } from "./seed";
+import { addBoardMembers, seedAdmissions } from "./seed";
 
 export type { AdmissionSeedScenario } from "./seed";
 
@@ -26,6 +26,15 @@ const convex = new ConvexHttpClient(convexUrl);
 export async function resetAdmissions(scenario: AdmissionSeedScenario) {
 	await fetch(`${fakeDirectoryUrl}/reset`);
 	await seedAdmissions(convexUrl, scenario);
+}
+
+export async function withBoardMembers(names: readonly string[], run: () => Promise<void>) {
+	const remove = await addBoardMembers(convexUrl, names);
+	try {
+		await run();
+	} finally {
+		await remove();
+	}
 }
 
 export async function failGoogle(failing: boolean) {
