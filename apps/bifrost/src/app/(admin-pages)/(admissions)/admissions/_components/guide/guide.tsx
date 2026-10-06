@@ -18,7 +18,6 @@ import { CircleHelp } from "lucide-react";
 import { createContext, type ReactNode, useContext, useId, useMemo } from "react";
 
 const hints: Record<AdmissionsGuideStep, string> = {
-	start: "Trykk her for å sette opp opptaket.",
 	calendars:
 		"Velg hvilke Google-kalendere som gjelder for hver intervjuer, så foreslår vi ikke tider der de er opptatt.",
 	generate: "Lager et forslag til intervjuplan ut fra kalenderne og intervjudagene.",

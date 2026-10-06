@@ -9,22 +9,30 @@ test.describe("admissions guide", () => {
 	test.describe.configure({ mode: "serial" });
 	test.use({ storageState: { cookies: [], origins: [] } });
 
-	test("points at Start opptak until dismissed and comes back on replay", async ({ page }) => {
+	test("shows no hint before an admission exists", async ({ page }) => {
 		await resetAdmissions("empty");
 		await page.goto(`${bifrostUrl}/admissions`);
 		await clearCookieNotice(page);
-		const start = hint(page, "Trykk her for å sette opp opptaket.");
-		await expect(start).toBeVisible();
-		await expect(page.locator('[data-tour="start"]')).toHaveText("Start opptak");
-
-		await start.getByRole("button", { name: "Skjønner" }).click();
-		await expect(start).toBeHidden();
-		await page.reload();
 		await expect(page.getByRole("button", { name: "Start opptak" })).toBeVisible();
-		await expect(start).toBeHidden();
+		await expect(page.locator("[data-tour]")).toHaveCount(0);
+		await expect(page.getByRole("button", { name: "Vis veiledningen igjen" })).toHaveCount(0);
+	});
+
+	test("a dismissed hint stays away until replayed", async ({ page }) => {
+		await resetAdmissions("open");
+		await page.goto(`${bifrostUrl}/admissions`);
+		await clearCookieNotice(page);
+		const calendars = hint(page, /Velg hvilke Google-kalendere/);
+		await expect(calendars).toBeVisible();
+
+		await calendars.getByRole("button", { name: "Skjønner" }).click();
+		await expect(calendars).toBeHidden();
+		await page.reload();
+		await expect(page.locator('[data-tour="calendars"]')).toBeVisible();
+		await expect(calendars).toBeHidden();
 
 		await page.getByRole("button", { name: "Vis veiledningen igjen" }).click();
-		await expect(start).toBeVisible();
+		await expect(calendars).toBeVisible();
 	});
 
 	test("moves on to the next setup button once the current one is used", async ({ page }) => {

@@ -62,48 +62,43 @@ export default function AdmissionsDashboard() {
 	if (overview === undefined) return <output>Laster opptaket…</output>;
 	if (!overview)
 		return (
-			<GuideProvider available={new Set(["start"])}>
-				<section
-					className={`admissions flex min-w-0 flex-col gap-6 pb-8 ${fullscreen ? "admissions-fullscreen fixed inset-0 z-40 overflow-auto bg-background p-4 md:px-8 md:py-6" : ""}`}
-				>
-					<div className="admissions-title flex items-center justify-between gap-4 [&_h1]:font-semibold [&_h1]:text-3xl [&_h1]:tracking-tight">
-						<h1>Opptak</h1>
-						<GuideReplay />
+			<section
+				className={`admissions flex min-w-0 flex-col gap-6 pb-8 ${fullscreen ? "admissions-fullscreen fixed inset-0 z-40 overflow-auto bg-background p-4 md:px-8 md:py-6" : ""}`}
+			>
+				<div className="admissions-title flex items-center justify-between gap-4 [&_h1]:font-semibold [&_h1]:text-3xl [&_h1]:tracking-tight">
+					<h1>Opptak</h1>
+				</div>
+				<div className="admissions-empty flex flex-col items-center gap-5 px-2 py-12 sm:px-6 sm:py-20">
+					<Users size={36} />
+					<h2>Ingen aktive opptak</h2>
+					<div className="grid max-w-prose gap-3 text-muted-foreground">
+						<p>
+							Start opptak åpner et skjema med navn, søknadsperiode, intervjudager, intervjuere,
+							intervjulengde og rom. Du velger også når opplysningene om søkerne slettes. Etterpå
+							går opptaket slik:
+						</p>
+						<ol className="grid list-decimal gap-1 pl-5">
+							<li>Studentene søker på Hugin mens søknadsperioden er åpen.</li>
+							<li>
+								Dere velger kalendere for intervjuerne og får et forslag til intervjutider som
+								passer alle.
+							</li>
+							<li>Når dere godkjenner forslaget, får kandidatene tiden sin på e-post.</li>
+							<li>Etter intervjuene vurderer dere kandidatene i runder.</li>
+							<li>Dere sender tilbud og avslag herfra, og kandidatene svarer på tilbudet.</li>
+						</ol>
 					</div>
-					<div className="admissions-empty flex flex-col items-center gap-5 px-2 py-12 sm:px-6 sm:py-20">
-						<Users size={36} />
-						<h2>Ingen aktive opptak</h2>
-						<div className="grid max-w-prose gap-3 text-muted-foreground">
-							<p>
-								Start opptak åpner et skjema med navn, søknadsperiode, intervjudager, intervjuere,
-								intervjulengde og rom. Du velger også når opplysningene om søkerne slettes. Etterpå
-								går opptaket slik:
-							</p>
-							<ol className="grid list-decimal gap-1 pl-5">
-								<li>Studentene søker på Hugin mens søknadsperioden er åpen.</li>
-								<li>
-									Dere velger kalendere for intervjuerne og får et forslag til intervjutider som
-									passer alle.
-								</li>
-								<li>Når dere godkjenner forslaget, får kandidatene tiden sin på e-post.</li>
-								<li>Etter intervjuene vurderer dere kandidatene i runder.</li>
-								<li>Dere sender tilbud og avslag herfra, og kandidatene svarer på tilbudet.</li>
-							</ol>
-						</div>
-						<GuideHint step="start">
-							<Button onClick={() => setConfigure(true)}>
-								<Plus />
-								Start opptak
-							</Button>
-						</GuideHint>
-					</div>
-					<SettingsDialog
-						open={configure}
-						onOpenChange={setConfigure}
-						onSaved={() => toast.success("Opptaket er opprettet")}
-					/>
-				</section>
-			</GuideProvider>
+					<Button onClick={() => setConfigure(true)}>
+						<Plus />
+						Start opptak
+					</Button>
+				</div>
+				<SettingsDialog
+					open={configure}
+					onOpenChange={setConfigure}
+					onSaved={() => toast.success("Opptaket er opprettet")}
+				/>
+			</section>
 		);
 	const { period } = overview;
 	const { candidates, interviewers: team, interviews } = overview;
