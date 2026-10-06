@@ -1,16 +1,14 @@
-import { featureFlags } from "@workspace/shared/feature-flags";
 import { reportRecipientSchema } from "@workspace/shared/feedback/report";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import { type MutationCtx, mutation } from "../../_generated/server";
-import { isReportFeatureEnabled, requireReportAccess } from "./access";
+import { requireReportAccess } from "./access";
 
 async function editableReport(ctx: MutationCtx, reportId: Id<"feedbackReports">, revision: number) {
 	const report = await ctx.db.get(reportId);
 	if (!report) throw new ConvexError("Rapporten finnes ikke.");
 	const user = await requireReportAccess(ctx);
-	if (!isReportFeatureEnabled()) throw new ConvexError("Rapportfunksjonen er slått av.");
 	if (Date.now() >= report.retentionAt)
 		throw new ConvexError("Lagringstiden for rapporten er utløpt.");
 	if (report.revision !== revision)
@@ -42,8 +40,6 @@ export const approve = mutation({
 			throw new ConvexError("Rapporten er allerede godkjent eller utilgjengelig.");
 		const recipient = reportRecipientSchema.safeParse({ recipientEmail: args.recipientEmail });
 		if (!recipient.success) throw new ConvexError("Skriv inn en gyldig e-postadresse.");
-		if (!featureFlags.huginFeedback.reportEmailsEnabled)
-			throw new ConvexError("Utsending av rapporter er slått av.");
 		await ctx.db.patch(report._id, {
 			status: "approved",
 			approvedBy: user._id,
@@ -63,8 +59,6 @@ export const retryDelivery = mutation({
 		const { report } = await editableReport(ctx, args.reportId, args.revision);
 		if (report.status !== "approved" || report.deliveryStatus !== "failed")
 			throw new ConvexError("Rapporten kan ikke sendes på nytt nå.");
-		if (!featureFlags.huginFeedback.reportEmailsEnabled)
-			throw new ConvexError("Utsending av rapporter er slått av.");
 		await ctx.db.patch(report._id, {
 			deliveryStatus: "pending",
 			followupFinishedAt: undefined,

@@ -4,12 +4,8 @@ import { type SidebarSection, sidebarNavigation, visibleSections } from "./sideb
 
 function flags(overrides: Partial<Record<GatedFeature, boolean>> = {}) {
 	return {
-		huginFeedback: false,
-		products: false,
-		jobListingOrders: false,
 		semesterPlanning: false,
-		engagement: false,
-		eventReminders: false,
+		food: false,
 		...overrides,
 	};
 }
@@ -20,7 +16,7 @@ function titles(sections: SidebarSection[]) {
 
 describe("visibleSections", () => {
 	it("groups every admin page under a named subsection when all features are on", () => {
-		const sections = visibleSections("admin", flags({ products: true, semesterPlanning: true }));
+		const sections = visibleSections("admin", flags({ semesterPlanning: true, food: true }));
 
 		expect(titles(sections)).toEqual([
 			["Personer", ["Studenter", "Organisasjon"]],
@@ -34,19 +30,27 @@ describe("visibleSections", () => {
 
 		expect(titles(sections)).toEqual([
 			["Personer", ["Studenter", "Organisasjon"]],
-			["Bedrifter og økonomi", ["Bedrifter"]],
-			["Planlegging", ["Mat", "Skjemaer"]],
+			["Bedrifter og økonomi", ["Bedrifter", "Produkter", "Fakturaer"]],
+			["Planlegging", ["Skjemaer"]],
 		]);
 	});
 
-	it("hides gated items in untitled groups", () => {
-		const hidden = visibleSections("main", flags()).flatMap((section) => section.items);
-		const shown = visibleSections("main", flags({ engagement: true })).flatMap(
-			(section) => section.items,
+	it("shows Mat only when the food flag is on", () => {
+		const items = (food: boolean) =>
+			visibleSections("admin", flags({ food })).flatMap((section) =>
+				section.items.map((item) => item.title),
+			);
+
+		expect(items(false)).not.toContain("Mat");
+		expect(items(true)).toContain("Mat");
+	});
+
+	it("always shows Innsikt", () => {
+		const titles = visibleSections("main", flags()).flatMap((section) =>
+			section.items.map((item) => item.title),
 		);
 
-		expect(hidden.map((item) => item.title)).not.toContain("Innsikt");
-		expect(shown.map((item) => item.title)).toContain("Innsikt");
+		expect(titles).toContain("Innsikt");
 	});
 });
 

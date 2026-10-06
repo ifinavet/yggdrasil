@@ -6,17 +6,11 @@ import { convexErrorMessage } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";
 import { SearchSelect } from "@workspace/ui/components/search-select";
-import { useFeatureEnabled } from "@workspace/ui/hooks/use-feature-enabled";
 import { useAction, useQuery } from "convex/react";
 import { useId, useState } from "react";
 import { toast } from "sonner";
 
 export function FeedbackManualSend({ eventId }: Readonly<{ eventId: Id<"events"> }>) {
-	const enabled = useFeatureEnabled("huginFeedback");
-	return enabled ? <ManualSendCard eventId={eventId} /> : null;
-}
-
-function ManualSendCard({ eventId }: Readonly<{ eventId: Id<"events"> }>) {
 	const registrants = useQuery(api.feedback.manualSend.eligibility.listRegistrants, { eventId });
 	const send = useAction(api.feedback.manualSend.send.send);
 	const [selectedUserId, setSelectedUserId] = useState<Id<"users">>();

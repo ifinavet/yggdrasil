@@ -1,7 +1,6 @@
 import type { EmailEvent, EmailId, SendEmailOptions } from "@convex-dev/resend";
 import { NAVET_LOGO_URL } from "@workspace/emails/constants";
 import { DEGREES, HUGIN_LOCAL_URL } from "@workspace/shared/constants";
-import { featureFlags } from "@workspace/shared/feature-flags";
 import { reportAccessDeniedMessage, reportHighlights } from "@workspace/shared/feedback/report";
 import { feedbackReportCsv } from "@workspace/shared/feedback/report-csv";
 import { SYSTEM_ALERTS_CHANNEL } from "@workspace/shared/slack/channels";
@@ -95,18 +94,12 @@ const resendApiKey = feedbackResend.config.apiKey;
 beforeEach(() => {
 	vi.useFakeTimers();
 	vi.setSystemTime(now);
-	featureFlags.huginFeedback.reportsEnabled = true;
-	featureFlags.huginFeedback.reportEmailsEnabled = true;
 	vi.stubEnv("APP_ENV", "local");
 	vi.stubEnv("CONVEX_CLOUD_URL", "http://127.0.0.1:3210");
 });
 afterEach(() => {
 	vi.useRealTimers();
 	vi.unstubAllEnvs();
-	Object.assign(featureFlags.huginFeedback, {
-		reportsEnabled: false,
-		reportEmailsEnabled: false,
-	});
 	feedbackResend.config.apiKey = resendApiKey;
 });
 
@@ -253,11 +246,9 @@ describe("company feedback reports", () => {
 			revision: 2,
 		});
 	});
-	it("keeps public links independent of flags and denies revoked, expired, malformed and unknown links", async () => {
+	it("denies revoked, expired, malformed and unknown links", async () => {
 		const f = await fixture();
 		const reportId = await queued(f);
-		featureFlags.huginFeedback.reportsEnabled = false;
-		featureFlags.huginFeedback.reportEmailsEnabled = false;
 		expect(
 			await f.t.action(reports.public.resolveReport, { token, paginationOpts }),
 		).not.toBeNull();
@@ -268,11 +259,10 @@ describe("company feedback reports", () => {
 		vi.setSystemTime(now + 86400000);
 		expect(await f.t.action(reports.public.resolveReport, { token, paginationOpts })).toBeNull();
 		vi.setSystemTime(now);
-		featureFlags.huginFeedback.reportsEnabled = true;
 		await f.client.mutation(reports.mutations.revoke, { reportId, revision: 1 });
 		expect(await f.t.action(reports.public.resolveReport, { token, paginationOpts })).toBeNull();
 	});
-	it("requires an internal role, with flags off by default", async () => {
+	it("requires an internal role", async () => {
 		const f = await fixture();
 		const reportId = await f.prepare();
 		await expect(
@@ -299,17 +289,6 @@ describe("company feedback reports", () => {
 		expect(
 			await client.query(reports.queries.getReportAnswers, { reportId, paginationOpts }),
 		).toMatchObject({ isDone: true });
-		featureFlags.huginFeedback.reportsEnabled = false;
-		expect(await client.query(reports.queries.getEventReport, { eventId: f.eventId })).toEqual({
-			enabled: false,
-			canView: true,
-		});
-		await expect(
-			client.query(reports.queries.getReportAnswers, { reportId, paginationOpts }),
-		).rejects.toThrow("slått av");
-		await expect(
-			client.mutation(reports.build.prepare, { campaignId: f.campaignId }),
-		).rejects.toThrow("slått av");
 	});
 	it("refuses premature, retained and expired campaigns, empty reports, and invalid recipients", async () => {
 		const f = await fixture(0);
@@ -340,34 +319,15 @@ describe("company feedback reports", () => {
 			}),
 		).rejects.toThrow("gyldig");
 	});
-	it("rechecks email flags after approval and retries the same locked snapshot", async () => {
+	it("retries a failed delivery with the same locked snapshot", async () => {
 		const f = await fixture();
 		const reportId = await f.prepare();
-		featureFlags.huginFeedback.reportEmailsEnabled = false;
-		await expect(
-			f.client.mutation(reports.mutations.approve, {
-				reportId,
-				revision: 0,
-				recipientEmail: "contact@example.test",
-			}),
-		).rejects.toThrow("slått av");
-		featureFlags.huginFeedback.reportEmailsEnabled = true;
 		await f.client.mutation(reports.mutations.approve, {
 			reportId,
 			revision: 0,
 			recipientEmail: "contact@example.test",
 		});
-		featureFlags.huginFeedback.reportEmailsEnabled = false;
-		await f.t.mutation(jobs.messages.enqueue, { reportId, token, url: "link", html: "report" });
-		expect(await f.t.run((ctx) => ctx.db.query("feedbackReportLocalEmails").collect())).toEqual([]);
-		expect(await f.t.run((ctx) => ctx.db.get(reportId))).toMatchObject({
-			status: "approved",
-			deliveryStatus: "failed",
-		});
-		await expect(
-			f.client.mutation(reports.mutations.retryDelivery, { reportId, revision: 1 }),
-		).rejects.toThrow("slått av");
-		featureFlags.huginFeedback.reportEmailsEnabled = true;
+		await f.t.run((ctx) => ctx.db.patch(reportId, { deliveryStatus: "failed" }));
 		await f.client.mutation(reports.mutations.retryDelivery, { reportId, revision: 1 });
 		await f.t.action(jobs.mail.sendReportEmail, { reportId });
 		const captures = await f.t.run((ctx) => ctx.db.query("feedbackReportLocalEmails").collect());
@@ -442,7 +402,7 @@ describe("live internal report", () => {
 		expect(reportHighlights(after?.report ?? before.report).rating).toBeCloseTo(13 / 3);
 		expect(await f.t.run((ctx) => ctx.db.query("feedbackReports").collect())).toEqual([]);
 	});
-	it("is null without an internal role, a campaign or the report flag", async () => {
+	it("is null without an internal role or a campaign", async () => {
 		const f = await fixture();
 		const outsider = await insertUser(f.t, "outsider@example.test");
 		expect(
@@ -450,8 +410,6 @@ describe("live internal report", () => {
 		).toBeNull();
 		const otherEventId = await insertEvent(f.t, f.companyId);
 		expect(await f.client.query(reports.live.getLiveReport, { eventId: otherEventId })).toBeNull();
-		featureFlags.huginFeedback.reportsEnabled = false;
-		expect(await f.client.query(reports.live.getLiveReport, { eventId: f.eventId })).toBeNull();
 	});
 	it("tolerates a missing logo or company and rejects a corrupt form version", async () => {
 		const f = await fixture();
@@ -528,15 +486,8 @@ describe("report boundary cases", () => {
 		const alert = scheduled.find(({ name }) => name.includes("notifications:sendMessage"));
 		expect(alert?.args[0].text).toContain("https://bifrost.ifinavet.no/events/");
 	});
-	it("starts building only when enabled and ignores stale or expired batch jobs", async () => {
+	it("prepares closed reports and ignores stale or expired batch jobs", async () => {
 		const f = await fixture();
-		featureFlags.huginFeedback.reportsEnabled = false;
-		await f.t.mutation(jobs.build.prepareClosedReport, { campaignId: f.campaignId });
-		expect(await f.client.query(reports.queries.getEventReport, { eventId: f.eventId })).toEqual({
-			enabled: false,
-			canView: true,
-		});
-		featureFlags.huginFeedback.reportsEnabled = true;
 		expect(
 			await f.client.query(reports.queries.getEventReport, { eventId: f.eventId }),
 		).toMatchObject({ report: null });
@@ -602,11 +553,6 @@ describe("report boundary cases", () => {
 				visible: false,
 			}),
 		).rejects.toThrow("finnes ikke");
-		featureFlags.huginFeedback.reportsEnabled = false;
-		await expect(
-			f.client.mutation(reports.mutations.revoke, { reportId, revision: 0 }),
-		).rejects.toThrow("slått av");
-		featureFlags.huginFeedback.reportsEnabled = true;
 		vi.setSystemTime(now + 86400000);
 		await expect(
 			f.client.mutation(reports.mutations.revoke, { reportId, revision: 0 }),
@@ -657,11 +603,6 @@ describe("report boundary cases", () => {
 			status: "approved",
 			deliveryStatus: "failed",
 		});
-		featureFlags.huginFeedback.reportEmailsEnabled = false;
-		await expect(
-			f.client.mutation(reports.mutations.retryDelivery, { reportId, revision: 1 }),
-		).rejects.toThrow("slått av");
-		featureFlags.huginFeedback.reportEmailsEnabled = true;
 		await f.client.mutation(reports.mutations.retryDelivery, { reportId, revision: 1 });
 		vi.stubEnv("APP_ENV", "local");
 		await f.t.action(jobs.mail.sendReportEmail, { reportId });
@@ -748,7 +689,7 @@ describe("report boundary cases", () => {
 		});
 		expect(await f.t.run((ctx) => ctx.db.get(reportId))).toMatchObject({ status: "revoked" });
 	});
-	it("does not queue after expiry or when the report email flag is switched off", async () => {
+	it("does not queue after expiry", async () => {
 		const f = await fixture();
 		const reportId = await f.prepare();
 		await f.client.mutation(reports.mutations.approve, {
@@ -756,13 +697,6 @@ describe("report boundary cases", () => {
 			revision: 0,
 			recipientEmail: "contact@example.test",
 		});
-		featureFlags.huginFeedback.reportEmailsEnabled = false;
-		await f.t.mutation(jobs.messages.enqueue, { reportId, token, url: "", html: "" });
-		expect(await f.t.run((ctx) => ctx.db.get(reportId))).toMatchObject({
-			deliveryStatus: "failed",
-		});
-		featureFlags.huginFeedback.reportEmailsEnabled = true;
-		await f.client.mutation(reports.mutations.retryDelivery, { reportId, revision: 1 });
 		vi.setSystemTime(now + 86400000);
 		await f.t.mutation(jobs.messages.enqueue, { reportId, token, url: "", html: "" });
 		expect(await f.t.run((ctx) => ctx.db.query("feedbackReportLocalEmails").collect())).toEqual([]);

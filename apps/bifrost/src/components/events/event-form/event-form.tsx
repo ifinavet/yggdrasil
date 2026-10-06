@@ -19,7 +19,6 @@ import {
 	SelectValue,
 } from "@workspace/ui/components/select";
 import { Textarea } from "@workspace/ui/components/textarea";
-import { useFeatureEnabled } from "@workspace/ui/hooks/use-feature-enabled";
 import { EyeOff, Save, Send } from "lucide-react";
 import CompanySelectField from "@/components/common/forms/company-select-field";
 import DateTimePicker from "@/components/common/forms/date-time-picker";
@@ -47,11 +46,10 @@ export default function EventForm({
 	productRequired?: boolean;
 	currentProduct?: { productId: string; name: string };
 }>) {
-	const productsEnabled = useFeatureEnabled("products");
 	const form = useForm({
 		defaultValues,
 		validators: {
-			onSubmit: eventFormSchema(productsEnabled && productRequired),
+			onSubmit: eventFormSchema(productRequired),
 		},
 		...formSubmitOptions({
 			primary: onDefaultSubmitAction,
@@ -263,19 +261,17 @@ export default function EventForm({
 
 				<FieldSeparator />
 
-				{productsEnabled && (
-					<form.Field name="productId">
-						{(field) => (
-							<ProductSelectField
-								name={field.name}
-								value={field.state.value}
-								onChange={field.handleChange}
-								errors={field.state.meta.isValid ? undefined : field.state.meta.errors}
-								currentProduct={currentProduct}
-							/>
-						)}
-					</form.Field>
-				)}
+				<form.Field name="productId">
+					{(field) => (
+						<ProductSelectField
+							name={field.name}
+							value={field.state.value}
+							onChange={field.handleChange}
+							errors={field.state.meta.isValid ? undefined : field.state.meta.errors}
+							currentProduct={currentProduct}
+						/>
+					)}
+				</form.Field>
 
 				<form.Field name="externalEvent">
 					{(field) => {

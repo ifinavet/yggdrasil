@@ -48,7 +48,6 @@ export const sidebarNavigation = {
 					title: "Innsikt",
 					icon: TrendingUpIcon,
 					path: "/insight",
-					feature: "engagement",
 				},
 				{
 					title: "Leaderboard",
@@ -102,13 +101,11 @@ export const sidebarNavigation = {
 					title: "Produkter",
 					icon: BanknoteIcon,
 					path: PRODUCT_ROUTES.list,
-					feature: "products",
 				},
 				{
 					title: "Fakturaer",
 					icon: ReceiptIcon,
 					path: "/invoicing",
-					feature: "products",
 				},
 			],
 		},
@@ -125,6 +122,7 @@ export const sidebarNavigation = {
 					title: "Mat",
 					icon: UtensilsIcon,
 					path: "/food",
+					feature: "food",
 				},
 				{
 					title: "Skjemaer",

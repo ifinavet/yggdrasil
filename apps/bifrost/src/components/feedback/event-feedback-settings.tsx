@@ -83,7 +83,7 @@ function SettingsForm({
 								/>
 								<FieldContent>
 									<FieldLabel htmlFor="feedback-enabled">
-										Tillat tilbakemeldinger for dette arrangementet
+										Tilbakemeldingsmail sendes etter arrangementet. Fjern haken for å slå den av.
 									</FieldLabel>
 									{settings.locked && (
 										<FieldDescription>

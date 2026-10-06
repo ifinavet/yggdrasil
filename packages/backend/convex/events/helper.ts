@@ -140,6 +140,8 @@ export async function insertEventWithOrganizers(
 	const eventId = await ctx.db.insert("events", {
 		...event,
 		slug: eventSlug(event.title, event.eventStart),
+		feedbackEnabled: event.feedbackEnabled ?? true,
+		remindersEnabled: event.remindersEnabled ?? true,
 	});
 
 	await Promise.all(

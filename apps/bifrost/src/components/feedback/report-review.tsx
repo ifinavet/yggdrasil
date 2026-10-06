@@ -37,11 +37,7 @@ function reportStatusLabel(report: Report): string {
 	return REPORT_DELIVERY_LABELS[report.deliveryStatus ?? "pending"];
 }
 
-export function ReportReview({
-	report,
-	answers,
-	deliveryEnabled,
-}: Readonly<{ report: Report; answers: Answers; deliveryEnabled: boolean }>) {
+export function ReportReview({ report, answers }: Readonly<{ report: Report; answers: Answers }>) {
 	const setVisibility = useMutation(api.feedback.reports.mutations.setAnswerVisibility);
 	const approve = useMutation(api.feedback.reports.mutations.approve);
 	const retry = useMutation(api.feedback.reports.mutations.retryDelivery);
@@ -100,9 +96,6 @@ export function ReportReview({
 							)}
 						</form.Field>
 						<div className="flex flex-wrap items-center gap-3">
-							{!deliveryEnabled && !locked ? (
-								<p className="text-muted-foreground text-sm">E-postutsending er slått av.</p>
-							) : null}
 							{report.totalResponses === 0 ? (
 								<p>Rapporten har ingen svar og kan ikke sendes.</p>
 							) : null}
@@ -112,7 +105,7 @@ export function ReportReview({
 								</p>
 							) : null}
 							{!locked ? (
-								<Button type="submit" disabled={!deliveryEnabled || report.totalResponses === 0}>
+								<Button type="submit" disabled={report.totalResponses === 0}>
 									Bekreft og send rapport
 								</Button>
 							) : null}
@@ -121,7 +114,6 @@ export function ReportReview({
 									<p>E-posten ble ikke sendt.</p>
 									<Button
 										type="button"
-										disabled={!deliveryEnabled}
 										onClick={() =>
 											void perform(() => retry({ reportId: report._id, revision: report.revision }))
 										}

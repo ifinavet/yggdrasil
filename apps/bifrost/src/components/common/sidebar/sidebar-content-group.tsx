@@ -23,12 +23,8 @@ export function SidebarContentGroup({
 }>) {
 	const rootPathSegment = usePathname().split("/")[1];
 	const enabled: Record<GatedFeature, boolean> = {
-		huginFeedback: useFeatureEnabled("huginFeedback"),
-		products: useFeatureEnabled("products"),
-		jobListingOrders: useFeatureEnabled("jobListingOrders"),
 		semesterPlanning: useFeatureEnabled("semesterPlanning"),
-		engagement: useFeatureEnabled("engagement"),
-		eventReminders: useFeatureEnabled("eventReminders"),
+		food: useFeatureEnabled("food"),
 	};
 	const sections = visibleSections(items, enabled);
 

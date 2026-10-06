@@ -8,6 +8,7 @@ import {
 	setup,
 } from "../../test/fixtures";
 import { api, internal } from "../_generated/api";
+import type { Id } from "../_generated/dataModel";
 
 const eventMutations = internal.events.mutations;
 
@@ -45,6 +46,30 @@ const eventArgs = {
 	published: true,
 	organizers: [],
 };
+
+async function createEventAndFind() {
+	const { t, companyId, foodItem, client } = await fixture();
+	await client.mutation(api.events.mutations.create, {
+		...eventArgs,
+		foodItem,
+		hostingCompany: companyId,
+	});
+	const event = await t.run((ctx) =>
+		ctx.db
+			.query("events")
+			.filter((q) => q.eq(q.field("title"), eventArgs.title))
+			.first(),
+	);
+	return { t, client, eventId: event?._id as Id<"events"> };
+}
+
+async function remindersEnabled(
+	client: Awaited<ReturnType<typeof fixture>>["client"],
+	eventId: Id<"events">,
+) {
+	const settings = await client.query(api.events.reminders.queries.getEventReminders, { eventId });
+	return settings.enabled;
+}
 
 describe("registration opening alerts", () => {
 	it("waits for the current opening time and sends once after rescheduling", async () => {
@@ -160,23 +185,41 @@ describe("events.mutations.create", () => {
 		});
 	});
 
-	it("does not attach a legacy feedback form", async () => {
-		const { t, companyId, foodItem, client } = await fixture();
+	it("turns reminder and feedback emails on for a new event", async () => {
+		const { t, client, eventId } = await createEventAndFind();
 
-		await client.mutation(api.events.mutations.create, {
-			...eventArgs,
-			foodItem,
-			hostingCompany: companyId,
+		expect(await t.run((ctx) => ctx.db.get(eventId))).toMatchObject({
+			remindersEnabled: true,
+			feedbackEnabled: true,
+		});
+		expect(await remindersEnabled(client, eventId)).toBe(true);
+	});
+
+	it("lets the board opt out of reminders on a new event", async () => {
+		const { client, eventId } = await createEventAndFind();
+
+		await client.mutation(api.events.reminders.mutations.setEventReminders, {
+			eventId,
+			enabled: false,
 		});
 
-		const event = await t.run((ctx) =>
-			ctx.db
-				.query("events")
-				.filter((q) => q.eq(q.field("title"), eventArgs.title))
-				.first(),
+		expect(await remindersEnabled(client, eventId)).toBe(false);
+	});
+
+	it("leaves existing events without the flags switched off", async () => {
+		const { t, companyId, client } = await fixture();
+		const eventId = await insertEvent(t, companyId);
+		await t.run((ctx) =>
+			ctx.db.patch(eventId, { remindersEnabled: undefined, feedbackEnabled: undefined }),
 		);
-		expect(event).not.toBeNull();
-		expect(event).not.toHaveProperty("formId");
+
+		expect(await remindersEnabled(client, eventId)).toBe(false);
+	});
+
+	it("does not attach a legacy feedback form", async () => {
+		const { t, eventId } = await createEventAndFind();
+
+		expect(await t.run((ctx) => ctx.db.get(eventId))).not.toHaveProperty("formId");
 	});
 });
 

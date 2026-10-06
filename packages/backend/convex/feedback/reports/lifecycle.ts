@@ -1,4 +1,3 @@
-import { featureFlags } from "@workspace/shared/feature-flags";
 import type { Doc } from "../../_generated/dataModel";
 import type { MutationCtx } from "../../_generated/server";
 import { latestCampaign } from "../delivery/campaigns";
@@ -16,8 +15,7 @@ export async function followupFinishedAt(
 		.query("feedbackReports")
 		.withIndex("by_campaignId", (q) => q.eq("campaignId", campaign._id))
 		.unique();
-	if (!report && (!campaign.formVersionId || !featureFlags.huginFeedback.reportsEnabled))
-		return campaign.closedAt ?? campaign.closesAt;
+	if (!report && !campaign.formVersionId) return campaign.closedAt ?? campaign.closesAt;
 	if (!report || report.status === "building") return null;
 	if (report.status !== "revoked" && report.deliveryStatus === "failed") return null;
 	if (report.followupFinishedAt !== undefined) return report.followupFinishedAt;
