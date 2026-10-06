@@ -38,13 +38,12 @@ export const eventsSchema = {
 		completedChecklistSteps: v.optional(v.array(v.string())),
 		feedbackFormId: v.optional(v.id("feedbackForms")),
 		slug: v.optional(v.string()),
-		formId: v.optional(v.id("form")),
+		formId: v.optional(v.string()),
 		...soldProductFields,
 	})
 		.index("by_eventStart", ["eventStart"])
 		.index("by_registrationOpens", ["registrationOpens"])
 		.index("by_slug", ["slug"])
-		.index("by_formId", ["formId"])
 		.index("by_hostingCompany_and_eventStart", ["hostingCompany", "eventStart"]),
 	eventRegistrationOpenNotices: defineTable({
 		eventId: v.id("events"),

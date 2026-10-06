@@ -1,94 +1,16 @@
 import { describe, expect, it, vi } from "vitest";
 import {
 	asUser,
-	emailsWithStatus,
 	grantRole,
 	insertEvent,
 	insertFoodItem,
-	insertRegistration,
 	insertUser,
-	scheduledRecipientsOf,
 	setup,
-	statusOf,
 } from "../../test/fixtures";
 import { api, internal } from "../_generated/api";
+import type { Id } from "../_generated/dataModel";
 
 const eventMutations = internal.events.mutations;
-
-describe("updateWaitlistMutation", () => {
-	it("offers the new places to the front of the queue in order", async () => {
-		const { t, companyId } = await setup();
-		const now = Date.now();
-		const eventId = await insertEvent(t, companyId, { participationLimit: 10 });
-		const firstWaiting = await insertUser(t, "venter-1@example.com");
-		await insertRegistration(t, eventId, firstWaiting._id, "waitlist", now);
-		const secondWaiting = await insertUser(t, "venter-2@example.com");
-		await insertRegistration(t, eventId, secondWaiting._id, "waitlist", now + 1);
-		const thirdWaiting = await insertUser(t, "venter-3@example.com");
-		const thirdWaitingId = await insertRegistration(
-			t,
-			eventId,
-			thirdWaiting._id,
-			"waitlist",
-			now + 2,
-		);
-
-		await t.mutation(eventMutations.updateWaitlistMutation, { eventId, numOfNewPlaces: 2 });
-
-		expect(await emailsWithStatus(t, eventId, "pending")).toEqual([
-			"venter-1@example.com",
-			"venter-2@example.com",
-		]);
-		expect(await statusOf(t, thirdWaitingId)).toBe("waitlist");
-		expect(await scheduledRecipientsOf(t, "sendAvailableSeatEmail")).toEqual([
-			"venter-1@example.com",
-			"venter-2@example.com",
-		]);
-	});
-
-	it("offers nothing when there are no new places", async () => {
-		const { t, companyId } = await setup();
-		const eventId = await insertEvent(t, companyId, { participationLimit: 10 });
-		const waiting = await insertUser(t, "venter@example.com");
-		const waitingId = await insertRegistration(t, eventId, waiting._id, "waitlist");
-
-		await t.mutation(eventMutations.updateWaitlistMutation, { eventId, numOfNewPlaces: 0 });
-
-		expect(await statusOf(t, waitingId)).toBe("waitlist");
-		expect(await scheduledRecipientsOf(t, "sendAvailableSeatEmail")).toEqual([]);
-	});
-
-	it("stops at the participation limit even when asked for more places", async () => {
-		const { t, companyId } = await setup();
-		const now = Date.now();
-		const eventId = await insertEvent(t, companyId, { participationLimit: 1 });
-		const firstWaiting = await insertUser(t, "venter-1@example.com");
-		await insertRegistration(t, eventId, firstWaiting._id, "waitlist", now);
-		const secondWaiting = await insertUser(t, "venter-2@example.com");
-		const secondWaitingId = await insertRegistration(
-			t,
-			eventId,
-			secondWaiting._id,
-			"waitlist",
-			now + 1,
-		);
-
-		await t.mutation(eventMutations.updateWaitlistMutation, { eventId, numOfNewPlaces: 5 });
-
-		expect(await emailsWithStatus(t, eventId, "pending")).toEqual(["venter-1@example.com"]);
-		expect(await statusOf(t, secondWaitingId)).toBe("waitlist");
-	});
-
-	it("refuses an event that no longer exists", async () => {
-		const { t, companyId } = await setup();
-		const eventId = await insertEvent(t, companyId);
-		await t.run((ctx) => ctx.db.delete(eventId));
-
-		await expect(
-			t.mutation(eventMutations.updateWaitlistMutation, { eventId, numOfNewPlaces: 1 }),
-		).rejects.toThrow("ble ikke funnet");
-	});
-});
 
 const eventProduct = {
 	name: "Ordinær bedriftspresentasjon",
@@ -124,6 +46,30 @@ const eventArgs = {
 	published: true,
 	organizers: [],
 };
+
+async function createEventAndFind() {
+	const { t, companyId, foodItem, client } = await fixture();
+	await client.mutation(api.events.mutations.create, {
+		...eventArgs,
+		foodItem,
+		hostingCompany: companyId,
+	});
+	const event = await t.run((ctx) =>
+		ctx.db
+			.query("events")
+			.filter((q) => q.eq(q.field("title"), eventArgs.title))
+			.first(),
+	);
+	return { t, client, eventId: event?._id as Id<"events"> };
+}
+
+async function remindersEnabled(
+	client: Awaited<ReturnType<typeof fixture>>["client"],
+	eventId: Id<"events">,
+) {
+	const settings = await client.query(api.events.reminders.queries.getEventReminders, { eventId });
+	return settings.enabled;
+}
 
 describe("registration opening alerts", () => {
 	it("waits for the current opening time and sends once after rescheduling", async () => {
@@ -238,9 +184,64 @@ describe("events.mutations.create", () => {
 			vatRate: eventProduct.vatRate,
 		});
 	});
+
+	it("turns reminder and feedback emails on for a new event", async () => {
+		const { t, client, eventId } = await createEventAndFind();
+
+		expect(await t.run((ctx) => ctx.db.get(eventId))).toMatchObject({
+			remindersEnabled: true,
+			feedbackEnabled: true,
+		});
+		expect(await remindersEnabled(client, eventId)).toBe(true);
+	});
+
+	it("lets the board opt out of reminders on a new event", async () => {
+		const { client, eventId } = await createEventAndFind();
+
+		await client.mutation(api.events.reminders.mutations.setEventReminders, {
+			eventId,
+			enabled: false,
+		});
+
+		expect(await remindersEnabled(client, eventId)).toBe(false);
+	});
+
+	it("leaves existing events without the flags switched off", async () => {
+		const { t, companyId, client } = await fixture();
+		const eventId = await insertEvent(t, companyId);
+		await t.run((ctx) =>
+			ctx.db.patch(eventId, { remindersEnabled: undefined, feedbackEnabled: undefined }),
+		);
+
+		expect(await remindersEnabled(client, eventId)).toBe(false);
+	});
+
+	it("does not attach a legacy feedback form", async () => {
+		const { t, eventId } = await createEventAndFind();
+
+		expect(await t.run((ctx) => ctx.db.get(eventId))).not.toHaveProperty("formId");
+	});
 });
 
 describe("events.mutations.update", () => {
+	it("does not attach a legacy feedback form and keeps a stored legacy reference untouched", async () => {
+		const { t, companyId, foodItem, client } = await fixture();
+		const plain = await insertEvent(t, companyId);
+		const legacy = await insertEvent(t, companyId, { formId: "legacy-form" });
+
+		for (const id of [plain, legacy]) {
+			await client.mutation(api.events.mutations.update, {
+				...eventArgs,
+				foodItem,
+				id,
+				hostingCompany: companyId,
+			});
+		}
+
+		expect((await t.run((ctx) => ctx.db.get(plain)))?.formId).toBeUndefined();
+		expect((await t.run((ctx) => ctx.db.get(legacy)))?.formId).toBe("legacy-form");
+	});
+
 	it("snapshots a newly chosen product", async () => {
 		const { t, companyId, foodItem, client } = await fixture();
 		const productId = await t.run((ctx) => ctx.db.insert("products", eventProduct));

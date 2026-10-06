@@ -100,11 +100,7 @@ import type * as feedback_responses_access from "../feedback/responses/access.js
 import type * as feedback_responses_actions from "../feedback/responses/actions.js";
 import type * as feedback_responses_mutations from "../feedback/responses/mutations.js";
 import type * as feedback_responses_queries from "../feedback/responses/queries.js";
-import type * as forms_access from "../forms/access.js";
-import type * as forms_migrations from "../forms/migrations.js";
-import type * as forms_mutations from "../forms/mutations.js";
-import type * as forms_queries from "../forms/queries.js";
-import type * as forms_responses from "../forms/responses.js";
+import type * as forms_cleanup from "../forms/cleanup.js";
 import type * as http from "../http.js";
 import type * as iam_accounts from "../iam/accounts.js";
 import type * as iam_actions from "../iam/actions.js";
@@ -183,7 +179,6 @@ import type * as users_clerk_queries from "../users/clerk/queries.js";
 import type * as users_organization_groups from "../users/organization/groups.js";
 import type * as users_organization_mutations from "../users/organization/mutations.js";
 import type * as users_organization_queries from "../users/organization/queries.js";
-import type * as users_students_migrations from "../users/students/migrations.js";
 import type * as users_students_mutations from "../users/students/mutations.js";
 import type * as users_students_queries from "../users/students/queries.js";
 
@@ -286,11 +281,7 @@ declare const fullApi: ApiFromModules<{
   "feedback/responses/actions": typeof feedback_responses_actions;
   "feedback/responses/mutations": typeof feedback_responses_mutations;
   "feedback/responses/queries": typeof feedback_responses_queries;
-  "forms/access": typeof forms_access;
-  "forms/migrations": typeof forms_migrations;
-  "forms/mutations": typeof forms_mutations;
-  "forms/queries": typeof forms_queries;
-  "forms/responses": typeof forms_responses;
+  "forms/cleanup": typeof forms_cleanup;
   http: typeof http;
   "iam/accounts": typeof iam_accounts;
   "iam/actions": typeof iam_actions;
@@ -369,7 +360,6 @@ declare const fullApi: ApiFromModules<{
   "users/organization/groups": typeof users_organization_groups;
   "users/organization/mutations": typeof users_organization_mutations;
   "users/organization/queries": typeof users_organization_queries;
-  "users/students/migrations": typeof users_students_migrations;
   "users/students/mutations": typeof users_students_mutations;
   "users/students/queries": typeof users_students_queries;
 }>;

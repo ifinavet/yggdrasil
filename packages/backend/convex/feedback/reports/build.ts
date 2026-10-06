@@ -11,10 +11,9 @@ import { isLocalDevelopment } from "../../auth/local";
 import { getRegistrantStatistics } from "../../events/registrations/statistics";
 import { reportReadyText } from "../../events/slack/messages";
 import { queueEventNotification } from "../../events/slack/state";
-import { isReportFeatureEnabled, requireReportAccess } from "./access";
+import { requireReportAccess } from "./access";
 
 export async function prepareReport(ctx: MutationCtx, campaignId: Id<"feedbackCampaigns">) {
-	if (!isReportFeatureEnabled()) throw new ConvexError("Rapportfunksjonen er slått av.");
 	const existing = await ctx.db
 		.query("feedbackReports")
 		.withIndex("by_campaignId", (index) => index.eq("campaignId", campaignId))
@@ -153,7 +152,7 @@ export const buildReportBatch = internalMutation({
 export const prepareClosedReport = internalMutation({
 	args: { campaignId: v.id("feedbackCampaigns") },
 	handler: async (ctx, { campaignId }) => {
-		if (isReportFeatureEnabled()) await prepareReport(ctx, campaignId);
+		await prepareReport(ctx, campaignId);
 	},
 });
 

@@ -2,7 +2,6 @@ import { SLACK_CHANNEL_URL } from "@workspace/shared/constants";
 import { SYSTEM_ALERTS_CHANNEL } from "@workspace/shared/slack/channels";
 import { eventSemesterOf } from "@workspace/shared/time";
 import type { FunctionArgs, FunctionReturnType } from "convex/server";
-import { v } from "convex/values";
 import { internal } from "../../_generated/api";
 import type { Doc } from "../../_generated/dataModel";
 import { type ActionCtx, internalAction } from "../../_generated/server";
@@ -244,8 +243,4 @@ export const reconcile = internalAction({
 		if (failures.length)
 			throw new Error(`${failures.length} Slack channels failed to reconcile; see function logs.`);
 	},
-});
-export const reconcileOne = internalAction({
-	args: { channelId: v.id("companySemesterSlackChannels") },
-	handler: async (ctx, { channelId }): Promise<void> => reconcileChannel(ctx, channelId),
 });

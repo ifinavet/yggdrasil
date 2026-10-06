@@ -5,19 +5,14 @@ import type { Id } from "@workspace/backend/convex/dataModel";
 import { reportAccessDeniedMessage } from "@workspace/shared/feedback/report";
 import { Card, CardContent } from "@workspace/ui/components/card";
 import { FeedbackReportResponses } from "@workspace/ui/components/feedback/report";
-import { useFeatureEnabled } from "@workspace/ui/hooks/use-feature-enabled";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { Lock } from "lucide-react";
-import { type ReactNode, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { ReportReview } from "./report-review";
 
-export function EventFeedbackReport({
-	eventId,
-	fallback = null,
-}: Readonly<{ eventId: Id<"events">; fallback?: ReactNode }>) {
-	const enabled = useFeatureEnabled("huginFeedback");
-	return enabled ? <ReportContent eventId={eventId} fallback={fallback} /> : fallback;
+export function EventFeedbackReport({ eventId }: Readonly<{ eventId: Id<"events"> }>) {
+	return <ReportContent eventId={eventId} />;
 }
 
 type EventReport = FunctionReturnType<typeof api.feedback.reports.queries.getEventReport>;
@@ -27,14 +22,11 @@ type ReportAnswers = FunctionReturnType<
 	typeof api.feedback.reports.queries.getReportAnswers
 >["page"];
 
-function ReportContent({
-	eventId,
-	fallback,
-}: Readonly<{ eventId: Id<"events">; fallback: ReactNode }>) {
+function ReportContent({ eventId }: Readonly<{ eventId: Id<"events"> }>) {
 	const data = useQuery(api.feedback.reports.queries.getEventReport, { eventId });
 	if (data === undefined) return <p>Henter rapport …</p>;
-	if (data && !data.enabled) return data.canView ? fallback : <ReportAccessDenied />;
-	if (!data) return fallback;
+	if (data && !data.enabled) return data.canView ? null : <ReportAccessDenied />;
+	if (!data) return null;
 	if (data.campaignStatus !== "closed") return <LiveReport eventId={eventId} />;
 	return <ClosedReport data={data} />;
 }
@@ -70,29 +62,20 @@ function ClosedReport({ data }: Readonly<{ data: EnabledReport }>) {
 		if (status === "CanLoadMore") loadMore(100);
 	}, [status, loadMore]);
 	if (error) return <p role="alert">{error}</p>;
-	return (
-		<ReportBody
-			report={report}
-			answers={answers}
-			answersLoaded={status === "Exhausted"}
-			deliveryEnabled={data.deliveryEnabled}
-		/>
-	);
+	return <ReportBody report={report} answers={answers} answersLoaded={status === "Exhausted"} />;
 }
 
 function ReportBody({
 	report,
 	answers,
 	answersLoaded,
-	deliveryEnabled,
 }: Readonly<{
 	report: PreparedReport;
 	answers: ReportAnswers;
 	answersLoaded: boolean;
-	deliveryEnabled: boolean;
 }>) {
 	if (!report || report.status === "building" || !answersLoaded) return <p>Klargjør rapport …</p>;
-	return <ReportReview report={report} answers={answers} deliveryEnabled={deliveryEnabled} />;
+	return <ReportReview report={report} answers={answers} />;
 }
 
 function ReportAccessDenied() {

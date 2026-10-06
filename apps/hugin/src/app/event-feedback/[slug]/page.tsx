@@ -1,93 +1,21 @@
-import { getAuthToken } from "@workspace/auth";
-import { auth } from "@workspace/auth/server";
-import { api } from "@workspace/backend/convex/api";
-import { WEB_CONTACT_EMAIL } from "@workspace/shared/constants/contact";
-import { humanReadableDate } from "@workspace/shared/time";
-import { Button } from "@workspace/ui/components/button";
-import { fetchQuery } from "convex/nextjs";
-import { Check } from "lucide-react";
+import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { FormStatePanel } from "@/components/form-state-panel";
-import { questionCountWord } from "@/lib/event-feedback-questions";
-import { EventResponseForm } from "./form";
 
-export default async function EventResponse({
-	params,
-}: Readonly<{
-	params: Promise<{ slug: string }>;
-}>) {
-	const { slug: identifier } = await params;
+export const metadata: Metadata = {
+	title: "Tilbakemeldingsskjemaet er stengt",
+	robots: { index: false, follow: false },
+};
 
-	const { userId, redirectToSignIn } = await auth();
-	if (!userId) return redirectToSignIn();
-
-	const token = await getAuthToken();
-	const event = await fetchQuery(api.events.queries.getEvent, { identifier }, { token });
-
-	if (!event.formId) {
-		return <h1>Det er ikke laget et spørreskjema til dette arrangementet</h1>;
-	}
-
-	const ableToAnswer = await fetchQuery(
-		api.forms.queries.checkIfCurrentUserAttendedTheEventAndShouldBeAbleToSubmit,
-		{ eventId: event._id },
-		{ token },
-	);
-
-	if (!ableToAnswer) redirect("/");
-
-	const response = await fetchQuery(
-		api.forms.queries.getCurrentUsersResponseByFormId,
-		{ formId: event.formId },
-		{ token },
-	);
-
-	if (response) {
-		return (
-			<div className="mx-auto w-full max-w-3xl">
-				<FormStatePanel
-					icon={<Check className="size-6" strokeWidth={2.4} />}
-					title="Du har allerede svart på dette skjemaet"
-					body="Tusen takk for at du tok deg tid. Du kan svare bare én gang per arrangement, men du kan se hva du svarte."
-					action={
-						<Button asChild className="h-[52px] w-full rounded-[13px] font-semibold text-[15.5px]">
-							<Link href={`/event-feedback/${event.slug ?? identifier}/response`}>
-								Se besvarelsen din
-							</Link>
-						</Button>
-					}
-					quiet={
-						<>
-							Svarte du feil?{" "}
-							<a
-								href={`mailto:${WEB_CONTACT_EMAIL}`}
-								className="text-primary underline underline-offset-[3px]"
-							>
-								Gi beskjed til webansvarlig
-							</a>
-						</>
-					}
-				/>
-			</div>
-		);
-	}
-
+export default function ClosedEventFeedbackPage() {
 	return (
-		<div className="mx-auto flex min-h-full w-full max-w-3xl flex-col">
-			<div className="pt-1.5">
-				<h1 className="m-0 mb-1.5 font-bold text-[21px] text-primary leading-[1.22] tracking-[-0.015em]">
-					{event.title}
-				</h1>
-				<p className="m-0 mb-3 text-[13.5px] text-muted-foreground tabular-nums">
-					{humanReadableDate(new Date(event.eventStart))}
-				</p>
-				<p className="m-0 text-[14.5px] leading-normal">
-					Takk for at du kom! {questionCountWord} kjappe spørsmål, det tar under et minutt.
-				</p>
-			</div>
-
-			<EventResponseForm event={event} userId={userId} />
-		</div>
+		<main className="mx-auto flex min-h-[60vh] max-w-lg flex-col justify-center gap-4 p-6">
+			<h1 className="font-bold text-2xl">Tilbakemeldingsskjemaet er stengt</h1>
+			<p className="text-muted-foreground">
+				Dette tilbakemeldingsskjemaet er stengt. Nye lenker til tilbakemelding kommer på e-post.
+			</p>
+			<Link href="/" className="text-primary underline">
+				Gå til forsiden
+			</Link>
+		</main>
 	);
 }

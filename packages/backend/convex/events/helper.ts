@@ -6,7 +6,6 @@ import {
 	termOfDay,
 } from "@workspace/shared/time";
 import { ConvexError } from "convex/values";
-import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { internalRoles, userHasRole } from "../auth/accessRights";
@@ -124,7 +123,7 @@ export function eventSlug(title: string, eventStart: number): string {
 }
 
 /**
- * Creates an event with its feedback form, slug and organizers. Shared by events.create and by
+ * Creates an event with its slug and organizers. Shared by events.create and by
  * creating an event from a semester planning application.
  *
  * @param {MutationCtx} ctx - The Convex mutation context.
@@ -138,16 +137,11 @@ export async function insertEventWithOrganizers(
 	event: NewEvent,
 	organizers: { userId: Id<"users">; role: OrganizerRole }[],
 ): Promise<Id<"events">> {
-	// Creating the feedback form for after the event
-	const formId = await ctx.runMutation(internal.forms.mutations.createEventFeedbackForm);
-	if (!formId) {
-		console.error("Failed to create feedback form");
-	}
-
 	const eventId = await ctx.db.insert("events", {
 		...event,
 		slug: eventSlug(event.title, event.eventStart),
-		formId,
+		feedbackEnabled: event.feedbackEnabled ?? true,
+		remindersEnabled: event.remindersEnabled ?? true,
 	});
 
 	await Promise.all(

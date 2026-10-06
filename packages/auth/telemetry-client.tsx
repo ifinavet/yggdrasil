@@ -7,7 +7,13 @@ import { usePostHog } from "posthog-js/react";
 import { useEffect, useState } from "react";
 import { useAuth, useUser } from "./client";
 import { isLocalDevelopment } from "./local";
-import { type IsPrivateUrl, runTelemetry, withoutPrivatePages, withTelemetry } from "./telemetry";
+import {
+	type IsPrivateUrl,
+	runTelemetry,
+	sentryPrivacyOptions,
+	withoutPrivatePages,
+	withTelemetry,
+} from "./telemetry";
 
 export function initializeClientTelemetry({
 	sentryDsn,
@@ -41,8 +47,7 @@ export function initializeClientTelemetry({
 
 			// Define how likely traces are sampled. Adjust this value in production, or use tracesSampler for greater control.
 			tracesSampleRate: 1,
-			// Enable logs to be sent to Sentry
-			enableLogs: true,
+			...sentryPrivacyOptions,
 
 			// Setting this option to true will print useful information to the console while you're setting up Sentry.
 			debug: false,

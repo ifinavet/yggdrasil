@@ -117,6 +117,7 @@ test.describe("real applicant journeys", () => {
 		await page.reload();
 		await expect(page.getByRole("heading", { name: "Søknaden din er sendt" })).toBeVisible();
 		await page.getByRole("button", { name: "Rediger søknaden" }).click();
+		await expect(page.getByLabel("Fortell litt om deg selv")).toBeVisible();
 		await captureScreenshot(
 			page,
 			"student",

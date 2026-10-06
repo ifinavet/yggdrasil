@@ -3,7 +3,6 @@ import {
 	BIFROST_URL,
 	EVENT_EXPENSE_TEMPLATE_URL,
 } from "@workspace/shared/constants";
-import { featureFlags } from "@workspace/shared/feature-flags";
 import {
 	DATE_PATTERNS,
 	EVENT_PLANNING,
@@ -100,10 +99,9 @@ function upcomingAutomations(event: Doc<"events">, now: number, campaignOpensAt?
 			automatic.push(
 				`• Minner dem som ikke har svart på skjemaet: ${reminders.map(when).join("; ")}.`,
 			);
-		if (featureFlags.huginFeedback.reportsEnabled)
-			automatic.push(
-				"• Lager tilbakemeldingsrapporten når innsamlingen stenger. Jeg sender den til bedriften etter at dere har sett gjennom og godkjent den.",
-			);
+		automatic.push(
+			"• Lager tilbakemeldingsrapporten når innsamlingen stenger. Jeg sender den til bedriften etter at dere har sett gjennom og godkjent den.",
+		);
 	}
 	automatic.push(
 		"• Sier fra her når arrangementet blir fullt eller mange melder seg av på kort tid.",

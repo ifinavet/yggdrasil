@@ -1,15 +1,14 @@
-import { featureFlags } from "@workspace/shared/feature-flags";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import { query } from "../../_generated/server";
 import { latestCampaign } from "../delivery/campaigns";
-import { canViewReport, isReportFeatureEnabled, requireReportAccess } from "./access";
+import { canViewReport, requireReportAccess } from "./access";
 
 export const getEventReport = query({
 	args: { eventId: v.id("events") },
 	handler: async (ctx, { eventId }) => {
 		const canView = await canViewReport(ctx);
-		if (!canView || !isReportFeatureEnabled()) return { enabled: false, canView } as const;
+		if (!canView) return { enabled: false, canView } as const;
 		const campaign = await latestCampaign(ctx, eventId);
 		if (!campaign) return null;
 		const report = await ctx.db
@@ -18,7 +17,6 @@ export const getEventReport = query({
 			.unique();
 		return {
 			enabled: true as const,
-			deliveryEnabled: featureFlags.huginFeedback.reportEmailsEnabled,
 			campaignId: campaign._id,
 			campaignStatus: campaign.status,
 			report: report
@@ -39,7 +37,6 @@ export const getReportAnswers = query({
 		const report = await ctx.db.get(reportId);
 		if (!report) throw new ConvexError("Rapporten finnes ikke.");
 		await requireReportAccess(ctx);
-		if (!isReportFeatureEnabled()) throw new ConvexError("Rapportfunksjonen er slått av.");
 		if (Date.now() >= report.retentionAt)
 			throw new ConvexError("Lagringstiden for rapporten er utløpt.");
 		const result = await ctx.db
