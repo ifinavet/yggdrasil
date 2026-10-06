@@ -4,12 +4,14 @@ import { internalMutation } from "../_generated/server";
 
 const PAGE_SIZE = 200;
 const DELETES_PER_CALL = 500;
+const EVENTS_PER_CALL = 2000;
 
 export const deleteLegacyBatch = internalMutation({
 	args: {},
 	returns: v.object({
 		deletedResponses: v.number(),
 		deletedForms: v.number(),
+		clearedEvents: v.number(),
 		done: v.boolean(),
 	}),
 	handler: async (ctx) => {
@@ -41,9 +43,17 @@ export const deleteLegacyBatch = internalMutation({
 			await schemalessDb.delete(form._id);
 		}
 
+		const eventsWithForm = (await ctx.db.query("events").take(EVENTS_PER_CALL)).filter(
+			(event) => event.formId !== undefined,
+		);
+		for (const event of eventsWithForm) {
+			await ctx.db.patch(event._id, { formId: undefined });
+		}
+
 		return {
 			deletedResponses,
 			deletedForms: forms.length,
+			clearedEvents: eventsWithForm.length,
 			done: responsesDone && forms.length < DELETES_PER_CALL,
 		};
 	},

@@ -8,6 +8,7 @@ const deleteLegacyBatch = internal.forms.cleanup.deleteLegacyBatch;
 it("deletes legacy responses and forms across calls and keeps current responses", async () => {
 	const { t, companyId } = await setup();
 	const eventId = await insertEvent(t, companyId);
+	await t.run((ctx) => ctx.db.patch(eventId, { formId: "legacy-form" }));
 	const current = await t.run(async (ctx) => {
 		const schemalessDb = ctx.db as unknown as GenericDatabaseWriter<AnyDataModel>;
 		for (let i = 0; i < 3; i++) {
@@ -56,16 +57,19 @@ it("deletes legacy responses and forms across calls and keeps current responses"
 	expect(await t.mutation(deleteLegacyBatch, {})).toEqual({
 		deletedResponses: 500,
 		deletedForms: 3,
+		clearedEvents: 1,
 		done: false,
 	});
 	expect(await t.mutation(deleteLegacyBatch, {})).toEqual({
 		deletedResponses: 150,
 		deletedForms: 0,
+		clearedEvents: 0,
 		done: true,
 	});
 	expect(await t.mutation(deleteLegacyBatch, {})).toEqual({
 		deletedResponses: 0,
 		deletedForms: 0,
+		clearedEvents: 0,
 		done: true,
 	});
 
@@ -74,8 +78,10 @@ it("deletes legacy responses and forms across calls and keeps current responses"
 		return {
 			responses: await ctx.db.query("formResponses").collect(),
 			forms: await schemalessDb.query("form").collect(),
+			event: await ctx.db.get(eventId),
 		};
 	});
 	expect(remaining.responses.map((row) => row._id)).toEqual([current]);
 	expect(remaining.forms).toEqual([]);
+	expect(remaining.event).not.toHaveProperty("formId");
 });
