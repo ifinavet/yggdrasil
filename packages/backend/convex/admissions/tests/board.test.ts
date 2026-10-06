@@ -1,4 +1,4 @@
-import { expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import {
 	admissionPeriodFixture,
 	applicationFields,
@@ -12,6 +12,8 @@ import {
 } from "../../../test/admissions-workflow";
 import { asUser, grantRole, insertUser } from "../../../test/fixtures";
 import { api, internal } from "../../_generated/api";
+
+afterEach(() => vi.restoreAllMocks());
 
 async function boardFixture() {
 	const { t, admin, periodId, now } = await admissionPeriodFixture({ revision: 0 });
@@ -268,6 +270,8 @@ it("limits bulk room conflict checks to rooms without rejecting unchanged interv
 });
 
 it("manual publication reuses the workflow queued by a room update", async () => {
+	let current = Date.now();
+	vi.spyOn(Date, "now").mockImplementation(() => current++);
 	const { t, admin, periodId, ids, now } = await boardFixture();
 	const applicationId = ids[0];
 	if (!applicationId) throw new Error("Missing fixture application");

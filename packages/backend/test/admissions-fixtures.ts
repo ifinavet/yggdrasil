@@ -9,8 +9,8 @@ const DAY = 24 * 60 * 60 * 1000;
 export function periodFields(
 	userId: Id<"users">,
 	overrides: Partial<WithoutSystemFields<Doc<"admissionPeriods">>> = {},
+	now = Date.now(),
 ): WithoutSystemFields<Doc<"admissionPeriods">> {
-	const now = Date.now();
 	return {
 		title: "Høst 2026",
 		applicationStartAt: now - 1_000,
@@ -123,7 +123,7 @@ export async function admissionPeriodFixture(overrides: Parameters<typeof period
 	await grantRole(t, admin._id, "admin");
 	const now = Date.now();
 	const periodId = await t.run((ctx) =>
-		ctx.db.insert("admissionPeriods", periodFields(admin._id, overrides)),
+		ctx.db.insert("admissionPeriods", periodFields(admin._id, overrides, now)),
 	);
 	return { t, admin, adminClient: asUser(t, admin), periodId, now };
 }
