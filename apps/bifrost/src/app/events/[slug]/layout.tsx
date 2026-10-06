@@ -6,10 +6,9 @@ import {
 	BreadcrumbPage,
 	BreadcrumbSeparator,
 } from "@workspace/ui/components//breadcrumb";
-import { Button } from "@workspace/ui/components//button";
-import { ChartPie, Pencil, Users } from "lucide-react";
 import { headers } from "next/headers";
-import Link from "next/link";
+import { EventPageGuide } from "@/components/events/event-guide-provider";
+import { EventNav } from "@/components/events/event-nav";
 
 export default async function Layout({
 	children,
@@ -27,7 +26,7 @@ export default async function Layout({
 	}
 
 	return (
-		<>
+		<EventPageGuide identifier={event_id}>
 			<div className="flex flex-wrap justify-between">
 				<Breadcrumb>
 					<BreadcrumbList>
@@ -45,26 +44,10 @@ export default async function Layout({
 					</BreadcrumbList>
 				</Breadcrumb>
 
-				<div className="flex flex-wrap gap-4">
-					<Button asChild variant="link" className="text-foreground">
-						<Link href={`/events/${event_id}`}>
-							<Pencil className="size-4" /> Rediger og Administer
-						</Link>
-					</Button>
-					<Button asChild variant="link" className="text-foreground">
-						<Link href={`/events/${event_id}/registrations`}>
-							<Users className="size-4" /> Påmeldte
-						</Link>
-					</Button>
-					<Button asChild variant="link" className="text-foreground">
-						<Link href={`/events/${event_id}/report`}>
-							<ChartPie className="size-4" /> Rapport
-						</Link>
-					</Button>
-				</div>
+				<EventNav identifier={event_id} />
 			</div>
 
 			{children}
-		</>
+		</EventPageGuide>
 	);
 }
