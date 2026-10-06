@@ -151,7 +151,22 @@ describe("delegated Google Calendar client", () => {
 		);
 		await expect(
 			googleCalendarClient(config, "interviewer@example.test").listCalendars(),
-		).rejects.toThrow("Google Calendar svarte 403 kunne ikke lese kalenderlisten.");
+		).rejects.toThrow("Google Calendar svarte 403 da vi skulle lese kalenderlisten.");
+	});
+
+	it("names the action when Google Calendar cannot be reached", async () => {
+		vi.stubGlobal(
+			"fetch",
+			vi
+				.fn()
+				.mockResolvedValueOnce(Response.json({ access_token: "secret-token", expires_in: 3600 }))
+				.mockImplementation(async () => {
+					throw new TypeError("fetch failed");
+				}),
+		);
+		await expect(
+			googleCalendarClient(config, "interviewer@example.test").listCalendars(),
+		).rejects.toThrow("Fikk ikke kontakt med Google Calendar da vi skulle lese kalenderlisten.");
 	});
 
 	it("exposes provider failures to the client as ConvexError data", async () => {
@@ -167,7 +182,7 @@ describe("delegated Google Calendar client", () => {
 			.catch((caught: unknown) => caught);
 		expect(error).toBeInstanceOf(ConvexError);
 		expect((error as ConvexError<string>).data).toBe(
-			"Google Calendar svarte 503 kunne ikke lese kalenderlisten.",
+			"Google Calendar svarte 503 da vi skulle lese kalenderlisten.",
 		);
 	});
 });
