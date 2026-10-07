@@ -72,9 +72,19 @@ function OpenSemesters({ semesters }: Readonly<{ semesters: readonly OpenSemeste
 			key={semester._id}
 			semester={semester}
 			semesterPicker={
-				semesters.length > 1 && (
-					<SemesterPicker semesters={semesters} value={semester._id} onChange={setChosenId} />
-				)
+				semesters.length > 1
+					? (saveDraftNow) => (
+							<SemesterPicker
+								semesters={semesters}
+								value={semester._id}
+								onChange={(id) => {
+									// The next form reads the draft as it mounts, before this one unmounts.
+									saveDraftNow();
+									setChosenId(id);
+								}}
+							/>
+						)
+					: undefined
 			}
 		/>
 	);

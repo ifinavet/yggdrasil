@@ -95,11 +95,12 @@ export function loadDraft(semesterId: string): StoredDraft | null {
 
 export function saveDraft(draft: StoredDraft): void {
 	const drafts = readStoredDrafts()?.drafts ?? {};
-	writeJson(local, DRAFT_KEY, {
+	const saved = writeJson(local, DRAFT_KEY, {
 		lastSemesterId: draft.semesterId,
 		drafts: { ...drafts, [draft.semesterId]: draft },
 	});
-	removeItem(local, LEGACY_DRAFT_KEY);
+	// The old draft may be the only one saved, so it goes only once the new one is written.
+	if (saved) removeItem(local, LEGACY_DRAFT_KEY);
 }
 
 /** Forgets the draft for a sent application. Drafts for other semesters are kept. */

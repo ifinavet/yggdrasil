@@ -26,7 +26,7 @@ const blocked = (): Storage => {
 describe("guarded storage", () => {
 	it("round-trips JSON and removes it again", () => {
 		const storage = memoryStorage();
-		writeJson(() => storage, "key", { note: "Hei" });
+		expect(writeJson(() => storage, "key", { note: "Hei" })).toBe(true);
 		expect(readJson(() => storage, "key")).toEqual({ note: "Hei" });
 		removeItem(() => storage, "key");
 		expect(readJson(() => storage, "key")).toBeNull();
@@ -40,7 +40,7 @@ describe("guarded storage", () => {
 
 	it("swallows blocked storage", () => {
 		expect(readJson(blocked, "key")).toBeNull();
-		expect(() => writeJson(blocked, "key", 1)).not.toThrow();
+		expect(writeJson(blocked, "key", 1)).toBe(false);
 		expect(() => removeItem(blocked, "key")).not.toThrow();
 	});
 });

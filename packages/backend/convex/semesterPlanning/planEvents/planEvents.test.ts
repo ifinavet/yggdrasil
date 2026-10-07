@@ -323,11 +323,35 @@ describe("queries", () => {
 		expect(rows.map((row) => row.title)).toEqual(["Først", "Senere"]);
 		expect(rows[0]?.helpers).toEqual([{ userId: member._id, name: "Ola Hansen" }]);
 
+		expect(rows[1]).not.toHaveProperty("responsibleUserId");
+
 		expect(await refusalMessageFrom(t.query(queries.listForSemester, { semesterId }))).toContain(
 			"innlogget",
 		);
 		expect(
 			await refusalMessageFrom(asUser(t, member).query(queries.candidates, { semesterId })),
 		).toContain("Unauthorized");
+	});
+
+	it("listForSemester returns a row, never null fields, when the company or its logo is gone", async () => {
+		const { t, companyId, semesterId, editor, member } = await planSetup();
+		const eventId = await insertEvent(t, companyId, { eventStart: TUESDAY_START });
+		await editor.mutation(mutations.addEvent, { semesterId, eventId });
+		const noLogo = await t.run(async (ctx) => {
+			const company = await ctx.db.get(companyId);
+			if (!company) throw new Error("Expected the company.");
+			await ctx.db.delete(company.logo);
+			return company;
+		});
+
+		const [withoutLogo] = await asUser(t, member).query(queries.listForSemester, { semesterId });
+		expect(withoutLogo).toMatchObject({ companyName: noLogo.name });
+		expect(withoutLogo).not.toHaveProperty("logoUrl");
+
+		await t.run((ctx) => ctx.db.delete(companyId));
+		const [withoutCompany] = await asUser(t, member).query(queries.listForSemester, {
+			semesterId,
+		});
+		expect(withoutCompany).toMatchObject({ eventId, companyName: "Ukjent" });
 	});
 });

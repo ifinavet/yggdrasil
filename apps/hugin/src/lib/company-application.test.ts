@@ -238,6 +238,31 @@ describe("company application saved draft", () => {
 		expect(loadDraft("semester-1")).toEqual(draft);
 	});
 
+	it("keeps the old draft when the new one cannot be written", () => {
+		stubStorage();
+		const legacy = JSON.stringify({
+			semesterId: "semester-1",
+			submissionId: "submission-1",
+			values: completeDraft(),
+		});
+		store.set("hugin.company-application.draft.v1", legacy);
+		const full = window.localStorage;
+		vi.stubGlobal("window", {
+			localStorage: {
+				...full,
+				setItem: () => {
+					throw new DOMException("Full", "QuotaExceededError");
+				},
+			},
+		});
+
+		const draft = loadDraft("semester-1");
+		if (!draft) throw new Error("Expected the draft.");
+		saveDraft(draft);
+
+		expect(store.get("hugin.company-application.draft.v1")).toBe(legacy);
+	});
+
 	it("has no draft to restore when nothing is saved", () => {
 		stubStorage();
 		expect(storedDraftSemesterId()).toBeNull();

@@ -46,12 +46,14 @@ export type OpenSemester = FunctionReturnType<
 
 /**
  * The Hugin application form for one open semester, saved as a draft while it is filled in. With
- * several semesters open, `semesterPicker` stands where the semester's name would.
+ * several semesters open, `semesterPicker` stands where the semester's name would. It gets a
+ * function that saves the draft at once, to call before switching, so the next semester's form
+ * starts from the latest answers.
  */
 export function ApplicationForm({
 	semester,
 	semesterPicker,
-}: Readonly<{ semester: OpenSemester; semesterPicker?: ReactNode }>) {
+}: Readonly<{ semester: OpenSemester; semesterPicker?: (saveDraftNow: () => void) => ReactNode }>) {
 	const router = useRouter();
 	const submit = useAction(api.semesterPlanning.applications.submit.submit);
 
@@ -131,12 +133,12 @@ export function ApplicationForm({
 		() => ({ semesterId: semester._id, submissionId: initial.submissionId, values }),
 		[semester._id, initial.submissionId, values],
 	);
-	useDraftAutosave(draft, sent);
+	const saveDraftNow = useDraftAutosave(draft, sent);
 
 	return (
 		<>
 			<div className="pt-1.5">
-				{semesterPicker ?? (
+				{semesterPicker?.(saveDraftNow) ?? (
 					<p className="m-0 font-semibold text-[13.5px] text-muted-foreground">{semesterLabel}</p>
 				)}
 				<h1 className="m-0 mt-0.5 font-bold text-[21px] text-primary leading-[1.22] tracking-[-0.015em] dark:text-primary-foreground">
