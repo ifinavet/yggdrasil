@@ -1,8 +1,11 @@
 import { TZDate } from "@date-fns/tz";
 import { format } from "date-fns";
 import { nb } from "date-fns/locale";
-import { AUTUMN_FIRST_MONTH, DATE_PATTERNS, OSLO_TIME_ZONE } from "./constants";
+import { DATE_PATTERNS, OSLO_TIME_ZONE } from "./constants";
 import { osloToday } from "./semester";
+
+// The event calendar starts autumn in August, when events start; semester planning uses July.
+const AUTUMN_FIRST_MONTH = 7;
 
 export const EVENT_SEMESTERS = ["vår", "høst"] as const;
 export type EventSemester = (typeof EVENT_SEMESTERS)[number];

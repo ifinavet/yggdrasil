@@ -108,7 +108,7 @@ describe("getAll", () => {
 		const viewer = await internalUser(t, "intern@example.com");
 		await insertEvent(t, companyId, {
 			title: "Første høstdag",
-			eventStart: Date.parse("2026-06-30T22:30:00Z"),
+			eventStart: Date.parse("2026-07-31T22:30:00Z"),
 		});
 		await insertEvent(t, companyId, {
 			title: "Nyttårsaften",
@@ -116,7 +116,7 @@ describe("getAll", () => {
 		});
 		await insertEvent(t, companyId, {
 			title: "Siste vårdag",
-			eventStart: Date.parse("2026-06-30T18:00:00Z"),
+			eventStart: Date.parse("2026-07-31T18:00:00Z"),
 		});
 		await insertEvent(t, companyId, {
 			title: "Nyttårsdag",

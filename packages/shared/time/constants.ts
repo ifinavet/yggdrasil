@@ -1,8 +1,8 @@
 export const OSLO_TIME_ZONE = "Europe/Oslo";
 
 /**
- * First month of the autumn term, zero-based (July). January to June belongs to spring. Semester
- * planning, event slugs and the event calendar all split the year here.
+ * First month of the autumn term in semester planning, zero-based (July). January to June belongs
+ * to spring. The event calendar starts autumn in August instead, see `event-semester.ts`.
  */
 export const AUTUMN_FIRST_MONTH = 6;
 
