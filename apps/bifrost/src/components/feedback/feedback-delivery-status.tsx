@@ -18,6 +18,7 @@ import { cn } from "@workspace/ui/lib/utils";
 import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import Link from "next/link";
+import { CreateReportNowButton } from "./create-report-now-button";
 import { CAMPAIGN_STATUS_BADGES } from "./status-labels";
 
 type DeliveryStatus = NonNullable<
@@ -99,6 +100,9 @@ export function FeedbackDeliveryStatus({ eventId }: Readonly<{ eventId: Id<"even
 							/>
 						</div>
 					</div>
+				)}
+				{delivery.status === "open" && delivery.responded > 0 && (
+					<CreateReportNowButton eventId={eventId} />
 				)}
 				{delivery.failed > 0 && (
 					<p role="alert" className={alertClassName}>

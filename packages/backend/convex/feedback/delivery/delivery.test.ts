@@ -871,6 +871,52 @@ it.each([
 	},
 );
 
+describe("closing feedback early", () => {
+	const close = api.feedback.events.closeEventFeedback;
+
+	it("lets an internal close after the first answer, stops reminders and builds the report", async () => {
+		const f = await fixture();
+		const internalUser = await insertUser(f.t, "internal@example.test");
+		await grantRole(f.t, internalUser._id, "internal");
+		const internalClient = asUser(f.t, internalUser);
+		await expect(
+			asUser(f.t, await insertUser(f.t, "student@example.test")).mutation(close, {
+				eventId: f.eventId,
+			}),
+		).rejects.toThrow();
+		await expect(internalClient.mutation(close, { eventId: f.eventId })).rejects.toThrow(
+			"minst én har svart",
+		);
+		const other = await insertUser(f.t, "other@example.test");
+		const otherInviteId = await f.t.run(async (ctx) => {
+			await ctx.db.patch(f.inviteId, { responded: true });
+			return ctx.db.insert("feedbackInvites", {
+				campaignId: f.campaignId,
+				userId: other._id,
+				registrationId: f.registrationId,
+				responded: false,
+				bounced: false,
+				complained: false,
+				sent: false,
+				delivered: false,
+			});
+		});
+		await internalClient.mutation(close, { eventId: f.eventId });
+		expect(await f.t.run((ctx) => ctx.db.get(f.campaignId))).toMatchObject({
+			status: "closed",
+			closedAt: opensAt,
+		});
+		await expect(internalClient.mutation(close, { eventId: f.eventId })).rejects.toThrow(
+			"ikke åpent",
+		);
+		vi.setSystemTime(feedbackRoundAt(opensAt, 3));
+		await f.t.action(send, { inviteId: otherInviteId, generation: 1, round: 3 });
+		expect(await f.t.run((ctx) => ctx.db.query("feedbackDeliveries").collect())).toEqual([]);
+		await f.t.finishAllScheduledFunctions(() => vi.advanceTimersToNextTimer());
+		expect(await f.t.run((ctx) => ctx.db.query("feedbackReports").collect())).toHaveLength(1);
+	});
+});
+
 describe("delivery status", () => {
 	const getStatus = api.feedback.delivery.status.getEventFeedbackDelivery;
 

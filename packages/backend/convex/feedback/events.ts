@@ -2,7 +2,12 @@ import { ConvexError, v } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import { type MutationCtx, mutation, query } from "../_generated/server";
 import { internalRoles, requireRole } from "../auth/accessRights";
-import { hasSentForms, latestCampaign, syncFeedbackCampaign } from "./delivery/campaigns";
+import {
+	finishCampaign,
+	hasSentForms,
+	latestCampaign,
+	syncFeedbackCampaign,
+} from "./delivery/campaigns";
 import { getFeedbackFormOrThrow, getLatestPublishedVersion } from "./forms/helpers";
 
 export const getEventFeedbackSettings = query({
@@ -40,6 +45,24 @@ export const updateEventFeedbackSettings = mutation({
 		await assertSelectableForm(ctx, event, enabled, formId);
 		await ctx.db.patch(eventId, { feedbackEnabled: enabled, feedbackFormId: formId });
 		await syncFeedbackCampaign(ctx, eventId, { requireSchedule: enabled });
+	},
+});
+
+export const closeEventFeedback = mutation({
+	args: { eventId: v.id("events") },
+	handler: async (ctx, { eventId }) => {
+		await requireRole(ctx, internalRoles);
+		const campaign = await latestCampaign(ctx, eventId);
+		if (campaign?.status !== "open")
+			throw new ConvexError("Tilbakemeldingsskjemaet er ikke åpent.");
+		const answered = await ctx.db
+			.query("feedbackInvites")
+			.withIndex("by_campaignId_and_responded", (index) =>
+				index.eq("campaignId", campaign._id).eq("responded", true),
+			)
+			.first();
+		if (!answered) throw new ConvexError("Rapporten kan lages når minst én har svart.");
+		await finishCampaign(ctx, campaign, "closed");
 	},
 });
 
