@@ -7,6 +7,7 @@ import { internalMutation, type MutationCtx } from "../../_generated/server";
 import { logRegistrationChange } from "../../engagement/log";
 import { fillOpenSeats } from "../../events/registrations/mutations";
 import { activateOnSignIn } from "../../iam/lifecycle";
+import { removeSeenGuideSteps } from "../guides/mutations";
 import { userByExternalId } from "./queries";
 
 const ANONYMIZED_USER = {
@@ -225,6 +226,7 @@ export const deleteFromClerk = internalMutation({
 		await revokeAccessRights(ctx, user._id);
 		await removeInternalPositions(ctx, user._id);
 		await removeStudentProfiles(ctx, user._id);
+		await removeSeenGuideSteps(ctx, user._id);
 
 		await ctx.db.patch(user._id, {
 			...ANONYMIZED_USER,

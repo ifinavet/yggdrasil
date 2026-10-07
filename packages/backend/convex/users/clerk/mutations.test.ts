@@ -1,3 +1,4 @@
+import { EVENT_GUIDE_STORAGE_KEY } from "@workspace/shared/events/guide";
 import { describe, expect, it, vi } from "vitest";
 import {
 	asUser,
@@ -26,6 +27,15 @@ async function seedUserWithEveryReference() {
 	const eventId = await insertEvent(t, companyId, { eventStart: Date.now() - 1 });
 	const registrationId = await insertRegistration(t, eventId, user._id, "registered");
 	const organizerId = await insertOrganizer(t, eventId, user._id);
+	await asUser(t, user).mutation(api.users.guides.mutations.markSeen, {
+		guide: EVENT_GUIDE_STORAGE_KEY,
+		step: "checklist",
+	});
+	const seenGuideStepsId = await t.run(async (ctx) => {
+		const [doc] = await ctx.db.query("seenGuideSteps").collect();
+		if (!doc) throw new Error("Expected a stored guide step");
+		return doc._id;
+	});
 
 	return {
 		t,
@@ -37,6 +47,7 @@ async function seedUserWithEveryReference() {
 		eventId,
 		registrationId,
 		organizerId,
+		seenGuideStepsId,
 	};
 }
 
@@ -71,7 +82,7 @@ describe("deleting a user from Clerk", () => {
 	});
 
 	it("removes the personal records that only exist for that user", async () => {
-		const { t, user, accessRightsId, studentId, pointsId, internalId } =
+		const { t, user, accessRightsId, studentId, pointsId, internalId, seenGuideStepsId } =
 			await seedUserWithEveryReference();
 
 		await t.mutation(deleteFromClerk, { clerkUserId: user.externalId });
@@ -81,12 +92,14 @@ describe("deleting a user from Clerk", () => {
 			student: await ctx.db.get(studentId),
 			points: await ctx.db.get(pointsId),
 			internal: await ctx.db.get(internalId),
+			seenGuideSteps: await ctx.db.get(seenGuideStepsId),
 		}));
 		expect(remaining).toEqual({
 			accessRights: null,
 			student: null,
 			points: null,
 			internal: null,
+			seenGuideSteps: null,
 		});
 	});
 

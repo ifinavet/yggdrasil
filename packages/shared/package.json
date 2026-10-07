@@ -42,6 +42,7 @@
 		"./semester/prices": "./semester/prices.ts",
 		"./semester/team": "./semester/team.ts",
 		"./iam": "./iam/index.ts",
+		"./guides": "./guides/index.ts",
 		"./organization": "./organization/index.ts",
 		"./slack/channels": "./slack/channels.ts",
 		"./slack/alerts": "./slack/alerts.ts",

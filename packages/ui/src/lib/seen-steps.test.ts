@@ -1,18 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { nextUnseenStep, parseSeenSteps } from "./seen-steps";
-
-describe("parseSeenSteps", () => {
-	it("reads a stored list of step ids", () => {
-		expect(parseSeenSteps('["start","calendars"]')).toEqual(["start", "calendars"]);
-	});
-
-	it("treats missing, broken or foreign values as nothing seen", () => {
-		expect(parseSeenSteps(null)).toEqual([]);
-		expect(parseSeenSteps("{not json")).toEqual([]);
-		expect(parseSeenSteps('{"start":true}')).toEqual([]);
-		expect(parseSeenSteps('["start",3,null]')).toEqual(["start"]);
-	});
-});
+import { nextUnseenStep } from "./seen-steps";
 
 describe("nextUnseenStep", () => {
 	const order = ["start", "calendars", "generate", "approve"] as const;

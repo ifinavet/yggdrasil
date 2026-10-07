@@ -176,6 +176,8 @@ import type * as semesterPlanning_semesters_queries from "../semesterPlanning/se
 import type * as users_clerk_http from "../users/clerk/http.js";
 import type * as users_clerk_mutations from "../users/clerk/mutations.js";
 import type * as users_clerk_queries from "../users/clerk/queries.js";
+import type * as users_guides_mutations from "../users/guides/mutations.js";
+import type * as users_guides_queries from "../users/guides/queries.js";
 import type * as users_organization_groups from "../users/organization/groups.js";
 import type * as users_organization_mutations from "../users/organization/mutations.js";
 import type * as users_organization_queries from "../users/organization/queries.js";
@@ -357,6 +359,8 @@ declare const fullApi: ApiFromModules<{
   "users/clerk/http": typeof users_clerk_http;
   "users/clerk/mutations": typeof users_clerk_mutations;
   "users/clerk/queries": typeof users_clerk_queries;
+  "users/guides/mutations": typeof users_guides_mutations;
+  "users/guides/queries": typeof users_guides_queries;
   "users/organization/groups": typeof users_organization_groups;
   "users/organization/mutations": typeof users_organization_mutations;
   "users/organization/queries": typeof users_organization_queries;

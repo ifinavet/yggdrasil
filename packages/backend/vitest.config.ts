@@ -21,6 +21,7 @@ export default defineConfig({
 				"convex/forms/cleanup.ts",
 				"convex/leaderboard/{queries,ranking}.ts",
 				"convex/companies/history.ts",
+				"convex/users/guides/{queries,mutations}.ts",
 			],
 			thresholds: { 100: true },
 		},
