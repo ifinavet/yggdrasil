@@ -7,6 +7,7 @@ import { cn } from "@workspace/ui/lib/utils";
 import { MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { type CSSProperties, memo, useMemo, useState } from "react";
+import { RemoveApplicationButton } from "../application/remove-application-button";
 import { capitalize, dayOfMonth, monthLabel, shortDayTitle, studentRange } from "../format";
 import { isActiveStatus } from "../status";
 import { StatusBadge } from "../status-badge";
@@ -227,26 +228,35 @@ const MatrixRow = memo(function MatrixRow({
 					selected && "bg-muted",
 				)}
 			>
-				<div className={cn(!active && "opacity-55")}>
-					<Link
-						href={`/semesterplan/soknad/${application._id}`}
-						className="block truncate font-semibold text-[13.5px] hover:underline"
-					>
-						{application.registry.name}
-					</Link>
-					<div className="mt-0.5 truncate text-[12px] text-muted-foreground tabular-nums">
-						{EVENT_TYPE_SHORT_LABELS[application.eventType]} ·{" "}
-						{studentRange(application.minStudents, application.maxStudents)}
-						{industry && ` · ${industry}`}
-					</div>
-					{application.datePreferences && (
-						<div
-							className="mt-[3px] inline-flex max-w-full items-center gap-1 text-[12px] text-attention"
-							title={application.datePreferences}
+				<div className="flex items-start gap-1">
+					<div className={cn("min-w-0 flex-1", !active && "opacity-55")}>
+						<Link
+							href={`/semesterplan/soknad/${application._id}`}
+							className="block truncate font-semibold text-[13.5px] hover:underline"
 						>
-							<MessageCircle className="size-[13px] shrink-0" aria-hidden />
-							<span className="truncate">{application.datePreferences}</span>
+							{application.registry.name}
+						</Link>
+						<div className="mt-0.5 truncate text-[12px] text-muted-foreground tabular-nums">
+							{EVENT_TYPE_SHORT_LABELS[application.eventType]} ·{" "}
+							{studentRange(application.minStudents, application.maxStudents)}
+							{industry && ` · ${industry}`}
 						</div>
+						{application.datePreferences && (
+							<div
+								className="mt-[3px] inline-flex max-w-full items-center gap-1 text-[12px] text-attention"
+								title={application.datePreferences}
+							>
+								<MessageCircle className="size-[13px] shrink-0" aria-hidden />
+								<span className="truncate">{application.datePreferences}</span>
+							</div>
+						)}
+					</div>
+					{application.status === "withdrawn" && (
+						<RemoveApplicationButton
+							applicationId={application._id}
+							companyName={application.registry.name}
+							className="-mt-1 -mr-2 shrink-0"
+						/>
 					)}
 				</div>
 			</th>

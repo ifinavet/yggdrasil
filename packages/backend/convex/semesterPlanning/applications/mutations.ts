@@ -2,6 +2,7 @@ import { MAX_INTERNAL_NOTES_LENGTH } from "@workspace/shared/semester/limits";
 import { ConvexError, v } from "convex/values";
 import type { Doc, Id } from "../../_generated/dataModel";
 import { type MutationCtx, mutation } from "../../_generated/server";
+import { invoiceFor } from "../../invoicing/schedule";
 import {
 	type Actor,
 	logApplicationActivity,
@@ -189,6 +190,52 @@ export const reopen = mutation({
 		await transitionApplicationStatus(ctx, application, "applied", actor, {
 			patch: { assignedDate: undefined, ...(eventGone ? { eventId: undefined } : {}) },
 		});
+		return null;
+	},
+});
+
+/**
+ * Removes a deleted («Slettet») application for good, with its offers, history and an invoice that
+ * was never sent, so it no longer shows in «Fordeling» and «Søknader». It cannot be undone. An
+ * application that still has an event or was invoiced is kept.
+ *
+ * @param {Id<"companyApplications">} applicationId - The deleted application.
+ *
+ * @throws - An error if the caller is not an editor, the application is not deleted, or it still
+ * has an event or a sent invoice.
+ * @returns {null} - Returns null when the application is gone.
+ */
+export const remove = mutation({
+	args: { applicationId: v.id("companyApplications") },
+	returns: v.null(),
+	handler: async (ctx, { applicationId }) => {
+		await requireEditorActor(ctx);
+		const application = await requireApplication(ctx, applicationId);
+		if (application.status !== "withdrawn") {
+			throw new ConvexError("Bare slettede søknader kan fjernes.");
+		}
+		if (application.eventId && (await ctx.db.get(application.eventId))) {
+			throw new ConvexError("Søknaden har fortsatt et arrangement. Slett arrangementet først.");
+		}
+		const invoice = await invoiceFor(ctx, { kind: "companyApplication", applicationId });
+		if (invoice?.status === "sent") {
+			throw new ConvexError("Søknaden er fakturert, så den kan ikke fjernes.");
+		}
+
+		const offers = await ctx.db
+			.query("companyApplicationOffers")
+			.withIndex("by_applicationId", (q) => q.eq("applicationId", applicationId))
+			.collect();
+		const activity = await ctx.db
+			.query("companyApplicationActivity")
+			.withIndex("by_applicationId", (q) => q.eq("applicationId", applicationId))
+			.collect();
+		await Promise.all([
+			...offers.map((offer) => ctx.db.delete(offer._id)),
+			...activity.map((entry) => ctx.db.delete(entry._id)),
+			...(invoice ? [ctx.db.delete(invoice._id)] : []),
+		]);
+		await ctx.db.delete(applicationId);
 		return null;
 	},
 });
