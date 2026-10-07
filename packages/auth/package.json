@@ -14,7 +14,10 @@
 	"devDependencies": {
 		"@workspace/typescript-config": "workspace:*",
 		"typescript": "catalog:",
-		"@types/react": "catalog:"
+		"@types/react": "catalog:",
+		"@types/react-dom": "catalog:",
+		"react-dom": "catalog:",
+		"vitest": "catalog:"
 	},
 	"exports": {
 		".": "./index.ts",
@@ -31,6 +34,7 @@
 		"react": "catalog:"
 	},
 	"scripts": {
-		"check-types": "tsc --noEmit"
+		"check-types": "tsc --noEmit",
+		"test": "vitest run"
 	}
 }

@@ -3,7 +3,7 @@
 import { useAuth } from "@clerk/nextjs";
 import * as Convex from "convex/react";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
-import type { ReactNode } from "react";
+import { type ReactNode, useSyncExternalStore } from "react";
 import { isLocalDevelopment } from "./local";
 
 export default function ConvexProvider({
@@ -32,7 +32,27 @@ function LocalHidden(_props: { children: ReactNode }) {
 	return null;
 }
 
+const subscribeToNothing = () => () => {};
+
+function useHydrated() {
+	return useSyncExternalStore(
+		subscribeToNothing,
+		() => true,
+		() => false,
+	);
+}
+
+function HydratedAuthenticated({ children }: { children: ReactNode }) {
+	return useHydrated() ? <Convex.Authenticated>{children}</Convex.Authenticated> : null;
+}
+function HydratedUnauthenticated({ children }: { children: ReactNode }) {
+	return useHydrated() ? <Convex.Unauthenticated>{children}</Convex.Unauthenticated> : null;
+}
+function HydratedAuthLoading({ children }: { children: ReactNode }) {
+	return useHydrated() ? <Convex.AuthLoading>{children}</Convex.AuthLoading> : children;
+}
+
 export const useConvexAuth = isLocalDevelopment ? useLocalAuth : Convex.useConvexAuth;
-export const Authenticated = isLocalDevelopment ? LocalAuthenticated : Convex.Authenticated;
-export const Unauthenticated = isLocalDevelopment ? LocalHidden : Convex.Unauthenticated;
-export const AuthLoading = isLocalDevelopment ? LocalHidden : Convex.AuthLoading;
+export const Authenticated = isLocalDevelopment ? LocalAuthenticated : HydratedAuthenticated;
+export const Unauthenticated = isLocalDevelopment ? LocalHidden : HydratedUnauthenticated;
+export const AuthLoading = isLocalDevelopment ? LocalHidden : HydratedAuthLoading;
