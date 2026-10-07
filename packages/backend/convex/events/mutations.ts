@@ -12,6 +12,7 @@ import { syncFeedbackCampaign } from "../feedback/delivery/campaigns";
 import { enqueueSystemMessage } from "../iam/notifications";
 import { eventProductFields } from "../products/sales";
 import { syncApplicationWithEvent } from "../semesterPlanning/events";
+import { placeEventInPlan } from "../semesterPlanning/planEvents/helper";
 import { requireFoodItem } from "./food";
 import { eventSlug, insertEventWithOrganizers, setEventOrganizers } from "./helper";
 import { makeStatusPending } from "./registrations/mutations";
@@ -149,6 +150,9 @@ export const update = mutation({
 		await setEventOrganizers(ctx, eventId, organizers);
 		// A semester plan application follows its event: the same date and the same team.
 		await syncApplicationWithEvent(ctx, eventId, { type: "internal", userId: user._id });
+		// An event without an application follows its date into the right semester plan.
+		const updated = await ctx.db.get(eventId);
+		if (updated) await placeEventInPlan(ctx, updated, event.eventStart);
 
 		const waitlistLength = await ctx.db
 			.query("registrations")
@@ -289,6 +293,8 @@ export const create = mutation({
 			},
 			organizers,
 		);
+		const created = await ctx.db.get(eventId);
+		if (created) await placeEventInPlan(ctx, created);
 		await scheduleRegistrationOpenAlert(ctx, {
 			_id: eventId,
 			registrationOpens,
