@@ -1,7 +1,6 @@
 import { api } from "@workspace/backend/convex/api";
 import { BOARD_CONTACT_EMAIL } from "@workspace/shared/constants/contact";
 import { Button } from "@workspace/ui/components/button";
-import { FeatureGate } from "@workspace/ui/components/feature-gate";
 import ResponsiveCenterContainer from "@workspace/ui/components/responsive-center-container";
 import { Title } from "@workspace/ui/components/title";
 import { fetchQuery } from "convex/nextjs";
@@ -27,11 +26,9 @@ export default function CompaniesPage() {
 		<CompaniesContent
 			applyCard={
 				// Keyed: the cached page renders the element it gets, and React asks for a key.
-				<FeatureGate key="apply-card" feature="semesterPlanning">
-					<Suspense fallback={<ApplyForEventCardSkeleton />}>
-						<ApplyForEventCard />
-					</Suspense>
-				</FeatureGate>
+				<Suspense key="apply-card" fallback={<ApplyForEventCardSkeleton />}>
+					<ApplyForEventCard />
+				</Suspense>
 			}
 		/>
 	);
