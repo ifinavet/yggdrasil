@@ -21,8 +21,12 @@ import { fullDate } from "@/lib/company-application-format";
 import { COMPANY_APPLICATION_COPY as COPY } from "@/lib/company-application-questions";
 import { storedDraftSemesterId } from "@/lib/company-application-storage";
 import { ApplicationForm, type OpenSemester } from "./application-form";
+import { InterestForm } from "./interest-form";
 
-/** /bestill-bedpres: the form while a semester is open, a closed page otherwise. */
+/**
+ * /bestill-bedpres: the form while a semester is open. Otherwise a closed page, where a company can
+ * leave its email to hear when applications open.
+ */
 export function CompanyApplication() {
 	const semesters = useQuery(api.semesterPlanning.semesters.queries.listOpenForApplications);
 
@@ -36,15 +40,18 @@ export function CompanyApplication() {
 				title={COPY.closed.title}
 				body={COPY.closed.body}
 				action={
-					<Note>
-						{COPY.closed.question}{" "}
-						<a
-							href={`mailto:${COMPANY_CONTACT_EMAIL}`}
-							className="font-semibold underline underline-offset-[3px]"
-						>
-							{COMPANY_CONTACT_EMAIL}
-						</a>
-					</Note>
+					<>
+						<Note>
+							{COPY.closed.question}{" "}
+							<a
+								href={`mailto:${COMPANY_CONTACT_EMAIL}`}
+								className="font-semibold underline underline-offset-[3px]"
+							>
+								{COMPANY_CONTACT_EMAIL}
+							</a>
+						</Note>
+						<InterestForm />
+					</>
 				}
 			/>
 		);

@@ -10,5 +10,7 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
 	brregSearch: { kind: "token bucket", rate: 120, period: MINUTE, capacity: 60 },
 	submitApplication: { kind: "token bucket", rate: 5, period: HOUR, capacity: 5 },
 	submitApplicationGlobal: { kind: "fixed window", rate: 200, period: HOUR },
+	registerInterest: { kind: "token bucket", rate: 3, period: HOUR, capacity: 3 },
+	registerInterestGlobal: { kind: "fixed window", rate: 50, period: HOUR },
 	resendOfferEmail: { kind: "fixed window", rate: 3, period: HOUR },
 });

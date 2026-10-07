@@ -113,6 +113,16 @@ export const COMPANY_APPLICATION_COPY = {
 		title: "Søknadene er stengt",
 		body: "Vi tar ikke imot søknader akkurat nå. Søknadene for neste semester åpner når semesteret er klart.",
 		question: "Har dere spørsmål? Skriv til",
+		interest: {
+			title: "Vil dere vite når søknadene åpner?",
+			lede: "Legg igjen navn og e-post, så gir vi beskjed når dere kan søke.",
+			companyName: "Bedrift",
+			email: "E-post",
+			send: "Gi oss beskjed",
+			busy: "Sender …",
+			sent: (email: string) => `Takk! Vi gir beskjed til ${email} når søknadene åpner.`,
+			honeypot: "Ikke fyll ut dette feltet",
+		},
 	},
 	receipt: {
 		title: "Søknaden er sendt",
