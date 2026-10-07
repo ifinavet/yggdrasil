@@ -17,6 +17,7 @@ import { pointsSchema } from "./points/schema";
 import { productsSchema } from "./products/schema";
 import { semesterPlanningSchema } from "./semesterPlanning/schema";
 import { usersSchema } from "./users/clerk/schema";
+import { guidesSchema } from "./users/guides/schema";
 import { organizationSchema } from "./users/organization/schema";
 import { studentsSchema } from "./users/students/schema";
 
@@ -32,6 +33,7 @@ export default defineSchema({
 	...usersSchema,
 	...organizationSchema,
 	...studentsSchema,
+	...guidesSchema,
 	...pointsSchema,
 	...feedbackSchema,
 	...feedbackReportSchema,
