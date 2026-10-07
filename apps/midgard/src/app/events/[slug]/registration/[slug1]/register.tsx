@@ -3,20 +3,18 @@
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { Button } from "@workspace/ui/components/button";
-import { type Preloaded, useMutation, usePreloadedQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
 import { usePostHog } from "posthog-js/react";
 import { toast } from "sonner";
 
 export default function Register({
-	preloadedRegistration,
+	registrationId,
 	eventId,
 }: Readonly<{
-	preloadedRegistration: Preloaded<typeof api.events.registrations.queries.getById>;
+	registrationId: Id<"registrations">;
 	eventId: Id<"events">;
 }>) {
-	const registration = usePreloadedQuery(preloadedRegistration);
-
 	const router = useRouter();
 	const posthog = usePostHog();
 
@@ -24,7 +22,7 @@ export default function Register({
 		api.events.registrations.mutations.acceptPendingRegistration,
 	);
 	const handleAccept = () =>
-		acceptRegistration({ id: registration._id })
+		acceptRegistration({ id: registrationId })
 			.then(() => {
 				toast.success("Registreringen er akseptert!");
 				router.push(`/events/${eventId}`);
@@ -37,7 +35,7 @@ export default function Register({
 
 	const unregister = useMutation(api.events.registrations.mutations.unregister);
 	const handleUnregister = () =>
-		unregister({ id: registration._id })
+		unregister({ id: registrationId })
 			.then(({ deletedRegistration, event, person }) => {
 				posthog.capture("midgard-student_unregister", {
 					unregistration_type: "Waitlist unregistration",
