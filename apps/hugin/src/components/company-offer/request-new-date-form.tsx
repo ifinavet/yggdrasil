@@ -7,21 +7,23 @@ import { Note } from "@workspace/ui/components/note";
 import { cn } from "@workspace/ui/lib/utils";
 import { useMutation } from "convex/react";
 import { useState } from "react";
-import { CheckMark, ERROR_TEXT, ErrorLine } from "@/components/form-controls";
+import { DateGrid } from "@/components/date-grid";
+import { ERROR_TEXT, ErrorLine } from "@/components/form-controls";
 import { fieldErrorText } from "@/components/input-cards/question-block";
 import { SubmitDock } from "@/components/submit-dock";
 import { companyErrorMessage } from "@/lib/company-error-message";
 import { COMPANY_OFFER_COPY } from "@/lib/company-offer-copy";
-import { pickableDayLabel } from "@/lib/company-offer-format";
 import { requestNewDateSchema } from "@/lib/schema/company-offer-schema";
 import { CommentField, ContactLink, StepHeader } from "./offer-parts";
 
 const COPY = COMPANY_OFFER_COPY.newDate;
+const DATES_LABEL_ID = "requested-dates-label";
 const DATES_ERROR_ID = "requested-dates-error";
 
 /**
  * Asks for other dates instead of the offered one. The company picks among the semester's open
- * days; the page never shows which days other companies have.
+ * days in the same month and week grid as the application form; the page never shows which days
+ * other companies have.
  */
 export function RequestNewDateForm({
 	token,
@@ -68,23 +70,20 @@ export function RequestNewDateForm({
 
 				<form.Field name="dates">
 					{(field) => {
-						const selected = field.state.value;
 						const error = fieldErrorText(field);
-						const atLimit = selected.length >= MAX_REQUESTED_DATES;
+						const atLimit = field.state.value.length >= MAX_REQUESTED_DATES;
 
 						return (
-							<fieldset
-								className="m-0 mt-[22px] border-0 p-0"
-								aria-describedby={error ? DATES_ERROR_ID : undefined}
-							>
-								<legend
+							<div className="mt-[22px]">
+								<p
+									id={DATES_LABEL_ID}
 									className={cn(
-										"mb-2.5 p-0 font-semibold text-[15px] leading-[1.35]",
+										"m-0 mb-2.5 font-semibold text-[15px] leading-[1.35]",
 										error ? ERROR_TEXT : "text-foreground",
 									)}
 								>
 									{COPY.datesLabel}
-								</legend>
+								</p>
 								{atLimit && (
 									<p className="m-0 -mt-1 mb-2.5 text-[13px] text-muted-foreground leading-[1.4]">
 										{COPY.atLimit(MAX_REQUESTED_DATES)}
@@ -97,48 +96,19 @@ export function RequestNewDateForm({
 										{COPY.noDatesEnd}
 									</Note>
 								) : (
-									<div className="grid gap-2 tabular-nums">
-										{openDates.map((date) => {
-											const checked = selected.includes(date);
-											const id = `date-${date}`;
-
-											return (
-												<div key={date} className="relative">
-													<input
-														type="checkbox"
-														id={id}
-														className="peer sr-only"
-														checked={checked}
-														disabled={!checked && atLimit}
-														aria-invalid={Boolean(error) || undefined}
-														onBlur={field.handleBlur}
-														onChange={() =>
-															field.handleChange(
-																checked
-																	? selected.filter((value) => value !== date)
-																	: [...selected, date].sort((a, b) => a.localeCompare(b)),
-															)
-														}
-													/>
-													<label
-														htmlFor={id}
-														className={cn(
-															"flex min-h-[54px] cursor-pointer items-center gap-2.5 rounded-xl border px-[14px] py-2.5 font-semibold text-[15px] leading-[1.3] transition-[background-color,border-color,color] duration-150 peer-focus-visible:outline-3 peer-focus-visible:outline-[color-mix(in_oklab,var(--ring)_55%,transparent)] peer-focus-visible:outline-offset-2 peer-disabled:cursor-not-allowed peer-disabled:opacity-55",
-															checked
-																? "border-primary bg-primary text-primary-foreground"
-																: "border-input bg-card",
-														)}
-													>
-														<CheckMark checked={checked} inverted className="rounded-[6px]" />
-														{pickableDayLabel(date)}
-													</label>
-												</div>
-											);
-										})}
-									</div>
+									<DateGrid
+										dates={openDates}
+										value={field.state.value}
+										onChange={field.handleChange}
+										onBlur={field.handleBlur}
+										invalid={Boolean(error)}
+										labelledBy={DATES_LABEL_ID}
+										describedBy={error ? DATES_ERROR_ID : undefined}
+										max={MAX_REQUESTED_DATES}
+									/>
 								)}
 								{error && <ErrorLine id={DATES_ERROR_ID}>{error}</ErrorLine>}
-							</fieldset>
+							</div>
 						);
 					}}
 				</form.Field>
