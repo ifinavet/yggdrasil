@@ -15,20 +15,29 @@ function DateCell({
 	date,
 	checked,
 	invalid,
+	disabled,
 	onToggle,
-}: Readonly<{ date: string; checked: boolean; invalid: boolean; onToggle: () => void }>) {
+}: Readonly<{
+	date: string;
+	checked: boolean;
+	invalid: boolean;
+	disabled: boolean;
+	onToggle: () => void;
+}>) {
 	const { weekday, day } = dateCellParts(date);
 	return (
 		<label
 			className={cn(
 				"relative flex h-[46px] min-w-0 cursor-pointer items-center gap-2 rounded-xl border px-3 font-semibold text-[14.5px] tabular-nums transition-[background-color,border-color,color] duration-150 active:scale-[0.98]",
 				"has-[input:focus-visible]:outline-3 has-[input:focus-visible]:outline-[color-mix(in_oklab,var(--ring)_55%,transparent)] has-[input:focus-visible]:outline-offset-2",
+				"has-[input:disabled]:cursor-not-allowed has-[input:disabled]:opacity-55 has-[input:disabled]:active:scale-100",
 				cellTone(checked, invalid),
 			)}
 		>
 			<input
 				type="checkbox"
 				checked={checked}
+				disabled={disabled}
 				onChange={onToggle}
 				aria-label={formatSemesterDay(date, "long")}
 				className="sr-only"
@@ -50,8 +59,10 @@ function DateCell({
 }
 
 /**
- * Every open date in the semester as a checkbox, by month and week. Hugin never says
- * whether a date is taken; closed dates are not sent to the page at all.
+ * Every date the company can pick as a checkbox, by month and week, for the application form and
+ * for asking for another date on an offer. Hugin never says whether a date is taken; dates that
+ * cannot be picked are not sent to the page at all. With `max`, «Velg alle» is left out and the
+ * other dates are locked once that many are chosen.
  */
 export function DateGrid({
 	dates,
@@ -60,6 +71,8 @@ export function DateGrid({
 	invalid,
 	labelledBy,
 	describedBy,
+	max,
+	onBlur,
 }: Readonly<{
 	dates: readonly string[];
 	value: readonly string[];
@@ -67,9 +80,12 @@ export function DateGrid({
 	invalid: boolean;
 	labelledBy: string;
 	describedBy?: string;
+	max?: number;
+	onBlur?: () => void;
 }>) {
 	const months = useMemo(() => groupDatesByMonth(dates), [dates]);
 	const chosen = new Set(value);
+	const atLimit = max !== undefined && value.length >= max;
 
 	const toggle = (date: string) => {
 		const next = new Set(chosen);
@@ -82,13 +98,19 @@ export function DateGrid({
 		<fieldset
 			aria-labelledby={labelledBy}
 			aria-describedby={describedBy}
+			onBlur={onBlur}
 			className="m-0 min-w-0 border-0 p-0"
 		>
 			<div className="-mt-2 flex items-center justify-between gap-3 text-[13px] tabular-nums">
 				<div className="-ml-2 flex">
-					<DateAction disabled={value.length === dates.length} onClick={() => onChange([...dates])}>
-						{COPY.dates.selectAll}
-					</DateAction>
+					{max === undefined && (
+						<DateAction
+							disabled={value.length === dates.length}
+							onClick={() => onChange([...dates])}
+						>
+							{COPY.dates.selectAll}
+						</DateAction>
+					)}
 					<DateAction disabled={value.length === 0} onClick={() => onChange([])}>
 						{COPY.dates.clear}
 					</DateAction>
@@ -120,6 +142,7 @@ export function DateGrid({
 										date={date}
 										checked={chosen.has(date)}
 										invalid={invalid}
+										disabled={atLimit && !chosen.has(date)}
 										onToggle={() => toggle(date)}
 									/>
 								</div>

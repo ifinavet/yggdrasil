@@ -1,4 +1,5 @@
 import { Note } from "@workspace/ui/components/note";
+import { DateGrid } from "@/components/date-grid";
 import { fieldErrorText, questionIds } from "@/components/input-cards/question-block";
 import { TEXT_LIMITS } from "@/lib/company-application";
 import { COMPANY_APPLICATION_COPY as COPY } from "@/lib/company-application-questions";
@@ -8,7 +9,6 @@ import {
 	FormSection,
 	LongTextAnswer,
 } from "./application-question";
-import { DateGrid } from "./date-grid";
 import type { ApplicationFormApi } from "./use-application-form";
 
 /** «Datoer»: the open dates that suit the company, and any wishes about them. */
