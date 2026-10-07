@@ -57,8 +57,9 @@ export const closeEventFeedback = mutation({
 			throw new ConvexError("Tilbakemeldingsskjemaet er ikke åpent.");
 		const answered = await ctx.db
 			.query("feedbackInvites")
-			.withIndex("by_campaignId", (index) => index.eq("campaignId", campaign._id))
-			.filter((invite) => invite.eq(invite.field("responded"), true))
+			.withIndex("by_campaignId_and_responded", (index) =>
+				index.eq("campaignId", campaign._id).eq("responded", true),
+			)
 			.first();
 		if (!answered) throw new ConvexError("Rapporten kan lages når minst én har svart.");
 		await finishCampaign(ctx, campaign, "closed");

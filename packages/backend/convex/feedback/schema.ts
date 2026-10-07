@@ -90,6 +90,7 @@ export const feedbackSchema = {
 		formVersionId: v.optional(v.id("formVersions")),
 	})
 		.index("by_campaignId", ["campaignId"])
+		.index("by_campaignId_and_responded", ["campaignId", "responded"])
 		.index("by_campaignId_and_userId", ["campaignId", "userId"])
 		.index("by_userId", ["userId"])
 		.index("by_campaignId_and_retainedAt", ["campaignId", "retainedAt"]),

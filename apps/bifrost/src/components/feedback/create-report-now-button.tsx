@@ -16,24 +16,29 @@ import {
 } from "@workspace/ui/components/alert-dialog";
 import { Button } from "@workspace/ui/components/button";
 import { useMutation } from "convex/react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 export function CreateReportNowButton({ eventId }: Readonly<{ eventId: Id<"events"> }>) {
 	const close = useMutation(api.feedback.events.closeEventFeedback);
+	const [pending, setPending] = useState(false);
 
 	const createReport = async () => {
+		setPending(true);
 		try {
 			await close({ eventId });
 			toast.success("Rapporten lages nå.");
 		} catch (error) {
 			toast.error(convexErrorMessage(error, "Kunne ikke lage rapporten."));
+		} finally {
+			setPending(false);
 		}
 	};
 
 	return (
 		<AlertDialog>
 			<AlertDialogTrigger asChild>
-				<Button size="sm" variant="outline" className="self-start">
+				<Button size="sm" variant="outline" className="self-start" disabled={pending}>
 					Lag rapport nå
 				</Button>
 			</AlertDialogTrigger>
@@ -47,7 +52,7 @@ export function CreateReportNowButton({ eventId }: Readonly<{ eventId: Id<"event
 				</AlertDialogHeader>
 				<AlertDialogFooter>
 					<AlertDialogCancel>Vent</AlertDialogCancel>
-					<AlertDialogAction onClick={createReport}>Lag rapport nå</AlertDialogAction>
+					<AlertDialogAction disabled={pending} onClick={createReport}>Lag rapport nå</AlertDialogAction>
 				</AlertDialogFooter>
 			</AlertDialogContent>
 		</AlertDialog>
