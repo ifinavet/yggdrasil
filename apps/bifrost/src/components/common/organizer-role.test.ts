@@ -14,10 +14,10 @@ describe("organizerMarker", () => {
 		});
 	});
 
-	it("uses a faded primary color for a co-organizer", () => {
+	it("uses the light primary color for a co-organizer", () => {
 		expect(organizerMarker("medhjelper", false)).toEqual({
 			label: "Du er medansvarlig",
-			className: "bg-primary/40 text-primary hover:bg-primary-light",
+			className: "bg-primary-light text-primary",
 		});
 	});
 
