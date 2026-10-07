@@ -1,5 +1,11 @@
 import { start } from "@convex-dev/workflow";
-import { feedbackOpensAt, feedbackRetentionAt, feedbackRoundAt } from "@workspace/shared/time";
+import {
+	feedbackOpensAt,
+	feedbackRetentionAt,
+	feedbackRoundAt,
+	remindersAfterLateInvitation,
+} from "@workspace/shared/time";
+import type { FunctionArgs, FunctionReference } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../../_generated/api";
 import type { Doc, Id } from "../../_generated/dataModel";
@@ -181,6 +187,68 @@ export const closeCampaign = internalMutation({
 	},
 });
 
+async function insertInvite(
+	ctx: MutationCtx,
+	campaign: Doc<"feedbackCampaigns">,
+	registration: Doc<"registrations">,
+) {
+	if (registration.status !== "registered") return null;
+	if (registration.attendanceStatus !== "confirmed" && registration.attendanceStatus !== "late")
+		return null;
+	const organizer = await ctx.db
+		.query("eventOrganizers")
+		.withIndex("by_eventId_and_userId", (index) =>
+			index.eq("eventId", campaign.eventId).eq("userId", registration.userId),
+		)
+		.first();
+	const participant = await ctx.db.get(registration.userId);
+	if (organizer || !participant || participant.deleted) return null;
+	const existing = await ctx.db
+		.query("feedbackInvites")
+		.withIndex("by_campaignId_and_userId", (index) =>
+			index.eq("campaignId", campaign._id).eq("userId", registration.userId),
+		)
+		.unique();
+	if (existing) return null;
+	return await ctx.db.insert("feedbackInvites", {
+		campaignId: campaign._id,
+		userId: registration.userId,
+		registrationId: registration._id,
+		responded: false,
+		bounced: false,
+		complained: false,
+		sent: false,
+		delivered: false,
+	});
+}
+
+async function startInvitation<F extends FunctionReference<"mutation", "internal">>(
+	ctx: MutationCtx,
+	inviteId: Id<"feedbackInvites">,
+	invitation: F,
+	args: FunctionArgs<F>["args"],
+) {
+	const workflowId = await start(ctx, invitation, args, {
+		onComplete: internal.feedback.delivery.messages.onInvitationComplete,
+		context: { inviteId },
+	});
+	await ctx.db.patch(inviteId, { workflowId });
+}
+
+export async function inviteLateAttendee(ctx: MutationCtx, registration: Doc<"registrations">) {
+	const campaign = await latestCampaign(ctx, registration.eventId);
+	const now = Date.now();
+	if (campaign?.status !== "open" || now >= campaign.closesAt) return;
+	const inviteId = await insertInvite(ctx, campaign, registration);
+	if (!inviteId) return;
+	await startInvitation(ctx, inviteId, internal.feedback.delivery.workflows.lateInvitationV1, {
+		inviteId,
+		generation: campaign.generation,
+		opensAt: campaign.opensAt,
+		reminderDays: remindersAfterLateInvitation(campaign.opensAt, now),
+	});
+}
+
 export const inviteParticipants = internalMutation({
 	args: { ...campaignArgs, cursor: v.union(v.string(), v.null()) },
 	handler: async (ctx, { campaignId, generation, cursor }): Promise<string | null> => {
@@ -201,43 +269,13 @@ export const inviteParticipants = internalMutation({
 			)
 			.paginate({ numItems: 50, cursor });
 		for (const registration of registrations.page) {
-			if (registration.attendanceStatus !== "confirmed" && registration.attendanceStatus !== "late")
-				continue;
-			const organizer = await ctx.db
-				.query("eventOrganizers")
-				.withIndex("by_eventId_and_userId", (index) =>
-					index.eq("eventId", event._id).eq("userId", registration.userId),
-				)
-				.first();
-			const participant = await ctx.db.get(registration.userId);
-			if (organizer || !participant || participant.deleted) continue;
-			const existing = await ctx.db
-				.query("feedbackInvites")
-				.withIndex("by_campaignId_and_userId", (index) =>
-					index.eq("campaignId", campaignId).eq("userId", registration.userId),
-				)
-				.unique();
-			if (existing) continue;
-			const inviteId = await ctx.db.insert("feedbackInvites", {
-				campaignId,
-				userId: registration.userId,
-				registrationId: registration._id,
-				responded: false,
-				bounced: false,
-				complained: false,
-				sent: false,
-				delivered: false,
+			const inviteId = await insertInvite(ctx, campaign, registration);
+			if (!inviteId) continue;
+			await startInvitation(ctx, inviteId, internal.feedback.delivery.workflows.invitationV1, {
+				inviteId,
+				generation,
+				opensAt: campaign.opensAt,
 			});
-			const workflowId = await start(
-				ctx,
-				internal.feedback.delivery.workflows.invitationV1,
-				{ inviteId, generation, opensAt: campaign.opensAt },
-				{
-					onComplete: internal.feedback.delivery.messages.onInvitationComplete,
-					context: { inviteId },
-				},
-			);
-			await ctx.db.patch(inviteId, { workflowId });
 		}
 		return registrations.isDone ? null : registrations.continueCursor;
 	},
