@@ -11,6 +11,7 @@ import {
 	insertFoodItem,
 	insertOrganizer,
 	insertRegistration,
+	insertStudent,
 	insertUser,
 	setup,
 } from "../../../test/fixtures";
@@ -712,6 +713,71 @@ describe("durable workflow integration", () => {
 			});
 		},
 		20000,
+	);
+	it.each([
+		{ day: 1, rounds: [0, 7, 11] },
+		{ day: 5, rounds: [0, 11] },
+		{ day: 9, rounds: [0] },
+		{ day: 12, rounds: [0] },
+	])(
+		"invites attendance marked on day $day with rounds $rounds",
+		async ({ day, rounds }) => {
+			const f = await fixture();
+			const participant = await insertUser(f.t, "marked-late@example.test");
+			await insertStudent(f.t, participant._id);
+			const registrationId = await insertRegistration(
+				f.t,
+				f.eventId,
+				participant._id,
+				"registered",
+			);
+			vi.setSystemTime(feedbackRoundAt(opensAt, day));
+			await f.client.mutation(api.events.registrations.mutations.updateAttendance, {
+				id: registrationId,
+				newStatus: "late",
+			});
+			await f.client.mutation(api.events.registrations.mutations.updateAttendance, {
+				id: registrationId,
+				newStatus: "confirmed",
+			});
+			await f.t.finishAllScheduledFunctions(() => vi.advanceTimersToNextTimer(), 500);
+			const invite = await f.t.run((ctx) =>
+				ctx.db
+					.query("feedbackInvites")
+					.withIndex("by_campaignId_and_userId", (index) =>
+						index.eq("campaignId", f.campaignId).eq("userId", participant._id),
+					)
+					.unique(),
+			);
+			const deliveries = await f.t.run((ctx) => ctx.db.query("feedbackDeliveries").collect());
+			expect(
+				deliveries
+					.filter((delivery) => delivery.inviteId === invite?._id)
+					.map((delivery) => delivery.round),
+			).toEqual(rounds);
+		},
+		20000,
+	);
+	it.each(["no_show", "waitlist", "scheduled", "closed"] as const)(
+		"does not invite late attendance for %s",
+		async (reason) => {
+			const f = await fixture();
+			const participant = await insertUser(f.t, "not-invited@example.test");
+			await insertStudent(f.t, participant._id);
+			const registrationId = await insertRegistration(
+				f.t,
+				f.eventId,
+				participant._id,
+				reason === "waitlist" ? "waitlist" : "registered",
+			);
+			if (reason === "scheduled" || reason === "closed")
+				await f.t.run((ctx) => ctx.db.patch(f.campaignId, { status: reason }));
+			await f.client.mutation(api.events.registrations.mutations.updateAttendance, {
+				id: registrationId,
+				newStatus: reason === "no_show" ? "no_show" : "confirmed",
+			});
+			expect(await f.t.run((ctx) => ctx.db.query("feedbackInvites").collect())).toHaveLength(1);
+		},
 	);
 	it("continues bounded invitation and cancellation batches", async () => {
 		const f = await fixture();

@@ -27,3 +27,13 @@ export function feedbackRoundAt(opensAt: number, days: number): number {
 		(opensAt % 60_000)
 	);
 }
+
+export function remindersAfterLateInvitation(opensAt: number, now: number) {
+	const roundsAhead = [0, ...REMINDER_DAYS].filter(
+		(round) => feedbackRoundAt(opensAt, round) > now,
+	).length;
+	const roundsReplacedByInvitation = 1;
+	return REMINDER_DAYS.slice(
+		REMINDER_DAYS.length - Math.max(roundsAhead - roundsReplacedByInvitation, 0),
+	);
+}

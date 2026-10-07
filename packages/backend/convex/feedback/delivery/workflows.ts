@@ -4,6 +4,8 @@ import { internal } from "../../_generated/api";
 import { workflow } from "../../lib/workflow";
 import { campaignArgs } from "./campaigns";
 
+const deliveryRetry = { maxAttempts: 5, initialBackoffMs: 1000, base: 2 };
+
 // Keep these definitions stable while campaigns are sleeping; changed sequences need a new version.
 export const campaignV1 = workflow
 	.define({ args: { ...campaignArgs, opensAt: v.number(), closesAt: v.number() } })
@@ -42,8 +44,32 @@ export const invitationV1 = workflow
 				{ ...invitation, round },
 				{
 					runAt: feedbackRoundAt(opensAt, round),
-					retry: { maxAttempts: 5, initialBackoffMs: 1000, base: 2 },
+					retry: deliveryRetry,
 				},
+			);
+		}
+	});
+
+export const lateInvitationV1 = workflow
+	.define({
+		args: {
+			inviteId: v.id("feedbackInvites"),
+			generation: v.number(),
+			opensAt: v.number(),
+			reminderDays: v.array(v.union(v.literal(3), v.literal(7), v.literal(11))),
+		},
+	})
+	.handler(async (step, { opensAt, reminderDays, ...invitation }): Promise<void> => {
+		await step.runAction(
+			internal.feedback.delivery.mail.sendFeedbackEmail,
+			{ ...invitation, round: 0 },
+			{ retry: deliveryRetry },
+		);
+		for (const round of reminderDays) {
+			await step.runAction(
+				internal.feedback.delivery.mail.sendFeedbackEmail,
+				{ ...invitation, round },
+				{ runAt: feedbackRoundAt(opensAt, round), retry: deliveryRetry },
 			);
 		}
 	});
