@@ -154,9 +154,12 @@ describe("assignDate", () => {
 		).toBe(expected);
 	});
 
-	it("moves a confirmed application back to «Søkt» and deletes its unpublished event", async () => {
+	it("moves a confirmed application with an event together with the event, and keeps it confirmed", async () => {
 		const { t, companyId, semesterId, editor, editorUser } = await planningSetup();
-		const eventId = await insertEvent(t, companyId, { published: false });
+		const eventId = await insertEvent(t, companyId, {
+			published: false,
+			eventStart: Date.parse("2027-02-09T15:15:00Z"),
+		});
 		await insertOrganizer(t, eventId, editorUser._id);
 		const applicationId = await insertApplication(t, semesterId, {
 			status: "confirmed",
@@ -169,20 +172,28 @@ describe("assignDate", () => {
 
 		const application = await applicationById(t, applicationId);
 		expect([application.status, application.assignedDate, application.eventId]).toEqual([
-			"applied",
+			"confirmed",
 			"2027-02-16",
-			undefined,
+			eventId,
 		]);
 		expect((await t.run((ctx) => ctx.db.get(offerId)))?.status).toBe("accepted");
-		expect(await t.run((ctx) => ctx.db.get(eventId))).toBeNull();
-		expect(
-			await t.run((ctx) =>
-				ctx.db
-					.query("eventOrganizers")
-					.withIndex("by_eventId", (q) => q.eq("eventId", eventId))
-					.collect(),
-			),
-		).toEqual([]);
+		expect((await t.run((ctx) => ctx.db.get(eventId)))?.eventStart).toBe(
+			Date.parse("2027-02-16T15:15:00Z"),
+		);
+	});
+
+	it("moves a confirmed application without an event back to «Søkt»", async () => {
+		const { t, semesterId, editor, editorUser } = await planningSetup();
+		const applicationId = await insertApplication(t, semesterId, {
+			status: "confirmed",
+			assignedDate: "2027-02-09",
+		});
+		await insertOffer(t, applicationId, editorUser._id, "accepted");
+
+		await editor.mutation(mutations.assignDate, { applicationId, date: "2027-02-16" });
+
+		const application = await applicationById(t, applicationId);
+		expect([application.status, application.assignedDate]).toEqual(["applied", "2027-02-16"]);
 	});
 
 	it("refuses withdrawn applications and closed semesters", async () => {
@@ -453,7 +464,7 @@ describe("updatePlanningDetails", () => {
 		).toBe("Medhjelperne må være interne medlemmer.");
 	});
 
-	it("refuses team changes once the event exists, but still saves notes", async () => {
+	it("changes the team on the event once it exists, and saves notes", async () => {
 		const { t, semesterId, editor, companyId } = await planningSetup();
 		const member = await insertUser(t, "emil@ifinavet.no");
 		await grantRole(t, member._id, "internal");
@@ -475,13 +486,18 @@ describe("updatePlanningDetails", () => {
 		);
 		const applicationId = await insertApplication(t, semesterId, { eventId });
 
-		for (const change of [{ responsibleUserId: member._id }, { helperUserIds: [member._id] }]) {
-			expect(
-				await refusalMessageFrom(
-					editor.mutation(mutations.updatePlanningDetails, { applicationId, ...change }),
-				),
-			).toBe("Arrangementet er opprettet. Endre kontaktperson og medhjelpere på arrangementet.");
-		}
+		await editor.mutation(mutations.updatePlanningDetails, {
+			applicationId,
+			responsibleUserId: member._id,
+		});
+		expect(
+			await t.run((ctx) =>
+				ctx.db
+					.query("eventOrganizers")
+					.withIndex("by_eventId", (q) => q.eq("eventId", eventId))
+					.collect(),
+			),
+		).toMatchObject([{ userId: member._id, role: "hovedansvarlig" }]);
 		await editor.mutation(mutations.updatePlanningDetails, { applicationId, internalNotes: "Ok" });
 		expect((await applicationById(t, applicationId)).internalNotes).toBe("Ok");
 	});

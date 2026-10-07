@@ -71,33 +71,130 @@ async function loadUsers(ctx: QueryCtx, ids: Id<"users">[]): Promise<Doc<"users"
 	);
 }
 
+/** A team by user id: the kontaktperson, if any, and the medhjelpere. */
+export type TeamIds = { responsibleUserId?: Id<"users">; helperUserIds: Id<"users">[] };
+
+type Organizer = Pick<Doc<"eventOrganizers">, "userId" | "role">;
+
+/**
+ * The team an event's organizers make: a hovedansvarlig as kontaktperson, `preferred` when it is
+ * one of them, and every medhjelper.
+ *
+ * @param {Organizer[]} organizers - The event's organizers.
+ * @param {Id<"users">} [preferred] - The kontaktperson the application has, kept while still a hovedansvarlig.
+ *
+ * @returns {TeamIds} - The kontaktperson and the medhjelpere.
+ */
+export function teamOfOrganizers(
+	organizers: readonly Organizer[],
+	preferred?: Id<"users">,
+): TeamIds {
+	const leads = organizers.filter((o) => o.role === "hovedansvarlig").map((o) => o.userId);
+	const responsibleUserId = preferred && leads.includes(preferred) ? preferred : leads[0];
+	return {
+		...(responsibleUserId ? { responsibleUserId } : {}),
+		helperUserIds: organizers.filter((o) => o.role === "medhjelper").map((o) => o.userId),
+	};
+}
+
+/**
+ * The organizers an event gets when its team is changed from the semester plan: the kontaktperson
+ * as hovedansvarlig and the medhjelpere. Other hovedansvarlige set on the event stay.
+ *
+ * @param {Organizer[]} organizers - The event's organizers now.
+ * @param {TeamIds} current - The team they make now.
+ * @param {TeamIds} next - The team the event should have.
+ *
+ * @returns {Organizer[]} - The organizers to set.
+ */
+export function organizersForTeam(
+	organizers: readonly Organizer[],
+	current: TeamIds,
+	next: TeamIds,
+): Organizer[] {
+	const team = new Set([next.responsibleUserId, ...next.helperUserIds]);
+	const otherLeads = organizers.filter(
+		(o) =>
+			o.role === "hovedansvarlig" && o.userId !== current.responsibleUserId && !team.has(o.userId),
+	);
+	return [
+		...(next.responsibleUserId
+			? [{ userId: next.responsibleUserId, role: "hovedansvarlig" as const }]
+			: []),
+		...otherLeads.map(({ userId }) => ({ userId, role: "hovedansvarlig" as const })),
+		...next.helperUserIds.map((userId) => ({ userId, role: "medhjelper" as const })),
+	];
+}
+
+/**
+ * An event's organizers.
+ *
+ * @param {QueryCtx} ctx - The Convex query context.
+ * @param {Id<"events">} eventId - The event.
+ *
+ * @returns {Promise<Doc<"eventOrganizers">[]>} - The organizers, in the order they were added.
+ */
+export async function listEventOrganizers(
+	ctx: QueryCtx,
+	eventId: Id<"events">,
+): Promise<Doc<"eventOrganizers">[]> {
+	return ctx.db
+		.query("eventOrganizers")
+		.withIndex("by_eventId", (q) => q.eq("eventId", eventId))
+		.collect();
+}
+
+async function loadTeam(ctx: QueryCtx, team: TeamIds): Promise<NavetTeam> {
+	return {
+		responsible: team.responsibleUserId ? await ctx.db.get(team.responsibleUserId) : null,
+		helpers: await loadUsers(ctx, team.helperUserIds),
+	};
+}
+
 /**
  * Who from Navet runs an event, from its organizers.
  *
  * @param {QueryCtx} ctx - The Convex query context.
  * @param {Id<"events">} eventId - The event.
+ * @param {Id<"users">} [preferred] - The hovedansvarlig to show as kontaktperson, if there are several.
  *
  * @returns {Promise<NavetTeam>} - The hovedansvarlig, if any, and the medhjelpere.
  */
-export async function loadEventTeam(ctx: QueryCtx, eventId: Id<"events">): Promise<NavetTeam> {
-	const organizers = await ctx.db
-		.query("eventOrganizers")
-		.withIndex("by_eventId", (q) => q.eq("eventId", eventId))
-		.collect();
-	const [responsible] = await loadUsers(
-		ctx,
-		organizers.filter((o) => o.role === "hovedansvarlig").map((o) => o.userId),
-	);
-	const helpers = await loadUsers(
-		ctx,
-		organizers.filter((o) => o.role === "medhjelper").map((o) => o.userId),
-	);
-	return { responsible: responsible ?? null, helpers };
+export async function loadEventTeam(
+	ctx: QueryCtx,
+	eventId: Id<"events">,
+	preferred?: Id<"users">,
+): Promise<NavetTeam> {
+	return loadTeam(ctx, teamOfOrganizers(await listEventOrganizers(ctx, eventId), preferred));
 }
 
 /**
- * Who from Navet runs a company's event. Once the event exists its organizers are the truth, since
- * they can be changed there; before that, the application holds them.
+ * The team by user id for an application. Once the event exists its organizers are the team, so
+ * a change in the event editor or the plan shows in both; before that, the application holds it.
+ *
+ * @param {QueryCtx} ctx - The Convex query context.
+ * @param {Doc<"companyApplications">} application - The application.
+ *
+ * @returns {Promise<TeamIds>} - The kontaktperson, if any, and the medhjelpere.
+ */
+export async function applicationTeam(
+	ctx: QueryCtx,
+	application: Doc<"companyApplications">,
+): Promise<TeamIds> {
+	if (application.eventId && (await ctx.db.get(application.eventId))) {
+		return teamOfOrganizers(
+			await listEventOrganizers(ctx, application.eventId),
+			application.responsibleUserId,
+		);
+	}
+	return {
+		...(application.responsibleUserId ? { responsibleUserId: application.responsibleUserId } : {}),
+		helperUserIds: application.helperUserIds ?? [],
+	};
+}
+
+/**
+ * Who from Navet runs a company's event, as users. See {@link applicationTeam}.
  *
  * @param {QueryCtx} ctx - The Convex query context.
  * @param {Doc<"companyApplications">} application - The application.
@@ -108,14 +205,7 @@ export async function loadNavetTeam(
 	ctx: QueryCtx,
 	application: Doc<"companyApplications">,
 ): Promise<NavetTeam> {
-	if (application.eventId) return loadEventTeam(ctx, application.eventId);
-
-	return {
-		responsible: application.responsibleUserId
-			? await ctx.db.get(application.responsibleUserId)
-			: null,
-		helpers: await loadUsers(ctx, application.helperUserIds ?? []),
-	};
+	return loadTeam(ctx, await applicationTeam(ctx, application));
 }
 
 /** «Kari Nordmann» */
@@ -178,6 +268,8 @@ export async function findCompanyProfile(
  *
  * @param {QueryCtx | MutationCtx} ctx - The Convex query or mutation context.
  * @param {Id<"users">[]} helperUserIds - The medhjelpere.
+ * @param {number} [max] - How many are allowed. An event can have more medhjelpere than the plan
+ * picks, so a team already that big may stay that big.
  *
  * @throws - A Norwegian error if the medhjelpere are not valid.
  * @returns {Promise<void>} - Resolves when they are valid.
@@ -185,12 +277,13 @@ export async function findCompanyProfile(
 export async function requireValidHelpers(
 	ctx: QueryCtx | MutationCtx,
 	helperUserIds: Id<"users">[],
+	max: number = MAX_HELPERS,
 ): Promise<void> {
 	if (new Set(helperUserIds).size !== helperUserIds.length) {
 		throw new ConvexError("Samme person er valgt som medhjelper to ganger.");
 	}
-	if (helperUserIds.length > MAX_HELPERS) {
-		throw new ConvexError(`Et arrangement kan ha høyst ${MAX_HELPERS} medhjelpere.`);
+	if (helperUserIds.length > max) {
+		throw new ConvexError(`Et arrangement kan ha høyst ${max} medhjelpere.`);
 	}
 	for (const userId of helperUserIds) {
 		if (!(await userHasRole(ctx, userId, internalRoles))) {

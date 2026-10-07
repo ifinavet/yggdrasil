@@ -88,7 +88,7 @@ describe("createEvent", () => {
 		expect((await activityFor(t, applicationId)).map((row) => row.type)).toEqual(["event_linked"]);
 	});
 
-	it("is safe to run again, and moves an unpublished event to the application's date", async () => {
+	it("is safe to run again, and moves its event to the application's date", async () => {
 		const { t, applicationId, editor } = await eventSetup();
 		const eventId = await editor.mutation(createEvent, { applicationId });
 
@@ -104,7 +104,7 @@ describe("createEvent", () => {
 			await ctx.db.patch(applicationId, { assignedDate: "2027-02-16" });
 		});
 		expect(await editor.mutation(createEvent, { applicationId })).toBe(eventId);
-		expect((await eventById(t, eventId))?.eventStart).toBe(Date.parse("2027-02-11T15:15:00Z"));
+		expect((await eventById(t, eventId))?.eventStart).toBe(Date.parse("2027-02-16T15:15:00Z"));
 	});
 
 	it("refuses until the semester has a start time for events", async () => {

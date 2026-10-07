@@ -20,12 +20,7 @@ import { createContext, useCallback, useContext, useMemo, useState } from "react
 import type { DayButtonProps } from "react-day-picker";
 import { toast } from "sonner";
 import { capitalize, longDay, shortDay } from "../format";
-import {
-	type Application,
-	MOVE_CONFIRMED_WARNING,
-	type SemesterContext,
-	useRunMutation,
-} from "./model";
+import { type Application, moveConsequence, type SemesterContext, useRunMutation } from "./model";
 
 const OFFER_STATUSES: ReadonlySet<Application["status"]> = new Set([
 	"offer_sent",
@@ -154,9 +149,7 @@ export function AssignDateDialog({
 
 /** What giving the application a date does to its status and any offer. */
 function assignDescription(application: Application): string {
-	if (application.status === "confirmed") {
-		return `Søknaden går tilbake til «Søkt». ${MOVE_CONFIRMED_WARNING}`;
-	}
+	if (application.status === "confirmed") return moveConsequence(application);
 	if (replacesOffer(application) && application.assignedDate) {
 		return `Tilbudet på ${shortDay(application.assignedDate)} slutter å gjelde, og søknaden går tilbake til «Søkt» til du sender nytt tilbud.`;
 	}

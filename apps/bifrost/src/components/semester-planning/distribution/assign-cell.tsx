@@ -12,20 +12,11 @@ import { useMutation } from "convex/react";
 import { TriangleAlert } from "lucide-react";
 import { type DragEvent, useState } from "react";
 import { toast } from "sonner";
-import { MOVE_CONFIRMED_WARNING } from "../application/model";
+import { clearConsequence, moveConsequence } from "../application/model";
 import { dayOfMonth, longDay, shortDay, studentRange } from "../format";
 import { STATUS_CHIP_CLASSES } from "../status";
 import type { CellKind } from "./cell-kind";
 import { CELL_KIND_CLASSES, CHIP_BASE, DROP_TARGET } from "./cell-styles";
-
-/** What moving the application's date does beyond the date, or nothing. */
-function moveConsequence(status: Doc<"companyApplications">["status"]): string {
-	if (status === "confirmed") return MOVE_CONFIRMED_WARNING;
-	if (status === "offer_sent" || status === "new_date_requested") {
-		return "Tilbudet som er sendt slutter å virke.";
-	}
-	return "";
-}
 
 /** Which chip is being dragged: the application and the date it holds now. */
 export type DragState = { applicationId: string; from: string } | null;
@@ -115,7 +106,7 @@ export function AssignCell({
 	const day = longDay(date);
 	const ticked = application.availableDates.includes(date);
 	// What changes beyond the date, so the move asks first.
-	const consequence = moveConsequence(application.status);
+	const consequence = moveConsequence(application);
 
 	const draggable = isOwn;
 	const dropTarget = drag?.applicationId === application._id && (kind === "can" || kind === "req");
@@ -169,9 +160,7 @@ export function AssignCell({
 	let note: string;
 	let warning = false;
 	if (isOwn) {
-		note = consequence
-			? `${consequence} Søknaden går tilbake til «Søkt».`
-			: "Datoen blir ledig igjen.";
+		note = clearConsequence(application);
 	} else if (kind === "req") {
 		note = "Datoen er ledig, og bedriften har bedt om den.";
 	} else if (ticked) {

@@ -28,9 +28,40 @@ export function canAssignDate(application: Application, semester: Doc<"semesters
 	return isActiveStatus(application.status) && semester.status !== "closed";
 }
 
-/** What moving a confirmed application does, for the dialogs that ask first. */
-export const MOVE_CONFIRMED_WARNING =
-	"Bedriften må godta den nye datoen på nytt, og et upublisert arrangement slettes.";
+/**
+ * What clearing an application's date does, for the grid that asks first. Clearing gives up the
+ * booking, so an unpublished event is deleted and a published one stops it.
+ */
+export function clearConsequence(
+	application: Pick<Doc<"companyApplications">, "status" | "eventId">,
+): string {
+	if (application.status === "applied") return "Datoen blir ledig igjen.";
+	if (application.status === "confirmed" && application.eventId) {
+		return "Det upubliserte arrangementet slettes, og søknaden går tilbake til «Søkt».";
+	}
+	return application.status === "confirmed"
+		? "Søknaden går tilbake til «Søkt»."
+		: "Tilbudet som er sendt slutter å virke, og søknaden går tilbake til «Søkt».";
+}
+
+/**
+ * What moving an application to another date does beyond the date, for the dialogs that ask
+ * first, or nothing. An application with an event is moved together with the event, the same as
+ * moving the event in the event editor.
+ */
+export function moveConsequence(
+	application: Pick<Doc<"companyApplications">, "status" | "eventId">,
+): string {
+	if (application.status === "confirmed") {
+		return application.eventId
+			? "Arrangementet flyttes til samme tid på den nye datoen, og søknaden er fortsatt bekreftet. Bedriften og påmeldte får ikke e-post om dette."
+			: "Søknaden går tilbake til «Søkt», og bedriften må godta den nye datoen på nytt.";
+	}
+	if (application.status === "offer_sent" || application.status === "new_date_requested") {
+		return "Tilbudet som er sendt slutter å virke.";
+	}
+	return "";
+}
 
 /** The days the application can be given: open, and not held by another company. */
 export function freeDates({ dates, takenBy }: SemesterContext): Set<string> {

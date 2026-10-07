@@ -193,3 +193,38 @@ export async function countRegistrationsWithStatus(
 
 	return registrationsWithStatus.length;
 }
+
+/**
+ * Makes an event's organizers exactly these: removes the others, adds the new ones and updates
+ * changed roles. Shared by the event editor and the semester plan, so a team changed in either
+ * place is the same team.
+ *
+ * @param {MutationCtx} ctx - The Convex mutation context.
+ * @param {Id<"events">} eventId - The event.
+ * @param {{ userId: Id<"users">, role: "hovedansvarlig" | "medhjelper" }[]} organizers - The organizers it should have.
+ *
+ * @returns {Promise<void>} - Resolves when the organizers match.
+ */
+export async function setEventOrganizers(
+	ctx: MutationCtx,
+	eventId: Id<"events">,
+	organizers: readonly { userId: Id<"users">; role: OrganizerRole }[],
+): Promise<void> {
+	const existing = await ctx.db
+		.query("eventOrganizers")
+		.withIndex("by_eventId", (q) => q.eq("eventId", eventId))
+		.collect();
+
+	const removed = existing
+		.filter((organizer) => !organizers.some(({ userId }) => userId === organizer.userId))
+		.map((organizer) => ctx.db.delete(organizer._id));
+	const added = organizers
+		.filter(({ userId }) => !existing.some((organizer) => organizer.userId === userId))
+		.map(({ userId, role }) => ctx.db.insert("eventOrganizers", { eventId, userId, role }));
+	const changed = organizers.flatMap(({ userId, role }) => {
+		const current = existing.find((organizer) => organizer.userId === userId);
+		return current && current.role !== role ? [ctx.db.patch(current._id, { role })] : [];
+	});
+
+	await Promise.all([...removed, ...added, ...changed]);
+}

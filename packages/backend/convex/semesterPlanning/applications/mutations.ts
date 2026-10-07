@@ -1,22 +1,24 @@
-import { closedDateLabel } from "@workspace/shared/semester/labels";
 import { MAX_INTERNAL_NOTES_LENGTH } from "@workspace/shared/semester/limits";
-import { isIsoDate } from "@workspace/shared/time";
 import { ConvexError, v } from "convex/values";
 import type { Doc, Id } from "../../_generated/dataModel";
 import { type MutationCtx, mutation } from "../../_generated/server";
-import { internalRoles, userHasRole } from "../../auth/accessRights";
 import {
 	type Actor,
-	findActiveApplicationOnDate,
 	logApplicationActivity,
+	requireAssignableDate,
 	requireEditorActor,
 	transitionApplicationStatus,
 } from "../applicationLifecycle";
-import { deleteDraftEvent, ensureDraftEvent } from "../events";
+import {
+	deleteDraftEvent,
+	ensureDraftEvent,
+	moveApplicationWithEvent,
+	setApplicationTeam,
+} from "../events";
 import { supersedePendingOffers } from "../offers/helper";
 import { isActiveApplicationStatus } from "../rules";
 import { requireSemester } from "../semesters/helper";
-import { requireApplication, requireValidHelpers } from "./helper";
+import { requireApplication } from "./helper";
 
 function refuseIfApplicationInactive(application: Doc<"companyApplications">): void {
 	if (!isActiveApplicationStatus(application.status)) {
@@ -59,8 +61,9 @@ async function setAssignedDate(
 
 /**
  * Gives an application a date, or clears it with null. Refuses closed dates, dates another
- * company holds and closed semesters. A confirmed application goes back to «Søkt» and needs a new
- * offer. A date the company did not tick is allowed, and reported back so Bifrost can warn.
+ * company holds and closed semesters. An application with an event moves the event with it and
+ * stays confirmed; a confirmed one without an event goes back to «Søkt» and needs a new offer. A
+ * date the company did not tick is allowed, and reported back so Bifrost can warn.
  *
  * @param {Id<"companyApplications">} applicationId - The application.
  * @param {string | null} date - The day as YYYY-MM-DD, or null to clear it.
@@ -76,35 +79,19 @@ export const assignDate = mutation({
 		const application = await requireApplication(ctx, applicationId);
 		refuseIfApplicationInactive(application);
 
-		const semester = await requireSemester(ctx, application.semesterId);
-		if (semester.status === "closed") throw new ConvexError("Semesteret er stengt.");
-
 		if (date === null) {
+			const semester = await requireSemester(ctx, application.semesterId);
+			if (semester.status === "closed") throw new ConvexError("Semesteret er stengt.");
 			if (application.assignedDate) await setAssignedDate(ctx, application, undefined, actor);
 			return { outsideAvailable: false };
 		}
 
-		if (!isIsoDate(date)) throw new ConvexError("Ugyldig dato.");
-		const semesterDate = await ctx.db
-			.query("semesterDates")
-			.withIndex("by_semesterId_and_date", (q) =>
-				q.eq("semesterId", application.semesterId).eq("date", date),
-			)
-			.first();
-		if (!semesterDate) throw new ConvexError("Datoen finnes ikke i semesteret.");
-		if (semesterDate.closedLabel !== undefined) {
-			throw new ConvexError(`Datoen er stengt: ${closedDateLabel(semesterDate.closedLabel)}.`);
+		await requireAssignableDate(ctx, application, date);
+		if (application.assignedDate !== date) {
+			const event = application.eventId ? await ctx.db.get(application.eventId) : null;
+			if (event) await moveApplicationWithEvent(ctx, application, event, date, actor);
+			else await setAssignedDate(ctx, application, date, actor);
 		}
-
-		const holder = await findActiveApplicationOnDate(
-			ctx,
-			application.semesterId,
-			date,
-			applicationId,
-		);
-		if (holder) throw new ConvexError(`Datoen er allerede gitt til ${holder.registry.name}.`);
-
-		if (application.assignedDate !== date) await setAssignedDate(ctx, application, date, actor);
 
 		return { outsideAvailable: !application.availableDates.includes(date) };
 	},
@@ -208,16 +195,16 @@ export const reopen = mutation({
 
 /**
  * Updates who from Navet runs the event, the kontaktperson and medhjelpere, and the internal
- * notes. Once the event exists, its organizers are the team, so the team is changed on the event
- * instead. These changes are not written to the history.
+ * notes. Once the event exists, the event's organizers change with it, so the plan and the event
+ * editor show the same team. These changes are not written to the history.
  *
  * @param {Id<"companyApplications">} applicationId - The application.
  * @param {Id<"users"> | null} [responsibleUserId] - The kontaktperson from Navet, or null to clear.
  * @param {Id<"users">[]} [helperUserIds] - Up to MAX_HELPERS medhjelpere; an empty list clears them.
  * @param {string} [internalNotes] - Notes for editors; an empty string clears them.
  *
- * @throws - An error if the caller is not an editor, the team is changed after the event exists,
- * or a team member is not an internal member or is picked twice.
+ * @throws - An error if the caller is not an editor, or a team member is not an internal member or
+ * is picked twice.
  * @returns {null} - Returns null when the fields are saved.
  */
 export const updatePlanningDetails = mutation({
@@ -232,31 +219,19 @@ export const updatePlanningDetails = mutation({
 		await requireEditorActor(ctx);
 		const application = await requireApplication(ctx, applicationId);
 
-		const changesTeam = responsibleUserId !== undefined || helperUserIds !== undefined;
-		if (changesTeam && application.eventId) {
-			throw new ConvexError(
-				"Arrangementet er opprettet. Endre kontaktperson og medhjelpere på arrangementet.",
-			);
-		}
-
-		if (responsibleUserId && !(await userHasRole(ctx, responsibleUserId, internalRoles))) {
-			throw new ConvexError("Kontaktpersonen fra Navet må være et internt medlem.");
-		}
-		if (helperUserIds !== undefined) await requireValidHelpers(ctx, helperUserIds);
 		if (internalNotes !== undefined && internalNotes.length > MAX_INTERNAL_NOTES_LENGTH) {
 			throw new ConvexError(`Notatene kan ha høyst ${MAX_INTERNAL_NOTES_LENGTH} tegn.`);
 		}
 
-		const cleared = (value: string) => value.trim() || undefined;
-		await ctx.db.patch(applicationId, {
-			...(responsibleUserId !== undefined
-				? { responsibleUserId: responsibleUserId ?? undefined }
-				: {}),
-			...(helperUserIds !== undefined
-				? { helperUserIds: helperUserIds.length ? helperUserIds : undefined }
-				: {}),
-			...(internalNotes !== undefined ? { internalNotes: cleared(internalNotes) } : {}),
-		});
+		if (responsibleUserId !== undefined || helperUserIds !== undefined) {
+			await setApplicationTeam(ctx, application, {
+				...(responsibleUserId !== undefined ? { responsibleUserId } : {}),
+				...(helperUserIds !== undefined ? { helperUserIds } : {}),
+			});
+		}
+		if (internalNotes !== undefined) {
+			await ctx.db.patch(applicationId, { internalNotes: internalNotes.trim() || undefined });
+		}
 		return null;
 	},
 });
