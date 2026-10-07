@@ -52,7 +52,9 @@ export function CreateReportNowButton({ eventId }: Readonly<{ eventId: Id<"event
 				</AlertDialogHeader>
 				<AlertDialogFooter>
 					<AlertDialogCancel>Vent</AlertDialogCancel>
-					<AlertDialogAction disabled={pending} onClick={createReport}>Lag rapport nå</AlertDialogAction>
+					<AlertDialogAction disabled={pending} onClick={createReport}>
+						Lag rapport nå
+					</AlertDialogAction>
 				</AlertDialogFooter>
 			</AlertDialogContent>
 		</AlertDialog>
