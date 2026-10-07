@@ -314,7 +314,8 @@ function StatusMessage({
 			if (assigned) {
 				return (
 					<>
-						Datoen er <b>{longDay(assigned)}</b>. Send tilbudet, så får bedriften en lenke på e-post.
+						Datoen er <b>{longDay(assigned)}</b>. Send tilbudet, så får bedriften en lenke på
+						e-post.
 					</>
 				);
 			}

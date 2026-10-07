@@ -56,8 +56,7 @@ export function PlanningCard({ application }: Readonly<{ application: Applicatio
 					/>
 					{Array.from({ length: Math.max(MAX_HELPERS, helpers.length) }, (_, slot) => (
 						<TeamMember
-							// The slots are fixed positions, so the index is a stable key.
-							// biome-ignore lint/suspicious/noArrayIndexKey: fixed slots
+							// The slots are fixed positions, so the slot number is a stable key.
 							key={slot}
 							id={`planning-helper-${slot}`}
 							label={`Medhjelper ${slot + 1}`}
