@@ -5,7 +5,7 @@ import type { Id } from "@workspace/backend/convex/dataModel";
 import { humanReadableDate } from "@workspace/shared/time";
 import ResponsiveCenterContainer from "@workspace/ui/components/responsive-center-container";
 import { Title } from "@workspace/ui/components/title";
-import { fetchQuery, preloadedQueryResult, preloadQuery } from "convex/nextjs";
+import { fetchQuery } from "convex/nextjs";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { notFoundOnConvexError } from "@/lib/notFoundOnConvexError";
@@ -49,15 +49,14 @@ async function RegistrationStatusHandler({
 	eventId,
 }: Readonly<{ registrationId: Id<"registrations">; eventId: Id<"events"> }>) {
 	const token = await getAuthToken();
-	const preloadedRegistration = await preloadQuery(
+	const registration = await fetchQuery(
 		api.events.registrations.queries.getById,
 		{ id: registrationId },
 		{ token },
 	).catch(notFoundOnConvexError);
-	const registration = preloadedQueryResult(preloadedRegistration);
 
 	if (registration.status === "pending") {
-		return <Register preloadedRegistration={preloadedRegistration} eventId={eventId} />;
+		return <Register registrationId={registration._id} eventId={eventId} />;
 	}
 
 	if (registration.status === "registered") {
