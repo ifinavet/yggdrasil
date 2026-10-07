@@ -1,10 +1,16 @@
-import { type ApplicationStatus, STATUS_LABELS } from "@workspace/shared/semester/labels";
+import {
+	type ApplicationStatus,
+	closedDateLabel,
+	STATUS_LABELS,
+} from "@workspace/shared/semester/labels";
+import { isIsoDate } from "@workspace/shared/time";
 import { ConvexError, type Infer } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { editorRoles, requireRole } from "../auth/accessRights";
 import { canTransition, isActiveApplicationStatus, isUnsettledApplicationStatus } from "./rules";
 import type { activityActor, applicationActivityType } from "./schema";
+import { requireSemester } from "./semesters/helper";
 
 /** Who performed an activity. A Navet member is also recorded by user id. */
 export type Actor =
@@ -132,4 +138,45 @@ export async function findActiveApplicationOnDate(
 				application._id !== exceptId && isActiveApplicationStatus(application.status),
 		) ?? null
 	);
+}
+
+/**
+ * Refuses a date an application cannot have: in a closed semester, not a day in the semester,
+ * closed by Navet, or held by another company. Shared by the plan and the event editor, so a date
+ * is checked the same way wherever it is changed.
+ *
+ * @param {QueryCtx | MutationCtx} ctx - The Convex query or mutation context.
+ * @param {Doc<"companyApplications">} application - The application to give the date.
+ * @param {string} date - The day, as YYYY-MM-DD.
+ *
+ * @throws - A Norwegian error naming why the date cannot be given.
+ * @returns {Promise<void>} - Resolves when the date can be given.
+ */
+export async function requireAssignableDate(
+	ctx: QueryCtx | MutationCtx,
+	application: Doc<"companyApplications">,
+	date: string,
+): Promise<void> {
+	const semester = await requireSemester(ctx, application.semesterId);
+	if (semester.status === "closed") throw new ConvexError("Semesteret er stengt.");
+	if (!isIsoDate(date)) throw new ConvexError("Ugyldig dato.");
+
+	const semesterDate = await ctx.db
+		.query("semesterDates")
+		.withIndex("by_semesterId_and_date", (q) =>
+			q.eq("semesterId", application.semesterId).eq("date", date),
+		)
+		.first();
+	if (!semesterDate) throw new ConvexError("Datoen finnes ikke i semesteret.");
+	if (semesterDate.closedLabel !== undefined) {
+		throw new ConvexError(`Datoen er stengt: ${closedDateLabel(semesterDate.closedLabel)}.`);
+	}
+
+	const holder = await findActiveApplicationOnDate(
+		ctx,
+		application.semesterId,
+		date,
+		application._id,
+	);
+	if (holder) throw new ConvexError(`Datoen er allerede gitt til ${holder.registry.name}.`);
 }

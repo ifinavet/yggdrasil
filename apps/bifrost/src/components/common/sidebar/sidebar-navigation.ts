@@ -118,7 +118,6 @@ export const sidebarNavigation = {
 					title: "Semesterplan",
 					icon: CalendarRangeIcon,
 					path: "/semesterplan",
-					feature: "semesterPlanning",
 				},
 				{
 					title: "Mat",

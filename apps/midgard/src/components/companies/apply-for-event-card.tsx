@@ -1,7 +1,7 @@
 import { api } from "@workspace/backend/convex/api";
 import { huginUrl } from "@workspace/shared/constants/hugin-url";
 import { semesterName } from "@workspace/shared/semester/labels";
-import { formatSemesterDay, osloToday } from "@workspace/shared/time";
+import { defaultApplicationSemester, formatSemesterDay, osloToday } from "@workspace/shared/time";
 import { Button } from "@workspace/ui/components/button";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { fetchQuery } from "convex/nextjs";
@@ -13,21 +13,24 @@ const CARD = "gap-3 bg-primary-light dark:bg-zinc-800";
 
 /**
  * A small card on /companies with the semester open for applications, its deadline and a button
- * to the Hugin form. Nothing shows while no semester is open. Cached for minutes, not forever
+ * to the Hugin form. With several open, it shows the one the form starts on. Nothing shows while
+ * no semester is open. Cached for minutes, not forever
  * like the rest of the page, so a newly opened semester or a changed deadline shows up quickly.
  */
 export default async function ApplyForEventCard() {
 	"use cache";
 	cacheLife("minutes");
 
-	const semester = await fetchQuery(
-		api.semesterPlanning.semesters.queries.getOpenForApplications,
-		{},
+	const today = osloToday(Date.now());
+	// The semester the Hugin form starts on, so the card and the form agree.
+	const semester = defaultApplicationSemester(
+		today,
+		await fetchQuery(api.semesterPlanning.semesters.queries.listOpenForApplications, {}),
 	);
 	if (!semester) return null;
 
 	const deadline = formatSemesterDay(semester.applicationDeadline, "long");
-	const deadlinePassed = semester.applicationDeadline < osloToday(Date.now());
+	const deadlinePassed = semester.applicationDeadline < today;
 
 	return (
 		<ContainerCard className={CARD}>

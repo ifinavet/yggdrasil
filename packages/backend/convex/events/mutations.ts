@@ -7,13 +7,13 @@ import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, mutation } from "../_generated/server";
 import { internalRoles, requireRole } from "../auth/accessRights";
-import { getCurrentUserOrThrow } from "../auth/currentUser";
 import { isLocalDevelopment } from "../auth/local";
 import { syncFeedbackCampaign } from "../feedback/delivery/campaigns";
 import { enqueueSystemMessage } from "../iam/notifications";
 import { eventProductFields } from "../products/sales";
+import { syncApplicationWithEvent } from "../semesterPlanning/events";
 import { requireFoodItem } from "./food";
-import { eventSlug, insertEventWithOrganizers } from "./helper";
+import { eventSlug, insertEventWithOrganizers, setEventOrganizers } from "./helper";
 import { makeStatusPending } from "./registrations/mutations";
 import { editableEventFields, organizerRoleValidator } from "./schema";
 import { queueEventNotification } from "./slack/state";
@@ -103,7 +103,7 @@ export const update = mutation({
 			organizers,
 		},
 	) => {
-		await requireRole(ctx, internalRoles);
+		const user = await requireRole(ctx, internalRoles);
 		await requireFoodItem(ctx, foodItem);
 
 		const event = await ctx.db.get(eventId);
@@ -146,10 +146,9 @@ export const update = mutation({
 
 		await syncFeedbackCampaign(ctx, eventId);
 
-		await ctx.runMutation(internal.events.mutations.upsertEventOrganizer, {
-			id: eventId,
-			updatedOrganizers: organizers,
-		});
+		await setEventOrganizers(ctx, eventId, organizers);
+		// A semester plan application follows its event: the same date and the same team.
+		await syncApplicationWithEvent(ctx, eventId, { type: "internal", userId: user._id });
 
 		const waitlistLength = await ctx.db
 			.query("registrations")
@@ -160,57 +159,6 @@ export const update = mutation({
 
 		if (participationLimit - event.participationLimit > 0 && waitlistLength)
 			await updateWaitlist(ctx, event._id, participationLimit - event.participationLimit);
-	},
-});
-
-/**
- * Reconciles the organizer records for an event.
- *
- * @param {Id<"events">} id - The id of the event to update organizers for.
- * @param {{ userId: Id<"users">, role: "hovedansvarlig" | "medhjelper" }[]} updatedOrganizers - The desired organizer assignments.
- *
- * @throws - An error if the current user cannot be resolved.
- * @returns {null} - Returns null when the organizers have been synchronized successfully.
- */
-export const upsertEventOrganizer = internalMutation({
-	args: {
-		id: v.id("events"),
-		updatedOrganizers: v.array(
-			v.object({
-				userId: v.id("users"),
-				role: organizerRoleValidator,
-			}),
-		),
-	},
-	handler: async (ctx, { id, updatedOrganizers }) => {
-		await getCurrentUserOrThrow(ctx);
-
-		const eventOrganizers = await ctx.db
-			.query("eventOrganizers")
-			.withIndex("by_eventId", (q) => q.eq("eventId", id))
-			.collect();
-
-		const organizersToRemove = eventOrganizers
-			.filter((org) => !updatedOrganizers.some(({ userId }) => userId === org.userId))
-			.map((org) => ctx.db.delete(org._id));
-
-		const organizersToAdd = updatedOrganizers
-			.filter(({ userId }) => !eventOrganizers.some((org) => org.userId === userId))
-			.map((org) =>
-				ctx.db.insert("eventOrganizers", {
-					eventId: id,
-					userId: org.userId,
-					role: org.role,
-				}),
-			);
-
-		const organizersToUpdate = updatedOrganizers.flatMap((org) => {
-			const existing = eventOrganizers.find((eOrg) => eOrg.userId === org.userId);
-			if (!existing || existing.role === org.role) return [];
-			return [ctx.db.patch(existing._id, { role: org.role })];
-		});
-
-		await Promise.all([...organizersToRemove, ...organizersToAdd, ...organizersToUpdate]);
 	},
 });
 

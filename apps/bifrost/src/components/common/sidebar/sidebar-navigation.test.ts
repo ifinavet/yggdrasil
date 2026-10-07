@@ -4,7 +4,6 @@ import { type SidebarSection, sidebarNavigation, visibleSections } from "./sideb
 
 function flags(overrides: Partial<Record<GatedFeature, boolean>> = {}) {
 	return {
-		semesterPlanning: false,
 		food: false,
 		...overrides,
 	};
@@ -16,7 +15,7 @@ function titles(sections: SidebarSection[]) {
 
 describe("visibleSections", () => {
 	it("groups every admin page under a named subsection when all features are on", () => {
-		const sections = visibleSections("admin", flags({ semesterPlanning: true, food: true }));
+		const sections = visibleSections("admin", flags({ food: true }));
 
 		expect(titles(sections)).toEqual([
 			["Personer", ["Opptak", "Studenter", "Organisasjon"]],
@@ -31,7 +30,7 @@ describe("visibleSections", () => {
 		expect(titles(sections)).toEqual([
 			["Personer", ["Opptak", "Studenter", "Organisasjon"]],
 			["Bedrifter og økonomi", ["Bedrifter", "Produkter", "Fakturaer"]],
-			["Planlegging", ["Skjemaer"]],
+			["Planlegging", ["Semesterplan", "Skjemaer"]],
 		]);
 	});
 

@@ -10,6 +10,12 @@ export const COMPANY_APPLICATION_COPY = {
 	loading: "Laster søknadsskjemaet …",
 	deadline: "Søknadsfrist",
 	deadlinePassed: "Søknadsfristen var",
+	semester: {
+		label: "Hvilket semester søker dere for?",
+		deadline: (date: string) => `Søknadsfrist ${date}`,
+		current: (name: string) =>
+			`Obs: dere søker for ${name}, som allerede er i gang. Det kan bli kort tid til planlegging, og vi kan ikke love en dato.`,
+	},
 	lateNotice: "Vi tar fortsatt imot søknader, men kan ikke love en dato.",
 	sections: {
 		company: "Bedriften",
@@ -107,6 +113,16 @@ export const COMPANY_APPLICATION_COPY = {
 		title: "Søknadene er stengt",
 		body: "Vi tar ikke imot søknader akkurat nå. Søknadene for neste semester åpner når semesteret er klart.",
 		question: "Har dere spørsmål? Skriv til",
+		interest: {
+			title: "Vil dere vite når søknadene åpner?",
+			lede: "Legg igjen navn og e-post, så gir vi beskjed når dere kan søke.",
+			companyName: "Bedrift",
+			email: "E-post",
+			send: "Gi oss beskjed",
+			busy: "Sender …",
+			sent: (email: string) => `Takk! Vi gir beskjed til ${email} når søknadene åpner.`,
+			honeypot: "Ikke fyll ut dette feltet",
+		},
 	},
 	receipt: {
 		title: "Søknaden er sendt",

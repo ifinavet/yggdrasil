@@ -8,7 +8,6 @@ import { Field, FieldError, FieldLabel } from "@workspace/ui/components/field";
 import { Panel, PanelBody } from "@workspace/ui/components/products/panel";
 import { Textarea } from "@workspace/ui/components/textarea";
 import { useMutation } from "convex/react";
-import Link from "next/link";
 import { z } from "zod";
 import InternalMemberSelect from "@/components/common/forms/internal-member-select";
 import { type Application, useRunMutation } from "./model";
@@ -21,8 +20,8 @@ const notesSchema = z.object({
 
 /**
  * «Ansvarlige fra Navet»: who from Navet runs the event, and notes for them. The choices save at once, and
- * the notes when you leave them. Once the event exists, its organizers are the team, so the
- * pickers are locked here.
+ * the notes when you leave them. Once the event exists, a change here changes its organizers too,
+ * and a change on the event shows here.
  */
 export function PlanningCard({ application }: Readonly<{ application: Application }>) {
 	const update = useMutation(api.semesterPlanning.applications.mutations.updatePlanningDetails);
@@ -42,7 +41,6 @@ export function PlanningCard({ application }: Readonly<{ application: Applicatio
 		void save({ internalNotes: notes });
 	};
 
-	const teamLocked = application.eventId !== undefined;
 	return (
 		<Panel title="Ansvarlige fra Navet">
 			<PanelBody>
@@ -53,13 +51,12 @@ export function PlanningCard({ application }: Readonly<{ application: Applicatio
 						clearLabel="Ingen kontaktperson"
 						value={application.responsibleUserId}
 						exclude={new Set(helpers)}
-						disabled={pending || teamLocked}
+						disabled={pending}
 						onChange={(responsibleUserId) => save({ responsibleUserId })}
 					/>
-					{Array.from({ length: MAX_HELPERS }, (_, slot) => (
+					{Array.from({ length: Math.max(MAX_HELPERS, helpers.length) }, (_, slot) => (
 						<TeamMember
-							// The slots are fixed positions, so the index is a stable key.
-							// biome-ignore lint/suspicious/noArrayIndexKey: fixed slots
+							// The slots are fixed positions, so the slot number is a stable key.
 							key={slot}
 							id={`planning-helper-${slot}`}
 							label={`Medhjelper ${slot + 1}`}
@@ -71,7 +68,7 @@ export function PlanningCard({ application }: Readonly<{ application: Applicatio
 									...helpers.filter((_, index) => index !== slot),
 								])
 							}
-							disabled={pending || teamLocked || (slot > 0 && helpers.length < slot)}
+							disabled={pending || (slot > 0 && helpers.length < slot)}
 							onChange={(userId) => {
 								const next = [...helpers];
 								if (userId) next[slot] = userId;
@@ -80,19 +77,6 @@ export function PlanningCard({ application }: Readonly<{ application: Applicatio
 							}}
 						/>
 					))}
-					{teamLocked && (
-						<p className="text-muted-foreground text-sm">
-							Teamet endres på{" "}
-							<Link
-								href={`/events/${application.eventId}`}
-								className="underline underline-offset-3"
-							>
-								arrangementet
-							</Link>
-							.
-						</p>
-					)}
-
 					<form.Field name="internalNotes">
 						{(field) => {
 							const isInvalid = !field.state.meta.isValid;

@@ -1,10 +1,13 @@
+import { osloDateTimeToEpoch, semesterSortKey } from "@workspace/shared/time";
 import { ConvexError } from "convex/values";
 import type { Doc, Id } from "../../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../../_generated/server";
 
-/** Spring comes before autumn in the same year. */
-export function semesterSortKey(semester: Pick<Doc<"semesters">, "year" | "term">): number {
-	return semester.year * 2 + (semester.term === "autumn" ? 1 : 0);
+/** Refuses a change to a closed semester with a Norwegian message. */
+export function refuseIfSemesterClosed(semester: Doc<"semesters">): void {
+	if (semester.status === "closed") {
+		throw new ConvexError("Semesteret er stengt og kan ikke endres.");
+	}
 }
 
 /**
@@ -110,4 +113,32 @@ export async function settingsFromLatestSemester(
 			? { defaultEventStartTime: latest.defaultEventStartTime }
 			: {}),
 	};
+}
+
+/** Well above how many events Navet holds in a semester; keeps the reads bounded. */
+export const SEMESTER_EVENTS_LIMIT = 500;
+
+/**
+ * Every event that starts between the semester's first and last date, earliest first. Empty while
+ * the semester has no dates.
+ *
+ * @param {QueryCtx | MutationCtx} ctx - The Convex query or mutation context.
+ * @param {Doc<"semesters">} semester - The semester.
+ *
+ * @returns {Promise<Doc<"events">[]>} - The events in the period, at most SEMESTER_EVENTS_LIMIT.
+ */
+export async function eventsInSemesterRange(
+	ctx: QueryCtx | MutationCtx,
+	semester: Pick<Doc<"semesters">, "firstDate" | "lastDate">,
+): Promise<Doc<"events">[]> {
+	const { firstDate, lastDate } = semester;
+	if (!firstDate || !lastDate) return [];
+	return ctx.db
+		.query("events")
+		.withIndex("by_eventStart", (q) =>
+			q
+				.gte("eventStart", osloDateTimeToEpoch(firstDate, "00:00"))
+				.lte("eventStart", osloDateTimeToEpoch(lastDate, "23:59")),
+		)
+		.take(SEMESTER_EVENTS_LIMIT);
 }

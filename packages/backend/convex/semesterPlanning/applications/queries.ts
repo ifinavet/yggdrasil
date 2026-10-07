@@ -7,6 +7,7 @@ import { findLatestOffer } from "../offers/helper";
 import { isActiveApplicationStatus } from "../rules";
 import { offerStatus } from "../schema";
 import {
+	applicationTeam,
 	findCompanyProfile,
 	listApplicationsInSemester,
 	loadNavetTeam,
@@ -138,9 +139,16 @@ export const get = query({
 			.withIndex("by_applicationId", (q) => q.eq("applicationId", applicationId))
 			.collect();
 		const company = await findCompanyProfile(ctx, application);
+		// The event's organizers once it exists, so the page shows the team the event editor shows.
+		const { responsibleUserId: _responsible, helperUserIds: _helpers, ...rest } = application;
+		const team = await applicationTeam(ctx, application);
 
 		return {
-			application,
+			application: {
+				...rest,
+				...(team.responsibleUserId ? { responsibleUserId: team.responsibleUserId } : {}),
+				...(team.helperUserIds.length ? { helperUserIds: team.helperUserIds } : {}),
+			},
 			offers,
 			activity,
 			companyId: company?._id ?? null,

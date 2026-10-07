@@ -7,10 +7,14 @@ export function readJson(storage: () => Storage, key: string): unknown {
 	}
 }
 
-export function writeJson(storage: () => Storage, key: string, value: unknown): void {
+/** Whether the value was written. Full or blocked storage writes nothing. */
+export function writeJson(storage: () => Storage, key: string, value: unknown): boolean {
 	try {
 		storage().setItem(key, JSON.stringify(value));
-	} catch {}
+		return true;
+	} catch {
+		return false;
+	}
 }
 
 export function removeItem(storage: () => Storage, key: string): void {

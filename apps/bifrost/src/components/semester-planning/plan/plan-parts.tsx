@@ -1,16 +1,21 @@
 "use client";
 
+import { api } from "@workspace/backend/convex/api";
 import type { ApplicationStatus } from "@workspace/shared/semester/labels";
 import { formatSemesterDay } from "@workspace/shared/time";
+import { convexErrorMessage } from "@workspace/shared/utils";
 import { Avatar, AvatarFallback } from "@workspace/ui/components/avatar";
+import { Button } from "@workspace/ui/components/button";
 import { cn } from "@workspace/ui/lib/utils";
-import { CalendarCheck } from "lucide-react";
+import { useMutation } from "convex/react";
+import { CalendarCheck, CalendarDays, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { MouseEvent } from "react";
+import { type MouseEvent, useState } from "react";
+import { toast } from "sonner";
 import { dayOfMonth, initials } from "../format";
 import { StatusIcon } from "../status-badge";
-import type { PlanRow } from "./plan-days";
+import type { PlanEventRow, PlanRow } from "./plan-days";
 
 /**
  * A small calendar tile: weekday, day of the month and month, e.g. «TIR 9 feb.». Free and closed
@@ -99,6 +104,69 @@ export function CompanyName({
 	);
 }
 
+/** The title of an event in the plan, linking to the event, with its company underneath. */
+export function EventTitle({ event }: Readonly<{ event: PlanEventRow }>) {
+	return (
+		<span className="inline-flex items-center gap-2">
+			<Link href={`/events/${event.eventId}`} className="font-semibold text-[15px] hover:underline">
+				{event.title}
+			</Link>
+			{!event.published && (
+				<span className="rounded-full bg-muted px-1.5 py-0.5 font-medium text-[11px] text-muted-foreground">
+					Ikke publisert
+				</span>
+			)}
+		</span>
+	);
+}
+
+/** What stands where an application's status would: this row is an event, not an application. */
+export function EventKind({ extraDay }: Readonly<{ extraDay: boolean }>) {
+	return (
+		<span
+			className="inline-flex items-center gap-2 whitespace-nowrap text-[13px]"
+			title={extraDay ? "Ikke en tirsdag eller torsdag" : undefined}
+		>
+			<CalendarDays className="size-4 text-muted-foreground" aria-hidden />
+			Arrangement
+			{extraDay && <span className="text-muted-foreground">· ikke tirsdag/torsdag</span>}
+		</span>
+	);
+}
+
+/** «Ta ut av planen»: removes the event from the plan. The event itself is kept. */
+export function RemovePlanEventButton({ event }: Readonly<{ event: PlanEventRow }>) {
+	const removeEvent = useMutation(api.semesterPlanning.planEvents.mutations.removeEvent);
+	const [pending, setPending] = useState(false);
+
+	const remove = async () => {
+		setPending(true);
+		try {
+			await removeEvent({ planEventId: event._id });
+			toast.success(`«${event.title}» er tatt ut av planen.`);
+		} catch (error) {
+			toast.error(convexErrorMessage(error, "Kunne ikke ta arrangementet ut av planen."));
+		} finally {
+			setPending(false);
+		}
+	};
+
+	return (
+		<Button
+			type="button"
+			variant="ghost"
+			size="icon-sm"
+			disabled={pending}
+			onClick={() => void remove()}
+			aria-label={`Ta «${event.title}» ut av planen`}
+			title="Ta ut av planen"
+			className="text-muted-foreground hover:text-foreground"
+		>
+			<X aria-hidden />
+		</Button>
+	);
+}
+
 /**
  * Opens an application when its whole row is clicked. Clicks on links inside the row, like the
  * company name or the event icon, keep their own target. Returns nothing for internal members,
@@ -128,7 +196,7 @@ const PLAN_STATUS_LABELS: Record<ApplicationStatus, string> = {
 	new_date_requested: "Vil endre dato",
 	declined: "Takket nei",
 	rejected: "Avslått",
-	withdrawn: "Trukket",
+	withdrawn: "Slettet",
 };
 
 /** The Plan's wording for a status, also used by its status filter. */

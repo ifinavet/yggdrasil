@@ -72,7 +72,7 @@ export const STATUS_LABELS: Record<ApplicationStatus, string> = {
 	confirmed: "Bekreftet",
 	declined: "Avslått av bedriften",
 	rejected: "Avslått av Navet",
-	withdrawn: "Trukket",
+	withdrawn: "Slettet",
 };
 
 export const SEMESTER_LABEL = "Semester";

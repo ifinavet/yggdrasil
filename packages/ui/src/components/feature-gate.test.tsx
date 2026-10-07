@@ -3,11 +3,11 @@ import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it } from "vitest";
 import { FeatureGate } from "./feature-gate";
 
-const released = featureFlags.semesterPlanning.uiEnabled;
+const released = featureFlags.food.uiEnabled;
 
 function render() {
 	return renderToString(
-		<FeatureGate feature="semesterPlanning" fallback={<span>fallback</span>}>
+		<FeatureGate feature="food" fallback={<span>fallback</span>}>
 			<span>content</span>
 		</FeatureGate>,
 	);
@@ -15,17 +15,17 @@ function render() {
 
 describe("FeatureGate", () => {
 	afterEach(() => {
-		featureFlags.semesterPlanning.uiEnabled = released;
+		featureFlags.food.uiEnabled = released;
 	});
 
 	it("renders the children on the server once the feature is released", () => {
-		featureFlags.semesterPlanning.uiEnabled = true;
+		featureFlags.food.uiEnabled = true;
 
 		expect(render()).toBe("<span>content</span>");
 	});
 
 	it("renders nothing on the server before hydration while the feature is unreleased", () => {
-		featureFlags.semesterPlanning.uiEnabled = false;
+		featureFlags.food.uiEnabled = false;
 
 		expect(render()).toBe("");
 	});

@@ -21,7 +21,7 @@ import { toast } from "sonner";
 import { shortDayTitle } from "../format";
 
 /**
- * «Send tilbud til N tildelt»: sends an offer for every application that has a date and is
+ * «Send tilbud til N med dato»: sends an offer for every application that has a date and is
  * waiting for one, one at a time, with progress in the button. Each company gets the offer link
  * by email. A failure is reported with the backend's message and does not stop the rest.
  */
@@ -63,7 +63,7 @@ export function SendOffersButton({
 					<Send aria-hidden />
 					{progress
 						? `Sender ${progress.done} av ${progress.total}`
-						: `Send tilbud til ${count} tildelt`}
+						: `Send tilbud til ${count} med dato`}
 				</Button>
 			</AlertDialogTrigger>
 			<AlertDialogContent>
