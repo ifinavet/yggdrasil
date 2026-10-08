@@ -29,6 +29,14 @@ export type PastCurve = {
 	timeline?: ForecastTimeline;
 };
 export const MIN_FORECAST_EVENTS = 3;
+export const STATS_SWEEP_BATCH = 10;
+export const YEAR_DAYS = 365;
+export const CHECKPOINT_BATCH = 10;
+export const CHECKPOINT_PRUNE_BATCH = 200;
+export const CHECKPOINT_RETENTION_MS = 3 * DAY_MS;
+export const STATS_REPAIR_BATCH = 30;
+export const STATS_REPAIR_PAST_MS = DAY_MS;
+export const STATS_REPAIR_AHEAD_MS = 14 * DAY_MS;
 
 async function forecastTimeline(ctx: QueryCtx, event: Doc<"events">): Promise<ForecastTimeline> {
 	const reminders = await Promise.all(

@@ -4,7 +4,7 @@ import { ConvexError, type Validator, v } from "convex/values";
 import { internal } from "../../_generated/api";
 import type { Doc, Id } from "../../_generated/dataModel";
 import { internalMutation, type MutationCtx } from "../../_generated/server";
-import { logRegistrationChange } from "../../engagement/log";
+import { logRegistrationChange, refreshTouched, type TouchedEvents } from "../../engagement/log";
 import { fillOpenSeats } from "../../events/registrations/mutations";
 import { activateOnSignIn } from "../../iam/lifecycle";
 import { removeSeenGuideSteps } from "../guides/mutations";
@@ -154,6 +154,7 @@ async function removeStudentProfiles(ctx: MutationCtx, userId: Id<"users">): Pro
 
 async function cleanRegistrations(ctx: MutationCtx, userId: Id<"users">): Promise<void> {
 	const eventsToRefill = new Map<Id<"events">, Doc<"events">>();
+	const touched: TouchedEvents = new Set();
 	const registrations = await ctx.db
 		.query("registrations")
 		.withIndex("by_userId", (q) => q.eq("userId", userId))
@@ -161,16 +162,17 @@ async function cleanRegistrations(ctx: MutationCtx, userId: Id<"users">): Promis
 	for (const registration of registrations) {
 		const event = await ctx.db.get(registration.eventId);
 		if (!event || event.eventStart > Date.now()) {
+			await ctx.db.delete(registration._id);
 			if (event) {
-				await logRegistrationChange(ctx, registration, "unregistered");
+				await logRegistrationChange(ctx, registration, "unregistered", undefined, touched);
 				eventsToRefill.set(event._id, event);
 			}
-			await ctx.db.delete(registration._id);
 		} else {
 			await ctx.db.patch(registration._id, { note: undefined });
 		}
 	}
-	for (const event of eventsToRefill.values()) await fillOpenSeats(ctx, event);
+	for (const event of eventsToRefill.values()) await fillOpenSeats(ctx, event, touched);
+	await refreshTouched(ctx, touched);
 }
 
 // Feedback has no author index. Scan bounded batches, keeping only the hash in scheduled work.

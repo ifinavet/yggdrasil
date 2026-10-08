@@ -1,10 +1,11 @@
 import { posthogUnregistrationsSchema } from "@workspace/shared/engagement";
 import { type Infer, v } from "convex/values";
 import { internal } from "../_generated/api";
-import type { Doc } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import { internalAction, internalMutation, type MutationCtx } from "../_generated/server";
 import { registrationStatusValidator } from "../events/schema";
 import { initialChangeOf } from "./backfill";
+import { dropCheckpoints } from "./checkpoints";
 import { logStartedAt } from "./queries";
 
 const POSTHOG_QUERY_URL = "https://eu.posthog.com/api/projects/82325/query/";
@@ -119,10 +120,13 @@ const rowValidator = v.object({
 type Row = Infer<typeof rowValidator>;
 type Registration = { eventId: string; userId: string; rows: Row[] };
 
-async function applyTo(ctx: MutationCtx, registration: Registration) {
+async function applyTo(
+	ctx: MutationCtx,
+	registration: Registration,
+): Promise<{ count: number; eventId: Id<"events"> | null }> {
 	const eventId = ctx.db.normalizeId("events", registration.eventId);
 	const userId = ctx.db.normalizeId("users", registration.userId);
-	if (!eventId || !userId) return 0;
+	if (!eventId || !userId) return { count: 0, eventId: null };
 	const [event, user, logged] = await Promise.all([
 		ctx.db.get(eventId),
 		ctx.db.get(userId),
@@ -131,7 +135,7 @@ async function applyTo(ctx: MutationCtx, registration: Registration) {
 			.withIndex("by_eventId_and_userId", (q) => q.eq("eventId", eventId).eq("userId", userId))
 			.take(MAX_LOGS_PER_REGISTRATION),
 	]);
-	if (!event || !user) return 0;
+	if (!event || !user) return { count: 0, eventId: null };
 	const known: Pick<Doc<"registrationLog">, "change" | "at">[] = [...logged];
 	const added: Pick<Doc<"registrationLog">, "change" | "fromStatus" | "at">[] = [];
 	for (const row of registration.rows) {
@@ -149,7 +153,7 @@ async function applyTo(ctx: MutationCtx, registration: Registration) {
 	await Promise.all(
 		added.map((entry) => ctx.db.insert("registrationLog", { eventId, userId, ...entry })),
 	);
-	return added.length;
+	return { count: added.length, eventId: added.length > 0 ? eventId : null };
 }
 
 export const apply = internalMutation({
@@ -168,10 +172,15 @@ export const apply = internalMutation({
 			registration.rows.push(row);
 			registrations.set(key, registration);
 		}
-		const added = await Promise.all(
+		const applied = await Promise.all(
 			[...registrations.values()].map((registration) => applyTo(ctx, registration)),
 		);
-		return added.reduce((sum, count) => sum + count, 0);
+		const touched = new Set(applied.flatMap(({ eventId }) => (eventId ? [eventId] : [])));
+		for (const eventId of touched) {
+			await dropCheckpoints(ctx, eventId);
+			await ctx.scheduler.runAfter(0, internal.engagement.stats.refreshStats, { eventId });
+		}
+		return applied.reduce((sum, { count }) => sum + count, 0);
 	},
 });
 

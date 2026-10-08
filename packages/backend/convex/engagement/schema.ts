@@ -30,6 +30,22 @@ export function isActiveRule(rule: string): rule is AlertRule {
 	return (ALERT_RULES as readonly string[]).includes(rule);
 }
 
+export const eventNumberFields = {
+	eventId: v.id("events"),
+	eventStart: v.number(),
+	participationLimit: v.number(),
+	changedAt: v.number(),
+	registered: v.number(),
+	waitlist: v.number(),
+	pending: v.number(),
+	attendanceRecorded: v.boolean(),
+	showedUp: v.number(),
+	noShows: v.number(),
+	filledAt: v.union(v.number(), v.null()),
+	lateUnregistrations: v.number(),
+	registrants: v.array(v.id("users")),
+};
+
 export const engagementSchema = {
 	registrationLog: defineTable({
 		eventId: v.id("events"),
@@ -42,6 +58,19 @@ export const engagementSchema = {
 		.index("by_eventId_and_userId", ["eventId", "userId"])
 		.index("by_userId_and_at", ["userId", "at"])
 		.index("by_at", ["at"]),
+
+	eventStats: defineTable(eventNumberFields)
+		.index("by_eventId", ["eventId"])
+		.index("by_eventStart", ["eventStart"]),
+
+	eventCheckpoints: defineTable({ ...eventNumberFields, cutoff: v.number() }).index(
+		"by_eventId_and_cutoff",
+		["eventId", "cutoff"],
+	),
+
+	statsSweep: defineTable({
+		cursor: v.union(v.string(), v.null()),
+	}),
 
 	unregistrationImports: defineTable({
 		state: v.union(v.literal("running"), v.literal("done"), v.literal("failed")),

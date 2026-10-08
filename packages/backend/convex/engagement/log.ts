@@ -1,9 +1,16 @@
-import type { Doc } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 import { countRegistrationsWithStatus } from "../events/helper";
 import { registrationFullText } from "../events/slack/messages";
 import { queueEventNotification } from "../events/slack/state";
 import type { RegistrationChange } from "./schema";
+import { refreshEventStats } from "./stats";
+
+export type TouchedEvents = Set<Id<"events">>;
+
+export async function refreshTouched(ctx: MutationCtx, touched: TouchedEvents) {
+	for (const eventId of touched) await refreshEventStats(ctx, eventId);
+}
 
 export async function logRegistrationChange(
 	ctx: MutationCtx,
@@ -11,6 +18,7 @@ export async function logRegistrationChange(
 		Partial<Pick<Doc<"registrations">, "status">>,
 	change: RegistrationChange,
 	at = Date.now(),
+	touched?: TouchedEvents,
 ) {
 	if (change === "registered" || change === "accepted") {
 		const event = await ctx.db.get(registration.eventId);
@@ -30,4 +38,6 @@ export async function logRegistrationChange(
 		fromStatus: registration.status,
 		at,
 	});
+	if (touched) touched.add(registration.eventId);
+	else await refreshEventStats(ctx, registration.eventId);
 }
