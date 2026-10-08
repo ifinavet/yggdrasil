@@ -3,6 +3,7 @@ import { ConvexError, v } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import type { EventCounts } from "./companyMetrics";
+import { refreshEventCurve } from "./curves";
 import { firstFilledAt, registrationHistory, registrationsAt } from "./history";
 
 export type EventNumbers = Omit<Doc<"eventStats">, "_id" | "_creationTime">;
@@ -113,6 +114,7 @@ export async function refreshEventStats(
 		await ctx.db.delete(stored._id);
 		return "removed";
 	}
+	await refreshEventCurve(ctx, event, Date.now());
 	if (!stored) {
 		await ctx.db.insert("eventStats", computed);
 		return "created";

@@ -68,6 +68,20 @@ export const engagementSchema = {
 		["eventId", "cutoff"],
 	),
 
+	eventCurves: defineTable({
+		eventId: v.id("events"),
+		eventStart: v.number(),
+		registrationOpens: v.number(),
+		participationLimit: v.number(),
+		remindersEnabled: v.optional(v.boolean()),
+		reminderTimes: v.object({ week: v.optional(v.number()), twoDays: v.optional(v.number()) }),
+		curve: v.union(v.array(v.number()), v.null()),
+	}).index("by_eventId", ["eventId"]),
+
+	curveBackfill: defineTable({
+		done: v.boolean(),
+	}),
+
 	statsSweep: defineTable({
 		cursor: v.union(v.string(), v.null()),
 	}),

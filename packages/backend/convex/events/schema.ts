@@ -102,5 +102,6 @@ export const eventsSchema = {
 		sentAt: v.optional(v.number()),
 	})
 		.index("by_emailId", ["emailId"])
-		.index("by_eventId_and_kind_and_userId", ["eventId", "kind", "userId"]),
+		.index("by_eventId_and_kind_and_userId", ["eventId", "kind", "userId"])
+		.index("by_eventId_and_kind_and_sentAt", ["eventId", "kind", "sentAt"]),
 };

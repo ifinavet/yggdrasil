@@ -13,10 +13,15 @@ import { type QueryCtx, query } from "../_generated/server";
 import { internalRoles, requireRole } from "../auth/accessRights";
 import { organizerRoleOf } from "../events/helper";
 import { companyWithLogo, eventSemesterValidator } from "../events/queries";
-import { REMINDER_KINDS, REMINDER_LEAD_TIMES } from "../events/reminders/schedule";
+import {
+	REMINDER_KINDS,
+	REMINDER_LEAD_TIMES,
+	type ReminderKind,
+} from "../events/reminders/schedule";
 import { audienceOf, withStudyYear } from "./audience";
 import { baselineCutoffs, baselineStatsAt, semesterEventDocs } from "./checkpoints";
 import { byCompany, type EventCounts, metricsOf } from "./companyMetrics";
+import { UNREGISTRATION_HISTORY_START } from "./curves";
 import { type AnalyticsRegistration, registrationHistory } from "./history";
 import {
 	activityBuckets,
@@ -34,7 +39,6 @@ import {
 	MIN_FORECAST_EVENTS,
 	pastCurvesBefore,
 	snapshotOf,
-	UNREGISTRATION_HISTORY_START,
 	upcomingEvents,
 } from "./snapshot";
 import { countsOf, eventStatsAt } from "./stats";
@@ -191,6 +195,21 @@ function topDestination(entries: { movedTo: { eventId: Id<"events">; title: stri
 	return [...counts.values()].sort((a, b) => b.count - a.count)[0] ?? null;
 }
 
+async function firstSentAt(ctx: QueryCtx, event: Doc<"events">, kind: ReminderKind, now: number) {
+	const deliveries = ctx.db
+		.query("eventReminderDeliveries")
+		.withIndex("by_eventId_and_kind_and_sentAt", (q) =>
+			q.eq("eventId", event._id).eq("kind", kind).gte("sentAt", 0).lte("sentAt", now),
+		);
+	let scanned = 0;
+	for await (const delivery of deliveries) {
+		if (delivery.sent && delivery.eventStart === event.eventStart) return delivery.sentAt;
+		scanned += 1;
+		if (scanned === MAX_REGISTRATIONS_PER_EVENT) break;
+	}
+	return undefined;
+}
+
 async function reminderMarkers(ctx: QueryCtx, event: Doc<"events">, now: number) {
 	const markers = await Promise.all(
 		REMINDER_KINDS.map(async (kind) => {
@@ -198,18 +217,7 @@ async function reminderMarkers(ctx: QueryCtx, event: Doc<"events">, now: number)
 				.query("eventReminders")
 				.withIndex("by_eventId_and_kind", (q) => q.eq("eventId", event._id).eq("kind", kind))
 				.unique();
-			const deliveries = await ctx.db
-				.query("eventReminderDeliveries")
-				.withIndex("by_eventId_and_kind_and_userId", (q) =>
-					q.eq("eventId", event._id).eq("kind", kind),
-				)
-				.take(MAX_REGISTRATIONS_PER_EVENT);
-			const sentTimes = deliveries.flatMap((d) =>
-				d.eventStart === event.eventStart && d.sent && d.sentAt !== undefined && d.sentAt <= now
-					? [d.sentAt]
-					: [],
-			);
-			const sentAt = sentTimes.length ? Math.min(...sentTimes) : undefined;
+			const sentAt = await firstSentAt(ctx, event, kind, now);
 			const queuedAt = batch && batch.queuedAt <= now ? batch.queuedAt : undefined;
 			const scheduledAt = event.eventStart - REMINDER_LEAD_TIMES[kind];
 			if (sentAt === undefined && queuedAt === undefined && !event.remindersEnabled) return null;

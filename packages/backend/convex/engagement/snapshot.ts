@@ -1,13 +1,19 @@
 import { DAY_MS } from "@workspace/shared/time";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
-import { REMINDER_KINDS } from "../events/reminders/schedule";
+import {
+	curveOf,
+	forecastTimeline,
+	hasComparableHistory,
+	isComparable,
+	MAX_LOG_ENTRIES,
+	type PastCurve,
+} from "./curves";
 import {
 	alignedCurve,
 	BASELINE_SIZE,
 	COMPANY_BASELINE,
 	classify,
-	demandCurve,
 	type ForecastTimeline,
 	medianCurve,
 	progressOf,
@@ -18,16 +24,7 @@ import {
 import { eventStatsAt } from "./stats";
 
 export const MAX_REGISTRATIONS_PER_EVENT = 1000;
-const MAX_LOG_ENTRIES = 1000;
 const PAST_EVENTS_FOR_BASELINE = 60;
-export const UNREGISTRATION_HISTORY_START = Date.UTC(2025, 7, 10);
-
-export type PastCurve = {
-	eventId: Id<"events">;
-	limit: number;
-	curve: number[];
-	timeline?: ForecastTimeline;
-};
 export const MIN_FORECAST_EVENTS = 3;
 export const STATS_SWEEP_BATCH = 10;
 export const YEAR_DAYS = 365;
@@ -37,23 +34,6 @@ export const CHECKPOINT_RETENTION_MS = 3 * DAY_MS;
 export const STATS_REPAIR_BATCH = 30;
 export const STATS_REPAIR_PAST_MS = DAY_MS;
 export const STATS_REPAIR_AHEAD_MS = 14 * DAY_MS;
-
-async function forecastTimeline(ctx: QueryCtx, event: Doc<"events">): Promise<ForecastTimeline> {
-	const reminders = await Promise.all(
-		REMINDER_KINDS.map((kind) =>
-			ctx.db
-				.query("eventReminders")
-				.withIndex("by_eventId_and_kind", (q) => q.eq("eventId", event._id).eq("kind", kind))
-				.unique(),
-		),
-	);
-	return {
-		registrationOpens: event.registrationOpens,
-		eventStart: event.eventStart,
-		remindersEnabled: event.remindersEnabled,
-		reminderTimes: Object.fromEntries(reminders.flatMap((r) => (r ? [[r.kind, r.queuedAt]] : []))),
-	};
-}
 
 export async function registrationTimesOf(ctx: QueryCtx, eventId: Id<"events">) {
 	const registered = await ctx.db
@@ -82,32 +62,8 @@ export async function logSince(ctx: QueryCtx, eventId: Id<"events">, since: numb
 		.take(MAX_LOG_ENTRIES);
 }
 
-function isComparable(event: Doc<"events">) {
-	return event.published && !event.externalEvent && event.participationLimit > 0;
-}
-
-function hasComparableHistory(event: Doc<"events">) {
-	return isComparable(event) && event.registrationOpens >= UNREGISTRATION_HISTORY_START;
-}
-
 async function curvesOf(ctx: QueryCtx, events: readonly Doc<"events">[]): Promise<PastCurve[]> {
-	const curves = await Promise.all(
-		events.map(async (event) => {
-			const log = await ctx.db
-				.query("registrationLog")
-				.withIndex("by_eventId_and_at", (q) =>
-					q.eq("eventId", event._id).lte("at", event.eventStart),
-				)
-				.take(MAX_LOG_ENTRIES + 1);
-			if (log.length === 0 || log.length > MAX_LOG_ENTRIES) return null;
-			return {
-				eventId: event._id,
-				limit: event.participationLimit,
-				curve: demandCurve(event, event.participationLimit, log),
-				timeline: await forecastTimeline(ctx, event),
-			};
-		}),
-	);
+	const curves = await Promise.all(events.map((event) => curveOf(ctx, event)));
 	return curves.filter((curve) => curve !== null);
 }
 
@@ -173,12 +129,6 @@ export function baselineFor(
 	return { curve, size };
 }
 
-async function fullAtOf(ctx: QueryCtx, event: Doc<"events">, registered: number) {
-	if (registered < event.participationLimit) return null;
-	const times = await registrationTimesOf(ctx, event._id);
-	return times.sort((a, b) => a - b)[event.participationLimit - 1] ?? null;
-}
-
 export async function liveStateOf(ctx: QueryCtx, event: Doc<"events">, now: number) {
 	const stats = await eventStatsAt(ctx, event, now);
 	const recentLog = await logSince(ctx, event._id, now - DAY_MS);
@@ -193,7 +143,7 @@ export async function liveStateOf(ctx: QueryCtx, event: Doc<"events">, now: numb
 			timeline: event,
 			limit: event.participationLimit,
 			registered: stats.registered,
-			filledAt: stats.filledAt ?? (await fullAtOf(ctx, event, stats.registered)),
+			filledAt: stats.filledAt,
 			unregistrations: unregistrations.length,
 		}),
 	};

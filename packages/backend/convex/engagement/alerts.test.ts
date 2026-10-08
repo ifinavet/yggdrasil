@@ -42,13 +42,8 @@ function snapshotBase(): Snapshot {
 	return {
 		registered: 4,
 		waitlist: 0,
-		demandFill: 0.4,
-		registrationTimes: [],
 		unregistrations: [],
 		delta24h: 0,
-		progress: 0.5,
-		baseline: null,
-		projectedFill: 0.4,
 		status: { kind: "open" },
 	};
 }

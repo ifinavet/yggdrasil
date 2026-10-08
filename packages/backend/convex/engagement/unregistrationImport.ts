@@ -6,6 +6,7 @@ import { internalAction, internalMutation, type MutationCtx } from "../_generate
 import { registrationStatusValidator } from "../events/schema";
 import { initialChangeOf } from "./backfill";
 import { dropCheckpoints } from "./checkpoints";
+import { dropEventCurve } from "./curves";
 import { logStartedAt } from "./queries";
 
 const POSTHOG_QUERY_URL = "https://eu.posthog.com/api/projects/82325/query/";
@@ -178,6 +179,7 @@ export const apply = internalMutation({
 		const touched = new Set(applied.flatMap(({ eventId }) => (eventId ? [eventId] : [])));
 		for (const eventId of touched) {
 			await dropCheckpoints(ctx, eventId);
+			await dropEventCurve(ctx, eventId);
 			await ctx.scheduler.runAfter(0, internal.engagement.stats.refreshStats, { eventId });
 		}
 		return applied.reduce((sum, { count }) => sum + count, 0);
