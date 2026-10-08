@@ -130,11 +130,33 @@ export async function dropEventCurve(ctx: MutationCtx, eventId: Id<"events">) {
 	if (stored) await ctx.db.delete(stored._id);
 }
 
+export async function queueCurveRefresh(ctx: MutationCtx, event: Doc<"events">, now: number) {
+	const stored = await curveRowOf(ctx, event._id);
+	if (!hasComparableHistory(event) || event.eventStart > now) {
+		if (stored) await ctx.db.delete(stored._id);
+		return;
+	}
+	if (stored && matchesEvent(stored, event)) return;
+	await ctx.scheduler.runAfter(0, internal.engagement.curves.refreshCurve, { eventId: event._id });
+}
+
+export const refreshCurve = internalMutation({
+	args: { eventId: v.id("events") },
+	handler: async (ctx, { eventId }) => {
+		const event = await ctx.db.get(eventId);
+		if (event) await refreshEventCurve(ctx, event, Date.now());
+		else await dropEventCurve(ctx, eventId);
+	},
+});
+
 export const backfillCurves = internalMutation({
 	args: { cursor: v.optional(v.string()), until: v.optional(v.number()) },
 	handler: async (ctx, { cursor, until }) => {
 		const state = await ctx.db.query("curveBackfill").first();
-		if (cursor === undefined && state?.done) return { finished: true };
+		if (cursor === undefined) {
+			if (state) return { finished: state.done };
+			await ctx.db.insert("curveBackfill", { done: false });
+		}
 		const end = until ?? Date.now();
 		const page = await ctx.db
 			.query("events")
@@ -142,7 +164,8 @@ export const backfillCurves = internalMutation({
 				q.gte("eventStart", UNREGISTRATION_HISTORY_START).lte("eventStart", end),
 			)
 			.paginate({ numItems: CURVE_BACKFILL_BATCH, cursor: cursor ?? null });
-		for (const event of page.page) await refreshEventCurve(ctx, event, Date.now());
+		const now = Date.now();
+		await Promise.all(page.page.map((event) => refreshEventCurve(ctx, event, now)));
 		if (!page.isDone) {
 			await ctx.scheduler.runAfter(0, internal.engagement.curves.backfillCurves, {
 				cursor: page.continueCursor,
@@ -150,7 +173,8 @@ export const backfillCurves = internalMutation({
 			});
 			return { finished: false };
 		}
-		if (state) await ctx.db.patch(state._id, { done: true });
+		const running = await ctx.db.query("curveBackfill").first();
+		if (running) await ctx.db.patch(running._id, { done: true });
 		else await ctx.db.insert("curveBackfill", { done: true });
 		return { finished: true };
 	},

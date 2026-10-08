@@ -88,6 +88,17 @@ describe("refreshEventCurve", () => {
 
 		expect(await storedCurves(t)).toHaveLength(0);
 	});
+
+	it("does not start a second run while one is in progress", async () => {
+		const { t, companyId } = await setup();
+		await pastEventWithSeats(t, companyId, 3);
+		await t.run((ctx) => ctx.db.insert("curveBackfill", { done: false }));
+
+		const result = await t.mutation(internal.engagement.curves.backfillCurves, {});
+
+		expect(result).toEqual({ finished: false });
+		expect(await storedCurves(t)).toHaveLength(0);
+	});
 });
 
 describe("backfillCurves", () => {
@@ -105,6 +116,17 @@ describe("backfillCurves", () => {
 
 		expect(first).toHaveLength(1);
 		expect(second).toEqual({ finished: true });
+		expect(await storedCurves(t)).toHaveLength(0);
+	});
+
+	it("does not start a second run while one is in progress", async () => {
+		const { t, companyId } = await setup();
+		await pastEventWithSeats(t, companyId, 3);
+		await t.run((ctx) => ctx.db.insert("curveBackfill", { done: false }));
+
+		const result = await t.mutation(internal.engagement.curves.backfillCurves, {});
+
+		expect(result).toEqual({ finished: false });
 		expect(await storedCurves(t)).toHaveLength(0);
 	});
 });

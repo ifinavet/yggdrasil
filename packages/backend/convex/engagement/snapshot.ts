@@ -24,6 +24,8 @@ import {
 } from "./metrics";
 import { eventStatsAt } from "./stats";
 
+export { DAY_MS as CHECKPOINT_RETENTION_MS } from "@workspace/shared/time";
+
 export const MAX_REGISTRATIONS_PER_EVENT = 1000;
 const PAST_EVENTS_FOR_BASELINE = 60;
 export const MIN_FORECAST_EVENTS = 3;
@@ -31,7 +33,6 @@ export const STATS_SWEEP_BATCH = 10;
 export const YEAR_DAYS = 365;
 export const CHECKPOINT_BATCH = 10;
 export const CHECKPOINT_PRUNE_BATCH = 200;
-export const CHECKPOINT_RETENTION_MS = DAY_MS;
 export const MAX_CHECKPOINTS_PER_CUTOFF = 2000;
 export const MAX_TOUCHED_ROWS = 1000;
 export const STATS_REPAIR_BATCH = 30;
@@ -138,7 +139,7 @@ export function baselineFor(
 }
 
 export async function liveStateOf(ctx: QueryCtx, event: Doc<"events">, now: number) {
-	const stats = await eventStatsAt(ctx, event, now);
+	const stats = await eventStatsAt(ctx, event, Number.POSITIVE_INFINITY);
 	const recentLog = await logSince(ctx, event._id, now - DAY_MS);
 	const unregistrations = recentUnregistrations(recentLog, now);
 	return {

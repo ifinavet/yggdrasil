@@ -177,11 +177,13 @@ export const apply = internalMutation({
 			[...registrations.values()].map((registration) => applyTo(ctx, registration)),
 		);
 		const touched = new Set(applied.flatMap(({ eventId }) => (eventId ? [eventId] : [])));
-		for (const eventId of touched) {
-			await dropCheckpoints(ctx, eventId);
-			await dropEventCurve(ctx, eventId);
-			await ctx.scheduler.runAfter(0, internal.engagement.stats.refreshStats, { eventId });
-		}
+		await Promise.all(
+			[...touched].map(async (eventId) => {
+				await dropCheckpoints(ctx, eventId);
+				await dropEventCurve(ctx, eventId);
+				await ctx.scheduler.runAfter(0, internal.engagement.stats.refreshStats, { eventId });
+			}),
+		);
 		return applied.reduce((sum, { count }) => sum + count, 0);
 	},
 });

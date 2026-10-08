@@ -518,3 +518,40 @@ describe("upcomingEvents", () => {
 		expect(limited.map((event) => event._id)).toEqual([eligible]);
 	});
 });
+
+describe("liveStateOf", () => {
+	it("counts changes made after the client's minute", async () => {
+		const { t, companyId } = await setup();
+		const now = Date.now();
+		const eventId = await insertEvent(t, companyId, {
+			eventStart: now + 7 * DAY_MS,
+			registrationOpens: now - DAY_MS,
+			participationLimit: 10,
+			published: true,
+			externalEvent: false,
+		});
+		const clientMinute = Math.floor(now / 60_000) * 60_000 - 60_000;
+		const ada = await insertUser(t, "ada@example.com");
+		const bo = await insertUser(t, "bo@example.com");
+		await insertRegistration(t, eventId, ada._id, "registered", now);
+		await t.run((ctx) =>
+			logRegistrationChange(ctx, { eventId, userId: ada._id }, "registered", now),
+		);
+		await t.run((ctx) =>
+			logRegistrationChange(ctx, { eventId, userId: bo._id }, "registered", now + 1),
+		);
+		await t.run((ctx) =>
+			logRegistrationChange(
+				ctx,
+				{ eventId, userId: bo._id, status: "registered" },
+				"unregistered",
+				now + 2,
+			),
+		);
+
+		const event = await eventDoc(t, eventId);
+		const live = await t.run((ctx) => liveStateOf(ctx, event, clientMinute));
+
+		expect(live.registered).toBe(1);
+	});
+});

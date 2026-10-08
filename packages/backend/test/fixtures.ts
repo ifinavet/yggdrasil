@@ -47,8 +47,8 @@ const workflowModules = Promise.all(
 	),
 );
 
-export async function setup() {
-	const t = convexTest(schema, convexModules);
+export async function setup(options: { transactionLimits?: boolean } = {}) {
+	const t = convexTest({ schema, modules: convexModules, ...options });
 	rateLimiter.register(t);
 	migrationsTest.register(t);
 	const [workflow, workpool, batchWorker] = await workflowModules;

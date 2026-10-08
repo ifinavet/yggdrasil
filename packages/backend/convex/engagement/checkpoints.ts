@@ -149,42 +149,56 @@ export async function dropCheckpoints(ctx: MutationCtx, eventId: Id<"events">) {
 	for (const row of rows) await ctx.db.delete(row._id);
 }
 
-async function buildFor(ctx: MutationCtx, key: SemesterKey, cutoff: number, budget: number) {
-	let built = 0;
-	for (const event of await semesterEventDocs(ctx, key, cutoff + HOUR_MS)) {
-		if (built >= budget) break;
-		const stored = await statsRowOf(ctx, event._id);
-		if (stored && isCurrentStats(stored, event, cutoff)) continue;
-		if (await checkpointOf(ctx, event, cutoff)) continue;
-		try {
-			await ctx.db.insert("eventCheckpoints", {
-				...(await computeEventStats(ctx, event, cutoff)),
-				cutoff,
-			});
-		} catch (error) {
-			if (!(error instanceof ConvexError)) throw error;
-		}
-		built += 1;
+async function missingCheckpoints(ctx: QueryCtx, key: SemesterKey, cutoff: number) {
+	const events = await semesterEventDocs(ctx, key, cutoff + HOUR_MS);
+	const missing = await Promise.all(
+		events.map(async (event) => {
+			const stored = await statsRowOf(ctx, event._id);
+			if (stored && isCurrentStats(stored, event, cutoff)) return null;
+			if (await checkpointOf(ctx, event, cutoff)) return null;
+			return { event, cutoff };
+		}),
+	);
+	return missing.filter((target) => target !== null);
+}
+
+async function buildCheckpoint(ctx: MutationCtx, event: Doc<"events">, cutoff: number) {
+	try {
+		await ctx.db.insert("eventCheckpoints", {
+			...(await computeEventStats(ctx, event, cutoff)),
+			cutoff,
+		});
+	} catch (error) {
+		if (!(error instanceof ConvexError)) throw error;
 	}
-	return built;
 }
 
 export const buildCheckpoints = internalMutation({
 	args: {},
 	handler: async (ctx) => {
 		const now = Date.now();
-		let built = 0;
-		for (const hour of [now, now + HOUR_MS]) {
+		const cutoffs = [now, now + HOUR_MS].flatMap((hour) => {
 			const { previous, previousCheckpoint, lastYearSemester, lastYearCheckpoint } =
 				baselineCutoffs(hour);
-			built += await buildFor(ctx, previous, previousCheckpoint, CHECKPOINT_BATCH - built);
-			built += await buildFor(ctx, lastYearSemester, lastYearCheckpoint, CHECKPOINT_BATCH - built);
-		}
+			return [
+				{ key: previous, cutoff: previousCheckpoint },
+				{ key: lastYearSemester, cutoff: lastYearCheckpoint },
+			];
+		});
+		const missing = await Promise.all(
+			cutoffs.map(({ key, cutoff }) => missingCheckpoints(ctx, key, cutoff)),
+		);
+		const targets = new Map(
+			missing.flat().map((target) => [`${target.event._id}:${target.cutoff}`, target]),
+		);
+		const batch = [...targets.values()].slice(0, CHECKPOINT_BATCH);
+		await Promise.all(batch.map(({ event, cutoff }) => buildCheckpoint(ctx, event, cutoff)));
+		const built = batch.length;
 		const stale = await ctx.db
 			.query("eventCheckpoints")
 			.withIndex("by_creation_time", (q) => q.lt("_creationTime", now - CHECKPOINT_RETENTION_MS))
 			.take(CHECKPOINT_PRUNE_BATCH);
-		for (const checkpoint of stale) await ctx.db.delete(checkpoint._id);
+		await Promise.all(stale.map((checkpoint) => ctx.db.delete(checkpoint._id)));
 		return { built, pruned: stale.length };
 	},
 });
