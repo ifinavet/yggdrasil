@@ -1,12 +1,10 @@
 import { hasAdminRights } from "@workspace/auth";
-import { redirect } from "next/navigation";
+import { RightsGate } from "../rights-gate";
 
-export default async function Layout({
+export default function Layout({
 	children,
 }: Readonly<{
 	readonly children: React.ReactNode;
 }>) {
-	const hasRight = await hasAdminRights();
-
-	return hasRight ? children : redirect("/");
+	return <RightsGate hasRights={hasAdminRights}>{children}</RightsGate>;
 }
