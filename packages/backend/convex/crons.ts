@@ -45,6 +45,13 @@ crons.interval(
 );
 
 crons.interval(
+	"Build baseline checkpoints for the insight page",
+	{ minutes: 5 },
+	internal.engagement.checkpoints.buildCheckpoints,
+	{},
+);
+
+crons.interval(
 	"Repair stats of events near their start",
 	{ minutes: 10 },
 	internal.engagement.statsSweep.repairRecentStats,

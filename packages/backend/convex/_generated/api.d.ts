@@ -34,6 +34,7 @@ import type * as emails from "../emails.js";
 import type * as engagement_alerts from "../engagement/alerts.js";
 import type * as engagement_audience from "../engagement/audience.js";
 import type * as engagement_backfill from "../engagement/backfill.js";
+import type * as engagement_checkpoints from "../engagement/checkpoints.js";
 import type * as engagement_companies from "../engagement/companies.js";
 import type * as engagement_companyMetrics from "../engagement/companyMetrics.js";
 import type * as engagement_forecastSeed from "../engagement/forecastSeed.js";
@@ -224,6 +225,7 @@ declare const fullApi: ApiFromModules<{
   "engagement/alerts": typeof engagement_alerts;
   "engagement/audience": typeof engagement_audience;
   "engagement/backfill": typeof engagement_backfill;
+  "engagement/checkpoints": typeof engagement_checkpoints;
   "engagement/companies": typeof engagement_companies;
   "engagement/companyMetrics": typeof engagement_companyMetrics;
   "engagement/forecastSeed": typeof engagement_forecastSeed;

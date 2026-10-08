@@ -15,6 +15,7 @@ import { eventsInSemester, organizerRoleOf } from "../events/helper";
 import { companyWithLogo, eventSemesterValidator } from "../events/queries";
 import { REMINDER_KINDS, REMINDER_LEAD_TIMES } from "../events/reminders/schedule";
 import { audienceOf, withStudyYear } from "./audience";
+import { baselineCutoffs, baselineStatsAt, semesterEventDocs } from "./checkpoints";
 import { byCompany, type EventCounts, metricsOf } from "./companyMetrics";
 import {
 	type AnalyticsRegistration,
@@ -310,17 +311,18 @@ export type SemesterEvent = {
 
 export type SemesterKey = { semester: EventSemester; year: number };
 
-export async function semesterEvents(ctx: QueryCtx, { semester, year }: SemesterKey, now: number) {
-	const events = (await eventsInSemester(ctx, semester, year)).filter(
-		(event) =>
-			event.published &&
-			!event.externalEvent &&
-			event.participationLimit > 0 &&
-			event.registrationOpens <= now,
-	);
+export async function semesterEvents(
+	ctx: QueryCtx,
+	key: SemesterKey,
+	now: number,
+	baseline = false,
+) {
+	const events = await semesterEventDocs(ctx, key, now);
 	return await Promise.all(
 		events.map(async (event): Promise<SemesterEvent> => {
-			const stats = await eventStatsAt(ctx, event, now);
+			const stats = await (baseline
+				? baselineStatsAt(ctx, event, now)
+				: eventStatsAt(ctx, event, now));
 			return {
 				event,
 				counts: countsOf(stats),
@@ -473,16 +475,10 @@ export const semester = query({
 		await requireRole(ctx, internalRoles);
 		const current = eventSemesterOf(now);
 		const currentStart = eventSemesterRange(current.semester, current.year).start;
-		const previous = eventSemesterOf(currentStart - DAY_MS);
-		const previousRange = eventSemesterRange(previous.semester, previous.year);
-		const previousCutoff = Math.min(
-			previousRange.start + now - currentStart,
-			previousRange.end - 1,
-		);
-		const lastYear = now - 365 * DAY_MS;
+		const { previous, previousCutoff, lastYearSemester, lastYear } = baselineCutoffs(now);
 		const events = await semesterEvents(ctx, current, now);
-		const previousEvents = await semesterEvents(ctx, previous, previousCutoff);
-		const lastYearEvents = await semesterEvents(ctx, eventSemesterOf(lastYear), lastYear);
+		const previousEvents = await semesterEvents(ctx, previous, previousCutoff, true);
+		const lastYearEvents = await semesterEvents(ctx, lastYearSemester, lastYear, true);
 		const yearsSincePrevious = current.semester === "høst" ? 1 : 0;
 
 		const audience = audienceOf(
