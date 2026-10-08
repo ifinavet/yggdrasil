@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { buildWorld, insightOutputs, NOW, normalised, type World } from "../../test/insightWorld";
 import { internal } from "../_generated/api";
 import { baselineCutoffs } from "./checkpoints";
-import { buildWorld, insightOutputs, NOW, normalised, type World } from "./insightWorld";
 import { refreshEventStats } from "./stats";
 
 afterEach(() => {

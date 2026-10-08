@@ -1,4 +1,7 @@
 import { vi } from "vitest";
+import { api } from "../convex/_generated/api";
+import type { Doc, Id } from "../convex/_generated/dataModel";
+import type { RegistrationChange } from "../convex/engagement/schema";
 import {
 	asUser,
 	grantRole,
@@ -7,10 +10,7 @@ import {
 	insertUser,
 	setup,
 	type TestBackend,
-} from "../../test/fixtures";
-import { api } from "../_generated/api";
-import type { Doc, Id } from "../_generated/dataModel";
-import type { RegistrationChange } from "./schema";
+} from "./fixtures";
 
 const at = (iso: string) => Date.parse(iso);
 export const NOW = at("2026-10-20T10:00:00Z");

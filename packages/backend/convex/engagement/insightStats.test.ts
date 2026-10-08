@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { buildWorld, insightOutputs, normalised, type World } from "./insightWorld";
+import { buildWorld, insightOutputs, normalised, type World } from "../../test/insightWorld";
 import { refreshEventStats } from "./stats";
 
 afterEach(() => {

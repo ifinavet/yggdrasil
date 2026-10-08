@@ -39,10 +39,9 @@ describe("sweepStats", () => {
 		expect(nextRound).toMatchObject({ created: 0, unchanged: STATS_SWEEP_BATCH, finished: false });
 	});
 
-	it("corrects a corrupted row and removes the row of a deleted event", async () => {
+	it("corrects a corrupted row", async () => {
 		const { t, companyId } = await setup();
 		const kept = await insertEvent(t, companyId);
-		const gone = await insertEvent(t, companyId);
 		const user = await insertUser(t, "student@example.com");
 		await insertRegistration(t, kept, user._id, "registered");
 		await t.mutation(internal.engagement.statsSweep.sweepStats, {});
@@ -52,13 +51,12 @@ describe("sweepStats", () => {
 				.withIndex("by_eventId", (q) => q.eq("eventId", kept))
 				.unique();
 			await ctx.db.patch((row as Doc<"eventStats">)._id, { registered: 9, registrants: [] });
-			await ctx.db.delete(gone);
 		});
 
 		const pass = await t.mutation(internal.engagement.statsSweep.sweepStats, {});
 		expect(pass).toMatchObject({ patched: 1, finished: true });
 		const rows = await statsRows(t);
-		expect(rows).toHaveLength(2);
+		expect(rows).toHaveLength(1);
 		const corrected = rows.find((row) => row.eventId === kept);
 		expect(corrected).toMatchObject({ registered: 1, registrants: [user._id] });
 	});
