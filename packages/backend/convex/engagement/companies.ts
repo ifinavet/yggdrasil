@@ -197,8 +197,10 @@ async function semesterMetrics(
 	key: SemesterKey,
 	now: number,
 ) {
-	const cutoff = Math.min(now, eventSemesterRange(key.semester, key.year).end - 1);
-	const grouped = byCompany(await semesterEvents(ctx, key, cutoff));
+	const last = eventSemesterRange(key.semester, key.year).end - 1;
+	const cutoff = Math.min(now, last);
+	const statsCutoff = now < last ? Number.POSITIVE_INFINITY : cutoff;
+	const grouped = byCompany(await semesterEvents(ctx, key, cutoff, null, statsCutoff));
 	const companyEvents = grouped.get(companyId);
 	return {
 		...key,

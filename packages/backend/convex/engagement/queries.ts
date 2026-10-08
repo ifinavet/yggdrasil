@@ -320,13 +320,11 @@ export async function semesterEvents(
 	key: SemesterKey,
 	now: number,
 	checkpointCutoff: number | null = null,
+	statsCutoff = Number.POSITIVE_INFINITY,
 ) {
 	const events = await semesterEventDocs(ctx, key, now);
 	const { start, end } = eventSemesterRange(key.semester, key.year);
 	const storedRows = await statsRowsBetween(ctx, start, end);
-	const current = eventSemesterOf(now);
-	const statsCutoff =
-		current.semester === key.semester && current.year === key.year ? Number.POSITIVE_INFINITY : now;
 	const baseline =
 		checkpointCutoff === null
 			? null
