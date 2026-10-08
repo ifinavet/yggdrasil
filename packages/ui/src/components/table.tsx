@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@workspace/ui/lib/utils";
-import type * as React from "react";
+import * as React from "react";
 
 function Table({ className, ...props }: React.ComponentProps<"table">) {
 	return (
@@ -41,36 +41,60 @@ function TableFooter({ className, ...props }: React.ComponentProps<"tfoot">) {
 
 type TableRowMarker = { label: string; className: string };
 
+type CellProps = { className?: string; children?: React.ReactNode };
+
+function TableRowMarkerLabel({ marker }: { marker: TableRowMarker }) {
+	return (
+		<span
+			data-slot='table-row-marker'
+			className={cn(
+				"group/marker absolute inset-y-0 left-0 z-10 flex w-max max-w-1.5 items-center overflow-hidden p-0 transition-[max-width] duration-150 ease-out hover:max-w-56",
+				marker.className,
+			)}
+		>
+			<span className='whitespace-nowrap px-3 font-medium text-xs opacity-0 transition-opacity group-hover/marker:opacity-100'>
+				{marker.label}
+			</span>
+		</span>
+	);
+}
+
+function withMarker(children: React.ReactNode, marker: TableRowMarker) {
+	const [first, ...rest] = React.Children.toArray(children);
+	if (!React.isValidElement<CellProps>(first)) return children;
+	return [
+		React.cloneElement(first, {
+			key: first.key,
+			className: cn("relative", first.props.className),
+			children: (
+				<>
+					<TableRowMarkerLabel marker={marker} />
+					{first.props.children}
+				</>
+			),
+		}),
+		...rest,
+	];
+}
+
 function TableRow({
 	className,
 	marker,
+	stretchedLink = false,
 	children,
 	...props
-}: React.ComponentProps<"tr"> & { marker?: TableRowMarker | null }) {
+}: React.ComponentProps<"tr"> & { marker?: TableRowMarker | null; stretchedLink?: boolean }) {
 	return (
 		<tr
 			data-slot='table-row'
 			className={cn(
 				"border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted",
-				marker && "relative",
+				stretchedLink && "relative transform-gpu",
 				className,
 			)}
 			{...props}
 		>
-			{children}
-			{marker && (
-				<td
-					data-slot='table-row-marker'
-					className={cn(
-						"group/marker absolute inset-y-0 left-0 z-10 flex w-max max-w-1.5 items-center overflow-hidden p-0 transition-[max-width] duration-150 ease-out hover:max-w-56",
-						marker.className,
-					)}
-				>
-					<span className='whitespace-nowrap px-3 font-medium text-xs opacity-0 transition-opacity group-hover/marker:opacity-100'>
-						{marker.label}
-					</span>
-				</td>
-			)}
+			{marker ? withMarker(children, marker) : children}
 		</tr>
 	);
 }

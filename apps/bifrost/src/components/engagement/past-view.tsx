@@ -53,7 +53,7 @@ export function PastTable({
 							key={event._id}
 							data-state={event._id === selectedId ? "selected" : undefined}
 							marker={organizerMarker(event.myRole, true)}
-							className="relative"
+							stretchedLink
 						>
 							<TableCell className={`${LIST_CELL} whitespace-nowrap pl-4 tabular-nums`}>
 								{formatOsloDate(event.eventStart, DATE_PATTERNS.shortDate)}

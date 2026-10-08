@@ -85,7 +85,7 @@ function ListingRow({
 	);
 
 	return (
-		<TableRow className="relative">
+		<TableRow stretchedLink>
 			<TableCell className={LIST_CELL}>
 				{guided ? <GuideHint step="publish">{identity}</GuideHint> : identity}
 			</TableCell>

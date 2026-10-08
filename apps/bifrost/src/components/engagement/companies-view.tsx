@@ -90,7 +90,7 @@ function CompanyTable({
 					<TableRow
 						key={company.companyId}
 						data-state={company.companyId === selectedId ? "selected" : undefined}
-						className="relative"
+						stretchedLink
 					>
 						<TableCell className={LIST_CELL}>
 							<div className="flex min-w-0 items-center gap-2.5">
