@@ -324,6 +324,9 @@ export async function semesterEvents(
 	const events = await semesterEventDocs(ctx, key, now);
 	const { start, end } = eventSemesterRange(key.semester, key.year);
 	const storedRows = await statsRowsBetween(ctx, start, end);
+	const current = eventSemesterOf(now);
+	const statsCutoff =
+		current.semester === key.semester && current.year === key.year ? Number.POSITIVE_INFINITY : now;
 	const baseline =
 		checkpointCutoff === null
 			? null
@@ -332,7 +335,7 @@ export async function semesterEvents(
 		events.map(async (event): Promise<SemesterEvent> => {
 			const stored = storedRows.get(event._id) ?? null;
 			const stats = await (baseline === null
-				? eventStatsAt(ctx, event, now, stored)
+				? eventStatsAt(ctx, event, statsCutoff, stored)
 				: baselineStatsAt(ctx, event, now, baseline.cutoff, { ...baseline.rows, stored }));
 			return {
 				event,

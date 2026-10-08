@@ -1,3 +1,4 @@
+import { HOUR_MS } from "@workspace/shared/time";
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
@@ -8,6 +9,7 @@ import { demandCurve, type ForecastTimeline } from "./metrics";
 export const UNREGISTRATION_HISTORY_START = Date.UTC(2025, 7, 10);
 export const MAX_LOG_ENTRIES = 1000;
 export const CURVE_BACKFILL_BATCH = 20;
+export const CURVE_BACKFILL_STALE_MS = HOUR_MS;
 
 export type PastCurve = {
 	eventId: Id<"events">;
@@ -114,12 +116,16 @@ function sameCurve(stored: CurveRow, computed: CurveRow) {
 	);
 }
 
-export async function refreshEventCurve(ctx: MutationCtx, event: Doc<"events">, now: number) {
+async function curveRowToKeep(ctx: MutationCtx, event: Doc<"events">, now: number) {
 	const stored = await curveRowOf(ctx, event._id);
-	if (!hasComparableHistory(event) || event.eventStart > now) {
-		if (stored) await ctx.db.delete(stored._id);
-		return;
-	}
+	if (hasComparableHistory(event) && event.eventStart <= now) return { keep: true, stored };
+	if (stored) await ctx.db.delete(stored._id);
+	return { keep: false, stored: null };
+}
+
+export async function refreshEventCurve(ctx: MutationCtx, event: Doc<"events">, now: number) {
+	const { keep, stored } = await curveRowToKeep(ctx, event, now);
+	if (!keep) return;
 	const computed = await computeCurve(ctx, event);
 	if (!stored) await ctx.db.insert("eventCurves", computed);
 	else if (!sameCurve(stored, computed)) await ctx.db.replace(stored._id, computed);
@@ -131,12 +137,8 @@ export async function dropEventCurve(ctx: MutationCtx, eventId: Id<"events">) {
 }
 
 export async function queueCurveRefresh(ctx: MutationCtx, event: Doc<"events">, now: number) {
-	const stored = await curveRowOf(ctx, event._id);
-	if (!hasComparableHistory(event) || event.eventStart > now) {
-		if (stored) await ctx.db.delete(stored._id);
-		return;
-	}
-	if (stored && matchesEvent(stored, event)) return;
+	const { keep, stored } = await curveRowToKeep(ctx, event, now);
+	if (!keep || (stored && matchesEvent(stored, event))) return;
 	await ctx.scheduler.runAfter(0, internal.engagement.curves.refreshCurve, { eventId: event._id });
 }
 
@@ -153,11 +155,13 @@ export const backfillCurves = internalMutation({
 	args: { cursor: v.optional(v.string()), until: v.optional(v.number()) },
 	handler: async (ctx, { cursor, until }) => {
 		const state = await ctx.db.query("curveBackfill").first();
+		const end = until ?? Date.now();
 		if (cursor === undefined) {
-			if (state) return { finished: state.done };
+			const stale = state && !state.done && state._creationTime < end - CURVE_BACKFILL_STALE_MS;
+			if (state && !stale) return { finished: state.done };
+			if (state) await ctx.db.delete(state._id);
 			await ctx.db.insert("curveBackfill", { done: false });
 		}
-		const end = until ?? Date.now();
 		const page = await ctx.db
 			.query("events")
 			.withIndex("by_eventStart", (q) =>

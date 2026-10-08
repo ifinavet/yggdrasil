@@ -1,4 +1,4 @@
-import { DAY_MS, HOUR_MS } from "@workspace/shared/time";
+import { DAY_MS, eventSemesterOf, HOUR_MS } from "@workspace/shared/time";
 import { describe, expect, it } from "vitest";
 import {
 	insertEvent,
@@ -11,6 +11,7 @@ import type { Doc, Id } from "../_generated/dataModel";
 import { UNREGISTRATION_HISTORY_START } from "./curves";
 import { logRegistrationChange } from "./log";
 import { PACE_GRID } from "./metrics";
+import { semesterEvents } from "./queries";
 import {
 	baselineFor,
 	companyCurvesBefore,
@@ -524,7 +525,7 @@ describe("liveStateOf", () => {
 		const { t, companyId } = await setup();
 		const now = Date.now();
 		const eventId = await insertEvent(t, companyId, {
-			eventStart: now + 7 * DAY_MS,
+			eventStart: now + HOUR_MS,
 			registrationOpens: now - DAY_MS,
 			participationLimit: 10,
 			published: true,
@@ -551,7 +552,11 @@ describe("liveStateOf", () => {
 
 		const event = await eventDoc(t, eventId);
 		const live = await t.run((ctx) => liveStateOf(ctx, event, clientMinute));
+		const [semester] = await t.run((ctx) =>
+			semesterEvents(ctx, eventSemesterOf(clientMinute), clientMinute),
+		);
 
 		expect(live.registered).toBe(1);
+		expect(semester?.counts.registered).toBe(1);
 	});
 });

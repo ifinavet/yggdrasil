@@ -1,5 +1,5 @@
 import { DAY_MS, HOUR_MS } from "@workspace/shared/time";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
 	insertEvent,
 	insertRegistration,
@@ -9,12 +9,16 @@ import {
 } from "../../test/fixtures";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
-import { curveOf, refreshEventCurve } from "./curves";
+import { CURVE_BACKFILL_STALE_MS, curveOf, refreshEventCurve } from "./curves";
 import { logRegistrationChange } from "./log";
 
 const OPENS = Date.UTC(2026, 1, 1, 10);
 const START = OPENS + 10 * DAY_MS;
 const AFTER = START + DAY_MS;
+
+afterEach(() => {
+	vi.useRealTimers();
+});
 
 async function pastEventWithSeats(t: TestBackend, companyId: Id<"companies">, seats: number) {
 	const eventId = await insertEvent(t, companyId, {
@@ -88,17 +92,6 @@ describe("refreshEventCurve", () => {
 
 		expect(await storedCurves(t)).toHaveLength(0);
 	});
-
-	it("does not start a second run while one is in progress", async () => {
-		const { t, companyId } = await setup();
-		await pastEventWithSeats(t, companyId, 3);
-		await t.run((ctx) => ctx.db.insert("curveBackfill", { done: false }));
-
-		const result = await t.mutation(internal.engagement.curves.backfillCurves, {});
-
-		expect(result).toEqual({ finished: false });
-		expect(await storedCurves(t)).toHaveLength(0);
-	});
 });
 
 describe("backfillCurves", () => {
@@ -128,5 +121,18 @@ describe("backfillCurves", () => {
 
 		expect(result).toEqual({ finished: false });
 		expect(await storedCurves(t)).toHaveLength(0);
+	});
+
+	it("restarts a run that stopped without finishing", async () => {
+		const { t, companyId } = await setup();
+		await pastEventWithSeats(t, companyId, 3);
+		await t.run((ctx) => ctx.db.insert("curveBackfill", { done: false }));
+		vi.useFakeTimers({ toFake: ["Date"] });
+		vi.setSystemTime(Date.now() + CURVE_BACKFILL_STALE_MS + 1);
+
+		const result = await t.mutation(internal.engagement.curves.backfillCurves, {});
+
+		expect(result).toEqual({ finished: true });
+		expect(await storedCurves(t)).toHaveLength(1);
 	});
 });
