@@ -47,7 +47,7 @@ export const engagementSchema = {
 		eventId: v.id("events"),
 		rule: alertRule,
 		summary: v.string(),
-		detail: v.string(),
+		detail: v.optional(v.string()),
 		triggeredAt: v.number(),
 		dismissedAt: v.optional(v.number()),
 	})

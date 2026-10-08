@@ -9,7 +9,7 @@ import { internalMutation, type MutationCtx, mutation } from "../_generated/serv
 import { internalRoles, requireRole } from "../auth/accessRights";
 import { isLocalDevelopment } from "../auth/local";
 import { companyWithLogo, getOrganizers } from "../events/queries";
-import { escapeSlack, organizerNames, unregisterWaveText } from "../events/slack/messages";
+import { alertSentence, organizerNames, unregisterWaveText } from "../events/slack/messages";
 import { queueEventNotification } from "../events/slack/state";
 import type { AlertRule } from "./schema";
 import { pastCurvesBefore, snapshotOf, upcomingEvents } from "./snapshot";
@@ -40,15 +40,13 @@ export function describeAlert(
 	companyName: string,
 	snapshot: Snapshot,
 	now: number,
-) {
+): { summary: string; detail?: string } {
 	const name = `${event.title}, ${companyName}`;
-	const seats = `${snapshot.registered} av ${event.participationLimit} plasser`;
 	if (rule === "unregisterWave") {
 		const times = snapshot.unregistrations.map((entry) => entry.at);
 		const minutes = Math.max(1, Math.round((Math.max(...times) - Math.min(...times)) / MINUTE_MS));
 		return {
 			summary: `${times.length} avmeldinger på ${minutes} min på ${name}`,
-			detail: `${seats} er fortsatt tatt.`,
 		};
 	}
 	if (rule === "behindPace") {
@@ -58,7 +56,7 @@ export function describeAlert(
 				: ` Forventet på dette tidspunktet er ${percent(snapshot.expectedFillNow)} fylt.`;
 		return {
 			summary: `${name} ligger an til ${percent(snapshot.projectedFill)} fylt`,
-			detail: `${seats}, ${daysLeft(event.eventStart, now)}.${comparison}`,
+			detail: `${daysLeft(event.eventStart, now)}.${comparison}`,
 		};
 	}
 	return {
@@ -90,14 +88,14 @@ type Organizer = { name: string; slackUserId?: string };
 export function slackText(
 	rule: AlertRule,
 	eventId: Doc<"events">["_id"],
-	alert: { summary: string; detail: string },
+	alert: { summary: string; detail?: string },
 	organizers: Organizer[],
 	origin: string,
 ) {
 	const { title, hint, tag } = SLACK_INTRO[rule];
 	return [
 		title,
-		`${escapeSlack(alert.summary)}. ${escapeSlack(alert.detail)}`,
+		alertSentence(alert.summary, alert.detail),
 		...(organizers.length > 0
 			? [`🙋 Hovedansvarlig: ${organizerNames(organizers, tag).join(", ")}`]
 			: []),
@@ -130,7 +128,7 @@ export const detectAlerts = internalMutation({
 		const now = Date.now();
 		const pastCurves = await pastCurvesBefore(ctx, now);
 		const origin = isLocalDevelopment() ? BIFROST_LOCAL_URL : BIFROST_URL;
-		const triggered: { event: Doc<"events">; rule: AlertRule; summary: string; detail: string }[] =
+		const triggered: { event: Doc<"events">; rule: AlertRule; summary: string; detail?: string }[] =
 			[];
 		for (const event of await upcomingEvents(ctx, now, EVENTS_TO_WATCH)) {
 			const snapshot = await snapshotOf(ctx, event, now, pastCurves);

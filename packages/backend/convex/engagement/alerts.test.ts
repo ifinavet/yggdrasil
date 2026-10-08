@@ -78,7 +78,7 @@ describe("describeAlert", () => {
 		};
 		const result = describeAlert("unregisterWave", eventFields, "Bedrift AS", snapshot, OPENS);
 		expect(result.summary).toBe("2 avmeldinger på 30 min på Kodekveld, Bedrift AS");
-		expect(result.detail).toBe("4 av 10 plasser er fortsatt tatt.");
+		expect(result.detail).toBeUndefined();
 	});
 
 	it("rounds a near-instant wave up to at least one minute", () => {
@@ -95,16 +95,14 @@ describe("describeAlert", () => {
 		const now = START - 2 * DAY_MS;
 		const result = describeAlert("behindPace", eventFields, "Bedrift AS", snapshot, now);
 		expect(result.summary).toBe("Kodekveld, Bedrift AS ligger an til 40 % fylt");
-		expect(result.detail).toBe(
-			"4 av 10 plasser, 2 dager igjen. Forventet på dette tidspunktet er 75 % fylt.",
-		);
+		expect(result.detail).toBe("2 dager igjen. Forventet på dette tidspunktet er 75 % fylt.");
 	});
 
 	it("describes a behind pace alert without a baseline comparison", () => {
 		const snapshot = snapshotBase();
 		const now = START - DAY_MS + HOUR_MS;
 		const result = describeAlert("behindPace", eventFields, "Bedrift AS", snapshot, now);
-		expect(result.detail).toBe("4 av 10 plasser, 1 dag igjen.");
+		expect(result.detail).toBe("1 dag igjen.");
 	});
 
 	it("describes no registrations with the formatted opening date", () => {
@@ -160,6 +158,18 @@ describe("slackText", () => {
 
 		expect(text).toContain("Fest &lt;3 &amp; mat. 4 av 10 plasser.");
 		expect(text).not.toContain("Hovedansvarlig");
+	});
+
+	it("ends the summary line without a detail when the alert has none", () => {
+		const text = slackText(
+			"unregisterWave",
+			"event123" as Id<"events">,
+			{ summary: "3 avmeldinger på 5 min på Kodekveld, Acme" },
+			[],
+			"https://bifrost.test",
+		);
+
+		expect(text.split("\n")[1]).toBe("3 avmeldinger på 5 min på Kodekveld, Acme.");
 	});
 });
 
