@@ -109,6 +109,15 @@ describe("valueAt", () => {
 		expect(valueAt(curve, 2)).toBe(1);
 	});
 
+	it("keeps each curve's values apart when lookups interleave", () => {
+		const full = linearCurve(1);
+		const half = linearCurve(0.5);
+		expect(valueAt(full, 0.5)).toBeCloseTo(0.5);
+		expect(valueAt(half, 0.5)).toBeCloseTo(0.25);
+		expect(valueAt(full, 0.25)).toBeCloseTo(0.25);
+		expect(valueAt([...half], 1)).toBeCloseTo(0.5);
+	});
+
 	it("interpolates on the dense early grid", () => {
 		const curve = PACE_GRID.map((progress) => (progress >= 0.0002 ? 1 : 0));
 		expect(valueAt(curve, 0)).toBe(0);

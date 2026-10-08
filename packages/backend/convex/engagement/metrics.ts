@@ -98,8 +98,15 @@ export function medianCurve(curves: readonly (readonly number[])[]) {
 	return PACE_GRID.map((_, step) => median(curves, (curve) => curve[step] ?? 0) as number);
 }
 
+const curveScales = new WeakMap<readonly number[], (progress: number) => number>();
+
 export function valueAt(curve: readonly number[], progress: number) {
-	return scaleLinear(PACE_GRID, curve).clamp(true)(progress);
+	let scale = curveScales.get(curve);
+	if (!scale) {
+		scale = scaleLinear(PACE_GRID, curve).clamp(true);
+		curveScales.set(curve, scale);
+	}
+	return scale(progress);
 }
 
 export function projectFill(
