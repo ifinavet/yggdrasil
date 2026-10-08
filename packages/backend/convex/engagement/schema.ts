@@ -43,6 +43,24 @@ export const engagementSchema = {
 		.index("by_userId_and_at", ["userId", "at"])
 		.index("by_at", ["at"]),
 
+	eventStats: defineTable({
+		eventId: v.id("events"),
+		eventStart: v.number(),
+		participationLimit: v.number(),
+		changedAt: v.number(),
+		registered: v.number(),
+		waitlist: v.number(),
+		pending: v.number(),
+		attendanceRecorded: v.boolean(),
+		showedUp: v.number(),
+		noShows: v.number(),
+		filledAt: v.union(v.number(), v.null()),
+		lateUnregistrations: v.number(),
+		registrants: v.array(v.id("users")),
+	})
+		.index("by_eventId", ["eventId"])
+		.index("by_eventStart", ["eventStart"]),
+
 	unregistrationImports: defineTable({
 		state: v.union(v.literal("running"), v.literal("done"), v.literal("failed")),
 		attempts: v.number(),

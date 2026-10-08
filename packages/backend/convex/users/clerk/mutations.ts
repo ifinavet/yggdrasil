@@ -161,11 +161,11 @@ async function cleanRegistrations(ctx: MutationCtx, userId: Id<"users">): Promis
 	for (const registration of registrations) {
 		const event = await ctx.db.get(registration.eventId);
 		if (!event || event.eventStart > Date.now()) {
+			await ctx.db.delete(registration._id);
 			if (event) {
 				await logRegistrationChange(ctx, registration, "unregistered");
 				eventsToRefill.set(event._id, event);
 			}
-			await ctx.db.delete(registration._id);
 		} else {
 			await ctx.db.patch(registration._id, { note: undefined });
 		}

@@ -4,6 +4,7 @@ import type { Doc } from "../../_generated/dataModel";
 import { type MutationCtx, mutation } from "../../_generated/server";
 import { getCurrentUserOrThrow } from "../../auth/currentUser";
 import { logRegistrationChange } from "../../engagement/log";
+import { refreshEventStats } from "../../engagement/stats";
 import { inviteLateAttendee } from "../../feedback/delivery/campaigns";
 import {
 	countRegistrationsWithStatus,
@@ -115,6 +116,7 @@ export const updateAttendance = mutation({
 			attendanceStatus: newStatus,
 			attendanceTime: Date.now(),
 		});
+		await refreshEventStats(ctx, registration.eventId);
 		await inviteLateAttendee(ctx, { ...registration, attendanceStatus: newStatus });
 
 		const previousStatus = registration.attendanceStatus;

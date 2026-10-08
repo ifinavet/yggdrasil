@@ -14,13 +14,14 @@ const changeOfStatus = {
 	waitlist: "waitlisted",
 } satisfies Record<AnalyticsRegistration["status"], LogEntry["change"]>;
 
-const statusOfChange: Partial<Record<LogEntry["change"], AnalyticsRegistration["status"]>> = {
-	registered: "registered",
-	accepted: "registered",
-	waitlisted: "waitlist",
-	offered: "pending",
-	expired: "waitlist",
-};
+export const statusOfChange: Partial<Record<LogEntry["change"], AnalyticsRegistration["status"]>> =
+	{
+		registered: "registered",
+		accepted: "registered",
+		waitlisted: "waitlist",
+		offered: "pending",
+		expired: "waitlist",
+	};
 
 const HISTORY_LIMIT = 4000;
 

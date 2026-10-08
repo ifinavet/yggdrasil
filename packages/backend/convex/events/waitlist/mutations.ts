@@ -102,30 +102,26 @@ export const clearWaitlistAndPending = internalMutation({
 				if (availablePlaces === 0) return;
 
 				// Delete and notify the students on the waitlist
-				await Promise.all(
-					registrations
-						.filter((reg) => reg.status !== "registered")
-						.map(async (reg) => {
-							const user = await ctx.db.get(reg.userId);
-							if (!user || user.deleted) {
-								await ctx.db.delete(reg._id);
-								await logRegistrationChange(ctx, reg, "cleared", now);
-								return;
-							}
+				for (const reg of registrations.filter((reg) => reg.status !== "registered")) {
+					const user = await ctx.db.get(reg.userId);
+					if (!user || user.deleted) {
+						await ctx.db.delete(reg._id);
+						await logRegistrationChange(ctx, reg, "cleared", now);
+						continue;
+					}
 
-							// Notify registrant of the free-for all
-							await ctx.scheduler.runAfter(0, internal.emails.sendFreeForAll, {
-								participantEmail: user.email,
-								eventId: event._id,
-								eventTitle: event.title,
-								availableSeats: availablePlaces,
-							});
+					// Notify registrant of the free-for all
+					await ctx.scheduler.runAfter(0, internal.emails.sendFreeForAll, {
+						participantEmail: user.email,
+						eventId: event._id,
+						eventTitle: event.title,
+						availableSeats: availablePlaces,
+					});
 
-							// Delete registrations
-							await ctx.db.delete(reg._id);
-							await logRegistrationChange(ctx, reg, "cleared", now);
-						}),
-				);
+					// Delete registrations
+					await ctx.db.delete(reg._id);
+					await logRegistrationChange(ctx, reg, "cleared", now);
+				}
 			}),
 		);
 	},

@@ -4,6 +4,7 @@ import { countRegistrationsWithStatus } from "../events/helper";
 import { registrationFullText } from "../events/slack/messages";
 import { queueEventNotification } from "../events/slack/state";
 import type { RegistrationChange } from "./schema";
+import { refreshEventStats } from "./stats";
 
 export async function logRegistrationChange(
 	ctx: MutationCtx,
@@ -30,4 +31,5 @@ export async function logRegistrationChange(
 		fromStatus: registration.status,
 		at,
 	});
+	await refreshEventStats(ctx, registration.eventId);
 }
