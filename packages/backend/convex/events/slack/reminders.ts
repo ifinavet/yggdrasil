@@ -109,13 +109,11 @@ async function attendanceReminder(
 				text: `🚨 Dere har ikke registrert oppmøte for ${missing} påmeldte! Skjemaet går ut om en time, og bare til dem som er registrert som møtt. ${link}`,
 			},
 		];
-	const still = `🚨🚨 Oppmøtet for ${missing} påmeldte er FORTSATT ikke registrert! De får ikke skjemaet før dere fikser det, så fiks det nå. ${link}`;
-	const text =
-		index === schedule.length - 1
-			? `🤖🚨 Nå er det nok. ${missing} påmeldte mangler fortsatt oppmøte. Jeg har startet 3D-printeren på Sonen og printer meg en robotkropp, og så kommer jeg og finner deg på IFI hvis du ikke fikser dette ASAP. ${link}`
-			: index === schedule.length - 2
-				? `😠😠😠 Siste påminnelse! ${missing} påmeldte mangler fortsatt oppmøte, og de får ikke skjemaet før dere registrerer det. Kom igjen! ${link}`
-				: still;
+	let text = `🚨🚨 Oppmøtet for ${missing} påmeldte er FORTSATT ikke registrert! De får ikke skjemaet før dere fikser det, så fiks det nå. ${link}`;
+	if (index === schedule.length - 1)
+		text = `🤖🚨 Nå er det nok. ${missing} påmeldte mangler fortsatt oppmøte. Jeg har startet 3D-printeren på Sonen og printer meg en robotkropp, og så kommer jeg og finner deg på IFI hvis du ikke fikser dette ASAP. ${link}`;
+	else if (index === schedule.length - 2)
+		text = `😠😠😠 Siste påminnelse! ${missing} påmeldte mangler fortsatt oppmøte, og de får ikke skjemaet før dere registrerer det. Kom igjen! ${link}`;
 	return [{ key: `missing-attendance:followup-${index}`, at, text }];
 }
 
