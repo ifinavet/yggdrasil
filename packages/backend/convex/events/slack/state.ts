@@ -465,16 +465,15 @@ async function renderNotification(
 			return null;
 		}
 	}
+	const missingAttendance = notice.key.startsWith("missing-attendance:");
 	const recipients =
-		notice.key.startsWith("practical:") ||
-		notice.key.startsWith("expenses:") ||
-		notice.key.startsWith("missing-attendance:")
+		notice.key.startsWith("practical:") || notice.key.startsWith("expenses:") || missingAttendance
 			? organizers.filter(({ role }) => role === "hovedansvarlig")
 			: organizers;
 	return {
 		id: notice._id,
 		createdAt: notice._creationTime,
-		text: eventMessage(event, recipients, text, tag),
+		text: eventMessage(event, recipients, text, tag, missingAttendance),
 	};
 }
 

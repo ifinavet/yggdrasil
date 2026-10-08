@@ -100,23 +100,20 @@ async function attendanceReminder(
 		if (!registration.attendanceStatus) missing++;
 	}
 	if (!missing) return [];
-	const link = `<${eventUrl(event)}/registrations|Registrer oppmøtet nå>, og sett "Ikke møtt" på dem som ikke kom.`;
+	const link = `<${eventUrl(event)}/registrations|Registrer oppmøtet>, og gi "Ikke møtt" til dem som ikke kom.`;
 	if (index === 0)
 		return [
 			{
 				key: "missing-attendance",
 				at,
-				text: `Oppmøtet er ikke registrert for ${missing} påmeldte. Tilbakemeldingsskjemaet sendes om en time, og bare til dem som er registrert som møtt. ${link}`,
+				text: `🚨 Dere har ikke registrert oppmøte for ${missing} påmeldte! Skjemaet går ut om en time, og bare til dem som er registrert som møtt. ${link}`,
 			},
 		];
-	const last = index === schedule.length - 1 ? "Siste påminnelse fra meg. " : "";
-	return [
-		{
-			key: `missing-attendance:followup-${index}`,
-			at,
-			text: `${last}Oppmøtet er fortsatt ikke registrert for ${missing} påmeldte, og de får ikke tilbakemeldingsskjemaet før dere gjør det. Dette må gjøres nå. ${link}`,
-		},
-	];
+	const text =
+		index === schedule.length - 1
+			? `😠😠😠 Siste påminnelse! ${missing} påmeldte mangler fortsatt oppmøte, og de får ikke skjemaet før dere registrerer det. Kom igjen! ${link}`
+			: `🚨🚨 Oppmøtet for ${missing} påmeldte er FORTSATT ikke registrert! De får ikke skjemaet før dere fikser det, så fiks det nå. ${link}`;
+	return [{ key: `missing-attendance:followup-${index}`, at, text }];
 }
 
 async function approvalReminder(

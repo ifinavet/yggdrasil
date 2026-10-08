@@ -14,7 +14,7 @@ import {
 	type TestBackend,
 } from "../../../test/fixtures";
 import { internal } from "../../_generated/api";
-import type { Id } from "../../_generated/dataModel";
+import type { Doc, Id } from "../../_generated/dataModel";
 import { followupFinishedAt } from "../../feedback/reports/lifecycle";
 import { slackClient } from "../../iam/slack";
 import { recordReminderSent } from "../reminders/delivery";
@@ -1594,4 +1594,12 @@ it("finds the previous approved report for internal planning context", async () 
 		return previousCompanyReport(ctx, event, eventPlanningAt(START, 28));
 	});
 	expect(reminders).toContain("/events/prior/report");
+});
+
+it("scolds the lead organizer about missing attendance with Ey", async () => {
+	const { eventMessage } = await import("./messages");
+	const event = { _id: "event", title: "Bedpres", eventStart: START } as Doc<"events">;
+	const lead = [{ name: "Lead", slackUserId: "LEAD" }] as Parameters<typeof eventMessage>[1];
+	expect(eventMessage(event, lead, "Tekst", true, true)).toMatch(/^Ey! <@LEAD>\n/);
+	expect(eventMessage(event, lead, "Tekst", true)).toMatch(/^Halla <@LEAD>!\n/);
 });

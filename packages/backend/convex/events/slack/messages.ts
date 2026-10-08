@@ -52,9 +52,11 @@ export function eventMessage(
 	organizers: Awaited<ReturnType<typeof getOrganizers>>,
 	text: string,
 	tag: boolean,
+	scold = false,
 ) {
+	const names = organizerNames(organizers, tag).join(" og ") || "folkens";
 	return [
-		`Halla ${organizerNames(organizers, tag).join(" og ") || "folkens"}!`,
+		scold ? `Ey! ${names}` : `Halla ${names}!`,
 		`*${escapeSlack(event.title)}*, ${formatOsloDate(event.eventStart, DATE_PATTERNS.shortDateWithYear)}.`,
 		text,
 		`<${eventUrl(event)}|Åpne arrangementet og sjekklisten i Bifrost>`,
