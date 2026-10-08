@@ -26,7 +26,7 @@ import {
 	welcomeMessage,
 } from "./messages";
 import { recoverableNotices } from "./recovery";
-import { dueOrganizerReminders } from "./reminders";
+import { dueOrganizerReminders, type Reminder } from "./reminders";
 
 export async function queueEventNotification(
 	ctx: MutationCtx,
@@ -440,8 +440,9 @@ async function renderNotification(
 	notice: Doc<"eventSlackNotifications">,
 	text: string,
 	now: number,
+	reminder: Reminder | null,
 ) {
-	let tag = asksOrganizersToAct(notice.key);
+	let tag = reminder !== null || asksOrganizersToAct(notice.key);
 	if (notice.key.startsWith("welcome:")) {
 		const campaign = await latestCampaign(ctx, event._id);
 		const active = campaign?.status === "scheduled" || campaign?.status === "open";
@@ -466,15 +467,13 @@ async function renderNotification(
 		}
 	}
 	const recipients =
-		notice.key.startsWith("practical:") ||
-		notice.key.startsWith("expenses:") ||
-		notice.key.startsWith("missing-attendance:")
+		reminder?.audience === "leads"
 			? organizers.filter(({ role }) => role === "hovedansvarlig")
 			: organizers;
 	return {
 		id: notice._id,
 		createdAt: notice._creationTime,
-		text: eventMessage(event, recipients, text, tag),
+		text: eventMessage(event, recipients, text, tag, reminder?.scold),
 	};
 }
 
@@ -524,7 +523,14 @@ export const notification = internalMutation({
 			await ctx.db.patch(notice._id, { cancelledAt: now });
 			return null;
 		}
-		return renderNotification(ctx, event, notice, conditional?.text ?? notice.text, now);
+		return renderNotification(
+			ctx,
+			event,
+			notice,
+			conditional?.text ?? notice.text,
+			now,
+			conditional ?? null,
+		);
 	},
 });
 
