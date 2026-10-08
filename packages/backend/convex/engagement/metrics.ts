@@ -20,14 +20,11 @@ export const PACE_GRID = [
 	...Array.from({ length: PACE_STEPS }, (_, step) => (step + 1) / PACE_STEPS),
 ];
 export const WAVE_RULE = { windowMs: HOUR_MS, minCount: 5, minShare: 0.1 };
-export const BEHIND_RULE = { maxProjectedFill: 0.5, withinMs: 3 * DAY_MS };
 export const NO_REGISTRATIONS_AFTER_MS = DAY_MS;
-export const AHEAD_RATIO = 1.15;
 export const BASELINE_SIZE = 12;
 export const COMPANY_BASELINE = { size: 6, poolWeight: 2 };
 export const ALERT_ACTIVITY = {
 	unregisterWave: { change: "unregistered", bucketMs: 10 * MINUTE_MS, buckets: 12 },
-	behindPace: { change: "registered", bucketMs: DAY_MS, buckets: 14 },
 	noRegistrations: { change: "registered", bucketMs: DAY_MS, buckets: 14 },
 } as const satisfies Record<
 	AlertRule,
@@ -76,9 +73,7 @@ export type EngagementStatus =
 	| { kind: "wave"; count: number }
 	| { kind: "full"; minutesToFull: number }
 	| { kind: "noRegistrations" }
-	| { kind: "behind" }
-	| { kind: "ahead" }
-	| { kind: "onPace" };
+	| { kind: "open" };
 
 export function progressOf({ registrationOpens, eventStart }: Timeline, at: number) {
 	const span = eventStart - registrationOpens;
@@ -156,7 +151,6 @@ export function classify({
 	registrationTimes,
 	filledAt,
 	unregistrations,
-	baseline,
 }: {
 	now: number;
 	timeline: Timeline;
@@ -164,7 +158,6 @@ export function classify({
 	registrationTimes: readonly number[];
 	filledAt?: number | null;
 	unregistrations: number;
-	baseline: number[] | null;
 }): EngagementStatus {
 	const registered = registrationTimes.length;
 	if (now < timeline.registrationOpens) {
@@ -181,19 +174,7 @@ export function classify({
 	if (registered === 0 && now - timeline.registrationOpens >= NO_REGISTRATIONS_AFTER_MS) {
 		return { kind: "noRegistrations" };
 	}
-	const progress = progressOf(timeline, now);
-	const currentFill = registered / limit;
-	if (
-		baseline &&
-		timeline.eventStart - now < BEHIND_RULE.withinMs &&
-		projectFill(currentFill, progress, baseline) < BEHIND_RULE.maxProjectedFill
-	) {
-		return { kind: "behind" };
-	}
-	if (baseline && currentFill > valueAt(baseline, progress) * AHEAD_RATIO) {
-		return { kind: "ahead" };
-	}
-	return { kind: "onPace" };
+	return { kind: "open" };
 }
 
 export function activityWindowMs(rule: AlertRule) {

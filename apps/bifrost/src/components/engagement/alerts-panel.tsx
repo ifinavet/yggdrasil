@@ -54,7 +54,9 @@ export function AlertsPanel({
 									</span>
 								</div>
 								<p className="font-medium">{alert.summary}</p>
-								<p className="text-[13px] text-muted-foreground">{alert.detail}</p>
+								{alert.detail && (
+									<p className="text-[13px] text-muted-foreground">{alert.detail}</p>
+								)}
 							</div>
 							<figure className="grid gap-1">
 								<Sparkline values={activity.values} max={activity.max} />

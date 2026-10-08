@@ -34,7 +34,9 @@ export type CompanyComparison = CompanyDetail["comparison"][number];
 export type CompanyHistory = FunctionReturnType<typeof api.engagement.companies.history>;
 export type MetricKey = CompanyComparison["key"];
 
-export function statusBadge(status: EngagementStatus): { label: string; variant: BadgeVariant } {
+export function statusBadge(
+	status: EngagementStatus,
+): { label: string; variant: BadgeVariant } | null {
 	switch (status.kind) {
 		case "notOpen":
 			return { label: "Venter", variant: "outline" };
@@ -44,12 +46,8 @@ export function statusBadge(status: EngagementStatus): { label: string; variant:
 			return { label: `Fullt på ${status.minutesToFull} min`, variant: "secondary" };
 		case "noRegistrations":
 			return { label: "Ingen påmeldte", variant: "soft" };
-		case "behind":
-			return { label: "Bak tempo", variant: "soft" };
-		case "ahead":
-			return { label: "Foran tempo", variant: "secondary" };
-		case "onPace":
-			return { label: "I rute", variant: "muted" };
+		case "open":
+			return null;
 	}
 }
 
@@ -331,11 +329,6 @@ const ACTIVITY_LABELS = {
 		caption: "Avmeldinger per 10 min",
 		unit: "avmeldinger",
 		pattern: DATE_PATTERNS.time,
-	},
-	behindPace: {
-		caption: "Påmeldinger per dag",
-		unit: "påmeldinger",
-		pattern: DATE_PATTERNS.shortDate,
 	},
 	noRegistrations: {
 		caption: "Påmeldinger per dag",

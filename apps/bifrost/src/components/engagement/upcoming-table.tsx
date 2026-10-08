@@ -23,8 +23,8 @@ import {
 import { EventCell } from "./event-cell";
 
 export function StatusBadge({ status }: Readonly<{ status: UpcomingEvent["status"] }>) {
-	const { label, variant } = statusBadge(status);
-	return <Badge variant={variant}>{label}</Badge>;
+	const badge = statusBadge(status);
+	return badge && <Badge variant={badge.variant}>{badge.label}</Badge>;
 }
 
 function Registered({ event }: Readonly<{ event: UpcomingEvent }>) {

@@ -146,6 +146,9 @@ export function reportReadyText(totalResponses: number) {
 		? "Tilbakemeldingsrapporten er klar! 📊 Se gjennom svarene og godkjenn rapporten i Bifrost, så sender jeg den til bedriften."
 		: "Tilbakemeldingsperioden er ferdig. Ingen svarte denne gangen, så det er ingen rapport å sende til bedriften.";
 }
-export function unregisterWaveText(summary: string, detail: string) {
-	return `Jeg la merke til mange avmeldinger på kort tid. ${escapeSlack(summary)}. ${escapeSlack(detail)}`;
+export function alertSentence(summary: string, detail?: string) {
+	return [`${escapeSlack(summary)}.`, ...(detail ? [escapeSlack(detail)] : [])].join(" ");
+}
+export function unregisterWaveText(summary: string, detail?: string) {
+	return `Jeg la merke til mange avmeldinger på kort tid. ${alertSentence(summary, detail)}`;
 }

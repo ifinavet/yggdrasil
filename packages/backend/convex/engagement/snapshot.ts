@@ -15,7 +15,6 @@ import {
 	projectFill,
 	recentUnregistrations,
 	seatDelta,
-	valueAt,
 } from "./metrics";
 
 export const MAX_REGISTRATIONS_PER_EVENT = 1000;
@@ -205,7 +204,6 @@ export async function snapshotOf(
 		delta24h: seatDelta(recentLog),
 		progress,
 		baseline,
-		expectedFillNow: baseline ? valueAt(baseline.curve, progress) : null,
 		projectedFill: projectFill(demandFill, progress, baseline?.curve ?? null),
 		status: classify({
 			now,
@@ -214,7 +212,6 @@ export async function snapshotOf(
 			registrationTimes,
 			filledAt,
 			unregistrations: unregistrations.length,
-			baseline: baseline?.curve ?? null,
 		}),
 	};
 }

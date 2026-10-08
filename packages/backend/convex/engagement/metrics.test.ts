@@ -216,37 +216,19 @@ describe("classify", () => {
 
 	it("flags no registrations only after a day", () => {
 		expect(classify({ ...base, now: OPENS + DAY_MS })).toEqual({ kind: "noRegistrations" });
-		expect(classify({ ...base, now: OPENS + HOUR_MS })).toEqual({ kind: "onPace" });
+		expect(classify({ ...base, now: OPENS + HOUR_MS })).toEqual({ kind: "open" });
 	});
 
-	it("flags events projected to stay under half full close to start", () => {
+	it("leaves an open event with registrations unflagged however slow it fills", () => {
 		const registrationTimes = [OPENS + HOUR_MS, OPENS + 2 * HOUR_MS];
-		expect(
-			classify({ ...base, now: START - DAY_MS, registrationTimes, baseline: linearCurve(0.3) }),
-		).toEqual({
-			kind: "behind",
-		});
-		expect(classify({ ...base, now: OPENS + 2 * DAY_MS, registrationTimes })).toEqual({
-			kind: "onPace",
-		});
-	});
-
-	it("flags events well ahead of the baseline", () => {
-		const registrationTimes = Array.from({ length: 6 }, (_, index) => OPENS + index * HOUR_MS);
-		const now = OPENS + 5 * DAY_MS;
-		expect(classify({ ...base, now, registrationTimes, baseline: linearCurve(0.8) })).toEqual({
-			kind: "ahead",
-		});
-		expect(classify({ ...base, now, registrationTimes, baseline: linearCurve(1.2) })).toEqual({
-			kind: "onPace",
-		});
+		expect(classify({ ...base, now: START - DAY_MS, registrationTimes })).toEqual({ kind: "open" });
 	});
 });
 
 describe("activityBuckets", () => {
 	it("spans the rule window", () => {
 		expect(activityWindowMs("unregisterWave")).toBe(2 * HOUR_MS);
-		expect(activityWindowMs("behindPace")).toBe(14 * DAY_MS);
+		expect(activityWindowMs("noRegistrations")).toBe(14 * DAY_MS);
 	});
 
 	it("counts the rule's change per bucket up to now", () => {
@@ -283,7 +265,9 @@ describe("activityBuckets", () => {
 	});
 
 	it("returns one bucket when registration opens right now", () => {
-		expect(activityBuckets([], "behindPace", OPENS, OPENS)).toEqual([{ start: OPENS, count: 0 }]);
+		expect(activityBuckets([], "noRegistrations", OPENS, OPENS)).toEqual([
+			{ start: OPENS, count: 0 },
+		]);
 	});
 });
 

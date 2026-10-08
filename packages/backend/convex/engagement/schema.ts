@@ -12,15 +12,23 @@ export const REGISTRATION_CHANGES = [
 	"cleared",
 ] as const;
 
-export const ALERT_RULES = ["unregisterWave", "behindPace", "noRegistrations"] as const;
+export const ALERT_RULES = ["unregisterWave", "noRegistrations"] as const;
+export const RETIRED_ALERT_RULES = ["behindPace"] as const;
 
 export const registrationChange = v.union(
 	...REGISTRATION_CHANGES.map((change) => v.literal(change)),
 );
 export const alertRule = v.union(...ALERT_RULES.map((rule) => v.literal(rule)));
+const storedAlertRule = v.union(
+	...[...ALERT_RULES, ...RETIRED_ALERT_RULES].map((rule) => v.literal(rule)),
+);
 
 export type RegistrationChange = Infer<typeof registrationChange>;
 export type AlertRule = Infer<typeof alertRule>;
+
+export function isActiveRule(rule: string): rule is AlertRule {
+	return (ALERT_RULES as readonly string[]).includes(rule);
+}
 
 export const engagementSchema = {
 	registrationLog: defineTable({
@@ -45,9 +53,9 @@ export const engagementSchema = {
 
 	engagementAlerts: defineTable({
 		eventId: v.id("events"),
-		rule: alertRule,
+		rule: storedAlertRule,
 		summary: v.string(),
-		detail: v.string(),
+		detail: v.optional(v.string()),
 		triggeredAt: v.number(),
 		dismissedAt: v.optional(v.number()),
 	})
