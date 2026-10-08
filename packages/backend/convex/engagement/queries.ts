@@ -11,18 +11,13 @@ import { v } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import { type QueryCtx, query } from "../_generated/server";
 import { internalRoles, requireRole } from "../auth/accessRights";
-import { eventsInSemester, organizerRoleOf } from "../events/helper";
+import { organizerRoleOf } from "../events/helper";
 import { companyWithLogo, eventSemesterValidator } from "../events/queries";
 import { REMINDER_KINDS, REMINDER_LEAD_TIMES } from "../events/reminders/schedule";
 import { audienceOf, withStudyYear } from "./audience";
 import { baselineCutoffs, baselineStatsAt, semesterEventDocs } from "./checkpoints";
 import { byCompany, type EventCounts, metricsOf } from "./companyMetrics";
-import {
-	type AnalyticsRegistration,
-	firstFilledAt,
-	registrationHistory,
-	registrationsAt,
-} from "./history";
+import { type AnalyticsRegistration, registrationHistory } from "./history";
 import {
 	activityBuckets,
 	activityWindowMs,
@@ -34,8 +29,8 @@ import {
 } from "./metrics";
 import { type AlertRule, isActiveRule } from "./schema";
 import {
-	MAX_REGISTRATIONS_PER_EVENT,
 	liveStateOf,
+	MAX_REGISTRATIONS_PER_EVENT,
 	MIN_FORECAST_EVENTS,
 	pastCurvesBefore,
 	snapshotOf,
