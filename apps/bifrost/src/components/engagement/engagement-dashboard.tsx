@@ -128,7 +128,7 @@ function LiveTab({
 			curve,
 		}),
 	]
-		.sort()
+		.sort((a, b) => a.localeCompare(b))
 		.join(",");
 
 	useEffect(() => {
