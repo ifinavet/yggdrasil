@@ -673,9 +673,9 @@ it("rechecks conditional text/promotion/checklist reminders and avoids completed
 	);
 });
 
-it("warns about unmarked attendance only before feedback, and nudges only an unapproved report", async () => {
+it("warns about unmarked attendance before and after feedback opens, and nudges only an unapproved report", async () => {
 	const { dueOrganizerReminders } = await import("./reminders");
-	const { feedbackOpensAt, HOUR_MS } = await import("@workspace/shared/time");
+	const { feedbackOpensAt, feedbackRoundAt, HOUR_MS } = await import("@workspace/shared/time");
 	const { t, companyId } = await setup();
 	const eventId = await insertEvent(t, companyId, { eventStart: START, feedbackEnabled: true });
 	const user = await insertUser(t, "participant@uio.no");
@@ -702,9 +702,39 @@ it("warns about unmarked attendance only before feedback, and nudges only an una
 			if (!event) throw new Error("Missing event");
 			return dueOrganizerReminders(ctx, event, now);
 		});
-	expect((await due(feedbackOpensAt(START) - HOUR_MS))[0]?.text).toContain("1 påmeldte");
-	await t.run((ctx) => ctx.db.patch(registration, { attendanceStatus: "confirmed" }));
-	expect(await due(feedbackOpensAt(START) - HOUR_MS)).toEqual([]);
+	const opensAt = feedbackOpensAt(START);
+	const attendance = async (now: number) =>
+		(await due(now)).filter((notice) => notice.key.startsWith("missing-attendance"));
+	expect(await attendance(opensAt - 2 * HOUR_MS)).toEqual([]);
+	expect(await attendance(opensAt - HOUR_MS)).toMatchObject([
+		{ key: "missing-attendance", text: expect.stringContaining("1 påmeldte") },
+	]);
+	expect((await attendance(opensAt - 1)).map((notice) => notice.key)).toEqual([
+		"missing-attendance",
+	]);
+	expect(await attendance(opensAt)).toEqual([]);
+	expect(await attendance(opensAt + 4 * HOUR_MS)).toMatchObject([
+		{ key: "missing-attendance:followup-1", text: expect.stringContaining('"Ikke møtt"') },
+	]);
+	expect((await attendance(feedbackRoundAt(opensAt, 1))).map((notice) => notice.key)).toEqual([
+		"missing-attendance:followup-2",
+	]);
+	expect(await attendance(feedbackRoundAt(opensAt, 2))).toMatchObject([
+		{
+			key: "missing-attendance:followup-3",
+			text: expect.stringContaining("Siste påminnelse"),
+		},
+	]);
+	expect(await attendance(START + 15 * DAY_MS)).toEqual([]);
+	await t.run((ctx) => ctx.db.patch(campaignId, { status: "closed" }));
+	expect(await attendance(feedbackRoundAt(opensAt, 2))).toEqual([]);
+	await t.run((ctx) => ctx.db.patch(campaignId, { status: "scheduled" }));
+	expect(await attendance(opensAt + 4 * HOUR_MS)).toEqual([]);
+	expect(await attendance(opensAt - HOUR_MS)).toHaveLength(1);
+	await t.run((ctx) => ctx.db.patch(campaignId, { status: "open" }));
+	await t.run((ctx) => ctx.db.patch(registration, { attendanceStatus: "no_show" }));
+	expect(await attendance(opensAt - HOUR_MS)).toEqual([]);
+	expect(await attendance(opensAt + 4 * HOUR_MS)).toEqual([]);
 	const readyAt = START + 15 * DAY_MS;
 	const reportId = await t.run((ctx) =>
 		ctx.db.insert("feedbackReports", {

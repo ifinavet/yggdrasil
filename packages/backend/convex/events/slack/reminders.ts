@@ -1,5 +1,11 @@
 import { EVENT_CHECKLIST, hasEventText } from "@workspace/shared/events/checklist";
-import { EVENT_PLANNING, eventPlanningAt, feedbackOpensAt, HOUR_MS } from "@workspace/shared/time";
+import {
+	EVENT_PLANNING,
+	eventPlanningAt,
+	feedbackOpensAt,
+	feedbackRoundAt,
+	HOUR_MS,
+} from "@workspace/shared/time";
 import type { Doc } from "../../_generated/dataModel";
 import type { QueryCtx } from "../../_generated/server";
 import { latestCampaign } from "../../feedback/delivery/campaigns";
@@ -57,6 +63,13 @@ function checklistReminder(event: Doc<"events">, now: number): Reminder[] {
 	];
 }
 
+function attendanceSchedule(opensAt: number) {
+	return [
+		...EVENT_PLANNING.attendanceHoursAfterFeedback.map((hours) => opensAt + hours * HOUR_MS),
+		...EVENT_PLANNING.attendanceDaysAfterFeedback.map((days) => feedbackRoundAt(opensAt, days)),
+	];
+}
+
 async function attendanceReminder(
 	ctx: QueryCtx,
 	event: Doc<"events">,
@@ -64,9 +77,19 @@ async function attendanceReminder(
 	now: number,
 ): Promise<Reminder[]> {
 	const opensAt = campaign?.opensAt ?? feedbackOpensAt(event.eventStart);
-	// There is no event end field. Warn one hour before feedback, strictly after the event start.
-	const at = opensAt - HOUR_MS;
-	if (now <= event.eventStart || now < at || now >= opensAt || campaign?.status === "cancelled")
+	const schedule = attendanceSchedule(opensAt);
+	const closesAt = campaign?.closesAt ?? Number.POSITIVE_INFINITY;
+	const index = schedule.filter((at) => at <= now).length - 1;
+	const at = schedule[index];
+	// There is no event end field, so every warning waits until after the event start.
+	if (
+		at === undefined ||
+		now <= event.eventStart ||
+		now >= (at < opensAt ? opensAt : (schedule[index + 1] ?? closesAt)) ||
+		campaign?.status === "cancelled" ||
+		campaign?.status === "closed" ||
+		(at >= opensAt && campaign?.status !== "open")
+	)
 		return [];
 	let missing = 0;
 	for await (const registration of ctx.db
@@ -77,11 +100,21 @@ async function attendanceReminder(
 		if (!registration.attendanceStatus) missing++;
 	}
 	if (!missing) return [];
+	const link = `<${eventUrl(event)}/registrations|Registrer oppmøtet nå>, og sett "Ikke møtt" på dem som ikke kom.`;
+	if (index === 0)
+		return [
+			{
+				key: "missing-attendance",
+				at,
+				text: `Oppmøtet er ikke registrert for ${missing} påmeldte. Tilbakemeldingsskjemaet sendes om en time, og bare til dem som er registrert som møtt. ${link}`,
+			},
+		];
+	const last = index === schedule.length - 1 ? "Siste påminnelse fra meg. " : "";
 	return [
 		{
-			key: "missing-attendance",
+			key: `missing-attendance:followup-${index}`,
 			at,
-			text: `Jeg mangler oppmøtestatus for ${missing} påmeldte. Tilbakemeldingsskjemaet sendes snart, så <${eventUrl(event)}/registrations|registrer hvem som møtte> før utsendingen.`,
+			text: `${last}Oppmøtet er fortsatt ikke registrert for ${missing} påmeldte, og de får ikke tilbakemeldingsskjemaet før dere gjør det. Dette må gjøres nå. ${link}`,
 		},
 	];
 }
