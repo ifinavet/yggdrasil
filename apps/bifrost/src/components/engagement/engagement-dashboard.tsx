@@ -9,8 +9,8 @@ import { Panel } from "@workspace/ui/components/products/panel";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/components/tabs";
 import { useMutation, useQuery } from "convex/react";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { startOfOsloDay, useMinute } from "@/hooks/use-minute";
+import { useEffect, useRef, useState } from "react";
+import { useMinute } from "@/hooks/use-minute";
 import { useStableQuery } from "@/hooks/use-stable-query";
 import { AlertsPanel } from "./alerts-panel";
 import { CompaniesView } from "./companies-view";
@@ -143,7 +143,6 @@ function LiveTab({
 
 export function EngagementDashboard() {
 	const now = useMinute();
-	const day = useMemo(() => startOfOsloDay(now), [now]);
 	useRegistrationLogBackfill();
 	const [tab, setTab] = useState("live");
 	const [liveSteps, setLiveSteps] = useState(NO_STEPS);
@@ -173,16 +172,16 @@ export function EngagementDashboard() {
 					<LiveTab now={now} onSteps={setLiveSteps} />
 				</TabsContent>
 				<TabsContent value="semester" className="mt-4">
-					<SemesterView now={day} />
+					<SemesterView now={now} />
 				</TabsContent>
 				<TabsContent value="past" className="mt-4">
-					<PastView now={day} />
+					<PastView now={now} />
 				</TabsContent>
 				<TabsContent value="companies" className="mt-4">
-					<CompaniesView now={day} />
+					<CompaniesView now={now} />
 				</TabsContent>
 				<TabsContent value="foods" className="mt-4">
-					<FoodsView now={day} />
+					<FoodsView now={now} />
 				</TabsContent>
 			</Tabs>
 		</GuideProvider>
