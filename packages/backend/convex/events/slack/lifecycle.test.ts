@@ -725,6 +725,9 @@ it("warns about unmarked attendance before and after feedback opens, and nudges 
 			text: expect.stringContaining("Siste påminnelse"),
 		},
 	]);
+	expect(await attendance(feedbackRoundAt(opensAt, 3))).toMatchObject([
+		{ key: "missing-attendance:followup-4", text: expect.stringContaining("robotkropp") },
+	]);
 	expect(await attendance(START + 15 * DAY_MS)).toEqual([]);
 	await t.run((ctx) => ctx.db.patch(campaignId, { status: "closed" }));
 	expect(await attendance(feedbackRoundAt(opensAt, 2))).toEqual([]);
