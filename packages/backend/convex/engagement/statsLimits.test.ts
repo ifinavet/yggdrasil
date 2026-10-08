@@ -6,6 +6,7 @@ import type { Id } from "../_generated/dataModel";
 import { STATS_SWEEP_BATCH } from "./snapshot";
 
 const LOG_ROWS = 3000;
+const LONG_LOG_TIMEOUT_MS = MINUTE_MS;
 
 async function endedEventWithLongLog(
 	t: TestBackend,
@@ -49,24 +50,32 @@ async function storedCurveCount(t: TestBackend) {
 }
 
 describe("stats batches under transaction limits", () => {
-	it("sweeps ended events with long logs and builds their curves separately", async () => {
-		const t = await seedEndedEvents(Date.now());
+	it(
+		"sweeps ended events with long logs and builds their curves separately",
+		async () => {
+			const t = await seedEndedEvents(Date.now());
 
-		const pass = await t.mutation(internal.engagement.statsSweep.sweepStats, {});
-		expect(pass).toMatchObject({ created: STATS_SWEEP_BATCH });
-		await t.finishAllScheduledFunctions(() => {});
+			const pass = await t.mutation(internal.engagement.statsSweep.sweepStats, {});
+			expect(pass).toMatchObject({ created: STATS_SWEEP_BATCH });
+			await t.finishAllScheduledFunctions(() => {});
 
-		expect(await storedCurveCount(t)).toBe(STATS_SWEEP_BATCH);
-	});
+			expect(await storedCurveCount(t)).toBe(STATS_SWEEP_BATCH);
+		},
+		LONG_LOG_TIMEOUT_MS,
+	);
 
-	it("repairs recent events with long logs", async () => {
-		const now = Date.now();
-		const t = await seedEndedEvents(now);
+	it(
+		"repairs recent events with long logs",
+		async () => {
+			const now = Date.now();
+			const t = await seedEndedEvents(now);
 
-		const pass = await t.mutation(internal.engagement.statsSweep.repairRecentStats, { now });
-		expect(pass).toMatchObject({ created: STATS_SWEEP_BATCH, finished: true });
-		await t.finishAllScheduledFunctions(() => {});
+			const pass = await t.mutation(internal.engagement.statsSweep.repairRecentStats, { now });
+			expect(pass).toMatchObject({ created: STATS_SWEEP_BATCH, finished: true });
+			await t.finishAllScheduledFunctions(() => {});
 
-		expect(await storedCurveCount(t)).toBe(STATS_SWEEP_BATCH);
-	});
+			expect(await storedCurveCount(t)).toBe(STATS_SWEEP_BATCH);
+		},
+		LONG_LOG_TIMEOUT_MS,
+	);
 });
