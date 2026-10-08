@@ -80,14 +80,16 @@ function withMarker(children: React.ReactNode, marker: TableRowMarker) {
 function TableRow({
 	className,
 	marker,
+	stretchedLink = false,
 	children,
 	...props
-}: React.ComponentProps<"tr"> & { marker?: TableRowMarker | null }) {
+}: React.ComponentProps<"tr"> & { marker?: TableRowMarker | null; stretchedLink?: boolean }) {
 	return (
 		<tr
 			data-slot='table-row'
 			className={cn(
 				"border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted",
+				stretchedLink && "relative transform-gpu",
 				className,
 			)}
 			{...props}

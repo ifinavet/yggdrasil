@@ -35,3 +35,26 @@ describe("TableRow marker", () => {
 		expect(first).not.toMatch(/\brelative\b/);
 	});
 });
+
+describe("TableRow stretchedLink", () => {
+	function rowOf(stretchedLink: boolean) {
+		const html = renderToString(
+			<table>
+				<tbody>
+					<TableRow stretchedLink={stretchedLink}>
+						<TableCell>Dato</TableCell>
+					</TableRow>
+				</tbody>
+			</table>,
+		);
+		return html.match(/<tr[^>]*>/)?.[0] ?? "";
+	}
+
+	it("makes the row a containing block Safari respects, so each row's link covers only that row", () => {
+		expect(rowOf(true)).toMatch(/class="[^"]*\brelative\b[^"]*\btransform-gpu\b/);
+	});
+
+	it("leaves plain rows unpositioned", () => {
+		expect(rowOf(false)).not.toMatch(/\brelative\b|\btransform-gpu\b/);
+	});
+});

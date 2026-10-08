@@ -80,7 +80,7 @@ function SelectableRow({
 		<TableRow
 			data-state={selected ? "selected" : undefined}
 			marker={organizerMarker(event.myRole, event.eventStart < now)}
-			className="relative"
+			stretchedLink
 		>
 			{children}
 		</TableRow>
