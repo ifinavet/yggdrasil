@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { insertEvent, insertUser, setup, type TestBackend } from "../../test/fixtures";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
+import { CURVE_BACKFILL_BATCH, MAX_LOG_ENTRIES } from "./curves";
 import { STATS_SWEEP_BATCH } from "./snapshot";
 
 const LOG_ROWS = 3000;
@@ -13,6 +14,7 @@ async function endedEventWithLongLog(
 	companyId: Id<"companies">,
 	index: number,
 	now: number,
+	logRows = LOG_ROWS,
 ) {
 	const eventStart = now - HOUR_MS;
 	const registrationOpens = eventStart - 5 * DAY_MS;
@@ -25,7 +27,7 @@ async function endedEventWithLongLog(
 	});
 	const user = await insertUser(t, `logg${index}@example.com`);
 	await t.run(async (ctx) => {
-		for (let row = 0; row < LOG_ROWS; row += 1) {
+		for (let row = 0; row < logRows; row += 1) {
 			await ctx.db.insert("registrationLog", {
 				eventId,
 				userId: user._id,
@@ -75,6 +77,23 @@ describe("stats batches under transaction limits", () => {
 			await t.finishAllScheduledFunctions(() => {});
 
 			expect(await storedCurveCount(t)).toBe(STATS_SWEEP_BATCH);
+		},
+		LONG_LOG_TIMEOUT_MS,
+	);
+
+	it(
+		"backfills a full batch of curves whose logs exceed the read cap",
+		async () => {
+			const now = Date.now();
+			const { t, companyId } = await setup({ transactionLimits: true });
+			for (let index = 0; index < CURVE_BACKFILL_BATCH; index += 1) {
+				await endedEventWithLongLog(t, companyId, index, now, MAX_LOG_ENTRIES + 1);
+			}
+
+			const pass = await t.mutation(internal.engagement.curves.backfillCurves, { until: now });
+			expect(pass).toEqual({ finished: true });
+
+			expect(await storedCurveCount(t)).toBe(CURVE_BACKFILL_BATCH);
 		},
 		LONG_LOG_TIMEOUT_MS,
 	);
