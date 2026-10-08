@@ -1,8 +1,4 @@
-import {
-	BIFROST_LOCAL_URL,
-	BIFROST_URL,
-	EVENT_EXPENSE_TEMPLATE_URL,
-} from "@workspace/shared/constants";
+import { BIFROST_LOCAL_URL, BIFROST_URL } from "@workspace/shared/constants";
 import {
 	DATE_PATTERNS,
 	EVENT_PLANNING,
@@ -26,13 +22,6 @@ export function eventUrl(event: Doc<"events">) {
 const ACTION_NOTICES = [
 	"welcome:",
 	"missing-slack:",
-	"practical:",
-	"expenses:",
-	"missing-text:",
-	"promotion:",
-	"unfinished-checklist:",
-	"missing-attendance:",
-	"report-approval:",
 	"planning:ready:",
 	"planning:review:",
 	"planning:publish-error:",
@@ -139,21 +128,6 @@ export function welcomeMessage(event: Doc<"events">, now: number, campaignOpensA
 			? ["• Se gjennom og godkjenn rapporten når jeg sier fra at den er klar."]
 			: []),
 	].join("\n");
-}
-
-export function timedOrganizerReminders(event: Doc<"events">) {
-	return [
-		{
-			key: "practical",
-			at: eventPlanningAt(event.eventStart, EVENT_PLANNING.practicalDaysBefore),
-			text: "Snart er det klart! Husk Navet-merch, vann og kaffe til bedriftsrepresentantene. Ta med en laptop så en medhjelper kan registrere oppmøte, og skåler hvis dere kjøper snacks. Ta vare på alle kvitteringer, også når dere bruker Navet-kortet. 😊",
-		},
-		{
-			key: "expenses",
-			at: eventPlanningAt(event.eventStart, -EVENT_PLANNING.expensesDaysAfter),
-			text: `Takk for innsatsen! Husk å sende inn utlegg med kvitteringer, også for kjøp med Navet-kortet. Her er <${EVENT_EXPENSE_TEMPLATE_URL}|utleggsmalen for personlige utlegg og Navet-kortet>. 🧾`,
-		},
-	];
 }
 
 export const registrationFullText = "Alle plassene er tatt! 🎉 Arrangementet er nå fullt.";

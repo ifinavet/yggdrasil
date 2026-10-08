@@ -11,8 +11,6 @@ export const EVENT_PLANNING = {
 	textDaysBefore: 14,
 	checklistDaysBefore: 7,
 	approvalDaysAfter: 3,
-	attendanceHoursAfterFeedback: [-1, 4],
-	attendanceDaysAfterFeedback: [1, 2, 3],
 };
 
 /** Calendar days before the event, at 09:00 Oslo, including across DST changes. */
