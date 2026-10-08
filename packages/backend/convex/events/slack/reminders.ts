@@ -26,13 +26,17 @@ type ReminderStep<Facts> = {
 	text: (facts: Facts, event: Doc<"events">) => string;
 };
 
+type FactsLoader<Facts> = (
+	input: ReminderInput,
+	step: ReminderStep<Facts>,
+) => Facts | null | Promise<Facts | null>;
+
 type ReminderDefinition<Facts> = {
 	name: string;
 	audience: "leads" | "organizers";
 	scold?: boolean;
 	steps: (input: ReminderInput) => ReminderStep<Facts>[] | Promise<ReminderStep<Facts>[]>;
-	facts?: (input: ReminderInput, step: ReminderStep<Facts>) => Facts | null | Promise<Facts | null>;
-};
+} & ([Facts] extends [undefined] ? { facts?: FactsLoader<Facts> } : { facts: FactsLoader<Facts> });
 
 export type Reminder = {
 	key: string;
