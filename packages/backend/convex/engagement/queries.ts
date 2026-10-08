@@ -31,6 +31,7 @@ import {
 	valueAt,
 	WAVE_RULE,
 } from "./metrics";
+import { type AlertRule, isActiveRule } from "./schema";
 import {
 	MAX_REGISTRATIONS_PER_EVENT,
 	MIN_FORECAST_EVENTS,
@@ -88,7 +89,9 @@ async function activeAlerts(ctx: QueryCtx, now: number) {
 	);
 	return Promise.all(
 		withEvents.flatMap(({ alert, event }) =>
-			event !== null && event.eventStart > now ? [withActivity(ctx, alert, event, now)] : [],
+			event !== null && event.eventStart > now && isActiveRule(alert.rule)
+				? [withActivity(ctx, alert, event, now, alert.rule)]
+				: [],
 		),
 	);
 }
@@ -98,21 +101,22 @@ async function withActivity(
 	alert: Doc<"engagementAlerts">,
 	event: Doc<"events">,
 	now: number,
+	rule: AlertRule,
 ) {
 	const entries = await ctx.db
 		.query("registrationLog")
 		.withIndex("by_eventId_and_at", (q) =>
-			q.eq("eventId", event._id).gt("at", now - activityWindowMs(alert.rule)),
+			q.eq("eventId", event._id).gt("at", now - activityWindowMs(rule)),
 		)
 		.take(ACTIVITY_LOG_LIMIT);
 	return {
 		_id: alert._id,
 		eventId: alert.eventId,
-		rule: alert.rule,
+		rule,
 		summary: alert.summary,
 		detail: alert.detail,
 		triggeredAt: alert.triggeredAt,
-		activity: activityBuckets(entries, alert.rule, event.registrationOpens, now),
+		activity: activityBuckets(entries, rule, event.registrationOpens, now),
 	};
 }
 

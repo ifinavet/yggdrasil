@@ -371,11 +371,10 @@ describe("snapshotOf", () => {
 		expect(snapshot.unregistrations).toHaveLength(1);
 		expect(snapshot.delta24h).toBe(-1);
 		expect(snapshot.baseline).toBeNull();
-		expect(snapshot.expectedFillNow).toBeNull();
-		expect(snapshot.status.kind).toBe("onPace");
+		expect(snapshot.status.kind).toBe("open");
 	});
 
-	it("uses the baseline to compute the expected fill and projection", async () => {
+	it("uses the baseline to compute the projection", async () => {
 		const { t, companyId } = await setup();
 		const eventId = await insertEvent(t, companyId, {
 			eventStart: START,
@@ -392,7 +391,6 @@ describe("snapshotOf", () => {
 		);
 
 		expect(snapshot.baseline?.curve).toEqual(baselineCurve);
-		expect(snapshot.expectedFillNow).toBeCloseTo(0.5, 5);
 		expect(snapshot.projectedFill).toBeCloseTo(1, 5);
 	});
 

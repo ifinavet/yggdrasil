@@ -55,11 +55,12 @@ describe("statusBadge", () => {
 		[{ kind: "wave" }, "Avmeldingsbølge", "default"],
 		[{ kind: "full", minutesToFull: 12 }, "Fullt på 12 min", "secondary"],
 		[{ kind: "noRegistrations" }, "Ingen påmeldte", "soft"],
-		[{ kind: "behind" }, "Bak tempo", "soft"],
-		[{ kind: "ahead" }, "Foran tempo", "secondary"],
-		[{ kind: "onPace" }, "I rute", "muted"],
 	])("labels %o", (status, label, variant) => {
 		expect(statusBadge(status as EngagementStatus)).toEqual({ label, variant });
+	});
+
+	it("shows no badge for an open event", () => {
+		expect(statusBadge({ kind: "open" })).toBeNull();
 	});
 });
 
@@ -305,7 +306,7 @@ describe("alertActivity", () => {
 
 	it("describes daily buckets and floors an empty series at zero", () => {
 		const activity = alertActivity({
-			rule: "behindPace",
+			rule: "noRegistrations",
 			activity: [],
 		} as unknown as EngagementAlert);
 		expect(activity).toEqual({ caption: "Påmeldinger per dag", values: [], max: 0 });

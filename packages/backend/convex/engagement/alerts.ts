@@ -1,5 +1,4 @@
 import { BIFROST_LOCAL_URL, BIFROST_URL } from "@workspace/shared/constants";
-import { formatPercent } from "@workspace/shared/products";
 import { SYSTEM_ALERTS_CHANNEL } from "@workspace/shared/slack/channels";
 import { DATE_PATTERNS, DAY_MS, formatOsloDate, MINUTE_MS } from "@workspace/shared/time";
 import { v } from "convex/values";
@@ -21,25 +20,14 @@ type Snapshot = Awaited<ReturnType<typeof snapshotOf>>;
 
 const RULE_FOR_STATUS: Partial<Record<Snapshot["status"]["kind"], AlertRule>> = {
 	wave: "unregisterWave",
-	behind: "behindPace",
 	noRegistrations: "noRegistrations",
 };
-
-function percent(fraction: number) {
-	return formatPercent(fraction * 100);
-}
-
-function daysLeft(eventStart: number, now: number) {
-	const days = Math.max(1, Math.ceil((eventStart - now) / DAY_MS));
-	return days === 1 ? "1 dag igjen" : `${days} dager igjen`;
-}
 
 export function describeAlert(
 	rule: AlertRule,
 	event: Doc<"events">,
 	companyName: string,
 	snapshot: Snapshot,
-	now: number,
 ): { summary: string; detail?: string } {
 	const name = `${event.title}, ${companyName}`;
 	if (rule === "unregisterWave") {
@@ -47,16 +35,6 @@ export function describeAlert(
 		const minutes = Math.max(1, Math.round((Math.max(...times) - Math.min(...times)) / MINUTE_MS));
 		return {
 			summary: `${times.length} avmeldinger på ${minutes} min på ${name}`,
-		};
-	}
-	if (rule === "behindPace") {
-		const comparison =
-			snapshot.expectedFillNow === null
-				? ""
-				: ` Forventet på dette tidspunktet er ${percent(snapshot.expectedFillNow)} fylt.`;
-		return {
-			summary: `${name} ligger an til ${percent(snapshot.projectedFill)} fylt`,
-			detail: `${daysLeft(event.eventStart, now)}.${comparison}`,
 		};
 	}
 	return {
@@ -69,11 +47,6 @@ const SLACK_INTRO: Record<AlertRule, { title: string; hint: string; tag: boolean
 	unregisterWave: {
 		title: "🏃💨 Mange meldte seg av på kort tid",
 		hint: "Det kan bety at noe har endret seg, for eksempel tidspunkt, sted eller at noe annet kolliderer.",
-		tag: false,
-	},
-	behindPace: {
-		title: "🐢 Påmeldingen går tregere enn vanlig",
-		hint: "Farten er sammenlignet med tidligere arrangementer. Kanskje verdt å dele arrangementet en gang til?",
 		tag: false,
 	},
 	noRegistrations: {
@@ -136,7 +109,7 @@ export const detectAlerts = internalMutation({
 			if (!rule || (await recentlyAlerted(ctx, event, rule, now))) continue;
 
 			const { name } = await companyWithLogo(ctx, event.hostingCompany);
-			triggered.push({ event, rule, ...describeAlert(rule, event, name, snapshot, now) });
+			triggered.push({ event, rule, ...describeAlert(rule, event, name, snapshot) });
 		}
 		await Promise.all(
 			triggered.map(async ({ event, rule, summary, detail }) => {
