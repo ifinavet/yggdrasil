@@ -3,13 +3,14 @@
 import { useConvexAuth } from "@workspace/auth/convex";
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
+import type { EngagementGuideStep } from "@workspace/shared/engagement/guide";
 import { Callout } from "@workspace/ui/components/products/callout";
 import { Panel } from "@workspace/ui/components/products/panel";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/components/tabs";
 import { useMutation, useQuery } from "convex/react";
-import { useEffect, useRef, useState } from "react";
-import { useMinute } from "@/hooks/use-minute";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { startOfOsloDay, useMinute } from "@/hooks/use-minute";
 import { useStableQuery } from "@/hooks/use-stable-query";
 import { AlertsPanel } from "./alerts-panel";
 import { CompaniesView } from "./companies-view";
@@ -107,22 +108,46 @@ function useRegistrationLogBackfill() {
 	}, [outcome]);
 }
 
-export function EngagementDashboard() {
-	const now = useMinute();
-	useRegistrationLogBackfill();
-	const [tab, setTab] = useState("live");
+const NO_STEPS: ReadonlySet<EngagementGuideStep> = new Set();
+
+function LiveTab({
+	now,
+	onSteps,
+}: Readonly<{ now: number; onSteps: (steps: ReadonlySet<EngagementGuideStep>) => void }>) {
 	const live = useLiveEvents(now);
 	const curve = useQuery(
 		api.engagement.queries.paceCurve,
 		live.selectedId ? { eventId: live.selectedId, now } : "skip",
 	);
-	const steps = liveGuideSteps({
-		live: tab === "live",
-		eventCount: live.data?.events.length,
-		alertCount: live.data?.alerts.length ?? 0,
-		selected: live.selectedId !== null,
-		curve,
-	});
+	const stepKey = [
+		...liveGuideSteps({
+			live: true,
+			eventCount: live.data?.events.length,
+			alertCount: live.data?.alerts.length ?? 0,
+			selected: live.selectedId !== null,
+			curve,
+		}),
+	]
+		.sort()
+		.join(",");
+
+	useEffect(() => {
+		onSteps(stepKey ? new Set(stepKey.split(",") as EngagementGuideStep[]) : NO_STEPS);
+		return () => onSteps(NO_STEPS);
+	}, [stepKey, onSteps]);
+
+	return (
+		<LiveView now={now} data={live.data} selectedId={live.selectedId} onSelect={live.select} />
+	);
+}
+
+export function EngagementDashboard() {
+	const now = useMinute();
+	const day = useMemo(() => startOfOsloDay(now), [now]);
+	useRegistrationLogBackfill();
+	const [tab, setTab] = useState("live");
+	const [liveSteps, setLiveSteps] = useState(NO_STEPS);
+	const steps = tab === "live" ? liveSteps : NO_STEPS;
 
 	return (
 		<GuideProvider available={steps}>
@@ -145,24 +170,19 @@ export function EngagementDashboard() {
 					<TabsTrigger value="foods">Per mat</TabsTrigger>
 				</TabsList>
 				<TabsContent value="live" className="mt-4">
-					<LiveView
-						now={now}
-						data={live.data}
-						selectedId={live.selectedId}
-						onSelect={live.select}
-					/>
+					<LiveTab now={now} onSteps={setLiveSteps} />
 				</TabsContent>
 				<TabsContent value="semester" className="mt-4">
-					<SemesterView now={now} />
+					<SemesterView now={day} />
 				</TabsContent>
 				<TabsContent value="past" className="mt-4">
-					<PastView now={now} />
+					<PastView now={day} />
 				</TabsContent>
 				<TabsContent value="companies" className="mt-4">
-					<CompaniesView now={now} />
+					<CompaniesView now={day} />
 				</TabsContent>
 				<TabsContent value="foods" className="mt-4">
-					<FoodsView now={now} />
+					<FoodsView now={day} />
 				</TabsContent>
 			</Tabs>
 		</GuideProvider>
