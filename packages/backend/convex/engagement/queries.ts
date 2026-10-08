@@ -493,17 +493,14 @@ export const semester = query({
 			lastYear,
 			lastYearCheckpoint,
 		} = baselineCutoffs(now);
-		const events = await semesterEvents(ctx, current, now);
-		const previousEvents = await semesterEvents(ctx, previous, previousCutoff, previousCheckpoint);
-		const lastYearEvents = await semesterEvents(
-			ctx,
-			lastYearSemester,
-			lastYear,
-			lastYearCheckpoint,
-		);
+		const [events, previousEvents, lastYearEvents, students] = await Promise.all([
+			semesterEvents(ctx, current, now),
+			semesterEvents(ctx, previous, previousCutoff, previousCheckpoint),
+			semesterEvents(ctx, lastYearSemester, lastYear, lastYearCheckpoint),
+			studentDirectory(ctx, now),
+		]);
 		const yearsSincePrevious = current.semester === "høst" ? 1 : 0;
 
-		const students = await studentDirectory(ctx, now);
 		const audience = audienceOf(
 			await students.studentsOf(registrantRowsOf(events)),
 			students.population,
