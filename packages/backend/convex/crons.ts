@@ -38,6 +38,20 @@ crons.interval(
 );
 
 crons.interval(
+	"Backfill and verify event stats",
+	{ minutes: 5 },
+	internal.engagement.statsSweep.sweepStats,
+	{},
+);
+
+crons.interval(
+	"Repair stats of events near their start",
+	{ minutes: 10 },
+	internal.engagement.statsSweep.repairRecentStats,
+	{},
+);
+
+crons.interval(
 	"Catch up missed registration opening alerts",
 	{ minutes: 5 },
 	internal.events.mutations.catchUpRegistrationOpenAlerts,

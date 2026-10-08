@@ -61,6 +61,10 @@ export const engagementSchema = {
 		.index("by_eventId", ["eventId"])
 		.index("by_eventStart", ["eventStart"]),
 
+	statsSweep: defineTable({
+		cursor: v.union(v.string(), v.null()),
+	}),
+
 	unregistrationImports: defineTable({
 		state: v.union(v.literal("running"), v.literal("done"), v.literal("failed")),
 		attempts: v.number(),
