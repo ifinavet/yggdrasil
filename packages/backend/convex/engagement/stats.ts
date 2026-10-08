@@ -63,12 +63,21 @@ export async function statsRowOf(ctx: QueryCtx, eventId: Id<"events">) {
 		.first();
 }
 
+export async function statsRowsBetween(ctx: QueryCtx, from: number, to: number) {
+	const rows = await ctx.db
+		.query("eventStats")
+		.withIndex("by_eventStart", (q) => q.gte("eventStart", from).lt("eventStart", to))
+		.collect();
+	return new Map(rows.map((row) => [row.eventId, row]));
+}
+
 export async function eventStatsAt(
 	ctx: QueryCtx,
 	event: Doc<"events">,
 	now: number,
+	preloaded?: Doc<"eventStats"> | null,
 ): Promise<EventNumbers> {
-	const stored = await statsRowOf(ctx, event._id);
+	const stored = preloaded === undefined ? await statsRowOf(ctx, event._id) : preloaded;
 	if (stored && isCurrentStats(stored, event, now)) return stored;
 	return await computeEventStats(ctx, event, now);
 }

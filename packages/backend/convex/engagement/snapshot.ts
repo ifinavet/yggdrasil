@@ -8,6 +8,7 @@ import {
 	isComparable,
 	MAX_LOG_ENTRIES,
 	type PastCurve,
+	UNREGISTRATION_HISTORY_START,
 } from "./curves";
 import {
 	alignedCurve,
@@ -30,7 +31,9 @@ export const STATS_SWEEP_BATCH = 10;
 export const YEAR_DAYS = 365;
 export const CHECKPOINT_BATCH = 10;
 export const CHECKPOINT_PRUNE_BATCH = 200;
-export const CHECKPOINT_RETENTION_MS = 3 * DAY_MS;
+export const CHECKPOINT_RETENTION_MS = DAY_MS;
+export const MAX_CHECKPOINTS_PER_CUTOFF = 2000;
+export const MAX_TOUCHED_ROWS = 1000;
 export const STATS_REPAIR_BATCH = 30;
 export const STATS_REPAIR_PAST_MS = DAY_MS;
 export const STATS_REPAIR_AHEAD_MS = 14 * DAY_MS;
@@ -70,7 +73,9 @@ async function curvesOf(ctx: QueryCtx, events: readonly Doc<"events">[]): Promis
 export async function pastCurvesBefore(ctx: QueryCtx, before: number) {
 	const past = await ctx.db
 		.query("events")
-		.withIndex("by_eventStart", (q) => q.lt("eventStart", before))
+		.withIndex("by_eventStart", (q) =>
+			q.gte("eventStart", UNREGISTRATION_HISTORY_START).lt("eventStart", before),
+		)
 		.order("desc")
 		.take(PAST_EVENTS_FOR_BASELINE);
 	return await curvesOf(ctx, past.filter(hasComparableHistory));
@@ -85,7 +90,10 @@ export async function companyCurvesBefore(
 	for await (const event of ctx.db
 		.query("events")
 		.withIndex("by_hostingCompany_and_eventStart", (q) =>
-			q.eq("hostingCompany", companyId).lt("eventStart", before),
+			q
+				.eq("hostingCompany", companyId)
+				.gte("eventStart", UNREGISTRATION_HISTORY_START)
+				.lt("eventStart", before),
 		)
 		.order("desc")) {
 		if (hasComparableHistory(event)) comparable.push(event);

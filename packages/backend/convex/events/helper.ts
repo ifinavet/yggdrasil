@@ -26,6 +26,18 @@ export async function organizerRoleOf(
 	return leadingRole(assignments.map(({ role }) => role));
 }
 
+export async function organizerRolesOf(ctx: QueryCtx, userId: Id<"users">) {
+	const assignments = await ctx.db
+		.query("eventOrganizers")
+		.withIndex("by_userId", (q) => q.eq("userId", userId))
+		.collect();
+	const roles = new Map<Id<"events">, OrganizerRole[]>();
+	for (const { eventId, role } of assignments) {
+		roles.set(eventId, [...(roles.get(eventId) ?? []), role]);
+	}
+	return (eventId: Id<"events">) => leadingRole(roles.get(eventId) ?? []);
+}
+
 export async function getEventByIdentifier(
 	ctx: QueryCtx,
 	identifier: string,

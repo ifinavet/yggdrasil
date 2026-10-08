@@ -63,10 +63,9 @@ export const engagementSchema = {
 		.index("by_eventId", ["eventId"])
 		.index("by_eventStart", ["eventStart"]),
 
-	eventCheckpoints: defineTable({ ...eventNumberFields, cutoff: v.number() }).index(
-		"by_eventId_and_cutoff",
-		["eventId", "cutoff"],
-	),
+	eventCheckpoints: defineTable({ ...eventNumberFields, cutoff: v.number() })
+		.index("by_eventId_and_cutoff", ["eventId", "cutoff"])
+		.index("by_cutoff", ["cutoff"]),
 
 	eventCurves: defineTable({
 		eventId: v.id("events"),

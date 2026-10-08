@@ -11,15 +11,15 @@ import { v } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import { type QueryCtx, query } from "../_generated/server";
 import { internalRoles, requireRole } from "../auth/accessRights";
-import { organizerRoleOf } from "../events/helper";
-import { companyWithLogo, eventSemesterValidator } from "../events/queries";
+import { organizerRoleOf, organizerRolesOf } from "../events/helper";
+import { companyLoader, companyWithLogo, eventSemesterValidator } from "../events/queries";
 import {
 	REMINDER_KINDS,
 	REMINDER_LEAD_TIMES,
 	type ReminderKind,
 } from "../events/reminders/schedule";
 import { audienceOf, withStudyYear } from "./audience";
-import { baselineCutoffs, baselineStatsAt, semesterEventDocs } from "./checkpoints";
+import { baselineCutoffs, baselineRowsAt, baselineStatsAt, semesterEventDocs } from "./checkpoints";
 import { byCompany, type EventCounts, metricsOf } from "./companyMetrics";
 import { UNREGISTRATION_HISTORY_START } from "./curves";
 import { type AnalyticsRegistration, registrationHistory } from "./history";
@@ -41,7 +41,7 @@ import {
 	snapshotOf,
 	upcomingEvents,
 } from "./snapshot";
-import { countsOf, eventStatsAt } from "./stats";
+import { countsOf, eventStatsAt, statsRowsBetween } from "./stats";
 
 const UPCOMING_EVENTS = 30;
 const ACTIVE_ALERTS = 20;
@@ -55,12 +55,7 @@ export const upcoming = query({
 	args: { now: v.number() },
 	handler: async (ctx, { now }) => {
 		const user = await requireRole(ctx, internalRoles);
-		const companies = new Map<Id<"companies">, ReturnType<typeof companyWithLogo>>();
-		const companyOf = (companyId: Id<"companies">) => {
-			const cached = companies.get(companyId) ?? companyWithLogo(ctx, companyId);
-			companies.set(companyId, cached);
-			return cached;
-		};
+		const companyOf = companyLoader(ctx);
 		const events = await Promise.all(
 			(await upcomingEvents(ctx, now, UPCOMING_EVENTS)).map(async (event) => {
 				const live = await liveStateOf(ctx, event, now);
@@ -327,11 +322,18 @@ export async function semesterEvents(
 	checkpointCutoff: number | null = null,
 ) {
 	const events = await semesterEventDocs(ctx, key, now);
+	const { start, end } = eventSemesterRange(key.semester, key.year);
+	const storedRows = await statsRowsBetween(ctx, start, end);
+	const baseline =
+		checkpointCutoff === null
+			? null
+			: { cutoff: checkpointCutoff, rows: await baselineRowsAt(ctx, now, checkpointCutoff) };
 	return await Promise.all(
 		events.map(async (event): Promise<SemesterEvent> => {
-			const stats = await (checkpointCutoff === null
-				? eventStatsAt(ctx, event, now)
-				: baselineStatsAt(ctx, event, now, checkpointCutoff));
+			const stored = storedRows.get(event._id) ?? null;
+			const stats = await (baseline === null
+				? eventStatsAt(ctx, event, now, stored)
+				: baselineStatsAt(ctx, event, now, baseline.cutoff, { ...baseline.rows, stored }));
 			return {
 				event,
 				counts: countsOf(stats),
@@ -405,41 +407,36 @@ function fillByTimeslot(events: SemesterEvent[]) {
 	}));
 }
 
-export async function studentsOf(
-	ctx: QueryCtx,
-	registrations: readonly Pick<AnalyticsRegistration, "userId">[],
-	now: number,
-) {
-	const userIds = [...new Set(registrations.map((registration) => registration.userId))];
-	const students = await Promise.all(
-		userIds.map((userId) =>
-			ctx.db
-				.query("students")
-				.withIndex("by_userId", (q) => q.eq("userId", userId))
-				.first(),
-		),
-	);
-	const byUser = new Map(
-		students.filter((student) => student !== null).map((student) => [student.userId, student]),
-	);
-	return withStudyYear(
-		registrations
-			.map((registration) => byUser.get(registration.userId))
-			.filter((student) => student !== undefined),
-		now,
-	);
+export async function studentDirectory(ctx: QueryCtx, now: number) {
+	const all = await ctx.db.query("students").take(MAX_STUDENTS);
+	const known = new Map<Id<"users">, Doc<"students">>();
+	for (const student of all) if (!known.has(student.userId)) known.set(student.userId, student);
+	const lookup = (userId: Id<"users">) =>
+		known.get(userId) ??
+		ctx.db
+			.query("students")
+			.withIndex("by_userId", (q) => q.eq("userId", userId))
+			.first();
+	return {
+		population: withStudyYear(all, now),
+		studentsOf: async (registrations: readonly Pick<AnalyticsRegistration, "userId">[]) => {
+			const userIds = [...new Set(registrations.map((registration) => registration.userId))];
+			const students = await Promise.all(userIds.map(lookup));
+			const byUser = new Map(
+				students.filter((student) => student !== null).map((student) => [student.userId, student]),
+			);
+			return withStudyYear(
+				registrations
+					.map((registration) => byUser.get(registration.userId))
+					.filter((student) => student !== undefined),
+				now,
+			);
+		},
+	};
 }
 
-function semesterStudents(ctx: QueryCtx, events: SemesterEvent[], now: number) {
-	return studentsOf(
-		ctx,
-		events.flatMap(({ registrants }) => registrants.map((userId) => ({ userId }))),
-		now,
-	);
-}
-
-async function studentPopulation(ctx: QueryCtx, now: number) {
-	return withStudyYear(await ctx.db.query("students").take(MAX_STUDENTS), now);
+function registrantRowsOf(events: readonly Pick<SemesterEvent, "registrants">[]) {
+	return events.flatMap(({ registrants }) => registrants.map((userId) => ({ userId })));
 }
 
 export async function logStartedAt(ctx: QueryCtx) {
@@ -448,12 +445,13 @@ export async function logStartedAt(ctx: QueryCtx) {
 }
 
 export async function unregistrationsLoggedFrom(ctx: QueryCtx) {
-	const logStart = await logStartedAt(ctx);
-	if (logStart === null) return null;
 	const historyImport = await ctx.db.query("unregistrationImports").first();
-	return historyImport?.state === "done"
-		? Math.min(logStart, UNREGISTRATION_HISTORY_START)
-		: logStart;
+	if (historyImport?.state !== "done") return await logStartedAt(ctx);
+	const earlier = await ctx.db
+		.query("registrationLog")
+		.withIndex("by_creation_time", (q) => q.lt("_creationTime", UNREGISTRATION_HISTORY_START))
+		.first();
+	return earlier?._creationTime ?? UNREGISTRATION_HISTORY_START;
 }
 
 function isLogged(event: Doc<"events">, logStart: number | null) {
@@ -502,10 +500,11 @@ export const semester = query({
 		);
 		const yearsSincePrevious = current.semester === "høst" ? 1 : 0;
 
+		const students = await studentDirectory(ctx, now);
 		const audience = audienceOf(
-			await semesterStudents(ctx, events, now),
-			await studentPopulation(ctx, now),
-			await semesterStudents(ctx, previousEvents, now),
+			await students.studentsOf(registrantRowsOf(events)),
+			students.population,
+			await students.studentsOf(registrantRowsOf(previousEvents)),
 			yearsSincePrevious,
 		);
 		const logStart = await unregistrationsLoggedFrom(ctx);
@@ -527,20 +526,23 @@ export const semester = query({
 	},
 });
 
+export async function pastRowLoaders(ctx: QueryCtx, userId: Id<"users">) {
+	return { companyOf: companyLoader(ctx), roleOf: await organizerRolesOf(ctx, userId) };
+}
+
 export async function pastEventRow(
-	ctx: QueryCtx,
+	{ companyOf, roleOf }: Awaited<ReturnType<typeof pastRowLoaders>>,
 	semesterEvent: SemesterEvent,
 	logStart: number | null,
-	userId: Id<"users">,
 ) {
 	const { event } = semesterEvent;
-	const company = await companyWithLogo(ctx, event.hostingCompany);
+	const company = await companyOf(event.hostingCompany);
 	return {
 		_id: event._id,
 		title: event.title,
 		companyName: company.name,
 		companyLogoUrl: company.logoUrl,
-		myRole: await organizerRoleOf(ctx, event._id, userId),
+		myRole: roleOf(event._id),
 		eventStart: event.eventStart,
 		participationLimit: event.participationLimit,
 		...attendanceOf(semesterEvent),
@@ -556,8 +558,9 @@ export const past = query({
 		const events = (await semesterEvents(ctx, { semester, year }, now))
 			.filter(({ event }) => event.eventStart <= now)
 			.reverse();
+		const loaders = await pastRowLoaders(ctx, user._id);
 		return await Promise.all(
-			events.map((semesterEvent) => pastEventRow(ctx, semesterEvent, logStart, user._id)),
+			events.map((semesterEvent) => pastEventRow(loaders, semesterEvent, logStart)),
 		);
 	},
 });
@@ -570,14 +573,12 @@ export const eventAudience = query({
 			.query("registrations")
 			.withIndex("by_eventId", (q) => q.eq("eventId", eventId))
 			.take(MAX_REGISTRATIONS_PER_EVENT);
-		const now = Date.now();
+		const students = await studentDirectory(ctx, Date.now());
 		return audienceOf(
-			await studentsOf(
-				ctx,
+			await students.studentsOf(
 				registrations.filter((registration) => registration.status === "registered"),
-				now,
 			),
-			await studentPopulation(ctx, now),
+			students.population,
 		);
 	},
 });

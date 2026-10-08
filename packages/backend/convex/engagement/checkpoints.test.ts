@@ -1,9 +1,11 @@
 import { eventSemesterRange } from "@workspace/shared/time";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { insertEvent } from "../../test/fixtures";
 import { buildWorld, insightOutputs, NOW, normalised, type World } from "../../test/insightWorld";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
-import { baselineCutoffs, baselineStatsAt } from "./checkpoints";
+import { baselineCutoffs, baselineRowsAt, baselineStatsAt } from "./checkpoints";
+import { MAX_TOUCHED_ROWS } from "./snapshot";
 import { computeEventStats, refreshEventStats } from "./stats";
 
 afterEach(() => {
@@ -29,18 +31,16 @@ async function checkpoints(world: World) {
 }
 
 describe("baselineCutoffs", () => {
-	it("keys the checkpoints to the start of the UTC day and keeps the exact cutoffs", () => {
-		const morning = baselineCutoffs(Date.parse("2026-10-20T00:00:01Z"));
-		const evening = baselineCutoffs(Date.parse("2026-10-20T23:59:59Z"));
-		expect(evening.previousCheckpoint).toBe(morning.previousCheckpoint);
-		expect(evening.lastYearCheckpoint).toBe(morning.lastYearCheckpoint);
-		expect(evening.lastYear).toBe(Date.parse("2025-10-20T23:59:59Z"));
-		expect(morning.lastYear).toBe(Date.parse("2025-10-20T00:00:01Z"));
-		expect(evening.previousCutoff - morning.previousCutoff).toBe(
-			Date.parse("2026-10-20T23:59:59Z") - Date.parse("2026-10-20T00:00:01Z"),
-		);
-		expect(baselineCutoffs(Date.parse("2026-10-21T00:00:01Z")).lastYearCheckpoint).toBe(
-			morning.lastYearCheckpoint + 24 * 60 * 60 * 1000,
+	it("keys the checkpoints to the start of the hour and keeps the exact cutoffs", () => {
+		const early = baselineCutoffs(Date.parse("2026-10-20T10:00:01Z"));
+		const late = baselineCutoffs(Date.parse("2026-10-20T10:59:59Z"));
+		expect(late.previousCheckpoint).toBe(early.previousCheckpoint);
+		expect(late.lastYearCheckpoint).toBe(early.lastYearCheckpoint);
+		expect(late.lastYear).toBe(Date.parse("2025-10-20T10:59:59Z"));
+		expect(early.lastYear).toBe(Date.parse("2025-10-20T10:00:01Z"));
+		expect(late.previousCutoff - late.previousCheckpoint).toBe(59 * 60 * 1000 + 59 * 1000);
+		expect(baselineCutoffs(Date.parse("2026-10-20T11:00:01Z")).lastYearCheckpoint).toBe(
+			early.lastYearCheckpoint + 60 * 60 * 1000,
 		);
 	});
 });
@@ -107,11 +107,12 @@ describe("buildCheckpoints", () => {
 });
 
 describe("baselines between the checkpoint and the exact cutoff", () => {
-	it("matches the raw numbers when the registrations changed during the day", async () => {
+	it("matches the raw numbers when the registrations changed during the hour", async () => {
 		const world = await worldWithStats();
-		const { previousCutoff, previousCheckpoint } = baselineCutoffs(NOW);
-		const hour = 60 * 60 * 1000;
-		expect(previousCutoff - previousCheckpoint).toBeGreaterThan(2 * hour);
+		const minutes = 60 * 1000;
+		const now = NOW + 40 * minutes;
+		const { previousCutoff, previousCheckpoint } = baselineCutoffs(now);
+		expect(previousCutoff - previousCheckpoint).toBe(40 * minutes);
 		let eventId = "" as Id<"events">;
 		await world.t.run(async (ctx) => {
 			const range = eventSemesterRange("vår", 2026);
@@ -132,8 +133,8 @@ describe("baselines between the checkpoint and the exact cutoff", () => {
 			const later = users[2];
 			if (!gap || !later) throw new Error("not enough users");
 			const entries = [
-				{ user: gap, at: previousCutoff - hour },
-				{ user: later, at: previousCutoff + hour },
+				{ user: gap, at: previousCutoff - 20 * minutes },
+				{ user: later, at: previousCutoff + 20 * minutes },
 			];
 			for (const { user, at } of entries) {
 				await ctx.db.insert("registrations", {
@@ -151,6 +152,7 @@ describe("baselines between the checkpoint and the exact cutoff", () => {
 			}
 			await refreshEventStats(ctx, event._id);
 		});
+		vi.setSystemTime(now);
 		await world.t.mutation(internal.engagement.checkpoints.buildCheckpoints, {});
 		const { served, raw, checkpointed } = await world.t.run(async (ctx) => {
 			const event = (await ctx.db.get(eventId)) as Doc<"events">;
@@ -166,5 +168,83 @@ describe("baselines between the checkpoint and the exact cutoff", () => {
 		});
 		expect(checkpointed).toBe(1);
 		expect(served).toEqual(raw);
+	});
+});
+
+async function previousSemesterEvent(world: World, registrationOpens: number) {
+	const range = eventSemesterRange("vår", 2026);
+	return await insertEvent(world.t, world.alpha, {
+		title: "Sen",
+		participationLimit: 10,
+		registrationOpens,
+		eventStart: range.end - 24 * 60 * 60 * 1000,
+	});
+}
+
+describe("checkpoints for events that open during the hour", () => {
+	it("builds a checkpoint ahead of the opening and serves it once the cutoff passes it", async () => {
+		const world = await worldWithStats();
+		const minutes = 60 * 1000;
+		const { previousCheckpoint } = baselineCutoffs(NOW);
+		const eventId = await previousSemesterEvent(world, previousCheckpoint + 20 * minutes);
+		await world.t.mutation(internal.engagement.checkpoints.buildCheckpoints, {});
+		const later = baselineCutoffs(NOW + 40 * minutes);
+		expect(later.previousCheckpoint).toBe(previousCheckpoint);
+		const { stored, served, raw } = await world.t.run(async (ctx) => {
+			const event = (await ctx.db.get(eventId)) as Doc<"events">;
+			return {
+				stored: await ctx.db
+					.query("eventCheckpoints")
+					.withIndex("by_eventId_and_cutoff", (q) =>
+						q.eq("eventId", eventId).eq("cutoff", previousCheckpoint),
+					)
+					.collect(),
+				served: await baselineStatsAt(ctx, event, later.previousCutoff, previousCheckpoint),
+				raw: await computeEventStats(ctx, event, later.previousCutoff),
+			};
+		});
+		expect(stored).toHaveLength(1);
+		expect(served).toEqual(raw);
+	});
+});
+
+describe("baselineRowsAt", () => {
+	it("falls back to per event checks when too many rows changed since the checkpoint", async () => {
+		const world = await worldWithStats();
+		const minutes = 60 * 1000;
+		const now = NOW + 40 * minutes;
+		const { previousCutoff, previousCheckpoint } = baselineCutoffs(now);
+		const eventId = await previousSemesterEvent(world, previousCheckpoint - 60 * minutes);
+		vi.setSystemTime(now);
+		await world.t.mutation(internal.engagement.checkpoints.buildCheckpoints, {});
+		const { touched, preloaded, raw } = await world.t.run(async (ctx) => {
+			for (let index = 0; index <= MAX_TOUCHED_ROWS; index += 1) {
+				await ctx.db.insert("registrationLog", {
+					eventId: world.events.a1,
+					userId: world.u.u1!,
+					change: "registered",
+					at: previousCheckpoint + 1 + index,
+				});
+			}
+			await ctx.db.insert("registrationLog", {
+				eventId,
+				userId: world.u.u2!,
+				change: "registered",
+				at: previousCutoff - minutes,
+			});
+			const event = (await ctx.db.get(eventId)) as Doc<"events">;
+			const rows = await baselineRowsAt(ctx, previousCutoff, previousCheckpoint);
+			return {
+				touched: rows.touched,
+				preloaded: await baselineStatsAt(ctx, event, previousCutoff, previousCheckpoint, {
+					...rows,
+					stored: null,
+				}),
+				raw: await computeEventStats(ctx, event, previousCutoff),
+			};
+		});
+		expect(touched).toBeNull();
+		expect(preloaded).toEqual(raw);
+		expect(preloaded.registered).toBe(1);
 	});
 });

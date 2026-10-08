@@ -76,13 +76,10 @@ export const getUpcoming = query({
 });
 
 async function withHostingCompanyLogo<T extends Doc<"events">>(ctx: QueryCtx, events: T[]) {
-	const companies = new Map<Id<"companies">, ReturnType<typeof companyWithLogo>>();
+	const companyOf = companyLoader(ctx);
 	return Promise.all(
 		events.map(async (event) => {
-			const loaded =
-				companies.get(event.hostingCompany) ?? companyWithLogo(ctx, event.hostingCompany);
-			companies.set(event.hostingCompany, loaded);
-			const company = await loaded;
+			const company = await companyOf(event.hostingCompany);
 			return {
 				...event,
 				hostingCompanyName: company.name,
@@ -140,12 +137,7 @@ export const getAll = query({
 		const user = await requireRole(ctx, internalRoles);
 		const events = await eventsInSemester(ctx, semester, year);
 
-		const companies = new Map<Id<"companies">, ReturnType<typeof companyWithLogo>>();
-		const companyOf = (companyId: Id<"companies">) => {
-			const loaded = companies.get(companyId) ?? companyWithLogo(ctx, companyId);
-			companies.set(companyId, loaded);
-			return loaded;
-		};
+		const companyOf = companyLoader(ctx);
 
 		return await Promise.all(
 			events.map(async (event) => {
@@ -191,6 +183,15 @@ export async function companyWithLogo(ctx: QueryCtx, companyId: Id<"companies">)
 	if (!company) return { name: "Ukjent", logoUrl: null };
 	const logo = await ctx.db.get(company.logo);
 	return { name: company.name, logoUrl: logo ? await ctx.storage.getUrl(logo.image) : null };
+}
+
+export function companyLoader(ctx: QueryCtx) {
+	const companies = new Map<Id<"companies">, ReturnType<typeof companyWithLogo>>();
+	return (companyId: Id<"companies">) => {
+		const loaded = companies.get(companyId) ?? companyWithLogo(ctx, companyId);
+		companies.set(companyId, loaded);
+		return loaded;
+	};
 }
 
 /**

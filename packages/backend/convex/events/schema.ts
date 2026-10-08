@@ -82,6 +82,7 @@ export const eventsSchema = {
 	})
 		.index("by_eventId", ["eventId"])
 		.index("by_eventIdAndRegistrationTime", ["eventId", "registrationTime"])
+		.index("by_registrationTime", ["registrationTime"])
 		.index("by_eventIdStatusAndRegistrationTime", ["eventId", "status", "registrationTime"])
 		.index("by_userId", ["userId"])
 		.index("by_userIdAndStatus", ["userId", "status"])

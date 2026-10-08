@@ -21,10 +21,11 @@ import {
 import {
 	lateUnregistrationsOf,
 	pastEventRow,
+	pastRowLoaders,
 	type SemesterEvent,
 	type SemesterKey,
 	semesterEvents,
-	studentsOf,
+	studentDirectory,
 	unregistrationsLoggedFrom,
 } from "./queries";
 import { eventStatsAt } from "./stats";
@@ -162,7 +163,9 @@ export const detail = query({
 		const { events, logStart } = await loggedEvents(ctx, { semester, year }, now);
 		const grouped = byCompany(events);
 		const companyEvents = grouped.get(companyId) ?? [];
-		const bedpresStudents = uniqueStudents(await studentsOf(ctx, registrantRows(events), now));
+		const students = await studentDirectory(ctx, now);
+		const bedpresStudents = uniqueStudents(await students.studentsOf(registrantRows(events)));
+		const loaders = await pastRowLoaders(ctx, user._id);
 		return {
 			...(await companyWithLogo(ctx, companyId)),
 			comparison: comparisonOf(
@@ -170,14 +173,14 @@ export const detail = query({
 				[...grouped.values()].map((group) => metricsOf(group, now)),
 			),
 			audience: audienceOf(
-				await studentsOf(ctx, registrantRows(companyEvents), now),
+				await students.studentsOf(registrantRows(companyEvents)),
 				bedpresStudents,
 			),
 			events: await Promise.all(
 				companyEvents
 					.filter(({ event }) => event.eventStart <= now)
 					.reverse()
-					.map((companyEvent) => pastEventRow(ctx, companyEvent, logStart, user._id)),
+					.map((companyEvent) => pastEventRow(loaders, companyEvent, logStart)),
 			),
 		};
 	},
