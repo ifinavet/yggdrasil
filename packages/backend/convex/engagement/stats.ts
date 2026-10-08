@@ -1,7 +1,7 @@
 import { DAY_MS } from "@workspace/shared/time";
-import { ConvexError } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
-import type { MutationCtx, QueryCtx } from "../_generated/server";
+import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import type { EventCounts } from "./companyMetrics";
 import { firstFilledAt, registrationHistory, registrationsAt } from "./history";
 
@@ -108,8 +108,10 @@ export async function refreshEventStats(
 	try {
 		computed = await computeEventStats(ctx, event);
 	} catch (error) {
-		if (error instanceof ConvexError) return "skipped";
-		throw error;
+		if (!(error instanceof ConvexError)) throw error;
+		if (!stored) return "skipped";
+		await ctx.db.delete(stored._id);
+		return "removed";
 	}
 	if (!stored) {
 		await ctx.db.insert("eventStats", computed);
@@ -119,3 +121,39 @@ export async function refreshEventStats(
 	await ctx.db.replace(stored._id, computed);
 	return "patched";
 }
+
+const SHOWED_UP: readonly (Doc<"registrations">["attendanceStatus"] | undefined)[] = [
+	"confirmed",
+	"late",
+];
+
+export async function patchAttendanceStats(
+	ctx: MutationCtx,
+	registration: Pick<Doc<"registrations">, "eventId" | "userId" | "attendanceStatus">,
+	next: NonNullable<Doc<"registrations">["attendanceStatus"]>,
+) {
+	const stored = await statsRowOf(ctx, registration.eventId);
+	if (!stored) return;
+	const previous = registration.attendanceStatus;
+	const counted = stored.registrants.includes(registration.userId);
+	const showedUp = (status: typeof previous) => (SHOWED_UP.includes(status) ? 1 : 0);
+	const noShow = (status: typeof previous) => (status === "no_show" ? 1 : 0);
+	const patch = {
+		attendanceRecorded: stored.attendanceRecorded || counted,
+		showedUp: stored.showedUp + (counted ? showedUp(next) - showedUp(previous) : 0),
+		noShows: stored.noShows + (counted ? noShow(next) - noShow(previous) : 0),
+	};
+	if (
+		patch.attendanceRecorded === stored.attendanceRecorded &&
+		patch.showedUp === stored.showedUp &&
+		patch.noShows === stored.noShows
+	) {
+		return;
+	}
+	await ctx.db.patch(stored._id, patch);
+}
+
+export const refreshStats = internalMutation({
+	args: { eventId: v.id("events") },
+	handler: async (ctx, { eventId }) => await refreshEventStats(ctx, eventId),
+});

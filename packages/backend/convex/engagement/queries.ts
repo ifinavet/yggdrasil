@@ -315,14 +315,14 @@ export async function semesterEvents(
 	ctx: QueryCtx,
 	key: SemesterKey,
 	now: number,
-	baseline = false,
+	checkpointCutoff: number | null = null,
 ) {
 	const events = await semesterEventDocs(ctx, key, now);
 	return await Promise.all(
 		events.map(async (event): Promise<SemesterEvent> => {
-			const stats = await (baseline
-				? baselineStatsAt(ctx, event, now)
-				: eventStatsAt(ctx, event, now));
+			const stats = await (checkpointCutoff === null
+				? eventStatsAt(ctx, event, now)
+				: baselineStatsAt(ctx, event, now, checkpointCutoff));
 			return {
 				event,
 				counts: countsOf(stats),
@@ -475,10 +475,22 @@ export const semester = query({
 		await requireRole(ctx, internalRoles);
 		const current = eventSemesterOf(now);
 		const currentStart = eventSemesterRange(current.semester, current.year).start;
-		const { previous, previousCutoff, lastYearSemester, lastYear } = baselineCutoffs(now);
+		const {
+			previous,
+			previousCutoff,
+			previousCheckpoint,
+			lastYearSemester,
+			lastYear,
+			lastYearCheckpoint,
+		} = baselineCutoffs(now);
 		const events = await semesterEvents(ctx, current, now);
-		const previousEvents = await semesterEvents(ctx, previous, previousCutoff, true);
-		const lastYearEvents = await semesterEvents(ctx, lastYearSemester, lastYear, true);
+		const previousEvents = await semesterEvents(ctx, previous, previousCutoff, previousCheckpoint);
+		const lastYearEvents = await semesterEvents(
+			ctx,
+			lastYearSemester,
+			lastYear,
+			lastYearCheckpoint,
+		);
 		const yearsSincePrevious = current.semester === "høst" ? 1 : 0;
 
 		const audience = audienceOf(

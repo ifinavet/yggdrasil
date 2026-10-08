@@ -1,3 +1,5 @@
+import { v } from "convex/values";
+import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx } from "../_generated/server";
 import {
@@ -40,20 +42,27 @@ export const sweepStats = internalMutation({
 });
 
 export const repairRecentStats = internalMutation({
-	args: {},
-	handler: async (ctx) => {
-		const now = Date.now();
-		const events = await ctx.db
+	args: { cursor: v.optional(v.string()), now: v.optional(v.number()) },
+	handler: async (ctx, args) => {
+		const now = args.now ?? Date.now();
+		const page = await ctx.db
 			.query("events")
 			.withIndex("by_eventStart", (q) =>
 				q
 					.gte("eventStart", now - STATS_REPAIR_PAST_MS)
 					.lte("eventStart", now + STATS_REPAIR_AHEAD_MS),
 			)
-			.take(STATS_REPAIR_BATCH);
-		return await refreshAll(
+			.paginate({ numItems: STATS_REPAIR_BATCH, cursor: args.cursor ?? null });
+		const tally = await refreshAll(
 			ctx,
-			events.map(({ _id }) => _id),
+			page.page.map(({ _id }) => _id),
 		);
+		if (!page.isDone) {
+			await ctx.scheduler.runAfter(0, internal.engagement.statsSweep.repairRecentStats, {
+				cursor: page.continueCursor,
+				now,
+			});
+		}
+		return { ...tally, finished: page.isDone };
 	},
 });

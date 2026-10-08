@@ -1,6 +1,6 @@
 import { internal } from "../../_generated/api";
 import { internalMutation } from "../../_generated/server";
-import { logRegistrationChange } from "../../engagement/log";
+import { logRegistrationChange, refreshTouched, type TouchedEvents } from "../../engagement/log";
 import { fillOpenSeats } from "../registrations/mutations";
 import { OFFER_ANSWER_WINDOW_MS } from "./offer";
 
@@ -32,6 +32,7 @@ export const checkPendingRegistrations = internalMutation({
 		// Expire stale offers first, then fill every freed seat once per event.
 		// Running this sequentially keeps each event's waitlist promotions in order,
 		// so several offers expiring in the same run each free a seat for someone new.
+		const touched: TouchedEvents = new Set();
 		for (const event of eventsWithOpenRegistrations) {
 			const pendingRegistrations = await ctx.db
 				.query("registrations")
@@ -52,11 +53,12 @@ export const checkPendingRegistrations = internalMutation({
 					status: "waitlist",
 					registrationTime: now,
 				});
-				await logRegistrationChange(ctx, registration, "expired", now);
+				await logRegistrationChange(ctx, registration, "expired", now, touched);
 			}
 
-			await fillOpenSeats(ctx, event);
+			await fillOpenSeats(ctx, event, touched);
 		}
+		await refreshTouched(ctx, touched);
 	},
 });
 
@@ -80,6 +82,7 @@ export const clearWaitlistAndPending = internalMutation({
 			)
 			.collect();
 
+		const touched: TouchedEvents = new Set();
 		const registrationsForEvents = await Promise.all(
 			eventsToClear.map(async (event) => {
 				const registrations = await ctx.db
@@ -106,7 +109,7 @@ export const clearWaitlistAndPending = internalMutation({
 					const user = await ctx.db.get(reg.userId);
 					if (!user || user.deleted) {
 						await ctx.db.delete(reg._id);
-						await logRegistrationChange(ctx, reg, "cleared", now);
+						await logRegistrationChange(ctx, reg, "cleared", now, touched);
 						continue;
 					}
 
@@ -120,9 +123,10 @@ export const clearWaitlistAndPending = internalMutation({
 
 					// Delete registrations
 					await ctx.db.delete(reg._id);
-					await logRegistrationChange(ctx, reg, "cleared", now);
+					await logRegistrationChange(ctx, reg, "cleared", now, touched);
 				}
 			}),
 		);
+		await refreshTouched(ctx, touched);
 	},
 });

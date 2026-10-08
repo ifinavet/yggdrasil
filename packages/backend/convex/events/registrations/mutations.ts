@@ -3,8 +3,9 @@ import { internal } from "../../_generated/api";
 import type { Doc } from "../../_generated/dataModel";
 import { type MutationCtx, mutation } from "../../_generated/server";
 import { getCurrentUserOrThrow } from "../../auth/currentUser";
-import { logRegistrationChange } from "../../engagement/log";
-import { refreshEventStats } from "../../engagement/stats";
+import { dropCheckpoints } from "../../engagement/checkpoints";
+import { logRegistrationChange, refreshTouched, type TouchedEvents } from "../../engagement/log";
+import { patchAttendanceStats } from "../../engagement/stats";
 import { inviteLateAttendee } from "../../feedback/delivery/campaigns";
 import {
 	countRegistrationsWithStatus,
@@ -116,7 +117,8 @@ export const updateAttendance = mutation({
 			attendanceStatus: newStatus,
 			attendanceTime: Date.now(),
 		});
-		await refreshEventStats(ctx, registration.eventId);
+		await patchAttendanceStats(ctx, registration, newStatus);
+		await dropCheckpoints(ctx, registration.eventId);
 		await inviteLateAttendee(ctx, { ...registration, attendanceStatus: newStatus });
 
 		const previousStatus = registration.attendanceStatus;
@@ -367,6 +369,7 @@ export const makeStatusPending = async (
 	ctx: MutationCtx,
 	registrationToMakePending: Doc<"registrations">,
 	event: Doc<"events">,
+	touched?: TouchedEvents,
 ) => {
 	const user = await ctx.db.get(registrationToMakePending.userId);
 	if (!user || user.deleted) {
@@ -383,7 +386,7 @@ export const makeStatusPending = async (
 		status: "pending",
 		registrationTime: Date.now(),
 	});
-	await logRegistrationChange(ctx, registrationToMakePending, "offered");
+	await logRegistrationChange(ctx, registrationToMakePending, "offered", undefined, touched);
 
 	await ctx.scheduler.runAfter(0, internal.emails.sendAvailableSeatEmail, {
 		participantEmail: user.email,
@@ -402,7 +405,17 @@ export const makeStatusPending = async (
  *
  * @returns {Promise<void>} - Resolves when the open seats have been offered or the waitlist is empty.
  */
-export const fillOpenSeats = async (ctx: MutationCtx, event: Doc<"events">) => {
+export const fillOpenSeats = async (
+	ctx: MutationCtx,
+	event: Doc<"events">,
+	touched?: TouchedEvents,
+) => {
+	const own: TouchedEvents = touched ?? new Set();
+	await offerOpenSeats(ctx, event, own);
+	if (!touched) await refreshTouched(ctx, own);
+};
+
+const offerOpenSeats = async (ctx: MutationCtx, event: Doc<"events">, touched: TouchedEvents) => {
 	const registeredCount = await countRegistrationsWithStatus(ctx, event._id, "registered");
 	const pendingCount = await countRegistrationsWithStatus(ctx, event._id, "pending");
 	let openSeats = event.participationLimit - registeredCount - pendingCount;
@@ -422,11 +435,11 @@ export const fillOpenSeats = async (ctx: MutationCtx, event: Doc<"events">) => {
 		const user = await ctx.db.get(registration.userId);
 		if (!user || user.deleted) {
 			await ctx.db.delete(registration._id);
-			await logRegistrationChange(ctx, registration, "cleared");
+			await logRegistrationChange(ctx, registration, "cleared", undefined, touched);
 			continue;
 		}
 
-		await makeStatusPending(ctx, registration, event);
+		await makeStatusPending(ctx, registration, event, touched);
 		openSeats--;
 	}
 };

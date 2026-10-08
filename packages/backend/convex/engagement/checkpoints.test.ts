@@ -1,8 +1,10 @@
+import { eventSemesterRange } from "@workspace/shared/time";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { buildWorld, insightOutputs, NOW, normalised, type World } from "../../test/insightWorld";
 import { internal } from "../_generated/api";
-import { baselineCutoffs } from "./checkpoints";
-import { refreshEventStats } from "./stats";
+import type { Doc, Id } from "../_generated/dataModel";
+import { baselineCutoffs, baselineStatsAt } from "./checkpoints";
+import { computeEventStats, refreshEventStats } from "./stats";
 
 afterEach(() => {
 	vi.useRealTimers();
@@ -27,12 +29,18 @@ async function checkpoints(world: World) {
 }
 
 describe("baselineCutoffs", () => {
-	it("keys both baselines to the start of the UTC day", () => {
+	it("keys the checkpoints to the start of the UTC day and keeps the exact cutoffs", () => {
 		const morning = baselineCutoffs(Date.parse("2026-10-20T00:00:01Z"));
 		const evening = baselineCutoffs(Date.parse("2026-10-20T23:59:59Z"));
-		expect(evening).toEqual(morning);
-		expect(baselineCutoffs(Date.parse("2026-10-21T00:00:01Z")).lastYear).toBe(
-			morning.lastYear + 24 * 60 * 60 * 1000,
+		expect(evening.previousCheckpoint).toBe(morning.previousCheckpoint);
+		expect(evening.lastYearCheckpoint).toBe(morning.lastYearCheckpoint);
+		expect(evening.lastYear).toBe(Date.parse("2025-10-20T23:59:59Z"));
+		expect(morning.lastYear).toBe(Date.parse("2025-10-20T00:00:01Z"));
+		expect(evening.previousCutoff - morning.previousCutoff).toBe(
+			Date.parse("2026-10-20T23:59:59Z") - Date.parse("2026-10-20T00:00:01Z"),
+		);
+		expect(baselineCutoffs(Date.parse("2026-10-21T00:00:01Z")).lastYearCheckpoint).toBe(
+			morning.lastYearCheckpoint + 24 * 60 * 60 * 1000,
 		);
 	});
 });
@@ -95,5 +103,68 @@ describe("buildCheckpoints", () => {
 		vi.setSystemTime(NOW + 4 * 24 * 60 * 60 * 1000);
 		const later = await world.t.mutation(internal.engagement.checkpoints.buildCheckpoints, {});
 		expect(later.pruned).toBe(built);
+	});
+});
+
+describe("baselines between the checkpoint and the exact cutoff", () => {
+	it("matches the raw numbers when the registrations changed during the day", async () => {
+		const world = await worldWithStats();
+		const { previousCutoff, previousCheckpoint } = baselineCutoffs(NOW);
+		const hour = 60 * 60 * 1000;
+		expect(previousCutoff - previousCheckpoint).toBeGreaterThan(2 * hour);
+		let eventId = "" as Id<"events">;
+		await world.t.run(async (ctx) => {
+			const range = eventSemesterRange("vår", 2026);
+			const events = await ctx.db.query("events").collect();
+			const event = events.find(
+				(candidate) =>
+					candidate.published &&
+					!candidate.externalEvent &&
+					candidate.participationLimit > 0 &&
+					candidate.eventStart >= range.start &&
+					candidate.eventStart < range.end &&
+					candidate.registrationOpens <= previousCheckpoint,
+			);
+			if (!event) throw new Error("no event in the previous semester");
+			eventId = event._id;
+			const users = await ctx.db.query("users").take(3);
+			const gap = users[1];
+			const later = users[2];
+			if (!gap || !later) throw new Error("not enough users");
+			const entries = [
+				{ user: gap, at: previousCutoff - hour },
+				{ user: later, at: previousCutoff + hour },
+			];
+			for (const { user, at } of entries) {
+				await ctx.db.insert("registrations", {
+					eventId: event._id,
+					userId: user._id,
+					status: "registered",
+					registrationTime: at,
+				});
+				await ctx.db.insert("registrationLog", {
+					eventId: event._id,
+					userId: user._id,
+					change: "registered",
+					at,
+				});
+			}
+			await refreshEventStats(ctx, event._id);
+		});
+		await world.t.mutation(internal.engagement.checkpoints.buildCheckpoints, {});
+		const { served, raw, checkpointed } = await world.t.run(async (ctx) => {
+			const event = (await ctx.db.get(eventId)) as Doc<"events">;
+			const rows = await ctx.db
+				.query("eventCheckpoints")
+				.withIndex("by_eventId_and_cutoff", (q) => q.eq("eventId", eventId))
+				.collect();
+			return {
+				checkpointed: rows.length,
+				served: await baselineStatsAt(ctx, event, previousCutoff, previousCheckpoint),
+				raw: await computeEventStats(ctx, event, previousCutoff),
+			};
+		});
+		expect(checkpointed).toBe(1);
+		expect(served).toEqual(raw);
 	});
 });

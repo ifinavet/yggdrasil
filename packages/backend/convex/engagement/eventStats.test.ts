@@ -12,7 +12,7 @@ import {
 } from "../../test/fixtures";
 import { api, internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
-import { computeEventStats } from "./stats";
+import { computeEventStats, refreshEventStats } from "./stats";
 
 const registrationMutations = api.events.registrations.mutations;
 const waitlistMutations = internal.events.waitlist.mutations;
@@ -147,6 +147,7 @@ describe("eventStats write-through", () => {
 			await insertStudent(t, user._id);
 			registrationIds.push(await insertRegistration(t, eventId, user._id, "registered"));
 		}
+		await t.run((ctx) => refreshEventStats(ctx, eventId));
 
 		await asUser(t, organizer).mutation(registrationMutations.updateAttendance, {
 			id: registrationIds[0] as Id<"registrations">,

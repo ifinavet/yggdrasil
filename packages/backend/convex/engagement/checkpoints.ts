@@ -1,6 +1,6 @@
 import { DAY_MS, eventSemesterOf, eventSemesterRange } from "@workspace/shared/time";
 import { ConvexError } from "convex/values";
-import type { Doc } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { eventsInSemester } from "../events/helper";
 import {
@@ -19,21 +19,28 @@ import {
 
 export type SemesterKey = ReturnType<typeof eventSemesterOf>;
 
+function dayStart(at: number) {
+	return Math.floor(at / DAY_MS) * DAY_MS;
+}
+
 export function baselineCutoffs(now: number) {
-	const today = Math.floor(now / DAY_MS) * DAY_MS;
 	const current = eventSemesterOf(now);
 	const currentStart = eventSemesterRange(current.semester, current.year).start;
 	const previous = eventSemesterOf(currentStart - DAY_MS);
 	const previousRange = eventSemesterRange(previous.semester, previous.year);
-	const lastYear = today - YEAR_DAYS * DAY_MS;
+	const previousAt = (at: number) =>
+		Math.min(
+			previousRange.start + Math.max(at, currentStart) - currentStart,
+			previousRange.end - 1,
+		);
+	const lastYear = now - YEAR_DAYS * DAY_MS;
 	return {
 		previous,
-		previousCutoff: Math.min(
-			previousRange.start + Math.max(today, currentStart) - currentStart,
-			previousRange.end - 1,
-		),
+		previousCutoff: previousAt(now),
+		previousCheckpoint: previousAt(dayStart(now)),
 		lastYearSemester: eventSemesterOf(lastYear),
 		lastYear,
+		lastYearCheckpoint: dayStart(lastYear),
 	};
 }
 
@@ -63,10 +70,43 @@ async function checkpointOf(ctx: QueryCtx, event: Doc<"events">, cutoff: number)
 	return numbers satisfies EventNumbers;
 }
 
-export async function baselineStatsAt(ctx: QueryCtx, event: Doc<"events">, cutoff: number) {
+async function untouchedBetween(ctx: QueryCtx, eventId: Id<"events">, from: number, to: number) {
+	if (from >= to) return true;
+	const logged = await ctx.db
+		.query("registrationLog")
+		.withIndex("by_eventId_and_at", (q) => q.eq("eventId", eventId).gt("at", from).lte("at", to))
+		.first();
+	if (logged) return false;
+	const registered = await ctx.db
+		.query("registrations")
+		.withIndex("by_eventIdAndRegistrationTime", (q) =>
+			q.eq("eventId", eventId).gt("registrationTime", from).lte("registrationTime", to),
+		)
+		.first();
+	return !registered;
+}
+
+export async function baselineStatsAt(
+	ctx: QueryCtx,
+	event: Doc<"events">,
+	cutoff: number,
+	checkpointCutoff: number,
+) {
 	const stored = await statsRowOf(ctx, event._id);
 	if (stored && isCurrentStats(stored, event, cutoff)) return stored;
-	return (await checkpointOf(ctx, event, cutoff)) ?? (await eventStatsAt(ctx, event, cutoff));
+	const checkpoint = await checkpointOf(ctx, event, checkpointCutoff);
+	if (checkpoint && (await untouchedBetween(ctx, event._id, checkpointCutoff, cutoff))) {
+		return checkpoint;
+	}
+	return await eventStatsAt(ctx, event, cutoff);
+}
+
+export async function dropCheckpoints(ctx: MutationCtx, eventId: Id<"events">) {
+	const rows = await ctx.db
+		.query("eventCheckpoints")
+		.withIndex("by_eventId_and_cutoff", (q) => q.eq("eventId", eventId))
+		.take(CHECKPOINT_PRUNE_BATCH);
+	for (const row of rows) await ctx.db.delete(row._id);
 }
 
 async function buildFor(ctx: MutationCtx, key: SemesterKey, cutoff: number, budget: number) {
@@ -93,9 +133,10 @@ export const buildCheckpoints = internalMutation({
 	args: {},
 	handler: async (ctx) => {
 		const now = Date.now();
-		const { previous, previousCutoff, lastYearSemester, lastYear } = baselineCutoffs(now);
-		let built = await buildFor(ctx, previous, previousCutoff, CHECKPOINT_BATCH);
-		built += await buildFor(ctx, lastYearSemester, lastYear, CHECKPOINT_BATCH - built);
+		const { previous, previousCheckpoint, lastYearSemester, lastYearCheckpoint } =
+			baselineCutoffs(now);
+		let built = await buildFor(ctx, previous, previousCheckpoint, CHECKPOINT_BATCH);
+		built += await buildFor(ctx, lastYearSemester, lastYearCheckpoint, CHECKPOINT_BATCH - built);
 		const stale = await ctx.db
 			.query("eventCheckpoints")
 			.withIndex("by_creation_time", (q) => q.lt("_creationTime", now - CHECKPOINT_RETENTION_MS))
