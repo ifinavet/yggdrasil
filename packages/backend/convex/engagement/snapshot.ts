@@ -2,7 +2,6 @@ import { DAY_MS } from "@workspace/shared/time";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
 import { REMINDER_KINDS } from "../events/reminders/schedule";
-import { firstFilledAt, registrationHistory } from "./history";
 import {
 	alignedCurve,
 	BASELINE_SIZE,
@@ -16,6 +15,7 @@ import {
 	recentUnregistrations,
 	seatDelta,
 } from "./metrics";
+import { eventStatsAt } from "./stats";
 
 export const MAX_REGISTRATIONS_PER_EVENT = 1000;
 const MAX_LOG_ENTRIES = 1000;
@@ -173,20 +173,39 @@ export function baselineFor(
 	return { curve, size };
 }
 
+async function fullAtOf(ctx: QueryCtx, event: Doc<"events">, registered: number) {
+	if (registered < event.participationLimit) return null;
+	const times = await registrationTimesOf(ctx, event._id);
+	return times.sort((a, b) => a - b)[event.participationLimit - 1] ?? null;
+}
+
+export async function liveStateOf(ctx: QueryCtx, event: Doc<"events">, now: number) {
+	const stats = await eventStatsAt(ctx, event, now);
+	const recentLog = await logSince(ctx, event._id, now - DAY_MS);
+	const unregistrations = recentUnregistrations(recentLog, now);
+	return {
+		registered: stats.registered,
+		waitlist: stats.waitlist,
+		unregistrations,
+		delta24h: seatDelta(recentLog),
+		status: classify({
+			now,
+			timeline: event,
+			limit: event.participationLimit,
+			registered: stats.registered,
+			filledAt: stats.filledAt ?? (await fullAtOf(ctx, event, stats.registered)),
+			unregistrations: unregistrations.length,
+		}),
+	};
+}
+
 export async function snapshotOf(
 	ctx: QueryCtx,
 	event: Doc<"events">,
 	now: number,
 	pastCurves: readonly PastCurve[],
 ) {
-	const registrationTimes = await registrationTimesOf(ctx, event._id);
-	const history = await registrationHistory(ctx, event._id);
-	const filledAt = firstFilledAt(
-		history.entries.filter(({ at }) => at <= now),
-		event.participationLimit,
-	);
-	const recentLog = await logSince(ctx, event._id, now - DAY_MS);
-	const unregistrations = recentUnregistrations(recentLog, now);
+	const live = await liveStateOf(ctx, event, now);
 	const companyCurves = await companyCurvesBefore(
 		ctx,
 		event.hostingCompany,
@@ -199,28 +218,14 @@ export async function snapshotOf(
 		await forecastTimeline(ctx, event),
 	);
 	const progress = progressOf(event, now);
-	const registered = registrationTimes.length;
-	const waitlist = await waitlistCountOf(ctx, event._id);
-	const demandFill = (registered + waitlist) / event.participationLimit;
+	const demandFill = (live.registered + live.waitlist) / event.participationLimit;
 
 	return {
-		registered,
-		waitlist,
+		...live,
 		demandFill,
-		registrationTimes,
-		unregistrations,
-		delta24h: seatDelta(recentLog),
 		progress,
 		baseline,
 		projectedFill: projectFill(demandFill, progress, baseline?.curve ?? null),
-		status: classify({
-			now,
-			timeline: event,
-			limit: event.participationLimit,
-			registrationTimes,
-			filledAt,
-			unregistrations: unregistrations.length,
-		}),
 	};
 }
 

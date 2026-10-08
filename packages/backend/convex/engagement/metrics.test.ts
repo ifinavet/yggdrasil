@@ -187,9 +187,9 @@ describe("classify", () => {
 	const base = {
 		timeline: TIMELINE,
 		limit: 10,
-		registrationTimes: [] as number[],
+		registered: 0,
+		filledAt: null as number | null,
 		unregistrations: 0,
-		baseline: null,
 	};
 
 	it("reports events that have not opened", () => {
@@ -204,14 +204,12 @@ describe("classify", () => {
 	});
 
 	it("reports how fast a full event filled", () => {
-		const registrationTimes = Array.from({ length: 10 }, (_, index) => OPENS + index * MINUTE_MS);
-		expect(classify({ ...base, now: OPENS + DAY_MS, registrationTimes })).toEqual({
+		const full = { ...base, now: OPENS + DAY_MS, registered: 10 };
+		expect(classify({ ...full, filledAt: OPENS + 9 * MINUTE_MS })).toEqual({
 			kind: "full",
 			minutesToFull: 9,
 		});
-		expect(
-			classify({ ...base, now: OPENS + DAY_MS, registrationTimes: Array(10).fill(OPENS) }),
-		).toEqual({ kind: "full", minutesToFull: 1 });
+		expect(classify({ ...full, filledAt: OPENS })).toEqual({ kind: "full", minutesToFull: 1 });
 	});
 
 	it("flags no registrations only after a day", () => {
@@ -220,8 +218,7 @@ describe("classify", () => {
 	});
 
 	it("leaves an open event with registrations unflagged however slow it fills", () => {
-		const registrationTimes = [OPENS + HOUR_MS, OPENS + 2 * HOUR_MS];
-		expect(classify({ ...base, now: START - DAY_MS, registrationTimes })).toEqual({ kind: "open" });
+		expect(classify({ ...base, now: START - DAY_MS, registered: 2 })).toEqual({ kind: "open" });
 	});
 });
 

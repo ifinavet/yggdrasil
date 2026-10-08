@@ -412,6 +412,9 @@ describe("snapshotOf", () => {
 		for (const email of ["venter4@example.com", "venter5@example.com"]) {
 			const waiting = await insertUser(t, email);
 			await insertRegistration(t, eventId, waiting._id, "waitlist");
+			await t.run((ctx) =>
+				logRegistrationChange(ctx, { eventId, userId: waiting._id }, "waitlisted", OPENS + 2 * HOUR_MS),
+			);
 		}
 		const withWaitlist = await t.run((ctx) => snapshotOf(ctx, event, now, declining));
 		expect(withWaitlist.waitlist).toBe(2);

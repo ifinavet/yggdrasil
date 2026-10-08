@@ -148,24 +148,23 @@ export function classify({
 	now,
 	timeline,
 	limit,
-	registrationTimes,
+	registered,
 	filledAt,
 	unregistrations,
 }: {
 	now: number;
 	timeline: Timeline;
 	limit: number;
-	registrationTimes: readonly number[];
-	filledAt?: number | null;
+	registered: number;
+	filledAt: number | null;
 	unregistrations: number;
 }): EngagementStatus {
-	const registered = registrationTimes.length;
 	if (now < timeline.registrationOpens) {
 		return { kind: "notOpen", opensAt: timeline.registrationOpens };
 	}
 	if (isWave(unregistrations, registered)) return { kind: "wave", count: unregistrations };
 	if (registered >= limit) {
-		const fullAt = filledAt ?? ([...registrationTimes].sort((a, b) => a - b)[limit - 1] as number);
+		const fullAt = filledAt ?? timeline.registrationOpens;
 		return {
 			kind: "full",
 			minutesToFull: Math.max(1, Math.round((fullAt - timeline.registrationOpens) / MINUTE_MS)),

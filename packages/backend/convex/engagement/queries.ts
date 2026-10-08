@@ -35,6 +35,7 @@ import {
 import { type AlertRule, isActiveRule } from "./schema";
 import {
 	MAX_REGISTRATIONS_PER_EVENT,
+	liveStateOf,
 	MIN_FORECAST_EVENTS,
 	pastCurvesBefore,
 	snapshotOf,
@@ -55,11 +56,16 @@ export const upcoming = query({
 	args: { now: v.number() },
 	handler: async (ctx, { now }) => {
 		const user = await requireRole(ctx, internalRoles);
-		const pastCurves = await pastCurvesBefore(ctx, now);
+		const companies = new Map<Id<"companies">, ReturnType<typeof companyWithLogo>>();
+		const companyOf = (companyId: Id<"companies">) => {
+			const cached = companies.get(companyId) ?? companyWithLogo(ctx, companyId);
+			companies.set(companyId, cached);
+			return cached;
+		};
 		const events = await Promise.all(
 			(await upcomingEvents(ctx, now, UPCOMING_EVENTS)).map(async (event) => {
-				const snapshot = await snapshotOf(ctx, event, now, pastCurves);
-				const company = await companyWithLogo(ctx, event.hostingCompany);
+				const live = await liveStateOf(ctx, event, now);
+				const company = await companyOf(event.hostingCompany);
 				return {
 					_id: event._id,
 					title: event.title,
@@ -69,10 +75,10 @@ export const upcoming = query({
 					eventStart: event.eventStart,
 					registrationOpens: event.registrationOpens,
 					participationLimit: event.participationLimit,
-					registered: snapshot.registered,
-					waitlist: snapshot.waitlist,
-					delta24h: snapshot.delta24h,
-					status: snapshot.status,
+					registered: live.registered,
+					waitlist: live.waitlist,
+					delta24h: live.delta24h,
+					status: live.status,
 				};
 			}),
 		);
