@@ -3,9 +3,20 @@ import { HOUR_MS } from "@workspace/shared/time";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { AnalyticsRegistration } from "./history";
 
+export type EventCounts = {
+	registered: number;
+	waitlist: number;
+	total: number;
+	recorded: boolean;
+	showedUp: number;
+	noShows: number;
+};
+
 export type CompanyEvent = {
 	event: Doc<"events">;
-	registrations: AnalyticsRegistration[];
+	registrations?: AnalyticsRegistration[];
+	counts?: EventCounts;
+	registrants?: Id<"users">[];
 	filledAt?: number | null;
 	lateUnregistrations?: number | null;
 	feedback?: HighlightTotals | null;
@@ -52,9 +63,32 @@ function countWith(registrations: readonly AnalyticsRegistration[], status: stri
 }
 
 export function registeredIn(events: readonly Pick<CompanyEvent, "registrations">[]) {
-	return events.flatMap(({ registrations }) =>
+	return events.flatMap(({ registrations = [] }) =>
 		registrations.filter((registration) => registration.status === "registered"),
 	);
+}
+
+export function tallyOf({
+	registrations = [],
+	counts,
+}: Pick<CompanyEvent, "registrations" | "counts">) {
+	if (counts) return counts;
+	const registered = registrations.filter((registration) => registration.status === "registered");
+	const recorded = registered.some((registration) => registration.attendanceStatus);
+	return {
+		registered: registered.length,
+		waitlist: countWith(registrations, "waitlist"),
+		total: registrations.length,
+		recorded,
+		showedUp: registered.filter(
+			({ attendanceStatus }) => attendanceStatus === "confirmed" || attendanceStatus === "late",
+		).length,
+		noShows: registered.filter(({ attendanceStatus }) => attendanceStatus === "no_show").length,
+	} satisfies EventCounts;
+}
+
+export function registrantsOf({ registrations, registrants }: CompanyEvent) {
+	return registrants ?? registeredIn([{ registrations }]).map(({ userId }) => userId);
 }
 
 function hoursToFullOf(companyEvent: CompanyEvent) {
@@ -68,15 +102,18 @@ function hoursToFullOf(companyEvent: CompanyEvent) {
 }
 
 function attendanceOf(events: readonly CompanyEvent[]) {
-	const recorded = events.flatMap((companyEvent) => {
-		const registered = registeredIn([companyEvent]);
-		return registered.some((registration) => registration.attendanceStatus) ? registered : [];
-	});
-	const showedUp = recorded.filter(
-		({ attendanceStatus }) => attendanceStatus === "confirmed" || attendanceStatus === "late",
-	).length;
-	const noShows = recorded.filter(({ attendanceStatus }) => attendanceStatus === "no_show").length;
-	return { attendance: ratio(showedUp, recorded.length), noShow: ratio(noShows, recorded.length) };
+	const recorded = events.map(tallyOf).filter(({ recorded }) => recorded);
+	const total = sumOf(recorded, ({ registered }) => registered);
+	return {
+		attendance: ratio(
+			sumOf(recorded, ({ showedUp }) => showedUp),
+			total,
+		),
+		noShow: ratio(
+			sumOf(recorded, ({ noShows }) => noShows),
+			total,
+		),
+	};
 }
 
 function feedbackOf(events: readonly CompanyEvent[]) {
@@ -97,7 +134,7 @@ function returningOf(events: readonly CompanyEvent[]) {
 	const measured = events.filter(({ returning }) => typeof returning === "number");
 	return ratio(
 		sumOf(measured, ({ returning }) => returning as number),
-		sumOf(measured, ({ registrations }) => countWith(registrations, "registered")),
+		sumOf(measured, (companyEvent) => tallyOf(companyEvent).registered),
 	);
 }
 
@@ -109,15 +146,15 @@ export function metricsOf(events: readonly CompanyEvent[], now: number): Metrics
 	);
 	return {
 		demand: ratio(
-			sumOf(events, ({ registrations }) => registrations.length),
+			sumOf(events, (companyEvent) => tallyOf(companyEvent).total),
 			seats,
 		),
 		fill: ratio(
-			sumOf(events, ({ registrations }) => countWith(registrations, "registered")),
+			sumOf(events, (companyEvent) => tallyOf(companyEvent).registered),
 			seats,
 		),
 		waitlistPerEvent: ratio(
-			sumOf(events, ({ registrations }) => countWith(registrations, "waitlist")),
+			sumOf(events, (companyEvent) => tallyOf(companyEvent).waitlist),
 			events.length,
 		),
 		hoursToFull: median(events.map(hoursToFullOf).filter((hours) => hours !== null)),

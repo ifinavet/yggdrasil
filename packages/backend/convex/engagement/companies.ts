@@ -14,18 +14,20 @@ import {
 	comparisonOf,
 	metricsOf,
 	pickMetrics,
-	registeredIn,
+	registrantsOf,
 	sumOf,
+	tallyOf,
 } from "./companyMetrics";
 import {
 	lateUnregistrationsOf,
 	pastEventRow,
+	type SemesterEvent,
 	type SemesterKey,
 	semesterEvents,
 	studentsOf,
 	unregistrationsLoggedFrom,
 } from "./queries";
-import { MAX_REGISTRATIONS_PER_EVENT } from "./snapshot";
+import { eventStatsAt } from "./stats";
 
 const HISTORY_SEMESTERS = 4;
 const MAX_EARLIER_EVENTS = 50;
@@ -75,23 +77,26 @@ async function earlierRegistrants(ctx: QueryCtx, companyId: Id<"companies">, key
 		.take(MAX_EARLIER_EVENTS);
 	const users = new Set<Id<"users">>();
 	for (const event of events.filter(({ published }) => published)) {
-		const registrations = await ctx.db
-			.query("registrations")
-			.withIndex("by_eventId", (q) => q.eq("eventId", event._id))
-			.take(MAX_REGISTRATIONS_PER_EVENT);
-		for (const { userId } of registeredIn([{ registrations }])) users.add(userId);
+		const stats = await eventStatsAt(ctx, event, Number.POSITIVE_INFINITY);
+		for (const userId of stats.registrants) users.add(userId);
 	}
 	return users;
 }
 
 function returningIn(companyEvent: CompanyEvent, earlier: Set<Id<"users">>) {
-	return registeredIn([companyEvent]).filter(({ userId }) => earlier.has(userId)).length;
+	return registrantsOf(companyEvent).filter((userId) => earlier.has(userId)).length;
+}
+
+function registrantRows(events: readonly CompanyEvent[]) {
+	return events.flatMap((companyEvent) =>
+		registrantsOf(companyEvent).map((userId) => ({ userId })),
+	);
 }
 
 async function loggedEvents(ctx: QueryCtx, key: SemesterKey, now: number) {
 	const logStart = await unregistrationsLoggedFrom(ctx);
 	const grouped = byCompany(await semesterEvents(ctx, key, now));
-	const events: CompanyEvent[] = [];
+	const events: (SemesterEvent & CompanyEvent)[] = [];
 	for (const [companyId, companyEvents] of grouped) {
 		const earlier = await earlierRegistrants(ctx, companyId, key);
 		for (const semesterEvent of companyEvents) {
@@ -99,7 +104,7 @@ async function loggedEvents(ctx: QueryCtx, key: SemesterKey, now: number) {
 				...semesterEvent,
 				lateUnregistrations:
 					semesterEvent.event.eventStart <= now
-						? await lateUnregistrationsOf(ctx, semesterEvent.event, logStart)
+						? lateUnregistrationsOf(semesterEvent, logStart)
 						: null,
 				feedback: await eventFeedback(ctx, semesterEvent.event._id),
 				returning: returningIn(semesterEvent, earlier),
@@ -121,7 +126,7 @@ export const list = query({
 				companyId,
 				...(await companyWithLogo(ctx, companyId)),
 				events: companyEvents.length,
-				registered: registeredIn(companyEvents).length,
+				registered: sumOf(companyEvents, (companyEvent) => tallyOf(companyEvent).registered),
 				seats: sumOf(companyEvents, ({ event }) => event.participationLimit),
 				...metricsOf(companyEvents, now),
 			})),
@@ -139,12 +144,12 @@ export const foods = query({
 		for (const foodItem of new Set(events.flatMap(({ event }) => event.foodItem ?? []))) {
 			names.set(foodItem, (await ctx.db.get(foodItem))?.name ?? null);
 		}
-		return events.map(({ event, registrations }) => ({
+		return events.map(({ event, counts }) => ({
 			_id: event._id,
 			title: event.title,
 			foodItem: event.foodItem ?? null,
 			name: event.foodItem ? (names.get(event.foodItem) ?? null) : null,
-			registrations: registrations.length,
+			registrations: counts.total,
 			seats: event.participationLimit,
 		}));
 	},
@@ -157,7 +162,7 @@ export const detail = query({
 		const { events, logStart } = await loggedEvents(ctx, { semester, year }, now);
 		const grouped = byCompany(events);
 		const companyEvents = grouped.get(companyId) ?? [];
-		const bedpresStudents = uniqueStudents(await studentsOf(ctx, registeredIn(events), now));
+		const bedpresStudents = uniqueStudents(await studentsOf(ctx, registrantRows(events), now));
 		return {
 			...(await companyWithLogo(ctx, companyId)),
 			comparison: comparisonOf(
@@ -165,7 +170,7 @@ export const detail = query({
 				[...grouped.values()].map((group) => metricsOf(group, now)),
 			),
 			audience: audienceOf(
-				await studentsOf(ctx, registeredIn(companyEvents), now),
+				await studentsOf(ctx, registrantRows(companyEvents), now),
 				bedpresStudents,
 			),
 			events: await Promise.all(

@@ -2,6 +2,7 @@ import { DAY_MS } from "@workspace/shared/time";
 import { ConvexError } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
+import type { EventCounts } from "./companyMetrics";
 import { firstFilledAt, registrationHistory, registrationsAt } from "./history";
 
 export type EventNumbers = Omit<Doc<"eventStats">, "_id" | "_creationTime">;
@@ -9,9 +10,11 @@ export type EventNumbers = Omit<Doc<"eventStats">, "_id" | "_creationTime">;
 export async function computeEventStats(
 	ctx: QueryCtx,
 	event: Doc<"events">,
+	cutoff = Number.POSITIVE_INFINITY,
 ): Promise<EventNumbers> {
 	const history = await registrationHistory(ctx, event._id);
-	const rows = registrationsAt(history, Number.POSITIVE_INFINITY);
+	const entries = history.entries.filter(({ at }) => at <= cutoff);
+	const rows = registrationsAt(history, cutoff);
 	const registered = rows.filter((row) => row.status === "registered");
 	const recorded = registered.some((row) => row.attendanceStatus);
 	const windowStart = event.eventStart - DAY_MS;
@@ -19,7 +22,7 @@ export async function computeEventStats(
 		eventId: event._id,
 		eventStart: event.eventStart,
 		participationLimit: event.participationLimit,
-		changedAt: history.entries.at(-1)?.at ?? 0,
+		changedAt: entries.at(-1)?.at ?? 0,
 		registered: registered.length,
 		waitlist: rows.filter((row) => row.status === "waitlist").length,
 		pending: rows.filter((row) => row.status === "pending").length,
@@ -28,8 +31,8 @@ export async function computeEventStats(
 			({ attendanceStatus }) => attendanceStatus === "confirmed" || attendanceStatus === "late",
 		).length,
 		noShows: registered.filter(({ attendanceStatus }) => attendanceStatus === "no_show").length,
-		filledAt: firstFilledAt(history.entries, event.participationLimit),
-		lateUnregistrations: history.entries.filter(
+		filledAt: firstFilledAt(entries, event.participationLimit),
+		lateUnregistrations: entries.filter(
 			(entry) =>
 				entry.change === "unregistered" &&
 				entry.fromStatus === "registered" &&
@@ -66,7 +69,18 @@ export async function eventStatsAt(
 ): Promise<EventNumbers> {
 	const stored = await statsRowOf(ctx, event._id);
 	if (stored && isCurrentStats(stored, event, now)) return stored;
-	return await computeEventStats(ctx, event);
+	return await computeEventStats(ctx, event, now);
+}
+
+export function countsOf(stats: EventNumbers): EventCounts {
+	return {
+		registered: stats.registered,
+		waitlist: stats.waitlist,
+		total: stats.registered + stats.waitlist + stats.pending,
+		recorded: stats.attendanceRecorded,
+		showedUp: stats.showedUp,
+		noShows: stats.noShows,
+	};
 }
 
 export type RefreshOutcome = "created" | "patched" | "unchanged" | "removed" | "skipped";

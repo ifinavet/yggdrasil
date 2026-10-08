@@ -15,7 +15,7 @@ import { eventsInSemester, organizerRoleOf } from "../events/helper";
 import { companyWithLogo, eventSemesterValidator } from "../events/queries";
 import { REMINDER_KINDS, REMINDER_LEAD_TIMES } from "../events/reminders/schedule";
 import { audienceOf, withStudyYear } from "./audience";
-import { byCompany, metricsOf } from "./companyMetrics";
+import { byCompany, type EventCounts, metricsOf } from "./companyMetrics";
 import {
 	type AnalyticsRegistration,
 	firstFilledAt,
@@ -40,6 +40,7 @@ import {
 	UNREGISTRATION_HISTORY_START,
 	upcomingEvents,
 } from "./snapshot";
+import { countsOf, eventStatsAt } from "./stats";
 
 const UPCOMING_EVENTS = 30;
 const ACTIVE_ALERTS = 20;
@@ -301,8 +302,10 @@ export const paceCurve = query({
 
 export type SemesterEvent = {
 	event: Doc<"events">;
-	registrations: AnalyticsRegistration[];
-	filledAt?: number | null;
+	counts: EventCounts;
+	registrants: Id<"users">[];
+	filledAt: number | null;
+	lateUnregistrations: number | null;
 };
 
 export type SemesterKey = { semester: EventSemester; year: number };
@@ -317,21 +320,16 @@ export async function semesterEvents(ctx: QueryCtx, { semester, year }: Semester
 	);
 	return await Promise.all(
 		events.map(async (event): Promise<SemesterEvent> => {
-			const history = await registrationHistory(ctx, event._id);
+			const stats = await eventStatsAt(ctx, event, now);
 			return {
 				event,
-				registrations: registrationsAt(history, now),
-				filledAt: firstFilledAt(
-					history.entries.filter(({ at }) => at <= now),
-					event.participationLimit,
-				),
+				counts: countsOf(stats),
+				registrants: stats.registrants,
+				filledAt: stats.filledAt,
+				lateUnregistrations: stats.lateUnregistrations,
 			};
 		}),
 	);
-}
-
-function registeredOf({ registrations }: SemesterEvent) {
-	return registrations.filter((registration) => registration.status === "registered");
 }
 
 async function companyDemand(ctx: QueryCtx, events: SemesterEvent[], now: number) {
@@ -350,18 +348,10 @@ async function companyDemand(ctx: QueryCtx, events: SemesterEvent[], now: number
 	);
 }
 
-function attendanceOf(semesterEvent: SemesterEvent) {
-	const registered = registeredOf(semesterEvent);
-	const recorded = registered.some((registration) => registration.attendanceStatus);
+function attendanceOf({ counts }: SemesterEvent) {
 	return {
-		registered: registered.length,
-		attended: recorded
-			? registered.filter(
-					(registration) =>
-						registration.attendanceStatus === "confirmed" ||
-						registration.attendanceStatus === "late",
-				).length
-			: null,
+		registered: counts.registered,
+		attended: counts.recorded ? counts.showedUp : null,
 	};
 }
 
@@ -392,7 +382,7 @@ function fillByTimeslot(events: SemesterEvent[]) {
 		const key = `${weekday}-${hour}`;
 		const cell = cells.get(key) ?? { weekday, hour, fills: [] };
 		cell.fills.push(
-			Math.min(1, registeredOf(semesterEvent).length / semesterEvent.event.participationLimit),
+			Math.min(1, semesterEvent.counts.registered / semesterEvent.event.participationLimit),
 		);
 		cells.set(key, cell);
 	}
@@ -430,7 +420,11 @@ export async function studentsOf(
 }
 
 function semesterStudents(ctx: QueryCtx, events: SemesterEvent[], now: number) {
-	return studentsOf(ctx, events.flatMap(registeredOf), now);
+	return studentsOf(
+		ctx,
+		events.flatMap(({ registrants }) => registrants.map((userId) => ({ userId }))),
+		now,
+	);
 }
 
 async function studentPopulation(ctx: QueryCtx, now: number) {
@@ -455,37 +449,17 @@ function isLogged(event: Doc<"events">, logStart: number | null) {
 	return logStart !== null && event.eventStart - DAY_MS >= logStart;
 }
 
-export async function lateUnregistrationsOf(
-	ctx: QueryCtx,
-	event: Doc<"events">,
+export function lateUnregistrationsOf(
+	{ event, lateUnregistrations }: SemesterEvent,
 	logStart: number | null,
 ) {
-	if (!isLogged(event, logStart)) return null;
-	const late = await ctx.db
-		.query("registrationLog")
-		.withIndex("by_eventId_and_at", (q) =>
-			q
-				.eq("eventId", event._id)
-				.gt("at", event.eventStart - DAY_MS)
-				.lte("at", event.eventStart),
-		)
-		.take(MAX_REGISTRATIONS_PER_EVENT);
-	return late.filter(
-		(entry) => entry.change === "unregistered" && entry.fromStatus === "registered",
-	).length;
+	return isLogged(event, logStart) ? lateUnregistrations : null;
 }
 
-async function lateUnregistrations(
-	ctx: QueryCtx,
-	events: SemesterEvent[],
-	logStart: number | null,
-	cutoff: number,
-) {
-	const counts = await Promise.all(
-		events
-			.filter(({ event }) => event.eventStart <= cutoff)
-			.map(({ event }) => lateUnregistrationsOf(ctx, event, logStart)),
-	);
+function lateUnregistrations(events: SemesterEvent[], logStart: number | null, cutoff: number) {
+	const counts = events
+		.filter(({ event }) => event.eventStart <= cutoff)
+		.map((semesterEvent) => lateUnregistrationsOf(semesterEvent, logStart));
 	return {
 		count: counts.reduce<number>((sum, count) => sum + (count ?? 0), 0),
 		uncovered: counts.includes(null),
@@ -518,8 +492,8 @@ export const semester = query({
 			yearsSincePrevious,
 		);
 		const logStart = await unregistrationsLoggedFrom(ctx);
-		const late = await lateUnregistrations(ctx, events, logStart, now);
-		const lateLastYear = await lateUnregistrations(ctx, lastYearEvents, logStart, lastYear);
+		const late = lateUnregistrations(events, logStart, now);
+		const lateLastYear = lateUnregistrations(lastYearEvents, logStart, lastYear);
 
 		return {
 			semester: current,
@@ -553,7 +527,7 @@ export async function pastEventRow(
 		eventStart: event.eventStart,
 		participationLimit: event.participationLimit,
 		...attendanceOf(semesterEvent),
-		lateUnregistrations: await lateUnregistrationsOf(ctx, event, logStart),
+		lateUnregistrations: lateUnregistrationsOf(semesterEvent, logStart),
 	};
 }
 
