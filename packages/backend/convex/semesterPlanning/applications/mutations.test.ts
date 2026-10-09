@@ -16,6 +16,7 @@ import {
 } from "../../../test/fixtures";
 import { api } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
+import { sourceKeyOf } from "../../invoicing/schedule";
 
 const mutations = api.semesterPlanning.applications.mutations;
 
@@ -500,5 +501,74 @@ describe("updatePlanningDetails", () => {
 		).toMatchObject([{ userId: member._id, role: "hovedansvarlig" }]);
 		await editor.mutation(mutations.updatePlanningDetails, { applicationId, internalNotes: "Ok" });
 		expect((await applicationById(t, applicationId)).internalNotes).toBe("Ok");
+	});
+});
+
+describe("remove", () => {
+	it("removes a deleted application with its offers, history and unsent invoice", async () => {
+		const { t, semesterId, editor, editorUser } = await planningSetup();
+		const applicationId = await insertApplication(t, semesterId, { status: "offer_sent" });
+		const offerId = await insertOffer(t, applicationId, editorUser._id);
+		await editor.mutation(mutations.withdraw, { applicationId, comment: "Feil bedrift." });
+		const invoiceId = await t.run((ctx) =>
+			ctx.db.insert("invoices", {
+				source: { kind: "companyApplication", applicationId },
+				sourceKey: sourceKeyOf({ kind: "companyApplication", applicationId }),
+				serviceAt: 0,
+				status: "cancelled",
+			}),
+		);
+
+		await editor.mutation(mutations.remove, { applicationId });
+
+		expect(await t.run((ctx) => ctx.db.get(applicationId))).toBeNull();
+		expect(await t.run((ctx) => ctx.db.get(offerId))).toBeNull();
+		expect(await t.run((ctx) => ctx.db.get(invoiceId))).toBeNull();
+		expect(await activityFor(t, applicationId)).toEqual([]);
+	});
+
+	it("refuses an application that is not deleted", async () => {
+		const { t, semesterId, editor } = await planningSetup();
+
+		for (const status of ["applied", "confirmed", "rejected", "declined"] as const) {
+			const applicationId = await insertApplication(t, semesterId, { status });
+			expect(await refusalMessageFrom(editor.mutation(mutations.remove, { applicationId }))).toBe(
+				"Bare slettede søknader kan fjernes.",
+			);
+		}
+	});
+
+	it("keeps a deleted application that still has an event or was invoiced", async () => {
+		const { t, companyId, semesterId, editor } = await planningSetup();
+		const eventId = await insertEvent(t, companyId, { published: true });
+		const withEvent = await insertApplication(t, semesterId, { status: "withdrawn", eventId });
+		const invoiced = await insertApplication(t, semesterId, { status: "withdrawn" });
+		await t.run((ctx) =>
+			ctx.db.insert("invoices", {
+				source: { kind: "companyApplication", applicationId: invoiced },
+				sourceKey: sourceKeyOf({ kind: "companyApplication", applicationId: invoiced }),
+				serviceAt: 0,
+				status: "sent",
+			}),
+		);
+
+		expect(
+			await refusalMessageFrom(editor.mutation(mutations.remove, { applicationId: withEvent })),
+		).toBe("Søknaden har fortsatt et arrangement. Slett arrangementet først.");
+		expect(
+			await refusalMessageFrom(editor.mutation(mutations.remove, { applicationId: invoiced })),
+		).toBe("Søknaden er fakturert, så den kan ikke fjernes.");
+		expect(await t.run((ctx) => ctx.db.get(invoiced))).not.toBeNull();
+	});
+
+	it("requires an editor", async () => {
+		const { t, semesterId } = await planningSetup();
+		const member = await insertUser(t, "ola@ifinavet.no");
+		await grantRole(t, member._id, "internal");
+		const applicationId = await insertApplication(t, semesterId, { status: "withdrawn" });
+
+		expect(
+			await refusalMessageFrom(asUser(t, member).mutation(mutations.remove, { applicationId })),
+		).toContain("Unauthorized");
 	});
 });
