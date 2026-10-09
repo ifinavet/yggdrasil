@@ -16,6 +16,7 @@ export const studentsSchema = {
 	})
 		.index("by_studyProgram", ["studyProgram"])
 		.index("by_userId", ["userId"])
+		.index("by_graduatedAt", ["graduatedAt"])
 		.searchIndex("search_name", {
 			searchField: "name",
 		}),

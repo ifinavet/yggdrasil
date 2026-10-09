@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildWorld, NOW } from "../../test/insightWorld";
 import type { Doc } from "../_generated/dataModel";
-import { organizerRolesOf } from "../events/helper";
+import { organizerRoleLoader } from "../events/helper";
 import { companyLoader, companyWithLogo } from "../events/queries";
 import { studentDirectory } from "./queries";
 import { refreshEventStats, statsRowsBetween } from "./stats";
@@ -26,6 +26,41 @@ describe("studentDirectory", () => {
 	});
 });
 
+describe("studentDirectory population", () => {
+	it("keeps current students when old alumni exceed the former cap", async () => {
+		const world = await buildWorld();
+		const result = await world.t.run(async (ctx) => {
+			const userId = world.u.u13!;
+			for (let i = 0; i < 5001; i++) {
+				await ctx.db.insert("students", {
+					userId,
+					name: `Alumn ${i}`,
+					studyProgram: "Informatikk",
+					year: 5,
+					degree: "Master",
+					graduatedAt: NOW - 3000 * 24 * 60 * 60 * 1000,
+				});
+			}
+			await ctx.db.insert("students", {
+				userId: world.u.u1!,
+				name: "Nyere Student",
+				studyProgram: "Informatikk",
+				year: 2,
+				degree: "Bachelor",
+			});
+			const directory = await studentDirectory(ctx, NOW);
+			const old = await directory.studentsOf([{ userId }]);
+			return {
+				names: directory.population.map((student) => student.name),
+				old: old.length,
+			};
+		});
+		expect(result.names).toContain("Nyere Student");
+		expect(result.names).not.toContain("Alumn 0");
+		expect(result.old).toBe(1);
+	});
+});
+
 describe("companyLoader", () => {
 	it("loads each company once and returns the same company data", async () => {
 		const world = await buildWorld();
@@ -39,7 +74,7 @@ describe("companyLoader", () => {
 	});
 });
 
-describe("organizerRolesOf", () => {
+describe("organizerRoleLoader", () => {
 	it("resolves the leading role per event and null where the user does not organize", async () => {
 		const world = await buildWorld();
 		const roles = await world.t.run(async (ctx) => {
@@ -59,8 +94,12 @@ describe("organizerRolesOf", () => {
 				userId,
 				role: "medhjelper",
 			});
-			const roleOf = await organizerRolesOf(ctx, userId);
-			return [roleOf(world.events.a1), roleOf(world.events.a2), roleOf(world.events.b1)];
+			const roleOf = organizerRoleLoader(ctx, userId);
+			return await Promise.all([
+				roleOf(world.events.a1),
+				roleOf(world.events.a2),
+				roleOf(world.events.b1),
+			]);
 		});
 		expect(roles).toEqual(["hovedansvarlig", "medhjelper", null]);
 	});

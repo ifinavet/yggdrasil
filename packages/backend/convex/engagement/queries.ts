@@ -7,11 +7,11 @@ import {
 	MINUTE_MS,
 	WORKDAYS,
 } from "@workspace/shared/time";
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import { type QueryCtx, query } from "../_generated/server";
 import { internalRoles, requireRole } from "../auth/accessRights";
-import { organizerRoleOf, organizerRolesOf } from "../events/helper";
+import { organizerRoleLoader, organizerRoleOf } from "../events/helper";
 import { companyLoader, companyWithLogo, eventSemesterValidator } from "../events/queries";
 import {
 	REMINDER_KINDS,
@@ -49,6 +49,7 @@ const LOG_LOOKBACK = 200;
 const ACTIVITY_LOG_LIMIT = 2 * MAX_REGISTRATIONS_PER_EVENT;
 const FOLLOW_UP_WINDOW_MS = 10 * MINUTE_MS;
 const MAX_STUDENTS = 5000;
+const GRADUATE_WINDOW_MS = 365 * DAY_MS;
 const TOP_COMPANIES = 8;
 
 export const upcoming = query({
@@ -408,18 +409,37 @@ function fillByTimeslot(events: SemesterEvent[]) {
 	}));
 }
 
-export async function studentDirectory(ctx: QueryCtx, now: number) {
-	const all = await ctx.db.query("students").take(MAX_STUDENTS);
-	const known = new Map<Id<"users">, Doc<"students">>();
-	for (const student of all) if (!known.has(student.userId)) known.set(student.userId, student);
-	const lookup = (userId: Id<"users">) =>
-		known.get(userId) ??
+async function activePopulation(ctx: QueryCtx, now: number) {
+	const [current, recentlyGraduated] = await Promise.all([
 		ctx.db
 			.query("students")
-			.withIndex("by_userId", (q) => q.eq("userId", userId))
-			.first();
+			.withIndex("by_graduatedAt", (q) => q.eq("graduatedAt", undefined))
+			.take(MAX_STUDENTS + 1),
+		ctx.db
+			.query("students")
+			.withIndex("by_graduatedAt", (q) => q.gt("graduatedAt", now - GRADUATE_WINDOW_MS))
+			.take(MAX_STUDENTS + 1),
+	]);
+	if (current.length > MAX_STUDENTS || recentlyGraduated.length > MAX_STUDENTS) {
+		throw new ConvexError("For mange aktive studenter til å beregne målgruppen.");
+	}
+	return [...current, ...recentlyGraduated];
+}
+
+export async function studentDirectory(ctx: QueryCtx, now: number) {
+	const lookups = new Map<Id<"users">, Promise<Doc<"students"> | null>>();
+	const lookup = (userId: Id<"users">) => {
+		const cached =
+			lookups.get(userId) ??
+			ctx.db
+				.query("students")
+				.withIndex("by_userId", (q) => q.eq("userId", userId))
+				.first();
+		lookups.set(userId, cached);
+		return cached;
+	};
 	return {
-		population: withStudyYear(all, now),
+		population: withStudyYear(await activePopulation(ctx, now), now),
 		studentsOf: async (registrations: readonly Pick<AnalyticsRegistration, "userId">[]) => {
 			const userIds = [...new Set(registrations.map((registration) => registration.userId))];
 			const students = await Promise.all(userIds.map(lookup));
@@ -525,7 +545,7 @@ export const semester = query({
 });
 
 export async function pastRowLoaders(ctx: QueryCtx, userId: Id<"users">) {
-	return { companyOf: companyLoader(ctx), roleOf: await organizerRolesOf(ctx, userId) };
+	return { companyOf: companyLoader(ctx), roleOf: organizerRoleLoader(ctx, userId) };
 }
 
 export async function pastEventRow(
@@ -540,7 +560,7 @@ export async function pastEventRow(
 		title: event.title,
 		companyName: company.name,
 		companyLogoUrl: company.logoUrl,
-		myRole: roleOf(event._id),
+		myRole: await roleOf(event._id),
 		eventStart: event.eventStart,
 		participationLimit: event.participationLimit,
 		...attendanceOf(semesterEvent),
