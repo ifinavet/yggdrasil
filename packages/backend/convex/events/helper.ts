@@ -26,6 +26,15 @@ export async function organizerRoleOf(
 	return leadingRole(assignments.map(({ role }) => role));
 }
 
+export function organizerRoleLoader(ctx: QueryCtx, userId: Id<"users">) {
+	const roles = new Map<Id<"events">, Promise<OrganizerRole | null>>();
+	return (eventId: Id<"events">) => {
+		const cached = roles.get(eventId) ?? organizerRoleOf(ctx, eventId, userId);
+		roles.set(eventId, cached);
+		return cached;
+	};
+}
+
 export async function getEventByIdentifier(
 	ctx: QueryCtx,
 	identifier: string,

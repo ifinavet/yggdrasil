@@ -1,4 +1,4 @@
-import { DAY_MS, HOUR_MS } from "@workspace/shared/time";
+import { DAY_MS, eventSemesterOf, HOUR_MS } from "@workspace/shared/time";
 import { describe, expect, it } from "vitest";
 import {
 	insertEvent,
@@ -8,19 +8,22 @@ import {
 	type TestBackend,
 } from "../../test/fixtures";
 import type { Doc, Id } from "../_generated/dataModel";
+import { UNREGISTRATION_HISTORY_START } from "./curves";
 import { logRegistrationChange } from "./log";
 import { PACE_GRID } from "./metrics";
+import { semesterEvents } from "./queries";
 import {
 	baselineFor,
 	companyCurvesBefore,
+	liveStateOf,
 	logSince,
 	pastCurvesBefore,
 	registrationTimesOf,
 	snapshotOf,
-	UNREGISTRATION_HISTORY_START,
 	upcomingEvents,
 	waitlistCountOf,
 } from "./snapshot";
+import { refreshEventStats } from "./stats";
 
 const OPENS = Date.UTC(2026, 8, 1, 10);
 const START = OPENS + 10 * DAY_MS;
@@ -333,6 +336,48 @@ describe("baselineFor", () => {
 	});
 });
 
+describe("liveStateOf", () => {
+	it("counts registrations and waitlisted students that have no log entry", async () => {
+		const { t, companyId } = await setup();
+		const eventId = await insertEvent(t, companyId, {
+			eventStart: START,
+			registrationOpens: OPENS,
+			participationLimit: 4,
+		});
+		for (const [index, status] of (["registered", "registered", "waitlist"] as const).entries()) {
+			const user = await insertUser(t, `ulogget${index}@example.com`);
+			await insertRegistration(t, eventId, user._id, status, OPENS + index * HOUR_MS);
+		}
+		const event = await eventDoc(t, eventId);
+		const now = OPENS + DAY_MS;
+
+		const computed = await t.run((ctx) => liveStateOf(ctx, event, now));
+		await t.run((ctx) => refreshEventStats(ctx, eventId));
+		const stored = await t.run((ctx) => liveStateOf(ctx, event, now));
+
+		expect(computed).toMatchObject({ registered: 2, waitlist: 1 });
+		expect(stored).toMatchObject({ registered: 2, waitlist: 1 });
+	});
+
+	it("finds when a full event filled from the earliest registrations", async () => {
+		const { t, companyId } = await setup();
+		const eventId = await insertEvent(t, companyId, {
+			eventStart: START,
+			registrationOpens: OPENS,
+			participationLimit: 2,
+		});
+		for (const minutes of [7, 3, 30]) {
+			const user = await insertUser(t, `full${minutes}@example.com`);
+			await insertRegistration(t, eventId, user._id, "registered", OPENS + minutes * 60_000);
+		}
+		const event = await eventDoc(t, eventId);
+
+		const live = await t.run((ctx) => liveStateOf(ctx, event, OPENS + DAY_MS));
+
+		expect(live.status).toEqual({ kind: "full", minutesToFull: 7 });
+	});
+});
+
 describe("snapshotOf", () => {
 	it("composes registration counts, unregistrations, delta and status", async () => {
 		const { t, companyId } = await setup();
@@ -412,6 +457,14 @@ describe("snapshotOf", () => {
 		for (const email of ["venter4@example.com", "venter5@example.com"]) {
 			const waiting = await insertUser(t, email);
 			await insertRegistration(t, eventId, waiting._id, "waitlist");
+			await t.run((ctx) =>
+				logRegistrationChange(
+					ctx,
+					{ eventId, userId: waiting._id },
+					"waitlisted",
+					OPENS + 2 * HOUR_MS,
+				),
+			);
 		}
 		const withWaitlist = await t.run((ctx) => snapshotOf(ctx, event, now, declining));
 		expect(withWaitlist.waitlist).toBe(2);
@@ -464,5 +517,67 @@ describe("upcomingEvents", () => {
 
 		const limited = await t.run((ctx) => upcomingEvents(ctx, now, 1));
 		expect(limited.map((event) => event._id)).toEqual([eligible]);
+	});
+});
+
+describe("liveStateOf", () => {
+	it("counts changes made after the client's minute", async () => {
+		const { t, companyId } = await setup();
+		const now = Date.now();
+		const eventId = await insertEvent(t, companyId, {
+			eventStart: now + HOUR_MS,
+			registrationOpens: now - DAY_MS,
+			participationLimit: 10,
+			published: true,
+			externalEvent: false,
+		});
+		const clientMinute = Math.floor(now / 60_000) * 60_000 - 60_000;
+		const ada = await insertUser(t, "ada@example.com");
+		const bo = await insertUser(t, "bo@example.com");
+		await insertRegistration(t, eventId, ada._id, "registered", now);
+		await t.run((ctx) =>
+			logRegistrationChange(ctx, { eventId, userId: ada._id }, "registered", now),
+		);
+		await t.run((ctx) =>
+			logRegistrationChange(ctx, { eventId, userId: bo._id }, "registered", now + 1),
+		);
+		await t.run((ctx) =>
+			logRegistrationChange(
+				ctx,
+				{ eventId, userId: bo._id, status: "registered" },
+				"unregistered",
+				now + 2,
+			),
+		);
+
+		const event = await eventDoc(t, eventId);
+		const live = await t.run((ctx) => liveStateOf(ctx, event, clientMinute));
+		const [semester] = await t.run((ctx) =>
+			semesterEvents(ctx, eventSemesterOf(clientMinute), clientMinute),
+		);
+
+		expect(live.registered).toBe(1);
+		expect(semester?.counts.registered).toBe(1);
+	});
+});
+
+describe("live legacy offers", () => {
+	it("uses the actual pending state even when an old import logged it as waitlisted", async () => {
+		const { t, companyId } = await setup();
+		const eventId = await insertEvent(t, companyId, {
+			registrationOpens: OPENS,
+			eventStart: START,
+		});
+		const user = await insertUser(t, "legacy-offer@example.com");
+		await insertRegistration(t, eventId, user._id, "pending", OPENS);
+		await t.run((ctx) =>
+			logRegistrationChange(ctx, { eventId, userId: user._id }, "waitlisted", OPENS),
+		);
+		const event = await eventDoc(t, eventId);
+		const live = await t.run((ctx) => liveStateOf(ctx, event, OPENS + HOUR_MS));
+		expect(live).toMatchObject({ registered: 0, waitlist: 0 });
+		expect(await t.run((ctx) => ctx.db.query("registrations").collect())).toMatchObject([
+			{ status: "pending" },
+		]);
 	});
 });

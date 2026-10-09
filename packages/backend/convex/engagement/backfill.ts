@@ -3,6 +3,7 @@ import type { Doc } from "../_generated/dataModel";
 import { mutation, type QueryCtx, query } from "../_generated/server";
 import { internalRoles, requireRole } from "../auth/accessRights";
 import { migrations } from "../migrations";
+import { dropEventCurve } from "./curves";
 import type { RegistrationChange } from "./schema";
 
 export function initialChangeOf(status: Doc<"registrations">["status"]): RegistrationChange {
@@ -25,6 +26,7 @@ export const backfillRegistrationLog = migrations.define({
 			change: initialChangeOf(registration.status),
 			at: registration.registrationTime,
 		});
+		await dropEventCurve(ctx, registration.eventId);
 	},
 });
 

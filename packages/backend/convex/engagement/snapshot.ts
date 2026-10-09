@@ -1,14 +1,20 @@
 import { DAY_MS } from "@workspace/shared/time";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
-import { REMINDER_KINDS } from "../events/reminders/schedule";
-import { firstFilledAt, registrationHistory } from "./history";
+import {
+	curvesOf,
+	forecastTimeline,
+	hasComparableHistory,
+	isComparable,
+	MAX_LOG_ENTRIES,
+	type PastCurve,
+	UNREGISTRATION_HISTORY_START,
+} from "./curves";
 import {
 	alignedCurve,
 	BASELINE_SIZE,
 	COMPANY_BASELINE,
 	classify,
-	demandCurve,
 	type ForecastTimeline,
 	medianCurve,
 	progressOf,
@@ -16,44 +22,24 @@ import {
 	recentUnregistrations,
 	seatDelta,
 } from "./metrics";
+import { eventStatsAt } from "./stats";
+
+export { DAY_MS as CHECKPOINT_RETENTION_MS } from "@workspace/shared/time";
 
 export const MAX_REGISTRATIONS_PER_EVENT = 1000;
-const MAX_LOG_ENTRIES = 1000;
 const PAST_EVENTS_FOR_BASELINE = 60;
-export const UNREGISTRATION_HISTORY_START = Date.UTC(2025, 7, 10);
-
-export type PastCurve = {
-	eventId: Id<"events">;
-	limit: number;
-	curve: number[];
-	timeline?: ForecastTimeline;
-};
 export const MIN_FORECAST_EVENTS = 3;
-export const STATS_SWEEP_BATCH = 10;
+// Each history reads up to 4,001 registrations and 4,001 log entries.
+// Three events leave room below the 32,000-document transaction ceiling.
+export const STATS_SWEEP_BATCH = 3;
 export const YEAR_DAYS = 365;
-export const CHECKPOINT_BATCH = 10;
+export const CHECKPOINT_BATCH = 3;
 export const CHECKPOINT_PRUNE_BATCH = 200;
-export const CHECKPOINT_RETENTION_MS = 3 * DAY_MS;
-export const STATS_REPAIR_BATCH = 30;
+export const MAX_CHECKPOINTS_PER_CUTOFF = 2000;
+export const MAX_TOUCHED_ROWS = 1000;
+export const STATS_REPAIR_BATCH = STATS_SWEEP_BATCH;
 export const STATS_REPAIR_PAST_MS = DAY_MS;
 export const STATS_REPAIR_AHEAD_MS = 14 * DAY_MS;
-
-async function forecastTimeline(ctx: QueryCtx, event: Doc<"events">): Promise<ForecastTimeline> {
-	const reminders = await Promise.all(
-		REMINDER_KINDS.map((kind) =>
-			ctx.db
-				.query("eventReminders")
-				.withIndex("by_eventId_and_kind", (q) => q.eq("eventId", event._id).eq("kind", kind))
-				.unique(),
-		),
-	);
-	return {
-		registrationOpens: event.registrationOpens,
-		eventStart: event.eventStart,
-		remindersEnabled: event.remindersEnabled,
-		reminderTimes: Object.fromEntries(reminders.flatMap((r) => (r ? [[r.kind, r.queuedAt]] : []))),
-	};
-}
 
 export async function registrationTimesOf(ctx: QueryCtx, eventId: Id<"events">) {
 	const registered = await ctx.db
@@ -82,39 +68,12 @@ export async function logSince(ctx: QueryCtx, eventId: Id<"events">, since: numb
 		.take(MAX_LOG_ENTRIES);
 }
 
-function isComparable(event: Doc<"events">) {
-	return event.published && !event.externalEvent && event.participationLimit > 0;
-}
-
-function hasComparableHistory(event: Doc<"events">) {
-	return isComparable(event) && event.registrationOpens >= UNREGISTRATION_HISTORY_START;
-}
-
-async function curvesOf(ctx: QueryCtx, events: readonly Doc<"events">[]): Promise<PastCurve[]> {
-	const curves = await Promise.all(
-		events.map(async (event) => {
-			const log = await ctx.db
-				.query("registrationLog")
-				.withIndex("by_eventId_and_at", (q) =>
-					q.eq("eventId", event._id).lte("at", event.eventStart),
-				)
-				.take(MAX_LOG_ENTRIES + 1);
-			if (log.length === 0 || log.length > MAX_LOG_ENTRIES) return null;
-			return {
-				eventId: event._id,
-				limit: event.participationLimit,
-				curve: demandCurve(event, event.participationLimit, log),
-				timeline: await forecastTimeline(ctx, event),
-			};
-		}),
-	);
-	return curves.filter((curve) => curve !== null);
-}
-
 export async function pastCurvesBefore(ctx: QueryCtx, before: number) {
 	const past = await ctx.db
 		.query("events")
-		.withIndex("by_eventStart", (q) => q.lt("eventStart", before))
+		.withIndex("by_eventStart", (q) =>
+			q.gte("eventStart", UNREGISTRATION_HISTORY_START).lt("eventStart", before),
+		)
 		.order("desc")
 		.take(PAST_EVENTS_FOR_BASELINE);
 	return await curvesOf(ctx, past.filter(hasComparableHistory));
@@ -126,12 +85,16 @@ export async function companyCurvesBefore(
 	before: number,
 ) {
 	const comparable: Doc<"events">[] = [];
-	for await (const event of ctx.db
+	for (const event of await ctx.db
 		.query("events")
 		.withIndex("by_hostingCompany_and_eventStart", (q) =>
-			q.eq("hostingCompany", companyId).lt("eventStart", before),
+			q
+				.eq("hostingCompany", companyId)
+				.gte("eventStart", UNREGISTRATION_HISTORY_START)
+				.lt("eventStart", before),
 		)
-		.order("desc")) {
+		.order("desc")
+		.take(PAST_EVENTS_FOR_BASELINE)) {
 		if (hasComparableHistory(event)) comparable.push(event);
 		if (comparable.length === COMPANY_BASELINE.size) break;
 	}
@@ -173,20 +136,33 @@ export function baselineFor(
 	return { curve, size };
 }
 
+export async function liveStateOf(ctx: QueryCtx, event: Doc<"events">, now: number) {
+	const stats = await eventStatsAt(ctx, event, Number.POSITIVE_INFINITY);
+	const recentLog = await logSince(ctx, event._id, now - DAY_MS);
+	const unregistrations = recentUnregistrations(recentLog, now);
+	return {
+		registered: stats.registered,
+		waitlist: stats.waitlist,
+		unregistrations,
+		delta24h: seatDelta(recentLog),
+		status: classify({
+			now,
+			timeline: event,
+			limit: event.participationLimit,
+			registered: stats.registered,
+			filledAt: stats.filledAt,
+			unregistrations: unregistrations.length,
+		}),
+	};
+}
+
 export async function snapshotOf(
 	ctx: QueryCtx,
 	event: Doc<"events">,
 	now: number,
 	pastCurves: readonly PastCurve[],
 ) {
-	const registrationTimes = await registrationTimesOf(ctx, event._id);
-	const history = await registrationHistory(ctx, event._id);
-	const filledAt = firstFilledAt(
-		history.entries.filter(({ at }) => at <= now),
-		event.participationLimit,
-	);
-	const recentLog = await logSince(ctx, event._id, now - DAY_MS);
-	const unregistrations = recentUnregistrations(recentLog, now);
+	const live = await liveStateOf(ctx, event, now);
 	const companyCurves = await companyCurvesBefore(
 		ctx,
 		event.hostingCompany,
@@ -199,28 +175,14 @@ export async function snapshotOf(
 		await forecastTimeline(ctx, event),
 	);
 	const progress = progressOf(event, now);
-	const registered = registrationTimes.length;
-	const waitlist = await waitlistCountOf(ctx, event._id);
-	const demandFill = (registered + waitlist) / event.participationLimit;
+	const demandFill = (live.registered + live.waitlist) / event.participationLimit;
 
 	return {
-		registered,
-		waitlist,
+		...live,
 		demandFill,
-		registrationTimes,
-		unregistrations,
-		delta24h: seatDelta(recentLog),
 		progress,
 		baseline,
 		projectedFill: projectFill(demandFill, progress, baseline?.curve ?? null),
-		status: classify({
-			now,
-			timeline: event,
-			limit: event.participationLimit,
-			registrationTimes,
-			filledAt,
-			unregistrations: unregistrations.length,
-		}),
 	};
 }
 

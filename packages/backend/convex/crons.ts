@@ -52,6 +52,13 @@ crons.interval(
 );
 
 crons.interval(
+	"Backfill pace curves of past events",
+	{ minutes: 5 },
+	internal.engagement.curves.backfillCurves,
+	{},
+);
+
+crons.interval(
 	"Repair stats of events near their start",
 	{ minutes: 10 },
 	internal.engagement.statsSweep.repairRecentStats,

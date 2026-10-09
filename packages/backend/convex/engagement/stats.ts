@@ -3,6 +3,7 @@ import { ConvexError, v } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import type { EventCounts } from "./companyMetrics";
+import { queueCurveRefresh } from "./curves";
 import { firstFilledAt, registrationHistory, registrationsAt } from "./history";
 
 export type EventNumbers = Omit<Doc<"eventStats">, "_id" | "_creationTime">;
@@ -14,7 +15,9 @@ export async function computeEventStats(
 ): Promise<EventNumbers> {
 	const history = await registrationHistory(ctx, event._id);
 	const entries = history.entries.filter(({ at }) => at <= cutoff);
-	const rows = registrationsAt(history, cutoff);
+	// Current seats come from the authoritative rows, including legacy pending offers.
+	const rows =
+		cutoff === Number.POSITIVE_INFINITY ? history.registrations : registrationsAt(history, cutoff);
 	const registered = rows.filter((row) => row.status === "registered");
 	const recorded = registered.some((row) => row.attendanceStatus);
 	const windowStart = event.eventStart - DAY_MS;
@@ -62,12 +65,21 @@ export async function statsRowOf(ctx: QueryCtx, eventId: Id<"events">) {
 		.first();
 }
 
+export async function statsRowsBetween(ctx: QueryCtx, from: number, to: number) {
+	const rows = await ctx.db
+		.query("eventStats")
+		.withIndex("by_eventStart", (q) => q.gte("eventStart", from).lt("eventStart", to))
+		.collect();
+	return new Map(rows.map((row) => [row.eventId, row]));
+}
+
 export async function eventStatsAt(
 	ctx: QueryCtx,
 	event: Doc<"events">,
 	now: number,
+	preloaded?: Doc<"eventStats"> | null,
 ): Promise<EventNumbers> {
-	const stored = await statsRowOf(ctx, event._id);
+	const stored = preloaded === undefined ? await statsRowOf(ctx, event._id) : preloaded;
 	if (stored && isCurrentStats(stored, event, now)) return stored;
 	return await computeEventStats(ctx, event, now);
 }
@@ -113,6 +125,7 @@ export async function refreshEventStats(
 		await ctx.db.delete(stored._id);
 		return "removed";
 	}
+	await queueCurveRefresh(ctx, event, Date.now());
 	if (!stored) {
 		await ctx.db.insert("eventStats", computed);
 		return "created";

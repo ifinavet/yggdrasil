@@ -37,6 +37,7 @@ import type * as engagement_backfill from "../engagement/backfill.js";
 import type * as engagement_checkpoints from "../engagement/checkpoints.js";
 import type * as engagement_companies from "../engagement/companies.js";
 import type * as engagement_companyMetrics from "../engagement/companyMetrics.js";
+import type * as engagement_curves from "../engagement/curves.js";
 import type * as engagement_forecastSeed from "../engagement/forecastSeed.js";
 import type * as engagement_history from "../engagement/history.js";
 import type * as engagement_localSeed from "../engagement/localSeed.js";
@@ -228,6 +229,7 @@ declare const fullApi: ApiFromModules<{
   "engagement/checkpoints": typeof engagement_checkpoints;
   "engagement/companies": typeof engagement_companies;
   "engagement/companyMetrics": typeof engagement_companyMetrics;
+  "engagement/curves": typeof engagement_curves;
   "engagement/forecastSeed": typeof engagement_forecastSeed;
   "engagement/history": typeof engagement_history;
   "engagement/localSeed": typeof engagement_localSeed;

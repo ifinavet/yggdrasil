@@ -98,8 +98,15 @@ export function medianCurve(curves: readonly (readonly number[])[]) {
 	return PACE_GRID.map((_, step) => median(curves, (curve) => curve[step] ?? 0) as number);
 }
 
+const curveScales = new WeakMap<readonly number[], (progress: number) => number>();
+
 export function valueAt(curve: readonly number[], progress: number) {
-	return scaleLinear(PACE_GRID, curve).clamp(true)(progress);
+	let scale = curveScales.get(curve);
+	if (!scale) {
+		scale = scaleLinear(PACE_GRID, curve).clamp(true);
+		curveScales.set(curve, scale);
+	}
+	return scale(progress);
 }
 
 export function projectFill(
@@ -148,24 +155,23 @@ export function classify({
 	now,
 	timeline,
 	limit,
-	registrationTimes,
+	registered,
 	filledAt,
 	unregistrations,
 }: {
 	now: number;
 	timeline: Timeline;
 	limit: number;
-	registrationTimes: readonly number[];
-	filledAt?: number | null;
+	registered: number;
+	filledAt: number | null;
 	unregistrations: number;
 }): EngagementStatus {
-	const registered = registrationTimes.length;
 	if (now < timeline.registrationOpens) {
 		return { kind: "notOpen", opensAt: timeline.registrationOpens };
 	}
 	if (isWave(unregistrations, registered)) return { kind: "wave", count: unregistrations };
 	if (registered >= limit) {
-		const fullAt = filledAt ?? ([...registrationTimes].sort((a, b) => a - b)[limit - 1] as number);
+		const fullAt = filledAt ?? timeline.registrationOpens;
 		return {
 			kind: "full",
 			minutesToFull: Math.max(1, Math.round((fullAt - timeline.registrationOpens) / MINUTE_MS)),

@@ -12,6 +12,8 @@ import {
 } from "../../test/fixtures";
 import { api } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
+import { logRegistrationChange } from "./log";
+import { refreshEventStats } from "./stats";
 
 const at = (iso: string) => Date.parse(iso);
 const NOW = at("2026-10-20T10:00:00Z");
@@ -289,5 +291,43 @@ describe("history", () => {
 		});
 		expect(history[2]).toMatchObject({ company: { demand: 0 }, average: { demand: 0 } });
 		expect(history[3]).toMatchObject({ company: { demand: 2 }, average: { demand: 1.025 } });
+	});
+	it("keeps a past semester at its end when registrations change later", async () => {
+		const { t, otherId, intern } = await twoCompanies();
+		const eventId = await insertEvent(t, otherId, {
+			participationLimit: 2,
+			registrationOpens: at("2026-03-01T10:00:00Z"),
+			eventStart: at("2026-03-10T16:00:00Z"),
+		});
+		const users = await Promise.all(
+			["eva@example.com", "finn@example.com"].map((email) => insertUser(t, email)),
+		);
+		for (const user of users) {
+			await insertRegistration(t, eventId, user._id, "registered", at("2026-03-02T10:00:00Z"));
+			await t.run((ctx) =>
+				logRegistrationChange(
+					ctx,
+					{ eventId, userId: user._id },
+					"registered",
+					at("2026-03-02T10:00:00Z"),
+				),
+			);
+		}
+		await t.run((ctx) => refreshEventStats(ctx, eventId));
+		const spring = async () =>
+			(await intern.query(api.engagement.companies.history, { companyId: otherId, now: NOW }))[2];
+		const before = await spring();
+
+		await t.run((ctx) =>
+			logRegistrationChange(
+				ctx,
+				{ eventId, userId: (users[0] as Doc<"users">)._id, status: "registered" },
+				"unregistered",
+				at("2026-08-20T10:00:00Z"),
+			),
+		);
+		await t.run((ctx) => refreshEventStats(ctx, eventId));
+
+		expect(await spring()).toEqual(before);
 	});
 });

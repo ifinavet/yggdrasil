@@ -11,12 +11,12 @@ import { companyWithLogo, getOrganizers } from "../events/queries";
 import { alertSentence, organizerNames, unregisterWaveText } from "../events/slack/messages";
 import { queueEventNotification } from "../events/slack/state";
 import type { AlertRule } from "./schema";
-import { pastCurvesBefore, snapshotOf, upcomingEvents } from "./snapshot";
+import { liveStateOf, upcomingEvents } from "./snapshot";
 
 const EVENTS_TO_WATCH = 50;
 const DEDUP_WINDOW_MS = DAY_MS;
 
-type Snapshot = Awaited<ReturnType<typeof snapshotOf>>;
+type Snapshot = Awaited<ReturnType<typeof liveStateOf>>;
 
 const RULE_FOR_STATUS: Partial<Record<Snapshot["status"]["kind"], AlertRule>> = {
 	wave: "unregisterWave",
@@ -99,18 +99,17 @@ export const detectAlerts = internalMutation({
 	args: {},
 	handler: async (ctx) => {
 		const now = Date.now();
-		const pastCurves = await pastCurvesBefore(ctx, now);
 		const origin = isLocalDevelopment() ? BIFROST_LOCAL_URL : BIFROST_URL;
-		const triggered: { event: Doc<"events">; rule: AlertRule; summary: string; detail?: string }[] =
-			[];
-		for (const event of await upcomingEvents(ctx, now, EVENTS_TO_WATCH)) {
-			const snapshot = await snapshotOf(ctx, event, now, pastCurves);
-			const rule = RULE_FOR_STATUS[snapshot.status.kind];
-			if (!rule || (await recentlyAlerted(ctx, event, rule, now))) continue;
-
-			const { name } = await companyWithLogo(ctx, event.hostingCompany);
-			triggered.push({ event, rule, ...describeAlert(rule, event, name, snapshot) });
-		}
+		const candidates = await Promise.all(
+			(await upcomingEvents(ctx, now, EVENTS_TO_WATCH)).map(async (event) => {
+				const snapshot = await liveStateOf(ctx, event, now);
+				const rule = RULE_FOR_STATUS[snapshot.status.kind];
+				if (!rule || (await recentlyAlerted(ctx, event, rule, now))) return null;
+				const { name } = await companyWithLogo(ctx, event.hostingCompany);
+				return { event, rule, ...describeAlert(rule, event, name, snapshot) };
+			}),
+		);
+		const triggered = candidates.filter((candidate) => candidate !== null);
 		await Promise.all(
 			triggered.map(async ({ event, rule, summary, detail }) => {
 				const [organizers] = await Promise.all([

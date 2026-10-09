@@ -7,22 +7,22 @@ import {
 	MINUTE_MS,
 	WORKDAYS,
 } from "@workspace/shared/time";
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import { type QueryCtx, query } from "../_generated/server";
 import { internalRoles, requireRole } from "../auth/accessRights";
-import { eventsInSemester, organizerRoleOf } from "../events/helper";
-import { companyWithLogo, eventSemesterValidator } from "../events/queries";
-import { REMINDER_KINDS, REMINDER_LEAD_TIMES } from "../events/reminders/schedule";
-import { audienceOf, withStudyYear } from "./audience";
-import { baselineCutoffs, baselineStatsAt, semesterEventDocs } from "./checkpoints";
-import { byCompany, type EventCounts, metricsOf } from "./companyMetrics";
+import { organizerRoleLoader, organizerRoleOf } from "../events/helper";
+import { companyLoader, companyWithLogo, eventSemesterValidator } from "../events/queries";
 import {
-	type AnalyticsRegistration,
-	firstFilledAt,
-	registrationHistory,
-	registrationsAt,
-} from "./history";
+	REMINDER_KINDS,
+	REMINDER_LEAD_TIMES,
+	type ReminderKind,
+} from "../events/reminders/schedule";
+import { audienceOf, withStudyYear } from "./audience";
+import { baselineCutoffs, baselineRowsAt, baselineStatsAt, semesterEventDocs } from "./checkpoints";
+import { byCompany, type EventCounts, metricsOf } from "./companyMetrics";
+import { UNREGISTRATION_HISTORY_START } from "./curves";
+import { type AnalyticsRegistration, registrationHistory } from "./history";
 import {
 	activityBuckets,
 	activityWindowMs,
@@ -34,14 +34,14 @@ import {
 } from "./metrics";
 import { type AlertRule, isActiveRule } from "./schema";
 import {
+	liveStateOf,
 	MAX_REGISTRATIONS_PER_EVENT,
 	MIN_FORECAST_EVENTS,
 	pastCurvesBefore,
 	snapshotOf,
-	UNREGISTRATION_HISTORY_START,
 	upcomingEvents,
 } from "./snapshot";
-import { countsOf, eventStatsAt } from "./stats";
+import { countsOf, eventStatsAt, statsRowsBetween } from "./stats";
 
 const UPCOMING_EVENTS = 30;
 const ACTIVE_ALERTS = 20;
@@ -49,17 +49,18 @@ const LOG_LOOKBACK = 200;
 const ACTIVITY_LOG_LIMIT = 2 * MAX_REGISTRATIONS_PER_EVENT;
 const FOLLOW_UP_WINDOW_MS = 10 * MINUTE_MS;
 const MAX_STUDENTS = 5000;
+const GRADUATE_WINDOW_MS = 365 * DAY_MS;
 const TOP_COMPANIES = 8;
 
 export const upcoming = query({
 	args: { now: v.number() },
 	handler: async (ctx, { now }) => {
 		const user = await requireRole(ctx, internalRoles);
-		const pastCurves = await pastCurvesBefore(ctx, now);
+		const companyOf = companyLoader(ctx);
 		const events = await Promise.all(
 			(await upcomingEvents(ctx, now, UPCOMING_EVENTS)).map(async (event) => {
-				const snapshot = await snapshotOf(ctx, event, now, pastCurves);
-				const company = await companyWithLogo(ctx, event.hostingCompany);
+				const live = await liveStateOf(ctx, event, now);
+				const company = await companyOf(event.hostingCompany);
 				return {
 					_id: event._id,
 					title: event.title,
@@ -69,10 +70,10 @@ export const upcoming = query({
 					eventStart: event.eventStart,
 					registrationOpens: event.registrationOpens,
 					participationLimit: event.participationLimit,
-					registered: snapshot.registered,
-					waitlist: snapshot.waitlist,
-					delta24h: snapshot.delta24h,
-					status: snapshot.status,
+					registered: live.registered,
+					waitlist: live.waitlist,
+					delta24h: live.delta24h,
+					status: live.status,
 				};
 			}),
 		);
@@ -190,6 +191,21 @@ function topDestination(entries: { movedTo: { eventId: Id<"events">; title: stri
 	return [...counts.values()].sort((a, b) => b.count - a.count)[0] ?? null;
 }
 
+async function firstSentAt(ctx: QueryCtx, event: Doc<"events">, kind: ReminderKind, now: number) {
+	const deliveries = ctx.db
+		.query("eventReminderDeliveries")
+		.withIndex("by_eventId_and_kind_and_sentAt", (q) =>
+			q.eq("eventId", event._id).eq("kind", kind).gte("sentAt", 0).lte("sentAt", now),
+		);
+	let scanned = 0;
+	for await (const delivery of deliveries) {
+		if (delivery.sent && delivery.eventStart === event.eventStart) return delivery.sentAt;
+		scanned += 1;
+		if (scanned === MAX_REGISTRATIONS_PER_EVENT) break;
+	}
+	return undefined;
+}
+
 async function reminderMarkers(ctx: QueryCtx, event: Doc<"events">, now: number) {
 	const markers = await Promise.all(
 		REMINDER_KINDS.map(async (kind) => {
@@ -197,18 +213,7 @@ async function reminderMarkers(ctx: QueryCtx, event: Doc<"events">, now: number)
 				.query("eventReminders")
 				.withIndex("by_eventId_and_kind", (q) => q.eq("eventId", event._id).eq("kind", kind))
 				.unique();
-			const deliveries = await ctx.db
-				.query("eventReminderDeliveries")
-				.withIndex("by_eventId_and_kind_and_userId", (q) =>
-					q.eq("eventId", event._id).eq("kind", kind),
-				)
-				.take(MAX_REGISTRATIONS_PER_EVENT);
-			const sentTimes = deliveries.flatMap((d) =>
-				d.eventStart === event.eventStart && d.sent && d.sentAt !== undefined && d.sentAt <= now
-					? [d.sentAt]
-					: [],
-			);
-			const sentAt = sentTimes.length ? Math.min(...sentTimes) : undefined;
+			const sentAt = await firstSentAt(ctx, event, kind, now);
 			const queuedAt = batch && batch.queuedAt <= now ? batch.queuedAt : undefined;
 			const scheduledAt = event.eventStart - REMINDER_LEAD_TIMES[kind];
 			if (sentAt === undefined && queuedAt === undefined && !event.remindersEnabled) return null;
@@ -316,13 +321,21 @@ export async function semesterEvents(
 	key: SemesterKey,
 	now: number,
 	checkpointCutoff: number | null = null,
+	statsCutoff = Number.POSITIVE_INFINITY,
 ) {
 	const events = await semesterEventDocs(ctx, key, now);
+	const { start, end } = eventSemesterRange(key.semester, key.year);
+	const storedRows = await statsRowsBetween(ctx, start, end);
+	const baseline =
+		checkpointCutoff === null
+			? null
+			: { cutoff: checkpointCutoff, rows: await baselineRowsAt(ctx, now, checkpointCutoff) };
 	return await Promise.all(
 		events.map(async (event): Promise<SemesterEvent> => {
-			const stats = await (checkpointCutoff === null
-				? eventStatsAt(ctx, event, now)
-				: baselineStatsAt(ctx, event, now, checkpointCutoff));
+			const stored = storedRows.get(event._id) ?? null;
+			const stats = await (baseline === null
+				? eventStatsAt(ctx, event, statsCutoff, stored)
+				: baselineStatsAt(ctx, event, now, baseline.cutoff, { ...baseline.rows, stored }));
 			return {
 				event,
 				counts: countsOf(stats),
@@ -396,41 +409,55 @@ function fillByTimeslot(events: SemesterEvent[]) {
 	}));
 }
 
-export async function studentsOf(
-	ctx: QueryCtx,
-	registrations: readonly Pick<AnalyticsRegistration, "userId">[],
-	now: number,
-) {
-	const userIds = [...new Set(registrations.map((registration) => registration.userId))];
-	const students = await Promise.all(
-		userIds.map((userId) =>
+async function activePopulation(ctx: QueryCtx, now: number) {
+	const [current, recentlyGraduated] = await Promise.all([
+		ctx.db
+			.query("students")
+			.withIndex("by_graduatedAt", (q) => q.eq("graduatedAt", undefined))
+			.take(MAX_STUDENTS + 1),
+		ctx.db
+			.query("students")
+			.withIndex("by_graduatedAt", (q) => q.gt("graduatedAt", now - GRADUATE_WINDOW_MS))
+			.take(MAX_STUDENTS + 1),
+	]);
+	if (current.length > MAX_STUDENTS || recentlyGraduated.length > MAX_STUDENTS) {
+		throw new ConvexError("For mange aktive studenter til å beregne målgruppen.");
+	}
+	return [...current, ...recentlyGraduated];
+}
+
+export async function studentDirectory(ctx: QueryCtx, now: number) {
+	const lookups = new Map<Id<"users">, Promise<Doc<"students"> | null>>();
+	const lookup = (userId: Id<"users">) => {
+		const cached =
+			lookups.get(userId) ??
 			ctx.db
 				.query("students")
 				.withIndex("by_userId", (q) => q.eq("userId", userId))
-				.first(),
-		),
-	);
-	const byUser = new Map(
-		students.filter((student) => student !== null).map((student) => [student.userId, student]),
-	);
-	return withStudyYear(
-		registrations
-			.map((registration) => byUser.get(registration.userId))
-			.filter((student) => student !== undefined),
-		now,
-	);
+				.first();
+		lookups.set(userId, cached);
+		return cached;
+	};
+	return {
+		population: withStudyYear(await activePopulation(ctx, now), now),
+		studentsOf: async (registrations: readonly Pick<AnalyticsRegistration, "userId">[]) => {
+			const userIds = [...new Set(registrations.map((registration) => registration.userId))];
+			const students = await Promise.all(userIds.map(lookup));
+			const byUser = new Map(
+				students.filter((student) => student !== null).map((student) => [student.userId, student]),
+			);
+			return withStudyYear(
+				registrations
+					.map((registration) => byUser.get(registration.userId))
+					.filter((student) => student !== undefined),
+				now,
+			);
+		},
+	};
 }
 
-function semesterStudents(ctx: QueryCtx, events: SemesterEvent[], now: number) {
-	return studentsOf(
-		ctx,
-		events.flatMap(({ registrants }) => registrants.map((userId) => ({ userId }))),
-		now,
-	);
-}
-
-async function studentPopulation(ctx: QueryCtx, now: number) {
-	return withStudyYear(await ctx.db.query("students").take(MAX_STUDENTS), now);
+function registrantRowsOf(events: readonly Pick<SemesterEvent, "registrants">[]) {
+	return events.flatMap(({ registrants }) => registrants.map((userId) => ({ userId })));
 }
 
 export async function logStartedAt(ctx: QueryCtx) {
@@ -439,12 +466,13 @@ export async function logStartedAt(ctx: QueryCtx) {
 }
 
 export async function unregistrationsLoggedFrom(ctx: QueryCtx) {
-	const logStart = await logStartedAt(ctx);
-	if (logStart === null) return null;
 	const historyImport = await ctx.db.query("unregistrationImports").first();
-	return historyImport?.state === "done"
-		? Math.min(logStart, UNREGISTRATION_HISTORY_START)
-		: logStart;
+	if (historyImport?.state !== "done") return await logStartedAt(ctx);
+	const earlier = await ctx.db
+		.query("registrationLog")
+		.withIndex("by_creation_time", (q) => q.lt("_creationTime", UNREGISTRATION_HISTORY_START))
+		.first();
+	return earlier?._creationTime ?? UNREGISTRATION_HISTORY_START;
 }
 
 function isLogged(event: Doc<"events">, logStart: number | null) {
@@ -474,7 +502,6 @@ export const semester = query({
 	handler: async (ctx, { now }) => {
 		await requireRole(ctx, internalRoles);
 		const current = eventSemesterOf(now);
-		const currentStart = eventSemesterRange(current.semester, current.year).start;
 		const {
 			previous,
 			previousCutoff,
@@ -483,20 +510,18 @@ export const semester = query({
 			lastYear,
 			lastYearCheckpoint,
 		} = baselineCutoffs(now);
-		const events = await semesterEvents(ctx, current, now);
-		const previousEvents = await semesterEvents(ctx, previous, previousCutoff, previousCheckpoint);
-		const lastYearEvents = await semesterEvents(
-			ctx,
-			lastYearSemester,
-			lastYear,
-			lastYearCheckpoint,
-		);
+		const [events, previousEvents, lastYearEvents, students] = await Promise.all([
+			semesterEvents(ctx, current, now),
+			semesterEvents(ctx, previous, previousCutoff, previousCheckpoint),
+			semesterEvents(ctx, lastYearSemester, lastYear, lastYearCheckpoint),
+			studentDirectory(ctx, now),
+		]);
 		const yearsSincePrevious = current.semester === "høst" ? 1 : 0;
 
 		const audience = audienceOf(
-			await semesterStudents(ctx, events, now),
-			await studentPopulation(ctx, now),
-			await semesterStudents(ctx, previousEvents, now),
+			await students.studentsOf(registrantRowsOf(events)),
+			students.population,
+			await students.studentsOf(registrantRowsOf(previousEvents)),
 			yearsSincePrevious,
 		);
 		const logStart = await unregistrationsLoggedFrom(ctx);
@@ -518,20 +543,23 @@ export const semester = query({
 	},
 });
 
+export function pastRowLoaders(ctx: QueryCtx, userId: Id<"users">) {
+	return { companyOf: companyLoader(ctx), roleOf: organizerRoleLoader(ctx, userId) };
+}
+
 export async function pastEventRow(
-	ctx: QueryCtx,
+	{ companyOf, roleOf }: ReturnType<typeof pastRowLoaders>,
 	semesterEvent: SemesterEvent,
 	logStart: number | null,
-	userId: Id<"users">,
 ) {
 	const { event } = semesterEvent;
-	const company = await companyWithLogo(ctx, event.hostingCompany);
+	const company = await companyOf(event.hostingCompany);
 	return {
 		_id: event._id,
 		title: event.title,
 		companyName: company.name,
 		companyLogoUrl: company.logoUrl,
-		myRole: await organizerRoleOf(ctx, event._id, userId),
+		myRole: await roleOf(event._id),
 		eventStart: event.eventStart,
 		participationLimit: event.participationLimit,
 		...attendanceOf(semesterEvent),
@@ -547,8 +575,9 @@ export const past = query({
 		const events = (await semesterEvents(ctx, { semester, year }, now))
 			.filter(({ event }) => event.eventStart <= now)
 			.reverse();
+		const loaders = pastRowLoaders(ctx, user._id);
 		return await Promise.all(
-			events.map((semesterEvent) => pastEventRow(ctx, semesterEvent, logStart, user._id)),
+			events.map((semesterEvent) => pastEventRow(loaders, semesterEvent, logStart)),
 		);
 	},
 });
@@ -561,14 +590,12 @@ export const eventAudience = query({
 			.query("registrations")
 			.withIndex("by_eventId", (q) => q.eq("eventId", eventId))
 			.take(MAX_REGISTRATIONS_PER_EVENT);
-		const now = Date.now();
+		const students = await studentDirectory(ctx, Date.now());
 		return audienceOf(
-			await studentsOf(
-				ctx,
+			await students.studentsOf(
 				registrations.filter((registration) => registration.status === "registered"),
-				now,
 			),
-			await studentPopulation(ctx, now),
+			students.population,
 		);
 	},
 });

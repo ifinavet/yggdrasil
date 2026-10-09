@@ -21,10 +21,11 @@ import {
 import {
 	lateUnregistrationsOf,
 	pastEventRow,
+	pastRowLoaders,
 	type SemesterEvent,
 	type SemesterKey,
 	semesterEvents,
-	studentsOf,
+	studentDirectory,
 	unregistrationsLoggedFrom,
 } from "./queries";
 import { eventStatsAt } from "./stats";
@@ -75,12 +76,12 @@ async function earlierRegistrants(ctx: QueryCtx, companyId: Id<"companies">, key
 			q.eq("hostingCompany", companyId).gte("eventStart", since).lt("eventStart", before),
 		)
 		.take(MAX_EARLIER_EVENTS);
-	const users = new Set<Id<"users">>();
-	for (const event of events.filter(({ published }) => published)) {
-		const stats = await eventStatsAt(ctx, event, Number.POSITIVE_INFINITY);
-		for (const userId of stats.registrants) users.add(userId);
-	}
-	return users;
+	const stats = await Promise.all(
+		events
+			.filter(({ published }) => published)
+			.map((event) => eventStatsAt(ctx, event, Number.POSITIVE_INFINITY)),
+	);
+	return new Set(stats.flatMap(({ registrants }) => registrants));
 }
 
 function returningIn(companyEvent: CompanyEvent, earlier: Set<Id<"users">>) {
@@ -96,22 +97,25 @@ function registrantRows(events: readonly CompanyEvent[]) {
 async function loggedEvents(ctx: QueryCtx, key: SemesterKey, now: number) {
 	const logStart = await unregistrationsLoggedFrom(ctx);
 	const grouped = byCompany(await semesterEvents(ctx, key, now));
-	const events: (SemesterEvent & CompanyEvent)[] = [];
-	for (const [companyId, companyEvents] of grouped) {
-		const earlier = await earlierRegistrants(ctx, companyId, key);
-		for (const semesterEvent of companyEvents) {
-			events.push({
-				...semesterEvent,
-				lateUnregistrations:
-					semesterEvent.event.eventStart <= now
-						? lateUnregistrationsOf(semesterEvent, logStart)
-						: null,
-				feedback: await eventFeedback(ctx, semesterEvent.event._id),
-				returning: returningIn(semesterEvent, earlier),
-			});
-		}
-	}
-	return { logStart, events };
+	const perCompany = await Promise.all(
+		[...grouped].map(async ([companyId, companyEvents]) => {
+			const earlier = await earlierRegistrants(ctx, companyId, key);
+			return await Promise.all(
+				companyEvents.map(
+					async (semesterEvent): Promise<SemesterEvent & CompanyEvent> => ({
+						...semesterEvent,
+						lateUnregistrations:
+							semesterEvent.event.eventStart <= now
+								? lateUnregistrationsOf(semesterEvent, logStart)
+								: null,
+						feedback: await eventFeedback(ctx, semesterEvent.event._id),
+						returning: returningIn(semesterEvent, earlier),
+					}),
+				),
+			);
+		}),
+	);
+	return { logStart, events: perCompany.flat() };
 }
 
 const semesterArgs = { now: v.number(), semester: eventSemesterValidator, year: v.number() };
@@ -159,10 +163,14 @@ export const detail = query({
 	args: { companyId: v.id("companies"), ...semesterArgs },
 	handler: async (ctx, { companyId, now, semester, year }) => {
 		const user = await requireRole(ctx, internalRoles);
-		const { events, logStart } = await loggedEvents(ctx, { semester, year }, now);
+		const [{ events, logStart }, students] = await Promise.all([
+			loggedEvents(ctx, { semester, year }, now),
+			studentDirectory(ctx, now),
+		]);
+		const loaders = pastRowLoaders(ctx, user._id);
 		const grouped = byCompany(events);
 		const companyEvents = grouped.get(companyId) ?? [];
-		const bedpresStudents = uniqueStudents(await studentsOf(ctx, registrantRows(events), now));
+		const bedpresStudents = uniqueStudents(await students.studentsOf(registrantRows(events)));
 		return {
 			...(await companyWithLogo(ctx, companyId)),
 			comparison: comparisonOf(
@@ -170,14 +178,14 @@ export const detail = query({
 				[...grouped.values()].map((group) => metricsOf(group, now)),
 			),
 			audience: audienceOf(
-				await studentsOf(ctx, registrantRows(companyEvents), now),
+				await students.studentsOf(registrantRows(companyEvents)),
 				bedpresStudents,
 			),
 			events: await Promise.all(
 				companyEvents
 					.filter(({ event }) => event.eventStart <= now)
 					.reverse()
-					.map((companyEvent) => pastEventRow(ctx, companyEvent, logStart, user._id)),
+					.map((companyEvent) => pastEventRow(loaders, companyEvent, logStart)),
 			),
 		};
 	},
@@ -189,8 +197,10 @@ async function semesterMetrics(
 	key: SemesterKey,
 	now: number,
 ) {
-	const cutoff = Math.min(now, eventSemesterRange(key.semester, key.year).end - 1);
-	const grouped = byCompany(await semesterEvents(ctx, key, cutoff));
+	const last = eventSemesterRange(key.semester, key.year).end - 1;
+	const cutoff = Math.min(now, last);
+	const statsCutoff = now < last ? Number.POSITIVE_INFINITY : cutoff;
+	const grouped = byCompany(await semesterEvents(ctx, key, cutoff, null, statsCutoff));
 	const companyEvents = grouped.get(companyId);
 	return {
 		...key,
