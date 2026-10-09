@@ -502,7 +502,6 @@ export const semester = query({
 	handler: async (ctx, { now }) => {
 		await requireRole(ctx, internalRoles);
 		const current = eventSemesterOf(now);
-		const currentStart = eventSemesterRange(current.semester, current.year).start;
 		const {
 			previous,
 			previousCutoff,
@@ -544,12 +543,12 @@ export const semester = query({
 	},
 });
 
-export async function pastRowLoaders(ctx: QueryCtx, userId: Id<"users">) {
+export function pastRowLoaders(ctx: QueryCtx, userId: Id<"users">) {
 	return { companyOf: companyLoader(ctx), roleOf: organizerRoleLoader(ctx, userId) };
 }
 
 export async function pastEventRow(
-	{ companyOf, roleOf }: Awaited<ReturnType<typeof pastRowLoaders>>,
+	{ companyOf, roleOf }: ReturnType<typeof pastRowLoaders>,
 	semesterEvent: SemesterEvent,
 	logStart: number | null,
 ) {
@@ -576,7 +575,7 @@ export const past = query({
 		const events = (await semesterEvents(ctx, { semester, year }, now))
 			.filter(({ event }) => event.eventStart <= now)
 			.reverse();
-		const loaders = await pastRowLoaders(ctx, user._id);
+		const loaders = pastRowLoaders(ctx, user._id);
 		return await Promise.all(
 			events.map((semesterEvent) => pastEventRow(loaders, semesterEvent, logStart)),
 		);
