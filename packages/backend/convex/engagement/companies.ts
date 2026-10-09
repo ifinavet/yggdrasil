@@ -163,11 +163,11 @@ export const detail = query({
 	args: { companyId: v.id("companies"), ...semesterArgs },
 	handler: async (ctx, { companyId, now, semester, year }) => {
 		const user = await requireRole(ctx, internalRoles);
-		const [{ events, logStart }, students, loaders] = await Promise.all([
+		const [{ events, logStart }, students] = await Promise.all([
 			loggedEvents(ctx, { semester, year }, now),
 			studentDirectory(ctx, now),
-			pastRowLoaders(ctx, user._id),
 		]);
+		const loaders = pastRowLoaders(ctx, user._id);
 		const grouped = byCompany(events);
 		const companyEvents = grouped.get(companyId) ?? [];
 		const bedpresStudents = uniqueStudents(await students.studentsOf(registrantRows(events)));
