@@ -15,7 +15,9 @@ export async function computeEventStats(
 ): Promise<EventNumbers> {
 	const history = await registrationHistory(ctx, event._id);
 	const entries = history.entries.filter(({ at }) => at <= cutoff);
-	const rows = registrationsAt(history, cutoff);
+	// Current seats come from the authoritative rows, including legacy pending offers.
+	const rows =
+		cutoff === Number.POSITIVE_INFINITY ? history.registrations : registrationsAt(history, cutoff);
 	const registered = rows.filter((row) => row.status === "registered");
 	const recorded = registered.some((row) => row.attendanceStatus);
 	const windowStart = event.eventStart - DAY_MS;

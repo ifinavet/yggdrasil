@@ -108,6 +108,28 @@ export async function curveOf(ctx: QueryCtx, event: Doc<"events">) {
 	return pastCurveFrom(await computeCurve(ctx, event));
 }
 
+// A pace query also reads the company baseline and the selected event's history.
+// Bound cold replays independently of the number of stored summaries; the backfill
+// supplies the remaining samples without making the first query exceed its budget.
+const MAX_COLD_CURVES = 6;
+
+export async function curvesOf(
+	ctx: QueryCtx,
+	events: readonly Doc<"events">[],
+): Promise<PastCurve[]> {
+	const rows = await Promise.all(events.map((event) => curveRowOf(ctx, event._id)));
+	let cold = 0;
+	const curves = await Promise.all(
+		events.map(async (event, index) => {
+			const stored = rows[index];
+			if (stored && matchesEvent(stored, event)) return pastCurveFrom(stored);
+			if (cold++ >= MAX_COLD_CURVES) return null;
+			return pastCurveFrom(await computeCurve(ctx, event));
+		}),
+	);
+	return curves.filter((curve) => curve !== null);
+}
+
 function sameCurve(stored: CurveRow, computed: CurveRow) {
 	return (
 		matchesEvent(stored, computed) &&

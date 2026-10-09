@@ -55,6 +55,7 @@ describe("buildCheckpoints", () => {
 		expect(await checkpoints(world)).toHaveLength(first.built);
 		expect(await semesterOf(world)).toEqual(before);
 
+		await world.t.mutation(internal.engagement.checkpoints.buildCheckpoints, {});
 		const second = await world.t.mutation(internal.engagement.checkpoints.buildCheckpoints, {});
 		expect(second).toEqual({ built: 0, pruned: 0 });
 	});
@@ -188,6 +189,7 @@ describe("checkpoints for events that open during the hour", () => {
 		const { previousCheckpoint } = baselineCutoffs(NOW);
 		const eventId = await previousSemesterEvent(world, previousCheckpoint + 20 * minutes);
 		await world.t.mutation(internal.engagement.checkpoints.buildCheckpoints, {});
+		await world.t.mutation(internal.engagement.checkpoints.buildCheckpoints, {});
 		const later = baselineCutoffs(NOW + 40 * minutes);
 		expect(later.previousCheckpoint).toBe(previousCheckpoint);
 		const { stored, served, raw } = await world.t.run(async (ctx) => {
@@ -274,5 +276,30 @@ describe("baselineRowsAt", () => {
 		expect(touched).toBeNull();
 		expect(preloaded).toEqual(raw);
 		expect(preloaded.registered).toBe(1);
+	});
+});
+
+describe("changed checkpoint inputs", () => {
+	it("replaces stale checkpoints instead of accumulating unreachable duplicates", async () => {
+		const world = await worldWithStats();
+		for (let pass = 0; pass < 4; pass++)
+			await world.t.mutation(internal.engagement.checkpoints.buildCheckpoints, {});
+		const before = await checkpoints(world);
+		expect(before.length).toBeGreaterThan(0);
+		const target = before[0]!;
+		await world.t.run((ctx) =>
+			ctx.db.patch(target.eventId, { participationLimit: target.participationLimit + 1 }),
+		);
+		for (let pass = 0; pass < 4; pass++)
+			await world.t.mutation(internal.engagement.checkpoints.buildCheckpoints, {});
+		const after = await checkpoints(world);
+		expect(after).toHaveLength(before.length);
+		expect(after.find((row) => row._id === target._id)?.participationLimit).toBe(
+			target.participationLimit + 1,
+		);
+		expect(await world.t.mutation(internal.engagement.checkpoints.buildCheckpoints, {})).toEqual({
+			built: 0,
+			pruned: 0,
+		});
 	});
 });

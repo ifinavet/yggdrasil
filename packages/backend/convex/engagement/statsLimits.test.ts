@@ -4,7 +4,7 @@ import { insertEvent, insertUser, setup, type TestBackend } from "../../test/fix
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { CURVE_BACKFILL_BATCH, MAX_LOG_ENTRIES } from "./curves";
-import { STATS_SWEEP_BATCH } from "./snapshot";
+import { pastCurvesBefore, STATS_REPAIR_BATCH, STATS_SWEEP_BATCH } from "./snapshot";
 
 const LOG_ROWS = 3000;
 const LONG_LOG_TIMEOUT_MS = MINUTE_MS;
@@ -94,6 +94,41 @@ describe("stats batches under transaction limits", () => {
 			expect(pass).toEqual({ finished: true });
 
 			expect(await storedCurveCount(t)).toBe(CURVE_BACKFILL_BATCH);
+		},
+		LONG_LOG_TIMEOUT_MS,
+	);
+});
+
+describe("busy history regression", () => {
+	it(
+		"repairs twelve busy events across bounded transactions",
+		async () => {
+			const now = Date.now();
+			const { t, companyId } = await setup({ transactionLimits: true });
+			for (let index = 0; index < 12; index++) {
+				await endedEventWithLongLog(t, companyId, index, now);
+			}
+			const pass = await t.mutation(internal.engagement.statsSweep.repairRecentStats, { now });
+			expect(pass.created).toBe(Math.min(12, STATS_REPAIR_BATCH));
+			await t.finishAllScheduledFunctions(() => {});
+			expect(await t.run((ctx) => ctx.db.query("eventStats").collect())).toHaveLength(12);
+		},
+		LONG_LOG_TIMEOUT_MS,
+	);
+
+	it(
+		"serves a cold forecast without replaying every historical event in one transaction",
+		async () => {
+			const now = Date.now();
+			const { t, companyId } = await setup({ transactionLimits: true });
+			for (let index = 0; index < 35; index++) {
+				await endedEventWithLongLog(t, companyId, index, now, MAX_LOG_ENTRIES);
+			}
+			const cold = await t.run((ctx) => pastCurvesBefore(ctx, now));
+			expect(cold.length).toBeGreaterThan(0);
+			await t.mutation(internal.engagement.curves.backfillCurves, { until: now });
+			await t.finishAllScheduledFunctions(() => {});
+			expect(await t.run((ctx) => pastCurvesBefore(ctx, now))).toHaveLength(35);
 		},
 		LONG_LOG_TIMEOUT_MS,
 	);

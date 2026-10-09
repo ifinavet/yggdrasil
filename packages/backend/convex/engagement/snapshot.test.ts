@@ -560,3 +560,24 @@ describe("liveStateOf", () => {
 		expect(semester?.counts.registered).toBe(1);
 	});
 });
+
+describe("live legacy offers", () => {
+	it("uses the actual pending state even when an old import logged it as waitlisted", async () => {
+		const { t, companyId } = await setup();
+		const eventId = await insertEvent(t, companyId, {
+			registrationOpens: OPENS,
+			eventStart: START,
+		});
+		const user = await insertUser(t, "legacy-offer@example.com");
+		await insertRegistration(t, eventId, user._id, "pending", OPENS);
+		await t.run((ctx) =>
+			logRegistrationChange(ctx, { eventId, userId: user._id }, "waitlisted", OPENS),
+		);
+		const event = await eventDoc(t, eventId);
+		const live = await t.run((ctx) => liveStateOf(ctx, event, OPENS + HOUR_MS));
+		expect(live).toMatchObject({ registered: 0, waitlist: 0 });
+		expect(await t.run((ctx) => ctx.db.query("registrations").collect())).toMatchObject([
+			{ status: "pending" },
+		]);
+	});
+});

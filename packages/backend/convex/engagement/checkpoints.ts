@@ -164,10 +164,13 @@ async function missingCheckpoints(ctx: QueryCtx, key: SemesterKey, cutoff: numbe
 
 async function buildCheckpoint(ctx: MutationCtx, event: Doc<"events">, cutoff: number) {
 	try {
-		await ctx.db.insert("eventCheckpoints", {
-			...(await computeEventStats(ctx, event, cutoff)),
-			cutoff,
-		});
+		const numbers = { ...(await computeEventStats(ctx, event, cutoff)), cutoff };
+		const existing = await ctx.db
+			.query("eventCheckpoints")
+			.withIndex("by_eventId_and_cutoff", (q) => q.eq("eventId", event._id).eq("cutoff", cutoff))
+			.first();
+		if (existing) await ctx.db.replace(existing._id, numbers);
+		else await ctx.db.insert("eventCheckpoints", numbers);
 	} catch (error) {
 		if (!(error instanceof ConvexError)) throw error;
 	}

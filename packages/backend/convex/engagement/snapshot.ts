@@ -2,7 +2,7 @@ import { DAY_MS } from "@workspace/shared/time";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
 import {
-	curveOf,
+	curvesOf,
 	forecastTimeline,
 	hasComparableHistory,
 	isComparable,
@@ -29,13 +29,15 @@ export { DAY_MS as CHECKPOINT_RETENTION_MS } from "@workspace/shared/time";
 export const MAX_REGISTRATIONS_PER_EVENT = 1000;
 const PAST_EVENTS_FOR_BASELINE = 60;
 export const MIN_FORECAST_EVENTS = 3;
-export const STATS_SWEEP_BATCH = 10;
+// Each history reads up to 4,001 registrations and 4,001 log entries.
+// Three events leave room below the 32,000-document transaction ceiling.
+export const STATS_SWEEP_BATCH = 3;
 export const YEAR_DAYS = 365;
-export const CHECKPOINT_BATCH = 10;
+export const CHECKPOINT_BATCH = 3;
 export const CHECKPOINT_PRUNE_BATCH = 200;
 export const MAX_CHECKPOINTS_PER_CUTOFF = 2000;
 export const MAX_TOUCHED_ROWS = 1000;
-export const STATS_REPAIR_BATCH = 30;
+export const STATS_REPAIR_BATCH = STATS_SWEEP_BATCH;
 export const STATS_REPAIR_PAST_MS = DAY_MS;
 export const STATS_REPAIR_AHEAD_MS = 14 * DAY_MS;
 
@@ -66,11 +68,6 @@ export async function logSince(ctx: QueryCtx, eventId: Id<"events">, since: numb
 		.take(MAX_LOG_ENTRIES);
 }
 
-async function curvesOf(ctx: QueryCtx, events: readonly Doc<"events">[]): Promise<PastCurve[]> {
-	const curves = await Promise.all(events.map((event) => curveOf(ctx, event)));
-	return curves.filter((curve) => curve !== null);
-}
-
 export async function pastCurvesBefore(ctx: QueryCtx, before: number) {
 	const past = await ctx.db
 		.query("events")
@@ -88,7 +85,7 @@ export async function companyCurvesBefore(
 	before: number,
 ) {
 	const comparable: Doc<"events">[] = [];
-	for await (const event of ctx.db
+	for (const event of await ctx.db
 		.query("events")
 		.withIndex("by_hostingCompany_and_eventStart", (q) =>
 			q
@@ -96,7 +93,8 @@ export async function companyCurvesBefore(
 				.gte("eventStart", UNREGISTRATION_HISTORY_START)
 				.lt("eventStart", before),
 		)
-		.order("desc")) {
+		.order("desc")
+		.take(PAST_EVENTS_FOR_BASELINE)) {
 		if (hasComparableHistory(event)) comparable.push(event);
 		if (comparable.length === COMPANY_BASELINE.size) break;
 	}
