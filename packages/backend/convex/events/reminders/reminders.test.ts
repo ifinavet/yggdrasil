@@ -1,4 +1,4 @@
-import { render } from "@react-email/render";
+import { pretty, render } from "@react-email/render";
 import { NAVET_LOGO_URL } from "@workspace/emails/constants";
 import EventReminderEmail from "@workspace/emails/event-reminder-email";
 import { REMINDER_INFO_MAX_LENGTH } from "@workspace/shared/events/reminder";
@@ -340,6 +340,29 @@ describe("EventReminderEmail", () => {
 		expect(text).toContain("Ta med PC.");
 		expect(text).toContain("Last ned Docker på forhånd.");
 		expect(text).toContain("Du finner også denne informasjonen på arrangementssiden");
+	});
+
+	it("keeps the line breaks and paragraphs of the info after pretty printing", async () => {
+		const html = await pretty(
+			await render(
+				EventReminderEmail({
+					company: "Testbedrift",
+					time: "torsdag 1. oktober, 16:15",
+					location: "Escape",
+					info: "Ta med PC.\nLast ned Docker.\n\n  \nKom 10 minutter før.\n",
+					eventUrl: "https://ifinavet.no/events/testbedrift",
+					signature: { name: "Kari Nordmann", email: "kari@ifinavet.no" },
+				}),
+			),
+		);
+		const paragraphs = [...html.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/g)].map((match) =>
+			(match[1] ?? "")
+				.replace(/<!-- -->/g, "")
+				.replace(/\s+/g, " ")
+				.trim(),
+		);
+		expect(paragraphs).toContain("<span>Ta med PC.</span><span><br />Last ned Docker.</span>");
+		expect(paragraphs).toContain("<span>Kom 10 minutter før.</span>");
 	});
 
 	it("signs off with the organizer and the Navet logo", async () => {

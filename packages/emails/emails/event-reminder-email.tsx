@@ -63,7 +63,7 @@ export default function EventReminderEmail({
 						Minner om at du er påmeldt til bedriftspresentasjon med {company} {time} {location}.
 					</Text>
 
-					{info ? <Text className="whitespace-pre-line">{info}</Text> : null}
+					{info ? <InfoParagraphs info={info} /> : null}
 
 					<Text>
 						{info ? "Du finner også denne informasjonen" : "Du finner mer informasjon"} på{" "}
@@ -118,4 +118,17 @@ export default function EventReminderEmail({
 			</Tailwind>
 		</Html>
 	);
+}
+
+function InfoParagraphs({ info }: Readonly<{ info: string }>) {
+	return [...info.matchAll(/(?:[^\S\n]*\S[^\n]*(?:\n|$))+/g)].map((paragraph) => (
+		<Text key={paragraph.index}>
+			{[...paragraph[0].matchAll(/[^\n]*\S[^\n]*/g)].map((line) => (
+				<span key={line.index}>
+					{line.index ? <br /> : null}
+					{line[0].trim()}
+				</span>
+			))}
+		</Text>
+	));
 }
