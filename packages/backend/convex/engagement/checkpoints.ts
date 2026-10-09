@@ -188,8 +188,12 @@ export const buildCheckpoints = internalMutation({
 		const missing = await Promise.all(
 			cutoffs.map(({ key, cutoff }) => missingCheckpoints(ctx, key, cutoff)),
 		);
+		const longest = Math.max(0, ...missing.map((list) => list.length));
+		const interleaved = Array.from({ length: longest }, (_, index) =>
+			missing.flatMap((list) => list.slice(index, index + 1)),
+		).flat();
 		const targets = new Map(
-			missing.flat().map((target) => [`${target.event._id}:${target.cutoff}`, target]),
+			interleaved.map((target) => [`${target.event._id}:${target.cutoff}`, target]),
 		);
 		const batch = [...targets.values()].slice(0, CHECKPOINT_BATCH);
 		await Promise.all(batch.map(({ event, cutoff }) => buildCheckpoint(ctx, event, cutoff)));

@@ -5,7 +5,7 @@ import { buildWorld, insightOutputs, NOW, normalised, type World } from "../../t
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { baselineCutoffs, baselineRowsAt, baselineStatsAt } from "./checkpoints";
-import { MAX_TOUCHED_ROWS } from "./snapshot";
+import { CHECKPOINT_BATCH, MAX_TOUCHED_ROWS } from "./snapshot";
 import { computeEventStats, refreshEventStats } from "./stats";
 
 afterEach(() => {
@@ -205,6 +205,34 @@ describe("checkpoints for events that open during the hour", () => {
 		});
 		expect(stored).toHaveLength(1);
 		expect(served).toEqual(raw);
+	});
+});
+
+describe("checkpoint batches", () => {
+	it("gives last year's events a slot when the previous semester fills the batch", async () => {
+		const world = await worldWithStats();
+		const { previousCheckpoint, lastYearCheckpoint } = baselineCutoffs(NOW);
+		for (let index = 0; index <= CHECKPOINT_BATCH; index += 1) {
+			await previousSemesterEvent(world, previousCheckpoint - 24 * 60 * 60 * 1000);
+		}
+		const lastYearEvent = await insertEvent(world.t, world.alpha, {
+			title: "I fjor",
+			participationLimit: 10,
+			registrationOpens: lastYearCheckpoint - 2 * 24 * 60 * 60 * 1000,
+			eventStart: lastYearCheckpoint + 24 * 60 * 60 * 1000,
+		});
+
+		await world.t.mutation(internal.engagement.checkpoints.buildCheckpoints, {});
+
+		const stored = await world.t.run((ctx) =>
+			ctx.db
+				.query("eventCheckpoints")
+				.withIndex("by_eventId_and_cutoff", (q) =>
+					q.eq("eventId", lastYearEvent).eq("cutoff", lastYearCheckpoint),
+				)
+				.collect(),
+		);
+		expect(stored).toHaveLength(1);
 	});
 });
 
