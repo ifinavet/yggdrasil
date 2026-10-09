@@ -407,6 +407,18 @@ function CompanyAnalysis({
 	const history = useStableQuery(api.engagement.companies.history, { companyId, now }, companyId);
 
 	if (!detail) return <Skeleton className="h-72 rounded-lg" />;
+	return <CompanyAnalysisContent detail={detail} history={history} now={now} />;
+}
+
+function CompanyAnalysisContent({
+	detail,
+	history,
+	now,
+}: Readonly<{
+	detail: CompanyDetail;
+	history: CompanyHistory | undefined;
+	now: number;
+}>) {
 	return (
 		<>
 			<CompanyHeader detail={detail} />
@@ -430,11 +442,12 @@ function CompanyAnalysis({
 
 export function CompaniesView({ now }: Readonly<{ now: number }>) {
 	const { selected, select } = useSemesterSelect(now);
-	const companies = useStableQuery(
-		api.engagement.companies.list,
+	const overview = useStableQuery(
+		api.engagement.companies.overview,
 		{ now, ...selected },
 		`${selected.semester}-${selected.year}`,
 	);
+	const companies = overview?.companies;
 	const [search, setSearch] = useState("");
 	const [picked, setPicked] = useState<Id<"companies"> | null>(null);
 	const detailRef = useRef<HTMLDivElement>(null);
@@ -476,7 +489,16 @@ export function CompaniesView({ now }: Readonly<{ now: number }>) {
 				/>
 			</Panel>
 			<div ref={detailRef} className="grid scroll-mt-4 gap-4">
-				{selectedId && <CompanyAnalysis companyId={selectedId} now={now} selected={selected} />}
+				{selectedId &&
+					(overview?.initial?.companyId === selectedId ? (
+						<CompanyAnalysisContent
+							detail={overview.initial.detail}
+							history={overview.initial.history}
+							now={now}
+						/>
+					) : (
+						<CompanyAnalysis companyId={selectedId} now={now} selected={selected} />
+					))}
 			</div>
 		</div>
 	);

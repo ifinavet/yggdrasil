@@ -331,3 +331,41 @@ describe("history", () => {
 		expect(await spring()).toEqual(before);
 	});
 });
+
+describe("overview", () => {
+	it("returns the existing list, detail and history for the first ranked company, including demand ties", async () => {
+		const { t, intern } = await twoCompanies();
+		const checkOverview = async () => {
+			const companies = await intern.query(api.engagement.companies.list, semester);
+			const companyId = companies[0]?.companyId;
+			if (!companyId) throw new Error("Expected a ranked company");
+			expect(await intern.query(api.engagement.companies.overview, semester)).toEqual({
+				companies,
+				initial: {
+					companyId,
+					detail: await intern.query(api.engagement.companies.detail, { ...semester, companyId }),
+					history: await intern.query(api.engagement.companies.history, { now: NOW, companyId }),
+				},
+			});
+		};
+		await checkOverview();
+		await t.run(async (ctx) => {
+			for (const row of await ctx.db.query("registrations").collect()) await ctx.db.delete(row._id);
+		});
+		await checkOverview();
+	});
+
+	it("returns an empty list and no initial analysis for an empty semester", async () => {
+		const { intern } = await twoCompanies();
+		expect(
+			await intern.query(api.engagement.companies.overview, { ...semester, semester: "vår" }),
+		).toEqual({ companies: [], initial: null });
+	});
+
+	it("requires an internal user", async () => {
+		const { t } = await twoCompanies();
+		await expect(t.query(api.engagement.companies.overview, semester)).rejects.toThrow(
+			"Unauthorized",
+		);
+	});
+});
