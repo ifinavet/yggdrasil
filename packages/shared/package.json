@@ -52,7 +52,8 @@
 		"./events/checklist": "./events/checklist.ts",
 		"./events/guide": "./events/guide.ts",
 		"./events/planning": "./events/planning.ts",
-		"./events/planning-email": "./events/planning-email.ts"
+		"./events/planning-email": "./events/planning-email.ts",
+		"./events/reminder": "./events/reminder.ts"
 	},
 	"scripts": {
 		"check-types": "tsc --noEmit"

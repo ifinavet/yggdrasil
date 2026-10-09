@@ -21,11 +21,15 @@ export default function EventReminderEmail({
 	company,
 	time,
 	location,
+	info,
+	eventUrl,
 	signature,
 }: Readonly<{
 	company: string;
 	time: string;
 	location: string;
+	info?: string;
+	eventUrl: string;
 	signature: Signature;
 }>) {
 	return (
@@ -57,6 +61,13 @@ export default function EventReminderEmail({
 
 					<Text>
 						Minner om at du er påmeldt til bedriftspresentasjon med {company} {time} {location}.
+					</Text>
+
+					{info ? <Text className="whitespace-pre-line">{info}</Text> : null}
+
+					<Text>
+						{info ? "Du finner også denne informasjonen" : "Du finner mer informasjon"} på{" "}
+						<a href={eventUrl}>arrangementssiden</a>.
 					</Text>
 
 					<Text>

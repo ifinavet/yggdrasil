@@ -1,6 +1,7 @@
 import { render } from "@react-email/render";
 import { NAVET_LOGO_URL } from "@workspace/emails/constants";
 import EventReminderEmail from "@workspace/emails/event-reminder-email";
+import { REMINDER_INFO_MAX_LENGTH } from "@workspace/shared/events/reminder";
 import { describe, expect, it, vi } from "vitest";
 import {
 	asUser,
@@ -20,9 +21,6 @@ import {
 import { api, internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import { feedbackResend as resend } from "../../feedback/delivery/messages";
-import { dueReminder } from "./schedule";
-
-const now = Date.UTC(2026, 9, 1, 12);
 
 async function setupEvent(overrides: EventOverrides = {}) {
 	const { t, companyId } = await setup();
@@ -39,52 +37,154 @@ async function queuedReminders(t: TestBackend) {
 	});
 }
 
-describe("dueReminder", () => {
-	it("picks the reminder whose window the event is in", () => {
-		expect(dueReminder(now + 8 * DAY_IN_MS, now)).toBeNull();
-		expect(dueReminder(now + 7 * DAY_IN_MS, now)).toBe("week");
-		expect(dueReminder(now + 3 * DAY_IN_MS, now)).toBe("week");
-		expect(dueReminder(now + 2 * DAY_IN_MS, now)).toBe("twoDays");
-		expect(dueReminder(now + HOUR_IN_MS, now)).toBe("twoDays");
-		expect(dueReminder(now, now)).toBeNull();
-		expect(dueReminder(now - HOUR_IN_MS, now)).toBeNull();
+async function internalClient(t: TestBackend, email = "internal@example.test") {
+	const user = await insertUser(t, email);
+	await grantRole(t, user._id, "internal");
+	return { user, client: asUser(t, user) };
+}
+
+async function systemAlerts(t: TestBackend) {
+	return t.run((ctx) => ctx.db.query("slackSystemDeliveries").collect());
+}
+
+describe("approveEventReminder", () => {
+	it("saves the info and queues the reminder once", async () => {
+		const { t, eventId } = await setupEvent({ eventStart: Date.now() + 2 * DAY_IN_MS });
+		const { user, client } = await internalClient(t);
+		const { approveEventReminder } = api.events.reminders.mutations;
+
+		await client.mutation(approveEventReminder, { eventId, text: "  Ta med PC.  " });
+		const message = await refusalMessageFrom(
+			client.mutation(approveEventReminder, { eventId, text: "" }),
+		);
+
+		expect(message).toContain("allerede sendt");
+		expect(await queuedReminders(t)).toEqual([{ eventId, kind: "twoDays" }]);
+		expect(await client.query(api.events.reminders.queries.getEventReminders, { eventId })).toEqual(
+			{
+				enabled: true,
+				info: "Ta med PC.",
+				sentAt: expect.any(Number),
+				sentBy: "Test Testesen",
+			},
+		);
+		const rows = await t.run((ctx) => ctx.db.query("eventReminders").collect());
+		expect(rows).toEqual([expect.objectContaining({ approvedBy: user._id })]);
+	});
+
+	it("refuses users without an internal role", async () => {
+		const { t, eventId } = await setupEvent({ eventStart: Date.now() + 2 * DAY_IN_MS });
+		const student = asUser(t, await insertUser(t, "student@example.test"));
+		const message = await refusalMessageFrom(
+			student.mutation(api.events.reminders.mutations.approveEventReminder, {
+				eventId,
+				text: "",
+			}),
+		);
+		expect(message).toContain("Du har ikke tilgang");
+		expect(await queuedReminders(t)).toEqual([]);
+	});
+
+	it("refuses events that are off, hidden, external or started", async () => {
+		const { t, companyId } = await setup();
+		const { client } = await internalClient(t);
+		const soon = Date.now() + DAY_IN_MS;
+		const events = await Promise.all([
+			insertEvent(t, companyId, { eventStart: soon }),
+			insertEvent(t, companyId, { eventStart: soon, remindersEnabled: true, published: false }),
+			insertEvent(t, companyId, { eventStart: soon, remindersEnabled: true, externalEvent: true }),
+			insertEvent(t, companyId, { eventStart: Date.now() - HOUR_IN_MS, remindersEnabled: true }),
+		]);
+		for (const eventId of events)
+			await expect(
+				client.mutation(api.events.reminders.mutations.approveEventReminder, { eventId, text: "" }),
+			).rejects.toThrow();
+		expect(await queuedReminders(t)).toEqual([]);
+	});
+
+	it("rejects info over the length limit", async () => {
+		const { t, eventId } = await setupEvent({ eventStart: Date.now() + DAY_IN_MS });
+		const { client } = await internalClient(t);
+		await expect(
+			client.mutation(api.events.reminders.mutations.saveReminderInfo, {
+				eventId,
+				text: "a".repeat(REMINDER_INFO_MAX_LENGTH + 1),
+			}),
+		).rejects.toThrow();
 	});
 });
 
-describe("queueDueReminders", () => {
-	it("queues each reminder once per enabled event", async () => {
-		const { t, eventId } = await setupEvent({ eventStart: Date.now() + 5 * DAY_IN_MS });
-		await t.mutation(internal.events.reminders.mutations.queueDueReminders, {});
-		await t.mutation(internal.events.reminders.mutations.queueDueReminders, {});
-		expect(await queuedReminders(t)).toEqual([{ eventId, kind: "week" }]);
+describe("alertMissingReminders", () => {
+	it("alerts once for a started event nobody approved", async () => {
+		const { t, eventId } = await setupEvent({ eventStart: Date.now() - HOUR_IN_MS });
+		await t.mutation(internal.events.reminders.mutations.alertMissingReminders, {});
+		await t.mutation(internal.events.reminders.mutations.alertMissingReminders, {});
+		const alerts = await systemAlerts(t);
+		expect(alerts).toHaveLength(1);
+		expect(alerts[0]?.clientMsgId).toContain(eventId);
+		expect(alerts[0]?.text).toContain("🚨 *Ingen påminnelsesmail ble sendt*");
+		expect(alerts[0]?.text).toContain("godkjente aldri påminnelsesmailen i Bifrost");
 	});
 
-	it("queues the two day reminder even after the week reminder", async () => {
-		const { t, eventId } = await setupEvent({ eventStart: Date.now() + DAY_IN_MS });
+	it("stays quiet for approved, upcoming, old and switched off events", async () => {
+		const { t, companyId, eventId } = await setupEvent({ eventStart: Date.now() - HOUR_IN_MS });
 		await t.run((ctx) =>
-			ctx.db.insert("eventReminders", { eventId, kind: "week", queuedAt: Date.now() }),
+			ctx.db.insert("eventReminders", { eventId, kind: "twoDays", queuedAt: Date.now() }),
 		);
-		await t.mutation(internal.events.reminders.mutations.queueDueReminders, {});
-		expect(await queuedReminders(t)).toEqual([{ eventId, kind: "twoDays" }]);
-	});
-
-	it("skips events that are off, hidden, external or outside the window", async () => {
-		const { t, companyId } = await setupEvent({ eventStart: Date.now() + 8 * DAY_IN_MS });
-		const soon = Date.now() + DAY_IN_MS;
-		await insertEvent(t, companyId, { eventStart: soon });
-		await insertEvent(t, companyId, { eventStart: soon, remindersEnabled: false });
-		await insertEvent(t, companyId, { eventStart: soon, remindersEnabled: true, published: false });
 		await insertEvent(t, companyId, {
-			eventStart: soon,
+			eventStart: Date.now() + HOUR_IN_MS,
 			remindersEnabled: true,
-			externalEvent: true,
 		});
+		await insertEvent(t, companyId, {
+			eventStart: Date.now() - 2 * DAY_IN_MS,
+			remindersEnabled: true,
+		});
+		await insertEvent(t, companyId, { eventStart: Date.now() - HOUR_IN_MS });
 		await insertEvent(t, companyId, {
 			eventStart: Date.now() - HOUR_IN_MS,
 			remindersEnabled: true,
+			externalEvent: true,
 		});
-		await t.mutation(internal.events.reminders.mutations.queueDueReminders, {});
-		expect(await queuedReminders(t)).toEqual([]);
+		await t.mutation(internal.events.reminders.mutations.alertMissingReminders, {});
+		expect(await systemAlerts(t)).toEqual([]);
+	});
+});
+
+describe("getOwnReminderInfo", () => {
+	it("shows the info only to registered students", async () => {
+		const { t, eventId } = await setupEvent({ eventStart: Date.now() + DAY_IN_MS });
+		const { client } = await internalClient(t);
+		await client.mutation(api.events.reminders.mutations.saveReminderInfo, {
+			eventId,
+			text: "Last ned Docker.",
+		});
+		const registered = await insertUser(t, "registered@example.test");
+		const waitlisted = await insertUser(t, "waitlist@example.test");
+		await insertRegistration(t, eventId, registered._id, "registered");
+		await insertRegistration(t, eventId, waitlisted._id, "waitlist");
+		const { getOwnReminderInfo } = api.events.reminders.queries;
+		const args = { eventIdentifier: eventId };
+
+		expect(await asUser(t, registered).query(getOwnReminderInfo, args)).toBe("Last ned Docker.");
+		expect(await asUser(t, waitlisted).query(getOwnReminderInfo, args)).toBeNull();
+		expect(await t.query(getOwnReminderInfo, args)).toBeNull();
+	});
+});
+
+describe("previewEventReminder", () => {
+	it("renders the draft info for internals only", async () => {
+		const { t, eventId } = await setupEvent({ eventStart: Date.now() + DAY_IN_MS });
+		const { client } = await internalClient(t);
+		const preview = await client.action(api.events.reminders.emails.previewEventReminder, {
+			eventId,
+			info: "Ta med PC.",
+		});
+		expect(preview?.subject).toContain("Bedriftspresentasjon med Testbedrift");
+		expect(preview?.html).toContain("Ta med PC.");
+		const student = asUser(t, await insertUser(t, "student@example.test"));
+		await expect(
+			student.action(api.events.reminders.emails.previewEventReminder, { eventId, info: "" }),
+		).rejects.toThrow();
 	});
 });
 
@@ -133,12 +233,15 @@ describe("emailContext", () => {
 });
 
 describe("sendEventReminder", () => {
-	it("does not send a stale scheduled round after the event moves", async () => {
-		const { t, eventId } = await setupEvent({ eventStart: Date.now() + 15 * DAY_IN_MS });
-		const user = await insertUser(t, "moved@example.test");
+	it("does not send once the event has started", async () => {
+		const { t, eventId } = await setupEvent({ eventStart: Date.now() - HOUR_IN_MS });
+		const user = await insertUser(t, "started@example.test");
 		await insertRegistration(t, eventId, user._id, "registered");
 		const sendEmail = vi.spyOn(resend, "sendEmail");
-		await t.action(internal.events.reminders.emails.sendEventReminder, { eventId, kind: "week" });
+		await t.action(internal.events.reminders.emails.sendEventReminder, {
+			eventId,
+			kind: "twoDays",
+		});
 		expect(sendEmail).not.toHaveBeenCalled();
 		vi.restoreAllMocks();
 	});
@@ -155,7 +258,10 @@ describe("sendEventReminder", () => {
 			.mockResolvedValue("email-id" as never);
 		vi.spyOn(console, "error").mockImplementation(() => undefined);
 
-		await t.action(internal.events.reminders.emails.sendEventReminder, { eventId, kind: "week" });
+		await t.action(internal.events.reminders.emails.sendEventReminder, {
+			eventId,
+			kind: "twoDays",
+		});
 
 		expect(sendEmail).toHaveBeenCalledTimes(2);
 		expect(sendEmail).toHaveBeenLastCalledWith(
@@ -169,16 +275,14 @@ describe("sendEventReminder", () => {
 describe("setEventReminders", () => {
 	it("lets internals toggle reminders", async () => {
 		const { t, eventId } = await setupEvent({ remindersEnabled: undefined });
-		const user = await insertUser(t, "internal@example.test");
-		await grantRole(t, user._id, "internal");
-		const client = asUser(t, user);
+		const { client } = await internalClient(t);
 		const { getEventReminders } = api.events.reminders.queries;
-		expect(await client.query(getEventReminders, { eventId })).toEqual({ enabled: false });
+		expect(await client.query(getEventReminders, { eventId })).toMatchObject({ enabled: false });
 		await client.mutation(api.events.reminders.mutations.setEventReminders, {
 			eventId,
 			enabled: true,
 		});
-		expect(await client.query(getEventReminders, { eventId })).toEqual({ enabled: true });
+		expect(await client.query(getEventReminders, { eventId })).toMatchObject({ enabled: true });
 	});
 
 	it("refuses users without an internal role", async () => {
@@ -202,6 +306,7 @@ describe("EventReminderEmail", () => {
 				company: "Testbedrift",
 				time: "torsdag 1. oktober, 16:15",
 				location: "Escape",
+				eventUrl: "https://ifinavet.no/events/testbedrift",
 				signature: {
 					name: "Kari Nordmann",
 					position: "Bedriftskontakt",
@@ -216,6 +321,25 @@ describe("EventReminderEmail", () => {
 		expect(text).toContain("Bedriftskontakt | Navet");
 		expect(text).toContain("https://ifinavet.no/info/retningslinjer");
 		expect(text).not.toContain("+47");
+		expect(text).toContain("Du finner mer informasjon på arrangementssiden");
+		expect(text).toContain("https://ifinavet.no/events/testbedrift");
+	});
+
+	it("includes the info from the company", async () => {
+		const text = await render(
+			EventReminderEmail({
+				company: "Testbedrift",
+				time: "torsdag 1. oktober, 16:15",
+				location: "Escape",
+				info: "Ta med PC.\nLast ned Docker på forhånd.",
+				eventUrl: "https://ifinavet.no/events/testbedrift",
+				signature: { name: "Kari Nordmann", email: "kari@ifinavet.no" },
+			}),
+			{ plainText: true },
+		);
+		expect(text).toContain("Ta med PC.");
+		expect(text).toContain("Last ned Docker på forhånd.");
+		expect(text).toContain("Du finner også denne informasjonen på arrangementssiden");
 	});
 
 	it("signs off with the organizer and the Navet logo", async () => {
@@ -224,6 +348,7 @@ describe("EventReminderEmail", () => {
 				company: "Testbedrift",
 				time: "torsdag 1. oktober, 16:15",
 				location: "Escape",
+				eventUrl: "https://ifinavet.no/events/testbedrift",
 				signature: { name: "Kari Nordmann", email: "kari@ifinavet.no" },
 			}),
 		);

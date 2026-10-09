@@ -1,0 +1,1 @@
+export const REMINDER_INFO_MAX_LENGTH = 2000;

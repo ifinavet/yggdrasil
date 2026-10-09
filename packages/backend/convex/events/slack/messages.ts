@@ -11,7 +11,7 @@ import {
 import type { Doc } from "../../_generated/dataModel";
 import { isLocalDevelopment } from "../../auth/local";
 import type { getOrganizers } from "../queries";
-import { REMINDER_LEAD_TIMES } from "../reminders/schedule";
+import { REVIEWED_REMINDER_KIND } from "../reminders/schedule";
 
 export function escapeSlack(text: string) {
 	return text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
@@ -54,14 +54,12 @@ export function eventMessage(
 
 function participantReminders(event: Doc<"events">, now: number) {
 	if (!event.remindersEnabled || !event.published) return [];
-	return Object.values(REMINDER_LEAD_TIMES).flatMap((leadTime, index) => {
-		const at = event.eventStart - leadTime;
-		return at > now
-			? [
-					`• Sender påminnelse ${index + 1} til de påmeldte ${formatOsloDate(at, DATE_PATTERNS.dateTime)}.`,
-				]
-			: [];
-	});
+	const at = eventPlanningAt(event.eventStart, EVENT_PLANNING.reminderReviewDaysBefore);
+	return at > now
+		? [
+				`• Sier fra her ${formatOsloDate(at, DATE_PATTERNS.dateTime)} når påminnelsesmailen til de påmeldte er klar til gjennomgang.`,
+			]
+		: [];
 }
 
 /** Describe only remaining work, using the same schedule and switches as the automations. */
@@ -71,7 +69,7 @@ function upcomingAutomations(event: Doc<"events">, now: number, campaignOpensAt?
 	if (event.published && event.registrationOpens > now)
 		automatic.push(`• Åpner påmeldingen ${when(event.registrationOpens)} og sier fra her.`);
 	if (!event.remindersEnabled)
-		automatic.push("• Automatiske påminnelser til påmeldte er slått av for dette arrangementet.");
+		automatic.push("• Påminnelsesmail til påmeldte er slått av for dette arrangementet.");
 	if (!event.feedbackEnabled)
 		automatic.push(
 			"• Automatisk innsamling av tilbakemeldinger er slått av for dette arrangementet.",
@@ -117,6 +115,11 @@ export function welcomeMessage(event: Doc<"events">, now: number, campaignOpensA
 		"*Dette gjør dere*",
 		`• ${contact}. <${eventUrl(event)}?planning=prepare|Se over og send invitasjonen i Bifrost>.`,
 		"• Avklar rom, mat og praktisk opplegg med bedriften, og fordel oppgavene mellom dere.",
+		...(event.remindersEnabled
+			? [
+					"• Legg inn informasjon fra bedriften og send påminnelsesmailen til de påmeldte i Bifrost.",
+				]
+			: []),
 		"• Registrer oppmøte i Bifrost på arrangementsdagen.",
 		...(eventPlanningAt(event.eventStart, EVENT_PLANNING.practicalDaysBefore) > now
 			? [
@@ -134,8 +137,14 @@ export const registrationFullText = "Alle plassene er tatt! 🎉 Arrangementet e
 export const reportSentText =
 	"Nå har jeg sendt tilbakemeldingsrapporten til bedriften. Takk for innsatsen! 🙌";
 export function reminderSentText(kind: string) {
-	return `Jeg har begynt å sende påminnelse ${kind === "week" ? 1 : 2} på e-post til dem som er påmeldt arrangementet. ✉️`;
+	return kind === REVIEWED_REMINDER_KIND
+		? "Jeg har begynt å sende påminnelsesmailen til dem som er påmeldt arrangementet. ✉️"
+		: "Jeg har begynt å sende en påminnelse på e-post til dem som er påmeldt arrangementet. ✉️";
 }
+export const reminderReviewText =
+	"Påminnelsesmailen til de påmeldte er klar til gjennomgang. ✉️ Legg inn det bedriften vil at deltakerne skal vite, for eksempel om de må ta med PC eller laste ned noe, og send den fra Bifrost.";
+export const reminderNagText =
+	"Påminnelsesmailen er fortsatt ikke sendt. Legg inn informasjonen fra bedriften og send den fra Bifrost, ellers får de påmeldte ingen påminnelse.";
 export function feedbackSentText(round: number) {
 	return round === 0
 		? "Jeg har begynt å sende ut tilbakemeldingsskjemaet til deltakerne som møtte. ✉️"

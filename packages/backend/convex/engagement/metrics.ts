@@ -5,6 +5,7 @@ import {
 	REMINDER_KINDS,
 	REMINDER_LEAD_TIMES,
 	type ReminderKind,
+	reminderPlanned,
 } from "../events/reminders/schedule";
 import type { AlertRule, RegistrationChange } from "./schema";
 
@@ -37,16 +38,21 @@ export type ForecastTimeline = Timeline & {
 	reminderTimes?: Partial<Record<ReminderKind, number>>;
 };
 
+function reminderAt(timeline: ForecastTimeline, kind: ReminderKind) {
+	const recorded = timeline.reminderTimes?.[kind];
+	if (recorded !== undefined) return recorded;
+	return reminderPlanned(kind) ? timeline.eventStart - REMINDER_LEAD_TIMES[kind] : undefined;
+}
+
 // Align observed changes around the reminder windows, rather than assuming that
 // 80% through a 14-day registration period is the same as 80% through a 7-day one.
 export function alignedCurve(curve: number[], source: ForecastTimeline, target: ForecastTimeline) {
 	const anchors = [{ source: 0, target: 0 }];
 	if (source.remindersEnabled && target.remindersEnabled) {
 		for (const kind of REMINDER_KINDS) {
-			const sourceAt =
-				source.reminderTimes?.[kind] ?? source.eventStart - REMINDER_LEAD_TIMES[kind];
-			const targetAt =
-				target.reminderTimes?.[kind] ?? target.eventStart - REMINDER_LEAD_TIMES[kind];
+			const sourceAt = reminderAt(source, kind);
+			const targetAt = reminderAt(target, kind);
+			if (sourceAt === undefined || targetAt === undefined) continue;
 			const from = progressOf(source, sourceAt);
 			const to = progressOf(target, targetAt);
 			const previous = anchors[anchors.length - 1]!;

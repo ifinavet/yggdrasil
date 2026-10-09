@@ -17,6 +17,7 @@ import {
 	REMINDER_KINDS,
 	REMINDER_LEAD_TIMES,
 	type ReminderKind,
+	reminderPlanned,
 } from "../events/reminders/schedule";
 import { audienceOf, withStudyYear } from "./audience";
 import { baselineCutoffs, baselineRowsAt, baselineStatsAt, semesterEventDocs } from "./checkpoints";
@@ -216,7 +217,12 @@ async function reminderMarkers(ctx: QueryCtx, event: Doc<"events">, now: number)
 			const sentAt = await firstSentAt(ctx, event, kind, now);
 			const queuedAt = batch && batch.queuedAt <= now ? batch.queuedAt : undefined;
 			const scheduledAt = event.eventStart - REMINDER_LEAD_TIMES[kind];
-			if (sentAt === undefined && queuedAt === undefined && !event.remindersEnabled) return null;
+			if (
+				sentAt === undefined &&
+				queuedAt === undefined &&
+				(!event.remindersEnabled || !reminderPlanned(kind))
+			)
+				return null;
 			const at = sentAt ?? queuedAt ?? scheduledAt;
 			if (at < event.registrationOpens || at >= event.eventStart) return null;
 			let status = scheduledAt > now ? "Planlagt" : "Ingen registrert utsending";

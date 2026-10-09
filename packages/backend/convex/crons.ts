@@ -73,9 +73,9 @@ crons.interval(
 );
 
 crons.interval(
-	"Queue event reminder emails",
+	"Alert about events without a reminder email",
 	{ hours: 1 },
-	internal.events.reminders.mutations.queueDueReminders,
+	internal.events.reminders.mutations.alertMissingReminders,
 );
 crons.cron(
 	"Free for all on today's event",
