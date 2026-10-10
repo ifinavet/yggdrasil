@@ -1,14 +1,13 @@
 import { ConvexError, v } from "convex/values";
 import type { Doc } from "../../_generated/dataModel";
-import { mutation } from "../../_generated/server";
+import { internalMutation, mutation } from "../../_generated/server";
 import { editorRoles, requireRole } from "../../auth/accessRights";
 import { requireEditorActor } from "../applicationLifecycle";
-import {
-	eventsInSemesterRange,
-	refuseIfSemesterClosed,
-	requireSemester,
-} from "../semesters/helper";
-import { eventDate, isEventInAPlan } from "./helper";
+import { refuseIfSemesterClosed, requireSemester } from "../semesters/helper";
+import { eventDate, importCalendarIntoPlan, isEventInAPlan } from "./helper";
+
+/** Far more semesters than will ever exist; keeps the read bounded. */
+const SEMESTER_READ_LIMIT = 200;
 
 function requireRange(
 	semester: Doc<"semesters">,
@@ -100,21 +99,30 @@ export const importFromCalendar = mutation({
 		refuseIfSemesterClosed(semester);
 		requireRange(semester);
 
-		let added = 0;
-		let skipped = 0;
-		for (const event of await eventsInSemesterRange(ctx, semester)) {
-			if (await isEventInAPlan(ctx, event._id)) {
-				skipped++;
-				continue;
-			}
-			await ctx.db.insert("semesterPlanEvents", {
-				semesterId,
-				eventId: event._id,
-				addedBy: actor.userId,
-			});
-			added++;
-		}
+		return await importCalendarIntoPlan(ctx, semester, actor.userId);
+	},
+});
 
-		return { added, skipped };
+/**
+ * Puts the events already in the calendar into each semester plan that has a period and has not
+ * had them yet, such as a running semester when semester planning was released. Run by a cron, so
+ * nobody has to remember the import. Each semester is imported once.
+ *
+ * @returns {{ semesters: number, added: number }} - How many semesters were imported, and how many
+ * events were added.
+ */
+export const importPendingCalendars = internalMutation({
+	args: {},
+	returns: v.object({ semesters: v.number(), added: v.number() }),
+	handler: async (ctx) => {
+		let semesters = 0;
+		let added = 0;
+		for (const semester of await ctx.db.query("semesters").take(SEMESTER_READ_LIMIT)) {
+			if (semester.calendarImportedAt !== undefined) continue;
+			if (!semester.firstDate || !semester.lastDate) continue;
+			added += (await importCalendarIntoPlan(ctx, semester)).added;
+			semesters++;
+		}
+		return { semesters, added };
 	},
 });

@@ -121,6 +121,9 @@ export const semesterPlanningSchema = {
 		defaultEventStartTime: v.optional(v.string()),
 		planFinalizedAt: v.optional(v.number()),
 		planFinalizedBy: v.optional(v.id("users")),
+		// When the events already in the calendar were put in the plan. It happens once, so an
+		// event an editor takes out of the plan stays out.
+		calendarImportedAt: v.optional(v.number()),
 	})
 		.index("by_year_and_term", ["year", "term"])
 		.index("by_status", ["status"]),
@@ -131,12 +134,13 @@ export const semesterPlanningSchema = {
 		closedLabel: v.optional(v.string()),
 	}).index("by_semesterId_and_date", ["semesterId", "date"]),
 
-	// Events an editor put in the plan by hand, or imported from the calendar, on top of the ones
-	// applications make. The plan shows them on the Oslo day of their eventStart.
+	// Events in the plan without an application: added by an editor, or put there automatically
+	// from the calendar. The plan shows them on the Oslo day of their eventStart.
 	semesterPlanEvents: defineTable({
 		semesterId: v.id("semesters"),
 		eventId: v.id("events"),
-		addedBy: v.id("users"),
+		// The editor who added it. Missing when it came in automatically from the calendar.
+		addedBy: v.optional(v.id("users")),
 	})
 		.index("by_semesterId", ["semesterId"])
 		.index("by_eventId", ["eventId"]),
