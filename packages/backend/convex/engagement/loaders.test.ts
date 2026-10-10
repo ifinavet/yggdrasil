@@ -1,9 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { buildWorld, NOW } from "../../test/insightWorld";
 import type { Doc } from "../_generated/dataModel";
 import { organizerRoleLoader } from "../events/helper";
 import { companyLoader, companyWithLogo } from "../events/queries";
-import { studentDirectory } from "./queries";
+import { studentDirectory, studentLookup } from "./queries";
 import { refreshEventStats, statsRowsBetween } from "./stats";
 
 describe("studentDirectory", () => {
@@ -23,6 +23,26 @@ describe("studentDirectory", () => {
 			return await directory.studentsOf([{ userId }, { userId }]);
 		});
 		expect(found.map((student) => student.name)).toEqual(["Sen Student", "Sen Student"]);
+	});
+});
+
+describe("studentLookup", () => {
+	it("loads only requested profiles once while preserving repeated registrations and missing profiles", async () => {
+		const world = await buildWorld();
+		await world.t.run(async (ctx) => {
+			const query = vi.spyOn(ctx.db, "query");
+			const studentsOf = studentLookup(ctx, NOW);
+			expect(query).not.toHaveBeenCalled();
+			const userId = world.u.u1;
+			const missing = world.u.u13;
+			if (!userId || !missing) throw new Error("Missing fixture users");
+			const first = await studentsOf([{ userId }, { userId: missing }, { userId }]);
+			expect(first.map((student) => student.userId)).toEqual([userId, userId]);
+			expect(query).toHaveBeenCalledTimes(2);
+			expect(await studentsOf([{ userId }, { userId: missing }])).toEqual([first[0]]);
+			expect(query).toHaveBeenCalledTimes(2);
+			query.mockRestore();
+		});
 	});
 });
 

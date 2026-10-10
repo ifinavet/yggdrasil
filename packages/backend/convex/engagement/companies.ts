@@ -25,7 +25,7 @@ import {
 	type SemesterEvent,
 	type SemesterKey,
 	semesterEvents,
-	studentDirectory,
+	studentLookup,
 	unregistrationsLoggedFrom,
 } from "./queries";
 import { eventStatsAt } from "./stats";
@@ -94,9 +94,12 @@ function registrantRows(events: readonly CompanyEvent[]) {
 	);
 }
 
-async function loggedEvents(ctx: QueryCtx, key: SemesterKey, now: number) {
-	const logStart = await unregistrationsLoggedFrom(ctx);
-	const grouped = byCompany(await semesterEvents(ctx, key, now));
+async function detailedEvents(ctx: QueryCtx, key: SemesterKey, now: number) {
+	const [logStart, events] = await Promise.all([
+		unregistrationsLoggedFrom(ctx),
+		semesterEvents(ctx, key, now),
+	]);
+	const grouped = byCompany(events);
 	const perCompany = await Promise.all(
 		[...grouped].map(async ([companyId, companyEvents]) => {
 			const earlier = await earlierRegistrants(ctx, companyId, key);
@@ -120,22 +123,26 @@ async function loggedEvents(ctx: QueryCtx, key: SemesterKey, now: number) {
 
 const semesterArgs = { now: v.number(), semester: eventSemesterValidator, year: v.number() };
 
+async function companyRows(ctx: QueryCtx, events: readonly CompanyEvent[], now: number) {
+	const rows = await Promise.all(
+		[...byCompany(events)].map(async ([companyId, companyEvents]) => ({
+			companyId,
+			...(await companyWithLogo(ctx, companyId)),
+			events: companyEvents.length,
+			registered: sumOf(companyEvents, (companyEvent) => tallyOf(companyEvent).registered),
+			seats: sumOf(companyEvents, ({ event }) => event.participationLimit),
+			...metricsOf(companyEvents, now),
+		})),
+	);
+	return rows.sort((a, b) => (b.demand ?? 0) - (a.demand ?? 0));
+}
+
 export const list = query({
 	args: semesterArgs,
 	handler: async (ctx, { now, semester, year }) => {
 		await requireRole(ctx, internalRoles);
-		const { events } = await loggedEvents(ctx, { semester, year }, now);
-		const rows = await Promise.all(
-			[...byCompany(events)].map(async ([companyId, companyEvents]) => ({
-				companyId,
-				...(await companyWithLogo(ctx, companyId)),
-				events: companyEvents.length,
-				registered: sumOf(companyEvents, (companyEvent) => tallyOf(companyEvent).registered),
-				seats: sumOf(companyEvents, ({ event }) => event.participationLimit),
-				...metricsOf(companyEvents, now),
-			})),
-		);
-		return rows.sort((a, b) => (b.demand ?? 0) - (a.demand ?? 0));
+		const { events } = await detailedEvents(ctx, { semester, year }, now);
+		return await companyRows(ctx, events, now);
 	},
 });
 
@@ -159,35 +166,40 @@ export const foods = query({
 	},
 });
 
+async function companyDetail(
+	ctx: QueryCtx,
+	userId: Id<"users">,
+	companyId: Id<"companies">,
+	{ events, logStart }: Awaited<ReturnType<typeof detailedEvents>>,
+	now: number,
+) {
+	const studentsOf = studentLookup(ctx, now);
+	const loaders = pastRowLoaders(ctx, userId);
+	const grouped = byCompany(events);
+	const companyEvents = grouped.get(companyId) ?? [];
+	const bedpresStudents = uniqueStudents(await studentsOf(registrantRows(events)));
+	return {
+		...(await companyWithLogo(ctx, companyId)),
+		comparison: comparisonOf(
+			metricsOf(companyEvents, now),
+			[...grouped.values()].map((group) => metricsOf(group, now)),
+		),
+		audience: audienceOf(await studentsOf(registrantRows(companyEvents)), bedpresStudents),
+		events: await Promise.all(
+			companyEvents
+				.filter(({ event }) => event.eventStart <= now)
+				.reverse()
+				.map((companyEvent) => pastEventRow(loaders, companyEvent, logStart)),
+		),
+	};
+}
+
 export const detail = query({
 	args: { companyId: v.id("companies"), ...semesterArgs },
 	handler: async (ctx, { companyId, now, semester, year }) => {
 		const user = await requireRole(ctx, internalRoles);
-		const [{ events, logStart }, students] = await Promise.all([
-			loggedEvents(ctx, { semester, year }, now),
-			studentDirectory(ctx, now),
-		]);
-		const loaders = pastRowLoaders(ctx, user._id);
-		const grouped = byCompany(events);
-		const companyEvents = grouped.get(companyId) ?? [];
-		const bedpresStudents = uniqueStudents(await students.studentsOf(registrantRows(events)));
-		return {
-			...(await companyWithLogo(ctx, companyId)),
-			comparison: comparisonOf(
-				metricsOf(companyEvents, now),
-				[...grouped.values()].map((group) => metricsOf(group, now)),
-			),
-			audience: audienceOf(
-				await students.studentsOf(registrantRows(companyEvents)),
-				bedpresStudents,
-			),
-			events: await Promise.all(
-				companyEvents
-					.filter(({ event }) => event.eventStart <= now)
-					.reverse()
-					.map((companyEvent) => pastEventRow(loaders, companyEvent, logStart)),
-			),
-		};
+		const data = await detailedEvents(ctx, { semester, year }, now);
+		return await companyDetail(ctx, user._id, companyId, data, now);
 	},
 });
 
@@ -212,14 +224,33 @@ async function semesterMetrics(
 	};
 }
 
+async function companyHistory(ctx: QueryCtx, companyId: Id<"companies">, now: number) {
+	return await Promise.all(
+		semestersUpTo(eventSemesterOf(now)).map((key) => semesterMetrics(ctx, companyId, key, now)),
+	);
+}
+
 export const history = query({
 	args: { companyId: v.id("companies"), now: v.number() },
 	handler: async (ctx, { companyId, now }) => {
 		await requireRole(ctx, internalRoles);
-		const semesters = [];
-		for (const key of semestersUpTo(eventSemesterOf(now))) {
-			semesters.push(await semesterMetrics(ctx, companyId, key, now));
-		}
-		return semesters;
+		return await companyHistory(ctx, companyId, now);
+	},
+});
+
+// The first selected company shares its semester reads with the list.
+export const overview = query({
+	args: semesterArgs,
+	handler: async (ctx, { now, semester, year }) => {
+		const user = await requireRole(ctx, internalRoles);
+		const data = await detailedEvents(ctx, { semester, year }, now);
+		const companies = await companyRows(ctx, data.events, now);
+		const companyId = companies[0]?.companyId;
+		if (!companyId) return { companies, initial: null };
+		const [detail, history] = await Promise.all([
+			companyDetail(ctx, user._id, companyId, data, now),
+			companyHistory(ctx, companyId, now),
+		]);
+		return { companies, initial: { companyId, detail, history } };
 	},
 });

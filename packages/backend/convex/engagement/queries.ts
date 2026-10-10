@@ -426,7 +426,7 @@ async function activePopulation(ctx: QueryCtx, now: number) {
 	return [...current, ...recentlyGraduated];
 }
 
-export async function studentDirectory(ctx: QueryCtx, now: number) {
+export function studentLookup(ctx: QueryCtx, now: number) {
 	const lookups = new Map<Id<"users">, Promise<Doc<"students"> | null>>();
 	const lookup = (userId: Id<"users">) => {
 		const cached =
@@ -438,21 +438,25 @@ export async function studentDirectory(ctx: QueryCtx, now: number) {
 		lookups.set(userId, cached);
 		return cached;
 	};
+	return async (registrations: readonly Pick<AnalyticsRegistration, "userId">[]) => {
+		const userIds = [...new Set(registrations.map((registration) => registration.userId))];
+		const students = await Promise.all(userIds.map(lookup));
+		const byUser = new Map(
+			students.filter((student) => student !== null).map((student) => [student.userId, student]),
+		);
+		return withStudyYear(
+			registrations
+				.map((registration) => byUser.get(registration.userId))
+				.filter((student) => student !== undefined),
+			now,
+		);
+	};
+}
+
+export async function studentDirectory(ctx: QueryCtx, now: number) {
 	return {
 		population: withStudyYear(await activePopulation(ctx, now), now),
-		studentsOf: async (registrations: readonly Pick<AnalyticsRegistration, "userId">[]) => {
-			const userIds = [...new Set(registrations.map((registration) => registration.userId))];
-			const students = await Promise.all(userIds.map(lookup));
-			const byUser = new Map(
-				students.filter((student) => student !== null).map((student) => [student.userId, student]),
-			);
-			return withStudyYear(
-				registrations
-					.map((registration) => byUser.get(registration.userId))
-					.filter((student) => student !== undefined),
-				now,
-			);
-		},
+		studentsOf: studentLookup(ctx, now),
 	};
 }
 
