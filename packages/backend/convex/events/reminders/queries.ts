@@ -28,8 +28,9 @@ export const getEventReminders = query({
 		return {
 			sendable: event.published && !event.externalEvent && event.eventStart > Date.now(),
 			info,
-			sentAt: reminder?.queuedAt ?? null,
-			sentBy: approver ? `${approver.firstName} ${approver.lastName}` : null,
+			approvedAt: reminder?.queuedAt ?? null,
+			approvedBy: approver ? `${approver.firstName} ${approver.lastName}` : null,
+			delivered: reminder ? await reviewedReminderDelivered(ctx, eventId) : false,
 		};
 	},
 });
@@ -41,6 +42,29 @@ export async function reviewedReminder(ctx: QueryCtx, eventId: Id<"events">) {
 			q.eq("eventId", eventId).eq("kind", REVIEWED_REMINDER_KIND),
 		)
 		.unique();
+}
+
+export async function reviewedReminderDelivered(ctx: QueryCtx, eventId: Id<"events">) {
+	const deliveries = await ctx.db
+		.query("eventReminderDeliveries")
+		.withIndex("by_eventId_and_kind_and_userId", (q) =>
+			q.eq("eventId", eventId).eq("kind", REVIEWED_REMINDER_KIND),
+		)
+		.take(500);
+	return deliveries.some(({ sent }) => sent);
+}
+
+export async function reminderRecipients(ctx: QueryCtx, eventId: Id<"events">) {
+	const registrations = await ctx.db
+		.query("registrations")
+		.withIndex("by_eventIdStatusAndRegistrationTime", (index) =>
+			index.eq("eventId", eventId).eq("status", "registered"),
+		)
+		.take(500);
+	const users = await Promise.all(registrations.map(({ userId }) => ctx.db.get(userId)));
+	return users.flatMap((user) =>
+		user && !user.deleted ? [{ userId: user._id, email: user.email }] : [],
+	);
 }
 
 async function reminderInfo(ctx: QueryCtx, eventId: Id<"events">) {
@@ -89,13 +113,6 @@ async function loadEmailContext(ctx: QueryCtx, eventId: Id<"events">) {
 	if (event.eventStart <= Date.now()) return null;
 	const company = await ctx.db.get(event.hostingCompany);
 	if (!company) return null;
-	const registrations = await ctx.db
-		.query("registrations")
-		.withIndex("by_eventIdStatusAndRegistrationTime", (index) =>
-			index.eq("eventId", eventId).eq("status", "registered"),
-		)
-		.take(500);
-	const users = await Promise.all(registrations.map(({ userId }) => ctx.db.get(userId)));
 	return {
 		company: company.name,
 		eventStart: event.eventStart,
@@ -104,9 +121,7 @@ async function loadEmailContext(ctx: QueryCtx, eventId: Id<"events">) {
 		info: await reminderInfo(ctx, eventId),
 		eventUrl: publicEventUrl(event),
 		signature: await reminderSignature(ctx, eventId),
-		recipients: users.flatMap((user) =>
-			user && !user.deleted ? [{ userId: user._id, email: user.email }] : [],
-		),
+		recipients: await reminderRecipients(ctx, eventId),
 	};
 }
 

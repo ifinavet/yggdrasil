@@ -8,7 +8,7 @@ import { internalMutation, type MutationCtx, mutation } from "../../_generated/s
 import { internalRoles, requireRole } from "../../auth/accessRights";
 import { enqueueSystemMessage } from "../../iam/notifications";
 import { escapeSlack, eventUrl } from "../slack/messages";
-import { reviewedReminder } from "./queries";
+import { reminderRecipients, reviewedReminder, reviewedReminderDelivered } from "./queries";
 import { REVIEWED_REMINDER_KIND } from "./schedule";
 
 async function saveInfo(
@@ -43,16 +43,28 @@ export const saveReminderInfo = mutation({
 	},
 });
 
+async function requireSendableEvent(ctx: MutationCtx, eventId: Id<"events">) {
+	const event = await ctx.db.get(eventId);
+	if (!event) throw new ConvexError("Arrangementet finnes ikke.");
+	if (!event.published || event.externalEvent)
+		throw new ConvexError("Påminnelser sendes bare for publiserte arrangementer hos Navet.");
+	if (event.eventStart <= Date.now()) throw new ConvexError("Arrangementet har allerede startet.");
+	if ((await reminderRecipients(ctx, eventId)).length === 0)
+		throw new ConvexError("Ingen er påmeldt ennå.");
+}
+
+async function queueReviewedReminder(ctx: MutationCtx, eventId: Id<"events">) {
+	await ctx.scheduler.runAfter(0, internal.events.reminders.emails.sendEventReminder, {
+		eventId,
+		kind: REVIEWED_REMINDER_KIND,
+	});
+}
+
 export const approveEventReminder = mutation({
 	args: { eventId: v.id("events"), text: v.string() },
 	handler: async (ctx, { eventId, text }) => {
 		const user = await requireRole(ctx, internalRoles);
-		const event = await ctx.db.get(eventId);
-		if (!event) throw new ConvexError("Arrangementet finnes ikke.");
-		if (!event.published || event.externalEvent)
-			throw new ConvexError("Påminnelser sendes bare for publiserte arrangementer hos Navet.");
-		if (event.eventStart <= Date.now())
-			throw new ConvexError("Arrangementet har allerede startet.");
+		await requireSendableEvent(ctx, eventId);
 		if (await reviewedReminder(ctx, eventId))
 			throw new ConvexError("Påminnelsen er allerede sendt.");
 		await saveInfo(ctx, eventId, user._id, text);
@@ -63,18 +75,31 @@ export const approveEventReminder = mutation({
 			queuedAt: Date.now(),
 			approvedBy: user._id,
 		});
-		await ctx.scheduler.runAfter(0, internal.events.reminders.emails.sendEventReminder, {
-			eventId,
-			kind: REVIEWED_REMINDER_KIND,
-		});
+		await queueReviewedReminder(ctx, eventId);
 	},
 });
 
-function missingReminderText(event: Doc<"events">) {
+export const retryEventReminder = mutation({
+	args: { eventId: v.id("events") },
+	handler: async (ctx, { eventId }) => {
+		await requireRole(ctx, internalRoles);
+		await requireSendableEvent(ctx, eventId);
+		if (!(await reviewedReminder(ctx, eventId)))
+			throw new ConvexError("Påminnelsen er ikke godkjent.");
+		if (await reviewedReminderDelivered(ctx, eventId))
+			throw new ConvexError("Påminnelsen er allerede sendt.");
+		await ctx.db.patch(eventId, { remindersEnabled: true });
+		await queueReviewedReminder(ctx, eventId);
+	},
+});
+
+function missingReminderText(event: Doc<"events">, approved: boolean) {
 	return [
 		"🚨 *Ingen påminnelsesmail ble sendt*",
 		`*Arrangement:* ${escapeSlack(event.title)}`,
-		"De ansvarlige godkjente aldri påminnelsesmailen i Bifrost, så de påmeldte fikk ingen påminnelse.",
+		approved
+			? "Påminnelsen ble godkjent, men ingen mail ble levert."
+			: "De ansvarlige godkjente aldri påminnelsesmailen i Bifrost, så de påmeldte fikk ingen påminnelse.",
 		`<${eventUrl(event)}|Åpne arrangementet>`,
 	].join("\n");
 }
@@ -91,11 +116,12 @@ export const alertMissingReminders = internalMutation({
 			.take(200);
 		for (const event of started) {
 			if (!event.published || event.externalEvent) continue;
-			if (await reviewedReminder(ctx, event._id)) continue;
+			const approved = (await reviewedReminder(ctx, event._id)) !== null;
+			if (approved && (await reviewedReminderDelivered(ctx, event._id))) continue;
 			await enqueueSystemMessage(ctx, {
 				channel: SYSTEM_ALERTS_CHANNEL,
 				clientMsgId: `reminder-missing-${event._id}-${event.eventStart}`,
-				text: missingReminderText(event),
+				text: missingReminderText(event, approved),
 			});
 		}
 	},

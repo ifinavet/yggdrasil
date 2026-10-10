@@ -43,6 +43,28 @@ async function internalClient(t: TestBackend, email = "internal@example.test") {
 	return { user, client: asUser(t, user) };
 }
 
+async function registerStudent(t: TestBackend, eventId: Id<"events">) {
+	const student = await insertUser(t, "registered@example.test");
+	await insertRegistration(t, eventId, student._id, "registered");
+	return student;
+}
+
+async function insertDelivery(t: TestBackend, eventId: Id<"events">, sent: boolean) {
+	const student = await registerStudent(t, eventId);
+	await t.run(async (ctx) => {
+		const event = await ctx.db.get(eventId);
+		await ctx.db.insert("eventReminders", { eventId, kind: "twoDays", queuedAt: Date.now() });
+		await ctx.db.insert("eventReminderDeliveries", {
+			eventId,
+			eventStart: event?.eventStart ?? 0,
+			kind: "twoDays",
+			userId: student._id,
+			emailId: "email-id",
+			sent,
+		});
+	});
+}
+
 async function systemAlerts(t: TestBackend) {
 	return t.run((ctx) => ctx.db.query("slackSystemDeliveries").collect());
 }
@@ -51,6 +73,7 @@ describe("approveEventReminder", () => {
 	it("saves the info and queues the reminder once", async () => {
 		const { t, eventId } = await setupEvent({ eventStart: Date.now() + 2 * DAY_IN_MS });
 		const { user, client } = await internalClient(t);
+		await registerStudent(t, eventId);
 		const { approveEventReminder } = api.events.reminders.mutations;
 
 		await client.mutation(approveEventReminder, { eventId, text: "  Ta med PC.  " });
@@ -64,8 +87,9 @@ describe("approveEventReminder", () => {
 			{
 				sendable: true,
 				info: "Ta med PC.",
-				sentAt: expect.any(Number),
-				sentBy: "Test Testesen",
+				approvedAt: expect.any(Number),
+				approvedBy: "Test Testesen",
+				delivered: false,
 			},
 		);
 		const rows = await t.run((ctx) => ctx.db.query("eventReminders").collect());
@@ -91,6 +115,7 @@ describe("approveEventReminder", () => {
 			remindersEnabled: false,
 		});
 		const { client } = await internalClient(t);
+		await registerStudent(t, eventId);
 		await client.mutation(api.events.reminders.mutations.approveEventReminder, {
 			eventId,
 			text: "",
@@ -115,6 +140,16 @@ describe("approveEventReminder", () => {
 		expect(await queuedReminders(t)).toEqual([]);
 	});
 
+	it("refuses an event nobody is registered for", async () => {
+		const { t, eventId } = await setupEvent({ eventStart: Date.now() + DAY_IN_MS });
+		const { client } = await internalClient(t);
+		const message = await refusalMessageFrom(
+			client.mutation(api.events.reminders.mutations.approveEventReminder, { eventId, text: "" }),
+		);
+		expect(message).toContain("Ingen er påmeldt");
+		expect(await queuedReminders(t)).toEqual([]);
+	});
+
 	it("rejects info over the length limit", async () => {
 		const { t, eventId } = await setupEvent({ eventStart: Date.now() + DAY_IN_MS });
 		const { client } = await internalClient(t);
@@ -124,6 +159,35 @@ describe("approveEventReminder", () => {
 				text: "a".repeat(REMINDER_INFO_MAX_LENGTH + 1),
 			}),
 		).rejects.toThrow();
+	});
+});
+
+describe("retryEventReminder", () => {
+	it("queues the approved reminder again until a mail is delivered", async () => {
+		const { t, eventId } = await setupEvent({ eventStart: Date.now() + DAY_IN_MS });
+		const { client } = await internalClient(t);
+		await insertDelivery(t, eventId, false);
+		await client.mutation(api.events.reminders.mutations.retryEventReminder, { eventId });
+		expect(await queuedReminders(t)).toEqual([{ eventId, kind: "twoDays" }]);
+	});
+
+	it("refuses unapproved and delivered reminders", async () => {
+		const { t, companyId, eventId } = await setupEvent({ eventStart: Date.now() + DAY_IN_MS });
+		const { client } = await internalClient(t);
+		await registerStudent(t, eventId);
+		const { retryEventReminder } = api.events.reminders.mutations;
+		expect(await refusalMessageFrom(client.mutation(retryEventReminder, { eventId }))).toContain(
+			"ikke godkjent",
+		);
+		const delivered = await insertEvent(t, companyId, {
+			eventStart: Date.now() + DAY_IN_MS,
+			remindersEnabled: true,
+		});
+		await insertDelivery(t, delivered, true);
+		expect(
+			await refusalMessageFrom(client.mutation(retryEventReminder, { eventId: delivered })),
+		).toContain("allerede sendt");
+		expect(await queuedReminders(t)).toEqual([]);
 	});
 });
 
@@ -139,11 +203,18 @@ describe("alertMissingReminders", () => {
 		expect(alerts[0]?.text).toContain("godkjente aldri påminnelsesmailen i Bifrost");
 	});
 
-	it("stays quiet for approved, upcoming, old and external events", async () => {
+	it("alerts when an approved reminder was never delivered", async () => {
+		const { t, eventId } = await setupEvent({ eventStart: Date.now() - HOUR_IN_MS });
+		await insertDelivery(t, eventId, false);
+		await t.mutation(internal.events.reminders.mutations.alertMissingReminders, {});
+		const alerts = await systemAlerts(t);
+		expect(alerts).toHaveLength(1);
+		expect(alerts[0]?.text).toContain("ble godkjent, men ingen mail ble levert");
+	});
+
+	it("stays quiet for delivered, upcoming, old and external events", async () => {
 		const { t, companyId, eventId } = await setupEvent({ eventStart: Date.now() - HOUR_IN_MS });
-		await t.run((ctx) =>
-			ctx.db.insert("eventReminders", { eventId, kind: "twoDays", queuedAt: Date.now() }),
-		);
+		await insertDelivery(t, eventId, true);
 		await insertEvent(t, companyId, {
 			eventStart: Date.now() + HOUR_IN_MS,
 			remindersEnabled: true,
@@ -189,7 +260,16 @@ describe("getEventReminders", () => {
 		const { client } = await internalClient(t);
 		expect(
 			await client.query(api.events.reminders.queries.getEventReminders, { eventId }),
-		).toMatchObject({ sendable: false, sentAt: null });
+		).toMatchObject({ sendable: false, approvedAt: null, delivered: false });
+	});
+
+	it("reports delivery once a mail is sent", async () => {
+		const { t, eventId } = await setupEvent({ eventStart: Date.now() + DAY_IN_MS });
+		const { client } = await internalClient(t);
+		await insertDelivery(t, eventId, true);
+		expect(
+			await client.query(api.events.reminders.queries.getEventReminders, { eventId }),
+		).toMatchObject({ approvedAt: expect.any(Number), approvedBy: null, delivered: true });
 	});
 });
 

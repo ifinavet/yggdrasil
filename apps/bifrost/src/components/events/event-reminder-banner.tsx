@@ -20,6 +20,7 @@ import { Field, FieldDescription, FieldLabel } from "@workspace/ui/components/fi
 import { Note } from "@workspace/ui/components/note";
 import { cn } from "@workspace/ui/lib/utils";
 import { useAction, useMutation, useQuery } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { useState } from "react";
 import { toast } from "sonner";
 import { EditorMenu } from "@/components/common/forms/markdown-editor/markdown-editor";
@@ -27,29 +28,60 @@ import { useContentEditor } from "@/components/common/forms/markdown-editor/use-
 
 type Preview = { subject: string; html: string; recipients: number };
 
+type Reminder = NonNullable<
+	FunctionReturnType<typeof api.events.reminders.queries.getEventReminders>
+>;
+
+function statusText({ approvedAt, approvedBy, delivered }: Reminder) {
+	if (approvedAt === null) return "Påminnelsesmailen er klar til å sendes.";
+	if (!delivered) return "Påminnelsen er på vei ut.";
+	const by = approvedBy ? ` av ${approvedBy}` : "";
+	return `Påminnelsen ble sendt ${formatOsloDate(approvedAt, DATE_PATTERNS.dateTime)}${by}.`;
+}
+
 export function EventReminderBanner({ eventId }: Readonly<{ eventId: Id<"events"> }>) {
 	const reminder = useQuery(api.events.reminders.queries.getEventReminders, { eventId });
+	const retry = useMutation(api.events.reminders.mutations.retryEventReminder);
 	const [open, setOpen] = useState(false);
-	if (!reminder || (!reminder.sendable && !reminder.sentAt)) return null;
-	const sent = reminder.sentAt !== null;
+	const [retrying, setRetrying] = useState(false);
+	if (!reminder || (!reminder.sendable && reminder.approvedAt === null)) return null;
+	const sent = reminder.approvedAt !== null;
+
+	const onRetry = async () => {
+		setRetrying(true);
+		try {
+			await retry({ eventId });
+		} catch (error) {
+			toast.error(convexErrorMessage(error, "Kunne ikke sende påminnelsen. Prøv igjen."));
+		} finally {
+			setRetrying(false);
+		}
+	};
 
 	return (
 		<>
-			<Note tone={sent ? "ok" : "warn"} role="status" className="max-w-3xl items-center">
+			<Note
+				tone={reminder.delivered ? "ok" : "warn"}
+				role="status"
+				className="max-w-3xl items-center"
+			>
 				<div className="flex flex-wrap items-center justify-between gap-3">
-					<p className="text-sm">
-						{reminder.sentAt
-							? `Påminnelsen ble sendt ${formatOsloDate(reminder.sentAt, DATE_PATTERNS.dateTime)}${reminder.sentBy ? ` av ${reminder.sentBy}` : ""}.`
-							: "Påminnelsesmailen er klar til å sendes."}
-					</p>
-					<Button
-						type="button"
-						size="sm"
-						variant={sent ? "outline" : "default"}
-						onClick={() => setOpen(true)}
-					>
-						{sent ? "Endre informasjonen" : "Send påminnelsen"}
-					</Button>
+					<p className="text-sm">{statusText(reminder)}</p>
+					<div className="flex flex-wrap gap-2">
+						{sent && !reminder.delivered && reminder.sendable ? (
+							<Button type="button" size="sm" disabled={retrying} onClick={onRetry}>
+								Prøv igjen
+							</Button>
+						) : null}
+						<Button
+							type="button"
+							size="sm"
+							variant={sent ? "outline" : "default"}
+							onClick={() => setOpen(true)}
+						>
+							{sent ? "Endre informasjonen" : "Send påminnelsen"}
+						</Button>
+					</div>
 				</div>
 			</Note>
 			<Dialog open={open} onOpenChange={setOpen}>
@@ -144,7 +176,7 @@ function ReminderDialogBody({
 					<Button type="button" variant="outline" disabled={busy} onClick={() => setPreview(null)}>
 						Tilbake
 					</Button>
-					<Button type="button" disabled={busy} onClick={onSend}>
+					<Button type="button" disabled={busy || preview.recipients === 0} onClick={onSend}>
 						Send til {preview.recipients} påmeldte
 					</Button>
 				</DialogFooter>
