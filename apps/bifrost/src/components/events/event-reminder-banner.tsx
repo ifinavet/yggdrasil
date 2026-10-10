@@ -1,5 +1,6 @@
 "use client";
 
+import { EditorContent } from "@tiptap/react";
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { REMINDER_INFO_MAX_LENGTH } from "@workspace/shared/events/reminder";
@@ -17,10 +18,12 @@ import {
 } from "@workspace/ui/components/dialog";
 import { Field, FieldDescription, FieldLabel } from "@workspace/ui/components/field";
 import { Note } from "@workspace/ui/components/note";
-import { Textarea } from "@workspace/ui/components/textarea";
+import { cn } from "@workspace/ui/lib/utils";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { EditorMenu } from "@/components/common/forms/markdown-editor/markdown-editor";
+import { useContentEditor } from "@/components/common/forms/markdown-editor/use-content-editor";
 
 type Preview = { subject: string; html: string; recipients: number };
 
@@ -77,6 +80,12 @@ function ReminderDialogBody({
 	onDone: () => void;
 }>) {
 	const [info, setInfo] = useState(savedInfo);
+	const editor = useContentEditor({
+		placeholder: "",
+		initialContent: savedInfo,
+		onContentChange: setInfo,
+		markdown: true,
+	});
 	const [busy, setBusy] = useState(false);
 	const [preview, setPreview] = useState<Preview | null>(null);
 	const saveInfo = useMutation(api.events.reminders.mutations.saveReminderInfo);
@@ -148,19 +157,15 @@ function ReminderDialogBody({
 				<DialogTitle>Påminnelsesmail</DialogTitle>
 			</DialogHeader>
 			<Field>
-				<FieldLabel htmlFor="event-reminder-info">Informasjon fra bedriften</FieldLabel>
+				<FieldLabel>Viktig info</FieldLabel>
 				<FieldDescription>
 					Står i påminnelsen og på arrangementssiden for dem som er påmeldt, for eksempel at de må
-					ta med PC eller laste ned noe på forhånd. Lenker skrives som [tekst](https://adresse.no).
+					ta med PC eller laste ned noe på forhånd.
 				</FieldDescription>
-				<Textarea
-					id="event-reminder-info"
-					value={info}
-					rows={8}
-					aria-describedby="event-reminder-info-count"
-					aria-invalid={tooLong}
-					onChange={(event) => setInfo(event.target.value)}
-				/>
+				<div className={cn("overflow-clip rounded-md border", tooLong && "border-destructive")}>
+					<EditorMenu editor={editor} />
+					<EditorContent editor={editor} />
+				</div>
 				<CharacterCount
 					id="event-reminder-info-count"
 					length={info.length}

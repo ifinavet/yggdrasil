@@ -26,6 +26,7 @@
 		"@tiptap/extension-ordered-list": "^3.31.4",
 		"@tiptap/extension-placeholder": "catalog:",
 		"@tiptap/extension-underline": "^3.31.4",
+		"@tiptap/markdown": "3.31.4",
 		"@tiptap/pm": "catalog:",
 		"@tiptap/react": "catalog:",
 		"@tiptap/starter-kit": "catalog:",

@@ -70,8 +70,8 @@ catalogs:
       specifier: 1.49.0
       version: 1.49.0
     marked:
-      specifier: 15.0.12
-      version: 15.0.12
+      specifier: 17.0.6
+      version: 17.0.6
     next-themes:
       specifier: 0.4.6
       version: 0.4.6
@@ -193,6 +193,9 @@ importers:
       '@tiptap/extension-underline':
         specifier: ^3.31.4
         version: 3.31.4(@tiptap/core@3.31.4(@tiptap/pm@3.31.4))
+      '@tiptap/markdown':
+        specifier: 3.31.4
+        version: 3.31.4(@tiptap/core@3.31.4(@tiptap/pm@3.31.4))(@tiptap/pm@3.31.4)
       '@tiptap/pm':
         specifier: 'catalog:'
         version: 3.31.4
@@ -718,7 +721,7 @@ importers:
         version: 4.4.0
       marked:
         specifier: 'catalog:'
-        version: 15.0.12
+        version: 17.0.6
       papaparse:
         specifier: 5.7.0
         version: 5.7.0
@@ -3772,6 +3775,12 @@ packages:
       '@tiptap/core': 3.31.4
       '@tiptap/pm': 3.31.4
 
+  '@tiptap/markdown@3.31.4':
+    resolution: {integrity: sha512-lmR9V1/eQ41BaR2zBgYG/+Liy7K7Ch17ZNxVy8dpUVlNpWxxoHUMXNsCg2uEyXP3NLpZaKiY0+drSu9oK1DbSA==}
+    peerDependencies:
+      '@tiptap/core': 3.31.4
+      '@tiptap/pm': 3.31.4
+
   '@tiptap/pm@3.31.4':
     resolution: {integrity: sha512-x7dwth79cQp4QGae66/RJqMDJQv0+n7b7dD7cyFQBWqzPFLJxN/4paHY4qbWedZjNLhRyIOAD9a5q4AYM1zmPA==}
 
@@ -5251,6 +5260,11 @@ packages:
   marked@15.0.12:
     resolution: {integrity: sha512-8dD6FusOQSrpv9Z1rdNMdlSgQOIP880DHqnohobOmYLElGEqAL/JvxvuxZO16r4HtjTlfPRDC1hbvxC9dPN2nA==}
     engines: {node: '>= 18'}
+    hasBin: true
+
+  marked@17.0.6:
+    resolution: {integrity: sha512-gB0gkNafnonOw0obSTEGZTT86IuhILt2Wfx0mWH/1Au83kybTayroZ/V6nS25mN7u8ASy+5fMhgB3XPNrOZdmA==}
+    engines: {node: '>= 20'}
     hasBin: true
 
   math-intrinsics@1.1.0:
@@ -8908,6 +8922,12 @@ snapshots:
       '@tiptap/core': 3.31.4(@tiptap/pm@3.31.4)
       '@tiptap/pm': 3.31.4
 
+  '@tiptap/markdown@3.31.4(@tiptap/core@3.31.4(@tiptap/pm@3.31.4))(@tiptap/pm@3.31.4)':
+    dependencies:
+      '@tiptap/core': 3.31.4(@tiptap/pm@3.31.4)
+      '@tiptap/pm': 3.31.4
+      marked: 17.0.6
+
   '@tiptap/pm@3.31.4':
     dependencies:
       prosemirror-changeset: 2.4.3
@@ -10419,6 +10439,8 @@ snapshots:
       source-map-js: 1.2.2
 
   marked@15.0.12: {}
+
+  marked@17.0.6: {}
 
   math-intrinsics@1.1.0: {}
 
