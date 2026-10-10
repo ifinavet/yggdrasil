@@ -113,7 +113,7 @@ export function welcomeMessage(event: Doc<"events">, now: number, campaignOpensA
 		"*Dette gjør dere*",
 		`• ${contact}. <${eventUrl(event)}?planning=prepare|Se over og send invitasjonen i Bifrost>.`,
 		"• Avklar rom, mat og praktisk opplegg med bedriften, og fordel oppgavene mellom dere.",
-		"• Legg inn informasjon fra bedriften og send påminnelsesmailen til de påmeldte i Bifrost.",
+		"• Legg inn tilleggsinformasjon og send påminnelsesmailen til de påmeldte i Bifrost.",
 		"• Registrer oppmøte i Bifrost på arrangementsdagen.",
 		...(eventPlanningAt(event.eventStart, EVENT_PLANNING.practicalDaysBefore) > now
 			? [
@@ -136,9 +136,9 @@ export function reminderSentText(kind: string) {
 		: "Jeg har begynt å sende en påminnelse på e-post til dem som er påmeldt arrangementet. ✉️";
 }
 export const reminderReviewText =
-	"Påminnelsesmailen til de påmeldte er klar til gjennomgang. ✉️ Legg inn det bedriften vil at deltakerne skal vite, for eksempel om de må ta med PC eller laste ned noe, og send den fra Bifrost.";
+	"Påminnelsesmailen til de påmeldte er klar til gjennomgang. ✉️ Legg inn tilleggsinformasjon, for eksempel om de må ta med PC eller laste ned noe, og send den fra Bifrost.";
 export const reminderNagText =
-	"Påminnelsesmailen er fortsatt ikke sendt. Legg inn informasjonen fra bedriften og send den fra Bifrost, ellers får de påmeldte ingen påminnelse.";
+	"Påminnelsesmailen er fortsatt ikke sendt. Legg inn tilleggsinformasjon og send den fra Bifrost, ellers får de påmeldte ingen påminnelse.";
 export function feedbackSentText(round: number) {
 	return round === 0
 		? "Jeg har begynt å sende ut tilbakemeldingsskjemaet til deltakerne som møtte. ✉️"

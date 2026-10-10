@@ -60,7 +60,7 @@ export function EventChecklistPanel({
 	if (event.externalEvent) reminders = ["Ingen deltakerpåminnelser ved ekstern påmelding."];
 	else
 		reminders = [
-			`${day(eventPlanningAt(event.eventStart, EVENT_PLANNING.reminderReviewDaysBefore))}: Påminnelsesmailen er klar. Legg inn informasjon fra bedriften og send den.`,
+			`${day(eventPlanningAt(event.eventStart, EVENT_PLANNING.reminderReviewDaysBefore))}: Påminnelsesmailen er klar. Legg inn tilleggsinformasjon og send den.`,
 		];
 	let feedback: string[];
 	if (campaign === undefined) feedback = ["Henter utsendelsesplan …"];
