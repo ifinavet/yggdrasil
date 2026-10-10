@@ -114,15 +114,21 @@ export const alertMissingReminders = internalMutation({
 				index.gt("eventStart", now - DAY_MS).lte("eventStart", now),
 			)
 			.take(200);
-		for (const event of started) {
-			if (!event.published || event.externalEvent) continue;
-			const approved = (await reviewedReminder(ctx, event._id)) !== null;
-			if (approved && (await reviewedReminderDelivered(ctx, event._id))) continue;
-			await enqueueSystemMessage(ctx, {
-				channel: SYSTEM_ALERTS_CHANNEL,
-				clientMsgId: `reminder-missing-${event._id}-${event.eventStart}`,
-				text: missingReminderText(event, approved),
-			});
-		}
+		const alertable = started.filter((event) => event.published && !event.externalEvent);
+		await Promise.all(
+			alertable.map(async (event) => {
+				const [reminder, delivered] = await Promise.all([
+					reviewedReminder(ctx, event._id),
+					reviewedReminderDelivered(ctx, event._id),
+				]);
+				const approved = reminder !== null;
+				if (approved && delivered) return;
+				await enqueueSystemMessage(ctx, {
+					channel: SYSTEM_ALERTS_CHANNEL,
+					clientMsgId: `reminder-missing-${event._id}-${event.eventStart}`,
+					text: missingReminderText(event, approved),
+				});
+			}),
+		);
 	},
 });

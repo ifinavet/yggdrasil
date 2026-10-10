@@ -2,7 +2,7 @@ import { Marked } from "marked";
 
 export const REMINDER_INFO_MAX_LENGTH = 2000;
 
-const LINK_PROTOCOLS = ["http:", "https:", "mailto:"];
+const LINK_PROTOCOLS = new Set(["http:", "https:", "mailto:"]);
 
 const HTML_ESCAPES: Record<string, string> = {
 	"&": "&amp;",
@@ -18,7 +18,7 @@ function escapeHtml(text: string) {
 
 function safeHref(href: string) {
 	try {
-		return LINK_PROTOCOLS.includes(new URL(href).protocol) ? href : null;
+		return LINK_PROTOCOLS.has(new URL(href).protocol) ? href : null;
 	} catch {
 		return null;
 	}

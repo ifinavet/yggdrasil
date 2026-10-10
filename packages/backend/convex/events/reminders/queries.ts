@@ -35,7 +35,7 @@ export const getEventReminders = query({
 	},
 });
 
-export async function reviewedReminder(ctx: QueryCtx, eventId: Id<"events">) {
+export function reviewedReminder(ctx: QueryCtx, eventId: Id<"events">) {
 	return ctx.db
 		.query("eventReminders")
 		.withIndex("by_eventId_and_kind", (q) =>
