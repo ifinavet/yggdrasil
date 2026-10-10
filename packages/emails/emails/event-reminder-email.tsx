@@ -1,4 +1,5 @@
 import { MIDGARD_URL } from "@workspace/shared/constants/urls";
+import { renderReminderInfo } from "@workspace/shared/events/reminder";
 import {
 	Container,
 	Font,
@@ -63,7 +64,13 @@ export default function EventReminderEmail({
 						Minner om at du er påmeldt til bedriftspresentasjon med {company} {time} {location}.
 					</Text>
 
-					{info ? <InfoParagraphs info={info} /> : null}
+					{info ? (
+						<div
+							className="text-[14px] leading-[24px]"
+							// biome-ignore lint/security/noDangerouslySetInnerHtml: renderReminderInfo escapes raw HTML and unsafe links
+							dangerouslySetInnerHTML={{ __html: renderReminderInfo(info) }}
+						/>
+					) : null}
 
 					<Text>
 						{info ? "Du finner også denne informasjonen" : "Du finner mer informasjon"} på{" "}
@@ -118,17 +125,4 @@ export default function EventReminderEmail({
 			</Tailwind>
 		</Html>
 	);
-}
-
-function InfoParagraphs({ info }: Readonly<{ info: string }>) {
-	return [...info.matchAll(/(?:[^\S\n]*\S[^\n]*(?:\n|$))+/g)].map((paragraph) => (
-		<Text key={paragraph.index}>
-			{[...paragraph[0].matchAll(/[^\n]*\S[^\n]*/g)].map((line) => (
-				<span key={line.index}>
-					{line.index ? <br /> : null}
-					{line[0].trim()}
-				</span>
-			))}
-		</Text>
-	));
 }

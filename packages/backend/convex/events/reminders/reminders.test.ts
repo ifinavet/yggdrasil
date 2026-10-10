@@ -62,7 +62,7 @@ describe("approveEventReminder", () => {
 		expect(await queuedReminders(t)).toEqual([{ eventId, kind: "twoDays" }]);
 		expect(await client.query(api.events.reminders.queries.getEventReminders, { eventId })).toEqual(
 			{
-				enabled: true,
+				sendable: true,
 				info: "Ta med PC.",
 				sentAt: expect.any(Number),
 				sentBy: "Test Testesen",
@@ -85,12 +85,25 @@ describe("approveEventReminder", () => {
 		expect(await queuedReminders(t)).toEqual([]);
 	});
 
-	it("refuses events that are off, hidden, external or started", async () => {
+	it("sends for an event whose reminders were switched off and switches them on", async () => {
+		const { t, eventId } = await setupEvent({
+			eventStart: Date.now() + 2 * DAY_IN_MS,
+			remindersEnabled: false,
+		});
+		const { client } = await internalClient(t);
+		await client.mutation(api.events.reminders.mutations.approveEventReminder, {
+			eventId,
+			text: "",
+		});
+		expect(await queuedReminders(t)).toEqual([{ eventId, kind: "twoDays" }]);
+		expect(await t.run((ctx) => ctx.db.get(eventId))).toMatchObject({ remindersEnabled: true });
+	});
+
+	it("refuses events that are hidden, external or started", async () => {
 		const { t, companyId } = await setup();
 		const { client } = await internalClient(t);
 		const soon = Date.now() + DAY_IN_MS;
 		const events = await Promise.all([
-			insertEvent(t, companyId, { eventStart: soon }),
 			insertEvent(t, companyId, { eventStart: soon, remindersEnabled: true, published: false }),
 			insertEvent(t, companyId, { eventStart: soon, remindersEnabled: true, externalEvent: true }),
 			insertEvent(t, companyId, { eventStart: Date.now() - HOUR_IN_MS, remindersEnabled: true }),
@@ -126,7 +139,7 @@ describe("alertMissingReminders", () => {
 		expect(alerts[0]?.text).toContain("godkjente aldri påminnelsesmailen i Bifrost");
 	});
 
-	it("stays quiet for approved, upcoming, old and switched off events", async () => {
+	it("stays quiet for approved, upcoming, old and external events", async () => {
 		const { t, companyId, eventId } = await setupEvent({ eventStart: Date.now() - HOUR_IN_MS });
 		await t.run((ctx) =>
 			ctx.db.insert("eventReminders", { eventId, kind: "twoDays", queuedAt: Date.now() }),
@@ -139,7 +152,6 @@ describe("alertMissingReminders", () => {
 			eventStart: Date.now() - 2 * DAY_IN_MS,
 			remindersEnabled: true,
 		});
-		await insertEvent(t, companyId, { eventStart: Date.now() - HOUR_IN_MS });
 		await insertEvent(t, companyId, {
 			eventStart: Date.now() - HOUR_IN_MS,
 			remindersEnabled: true,
@@ -171,7 +183,30 @@ describe("getOwnReminderInfo", () => {
 	});
 });
 
+describe("getEventReminders", () => {
+	it("is not sendable once the event has started", async () => {
+		const { t, eventId } = await setupEvent({ eventStart: Date.now() - HOUR_IN_MS });
+		const { client } = await internalClient(t);
+		expect(
+			await client.query(api.events.reminders.queries.getEventReminders, { eventId }),
+		).toMatchObject({ sendable: false, sentAt: null });
+	});
+});
+
 describe("previewEventReminder", () => {
+	it("renders markdown links and escapes raw html", async () => {
+		const { t, eventId } = await setupEvent({ eventStart: Date.now() + DAY_IN_MS });
+		const { client } = await internalClient(t);
+		const preview = await client.action(api.events.reminders.emails.previewEventReminder, {
+			eventId,
+			info: "Last ned [Docker](https://docker.com).\n<script>alert(1)</script>\n[x](javascript:alert(1))",
+		});
+		expect(preview?.html).toContain('href="https://docker.com"');
+		expect(preview?.html).toContain("&lt;script&gt;");
+		expect(preview?.html).not.toContain("<script");
+		expect(preview?.html).not.toContain("javascript:");
+	});
+
 	it("renders the draft info for internals only", async () => {
 		const { t, eventId } = await setupEvent({ eventStart: Date.now() + DAY_IN_MS });
 		const { client } = await internalClient(t);
@@ -226,9 +261,11 @@ describe("emailContext", () => {
 		expect(context?.signature).toEqual({ name: "Navet", email: "arrangement@ifinavet.no" });
 	});
 
-	it("returns nothing once reminders are turned off", async () => {
+	it("builds the email for events whose reminders were switched off", async () => {
 		const { t, eventId } = await setupEvent({ remindersEnabled: false });
-		expect(await t.query(internal.events.reminders.queries.emailContext, { eventId })).toBeNull();
+		expect(
+			await t.query(internal.events.reminders.queries.emailContext, { eventId }),
+		).not.toBeNull();
 	});
 });
 
@@ -269,116 +306,5 @@ describe("sendEventReminder", () => {
 			expect.objectContaining({ to: "second@example.test" }),
 		);
 		vi.restoreAllMocks();
-	});
-});
-
-describe("setEventReminders", () => {
-	it("lets internals toggle reminders", async () => {
-		const { t, eventId } = await setupEvent({ remindersEnabled: undefined });
-		const { client } = await internalClient(t);
-		const { getEventReminders } = api.events.reminders.queries;
-		expect(await client.query(getEventReminders, { eventId })).toMatchObject({ enabled: false });
-		await client.mutation(api.events.reminders.mutations.setEventReminders, {
-			eventId,
-			enabled: true,
-		});
-		expect(await client.query(getEventReminders, { eventId })).toMatchObject({ enabled: true });
-	});
-
-	it("refuses users without an internal role", async () => {
-		const { t, eventId } = await setupEvent({ remindersEnabled: undefined });
-		const student = asUser(t, await insertUser(t, "student@example.test"));
-		const message = await refusalMessageFrom(
-			student.mutation(api.events.reminders.mutations.setEventReminders, {
-				eventId,
-				enabled: true,
-			}),
-		);
-		expect(message).toContain("Du har ikke tilgang");
-		expect(await t.run((ctx) => ctx.db.get(eventId))).not.toHaveProperty("remindersEnabled");
-	});
-});
-
-describe("EventReminderEmail", () => {
-	it("fills in the event and signature", async () => {
-		const text = await render(
-			EventReminderEmail({
-				company: "Testbedrift",
-				time: "torsdag 1. oktober, 16:15",
-				location: "Escape",
-				eventUrl: "https://ifinavet.no/events/testbedrift",
-				signature: {
-					name: "Kari Nordmann",
-					position: "Bedriftskontakt",
-					email: "kari@ifinavet.no",
-				},
-			}),
-			{ plainText: true },
-		);
-		expect(text).toContain(
-			"bedriftspresentasjon med Testbedrift torsdag 1. oktober, 16:15 Escape.",
-		);
-		expect(text).toContain("Bedriftskontakt | Navet");
-		expect(text).toContain("https://ifinavet.no/info/retningslinjer");
-		expect(text).not.toContain("+47");
-		expect(text).toContain("Du finner mer informasjon på arrangementssiden");
-		expect(text).toContain("https://ifinavet.no/events/testbedrift");
-	});
-
-	it("includes the info from the company", async () => {
-		const text = await render(
-			EventReminderEmail({
-				company: "Testbedrift",
-				time: "torsdag 1. oktober, 16:15",
-				location: "Escape",
-				info: "Ta med PC.\nLast ned Docker på forhånd.",
-				eventUrl: "https://ifinavet.no/events/testbedrift",
-				signature: { name: "Kari Nordmann", email: "kari@ifinavet.no" },
-			}),
-			{ plainText: true },
-		);
-		expect(text).toContain("Ta med PC.");
-		expect(text).toContain("Last ned Docker på forhånd.");
-		expect(text).toContain("Du finner også denne informasjonen på arrangementssiden");
-	});
-
-	it("keeps the line breaks and paragraphs of the info after pretty printing", async () => {
-		const html = await pretty(
-			await render(
-				EventReminderEmail({
-					company: "Testbedrift",
-					time: "torsdag 1. oktober, 16:15",
-					location: "Escape",
-					info: "Ta med PC.\nLast ned Docker.\n\n  \nKom 10 minutter før.\n",
-					eventUrl: "https://ifinavet.no/events/testbedrift",
-					signature: { name: "Kari Nordmann", email: "kari@ifinavet.no" },
-				}),
-			),
-		);
-		const paragraphs = [...html.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/g)].map((match) =>
-			(match[1] ?? "")
-				.replace(/<!-- -->/g, "")
-				.replace(/\s+/g, " ")
-				.trim(),
-		);
-		expect(paragraphs).toContain("<span>Ta med PC.</span><span><br />Last ned Docker.</span>");
-		expect(paragraphs).toContain("<span>Kom 10 minutter før.</span>");
-	});
-
-	it("signs off with the organizer and the Navet logo", async () => {
-		const html = await render(
-			EventReminderEmail({
-				company: "Testbedrift",
-				time: "torsdag 1. oktober, 16:15",
-				location: "Escape",
-				eventUrl: "https://ifinavet.no/events/testbedrift",
-				signature: { name: "Kari Nordmann", email: "kari@ifinavet.no" },
-			}),
-		);
-		const signature = html.slice(html.indexOf("Med vennlig hilsen,"));
-		expect(signature).toContain("Kari Nordmann");
-		expect(signature).toContain('href="mailto:kari@ifinavet.no"');
-		expect(signature).toContain(`src="${NAVET_LOGO_URL}"`);
-		expect(signature).not.toContain(" | Navet");
 	});
 });

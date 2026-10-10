@@ -63,14 +63,6 @@ async function createEventAndFind() {
 	return { t, client, eventId: event?._id as Id<"events"> };
 }
 
-async function remindersEnabled(
-	client: Awaited<ReturnType<typeof fixture>>["client"],
-	eventId: Id<"events">,
-) {
-	const settings = await client.query(api.events.reminders.queries.getEventReminders, { eventId });
-	return settings.enabled;
-}
-
 describe("registration opening alerts", () => {
 	it("waits for the current opening time and sends once after rescheduling", async () => {
 		vi.useFakeTimers();
@@ -186,34 +178,12 @@ describe("events.mutations.create", () => {
 	});
 
 	it("turns reminder and feedback emails on for a new event", async () => {
-		const { t, client, eventId } = await createEventAndFind();
+		const { t, eventId } = await createEventAndFind();
 
 		expect(await t.run((ctx) => ctx.db.get(eventId))).toMatchObject({
 			remindersEnabled: true,
 			feedbackEnabled: true,
 		});
-		expect(await remindersEnabled(client, eventId)).toBe(true);
-	});
-
-	it("lets the board opt out of reminders on a new event", async () => {
-		const { client, eventId } = await createEventAndFind();
-
-		await client.mutation(api.events.reminders.mutations.setEventReminders, {
-			eventId,
-			enabled: false,
-		});
-
-		expect(await remindersEnabled(client, eventId)).toBe(false);
-	});
-
-	it("leaves existing events without the flags switched off", async () => {
-		const { t, companyId, client } = await fixture();
-		const eventId = await insertEvent(t, companyId);
-		await t.run((ctx) =>
-			ctx.db.patch(eventId, { remindersEnabled: undefined, feedbackEnabled: undefined }),
-		);
-
-		expect(await remindersEnabled(client, eventId)).toBe(false);
 	});
 
 	it("does not attach a legacy feedback form", async () => {

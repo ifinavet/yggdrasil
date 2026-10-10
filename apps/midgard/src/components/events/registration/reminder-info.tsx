@@ -2,8 +2,10 @@
 
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
+import { renderReminderInfo } from "@workspace/shared/events/reminder";
 import { useQuery } from "convex/react";
 import ContainerCard from "@/components/cards/container-card";
+import SanitizeHtml from "@/components/common/sanitize-html";
 
 export default function ReminderInfo({
 	className,
@@ -21,7 +23,7 @@ export default function ReminderInfo({
 	return (
 		<ContainerCard className={className}>
 			<p className="font-semibold text-lg">Fra bedriften</p>
-			<p className="whitespace-pre-line leading-7">{info}</p>
+			<SanitizeHtml html={renderReminderInfo(info)} className="prose dark:prose-invert" />
 		</ContainerCard>
 	);
 }

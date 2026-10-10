@@ -53,7 +53,7 @@ export function eventMessage(
 }
 
 function participantReminders(event: Doc<"events">, now: number) {
-	if (!event.remindersEnabled || !event.published) return [];
+	if (!event.published) return [];
 	const at = eventPlanningAt(event.eventStart, EVENT_PLANNING.reminderReviewDaysBefore);
 	return at > now
 		? [
@@ -68,8 +68,6 @@ function upcomingAutomations(event: Doc<"events">, now: number, campaignOpensAt?
 	const automatic: string[] = [];
 	if (event.published && event.registrationOpens > now)
 		automatic.push(`• Åpner påmeldingen ${when(event.registrationOpens)} og sier fra her.`);
-	if (!event.remindersEnabled)
-		automatic.push("• Påminnelsesmail til påmeldte er slått av for dette arrangementet.");
 	if (!event.feedbackEnabled)
 		automatic.push(
 			"• Automatisk innsamling av tilbakemeldinger er slått av for dette arrangementet.",
@@ -115,11 +113,7 @@ export function welcomeMessage(event: Doc<"events">, now: number, campaignOpensA
 		"*Dette gjør dere*",
 		`• ${contact}. <${eventUrl(event)}?planning=prepare|Se over og send invitasjonen i Bifrost>.`,
 		"• Avklar rom, mat og praktisk opplegg med bedriften, og fordel oppgavene mellom dere.",
-		...(event.remindersEnabled
-			? [
-					"• Legg inn informasjon fra bedriften og send påminnelsesmailen til de påmeldte i Bifrost.",
-				]
-			: []),
+		"• Legg inn informasjon fra bedriften og send påminnelsesmailen til de påmeldte i Bifrost.",
 		"• Registrer oppmøte i Bifrost på arrangementsdagen.",
 		...(eventPlanningAt(event.eventStart, EVENT_PLANNING.practicalDaysBefore) > now
 			? [

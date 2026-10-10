@@ -58,8 +58,6 @@ export function EventChecklistPanel({
 	const closesAt = campaign?.closesAt ?? feedbackRoundAt(opensAt, 14);
 	let reminders: string[];
 	if (event.externalEvent) reminders = ["Ingen deltakerpåminnelser ved ekstern påmelding."];
-	else if (!event.remindersEnabled || !event.published)
-		reminders = ["Påminnelsesmail til påmeldte er slått av."];
 	else
 		reminders = [
 			`${day(eventPlanningAt(event.eventStart, EVENT_PLANNING.reminderReviewDaysBefore))}: Påminnelsesmailen er klar. Legg inn informasjon fra bedriften og send den.`,

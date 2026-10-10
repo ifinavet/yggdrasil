@@ -11,16 +11,6 @@ import { escapeSlack, eventUrl } from "../slack/messages";
 import { reviewedReminder } from "./queries";
 import { REVIEWED_REMINDER_KIND } from "./schedule";
 
-export const setEventReminders = mutation({
-	args: { eventId: v.id("events"), enabled: v.boolean() },
-	handler: async (ctx, { eventId, enabled }) => {
-		await requireRole(ctx, internalRoles);
-		const event = await ctx.db.get(eventId);
-		if (!event) throw new ConvexError("Arrangementet finnes ikke.");
-		await ctx.db.patch(eventId, { remindersEnabled: enabled });
-	},
-});
-
 async function saveInfo(
 	ctx: MutationCtx,
 	eventId: Id<"events">,
@@ -59,8 +49,6 @@ export const approveEventReminder = mutation({
 		const user = await requireRole(ctx, internalRoles);
 		const event = await ctx.db.get(eventId);
 		if (!event) throw new ConvexError("Arrangementet finnes ikke.");
-		if (!event.remindersEnabled)
-			throw new ConvexError("Påminnelser er slått av for arrangementet.");
 		if (!event.published || event.externalEvent)
 			throw new ConvexError("Påminnelser sendes bare for publiserte arrangementer hos Navet.");
 		if (event.eventStart <= Date.now())
@@ -68,6 +56,7 @@ export const approveEventReminder = mutation({
 		if (await reviewedReminder(ctx, eventId))
 			throw new ConvexError("Påminnelsen er allerede sendt.");
 		await saveInfo(ctx, eventId, user._id, text);
+		await ctx.db.patch(eventId, { remindersEnabled: true });
 		await ctx.db.insert("eventReminders", {
 			eventId,
 			kind: REVIEWED_REMINDER_KIND,
@@ -101,7 +90,7 @@ export const alertMissingReminders = internalMutation({
 			)
 			.take(200);
 		for (const event of started) {
-			if (!event.remindersEnabled || !event.published || event.externalEvent) continue;
+			if (!event.published || event.externalEvent) continue;
 			if (await reviewedReminder(ctx, event._id)) continue;
 			await enqueueSystemMessage(ctx, {
 				channel: SYSTEM_ALERTS_CHANNEL,

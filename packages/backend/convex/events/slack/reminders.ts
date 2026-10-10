@@ -272,7 +272,7 @@ const reminderReview = defineReminder({
 		},
 	],
 	facts: async ({ ctx, event }) => {
-		if (!event.remindersEnabled || !event.published || event.externalEvent) return null;
+		if (!event.published || event.externalEvent) return null;
 		return (await reviewedReminder(ctx, event._id)) ? null : undefined;
 	},
 });

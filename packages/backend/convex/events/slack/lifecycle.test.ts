@@ -711,6 +711,10 @@ it("asks organizers to review the reminder email and nags until it is sent", asy
 		for (const row of await ctx.db.query("eventReminders").collect()) await ctx.db.delete(row._id);
 		await ctx.db.patch(eventId, { remindersEnabled: false });
 	});
+	expect(await due(eventPlanningAt(START, 4))).toHaveLength(1);
+	await t.run(async (ctx) => {
+		await ctx.db.patch(eventId, { externalEvent: true });
+	});
 	expect(await due(eventPlanningAt(START, 4))).toEqual([]);
 });
 

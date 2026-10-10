@@ -26,7 +26,7 @@ export const getEventReminders = query({
 		]);
 		const approver = reminder?.approvedBy && (await ctx.db.get(reminder.approvedBy));
 		return {
-			enabled: event.remindersEnabled === true,
+			sendable: event.published && !event.externalEvent && event.eventStart > Date.now(),
 			info,
 			sentAt: reminder?.queuedAt ?? null,
 			sentBy: approver ? `${approver.firstName} ${approver.lastName}` : null,
@@ -85,7 +85,7 @@ export const previewContext = internalQuery({
 
 async function loadEmailContext(ctx: QueryCtx, eventId: Id<"events">) {
 	const event = await ctx.db.get(eventId);
-	if (!event?.remindersEnabled || !event.published || event.externalEvent) return null;
+	if (!event?.published || event.externalEvent) return null;
 	if (event.eventStart <= Date.now()) return null;
 	const company = await ctx.db.get(event.hostingCompany);
 	if (!company) return null;
