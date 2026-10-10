@@ -673,6 +673,51 @@ it("rechecks conditional text/promotion/checklist reminders and avoids completed
 	);
 });
 
+it("asks organizers to review the reminder email and nags until it is sent", async () => {
+	const { dueOrganizerReminders } = await import("./reminders");
+	const { t, companyId } = await setup();
+	const eventId = await insertEvent(t, companyId, {
+		eventStart: START,
+		published: true,
+		remindersEnabled: true,
+	});
+	const due = async (now: number) =>
+		t.run(async (ctx) => {
+			const event = await ctx.db.get(eventId);
+			if (!event) throw new Error("Missing event");
+			return (await dueOrganizerReminders(ctx, event, now)).filter((r) =>
+				r.key.startsWith("reminder-review"),
+			);
+		});
+	expect(await due(eventPlanningAt(START, 5))).toEqual([]);
+	expect(await due(eventPlanningAt(START, 4))).toEqual([
+		expect.objectContaining({
+			key: "reminder-review",
+			text: expect.stringContaining("klar til gjennomgang"),
+		}),
+	]);
+	expect(await due(eventPlanningAt(START, 3))).toEqual([
+		expect.objectContaining({
+			key: "reminder-review:followup",
+			text: expect.stringContaining("fortsatt ikke sendt"),
+		}),
+	]);
+	expect(await due(START)).toEqual([]);
+	await t.run((ctx) =>
+		ctx.db.insert("eventReminders", { eventId, kind: "twoDays", queuedAt: START }),
+	);
+	expect(await due(eventPlanningAt(START, 3))).toEqual([]);
+	await t.run(async (ctx) => {
+		for (const row of await ctx.db.query("eventReminders").collect()) await ctx.db.delete(row._id);
+		await ctx.db.patch(eventId, { remindersEnabled: false });
+	});
+	expect(await due(eventPlanningAt(START, 4))).toHaveLength(1);
+	await t.run(async (ctx) => {
+		await ctx.db.patch(eventId, { externalEvent: true });
+	});
+	expect(await due(eventPlanningAt(START, 4))).toEqual([]);
+});
+
 it("warns about unmarked attendance before and after feedback opens, and nudges only an unapproved report", async () => {
 	const { dueOrganizerReminders } = await import("./reminders");
 	const { feedbackOpensAt, feedbackRoundAt, HOUR_MS } = await import("@workspace/shared/time");
@@ -1258,6 +1303,7 @@ describe("existing and new event alert parity", () => {
 					emailId: "queued-only",
 					sent: false,
 				});
+				await ctx.db.insert("eventReminders", { eventId, kind: "twoDays", queuedAt: NOW });
 				await ctx.db.insert("engagementAlerts", {
 					eventId,
 					rule: "unregisterWave",
@@ -1273,8 +1319,8 @@ describe("existing and new event alert parity", () => {
 			expect(texts).toContain("tittel, teaser, beskrivelse");
 			expect(texts).toContain("sjekklisten");
 			expect(texts).toContain("Alle plassene er tatt");
-			expect(texts).toContain("påminnelse 1 på e-post");
-			expect(texts).not.toContain("påminnelse 2 på e-post");
+			expect(texts).toContain("en påminnelse på e-post");
+			expect(texts).not.toContain("påminnelsesmailen til dem som er påmeldt");
 			expect(texts).toContain("Fem avmeldinger");
 			const count = slack.channels[0]?.messages.length;
 			await run(t, NOW + DAY_MS);

@@ -147,13 +147,15 @@ export const EditorMenu = memo(function EditorMenu({
 				>
 					<CodeXml size={18} />
 				</ToolButton>
-				<ToolButton
-					editor={editor}
-					onButtonClick={toggleUnderline}
-					isActive={editor.isActive("underline")}
-				>
-					<Underline size={18} />
-				</ToolButton>
+				{editor.extensionManager.extensions.some(({ name }) => name === "underline") && (
+					<ToolButton
+						editor={editor}
+						onButtonClick={toggleUnderline}
+						isActive={editor.isActive("underline")}
+					>
+						<Underline size={18} />
+					</ToolButton>
+				)}
 			</div>
 			<Separator orientation="vertical" className="data-[orientation=vertical]:h-8" />
 			<div className="flex gap-2">

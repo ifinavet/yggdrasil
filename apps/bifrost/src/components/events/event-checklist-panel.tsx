@@ -8,6 +8,8 @@ import {
 } from "@workspace/shared/events/checklist";
 import {
 	DAY_MS,
+	EVENT_PLANNING,
+	eventPlanningAt,
 	feedbackOpensAt,
 	feedbackRoundAt,
 	formatOsloDate,
@@ -56,11 +58,9 @@ export function EventChecklistPanel({
 	const closesAt = campaign?.closesAt ?? feedbackRoundAt(opensAt, 14);
 	let reminders: string[];
 	if (event.externalEvent) reminders = ["Ingen deltakerpåminnelser ved ekstern påmelding."];
-	else if (!event.remindersEnabled || !event.published) reminders = ["Deltakerpåminnelser er av."];
 	else
 		reminders = [
-			`${day(event.eventStart - 7 * DAY_MS)}: Systemet sender ut påminnelsesmail nr. 1.`,
-			`${day(event.eventStart - 2 * DAY_MS)}: Systemet sender ut påminnelsesmail nr. 2.`,
+			`${day(eventPlanningAt(event.eventStart, EVENT_PLANNING.reminderReviewDaysBefore))}: Påminnelsesmailen er klar. Legg inn tilleggsinformasjon og send den.`,
 		];
 	let feedback: string[];
 	if (campaign === undefined) feedback = ["Henter utsendelsesplan …"];

@@ -11,6 +11,7 @@ import { countdownLabel, spotsLabel } from "@/utils/event-availability";
 import QRCode from "./registration/qr-code";
 import RegistrationButton from "./registration/registration-button";
 import type { EventRegistrationSummary } from "./registration/registration-summary";
+import ReminderInfo from "./registration/reminder-info";
 import WaitlistPosition from "./registration/waitlist-position";
 
 function useHasMounted() {
@@ -72,6 +73,8 @@ export function EventMetadata({
 			</div>
 
 			<WaitlistPosition className="mb-6" registrationSummary={registrationSummary} />
+
+			<ReminderInfo className="mb-6" eventId={event._id} />
 
 			{hasMounted &&
 				event.eventStart - Date.now() < 60 * 60 * 1000 &&

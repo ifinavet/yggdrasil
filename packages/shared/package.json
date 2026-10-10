@@ -8,6 +8,7 @@
 		"@date-fns/tz": "^1.5.0",
 		"convex": "catalog:",
 		"date-fns": "catalog:",
+		"marked": "catalog:",
 		"papaparse": "5.7.0",
 		"zod": "catalog:"
 	},
@@ -52,7 +53,8 @@
 		"./events/checklist": "./events/checklist.ts",
 		"./events/guide": "./events/guide.ts",
 		"./events/planning": "./events/planning.ts",
-		"./events/planning-email": "./events/planning-email.ts"
+		"./events/planning-email": "./events/planning-email.ts",
+		"./events/reminder": "./events/reminder.ts"
 	},
 	"scripts": {
 		"check-types": "tsc --noEmit"

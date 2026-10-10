@@ -10,7 +10,8 @@ import {
 import type { Doc } from "../../_generated/dataModel";
 import type { QueryCtx } from "../../_generated/server";
 import { latestCampaign } from "../../feedback/delivery/campaigns";
-import { eventUrl } from "./messages";
+import { reviewedReminder } from "../reminders/queries";
+import { eventUrl, reminderNagText, reminderReviewText } from "./messages";
 
 export type ReminderInput = {
 	ctx: QueryCtx;
@@ -255,7 +256,29 @@ const reportApproval = defineReminder({
 	},
 });
 
+const reminderReview = defineReminder({
+	name: "reminder-review",
+	audience: "organizers",
+	steps: ({ event }) => [
+		{
+			at: eventPlanningAt(event.eventStart, EVENT_PLANNING.reminderReviewDaysBefore),
+			text: () => `${reminderReviewText} <${eventUrl(event)}|Se over og send påminnelsen>`,
+		},
+		{
+			id: "followup",
+			at: eventPlanningAt(event.eventStart, EVENT_PLANNING.reminderNagDaysBefore),
+			until: event.eventStart,
+			text: () => `${reminderNagText} <${eventUrl(event)}|Send påminnelsen>`,
+		},
+	],
+	facts: async ({ ctx, event }) => {
+		if (!event.published || event.externalEvent) return null;
+		return (await reviewedReminder(ctx, event._id)) ? null : undefined;
+	},
+});
+
 export const ORGANIZER_REMINDERS = [
+	reminderReview,
 	practical,
 	expenses,
 	missingText,
