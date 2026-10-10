@@ -191,8 +191,8 @@ function ReminderDialogBody({
 			<Field>
 				<FieldLabel>Viktig info</FieldLabel>
 				<FieldDescription>
-					Står i påminnelsen og på arrangementssiden for dem som er påmeldt, for eksempel at de må
-					ta med PC eller laste ned noe på forhånd.
+					Det du skriver her havner i mailen til studentene og i en info-boks på arrangementet på
+					ifinavet.no.
 				</FieldDescription>
 				<div className={cn("overflow-clip rounded-md border", tooLong && "border-destructive")}>
 					<EditorMenu editor={editor} />
