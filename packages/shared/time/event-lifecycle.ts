@@ -11,6 +11,7 @@ export const EVENT_PLANNING = {
 	textDaysBefore: 14,
 	checklistDaysBefore: 7,
 	approvalDaysAfter: 3,
+	unsentReportAlertDaysAfter: 6,
 	reminderReviewDaysBefore: 4,
 	reminderNagDaysBefore: 3,
 };

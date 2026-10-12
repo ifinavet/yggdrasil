@@ -1,10 +1,11 @@
 import { SYSTEM_ALERTS_CHANNEL } from "@workspace/shared/slack/channels";
-import { DAY_MS, REMINDER_DAYS } from "@workspace/shared/time";
+import { DAY_MS, EVENT_PLANNING, eventPlanningAt, REMINDER_DAYS } from "@workspace/shared/time";
 import type { Doc } from "../../_generated/dataModel";
 import type { MutationCtx } from "../../_generated/server";
 import { latestCampaign } from "../../feedback/delivery/campaigns";
 import { enqueueSystemMessage } from "../../iam/notifications";
 import { countRegistrationsWithStatus } from "../helper";
+import { getOrganizers } from "../queries";
 import { REMINDER_KINDS } from "../reminders/schedule";
 import {
 	escapeSlack,
@@ -15,6 +16,7 @@ import {
 	reportReadyText,
 	reportSentText,
 	unregisterWaveText,
+	unsentReportText,
 } from "./messages";
 
 type Notice = { key: string; text: string };
@@ -64,7 +66,7 @@ async function upcomingNotices(ctx: MutationCtx, event: Doc<"events">, now: numb
 	return notices;
 }
 
-async function feedbackNotices(ctx: MutationCtx, event: Doc<"events">) {
+async function feedbackNotices(ctx: MutationCtx, event: Doc<"events">, now: number) {
 	if (!event.feedbackEnabled) return [];
 	const campaign = await latestCampaign(ctx, event._id);
 	if (!campaign || campaign.status === "cancelled") return [];
@@ -103,6 +105,21 @@ async function feedbackNotices(ctx: MutationCtx, event: Doc<"events">) {
 				since: report.readyAt ?? report._creationTime,
 				text: `📊 *Feedbackrapporten er klar til gjennomgang*\n*Arrangement:* ${escapeSlack(event.title)}\n<${eventUrl(event)}/report|Åpne rapporten>`,
 			});
+		const unsentAlertAt = eventPlanningAt(
+			report.readyAt ?? report._creationTime,
+			-EVENT_PLANNING.unsentReportAlertDaysAfter,
+		);
+		if (report.totalResponses > 0 && unsentAlertAt <= now) {
+			const organizers = (await getOrganizers(ctx, event._id)).filter(
+				({ role }) => role === "hovedansvarlig",
+			);
+			await enqueueSystemMessage(ctx, {
+				channel: SYSTEM_ALERTS_CHANNEL,
+				clientMsgId: `report-unsent-${report._id}`,
+				since: unsentAlertAt,
+				text: unsentReportText(event, report, organizers),
+			});
+		}
 	}
 	if (
 		report?.status === "approved" &&
@@ -118,5 +135,5 @@ async function feedbackNotices(ctx: MutationCtx, event: Doc<"events">) {
 
 /** Recover milestones from stored facts, never from an assumption that queued email was sent. */
 export async function recoverableNotices(ctx: MutationCtx, event: Doc<"events">, now: number) {
-	return [...(await upcomingNotices(ctx, event, now)), ...(await feedbackNotices(ctx, event))];
+	return [...(await upcomingNotices(ctx, event, now)), ...(await feedbackNotices(ctx, event, now))];
 }

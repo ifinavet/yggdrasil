@@ -75,10 +75,9 @@ async function obsolete(ctx: MutationCtx, item: Doc<"slackSystemDeliveries">) {
 			event.registrationOpens !== Number(opening[2])
 		);
 	}
-	if (item.clientMsgId.startsWith("feedback-report-")) {
-		const report = await ctx.db.get(
-			item.clientMsgId.slice("feedback-report-".length) as Id<"feedbackReports">,
-		);
+	const reportAlert = /^(?:feedback-report|report-unsent)-(.+)$/.exec(item.clientMsgId);
+	if (reportAlert) {
+		const report = await ctx.db.get(reportAlert[1] as Id<"feedbackReports">);
 		return report?.status !== "draft" || report.totalResponses === 0;
 	}
 	return false;
