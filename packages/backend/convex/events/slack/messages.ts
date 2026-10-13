@@ -149,6 +149,20 @@ export function reportReadyText(totalResponses: number) {
 		? "Tilbakemeldingsrapporten er klar! 📊 Se gjennom svarene og godkjenn rapporten i Bifrost, så sender jeg den til bedriften."
 		: "Tilbakemeldingsperioden er ferdig. Ingen svarte denne gangen, så det er ingen rapport å sende til bedriften.";
 }
+export function unsentReportText(
+	event: Doc<"events">,
+	report: Doc<"feedbackReports">,
+	organizers: { name: string; slackUserId?: string }[],
+) {
+	return [
+		"📝 *Rapporten er ikke sendt*",
+		`Rapporten for *${escapeSlack(event.title)}* med ${escapeSlack(report.companyName)} har ventet på godkjenning siden ${formatOsloDate(report.readyAt ?? report._creationTime, DATE_PATTERNS.shortDateWithYear)}.`,
+		...(organizers.length > 0
+			? [`🙋 Hovedansvarlig: ${organizerNames(organizers, true).join(", ")}`]
+			: []),
+		`👉 <${eventUrl(event)}/report|Se gjennom rapporten>`,
+	].join("\n");
+}
 export function alertSentence(summary: string, detail?: string) {
 	return [`${escapeSlack(summary)}.`, ...(detail ? [escapeSlack(detail)] : [])].join(" ");
 }

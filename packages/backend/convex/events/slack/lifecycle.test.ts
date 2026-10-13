@@ -17,6 +17,7 @@ import { internal } from "../../_generated/api";
 import type { Doc, Id } from "../../_generated/dataModel";
 import { followupFinishedAt } from "../../feedback/reports/lifecycle";
 import { slackClient } from "../../iam/slack";
+import { getOrganizers } from "../queries";
 import { recordReminderSent } from "../reminders/delivery";
 import { welcomeMessage } from "./messages";
 import { queueEventNotification } from "./state";
@@ -1651,4 +1652,69 @@ it("scolds the lead organizer about missing attendance with Ey", async () => {
 	const lead = [{ name: "Lead", slackUserId: "LEAD" }] as Parameters<typeof eventMessage>[1];
 	expect(eventMessage(event, lead, "Tekst", true, true)).toMatch(/^Ey! <@LEAD>\n/);
 	expect(eventMessage(event, lead, "Tekst", true)).toMatch(/^Halla <@LEAD>!\n/);
+});
+
+it("alerts system once when an approvable report is still unsent six days after it was ready", async () => {
+	const { recoverableNotices } = await import("./recovery");
+	const { t, companyId } = await setup();
+	const eventId = await insertEvent(t, companyId, { eventStart: START, feedbackEnabled: true });
+	await organizer(t, eventId, "ULEAD");
+	const campaignId = await t.run((ctx) =>
+		ctx.db.insert("feedbackCampaigns", {
+			eventId,
+			status: "closed",
+			generation: 1,
+			opensAt: START,
+			closesAt: START + 15 * DAY_MS,
+			closedAt: START + 15 * DAY_MS,
+		}),
+	);
+	const readyAt = START + 15 * DAY_MS;
+	const reportId = await t.run((ctx) =>
+		ctx.db.insert("feedbackReports", {
+			campaignId,
+			eventId,
+			eventTitle: "Bedpres",
+			eventStart: START,
+			companyName: "Bedrift",
+			recipientEmail: "",
+			status: "draft",
+			questions: [],
+			totalResponses: 1,
+			buildCursor: null,
+			revision: 0,
+			retentionAt: START + 365 * DAY_MS,
+			readyAt,
+		}),
+	);
+	const recover = (now: number) =>
+		t.run(async (ctx) => {
+			const event = await ctx.db.get(eventId);
+			if (!event) throw new Error("Missing event");
+			await recoverableNotices(ctx, event, await getOrganizers(ctx, eventId), now);
+		});
+	const alerts = () =>
+		t.run((ctx) =>
+			ctx.db
+				.query("slackSystemDeliveries")
+				.withIndex("by_channel_and_clientMsgId", (q) =>
+					q.eq("channel", SYSTEM_ALERTS_CHANNEL).eq("clientMsgId", `report-unsent-${reportId}`),
+				)
+				.collect(),
+		);
+	await recover(eventPlanningAt(readyAt, -6) - 1);
+	expect(await alerts()).toEqual([]);
+	await recover(eventPlanningAt(readyAt, -6));
+	await recover(eventPlanningAt(readyAt, -7));
+	const [alert, ...rest] = await alerts();
+	expect(rest).toEqual([]);
+	expect(alert?.text).toContain("*Rapporten er ikke sendt*");
+	expect(alert?.text).toContain("<@ULEAD>");
+	expect(alert?.text).toContain("/report|Se gjennom rapporten>");
+	await t.run((ctx) => ctx.db.patch(reportId, { status: "approved" }));
+	if (!alert) throw new Error("Missing alert");
+	expect(
+		await t.mutation(internal.iam.notifications.claim, { id: alert._id, token: "test" }),
+	).toBeNull();
+	expect((await alerts())[0]?.status).toBe("cancelled");
 });
