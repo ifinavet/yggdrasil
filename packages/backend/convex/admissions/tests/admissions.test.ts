@@ -50,12 +50,10 @@ async function openPeriod(
 ) {
 	const now = Date.now();
 	return await admin.mutation(api.admissions.mutations.createPeriod, {
-		title: "Vår 2027",
 		applicationStartAt: now - DAY,
 		applicationEndAt: now + DAY,
 		interviewStartAt: now + 2 * DAY,
 		interviewEndAt: now + 9 * DAY,
-		retentionAt: now + 20 * DAY,
 		interviewers: [
 			{ userId: boardId, selectedCalendarIds: [] },
 			{ userId: secondBoardId, selectedCalendarIds: [] },
@@ -159,10 +157,12 @@ it("limits admin data to admins and applicant data to the signed-in student's ow
 		student.query(api.admissions.queries.applicationContext, { now: Date.now() }),
 	).resolves.toMatchObject({
 		period: {
+			title: "Opptak - Høst 2026",
 			applicationEndAt: Date.now() + DAY,
 			interviewStartAt: Date.now() + 2 * DAY,
 			interviewEndAt: Date.now() + 9 * DAY,
-			retentionAt: Date.now() + 20 * DAY,
+			retentionAt: Date.now() + 69 * DAY,
+			hidden: true,
 		},
 	});
 	await expect(
@@ -260,18 +260,33 @@ it("keeps calendar discovery and schedule generation admin-only", async () => {
 	).rejects.toThrow(/Unauthorized/);
 });
 
+it("lets admins show and hide a period while the application link keeps working", async () => {
+	const { t } = await setup();
+	const { student, admin, board, boardId, secondBoardId } = await users(t);
+	const periodId = await openPeriod(admin, boardId, secondBoardId);
+	await expect(
+		board.mutation(api.admissions.board.setHidden, { periodId, hidden: false }),
+	).rejects.toThrow(/Unauthorized/);
+	await admin.mutation(api.admissions.board.setHidden, { periodId, hidden: false });
+	await expect(
+		student.query(api.admissions.queries.applicationContext, { now: Date.now() }),
+	).resolves.toMatchObject({ period: { hidden: false }, isOpen: true });
+	await admin.mutation(api.admissions.board.setHidden, { periodId, hidden: true });
+	await expect(
+		student.query(api.admissions.queries.applicationContext, { now: Date.now() }),
+	).resolves.toMatchObject({ period: { hidden: true }, isOpen: true });
+});
+
 it("validates independent period windows, the 14-day cap, selected interviewers, and scheduling breaks", async () => {
 	const { t } = await setup();
 	const { student, admin, boardId, secondBoardId } = await users(t);
 	const now = Date.now();
 	await expect(
 		admin.mutation(api.admissions.mutations.createPeriod, {
-			title: "Too long",
 			applicationStartAt: now,
 			applicationEndAt: now + 15 * DAY,
 			interviewStartAt: now + 16 * DAY,
 			interviewEndAt: now + 31 * DAY,
-			retentionAt: now + 180 * DAY,
 			interviewers: [
 				{ userId: boardId, selectedCalendarIds: [] },
 				{ userId: secondBoardId, selectedCalendarIds: [] },

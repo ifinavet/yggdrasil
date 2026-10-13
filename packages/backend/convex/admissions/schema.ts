@@ -52,6 +52,7 @@ export const admissionsSchema = {
 		retentionAt: v.number(),
 		status: oneOf(["draft", "open", "published", "closing"]),
 		revision: v.number(),
+		hidden: v.optional(v.boolean()),
 		slackManagedMemberIds: v.optional(v.array(v.string())),
 		interviewers: v.array(interviewerSelection),
 		duration: v.number(),

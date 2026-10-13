@@ -4,7 +4,8 @@ import {
 	ADMISSION_UNSURE_GROUP,
 	isValidAvailability,
 } from "@workspace/shared/admissions";
-import { localDateAndMinute } from "@workspace/shared/time";
+import { semesterLabel } from "@workspace/shared/products";
+import { eventSemesterOf, localDateAndMinute } from "@workspace/shared/time";
 import { ConvexError, v } from "convex/values";
 import { pick } from "convex-helpers";
 import { getOneFrom } from "convex-helpers/server/relationships";
@@ -22,6 +23,7 @@ import { scheduledInterviews, submittedApplications } from "./queries";
 import {
 	MAX_APPLICATIONS,
 	MAX_INTERVIEWERS,
+	periodRetentionAt,
 	validatePeriodWindow,
 	validateSettings,
 } from "./rules";
@@ -110,12 +112,11 @@ export async function validateInterviewers(
 
 export const createPeriod = mutation({
 	args: {
-		title: v.string(),
 		applicationStartAt: v.number(),
 		applicationEndAt: v.number(),
 		interviewStartAt: v.number(),
 		interviewEndAt: v.number(),
-		retentionAt: v.number(),
+		hidden: v.optional(v.boolean()),
 		interviewers: v.array(interviewerSelection),
 		duration: v.optional(v.number()),
 		buffer: v.optional(v.number()),
@@ -130,12 +131,11 @@ export const createPeriod = mutation({
 	},
 	handler: async (ctx, args) => {
 		const creator = await requireRole(ctx, adminRoles);
-		const title = args.title.trim();
-		if (!title || title.length > 100) throw new ConvexError("Gi opptaksperioden et navn.");
 		const fields = {
 			...ADMISSION_SCHEDULING_DEFAULTS,
 			...args,
-			title,
+			title: `Opptak - ${semesterLabel(eventSemesterOf(args.applicationStartAt))}`,
+			retentionAt: periodRetentionAt(args.interviewEndAt),
 			timezone: args.timezone ?? "Europe/Oslo",
 		};
 		validatePeriodWindow(fields);
@@ -146,6 +146,7 @@ export const createPeriod = mutation({
 		const periodId = await ctx.db.insert("admissionPeriods", {
 			...fields,
 			status: "open",
+			hidden: args.hidden ?? true,
 			revision: 1,
 			breaks: args.breaks ?? [],
 			roundHistory: [],

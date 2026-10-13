@@ -81,6 +81,7 @@ export const applicationContext = query({
 			period: pick(period, [
 				"_id",
 				"title",
+				"hidden",
 				"applicationStartAt",
 				"applicationEndAt",
 				"interviewStartAt",

@@ -7,10 +7,15 @@ export const MAX_APPLICATIONS = 200;
 export const MAX_INTERVIEWERS = 30;
 export const MAX_ROUNDS = 20;
 export const DAY_MS = 24 * 60 * 60 * 1000;
+export const RETENTION_DAYS = 60;
+
+export function periodRetentionAt(interviewEndAt: number) {
+	return interviewEndAt + RETENTION_DAYS * DAY_MS;
+}
 
 export type PeriodWindowInput = Pick<
 	Doc<"admissionPeriods">,
-	"applicationStartAt" | "applicationEndAt" | "interviewStartAt" | "interviewEndAt" | "retentionAt"
+	"applicationStartAt" | "applicationEndAt" | "interviewStartAt" | "interviewEndAt"
 >;
 
 export function validatePeriodWindow(input: PeriodWindowInput, now = Date.now()) {
@@ -20,7 +25,6 @@ export function validatePeriodWindow(input: PeriodWindowInput, now = Date.now())
 			input.applicationEndAt,
 			input.interviewStartAt,
 			input.interviewEndAt,
-			input.retentionAt,
 		].every(Number.isFinite)
 	)
 		throw new ConvexError("Datoene må være gyldige tidspunkter.");
@@ -38,9 +42,7 @@ export function validatePeriodWindow(input: PeriodWindowInput, now = Date.now())
 	}
 	if (
 		input.applicationEndAt > input.interviewStartAt ||
-		input.interviewEndAt > input.retentionAt ||
-		input.retentionAt <= now ||
-		input.retentionAt > input.interviewEndAt + 60 * DAY_MS
+		periodRetentionAt(input.interviewEndAt) <= now
 	) {
 		throw new ConvexError(
 			"Søknadsfrist, intervjutid og slettefrist overlapper eller står i feil rekkefølge.",

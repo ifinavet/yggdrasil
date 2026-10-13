@@ -15,6 +15,13 @@ export const ADMISSION_SCHEDULING_DEFAULTS = {
 	dayEnd: 16 * 60,
 } as const;
 
+export const ADMISSION_PERIOD_TIMES = {
+	applicationOpens: "09:00",
+	applicationCloses: "23:59",
+	interviewDayStarts: "00:00",
+	interviewDayEnds: "23:59",
+} as const;
+
 export function overlapsLunch(window: AvailabilityWindow) {
 	return window.start < LUNCH_END_MINUTE && window.end > LUNCH_START_MINUTE;
 }

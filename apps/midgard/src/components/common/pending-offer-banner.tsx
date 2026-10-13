@@ -35,7 +35,8 @@ function AdmissionsBanner() {
 		);
 		return () => window.clearTimeout(timer);
 	}, [now, period]);
-	if (!period || !context?.isOpen || context.application?.status === "submitted") return null;
+	if (!period || period.hidden || !context?.isOpen || context.application?.status === "submitted")
+		return null;
 	return (
 		<div className="mx-4 mb-6 flex max-w-6xl flex-col gap-3 sm:mx-auto sm:w-full sm:px-6">
 			<Note
