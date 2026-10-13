@@ -18,6 +18,7 @@ import {
 	query,
 } from "../../_generated/server";
 import {
+	closedLinkStates,
 	confirmationFields,
 	confirmationState,
 	validEmailToken,
@@ -211,11 +212,7 @@ async function receiptFor(
 	};
 }
 
-const closedLink = [
-	v.object({ state: v.literal("confirmed"), receipt }),
-	v.object({ state: v.literal("expired") }),
-	v.object({ state: v.literal("invalid") }),
-] as const;
+const closedLink = closedLinkStates(receipt);
 
 /** What an emailed link leads to, before the company presses confirm. */
 export const link = query({
@@ -317,7 +314,7 @@ export const purgeExpired = internalMutation({
 			.withIndex("by_pendingId", (q) => q.eq("pendingId", pendingId))
 			.collect();
 		if (confirmations.some((confirmation) => confirmation.expiresAt > now)) return null;
-		for (const confirmation of confirmations) await ctx.db.delete(confirmation._id);
+		await Promise.all(confirmations.map((confirmation) => ctx.db.delete(confirmation._id)));
 		if (await ctx.db.get(pendingId)) await ctx.db.delete(pendingId);
 		return null;
 	},

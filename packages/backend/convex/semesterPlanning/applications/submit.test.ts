@@ -1,9 +1,9 @@
-import type { EmailId, SendEmailOptions } from "@convex-dev/resend";
 import { HUGIN_URL } from "@workspace/shared/constants";
 import { formatNokFromOre } from "@workspace/shared/products";
 import { SYSTEM_ALERTS_CHANNEL } from "@workspace/shared/slack/channels";
 import { osloToday } from "@workspace/shared/time";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { emailsFrom, sentEmails, tokenFrom } from "../../../test/confirmationEmails";
 import {
 	activityFor,
 	DAY_IN_MS,
@@ -20,7 +20,6 @@ import {
 } from "../../../test/registryFetch";
 import { api } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
-import { orderResend } from "../../jobListingOrders/emails";
 
 const submit = api.semesterPlanning.applications.submit.submit;
 const resend = api.semesterPlanning.applications.submit.resendConfirmation;
@@ -89,20 +88,6 @@ async function chosenSemesterId(t: TestBackend): Promise<Id<"semesters">> {
 	);
 	if (!semester) throw new Error("Expected a semester.");
 	return semester._id;
-}
-
-function sentEmails() {
-	return vi.spyOn(orderResend, "sendEmail").mockResolvedValue("email-id" as EmailId);
-}
-
-function emailsFrom(spy: ReturnType<typeof sentEmails>) {
-	return spy.mock.calls.map((call) => (call as unknown as [unknown, SendEmailOptions])[1]);
-}
-
-function tokenFrom(html: string | undefined) {
-	const token = html?.match(/bekreft#token=([\w-]+)/)?.[1];
-	if (!token) throw new Error("No confirmation link in the email");
-	return token;
 }
 
 /**
