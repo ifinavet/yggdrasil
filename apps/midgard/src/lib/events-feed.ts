@@ -1,11 +1,14 @@
 import { osloMonthName } from "@workspace/shared/time";
 
-export function sortUpcomingFirst<T extends { eventStart: number }>(events: T[], now: number): T[] {
+export function splitUpcomingPast<T extends { eventStart: number }>(
+	events: T[],
+	now: number,
+): { upcoming: T[]; past: T[] } {
 	const upcoming = events
 		.filter((e) => e.eventStart >= now)
 		.sort((a, b) => a.eventStart - b.eventStart);
 	const past = events.filter((e) => e.eventStart < now).sort((a, b) => b.eventStart - a.eventStart);
-	return [...upcoming, ...past];
+	return { upcoming, past };
 }
 
 export function nextEventMonth<T extends { eventStart: number }>(
