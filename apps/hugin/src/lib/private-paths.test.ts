@@ -9,7 +9,7 @@ describe("private paths", () => {
 		expect(isPrivatePath("/event-planning/confirm")).toBe(true);
 		expect(isPrivatePath("/bestill-bedpres/tilbud/abc123")).toBe(true);
 		expect(isPrivatePath("/bestill-bedpres")).toBe(false);
-		expect(isPrivatePath("/bestill-bedpres/kvittering")).toBe(false);
+		expect(isPrivatePath("/bestill-bedpres/bekreft")).toBe(true);
 		expect(isPrivatePath("/feedback-archive")).toBe(false);
 	});
 

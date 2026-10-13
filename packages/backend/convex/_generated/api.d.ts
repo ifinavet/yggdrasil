@@ -161,6 +161,7 @@ import type * as products_seed from "../products/seed.js";
 import type * as products_stats from "../products/stats.js";
 import type * as products_tagging from "../products/tagging.js";
 import type * as semesterPlanning_applicationLifecycle from "../semesterPlanning/applicationLifecycle.js";
+import type * as semesterPlanning_applications_confirmation from "../semesterPlanning/applications/confirmation.js";
 import type * as semesterPlanning_applications_helper from "../semesterPlanning/applications/helper.js";
 import type * as semesterPlanning_applications_mutations from "../semesterPlanning/applications/mutations.js";
 import type * as semesterPlanning_applications_queries from "../semesterPlanning/applications/queries.js";
@@ -354,6 +355,7 @@ declare const fullApi: ApiFromModules<{
   "products/stats": typeof products_stats;
   "products/tagging": typeof products_tagging;
   "semesterPlanning/applicationLifecycle": typeof semesterPlanning_applicationLifecycle;
+  "semesterPlanning/applications/confirmation": typeof semesterPlanning_applications_confirmation;
   "semesterPlanning/applications/helper": typeof semesterPlanning_applications_helper;
   "semesterPlanning/applications/mutations": typeof semesterPlanning_applications_mutations;
   "semesterPlanning/applications/queries": typeof semesterPlanning_applications_queries;

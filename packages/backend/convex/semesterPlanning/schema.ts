@@ -103,6 +103,27 @@ export const applicationBilling = v.object({
 	ehfInvoice: v.optional(v.boolean()),
 });
 
+/** What the Hugin form sends. The shared Zod schema checks the details. */
+export const applicationForm = v.object({
+	orgNumber: v.string(),
+	contact: applicationContact,
+	eventType: presentationEventType,
+	minStudents: v.number(),
+	maxStudents: v.number(),
+	description: v.string(),
+	availableDates: v.array(v.string()),
+	datePreferences: v.optional(v.string()),
+	venue,
+	wantsToUseEscape,
+	foodAndDrinks: v.boolean(),
+	foodPurchasedBy: foodPurchaser,
+	billing: applicationBilling,
+	targetDegrees: v.array(studentDegree),
+	targetStudyPrograms: v.array(v.string()),
+	additionalInfo: v.optional(v.string()),
+	consent: v.boolean(),
+});
+
 export const semesterPlanningSchema = {
 	semesters: defineTable({
 		year: v.number(),
@@ -210,4 +231,28 @@ export const semesterPlanningSchema = {
 		offerId: v.optional(v.id("companyApplicationOffers")),
 		comment: v.optional(v.string()),
 	}).index("by_applicationId", ["applicationId"]),
+
+	/**
+	 * An application sent from Hugin and waiting for the contact person to confirm it by email. It
+	 * becomes a `companyApplications` row when the link is used, and is deleted when its last link
+	 * expires.
+	 */
+	pendingCompanyApplications: defineTable({
+		semesterId: v.id("semesters"),
+		submissionId: v.string(),
+		form: applicationForm,
+		registry: brregSnapshotAtSubmission,
+		submittedAt: v.number(),
+		applicationId: v.optional(v.id("companyApplications")),
+	}).index("by_submissionId", ["submissionId"]),
+
+	/** One emailed link per send; a resend adds a row. Only the token's hash is stored. */
+	companyApplicationConfirmations: defineTable({
+		pendingId: v.id("pendingCompanyApplications"),
+		tokenHash: v.string(),
+		expiresAt: v.number(),
+		usedAt: v.optional(v.number()),
+	})
+		.index("by_tokenHash", ["tokenHash"])
+		.index("by_pendingId", ["pendingId"]),
 };

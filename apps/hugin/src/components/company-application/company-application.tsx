@@ -20,16 +20,20 @@ import { FormStatePanel } from "@/components/form-state-panel";
 import { fullDate } from "@/lib/company-application-format";
 import { COMPANY_APPLICATION_COPY as COPY } from "@/lib/company-application-questions";
 import { storedDraftSemesterId } from "@/lib/company-application-storage";
-import { ApplicationForm, type OpenSemester } from "./application-form";
+import { ApplicationForm, type OpenSemester, type SentApplication } from "./application-form";
+import { CheckEmailScreen } from "./check-email-screen";
 import { InterestForm } from "./interest-form";
 
 /**
  * /bestill-bedpres: the form while a semester is open. Otherwise a closed page, where a company can
- * leave its email to hear when applications open.
+ * leave its email to hear when applications open. Once sent, a page asks the company to confirm the
+ * application from the email.
  */
 export function CompanyApplication() {
 	const semesters = useQuery(api.semesterPlanning.semesters.queries.listOpenForApplications);
+	const [sent, setSent] = useState<SentApplication | null>(null);
 
+	if (sent) return <CheckEmailScreen {...sent} />;
 	if (semesters === undefined) return <FormSkeleton />;
 
 	// No semester takes applications: say so, and where to ask.
@@ -57,7 +61,7 @@ export function CompanyApplication() {
 		);
 	}
 
-	return <OpenSemesters semesters={semesters} />;
+	return <OpenSemesters semesters={semesters} onSubmitted={setSent} />;
 }
 
 /**
@@ -65,7 +69,13 @@ export function CompanyApplication() {
  * it is open, so an application in September is for the coming spring, and can pick the running
  * semester or a later one instead. A saved draft opens on its own semester while that is open.
  */
-function OpenSemesters({ semesters }: Readonly<{ semesters: readonly OpenSemester[] }>) {
+function OpenSemesters({
+	semesters,
+	onSubmitted,
+}: Readonly<{
+	semesters: readonly OpenSemester[];
+	onSubmitted: (sent: SentApplication) => void;
+}>) {
 	const [chosenId, setChosenId] = useState<string | null>(storedDraftSemesterId);
 	const semester =
 		semesters.find((candidate) => candidate._id === chosenId) ??
@@ -78,6 +88,7 @@ function OpenSemesters({ semesters }: Readonly<{ semesters: readonly OpenSemeste
 		<ApplicationForm
 			key={semester._id}
 			semester={semester}
+			onSubmitted={onSubmitted}
 			semesterPicker={
 				semesters.length > 1
 					? (saveDraftNow) => (

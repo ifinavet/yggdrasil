@@ -1,7 +1,7 @@
-import { COMPANY_CONTACT_EMAIL } from "@workspace/shared/constants";
 import type { BlockedReason } from "./company-application";
 
-// Company-facing copy for the Hugin application form (/bestill-bedpres) and its receipt.
+// Company-facing copy for the Hugin application form (/bestill-bedpres), the email confirmation
+// (/bestill-bedpres/bekreft) and the receipt.
 // Validation messages live in the shared schema (packages/shared/semester/application.ts).
 
 export const COMPANY_APPLICATION_COPY = {
@@ -124,17 +124,39 @@ export const COMPANY_APPLICATION_COPY = {
 			honeypot: "Ikke fyll ut dette feltet",
 		},
 	},
+	checkEmail: {
+		body: (email: string) =>
+			`Vi har sendt en lenke til ${email}. Søknaden sendes først når du har bekreftet den.`,
+	},
+	confirm: {
+		title: "Bekreft søknaden",
+		body: "Trykk på knappen for å sende søknaden til Navet.",
+		button: "Bekreft søknad",
+		confirming: "Bekrefter …",
+		backToForm: "Til søknadsskjemaet",
+		retry: "Prøv igjen",
+		refusedTitle: "Søknaden ble ikke sendt",
+		expired: {
+			title: "Lenken har utløpt",
+			body: "Send søknaden på nytt fra skjemaet.",
+		},
+		invalid: {
+			title: "Lenken er ugyldig",
+			body: "Åpne lenken fra e-posten, eller send en ny søknad.",
+		},
+		error: {
+			title: "Noe gikk galt",
+			body: "Vi kunne ikke bekrefte søknaden. Prøv igjen om litt.",
+		},
+	},
 	receipt: {
 		title: "Søknaden er sendt",
 		body: (deadline: string) =>
 			`Takk! Etter fristen ${deadline} fordeler vi datoene, og bedriftskontakten tar kontakt med et tilbud.`,
 		lateBody: "Takk! Vi ser på søknaden, og bedriftskontakten tar kontakt med dere.",
-		keep: "Dere får ingen kopi på e-post. Ta gjerne vare på denne siden.",
+		keep: "Lenken i e-posten viser denne kvitteringen i 24 timer. Ta gjerne vare på siden.",
 		summary: "Dette sendte dere",
 		wrong: "Noe som ble feil? Skriv til",
-		missingTitle: "Fant ingen kvittering",
-		missingBody: `Kvitteringen vises bare rett etter at søknaden er sendt. Lurer dere på om den kom fram? Skriv til ${COMPANY_CONTACT_EMAIL}.`,
-		back: "Til søknadsskjemaet",
 		rows: {
 			company: "Bedrift",
 			type: "Type",

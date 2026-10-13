@@ -1,9 +1,12 @@
+import type { EmailId, SendEmailOptions } from "@convex-dev/resend";
+import { HUGIN_URL } from "@workspace/shared/constants";
 import { formatNokFromOre } from "@workspace/shared/products";
 import { SYSTEM_ALERTS_CHANNEL } from "@workspace/shared/slack/channels";
 import { osloToday } from "@workspace/shared/time";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
 	activityFor,
+	DAY_IN_MS,
 	insertSemester,
 	refusalMessageFrom,
 	setup,
@@ -17,8 +20,11 @@ import {
 } from "../../../test/registryFetch";
 import { api } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
+import { orderResend } from "../../jobListingOrders/emails";
 
 const submit = api.semesterPlanning.applications.submit.submit;
+const resend = api.semesterPlanning.applications.submit.resendConfirmation;
+const confirmation = api.semesterPlanning.applications.confirmation;
 
 type Form = Parameters<TestBackend["action"]>[1] extends infer _ ? Record<string, unknown> : never;
 
@@ -85,6 +91,24 @@ async function chosenSemesterId(t: TestBackend): Promise<Id<"semesters">> {
 	return semester._id;
 }
 
+function sentEmails() {
+	return vi.spyOn(orderResend, "sendEmail").mockResolvedValue("email-id" as EmailId);
+}
+
+function emailsFrom(spy: ReturnType<typeof sentEmails>) {
+	return spy.mock.calls.map((call) => (call as unknown as [unknown, SendEmailOptions])[1]);
+}
+
+function tokenFrom(html: string | undefined) {
+	const token = html?.match(/bekreft#token=([\w-]+)/)?.[1];
+	if (!token) throw new Error("No confirmation link in the email");
+	return token;
+}
+
+/**
+ * Sends the form like Hugin, and by default confirms it from the emailed link, so the application
+ * is received. With `confirm: false` it stays pending.
+ */
 async function submitWith(
 	t: TestBackend,
 	{
@@ -93,26 +117,36 @@ async function submitWith(
 		stubs = {},
 		submissionId = nextSubmissionId(),
 		website,
+		confirm = true,
 	}: {
 		semesterId?: Id<"semesters">;
 		form?: Form;
 		stubs?: RegistryStubs;
 		submissionId?: string;
 		website?: string;
+		confirm?: boolean;
 	} = {},
 ) {
 	stubRegistries(stubs);
-	return t.action(submit, {
+	const spy = sentEmails();
+	const result = await t.action(submit, {
 		semesterId: semesterId ?? (await chosenSemesterId(t)),
 		// biome-ignore lint/suspicious/noExplicitAny: the refusal cases deliberately send invalid forms.
 		form: form as any,
 		submissionId,
 		...(website !== undefined ? { website } : {}),
 	});
+	const emails = emailsFrom(spy);
+	spy.mockRestore();
+	const token = emails.length ? tokenFrom(emails[0]?.html) : undefined;
+	if (confirm && token) await t.mutation(confirmation.confirm, { token });
+	return { result, emails, token, submissionId };
 }
 
 afterEach(() => {
+	vi.restoreAllMocks();
 	vi.unstubAllGlobals();
+	vi.useRealTimers();
 });
 
 describe("submit", () => {
@@ -155,7 +189,7 @@ describe("submit", () => {
 		const { t } = await setup();
 		const semesterId = await withOpenSemester(t);
 
-		expect(await submitWith(t)).toBeNull();
+		expect((await submitWith(t)).result).toBeNull();
 
 		const [application] = await applications(t);
 		expect(application).toMatchObject({
@@ -441,5 +475,164 @@ describe("submit", () => {
 
 		expect(message).toBe("Det er sendt mange søknader på kort tid. Prøv igjen senere.");
 		expect(await applications(t)).toHaveLength(5);
+	});
+});
+
+describe("confirmation by email", () => {
+	async function pending(t: TestBackend) {
+		return t.run((ctx) => ctx.db.query("pendingCompanyApplications").collect());
+	}
+
+	it("emails the contact person a link, and Navet sees nothing before it is confirmed", async () => {
+		const { t } = await setup();
+		await withOpenSemester(t);
+
+		const { emails, token } = await submitWith(t, { confirm: false });
+
+		expect(emails).toHaveLength(1);
+		expect(emails[0]).toMatchObject({
+			to: "ingrid@fjordkode.no",
+			subject: "Bekreft søknaden om bedpres",
+		});
+		expect(emails[0]?.html).toContain(`${HUGIN_URL}/bestill-bedpres/bekreft#token=`);
+		expect(emails[0]?.html).toContain("FJORDKODE AS");
+		expect(await applications(t)).toHaveLength(0);
+		expect(await pending(t)).toHaveLength(1);
+		const scheduled = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
+		expect(scheduled.some(({ name }) => name.includes("notifications:sendMessage"))).toBe(false);
+		expect(await t.query(confirmation.link, { token: token ?? "" })).toEqual({ state: "pending" });
+	});
+
+	it("receives the application once and shows the same receipt when the link is opened again", async () => {
+		const { t } = await setup();
+		await withOpenSemester(t);
+		const { token = "" } = await submitWith(t, { confirm: false });
+
+		const first = await t.mutation(confirmation.confirm, { token });
+		const again = await t.mutation(confirmation.confirm, { token });
+
+		expect(first).toEqual({
+			state: "confirmed",
+			receipt: {
+				company: { name: "FJORDKODE AS", orgNumber: VALID_ORG_NUMBER },
+				eventType: "standard_presentation",
+				minStudents: 25,
+				maxStudents: 40,
+				availableDates: ["2027-02-09", "2027-02-16"],
+				venue: "campus",
+				wantsToUseEscape: "unsure",
+				billing: { email: "faktura@fjordkode.no", details: "Referanse: PO-2027-014" },
+				applicationDeadline: "2026-12-04",
+				late: false,
+			},
+		});
+		expect(again).toEqual(first);
+		expect(await t.query(confirmation.link, { token })).toEqual(first);
+		expect(await applications(t)).toHaveLength(1);
+	});
+
+	it("sends a new link on request, and none once the application is received", async () => {
+		const { t } = await setup();
+		await withOpenSemester(t);
+		const { token: firstToken = "", submissionId } = await submitWith(t, { confirm: false });
+
+		const spy = sentEmails();
+		await t.action(resend, { submissionId });
+		const [email] = emailsFrom(spy);
+		const secondToken = tokenFrom(email?.html);
+		expect(secondToken).not.toBe(firstToken);
+
+		await t.mutation(confirmation.confirm, { token: secondToken });
+		expect(await t.query(confirmation.link, { token: firstToken })).toMatchObject({
+			state: "confirmed",
+		});
+
+		spy.mockClear();
+		await t.action(resend, { submissionId });
+		await submitWith(t, { submissionId });
+		expect(emailsFrom(spy)).toHaveLength(0);
+		expect(await applications(t)).toHaveLength(1);
+	});
+
+	it("answers expired after a day and deletes the unconfirmed application", async () => {
+		vi.useFakeTimers();
+		const { t } = await setup();
+		await withOpenSemester(t);
+		const { token = "" } = await submitWith(t, { confirm: false });
+
+		vi.advanceTimersByTime(DAY_IN_MS + 1);
+		expect(await t.mutation(confirmation.confirm, { token })).toEqual({ state: "expired" });
+
+		await t.finishAllScheduledFunctions(vi.runAllTimers);
+		expect(await pending(t)).toHaveLength(0);
+		expect(await t.run((ctx) => ctx.db.query("companyApplicationConfirmations").collect())).toEqual(
+			[],
+		);
+		expect(await applications(t)).toHaveLength(0);
+	});
+
+	it("keeps a received application when its links expire", async () => {
+		vi.useFakeTimers();
+		const { t } = await setup();
+		await withOpenSemester(t);
+		await submitWith(t);
+
+		vi.advanceTimersByTime(DAY_IN_MS + 1);
+		await t.finishAllScheduledFunctions(vi.runAllTimers);
+
+		expect(await pending(t)).toHaveLength(0);
+		expect(await applications(t)).toHaveLength(1);
+	});
+
+	it("counts the day it was sent against a hard deadline", async () => {
+		vi.useFakeTimers({ toFake: ["Date"] });
+		vi.setSystemTime(Date.parse("2026-12-04T20:00:00Z"));
+		const { t } = await setup();
+		const semesterId = await withOpenSemester(t);
+		await t.run((ctx) => ctx.db.patch(semesterId, { hardDeadline: true }));
+		const { token = "" } = await submitWith(t, { confirm: false });
+
+		vi.setSystemTime(Date.parse("2026-12-05T08:00:00Z"));
+		expect(await t.mutation(confirmation.confirm, { token })).toMatchObject({
+			state: "confirmed",
+		});
+		expect(await applications(t)).toHaveLength(1);
+	});
+
+	it("refuses to confirm once the semester is closed or a date is no longer open", async () => {
+		const { t } = await setup();
+		const semesterId = await withOpenSemester(t);
+		const { token: closedToken = "" } = await submitWith(t, { confirm: false });
+		const { token: dateToken = "" } = await submitWith(t, { confirm: false });
+
+		await t.run(async (ctx) => {
+			const date = await ctx.db
+				.query("semesterDates")
+				.withIndex("by_semesterId_and_date", (q) =>
+					q.eq("semesterId", semesterId).eq("date", "2027-02-16"),
+				)
+				.unique();
+			if (date) await ctx.db.patch(date._id, { closedLabel: "Eksamen" });
+		});
+		expect(await t.mutation(confirmation.confirm, { token: dateToken })).toEqual({
+			state: "refused",
+			message: "Én eller flere av datoene er ikke åpne lenger. Last inn siden på nytt.",
+		});
+
+		await t.run((ctx) => ctx.db.patch(semesterId, { status: "closed" }));
+		expect(await t.mutation(confirmation.confirm, { token: closedToken })).toEqual({
+			state: "refused",
+			message: "Søknadene er stengt.",
+		});
+		expect(await applications(t)).toHaveLength(0);
+	});
+
+	it.each([
+		["a malformed token", "not-a-token"],
+		["an unknown token", "a".repeat(43)],
+	])("answers invalid to %s", async (_case, token) => {
+		const { t } = await setup();
+		expect(await t.query(confirmation.link, { token })).toEqual({ state: "invalid" });
+		expect(await t.mutation(confirmation.confirm, { token })).toEqual({ state: "invalid" });
 	});
 });

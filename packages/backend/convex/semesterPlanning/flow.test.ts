@@ -1,3 +1,4 @@
+import type { EmailId, SendEmailOptions } from "@convex-dev/resend";
 import { MIDGARD_URL } from "@workspace/shared/constants";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
@@ -11,8 +12,10 @@ import {
 } from "../../test/fixtures";
 import { stubRegistries, VALID_ORG_NUMBER } from "../../test/registryFetch";
 import { api } from "../_generated/api";
+import { orderResend } from "../jobListingOrders/emails";
 
 afterEach(() => {
+	vi.restoreAllMocks();
 	vi.unstubAllGlobals();
 	vi.useRealTimers();
 });
@@ -45,8 +48,9 @@ describe("the whole journey", () => {
 		});
 		await editor.mutation(semesters.setStatus, { semesterId, status: "open" });
 
-		// The company applies on Hugin.
+		// The company applies on Hugin and confirms from the email.
 		stubRegistries();
+		const sendEmail = vi.spyOn(orderResend, "sendEmail").mockResolvedValue("email-id" as EmailId);
 		await t.action(api.semesterPlanning.applications.submit.submit, {
 			semesterId,
 			submissionId: "journey-submission-1",
@@ -68,6 +72,9 @@ describe("the whole journey", () => {
 				consent: true,
 			},
 		});
+		const confirmEmail = (sendEmail.mock.calls[0] as unknown as [unknown, SendEmailOptions])[1];
+		const token = confirmEmail.html?.match(/bekreft#token=([\w-]+)/)?.[1] ?? "";
+		await t.mutation(api.semesterPlanning.applications.confirmation.confirm, { token });
 		const [application] = await t.run((ctx) => ctx.db.query("companyApplications").collect());
 		const applicationId = application?._id;
 		if (!applicationId) throw new Error("The application was not saved.");
@@ -103,6 +110,7 @@ describe("the whole journey", () => {
 				(job) => job.name,
 			),
 		).toEqual([
+			"semesterPlanning/applications/confirmation:purgeExpired",
 			"iam/notifications:sendMessage",
 			"semesterPlanning/offers/emails:sendOfferEmail",
 			"semesterPlanning/offers/emails:sendOfferEmail",

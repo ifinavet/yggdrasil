@@ -1,4 +1,5 @@
 // Pages whose address carries an access token: the invitation fragment on /feedback and /report,
+// the confirmation fragment on /bestill-bedpres/bekreft,
 // and the offer token in the path of /bestill-bedpres/tilbud/<token>. Analytics and error
 // reporting stay off there, so the token never reaches PostHog or Sentry.
 //
@@ -10,6 +11,7 @@ const PRIVATE_PAGES = new Set([
 	"/report",
 	"/event-planning",
 	"/event-planning/confirm",
+	"/bestill-bedpres/bekreft",
 ]);
 const PRIVATE_PREFIXES = ["/bestill-bedpres/tilbud/"];
 
