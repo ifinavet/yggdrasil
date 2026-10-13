@@ -11,7 +11,7 @@
 		"test": "vitest run"
 	},
 	"dependencies": {
-		"@clerk/localizations": "^4.21.2",
+		"@clerk/localizations": "^4.22.1",
 		"@clerk/nextjs": "catalog:",
 		"@sentry/nextjs": "catalog:",
 		"@tanstack/react-form": "catalog:",
