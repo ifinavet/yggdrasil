@@ -2,6 +2,7 @@ import type { api } from "@workspace/backend/convex/api";
 import type { Doc } from "@workspace/backend/convex/dataModel";
 import { formatOsloDate } from "@workspace/shared/time";
 import type { FunctionReturnType } from "convex/server";
+import { addDays, parseISO, startOfDay } from "date-fns";
 
 export { ADMISSION_SCHEDULING_DEFAULTS as defaults, roomUrl } from "@workspace/shared/admissions";
 
@@ -31,4 +32,19 @@ export const decisionLabels: Record<Decision, string> = {
 export { minutesToClock as clock } from "@workspace/shared/time";
 export function dateLabel(day: string) {
 	return formatOsloDate(new Date(`${day}T12:00:00Z`).getTime(), "EEE d. MMM");
+}
+
+export function firstSelectableDays(
+	dates: Readonly<{ applicationStart: string; applicationEnd: string; interviewStart: string }>,
+	today: Date,
+) {
+	const day = (value: string) => (value ? parseISO(value) : startOfDay(today));
+	return {
+		applicationStart: startOfDay(today),
+		applicationEnd: day(dates.applicationStart),
+		interviewStart: dates.applicationEnd
+			? addDays(parseISO(dates.applicationEnd), 1)
+			: startOfDay(today),
+		interviewEnd: day(dates.interviewStart),
+	};
 }

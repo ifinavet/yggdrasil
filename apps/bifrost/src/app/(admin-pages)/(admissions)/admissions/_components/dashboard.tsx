@@ -75,9 +75,8 @@ export default function AdmissionsDashboard() {
 					<h2>Ingen aktive opptak</h2>
 					<div className="grid max-w-prose gap-3 text-muted-foreground">
 						<p>
-							Start opptak åpner et skjema med navn, søknadsperiode, intervjudager, intervjuere,
-							intervjulengde og rom. Du velger også når opplysningene om søkerne slettes. Etterpå
-							går opptaket slik:
+							Start opptak åpner et skjema med søknadsperiode, intervjudager, intervjuere,
+							intervjulengde og rom. Etterpå går opptaket slik:
 						</p>
 						<ol className="grid list-decimal gap-1 pl-5">
 							<li>

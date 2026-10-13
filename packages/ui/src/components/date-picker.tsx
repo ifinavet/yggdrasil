@@ -8,6 +8,7 @@ import { format, parse } from "date-fns";
 import { nb } from "date-fns/locale";
 import { CalendarIcon } from "lucide-react";
 import { useState } from "react";
+import type { Matcher } from "react-day-picker";
 
 const ISO_DAY = "yyyy-MM-dd";
 
@@ -28,6 +29,7 @@ export function DatePicker({
 	onBlur,
 	disabled,
 	invalid,
+	disabledDays,
 	yearsAhead = YEARS_AHEAD,
 }: Readonly<{
 	id: string;
@@ -36,6 +38,8 @@ export function DatePicker({
 	onBlur?: () => void;
 	disabled?: boolean;
 	invalid?: boolean;
+	/** Days the calendar refuses to select. */
+	disabledDays?: Matcher | Matcher[];
 	/** How many years past this one the year dropdown offers. */
 	yearsAhead?: number;
 }>) {
@@ -79,6 +83,7 @@ export function DatePicker({
 					endMonth={endMonth}
 					selected={selected}
 					defaultMonth={selected}
+					disabled={disabledDays}
 					onSelect={(date) => {
 						if (!date) return;
 						onChange(format(date, ISO_DAY));

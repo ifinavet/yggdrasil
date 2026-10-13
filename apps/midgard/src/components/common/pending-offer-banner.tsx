@@ -46,7 +46,7 @@ function AdmissionsBanner() {
 				className="bg-warning-surface text-warning-surface-foreground sm:items-center sm:[&>svg]:mt-0"
 			>
 				<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-					<p>Opptaket {period.title} er åpent for søknader.</p>
+					<p>Opptaket er åpent for søknader.</p>
 					<Button size="sm" asChild className="self-start sm:self-auto">
 						<Link href={`${huginUrl()}/admissions`}>Søk her</Link>
 					</Button>

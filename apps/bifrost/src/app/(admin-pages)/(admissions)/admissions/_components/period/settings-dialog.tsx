@@ -16,7 +16,7 @@ import { Switch } from "@workspace/ui/components/switch";
 import { useAsyncAction } from "@workspace/ui/hooks/use-async-action";
 import { useMutation, useQuery } from "convex/react";
 import { useEffect, useState } from "react";
-import { defaults, type Overview, roomUrl } from "../model";
+import { defaults, firstSelectableDays, type Overview, roomUrl } from "../model";
 import { CloseDialog } from "./close-dialog";
 
 export function SettingsDialog({
@@ -180,35 +180,43 @@ export function SettingsDialog({
 						</p>
 					)}
 					{!period && (
-						<div className="grid grid-cols-2 gap-5">
-							{(
-								[
-									["applicationStart", "Søknader åpner"],
-									["applicationEnd", "Søknadsfrist"],
-									["opensAt", "Åpner kl."],
-									["closesAt", "Frist kl."],
-									["interviewStart", "Første intervjudag"],
-									["interviewEnd", "Siste intervjudag"],
-								] as const
-							).map(([key, label]) => (
-								<form.AppField key={key} name={key}>
-									{(field) =>
-										key === "opensAt" || key === "closesAt" ? (
-											<field.Input label={label} id={key} type="time" required />
-										) : (
-											<Field>
-												<FieldLabel htmlFor={key}>{label}</FieldLabel>
-												<DatePicker
-													id={key}
-													value={field.state.value}
-													onChange={field.handleChange}
-												/>
-											</Field>
-										)
-									}
-								</form.AppField>
-							))}
-						</div>
+						<form.Subscribe selector={(state) => state.values}>
+							{(values) => {
+								const firstDay = firstSelectableDays(values, new Date());
+								return (
+									<div className="grid grid-cols-2 gap-5">
+										{(
+											[
+												["applicationStart", "Søknader åpner"],
+												["applicationEnd", "Søknadsfrist"],
+												["opensAt", "Åpner kl."],
+												["closesAt", "Frist kl."],
+												["interviewStart", "Første intervjudag"],
+												["interviewEnd", "Siste intervjudag"],
+											] as const
+										).map(([key, label]) => (
+											<form.AppField key={key} name={key}>
+												{(field) =>
+													key === "opensAt" || key === "closesAt" ? (
+														<field.Input label={label} id={key} type="time" required />
+													) : (
+														<Field>
+															<FieldLabel htmlFor={key}>{label}</FieldLabel>
+															<DatePicker
+																id={key}
+																value={field.state.value}
+																onChange={field.handleChange}
+																disabledDays={{ before: firstDay[key] }}
+															/>
+														</Field>
+													)
+												}
+											</form.AppField>
+										))}
+									</div>
+								);
+							}}
+						</form.Subscribe>
 					)}
 					<form.Field name="interviewerIds">
 						{(field) => (
