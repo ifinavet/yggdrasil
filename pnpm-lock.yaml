@@ -137,8 +137,8 @@ importers:
         specifier: workspace:*
         version: link:packages/typescript-config
       dotenv:
-        specifier: ^16.6.1
-        version: 16.6.1
+        specifier: ^18.0.7
+        version: 18.0.7
       turbo:
         specifier: ^2.11.7
         version: 2.11.7
@@ -528,10 +528,10 @@ importers:
     dependencies:
       '@clerk/nextjs':
         specifier: 'catalog:'
-        version: 7.9.13(next@16.4.0(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.64.0)(@types/node@26.6.4)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(sass@1.105.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+        version: 7.9.13(next@16.4.0(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.64.0)(@types/node@26.6.5)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(sass@1.105.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@sentry/nextjs':
         specifier: 'catalog:'
-        version: 11.6.0(@babel/core@7.29.7)(next@16.4.0(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.64.0)(@types/node@26.6.4)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(sass@1.105.1))(react@19.3.0)(webpack@5.109.2(esbuild@0.28.2))
+        version: 11.6.0(@babel/core@7.29.7)(next@16.4.0(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.64.0)(@types/node@26.6.5)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(sass@1.105.1))(react@19.3.0)(webpack@5.109.2(esbuild@0.28.2))
       '@workspace/backend':
         specifier: workspace:*
         version: link:../backend
@@ -543,7 +543,7 @@ importers:
         version: 1.46.0(@clerk/clerk-react@5.61.9(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@clerk/react@6.17.7(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@6.0.6)
       next:
         specifier: 16.4.0
-        version: 16.4.0(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.64.0)(@types/node@26.6.4)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(sass@1.105.1)
+        version: 16.4.0(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.64.0)(@types/node@26.6.5)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(sass@1.105.1)
       posthog-js:
         specifier: 'catalog:'
         version: 1.438.5(@types/react@19.3.0)(react@19.3.0)
@@ -568,7 +568,7 @@ importers:
         version: 7.0.2
       vitest:
         specifier: 'catalog:'
-        version: 5.0.3(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(@vitest/coverage-v8@5.0.3)(jsdom@30.1.2(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(sass@1.105.1)(terser@5.51.2)(yaml@2.9.1))
+        version: 5.0.3(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.9.1)(@types/node@26.6.5)(@vitest/coverage-v8@5.0.3)(jsdom@30.1.2(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(sass@1.105.1)(terser@5.51.2)(yaml@2.9.1))
 
   packages/backend:
     dependencies:
@@ -703,7 +703,7 @@ importers:
         version: link:../typescript-config
       next:
         specifier: 16.4.0
-        version: 16.4.0(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.64.0)(@types/node@26.6.4)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(sass@1.105.1)
+        version: 16.4.0(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.64.0)(@types/node@26.6.5)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(sass@1.105.1)
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -3858,6 +3858,9 @@ packages:
   '@types/node@26.6.4':
     resolution: {integrity: sha512-ldVPDCzj7fsaGZrLB0NuHuTvJcsNasysBAqMolr/cgxrLd1xbqxIr3XJiPnHHJUCxj5sNF1vnRj9aWnrVh5Jcg==}
 
+  '@types/node@26.6.5':
+    resolution: {integrity: sha512-uMzsv9stDdofIZBx4UGh4Z9ZgXnGC9seRDscilBcTHAeOFk67MZg/k9bWVfO+bk4qZmG+l52hRnLwUiH2LnJTg==}
+
   '@types/papaparse@5.5.2':
     resolution: {integrity: sha512-gFnFp/JMzLHCwRf7tQHrNnfhN4eYBVYYI897CGX4MY1tzY9l2aLkVyx2IlKZ/SAqDbB3I1AOZW5gTMGGsqWliA==}
 
@@ -4610,13 +4613,14 @@ packages:
     resolution: {integrity: sha512-BTJ9aZYL3vCfZlZOBLy9v8TUqWGQ0pzFnygKwFZt5udj6viBoFIBviKPUoZLDCPn1FoXffv6McQFDenrm5Krfw==}
     engines: {node: '>=20'}
 
-  dotenv@16.6.1:
-    resolution: {integrity: sha512-uBq4egWHTcTt33a72vpSG0z3HnPuIl6NqYcTrKEg2azoEyl2hpW0zqlxysq2pK9HlDIHyHyakeYaYnSAwd8bow==}
-    engines: {node: '>=12'}
-
   dotenv@17.4.2:
     resolution: {integrity: sha512-nI4U3TottKAcAD9LLud4Cb7b2QztQMUEfHbvhTH09bqXTxnSie8WnjPALV/WMCrJZ6UV/qHJ6L03OqO3LcdYZw==}
     engines: {node: '>=12'}
+
+  dotenv@18.0.7:
+    resolution: {integrity: sha512-QEvMEF8ca3GNZJJnAbOgxpj5ULhBvnMcURp+XKrtvqFNPgjBvYoswQ0Jl2cO7JzCjxZjJhr9ZuIEhlrRxMft/Q==}
+    engines: {node: '>=12'}
+    hasBin: true
 
   dunder-proto@1.0.1:
     resolution: {integrity: sha512-KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A==}
@@ -6523,12 +6527,12 @@ snapshots:
       server-only: 0.0.1
       tslib: 2.8.1
 
-  '@clerk/nextjs@7.9.13(next@16.4.0(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.64.0)(@types/node@26.6.4)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(sass@1.105.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
+  '@clerk/nextjs@7.9.13(next@16.4.0(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.64.0)(@types/node@26.6.5)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(sass@1.105.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
     dependencies:
       '@clerk/backend': 3.23.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@clerk/react': 6.17.7(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@clerk/shared': 4.39.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      next: 16.4.0(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.64.0)(@types/node@26.6.4)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(sass@1.105.1)
+      next: 16.4.0(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.64.0)(@types/node@26.6.5)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(sass@1.105.1)
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
       server-only: 0.0.1
@@ -8233,7 +8237,7 @@ snapshots:
     dependencies:
       esbuild: 0.28.2
       jiti: 2.6.1
-      next: 16.4.0(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.64.0)(@types/node@26.6.4)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(sass@1.105.1)
+      next: 16.4.0(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.64.0)(@types/node@26.6.5)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(sass@1.105.1)
     transitivePeerDependencies:
       - '@babel/core'
       - '@opentelemetry/api'
@@ -8480,7 +8484,7 @@ snapshots:
       - webpack
       - wrangler
 
-  '@sentry/nextjs@11.6.0(@babel/core@7.29.7)(next@16.4.0(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.64.0)(@types/node@26.6.4)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(sass@1.105.1))(react@19.3.0)(webpack@5.109.2(esbuild@0.28.2))':
+  '@sentry/nextjs@11.6.0(@babel/core@7.29.7)(next@16.4.0(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.64.0)(@types/node@26.6.5)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(sass@1.105.1))(react@19.3.0)(webpack@5.109.2(esbuild@0.28.2))':
     dependencies:
       '@opentelemetry/api': 1.9.1
       '@rollup/plugin-commonjs': 28.0.1(rollup@4.63.4)
@@ -8495,7 +8499,7 @@ snapshots:
       '@sentry/server-runtime-injection': 11.6.0
       '@sentry/server-utils': 11.6.0
       '@sentry/vercel-edge': 11.6.0
-      next: 16.4.0(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.64.0)(@types/node@26.6.4)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(sass@1.105.1)
+      next: 16.4.0(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.64.0)(@types/node@26.6.5)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(sass@1.105.1)
       rollup: 4.63.4
       stacktrace-parser: 0.1.11
     transitivePeerDependencies:
@@ -8521,7 +8525,7 @@ snapshots:
       '@sentry/server-runtime-injection': 11.6.0
       '@sentry/server-utils': 11.6.0
       '@sentry/vercel-edge': 11.6.0
-      next: 16.4.0(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.64.0)(@types/node@26.6.4)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(sass@1.105.1)
+      next: 16.4.0(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.64.0)(@types/node@26.6.5)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(sass@1.105.1)
       rollup: 4.63.4
       stacktrace-parser: 0.1.11
     transitivePeerDependencies:
@@ -9071,6 +9075,11 @@ snapshots:
     dependencies:
       undici-types: 8.9.0
 
+  '@types/node@26.6.5':
+    dependencies:
+      undici-types: 8.9.0
+    optional: true
+
   '@types/papaparse@5.5.2':
     dependencies:
       '@types/node': 20.19.43
@@ -9185,14 +9194,14 @@ snapshots:
     optionalDependencies:
       vite: 8.3.4(@types/node@20.19.43)(esbuild@0.28.2)(jiti@2.7.0)(sass@1.105.1)(terser@5.51.2)(yaml@2.9.1)
 
-  '@vitest/mocker@5.0.3(vite@8.3.4(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(sass@1.105.1)(terser@5.51.2)(yaml@2.9.1))':
+  '@vitest/mocker@5.0.3(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(sass@1.105.1)(terser@5.51.2)(yaml@2.9.1))':
     dependencies:
       '@jridgewell/trace-mapping': 0.3.31
       '@vitest/spy': 5.0.3
       estree-walker: 3.0.3
       magic-string: 1.4.2
     optionalDependencies:
-      vite: 8.3.4(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(sass@1.105.1)(terser@5.51.2)(yaml@2.9.1)
+      vite: 8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(sass@1.105.1)(terser@5.51.2)(yaml@2.9.1)
 
   '@vitest/spy@5.0.3': {}
 
@@ -9792,9 +9801,9 @@ snapshots:
     dependencies:
       type-fest: 5.10.0
 
-  dotenv@16.6.1: {}
-
   dotenv@17.4.2: {}
+
+  dotenv@18.0.7: {}
 
   dunder-proto@1.0.1:
     dependencies:
@@ -10176,7 +10185,7 @@ snapshots:
 
   jest-worker@27.5.1:
     dependencies:
-      '@types/node': 26.6.4
+      '@types/node': 26.6.5
       merge-stream: 2.0.0
       supports-color: 8.1.1
     optional: true
@@ -10495,7 +10504,7 @@ snapshots:
       - '@types/node'
       - babel-plugin-macros
 
-  next@16.4.0(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.64.0)(@types/node@26.6.4)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(sass@1.105.1):
+  next@16.4.0(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.64.0)(@types/node@26.6.5)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(sass@1.105.1):
     dependencies:
       '@next/env': 16.4.0
       '@swc/helpers': 0.5.23
@@ -10517,7 +10526,7 @@ snapshots:
       '@opentelemetry/api': 1.9.1
       '@playwright/test': 1.64.0
       sass: 1.105.1
-      sharp: 0.35.5(@types/node@26.6.4)
+      sharp: 0.35.5(@types/node@26.6.5)
     transitivePeerDependencies:
       - '@babel/core'
       - '@types/node'
@@ -11125,7 +11134,7 @@ snapshots:
       '@types/node': 20.19.43
     optional: true
 
-  sharp@0.35.5(@types/node@26.6.4):
+  sharp@0.35.5(@types/node@26.6.5):
     dependencies:
       '@img/colour': 1.1.0
       detect-libc: 2.1.2
@@ -11156,7 +11165,7 @@ snapshots:
       '@img/sharp-win32-arm64': 0.35.5
       '@img/sharp-win32-ia32': 0.35.5
       '@img/sharp-win32-x64': 0.35.5
-      '@types/node': 26.6.4
+      '@types/node': 26.6.5
     optional: true
 
   side-channel-list@1.0.1:
@@ -11486,7 +11495,7 @@ snapshots:
       terser: 5.51.2
       yaml: 2.9.1
 
-  vite@8.3.4(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(sass@1.105.1)(terser@5.51.2)(yaml@2.9.1):
+  vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(sass@1.105.1)(terser@5.51.2)(yaml@2.9.1):
     dependencies:
       lightningcss: 1.33.0
       picomatch: 4.0.7
@@ -11494,7 +11503,7 @@ snapshots:
       rolldown: 1.2.13
       tinyglobby: 0.2.17
     optionalDependencies:
-      '@types/node': 26.6.4
+      '@types/node': 26.6.5
       esbuild: 0.28.2
       fsevents: 2.3.3
       jiti: 2.7.0
@@ -11527,10 +11536,10 @@ snapshots:
     transitivePeerDependencies:
       - msw
 
-  vitest@5.0.3(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(@vitest/coverage-v8@5.0.3)(jsdom@30.1.2(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(sass@1.105.1)(terser@5.51.2)(yaml@2.9.1)):
+  vitest@5.0.3(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.9.1)(@types/node@26.6.5)(@vitest/coverage-v8@5.0.3)(jsdom@30.1.2(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(sass@1.105.1)(terser@5.51.2)(yaml@2.9.1)):
     dependencies:
       '@types/chai': 5.2.3
-      '@vitest/mocker': 5.0.3(vite@8.3.4(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(sass@1.105.1)(terser@5.51.2)(yaml@2.9.1))
+      '@vitest/mocker': 5.0.3(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(sass@1.105.1)(terser@5.51.2)(yaml@2.9.1))
       chai: 6.2.2
       es-module-lexer: 2.3.2
       expect-type: 1.4.0
@@ -11541,12 +11550,12 @@ snapshots:
       tinybench: 6.2.0
       tinyexec: 1.3.1
       tinyglobby: 0.2.17
-      vite: 8.3.4(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(sass@1.105.1)(terser@5.51.2)(yaml@2.9.1)
+      vite: 8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(sass@1.105.1)(terser@5.51.2)(yaml@2.9.1)
       why-is-node-running: 3.2.1
     optionalDependencies:
       '@edge-runtime/vm': 5.0.0
       '@opentelemetry/api': 1.9.1
-      '@types/node': 26.6.4
+      '@types/node': 26.6.5
       '@vitest/coverage-v8': 5.0.3(vitest@5.0.3)
       jsdom: 30.1.2(@noble/hashes@2.4.0)
     transitivePeerDependencies:
