@@ -10,7 +10,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import EventsList from "@/components/events/events-list";
 import MonthSelector from "@/components/events/month-selector";
-import { nextEventMonth, sortUpcomingFirst } from "@/lib/events-feed";
+import { nextEventMonth, splitUpcomingPast } from "@/lib/events-feed";
 
 export const metadata: Metadata = {
 	title: "Arrangementer",
@@ -42,7 +42,7 @@ export default async function EventsPage() {
 				? currentMonth
 				: (months[0] ?? currentMonth);
 
-	const activeMonthEvents = sortUpcomingFirst(events[activeMonth] ?? [], now);
+	const { upcoming, past } = splitUpcomingPast(events[activeMonth] ?? [], now);
 
 	return (
 		<>
@@ -62,7 +62,7 @@ export default async function EventsPage() {
 					aria-hidden="true"
 				/>
 				<div className="relative z-10 py-4">
-					<EventsList events={activeMonthEvents} />
+					<EventsList upcoming={upcoming} past={past} />
 				</div>
 			</div>
 		</>
