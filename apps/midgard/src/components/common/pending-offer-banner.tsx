@@ -35,7 +35,8 @@ function AdmissionsBanner() {
 		);
 		return () => window.clearTimeout(timer);
 	}, [now, period]);
-	if (!period || !context?.isOpen || context.application?.status === "submitted") return null;
+	if (!period || period.hidden || !context?.isOpen || context.application?.status === "submitted")
+		return null;
 	return (
 		<div className="mx-4 mb-6 flex max-w-6xl flex-col gap-3 sm:mx-auto sm:w-full sm:px-6">
 			<Note
@@ -45,7 +46,7 @@ function AdmissionsBanner() {
 				className="bg-warning-surface text-warning-surface-foreground sm:items-center sm:[&>svg]:mt-0"
 			>
 				<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-					<p>Opptaket {period.title} er åpent for søknader.</p>
+					<p>Opptaket er åpent for søknader.</p>
 					<Button size="sm" asChild className="self-start sm:self-auto">
 						<Link href={`${huginUrl()}/admissions`}>Søk her</Link>
 					</Button>

@@ -156,12 +156,10 @@ async function createPeriod(
 	otherInterviewer: Awaited<ReturnType<typeof fixture>>["otherInterviewer"],
 ) {
 	return await admin.mutation(api.admissions.mutations.createPeriod, {
-		title: "Vår 2027",
 		applicationStartAt: start,
 		applicationEndAt: start + DAY,
 		interviewStartAt: start + 2 * DAY,
 		interviewEndAt: start + 9 * DAY,
-		retentionAt: start + 20 * DAY,
 		interviewers: [
 			{ userId: interviewers[0]?._id ?? otherInterviewer._id, selectedCalendarIds: [] },
 			{ userId: otherInterviewer._id, selectedCalendarIds: [] },

@@ -218,3 +218,11 @@ function roundDecision(
 	if (app.decision === "shortlist") return "pending";
 	return app.decision === "pending" ? "rejected" : app.decision;
 }
+
+export const setHidden = mutation({
+	args: { periodId: v.id("admissionPeriods"), hidden: v.boolean() },
+	handler: async (ctx, { periodId, hidden }) => {
+		const period = await requireMutablePeriod(ctx, periodId);
+		await ctx.db.patch(period._id, { hidden });
+	},
+});

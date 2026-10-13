@@ -8,6 +8,7 @@ import { localDateAndMinute } from "@workspace/shared/time";
 import { Button } from "@workspace/ui/components/button";
 import { ConfirmDialog } from "@workspace/ui/components/confirm-dialog";
 import { Callout } from "@workspace/ui/components/products/callout";
+import { Switch } from "@workspace/ui/components/switch";
 import { useAsyncAction } from "@workspace/ui/hooks/use-async-action";
 
 import { useAction, useMutation, useQuery } from "convex/react";
@@ -44,6 +45,7 @@ export default function AdmissionsDashboard() {
 	const changeRound = useMutation(api.admissions.board.changeRound);
 	const sendDecision = useMutation(api.admissions.mutations.sendDecision);
 	const publish = useMutation(api.admissions.mutations.publish);
+	const setHidden = useMutation(api.admissions.board.setHidden);
 	const generate = useAction(api.admissions.interviews.calendar.generateSchedule);
 	const [view, setView] = useState<"calendar" | "candidates" | "selection">("calendar");
 	const [selected, setSelected] = useState<string | null>(null);
@@ -73,9 +75,8 @@ export default function AdmissionsDashboard() {
 					<h2>Ingen aktive opptak</h2>
 					<div className="grid max-w-prose gap-3 text-muted-foreground">
 						<p>
-							Start opptak åpner et skjema med navn, søknadsperiode, intervjudager, intervjuere,
-							intervjulengde og rom. Du velger også når opplysningene om søkerne slettes. Etterpå
-							går opptaket slik:
+							Start opptak åpner et skjema med søknadsperiode, intervjudager, intervjuere,
+							intervjulengde og rom. Etterpå går opptaket slik:
 						</p>
 						<ol className="grid list-decimal gap-1 pl-5">
 							<li>
@@ -171,6 +172,20 @@ export default function AdmissionsDashboard() {
 						<p>{period.title}</p>
 					</div>
 					<div className="admissions-actions flex flex-wrap items-center gap-3">
+						<label htmlFor="admissions-visible" className="flex items-center gap-2 text-sm">
+							<Switch
+								id="admissions-visible"
+								checked={!period.hidden}
+								disabled={busy}
+								onCheckedChange={(visible) =>
+									void perform(
+										() => setHidden({ periodId: period._id, hidden: !visible }),
+										visible ? "Opptaket vises på ifinavet.no" : "Opptaket er skjult på ifinavet.no",
+									)
+								}
+							/>
+							Vis på ifinavet.no
+						</label>
 						<GuideReplay />
 						<Button
 							variant="outline"
@@ -190,6 +205,12 @@ export default function AdmissionsDashboard() {
 						</GuideHint>
 					</div>
 				</div>
+				{period.hidden && (
+					<Callout>
+						Opptaket er skjult på ifinavet.no. Søknadsskjemaet i Hugin virker for alle som har
+						lenken.
+					</Callout>
+				)}
 				{error && (
 					<div role="alert">
 						<Callout tone="danger">{error}</Callout>
