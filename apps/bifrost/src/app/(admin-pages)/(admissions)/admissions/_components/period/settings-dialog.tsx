@@ -185,49 +185,28 @@ export function SettingsDialog({
 								[
 									["applicationStart", "Søknader åpner"],
 									["applicationEnd", "Søknadsfrist"],
-								] as const
-							).map(([key, label]) => (
-								<form.Field key={key} name={key}>
-									{(field) => (
-										<Field>
-											<FieldLabel htmlFor={key}>{label}</FieldLabel>
-											<DatePicker
-												id={key}
-												value={field.state.value}
-												onChange={field.handleChange}
-											/>
-										</Field>
-									)}
-								</form.Field>
-							))}
-							{(
-								[
 									["opensAt", "Åpner kl."],
 									["closesAt", "Frist kl."],
-								] as const
-							).map(([key, label]) => (
-								<form.AppField key={key} name={key}>
-									{(field) => <field.Input label={label} id={key} type="time" required />}
-								</form.AppField>
-							))}
-							{(
-								[
 									["interviewStart", "Første intervjudag"],
 									["interviewEnd", "Siste intervjudag"],
 								] as const
 							).map(([key, label]) => (
-								<form.Field key={key} name={key}>
-									{(field) => (
-										<Field>
-											<FieldLabel htmlFor={key}>{label}</FieldLabel>
-											<DatePicker
-												id={key}
-												value={field.state.value}
-												onChange={field.handleChange}
-											/>
-										</Field>
-									)}
-								</form.Field>
+								<form.AppField key={key} name={key}>
+									{(field) =>
+										key === "opensAt" || key === "closesAt" ? (
+											<field.Input label={label} id={key} type="time" required />
+										) : (
+											<Field>
+												<FieldLabel htmlFor={key}>{label}</FieldLabel>
+												<DatePicker
+													id={key}
+													value={field.state.value}
+													onChange={field.handleChange}
+												/>
+											</Field>
+										)
+									}
+								</form.AppField>
 							))}
 						</div>
 					)}
