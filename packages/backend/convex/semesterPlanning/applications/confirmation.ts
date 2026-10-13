@@ -92,8 +92,9 @@ function emailToOf(pending: Doc<"pendingCompanyApplications">) {
 }
 
 /**
- * Stores a checked application until it is confirmed by email. A repeated submission gets a new link
- * while it is unconfirmed, and nothing once it is received.
+ * Stores a checked application until it is confirmed by email. A repeated submission replaces the
+ * answers and gets a new link while it is unconfirmed, and nothing once it is received. When the
+ * retry has another contact email, the links sent to the old address stop working.
  *
  * @throws - A Norwegian error when the semester does not take applications or a date is not open.
  * @returns - Who to email the link to, or null when no email should go out.
@@ -118,11 +119,7 @@ export const savePending = internalMutation({
 			.query("pendingCompanyApplications")
 			.withIndex("by_submissionId", (q) => q.eq("submissionId", submissionId))
 			.unique();
-		if (already) {
-			if (already.applicationId) return null;
-			await addConfirmation(ctx, already._id, token);
-			return emailToOf(already);
-		}
+		if (already?.applicationId) return null;
 
 		const parsed = parseApplicationForm(form);
 		const now = Date.now();
@@ -134,17 +131,38 @@ export const savePending = internalMutation({
 		);
 		if (reason) throw new ConvexError(reason);
 
-		const pendingId = await ctx.db.insert("pendingCompanyApplications", {
-			semesterId,
-			submissionId,
-			form: parsed,
-			registry,
-			submittedAt: now,
-		});
+		const answers = { semesterId, form: parsed, registry, submittedAt: now };
+		let pendingId: Id<"pendingCompanyApplications">;
+		if (already) {
+			if (already.form.contact.email !== parsed.contact.email) {
+				await deleteConfirmations(ctx, already._id);
+			}
+			await ctx.db.patch(already._id, answers);
+			pendingId = already._id;
+		} else {
+			pendingId = await ctx.db.insert("pendingCompanyApplications", { submissionId, ...answers });
+		}
 		await addConfirmation(ctx, pendingId, token);
 		return { email: parsed.contact.email, companyName: registry.name };
 	},
 });
+
+async function deleteConfirmations(
+	ctx: MutationCtx,
+	pendingId: Id<"pendingCompanyApplications">,
+	keepUnexpired = false,
+): Promise<boolean> {
+	const now = Date.now();
+	const confirmations = await ctx.db
+		.query("companyApplicationConfirmations")
+		.withIndex("by_pendingId", (q) => q.eq("pendingId", pendingId))
+		.collect();
+	if (keepUnexpired && confirmations.some((confirmation) => confirmation.expiresAt > now)) {
+		return false;
+	}
+	await Promise.all(confirmations.map((confirmation) => ctx.db.delete(confirmation._id)));
+	return true;
+}
 
 /** A new link for an unconfirmed application, or null when there is none to confirm. */
 export const addConfirmationToken = internalMutation({
@@ -308,14 +326,8 @@ export const purgeExpired = internalMutation({
 	args: { pendingId: v.id("pendingCompanyApplications") },
 	returns: v.null(),
 	handler: async (ctx, { pendingId }) => {
-		const now = Date.now();
-		const confirmations = await ctx.db
-			.query("companyApplicationConfirmations")
-			.withIndex("by_pendingId", (q) => q.eq("pendingId", pendingId))
-			.collect();
-		if (confirmations.some((confirmation) => confirmation.expiresAt > now)) return null;
-		await Promise.all(confirmations.map((confirmation) => ctx.db.delete(confirmation._id)));
-		if (await ctx.db.get(pendingId)) await ctx.db.delete(pendingId);
+		const deleted = await deleteConfirmations(ctx, pendingId, true);
+		if (deleted && (await ctx.db.get(pendingId))) await ctx.db.delete(pendingId);
 		return null;
 	},
 });

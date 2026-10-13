@@ -539,6 +539,27 @@ describe("confirmation by email", () => {
 		expect(await applications(t)).toHaveLength(1);
 	});
 
+	it("sends a retry with a corrected email to the new address, and drops the old link", async () => {
+		const { t } = await setup();
+		await withOpenSemester(t);
+		const submissionId = "corrected-email-abcdef";
+		const typo = { name: "Ingrid Solberg", email: "ingird@fjordkode.no", phone: "+47 412 34 567" };
+		const { token: oldToken = "" } = await submitWith(t, {
+			submissionId,
+			form: validForm({ contact: typo }),
+			confirm: false,
+		});
+
+		const { emails, token: newToken = "" } = await submitWith(t, { submissionId, confirm: false });
+
+		expect(emails.map((email) => email.to)).toEqual(["ingrid@fjordkode.no"]);
+		expect(await t.query(confirmation.link, { token: oldToken })).toEqual({ state: "invalid" });
+		await t.mutation(confirmation.confirm, { token: newToken });
+		expect((await applications(t)).map((application) => application.contact.email)).toEqual([
+			"ingrid@fjordkode.no",
+		]);
+	});
+
 	it("answers expired after a day and deletes the unconfirmed application", async () => {
 		vi.useFakeTimers();
 		const { t } = await setup();
