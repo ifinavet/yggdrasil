@@ -95,10 +95,33 @@ export function SettingsDialog({
 	);
 }
 
-export function StartAdmissionForm({ onSaved }: Readonly<{ onSaved: () => void }>) {
+export function StartDialog({
+	open,
+	onOpenChange,
+	onSaved,
+}: Readonly<{ open: boolean; onOpenChange: (open: boolean) => void; onSaved: () => void }>) {
 	const board = useQuery(api.users.organization.queries.getTheBoard, {});
-	if (!board) return <output>Laster styret…</output>;
-	return <PeriodForm board={board} onSaved={onSaved} />;
+	return (
+		<Dialog open={open} onOpenChange={onOpenChange}>
+			<DialogContent
+				className="max-h-[90dvh] overflow-y-auto sm:max-w-xl"
+				aria-describedby={undefined}
+			>
+				<DialogHeader>
+					<DialogTitle>Start opptak</DialogTitle>
+				</DialogHeader>
+				{open && board && (
+					<PeriodForm
+						board={board}
+						onSaved={() => {
+							onSaved();
+							onOpenChange(false);
+						}}
+					/>
+				)}
+			</DialogContent>
+		</Dialog>
+	);
 }
 
 function PeriodForm({

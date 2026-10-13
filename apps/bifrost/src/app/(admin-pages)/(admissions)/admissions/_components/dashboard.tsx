@@ -19,6 +19,7 @@ import {
 	Columns3,
 	Mail,
 	Maximize2,
+	Plus,
 	Settings2,
 	Users,
 	X,
@@ -35,7 +36,7 @@ import { GuideHint, GuideProvider, GuideReplay } from "./guide/guide";
 import { CalendarDialog } from "./interviews/calendar-dialog";
 import { InterviewCalendar } from "./interviews/interview-calendar";
 import { type Candidate, type Decision, decisionLabels, offerLabels } from "./model";
-import { SettingsDialog, StartAdmissionForm } from "./period/settings-dialog";
+import { SettingsDialog, StartDialog } from "./period/settings-dialog";
 
 export default function AdmissionsDashboard() {
 	const overview = useQuery(api.admissions.queries.adminOverview, {});
@@ -69,7 +70,44 @@ export default function AdmissionsDashboard() {
 				<div className="admissions-title flex items-center justify-between gap-4 [&_h1]:font-semibold [&_h1]:text-3xl [&_h1]:tracking-tight">
 					<h1>Opptak</h1>
 				</div>
-				<StartAdmissionForm onSaved={() => toast.success("Opptaket er opprettet")} />
+				<div className="admissions-empty flex flex-col items-center gap-5 px-2 py-12 sm:px-6 sm:py-20">
+					<Users size={36} />
+					<h2>Ingen aktive opptak</h2>
+					<div className="grid max-w-prose gap-3 text-muted-foreground">
+						<p>
+							Start opptak åpner et skjema med navn, søknadsperiode, intervjudager, intervjuere,
+							intervjulengde og rom. Du velger også når opplysningene om søkerne slettes. Etterpå
+							går opptaket slik:
+						</p>
+						<ol className="grid list-decimal gap-1 pl-5">
+							<li>
+								Studentene søker i Hugin, via lenker fra ifinavet.no, Instagram og andre kanaler,
+								mens søknadsperioden er åpen.
+							</li>
+							<li>
+								Dere velger Google-kalenderne til intervjuernes @ifinavet.no-kontoer og får et
+								forslag til intervjutider som passer alle. Hver intervjuer kobler sine egne
+								kalendere til ifinavet-kalenderen sin, eller blokkerer tidene der de ikke vil
+								intervjue manuelt.
+							</li>
+							<li>Når dere godkjenner forslaget, får kandidatene tiden sin på e-post.</li>
+							<li>
+								Etter intervjuene vurderer dere kandidatene i runder. I hver runde går noen
+								kandidater videre, og resten blir slått ut.
+							</li>
+							<li>Dere sender tilbud og avslag herfra, og kandidatene svarer på tilbudet.</li>
+						</ol>
+					</div>
+					<Button onClick={() => setConfigure(true)}>
+						<Plus />
+						Start opptak
+					</Button>
+				</div>
+				<StartDialog
+					open={configure}
+					onOpenChange={setConfigure}
+					onSaved={() => toast.success("Opptaket er opprettet")}
+				/>
 			</section>
 		);
 	const { period } = overview;
