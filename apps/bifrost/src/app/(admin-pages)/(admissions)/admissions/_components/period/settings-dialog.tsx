@@ -3,28 +3,21 @@
 import { api } from "@workspace/backend/convex/api";
 import type { Doc, Id } from "@workspace/backend/convex/dataModel";
 import { ADMISSION_PERIOD_TIMES } from "@workspace/shared/admissions";
-import { DATE_PATTERNS, osloDateTimeToEpoch } from "@workspace/shared/time";
+import { osloDateTimeToEpoch } from "@workspace/shared/time";
 import { Button } from "@workspace/ui/components/button";
-import { Calendar } from "@workspace/ui/components/calendar";
 import { Checkbox } from "@workspace/ui/components/checkbox";
+import { DatePicker } from "@workspace/ui/components/date-picker";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@workspace/ui/components/dialog";
 import { Field, FieldLabel } from "@workspace/ui/components/field";
 import { Fold } from "@workspace/ui/components/fold";
 import { useAppForm } from "@workspace/ui/components/form";
-import { Input } from "@workspace/ui/components/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui/components/popover";
 import { SearchSelect } from "@workspace/ui/components/search-select";
 import { Switch } from "@workspace/ui/components/switch";
 import { useAsyncAction } from "@workspace/ui/hooks/use-async-action";
 import { useMutation, useQuery } from "convex/react";
-import { addDays, format, parseISO } from "date-fns";
-import { nb } from "date-fns/locale";
-import { CalendarIcon } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { defaults, type Overview, roomUrl } from "../model";
 import { CloseDialog } from "./close-dialog";
-
-type Board = { userId: Id<"users">; fullName: string }[];
 
 export function SettingsDialog({
 	open,
@@ -35,103 +28,16 @@ export function SettingsDialog({
 }: Readonly<{
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	overview: Overview;
+	overview?: Overview;
 	onSaved: () => void;
 	onClosed?: () => void;
 }>) {
 	const board = useQuery(api.users.organization.queries.getTheBoard, {});
-	const { period } = overview;
-	const [closeOpen, setCloseOpen] = useState(false);
-	const counts = {
-		pendingOffers: overview.candidates.filter((candidate) => candidate.offerStatus === "pending")
-			.length,
-		futureInterviews: overview.interviews.filter(
-			(interview) => interview.status === "scheduled" && interview.startAt > Date.now(),
-		).length,
-		unsentDecisions: overview.candidates.filter(
-			(candidate) =>
-				(candidate.decision === "accepted" || candidate.decision === "rejected") &&
-				!candidate.decisionSentAt,
-		).length,
-	};
-
-	return (
-		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent
-				className="max-h-[90dvh] overflow-y-auto sm:max-w-xl"
-				aria-describedby={undefined}
-			>
-				<DialogHeader>
-					<DialogTitle>Opptaksinnstillinger</DialogTitle>
-				</DialogHeader>
-				{open && board && (
-					<PeriodForm
-						key={period.revision}
-						period={period}
-						board={board}
-						onSaved={() => {
-							onSaved();
-							onOpenChange(false);
-						}}
-					/>
-				)}
-				<div className="pt-4">
-					<Button type="button" variant="destructive" onClick={() => setCloseOpen(true)}>
-						Avslutt opptaket
-					</Button>
-					<CloseDialog
-						open={closeOpen}
-						onOpenChange={setCloseOpen}
-						periodId={period._id}
-						counts={counts}
-						onClosed={() => {
-							onOpenChange(false);
-							onClosed?.();
-						}}
-					/>
-				</div>
-			</DialogContent>
-		</Dialog>
-	);
-}
-
-export function StartDialog({
-	open,
-	onOpenChange,
-	onSaved,
-}: Readonly<{ open: boolean; onOpenChange: (open: boolean) => void; onSaved: () => void }>) {
-	const board = useQuery(api.users.organization.queries.getTheBoard, {});
-	return (
-		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent
-				className="max-h-[90dvh] overflow-y-auto sm:max-w-xl"
-				aria-describedby={undefined}
-			>
-				<DialogHeader>
-					<DialogTitle>Start opptak</DialogTitle>
-				</DialogHeader>
-				{open && board && (
-					<PeriodForm
-						board={board}
-						onSaved={() => {
-							onSaved();
-							onOpenChange(false);
-						}}
-					/>
-				)}
-			</DialogContent>
-		</Dialog>
-	);
-}
-
-function PeriodForm({
-	period,
-	board,
-	onSaved,
-}: Readonly<{ period?: Doc<"admissionPeriods">; board: Board; onSaved: () => void }>) {
+	const period = overview?.period;
 	const create = useMutation(api.admissions.mutations.createPeriod);
 	const update = useMutation(api.admissions.board.updateSettings);
 	const { error, run } = useAsyncAction();
+	const [closeOpen, setCloseOpen] = useState(false);
 	const form = useAppForm({
 		defaultValues: formValues(board, period),
 		onSubmit: ({ value }) =>
@@ -178,11 +84,29 @@ function PeriodForm({
 						});
 					}
 					onSaved();
+					onOpenChange(false);
 				},
 				undefined,
 				"Kunne ikke lagre opptaket.",
 			),
 	});
+	useEffect(() => {
+		if (open) form.reset(formValues(board, period));
+	}, [open, board, period, form]);
+	const counts = {
+		pendingOffers:
+			overview?.candidates.filter((candidate) => candidate.offerStatus === "pending").length ?? 0,
+		futureInterviews:
+			overview?.interviews.filter(
+				(interview) => interview.status === "scheduled" && interview.startAt > Date.now(),
+			).length ?? 0,
+		unsentDecisions:
+			overview?.candidates.filter(
+				(candidate) =>
+					(candidate.decision === "accepted" || candidate.decision === "rejected") &&
+					!candidate.decisionSentAt,
+			).length ?? 0,
+	};
 
 	const settingsFields = (
 		<div className="grid gap-5">
@@ -235,237 +159,179 @@ function PeriodForm({
 	);
 
 	return (
-		<form
-			className="grid max-w-xl gap-6"
-			onSubmit={(event) => {
-				event.preventDefault();
-				void form.handleSubmit();
-			}}
-		>
-			{error && (
-				<p role="alert" className="text-destructive">
-					{error}
-				</p>
-			)}
-			{!period && (
-				<>
-					<Field>
-						<FieldLabel id="application-label">Søknadsperiode</FieldLabel>
-						<div className="flex flex-wrap items-end gap-4">
-							<form.Subscribe
-								selector={(state) => [state.values.applicationStart, state.values.applicationEnd]}
-							>
-								{([from = "", to = ""]) => (
-									<DateRange
-										labelledBy="application-label"
-										from={from}
-										to={to}
-										onChange={(start, end) => {
-											form.setFieldValue("applicationStart", start);
-											form.setFieldValue("applicationEnd", end);
-										}}
-									/>
-								)}
-							</form.Subscribe>
-							<form.Field name="opensAt">
-								{(field) => (
-									<TimeInput
-										id="opens-at"
-										label="Åpner kl."
-										value={field.state.value}
-										onChange={field.handleChange}
-									/>
-								)}
-							</form.Field>
-							<form.Field name="closesAt">
-								{(field) => (
-									<TimeInput
-										id="closes-at"
-										label="Frist kl."
-										value={field.state.value}
-										onChange={field.handleChange}
-									/>
-								)}
-							</form.Field>
+		<Dialog open={open} onOpenChange={onOpenChange}>
+			<DialogContent
+				className="max-h-[90dvh] overflow-y-auto sm:max-w-xl"
+				aria-describedby={undefined}
+			>
+				<DialogHeader>
+					<DialogTitle>{period ? "Opptaksinnstillinger" : "Start opptak"}</DialogTitle>
+				</DialogHeader>
+				<form
+					className="grid gap-6"
+					onSubmit={(event) => {
+						event.preventDefault();
+						void form.handleSubmit();
+					}}
+				>
+					{error && (
+						<p role="alert" className="text-destructive">
+							{error}
+						</p>
+					)}
+					{!period && (
+						<div className="grid grid-cols-2 gap-5">
+							{(
+								[
+									["applicationStart", "Søknader åpner"],
+									["applicationEnd", "Søknadsfrist"],
+								] as const
+							).map(([key, label]) => (
+								<form.Field key={key} name={key}>
+									{(field) => (
+										<Field>
+											<FieldLabel htmlFor={key}>{label}</FieldLabel>
+											<DatePicker
+												id={key}
+												value={field.state.value}
+												onChange={field.handleChange}
+											/>
+										</Field>
+									)}
+								</form.Field>
+							))}
+							{(
+								[
+									["opensAt", "Åpner kl."],
+									["closesAt", "Frist kl."],
+								] as const
+							).map(([key, label]) => (
+								<form.AppField key={key} name={key}>
+									{(field) => <field.Input label={label} id={key} type="time" required />}
+								</form.AppField>
+							))}
+							{(
+								[
+									["interviewStart", "Første intervjudag"],
+									["interviewEnd", "Siste intervjudag"],
+								] as const
+							).map(([key, label]) => (
+								<form.Field key={key} name={key}>
+									{(field) => (
+										<Field>
+											<FieldLabel htmlFor={key}>{label}</FieldLabel>
+											<DatePicker
+												id={key}
+												value={field.state.value}
+												onChange={field.handleChange}
+											/>
+										</Field>
+									)}
+								</form.Field>
+							))}
 						</div>
-					</Field>
-					<Field>
-						<FieldLabel id="interview-label">Intervjudager</FieldLabel>
-						<div>
-							<form.Subscribe
-								selector={(state) => [
-									state.values.interviewStart,
-									state.values.interviewEnd,
-									state.values.applicationEnd,
-								]}
-							>
-								{([from = "", to = "", applicationEnd = ""]) => (
-									<DateRange
-										labelledBy="interview-label"
-										from={from}
-										to={to}
-										after={applicationEnd}
-										onChange={(start, end) => {
-											form.setFieldValue("interviewStart", start);
-											form.setFieldValue("interviewEnd", end);
-										}}
-									/>
-								)}
-							</form.Subscribe>
-						</div>
-					</Field>
-				</>
-			)}
-			<form.Field name="interviewerIds">
-				{(field) => (
-					<Field>
-						<FieldLabel id="interviewers-label">
-							Intervjuere ({field.state.value.length})
-						</FieldLabel>
-						<SearchSelect
-							multiple
-							aria-labelledby="interviewers-label"
-							items={board.map((person) => ({ id: person.userId, label: person.fullName }))}
-							value={field.state.value}
-							onChange={(ids) => field.handleChange(ids as Id<"users">[])}
-							placeholder="Velg intervjuere"
-							searchPlaceholder="Søk etter intervjuer"
-						/>
-					</Field>
-				)}
-			</form.Field>
-			{period ? (
-				settingsFields
-			) : (
-				<>
-					<form.Subscribe selector={(state) => state.values}>
-						{(values) => (
-							<Fold
-								title={
-									<>
-										Oppsett{" "}
-										<span className="font-normal text-muted-foreground">
-											{values.duration} min, {values.buffer} min buffer, pause etter{" "}
-											{values.breakEvery}, standardrom {values.room}
-											{values.lunch ? ", lunsj" : ""}
-										</span>
-									</>
-								}
-							>
-								<div className="p-4">{settingsFields}</div>
-							</Fold>
-						)}
-					</form.Subscribe>
-					<form.Field name="visible">
+					)}
+					<form.Field name="interviewerIds">
 						{(field) => (
-							<label htmlFor="admissions-visible" className="flex items-center gap-3 font-medium">
-								<Switch
-									id="admissions-visible"
-									checked={field.state.value}
-									onCheckedChange={field.handleChange}
+							<Field>
+								<FieldLabel id="interviewers-label">Intervjuere</FieldLabel>
+								<SearchSelect
+									multiple
+									aria-labelledby="interviewers-label"
+									items={board?.map((person) => ({ id: person.userId, label: person.fullName }))}
+									value={field.state.value}
+									onChange={(ids) => field.handleChange(ids as Id<"users">[])}
+									placeholder="Velg intervjuere"
+									searchPlaceholder="Søk etter intervjuer"
 								/>
-								Vis på ifinavet.no
-							</label>
+							</Field>
 						)}
 					</form.Field>
-				</>
-			)}
-			<form.Subscribe
-				selector={(state) =>
-					state.isSubmitting ||
-					state.values.interviewerIds.length < 2 ||
-					(!period &&
-						![
-							state.values.applicationStart,
-							state.values.applicationEnd,
-							state.values.interviewStart,
-							state.values.interviewEnd,
-							state.values.opensAt,
-							state.values.closesAt,
-						].every(Boolean))
-				}
-			>
-				{(disabled) => (
-					<Button type="submit" disabled={disabled} className="justify-self-start">
-						{period ? "Lagre innstillinger" : "Opprett opptak"}
-					</Button>
+					{period ? (
+						settingsFields
+					) : (
+						<>
+							<form.Subscribe selector={(state) => state.values}>
+								{(values) => (
+									<Fold
+										title={
+											<>
+												Oppsett{" "}
+												<span className="font-normal text-muted-foreground">
+													{values.duration} min, {values.buffer} min buffer, pause etter{" "}
+													{values.breakEvery}, standardrom {values.room}
+													{values.lunch ? ", lunsj" : ""}
+												</span>
+											</>
+										}
+									>
+										<div className="p-4">{settingsFields}</div>
+									</Fold>
+								)}
+							</form.Subscribe>
+							<form.Field name="visible">
+								{(field) => (
+									<label
+										htmlFor="admissions-visible"
+										className="flex items-center gap-3 font-medium"
+									>
+										<Switch
+											id="admissions-visible"
+											checked={field.state.value}
+											onCheckedChange={field.handleChange}
+										/>
+										Vis på ifinavet.no
+									</label>
+								)}
+							</form.Field>
+						</>
+					)}
+					<form.Subscribe
+						selector={(state) =>
+							state.isSubmitting ||
+							state.values.interviewerIds.length < 2 ||
+							(!period &&
+								![
+									state.values.applicationStart,
+									state.values.applicationEnd,
+									state.values.interviewStart,
+									state.values.interviewEnd,
+								].every(Boolean))
+						}
+					>
+						{(disabled) => (
+							<Button type="submit" disabled={disabled}>
+								{period ? "Lagre innstillinger" : "Start opptak"}
+							</Button>
+						)}
+					</form.Subscribe>
+				</form>
+				{period && (
+					<div className="pt-4">
+						<Button type="button" variant="destructive" onClick={() => setCloseOpen(true)}>
+							Avslutt opptaket
+						</Button>
+						<CloseDialog
+							open={closeOpen}
+							onOpenChange={setCloseOpen}
+							periodId={period._id}
+							counts={counts}
+							onClosed={() => {
+								onOpenChange(false);
+								onClosed?.();
+							}}
+						/>
+					</div>
 				)}
-			</form.Subscribe>
-		</form>
+			</DialogContent>
+		</Dialog>
 	);
 }
 
-function DateRange({
-	labelledBy,
-	from,
-	to,
-	after,
-	onChange,
-}: Readonly<{
-	labelledBy: string;
-	from: string;
-	to: string;
-	after?: string;
-	onChange: (from: string, to: string) => void;
-}>) {
-	const day = (value: string) => (value ? parseISO(value) : undefined);
-	const label = (value: string) => format(parseISO(value), DATE_PATTERNS.numericDate);
-	return (
-		<Popover>
-			<PopoverTrigger asChild>
-				<Button
-					type="button"
-					variant="outline"
-					aria-labelledby={labelledBy}
-					className={from ? "font-normal" : "font-normal text-muted-foreground"}
-				>
-					<CalendarIcon />
-					{[from, to].filter(Boolean).map(label).join(" – ") || "Velg datoer"}
-				</Button>
-			</PopoverTrigger>
-			<PopoverContent className="w-auto p-0" align="start">
-				<Calendar
-					mode="range"
-					ISOWeek
-					locale={nb}
-					numberOfMonths={2}
-					defaultMonth={day(from) ?? day(after ?? "")}
-					disabled={{ before: after ? addDays(parseISO(after), 1) : new Date() }}
-					selected={{ from: day(from), to: day(to) }}
-					onSelect={(range) =>
-						onChange(
-							range?.from ? format(range.from, "yyyy-MM-dd") : "",
-							range?.to ? format(range.to, "yyyy-MM-dd") : "",
-						)
-					}
-				/>
-			</PopoverContent>
-		</Popover>
-	);
-}
-
-function TimeInput({
-	id,
-	label,
-	value,
-	onChange,
-}: Readonly<{ id: string; label: string; value: string; onChange: (value: string) => void }>) {
-	return (
-		<Field className="w-fit">
-			<FieldLabel htmlFor={id}>{label}</FieldLabel>
-			<Input
-				id={id}
-				type="time"
-				lang="nb"
-				required
-				value={value}
-				onChange={(event) => onChange(event.target.value)}
-			/>
-		</Field>
-	);
-}
-
-function formValues(board: Board, period?: Doc<"admissionPeriods">) {
+function formValues(
+	board: { userId: Id<"users"> }[] | undefined,
+	period?: Doc<"admissionPeriods">,
+) {
 	return {
 		applicationStart: "",
 		applicationEnd: "",
@@ -475,7 +341,9 @@ function formValues(board: Board, period?: Doc<"admissionPeriods">) {
 		interviewEnd: "",
 		visible: false,
 		interviewerIds:
-			period?.interviewers.map((person) => person.userId) ?? board.map((person) => person.userId),
+			period?.interviewers.map((person) => person.userId) ??
+			board?.map((person) => person.userId) ??
+			([] as Id<"users">[]),
 		duration: period?.duration ?? defaults.duration,
 		buffer: period?.buffer ?? defaults.buffer,
 		breakEvery: period?.breakEvery ?? defaults.breakEvery,

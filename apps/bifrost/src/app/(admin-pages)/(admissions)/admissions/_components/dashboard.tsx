@@ -36,7 +36,7 @@ import { GuideHint, GuideProvider, GuideReplay } from "./guide/guide";
 import { CalendarDialog } from "./interviews/calendar-dialog";
 import { InterviewCalendar } from "./interviews/interview-calendar";
 import { type Candidate, type Decision, decisionLabels, offerLabels } from "./model";
-import { SettingsDialog, StartDialog } from "./period/settings-dialog";
+import { SettingsDialog } from "./period/settings-dialog";
 
 export default function AdmissionsDashboard() {
 	const overview = useQuery(api.admissions.queries.adminOverview, {});
@@ -103,7 +103,7 @@ export default function AdmissionsDashboard() {
 						Start opptak
 					</Button>
 				</div>
-				<StartDialog
+				<SettingsDialog
 					open={configure}
 					onOpenChange={setConfigure}
 					onSaved={() => toast.success("Opptaket er opprettet")}
