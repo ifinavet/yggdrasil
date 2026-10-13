@@ -1,15 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { firstSelectableDays } from "./model";
 
-const today = new Date(2026, 9, 13, 15, 30);
+const today = new Date(Date.UTC(2026, 9, 13, 22, 30));
 
 describe("firstSelectableDays", () => {
-	it("starts every date at today when nothing is chosen", () => {
+	it("starts every date at today in Oslo when nothing is chosen", () => {
 		const days = firstSelectableDays(
 			{ applicationStart: "", applicationEnd: "", interviewStart: "" },
 			today,
 		);
-		const midnight = new Date(2026, 9, 13);
+		const midnight = new Date(2026, 9, 14);
 		expect(days).toEqual({
 			applicationStart: midnight,
 			applicationEnd: midnight,

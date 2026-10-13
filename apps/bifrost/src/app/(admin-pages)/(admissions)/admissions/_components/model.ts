@@ -1,8 +1,8 @@
 import type { api } from "@workspace/backend/convex/api";
 import type { Doc } from "@workspace/backend/convex/dataModel";
-import { formatOsloDate } from "@workspace/shared/time";
+import { formatOsloDate, osloToday } from "@workspace/shared/time";
 import type { FunctionReturnType } from "convex/server";
-import { addDays, parseISO, startOfDay } from "date-fns";
+import { addDays, parseISO } from "date-fns";
 
 export { ADMISSION_SCHEDULING_DEFAULTS as defaults, roomUrl } from "@workspace/shared/admissions";
 
@@ -38,13 +38,12 @@ export function firstSelectableDays(
 	dates: Readonly<{ applicationStart: string; applicationEnd: string; interviewStart: string }>,
 	today: Date,
 ) {
-	const day = (value: string) => (value ? parseISO(value) : startOfDay(today));
+	const first = parseISO(osloToday(today.getTime()));
+	const day = (value: string) => (value ? parseISO(value) : first);
 	return {
-		applicationStart: startOfDay(today),
+		applicationStart: first,
 		applicationEnd: day(dates.applicationStart),
-		interviewStart: dates.applicationEnd
-			? addDays(parseISO(dates.applicationEnd), 1)
-			: startOfDay(today),
+		interviewStart: dates.applicationEnd ? addDays(parseISO(dates.applicationEnd), 1) : first,
 		interviewEnd: day(dates.interviewStart),
 	};
 }
