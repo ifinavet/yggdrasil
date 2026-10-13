@@ -14,6 +14,7 @@ export default defineConfig({
 				"convex/feedback/events.ts",
 				"convex/feedback/reports/{access,build,queries,mutations,public,messages,mail,live}.ts",
 				"convex/feedback/delivery/{campaigns,messages,mail,workflows,http}.ts",
+				"convex/emailAnalytics/capture.ts",
 				"convex/feedback/manualSend/{eligibility,send}.ts",
 				"convex/products/{helpers,mutations,queries,seed,sales,migrations,stats,tagging}.ts",
 				"convex/engagement/{alerts,audience,backfill,snapshot,log}.ts",
