@@ -320,7 +320,7 @@ function PeriodForm({
 							<Fold
 								title={
 									<>
-										Oppsett
+										Oppsett{" "}
 										<span className="font-normal text-muted-foreground">
 											{values.duration} min, {values.buffer} min buffer, pause etter{" "}
 											{values.breakEvery}, standardrom {values.room}
@@ -397,7 +397,7 @@ function DateRange({
 					className={from ? "font-normal" : "font-normal text-muted-foreground"}
 				>
 					<CalendarIcon />
-					{from ? `${label(from)} – ${to ? label(to) : ""}` : "Velg datoer"}
+					{[from, to].filter(Boolean).map(label).join(" – ") || "Velg datoer"}
 				</Button>
 			</PopoverTrigger>
 			<PopoverContent className="w-auto p-0" align="start">
