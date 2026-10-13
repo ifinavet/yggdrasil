@@ -30,6 +30,7 @@ import type * as companies_history from "../companies/history.js";
 import type * as companies_mutations from "../companies/mutations.js";
 import type * as companies_queries from "../companies/queries.js";
 import type * as crons from "../crons.js";
+import type * as emailAnalytics_capture from "../emailAnalytics/capture.js";
 import type * as emails from "../emails.js";
 import type * as engagement_alerts from "../engagement/alerts.js";
 import type * as engagement_audience from "../engagement/audience.js";
@@ -222,6 +223,7 @@ declare const fullApi: ApiFromModules<{
   "companies/mutations": typeof companies_mutations;
   "companies/queries": typeof companies_queries;
   crons: typeof crons;
+  "emailAnalytics/capture": typeof emailAnalytics_capture;
   emails: typeof emails;
   "engagement/alerts": typeof engagement_alerts;
   "engagement/audience": typeof engagement_audience;
