@@ -5,7 +5,7 @@ import type { MutationCtx } from "../../_generated/server";
 import { latestCampaign } from "../../feedback/delivery/campaigns";
 import { enqueueSystemMessage } from "../../iam/notifications";
 import { countRegistrationsWithStatus } from "../helper";
-import { getOrganizers } from "../queries";
+import type { getOrganizers } from "../queries";
 import { REMINDER_KINDS } from "../reminders/schedule";
 import {
 	escapeSlack,
@@ -20,6 +20,7 @@ import {
 } from "./messages";
 
 type Notice = { key: string; text: string };
+type Organizer = Awaited<ReturnType<typeof getOrganizers>>[number];
 
 async function upcomingNotices(ctx: MutationCtx, event: Doc<"events">, now: number) {
 	const notices: Notice[] = [];
@@ -66,7 +67,12 @@ async function upcomingNotices(ctx: MutationCtx, event: Doc<"events">, now: numb
 	return notices;
 }
 
-async function feedbackNotices(ctx: MutationCtx, event: Doc<"events">, now: number) {
+async function feedbackNotices(
+	ctx: MutationCtx,
+	event: Doc<"events">,
+	organizers: Organizer[],
+	now: number,
+) {
 	if (!event.feedbackEnabled) return [];
 	const campaign = await latestCampaign(ctx, event._id);
 	if (!campaign || campaign.status === "cancelled") return [];
@@ -110,14 +116,15 @@ async function feedbackNotices(ctx: MutationCtx, event: Doc<"events">, now: numb
 			-EVENT_PLANNING.unsentReportAlertDaysAfter,
 		);
 		if (report.totalResponses > 0 && unsentAlertAt <= now) {
-			const organizers = (await getOrganizers(ctx, event._id)).filter(
-				({ role }) => role === "hovedansvarlig",
-			);
 			await enqueueSystemMessage(ctx, {
 				channel: SYSTEM_ALERTS_CHANNEL,
 				clientMsgId: `report-unsent-${report._id}`,
 				since: unsentAlertAt,
-				text: unsentReportText(event, report, organizers),
+				text: unsentReportText(
+					event,
+					report,
+					organizers.filter(({ role }) => role === "hovedansvarlig"),
+				),
 			});
 		}
 	}
@@ -134,6 +141,14 @@ async function feedbackNotices(ctx: MutationCtx, event: Doc<"events">, now: numb
 }
 
 /** Recover milestones from stored facts, never from an assumption that queued email was sent. */
-export async function recoverableNotices(ctx: MutationCtx, event: Doc<"events">, now: number) {
-	return [...(await upcomingNotices(ctx, event, now)), ...(await feedbackNotices(ctx, event, now))];
+export async function recoverableNotices(
+	ctx: MutationCtx,
+	event: Doc<"events">,
+	organizers: Organizer[],
+	now: number,
+) {
+	return [
+		...(await upcomingNotices(ctx, event, now)),
+		...(await feedbackNotices(ctx, event, organizers, now)),
+	];
 }

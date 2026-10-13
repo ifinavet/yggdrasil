@@ -283,7 +283,7 @@ async function eventContext(
 		);
 
 	await Promise.all(
-		(await recoverableNotices(ctx, event, now)).map((notice) =>
+		(await recoverableNotices(ctx, event, organizers, now)).map((notice) =>
 			queueEventNotification(ctx, event._id, notice.key, notice.text, { schedule: false }),
 		),
 	);

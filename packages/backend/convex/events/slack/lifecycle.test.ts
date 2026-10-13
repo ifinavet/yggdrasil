@@ -17,6 +17,7 @@ import { internal } from "../../_generated/api";
 import type { Doc, Id } from "../../_generated/dataModel";
 import { followupFinishedAt } from "../../feedback/reports/lifecycle";
 import { slackClient } from "../../iam/slack";
+import { getOrganizers } from "../queries";
 import { recordReminderSent } from "../reminders/delivery";
 import { welcomeMessage } from "./messages";
 import { queueEventNotification } from "./state";
@@ -1690,7 +1691,7 @@ it("alerts system once when an approvable report is still unsent six days after 
 		t.run(async (ctx) => {
 			const event = await ctx.db.get(eventId);
 			if (!event) throw new Error("Missing event");
-			await recoverableNotices(ctx, event, now);
+			await recoverableNotices(ctx, event, await getOrganizers(ctx, eventId), now);
 		});
 	const alerts = () =>
 		t.run((ctx) =>
