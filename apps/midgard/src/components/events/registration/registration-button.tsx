@@ -7,6 +7,7 @@ import { Button } from "@workspace/ui/components/button";
 import { useQuery } from "convex/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { usePostHog } from "posthog-js/react";
 import { withRedirect } from "@/utils/auth-redirect";
 import EditRegistration from "./edit-registration";
 import RegisterForm from "./register-form";
@@ -24,6 +25,7 @@ export default function RegistrationButton({
 	event: Doc<"events">;
 }>) {
 	const path = usePathname();
+	const postHog = usePostHog();
 
 	const { isAuthenticated } = useConvexAuth();
 	const currentUsersPoints = useQuery(
@@ -41,7 +43,17 @@ export default function RegistrationButton({
 				className="w-1/2 rounded-xl bg-zinc-800 py-8 text-lg text-primary-foreground hover:cursor-pointer hover:bg-zinc-700"
 				asChild
 			>
-				<Link href={withRedirect("/sign-in", path)}>Logg inn og meld deg på</Link>
+				<Link
+					href={withRedirect("/sign-in", path)}
+					onClick={() =>
+						postHog.capture("midgard-student_register_clicked", {
+							eventId: event._id,
+							logged_in: false,
+						})
+					}
+				>
+					Logg inn og meld deg på
+				</Link>
 			</Button>
 		);
 	}
