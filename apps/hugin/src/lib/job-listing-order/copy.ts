@@ -142,6 +142,8 @@ export const receiptCopy = {
 	listings: "Annonser",
 	updateRequested: "Endringene i bedriftsinformasjonen godkjennes av Navet før de publiseres.",
 	print: "Skriv ut",
+	home: "Til forsiden",
+	redirect: (seconds: number) => `Sender deg til forsiden om ${seconds} s`,
 	feedback: "Hvordan var det å bestille?",
 	feedbackSubmit: "Send tilbakemelding",
 	feedbackSending: "Sender ...",

@@ -5,6 +5,7 @@ import { JOB_TYPES } from "../constants/job_types";
 export const JOB_LISTING_ORDER_PATH = "/bestill-stillingsannonse";
 export const JOB_LISTINGS_PATH = "/job-listings";
 export const JOB_LISTING_ORDER_CONFIRM_PATH = `${JOB_LISTING_ORDER_PATH}/bekreft`;
+export const JOB_LISTING_ORDER_RECEIPT_REDIRECT_SECONDS = 60;
 
 export function jobListingOrderUrl(huginOrigin: string): string {
 	return `${huginOrigin}${JOB_LISTING_ORDER_PATH}`;

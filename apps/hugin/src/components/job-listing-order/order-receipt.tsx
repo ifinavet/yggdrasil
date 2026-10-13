@@ -1,6 +1,7 @@
 "use client";
 
 import { api } from "@workspace/backend/convex/api";
+import { JOB_LISTING_ORDER_RECEIPT_REDIRECT_SECONDS } from "@workspace/shared/job-listing-orders";
 import { formatNokFromOre } from "@workspace/shared/products";
 import { convexErrorMessage } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
@@ -9,9 +10,12 @@ import { Note } from "@workspace/ui/components/note";
 import { Textarea } from "@workspace/ui/components/textarea";
 import { useMutation } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { CircleCheck, Printer } from "lucide-react";
-import { type FormEvent, type ReactNode, useState } from "react";
+import { Check, Printer } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { type FormEvent, type ReactNode, useCallback, useState } from "react";
 import { receiptCopy } from "@/lib/job-listing-order/copy";
+import { useRedirectCountdown } from "@/lib/use-redirect-countdown";
 
 type Receipt = Extract<
 	FunctionReturnType<typeof api.jobListingOrders.orders.confirm>,
@@ -19,10 +23,22 @@ type Receipt = Extract<
 >["receipt"];
 
 export function OrderReceipt({ token, receipt }: Readonly<{ token: string; receipt: Receipt }>) {
+	const router = useRouter();
+	const [paused, setPaused] = useState(false);
+	const goHome = useCallback(() => router.replace("/"), [router]);
+	const remaining = useRedirectCountdown(
+		JOB_LISTING_ORDER_RECEIPT_REDIRECT_SECONDS,
+		paused,
+		goHome,
+	);
+
 	return (
-		<div className="mx-auto w-full max-w-3xl pt-7 print:max-w-none print:pt-0">
-			<div className="mb-4 grid size-[46px] place-items-center rounded-xl bg-primary-light text-primary print:hidden">
-				<CircleCheck className="size-6" />
+		<div
+			className="mx-auto w-full max-w-3xl pt-7 print:max-w-none print:pt-0"
+			onFocusCapture={() => setPaused(true)}
+		>
+			<div className="fade-in zoom-in-50 mb-5 grid size-16 animate-in place-items-center rounded-full bg-success text-white duration-500 motion-reduce:animate-none print:hidden">
+				<Check className="size-9" strokeWidth={3} />
 			</div>
 			<h1 className="m-0 mb-2 font-bold text-[20px] text-primary leading-[1.22] dark:text-primary-foreground">
 				{receiptCopy.title}
@@ -52,15 +68,22 @@ export function OrderReceipt({ token, receipt }: Readonly<{ token: string; recei
 					{receiptCopy.updateRequested}
 				</Note>
 			)}
-			<Button
-				type="button"
-				variant="outline"
-				className="mt-6 print:hidden"
-				onClick={() => window.print()}
-			>
-				<Printer className="size-4" />
-				{receiptCopy.print}
-			</Button>
+			<div className="mt-6 flex flex-wrap gap-3 print:hidden">
+				<Button asChild>
+					<Link href="/" replace>
+						{receiptCopy.home}
+					</Link>
+				</Button>
+				<Button type="button" variant="outline" onClick={() => window.print()}>
+					<Printer className="size-4" />
+					{receiptCopy.print}
+				</Button>
+			</div>
+			{!paused && (
+				<p className="mt-3 text-muted-foreground text-sm print:hidden" aria-live="off">
+					{receiptCopy.redirect(remaining)}
+				</p>
+			)}
 			{!receipt.feedbackGiven && <ReceiptFeedback token={token} />}
 		</div>
 	);
