@@ -17,7 +17,7 @@ import { SearchSelect } from "@workspace/ui/components/search-select";
 import { Switch } from "@workspace/ui/components/switch";
 import { useAsyncAction } from "@workspace/ui/hooks/use-async-action";
 import { useMutation, useQuery } from "convex/react";
-import { format, parseISO } from "date-fns";
+import { addDays, format, parseISO } from "date-fns";
 import { nb } from "date-fns/locale";
 import { CalendarIcon } from "lucide-react";
 import { useState } from "react";
@@ -268,21 +268,28 @@ function PeriodForm({
 					</Field>
 					<Field>
 						<FieldLabel id="interview-label">Intervjudager</FieldLabel>
-						<form.Subscribe
-							selector={(state) => [state.values.interviewStart, state.values.interviewEnd]}
-						>
-							{([from = "", to = ""]) => (
-								<DateRange
-									labelledBy="interview-label"
-									from={from}
-									to={to}
-									onChange={(start, end) => {
-										form.setFieldValue("interviewStart", start);
-										form.setFieldValue("interviewEnd", end);
-									}}
-								/>
-							)}
-						</form.Subscribe>
+						<div>
+							<form.Subscribe
+								selector={(state) => [
+									state.values.interviewStart,
+									state.values.interviewEnd,
+									state.values.applicationEnd,
+								]}
+							>
+								{([from = "", to = "", applicationEnd = ""]) => (
+									<DateRange
+										labelledBy="interview-label"
+										from={from}
+										to={to}
+										after={applicationEnd}
+										onChange={(start, end) => {
+											form.setFieldValue("interviewStart", start);
+											form.setFieldValue("interviewEnd", end);
+										}}
+									/>
+								)}
+							</form.Subscribe>
+						</div>
 					</Field>
 				</>
 			)}
@@ -369,11 +376,13 @@ function DateRange({
 	labelledBy,
 	from,
 	to,
+	after,
 	onChange,
 }: Readonly<{
 	labelledBy: string;
 	from: string;
 	to: string;
+	after?: string;
 	onChange: (from: string, to: string) => void;
 }>) {
 	const day = (value: string) => (value ? parseISO(value) : undefined);
@@ -388,7 +397,7 @@ function DateRange({
 					className={from ? "font-normal" : "font-normal text-muted-foreground"}
 				>
 					<CalendarIcon />
-					{from && to ? `${label(from)} – ${label(to)}` : "Velg datoer"}
+					{from ? `${label(from)} – ${to ? label(to) : ""}` : "Velg datoer"}
 				</Button>
 			</PopoverTrigger>
 			<PopoverContent className="w-auto p-0" align="start">
@@ -397,8 +406,8 @@ function DateRange({
 					ISOWeek
 					locale={nb}
 					numberOfMonths={2}
-					defaultMonth={day(from)}
-					disabled={{ before: new Date() }}
+					defaultMonth={day(from) ?? day(after ?? "")}
+					disabled={{ before: after ? addDays(parseISO(after), 1) : new Date() }}
 					selected={{ from: day(from), to: day(to) }}
 					onSelect={(range) =>
 						onChange(
