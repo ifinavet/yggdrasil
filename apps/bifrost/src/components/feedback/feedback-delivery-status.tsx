@@ -41,7 +41,7 @@ function RoundRow({ round, at, sent, delivered, failed }: DeliveryStatus["rounds
 	return (
 		<TableRow className={cn(pending && "text-muted-foreground")}>
 			<TableCell>
-				{round === 0 ? "Invitasjon" : "Påminnelse"}
+				{round === 0 ? "Skjema" : "Påminnelse"}
 				<span className="ml-2 text-muted-foreground">{formatOsloDate(at, "d. MMM")}</span>
 			</TableCell>
 			<TableCell className="text-right">{pending ? null : sent}</TableCell>
