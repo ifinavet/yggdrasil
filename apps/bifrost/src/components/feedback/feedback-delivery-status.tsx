@@ -101,6 +101,12 @@ export function FeedbackDeliveryStatus({ eventId }: Readonly<{ eventId: Id<"even
 						</div>
 					</div>
 				)}
+				{delivery.skippedOrganizers > 0 && (
+					<p className="text-muted-foreground text-sm">
+						{delivery.skippedOrganizers}{" "}
+						{delivery.skippedOrganizers === 1 ? "arrangør" : "arrangører"} får ikke skjemaet
+					</p>
+				)}
 				{delivery.status === "open" && delivery.responded > 0 && (
 					<CreateReportNowButton eventId={eventId} />
 				)}

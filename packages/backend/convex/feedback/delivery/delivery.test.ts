@@ -989,6 +989,20 @@ describe("delivery status", () => {
 		]);
 	});
 
+	it("counts attending organizers as skipped", async () => {
+		const f = await fixture();
+		for (const kind of ["confirmed", "late", "no_show", "unregistered"] as const) {
+			const user = await insertUser(f.t, `${kind}@ifinavet.no`);
+			await insertOrganizer(f.t, f.eventId, user._id);
+			if (kind === "unregistered") continue;
+			const registration = await insertRegistration(f.t, f.eventId, user._id, "registered");
+			await f.t.run((ctx) => ctx.db.patch(registration, { attendanceStatus: kind }));
+		}
+		expect(await f.client.query(getStatus, { eventId: f.eventId })).toMatchObject({
+			skippedOrganizers: 2,
+		});
+	});
+
 	it("hides campaigns that never started and shows cancelled ones with a failure", async () => {
 		const f = await fixture();
 		await f.t.run((ctx) => ctx.db.patch(f.campaignId, { status: "cancelled" }));
