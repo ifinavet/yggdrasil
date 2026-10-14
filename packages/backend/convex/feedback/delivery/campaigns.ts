@@ -187,14 +187,19 @@ export const closeCampaign = internalMutation({
 	},
 });
 
+export function attendedRegistration(registration: Doc<"registrations">) {
+	return (
+		registration.status === "registered" &&
+		(registration.attendanceStatus === "confirmed" || registration.attendanceStatus === "late")
+	);
+}
+
 async function insertInvite(
 	ctx: MutationCtx,
 	campaign: Doc<"feedbackCampaigns">,
 	registration: Doc<"registrations">,
 ) {
-	if (registration.status !== "registered") return null;
-	if (registration.attendanceStatus !== "confirmed" && registration.attendanceStatus !== "late")
-		return null;
+	if (!attendedRegistration(registration)) return null;
 	const organizer = await ctx.db
 		.query("eventOrganizers")
 		.withIndex("by_eventId_and_userId", (index) =>
