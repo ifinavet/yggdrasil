@@ -262,10 +262,6 @@ function ClerkSignUpPage() {
 					return;
 				}
 
-				await setActive({
-					session: signUpAttempt.createdSessionId,
-				});
-
 				if (signUpAttempt.createdUserId === null) {
 					setErrors([
 						{
@@ -280,6 +276,8 @@ function ClerkSignUpPage() {
 
 				const signUpFormValues = signUpForm.state.values;
 
+				// Store the profile before activating the session. Once signed in, the page redirects
+				// away unless a sign-up is pending, and the student profile would never be created.
 				setPendingSignUp({
 					email: signUpFormValues.email,
 					student: {
@@ -290,8 +288,13 @@ function ClerkSignUpPage() {
 						name: `${signUpFormValues.firstName} ${signUpFormValues.lastName}`,
 					},
 				});
+
+				await setActive({
+					session: signUpAttempt.createdSessionId,
+				});
 			} catch (error) {
 				if (isClerkAPIResponseError(error)) setErrors(error.errors);
+				setPendingSignUp(null);
 				setLoading(false);
 			}
 		},
