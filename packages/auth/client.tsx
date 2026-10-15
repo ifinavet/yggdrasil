@@ -6,7 +6,7 @@ import { isLocalDevelopment, type LocalUser, localUser } from "./local";
 
 export { isClerkAPIResponseError } from "@clerk/nextjs/errors";
 export { useSignUp } from "@clerk/nextjs/legacy";
-export type { ClerkAPIError } from "@clerk/nextjs/types";
+export type { ClerkAPIError, SignUpResource } from "@clerk/nextjs/types";
 
 function useLocalUser(): { isLoaded: true; isSignedIn: true; user: LocalUser } {
 	return { isLoaded: true, isSignedIn: true, user: localUser };
