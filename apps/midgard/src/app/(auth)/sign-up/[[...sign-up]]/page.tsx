@@ -42,7 +42,14 @@ import { useMutation } from "convex/react";
 import { ConvexError } from "convex/values";
 import { useRouter } from "next/navigation";
 import { usePostHog } from "posthog-js/react";
-import { type ComponentProps, type ReactNode, useEffect, useRef, useState } from "react";
+import {
+	type ComponentProps,
+	type ReactNode,
+	useEffect,
+	useLayoutEffect,
+	useRef,
+	useState,
+} from "react";
 import { toast } from "sonner";
 import z from "zod/v4";
 import {
@@ -262,8 +269,6 @@ function ClerkSignUpPage() {
 					year: pendingSignUp.student.year,
 					name: pendingSignUp.student.name,
 				});
-
-				router.push(postSignUpPath());
 			} catch (error) {
 				setErrors([
 					{
@@ -283,7 +288,7 @@ function ClerkSignUpPage() {
 		};
 
 		void createStudentProfile();
-	}, [isAuthenticated, pendingSignUp, signUpCompletionFailed, createStudent, postHog, router]);
+	}, [isAuthenticated, pendingSignUp, signUpCompletionFailed, createStudent, postHog]);
 
 	const retryProfileCreation = () => {
 		setErrors([]);
@@ -382,6 +387,24 @@ function ClerkSignUpPage() {
 		},
 	});
 
+	// Next.js keeps this page's state after navigating away. Start over whenever it is hidden, so
+	// a finished or abandoned sign-up, with its e-mail and password, is not shown to the next visitor.
+	useLayoutEffect(
+		() => () => {
+			signUpRequest.current = null;
+			setStep("account");
+			setErrors([]);
+			setLoading(false);
+			setPendingSignUp(null);
+			setSignUpCompletionFailed(false);
+			accountForm.reset();
+			passwordForm.reset();
+			studyForm.reset();
+			verifyingForm.reset();
+		},
+		[accountForm, passwordForm, studyForm, verifyingForm],
+	);
+
 	const signedInElsewhere = isSignedIn && !pendingSignUp && !signUpCompletionFailed;
 
 	// Redirect from an effect, not while rendering: Next.js keeps this page rendered while hidden
@@ -392,18 +415,8 @@ function ClerkSignUpPage() {
 
 	if (signedInElsewhere) return null;
 
-	// Next.js keeps this page's state after navigating away, so closing starts the sign-up over
-	// instead of reopening on the step the visitor left.
-	const close = () => {
-		signUpRequest.current = null;
-		goTo("account");
-		passwordForm.reset();
-		verifyingForm.reset();
-		router.push(postSignUpPath());
-	};
-
 	return (
-		<Dialog open onOpenChange={(open) => !open && close()}>
+		<Dialog open onOpenChange={(open) => !open && router.push(postSignUpPath())}>
 			<DialogContent>
 				<DialogHeader>
 					<DialogTitle>{STEP_TITLES[step]}</DialogTitle>
