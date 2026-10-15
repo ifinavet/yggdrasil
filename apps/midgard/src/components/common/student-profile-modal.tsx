@@ -2,7 +2,12 @@
 
 import { Authenticated } from "@workspace/auth/convex";
 import { api } from "@workspace/backend/convex/api";
-import { refineStudentProfile, type StudentProfile } from "@workspace/shared/constants";
+import {
+	DEGREE_TYPES,
+	refineStudentProfile,
+	STUDY_PROGRAMS,
+	type StudentProfile,
+} from "@workspace/shared/constants";
 import { Button } from "@workspace/ui/components/button";
 import {
 	Dialog,
@@ -14,6 +19,7 @@ import {
 } from "@workspace/ui/components/dialog";
 import { FieldSet } from "@workspace/ui/components/field";
 import { useMutation, useQuery } from "convex/react";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
@@ -24,16 +30,18 @@ import {
 } from "@/components/profile/study-fields";
 import { useAppForm } from "@/lib/form";
 
-export default function GraduatedProfileModal() {
+export default function StudentProfileModal() {
 	return (
 		<Authenticated>
 			<GraduatedProfile />
+			<MissingProfile />
 		</Authenticated>
 	);
 }
 
 function GraduatedProfile() {
 	const profile = useQuery(api.users.students.queries.graduatedProfile);
+	const updateProfile = useMutation(api.users.students.mutations.updateCurrent);
 	const [dismissed, setDismissed] = useState(false);
 	if (!profile) return null;
 	return (
@@ -43,21 +51,47 @@ function GraduatedProfile() {
 					<DialogTitle>Hva studerer du nå?</DialogTitle>
 					<DialogDescription>Vi tror du studerer dette, stemmer det?</DialogDescription>
 				</DialogHeader>
-				<StudyForm profile={profile} />
+				<StudyForm defaultValues={profile} save={updateProfile} />
 			</DialogContent>
 		</Dialog>
 	);
 }
 
-function StudyForm({ profile }: Readonly<{ profile: StudentProfile }>) {
-	const updateProfile = useMutation(api.users.students.mutations.updateCurrent);
+// Sign-up creates the profile itself, so the prompt waits until the visitor has left that page.
+function MissingProfile() {
+	const pathname = usePathname();
+	const missing = useQuery(api.users.students.queries.missingProfile);
+	const createProfile = useMutation(api.users.students.mutations.createByExternalId);
+	if (!missing || pathname.startsWith("/sign-up")) return null;
+	return (
+		<Dialog open>
+			<DialogContent showCloseButton={false}>
+				<DialogHeader>
+					<DialogTitle>Fullfør studentprofilen din</DialogTitle>
+					<DialogDescription>
+						Vi mangler studieinformasjonen din. Fyll den inn for å fortsette.
+					</DialogDescription>
+				</DialogHeader>
+				<StudyForm
+					defaultValues={{ studyProgram: STUDY_PROGRAMS[0], degree: DEGREE_TYPES[1], year: 1 }}
+					save={(value) => createProfile({ ...value, ...missing })}
+				/>
+			</DialogContent>
+		</Dialog>
+	);
+}
+
+function StudyForm({
+	defaultValues,
+	save,
+}: Readonly<{ defaultValues: StudentProfile; save: (value: StudyValues) => Promise<unknown> }>) {
 	const form = useAppForm({
-		defaultValues: profile as StudyValues,
+		defaultValues: defaultValues as StudyValues,
 		validators: {
 			onSubmit: studySchema.superRefine(refineStudentProfile),
 		},
 		onSubmit: ({ value }) =>
-			updateProfile(value)
+			save(value)
 				.then(() => {
 					toast.success("Profilen ble oppdatert!");
 				})
