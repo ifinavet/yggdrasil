@@ -166,3 +166,24 @@ export const graduatedProfile = query({
 		return nextStudy(student);
 	},
 });
+
+/**
+ * Identifies a signed-in user who has no student profile, so they can be asked to create one.
+ *
+ * @returns {{ externalId: string, name: string } | null} - The details needed to create the profile, or null when signed out or already a student.
+ */
+export const missingProfile = query({
+	args: {},
+	handler: async (ctx) => {
+		const user = await getCurrentUser(ctx);
+		if (!user) return null;
+
+		const student = await ctx.db
+			.query("students")
+			.withIndex("by_userId", (q) => q.eq("userId", user._id))
+			.first();
+
+		if (student) return null;
+		return { externalId: user.externalId, name: `${user.firstName} ${user.lastName}`.trim() };
+	},
+});

@@ -8,9 +8,9 @@ import { eina } from "@workspace/ui/fonts/eina-font";
 import { ThemeProvider } from "@workspace/ui/providers/theme-provider";
 import { Suspense } from "react";
 import { Consent } from "@/components/common/consent";
-import GraduatedProfileModal from "@/components/common/graduated-profile-modal";
 import Header from "@/components/common/header";
 import PendingOfferBanner from "@/components/common/pending-offer-banner";
+import StudentProfileModal from "@/components/common/student-profile-modal";
 import ClerkProvider from "@/providers/clerk-provider";
 import ConvexClientProvider from "@/providers/convex-clerk-provider";
 
@@ -42,7 +42,7 @@ export default function RootLayout({
 									<Header />
 									<main className="mb-12 flex-1">
 										<PendingOfferBanner />
-										<GraduatedProfileModal />
+										<StudentProfileModal />
 										{children}
 									</main>
 									<Footer />
