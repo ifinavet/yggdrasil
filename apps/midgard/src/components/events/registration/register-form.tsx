@@ -79,7 +79,14 @@ export default function RegisterForm({
 				<Button
 					className={className}
 					type="button"
-					onClick={() => setOpen(true)}
+					onClick={() => {
+						postHog.capture("midgard-student_register_clicked", {
+							eventId: event._id,
+							logged_in: true,
+							waitlist: waitlist,
+						});
+						setOpen(true);
+					}}
 					disabled={disabled}
 				>
 					{waitlist ? "Det er fullt! Meld deg på venteliste" : "Meld deg på"}
