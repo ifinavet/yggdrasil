@@ -1,5 +1,5 @@
 import { Note } from "@workspace/ui/components/note";
-import { DateGrid } from "@/components/date-grid";
+import { DateCalendar } from "@/components/date-calendar";
 import { fieldErrorText, questionIds } from "@/components/input-cards/question-block";
 import { TEXT_LIMITS } from "@/lib/company-application";
 import { COMPANY_APPLICATION_COPY as COPY } from "@/lib/company-application-questions";
@@ -28,7 +28,7 @@ export function DateQuestions({
 							{dates.length === 0 ? (
 								<Note tone="warn">{COPY.dates.none}</Note>
 							) : (
-								<DateGrid
+								<DateCalendar
 									dates={dates}
 									value={field.state.value}
 									onChange={field.handleChange}

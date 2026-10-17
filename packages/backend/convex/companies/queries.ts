@@ -42,6 +42,24 @@ export const getAllWithLogoUrl = query({
 	},
 });
 
+const PICKER_LIMIT = 500;
+
+/**
+ * The companies a company can pick itself from on the Hugin order and application forms, by name.
+ *
+ * @returns {{ _id: Id<"companies">; name: string; orgNumber: number }[]} - At most 500 companies.
+ */
+export const pickerOptions = query({
+	args: {},
+	returns: v.array(v.object({ _id: v.id("companies"), name: v.string(), orgNumber: v.number() })),
+	handler: async (ctx) => {
+		const rows = await ctx.db.query("companies").take(PICKER_LIMIT);
+		return rows
+			.map(({ _id, name, orgNumber }) => ({ _id, name, orgNumber }))
+			.sort((a, b) => a.name.localeCompare(b.name, "nb"));
+	},
+});
+
 /**
  * Fetches the current main sponsor with its resolved logo URL.
  *

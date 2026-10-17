@@ -14,37 +14,44 @@ import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui/component
 import type { FunctionReturnType } from "convex/server";
 import { Check, ChevronsUpDown, Search } from "lucide-react";
 import { useState } from "react";
-import { useRegistrySearch } from "@/components/company-application/use-registry-search";
-import type { RegistryHit } from "@/lib/company-application";
-import { hitMeta } from "@/lib/company-application-format";
-import { companyCopy } from "@/lib/job-listing-order/copy";
-import { type CompanyValues, emptyCompany } from "@/lib/job-listing-order/form-values";
+import { companyPickerCopy as copy } from "@/lib/company-picker-copy";
+import { hitMeta, type RegistryHit } from "@/lib/company-registry";
+import { useRegistrySearch } from "./use-registry-search";
 
-type CompanyOption = FunctionReturnType<typeof api.jobListingOrders.form.companies>[number];
+export type CompanyOption = FunctionReturnType<typeof api.companies.queries.pickerOptions>[number];
 
-function selectedName(value: CompanyValues, companies: readonly CompanyOption[]) {
-	if (value.kind === "new") return value.displayName || value.registryName;
-	return companies.find((company) => company._id === value.companyId)?.name ?? "";
-}
+/** A company Navet already has, or one found in Enhetsregisteret. */
+export type PickedCompany =
+	| { kind: "existing"; company: CompanyOption }
+	| { kind: "registry"; hit: RegistryHit };
 
+/**
+ * A combobox over the companies Navet has, with a search in Enhetsregisteret for a company that is
+ * not on the list. Blocked registry companies are listed but cannot be chosen.
+ */
 export function CompanyPicker({
 	id,
-	value,
+	selectedName,
+	selectedId,
 	companies,
 	invalid,
+	describedBy,
 	onChange,
 }: Readonly<{
 	id: string;
-	value: CompanyValues;
+	/** The name on the button, or "" while nothing is picked. */
+	selectedName: string;
+	/** The listed company that is picked, if any. */
+	selectedId?: string;
 	companies: readonly CompanyOption[];
 	invalid: boolean;
-	onChange: (company: CompanyValues) => void;
+	describedBy?: string;
+	onChange: (company: PickedCompany) => void;
 }>) {
 	const [open, setOpen] = useState(false);
 	const [registryMode, setRegistryMode] = useState(false);
-	const name = selectedName(value, companies);
 
-	const choose = (company: CompanyValues) => {
+	const choose = (company: PickedCompany) => {
 		onChange(company);
 		setOpen(false);
 		setRegistryMode(false);
@@ -66,10 +73,11 @@ export function CompanyPicker({
 					role="combobox"
 					aria-expanded={open}
 					aria-invalid={invalid}
+					aria-describedby={describedBy}
 					className="w-full justify-between font-normal aria-invalid:border-destructive"
 				>
-					<span className={name ? "truncate" : "truncate text-muted-foreground"}>
-						{name || companyCopy.placeholder}
+					<span className={selectedName ? "truncate" : "truncate text-muted-foreground"}>
+						{selectedName || copy.placeholder}
 					</span>
 					<ChevronsUpDown className="size-4 opacity-50" />
 				</Button>
@@ -78,35 +86,21 @@ export function CompanyPicker({
 				{registryMode ? (
 					<RegistrySearch
 						onBack={() => setRegistryMode(false)}
-						onSelect={(hit) =>
-							choose({
-								...emptyCompany,
-								kind: "new",
-								orgNumber: hit.orgNumber,
-								registryName: hit.name,
-								displayName: hit.name,
-							})
-						}
+						onSelect={(hit) => choose({ kind: "registry", hit })}
 					/>
 				) : (
 					<Command>
-						<CommandInput placeholder={companyCopy.search} />
+						<CommandInput placeholder={copy.search} />
 						<CommandList>
-							<CommandEmpty>{companyCopy.empty}</CommandEmpty>
+							<CommandEmpty>{copy.empty}</CommandEmpty>
 							<CommandGroup>
 								{companies.map((company) => (
 									<CommandItem
 										key={company._id}
 										value={`${company.name} ${company._id}`}
-										onSelect={() => choose({ ...emptyCompany, companyId: company._id })}
+										onSelect={() => choose({ kind: "existing", company })}
 									>
-										<Check
-											className={
-												value.kind === "existing" && value.companyId === company._id
-													? "size-4"
-													: "size-4 opacity-0"
-											}
-										/>
+										<Check className={selectedId === company._id ? "size-4" : "size-4 opacity-0"} />
 										{company.name}
 									</CommandItem>
 								))}
@@ -121,7 +115,7 @@ export function CompanyPicker({
 								onClick={() => setRegistryMode(true)}
 							>
 								<Search className="size-4" />
-								{companyCopy.newCompany}
+								{copy.newCompany}
 							</Button>
 						</div>
 					</Command>
@@ -136,28 +130,35 @@ function RegistrySearch({
 	onSelect,
 }: Readonly<{ onBack: () => void; onSelect: (hit: RegistryHit) => void }>) {
 	const [query, setQuery] = useState("");
-	const { search: state } = useRegistrySearch(query.trim());
+	const { search: state, retry } = useRegistrySearch(query.trim());
 
 	return (
 		<Command shouldFilter={false}>
 			<CommandInput
 				autoFocus
-				placeholder={companyCopy.registrySearch}
+				placeholder={copy.registrySearch}
 				value={query}
 				onValueChange={setQuery}
 			/>
 			<CommandList>
 				{state.status === "idle" && (
-					<p className="px-3 py-4 text-muted-foreground text-sm">{companyCopy.registryTooShort}</p>
+					<p className="px-3 py-4 text-muted-foreground text-sm">{copy.registryTooShort}</p>
 				)}
 				{state.status === "searching" && (
-					<p className="px-3 py-4 text-muted-foreground text-sm">{companyCopy.registrySearching}</p>
+					<p className="px-3 py-4 text-muted-foreground text-sm">{copy.registrySearching}</p>
 				)}
 				{state.status === "error" && (
-					<p className="px-3 py-4 text-destructive text-sm">{state.message}</p>
+					<div className="flex flex-col items-start gap-2 px-3 py-4">
+						<p role="alert" className="text-destructive text-sm">
+							{state.message}
+						</p>
+						<Button type="button" variant="outline" size="sm" onClick={retry}>
+							{copy.registryRetry}
+						</Button>
+					</div>
 				)}
 				{state.status === "done" && state.hits.length === 0 && (
-					<p className="px-3 py-4 text-muted-foreground text-sm">{companyCopy.registryEmpty}</p>
+					<p className="px-3 py-4 text-muted-foreground text-sm">{copy.registryEmpty}</p>
 				)}
 				{state.status === "done" && state.hits.length > 0 && (
 					<CommandGroup>
@@ -171,7 +172,7 @@ function RegistrySearch({
 								<div className="flex min-w-0 flex-col">
 									<span className="truncate">{hit.name}</span>
 									<span className="text-muted-foreground text-xs">
-										{[hitMeta(hit), hit.blockedReason && companyCopy.registryBlocked]
+										{[hitMeta(hit), hit.blockedReason && copy.blocked[hit.blockedReason]]
 											.filter(Boolean)
 											.join(" · ")}
 									</span>
@@ -189,7 +190,7 @@ function RegistrySearch({
 					className="w-full justify-start"
 					onClick={onBack}
 				>
-					{companyCopy.backToList}
+					{copy.backToList}
 				</Button>
 			</div>
 		</Command>
