@@ -3,8 +3,8 @@
 import { api } from "@workspace/backend/convex/api";
 import { useAction } from "convex/react";
 import { useEffect, useRef, useState } from "react";
-import type { RegistryHit } from "@/lib/company-application";
 import { companyErrorMessage } from "@/lib/company-error-message";
+import type { RegistryHit } from "@/lib/company-registry";
 
 const DEBOUNCE_MS = 300;
 export const MIN_QUERY_LENGTH = 2;

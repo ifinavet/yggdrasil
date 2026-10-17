@@ -93,7 +93,6 @@ function Planning({ token }: Readonly<{ token: string }>) {
 			{sent ? (
 				<>
 					<EmailCheckScreen
-						email={data.contactEmail}
 						body={`Vi har sendt en lenke til ${data.contactEmail}. Bekreft e-posten for å sende opplysningene til Navet.`}
 						onResend={() => resend({ token, submissionId })}
 					/>

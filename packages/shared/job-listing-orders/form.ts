@@ -60,7 +60,7 @@ const orderCompanySchema = z.discriminatedUnion("kind", [
 	z.object({ kind: z.literal("existing"), companyId: z.string().min(1, "Velg bedriften.") }),
 	z.object({
 		kind: z.literal("new"),
-		orgNumber: orgNumber("Velg bedriften fra Enhetsregisteret."),
+		orgNumber: orgNumber("Velg bedriften."),
 		displayName: text(100, "Skriv bedriftens navn."),
 		description: richText("Skriv en beskrivelse av bedriften."),
 		logo: z.string({ error: "Last opp en logo." }).min(1, "Last opp en logo."),

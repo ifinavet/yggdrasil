@@ -4,13 +4,13 @@ import { Button } from "@workspace/ui/components/button";
 import { MailCheck } from "lucide-react";
 import { useState } from "react";
 import { FormStatePanel } from "@/components/form-state-panel";
-import { checkEmailCopy } from "@/lib/job-listing-order/copy";
+import { emailCheckCopy as copy } from "@/lib/email-check-copy";
 
+/** After a form is sent: what it waits for, and a way to send the confirmation email again. */
 export function EmailCheckScreen({
-	email,
-	onResend,
 	body,
-}: Readonly<{ email: string; body?: string; onResend: () => Promise<unknown> }>) {
+	onResend,
+}: Readonly<{ body: string; onResend: () => Promise<unknown> }>) {
 	const [pending, setPending] = useState(false);
 	const [message, setMessage] = useState("");
 	async function resend() {
@@ -18,9 +18,9 @@ export function EmailCheckScreen({
 		setMessage("");
 		try {
 			await onResend();
-			setMessage(checkEmailCopy.resent);
+			setMessage(copy.resent);
 		} catch (error) {
-			setMessage(convexErrorMessage(error, checkEmailCopy.failed));
+			setMessage(convexErrorMessage(error, copy.failed));
 		} finally {
 			setPending(false);
 		}
@@ -28,11 +28,11 @@ export function EmailCheckScreen({
 	return (
 		<FormStatePanel
 			icon={<MailCheck className="size-6" />}
-			title={checkEmailCopy.title}
-			body={body ?? checkEmailCopy.body(email)}
+			title={copy.title}
+			body={body}
 			action={
 				<Button type="button" variant="outline" disabled={pending} onClick={resend}>
-					{pending ? checkEmailCopy.resending : checkEmailCopy.resend}
+					{pending ? copy.resending : copy.resend}
 				</Button>
 			}
 			quiet={<output aria-live="polite">{message}</output>}

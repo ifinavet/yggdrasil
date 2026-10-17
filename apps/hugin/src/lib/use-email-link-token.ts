@@ -1,6 +1,6 @@
 "use client";
 import { useSyncExternalStore } from "react";
-import { readOrderToken } from "./job-listing-order/token";
+import { readEmailLinkToken } from "./email-link-token";
 
 function subscribe(onChange: () => void) {
 	window.addEventListener("hashchange", onChange);
@@ -12,5 +12,5 @@ export function useEmailLinkToken() {
 		() => window.location.hash,
 		() => null,
 	);
-	return hash === null ? undefined : readOrderToken(hash);
+	return hash === null ? undefined : readEmailLinkToken(hash);
 }

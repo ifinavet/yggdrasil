@@ -1,5 +1,3 @@
-import type { BlockedReason } from "./company-application";
-
 // Company-facing copy for the Hugin application form (/bestill-bedpres), the email confirmation
 // (/bestill-bedpres/bekreft) and the receipt.
 // Validation messages live in the shared schema (packages/shared/semester/application.ts).
@@ -30,22 +28,7 @@ export const COMPANY_APPLICATION_COPY = {
 	honeypot: "La dette feltet stå tomt",
 	company: {
 		label: "Hvilken bedrift gjelder det?",
-		searching: "Søker i Enhetsregisteret …",
-		tooShort: "Skriv minst to tegn.",
-		noHits: "Fant ingen bedrifter. Sjekk stavemåten, eller søk på organisasjonsnummer.",
-		hitCount: (count: number) => `${count} treff i Enhetsregisteret`,
-		source: "Hentet fra Enhetsregisteret",
-		change: "Bytt",
-		changeLabel: "Bytt bedrift",
-		facts: { orgNumber: "Org.nr.", organizationForm: "Org.form", city: "Sted" },
-		retry: "Prøv igjen",
-		draftSaved: "Det du har fylt ut er lagret.",
 	},
-	blocked: {
-		deleted: "Slettet fra registeret. Kan ikke velges.",
-		bankrupt: "Konkurs. Kan ikke velges.",
-		liquidation: "Under avvikling. Kan ikke velges.",
-	} satisfies Record<BlockedReason, string>,
 	contact: {
 		label: "Kontaktperson",
 		name: "Fullt navn",
@@ -68,7 +51,6 @@ export const COMPANY_APPLICATION_COPY = {
 	dates: {
 		label: "Hvilke datoer kan dere?",
 		chosen: (chosen: number, total: number) => `${chosen} av ${total} valgt`,
-		week: (week: string) => `Uke ${week}`,
 		selectAll: "Velg alle",
 		clear: "Nullstill valg",
 		none: "Det er ingen åpne datoer i semesteret ennå. Skriv til oss, så finner vi en løsning.",
