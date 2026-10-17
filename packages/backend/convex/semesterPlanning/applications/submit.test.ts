@@ -494,6 +494,31 @@ describe("confirmation by email", () => {
 		expect(await t.query(confirmation.link, { token: token ?? "" })).toEqual({ state: "pending" });
 	});
 
+	it("uses the semester's own subject and text, with the company's name filled in", async () => {
+		const { t } = await setup();
+		const semesterId = await withOpenSemester(t);
+		await t.run((ctx) =>
+			ctx.db.patch(semesterId, {
+				confirmEmailSubject: "Bekreft for {bedrift}",
+				confirmEmailText: "Hei {bedrift}!\n\nVi gleder oss.\nHilsen Kari",
+			}),
+		);
+
+		const { emails } = await submitWith(t, { confirm: false });
+
+		expect(emails[0]?.subject).toBe("Bekreft for FJORDKODE AS");
+		expect(emails[0]?.html).toContain("Hei FJORDKODE AS!");
+		expect(emails[0]?.html).toContain("Vi gleder oss.");
+		expect(emails[0]?.html).toContain("Hilsen Kari");
+		expect(emails[0]?.html).not.toContain("Så hyggelig at");
+		expect(emails[0]?.html).toContain(`${HUGIN_URL}/bestill-bedpres/bekreft#token=`);
+
+		const { submissionId } = await submitWith(t, { confirm: false });
+		const spy = sentEmails();
+		await t.action(resend, { submissionId });
+		expect(emailsFrom(spy)[0]?.subject).toBe("Bekreft for FJORDKODE AS");
+	});
+
 	it("receives the application once and shows the same receipt when the link is opened again", async () => {
 		const { t } = await setup();
 		await withOpenSemester(t);

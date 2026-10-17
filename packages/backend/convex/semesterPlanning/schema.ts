@@ -138,6 +138,10 @@ export const semesterPlanningSchema = {
 		status: applicationPeriodStatus,
 		infoText: v.optional(v.string()),
 		termsUrl: v.optional(v.string()),
+		// The email with the confirm link, written by an editor. Empty means the default text in
+		// packages/shared/semester/confirm-email.ts.
+		confirmEmailSubject: v.optional(v.string()),
+		confirmEmailText: v.optional(v.string()),
 		// When events made from the plan start, as "HH:mm". Set by a human in Bifrost.
 		defaultEventStartTime: v.optional(v.string()),
 		planFinalizedAt: v.optional(v.number()),
