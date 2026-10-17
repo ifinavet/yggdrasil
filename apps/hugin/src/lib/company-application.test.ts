@@ -14,13 +14,13 @@ import {
 } from "./company-application";
 import {
 	billingLines,
+	calendarMonths,
 	compactDateList,
 	eventTypeDescription,
 	fullDate,
-	groupDatesByMonth,
-	placeName,
 } from "./company-application-format";
 import { loadDraft, saveDraft, storedDraftSemesterId } from "./company-application-storage";
+import { placeName } from "./company-registry";
 
 function completeDraft(overrides: Partial<ApplicationDraft> = {}): ApplicationDraft {
 	return {
@@ -65,7 +65,7 @@ describe("company application draft", () => {
 
 	it("needs a company picked from the registry", () => {
 		const errors = draftErrors(completeDraft({ company: null }));
-		expect(errors.company).toBe("Velg bedriften fra Enhetsregisteret.");
+		expect(errors.company).toBe("Velg bedriften.");
 		expect(firstInvalidQuestion(errors)).toBe("company");
 	});
 
@@ -309,13 +309,11 @@ describe("company application saved draft", () => {
 });
 
 describe("company application dates", () => {
-	it("groups open dates by month and ISO week", () => {
-		const months = groupDatesByMonth(["2027-02-02", "2027-01-21", "2027-01-26", "2027-01-28"]);
-		expect(months.map((month) => month.label)).toEqual(["Januar", "Februar"]);
-		expect(months[0]?.weeks).toEqual([
-			{ week: "3", days: ["2027-01-21"] },
-			{ week: "4", days: ["2027-01-26", "2027-01-28"] },
-		]);
+	it("spans the calendar from the first to the last open month", () => {
+		const months = calendarMonths(["2027-04-06", "2027-01-21", "2027-02-02"]);
+		expect(months?.first).toEqual(new Date(2027, 0, 1));
+		expect(months?.count).toBe(4);
+		expect(calendarMonths([])).toBeNull();
 	});
 
 	it("lists chosen dates compactly, naming each month once", () => {

@@ -9,10 +9,10 @@ import {
 	billingLines,
 	compactDateList,
 	dayAndMonth,
-	formatOrgNumber,
 	studentRange,
 } from "@/lib/company-application-format";
 import { COMPANY_APPLICATION_COPY as COPY } from "@/lib/company-application-questions";
+import { formatOrgNumber } from "@/lib/company-registry";
 
 const ROWS = COPY.receipt.rows;
 

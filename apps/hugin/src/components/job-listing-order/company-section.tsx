@@ -13,22 +13,37 @@ import { SafeHtml } from "@workspace/ui/components/safe-html";
 import type { FunctionReturnType } from "convex/server";
 import { CircleCheck, Pencil } from "lucide-react";
 import { useState } from "react";
+import {
+	type CompanyOption,
+	CompanyPicker,
+	type PickedCompany,
+} from "@/components/company-picker/company-picker";
 import { errorText } from "@/components/input-cards/question-block";
-import { formatOrgNumber } from "@/lib/company-application-format";
+import { companyPickerCopy } from "@/lib/company-picker-copy";
+import { formatOrgNumber } from "@/lib/company-registry";
 import { companyCopy } from "@/lib/job-listing-order/copy";
-import type { CompanyValues } from "@/lib/job-listing-order/form-values";
+import { type CompanyValues, emptyCompany } from "@/lib/job-listing-order/form-values";
 import { companyChangeErrors } from "@/lib/job-listing-order/submit";
-import { CompanyPicker } from "./company-picker";
 import { FormRow } from "./form-row";
 import { LogoPreview, LogoUploadField, useLogoUpload } from "./logo-upload";
 import { OrderSection } from "./order-section";
 import { PACKAGE_SECTION_ID } from "./package-picker";
 import type { OrderFormApi } from "./use-order-form";
 
-type CompanyOption = FunctionReturnType<typeof api.jobListingOrders.form.companies>[number];
 export type CompanyCard = NonNullable<
 	FunctionReturnType<typeof api.jobListingOrders.form.companyCard>
 >;
+
+function selectedName(value: CompanyValues, companies: readonly CompanyOption[]) {
+	if (value.kind === "new") return value.displayName || value.registryName;
+	return companies.find((company) => company._id === value.companyId)?.name ?? "";
+}
+
+function toCompanyValues(picked: PickedCompany): CompanyValues {
+	if (picked.kind === "existing") return { ...emptyCompany, companyId: picked.company._id };
+	const { orgNumber, name } = picked.hit;
+	return { ...emptyCompany, kind: "new", orgNumber, registryName: name, displayName: name };
+}
 
 export function CompanySection({
 	form,
@@ -53,16 +68,17 @@ export function CompanySection({
 			<form.Field name="company.companyId">
 				{(field) => (
 					<FormRow
-						label={companyCopy.placeholder}
+						label={companyPickerCopy.placeholder}
 						htmlFor="order-company"
 						errors={field.state.meta.errors}
 					>
 						<CompanyPicker
 							id="order-company"
-							value={company}
+							selectedName={selectedName(company, companies)}
+							selectedId={company.kind === "existing" ? company.companyId : undefined}
 							companies={companies}
 							invalid={field.state.meta.errors.length > 0}
-							onChange={selectCompany}
+							onChange={(picked) => selectCompany(toCompanyValues(picked))}
 						/>
 					</FormRow>
 				)}

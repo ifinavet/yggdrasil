@@ -1,4 +1,3 @@
-import type { api } from "@workspace/backend/convex/api";
 import { applicationFormSchema, STUDENT_CAP } from "@workspace/shared/semester/application";
 import {
 	ESCAPE_ANSWERS,
@@ -7,27 +6,22 @@ import {
 	FOOD_PURCHASERS,
 	VENUES,
 } from "@workspace/shared/semester/labels";
-import type { FunctionReturnType } from "convex/server";
 import { z } from "zod";
 import { COMPANY_APPLICATION_COPY } from "./company-application-questions";
 
 // State and validation for the Hugin application form (/bestill-bedpres). The form keeps loose
 // values while the company types; the shared schema decides what is valid.
 
-/** One company from the Enhetsregisteret search. */
-export type RegistryHit = FunctionReturnType<
-	typeof api.semesterPlanning.registry.actions.searchCompanies
->[number];
-
-export type BlockedReason = NonNullable<RegistryHit["blockedReason"]>;
-
 const ORG_NUMBER = /^\d{9}$/;
 
-/** A company picked from Enhetsregisteret, as the search returned it. */
+/**
+ * The picked company: one Navet already has, by name and organization number, or one from the
+ * Enhetsregisteret search with what the search returned about it.
+ */
 const chosenCompanySchema = z.object({
 	orgNumber: z.string().regex(ORG_NUMBER),
 	name: z.string(),
-	organizationForm: z.string(),
+	organizationForm: z.string().optional(),
 	city: z.string().optional(),
 });
 

@@ -2,6 +2,7 @@
 import { api } from "@workspace/backend/convex/api";
 import { useAction } from "convex/react";
 import { EmailCheckScreen } from "@/components/email-check-screen";
+import { checkEmailCopy } from "@/lib/job-listing-order/copy";
 
 export function CheckEmailScreen({
 	email,
@@ -10,7 +11,10 @@ export function CheckEmailScreen({
 	const resend = useAction(api.jobListingOrders.submit.resendConfirmation);
 	return (
 		<div className="mx-auto w-full max-w-3xl">
-			<EmailCheckScreen email={email} onResend={() => resend({ submissionId })} />
+			<EmailCheckScreen
+				body={checkEmailCopy.body(email)}
+				onResend={() => resend({ submissionId })}
+			/>
 		</div>
 	);
 }

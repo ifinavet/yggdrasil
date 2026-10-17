@@ -17,16 +17,6 @@ export const orderPageCopy = {
 
 export const companyCopy = {
 	legend: "Bedrift",
-	placeholder: "Velg bedrift",
-	search: "Søk etter bedrift",
-	empty: "Fant ingen bedrifter.",
-	newCompany: "Finner dere ikke bedriften? Søk i Enhetsregisteret",
-	registrySearch: "Søk på navn eller organisasjonsnummer",
-	registrySearching: "Søker ...",
-	registryEmpty: "Ingen treff i Enhetsregisteret.",
-	registryTooShort: "Skriv minst to tegn.",
-	registryBlocked: "Kan ikke velges",
-	backToList: "Velg fra listen i stedet",
 	orgNumber: "Organisasjonsnummer",
 	registryName: "Navn i Enhetsregisteret",
 	displayName: "Visningsnavn",
@@ -100,13 +90,8 @@ export const submitCopy = {
 } as const;
 
 export const checkEmailCopy = {
-	title: "Sjekk e-posten",
 	body: (email: string) =>
 		`Vi har sendt en lenke til ${email}. Bestillingen sendes først når du har bekreftet den.`,
-	resend: "Send e-posten på nytt",
-	resending: "Sender ...",
-	resent: "Ny e-post er sendt.",
-	failed: "Kunne ikke sende e-posten. Prøv igjen.",
 } as const;
 
 export const confirmCopy = {
