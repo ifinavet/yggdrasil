@@ -1,68 +1,71 @@
-import { BIFROST_URL } from "@workspace/shared/constants";
-import {
-	type ApplicationForm,
-	applicationFormSchema,
-} from "@workspace/shared/semester/application";
-import { EVENT_TITLE_PREFIX } from "@workspace/shared/semester/labels";
+"use node";
+
+import { render } from "@react-email/render";
+import CompanyApplicationConfirmEmail from "@workspace/emails/company-application-confirm-email";
+import { HUGIN_LOCAL_URL, HUGIN_URL } from "@workspace/shared/constants";
+import { COMPANY_CONTACT_EMAIL, INFO_EMAIL } from "@workspace/shared/constants/contact";
+import { APPLICATION_CONFIRM_PATH } from "@workspace/shared/semester/application";
 import { isValidOrgNumber } from "@workspace/shared/semester/orgNumber";
-import { formatOrderAlert } from "@workspace/shared/slack/alerts";
-import { SYSTEM_ALERTS_CHANNEL } from "@workspace/shared/slack/channels";
-import { osloToday } from "@workspace/shared/time";
 import { SUBMISSION_ID_PATTERN } from "@workspace/shared/validation";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../../_generated/api";
-import { action, internalMutation } from "../../_generated/server";
-import { studentDegree } from "../../users/students/schema";
-import { logApplicationActivity } from "../applicationLifecycle";
+import { type ActionCtx, action } from "../../_generated/server";
+import { isLocalDevelopment } from "../../auth/local";
+import { orderResend } from "../../jobListingOrders/emails";
+import { generateLinkToken } from "../../lib/tokens";
 import { rateLimiter } from "../rateLimits";
 import { fetchBrregUnit, RegistryUnavailableError } from "../registry/client";
 import { BLOCKED_MESSAGES, REGISTRY_UNAVAILABLE_MESSAGE } from "../registry/messages";
-import { CONSENT_VERSION, FORM_VERSION } from "../rules";
-import {
-	applicationBilling,
-	applicationContact,
-	brregSnapshotAtSubmission,
-	foodPurchaser,
-	presentationEventType,
-	venue,
-	wantsToUseEscape,
-} from "../schema";
-import { acceptsApplications, listSemesterDates } from "../semesters/helper";
+import { applicationForm } from "../schema";
+import { parseApplicationForm } from "./confirmation";
 
-/** What the Hugin form sends. The shared Zod schema checks the details. */
-const applicationFormArgs = v.object({
-	orgNumber: v.string(),
-	contact: applicationContact,
-	eventType: presentationEventType,
-	minStudents: v.number(),
-	maxStudents: v.number(),
-	description: v.string(),
-	availableDates: v.array(v.string()),
-	datePreferences: v.optional(v.string()),
-	venue,
-	wantsToUseEscape,
-	foodAndDrinks: v.boolean(),
-	foodPurchasedBy: foodPurchaser,
-	billing: applicationBilling,
-	targetDegrees: v.array(studentDegree),
-	targetStudyPrograms: v.array(v.string()),
-	additionalInfo: v.optional(v.string()),
-	consent: v.boolean(),
-});
+const OUTDATED_FORM_MESSAGE =
+	"Skjemaet har blitt oppdatert siden dere åpnet det. Last inn siden på nytt, så er dere i gang igjen. Svarene deres er lagret.";
 
-function parseApplicationForm(form: unknown): ApplicationForm {
-	const result = applicationFormSchema.safeParse(form);
-	if (!result.success) {
-		throw new ConvexError(result.error.issues[0]?.message ?? "Søknaden er ugyldig.");
+export function confirmationUrl(token: string): string {
+	const url = new URL(APPLICATION_CONFIRM_PATH, isLocalDevelopment() ? HUGIN_LOCAL_URL : HUGIN_URL);
+	url.hash = new URLSearchParams({ token }).toString();
+	return url.toString();
+}
+
+/** Emails the link that confirms the application. Locally the link is only logged. */
+async function sendConfirmationEmail(
+	ctx: ActionCtx,
+	{
+		email,
+		companyName,
+		subject,
+		paragraphs,
+		token,
+	}: Readonly<{
+		email: string;
+		companyName: string;
+		subject: string;
+		paragraphs: string[];
+		token: string;
+	}>,
+) {
+	const url = confirmationUrl(token);
+	if (isLocalDevelopment()) {
+		console.log(`Bekreftelseslenke for søknaden fra ${companyName}: ${url}`);
+		return;
 	}
-	return result.data;
+	const html = await render(CompanyApplicationConfirmEmail({ subject, paragraphs, url }));
+	await orderResend.sendEmail(ctx, {
+		from: `Navet <${INFO_EMAIL}>`,
+		replyTo: [COMPANY_CONTACT_EMAIL],
+		to: email,
+		subject,
+		html,
+	});
 }
 
 /**
- * Receives an application from Hugin. Public and unauthenticated, so it trusts nothing from the
- * browser: it validates the form again, looks the company up in brreg again, refuses deleted,
- * bankrupt and liquidated companies, and rate limits per company. It returns null
- * so it never reveals stored data.
+ * Receives an application from Hugin and emails the contact person a link to confirm it. Public and
+ * unauthenticated, so it trusts nothing from the browser: it validates the form again, looks the
+ * company up in brreg again, refuses deleted, bankrupt and liquidated companies, and rate limits per
+ * company. Navet only sees the application once it is confirmed. It returns null so it never
+ * reveals stored data.
  *
  * @param {Id<"semesters">} semesterId - The semester the company applies for.
  * @param {ApplicationForm} form - The answers.
@@ -75,7 +78,7 @@ function parseApplicationForm(form: unknown): ApplicationForm {
 export const submit = action({
 	args: {
 		semesterId: v.id("semesters"),
-		form: applicationFormArgs,
+		form: applicationForm,
 		submissionId: v.string(),
 		website: v.optional(v.string()),
 	},
@@ -85,7 +88,7 @@ export const submit = action({
 		if (website?.trim()) return null;
 
 		if (!SUBMISSION_ID_PATTERN.test(submissionId)) {
-			throw new ConvexError("Skjemaet er utdatert. Last inn siden på nytt.");
+			throw new ConvexError(OUTDATED_FORM_MESSAGE);
 		}
 
 		const parsed = parseApplicationForm(form);
@@ -96,7 +99,9 @@ export const submit = action({
 		const perCompany = await rateLimiter.limit(ctx, "submitApplication", { key: parsed.orgNumber });
 		const overall = await rateLimiter.limit(ctx, "submitApplicationGlobal");
 		if (!perCompany.ok || !overall.ok) {
-			throw new ConvexError("Det er sendt mange søknader på kort tid. Prøv igjen senere.");
+			throw new ConvexError(
+				"Det har kommet mange søknader på kort tid. Vent litt, og prøv igjen om en stund.",
+			);
 		}
 
 		const now = Date.now();
@@ -116,93 +121,42 @@ export const submit = action({
 			throw new ConvexError(BLOCKED_MESSAGES[lookup.blockedReason]);
 		}
 
-		await ctx.runMutation(
-			internal.semesterPlanning.applications.submit.insertSubmittedApplication,
-			{ semesterId, form: parsed, submissionId, registry: lookup.snapshot },
+		const token = generateLinkToken();
+		const to = await ctx.runMutation(
+			internal.semesterPlanning.applications.confirmation.savePending,
+			{
+				semesterId,
+				form: parsed,
+				submissionId,
+				registry: lookup.snapshot,
+				token,
+			},
 		);
-
+		if (to) await sendConfirmationEmail(ctx, { ...to, token });
 		return null;
 	},
 });
 
-/**
- * Saves a checked application. Runs as one transaction: it re-checks the form, that the chosen
- * semester takes applications and the dates, skips a submission it has already saved, and records
- * «received» in the history.
- *
- * @throws - A Norwegian error when the semester does not take applications or a date is no longer
- * open.
- * @returns {Id<"companyApplications">} - The new or already saved application.
- */
-export const insertSubmittedApplication = internalMutation({
-	args: {
-		semesterId: v.id("semesters"),
-		form: applicationFormArgs,
-		submissionId: v.string(),
-		registry: brregSnapshotAtSubmission,
-	},
-	returns: v.id("companyApplications"),
-	handler: async (ctx, { semesterId, form, submissionId, registry }) => {
-		const already = await ctx.db
-			.query("companyApplications")
-			.withIndex("by_submissionId", (q) => q.eq("submissionId", submissionId))
-			.first();
-		if (already) return already._id;
-
-		const parsed = parseApplicationForm(form);
-
-		const semester = await ctx.db.get(semesterId);
-		if (semester?.status !== "open") throw new ConvexError("Søknadene er stengt.");
-		if (!acceptsApplications(semester, osloToday(Date.now()))) {
-			throw new ConvexError("Søknadsfristen har gått ut.");
+/** Emails a new link for an application that is not confirmed yet. */
+export const resendConfirmation = action({
+	args: { submissionId: v.string() },
+	returns: v.null(),
+	handler: async (ctx, { submissionId }) => {
+		if (!SUBMISSION_ID_PATTERN.test(submissionId)) {
+			throw new ConvexError(OUTDATED_FORM_MESSAGE);
 		}
+		const limit = await rateLimiter.limit(ctx, "resendApplicationConfirmation", {
+			key: submissionId,
+		});
+		if (!limit.ok)
+			throw new ConvexError("Vi har nettopp sendt en e-post. Vent litt før dere ber om en ny.");
 
-		const openDates = new Set(
-			(await listSemesterDates(ctx, semester._id))
-				.filter((date) => date.closedLabel === undefined)
-				.map((date) => date.date),
+		const token = generateLinkToken();
+		const to = await ctx.runMutation(
+			internal.semesterPlanning.applications.confirmation.addConfirmationToken,
+			{ submissionId, token },
 		);
-		if (!parsed.availableDates.every((date) => openDates.has(date))) {
-			throw new ConvexError(
-				"Én eller flere av datoene er ikke åpne lenger. Last inn siden på nytt.",
-			);
-		}
-
-		const { consent: _consent, billing, ...answers } = parsed;
-		const applicationId = await ctx.db.insert("companyApplications", {
-			...answers,
-			semesterId: semester._id,
-			submissionId,
-			formVersion: FORM_VERSION,
-			registry,
-			billing,
-			consent: { version: CONSENT_VERSION, consentedAt: Date.now() },
-			status: "applied",
-		});
-
-		await logApplicationActivity(ctx, applicationId, "submitted", { type: "company" });
-		const product = await ctx.db
-			.query("products")
-			.withIndex("by_eventType_and_active", (q) =>
-				q.eq("eventType", parsed.eventType).eq("active", true),
-			)
-			.first();
-		const title = `${EVENT_TITLE_PREFIX[parsed.eventType]} ${registry.name}`;
-		await ctx.scheduler.runAfter(0, internal.iam.notifications.sendMessage, {
-			channel: SYSTEM_ALERTS_CHANNEL,
-			clientMsgId: `bedpres-order-${applicationId}`,
-			text: formatOrderAlert({
-				company: registry.name,
-				type: "Bedriftspresentasjon",
-				title,
-				additionalNotes: [parsed.description.trim(), parsed.additionalInfo?.trim()]
-					.filter(Boolean)
-					.join("\n"),
-				estimatedRevenueOre: product?.unitPriceOre,
-				url: `${BIFROST_URL}/semesterplan/soknad/${applicationId}`,
-			}),
-		});
-
-		return applicationId;
+		if (to) await sendConfirmationEmail(ctx, { ...to, token });
+		return null;
 	},
 });

@@ -79,7 +79,7 @@ export const applicationFormSchema = z
 			.array(z.enum(STUDY_PROGRAMS, { error: "Ugyldig studieprogram." }))
 			.max(STUDY_PROGRAMS.length),
 		additionalInfo: optionalText(2000, "«Noe dere vil legge til?» kan ha høyst 2000 tegn."),
-		consent: z.literal(true, { error: "Du må godta lagring for å sende søknaden." }),
+		consent: z.literal(true, { error: "Kryss av her, så vi kan ta vare på søknaden deres." }),
 	})
 	.superRefine((form, ctx) => {
 		if (!form.billing.email && !form.billing.details) {
@@ -109,6 +109,9 @@ export const applicationFormSchema = z
 	});
 
 export type ApplicationForm = z.infer<typeof applicationFormSchema>;
+
+/** Where the link in the confirmation email leads; the token is in the fragment. */
+export const APPLICATION_CONFIRM_PATH = "/bestill-bedpres/bekreft";
 
 export const OFFER_PATH = "/bestill-bedpres/tilbud";
 

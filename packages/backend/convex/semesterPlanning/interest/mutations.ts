@@ -34,7 +34,9 @@ export const register = mutation({
 		});
 		const overall = await rateLimiter.limit(ctx, "registerInterestGlobal");
 		if (!perEmail.ok || !overall.ok) {
-			throw new ConvexError("Det er sendt mange på kort tid. Prøv igjen senere.");
+			throw new ConvexError(
+				"Det har kommet mange henvendelser på kort tid. Vent litt, og prøv igjen om en stund.",
+			);
 		}
 
 		await ctx.scheduler.runAfter(
