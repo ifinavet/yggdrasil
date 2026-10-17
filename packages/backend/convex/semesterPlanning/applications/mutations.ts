@@ -202,7 +202,7 @@ export const reopen = mutation({
  * @param {Id<"companyApplications">} applicationId - The deleted application.
  *
  * @throws - An error if the caller is not an editor, the application is not deleted, or it still
- * has an event or a sent invoice.
+ * has an event or an invoice that has been sent.
  * @returns {null} - Returns null when the application is gone.
  */
 export const remove = mutation({
@@ -218,7 +218,8 @@ export const remove = mutation({
 			throw new ConvexError("Søknaden har fortsatt et arrangement. Slett arrangementet først.");
 		}
 		const invoice = await invoiceFor(ctx, { kind: "companyApplication", applicationId });
-		if (invoice?.status === "sent") {
+		// An invoice opened again after it was sent is still a record of a sent invoice.
+		if (invoice?.status === "sent" || invoice?.everSentAt !== undefined) {
 			throw new ConvexError("Søknaden er fakturert, så den kan ikke fjernes.");
 		}
 

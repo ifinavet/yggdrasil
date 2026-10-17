@@ -561,6 +561,25 @@ describe("remove", () => {
 		expect(await t.run((ctx) => ctx.db.get(invoiced))).not.toBeNull();
 	});
 
+	it("keeps a deleted application whose invoice was sent and then opened again", async () => {
+		const { t, semesterId, editor } = await planningSetup();
+		const applicationId = await insertApplication(t, semesterId, { status: "withdrawn" });
+		await t.run((ctx) =>
+			ctx.db.insert("invoices", {
+				source: { kind: "companyApplication", applicationId },
+				sourceKey: sourceKeyOf({ kind: "companyApplication", applicationId }),
+				serviceAt: 0,
+				status: "pending",
+				everSentAt: 1,
+			}),
+		);
+
+		expect(await refusalMessageFrom(editor.mutation(mutations.remove, { applicationId }))).toBe(
+			"Søknaden er fakturert, så den kan ikke fjernes.",
+		);
+		expect(await t.run((ctx) => ctx.db.get(applicationId))).not.toBeNull();
+	});
+
 	it("requires an editor", async () => {
 		const { t, semesterId } = await planningSetup();
 		const member = await insertUser(t, "ola@ifinavet.no");

@@ -14,7 +14,7 @@ import { useRunMutation } from "./model";
 /**
  * Removes a deleted («Slettet») application for good, after asking, so it no longer clutters
  * «Fordeling» and «Søknader». Shown only for deleted applications; the backend refuses the rest.
- * Clicks stay inside, so a table row around it does not open the application.
+ * A table row around it ignores clicks on the button and in the dialog (see `isRowClick`).
  */
 export function RemoveApplicationButton({
 	applicationId,
@@ -30,9 +30,7 @@ export function RemoveApplicationButton({
 	const [open, setOpen] = useState(false);
 
 	return (
-		// biome-ignore lint/a11y/noStaticElementInteractions: only stops clicks reaching the row
-		// biome-ignore lint/a11y/useKeyWithClickEvents: the button and dialog handle the keyboard
-		<span className={cn("inline-flex", className)} onClick={(event) => event.stopPropagation()}>
+		<>
 			<Button
 				size="icon-sm"
 				variant="ghost"
@@ -40,7 +38,7 @@ export function RemoveApplicationButton({
 				onClick={() => setOpen(true)}
 				aria-label={`Fjern søknaden fra ${companyName}`}
 				title="Fjern for godt"
-				className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+				className={cn("text-destructive hover:bg-destructive/10 hover:text-destructive", className)}
 			>
 				<Trash2 aria-hidden />
 			</Button>
@@ -58,6 +56,6 @@ export function RemoveApplicationButton({
 					)
 				}
 			/>
-		</span>
+		</>
 	);
 }

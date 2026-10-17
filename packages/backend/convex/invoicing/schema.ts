@@ -45,6 +45,9 @@ export const invoicingSchema = {
 		sentAt: v.optional(v.number()),
 		sentBy: v.optional(v.id("users")),
 		sentDetails: v.optional(invoiceDetails),
+		// When the invoice was first marked as sent. Kept when it is opened again, so a record of a
+		// sent invoice is never removed.
+		everSentAt: v.optional(v.number()),
 	})
 		.index("by_sourceKey", ["sourceKey"])
 		.index("by_status_and_serviceAt", ["status", "serviceAt"])
