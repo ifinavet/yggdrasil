@@ -8,6 +8,7 @@ import {
 	insertRegistration,
 	insertStudent,
 	insertUser,
+	present,
 	setup,
 } from "../../test/fixtures";
 import { api, internal } from "../_generated/api";
@@ -427,35 +428,37 @@ describe("historical forecast scenarios", () => {
 		expect(good?.baselineSize).toBe(6);
 		expect(bad?.baselineSize).toBe(6);
 		for (const curve of [good, bad]) {
-			const future = curve!.points.filter((p) => p.projected !== null).map((p) => p.projected!);
+			const future = present(curve)
+				.points.filter((p) => p.projected !== null)
+				.map((p) => present(p.projected));
 			expect(future.length).toBeGreaterThan(3);
-			expect(future[0]).toBe(curve!.registered);
+			expect(future[0]).toBe(present(curve).registered);
 			const lowest = Math.min(...future);
-			expect(lowest).toBeLessThan(curve!.registered);
+			expect(lowest).toBeLessThan(present(curve).registered);
 			if (curve === good) expect(future.at(-1)).toBeGreaterThan(lowest);
 			else expect(future.at(-1)).toBe(lowest);
-			expect(future.at(-1)).toBe(curve!.projected);
+			expect(future.at(-1)).toBe(present(curve).projected);
 		}
-		expect(good!.projected).toBeGreaterThan(bad!.projected!);
-		expect(bad!.projected).toBeLessThan(bad!.registered);
+		expect(present(good).projected).toBeGreaterThan(present(present(bad).projected));
+		expect(present(bad).projected).toBeLessThan(present(bad).registered);
 		expect(sparse?.projected).toBeNull();
 		expect(sparse?.reminders).toEqual([]);
 		expect(good?.reminders.map((r) => r.status)).toEqual(["Satt i kø", "Planlagt"]);
 		const user = await t.run((ctx) => ctx.db.query("users").first());
-		const event = await t.run((ctx) => ctx.db.get(seeded.eventIds![0]!));
+		const event = await t.run((ctx) => ctx.db.get(present(present(seeded.eventIds)[0])));
 		await t.run((ctx) =>
 			ctx.db.insert("eventReminderDeliveries", {
-				eventId: seeded.eventIds![0]!,
-				eventStart: event!.eventStart,
+				eventId: present(present(seeded.eventIds)[0]),
+				eventStart: present(event).eventStart,
 				kind: "week",
-				userId: user!._id,
+				userId: present(user)._id,
 				emailId: "preview-sent",
 				sent: true,
 				sentAt: now - DAY_IN_MS,
 			}),
 		);
 		const sentCurve = await intern.query(api.engagement.queries.paceCurve, {
-			eventId: seeded.eventIds[0]!,
+			eventId: present(seeded.eventIds[0]),
 			now,
 		});
 		expect(sentCurve?.reminders[0]?.status).toBe("Utsending startet");

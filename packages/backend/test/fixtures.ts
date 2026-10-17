@@ -47,6 +47,12 @@ const workflowModules = Promise.all(
 	),
 );
 
+/** The value, for test data that must exist; a missing one fails the test with a clear message. */
+export function present<T>(value: T | null | undefined, what = "the value"): T {
+	if (value === null || value === undefined) throw new Error(`Expected ${what} to exist.`);
+	return value;
+}
+
 export async function setup(options: { transactionLimits?: boolean } = {}) {
 	const t = convexTest({ schema, modules: convexModules, ...options });
 	rateLimiter.register(t);

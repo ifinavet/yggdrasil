@@ -6,9 +6,5 @@ export default async function ProductPage({
 }: Readonly<{ params: Promise<{ id: Id<"products"> }> }>) {
 	const { id } = await params;
 
-	return (
-		<>
-			<EditProduct id={id} />
-		</>
-	);
+	return <EditProduct id={id} />;
 }
