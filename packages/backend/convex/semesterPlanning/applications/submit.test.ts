@@ -170,6 +170,17 @@ describe("submit", () => {
 		expect(alerts[0]?.args[0].text).toContain(`/semesterplan/soknad/${application?._id}`);
 	});
 
+	it("queues the received application for the Google Sheet copy", async () => {
+		const { t } = await setup();
+		await withOpenSemester(t);
+		await submitWith(t);
+
+		const [application] = await applications(t);
+		const scheduled = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").take(20));
+		const sheetJobs = scheduled.filter(({ name }) => name.includes("sheet:appendApplication"));
+		expect(sheetJobs.map(({ args }) => args[0])).toEqual([{ applicationId: application?._id }]);
+	});
+
 	it("saves the application with the brreg snapshot, billing and consent version", async () => {
 		const { t } = await setup();
 		const semesterId = await withOpenSemester(t);

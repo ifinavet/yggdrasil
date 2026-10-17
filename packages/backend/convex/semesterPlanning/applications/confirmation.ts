@@ -275,7 +275,10 @@ export const confirm = mutation({
 	},
 });
 
-/** Saves a confirmed application, records it in the history and alerts Navet in Slack. */
+/**
+ * Saves a confirmed application, records it in the history, alerts Navet in Slack and adds it to
+ * the Google Sheet copy.
+ */
 async function receiveApplication(
 	ctx: MutationCtx,
 	pending: Doc<"pendingCompanyApplications">,
@@ -314,6 +317,9 @@ async function receiveApplication(
 			estimatedRevenueOre: product?.unitPriceOre,
 			url: `${BIFROST_URL}/semesterplan/soknad/${applicationId}`,
 		}),
+	});
+	await ctx.scheduler.runAfter(0, internal.semesterPlanning.applications.sheet.appendApplication, {
+		applicationId,
 	});
 	return applicationId;
 }

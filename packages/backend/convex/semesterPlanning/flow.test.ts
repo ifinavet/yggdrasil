@@ -110,6 +110,7 @@ describe("the whole journey", () => {
 		).toEqual([
 			"semesterPlanning/applications/confirmation:purgeExpired",
 			"iam/notifications:sendMessage",
+			"semesterPlanning/applications/sheet:appendApplication",
 			"semesterPlanning/offers/emails:sendOfferEmail",
 			"semesterPlanning/offers/emails:sendOfferEmail",
 		]);
