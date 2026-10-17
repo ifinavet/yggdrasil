@@ -19,7 +19,8 @@ import { BLOCKED_MESSAGES, REGISTRY_UNAVAILABLE_MESSAGE } from "../registry/mess
 import { applicationForm } from "../schema";
 import { parseApplicationForm } from "./confirmation";
 
-const OUTDATED_FORM_MESSAGE = "Skjemaet er utdatert. Last inn siden på nytt.";
+const OUTDATED_FORM_MESSAGE =
+	"Skjemaet har blitt oppdatert siden dere åpnet det. Last inn siden på nytt, så er dere i gang igjen. Svarene deres er lagret.";
 
 export function confirmationUrl(token: string): string {
 	const url = new URL(APPLICATION_CONFIRM_PATH, isLocalDevelopment() ? HUGIN_LOCAL_URL : HUGIN_URL);
@@ -42,7 +43,7 @@ async function sendConfirmationEmail(
 		from: `Navet <${INFO_EMAIL}>`,
 		replyTo: [COMPANY_CONTACT_EMAIL],
 		to: email,
-		subject: "Bekreft søknaden om bedpres",
+		subject: "Bekreft søknaden deres om bedriftsarrangement",
 		html,
 	});
 }
@@ -86,7 +87,9 @@ export const submit = action({
 		const perCompany = await rateLimiter.limit(ctx, "submitApplication", { key: parsed.orgNumber });
 		const overall = await rateLimiter.limit(ctx, "submitApplicationGlobal");
 		if (!perCompany.ok || !overall.ok) {
-			throw new ConvexError("Det er sendt mange søknader på kort tid. Prøv igjen senere.");
+			throw new ConvexError(
+				"Det har kommet mange søknader på kort tid. Vent litt, og prøv igjen om en stund.",
+			);
 		}
 
 		const now = Date.now();
@@ -133,7 +136,8 @@ export const resendConfirmation = action({
 		const limit = await rateLimiter.limit(ctx, "resendApplicationConfirmation", {
 			key: submissionId,
 		});
-		if (!limit.ok) throw new ConvexError("Vent litt før du ber om en ny e-post.");
+		if (!limit.ok)
+			throw new ConvexError("Vi har nettopp sendt en e-post. Vent litt før dere ber om en ny.");
 
 		const token = generateLinkToken();
 		const to = await ctx.runMutation(

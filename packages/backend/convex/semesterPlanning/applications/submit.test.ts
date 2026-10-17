@@ -351,7 +351,7 @@ describe("submit", () => {
 		[
 			"missing consent",
 			{ form: validForm({ consent: false }) },
-			"Du må godta lagring for å sende søknaden.",
+			"Kryss av her, så vi kan ta vare på søknaden deres.",
 		],
 		[
 			"too many students for the type",
@@ -379,7 +379,11 @@ describe("submit", () => {
 			{ form: validForm({ contact: { name: "Ingrid", email: "ingrid", phone: "+4741234567" } }) },
 			"Skriv en gyldig e-postadresse til kontaktpersonen.",
 		],
-		["a bad submission id", { submissionId: "x" }, "Skjemaet er utdatert. Last inn siden på nytt."],
+		[
+			"a bad submission id",
+			{ submissionId: "x" },
+			"Skjemaet har blitt oppdatert siden dere åpnet det. Last inn siden på nytt, så er dere i gang igjen. Svarene deres er lagret.",
+		],
 	] as const)("refuses %s", async (_case, options, expected) => {
 		const { t } = await setup();
 		await withOpenSemester(t);
@@ -458,7 +462,9 @@ describe("submit", () => {
 		for (let i = 0; i < 5; i += 1) await submitWith(t);
 		const message = await refusalMessageFrom(submitWith(t));
 
-		expect(message).toBe("Det er sendt mange søknader på kort tid. Prøv igjen senere.");
+		expect(message).toBe(
+			"Det har kommet mange søknader på kort tid. Vent litt, og prøv igjen om en stund.",
+		);
 		expect(await applications(t)).toHaveLength(5);
 	});
 });
@@ -477,7 +483,7 @@ describe("confirmation by email", () => {
 		expect(emails).toHaveLength(1);
 		expect(emails[0]).toMatchObject({
 			to: "ingrid@fjordkode.no",
-			subject: "Bekreft søknaden om bedpres",
+			subject: "Bekreft søknaden deres om bedriftsarrangement",
 		});
 		expect(emails[0]?.html).toContain(`${HUGIN_URL}/bestill-bedpres/bekreft#token=`);
 		expect(emails[0]?.html).toContain("FJORDKODE AS");
@@ -534,8 +540,10 @@ describe("confirmation by email", () => {
 
 		spy.mockClear();
 		await t.action(resend, { submissionId });
-		await submitWith(t, { submissionId });
 		expect(emailsFrom(spy)).toHaveLength(0);
+		spy.mockRestore();
+		const { emails: resubmitted } = await submitWith(t, { submissionId });
+		expect(resubmitted).toHaveLength(0);
 		expect(await applications(t)).toHaveLength(1);
 	});
 
