@@ -195,6 +195,8 @@ export const semesterPlanningSchema = {
 		helperUserIds: v.optional(v.array(v.id("users"))),
 		internalNotes: v.optional(v.string()),
 		eventId: v.optional(v.id("events")),
+		// When the application was added as a row to the Google Sheet copy, if it has been.
+		sheetRowAddedAt: v.optional(v.number()),
 	})
 		.index("by_semesterId_and_status", ["semesterId", "status"])
 		.index("by_semesterId_and_assignedDate", ["semesterId", "assignedDate"])
