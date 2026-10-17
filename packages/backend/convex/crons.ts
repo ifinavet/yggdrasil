@@ -97,6 +97,14 @@ crons.cron(
 	{},
 );
 
+// Puts the events already in the calendar into a semester plan that has not had them yet.
+crons.interval(
+	"Import the calendar into semester plans",
+	{ hours: 1 },
+	internal.semesterPlanning.planEvents.mutations.importPendingCalendars,
+	{},
+);
+
 crons.cron("Reconcile workspace accounts", "30 3 * * *", internal.iam.actions.reconcile, {});
 
 /**
