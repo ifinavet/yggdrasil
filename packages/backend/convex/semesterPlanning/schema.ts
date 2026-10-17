@@ -250,7 +250,9 @@ export const semesterPlanningSchema = {
 		registry: brregSnapshotAtSubmission,
 		submittedAt: v.number(),
 		applicationId: v.optional(v.id("companyApplications")),
-	}).index("by_submissionId", ["submissionId"]),
+	})
+		.index("by_submissionId", ["submissionId"])
+		.index("by_semesterId", ["semesterId"]),
 
 	/** One emailed link per send; a resend adds a row. Only the token's hash is stored. */
 	companyApplicationConfirmations: defineTable({

@@ -371,6 +371,116 @@ export const unfinalizePlan = mutation({
 	},
 });
 
+// A semester holds a few hundred applications at most; a bigger one is refused rather than half
+// deleted.
+const DELETE_LIMIT = 2000;
+
+async function takeAll<T>(rows: { take: (n: number) => Promise<T[]> }): Promise<T[]> {
+	const found = await rows.take(DELETE_LIMIT + 1);
+	if (found.length > DELETE_LIMIT) {
+		throw new ConvexError("Semesteret er for stort til å slettes herfra.");
+	}
+	return found;
+}
+
+/**
+ * Deletes a semester and everything that belongs to it: its dates, the events put in its plan by
+ * hand (only the link, the events stay), its applications with their offers and history, and the
+ * applications still waiting for email confirmation with their links. It refuses an open semester,
+ * and a semester whose plan has made events or whose applications are invoiced, since those reach
+ * outside the semester and must be removed first.
+ *
+ * @param {Id<"semesters">} semesterId - The semester to delete.
+ *
+ * @throws - An error if the caller is not an editor, the semester is open, or it has events made
+ * from the plan or invoices.
+ * @returns {{ applications: number }} - How many applications were deleted with it.
+ */
+export const deleteSemester = mutation({
+	args: { semesterId: v.id("semesters") },
+	returns: v.object({ applications: v.number() }),
+	handler: async (ctx, { semesterId }) => {
+		await requireRole(ctx, editorRoles);
+		const semester = await requireSemester(ctx, semesterId);
+		if (semester.status === "open") {
+			throw new ConvexError("Steng semesteret for søknader før du sletter det.");
+		}
+
+		const applications = await takeAll(
+			ctx.db
+				.query("companyApplications")
+				.withIndex("by_semesterId_and_status", (q) => q.eq("semesterId", semesterId)),
+		);
+		for (const application of applications) {
+			if (application.eventId && (await ctx.db.get(application.eventId))) {
+				throw new ConvexError(
+					`${application.registry.name} har et arrangement fra planen. Slett arrangementet først.`,
+				);
+			}
+			const invoice = await ctx.db
+				.query("invoices")
+				.withIndex("by_sourceKey", (q) =>
+					q.eq("sourceKey", `companyApplication:${application._id}`),
+				)
+				.first();
+			if (invoice) {
+				throw new ConvexError(
+					`${application.registry.name} er fakturert, så semesteret kan ikke slettes.`,
+				);
+			}
+		}
+
+		for (const application of applications) {
+			const [offers, activity] = await Promise.all([
+				takeAll(
+					ctx.db
+						.query("companyApplicationOffers")
+						.withIndex("by_applicationId", (q) => q.eq("applicationId", application._id)),
+				),
+				takeAll(
+					ctx.db
+						.query("companyApplicationActivity")
+						.withIndex("by_applicationId", (q) => q.eq("applicationId", application._id)),
+				),
+			]);
+			for (const row of [...offers, ...activity]) await ctx.db.delete(row._id);
+			await ctx.db.delete(application._id);
+		}
+
+		const pending = await takeAll(
+			ctx.db
+				.query("pendingCompanyApplications")
+				.withIndex("by_semesterId", (q) => q.eq("semesterId", semesterId)),
+		);
+		for (const row of pending) {
+			const links = await takeAll(
+				ctx.db
+					.query("companyApplicationConfirmations")
+					.withIndex("by_pendingId", (q) => q.eq("pendingId", row._id)),
+			);
+			for (const link of links) await ctx.db.delete(link._id);
+			await ctx.db.delete(row._id);
+		}
+
+		const [dates, planEvents] = await Promise.all([
+			takeAll(
+				ctx.db
+					.query("semesterDates")
+					.withIndex("by_semesterId_and_date", (q) => q.eq("semesterId", semesterId)),
+			),
+			takeAll(
+				ctx.db
+					.query("semesterPlanEvents")
+					.withIndex("by_semesterId", (q) => q.eq("semesterId", semesterId)),
+			),
+		]);
+		for (const row of [...dates, ...planEvents]) await ctx.db.delete(row._id);
+
+		await ctx.db.delete(semesterId);
+		return { applications: applications.length };
+	},
+});
+
 /**
  * Rollover job. Makes sure the running semester and the next one exist as drafts (year and term
  * only, with settings copied from the latest semester), and closes open semesters whose last date
