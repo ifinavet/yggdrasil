@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 import { LIST_HEAD } from "@/components/common/table-classes";
 import BaseDataTable from "@/components/common/tables/data-table";
+import { RemoveApplicationButton } from "./application/remove-application-button";
 import { shortDayTitle, studentRange } from "./format";
 import { isActiveStatus } from "./status";
 import { StatusBadge } from "./status-badge";
@@ -53,9 +54,23 @@ const columns: ColumnDef<Row>[] = [
 		},
 	},
 	{ header: "Kontaktperson fra Navet", cell: ({ row }) => row.original.responsibleName ?? muted },
+	{
+		id: "remove",
+		header: () => <span className="sr-only">Fjern</span>,
+		cell: ({ row }) =>
+			row.original.status === "withdrawn" && (
+				<RemoveApplicationButton
+					applicationId={row.original._id}
+					companyName={row.original.registry.name}
+				/>
+			),
+	},
 ];
 
-/** «Søknader»: every application in the semester, oldest first. A row opens the application. */
+/**
+ * «Søknader»: every application in the semester, oldest first. A row opens the application; a
+ * deleted one can be removed for good.
+ */
 export function ApplicationsTab({ semester }: Readonly<{ semester: Doc<"semesters"> }>) {
 	const router = useRouter();
 	const applications = useQuery(api.semesterPlanning.applications.queries.listForSemester, {
