@@ -196,7 +196,10 @@ export const insertOrder = internalMutation({
 
 		const now = Date.now();
 		const settings = await loadOrderSettings(ctx);
-		if (!settings.open) throw new ConvexError("Bestillingsskjemaet er stengt.");
+		if (!settings.open)
+			throw new ConvexError(
+				"Bestillingsskjemaet er stengt akkurat nå. Skriv til oss, så hjelper vi dere.",
+			);
 		const parsed = parseOrderForm(form, settings, now);
 
 		const productId = ctx.db.normalizeId("products", parsed.productId);
@@ -413,12 +416,12 @@ export const saveFeedback = mutation({
 	handler: async (ctx, { token, feedback }) => {
 		const confirmation = await findConfirmation(ctx, token);
 		if (!confirmation?.usedAt || confirmationState(confirmation, Date.now()) === "expired") {
-			throw new ConvexError("Lenken er ugyldig.");
+			throw new ConvexError("Vi kjenner ikke igjen lenken.");
 		}
 		const limit = await orderRateLimiter.limit(ctx, "jobListingOrderFeedback", {
 			key: confirmation.tokenHash,
 		});
-		if (!limit.ok) throw new ConvexError("Prøv igjen om litt.");
+		if (!limit.ok) throw new ConvexError("Vent litt, og prøv igjen om en stund.");
 		const trimmed = feedback.trim();
 		if (!trimmed) throw new ConvexError("Skriv en tilbakemelding.");
 		if (trimmed.length > FEEDBACK_MAX_LENGTH) {

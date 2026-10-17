@@ -53,7 +53,7 @@ describe("register", () => {
 
 		expect(
 			await refusalMessageFrom(t.mutation(register, { ...answers, email: "ingrid@fjordkode.no" })),
-		).toBe("Det er sendt mange på kort tid. Prøv igjen senere.");
+		).toBe("Det har kommet mange henvendelser på kort tid. Vent litt, og prøv igjen om en stund.");
 		expect(await scheduledEmails(t)).toHaveLength(3);
 	});
 });

@@ -72,7 +72,10 @@ export const generateLogoUploadUrl = mutation({
 	returns: v.string(),
 	handler: async (ctx) => {
 		const limit = await orderRateLimiter.limit(ctx, "jobListingOrderLogoUpload");
-		if (!limit.ok) throw new ConvexError("Det er lastet opp mange filer. Prøv igjen senere.");
+		if (!limit.ok)
+			throw new ConvexError(
+				"Det er lastet opp mange filer på kort tid. Vent litt, og prøv igjen om en stund.",
+			);
 		return await ctx.storage.generateUploadUrl();
 	},
 });

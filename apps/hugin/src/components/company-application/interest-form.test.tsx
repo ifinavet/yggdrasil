@@ -53,7 +53,7 @@ describe("InterestForm", () => {
 			website: undefined,
 		});
 		expect(container.textContent).toContain(
-			"Takk! Vi gir beskjed til ingrid@fjordkode.no når søknadene åpner.",
+			"Takk! Vi sier ifra til ingrid@fjordkode.no så fort søknadene åpner.",
 		);
 	});
 

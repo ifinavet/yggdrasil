@@ -328,7 +328,7 @@ describe("accept", () => {
 
 		expect(
 			await refusalMessageFrom(t.mutation(offers.mutations.accept, { token, acceptTerms: false })),
-		).toBe("Du må godta standardvilkårene for å godta datoen.");
+		).toBe("Kryss av for at dere godtar standardvilkårene, så er datoen deres.");
 	});
 
 	it("refuses unknown and replaced links, and withdrawn applications", async () => {

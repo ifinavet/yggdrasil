@@ -5,11 +5,11 @@ import type { BlockedReason } from "./company-registry";
 export const companyPickerCopy = {
 	placeholder: "Velg bedrift",
 	search: "Søk etter bedrift",
-	empty: "Fant ingen bedrifter.",
-	newCompany: "Finner dere ikke bedriften? Søk i Enhetsregisteret",
+	empty: "Vi fant ingen bedrifter med det navnet.",
+	newCompany: "Står ikke bedriften på listen? Søk i Enhetsregisteret",
 	registrySearch: "Søk på navn eller organisasjonsnummer",
 	registrySearching: "Søker ...",
-	registryEmpty: "Ingen treff i Enhetsregisteret.",
+	registryEmpty: "Ingen treff. Prøv gjerne organisasjonsnummeret.",
 	registryTooShort: "Skriv minst to tegn.",
 	blocked: {
 		deleted: "Slettet fra registeret. Kan ikke velges.",

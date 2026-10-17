@@ -15,8 +15,10 @@ import { sendConfirmationEmail } from "./emails";
 import { orderFormArgs, parseOrderForm } from "./orders";
 import { orderRateLimiter } from "./rateLimits";
 
-const OUTDATED_FORM_MESSAGE = "Skjemaet er utdatert. Last inn siden på nytt.";
-const TOO_MANY_MESSAGE = "Det er sendt mange bestillinger på kort tid. Prøv igjen senere.";
+const OUTDATED_FORM_MESSAGE =
+	"Skjemaet har blitt oppdatert siden dere åpnet det. Last inn siden på nytt, så er dere i gang igjen.";
+const TOO_MANY_MESSAGE =
+	"Det har kommet mange bestillinger på kort tid. Vent litt, og prøv igjen om en stund.";
 
 async function registryNameFor(orgNumber: string, now: number): Promise<string> {
 	if (!isValidOrgNumber(orgNumber)) throw new ConvexError("Organisasjonsnummeret er ugyldig.");
@@ -95,7 +97,8 @@ export const resendConfirmation = action({
 		const limit = await orderRateLimiter.limit(ctx, "resendJobListingOrderConfirmation", {
 			key: submissionId,
 		});
-		if (!limit.ok) throw new ConvexError("Vent litt før du ber om en ny e-post.");
+		if (!limit.ok)
+			throw new ConvexError("Vi har nettopp sendt en e-post. Vent litt før dere ber om en ny.");
 
 		const token = generateLinkToken();
 		const order = await ctx.runMutation(internal.jobListingOrders.orders.addConfirmationToken, {

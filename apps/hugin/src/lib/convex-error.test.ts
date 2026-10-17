@@ -4,9 +4,14 @@ import { describe, expect, it } from "vitest";
 
 describe("convexErrorMessage", () => {
 	it("shows the message a Convex function threw", () => {
-		expect(convexErrorMessage(new ConvexError("Bestillingsskjemaet er stengt."), "Feil")).toBe(
-			"Bestillingsskjemaet er stengt.",
-		);
+		expect(
+			convexErrorMessage(
+				new ConvexError(
+					"Bestillingsskjemaet er stengt akkurat nå. Skriv til oss, så hjelper vi dere.",
+				),
+				"Feil",
+			),
+		).toBe("Bestillingsskjemaet er stengt akkurat nå. Skriv til oss, så hjelper vi dere.");
 	});
 
 	it("falls back for unexpected errors", () => {

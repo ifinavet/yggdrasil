@@ -3,15 +3,15 @@ import { LISTING_FIELD_LABELS } from "@workspace/shared/job-listing-orders";
 
 export const orderPageCopy = {
 	title: "Bestill stillingsannonse",
-	intro: `Vi ser gjennom annonsene før publisering. Spørsmål? ${JOB_LISTING_ORDER_EMAIL}`,
+	intro: `Så fint at dere vil nå informatikkstudentene! Vi ser over annonsene før de publiseres. Lurer dere på noe? Skriv til oss på ${JOB_LISTING_ORDER_EMAIL}.`,
 	guide: "Velg bedrift, skriv annonsen og legg inn kontakt- og fakturainformasjon.",
 	closed: {
-		title: "Bestillingsskjemaet er stengt",
-		body: `Ta kontakt på ${JOB_LISTING_ORDER_EMAIL} hvis dere vil bestille stillingsannonser.`,
+		title: "Bestillingsskjemaet er stengt akkurat nå",
+		body: `Vil dere bestille stillingsannonser likevel? Skriv til oss på ${JOB_LISTING_ORDER_EMAIL}, så hjelper vi dere.`,
 	},
 	unavailable: {
-		title: "Bestilling er ikke tilgjengelig",
-		body: `Ta kontakt på ${JOB_LISTING_ORDER_EMAIL} hvis dere vil bestille stillingsannonser.`,
+		title: "Vi får ikke tatt imot bestillinger akkurat nå",
+		body: `Skriv til oss på ${JOB_LISTING_ORDER_EMAIL}, så ordner vi bestillingen sammen med dere.`,
 	},
 } as const;
 
@@ -31,10 +31,10 @@ export const companyCopy = {
 	no: "Nei",
 	answerRequired: "Svar ja eller nei.",
 	changesLegend: "Endringsforslag",
-	changesHint: "Endringene sendes til Navet for godkjenning.",
+	changesHint: "Vi ser over endringene før de vises på nettsiden.",
 	saveChanges: "Lagre endringsforslag",
-	changesSaved: "Endringsforslaget er lagt ved bestillingen.",
-	changesSavedHint: "Navet godkjenner det før det vises. Fortsett med bestillingen under.",
+	changesSaved: "Takk! Endringsforslaget er lagt ved bestillingen.",
+	changesSavedHint: "Vi ser over det før det vises. Fortsett gjerne med bestillingen under.",
 	editChanges: "Rediger",
 	billingOnFile: "Fakturainformasjon er registrert.",
 	billingMissing: "Fakturainformasjon mangler.",
@@ -85,39 +85,39 @@ export const submitCopy = {
 	honeypot: "Nettside",
 	submit: "Send bestilling",
 	submitting: "Sender ...",
-	failed: "Noe gikk galt. Prøv igjen.",
-	invalid: "Noen felt mangler eller er feil.",
+	failed: `Beklager, noe gikk galt. Prøv igjen om litt, eller skriv til oss på ${JOB_LISTING_ORDER_EMAIL}.`,
+	invalid: "Nesten der! Noen felt mangler eller må rettes. Vi har markert dem for dere.",
 } as const;
 
 export const checkEmailCopy = {
 	body: (email: string) =>
-		`Vi har sendt en lenke til ${email}. Bestillingen sendes først når du har bekreftet den.`,
+		`Vi har sendt en lenke til ${email}. Trykk på den for å bekrefte, så får vi bestillingen. Finner dere den ikke? Sjekk søppelposten, eller send den på nytt.`,
 } as const;
 
 export const confirmCopy = {
 	title: "Bekreft bestillingen",
-	body: "Trykk på knappen for å sende bestillingen til Navet.",
+	body: "Trykk på knappen, så sender vi bestillingen videre til oss i Navet.",
 	button: "Bekreft bestilling",
 	confirming: "Bekrefter ...",
 	backToForm: "Til bestillingsskjemaet",
 	retry: "Prøv igjen",
 	expired: {
-		title: "Lenken har utløpt",
-		body: "Send bestillingen på nytt fra skjemaet.",
+		title: "Lenken har gått ut",
+		body: "Lenken virker i 24 timer. Send bestillingen på nytt fra skjemaet, så sender vi en ny lenke.",
 	},
 	invalid: {
-		title: "Lenken er ugyldig",
-		body: "Åpne lenken fra e-posten, eller send en ny bestilling.",
+		title: "Vi kjenner ikke igjen lenken",
+		body: "Prøv å åpne lenken direkte fra e-posten. Virker den fortsatt ikke, kan dere sende bestillingen på nytt.",
 	},
 	error: {
-		title: "Noe gikk galt",
-		body: "Vi kunne ikke bekrefte bestillingen. Prøv igjen om litt.",
+		title: "Beklager, noe gikk galt",
+		body: "Vi fikk ikke bekreftet bestillingen. Prøv igjen om litt, og si ifra hvis det fortsatt ikke virker.",
 	},
 } as const;
 
 export const receiptCopy = {
-	title: "Bestillingen er bekreftet",
-	body: "Vi har sendt en kvittering på e-post. Annonsene publiseres når vi har gått gjennom bestillingen.",
+	title: "Takk, bestillingen er bekreftet!",
+	body: "Vi har sendt dere en kvittering på e-post. Nå ser vi over annonsene og publiserer dem så fort de er klare.",
 	reference: "Referanse",
 	company: "Bedrift",
 	product: "Produkt",
@@ -125,13 +125,13 @@ export const receiptCopy = {
 	price: "Pris",
 	contact: "Kontakt",
 	listings: "Annonser",
-	updateRequested: "Endringene i bedriftsinformasjonen godkjennes av Navet før de publiseres.",
+	updateRequested: "Vi ser over endringene i bedriftsinformasjonen før de publiseres.",
 	print: "Skriv ut",
 	home: "Til forsiden",
 	redirect: (seconds: number) => `Sender deg til forsiden om ${seconds} s`,
-	feedback: "Hvordan var det å bestille?",
+	feedback: "Hvordan var det å bestille? Vi blir glade for alle tips.",
 	feedbackSubmit: "Send tilbakemelding",
 	feedbackSending: "Sender ...",
-	feedbackThanks: "Takk for tilbakemeldingen!",
-	feedbackFailed: "Kunne ikke lagre tilbakemeldingen. Prøv igjen.",
+	feedbackThanks: "Tusen takk for tilbakemeldingen!",
+	feedbackFailed: "Beklager, vi fikk ikke lagret tilbakemeldingen. Prøv igjen om litt.",
 } as const;

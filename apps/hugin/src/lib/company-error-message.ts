@@ -2,7 +2,7 @@ import { COMPANY_CONTACT_EMAIL } from "@workspace/shared/constants";
 import { convexErrorMessage } from "@workspace/shared/utils";
 
 /** What a company sees when something fails that the backend did not explain. */
-export const UNEXPECTED_COMPANY_ERROR = `Noe gikk galt. Prøv igjen, eller skriv til ${COMPANY_CONTACT_EMAIL}.`;
+export const UNEXPECTED_COMPANY_ERROR = `Beklager, noe gikk galt hos oss. Prøv igjen om litt, eller skriv til oss på ${COMPANY_CONTACT_EMAIL}, så hjelper vi dere.`;
 
 /**
  * The Norwegian message from a refused call on the company pages (application, company search,

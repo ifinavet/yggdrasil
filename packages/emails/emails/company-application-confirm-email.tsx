@@ -7,19 +7,22 @@ export default function CompanyApplicationConfirmEmail({
 	url,
 }: Readonly<{ companyName: string; url: string }>) {
 	return (
-		<OrderLayout preview="Bekreft søknaden om bedpres" contactEmail={COMPANY_CONTACT_EMAIL}>
+		<OrderLayout preview="Bekreft søknaden, så får vi den" contactEmail={COMPANY_CONTACT_EMAIL}>
 			<Text>Hei,</Text>
 			<Text>
-				{`Vi har mottatt en søknad om bedriftsarrangement for ${companyName}. Søknaden er ikke sendt til oss før du bekrefter den.`}
+				{`Så hyggelig at ${companyName} vil holde et arrangement for studentene våre! Trykk på knappen under for å bekrefte søknaden, så får vi den.`}
 			</Text>
 			<Section style={{ margin: "24px 0" }}>
 				<OrderButton href={url}>Bekreft søknaden</OrderButton>
 			</Section>
 			<Text>
-				Lenken virker i 24 timer. Fikk du ikke til å klikke på knappen, kan du lime inn denne lenken
-				i nettleseren: <Link href={url}>{url}</Link>
+				Lenken virker i 24 timer. Virker ikke knappen, kan dere lime inn denne lenken i nettleseren:{" "}
+				<Link href={url}>{url}</Link>
 			</Text>
-			<Text>Har du ikke søkt, kan du se bort fra denne e-posten.</Text>
+			<Text>
+				Har dere ikke søkt, kan dere bare se bort fra denne e-posten. Lurer dere på noe, svarer vi
+				gjerne. Bare svar på denne e-posten.
+			</Text>
 		</OrderLayout>
 	);
 }

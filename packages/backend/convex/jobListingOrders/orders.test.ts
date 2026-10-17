@@ -220,7 +220,9 @@ describe("submit", () => {
 			}),
 		);
 		const message = await refusalMessageFrom(submitOrder(f.t, existingCompanyForm(f)));
-		expect(message).toBe("Bestillingsskjemaet er stengt.");
+		expect(message).toBe(
+			"Bestillingsskjemaet er stengt akkurat nå. Skriv til oss, så hjelper vi dere.",
+		);
 	});
 
 	it("refuses a new company that is already registered", async () => {

@@ -99,7 +99,8 @@ export const accept = mutation({
 	args: { token: v.string(), acceptTerms: v.boolean() },
 	returns: v.null(),
 	handler: async (ctx, { token, acceptTerms }) => {
-		if (!acceptTerms) throw new ConvexError("Du må godta standardvilkårene for å godta datoen.");
+		if (!acceptTerms)
+			throw new ConvexError("Kryss av for at dere godtar standardvilkårene, så er datoen deres.");
 
 		const { offer, application } = await requireAnswerableOffer(
 			ctx,

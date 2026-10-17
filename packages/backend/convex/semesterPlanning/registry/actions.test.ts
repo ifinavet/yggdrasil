@@ -100,7 +100,7 @@ describe("searchCompanies", () => {
 			t.action(actions.searchCompanies, { query: "fjordkode" }),
 		);
 		expect(message).toBe(
-			"Vi får ikke kontakt med Brønnøysundregistrene akkurat nå. Prøv igjen om litt.",
+			"Vi får ikke kontakt med Brønnøysundregistrene akkurat nå. Det er ikke noe feil hos dere, så prøv gjerne igjen om litt.",
 		);
 	});
 

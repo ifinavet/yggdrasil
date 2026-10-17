@@ -45,8 +45,8 @@ function Planning({ token }: Readonly<{ token: string }>) {
 	if (loadError)
 		return (
 			<FormStatePanel
-				title="Kunne ikke hente skjemaet"
-				body="Prøv å laste siden på nytt."
+				title="Beklager, vi fikk ikke hentet skjemaet"
+				body="Prøv å laste inn siden på nytt. Virker det fortsatt ikke, si ifra til oss, så hjelper vi dere."
 				action={<Button onClick={() => window.location.reload()}>Last inn på nytt</Button>}
 			/>
 		);
@@ -56,10 +56,11 @@ function Planning({ token }: Readonly<{ token: string }>) {
 	const organizerEmail = data.organizerEmail || COMPANY_CONTACT_EMAIL;
 	const contact = (
 		<p className="text-muted-foreground text-sm">
-			Spørsmål?{" "}
+			Lurer dere på noe? Si ifra på{" "}
 			<a className="break-words underline underline-offset-4" href={`mailto:${organizerEmail}`}>
-				Kontakt {organizerEmail}
+				{organizerEmail}
 			</a>
+			, så hjelper vi dere.
 		</p>
 	);
 	return (
@@ -85,15 +86,16 @@ function Planning({ token }: Readonly<{ token: string }>) {
 				{contact}
 				{!sent && (
 					<p className="rounded-lg bg-muted p-4 text-base text-foreground leading-7">
-						Send inn det dere vet nå. Etter at dere har bekreftet via e-post, kan dere bruke samme
-						lenke for å endre og utfylle svarene senere.
+						Vi gleder oss til å ha dere på besøk! Fyll inn det dere vet nå, så tar vi resten etter
+						hvert. Når dere har bekreftet på e-post, kan dere bruke samme lenke til å endre og fylle
+						ut svarene senere.
 					</p>
 				)}
 			</header>
 			{sent ? (
 				<>
 					<EmailCheckScreen
-						body={`Vi har sendt en lenke til ${data.contactEmail}. Bekreft e-posten for å sende opplysningene til Navet.`}
+						body={`Vi har sendt en lenke til ${data.contactEmail}. Trykk på den for å bekrefte, så får vi opplysningene. Finner dere den ikke? Sjekk søppelposten, eller send den på nytt.`}
 						onResend={() => resend({ token, submissionId })}
 					/>
 					<Button
@@ -190,7 +192,7 @@ function Unavailable() {
 	return (
 		<FormStatePanel
 			title="Lenken er ikke tilgjengelig"
-			body="Arrangementet kan være avsluttet, eller lenken kan være erstattet. Kontakt Navet for hjelp."
+			body="Arrangementet kan være over, eller så har dere fått en nyere lenke fra oss. Si ifra til oss, så hjelper vi dere."
 			action={
 				<a className="underline" href={`mailto:${COMPANY_CONTACT_EMAIL}`}>
 					Kontakt Navet
@@ -210,21 +212,21 @@ export function ConfirmPlanning() {
 			<FormStatePanel
 				action={null}
 				title="Takk, opplysningene er bekreftet!"
-				body="Bruk lenken i invitasjonen for å endre svarene senere."
+				body="Vi gleder oss! Trenger dere å endre noe senere, bruker dere bare lenken i invitasjonen."
 			/>
 		);
 	if (state === "invalid" || state === "expired")
 		return (
 			<FormStatePanel
 				action={null}
-				title={state === "expired" ? "Lenken har utløpt" : "Lenken er ikke gyldig lenger"}
-				body="Åpne skjemaet fra invitasjonen igjen. Send inn svarene, eller be om en ny bekreftelseslenke."
+				title={state === "expired" ? "Lenken har gått ut" : "Lenken virker ikke lenger"}
+				body="Åpne skjemaet fra invitasjonen igjen og send inn svarene, så sender vi en ny lenke."
 			/>
 		);
 	return (
 		<FormStatePanel
 			title="Bekreft opplysningene"
-			body="Klikk nedenfor for å bekrefte opplysningene dere sendte inn til Navet."
+			body="Trykk på knappen, så sender vi opplysningene videre til oss i Navet."
 			action={
 				<Button
 					size="lg"
@@ -242,7 +244,9 @@ export function ConfirmPlanning() {
 				</Button>
 			}
 			quiet={
-				state === "error" ? <p role="alert">Kunne ikke bekrefte nå. Prøv igjen.</p> : undefined
+				state === "error" ? (
+					<p role="alert">Beklager, vi fikk ikke bekreftet nå. Prøv igjen om litt.</p>
+				) : undefined
 			}
 		/>
 	);

@@ -77,7 +77,7 @@ async function sendConfirmation(
 			cc: [],
 			replyTo: [],
 			subject: "Bekreft opplysningene til arrangementet",
-			text: `Hei ${planning.contactName}!\n\nBekreft opplysningene dere nettopp sendte inn for arrangementet med Navet. Lenken er gyldig i 24 timer.\n\nHvis dere ikke sendte inn opplysningene, kan dere se bort fra denne e-posten.\n\nMed vennlig hilsen\nNavet`,
+			text: `Hei ${planning.contactName}!\n\nTakk for opplysningene til arrangementet! Trykk på knappen under for å bekrefte dem, så får vi dem. Lenken virker i 24 timer.\n\nHar dere ikke sendt inn noe, kan dere bare se bort fra denne e-posten.\n\nMed vennlig hilsen\nNavet`,
 		},
 		url: publicUrl(PLANNING_CONFIRM_PATH, token),
 	});
@@ -89,7 +89,7 @@ export const submit = mutation({
 			throw new ConvexError("Last siden på nytt og prøv igjen.");
 		const context = await planningByToken(ctx, token);
 		if (!context || context.event.eventStart <= Date.now())
-			throw new ConvexError("Lenken er ikke gyldig lenger. Kontakt Navet for hjelp.");
+			throw new ConvexError("Lenken virker ikke lenger. Si ifra til oss, så hjelper vi dere.");
 		const { planning, event } = context;
 		const existing = await ctx.db
 			.query("eventPlanningSubmissions")
@@ -125,7 +125,7 @@ export const resend = mutation({
 	handler: async (ctx, { token, submissionId }) => {
 		const context = await planningByToken(ctx, token);
 		if (!context || context.event.eventStart <= Date.now())
-			throw new ConvexError("Lenken er ikke gyldig lenger.");
+			throw new ConvexError("Lenken virker ikke lenger.");
 		const submission = await ctx.db
 			.query("eventPlanningSubmissions")
 			.withIndex("by_submissionId", (q) => q.eq("submissionId", submissionId))

@@ -37,7 +37,7 @@ export const sendOfferEmail = internalAction({
 			from: `Navet <${INFO_EMAIL}>`,
 			replyTo: [COMPANY_CONTACT_EMAIL],
 			to: offer.to,
-			subject: `Tilbud om bedriftsarrangement ${day}`,
+			subject: `Vi har en dato til dere: ${day}`,
 			html,
 		});
 		return null;

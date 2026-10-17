@@ -121,7 +121,7 @@ export function jobListingOrderSchema(settings: JobListingOrderSettings, today: 
 		billing: orderBillingSchema.optional(),
 		ehfInvoice: z.boolean().default(false),
 		note: optionalText(1000, "Tilleggsinformasjonen kan ha høyst 1000 tegn."),
-		confirmAmount: z.literal(true, { error: "Bekreft bestillingen og beløpet." }),
+		confirmAmount: z.literal(true, { error: "Kryss av for å bekrefte bestillingen og beløpet." }),
 	});
 }
 

@@ -61,7 +61,7 @@ export async function sendConfirmationEmail(
 	const url = confirmationUrl(token);
 	if (isLocalDevelopment()) console.log(`Bekreftelseslenke for ${reference}: ${url}`);
 	const html = await render(JobListingOrderConfirmEmail({ companyName, reference, url }));
-	await deliver(ctx, to, `Bekreft bestillingen ${reference}`, html);
+	await deliver(ctx, to, `Bekreft bestillingen deres (${reference})`, html);
 }
 
 const orderArgs = { orderId: v.id("jobListingOrders") };
@@ -83,7 +83,12 @@ export const sendReceipt = internalAction({
 				updateRequested: order.updateRequested,
 			}),
 		);
-		await deliver(ctx, order.contact.email, `Kvittering for bestilling ${order.reference}`, html);
+		await deliver(
+			ctx,
+			order.contact.email,
+			`Takk for bestillingen! Kvittering ${order.reference}`,
+			html,
+		);
 	},
 });
 
@@ -129,7 +134,7 @@ export const sendPublished = internalAction({
 				})),
 			}),
 		);
-		await deliver(ctx, order.contact.email, "Stillingsannonsene er publisert", html);
+		await deliver(ctx, order.contact.email, "Nå er stillingsannonsene deres ute", html);
 	},
 });
 
@@ -146,11 +151,6 @@ export const sendRejected = internalAction({
 				reason: order.rejectionReason,
 			}),
 		);
-		await deliver(
-			ctx,
-			order.contact.email,
-			`Bestilling ${order.reference} ble ikke publisert`,
-			html,
-		);
+		await deliver(ctx, order.contact.email, `Om bestillingen deres (${order.reference})`, html);
 	},
 });

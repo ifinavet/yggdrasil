@@ -217,7 +217,7 @@ describe("orderFormErrors", () => {
 
 	it("requires the amount to be confirmed", () => {
 		const errors = orderFormErrors(validValues({ confirmAmount: false }), context, settings, today);
-		expect(errors.confirmAmount).toBe("Bekreft bestillingen og beløpet.");
+		expect(errors.confirmAmount).toBe("Kryss av for å bekrefte bestillingen og beløpet.");
 	});
 });
 

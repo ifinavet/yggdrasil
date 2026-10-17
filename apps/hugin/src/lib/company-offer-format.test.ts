@@ -41,7 +41,7 @@ describe("offer formatting", () => {
 		expect(companyErrorMessage(new ConvexError("Velg blant datoene i semesteret."))).toBe(
 			"Velg blant datoene i semesteret.",
 		);
-		expect(companyErrorMessage(new Error("network"))).toMatch(/^Noe gikk galt/);
+		expect(companyErrorMessage(new Error("network"))).toMatch(/^Beklager, noe gikk galt/);
 	});
 });
 

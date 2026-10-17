@@ -7,17 +7,20 @@ export default function JobListingOrderConfirmEmail({
 	url,
 }: Readonly<{ companyName: string; reference: string; url: string }>) {
 	return (
-		<OrderLayout preview="Bekreft bestillingen av stillingsannonser">
+		<OrderLayout preview="Bekreft bestillingen, så får vi den">
 			<Text>Hei,</Text>
 			<Text>
-				{`Vi har mottatt en bestilling av stillingsannonser for ${companyName} (${reference}). Bestillingen er ikke sendt til oss før du bekrefter den.`}
+				{`Takk for at ${companyName} vil annonsere hos oss! Trykk på knappen under for å bekrefte bestillingen (${reference}), så får vi den.`}
 			</Text>
 			<OrderButton href={url}>Bekreft bestillingen</OrderButton>
 			<Text>
-				Lenken virker i 24 timer. Fikk du ikke til å klikke på knappen, kan du lime inn denne lenken
-				i nettleseren: <Link href={url}>{url}</Link>
+				Lenken virker i 24 timer. Virker ikke knappen, kan dere lime inn denne lenken i nettleseren:{" "}
+				<Link href={url}>{url}</Link>
 			</Text>
-			<Text>Har du ikke bestilt noe, kan du se bort fra denne e-posten.</Text>
+			<Text>
+				Har dere ikke bestilt noe, kan dere bare se bort fra denne e-posten. Lurer dere på noe,
+				svarer vi gjerne. Bare svar på denne e-posten.
+			</Text>
 		</OrderLayout>
 	);
 }

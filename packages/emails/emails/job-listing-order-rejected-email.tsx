@@ -10,9 +10,9 @@ export default function JobListingOrderRejectedEmail({
 	return (
 		<OrderLayout preview="Bestillingen ble ikke publisert">
 			<Text>Hei,</Text>
-			<Text>{`Vi har gått gjennom bestillingen for ${companyName} (${reference}) og kan ikke publisere den.`}</Text>
+			<Text>{`Takk for bestillingen fra ${companyName} (${reference}). Vi har sett over den, og dessverre kan vi ikke publisere den slik den er nå.`}</Text>
 			<Text style={{ borderLeft: "3px solid #dde3ea", paddingLeft: "12px" }}>{reason}</Text>
-			<Text>{`Svar på denne e-posten eller skriv til ${JOB_LISTING_ORDER_EMAIL} hvis du har spørsmål.`}</Text>
+			<Text>{`Vi hjelper gjerne til med å få den på plass. Svar på denne e-posten eller skriv til ${JOB_LISTING_ORDER_EMAIL} hvis dere har spørsmål.`}</Text>
 		</OrderLayout>
 	);
 }

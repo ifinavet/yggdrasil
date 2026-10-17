@@ -21,7 +21,7 @@ export default function JobListingOrderReceiptEmail({
 	return (
 		<OrderLayout preview={`Kvittering for bestilling ${reference}`}>
 			<Text>Hei,</Text>
-			<Text>{`Takk! Bestillingen for ${companyName} er bekreftet.`}</Text>
+			<Text>{`Tusen takk! Bestillingen for ${companyName} er bekreftet, og her er kvitteringen.`}</Text>
 			<OrderSummary
 				rows={[
 					["Referanse", reference],
@@ -32,16 +32,16 @@ export default function JobListingOrderReceiptEmail({
 			/>
 			<Text>{`Annonsene: ${titles.join(", ")}.`}</Text>
 			<Text style={{ margin: "0 0 4px" }}>
-				Vi går gjennom bestillingen og publiserer annonsene på ifinavet.no, vanligvis innen to
-				virkedager.
+				Nå ser vi over annonsene og publiserer dem på ifinavet.no, vanligvis innen to virkedager.
 			</Text>
 			{updateRequested && (
 				<Text style={{ margin: "0 0 4px" }}>
-					Endringene i bedriftsinformasjonen godkjennes før annonsene publiseres.
+					Vi ser også over endringene i bedriftsinformasjonen før annonsene publiseres.
 				</Text>
 			)}
 			<Text style={{ margin: "0 0 4px" }}>
-				Du får en e-post når annonsene er publisert. Fakturaen kommer etter publisering.
+				Dere får en e-post fra oss når annonsene er ute, og fakturaen kommer etter det. Lurer dere
+				på noe? Bare svar på denne e-posten.
 			</Text>
 		</OrderLayout>
 	);

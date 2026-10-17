@@ -9,6 +9,7 @@ export const BLOCKED_MESSAGES: Record<BlockedReason, string> = {
 };
 
 export const REGISTRY_UNAVAILABLE_MESSAGE =
-	"Vi får ikke kontakt med Brønnøysundregistrene akkurat nå. Prøv igjen om litt.";
+	"Vi får ikke kontakt med Brønnøysundregistrene akkurat nå. Det er ikke noe feil hos dere, så prøv gjerne igjen om litt.";
 
-export const RATE_LIMITED_MESSAGE = "Det er mange søk akkurat nå. Prøv igjen om litt.";
+export const RATE_LIMITED_MESSAGE =
+	"Det er mange som søker akkurat nå. Vent litt, og prøv igjen om en stund.";

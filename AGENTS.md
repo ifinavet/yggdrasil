@@ -18,6 +18,8 @@ External dependencies used by multiple workspace packages share exact versions i
 
 User-facing Norwegian text, in both Hugin and Midgard, must never contain an em-dash (`—`). Use a comma, colon or full stop instead. En-dash (`–`) and hyphen (`-`) are unaffected, but only where they are correct.
 
+Company-facing copy (Hugin forms, offers, receipts and the emails companies get) is warm and personal: Navet is «vi», the company is «dere», and we say what happens next («vi tar kontakt», «si ifra hvis dere lurer på noe»). Errors apologise, say what to do and where to write. Keep field and button labels short and validation messages plain.
+
 Student-facing copy lives with the feature that owns it. For the Hugin event feedback form the questions are data: default fields in `packages/shared/feedback/default-fields.ts` and validation rules and messages in `packages/shared/feedback/validation.ts`, rendered by `apps/hugin/src/components/feedback/`; edit there rather than inline in components.
 
 ## Maintaining this file

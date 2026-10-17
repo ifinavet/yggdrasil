@@ -13,11 +13,14 @@ export default function CompanyOfferEmail({
 			contactEmail={COMPANY_CONTACT_EMAIL}
 		>
 			<Text>{`Hei ${firstName},`}</Text>
-			<Text>{`Takk for søknaden om bedriftsarrangement hos Navet. Vi kan tilby dere ${day}.`}</Text>
+			<Text>{`Takk for søknaden! Vi har gleden av å tilby dere ${day} til arrangementet deres.`}</Text>
 			<Section style={{ margin: "24px 0" }}>
 				<OrderButton href={url}>Se tilbudet og svar</OrderButton>
 			</Section>
-			<Text>Der kan dere godta datoen, be om en annen dato eller takke nei.</Text>
+			<Text>
+				Der kan dere godta datoen, be om en annen dato eller takke nei. Lurer dere på noe? Bare svar
+				på denne e-posten. Vi gleder oss til å høre fra dere!
+			</Text>
 		</OrderLayout>
 	);
 }
