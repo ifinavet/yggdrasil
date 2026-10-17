@@ -9,9 +9,5 @@ export default function InvoicePage({
 }: Readonly<{ params: Promise<{ id: Id<"invoices"> }> }>) {
 	const { id } = use(params);
 
-	return (
-		<>
-			<InvoiceDetail id={id} />
-		</>
-	);
+	return <InvoiceDetail id={id} />;
 }

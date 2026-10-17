@@ -24,7 +24,7 @@ export default function SafeHtml({
 	return (
 		<div
 			className={className}
-			// biome-ignore lint/security/noDangerouslySetInnerHtml: The html is sanitized by sanitize-html, configured to mirror the previous DOMPurify policy
+			// The html is sanitized by sanitize-html, configured to mirror the previous DOMPurify policy
 			dangerouslySetInnerHTML={{ __html: cleanHtml }}
 		/>
 	);

@@ -8,6 +8,7 @@ import {
 	insertFoodItem,
 	insertOrganizer,
 	insertUser,
+	present,
 	setup,
 } from "../../../test/fixtures";
 import { api, internal } from "../../_generated/api";
@@ -17,7 +18,8 @@ import { planningResponseSummary } from "./notifications";
 
 const NOW = Date.parse("2026-10-01T10:00:00Z");
 const START = NOW + 30 * DAY_MS;
-const tokenFrom = (url: string) => new URLSearchParams(new URL(url).hash.slice(1)).get("token")!;
+const tokenFrom = (url: string) =>
+	present(new URLSearchParams(new URL(url).hash.slice(1)).get("token"));
 async function fixture() {
 	const { t, companyId } = await setup();
 	const eventId = await insertEvent(t, companyId, { eventStart: START, published: false });
@@ -57,12 +59,12 @@ async function invited() {
 	const f = await fixture();
 	await f.editor.mutation(api.events.planning.admin.send, {
 		eventId: f.eventId,
-		revision: f.data.planning!.revision,
-		fingerprint: f.data.preview!.fingerprint,
+		revision: present(f.data.planning).revision,
+		fingerprint: present(f.data.preview).fingerprint,
 	});
-	const mail = (await f.t.run((ctx) => ctx.db.query("eventPlanningEmails").collect()))[0]!;
-	const token = tokenFrom(mail.url!);
-	const form = (await f.t.mutation(api.events.planning.public.get, { token }))!;
+	const mail = present((await f.t.run((ctx) => ctx.db.query("eventPlanningEmails").collect()))[0]);
+	const token = tokenFrom(present(mail.url));
+	const form = present(await f.t.mutation(api.events.planning.public.get, { token }));
 	return { ...f, mail, token, form };
 }
 async function submitted() {
@@ -76,8 +78,8 @@ async function submitted() {
 	};
 	await f.t.mutation(api.events.planning.public.submit, input);
 	const emails = await f.t.run((ctx) => ctx.db.query("eventPlanningEmails").collect());
-	const confirmation = emails.find((e) => e.kind === "confirmation")!;
-	return { ...f, input, confirmation, confirmationToken: tokenFrom(confirmation.url!) };
+	const confirmation = present(emails.find((e) => e.kind === "confirmation"));
+	return { ...f, input, confirmation, confirmationToken: tokenFrom(present(confirmation.url)) };
 }
 beforeEach(() => {
 	vi.useFakeTimers();
@@ -109,7 +111,7 @@ describe("company event planning", () => {
 					updatedAt: NOW,
 				});
 			}
-			await prepareDue(ctx, (await ctx.db.get(f.eventId))!, NOW);
+			await prepareDue(ctx, present(await ctx.db.get(f.eventId)), NOW);
 		});
 		const notices = await f.t.run((ctx) => ctx.db.query("slackSystemDeliveries").collect());
 		expect(notices).toHaveLength(1);
@@ -135,8 +137,8 @@ describe("company event planning", () => {
 		await expect(
 			f.editor.mutation(api.events.planning.admin.send, {
 				eventId: f.eventId,
-				revision: f.data.planning!.revision,
-				fingerprint: f.data.preview!.fingerprint,
+				revision: present(f.data.planning).revision,
+				fingerprint: present(f.data.preview).fingerprint,
 			}),
 		).rejects.toThrow();
 		expect(await f.t.run((ctx) => ctx.db.query("slackSystemDeliveries").collect())).toHaveLength(1);
@@ -174,12 +176,12 @@ describe("company event planning", () => {
 		const eventId = await insertEvent(t, companyId, { eventStart: START });
 		const due = eventPlanningAt(START, 35);
 		await t.run(async (ctx) => {
-			const event = (await ctx.db.get(eventId))!;
+			const event = present(await ctx.db.get(eventId));
 			await prepareDue(ctx, event, due - 1);
 		});
 		expect(await t.run((ctx) => ctx.db.query("eventPlanning").collect())).toHaveLength(0);
 		await t.run(async (ctx) => {
-			const event = (await ctx.db.get(eventId))!;
+			const event = present(await ctx.db.get(eventId));
 			await prepareDue(ctx, event, due);
 			await prepareDue(ctx, event, due);
 		});
@@ -196,7 +198,7 @@ describe("company event planning", () => {
 		await expect(
 			f.editor.mutation(api.events.planning.admin.send, {
 				eventId: f.eventId,
-				revision: f.data.planning!.revision,
+				revision: present(f.data.planning).revision,
 				fingerprint: "stale",
 			}),
 		).rejects.toThrow();
@@ -210,8 +212,8 @@ describe("company event planning", () => {
 		await expect(
 			f.editor.mutation(api.events.planning.admin.send, {
 				eventId: f.eventId,
-				revision: f.data.planning!.revision,
-				fingerprint: f.data.preview!.fingerprint,
+				revision: present(f.data.planning).revision,
+				fingerprint: present(f.data.preview).fingerprint,
 			}),
 		).rejects.toThrow();
 		await f.t.mutation(internal.events.planning.delivery.enqueueRendered, {
@@ -289,15 +291,15 @@ describe("company event planning", () => {
 		expect(review.event.published).toBe(false);
 		expect(review.submission?.status).toBe("ready");
 		await f.editor.mutation(api.events.planning.admin.saveReview, {
-			submissionId: review.submission!._id,
+			submissionId: present(review.submission)._id,
 			revision: 0,
-			answers: { ...review.submission!.draft, title: "Redigert tittel" },
+			answers: { ...present(review.submission).draft, title: "Redigert tittel" },
 		});
 		review = await f.editor.query(api.events.planning.admin.get, { eventId: f.eventId });
 		const foodItem = await insertFoodItem(f.t);
 		expect(
 			await f.editor.mutation(api.events.planning.admin.approve, {
-				submissionId: review.submission!._id,
+				submissionId: present(review.submission)._id,
 				revision: 1,
 				expectedEvent: review.snapshot,
 				acknowledgeChanges: false,
@@ -310,7 +312,7 @@ describe("company event planning", () => {
 		expect(event?.title).toBe("Redigert tittel");
 		await expect(
 			f.editor.mutation(api.events.planning.admin.approve, {
-				submissionId: review.submission!._id,
+				submissionId: present(review.submission)._id,
 				revision: 1,
 				expectedEvent: review.snapshot,
 				acknowledgeChanges: false,
@@ -323,7 +325,7 @@ describe("company event planning", () => {
 		const f = await submitted();
 		await f.t.mutation(api.events.planning.public.confirm, { token: f.confirmationToken });
 		await f.t.run(async (ctx) => {
-			const original = (await ctx.db.get(f.data.planning!.companyId))!;
+			const original = present(await ctx.db.get(present(f.data.planning).companyId));
 			const { _id, _creationTime, ...company } = original;
 			const companyId = await ctx.db.insert("companies", {
 				...company,
@@ -335,14 +337,14 @@ describe("company event planning", () => {
 		const review = await f.editor.query(api.events.planning.admin.get, { eventId: f.eventId });
 		await expect(
 			f.editor.mutation(api.events.planning.admin.saveReview, {
-				submissionId: review.submission!._id,
+				submissionId: present(review.submission)._id,
 				revision: 0,
-				answers: review.submission!.draft,
+				answers: present(review.submission).draft,
 			}),
 		).rejects.toThrow("Bedriften er endret");
 		await expect(
 			f.editor.mutation(api.events.planning.admin.approve, {
-				submissionId: review.submission!._id,
+				submissionId: present(review.submission)._id,
 				revision: 0,
 				expectedEvent: review.snapshot,
 				acknowledgeChanges: true,
@@ -411,7 +413,7 @@ describe("company event planning", () => {
 			},
 		});
 		const submissions = await f.t.run((ctx) => ctx.db.query("eventPlanningSubmissions").collect());
-		expect(submissions[0]!.answers.ageRestriction).toBe(ageRestriction);
+		expect(present(submissions[0]).answers.ageRestriction).toBe(ageRestriction);
 	});
 	it("exposes the main organizer email as the company contact", async () => {
 		const f = await invited();
@@ -442,7 +444,7 @@ describe("company event planning", () => {
 		const data = await f.editor.query(api.events.planning.admin.get, { eventId: f.eventId });
 		await f.editor.mutation(api.events.planning.admin.savePreparation, {
 			eventId: f.eventId,
-			revision: data.planning!.revision,
+			revision: present(data.planning).revision,
 			...f.preparation,
 			contactEmail: "corrected@example.com",
 		});
@@ -570,14 +572,16 @@ describe("company event planning", () => {
 			await f.t.mutation(api.events.planning.public.confirm, { token: f.confirmationToken }),
 		).toEqual({ state: "invalid" });
 		const emails = await f.t.run((ctx) => ctx.db.query("eventPlanningEmails").collect());
-		const newest = emails.filter((e) => e.kind === "confirmation").at(-1)!;
-		await f.t.mutation(api.events.planning.public.confirm, { token: tokenFrom(newest.url!) });
+		const newest = present(emails.filter((e) => e.kind === "confirmation").at(-1));
+		await f.t.mutation(api.events.planning.public.confirm, {
+			token: tokenFrom(present(newest.url)),
+		});
 		const review = await f.editor.query(api.events.planning.admin.get, { eventId: f.eventId });
 		await f.t.run((ctx) => ctx.db.patch(f.eventId, { title: "Endret av en annen arrangør" }));
 		const foodItem = await insertFoodItem(f.t);
 		await expect(
 			f.editor.mutation(api.events.planning.admin.approve, {
-				submissionId: review.submission!._id,
+				submissionId: present(review.submission)._id,
 				revision: 0,
 				expectedEvent: review.snapshot,
 				acknowledgeChanges: true,
@@ -594,7 +598,7 @@ describe("company event planning", () => {
 				.query("eventOrganizers")
 				.withIndex("by_eventId", (q) => q.eq("eventId", f.eventId))
 				.collect();
-			await ctx.db.delete(organizers[0]!._id);
+			await ctx.db.delete(present(organizers[0])._id);
 		});
 		await f.t.mutation(internal.events.planning.delivery.enqueueRendered, {
 			id: f.mail._id,
@@ -616,11 +620,13 @@ describe("company event planning", () => {
 		const emails = await f.t.run((ctx) => ctx.db.query("eventPlanningEmails").collect());
 		expect(emails).toHaveLength(2);
 		expect(emails.find((e) => e._id === f.mail._id)?.url).toBeUndefined();
-		const replacement = emails.find((e) => e._id !== f.mail._id)!;
+		const replacement = present(emails.find((e) => e._id !== f.mail._id));
 		expect(replacement.url).not.toBe(f.mail.url);
 		expect(await f.t.mutation(api.events.planning.public.get, { token: f.token })).toBeNull();
 		expect(
-			await f.t.mutation(api.events.planning.public.get, { token: tokenFrom(replacement.url!) }),
+			await f.t.mutation(api.events.planning.public.get, {
+				token: tokenFrom(present(replacement.url)),
+			}),
 		).not.toBeNull();
 	});
 	it("alerts again if a delayed message subsequently bounces", async () => {

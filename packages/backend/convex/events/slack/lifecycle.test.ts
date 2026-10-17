@@ -10,6 +10,7 @@ import {
 	insertOrganizer,
 	insertRegistration,
 	insertUser,
+	present,
 	setup,
 	type TestBackend,
 } from "../../../test/fixtures";
@@ -814,7 +815,7 @@ it("does not send the retired manual first-contact template reminder", async () 
 	const { t, companyId } = await setup();
 	const eventId = await insertEvent(t, companyId, { eventStart: START });
 	const reminders = await t.run(async (ctx) =>
-		dueOrganizerReminders(ctx, (await ctx.db.get(eventId))!, eventPlanningAt(START, 28)),
+		dueOrganizerReminders(ctx, present(await ctx.db.get(eventId)), eventPlanningAt(START, 28)),
 	);
 	expect(
 		reminders.some((reminder) => reminder.text.includes(COMPANY_FIRST_CONTACT_TEMPLATE_URL)),
