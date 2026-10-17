@@ -295,11 +295,59 @@ describe("updateSettings", () => {
 		expect(semester.defaultEventStartTime).toBe("16:15");
 	});
 
+	it("saves the confirmation email trimmed, and an empty one goes back to the default", async () => {
+		const { t } = await setup();
+		const semesterId = await insertSemester(t, { status: "draft" });
+		const editor = await editorOf(t);
+
+		await editor.mutation(mutations.updateSettings, {
+			semesterId,
+			confirmEmailSubject: "  Bekreft, {bedrift} ",
+			confirmEmailText: " Hei!\n\nTakk. ",
+		});
+		expect(await semesterById(t, semesterId)).toMatchObject({
+			confirmEmailSubject: "Bekreft, {bedrift}",
+			confirmEmailText: "Hei!\n\nTakk.",
+		});
+
+		await editor.mutation(mutations.updateSettings, {
+			semesterId,
+			confirmEmailSubject: "",
+			confirmEmailText: "",
+		});
+		const semester = await semesterById(t, semesterId);
+		expect(semester.confirmEmailSubject).toBeUndefined();
+		expect(semester.confirmEmailText).toBeUndefined();
+	});
+
+	it("copies the confirmation email to the next semester", async () => {
+		const { t } = await setup();
+		await insertSemester(t, {
+			year: 2026,
+			term: "autumn",
+			status: "closed",
+			confirmEmailSubject: "Emne",
+			confirmEmailText: "Tekst",
+		});
+
+		const semesterId = await (await editorOf(t)).mutation(mutations.create, {
+			year: 2027,
+			term: "spring",
+		});
+
+		expect(await semesterById(t, semesterId)).toMatchObject({
+			confirmEmailSubject: "Emne",
+			confirmEmailText: "Tekst",
+		});
+	});
+
 	it.each([
 		[{ applicationDeadline: "4. desember" }, "Søknadsfristen må være en gyldig dato (ÅÅÅÅ-MM-DD)."],
 		[{ termsUrl: "ikke en lenke" }, "Lenken til standardvilkårene er ugyldig."],
 		[{ defaultEventStartTime: "9:00" }, "Starttiden må være et gyldig klokkeslett (TT:MM)."],
 		[{ defaultEventStartTime: "25:00" }, "Starttiden må være et gyldig klokkeslett (TT:MM)."],
+		[{ confirmEmailSubject: "x".repeat(151) }, "Emnet kan ha høyst 150 tegn."],
+		[{ confirmEmailText: "x".repeat(3001) }, "Teksten kan ha høyst 3000 tegn."],
 	])("refuses %o", async (settings, expected) => {
 		const { t } = await setup();
 		const semesterId = await insertSemester(t, { status: "draft" });

@@ -31,19 +31,31 @@ export function confirmationUrl(token: string): string {
 /** Emails the link that confirms the application. Locally the link is only logged. */
 async function sendConfirmationEmail(
 	ctx: ActionCtx,
-	{ email, companyName, token }: Readonly<{ email: string; companyName: string; token: string }>,
+	{
+		email,
+		companyName,
+		subject,
+		paragraphs,
+		token,
+	}: Readonly<{
+		email: string;
+		companyName: string;
+		subject: string;
+		paragraphs: string[];
+		token: string;
+	}>,
 ) {
 	const url = confirmationUrl(token);
 	if (isLocalDevelopment()) {
 		console.log(`Bekreftelseslenke for søknaden fra ${companyName}: ${url}`);
 		return;
 	}
-	const html = await render(CompanyApplicationConfirmEmail({ companyName, url }));
+	const html = await render(CompanyApplicationConfirmEmail({ subject, paragraphs, url }));
 	await orderResend.sendEmail(ctx, {
 		from: `Navet <${INFO_EMAIL}>`,
 		replyTo: [COMPANY_CONTACT_EMAIL],
 		to: email,
-		subject: "Bekreft søknaden deres om bedriftsarrangement",
+		subject,
 		html,
 	});
 }

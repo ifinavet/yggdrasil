@@ -1,3 +1,4 @@
+import { CONFIRM_EMAIL_LIMITS } from "@workspace/shared/semester/confirm-email";
 import { semesterName } from "@workspace/shared/semester/labels";
 import { MAX_SEMESTER_YEAR, MIN_SEMESTER_YEAR } from "@workspace/shared/semester/limits";
 import {
@@ -137,6 +138,8 @@ export const setRange = mutation({
  * @param {string} [infoText] - Information shown to companies.
  * @param {string} [termsUrl] - Link to the standard terms.
  * @param {string} [defaultEventStartTime] - When events made from the plan start, as HH:mm.
+ * @param {string} [confirmEmailSubject] - The subject of the email with the confirm link.
+ * @param {string} [confirmEmailText] - Its text, with {bedrift} for the company's name.
  *
  * @throws - An error if the caller is not an editor, a value is invalid, or the semester is closed.
  * @returns {null} - Returns null when the settings are saved.
@@ -149,11 +152,22 @@ export const updateSettings = mutation({
 		infoText: v.optional(v.string()),
 		termsUrl: v.optional(v.string()),
 		defaultEventStartTime: v.optional(v.string()),
+		confirmEmailSubject: v.optional(v.string()),
+		confirmEmailText: v.optional(v.string()),
 	},
 	returns: v.null(),
 	handler: async (
 		ctx,
-		{ semesterId, applicationDeadline, hardDeadline, infoText, termsUrl, defaultEventStartTime },
+		{
+			semesterId,
+			applicationDeadline,
+			hardDeadline,
+			infoText,
+			termsUrl,
+			defaultEventStartTime,
+			confirmEmailSubject,
+			confirmEmailText,
+		},
 	) => {
 		await requireRole(ctx, editorRoles);
 
@@ -167,6 +181,12 @@ export const updateSettings = mutation({
 		if (defaultEventStartTime && !isClockTime(defaultEventStartTime)) {
 			throw new ConvexError("Starttiden må være et gyldig klokkeslett (TT:MM).");
 		}
+		if (confirmEmailSubject && confirmEmailSubject.trim().length > CONFIRM_EMAIL_LIMITS.subject) {
+			throw new ConvexError(`Emnet kan ha høyst ${CONFIRM_EMAIL_LIMITS.subject} tegn.`);
+		}
+		if (confirmEmailText && confirmEmailText.trim().length > CONFIRM_EMAIL_LIMITS.text) {
+			throw new ConvexError(`Teksten kan ha høyst ${CONFIRM_EMAIL_LIMITS.text} tegn.`);
+		}
 
 		const text = (value: string | undefined) => (value === "" ? undefined : value);
 		await ctx.db.patch(semesterId, {
@@ -176,6 +196,12 @@ export const updateSettings = mutation({
 			...(termsUrl !== undefined ? { termsUrl: text(termsUrl) } : {}),
 			...(defaultEventStartTime !== undefined
 				? { defaultEventStartTime: text(defaultEventStartTime) }
+				: {}),
+			...(confirmEmailSubject !== undefined
+				? { confirmEmailSubject: text(confirmEmailSubject.trim()) }
+				: {}),
+			...(confirmEmailText !== undefined
+				? { confirmEmailText: text(confirmEmailText.trim()) }
 				: {}),
 		});
 

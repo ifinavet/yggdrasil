@@ -85,16 +85,25 @@ export function acceptsApplications(semester: Doc<"semesters">, today: string): 
 
 /**
  * The settings a new semester inherits from the most recent one: information text, terms link,
- * whether the deadline is hard, and start time for events. Dates and deadlines are never inherited; a human sets those.
+ * whether the deadline is hard, start time for events and the confirmation email's text. Dates and
+ * deadlines are never inherited; a human sets those.
  *
  * @param {MutationCtx} ctx - The Convex mutation context.
  *
- * @returns {Promise<Pick<Doc<"semesters">, "infoText" | "termsUrl" | "hardDeadline" | "defaultEventStartTime">>} - The copied settings.
+ * @returns {Promise<Partial<Doc<"semesters">>>} - The copied settings.
  */
 export async function settingsFromLatestSemester(
 	ctx: MutationCtx,
 ): Promise<
-	Pick<Doc<"semesters">, "infoText" | "termsUrl" | "hardDeadline" | "defaultEventStartTime">
+	Pick<
+		Doc<"semesters">,
+		| "infoText"
+		| "termsUrl"
+		| "hardDeadline"
+		| "defaultEventStartTime"
+		| "confirmEmailSubject"
+		| "confirmEmailText"
+	>
 > {
 	// The index sorts terms alphabetically, so read the newest few and order them properly.
 	const newest = await ctx.db
@@ -112,6 +121,10 @@ export async function settingsFromLatestSemester(
 		...(latest.defaultEventStartTime !== undefined
 			? { defaultEventStartTime: latest.defaultEventStartTime }
 			: {}),
+		...(latest.confirmEmailSubject !== undefined
+			? { confirmEmailSubject: latest.confirmEmailSubject }
+			: {}),
+		...(latest.confirmEmailText !== undefined ? { confirmEmailText: latest.confirmEmailText } : {}),
 	};
 }
 
