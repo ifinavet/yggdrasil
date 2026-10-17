@@ -121,6 +121,56 @@ describe("importPendingCalendars", () => {
 		expect(await t.mutation(importPending, {})).toEqual({ semesters: 0, added: 0 });
 		expect(await planRowsOf(t, eventId)).toEqual([]);
 	});
+	it("reaches a pending semester behind many imported ones", async () => {
+		const { t, companyId } = await autoSetup();
+		await t.run(async (ctx) => {
+			for (let year = 1800; year <= 2000; year++) {
+				await ctx.db.insert("semesters", {
+					year,
+					term: "spring",
+					firstDate: `${year}-01-10`,
+					lastDate: `${year}-05-10`,
+					status: "closed",
+					calendarImportedAt: 1,
+				});
+			}
+		});
+		const semesterId = await insertSemester(t, AUTUMN);
+		const eventId = await insertEvent(t, companyId, { eventStart: SEPTEMBER_29 });
+
+		expect(await t.mutation(importPending, {})).toEqual({ semesters: 1, added: 1 });
+		expect(await planRowsOf(t, eventId)).toMatchObject([{ semesterId }]);
+	});
+});
+
+describe("setRange after the import", () => {
+	it("takes out the events outside a shorter period, and never puts removed ones back", async () => {
+		const { t, companyId, editor } = await autoSetup();
+		const semesterId = await insertSemester(t, { ...AUTUMN, status: "draft" });
+		const september = await insertEvent(t, companyId, { eventStart: SEPTEMBER_29 });
+		const october = await insertEvent(t, companyId, { eventStart: OCTOBER_6 });
+		const gone = await insertEvent(t, companyId, { eventStart: SEPTEMBER_29 + 2 * 86_400_000 });
+		await t.mutation(internal.semesterPlanning.planEvents.mutations.importPendingCalendars, {});
+		await t.run((ctx) => ctx.db.delete(gone));
+		const setRange = api.semesterPlanning.semesters.mutations.setRange;
+
+		await editor.mutation(setRange, {
+			semesterId,
+			firstDate: "2026-08-18",
+			lastDate: "2026-10-01",
+		});
+
+		expect(await planRowsOf(t, september)).toMatchObject([{ semesterId }]);
+		expect(await planRowsOf(t, october)).toEqual([]);
+		expect(await planRowsOf(t, gone)).toEqual([]);
+
+		await editor.mutation(setRange, {
+			semesterId,
+			firstDate: AUTUMN.firstDate,
+			lastDate: AUTUMN.lastDate,
+		});
+		expect(await planRowsOf(t, october)).toEqual([]);
+	});
 });
 
 describe("setRange imports the calendar the first time", () => {

@@ -2,7 +2,7 @@ import { osloToday } from "@workspace/shared/time";
 import { type Infer, v } from "convex/values";
 import type { Doc, Id } from "../../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../../_generated/server";
-import { eventsInSemesterRange } from "../semesters/helper";
+import { eventsInSemesterRange, SEMESTER_EVENTS_LIMIT } from "../semesters/helper";
 
 // Helpers for events that are in a semester plan without an application: ones an editor added by
 // hand or imported from the calendar. They register no Convex functions.
@@ -136,6 +136,40 @@ export async function importCalendarIntoPlan(
 	}
 	await ctx.db.patch(semester._id, { calendarImportedAt: Date.now() });
 	return { added, skipped };
+}
+
+/**
+ * Takes events out of the semester's plan when they no longer fall in its period, such as after
+ * the period is made shorter, or when the event is gone. Only rows are removed, so an event an
+ * editor took out of the plan is never put back.
+ *
+ * @param {MutationCtx} ctx - The Convex mutation context.
+ * @param {Id<"semesters">} semesterId - The semester.
+ * @param {string} firstDate - The period's first day, as YYYY-MM-DD.
+ * @param {string} lastDate - The period's last day, as YYYY-MM-DD.
+ *
+ * @returns {Promise<number>} - How many events were taken out.
+ */
+export async function dropPlanEventsOutsideRange(
+	ctx: MutationCtx,
+	semesterId: Id<"semesters">,
+	firstDate: string,
+	lastDate: string,
+): Promise<number> {
+	const rows = await ctx.db
+		.query("semesterPlanEvents")
+		.withIndex("by_semesterId", (q) => q.eq("semesterId", semesterId))
+		.take(SEMESTER_EVENTS_LIMIT);
+	let dropped = 0;
+	for (const row of rows) {
+		const event = await ctx.db.get(row.eventId);
+		const day = event && osloToday(event.eventStart);
+		if (!day || day < firstDate || day > lastDate) {
+			await ctx.db.delete(row._id);
+			dropped++;
+		}
+	}
+	return dropped;
 }
 
 /**

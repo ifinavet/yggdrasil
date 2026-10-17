@@ -125,6 +125,7 @@ export const semesterPlanningSchema = {
 		// event an editor takes out of the plan stays out.
 		calendarImportedAt: v.optional(v.number()),
 	})
+		.index("by_calendarImportedAt", ["calendarImportedAt"])
 		.index("by_year_and_term", ["year", "term"])
 		.index("by_status", ["status"]),
 

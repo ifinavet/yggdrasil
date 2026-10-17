@@ -17,7 +17,7 @@ import { editorRoles, requireRole } from "../../auth/accessRights";
 import { findActiveApplicationOnDate, requireEditorActor } from "../applicationLifecycle";
 import { findCompanyProfile, listApplicationsInSemester } from "../applications/helper";
 import { ensureDraftEvent, proposeNavetTeams } from "../events";
-import { importCalendarIntoPlan } from "../planEvents/helper";
+import { dropPlanEventsOutsideRange, importCalendarIntoPlan } from "../planEvents/helper";
 import { isUnsettledApplicationStatus } from "../rules";
 import { applicationPeriodStatus, semesterTerm } from "../schema";
 import {
@@ -124,9 +124,12 @@ export const setRange = mutation({
 				.map((date) => ctx.db.insert("semesterDates", { semesterId, date })),
 		);
 		await ctx.db.patch(semesterId, { firstDate, lastDate });
-		// The first period brings in the events already in the calendar, once.
+		// The first period brings in the events already in the calendar, once. A later change only
+		// takes out the events that fell outside the new period.
 		if (semester.calendarImportedAt === undefined) {
 			await importCalendarIntoPlan(ctx, { ...semester, firstDate, lastDate }, editor._id);
+		} else {
+			await dropPlanEventsOutsideRange(ctx, semesterId, firstDate, lastDate);
 		}
 
 		return null;

@@ -117,8 +117,12 @@ export const importPendingCalendars = internalMutation({
 	handler: async (ctx) => {
 		let semesters = 0;
 		let added = 0;
-		for (const semester of await ctx.db.query("semesters").take(SEMESTER_READ_LIMIT)) {
-			if (semester.calendarImportedAt !== undefined) continue;
+		// Only semesters that are not imported yet, so the bounded read never stalls on old ones.
+		const pending = await ctx.db
+			.query("semesters")
+			.withIndex("by_calendarImportedAt", (q) => q.eq("calendarImportedAt", undefined))
+			.take(SEMESTER_READ_LIMIT);
+		for (const semester of pending) {
 			if (!semester.firstDate || !semester.lastDate) continue;
 			added += (await importCalendarIntoPlan(ctx, semester)).added;
 			semesters++;
