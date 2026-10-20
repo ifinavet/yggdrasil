@@ -21,6 +21,8 @@ import { guidesSchema } from "./users/guides/schema";
 import { organizationSchema } from "./users/organization/schema";
 import { studentsSchema } from "./users/students/schema";
 
+import { wikiSchema } from "./wiki/schema";
+
 export default defineSchema({
 	...companiesSchema,
 	...eventsSchema,
@@ -30,6 +32,7 @@ export default defineSchema({
 	...jobListingsSchema,
 	...jobListingOrdersSchema,
 	...pagesSchema,
+	...wikiSchema,
 	...usersSchema,
 	...organizationSchema,
 	...studentsSchema,

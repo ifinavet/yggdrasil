@@ -12,6 +12,7 @@ import {
 import { nextUnseenStep } from "@workspace/ui/lib/seen-steps";
 import { useMutation, useQuery } from "convex/react";
 import { CircleHelp } from "lucide-react";
+import Link from "next/link";
 import {
 	createContext,
 	type ReactNode,
@@ -21,6 +22,7 @@ import {
 	useId,
 	useMemo,
 } from "react";
+import { GUIDE_ARTICLES } from "@/components/wiki/feature-links";
 
 type GuideConfig<Step extends string> = {
 	steps: readonly Step[];
@@ -99,7 +101,13 @@ export function createGuide<Step extends string>({ steps, storageKey, hints }: G
 					onInteractOutside={(event) => event.preventDefault()}
 				>
 					<p id={textId}>{hints[step]}</p>
-					<div className="mt-3 flex justify-end">
+					<div className="mt-3 flex items-center justify-between gap-3">
+						<Link
+							href={`/wiki/${GUIDE_ARTICLES[storageKey]}`}
+							className="text-xs underline underline-offset-4"
+						>
+							Les i håndboken
+						</Link>
 						<Button size="sm" variant="secondary" onClick={dismiss}>
 							Skjønner
 						</Button>

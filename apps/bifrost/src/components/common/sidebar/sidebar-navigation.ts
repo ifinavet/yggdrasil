@@ -56,9 +56,9 @@ export const sidebarNavigation = {
 					path: "/leaderboard",
 				},
 				{
-					title: "Resurser",
+					title: "Håndbok",
 					icon: BookOpenIcon,
-					path: "/resources",
+					path: "/wiki",
 				},
 			],
 		},

@@ -1,4 +1,5 @@
-import { hasEditRights } from "@workspace/auth";
+import { getAuthToken, hasEditRights } from "@workspace/auth";
+import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import {
 	Breadcrumb,
@@ -8,6 +9,7 @@ import {
 	BreadcrumbPage,
 	BreadcrumbSeparator,
 } from "@workspace/ui/components//breadcrumb";
+import { fetchQuery } from "convex/nextjs";
 import { redirect } from "next/navigation";
 import EditResourceForm from "./edit-resource-form";
 
@@ -17,6 +19,10 @@ export default async function EditResourcePage({
 	params: Promise<{ slug: Id<"resources"> }>;
 }>) {
 	const { slug: id } = await params;
+
+	const token = await getAuthToken();
+	const resource = await fetchQuery(api.pages.queries.getResourceById, { id }, { token });
+	if (resource.slug) redirect(`/wiki/${resource.slug}/edit`);
 
 	if (!(await hasEditRights())) redirect("/");
 

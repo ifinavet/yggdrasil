@@ -8,16 +8,20 @@ function calendarDayAfter(timestamp: number, days: number) {
 	return new Date(Date.parse(osloToday(timestamp)) + days * DAY_MS).toISOString().slice(0, 10);
 }
 
+export const FEEDBACK_OPEN_TIME = "08:00";
+export const FEEDBACK_CLOSE_DAYS = 14;
+export const FEEDBACK_RETENTION_MONTHS = 18;
+
 export const REMINDER_DAYS = [3, 7, 11] as const;
 
 /** Next calendar day at 08:00 in Oslo, including daylight-saving transitions. */
 export function feedbackOpensAt(eventStart: number): number {
-	return osloDateTimeToEpoch(calendarDayAfter(eventStart, 1), "08:00");
+	return osloDateTimeToEpoch(calendarDayAfter(eventStart, 1), FEEDBACK_OPEN_TIME);
 }
 
 /** Eighteen UTC calendar months, clamped to the last day of the target month. */
 export function feedbackRetentionAt(closedAt: number): number {
-	return addMonths(new TZDate(closedAt, "UTC"), 18).getTime();
+	return addMonths(new TZDate(closedAt, "UTC"), FEEDBACK_RETENTION_MONTHS).getTime();
 }
 
 /** Keeps reminders and closure at the same Oslo time when daylight saving changes. */

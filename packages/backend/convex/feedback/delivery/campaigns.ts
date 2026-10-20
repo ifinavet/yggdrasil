@@ -1,5 +1,6 @@
 import { start } from "@convex-dev/workflow";
 import {
+	FEEDBACK_CLOSE_DAYS,
 	feedbackOpensAt,
 	feedbackRetentionAt,
 	feedbackRoundAt,
@@ -104,7 +105,7 @@ export async function syncFeedbackCampaign(
 		return;
 	}
 	const generation = (existing?.generation ?? 0) + 1;
-	const closesAt = feedbackRoundAt(opensAt, 14);
+	const closesAt = feedbackRoundAt(opensAt, FEEDBACK_CLOSE_DAYS);
 	const schedule = {
 		status: "scheduled" as const,
 		generation,

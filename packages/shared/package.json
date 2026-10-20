@@ -55,7 +55,9 @@
 		"./events/guide": "./events/guide.ts",
 		"./events/planning": "./events/planning.ts",
 		"./events/planning-email": "./events/planning-email.ts",
-		"./events/reminder": "./events/reminder.ts"
+		"./events/reminder": "./events/reminder.ts",
+		"./wiki": "./wiki/index.ts",
+		"./events/attendance": "./events/attendance.ts"
 	},
 	"scripts": {
 		"check-types": "tsc --noEmit"

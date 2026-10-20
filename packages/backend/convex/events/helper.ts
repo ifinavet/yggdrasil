@@ -1,4 +1,5 @@
 import type { OrganizerRole } from "@workspace/shared/constants";
+import { POINT_LOCKOUT_THRESHOLD } from "@workspace/shared/events/attendance";
 import {
 	type EventSemester,
 	eventSemesterRange,
@@ -85,7 +86,7 @@ export async function validateUserCanRegister(ctx: MutationCtx, user: Doc<"users
 			.withIndex("by_studentId", (q) => q.eq("studentId", student._id))
 			.collect();
 		const totalPoints = points.reduce((acc, p) => acc + p.severity, 0);
-		if (totalPoints >= 3) {
+		if (totalPoints >= POINT_LOCKOUT_THRESHOLD) {
 			throw new ConvexError("Du har 3 eller flere prikker og kan ikke melde deg på arrangementer.");
 		}
 	}

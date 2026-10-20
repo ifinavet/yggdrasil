@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { mutation } from "../_generated/server";
 import { editorRoles, requireRole } from "../auth/accessRights";
 
@@ -69,6 +69,9 @@ export const updateResource = mutation({
 	},
 	handler: async (ctx, args) => {
 		await requireRole(ctx, editorRoles);
+
+		const resource = await ctx.db.get(args.id);
+		if (resource?.slug) throw new ConvexError("Bruk håndbokens redigering for denne artikkelen.");
 
 		await ctx.db.patch(args.id, {
 			title: args.title,

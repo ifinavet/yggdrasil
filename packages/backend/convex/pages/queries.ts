@@ -1,6 +1,6 @@
 import { ConvexError, v } from "convex/values";
 import { query } from "../_generated/server";
-import { currentUserHasRole, editorRoles } from "../auth/accessRights";
+import { currentUserHasRole, editorRoles, internalRoles, requireRole } from "../auth/accessRights";
 
 /**
  * Fetches all resources grouped by tag alongside unpublished resources.
@@ -9,7 +9,8 @@ import { currentUserHasRole, editorRoles } from "../auth/accessRights";
  */
 export const getAllGroupedByTag = query({
 	handler: async (ctx) => {
-		const resources = await ctx.db.query("resources").collect();
+		await requireRole(ctx, internalRoles);
+		const resources = await ctx.db.query("resources").take(100);
 
 		const publishedResources = resources.filter((resource) => resource.published);
 		const maySeeUnpublished = await currentUserHasRole(ctx, editorRoles);
@@ -44,6 +45,7 @@ export const getAllGroupedByTag = query({
 export const getResourceById = query({
 	args: { id: v.id("resources") },
 	handler: async (ctx, args) => {
+		await requireRole(ctx, internalRoles);
 		const resource = await ctx.db.get(args.id);
 		if (!resource) {
 			throw new ConvexError("Ressursen ble ikke funnet.");
@@ -90,6 +92,7 @@ export const getExternalPageById = query({
  */
 export const getFavorites = query({
 	handler: async (ctx) => {
+		await requireRole(ctx, internalRoles);
 		const resources = await ctx.db
 			.query("resources")
 			.withIndex("by_favoriteAndUpdated", (q) => q.eq("favorite", true))

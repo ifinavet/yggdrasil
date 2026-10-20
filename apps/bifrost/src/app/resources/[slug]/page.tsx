@@ -14,6 +14,7 @@ import { Separator } from "@workspace/ui/components//separator";
 import { SafeHtml } from "@workspace/ui/components/safe-html";
 import { fetchQuery } from "convex/nextjs";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 export default async function ResourcePage({
 	params,
@@ -24,6 +25,7 @@ export default async function ResourcePage({
 	const token = await getAuthToken();
 	const resource = await fetchQuery(api.pages.queries.getResourceById, { id }, { token });
 
+	if (resource.slug) redirect(`/wiki/${resource.slug}`);
 	const hasEditRight = await hasEditRights();
 
 	return (

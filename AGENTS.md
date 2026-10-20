@@ -20,6 +20,10 @@ User-facing Norwegian text, in both Hugin and Midgard, must never contain an em-
 
 Student-facing copy lives with the feature that owns it. For the Hugin event feedback form the questions are data: default fields in `packages/shared/feedback/default-fields.ts` and validation rules and messages in `packages/shared/feedback/validation.ts`, rendered by `apps/hugin/src/components/feedback/`; edit there rather than inline in components.
 
+## Handbook source tracking
+
+After changing a feature watched by `packages/backend/convex/wiki/sources.json`, run `node scripts/wiki-source-versions.mjs` and commit the generated hashes. CI verifies these hashes so deployed changes flag the affected handbook articles for review. See `docs/handbook.md` for migration and editing behavior.
+
 ## Maintaining this file
 
 Keep this file for knowledge useful to almost every future agent session in this project.

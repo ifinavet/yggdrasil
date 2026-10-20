@@ -196,6 +196,12 @@ import type * as users_organization_mutations from "../users/organization/mutati
 import type * as users_organization_queries from "../users/organization/queries.js";
 import type * as users_students_mutations from "../users/students/mutations.js";
 import type * as users_students_queries from "../users/students/queries.js";
+import type * as wiki_content from "../wiki/content.js";
+import type * as wiki_facts from "../wiki/facts.js";
+import type * as wiki_helpers from "../wiki/helpers.js";
+import type * as wiki_migration from "../wiki/migration.js";
+import type * as wiki_mutations from "../wiki/mutations.js";
+import type * as wiki_queries from "../wiki/queries.js";
 
 import type {
   ApiFromModules,
@@ -392,6 +398,12 @@ declare const fullApi: ApiFromModules<{
   "users/organization/queries": typeof users_organization_queries;
   "users/students/mutations": typeof users_students_mutations;
   "users/students/queries": typeof users_students_queries;
+  "wiki/content": typeof wiki_content;
+  "wiki/facts": typeof wiki_facts;
+  "wiki/helpers": typeof wiki_helpers;
+  "wiki/migration": typeof wiki_migration;
+  "wiki/mutations": typeof wiki_mutations;
+  "wiki/queries": typeof wiki_queries;
 }>;
 
 /**

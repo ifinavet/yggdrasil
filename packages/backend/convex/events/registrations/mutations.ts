@@ -1,3 +1,4 @@
+import { ATTENDANCE_POINTS } from "@workspace/shared/events/attendance";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../../_generated/api";
 import type { Doc } from "../../_generated/dataModel";
@@ -73,8 +74,6 @@ export const acceptPendingRegistration = mutation({
 		await logRegistrationChange(ctx, registration, "accepted");
 	},
 });
-
-const ATTENDANCE_POINTS = { confirmed: 0, late: 1, no_show: 2 } as const;
 
 function attendancePointsReason(status: "late" | "no_show", eventTitle: string | undefined) {
 	return status === "late"

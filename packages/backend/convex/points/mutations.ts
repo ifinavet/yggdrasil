@@ -1,3 +1,4 @@
+import { POINT_LOCKOUT_THRESHOLD } from "@workspace/shared/events/attendance";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalMutation, mutation } from "../_generated/server";
@@ -78,7 +79,7 @@ export const givePointsInternal = internalMutation({
 			.withIndex("by_studentId", (q) => q.eq("studentId", id))
 			.collect();
 
-		if (points.reduce((acc, point) => acc + point.severity, 0) >= 3) {
+		if (points.reduce((acc, point) => acc + point.severity, 0) >= POINT_LOCKOUT_THRESHOLD) {
 			await ctx.runMutation(internal.points.mutations.tooManyPointsEmail, {
 				studentsId: id,
 			});
