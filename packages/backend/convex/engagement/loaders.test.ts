@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { present } from "../../test/fixtures";
 import { buildWorld, NOW } from "../../test/insightWorld";
 import type { Doc } from "../_generated/dataModel";
 import { organizerRoleLoader } from "../events/helper";
@@ -11,7 +12,7 @@ describe("studentDirectory", () => {
 		const world = await buildWorld();
 		const found = await world.t.run(async (ctx) => {
 			const directory = await studentDirectory(ctx, NOW);
-			const userId = world.u.u13!;
+			const userId = present(world.u.u13);
 			expect(directory.population.some((student) => student.userId === userId)).toBe(false);
 			await ctx.db.insert("students", {
 				userId,
@@ -50,7 +51,7 @@ describe("studentDirectory population", () => {
 	it("keeps current students when old alumni exceed the former cap", async () => {
 		const world = await buildWorld();
 		const result = await world.t.run(async (ctx) => {
-			const userId = world.u.u13!;
+			const userId = present(world.u.u13);
 			for (let i = 0; i < 5001; i++) {
 				await ctx.db.insert("students", {
 					userId,
@@ -62,7 +63,7 @@ describe("studentDirectory population", () => {
 				});
 			}
 			await ctx.db.insert("students", {
-				userId: world.u.u1!,
+				userId: present(world.u.u1),
 				name: "Nyere Student",
 				studyProgram: "Informatikk",
 				year: 2,
@@ -98,7 +99,7 @@ describe("organizerRoleLoader", () => {
 	it("resolves the leading role per event and null where the user does not organize", async () => {
 		const world = await buildWorld();
 		const roles = await world.t.run(async (ctx) => {
-			const userId = world.u.u1!;
+			const userId = present(world.u.u1);
 			await ctx.db.insert("eventOrganizers", {
 				eventId: world.events.a1,
 				userId,

@@ -55,7 +55,7 @@ export function alignedCurve(curve: number[], source: ForecastTimeline, target: 
 			if (sourceAt === undefined || targetAt === undefined) continue;
 			const from = progressOf(source, sourceAt);
 			const to = progressOf(target, targetAt);
-			const previous = anchors[anchors.length - 1]!;
+			const previous = anchors.at(-1) ?? { source: 0, target: 0 };
 			if (from > previous.source && from < 1 && to > previous.target && to < 1)
 				anchors.push({ source: from, target: to });
 		}

@@ -1,6 +1,6 @@
 import { eventSemesterRange } from "@workspace/shared/time";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { insertEvent } from "../../test/fixtures";
+import { insertEvent, present } from "../../test/fixtures";
 import { buildWorld, insightOutputs, NOW, normalised, type World } from "../../test/insightWorld";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
@@ -251,14 +251,14 @@ describe("baselineRowsAt", () => {
 			for (let index = 0; index <= MAX_TOUCHED_ROWS; index += 1) {
 				await ctx.db.insert("registrationLog", {
 					eventId: world.events.a1,
-					userId: world.u.u1!,
+					userId: present(world.u.u1),
 					change: "registered",
 					at: previousCheckpoint + 1 + index,
 				});
 			}
 			await ctx.db.insert("registrationLog", {
 				eventId,
-				userId: world.u.u2!,
+				userId: present(world.u.u2),
 				change: "registered",
 				at: previousCutoff - minutes,
 			});
@@ -286,7 +286,7 @@ describe("changed checkpoint inputs", () => {
 			await world.t.mutation(internal.engagement.checkpoints.buildCheckpoints, {});
 		const before = await checkpoints(world);
 		expect(before.length).toBeGreaterThan(0);
-		const target = before[0]!;
+		const target = present(before[0]);
 		await world.t.run((ctx) =>
 			ctx.db.patch(target.eventId, { participationLimit: target.participationLimit + 1 }),
 		);
