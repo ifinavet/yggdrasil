@@ -172,15 +172,15 @@ describe("migration and live facts", () => {
 			const oldContent =
 				'<p>Send påminnelse med BCC.</p><p><a href="https://example.test/rapportmal">Rapportmal</a></p>';
 			const policy = "<h2>Formål</h2><p>Original policy skal bevares &amp; leses.</p>";
+			const legacy = {
+				title,
+				content: oldContent,
+				excerpt: "En eldre guide",
+				published: true,
+				updatedAt: 1,
+			};
 			const ids = await t.run(async (ctx) => [
-				await ctx.db.insert("resources", {
-					title,
-					content: oldContent,
-					excerpt: "En eldre guide",
-					published: true,
-					favorite: true,
-					updatedAt: 1,
-				}),
+				await ctx.db.insert("resources", { ...legacy, favorite: true }),
 				await ctx.db.insert("resources", {
 					title: "Rettningslinjer for Interne",
 					content: policy,
@@ -188,6 +188,7 @@ describe("migration and live facts", () => {
 					published: true,
 					updatedAt: 2,
 				}),
+				await ctx.db.insert("resources", legacy),
 			]);
 			await admin.mutation(api.wiki.migration.initialize, {});
 			await admin.mutation(api.wiki.migration.initialize, {});
@@ -219,8 +220,12 @@ describe("migration and live facts", () => {
 			);
 			expect(history).toHaveLength(2);
 			expect(history.find((row) => row.number === 0)?.article.content).toBe(oldContent);
+			expect(await t.run((ctx) => ctx.db.get(required(ids[2])))).toMatchObject({
+				content: oldContent,
+				published: false,
+			});
 			expect(await t.run((ctx) => ctx.db.query("resources").collect())).toHaveLength(
-				HANDBOOK_ARTICLES.length + 1,
+				HANDBOOK_ARTICLES.length + 2,
 			);
 		},
 	);

@@ -113,6 +113,7 @@ export const get = query({
 					.query("products")
 					.withIndex("by_active_and_sortOrder", (q) => q.eq("active", true))
 					.take(101);
+				const limitNote = products.length > 100 ? " Viser de første 100 produktene." : "";
 				return {
 					title,
 					rows: products.slice(0, 100).map((product) => ({
@@ -133,9 +134,7 @@ export const get = query({
 							.filter(Boolean)
 							.join(", "),
 					})),
-					note: products.length
-						? `Priser ekskl. mva.${products.length > 100 ? " Viser de første 100 produktene." : ""}`
-						: "Ingen aktive produkter.",
+					note: products.length ? `Priser ekskl. mva.${limitNote}` : "Ingen aktive produkter.",
 				};
 			}
 			case "forms": {

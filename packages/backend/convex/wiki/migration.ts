@@ -1,3 +1,4 @@
+import type { WikiArticle } from "@workspace/shared/wiki";
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
@@ -21,15 +22,16 @@ async function importResource(
 	const slug = (await resourceBySlug(ctx, desiredSlug)) ? old.slug : desiredSlug;
 	await saveRevision(ctx, resource._id, old, 0, "Opprinnelig ressurs");
 	const policy = /rett?ningslinjer/i.test(resource.title);
+	const category = policy ? "members" : "tools";
 	const bedpress = legacySlug(resource) === "holde-bedpress";
 	const replacement =
 		bedpress && slug === "holde-bedpress"
 			? HANDBOOK_ARTICLES.find((article) => article.slug === slug)
 			: undefined;
-	const article = replacement ?? {
+	const article: WikiArticle = replacement ?? {
 		...old,
 		slug,
-		category: bedpress ? ("events" as const) : policy ? ("members" as const) : ("tools" as const),
+		category: bedpress ? "events" : category,
 	};
 	await ctx.db.patch(resource._id, {
 		...indexedArticle(article),
@@ -65,9 +67,15 @@ async function importBatch(ctx: MutationCtx, userId: Id<"users">) {
 		.query("resources")
 		.withIndex("by_slug", (q) => q.eq("slug", undefined))
 		.take(10);
-	for (const resource of legacy) {
-		await importResource(ctx, resource, userId, legacySlug(resource));
-	}
+	const reserved = new Set<string>();
+	await Promise.all(
+		legacy.map((resource) => {
+			let slug = legacySlug(resource);
+			if (reserved.has(slug)) slug = `ressurs-${resource._id}`;
+			reserved.add(slug);
+			return importResource(ctx, resource, userId, slug);
+		}),
+	);
 	if (legacy.length === 10) {
 		await ctx.scheduler.runAfter(0, internal.wiki.migration.continueImport, { userId });
 		return;
