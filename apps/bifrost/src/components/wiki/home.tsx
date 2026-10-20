@@ -33,6 +33,7 @@ export function WikiHome() {
 		{ query, category },
 		{ initialNumItems: 15 },
 	);
+	const sectionTitle = category ? WIKI_CATEGORIES[category].title : "Sist oppdatert";
 	if (params.get("saved") === "1") return <WikiBookmarks />;
 	return (
 		<>
@@ -186,28 +187,24 @@ export function WikiHome() {
 					)}
 					<section aria-live="polite" aria-busy={status === "LoadingFirstPage"}>
 						<h2 className="mb-4 font-semibold text-xl">
-							{query
-								? `Søkeresultater for «${query}»`
-								: category
-									? WIKI_CATEGORIES[category].title
-									: "Sist oppdatert"}
+							{query ? `Søkeresultater for «${query}»` : sectionTitle}
 						</h2>
-						{status === "LoadingFirstPage" ? (
-							<WikiLoading />
-						) : results.length ? (
-							<div className="grid gap-3 xl:grid-cols-2">
-								{results.map((article) => (
-									<ArticleLink key={article._id} article={article} />
-								))}
-							</div>
-						) : (
-							<div className="rounded-lg border border-dashed p-8">
-								<h3 className="font-medium">Ingen artikler funnet</h3>
-								<p className="mt-2 text-muted-foreground text-sm">
-									Prøv et kortere ord, et annet søkeord eller en annen kategori.
-								</p>
-							</div>
-						)}
+						{status === "LoadingFirstPage" && <WikiLoading />}
+						{status !== "LoadingFirstPage" &&
+							(results.length ? (
+								<div className="grid gap-3 xl:grid-cols-2">
+									{results.map((article) => (
+										<ArticleLink key={article._id} article={article} />
+									))}
+								</div>
+							) : (
+								<div className="rounded-lg border border-dashed p-8">
+									<h3 className="font-medium">Ingen artikler funnet</h3>
+									<p className="mt-2 text-muted-foreground text-sm">
+										Prøv et kortere ord, et annet søkeord eller en annen kategori.
+									</p>
+								</div>
+							))}
 						{status !== "Exhausted" && status !== "LoadingFirstPage" && (
 							<Button
 								className="mt-4"

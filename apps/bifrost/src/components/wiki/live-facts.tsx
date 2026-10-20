@@ -7,11 +7,7 @@ import Link from "next/link";
 export function LiveFacts({ fact }: Readonly<{ fact: WikiFact }>) {
 	const data = useQuery(api.wiki.facts.get, { key: fact });
 	if (!data)
-		return (
-			<p role="status" className="py-4 text-muted-foreground text-sm">
-				Henter oppdaterte fakta…
-			</p>
-		);
+		return <output className="py-4 text-muted-foreground text-sm">Henter oppdaterte fakta…</output>;
 	return (
 		<section className="rounded-lg border bg-muted/30 p-5">
 			<p className="mb-2 flex items-center gap-2 font-medium text-muted-foreground text-xs">

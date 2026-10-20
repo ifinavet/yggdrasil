@@ -152,21 +152,23 @@ export const get = query({
 					.query("feedbackForms")
 					.filter((q) => q.neq(q.field("isHidden"), true))
 					.take(21);
-				const rows: FactPanel["rows"] = [];
-				for (const form of forms.slice(0, 20)) {
-					const version = await getLatestPublishedVersion(ctx, form._id);
-					if (!version) continue;
-					const fields = await ctx.db
-						.query("formFields")
-						.withIndex("by_formVersionId_and_order", (q) => q.eq("formVersionId", version._id))
-						.take(40);
-					rows.push({
-						label: `${form.name}${form.isDefault ? " (standard)" : ""}`,
-						value: fields
-							.map((field) => `${field.label}${field.required ? " (påkrevd)" : ""}`)
-							.join("; "),
-					});
-				}
+				const published = await Promise.all(
+					forms.slice(0, 20).map(async (form) => {
+						const version = await getLatestPublishedVersion(ctx, form._id);
+						if (!version) return null;
+						const fields = await ctx.db
+							.query("formFields")
+							.withIndex("by_formVersionId_and_order", (q) => q.eq("formVersionId", version._id))
+							.take(40);
+						return {
+							label: `${form.name}${form.isDefault ? " (standard)" : ""}`,
+							value: fields
+								.map((field) => `${field.label}${field.required ? " (påkrevd)" : ""}`)
+								.join("; "),
+						};
+					}),
+				);
+				const rows = published.filter((row) => row !== null);
 				return {
 					title,
 					rows,

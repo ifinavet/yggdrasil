@@ -16,9 +16,9 @@ export function errorMessage(error: unknown) {
 export const wikiDate = (value: number) => formatOsloDate(value, "d. MMM yyyy");
 export function WikiLoading() {
 	return (
-		<div role="status" className="flex items-center gap-3 py-12 text-muted-foreground">
+		<output className="flex items-center gap-3 py-12 text-muted-foreground">
 			<Spinner /> Laster håndboken
-		</div>
+		</output>
 	);
 }
 export function WikiHeader() {

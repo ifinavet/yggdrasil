@@ -317,7 +317,9 @@ export function WikiEditor({
 							checked={field.state.value}
 							onChange={(event) => field.handleChange(event.target.checked)}
 						/>
-						Dette er en policy som skal gjennomgås årlig. Andre artikler gjennomgås hvert kvartal.
+						<span>
+							Dette er en policy som skal gjennomgås årlig. Andre artikler gjennomgås hvert kvartal.
+						</span>
 					</label>
 				)}
 			</form.Field>

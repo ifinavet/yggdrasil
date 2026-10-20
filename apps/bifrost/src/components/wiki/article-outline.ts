@@ -8,7 +8,7 @@ export function articleOutline(content: string) {
 			headings.push({
 				id,
 				title: title
-					.replace(/<[^>]*>/g, "")
+					.replace(/<[^<>]*>/g, "")
 					.replaceAll("&amp;", "&")
 					.replaceAll("&nbsp;", " "),
 				level: Number(level),

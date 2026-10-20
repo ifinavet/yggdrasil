@@ -17,6 +17,7 @@ type Guide = {
 	owner?: string;
 };
 function guide(input: Guide): WikiArticle {
+	const steps = input.steps.map((step) => `<li><p>${step}</p></li>`).join("");
 	return {
 		slug: input.slug,
 		title: input.title,
@@ -27,7 +28,7 @@ function guide(input: Guide): WikiArticle {
 		facts: input.facts ?? [],
 		owner: input.owner ?? "Styret",
 		policy: false,
-		content: `<h2>Før du begynner</h2><p>${input.before}</p><h2>Slik gjør du det</h2><ol>${input.steps.map((step) => `<li><p>${step}</p></li>`).join("")}</ol><h2>Dette skjer automatisk</h2><p>${input.automatic}</p><h2>Sjekk at du er ferdig</h2><p>${input.verify}</p><h2>Hvis noe går galt</h2><p>${input.recovery}</p>`,
+		content: `<h2>Før du begynner</h2><p>${input.before}</p><h2>Slik gjør du det</h2><ol>${steps}</ol><h2>Dette skjer automatisk</h2><p>${input.automatic}</p><h2>Sjekk at du er ferdig</h2><p>${input.verify}</p><h2>Hvis noe går galt</h2><p>${input.recovery}</p>`,
 	};
 }
 const wiki = (slug: string, label: string) => `<a href="/wiki/${slug}">${label}</a>`;

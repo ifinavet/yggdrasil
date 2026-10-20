@@ -102,7 +102,7 @@
 		"paths": ["packages/backend/convex/jobListingOrders"]
 	},
 	"slack-varsler": {
-		"hash": "98221a082b648ce624c3c3a529957729a92743fc18a1c5f9bd3ade183202a6ca",
+		"hash": "826deaf7c6c64c2c738cd82a11551141294fc5d2586f995350ffa10af6ff0855",
 		"paths": ["packages/backend/convex/events/slack", "packages/shared/time/event-lifecycle.ts"]
 	},
 	"praktisk-arrangement": {
@@ -110,11 +110,11 @@
 		"paths": ["packages/backend/convex/events/food.ts", "packages/shared/events/checklist.ts"]
 	},
 	"medlemskontoer": {
-		"hash": "91e1a0505b51d3f9c8409021192d6b1055067c49d189b0a5a126326aa2a767d6",
+		"hash": "691a77f251ce840b17ccd9ac8cb48401bd2d3936bbc2b91fb6c9164f72eaceb4",
 		"paths": ["packages/backend/convex/iam", "packages/backend/convex/users/organization"]
 	},
 	"kontosynk": {
-		"hash": "0ff499db1bb3c8509261d99f49972f7c3cdb0e3a48e6fb859f06128547e63190",
+		"hash": "0aa5fde581dd40979b482730dd747a82cb2341aab83d44b248bdabf94d0ef600",
 		"paths": ["packages/backend/convex/iam"]
 	},
 	"opptaksperiode": {
@@ -141,7 +141,7 @@
 		]
 	},
 	"holde-bedpress": {
-		"hash": "70c6ad43f97e2a04c16c437a158345180b63c991031ea3677326946f9aa7d080",
+		"hash": "3ad94467e3f1dd309e0b88389da9fb76e0e02afd10d84d1345cc1d4fdcb53d72",
 		"paths": [
 			"packages/shared/events/checklist.ts",
 			"packages/backend/convex/events/reminders",

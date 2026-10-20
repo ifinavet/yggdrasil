@@ -36,43 +36,43 @@ export function WikiReview() {
 			</div>
 			<section>
 				<h2 className="mb-4 font-semibold text-xl">Innmeldte feil</h2>
-				{reports.status === "LoadingFirstPage" ? (
-					<WikiLoading />
-				) : reports.results.length === 0 ? (
-					<p className="text-muted-foreground text-sm">Ingen åpne feilmeldinger.</p>
-				) : (
-					<div className="space-y-3">
-						{reports.results.map((report) => (
-							<article key={report._id} className="rounded-lg border p-5">
-								<Link href={`/wiki/${report.slug}`} className="font-semibold underline">
-									{report.title}
-								</Link>
-								<p className="mt-1 text-muted-foreground text-xs">
-									Versjon {report.revision}, meldt {wikiDate(report._creationTime)}
-								</p>
-								<p className="my-4 whitespace-pre-wrap text-sm">{report.message}</p>
-								<Button
-									variant="outline"
-									size="sm"
-									disabled={busy}
-									onClick={async () => {
-										setBusy(true);
-										try {
-											await resolve({ reportId: report._id });
-											toast.success("Feilmeldingen er lukket");
-										} catch (error) {
-											toast.error(errorMessage(error));
-										} finally {
-											setBusy(false);
-										}
-									}}
-								>
-									Marker som løst
-								</Button>
-							</article>
-						))}
-					</div>
-				)}
+				{reports.status === "LoadingFirstPage" && <WikiLoading />}
+				{reports.status !== "LoadingFirstPage" &&
+					(reports.results.length === 0 ? (
+						<p className="text-muted-foreground text-sm">Ingen åpne feilmeldinger.</p>
+					) : (
+						<div className="space-y-3">
+							{reports.results.map((report) => (
+								<article key={report._id} className="rounded-lg border p-5">
+									<Link href={`/wiki/${report.slug}`} className="font-semibold underline">
+										{report.title}
+									</Link>
+									<p className="mt-1 text-muted-foreground text-xs">
+										Versjon {report.revision}, meldt {wikiDate(report._creationTime)}
+									</p>
+									<p className="my-4 whitespace-pre-wrap text-sm">{report.message}</p>
+									<Button
+										variant="outline"
+										size="sm"
+										disabled={busy}
+										onClick={async () => {
+											setBusy(true);
+											try {
+												await resolve({ reportId: report._id });
+												toast.success("Feilmeldingen er lukket");
+											} catch (error) {
+												toast.error(errorMessage(error));
+											} finally {
+												setBusy(false);
+											}
+										}}
+									>
+										Marker som løst
+									</Button>
+								</article>
+							))}
+						</div>
+					))}
 				{reports.status === "CanLoadMore" && (
 					<Button className="mt-3" variant="outline" onClick={() => reports.loadMore(10)}>
 						Vis flere feilmeldinger

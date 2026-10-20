@@ -73,7 +73,7 @@ export function sourceInfo(slug: string) {
 export function reviewDueAt(now: number, policy: boolean) {
 	return now + (policy ? WIKI_POLICY_REVIEW_DAYS : WIKI_REVIEW_DAYS) * DAY_MS;
 }
-export async function resourceBySlug(ctx: QueryCtx, slug: string) {
+export function resourceBySlug(ctx: QueryCtx, slug: string) {
 	return ctx.db
 		.query("resources")
 		.withIndex("by_slug", (q) => q.eq("slug", slug))

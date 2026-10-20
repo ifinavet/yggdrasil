@@ -21,6 +21,15 @@ export const browse = query({
 	handler: async (ctx, args) => {
 		await requireRole(ctx, internalRoles);
 		const term = args.query.trim().slice(0, 200);
+		const listing = args.category
+			? ctx.db
+					.query("resources")
+					.withIndex("by_wikiStatus_and_category_and_updatedAt", (q) =>
+						q.eq("wikiStatus", "published").eq("category", args.category),
+					)
+			: ctx.db
+					.query("resources")
+					.withIndex("by_wikiStatus_and_updatedAt", (q) => q.eq("wikiStatus", "published"));
 		const rows = term
 			? await ctx.db
 					.query("resources")
@@ -29,18 +38,7 @@ export const browse = query({
 						return args.category ? search.eq("category", args.category) : search;
 					})
 					.paginate(args.paginationOpts)
-			: await (args.category
-					? ctx.db
-							.query("resources")
-							.withIndex("by_wikiStatus_and_category_and_updatedAt", (q) =>
-								q.eq("wikiStatus", "published").eq("category", args.category),
-							)
-					: ctx.db
-							.query("resources")
-							.withIndex("by_wikiStatus_and_updatedAt", (q) => q.eq("wikiStatus", "published"))
-				)
-					.order("desc")
-					.paginate(args.paginationOpts);
+			: await listing.order("desc").paginate(args.paginationOpts);
 		return {
 			...rows,
 			page: rows.page.map((row) => ({

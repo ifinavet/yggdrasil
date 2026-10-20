@@ -18,18 +18,22 @@ async function files(path) {
 		)
 	).flat();
 }
-const versions = {};
-for (const [slug, paths] of Object.entries(sources)) {
-	const hash = createHash("sha256");
-	const watched = [...new Set((await Promise.all(paths.map(files))).flat())].sort();
-	for (const path of watched)
-		hash
-			.update(path)
-			.update("\0")
-			.update(await readFile(join(root, path)))
-			.update("\0");
-	versions[slug] = { hash: hash.digest("hex"), paths };
-}
+const versions = Object.fromEntries(
+	await Promise.all(
+		Object.entries(sources).map(async ([slug, paths]) => {
+			const hash = createHash("sha256");
+			const watched = [...new Set((await Promise.all(paths.map(files))).flat())].sort((a, b) =>
+				a.localeCompare(b, "en"),
+			);
+			const contents = await Promise.all(
+				watched.map(async (path) => ({ path, contents: await readFile(join(root, path)) })),
+			);
+			for (const item of contents)
+				hash.update(item.path).update("\0").update(item.contents).update("\0");
+			return [slug, { hash: hash.digest("hex"), paths }];
+		}),
+	),
+);
 const content = `${JSON.stringify(versions, null, "\t")}\n`;
 if (process.argv.includes("--check")) {
 	if (JSON.stringify(versions) !== JSON.stringify(JSON.parse(await readFile(output, "utf8")))) {
