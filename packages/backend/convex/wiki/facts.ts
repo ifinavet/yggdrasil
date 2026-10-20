@@ -19,8 +19,7 @@ import { POINT_LIFETIME_MS } from "../points/lifetime";
 type FactPanel = {
 	title: string;
 	rows: { label: string; value: string }[];
-	note: string;
-	href: string;
+	note?: string;
 };
 export const get = query({
 	args: { key: oneOf(WIKI_FACT_KEYS) },
@@ -38,11 +37,9 @@ export const get = query({
 						{ label: "Grense for påmeldingssperre", value: `${POINT_LOCKOUT_THRESHOLD} prikker` },
 						{
 							label: "Levetid",
-							value: `${POINT_LIFETIME_MS / DAY_MS} dager. Utløpte prikker ryddes periodisk.`,
+							value: `${POINT_LIFETIME_MS / DAY_MS} dager`,
 						},
 					],
-					note: "En korrigert oppmøtestatus erstatter prikkene som hører til påmeldingen. Andre prikker blir beholdt.",
-					href: "/students",
 				};
 			case "feedback":
 				return {
@@ -53,17 +50,15 @@ export const get = query({
 							value: `Dagen etter arrangementet kl. ${FEEDBACK_OPEN_TIME} i Oslo`,
 						},
 						{
-							label: "Purringer",
-							value: `${REMINDER_DAYS.join(", ")} dager etter åpning til inviterte som fortsatt ikke har svart`,
+							label: "Planlagte purringer",
+							value: `${REMINDER_DAYS.join(", ")} dager etter åpning`,
 						},
-						{ label: "Stenging", value: `${FEEDBACK_CLOSE_DAYS} dager etter åpning` },
+						{ label: "Planlagt stenging", value: `${FEEDBACK_CLOSE_DAYS} dager etter åpning` },
 						{
 							label: "Lagringstid",
 							value: `${FEEDBACK_RETENTION_MONTHS} kalendermåneder etter stenging`,
 						},
 					],
-					note: "Automatikk må være aktivert og skjema publisert. Deltakere må være registrert som oppmøtt eller møtt sent. Arrangører er unntatt. Sen registrering av oppmøte kan gi en senere invitasjon.",
-					href: "/events",
 				};
 			case "checklist":
 				return {
@@ -72,8 +67,6 @@ export const get = query({
 						label: phase.label,
 						value: phase.steps.map((step) => step.label).join(". "),
 					})),
-					note: "Bruk sjekklisten på det enkelte arrangementet for å lagre fremdriften.",
-					href: "/events",
 				};
 			case "slack":
 				return {
@@ -92,7 +85,7 @@ export const get = query({
 							value: `${EVENT_PLANNING.promotionDaysBefore} dag før påmeldingen åpner`,
 						},
 						{
-							label: "Uferdig sjekkliste",
+							label: "Ubekreftet rom, mat eller medhjelpere",
 							value: `${EVENT_PLANNING.checklistDaysBefore} dager før arrangementet`,
 						},
 						{
@@ -106,15 +99,14 @@ export const get = query({
 						{ label: "Utlegg", value: `${EVENT_PLANNING.expensesDaysAfter} dag etter` },
 						{
 							label: "Usendt rapport",
-							value: `Varsel ${EVENT_PLANNING.unsentReportAlertDaysAfter} dager etter arrangementet dersom den fortsatt ikke er sendt`,
+							value: `${EVENT_PLANNING.unsentReportAlertDaysAfter} dager etter at rapporten er klar`,
 						},
 						{
 							label: "Tidligste arkivering",
-							value: `${EVENT_PLANNING.archiveDaysAfter} dager etter siste arrangement i kanalen, når oppfølging og rapportlevering er fullført`,
+							value: `${EVENT_PLANNING.archiveDaysAfter} dager etter at både siste arrangement og etterarbeidet er fullført`,
 						},
 					],
-					note: "Varslene avhenger av arrangementets status og hva som allerede er gjort. Tidspunktene er i Oslo. Botten følger også opp manglende oppmøte og rapportgodkjenning.",
-					href: "/events",
+					note: "Botten følger også opp manglende oppmøte og rapportgodkjenning.",
 				};
 			case "products": {
 				const products = await ctx.db
@@ -127,7 +119,7 @@ export const get = query({
 						label: product.name,
 						value: [
 							product.unitPriceOre === undefined
-								? "Se produktet for pris"
+								? "Pris ikke satt"
 								: formatNokFromOre(product.unitPriceOre),
 							`mva ${product.vatRate} %`,
 							product.maxStudents ? `inntil ${product.maxStudents} studenter` : "",
@@ -142,9 +134,8 @@ export const get = query({
 							.join(", "),
 					})),
 					note: products.length
-						? "Priser ekskl. mva fra aktive produkter. Viser inntil 100 produkter; åpne Produkter for hele katalogen. Kontroller avtalt pakke og pris på det konkrete salget. Historiske salg beholder prisøyeblikket sitt."
-						: "Ingen aktive produkter er tilgjengelige. Åpne Produkter for å kontrollere katalogen.",
-					href: "/products",
+						? `Priser ekskl. mva.${products.length > 100 ? " Viser de første 100 produktene." : ""}`
+						: "Ingen aktive produkter.",
 				};
 			}
 			case "forms": {
@@ -173,9 +164,8 @@ export const get = query({
 					title,
 					rows,
 					note: rows.length
-						? "Viser publiserte spørsmål, aldri innsendte svar. Åpne Skjemaer for hele oversikten. Et arrangement kan være knyttet til en tidligere publisert versjon."
-						: "Ingen publiserte skjemaer er tilgjengelige. Opprett og publiser et skjema før automatisk utsending.",
-					href: "/feedback-forms",
+						? "Siste publiserte versjon. Arrangementer kan bruke en eldre versjon."
+						: "Ingen publiserte skjemaer i utvalget.",
 				};
 			}
 		}

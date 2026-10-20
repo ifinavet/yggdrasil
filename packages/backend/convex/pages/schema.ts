@@ -18,11 +18,10 @@ export const pagesSchema = {
 	})
 		.index("by_favoriteAndUpdated", ["favorite", "updatedAt"])
 		.index("by_slug", ["slug"])
-		.index("by_wikiStatus_and_updatedAt", ["wikiStatus", "updatedAt"])
-		.index("by_wikiStatus_and_category_and_updatedAt", ["wikiStatus", "category", "updatedAt"])
+		.index("by_published_and_title", ["published", "title"])
 		.searchIndex("search_wiki", {
 			searchField: "searchText",
-			filterFields: ["wikiStatus", "category"],
+			filterFields: ["published"],
 		}),
 
 	externalPages: defineTable({

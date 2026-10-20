@@ -1,87 +1,142 @@
 import { expect, test } from "@playwright/test";
-
-const suffix = Date.now().toString(36);
-const title = `Håndboktest ${suffix}`;
-const slug = `handboktest-${suffix}`;
-const alias = `finnrutinen${suffix}`;
+import { api } from "@workspace/backend/convex/api";
+import { ConvexHttpClient } from "convex/browser";
+import { convexUrl } from "./production-helpers";
 
 test.describe("Bifrost handbook", () => {
-	test("searches verified routines and remains usable on mobile in both themes", async ({
+	test.beforeAll(async () => {
+		const convex = new ConvexHttpClient(convexUrl);
+		await convex.mutation(api.auth.local.signIn, {});
+	});
+	test("searches articles with one shared search field and a keyboard shortcut", async ({
 		page,
 	}) => {
+		const errors: string[] = [];
+		page.on("pageerror", (error) => errors.push(error.message));
+		page.on("console", (message) => {
+			if (message.type() === "error") errors.push(message.text());
+		});
 		await page.goto("/wiki");
-		await expect(page.getByRole("heading", { name: "Hva skal du gjøre?" })).toBeVisible();
-		const initialize = page.getByRole("button", { name: "Klargjør håndboken" });
-		if (await initialize.isVisible()) await initialize.click();
-		await page.getByRole("searchbox", { name: "Søk i håndboken" }).fill("prikksystem");
-		await page.getByRole("link", { name: /Registrere oppmøte og rette prikker/ }).click();
+		const search = page.getByRole("searchbox", { name: "Søk i håndboken" });
+		await expect(search).toHaveCount(1);
+		await expect(
+			page.getByRole("link", { name: "Registrere oppmøte og rette prikker", exact: true }),
+		).toBeVisible();
+		await expect(search.locator("..").locator("svg")).toHaveCount(0);
+		await expect(search.locator("..").locator("kbd").last()).toHaveText("K");
+		await page.screenshot({ path: test.info().outputPath("overview.png"), fullPage: true });
+		const modifier =
+			(await search.locator("..").locator("kbd").first().textContent()) === "⌘"
+				? "Meta"
+				: "Control";
+		await page.keyboard.press(`${modifier}+k`);
+		await expect(search).toBeFocused();
+		await search.fill("prikksystem");
+		await page
+			.getByRole("link", { name: "Registrere oppmøte og rette prikker", exact: true })
+			.click();
 		await expect(
 			page.getByRole("heading", { name: "Registrere oppmøte og rette prikker", exact: true }),
 		).toBeVisible();
-		await expect(page.getByText("180 dager. Utløpte prikker ryddes periodisk.")).toBeVisible();
-		await page.goto("/wiki");
+		await expect(page.getByText("180 dager", { exact: true })).toBeVisible();
+		await expect(
+			page.getByRole("button", { name: /bokmerke|kontrollert|Historikk|Meld fra/ }),
+		).toHaveCount(0);
+		await expect(page.getByRole("navigation", { name: "På denne siden" })).toHaveCount(0);
+		await page.screenshot({ path: test.info().outputPath("article.png"), fullPage: true });
 		await page.setViewportSize({ width: 390, height: 844 });
-		await expect(page.getByRole("searchbox")).toBeInViewport();
 		expect(
 			await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth),
 		).toBe(0);
+		await page.screenshot({ path: test.info().outputPath("article-narrow.png"), fullPage: true });
+		expect(errors).toEqual([]);
+	});
+	test("groups articles and supports mobile light and dark themes", async ({ page }) => {
+		await page.goto("/wiki");
+		await expect(page.getByRole("combobox", { name: "Kategori" })).toHaveCount(0);
+		const search = page.getByRole("searchbox", { name: "Søk i håndboken" });
+		const finance = page.getByRole("region", { name: "Økonomi og produkter" });
+		await expect(
+			finance.getByRole("link", {
+				name: "Fakturere i Fiken",
+				exact: true,
+			}),
+		).toBeVisible();
+		await search.fill("zzzzingenartikkel");
+		await expect(page.getByText("Ingen artikler funnet.", { exact: true })).toBeVisible();
+		await expect(page.getByRole("region", { name: "Økonomi og produkter" })).toHaveCount(0);
+		await search.clear();
+		await expect(
+			page.getByRole("link", { name: "Registrere oppmøte og rette prikker", exact: true }),
+		).toBeVisible();
+		await page.setViewportSize({ width: 390, height: 844 });
+		await expect(page.getByRole("searchbox")).toBeInViewport();
+		const headingBox = await finance.getByRole("heading").boundingBox();
+		const linkBox = await finance.getByRole("link", { name: "Fakturere i Fiken" }).boundingBox();
+		expect(linkBox?.x).toBe(headingBox?.x);
+		expect(linkBox?.y).toBeGreaterThanOrEqual((headingBox?.y ?? 0) + (headingBox?.height ?? 0));
+		expect(
+			await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth),
+		).toBe(0);
+		await page.screenshot({ path: test.info().outputPath("overview-narrow.png"), fullPage: true });
 		await page.getByRole("button", { name: "Velg fargetema" }).click();
 		await page.getByRole("menuitemradio", { name: "Dark", exact: true }).click();
 		await expect(page.locator("html")).toHaveClass(/dark/);
+		await expect(page.getByRole("menuitemradio", { name: "Dark", exact: true })).toHaveCount(0);
+		await page.screenshot({
+			path: test.info().outputPath("overview-dark.png"),
+			fullPage: true,
+		});
 		expect(
 			await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth),
 		).toBe(0);
-		await page.screenshot({ path: "test-results/handbook-mobile-dark.png", fullPage: true });
 	});
-
-	test("publishes, bookmarks, reports and retires an article with history", async ({ page }) => {
-		await page.goto("/wiki/new");
-		await page.getByLabel("Tittel", { exact: true }).fill(title);
-		await page.getByLabel("Adresse etter /wiki/").fill(slug);
-		await page.getByLabel("Søkeord og alternative navn").fill(alias);
+	test("keeps text readable and controls usable at narrow widths and 200% text size", async ({
+		page,
+		isMobile,
+	}) => {
+		await page.goto("/wiki");
+		const search = page.getByRole("searchbox", { name: "Søk i håndboken" });
+		const article = page.getByRole("link", { name: "Navets systemer", exact: true });
+		await expect(article).toBeVisible();
+		await expect(search).toHaveCSS("font-size", "16px");
+		for (const control of [search.locator(".."), article]) {
+			expect((await control.boundingBox())?.height).toBeGreaterThanOrEqual(44);
+		}
+		if (isMobile) {
+			await search.tap();
+			await expect(search).toBeFocused();
+		}
+		for (const width of [320, 768, 844, 1280]) {
+			await page.setViewportSize({ width, height: width === 844 ? 390 : 900 });
+			expect(
+				await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth),
+			).toBeLessThanOrEqual(1);
+		}
+		await page.evaluate(() => {
+			document.documentElement.style.fontSize = "200%";
+		});
+		await page.setViewportSize({ width: 768, height: 900 });
+		await expect(search).toHaveCSS("font-size", "32px");
+		expect(
+			await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth),
+		).toBeLessThanOrEqual(1);
 		await page
-			.getByLabel("Kort sammendrag")
-			.fill("En egen testartikkel for å kontrollere publiseringsflyten.");
-		await page
-			.locator('[contenteditable="true"]')
-			.fill("Dette er en test av arbeidsflyten, med innhold som skal bevares i historikken.");
-		await page.getByRole("button", { name: "Lagre utkast", exact: true }).click();
-		await expect(page).toHaveURL(new RegExp(`/wiki/${slug}/edit$`));
-		await page.getByRole("button", { name: "Forhåndsvis", exact: true }).click();
-		await expect(
-			page.getByText("Dette er en test av arbeidsflyten", { exact: false }).first(),
-		).toBeVisible();
-		await page.getByRole("button", { name: "Publiser", exact: true }).click();
-		await expect(page).toHaveURL(new RegExp(`/wiki/${slug}$`));
-		await page.getByRole("button", { name: "Lagre bokmerke" }).click();
-		await expect(page.getByRole("button", { name: "Lagret", exact: true })).toHaveAttribute(
-			"aria-pressed",
-			"true",
-		);
-		await page.getByRole("link", { name: "Bokmerker", exact: true }).click();
-		await expect(page.getByRole("heading", { name: title, exact: true })).toBeVisible();
-		await page.goto(`/wiki?q=${alias}`);
-		await page.getByRole("link", { name: new RegExp(title) }).click();
-		await page.getByRole("button", { name: "Meld fra om feil" }).click();
-		await page.getByLabel("Hva bør rettes?").fill("Testmeldingen kan lukkes etter verifisering.");
-		await page.getByRole("button", { name: "Send feilmelding" }).click();
-		await expect(page.getByRole("dialog")).toHaveCount(0);
-		await page.getByRole("button", { name: "Historikk", exact: true }).click();
-		await expect(page.getByText(/Versjon 1: Utkast lagret/)).toBeVisible();
-		await expect(page.getByText(/Versjon 2: Publisert/)).toBeVisible();
-		await page.keyboard.press("Escape");
-		await page.getByRole("button", { name: "Ta artikkelen ut av bruk", exact: true }).click();
-		await page
-			.getByLabel("Hvorfor tas artikkelen ut av bruk?")
-			.fill("Testen er ferdig. Dette var en lokal testartikkel.");
-		await page.getByRole("button", { name: "Ta ut av bruk", exact: true }).click();
-		await expect(
-			page.getByRole("heading", { name: "Denne artikkelen er tatt ut av bruk" }),
-		).toBeVisible();
-		await page.goto(`/wiki?q=${alias}`);
-		await expect(page.getByRole("heading", { name: "Ingen artikler funnet" })).toBeVisible();
-		await page.goto("/wiki/review");
-		const report = page.locator("article").filter({ hasText: title }).first();
-		await report.getByRole("button", { name: "Marker som løst" }).click();
+			.getByRole("link", { name: "Registrere oppmøte og rette prikker", exact: true })
+			.click();
+		await expect(page.locator("article .prose")).toBeVisible();
+		await expect(page.locator("article .prose")).toHaveCSS("font-size", "32px");
+		// Edited guides may contain long URLs; they must wrap without widening the page.
+		await page.locator("article .prose").evaluate((element) => {
+			const paragraph = document.createElement("p");
+			paragraph.textContent = `https://example.invalid/${"lang-lenke".repeat(20)}`;
+			element.append(paragraph);
+		});
+		for (const width of [320, 768, 844, 1280]) {
+			await page.setViewportSize({ width, height: width === 844 ? 390 : 900 });
+			expect(
+				await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth),
+			).toBeLessThanOrEqual(1);
+		}
 	});
 });

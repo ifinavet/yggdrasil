@@ -11,11 +11,13 @@ export function SearchField({
 	onChange,
 	placeholder,
 	className,
+	showIcon = true,
 }: Readonly<{
 	value: string;
 	onChange: (value: string) => void;
 	placeholder?: string;
 	className?: string;
+	showIcon?: boolean;
 }>) {
 	const inputRef = useRef<HTMLInputElement>(null);
 	const [shortcutKeys, setShortcutKeys] = useState(() => searchShortcutKeys("mac"));
@@ -25,7 +27,7 @@ export function SearchField({
 	}, []);
 
 	useHotkeys(
-		"mod+k",
+		shortcutKeys[0] === "⌘" ? "meta+k" : "ctrl+k",
 		() => {
 			const input = inputRef.current;
 			if (document.activeElement === input) input?.blur();
@@ -41,7 +43,7 @@ export function SearchField({
 				className,
 			)}
 		>
-			<Search className="size-4 flex-none" />
+			{showIcon && <Search className="size-4 flex-none" />}
 			<input
 				ref={inputRef}
 				type="search"

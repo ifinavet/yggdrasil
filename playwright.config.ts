@@ -92,6 +92,18 @@ export default defineConfig({
 				},
 			},
 		},
+		...(
+			[
+				["handbook-firefox", "Desktop Firefox"],
+				["handbook-webkit", "Desktop Safari"],
+				["handbook-android", "Pixel 7"],
+				["handbook-ios", "iPhone 13"],
+			] as const
+		).map(([name, device]) => ({
+			name,
+			testMatch: "board-handbook.spec.ts",
+			use: { ...devices[device], baseURL: bifrostURL },
+		})),
 	],
 	use: { trace: "retain-on-failure" },
 	webServer: {

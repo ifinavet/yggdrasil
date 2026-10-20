@@ -1,6 +1,7 @@
-import { ConvexError, v } from "convex/values";
+import { v } from "convex/values";
 import { mutation } from "../_generated/server";
 import { editorRoles, requireRole } from "../auth/accessRights";
+import { articleSnapshot, indexedArticle, saveRevision, validateArticle } from "../wiki/helpers";
 
 /**
  * Creates a new resource page.
@@ -27,9 +28,9 @@ export const createResource = mutation({
 		published: v.boolean(),
 	},
 	handler: async (ctx, args) => {
-		await requireRole(ctx, editorRoles);
+		const user = await requireRole(ctx, editorRoles);
 
-		await ctx.db.insert("resources", {
+		const id = await ctx.db.insert("resources", {
 			title: args.title,
 			excerpt: args.excerpt,
 			content: args.content,
@@ -40,6 +41,17 @@ export const createResource = mutation({
 			published: args.published,
 			updatedAt: Date.now(),
 		});
+		const article = validateArticle({
+			title: args.title,
+			excerpt: args.excerpt,
+			content: args.content,
+			slug: `ressurs-${id}`,
+			category: "tools",
+			aliases: [],
+			facts: [],
+		});
+		await ctx.db.patch(id, { ...indexedArticle(article), editVersion: 1 });
+		await saveRevision(ctx, id, article, 1, "Opprettet", user._id);
 	},
 });
 
@@ -68,11 +80,25 @@ export const updateResource = mutation({
 		published: v.boolean(),
 	},
 	handler: async (ctx, args) => {
-		await requireRole(ctx, editorRoles);
-
+		const user = await requireRole(ctx, editorRoles);
 		const resource = await ctx.db.get(args.id);
-		if (resource?.slug) throw new ConvexError("Bruk håndbokens redigering for denne artikkelen.");
-
+		if (resource?.slug) {
+			const article = validateArticle({
+				...articleSnapshot(resource),
+				title: args.title,
+				excerpt: args.excerpt,
+				content: args.content,
+			});
+			const version = (resource.editVersion ?? 0) + 1;
+			await ctx.db.patch(args.id, {
+				...indexedArticle(article),
+				published: args.published,
+				editVersion: version,
+				updatedAt: Date.now(),
+			});
+			await saveRevision(ctx, args.id, article, version, "Oppdatert", user._id);
+			return;
+		}
 		await ctx.db.patch(args.id, {
 			title: args.title,
 			excerpt: args.excerpt,

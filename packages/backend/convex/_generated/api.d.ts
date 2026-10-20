@@ -200,7 +200,6 @@ import type * as wiki_content from "../wiki/content.js";
 import type * as wiki_facts from "../wiki/facts.js";
 import type * as wiki_helpers from "../wiki/helpers.js";
 import type * as wiki_migration from "../wiki/migration.js";
-import type * as wiki_mutations from "../wiki/mutations.js";
 import type * as wiki_queries from "../wiki/queries.js";
 
 import type {
@@ -402,7 +401,6 @@ declare const fullApi: ApiFromModules<{
   "wiki/facts": typeof wiki_facts;
   "wiki/helpers": typeof wiki_helpers;
   "wiki/migration": typeof wiki_migration;
-  "wiki/mutations": typeof wiki_mutations;
   "wiki/queries": typeof wiki_queries;
 }>;
 
