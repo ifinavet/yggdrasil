@@ -11,7 +11,7 @@
 		"paths": ["packages/backend/convex/semesterPlanning", "apps/bifrost/src/app/semesterplan"]
 	},
 	"planlegge-med-bedriften": {
-		"hash": "682245946a343b1599708d81b7401570e5945eaf669fbcebbbde02a5893627fe",
+		"hash": "acbc980c1b6d610555bff296d10bbb1e5dc0c06a3c06b5351a952dbd5e5bcdf3",
 		"paths": ["packages/backend/convex/events/planning", "packages/shared/events/planning.ts"]
 	},
 	"annonsebestilling": {
@@ -23,7 +23,7 @@
 		"paths": ["packages/backend/convex/companies/history.ts"]
 	},
 	"publisere-arrangement": {
-		"hash": "52f2a607b4c25af2084d2e3fe5f1621405a52219d1b414bea23c5e09e3743080",
+		"hash": "bda297c19910c80a7a655bdcab5e541e6088a9deba1cd090e1c68bb463cac99d",
 		"paths": ["packages/backend/convex/events/mutations.ts", "apps/bifrost/src/components/events"]
 	},
 	"sjekkliste": {
@@ -54,11 +54,11 @@
 		"paths": ["packages/backend/convex/users/students", "packages/backend/convex/events/helper.ts"]
 	},
 	"prognoser": {
-		"hash": "463b681dc8dc5821a5e473e7f80da87b758fc9e9b0acf5d01d7ede230b936e59",
+		"hash": "6cda31b11802db92df2a676a70634da5f61afb588d5ac2002a1874f28d09ed51",
 		"paths": ["packages/backend/convex/engagement", "packages/shared/engagement"]
 	},
 	"sammenligne-innsikt": {
-		"hash": "6e50092a525fe44dc4aa9c459fe65858a7627847bfde30662f71d5b51b859b25",
+		"hash": "f6f95d591c86e5c47127d14bfbb3ee5a01394661a4222c4d74482a05ff8a2016",
 		"paths": ["packages/backend/convex/engagement", "packages/backend/convex/events/food.ts"]
 	},
 	"leaderboard": {
