@@ -1,3 +1,5 @@
+import { FOOD_ITEM_LABELS } from "@workspace/shared/events/food";
+import { nameKey } from "@workspace/shared/utils";
 import type { Id } from "../../packages/backend/convex/_generated/dataModel";
 import { LocalDatabase, localAdmin } from "./seed-database";
 
@@ -13,6 +15,13 @@ async function hostingCompany(db: LocalDatabase) {
 	const seeded = (await db.all("companies"))[0];
 	if (!seeded) throw new Error("Seed could not create a hosting company");
 	return seeded._id;
+}
+
+async function pizza(db: LocalDatabase) {
+	const existing = await db.find("foodItems", "slug", "pizza");
+	if (existing) return existing._id;
+	const name = FOOD_ITEM_LABELS.pizza;
+	return await db.insert("foodItems", { name, nameKey: nameKey(name), slug: "pizza" });
 }
 
 async function clearEvents(db: LocalDatabase, me: string) {
@@ -53,7 +62,12 @@ type EventPlan = {
 	registrations?: number;
 };
 
-async function insertEvent(db: LocalDatabase, company: Id<"companies">, plan: EventPlan) {
+async function insertEvent(
+	db: LocalDatabase,
+	company: Id<"companies">,
+	foodItem: Id<"foodItems">,
+	plan: EventPlan,
+) {
 	const now = Date.now();
 	return await db.insert("events", {
 		title: plan.title,
@@ -63,6 +77,7 @@ async function insertEvent(db: LocalDatabase, company: Id<"companies">, plan: Ev
 		registrationOpens: now + (plan.startsInDays - 10) * DAY,
 		participationLimit: 40,
 		location: "Store auditorium, IFI",
+		foodItem,
 		language: "Norsk",
 		ageRestriction: "Ingen",
 		externalEvent: plan.external ?? false,
@@ -103,6 +118,7 @@ export async function seedEvents(url: string, scenario: EventsSeedScenario) {
 	await clearEvents(db, me);
 	if (scenario === "empty") return null;
 	const company = await hostingCompany(db);
+	const food = await pizza(db);
 	const plans = scenarios[scenario];
 	const most = Math.max(0, ...plans.map((plan) => plan.registrations ?? 0));
 	const students = await Promise.all(
@@ -110,7 +126,7 @@ export async function seedEvents(url: string, scenario: EventsSeedScenario) {
 	);
 	const entries = await Promise.all(
 		plans.map(async (plan) => {
-			const eventId = await insertEvent(db, company, plan);
+			const eventId = await insertEvent(db, company, food, plan);
 			const rows: Promise<unknown>[] = [];
 			if (plan.mine)
 				rows.push(db.insert("eventOrganizers", { eventId, userId: me, role: "hovedansvarlig" }));
