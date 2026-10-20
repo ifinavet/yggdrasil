@@ -17,6 +17,7 @@ import {
 	insertSemester,
 	insertStudent,
 	insertUser,
+	present,
 	setup,
 } from "../../../test/fixtures";
 import { api, internal } from "../../_generated/api";
@@ -138,10 +139,10 @@ describe("company feedback reports", () => {
 		expect(page?.report.registrants).toEqual(dashboard);
 		expect(JSON.stringify(page)).not.toContain(f.user._id);
 		expect(JSON.stringify(page)).not.toContain("second@example.test");
-		expect(feedbackReportCsv(page!.report, page!.answers)).toContain(
+		expect(feedbackReportCsv(present(page).report, present(page).answers)).toContain(
 			`Grad: Bachelor;${program}, år 2;2`,
 		);
-		expect(feedbackReportCsv(page!.report, page!.answers)).toContain(
+		expect(feedbackReportCsv(present(page).report, present(page).answers)).toContain(
 			`Grad: ${DEGREES.aarsstudium};Design, år 1;1`,
 		);
 		expect(await f.t.run((ctx) => ctx.db.get(reportId))).toMatchObject({ registrants: dashboard });

@@ -121,10 +121,10 @@ export const get = query({
 			})),
 			slackErrors: [
 				...(channel?.lastError ? [channel.lastError] : []),
-				...slackFailures.map((n) => n.lastError!),
+				...slackFailures.flatMap((n) => (n.lastError ? [n.lastError] : [])),
 				...systemFailures
 					.filter((n) => n.clientMsgId.startsWith(`planning:${eventId}:`))
-					.map((n) => n.lastError!),
+					.flatMap((n) => (n.lastError ? [n.lastError] : [])),
 			],
 			local: isLocalDevelopment(),
 		};
@@ -181,7 +181,8 @@ export const send = mutation({
 			throw new ConvexError(
 				"Mottaker, arrangør eller arrangement er endret. Se over invitasjonen på nytt.",
 			);
-		if (preview.blockers.length) throw new ConvexError(preview.blockers[0]!);
+		const [blocker] = preview.blockers;
+		if (blocker) throw new ConvexError(blocker);
 		await parseAnswers(ctx, planning, event, planning.answers);
 		if (planning.status === "invited")
 			throw new ConvexError(

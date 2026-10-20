@@ -67,7 +67,7 @@ export default function EventReminderEmail({
 					{info ? (
 						<div
 							className="text-[14px] leading-[24px]"
-							// biome-ignore lint/security/noDangerouslySetInnerHtml: renderReminderInfo escapes raw HTML and unsafe links
+							// renderReminderInfo escapes raw HTML and unsafe links
 							dangerouslySetInnerHTML={{ __html: renderReminderInfo(info) }}
 						/>
 					) : null}
