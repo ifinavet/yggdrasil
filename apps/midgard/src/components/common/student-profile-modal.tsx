@@ -106,9 +106,9 @@ function StudyForm({
 				e.preventDefault();
 				form.handleSubmit();
 			}}
-			className="space-y-6"
+			className="min-w-0 space-y-6"
 		>
-			<FieldSet>
+			<FieldSet className="min-w-0">
 				<StudyFields form={form} fields={STUDY_FIELDS} />
 			</FieldSet>
 			<DialogFooter>
