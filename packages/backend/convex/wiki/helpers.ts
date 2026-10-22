@@ -25,6 +25,24 @@ export function plainText(html: string) {
 		.replace(/\s+/g, " ")
 		.trim();
 }
+const SYNONYMS = [["epost", "mail", "email"]];
+export function joinHyphenatedWords(text: string) {
+	return text.replace(/(\p{L})-(?=\p{L})/gu, "$1");
+}
+function wordParts(text: string) {
+	const words = new Set(text.toLocaleLowerCase("nb").match(/[\p{L}\p{N}]+/gu));
+	const parts = new Set<string>();
+	for (const word of words) {
+		for (let start = 1; word.length - start >= 4; start++) parts.add(word.slice(start));
+	}
+	const terms = [...words, ...parts];
+	for (const group of SYNONYMS) {
+		if (group.some((synonym) => terms.some((term) => term.startsWith(synonym)))) {
+			for (const synonym of group) parts.add(synonym);
+		}
+	}
+	return [...parts].join(" ");
+}
 export function validateArticle(value: WikiArticle) {
 	const result = wikiArticleSchema.safeParse(value);
 	if (!result.success)
@@ -33,10 +51,13 @@ export function validateArticle(value: WikiArticle) {
 }
 export function indexedArticle(article: WikiArticle) {
 	const text = plainText(article.content);
+	const searchable = joinHyphenatedWords(
+		[article.title, article.excerpt, ...article.aliases, text].join("\n"),
+	);
 	return {
 		...article,
 		plainText: text,
-		searchText: [article.title, article.excerpt, ...article.aliases, text].join("\n"),
+		searchText: `${searchable}\n${wordParts(searchable)}`,
 	};
 }
 export function articleSnapshot(resource: Doc<"resources">): WikiArticle {

@@ -67,6 +67,29 @@ describe("handbook search", () => {
 		});
 		expect(new Set([...first.page, ...second.page].map((row) => row._id)).size).toBe(4);
 	});
+	it("finds hyphenated spellings, synonyms and parts of compound words", async () => {
+		const { admin, t } = await setupArticle();
+		await t.run((ctx) =>
+			ctx.db.insert("resources", {
+				...indexedArticle({
+					...article,
+					slug: "test-epost",
+					title: "Sende påminnelser",
+					content: "<p>Systemet sender påminnelseseposten dagen før.</p>",
+					aliases: [],
+				}),
+				published: true,
+				updatedAt: 1,
+			}),
+		);
+		for (const query of ["mail", "e-post", "epost", "post", "Påminnelses-epost"]) {
+			expect(
+				(await admin.query(api.wiki.queries.browse, { query, paginationOpts })).page.map(
+					(row) => row.slug,
+				),
+			).toEqual(["test-epost"]);
+		}
+	});
 	it("excludes unpublished and unimported resources", async () => {
 		const { admin, t, id } = await setupArticle();
 		await t.run(async (ctx) => {

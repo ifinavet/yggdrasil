@@ -2,7 +2,7 @@ import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { query } from "../_generated/server";
 import { internalRoles, requireRole } from "../auth/accessRights";
-import { articleSummary, resourceBySlug } from "./helpers";
+import { articleSummary, joinHyphenatedWords, resourceBySlug } from "./helpers";
 
 export const browse = query({
 	args: {
@@ -11,7 +11,7 @@ export const browse = query({
 	},
 	handler: async (ctx, args) => {
 		await requireRole(ctx, internalRoles);
-		const term = args.query.trim().slice(0, 200);
+		const term = joinHyphenatedWords(args.query.trim().slice(0, 200));
 		const rows = term
 			? await ctx.db
 					.query("resources")
