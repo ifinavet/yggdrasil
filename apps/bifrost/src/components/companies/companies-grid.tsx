@@ -1,6 +1,7 @@
 "use client";
 
 import { api } from "@workspace/backend/convex/api";
+import { formatOrgNumber } from "@workspace/shared/semester/orgNumber";
 import { Button } from "@workspace/ui/components//button";
 import {
 	Card,
@@ -75,7 +76,7 @@ export default function CompaniesGrid() {
 								)}
 							</CardContent>
 							<CardFooter>
-								<p>Org. nr: {company.orgNumber ?? "N/A"}</p>
+								<p>Org. nr: {formatOrgNumber(String(company.orgNumber))}</p>
 							</CardFooter>
 						</Card>
 					</Link>
