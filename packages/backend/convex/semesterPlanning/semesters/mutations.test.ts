@@ -4,6 +4,7 @@ import {
 	activityFor,
 	applicationById,
 	asUser,
+	DAY_IN_MS,
 	grantRole,
 	insertApplication,
 	insertEvent,
@@ -750,6 +751,183 @@ describe("rolloverSemesters (rollover cron)", () => {
 				.collect(),
 		);
 		expect(open).toHaveLength(0);
+	});
+});
+
+describe("deleteSemester", () => {
+	/** A draft semester with one of each thing that belongs to it, and one other semester. */
+	async function semesterWithEverything(t: TestBackend, companyId: Id<"companies">) {
+		const semesterId = await insertSemester(t, { status: "draft" });
+		const otherId = await insertSemester(t, { year: 2027, term: "autumn", status: "draft" });
+		const applicationId = await insertApplication(t, semesterId, { status: "offer_sent" });
+		const otherApplicationId = await insertApplication(t, otherId);
+		const eventId = await insertEvent(t, companyId);
+		const editor = await insertUser(t, "ola@ifinavet.no");
+		await t.run(async (ctx) => {
+			await ctx.db.insert("semesterDates", { semesterId, date: "2027-02-09" });
+			await ctx.db.insert("semesterDates", { semesterId: otherId, date: "2027-09-07" });
+			await ctx.db.insert("semesterPlanEvents", { semesterId, eventId, addedBy: editor._id });
+			await ctx.db.insert("companyApplicationOffers", {
+				applicationId,
+				date: "2027-02-09",
+				eventType: "standard_presentation",
+				maxStudents: 40,
+				linkToken: "offer-token",
+				sentAt: Date.now(),
+				sentBy: editor._id,
+				status: "pending",
+			});
+			await ctx.db.insert("companyApplicationActivity", {
+				applicationId,
+				type: "submitted",
+				actor: "company",
+			});
+			const pendingId = await ctx.db.insert("pendingCompanyApplications", {
+				semesterId,
+				submissionId: "pending-abcdef",
+				form: {
+					orgNumber: "924773189",
+					contact: { name: "Ingrid Solberg", email: "ingrid@fjordkode.no", phone: "+4741234567" },
+					eventType: "standard_presentation",
+					minStudents: 25,
+					maxStudents: 40,
+					description: "Presentasjon og kodeoppgave.",
+					availableDates: ["2027-02-09"],
+					venue: "campus",
+					wantsToUseEscape: "unsure",
+					foodAndDrinks: false,
+					foodPurchasedBy: "undecided",
+					billing: { email: "faktura@fjordkode.no" },
+					targetDegrees: [],
+					targetStudyPrograms: [],
+					consent: true,
+				},
+				registry: {
+					name: "FJORDKODE AS",
+					organizationForm: { code: "AS", description: "Aksjeselskap" },
+					fetchedAt: Date.now(),
+				},
+				submittedAt: Date.now(),
+			});
+			await ctx.db.insert("companyApplicationConfirmations", {
+				pendingId,
+				tokenHash: "hash",
+				expiresAt: Date.now() + DAY_IN_MS,
+			});
+		});
+		return { semesterId, otherId, applicationId, otherApplicationId, eventId };
+	}
+
+	async function rowsFor(t: TestBackend) {
+		return t.run(async (ctx) => ({
+			semesters: (await ctx.db.query("semesters").take(10)).length,
+			dates: (await ctx.db.query("semesterDates").take(10)).length,
+			planEvents: (await ctx.db.query("semesterPlanEvents").take(10)).length,
+			applications: (await ctx.db.query("companyApplications").take(10)).length,
+			offers: (await ctx.db.query("companyApplicationOffers").take(10)).length,
+			activity: (await ctx.db.query("companyApplicationActivity").take(10)).length,
+			pending: (await ctx.db.query("pendingCompanyApplications").take(10)).length,
+			links: (await ctx.db.query("companyApplicationConfirmations").take(10)).length,
+			events: (await ctx.db.query("events").take(10)).length,
+		}));
+	}
+
+	it("deletes the semester and everything in it, and leaves other semesters and events alone", async () => {
+		const { t, companyId } = await setup();
+		const { semesterId } = await semesterWithEverything(t, companyId);
+
+		const result = await (await editorOf(t)).mutation(mutations.deleteSemester, { semesterId });
+
+		expect(result).toEqual({ applications: 1 });
+		expect(await rowsFor(t)).toEqual({
+			semesters: 1,
+			dates: 1,
+			planEvents: 0,
+			applications: 1,
+			offers: 0,
+			activity: 0,
+			pending: 0,
+			links: 0,
+			events: 1,
+		});
+	});
+
+	it("refuses an open semester", async () => {
+		const { t } = await setup();
+		const semesterId = await insertSemester(t, { status: "open" });
+
+		const message = await refusalMessageFrom(
+			(await editorOf(t)).mutation(mutations.deleteSemester, { semesterId }),
+		);
+
+		expect(message).toBe("Steng semesteret for søknader før du sletter det.");
+		expect(await semesterById(t, semesterId)).toBeTruthy();
+	});
+
+	it("refuses while an event made from the plan exists, and deletes once it is gone", async () => {
+		const { t, companyId } = await setup();
+		const { semesterId, applicationId, eventId } = await semesterWithEverything(t, companyId);
+		await t.run((ctx) => ctx.db.patch(applicationId, { eventId }));
+		const editor = await editorOf(t);
+
+		const message = await refusalMessageFrom(
+			editor.mutation(mutations.deleteSemester, { semesterId }),
+		);
+		expect(message).toBe("FJORDKODE AS har et arrangement fra planen. Slett arrangementet først.");
+		expect((await rowsFor(t)).applications).toBe(2);
+
+		await t.run((ctx) => ctx.db.delete(eventId));
+		await editor.mutation(mutations.deleteSemester, { semesterId });
+		expect((await rowsFor(t)).semesters).toBe(1);
+	});
+
+	it("refuses a semester with an invoiced application", async () => {
+		const { t, companyId } = await setup();
+		const { semesterId, applicationId } = await semesterWithEverything(t, companyId);
+		await t.run((ctx) =>
+			ctx.db.insert("invoices", {
+				source: { kind: "companyApplication", applicationId },
+				sourceKey: `companyApplication:${applicationId}`,
+				serviceAt: Date.now(),
+				status: "pending",
+			}),
+		);
+
+		const message = await refusalMessageFrom(
+			(await editorOf(t)).mutation(mutations.deleteSemester, { semesterId }),
+		);
+
+		expect(message).toBe("FJORDKODE AS er fakturert, så semesteret kan ikke slettes.");
+		expect((await rowsFor(t)).semesters).toBe(2);
+	});
+
+	it("refuses a semester too big to delete in one go, and keeps all of it", async () => {
+		const { t } = await setup();
+		const semesterId = await insertSemester(t, { status: "draft" });
+		await t.run(async (ctx) => {
+			for (let day = 0; day <= 2000; day++) {
+				await ctx.db.insert("semesterDates", { semesterId, date: `2027-01-${day}` });
+			}
+		});
+
+		const message = await refusalMessageFrom(
+			(await editorOf(t)).mutation(mutations.deleteSemester, { semesterId }),
+		);
+
+		expect(message).toBe("Semesteret er for stort til å slettes herfra.");
+		expect(await datesOf(t, semesterId)).toHaveLength(2001);
+	});
+
+	it("refuses members who are not editors", async () => {
+		const { t } = await setup();
+		const semesterId = await insertSemester(t, { status: "draft" });
+		const member = await insertUser(t, "per@ifinavet.no");
+		await grantRole(t, member._id, "internal");
+
+		await expect(
+			asUser(t, member).mutation(mutations.deleteSemester, { semesterId }),
+		).rejects.toThrow();
+		expect(await semesterById(t, semesterId)).toBeTruthy();
 	});
 });
 

@@ -163,7 +163,8 @@ export const savePending = internalMutation({
 	},
 });
 
-async function deleteConfirmations(
+/** Deletes the emailed links for a pending application, unless `keepUnexpired` and one still works. */
+export async function deleteConfirmations(
 	ctx: MutationCtx,
 	pendingId: Id<"pendingCompanyApplications">,
 	keepUnexpired = false,
