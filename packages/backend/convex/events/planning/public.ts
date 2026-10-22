@@ -115,7 +115,8 @@ export const submit = mutation({
 			baseEvent: eventSnapshot(event),
 			eventDate: osloToday(event.eventStart),
 		});
-		const submission = (await ctx.db.get(id))!;
+		const submission = await ctx.db.get(id);
+		if (!submission) throw new Error("The submission was not saved.");
 		await sendConfirmation(ctx, planning, submission, event);
 		return { email: planning.contactEmail };
 	},

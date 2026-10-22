@@ -146,7 +146,9 @@ export async function ensurePlanning(ctx: MutationCtx, event: Doc<"events">) {
 		generation: 0,
 		status: event.completedChecklistSteps?.includes("company-contact") ? "manual" : "preparing",
 	});
-	return (await ctx.db.get(id))!;
+	const planning = await ctx.db.get(id);
+	if (!planning) throw new Error("The planning row was not saved.");
+	return planning;
 }
 export async function capacityLimit(
 	ctx: QueryCtx,

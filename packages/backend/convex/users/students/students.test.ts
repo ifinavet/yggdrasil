@@ -20,7 +20,6 @@ import { api, internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 
 const NOW = Date.UTC(2026, 8, 27);
-const LAST_UPDATE = Date.UTC(2026, 7, 1);
 const HEALTH = "Digitalisering i helsesektoren";
 const PROGRAMMING = "Informatikk: programmering og systemarkitektur";
 

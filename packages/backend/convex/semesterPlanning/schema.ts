@@ -138,6 +138,10 @@ export const semesterPlanningSchema = {
 		status: applicationPeriodStatus,
 		infoText: v.optional(v.string()),
 		termsUrl: v.optional(v.string()),
+		// The email with the confirm link, written by an editor. Empty means the default text in
+		// packages/shared/semester/confirm-email.ts.
+		confirmEmailSubject: v.optional(v.string()),
+		confirmEmailText: v.optional(v.string()),
 		// When events made from the plan start, as "HH:mm". Set by a human in Bifrost.
 		defaultEventStartTime: v.optional(v.string()),
 		planFinalizedAt: v.optional(v.number()),
@@ -195,6 +199,8 @@ export const semesterPlanningSchema = {
 		helperUserIds: v.optional(v.array(v.id("users"))),
 		internalNotes: v.optional(v.string()),
 		eventId: v.optional(v.id("events")),
+		// When the application was added as a row to the Google Sheet copy, if it has been.
+		sheetRowAddedAt: v.optional(v.number()),
 	})
 		.index("by_semesterId_and_status", ["semesterId", "status"])
 		.index("by_semesterId_and_assignedDate", ["semesterId", "assignedDate"])
@@ -244,7 +250,9 @@ export const semesterPlanningSchema = {
 		registry: brregSnapshotAtSubmission,
 		submittedAt: v.number(),
 		applicationId: v.optional(v.id("companyApplications")),
-	}).index("by_submissionId", ["submissionId"]),
+	})
+		.index("by_submissionId", ["submissionId"])
+		.index("by_semesterId", ["semesterId"]),
 
 	/** One emailed link per send; a resend adds a row. Only the token's hash is stored. */
 	companyApplicationConfirmations: defineTable({

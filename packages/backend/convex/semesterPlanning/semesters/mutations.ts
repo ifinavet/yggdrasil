@@ -1,3 +1,4 @@
+import { CONFIRM_EMAIL_LIMITS } from "@workspace/shared/semester/confirm-email";
 import { semesterName } from "@workspace/shared/semester/labels";
 import { MAX_SEMESTER_YEAR, MIN_SEMESTER_YEAR } from "@workspace/shared/semester/limits";
 import {
@@ -14,7 +15,9 @@ import { ConvexError, v } from "convex/values";
 import type { Doc, Id } from "../../_generated/dataModel";
 import { internalMutation, type MutationCtx, mutation } from "../../_generated/server";
 import { editorRoles, requireRole } from "../../auth/accessRights";
+import { invoiceFor } from "../../invoicing/schedule";
 import { findActiveApplicationOnDate, requireEditorActor } from "../applicationLifecycle";
+import { deleteConfirmations } from "../applications/confirmation";
 import { findCompanyProfile, listApplicationsInSemester } from "../applications/helper";
 import { ensureDraftEvent, proposeNavetTeams } from "../events";
 import { isUnsettledApplicationStatus } from "../rules";
@@ -137,6 +140,8 @@ export const setRange = mutation({
  * @param {string} [infoText] - Information shown to companies.
  * @param {string} [termsUrl] - Link to the standard terms.
  * @param {string} [defaultEventStartTime] - When events made from the plan start, as HH:mm.
+ * @param {string} [confirmEmailSubject] - The subject of the email with the confirm link.
+ * @param {string} [confirmEmailText] - Its text, with {bedrift} for the company's name.
  *
  * @throws - An error if the caller is not an editor, a value is invalid, or the semester is closed.
  * @returns {null} - Returns null when the settings are saved.
@@ -149,11 +154,22 @@ export const updateSettings = mutation({
 		infoText: v.optional(v.string()),
 		termsUrl: v.optional(v.string()),
 		defaultEventStartTime: v.optional(v.string()),
+		confirmEmailSubject: v.optional(v.string()),
+		confirmEmailText: v.optional(v.string()),
 	},
 	returns: v.null(),
 	handler: async (
 		ctx,
-		{ semesterId, applicationDeadline, hardDeadline, infoText, termsUrl, defaultEventStartTime },
+		{
+			semesterId,
+			applicationDeadline,
+			hardDeadline,
+			infoText,
+			termsUrl,
+			defaultEventStartTime,
+			confirmEmailSubject,
+			confirmEmailText,
+		},
 	) => {
 		await requireRole(ctx, editorRoles);
 
@@ -167,6 +183,12 @@ export const updateSettings = mutation({
 		if (defaultEventStartTime && !isClockTime(defaultEventStartTime)) {
 			throw new ConvexError("Starttiden må være et gyldig klokkeslett (TT:MM).");
 		}
+		if (confirmEmailSubject && confirmEmailSubject.trim().length > CONFIRM_EMAIL_LIMITS.subject) {
+			throw new ConvexError(`Emnet kan ha høyst ${CONFIRM_EMAIL_LIMITS.subject} tegn.`);
+		}
+		if (confirmEmailText && confirmEmailText.trim().length > CONFIRM_EMAIL_LIMITS.text) {
+			throw new ConvexError(`Teksten kan ha høyst ${CONFIRM_EMAIL_LIMITS.text} tegn.`);
+		}
 
 		const text = (value: string | undefined) => (value === "" ? undefined : value);
 		await ctx.db.patch(semesterId, {
@@ -176,6 +198,12 @@ export const updateSettings = mutation({
 			...(termsUrl !== undefined ? { termsUrl: text(termsUrl) } : {}),
 			...(defaultEventStartTime !== undefined
 				? { defaultEventStartTime: text(defaultEventStartTime) }
+				: {}),
+			...(confirmEmailSubject !== undefined
+				? { confirmEmailSubject: text(confirmEmailSubject.trim()) }
+				: {}),
+			...(confirmEmailText !== undefined
+				? { confirmEmailText: text(confirmEmailText.trim()) }
 				: {}),
 		});
 
@@ -342,6 +370,117 @@ export const unfinalizePlan = mutation({
 
 		await ctx.db.patch(semesterId, { planFinalizedAt: undefined, planFinalizedBy: undefined });
 		return null;
+	},
+});
+
+// A semester holds a few hundred applications at most; a bigger one is refused rather than half
+// deleted.
+const DELETE_LIMIT = 2000;
+
+async function takeAll<T>(rows: { take: (n: number) => Promise<T[]> }): Promise<T[]> {
+	const found = await rows.take(DELETE_LIMIT + 1);
+	if (found.length > DELETE_LIMIT) {
+		throw new ConvexError("Semesteret er for stort til å slettes herfra.");
+	}
+	return found;
+}
+
+/**
+ * Deletes a semester and everything that belongs to it: its dates, the events put in its plan by
+ * hand (only the link, the events stay), its applications with their offers and history, and the
+ * applications still waiting for email confirmation with their links. It refuses an open semester,
+ * and a semester whose plan has made events or whose applications are invoiced, since those reach
+ * outside the semester and must be removed first.
+ *
+ * @param {Id<"semesters">} semesterId - The semester to delete.
+ *
+ * @throws - An error if the caller is not an editor, the semester is open, or it has events made
+ * from the plan or invoices.
+ * @returns {{ applications: number }} - How many applications were deleted with it.
+ */
+export const deleteSemester = mutation({
+	args: { semesterId: v.id("semesters") },
+	returns: v.object({ applications: v.number() }),
+	handler: async (ctx, { semesterId }) => {
+		await requireRole(ctx, editorRoles);
+		const semester = await requireSemester(ctx, semesterId);
+		if (semester.status === "open") {
+			throw new ConvexError("Steng semesteret for søknader før du sletter det.");
+		}
+
+		const applications = await takeAll(
+			ctx.db
+				.query("companyApplications")
+				.withIndex("by_semesterId_and_status", (q) => q.eq("semesterId", semesterId)),
+		);
+		const [events, invoices] = await Promise.all([
+			Promise.all(
+				applications.map((application) =>
+					application.eventId ? ctx.db.get(application.eventId) : null,
+				),
+			),
+			Promise.all(
+				applications.map((application) =>
+					invoiceFor(ctx, { kind: "companyApplication", applicationId: application._id }),
+				),
+			),
+		]);
+		const withEvent = applications.find((_, index) => events[index]);
+		if (withEvent) {
+			throw new ConvexError(
+				`${withEvent.registry.name} har et arrangement fra planen. Slett arrangementet først.`,
+			);
+		}
+		const invoiced = applications.find((_, index) => invoices[index]);
+		if (invoiced) {
+			throw new ConvexError(
+				`${invoiced.registry.name} er fakturert, så semesteret kan ikke slettes.`,
+			);
+		}
+
+		const owned = await Promise.all(
+			applications.map((application) =>
+				Promise.all([
+					takeAll(
+						ctx.db
+							.query("companyApplicationOffers")
+							.withIndex("by_applicationId", (q) => q.eq("applicationId", application._id)),
+					),
+					takeAll(
+						ctx.db
+							.query("companyApplicationActivity")
+							.withIndex("by_applicationId", (q) => q.eq("applicationId", application._id)),
+					),
+				]),
+			),
+		);
+		await Promise.all(owned.flat(2).map((row) => ctx.db.delete(row._id)));
+		await Promise.all(applications.map((application) => ctx.db.delete(application._id)));
+
+		const pending = await takeAll(
+			ctx.db
+				.query("pendingCompanyApplications")
+				.withIndex("by_semesterId", (q) => q.eq("semesterId", semesterId)),
+		);
+		await Promise.all(pending.map((row) => deleteConfirmations(ctx, row._id)));
+		await Promise.all(pending.map((row) => ctx.db.delete(row._id)));
+
+		const [dates, planEvents] = await Promise.all([
+			takeAll(
+				ctx.db
+					.query("semesterDates")
+					.withIndex("by_semesterId_and_date", (q) => q.eq("semesterId", semesterId)),
+			),
+			takeAll(
+				ctx.db
+					.query("semesterPlanEvents")
+					.withIndex("by_semesterId", (q) => q.eq("semesterId", semesterId)),
+			),
+		]);
+		await Promise.all([...dates, ...planEvents].map((row) => ctx.db.delete(row._id)));
+
+		await ctx.db.delete(semesterId);
+		return { applications: applications.length };
 	},
 });
 

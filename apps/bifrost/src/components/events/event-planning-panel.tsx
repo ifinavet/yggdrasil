@@ -64,7 +64,7 @@ export function EventPlanningPanel({ eventId }: Readonly<{ eventId: Id<"events">
 		if (next) search.set("planning", next);
 		else search.delete("planning");
 		const query = search.toString();
-		router.replace(query ? pathname + "?" + query : pathname, { scroll: false });
+		router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
 	}
 	if (!data) return null;
 	const ready = data.submission?.status === "ready";

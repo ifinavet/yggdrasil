@@ -3,6 +3,7 @@ import {
 	type ApplicationForm,
 	applicationFormSchema,
 } from "@workspace/shared/semester/application";
+import { confirmEmailFor } from "@workspace/shared/semester/confirm-email";
 import { EVENT_TITLE_PREFIX } from "@workspace/shared/semester/labels";
 import { formatOrderAlert } from "@workspace/shared/slack/alerts";
 import { SYSTEM_ALERTS_CHANNEL } from "@workspace/shared/slack/channels";
@@ -85,10 +86,25 @@ async function addConfirmation(
 	);
 }
 
-const emailTo = v.union(v.null(), v.object({ email: v.string(), companyName: v.string() }));
+const emailTo = v.union(
+	v.null(),
+	v.object({
+		email: v.string(),
+		companyName: v.string(),
+		subject: v.string(),
+		paragraphs: v.array(v.string()),
+	}),
+);
 
-function emailToOf(pending: Doc<"pendingCompanyApplications">) {
-	return { email: pending.form.contact.email, companyName: pending.registry.name };
+/** Who gets the confirm link, and the semester's text for it with the company's name filled in. */
+async function emailToOf(
+	ctx: MutationCtx,
+	semesterId: Id<"semesters">,
+	email: string,
+	companyName: string,
+) {
+	const semester = await ctx.db.get(semesterId);
+	return { email, companyName, ...confirmEmailFor(semester, companyName) };
 }
 
 /**
@@ -143,11 +159,12 @@ export const savePending = internalMutation({
 			pendingId = await ctx.db.insert("pendingCompanyApplications", { submissionId, ...answers });
 		}
 		await addConfirmation(ctx, pendingId, token);
-		return { email: parsed.contact.email, companyName: registry.name };
+		return await emailToOf(ctx, semesterId, parsed.contact.email, registry.name);
 	},
 });
 
-async function deleteConfirmations(
+/** Deletes the emailed links for a pending application, unless `keepUnexpired` and one still works. */
+export async function deleteConfirmations(
 	ctx: MutationCtx,
 	pendingId: Id<"pendingCompanyApplications">,
 	keepUnexpired = false,
@@ -175,7 +192,12 @@ export const addConfirmationToken = internalMutation({
 			.unique();
 		if (!pending || pending.applicationId) return null;
 		await addConfirmation(ctx, pending._id, token);
-		return emailToOf(pending);
+		return await emailToOf(
+			ctx,
+			pending.semesterId,
+			pending.form.contact.email,
+			pending.registry.name,
+		);
 	},
 });
 
@@ -275,7 +297,10 @@ export const confirm = mutation({
 	},
 });
 
-/** Saves a confirmed application, records it in the history and alerts Navet in Slack. */
+/**
+ * Saves a confirmed application, records it in the history, alerts Navet in Slack and adds it to
+ * the Google Sheet copy.
+ */
 async function receiveApplication(
 	ctx: MutationCtx,
 	pending: Doc<"pendingCompanyApplications">,
@@ -314,6 +339,9 @@ async function receiveApplication(
 			estimatedRevenueOre: product?.unitPriceOre,
 			url: `${BIFROST_URL}/semesterplan/soknad/${applicationId}`,
 		}),
+	});
+	await ctx.scheduler.runAfter(0, internal.semesterPlanning.applications.sheet.appendApplication, {
+		applicationId,
 	});
 	return applicationId;
 }

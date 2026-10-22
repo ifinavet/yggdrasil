@@ -108,12 +108,14 @@ export const markSent = mutation({
 		if (preview.serviceAt > Date.now()) {
 			throw new ConvexError("Leveransen må være fullført før fakturaen kan merkes som sendt.");
 		}
+		const now = Date.now();
 		await ctx.db.patch(invoiceId, {
 			status: "sent",
 			serviceAt: preview.serviceAt,
-			sentAt: Date.now(),
+			sentAt: now,
 			sentBy: user._id,
 			sentDetails: preview.details,
+			everSentAt: invoice.everSentAt ?? now,
 		});
 		return null;
 	},

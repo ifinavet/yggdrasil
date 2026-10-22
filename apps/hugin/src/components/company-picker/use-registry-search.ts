@@ -26,7 +26,7 @@ export function useRegistrySearch(query: string): { search: SearchState; retry: 
 	const [attempt, setAttempt] = useState(0);
 	const latest = useRef(0);
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: attempt re-runs the same search on «Prøv igjen».
+	// `attempt` re-runs the same search on «Prøv igjen».
 	useEffect(() => {
 		const request = ++latest.current;
 		if (query.length < MIN_QUERY_LENGTH) {

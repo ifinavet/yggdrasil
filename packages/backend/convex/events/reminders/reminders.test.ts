@@ -1,6 +1,3 @@
-import { pretty, render } from "@react-email/render";
-import { NAVET_LOGO_URL } from "@workspace/emails/constants";
-import EventReminderEmail from "@workspace/emails/event-reminder-email";
 import { REMINDER_INFO_MAX_LENGTH } from "@workspace/shared/events/reminder";
 import { describe, expect, it, vi } from "vitest";
 import {

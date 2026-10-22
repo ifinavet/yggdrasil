@@ -94,8 +94,15 @@ describe("manual invoice queue", () => {
 			(await f.admin.query(api.invoicing.admin.get, { invoiceId: f.invoice._id }))?.invoice.sentAt,
 		).toBeTypeOf("number");
 
+		const firstSent = (await f.t.run((ctx) => ctx.db.get(f.invoice._id)))?.everSentAt;
+		expect(firstSent).toBeTypeOf("number");
+
 		await f.admin.mutation(api.invoicing.admin.markUnsent, { invoiceId: f.invoice._id });
 		expect((await list(f.admin, "pending")).page).toMatchObject([{ amountOre: 750_000 }]);
+		// Opened again, it still remembers that it was sent, and a new send keeps the first time.
+		expect((await f.t.run((ctx) => ctx.db.get(f.invoice._id)))?.everSentAt).toBe(firstSent);
+		await f.admin.mutation(api.invoicing.admin.markSent, { invoiceId: f.invoice._id });
+		expect((await f.t.run((ctx) => ctx.db.get(f.invoice._id)))?.everSentAt).toBe(firstSent);
 	});
 
 	it("does not allow marking a future event or an incomplete invoice as sent", async () => {
