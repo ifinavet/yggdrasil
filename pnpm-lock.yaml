@@ -673,12 +673,12 @@ importers:
         specifier: 19.3.1
         version: 19.3.1(react@19.3.1)
       react-email:
-        specifier: ^6.11.1
-        version: 6.11.1(bufferutil@4.1.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(utf-8-validate@6.0.6)
+        specifier: ^6.11.3
+        version: 6.11.3(bufferutil@4.1.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(utf-8-validate@6.0.6)
     devDependencies:
       '@react-email/ui':
-        specifier: 6.11.1
-        version: 6.11.1(@opentelemetry/api@1.9.1)(@playwright/test@1.64.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.105.1)
+        specifier: 6.11.3
+        version: 6.11.3(@opentelemetry/api@1.9.1)(@playwright/test@1.64.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.105.1)
       '@types/react':
         specifier: 19.3.0
         version: 19.3.0
@@ -3006,8 +3006,15 @@ packages:
       react: 19.3.1
       react-dom: 19.3.1
 
-  '@react-email/ui@6.11.1':
-    resolution: {integrity: sha512-Toy+g7u+9USdFV3YKIUEK66c356+/LDumDnpz7eVdjgCC3TCDb/v6WcfTSoU+RSHRkpUQjl7B9MOtQ/dgj5yYQ==}
+  '@react-email/render@2.1.1':
+    resolution: {integrity: sha512-DvVx4k6XjJ9cYBigd37+7SK2E89emUH32Lcn6COsMickQchXdvXa+ZA04BF7475Kg+8ikaIpus+zQYUwVVyjBg==}
+    engines: {node: '>=20.0.0'}
+    peerDependencies:
+      react: 19.3.1
+      react-dom: 19.3.1
+
+  '@react-email/ui@6.11.3':
+    resolution: {integrity: sha512-dHwH/ZW2etldPaG2tISJ1uf1WHmEyjpP69IEuxXh8vvfmzG4Tb15c/Q6mB/HjQX2DrT6BeKB8TH/EmLLw9VjJA==}
 
   '@rolldown/binding-android-arm-eabi@1.2.13':
     resolution: {integrity: sha512-Vu/NICrgdRvUOeaJZIyB2FP63s6fO/4ud5l8dXmxDx9yDyn+mN0y+gsvsVviSli+T361Aqo0h46EuMoobrwawA==}
@@ -3854,9 +3861,6 @@ packages:
 
   '@types/node@20.19.43':
     resolution: {integrity: sha512-6oYBAi5ikg4Pl+kGsoYtawUMBT2zZMCvPNF7pVLnHZfd1zf38DRiWn/gT01RYCdUqkv7Fhr+C9ot4/tb+2sVvA==}
-
-  '@types/node@26.6.4':
-    resolution: {integrity: sha512-ldVPDCzj7fsaGZrLB0NuHuTvJcsNasysBAqMolr/cgxrLd1xbqxIr3XJiPnHHJUCxj5sNF1vnRj9aWnrVh5Jcg==}
 
   '@types/node@26.6.5':
     resolution: {integrity: sha512-uMzsv9stDdofIZBx4UGh4Z9ZgXnGC9seRDscilBcTHAeOFk67MZg/k9bWVfO+bk4qZmG+l52hRnLwUiH2LnJTg==}
@@ -5629,8 +5633,8 @@ packages:
     peerDependencies:
       react: 19.3.1
 
-  react-email@6.11.1:
-    resolution: {integrity: sha512-9ckYTQFQD059UdA1nOm0O9sA7UbqFfJ9TngbEKEbwkEoaMWwWyHx8stCvAdhBVysmRLKkpafQ5mjHz09afayiQ==}
+  react-email@6.11.3:
+    resolution: {integrity: sha512-BVwyLQjyfHJ9DNLKCcddO8qeURZFONJv3jF+gf490tVx+VAKy6Qbc3d2BESvYMe51Un7G59kzRd0W55+vXIfmg==}
     engines: {node: '>=20.19.0'}
     hasBin: true
     peerDependencies:
@@ -8249,7 +8253,16 @@ snapshots:
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
 
-  '@react-email/ui@6.11.1(@opentelemetry/api@1.9.1)(@playwright/test@1.64.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.105.1)':
+  '@react-email/render@2.1.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
+    dependencies:
+      entities: 4.5.0
+      html-to-text: 9.0.5
+      html5parser: 3.0.0
+      prettier: 3.9.8
+      react: 19.3.1
+      react-dom: 19.3.1(react@19.3.1)
+
+  '@react-email/ui@6.11.3(@opentelemetry/api@1.9.1)(@playwright/test@1.64.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.105.1)':
     dependencies:
       esbuild: 0.28.2
       jiti: 2.6.1
@@ -9028,7 +9041,7 @@ snapshots:
 
   '@types/cors@2.8.19':
     dependencies:
-      '@types/node': 26.6.4
+      '@types/node': 26.6.5
 
   '@types/d3-array@3.2.2': {}
 
@@ -9087,14 +9100,9 @@ snapshots:
     dependencies:
       undici-types: 6.21.0
 
-  '@types/node@26.6.4':
-    dependencies:
-      undici-types: 8.9.0
-
   '@types/node@26.6.5':
     dependencies:
       undici-types: 8.9.0
-    optional: true
 
   '@types/papaparse@5.5.2':
     dependencies:
@@ -9121,7 +9129,7 @@ snapshots:
 
   '@types/ws@8.18.2':
     dependencies:
-      '@types/node': 26.6.4
+      '@types/node': 26.6.5
 
   '@typescript/typescript-aix-ppc64@7.0.2':
     optional: true
@@ -9859,7 +9867,7 @@ snapshots:
   engine.io@6.6.11(bufferutil@4.1.0)(utf-8-validate@6.0.6):
     dependencies:
       '@types/cors': 2.8.19
-      '@types/node': 26.6.4
+      '@types/node': 26.6.5
       '@types/ws': 8.18.2
       accepts: 1.3.8
       cookie: 0.7.2
@@ -10893,11 +10901,11 @@ snapshots:
       react: 19.3.1
       scheduler: 0.28.0
 
-  react-email@6.11.1(bufferutil@4.1.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(utf-8-validate@6.0.6):
+  react-email@6.11.3(bufferutil@4.1.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(utf-8-validate@6.0.6):
     dependencies:
       '@babel/parser': 7.29.2
       '@babel/traverse': 7.29.0
-      '@react-email/render': 2.1.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@react-email/render': 2.1.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       chokidar: 5.0.0
       commander: 13.1.0
       conf: 15.1.0

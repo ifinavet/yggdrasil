@@ -48,6 +48,22 @@ jobs:
       - uses: ./.github/actions/setup-workspace
       - run: pnpm test
 
+  email-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: ./.github/actions/setup-workspace
+      - name: Preview server boots and renders a template
+        run: |
+          pnpm --filter @workspace/emails dev > email-preview.log 2>&1 &
+          for _ in $(seq 60); do
+            curl -sf http://localhost:3030/preview/admissions-offer-email -o /dev/null && exit 0
+            sleep 2
+          done
+          cat email-preview.log
+          exit 1
+
   deploy-workflow:
     runs-on: ubuntu-latest
     timeout-minutes: 5
