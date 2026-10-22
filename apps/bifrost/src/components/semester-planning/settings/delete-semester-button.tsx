@@ -3,18 +3,9 @@
 import { api } from "@workspace/backend/convex/api";
 import type { Doc } from "@workspace/backend/convex/dataModel";
 import { semesterName } from "@workspace/shared/semester/labels";
-import { convexErrorMessage } from "@workspace/shared/utils";
-import {
-	AlertDialog,
-	AlertDialogCancel,
-	AlertDialogContent,
-	AlertDialogDescription,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle,
-	AlertDialogTrigger,
-} from "@workspace/ui/components/alert-dialog";
 import { Button } from "@workspace/ui/components/button";
+import { ConfirmDialog } from "@workspace/ui/components/confirm-dialog";
+import { useAsyncAction } from "@workspace/ui/hooks/use-async-action";
 import { useMutation } from "convex/react";
 import { Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -33,25 +24,10 @@ function deletedMessage(name: string, applications: number): string {
  */
 export function DeleteSemesterButton({ semester }: Readonly<{ semester: Doc<"semesters"> }>) {
 	const deleteSemester = useMutation(api.semesterPlanning.semesters.mutations.deleteSemester);
+	const { error, run, clearError } = useAsyncAction();
 	const [open, setOpen] = useState(false);
-	const [deleting, setDeleting] = useState(false);
 	const name = semesterName(semester.term, semester.year);
 	const isOpen = semester.status === "open";
-
-	const remove = async () => {
-		setDeleting(true);
-		try {
-			const { applications } = await deleteSemester({ semesterId: semester._id });
-			setOpen(false);
-			toast.success(deletedMessage(name, applications));
-		} catch (error) {
-			toast.error("Kunne ikke slette semesteret", {
-				description: convexErrorMessage(error, "Prøv igjen."),
-			});
-		} finally {
-			setDeleting(false);
-		}
-	};
 
 	return (
 		<div className="flex items-center justify-between gap-3 rounded-lg border border-destructive/30 p-3">
@@ -63,31 +39,34 @@ export function DeleteSemesterButton({ semester }: Readonly<{ semester: Doc<"sem
 						: "Sletter datoer, søknader, tilbud og historikk"}
 				</p>
 			</div>
-			<AlertDialog open={open} onOpenChange={setOpen}>
-				<AlertDialogTrigger asChild>
-					<Button type="button" variant="outline" size="sm" disabled={isOpen}>
-						<Trash2 /> Slett
-					</Button>
-				</AlertDialogTrigger>
-				<AlertDialogContent>
-					<AlertDialogHeader>
-						<AlertDialogTitle>
-							Slette {semesterName(semester.term, semester.year, { inSentence: true })}?
-						</AlertDialogTitle>
-						<AlertDialogDescription>
-							Semesteret slettes for godt, med alle datoer, søknader, tilbud, historikk og søknader
-							som venter på bekreftelse på e-post. Arrangementer lagt inn i planen blir liggende.
-							Dette kan ikke angres.
-						</AlertDialogDescription>
-					</AlertDialogHeader>
-					<AlertDialogFooter>
-						<AlertDialogCancel disabled={deleting}>Avbryt</AlertDialogCancel>
-						<Button variant="destructive" disabled={deleting} onClick={remove}>
-							{deleting ? "Sletter …" : `Slett ${name}`}
-						</Button>
-					</AlertDialogFooter>
-				</AlertDialogContent>
-			</AlertDialog>
+			<Button
+				type="button"
+				variant="outline"
+				size="sm"
+				disabled={isOpen}
+				onClick={() => {
+					clearError();
+					setOpen(true);
+				}}
+			>
+				<Trash2 /> Slett
+			</Button>
+			<ConfirmDialog
+				open={open}
+				onOpenChange={setOpen}
+				title={`Slette ${semesterName(semester.term, semester.year, { inSentence: true })}?`}
+				description="Semesteret slettes for godt, med alle datoer, søknader, tilbud, historikk og søknader som venter på bekreftelse på e-post. Arrangementer lagt inn i planen blir liggende. Dette kan ikke angres."
+				confirmLabel={`Slett ${name}`}
+				destructive
+				error={error}
+				onConfirm={() =>
+					run(
+						() => deleteSemester({ semesterId: semester._id }),
+						({ applications }) => toast.success(deletedMessage(name, applications)),
+						"Kunne ikke slette semesteret.",
+					)
+				}
+			/>
 		</div>
 	);
 }

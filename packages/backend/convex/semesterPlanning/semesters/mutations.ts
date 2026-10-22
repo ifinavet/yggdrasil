@@ -15,7 +15,9 @@ import { ConvexError, v } from "convex/values";
 import type { Doc, Id } from "../../_generated/dataModel";
 import { internalMutation, type MutationCtx, mutation } from "../../_generated/server";
 import { editorRoles, requireRole } from "../../auth/accessRights";
+import { invoiceFor } from "../../invoicing/schedule";
 import { findActiveApplicationOnDate, requireEditorActor } from "../applicationLifecycle";
+import { deleteConfirmations } from "../applications/confirmation";
 import { findCompanyProfile, listApplicationsInSemester } from "../applications/helper";
 import { ensureDraftEvent, proposeNavetTeams } from "../events";
 import { isUnsettledApplicationStatus } from "../rules";
@@ -411,56 +413,57 @@ export const deleteSemester = mutation({
 				.query("companyApplications")
 				.withIndex("by_semesterId_and_status", (q) => q.eq("semesterId", semesterId)),
 		);
-		for (const application of applications) {
-			if (application.eventId && (await ctx.db.get(application.eventId))) {
-				throw new ConvexError(
-					`${application.registry.name} har et arrangement fra planen. Slett arrangementet først.`,
-				);
-			}
-			const invoice = await ctx.db
-				.query("invoices")
-				.withIndex("by_sourceKey", (q) =>
-					q.eq("sourceKey", `companyApplication:${application._id}`),
-				)
-				.first();
-			if (invoice) {
-				throw new ConvexError(
-					`${application.registry.name} er fakturert, så semesteret kan ikke slettes.`,
-				);
-			}
+		const [events, invoices] = await Promise.all([
+			Promise.all(
+				applications.map((application) =>
+					application.eventId ? ctx.db.get(application.eventId) : null,
+				),
+			),
+			Promise.all(
+				applications.map((application) =>
+					invoiceFor(ctx, { kind: "companyApplication", applicationId: application._id }),
+				),
+			),
+		]);
+		const withEvent = applications.find((_, index) => events[index]);
+		if (withEvent) {
+			throw new ConvexError(
+				`${withEvent.registry.name} har et arrangement fra planen. Slett arrangementet først.`,
+			);
+		}
+		const invoiced = applications.find((_, index) => invoices[index]);
+		if (invoiced) {
+			throw new ConvexError(
+				`${invoiced.registry.name} er fakturert, så semesteret kan ikke slettes.`,
+			);
 		}
 
-		for (const application of applications) {
-			const [offers, activity] = await Promise.all([
-				takeAll(
-					ctx.db
-						.query("companyApplicationOffers")
-						.withIndex("by_applicationId", (q) => q.eq("applicationId", application._id)),
-				),
-				takeAll(
-					ctx.db
-						.query("companyApplicationActivity")
-						.withIndex("by_applicationId", (q) => q.eq("applicationId", application._id)),
-				),
-			]);
-			for (const row of [...offers, ...activity]) await ctx.db.delete(row._id);
-			await ctx.db.delete(application._id);
-		}
+		const owned = await Promise.all(
+			applications.map((application) =>
+				Promise.all([
+					takeAll(
+						ctx.db
+							.query("companyApplicationOffers")
+							.withIndex("by_applicationId", (q) => q.eq("applicationId", application._id)),
+					),
+					takeAll(
+						ctx.db
+							.query("companyApplicationActivity")
+							.withIndex("by_applicationId", (q) => q.eq("applicationId", application._id)),
+					),
+				]),
+			),
+		);
+		await Promise.all(owned.flat(2).map((row) => ctx.db.delete(row._id)));
+		await Promise.all(applications.map((application) => ctx.db.delete(application._id)));
 
 		const pending = await takeAll(
 			ctx.db
 				.query("pendingCompanyApplications")
 				.withIndex("by_semesterId", (q) => q.eq("semesterId", semesterId)),
 		);
-		for (const row of pending) {
-			const links = await takeAll(
-				ctx.db
-					.query("companyApplicationConfirmations")
-					.withIndex("by_pendingId", (q) => q.eq("pendingId", row._id)),
-			);
-			for (const link of links) await ctx.db.delete(link._id);
-			await ctx.db.delete(row._id);
-		}
+		await Promise.all(pending.map((row) => deleteConfirmations(ctx, row._id)));
+		await Promise.all(pending.map((row) => ctx.db.delete(row._id)));
 
 		const [dates, planEvents] = await Promise.all([
 			takeAll(
@@ -474,7 +477,7 @@ export const deleteSemester = mutation({
 					.withIndex("by_semesterId", (q) => q.eq("semesterId", semesterId)),
 			),
 		]);
-		for (const row of [...dates, ...planEvents]) await ctx.db.delete(row._id);
+		await Promise.all([...dates, ...planEvents].map((row) => ctx.db.delete(row._id)));
 
 		await ctx.db.delete(semesterId);
 		return { applications: applications.length };
