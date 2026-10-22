@@ -1,6 +1,7 @@
 import type { api } from "@workspace/backend/convex/api";
 import { COMPANY_CONTACT_EMAIL } from "@workspace/shared/constants";
 import { ESCAPE_LABELS, EVENT_TYPE_LABELS, VENUE_LABELS } from "@workspace/shared/semester/labels";
+import { formatOrgNumber } from "@workspace/shared/semester/orgNumber";
 import type { FunctionReturnType } from "convex/server";
 import { Check } from "lucide-react";
 import type { ReactNode } from "react";
@@ -12,7 +13,6 @@ import {
 	studentRange,
 } from "@/lib/company-application-format";
 import { COMPANY_APPLICATION_COPY as COPY } from "@/lib/company-application-questions";
-import { formatOrgNumber } from "@/lib/company-registry";
 
 const ROWS = COPY.receipt.rows;
 

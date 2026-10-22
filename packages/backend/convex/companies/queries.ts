@@ -53,7 +53,8 @@ export const pickerOptions = query({
 	args: {},
 	returns: v.array(v.object({ _id: v.id("companies"), name: v.string(), orgNumber: v.number() })),
 	handler: async (ctx) => {
-		const rows = await ctx.db.query("companies").take(PICKER_LIMIT);
+		// The index keeps the limit to the first companies by name; Norwegian order is applied after.
+		const rows = await ctx.db.query("companies").withIndex("by_name").take(PICKER_LIMIT);
 		return rows
 			.map(({ _id, name, orgNumber }) => ({ _id, name, orgNumber }))
 			.sort((a, b) => a.name.localeCompare(b.name, "nb"));

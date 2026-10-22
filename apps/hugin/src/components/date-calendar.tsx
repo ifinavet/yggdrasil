@@ -1,17 +1,13 @@
 "use client";
 
+import { capitalize } from "@workspace/shared/utils";
 import { Calendar } from "@workspace/ui/components/calendar";
 import { cn } from "@workspace/ui/lib/utils";
 import { format } from "date-fns";
 import { nb } from "date-fns/locale";
 import { type ComponentProps, useMemo } from "react";
 import { FOCUS_RING, linkClass } from "@/components/form-controls";
-import {
-	calendarDay,
-	calendarMonths,
-	capitalize,
-	semesterDay,
-} from "@/lib/company-application-format";
+import { calendarDay, calendarMonths, semesterDay } from "@/lib/company-application-format";
 import { COMPANY_APPLICATION_COPY as COPY } from "@/lib/company-application-questions";
 
 /** Tuesday and Thursday, the days Navet usually holds company events, stand out in the calendar. */
@@ -22,10 +18,22 @@ type DayButtonProps = ComponentProps<
 >;
 
 /**
- * One day in the calendar. A chosen date fills with the primary colour, an open Tuesday or Thursday
- * is tinted, and a day that cannot be picked is only a number. An unchosen open date gets a red
- * border when the question is invalid, from `data-invalid` on the calendar's wrapper.
+ * A chosen date fills with the primary colour, an open Tuesday or Thursday is tinted, and a day that
+ * cannot be picked is only a number. An unchosen open date gets a red border when the question is
+ * invalid, from `data-invalid` on the calendar's wrapper.
  */
+function dayTone(modifiers: DayButtonProps["modifiers"]): string {
+	if (modifiers.disabled) return "cursor-default border-transparent text-muted-foreground/60";
+	if (modifiers.selected) return "border-primary bg-primary font-semibold text-primary-foreground";
+	return cn(
+		"cursor-pointer font-semibold group-data-[invalid=true]/dates:border-destructive",
+		modifiers.highlighted
+			? "border-primary/35 bg-primary-light text-primary hover:border-primary dark:bg-accent dark:text-accent-foreground"
+			: "border-input bg-card hover:border-foreground/40",
+	);
+}
+
+/** One day in the calendar. */
 function DayButton({ day, modifiers, className, ...props }: DayButtonProps) {
 	return (
 		<button
@@ -33,16 +41,7 @@ function DayButton({ day, modifiers, className, ...props }: DayButtonProps) {
 			className={cn(
 				"grid h-10 w-full place-items-center rounded-lg border text-[14px] tabular-nums transition-[background-color,border-color,color] duration-150",
 				FOCUS_RING,
-				modifiers.disabled
-					? "cursor-default border-transparent text-muted-foreground/60"
-					: modifiers.selected
-						? "border-primary bg-primary font-semibold text-primary-foreground"
-						: cn(
-								"cursor-pointer font-semibold group-data-[invalid=true]/dates:border-destructive",
-								modifiers.highlighted
-									? "border-primary/35 bg-primary-light text-primary hover:border-primary dark:bg-accent dark:text-accent-foreground"
-									: "border-input bg-card hover:border-foreground/40",
-							),
+				dayTone(modifiers),
 				className,
 			)}
 		/>

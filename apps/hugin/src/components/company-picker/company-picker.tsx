@@ -1,6 +1,7 @@
 "use client";
 
 import type { api } from "@workspace/backend/convex/api";
+import { formatOrgNumber } from "@workspace/shared/semester/orgNumber";
 import { Button } from "@workspace/ui/components/button";
 import {
 	Command,
@@ -14,9 +15,37 @@ import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui/component
 import type { FunctionReturnType } from "convex/server";
 import { Check, ChevronsUpDown, Search } from "lucide-react";
 import { useState } from "react";
-import { companyPickerCopy as copy } from "@/lib/company-picker-copy";
-import { hitMeta, type RegistryHit } from "@/lib/company-registry";
-import { useRegistrySearch } from "./use-registry-search";
+import { type RegistryHit, useRegistrySearch } from "./use-registry-search";
+
+// Company-facing copy for the picker, shared by the Hugin order and application forms.
+export const companyPickerCopy = {
+	placeholder: "Velg bedrift",
+	search: "Søk etter bedrift",
+	empty: "Fant ingen bedrifter.",
+	newCompany: "Finner dere ikke bedriften? Søk i Enhetsregisteret",
+	registrySearch: "Søk på navn eller organisasjonsnummer",
+	registrySearching: "Søker ...",
+	registryEmpty: "Ingen treff i Enhetsregisteret.",
+	registryTooShort: "Skriv minst to tegn.",
+	blocked: {
+		deleted: "Slettet fra registeret. Kan ikke velges.",
+		bankrupt: "Konkurs. Kan ikke velges.",
+		liquidation: "Under avvikling. Kan ikke velges.",
+	} satisfies Record<NonNullable<RegistryHit["blockedReason"]>, string>,
+	registryRetry: "Prøv igjen",
+	backToList: "Velg fra listen i stedet",
+} as const;
+
+/** «924 773 189 · AS · OSLO»: the organization number and what else is known about the company. */
+export function hitMeta(hit: {
+	orgNumber: string;
+	organizationForm?: string;
+	city?: string;
+}): string {
+	return [formatOrgNumber(hit.orgNumber), hit.organizationForm, hit.city]
+		.filter(Boolean)
+		.join(" · ");
+}
 
 export type CompanyOption = FunctionReturnType<typeof api.companies.queries.pickerOptions>[number];
 
@@ -77,7 +106,7 @@ export function CompanyPicker({
 					className="w-full justify-between font-normal aria-invalid:border-destructive"
 				>
 					<span className={selectedName ? "truncate" : "truncate text-muted-foreground"}>
-						{selectedName || copy.placeholder}
+						{selectedName || companyPickerCopy.placeholder}
 					</span>
 					<ChevronsUpDown className="size-4 opacity-50" />
 				</Button>
@@ -90,9 +119,9 @@ export function CompanyPicker({
 					/>
 				) : (
 					<Command>
-						<CommandInput placeholder={copy.search} />
+						<CommandInput placeholder={companyPickerCopy.search} />
 						<CommandList>
-							<CommandEmpty>{copy.empty}</CommandEmpty>
+							<CommandEmpty>{companyPickerCopy.empty}</CommandEmpty>
 							<CommandGroup>
 								{companies.map((company) => (
 									<CommandItem
@@ -115,7 +144,7 @@ export function CompanyPicker({
 								onClick={() => setRegistryMode(true)}
 							>
 								<Search className="size-4" />
-								{copy.newCompany}
+								{companyPickerCopy.newCompany}
 							</Button>
 						</div>
 					</Command>
@@ -136,16 +165,20 @@ function RegistrySearch({
 		<Command shouldFilter={false}>
 			<CommandInput
 				autoFocus
-				placeholder={copy.registrySearch}
+				placeholder={companyPickerCopy.registrySearch}
 				value={query}
 				onValueChange={setQuery}
 			/>
 			<CommandList>
 				{state.status === "idle" && (
-					<p className="px-3 py-4 text-muted-foreground text-sm">{copy.registryTooShort}</p>
+					<p className="px-3 py-4 text-muted-foreground text-sm">
+						{companyPickerCopy.registryTooShort}
+					</p>
 				)}
 				{state.status === "searching" && (
-					<p className="px-3 py-4 text-muted-foreground text-sm">{copy.registrySearching}</p>
+					<p className="px-3 py-4 text-muted-foreground text-sm">
+						{companyPickerCopy.registrySearching}
+					</p>
 				)}
 				{state.status === "error" && (
 					<div className="flex flex-col items-start gap-2 px-3 py-4">
@@ -153,12 +186,14 @@ function RegistrySearch({
 							{state.message}
 						</p>
 						<Button type="button" variant="outline" size="sm" onClick={retry}>
-							{copy.registryRetry}
+							{companyPickerCopy.registryRetry}
 						</Button>
 					</div>
 				)}
 				{state.status === "done" && state.hits.length === 0 && (
-					<p className="px-3 py-4 text-muted-foreground text-sm">{copy.registryEmpty}</p>
+					<p className="px-3 py-4 text-muted-foreground text-sm">
+						{companyPickerCopy.registryEmpty}
+					</p>
 				)}
 				{state.status === "done" && state.hits.length > 0 && (
 					<CommandGroup>
@@ -172,7 +207,10 @@ function RegistrySearch({
 								<div className="flex min-w-0 flex-col">
 									<span className="truncate">{hit.name}</span>
 									<span className="text-muted-foreground text-xs">
-										{[hitMeta(hit), hit.blockedReason && copy.blocked[hit.blockedReason]]
+										{[
+											hitMeta(hit),
+											hit.blockedReason && companyPickerCopy.blocked[hit.blockedReason],
+										]
 											.filter(Boolean)
 											.join(" · ")}
 									</span>
@@ -190,7 +228,7 @@ function RegistrySearch({
 					className="w-full justify-start"
 					onClick={onBack}
 				>
-					{copy.backToList}
+					{companyPickerCopy.backToList}
 				</Button>
 			</div>
 		</Command>

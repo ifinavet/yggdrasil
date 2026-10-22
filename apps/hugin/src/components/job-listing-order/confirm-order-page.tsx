@@ -14,7 +14,7 @@ export function ConfirmOrderPage() {
 				confirm={api.jobListingOrders.orders.confirm}
 				copy={confirmCopy}
 				formPath={JOB_LISTING_ORDER_PATH}
-				receipt={(receipt, token) => <OrderReceipt token={token} receipt={receipt} />}
+				Receipt={OrderReceipt}
 			/>
 		</div>
 	);

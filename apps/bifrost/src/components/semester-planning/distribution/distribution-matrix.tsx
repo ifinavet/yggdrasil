@@ -3,11 +3,12 @@
 import type { Doc, Id } from "@workspace/backend/convex/dataModel";
 import { closedDateLabel, EVENT_TYPE_SHORT_LABELS } from "@workspace/shared/semester/labels";
 import { formatSemesterDay } from "@workspace/shared/time";
+import { capitalize } from "@workspace/shared/utils";
 import { cn } from "@workspace/ui/lib/utils";
 import { MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { type CSSProperties, memo, useMemo, useState } from "react";
-import { capitalize, dayOfMonth, monthLabel, shortDayTitle, studentRange } from "../format";
+import { dayOfMonth, monthLabel, shortDayTitle, studentRange } from "../format";
 import { isActiveStatus } from "../status";
 import { StatusBadge } from "../status-badge";
 import { AssignCell, type DragState, StaticCell } from "./assign-cell";

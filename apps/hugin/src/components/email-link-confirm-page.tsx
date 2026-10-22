@@ -5,7 +5,7 @@ import { useMutation, useQuery } from "convex/react";
 import type { FunctionReference, FunctionReturnType } from "convex/server";
 import { MailCheck } from "lucide-react";
 import Link from "next/link";
-import { type ReactNode, useState } from "react";
+import { type ComponentType, type ReactNode, useState } from "react";
 import { FormStatePanel } from "@/components/form-state-panel";
 import { useEmailLinkToken } from "@/lib/use-email-link-token";
 
@@ -44,7 +44,7 @@ type ReceiptOf<Query extends LinkQuery> = Extract<
 	{ state: "confirmed" }
 >["receipt"];
 
-/** The feature's link and confirm functions, its copy, and how it shows the receipt. */
+/** The feature's link and confirm functions, its copy, and the component that shows the receipt. */
 type LinkProps<Query extends LinkQuery> = {
 	link: Query;
 	confirm: FunctionReference<
@@ -54,7 +54,7 @@ type LinkProps<Query extends LinkQuery> = {
 		ClosedLink<ReceiptOf<Query>> | { state: "refused"; message: string }
 	>;
 	copy: EmailLinkConfirmCopy;
-	receipt: (receipt: ReceiptOf<Query>, token: string) => ReactNode;
+	Receipt: ComponentType<{ receipt: ReceiptOf<Query>; token: string }>;
 };
 
 /**
@@ -66,7 +66,7 @@ export function EmailLinkConfirmPage<Query extends LinkQuery>({
 	confirm,
 	copy,
 	formPath,
-	receipt,
+	Receipt,
 }: Readonly<
 	LinkProps<Query> & {
 		/** The form to start over from when the link no longer works. */
@@ -89,7 +89,7 @@ export function EmailLinkConfirmPage<Query extends LinkQuery>({
 			confirm={confirm}
 			copy={copy}
 			backToForm={backToForm}
-			receipt={receipt}
+			Receipt={Receipt}
 		/>
 	);
 }
@@ -105,7 +105,7 @@ function ConfirmLink<Query extends LinkQuery>({
 	confirm,
 	copy,
 	backToForm,
-	receipt,
+	Receipt,
 }: Readonly<LinkProps<Query> & { token: string; backToForm: ReactNode }>) {
 	// A generic query reference hides its argument type from `useQuery`; every link query takes the token.
 	const current = useQuery(link as LinkQuery, { token }) as FunctionReturnType<Query> | undefined;
@@ -124,7 +124,7 @@ function ConfirmLink<Query extends LinkQuery>({
 	};
 
 	if (current === undefined) return null;
-	if (result.state === "confirmed") return receipt(result.receipt, token);
+	if (result.state === "confirmed") return <Receipt receipt={result.receipt} token={token} />;
 	if (result.state === "expired" || result.state === "invalid") {
 		return <FormStatePanel {...copy[result.state]} action={backToForm} />;
 	}

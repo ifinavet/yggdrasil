@@ -4,7 +4,16 @@ import { Button } from "@workspace/ui/components/button";
 import { MailCheck } from "lucide-react";
 import { useState } from "react";
 import { FormStatePanel } from "@/components/form-state-panel";
-import { emailCheckCopy as copy } from "@/lib/email-check-copy";
+
+// The «Sjekk e-posten» screen after a Hugin form is sent. Each form says in its own body what waits
+// for the confirmation.
+const copy = {
+	title: "Sjekk e-posten",
+	resend: "Send e-posten på nytt",
+	resending: "Sender ...",
+	resent: "Ny e-post er sendt.",
+	failed: "Kunne ikke sende e-posten. Prøv igjen.",
+} as const;
 
 /** After a form is sent: what it waits for, and a way to send the confirmation email again. */
 export function EmailCheckScreen({

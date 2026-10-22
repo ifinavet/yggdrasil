@@ -2,6 +2,7 @@ import { oreToKroner } from "@workspace/shared/products";
 import { STUDENT_CAP } from "@workspace/shared/semester/application";
 import type { EventType } from "@workspace/shared/semester/labels";
 import { formatNok } from "@workspace/shared/semester/prices";
+import { capitalize } from "@workspace/shared/utils";
 import { differenceInCalendarMonths, format, parse, startOfMonth } from "date-fns";
 import { nb } from "date-fns/locale";
 import { COMPANY_APPLICATION_COPY as COPY } from "./company-application-questions";
@@ -19,10 +20,6 @@ export function calendarDay(date: string): Date {
 /** A local date from the calendar as a semester day. */
 export function semesterDay(day: Date): string {
 	return format(day, ISO_DAY);
-}
-
-export function capitalize(text: string): string {
-	return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 function withoutDot(text: string): string {

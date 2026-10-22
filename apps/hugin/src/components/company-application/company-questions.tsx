@@ -5,12 +5,12 @@ import { useMemo } from "react";
 import {
 	type CompanyOption,
 	CompanyPicker,
+	hitMeta,
 	type PickedCompany,
 } from "@/components/company-picker/company-picker";
 import { fieldErrorText } from "@/components/input-cards/question-block";
 import type { ChosenCompany } from "@/lib/company-application";
 import { COMPANY_APPLICATION_COPY as COPY } from "@/lib/company-application-questions";
-import { hitMeta } from "@/lib/company-registry";
 import {
 	ApplicationQuestion,
 	answerAria,

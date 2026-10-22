@@ -26,6 +26,11 @@ export function isValidOrgNumber(value: string): boolean {
 	return check === Number(digits[8]);
 }
 
+/** «924 773 189», an organization number the way Enhetsregisteret writes it, whatever spacing it came with. */
+export function formatOrgNumber(orgNumber: string): string {
+	return normalizeOrgNumber(orgNumber).replace(/(\d{3})(?=\d)/g, "$1 ");
+}
+
 /** Company profiles store the organization number as a number. */
 export function toCompanyProfileOrgNumber(orgNumber: string): number {
 	return Number(normalizeOrgNumber(orgNumber));

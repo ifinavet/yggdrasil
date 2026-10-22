@@ -1,6 +1,6 @@
+import { formatOrgNumber, normalizeOrgNumber } from "@workspace/shared/semester/orgNumber";
 import { Building2, ExternalLink, Plus } from "lucide-react";
 import Link from "next/link";
-import { formatOrgNumber } from "../format";
 import type { ApplicationDetails } from "./model";
 import { CardSection } from "./section";
 
@@ -14,7 +14,7 @@ const LINK = "inline-flex items-center gap-1 underline underline-offset-3 hover:
 export function CompanyCard({ details }: Readonly<{ details: ApplicationDetails }>) {
 	const { application, companyId, companyName } = details;
 	const { registry } = application;
-	const orgNumber = application.orgNumber.replace(/\s/g, "");
+	const orgNumber = normalizeOrgNumber(application.orgNumber);
 
 	const address = registry.businessAddress;
 	const addressText = address

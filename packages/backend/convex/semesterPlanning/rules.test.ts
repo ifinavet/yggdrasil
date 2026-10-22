@@ -1,5 +1,9 @@
 import type { ApplicationStatus } from "@workspace/shared/semester/labels";
-import { isValidOrgNumber, toCompanyProfileOrgNumber } from "@workspace/shared/semester/orgNumber";
+import {
+	formatOrgNumber,
+	isValidOrgNumber,
+	toCompanyProfileOrgNumber,
+} from "@workspace/shared/semester/orgNumber";
 import {
 	compareSemesters,
 	defaultApplicationSemester,
@@ -86,6 +90,11 @@ describe("organization numbers", () => {
 
 	it("converts to the number stored on company profiles", () => {
 		expect(toCompanyProfileOrgNumber("982 463 718")).toBe(982463718);
+	});
+
+	it("groups an organization number in threes, whatever spacing it came with", () => {
+		expect(formatOrgNumber("924773189")).toBe("924 773 189");
+		expect(formatOrgNumber("924 77 3189")).toBe("924 773 189");
 	});
 });
 

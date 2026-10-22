@@ -20,7 +20,6 @@ import {
 	fullDate,
 } from "./company-application-format";
 import { loadDraft, saveDraft, storedDraftSemesterId } from "./company-application-storage";
-import { placeName } from "./company-registry";
 
 function completeDraft(overrides: Partial<ApplicationDraft> = {}): ApplicationDraft {
 	return {
@@ -341,14 +340,5 @@ describe("company application prices", () => {
 
 	it("leaves the price out when the event type has no priced product", () => {
 		expect(eventTypeDescription("social", undefined)).toBe("Inntil 40 studenter");
-	});
-});
-
-describe("company application place names", () => {
-	it("writes registry place names the way people do", () => {
-		expect(placeName("STAVANGER")).toBe("Stavanger");
-		expect(placeName("MO I RANA")).toBe("Mo i Rana");
-		expect(placeName("BØ I TELEMARK")).toBe("Bø i Telemark");
-		expect(placeName("ÅLESUND")).toBe("Ålesund");
 	});
 });

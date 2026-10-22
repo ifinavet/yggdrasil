@@ -2,6 +2,7 @@
 
 import { useStore } from "@tanstack/react-form";
 import type { api } from "@workspace/backend/convex/api";
+import { formatOrgNumber } from "@workspace/shared/semester/orgNumber";
 import { Button } from "@workspace/ui/components/button";
 import { CompanyLogo } from "@workspace/ui/components/company-logo";
 import { FieldError, FieldLabel } from "@workspace/ui/components/field";
@@ -16,11 +17,10 @@ import { useState } from "react";
 import {
 	type CompanyOption,
 	CompanyPicker,
+	companyPickerCopy,
 	type PickedCompany,
 } from "@/components/company-picker/company-picker";
 import { errorText } from "@/components/input-cards/question-block";
-import { companyPickerCopy } from "@/lib/company-picker-copy";
-import { formatOrgNumber } from "@/lib/company-registry";
 import { companyCopy } from "@/lib/job-listing-order/copy";
 import { type CompanyValues, emptyCompany } from "@/lib/job-listing-order/form-values";
 import { companyChangeErrors } from "@/lib/job-listing-order/submit";

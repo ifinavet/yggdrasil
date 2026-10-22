@@ -18,7 +18,7 @@ export function ConfirmApplicationPage() {
 			confirm={confirmation.confirm}
 			copy={COPY.confirm}
 			formPath="/bestill-bedpres"
-			receipt={(receipt) => <ApplicationReceipt receipt={receipt} />}
+			Receipt={ApplicationReceipt}
 		/>
 	);
 }
