@@ -17,8 +17,8 @@ export default function JobListingBanner({ className }: Readonly<{ className?: s
 						</h3>
 						<p className="text-primary dark:text-primary-foreground">
 							Navet tilbyr publisering av stillingsannonser på våre hjemmesider. Dette gjelder både
-							interships, deltid-, og fulltidsstillinger. Ved forespørsel om annonser for sommerjobb
-							er det viktig at de følger{" "}
+							internships, deltids- og fulltidsstillinger. Ved forespørsel om annonser for
+							sommerjobb er det viktig at de følger{" "}
 							<a
 								href="https://drive.google.com/file/d/1wW0356QeoPGtKQruSlP8eBXI7qqn8eHm/view?usp=sharing"
 								rel="nofollow noopener noreferrer external"
@@ -34,7 +34,7 @@ export default function JobListingBanner({ className }: Readonly<{ className?: s
 								target="_blank"
 								className="hover:cursor underline"
 							>
-								Navet's retningslinjer.
+								Navets retningslinjer.
 							</a>
 							<br />
 							<br />

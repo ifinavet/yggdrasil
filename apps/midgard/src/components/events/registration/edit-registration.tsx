@@ -120,7 +120,7 @@ export default function EditRegistration({
 								form="update-registration-form"
 								className="text-primary-foreground"
 							>
-								Lagre Endringer
+								Lagre endringer
 							</Button>
 						</div>
 					</div>

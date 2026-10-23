@@ -3,6 +3,7 @@ import {
 	BreadcrumbItem,
 	BreadcrumbLink,
 	BreadcrumbList,
+	BreadcrumbPage,
 	BreadcrumbSeparator,
 } from "@workspace/ui/components/breadcrumb";
 import { Suspense } from "react";
@@ -22,7 +23,7 @@ export default function NewListingPage() {
 					</BreadcrumbItem>
 					<BreadcrumbSeparator />
 					<BreadcrumbItem>
-						<BreadcrumbItem>Opprett ny stillingsannonse</BreadcrumbItem>
+						<BreadcrumbPage>Opprett ny stillingsannonse</BreadcrumbPage>
 					</BreadcrumbItem>
 				</BreadcrumbList>
 			</Breadcrumb>

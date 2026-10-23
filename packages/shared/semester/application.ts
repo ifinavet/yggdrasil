@@ -42,7 +42,7 @@ export const applicationContactSchema = z.object({
 
 export const applicationFormSchema = z
 	.object({
-		orgNumber: orgNumber("Velg bedriften fra Enhetsregisteret."),
+		orgNumber: orgNumber("Velg bedriften."),
 		contact: applicationContactSchema,
 		eventType: z.enum(EVENT_TYPES, { error: "Velg hva slags arrangement dere ønsker." }),
 		minStudents: students,

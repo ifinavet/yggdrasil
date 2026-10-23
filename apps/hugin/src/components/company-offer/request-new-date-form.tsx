@@ -7,7 +7,7 @@ import { Note } from "@workspace/ui/components/note";
 import { cn } from "@workspace/ui/lib/utils";
 import { useMutation } from "convex/react";
 import { useState } from "react";
-import { DateGrid } from "@/components/date-grid";
+import { DateCalendar } from "@/components/date-calendar";
 import { ERROR_TEXT, ErrorLine } from "@/components/form-controls";
 import { fieldErrorText } from "@/components/input-cards/question-block";
 import { SubmitDock } from "@/components/submit-dock";
@@ -96,7 +96,7 @@ export function RequestNewDateForm({
 										{COPY.noDatesEnd}
 									</Note>
 								) : (
-									<DateGrid
+									<DateCalendar
 										dates={openDates}
 										value={field.state.value}
 										onChange={field.handleChange}

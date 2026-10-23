@@ -1,6 +1,7 @@
 "use client";
 
 import { api } from "@workspace/backend/convex/api";
+import { capitalize } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
 import { ConfirmDialog } from "@workspace/ui/components/confirm-dialog";
 import { Callout } from "@workspace/ui/components/products/callout";
@@ -9,7 +10,7 @@ import { useMutation } from "convex/react";
 import { type LucideIcon, Send, Trash2 } from "lucide-react";
 import { Fragment, type ReactNode, useState } from "react";
 import { toast } from "sonner";
-import { capitalize, formatMoment, longDay, shortDay, shortDayTitle } from "../format";
+import { formatMoment, longDay, shortDay, shortDayTitle } from "../format";
 import { isActiveStatus } from "../status";
 import { StatusIcon } from "../status-badge";
 import { AssignDateDialog, useAssignDate } from "./assign-date-dialog";
