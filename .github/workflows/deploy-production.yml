@@ -34,8 +34,6 @@ jobs:
       convex-url: ${{ steps.deploy.outputs.url }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ env.DEPLOY_SHA }}
 
       - name: Check release configuration
         env:
@@ -63,7 +61,7 @@ jobs:
       - name: Reject superseded releases
         run: |
           git fetch origin main --depth=1
-          test "$(git rev-parse FETCH_HEAD)" = "$DEPLOY_SHA" || {
+          test "$(git rev-parse FETCH_HEAD)" = "$DEPLOY_SHA" && test "$(git rev-parse HEAD)" = "$DEPLOY_SHA" || {
             echo "::error::This commit is no longer main. Run the latest release instead."
             exit 1
           }
@@ -97,8 +95,6 @@ jobs:
             project-id-variable: VERCEL_PROJECT_ID_HUGIN
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ env.DEPLOY_SHA }}
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
@@ -106,7 +102,7 @@ jobs:
       - name: Reject superseded releases
         run: |
           git fetch origin main --depth=1
-          test "$(git rev-parse FETCH_HEAD)" = "$DEPLOY_SHA" || {
+          test "$(git rev-parse FETCH_HEAD)" = "$DEPLOY_SHA" && test "$(git rev-parse HEAD)" = "$DEPLOY_SHA" || {
             echo "::error::This commit is no longer main. Run the latest release instead."
             exit 1
           }
