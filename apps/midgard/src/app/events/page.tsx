@@ -5,12 +5,15 @@ import {
 	MONTH_NAMES,
 	osloMonthName,
 } from "@workspace/shared/time";
+import { placeholderKeys } from "@workspace/shared/utils";
 import { fetchQuery } from "convex/nextjs";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { Suspense } from "react";
 import EventsList from "@/components/events/events-list";
 import MonthSelector from "@/components/events/month-selector";
+import EventCardSkeleton from "@/components/loaders/event-card-skeleton";
+import TitleSkeleton from "@/components/loaders/title-skeleton";
 import { nextEventMonth, splitUpcomingPast } from "@/lib/events-feed";
 
 export const metadata: Metadata = {
@@ -19,9 +22,22 @@ export const metadata: Metadata = {
 
 export default function EventsPage() {
 	return (
-		<Suspense fallback={null}>
+		<Suspense fallback={<EventsFallback />}>
 			<Events />
 		</Suspense>
+	);
+}
+
+function EventsFallback() {
+	return (
+		<div className="grid gap-4">
+			<TitleSkeleton />
+			<div className="mx-6 flex max-w-7xl flex-col gap-6 md:mx-auto md:w-3/5">
+				{placeholderKeys("event-card", 3).map((key) => (
+					<EventCardSkeleton key={key} />
+				))}
+			</div>
+		</div>
 	);
 }
 

@@ -12,6 +12,7 @@ import ContainerCard from "@/components/cards/container-card";
 import LargeUserCard from "@/components/cards/large-user";
 import SanitizeHtml from "@/components/common/sanitize-html";
 import { EventMetadata } from "@/components/events/event-metadata";
+import TwoColumnsLoading from "@/components/loaders/two-columns-loading";
 import { notFoundOnConvexError } from "@/lib/notFoundOnConvexError";
 
 const loadAuthToken = cache(getAuthToken);
@@ -58,7 +59,13 @@ type Props = Readonly<{
 
 export default function EventPage(props: Props) {
 	return (
-		<Suspense fallback={null}>
+		<Suspense
+			fallback={
+				<ResponsiveCenterContainer>
+					<TwoColumnsLoading />
+				</ResponsiveCenterContainer>
+			}
+		>
 			<Event {...props} />
 		</Suspense>
 	);

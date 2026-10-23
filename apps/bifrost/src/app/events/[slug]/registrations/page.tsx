@@ -3,6 +3,7 @@ import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { preloadQuery } from "convex/nextjs";
 import { Suspense } from "react";
+import RegistrationsLoading from "../loading";
 import { Registrations } from "./registrations";
 
 type Props = Readonly<{
@@ -11,7 +12,7 @@ type Props = Readonly<{
 
 export default function RegistrationsPage(props: Props) {
 	return (
-		<Suspense fallback={null}>
+		<Suspense fallback={<RegistrationsLoading />}>
 			<EventRegistrations {...props} />
 		</Suspense>
 	);
