@@ -20,6 +20,7 @@ import { findActiveApplicationOnDate, requireEditorActor } from "../applicationL
 import { deleteConfirmations } from "../applications/confirmation";
 import { findCompanyProfile, listApplicationsInSemester } from "../applications/helper";
 import { ensureDraftEvent, proposeNavetTeams } from "../events";
+import { dropPlanEventsOutsideRange, importCalendarIntoPlan } from "../planEvents/helper";
 import { isUnsettledApplicationStatus } from "../rules";
 import { applicationPeriodStatus, semesterTerm } from "../schema";
 import {
@@ -77,7 +78,8 @@ export const create = mutation({
 /**
  * Sets the first and last date of a semester and generates its Tuesdays and Thursdays. Dates that
  * stay in the range keep their closed label; dates that fall out of it are removed, unless a
- * company has been given one.
+ * company has been given one. The first time, the events already in the calendar are put in the
+ * plan.
  *
  * @param {Id<"semesters">} semesterId - The semester to update.
  * @param {string} firstDate - The first day, as YYYY-MM-DD.
@@ -91,7 +93,7 @@ export const setRange = mutation({
 	args: { semesterId: v.id("semesters"), firstDate: v.string(), lastDate: v.string() },
 	returns: v.null(),
 	handler: async (ctx, { semesterId, firstDate, lastDate }) => {
-		await requireRole(ctx, editorRoles);
+		const editor = await requireRole(ctx, editorRoles);
 
 		const semester = await requireSemester(ctx, semesterId);
 		refuseIfSemesterClosed(semester);
@@ -125,6 +127,13 @@ export const setRange = mutation({
 				.map((date) => ctx.db.insert("semesterDates", { semesterId, date })),
 		);
 		await ctx.db.patch(semesterId, { firstDate, lastDate });
+		// The first period brings in the events already in the calendar, once. A later change only
+		// takes out the events that fell outside the new period.
+		if (semester.calendarImportedAt === undefined) {
+			await importCalendarIntoPlan(ctx, { ...semester, firstDate, lastDate }, editor._id);
+		} else {
+			await dropPlanEventsOutsideRange(ctx, semesterId, firstDate, lastDate);
+		}
 
 		return null;
 	},
