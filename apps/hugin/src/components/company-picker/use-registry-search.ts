@@ -2,9 +2,14 @@
 
 import { api } from "@workspace/backend/convex/api";
 import { useAction } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { useEffect, useRef, useState } from "react";
-import type { RegistryHit } from "@/lib/company-application";
 import { companyErrorMessage } from "@/lib/company-error-message";
+
+/** One company from the Enhetsregisteret search. */
+export type RegistryHit = FunctionReturnType<
+	typeof api.semesterPlanning.registry.actions.searchCompanies
+>[number];
 
 const DEBOUNCE_MS = 300;
 export const MIN_QUERY_LENGTH = 2;

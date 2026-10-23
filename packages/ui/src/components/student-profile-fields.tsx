@@ -70,7 +70,7 @@ export function StudentProfileFields<T extends string>({
 		},
 	];
 	return (
-		<div className="grid min-w-0 gap-5 sm:grid-cols-2">
+		<div className="grid min-w-0 grid-cols-1 gap-5 sm:grid-cols-2">
 			{fields.map(({ key, label, field, options, change }) => {
 				const errors = field.state.meta?.isTouched ? field.state.meta.errors : [];
 				const invalid = Boolean(errors?.length);

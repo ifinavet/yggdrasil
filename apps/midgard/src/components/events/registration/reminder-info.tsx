@@ -4,9 +4,9 @@ import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { renderReminderInfo } from "@workspace/shared/events/reminder";
 import { Note } from "@workspace/ui/components/note";
+import { SafeHtml } from "@workspace/ui/components/safe-html";
 import { cn } from "@workspace/ui/lib/utils";
 import { useQuery } from "convex/react";
-import SanitizeHtml from "@/components/common/sanitize-html";
 
 export default function ReminderInfo({
 	className,
@@ -31,7 +31,7 @@ export default function ReminderInfo({
 		>
 			<div className="flex flex-col gap-2">
 				<p className="font-semibold text-lg">Viktig info</p>
-				<SanitizeHtml
+				<SafeHtml
 					html={renderReminderInfo(info)}
 					className="prose max-w-none text-inherit [&_*]:text-inherit"
 				/>

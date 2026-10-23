@@ -10,6 +10,7 @@ import {
 } from "@workspace/ui/components/breadcrumb";
 import { Separator } from "@workspace/ui/components/separator";
 import { preloadQuery } from "convex/nextjs";
+import { Suspense } from "react";
 import AddBoardMember from "@/components/organization/board-members/add-boardmember";
 import ListBoardMembers from "@/components/organization/board-members/list-board-members";
 import { GuideHint, GuideReplay, OrganizationGuide } from "@/components/organization/guide";
@@ -17,7 +18,15 @@ import { InternalGroups } from "@/components/organization/internal-groups";
 import Internals from "@/components/organization/internals/internals";
 import UpdateMainSponsor from "@/components/organization/main-sponsor/update-main-sponsor";
 
-export default async function OrganizationPage() {
+export default function OrganizationPage() {
+	return (
+		<Suspense fallback={null}>
+			<Organization />
+		</Suspense>
+	);
+}
+
+async function Organization() {
 	const token = await getAuthToken();
 
 	const preloadedBoardMembers = await preloadQuery(

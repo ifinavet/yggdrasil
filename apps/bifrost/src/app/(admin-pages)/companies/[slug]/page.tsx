@@ -6,13 +6,22 @@ import {
 	BreadcrumbSeparator,
 } from "@workspace/ui/components/breadcrumb";
 import Link from "next/link";
+import { Suspense } from "react";
 import EditCompanyForm from "./edit-company-form";
 
-export default async function CreateCompany({
-	params,
-}: Readonly<{
+type Props = Readonly<{
 	params: Promise<{ slug: Id<"companies"> }>;
-}>) {
+}>;
+
+export default function CreateCompany(props: Props) {
+	return (
+		<Suspense fallback={null}>
+			<EditCompany {...props} />
+		</Suspense>
+	);
+}
+
+async function EditCompany({ params }: Props) {
 	const { slug: id } = await params;
 
 	return (

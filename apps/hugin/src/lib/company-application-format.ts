@@ -2,53 +2,38 @@ import { oreToKroner } from "@workspace/shared/products";
 import { STUDENT_CAP } from "@workspace/shared/semester/application";
 import type { EventType } from "@workspace/shared/semester/labels";
 import { formatNok } from "@workspace/shared/semester/prices";
-import { format, parse } from "date-fns";
+import { capitalize } from "@workspace/shared/utils";
+import { differenceInCalendarMonths, format, parse, startOfMonth } from "date-fns";
 import { nb } from "date-fns/locale";
-import type { RegistryHit } from "@/lib/company-application";
 import { COMPANY_APPLICATION_COPY as COPY } from "./company-application-questions";
 
 // Date labels for the application form. Semester days are plain "YYYY-MM-DD" calendar days, so
 // they are parsed and formatted in one zone and no time-of-day or offset is involved.
 
-function calendarDay(date: string): Date {
-	return parse(date, "yyyy-MM-dd", new Date());
+const ISO_DAY = "yyyy-MM-dd";
+
+/** A semester day as a local date, for the calendar. */
+export function calendarDay(date: string): Date {
+	return parse(date, ISO_DAY, new Date());
 }
 
-function capitalize(text: string): string {
-	return text.charAt(0).toUpperCase() + text.slice(1);
+/** A local date from the calendar as a semester day. */
+export function semesterDay(day: Date): string {
+	return format(day, ISO_DAY);
 }
 
 function withoutDot(text: string): string {
 	return text.replace(/\.$/, "");
 }
 
-export type DateWeek = { week: string; days: string[] };
-export type DateMonth = { key: string; label: string; weeks: DateWeek[] };
-
-/** Open dates grouped by month, then by ISO week (as Norwegian calendars number them). */
-export function groupDatesByMonth(dates: readonly string[]): DateMonth[] {
-	const months: DateMonth[] = [];
-
+/** The months a calendar of the open dates shows: the first one, and how many in a row. */
+export function calendarMonths(dates: readonly string[]): { first: Date; count: number } | null {
 	// "YYYY-MM-DD" days sort as text.
-	for (const date of [...dates].sort((a, b) => a.localeCompare(b))) {
-		const day = calendarDay(date);
-		const key = date.slice(0, 7);
-		let month = months.at(-1);
-		if (month?.key !== key) {
-			month = { key, label: capitalize(format(day, "LLLL", { locale: nb })), weeks: [] };
-			months.push(month);
-		}
-
-		const week = format(day, "I");
-		let group = month.weeks.at(-1);
-		if (group?.week !== week) {
-			group = { week, days: [] };
-			month.weeks.push(group);
-		}
-		group.days.push(date);
-	}
-
-	return months;
+	const sorted = [...dates].sort((a, b) => a.localeCompare(b));
+	const [earliest, latest] = [sorted[0], sorted.at(-1)];
+	if (!earliest || !latest) return null;
+	const first = startOfMonth(calendarDay(earliest));
+	return { first, count: differenceInCalendarMonths(calendarDay(latest), first) + 1 };
 }
 
 /** «Tir» and «26.», the two parts of a date cell. */
@@ -58,11 +43,6 @@ export function dateCellParts(date: string): { weekday: string; day: string } {
 		weekday: capitalize(withoutDot(format(day, "EEE", { locale: nb }))),
 		day: format(day, "d.", { locale: nb }),
 	};
-}
-
-/** Whether the date is a Tuesday, so it goes in the left column of the week. */
-export function isTuesdayDate(date: string): boolean {
-	return calendarDay(date).getDay() === 2;
 }
 
 /** «4. desember», a deadline in a sentence. */
@@ -91,32 +71,9 @@ export function compactDateList(dates: readonly string[]): string {
 	return `${parts.slice(0, -1).join(", ")} og ${parts.at(-1)}`;
 }
 
-/** «924 773 189», an organization number the way brreg writes it. */
-export function formatOrgNumber(orgNumber: string): string {
-	return orgNumber.replace(/^(\d{3})(\d{3})(\d{3})$/, "$1 $2 $3");
-}
-
 /** «25–40» or «40». */
 export function studentRange(min: number, max: number): string {
 	return min === max ? String(max) : `${min}–${max}`;
-}
-
-const LOWERCASE_PLACE_WORDS = new Set(["i", "på", "og"]);
-
-/** A place name from Enhetsregisteret («MO I RANA») the way people write it («Mo i Rana»). */
-export function placeName(city: string): string {
-	return city
-		.toLocaleLowerCase("nb")
-		.split(" ")
-		.map((word, index) =>
-			index > 0 && LOWERCASE_PLACE_WORDS.has(word)
-				? word
-				: word.replace(
-						/(^|-)(\p{L})/gu,
-						(_, dash: string, letter: string) => dash + letter.toLocaleUpperCase("nb"),
-					),
-		)
-		.join(" ");
 }
 
 /** The invoice answer on the receipt: the email, the free text and EHF, each on its own line. */
@@ -130,12 +87,6 @@ export function billingLines(billing: {
 		billing.details,
 		billing.ehfInvoice ? "Faktura som EHF" : undefined,
 	].filter((line): line is string => Boolean(line));
-}
-
-export function hitMeta(hit: RegistryHit): string {
-	return [formatOrgNumber(hit.orgNumber), hit.organizationForm, hit.city && placeName(hit.city)]
-		.filter(Boolean)
-		.join(" · ");
 }
 
 export function eventTypeDescription(type: EventType, priceOre: number | undefined): string {

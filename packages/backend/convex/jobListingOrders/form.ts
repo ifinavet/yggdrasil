@@ -4,8 +4,6 @@ import { findCompanyLogoUrl } from "../companies/helper";
 import { volumeTier } from "../products/schema";
 import { orderRateLimiter } from "./rateLimits";
 
-const COMPANY_LIST_LIMIT = 500;
-
 export async function findListingProduct(ctx: QueryCtx) {
 	const active = await ctx.db
 		.query("products")
@@ -16,17 +14,6 @@ export async function findListingProduct(ctx: QueryCtx) {
 		null
 	);
 }
-
-export const companies = query({
-	args: {},
-	returns: v.array(v.object({ _id: v.id("companies"), name: v.string() })),
-	handler: async (ctx) => {
-		const rows = await ctx.db.query("companies").take(COMPANY_LIST_LIMIT);
-		return rows
-			.map(({ _id, name }) => ({ _id, name }))
-			.sort((a, b) => a.name.localeCompare(b.name, "nb"));
-	},
-});
 
 export const companyCard = query({
 	args: { companyId: v.id("companies") },
