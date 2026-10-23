@@ -60,7 +60,7 @@ const ALLOWED_URI_REGEXP = /^(?:(?:https?|mailto|tel):|[^a-z]|[a-z+.-]+(?:[^a-z+
 
 DOMPurify.addHook("afterSanitizeAttributes", (node) => {
 	if (node.tagName === "A" && node.hasAttribute("target")) {
-		node.setAttribute("rel", "noopener noreferrer");
+		node.setAttribute("rel", "noopener noreferrer nofollow");
 	}
 });
 

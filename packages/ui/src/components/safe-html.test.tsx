@@ -14,7 +14,13 @@ describe("sanitizeHtml", () => {
 		const out = sanitizeHtml('<a href="https://ifinavet.no" target="_blank" rel="x">l</a>');
 		expect(out).toContain('href="https://ifinavet.no"');
 		expect(out).toContain('target="_blank"');
-		expect(out).toContain('rel="noopener noreferrer"');
+		expect(out).toContain('rel="noopener noreferrer nofollow"');
+	});
+
+	it("keeps editor output unchanged", () => {
+		const html =
+			'<h2>Tittel</h2><h3>Undertittel</h3><p>Tekst med <strong>fet</strong>, <em>kursiv</em>, <u>understreket</u>, <s>strøket</s> og <code>kode</code><br>ny linje</p><ul><li><p>en</p></li></ul><ol><li><p>to</p></li></ol><blockquote><p>sitat</p></blockquote><pre><code>kode</code></pre><hr><p><a target="_blank" rel="noopener noreferrer nofollow" href="https://ifinavet.no">lenke</a></p>';
+		expect(sanitizeHtml(html)).toContain(html);
 	});
 
 	it("keeps mailto and tel links", () => {
