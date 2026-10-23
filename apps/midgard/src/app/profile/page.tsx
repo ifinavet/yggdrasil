@@ -33,7 +33,7 @@ export default async function ProfilePage() {
 	if (!preloadStudent) {
 		return (
 			<ResponsiveCenterContainer>
-				<Title>Din Profil</Title>
+				<Title>Din profil</Title>
 				<p>Studentprofilen din er ikke klar ennå. Prøv å laste siden på nytt om litt.</p>
 			</ResponsiveCenterContainer>
 		);
@@ -41,12 +41,9 @@ export default async function ProfilePage() {
 
 	return (
 		<ResponsiveCenterContainer>
-			<Title>Din Profil</Title>
-			<div className="grid max-w-full gap-6 align-top lg:grid-cols-2">
+			<Title>Din profil</Title>
+			<div className="grid max-w-full grid-cols-1 gap-6 align-top lg:grid-cols-2">
 				<div>
-					<h2 className="scroll-m-20 border-b pb-2 font-semibold text-3xl text-primary tracking-tight first:mt-0 dark:text-primary-foreground">
-						Din profil
-					</h2>
 					<Suspense>
 						<UpdateProfileForm preloadedStudent={preloadStudent} className="mt-4" />
 					</Suspense>
