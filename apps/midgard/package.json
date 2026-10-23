@@ -31,7 +31,6 @@
 		"radix-ui": "catalog:",
 		"react": "catalog:",
 		"react-dom": "catalog:",
-		"sanitize-html": "^2.18.0",
 		"sonner": "catalog:",
 		"zod": "catalog:"
 	},
@@ -42,7 +41,6 @@
 		"@types/node": "catalog:",
 		"@types/react": "catalog:",
 		"@types/react-dom": "catalog:",
-		"@types/sanitize-html": "^2.16.2",
 		"@workspace/typescript-config": "workspace:*",
 		"tailwindcss": "catalog:",
 		"typescript": "catalog:",
