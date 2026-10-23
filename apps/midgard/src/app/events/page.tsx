@@ -47,7 +47,7 @@ export default async function EventsPage() {
 	return (
 		<div className="relative h-full">
 			<div
-				className="pointer-events-none absolute inset-0 bg-[url(/Ns.svg)] bg-center bg-cover dark:opacity-30"
+				className="mask-t-from-85% pointer-events-none absolute inset-0 bg-[url(/Ns.svg)] bg-center bg-cover dark:opacity-30"
 				aria-hidden="true"
 			/>
 			<div className="relative z-10 grid gap-4">
