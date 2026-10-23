@@ -153,18 +153,19 @@ async function addCompanyToListings(ctx: QueryCtx, listings: Doc<"jobListings">[
 /**
  * Fetches a job listing by id with its contacts.
  *
- * @param {Id<"jobListings">} id - The id of the listing to fetch.
+ * @param {string} id - The id of the listing to fetch, as it appears in the URL.
  *
- * @throws - An error if the listing cannot be found.
+ * @throws - An error if the id is malformed or the listing cannot be found.
  * @returns {Doc<"jobListings"> & { contacts: Array<{ id: Id<"jobListingContacts">, name: string, email?: string, phone?: string }> }} - The listing with contact data.
  */
 export const getById = query({
 	args: {
-		id: v.id("jobListings"),
+		id: v.string(),
 	},
-	handler: async (ctx, { id }) => {
-		const listing = await ctx.db.get(id);
-		if (!listing) {
+	handler: async (ctx, args) => {
+		const id = ctx.db.normalizeId("jobListings", args.id);
+		const listing = id ? await ctx.db.get(id) : null;
+		if (!id || !listing) {
 			throw new ConvexError("Stillingsannonsen ble ikke funnet.");
 		}
 

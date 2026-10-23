@@ -104,21 +104,22 @@ export const getEventRegistrationSummary = query({
 /**
  * Fetches a registration by id.
  *
- * @param {Id<"registrations">} id - The id of the registration to fetch.
+ * @param {string} id - The id of the registration to fetch, as it appears in the URL.
  *
- * @throws - An error if the registration does not exist.
+ * @throws - An error if the id is malformed or the registration does not exist.
  * @returns {Doc<"registrations">} - The matching registration document.
  */
 export const getById = query({
 	args: {
-		id: v.id("registrations"),
+		id: v.string(),
 	},
-	handler: async (ctx, { id }) => {
+	handler: async (ctx, args) => {
 		const user = await getCurrentUserOrThrow(ctx);
 
-		const registration = await ctx.db.get(id);
+		const id = ctx.db.normalizeId("registrations", args.id);
+		const registration = id ? await ctx.db.get(id) : null;
 		if (!registration) {
-			throw new ConvexError(`Registrering med ID ${id} ikke funnet.`);
+			throw new ConvexError(`Registrering med ID ${args.id} ikke funnet.`);
 		}
 
 		const isOwner = registration.userId === user._id;
