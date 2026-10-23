@@ -1,6 +1,7 @@
 "use client";
 
 import type { api } from "@workspace/backend/convex/api";
+import { formatOrgNumber } from "@workspace/shared/semester/orgNumber";
 import { Button } from "@workspace/ui/components/button";
 import {
 	Card,
@@ -46,7 +47,7 @@ export default function UpdateMainSponsor({
 							)}
 						</CardContent>
 						<CardFooter>
-							<p>Org. nr: {mainSponsor.orgNumber ?? "N/A"}</p>
+							<p>Org. nr: {formatOrgNumber(String(mainSponsor.orgNumber))}</p>
 						</CardFooter>
 					</Card>
 				</Link>

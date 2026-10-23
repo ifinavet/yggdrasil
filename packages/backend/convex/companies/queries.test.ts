@@ -46,6 +46,20 @@ describe("company list queries", () => {
 		expect(urls.get(orphanId)).toBeNull();
 	});
 
+	it("lists the companies to pick from by name, with their organization numbers", async () => {
+		const { t, companyId, orphanId } = await setupWithOrphanedLogo();
+		const before = await t.query(api.companies.queries.getById, { id: companyId });
+
+		const options = await t.query(api.companies.queries.pickerOptions, {});
+
+		expect(options).toEqual(
+			[
+				{ _id: companyId, name: before.name, orgNumber: before.orgNumber },
+				{ _id: orphanId, name: "Uten logo", orgNumber: 987654321 },
+			].sort((a, b) => a.name.localeCompare(b.name, "nb")),
+		);
+	});
+
 	it("returns every company with its logo URL for searching", async () => {
 		const { t, companyId, orphanId } = await setupWithOrphanedLogo();
 

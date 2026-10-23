@@ -1,4 +1,5 @@
 export { fromBase64, toBase64 } from "./base";
+export { capitalize } from "./capitalize";
 export { convexErrorMessage, isMissingDocumentError } from "./convex-error";
 export { humanReadableDate, humanReadableDateTime, humanReadableTime } from "./dateFormatting";
 export { nameKey } from "./name-key";

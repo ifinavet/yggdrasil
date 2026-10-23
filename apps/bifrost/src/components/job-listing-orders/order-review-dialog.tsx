@@ -8,6 +8,7 @@ import {
 	REJECTION_MAX_LENGTH,
 } from "@workspace/shared/job-listing-orders";
 import { formatNokFromOre } from "@workspace/shared/products";
+import { formatOrgNumber } from "@workspace/shared/semester/orgNumber";
 import { convexErrorMessage } from "@workspace/shared/utils";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
@@ -110,7 +111,9 @@ function OrderReview({
 				{order.ehfInvoice && <Detail label="EHF-faktura">Ja</Detail>}
 				{order.company && order.isNewCompany && (
 					<Detail label="Organisasjonsnummer">
-						{[order.company.orgNumber, order.company.registryName].filter(Boolean).join(", ")}
+						{[formatOrgNumber(order.company.orgNumber), order.company.registryName]
+							.filter(Boolean)
+							.join(", ")}
 					</Detail>
 				)}
 				<Detail label="Antall annonser">{order.quantity}</Detail>

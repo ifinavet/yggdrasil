@@ -1,5 +1,6 @@
 import { semesterName } from "@workspace/shared/semester/labels";
 import { formatSemesterDay, osloToday, termOfDay } from "@workspace/shared/time";
+import { capitalize } from "@workspace/shared/utils";
 import { dateCellParts, dayAndMonth } from "./company-application-format";
 
 // Date and semester labels for the offer page.
@@ -12,8 +13,7 @@ const OSLO_TIME = new Intl.DateTimeFormat("nb-NO", {
 
 /** «Tirsdag 9. februar 2027», for the offered day as a heading. */
 export function offerDayHeading(date: string): string {
-	const long = formatSemesterDay(date, "long");
-	return long.charAt(0).toUpperCase() + long.slice(1);
+	return capitalize(formatSemesterDay(date, "long"));
 }
 
 /** «Tir 2. februar», for a date the company can pick instead. */

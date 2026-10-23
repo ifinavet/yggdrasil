@@ -1,10 +1,11 @@
 import { EVENT_TYPE_SHORT_LABELS } from "@workspace/shared/semester/labels";
+import { formatOrgNumber } from "@workspace/shared/semester/orgNumber";
 import { CompanyLogo } from "@workspace/ui/components/company-logo";
 import { cn } from "@workspace/ui/lib/utils";
 import { Lock } from "lucide-react";
 import { Fragment } from "react";
 import { LIST_HEAD } from "@/components/common/table-classes";
-import { formatOrgNumber, monthLabel } from "../format";
+import { monthLabel } from "../format";
 import type { PlanDay } from "./plan-days";
 import {
 	CompanyName,

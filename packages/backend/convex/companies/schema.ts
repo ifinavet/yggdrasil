@@ -19,6 +19,7 @@ export const companiesSchema = {
 		billing: v.optional(companyBilling),
 	})
 		.index("by_orgNumber", ["orgNumber"])
+		.index("by_name", ["name"])
 		.searchIndex("search_name", {
 			searchField: "name",
 		}),

@@ -13,7 +13,6 @@ export function CheckEmailScreen({
 	const resend = useAction(api.semesterPlanning.applications.submit.resendConfirmation);
 	return (
 		<EmailCheckScreen
-			email={email}
 			body={COPY.checkEmail.body(email)}
 			onResend={() => resend({ submissionId })}
 		/>

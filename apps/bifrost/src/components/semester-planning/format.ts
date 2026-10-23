@@ -1,4 +1,5 @@
 import { formatOsloDate, formatSemesterDay } from "@workspace/shared/time";
+import { capitalize } from "@workspace/shared/utils";
 
 // How semester planning writes days, moments and numbers. A semester day is an Oslo "YYYY-MM-DD"
 // string; a moment (sent, answered, logged) is epoch milliseconds, shown in Oslo time whatever the
@@ -21,10 +22,6 @@ export function formatMoment(epoch: number, style: keyof typeof MOMENT_STYLES): 
 	return formatOsloDate(epoch, MOMENT_STYLES[style]).replace(/\.(?=,|$)/, "");
 }
 
-export function capitalize(text: string): string {
-	return text.charAt(0).toUpperCase() + text.slice(1);
-}
-
 /** A semester day in a sentence: «tir 9. feb». */
 export function shortDay(date: string): string {
 	return formatSemesterDay(date, "short").replace(/\.$/, "");
@@ -43,11 +40,6 @@ export function longDay(date: string): string {
 /** «16–40», or «40» when the company gave one number. */
 export function studentRange(min: number, max: number): string {
 	return min === max ? String(max) : `${min}–${max}`;
-}
-
-/** «924 773 189» */
-export function formatOrgNumber(orgNumber: string): string {
-	return orgNumber.replace(/\D/g, "").replace(/(\d{3})(?=\d)/g, "$1 ");
 }
 
 const OR_LIST = new Intl.ListFormat("nb-NO", { type: "disjunction" });
