@@ -8,9 +8,18 @@ import {
 	BreadcrumbSeparator,
 } from "@workspace/ui/components//breadcrumb";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 import NewResourceForm from "./new-resource-form";
 
-export default async function NewResourcePage() {
+export default function NewResourcePage() {
+	return (
+		<Suspense fallback={null}>
+			<NewResource />
+		</Suspense>
+	);
+}
+
+async function NewResource() {
 	if (!(await hasEditRights())) redirect("/");
 
 	return (

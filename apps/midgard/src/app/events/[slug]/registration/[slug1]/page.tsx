@@ -8,15 +8,24 @@ import { Title } from "@workspace/ui/components/title";
 import { fetchQuery } from "convex/nextjs";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 import { notFoundOnConvexError } from "@/lib/notFoundOnConvexError";
 import { withRedirect } from "@/utils/auth-redirect";
 import Register from "./register";
 
-export default async function RegistrationPage({
-	params,
-}: Readonly<{
+type Props = Readonly<{
 	params: Promise<{ slug: Id<"events">; slug1: Id<"registrations"> }>;
-}>) {
+}>;
+
+export default function RegistrationPage(props: Props) {
+	return (
+		<Suspense fallback={null}>
+			<Registration {...props} />
+		</Suspense>
+	);
+}
+
+async function Registration({ params }: Props) {
 	const { isAuthenticated } = await auth();
 	const { slug: eventId, slug1: registrationId } = await params;
 
@@ -39,7 +48,9 @@ export default async function RegistrationPage({
 				Arrangement: {event.title} den {humanReadableDate(new Date(event.eventStart))}
 			</h2>
 
-			<RegistrationStatusHandler registrationId={registrationId} eventId={eventId} />
+			<Suspense fallback={null}>
+				<RegistrationStatusHandler registrationId={registrationId} eventId={eventId} />
+			</Suspense>
 		</ResponsiveCenterContainer>
 	);
 }

@@ -2,13 +2,23 @@ import { getAuthToken } from "@workspace/auth";
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { preloadQuery } from "convex/nextjs";
+import { Suspense } from "react";
+import RegistrationsLoading from "../loading";
 import { Registrations } from "./registrations";
 
-export default async function registrations(
-	props: Readonly<{
-		params: Promise<{ slug: Id<"events"> }>;
-	}>,
-) {
+type Props = Readonly<{
+	params: Promise<{ slug: Id<"events"> }>;
+}>;
+
+export default function RegistrationsPage(props: Props) {
+	return (
+		<Suspense fallback={<RegistrationsLoading />}>
+			<EventRegistrations {...props} />
+		</Suspense>
+	);
+}
+
+async function EventRegistrations(props: Props) {
 	const { slug } = await props.params;
 
 	const token = await getAuthToken();

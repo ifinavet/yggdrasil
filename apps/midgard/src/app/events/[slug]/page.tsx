@@ -8,10 +8,11 @@ import { Title } from "@workspace/ui/components/title";
 import { fetchQuery, preloadedQueryResult, preloadQuery } from "convex/nextjs";
 import type { Metadata } from "next";
 import Image from "next/image";
-import { cache } from "react";
+import { cache, Suspense } from "react";
 import ContainerCard from "@/components/cards/container-card";
 import LargeUserCard from "@/components/cards/large-user";
 import { EventMetadata } from "@/components/events/event-metadata";
+import TwoColumnsLoading from "@/components/loaders/two-columns-loading";
 import { notFoundOnConvexError } from "@/lib/notFoundOnConvexError";
 
 const loadAuthToken = cache(getAuthToken);
@@ -52,11 +53,25 @@ export async function generateMetadata({
 	};
 }
 
-export default async function EventPage({
-	params,
-}: Readonly<{
+type Props = Readonly<{
 	params: Promise<{ slug: string }>;
-}>) {
+}>;
+
+export default function EventPage(props: Props) {
+	return (
+		<Suspense
+			fallback={
+				<ResponsiveCenterContainer>
+					<TwoColumnsLoading />
+				</ResponsiveCenterContainer>
+			}
+		>
+			<Event {...props} />
+		</Suspense>
+	);
+}
+
+async function Event({ params }: Props) {
 	const { slug: identifier } = await params;
 
 	const token = await loadAuthToken();
