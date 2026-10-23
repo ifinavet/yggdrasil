@@ -89,11 +89,11 @@ export default function RegisterForm({
 				<DialogHeader>
 					<DialogTitle>Meld meg på</DialogTitle>
 					<DialogDescription className="">
-						Meld deg på bedriftspresentasjonen! Dersom du har noen algerier eller andre ting vi
-						burde vite om, ber vi deg vennligst oppi dem nå.{" "}
+						Meld deg på arrangementet! Har du allergier eller andre ting vi bør vite om, kan du
+						skrive det inn her.{" "}
 						<span className="font-bold">
-							NB! Dersom du melder deg på sent, eller blir flyttet fra ventelisten sent, så er det
-							ikke sikker at vi kan ta hensyn til allergener.
+							NB! Dersom du melder deg på sent, eller blir flyttet fra ventelisten sent, er det ikke
+							sikkert at vi kan ta hensyn til allergier.
 						</span>
 					</DialogDescription>
 				</DialogHeader>
@@ -135,7 +135,7 @@ export default function RegisterForm({
 						<Button variant="outline">Avbryt</Button>
 					</DialogClose>
 					<Button type="submit" className="text-primary-foreground" form="registration-form">
-						Meld meg på {waitlist && "ventelisten"}!
+						{waitlist ? "Meld meg på ventelisten!" : "Meld meg på!"}
 					</Button>
 				</DialogFooter>
 			</DialogContent>
