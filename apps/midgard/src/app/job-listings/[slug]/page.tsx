@@ -3,11 +3,11 @@ import type { Id } from "@workspace/backend/convex/dataModel";
 import { humanReadableDateTime } from "@workspace/shared/time";
 import { Button } from "@workspace/ui/components/button";
 import ResponsiveCenterContainer from "@workspace/ui/components/responsive-center-container";
+import { SafeHtml } from "@workspace/ui/components/safe-html";
 import { Title } from "@workspace/ui/components/title";
 import { fetchQuery } from "convex/nextjs";
 import { BriefcaseBusiness, CalendarDays } from "lucide-react";
 import Image from "next/image";
-import SanitizeHtml from "@/components/common/sanitize-html";
 import { notFoundOnConvexError } from "@/lib/notFoundOnConvexError";
 
 export default async function JobListingPage({
@@ -55,7 +55,7 @@ export default async function JobListingPage({
 						<h1 className="scroll-m-20 text-balance pb-2 font-bold text-3xl tracking-normal">
 							{listing.teaser}
 						</h1>
-						<SanitizeHtml html={listing.description} className="prose dark:prose-invert" />
+						<SafeHtml html={listing.description} className="prose dark:prose-invert" />
 					</div>
 				</main>
 				<aside className="flex flex-col gap-8 md:col-span-2">
@@ -75,7 +75,7 @@ export default async function JobListingPage({
 							</div>
 						</div>
 						<div className="rounded-b-xl bg-zinc-100 px-8 pb-8 dark:bg-zinc-800">
-							<SanitizeHtml html={company.description} className="prose-lg dark:prose-invert" />
+							<SafeHtml html={company.description} className="prose-lg dark:prose-invert" />
 						</div>
 					</div>
 					<div className="grid grid-cols-1 gap-4">

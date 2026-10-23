@@ -1,11 +1,11 @@
 import { api } from "@workspace/backend/convex/api";
 import { Button } from "@workspace/ui/components/button";
+import { SafeHtml } from "@workspace/ui/components/safe-html";
 import { cn } from "@workspace/ui/lib/utils";
 import { fetchQuery } from "convex/nextjs";
 import { cacheLife } from "next/cache";
 import Image from "next/image";
 import Link from "next/link";
-import SafeHtml from "../common/sanitize-html";
 
 export default async function MainSponsorCard({ className }: Readonly<{ className?: string }>) {
 	"use cache";
