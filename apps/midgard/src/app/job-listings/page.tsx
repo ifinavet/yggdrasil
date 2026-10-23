@@ -7,6 +7,7 @@ import { headers } from "next/headers";
 import JobListingBanner from "@/components/job-listings/job-listing-banner";
 import JobListingCard from "@/components/job-listings/job-listing-card";
 import FilterJobListings from "@/components/job-listings/job-listings-filter";
+import { jobListingsEmptyMessage } from "@/lib/job-listings-empty-message";
 
 export const metadata: Metadata = {
 	title: "Stillingsannonser",
@@ -36,19 +37,25 @@ export default async function JobListingsPage() {
 			<Title className="mx-auto max-w-6xl">Stillingsannonser</Title>
 			<div className="flex w-full max-w-[1300px] flex-col gap-4 sm:mx-auto md:flex-row">
 				<FilterJobListings companies={companies} />
-				<div className="grid w-full min-w-0 grid-cols-1 justify-items-center gap-6 px-6 sm:grid-cols-2 lg:grid-cols-3">
-					{jobListings.map((job) => (
-						<JobListingCard
-							listingId={job._id}
-							type={job.type}
-							teaser={job.teaser}
-							companyName={job.companyName}
-							image={job.companyLogo}
-							title={job.title}
-							key={job._id}
-						/>
-					))}
-				</div>
+				{jobListings.length === 0 ? (
+					<p className="w-full px-6 text-muted-foreground">
+						{jobListingsEmptyMessage(Boolean(listingType || company))}
+					</p>
+				) : (
+					<div className="grid w-full min-w-0 grid-cols-1 justify-items-center gap-6 px-6 sm:grid-cols-2 lg:grid-cols-3">
+						{jobListings.map((job) => (
+							<JobListingCard
+								listingId={job._id}
+								type={job.type}
+								teaser={job.teaser}
+								companyName={job.companyName}
+								image={job.companyLogo}
+								title={job.title}
+								key={job._id}
+							/>
+						))}
+					</div>
+				)}
 			</div>
 			<JobListingBanner className="mt-12" />
 		</div>
