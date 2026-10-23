@@ -103,11 +103,11 @@ async function CompaniesContent({ applyCard }: Readonly<{ applyCard: ReactNode }
 						/>
 						<ContainerCard className="h-fit bg-primary-light">
 							<h2 className="scroll-m-10 pb-2 font-semibold text-3xl tracking-tight first:mt-0">
-								Stillingsanonnser
+								Stillingsannonser
 							</h2>
 							<p className="leading-7">
 								Navet tilbyr publisering av stillingsannonser på våre hjemmesider. Dette gjelder
-								både interships, deltid-, og fulltidsstillinger. Ved forespørsel om annonser for
+								både internships, deltids- og fulltidsstillinger. Ved forespørsel om annonser for
 								sommerjobb er det viktig at de følger{" "}
 								<a
 									href="https://drive.google.com/file/d/181KxygLZzqqjqgDr3GZY5Lxac7ZKMWVs/view?usp=sharing"
@@ -126,7 +126,7 @@ async function CompaniesContent({ applyCard }: Readonly<{ applyCard: ReactNode }
 									target="_blank"
 									className="hover:cursor underline"
 								>
-									Navet's retningslinjer.
+									Navets retningslinjer.
 								</a>{" "}
 								Stillingsannonser må inneholde en søknadsfrist og stillingen må være relatert til
 								informatikk. Nye annonser publiseres ukentlig. Følg linken for å opprette

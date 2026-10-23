@@ -113,21 +113,23 @@ export default function FilterJobListings({
 				</RadioGroup>
 			</div>
 
-			<div className="space-y-2">
-				<p className="text-muted-foreground text-sm">Utlysende bedrift</p>
-				<RadioGroup
-					key={companyKey}
-					{...(currentCompany ? { value: currentCompany } : {})}
-					onValueChange={(v: string) => setQueryParams({ company: v })}
-				>
-					{companies.map((c) => (
-						<div className="flex items-center space-x-2" key={c.id}>
-							<RadioGroupItem value={c.id} id={`comp-${c.id}`} />
-							<Label htmlFor={`comp-${c.id}`}>{c.name}</Label>
-						</div>
-					))}
-				</RadioGroup>
-			</div>
+			{companies.length > 0 && (
+				<div className="space-y-2">
+					<p className="text-muted-foreground text-sm">Utlysende bedrift</p>
+					<RadioGroup
+						key={companyKey}
+						{...(currentCompany ? { value: currentCompany } : {})}
+						onValueChange={(v: string) => setQueryParams({ company: v })}
+					>
+						{companies.map((c) => (
+							<div className="flex items-center space-x-2" key={c.id}>
+								<RadioGroupItem value={c.id} id={`comp-${c.id}`} />
+								<Label htmlFor={`comp-${c.id}`}>{c.name}</Label>
+							</div>
+						))}
+					</RadioGroup>
+				</div>
+			)}
 
 			<div className="pt-2">
 				<Button
