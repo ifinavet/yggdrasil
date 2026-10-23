@@ -15,7 +15,15 @@ export const metadata: Metadata = {
 	title: "Profil",
 };
 
-export default async function ProfilePage() {
+export default function ProfilePage() {
+	return (
+		<Suspense fallback={null}>
+			<Profile />
+		</Suspense>
+	);
+}
+
+async function Profile() {
 	const { userId, redirectToSignIn } = await auth();
 	const token = await getAuthToken();
 

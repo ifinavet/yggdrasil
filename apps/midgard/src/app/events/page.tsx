@@ -8,6 +8,7 @@ import {
 import { fetchQuery } from "convex/nextjs";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
+import { Suspense } from "react";
 import EventsList from "@/components/events/events-list";
 import MonthSelector from "@/components/events/month-selector";
 import { nextEventMonth, splitUpcomingPast } from "@/lib/events-feed";
@@ -16,7 +17,15 @@ export const metadata: Metadata = {
 	title: "Arrangementer",
 };
 
-export default async function EventsPage() {
+export default function EventsPage() {
+	return (
+		<Suspense fallback={null}>
+			<Events />
+		</Suspense>
+	);
+}
+
+async function Events() {
 	const pathname = (await headers()).get("x-searchParams");
 	let searchParams: URLSearchParams | undefined;
 	if (pathname) searchParams = new URLSearchParams(pathname);

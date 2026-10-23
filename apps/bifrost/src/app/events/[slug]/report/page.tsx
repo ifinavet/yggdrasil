@@ -2,14 +2,21 @@ import { getAuthToken } from "@workspace/auth";
 import { api } from "@workspace/backend/convex/api";
 import { fromBase64, toVariableName } from "@workspace/shared/utils";
 import { fetchQuery, preloadQuery } from "convex/nextjs";
+import { Suspense } from "react";
 import DegreeChart from "@/components/events/report/cards/degree-chart";
 import ProgramsChart from "@/components/events/report/cards/programs-chart";
 import DegreeTables from "@/components/events/report/table";
 import { EventFeedbackPanel } from "@/components/feedback/event-feedback-panel";
 
-export default async function RapportPage({
-	params,
-}: Readonly<{ params: Promise<{ slug: string }> }>) {
+export default function RapportPage(props: Readonly<{ params: Promise<{ slug: string }> }>) {
+	return (
+		<Suspense fallback={null}>
+			<Report {...props} />
+		</Suspense>
+	);
+}
+
+async function Report({ params }: Readonly<{ params: Promise<{ slug: string }> }>) {
 	const { slug } = await params;
 
 	const token = await getAuthToken();
