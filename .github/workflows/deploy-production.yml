@@ -1,12 +1,17 @@
 name: Deploy production
 
 on:
-  push:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
     branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
+
+env:
+  DEPLOY_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
 
 # Keep the backend and all three frontends in the same release.
 concurrency:
@@ -15,7 +20,14 @@ concurrency:
 
 jobs:
   backend:
-    if: github.repository == 'ifinavet/yggdrasil' && github.ref == 'refs/heads/main'
+    if: >-
+      github.repository == 'ifinavet/yggdrasil' && (
+        (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+        (github.event_name == 'workflow_run' &&
+          github.event.workflow_run.conclusion == 'success' &&
+          github.event.workflow_run.event == 'push' &&
+          github.event.workflow_run.head_branch == 'main')
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 20
     outputs:
@@ -49,7 +61,7 @@ jobs:
       - name: Reject superseded releases
         run: |
           git fetch origin main --depth=1
-          test "$(git rev-parse FETCH_HEAD)" = "$GITHUB_SHA" || {
+          test "$(git rev-parse FETCH_HEAD)" = "$DEPLOY_SHA" && test "$(git rev-parse HEAD)" = "$DEPLOY_SHA" || {
             echo "::error::This commit is no longer main. Run the latest release instead."
             exit 1
           }
@@ -90,7 +102,7 @@ jobs:
       - name: Reject superseded releases
         run: |
           git fetch origin main --depth=1
-          test "$(git rev-parse FETCH_HEAD)" = "$GITHUB_SHA" || {
+          test "$(git rev-parse FETCH_HEAD)" = "$DEPLOY_SHA" && test "$(git rev-parse HEAD)" = "$DEPLOY_SHA" || {
             echo "::error::This commit is no longer main. Run the latest release instead."
             exit 1
           }
