@@ -99,6 +99,7 @@ export default function ProgramsChart({
 					<PieChart>
 						<ChartTooltip content={<ChartTooltipContent />} />
 						<ChartLegend
+							itemSorter={null}
 							content={
 								<ChartLegendContent
 									nameKey="value"
