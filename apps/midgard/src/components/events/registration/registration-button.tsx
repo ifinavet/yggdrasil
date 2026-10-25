@@ -40,7 +40,7 @@ export default function RegistrationButton({
 		return (
 			<Button
 				type="button"
-				className="w-1/2 rounded-xl bg-zinc-800 py-8 text-lg text-primary-foreground hover:cursor-pointer hover:bg-zinc-700"
+				className="w-3/4 whitespace-normal text-center text-balance rounded-xl bg-zinc-800 py-8 text-lg text-primary-foreground hover:cursor-pointer hover:bg-zinc-700"
 				asChild
 			>
 				<Link
