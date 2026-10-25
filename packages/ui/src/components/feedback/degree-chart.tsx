@@ -59,7 +59,7 @@ export default function ProgramsChart({
 				>
 					<PieChart>
 						<ChartTooltip content={<ChartTooltipContent />} />
-						<ChartLegend content={<ChartLegendContent verticalAlign="top" />} />
+						<ChartLegend content={<ChartLegendContent nameKey="value" verticalAlign="top" />} />
 						<Pie data={chartData} dataKey="num" label nameKey="degree" />
 					</PieChart>
 				</ChartContainer>
