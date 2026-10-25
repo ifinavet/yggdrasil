@@ -3,7 +3,7 @@ import {
 	type ApplicationForm,
 	applicationFormSchema,
 } from "@workspace/shared/semester/application";
-import { confirmEmailFor } from "@workspace/shared/semester/confirm-email";
+import { confirmEmailFor } from "@workspace/shared/semester/company-emails";
 import { EVENT_TITLE_PREFIX } from "@workspace/shared/semester/labels";
 import { formatOrderAlert } from "@workspace/shared/slack/alerts";
 import { SYSTEM_ALERTS_CHANNEL } from "@workspace/shared/slack/channels";
@@ -18,12 +18,7 @@ import {
 	type QueryCtx,
 	query,
 } from "../../_generated/server";
-import {
-	closedLinkStates,
-	confirmationFields,
-	confirmationState,
-	validEmailToken,
-} from "../../lib/emailConfirmation";
+import { closedLinkStates, validEmailToken } from "../../lib/emailConfirmation";
 import { hashLinkToken } from "../../lib/tokens";
 import { logApplicationActivity } from "../applicationLifecycle";
 import { CONSENT_VERSION, FORM_VERSION } from "../rules";
@@ -38,7 +33,8 @@ import { acceptsApplications, listSemesterDates } from "../semesters/helper";
 
 // An application from Hugin is only received once the contact person confirms it from the email:
 // submit stores it as pending and emails a link, and the link turns it into a `companyApplications`
-// row. Until then Navet sees nothing, and an unconfirmed one is deleted when its last link expires.
+// row. Until then Navet sees nothing. The links do not expire, so a company can confirm at any time
+// while the semester still takes its dates.
 
 export function parseApplicationForm(form: unknown): ApplicationForm {
 	const result = applicationFormSchema.safeParse(form);
@@ -71,19 +67,14 @@ async function refusal(
 	return null;
 }
 
-/** Stores a new emailed link and deletes the application if no link is used before it expires. */
+/** Stores a new emailed link, which works until it is used or replaced. */
 async function addConfirmation(
 	ctx: MutationCtx,
 	pendingId: Id<"pendingCompanyApplications">,
 	token: string,
 ) {
-	const fields = await confirmationFields(token, Date.now());
-	await ctx.db.insert("companyApplicationConfirmations", { pendingId, ...fields });
-	await ctx.scheduler.runAt(
-		fields.expiresAt,
-		internal.semesterPlanning.applications.confirmation.purgeExpired,
-		{ pendingId },
-	);
+	const tokenHash = await hashLinkToken(token);
+	await ctx.db.insert("companyApplicationConfirmations", { pendingId, tokenHash });
 }
 
 const emailTo = v.union(
@@ -163,22 +154,16 @@ export const savePending = internalMutation({
 	},
 });
 
-/** Deletes the emailed links for a pending application, unless `keepUnexpired` and one still works. */
+/** Deletes the emailed links for a pending application. */
 export async function deleteConfirmations(
 	ctx: MutationCtx,
 	pendingId: Id<"pendingCompanyApplications">,
-	keepUnexpired = false,
-): Promise<boolean> {
-	const now = Date.now();
+): Promise<void> {
 	const confirmations = await ctx.db
 		.query("companyApplicationConfirmations")
 		.withIndex("by_pendingId", (q) => q.eq("pendingId", pendingId))
 		.collect();
-	if (keepUnexpired && confirmations.some((confirmation) => confirmation.expiresAt > now)) {
-		return false;
-	}
 	await Promise.all(confirmations.map((confirmation) => ctx.db.delete(confirmation._id)));
-	return true;
 }
 
 /** A new link for an unconfirmed application, or null when there is none to confirm. */
@@ -201,7 +186,7 @@ export const addConfirmationToken = internalMutation({
 	},
 });
 
-async function openLink(ctx: QueryCtx, token: string, now: number) {
+async function openLink(ctx: QueryCtx, token: string) {
 	if (!validEmailToken(token)) return { state: "invalid" as const };
 	const tokenHash = await hashLinkToken(token);
 	const confirmation = await ctx.db
@@ -210,7 +195,6 @@ async function openLink(ctx: QueryCtx, token: string, now: number) {
 		.unique();
 	const pending = confirmation ? await ctx.db.get(confirmation.pendingId) : null;
 	if (!confirmation || !pending) return { state: "invalid" as const };
-	if (confirmationState(confirmation, now) === "expired") return { state: "expired" as const };
 	if (pending.applicationId) return { state: "confirmed" as const, pending };
 	return { state: "pending" as const, confirmation, pending };
 }
@@ -259,7 +243,7 @@ export const link = query({
 	args: { token: v.string() },
 	returns: v.union(v.object({ state: v.literal("pending") }), ...closedLink),
 	handler: async (ctx, { token }) => {
-		const link = await openLink(ctx, token, Date.now());
+		const link = await openLink(ctx, token);
 		if (link.state === "confirmed") {
 			return { state: link.state, receipt: await receiptFor(ctx, link.pending) };
 		}
@@ -277,8 +261,8 @@ export const confirm = mutation({
 	returns: v.union(...closedLink, v.object({ state: v.literal("refused"), message: v.string() })),
 	handler: async (ctx, { token }) => {
 		const now = Date.now();
-		const link = await openLink(ctx, token, now);
-		if (link.state === "expired" || link.state === "invalid") return { state: link.state };
+		const link = await openLink(ctx, token);
+		if (link.state === "invalid") return { state: link.state };
 		if (link.state === "pending") {
 			const { confirmation, pending } = link;
 			const reason = await refusal(
@@ -345,17 +329,3 @@ async function receiveApplication(
 	});
 	return applicationId;
 }
-
-/**
- * Deletes a pending application and its links once the last link has expired. A received application
- * lives on in `companyApplications`; an unconfirmed one was never sent to Navet.
- */
-export const purgeExpired = internalMutation({
-	args: { pendingId: v.id("pendingCompanyApplications") },
-	returns: v.null(),
-	handler: async (ctx, { pendingId }) => {
-		const deleted = await deleteConfirmations(ctx, pendingId, true);
-		if (deleted && (await ctx.db.get(pendingId))) await ctx.db.delete(pendingId);
-		return null;
-	},
-});

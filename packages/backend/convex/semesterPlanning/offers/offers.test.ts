@@ -89,15 +89,36 @@ describe("send", () => {
 			await t.query(internal.semesterPlanning.offers.queries.emailContext, { offerId }),
 		).toEqual({
 			to: application.contact.email,
-			contactName: application.contact.name,
-			date: "2027-02-09",
 			linkToken: token,
+			subject: "Tilbud om bedriftsarrangement tirsdag 9. februar 2027",
+			paragraphs: [
+				"Hei Ingrid,",
+				"Takk for søknaden om bedriftsarrangement hos Navet. Vi kan tilby dere tirsdag 9. februar 2027.",
+			],
 		});
 		expect(application.status).toBe("offer_sent");
 		expect((await activityFor(t, applicationId)).at(-1)).toMatchObject({
 			type: "status_changed",
 			toStatus: "offer_sent",
 			offerId: offer?._id,
+		});
+	});
+
+	it("uses the semester's own subject and text, with the details filled in", async () => {
+		const { t, semesterId, applicationId, editor } = await offerSetup();
+		await t.run((ctx) =>
+			ctx.db.patch(semesterId, {
+				offerEmailSubject: "Dato til {bedrift}: {dato}",
+				offerEmailText: "Hei {navn}!\n\nVi har {dato} til {bedrift}.\nHilsen Kari",
+			}),
+		);
+		const { offerId } = await editor.mutation(offers.mutations.sendOffer, { applicationId });
+
+		expect(
+			await t.query(internal.semesterPlanning.offers.queries.emailContext, { offerId }),
+		).toMatchObject({
+			subject: "Dato til FJORDKODE AS: tirsdag 9. februar 2027",
+			paragraphs: ["Hei Ingrid!", "Vi har tirsdag 9. februar 2027 til FJORDKODE AS.\nHilsen Kari"],
 		});
 	});
 

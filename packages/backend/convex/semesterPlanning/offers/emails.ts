@@ -5,12 +5,15 @@ import CompanyOfferEmail from "@workspace/emails/company-offer-email";
 import { HUGIN_LOCAL_URL, HUGIN_URL } from "@workspace/shared/constants";
 import { COMPANY_CONTACT_EMAIL, INFO_EMAIL } from "@workspace/shared/constants/contact";
 import { offerPath } from "@workspace/shared/semester/application";
-import { formatSemesterDay } from "@workspace/shared/time";
 import { v } from "convex/values";
 import { internal } from "../../_generated/api";
 import { internalAction } from "../../_generated/server";
 import { isLocalDevelopment } from "../../auth/local";
 import { orderResend } from "../../jobListingOrders/emails";
+
+export function offerUrl(token: string): string {
+	return new URL(offerPath(token), isLocalDevelopment() ? HUGIN_LOCAL_URL : HUGIN_URL).toString();
+}
 
 export const sendOfferEmail = internalAction({
 	args: { offerId: v.id("companyApplicationOffers") },
@@ -21,23 +24,19 @@ export const sendOfferEmail = internalAction({
 		});
 		if (!offer) return null;
 
-		const url = new URL(
-			offerPath(offer.linkToken),
-			isLocalDevelopment() ? HUGIN_LOCAL_URL : HUGIN_URL,
-		).toString();
+		const url = offerUrl(offer.linkToken);
 		if (isLocalDevelopment()) {
 			console.log(`Tilbudslenke til ${offer.to}: ${url}`);
 			return null;
 		}
 
-		const day = formatSemesterDay(offer.date, "long");
-		const firstName = offer.contactName.split(/\s+/)[0] ?? offer.contactName;
-		const html = await render(CompanyOfferEmail({ firstName, day, url }));
+		const { subject, paragraphs } = offer;
+		const html = await render(CompanyOfferEmail({ subject, paragraphs, url }));
 		await orderResend.sendEmail(ctx, {
 			from: `Navet <${INFO_EMAIL}>`,
 			replyTo: [COMPANY_CONTACT_EMAIL],
 			to: offer.to,
-			subject: `Tilbud om bedriftsarrangement ${day}`,
+			subject,
 			html,
 		});
 		return null;

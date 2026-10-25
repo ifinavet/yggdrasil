@@ -1,4 +1,4 @@
-import { CONFIRM_EMAIL_LIMITS } from "@workspace/shared/semester/confirm-email";
+import { COMPANY_EMAIL_LIMITS } from "@workspace/shared/semester/company-emails";
 import { semesterName } from "@workspace/shared/semester/labels";
 import { MAX_SEMESTER_YEAR, MIN_SEMESTER_YEAR } from "@workspace/shared/semester/limits";
 import {
@@ -142,6 +142,8 @@ export const setRange = mutation({
  * @param {string} [defaultEventStartTime] - When events made from the plan start, as HH:mm.
  * @param {string} [confirmEmailSubject] - The subject of the email with the confirm link.
  * @param {string} [confirmEmailText] - Its text, with {bedrift} for the company's name.
+ * @param {string} [offerEmailSubject] - The subject of the email with the offer.
+ * @param {string} [offerEmailText] - Its text, with {bedrift}, {navn} and {dato}.
  *
  * @throws - An error if the caller is not an editor, a value is invalid, or the semester is closed.
  * @returns {null} - Returns null when the settings are saved.
@@ -156,6 +158,8 @@ export const updateSettings = mutation({
 		defaultEventStartTime: v.optional(v.string()),
 		confirmEmailSubject: v.optional(v.string()),
 		confirmEmailText: v.optional(v.string()),
+		offerEmailSubject: v.optional(v.string()),
+		offerEmailText: v.optional(v.string()),
 	},
 	returns: v.null(),
 	handler: async (
@@ -169,6 +173,8 @@ export const updateSettings = mutation({
 			defaultEventStartTime,
 			confirmEmailSubject,
 			confirmEmailText,
+			offerEmailSubject,
+			offerEmailText,
 		},
 	) => {
 		await requireRole(ctx, editorRoles);
@@ -183,11 +189,15 @@ export const updateSettings = mutation({
 		if (defaultEventStartTime && !isClockTime(defaultEventStartTime)) {
 			throw new ConvexError("Starttiden må være et gyldig klokkeslett (TT:MM).");
 		}
-		if (confirmEmailSubject && confirmEmailSubject.trim().length > CONFIRM_EMAIL_LIMITS.subject) {
-			throw new ConvexError(`Emnet kan ha høyst ${CONFIRM_EMAIL_LIMITS.subject} tegn.`);
+		for (const subject of [confirmEmailSubject, offerEmailSubject]) {
+			if (subject && subject.trim().length > COMPANY_EMAIL_LIMITS.subject) {
+				throw new ConvexError(`Emnet kan ha høyst ${COMPANY_EMAIL_LIMITS.subject} tegn.`);
+			}
 		}
-		if (confirmEmailText && confirmEmailText.trim().length > CONFIRM_EMAIL_LIMITS.text) {
-			throw new ConvexError(`Teksten kan ha høyst ${CONFIRM_EMAIL_LIMITS.text} tegn.`);
+		for (const body of [confirmEmailText, offerEmailText]) {
+			if (body && body.trim().length > COMPANY_EMAIL_LIMITS.text) {
+				throw new ConvexError(`Teksten kan ha høyst ${COMPANY_EMAIL_LIMITS.text} tegn.`);
+			}
 		}
 
 		const text = (value: string | undefined) => (value === "" ? undefined : value);
@@ -205,6 +215,10 @@ export const updateSettings = mutation({
 			...(confirmEmailText !== undefined
 				? { confirmEmailText: text(confirmEmailText.trim()) }
 				: {}),
+			...(offerEmailSubject !== undefined
+				? { offerEmailSubject: text(offerEmailSubject.trim()) }
+				: {}),
+			...(offerEmailText !== undefined ? { offerEmailText: text(offerEmailText.trim()) } : {}),
 		});
 
 		return null;

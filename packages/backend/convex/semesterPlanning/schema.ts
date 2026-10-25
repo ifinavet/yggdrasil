@@ -138,10 +138,12 @@ export const semesterPlanningSchema = {
 		status: applicationPeriodStatus,
 		infoText: v.optional(v.string()),
 		termsUrl: v.optional(v.string()),
-		// The email with the confirm link, written by an editor. Empty means the default text in
-		// packages/shared/semester/confirm-email.ts.
+		// The emails with the confirm link and with the offer, written by an editor. Empty means the
+		// default text in packages/shared/semester/company-emails.ts.
 		confirmEmailSubject: v.optional(v.string()),
 		confirmEmailText: v.optional(v.string()),
+		offerEmailSubject: v.optional(v.string()),
+		offerEmailText: v.optional(v.string()),
 		// When events made from the plan start, as "HH:mm". Set by a human in Bifrost.
 		defaultEventStartTime: v.optional(v.string()),
 		planFinalizedAt: v.optional(v.number()),
@@ -240,8 +242,7 @@ export const semesterPlanningSchema = {
 
 	/**
 	 * An application sent from Hugin and waiting for the contact person to confirm it by email. It
-	 * becomes a `companyApplications` row when the link is used, and is deleted when its last link
-	 * expires.
+	 * becomes a `companyApplications` row when the link is used. The links do not expire.
 	 */
 	pendingCompanyApplications: defineTable({
 		semesterId: v.id("semesters"),
@@ -258,7 +259,8 @@ export const semesterPlanningSchema = {
 	companyApplicationConfirmations: defineTable({
 		pendingId: v.id("pendingCompanyApplications"),
 		tokenHash: v.string(),
-		expiresAt: v.number(),
+		/** Only on links sent while they expired after 24 hours; it is no longer checked. */
+		expiresAt: v.optional(v.number()),
 		usedAt: v.optional(v.number()),
 	})
 		.index("by_tokenHash", ["tokenHash"])

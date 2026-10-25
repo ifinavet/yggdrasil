@@ -1,7 +1,7 @@
 import { compareSemesters, osloToday } from "@workspace/shared/time";
 import { v } from "convex/values";
 import type { Doc } from "../../_generated/dataModel";
-import { type QueryCtx, query } from "../../_generated/server";
+import { internalQuery, type QueryCtx, query } from "../../_generated/server";
 import { internalRoles, requireRole } from "../../auth/accessRights";
 import schema from "../../schema";
 import { semesterTerm } from "../schema";
@@ -112,5 +112,15 @@ export const get = query({
 			dates,
 			finalizedByName: finalizer ? `${finalizer.firstName} ${finalizer.lastName}` : null,
 		};
+	},
+});
+
+/** Lets an action check that the caller may see the semester settings, e.g. an email preview. */
+export const requireInternalMember = internalQuery({
+	args: {},
+	returns: v.null(),
+	handler: async (ctx) => {
+		await requireRole(ctx, internalRoles);
+		return null;
 	},
 });

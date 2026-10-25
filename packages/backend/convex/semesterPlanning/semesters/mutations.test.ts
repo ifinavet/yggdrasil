@@ -321,7 +321,32 @@ describe("updateSettings", () => {
 		expect(semester.confirmEmailText).toBeUndefined();
 	});
 
-	it("copies the confirmation email to the next semester", async () => {
+	it("saves the offer email trimmed, and an empty one goes back to the default", async () => {
+		const { t } = await setup();
+		const semesterId = await insertSemester(t, { status: "draft" });
+		const editor = await editorOf(t);
+
+		await editor.mutation(mutations.updateSettings, {
+			semesterId,
+			offerEmailSubject: "  Tilbud {dato} ",
+			offerEmailText: " Hei {navn}! ",
+		});
+		expect(await semesterById(t, semesterId)).toMatchObject({
+			offerEmailSubject: "Tilbud {dato}",
+			offerEmailText: "Hei {navn}!",
+		});
+
+		await editor.mutation(mutations.updateSettings, {
+			semesterId,
+			offerEmailSubject: "",
+			offerEmailText: "",
+		});
+		const semester = await semesterById(t, semesterId);
+		expect(semester.offerEmailSubject).toBeUndefined();
+		expect(semester.offerEmailText).toBeUndefined();
+	});
+
+	it("copies the confirmation and offer emails to the next semester", async () => {
 		const { t } = await setup();
 		await insertSemester(t, {
 			year: 2026,
@@ -329,6 +354,8 @@ describe("updateSettings", () => {
 			status: "closed",
 			confirmEmailSubject: "Emne",
 			confirmEmailText: "Tekst",
+			offerEmailSubject: "Tilbudsemne",
+			offerEmailText: "Tilbudstekst",
 		});
 
 		const semesterId = await (await editorOf(t)).mutation(mutations.create, {
@@ -339,6 +366,8 @@ describe("updateSettings", () => {
 		expect(await semesterById(t, semesterId)).toMatchObject({
 			confirmEmailSubject: "Emne",
 			confirmEmailText: "Tekst",
+			offerEmailSubject: "Tilbudsemne",
+			offerEmailText: "Tilbudstekst",
 		});
 	});
 
@@ -349,6 +378,8 @@ describe("updateSettings", () => {
 		[{ defaultEventStartTime: "25:00" }, "Starttiden må være et gyldig klokkeslett (TT:MM)."],
 		[{ confirmEmailSubject: "x".repeat(151) }, "Emnet kan ha høyst 150 tegn."],
 		[{ confirmEmailText: "x".repeat(3001) }, "Teksten kan ha høyst 3000 tegn."],
+		[{ offerEmailSubject: "x".repeat(151) }, "Emnet kan ha høyst 150 tegn."],
+		[{ offerEmailText: "x".repeat(3001) }, "Teksten kan ha høyst 3000 tegn."],
 	])("refuses %o", async (settings, expected) => {
 		const { t } = await setup();
 		const semesterId = await insertSemester(t, { status: "draft" });

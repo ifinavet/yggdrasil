@@ -604,34 +604,21 @@ describe("confirmation by email", () => {
 		]);
 	});
 
-	it("answers expired after a day and deletes the unconfirmed application", async () => {
+	it("keeps the link working long after it was sent", async () => {
 		vi.useFakeTimers();
 		const { t } = await setup();
 		await withOpenSemester(t);
 		const { token = "" } = await submitWith(t, { confirm: false });
 
-		vi.advanceTimersByTime(DAY_IN_MS + 1);
-		expect(await t.mutation(confirmation.confirm, { token })).toEqual({ state: "expired" });
-
+		vi.advanceTimersByTime(30 * DAY_IN_MS);
 		await t.finishAllScheduledFunctions(vi.runAllTimers);
-		expect(await pending(t)).toHaveLength(0);
-		expect(await t.run((ctx) => ctx.db.query("companyApplicationConfirmations").collect())).toEqual(
-			[],
-		);
-		expect(await applications(t)).toHaveLength(0);
-	});
+		expect(await pending(t)).toHaveLength(1);
 
-	it("keeps a received application when its links expire", async () => {
-		vi.useFakeTimers();
-		const { t } = await setup();
-		await withOpenSemester(t);
-		await submitWith(t);
-
-		vi.advanceTimersByTime(DAY_IN_MS + 1);
-		await t.finishAllScheduledFunctions(vi.runAllTimers);
-
-		expect(await pending(t)).toHaveLength(0);
+		expect(await t.mutation(confirmation.confirm, { token })).toMatchObject({
+			state: "confirmed",
+		});
 		expect(await applications(t)).toHaveLength(1);
+		expect(await t.query(confirmation.link, { token })).toMatchObject({ state: "confirmed" });
 	});
 
 	it("counts the day it was sent against a hard deadline", async () => {
