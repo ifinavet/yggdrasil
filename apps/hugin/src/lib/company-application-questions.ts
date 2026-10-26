@@ -125,7 +125,7 @@ export const COMPANY_APPLICATION_COPY = {
 		},
 		invalid: {
 			title: "Vi kjenner ikke igjen lenken",
-			body: "Prøv å åpne lenken direkte fra e-posten. Virker den fortsatt ikke, kan dere sende søknaden på nytt.",
+			body: "Har dere fått flere e-poster fra oss, virker bare lenken i den nyeste. Prøv å åpne den direkte fra e-posten. Virker den fortsatt ikke, kan dere sende søknaden på nytt.",
 		},
 		error: {
 			title: "Beklager, noe gikk galt",

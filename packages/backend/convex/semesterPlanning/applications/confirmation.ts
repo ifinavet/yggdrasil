@@ -67,12 +67,26 @@ async function refusal(
 	return null;
 }
 
-/** Stores a new emailed link, which works until it is used or replaced. */
+/**
+ * Stores a new emailed link and replaces the earlier ones: only the newest link confirms, so an old
+ * email does not stay a working link forever. A replaced link still shows the receipt once the
+ * application is received.
+ */
 async function addConfirmation(
 	ctx: MutationCtx,
 	pendingId: Id<"pendingCompanyApplications">,
 	token: string,
 ) {
+	const now = Date.now();
+	const earlier = await ctx.db
+		.query("companyApplicationConfirmations")
+		.withIndex("by_pendingId", (q) => q.eq("pendingId", pendingId))
+		.collect();
+	await Promise.all(
+		earlier
+			.filter((confirmation) => confirmation.replacedAt === undefined)
+			.map((confirmation) => ctx.db.patch(confirmation._id, { replacedAt: now })),
+	);
 	const tokenHash = await hashLinkToken(token);
 	await ctx.db.insert("companyApplicationConfirmations", { pendingId, tokenHash });
 }
@@ -100,8 +114,9 @@ async function emailToOf(
 
 /**
  * Stores a checked application until it is confirmed by email. A repeated submission replaces the
- * answers and gets a new link while it is unconfirmed, and nothing once it is received. When the
- * retry has another contact email, the links sent to the old address stop working.
+ * answers and gets a new link while it is unconfirmed, and nothing once it is received. The new link
+ * replaces the earlier ones. When the retry has another contact email, the links sent to the old
+ * address are deleted, so they do not show the receipt either.
  *
  * @throws - A Norwegian error when the semester does not take applications or a date is not open.
  * @returns - Who to email the link to, or null when no email should go out.
@@ -196,6 +211,7 @@ async function openLink(ctx: QueryCtx, token: string) {
 	const pending = confirmation ? await ctx.db.get(confirmation.pendingId) : null;
 	if (!confirmation || !pending) return { state: "invalid" as const };
 	if (pending.applicationId) return { state: "confirmed" as const, pending };
+	if (confirmation.replacedAt !== undefined) return { state: "invalid" as const };
 	return { state: "pending" as const, confirmation, pending };
 }
 

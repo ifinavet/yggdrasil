@@ -568,6 +568,11 @@ describe("confirmation by email", () => {
 		const [email] = emailsFrom(spy);
 		const secondToken = tokenFrom(email?.html);
 		expect(secondToken).not.toBe(firstToken);
+		expect(await t.query(confirmation.link, { token: firstToken })).toEqual({ state: "invalid" });
+		expect(await t.mutation(confirmation.confirm, { token: firstToken })).toEqual({
+			state: "invalid",
+		});
+		expect(await applications(t)).toHaveLength(0);
 
 		await t.mutation(confirmation.confirm, { token: secondToken });
 		expect(await t.query(confirmation.link, { token: firstToken })).toMatchObject({
@@ -580,6 +585,22 @@ describe("confirmation by email", () => {
 		spy.mockRestore();
 		const { emails: resubmitted } = await submitWith(t, { submissionId });
 		expect(resubmitted).toHaveLength(0);
+		expect(await applications(t)).toHaveLength(1);
+	});
+
+	it("replaces the link when the same application is sent again", async () => {
+		const { t } = await setup();
+		await withOpenSemester(t);
+		const submissionId = "repeated-submit-abcdef";
+		const { token: oldToken = "" } = await submitWith(t, { submissionId, confirm: false });
+		const { token: newToken = "" } = await submitWith(t, { submissionId, confirm: false });
+
+		expect(await t.mutation(confirmation.confirm, { token: oldToken })).toEqual({
+			state: "invalid",
+		});
+		expect(await t.mutation(confirmation.confirm, { token: newToken })).toMatchObject({
+			state: "confirmed",
+		});
 		expect(await applications(t)).toHaveLength(1);
 	});
 

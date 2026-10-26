@@ -27,16 +27,15 @@ import { z } from "zod";
 /** How long typing must pause before the preview is rendered again. */
 const PREVIEW_DELAY_MS = 400;
 
+/** An empty field is saved as empty, so the email uses the default for it. */
 const schema = z.object({
 	subject: z
 		.string()
 		.trim()
-		.min(1, "Skriv et emne.")
 		.max(COMPANY_EMAIL_LIMITS.subject, `Emnet kan ha høyst ${COMPANY_EMAIL_LIMITS.subject} tegn.`),
 	text: z
 		.string()
 		.trim()
-		.min(1, "Skriv en tekst.")
 		.max(COMPANY_EMAIL_LIMITS.text, `Teksten kan ha høyst ${COMPANY_EMAIL_LIMITS.text} tegn.`),
 });
 
@@ -103,7 +102,11 @@ export function CompanyEmailForm({
 					[kind.fields.subject]: stored(value.subject, kind.defaults.subject),
 					[kind.fields.text]: stored(value.text, kind.defaults.text),
 				});
-				formApi.reset(value);
+				// Show what is sent: an emptied field is back to its default.
+				formApi.reset({
+					subject: value.subject.trim() || kind.defaults.subject,
+					text: value.text.trim() || kind.defaults.text,
+				});
 				toast.success(kind.saved);
 			} catch (error) {
 				setSaveError(convexErrorMessage(error, "Kunne ikke lagre e-posten. Prøv igjen."));

@@ -262,6 +262,8 @@ export const semesterPlanningSchema = {
 		/** Only on links sent while they expired after 24 hours; it is no longer checked. */
 		expiresAt: v.optional(v.number()),
 		usedAt: v.optional(v.number()),
+		/** Set when a newer link is sent: it no longer confirms, but still shows the receipt. */
+		replacedAt: v.optional(v.number()),
 	})
 		.index("by_tokenHash", ["tokenHash"])
 		.index("by_pendingId", ["pendingId"]),
