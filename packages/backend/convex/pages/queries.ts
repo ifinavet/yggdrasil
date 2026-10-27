@@ -5,7 +5,9 @@ import { currentUserHasRole, editorRoles } from "../auth/accessRights";
 /**
  * Fetches all resources grouped by tag alongside unpublished resources.
  *
- * @returns {{ groupedByTag: Record<string, Doc<"resources">[]>, unpublishedResources: Doc<"resources">[] }} - Published resources grouped by tag and the unpublished resources list.
+ * Groups are a list rather than an object keyed by tag, since Convex only allows ASCII field names.
+ *
+ * @returns {{ groupedByTag: { tag: string, resources: Doc<"resources">[] }[], unpublishedResources: Doc<"resources">[] }} - Published resources grouped by tag and the unpublished resources list.
  */
 export const getAllGroupedByTag = query({
 	handler: async (ctx) => {
@@ -17,17 +19,12 @@ export const getAllGroupedByTag = query({
 			? resources.filter((resource) => !resource.published)
 			: [];
 
-		const groupedByTag = publishedResources.reduce(
-			(acc, resource) => {
-				const tag = resource.tag || "uncategorized";
-				if (!acc[tag]) {
-					acc[tag] = [];
-				}
-				acc[tag].push(resource);
-				return acc;
-			},
-			{} as Record<string, typeof publishedResources>,
-		);
+		const resourcesByTag = new Map<string, typeof publishedResources>();
+		for (const resource of publishedResources) {
+			const tag = resource.tag || "uncategorized";
+			resourcesByTag.set(tag, [...(resourcesByTag.get(tag) ?? []), resource]);
+		}
+		const groupedByTag = Array.from(resourcesByTag, ([tag, resources]) => ({ tag, resources }));
 
 		return { groupedByTag, unpublishedResources };
 	},
