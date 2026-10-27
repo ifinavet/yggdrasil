@@ -22,7 +22,12 @@ export const getAllGroupedByTag = query({
 		const resourcesByTag = new Map<string, typeof publishedResources>();
 		for (const resource of publishedResources) {
 			const tag = resource.tag || "uncategorized";
-			resourcesByTag.set(tag, [...(resourcesByTag.get(tag) ?? []), resource]);
+			const group = resourcesByTag.get(tag);
+			if (group) {
+				group.push(resource);
+			} else {
+				resourcesByTag.set(tag, [resource]);
+			}
 		}
 		const groupedByTag = Array.from(resourcesByTag, ([tag, resources]) => ({ tag, resources }));
 
