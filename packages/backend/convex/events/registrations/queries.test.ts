@@ -285,6 +285,15 @@ describe("getById", () => {
 
 		expect(message).toContain("ikke funnet");
 	});
+
+	it("refuses an id that is not a registration id", async () => {
+		const { t } = await setup();
+		const owner = await insertUser(t, "eier@example.com");
+
+		const message = await refusalMessageFrom(asUser(t, owner).query(queries.getById, { id: "x" }));
+
+		expect(message).toContain("ikke funnet");
+	});
 });
 
 describe("getCurrentUser", () => {

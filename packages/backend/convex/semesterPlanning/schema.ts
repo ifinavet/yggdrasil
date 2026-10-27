@@ -103,6 +103,27 @@ export const applicationBilling = v.object({
 	ehfInvoice: v.optional(v.boolean()),
 });
 
+/** What the Hugin form sends. The shared Zod schema checks the details. */
+export const applicationForm = v.object({
+	orgNumber: v.string(),
+	contact: applicationContact,
+	eventType: presentationEventType,
+	minStudents: v.number(),
+	maxStudents: v.number(),
+	description: v.string(),
+	availableDates: v.array(v.string()),
+	datePreferences: v.optional(v.string()),
+	venue,
+	wantsToUseEscape,
+	foodAndDrinks: v.boolean(),
+	foodPurchasedBy: foodPurchaser,
+	billing: applicationBilling,
+	targetDegrees: v.array(studentDegree),
+	targetStudyPrograms: v.array(v.string()),
+	additionalInfo: v.optional(v.string()),
+	consent: v.boolean(),
+});
+
 export const semesterPlanningSchema = {
 	semesters: defineTable({
 		year: v.number(),
@@ -117,6 +138,10 @@ export const semesterPlanningSchema = {
 		status: applicationPeriodStatus,
 		infoText: v.optional(v.string()),
 		termsUrl: v.optional(v.string()),
+		// The email with the confirm link, written by an editor. Empty means the default text in
+		// packages/shared/semester/confirm-email.ts.
+		confirmEmailSubject: v.optional(v.string()),
+		confirmEmailText: v.optional(v.string()),
 		// When events made from the plan start, as "HH:mm". Set by a human in Bifrost.
 		defaultEventStartTime: v.optional(v.string()),
 		planFinalizedAt: v.optional(v.number()),
@@ -174,6 +199,8 @@ export const semesterPlanningSchema = {
 		helperUserIds: v.optional(v.array(v.id("users"))),
 		internalNotes: v.optional(v.string()),
 		eventId: v.optional(v.id("events")),
+		// When the application was added as a row to the Google Sheet copy, if it has been.
+		sheetRowAddedAt: v.optional(v.number()),
 	})
 		.index("by_semesterId_and_status", ["semesterId", "status"])
 		.index("by_semesterId_and_assignedDate", ["semesterId", "assignedDate"])
@@ -210,4 +237,30 @@ export const semesterPlanningSchema = {
 		offerId: v.optional(v.id("companyApplicationOffers")),
 		comment: v.optional(v.string()),
 	}).index("by_applicationId", ["applicationId"]),
+
+	/**
+	 * An application sent from Hugin and waiting for the contact person to confirm it by email. It
+	 * becomes a `companyApplications` row when the link is used, and is deleted when its last link
+	 * expires.
+	 */
+	pendingCompanyApplications: defineTable({
+		semesterId: v.id("semesters"),
+		submissionId: v.string(),
+		form: applicationForm,
+		registry: brregSnapshotAtSubmission,
+		submittedAt: v.number(),
+		applicationId: v.optional(v.id("companyApplications")),
+	})
+		.index("by_submissionId", ["submissionId"])
+		.index("by_semesterId", ["semesterId"]),
+
+	/** One emailed link per send; a resend adds a row. Only the token's hash is stored. */
+	companyApplicationConfirmations: defineTable({
+		pendingId: v.id("pendingCompanyApplications"),
+		tokenHash: v.string(),
+		expiresAt: v.number(),
+		usedAt: v.optional(v.number()),
+	})
+		.index("by_tokenHash", ["tokenHash"])
+		.index("by_pendingId", ["pendingId"]),
 };

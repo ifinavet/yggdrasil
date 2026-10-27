@@ -10,7 +10,9 @@ import { useQuery } from "convex/react";
 import { Plus } from "lucide-react";
 import { useState } from "react";
 import { SemesterActions } from "./semester-actions";
+import { ConfirmEmailForm } from "./settings/confirm-email-form";
 import { CreateSemesterForm } from "./settings/create-semester-form";
+import { DeleteSemesterButton } from "./settings/delete-semester-button";
 import { SemesterDates } from "./settings/semester-dates";
 import { SemesterSettingsForm } from "./settings/semester-settings-form";
 import { StatusControl } from "./settings/status-control";
@@ -20,8 +22,8 @@ const CARD = "gap-4 py-4 sm:py-4.5";
 const CARD_PART = "px-4 sm:px-5";
 
 /**
- * The Innstillinger tab: the semester's status, dates, deadline and texts, and the list of
- * presentation days.
+ * The Innstillinger tab: the semester's status, dates, deadline and texts, a way to delete it, the
+ * list of presentation days, and the email companies get to confirm their application.
  */
 export function SettingsTab({
 	semester,
@@ -46,10 +48,19 @@ export function SettingsTab({
 					<CardContent className={cn(CARD_PART, "grid gap-3.5")}>
 						<StatusControl semester={semester} />
 						<SemesterSettingsForm key={semester._id} semester={semester} />
+						<DeleteSemesterButton semester={semester} />
 					</CardContent>
 				</Card>
 				<DatesCard semester={semester} />
 			</div>
+			<Card className={cn(CARD, "mt-4 min-w-0")}>
+				<CardHeader className={CARD_PART}>
+					<CardTitle className="text-base">Bekreftelses-e-post</CardTitle>
+				</CardHeader>
+				<CardContent className={CARD_PART}>
+					<ConfirmEmailForm key={semester._id} semester={semester} />
+				</CardContent>
+			</Card>
 		</>
 	);
 }

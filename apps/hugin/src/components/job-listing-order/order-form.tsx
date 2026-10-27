@@ -16,8 +16,8 @@ import { Checkbox } from "@workspace/ui/components/checkbox";
 import { FieldError, FieldLabel } from "@workspace/ui/components/field";
 import { Textarea } from "@workspace/ui/components/textarea";
 import { useAction, useQuery } from "convex/react";
-import type { FunctionReturnType } from "convex/server";
 import { useEffect, useRef, useState } from "react";
+import type { CompanyOption } from "@/components/company-picker/company-picker";
 import { errorText } from "@/components/input-cards/question-block";
 import { orderPageCopy, submitCopy } from "@/lib/job-listing-order/copy";
 import { clearDraft, saveDraft } from "@/lib/job-listing-order/draft";
@@ -35,8 +35,6 @@ import { FormRow } from "./form-row";
 import styles from "./order-form.module.css";
 import { type ListingProduct, PackagePicker } from "./package-picker";
 import { type OrderFormApi, useOrderForm } from "./use-order-form";
-
-type CompanyOption = FunctionReturnType<typeof api.jobListingOrders.form.companies>[number];
 
 export type SubmittedOrder = Readonly<{ email: string; submissionId: string }>;
 

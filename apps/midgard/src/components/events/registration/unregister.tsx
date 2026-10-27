@@ -39,7 +39,7 @@ export default function Unregister({
 				}),
 			)
 			.catch(() => {
-				toast.error("O! Noe gikk galt! Prøv igjen senere");
+				toast.error("Oi! Noe gikk galt! Prøv igjen senere");
 				posthog.captureException("midgard-student_unregister_error", {
 					site: "midgard",
 					eventId,
@@ -58,9 +58,9 @@ export default function Unregister({
 				<AlertDialogHeader>
 					<AlertDialogTitle>Er du sikker?</AlertDialogTitle>
 					<AlertDialogDescription>
-						Dersom du melder deg av og det er folk på venteliste, vil miste din plass og havne på
-						venteliste dersom du melder deg opp på nytt. NB! Melder du det av under 24 timer før
-						arrangementet vil du få en prikk.
+						Hvis du melder deg av og andre står på venteliste, mister du plassen din og havner på
+						venteliste hvis du melder deg på igjen. NB! Melder du deg av under 24 timer før
+						arrangementet, får du en prikk.
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>

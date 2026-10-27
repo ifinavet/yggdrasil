@@ -8,6 +8,8 @@ import {
 } from "@workspace/ui/components/breadcrumb";
 import { FoodTagging } from "@/components/events/food/food-tagging";
 
+export const instant = false;
+
 export default function TagEventFood() {
 	return (
 		<>

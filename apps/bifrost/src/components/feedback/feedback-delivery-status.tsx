@@ -41,7 +41,7 @@ function RoundRow({ round, at, sent, delivered, failed }: DeliveryStatus["rounds
 	return (
 		<TableRow className={cn(pending && "text-muted-foreground")}>
 			<TableCell>
-				{round === 0 ? "Invitasjon" : "Påminnelse"}
+				{round === 0 ? "Skjema" : "Påminnelse"}
 				<span className="ml-2 text-muted-foreground">{formatOsloDate(at, "d. MMM")}</span>
 			</TableCell>
 			<TableCell className="text-right">{pending ? null : sent}</TableCell>
@@ -100,6 +100,12 @@ export function FeedbackDeliveryStatus({ eventId }: Readonly<{ eventId: Id<"even
 							/>
 						</div>
 					</div>
+				)}
+				{delivery.skippedOrganizers > 0 && (
+					<p className="text-muted-foreground text-sm">
+						{delivery.skippedOrganizers}{" "}
+						{delivery.skippedOrganizers === 1 ? "arrangør" : "arrangører"} får ikke skjemaet
+					</p>
 				)}
 				{delivery.status === "open" && delivery.responded > 0 && (
 					<CreateReportNowButton eventId={eventId} />

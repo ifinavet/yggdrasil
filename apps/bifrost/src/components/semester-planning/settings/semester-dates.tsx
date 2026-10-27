@@ -4,7 +4,7 @@ import { api } from "@workspace/backend/convex/api";
 import type { Doc } from "@workspace/backend/convex/dataModel";
 import { closedDateLabel } from "@workspace/shared/semester/labels";
 import { formatSemesterDay } from "@workspace/shared/time";
-import { convexErrorMessage } from "@workspace/shared/utils";
+import { capitalize, convexErrorMessage } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
 import { Calendar } from "@workspace/ui/components/calendar";
 import { Input } from "@workspace/ui/components/input";
@@ -16,7 +16,7 @@ import { nb } from "date-fns/locale";
 import { createContext, useContext, useMemo, useState } from "react";
 import type { DayButtonProps, MonthProps } from "react-day-picker";
 import { toast } from "sonner";
-import { capitalize, longDay, shortDay } from "../format";
+import { longDay, shortDay } from "../format";
 
 type SemesterDate = Doc<"semesterDates">;
 

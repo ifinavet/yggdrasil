@@ -2,9 +2,14 @@
 
 import { api } from "@workspace/backend/convex/api";
 import { useAction } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { useEffect, useRef, useState } from "react";
-import type { RegistryHit } from "@/lib/company-application";
 import { companyErrorMessage } from "@/lib/company-error-message";
+
+/** One company from the Enhetsregisteret search. */
+export type RegistryHit = FunctionReturnType<
+	typeof api.semesterPlanning.registry.actions.searchCompanies
+>[number];
 
 const DEBOUNCE_MS = 300;
 export const MIN_QUERY_LENGTH = 2;
@@ -21,7 +26,7 @@ export function useRegistrySearch(query: string): { search: SearchState; retry: 
 	const [attempt, setAttempt] = useState(0);
 	const latest = useRef(0);
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: attempt re-runs the same search on «Prøv igjen».
+	// `attempt` re-runs the same search on «Prøv igjen».
 	useEffect(() => {
 		const request = ++latest.current;
 		if (query.length < MIN_QUERY_LENGTH) {

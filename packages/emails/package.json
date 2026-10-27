@@ -15,10 +15,10 @@
 		"@workspace/shared": "workspace:*",
 		"react": "catalog:",
 		"react-dom": "catalog:",
-		"react-email": "^6.11.1"
+		"react-email": "^6.11.3"
 	},
 	"devDependencies": {
-		"@react-email/ui": "6.11.1",
+		"@react-email/ui": "6.11.3",
 		"@types/react": "catalog:",
 		"@types/react-dom": "catalog:",
 		"@workspace/typescript-config": "workspace:*",

@@ -21,7 +21,7 @@ import {
 } from "../_generated/server";
 import { requireLogo } from "../companies/helper";
 import { companyBilling } from "../companies/schema";
-import { confirmationFields, confirmationState } from "../lib/emailConfirmation";
+import { closedLinkStates, confirmationFields, confirmationState } from "../lib/emailConfirmation";
 import { hashLinkToken } from "../lib/tokens";
 import { deleteUnreferencedOrderLogo } from "./logos";
 import { orderRateLimiter } from "./rateLimits";
@@ -331,11 +331,7 @@ async function openLink(ctx: QueryCtx, token: string, now: number) {
 	return { state: "pending" as const, confirmation, order };
 }
 
-const closedLink = [
-	v.object({ state: v.literal("confirmed"), receipt }),
-	v.object({ state: v.literal("expired") }),
-	v.object({ state: v.literal("invalid") }),
-] as const;
+const closedLink = closedLinkStates(receipt);
 
 export const link = query({
 	args: { token: v.string() },

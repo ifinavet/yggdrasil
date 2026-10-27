@@ -1,9 +1,9 @@
-import type { EmailId, SendEmailOptions } from "@convex-dev/resend";
 import { HUGIN_URL } from "@workspace/shared/constants";
 import { LOGO_MESSAGES } from "@workspace/shared/logo";
 import { formatNokFromOre } from "@workspace/shared/products";
 import { osloToday } from "@workspace/shared/time";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { emailsFrom, sentEmails, tokenFrom } from "../../test/confirmationEmails";
 import {
 	asUser,
 	DAY_IN_MS,
@@ -16,7 +16,6 @@ import {
 import { brregUnit, stubRegistries, VALID_ORG_NUMBER } from "../../test/registryFetch";
 import { api } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
-import { orderResend } from "./emails";
 
 const LISTING_PRODUCT = {
 	name: "Stillingsannonse",
@@ -92,20 +91,6 @@ async function uploadLogo(t: TestBackend, contentType = "image/png") {
 		await (ctx.db as any).patch(storageId, { contentType });
 		return storageId;
 	});
-}
-
-function sentEmails() {
-	return vi.spyOn(orderResend, "sendEmail").mockResolvedValue("email-id" as EmailId);
-}
-
-function emailsFrom(spy: ReturnType<typeof sentEmails>) {
-	return spy.mock.calls.map((call) => (call as unknown as [unknown, SendEmailOptions])[1]);
-}
-
-function tokenFrom(html: string | undefined) {
-	const token = html?.match(/bekreft#token=([\w-]+)/)?.[1];
-	if (!token) throw new Error("No confirmation link in the email");
-	return token;
 }
 
 async function submitOrder(

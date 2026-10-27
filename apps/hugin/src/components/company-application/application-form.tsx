@@ -9,7 +9,6 @@ import { cn } from "@workspace/ui/lib/utils";
 import { useAction } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { CalendarClock } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { FormProgress } from "@/components/form-progress";
@@ -23,13 +22,7 @@ import {
 } from "@/lib/company-application";
 import { fullDate } from "@/lib/company-application-format";
 import { COMPANY_APPLICATION_COPY as COPY } from "@/lib/company-application-questions";
-import {
-	clearDraft,
-	loadDraft,
-	newSubmissionId,
-	receiptOf,
-	saveReceipt,
-} from "@/lib/company-application-storage";
+import { clearDraft, loadDraft, newSubmissionId } from "@/lib/company-application-storage";
 import { companyErrorMessage, UNEXPECTED_COMPANY_ERROR } from "@/lib/company-error-message";
 import { focusQuestion } from "@/lib/focus-question";
 import { BillingQuestions } from "./billing-questions";
@@ -44,17 +37,24 @@ export type OpenSemester = FunctionReturnType<
 	typeof api.semesterPlanning.semesters.queries.listOpenForApplications
 >[number];
 
+/** A sent application waiting for the contact person to confirm it from the email. */
+export type SentApplication = { email: string; submissionId: string };
+
 /**
  * The Hugin application form for one open semester, saved as a draft while it is filled in. With
  * several semesters open, `semesterPicker` stands where the semester's name would. It gets a
  * function that saves the draft at once, to call before switching, so the next semester's form
- * starts from the latest answers.
+ * starts from the latest answers. Once sent, `onSubmitted` gets where the confirmation link went.
  */
 export function ApplicationForm({
 	semester,
 	semesterPicker,
-}: Readonly<{ semester: OpenSemester; semesterPicker?: (saveDraftNow: () => void) => ReactNode }>) {
-	const router = useRouter();
+	onSubmitted,
+}: Readonly<{
+	semester: OpenSemester;
+	semesterPicker?: (saveDraftNow: () => void) => ReactNode;
+	onSubmitted: (sent: SentApplication) => void;
+}>) {
 	const submit = useAction(api.semesterPlanning.applications.submit.submit);
 
 	const [initial] = useState(
@@ -80,8 +80,7 @@ export function ApplicationForm({
 			};
 			setSubmitError(null);
 			// The schema only passes a draft with a company; this keeps the types honest.
-			const { company } = draft;
-			if (!company) return fail(UNEXPECTED_COMPANY_ERROR);
+			if (!draft.company) return fail(UNEXPECTED_COMPANY_ERROR);
 
 			try {
 				await submit({
@@ -95,16 +94,8 @@ export function ApplicationForm({
 			}
 
 			sent.current = true;
-			saveReceipt(
-				receiptOf({
-					form: application,
-					company,
-					applicationDeadline: semester.applicationDeadline,
-					late,
-				}),
-			);
 			clearDraft(semester._id);
-			router.push("/bestill-bedpres/kvittering");
+			onSubmitted({ email: application.contact.email, submissionId: initial.submissionId });
 		},
 		onSubmitInvalid: (draft) => {
 			setSubmitError(null);

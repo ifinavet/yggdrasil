@@ -3,15 +3,16 @@ import { api } from "@workspace/backend/convex/api";
 import { BIFROST_URL } from "@workspace/shared/constants";
 import { Button } from "@workspace/ui/components/button";
 import ResponsiveCenterContainer from "@workspace/ui/components/responsive-center-container";
+import { SafeHtml } from "@workspace/ui/components/safe-html";
 import { Title } from "@workspace/ui/components/title";
 import { fetchQuery, preloadedQueryResult, preloadQuery } from "convex/nextjs";
 import type { Metadata } from "next";
 import Image from "next/image";
-import { cache } from "react";
+import { cache, Suspense } from "react";
 import ContainerCard from "@/components/cards/container-card";
 import LargeUserCard from "@/components/cards/large-user";
-import SanitizeHtml from "@/components/common/sanitize-html";
 import { EventMetadata } from "@/components/events/event-metadata";
+import TwoColumnsLoading from "@/components/loaders/two-columns-loading";
 import { notFoundOnConvexError } from "@/lib/notFoundOnConvexError";
 
 const loadAuthToken = cache(getAuthToken);
@@ -52,11 +53,25 @@ export async function generateMetadata({
 	};
 }
 
-export default async function EventPage({
-	params,
-}: Readonly<{
+type Props = Readonly<{
 	params: Promise<{ slug: string }>;
-}>) {
+}>;
+
+export default function EventPage(props: Props) {
+	return (
+		<Suspense
+			fallback={
+				<ResponsiveCenterContainer>
+					<TwoColumnsLoading />
+				</ResponsiveCenterContainer>
+			}
+		>
+			<Event {...props} />
+		</Suspense>
+	);
+}
+
+async function Event({ params }: Props) {
 	const { slug: identifier } = await params;
 
 	const token = await loadAuthToken();
@@ -88,7 +103,7 @@ export default async function EventPage({
 						<h1 className="scroll-m-20 text-balance pb-2 font-bold text-3xl tracking-normal">
 							{event.teaser}
 						</h1>
-						<SanitizeHtml html={event.description} className="prose dark:prose-invert" />
+						<SafeHtml html={event.description} className="prose dark:prose-invert" />
 					</ContainerCard>
 				</main>
 				<aside className="flex flex-col gap-8 md:col-span-2">
@@ -110,7 +125,7 @@ export default async function EventPage({
 							</div>
 						</div>
 						<div className="rounded-b-xl bg-zinc-100 px-8 pb-8 dark:bg-zinc-800">
-							<SanitizeHtml
+							<SafeHtml
 								html={event.hostingCompanyDescription}
 								className="prose-lg dark:prose-invert"
 							/>

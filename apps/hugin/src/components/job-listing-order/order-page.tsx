@@ -12,7 +12,7 @@ import { OrderForm, type SubmittedOrder } from "./order-form";
 export function OrderPage() {
 	const settings = useQuery(api.jobListingOrders.settings.current);
 	const product = useQuery(api.jobListingOrders.form.product);
-	const companies = useQuery(api.jobListingOrders.form.companies);
+	const companies = useQuery(api.companies.queries.pickerOptions);
 	const [submitted, setSubmitted] = useState<SubmittedOrder>();
 
 	if (submitted) return <CheckEmailScreen {...submitted} />;

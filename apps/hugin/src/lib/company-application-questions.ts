@@ -1,22 +1,21 @@
-import { COMPANY_CONTACT_EMAIL } from "@workspace/shared/constants";
-import type { BlockedReason } from "./company-application";
-
-// Company-facing copy for the Hugin application form (/bestill-bedpres) and its receipt.
+// Company-facing copy for the Hugin application form (/bestill-bedpres), the email confirmation
+// (/bestill-bedpres/bekreft) and the receipt.
 // Validation messages live in the shared schema (packages/shared/semester/application.ts).
 
 export const COMPANY_APPLICATION_COPY = {
 	title: "Søk om bedriftsarrangement",
-	lede: "Det tar rundt fem minutter. Det dere skriver lagres underveis, så dere kan komme tilbake senere.",
-	loading: "Laster søknadsskjemaet …",
+	lede: "Så hyggelig at dere vil besøke studentene våre! Det tar rundt fem minutter, og det dere skriver lagres underveis, så dere kan ta en pause og komme tilbake senere.",
+	loading: "Henter søknadsskjemaet …",
 	deadline: "Søknadsfrist",
 	deadlinePassed: "Søknadsfristen var",
 	semester: {
 		label: "Hvilket semester søker dere for?",
 		deadline: (date: string) => `Søknadsfrist ${date}`,
 		current: (name: string) =>
-			`Obs: dere søker for ${name}, som allerede er i gang. Det kan bli kort tid til planlegging, og vi kan ikke love en dato.`,
+			`Obs: dere søker for ${name}, som allerede er i gang. Det kan bli kort tid til planlegging, og vi kan ikke love en dato, men vi gjør vårt beste for å finne en løsning.`,
 	},
-	lateNotice: "Vi tar fortsatt imot søknader, men kan ikke love en dato.",
+	lateNotice:
+		"Fristen er ute, men send gjerne inn likevel! Vi kan ikke love en dato, men vi ser på alle søknadene og tar kontakt.",
 	sections: {
 		company: "Bedriften",
 		event: "Arrangementet",
@@ -30,22 +29,7 @@ export const COMPANY_APPLICATION_COPY = {
 	honeypot: "La dette feltet stå tomt",
 	company: {
 		label: "Hvilken bedrift gjelder det?",
-		searching: "Søker i Enhetsregisteret …",
-		tooShort: "Skriv minst to tegn.",
-		noHits: "Fant ingen bedrifter. Sjekk stavemåten, eller søk på organisasjonsnummer.",
-		hitCount: (count: number) => `${count} treff i Enhetsregisteret`,
-		source: "Hentet fra Enhetsregisteret",
-		change: "Bytt",
-		changeLabel: "Bytt bedrift",
-		facts: { orgNumber: "Org.nr.", organizationForm: "Org.form", city: "Sted" },
-		retry: "Prøv igjen",
-		draftSaved: "Det du har fylt ut er lagret.",
 	},
-	blocked: {
-		deleted: "Slettet fra registeret. Kan ikke velges.",
-		bankrupt: "Konkurs. Kan ikke velges.",
-		liquidation: "Under avvikling. Kan ikke velges.",
-	} satisfies Record<BlockedReason, string>,
 	contact: {
 		label: "Kontaktperson",
 		name: "Fullt navn",
@@ -68,10 +52,9 @@ export const COMPANY_APPLICATION_COPY = {
 	dates: {
 		label: "Hvilke datoer kan dere?",
 		chosen: (chosen: number, total: number) => `${chosen} av ${total} valgt`,
-		week: (week: string) => `Uke ${week}`,
 		selectAll: "Velg alle",
 		clear: "Nullstill valg",
-		none: "Det er ingen åpne datoer i semesteret ennå. Skriv til oss, så finner vi en løsning.",
+		none: "Vi har ikke åpnet noen datoer i semesteret ennå. Skriv til oss, så finner vi en løsning sammen.",
 	},
 	datePreferences: {
 		label: "Har dere ønsker om dato?",
@@ -95,7 +78,7 @@ export const COMPANY_APPLICATION_COPY = {
 		label: "Noe dere vil legge til?",
 	},
 	consent: {
-		label: "Vi godtar at Navet lagrer opplysningene i søknaden.",
+		label: "Vi godtar at Navet tar vare på opplysningene i søknaden.",
 		privacy: "Les personvernerklæringen",
 		terms: "Les vilkårene",
 	},
@@ -105,36 +88,58 @@ export const COMPANY_APPLICATION_COPY = {
 		missing: (count: number) => `${count} felt mangler svar`,
 		summary: (count: number) =>
 			count === 1
-				? "Søknaden ble ikke sendt. Rett opp feltet som er markert."
-				: `Søknaden ble ikke sendt. Rett opp de ${count} feltene som er markert.`,
+				? "Nesten der! Ett felt mangler eller må rettes. Vi har markert det for dere."
+				: `Nesten der! ${count} felt mangler eller må rettes. Vi har markert dem for dere.`,
 		failedTitle: "Søknaden ble ikke sendt",
 	},
 	closed: {
-		title: "Søknadene er stengt",
-		body: "Vi tar ikke imot søknader akkurat nå. Søknadene for neste semester åpner når semesteret er klart.",
-		question: "Har dere spørsmål? Skriv til",
+		title: "Søknadene er stengt akkurat nå",
+		body: "Vi holder på å gjøre klart neste semester. Så snart det er klart, åpner vi for søknader igjen.",
+		question: "Lurer dere på noe? Vi svarer gjerne på",
 		interest: {
 			title: "Vil dere vite når søknadene åpner?",
-			lede: "Legg igjen navn og e-post, så gir vi beskjed når dere kan søke.",
+			lede: "Legg igjen navn og e-post, så sier vi ifra så fort dere kan søke.",
 			companyName: "Bedrift",
 			email: "E-post",
 			send: "Gi oss beskjed",
 			busy: "Sender …",
-			sent: (email: string) => `Takk! Vi gir beskjed til ${email} når søknadene åpner.`,
+			sent: (email: string) => `Takk! Vi sier ifra til ${email} så fort søknadene åpner.`,
 			honeypot: "Ikke fyll ut dette feltet",
 		},
 	},
+	checkEmail: {
+		body: (email: string) =>
+			`Vi har sendt en lenke til ${email}. Trykk på den for å bekrefte, så får vi søknaden. Finner dere den ikke? Sjekk søppelposten, eller send den på nytt.`,
+	},
+	confirm: {
+		title: "Bekreft søknaden",
+		body: "Trykk på knappen, så sender vi søknaden videre til oss i Navet.",
+		button: "Bekreft søknad",
+		confirming: "Bekrefter …",
+		backToForm: "Til søknadsskjemaet",
+		retry: "Prøv igjen",
+		refusedTitle: "Søknaden ble ikke sendt",
+		expired: {
+			title: "Lenken har gått ut",
+			body: "Lenken virker i 24 timer. Send søknaden på nytt fra skjemaet, så sender vi en ny lenke.",
+		},
+		invalid: {
+			title: "Vi kjenner ikke igjen lenken",
+			body: "Prøv å åpne lenken direkte fra e-posten. Virker den fortsatt ikke, kan dere sende søknaden på nytt.",
+		},
+		error: {
+			title: "Beklager, noe gikk galt",
+			body: "Vi fikk ikke bekreftet søknaden. Prøv igjen om litt, og si ifra hvis det fortsatt ikke virker.",
+		},
+	},
 	receipt: {
-		title: "Søknaden er sendt",
+		title: "Takk, vi har fått søknaden!",
 		body: (deadline: string) =>
-			`Takk! Etter fristen ${deadline} fordeler vi datoene, og bedriftskontakten tar kontakt med et tilbud.`,
-		lateBody: "Takk! Vi ser på søknaden, og bedriftskontakten tar kontakt med dere.",
-		keep: "Dere får ingen kopi på e-post. Ta gjerne vare på denne siden.",
+			`Etter fristen ${deadline} fordeler vi datoene, og så tar vi kontakt med et tilbud. Vi gleder oss!`,
+		lateBody: "Vi ser på søknaden så fort vi kan og tar kontakt med dere. Vi gleder oss!",
+		keep: "Lenken i e-posten viser denne kvitteringen i 24 timer, så ta gjerne vare på siden.",
 		summary: "Dette sendte dere",
-		wrong: "Noe som ble feil? Skriv til",
-		missingTitle: "Fant ingen kvittering",
-		missingBody: `Kvitteringen vises bare rett etter at søknaden er sendt. Lurer dere på om den kom fram? Skriv til ${COMPANY_CONTACT_EMAIL}.`,
-		back: "Til søknadsskjemaet",
+		wrong: "Ble noe feil, eller har dere spørsmål? Si ifra på",
 		rows: {
 			company: "Bedrift",
 			type: "Type",

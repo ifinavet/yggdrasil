@@ -2,6 +2,7 @@
 
 import { api } from "@workspace/backend/convex/api";
 import { closedDateLabel } from "@workspace/shared/semester/labels";
+import { capitalize } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
 import { Calendar } from "@workspace/ui/components/calendar";
 import {
@@ -19,7 +20,7 @@ import { nb } from "date-fns/locale";
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import type { DayButtonProps } from "react-day-picker";
 import { toast } from "sonner";
-import { capitalize, longDay, shortDay } from "../format";
+import { longDay, shortDay } from "../format";
 import { type Application, moveConsequence, type SemesterContext, useRunMutation } from "./model";
 
 const OFFER_STATUSES: ReadonlySet<Application["status"]> = new Set([

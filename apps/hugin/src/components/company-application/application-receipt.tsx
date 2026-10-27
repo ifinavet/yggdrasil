@@ -1,54 +1,31 @@
-"use client";
-
+import type { api } from "@workspace/backend/convex/api";
 import { COMPANY_CONTACT_EMAIL } from "@workspace/shared/constants";
 import { ESCAPE_LABELS, EVENT_TYPE_LABELS, VENUE_LABELS } from "@workspace/shared/semester/labels";
-import { Button } from "@workspace/ui/components/button";
-import { Check, FileQuestion } from "lucide-react";
-import Link from "next/link";
-import { type ReactNode, useEffect, useState } from "react";
+import { formatOrgNumber } from "@workspace/shared/semester/orgNumber";
+import type { FunctionReturnType } from "convex/server";
+import { Check } from "lucide-react";
+import type { ReactNode } from "react";
 import { linkClass } from "@/components/form-controls";
-import { FormStatePanel } from "@/components/form-state-panel";
 import {
 	billingLines,
 	compactDateList,
 	dayAndMonth,
-	formatOrgNumber,
 	studentRange,
 } from "@/lib/company-application-format";
 import { COMPANY_APPLICATION_COPY as COPY } from "@/lib/company-application-questions";
-import { loadReceipt, type StoredReceipt } from "@/lib/company-application-storage";
 
 const ROWS = COPY.receipt.rows;
 
+type Receipt = Extract<
+	FunctionReturnType<typeof api.semesterPlanning.applications.confirmation.confirm>,
+	{ state: "confirmed" }
+>["receipt"];
+
 /**
- * /bestill-bedpres/kvittering: what the company sent, read from this tab's session storage. No
- * copy is emailed, so this page is the company's only record of the application.
+ * What the company sent, shown once the application is confirmed from the emailed link. No copy is
+ * emailed, so this page is the company's record of the application.
  */
-export function ApplicationReceipt() {
-	// undefined while reading storage, which only exists in the browser.
-	const [receipt, setReceipt] = useState<StoredReceipt | null | undefined>(undefined);
-
-	useEffect(() => {
-		setReceipt(loadReceipt());
-	}, []);
-
-	if (receipt === undefined) return null;
-
-	if (receipt === null) {
-		return (
-			<FormStatePanel
-				icon={<FileQuestion className="size-6" />}
-				title={COPY.receipt.missingTitle}
-				body={COPY.receipt.missingBody}
-				action={
-					<Button asChild className="h-[52px] w-full rounded-[13px] font-semibold text-[15.5px]">
-						<Link href="/bestill-bedpres">{COPY.receipt.back}</Link>
-					</Button>
-				}
-			/>
-		);
-	}
-
+export function ApplicationReceipt({ receipt }: Readonly<{ receipt: Receipt }>) {
 	const { company } = receipt;
 
 	return (
@@ -60,7 +37,7 @@ export function ApplicationReceipt() {
 				{COPY.receipt.title}
 			</h1>
 			<p className="m-0 mt-2 text-[14.5px] leading-normal">
-				{receipt.late
+				{receipt.late || !receipt.applicationDeadline
 					? COPY.receipt.lateBody
 					: COPY.receipt.body(dayAndMonth(receipt.applicationDeadline))}
 			</p>
