@@ -200,3 +200,37 @@ describe("graduatedProfile", () => {
 		expect(await t.query(api.users.students.queries.graduatedProfile, {})).toBeNull();
 	});
 });
+
+describe("missingProfile", () => {
+	it("asks a user without a student record to create one, then stops once it exists", async () => {
+		const { t } = await setup();
+		const user = await insertUser(t, "a@example.com");
+		const student = asUser(t, user);
+
+		expect(await student.query(api.users.students.queries.missingProfile, {})).toEqual({
+			externalId: user.externalId,
+			name: "Test Testesen",
+		});
+
+		await student.mutation(api.users.students.mutations.createByExternalId, {
+			externalId: user.externalId,
+			studyProgram: PROGRAMMING,
+			degree: "Bachelor",
+			year: 2,
+			name: "Test Testesen",
+		});
+
+		expect(await student.query(api.users.students.queries.missingProfile, {})).toBeNull();
+	});
+
+	it("returns null for a signed out visitor and a signed-in user not yet synced", async () => {
+		const { t } = await setup();
+
+		expect(await t.query(api.users.students.queries.missingProfile, {})).toBeNull();
+		expect(
+			await t
+				.withIdentity({ subject: "user_not_synced" })
+				.query(api.users.students.queries.missingProfile, {}),
+		).toBeNull();
+	});
+});

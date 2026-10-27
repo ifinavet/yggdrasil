@@ -91,7 +91,7 @@ export function StudentProfileFields<T extends string>({
 							>
 								<SelectValue placeholder="Velg" />
 							</SelectTrigger>
-							<SelectContent>
+							<SelectContent className="max-w-(--radix-select-trigger-width)">
 								{options.map((option) => (
 									<SelectItem key={option} value={String(option)}>
 										{option}
