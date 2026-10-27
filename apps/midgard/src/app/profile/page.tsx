@@ -6,10 +6,12 @@ import { Title } from "@workspace/ui/components/title";
 import { preloadQuery } from "convex/nextjs";
 import { ConvexError } from "convex/values";
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import Points from "@/components/profile/points";
 import Registrations from "@/components/profile/registrations";
 import UpdateProfileForm from "@/components/profile/update-profile-form";
+import { withRedirect } from "@/utils/auth-redirect";
 
 export const metadata: Metadata = {
 	title: "Profil",
@@ -24,10 +26,10 @@ export default function ProfilePage() {
 }
 
 async function Profile() {
-	const { userId, redirectToSignIn } = await auth();
+	const { userId } = await auth();
 	const token = await getAuthToken();
 
-	if (!userId) return redirectToSignIn();
+	if (!userId) return redirect(withRedirect("/sign-in", "/profile"));
 
 	const preloadStudent = await preloadQuery(
 		api.users.students.queries.getCurrent,
