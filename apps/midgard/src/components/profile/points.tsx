@@ -9,7 +9,7 @@ function getPointsText(points: number) {
 	if (points === 0) return "Du er kjempeflink! Du har ingen prikker. Fortsett slik.";
 
 	if (points === 1)
-		return "Hmm, du har 1 prikk, men, men det er sånt som skjer, vi må bare ikke la det fortsette slik.";
+		return "Hmm, du har 1 prikk, men det er sånt som skjer, vi må bare ikke la det fortsette slik.";
 
 	if (points === 2)
 		return "Huff! Dette er virkelig ikke bra, du har 2 prikker. En prikk til og du vil ikke ha muligheten til å melde deg på bedriftspresentasjoner igjen!";
@@ -73,19 +73,30 @@ export default async function Points({ className }: Readonly<{ className?: strin
 				<p className="text-pretty font-semibold text-primary dark:text-primary-foreground">
 					Slik fungerer systemet:
 				</p>
-				<p>Avmedlingsfrist er 24 timer før arrangemenet starter.</p>
+				<p>Avmeldingsfrist er 24 timer før arrangementet starter.</p>
 
 				<div>
 					<p>Automatiske prikker:</p>
 					<ul className="grid gap-2">
-						<li>1. prikk - Sen avmelding</li>
-						<li>1. prikk - Sen oppmøte til arrangmenetet</li>
-						<li>2. prikker - Ikke møtt opp uten å melde seg av.</li>
+						<li>1 prikk - Sen avmelding</li>
+						<li>1 prikk - Sent oppmøte til arrangementet</li>
+						<li>2 prikker - Ikke møtt opp uten å melde seg av</li>
+					</ul>
+				</div>
+
+				<div>
+					<p>Andre prikker:</p>
+					<ul className="grid gap-2">
+						<li>
+							1 prikk - Ikke til stede gjennom hele bedriftspresentasjonen eller workshopen. Du er
+							ikke forpliktet til å delta på eventuelle restaurantbesøk eller lignende.
+						</li>
+						<li>1 prikk - Sjenerende eller forstyrrende oppførsel</li>
 					</ul>
 				</div>
 			</div>
 			<p className="text-balance font-semibold text-lg text-primary tracking-tight dark:text-primary-foreground">
-				Du er selv ansvarlig for å forsikre deg om at du har blitt oppmøte registrert på
+				Du er selv ansvarlig for å forsikre deg om at oppmøtet ditt blir registrert på
 				arrangementene til Navet.
 			</p>
 
