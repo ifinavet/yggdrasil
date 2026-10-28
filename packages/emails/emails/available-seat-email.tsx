@@ -1,5 +1,6 @@
 import { EVENT_CONTACT_EMAIL } from "@workspace/shared/constants/contact";
 import {
+	Button,
 	Container,
 	Font,
 	Head,
@@ -8,6 +9,7 @@ import {
 	Img,
 	Preview,
 	pixelBasedPreset,
+	Section,
 	Tailwind,
 	Text,
 } from "react-email";
@@ -17,6 +19,11 @@ export default function AvailableSeatEmail({
 	event,
 	url,
 }: Readonly<{ event: string; url: string }>) {
+	const acceptUrl = new URL(url);
+	acceptUrl.searchParams.set("response", "accept");
+	const declineUrl = new URL(url);
+	declineUrl.searchParams.set("response", "decline");
+
 	return (
 		<Html lang="no">
 			<Head>
@@ -41,16 +48,36 @@ export default function AvailableSeatEmail({
 					<Img src={NAVET_LOGO_URL} alt="Navet Logo" height="50px" className="pb-4" />
 
 					<Heading as="h1" className="text-primary dark:text-primary-light">
-						Du har fått mulighet til å bli med på "{event}", vennligst bekreft til deltagelse!
+						Du har fått mulighet til å bli med på "{event}", vennligst bekreft din deltagelse!
 					</Heading>
 
 					<Text className="text-lg">
 						Du har nå 24 timer på deg til å godta tilbudet om plass. Hvis ikke så vil du bli flyttet
-						tilbake på venstelisten, og havne nederst.
+						tilbake på ventelisten og havne nederst.
 					</Text>
 
+					<Text className="text-lg">
+						Vil du ha plassen? Velg ja eller nei og bekreft på nettsiden. Du må være logget inn.
+						Takker du nei, går plassen videre til den neste på ventelisten.
+					</Text>
+
+					<Section className="py-4">
+						<Button
+							href={acceptUrl.toString()}
+							className="rounded-md bg-primary px-6 py-4 font-semibold text-base text-white"
+						>
+							Ja, jeg vil ha plassen
+						</Button>
+						<Button
+							href={declineUrl.toString()}
+							className="ml-4 rounded-md bg-red-700 px-6 py-4 font-semibold text-base text-white"
+						>
+							Nei, gi plassen videre
+						</Button>
+					</Section>
+
 					<Text className="pt-4">
-						<a href={url}>Trykker her for å godta eller avslå tilbudet om plass</a>
+						<a href={url}>Åpne tilbudet og svar på nettsiden</a>
 						<br />
 						<br />
 						Dersom det ikke funker å trykke på lenken, kan du kopiere og lime inn denne lenken i
@@ -67,3 +94,8 @@ export default function AvailableSeatEmail({
 		</Html>
 	);
 }
+
+AvailableSeatEmail.PreviewProps = {
+	event: "Bedriftspresentasjon med Eksempel AS",
+	url: "https://ifinavet.no/events/example/registration/example-registration",
+};
