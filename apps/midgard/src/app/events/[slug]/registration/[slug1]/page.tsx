@@ -14,6 +14,7 @@ import { withRedirect } from "@/utils/auth-redirect";
 import Register from "./register";
 
 type Props = Readonly<{
+	searchParams: Promise<{ response?: string | string[] }>;
 	params: Promise<{ slug: Id<"events">; slug1: Id<"registrations"> }>;
 }>;
 
@@ -25,14 +26,22 @@ export default function RegistrationPage(props: Props) {
 	);
 }
 
-async function Registration({ params }: Props) {
+async function Registration({ params, searchParams }: Props) {
 	const { isAuthenticated } = await auth();
 	const { slug: eventId, slug1: registrationId } = await params;
+
+	const { response } = await searchParams;
+	const choice = response === "accept" || response === "decline" ? response : undefined;
 
 	const headerList = await headers();
 	const pathname = headerList.get("x-pathname") || "/";
 
-	if (!isAuthenticated) return redirect(withRedirect("/sign-in", pathname));
+	if (!isAuthenticated) {
+		const returnPath = choice
+			? `${pathname}?${new URLSearchParams({ response: choice })}`
+			: pathname;
+		return redirect(withRedirect("/sign-in", returnPath));
+	}
 
 	const token = await getAuthToken();
 	const event = await fetchQuery(
@@ -49,7 +58,11 @@ async function Registration({ params }: Props) {
 			</h2>
 
 			<Suspense fallback={null}>
-				<RegistrationStatusHandler registrationId={registrationId} eventId={eventId} />
+				<RegistrationStatusHandler
+					registrationId={registrationId}
+					eventId={eventId}
+					response={choice}
+				/>
 			</Suspense>
 		</ResponsiveCenterContainer>
 	);
@@ -58,7 +71,12 @@ async function Registration({ params }: Props) {
 async function RegistrationStatusHandler({
 	registrationId,
 	eventId,
-}: Readonly<{ registrationId: Id<"registrations">; eventId: Id<"events"> }>) {
+	response,
+}: Readonly<{
+	registrationId: Id<"registrations">;
+	eventId: Id<"events">;
+	response?: "accept" | "decline";
+}>) {
 	const token = await getAuthToken();
 	const registration = await fetchQuery(
 		api.events.registrations.queries.getById,
@@ -67,7 +85,7 @@ async function RegistrationStatusHandler({
 	).catch(notFoundOnConvexError);
 
 	if (registration.status === "pending") {
-		return <Register registrationId={registration._id} eventId={eventId} />;
+		return <Register registrationId={registration._id} eventId={eventId} response={response} />;
 	}
 
 	if (registration.status === "registered") {
