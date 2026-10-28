@@ -64,13 +64,13 @@ export default function AvailableSeatEmail({
 					<Section className="py-4">
 						<Button
 							href={acceptUrl.toString()}
-							className="rounded-md bg-primary px-6 py-4 font-semibold text-base text-white"
+							className="mb-3 block rounded-md bg-primary px-6 py-4 font-semibold text-base text-white"
 						>
 							Ja, jeg vil ha plassen
 						</Button>
 						<Button
 							href={declineUrl.toString()}
-							className="ml-4 rounded-md bg-red-700 px-6 py-4 font-semibold text-base text-white"
+							className="block rounded-md bg-red-700 px-6 py-4 font-semibold text-base text-white"
 						>
 							Nei, gi plassen videre
 						</Button>
