@@ -312,6 +312,26 @@ describe("acceptPendingRegistration", () => {
 });
 
 describe("unregister", () => {
+	it("declining a pending offer immediately passes the seat to the next waiting student without a penalty", async () => {
+		const { t, companyId } = await setup();
+		const eventId = await insertEvent(t, companyId, {
+			participationLimit: 1,
+			eventStart: Date.now() + HOUR_IN_MS,
+		});
+		const owner = await insertUser(t, "declines@example.test");
+		const studentId = await insertStudent(t, owner._id);
+		const registrationId = await insertRegistration(t, eventId, owner._id, "pending");
+		const waiting = await insertUser(t, "next@example.test");
+		const waitingId = await insertRegistration(t, eventId, waiting._id, "waitlist");
+
+		await asUser(t, owner).mutation(mutations.unregister, { id: registrationId });
+
+		expect(await statusOf(t, registrationId)).toBeNull();
+		expect(await statusOf(t, waitingId)).toBe("pending");
+		expect(await scheduledRecipientsOf(t, "sendAvailableSeatEmail")).toEqual(["next@example.test"]);
+		expect(await pointsFor(t, studentId)).toHaveLength(0);
+	});
+
 	it("lets the owner unregister", async () => {
 		const { t, companyId } = await setup();
 		const eventId = await insertEvent(t, companyId);
