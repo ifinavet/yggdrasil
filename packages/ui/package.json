@@ -8,6 +8,7 @@
 		"test": "vitest run"
 	},
 	"dependencies": {
+		"@icons-pack/react-simple-icons": "13.15.1",
 		"@jsquash/jpeg": "1.6.0",
 		"@jsquash/oxipng": "2.3.0",
 		"@jsquash/png": "3.1.1",
