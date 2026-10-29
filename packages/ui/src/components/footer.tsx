@@ -1,3 +1,4 @@
+import { SiGithub } from "@icons-pack/react-simple-icons";
 import { Button } from "@workspace/ui/components/button";
 import ThemeSwitcher from "@workspace/ui/components/theme-switcher";
 import Link from "next/link";
@@ -11,6 +12,15 @@ export default function Footer() {
 					<p className="leading-none">Postboks 1080 Blindern </p>
 					<p className="leading-none">Institutt for informatikk</p>
 					<p className="leading-none">0316 Oslo, Norway</p>
+					<a
+						href="https://github.com/ifinavet/yggdrasil"
+						target="_blank"
+						rel="noopener noreferrer"
+						aria-label="Kildekoden på GitHub"
+						className="mt-2 w-fit rounded-sm transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2"
+					>
+						<SiGithub size={28} aria-hidden="true" />
+					</a>
 				</div>
 				<div className="flex flex-col items-start gap-2 sm:items-end">
 					<Button
