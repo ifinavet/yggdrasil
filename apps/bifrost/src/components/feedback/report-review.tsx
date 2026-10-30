@@ -19,7 +19,7 @@ import {
 import { cn } from "@workspace/ui/lib/utils";
 import { useMutation } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Pencil } from "lucide-react";
 import { useState } from "react";
 import { REPORT_DELIVERY_LABELS, REPORT_STATUS_LABELS } from "./status-labels";
 
@@ -137,7 +137,10 @@ export function ReportReview({ report, answers }: Readonly<{ report: Report; ans
 			<div className="flex justify-end">
 				<Sheet>
 					<SheetTrigger asChild>
-						<Button variant="outline">Tekstsvar</Button>
+						<Button variant="outline">
+							<Pencil aria-hidden="true" />
+							Rediger tekstsvar
+						</Button>
 					</SheetTrigger>
 					<SheetContent className="overflow-y-auto sm:max-w-xl" aria-describedby={undefined}>
 						<SheetHeader>
