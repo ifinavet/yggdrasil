@@ -44,7 +44,6 @@ export function ReportReview({ report, answers }: Readonly<{ report: Report; ans
 	const revoke = useMutation(api.feedback.reports.mutations.revoke);
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string>();
-	const locked = report.status !== "draft";
 	const shared = report.status === "approved";
 	async function perform(operation: () => Promise<unknown>) {
 		setBusy(true);
@@ -180,7 +179,7 @@ export function ReportReview({ report, answers }: Readonly<{ report: Report; ans
 														type="button"
 														variant="ghost"
 														size="icon"
-														disabled={locked || busy}
+														disabled={shared || busy}
 														title={
 															answer.visible
 																? "Skjul svaret fra rapporten"

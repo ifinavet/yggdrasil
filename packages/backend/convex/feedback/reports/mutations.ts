@@ -22,7 +22,8 @@ export const setAnswerVisibility = mutation({
 	args: { ...reportArgs, answerId: v.id("feedbackReportAnswers"), visible: v.boolean() },
 	handler: async (ctx, args) => {
 		const { report } = await editableReport(ctx, args.reportId, args.revision);
-		if (report.status !== "draft") throw new ConvexError("En godkjent rapport kan ikke endres.");
+		if (report.status !== "draft" && report.status !== "revoked")
+			throw new ConvexError("En godkjent rapport kan ikke endres.");
 		const answer = await ctx.db.get(args.answerId);
 		if (!answer || answer.reportId !== report._id)
 			throw new ConvexError("Svaret finnes ikke i denne rapporten.");
