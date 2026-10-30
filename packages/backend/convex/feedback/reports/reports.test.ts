@@ -274,9 +274,19 @@ describe("company feedback reports", () => {
 		const f = await fixture();
 		const reportId = await queued(f);
 		await f.client.mutation(reports.mutations.revoke, { reportId, revision: 1 });
-		await f.client.mutation(reports.mutations.approve, {
+		const hidden = (
+			await f.client.query(reports.queries.getReportAnswers, { reportId, paginationOpts })
+		).page.find((answer) => answer.fieldKey === "toughts");
+		if (!hidden) throw new Error("Missing text answer");
+		await f.client.mutation(reports.mutations.setAnswerVisibility, {
 			reportId,
 			revision: 2,
+			answerId: hidden.id,
+			visible: false,
+		});
+		await f.client.mutation(reports.mutations.approve, {
+			reportId,
+			revision: 3,
 			recipientEmail: "company@example.test",
 		});
 		const report = await f.t.run((ctx) => ctx.db.get(reportId));
@@ -302,20 +312,22 @@ describe("company feedback reports", () => {
 			html: "report",
 		});
 		expect(await f.t.action(reports.public.resolveReport, { token, paginationOpts })).toBeNull();
-		expect(
-			await f.t.action(reports.public.resolveReport, { token: newToken, paginationOpts }),
-		).not.toBeNull();
+		const page = await f.t.action(reports.public.resolveReport, {
+			token: newToken,
+			paginationOpts,
+		});
+		expect(page?.answers.some((answer) => answer.id === hidden.id)).toBe(false);
 		const emails = await f.t.run((ctx) => ctx.db.query("feedbackReportLocalEmails").collect());
 		expect(emails.map((email) => email.to)).toEqual([
 			"contact@example.test",
 			"company@example.test",
 		]);
-		await f.client.mutation(reports.mutations.revoke, { reportId, revision: 3 });
+		await f.client.mutation(reports.mutations.revoke, { reportId, revision: 4 });
 		vi.setSystemTime(now + 86400000);
 		await expect(
 			f.client.mutation(reports.mutations.approve, {
 				reportId,
-				revision: 4,
+				revision: 5,
 				recipientEmail: "company@example.test",
 			}),
 		).rejects.toThrow("utløpt");
