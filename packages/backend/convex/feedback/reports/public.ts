@@ -6,6 +6,8 @@ import { internal } from "../../_generated/api";
 import { action, internalQuery } from "../../_generated/server";
 import { hashLinkToken } from "../../lib/tokens";
 
+const internalQuestionKey = "word_of_mouth";
+
 export const readPage = internalQuery({
 	args: { token: v.string(), now: v.number(), paginationOpts: paginationOptsValidator },
 	handler: async (ctx, { token, now, paginationOpts }) => {
@@ -38,15 +40,17 @@ export const readPage = internalQuery({
 					? await ctx.storage.getUrl(report.companyLogoId)
 					: null,
 				totalResponses: report.totalResponses,
-				questions: report.questions,
+				questions: report.questions.filter((question) => question.key !== internalQuestionKey),
 				registrants: report.registrants,
 			},
-			answers: answers.page.map((answer) => ({
-				id: answer._id,
-				fieldKey: answer.fieldKey,
-				text: answer.text,
-				visible: true,
-			})),
+			answers: answers.page
+				.filter((answer) => answer.fieldKey !== internalQuestionKey)
+				.map((answer) => ({
+					id: answer._id,
+					fieldKey: answer.fieldKey,
+					text: answer.text,
+					visible: true,
+				})),
 			continueCursor: answers.continueCursor,
 			isDone: answers.isDone,
 		};

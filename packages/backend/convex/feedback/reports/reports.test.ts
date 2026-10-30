@@ -232,8 +232,15 @@ describe("company feedback reports", () => {
 			html: "different",
 		});
 		const page = await f.t.action(reports.public.resolveReport, { token, paginationOpts });
-		expect(page?.answers).toHaveLength(5);
+		expect(page?.answers).toHaveLength(3);
 		expect(page?.answers.some((answer) => answer.id === hidden.id)).toBe(false);
+		expect(page?.answers.some((answer) => answer.fieldKey === "word_of_mouth")).toBe(false);
+		expect(page?.report.questions.some((question) => question.key === "word_of_mouth")).toBe(false);
+		expect(
+			(
+				await f.client.query(reports.queries.getReportAnswers, { reportId, paginationOpts })
+			).page.some((answer) => answer.fieldKey === "word_of_mouth"),
+		).toBe(true);
 		expect(page?.report).not.toHaveProperty("recipientEmail");
 		expect(page?.report).not.toHaveProperty("approvedBy");
 		expect(page?.report).not.toHaveProperty("campaignId");
