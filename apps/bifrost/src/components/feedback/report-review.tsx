@@ -45,6 +45,7 @@ export function ReportReview({ report, answers }: Readonly<{ report: Report; ans
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string>();
 	const locked = report.status !== "draft";
+	const shared = report.status === "approved";
 	async function perform(operation: () => Promise<unknown>) {
 		setBusy(true);
 		setError(undefined);
@@ -73,10 +74,7 @@ export function ReportReview({ report, answers }: Readonly<{ report: Report; ans
 				}}
 			>
 				<fieldset disabled={busy} className="space-y-4">
-					<div className="flex flex-wrap items-center justify-between gap-3">
-						<h1 className="font-semibold text-xl">Forhåndsvis rapport</h1>
-						<Badge variant="secondary">{status}</Badge>
-					</div>
+					<Badge variant="secondary">{status}</Badge>
 					<div className="flex flex-wrap items-end gap-4">
 						<form.Field name="recipientEmail">
 							{(field) => (
@@ -86,8 +84,8 @@ export function ReportReview({ report, answers }: Readonly<{ report: Report; ans
 										id="report-recipient"
 										type="email"
 										required
-										disabled={locked}
-										value={locked ? report.recipientEmail : field.state.value}
+										disabled={shared}
+										value={shared ? report.recipientEmail : field.state.value}
 										onBlur={field.handleBlur}
 										onChange={(event) => field.handleChange(event.target.value)}
 									/>
@@ -104,7 +102,7 @@ export function ReportReview({ report, answers }: Readonly<{ report: Report; ans
 									{error}
 								</p>
 							) : null}
-							{!locked ? (
+							{!shared ? (
 								<Button type="submit" disabled={report.totalResponses === 0}>
 									Bekreft og send rapport
 								</Button>

@@ -263,6 +263,56 @@ describe("company feedback reports", () => {
 		await f.client.mutation(reports.mutations.revoke, { reportId, revision: 1 });
 		expect(await f.t.action(reports.public.resolveReport, { token, paginationOpts })).toBeNull();
 	});
+	it("sends a revoked report to a new recipient with a new link", async () => {
+		const f = await fixture();
+		const reportId = await queued(f);
+		await f.client.mutation(reports.mutations.revoke, { reportId, revision: 1 });
+		await f.client.mutation(reports.mutations.approve, {
+			reportId,
+			revision: 2,
+			recipientEmail: "company@example.test",
+		});
+		const report = await f.t.run((ctx) => ctx.db.get(reportId));
+		expect(report).toMatchObject({
+			status: "approved",
+			recipientEmail: "company@example.test",
+			deliveryStatus: "pending",
+			deliveryAttempt: 1,
+		});
+		expect(report?.emailId).toBeUndefined();
+		expect(
+			await f.t.run(async (ctx) => {
+				const event = await ctx.db.get(f.eventId);
+				if (!event) throw new Error("Missing event");
+				return followupFinishedAt(ctx, event);
+			}),
+		).toBeNull();
+		const newToken = "b".repeat(43);
+		await f.t.mutation(jobs.messages.enqueue, {
+			reportId,
+			token: newToken,
+			url: "link",
+			html: "report",
+		});
+		expect(await f.t.action(reports.public.resolveReport, { token, paginationOpts })).toBeNull();
+		expect(
+			await f.t.action(reports.public.resolveReport, { token: newToken, paginationOpts }),
+		).not.toBeNull();
+		const emails = await f.t.run((ctx) => ctx.db.query("feedbackReportLocalEmails").collect());
+		expect(emails.map((email) => email.to)).toEqual([
+			"contact@example.test",
+			"company@example.test",
+		]);
+		await f.client.mutation(reports.mutations.revoke, { reportId, revision: 3 });
+		vi.setSystemTime(now + 86400000);
+		await expect(
+			f.client.mutation(reports.mutations.approve, {
+				reportId,
+				revision: 4,
+				recipientEmail: "company@example.test",
+			}),
+		).rejects.toThrow("utløpt");
+	});
 	it("requires an internal role", async () => {
 		const f = await fixture();
 		const reportId = await f.prepare();

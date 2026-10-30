@@ -100,7 +100,12 @@ function CompanyReport({
 	return (
 		<div className="mx-auto my-6 w-full max-w-5xl overflow-hidden rounded-[10px] border bg-card text-left lg:w-5xl">
 			{state === "ready" && result ? (
-				<FeedbackReportView report={result.report} answers={result.answers} />
+				<>
+					<p className="border-b bg-muted/40 px-[22px] py-3 text-muted-foreground text-sm min-[521px]:px-[34px]">
+						Du kan videresende lenken til andre som skal se rapporten.
+					</p>
+					<FeedbackReportView report={result.report} answers={result.answers} />
+				</>
 			) : (
 				<div className="space-y-4 p-8">
 					<h1 className="font-semibold text-2xl">{stateHeadings[state]}</h1>
