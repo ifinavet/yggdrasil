@@ -141,13 +141,13 @@ export function FeedbackReportResponses({
 									})}{" "}
 									<small>/ 5</small>
 								</strong>
-								<span>arrangementet</span>
+								<span>snitt på hvordan deltakerne syntes arrangementet var</span>
 							</div>
 						) : null}
 						{highlights.employment !== null ? (
 							<div>
 								<strong>{Math.round(highlights.employment * 100)} %</strong>
-								<span>kan tenke seg å jobbe her</span>
+								<span>av deltakerne kan tenke seg å jobbe her</span>
 							</div>
 						) : null}
 					</div>

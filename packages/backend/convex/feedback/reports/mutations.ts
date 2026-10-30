@@ -13,7 +13,7 @@ async function editableReport(ctx: MutationCtx, reportId: Id<"feedbackReports">,
 		throw new ConvexError("Lagringstiden for rapporten er utløpt.");
 	if (report.revision !== revision)
 		throw new ConvexError(
-			"Rapporten er endret. Se gjennom den oppdaterte forhåndsvisningen og prøv igjen.",
+			"Rapporten er endret. Se gjennom den oppdaterte rapporten og prøv igjen.",
 		);
 	return { report, user };
 }
@@ -36,7 +36,7 @@ export const approve = mutation({
 		const { report, user } = await editableReport(ctx, args.reportId, args.revision);
 		if (report.totalResponses === 0)
 			throw new ConvexError("Rapporten har ingen svar og kan ikke sendes.");
-		if (report.status !== "draft")
+		if (report.status !== "draft" && report.status !== "revoked")
 			throw new ConvexError("Rapporten er allerede godkjent eller utilgjengelig.");
 		const recipient = reportRecipientSchema.safeParse({ recipientEmail: args.recipientEmail });
 		if (!recipient.success) throw new ConvexError("Skriv inn en gyldig e-postadresse.");
@@ -47,6 +47,11 @@ export const approve = mutation({
 			recipientEmail: recipient.data.recipientEmail,
 			deliveryStatus: "pending",
 			revision: report.revision + 1,
+			followupFinishedAt: undefined,
+			emailId: undefined,
+			tokenHash: undefined,
+			deliveryAttempt:
+				report.status === "revoked" ? (report.deliveryAttempt ?? 0) + 1 : report.deliveryAttempt,
 		});
 		await ctx.scheduler.runAfter(0, internal.feedback.reports.mail.sendReportEmail, {
 			reportId: report._id,

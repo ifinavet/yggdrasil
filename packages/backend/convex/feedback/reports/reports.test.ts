@@ -232,8 +232,15 @@ describe("company feedback reports", () => {
 			html: "different",
 		});
 		const page = await f.t.action(reports.public.resolveReport, { token, paginationOpts });
-		expect(page?.answers).toHaveLength(5);
+		expect(page?.answers).toHaveLength(3);
 		expect(page?.answers.some((answer) => answer.id === hidden.id)).toBe(false);
+		expect(page?.answers.some((answer) => answer.fieldKey === "word_of_mouth")).toBe(false);
+		expect(page?.report.questions.some((question) => question.key === "word_of_mouth")).toBe(false);
+		expect(
+			(
+				await f.client.query(reports.queries.getReportAnswers, { reportId, paginationOpts })
+			).page.some((answer) => answer.fieldKey === "word_of_mouth"),
+		).toBe(true);
 		expect(page?.report).not.toHaveProperty("recipientEmail");
 		expect(page?.report).not.toHaveProperty("approvedBy");
 		expect(page?.report).not.toHaveProperty("campaignId");
@@ -262,6 +269,56 @@ describe("company feedback reports", () => {
 		vi.setSystemTime(now);
 		await f.client.mutation(reports.mutations.revoke, { reportId, revision: 1 });
 		expect(await f.t.action(reports.public.resolveReport, { token, paginationOpts })).toBeNull();
+	});
+	it("sends a revoked report to a new recipient with a new link", async () => {
+		const f = await fixture();
+		const reportId = await queued(f);
+		await f.client.mutation(reports.mutations.revoke, { reportId, revision: 1 });
+		await f.client.mutation(reports.mutations.approve, {
+			reportId,
+			revision: 2,
+			recipientEmail: "company@example.test",
+		});
+		const report = await f.t.run((ctx) => ctx.db.get(reportId));
+		expect(report).toMatchObject({
+			status: "approved",
+			recipientEmail: "company@example.test",
+			deliveryStatus: "pending",
+			deliveryAttempt: 1,
+		});
+		expect(report?.emailId).toBeUndefined();
+		expect(
+			await f.t.run(async (ctx) => {
+				const event = await ctx.db.get(f.eventId);
+				if (!event) throw new Error("Missing event");
+				return followupFinishedAt(ctx, event);
+			}),
+		).toBeNull();
+		const newToken = "b".repeat(43);
+		await f.t.mutation(jobs.messages.enqueue, {
+			reportId,
+			token: newToken,
+			url: "link",
+			html: "report",
+		});
+		expect(await f.t.action(reports.public.resolveReport, { token, paginationOpts })).toBeNull();
+		expect(
+			await f.t.action(reports.public.resolveReport, { token: newToken, paginationOpts }),
+		).not.toBeNull();
+		const emails = await f.t.run((ctx) => ctx.db.query("feedbackReportLocalEmails").collect());
+		expect(emails.map((email) => email.to)).toEqual([
+			"contact@example.test",
+			"company@example.test",
+		]);
+		await f.client.mutation(reports.mutations.revoke, { reportId, revision: 3 });
+		vi.setSystemTime(now + 86400000);
+		await expect(
+			f.client.mutation(reports.mutations.approve, {
+				reportId,
+				revision: 4,
+				recipientEmail: "company@example.test",
+			}),
+		).rejects.toThrow("utløpt");
 	});
 	it("requires an internal role", async () => {
 		const f = await fixture();
