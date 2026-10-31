@@ -85,8 +85,8 @@ export function acceptsApplications(semester: Doc<"semesters">, today: string): 
 
 /**
  * The settings a new semester inherits from the most recent one: information text, terms link,
- * whether the deadline is hard, start time for events and the confirmation email's text. Dates and
- * deadlines are never inherited; a human sets those.
+ * whether the deadline is hard, start time for events and the text of the confirm and offer
+ * emails. Dates and deadlines are never inherited; a human sets those.
  *
  * @param {MutationCtx} ctx - The Convex mutation context.
  *
@@ -103,6 +103,8 @@ export async function settingsFromLatestSemester(
 		| "defaultEventStartTime"
 		| "confirmEmailSubject"
 		| "confirmEmailText"
+		| "offerEmailSubject"
+		| "offerEmailText"
 	>
 > {
 	// The index sorts terms alphabetically, so read the newest few and order them properly.
@@ -125,6 +127,10 @@ export async function settingsFromLatestSemester(
 			? { confirmEmailSubject: latest.confirmEmailSubject }
 			: {}),
 		...(latest.confirmEmailText !== undefined ? { confirmEmailText: latest.confirmEmailText } : {}),
+		...(latest.offerEmailSubject !== undefined
+			? { offerEmailSubject: latest.offerEmailSubject }
+			: {}),
+		...(latest.offerEmailText !== undefined ? { offerEmailText: latest.offerEmailText } : {}),
 	};
 }
 

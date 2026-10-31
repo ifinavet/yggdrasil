@@ -41,7 +41,7 @@
 		"./semester/interest": "./semester/interest.ts",
 		"./semester/application": "./semester/application.ts",
 		"./semester/labels": "./semester/labels.ts",
-		"./semester/confirm-email": "./semester/confirm-email.ts",
+		"./semester/company-emails": "./semester/company-emails.ts",
 		"./semester/prices": "./semester/prices.ts",
 		"./semester/team": "./semester/team.ts",
 		"./iam": "./iam/index.ts",

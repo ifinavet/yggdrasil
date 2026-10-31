@@ -183,6 +183,7 @@ import type * as semesterPlanning_registry_actions from "../semesterPlanning/reg
 import type * as semesterPlanning_registry_client from "../semesterPlanning/registry/client.js";
 import type * as semesterPlanning_registry_messages from "../semesterPlanning/registry/messages.js";
 import type * as semesterPlanning_rules from "../semesterPlanning/rules.js";
+import type * as semesterPlanning_semesters_emailPreview from "../semesterPlanning/semesters/emailPreview.js";
 import type * as semesterPlanning_semesters_helper from "../semesterPlanning/semesters/helper.js";
 import type * as semesterPlanning_semesters_mutations from "../semesterPlanning/semesters/mutations.js";
 import type * as semesterPlanning_semesters_queries from "../semesterPlanning/semesters/queries.js";
@@ -379,6 +380,7 @@ declare const fullApi: ApiFromModules<{
   "semesterPlanning/registry/client": typeof semesterPlanning_registry_client;
   "semesterPlanning/registry/messages": typeof semesterPlanning_registry_messages;
   "semesterPlanning/rules": typeof semesterPlanning_rules;
+  "semesterPlanning/semesters/emailPreview": typeof semesterPlanning_semesters_emailPreview;
   "semesterPlanning/semesters/helper": typeof semesterPlanning_semesters_helper;
   "semesterPlanning/semesters/mutations": typeof semesterPlanning_semesters_mutations;
   "semesterPlanning/semesters/queries": typeof semesterPlanning_semesters_queries;

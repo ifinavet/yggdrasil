@@ -1,3 +1,5 @@
+import { offerEmailFor } from "@workspace/shared/semester/company-emails";
+import { formatSemesterDay } from "@workspace/shared/time";
 import { v } from "convex/values";
 import { internalQuery, query } from "../../_generated/server";
 import { isActiveApplicationStatus } from "../rules";
@@ -72,15 +74,16 @@ export const getByToken = query({
 	},
 });
 
+/** Who gets an open offer's email, and the semester's text for it with the details filled in. */
 export const emailContext = internalQuery({
 	args: { offerId: v.id("companyApplicationOffers") },
 	returns: v.union(
 		v.null(),
 		v.object({
 			to: v.string(),
-			contactName: v.string(),
-			date: v.string(),
 			linkToken: v.string(),
+			subject: v.string(),
+			paragraphs: v.array(v.string()),
 		}),
 	),
 	handler: async (ctx, { offerId }) => {
@@ -88,11 +91,16 @@ export const emailContext = internalQuery({
 		if (offer?.status !== "pending") return null;
 		const application = await ctx.db.get(offer.applicationId);
 		if (application?.status !== "offer_sent") return null;
+		const { name } = application.contact;
+		const semester = await ctx.db.get(application.semesterId);
 		return {
 			to: application.contact.email,
-			contactName: application.contact.name,
-			date: offer.date,
 			linkToken: offer.linkToken,
+			...offerEmailFor(semester, {
+				companyName: application.registry.name,
+				firstName: name.split(/\s+/)[0] || name,
+				day: formatSemesterDay(offer.date, "long"),
+			}),
 		};
 	},
 });
