@@ -58,7 +58,12 @@ export function EventMetadata({
 					{event.foodName ?? (event.food || "Mer info kommer")}
 				</p>
 				<p className="flex items-center gap-2 font-semibold md:text-lg">
-					<Users className="size-6 min-w-6 md:size-8" /> {spotsLabel(availableSpots)}
+					<Users className="size-6 min-w-6 md:size-8" />{" "}
+					<span suppressHydrationWarning>
+						{hasMounted && event.eventStart <= Date.now()
+							? "Påmelding stengt"
+							: spotsLabel(availableSpots)}
+					</span>
 				</p>
 				<p className="flex items-center gap-2 font-semibold md:text-lg">
 					<Globe className="size-6 min-w-6 md:size-8" /> {event.language}
