@@ -90,7 +90,9 @@ export function ApplicationPage({
 							<StatusCard details={details} context={context} companyName={companyName} />
 						)}
 						<EventInfoCard application={application} />
-						<DatesCard details={details} context={context} companyName={companyName} />
+						{(application.status === "applied" || !isActiveStatus(application.status)) && (
+							<DatesCard details={details} context={context} companyName={companyName} />
+						)}
 					</div>
 					<div className="flex min-w-0 flex-col gap-4">
 						{/* The company, who to talk to and how to invoice: reference, in one card. */}
