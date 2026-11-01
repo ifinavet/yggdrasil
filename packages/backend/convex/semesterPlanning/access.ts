@@ -1,7 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import type { Id } from "../_generated/dataModel";
 import { type MutationCtx, mutation, type QueryCtx, query } from "../_generated/server";
-import { linkedUserId, superAdminRoles, userHasRole } from "../auth/accessRights";
+import { internalRoles, linkedUserId, superAdminRoles, userHasRole } from "../auth/accessRights";
 import { getCurrentUser, getCurrentUserOrThrow } from "../auth/currentUser";
 
 const BOARD_GROUP = "Styret";
@@ -9,6 +9,8 @@ const BOARD_GROUP = "Styret";
 async function semesterPlanRightsOf(ctx: QueryCtx | MutationCtx, userId: Id<"users">) {
 	if (await userHasRole(ctx, userId, superAdminRoles))
 		return { canPlan: true, canManageAccess: true };
+	if (!(await userHasRole(ctx, userId, internalRoles)))
+		return { canPlan: false, canManageAccess: false };
 	const memberId = (await linkedUserId(ctx, userId)) ?? userId;
 	const internal = await ctx.db
 		.query("internals")

@@ -64,7 +64,10 @@ describe("semester plan access", () => {
 			expect(await rightsOf(t, user)).toEqual({ canPlan: true, canManageAccess: true });
 		}
 		await expect(tryToPlan(t, leader)).resolves.toBeDefined();
-		for (const user of [editor, admin]) {
+		const roleless = await insertUser(t, "uten-rolle@ifinavet.no");
+		await insertInternal(t, roleless._id, "Intern");
+
+		for (const user of [editor, admin, roleless]) {
 			expect(await rightsOf(t, user)).toEqual({ canPlan: false, canManageAccess: false });
 			expect(await refusalMessageFrom(tryToPlan(t, user))).toContain("Unauthorized");
 		}
