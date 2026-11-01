@@ -128,6 +128,10 @@ export function organizersForTeam(
 		(o) =>
 			o.role === "hovedansvarlig" && o.userId !== current.responsibleUserId && !team.has(o.userId),
 	);
+	const otherOrgs = organizers.filter(
+		(o) =>
+			o.role === "organsvarlig" && o.userId !== current.orgResponsibleUserId && !team.has(o.userId),
+	);
 	return [
 		...(next.responsibleUserId
 			? [{ userId: next.responsibleUserId, role: "hovedansvarlig" as const }]
@@ -136,6 +140,7 @@ export function organizersForTeam(
 		...(next.orgResponsibleUserId
 			? [{ userId: next.orgResponsibleUserId, role: "organsvarlig" as const }]
 			: []),
+		...otherOrgs.map(({ userId }) => ({ userId, role: "organsvarlig" as const })),
 		...next.helperUserIds.map((userId) => ({ userId, role: "medhjelper" as const })),
 	];
 }

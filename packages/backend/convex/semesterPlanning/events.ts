@@ -72,9 +72,10 @@ export async function proposeNavetTeams(
 
 	const needTeam = applications.filter((application) => !application.eventId);
 	const teams = proposeTeams(
-		needTeam.map(({ _id, responsibleUserId, helperUserIds }) => ({
+		needTeam.map(({ _id, responsibleUserId, orgResponsibleUserId, helperUserIds }) => ({
 			id: _id,
 			responsibleUserId,
+			orgResponsibleUserId,
 			helperUserIds,
 		})),
 		// Someone with several internal roles is one candidate.
@@ -303,6 +304,16 @@ export async function setApplicationTeam(
 	}
 	if (orgResponsibleUserId && !(await userHasRole(ctx, orgResponsibleUserId, internalRoles))) {
 		throw new ConvexError("Org-ansvarlig må være et internt medlem.");
+	}
+	if (
+		next.responsibleUserId &&
+		(next.responsibleUserId === next.orgResponsibleUserId ||
+			next.helperUserIds.includes(next.responsibleUserId))
+	) {
+		throw new ConvexError("Samme person kan ikke ha flere roller i teamet.");
+	}
+	if (next.orgResponsibleUserId && next.helperUserIds.includes(next.orgResponsibleUserId)) {
+		throw new ConvexError("Samme person kan ikke ha flere roller i teamet.");
 	}
 	if (changes.helperUserIds !== undefined) {
 		await requireValidHelpers(

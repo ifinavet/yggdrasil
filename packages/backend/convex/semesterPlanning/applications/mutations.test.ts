@@ -503,6 +503,52 @@ describe("updatePlanningDetails", () => {
 		expect((await applicationById(t, applicationId)).internalNotes).toBe("Ok");
 	});
 
+	it("refuses one person in two team roles", async () => {
+		const { t, semesterId, editor } = await planningSetup();
+		const member = await insertUser(t, "emil@ifinavet.no");
+		await grantRole(t, member._id, "internal");
+		const applicationId = await insertApplication(t, semesterId);
+
+		for (const changes of [
+			{ responsibleUserId: member._id, orgResponsibleUserId: member._id },
+			{ orgResponsibleUserId: member._id, helperUserIds: [member._id] },
+		]) {
+			expect(
+				await refusalMessageFrom(
+					editor.mutation(mutations.updatePlanningDetails, { applicationId, ...changes }),
+				),
+			).toBe("Samme person kan ikke ha flere roller i teamet.");
+		}
+	});
+
+	it("keeps other org-ansvarlige set on the event when the team changes", async () => {
+		const { t, semesterId, editor, companyId } = await planningSetup();
+		const lead = await insertUser(t, "emil@ifinavet.no");
+		const extraOrg = await insertUser(t, "ida@ifinavet.no");
+		for (const user of [lead, extraOrg]) await grantRole(t, user._id, "internal");
+		const eventId = await insertEvent(t, companyId, { published: false });
+		await insertOrganizer(t, eventId, extraOrg._id, "organsvarlig");
+		const applicationId = await insertApplication(t, semesterId, { eventId });
+
+		await editor.mutation(mutations.updatePlanningDetails, {
+			applicationId,
+			responsibleUserId: lead._id,
+		});
+
+		const roles = await t.run((ctx) =>
+			ctx.db
+				.query("eventOrganizers")
+				.withIndex("by_eventId", (q) => q.eq("eventId", eventId))
+				.collect(),
+		);
+		expect(roles.map(({ userId, role }) => ({ userId, role }))).toEqual(
+			expect.arrayContaining([
+				{ userId: lead._id, role: "hovedansvarlig" },
+				{ userId: extraOrg._id, role: "organsvarlig" },
+			]),
+		);
+	});
+
 	it("puts the org-ansvarlig on the event, and saves mat and rom", async () => {
 		const { t, semesterId, editor, companyId } = await planningSetup();
 		const lead = await insertUser(t, "emil@ifinavet.no");
@@ -670,6 +716,18 @@ describe("updateDetails", () => {
 		await editor.mutation(mutations.updateDetails, { applicationId, details: { venue: "escape" } });
 
 		expect((await applicationById(t, applicationId)).venue).toBe("escape");
+	});
+
+	it("clears «Annet fra bedriften» with null", async () => {
+		const { t, semesterId, editor } = await planningSetup();
+		const applicationId = await insertApplication(t, semesterId, { additionalInfo: "Gammelt" });
+
+		await editor.mutation(mutations.updateDetails, {
+			applicationId,
+			details: { additionalInfo: null },
+		});
+
+		expect((await applicationById(t, applicationId)).additionalInfo).toBeUndefined();
 	});
 
 	it("checks the changed application with the rules from Hugin", async () => {

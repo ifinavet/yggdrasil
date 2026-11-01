@@ -349,7 +349,8 @@ export const updateDetails = mutation({
 			billing: v.optional(fields.billing),
 			targetDegrees: v.optional(fields.targetDegrees),
 			targetStudyPrograms: v.optional(fields.targetStudyPrograms),
-			additionalInfo: v.optional(fields.additionalInfo),
+			// null clears it; Convex drops a field sent as undefined.
+			additionalInfo: v.optional(v.union(v.string(), v.null())),
 		}),
 	},
 	returns: v.null(),
@@ -360,6 +361,10 @@ export const updateDetails = mutation({
 		const { consent: _, ...form } = parseApplicationForm({
 			...application,
 			...details,
+			additionalInfo:
+				details.additionalInfo === null
+					? undefined
+					: (details.additionalInfo ?? application.additionalInfo),
 			consent: true,
 		});
 		await ctx.db.patch(applicationId, {

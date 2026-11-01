@@ -67,6 +67,7 @@ function EditDialog({
 	const [pending, setPending] = useState(false);
 
 	const save = async () => {
+		setError(undefined);
 		const details = toDetails();
 		// The same rules as the Hugin form and the backend, on the application as it will be saved.
 		const checked = applicationFormSchema.safeParse({ ...application, ...details, consent: true });
@@ -96,6 +97,7 @@ function EditDialog({
 				size="sm"
 				onClick={() => {
 					reset();
+					setError(undefined);
 					setOpen(true);
 				}}
 			>
@@ -211,7 +213,7 @@ export function EditEventInfo({ application }: Readonly<{ application: Applicati
 			...value,
 			minStudents: Number(value.minStudents),
 			maxStudents: Number(value.maxStudents),
-			additionalInfo: value.additionalInfo.trim() || undefined,
+			additionalInfo: value.additionalInfo.trim() || null,
 		};
 	};
 
