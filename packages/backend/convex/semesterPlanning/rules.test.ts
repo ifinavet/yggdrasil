@@ -174,6 +174,27 @@ describe("defaultApplicationSemester", () => {
 	it("is null without choices", () => {
 		expect(defaultApplicationSemester("2026-09-28", [])).toBeNull();
 	});
+
+	it("passes over a semester whose soft deadline has passed when another has a deadline left", () => {
+		const oldOpen = { ...autumn26, applicationDeadline: "2026-04-01" };
+		const newOpen = { ...autumn27, applicationDeadline: "2027-04-01" };
+
+		// Without deadlines the running semester wins; with the old deadline gone, the new one does.
+		expect(defaultApplicationSemester("2026-09-28", [autumn26, autumn27])).toEqual(autumn26);
+		expect(defaultApplicationSemester("2026-09-28", [oldOpen, newOpen])).toEqual(newOpen);
+		// On the deadline day it still counts as open.
+		expect(
+			defaultApplicationSemester("2026-04-01", [
+				oldOpen,
+				{ ...spring27, applicationDeadline: "2026-12-01" },
+			]),
+		).toEqual(oldOpen);
+	});
+
+	it("falls back to semesters whose deadline has passed when no other is open", () => {
+		const late = { ...autumn26, applicationDeadline: "2026-04-01" };
+		expect(defaultApplicationSemester("2026-09-28", [late])).toEqual(late);
+	});
 });
 
 describe("firstMissingTerm", () => {

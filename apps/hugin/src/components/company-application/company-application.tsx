@@ -17,6 +17,7 @@ import { useQuery } from "convex/react";
 import { CalendarDays } from "lucide-react";
 import { useState } from "react";
 import { FormStatePanel } from "@/components/form-state-panel";
+import { draftSemesterId } from "@/lib/company-application";
 import { fullDate } from "@/lib/company-application-format";
 import { COMPANY_APPLICATION_COPY as COPY } from "@/lib/company-application-questions";
 import { storedDraftSemesterId } from "@/lib/company-application-storage";
@@ -67,7 +68,8 @@ export function CompanyApplication() {
 /**
  * The semester choice and the form. The company starts on the semester after the running one when
  * it is open, so an application in September is for the coming spring, and can pick the running
- * semester or a later one instead. A saved draft opens on its own semester while that is open.
+ * semester or a later one instead. A saved draft opens on its own semester while that is open and
+ * its deadline has not passed.
  */
 function OpenSemesters({
 	semesters,
@@ -76,7 +78,9 @@ function OpenSemesters({
 	semesters: readonly OpenSemester[];
 	onSubmitted: (sent: SentApplication) => void;
 }>) {
-	const [chosenId, setChosenId] = useState<string | null>(storedDraftSemesterId);
+	const [chosenId, setChosenId] = useState<string | null>(() =>
+		draftSemesterId(semesters, storedDraftSemesterId(), osloToday(Date.now())),
+	);
 	const semester =
 		semesters.find((candidate) => candidate._id === chosenId) ??
 		defaultApplicationSemester(osloToday(Date.now()), semesters);

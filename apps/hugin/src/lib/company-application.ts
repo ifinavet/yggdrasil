@@ -6,6 +6,7 @@ import {
 	FOOD_PURCHASERS,
 	VENUES,
 } from "@workspace/shared/semester/labels";
+import { hasDeadlinePassed } from "@workspace/shared/time";
 import { z } from "zod";
 import { COMPANY_APPLICATION_COPY } from "./company-application-questions";
 
@@ -261,4 +262,18 @@ export function answeredCount(errors: DraftErrors): number {
 export function validateApplicationDraft({ value }: { value: ApplicationDraft }) {
 	const errors = draftErrors(value);
 	return Object.keys(errors).length > 0 ? { fields: errors } : undefined;
+}
+
+/**
+ * The semester a saved draft opens on: its own, while that semester is open and its deadline has
+ * not passed. Otherwise null, so the form starts on the default semester instead of an old one
+ * kept open without a hard deadline.
+ */
+export function draftSemesterId<T extends { _id: string; applicationDeadline: string }>(
+	semesters: readonly T[],
+	draftId: string | null,
+	today: string,
+): string | null {
+	const draft = semesters.find((semester) => semester._id === draftId);
+	return draft && !hasDeadlinePassed(draft, today) ? draft._id : null;
 }
