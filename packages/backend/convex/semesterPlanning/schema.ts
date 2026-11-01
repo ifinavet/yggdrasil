@@ -1,9 +1,9 @@
 import {
 	APPLICATION_STATUSES,
+	APPLICATION_VENUES,
 	ESCAPE_ANSWERS,
 	EVENT_TYPES,
 	FOOD_PURCHASERS,
-	VENUES,
 } from "@workspace/shared/semester/labels";
 import { SEMESTER_TERMS } from "@workspace/shared/time";
 import { defineTable } from "convex/server";
@@ -28,7 +28,7 @@ export const applicationStatus = oneOf(APPLICATION_STATUSES);
 
 export const presentationEventType = oneOf(EVENT_TYPES);
 
-export const venue = oneOf(VENUES);
+export const venue = oneOf(APPLICATION_VENUES);
 
 export const wantsToUseEscape = oneOf(ESCAPE_ANSWERS);
 
@@ -198,7 +198,10 @@ export const semesterPlanningSchema = {
 		assignedDate: v.optional(v.string()),
 		responsibleUserId: v.optional(v.id("users")),
 		helperUserIds: v.optional(v.array(v.id("users"))),
+		orgResponsibleUserId: v.optional(v.id("users")),
 		internalNotes: v.optional(v.string()),
+		food: v.optional(v.string()),
+		room: v.optional(v.string()),
 		eventId: v.optional(v.id("events")),
 		// When the application was added as a row to the Google Sheet copy, if it has been.
 		sheetRowAddedAt: v.optional(v.number()),

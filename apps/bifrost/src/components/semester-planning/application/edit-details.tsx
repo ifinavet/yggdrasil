@@ -5,6 +5,7 @@ import { api } from "@workspace/backend/convex/api";
 import { DEGREE_TYPES, STUDY_PROGRAMS } from "@workspace/shared/constants";
 import { applicationFormSchema } from "@workspace/shared/semester/application";
 import {
+	APPLICATION_VENUES,
 	ESCAPE_ANSWERS,
 	ESCAPE_LABELS,
 	EVENT_TYPE_LABELS,
@@ -12,7 +13,6 @@ import {
 	FOOD_PURCHASER_LABELS,
 	FOOD_PURCHASERS,
 	VENUE_LABELS,
-	VENUES,
 } from "@workspace/shared/semester/labels";
 import { convexErrorMessage } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
@@ -265,7 +265,7 @@ export function EditEventInfo({ application }: Readonly<{ application: Applicati
 							id="edit-venue"
 							label="Sted"
 							value={field.state.value}
-							options={VENUES}
+							options={APPLICATION_VENUES}
 							labels={VENUE_LABELS}
 							onChange={field.handleChange}
 						/>

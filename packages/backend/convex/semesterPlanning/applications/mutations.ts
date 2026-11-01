@@ -261,27 +261,41 @@ export const updatePlanningDetails = mutation({
 	args: {
 		applicationId: v.id("companyApplications"),
 		responsibleUserId: v.optional(v.union(v.id("users"), v.null())),
+		orgResponsibleUserId: v.optional(v.union(v.id("users"), v.null())),
 		helperUserIds: v.optional(v.array(v.id("users"))),
 		internalNotes: v.optional(v.string()),
+		food: v.optional(v.string()),
+		room: v.optional(v.string()),
 	},
 	returns: v.null(),
-	handler: async (ctx, { applicationId, responsibleUserId, helperUserIds, internalNotes }) => {
+	handler: async (
+		ctx,
+		{ applicationId, responsibleUserId, orgResponsibleUserId, helperUserIds, ...notes },
+	) => {
 		await requireEditorActor(ctx);
 		const application = await requireApplication(ctx, applicationId);
 
-		if (internalNotes !== undefined && internalNotes.length > MAX_INTERNAL_NOTES_LENGTH) {
+		if (Object.values(notes).some((note) => note.length > MAX_INTERNAL_NOTES_LENGTH)) {
 			throw new ConvexError(`Notatene kan ha høyst ${MAX_INTERNAL_NOTES_LENGTH} tegn.`);
 		}
 
-		if (responsibleUserId !== undefined || helperUserIds !== undefined) {
+		if (
+			responsibleUserId !== undefined ||
+			orgResponsibleUserId !== undefined ||
+			helperUserIds !== undefined
+		) {
 			await setApplicationTeam(ctx, application, {
 				...(responsibleUserId !== undefined ? { responsibleUserId } : {}),
+				...(orgResponsibleUserId !== undefined ? { orgResponsibleUserId } : {}),
 				...(helperUserIds !== undefined ? { helperUserIds } : {}),
 			});
 		}
-		if (internalNotes !== undefined) {
-			await ctx.db.patch(applicationId, { internalNotes: internalNotes.trim() || undefined });
-		}
+		await ctx.db.patch(
+			applicationId,
+			Object.fromEntries(
+				Object.entries(notes).map(([field, note]) => [field, note.trim() || undefined]),
+			),
+		);
 		return null;
 	},
 });

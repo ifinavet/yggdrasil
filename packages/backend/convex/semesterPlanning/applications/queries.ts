@@ -140,13 +140,19 @@ export const get = query({
 			.collect();
 		const company = await findCompanyProfile(ctx, application);
 		// The event's organizers once it exists, so the page shows the team the event editor shows.
-		const { responsibleUserId: _responsible, helperUserIds: _helpers, ...rest } = application;
+		const {
+			responsibleUserId: _responsible,
+			orgResponsibleUserId: _org,
+			helperUserIds: _helpers,
+			...rest
+		} = application;
 		const team = await applicationTeam(ctx, application);
 
 		return {
 			application: {
 				...rest,
 				...(team.responsibleUserId ? { responsibleUserId: team.responsibleUserId } : {}),
+				...(team.orgResponsibleUserId ? { orgResponsibleUserId: team.orgResponsibleUserId } : {}),
 				...(team.helperUserIds.length ? { helperUserIds: team.helperUserIds } : {}),
 			},
 			offers,

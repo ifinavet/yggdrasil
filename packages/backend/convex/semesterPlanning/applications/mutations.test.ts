@@ -502,6 +502,49 @@ describe("updatePlanningDetails", () => {
 		await editor.mutation(mutations.updatePlanningDetails, { applicationId, internalNotes: "Ok" });
 		expect((await applicationById(t, applicationId)).internalNotes).toBe("Ok");
 	});
+
+	it("puts the org-ansvarlig on the event, and saves mat and rom", async () => {
+		const { t, semesterId, editor, companyId } = await planningSetup();
+		const lead = await insertUser(t, "emil@ifinavet.no");
+		const org = await insertUser(t, "ida@ifinavet.no");
+		for (const user of [lead, org]) await grantRole(t, user._id, "internal");
+		const eventId = await insertEvent(t, companyId, { published: false });
+		const applicationId = await insertApplication(t, semesterId, { eventId });
+
+		await editor.mutation(mutations.updatePlanningDetails, {
+			applicationId,
+			responsibleUserId: lead._id,
+			orgResponsibleUserId: org._id,
+			food: " Pizza fra Peppes ",
+			room: "Store auditorium",
+		});
+
+		const organizers = await t.run((ctx) =>
+			ctx.db
+				.query("eventOrganizers")
+				.withIndex("by_eventId", (q) => q.eq("eventId", eventId))
+				.collect(),
+		);
+		expect(organizers.map(({ userId, role }) => ({ userId, role }))).toEqual([
+			{ userId: lead._id, role: "hovedansvarlig" },
+			{ userId: org._id, role: "organsvarlig" },
+		]);
+		expect(await applicationById(t, applicationId)).toMatchObject({
+			orgResponsibleUserId: org._id,
+			food: "Pizza fra Peppes",
+			room: "Store auditorium",
+		});
+
+		await editor.mutation(mutations.updatePlanningDetails, {
+			applicationId,
+			orgResponsibleUserId: null,
+			room: "",
+		});
+		const cleared = await applicationById(t, applicationId);
+		expect(cleared.orgResponsibleUserId).toBeUndefined();
+		expect(cleared.room).toBeUndefined();
+		expect(cleared.food).toBe("Pizza fra Peppes");
+	});
 });
 
 describe("remove", () => {
@@ -618,6 +661,15 @@ describe("updateDetails", () => {
 		expect((await activityFor(t, applicationId)).map((entry) => entry.type)).toContain(
 			"details_changed",
 		);
+	});
+
+	it("lets Navet set Escape as the venue, which Hugin does not offer", async () => {
+		const { t, semesterId, editor } = await planningSetup();
+		const applicationId = await insertApplication(t, semesterId);
+
+		await editor.mutation(mutations.updateDetails, { applicationId, details: { venue: "escape" } });
+
+		expect((await applicationById(t, applicationId)).venue).toBe("escape");
 	});
 
 	it("checks the changed application with the rules from Hugin", async () => {

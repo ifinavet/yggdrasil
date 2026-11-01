@@ -72,7 +72,11 @@ async function loadUsers(ctx: QueryCtx, ids: Id<"users">[]): Promise<Doc<"users"
 }
 
 /** A team by user id: the kontaktperson, if any, and the medhjelpere. */
-export type TeamIds = { responsibleUserId?: Id<"users">; helperUserIds: Id<"users">[] };
+export type TeamIds = {
+	responsibleUserId?: Id<"users">;
+	orgResponsibleUserId?: Id<"users">;
+	helperUserIds: Id<"users">[];
+};
 
 type Organizer = Pick<Doc<"eventOrganizers">, "userId" | "role">;
 
@@ -91,8 +95,10 @@ export function teamOfOrganizers(
 ): TeamIds {
 	const leads = organizers.filter((o) => o.role === "hovedansvarlig").map((o) => o.userId);
 	const responsibleUserId = preferred && leads.includes(preferred) ? preferred : leads[0];
+	const orgResponsibleUserId = organizers.find((o) => o.role === "organsvarlig")?.userId;
 	return {
 		...(responsibleUserId ? { responsibleUserId } : {}),
+		...(orgResponsibleUserId ? { orgResponsibleUserId } : {}),
 		helperUserIds: organizers.filter((o) => o.role === "medhjelper").map((o) => o.userId),
 	};
 }
@@ -112,7 +118,7 @@ export function organizersForTeam(
 	current: TeamIds,
 	next: TeamIds,
 ): Organizer[] {
-	const team = new Set([next.responsibleUserId, ...next.helperUserIds]);
+	const team = new Set([next.responsibleUserId, next.orgResponsibleUserId, ...next.helperUserIds]);
 	const otherLeads = organizers.filter(
 		(o) =>
 			o.role === "hovedansvarlig" && o.userId !== current.responsibleUserId && !team.has(o.userId),
@@ -122,6 +128,9 @@ export function organizersForTeam(
 			? [{ userId: next.responsibleUserId, role: "hovedansvarlig" as const }]
 			: []),
 		...otherLeads.map(({ userId }) => ({ userId, role: "hovedansvarlig" as const })),
+		...(next.orgResponsibleUserId
+			? [{ userId: next.orgResponsibleUserId, role: "organsvarlig" as const }]
+			: []),
 		...next.helperUserIds.map((userId) => ({ userId, role: "medhjelper" as const })),
 	];
 }
@@ -189,6 +198,9 @@ export async function applicationTeam(
 	}
 	return {
 		...(application.responsibleUserId ? { responsibleUserId: application.responsibleUserId } : {}),
+		...(application.orgResponsibleUserId
+			? { orgResponsibleUserId: application.orgResponsibleUserId }
+			: {}),
 		helperUserIds: application.helperUserIds ?? [],
 	};
 }
