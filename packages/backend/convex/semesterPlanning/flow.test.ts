@@ -108,6 +108,7 @@ describe("the whole journey", () => {
 				(job) => job.name,
 			),
 		).toEqual([
+			"semesterPlanning/interest/emails:notifyApplicationsOpen",
 			"semesterPlanning/applications/confirmation:purgeExpired",
 			"iam/notifications:sendMessage",
 			"semesterPlanning/applications/sheet:appendApplication",

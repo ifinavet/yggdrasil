@@ -125,6 +125,15 @@ export const applicationForm = v.object({
 });
 
 export const semesterPlanningSchema = {
+	/**
+	 * Companies that asked on Hugin to hear when applications open. Each gets one email when a
+	 * semester opens, and is then deleted.
+	 */
+	companyInterest: defineTable({
+		companyName: v.string(),
+		email: v.string(),
+	}).index("by_email", ["email"]),
+
 	semesters: defineTable({
 		year: v.number(),
 		term: semesterTerm,

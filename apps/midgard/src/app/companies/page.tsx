@@ -79,13 +79,13 @@ async function CompaniesContent({ applyCard }: Readonly<{ applyCard: ReactNode }
 								Bedriftspresentasjon, kurs og foredrag
 							</h2>
 							<p className="leading-7">
-								Navet sender i slutten av hvert semester ut en invitasjon der vi oppfordrer
-								bedrifter til å søke om og holde bedriftspresentasjon det påfølgende semesteret.
+								Mot slutten av hvert semester åpner Navet for søknader om bedriftspresentasjon og
+								andre arrangementer neste semester. Når søknadene er åpne, søker dere i skjemaet
+								under.
 								<br />
 								<br />
-								Dersom din bedrift ønsker å holde en bedriftspresentasjon ved Institutt for
-								informatikk kan dere sende en mail til vår bedriftskontakt og dere vil få mulighet
-								ved neste semester gjennom våre maillister.
+								Er søknadene stengt, kan dere legge igjen e-posten deres, så sier vi ifra så fort de
+								åpner. Lurer dere på noe, kan dere alltid sende en e-post til bedriftskontakten vår.
 							</p>
 						</ContainerCard>
 						{applyCard}
