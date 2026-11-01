@@ -28,7 +28,7 @@ import {
 	useRunMutation,
 } from "./model";
 import { PlanningCard } from "./planning-card";
-import { StatusCard } from "./status-card";
+import { StatusCard, WithdrawButton } from "./status-card";
 
 /** The Søknad page in Bifrost: one application, its status and what to do next. Editors only. */
 export function ApplicationPage({
@@ -82,9 +82,12 @@ export function ApplicationPage({
 						søkte {formatMoment(application._creationTime, "longDay")} via Hugin
 					</p>
 				</div>
-				<div className="ml-auto flex gap-2">
+				<div className="ml-auto flex items-center gap-2">
 					{context && application.status === "confirmed" && application.eventId && (
-						<ChangeDateButton details={details} context={context} companyName={companyName} />
+						<>
+							<ChangeDateButton details={details} context={context} companyName={companyName} />
+							<WithdrawButton details={details} companyName={companyName} />
+						</>
 					)}
 					<EventButton details={details} />
 				</div>

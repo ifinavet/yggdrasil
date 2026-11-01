@@ -591,3 +591,68 @@ describe("remove", () => {
 		).toContain("Unauthorized");
 	});
 });
+
+describe("updateDetails", () => {
+	it("saves the changed details, keeps the rest and writes the history", async () => {
+		const { t, semesterId, editor } = await planningSetup();
+		const applicationId = await insertApplication(t, semesterId);
+
+		await editor.mutation(mutations.updateDetails, {
+			applicationId,
+			details: {
+				contact: { name: "Ola Nordmann", email: "ola@fjordkode.no", phone: "+47 987 65 432" },
+				eventType: "large_presentation",
+				maxStudents: 120,
+				billing: { email: "faktura@fjordkode.no", ehfInvoice: true },
+			},
+		});
+
+		expect(await applicationById(t, applicationId)).toMatchObject({
+			contact: { name: "Ola Nordmann", email: "ola@fjordkode.no", phone: "+47 987 65 432" },
+			eventType: "large_presentation",
+			minStudents: 25,
+			maxStudents: 120,
+			description: "Presentasjon og kodeoppgave.",
+			billing: { email: "faktura@fjordkode.no", ehfInvoice: true },
+		});
+		expect((await activityFor(t, applicationId)).map((entry) => entry.type)).toContain(
+			"details_changed",
+		);
+	});
+
+	it("checks the changed application with the rules from Hugin", async () => {
+		const { t, semesterId, editor } = await planningSetup();
+		const applicationId = await insertApplication(t, semesterId);
+
+		expect(
+			await refusalMessageFrom(
+				editor.mutation(mutations.updateDetails, { applicationId, details: { maxStudents: 80 } }),
+			),
+		).toContain("har plass til 40");
+		expect(
+			await refusalMessageFrom(
+				editor.mutation(mutations.updateDetails, {
+					applicationId,
+					details: { billing: { ehfInvoice: false } },
+				}),
+			),
+		).toBe("Skriv en e-post for faktura, eller hvordan dere vil ha fakturaen.");
+		expect((await applicationById(t, applicationId)).maxStudents).toBe(40);
+	});
+
+	it("refuses internal members who are not editors", async () => {
+		const { t, semesterId } = await planningSetup();
+		const applicationId = await insertApplication(t, semesterId);
+		const member = await insertUser(t, "medlem@ifinavet.no");
+		await grantRole(t, member._id, "internal");
+
+		expect(
+			await refusalMessageFrom(
+				asUser(t, member).mutation(mutations.updateDetails, {
+					applicationId,
+					details: { description: "Noe annet." },
+				}),
+			),
+		).toContain("Unauthorized");
+	});
+});

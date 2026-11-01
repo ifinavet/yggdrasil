@@ -38,6 +38,8 @@ function describe(entry: Activity, offers: ApplicationDetails["offers"], who: st
 			return `${who} fjernet datoen${dayPart(entry.date)}`;
 		case "event_linked":
 			return `${who} opprettet arrangementet`;
+		case "details_changed":
+			return `${who} endret søknaden`;
 		case "status_changed":
 			break;
 	}

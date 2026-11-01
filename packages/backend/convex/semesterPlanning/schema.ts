@@ -56,6 +56,7 @@ export const applicationActivityType = v.union(
 	v.literal("date_assigned"),
 	v.literal("date_cleared"),
 	v.literal("event_linked"),
+	v.literal("details_changed"),
 );
 
 // Who performed an activity: a Navet member, the company itself or the system.
