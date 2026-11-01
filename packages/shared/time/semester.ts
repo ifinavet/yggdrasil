@@ -135,16 +135,26 @@ export function isSameSemester(a: SemesterRef, b: SemesterRef): boolean {
 	return a.year === b.year && a.term === b.term;
 }
 
+/** Whether a semester's application deadline is before the given Oslo day. */
+export function hasDeadlinePassed(
+	semester: { applicationDeadline?: string },
+	today: string,
+): boolean {
+	return semester.applicationDeadline !== undefined && semester.applicationDeadline < today;
+}
+
 /**
  * The semester a company most likely applies for on the given Oslo day: the one after the running
  * semester when it is among the choices, else the earliest choice from the running semester on,
- * else the latest choice (a late application for the running semester). Null with no choices.
+ * else the latest choice (a late application for the running semester). A semester whose deadline
+ * has passed is only chosen when none has a deadline left, so an old semester kept open without a
+ * hard deadline does not hide a new one. Null with no choices.
  */
-export function defaultApplicationSemester<T extends SemesterRef>(
-	today: string,
-	choices: readonly T[],
-): T | null {
-	const sorted = [...choices].sort(compareSemesters);
+export function defaultApplicationSemester<
+	T extends SemesterRef & { applicationDeadline?: string },
+>(today: string, choices: readonly T[]): T | null {
+	const deadlineLeft = choices.filter((choice) => !hasDeadlinePassed(choice, today));
+	const sorted = [...(deadlineLeft.length > 0 ? deadlineLeft : choices)].sort(compareSemesters);
 	const current = semesterSortKey(termOfDay(today));
 	const next = semesterSortKey(nextTermAfter(today));
 	return (

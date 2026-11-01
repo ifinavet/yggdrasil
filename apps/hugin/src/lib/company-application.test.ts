@@ -6,6 +6,7 @@ import {
 	applicationDraftSchema,
 	applicationSubmissionSchema,
 	draftErrors,
+	draftSemesterId,
 	emptyDraft,
 	firstInvalidQuestion,
 	parseStudentCount,
@@ -340,5 +341,21 @@ describe("company application prices", () => {
 
 	it("leaves the price out when the event type has no priced product", () => {
 		expect(eventTypeDescription("social", undefined)).toBe("Inntil 40 studenter");
+	});
+});
+
+describe("draftSemesterId", () => {
+	const old = { _id: "old", applicationDeadline: "2026-04-01" };
+	const current = { _id: "new", applicationDeadline: "2026-12-01" };
+
+	it("opens the draft's semester while its deadline has not passed", () => {
+		expect(draftSemesterId([old, current], "new", "2026-11-01")).toBe("new");
+		expect(draftSemesterId([old, current], "old", "2026-04-01")).toBe("old");
+	});
+
+	it("does not reopen an old semester whose deadline has passed, or one that is closed", () => {
+		expect(draftSemesterId([old, current], "old", "2026-11-01")).toBeNull();
+		expect(draftSemesterId([current], "gone", "2026-11-01")).toBeNull();
+		expect(draftSemesterId([current], null, "2026-11-01")).toBeNull();
 	});
 });
