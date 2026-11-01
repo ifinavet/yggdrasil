@@ -5,9 +5,9 @@ import {
 	asUser,
 	grantRole,
 	insertApplication,
+	insertInternal,
 	insertSemester,
 	insertUser,
-	joinBoard,
 	refusalMessageFrom,
 	setup,
 	type TestBackend,
@@ -21,7 +21,8 @@ const createEvent = api.semesterPlanning.applications.mutations.createEvent;
 async function eventSetup() {
 	const { t, companyId } = await setup();
 	const editorUser = await insertUser(t, "kari@ifinavet.no");
-	await joinBoard(t, editorUser._id);
+	await grantRole(t, editorUser._id, "editor");
+	await insertInternal(t, editorUser._id, "Bedriftskontakt");
 	const responsible = await insertUser(t, "emil@ifinavet.no");
 	await grantRole(t, responsible._id, "internal");
 	const helper = await insertUser(t, "ida@ifinavet.no");

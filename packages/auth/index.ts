@@ -1,8 +1,2 @@
-export {
-	hasAdminRights,
-	hasAllRights,
-	hasBasicRights,
-	hasEditRights,
-	semesterPlanRights,
-} from "./accessRights";
+export { hasAdminRights, hasAllRights, hasBasicRights, hasEditRights } from "./accessRights";
 export { getAuthToken } from "./authToken";

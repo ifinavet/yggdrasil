@@ -15,8 +15,8 @@ import { ConvexError, v } from "convex/values";
 import type { Doc, Id } from "../../_generated/dataModel";
 import { internalMutation, type MutationCtx, mutation } from "../../_generated/server";
 import { invoiceFor } from "../../invoicing/schedule";
-import { requireSemesterPlanner } from "../access/helper";
-import { findActiveApplicationOnDate, requirePlannerActor } from "../applicationLifecycle";
+import { requireSemesterPlanner } from "../access";
+import { findActiveApplicationOnDate, requireEditorActor } from "../applicationLifecycle";
 import { deleteConfirmations } from "../applications/confirmation";
 import { findCompanyProfile, listApplicationsInSemester } from "../applications/helper";
 import { ensureDraftEvent, proposeNavetTeams } from "../events";
@@ -309,7 +309,7 @@ export const finalizePlan = mutation({
 	args: { semesterId: v.id("semesters") },
 	returns: v.object({ created: v.number(), missingProfile: v.array(v.string()) }),
 	handler: async (ctx, { semesterId }) => {
-		const actor = await requirePlannerActor(ctx);
+		const actor = await requireEditorActor(ctx);
 
 		const semester = await requireSemester(ctx, semesterId);
 		const applications = await listApplicationsInSemester(ctx, semesterId);

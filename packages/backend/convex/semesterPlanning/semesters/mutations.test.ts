@@ -8,10 +8,10 @@ import {
 	grantRole,
 	insertApplication,
 	insertEvent,
+	insertInternal,
 	insertOrganizer,
 	insertSemester,
 	insertUser,
-	joinBoard,
 	refusalMessageFrom,
 	setup,
 	type TestBackend,
@@ -24,7 +24,8 @@ const queries = api.semesterPlanning.semesters.queries;
 
 async function editorOf(t: TestBackend) {
 	const editor = await insertUser(t, "kari@ifinavet.no");
-	await joinBoard(t, editor._id);
+	await grantRole(t, editor._id, "editor");
+	await insertInternal(t, editor._id, "Bedriftskontakt");
 	return asUser(t, editor);
 }
 

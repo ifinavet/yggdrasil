@@ -21,7 +21,14 @@ import { DistributionTab } from "./distribution-tab";
 import { PlanTab } from "./plan-tab";
 import { SemesterActionsSlot } from "./semester-actions";
 import { FirstSemester, SettingsTab } from "./settings-tab";
-import { type Tab, visibleTabs } from "./tabs";
+
+const TABS = [
+	{ value: "plan", label: "Plan", editorOnly: false },
+	{ value: "fordeling", label: "Fordeling", editorOnly: true },
+	{ value: "soknader", label: "Søknader", editorOnly: true },
+	{ value: "innstillinger", label: "Innstillinger", editorOnly: true },
+] as const;
+type Tab = (typeof TABS)[number]["value"];
 
 /** The semester the page opens on: the open one, else the newest. */
 function defaultSemester(semesters: Doc<"semesters">[]) {
@@ -50,7 +57,7 @@ export function SemesterPlanner({
 		semesters.find((semester) => semester._id === searchParams.get("semester")) ??
 		defaultSemester(semesters);
 
-	const tabs = visibleTabs(canEdit);
+	const tabs = TABS.filter((tab) => canEdit || !tab.editorOnly);
 	const requestedTab = searchParams.get("tab");
 	const tab = tabs.find((item) => item.value === requestedTab)?.value ?? tabs[0]?.value;
 

@@ -7,7 +7,6 @@ import resendTest from "@convex-dev/resend/test";
 import workflowTest from "@convex-dev/workflow/test";
 import workpoolTest from "@convex-dev/workpool/test";
 import type { FoodItem } from "@workspace/shared/events/food";
-import { BOARD_GROUP } from "@workspace/shared/organization";
 import type { WithoutSystemFields } from "convex/server";
 import { ConvexError } from "convex/values";
 import { convexTest } from "convex-test";
@@ -149,11 +148,6 @@ export async function grantRole(
 	role: AccessRole,
 ): Promise<Id<"accessRights">> {
 	return await t.run((ctx) => ctx.db.insert("accessRights", { userId, role }));
-}
-
-export async function joinBoard(t: TestBackend, userId: Id<"users">): Promise<void> {
-	await grantRole(t, userId, "internal");
-	await insertInternal(t, userId, "Bedriftskontakt", { group: BOARD_GROUP });
 }
 
 export async function insertFoodItem(t: TestBackend, slug: FoodItem = "pizza") {

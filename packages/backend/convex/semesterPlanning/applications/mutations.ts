@@ -7,7 +7,7 @@ import {
 	type Actor,
 	logApplicationActivity,
 	requireAssignableDate,
-	requirePlannerActor,
+	requireEditorActor,
 	transitionApplicationStatus,
 } from "../applicationLifecycle";
 import {
@@ -76,7 +76,7 @@ export const assignDate = mutation({
 	args: { applicationId: v.id("companyApplications"), date: v.union(v.string(), v.null()) },
 	returns: v.object({ outsideAvailable: v.boolean() }),
 	handler: async (ctx, { applicationId, date }) => {
-		const actor = await requirePlannerActor(ctx);
+		const actor = await requireEditorActor(ctx);
 		const application = await requireApplication(ctx, applicationId);
 		refuseIfApplicationInactive(application);
 
@@ -122,7 +122,7 @@ async function closeApplication(
 	status: "rejected" | "withdrawn",
 	comment: string | undefined,
 ): Promise<null> {
-	const actor = await requirePlannerActor(ctx);
+	const actor = await requireEditorActor(ctx);
 	const application = await requireApplication(ctx, applicationId);
 
 	await deleteDraftEvent(ctx, application);
@@ -180,7 +180,7 @@ export const reopen = mutation({
 	args: { applicationId: v.id("companyApplications") },
 	returns: v.null(),
 	handler: async (ctx, { applicationId }) => {
-		const actor = await requirePlannerActor(ctx);
+		const actor = await requireEditorActor(ctx);
 		const application = await requireApplication(ctx, applicationId);
 		if (isActiveApplicationStatus(application.status)) {
 			throw new ConvexError("Bare avslåtte og trukne søknader kan gjenåpnes.");
@@ -209,7 +209,7 @@ export const remove = mutation({
 	args: { applicationId: v.id("companyApplications") },
 	returns: v.null(),
 	handler: async (ctx, { applicationId }) => {
-		await requirePlannerActor(ctx);
+		await requireEditorActor(ctx);
 		const application = await requireApplication(ctx, applicationId);
 		if (application.status !== "withdrawn") {
 			throw new ConvexError("Bare slettede søknader kan fjernes.");
@@ -264,7 +264,7 @@ export const updatePlanningDetails = mutation({
 	},
 	returns: v.null(),
 	handler: async (ctx, { applicationId, responsibleUserId, helperUserIds, internalNotes }) => {
-		await requirePlannerActor(ctx);
+		await requireEditorActor(ctx);
 		const application = await requireApplication(ctx, applicationId);
 
 		if (internalNotes !== undefined && internalNotes.length > MAX_INTERNAL_NOTES_LENGTH) {
@@ -299,7 +299,7 @@ export const createEvent = mutation({
 	args: { applicationId: v.id("companyApplications") },
 	returns: v.id("events"),
 	handler: async (ctx, { applicationId }) => {
-		const actor = await requirePlannerActor(ctx);
+		const actor = await requireEditorActor(ctx);
 		return ensureDraftEvent(ctx, await requireApplication(ctx, applicationId), actor);
 	},
 });

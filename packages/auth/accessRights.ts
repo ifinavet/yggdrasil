@@ -36,9 +36,3 @@ export async function hasAllRights() {
 
 	return await fetchQuery(api.auth.accessRights.checkRights, { right: ["super-admin"] }, { token });
 }
-
-export async function semesterPlanRights() {
-	const token = await getAuthToken();
-
-	return await fetchQuery(api.semesterPlanning.access.queries.myRights, {}, { token });
-}

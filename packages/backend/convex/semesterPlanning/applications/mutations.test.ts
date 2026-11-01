@@ -6,11 +6,11 @@ import {
 	grantRole,
 	insertApplication,
 	insertEvent,
+	insertInternal,
 	insertOrganizer,
 	insertRegistration,
 	insertSemester,
 	insertUser,
-	joinBoard,
 	refusalMessageFrom,
 	setup,
 	type TestBackend,
@@ -24,7 +24,8 @@ const mutations = api.semesterPlanning.applications.mutations;
 async function planningSetup() {
 	const { t, companyId } = await setup();
 	const editorUser = await insertUser(t, "kari@ifinavet.no");
-	await joinBoard(t, editorUser._id);
+	await grantRole(t, editorUser._id, "editor");
+	await insertInternal(t, editorUser._id, "Bedriftskontakt");
 	const semesterId = await insertSemester(t, { status: "open" });
 	await t.run(async (ctx) => {
 		await ctx.db.insert("semesterDates", {

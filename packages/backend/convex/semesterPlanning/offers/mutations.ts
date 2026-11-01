@@ -3,7 +3,7 @@ import { ConvexError, v } from "convex/values";
 import { internal } from "../../_generated/api";
 import { mutation } from "../../_generated/server";
 import { generateLinkToken } from "../../lib/tokens";
-import { requirePlannerActor, transitionApplicationStatus } from "../applicationLifecycle";
+import { requireEditorActor, transitionApplicationStatus } from "../applicationLifecycle";
 import { requireApplication } from "../applications/helper";
 import { rateLimiter } from "../rateLimits";
 import { requireSemester } from "../semesters/helper";
@@ -32,7 +32,7 @@ export const sendOffer = mutation({
 	args: { applicationId: v.id("companyApplications") },
 	returns: v.object({ offerId: v.id("companyApplicationOffers"), linkToken: v.string() }),
 	handler: async (ctx, { applicationId }) => {
-		const actor = await requirePlannerActor(ctx);
+		const actor = await requireEditorActor(ctx);
 		const application = await requireApplication(ctx, applicationId);
 		if (!application.assignedDate) {
 			throw new ConvexError("Gi søknaden en dato før du sender tilbud.");
@@ -68,7 +68,7 @@ export const resendOfferEmail = mutation({
 	args: { applicationId: v.id("companyApplications") },
 	returns: v.null(),
 	handler: async (ctx, { applicationId }) => {
-		await requirePlannerActor(ctx);
+		await requireEditorActor(ctx);
 		const application = await requireApplication(ctx, applicationId);
 		const latest = await findLatestOffer(ctx, applicationId);
 		if (application.status !== "offer_sent" || latest?.status !== "pending") {
@@ -247,7 +247,7 @@ export const confirmManually = mutation({
 	args: { applicationId: v.id("companyApplications"), comment: v.string() },
 	returns: v.null(),
 	handler: async (ctx, { applicationId, comment }) => {
-		const actor = await requirePlannerActor(ctx);
+		const actor = await requireEditorActor(ctx);
 		const application = await requireApplication(ctx, applicationId);
 		const trimmed = comment.trim();
 		if (!trimmed) throw new ConvexError("Skriv hvordan bedriften bekreftet.");

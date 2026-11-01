@@ -3,7 +3,7 @@ import { query } from "../../_generated/server";
 import { internalRoles, requireRole } from "../../auth/accessRights";
 import { findCompanyLogoUrl } from "../../companies/helper";
 import schema from "../../schema";
-import { requireSemesterPlanner } from "../access/helper";
+import { requireSemesterPlanner } from "../access";
 import { findLatestOffer } from "../offers/helper";
 import { isActiveApplicationStatus } from "../rules";
 import { offerStatus } from "../schema";

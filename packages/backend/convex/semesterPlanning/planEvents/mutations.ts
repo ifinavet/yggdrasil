@@ -1,8 +1,8 @@
 import { ConvexError, v } from "convex/values";
 import type { Doc } from "../../_generated/dataModel";
 import { mutation } from "../../_generated/server";
-import { requireSemesterPlanner } from "../access/helper";
-import { requirePlannerActor } from "../applicationLifecycle";
+import { requireSemesterPlanner } from "../access";
+import { requireEditorActor } from "../applicationLifecycle";
 import {
 	eventsInSemesterRange,
 	refuseIfSemesterClosed,
@@ -35,7 +35,7 @@ export const addEvent = mutation({
 	args: { semesterId: v.id("semesters"), eventId: v.id("events") },
 	returns: v.null(),
 	handler: async (ctx, { semesterId, eventId }) => {
-		const actor = await requirePlannerActor(ctx);
+		const actor = await requireEditorActor(ctx);
 
 		const semester = await requireSemester(ctx, semesterId);
 		refuseIfSemesterClosed(semester);
@@ -94,7 +94,7 @@ export const importFromCalendar = mutation({
 	args: { semesterId: v.id("semesters") },
 	returns: v.object({ added: v.number(), skipped: v.number() }),
 	handler: async (ctx, { semesterId }) => {
-		const actor = await requirePlannerActor(ctx);
+		const actor = await requireEditorActor(ctx);
 
 		const semester = await requireSemester(ctx, semesterId);
 		refuseIfSemesterClosed(semester);

@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { query } from "../../_generated/server";
 import { internalRoles, requireRole } from "../../auth/accessRights";
 import { companyWithLogo } from "../../events/queries";
-import { requireSemesterPlanner } from "../access/helper";
+import { requireSemesterPlanner } from "../access";
 import { fullName, loadEventTeam } from "../applications/helper";
 import { eventsInSemesterRange, requireSemester } from "../semesters/helper";
 import { eventDate, isEventInAPlan, listPlanEvents, planEventRowValidator } from "./helper";

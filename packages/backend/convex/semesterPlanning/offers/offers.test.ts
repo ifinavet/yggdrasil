@@ -6,9 +6,9 @@ import {
 	asUser,
 	grantRole,
 	insertApplication,
+	insertInternal,
 	insertSemester,
 	insertUser,
-	joinBoard,
 	refusalMessageFrom,
 	setup,
 	type TestBackend,
@@ -21,7 +21,8 @@ const offers = api.semesterPlanning.offers;
 async function offerSetup() {
 	const { t } = await setup();
 	const editorUser = await insertUser(t, "kari@ifinavet.no");
-	await joinBoard(t, editorUser._id);
+	await grantRole(t, editorUser._id, "editor");
+	await insertInternal(t, editorUser._id, "Bedriftskontakt");
 	const semesterId = await insertSemester(t, {
 		status: "open",
 		termsUrl: `${MIDGARD_URL}/vilkar-v27`,
