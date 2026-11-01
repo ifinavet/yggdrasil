@@ -10,7 +10,7 @@ import {
 	superAdminRoles,
 } from "../../auth/accessRights";
 import { startOffboarding } from "../../iam/lifecycle";
-import { removeSemesterPlanAccess } from "../../semesterPlanning/access";
+import { refuseBoardGroupUnlessSuperAdmin } from "../../semesterPlanning/access";
 
 /**
  * Updates a board member assignment and synchronizes access rights.
@@ -105,7 +105,6 @@ export const removeInternal = mutation({
 
 		await ctx.db.delete(id);
 		await revokeAccessRole(ctx, internalToRemove.userId);
-		await removeSemesterPlanAccess(ctx, internalToRemove.userId);
 		await startOffboarding(ctx, internalToRemove, await ctx.db.get(internalToRemove.userId));
 	},
 });
@@ -125,7 +124,8 @@ export const updateInternal = mutation({
 		group: v.string(),
 	},
 	handler: async (ctx, { id, group }) => {
-		await requireRole(ctx, adminRoles);
+		const caller = await requireRole(ctx, adminRoles);
+		await refuseBoardGroupUnlessSuperAdmin(ctx, caller._id, [group, (await ctx.db.get(id))?.group]);
 
 		await ctx.db.patch(id, { group });
 	},

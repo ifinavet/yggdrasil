@@ -9,6 +9,7 @@ import {
 	requireRole,
 	userHasRole,
 } from "../auth/accessRights";
+import { refuseBoardGroupUnlessSuperAdmin } from "../semesterPlanning/access";
 import { accountForEmail, accountForUser } from "./accounts";
 import { workspaceDomain } from "./config";
 import { runJob } from "./jobs";
@@ -62,6 +63,7 @@ async function startOnboardingForCaller(
 		group: string;
 	},
 ) {
+	await refuseBoardGroupUnlessSuperAdmin(ctx, caller._id, [input.group]);
 	const emails = [input.workspaceEmail, input.uioEmail];
 	const previous = await refuseDuplicates(ctx, emails);
 	const [existingUser] = await usersWithEmail(ctx, emails);

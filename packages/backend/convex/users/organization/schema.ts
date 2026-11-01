@@ -8,6 +8,7 @@ export const organizationSchema = {
 		group: v.string(),
 		positionEmail: v.optional(v.string()),
 		rank: v.optional(v.number()),
+		semesterPlanAccess: v.optional(v.boolean()),
 	})
 		.index("by_position", ["position"])
 		.index("by_userId", ["userId"])

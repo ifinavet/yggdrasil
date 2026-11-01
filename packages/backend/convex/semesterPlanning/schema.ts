@@ -263,9 +263,4 @@ export const semesterPlanningSchema = {
 	})
 		.index("by_tokenHash", ["tokenHash"])
 		.index("by_pendingId", ["pendingId"]),
-
-	semesterPlanAccess: defineTable({
-		userId: v.id("users"),
-		grantedBy: v.id("users"),
-	}).index("by_userId", ["userId"]),
 };
