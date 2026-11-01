@@ -56,6 +56,7 @@ export const planRowValidator = v.object({
 	maxStudents: v.number(),
 	responsibleUserId: v.optional(v.id("users")),
 	responsibleName: v.optional(v.string()),
+	orgResponsibleName: v.optional(v.string()),
 	helpers: v.array(v.object({ userId: v.id("users"), name: v.string() })),
 	eventId: v.optional(v.id("events")),
 });
@@ -63,7 +64,11 @@ export const planRowValidator = v.object({
 export type PlanRow = Infer<typeof planRowValidator>;
 
 /** The kontaktperson and medhjelpere from Navet for one company. */
-export type NavetTeam = { responsible: Doc<"users"> | null; helpers: Doc<"users">[] };
+export type NavetTeam = {
+	responsible: Doc<"users"> | null;
+	org: Doc<"users"> | null;
+	helpers: Doc<"users">[];
+};
 
 async function loadUsers(ctx: QueryCtx, ids: Id<"users">[]): Promise<Doc<"users">[]> {
 	return (await Promise.all(ids.map((id) => ctx.db.get(id)))).filter(
@@ -156,6 +161,7 @@ export async function listEventOrganizers(
 async function loadTeam(ctx: QueryCtx, team: TeamIds): Promise<NavetTeam> {
 	return {
 		responsible: team.responsibleUserId ? await ctx.db.get(team.responsibleUserId) : null,
+		org: team.orgResponsibleUserId ? await ctx.db.get(team.orgResponsibleUserId) : null,
 		helpers: await loadUsers(ctx, team.helperUserIds),
 	};
 }
@@ -238,7 +244,7 @@ export function toPlanRow(
 	team: NavetTeam,
 	logoUrl: string | null,
 ): PlanRow {
-	const { responsible, helpers } = team;
+	const { responsible, org, helpers } = team;
 	return {
 		_id: application._id,
 		status: application.status,
@@ -250,6 +256,7 @@ export function toPlanRow(
 		...(responsible
 			? { responsibleUserId: responsible._id, responsibleName: fullName(responsible) }
 			: {}),
+		...(org ? { orgResponsibleName: fullName(org) } : {}),
 		helpers: helpers.map((helper) => ({ userId: helper._id, name: fullName(helper) })),
 		...(application.eventId ? { eventId: application.eventId } : {}),
 	};

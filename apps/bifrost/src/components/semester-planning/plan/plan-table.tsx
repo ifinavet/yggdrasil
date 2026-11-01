@@ -32,7 +32,7 @@ export function PlanTable({
 	canEdit = false,
 }: Readonly<{ days: readonly PlanDay[]; showContactDetails: boolean; canEdit?: boolean }>) {
 	const openApplication = useOpenApplication(showContactDetails);
-	const columns = showContactDetails ? 6 : 5;
+	const columns = showContactDetails ? 7 : 6;
 
 	return (
 		<table className="w-full border-separate border-spacing-0 text-[14px]">
@@ -43,6 +43,7 @@ export function PlanTable({
 					<th className={HEAD}>Status</th>
 					{showContactDetails && <th className={HEAD}>Kontakt i bedriften</th>}
 					<th className={cn(HEAD, "border-l")}>Kontaktperson fra Navet</th>
+					<th className={HEAD}>Org-ansvarlig</th>
 					<th className={cn(HEAD, "pr-4")}>Medhjelpere</th>
 				</tr>
 			</thead>
@@ -88,6 +89,9 @@ export function PlanTable({
 									{showContactDetails && <td className="border-t px-3 py-3" />}
 									<td className="border-t border-l px-3 py-3">
 										{event.responsibleName && <Person name={event.responsibleName} />}
+									</td>
+									<td className="border-t px-3 py-3">
+										{event.orgResponsibleName && <Person name={event.orgResponsibleName} />}
 									</td>
 									<td className="border-t py-3 pr-4 pl-3">
 										<div className="flex items-start justify-between gap-2">
@@ -166,6 +170,9 @@ export function PlanTable({
 								)}
 								<td className="border-t border-l px-3 py-3">
 									{row.responsibleName && <Person name={row.responsibleName} />}
+								</td>
+								<td className="border-t px-3 py-3">
+									{row.orgResponsibleName && <Person name={row.orgResponsibleName} />}
 								</td>
 								<td className="border-t py-3 pr-4 pl-3">
 									<div className="flex flex-col gap-1.5">
