@@ -8,6 +8,7 @@ import {
 	insertApplication,
 	insertSemester,
 	insertUser,
+	joinBoard,
 	refusalMessageFrom,
 	setup,
 	type TestBackend,
@@ -20,7 +21,7 @@ const offers = api.semesterPlanning.offers;
 async function offerSetup() {
 	const { t } = await setup();
 	const editorUser = await insertUser(t, "kari@ifinavet.no");
-	await grantRole(t, editorUser._id, "editor");
+	await joinBoard(t, editorUser._id);
 	const semesterId = await insertSemester(t, {
 		status: "open",
 		termsUrl: `${MIDGARD_URL}/vilkar-v27`,

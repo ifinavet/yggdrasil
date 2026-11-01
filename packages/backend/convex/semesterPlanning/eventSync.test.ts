@@ -10,6 +10,7 @@ import {
 	insertOrganizer,
 	insertSemester,
 	insertUser,
+	joinBoard,
 	refusalMessageFrom,
 	setup,
 	type TestBackend,
@@ -30,7 +31,7 @@ async function bookedSetup() {
 		firstName: "Kari",
 		lastName: "Nordmann",
 	});
-	await grantRole(t, editorUser._id, "editor");
+	await joinBoard(t, editorUser._id);
 	const [lead, helper, other] = await Promise.all(
 		["ola@ifinavet.no", "per@ifinavet.no", "siri@ifinavet.no"].map(async (email) => {
 			const user = await insertUser(t, email);

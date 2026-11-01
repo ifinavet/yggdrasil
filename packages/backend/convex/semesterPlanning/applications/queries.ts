@@ -1,8 +1,9 @@
 import { v } from "convex/values";
 import { query } from "../../_generated/server";
-import { editorRoles, internalRoles, requireRole } from "../../auth/accessRights";
+import { internalRoles, requireRole } from "../../auth/accessRights";
 import { findCompanyLogoUrl } from "../../companies/helper";
 import schema from "../../schema";
+import { requireSemesterPlanner } from "../access/helper";
 import { findLatestOffer } from "../offers/helper";
 import { isActiveApplicationStatus } from "../rules";
 import { offerStatus } from "../schema";
@@ -49,12 +50,12 @@ export const getPlan = query({
 });
 
 /**
- * Every application in a semester with all details, for editors, with what needs handling: the
+ * Every application in a semester with all details, for planners, with what needs handling: the
  * state of its latest offer, the dates the company asked for, and the company's latest comment.
  *
  * @param {Id<"semesters">} semesterId - The semester.
  *
- * @throws - An error if the caller is not an editor.
+ * @throws - An error if the caller may not plan the semester.
  * @returns {object[]} - The applications, oldest first, with `latestOffer` and `companyComment`.
  */
 export const listForSemester = query({
@@ -74,7 +75,7 @@ export const listForSemester = query({
 		}),
 	),
 	handler: async (ctx, { semesterId }) => {
-		await requireRole(ctx, editorRoles);
+		await requireSemesterPlanner(ctx);
 
 		const applications = await listApplicationsInSemester(ctx, semesterId);
 		const rows = await Promise.all(
@@ -113,7 +114,7 @@ export const listForSemester = query({
  *
  * @param {Id<"companyApplications">} applicationId - The application.
  *
- * @throws - An error if the caller is not an editor, or the application does not exist.
+ * @throws - An error if the caller may not plan the semester, or the application does not exist.
  * @returns {object} - The application, offers, history (oldest first), profile, its name and logo.
  */
 export const get = query({
@@ -127,7 +128,7 @@ export const get = query({
 		logoUrl: v.union(v.string(), v.null()),
 	}),
 	handler: async (ctx, { applicationId }) => {
-		await requireRole(ctx, editorRoles);
+		await requireSemesterPlanner(ctx);
 
 		const application = await requireApplication(ctx, applicationId);
 		const offers = await ctx.db

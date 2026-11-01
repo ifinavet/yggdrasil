@@ -21,14 +21,7 @@ import { DistributionTab } from "./distribution-tab";
 import { PlanTab } from "./plan-tab";
 import { SemesterActionsSlot } from "./semester-actions";
 import { FirstSemester, SettingsTab } from "./settings-tab";
-
-const TABS = [
-	{ value: "plan", label: "Plan", editorOnly: false },
-	{ value: "fordeling", label: "Fordeling", editorOnly: true },
-	{ value: "soknader", label: "Søknader", editorOnly: true },
-	{ value: "innstillinger", label: "Innstillinger", editorOnly: true },
-] as const;
-type Tab = (typeof TABS)[number]["value"];
+import { type Tab, visibleTabs } from "./tabs";
 
 /** The semester the page opens on: the open one, else the newest. */
 function defaultSemester(semesters: Doc<"semesters">[]) {
@@ -38,13 +31,15 @@ function defaultSemester(semesters: Doc<"semesters">[]) {
 /**
  * The Semesterplan page: a semester select with previous and next buttons, and the Plan,
  * Fordeling, Søknader and Innstillinger tabs. The semester and tab live in the URL (`?semester=`
- * and `?tab=`), so links and reloads keep them. Plan opens first; internal members only see Plan.
+ * and `?tab=`), so links and reloads keep them. Plan opens first. Only the board and the members
+ * it gave access see the other tabs; every other internal member sees Plan alone.
  */
 export function SemesterPlanner({
 	preloadedSemesters,
 	canEdit,
 }: Readonly<{
 	preloadedSemesters: Preloaded<typeof api.semesterPlanning.semesters.queries.list>;
+	/** Whether the caller plans the semester: the board, a member it gave access, or a super-admin. */
 	canEdit: boolean;
 }>) {
 	const router = useRouter();
@@ -57,7 +52,7 @@ export function SemesterPlanner({
 		semesters.find((semester) => semester._id === searchParams.get("semester")) ??
 		defaultSemester(semesters);
 
-	const tabs = TABS.filter((tab) => canEdit || !tab.editorOnly);
+	const tabs = visibleTabs(canEdit);
 	const requestedTab = searchParams.get("tab");
 	const tab = tabs.find((item) => item.value === requestedTab)?.value ?? tabs[0]?.value;
 

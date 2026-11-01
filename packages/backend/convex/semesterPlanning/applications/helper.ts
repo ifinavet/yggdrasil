@@ -43,7 +43,7 @@ export async function listApplicationsInSemester(
 }
 
 /**
- * What internal members who are not editors may see of an application: no contact person, no
+ * What internal members who do not plan the semester may see of an application: no contact person, no
  * invoice details, no notes and no brreg details beyond the name.
  */
 export const planRowValidator = v.object({

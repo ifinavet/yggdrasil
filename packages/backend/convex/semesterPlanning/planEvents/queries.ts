@@ -1,13 +1,14 @@
 import { v } from "convex/values";
 import { query } from "../../_generated/server";
-import { editorRoles, internalRoles, requireRole } from "../../auth/accessRights";
+import { internalRoles, requireRole } from "../../auth/accessRights";
 import { companyWithLogo } from "../../events/queries";
+import { requireSemesterPlanner } from "../access/helper";
 import { fullName, loadEventTeam } from "../applications/helper";
 import { eventsInSemesterRange, requireSemester } from "../semesters/helper";
 import { eventDate, isEventInAPlan, listPlanEvents, planEventRowValidator } from "./helper";
 
 /**
- * The events an editor put in a semester plan, for every internal member: the event, its company
+ * The events a planner put in a semester plan, for every internal member: the event, its company
  * and who from Navet runs it. A row whose event has since been deleted is left out.
  *
  * @param {Id<"semesters">} semesterId - The semester.
@@ -58,7 +59,7 @@ export const listForSemester = query({
  *
  * @param {Id<"semesters">} semesterId - The semester.
  *
- * @throws - An error if the caller is not an editor, or the semester does not exist.
+ * @throws - An error if the caller may not plan the semester, or the semester does not exist.
  * @returns {object[]} - The events, earliest first.
  */
 export const candidates = query({
@@ -74,7 +75,7 @@ export const candidates = query({
 		}),
 	),
 	handler: async (ctx, { semesterId }) => {
-		await requireRole(ctx, editorRoles);
+		await requireSemesterPlanner(ctx);
 
 		const semester = await requireSemester(ctx, semesterId);
 		const events = await eventsInSemesterRange(ctx, semester);

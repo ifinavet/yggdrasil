@@ -1,8 +1,8 @@
 import { ConvexError, v } from "convex/values";
 import type { Doc } from "../../_generated/dataModel";
 import { mutation } from "../../_generated/server";
-import { editorRoles, requireRole } from "../../auth/accessRights";
-import { requireEditorActor } from "../applicationLifecycle";
+import { requireSemesterPlanner } from "../access/helper";
+import { requirePlannerActor } from "../applicationLifecycle";
 import {
 	eventsInSemesterRange,
 	refuseIfSemesterClosed,
@@ -27,7 +27,7 @@ function requireRange(
  * @param {Id<"semesters">} semesterId - The semester.
  * @param {Id<"events">} eventId - The event to add.
  *
- * @throws - An error if the caller is not an editor, the semester is closed or has no dates, or the
+ * @throws - An error if the caller may not plan the semester, the semester is closed or has no dates, or the
  * event is missing, outside the period or already in a plan.
  * @returns {null} - Returns null when the event is in the plan.
  */
@@ -35,7 +35,7 @@ export const addEvent = mutation({
 	args: { semesterId: v.id("semesters"), eventId: v.id("events") },
 	returns: v.null(),
 	handler: async (ctx, { semesterId, eventId }) => {
-		const actor = await requireEditorActor(ctx);
+		const actor = await requirePlannerActor(ctx);
 
 		const semester = await requireSemester(ctx, semesterId);
 		refuseIfSemesterClosed(semester);
@@ -61,14 +61,14 @@ export const addEvent = mutation({
  *
  * @param {Id<"semesterPlanEvents">} planEventId - The plan row to remove.
  *
- * @throws - An error if the caller is not an editor, the row is missing or the semester is closed.
+ * @throws - An error if the caller may not plan the semester, the row is missing or the semester is closed.
  * @returns {null} - Returns null when the event is out of the plan.
  */
 export const removeEvent = mutation({
 	args: { planEventId: v.id("semesterPlanEvents") },
 	returns: v.null(),
 	handler: async (ctx, { planEventId }) => {
-		await requireRole(ctx, editorRoles);
+		await requireSemesterPlanner(ctx);
 
 		const planEvent = await ctx.db.get(planEventId);
 		if (!planEvent) throw new ConvexError("Arrangementet er ikke i planen.");
@@ -86,7 +86,7 @@ export const removeEvent = mutation({
  *
  * @param {Id<"semesters">} semesterId - The semester.
  *
- * @throws - An error if the caller is not an editor, or the semester is closed or has no dates.
+ * @throws - An error if the caller may not plan the semester, or the semester is closed or has no dates.
  * @returns {{ added: number, skipped: number }} - How many events were added, and how many were
  * already in a plan.
  */
@@ -94,7 +94,7 @@ export const importFromCalendar = mutation({
 	args: { semesterId: v.id("semesters") },
 	returns: v.object({ added: v.number(), skipped: v.number() }),
 	handler: async (ctx, { semesterId }) => {
-		const actor = await requireEditorActor(ctx);
+		const actor = await requirePlannerActor(ctx);
 
 		const semester = await requireSemester(ctx, semesterId);
 		refuseIfSemesterClosed(semester);

@@ -1,4 +1,4 @@
-import { getAuthToken, hasEditRights } from "@workspace/auth";
+import { getAuthToken, semesterPlanRights } from "@workspace/auth";
 import { api } from "@workspace/backend/convex/api";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { preloadQuery } from "convex/nextjs";
@@ -23,14 +23,14 @@ export default function SemesterPlanPage() {
 }
 
 async function LoadedSemesterPlanner() {
-	const [token, canEdit] = await Promise.all([getAuthToken(), hasEditRights()]);
+	const [token, rights] = await Promise.all([getAuthToken(), semesterPlanRights()]);
 	const preloadedSemesters = await preloadQuery(
 		api.semesterPlanning.semesters.queries.list,
 		{},
 		{ token },
 	);
 
-	return <SemesterPlanner preloadedSemesters={preloadedSemesters} canEdit={canEdit} />;
+	return <SemesterPlanner preloadedSemesters={preloadedSemesters} canEdit={rights.canPlan} />;
 }
 
 function SemesterPlannerSkeleton() {

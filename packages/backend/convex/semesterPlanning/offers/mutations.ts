@@ -3,7 +3,7 @@ import { ConvexError, v } from "convex/values";
 import { internal } from "../../_generated/api";
 import { mutation } from "../../_generated/server";
 import { generateLinkToken } from "../../lib/tokens";
-import { requireEditorActor, transitionApplicationStatus } from "../applicationLifecycle";
+import { requirePlannerActor, transitionApplicationStatus } from "../applicationLifecycle";
 import { requireApplication } from "../applications/helper";
 import { rateLimiter } from "../rateLimits";
 import { requireSemester } from "../semesters/helper";
@@ -24,7 +24,7 @@ const NEW_DATE_ALREADY_REQUESTED_MESSAGE =
  *
  * @param {Id<"companyApplications">} applicationId - The application.
  *
- * @throws - An error if the caller is not an editor, the application has no date, or its status
+ * @throws - An error if the caller may not plan the semester, the application has no date, or its status
  * does not allow an offer.
  * @returns {{ offerId: Id<"companyApplicationOffers">, linkToken: string }} - The offer and its link token.
  */
@@ -32,7 +32,7 @@ export const sendOffer = mutation({
 	args: { applicationId: v.id("companyApplications") },
 	returns: v.object({ offerId: v.id("companyApplicationOffers"), linkToken: v.string() }),
 	handler: async (ctx, { applicationId }) => {
-		const actor = await requireEditorActor(ctx);
+		const actor = await requirePlannerActor(ctx);
 		const application = await requireApplication(ctx, applicationId);
 		if (!application.assignedDate) {
 			throw new ConvexError("Gi søknaden en dato før du sender tilbud.");
@@ -68,7 +68,7 @@ export const resendOfferEmail = mutation({
 	args: { applicationId: v.id("companyApplications") },
 	returns: v.null(),
 	handler: async (ctx, { applicationId }) => {
-		await requireEditorActor(ctx);
+		await requirePlannerActor(ctx);
 		const application = await requireApplication(ctx, applicationId);
 		const latest = await findLatestOffer(ctx, applicationId);
 		if (application.status !== "offer_sent" || latest?.status !== "pending") {
@@ -239,7 +239,7 @@ export const decline = mutation({
  * @param {Id<"companyApplications">} applicationId - The application.
  * @param {string} comment - How the company confirmed.
  *
- * @throws - An error if the caller is not an editor, the comment is empty, or the status is not
+ * @throws - An error if the caller may not plan the semester, the comment is empty, or the status is not
  * «Tilbud sendt».
  * @returns {null} - Returns null when the application is confirmed.
  */
@@ -247,7 +247,7 @@ export const confirmManually = mutation({
 	args: { applicationId: v.id("companyApplications"), comment: v.string() },
 	returns: v.null(),
 	handler: async (ctx, { applicationId, comment }) => {
-		const actor = await requireEditorActor(ctx);
+		const actor = await requirePlannerActor(ctx);
 		const application = await requireApplication(ctx, applicationId);
 		const trimmed = comment.trim();
 		if (!trimmed) throw new ConvexError("Skriv hvordan bedriften bekreftet.");

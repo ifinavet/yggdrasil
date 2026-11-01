@@ -11,6 +11,7 @@ import {
 	insertOrganizer,
 	insertSemester,
 	insertUser,
+	joinBoard,
 	refusalMessageFrom,
 	setup,
 	type TestBackend,
@@ -23,7 +24,7 @@ const queries = api.semesterPlanning.semesters.queries;
 
 async function editorOf(t: TestBackend) {
 	const editor = await insertUser(t, "kari@ifinavet.no");
-	await grantRole(t, editor._id, "editor");
+	await joinBoard(t, editor._id);
 	return asUser(t, editor);
 }
 

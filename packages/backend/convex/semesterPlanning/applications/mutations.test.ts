@@ -10,6 +10,7 @@ import {
 	insertRegistration,
 	insertSemester,
 	insertUser,
+	joinBoard,
 	refusalMessageFrom,
 	setup,
 	type TestBackend,
@@ -23,7 +24,7 @@ const mutations = api.semesterPlanning.applications.mutations;
 async function planningSetup() {
 	const { t, companyId } = await setup();
 	const editorUser = await insertUser(t, "kari@ifinavet.no");
-	await grantRole(t, editorUser._id, "editor");
+	await joinBoard(t, editorUser._id);
 	const semesterId = await insertSemester(t, { status: "open" });
 	await t.run(async (ctx) => {
 		await ctx.db.insert("semesterDates", {

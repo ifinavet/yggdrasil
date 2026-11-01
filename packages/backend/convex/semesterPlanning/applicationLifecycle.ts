@@ -7,7 +7,7 @@ import { isIsoDate } from "@workspace/shared/time";
 import { ConvexError, type Infer } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
-import { editorRoles, requireRole } from "../auth/accessRights";
+import { requireSemesterPlanner } from "./access/helper";
 import { canTransition, isActiveApplicationStatus, isUnsettledApplicationStatus } from "./rules";
 import type { activityActor, applicationActivityType } from "./schema";
 import { requireSemester } from "./semesters/helper";
@@ -20,15 +20,15 @@ export type Actor =
 type InternalActor = Extract<Actor, { type: "internal" }>;
 
 /**
- * Requires the caller to be an editor, and returns them as the actor for the history.
+ * Requires the caller to plan the semester, and returns them as the actor for the history.
  *
  * @param {MutationCtx} ctx - The Convex mutation context.
  *
- * @throws - An error if the caller is not an editor.
- * @returns {Promise<InternalActor>} - The editor as an internal actor.
+ * @throws - An error if the caller may not plan the semester.
+ * @returns {Promise<InternalActor>} - The planner as an internal actor.
  */
-export async function requireEditorActor(ctx: MutationCtx): Promise<InternalActor> {
-	const user = await requireRole(ctx, editorRoles);
+export async function requirePlannerActor(ctx: MutationCtx): Promise<InternalActor> {
+	const user = await requireSemesterPlanner(ctx);
 	return { type: "internal", userId: user._id };
 }
 

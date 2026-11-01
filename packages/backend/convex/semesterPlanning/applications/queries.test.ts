@@ -7,6 +7,7 @@ import {
 	insertOrganizer,
 	insertSemester,
 	insertUser,
+	joinBoard,
 	refusalMessageFrom,
 	setup,
 } from "../../../test/fixtures";
@@ -17,7 +18,7 @@ const queries = api.semesterPlanning.applications.queries;
 async function withPeople() {
 	const { t, companyId } = await setup();
 	const editor = await insertUser(t, "kari@ifinavet.no");
-	await grantRole(t, editor._id, "editor");
+	await joinBoard(t, editor._id);
 	const member = await insertUser(t, "medlem@ifinavet.no", { firstName: "Emil", lastName: "Moe" });
 	await grantRole(t, member._id, "internal");
 	const semesterId = await insertSemester(t);

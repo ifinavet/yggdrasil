@@ -14,9 +14,9 @@ import { isHttpUrl } from "@workspace/shared/utils";
 import { ConvexError, v } from "convex/values";
 import type { Doc, Id } from "../../_generated/dataModel";
 import { internalMutation, type MutationCtx, mutation } from "../../_generated/server";
-import { editorRoles, requireRole } from "../../auth/accessRights";
 import { invoiceFor } from "../../invoicing/schedule";
-import { findActiveApplicationOnDate, requireEditorActor } from "../applicationLifecycle";
+import { requireSemesterPlanner } from "../access/helper";
+import { findActiveApplicationOnDate, requirePlannerActor } from "../applicationLifecycle";
 import { deleteConfirmations } from "../applications/confirmation";
 import { findCompanyProfile, listApplicationsInSemester } from "../applications/helper";
 import { ensureDraftEvent, proposeNavetTeams } from "../events";
@@ -54,14 +54,14 @@ async function insertDraftSemester(
  * @param {number} year - The year.
  * @param {"spring" | "autumn"} term - The term.
  *
- * @throws - An error if the caller is not an editor, or the semester already exists.
+ * @throws - An error if the caller may not plan the semester, or the semester already exists.
  * @returns {Id<"semesters">} - The id of the new semester.
  */
 export const create = mutation({
 	args: { year: v.number(), term: semesterTerm },
 	returns: v.id("semesters"),
 	handler: async (ctx, { year, term }) => {
-		await requireRole(ctx, editorRoles);
+		await requireSemesterPlanner(ctx);
 
 		if (!Number.isInteger(year) || year < MIN_SEMESTER_YEAR || year > MAX_SEMESTER_YEAR) {
 			throw new ConvexError("Oppgi et gyldig år.");
@@ -83,7 +83,7 @@ export const create = mutation({
  * @param {string} firstDate - The first day, as YYYY-MM-DD.
  * @param {string} lastDate - The last day, as YYYY-MM-DD.
  *
- * @throws - An error if the caller is not an editor, the range is invalid, the semester is closed,
+ * @throws - An error if the caller may not plan the semester, the range is invalid, the semester is closed,
  * or a removed date is assigned to a company.
  * @returns {null} - Returns null when the dates are updated.
  */
@@ -91,7 +91,7 @@ export const setRange = mutation({
 	args: { semesterId: v.id("semesters"), firstDate: v.string(), lastDate: v.string() },
 	returns: v.null(),
 	handler: async (ctx, { semesterId, firstDate, lastDate }) => {
-		await requireRole(ctx, editorRoles);
+		await requireSemesterPlanner(ctx);
 
 		const semester = await requireSemester(ctx, semesterId);
 		refuseIfSemesterClosed(semester);
@@ -143,7 +143,7 @@ export const setRange = mutation({
  * @param {string} [confirmEmailSubject] - The subject of the email with the confirm link.
  * @param {string} [confirmEmailText] - Its text, with {bedrift} for the company's name.
  *
- * @throws - An error if the caller is not an editor, a value is invalid, or the semester is closed.
+ * @throws - An error if the caller may not plan the semester, a value is invalid, or the semester is closed.
  * @returns {null} - Returns null when the settings are saved.
  */
 export const updateSettings = mutation({
@@ -171,7 +171,7 @@ export const updateSettings = mutation({
 			confirmEmailText,
 		},
 	) => {
-		await requireRole(ctx, editorRoles);
+		await requireSemesterPlanner(ctx);
 
 		const semester = await requireSemester(ctx, semesterId);
 		refuseIfSemesterClosed(semester);
@@ -219,14 +219,14 @@ export const updateSettings = mutation({
  * @param {Id<"semesterDates">} dateId - The date to close or open.
  * @param {string | null} label - Why Navet uses the date (may be empty), or null to open it.
  *
- * @throws - An error if the caller is not an editor, or the date is assigned.
+ * @throws - An error if the caller may not plan the semester, or the date is assigned.
  * @returns {null} - Returns null when the date is updated.
  */
 export const setDateClosed = mutation({
 	args: { dateId: v.id("semesterDates"), label: v.union(v.string(), v.null()) },
 	returns: v.null(),
 	handler: async (ctx, { dateId, label }) => {
-		await requireRole(ctx, editorRoles);
+		await requireSemesterPlanner(ctx);
 
 		const date = await ctx.db.get(dateId);
 		if (!date) throw new ConvexError("Datoen ble ikke funnet.");
@@ -254,14 +254,14 @@ export const setDateClosed = mutation({
  * @param {Id<"semesters">} semesterId - The semester to update.
  * @param {"draft" | "open" | "closed"} status - The new status.
  *
- * @throws - An error if the caller is not an editor, or the semester is not ready to open.
+ * @throws - An error if the caller may not plan the semester, or the semester is not ready to open.
  * @returns {null} - Returns null when the status is changed.
  */
 export const setStatus = mutation({
 	args: { semesterId: v.id("semesters"), status: applicationPeriodStatus },
 	returns: v.null(),
 	handler: async (ctx, { semesterId, status }) => {
-		await requireRole(ctx, editorRoles);
+		await requireSemesterPlanner(ctx);
 
 		const semester = await requireSemester(ctx, semesterId);
 		if (status === "open") {
@@ -300,7 +300,7 @@ export const setStatus = mutation({
  *
  * @param {Id<"semesters">} semesterId - The semester to finalize.
  *
- * @throws - An error if the caller is not an editor, applications still wait, the semester has no
+ * @throws - An error if the caller may not plan the semester, applications still wait, the semester has no
  * start time for events, or an event cannot be made.
  * @returns {{ created: number, missingProfile: string[] }} - How many events were made, and the
  * companies skipped for lack of a profile.
@@ -309,7 +309,7 @@ export const finalizePlan = mutation({
 	args: { semesterId: v.id("semesters") },
 	returns: v.object({ created: v.number(), missingProfile: v.array(v.string()) }),
 	handler: async (ctx, { semesterId }) => {
-		const actor = await requireEditorActor(ctx);
+		const actor = await requirePlannerActor(ctx);
 
 		const semester = await requireSemester(ctx, semesterId);
 		const applications = await listApplicationsInSemester(ctx, semesterId);
@@ -358,14 +358,14 @@ export const finalizePlan = mutation({
  *
  * @param {Id<"semesters">} semesterId - The semester.
  *
- * @throws - An error if the caller is not an editor.
+ * @throws - An error if the caller may not plan the semester.
  * @returns {null} - Returns null when the plan is no longer finished.
  */
 export const unfinalizePlan = mutation({
 	args: { semesterId: v.id("semesters") },
 	returns: v.null(),
 	handler: async (ctx, { semesterId }) => {
-		await requireRole(ctx, editorRoles);
+		await requireSemesterPlanner(ctx);
 		await requireSemester(ctx, semesterId);
 
 		await ctx.db.patch(semesterId, { planFinalizedAt: undefined, planFinalizedBy: undefined });
@@ -394,7 +394,7 @@ async function takeAll<T>(rows: { take: (n: number) => Promise<T[]> }): Promise<
  *
  * @param {Id<"semesters">} semesterId - The semester to delete.
  *
- * @throws - An error if the caller is not an editor, the semester is open, or it has events made
+ * @throws - An error if the caller may not plan the semester, the semester is open, or it has events made
  * from the plan or invoices.
  * @returns {{ applications: number }} - How many applications were deleted with it.
  */
@@ -402,7 +402,7 @@ export const deleteSemester = mutation({
 	args: { semesterId: v.id("semesters") },
 	returns: v.object({ applications: v.number() }),
 	handler: async (ctx, { semesterId }) => {
-		await requireRole(ctx, editorRoles);
+		await requireSemesterPlanner(ctx);
 		const semester = await requireSemester(ctx, semesterId);
 		if (semester.status === "open") {
 			throw new ConvexError("Steng semesteret for søknader før du sletter det.");

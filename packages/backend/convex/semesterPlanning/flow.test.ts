@@ -5,8 +5,8 @@ import {
 	activityFor,
 	applicationById,
 	asUser,
-	grantRole,
 	insertUser,
+	joinBoard,
 	refusalMessageFrom,
 	setup,
 } from "../../test/fixtures";
@@ -26,7 +26,7 @@ describe("the whole journey", () => {
 		vi.setSystemTime(Date.parse("2027-01-10T12:00:00Z"));
 		const { t, companyId } = await setup();
 		const editorUser = await insertUser(t, "kari@ifinavet.no");
-		await grantRole(t, editorUser._id, "editor");
+		await joinBoard(t, editorUser._id);
 		const editor = asUser(t, editorUser);
 		const semesters = api.semesterPlanning.semesters.mutations;
 		const applications = api.semesterPlanning.applications.mutations;

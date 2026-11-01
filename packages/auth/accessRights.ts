@@ -36,3 +36,10 @@ export async function hasAllRights() {
 
 	return await fetchQuery(api.auth.accessRights.checkRights, { right: ["super-admin"] }, { token });
 }
+
+/** What the caller may do in Semesterplan: the board, members the board let in, and super-admins. */
+export async function semesterPlanRights() {
+	const token = await getAuthToken();
+
+	return await fetchQuery(api.semesterPlanning.access.queries.myRights, {}, { token });
+}

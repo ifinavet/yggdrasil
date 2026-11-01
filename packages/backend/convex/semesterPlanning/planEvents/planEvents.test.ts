@@ -7,6 +7,7 @@ import {
 	insertOrganizer,
 	insertSemester,
 	insertUser,
+	joinBoard,
 	refusalMessageFrom,
 	setup,
 	type TestBackend,
@@ -33,7 +34,7 @@ async function planSetup() {
 		firstName: "Kari",
 		lastName: "Nordmann",
 	});
-	await grantRole(t, editorUser._id, "editor");
+	await joinBoard(t, editorUser._id);
 	const member = await insertUser(t, "ola@ifinavet.no", { firstName: "Ola", lastName: "Hansen" });
 	await grantRole(t, member._id, "internal");
 	const semesterId = await insertSemester(t, AUTUMN);

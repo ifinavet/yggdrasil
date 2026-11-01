@@ -1,4 +1,4 @@
-import { getAuthToken, hasEditRights } from "@workspace/auth";
+import { getAuthToken, semesterPlanRights } from "@workspace/auth";
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { isMissingDocumentError } from "@workspace/shared/utils";
@@ -33,8 +33,8 @@ export default function ApplicationRoute({
 }
 
 async function LoadedApplication({ params }: Readonly<{ params: Promise<{ id: string }> }>) {
-	// Applications hold contact and invoice details, so only editors see them.
-	if (!(await hasEditRights())) redirect("/semesterplan");
+	// Applications hold contact and invoice details, so only those who plan the semester see them.
+	if (!(await semesterPlanRights()).canPlan) redirect("/semesterplan");
 
 	const [{ id }, token] = await Promise.all([params, getAuthToken()]);
 

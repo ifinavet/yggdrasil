@@ -13,6 +13,7 @@ import { SemesterActions } from "./semester-actions";
 import { ConfirmEmailForm } from "./settings/confirm-email-form";
 import { CreateSemesterForm } from "./settings/create-semester-form";
 import { DeleteSemesterButton } from "./settings/delete-semester-button";
+import { PlanAccessCard } from "./settings/plan-access-card";
 import { SemesterDates } from "./settings/semester-dates";
 import { SemesterSettingsForm } from "./settings/semester-settings-form";
 import { StatusControl } from "./settings/status-control";
@@ -23,7 +24,8 @@ const CARD_PART = "px-4 sm:px-5";
 
 /**
  * The Innstillinger tab: the semester's status, dates, deadline and texts, a way to delete it, the
- * list of presentation days, and the email companies get to confirm their application.
+ * list of presentation days, the email companies get to confirm their application, and who may
+ * plan the semester.
  */
 export function SettingsTab({
 	semester,
@@ -61,6 +63,7 @@ export function SettingsTab({
 					<ConfirmEmailForm key={semester._id} semester={semester} />
 				</CardContent>
 			</Card>
+			<PlanAccessCard className="mt-4" />
 		</>
 	);
 }
@@ -132,7 +135,7 @@ function NewSemesterButton({
 	);
 }
 
-/** Shown to editors while there is no semester at all: the form for creating the first one. */
+/** Shown to planners while there is no semester at all: the form for creating the first one. */
 export function FirstSemester({
 	existing,
 	onCreated,
