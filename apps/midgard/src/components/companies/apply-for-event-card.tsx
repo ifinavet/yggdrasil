@@ -13,8 +13,9 @@ const CARD = "gap-3 bg-primary-light dark:bg-zinc-800";
 
 /**
  * A small card on /companies with the semester open for applications, its deadline and a button
- * to the Hugin form. With several open, it shows the one the form starts on. Nothing shows while
- * no semester is open. Cached for minutes, not forever
+ * to the Hugin form. With several open, it shows the one the form starts on. While none is open,
+ * it says so and leads to Hugin, where companies can ask to hear when applications open. Cached
+ * for minutes, not forever
  * like the rest of the page, so a newly opened semester or a changed deadline shows up quickly.
  */
 export default async function ApplyForEventCard() {
@@ -27,7 +28,27 @@ export default async function ApplyForEventCard() {
 		today,
 		await fetchQuery(api.semesterPlanning.semesters.queries.listOpenForApplications, {}),
 	);
-	if (!semester) return null;
+	if (!semester) {
+		return (
+			<ContainerCard className={CARD}>
+				<h2 className="font-semibold text-2xl text-primary tracking-tight dark:text-primary-foreground">
+					Søknadene er stengt akkurat nå
+				</h2>
+				<p className="text-base">
+					Legg igjen e-posten deres, så sier vi ifra så fort dere kan søke om bedriftsarrangement.
+				</p>
+				<Button
+					size="lg"
+					className="w-full sm:w-fit dark:bg-primary-light dark:text-primary"
+					asChild
+				>
+					<a href={`${huginUrl()}/bestill-bedpres`}>
+						Gi oss beskjed <ArrowRight aria-hidden />
+					</a>
+				</Button>
+			</ContainerCard>
+		);
+	}
 
 	const deadline = formatSemesterDay(semester.applicationDeadline, "long");
 	const deadlinePassed = semester.applicationDeadline < today;

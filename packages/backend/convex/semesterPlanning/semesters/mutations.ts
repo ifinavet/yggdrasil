@@ -12,6 +12,7 @@ import {
 } from "@workspace/shared/time";
 import { isHttpUrl } from "@workspace/shared/utils";
 import { ConvexError, v } from "convex/values";
+import { internal } from "../../_generated/api";
 import type { Doc, Id } from "../../_generated/dataModel";
 import { internalMutation, type MutationCtx, mutation } from "../../_generated/server";
 import { editorRoles, requireRole } from "../../auth/accessRights";
@@ -283,6 +284,13 @@ export const setStatus = mutation({
 		}
 
 		await ctx.db.patch(semesterId, { status });
+		if (status === "open" && semester.status !== "open") {
+			await ctx.scheduler.runAfter(
+				0,
+				internal.semesterPlanning.interest.emails.notifyApplicationsOpen,
+				{ semesterId },
+			);
+		}
 		return null;
 	},
 });
