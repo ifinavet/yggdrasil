@@ -129,13 +129,11 @@ export function PlanTable({
 					}
 
 					const { row, details } = day;
+					const open = openApplication(row);
 					return (
 						<Fragment key={day.date}>
 							{monthRow}
-							<tr
-								onClick={openApplication?.(row._id)}
-								className={cn(openApplication && "cursor-pointer hover:bg-muted/50")}
-							>
+							<tr onClick={open} className={cn(open && "cursor-pointer hover:bg-muted/50")}>
 								<td className="border-t py-3 pl-4">
 									<DateTile date={day.date} />
 								</td>

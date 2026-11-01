@@ -64,6 +64,12 @@ export function Person({ name, small = false }: Readonly<{ name: string; small?:
 	);
 }
 
+/** Where a plan row leads: the application for editors, else the event once it exists. */
+function rowHref(row: PlanRow, linkApplication: boolean) {
+	if (linkApplication) return `/semesterplan/soknad/${row._id}`;
+	return row.eventId ? `/events/${row.eventId}` : undefined;
+}
+
 /** The company name, linking editors to the application, and a link to its event once created. */
 export function CompanyName({
 	row,
@@ -75,11 +81,12 @@ export function CompanyName({
 	/** The link covers the nearest positioned ancestor, so the whole card opens the application. */
 	stretched?: boolean;
 }>) {
+	const href = rowHref(row, linkApplication);
 	return (
 		<span className="inline-flex items-center gap-2">
-			{linkApplication ? (
+			{href ? (
 				<Link
-					href={`/semesterplan/soknad/${row._id}`}
+					href={href}
 					className={cn(
 						"font-semibold text-[15px] hover:underline",
 						stretched && "after:absolute after:inset-0",
@@ -168,17 +175,20 @@ export function RemovePlanEventButton({ event }: Readonly<{ event: PlanEventRow 
 }
 
 /**
- * Opens an application when its whole row is clicked. Clicks on links inside the row, like the
- * company name or the event icon, keep their own target. Returns nothing for internal members,
- * who can't open applications.
+ * Opens a row's application, or for internal members its event, when the whole row is clicked.
+ * Clicks on links inside the row, like the company name or the event icon, keep their own target.
+ * Returns nothing for a row with nowhere to go.
  */
-export function useOpenApplication(enabled: boolean) {
+export function useOpenApplication(linkApplication: boolean) {
 	const router = useRouter();
-	if (!enabled) return undefined;
 
-	return (applicationId: string) => (event: MouseEvent<HTMLElement>) => {
-		if (event.target instanceof Element && event.target.closest("a")) return;
-		router.push(`/semesterplan/soknad/${applicationId}`);
+	return (row: PlanRow) => {
+		const href = rowHref(row, linkApplication);
+		if (!href) return undefined;
+		return (event: MouseEvent<HTMLElement>) => {
+			if (event.target instanceof Element && event.target.closest("a")) return;
+			router.push(href);
+		};
 	};
 }
 

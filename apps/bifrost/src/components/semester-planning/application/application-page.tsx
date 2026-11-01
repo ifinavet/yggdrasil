@@ -11,6 +11,7 @@ import { ExternalLink, Plus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
+import { EventChecklistById } from "@/components/events/event-checklist-panel";
 import { formatMoment } from "../format";
 import { SemesterplanBreadcrumb } from "../semesterplan-breadcrumb";
 import { isActiveStatus } from "../status";
@@ -83,7 +84,11 @@ export function ApplicationPage({
 			{context ? (
 				<div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
 					<div className="flex min-w-0 flex-col gap-4">
-						<StatusCard details={details} context={context} companyName={companyName} />
+						{application.status === "confirmed" && application.eventId ? (
+							<EventChecklistById eventId={application.eventId} />
+						) : (
+							<StatusCard details={details} context={context} companyName={companyName} />
+						)}
 						<EventInfoCard application={application} />
 						<DatesCard details={details} context={context} companyName={companyName} />
 					</div>
