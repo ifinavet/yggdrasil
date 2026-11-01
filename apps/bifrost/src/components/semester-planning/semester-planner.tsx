@@ -31,15 +31,13 @@ function defaultSemester(semesters: Doc<"semesters">[]) {
 /**
  * The Semesterplan page: a semester select with previous and next buttons, and the Plan,
  * Fordeling, Søknader and Innstillinger tabs. The semester and tab live in the URL (`?semester=`
- * and `?tab=`), so links and reloads keep them. Plan opens first. Only the board and the members
- * it gave access see the other tabs; every other internal member sees Plan alone.
+ * and `?tab=`), so links and reloads keep them. Plan opens first; internal members only see Plan.
  */
 export function SemesterPlanner({
 	preloadedSemesters,
 	canEdit,
 }: Readonly<{
 	preloadedSemesters: Preloaded<typeof api.semesterPlanning.semesters.queries.list>;
-	/** Whether the caller plans the semester: the board, a member it gave access, or a super-admin. */
 	canEdit: boolean;
 }>) {
 	const router = useRouter();

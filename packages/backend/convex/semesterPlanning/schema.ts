@@ -133,12 +133,12 @@ export const semesterPlanningSchema = {
 		lastDate: v.optional(v.string()),
 		applicationDeadline: v.optional(v.string()),
 		// With a hard deadline, Hugin stops taking applications after the deadline day. Otherwise
-		// they are taken until a planner closes the semester.
+		// they are taken until an editor closes the semester.
 		hardDeadline: v.optional(v.boolean()),
 		status: applicationPeriodStatus,
 		infoText: v.optional(v.string()),
 		termsUrl: v.optional(v.string()),
-		// The email with the confirm link, written by a planner. Empty means the default text in
+		// The email with the confirm link, written by an editor. Empty means the default text in
 		// packages/shared/semester/confirm-email.ts.
 		confirmEmailSubject: v.optional(v.string()),
 		confirmEmailText: v.optional(v.string()),
@@ -156,7 +156,7 @@ export const semesterPlanningSchema = {
 		closedLabel: v.optional(v.string()),
 	}).index("by_semesterId_and_date", ["semesterId", "date"]),
 
-	// Events a planner put in the plan by hand, or imported from the calendar, on top of the ones
+	// Events an editor put in the plan by hand, or imported from the calendar, on top of the ones
 	// applications make. The plan shows them on the Oslo day of their eventStart.
 	semesterPlanEvents: defineTable({
 		semesterId: v.id("semesters"),
@@ -214,7 +214,7 @@ export const semesterPlanningSchema = {
 		date: v.string(),
 		eventType: presentationEventType,
 		maxStudents: v.number(),
-		// The token in the offer link that is emailed to the company; only planners can read it.
+		// The token in the offer link that is emailed to the company; only editors can read it.
 		linkToken: v.string(),
 		sentAt: v.number(),
 		sentBy: v.id("users"),
@@ -264,10 +264,6 @@ export const semesterPlanningSchema = {
 		.index("by_tokenHash", ["tokenHash"])
 		.index("by_pendingId", ["pendingId"]),
 
-	/**
-	 * Internal members outside the board who may plan the semester as if they were on it. Given and
-	 * taken away by the board; it stops counting when the member is no longer an active internal.
-	 */
 	semesterPlanAccess: defineTable({
 		userId: v.id("users"),
 		grantedBy: v.id("users"),

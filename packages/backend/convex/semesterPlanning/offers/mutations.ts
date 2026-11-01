@@ -24,7 +24,7 @@ const NEW_DATE_ALREADY_REQUESTED_MESSAGE =
  *
  * @param {Id<"companyApplications">} applicationId - The application.
  *
- * @throws - An error if the caller may not plan the semester, the application has no date, or its status
+ * @throws - An error if the caller is not an editor, the application has no date, or its status
  * does not allow an offer.
  * @returns {{ offerId: Id<"companyApplicationOffers">, linkToken: string }} - The offer and its link token.
  */
@@ -239,7 +239,7 @@ export const decline = mutation({
  * @param {Id<"companyApplications">} applicationId - The application.
  * @param {string} comment - How the company confirmed.
  *
- * @throws - An error if the caller may not plan the semester, the comment is empty, or the status is not
+ * @throws - An error if the caller is not an editor, the comment is empty, or the status is not
  * «Tilbud sendt».
  * @returns {null} - Returns null when the application is confirmed.
  */

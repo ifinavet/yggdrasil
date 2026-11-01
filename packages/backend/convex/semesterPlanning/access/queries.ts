@@ -5,7 +5,6 @@ import { type QueryCtx, query } from "../../_generated/server";
 import { internalRoles, userHasRole } from "../../auth/accessRights";
 import { currentSemesterPlanRights, requireSemesterPlanner } from "./helper";
 
-// Navet has well under a thousand internal members, past and present.
 const MAX_INTERNALS = 1000;
 const MAX_GRANTS = 200;
 
@@ -20,24 +19,12 @@ async function isActiveInternal(ctx: QueryCtx, row: Doc<"internals">) {
 	return await userHasRole(ctx, row.userId, internalRoles);
 }
 
-/**
- * What the caller may do in Semesterplan beyond reading the plan. Bifrost uses it to choose which
- * tabs and buttons to show; every change checks the same rule again.
- *
- * @returns {{ canPlan: boolean, canManageAccess: boolean }} - The caller's planning rights.
- */
 export const myRights = query({
 	args: {},
 	returns: v.object({ canPlan: v.boolean(), canManageAccess: v.boolean() }),
 	handler: async (ctx) => await currentSemesterPlanRights(ctx),
 });
 
-/**
- * Who may plan the semester: the board, by group, and the members the board has given access.
- * A board member also gets the active internals who could be given access.
- *
- * @returns {object} - The board, the grants and, for the board, the candidates.
- */
 export const list = query({
 	args: {},
 	returns: v.object({

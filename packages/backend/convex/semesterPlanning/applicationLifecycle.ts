@@ -20,12 +20,12 @@ export type Actor =
 type InternalActor = Extract<Actor, { type: "internal" }>;
 
 /**
- * Requires the caller to plan the semester, and returns them as the actor for the history.
+ * Requires the caller to be an editor, and returns them as the actor for the history.
  *
  * @param {MutationCtx} ctx - The Convex mutation context.
  *
- * @throws - An error if the caller may not plan the semester.
- * @returns {Promise<InternalActor>} - The planner as an internal actor.
+ * @throws - An error if the caller is not an editor.
+ * @returns {Promise<InternalActor>} - The editor as an internal actor.
  */
 export async function requirePlannerActor(ctx: MutationCtx): Promise<InternalActor> {
 	const user = await requireSemesterPlanner(ctx);

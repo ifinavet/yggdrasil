@@ -54,7 +54,7 @@ async function insertDraftSemester(
  * @param {number} year - The year.
  * @param {"spring" | "autumn"} term - The term.
  *
- * @throws - An error if the caller may not plan the semester, or the semester already exists.
+ * @throws - An error if the caller is not an editor, or the semester already exists.
  * @returns {Id<"semesters">} - The id of the new semester.
  */
 export const create = mutation({
@@ -83,7 +83,7 @@ export const create = mutation({
  * @param {string} firstDate - The first day, as YYYY-MM-DD.
  * @param {string} lastDate - The last day, as YYYY-MM-DD.
  *
- * @throws - An error if the caller may not plan the semester, the range is invalid, the semester is closed,
+ * @throws - An error if the caller is not an editor, the range is invalid, the semester is closed,
  * or a removed date is assigned to a company.
  * @returns {null} - Returns null when the dates are updated.
  */
@@ -143,7 +143,7 @@ export const setRange = mutation({
  * @param {string} [confirmEmailSubject] - The subject of the email with the confirm link.
  * @param {string} [confirmEmailText] - Its text, with {bedrift} for the company's name.
  *
- * @throws - An error if the caller may not plan the semester, a value is invalid, or the semester is closed.
+ * @throws - An error if the caller is not an editor, a value is invalid, or the semester is closed.
  * @returns {null} - Returns null when the settings are saved.
  */
 export const updateSettings = mutation({
@@ -219,7 +219,7 @@ export const updateSettings = mutation({
  * @param {Id<"semesterDates">} dateId - The date to close or open.
  * @param {string | null} label - Why Navet uses the date (may be empty), or null to open it.
  *
- * @throws - An error if the caller may not plan the semester, or the date is assigned.
+ * @throws - An error if the caller is not an editor, or the date is assigned.
  * @returns {null} - Returns null when the date is updated.
  */
 export const setDateClosed = mutation({
@@ -254,7 +254,7 @@ export const setDateClosed = mutation({
  * @param {Id<"semesters">} semesterId - The semester to update.
  * @param {"draft" | "open" | "closed"} status - The new status.
  *
- * @throws - An error if the caller may not plan the semester, or the semester is not ready to open.
+ * @throws - An error if the caller is not an editor, or the semester is not ready to open.
  * @returns {null} - Returns null when the status is changed.
  */
 export const setStatus = mutation({
@@ -300,7 +300,7 @@ export const setStatus = mutation({
  *
  * @param {Id<"semesters">} semesterId - The semester to finalize.
  *
- * @throws - An error if the caller may not plan the semester, applications still wait, the semester has no
+ * @throws - An error if the caller is not an editor, applications still wait, the semester has no
  * start time for events, or an event cannot be made.
  * @returns {{ created: number, missingProfile: string[] }} - How many events were made, and the
  * companies skipped for lack of a profile.
@@ -358,7 +358,7 @@ export const finalizePlan = mutation({
  *
  * @param {Id<"semesters">} semesterId - The semester.
  *
- * @throws - An error if the caller may not plan the semester.
+ * @throws - An error if the caller is not an editor.
  * @returns {null} - Returns null when the plan is no longer finished.
  */
 export const unfinalizePlan = mutation({
@@ -394,7 +394,7 @@ async function takeAll<T>(rows: { take: (n: number) => Promise<T[]> }): Promise<
  *
  * @param {Id<"semesters">} semesterId - The semester to delete.
  *
- * @throws - An error if the caller may not plan the semester, the semester is open, or it has events made
+ * @throws - An error if the caller is not an editor, the semester is open, or it has events made
  * from the plan or invoices.
  * @returns {{ applications: number }} - How many applications were deleted with it.
  */

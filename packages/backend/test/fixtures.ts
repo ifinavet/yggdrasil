@@ -151,7 +151,6 @@ export async function grantRole(
 	return await t.run((ctx) => ctx.db.insert("accessRights", { userId, role }));
 }
 
-/** Makes the user an internal on the board, which lets them plan the semester. */
 export async function joinBoard(t: TestBackend, userId: Id<"users">): Promise<void> {
 	await grantRole(t, userId, "internal");
 	await insertInternal(t, userId, "Bedriftskontakt", { group: BOARD_GROUP });

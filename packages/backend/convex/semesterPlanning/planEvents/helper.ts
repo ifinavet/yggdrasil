@@ -3,7 +3,7 @@ import { type Infer, v } from "convex/values";
 import type { Doc, Id } from "../../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../../_generated/server";
 
-// Helpers for events that are in a semester plan without an application: ones a planner added by
+// Helpers for events that are in a semester plan without an application: ones an editor added by
 // hand or imported from the calendar. They register no Convex functions.
 
 /** What every internal member may see of an event in the plan. */
@@ -31,7 +31,7 @@ export function eventDate(event: Pick<Doc<"events">, "eventStart">): string {
 }
 
 /**
- * Lists the events a planner put in a semester plan.
+ * Lists the events an editor put in a semester plan.
  *
  * @param {QueryCtx | MutationCtx} ctx - The Convex query or mutation context.
  * @param {Id<"semesters">} semesterId - The semester.

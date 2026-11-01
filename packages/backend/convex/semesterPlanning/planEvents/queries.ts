@@ -8,7 +8,7 @@ import { eventsInSemesterRange, requireSemester } from "../semesters/helper";
 import { eventDate, isEventInAPlan, listPlanEvents, planEventRowValidator } from "./helper";
 
 /**
- * The events a planner put in a semester plan, for every internal member: the event, its company
+ * The events an editor put in a semester plan, for every internal member: the event, its company
  * and who from Navet runs it. A row whose event has since been deleted is left out.
  *
  * @param {Id<"semesters">} semesterId - The semester.
@@ -59,7 +59,7 @@ export const listForSemester = query({
  *
  * @param {Id<"semesters">} semesterId - The semester.
  *
- * @throws - An error if the caller may not plan the semester, or the semester does not exist.
+ * @throws - An error if the caller is not an editor, or the semester does not exist.
  * @returns {object[]} - The events, earliest first.
  */
 export const candidates = query({

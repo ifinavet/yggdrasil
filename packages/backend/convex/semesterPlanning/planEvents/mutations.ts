@@ -27,7 +27,7 @@ function requireRange(
  * @param {Id<"semesters">} semesterId - The semester.
  * @param {Id<"events">} eventId - The event to add.
  *
- * @throws - An error if the caller may not plan the semester, the semester is closed or has no dates, or the
+ * @throws - An error if the caller is not an editor, the semester is closed or has no dates, or the
  * event is missing, outside the period or already in a plan.
  * @returns {null} - Returns null when the event is in the plan.
  */
@@ -61,7 +61,7 @@ export const addEvent = mutation({
  *
  * @param {Id<"semesterPlanEvents">} planEventId - The plan row to remove.
  *
- * @throws - An error if the caller may not plan the semester, the row is missing or the semester is closed.
+ * @throws - An error if the caller is not an editor, the row is missing or the semester is closed.
  * @returns {null} - Returns null when the event is out of the plan.
  */
 export const removeEvent = mutation({
@@ -86,7 +86,7 @@ export const removeEvent = mutation({
  *
  * @param {Id<"semesters">} semesterId - The semester.
  *
- * @throws - An error if the caller may not plan the semester, or the semester is closed or has no dates.
+ * @throws - An error if the caller is not an editor, or the semester is closed or has no dates.
  * @returns {{ added: number, skipped: number }} - How many events were added, and how many were
  * already in a plan.
  */

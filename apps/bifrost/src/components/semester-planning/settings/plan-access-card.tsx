@@ -17,10 +17,6 @@ import { formatMoment } from "../format";
 
 type Grant = FunctionReturnType<typeof api.semesterPlanning.access.queries.list>["granted"][number];
 
-/**
- * «Tilgang»: who sees every tab and may change the semester plan. The board always may; the board
- * can also let other internal members in, and take that away again. Everyone else sees Plan.
- */
 export function PlanAccessCard({ className }: Readonly<{ className?: string }>) {
 	const access = useQuery(api.semesterPlanning.access.queries.list, {});
 

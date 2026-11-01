@@ -33,7 +33,7 @@ export default function ApplicationRoute({
 }
 
 async function LoadedApplication({ params }: Readonly<{ params: Promise<{ id: string }> }>) {
-	// Applications hold contact and invoice details, so only those who plan the semester see them.
+	// Applications hold contact and invoice details, so only editors see them.
 	if (!(await semesterPlanRights()).canPlan) redirect("/semesterplan");
 
 	const [{ id }, token] = await Promise.all([params, getAuthToken()]);

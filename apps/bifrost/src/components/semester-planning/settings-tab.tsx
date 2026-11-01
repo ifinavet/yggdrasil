@@ -24,8 +24,7 @@ const CARD_PART = "px-4 sm:px-5";
 
 /**
  * The Innstillinger tab: the semester's status, dates, deadline and texts, a way to delete it, the
- * list of presentation days, the email companies get to confirm their application, and who may
- * plan the semester.
+ * list of presentation days, and the email companies get to confirm their application.
  */
 export function SettingsTab({
 	semester,
@@ -135,7 +134,7 @@ function NewSemesterButton({
 	);
 }
 
-/** Shown to planners while there is no semester at all: the form for creating the first one. */
+/** Shown to editors while there is no semester at all: the form for creating the first one. */
 export function FirstSemester({
 	existing,
 	onCreated,

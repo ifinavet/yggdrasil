@@ -50,12 +50,12 @@ export const getPlan = query({
 });
 
 /**
- * Every application in a semester with all details, for planners, with what needs handling: the
+ * Every application in a semester with all details, for editors, with what needs handling: the
  * state of its latest offer, the dates the company asked for, and the company's latest comment.
  *
  * @param {Id<"semesters">} semesterId - The semester.
  *
- * @throws - An error if the caller may not plan the semester.
+ * @throws - An error if the caller is not an editor.
  * @returns {object[]} - The applications, oldest first, with `latestOffer` and `companyComment`.
  */
 export const listForSemester = query({
@@ -114,7 +114,7 @@ export const listForSemester = query({
  *
  * @param {Id<"companyApplications">} applicationId - The application.
  *
- * @throws - An error if the caller may not plan the semester, or the application does not exist.
+ * @throws - An error if the caller is not an editor, or the application does not exist.
  * @returns {object} - The application, offers, history (oldest first), profile, its name and logo.
  */
 export const get = query({

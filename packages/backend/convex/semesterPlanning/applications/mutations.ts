@@ -69,7 +69,7 @@ async function setAssignedDate(
  * @param {Id<"companyApplications">} applicationId - The application.
  * @param {string | null} date - The day as YYYY-MM-DD, or null to clear it.
  *
- * @throws - An error if the caller may not plan the semester, or the date cannot be given.
+ * @throws - An error if the caller is not an editor, or the date cannot be given.
  * @returns {{ outsideAvailable: boolean }} - Whether the company did not tick the date.
  */
 export const assignDate = mutation({
@@ -112,7 +112,7 @@ const closeApplicationArgs = {
  * @param {"rejected" | "withdrawn"} status - The closing status.
  * @param {string} [comment] - Why, for the history.
  *
- * @throws - An error if the caller may not plan the semester, the status does not allow the change, or the
+ * @throws - An error if the caller is not an editor, the status does not allow the change, or the
  * event is published or has registrations.
  * @returns {Promise<null>} - Resolves with null when the application is closed.
  */
@@ -140,7 +140,7 @@ async function closeApplication(
  * @param {Id<"companyApplications">} applicationId - The application.
  * @param {string} [comment] - Why, for the history.
  *
- * @throws - An error if the caller may not plan the semester, or the status does not allow rejecting.
+ * @throws - An error if the caller is not an editor, or the status does not allow rejecting.
  * @returns {null} - Returns null when the application is rejected.
  */
 export const reject = mutation({
@@ -157,7 +157,7 @@ export const reject = mutation({
  * @param {Id<"companyApplications">} applicationId - The application.
  * @param {string} [comment] - Why, for the history.
  *
- * @throws - An error if the caller may not plan the semester, or the application is already closed.
+ * @throws - An error if the caller is not an editor, or the application is already closed.
  * @returns {null} - Returns null when the application is withdrawn.
  */
 export const withdraw = mutation({
@@ -173,7 +173,7 @@ export const withdraw = mutation({
  *
  * @param {Id<"companyApplications">} applicationId - The application.
  *
- * @throws - An error if the caller may not plan the semester, or the application is still live.
+ * @throws - An error if the caller is not an editor, or the application is still live.
  * @returns {null} - Returns null when the application is reopened.
  */
 export const reopen = mutation({
@@ -201,7 +201,7 @@ export const reopen = mutation({
  *
  * @param {Id<"companyApplications">} applicationId - The deleted application.
  *
- * @throws - An error if the caller may not plan the semester, the application is not deleted, or it still
+ * @throws - An error if the caller is not an editor, the application is not deleted, or it still
  * has an event or an invoice that has been sent.
  * @returns {null} - Returns null when the application is gone.
  */
@@ -249,9 +249,9 @@ export const remove = mutation({
  * @param {Id<"companyApplications">} applicationId - The application.
  * @param {Id<"users"> | null} [responsibleUserId] - The kontaktperson from Navet, or null to clear.
  * @param {Id<"users">[]} [helperUserIds] - Up to MAX_HELPERS medhjelpere; an empty list clears them.
- * @param {string} [internalNotes] - Notes for planners; an empty string clears them.
+ * @param {string} [internalNotes] - Notes for editors; an empty string clears them.
  *
- * @throws - An error if the caller may not plan the semester, or a team member is not an internal member or
+ * @throws - An error if the caller is not an editor, or a team member is not an internal member or
  * is picked twice.
  * @returns {null} - Returns null when the fields are saved.
  */
@@ -291,7 +291,7 @@ export const updatePlanningDetails = mutation({
  *
  * @param {Id<"companyApplications">} applicationId - The confirmed application.
  *
- * @throws - An error if the caller may not plan the semester, the application is not confirmed, the
+ * @throws - An error if the caller is not an editor, the application is not confirmed, the
  * semester has no start time for events, or the company has no profile in Bifrost.
  * @returns {Id<"events">} - The event.
  */
