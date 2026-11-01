@@ -1,7 +1,24 @@
+import { HUGIN_LOCAL_URL, HUGIN_URL } from "@workspace/shared/constants";
+import { termsPath } from "@workspace/shared/semester/application";
 import { osloDateTimeToEpoch, semesterSortKey } from "@workspace/shared/time";
 import { ConvexError } from "convex/values";
 import type { Doc, Id } from "../../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../../_generated/server";
+import { isLocalDevelopment } from "../../auth/local";
+
+/**
+ * Where companies read a semester's standard terms: the page in Hugin showing the uploaded PDF, or
+ * the link older semesters have. Undefined when there are no terms.
+ */
+export function termsLink(semester: Doc<"semesters">): string | undefined {
+	if (semester.termsFileId) {
+		return new URL(
+			termsPath(semester._id),
+			isLocalDevelopment() ? HUGIN_LOCAL_URL : HUGIN_URL,
+		).toString();
+	}
+	return semester.termsUrl;
+}
 
 /** Refuses a change to a closed semester with a Norwegian message. */
 export function refuseIfSemesterClosed(semester: Doc<"semesters">): void {
@@ -99,6 +116,7 @@ export async function settingsFromLatestSemester(
 		Doc<"semesters">,
 		| "infoText"
 		| "termsUrl"
+		| "termsFileId"
 		| "hardDeadline"
 		| "defaultEventStartTime"
 		| "confirmEmailSubject"
@@ -117,6 +135,7 @@ export async function settingsFromLatestSemester(
 	return {
 		...(latest.infoText !== undefined ? { infoText: latest.infoText } : {}),
 		...(latest.termsUrl !== undefined ? { termsUrl: latest.termsUrl } : {}),
+		...(latest.termsFileId !== undefined ? { termsFileId: latest.termsFileId } : {}),
 		...(latest.hardDeadline !== undefined ? { hardDeadline: latest.hardDeadline } : {}),
 		...(latest.defaultEventStartTime !== undefined
 			? { defaultEventStartTime: latest.defaultEventStartTime }

@@ -6,7 +6,7 @@ import { generateLinkToken } from "../../lib/tokens";
 import { requireEditorActor, transitionApplicationStatus } from "../applicationLifecycle";
 import { requireApplication } from "../applications/helper";
 import { rateLimiter } from "../rateLimits";
-import { requireSemester } from "../semesters/helper";
+import { requireSemester, termsLink } from "../semesters/helper";
 import {
 	findLatestOffer,
 	findOfferByToken,
@@ -113,7 +113,7 @@ export const accept = mutation({
 		await ctx.db.patch(offer._id, {
 			status: "accepted",
 			respondedAt: Date.now(),
-			...(semester.termsUrl ? { acceptedTermsUrl: semester.termsUrl } : {}),
+			...(termsLink(semester) ? { acceptedTermsUrl: termsLink(semester) } : {}),
 		});
 		await transitionApplicationStatus(
 			ctx,

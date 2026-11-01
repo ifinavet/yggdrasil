@@ -1,3 +1,4 @@
+import { semesterName } from "@workspace/shared/semester/labels";
 import { compareSemesters, osloToday } from "@workspace/shared/time";
 import { v } from "convex/values";
 import type { Doc } from "../../_generated/dataModel";
@@ -5,7 +6,7 @@ import { type QueryCtx, query } from "../../_generated/server";
 import { internalRoles, requireRole } from "../../auth/accessRights";
 import schema from "../../schema";
 import { semesterTerm } from "../schema";
-import { acceptsApplications, listSemesterDates, requireSemester } from "./helper";
+import { acceptsApplications, listSemesterDates, requireSemester, termsLink } from "./helper";
 
 // Two semesters a year; this covers 50 years of history.
 const MAX_SEMESTERS = 100;
@@ -16,7 +17,6 @@ const openSemesterValidator = v.object({
 	year: v.number(),
 	term: semesterTerm,
 	applicationDeadline: v.string(),
-	infoText: v.optional(v.string()),
 	termsUrl: v.optional(v.string()),
 	dates: v.array(v.string()),
 });
@@ -31,8 +31,7 @@ async function toOpenSemester(
 		year: semester.year,
 		term: semester.term,
 		applicationDeadline: semester.applicationDeadline,
-		...(semester.infoText !== undefined ? { infoText: semester.infoText } : {}),
-		...(semester.termsUrl !== undefined ? { termsUrl: semester.termsUrl } : {}),
+		...(termsLink(semester) ? { termsUrl: termsLink(semester) } : {}),
 		dates: dates.filter((date) => date.closedLabel === undefined).map((date) => date.date),
 	};
 }
@@ -112,5 +111,25 @@ export const get = query({
 			dates,
 			finalizedByName: finalizer ? `${finalizer.firstName} ${finalizer.lastName}` : null,
 		};
+	},
+});
+
+/**
+ * A semester's standard terms PDF, for the terms page in Hugin. Public: the terms are meant for
+ * every company that applies.
+ *
+ * @param {Id<"semesters">} semesterId - The semester.
+ *
+ * @returns {{ name: string, url: string } | null} - The semester's name and the PDF's address, or
+ * null when it has no PDF.
+ */
+export const terms = query({
+	args: { semesterId: v.id("semesters") },
+	returns: v.union(v.object({ name: v.string(), url: v.string() }), v.null()),
+	handler: async (ctx, { semesterId }) => {
+		const semester = await ctx.db.get(semesterId);
+		if (!semester?.termsFileId) return null;
+		const url = await ctx.storage.getUrl(semester.termsFileId);
+		return url ? { name: semesterName(semester.term, semester.year), url } : null;
 	},
 });

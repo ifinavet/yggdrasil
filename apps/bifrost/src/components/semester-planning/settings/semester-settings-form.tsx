@@ -4,18 +4,17 @@ import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
 import type { Doc } from "@workspace/backend/convex/dataModel";
 import { isClockTime, isIsoDate } from "@workspace/shared/time";
-import { convexErrorMessage, isHttpUrl } from "@workspace/shared/utils";
+import { convexErrorMessage } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
 import { DatePicker } from "@workspace/ui/components/date-picker";
 import { Field, FieldError, FieldLabel } from "@workspace/ui/components/field";
 import { Input } from "@workspace/ui/components/input";
 import { Switch } from "@workspace/ui/components/switch";
-import { Textarea } from "@workspace/ui/components/textarea";
 import { useMutation } from "convex/react";
-import { FileText } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
+import { TermsFileField } from "./terms-file-field";
 
 const optionalDay = z.string().refine((value) => value === "" || isIsoDate(value), "Velg en dato.");
 
@@ -29,13 +28,6 @@ function settingsSchema(semester: Doc<"semesters">) {
 			defaultEventStartTime: z
 				.string()
 				.refine((value) => value === "" || isClockTime(value), "Skriv et klokkeslett, som 16:15."),
-			termsUrl: z
-				.string()
-				.refine(
-					(value) => value.trim() === "" || isHttpUrl(value.trim()),
-					"Skriv en hel lenke som starter med https://.",
-				),
-			infoText: z.string(),
 		})
 		.superRefine((value, ctx) => {
 			const hasRange = semester.firstDate !== undefined || semester.lastDate !== undefined;
@@ -64,7 +56,7 @@ function settingsSchema(semester: Doc<"semesters">) {
 
 /**
  * The semester's first and last date, the application deadline, when events made from the plan
- * start, the terms link and the information text. Every value starts empty until an editor sets it.
+ * start and the standard terms PDF. Every value starts empty until an editor sets it.
  */
 export function SemesterSettingsForm({ semester }: Readonly<{ semester: Doc<"semesters"> }>) {
 	const setRange = useMutation(api.semesterPlanning.semesters.mutations.setRange);
@@ -80,8 +72,6 @@ export function SemesterSettingsForm({ semester }: Readonly<{ semester: Doc<"sem
 			applicationDeadline: semester.applicationDeadline ?? "",
 			hardDeadline: semester.hardDeadline ?? false,
 			defaultEventStartTime: semester.defaultEventStartTime ?? "",
-			termsUrl: semester.termsUrl ?? "",
-			infoText: semester.infoText ?? "",
 		},
 		validators: { onSubmit: settingsSchema(semester) },
 		onSubmit: async ({ value, formApi }) => {
@@ -106,8 +96,6 @@ export function SemesterSettingsForm({ semester }: Readonly<{ semester: Doc<"sem
 					...(value.applicationDeadline ? { applicationDeadline: value.applicationDeadline } : {}),
 					hardDeadline: value.hardDeadline,
 					defaultEventStartTime: value.defaultEventStartTime,
-					termsUrl: value.termsUrl.trim(),
-					infoText: value.infoText.trim(),
 				});
 				formApi.reset(value);
 				toast.success(
@@ -237,48 +225,7 @@ export function SemesterSettingsForm({ semester }: Readonly<{ semester: Doc<"sem
 					}}
 				</form.Field>
 
-				<form.Field name="termsUrl">
-					{(field) => {
-						const isInvalid = !field.state.meta.isValid;
-						return (
-							<Field data-invalid={isInvalid}>
-								<FieldLabel htmlFor="semester-terms">Standardvilkår</FieldLabel>
-								<div className="relative">
-									<FileText
-										aria-hidden
-										className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-									/>
-									<Input
-										id="semester-terms"
-										type="url"
-										inputMode="url"
-										className="pl-9"
-										value={field.state.value}
-										onChange={(event) => field.handleChange(event.target.value)}
-										onBlur={field.handleBlur}
-										aria-invalid={isInvalid}
-									/>
-								</div>
-								{isInvalid && <FieldError errors={field.state.meta.errors} />}
-							</Field>
-						);
-					}}
-				</form.Field>
-
-				<form.Field name="infoText">
-					{(field) => (
-						<Field>
-							<FieldLabel htmlFor="semester-info">Informasjon til bedrifter</FieldLabel>
-							<Textarea
-								id="semester-info"
-								rows={4}
-								value={field.state.value}
-								onChange={(event) => field.handleChange(event.target.value)}
-								onBlur={field.handleBlur}
-							/>
-						</Field>
-					)}
-				</form.Field>
+				<TermsFileField semester={semester} locked={locked} />
 			</fieldset>
 
 			{saveError && (
