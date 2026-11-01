@@ -44,10 +44,10 @@ export function PlanCards({
 								{team && (
 									<div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1.5 border-t pt-2.5">
 										{event.responsibleName && <Person name={event.responsibleName} small />}
-										{event.orgResponsibleName && <Person name={event.orgResponsibleName} small />}
 										{event.helpers.map((helper) => (
 											<Person key={helper.userId} name={helper.name} small />
 										))}
+										{event.orgResponsibleName && <Person name={event.orgResponsibleName} small />}
 									</div>
 								)}
 							</div>
@@ -104,10 +104,10 @@ export function PlanCards({
 							{team && (
 								<div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1.5 border-t pt-2.5">
 									{row.responsibleName && <Person name={row.responsibleName} small />}
-									{row.orgResponsibleName && <Person name={row.orgResponsibleName} small />}
 									{row.helpers.map((helper) => (
 										<Person key={helper.userId} name={helper.name} small />
 									))}
+									{row.orgResponsibleName && <Person name={row.orgResponsibleName} small />}
 								</div>
 							)}
 						</div>

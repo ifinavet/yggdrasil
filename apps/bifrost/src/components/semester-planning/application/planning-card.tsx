@@ -64,15 +64,6 @@ export function PlanningCard({ application }: Readonly<{ application: Applicatio
 						disabled={pending}
 						onChange={(responsibleUserId) => save({ responsibleUserId })}
 					/>
-					<TeamMember
-						id="planning-org-responsible"
-						label="Org-ansvarlig"
-						clearLabel="Ingen org-ansvarlig"
-						value={application.orgResponsibleUserId}
-						exclude={others(application.orgResponsibleUserId)}
-						disabled={pending}
-						onChange={(orgResponsibleUserId) => save({ orgResponsibleUserId })}
-					/>
 					{Array.from({ length: Math.max(MAX_HELPERS, helpers.length) }, (_, slot) => (
 						<TeamMember
 							// The slots are fixed positions, so the slot number is a stable key.
@@ -91,6 +82,15 @@ export function PlanningCard({ application }: Readonly<{ application: Applicatio
 							}}
 						/>
 					))}
+					<TeamMember
+						id="planning-org-responsible"
+						label="Org-ansvarlig"
+						clearLabel="Ingen org-ansvarlig"
+						value={application.orgResponsibleUserId}
+						exclude={others(application.orgResponsibleUserId)}
+						disabled={pending}
+						onChange={(orgResponsibleUserId) => save({ orgResponsibleUserId })}
+					/>
 					{NOTE_FIELDS.map(({ name, label, rows }) => (
 						<form.Field key={name} name={name}>
 							{(field) => {

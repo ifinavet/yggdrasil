@@ -43,8 +43,8 @@ export function PlanTable({
 					<th className={HEAD}>Status</th>
 					{showContactDetails && <th className={HEAD}>Kontakt i bedriften</th>}
 					<th className={cn(HEAD, "border-l")}>Kontaktperson fra Navet</th>
-					<th className={HEAD}>Org-ansvarlig</th>
-					<th className={cn(HEAD, "pr-4")}>Medhjelpere</th>
+					<th className={HEAD}>Medhjelpere</th>
+					<th className={cn(HEAD, "pr-4")}>Org-ansvarlig</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -91,15 +91,19 @@ export function PlanTable({
 										{event.responsibleName && <Person name={event.responsibleName} />}
 									</td>
 									<td className="border-t px-3 py-3">
-										{event.orgResponsibleName && <Person name={event.orgResponsibleName} />}
+										<div className="flex flex-col gap-1.5">
+											{event.helpers.map((helper) => (
+												<Person key={helper.userId} name={helper.name} small />
+											))}
+										</div>
 									</td>
 									<td className="border-t py-3 pr-4 pl-3">
 										<div className="flex items-start justify-between gap-2">
-											<div className="flex flex-col gap-1.5">
-												{event.helpers.map((helper) => (
-													<Person key={helper.userId} name={helper.name} small />
-												))}
-											</div>
+											{event.orgResponsibleName ? (
+												<Person name={event.orgResponsibleName} />
+											) : (
+												<span />
+											)}
 											{canEdit && <RemovePlanEventButton event={event} />}
 										</div>
 									</td>
@@ -172,14 +176,14 @@ export function PlanTable({
 									{row.responsibleName && <Person name={row.responsibleName} />}
 								</td>
 								<td className="border-t px-3 py-3">
-									{row.orgResponsibleName && <Person name={row.orgResponsibleName} />}
-								</td>
-								<td className="border-t py-3 pr-4 pl-3">
 									<div className="flex flex-col gap-1.5">
 										{row.helpers.map((helper) => (
 											<Person key={helper.userId} name={helper.name} small />
 										))}
 									</div>
+								</td>
+								<td className="border-t py-3 pr-4 pl-3">
+									{row.orgResponsibleName && <Person name={row.orgResponsibleName} />}
 								</td>
 							</tr>
 						</Fragment>
