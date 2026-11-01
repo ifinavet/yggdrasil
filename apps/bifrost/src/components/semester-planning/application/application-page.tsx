@@ -7,20 +7,26 @@ import { CompanyLogo } from "@workspace/ui/components/company-logo";
 import { Panel } from "@workspace/ui/components/products/panel";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { type Preloaded, useMutation, usePreloadedQuery, useQuery } from "convex/react";
-import { ExternalLink, Plus } from "lucide-react";
+import { CalendarDays, ExternalLink, Plus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { EventChecklistById } from "@/components/events/event-checklist-panel";
 import { formatMoment } from "../format";
 import { SemesterplanBreadcrumb } from "../semesterplan-breadcrumb";
 import { isActiveStatus } from "../status";
+import { AssignDateDialog } from "./assign-date-dialog";
 import { CompanyCard } from "./company-card";
 import { BillingCard, ContactCard } from "./contact-card";
 import { DatesCard } from "./dates-card";
 import { EventInfoCard } from "./event-info-card";
 import { HistoryCard } from "./history-card";
-import { type ApplicationDetails, type SemesterContext, useRunMutation } from "./model";
+import {
+	type ApplicationDetails,
+	canAssignDate,
+	type SemesterContext,
+	useRunMutation,
+} from "./model";
 import { PlanningCard } from "./planning-card";
 import { StatusCard } from "./status-card";
 
@@ -77,6 +83,9 @@ export function ApplicationPage({
 					</p>
 				</div>
 				<div className="ml-auto flex gap-2">
+					{context && application.status === "confirmed" && application.eventId && (
+						<ChangeDateButton details={details} context={context} companyName={companyName} />
+					)}
 					<EventButton details={details} />
 				</div>
 			</div>
@@ -108,6 +117,32 @@ export function ApplicationPage({
 			) : (
 				<ApplicationSkeleton />
 			)}
+		</>
+	);
+}
+
+/** «Endre dato» once the offer card has given way to the checklist, which has no date button. */
+function ChangeDateButton({
+	details,
+	context,
+	companyName,
+}: Readonly<{ details: ApplicationDetails; context: SemesterContext; companyName: string }>) {
+	const [open, setOpen] = useState(false);
+	if (!canAssignDate(details.application, context.semester)) return null;
+
+	return (
+		<>
+			<Button variant="outline" onClick={() => setOpen(true)}>
+				<CalendarDays /> Endre dato
+			</Button>
+			<AssignDateDialog
+				open={open}
+				onOpenChange={setOpen}
+				application={details.application}
+				companyName={companyName}
+				context={context}
+				requestedDates={[]}
+			/>
 		</>
 	);
 }
