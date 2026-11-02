@@ -5,11 +5,11 @@ import { api } from "@workspace/backend/convex/api";
 import { DEGREE_TYPES, STUDY_PROGRAMS } from "@workspace/shared/constants";
 import { applicationFormSchema } from "@workspace/shared/semester/application";
 import {
+	APPLICATION_EVENT_TYPES,
 	APPLICATION_VENUES,
 	ESCAPE_ANSWERS,
 	ESCAPE_LABELS,
 	EVENT_TYPE_LABELS,
-	EVENT_TYPES,
 	FOOD_PURCHASER_LABELS,
 	FOOD_PURCHASERS,
 	VENUE_LABELS,
@@ -230,7 +230,7 @@ export function EditEventInfo({ application }: Readonly<{ application: Applicati
 						id="edit-event-type"
 						label="Type"
 						value={field.state.value}
-						options={EVENT_TYPES}
+						options={APPLICATION_EVENT_TYPES}
 						labels={EVENT_TYPE_LABELS}
 						onChange={field.handleChange}
 					/>

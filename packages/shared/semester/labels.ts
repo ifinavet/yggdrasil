@@ -10,6 +10,14 @@ export const EVENT_TYPES = [
 ] as const;
 export type EventType = (typeof EVENT_TYPES)[number];
 
+/** The event types a company can apply for. Older applications may still be «social». */
+export const APPLICATION_EVENT_TYPES = [
+	"standard_presentation",
+	"large_presentation",
+	"workshop",
+] as const satisfies readonly EventType[];
+export type ApplicationEventType = (typeof APPLICATION_EVENT_TYPES)[number];
+
 export const EVENT_TYPE_LABELS: Record<EventType, string> = {
 	standard_presentation: "Ordinær bedriftspresentasjon",
 	large_presentation: "Stor bedriftspresentasjon",

@@ -1,5 +1,10 @@
 import { api } from "@workspace/backend/convex/api";
-import { EVENT_TYPE_LABELS, EVENT_TYPES, type EventType } from "@workspace/shared/semester/labels";
+import {
+	APPLICATION_EVENT_TYPES,
+	type ApplicationEventType,
+	EVENT_TYPE_LABELS,
+	type EventType,
+} from "@workspace/shared/semester/labels";
 import { CharacterCount } from "@workspace/ui/components/character-count";
 import { ChoiceGroup, type ChoiceOption } from "@workspace/ui/components/choice-group";
 import { useQuery } from "convex/react";
@@ -18,8 +23,8 @@ import type { ApplicationFormApi } from "./use-application-form";
 
 function eventTypeOptions(
 	pricesOre: Partial<Record<EventType, number>>,
-): ChoiceOption<EventType>[] {
-	return EVENT_TYPES.map((type) => ({
+): ChoiceOption<ApplicationEventType>[] {
+	return APPLICATION_EVENT_TYPES.map((type) => ({
 		value: type,
 		label: EVENT_TYPE_LABELS[type],
 		description: eventTypeDescription(type, pricesOre[type]),
