@@ -6,6 +6,7 @@ import {
 	applicationById,
 	asUser,
 	grantRole,
+	insertInternal,
 	insertUser,
 	refusalMessageFrom,
 	setup,
@@ -27,6 +28,7 @@ describe("the whole journey", () => {
 		const { t, companyId } = await setup();
 		const editorUser = await insertUser(t, "kari@ifinavet.no");
 		await grantRole(t, editorUser._id, "editor");
+		await insertInternal(t, editorUser._id, "Bedriftskontakt");
 		const editor = asUser(t, editorUser);
 		const semesters = api.semesterPlanning.semesters.mutations;
 		const applications = api.semesterPlanning.applications.mutations;

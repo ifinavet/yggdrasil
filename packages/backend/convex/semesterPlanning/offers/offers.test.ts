@@ -6,6 +6,7 @@ import {
 	asUser,
 	grantRole,
 	insertApplication,
+	insertInternal,
 	insertSemester,
 	insertUser,
 	refusalMessageFrom,
@@ -21,6 +22,7 @@ async function offerSetup() {
 	const { t } = await setup();
 	const editorUser = await insertUser(t, "kari@ifinavet.no");
 	await grantRole(t, editorUser._id, "editor");
+	await insertInternal(t, editorUser._id, "Bedriftskontakt");
 	const semesterId = await insertSemester(t, {
 		status: "open",
 		termsUrl: `${MIDGARD_URL}/vilkar-v27`,

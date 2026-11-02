@@ -7,7 +7,7 @@ import { isIsoDate } from "@workspace/shared/time";
 import { ConvexError, type Infer } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
-import { editorRoles, requireRole } from "../auth/accessRights";
+import { requireSemesterPlanner } from "./access";
 import { canTransition, isActiveApplicationStatus, isUnsettledApplicationStatus } from "./rules";
 import type { activityActor, applicationActivityType } from "./schema";
 import { requireSemester } from "./semesters/helper";
@@ -28,7 +28,7 @@ type InternalActor = Extract<Actor, { type: "internal" }>;
  * @returns {Promise<InternalActor>} - The editor as an internal actor.
  */
 export async function requireEditorActor(ctx: MutationCtx): Promise<InternalActor> {
-	const user = await requireRole(ctx, editorRoles);
+	const user = await requireSemesterPlanner(ctx);
 	return { type: "internal", userId: user._id };
 }
 

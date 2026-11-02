@@ -1,7 +1,7 @@
-import { getAuthToken, hasEditRights } from "@workspace/auth";
+import { getAuthToken } from "@workspace/auth";
 import { api } from "@workspace/backend/convex/api";
 import { Skeleton } from "@workspace/ui/components/skeleton";
-import { preloadQuery } from "convex/nextjs";
+import { fetchQuery, preloadQuery } from "convex/nextjs";
 import { Suspense } from "react";
 import { SemesterPlanner } from "@/components/semester-planning/semester-planner";
 import { SemesterplanBreadcrumb } from "@/components/semester-planning/semesterplan-breadcrumb";
@@ -23,14 +23,13 @@ export default function SemesterPlanPage() {
 }
 
 async function LoadedSemesterPlanner() {
-	const [token, canEdit] = await Promise.all([getAuthToken(), hasEditRights()]);
-	const preloadedSemesters = await preloadQuery(
-		api.semesterPlanning.semesters.queries.list,
-		{},
-		{ token },
-	);
+	const token = await getAuthToken();
+	const [rights, preloadedSemesters] = await Promise.all([
+		fetchQuery(api.semesterPlanning.access.myRights, {}, { token }),
+		preloadQuery(api.semesterPlanning.semesters.queries.list, {}, { token }),
+	]);
 
-	return <SemesterPlanner preloadedSemesters={preloadedSemesters} canEdit={canEdit} />;
+	return <SemesterPlanner preloadedSemesters={preloadedSemesters} canEdit={rights.canPlan} />;
 }
 
 function SemesterPlannerSkeleton() {

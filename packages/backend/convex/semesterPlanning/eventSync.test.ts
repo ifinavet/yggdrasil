@@ -7,6 +7,7 @@ import {
 	insertApplication,
 	insertEvent,
 	insertFoodItem,
+	insertInternal,
 	insertOrganizer,
 	insertSemester,
 	insertUser,
@@ -31,6 +32,7 @@ async function bookedSetup() {
 		lastName: "Nordmann",
 	});
 	await grantRole(t, editorUser._id, "editor");
+	await insertInternal(t, editorUser._id, "Bedriftskontakt");
 	const [lead, helper, other] = await Promise.all(
 		["ola@ifinavet.no", "per@ifinavet.no", "siri@ifinavet.no"].map(async (email) => {
 			const user = await insertUser(t, email);

@@ -1,7 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import type { Doc } from "../../_generated/dataModel";
 import { mutation } from "../../_generated/server";
-import { editorRoles, requireRole } from "../../auth/accessRights";
+import { requireSemesterPlanner } from "../access";
 import { requireEditorActor } from "../applicationLifecycle";
 import {
 	eventsInSemesterRange,
@@ -68,7 +68,7 @@ export const removeEvent = mutation({
 	args: { planEventId: v.id("semesterPlanEvents") },
 	returns: v.null(),
 	handler: async (ctx, { planEventId }) => {
-		await requireRole(ctx, editorRoles);
+		await requireSemesterPlanner(ctx);
 
 		const planEvent = await ctx.db.get(planEventId);
 		if (!planEvent) throw new ConvexError("Arrangementet er ikke i planen.");

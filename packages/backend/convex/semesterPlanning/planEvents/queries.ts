@@ -1,7 +1,8 @@
 import { v } from "convex/values";
 import { query } from "../../_generated/server";
-import { editorRoles, internalRoles, requireRole } from "../../auth/accessRights";
+import { internalRoles, requireRole } from "../../auth/accessRights";
 import { companyWithLogo } from "../../events/queries";
+import { requireSemesterPlanner } from "../access";
 import { fullName, loadEventTeam } from "../applications/helper";
 import { eventsInSemesterRange, requireSemester } from "../semesters/helper";
 import { eventDate, isEventInAPlan, listPlanEvents, planEventRowValidator } from "./helper";
@@ -74,7 +75,7 @@ export const candidates = query({
 		}),
 	),
 	handler: async (ctx, { semesterId }) => {
-		await requireRole(ctx, editorRoles);
+		await requireSemesterPlanner(ctx);
 
 		const semester = await requireSemester(ctx, semesterId);
 		const events = await eventsInSemesterRange(ctx, semester);

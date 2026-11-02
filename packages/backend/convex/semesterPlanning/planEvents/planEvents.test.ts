@@ -4,6 +4,7 @@ import {
 	grantRole,
 	insertApplication,
 	insertEvent,
+	insertInternal,
 	insertOrganizer,
 	insertSemester,
 	insertUser,
@@ -34,6 +35,7 @@ async function planSetup() {
 		lastName: "Nordmann",
 	});
 	await grantRole(t, editorUser._id, "editor");
+	await insertInternal(t, editorUser._id, "Bedriftskontakt");
 	const member = await insertUser(t, "ola@ifinavet.no", { firstName: "Ola", lastName: "Hansen" });
 	await grantRole(t, member._id, "internal");
 	const semesterId = await insertSemester(t, AUTUMN);

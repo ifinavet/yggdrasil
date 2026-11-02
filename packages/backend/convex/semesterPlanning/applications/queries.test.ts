@@ -4,6 +4,7 @@ import {
 	grantRole,
 	insertApplication,
 	insertEvent,
+	insertInternal,
 	insertOrganizer,
 	insertSemester,
 	insertUser,
@@ -18,6 +19,7 @@ async function withPeople() {
 	const { t, companyId } = await setup();
 	const editor = await insertUser(t, "kari@ifinavet.no");
 	await grantRole(t, editor._id, "editor");
+	await insertInternal(t, editor._id, "Bedriftskontakt");
 	const member = await insertUser(t, "medlem@ifinavet.no", { firstName: "Emil", lastName: "Moe" });
 	await grantRole(t, member._id, "internal");
 	const semesterId = await insertSemester(t);

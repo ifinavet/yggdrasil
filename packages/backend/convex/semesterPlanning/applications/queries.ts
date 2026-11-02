@@ -1,8 +1,9 @@
 import { v } from "convex/values";
 import { query } from "../../_generated/server";
-import { editorRoles, internalRoles, requireRole } from "../../auth/accessRights";
+import { internalRoles, requireRole } from "../../auth/accessRights";
 import { findCompanyLogoUrl } from "../../companies/helper";
 import schema from "../../schema";
+import { requireSemesterPlanner } from "../access";
 import { findLatestOffer } from "../offers/helper";
 import { isActiveApplicationStatus } from "../rules";
 import { offerStatus } from "../schema";
@@ -74,7 +75,7 @@ export const listForSemester = query({
 		}),
 	),
 	handler: async (ctx, { semesterId }) => {
-		await requireRole(ctx, editorRoles);
+		await requireSemesterPlanner(ctx);
 
 		const applications = await listApplicationsInSemester(ctx, semesterId);
 		const rows = await Promise.all(
@@ -127,7 +128,7 @@ export const get = query({
 		logoUrl: v.union(v.string(), v.null()),
 	}),
 	handler: async (ctx, { applicationId }) => {
-		await requireRole(ctx, editorRoles);
+		await requireSemesterPlanner(ctx);
 
 		const application = await requireApplication(ctx, applicationId);
 		const offers = await ctx.db

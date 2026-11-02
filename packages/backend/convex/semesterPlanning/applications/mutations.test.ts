@@ -6,6 +6,7 @@ import {
 	grantRole,
 	insertApplication,
 	insertEvent,
+	insertInternal,
 	insertOrganizer,
 	insertRegistration,
 	insertSemester,
@@ -24,6 +25,7 @@ async function planningSetup() {
 	const { t, companyId } = await setup();
 	const editorUser = await insertUser(t, "kari@ifinavet.no");
 	await grantRole(t, editorUser._id, "editor");
+	await insertInternal(t, editorUser._id, "Bedriftskontakt");
 	const semesterId = await insertSemester(t, { status: "open" });
 	await t.run(async (ctx) => {
 		await ctx.db.insert("semesterDates", {

@@ -48,12 +48,18 @@ export async function getAccessRole(
 	return (await getAssignedAccessRole(ctx, userId)) ?? (await linkedAccessRole(ctx, userId));
 }
 
-async function linkedAccessRole(ctx: QueryCtx | MutationCtx, userId: Id<"users">) {
+export async function linkedUserId(ctx: QueryCtx | MutationCtx, userId: Id<"users">) {
 	const user = await ctx.db.get(userId);
 	if (!user?.email) return null;
 	const account = await accountForEmail(ctx, user.email);
 	if (account?.stage !== "active" || !account.userId || account.userId === userId) return null;
-	const role = await getAssignedAccessRole(ctx, account.userId);
+	return account.userId;
+}
+
+async function linkedAccessRole(ctx: QueryCtx | MutationCtx, userId: Id<"users">) {
+	const linkedId = await linkedUserId(ctx, userId);
+	if (!linkedId) return null;
+	const role = await getAssignedAccessRole(ctx, linkedId);
 	return role === "super-admin" ? "admin" : role;
 }
 

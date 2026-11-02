@@ -1,8 +1,8 @@
-import { getAuthToken, hasEditRights } from "@workspace/auth";
+import { getAuthToken } from "@workspace/auth";
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
 import { isMissingDocumentError } from "@workspace/shared/utils";
-import { preloadQuery } from "convex/nextjs";
+import { fetchQuery, preloadQuery } from "convex/nextjs";
 import type { Preloaded } from "convex/react";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
@@ -33,10 +33,11 @@ export default function ApplicationRoute({
 }
 
 async function LoadedApplication({ params }: Readonly<{ params: Promise<{ id: string }> }>) {
-	// Applications hold contact and invoice details, so only editors see them.
-	if (!(await hasEditRights())) redirect("/semesterplan");
-
 	const [{ id }, token] = await Promise.all([params, getAuthToken()]);
+	// Applications hold contact and invoice details, so only editors see them.
+	if (!(await fetchQuery(api.semesterPlanning.access.myRights, {}, { token })).canPlan) {
+		redirect("/semesterplan");
+	}
 
 	let preloadedDetails: Preloaded<typeof api.semesterPlanning.applications.queries.get>;
 	try {

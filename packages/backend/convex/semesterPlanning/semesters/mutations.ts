@@ -14,8 +14,8 @@ import { isHttpUrl } from "@workspace/shared/utils";
 import { ConvexError, v } from "convex/values";
 import type { Doc, Id } from "../../_generated/dataModel";
 import { internalMutation, type MutationCtx, mutation } from "../../_generated/server";
-import { editorRoles, requireRole } from "../../auth/accessRights";
 import { invoiceFor } from "../../invoicing/schedule";
+import { requireSemesterPlanner } from "../access";
 import { findActiveApplicationOnDate, requireEditorActor } from "../applicationLifecycle";
 import { deleteConfirmations } from "../applications/confirmation";
 import { findCompanyProfile, listApplicationsInSemester } from "../applications/helper";
@@ -61,7 +61,7 @@ export const create = mutation({
 	args: { year: v.number(), term: semesterTerm },
 	returns: v.id("semesters"),
 	handler: async (ctx, { year, term }) => {
-		await requireRole(ctx, editorRoles);
+		await requireSemesterPlanner(ctx);
 
 		if (!Number.isInteger(year) || year < MIN_SEMESTER_YEAR || year > MAX_SEMESTER_YEAR) {
 			throw new ConvexError("Oppgi et gyldig år.");
@@ -91,7 +91,7 @@ export const setRange = mutation({
 	args: { semesterId: v.id("semesters"), firstDate: v.string(), lastDate: v.string() },
 	returns: v.null(),
 	handler: async (ctx, { semesterId, firstDate, lastDate }) => {
-		await requireRole(ctx, editorRoles);
+		await requireSemesterPlanner(ctx);
 
 		const semester = await requireSemester(ctx, semesterId);
 		refuseIfSemesterClosed(semester);
@@ -171,7 +171,7 @@ export const updateSettings = mutation({
 			confirmEmailText,
 		},
 	) => {
-		await requireRole(ctx, editorRoles);
+		await requireSemesterPlanner(ctx);
 
 		const semester = await requireSemester(ctx, semesterId);
 		refuseIfSemesterClosed(semester);
@@ -226,7 +226,7 @@ export const setDateClosed = mutation({
 	args: { dateId: v.id("semesterDates"), label: v.union(v.string(), v.null()) },
 	returns: v.null(),
 	handler: async (ctx, { dateId, label }) => {
-		await requireRole(ctx, editorRoles);
+		await requireSemesterPlanner(ctx);
 
 		const date = await ctx.db.get(dateId);
 		if (!date) throw new ConvexError("Datoen ble ikke funnet.");
@@ -261,7 +261,7 @@ export const setStatus = mutation({
 	args: { semesterId: v.id("semesters"), status: applicationPeriodStatus },
 	returns: v.null(),
 	handler: async (ctx, { semesterId, status }) => {
-		await requireRole(ctx, editorRoles);
+		await requireSemesterPlanner(ctx);
 
 		const semester = await requireSemester(ctx, semesterId);
 		if (status === "open") {
@@ -365,7 +365,7 @@ export const unfinalizePlan = mutation({
 	args: { semesterId: v.id("semesters") },
 	returns: v.null(),
 	handler: async (ctx, { semesterId }) => {
-		await requireRole(ctx, editorRoles);
+		await requireSemesterPlanner(ctx);
 		await requireSemester(ctx, semesterId);
 
 		await ctx.db.patch(semesterId, { planFinalizedAt: undefined, planFinalizedBy: undefined });
@@ -402,7 +402,7 @@ export const deleteSemester = mutation({
 	args: { semesterId: v.id("semesters") },
 	returns: v.object({ applications: v.number() }),
 	handler: async (ctx, { semesterId }) => {
-		await requireRole(ctx, editorRoles);
+		await requireSemesterPlanner(ctx);
 		const semester = await requireSemester(ctx, semesterId);
 		if (semester.status === "open") {
 			throw new ConvexError("Steng semesteret for søknader før du sletter det.");

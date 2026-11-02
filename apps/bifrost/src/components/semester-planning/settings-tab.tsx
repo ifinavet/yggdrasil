@@ -13,6 +13,7 @@ import { SemesterActions } from "./semester-actions";
 import { ConfirmEmailForm } from "./settings/confirm-email-form";
 import { CreateSemesterForm } from "./settings/create-semester-form";
 import { DeleteSemesterButton } from "./settings/delete-semester-button";
+import { PlanAccessCard } from "./settings/plan-access-card";
 import { SemesterDates } from "./settings/semester-dates";
 import { SemesterSettingsForm } from "./settings/semester-settings-form";
 import { StatusControl } from "./settings/status-control";
@@ -61,6 +62,7 @@ export function SettingsTab({
 					<ConfirmEmailForm key={semester._id} semester={semester} />
 				</CardContent>
 			</Card>
+			<PlanAccessCard className="mt-4" />
 		</>
 	);
 }
