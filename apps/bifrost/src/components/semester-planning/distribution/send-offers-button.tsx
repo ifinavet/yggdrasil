@@ -77,6 +77,8 @@ export function SendOffersButton({
 	};
 
 	const count = applications.length;
+	// Stays mounted after the last offer is made, so the links are still there to send.
+	if (count === 0 && made.length === 0 && progress === null) return null;
 	return (
 		<>
 			<AlertDialog open={confirming} onOpenChange={setConfirming}>
