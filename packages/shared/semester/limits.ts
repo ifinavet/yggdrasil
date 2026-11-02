@@ -13,3 +13,6 @@ export const MAX_HELPERS = 2;
 /** How many other dates a company can ask for, and how long its comment can be. */
 export const MAX_REQUESTED_DATES = 10;
 export const MAX_OFFER_COMMENT_LENGTH = 1000;
+
+/** The largest standard terms PDF Bifrost accepts. */
+export const MAX_TERMS_FILE_BYTES = 10 * 1024 * 1024;

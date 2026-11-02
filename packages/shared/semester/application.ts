@@ -113,6 +113,13 @@ export type ApplicationForm = z.infer<typeof applicationFormSchema>;
 /** Where the link in the confirmation email leads; the token is in the fragment. */
 export const APPLICATION_CONFIRM_PATH = "/bestill-bedpres/bekreft";
 
+/** The page in Hugin that shows a semester's standard terms, uploaded as a PDF in Bifrost. */
+export const TERMS_PATH = "/bestill-bedpres/vilkar";
+
+export function termsPath(semesterId: string): string {
+	return `${TERMS_PATH}/${semesterId}`;
+}
+
 export const OFFER_PATH = "/bestill-bedpres/tilbud";
 
 export function offerPath(token: string): string {

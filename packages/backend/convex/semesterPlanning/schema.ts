@@ -139,6 +139,8 @@ export const semesterPlanningSchema = {
 		status: applicationPeriodStatus,
 		infoText: v.optional(v.string()),
 		termsUrl: v.optional(v.string()),
+		// The standard terms as a PDF, shown in Hugin. Wins over `termsUrl`, which older semesters have.
+		termsFileId: v.optional(v.id("_storage")),
 		// The email with the confirm link, written by an editor. Empty means the default text in
 		// packages/shared/semester/confirm-email.ts.
 		confirmEmailSubject: v.optional(v.string()),

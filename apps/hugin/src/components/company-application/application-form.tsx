@@ -144,11 +144,6 @@ export function ApplicationForm({
 					</Note>
 				)}
 				<p className="m-0 mt-3.5 text-[14.5px] leading-normal">{COPY.lede}</p>
-				{semester.infoText && (
-					<Note className="mt-3.5">
-						<span className="whitespace-pre-line">{semester.infoText}</span>
-					</Note>
-				)}
 			</div>
 
 			<form
