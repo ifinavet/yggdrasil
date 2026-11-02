@@ -154,7 +154,7 @@ function assignDescription(application: Application): string {
 	if (replacesOffer(application) && application.assignedDate) {
 		return `Tilbudet på ${shortDay(application.assignedDate)} slutter å gjelde, og søknaden går tilbake til «Søkt» til du sender nytt tilbud.`;
 	}
-	return "Velg en dato. Tilbudet sendes først når du trykker «Send tilbud».";
+	return "Velg en dato. Tilbudet lages først når du trykker «Lag tilbud».";
 }
 
 function assignLabel(pending: boolean, picked: string | undefined): string {

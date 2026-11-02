@@ -172,7 +172,6 @@ import type * as semesterPlanning_applications_submit from "../semesterPlanning/
 import type * as semesterPlanning_events from "../semesterPlanning/events.js";
 import type * as semesterPlanning_interest_emails from "../semesterPlanning/interest/emails.js";
 import type * as semesterPlanning_interest_mutations from "../semesterPlanning/interest/mutations.js";
-import type * as semesterPlanning_offers_emails from "../semesterPlanning/offers/emails.js";
 import type * as semesterPlanning_offers_helper from "../semesterPlanning/offers/helper.js";
 import type * as semesterPlanning_offers_mutations from "../semesterPlanning/offers/mutations.js";
 import type * as semesterPlanning_offers_queries from "../semesterPlanning/offers/queries.js";
@@ -369,7 +368,6 @@ declare const fullApi: ApiFromModules<{
   "semesterPlanning/events": typeof semesterPlanning_events;
   "semesterPlanning/interest/emails": typeof semesterPlanning_interest_emails;
   "semesterPlanning/interest/mutations": typeof semesterPlanning_interest_mutations;
-  "semesterPlanning/offers/emails": typeof semesterPlanning_offers_emails;
   "semesterPlanning/offers/helper": typeof semesterPlanning_offers_helper;
   "semesterPlanning/offers/mutations": typeof semesterPlanning_offers_mutations;
   "semesterPlanning/offers/queries": typeof semesterPlanning_offers_queries;
