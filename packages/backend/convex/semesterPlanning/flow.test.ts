@@ -113,8 +113,6 @@ describe("the whole journey", () => {
 			"semesterPlanning/applications/confirmation:purgeExpired",
 			"iam/notifications:sendMessage",
 			"semesterPlanning/applications/sheet:appendApplication",
-			"semesterPlanning/offers/emails:sendOfferEmail",
-			"semesterPlanning/offers/emails:sendOfferEmail",
 		]);
 
 		const history = (await activityFor(t, applicationId)).map((row) =>

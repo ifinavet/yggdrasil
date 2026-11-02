@@ -4,8 +4,7 @@ import { components } from "../_generated/api";
 /**
  * Limits for the public Hugin form and brreg search, which need no login.
  * Per-company limits stop one company from flooding the plan; the global limits cap abuse and
- * keep us polite towards brreg. Resent offer and confirmation emails are capped per offer and
- * submission.
+ * keep us polite towards brreg. Resent confirmation emails are capped per submission.
  */
 export const rateLimiter = new RateLimiter(components.rateLimiter, {
 	brregSearch: { kind: "token bucket", rate: 120, period: MINUTE, capacity: 60 },
@@ -13,6 +12,5 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
 	submitApplicationGlobal: { kind: "fixed window", rate: 200, period: HOUR },
 	registerInterest: { kind: "token bucket", rate: 3, period: HOUR, capacity: 3 },
 	registerInterestGlobal: { kind: "fixed window", rate: 50, period: HOUR },
-	resendOfferEmail: { kind: "fixed window", rate: 3, period: HOUR },
 	resendApplicationConfirmation: { kind: "token bucket", rate: 3, period: HOUR, capacity: 3 },
 });

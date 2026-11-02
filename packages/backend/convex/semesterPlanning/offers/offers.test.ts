@@ -13,7 +13,7 @@ import {
 	setup,
 	type TestBackend,
 } from "../../../test/fixtures";
-import { api, internal } from "../../_generated/api";
+import { api } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 
 const offers = api.semesterPlanning.offers;
@@ -49,12 +49,8 @@ async function sendAndGetToken(
 	return linkToken;
 }
 
-async function scheduledOfferEmails(t: TestBackend) {
-	return t.run(async (ctx) =>
-		(await ctx.db.system.query("_scheduled_functions").collect())
-			.filter((job) => job.name.endsWith("sendOfferEmail"))
-			.map((job) => job.args[0] as { offerId: Id<"companyApplicationOffers"> }),
-	);
+async function scheduledJobs(t: TestBackend) {
+	return t.run(async (ctx) => await ctx.db.system.query("_scheduled_functions").collect());
 }
 
 async function offersOf(t: TestBackend, applicationId: Id<"companyApplications">) {
@@ -67,7 +63,7 @@ async function offersOf(t: TestBackend, applicationId: Id<"companyApplications">
 }
 
 describe("send", () => {
-	it("makes an offer and emails its link to the company", async () => {
+	it("makes an offer with a link for Navet to send, and emails nothing", async () => {
 		const { t, applicationId, editor, editorUser } = await offerSetup();
 
 		const { offerId, linkToken: token } = await editor.mutation(offers.mutations.sendOffer, {
@@ -85,16 +81,9 @@ describe("send", () => {
 		expect(token).toMatch(/^[A-Za-z0-9_-]{43}$/);
 		expect(offer?.linkToken).toBe(token);
 		expect(offer?._id).toBe(offerId);
-		expect(await scheduledOfferEmails(t)).toEqual([{ offerId }]);
+		const before = await scheduledJobs(t);
+		expect(before.filter((job) => job.name.includes("offers"))).toEqual([]);
 		const application = await applicationById(t, applicationId);
-		expect(
-			await t.query(internal.semesterPlanning.offers.queries.emailContext, { offerId }),
-		).toEqual({
-			to: application.contact.email,
-			contactName: application.contact.name,
-			date: "2027-02-09",
-			linkToken: token,
-		});
 		expect(application.status).toBe("offer_sent");
 		expect((await activityFor(t, applicationId)).at(-1)).toMatchObject({
 			type: "status_changed",
@@ -103,29 +92,7 @@ describe("send", () => {
 		});
 	});
 
-	it("has nothing to email once the application is withdrawn", async () => {
-		const { t, applicationId, editor } = await offerSetup();
-		const { offerId } = await editor.mutation(offers.mutations.sendOffer, { applicationId });
-		await t.run((ctx) => ctx.db.patch(applicationId, { status: "withdrawn" }));
-
-		expect(
-			await t.query(internal.semesterPlanning.offers.queries.emailContext, { offerId }),
-		).toBeNull();
-	});
-
-	it("has nothing to email once the offer is answered", async () => {
-		const { t, applicationId, editor } = await offerSetup();
-		const { offerId, linkToken } = await editor.mutation(offers.mutations.sendOffer, {
-			applicationId,
-		});
-		await t.mutation(offers.mutations.decline, { token: linkToken });
-
-		expect(
-			await t.query(internal.semesterPlanning.offers.queries.emailContext, { offerId }),
-		).toBeNull();
-	});
-
-	it("gives the same link again without a new email while the offer waits for an answer", async () => {
+	it("gives the same link again while the offer waits for an answer", async () => {
 		const { t, applicationId, editor } = await offerSetup();
 
 		const first = await editor.mutation(offers.mutations.sendOffer, { applicationId });
@@ -134,7 +101,6 @@ describe("send", () => {
 
 		expect(second).toEqual(first);
 		expect(await offersOf(t, applicationId)).toHaveLength(1);
-		expect(await scheduledOfferEmails(t)).toHaveLength(1);
 		expect(await activityFor(t, applicationId)).toHaveLength(historyAfterFirst);
 		expect(await t.query(offers.queries.getByToken, { token: first.linkToken })).toMatchObject({
 			state: "pending",
@@ -174,51 +140,6 @@ describe("send", () => {
 		expect(
 			await refusalMessageFrom(
 				asUser(t, member).mutation(offers.mutations.sendOffer, { applicationId }),
-			),
-		).toContain("Unauthorized");
-	});
-});
-
-describe("resendOfferEmail", () => {
-	it("emails the same open offer again, three times an hour at most", async () => {
-		const { t, applicationId, editor } = await offerSetup();
-		const { offerId } = await editor.mutation(offers.mutations.sendOffer, { applicationId });
-
-		for (let attempt = 0; attempt < 3; attempt++) {
-			await editor.mutation(offers.mutations.resendOfferEmail, { applicationId });
-		}
-
-		expect(
-			await refusalMessageFrom(
-				editor.mutation(offers.mutations.resendOfferEmail, { applicationId }),
-			),
-		).toBe("Tilbudet er sendt på nytt mange ganger. Prøv igjen senere.");
-		expect(await offersOf(t, applicationId)).toHaveLength(1);
-		expect(await scheduledOfferEmails(t)).toEqual(Array(4).fill({ offerId }));
-	});
-
-	it("refuses when there is no open offer", async () => {
-		const { t, applicationId, editor } = await offerSetup();
-		const { linkToken } = await editor.mutation(offers.mutations.sendOffer, { applicationId });
-		await t.mutation(offers.mutations.decline, { token: linkToken });
-
-		expect(
-			await refusalMessageFrom(
-				editor.mutation(offers.mutations.resendOfferEmail, { applicationId }),
-			),
-		).toBe("Søknaden har ikke et åpent tilbud å sende på nytt.");
-		expect(await scheduledOfferEmails(t)).toHaveLength(1);
-	});
-
-	it("is editor-only", async () => {
-		const { t, applicationId, editor } = await offerSetup();
-		await editor.mutation(offers.mutations.sendOffer, { applicationId });
-		const member = await insertUser(t, "medlem@ifinavet.no");
-		await grantRole(t, member._id, "internal");
-
-		expect(
-			await refusalMessageFrom(
-				asUser(t, member).mutation(offers.mutations.resendOfferEmail, { applicationId }),
 			),
 		).toContain("Unauthorized");
 	});

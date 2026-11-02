@@ -59,10 +59,8 @@ export function DistributionTab({ semester }: Readonly<{ semester: Doc<"semester
 	return (
 		<div className="grid min-w-0 gap-4">
 			<SemesterActions>
-				{/* A closed semester refuses offers, so the bulk button is left out, as it is with none to make. */}
-				{!closed && summary.readyForOffer.length > 0 && (
-					<SendOffersButton applications={summary.readyForOffer} />
-				)}
+				{/* A closed semester refuses offers, so the bulk button is left out. */}
+				{!closed && <SendOffersButton applications={summary.readyForOffer} />}
 				<FinalizePlanButton semester={details.semester} waiting={summary.waiting} />
 			</SemesterActions>
 
