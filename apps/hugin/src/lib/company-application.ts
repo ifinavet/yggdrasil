@@ -1,8 +1,8 @@
 import { applicationFormSchema, STUDENT_CAP } from "@workspace/shared/semester/application";
 import {
+	APPLICATION_EVENT_TYPES,
 	ESCAPE_ANSWERS,
 	EVENT_TYPE_LABELS,
-	EVENT_TYPES,
 	FOOD_PURCHASERS,
 	VENUES,
 } from "@workspace/shared/semester/labels";
@@ -44,7 +44,7 @@ export const applicationDraftSchema = z.object({
 	contact: z
 		.object({ name: answer, email: answer, phone: answer })
 		.catch(() => ({ name: "", email: "", phone: "" })),
-	eventType: choice(EVENT_TYPES),
+	eventType: choice(APPLICATION_EVENT_TYPES),
 	/** The number of students as the company writes it: «30», or a range like «20–40». */
 	students: answer,
 	description: answer,

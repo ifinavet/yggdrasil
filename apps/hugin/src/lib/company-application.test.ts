@@ -1,3 +1,4 @@
+import { applicationFormSchema } from "@workspace/shared/semester/application";
 import { formatNok } from "@workspace/shared/semester/prices";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
@@ -336,6 +337,11 @@ describe("company application prices", () => {
 		expect(eventTypeDescription("standard_presentation", 3_000_000).replace(/\s/g, " ")).toBe(
 			"Inntil 40 studenter · 30 000 kr eks. mva.",
 		);
+	});
+
+	it("no longer offers a social event, and drops it from an old draft", () => {
+		expect(applicationDraftSchema.parse({ eventType: "social" }).eventType).toBe("");
+		expect(applicationFormSchema.shape.eventType.safeParse("social").success).toBe(false);
 	});
 
 	it("leaves the price out when the event type has no priced product", () => {

@@ -4,10 +4,10 @@ import { STUDY_PROGRAMS } from "../constants/programs";
 import { isIsoDate } from "../time";
 import { email, optionalText, orgNumber, text } from "../validation";
 import {
+	APPLICATION_EVENT_TYPES,
 	APPLICATION_VENUES,
 	ESCAPE_ANSWERS,
 	EVENT_TYPE_LABELS,
-	EVENT_TYPES,
 	type EventType,
 	FOOD_PURCHASERS,
 } from "./labels";
@@ -44,7 +44,9 @@ export const applicationFormSchema = z
 	.object({
 		orgNumber: orgNumber("Velg bedriften."),
 		contact: applicationContactSchema,
-		eventType: z.enum(EVENT_TYPES, { error: "Velg hva slags arrangement dere ønsker." }),
+		eventType: z.enum(APPLICATION_EVENT_TYPES, {
+			error: "Velg hva slags arrangement dere ønsker.",
+		}),
 		minStudents: students,
 		maxStudents: students,
 		description: text(2000, "Beskriv arrangementet med høyst 2000 tegn."),
