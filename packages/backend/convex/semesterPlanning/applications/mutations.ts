@@ -18,7 +18,9 @@ import {
 } from "../events";
 import { supersedePendingOffers } from "../offers/helper";
 import { isActiveApplicationStatus } from "../rules";
+import { applicationForm } from "../schema";
 import { requireSemester } from "../semesters/helper";
+import { parseApplicationForm } from "./confirmation";
 import { requireApplication } from "./helper";
 
 function refuseIfApplicationInactive(application: Doc<"companyApplications">): void {
@@ -259,27 +261,41 @@ export const updatePlanningDetails = mutation({
 	args: {
 		applicationId: v.id("companyApplications"),
 		responsibleUserId: v.optional(v.union(v.id("users"), v.null())),
+		orgResponsibleUserId: v.optional(v.union(v.id("users"), v.null())),
 		helperUserIds: v.optional(v.array(v.id("users"))),
 		internalNotes: v.optional(v.string()),
+		food: v.optional(v.string()),
+		room: v.optional(v.string()),
 	},
 	returns: v.null(),
-	handler: async (ctx, { applicationId, responsibleUserId, helperUserIds, internalNotes }) => {
+	handler: async (
+		ctx,
+		{ applicationId, responsibleUserId, orgResponsibleUserId, helperUserIds, ...notes },
+	) => {
 		await requireEditorActor(ctx);
 		const application = await requireApplication(ctx, applicationId);
 
-		if (internalNotes !== undefined && internalNotes.length > MAX_INTERNAL_NOTES_LENGTH) {
+		if (Object.values(notes).some((note) => note.length > MAX_INTERNAL_NOTES_LENGTH)) {
 			throw new ConvexError(`Notatene kan ha høyst ${MAX_INTERNAL_NOTES_LENGTH} tegn.`);
 		}
 
-		if (responsibleUserId !== undefined || helperUserIds !== undefined) {
+		if (
+			responsibleUserId !== undefined ||
+			orgResponsibleUserId !== undefined ||
+			helperUserIds !== undefined
+		) {
 			await setApplicationTeam(ctx, application, {
 				...(responsibleUserId !== undefined ? { responsibleUserId } : {}),
+				...(orgResponsibleUserId !== undefined ? { orgResponsibleUserId } : {}),
 				...(helperUserIds !== undefined ? { helperUserIds } : {}),
 			});
 		}
-		if (internalNotes !== undefined) {
-			await ctx.db.patch(applicationId, { internalNotes: internalNotes.trim() || undefined });
-		}
+		await ctx.db.patch(
+			applicationId,
+			Object.fromEntries(
+				Object.entries(notes).map(([field, note]) => [field, note.trim() || undefined]),
+			),
+		);
 		return null;
 	},
 });
@@ -301,5 +317,72 @@ export const createEvent = mutation({
 	handler: async (ctx, { applicationId }) => {
 		const actor = await requireEditorActor(ctx);
 		return ensureDraftEvent(ctx, await requireApplication(ctx, applicationId), actor);
+	},
+});
+
+const { fields } = applicationForm;
+
+/**
+ * Changes what the company wrote in the application: the event, the contact person and the
+ * invoice details. The whole application is checked again with the rules from Hugin. The event is
+ * not changed; it is edited on its own page.
+ *
+ * @param {Id<"companyApplications">} applicationId - The application.
+ * @param {object} details - The fields to change; the rest are kept.
+ *
+ * @throws - An error if the caller is not an editor, or the changed application breaks a rule.
+ * @returns {null} - Returns null when the application is saved.
+ */
+export const updateDetails = mutation({
+	args: {
+		applicationId: v.id("companyApplications"),
+		details: v.object({
+			contact: v.optional(fields.contact),
+			eventType: v.optional(fields.eventType),
+			minStudents: v.optional(fields.minStudents),
+			maxStudents: v.optional(fields.maxStudents),
+			description: v.optional(fields.description),
+			venue: v.optional(fields.venue),
+			wantsToUseEscape: v.optional(fields.wantsToUseEscape),
+			foodAndDrinks: v.optional(fields.foodAndDrinks),
+			foodPurchasedBy: v.optional(fields.foodPurchasedBy),
+			billing: v.optional(fields.billing),
+			targetDegrees: v.optional(fields.targetDegrees),
+			targetStudyPrograms: v.optional(fields.targetStudyPrograms),
+			// null clears it; Convex drops a field sent as undefined.
+			additionalInfo: v.optional(v.union(v.string(), v.null())),
+		}),
+	},
+	returns: v.null(),
+	handler: async (ctx, { applicationId, details }) => {
+		const actor = await requireEditorActor(ctx);
+		const application = await requireApplication(ctx, applicationId);
+
+		const { consent: _, ...form } = parseApplicationForm({
+			...application,
+			...details,
+			additionalInfo:
+				details.additionalInfo === null
+					? undefined
+					: (details.additionalInfo ?? application.additionalInfo),
+			consent: true,
+		});
+		await ctx.db.patch(applicationId, {
+			contact: form.contact,
+			eventType: form.eventType,
+			minStudents: form.minStudents,
+			maxStudents: form.maxStudents,
+			description: form.description,
+			venue: form.venue,
+			wantsToUseEscape: form.wantsToUseEscape,
+			foodAndDrinks: form.foodAndDrinks,
+			foodPurchasedBy: form.foodPurchasedBy,
+			billing: form.billing,
+			targetDegrees: form.targetDegrees,
+			targetStudyPrograms: form.targetStudyPrograms,
+			additionalInfo: form.additionalInfo,
+		});
+		await logApplicationActivity(ctx, applicationId, "details_changed", actor);
+		return null;
 	},
 });

@@ -34,10 +34,13 @@ export const EVENT_TITLE_PREFIX: Record<EventType, string> = {
 };
 
 export const VENUES = ["campus", "own_premises", "undecided"] as const;
-export const VENUE_LABELS: Record<(typeof VENUES)[number], string> = {
+/** Every venue an application can have: what Hugin offers, and Escape, which only Navet sets. */
+export const APPLICATION_VENUES = [...VENUES, "escape"] as const;
+export const VENUE_LABELS: Record<(typeof APPLICATION_VENUES)[number], string> = {
 	campus: "På campus (IFI)",
 	own_premises: "Egne lokaler",
 	undecided: "Avgjøres senere",
+	escape: "Escape",
 };
 
 export const ESCAPE_ANSWERS = ["yes", "no", "unsure"] as const;

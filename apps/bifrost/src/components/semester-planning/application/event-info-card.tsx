@@ -7,6 +7,7 @@ import {
 import { Panel, PanelBody } from "@workspace/ui/components/products/panel";
 import type { ReactNode } from "react";
 import { studentRange } from "../format";
+import { EditEventInfo } from "./edit-details";
 import type { Application } from "./model";
 import { DetailList } from "./section";
 
@@ -31,7 +32,7 @@ export function EventInfoCard({ application }: Readonly<{ application: Applicati
 	if (audience.length > 0) items.push(["Målgruppe", audience.join(", ")]);
 
 	return (
-		<Panel title="Søknaden">
+		<Panel title="Søknaden" aside={<EditEventInfo application={application} />}>
 			<PanelBody>
 				<p className="whitespace-pre-line break-words text-[15px] leading-relaxed">
 					{application.description}

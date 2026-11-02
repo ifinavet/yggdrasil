@@ -1,6 +1,7 @@
 "use client";
 
 import { api } from "@workspace/backend/convex/api";
+import type { Id } from "@workspace/backend/convex/dataModel";
 import {
 	type ChecklistPhase,
 	eventTextComplete,
@@ -16,16 +17,29 @@ import {
 	REMINDER_DAYS,
 } from "@workspace/shared/time";
 import { convexErrorMessage } from "@workspace/shared/utils";
+import { Skeleton } from "@workspace/ui/components/skeleton";
 import { type Preloaded, useMutation, usePreloadedQuery, useQuery } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useMinute } from "@/hooks/use-minute";
 import { type ChecklistMilestone, EventChecklist } from "./event-checklist";
 
+type ChecklistEvent = FunctionReturnType<typeof api.events.queries.getEvent>;
+
 export function EventChecklistPanel({
 	preloadedEvent,
 }: Readonly<{ preloadedEvent: Preloaded<typeof api.events.queries.getEvent> }>) {
-	const event = usePreloadedQuery(preloadedEvent);
+	return <EventChecklistFor event={usePreloadedQuery(preloadedEvent)} />;
+}
+
+/** The checklist for an event that is not preloaded, such as on a Semesterplan application. */
+export function EventChecklistById({ eventId }: Readonly<{ eventId: Id<"events"> }>) {
+	const event = useQuery(api.events.queries.getEvent, { identifier: eventId });
+	return event ? <EventChecklistFor event={event} /> : <Skeleton className="h-64 rounded-lg" />;
+}
+
+function EventChecklistFor({ event }: Readonly<{ event: ChecklistEvent }>) {
 	const now = useMinute();
 	const campaign = useQuery(api.feedback.delivery.status.getEventFeedbackDelivery, {
 		eventId: event._id,

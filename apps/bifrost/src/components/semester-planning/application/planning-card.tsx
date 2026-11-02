@@ -12,11 +12,17 @@ import { z } from "zod";
 import InternalMemberSelect from "@/components/common/forms/internal-member-select";
 import { type Application, useRunMutation } from "./model";
 
-const notesSchema = z.object({
-	internalNotes: z
-		.string()
-		.max(MAX_INTERNAL_NOTES_LENGTH, `Notatene kan ha høyst ${MAX_INTERNAL_NOTES_LENGTH} tegn.`),
-});
+const note = z
+	.string()
+	.max(MAX_INTERNAL_NOTES_LENGTH, `Notatene kan ha høyst ${MAX_INTERNAL_NOTES_LENGTH} tegn.`);
+const notesSchema = z.object({ food: note, room: note, internalNotes: note });
+type NoteField = keyof z.infer<typeof notesSchema>;
+
+const NOTE_FIELDS: { name: NoteField; label: string; rows: number }[] = [
+	{ name: "food", label: "Mat", rows: 2 },
+	{ name: "room", label: "Rom", rows: 2 },
+	{ name: "internalNotes", label: "Interne notater", rows: 3 },
+];
 
 /**
  * «Ansvarlige fra Navet»: who from Navet runs the event, and notes for them. The choices save at once, and
@@ -30,15 +36,19 @@ export function PlanningCard({ application }: Readonly<{ application: Applicatio
 		run(() => update({ applicationId: application._id, ...changes }));
 
 	const helpers = application.helperUserIds ?? [];
-	const savedNotes = application.internalNotes ?? "";
-	const form = useForm({
-		defaultValues: { internalNotes: savedNotes },
-		validators: { onChange: notesSchema },
-	});
-	const saveNotes = () => {
-		const notes = form.getFieldValue("internalNotes");
-		if (notes.trim() === savedNotes.trim() || !form.getFieldMeta("internalNotes")?.isValid) return;
-		void save({ internalNotes: notes });
+	const team = [application.responsibleUserId, application.orgResponsibleUserId, ...helpers];
+	const others = (userId: Id<"users"> | undefined) =>
+		new Set(team.filter((member): member is Id<"users"> => !!member && member !== userId));
+	const saved = {
+		food: application.food ?? "",
+		room: application.room ?? "",
+		internalNotes: application.internalNotes ?? "",
+	};
+	const form = useForm({ defaultValues: saved, validators: { onChange: notesSchema } });
+	const saveNote = (name: NoteField) => {
+		const value = form.getFieldValue(name);
+		if (value.trim() === saved[name].trim() || !form.getFieldMeta(name)?.isValid) return;
+		void save({ [name]: value });
 	};
 
 	return (
@@ -50,7 +60,7 @@ export function PlanningCard({ application }: Readonly<{ application: Applicatio
 						label="Kontaktperson fra Navet"
 						clearLabel="Ingen kontaktperson"
 						value={application.responsibleUserId}
-						exclude={new Set(helpers)}
+						exclude={others(application.responsibleUserId)}
 						disabled={pending}
 						onChange={(responsibleUserId) => save({ responsibleUserId })}
 					/>
@@ -62,12 +72,7 @@ export function PlanningCard({ application }: Readonly<{ application: Applicatio
 							label={`Medhjelper ${slot + 1}`}
 							clearLabel="Ingen medhjelper"
 							value={helpers[slot]}
-							exclude={
-								new Set([
-									...(application.responsibleUserId ? [application.responsibleUserId] : []),
-									...helpers.filter((_, index) => index !== slot),
-								])
-							}
+							exclude={others(helpers[slot])}
 							disabled={pending || (slot > 0 && helpers.length < slot)}
 							onChange={(userId) => {
 								const next = [...helpers];
@@ -77,30 +82,41 @@ export function PlanningCard({ application }: Readonly<{ application: Applicatio
 							}}
 						/>
 					))}
-					<form.Field name="internalNotes">
-						{(field) => {
-							const isInvalid = !field.state.meta.isValid;
-							return (
-								<Field data-invalid={isInvalid} className="gap-1.5">
-									<FieldLabel htmlFor="planning-notes">Interne notater</FieldLabel>
-									<Textarea
-										id="planning-notes"
-										value={field.state.value}
-										rows={3}
-										onChange={(event) => field.handleChange(event.target.value)}
-										onBlur={() => {
-											field.handleBlur();
-											saveNotes();
-										}}
-										aria-invalid={isInvalid}
-									/>
-									{isInvalid && (
-										<FieldError className="font-medium" errors={field.state.meta.errors} />
-									)}
-								</Field>
-							);
-						}}
-					</form.Field>
+					<TeamMember
+						id="planning-org-responsible"
+						label="Org-ansvarlig"
+						clearLabel="Ingen org-ansvarlig"
+						value={application.orgResponsibleUserId}
+						exclude={others(application.orgResponsibleUserId)}
+						disabled={pending}
+						onChange={(orgResponsibleUserId) => save({ orgResponsibleUserId })}
+					/>
+					{NOTE_FIELDS.map(({ name, label, rows }) => (
+						<form.Field key={name} name={name}>
+							{(field) => {
+								const isInvalid = !field.state.meta.isValid;
+								return (
+									<Field data-invalid={isInvalid} className="gap-1.5">
+										<FieldLabel htmlFor={`planning-${name}`}>{label}</FieldLabel>
+										<Textarea
+											id={`planning-${name}`}
+											value={field.state.value}
+											rows={rows}
+											onChange={(event) => field.handleChange(event.target.value)}
+											onBlur={() => {
+												field.handleBlur();
+												saveNote(name);
+											}}
+											aria-invalid={isInvalid}
+										/>
+										{isInvalid && (
+											<FieldError className="font-medium" errors={field.state.meta.errors} />
+										)}
+									</Field>
+								);
+							}}
+						</form.Field>
+					))}
 				</div>
 			</PanelBody>
 		</Panel>

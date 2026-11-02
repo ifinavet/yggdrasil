@@ -26,7 +26,7 @@ export const listForSemester = query({
 			(await listPlanEvents(ctx, semesterId)).map(async (planEvent) => {
 				const event = await ctx.db.get(planEvent.eventId);
 				if (!event) return null;
-				const [company, { responsible, helpers }] = await Promise.all([
+				const [company, { responsible, org, helpers }] = await Promise.all([
 					companyWithLogo(ctx, event.hostingCompany),
 					loadEventTeam(ctx, event._id),
 				]);
@@ -43,6 +43,7 @@ export const listForSemester = query({
 					...(responsible
 						? { responsibleUserId: responsible._id, responsibleName: fullName(responsible) }
 						: {}),
+					...(org ? { orgResponsibleName: fullName(org) } : {}),
 					helpers: helpers.map((helper) => ({ userId: helper._id, name: fullName(helper) })),
 				};
 			}),

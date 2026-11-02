@@ -33,6 +33,12 @@ describe("proposeTeams", () => {
 		]);
 	});
 
+	it("never picks the org-ansvarlig again, and counts them as load", () => {
+		expect(
+			proposeTeams([{ id: 1, orgResponsibleUserId: "a" }], ["a", "b", "c", "d"], noLoad),
+		).toEqual([{ id: 1, responsibleUserId: "b", helperUserIds: ["c", "d"] }]);
+	});
+
 	it("never picks someone twice for one application, and fills what it can", () => {
 		expect(proposeTeams([{ id: 1, responsibleUserId: "a" }], ["a", "b", "b"], noLoad)).toEqual([
 			{ id: 1, responsibleUserId: "a", helperUserIds: ["b"] },

@@ -21,14 +21,21 @@ export type TeamProposal<Key, UserId extends string> = {
  * @returns {TeamProposal[]} - The proposed team for each application, in the same order.
  */
 export function proposeTeams<Key, UserId extends string>(
-	applications: { id: Key; responsibleUserId?: UserId; helperUserIds?: UserId[] }[],
+	applications: {
+		id: Key;
+		responsibleUserId?: UserId;
+		orgResponsibleUserId?: UserId;
+		helperUserIds?: UserId[];
+	}[],
 	candidates: UserId[],
 	load: ReadonlyMap<UserId, number>,
 ): TeamProposal<Key, UserId>[] {
 	const count = new Map(load);
 	const add = (userId: UserId) => count.set(userId, (count.get(userId) ?? 0) + 1);
-	for (const { responsibleUserId, helperUserIds = [] } of applications) {
-		for (const userId of [responsibleUserId, ...helperUserIds]) if (userId) add(userId);
+	for (const { responsibleUserId, orgResponsibleUserId, helperUserIds = [] } of applications) {
+		for (const userId of [responsibleUserId, orgResponsibleUserId, ...helperUserIds]) {
+			if (userId) add(userId);
+		}
 	}
 	const pick = (taken: (UserId | undefined)[]) => {
 		const [best] = candidates
@@ -38,11 +45,11 @@ export function proposeTeams<Key, UserId extends string>(
 		return best;
 	};
 
-	return applications.map(({ id, responsibleUserId, helperUserIds = [] }) => {
-		const responsible = responsibleUserId ?? pick(helperUserIds);
+	return applications.map(({ id, responsibleUserId, orgResponsibleUserId, helperUserIds = [] }) => {
+		const responsible = responsibleUserId ?? pick([orgResponsibleUserId, ...helperUserIds]);
 		const helpers = [...helperUserIds];
 		while (helpers.length < MAX_HELPERS) {
-			const helper = pick([responsible, ...helpers]);
+			const helper = pick([responsible, orgResponsibleUserId, ...helpers]);
 			if (!helper) break;
 			helpers.push(helper);
 		}

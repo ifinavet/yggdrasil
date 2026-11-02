@@ -72,9 +72,10 @@ export async function proposeNavetTeams(
 
 	const needTeam = applications.filter((application) => !application.eventId);
 	const teams = proposeTeams(
-		needTeam.map(({ _id, responsibleUserId, helperUserIds }) => ({
+		needTeam.map(({ _id, responsibleUserId, orgResponsibleUserId, helperUserIds }) => ({
 			id: _id,
 			responsibleUserId,
+			orgResponsibleUserId,
 			helperUserIds,
 		})),
 		// Someone with several internal roles is one candidate.
@@ -159,6 +160,9 @@ export async function ensureDraftEvent(
 		[
 			...(application.responsibleUserId
 				? [{ userId: application.responsibleUserId, role: "hovedansvarlig" as const }]
+				: []),
+			...(application.orgResponsibleUserId
+				? [{ userId: application.orgResponsibleUserId, role: "organsvarlig" as const }]
 				: []),
 			...helperUserIds.map((userId) => ({ userId, role: "medhjelper" as const })),
 		],
@@ -273,7 +277,11 @@ export async function moveApplicationWithEvent(
 export async function setApplicationTeam(
 	ctx: MutationCtx,
 	application: Doc<"companyApplications">,
-	changes: { responsibleUserId?: Id<"users"> | null; helperUserIds?: Id<"users">[] },
+	changes: {
+		responsibleUserId?: Id<"users"> | null;
+		orgResponsibleUserId?: Id<"users"> | null;
+		helperUserIds?: Id<"users">[];
+	},
 ): Promise<void> {
 	const event = application.eventId ? await ctx.db.get(application.eventId) : null;
 	const current = await applicationTeam(ctx, application);
@@ -281,13 +289,31 @@ export async function setApplicationTeam(
 		changes.responsibleUserId === undefined
 			? current.responsibleUserId
 			: (changes.responsibleUserId ?? undefined);
+	const orgResponsibleUserId =
+		changes.orgResponsibleUserId === undefined
+			? current.orgResponsibleUserId
+			: (changes.orgResponsibleUserId ?? undefined);
 	const next = {
 		...(responsibleUserId ? { responsibleUserId } : {}),
+		...(orgResponsibleUserId ? { orgResponsibleUserId } : {}),
 		helperUserIds: changes.helperUserIds ?? current.helperUserIds,
 	};
 
 	if (responsibleUserId && !(await userHasRole(ctx, responsibleUserId, internalRoles))) {
 		throw new ConvexError("Kontaktpersonen fra Navet må være et internt medlem.");
+	}
+	if (orgResponsibleUserId && !(await userHasRole(ctx, orgResponsibleUserId, internalRoles))) {
+		throw new ConvexError("Org-ansvarlig må være et internt medlem.");
+	}
+	if (
+		next.responsibleUserId &&
+		(next.responsibleUserId === next.orgResponsibleUserId ||
+			next.helperUserIds.includes(next.responsibleUserId))
+	) {
+		throw new ConvexError("Samme person kan ikke ha flere roller i teamet.");
+	}
+	if (next.orgResponsibleUserId && next.helperUserIds.includes(next.orgResponsibleUserId)) {
+		throw new ConvexError("Samme person kan ikke ha flere roller i teamet.");
 	}
 	if (changes.helperUserIds !== undefined) {
 		await requireValidHelpers(
@@ -303,6 +329,7 @@ export async function setApplicationTeam(
 	}
 	await ctx.db.patch(application._id, {
 		responsibleUserId: next.responsibleUserId,
+		orgResponsibleUserId: next.orgResponsibleUserId,
 		helperUserIds: next.helperUserIds.length ? next.helperUserIds : undefined,
 	});
 }
@@ -347,6 +374,7 @@ export async function syncApplicationWithEvent(
 	);
 	await ctx.db.patch(application._id, {
 		responsibleUserId: team.responsibleUserId,
+		orgResponsibleUserId: team.orgResponsibleUserId,
 		helperUserIds: team.helperUserIds.length ? team.helperUserIds : undefined,
 	});
 }

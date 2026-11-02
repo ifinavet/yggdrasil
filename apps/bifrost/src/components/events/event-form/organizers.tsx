@@ -107,6 +107,7 @@ export default function Organizers({
 						<SelectContent>
 							<SelectItem value="medhjelper">Medhjelper</SelectItem>
 							<SelectItem value="hovedansvarlig">Hovedansvarlig</SelectItem>
+							<SelectItem value="organsvarlig">Org-ansvarlig</SelectItem>
 						</SelectContent>
 					</Select>
 					<Button

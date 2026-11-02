@@ -56,6 +56,7 @@ export const planRowValidator = v.object({
 	maxStudents: v.number(),
 	responsibleUserId: v.optional(v.id("users")),
 	responsibleName: v.optional(v.string()),
+	orgResponsibleName: v.optional(v.string()),
 	helpers: v.array(v.object({ userId: v.id("users"), name: v.string() })),
 	eventId: v.optional(v.id("events")),
 });
@@ -63,7 +64,11 @@ export const planRowValidator = v.object({
 export type PlanRow = Infer<typeof planRowValidator>;
 
 /** The kontaktperson and medhjelpere from Navet for one company. */
-export type NavetTeam = { responsible: Doc<"users"> | null; helpers: Doc<"users">[] };
+export type NavetTeam = {
+	responsible: Doc<"users"> | null;
+	org: Doc<"users"> | null;
+	helpers: Doc<"users">[];
+};
 
 async function loadUsers(ctx: QueryCtx, ids: Id<"users">[]): Promise<Doc<"users">[]> {
 	return (await Promise.all(ids.map((id) => ctx.db.get(id)))).filter(
@@ -72,7 +77,11 @@ async function loadUsers(ctx: QueryCtx, ids: Id<"users">[]): Promise<Doc<"users"
 }
 
 /** A team by user id: the kontaktperson, if any, and the medhjelpere. */
-export type TeamIds = { responsibleUserId?: Id<"users">; helperUserIds: Id<"users">[] };
+export type TeamIds = {
+	responsibleUserId?: Id<"users">;
+	orgResponsibleUserId?: Id<"users">;
+	helperUserIds: Id<"users">[];
+};
 
 type Organizer = Pick<Doc<"eventOrganizers">, "userId" | "role">;
 
@@ -91,8 +100,10 @@ export function teamOfOrganizers(
 ): TeamIds {
 	const leads = organizers.filter((o) => o.role === "hovedansvarlig").map((o) => o.userId);
 	const responsibleUserId = preferred && leads.includes(preferred) ? preferred : leads[0];
+	const orgResponsibleUserId = organizers.find((o) => o.role === "organsvarlig")?.userId;
 	return {
 		...(responsibleUserId ? { responsibleUserId } : {}),
+		...(orgResponsibleUserId ? { orgResponsibleUserId } : {}),
 		helperUserIds: organizers.filter((o) => o.role === "medhjelper").map((o) => o.userId),
 	};
 }
@@ -112,16 +123,24 @@ export function organizersForTeam(
 	current: TeamIds,
 	next: TeamIds,
 ): Organizer[] {
-	const team = new Set([next.responsibleUserId, ...next.helperUserIds]);
+	const team = new Set([next.responsibleUserId, next.orgResponsibleUserId, ...next.helperUserIds]);
 	const otherLeads = organizers.filter(
 		(o) =>
 			o.role === "hovedansvarlig" && o.userId !== current.responsibleUserId && !team.has(o.userId),
+	);
+	const otherOrgs = organizers.filter(
+		(o) =>
+			o.role === "organsvarlig" && o.userId !== current.orgResponsibleUserId && !team.has(o.userId),
 	);
 	return [
 		...(next.responsibleUserId
 			? [{ userId: next.responsibleUserId, role: "hovedansvarlig" as const }]
 			: []),
 		...otherLeads.map(({ userId }) => ({ userId, role: "hovedansvarlig" as const })),
+		...(next.orgResponsibleUserId
+			? [{ userId: next.orgResponsibleUserId, role: "organsvarlig" as const }]
+			: []),
+		...otherOrgs.map(({ userId }) => ({ userId, role: "organsvarlig" as const })),
 		...next.helperUserIds.map((userId) => ({ userId, role: "medhjelper" as const })),
 	];
 }
@@ -147,6 +166,7 @@ export async function listEventOrganizers(
 async function loadTeam(ctx: QueryCtx, team: TeamIds): Promise<NavetTeam> {
 	return {
 		responsible: team.responsibleUserId ? await ctx.db.get(team.responsibleUserId) : null,
+		org: team.orgResponsibleUserId ? await ctx.db.get(team.orgResponsibleUserId) : null,
 		helpers: await loadUsers(ctx, team.helperUserIds),
 	};
 }
@@ -189,6 +209,9 @@ export async function applicationTeam(
 	}
 	return {
 		...(application.responsibleUserId ? { responsibleUserId: application.responsibleUserId } : {}),
+		...(application.orgResponsibleUserId
+			? { orgResponsibleUserId: application.orgResponsibleUserId }
+			: {}),
 		helperUserIds: application.helperUserIds ?? [],
 	};
 }
@@ -226,7 +249,7 @@ export function toPlanRow(
 	team: NavetTeam,
 	logoUrl: string | null,
 ): PlanRow {
-	const { responsible, helpers } = team;
+	const { responsible, org, helpers } = team;
 	return {
 		_id: application._id,
 		status: application.status,
@@ -238,6 +261,7 @@ export function toPlanRow(
 		...(responsible
 			? { responsibleUserId: responsible._id, responsibleName: fullName(responsible) }
 			: {}),
+		...(org ? { orgResponsibleName: fullName(org) } : {}),
 		helpers: helpers.map((helper) => ({ userId: helper._id, name: fullName(helper) })),
 		...(application.eventId ? { eventId: application.eventId } : {}),
 	};

@@ -4,12 +4,12 @@ import { STUDY_PROGRAMS } from "../constants/programs";
 import { isIsoDate } from "../time";
 import { email, optionalText, orgNumber, text } from "../validation";
 import {
+	APPLICATION_VENUES,
 	ESCAPE_ANSWERS,
 	EVENT_TYPE_LABELS,
 	EVENT_TYPES,
 	type EventType,
 	FOOD_PURCHASERS,
-	VENUES,
 } from "./labels";
 
 // The Hugin application form. The same rules run in the browser and again on the server.
@@ -57,7 +57,7 @@ export const applicationFormSchema = z
 				"Hver dato kan bare velges én gang.",
 			),
 		datePreferences: optionalText(500, "Datopreferanser kan ha høyst 500 tegn."),
-		venue: z.enum(VENUES, { error: "Velg sted." }),
+		venue: z.enum(APPLICATION_VENUES, { error: "Velg sted." }),
 		wantsToUseEscape: z.enum(ESCAPE_ANSWERS, {
 			error: "Svar på om dere vil bruke Escape.",
 		}),

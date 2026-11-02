@@ -26,7 +26,7 @@ import {
 } from "./model";
 import { StatusSteps } from "./status-steps";
 
-type Dialog = "assign" | "reject" | "withdraw" | "confirm" | null;
+type Dialog = "assign" | "reject" | "confirm" | null;
 
 /**
  * The status steps and the callout with what happens next and the buttons for it. Each status
@@ -46,7 +46,6 @@ export function StatusCard({
 	const resendOfferEmail = useMutation(api.semesterPlanning.offers.mutations.resendOfferEmail);
 	const confirmManually = useMutation(api.semesterPlanning.offers.mutations.confirmManually);
 	const reject = useMutation(api.semesterPlanning.applications.mutations.reject);
-	const withdraw = useMutation(api.semesterPlanning.applications.mutations.withdraw);
 	const reopen = useMutation(api.semesterPlanning.applications.mutations.reopen);
 	const { pending, run } = useRunMutation();
 	const { assign, pending: assigning } = useAssignDate(application, companyName);
@@ -80,18 +79,12 @@ export function StatusCard({
 		</Button>
 	);
 	const withdrawButton = (
-		<Button
+		<WithdrawButton
 			key="withdraw"
-			size="icon-sm"
-			variant="ghost"
+			details={details}
+			companyName={companyName}
 			disabled={pending || assigning}
-			onClick={() => setDialog("withdraw")}
-			aria-label="Slett søknad"
-			title="Slett søknad"
-			className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-		>
-			<Trash2 aria-hidden />
-		</Button>
+		/>
 	);
 	const rejectButton = act("Avslå", () => setDialog("reject"), "outline");
 
@@ -208,35 +201,6 @@ export function StatusCard({
 						run(
 							() => reject({ applicationId: application._id, comment }),
 							() => toast.success("Søknaden er avslått."),
-						)
-					}
-				/>
-
-				<ConfirmDialog
-					open={dialog === "withdraw"}
-					onOpenChange={(open) => setDialog(open ? "withdraw" : null)}
-					title={`Slette søknaden fra ${companyName}?`}
-					description={
-						<>
-							{assigned && isActiveStatus(status)
-								? `${shortDayTitle(assigned)} blir ledig igjen. `
-								: ""}
-							Lenken i et sendt tilbud slutter å virke, og bedriften får ikke e-post om dette.
-							Søknaden blir liggende som slettet, så du kan gjenåpne den senere.
-						</>
-					}
-					comment={{ label: "Kommentar (valgfritt)" }}
-					confirmLabel="Slett søknaden"
-					destructive
-					onConfirm={(comment) =>
-						run(
-							() => withdraw({ applicationId: application._id, comment }),
-							() =>
-								toast.success(
-									assigned
-										? `Søknaden er slettet. ${shortDay(assigned)} er ledig igjen.`
-										: "Søknaden er slettet.",
-								),
 						)
 					}
 				/>
@@ -392,6 +356,64 @@ function ClosedMessage({
 					<b>{shortDayTitle(dateIsFree)} er ledig igjen.</b>
 				</>
 			)}
+		</>
+	);
+}
+
+/** «Slett søknad»: closes the application after a confirmation, and deletes its draft event. */
+export function WithdrawButton({
+	details,
+	companyName,
+	disabled = false,
+}: Readonly<{ details: ApplicationDetails; companyName: string; disabled?: boolean }>) {
+	const { application } = details;
+	const { status } = application;
+	const assigned = application.assignedDate;
+	const withdraw = useMutation(api.semesterPlanning.applications.mutations.withdraw);
+	const { pending, run } = useRunMutation();
+	const [open, setOpen] = useState(false);
+
+	return (
+		<>
+			<Button
+				size="icon-sm"
+				variant="ghost"
+				disabled={disabled || pending}
+				onClick={() => setOpen(true)}
+				aria-label="Slett søknad"
+				title="Slett søknad"
+				className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+			>
+				<Trash2 aria-hidden />
+			</Button>
+			<ConfirmDialog
+				open={open}
+				onOpenChange={setOpen}
+				title={`Slette søknaden fra ${companyName}?`}
+				description={
+					<>
+						{assigned && isActiveStatus(status)
+							? `${shortDayTitle(assigned)} blir ledig igjen. `
+							: ""}
+						Lenken i et sendt tilbud slutter å virke, og bedriften får ikke e-post om dette.
+						Søknaden blir liggende som slettet, så du kan gjenåpne den senere.
+					</>
+				}
+				comment={{ label: "Kommentar (valgfritt)" }}
+				confirmLabel="Slett søknaden"
+				destructive
+				onConfirm={(comment) =>
+					run(
+						() => withdraw({ applicationId: application._id, comment }),
+						() =>
+							toast.success(
+								assigned
+									? `Søknaden er slettet. ${shortDay(assigned)} er ledig igjen.`
+									: "Søknaden er slettet.",
+							),
+					)
+				}
+			/>
 		</>
 	);
 }

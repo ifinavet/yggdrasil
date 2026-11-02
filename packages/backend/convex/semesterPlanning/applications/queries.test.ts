@@ -85,6 +85,25 @@ describe("getPlan", () => {
 		expect(after[0]).toMatchObject({ responsibleName: "Ida Hjelp", helpers: [] });
 	});
 
+	it("shows the org-ansvarlig, from the application and then from the event", async () => {
+		const { t, companyId, semesterId, member } = await withPeople();
+		const org = await insertUser(t, "org@ifinavet.no", { firstName: "Ola", lastName: "Org" });
+		const applicationId = await insertApplication(t, semesterId, {
+			assignedDate: "2027-02-09",
+			orgResponsibleUserId: member._id,
+		});
+
+		const before = await asUser(t, member).query(queries.getPlan, { semesterId });
+		expect(before[0]?.orgResponsibleName).toBe("Emil Moe");
+
+		const eventId = await insertEvent(t, companyId);
+		await insertOrganizer(t, eventId, org._id, "organsvarlig");
+		await t.run((ctx) => ctx.db.patch(applicationId, { eventId }));
+
+		const after = await asUser(t, member).query(queries.getPlan, { semesterId });
+		expect(after[0]?.orgResponsibleName).toBe("Ola Org");
+	});
+
 	it("leaves out declined, rejected and withdrawn applications", async () => {
 		const { t, semesterId, member } = await withPeople();
 		for (const status of ["declined", "rejected", "withdrawn"] as const) {

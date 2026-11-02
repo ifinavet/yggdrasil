@@ -7,21 +7,28 @@ import { CompanyLogo } from "@workspace/ui/components/company-logo";
 import { Panel } from "@workspace/ui/components/products/panel";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { type Preloaded, useMutation, usePreloadedQuery, useQuery } from "convex/react";
-import { ExternalLink, Plus } from "lucide-react";
+import { CalendarDays, ExternalLink, Plus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { EventChecklistById } from "@/components/events/event-checklist-panel";
 import { formatMoment } from "../format";
 import { SemesterplanBreadcrumb } from "../semesterplan-breadcrumb";
 import { isActiveStatus } from "../status";
+import { AssignDateDialog } from "./assign-date-dialog";
 import { CompanyCard } from "./company-card";
 import { BillingCard, ContactCard } from "./contact-card";
 import { DatesCard } from "./dates-card";
 import { EventInfoCard } from "./event-info-card";
 import { HistoryCard } from "./history-card";
-import { type ApplicationDetails, type SemesterContext, useRunMutation } from "./model";
+import {
+	type ApplicationDetails,
+	canAssignDate,
+	type SemesterContext,
+	useRunMutation,
+} from "./model";
 import { PlanningCard } from "./planning-card";
-import { StatusCard } from "./status-card";
+import { StatusCard, WithdrawButton } from "./status-card";
 
 /** The Søknad page in Bifrost: one application, its status and what to do next. Editors only. */
 export function ApplicationPage({
@@ -75,7 +82,13 @@ export function ApplicationPage({
 						søkte {formatMoment(application._creationTime, "longDay")} via Hugin
 					</p>
 				</div>
-				<div className="ml-auto flex gap-2">
+				<div className="ml-auto flex items-center gap-2">
+					{context && application.status === "confirmed" && application.eventId && (
+						<>
+							<ChangeDateButton details={details} context={context} companyName={companyName} />
+							<WithdrawButton details={details} companyName={companyName} />
+						</>
+					)}
 					<EventButton details={details} />
 				</div>
 			</div>
@@ -83,9 +96,15 @@ export function ApplicationPage({
 			{context ? (
 				<div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
 					<div className="flex min-w-0 flex-col gap-4">
-						<StatusCard details={details} context={context} companyName={companyName} />
+						{application.status === "confirmed" && application.eventId ? (
+							<EventChecklistById eventId={application.eventId} />
+						) : (
+							<StatusCard details={details} context={context} companyName={companyName} />
+						)}
 						<EventInfoCard application={application} />
-						<DatesCard details={details} context={context} companyName={companyName} />
+						{(application.status === "applied" || !isActiveStatus(application.status)) && (
+							<DatesCard details={details} context={context} companyName={companyName} />
+						)}
 					</div>
 					<div className="flex min-w-0 flex-col gap-4">
 						{/* The company, who to talk to and how to invoice: reference, in one card. */}
@@ -101,6 +120,32 @@ export function ApplicationPage({
 			) : (
 				<ApplicationSkeleton />
 			)}
+		</>
+	);
+}
+
+/** «Endre dato» once the offer card has given way to the checklist, which has no date button. */
+function ChangeDateButton({
+	details,
+	context,
+	companyName,
+}: Readonly<{ details: ApplicationDetails; context: SemesterContext; companyName: string }>) {
+	const [open, setOpen] = useState(false);
+	if (!canAssignDate(details.application, context.semester)) return null;
+
+	return (
+		<>
+			<Button variant="outline" onClick={() => setOpen(true)}>
+				<CalendarDays /> Endre dato
+			</Button>
+			<AssignDateDialog
+				open={open}
+				onOpenChange={setOpen}
+				application={details.application}
+				companyName={companyName}
+				context={context}
+				requestedDates={[]}
+			/>
 		</>
 	);
 }

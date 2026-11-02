@@ -17,6 +17,7 @@ const activityLabels: Record<Doc<"companyApplicationActivity">["type"], string> 
 	date_assigned: "Dato tildelt",
 	date_cleared: "Tildelt dato fjernet",
 	event_linked: "Arrangement knyttet til søknaden",
+	details_changed: "Søknaden endret",
 };
 const orderStatusLabels = {
 	awaiting_email: "Venter på e-postbekreftelse",

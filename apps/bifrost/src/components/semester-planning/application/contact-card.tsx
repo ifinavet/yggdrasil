@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { EditBilling, EditContact } from "./edit-details";
 import type { Application } from "./model";
 import { CardSection, DetailList } from "./section";
 
@@ -23,7 +24,7 @@ export function ContactCard({ application }: Readonly<{ application: Application
 		],
 	];
 	return (
-		<CardSection title="Kontaktperson">
+		<CardSection title="Kontaktperson" aside={<EditContact application={application} />}>
 			<DetailList items={items} />
 		</CardSection>
 	);
@@ -52,7 +53,7 @@ export function BillingCard({ application }: Readonly<{ application: Application
 	if (billing.ehfInvoice) items.push(["EHF-faktura", "Ja"]);
 
 	return (
-		<CardSection title="Faktura">
+		<CardSection title="Faktura" aside={<EditBilling application={application} />}>
 			{items.length > 0 ? (
 				<DetailList items={items} />
 			) : (

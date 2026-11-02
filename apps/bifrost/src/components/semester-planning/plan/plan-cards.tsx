@@ -25,7 +25,8 @@ export function PlanCards({
 			{days.map((day) => {
 				if (day.kind === "event") {
 					const { event } = day;
-					const team = event.responsibleName || event.helpers.length > 0;
+					const team =
+						event.responsibleName || event.orgResponsibleName || event.helpers.length > 0;
 					return (
 						<li key={event._id} className="relative flex gap-3 px-4 py-3">
 							<DateTile date={day.date} />
@@ -46,6 +47,7 @@ export function PlanCards({
 										{event.helpers.map((helper) => (
 											<Person key={helper.userId} name={helper.name} small />
 										))}
+										{event.orgResponsibleName && <Person name={event.orgResponsibleName} small />}
 									</div>
 								)}
 							</div>
@@ -71,7 +73,7 @@ export function PlanCards({
 				}
 
 				const { row, details } = day;
-				const team = row.responsibleName || row.helpers.length > 0;
+				const team = row.responsibleName || row.orgResponsibleName || row.helpers.length > 0;
 				return (
 					<li
 						key={day.date}
@@ -105,6 +107,7 @@ export function PlanCards({
 									{row.helpers.map((helper) => (
 										<Person key={helper.userId} name={helper.name} small />
 									))}
+									{row.orgResponsibleName && <Person name={row.orgResponsibleName} small />}
 								</div>
 							)}
 						</div>

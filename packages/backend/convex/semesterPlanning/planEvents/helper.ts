@@ -20,6 +20,7 @@ export const planEventRowValidator = v.object({
 	participationLimit: v.number(),
 	responsibleUserId: v.optional(v.id("users")),
 	responsibleName: v.optional(v.string()),
+	orgResponsibleName: v.optional(v.string()),
 	helpers: v.array(v.object({ userId: v.id("users"), name: v.string() })),
 });
 
