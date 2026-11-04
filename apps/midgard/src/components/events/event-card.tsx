@@ -1,6 +1,7 @@
 import { humanReadableDate } from "@workspace/shared/time";
 import { CalendarDays, Users } from "lucide-react";
 import Image from "next/image";
+import type { ReactNode } from "react";
 
 export type EventCardType = {
 	companyImage: string | null;
@@ -11,7 +12,10 @@ export type EventCardType = {
 	eventDate?: Date;
 };
 
-export default function EventCard({ event }: Readonly<{ event: EventCardType }>) {
+export default function EventCard({
+	event,
+	action,
+}: Readonly<{ event: EventCardType; action?: ReactNode }>) {
 	return (
 		<div className="flex h-100 flex-col overflow-clip rounded-lg border border-primary/10 shadow-md">
 			<div className="relative grid h-32 place-content-center px-8 py-6 md:h-48 lg:h-52 dark:bg-white/95">
@@ -40,6 +44,7 @@ export default function EventCard({ event }: Readonly<{ event: EventCardType }>)
 						</p>
 					</div>
 				)}
+				{action}
 			</div>
 		</div>
 	);

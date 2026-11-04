@@ -6,7 +6,8 @@ import { Button } from "@workspace/ui/components/button";
 import { cn } from "@workspace/ui/lib/utils";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
-import ContainerCard from "@/components/cards/container-card";
+import NavetLogo from "@/assets/navet/simple_logo_blaa.webp";
+import EventCard from "@/components/events/event-card";
 
 const APPLY_HREF = `${huginUrl()}/bestill-bedpres?${new URLSearchParams(
 	utmParams({
@@ -26,26 +27,27 @@ export default function ApplyForEventHomeCard({
 }>) {
 	return (
 		<div className={cn(className, "grid justify-center gap-4")}>
-			<ContainerCard className="mx-6 w-full max-w-64 gap-3 bg-primary-light px-6 sm:max-w-80 md:max-w-96 md:px-8 dark:bg-zinc-800">
-				<p className="font-semibold text-muted-foreground text-sm uppercase tracking-wide">
-					For bedrifter
-				</p>
-				<h2 className="hyphens-auto font-semibold text-2xl text-primary tracking-tight dark:text-primary-foreground">
-					Søk om bedriftsarrangement{" "}
-					{semesterName(semester.term, semester.year, { inSentence: true })}
-				</h2>
-				<p className="text-base">
-					Søknadsfrist
-					<b className="block font-semibold text-primary text-xl first-letter:uppercase dark:text-primary-foreground">
-						{formatSemesterDay(semester.applicationDeadline, "long")}
-					</b>
-				</p>
-				<Button size="lg" className="w-full dark:bg-primary-light dark:text-primary" asChild>
-					<a href={APPLY_HREF}>
-						Søk her <ArrowRight aria-hidden />
-					</a>
-				</Button>
-			</ContainerCard>
+			<div className="mx-6 w-full max-w-64 p-1 sm:max-w-80 md:max-w-96">
+				<EventCard
+					event={{
+						companyImage: NavetLogo.src,
+						companyTitle: "Navet",
+						title: `Søk om bedriftsarrangement ${semesterName(semester.term, semester.year, { inSentence: true })}`,
+						teaser: `Søknadsfrist ${formatSemesterDay(semester.applicationDeadline, "long")}.`,
+					}}
+					action={
+						<Button
+							size="lg"
+							className="w-fit bg-primary-light text-primary hover:bg-primary-light/90"
+							asChild
+						>
+							<a href={APPLY_HREF}>
+								Søk her <ArrowRight aria-hidden />
+							</a>
+						</Button>
+					}
+				/>
+			</div>
 			<Button
 				asChild
 				className="mx-8 bg-emerald-600 py-6 font-semibold text-primary-foreground hover:bg-emerald-700 md:mx-16"
