@@ -305,7 +305,7 @@ describe("company event planning", () => {
 		const emails = await f.t.run((ctx) => getOrganizerEmails(ctx, f.eventId));
 		expect(emails).toEqual(["lead@ifinavet.no", "helper@ifinavet.no"]);
 	});
-	it("sends the confirmation without bcc when the event has no organizers", async () => {
+	it("sends the confirmation with an empty bcc when the event has no organizers", async () => {
 		const f = await submitted();
 		vi.stubEnv("APP_ENV", "test");
 		const sendEmail = vi
@@ -320,7 +320,7 @@ describe("company event planning", () => {
 			html: "<p>Innhold</p>",
 		});
 		const [, options] = sendEmail.mock.calls[0] as unknown as [unknown, SendEmailOptions];
-		expect(options.bcc).toBeUndefined();
+		expect(options.bcc).toEqual([]);
 	});
 	it("summarizes practical answers safely and keeps lengthy answers bounded", async () => {
 		const f = await fixture();

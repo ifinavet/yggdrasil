@@ -96,11 +96,10 @@ export async function senderFor(ctx: QueryCtx, eventId: Id<"events">) {
 export async function sendEventEmail(
 	ctx: MutationCtx,
 	eventId: Id<"events">,
-	{ sendToOrganizers, ...email }: SendEmailOptions & { sendToOrganizers: boolean },
+	{ sendToOrganizers, to, cc, ...email }: SendEmailOptions & { sendToOrganizers: boolean },
 ) {
-	if (!sendToOrganizers) return trackedEmail.sendEmail(ctx, email);
-	const bcc = await getOrganizerEmails(ctx, eventId, email.to);
-	return trackedEmail.sendEmail(ctx, { ...email, bcc: bcc.length ? bcc : undefined });
+	const bcc = sendToOrganizers ? await getOrganizerEmails(ctx, eventId, to) : undefined;
+	return trackedEmail.sendEmail(ctx, { ...email, to, cc, bcc });
 }
 export async function initialPlanning(ctx: QueryCtx, event: Doc<"events">) {
 	const [order, sender, food] = await Promise.all([
