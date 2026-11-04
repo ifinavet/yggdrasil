@@ -8,6 +8,7 @@ import {
 	planningFormSchema,
 	validContactEmail,
 } from "@workspace/shared/events/planning";
+import { normalizeEmail } from "@workspace/shared/iam";
 import { EVENT_TYPE_LABELS } from "@workspace/shared/semester/labels";
 import { formatOsloDate, osloDateTimeToEpoch, osloToday } from "@workspace/shared/time";
 import { ConvexError } from "convex/values";
@@ -99,9 +100,18 @@ export async function sendEventEmail(
 	{ sendToOrganizers, ...email }: SendEmailOptions & { sendToOrganizers: boolean },
 ) {
 	if (!sendToOrganizers) return trackedEmail.sendEmail(ctx, email);
-	const { cc } = await senderFor(ctx, eventId);
-	const bcc = cc.filter(
-		(address) => validContactEmail(address) && ![email.to].flat().includes(address),
+	const organizers = await getOrganizers(ctx, eventId);
+	const addresses = await Promise.all(
+		organizers
+			.filter((organizer) => organizer.email)
+			.map(async (organizer) => {
+				const account = await accountForUser(ctx, organizer.userId, organizer.email);
+				return account?.stage === "active" ? account.workspaceEmail : organizer.email;
+			}),
+	);
+	const recipients = [email.to].flat().map(normalizeEmail);
+	const bcc = [...new Set(addresses)].filter(
+		(address) => validContactEmail(address) && !recipients.includes(normalizeEmail(address)),
 	);
 	return trackedEmail.sendEmail(ctx, { ...email, bcc: bcc.length ? bcc : undefined });
 }

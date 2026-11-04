@@ -256,7 +256,7 @@ describe("company event planning", () => {
 		await insertOrganizer(f.t, f.eventId, outside._id, "medhjelper");
 		await f.t.run((ctx) =>
 			ctx.db.patch(f.confirmation._id, {
-				envelope: { ...f.confirmation.envelope, to: "helper@ifinavet.no" },
+				envelope: { ...f.confirmation.envelope, to: "Helper@IFINAVET.no" },
 			}),
 		);
 		await f.t.mutation(internal.events.planning.delivery.enqueueRendered, {
@@ -265,6 +265,39 @@ describe("company event planning", () => {
 		});
 		const [, options] = sendEmail.mock.calls[0] as unknown as [unknown, SendEmailOptions];
 		expect(options.bcc).toEqual(["lead@ifinavet.no"]);
+	});
+	it("uses workspace addresses but skips a deleted organizer with an active account", async () => {
+		const f = await submitted();
+		vi.stubEnv("APP_ENV", "test");
+		const sendEmail = vi
+			.spyOn(trackedEmail, "sendEmail")
+			.mockResolvedValue("email-id" as unknown as EmailId);
+		const member = await insertUser(f.t, "private@example.test");
+		const deleted = await insertUser(f.t, "", { deleted: true });
+		await insertOrganizer(f.t, f.eventId, member._id, "medhjelper");
+		await insertOrganizer(f.t, f.eventId, deleted._id, "medhjelper");
+		await f.t.run(async (ctx) => {
+			for (const [userId, workspaceEmail] of [
+				[member._id, "member@ifinavet.no"],
+				[deleted._id, "deleted@ifinavet.no"],
+			] as const)
+				await ctx.db.insert("memberAccounts", {
+					userId,
+					workspaceEmail,
+					firstName: "Test",
+					lastName: "Person",
+					group: "Bedrift",
+					stage: "active",
+					google: "created",
+					updatedAt: NOW,
+				});
+		});
+		await f.t.mutation(internal.events.planning.delivery.enqueueRendered, {
+			id: f.confirmation._id,
+			html: "<p>Innhold</p>",
+		});
+		const [, options] = sendEmail.mock.calls[0] as unknown as [unknown, SendEmailOptions];
+		expect(options.bcc).toEqual(["lead@ifinavet.no", "helper@ifinavet.no", "member@ifinavet.no"]);
 	});
 	it("sends the confirmation without bcc when the event has no organizers", async () => {
 		const f = await submitted();
