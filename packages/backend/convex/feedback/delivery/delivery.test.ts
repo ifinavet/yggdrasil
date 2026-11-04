@@ -359,6 +359,20 @@ describe("feedback delivery", () => {
 			`${HUGIN_URL}/feedback?utm_source=email&amp;utm_medium=email&amp;utm_campaign=feedback_reminder&amp;utm_content=round_0#token=`,
 		);
 	});
+	it("does not bcc organizers on the form sent to each student", async () => {
+		const { t, args, eventId } = await fixture();
+		const lead = await insertUser(t, "lead@example.test");
+		await insertOrganizer(t, eventId, lead._id);
+		vi.stubEnv("APP_ENV", "test");
+		feedbackResend.config.apiKey = "re_test";
+		const sendEmail = vi.spyOn(feedbackResend, "sendEmail");
+		await t.action(send, args);
+		expect(sendEmail).toHaveBeenCalledWith(
+			expect.anything(),
+			expect.not.objectContaining({ bcc: expect.anything() }),
+		);
+		vi.restoreAllMocks();
+	});
 	it("queues through the real Resend component atomically and cancels waiting mail", async () => {
 		const { t, email, inviteId, campaignId } = await fixture();
 		vi.stubEnv("APP_ENV", "test");

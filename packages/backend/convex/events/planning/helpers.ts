@@ -109,9 +109,9 @@ export async function sendEventEmail(
 				return account?.stage === "active" ? account.workspaceEmail : organizer.email;
 			}),
 	);
-	const recipients = [email.to].flat().map(normalizeEmail);
+	const recipients = new Set([email.to].flat().map((address) => normalizeEmail(address)));
 	const bcc = [...new Set(addresses)].filter(
-		(address) => validContactEmail(address) && !recipients.includes(normalizeEmail(address)),
+		(address) => validContactEmail(address) && !recipients.has(normalizeEmail(address)),
 	);
 	return trackedEmail.sendEmail(ctx, { ...email, bcc: bcc.length ? bcc : undefined });
 }

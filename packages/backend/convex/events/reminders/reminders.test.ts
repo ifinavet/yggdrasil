@@ -360,6 +360,26 @@ describe("sendEventReminder", () => {
 		vi.restoreAllMocks();
 	});
 
+	it("does not bcc organizers on the reminder sent to each student", async () => {
+		const { t, eventId } = await setupEvent({ eventStart: Date.now() + 5 * DAY_IN_MS });
+		const lead = await insertUser(t, "lead@example.test");
+		const student = await insertUser(t, "student@example.test");
+		await insertOrganizer(t, eventId, lead._id);
+		await insertRegistration(t, eventId, student._id, "registered");
+		const sendEmail = vi.spyOn(resend, "sendEmail").mockResolvedValue("email-id" as never);
+
+		await t.action(internal.events.reminders.emails.sendEventReminder, {
+			eventId,
+			kind: "twoDays",
+		});
+
+		expect(sendEmail).toHaveBeenCalledWith(
+			expect.anything(),
+			expect.not.objectContaining({ bcc: expect.anything() }),
+		);
+		vi.restoreAllMocks();
+	});
+
 	it("keeps sending to the rest when one recipient fails", async () => {
 		const { t, eventId } = await setupEvent({ eventStart: Date.now() + 5 * DAY_IN_MS });
 		const first = await insertUser(t, "first@example.test");

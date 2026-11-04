@@ -5,6 +5,7 @@ import {
 	asUser,
 	grantRole,
 	insertEvent,
+	insertOrganizer,
 	insertRegistration,
 	insertUser,
 	refusalMessageFrom,
@@ -113,12 +114,15 @@ describe("manual feedback form send", () => {
 
 	it("emails the registrant a real form link before the automatic round opens", async () => {
 		const f = await fixture();
+		const organizer = await insertUser(f.t, "lead@example.test");
+		await insertOrganizer(f.t, f.args.eventId, organizer._id);
 		const sentEmails = spySentEmails();
 
 		expect(await f.client.action(sendForm, f.args)).toBe("Kari Nordmann");
 
 		const [email] = sentEmails();
 		expect(sentEmails()).toHaveLength(1);
+		expect(email?.bcc).toBeUndefined();
 		expect(email).toMatchObject({
 			to: "student@example.test",
 			subject: "Tilbakemelding: Bedpres med Testbedrift",

@@ -13,6 +13,7 @@ import {
 	type QueryCtx,
 } from "../../_generated/server";
 import { isLocalDevelopment } from "../../auth/local";
+import { sendEventEmail } from "../../events/planning/helpers";
 import { recordReminderSent } from "../../events/reminders/delivery";
 import { feedbackSentText, reportSentText } from "../../events/slack/messages";
 import { queueEventNotification } from "../../events/slack/state";
@@ -108,7 +109,8 @@ export const enqueueEmail = internalMutation({
 		const key = `feedback:${args.inviteId}:${args.round}`;
 		const emailId = isLocalDevelopment()
 			? `local:${key}`
-			: await feedbackResend.sendEmail(ctx, {
+			: await sendEventEmail(ctx, context.event._id, {
+					sendToOrganizers: false,
 					...feedbackSender,
 					to: context.user.email,
 					subject: args.subject,
