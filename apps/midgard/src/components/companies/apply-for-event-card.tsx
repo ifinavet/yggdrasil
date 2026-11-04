@@ -1,9 +1,15 @@
 import { api } from "@workspace/backend/convex/api";
 import { huginUrl } from "@workspace/shared/constants/hugin-url";
 import { semesterName } from "@workspace/shared/semester/labels";
-import { defaultApplicationSemester, formatSemesterDay, osloToday } from "@workspace/shared/time";
+import {
+	defaultApplicationSemester,
+	formatSemesterDay,
+	osloToday,
+	type SemesterRef,
+} from "@workspace/shared/time";
 import { Button } from "@workspace/ui/components/button";
 import { Skeleton } from "@workspace/ui/components/skeleton";
+import { cn } from "@workspace/ui/lib/utils";
 import { fetchQuery } from "convex/nextjs";
 import { ArrowRight } from "lucide-react";
 import { cacheLife } from "next/cache";
@@ -29,11 +35,25 @@ export default async function ApplyForEventCard() {
 	);
 	if (!semester) return null;
 
+	return <ApplyForEventCardContent semester={semester} today={today} />;
+}
+
+export function ApplyForEventCardContent({
+	semester,
+	today,
+	href = `${huginUrl()}/bestill-bedpres`,
+	className,
+}: Readonly<{
+	semester: SemesterRef & { applicationDeadline: string };
+	today: string;
+	href?: string;
+	className?: string;
+}>) {
 	const deadline = formatSemesterDay(semester.applicationDeadline, "long");
 	const deadlinePassed = semester.applicationDeadline < today;
 
 	return (
-		<ContainerCard className={CARD}>
+		<ContainerCard className={cn(CARD, className)}>
 			<h2 className="font-semibold text-2xl text-primary tracking-tight dark:text-primary-foreground">
 				Søk om bedriftsarrangement{" "}
 				{semesterName(semester.term, semester.year, { inSentence: true })}
@@ -50,7 +70,7 @@ export default async function ApplyForEventCard() {
 				)}
 			</p>
 			<Button size="lg" className="w-full sm:w-fit dark:bg-primary-light dark:text-primary" asChild>
-				<a href={`${huginUrl()}/bestill-bedpres`}>
+				<a href={href}>
 					Søk her <ArrowRight aria-hidden />
 				</a>
 			</Button>

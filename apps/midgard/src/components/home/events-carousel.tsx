@@ -1,4 +1,5 @@
 import { api } from "@workspace/backend/convex/api";
+import { Button } from "@workspace/ui/components/button";
 import {
 	Carousel,
 	CarouselContent,
@@ -9,9 +10,9 @@ import {
 import { cn } from "@workspace/ui/lib/utils";
 import { fetchQuery } from "convex/nextjs";
 import { cacheLife } from "next/cache";
+import Link from "next/link";
 import EventCard from "../events/events-card";
 import NoMoreEventsEventCard from "../events/no-more-events-event-card";
-import SeeAllEventsButton from "./see-all-events-button";
 
 export default async function EventsCarousel({ className }: Readonly<{ className?: string }>) {
 	"use cache";
@@ -46,7 +47,12 @@ export default async function EventsCarousel({ className }: Readonly<{ className
 				<CarouselPrevious />
 				<CarouselNext />
 			</Carousel>
-			<SeeAllEventsButton />
+			<Button
+				asChild
+				className="mx-8 bg-emerald-600 py-6 font-semibold text-primary-foreground hover:bg-emerald-700 md:mx-16"
+			>
+				<Link href={"/events"}>Se alle arrangementer</Link>
+			</Button>
 		</div>
 	);
 }

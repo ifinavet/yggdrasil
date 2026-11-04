@@ -8,7 +8,8 @@ import { FacebookIcon, InstagramIcon, LinkedinIcon } from "@/assets/icons/social
 import Navet_Logo from "@/assets/navet/logo_n_blaa.webp";
 import Navet from "@/assets/promo_images/navet.webp";
 import TwoColumns from "@/components/common/two-columns";
-import EventsOrApply from "@/components/home/events-or-apply";
+import ApplyForEventBanner from "@/components/home/apply-for-event-banner";
+import EventsCarousel from "@/components/home/events-carousel";
 import JobListings from "@/components/home/job-listings";
 import MainSponsorCard from "@/components/home/main-sponsor";
 import PendingFeedbackBanner from "@/components/home/pending-feedback-banner";
@@ -37,9 +38,13 @@ export default function HomePage() {
 					<MainSponsorCard className="order-1 col-start-1 col-end-7 md:order-0 xl:col-end-8" />
 				</Suspense>
 				<Suspense fallback={<EventsCarouselSkeleton />}>
-					<EventsOrApply className="col-start-7 col-end-12 mx-6 md:justify-self-start xl:col-start-8" />
+					<EventsCarousel className="col-start-7 col-end-12 mx-6 md:justify-self-start xl:col-start-8" />
 				</Suspense>
 			</div>
+
+			<Suspense fallback={null}>
+				<ApplyForEventBanner />
+			</Suspense>
 
 			<Suspense fallback={<JobListingsSkeleton />}>
 				<JobListings />
