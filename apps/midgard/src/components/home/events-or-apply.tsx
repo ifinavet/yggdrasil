@@ -10,12 +10,13 @@ export default async function EventsOrApply({ className }: Readonly<{ className?
 	"use cache";
 	cacheLife("minutes");
 
+	const today = osloToday(Date.now());
 	const semester = homeApplySemester(
-		osloToday(Date.now()),
+		today,
 		await fetchQuery(api.semesterPlanning.semesters.queries.listOpenForApplications, {}),
 	);
 	return semester ? (
-		<ApplyForEventHomeCard semester={semester} className={className} />
+		<ApplyForEventHomeCard semester={semester} today={today} className={className} />
 	) : (
 		<EventsCarousel className={className} />
 	);
