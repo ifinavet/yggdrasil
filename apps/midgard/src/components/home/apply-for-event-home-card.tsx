@@ -5,9 +5,9 @@ import { formatSemesterDay, type SemesterRef } from "@workspace/shared/time";
 import { Button } from "@workspace/ui/components/button";
 import { cn } from "@workspace/ui/lib/utils";
 import { ArrowRight } from "lucide-react";
-import Link from "next/link";
 import NavetLogo from "@/assets/navet/simple_logo_blaa.webp";
 import EventCard from "@/components/events/event-card";
+import SeeAllEventsButton from "./see-all-events-button";
 
 const APPLY_HREF = `${huginUrl()}/bestill-bedpres?${new URLSearchParams(
 	utmParams({
@@ -48,12 +48,7 @@ export default function ApplyForEventHomeCard({
 					}
 				/>
 			</div>
-			<Button
-				asChild
-				className="mx-8 bg-emerald-600 py-6 font-semibold text-primary-foreground hover:bg-emerald-700 md:mx-16"
-			>
-				<Link href={"/events"}>Se alle arrangementer</Link>
-			</Button>
+			<SeeAllEventsButton />
 		</div>
 	);
 }
