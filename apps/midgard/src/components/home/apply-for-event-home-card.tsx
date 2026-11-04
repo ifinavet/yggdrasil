@@ -4,7 +4,6 @@ import { semesterName } from "@workspace/shared/semester/labels";
 import { formatSemesterDay, type SemesterRef } from "@workspace/shared/time";
 import { Button } from "@workspace/ui/components/button";
 import { cn } from "@workspace/ui/lib/utils";
-import { ArrowRight } from "lucide-react";
 import NavetLogo from "@/assets/navet/simple_logo_blaa.webp";
 import EventCard from "@/components/events/event-card";
 import SeeAllEventsButton from "./see-all-events-button";
@@ -41,9 +40,7 @@ export default function ApplyForEventHomeCard({
 							className="w-fit bg-primary-light text-primary hover:bg-primary-light/90"
 							asChild
 						>
-							<a href={APPLY_HREF}>
-								Søk her <ArrowRight aria-hidden />
-							</a>
+							<a href={APPLY_HREF}>Søk her</a>
 						</Button>
 					}
 				/>
