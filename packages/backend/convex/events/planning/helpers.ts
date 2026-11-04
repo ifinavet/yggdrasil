@@ -8,7 +8,6 @@ import {
 	planningFormSchema,
 	validContactEmail,
 } from "@workspace/shared/events/planning";
-import { normalizeEmail } from "@workspace/shared/iam";
 import { EVENT_TYPE_LABELS } from "@workspace/shared/semester/labels";
 import { formatOsloDate, osloDateTimeToEpoch, osloToday } from "@workspace/shared/time";
 import { ConvexError } from "convex/values";
@@ -21,7 +20,7 @@ import { sanitizeRichText } from "../../jobListingOrders/sanitize";
 import { validEmailToken } from "../../lib/emailConfirmation";
 import { hashLinkToken } from "../../lib/tokens";
 import { trackedEmail } from "../../lib/trackedEmail";
-import { getOrganizers } from "../queries";
+import { getOrganizerEmails, getOrganizers } from "../queries";
 
 export const eventArgsError = "Arrangementet er avsluttet eller utilgjengelig.";
 export function planningForEvent(ctx: QueryCtx, eventId: Id<"events">) {
@@ -100,19 +99,7 @@ export async function sendEventEmail(
 	{ sendToOrganizers, ...email }: SendEmailOptions & { sendToOrganizers: boolean },
 ) {
 	if (!sendToOrganizers) return trackedEmail.sendEmail(ctx, email);
-	const organizers = await getOrganizers(ctx, eventId);
-	const addresses = await Promise.all(
-		organizers
-			.filter((organizer) => organizer.email)
-			.map(async (organizer) => {
-				const account = await accountForUser(ctx, organizer.userId, organizer.email);
-				return account?.stage === "active" ? account.workspaceEmail : organizer.email;
-			}),
-	);
-	const recipients = new Set([email.to].flat().map((address) => normalizeEmail(address)));
-	const bcc = [...new Set(addresses)].filter(
-		(address) => validContactEmail(address) && !recipients.has(normalizeEmail(address)),
-	);
+	const bcc = await getOrganizerEmails(ctx, eventId, email.to);
 	return trackedEmail.sendEmail(ctx, { ...email, bcc: bcc.length ? bcc : undefined });
 }
 export async function initialPlanning(ctx: QueryCtx, event: Doc<"events">) {

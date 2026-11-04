@@ -13,6 +13,7 @@ import {
 } from "../../../test/fixtures";
 import { api, internal } from "../../_generated/api";
 import { trackedEmail } from "../../lib/trackedEmail";
+import { getOrganizerEmails } from "../queries";
 import { prepareDue } from "./lifecycle";
 import { planningResponseSummary } from "./notifications";
 
@@ -298,6 +299,11 @@ describe("company event planning", () => {
 		});
 		const [, options] = sendEmail.mock.calls[0] as unknown as [unknown, SendEmailOptions];
 		expect(options.bcc).toEqual(["lead@ifinavet.no", "helper@ifinavet.no", "member@ifinavet.no"]);
+	});
+	it("returns every organizer address when no recipient is excluded", async () => {
+		const f = await submitted();
+		const emails = await f.t.run((ctx) => getOrganizerEmails(ctx, f.eventId));
+		expect(emails).toEqual(["lead@ifinavet.no", "helper@ifinavet.no"]);
 	});
 	it("sends the confirmation without bcc when the event has no organizers", async () => {
 		const f = await submitted();
