@@ -10,6 +10,7 @@ export const UTM_MEDIUM = {
 
 export const UTM_CAMPAIGN = {
 	FEEDBACK_REMINDER: "feedback_reminder",
+	EVENT_APPLICATION: "event_application",
 } as const;
 
 type Values<T> = T[keyof T];
