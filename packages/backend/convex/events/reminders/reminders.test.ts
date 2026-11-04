@@ -1,3 +1,4 @@
+import type { SendEmailOptions } from "@convex-dev/resend";
 import { REMINDER_INFO_MAX_LENGTH } from "@workspace/shared/events/reminder";
 import { describe, expect, it, vi } from "vitest";
 import {
@@ -373,10 +374,9 @@ describe("sendEventReminder", () => {
 			kind: "twoDays",
 		});
 
-		expect(sendEmail).toHaveBeenCalledWith(
-			expect.anything(),
-			expect.not.objectContaining({ bcc: expect.anything() }),
-		);
+		const [, options] = sendEmail.mock.calls[0] as unknown as [unknown, SendEmailOptions];
+		expect(options.to).toBe("student@example.test");
+		expect(options.bcc).toBeUndefined();
 		vi.restoreAllMocks();
 	});
 

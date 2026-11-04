@@ -1,4 +1,4 @@
-import type { EmailEvent, EmailId } from "@convex-dev/resend";
+import type { EmailEvent, EmailId, SendEmailOptions } from "@convex-dev/resend";
 import type { WorkflowId } from "@convex-dev/workflow";
 import { HUGIN_LOCAL_URL, HUGIN_URL } from "@workspace/shared/constants";
 import { feedbackOpensAt, feedbackRoundAt } from "@workspace/shared/time";
@@ -367,10 +367,8 @@ describe("feedback delivery", () => {
 		feedbackResend.config.apiKey = "re_test";
 		const sendEmail = vi.spyOn(feedbackResend, "sendEmail");
 		await t.action(send, args);
-		expect(sendEmail).toHaveBeenCalledWith(
-			expect.anything(),
-			expect.not.objectContaining({ bcc: expect.anything() }),
-		);
+		const [, options] = sendEmail.mock.calls[0] as unknown as [unknown, SendEmailOptions];
+		expect(options.bcc).toBeUndefined();
 		vi.restoreAllMocks();
 	});
 	it("queues through the real Resend component atomically and cancels waiting mail", async () => {
