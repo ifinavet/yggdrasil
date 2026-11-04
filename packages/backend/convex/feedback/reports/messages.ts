@@ -2,9 +2,10 @@ import { feedbackTokenSchema } from "@workspace/shared/feedback";
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "../../_generated/server";
 import { isLocalDevelopment } from "../../auth/local";
+import { sendEventEmail } from "../../events/planning/helpers";
 import { hashLinkToken } from "../../lib/tokens";
 import { feedbackSignature } from "../delivery/emailContext";
-import { feedbackResend, feedbackSender } from "../delivery/messages";
+import { feedbackSender } from "../delivery/messages";
 
 export const reportEmailSubject = (eventTitle: string) => `Rapport fra ${eventTitle}`;
 
@@ -35,7 +36,8 @@ export const enqueue = internalMutation({
 		const key = `feedback-report:${report._id}:${report.revision}:${report.deliveryAttempt ?? 0}`;
 		const emailId = isLocalDevelopment()
 			? `local:${key}`
-			: await feedbackResend.sendEmail(ctx, {
+			: await sendEventEmail(ctx, report.eventId, {
+					sendToOrganizers: true,
 					...feedbackSender,
 					replyTo: [(await feedbackSignature(ctx, report.eventId)).email],
 					to: report.recipientEmail,
