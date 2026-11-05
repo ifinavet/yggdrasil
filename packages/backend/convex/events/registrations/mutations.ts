@@ -2,7 +2,7 @@ import { MIDGARD_URL, totalPoints } from "@workspace/shared/constants";
 import { DAY_MS } from "@workspace/shared/time";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../../_generated/api";
-import type { Doc } from "../../_generated/dataModel";
+import type { Doc, Id } from "../../_generated/dataModel";
 import { type MutationCtx, mutation } from "../../_generated/server";
 import { getCurrentUserOrThrow } from "../../auth/currentUser";
 import { isLocalDevelopment } from "../../auth/local";
@@ -10,7 +10,7 @@ import { dropCheckpoints } from "../../engagement/checkpoints";
 import { logRegistrationChange, refreshTouched, type TouchedEvents } from "../../engagement/log";
 import { patchAttendanceStats } from "../../engagement/stats";
 import { inviteLateAttendee } from "../../feedback/delivery/campaigns";
-import { givePoints } from "../../points/mutations";
+import { givePoints, pointWasEmailed } from "../../points/mutations";
 import {
 	countRegistrationsWithStatus,
 	isEventOrganizerOrAdmin,
@@ -85,6 +85,28 @@ function attendancePointsReason(status: "late" | "no_show", eventTitle: string |
 	return status === "late"
 		? `Du fikk 1 prikk for å være for sen til arrangementet "${eventTitle}".`
 		: `Du fikk 2 prikker for å ikke møte til arrangementet "${eventTitle}".`;
+}
+
+async function emailRemovedPoint(
+	ctx: MutationCtx,
+	eventId: Id<"events">,
+	participant: Doc<"users">,
+	eventTitle: string | undefined,
+) {
+	if (isLocalDevelopment()) return;
+	const { from, replyTo, signature } = await senderFor(ctx, eventId);
+	await sendEventEmail(ctx, eventId, {
+		sendToOrganizers: false,
+		from,
+		replyTo,
+		to: participant.email,
+		subject: `Prikken for ${eventTitle} er fjernet`,
+		text: [
+			`Halla ${participant.firstName.trim()}, du fikk en e-post av oss om at du har fått prikk for ${eventTitle}, men denne prikken har blitt fjernet fordi vi korrigerte oppmøtet ditt, beklager bryet. :)`,
+			`Du kan alltid se prikkene dine under profilen din på ${MIDGARD_URL}/profile.`,
+			`Med vennlig hilsen\n${signature || "Navet"}`,
+		].join("\n\n"),
+	});
 }
 
 /**
@@ -169,17 +191,8 @@ export const updateAttendance = mutation({
 		if (totalPoints(previousPoints) === severity) return;
 		await Promise.all(previousPoints.map((point) => ctx.db.delete(point._id)));
 
-		const emailed = previousPoints.some((point) => point._creationTime + DAY_MS <= Date.now());
-		if (participant && emailed && !isLocalDevelopment()) {
-			const { from, replyTo, signature } = await senderFor(ctx, registration.eventId);
-			await sendEventEmail(ctx, registration.eventId, {
-				sendToOrganizers: false,
-				from,
-				replyTo,
-				to: participant.email,
-				subject: `Prikken for ${event?.title} er fjernet`,
-				text: `Halla ${participant.firstName.trim()}, du fikk en e-post av oss om at du har fått prikk for ${event?.title}, men denne prikken har blitt fjernet fordi vi korrigerte oppmøtet ditt, beklager bryet. :)\n\nDu kan alltid se prikkene dine under profilen din på ${MIDGARD_URL}/profile.\n\nMed vennlig hilsen\n${signature || "Navet"}`,
-			});
+		if (participant && previousPoints.some(pointWasEmailed)) {
+			await emailRemovedPoint(ctx, registration.eventId, participant, event?.title);
 		}
 
 		if (newStatus === "late" || newStatus === "no_show") {
