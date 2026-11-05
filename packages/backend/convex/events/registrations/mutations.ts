@@ -7,6 +7,7 @@ import { dropCheckpoints } from "../../engagement/checkpoints";
 import { logRegistrationChange, refreshTouched, type TouchedEvents } from "../../engagement/log";
 import { patchAttendanceStats } from "../../engagement/stats";
 import { inviteLateAttendee } from "../../feedback/delivery/campaigns";
+import { POINTS_EMAIL_DELAY_MS } from "../../points/lifetime";
 import {
 	countRegistrationsWithStatus,
 	isEventOrganizerOrAdmin,
@@ -167,18 +168,18 @@ export const updateAttendance = mutation({
 		if (newStatus === "late" || newStatus === "no_show") {
 			const reason = attendancePointsReason(newStatus, event?.title);
 
-			await ctx.runMutation(internal.points.mutations.givePointsInternal, {
+			const pointId = await ctx.runMutation(internal.points.mutations.givePointsInternal, {
 				id: student._id,
 				severity,
 				reason,
 				registrationId: id,
 			});
 
-			await ctx.runMutation(internal.points.mutations.givePointsEmail, {
-				userId: student.userId,
-				severity,
-				reason,
-			});
+			await ctx.scheduler.runAfter(
+				POINTS_EMAIL_DELAY_MS,
+				internal.points.mutations.givePointsEmail,
+				{ pointId, userId: student.userId, severity, reason },
+			);
 		}
 	},
 });

@@ -1,9 +1,10 @@
 import { ConvexError, v } from "convex/values";
 import { internal } from "../_generated/api";
+import type { Id } from "../_generated/dataModel";
 import { internalMutation, mutation } from "../_generated/server";
 import { adminRoles, requireRole } from "../auth/accessRights";
 import { getIdentity } from "../auth/currentUser";
-import { POINT_LIFETIME_MS } from "./lifetime";
+import { POINT_LIFETIME_MS, POINTS_EMAIL_DELAY_MS } from "./lifetime";
 
 /**
  * Gives points to a student and schedules the notification email.
@@ -24,18 +25,22 @@ export const givePoints = mutation({
 	handler: async (ctx, { id, reason, severity }) => {
 		await requireRole(ctx, ["super-admin", "admin", "internal"]);
 
-		await ctx.runMutation(internal.points.mutations.givePointsInternal, {
-			id,
-			reason,
-			severity,
-		});
+		const pointId: Id<"points"> = await ctx.runMutation(
+			internal.points.mutations.givePointsInternal,
+			{
+				id,
+				reason,
+				severity,
+			},
+		);
 
 		const student = await ctx.db.get(id);
 		if (!student) {
 			throw new ConvexError(`Studenten med ID ${id} ble ikke funnet.`);
 		}
 
-		await ctx.scheduler.runAfter(0, internal.points.mutations.givePointsEmail, {
+		await ctx.scheduler.runAfter(POINTS_EMAIL_DELAY_MS, internal.points.mutations.givePointsEmail, {
+			pointId,
 			userId: student.userId,
 			severity,
 			reason,
@@ -51,7 +56,7 @@ export const givePoints = mutation({
  * @param {number} severity - The number of points to assign.
  *
  * @throws - An error if the caller is unauthenticated.
- * @returns {null} - Returns null when the points are stored successfully.
+ * @returns {Id<"points">} - The id of the stored points record.
  */
 export const givePointsInternal = internalMutation({
 	args: {
@@ -66,7 +71,7 @@ export const givePointsInternal = internalMutation({
 			throw new Error("Unauthenticated call to mutation");
 		}
 
-		await ctx.db.insert("points", {
+		const pointId = await ctx.db.insert("points", {
 			studentId: id,
 			reason,
 			severity,
@@ -79,10 +84,14 @@ export const givePointsInternal = internalMutation({
 			.collect();
 
 		if (points.reduce((acc, point) => acc + point.severity, 0) >= 3) {
-			await ctx.runMutation(internal.points.mutations.tooManyPointsEmail, {
-				studentsId: id,
-			});
+			await ctx.scheduler.runAfter(
+				POINTS_EMAIL_DELAY_MS,
+				internal.points.mutations.tooManyPointsEmail,
+				{ pointId, studentsId: id },
+			);
 		}
+
+		return pointId;
 	},
 });
 
@@ -98,11 +107,14 @@ export const givePointsInternal = internalMutation({
  */
 export const givePointsEmail = internalMutation({
 	args: {
+		pointId: v.id("points"),
 		userId: v.id("users"),
 		severity: v.number(),
 		reason: v.string(),
 	},
-	handler: async (ctx, { userId, severity, reason }) => {
+	handler: async (ctx, { pointId, userId, severity, reason }) => {
+		if (!(await ctx.db.get(pointId))) return;
+
 		const user = await ctx.db.get(userId);
 
 		if (!user) {
@@ -127,9 +139,12 @@ export const givePointsEmail = internalMutation({
  */
 export const tooManyPointsEmail = internalMutation({
 	args: {
+		pointId: v.id("points"),
 		studentsId: v.id("students"),
 	},
-	handler: async (ctx, { studentsId }) => {
+	handler: async (ctx, { pointId, studentsId }) => {
+		if (!(await ctx.db.get(pointId))) return;
+
 		const student = await ctx.db.get(studentsId);
 		if (!student) {
 			throw new Error(`Student with ID ${studentsId} not found.`);
