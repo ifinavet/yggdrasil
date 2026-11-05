@@ -10,7 +10,7 @@ import { dropCheckpoints } from "../../engagement/checkpoints";
 import { logRegistrationChange, refreshTouched, type TouchedEvents } from "../../engagement/log";
 import { patchAttendanceStats } from "../../engagement/stats";
 import { inviteLateAttendee } from "../../feedback/delivery/campaigns";
-import { givePoints, pointWasEmailed } from "../../points/mutations";
+import { givePoints } from "../../points/mutations";
 import {
 	countRegistrationsWithStatus,
 	isEventOrganizerOrAdmin,
@@ -94,19 +94,23 @@ async function emailRemovedPoint(
 	eventTitle: string | undefined,
 ) {
 	if (isLocalDevelopment()) return;
-	const { from, replyTo, signature } = await senderFor(ctx, eventId);
-	await sendEventEmail(ctx, eventId, {
-		sendToOrganizers: false,
-		from,
-		replyTo,
-		to: participant.email,
-		subject: `Prikken for ${eventTitle} er fjernet`,
-		text: [
-			`Halla ${participant.firstName.trim()}, du fikk en e-post av oss om at du har fått prikk for ${eventTitle}, men denne prikken har blitt fjernet fordi vi korrigerte oppmøtet ditt, beklager bryet. :)`,
-			`Du kan alltid se prikkene dine under profilen din på ${MIDGARD_URL}/profile.`,
-			`Med vennlig hilsen\n${signature || "Navet"}`,
-		].join("\n\n"),
-	});
+	try {
+		const { from, replyTo, signature } = await senderFor(ctx, eventId);
+		await sendEventEmail(ctx, eventId, {
+			sendToOrganizers: false,
+			from,
+			replyTo,
+			to: participant.email,
+			subject: `Prikken for ${eventTitle} er fjernet`,
+			text: [
+				`Halla ${participant.firstName.trim()}, du fikk en e-post av oss om at du har fått prikk for ${eventTitle}, men denne prikken har blitt fjernet fordi vi korrigerte oppmøtet ditt, beklager bryet. :)`,
+				`Du kan alltid se prikkene dine under profilen din på ${MIDGARD_URL}/profile.`,
+				`Med vennlig hilsen\n${signature || "Navet"}`,
+			].join("\n\n"),
+		});
+	} catch (error) {
+		console.error(`Could not email ${participant._id} about a removed point`, error);
+	}
 }
 
 /**
@@ -152,7 +156,7 @@ export const updateAttendance = mutation({
 		if (previousStatus === newStatus) return;
 		if (registration.status !== "registered") return;
 		const participant = await ctx.db.get(registration.userId);
-		if (participant?.deleted) return;
+		if (!participant || participant.deleted) return;
 
 		const student = await ctx.db
 			.query("students")
@@ -191,7 +195,10 @@ export const updateAttendance = mutation({
 		if (totalPoints(previousPoints) === severity) return;
 		await Promise.all(previousPoints.map((point) => ctx.db.delete(point._id)));
 
-		if (participant && previousPoints.some(pointWasEmailed)) {
+		const studentWasEmailedAboutRemovedPoint = previousPoints.some(
+			(point) => point._creationTime + DAY_MS <= Date.now(),
+		);
+		if (studentWasEmailedAboutRemovedPoint) {
 			await emailRemovedPoint(ctx, registration.eventId, participant, event?.title);
 		}
 

@@ -703,6 +703,20 @@ describe("updateAttendance", () => {
 		});
 	});
 
+	it("keeps the attendance correction when the removed point email fails", async () => {
+		const { t, studentId, registrationId, mark } = await attendanceScenario();
+		vi.spyOn(trackedEmail, "sendEmail").mockRejectedValue(new Error("Resend unavailable"));
+		vi.spyOn(console, "error").mockImplementation(() => {});
+
+		await mark("no_show");
+		vi.advanceTimersByTime(DAY_IN_MS + HOUR_IN_MS);
+		await t.finishInProgressScheduledFunctions();
+		await mark("confirmed");
+
+		expect(await totalPointsFor(t, studentId)).toBe(0);
+		expect((await registrationById(t, registrationId))?.attendanceStatus).toBe("confirmed");
+	});
+
 	it("sends no lockout email when an older point is removed within the delay", async () => {
 		const { t, studentId, mark } = await attendanceScenario();
 		const olderPointId = await givePointsTo(t, studentId, 1);

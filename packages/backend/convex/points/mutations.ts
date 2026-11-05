@@ -14,10 +14,6 @@ export async function givePoints(ctx: MutationCtx, point: WithoutSystemFields<Do
 	await ctx.scheduler.runAfter(DAY_MS, internal.points.mutations.sendPointEmails, { pointId });
 }
 
-export function pointWasEmailed(point: Doc<"points">) {
-	return point._creationTime + DAY_MS <= Date.now();
-}
-
 /**
  * Lets admins and internal members give a student points from bifrost, then calls givePoints.
  * Attendance and late unregistering call givePoints directly, because organizers and students
