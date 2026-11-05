@@ -1,8 +1,9 @@
 import { v } from "convex/values";
 import type { MutationCtx } from "../../_generated/server";
 import { internalMutation } from "../../_generated/server";
-import { feedbackResend, feedbackSender } from "../../feedback/delivery/messages";
+import { feedbackSender } from "../../feedback/delivery/messages";
 import { oneOf } from "../../lib/validators";
+import { sendEventEmail } from "../planning/helpers";
 import { reminderSentText } from "../slack/messages";
 import { queueEventNotification } from "../slack/state";
 import { REMINDER_KINDS } from "./schedule";
@@ -38,7 +39,8 @@ export const enqueue = internalMutation({
 			)
 			.unique();
 		if (existing) return;
-		const emailId = await feedbackResend.sendEmail(ctx, {
+		const emailId = await sendEventEmail(ctx, eventId, {
+			sendToOrganizers: false,
 			...feedbackSender,
 			replyTo: [replyTo],
 			to,

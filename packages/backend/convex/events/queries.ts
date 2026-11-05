@@ -1,4 +1,6 @@
 import type { OrganizerRole } from "@workspace/shared/constants";
+import { validContactEmail } from "@workspace/shared/events/planning";
+import { normalizeEmail } from "@workspace/shared/iam";
 import { EVENT_SEMESTERS, eventSemesterOf, osloMonthName } from "@workspace/shared/time";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../_generated/api";
@@ -6,6 +8,7 @@ import type { Doc, Id } from "../_generated/dataModel";
 import { internalQuery, type QueryCtx, query } from "../_generated/server";
 import { currentUserHasRole, internalRoles, requireRole } from "../auth/accessRights";
 import { eventFeedbackStatus } from "../feedback/eventStatus";
+import { accountForUser } from "../iam/accounts";
 import {
 	countRegistrationsWithStatus,
 	eventsInSemester,
@@ -340,6 +343,26 @@ export async function getOrganizers(ctx: QueryCtx, eventId: Id<"events">) {
 	);
 
 	return organizersWithName;
+}
+
+export async function getOrganizerEmails(
+	ctx: QueryCtx,
+	eventId: Id<"events">,
+	except: string | string[] = [],
+) {
+	const organizers = await getOrganizers(ctx, eventId);
+	const addresses = await Promise.all(
+		organizers
+			.filter((organizer) => organizer.email)
+			.map(async (organizer) => {
+				const account = await accountForUser(ctx, organizer.userId, organizer.email);
+				return account?.stage === "active" ? account.workspaceEmail : organizer.email;
+			}),
+	);
+	const excluded = new Set([except].flat().map((address) => normalizeEmail(address)));
+	return [...new Set(addresses)].filter(
+		(address) => validContactEmail(address) && !excluded.has(normalizeEmail(address)),
+	);
 }
 
 /**

@@ -12,7 +12,7 @@ import {
 	EMAIL_DELIVERY_EVENT_STATUSES,
 } from "../../lib/emailDelivery";
 import { trackedEmail } from "../../lib/trackedEmail";
-import { envelopeFingerprint, invitationPreview } from "./helpers";
+import { envelopeFingerprint, invitationPreview, sendEventEmail } from "./helpers";
 import { notifyInvitationSent, notifyPlanning } from "./notifications";
 
 export type EmailDraft = Omit<
@@ -82,7 +82,8 @@ export const enqueueRendered = internalMutation({
 		const { body, signature } = splitPlanningEmail(email.envelope.text);
 		const emailId = isLocalDevelopment()
 			? `local:${id}`
-			: await trackedEmail.sendEmail(ctx, {
+			: await sendEventEmail(ctx, event._id, {
+					sendToOrganizers: email.kind === "confirmation",
 					...email.envelope,
 					html,
 					text: [body, email.url, signature].filter(Boolean).join("\n\n"),

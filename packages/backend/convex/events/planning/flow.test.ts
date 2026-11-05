@@ -1,4 +1,4 @@
-import type { EmailId } from "@convex-dev/resend";
+import type { EmailId, SendEmailOptions } from "@convex-dev/resend";
 import { DAY_MS, eventPlanningAt } from "@workspace/shared/time";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -13,6 +13,7 @@ import {
 } from "../../../test/fixtures";
 import { api, internal } from "../../_generated/api";
 import { trackedEmail } from "../../lib/trackedEmail";
+import { getOrganizerEmails } from "../queries";
 import { prepareDue } from "./lifecycle";
 import { planningResponseSummary } from "./notifications";
 
@@ -225,6 +226,101 @@ describe("company event planning", () => {
 			html: "<p>Invitation</p>",
 		});
 		expect(await f.t.run((ctx) => ctx.db.query("eventPlanningEmails").collect())).toHaveLength(1);
+	});
+	it("bcc's organizers on the confirmation and not on the invitation that copies them", async () => {
+		const f = await submitted();
+		vi.stubEnv("APP_ENV", "test");
+		const sendEmail = vi
+			.spyOn(trackedEmail, "sendEmail")
+			.mockResolvedValue("email-id" as unknown as EmailId);
+		for (const email of [f.mail, f.confirmation])
+			await f.t.mutation(internal.events.planning.delivery.enqueueRendered, {
+				id: email._id,
+				html: "<p>Innhold</p>",
+			});
+		const [invitation, confirmation] = (
+			sendEmail.mock.calls as unknown as [unknown, SendEmailOptions][]
+		).map(([, options]) => options);
+		expect(invitation?.cc).toEqual(["lead@ifinavet.no", "helper@ifinavet.no"]);
+		expect(invitation?.bcc).toBeUndefined();
+		expect(confirmation?.to).toBe("contact@example.com");
+		expect(confirmation?.cc).toEqual([]);
+		expect(confirmation?.bcc).toEqual(["lead@ifinavet.no", "helper@ifinavet.no"]);
+	});
+	it("leaves out organizers who are the recipient or have no usable address", async () => {
+		const f = await submitted();
+		vi.stubEnv("APP_ENV", "test");
+		const sendEmail = vi
+			.spyOn(trackedEmail, "sendEmail")
+			.mockResolvedValue("email-id" as unknown as EmailId);
+		const outside = await insertUser(f.t, "Pending...");
+		await insertOrganizer(f.t, f.eventId, outside._id, "medhjelper");
+		await f.t.run((ctx) =>
+			ctx.db.patch(f.confirmation._id, {
+				envelope: { ...f.confirmation.envelope, to: "Helper@IFINAVET.no" },
+			}),
+		);
+		await f.t.mutation(internal.events.planning.delivery.enqueueRendered, {
+			id: f.confirmation._id,
+			html: "<p>Innhold</p>",
+		});
+		const [, options] = sendEmail.mock.calls[0] as unknown as [unknown, SendEmailOptions];
+		expect(options.bcc).toEqual(["lead@ifinavet.no"]);
+	});
+	it("uses workspace addresses but skips a deleted organizer with an active account", async () => {
+		const f = await submitted();
+		vi.stubEnv("APP_ENV", "test");
+		const sendEmail = vi
+			.spyOn(trackedEmail, "sendEmail")
+			.mockResolvedValue("email-id" as unknown as EmailId);
+		const member = await insertUser(f.t, "private@example.test");
+		const deleted = await insertUser(f.t, "", { deleted: true });
+		await insertOrganizer(f.t, f.eventId, member._id, "medhjelper");
+		await insertOrganizer(f.t, f.eventId, deleted._id, "medhjelper");
+		await f.t.run(async (ctx) => {
+			for (const [userId, workspaceEmail] of [
+				[member._id, "member@ifinavet.no"],
+				[deleted._id, "deleted@ifinavet.no"],
+			] as const)
+				await ctx.db.insert("memberAccounts", {
+					userId,
+					workspaceEmail,
+					firstName: "Test",
+					lastName: "Person",
+					group: "Bedrift",
+					stage: "active",
+					google: "created",
+					updatedAt: NOW,
+				});
+		});
+		await f.t.mutation(internal.events.planning.delivery.enqueueRendered, {
+			id: f.confirmation._id,
+			html: "<p>Innhold</p>",
+		});
+		const [, options] = sendEmail.mock.calls[0] as unknown as [unknown, SendEmailOptions];
+		expect(options.bcc).toEqual(["lead@ifinavet.no", "helper@ifinavet.no", "member@ifinavet.no"]);
+	});
+	it("returns every organizer address when no recipient is excluded", async () => {
+		const f = await submitted();
+		const emails = await f.t.run((ctx) => getOrganizerEmails(ctx, f.eventId));
+		expect(emails).toEqual(["lead@ifinavet.no", "helper@ifinavet.no"]);
+	});
+	it("sends the confirmation with an empty bcc when the event has no organizers", async () => {
+		const f = await submitted();
+		vi.stubEnv("APP_ENV", "test");
+		const sendEmail = vi
+			.spyOn(trackedEmail, "sendEmail")
+			.mockResolvedValue("email-id" as unknown as EmailId);
+		await f.t.run(async (ctx) => {
+			for (const organizer of await ctx.db.query("eventOrganizers").collect())
+				await ctx.db.delete(organizer._id);
+		});
+		await f.t.mutation(internal.events.planning.delivery.enqueueRendered, {
+			id: f.confirmation._id,
+			html: "<p>Innhold</p>",
+		});
+		const [, options] = sendEmail.mock.calls[0] as unknown as [unknown, SendEmailOptions];
+		expect(options.bcc).toEqual([]);
 	});
 	it("summarizes practical answers safely and keeps lengthy answers bounded", async () => {
 		const f = await fixture();

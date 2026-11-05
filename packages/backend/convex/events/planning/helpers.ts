@@ -1,3 +1,4 @@
+import type { SendEmailOptions } from "@convex-dev/resend";
 import { HUGIN_LOCAL_URL, HUGIN_URL } from "@workspace/shared/constants";
 import { INFO_EMAIL } from "@workspace/shared/constants/contact";
 import {
@@ -18,7 +19,8 @@ import { accountForUser } from "../../iam/accounts";
 import { sanitizeRichText } from "../../jobListingOrders/sanitize";
 import { validEmailToken } from "../../lib/emailConfirmation";
 import { hashLinkToken } from "../../lib/tokens";
-import { getOrganizers } from "../queries";
+import { trackedEmail } from "../../lib/trackedEmail";
+import { getOrganizerEmails, getOrganizers } from "../queries";
 
 export const eventArgsError = "Arrangementet er avsluttet eller utilgjengelig.";
 export function planningForEvent(ctx: QueryCtx, eventId: Id<"events">) {
@@ -90,6 +92,14 @@ export async function senderFor(ctx: QueryCtx, eventId: Id<"events">) {
 		mainEmail: main?.email ?? "",
 		contacts: contacts.map(({ name, email, role }) => ({ name, email, role })),
 	};
+}
+export async function sendEventEmail(
+	ctx: MutationCtx,
+	eventId: Id<"events">,
+	{ sendToOrganizers, to, cc, ...email }: SendEmailOptions & { sendToOrganizers: boolean },
+) {
+	const bcc = sendToOrganizers ? await getOrganizerEmails(ctx, eventId, to) : undefined;
+	return trackedEmail.sendEmail(ctx, { ...email, to, cc, bcc });
 }
 export async function initialPlanning(ctx: QueryCtx, event: Doc<"events">) {
 	const [order, sender, food] = await Promise.all([

@@ -708,6 +708,8 @@ describe("report boundary cases", () => {
 		const emailId = report?.emailId as EmailId;
 		const sent = (sendEmail.mock.calls[0] as unknown as [unknown, SendEmailOptions])[1];
 		expect(sent.replyTo).toEqual(["lead@example.test"]);
+		expect(sent.to).toBe("contact@example.test");
+		expect(sent.bcc).toEqual(["lead@example.test"]);
 		expect(sent.html).toContain("Ola Nordmann");
 		expect(sent.html).toContain("mailto:lead@example.test");
 		expect(await f.t.run((ctx) => feedbackResend.status(ctx, emailId))).toMatchObject({

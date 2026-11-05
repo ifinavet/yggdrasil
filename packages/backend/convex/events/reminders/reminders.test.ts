@@ -1,3 +1,4 @@
+import type { SendEmailOptions } from "@convex-dev/resend";
 import { REMINDER_INFO_MAX_LENGTH } from "@workspace/shared/events/reminder";
 import { describe, expect, it, vi } from "vitest";
 import {
@@ -357,6 +358,25 @@ describe("sendEventReminder", () => {
 			kind: "twoDays",
 		});
 		expect(sendEmail).not.toHaveBeenCalled();
+		vi.restoreAllMocks();
+	});
+
+	it("does not bcc organizers on the reminder sent to each student", async () => {
+		const { t, eventId } = await setupEvent({ eventStart: Date.now() + 5 * DAY_IN_MS });
+		const lead = await insertUser(t, "lead@example.test");
+		const student = await insertUser(t, "student@example.test");
+		await insertOrganizer(t, eventId, lead._id);
+		await insertRegistration(t, eventId, student._id, "registered");
+		const sendEmail = vi.spyOn(resend, "sendEmail").mockResolvedValue("email-id" as never);
+
+		await t.action(internal.events.reminders.emails.sendEventReminder, {
+			eventId,
+			kind: "twoDays",
+		});
+
+		const [, options] = sendEmail.mock.calls[0] as unknown as [unknown, SendEmailOptions];
+		expect(options.to).toBe("student@example.test");
+		expect(options.bcc).toBeUndefined();
 		vi.restoreAllMocks();
 	});
 

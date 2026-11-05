@@ -4,10 +4,11 @@ import type { Doc, Id } from "../../_generated/dataModel";
 import { internalMutation, internalQuery, type QueryCtx, query } from "../../_generated/server";
 import { internalRoles, requireRole } from "../../auth/accessRights";
 import { isLocalDevelopment } from "../../auth/local";
+import { sendEventEmail } from "../../events/planning/helpers";
 import { hashLinkToken } from "../../lib/tokens";
 import { latestCampaign, selectedVersion } from "../delivery/campaigns";
 import { feedbackEmailContext } from "../delivery/emailContext";
-import { feedbackResend, feedbackSender } from "../delivery/messages";
+import { feedbackSender } from "../delivery/messages";
 
 const maxRegistrants = 500;
 const invitationRound = 0;
@@ -110,7 +111,8 @@ export const enqueue = internalMutation({
 		const key = `feedback-manual:${inviteId}`;
 		const emailId = isLocalDevelopment()
 			? `local:${key}`
-			: await feedbackResend.sendEmail(ctx, {
+			: await sendEventEmail(ctx, context.campaign.eventId, {
+					sendToOrganizers: false,
 					...feedbackSender,
 					to: context.recipient.email,
 					subject: args.subject,

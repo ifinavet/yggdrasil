@@ -1,4 +1,4 @@
-import type { EmailEvent, EmailId } from "@convex-dev/resend";
+import type { EmailEvent, EmailId, SendEmailOptions } from "@convex-dev/resend";
 import type { WorkflowId } from "@convex-dev/workflow";
 import { HUGIN_LOCAL_URL, HUGIN_URL } from "@workspace/shared/constants";
 import { feedbackOpensAt, feedbackRoundAt } from "@workspace/shared/time";
@@ -358,6 +358,18 @@ describe("feedback delivery", () => {
 		expect(email?.html).toContain(
 			`${HUGIN_URL}/feedback?utm_source=email&amp;utm_medium=email&amp;utm_campaign=feedback_reminder&amp;utm_content=round_0#token=`,
 		);
+	});
+	it("does not bcc organizers on the form sent to each student", async () => {
+		const { t, args, eventId } = await fixture();
+		const lead = await insertUser(t, "lead@example.test");
+		await insertOrganizer(t, eventId, lead._id);
+		vi.stubEnv("APP_ENV", "test");
+		feedbackResend.config.apiKey = "re_test";
+		const sendEmail = vi.spyOn(feedbackResend, "sendEmail");
+		await t.action(send, args);
+		const [, options] = sendEmail.mock.calls[0] as unknown as [unknown, SendEmailOptions];
+		expect(options.bcc).toBeUndefined();
+		vi.restoreAllMocks();
 	});
 	it("queues through the real Resend component atomically and cancels waiting mail", async () => {
 		const { t, email, inviteId, campaignId } = await fixture();
