@@ -1,18 +1,17 @@
+import { DAY_MS } from "@workspace/shared/time";
 import type { WithoutSystemFields } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, mutation } from "../_generated/server";
 import { adminRoles, requireRole } from "../auth/accessRights";
-import { POINT_LIFETIME_MS, POINTS_EMAIL_DELAY_MS } from "./lifetime";
+import { POINT_LIFETIME_MS } from "./lifetime";
 import { hasTooManyPoints } from "./queries";
 
 export async function givePoints(ctx: MutationCtx, point: WithoutSystemFields<Doc<"points">>) {
 	const pointId = await ctx.db.insert("points", point);
 
-	await ctx.scheduler.runAfter(POINTS_EMAIL_DELAY_MS, internal.points.mutations.sendPointEmails, {
-		pointId,
-	});
+	await ctx.scheduler.runAfter(DAY_MS, internal.points.mutations.sendPointEmails, { pointId });
 }
 
 /**

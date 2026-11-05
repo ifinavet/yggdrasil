@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	asUser,
+	DAY_IN_MS,
 	givePointsTo,
 	insertStudent,
 	insertUser,
@@ -11,7 +12,6 @@ import {
 	type TestBackend,
 } from "../../test/fixtures";
 import { api } from "../_generated/api";
-import { POINTS_EMAIL_DELAY_MS } from "./lifetime";
 
 const mutations = api.points.mutations;
 const manualPoint = { reason: "Manuell prikk", severity: 1 };
@@ -43,7 +43,7 @@ describe("giveManualPoints", () => {
 		await admin.mutation(mutations.giveManualPoints, { id: studentId, ...manualPoint });
 
 		expect(await pointsFor(t, studentId)).toMatchObject([manualPoint]);
-		vi.advanceTimersByTime(POINTS_EMAIL_DELAY_MS - 1);
+		vi.advanceTimersByTime(DAY_IN_MS - 1);
 		await t.finishInProgressScheduledFunctions();
 		expect(await scheduledRecipientsOf(t, "sendGottenPointsEmail")).toEqual([]);
 
