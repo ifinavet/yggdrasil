@@ -24,10 +24,14 @@ import {
 } from "../../../test/fixtures";
 import { api } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
+import { trackedEmail } from "../../lib/trackedEmail";
 
 const mutations = api.events.registrations.mutations;
 
-afterEach(() => vi.useRealTimers());
+afterEach(() => {
+	vi.useRealTimers();
+	vi.restoreAllMocks();
+});
 
 async function registrationLogFor(t: TestBackend, eventId: Id<"events">) {
 	return t.run((ctx) =>
@@ -669,6 +673,7 @@ describe("updateAttendance", () => {
 
 	it("sends no point or lockout email when the penalty is corrected within the delay", async () => {
 		const { t, studentId, mark } = await attendanceScenario();
+		const sendEmail = vi.spyOn(trackedEmail, "sendEmail");
 		await givePointsTo(t, studentId, 1);
 
 		await mark("no_show");
@@ -676,6 +681,26 @@ describe("updateAttendance", () => {
 
 		expect(await pointEmailsAfterDelay(t)).toEqual([]);
 		expect(await scheduledRecipientsOf(t, "sendTooManyPointsEmail")).toEqual([]);
+		expect(sendEmail).not.toHaveBeenCalled();
+	});
+
+	it("tells the student when a point they were emailed about is corrected away", async () => {
+		const { t, mark } = await attendanceScenario();
+		const sendEmail = vi.spyOn(trackedEmail, "sendEmail").mockResolvedValue("email-id" as never);
+
+		await mark("no_show");
+		vi.advanceTimersByTime(DAY_IN_MS + HOUR_IN_MS);
+		await t.finishInProgressScheduledFunctions();
+		await mark("confirmed");
+
+		expect(sendEmail).toHaveBeenCalledOnce();
+		expect(sendEmail.mock.calls[0]?.[1]).toMatchObject({
+			from: "Navet <info@ifinavet.no>",
+			replyTo: ["arrangor@example.com"],
+			to: "deltaker@example.com",
+			subject: "Prikken for Testarrangement er fjernet",
+			text: expect.stringMatching(/^Halla Test, .*prikk for Testarrangement.*Test Testesen/s),
+		});
 	});
 
 	it("sends no lockout email when an older point is removed within the delay", async () => {

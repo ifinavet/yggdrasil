@@ -1,10 +1,11 @@
-import { totalPoints } from "@workspace/shared/constants";
+import { MIDGARD_URL, totalPoints } from "@workspace/shared/constants";
 import { DAY_MS } from "@workspace/shared/time";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../../_generated/api";
 import type { Doc } from "../../_generated/dataModel";
 import { type MutationCtx, mutation } from "../../_generated/server";
 import { getCurrentUserOrThrow } from "../../auth/currentUser";
+import { isLocalDevelopment } from "../../auth/local";
 import { dropCheckpoints } from "../../engagement/checkpoints";
 import { logRegistrationChange, refreshTouched, type TouchedEvents } from "../../engagement/log";
 import { patchAttendanceStats } from "../../engagement/stats";
@@ -16,6 +17,7 @@ import {
 	validateRegistrationTime,
 	validateUserCanRegister,
 } from "../helper";
+import { sendEventEmail, senderFor } from "../planning/helpers";
 
 /**
  * Accepts a pending registration for the current user.
@@ -166,6 +168,19 @@ export const updateAttendance = mutation({
 		}
 		if (totalPoints(previousPoints) === severity) return;
 		await Promise.all(previousPoints.map((point) => ctx.db.delete(point._id)));
+
+		const emailed = previousPoints.some((point) => point._creationTime + DAY_MS <= Date.now());
+		if (participant && emailed && !isLocalDevelopment()) {
+			const { from, replyTo, signature } = await senderFor(ctx, registration.eventId);
+			await sendEventEmail(ctx, registration.eventId, {
+				sendToOrganizers: false,
+				from,
+				replyTo,
+				to: participant.email,
+				subject: `Prikken for ${event?.title} er fjernet`,
+				text: `Halla ${participant.firstName.trim()}, du fikk en e-post av oss om at du har fått prikk for ${event?.title}, men denne prikken har blitt fjernet fordi vi korrigerte oppmøtet ditt, beklager bryet. :)\n\nDu kan alltid se prikkene dine under profilen din på ${MIDGARD_URL}/profile.\n\nMed vennlig hilsen\n${signature || "Navet"}`,
+			});
+		}
 
 		if (newStatus === "late" || newStatus === "no_show") {
 			await givePoints(ctx, {
