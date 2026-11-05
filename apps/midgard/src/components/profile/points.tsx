@@ -1,5 +1,6 @@
 import { getAuthToken } from "@workspace/auth";
 import { api } from "@workspace/backend/convex/api";
+import { POINT_LIMIT, totalPoints } from "@workspace/shared/constants";
 import { EVENT_CONTACT_EMAIL } from "@workspace/shared/constants/contact";
 import { DATE_PATTERNS, formatOsloDate } from "@workspace/shared/time";
 import { cn } from "@workspace/ui/lib/utils";
@@ -21,7 +22,7 @@ export default async function Points({ className }: Readonly<{ className?: strin
 	const token = await getAuthToken();
 	const points = await fetchQuery(api.points.queries.getCurrentStudentsPoints, {}, { token });
 
-	const numberOfPoints = (points ?? []).reduce((acc, point) => acc + point.severity, 0);
+	const numberOfPoints = totalPoints(points ?? []);
 
 	return (
 		<div
@@ -32,7 +33,7 @@ export default async function Points({ className }: Readonly<{ className?: strin
 		>
 			<div className="grid gap-6">
 				<div className="flex w-full justify-center gap-4">
-					{Array.from({ length: 3 }).map((_, index) => {
+					{Array.from({ length: POINT_LIMIT }).map((_, index) => {
 						const idx = index + 1;
 						return (
 							<div

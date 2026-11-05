@@ -1,3 +1,4 @@
+import { totalPoints } from "@workspace/shared/constants";
 import { DAY_MS } from "@workspace/shared/time";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../../_generated/api";
@@ -163,7 +164,7 @@ export const updateAttendance = mutation({
 			);
 			if (legacyPoint) previousPoints.push(legacyPoint);
 		}
-		if (previousPoints.reduce((sum, point) => sum + point.severity, 0) === severity) return;
+		if (totalPoints(previousPoints) === severity) return;
 		await Promise.all(previousPoints.map((point) => ctx.db.delete(point._id)));
 
 		if (newStatus === "late" || newStatus === "no_show") {

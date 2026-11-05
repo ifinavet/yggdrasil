@@ -1,4 +1,4 @@
-import type { OrganizerRole } from "@workspace/shared/constants";
+import { type OrganizerRole, POINT_LIMIT } from "@workspace/shared/constants";
 import {
 	type EventSemester,
 	eventSemesterRange,
@@ -81,7 +81,9 @@ export async function validateUserCanRegister(ctx: MutationCtx, user: Doc<"users
 		.first();
 
 	if (student && (await hasTooManyPoints(ctx, student._id))) {
-		throw new ConvexError("Du har 3 eller flere prikker og kan ikke melde deg på arrangementer.");
+		throw new ConvexError(
+			`Du har ${POINT_LIMIT} eller flere prikker og kan ikke melde deg på arrangementer.`,
+		);
 	}
 }
 

@@ -1,4 +1,4 @@
-import { nextStudy } from "@workspace/shared/constants";
+import { nextStudy, totalPoints } from "@workspace/shared/constants";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import type { Doc, Id } from "../../_generated/dataModel";
@@ -83,7 +83,7 @@ export const getAllWithPoints = query({
 			studentsWithPoints.push({
 				id: student._id,
 				name: student.name,
-				points: points.reduce((acc, point) => acc + point.severity, 0),
+				points: totalPoints(points),
 			});
 		}
 

@@ -1,3 +1,4 @@
+import { POINT_LIMIT, totalPoints } from "@workspace/shared/constants";
 import { v } from "convex/values";
 import type { Id } from "../_generated/dataModel";
 import { type QueryCtx, query } from "../_generated/server";
@@ -11,7 +12,7 @@ export async function hasTooManyPoints(ctx: QueryCtx, studentId: Id<"students">)
 		.withIndex("by_studentId", (q) => q.eq("studentId", studentId))
 		.take(100);
 
-	return points.reduce((acc, { severity }) => acc + severity, 0) >= 3;
+	return totalPoints(points) >= POINT_LIMIT;
 }
 
 /**
