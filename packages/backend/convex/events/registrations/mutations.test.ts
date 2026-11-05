@@ -23,6 +23,7 @@ import {
 } from "../../../test/fixtures";
 import { api } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
+import { POINTS_EMAIL_DELAY_MS } from "../../points/lifetime";
 
 const mutations = api.events.registrations.mutations;
 
@@ -659,7 +660,7 @@ describe("updateAttendance", () => {
 		await givePointsTo(t, studentId, 1);
 
 		await mark("no_show");
-		vi.advanceTimersByTime(DAY_IN_MS - 1);
+		vi.advanceTimersByTime(POINTS_EMAIL_DELAY_MS - 1);
 		await t.finishInProgressScheduledFunctions();
 
 		expect(await scheduledRecipientsOf(t, "sendGottenPointsEmail")).toEqual([]);

@@ -7,7 +7,7 @@ import { dropCheckpoints } from "../../engagement/checkpoints";
 import { logRegistrationChange, refreshTouched, type TouchedEvents } from "../../engagement/log";
 import { patchAttendanceStats } from "../../engagement/stats";
 import { inviteLateAttendee } from "../../feedback/delivery/campaigns";
-import { givePoint } from "../../points/mutations";
+import { givePoints } from "../../points/mutations";
 import {
 	countRegistrationsWithStatus,
 	isEventOrganizerOrAdmin,
@@ -166,7 +166,7 @@ export const updateAttendance = mutation({
 		await Promise.all(previousPoints.map((point) => ctx.db.delete(point._id)));
 
 		if (newStatus === "late" || newStatus === "no_show") {
-			await givePoint(ctx, {
+			await givePoints(ctx, {
 				studentId: student._id,
 				severity,
 				reason: attendancePointsReason(newStatus, event?.title),
@@ -331,7 +331,7 @@ export const unregister = mutation({
 				.first();
 
 			if (student) {
-				await givePoint(ctx, {
+				await givePoints(ctx, {
 					studentId: student._id,
 					severity: 1,
 					reason: `Avregistrering fra arrangementet ${event.title} mindre enn 24 timer før start.`,

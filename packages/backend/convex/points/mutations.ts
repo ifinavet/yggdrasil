@@ -4,12 +4,10 @@ import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, mutation } from "../_generated/server";
 import { adminRoles, requireRole } from "../auth/accessRights";
-import { POINT_LIFETIME_MS } from "./lifetime";
+import { POINT_LIFETIME_MS, POINTS_EMAIL_DELAY_MS } from "./lifetime";
 import { hasTooManyPoints } from "./queries";
 
-const POINTS_EMAIL_DELAY_MS = 24 * 60 * 60 * 1000;
-
-export async function givePoint(ctx: MutationCtx, point: WithoutSystemFields<Doc<"points">>) {
+export async function givePoints(ctx: MutationCtx, point: WithoutSystemFields<Doc<"points">>) {
 	const pointId = await ctx.db.insert("points", point);
 
 	await ctx.scheduler.runAfter(POINTS_EMAIL_DELAY_MS, internal.points.mutations.sendPointEmails, {
@@ -27,7 +25,7 @@ export async function givePoint(ctx: MutationCtx, point: WithoutSystemFields<Doc
  * @throws - An error if the student cannot be found.
  * @returns {null} - Returns null when the points are created successfully.
  */
-export const givePoints = mutation({
+export const giveManualPoints = mutation({
 	args: {
 		id: v.id("students"),
 		reason: v.string(),
@@ -40,7 +38,7 @@ export const givePoints = mutation({
 			throw new ConvexError(`Studenten med ID ${id} ble ikke funnet.`);
 		}
 
-		await givePoint(ctx, { studentId: id, reason, severity });
+		await givePoints(ctx, { studentId: id, reason, severity });
 	},
 });
 
