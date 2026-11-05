@@ -87,7 +87,7 @@ function attendancePointsReason(status: "late" | "no_show", eventTitle: string |
 		: `Du fikk 2 prikker for å ikke møte til arrangementet "${eventTitle}".`;
 }
 
-async function emailRemovedPoint(
+async function sendRemovedPointEmail(
 	ctx: MutationCtx,
 	eventId: Id<"events">,
 	participant: Doc<"users">,
@@ -199,7 +199,7 @@ export const updateAttendance = mutation({
 			(point) => point._creationTime + DAY_MS <= Date.now(),
 		);
 		if (studentWasEmailedAboutRemovedPoint) {
-			await emailRemovedPoint(ctx, registration.eventId, participant, event?.title);
+			await sendRemovedPointEmail(ctx, registration.eventId, participant, event?.title);
 		}
 
 		if (newStatus === "late" || newStatus === "no_show") {
