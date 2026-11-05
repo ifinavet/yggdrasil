@@ -1,10 +1,19 @@
 import { ConvexError, v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
-import { internalMutation, mutation } from "../_generated/server";
+import { internalMutation, type MutationCtx, mutation } from "../_generated/server";
 import { adminRoles, requireRole } from "../auth/accessRights";
 import { getIdentity } from "../auth/currentUser";
 import { POINT_LIFETIME_MS, POINTS_EMAIL_DELAY_MS } from "./lifetime";
+
+async function hasTooManyPoints(ctx: MutationCtx, studentId: Id<"students">) {
+	const points = await ctx.db
+		.query("points")
+		.withIndex("by_studentId", (q) => q.eq("studentId", studentId))
+		.collect();
+
+	return points.reduce((acc, point) => acc + point.severity, 0) >= 3;
+}
 
 /**
  * Gives points to a student and schedules the notification email.
@@ -78,12 +87,7 @@ export const givePointsInternal = internalMutation({
 			registrationId,
 		});
 
-		const points = await ctx.db
-			.query("points")
-			.withIndex("by_studentId", (q) => q.eq("studentId", id))
-			.collect();
-
-		if (points.reduce((acc, point) => acc + point.severity, 0) >= 3) {
+		if (await hasTooManyPoints(ctx, id)) {
 			await ctx.scheduler.runAfter(
 				POINTS_EMAIL_DELAY_MS,
 				internal.points.mutations.tooManyPointsEmail,
@@ -143,7 +147,7 @@ export const tooManyPointsEmail = internalMutation({
 		studentsId: v.id("students"),
 	},
 	handler: async (ctx, { pointId, studentsId }) => {
-		if (!(await ctx.db.get(pointId))) return;
+		if (!(await ctx.db.get(pointId)) || !(await hasTooManyPoints(ctx, studentsId))) return;
 
 		const student = await ctx.db.get(studentsId);
 		if (!student) {

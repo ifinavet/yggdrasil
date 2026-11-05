@@ -681,6 +681,17 @@ describe("updateAttendance", () => {
 		expect(await scheduledRecipientsOf(t, "sendTooManyPointsEmail")).toEqual([]);
 	});
 
+	it("sends no lockout email when an older point is removed within the delay", async () => {
+		const { t, studentId, mark } = await attendanceScenario();
+		const olderPointId = await givePointsTo(t, studentId, 1);
+
+		await mark("no_show");
+		await t.run((ctx) => ctx.db.delete(olderPointId));
+
+		expect(await pointEmailsAfterDelay(t)).toEqual(["deltaker@example.com"]);
+		expect(await scheduledRecipientsOf(t, "sendTooManyPointsEmail")).toEqual([]);
+	});
+
 	it("emails only about the replacement penalty when a no-show is corrected to late", async () => {
 		const { t, mark } = await attendanceScenario();
 
