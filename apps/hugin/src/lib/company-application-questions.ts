@@ -121,11 +121,11 @@ export const COMPANY_APPLICATION_COPY = {
 		refusedTitle: "Søknaden ble ikke sendt",
 		expired: {
 			title: "Lenken har gått ut",
-			body: "Lenken virker i 24 timer. Send søknaden på nytt fra skjemaet, så sender vi en ny lenke.",
+			body: "Send søknaden på nytt fra skjemaet, så sender vi en ny lenke.",
 		},
 		invalid: {
 			title: "Vi kjenner ikke igjen lenken",
-			body: "Prøv å åpne lenken direkte fra e-posten. Virker den fortsatt ikke, kan dere sende søknaden på nytt.",
+			body: "Har dere fått flere e-poster fra oss, virker bare lenken i den nyeste. Prøv å åpne den direkte fra e-posten. Virker den fortsatt ikke, kan dere sende søknaden på nytt.",
 		},
 		error: {
 			title: "Beklager, noe gikk galt",
@@ -137,7 +137,7 @@ export const COMPANY_APPLICATION_COPY = {
 		body: (deadline: string) =>
 			`Etter fristen ${deadline} fordeler vi datoene, og så tar vi kontakt med et tilbud. Vi gleder oss!`,
 		lateBody: "Vi ser på søknaden så fort vi kan og tar kontakt med dere. Vi gleder oss!",
-		keep: "Lenken i e-posten viser denne kvitteringen i 24 timer, så ta gjerne vare på siden.",
+		keep: "Lenken i e-posten viser denne kvitteringen igjen.",
 		summary: "Dette sendte dere",
 		wrong: "Ble noe feil, eller har dere spørsmål? Si ifra på",
 		rows: {

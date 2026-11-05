@@ -1,5 +1,5 @@
 import { COMPANY_CONTACT_EMAIL } from "@workspace/shared/constants/contact";
-import { CONFIRM_EMAIL_DEFAULTS, confirmEmailFor } from "@workspace/shared/semester/confirm-email";
+import { CONFIRM_EMAIL_DEFAULTS, confirmEmailFor } from "@workspace/shared/semester/company-emails";
 import { Link, Section, Text } from "react-email";
 import { OrderButton, OrderLayout } from "../components/order-layout.js";
 
@@ -23,7 +23,7 @@ export default function CompanyApplicationConfirmEmail({
 				<OrderButton href={url}>Bekreft søknaden</OrderButton>
 			</Section>
 			<Text>
-				Lenken virker i 24 timer. Virker ikke knappen, kan dere lime inn denne lenken i nettleseren:{" "}
+				Virker ikke knappen, kan dere lime inn denne lenken i nettleseren:{" "}
 				<Link href={url}>{url}</Link>
 			</Text>
 		</OrderLayout>
