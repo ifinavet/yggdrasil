@@ -3,6 +3,7 @@
 import { useConvexAuth } from "@workspace/auth/convex";
 import { api } from "@workspace/backend/convex/api";
 import type { Doc } from "@workspace/backend/convex/dataModel";
+import { POINT_LIMIT, totalPoints } from "@workspace/shared/constants";
 import { Button } from "@workspace/ui/components/button";
 import { useQuery } from "convex/react";
 import Link from "next/link";
@@ -32,7 +33,7 @@ export default function RegistrationButton({
 		api.points.queries.getCurrentStudentsPoints,
 		isAuthenticated ? undefined : "skip",
 	);
-	const numberOfPoints = currentUsersPoints?.reduce((acc, curr) => acc + curr.severity, 0) || 0;
+	const numberOfPoints = totalPoints(currentUsersPoints ?? []);
 
 	const { ownRegistration } = registrationSummary;
 
@@ -58,7 +59,7 @@ export default function RegistrationButton({
 		);
 	}
 
-	if (numberOfPoints >= 3 && !ownRegistration) {
+	if (numberOfPoints >= POINT_LIMIT && !ownRegistration) {
 		return (
 			<Button
 				asChild

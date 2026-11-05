@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
 	asUser,
 	countRegistrationsForEvent,
@@ -11,6 +11,7 @@ import {
 	insertRegistration,
 	insertStudent,
 	insertUser,
+	pointEmailsAfterDelay,
 	pointsFor,
 	refusalMessageFrom,
 	registrationById,
@@ -25,6 +26,8 @@ import { api } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 
 const mutations = api.events.registrations.mutations;
+
+afterEach(() => vi.useRealTimers());
 
 async function registrationLogFor(t: TestBackend, eventId: Id<"events">) {
 	return t.run((ctx) =>
@@ -421,7 +424,8 @@ describe("unregister", () => {
 		expect(await scheduledRecipientsOf(t, "sendAvailableSeatEmail")).toEqual([]);
 	});
 
-	it("gives the owner a point when they leave less than 24 hours before the start", async () => {
+	it("gives and emails the owner a point when they leave less than 24 hours before the start", async () => {
+		vi.useFakeTimers();
 		const { t, companyId } = await setup();
 		const eventId = await insertEvent(t, companyId, { eventStart: Date.now() + HOUR_IN_MS });
 		const owner = await insertUser(t, "eier@example.com");
@@ -431,6 +435,7 @@ describe("unregister", () => {
 		await asUser(t, owner).mutation(mutations.unregister, { id: registrationId });
 
 		expect(await totalPointsFor(t, studentId)).toBe(1);
+		expect(await pointEmailsAfterDelay(t)).toEqual(["eier@example.com"]);
 	});
 
 	it("gives no point when the owner leaves more than 24 hours before the start", async () => {
@@ -638,25 +643,54 @@ describe("updateAttendance", () => {
 	});
 
 	it("emails the student about the points they were given", async () => {
-		const { t, companyId } = await setup();
-		const eventId = await insertEvent(t, companyId);
-		const attendee = await insertUser(t, "deltaker@example.com");
-		await insertStudent(t, attendee._id);
-		const registrationId = await insertRegistration(t, eventId, attendee._id, "registered");
-		const organizer = await insertUser(t, "arrangor@example.com");
-		await insertOrganizer(t, eventId, organizer._id);
+		const { t, mark } = await attendanceScenario();
 
-		await asUser(t, organizer).mutation(mutations.updateAttendance, {
-			id: registrationId,
-			newStatus: "late",
-		});
+		await mark("late");
 
-		expect(await scheduledRecipientsOf(t, "sendGottenPointsEmail")).toEqual([
+		expect(await pointEmailsAfterDelay(t)).toEqual(["deltaker@example.com"]);
+	});
+
+	it("holds the point and lockout emails until the delay has passed", async () => {
+		const { t, studentId, mark } = await attendanceScenario();
+		await givePointsTo(t, studentId, 1);
+
+		await mark("no_show");
+		vi.advanceTimersByTime(DAY_IN_MS - 1);
+		await t.finishInProgressScheduledFunctions();
+
+		expect(await scheduledRecipientsOf(t, "sendGottenPointsEmail")).toEqual([]);
+		expect(await scheduledRecipientsOf(t, "sendTooManyPointsEmail")).toEqual([]);
+
+		expect(await pointEmailsAfterDelay(t)).toEqual(["deltaker@example.com"]);
+		expect(await scheduledRecipientsOf(t, "sendTooManyPointsEmail")).toEqual([
 			"deltaker@example.com",
 		]);
 	});
 
+	it("sends no point or lockout email when the penalty is corrected within the delay", async () => {
+		const { t, studentId, mark } = await attendanceScenario();
+		await givePointsTo(t, studentId, 1);
+
+		await mark("no_show");
+		await mark("confirmed");
+
+		expect(await pointEmailsAfterDelay(t)).toEqual([]);
+		expect(await scheduledRecipientsOf(t, "sendTooManyPointsEmail")).toEqual([]);
+	});
+
+	it("sends no lockout email when an older point is removed within the delay", async () => {
+		const { t, studentId, mark } = await attendanceScenario();
+		const olderPointId = await givePointsTo(t, studentId, 1);
+
+		await mark("no_show");
+		await t.run((ctx) => ctx.db.delete(olderPointId));
+
+		expect(await pointEmailsAfterDelay(t)).toEqual(["deltaker@example.com"]);
+		expect(await scheduledRecipientsOf(t, "sendTooManyPointsEmail")).toEqual([]);
+	});
+
 	async function attendanceScenario() {
+		vi.useFakeTimers();
 		const { t, companyId } = await setup();
 		const eventId = await insertEvent(t, companyId);
 		const attendee = await insertUser(t, "deltaker@example.com");
@@ -714,7 +748,7 @@ describe("updateAttendance", () => {
 		await mark("no_show");
 
 		expect(await totalPointsFor(t, studentId)).toBe(0);
-		expect(await scheduledRecipientsOf(t, "sendGottenPointsEmail")).toHaveLength(1);
+		expect(await pointEmailsAfterDelay(t)).toEqual([]);
 	});
 
 	it("refunds the points when a no-show is corrected to confirmed", async () => {
@@ -742,7 +776,7 @@ describe("updateAttendance", () => {
 		await mark("no_show");
 
 		expect(await totalPointsFor(t, studentId)).toBe(2);
-		expect(await scheduledRecipientsOf(t, "sendGottenPointsEmail")).toHaveLength(1);
+		expect(await pointEmailsAfterDelay(t)).toHaveLength(1);
 	});
 
 	it("keeps points given for other reasons when attendance is corrected", async () => {

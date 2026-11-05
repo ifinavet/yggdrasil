@@ -35,7 +35,7 @@ export default function StudentPointsForm({
 	student_id: Id<"students">;
 }>) {
 	const posthog = usePostHog();
-	const giveStudentPoints = useMutation(api.points.mutations.givePoints);
+	const giveStudentPoints = useMutation(api.points.mutations.giveManualPoints);
 
 	const form = useForm({
 		defaultValues: {

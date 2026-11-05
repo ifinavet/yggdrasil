@@ -1,4 +1,4 @@
-import type { OrganizerRole } from "@workspace/shared/constants";
+import { type OrganizerRole, POINT_LIMIT } from "@workspace/shared/constants";
 import {
 	type EventSemester,
 	eventSemesterRange,
@@ -9,6 +9,7 @@ import { ConvexError } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { internalRoles, userHasRole } from "../auth/accessRights";
+import { hasTooManyPoints } from "../points/queries";
 
 export function leadingRole(roles: readonly OrganizerRole[]): OrganizerRole | null {
 	return roles.includes("hovedansvarlig") ? "hovedansvarlig" : (roles[0] ?? null);
@@ -79,15 +80,10 @@ export async function validateUserCanRegister(ctx: MutationCtx, user: Doc<"users
 		.withIndex("by_userId", (q) => q.eq("userId", user._id))
 		.first();
 
-	if (student) {
-		const points = await ctx.db
-			.query("points")
-			.withIndex("by_studentId", (q) => q.eq("studentId", student._id))
-			.collect();
-		const totalPoints = points.reduce((acc, p) => acc + p.severity, 0);
-		if (totalPoints >= 3) {
-			throw new ConvexError("Du har 3 eller flere prikker og kan ikke melde deg på arrangementer.");
-		}
+	if (student && (await hasTooManyPoints(ctx, student._id))) {
+		throw new ConvexError(
+			`Du har ${POINT_LIMIT} eller flere prikker og kan ikke melde deg på arrangementer.`,
+		);
 	}
 }
 

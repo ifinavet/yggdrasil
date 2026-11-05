@@ -1,3 +1,5 @@
+import { totalPoints } from "@workspace/shared/constants";
+import { DAY_MS } from "@workspace/shared/time";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../../_generated/api";
 import type { Doc } from "../../_generated/dataModel";
@@ -7,6 +9,7 @@ import { dropCheckpoints } from "../../engagement/checkpoints";
 import { logRegistrationChange, refreshTouched, type TouchedEvents } from "../../engagement/log";
 import { patchAttendanceStats } from "../../engagement/stats";
 import { inviteLateAttendee } from "../../feedback/delivery/campaigns";
+import { givePoints } from "../../points/mutations";
 import {
 	countRegistrationsWithStatus,
 	isEventOrganizerOrAdmin,
@@ -161,23 +164,15 @@ export const updateAttendance = mutation({
 			);
 			if (legacyPoint) previousPoints.push(legacyPoint);
 		}
-		if (previousPoints.reduce((sum, point) => sum + point.severity, 0) === severity) return;
+		if (totalPoints(previousPoints) === severity) return;
 		await Promise.all(previousPoints.map((point) => ctx.db.delete(point._id)));
 
 		if (newStatus === "late" || newStatus === "no_show") {
-			const reason = attendancePointsReason(newStatus, event?.title);
-
-			await ctx.runMutation(internal.points.mutations.givePointsInternal, {
-				id: student._id,
+			await givePoints(ctx, {
+				studentId: student._id,
 				severity,
-				reason,
+				reason: attendancePointsReason(newStatus, event?.title),
 				registrationId: id,
-			});
-
-			await ctx.runMutation(internal.points.mutations.givePointsEmail, {
-				userId: student.userId,
-				severity,
-				reason,
 			});
 		}
 	},
@@ -325,28 +320,18 @@ export const unregister = mutation({
 
 		await fillOpenSeats(ctx, event);
 
-		const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
+		if (isOwner && event.eventStart - Date.now() < DAY_MS && registration.status === "registered") {
+			const student = await ctx.db
+				.query("students")
+				.withIndex("by_userId", (q) => q.eq("userId", registration.userId))
+				.first();
 
-		if (
-			isOwner &&
-			event.eventStart - Date.now() < TWENTY_FOUR_HOURS &&
-			registration.status === "registered"
-		) {
-			try {
-				const student = await ctx.db
-					.query("students")
-					.withIndex("by_userId", (q) => q.eq("userId", registration.userId))
-					.first();
-
-				if (student) {
-					await ctx.runMutation(internal.points.mutations.givePointsInternal, {
-						id: student._id,
-						severity: 1,
-						reason: `Avregistrering fra arrangementet ${event.title} mindre enn 24 timer før start.`,
-					});
-				}
-			} catch (e) {
-				console.error("Failed to apply late unregister penalty:", e);
+			if (student) {
+				await givePoints(ctx, {
+					studentId: student._id,
+					severity: 1,
+					reason: `Avregistrering fra arrangementet ${event.title} mindre enn 24 timer før start.`,
+				});
 			}
 		}
 
