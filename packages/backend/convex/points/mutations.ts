@@ -16,7 +16,9 @@ export async function givePoints(ctx: MutationCtx, point: WithoutSystemFields<Do
 }
 
 /**
- * Gives points to a student and schedules the notification email.
+ * Lets admins and internal members give a student points from bifrost, then calls givePoints.
+ * Attendance and late unregistering call givePoints directly, because organizers and students
+ * lack these roles. givePoints is a plain function, so clients cannot call it to skip this check.
  *
  * @param {Id<"students">} id - The id of the student receiving points.
  * @param {string} reason - The reason for the points.
