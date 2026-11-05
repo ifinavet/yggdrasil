@@ -5,11 +5,11 @@ import {
 	givePointsTo,
 	insertStudent,
 	insertUser,
+	pointEmailsAfterDelay,
 	pointsFor,
 	refusalMessageFrom,
 	scheduledRecipientsOf,
 	setupAdminAndEditor,
-	type TestBackend,
 } from "../../test/fixtures";
 import { api } from "../_generated/api";
 
@@ -28,14 +28,6 @@ async function scenario() {
 	return { t, admin, editor, student: asUser(t, user), studentId };
 }
 
-async function finishDelayedEmails(t: TestBackend) {
-	await t.finishAllScheduledFunctions(vi.runAllTimers);
-	return {
-		pointEmails: await scheduledRecipientsOf(t, "sendGottenPointsEmail"),
-		lockoutEmails: await scheduledRecipientsOf(t, "sendTooManyPointsEmail"),
-	};
-}
-
 describe("giveManualPoints", () => {
 	it("stores the points and emails the student only after the delay", async () => {
 		const { t, admin, studentId } = await scenario();
@@ -47,10 +39,8 @@ describe("giveManualPoints", () => {
 		await t.finishInProgressScheduledFunctions();
 		expect(await scheduledRecipientsOf(t, "sendGottenPointsEmail")).toEqual([]);
 
-		expect(await finishDelayedEmails(t)).toEqual({
-			pointEmails: ["student@example.com"],
-			lockoutEmails: [],
-		});
+		expect(await pointEmailsAfterDelay(t)).toEqual(["student@example.com"]);
+		expect(await scheduledRecipientsOf(t, "sendTooManyPointsEmail")).toEqual([]);
 	});
 
 	it("also sends the lockout email when the points reach the limit", async () => {
@@ -59,10 +49,10 @@ describe("giveManualPoints", () => {
 
 		await admin.mutation(mutations.giveManualPoints, { id: studentId, ...manualPoint });
 
-		expect(await finishDelayedEmails(t)).toEqual({
-			pointEmails: ["student@example.com"],
-			lockoutEmails: ["student@example.com"],
-		});
+		expect(await pointEmailsAfterDelay(t)).toEqual(["student@example.com"]);
+		expect(await scheduledRecipientsOf(t, "sendTooManyPointsEmail")).toEqual([
+			"student@example.com",
+		]);
 	});
 
 	it("refuses a student that does not exist", async () => {
@@ -103,7 +93,8 @@ describe("remove", () => {
 		}
 
 		expect(await pointsFor(t, studentId)).toEqual([]);
-		expect(await finishDelayedEmails(t)).toEqual({ pointEmails: [], lockoutEmails: [] });
+		expect(await pointEmailsAfterDelay(t)).toEqual([]);
+		expect(await scheduledRecipientsOf(t, "sendTooManyPointsEmail")).toEqual([]);
 	});
 
 	it("refuses a caller who is not an admin", async () => {

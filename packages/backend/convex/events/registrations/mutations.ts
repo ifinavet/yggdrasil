@@ -1,3 +1,4 @@
+import { DAY_MS } from "@workspace/shared/time";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../../_generated/api";
 import type { Doc } from "../../_generated/dataModel";
@@ -318,13 +319,7 @@ export const unregister = mutation({
 
 		await fillOpenSeats(ctx, event);
 
-		const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
-
-		if (
-			isOwner &&
-			event.eventStart - Date.now() < TWENTY_FOUR_HOURS &&
-			registration.status === "registered"
-		) {
+		if (isOwner && event.eventStart - Date.now() < DAY_MS && registration.status === "registered") {
 			const student = await ctx.db
 				.query("students")
 				.withIndex("by_userId", (q) => q.eq("userId", registration.userId))

@@ -11,6 +11,7 @@ import {
 	insertRegistration,
 	insertStudent,
 	insertUser,
+	pointEmailsAfterDelay,
 	pointsFor,
 	refusalMessageFrom,
 	registrationById,
@@ -27,11 +28,6 @@ import type { Id } from "../../_generated/dataModel";
 const mutations = api.events.registrations.mutations;
 
 afterEach(() => vi.useRealTimers());
-
-async function pointEmailsAfterDelay(t: TestBackend) {
-	await t.finishAllScheduledFunctions(vi.runAllTimers);
-	return scheduledRecipientsOf(t, "sendGottenPointsEmail");
-}
 
 async function registrationLogFor(t: TestBackend, eventId: Id<"events">) {
 	return t.run((ctx) =>

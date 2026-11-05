@@ -10,6 +10,7 @@ import type { FoodItem } from "@workspace/shared/events/food";
 import type { WithoutSystemFields } from "convex/server";
 import { ConvexError } from "convex/values";
 import { convexTest } from "convex-test";
+import { vi } from "vitest";
 import type { Doc, Id } from "../convex/_generated/dataModel";
 import type { AccessRole } from "../convex/auth/accessRights";
 import { builtInFoodItemId } from "../convex/events/food";
@@ -287,6 +288,11 @@ export async function pointsFor(
 export async function totalPointsFor(t: TestBackend, studentId: Id<"students">): Promise<number> {
 	const points = await pointsFor(t, studentId);
 	return points.reduce((total, point) => total + point.severity, 0);
+}
+
+export async function pointEmailsAfterDelay(t: TestBackend) {
+	await t.finishAllScheduledFunctions(vi.runAllTimers);
+	return scheduledRecipientsOf(t, "sendGottenPointsEmail");
 }
 
 export async function scheduledRecipientsOf(
