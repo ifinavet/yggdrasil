@@ -7,7 +7,7 @@ import { dropCheckpoints } from "../../engagement/checkpoints";
 import { logRegistrationChange, refreshTouched, type TouchedEvents } from "../../engagement/log";
 import { patchAttendanceStats } from "../../engagement/stats";
 import { inviteLateAttendee } from "../../feedback/delivery/campaigns";
-import { POINTS_EMAIL_DELAY_MS } from "../../points/lifetime";
+import { givePoint } from "../../points/mutations";
 import {
 	countRegistrationsWithStatus,
 	isEventOrganizerOrAdmin,
@@ -166,20 +166,12 @@ export const updateAttendance = mutation({
 		await Promise.all(previousPoints.map((point) => ctx.db.delete(point._id)));
 
 		if (newStatus === "late" || newStatus === "no_show") {
-			const reason = attendancePointsReason(newStatus, event?.title);
-
-			const pointId = await ctx.runMutation(internal.points.mutations.givePointsInternal, {
-				id: student._id,
+			await givePoint(ctx, {
+				studentId: student._id,
 				severity,
-				reason,
+				reason: attendancePointsReason(newStatus, event?.title),
 				registrationId: id,
 			});
-
-			await ctx.scheduler.runAfter(
-				POINTS_EMAIL_DELAY_MS,
-				internal.points.mutations.givePointsEmail,
-				{ pointId, userId: student.userId, severity, reason },
-			);
 		}
 	},
 });
@@ -333,21 +325,17 @@ export const unregister = mutation({
 			event.eventStart - Date.now() < TWENTY_FOUR_HOURS &&
 			registration.status === "registered"
 		) {
-			try {
-				const student = await ctx.db
-					.query("students")
-					.withIndex("by_userId", (q) => q.eq("userId", registration.userId))
-					.first();
+			const student = await ctx.db
+				.query("students")
+				.withIndex("by_userId", (q) => q.eq("userId", registration.userId))
+				.first();
 
-				if (student) {
-					await ctx.runMutation(internal.points.mutations.givePointsInternal, {
-						id: student._id,
-						severity: 1,
-						reason: `Avregistrering fra arrangementet ${event.title} mindre enn 24 timer før start.`,
-					});
-				}
-			} catch (e) {
-				console.error("Failed to apply late unregister penalty:", e);
+			if (student) {
+				await givePoint(ctx, {
+					studentId: student._id,
+					severity: 1,
+					reason: `Avregistrering fra arrangementet ${event.title} mindre enn 24 timer før start.`,
+				});
 			}
 		}
 

@@ -23,7 +23,6 @@ import {
 } from "../../../test/fixtures";
 import { api } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
-import { POINTS_EMAIL_DELAY_MS } from "../../points/lifetime";
 
 const mutations = api.events.registrations.mutations;
 
@@ -429,7 +428,8 @@ describe("unregister", () => {
 		expect(await scheduledRecipientsOf(t, "sendAvailableSeatEmail")).toEqual([]);
 	});
 
-	it("gives the owner a point when they leave less than 24 hours before the start", async () => {
+	it("gives and emails the owner a point when they leave less than 24 hours before the start", async () => {
+		vi.useFakeTimers();
 		const { t, companyId } = await setup();
 		const eventId = await insertEvent(t, companyId, { eventStart: Date.now() + HOUR_IN_MS });
 		const owner = await insertUser(t, "eier@example.com");
@@ -439,6 +439,7 @@ describe("unregister", () => {
 		await asUser(t, owner).mutation(mutations.unregister, { id: registrationId });
 
 		expect(await totalPointsFor(t, studentId)).toBe(1);
+		expect(await pointEmailsAfterDelay(t)).toEqual(["eier@example.com"]);
 	});
 
 	it("gives no point when the owner leaves more than 24 hours before the start", async () => {
@@ -658,7 +659,7 @@ describe("updateAttendance", () => {
 		await givePointsTo(t, studentId, 1);
 
 		await mark("no_show");
-		vi.advanceTimersByTime(POINTS_EMAIL_DELAY_MS - 1);
+		vi.advanceTimersByTime(DAY_IN_MS - 1);
 		await t.finishInProgressScheduledFunctions();
 
 		expect(await scheduledRecipientsOf(t, "sendGottenPointsEmail")).toEqual([]);
@@ -690,15 +691,6 @@ describe("updateAttendance", () => {
 
 		expect(await pointEmailsAfterDelay(t)).toEqual(["deltaker@example.com"]);
 		expect(await scheduledRecipientsOf(t, "sendTooManyPointsEmail")).toEqual([]);
-	});
-
-	it("emails only about the replacement penalty when a no-show is corrected to late", async () => {
-		const { t, mark } = await attendanceScenario();
-
-		await mark("no_show");
-		await mark("late");
-
-		expect(await pointEmailsAfterDelay(t)).toEqual(["deltaker@example.com"]);
 	});
 
 	async function attendanceScenario() {

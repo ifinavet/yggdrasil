@@ -1,8 +1,18 @@
 import { v } from "convex/values";
-import { query } from "../_generated/server";
+import type { Id } from "../_generated/dataModel";
+import { type QueryCtx, query } from "../_generated/server";
 import { adminRoles, requireRole } from "../auth/accessRights";
 import { getCurrentUser } from "../users/clerk/queries";
 import { POINT_LIFETIME_MS } from "./lifetime";
+
+export async function hasTooManyPoints(ctx: QueryCtx, studentId: Id<"students">) {
+	const points = await ctx.db
+		.query("points")
+		.withIndex("by_studentId", (q) => q.eq("studentId", studentId))
+		.take(100);
+
+	return points.reduce((acc, { severity }) => acc + severity, 0) >= 3;
+}
 
 /**
  * Fetches all points records for a student.
