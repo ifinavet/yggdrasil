@@ -18,7 +18,7 @@ export default async function EventsCarousel({ className }: Readonly<{ className
 	"use cache";
 	cacheLife({
 		stale: 300, // 5 Minutes
-		revalidate: 60 * 60 * 12, // 12 Hours
+		revalidate: 60 * 60, // 1 Hour
 		expire: 60 * 60 * 48, // 2 days
 	});
 
