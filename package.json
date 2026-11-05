@@ -15,10 +15,10 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "catalog:",
-		"@playwright/test": "1.64.0",
+		"@playwright/test": "1.64.1",
 		"@workspace/typescript-config": "workspace:*",
-		"dotenv": "^18.0.7",
-		"turbo": "^2.11.7",
+		"dotenv": "^18.0.9",
+		"turbo": "^2.11.10",
 		"typescript": "catalog:"
 	},
 	"packageManager": "pnpm@10.33.2",
