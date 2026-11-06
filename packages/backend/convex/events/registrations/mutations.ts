@@ -1,10 +1,11 @@
-import { totalPoints } from "@workspace/shared/constants";
+import { MIDGARD_URL, totalPoints } from "@workspace/shared/constants";
 import { DAY_MS } from "@workspace/shared/time";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../../_generated/api";
-import type { Doc } from "../../_generated/dataModel";
+import type { Doc, Id } from "../../_generated/dataModel";
 import { type MutationCtx, mutation } from "../../_generated/server";
 import { getCurrentUserOrThrow } from "../../auth/currentUser";
+import { isLocalDevelopment } from "../../auth/local";
 import { dropCheckpoints } from "../../engagement/checkpoints";
 import { logRegistrationChange, refreshTouched, type TouchedEvents } from "../../engagement/log";
 import { patchAttendanceStats } from "../../engagement/stats";
@@ -16,6 +17,7 @@ import {
 	validateRegistrationTime,
 	validateUserCanRegister,
 } from "../helper";
+import { sendEventEmail, senderFor } from "../planning/helpers";
 
 /**
  * Accepts a pending registration for the current user.
@@ -85,6 +87,32 @@ function attendancePointsReason(status: "late" | "no_show", eventTitle: string |
 		: `Du fikk 2 prikker for å ikke møte til arrangementet "${eventTitle}".`;
 }
 
+async function sendRemovedPointEmail(
+	ctx: MutationCtx,
+	eventId: Id<"events">,
+	participant: Doc<"users">,
+	eventTitle: string | undefined,
+) {
+	if (isLocalDevelopment()) return;
+	try {
+		const { from, replyTo, signature } = await senderFor(ctx, eventId);
+		await sendEventEmail(ctx, eventId, {
+			sendToOrganizers: false,
+			from,
+			replyTo,
+			to: participant.email,
+			subject: `Prikken for ${eventTitle} er fjernet`,
+			text: [
+				`Halla ${participant.firstName.trim()}, du fikk en e-post av oss om at du har fått prikk for ${eventTitle}, men denne prikken har blitt fjernet fordi vi korrigerte oppmøtet ditt, beklager bryet. :)`,
+				`Du kan alltid se prikkene dine under profilen din på ${MIDGARD_URL}/profile.`,
+				`Med vennlig hilsen\n${signature || "Navet"}`,
+			].join("\n\n"),
+		});
+	} catch (error) {
+		console.error(`Could not email ${participant._id} about a removed point`, error);
+	}
+}
+
 /**
  * Updates the attendance status for a registration and applies points when needed.
  *
@@ -128,7 +156,7 @@ export const updateAttendance = mutation({
 		if (previousStatus === newStatus) return;
 		if (registration.status !== "registered") return;
 		const participant = await ctx.db.get(registration.userId);
-		if (participant?.deleted) return;
+		if (!participant || participant.deleted) return;
 
 		const student = await ctx.db
 			.query("students")
@@ -166,6 +194,13 @@ export const updateAttendance = mutation({
 		}
 		if (totalPoints(previousPoints) === severity) return;
 		await Promise.all(previousPoints.map((point) => ctx.db.delete(point._id)));
+
+		const studentWasEmailedAboutRemovedPoint = previousPoints.some(
+			(point) => point._creationTime + DAY_MS <= Date.now(),
+		);
+		if (studentWasEmailedAboutRemovedPoint) {
+			await sendRemovedPointEmail(ctx, registration.eventId, participant, event?.title);
+		}
 
 		if (newStatus === "late" || newStatus === "no_show") {
 			await givePoints(ctx, {
