@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import type { DataTableFeatures } from "@/components/common/tables/data-table";
 import { DataTable } from "@/components/common/tables/table";
 import { CandidateDialog } from "./candidates/candidate-dialog";
 import { CandidateFilters } from "./candidates/candidate-filters";
@@ -431,7 +432,9 @@ function availableGuideSteps(
 	return steps;
 }
 
-function candidateColumns(openCandidate: (id: string) => void): ColumnDef<Candidate>[] {
+function candidateColumns(
+	openCandidate: (id: string) => void,
+): ColumnDef<DataTableFeatures, Candidate>[] {
 	return [
 		{
 			accessorKey: "name",

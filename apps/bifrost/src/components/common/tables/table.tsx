@@ -1,10 +1,10 @@
 "use client";
 
-import type { ColumnDef, Row } from "@tanstack/react-table";
+import type { ColumnDef, Row, RowData } from "@tanstack/react-table";
 import type { ReactNode } from "react";
-import BaseDataTable from "@/components/common/tables/data-table";
+import BaseDataTable, { type DataTableFeatures } from "@/components/common/tables/data-table";
 
-export function DataTable<TData, TValue>({
+export function DataTable<TData extends RowData>({
 	className,
 	columns,
 	data,
@@ -13,11 +13,11 @@ export function DataTable<TData, TValue>({
 	empty_message = "Ingen data funnet.",
 }: Readonly<{
 	className?: string;
-	columns: ColumnDef<TData, TValue>[];
+	columns: ColumnDef<DataTableFeatures, TData>[];
 	data: TData[];
 	empty_message?: string;
-	onRowClick?: (row: Row<TData>) => void;
-	renderExpanded?: (row: Row<TData>) => ReactNode;
+	onRowClick?: (row: Row<DataTableFeatures, TData>) => void;
+	renderExpanded?: (row: Row<DataTableFeatures, TData>) => ReactNode;
 }>) {
 	return (
 		<BaseDataTable

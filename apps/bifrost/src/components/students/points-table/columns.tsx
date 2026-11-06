@@ -15,6 +15,7 @@ import {
 	AlertDialogTrigger,
 } from "@workspace/ui/components/alert-dialog";
 import { Trash } from "lucide-react";
+import type { DataTableFeatures } from "@/components/common/tables/data-table";
 
 export type Registration = {
 	pointId: Id<"points">;
@@ -25,7 +26,7 @@ export type Registration = {
 
 export const createColumns = (
 	onDelete: (pointId: Id<"points">) => void,
-): ColumnDef<Registration>[] => [
+): ColumnDef<DataTableFeatures, Registration>[] => [
 	{
 		id: "index",
 		header: "#",

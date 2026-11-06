@@ -2,11 +2,13 @@
 
 import {
 	type ColumnDef,
+	createExpandedRowModel,
 	flexRender,
-	getCoreRowModel,
-	getExpandedRowModel,
 	type Row,
-	useReactTable,
+	type RowData,
+	rowExpandingFeature,
+	tableFeatures,
+	useTable,
 } from "@tanstack/react-table";
 import {
 	Table,
@@ -20,6 +22,13 @@ import { cn } from "@workspace/ui/lib/utils";
 import { Fragment, type ReactNode } from "react";
 import { isRowClick } from "./row-click";
 
+const features = tableFeatures({
+	rowExpandingFeature,
+	expandedRowModel: createExpandedRowModel(),
+});
+
+export type DataTableFeatures = typeof features;
+
 export type DataTableStyles = {
 	readonly container?: string;
 	readonly table?: string;
@@ -30,7 +39,7 @@ export type DataTableStyles = {
 	readonly expanded?: string;
 };
 
-export default function BaseDataTable<TData, TValue>({
+export default function BaseDataTable<TData extends RowData>({
 	columns,
 	data,
 	emptyMessage,
@@ -38,23 +47,22 @@ export default function BaseDataTable<TData, TValue>({
 	onRowClick,
 	renderExpanded,
 }: Readonly<{
-	columns: ColumnDef<TData, TValue>[];
+	columns: ColumnDef<DataTableFeatures, TData>[];
 	data: TData[];
 	emptyMessage: ReactNode;
 	styles?: DataTableStyles;
-	onRowClick?: (row: Row<TData>) => void;
-	renderExpanded?: (row: Row<TData>) => ReactNode;
+	onRowClick?: (row: Row<DataTableFeatures, TData>) => void;
+	renderExpanded?: (row: Row<DataTableFeatures, TData>) => ReactNode;
 }>) {
-	const table = useReactTable({
+	const table = useTable({
+		features,
 		data,
 		columns,
-		getCoreRowModel: getCoreRowModel(),
-		getExpandedRowModel: getExpandedRowModel(),
 		getRowCanExpand: () => renderExpanded !== undefined,
 	});
 
 	const rows = table.getRowModel().rows;
-	const clickRow = (row: Row<TData>) =>
+	const clickRow = (row: Row<DataTableFeatures, TData>) =>
 		renderExpanded ? () => row.toggleExpanded() : onRowClick && (() => onRowClick(row));
 
 	const rendered = (
@@ -79,7 +87,6 @@ export default function BaseDataTable<TData, TValue>({
 						return (
 							<Fragment key={row.id}>
 								<TableRow
-									data-state={row.getIsSelected() && "selected"}
 									className={cn(onClick && "cursor-pointer", styles.row)}
 									onClick={
 										onClick
@@ -89,7 +96,7 @@ export default function BaseDataTable<TData, TValue>({
 											: undefined
 									}
 								>
-									{row.getVisibleCells().map((cell) => (
+									{row.getAllCells().map((cell) => (
 										<TableCell key={cell.id}>
 											{flexRender(cell.column.columnDef.cell, cell.getContext())}
 										</TableCell>
@@ -97,7 +104,7 @@ export default function BaseDataTable<TData, TValue>({
 								</TableRow>
 								{renderExpanded && row.getIsExpanded() && (
 									<TableRow className={cn("hover:bg-transparent", styles.expanded)}>
-										<TableCell colSpan={row.getVisibleCells().length} className="whitespace-normal">
+										<TableCell colSpan={row.getAllCells().length} className="whitespace-normal">
 											<div className="sticky left-2 max-w-[calc(100vw-3rem)]">
 												{renderExpanded(row)}
 											</div>

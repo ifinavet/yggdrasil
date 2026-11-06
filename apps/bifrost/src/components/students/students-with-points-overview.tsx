@@ -6,6 +6,7 @@ import type { Id } from "@workspace/backend/convex/dataModel";
 import { useQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo } from "react";
+import type { DataTableFeatures } from "@/components/common/tables/data-table";
 import { DataTable } from "../common/tables/table";
 
 type StudentColumns = {
@@ -14,7 +15,7 @@ type StudentColumns = {
 	points: number;
 };
 
-const columns: ColumnDef<StudentColumns>[] = [
+const columns: ColumnDef<DataTableFeatures, StudentColumns>[] = [
 	{
 		id: "index",
 		header: "#",
@@ -41,7 +42,7 @@ export default function StudentsWithPointsOverview() {
 	const router = useRouter();
 
 	const handleRowClick = useCallback(
-		(row: Row<StudentColumns>) => {
+		(row: Row<DataTableFeatures, StudentColumns>) => {
 			if (row.original.id) {
 				router.push(`/students/${row.original.id}`);
 			}
