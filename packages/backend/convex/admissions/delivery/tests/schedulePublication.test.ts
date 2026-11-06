@@ -176,6 +176,7 @@ it("generates and publishes ten interviews through the delivery actions", async 
 			.collect(),
 	);
 	expect(interviews).toHaveLength(10);
+	const serverNow = await t.run(async () => Date.now());
 	const byId = new Map(interviews.map((interview) => [interview._id, interview]));
 	const ordered = [...interviews].sort((a, b) => a.startAt - b.startAt);
 	for (const [index, interview] of ordered.entries()) {
@@ -194,7 +195,7 @@ it("generates and publishes ten interviews through the delivery actions", async 
 		expect(interview.room).toBe("Beta");
 		const previous = ordered[index - 1];
 		if (previous) expect(interview.startAt).toBeGreaterThanOrEqual(previous.endAt + 5 * 60_000);
-		expect(interview.publishedAt).toBe(Date.now());
+		expect(interview.publishedAt).toBe(serverNow);
 		expect(interview.calendarEventId).toBeTruthy();
 	}
 	expect(provider.upsertEvent).toHaveBeenCalledTimes(10);

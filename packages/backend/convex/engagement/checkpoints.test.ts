@@ -14,11 +14,11 @@ afterEach(() => {
 
 async function worldWithStats() {
 	const world = await buildWorld();
+	vi.useFakeTimers({ toFake: ["Date"] });
+	vi.setSystemTime(NOW);
 	await world.t.run(async (ctx) => {
 		for (const eventId of Object.values(world.events)) await refreshEventStats(ctx, eventId);
 	});
-	vi.useFakeTimers({ toFake: ["Date"] });
-	vi.setSystemTime(NOW);
 	return world;
 }
 

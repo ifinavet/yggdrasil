@@ -4,7 +4,7 @@ import {
 } from "@workspace/shared/job-listing-orders";
 import { jobListingLatestDeadline, osloDateTimeToEpoch } from "@workspace/shared/time";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { asUser, grantRole, insertUser, setup } from "../../test/fixtures";
+import { asUser, grantRole, HOUR_IN_MS, insertUser, setup } from "../../test/fixtures";
 import { api } from "../_generated/api";
 
 const listing = {
@@ -43,7 +43,7 @@ describe("order deadlines", () => {
 	])("checks deadline %s again before approval", async (deadline, allowed) => {
 		vi.useFakeTimers();
 		const now = osloDateTimeToEpoch("2026-09-30", "12:00");
-		vi.setSystemTime(now);
+		vi.setSystemTime(now - HOUR_IN_MS);
 		const { t, companyId } = await setup();
 		const admin = await insertUser(t, "admin@example.test");
 		await grantRole(t, admin._id, "admin");
@@ -77,6 +77,7 @@ describe("order deadlines", () => {
 			});
 			return id;
 		});
+		vi.setSystemTime(now);
 		const approval = asUser(t, admin).mutation(api.jobListingOrders.admin.approve, { orderId });
 		if (allowed) await approval;
 		else await expect(approval).rejects.toThrow();

@@ -811,8 +811,9 @@ it("restarts the archive safety week only after a failed report retry is actuall
 			if (!event) throw new Error("Missing event");
 			return followupFinishedAt(ctx, event);
 		});
+	vi.setSystemTime(now + 3600000);
 	await outcome("first", "email.sent");
-	expect(await completion()).toBe(now);
+	expect(await completion()).toBe(now + 3600000);
 	vi.setSystemTime(now + 86400000);
 	await outcome("first", "email.bounced");
 	expect(await completion()).toBeNull();
@@ -822,6 +823,7 @@ it("restarts the archive safety week only after a failed report retry is actuall
 	await f.t.run((ctx) => ctx.db.patch(reportId, { deliveryStatus: "queued", emailId: "second" }));
 	await outcome("first", "email.sent");
 	expect(await completion()).toBeNull();
+	vi.setSystemTime(now + 9 * 86400000);
 	await outcome("second", "email.sent");
-	expect(await completion()).toBe(now + 8 * 86400000);
+	expect(await completion()).toBe(now + 9 * 86400000);
 });

@@ -10,6 +10,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
 	asUser,
 	grantRole,
+	HOUR_IN_MS,
 	insertStudent,
 	insertUser,
 	refusalMessageFrom,
@@ -99,7 +100,7 @@ describe("studentProfileIssue", () => {
 
 describe("updateYear", () => {
 	it("moves current students up and graduates those in their last year", async () => {
-		vi.useFakeTimers({ now: NOW, toFake: ["Date"] });
+		vi.useFakeTimers({ now: NOW - HOUR_IN_MS, toFake: ["Date"] });
 		const { t } = await setup();
 		const user = await insertUser(t, "a@example.com");
 		const second = await insertStudent(t, user._id, { year: 2 });
@@ -107,6 +108,7 @@ describe("updateYear", () => {
 		const graduated = await insertStudent(t, user._id, { year: 3, graduatedAt: 1 });
 		const phd = await insertStudent(t, user._id, { degree: "PhD", year: 5 });
 
+		vi.setSystemTime(NOW);
 		await t.mutation(internal.users.students.mutations.updateYear, {});
 
 		expect(await studentOf(t, second)).toMatchObject({ year: 3 });
