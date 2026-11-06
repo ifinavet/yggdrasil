@@ -31,7 +31,7 @@
 		"d3-scale": "4.0.2",
 		"google-auth-library": "^11.3.2",
 		"jose": "6.2.15",
-		"svix": "^1.99.1",
+		"svix": "^2.9.1",
 		"xss": "^1.0.17"
 	},
 	"devDependencies": {
