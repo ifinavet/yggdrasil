@@ -12,6 +12,7 @@ import {
 	SelectValue,
 } from "@workspace/ui/components//select";
 import { Trash2 } from "lucide-react";
+import type { DataTableFeatures } from "@/components/common/tables/data-table";
 
 export type Organizer = {
 	id: Id<"users">;
@@ -22,7 +23,7 @@ export type Organizer = {
 export const createColumns = (
 	onRoleChange: (userId: Id<"users">, newRole: OrganizerRole) => void,
 	onDelete: (userId: Id<"users">) => void,
-): ColumnDef<Organizer>[] => [
+): ColumnDef<DataTableFeatures, Organizer>[] => [
 	{
 		accessorKey: "name",
 		header: "Navn",

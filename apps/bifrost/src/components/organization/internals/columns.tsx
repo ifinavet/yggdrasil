@@ -16,6 +16,7 @@ import { Input } from "@workspace/ui/components/input";
 import { cn } from "@workspace/ui/lib/utils";
 import { ChevronRight, Trash } from "lucide-react";
 import { useState } from "react";
+import type { DataTableFeatures } from "@/components/common/tables/data-table";
 import { GuideHint } from "../guide";
 import type { Connections } from "./connections";
 import UpsertInternalRole from "./upsert-internal-role";
@@ -59,7 +60,7 @@ export const createColumns = (
 	onDelete: (internalsId: Id<"internals">) => void,
 	onUpdateGroup: (internalsId: Id<"internals">, group: string) => void,
 	onSetRole: (userId: Id<"users">, role: (typeof ACCESS_RIGHTS)[number]) => void,
-): ColumnDef<InternalsTable>[] => [
+): ColumnDef<DataTableFeatures, InternalsTable>[] => [
 	{
 		id: "expand",
 		header: () => <span className="sr-only">Detaljer</span>,

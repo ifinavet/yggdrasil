@@ -24,6 +24,7 @@ import {
 } from "@workspace/ui/components/alert-dialog";
 import { Badge } from "@workspace/ui/components/badge";
 import { Trash } from "lucide-react";
+import type { DataTableFeatures } from "@/components/common/tables/data-table";
 
 export type Registration = {
 	registrationId: Id<"registrations">;
@@ -37,7 +38,7 @@ export type Registration = {
 export const createColumns = (
 	onDelete: (registrationId: Id<"registrations">) => void,
 	onRegister: (registrationId: Id<"registrations">, newStatus: string) => void,
-): ColumnDef<Registration>[] => [
+): ColumnDef<DataTableFeatures, Registration>[] => [
 	{
 		id: "index",
 		header: "#",

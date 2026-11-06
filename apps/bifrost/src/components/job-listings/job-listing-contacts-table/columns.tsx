@@ -3,6 +3,7 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@workspace/ui/components/button";
 import { Trash2 } from "lucide-react";
+import type { DataTableFeatures } from "@/components/common/tables/data-table";
 
 export type JobListingContact = {
 	name: string;
@@ -12,7 +13,7 @@ export type JobListingContact = {
 
 export const createColumns = (
 	onDelete: (index: number) => void,
-): ColumnDef<JobListingContact>[] => [
+): ColumnDef<DataTableFeatures, JobListingContact>[] => [
 	{
 		accessorKey: "name",
 		header: "Navn",

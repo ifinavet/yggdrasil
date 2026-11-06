@@ -1,12 +1,12 @@
 "use client";
 
-import type { ColumnDef } from "@tanstack/react-table";
-import BaseDataTable from "@/components/common/tables/data-table";
+import type { ColumnDef, RowData } from "@tanstack/react-table";
+import BaseDataTable, { type DataTableFeatures } from "@/components/common/tables/data-table";
 
-export default function OrganizersTable<TData, TValue>({
+export default function OrganizersTable<TData extends RowData>({
 	columns,
 	data,
-}: Readonly<{ columns: ColumnDef<TData, TValue>[]; data: TData[] }>) {
+}: Readonly<{ columns: ColumnDef<DataTableFeatures, TData>[]; data: TData[] }>) {
 	return (
 		<BaseDataTable
 			columns={columns}

@@ -10,7 +10,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 import { LIST_HEAD } from "@/components/common/table-classes";
-import BaseDataTable from "@/components/common/tables/data-table";
+import BaseDataTable, { type DataTableFeatures } from "@/components/common/tables/data-table";
 import { RemoveApplicationButton } from "./application/remove-application-button";
 import { shortDayTitle, studentRange } from "./format";
 import { isActiveStatus } from "./status";
@@ -20,7 +20,7 @@ type Row = Doc<"companyApplications"> & { responsibleName?: string };
 
 const muted = <span className="text-muted-foreground">–</span>;
 
-const columns: ColumnDef<Row>[] = [
+const columns: ColumnDef<DataTableFeatures, Row>[] = [
 	{
 		header: "Bedrift",
 		cell: ({ row }) => (
