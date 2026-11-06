@@ -1,5 +1,4 @@
 import type { HttpRouter } from "convex/server";
-import { WebhookVerificationError } from "svix";
 import { internal } from "../../_generated/api";
 import { httpAction } from "../../_generated/server";
 import { capturedEmailEvent } from "../../emailAnalytics/capture";
@@ -18,7 +17,7 @@ export function registerFeedbackEmailRoutes(http: HttpRouter) {
 				if (event) await ctx.scheduler.runAfter(0, internal.emailAnalytics.capture.capture, event);
 				return response;
 			} catch (error) {
-				if (error instanceof WebhookVerificationError)
+				if (error instanceof Error && error.name === "WebhookVerificationError")
 					return new Response("Invalid signature", { status: 400 });
 				throw error;
 			}

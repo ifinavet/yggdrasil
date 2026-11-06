@@ -70,7 +70,8 @@ async function validateRequest(req: Request): Promise<WebhookEvent | null> {
 	};
 	const wh = new Webhook(webhookSecret);
 	try {
-		return wh.verify(payloadString, svixHeaders) as unknown as WebhookEvent;
+		wh.verify(payloadString, svixHeaders);
+		return JSON.parse(payloadString) as WebhookEvent;
 	} catch (error) {
 		console.error("Error verifying webhook event", error);
 		return null;
