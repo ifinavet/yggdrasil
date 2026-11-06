@@ -154,9 +154,9 @@ describe("slackText", () => {
 
 describe("detectAlerts", () => {
 	it("inserts an alert and schedules a Slack notification when a rule triggers", async () => {
-		const { t, companyId } = await setup();
 		vi.useFakeTimers();
 		vi.setSystemTime(OPENS + DAY_MS);
+		const { t, companyId } = await setup();
 		const eventId = await insertEvent(t, companyId, {
 			eventStart: START,
 			registrationOpens: OPENS,
@@ -180,9 +180,9 @@ describe("detectAlerts", () => {
 	});
 
 	it("tags only the linked main organizer and names the unlinked one", async () => {
-		const { t, companyId } = await setup();
 		vi.useFakeTimers();
 		vi.setSystemTime(OPENS + DAY_MS);
+		const { t, companyId } = await setup();
 		const eventId = await insertEvent(t, companyId, {
 			eventStart: START,
 			registrationOpens: OPENS,
@@ -232,11 +232,11 @@ describe("detectAlerts", () => {
 	});
 
 	it("links to the local admin app during local development", async () => {
+		vi.useFakeTimers();
+		vi.setSystemTime(OPENS + DAY_MS);
 		const { t, companyId } = await setup();
 		vi.stubEnv("CONVEX_CLOUD_URL", "http://127.0.0.1:3210");
 		vi.stubEnv("APP_ENV", "local");
-		vi.useFakeTimers();
-		vi.setSystemTime(OPENS + DAY_MS);
 		const eventId = await insertEvent(t, companyId, {
 			eventStart: START,
 			registrationOpens: OPENS,
@@ -252,9 +252,9 @@ describe("detectAlerts", () => {
 	});
 
 	it("skips events without a triggering rule", async () => {
-		const { t, companyId } = await setup();
 		vi.useFakeTimers();
 		vi.setSystemTime(OPENS + HOUR_MS);
+		const { t, companyId } = await setup();
 		const eventId = await insertEvent(t, companyId, {
 			eventStart: START,
 			registrationOpens: OPENS,
@@ -268,9 +268,9 @@ describe("detectAlerts", () => {
 	});
 
 	it("does not duplicate an alert triggered within the dedup window", async () => {
-		const { t, companyId } = await setup();
 		vi.useFakeTimers();
 		vi.setSystemTime(OPENS + DAY_MS);
+		const { t, companyId } = await setup();
 		await insertEvent(t, companyId, { eventStart: START, registrationOpens: OPENS });
 
 		await t.mutation(internal.engagement.alerts.detectAlerts, {});
@@ -283,9 +283,9 @@ describe("detectAlerts", () => {
 	});
 
 	it("triggers again once the dedup window has passed", async () => {
-		const { t, companyId } = await setup();
 		vi.useFakeTimers();
 		vi.setSystemTime(OPENS + DAY_MS);
+		const { t, companyId } = await setup();
 		const eventId = await insertEvent(t, companyId, {
 			eventStart: START,
 			registrationOpens: OPENS,

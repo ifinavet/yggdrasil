@@ -113,6 +113,7 @@ describe("public token feedback", () => {
 	it("stores one attributed response without trusting the signed-in identity", async () => {
 		const { backend, publisherClient, versionId, campaignId, inviteId, recipient } =
 			await setupTokenFeedback();
+		vi.setSystemTime(now + 1000);
 		expect(await publisherClient.mutation(submitResponse, { token, answers })).toEqual({
 			status: "submitted",
 		});
@@ -123,7 +124,7 @@ describe("public token feedback", () => {
 			formVersionId: versionId,
 			inviteId,
 			data: answers,
-			submittedAt: now,
+			submittedAt: now + 1000,
 		});
 		expect(await backend.run((ctx) => ctx.db.get(inviteId))).toMatchObject({
 			responded: true,
@@ -177,12 +178,13 @@ describe("public token feedback", () => {
 	);
 	it("enforces the opening boundary using server time", async () => {
 		const { backend, campaignId } = await setupTokenFeedback();
-		await backend.run((ctx) => ctx.db.patch(campaignId, { opensAt: now + 1 }));
+		await backend.run((ctx) => ctx.db.patch(campaignId, { opensAt: now + 1000 }));
+		vi.setSystemTime(now + 999);
 		expect(await backend.action(resolveToken, { token })).toEqual({ status: "not-open" });
 		expect(await backend.mutation(submitResponse, { token, answers })).toEqual({
 			status: "not-open",
 		});
-		vi.setSystemTime(now + 1);
+		vi.setSystemTime(now + 1000);
 		expect((await backend.action(resolveToken, { token })).status).toBe("open");
 		expect(await backend.mutation(submitResponse, { token, answers })).toEqual({
 			status: "submitted",

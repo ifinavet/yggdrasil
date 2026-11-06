@@ -263,7 +263,7 @@ describe("feedback delivery", () => {
 					await ctx.db.patch(f.campaignId, { generation: 2 });
 					break;
 				case "beforeDue":
-					vi.setSystemTime(opensAt - 1);
+					await ctx.db.patch(f.campaignId, { opensAt: Date.now() + 1 });
 					break;
 				case "afterClose":
 					vi.setSystemTime(feedbackRoundAt(opensAt, 14));
@@ -413,9 +413,9 @@ describe("feedback delivery", () => {
 
 describe("campaign lifecycle", () => {
 	it("schedules next morning in Oslo, reschedules before opening, and ignores stale jobs", async () => {
+		vi.setSystemTime(opensAt - 86400000);
 		const f = await fixture();
 		await f.t.run((ctx) => ctx.db.delete(f.campaignId));
-		vi.setSystemTime(opensAt - 86400000);
 		await f.client.mutation(api.feedback.events.updateEventFeedbackSettings, {
 			eventId: f.eventId,
 			enabled: true,
@@ -504,12 +504,10 @@ describe("campaign lifecycle", () => {
 	it.each(["past", "unpublishedForm"] as const)(
 		"skips invalid passive scheduling: %s",
 		async (reason) => {
+			if (reason === "unpublishedForm") vi.setSystemTime(opensAt - 86400000);
 			const f = await fixture();
 			await f.t.run((ctx) => ctx.db.delete(f.campaignId));
-			if (reason === "unpublishedForm") {
-				vi.setSystemTime(opensAt - 86400000);
-				await f.t.run((ctx) => ctx.db.delete(f.versionId));
-			}
+			if (reason === "unpublishedForm") await f.t.run((ctx) => ctx.db.delete(f.versionId));
 			await f.t.run((ctx) => syncFeedbackCampaign(ctx, f.eventId));
 			expect(await f.t.run((ctx) => ctx.db.query("feedbackCampaigns").collect())).toEqual([]);
 			const scheduledId = await f.t.run((ctx) =>
@@ -542,16 +540,17 @@ describe("campaign lifecycle", () => {
 		expect(await f.t.run((ctx) => ctx.db.get(f.eventId))).toMatchObject({ feedbackEnabled: false });
 	});
 	it("never sends historical campaigns automatically and requires a published form", async () => {
+		vi.setSystemTime(opensAt - 86400000);
 		const f = await fixture();
 		await f.t.run((ctx) => ctx.db.delete(f.campaignId));
-		await expect(
-			f.t.run((ctx) => syncFeedbackCampaign(ctx, f.eventId, { requireSchedule: true })),
-		).rejects.toThrow("utsendelsestidspunktet");
-		vi.setSystemTime(opensAt - 86400000);
 		await f.t.run((ctx) => ctx.db.delete(f.versionId));
 		await expect(
 			f.t.run((ctx) => syncFeedbackCampaign(ctx, f.eventId, { requireSchedule: true })),
 		).rejects.toThrow("Publiser");
+		vi.setSystemTime(opensAt);
+		await expect(
+			f.t.run((ctx) => syncFeedbackCampaign(ctx, f.eventId, { requireSchedule: true })),
+		).rejects.toThrow("utsendelsestidspunktet");
 		await f.t.run((ctx) => ctx.db.delete(f.eventId));
 		await expect(
 			f.t.run((ctx) => syncFeedbackCampaign(ctx, f.eventId, { requireSchedule: true })),
@@ -560,12 +559,12 @@ describe("campaign lifecycle", () => {
 	it.each(["disabled", "unpublished", "external"])(
 		"cancels on %s and re-enables only an unopened campaign",
 		async (reason) => {
+			vi.setSystemTime(opensAt - 86400000);
 			const f = await fixture();
 			await f.t.run(async (ctx) => {
 				await ctx.db.patch(f.campaignId, { status: "scheduled", formVersionId: undefined });
 				await ctx.db.delete(f.inviteId);
 			});
-			vi.setSystemTime(opensAt - 86400000);
 			const patch =
 				reason === "disabled"
 					? { feedbackEnabled: false }
@@ -913,10 +912,11 @@ describe("closing feedback early", () => {
 				delivered: false,
 			});
 		});
+		vi.setSystemTime(opensAt + 60_000);
 		await internalClient.mutation(close, { eventId: f.eventId });
 		expect(await f.t.run((ctx) => ctx.db.get(f.campaignId))).toMatchObject({
 			status: "closed",
-			closedAt: opensAt,
+			closedAt: opensAt + 60_000,
 		});
 		await expect(internalClient.mutation(close, { eventId: f.eventId })).rejects.toThrow(
 			"ikke åpent",

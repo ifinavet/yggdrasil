@@ -226,7 +226,7 @@ it("republishes a moved interview at once and keeps the calendar event with the 
 		calendarOwnerId: first._id,
 		startAt: osloDateTimeToEpoch(day, "13:00"),
 	});
-	expect(interview?.publishedAt).toBe(Date.now());
+	expect(interview?.publishedAt).toBe(await context.t.run(async () => Date.now()));
 	expect(calendarFor(first.email).cancelEvent).not.toHaveBeenCalled();
 	expect(calendarFor(first.email).upsertEvent).toHaveBeenLastCalledWith(
 		"primary",
@@ -292,5 +292,5 @@ it("moves the calendar event to a new owner when the old owner leaves the interv
 		interview.calendarEventId,
 		expect.anything(),
 	);
-	expect(interview.publishedAt).toBe(Date.now());
+	expect(interview.publishedAt).toBe(await context.t.run(async () => Date.now()));
 });

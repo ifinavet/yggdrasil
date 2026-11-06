@@ -554,8 +554,9 @@ it("keeps the channel through report approval and queueing, then archives a week
 		}),
 	);
 	const sentAt = START + 20 * DAY_MS;
-	await run(t, sentAt);
+	await run(t, sentAt - DAY_MS);
 	expect(slack.channels[0]?.archived).toBe(false);
+	vi.setSystemTime(sentAt);
 	await t.mutation(internal.feedback.delivery.messages.onEmailEvent, emailEvent("report"));
 	await run(t);
 	expect(slack.channels[0]?.messages.at(-1)?.text).toContain("sendt tilbakemeldingsrapporten");
@@ -1053,17 +1054,18 @@ it("finishes campaigns without a form and safely observes legacy or revoked repo
 			deliveryStatus: "delivered",
 		}),
 	);
-	expect(await completion()).toBe(NOW);
 	vi.setSystemTime(NOW + DAY_MS);
-	expect(await completion()).toBe(NOW);
+	expect(await completion()).toBe(NOW + DAY_MS);
+	vi.setSystemTime(NOW + 2 * DAY_MS);
+	expect(await completion()).toBe(NOW + DAY_MS);
 	await t.run((ctx) =>
 		ctx.db.patch(reportId, {
 			status: "revoked",
 			deliveryStatus: "failed",
-			followupFinishedAt: NOW + DAY_MS,
+			followupFinishedAt: NOW + 2 * DAY_MS,
 		}),
 	);
-	expect(await completion()).toBe(NOW + DAY_MS);
+	expect(await completion()).toBe(NOW + 2 * DAY_MS);
 });
 
 it("cancels queued feedback and report notices when their source state changes", async () => {
