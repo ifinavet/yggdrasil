@@ -18,7 +18,7 @@ catalog:
   "@tiptap/pm": "3.32.1"
   "@tiptap/react": "3.32.1"
   "@tiptap/starter-kit": "3.32.1"
-  "@types/node": "20.19.43"
+  "@types/node": "26.6.6"
   "@types/react": "19.3.0"
   "@types/react-dom": "19.3.0"
   "class-variance-authority": "0.7.1"
