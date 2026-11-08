@@ -19,6 +19,7 @@ function overviewEvent(overrides: Partial<OverviewEvent> = {}): OverviewEvent {
 		title: "Workshop med JetBrains",
 		eventStart: AFTER_NOW,
 		registrationOpens: BEFORE_NOW,
+		registrationPhase: "open",
 		participationLimit: 50,
 		externalEvent: false,
 		published: true,
@@ -128,23 +129,28 @@ describe("groupByMonth", () => {
 
 describe("registrations", () => {
 	it("describes why an event has no count", () => {
-		expect(registrations(overviewEvent({ published: false }), NOW)).toEqual({
+		expect(registrations(overviewEvent({ published: false }))).toEqual({
 			kind: "note",
 			text: "Upublisert",
 		});
-		expect(registrations(overviewEvent({ externalEvent: true }), NOW)).toEqual({
+		expect(registrations(overviewEvent({ externalEvent: true }))).toEqual({
 			kind: "note",
 			text: "Ekstern påmelding",
 		});
 		expect(
-			registrations(overviewEvent({ registrationOpens: Date.parse("2026-08-27T10:00:00Z") }), NOW),
+			registrations(
+				overviewEvent({
+					registrationOpens: Date.parse("2026-08-27T10:00:00Z"),
+					registrationPhase: "upcoming",
+				}),
+			),
 		).toEqual({ kind: "note", text: "Åpner 27. aug." });
 	});
 
 	it("counts registrations once registration has opened", () => {
 		const event = overviewEvent({ registeredCount: 60, participationLimit: 60, waitlistCount: 8 });
 
-		expect(registrations(event, NOW)).toEqual({
+		expect(registrations(event)).toEqual({
 			kind: "count",
 			registered: 60,
 			limit: 60,

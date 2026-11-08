@@ -95,13 +95,11 @@ export function EventCard({
 					<CardDescription>
 						Registrering åpner: {humanReadableFullDateTime(new Date(event.registrationOpens))}
 					</CardDescription>
-					{event.registrationOpens < Date.now() &&
-						event.eventStart > Date.now() &&
-						!event.externalUrl && (
-							<CardAction>
-								<Badge>Registrering Åpen</Badge>
-							</CardAction>
-						)}
+					{event.registrationPhase === "open" && !event.externalUrl && (
+						<CardAction>
+							<Badge>Registrering Åpen</Badge>
+						</CardAction>
+					)}
 				</CardHeader>
 				<CardContent>
 					<p className="line-clamp-2 text-ellipsis">{event.teaser}</p>
