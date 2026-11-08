@@ -138,7 +138,15 @@ describe("moving the date", () => {
 			eventId,
 		]);
 		const moved = Date.parse("2027-02-16T15:15:00Z");
-		expect((await t.run((ctx) => ctx.db.get(eventId)))?.eventStart).toBe(moved);
+		const event = await t.run((ctx) => ctx.db.get(eventId));
+		expect(event?.eventStart).toBe(moved);
+		expect(event?.registrationPhase).toBe("upcoming");
+		const phaseJobs = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
+		expect(
+			phaseJobs
+				.filter(({ name }) => name.includes("syncRegistrationPhase"))
+				.map(({ args }) => args[0].eventStart),
+		).toEqual([moved, moved]);
 		expect(await invoiceServiceAt(t, applicationId)).toBe(moved);
 		expect(await activityFor(t, applicationId)).toMatchObject([
 			{ type: "date_assigned", date: "2027-02-16" },

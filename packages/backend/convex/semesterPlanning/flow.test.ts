@@ -115,6 +115,8 @@ describe("the whole journey", () => {
 			"semesterPlanning/applications/sheet:appendApplication",
 			"semesterPlanning/offers/emails:sendOfferEmail",
 			"semesterPlanning/offers/emails:sendOfferEmail",
+			// The draft event's registration phase moves on when it starts.
+			"events/mutations:syncRegistrationPhase",
 		]);
 
 		const history = (await activityFor(t, applicationId)).map((row) =>
