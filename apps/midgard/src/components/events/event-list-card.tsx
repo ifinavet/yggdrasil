@@ -17,13 +17,13 @@ function getRegistrationStatus(event: EventWithParticipationCount) {
 	const participants = event.participationCount;
 	const participantsLimit = event.participationLimit;
 
-	const registrationIsOpen = registrationOpensDate <= now;
+	const registrationHasOpened = event.registrationPhase !== "upcoming";
 
 	const eventStartPlusOneDay = new Date(eventStartDate);
 	eventStartPlusOneDay.setDate(eventStartPlusOneDay.getDate() + 1);
 	eventStartPlusOneDay.setHours(0, 0, 0, 0);
 
-	const showBanner = now < eventStartDate;
+	const showBanner = event.registrationPhase === "upcoming" || event.registrationPhase === "open";
 	const isDayAfterEvent = now >= eventStartPlusOneDay;
 
 	const todayStart = new Date(now);
@@ -32,11 +32,11 @@ function getRegistrationStatus(event: EventWithParticipationCount) {
 	tomorrowStart.setDate(tomorrowStart.getDate() + 1);
 
 	const registrationOpenToday =
-		registrationIsOpen &&
+		registrationHasOpened &&
 		registrationOpensDate >= todayStart &&
 		registrationOpensDate < tomorrowStart;
 
-	const statusMessage = !registrationIsOpen
+	const statusMessage = !registrationHasOpened
 		? `Påmeldingen åpner ${humanReadableDateTime(registrationOpensDate)}`
 		: participants >= participantsLimit
 			? "Påmeldingen er full, sett deg på venteliste!"
@@ -49,7 +49,7 @@ function getRegistrationStatus(event: EventWithParticipationCount) {
 		statusMessage,
 		cardColor: isDayAfterEvent
 			? "border-zinc-400 bg-zinc-400"
-			: registrationIsOpen
+			: registrationHasOpened
 				? "border-emerald-700 bg-emerald-700"
 				: "border-zinc-400 bg-zinc-400",
 	};
