@@ -63,11 +63,11 @@ export async function getEventByIdentifier(
 }
 
 export function validateRegistrationTime(event: Doc<"events">) {
-	const now = Date.now();
-	if (now < event.registrationOpens) {
+	const phase = registrationPhaseAt(event, Date.now());
+	if (phase === "upcoming") {
 		throw new ConvexError(`Påmelding til arrangementet "${event.title}" har ikke åpnet ennå.`);
 	}
-	if (now >= event.eventStart) {
+	if (phase === "closed") {
 		throw new ConvexError(`Påmelding til arrangementet "${event.title}" er stengt.`);
 	}
 }
