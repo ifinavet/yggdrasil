@@ -8,7 +8,7 @@ export default function NoMoreEventsEventCard() {
 				companyImage: NavetLogo.src,
 				companyTitle: "Navet",
 				title: "Ingen flere arrangementer",
-				teaser: "Det er desverre ingen flere arrangementer!",
+				teaser: "Det er desverre ingen flere arrangementer dette semesteret!",
 			}}
 		/>
 	);
