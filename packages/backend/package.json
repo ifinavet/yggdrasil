@@ -15,7 +15,7 @@
 	"author": "",
 	"packageManager": "pnpm@10.13.1",
 	"dependencies": {
-		"@clerk/backend": "^3.26.5",
+		"@clerk/backend": "^3.27.0",
 		"@convex-dev/migrations": "^0.3.7",
 		"@convex-dev/rate-limiter": "^0.4.3",
 		"@convex-dev/resend": "^0.2.10",
@@ -26,10 +26,10 @@
 		"@workspace/emails": "workspace:*",
 		"@workspace/shared": "workspace:*",
 		"convex": "catalog:",
-		"convex-helpers": "^0.1.133",
-		"d3-array": "3.2.4",
-		"d3-scale": "4.0.2",
-		"google-auth-library": "^11.3.2",
+		"convex-helpers": "^0.1.134",
+		"d3-array": "3.2.5",
+		"d3-scale": "4.0.3",
+		"google-auth-library": "^11.3.3",
 		"jose": "6.2.15",
 		"svix": "^2.9.1",
 		"xss": "^1.0.17"
@@ -41,9 +41,9 @@
 		"@types/d3-scale": "4.0.9",
 		"@types/node": "catalog:",
 		"@vitest/coverage-v8": "5.1.0",
-		"convex-test": "0.0.66",
+		"convex-test": "0.0.67",
 		"typescript": "catalog:",
-		"vite": "8.3.5",
+		"vite": "8.3.6",
 		"vitest": "catalog:"
 	},
 	"exports": {

@@ -15,7 +15,7 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "catalog:",
-		"@playwright/test": "1.64.1",
+		"@playwright/test": "1.65.0",
 		"@workspace/typescript-config": "workspace:*",
 		"dotenv": "^18.0.9",
 		"turbo": "^2.11.10",
