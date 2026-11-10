@@ -171,6 +171,28 @@ describe("company event planning", () => {
 		).rejects.toThrow();
 		expect(await f.t.run((ctx) => ctx.db.query("slackSystemDeliveries").collect())).toHaveLength(1);
 	});
+	it("keeps a request stored as an event type while that type has no product", async () => {
+		const f = await invited();
+		await f.t.run(async (ctx) => {
+			const planning = present(await ctx.db.query("eventPlanning").first());
+			await ctx.db.patch(planning._id, {
+				answers: { ...planning.answers, requestedEventType: "social" },
+			});
+			for (const product of await ctx.db.query("products").collect()) {
+				if (product.eventType === "social") await ctx.db.delete(product._id);
+			}
+		});
+
+		const form = present(await f.t.mutation(api.events.planning.public.get, { token: f.token }));
+		await f.t.mutation(api.events.planning.public.submit, {
+			token: f.token,
+			submissionId: crypto.randomUUID(),
+			revision: form.revision,
+			answers: form.answers,
+		});
+		const submission = await f.t.run((ctx) => ctx.db.query("eventPlanningSubmissions").first());
+		expect(submission?.answers.requestedEventType).toBe("social");
+	});
 	it("keeps a requested package change for review without increasing the agreed capacity", async () => {
 		const f = await invited();
 		const before = await f.t.run((ctx) => ctx.db.get(f.eventId));

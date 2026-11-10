@@ -19,7 +19,7 @@ export function useApplicationForm({
 	onSubmitInvalid,
 }: {
 	defaultValues: ApplicationDraft;
-	products: readonly OfferedProduct[];
+	products?: readonly OfferedProduct[];
 	onSubmit: (application: ApplicationForm, draft: ApplicationDraft) => Promise<void>;
 	onSubmitInvalid: (draft: ApplicationDraft) => void;
 }) {

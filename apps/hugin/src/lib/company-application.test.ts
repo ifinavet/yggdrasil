@@ -351,6 +351,7 @@ describe("company application prices", () => {
 		expect(draftErrors(draft, products).productId).toBe("Velg hva slags arrangement dere ønsker.");
 		expect(draftErrors(draft, [{ _id: "product-1", name: "Ordinær" }]).productId).toBeUndefined();
 		expect(draftErrors(draft).productId).toBeUndefined();
+		expect(draftErrors(draft, []).productId).toBe("Velg hva slags arrangement dere ønsker.");
 	});
 
 	it("leaves the price out when the event type has no priced product", () => {

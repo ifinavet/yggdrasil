@@ -74,10 +74,7 @@ export function ApplicationForm({
 
 	const eventProducts = useQuery(api.products.queries.listEvent);
 	const products = useMemo(
-		() =>
-			(eventProducts ?? []).filter(
-				(product) => product.active && product.unitPriceOre !== undefined,
-			),
+		() => eventProducts?.filter((product) => product.active && product.unitPriceOre !== undefined),
 		[eventProducts],
 	);
 	const form = useApplicationForm({
@@ -191,7 +188,7 @@ export function ApplicationForm({
 					</div>
 
 					<CompanyQuestions form={form} />
-					<EventQuestions form={form} products={products} />
+					<EventQuestions form={form} products={products ?? []} />
 					<DateQuestions form={form} dates={semester.dates} />
 					<PracticalQuestions form={form} />
 					<BillingQuestions form={form} termsUrl={semester.termsUrl} />

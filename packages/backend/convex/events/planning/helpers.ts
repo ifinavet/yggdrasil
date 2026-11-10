@@ -183,9 +183,8 @@ export async function parseAnswers(
 	event: Doc<"events">,
 	input: Answers,
 ) {
-	const parsed = planningFormSchema(await capacityLimit(ctx, planning)).safeParse(
-		await withRequestedProduct(ctx, input),
-	);
+	const answers = await withRequestedProduct(ctx, input);
+	const parsed = planningFormSchema(await capacityLimit(ctx, planning)).safeParse(answers);
 	if (!parsed.success)
 		throw new ConvexError(parsed.error.issues[0]?.message ?? "Kontroller opplysningene.");
 	try {
@@ -196,6 +195,7 @@ export async function parseAnswers(
 	return {
 		...parsed.data,
 		requestedProductId: parsed.data.requestedProductId as Id<"products"> | undefined,
+		requestedEventType: answers.requestedEventType,
 		ageRestriction: AGE_BY_ALCOHOL[parsed.data.alcohol],
 		description: sanitizeRichText(parsed.data.description),
 	};

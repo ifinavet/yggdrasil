@@ -215,7 +215,7 @@ export type DraftErrors = Partial<Record<DraftField, string>>;
 
 export function draftErrors(
 	draft: ApplicationDraft,
-	products: readonly OfferedProduct[] = [],
+	products?: readonly OfferedProduct[],
 ): DraftErrors {
 	const errors: DraftErrors = {};
 	const result = applicationSubmissionSchema.safeParse(draft);
@@ -232,9 +232,9 @@ export function draftErrors(
 	}
 
 	// The student count's own message is more precise than the schema's, so it wins.
-	if (products.length > 0 && !products.some(({ _id }) => _id === draft.productId))
+	if (products && !products.some(({ _id }) => _id === draft.productId))
 		errors.productId ??= MISSING_PRODUCT;
-	const studentIssue = studentCountIssue(draft, products);
+	const studentIssue = studentCountIssue(draft, products ?? []);
 	if (studentIssue) errors.students = studentIssue;
 	if (!optional(draft.billing.email) && !optional(draft.billing.details)) {
 		errors.billing ??= MISSING_BILLING;
