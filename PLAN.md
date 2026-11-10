@@ -1,6 +1,6 @@
 # Plan: the product is the only definition of an event type
 
-Status: plan for review, revision 2. No code in this pull request.
+Status: plan for review, revision 3. No code in this pull request.
 
 Revision 2 follows a review by GPT-6 Astra, run read-only against the code. Its findings were checked against the files it cited and all of them held. The section "What the review changed" lists them.
 
@@ -23,13 +23,17 @@ A product reference is the only definition of what kind of event something is. N
 
 Applications, offers and planning read the product live. If an admin renames a product, they all show the new name.
 
-Events keep the copy of the product they were sold as (`event.product`: reference, name, price, VAT). This plan does not change that copy. See open decision 1.
+Events keep the copy of the product they were sold as (`event.product`: reference, name, price, VAT). This plan does not change that copy.
 
 ## Decided
 
 - A product has one name. The short labels "Ordinær", "Stor" and "Faglig" are deleted and no short name field is added. Dense tables show `product.name`, and the full name stays available to screen readers and on hover when a cell truncates.
 - A rename shows everywhere at once for applications, offers and planning. They do not keep a copy of the name.
 - Job listing orders keep their stored `productName`. It is a receipt of what was bought.
+- The product copy on events stays as it is, name included. Only the short labels are removed.
+- The server decides which products a company can apply for, and the social product is not one of them. The rule is: an active product in the event category that has a price. The seeded "Sosialt arrangement" product has no price. The rule lives in one server function, and the form, the submit step and the confirm step all use it. Once the enum is gone there is no type to exclude by, and excluding by product name would break on a rename, which is why the rule uses the price.
+- The planning form's capacity hint is built from each product's `maxStudents`. The sentence that hard-codes 40 is removed. The new wording is shown in the design mock for pull request B and needs approval before it is built.
+- Timing. The application window is open now and runs until about January. Pull request A is additive and can ship during the window. Pull requests B and C wait until the window has closed.
 
 ## What stores a type today
 
@@ -70,7 +74,7 @@ Deleted from `packages/shared`: `EVENT_TYPES`, `EventType`, `APPLICATION_EVENT_T
 | `EVENT_TYPE_SHORT_LABELS` | 5 Bifrost files: applications tab, distribution matrix, assign cell, plan cards, plan table | `product.name` |
 | `STUDENT_CAP` | Hugin form validation, shared Zod schema, planning capacity limit | `product.maxStudents`. No value means no product cap, and the existing limit of 1 to 1000 students still applies (`shared/semester/application.ts:25`). |
 | `EVENT_TITLE_PREFIX` | one place, the Slack alert title | removed. The alert names the product and the company. |
-| `APPLICATION_EVENT_TYPES` | which types a company can apply for | open decision 2 |
+| `APPLICATION_EVENT_TYPES` | which types a company can apply for | one server function: active event products with a price |
 | "first active product with this type" lookup | `confirmation.ts:324`, `semesterPlanning/events.ts:138`, `invoicing/details.ts:56`, `products/queries.ts:24` | `ctx.db.get(row.productId)` |
 
 Events are created with a placeholder title that a person fills in later, so nothing needs a "kind" field on the product. That is what allows the enum to go completely.
@@ -157,7 +161,7 @@ Migration and compatibility tests come first. They cover the cases where data ca
 - Invoicing: an event with a product copy invoices at the copied price after the product's price is edited. A reopened invoice is recomputed the same way as today.
 - Planning: changing the agreed product invalidates the invitation. A requested product does not change the agreed one. A guessed product is not treated as agreed.
 - Slack alert: shows the product name for ordinary, large and workshop.
-- Application submit: rejects a count over the product's cap, enforces 1 to 1000 when the product has no cap, rejects an inactive product and one that cannot be applied for.
+- Application submit: rejects a count over the product's cap, enforces 1 to 1000 when the product has no cap, rejects an inactive product, a product without a price and a product in another category.
 
 Browser checks for B: the application form and planning form in Chromium, WebKit and Firefox, and the application form in Safari in the iOS Simulator with the keyboard open.
 
@@ -186,14 +190,13 @@ Risk, highest first:
 
 Not known: how many rows each production table holds, whether live products have a type set, and whether two active products share a type. There is no read access to production from the development machine. The report in A answers all three before anything is switched.
 
-Timing: B should not ship while companies are applying for a semester or while invoices are going out.
+Timing: the application window is open until about January, so B and C ship after it closes. A ships now. It touches the submit and confirm steps only by writing one more optional field, and it is covered by the existing submit tests plus the new ones. Before B is scheduled, check that no invoicing run falls in the same days.
 
 ## Open decisions
 
-1. The product name on the event copy. Victor asked for events to have no stored product name. The review found that removing it reaches further than the rest of this plan: job listings share the same validator (`jobListings/schema.ts:16`), sales statistics and product tagging read it (`products/stats.ts:34`, `event-tagging.tsx:109`), pending and reopened invoices take their line text from it, and planning's fingerprint includes it. It does not help remove the enum. Recommendation: leave the copy as it is here, and decide the name in a separate change.
-2. Which products a company can apply for. Today the code lists three types and leaves `social` out. "Active products in the event category" would put the seeded "Sosialt arrangement" product, which has no price and no cap, on the public form. Options: (a) a yes or no field on the product, "can be applied for", set to yes for the three current products by the backfill, or (b) archive the social product. Recommendation: (a). It is a real property of a product, and (b) would hide the product from event tagging too.
-3. Social applications. Victor says none exist. The report in A will confirm it. If any do, they map to the social product like any other type.
-4. Planning's capacity hint says "Ordinært og faglig arrangement er til og med 40 studenter, mens stort arrangement er mer enn 40" (`shared/events/planning.ts:28`). It hard-codes the cap in copy. Changing user-facing text needs Victor's wording.
+1. Social applications. Victor says none exist. The report in A confirms it. If any do, they are resolved by hand under rule 6.
+2. The wording of the planning form's capacity hint, shown in the mock for B.
+3. Whether an invoicing run falls close to when B is scheduled.
 
 ## What the review changed
 
@@ -203,7 +206,7 @@ Timing: B should not ship while companies are applying for a semester or while i
 - Revision 1 protected stored rows but not old browser code. Rules 7 to 9 are new.
 - Revision 1 let unmappable rows stay unmapped. Rule 6 is new.
 - Revision 1 mapped every row from its type to today's active product. Rule 5 is new.
-- Revision 1 removed the name from the event copy. That is now open decision 1.
+- Revision 1 removed the name from the event copy. The copy now stays unchanged.
 - The eligibility of the social product, the saved browser draft, the 1 to 1000 limit and the planning hint text are new.
 - The test count was 40 lines. It is 35.
 
