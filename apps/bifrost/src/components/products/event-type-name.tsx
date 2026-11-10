@@ -1,13 +1,15 @@
 "use client";
 
 import { api } from "@workspace/backend/convex/api";
-import type { EventType } from "@workspace/shared/semester/labels";
+import { productOfRow } from "@workspace/shared/products";
 import { useQuery } from "convex/react";
 
-export function useEventTypeNames(): Partial<Record<EventType, string>> {
-	return useQuery(api.products.queries.eventTypeNames) ?? {};
+export function useEventProducts() {
+	return useQuery(api.products.queries.listEvent) ?? [];
 }
 
-export function EventTypeName({ type }: Readonly<{ type: EventType }>) {
-	return useEventTypeNames()[type];
+export function EventTypeName({
+	row,
+}: Readonly<{ row: { productId?: string; eventType?: string } }>) {
+	return productOfRow(useEventProducts(), row)?.name;
 }

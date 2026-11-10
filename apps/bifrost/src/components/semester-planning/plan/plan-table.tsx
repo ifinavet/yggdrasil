@@ -151,7 +151,7 @@ export function PlanTable({
 										<div className="min-w-0">
 											<CompanyName row={row} linkApplication={showContactDetails} />
 											<div className="mt-0.5 text-[12.5px] text-muted-foreground">
-												<EventTypeName type={row.eventType} />
+												<EventTypeName row={row} />
 												{details && ` · ${formatOrgNumber(details.orgNumber)}`}
 											</div>
 										</div>

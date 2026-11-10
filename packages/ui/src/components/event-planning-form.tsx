@@ -9,7 +9,7 @@ import {
 	planningFormSchema,
 	VENUE_CHOICES,
 } from "@workspace/shared/events/planning";
-import { type EventType, FOOD_PURCHASER_LABELS } from "@workspace/shared/semester/labels";
+import { FOOD_PURCHASER_LABELS } from "@workspace/shared/semester/labels";
 import { convexErrorMessage } from "@workspace/shared/utils";
 import { useId, useState, type ReactNode } from "react";
 import { AddressInput } from "./address-input";
@@ -28,12 +28,12 @@ type ChoiceKey =
 	| "stand";
 const selectClass =
 	"h-11 w-full rounded-md border border-input bg-background px-3 text-base shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
-export function EventPlanningForm({
+export function EventPlanningForm<ProductId extends string>({
 	initial,
 	searchAddresses,
 	capacityLimit,
-	eventType,
-	eventTypeNames,
+	productId,
+	products,
 	onSubmit,
 	submitLabel = "Send inn opplysninger",
 	before,
@@ -42,20 +42,23 @@ export function EventPlanningForm({
 	initial: PlanningAnswers;
 	searchAddresses: AddressSearch;
 	capacityLimit: number;
-	eventType?: EventType;
-	eventTypeNames: Partial<Record<EventType, string>>;
-	onSubmit: (answers: PlanningAnswers) => Promise<unknown>;
+	productId?: ProductId;
+	products: readonly { _id: ProductId; name: string; active: boolean }[];
+	onSubmit: (
+		answers: PlanningAnswers & { requestedProductId?: ProductId },
+	) => Promise<unknown>;
 	submitLabel?: string;
 	before?: ReactNode;
 	after?: ReactNode;
 }>) {
 	const prefix = useId();
+	const agreed = products.find((product) => product._id === productId);
 	const [locationInputId, setLocationInputId] = useState<string>();
 	const [error, setError] = useState("");
 	const defaultValues: PlanningAnswers = {
 		...initial,
 		ageRestriction: AGE_BY_ALCOHOL[initial.alcohol],
-		requestedEventType: initial.requestedEventType ?? eventType,
+		requestedProductId: initial.requestedProductId ?? productId,
 	};
 	const form = useForm({
 		defaultValues,
@@ -63,7 +66,11 @@ export function EventPlanningForm({
 		onSubmit: async ({ value }) => {
 			setError("");
 			try {
-				await onSubmit({ ...value, ageRestriction: AGE_BY_ALCOHOL[value.alcohol] });
+				await onSubmit({
+					...value,
+					requestedProductId: value.requestedProductId as ProductId | undefined,
+					ageRestriction: AGE_BY_ALCOHOL[value.alcohol],
+				});
 			} catch (e) {
 				setError(
 					convexErrorMessage(
@@ -162,15 +169,15 @@ export function EventPlanningForm({
 			}}
 		>
 			{before}
-			<form.Field name="requestedEventType">
+			<form.Field name="requestedProductId">
 				{(field) => (
 					<Field>
 						<FieldLabel
 							htmlFor={`${prefix}-event-type`}
 							className="text-base font-semibold leading-6"
 						>
-							{eventType && eventTypeNames[eventType]
-								? `Dere har søkt om ${eventTypeNames[eventType]?.toLowerCase()}, stemmer det eller ønsker dere noe annet?`
+							{agreed
+								? `Dere har søkt om ${agreed.name.toLowerCase()}, stemmer det eller ønsker dere noe annet?`
 								: "Hvilken type arrangement ønsker dere?"}
 						</FieldLabel>
 						<select
@@ -178,16 +185,16 @@ export function EventPlanningForm({
 							className={selectClass}
 							value={field.state.value ?? ""}
 							onBlur={field.handleBlur}
-							onChange={(e) =>
-								field.handleChange(e.target.value ? (e.target.value as EventType) : undefined)
-							}
+							onChange={(e) => field.handleChange(e.target.value || undefined)}
 						>
 							<option value="">Ikke avklart</option>
-							{Object.entries(eventTypeNames).map(([value, label]) => (
-								<option key={value} value={value}>
-									{label}
-								</option>
-							))}
+							{products
+								.filter((product) => product.active || product._id === field.state.value)
+								.map((product) => (
+									<option key={product._id} value={product._id}>
+										{product.name}
+									</option>
+								))}
 						</select>
 						<FieldDescription>
 							<a href="https://ifinavet.no/companies" target="_blank" rel="noopener noreferrer" className="underline underline-offset-4">

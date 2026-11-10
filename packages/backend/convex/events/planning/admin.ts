@@ -14,6 +14,7 @@ import { internalRoles, requireRole } from "../../auth/accessRights";
 import { isLocalDevelopment } from "../../auth/local";
 import { previousCompanyReport } from "../../companies/history";
 import { generateLinkToken, hashLinkToken } from "../../lib/tokens";
+import { productOf } from "../../products/helpers";
 import { countRegistrationsWithStatus } from "../helper";
 import { getOrganizers } from "../queries";
 import { queueEmail } from "./delivery";
@@ -100,7 +101,7 @@ export const get = query({
 			.take(20);
 		return {
 			planning,
-			initial,
+			initial: { ...initial, productId: (await productOf(ctx, initial))?._id },
 			awaitingConfirmation:
 				planning?.status === "invited" &&
 				latestAnswer?.generation === planning.generation &&

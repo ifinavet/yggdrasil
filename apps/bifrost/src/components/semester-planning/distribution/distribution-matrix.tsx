@@ -239,7 +239,7 @@ const MatrixRow = memo(function MatrixRow({
 							{application.registry.name}
 						</Link>
 						<div className="mt-0.5 truncate text-[12px] text-muted-foreground tabular-nums">
-							<EventTypeName type={application.eventType} /> ·{" "}
+							<EventTypeName row={application} /> ·{" "}
 							{studentRange(application.minStudents, application.maxStudents)}
 							{industry && ` · ${industry}`}
 						</div>

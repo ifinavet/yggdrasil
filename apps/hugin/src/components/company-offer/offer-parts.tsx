@@ -1,6 +1,7 @@
 import type { AnyFieldApi } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
 import { COMPANY_CONTACT_EMAIL } from "@workspace/shared/constants";
+import { productOfRow } from "@workspace/shared/products";
 import { VENUE_LABELS } from "@workspace/shared/semester/labels";
 import { MAX_OFFER_COMMENT_LENGTH } from "@workspace/shared/semester/limits";
 import { cn } from "@workspace/ui/lib/utils";
@@ -58,7 +59,7 @@ export function OfferFacts({ offer }: Readonly<{ offer: KnownOffer }>) {
 	return (
 		<dl className="m-0 mt-3 rounded-[14px] border border-border bg-card px-4 py-1">
 			<Fact label={facts.type}>
-				{useQuery(api.products.queries.eventTypeNames)?.[offer.eventType]}
+				{productOfRow(useQuery(api.products.queries.listEvent) ?? [], offer)?.name}
 			</Fact>
 			<Fact label={facts.students}>{facts.upTo(offer.maxStudents)}</Fact>
 			<Fact label={facts.venue}>{VENUE_LABELS[offer.venue]}</Fact>

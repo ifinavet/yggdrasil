@@ -1,8 +1,8 @@
 "use client";
 import { api } from "@workspace/backend/convex/api";
+import type { Id } from "@workspace/backend/convex/dataModel";
 import { COMPANY_CONTACT_EMAIL } from "@workspace/shared/constants";
 import type { PlanningAnswers } from "@workspace/shared/events/planning";
-import type { EventType } from "@workspace/shared/semester/labels";
 import { EVENT_SEMESTER_LABELS, eventSemesterOf, formatSemesterDay } from "@workspace/shared/time";
 import { Button } from "@workspace/ui/components/button";
 import { CompanyLogo } from "@workspace/ui/components/company-logo";
@@ -113,7 +113,7 @@ function Planning({ token }: Readonly<{ token: string }>) {
 					revision={data.revision}
 					initial={lastAnswers ?? data.answers}
 					capacityLimit={data.capacityLimit}
-					eventType={data.eventType}
+					productId={data.productId}
 					onSent={(answers) => {
 						setLastAnswers(answers);
 						setSent(true);
@@ -159,7 +159,7 @@ function CompanyAnswers({
 	revision,
 	initial,
 	capacityLimit,
-	eventType,
+	productId,
 	onSent,
 }: Readonly<{
 	token: string;
@@ -167,7 +167,7 @@ function CompanyAnswers({
 	revision: number;
 	initial: PlanningAnswers;
 	capacityLimit: number;
-	eventType?: EventType;
+	productId?: Id<"products">;
 	onSent: (answers: PlanningAnswers) => void;
 }>) {
 	const searchAddresses = useAction(api.jobListingOrders.addressSearch.searchAddresses);
@@ -178,8 +178,8 @@ function CompanyAnswers({
 			searchAddresses={searchAddresses}
 			initial={initial}
 			capacityLimit={capacityLimit}
-			eventType={eventType}
-			eventTypeNames={useQuery(api.products.queries.eventTypeNames) ?? {}}
+			productId={productId}
+			products={useQuery(api.products.queries.listEvent) ?? []}
 			onSubmit={async (answers) => {
 				await submit({ token, submissionId, revision: openedRevision, answers });
 				onSent(answers);

@@ -1,12 +1,5 @@
-import { api } from "@workspace/backend/convex/api";
-import {
-	APPLICATION_EVENT_TYPES,
-	type ApplicationEventType,
-	type EventType,
-} from "@workspace/shared/semester/labels";
 import { CharacterCount } from "@workspace/ui/components/character-count";
-import { ChoiceGroup, type ChoiceOption } from "@workspace/ui/components/choice-group";
-import { useQuery } from "convex/react";
+import { ChoiceGroup } from "@workspace/ui/components/choice-group";
 import { fieldErrorText, questionIds } from "@/components/input-cards/question-block";
 import { TEXT_LIMITS } from "@/lib/company-application";
 import { eventTypeDescription } from "@/lib/company-application-format";
@@ -20,39 +13,35 @@ import {
 } from "./application-question";
 import type { ApplicationFormApi } from "./use-application-form";
 
-function eventTypeOptions(
-	pricesOre: Partial<Record<EventType, number>>,
-	names: Partial<Record<EventType, string>>,
-): ChoiceOption<ApplicationEventType>[] {
-	return APPLICATION_EVENT_TYPES.map((type) => ({
-		value: type,
-		label: names[type] ?? "",
-		description: eventTypeDescription(type, pricesOre[type]),
-	}));
-}
-
 /** «Arrangementet»: the event type, the number of students and the description. */
-export function EventQuestions({ form }: Readonly<{ form: ApplicationFormApi }>) {
-	const pricesOre = useQuery(api.products.queries.eventTypePrices) ?? {};
-	const names = useQuery(api.products.queries.eventTypeNames) ?? {};
-
+export function EventQuestions({
+	form,
+	products,
+}: Readonly<{
+	form: ApplicationFormApi;
+	products: readonly { _id: string; name: string; maxStudents?: number; unitPriceOre?: number }[];
+}>) {
 	return (
 		<>
 			<FormSection>{COPY.sections.event}</FormSection>
 
-			<form.Field name="eventType">
+			<form.Field name="productId">
 				{(field) => {
 					const error = fieldErrorText(field);
 					return (
-						<ApplicationQuestion name="eventType" label={COPY.eventType.label} error={error}>
+						<ApplicationQuestion name="productId" label={COPY.eventType.label} error={error}>
 							<ChoiceGroup
-								name="eventType"
-								options={eventTypeOptions(pricesOre, names)}
+								name="productId"
+								options={products.map((product) => ({
+									value: product._id,
+									label: product.name,
+									description: eventTypeDescription(product),
+								}))}
 								value={field.state.value}
 								onChange={field.handleChange}
 								invalid={Boolean(error)}
-								labelledBy={questionIds("eventType").promptId}
-								describedBy={answerAria("eventType", error)["aria-describedby"]}
+								labelledBy={questionIds("productId").promptId}
+								describedBy={answerAria("productId", error)["aria-describedby"]}
 							/>
 						</ApplicationQuestion>
 					);

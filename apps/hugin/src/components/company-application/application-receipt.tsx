@@ -1,5 +1,6 @@
 import { api } from "@workspace/backend/convex/api";
 import { COMPANY_CONTACT_EMAIL } from "@workspace/shared/constants";
+import { productOfRow } from "@workspace/shared/products";
 import { ESCAPE_LABELS, VENUE_LABELS } from "@workspace/shared/semester/labels";
 import { formatOrgNumber } from "@workspace/shared/semester/orgNumber";
 import { useQuery } from "convex/react";
@@ -61,7 +62,7 @@ export function ApplicationReceipt({ receipt }: Readonly<{ receipt: Receipt }>) 
 						<span className="text-muted-foreground">{formatOrgNumber(company.orgNumber)}</span>
 					</Row>
 					<Row label={ROWS.type}>
-						{useQuery(api.products.queries.eventTypeNames)?.[receipt.eventType]}
+						{productOfRow(useQuery(api.products.queries.listEvent) ?? [], receipt)?.name}
 					</Row>
 					<Row label={ROWS.students}>{studentRange(receipt.minStudents, receipt.maxStudents)}</Row>
 					<Row label={ROWS.dates}>{compactDateList(receipt.availableDates)}</Row>

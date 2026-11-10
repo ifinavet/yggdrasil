@@ -2,6 +2,7 @@
 
 import { api } from "@workspace/backend/convex/api";
 import type { Doc } from "@workspace/backend/convex/dataModel";
+import { productOfRow } from "@workspace/shared/products";
 import { STATUS_LABELS } from "@workspace/shared/semester/labels";
 import { formatSemesterDay } from "@workspace/shared/time";
 import { convexErrorMessage } from "@workspace/shared/utils";
@@ -12,7 +13,7 @@ import { useMutation } from "convex/react";
 import { TriangleAlert } from "lucide-react";
 import { type DragEvent, useState } from "react";
 import { toast } from "sonner";
-import { useEventTypeNames } from "@/components/products/event-type-name";
+import { useEventProducts } from "@/components/products/event-type-name";
 import { clearConsequence, moveConsequence } from "../application/model";
 import { dayOfMonth, longDay, shortDay, studentRange } from "../format";
 import { STATUS_CHIP_CLASSES } from "../status";
@@ -99,7 +100,7 @@ export function AssignCell({
 	onDragChange: (drag: DragState) => void;
 }>) {
 	const assignDate = useMutation(api.semesterPlanning.applications.mutations.assignDate);
-	const typeNames = useEventTypeNames();
+	const products = useEventProducts();
 	const [saving, setSaving] = useState(false);
 
 	const name = application.registry.name;
@@ -214,7 +215,7 @@ export function AssignCell({
 			<PopoverContent className="w-[268px] rounded-[10px] px-3.5 py-3" align="center">
 				<p className="font-semibold text-sm">{isOwn ? `Fjerne ${day}?` : `Velge ${day}?`}</p>
 				<p className="mt-1 text-[12.5px] text-muted-foreground leading-[1.45]">
-					{name} · {typeNames[application.eventType]?.toLowerCase()},{" "}
+					{name} · {productOfRow(products, application)?.name.toLowerCase()},{" "}
 					{studentRange(application.minStudents, application.maxStudents)}. {!warning && note}
 					{moveFrom}
 				</p>

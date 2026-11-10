@@ -1,4 +1,3 @@
-import { applicationFormSchema } from "@workspace/shared/semester/application";
 import { formatNok } from "@workspace/shared/semester/prices";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
@@ -27,7 +26,7 @@ function completeDraft(overrides: Partial<ApplicationDraft> = {}): ApplicationDr
 		...emptyDraft(),
 		company: { orgNumber: "924773189", name: "FJORDKODE AS", organizationForm: "AS" },
 		contact: { name: "Ingrid Solberg", email: "ingrid@fjordkode.no", phone: "+47 412 34 567" },
-		eventType: "standard_presentation",
+		productId: "product-1",
 		students: "25–40",
 		description: "Presentasjon og kodeoppgave.",
 		availableDates: ["2027-01-28", "2027-02-02"],
@@ -70,12 +69,13 @@ describe("company application draft", () => {
 	});
 
 	it("shows the student cap straight away, even while other answers are missing", () => {
-		const errors = draftErrors({
-			...emptyDraft(),
-			eventType: "standard_presentation",
-			students: "30-60",
-		});
-		expect(errors.students).toMatch(/har plass til 40/);
+		const products = [{ _id: "product-1", name: "Ordinær bedriftspresentasjon", maxStudents: 40 }];
+		const draft = { ...emptyDraft(), productId: "product-1", students: "30-60" };
+		expect(draftErrors(draft, products).students).toBe(
+			"Ordinær bedriftspresentasjon har plass til 40.",
+		);
+		expect(draftErrors({ ...draft, students: "30-40" }, products).students).toBeUndefined();
+		expect(draftErrors(draft, [{ _id: "product-2", name: "Stor" }]).students).toBeUndefined();
 	});
 
 	it.each([
@@ -334,17 +334,19 @@ describe("company application prices", () => {
 	});
 
 	it("describes an event type with its product price in kroner", () => {
-		expect(eventTypeDescription("standard_presentation", 3_000_000).replace(/\s/g, " ")).toBe(
-			"Inntil 40 studenter · 30 000 kr eks. mva.",
-		);
+		expect(
+			eventTypeDescription({ maxStudents: 40, unitPriceOre: 3_000_000 }).replace(/\s/g, " "),
+		).toBe("Inntil 40 studenter · 30 000 kr eks. mva.");
 	});
 
-	it("no longer offers a social event, and drops it from an old draft", () => {
-		expect(applicationDraftSchema.parse({ eventType: "social" }).eventType).toBe("");
-		expect(applicationFormSchema.shape.eventType.safeParse("social").success).toBe(false);
+	it("drops the event type of an old draft, so the company picks a product", () => {
+		const draft = applicationDraftSchema.parse({ eventType: "workshop" });
+		expect(draft).not.toHaveProperty("eventType");
+		expect(draftErrors(draft).productId).toBe("Velg hva slags arrangement dere ønsker.");
 	});
 
 	it("leaves the price out when the event type has no priced product", () => {
-		expect(eventTypeDescription("social", undefined)).toBe("Inntil 40 studenter");
+		expect(eventTypeDescription({ maxStudents: 40 })).toBe("Inntil 40 studenter");
+		expect(eventTypeDescription({})).toBe("Over 40 studenter");
 	});
 });

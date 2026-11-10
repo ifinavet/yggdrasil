@@ -19,7 +19,7 @@ export function EventInfoCard({ application }: Readonly<{ application: Applicati
 	const audience = [...application.targetDegrees, ...application.targetStudyPrograms];
 
 	const items: [string, ReactNode][] = [
-		["Type", <EventTypeName key="type" type={application.eventType} />],
+		["Type", <EventTypeName key="type" row={application} />],
 		["Studenter", studentRange(application.minStudents, application.maxStudents)],
 		["Sted", VENUE_LABELS[application.venue]],
 		["Escape", ESCAPE_LABELS[application.wantsToUseEscape]],

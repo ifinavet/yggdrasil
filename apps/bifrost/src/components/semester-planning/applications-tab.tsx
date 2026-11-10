@@ -45,7 +45,7 @@ const columns: ColumnDef<DataTableFeatures, Row>[] = [
 			);
 		},
 	},
-	{ header: "Type", cell: ({ row }) => <EventTypeName type={row.original.eventType} /> },
+	{ header: "Type", cell: ({ row }) => <EventTypeName row={row.original} /> },
 	{
 		header: "Studenter",
 		cell: ({ row }) => {
