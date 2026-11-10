@@ -1,6 +1,8 @@
 # Plan: the product is the only definition of an event type
 
-Status: plan for review. No code in this pull request.
+Status: plan for review, revision 2. No code in this pull request.
+
+Revision 2 follows a review by GPT-6 Astra, run read-only against the code. Its findings were checked against the files it cited and all of them held. The section "What the review changed" lists them.
 
 ## The problem
 
@@ -19,27 +21,32 @@ The bug that started this: the Slack alert for a new application always says `Ty
 
 A product reference is the only definition of what kind of event something is. Name, price, VAT and student cap are read from the product. The enum and its four tables are deleted.
 
-Two places keep a frozen copy, on purpose:
+Applications, offers and planning read the product live. If an admin renames a product, they all show the new name.
 
-- An event keeps the price and VAT rate it was sold at. An invoice must use the agreed price, so editing a product later must not change what an existing event costs.
-- An invoice keeps its line text. The invoicing schema already stores a line description (`invoicing/schema.ts:23`). Confirm in pull request A that it is written once at creation and never rebuilt from the product.
+Events keep the copy of the product they were sold as (`event.product`: reference, name, price, VAT). This plan does not change that copy. See open decision 1.
 
-Everything else reads the product live. If an admin renames a product, every application, offer, plan row and email shows the new name.
+## Decided
+
+- A product has one name. The short labels "Ordinær", "Stor" and "Faglig" are deleted and no short name field is added. Dense tables show `product.name`, and the full name stays available to screen readers and on hover when a cell truncates.
+- A rename shows everywhere at once for applications, offers and planning. They do not keep a copy of the name.
+- Job listing orders keep their stored `productName`. It is a receipt of what was bought.
 
 ## What stores a type today
 
-The `events` table has no type field. It already carries only a product copy (`event.product`). The type is stored in these places:
+The `events` table has no type field. The type is stored in these places:
 
 | Table or object | Field | Defined in |
 |---|---|---|
-| `pendingCompanyApplications.form` | `eventType` | `semesterPlanning/schema.ts:111` |
-| `companyApplications` | `eventType` | `semesterPlanning/schema.ts:178` |
-| offers | `eventType` | `semesterPlanning/schema.ts:219` |
-| `eventPlanning` | `eventType` | `events/planning/schema.ts:31` |
-| `eventPlanning.answers` | `requestedEventType` | `events/planning/schema.ts:9` |
+| `pendingCompanyApplications.form` | `eventType`, required | `semesterPlanning/schema.ts:111` |
+| `companyApplications` | `eventType`, required | `semesterPlanning/schema.ts:178` |
+| offers | `eventType`, required | `semesterPlanning/schema.ts:219` |
+| `eventPlanning` | `eventType`, optional | `events/planning/schema.ts:31` |
+| `eventPlanning.answers` | `requestedEventType`, optional | `events/planning/schema.ts:9` |
+| `eventPlanningSubmissions.answers` and `.draft` | `requestedEventType`, optional | `events/planning/schema.ts:61`, same validator |
 | `products` | `eventType`, index `by_eventType_and_active` | `products/schema.ts:62` |
+| Browser storage in Hugin | `eventType` in a saved, unsent application | `apps/hugin/src/lib/company-application-storage.ts:16` |
 
-References outside tests: 172 lines in 37 files. In tests: 40 lines in 13 files.
+References outside tests: 173 lines in 37 files. In tests: 35 lines in 13 files. Counted with `git grep` for `eventType`, `EventType`, `EVENT_TYPE`, `STUDENT_CAP`, `EVENT_TITLE_PREFIX` and `planningCapacityLimit`.
 
 ## Target state
 
@@ -48,104 +55,162 @@ References outside tests: 172 lines in 37 files. In tests: 40 lines in 13 files.
 | `pendingCompanyApplications.form` | `eventType` | `productId` |
 | `companyApplications` | `eventType` | `productId` |
 | offers | `eventType` | `productId` |
-| `eventPlanning` | `eventType` | `productId` |
-| `eventPlanning.answers` | `requestedEventType` | `requestedProductId` |
+| `eventPlanning` | `eventType` | `productId`, still optional |
+| planning answers, in `eventPlanning` and `eventPlanningSubmissions` | `requestedEventType` | `requestedProductId` |
 | `products` | `eventType` and its index | removed |
-| `events.product` (the copy) | `productId`, `name`, `unitPriceOre`, `vatRate` | `productId`, `unitPriceOre`, `vatRate` |
+| `events.product` and `jobListings.product` | unchanged | unchanged |
 
 Deleted from `packages/shared`: `EVENT_TYPES`, `EventType`, `APPLICATION_EVENT_TYPES`, `ApplicationEventType`, `EVENT_TYPE_LABELS`, `EVENT_TYPE_SHORT_LABELS`, `EVENT_TITLE_PREFIX`, `STUDENT_CAP`, `planningCapacityLimit`.
-
-Which products a company can apply for: active products in category `event`. That replaces `APPLICATION_EVENT_TYPES`.
 
 ## What replaces each hard-coded table
 
 | Hard-coded today | Used in | Replacement |
 |---|---|---|
 | `EVENT_TYPE_LABELS` | 12 files: Hugin form, receipt and offer page, Bifrost application card, edit form and planning panel, the shared planning form, the shared Zod schema, planning emails and notifications, Google Sheet row | `product.name` |
-| `STUDENT_CAP` | Hugin form validation, shared Zod schema, planning capacity limit | `product.maxStudents`, where no value means no cap |
-| `EVENT_TITLE_PREFIX` | one place, the Slack alert title | removed, see below |
-| `EVENT_TYPE_SHORT_LABELS` | 5 Bifrost files: applications tab, distribution matrix, assign cell, plan cards, plan table | open decision 1 |
-| "first active product with this type" lookup | `confirmation.ts:324`, `semesterPlanning/events.ts:138`, `invoicing/details.ts:56`, `products/queries.ts:24` | `ctx.db.get(application.productId)` |
+| `EVENT_TYPE_SHORT_LABELS` | 5 Bifrost files: applications tab, distribution matrix, assign cell, plan cards, plan table | `product.name` |
+| `STUDENT_CAP` | Hugin form validation, shared Zod schema, planning capacity limit | `product.maxStudents`. No value means no product cap, and the existing limit of 1 to 1000 students still applies (`shared/semester/application.ts:25`). |
+| `EVENT_TITLE_PREFIX` | one place, the Slack alert title | removed. The alert names the product and the company. |
+| `APPLICATION_EVENT_TYPES` | which types a company can apply for | open decision 2 |
+| "first active product with this type" lookup | `confirmation.ts:324`, `semesterPlanning/events.ts:138`, `invoicing/details.ts:56`, `products/queries.ts:24` | `ctx.db.get(row.productId)` |
 
-`EVENT_TITLE_PREFIX` is used only for the title line of the Slack alert. Events are created with a placeholder title that a person fills in later. So the alert can say `Ordinær bedriftspresentasjon, FJORDKODE AS` from the product name, and no "kind" field is needed on the product. This is what allows the enum to go completely.
+Events are created with a placeholder title that a person fills in later, so nothing needs a "kind" field on the product. That is what allows the enum to go completely.
+
+The list of products comes from the existing active-product query (`products/queries.ts:9`). No new query.
+
+## Behaviour that must not change
+
+- Agreed product and requested product stay separate. A company asking for another product in the planning form does not change what it has bought. Navet decides (`event-planning-panel.tsx:396`).
+- `productGuessed` keeps its meaning. A guessed product on an event does not count as the agreed type (`events/planning/helpers.ts:144`).
+- The agreed product on planning stays optional. "Bekreft avtalt arrangementstype" still shows when it is missing.
+- Changing the agreed product still invalidates the sent invitation, as changing `eventType` does today (`events/planning/admin.ts:148`).
+- Capacity is still enforced in planning, from the product's cap.
+- Planning's event fingerprint includes `event.product` (`events/planning/helpers.ts:51`). Leaving the copy unchanged keeps existing fingerprints valid.
+- Invoicing: an invoice's text and price are stored when it is marked sent (`invoicing/admin.ts:117`) and discarded when it is reopened (`invoicing/admin.ts:135`). Until then they are computed from `event.product`, and from the live product where the copy lacks a price or VAT (`invoicing/details.ts:60`). This plan does not change that. It only changes the fallback for an event with no copy at all, from the type lookup to the application's product.
 
 ## Backwards compatibility
 
-The current semester has applications, offers, planning rows and events in production. None of them may break or change meaning.
+The current semester has applications, offers, planning rows, submissions and events in production. None of them may break or change meaning.
 
-1. New fields are optional when they are added. Code that has not been switched keeps reading `eventType`, and a row without `productId` is valid.
-2. Old fields stay in the schema until the last pull request. Convex rejects a deploy whose schema drops a field that rows still hold, so the order is fixed: add, backfill, switch readers, clear the old field, remove it from the schema.
-3. The backfill only adds. It sets `productId` from `eventType` using the same rule the code uses today, the first active product with that type. It never overwrites a `productId` that is already set and never deletes a row.
-4. A row the backfill cannot map is reported and left alone. Examples are a `social` application, or a type with no active product. The plan does not guess for them.
-5. Events are not migrated. `event.product` keeps its price and VAT. The stored `name` is no longer read after pull request B, and is removed in pull request C.
-6. During the transition, readers go through one helper, `productOf(ctx, row)`, which returns the product from `productId` and otherwise falls back to the old type lookup. Pull request C deletes the fallback.
-7. Emails and links already sent stay valid. A pending application that a company confirms after the deploy still holds `form.eventType`. The confirm step resolves the product through the same helper.
+### Data
+
+1. New fields are optional when they are added.
+2. A field is only removed from the schema after no row holds it. Convex rejects a deploy otherwise. The function that clears a field must therefore be deployed and run in an earlier pull request than the one that removes it from the schema.
+3. Before writers stop setting a required legacy field, that field is made optional. Otherwise the first new row fails validation.
+4. The backfill only adds. It never overwrites a `productId` that is set and never deletes a row.
+5. The backfill prefers what was actually sold over what the type maps to today. For an application with an event whose product copy is not guessed, it takes `event.product.productId`. Otherwise it maps the type to the active product with that type. Where the two disagree, it reports the row and sets nothing. An admin can retag an event independently of its application (`products/tagging.ts:49`), so today's active product is not proof of the purchase.
+6. Every row must be resolved before the old field is cleared. "Reported and left alone" is a state during the work, never the end state, because the last pull request deletes the only other record of the type. Rows the backfill cannot map are resolved by hand, one by one, with Victor.
+
+### Clients
+
+The backend deploys before the frontends (`deploy-production.yml:83`), and people keep tabs open. Old browser code calls the new backend for a while after every deploy.
+
+7. Public functions keep accepting the old arguments and returning the old fields until the pull request after the one that switches the frontends. `eventTypePrices` and the `eventType` argument to submit stay through pull request B and go in C.
+8. A saved, unsent application in the browser holds `eventType`. The form converts it to the matching product when it loads, or clears that one answer and asks again if no product matches. It never discards the rest of the draft.
+9. A pending application that a company confirms from an old email holds only `form.eventType`. The confirm step resolves the product the same way the backfill does.
 
 ## Pull requests
 
-Three, so that production never holds a row the deployed code cannot read. Each one deploys on its own.
+Three. Each one deploys on its own, and production never holds a row the deployed code cannot read.
 
-### A. Add the product reference and backfill
+### A. Add the product reference
 
-- Schema: optional `productId` on the pending application form, applications, offers and `eventPlanning`. Optional `requestedProductId` on planning answers.
-- Writers set both fields: the old type and the new product reference.
-- `productOf` helper with its fallback.
-- Backfill migrations with `@convex-dev/migrations`, the same library `products/migrations.ts` uses, one per table.
-- An internal query that counts rows with and without `productId` per table.
+Additive only.
+
+- Schema: optional `productId` on the pending application form, applications, offers and `eventPlanning`. Optional `requestedProductId` in planning answers, which covers `eventPlanning` and `eventPlanningSubmissions`.
+- Writers set both the old type and the new reference.
+- One helper, `productOf(ctx, row)`, returns the product from `productId` and otherwise falls back to the old type lookup. The four lookups move to it.
+- Backfill migrations with `@convex-dev/migrations`, the library `products/migrations.ts` already uses, one per table.
+- An internal query that reports, per table: rows with `productId`, rows without, rows the backfill refused and why.
 - The Slack alert reads the product name. This fixes the original bug.
 
-Check before moving on: run the count query in production. Every row has `productId`, or is on the reported list with a reason.
+Gate before B: the report from production shows no unresolved row.
 
-### B. Switch every reader to the product
+### B. Switch readers and writers
 
-- Hugin application form: the choices come from a query of active event products with name, price and cap. The form submits `productId`. `apps/hugin/src/lib/company-application.ts` and the shared Zod schema validate the student count against the chosen product's cap. The server validates again against the product it loads, because the browser value cannot be trusted.
-- Bifrost: the application card, edit form, applications tab, distribution matrix, assign cell, plan cards and plan table read the product name.
-- Planning: the admin panel and the company form pick a product. The capacity limit comes from `product.maxStudents`.
-- Emails, the Google Sheet row and planning notifications read the product name.
-- Invoicing reads `application.productId` when the event has no product copy.
-- `products.queries.eventTypePrices` is replaced by the product list query.
-- Writers stop setting `eventType`.
+- Schema: the legacy `eventType` fields on pending applications, applications and offers become optional.
+- Hugin application form: the choices are products. It submits `productId`. The browser and the shared Zod schema validate the student count against the chosen product's cap, and the server validates again against the product it loads.
+- The form gets a loading state and an empty state. Today it shows hard-coded choices at once and fills in prices when they arrive (`event-questions.tsx:36`). With choices from the database, there is nothing to show until they load. This is a visible change and gets a design mock for approval before it is built.
+- Bifrost: application card, edit form, applications tab, distribution matrix, assign cell, plan cards and plan table show the product name.
+- Planning: the admin panel and the company form pick a product. The cap comes from the product.
+- Emails, the Google Sheet row and planning notifications use the product name.
+- Old endpoints and arguments stay, per rule 7.
+- Writers stop setting the legacy fields.
+- The functions that clear the legacy fields are deployed, including for nested planning answers in submissions. They are run after B is live and the frontends have deployed.
 
-Check: full click-through in Hugin and Bifrost against a local backend seeded with the current production shape. Chromium, WebKit and Firefox, plus Safari in the iOS Simulator with the keyboard open on the application form.
+Gate before C: the report shows no row holding `eventType` or `requestedEventType` in any table, and no row without a product reference where one is required.
 
 ### C. Remove the old fields
 
-- A migration clears `eventType` and `requestedEventType` from every row, and `name` from `events.product`.
-- Schema: remove those fields, `products.eventType` and the index `by_eventType_and_active`. Make `productId` required where every row has one.
-- Delete the enum, the four tables, `planningCapacityLimit`, the `productOf` fallback and the `eventType` argument to the seed helper.
-- `products/migrations.ts` uses `STUDENT_CAP.standard_presentation` to guess a product for old events. That backfill has already run. It keeps working with the number 40 inlined as a local constant in that file, or the file is deleted if the migration is retired. Decide when writing C.
-
-Check: the count query shows no row holding an old field before the schema change is deployed.
+- Schema: remove `eventType` from pending applications, applications, offers and `eventPlanning`, `requestedEventType` from planning answers, and `products.eventType` with its index. Make `productId` required on applications and offers.
+- Delete the enum, the four tables, `planningCapacityLimit`, the `productOf` fallback, `eventTypePrices`, the old submit argument and the `eventType` argument to the seed helper.
+- `products/migrations.ts` guesses a product for old events from `STUDENT_CAP.standard_presentation`. That backfill has run. Decide when writing C whether to retire the file or keep it with the number as a local constant.
 
 ## Tests
 
-- One test per backfill: maps the three types, leaves a row with `productId` untouched, reports an unmappable row and does not change it.
+Migration and compatibility tests come first. They cover the cases where data can be lost or mislabelled.
+
+- Backfill: maps the three applied types. Leaves a row with `productId` untouched. Takes the event's product when the event has a real copy. Reports a conflict between the event's product and the type. Reports an archived product, a type with two active products, and a type with none. Covers nested answers in planning submissions.
 - `productOf`: returns the referenced product, falls back for a row without `productId`, returns nothing when neither exists.
+- Old client: submit with only `eventType` still works after B, and `eventTypePrices` still answers.
+- Pending application confirmed after B with only `form.eventType`: is received and gets a `productId`.
+- Saved browser draft with `eventType`: converts, or clears that one answer.
+- Invoicing: an event with a product copy invoices at the copied price after the product's price is edited. A reopened invoice is recomputed the same way as today.
+- Planning: changing the agreed product invalidates the invitation. A requested product does not change the agreed one. A guessed product is not treated as agreed.
 - Slack alert: shows the product name for ordinary, large and workshop.
-- Application submit: rejects a student count over the product's cap, accepts any count when the product has no cap, rejects an inactive product and a product in another category.
-- Pending application confirmed after the deploy with only `form.eventType`: is received and gets a `productId`.
-- Invoicing: an event with a product copy still invoices at the copied price after the product's price is edited.
-- The existing 13 test files that build rows with `eventType` are updated in the pull request that changes what they exercise.
+- Application submit: rejects a count over the product's cap, enforces 1 to 1000 when the product has no cap, rejects an inactive product and one that cannot be applied for.
 
-## Risks
+Browser checks for B: the application form and planning form in Chromium, WebKit and Firefox, and the application form in Safari in the iOS Simulator with the keyboard open.
 
-| Risk | Handling |
-|---|---|
-| Production products lack `eventType`, so the backfill maps nothing | Not verified, no read access to production from the development machine. The count query in A answers it before B starts. |
-| Two active products share a type, so "first" picks one arbitrarily | The backfill reports the type as ambiguous and maps nothing for it until an admin says which one. |
-| An admin archives a product that applications reference | Archived products stay readable. `ctx.db.get` still returns them, so names still render. Only new applications are limited to active products. |
-| A product is deleted | Check that Bifrost only archives. If hard delete exists, block it while references exist. |
-| The Hugin form needs products before it can validate | It already waits on a price query, so this is the same loading state with more fields. |
-| A rename changes the text of old applications | Intended, decided by Victor. Invoices keep their stored line text. |
+## Blast radius
+
+The change crosses every step from a company applying to Navet sending the invoice.
+
+| Area | What breaks if it goes wrong | Who notices |
+|---|---|---|
+| Hugin application form | Companies cannot apply, or apply for the wrong product | Companies. Navet loses orders. |
+| Offers and the semester plan | Wrong product shown, or a page fails to load | Navet's board |
+| Event planning | Wrong student cap, or a sent invitation is invalidated or kept when it should not be | Companies and students |
+| Invoicing | Wrong product or price on an invoice | Companies. It is a bookkeeping error. |
+| Slack alert, Google Sheet, emails | Wrong or missing product text | Navet internally |
+
+Risk, highest first:
+
+| Risk | Impact | Likelihood | Handling |
+|---|---|---|---|
+| The application form rejects valid applications or accepts oversized ones | High | Medium | Server validates against the loaded product. Tests for cap, no cap, inactive product. Design mock for the loading state. |
+| Open tabs and the old frontend call the new backend | High | Certain for a few minutes per deploy | Rule 7. Old arguments and endpoints stay one pull request longer. |
+| The backfill gives an application the wrong product | High | Unknown | Rule 5 and rule 6. Prefer the sold product, report conflicts, resolve by hand. |
+| Clearing a legacy field before every row is resolved | High | Low | Gates before B and C are checked against the production report. |
+| Invoicing changes for an event already sold | High | Low | The event's product copy is not touched. Only the no-copy fallback changes. |
+| A deploy is rejected by schema validation | Low | Low | It fails closed. Nothing is written. |
+
+Not known: how many rows each production table holds, whether live products have a type set, and whether two active products share a type. There is no read access to production from the development machine. The report in A answers all three before anything is switched.
+
+Timing: B should not ship while companies are applying for a semester or while invoices are going out.
 
 ## Open decisions
 
-1. Short names in dense Bifrost tables. `EVENT_TYPE_SHORT_LABELS` gives "Ordinær", "Stor", "Faglig". Options: (a) show the full product name and let the cell truncate, (b) add an optional short name to the product. Recommendation: (a), since it adds no field, and revisit if the tables read badly.
-2. The seeded "Sosialt arrangement" product has no price and is the only `social` type. There are no social applications. Recommendation: leave the product, drop the type with everything else.
-3. Job listing orders store `productName` on the order at purchase time. That is a receipt, the same idea as the invoice line. Recommendation: leave it.
+1. The product name on the event copy. Victor asked for events to have no stored product name. The review found that removing it reaches further than the rest of this plan: job listings share the same validator (`jobListings/schema.ts:16`), sales statistics and product tagging read it (`products/stats.ts:34`, `event-tagging.tsx:109`), pending and reopened invoices take their line text from it, and planning's fingerprint includes it. It does not help remove the enum. Recommendation: leave the copy as it is here, and decide the name in a separate change.
+2. Which products a company can apply for. Today the code lists three types and leaves `social` out. "Active products in the event category" would put the seeded "Sosialt arrangement" product, which has no price and no cap, on the public form. Options: (a) a yes or no field on the product, "can be applied for", set to yes for the three current products by the backfill, or (b) archive the social product. Recommendation: (a). It is a real property of a product, and (b) would hide the product from event tagging too.
+3. Social applications. Victor says none exist. The report in A will confirm it. If any do, they map to the social product like any other type.
+4. Planning's capacity hint says "Ordinært og faglig arrangement er til og med 40 studenter, mens stort arrangement er mer enn 40" (`shared/events/planning.ts:28`). It hard-codes the cap in copy. Changing user-facing text needs Victor's wording.
+
+## What the review changed
+
+- The storage list missed planning submissions, which hold `requestedEventType` in `answers` and `draft`.
+- Revision 1 said invoices store their line text at creation. They store it when marked sent and drop it when reopened.
+- Revision 1 had B stop writing `eventType` while three tables still required it, and had C clear the fields and remove them from the schema in one deploy. Both would have failed. The sequence is now: add, switch and make optional, clear, remove.
+- Revision 1 protected stored rows but not old browser code. Rules 7 to 9 are new.
+- Revision 1 let unmappable rows stay unmapped. Rule 6 is new.
+- Revision 1 mapped every row from its type to today's active product. Rule 5 is new.
+- Revision 1 removed the name from the event copy. That is now open decision 1.
+- The eligibility of the social product, the saved browser draft, the 1 to 1000 limit and the planning hint text are new.
+- The test count was 40 lines. It is 35.
+
+Not checked by the review or by the author: production rows, a real migration run, browser behaviour.
 
 ## Out of scope
 
 - Changing prices, caps or product names.
-- The product copy on job listings.
+- The product copy on events and job listings.
 - Any change to how events are created, published or invoiced beyond where they read the product.
