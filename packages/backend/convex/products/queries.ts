@@ -15,6 +15,7 @@ export const listActive = query({
 });
 
 export const listEvent = query({
+	args: {},
 	handler: async (ctx) => {
 		const products = await ctx.db
 			.query("products")

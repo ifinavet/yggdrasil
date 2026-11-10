@@ -363,7 +363,7 @@ export const updateDetails = mutation({
 		const product = details.productId
 			? await ctx.db.get(details.productId)
 			: await productOf(ctx, application);
-		if (!product) throw new ConvexError(MISSING_PRODUCT);
+		if (product?.category !== "event") throw new ConvexError(MISSING_PRODUCT);
 		const { consent: _, ...form } = parseApplicationForm({
 			...application,
 			...details,

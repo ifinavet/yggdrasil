@@ -585,6 +585,23 @@ describe("company event planning", () => {
 			await f.t.mutation(api.events.planning.public.confirm, { token: f.confirmationToken }),
 		).toEqual({ state: "expired" });
 	});
+	it("keeps the invitation link when a row stored as an event type is saved with its product", async () => {
+		const f = await invited();
+		await f.t.run(async (ctx) => {
+			const planning = present(await ctx.db.query("eventPlanning").first());
+			await ctx.db.patch(planning._id, {
+				productId: undefined,
+				eventType: "standard_presentation",
+			});
+		});
+		const data = await f.editor.query(api.events.planning.admin.get, { eventId: f.eventId });
+		await f.editor.mutation(api.events.planning.admin.savePreparation, {
+			eventId: f.eventId,
+			revision: present(data.planning).revision,
+			...f.preparation,
+		});
+		expect(await f.t.mutation(api.events.planning.public.get, { token: f.token })).not.toBeNull();
+	});
 	it("expires confirmation links and invalidates old links on recipient correction", async () => {
 		const f = await submitted();
 		vi.setSystemTime((await f.t.run(async () => Date.now())) + DAY_MS);

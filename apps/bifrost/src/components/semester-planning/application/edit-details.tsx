@@ -235,7 +235,10 @@ export function EditEventInfo({ application }: Readonly<{ application: Applicati
 			<form.Field name="productId">
 				{(field) => {
 					const value = field.state.value ?? productOfRow(products, application)?._id;
-					const offered = products.filter((product) => product.active || product._id === value);
+					const offered = products.filter(
+						(product) =>
+							(product.active && product.unitPriceOre !== undefined) || product._id === value,
+					);
 					return (
 						<Choice
 							id="edit-event-type"

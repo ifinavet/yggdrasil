@@ -686,6 +686,21 @@ describe("remove", () => {
 });
 
 describe("updateDetails", () => {
+	it("refuses a product that is not an event", async () => {
+		const { t, editor, semesterId } = await planningSetup();
+		const applicationId = await insertApplication(t, semesterId);
+		const productId = await t.run(async (ctx) => {
+			const products = await ctx.db.query("products").collect();
+			return products.find((product) => product.category === "job_listing")?._id;
+		});
+
+		expect(
+			await refusalMessageFrom(
+				editor.mutation(mutations.updateDetails, { applicationId, details: { productId } }),
+			),
+		).toBe("Velg hva slags arrangement dere ønsker.");
+	});
+
 	it("saves the changed details, keeps the rest and writes the history", async () => {
 		const { t, semesterId, editor } = await planningSetup();
 		const applicationId = await insertApplication(t, semesterId);

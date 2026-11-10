@@ -154,7 +154,7 @@ export const savePreparation = mutation({
 		const changedContact =
 			planning.contactEmail !== fields.contactEmail.trim().toLowerCase() ||
 			planning.companyId !== event.hostingCompany ||
-			planning.productId !== fields.productId;
+			(await productOf(ctx, planning))?._id !== fields.productId;
 		await ctx.db.patch(planning._id, {
 			...fields,
 			eventType: undefined,
