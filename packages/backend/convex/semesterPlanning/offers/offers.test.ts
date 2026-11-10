@@ -76,6 +76,37 @@ describe("send", () => {
 		expect((await offersOf(t, applicationId))[0]?.productId).toBe(productId);
 	});
 
+	it("carries the product the application's event was tagged with before the product of its type", async () => {
+		const { t, applicationId, editor } = await offerSetup();
+		const taggedId = await insertEventProduct(t, "standard_presentation", "Merket ordinær");
+		await t.run((ctx) => ctx.db.patch(taggedId, { active: false }));
+		await insertEventProduct(t, "standard_presentation");
+		await t.run(async (ctx) => {
+			const event = await ctx.db.query("events").first();
+			const company = await ctx.db.query("companies").first();
+			if (event || !company) throw new Error("Expected a company and no events.");
+			const eventId = await ctx.db.insert("events", {
+				title: "Testarrangement",
+				teaser: "",
+				description: "",
+				eventStart: Date.now(),
+				registrationOpens: Date.now(),
+				participationLimit: 40,
+				location: "",
+				language: "norsk",
+				ageRestriction: "",
+				externalEvent: false,
+				externalUrl: "",
+				hostingCompany: company._id,
+				published: false,
+				product: { productId: taggedId, name: "Merket ordinær" },
+			});
+			await ctx.db.patch(applicationId, { eventId });
+		});
+		await editor.mutation(offers.mutations.sendOffer, { applicationId });
+		expect((await offersOf(t, applicationId))[0]?.productId).toBe(taggedId);
+	});
+
 	it("carries the application's own product, also when it is archived", async () => {
 		const { t, editor, semesterId } = await offerSetup();
 		const archivedId = await insertEventProduct(t, "standard_presentation", "Utgått ordinær");

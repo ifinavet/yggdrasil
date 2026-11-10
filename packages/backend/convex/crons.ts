@@ -1,5 +1,6 @@
 import { cronJobs } from "convex/server";
 import { internal } from "./_generated/api";
+import { BACKFILL } from "./products/references";
 
 /**
  * Registers the scheduled Convex jobs used by the backend.
@@ -115,5 +116,8 @@ crons.interval(
 	internal.iam.notifications.retryPending,
 	{},
 );
+
+crons.cron("Backfill product references", "0 5 * * 1", internal.migrations.run, BACKFILL);
+crons.cron("Report product references", "0 6 * * 1", internal.products.references.announce, {});
 
 export default crons;

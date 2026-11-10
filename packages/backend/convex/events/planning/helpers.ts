@@ -20,7 +20,8 @@ import { sanitizeRichText } from "../../jobListingOrders/sanitize";
 import { validEmailToken } from "../../lib/emailConfirmation";
 import { hashLinkToken } from "../../lib/tokens";
 import { trackedEmail } from "../../lib/trackedEmail";
-import { productForType, productOf } from "../../products/helpers";
+import { productForType } from "../../products/helpers";
+import { orFirstActive, planningProduct } from "../../products/references";
 import { getOrganizerEmails, getOrganizers } from "../queries";
 
 export const eventArgsError = "Arrangementet er avsluttet eller utilgjengelig.";
@@ -138,14 +139,23 @@ export async function initialPlanning(ctx: QueryCtx, event: Doc<"events">) {
 		language: known(event.language),
 		notes: "",
 	};
+	const eventType = order?.eventType ?? ownProduct?.eventType;
 	return {
 		answers,
 		contactName: order?.contact.name ?? "",
 		contactEmail: order?.contact.email ?? "",
 		signature: sender.signature,
-		eventType: order?.eventType ?? ownProduct?.eventType,
-		productId: (order ? await productOf(ctx, order) : ownProduct)?._id,
+		eventType,
+		productId: (await agreedProduct(ctx, event._id, eventType))?._id,
 	};
+}
+export async function agreedProduct(
+	ctx: QueryCtx,
+	eventId: Id<"events">,
+	eventType: Doc<"eventPlanning">["eventType"],
+) {
+	if (!eventType) return null;
+	return await orFirstActive(ctx, await planningProduct(ctx, eventId, eventType), eventType);
 }
 export async function ensurePlanning(ctx: MutationCtx, event: Doc<"events">) {
 	const existing = await planningForEvent(ctx, event._id);
