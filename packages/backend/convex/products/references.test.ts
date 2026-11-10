@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	applicationById,
+	asUser,
+	grantRole,
 	insertApplication,
 	insertEvent,
 	insertEventProduct,
@@ -9,9 +11,10 @@ import {
 	setup,
 	type TestBackend,
 } from "../../test/fixtures";
-import { internal } from "../_generated/api";
+import { api } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
-import { BACKFILL } from "./references";
+
+const references = api.products.references;
 
 const TABLES = [
 	"companyApplications",
@@ -21,7 +24,9 @@ const TABLES = [
 	"eventPlanningSubmissions",
 ] as const;
 
-async function tableReport(t: TestBackend, table: (typeof TABLES)[number]) {
+type Admin = ReturnType<typeof asUser>;
+
+async function tableReport(t: Admin, table: (typeof TABLES)[number]) {
 	const result = { rows: 0, missing: [] as { id: string; reason: string }[] };
 	let cursor: string | null = null;
 	for (;;) {
@@ -30,7 +35,7 @@ async function tableReport(t: TestBackend, table: (typeof TABLES)[number]) {
 			missing: { id: string; reason: string }[];
 			isDone: boolean;
 			continueCursor: string;
-		} = await t.query(internal.products.references.report, { table, cursor, numItems: 2 });
+		} = await t.query(references.report, { table, cursor, numItems: 2 });
 		result.rows += page.rows;
 		result.missing.push(...page.missing);
 		if (page.isDone) return result;
@@ -38,13 +43,10 @@ async function tableReport(t: TestBackend, table: (typeof TABLES)[number]) {
 	}
 }
 
-async function report(t: TestBackend) {
+async function report(t: Admin) {
 	const tables = await Promise.all(TABLES.map((table) => tableReport(t, table)));
 	return {
-		typesWithoutOneActiveProduct: await t.query(
-			internal.products.references.typesWithoutOneActiveProduct,
-			{},
-		),
+		typesWithoutOneActiveProduct: await t.query(references.typesWithoutOneActiveProduct, {}),
 		tables: Object.fromEntries(TABLES.map((table, index) => [table, tables[index]])) as Record<
 			(typeof TABLES)[number],
 			Awaited<ReturnType<typeof tableReport>>
@@ -99,8 +101,8 @@ function tagged(productId: Id<"products">) {
 	return { product: { productId, name: "Kopi", unitPriceOre: 1, vatRate: 25 } };
 }
 
-async function backfill(t: TestBackend) {
-	await t.mutation(internal.migrations.run, BACKFILL);
+async function backfill({ t, admin }: { t: TestBackend; admin: Admin }) {
+	await admin.mutation(references.backfill, {});
 	await t.finishAllScheduledFunctions(vi.runAllTimers);
 }
 
@@ -108,6 +110,8 @@ async function fixture() {
 	const { t, companyId } = await setup();
 	const semesterId = await insertSemester(t);
 	const user = await insertUser(t, "kari@ifinavet.no");
+	await grantRole(t, user._id, "admin");
+	const admin = asUser(t, user);
 	const insertOffer = (
 		applicationId: Id<"companyApplications">,
 		eventType: Doc<"companyApplicationOffers">["eventType"],
@@ -185,6 +189,7 @@ async function fixture() {
 	) => t.run((ctx) => ctx.db.get(id));
 	return {
 		t,
+		admin,
 		companyId,
 		semesterId,
 		insertOffer,
@@ -204,7 +209,8 @@ afterEach(() => {
 
 describe("backfill of product references", () => {
 	it("gives an application the product its event was tagged with, else the product of its type", async () => {
-		const { t, companyId, semesterId } = await fixture();
+		const f = await fixture();
+		const { t, companyId, semesterId } = f;
 		const taggedId = await archived(t, "standard_presentation", "Avtalt ordinær");
 		const standardId = await insertEventProduct(t, "standard_presentation");
 		const handTagged = await insertApplication(t, semesterId, {
@@ -216,7 +222,7 @@ describe("backfill of product references", () => {
 		const eventless = await insertApplication(t, semesterId);
 		const kept = await insertApplication(t, semesterId, { productId: taggedId });
 
-		await backfill(t);
+		await backfill(f);
 
 		expect((await applicationById(t, handTagged)).productId).toBe(taggedId);
 		expect((await applicationById(t, guessed)).productId).toBe(standardId);
@@ -225,7 +231,8 @@ describe("backfill of product references", () => {
 	});
 
 	it("leaves a row alone and reports why when the product cannot be told", async () => {
-		const { t, companyId, semesterId } = await fixture();
+		const f = await fixture();
+		const { t, companyId, semesterId } = f;
 		await archived(t, "standard_presentation", "Bare arkivert");
 		const workshopId = await insertEventProduct(t, "workshop");
 		await insertEventProduct(t, "large_presentation");
@@ -239,13 +246,13 @@ describe("backfill of product references", () => {
 		const archivedOnly = await insertApplication(t, semesterId);
 		const fine = await insertApplication(t, semesterId, { eventType: "workshop" });
 
-		await backfill(t);
+		await backfill(f);
 
 		for (const id of [conflicting, twoProducts, archivedOnly])
 			expect((await applicationById(t, id)).productId).toBeUndefined();
 		expect((await applicationById(t, fine)).productId).toBe(workshopId);
 
-		const result = await report(t);
+		const result = await report(f.admin);
 		expect(result.typesWithoutOneActiveProduct).toEqual([
 			{ eventType: "standard_presentation", activeProducts: 0 },
 			{ eventType: "large_presentation", activeProducts: 2 },
@@ -262,7 +269,8 @@ describe("backfill of product references", () => {
 	});
 
 	it("gives offers and planning the application's product before the event's and the type's", async () => {
-		const { t, companyId, semesterId, insertOffer, insertPlanning, get } = await fixture();
+		const f = await fixture();
+		const { t, companyId, semesterId, insertOffer, insertPlanning, get } = f;
 		const orderedId = await archived(t, "standard_presentation", "Bestilt ordinær");
 		const taggedId = await archived(t, "standard_presentation", "Merket ordinær");
 		const standardId = await insertEventProduct(t, "standard_presentation");
@@ -298,7 +306,7 @@ describe("backfill of product references", () => {
 		);
 		const untyped = await insertPlanning(await insertEvent(t, companyId, tagged(taggedId)));
 
-		await backfill(t);
+		await backfill(f);
 
 		expect((await get(sameType))?.productId).toBe(orderedId);
 		expect((await get(legacyOffer))?.productId).toBe(taggedId);
@@ -309,13 +317,14 @@ describe("backfill of product references", () => {
 		expect((await get(otherOrderType))?.productId).toBe(taggedId);
 		expect((await get(guessed))?.productId).toBe(standardId);
 		expect((await get(untyped))?.productId).toBeUndefined();
-		const { tables } = await report(t);
+		const { tables } = await report(f.admin);
 		expect(tables.eventPlanning).toEqual({ rows: 5, missing: [] });
 		expect(tables.companyApplicationOffers).toEqual({ rows: 4, missing: [] });
 	});
 
 	it("fills the pending form and each copy of a company's planning answers on its own", async () => {
-		const { t, companyId, insertPending, insertPlanning, insertSubmission, get } = await fixture();
+		const f = await fixture();
+		const { t, companyId, insertPending, insertPlanning, insertSubmission, get } = f;
 		const largeId = await insertEventProduct(t, "large_presentation");
 		const workshopId = await insertEventProduct(t, "workshop");
 		const large = { ...ANSWERS, requestedEventType: "large_presentation" as const };
@@ -333,7 +342,7 @@ describe("backfill of product references", () => {
 		);
 		const socialSubmission = await insertSubmission(social, social);
 
-		await backfill(t);
+		await backfill(f);
 
 		expect((await get(pending))?.form).toEqual({ ...FORM, productId: largeId });
 		expect((await get(keptPending))?.form.productId).toBe(workshopId);
@@ -348,7 +357,7 @@ describe("backfill of product references", () => {
 			draft: ANSWERS,
 		});
 
-		const { tables } = await report(t);
+		const { tables } = await report(f.admin);
 		expect(tables.pendingCompanyApplications).toEqual({
 			rows: 3,
 			missing: [{ id: socialPending, reason: "no active product has this type" }],
@@ -366,7 +375,8 @@ describe("backfill of product references", () => {
 	});
 
 	it("reports exactly the rows the backfill left without a product", async () => {
-		const { t, companyId, semesterId, insertOffer, insertPlanning } = await fixture();
+		const f = await fixture();
+		const { t, companyId, semesterId, insertOffer, insertPlanning } = f;
 		await insertEventProduct(t, "standard_presentation");
 		const applicationId = await insertApplication(t, semesterId);
 		const social = await insertApplication(t, semesterId, { eventType: "social" });
@@ -377,9 +387,9 @@ describe("backfill of product references", () => {
 			answers: { ...ANSWERS, requestedEventType: "workshop" },
 		});
 
-		await backfill(t);
+		await backfill(f);
 
-		const { tables } = await report(t);
+		const { tables } = await report(f.admin);
 		expect(tables.companyApplications.missing.map((row) => row.id)).toEqual([social]);
 		expect(tables.companyApplicationOffers.missing.map((row) => row.id)).toEqual([socialOffer]);
 		expect(tables.eventPlanning.missing).toEqual([
@@ -393,12 +403,26 @@ describe("backfill of product references", () => {
 		expect(stillMissing.map((row) => row._id)).toEqual([social, socialOffer]);
 	});
 
+	it("lets only an admin run the backfill and read the report", async () => {
+		const { t } = await fixture();
+		const editor = await insertUser(t, "editor@ifinavet.no");
+		await grantRole(t, editor._id, "editor");
+		const asEditor = asUser(t, editor);
+
+		await expect(asEditor.mutation(references.backfill, {})).rejects.toThrow();
+		await expect(
+			asEditor.query(references.report, { table: "companyApplications", cursor: null }),
+		).rejects.toThrow();
+		await expect(asEditor.query(references.typesWithoutOneActiveProduct, {})).rejects.toThrow();
+	});
+
 	it("counts rows the backfill has not reached yet", async () => {
-		const { t, semesterId } = await fixture();
+		const f = await fixture();
+		const { t, semesterId } = f;
 		await insertEventProduct(t, "standard_presentation");
 		const applicationId = await insertApplication(t, semesterId);
 
-		expect((await report(t)).tables.companyApplications.missing).toEqual([
+		expect((await report(f.admin)).tables.companyApplications.missing).toEqual([
 			{ id: applicationId, reason: "not filled in yet" },
 		]);
 	});

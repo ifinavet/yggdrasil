@@ -1,7 +1,9 @@
 import { EVENT_TYPES, type EventType } from "@workspace/shared/semester/labels";
 import { v } from "convex/values";
+import { internal } from "../_generated/api";
 import type { Doc, Id, TableNames } from "../_generated/dataModel";
-import { internalQuery, type QueryCtx } from "../_generated/server";
+import { mutation, type QueryCtx, query } from "../_generated/server";
+import { adminRoles, requireRole } from "../auth/accessRights";
 import { oneOf } from "../lib/validators";
 import { migrations } from "../migrations";
 
@@ -157,7 +159,7 @@ const TABLES = [
 	"eventPlanningSubmissions",
 ] as const;
 
-export const BACKFILL = {
+const BACKFILL = {
 	fn: "products/references:backfillApplications",
 	next: [
 		"products/references:backfillPendingApplications",
@@ -168,13 +170,22 @@ export const BACKFILL = {
 	reset: true,
 };
 
-export const report = internalQuery({
+export const backfill = mutation({
+	args: {},
+	handler: async (ctx) => {
+		await requireRole(ctx, adminRoles);
+		await ctx.runMutation(internal.migrations.run, BACKFILL);
+	},
+});
+
+export const report = query({
 	args: {
 		table: oneOf(TABLES),
 		cursor: v.union(v.string(), v.null()),
 		numItems: v.optional(v.number()),
 	},
 	handler: async (ctx, { table, cursor, numItems = REPORT_PAGE }) => {
+		await requireRole(ctx, adminRoles);
 		const { page, isDone, continueCursor } = await ctx.db
 			.query(table)
 			.paginate({ cursor, numItems });
@@ -191,9 +202,10 @@ export const report = internalQuery({
 	},
 });
 
-export const typesWithoutOneActiveProduct = internalQuery({
+export const typesWithoutOneActiveProduct = query({
 	args: {},
 	handler: async (ctx) => {
+		await requireRole(ctx, adminRoles);
 		const counts = await Promise.all(
 			EVENT_TYPES.map(async (eventType) => ({
 				eventType,
