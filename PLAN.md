@@ -162,6 +162,11 @@ Gate before D: no product holds `eventType`.
 
 D is a separate deploy because of rule 2: C clears the field, so the same deploy cannot also remove it from the schema.
 
+## How the work is done
+
+- Tests first. For each pull request the tests are written and seen to fail before the code that makes them pass.
+- Review in turns with GPT-6 Astra, run read-only through Codex. Each step goes to it before the next starts: the tests, then each slice of code. Findings are checked against the code and fixed before moving on. It is not left as one review at the end.
+
 ## Tests
 
 Migration and compatibility tests come first. They cover the cases where data can be lost or mislabelled.
