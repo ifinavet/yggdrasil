@@ -1,4 +1,3 @@
-import { SYSTEM_ALERTS_CHANNEL } from "@workspace/shared/slack/channels";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	applicationById,
@@ -364,33 +363,13 @@ describe("backfill of product references", () => {
 		expect(stillMissing.map((row) => row._id)).toEqual([social, socialOffer]);
 	});
 
-	it("counts rows the backfill has not reached yet, and posts the report to the system channel", async () => {
+	it("counts rows the backfill has not reached yet", async () => {
 		const { t, semesterId } = await fixture();
 		await insertEventProduct(t, "standard_presentation");
-		await insertApplication(t, semesterId);
-		await insertApplication(t, semesterId, { eventType: "social" });
-		await insertApplication(t, semesterId, { eventType: "social" });
+		const applicationId = await insertApplication(t, semesterId);
 
-		await t.mutation(internal.products.references.announce, {});
-
-		const [message] = await t.run(async (ctx) =>
-			(await ctx.db.system.query("_scheduled_functions").collect()).filter(({ name }) =>
-				name.includes("notifications:sendMessage"),
-			),
-		);
-		expect(message?.args[0]).toMatchObject({ channel: SYSTEM_ALERTS_CHANNEL });
-		expect(message?.args[0].text).toBe(
-			[
-				"*Produktreferanser*",
-				"companyApplications: 3 av 3 mangler produkt",
-				"1 × not filled in yet",
-				"2 × no active product has this type",
-				"pendingCompanyApplications: 0 av 0 mangler produkt",
-				"companyApplicationOffers: 0 av 0 mangler produkt",
-				"eventPlanning: 0 av 0 mangler produkt",
-				"eventPlanningSubmissions: 0 av 0 mangler produkt",
-				"Typer uten nøyaktig ett aktivt produkt: large_presentation (0), workshop (0), social (0)",
-			].join("\n"),
-		);
+		expect((await t.query(report, {})).tables.companyApplications.missing).toEqual([
+			{ id: applicationId, reason: "not filled in yet" },
+		]);
 	});
 });

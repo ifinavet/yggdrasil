@@ -1,9 +1,7 @@
 import { EVENT_TYPES, type EventType } from "@workspace/shared/semester/labels";
-import { SYSTEM_ALERTS_CHANNEL } from "@workspace/shared/slack/channels";
 import { v } from "convex/values";
-import { internal } from "../_generated/api";
 import type { Doc, Id, TableNames } from "../_generated/dataModel";
-import { internalMutation, internalQuery, type QueryCtx } from "../_generated/server";
+import { internalQuery, type QueryCtx } from "../_generated/server";
 import { migrations } from "../migrations";
 import { productForType } from "./helpers";
 
@@ -201,32 +199,4 @@ export async function referenceReport(ctx: QueryCtx, limit = REPORT_LIMIT) {
 export const report = internalQuery({
 	args: { limit: v.optional(v.number()) },
 	handler: async (ctx, { limit }) => await referenceReport(ctx, limit),
-});
-
-export const announce = internalMutation({
-	args: {},
-	handler: async (ctx) => {
-		const { tables, typesWithoutOneActiveProduct } = await referenceReport(ctx);
-		const lines = Object.entries(tables).flatMap(([table, { rows, complete, missing }]) => {
-			const reasons = new Map<string, number>();
-			for (const { reason } of missing) reasons.set(reason, (reasons.get(reason) ?? 0) + 1);
-			const without = new Set(missing.map(({ id }) => id)).size;
-			return [
-				`${table}: ${without} av ${rows} mangler produkt${complete ? "" : " (ikke alle rader er lest)"}`,
-				...[...reasons].map(([reason, count]) => `${count} × ${reason}`),
-			];
-		});
-		const types = typesWithoutOneActiveProduct
-			.map(({ eventType, activeProducts }) => `${eventType} (${activeProducts})`)
-			.join(", ");
-		await ctx.scheduler.runAfter(0, internal.iam.notifications.sendMessage, {
-			channel: SYSTEM_ALERTS_CHANNEL,
-			clientMsgId: `product-references-${Date.now()}`,
-			text: [
-				"*Produktreferanser*",
-				...lines,
-				...(types ? [`Typer uten nøyaktig ett aktivt produkt: ${types}`] : []),
-			].join("\n"),
-		});
-	},
 });
