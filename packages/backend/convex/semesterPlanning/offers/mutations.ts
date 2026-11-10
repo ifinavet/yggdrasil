@@ -1,3 +1,4 @@
+import { MISSING_PRODUCT } from "@workspace/shared/semester/application";
 import { MAX_OFFER_COMMENT_LENGTH, MAX_REQUESTED_DATES } from "@workspace/shared/semester/limits";
 import { ConvexError, v } from "convex/values";
 import { internal } from "../../_generated/api";
@@ -44,11 +45,13 @@ export const sendOffer = mutation({
 		const latest = await findLatestOffer(ctx, applicationId);
 		if (latest?.status === "pending") return { offerId: latest._id, linkToken: latest.linkToken };
 
+		const product = await productOf(ctx, application);
+		if (!product) throw new ConvexError(MISSING_PRODUCT);
 		const linkToken = generateLinkToken();
 		const offerId = await ctx.db.insert("companyApplicationOffers", {
 			applicationId,
 			date: application.assignedDate,
-			productId: (await productOf(ctx, application))?._id,
+			productId: product._id,
 			maxStudents: application.maxStudents,
 			linkToken,
 			sentAt: Date.now(),

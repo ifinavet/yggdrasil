@@ -1,4 +1,4 @@
-import { studentCapIssue } from "@workspace/shared/semester/application";
+import { MISSING_PRODUCT, studentCapIssue } from "@workspace/shared/semester/application";
 import { MAX_INTERNAL_NOTES_LENGTH } from "@workspace/shared/semester/limits";
 import { ConvexError, v } from "convex/values";
 import type { Doc, Id } from "../../_generated/dataModel";
@@ -363,7 +363,7 @@ export const updateDetails = mutation({
 		const product = details.productId
 			? await ctx.db.get(details.productId)
 			: await productOf(ctx, application);
-		if (!product) throw new ConvexError("Velg hva slags arrangement dere ønsker.");
+		if (!product) throw new ConvexError(MISSING_PRODUCT);
 		const { consent: _, ...form } = parseApplicationForm({
 			...application,
 			...details,

@@ -30,6 +30,7 @@ import {
 	planningForEvent,
 	publicUrl,
 	requireEvent,
+	withRequestedProduct,
 } from "./helpers";
 import { notifyInvitationApproved, notifyPlanning } from "./notifications";
 import { answers, preparation } from "./schema";
@@ -101,12 +102,19 @@ export const get = query({
 			.take(20);
 		return {
 			planning,
-			initial: { ...initial, productId: (await productOf(ctx, initial))?._id },
+			initial: {
+				...initial,
+				productId: (await productOf(ctx, initial))?._id,
+				answers: await withRequestedProduct(ctx, initial.answers),
+			},
 			awaitingConfirmation:
 				planning?.status === "invited" &&
 				latestAnswer?.generation === planning.generation &&
 				latestAnswer?.status === "awaiting_email",
-			submission,
+			submission: submission && {
+				...submission,
+				draft: await withRequestedProduct(ctx, submission.draft),
+			},
 			event,
 			snapshot: eventSnapshot(event),
 			previousReport: await previousCompanyReport(ctx, event, event.eventStart),

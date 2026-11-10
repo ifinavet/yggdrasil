@@ -23,6 +23,7 @@ import {
 	planningByToken,
 	publicUrl,
 	senderFor,
+	withRequestedProduct,
 } from "./helpers";
 import { notifyPlanning, planningResponseSummary } from "./notifications";
 import { answers } from "./schema";
@@ -45,7 +46,10 @@ export const get = mutation({
 			...(await companyView(ctx, planning)),
 			eventDate: osloToday(event.eventStart),
 			eventStart: event.eventStart,
-			answers: latest?.status === "ready" ? latest.answers : planning.answers,
+			answers: await withRequestedProduct(
+				ctx,
+				latest?.status === "ready" ? latest.answers : planning.answers,
+			),
 			capacityLimit: await capacityLimit(ctx, planning),
 			revision: planning.revision,
 			contactEmail: planning.contactEmail,

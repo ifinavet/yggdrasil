@@ -16,6 +16,7 @@ export function studentCapIssue(
 }
 
 const MAX_STUDENTS = 1000;
+export const MISSING_PRODUCT = "Velg hva slags arrangement dere ønsker.";
 
 const students = z
 	.number({ error: "Oppgi antall studenter som et helt tall." })
@@ -37,9 +38,7 @@ export const applicationFormSchema = z
 	.object({
 		orgNumber: orgNumber("Velg bedriften."),
 		contact: applicationContactSchema,
-		productId: z
-			.string({ error: "Velg hva slags arrangement dere ønsker." })
-			.min(1, "Velg hva slags arrangement dere ønsker."),
+		productId: z.string({ error: MISSING_PRODUCT }).min(1, MISSING_PRODUCT),
 		minStudents: students,
 		maxStudents: students,
 		description: text(2000, "Beskriv arrangementet med høyst 2000 tegn."),

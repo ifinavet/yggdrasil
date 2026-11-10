@@ -341,6 +341,29 @@ describe("seedAndBackfillProducts", () => {
 		vi.useRealTimers();
 	});
 
+	it("gives a social event without a student cap the cap it had as an event type", async () => {
+		vi.useFakeTimers();
+		const { t } = await setup();
+		await seedProducts(t);
+		const socialId = await t.run(async (ctx) => {
+			const products = await ctx.db.query("products").collect();
+			const social = products.find((product) => product.eventType === "social");
+			if (!social) throw new Error("Expected the social product.");
+			await ctx.db.patch(social._id, { maxStudents: undefined });
+			return social._id;
+		});
+
+		await t.run((ctx) => seedAndBackfillProducts(ctx));
+		await t.finishAllScheduledFunctions(vi.runAllTimers);
+
+		const products = await t.run((ctx) => ctx.db.query("products").collect());
+		expect(products.find((product) => product._id === socialId)?.maxStudents).toBe(40);
+		expect(
+			products.find((product) => product.eventType === "large_presentation"),
+		).not.toHaveProperty("maxStudents");
+		vi.useRealTimers();
+	});
+
 	it("does not seed again after products were renamed or archived", async () => {
 		const { t } = await setup();
 		await t.run((ctx) => seedAndBackfillProducts(ctx));

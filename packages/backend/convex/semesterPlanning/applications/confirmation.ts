@@ -2,6 +2,7 @@ import { BIFROST_URL } from "@workspace/shared/constants";
 import {
 	type ApplicationForm,
 	applicationFormSchema,
+	MISSING_PRODUCT,
 	studentCapIssue,
 } from "@workspace/shared/semester/application";
 import { confirmEmailFor } from "@workspace/shared/semester/confirm-email";
@@ -150,7 +151,7 @@ export const savePending = internalMutation({
 
 		const product = form.productId ? await ctx.db.get(form.productId) : null;
 		if (!product?.active || product.category !== "event" || product.unitPriceOre === undefined) {
-			throw new ConvexError("Velg hva slags arrangement dere ønsker.");
+			throw new ConvexError(MISSING_PRODUCT);
 		}
 		const capIssue = studentCapIssue(product, parsed.maxStudents);
 		if (capIssue) throw new ConvexError(capIssue);

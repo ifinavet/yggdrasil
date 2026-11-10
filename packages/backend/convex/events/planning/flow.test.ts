@@ -96,6 +96,32 @@ afterEach(() => {
 });
 
 describe("company event planning", () => {
+	it("shows a request stored as an event type as its product, and keeps it on save", async () => {
+		const f = await invited();
+		const requestedProductId = await productIdOf(f.t, "large_presentation");
+		await f.t.run(async (ctx) => {
+			const planning = present(await ctx.db.query("eventPlanning").first());
+			await ctx.db.patch(planning._id, {
+				answers: { ...planning.answers, requestedEventType: "large_presentation" },
+			});
+		});
+
+		const form = present(await f.t.mutation(api.events.planning.public.get, { token: f.token }));
+		expect(form.answers.requestedProductId).toBe(requestedProductId);
+		expect(form.answers).not.toHaveProperty("requestedEventType");
+		const admin = await f.editor.query(api.events.planning.admin.get, { eventId: f.eventId });
+		expect(admin.initial.answers.requestedProductId).toBe(requestedProductId);
+
+		await f.t.mutation(api.events.planning.public.submit, {
+			token: f.token,
+			submissionId: crypto.randomUUID(),
+			revision: form.revision,
+			answers: form.answers,
+		});
+		const submission = await f.t.run((ctx) => ctx.db.query("eventPlanningSubmissions").first());
+		expect(submission?.answers.requestedProductId).toBe(requestedProductId);
+	});
+
 	it("does not tag organizers in system planning notices", async () => {
 		const f = await fixture();
 		await f.t.run(async (ctx) => {

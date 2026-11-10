@@ -345,6 +345,14 @@ describe("company application prices", () => {
 		expect(draftErrors(draft).productId).toBe("Velg hva slags arrangement dere ønsker.");
 	});
 
+	it("asks again when the chosen product is no longer offered", () => {
+		const draft = { ...emptyDraft(), productId: "product-1" };
+		const products = [{ _id: "product-2", name: "Stor" }];
+		expect(draftErrors(draft, products).productId).toBe("Velg hva slags arrangement dere ønsker.");
+		expect(draftErrors(draft, [{ _id: "product-1", name: "Ordinær" }]).productId).toBeUndefined();
+		expect(draftErrors(draft).productId).toBeUndefined();
+	});
+
 	it("leaves the price out when the event type has no priced product", () => {
 		expect(eventTypeDescription({ maxStudents: 40 })).toBe("Inntil 40 studenter");
 		expect(eventTypeDescription({})).toBe("Over 40 studenter");

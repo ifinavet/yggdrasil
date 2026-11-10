@@ -1,6 +1,7 @@
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
+import { withRequestedProduct } from "../events/planning/helpers";
 import { migrations } from "../migrations";
 import { productOf } from "./helpers";
 import { snapshotOf } from "./sales";
@@ -46,21 +47,19 @@ const BACKFILLS = [
 ];
 
 type TypedRow = Pick<Doc<"companyApplications">, "productId" | "eventType">;
-type Answers = Doc<"eventPlanning">["answers"];
 
 async function withProduct(ctx: MutationCtx, row: TypedRow) {
 	const product = await productOf(ctx, row);
 	return product ? { productId: product._id, eventType: undefined } : {};
 }
 
-async function withRequestedProduct(ctx: MutationCtx, answers: Answers): Promise<Answers> {
-	const { requestedEventType, ...rest } = answers;
-	const product = await productOf(ctx, {
-		productId: answers.requestedProductId,
-		eventType: requestedEventType,
-	});
-	return product ? { ...rest, requestedProductId: product._id } : answers;
-}
+export const capSocialEvents = migrations.define({
+	table: "products",
+	migrateOne: (_ctx, product) =>
+		product.eventType === "social" && product.maxStudents === undefined
+			? { maxStudents: REGULAR_EVENT_CAP }
+			: {},
+});
 
 export const moveApplicationsToProducts = migrations.define({
 	table: "companyApplications",
@@ -101,9 +100,10 @@ export async function seedAndBackfillProducts(ctx: MutationCtx) {
 	const seeded = await seedProductsIfEmpty(ctx);
 	if (seeded.length > 0) await migrations.runSerially(ctx, BACKFILLS);
 	await migrations.runSerially(ctx, [
+		internal.products.migrations.capSocialEvents,
+		internal.products.migrations.movePendingApplicationsToProducts,
 		internal.products.migrations.moveApplicationsToProducts,
 		internal.products.migrations.moveOffersToProducts,
-		internal.products.migrations.movePendingApplicationsToProducts,
 		internal.products.migrations.movePlanningToProducts,
 		internal.products.migrations.movePlanningSubmissionsToProducts,
 	]);

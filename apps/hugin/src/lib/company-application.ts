@@ -1,4 +1,8 @@
-import { applicationFormSchema, studentCapIssue } from "@workspace/shared/semester/application";
+import {
+	applicationFormSchema,
+	MISSING_PRODUCT,
+	studentCapIssue,
+} from "@workspace/shared/semester/application";
 import { ESCAPE_ANSWERS, FOOD_PURCHASERS, VENUES } from "@workspace/shared/semester/labels";
 import { z } from "zod";
 import { COMPANY_APPLICATION_COPY } from "./company-application-questions";
@@ -228,6 +232,8 @@ export function draftErrors(
 	}
 
 	// The student count's own message is more precise than the schema's, so it wins.
+	if (products.length > 0 && !products.some(({ _id }) => _id === draft.productId))
+		errors.productId ??= MISSING_PRODUCT;
 	const studentIssue = studentCountIssue(draft, products);
 	if (studentIssue) errors.students = studentIssue;
 	if (!optional(draft.billing.email) && !optional(draft.billing.details)) {

@@ -168,13 +168,24 @@ export async function capacityLimit(
 ) {
 	return (await productOf(ctx, planning))?.maxStudents ?? 1000;
 }
+type Answers = Doc<"eventPlanning">["answers"];
+export async function withRequestedProduct(ctx: QueryCtx, answers: Answers): Promise<Answers> {
+	const { requestedEventType, ...rest } = answers;
+	const product = await productOf(ctx, {
+		productId: answers.requestedProductId,
+		eventType: requestedEventType,
+	});
+	return product ? { ...rest, requestedProductId: product._id } : answers;
+}
 export async function parseAnswers(
 	ctx: QueryCtx,
 	planning: Pick<Doc<"eventPlanning">, "productId" | "eventType">,
 	event: Doc<"events">,
-	input: PlanningAnswers,
+	input: Answers,
 ) {
-	const parsed = planningFormSchema(await capacityLimit(ctx, planning)).safeParse(input);
+	const parsed = planningFormSchema(await capacityLimit(ctx, planning)).safeParse(
+		await withRequestedProduct(ctx, input),
+	);
 	if (!parsed.success)
 		throw new ConvexError(parsed.error.issues[0]?.message ?? "Kontroller opplysningene.");
 	try {
