@@ -1,6 +1,6 @@
 # Plan: the product is the only definition of an event type
 
-Status: plan for review, revision 5. No code in this pull request.
+Status: approved for implementation, revision 6. Pull request A is in progress. No code in this pull request.
 
 Revision 2 follows a review by GPT-6 Astra, run read-only against the code. Its findings were checked against the files it cited and all of them held. The section "What the review changed" lists them.
 
@@ -108,7 +108,7 @@ The current semester has applications, offers, planning rows, submissions and ev
 
 Old or open browser tabs are not accounted for. Victor's decision: they are not an issue here. B, C and the removal of old endpoints assume every client runs the code that was deployed with the backend.
 
-7. A saved, unsent application in the browser holds `eventType`. The form converts it to the matching product when it loads, or clears that one answer and asks again if no product matches. It never discards the rest of the draft.
+7. A saved, unsent application in the browser holds `eventType`. No conversion code is written for it. A saved draft belongs to one semester, and B ships when no application window is open, so no live draft exists at that point. A draft that no longer matches the form is dropped. Check when writing B that the storage code already drops a draft it cannot parse.
 8. A pending application that a company confirms from an old email was stored before the switch. The backfill in A gives it a `productId`, and the gate before B confirms none is left without one.
 
 ## Pull requests
@@ -160,7 +160,7 @@ Migration and compatibility tests come first. They cover the cases where data ca
 - Backfill: maps the three applied types. Leaves a row with `productId` untouched. Takes the event's product when the event has a real copy. Reports a conflict between the event's product and the type. Reports an archived product, a type with two active products, and a type with none. Covers nested answers in planning submissions.
 - `productOf`: returns the referenced product, falls back for a row without `productId`, returns nothing when neither exists.
 - Pending application stored before A and confirmed after B: the backfill has given it a `productId`, and it is received with that product.
-- Saved browser draft with `eventType`: converts, or clears that one answer.
+- Saved browser draft with `eventType`: is dropped, and the form opens empty.
 - Invoicing: an event with a product copy invoices at the copied price after the product's price is edited. A reopened invoice is recomputed the same way as today.
 - Planning: changing the agreed product invalidates the invitation. A requested product does not change the agreed one. A guessed product is not treated as agreed.
 - Slack alert: shows the product name for ordinary, large and workshop.
@@ -205,7 +205,7 @@ Timing: the application window is open until about January, so B and C ship afte
 - The storage list missed planning submissions, which hold `requestedEventType` in `answers` and `draft`.
 - Revision 1 said invoices store their line text at creation. They store it when marked sent and drop it when reopened.
 - Revision 1 had B stop writing `eventType` while three tables still required it, and had C clear the fields and remove them from the schema in one deploy. Both would have failed. The sequence is now: add, switch and make optional, clear, remove.
-- Revision 1 did not cover a saved browser draft or a pending application confirmed later. Rules 7 and 8 are new.
+- Revision 1 did not cover a saved browser draft or a pending application confirmed later. Rules 7 and 8 are new. Revision 6 removes the draft conversion: temporary code like that tends to stay.
 - Revision 1 let unmappable rows stay unmapped. Rule 6 is new.
 - Revision 1 mapped every row from its type to today's active product. Rule 5 is new.
 - Revision 1 removed the name from the event copy. The copy now stays unchanged.
