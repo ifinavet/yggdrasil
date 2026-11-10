@@ -66,12 +66,18 @@ function EditDialog({
 	const [open, setOpen] = useState(false);
 	const [error, setError] = useState<string>();
 	const [pending, setPending] = useState(false);
+	const products = useEventProducts();
 
 	const save = async () => {
 		setError(undefined);
 		const details = toDetails();
 		// The same rules as the Hugin form and the backend, on the application as it will be saved.
-		const checked = applicationFormSchema.safeParse({ ...application, ...details, consent: true });
+		const checked = applicationFormSchema.safeParse({
+			...application,
+			...details,
+			productId: details.productId ?? productOfRow(products, application)?._id,
+			consent: true,
+		});
 		if (!checked.success) return setError(checked.error.issues[0]?.message);
 		setPending(true);
 		try {
