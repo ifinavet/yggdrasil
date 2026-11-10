@@ -52,13 +52,18 @@ export async function getProductOrThrow(
 	return product;
 }
 
-export async function eventTypeName(ctx: QueryCtx, eventType: EventType): Promise<string> {
-	const product = await ctx.db
+export async function productOf(
+	ctx: QueryCtx,
+	row: { productId?: Id<"products">; eventType?: EventType },
+): Promise<Doc<"products"> | null> {
+	if (row.productId) return await ctx.db.get(row.productId);
+	const { eventType } = row;
+	if (!eventType) return null;
+	return await ctx.db
 		.query("products")
 		.withIndex("by_eventType_and_active", (q) => q.eq("eventType", eventType))
 		.order("desc")
 		.first();
-	return product?.name ?? eventType;
 }
 
 export async function requireUniqueName(

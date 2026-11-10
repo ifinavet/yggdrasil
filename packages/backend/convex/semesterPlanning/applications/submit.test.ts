@@ -1,5 +1,6 @@
 import { HUGIN_URL } from "@workspace/shared/constants";
 import { formatNokFromOre } from "@workspace/shared/products";
+import type { EventType } from "@workspace/shared/semester/labels";
 import { SYSTEM_ALERTS_CHANNEL } from "@workspace/shared/slack/channels";
 import { osloToday } from "@workspace/shared/time";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -8,6 +9,7 @@ import {
 	activityFor,
 	DAY_IN_MS,
 	insertSemester,
+	productIdOf,
 	refusalMessageFrom,
 	setup,
 	type TestBackend,
@@ -114,10 +116,11 @@ async function submitWith(
 ) {
 	stubRegistries(stubs);
 	const spy = sentEmails();
+	const { eventType, ...answers } = form;
 	const result = await t.action(submit, {
 		semesterId: semesterId ?? (await chosenSemesterId(t)),
 		// biome-ignore lint/suspicious/noExplicitAny: the refusal cases deliberately send invalid forms.
-		form: form as any,
+		form: { ...answers, productId: await productIdOf(t, eventType as EventType) } as any,
 		submissionId,
 		...(website !== undefined ? { website } : {}),
 	});
@@ -164,7 +167,7 @@ describe("submit", () => {
 			text: expect.stringContaining("*Type:* Ordinær bedriftspresentasjon\n"),
 		});
 		expect(alerts[0]?.args[0].text).toContain("FJORDKODE AS");
-		expect(alerts[0]?.args[0].text).toContain("Bedriftspresentasjon med FJORDKODE AS");
+		expect(alerts[0]?.args[0].text).toContain("Ordinær bedriftspresentasjon med FJORDKODE AS");
 		expect(alerts[0]?.args[0].text).toContain("Presentasjon og kodeoppgave i grupper.");
 		expect(alerts[0]?.args[0].text).toContain(`${formatNokFromOre(3_000_000)} eks. mva`);
 		expect(alerts[0]?.args[0].text).toContain(`/semesterplan/soknad/${application?._id}`);
@@ -367,7 +370,7 @@ describe("submit", () => {
 		[
 			"too many students for the type",
 			{ form: validForm({ maxStudents: 60 }) },
-			"Ordinær bedriftspresentasjon har plass til 40. Velg «Stor bedriftspresentasjon» for flere.",
+			"Ordinær bedriftspresentasjon har plass til 40.",
 		],
 		[
 			"min above max",
@@ -542,7 +545,7 @@ describe("confirmation by email", () => {
 			state: "confirmed",
 			receipt: {
 				company: { name: "FJORDKODE AS", orgNumber: VALID_ORG_NUMBER },
-				eventType: "standard_presentation",
+				productId: await productIdOf(t, "standard_presentation"),
 				minStudents: 25,
 				maxStudents: 40,
 				availableDates: ["2027-02-09", "2027-02-16"],

@@ -9,6 +9,7 @@ import {
 	insertOrganizer,
 	insertUser,
 	present,
+	productIdOf,
 	setup,
 } from "../../../test/fixtures";
 import { api, internal } from "../../_generated/api";
@@ -36,7 +37,7 @@ async function fixture() {
 		...initial.initial,
 		contactName: "Bedrift",
 		contactEmail: "contact@example.com",
-		eventType: "standard_presentation" as const,
+		productId: await productIdOf(t, "standard_presentation"),
 		answers: {
 			...initial.initial.answers,
 			title: "Bli kjent med oss",
@@ -147,13 +148,14 @@ describe("company event planning", () => {
 	it("keeps a requested package change for review without increasing the agreed capacity", async () => {
 		const f = await invited();
 		const before = await f.t.run((ctx) => ctx.db.get(f.eventId));
+		const requestedProductId = await productIdOf(f.t, "large_presentation");
 		const input = {
 			token: f.token,
 			submissionId: crypto.randomUUID(),
 			revision: f.form.revision,
 			answers: {
 				...f.form.answers,
-				requestedEventType: "large_presentation" as const,
+				requestedProductId,
 				capacity: 80,
 			},
 		};
@@ -163,8 +165,8 @@ describe("company event planning", () => {
 			answers: { ...input.answers, capacity: 40 },
 		});
 		const submission = await f.t.run((ctx) => ctx.db.query("eventPlanningSubmissions").first());
-		expect(submission?.answers.requestedEventType).toBe("large_presentation");
-		expect(submission?.draft.requestedEventType).toBe("large_presentation");
+		expect(submission?.answers.requestedProductId).toBe(requestedProductId);
+		expect(submission?.draft.requestedProductId).toBe(requestedProductId);
 		expect(
 			(await f.t.mutation(api.events.planning.public.get, { token: f.token }))?.capacityLimit,
 		).toBe(40);
@@ -333,7 +335,6 @@ describe("company event planning", () => {
 				foodPurchasedBy: "company",
 				stand: "yes",
 				standDetails: "Kaffe kl. 12",
-				requestedEventType: "large_presentation",
 				notes: "a".repeat(2000),
 				description: "<p></p>",
 				language: "",

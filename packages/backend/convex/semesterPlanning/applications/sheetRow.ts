@@ -9,7 +9,7 @@ import { formatOsloDate } from "@workspace/shared/time";
 import { v } from "convex/values";
 import type { Doc } from "../../_generated/dataModel";
 import { internalMutation, internalQuery } from "../../_generated/server";
-import { eventTypeName } from "../../products/helpers";
+import { productOf } from "../../products/helpers";
 
 // A copy of every received application in a Google Sheet, one tab per semester, so Navet has the
 // answers outside Bifrost too. The rows are only ever added; Bifrost stays the source of truth.
@@ -82,7 +82,7 @@ export const forSheet = internalQuery({
 		if (!application || !semester) return null;
 		return {
 			title: semesterName(semester.term, semester.year),
-			row: applicationSheetRow(application, await eventTypeName(ctx, application.eventType)),
+			row: applicationSheetRow(application, (await productOf(ctx, application))?.name ?? ""),
 			added: application.sheetRowAddedAt !== undefined,
 		};
 	},

@@ -9,6 +9,7 @@ import {
 	insertInternal,
 	insertSemester,
 	insertUser,
+	productIdOf,
 	refusalMessageFrom,
 	setup,
 	type TestBackend,
@@ -69,6 +70,7 @@ async function offersOf(t: TestBackend, applicationId: Id<"companyApplications">
 describe("send", () => {
 	it("makes an offer and emails its link to the company", async () => {
 		const { t, applicationId, editor, editorUser } = await offerSetup();
+		const productId = await productIdOf(t, "standard_presentation");
 
 		const { offerId, linkToken: token } = await editor.mutation(offers.mutations.sendOffer, {
 			applicationId,
@@ -77,7 +79,7 @@ describe("send", () => {
 		const [offer] = await offersOf(t, applicationId);
 		expect(offer).toMatchObject({
 			date: "2027-02-09",
-			eventType: "standard_presentation",
+			productId,
 			maxStudents: 40,
 			status: "pending",
 			sentBy: editorUser._id,

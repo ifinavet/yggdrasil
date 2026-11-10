@@ -3,24 +3,17 @@ import { DEGREE_TYPES } from "../constants/degrees";
 import { STUDY_PROGRAMS } from "../constants/programs";
 import { isIsoDate } from "../time";
 import { email, optionalText, orgNumber, text } from "../validation";
-import {
-	APPLICATION_EVENT_TYPES,
-	APPLICATION_VENUES,
-	ESCAPE_ANSWERS,
-	EVENT_TYPE_LABELS,
-	type EventType,
-	FOOD_PURCHASERS,
-} from "./labels";
+import { APPLICATION_VENUES, ESCAPE_ANSWERS, FOOD_PURCHASERS } from "./labels";
 
 // The Hugin application form. The same rules run in the browser and again on the server.
 
-/** The most students each event type allows; `null` means no upper limit. */
-export const STUDENT_CAP: Record<EventType, number | null> = {
-	standard_presentation: 40,
-	large_presentation: null,
-	workshop: 40,
-	social: 40,
-};
+export function studentCapIssue(
+	product: { name: string; maxStudents?: number },
+	maxStudents: number,
+): string | undefined {
+	if (product.maxStudents === undefined || maxStudents <= product.maxStudents) return undefined;
+	return `${product.name} har plass til ${product.maxStudents}.`;
+}
 
 const MAX_STUDENTS = 1000;
 
@@ -44,9 +37,9 @@ export const applicationFormSchema = z
 	.object({
 		orgNumber: orgNumber("Velg bedriften."),
 		contact: applicationContactSchema,
-		eventType: z.enum(APPLICATION_EVENT_TYPES, {
-			error: "Velg hva slags arrangement dere ønsker.",
-		}),
+		productId: z
+			.string({ error: "Velg hva slags arrangement dere ønsker." })
+			.min(1, "Velg hva slags arrangement dere ønsker."),
 		minStudents: students,
 		maxStudents: students,
 		description: text(2000, "Beskriv arrangementet med høyst 2000 tegn."),
@@ -97,15 +90,6 @@ export const applicationFormSchema = z
 				code: "custom",
 				path: ["minStudents"],
 				message: "Minste antall kan ikke være større enn høyeste antall.",
-			});
-		}
-
-		const cap = STUDENT_CAP[form.eventType];
-		if (cap !== null && form.maxStudents > cap) {
-			ctx.addIssue({
-				code: "custom",
-				path: ["maxStudents"],
-				message: `${EVENT_TYPE_LABELS[form.eventType]} har plass til ${cap}. Velg «Stor bedriftspresentasjon» for flere.`,
 			});
 		}
 	});

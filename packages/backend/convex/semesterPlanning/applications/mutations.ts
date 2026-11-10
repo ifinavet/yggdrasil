@@ -1,8 +1,10 @@
+import { studentCapIssue } from "@workspace/shared/semester/application";
 import { MAX_INTERNAL_NOTES_LENGTH } from "@workspace/shared/semester/limits";
 import { ConvexError, v } from "convex/values";
 import type { Doc, Id } from "../../_generated/dataModel";
 import { type MutationCtx, mutation } from "../../_generated/server";
 import { invoiceFor } from "../../invoicing/schedule";
+import { productOf } from "../../products/helpers";
 import {
 	type Actor,
 	logApplicationActivity,
@@ -338,7 +340,7 @@ export const updateDetails = mutation({
 		applicationId: v.id("companyApplications"),
 		details: v.object({
 			contact: v.optional(fields.contact),
-			eventType: v.optional(fields.eventType),
+			productId: v.optional(v.id("products")),
 			minStudents: v.optional(fields.minStudents),
 			maxStudents: v.optional(fields.maxStudents),
 			description: v.optional(fields.description),
@@ -358,18 +360,26 @@ export const updateDetails = mutation({
 		const actor = await requireEditorActor(ctx);
 		const application = await requireApplication(ctx, applicationId);
 
+		const product = details.productId
+			? await ctx.db.get(details.productId)
+			: await productOf(ctx, application);
+		if (!product) throw new ConvexError("Velg hva slags arrangement dere ønsker.");
 		const { consent: _, ...form } = parseApplicationForm({
 			...application,
 			...details,
+			productId: product._id,
 			additionalInfo:
 				details.additionalInfo === null
 					? undefined
 					: (details.additionalInfo ?? application.additionalInfo),
 			consent: true,
 		});
+		const capIssue = studentCapIssue(product, form.maxStudents);
+		if (capIssue) throw new ConvexError(capIssue);
 		await ctx.db.patch(applicationId, {
 			contact: form.contact,
-			eventType: form.eventType,
+			eventType: undefined,
+			productId: product._id,
 			minStudents: form.minStudents,
 			maxStudents: form.maxStudents,
 			description: form.description,

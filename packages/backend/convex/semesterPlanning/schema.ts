@@ -108,7 +108,8 @@ export const applicationBilling = v.object({
 export const applicationForm = v.object({
 	orgNumber: v.string(),
 	contact: applicationContact,
-	eventType: presentationEventType,
+	eventType: v.optional(presentationEventType),
+	productId: v.optional(v.id("products")),
 	minStudents: v.number(),
 	maxStudents: v.number(),
 	description: v.string(),
@@ -175,7 +176,8 @@ export const semesterPlanningSchema = {
 		orgNumber: v.string(),
 		registry: brregSnapshotAtSubmission,
 		contact: applicationContact,
-		eventType: presentationEventType,
+		eventType: v.optional(presentationEventType),
+		productId: v.optional(v.id("products")),
 		minStudents: v.number(),
 		maxStudents: v.number(),
 		description: v.string(),
@@ -216,7 +218,8 @@ export const semesterPlanningSchema = {
 	companyApplicationOffers: defineTable({
 		applicationId: v.id("companyApplications"),
 		date: v.string(),
-		eventType: presentationEventType,
+		eventType: v.optional(presentationEventType),
+		productId: v.optional(v.id("products")),
 		maxStudents: v.number(),
 		// The token in the offer link that is emailed to the company; only editors can read it.
 		linkToken: v.string(),

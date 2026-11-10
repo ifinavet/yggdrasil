@@ -13,7 +13,7 @@ import {
 	validEmailToken,
 } from "../../lib/emailConfirmation";
 import { generateLinkToken, hashLinkToken } from "../../lib/tokens";
-import { eventTypeName } from "../../products/helpers";
+import { productOf } from "../../products/helpers";
 import { queueEmail } from "./delivery";
 import {
 	capacityLimit,
@@ -46,7 +46,7 @@ export const get = mutation({
 			eventDate: osloToday(event.eventStart),
 			eventStart: event.eventStart,
 			answers: latest?.status === "ready" ? latest.answers : planning.answers,
-			capacityLimit: await capacityLimit(ctx, planning, event),
+			capacityLimit: await capacityLimit(ctx, planning),
 			revision: planning.revision,
 			contactEmail: planning.contactEmail,
 			organizerEmail: sender.mainEmail,
@@ -196,8 +196,12 @@ export const confirm = mutation({
 			planningResponseSummary(
 				company?.name ?? "Bedriften",
 				submission.answers,
-				submission.answers.requestedEventType &&
-					(await eventTypeName(ctx, submission.answers.requestedEventType)),
+				(
+					await productOf(ctx, {
+						productId: submission.answers.requestedProductId,
+						eventType: submission.answers.requestedEventType,
+					})
+				)?.name,
 			),
 			"review",
 		);

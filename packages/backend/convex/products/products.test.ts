@@ -220,38 +220,22 @@ describe("products", () => {
 		).toBe("Maksimalt antall produkter er nådd.");
 	});
 
-	it("prices each application event type from its active product", async () => {
+	it("lists event products in their order, archived ones included", async () => {
 		const { t, admin } = await fixture();
-		expect(await t.query(api.products.queries.eventTypePrices, {})).toEqual({});
-
 		await t.mutation(internal.products.seed.seedProducts, {});
-		expect(await t.query(api.products.queries.eventTypePrices, {})).toEqual({
-			standard_presentation: 3_000_000,
-			large_presentation: 4_000_000,
-			workshop: 2_000_000,
+		const [large] = await t.query(api.products.queries.listEvent, {});
+		await admin.mutation(api.products.mutations.setActive, {
+			id: expectDefined(large)._id,
+			active: false,
 		});
 
-		const products = await t.query(api.products.queries.listActive, {});
-		const large = expectDefined(
-			products.find((product) => product.eventType === "large_presentation"),
-		);
-		await admin.mutation(api.products.mutations.update, {
-			id: large._id,
-			name: large.name,
-			shortDescription: large.shortDescription,
-			longDescription: large.longDescription,
-			category: large.category,
-			vatRate: large.vatRate,
-			unitPriceOre: 4_500_000,
-		});
-		expect(await t.query(api.products.queries.eventTypePrices, {})).toMatchObject({
-			large_presentation: 4_500_000,
-		});
-
-		await admin.mutation(api.products.mutations.setActive, { id: large._id, active: false });
-		expect(await t.query(api.products.queries.eventTypePrices, {})).not.toHaveProperty(
-			"large_presentation",
-		);
+		const products = await t.query(api.products.queries.listEvent, {});
+		expect(products.map((product) => [product.name, product.active])).toEqual([
+			["Stor bedriftspresentasjon", false],
+			["Ordinær bedriftspresentasjon", true],
+			["Bedriftspresentasjon med fokus på faglig innhold", true],
+			["Sosialt arrangement", true],
+		]);
 	});
 
 	it("lets an admin seed the products once from Bifrost", async () => {
@@ -286,29 +270,5 @@ describe("products", () => {
 			await admin.query(api.products.queries.getWithChanges, { id: seeded._id }),
 		);
 		expect(changes).toMatchObject([{ action: "created", changedByName: null }]);
-	});
-
-	it("names each event type after its product, also when the product is archived", async () => {
-		const { t } = await fixture();
-		await t.mutation(internal.products.seed.seedProducts, {});
-		await t.run(async (ctx) => {
-			const products = await ctx.db.query("products").collect();
-			for (const product of products) {
-				if (product.eventType === "workshop") await ctx.db.patch(product._id, { active: false });
-				if (product.eventType === "social") await ctx.db.delete(product._id);
-				if (product.eventType === "large_presentation") {
-					const { _id, _creationTime, ...copy } = product;
-					await ctx.db.insert("products", { ...copy, active: false });
-					await ctx.db.patch(product._id, { name: "Stor bedpres" });
-				}
-			}
-		});
-
-		expect(await t.query(api.products.queries.eventTypeNames, {})).toEqual({
-			standard_presentation: "Ordinær bedriftspresentasjon",
-			large_presentation: "Stor bedpres",
-			workshop: "Bedriftspresentasjon med fokus på faglig innhold",
-			social: "social",
-		});
 	});
 });

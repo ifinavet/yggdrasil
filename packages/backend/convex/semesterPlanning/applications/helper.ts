@@ -52,7 +52,8 @@ export const planRowValidator = v.object({
 	assignedDate: v.optional(v.string()),
 	companyName: v.string(),
 	logoUrl: v.optional(v.string()),
-	eventType: presentationEventType,
+	eventType: v.optional(presentationEventType),
+	productId: v.optional(v.id("products")),
 	maxStudents: v.number(),
 	responsibleUserId: v.optional(v.id("users")),
 	responsibleName: v.optional(v.string()),
@@ -257,6 +258,7 @@ export function toPlanRow(
 		companyName: application.registry.name,
 		...(logoUrl ? { logoUrl } : {}),
 		eventType: application.eventType,
+		productId: application.productId,
 		maxStudents: application.maxStudents,
 		...(responsible
 			? { responsibleUserId: responsible._id, responsibleName: fullName(responsible) }

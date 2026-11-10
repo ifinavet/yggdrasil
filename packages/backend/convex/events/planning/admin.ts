@@ -110,11 +110,8 @@ export const get = query({
 			snapshot: eventSnapshot(event),
 			previousReport: await previousCompanyReport(ctx, event, event.eventStart),
 			preview: planning ? await invitationPreview(ctx, planning, event) : null,
-			company: await companyView(ctx, {
-				companyId: event.hostingCompany,
-				eventType: initial.eventType,
-			}),
-			capacityLimit: await capacityLimit(ctx, initial, event),
+			company: await companyView(ctx, { ...initial, companyId: event.hostingCompany }),
+			capacityLimit: await capacityLimit(ctx, initial),
 			emails: emails.map(({ url, ...email }) => ({
 				...email,
 				...(isLocalDevelopment() ? { url } : {}),
@@ -148,9 +145,10 @@ export const savePreparation = mutation({
 		const changedContact =
 			planning.contactEmail !== fields.contactEmail.trim().toLowerCase() ||
 			planning.companyId !== event.hostingCompany ||
-			planning.eventType !== fields.eventType;
+			planning.productId !== fields.productId;
 		await ctx.db.patch(planning._id, {
 			...fields,
+			eventType: undefined,
 			contactName: fields.contactName.trim(),
 			contactEmail: fields.contactEmail.trim().toLowerCase(),
 			answers: parsed,

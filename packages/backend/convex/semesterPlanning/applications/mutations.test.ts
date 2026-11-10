@@ -11,6 +11,7 @@ import {
 	insertRegistration,
 	insertSemester,
 	insertUser,
+	productIdOf,
 	refusalMessageFrom,
 	setup,
 	type TestBackend,
@@ -27,6 +28,7 @@ async function planningSetup() {
 	await grantRole(t, editorUser._id, "editor");
 	await insertInternal(t, editorUser._id, "Bedriftskontakt");
 	const semesterId = await insertSemester(t, { status: "open" });
+	await productIdOf(t, "standard_presentation");
 	await t.run(async (ctx) => {
 		await ctx.db.insert("semesterDates", {
 			semesterId,
@@ -687,12 +689,13 @@ describe("updateDetails", () => {
 	it("saves the changed details, keeps the rest and writes the history", async () => {
 		const { t, semesterId, editor } = await planningSetup();
 		const applicationId = await insertApplication(t, semesterId);
+		const productId = await productIdOf(t, "large_presentation");
 
 		await editor.mutation(mutations.updateDetails, {
 			applicationId,
 			details: {
 				contact: { name: "Ola Nordmann", email: "ola@fjordkode.no", phone: "+47 987 65 432" },
-				eventType: "large_presentation",
+				productId,
 				maxStudents: 120,
 				billing: { email: "faktura@fjordkode.no", ehfInvoice: true },
 			},
@@ -700,7 +703,7 @@ describe("updateDetails", () => {
 
 		expect(await applicationById(t, applicationId)).toMatchObject({
 			contact: { name: "Ola Nordmann", email: "ola@fjordkode.no", phone: "+47 987 65 432" },
-			eventType: "large_presentation",
+			productId,
 			minStudents: 25,
 			maxStudents: 120,
 			description: "Presentasjon og kodeoppgave.",
