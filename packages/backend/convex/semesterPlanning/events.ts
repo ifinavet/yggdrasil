@@ -6,7 +6,11 @@ import { ConvexError } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 import { internalRoles, userHasRole } from "../auth/accessRights";
-import { insertEventWithOrganizers, setEventOrganizers } from "../events/helper";
+import {
+	insertEventWithOrganizers,
+	scheduleRegistrationPhase,
+	setEventOrganizers,
+} from "../events/helper";
 import { syncFeedbackCampaign } from "../feedback/delivery/campaigns";
 import { cancelInvoice, scheduleInvoice } from "../invoicing/schedule";
 import { snapshotOf } from "../products/sales";
@@ -257,6 +261,7 @@ export async function moveApplicationWithEvent(
 		eventStart,
 		registrationOpens: Math.min(event.registrationOpens, eventStart),
 	});
+	await scheduleRegistrationPhase(ctx, event._id);
 	await syncFeedbackCampaign(ctx, event._id);
 	await recordNewEventDate(ctx, application, eventStart, actor);
 }

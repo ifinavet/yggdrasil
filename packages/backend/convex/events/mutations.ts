@@ -13,7 +13,13 @@ import { enqueueSystemMessage } from "../iam/notifications";
 import { eventProductFields } from "../products/sales";
 import { syncApplicationWithEvent } from "../semesterPlanning/events";
 import { requireFoodItem } from "./food";
-import { eventSlug, insertEventWithOrganizers, setEventOrganizers } from "./helper";
+import {
+	eventSlug,
+	insertEventWithOrganizers,
+	saveRegistrationPhase,
+	scheduleRegistrationPhase,
+	setEventOrganizers,
+} from "./helper";
 import { makeStatusPending } from "./registrations/mutations";
 import { editableEventFields, organizerRoleValidator } from "./schema";
 import { queueEventNotification } from "./slack/state";
@@ -142,6 +148,9 @@ export const update = mutation({
 				published,
 				externalEvent,
 			});
+		}
+		if (event.registrationOpens !== registrationOpens || event.eventStart !== eventStart) {
+			await scheduleRegistrationPhase(ctx, eventId);
 		}
 
 		await syncFeedbackCampaign(ctx, eventId);
@@ -348,6 +357,22 @@ export const sendRegistrationOpenAlert = internalMutation({
 					`<${origin}/events/${eventId}|Åpne arrangementet>`,
 				].join("\n"),
 			});
+		}
+		return null;
+	},
+});
+
+/**
+ * Brings an event's stored registration phase up to date at a scheduled boundary. Does nothing if
+ * the event is gone or its times have changed since the job was scheduled.
+ */
+export const syncRegistrationPhase = internalMutation({
+	args: { eventId: v.id("events"), registrationOpens: v.number(), eventStart: v.number() },
+	returns: v.null(),
+	handler: async (ctx, { eventId, registrationOpens, eventStart }) => {
+		const event = await ctx.db.get(eventId);
+		if (event?.registrationOpens === registrationOpens && event.eventStart === eventStart) {
+			await saveRegistrationPhase(ctx, event, Date.now());
 		}
 		return null;
 	},

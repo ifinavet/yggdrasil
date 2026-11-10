@@ -1,59 +1,9 @@
-import {
-	humanReadableDate,
-	humanReadableDateTime,
-	humanReadableTime,
-} from "@workspace/shared/time";
+import { humanReadableDate, humanReadableTime } from "@workspace/shared/time";
 import { CalendarDays, Clock, Users } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import type { EventWithParticipationCount } from "@/constants/event-types";
-
-function getRegistrationStatus(event: EventWithParticipationCount) {
-	const now = new Date();
-
-	const registrationOpensDate = new Date(event.registrationOpens);
-	const eventStartDate = new Date(event.eventStart);
-
-	const participants = event.participationCount;
-	const participantsLimit = event.participationLimit;
-
-	const registrationIsOpen = registrationOpensDate <= now;
-
-	const eventStartPlusOneDay = new Date(eventStartDate);
-	eventStartPlusOneDay.setDate(eventStartPlusOneDay.getDate() + 1);
-	eventStartPlusOneDay.setHours(0, 0, 0, 0);
-
-	const showBanner = now < eventStartDate;
-	const isDayAfterEvent = now >= eventStartPlusOneDay;
-
-	const todayStart = new Date(now);
-	todayStart.setHours(0, 0, 0, 0);
-	const tomorrowStart = new Date(todayStart);
-	tomorrowStart.setDate(tomorrowStart.getDate() + 1);
-
-	const registrationOpenToday =
-		registrationIsOpen &&
-		registrationOpensDate >= todayStart &&
-		registrationOpensDate < tomorrowStart;
-
-	const statusMessage = !registrationIsOpen
-		? `Påmeldingen åpner ${humanReadableDateTime(registrationOpensDate)}`
-		: participants >= participantsLimit
-			? "Påmeldingen er full, sett deg på venteliste!"
-			: registrationOpenToday
-				? "Påmeldingen er åpen"
-				: "Det er fortsatt ledige plasser";
-
-	return {
-		showBanner,
-		statusMessage,
-		cardColor: isDayAfterEvent
-			? "border-zinc-400 bg-zinc-400"
-			: registrationIsOpen
-				? "border-emerald-700 bg-emerald-700"
-				: "border-zinc-400 bg-zinc-400",
-	};
-}
+import { registrationStatus } from "@/utils/event-availability";
 
 function RegistrationStatusBanner({
 	show,
@@ -160,7 +110,7 @@ export default function EventCard({
 }: Readonly<{
 	event: EventWithParticipationCount;
 }>) {
-	const { showBanner, statusMessage, cardColor } = getRegistrationStatus(event);
+	const { showBanner, statusMessage, cardColor } = registrationStatus(event, new Date());
 
 	return (
 		<Link href={`/events/${event.slug ?? event._id}`}>
