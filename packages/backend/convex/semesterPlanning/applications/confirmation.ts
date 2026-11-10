@@ -4,7 +4,7 @@ import {
 	applicationFormSchema,
 } from "@workspace/shared/semester/application";
 import { confirmEmailFor } from "@workspace/shared/semester/confirm-email";
-import { EVENT_TITLE_PREFIX } from "@workspace/shared/semester/labels";
+import { EVENT_TITLE_PREFIX, EVENT_TYPE_LABELS } from "@workspace/shared/semester/labels";
 import { formatOrderAlert } from "@workspace/shared/slack/alerts";
 import { SYSTEM_ALERTS_CHANNEL } from "@workspace/shared/slack/channels";
 import { osloToday } from "@workspace/shared/time";
@@ -331,7 +331,7 @@ async function receiveApplication(
 		clientMsgId: `bedpres-order-${applicationId}`,
 		text: formatOrderAlert({
 			company: companyName,
-			type: "Bedriftspresentasjon",
+			type: product?.name ?? EVENT_TYPE_LABELS[answers.eventType],
 			title: `${EVENT_TITLE_PREFIX[answers.eventType]} ${companyName}`,
 			additionalNotes: [answers.description.trim(), answers.additionalInfo?.trim()]
 				.filter(Boolean)
