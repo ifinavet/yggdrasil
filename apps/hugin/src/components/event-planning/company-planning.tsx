@@ -7,7 +7,7 @@ import { EVENT_SEMESTER_LABELS, eventSemesterOf, formatSemesterDay } from "@work
 import { Button } from "@workspace/ui/components/button";
 import { CompanyLogo } from "@workspace/ui/components/company-logo";
 import { EventPlanningForm } from "@workspace/ui/components/event-planning-form";
-import { useAction, useMutation } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { useEffect, useState } from "react";
 import { EmailCheckScreen } from "@/components/email-check-screen";
@@ -179,6 +179,7 @@ function CompanyAnswers({
 			initial={initial}
 			capacityLimit={capacityLimit}
 			eventType={eventType}
+			eventTypeNames={useQuery(api.products.queries.eventTypeNames) ?? {}}
 			onSubmit={async (answers) => {
 				await submit({ token, submissionId, revision: openedRevision, answers });
 				onSent(answers);

@@ -176,7 +176,6 @@ export const semesterPlanningSchema = {
 		registry: brregSnapshotAtSubmission,
 		contact: applicationContact,
 		eventType: presentationEventType,
-		productId: v.optional(v.id("products")),
 		minStudents: v.number(),
 		maxStudents: v.number(),
 		description: v.string(),
@@ -218,7 +217,6 @@ export const semesterPlanningSchema = {
 		applicationId: v.id("companyApplications"),
 		date: v.string(),
 		eventType: presentationEventType,
-		productId: v.optional(v.id("products")),
 		maxStudents: v.number(),
 		// The token in the offer link that is emailed to the company; only editors can read it.
 		linkToken: v.string(),
@@ -252,7 +250,7 @@ export const semesterPlanningSchema = {
 	pendingCompanyApplications: defineTable({
 		semesterId: v.id("semesters"),
 		submissionId: v.string(),
-		form: applicationForm.extend({ productId: v.optional(v.id("products")) }),
+		form: applicationForm,
 		registry: brregSnapshotAtSubmission,
 		submittedAt: v.number(),
 		applicationId: v.optional(v.id("companyApplications")),

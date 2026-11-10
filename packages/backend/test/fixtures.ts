@@ -7,7 +7,6 @@ import resendTest from "@convex-dev/resend/test";
 import workflowTest from "@convex-dev/workflow/test";
 import workpoolTest from "@convex-dev/workpool/test";
 import type { FoodItem } from "@workspace/shared/events/food";
-import { EVENT_TYPE_LABELS, type EventType } from "@workspace/shared/semester/labels";
 import type { WithoutSystemFields } from "convex/server";
 import { ConvexError } from "convex/values";
 import { convexTest } from "convex-test";
@@ -383,27 +382,6 @@ export async function insertApplication(
 			consent: { version: CONSENT_VERSION, consentedAt: Date.now() },
 			status: "applied",
 			...overrides,
-		}),
-	);
-}
-
-export async function insertEventProduct(
-	t: TestBackend,
-	eventType: EventType,
-	name = EVENT_TYPE_LABELS[eventType],
-	unitPriceOre = 3_000_000,
-): Promise<Id<"products">> {
-	return await t.run((ctx) =>
-		ctx.db.insert("products", {
-			name,
-			shortDescription: "",
-			longDescription: "",
-			category: "event",
-			eventType,
-			unitPriceOre,
-			vatRate: 25,
-			sortOrder: 0,
-			active: true,
 		}),
 	);
 }

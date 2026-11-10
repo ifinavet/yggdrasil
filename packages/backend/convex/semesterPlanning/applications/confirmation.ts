@@ -4,7 +4,7 @@ import {
 	applicationFormSchema,
 } from "@workspace/shared/semester/application";
 import { confirmEmailFor } from "@workspace/shared/semester/confirm-email";
-import { EVENT_TITLE_PREFIX, EVENT_TYPE_LABELS } from "@workspace/shared/semester/labels";
+import { EVENT_TITLE_PREFIX } from "@workspace/shared/semester/labels";
 import { formatOrderAlert } from "@workspace/shared/slack/alerts";
 import { SYSTEM_ALERTS_CHANNEL } from "@workspace/shared/slack/channels";
 import { osloToday } from "@workspace/shared/time";
@@ -25,7 +25,7 @@ import {
 	validEmailToken,
 } from "../../lib/emailConfirmation";
 import { hashLinkToken } from "../../lib/tokens";
-import { productForType, productOf } from "../../products/helpers";
+import { eventTypeName } from "../../products/helpers";
 import { logApplicationActivity } from "../applicationLifecycle";
 import { CONSENT_VERSION, FORM_VERSION } from "../rules";
 import {
@@ -148,8 +148,7 @@ export const savePending = internalMutation({
 		);
 		if (reason) throw new ConvexError(reason);
 
-		const productId = (await productForType(ctx, parsed.eventType))?._id;
-		const answers = { semesterId, form: { ...parsed, productId }, registry, submittedAt: now };
+		const answers = { semesterId, form: parsed, registry, submittedAt: now };
 		let pendingId: Id<"pendingCompanyApplications">;
 		if (already) {
 			if (already.form.contact.email !== parsed.contact.email) {
@@ -309,10 +308,8 @@ async function receiveApplication(
 	now: number,
 ): Promise<Id<"companyApplications">> {
 	const { consent: _consent, billing, ...answers } = pending.form;
-	const product = await productOf(ctx, answers);
 	const applicationId = await ctx.db.insert("companyApplications", {
 		...answers,
-		productId: product?._id,
 		semesterId: pending.semesterId,
 		submissionId: pending.submissionId,
 		formVersion: FORM_VERSION,
@@ -323,13 +320,19 @@ async function receiveApplication(
 	});
 
 	await logApplicationActivity(ctx, applicationId, "submitted", { type: "company" });
+	const product = await ctx.db
+		.query("products")
+		.withIndex("by_eventType_and_active", (q) =>
+			q.eq("eventType", answers.eventType).eq("active", true),
+		)
+		.first();
 	const companyName = pending.registry.name;
 	await ctx.scheduler.runAfter(0, internal.iam.notifications.sendMessage, {
 		channel: SYSTEM_ALERTS_CHANNEL,
 		clientMsgId: `bedpres-order-${applicationId}`,
 		text: formatOrderAlert({
 			company: companyName,
-			type: product?.name ?? EVENT_TYPE_LABELS[answers.eventType],
+			type: await eventTypeName(ctx, answers.eventType),
 			title: `${EVENT_TITLE_PREFIX[answers.eventType]} ${companyName}`,
 			additionalNotes: [answers.description.trim(), answers.additionalInfo?.trim()]
 				.filter(Boolean)

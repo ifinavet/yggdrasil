@@ -1,6 +1,5 @@
 import { HUGIN_URL } from "@workspace/shared/constants";
 import { formatNokFromOre } from "@workspace/shared/products";
-import { EVENT_TYPE_LABELS } from "@workspace/shared/semester/labels";
 import { SYSTEM_ALERTS_CHANNEL } from "@workspace/shared/slack/channels";
 import { osloToday } from "@workspace/shared/time";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -8,7 +7,6 @@ import { emailsFrom, sentEmails, tokenFrom } from "../../../test/confirmationEma
 import {
 	activityFor,
 	DAY_IN_MS,
-	insertEventProduct,
 	insertSemester,
 	refusalMessageFrom,
 	setup,
@@ -79,15 +77,6 @@ async function applications(t: TestBackend) {
 	return t.run((ctx) => ctx.db.query("companyApplications").collect());
 }
 
-async function pendingApplications(t: TestBackend) {
-	return t.run((ctx) => ctx.db.query("pendingCompanyApplications").collect());
-}
-
-async function orderAlerts(t: TestBackend) {
-	const scheduled = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
-	return scheduled.filter(({ name }) => name.includes("notifications:sendMessage"));
-}
-
 /** The semester Hugin would pick: the open one, else whatever semester exists. */
 async function chosenSemesterId(t: TestBackend): Promise<Id<"semesters">> {
 	const semester = await t.run(
@@ -149,96 +138,36 @@ describe("submit", () => {
 	it("alerts once when the validated company application is received", async () => {
 		const { t } = await setup();
 		await withOpenSemester(t);
-		await insertEventProduct(t, "standard_presentation", "Ordinær bedpres", 3_000_000);
+		await t.run((ctx) =>
+			ctx.db.insert("products", {
+				name: "Ordinær bedriftspresentasjon",
+				shortDescription: "",
+				longDescription: "",
+				category: "event",
+				eventType: "standard_presentation",
+				unitPriceOre: 3_000_000,
+				vatRate: 25,
+				sortOrder: 0,
+				active: true,
+			}),
+		);
 		const submissionId = "bedpres-once-abcdef";
 		await submitWith(t, { submissionId });
 		await submitWith(t, { submissionId });
 
 		const [application] = await applications(t);
-		const alerts = await orderAlerts(t);
+		const scheduled = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
+		const alerts = scheduled.filter(({ name }) => name.includes("notifications:sendMessage"));
 		expect(alerts).toHaveLength(1);
 		expect(alerts[0]?.args[0]).toMatchObject({
 			channel: SYSTEM_ALERTS_CHANNEL,
-			text: expect.stringContaining("*Type:* Ordinær bedpres\n"),
+			text: expect.stringContaining("*Type:* Ordinær bedriftspresentasjon\n"),
 		});
 		expect(alerts[0]?.args[0].text).toContain("FJORDKODE AS");
 		expect(alerts[0]?.args[0].text).toContain("Bedriftspresentasjon med FJORDKODE AS");
 		expect(alerts[0]?.args[0].text).toContain("Presentasjon og kodeoppgave i grupper.");
 		expect(alerts[0]?.args[0].text).toContain(`${formatNokFromOre(3_000_000)} eks. mva`);
 		expect(alerts[0]?.args[0].text).toContain(`/semesterplan/soknad/${application?._id}`);
-	});
-
-	it("names the product of the applied event type in the alert", async () => {
-		const { t } = await setup();
-		await withOpenSemester(t);
-		await insertEventProduct(t, "standard_presentation", "Ordinær bedpres", 3_000_000);
-		await insertEventProduct(t, "large_presentation", "Stor bedpres", 4_000_000);
-		await submitWith(t, { form: validForm({ eventType: "large_presentation", maxStudents: 80 }) });
-
-		const [alert] = await orderAlerts(t);
-		expect(alert?.args[0].text).toContain("*Type:* Stor bedpres\n");
-		expect(alert?.args[0].text).toContain(`${formatNokFromOre(4_000_000)} eks. mva`);
-	});
-
-	it("falls back to the event type label when no active product matches", async () => {
-		const { t } = await setup();
-		await withOpenSemester(t);
-		await submitWith(t, { form: validForm({ eventType: "workshop", maxStudents: 30 }) });
-
-		const [alert] = await orderAlerts(t);
-		expect(alert?.args[0].text).toContain(`*Type:* ${EVENT_TYPE_LABELS.workshop}\n`);
-	});
-
-	it("saves the product of the applied type on the pending and the received application", async () => {
-		const { t } = await setup();
-		await withOpenSemester(t);
-		await insertEventProduct(t, "standard_presentation");
-		const productId = await insertEventProduct(t, "large_presentation", "Stor bedpres", 4_000_000);
-		const { token } = await submitWith(t, {
-			form: validForm({ eventType: "large_presentation", maxStudents: 80 }),
-			confirm: false,
-		});
-		expect((await pendingApplications(t))[0]?.form.productId).toBe(productId);
-
-		await t.run((ctx) => ctx.db.patch(productId, { active: false }));
-		await insertEventProduct(t, "large_presentation", "Ny stor bedpres", 5_000_000);
-		await t.mutation(confirmation.confirm, { token: token as string });
-
-		expect((await applications(t))[0]?.productId).toBe(productId);
-		const [alert] = await orderAlerts(t);
-		expect(alert?.args[0].text).toContain("*Type:* Stor bedpres\n");
-		expect(alert?.args[0].text).toContain(`${formatNokFromOre(4_000_000)} eks. mva`);
-	});
-
-	it("replaces the pending product when the form is sent again with another type", async () => {
-		const { t } = await setup();
-		await withOpenSemester(t);
-		await insertEventProduct(t, "large_presentation");
-		const submissionId = "changed-type-abcdef";
-		await submitWith(t, {
-			submissionId,
-			form: validForm({ eventType: "large_presentation", maxStudents: 80 }),
-			confirm: false,
-		});
-		await submitWith(t, {
-			submissionId,
-			form: validForm({ eventType: "workshop", maxStudents: 30 }),
-		});
-
-		expect((await pendingApplications(t))[0]?.form.productId).toBeUndefined();
-		const [application] = await applications(t);
-		expect(application?.eventType).toBe("workshop");
-		expect(application?.productId).toBeUndefined();
-	});
-
-	it("gives a product to an application that was pending without one", async () => {
-		const { t } = await setup();
-		await withOpenSemester(t);
-		const { token } = await submitWith(t, { confirm: false });
-		const productId = await insertEventProduct(t, "standard_presentation");
-		await t.mutation(confirmation.confirm, { token: token as string });
-
-		expect((await applications(t))[0]?.productId).toBe(productId);
 	});
 
 	it("queues the received application for the Google Sheet copy", async () => {

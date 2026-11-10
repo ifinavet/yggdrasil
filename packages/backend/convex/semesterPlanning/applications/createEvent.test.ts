@@ -5,7 +5,6 @@ import {
 	asUser,
 	grantRole,
 	insertApplication,
-	insertEventProduct,
 	insertInternal,
 	insertSemester,
 	insertUser,
@@ -136,32 +135,6 @@ describe("createEvent", () => {
 		expect(await refusalMessageFrom(editor.mutation(createEvent, { applicationId }))).toBe(
 			"Bare bekreftede søknader kan få et arrangement.",
 		);
-	});
-});
-
-it("puts the application's own product on its event, and invoices that product", async () => {
-	const { t, applicationId, editor } = await eventSetup();
-	const ownId = await insertEventProduct(t, "standard_presentation", "Avtalt ordinær", 2_500_000);
-	await t.run((ctx) => ctx.db.patch(ownId, { active: false }));
-	await insertEventProduct(t, "standard_presentation");
-	await t.run((ctx) => ctx.db.patch(applicationId, { productId: ownId }));
-
-	const eventId = await editor.mutation(createEvent, { applicationId });
-	expect((await eventById(t, eventId))?.product).toMatchObject({
-		productId: ownId,
-		name: "Avtalt ordinær",
-		unitPriceOre: 2_500_000,
-	});
-
-	await t.run((ctx) => ctx.db.patch(eventId, { product: undefined }));
-	const preview = await t.run(async (ctx) => {
-		const invoice = await ctx.db.query("invoices").first();
-		if (!invoice) throw new Error("Missing invoice");
-		return resolveInvoice(ctx, invoice);
-	});
-	expect(preview).toMatchObject({
-		kind: "ready",
-		details: { line: { description: "Avtalt ordinær", unitPrice: 2_500_000 } },
 	});
 });
 

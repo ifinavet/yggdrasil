@@ -1,7 +1,6 @@
 import { BIFROST_URL } from "@workspace/shared/constants";
 import {
 	ESCAPE_LABELS,
-	EVENT_TYPE_LABELS,
 	FOOD_PURCHASER_LABELS,
 	semesterName,
 	VENUE_LABELS,
@@ -10,6 +9,7 @@ import { formatOsloDate } from "@workspace/shared/time";
 import { v } from "convex/values";
 import type { Doc } from "../../_generated/dataModel";
 import { internalMutation, internalQuery } from "../../_generated/server";
+import { eventTypeName } from "../../products/helpers";
 
 // A copy of every received application in a Google Sheet, one tab per semester, so Navet has the
 // answers outside Bifrost too. The rows are only ever added; Bifrost stays the source of truth.
@@ -40,7 +40,10 @@ export const SHEET_HEADER = [
 const yesNo = (value: boolean | undefined) => (value ? "Ja" : "Nei");
 
 /** The application's answers in the order of `SHEET_HEADER`. */
-export function applicationSheetRow(application: Doc<"companyApplications">): string[] {
+export function applicationSheetRow(
+	application: Doc<"companyApplications">,
+	typeName: string,
+): string[] {
 	const { minStudents, maxStudents, billing } = application;
 	return [
 		formatOsloDate(application.consent.consentedAt, "yyyy-MM-dd HH:mm"),
@@ -49,7 +52,7 @@ export function applicationSheetRow(application: Doc<"companyApplications">): st
 		application.contact.name,
 		application.contact.email,
 		application.contact.phone,
-		EVENT_TYPE_LABELS[application.eventType],
+		typeName,
 		minStudents === maxStudents ? String(maxStudents) : `${minStudents}–${maxStudents}`,
 		application.description,
 		application.availableDates.join(", "),
@@ -79,7 +82,7 @@ export const forSheet = internalQuery({
 		if (!application || !semester) return null;
 		return {
 			title: semesterName(semester.term, semester.year),
-			row: applicationSheetRow(application),
+			row: applicationSheetRow(application, await eventTypeName(ctx, application.eventType)),
 			added: application.sheetRowAddedAt !== undefined,
 		};
 	},

@@ -7,7 +7,6 @@ import { presentationEventType } from "../../semesterPlanning/schema";
 const answer = oneOf(["yes", "no", "unsure"]);
 export const answers = v.object({
 	requestedEventType: v.optional(presentationEventType),
-	requestedProductId: v.optional(v.id("products")),
 	title: v.string(),
 	teaser: v.string(),
 	description: v.string(),
@@ -30,7 +29,6 @@ export const preparation = {
 	contactEmail: v.string(),
 	signature: v.string(),
 	eventType: v.optional(presentationEventType),
-	productId: v.optional(v.id("products")),
 	answers,
 };
 export const envelope = v.object({

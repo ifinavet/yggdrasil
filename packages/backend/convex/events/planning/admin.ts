@@ -14,7 +14,6 @@ import { internalRoles, requireRole } from "../../auth/accessRights";
 import { isLocalDevelopment } from "../../auth/local";
 import { previousCompanyReport } from "../../companies/history";
 import { generateLinkToken, hashLinkToken } from "../../lib/tokens";
-import { productForType } from "../../products/helpers";
 import { countRegistrationsWithStatus } from "../helper";
 import { getOrganizers } from "../queries";
 import { queueEmail } from "./delivery";
@@ -150,12 +149,8 @@ export const savePreparation = mutation({
 			planning.contactEmail !== fields.contactEmail.trim().toLowerCase() ||
 			planning.companyId !== event.hostingCompany ||
 			planning.eventType !== fields.eventType;
-		const sameProduct = planning.eventType === fields.eventType && planning.productId;
 		await ctx.db.patch(planning._id, {
 			...fields,
-			eventType: fields.eventType,
-			productId:
-				sameProduct || (fields.eventType && (await productForType(ctx, fields.eventType))?._id),
 			contactName: fields.contactName.trim(),
 			contactEmail: fields.contactEmail.trim().toLowerCase(),
 			answers: parsed,

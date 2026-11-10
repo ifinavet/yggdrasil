@@ -1,10 +1,10 @@
-import { EVENT_TYPE_SHORT_LABELS } from "@workspace/shared/semester/labels";
 import { formatOrgNumber } from "@workspace/shared/semester/orgNumber";
 import { CompanyLogo } from "@workspace/ui/components/company-logo";
 import { cn } from "@workspace/ui/lib/utils";
 import { Lock } from "lucide-react";
 import { Fragment } from "react";
 import { LIST_HEAD } from "@/components/common/table-classes";
+import { EventTypeName } from "@/components/products/event-type-name";
 import { monthLabel } from "../format";
 import type { PlanDay } from "./plan-days";
 import {
@@ -151,7 +151,7 @@ export function PlanTable({
 										<div className="min-w-0">
 											<CompanyName row={row} linkApplication={showContactDetails} />
 											<div className="mt-0.5 text-[12.5px] text-muted-foreground">
-												{EVENT_TYPE_SHORT_LABELS[row.eventType]}
+												<EventTypeName type={row.eventType} />
 												{details && ` · ${formatOrgNumber(details.orgNumber)}`}
 											</div>
 										</div>

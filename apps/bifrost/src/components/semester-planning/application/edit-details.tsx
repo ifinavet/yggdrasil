@@ -9,7 +9,6 @@ import {
 	APPLICATION_VENUES,
 	ESCAPE_ANSWERS,
 	ESCAPE_LABELS,
-	EVENT_TYPE_LABELS,
 	FOOD_PURCHASER_LABELS,
 	FOOD_PURCHASERS,
 	VENUE_LABELS,
@@ -40,6 +39,7 @@ import type { FunctionArgs } from "convex/server";
 import { Pencil } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { toast } from "sonner";
+import { useEventTypeNames } from "@/components/products/event-type-name";
 import type { Application } from "./model";
 
 type Details = FunctionArgs<
@@ -142,7 +142,7 @@ function Choice<T extends string>({
 	label: string;
 	value: T;
 	options: readonly T[];
-	labels: Record<T, string>;
+	labels: Partial<Record<T, string>>;
 	onChange: (value: T) => void;
 }>) {
 	return (
@@ -193,6 +193,7 @@ function TextField({
 
 /** «Rediger» on «Søknaden»: the event the company asked for. */
 export function EditEventInfo({ application }: Readonly<{ application: Application }>) {
+	const typeNames = useEventTypeNames();
 	const defaultValues = {
 		eventType: application.eventType,
 		minStudents: String(application.minStudents),
@@ -231,7 +232,7 @@ export function EditEventInfo({ application }: Readonly<{ application: Applicati
 						label="Type"
 						value={field.state.value}
 						options={APPLICATION_EVENT_TYPES}
-						labels={EVENT_TYPE_LABELS}
+						labels={typeNames}
 						onChange={field.handleChange}
 					/>
 				)}

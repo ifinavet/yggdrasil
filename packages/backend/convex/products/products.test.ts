@@ -287,4 +287,28 @@ describe("products", () => {
 		);
 		expect(changes).toMatchObject([{ action: "created", changedByName: null }]);
 	});
+
+	it("names each event type after its product, also when the product is archived", async () => {
+		const { t } = await fixture();
+		await t.mutation(internal.products.seed.seedProducts, {});
+		await t.run(async (ctx) => {
+			const products = await ctx.db.query("products").collect();
+			for (const product of products) {
+				if (product.eventType === "workshop") await ctx.db.patch(product._id, { active: false });
+				if (product.eventType === "social") await ctx.db.delete(product._id);
+				if (product.eventType === "large_presentation") {
+					const { _id, _creationTime, ...copy } = product;
+					await ctx.db.insert("products", { ...copy, active: false });
+					await ctx.db.patch(product._id, { name: "Stor bedpres" });
+				}
+			}
+		});
+
+		expect(await t.query(api.products.queries.eventTypeNames, {})).toEqual({
+			standard_presentation: "Ordinær bedriftspresentasjon",
+			large_presentation: "Stor bedpres",
+			workshop: "Bedriftspresentasjon med fokus på faglig innhold",
+			social: "social",
+		});
+	});
 });

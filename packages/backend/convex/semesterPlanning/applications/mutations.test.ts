@@ -6,7 +6,6 @@ import {
 	grantRole,
 	insertApplication,
 	insertEvent,
-	insertEventProduct,
 	insertInternal,
 	insertOrganizer,
 	insertRegistration,
@@ -710,39 +709,6 @@ describe("updateDetails", () => {
 		expect((await activityFor(t, applicationId)).map((entry) => entry.type)).toContain(
 			"details_changed",
 		);
-	});
-
-	it("moves the product reference when the event type changes", async () => {
-		const { t, semesterId, editor } = await planningSetup();
-		const standardId = await insertEventProduct(t, "standard_presentation");
-		const largeId = await insertEventProduct(t, "large_presentation");
-		const applicationId = await insertApplication(t, semesterId, { productId: standardId });
-
-		await editor.mutation(mutations.updateDetails, {
-			applicationId,
-			details: { eventType: "large_presentation", maxStudents: 120 },
-		});
-		expect((await applicationById(t, applicationId)).productId).toBe(largeId);
-
-		await editor.mutation(mutations.updateDetails, {
-			applicationId,
-			details: { eventType: "workshop", maxStudents: 30 },
-		});
-		expect((await applicationById(t, applicationId)).productId).toBeUndefined();
-	});
-
-	it("keeps the product reference when the event type is unchanged", async () => {
-		const { t, semesterId, editor } = await planningSetup();
-		const archivedId = await insertEventProduct(t, "standard_presentation", "Utgått ordinær");
-		await t.run((ctx) => ctx.db.patch(archivedId, { active: false }));
-		await insertEventProduct(t, "standard_presentation");
-		const applicationId = await insertApplication(t, semesterId, { productId: archivedId });
-
-		await editor.mutation(mutations.updateDetails, {
-			applicationId,
-			details: { eventType: "standard_presentation", minStudents: 10 },
-		});
-		expect((await applicationById(t, applicationId)).productId).toBe(archivedId);
 	});
 
 	it("lets Navet set Escape as the venue, which Hugin does not offer", async () => {

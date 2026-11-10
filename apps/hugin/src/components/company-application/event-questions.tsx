@@ -2,7 +2,6 @@ import { api } from "@workspace/backend/convex/api";
 import {
 	APPLICATION_EVENT_TYPES,
 	type ApplicationEventType,
-	EVENT_TYPE_LABELS,
 	type EventType,
 } from "@workspace/shared/semester/labels";
 import { CharacterCount } from "@workspace/ui/components/character-count";
@@ -23,10 +22,11 @@ import type { ApplicationFormApi } from "./use-application-form";
 
 function eventTypeOptions(
 	pricesOre: Partial<Record<EventType, number>>,
+	names: Partial<Record<EventType, string>>,
 ): ChoiceOption<ApplicationEventType>[] {
 	return APPLICATION_EVENT_TYPES.map((type) => ({
 		value: type,
-		label: EVENT_TYPE_LABELS[type],
+		label: names[type] ?? "",
 		description: eventTypeDescription(type, pricesOre[type]),
 	}));
 }
@@ -34,6 +34,7 @@ function eventTypeOptions(
 /** «Arrangementet»: the event type, the number of students and the description. */
 export function EventQuestions({ form }: Readonly<{ form: ApplicationFormApi }>) {
 	const pricesOre = useQuery(api.products.queries.eventTypePrices) ?? {};
+	const names = useQuery(api.products.queries.eventTypeNames) ?? {};
 
 	return (
 		<>
@@ -46,7 +47,7 @@ export function EventQuestions({ form }: Readonly<{ form: ApplicationFormApi }>)
 						<ApplicationQuestion name="eventType" label={COPY.eventType.label} error={error}>
 							<ChoiceGroup
 								name="eventType"
-								options={eventTypeOptions(pricesOre)}
+								options={eventTypeOptions(pricesOre, names)}
 								value={field.state.value}
 								onChange={field.handleChange}
 								invalid={Boolean(error)}

@@ -13,6 +13,7 @@ import {
 	validEmailToken,
 } from "../../lib/emailConfirmation";
 import { generateLinkToken, hashLinkToken } from "../../lib/tokens";
+import { eventTypeName } from "../../products/helpers";
 import { queueEmail } from "./delivery";
 import {
 	capacityLimit,
@@ -192,7 +193,12 @@ export const confirm = mutation({
 			ctx,
 			event,
 			`review:${submission._id}`,
-			planningResponseSummary(company?.name ?? "Bedriften", submission.answers),
+			planningResponseSummary(
+				company?.name ?? "Bedriften",
+				submission.answers,
+				submission.answers.requestedEventType &&
+					(await eventTypeName(ctx, submission.answers.requestedEventType)),
+			),
 			"review",
 		);
 		return { state: "confirmed" };

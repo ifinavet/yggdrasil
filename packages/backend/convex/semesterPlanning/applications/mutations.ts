@@ -3,7 +3,6 @@ import { ConvexError, v } from "convex/values";
 import type { Doc, Id } from "../../_generated/dataModel";
 import { type MutationCtx, mutation } from "../../_generated/server";
 import { invoiceFor } from "../../invoicing/schedule";
-import { productForType } from "../../products/helpers";
 import {
 	type Actor,
 	logApplicationActivity,
@@ -371,9 +370,6 @@ export const updateDetails = mutation({
 		await ctx.db.patch(applicationId, {
 			contact: form.contact,
 			eventType: form.eventType,
-			...(form.eventType !== application.eventType && {
-				productId: (await productForType(ctx, form.eventType))?._id,
-			}),
 			minStudents: form.minStudents,
 			maxStudents: form.maxStudents,
 			description: form.description,

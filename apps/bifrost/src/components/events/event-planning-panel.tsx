@@ -8,7 +8,7 @@ import {
 	planningCapacityLimit,
 } from "@workspace/shared/events/planning";
 import { splitPlanningEmail } from "@workspace/shared/events/planning-email";
-import { EVENT_TYPE_LABELS, type EventType } from "@workspace/shared/semester/labels";
+import type { EventType } from "@workspace/shared/semester/labels";
 import { formatOsloDate, osloDateTimeToEpoch } from "@workspace/shared/time";
 import { convexErrorMessage } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
@@ -30,6 +30,7 @@ import type { FunctionReturnType } from "convex/server";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useEventTypeNames } from "@/components/products/event-type-name";
 import { FoodItemSelect } from "./food/food-item-select";
 
 type PlanningData = FunctionReturnType<typeof api.events.planning.admin.get>;
@@ -147,11 +148,13 @@ function Preparation({ data, onSaved }: Readonly<{ data: PlanningData; onSaved: 
 	const [contactEmail, setContactEmail] = useState(data.initial.contactEmail);
 	const [signature, setSignature] = useState(data.initial.signature);
 	const [eventType, setEventType] = useState<EventType | undefined>(data.initial.eventType);
+	const typeNames = useEventTypeNames();
 	return (
 		<EventPlanningForm
 			searchAddresses={searchAddresses}
 			initial={data.initial.answers}
 			eventType={eventType}
+			eventTypeNames={typeNames}
 			capacityLimit={Math.min(
 				eventType ? planningCapacityLimit(eventType) : 1000,
 				eventType === data.initial.eventType ? data.capacityLimit : 1000,
@@ -211,7 +214,7 @@ function Preparation({ data, onSaved }: Readonly<{ data: PlanningData; onSaved: 
 							}
 						>
 							<option value="">Velg arrangementstype</option>
-							{Object.entries(EVENT_TYPE_LABELS).map(([value, label]) => (
+							{Object.entries(typeNames).map(([value, label]) => (
 								<option key={value} value={value}>
 									{label}
 								</option>
@@ -327,6 +330,7 @@ function Invitation({
 }
 
 function Review({ data, onDone }: Readonly<{ data: PlanningData; onDone: () => void }>) {
+	const typeNames = useEventTypeNames();
 	const searchAddresses = useAction(api.jobListingOrders.addressSearch.searchAddresses);
 	const save = useMutation(api.events.planning.admin.saveReview);
 	const approve = useMutation(api.events.planning.admin.approve);
@@ -369,6 +373,7 @@ function Review({ data, onDone }: Readonly<{ data: PlanningData; onDone: () => v
 					key={submission.revision}
 					initial={submission.draft}
 					eventType={data.initial.eventType}
+					eventTypeNames={typeNames}
 					capacityLimit={data.capacityLimit}
 					submitLabel="Lagre og forhåndsvis"
 					onSubmit={async (answers) => {
@@ -396,9 +401,8 @@ function Review({ data, onDone }: Readonly<{ data: PlanningData; onDone: () => v
 					{submission.draft.requestedEventType &&
 						submission.draft.requestedEventType !== data.initial.eventType && (
 							<p className="text-sm">
-								Bedriften ønsker{" "}
-								{EVENT_TYPE_LABELS[submission.draft.requestedEventType].toLowerCase()}. Avklar
-								endringen med bedriften. Publisering endrer ikke den avtalte pakken.
+								Bedriften ønsker {typeNames[submission.draft.requestedEventType]?.toLowerCase()}.
+								Avklar endringen med bedriften. Publisering endrer ikke den avtalte pakken.
 							</p>
 						)}
 					<Field>

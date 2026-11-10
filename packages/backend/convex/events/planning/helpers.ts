@@ -8,7 +8,6 @@ import {
 	planningFormSchema,
 	validContactEmail,
 } from "@workspace/shared/events/planning";
-import { EVENT_TYPE_LABELS } from "@workspace/shared/semester/labels";
 import { formatOsloDate, osloDateTimeToEpoch, osloToday } from "@workspace/shared/time";
 import { ConvexError } from "convex/values";
 import type { Doc, Id } from "../../_generated/dataModel";
@@ -20,7 +19,6 @@ import { sanitizeRichText } from "../../jobListingOrders/sanitize";
 import { validEmailToken } from "../../lib/emailConfirmation";
 import { hashLinkToken } from "../../lib/tokens";
 import { trackedEmail } from "../../lib/trackedEmail";
-import { productForType, productOf } from "../../products/helpers";
 import { getOrganizerEmails, getOrganizers } from "../queries";
 
 export const eventArgsError = "Arrangementet er avsluttet eller utilgjengelig.";
@@ -112,7 +110,6 @@ export async function initialPlanning(ctx: QueryCtx, event: Doc<"events">) {
 		event.foodItem ? ctx.db.get(event.foodItem) : null,
 	]);
 	const product = event.product ? await ctx.db.get(event.product.productId) : null;
-	const ownProduct = event.productGuessed || !product?.eventType ? null : product;
 	const known = (value: string) => (value === "Mer info kommer" ? "" : value);
 	let venue: PlanningAnswers["venue"] = "unsure";
 	if (order?.wantsToUseEscape === "yes") venue = "escape";
@@ -143,8 +140,7 @@ export async function initialPlanning(ctx: QueryCtx, event: Doc<"events">) {
 		contactName: order?.contact.name ?? "",
 		contactEmail: order?.contact.email ?? "",
 		signature: sender.signature,
-		eventType: order?.eventType ?? ownProduct?.eventType,
-		productId: (order ? await productOf(ctx, order) : ownProduct)?._id,
+		eventType: order?.eventType ?? (event.productGuessed ? undefined : product?.eventType),
 	};
 }
 export async function ensurePlanning(ctx: MutationCtx, event: Doc<"events">) {
@@ -192,9 +188,6 @@ export async function parseAnswers(
 	}
 	return {
 		...parsed.data,
-		requestedProductId:
-			parsed.data.requestedEventType &&
-			(await productForType(ctx, parsed.data.requestedEventType))?._id,
 		ageRestriction: AGE_BY_ALCOHOL[parsed.data.alcohol],
 		description: sanitizeRichText(parsed.data.description),
 	};
@@ -273,6 +266,5 @@ export async function companyView(
 		companyName: company?.name ?? "",
 		eventType: planning.eventType,
 		logoUrl: company ? await findCompanyLogoUrl(ctx, company._id) : null,
-		packageName: planning.eventType ? EVENT_TYPE_LABELS[planning.eventType] : "Bedriftsarrangement",
 	};
 }

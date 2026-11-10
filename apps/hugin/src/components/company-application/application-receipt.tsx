@@ -1,7 +1,8 @@
-import type { api } from "@workspace/backend/convex/api";
+import { api } from "@workspace/backend/convex/api";
 import { COMPANY_CONTACT_EMAIL } from "@workspace/shared/constants";
-import { ESCAPE_LABELS, EVENT_TYPE_LABELS, VENUE_LABELS } from "@workspace/shared/semester/labels";
+import { ESCAPE_LABELS, VENUE_LABELS } from "@workspace/shared/semester/labels";
 import { formatOrgNumber } from "@workspace/shared/semester/orgNumber";
+import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { Check } from "lucide-react";
 import type { ReactNode } from "react";
@@ -59,7 +60,9 @@ export function ApplicationReceipt({ receipt }: Readonly<{ receipt: Receipt }>) 
 						<br />
 						<span className="text-muted-foreground">{formatOrgNumber(company.orgNumber)}</span>
 					</Row>
-					<Row label={ROWS.type}>{EVENT_TYPE_LABELS[receipt.eventType]}</Row>
+					<Row label={ROWS.type}>
+						{useQuery(api.products.queries.eventTypeNames)?.[receipt.eventType]}
+					</Row>
 					<Row label={ROWS.students}>{studentRange(receipt.minStudents, receipt.maxStudents)}</Row>
 					<Row label={ROWS.dates}>{compactDateList(receipt.availableDates)}</Row>
 					<Row label={ROWS.venue}>{VENUE_LABELS[receipt.venue]}</Row>

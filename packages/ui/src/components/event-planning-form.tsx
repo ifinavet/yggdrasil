@@ -9,11 +9,7 @@ import {
 	planningFormSchema,
 	VENUE_CHOICES,
 } from "@workspace/shared/events/planning";
-import {
-	EVENT_TYPE_LABELS,
-	type EventType,
-	FOOD_PURCHASER_LABELS,
-} from "@workspace/shared/semester/labels";
+import { type EventType, FOOD_PURCHASER_LABELS } from "@workspace/shared/semester/labels";
 import { convexErrorMessage } from "@workspace/shared/utils";
 import { useId, useState, type ReactNode } from "react";
 import { AddressInput } from "./address-input";
@@ -37,6 +33,7 @@ export function EventPlanningForm({
 	searchAddresses,
 	capacityLimit,
 	eventType,
+	eventTypeNames,
 	onSubmit,
 	submitLabel = "Send inn opplysninger",
 	before,
@@ -46,6 +43,7 @@ export function EventPlanningForm({
 	searchAddresses: AddressSearch;
 	capacityLimit: number;
 	eventType?: EventType;
+	eventTypeNames: Partial<Record<EventType, string>>;
 	onSubmit: (answers: PlanningAnswers) => Promise<unknown>;
 	submitLabel?: string;
 	before?: ReactNode;
@@ -172,7 +170,7 @@ export function EventPlanningForm({
 							className="text-base font-semibold leading-6"
 						>
 							{eventType
-								? `Dere har søkt om ${EVENT_TYPE_LABELS[eventType].toLowerCase()}, stemmer det eller ønsker dere noe annet?`
+								? `Dere har søkt om ${eventTypeNames[eventType]?.toLowerCase()}, stemmer det eller ønsker dere noe annet?`
 								: "Hvilken type arrangement ønsker dere?"}
 						</FieldLabel>
 						<select
@@ -185,7 +183,7 @@ export function EventPlanningForm({
 							}
 						>
 							<option value="">Ikke avklart</option>
-							{Object.entries(EVENT_TYPE_LABELS).map(([value, label]) => (
+							{Object.entries(eventTypeNames).map(([value, label]) => (
 								<option key={value} value={value}>
 									{label}
 								</option>

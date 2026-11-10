@@ -2,7 +2,7 @@ import { EVENT_TYPES, type EventType } from "@workspace/shared/semester/labels";
 import { v } from "convex/values";
 import { query } from "../_generated/server";
 import { adminRoles, requireRole } from "../auth/accessRights";
-import { MAX_PRODUCTS, productForType } from "./helpers";
+import { eventTypeName, MAX_PRODUCTS } from "./helpers";
 
 const MAX_CHANGES_SHOWN = 50;
 
@@ -18,7 +18,14 @@ export const listActive = query({
 export const eventTypePrices = query({
 	handler: async (ctx): Promise<Partial<Record<EventType, number>>> => {
 		const products = await Promise.all(
-			EVENT_TYPES.map((eventType) => productForType(ctx, eventType)),
+			EVENT_TYPES.map((eventType) =>
+				ctx.db
+					.query("products")
+					.withIndex("by_eventType_and_active", (q) =>
+						q.eq("eventType", eventType).eq("active", true),
+					)
+					.first(),
+			),
 		);
 		return Object.fromEntries(
 			products.flatMap((product) =>
@@ -27,6 +34,15 @@ export const eventTypePrices = query({
 					: [],
 			),
 		);
+	},
+});
+
+export const eventTypeNames = query({
+	handler: async (ctx) => {
+		const names = await Promise.all(EVENT_TYPES.map((eventType) => eventTypeName(ctx, eventType)));
+		return Object.fromEntries(
+			EVENT_TYPES.map((eventType, index) => [eventType, names[index]]),
+		) as Record<EventType, string>;
 	},
 });
 
