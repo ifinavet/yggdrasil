@@ -1,6 +1,6 @@
 import { HUGIN_URL } from "@workspace/shared/constants";
 import { formatNokFromOre } from "@workspace/shared/products";
-import { type ApplicationEventType, EVENT_TYPE_LABELS } from "@workspace/shared/semester/labels";
+import { EVENT_TYPE_LABELS } from "@workspace/shared/semester/labels";
 import { SYSTEM_ALERTS_CHANNEL } from "@workspace/shared/slack/channels";
 import { osloToday } from "@workspace/shared/time";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -8,6 +8,7 @@ import { emailsFrom, sentEmails, tokenFrom } from "../../../test/confirmationEma
 import {
 	activityFor,
 	DAY_IN_MS,
+	insertEventProduct,
 	insertSemester,
 	refusalMessageFrom,
 	setup,
@@ -78,25 +79,8 @@ async function applications(t: TestBackend) {
 	return t.run((ctx) => ctx.db.query("companyApplications").collect());
 }
 
-async function insertEventProduct(
-	t: TestBackend,
-	eventType: ApplicationEventType,
-	name: string,
-	unitPriceOre: number,
-) {
-	await t.run((ctx) =>
-		ctx.db.insert("products", {
-			name,
-			shortDescription: "",
-			longDescription: "",
-			category: "event",
-			eventType,
-			unitPriceOre,
-			vatRate: 25,
-			sortOrder: 0,
-			active: true,
-		}),
-	);
+async function pendingApplications(t: TestBackend) {
+	return t.run((ctx) => ctx.db.query("pendingCompanyApplications").collect());
 }
 
 async function orderAlerts(t: TestBackend) {
@@ -203,6 +187,58 @@ describe("submit", () => {
 
 		const [alert] = await orderAlerts(t);
 		expect(alert?.args[0].text).toContain(`*Type:* ${EVENT_TYPE_LABELS.workshop}\n`);
+	});
+
+	it("saves the product of the applied type on the pending and the received application", async () => {
+		const { t } = await setup();
+		await withOpenSemester(t);
+		await insertEventProduct(t, "standard_presentation");
+		const productId = await insertEventProduct(t, "large_presentation", "Stor bedpres", 4_000_000);
+		const { token } = await submitWith(t, {
+			form: validForm({ eventType: "large_presentation", maxStudents: 80 }),
+			confirm: false,
+		});
+		expect((await pendingApplications(t))[0]?.form.productId).toBe(productId);
+
+		await t.run((ctx) => ctx.db.patch(productId, { active: false }));
+		await insertEventProduct(t, "large_presentation", "Ny stor bedpres", 5_000_000);
+		await t.mutation(confirmation.confirm, { token: token as string });
+
+		expect((await applications(t))[0]?.productId).toBe(productId);
+		const [alert] = await orderAlerts(t);
+		expect(alert?.args[0].text).toContain("*Type:* Stor bedpres\n");
+		expect(alert?.args[0].text).toContain(`${formatNokFromOre(4_000_000)} eks. mva`);
+	});
+
+	it("replaces the pending product when the form is sent again with another type", async () => {
+		const { t } = await setup();
+		await withOpenSemester(t);
+		await insertEventProduct(t, "large_presentation");
+		const submissionId = "changed-type-abcdef";
+		await submitWith(t, {
+			submissionId,
+			form: validForm({ eventType: "large_presentation", maxStudents: 80 }),
+			confirm: false,
+		});
+		await submitWith(t, {
+			submissionId,
+			form: validForm({ eventType: "workshop", maxStudents: 30 }),
+		});
+
+		expect((await pendingApplications(t))[0]?.form.productId).toBeUndefined();
+		const [application] = await applications(t);
+		expect(application?.eventType).toBe("workshop");
+		expect(application?.productId).toBeUndefined();
+	});
+
+	it("gives a product to an application that was pending without one", async () => {
+		const { t } = await setup();
+		await withOpenSemester(t);
+		const { token } = await submitWith(t, { confirm: false });
+		const productId = await insertEventProduct(t, "standard_presentation");
+		await t.mutation(confirmation.confirm, { token: token as string });
+
+		expect((await applications(t))[0]?.productId).toBe(productId);
 	});
 
 	it("queues the received application for the Google Sheet copy", async () => {

@@ -6,6 +6,7 @@ import {
 	asUser,
 	grantRole,
 	insertApplication,
+	insertEventProduct,
 	insertInternal,
 	insertSemester,
 	insertUser,
@@ -67,6 +68,27 @@ async function offersOf(t: TestBackend, applicationId: Id<"companyApplications">
 }
 
 describe("send", () => {
+	it("carries the product of the application's type when the application has none", async () => {
+		const { t, applicationId, editor } = await offerSetup();
+		await insertEventProduct(t, "large_presentation");
+		const productId = await insertEventProduct(t, "standard_presentation");
+		await editor.mutation(offers.mutations.sendOffer, { applicationId });
+		expect((await offersOf(t, applicationId))[0]?.productId).toBe(productId);
+	});
+
+	it("carries the application's own product, also when it is archived", async () => {
+		const { t, editor, semesterId } = await offerSetup();
+		const archivedId = await insertEventProduct(t, "standard_presentation", "Utgått ordinær");
+		await t.run((ctx) => ctx.db.patch(archivedId, { active: false }));
+		await insertEventProduct(t, "standard_presentation");
+		const applicationId = await insertApplication(t, semesterId, {
+			assignedDate: "2027-02-11",
+			productId: archivedId,
+		});
+		await editor.mutation(offers.mutations.sendOffer, { applicationId });
+		expect((await offersOf(t, applicationId))[0]?.productId).toBe(archivedId);
+	});
+
 	it("makes an offer and emails its link to the company", async () => {
 		const { t, applicationId, editor, editorUser } = await offerSetup();
 

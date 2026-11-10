@@ -25,6 +25,7 @@ import {
 	validEmailToken,
 } from "../../lib/emailConfirmation";
 import { hashLinkToken } from "../../lib/tokens";
+import { productForType, productOf } from "../../products/helpers";
 import { logApplicationActivity } from "../applicationLifecycle";
 import { CONSENT_VERSION, FORM_VERSION } from "../rules";
 import {
@@ -147,7 +148,8 @@ export const savePending = internalMutation({
 		);
 		if (reason) throw new ConvexError(reason);
 
-		const answers = { semesterId, form: parsed, registry, submittedAt: now };
+		const productId = (await productForType(ctx, parsed.eventType))?._id;
+		const answers = { semesterId, form: { ...parsed, productId }, registry, submittedAt: now };
 		let pendingId: Id<"pendingCompanyApplications">;
 		if (already) {
 			if (already.form.contact.email !== parsed.contact.email) {
@@ -307,8 +309,10 @@ async function receiveApplication(
 	now: number,
 ): Promise<Id<"companyApplications">> {
 	const { consent: _consent, billing, ...answers } = pending.form;
+	const product = await productOf(ctx, answers);
 	const applicationId = await ctx.db.insert("companyApplications", {
 		...answers,
+		productId: product?._id,
 		semesterId: pending.semesterId,
 		submissionId: pending.submissionId,
 		formVersion: FORM_VERSION,
@@ -319,12 +323,6 @@ async function receiveApplication(
 	});
 
 	await logApplicationActivity(ctx, applicationId, "submitted", { type: "company" });
-	const product = await ctx.db
-		.query("products")
-		.withIndex("by_eventType_and_active", (q) =>
-			q.eq("eventType", answers.eventType).eq("active", true),
-		)
-		.first();
 	const companyName = pending.registry.name;
 	await ctx.scheduler.runAfter(0, internal.iam.notifications.sendMessage, {
 		channel: SYSTEM_ALERTS_CHANNEL,
