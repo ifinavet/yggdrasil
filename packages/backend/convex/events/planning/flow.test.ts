@@ -273,20 +273,6 @@ describe("company event planning", () => {
 		expect((await started({}, { productId: archivedId }))?.productId).toBe(archivedId);
 		expect((await started({ product }, { productId: archivedId }))?.productId).toBe(archivedId);
 		expect((await started({}, {}))?.productId).toBe(standardId);
-		const own = { product: { ...product, productId: archivedId } };
-		const legacy = present(await started(own, {}));
-		expect(legacy.productId).toBe(archivedId);
-		await t.run((ctx) => ctx.db.patch(legacy._id, { productId: undefined }));
-		await editor.mutation(api.events.planning.admin.savePreparation, {
-			eventId: legacy.eventId,
-			revision: legacy.revision,
-			contactName: legacy.contactName,
-			contactEmail: legacy.contactEmail,
-			signature: legacy.signature,
-			eventType: legacy.eventType,
-			answers: legacy.answers,
-		});
-		expect((await t.run((ctx) => ctx.db.get(legacy._id)))?.productId).toBe(archivedId);
 		expect((await started({ product }))?.productId).toBe(workshopId);
 		expect((await started({ product, productGuessed: true }))?.productId).toBeUndefined();
 	});

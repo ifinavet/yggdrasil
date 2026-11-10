@@ -20,7 +20,7 @@ import { sanitizeRichText } from "../../jobListingOrders/sanitize";
 import { validEmailToken } from "../../lib/emailConfirmation";
 import { hashLinkToken } from "../../lib/tokens";
 import { trackedEmail } from "../../lib/trackedEmail";
-import { known, onlyActiveProduct, planningProduct } from "../../products/references";
+import { productForType, productOf } from "../../products/helpers";
 import { getOrganizerEmails, getOrganizers } from "../queries";
 
 export const eventArgsError = "Arrangementet er avsluttet eller utilgjengelig.";
@@ -138,23 +138,14 @@ export async function initialPlanning(ctx: QueryCtx, event: Doc<"events">) {
 		language: known(event.language),
 		notes: "",
 	};
-	const eventType = order?.eventType ?? ownProduct?.eventType;
 	return {
 		answers,
 		contactName: order?.contact.name ?? "",
 		contactEmail: order?.contact.email ?? "",
 		signature: sender.signature,
-		eventType,
-		productId: (await agreedProduct(ctx, event._id, eventType))?._id,
+		eventType: order?.eventType ?? ownProduct?.eventType,
+		productId: (order ? await productOf(ctx, order) : ownProduct)?._id,
 	};
-}
-export async function agreedProduct(
-	ctx: QueryCtx,
-	eventId: Id<"events">,
-	eventType: Doc<"eventPlanning">["eventType"],
-) {
-	if (!eventType) return null;
-	return known(await planningProduct(ctx, eventId, eventType));
 }
 export async function ensurePlanning(ctx: MutationCtx, event: Doc<"events">) {
 	const existing = await planningForEvent(ctx, event._id);
@@ -203,7 +194,7 @@ export async function parseAnswers(
 		...parsed.data,
 		requestedProductId:
 			parsed.data.requestedEventType &&
-			known(await onlyActiveProduct(ctx, parsed.data.requestedEventType))?._id,
+			(await productForType(ctx, parsed.data.requestedEventType))?._id,
 		ageRestriction: AGE_BY_ALCOHOL[parsed.data.alcohol],
 		description: sanitizeRichText(parsed.data.description),
 	};

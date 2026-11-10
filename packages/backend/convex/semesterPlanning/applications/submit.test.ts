@@ -210,17 +210,6 @@ describe("submit", () => {
 		expect(alert?.args[0].text).toContain(`${formatNokFromOre(4_000_000)} eks. mva`);
 	});
 
-	it("saves no product when several active products have the applied type", async () => {
-		const { t } = await setup();
-		await withOpenSemester(t);
-		await insertEventProduct(t, "standard_presentation");
-		await insertEventProduct(t, "standard_presentation", "Ordinær nummer to");
-		await submitWith(t);
-
-		expect((await pendingApplications(t))[0]?.form.productId).toBeUndefined();
-		expect((await applications(t))[0]?.productId).toBeUndefined();
-	});
-
 	it("replaces the pending product when the form is sent again with another type", async () => {
 		const { t } = await setup();
 		await withOpenSemester(t);

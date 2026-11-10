@@ -14,11 +14,11 @@ import { internalRoles, requireRole } from "../../auth/accessRights";
 import { isLocalDevelopment } from "../../auth/local";
 import { previousCompanyReport } from "../../companies/history";
 import { generateLinkToken, hashLinkToken } from "../../lib/tokens";
+import { productForType } from "../../products/helpers";
 import { countRegistrationsWithStatus } from "../helper";
 import { getOrganizers } from "../queries";
 import { queueEmail } from "./delivery";
 import {
-	agreedProduct,
 	capacityLimit,
 	companyView,
 	ensurePlanning,
@@ -154,7 +154,8 @@ export const savePreparation = mutation({
 		await ctx.db.patch(planning._id, {
 			...fields,
 			eventType: fields.eventType,
-			productId: sameProduct || (await agreedProduct(ctx, eventId, fields.eventType))?._id,
+			productId:
+				sameProduct || (fields.eventType && (await productForType(ctx, fields.eventType))?._id),
 			contactName: fields.contactName.trim(),
 			contactEmail: fields.contactEmail.trim().toLowerCase(),
 			answers: parsed,

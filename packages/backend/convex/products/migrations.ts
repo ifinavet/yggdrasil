@@ -3,6 +3,7 @@ import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 import { migrations } from "../migrations";
+import { productForType, productOf } from "./helpers";
 import { snapshotOf } from "./sales";
 import { SEED_PRODUCT_NAMES, seedProductsIfEmpty } from "./seed";
 
@@ -44,6 +45,57 @@ const BACKFILLS = [
 	internal.products.migrations.backfillEventProducts,
 	internal.products.migrations.backfillJobListingProducts,
 ];
+
+type Answers = Doc<"eventPlanning">["answers"];
+
+async function withRequestedProduct(ctx: MutationCtx, answers: Answers): Promise<Answers> {
+	if (!answers.requestedEventType || answers.requestedProductId) return answers;
+	const product = await productForType(ctx, answers.requestedEventType);
+	return { ...answers, requestedProductId: product?._id };
+}
+
+export const backfillApplicationProductIds = migrations.define({
+	table: "companyApplications",
+	migrateOne: async (ctx, row) => ({ productId: (await productOf(ctx, row))?._id }),
+});
+
+export const backfillPendingApplicationProductIds = migrations.define({
+	table: "pendingCompanyApplications",
+	migrateOne: async (ctx, { form }) => ({
+		form: { ...form, productId: (await productOf(ctx, form))?._id },
+	}),
+});
+
+export const backfillOfferProductIds = migrations.define({
+	table: "companyApplicationOffers",
+	migrateOne: async (ctx, row) => ({ productId: (await productOf(ctx, row))?._id }),
+});
+
+export const backfillPlanningProductIds = migrations.define({
+	table: "eventPlanning",
+	migrateOne: async (ctx, row) => ({
+		productId: row.eventType && (await productOf(ctx, { ...row, eventType: row.eventType }))?._id,
+		answers: await withRequestedProduct(ctx, row.answers),
+	}),
+});
+
+export const backfillPlanningSubmissionProductIds = migrations.define({
+	table: "eventPlanningSubmissions",
+	migrateOne: async (ctx, row) => ({
+		answers: await withRequestedProduct(ctx, row.answers),
+		draft: await withRequestedProduct(ctx, row.draft),
+	}),
+});
+
+export async function backfillProductIds(ctx: MutationCtx) {
+	await migrations.runSerially(ctx, [
+		internal.products.migrations.backfillApplicationProductIds,
+		internal.products.migrations.backfillPendingApplicationProductIds,
+		internal.products.migrations.backfillOfferProductIds,
+		internal.products.migrations.backfillPlanningProductIds,
+		internal.products.migrations.backfillPlanningSubmissionProductIds,
+	]);
+}
 
 export async function seedAndBackfillProducts(ctx: MutationCtx) {
 	const seeded = await seedProductsIfEmpty(ctx);

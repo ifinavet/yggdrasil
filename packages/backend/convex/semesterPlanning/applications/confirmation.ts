@@ -25,8 +25,7 @@ import {
 	validEmailToken,
 } from "../../lib/emailConfirmation";
 import { hashLinkToken } from "../../lib/tokens";
-import { productOf } from "../../products/helpers";
-import { known, onlyActiveProduct } from "../../products/references";
+import { productForType, productOf } from "../../products/helpers";
 import { logApplicationActivity } from "../applicationLifecycle";
 import { CONSENT_VERSION, FORM_VERSION } from "../rules";
 import {
@@ -149,7 +148,7 @@ export const savePending = internalMutation({
 		);
 		if (reason) throw new ConvexError(reason);
 
-		const productId = known(await onlyActiveProduct(ctx, parsed.eventType))?._id;
+		const productId = (await productForType(ctx, parsed.eventType))?._id;
 		const answers = { semesterId, form: { ...parsed, productId }, registry, submittedAt: now };
 		let pendingId: Id<"pendingCompanyApplications">;
 		if (already) {
@@ -313,7 +312,7 @@ async function receiveApplication(
 	const product = await productOf(ctx, answers);
 	const applicationId = await ctx.db.insert("companyApplications", {
 		...answers,
-		productId: answers.productId ?? known(await onlyActiveProduct(ctx, answers.eventType))?._id,
+		productId: product?._id,
 		semesterId: pending.semesterId,
 		submissionId: pending.submissionId,
 		formVersion: FORM_VERSION,
