@@ -338,14 +338,14 @@ describe("company event planning", () => {
 				description: "<p></p>",
 				language: "",
 			},
-			"Stor bedpres",
+			"Stor <!channel>",
 		);
 		expect(text).toContain("Bedrift &lt;@everyone&gt; har svart");
 		expect(text).not.toContain("<@everyone>");
 		expect(text).toContain("Servering: Pizza");
 		expect(text).toContain("Hvem ordner serveringen: Bedriften");
 		expect(text).toContain("Ønsker for stand: Kaffe kl. 12");
-		expect(text).toContain("Ønsket arrangementstype: Stor bedpres");
+		expect(text).toContain("Ønsket arrangementstype: Stor &lt;!channel&gt;");
 		expect(text).toContain("Beskrivelse: Ikke oppgitt");
 		expect(text).toContain("Språk: Ikke oppgitt");
 		expect(text).not.toContain("a".repeat(181));

@@ -76,7 +76,7 @@ export function planningResponseSummary(
 		`Stand: ${ANSWER_CHOICES[answers.stand]}`,
 		`Språk: ${short(answers.language)}`,
 	];
-	if (requestedTypeName) lines.push(`Ønsket arrangementstype: ${requestedTypeName}`);
+	if (requestedTypeName) lines.push(`Ønsket arrangementstype: ${short(requestedTypeName)}`);
 	if (answers.foodAndDrinks === "yes") {
 		lines.push(
 			`Servering: ${short(answers.food)}`,

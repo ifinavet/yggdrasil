@@ -169,7 +169,7 @@ export function EventPlanningForm({
 							htmlFor={`${prefix}-event-type`}
 							className="text-base font-semibold leading-6"
 						>
-							{eventType
+							{eventType && eventTypeNames[eventType]
 								? `Dere har søkt om ${eventTypeNames[eventType]?.toLowerCase()}, stemmer det eller ønsker dere noe annet?`
 								: "Hvilken type arrangement ønsker dere?"}
 						</FieldLabel>
