@@ -1,6 +1,6 @@
 # Plan: the product is the only definition of an event type
 
-Status: plan for review, revision 4. No code in this pull request.
+Status: plan for review, revision 5. No code in this pull request.
 
 Revision 2 follows a review by GPT-6 Astra, run read-only against the code. Its findings were checked against the files it cited and all of them held. The section "What the review changed" lists them.
 
@@ -33,7 +33,7 @@ Events keep the copy of the product they were sold as (`event.product`: referenc
 - The product copy on events stays as it is, name included. Only the short labels are removed.
 - The server decides which products a company can apply for, and the social product is not one of them. The rule is: an active product in the event category that has a price. The seeded "Sosialt arrangement" product has no price. The rule lives in one server function, and the form, the submit step and the confirm step all use it. Once the enum is gone there is no type to exclude by, and excluding by product name would break on a rename, which is why the rule uses the price.
 - The planning form's capacity hint is built from each product's `maxStudents`. The sentence that hard-codes 40 is removed. The new wording is shown in the design mock for pull request B and needs approval before it is built.
-- Timing. The application window is open now and runs until about January. Pull request A is additive and can ship during the window. Pull requests B, C and D wait until the window has closed.
+- Timing. The application window is open now and runs until about January. Pull request A is additive and can ship during the window. Pull requests B and C wait until the window has closed.
 
 ## What stores a type today
 
@@ -104,20 +104,16 @@ The current semester has applications, offers, planning rows, submissions and ev
 5. The backfill prefers what was actually sold over what the type maps to today. For an application with an event whose product copy is not guessed, it takes `event.product.productId`. Otherwise it maps the type to the active product with that type. Where the two disagree, it reports the row and sets nothing. An admin can retag an event independently of its application (`products/tagging.ts:49`), so today's active product is not proof of the purchase.
 6. Every row must be resolved before the old field is cleared. "Reported and left alone" is a state during the work, never the end state, because the last pull request deletes the only other record of the type. Rows the backfill cannot map are resolved by hand, one by one, with Victor.
 
-### Clients
+### Stored outside the tables
 
-The backend deploys before the frontends (`deploy-production.yml:83`), and people keep tabs open. Old browser code calls the new backend for a while after every deploy.
+Old or open browser tabs are not accounted for. Victor's decision: they are not an issue here. B, C and the removal of old endpoints assume every client runs the code that was deployed with the backend.
 
-7. Public functions keep accepting the old arguments and returning the old fields until the pull request after the one that switches the frontends. `eventTypePrices` and the `eventType` argument to submit stay through pull request B and go in C.
-8. A saved, unsent application in the browser holds `eventType`. The form converts it to the matching product when it loads, or clears that one answer and asks again if no product matches. It never discards the rest of the draft.
-9. A pending application that a company confirms from an old email holds only `form.eventType`. The confirm step resolves the product the same way the backfill does.
-10. Through B, responses that old browser code reads keep an `eventType` value, taken from the product's legacy `eventType`. A product can therefore only be applied for through B if it has a legacy `eventType`. The three current products do. A product created during B without one becomes available in C. This keeps an old Bifrost or Hugin tab from reading a type it cannot show.
-11. `products.eventType` and its index stay through B. The old endpoints resolve a product from a type through them, so they are the last legacy data to go.
-12. C ships at least 14 days after B. A tab that has been open since before B, and is still open after C, gets a validation error on submit and works again after a reload. The saved draft survives the reload under rule 8.
+7. A saved, unsent application in the browser holds `eventType`. The form converts it to the matching product when it loads, or clears that one answer and asks again if no product matches. It never discards the rest of the draft.
+8. A pending application that a company confirms from an old email was stored before the switch. The backfill in A gives it a `productId`, and the gate before B confirms none is left without one.
 
 ## Pull requests
 
-Four. Each one deploys on its own, and production never holds a row the deployed code cannot read.
+Three. Each one deploys on its own, and production never holds a row the deployed code cannot read.
 
 ### A. Add the product reference
 
@@ -140,27 +136,17 @@ Gate before B: the report from production shows no unresolved row.
 - Bifrost: application card, edit form, applications tab, distribution matrix, assign cell, plan cards and plan table show the product name.
 - Planning: the admin panel and the company form pick a product. The cap comes from the product.
 - Emails, the Google Sheet row and planning notifications use the product name.
-- Old endpoints and arguments stay, per rule 7.
 - Writers stop setting the legacy fields.
-- The functions that clear the legacy fields are deployed, including for nested planning answers in submissions. They are run after B is live and the frontends have deployed.
+- `eventTypePrices`, the `eventType` argument to submit and the `productOf` fallback are deleted. After this nothing reads a type, on a row or on a product.
+- The functions that clear the legacy fields are deployed: `eventType` on pending applications, applications, offers, planning rows and products, and `requestedEventType` in planning answers, including in submissions. They are run once B is live.
 
-Gate before C: the report shows no application, pending application, offer, planning row or planning submission holding `eventType` or `requestedEventType`, and no row without a product reference where one is required. `products.eventType` is not part of this gate. It stays, per rule 11. At least 14 days have passed since B, per rule 12.
+Gate before C: the report shows no row in any table holding `eventType` or `requestedEventType`, and no row without a product reference where one is required.
 
 ### C. Remove the old fields
 
-- Schema: remove `eventType` from pending applications, applications, offers and `eventPlanning`, and `requestedEventType` from planning answers. Make `productId` required on applications and offers.
-- Delete the four label and cap tables, `planningCapacityLimit`, the `productOf` fallback, `eventTypePrices`, the old submit argument and the `eventType` argument to the seed helper. Nothing reads `products.eventType` after this.
-- Deploy the function that clears `products.eventType`, and run it once C is live.
+- Schema: remove `eventType` from pending applications, applications, offers, `eventPlanning` and products, the index `by_eventType_and_active`, and `requestedEventType` from planning answers. Make `productId` required on applications and offers.
+- Delete the enum, the four label and cap tables, `planningCapacityLimit` and the `eventType` argument to the seed helper.
 - `products/migrations.ts` guesses a product for old events from `STUDENT_CAP.standard_presentation`. That backfill has run. Decide when writing C whether to retire the file or keep it with the number as a local constant.
-
-Gate before D: no product holds `eventType`.
-
-### D. Remove the type from products
-
-- Schema: remove `products.eventType` and the index `by_eventType_and_active`.
-- Delete `EVENT_TYPES`, `EventType` and the validators built from them.
-
-D is a separate deploy because of rule 2: C clears the field, so the same deploy cannot also remove it from the schema.
 
 ## How the work is done
 
@@ -173,8 +159,7 @@ Migration and compatibility tests come first. They cover the cases where data ca
 
 - Backfill: maps the three applied types. Leaves a row with `productId` untouched. Takes the event's product when the event has a real copy. Reports a conflict between the event's product and the type. Reports an archived product, a type with two active products, and a type with none. Covers nested answers in planning submissions.
 - `productOf`: returns the referenced product, falls back for a row without `productId`, returns nothing when neither exists.
-- Old client: submit with only `eventType` still works after B, and after the legacy fields on applications are cleared. `eventTypePrices` still answers with prices. Responses still carry `eventType`. A product without a legacy `eventType` cannot be applied for through B.
-- Pending application confirmed after B with only `form.eventType`: is received and gets a `productId`.
+- Pending application stored before A and confirmed after B: the backfill has given it a `productId`, and it is received with that product.
 - Saved browser draft with `eventType`: converts, or clears that one answer.
 - Invoicing: an event with a product copy invoices at the copied price after the product's price is edited. A reopened invoice is recomputed the same way as today.
 - Planning: changing the agreed product invalidates the invitation. A requested product does not change the agreed one. A guessed product is not treated as agreed.
@@ -200,7 +185,6 @@ Risk, highest first:
 | Risk | Impact | Likelihood | Handling |
 |---|---|---|---|
 | The application form rejects valid applications or accepts oversized ones | High | Medium | Server validates against the loaded product. Tests for cap, no cap, inactive product. Design mock for the loading state. |
-| Open tabs and the old frontend call the new backend | High | Certain for a few minutes per deploy | Rule 7. Old arguments and endpoints stay one pull request longer. |
 | The backfill gives an application the wrong product | High | Unknown | Rule 5 and rule 6. Prefer the sold product, report conflicts, resolve by hand. |
 | Clearing a legacy field before every row is resolved | High | Low | Gates before B and C are checked against the production report. |
 | Invoicing changes for an event already sold | High | Low | The event's product copy is not touched. Only the no-copy fallback changes. |
@@ -208,7 +192,7 @@ Risk, highest first:
 
 Not known: how many rows each production table holds, whether live products have a type set, and whether two active products share a type. There is no read access to production from the development machine. The report in A answers all three before anything is switched.
 
-Timing: the application window is open until about January, so B, C and D ship after it closes. A ships now. It touches the submit and confirm steps only by writing one more optional field, and it is covered by the existing submit tests plus the new ones. Before B is scheduled, check that no invoicing run falls in the same days.
+Timing: the application window is open until about January, so B and C ship after it closes. A ships now. It touches the submit and confirm steps only by writing one more optional field, and it is covered by the existing submit tests plus the new ones. Before B is scheduled, check that no invoicing run falls in the same days.
 
 ## Open decisions
 
@@ -221,14 +205,14 @@ Timing: the application window is open until about January, so B, C and D ship a
 - The storage list missed planning submissions, which hold `requestedEventType` in `answers` and `draft`.
 - Revision 1 said invoices store their line text at creation. They store it when marked sent and drop it when reopened.
 - Revision 1 had B stop writing `eventType` while three tables still required it, and had C clear the fields and remove them from the schema in one deploy. Both would have failed. The sequence is now: add, switch and make optional, clear, remove.
-- Revision 1 protected stored rows but not old browser code. Rules 7 to 9 are new.
+- Revision 1 did not cover a saved browser draft or a pending application confirmed later. Rules 7 and 8 are new.
 - Revision 1 let unmappable rows stay unmapped. Rule 6 is new.
 - Revision 1 mapped every row from its type to today's active product. Rule 5 is new.
 - Revision 1 removed the name from the event copy. The copy now stays unchanged.
 - The eligibility of the social product, the saved browser draft, the 1 to 1000 limit and the planning hint text are new.
 - The test count was 40 lines. It is 35.
 
-A second review, by CodeRabbit on the pull request, added rules 10 to 12 and split the removal of `products.eventType` into pull request D.
+A second review, by CodeRabbit on the pull request, asked for compatibility with old open tabs. Revision 4 added it. Revision 5 removes it again on Victor's decision that old tabs are not an issue.
 
 Not checked by the review or by the author: production rows, a real migration run, browser behaviour.
 
