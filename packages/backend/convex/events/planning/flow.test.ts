@@ -4,9 +4,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	asUser,
 	grantRole,
+	insertApplication,
 	insertEvent,
+	insertEventProduct,
 	insertFoodItem,
 	insertOrganizer,
+	insertSemester,
 	insertUser,
 	present,
 	setup,
@@ -170,6 +173,108 @@ describe("company event planning", () => {
 		).toBe(40);
 		const event = await f.t.run((ctx) => ctx.db.get(f.eventId));
 		expect(event?.participationLimit).toBe(before?.participationLimit);
+	});
+
+	it("stores the product of the requested type with the company's answers", async () => {
+		const f = await invited();
+		const largeId = await insertEventProduct(f.t, "large_presentation");
+		await f.t.mutation(api.events.planning.public.submit, {
+			token: f.token,
+			submissionId: crypto.randomUUID(),
+			revision: f.form.revision,
+			answers: {
+				...f.form.answers,
+				requestedEventType: "large_presentation" as const,
+				requestedProductId: await insertEventProduct(f.t, "workshop"),
+			},
+		});
+		const submission = await f.t.run((ctx) => ctx.db.query("eventPlanningSubmissions").first());
+		expect(submission?.answers.requestedProductId).toBe(largeId);
+		expect(submission?.draft.requestedProductId).toBe(largeId);
+		const planning = await f.t.run((ctx) => ctx.db.query("eventPlanning").first());
+		expect(planning?.eventType).toBe("standard_presentation");
+		expect(planning?.productId).toBeUndefined();
+	});
+
+	it("moves the agreed product when the agreed type changes, and keeps it otherwise", async () => {
+		const f = await invited();
+		const planning = () => f.t.run((ctx) => ctx.db.query("eventPlanning").first());
+		const save = async (eventType: "standard_presentation" | "large_presentation" | undefined) =>
+			f.editor.mutation(api.events.planning.admin.savePreparation, {
+				eventId: f.eventId,
+				...f.preparation,
+				answers: { ...f.preparation.answers, requestedProductId: workshopId },
+				eventType,
+				productId: workshopId,
+				revision: present(await planning()).revision,
+			});
+		const workshopId = await insertEventProduct(f.t, "workshop");
+		await save("standard_presentation");
+		expect(await planning()).toMatchObject({ status: "invited" });
+		expect((await planning())?.productId).toBeUndefined();
+		expect((await planning())?.answers.requestedProductId).toBeUndefined();
+
+		const largeId = await insertEventProduct(f.t, "large_presentation");
+		await save("large_presentation");
+		expect(await planning()).toMatchObject({ status: "preparing", productId: largeId });
+		expect((await planning())?.tokenHash).toBeUndefined();
+
+		await f.t.run((ctx) => ctx.db.patch(largeId, { active: false }));
+		const newLargeId = await insertEventProduct(f.t, "large_presentation", "Ny stor");
+		await save("large_presentation");
+		expect((await planning())?.productId).toBe(largeId);
+
+		await save(undefined);
+		expect((await planning())?.productId).toBeUndefined();
+		expect((await planning())?.eventType).toBeUndefined();
+		await save("large_presentation");
+		expect((await planning())?.productId).toBe(newLargeId);
+		await save("standard_presentation");
+		expect((await planning())?.productId).toBeUndefined();
+	});
+
+	it("starts planning from the order's product, or the event's own when there is no order", async () => {
+		const { t, companyId } = await setup();
+		const lead = await insertUser(t, "lead@ifinavet.no");
+		await grantRole(t, lead._id, "internal");
+		const editor = asUser(t, lead);
+		const archivedId = await insertEventProduct(t, "standard_presentation", "Utgått ordinær");
+		await t.run((ctx) => ctx.db.patch(archivedId, { active: false }));
+		const workshopId = await insertEventProduct(t, "workshop");
+		const standardId = await insertEventProduct(t, "standard_presentation");
+		const started = async (
+			event: Parameters<typeof insertEvent>[2],
+			order?: { productId?: typeof archivedId },
+		) => {
+			const eventId = await insertEvent(t, companyId, {
+				eventStart: START,
+				published: false,
+				...event,
+			});
+			await insertOrganizer(t, eventId, lead._id);
+			if (order) await insertApplication(t, await insertSemester(t), { eventId, ...order });
+			const { initial } = await editor.query(api.events.planning.admin.get, { eventId });
+			await editor.mutation(api.events.planning.admin.savePreparation, {
+				eventId,
+				revision: 0,
+				...initial,
+				contactName: "Bedrift",
+				contactEmail: "contact@example.com",
+			});
+			return t.run((ctx) =>
+				ctx.db
+					.query("eventPlanning")
+					.withIndex("by_eventId", (q) => q.eq("eventId", eventId))
+					.unique(),
+			);
+		};
+		const product = { productId: workshopId, name: "Workshop", unitPriceOre: 1, vatRate: 25 };
+
+		expect((await started({}, { productId: archivedId }))?.productId).toBe(archivedId);
+		expect((await started({ product }, { productId: archivedId }))?.productId).toBe(archivedId);
+		expect((await started({}, {}))?.productId).toBe(standardId);
+		expect((await started({ product }))?.productId).toBe(workshopId);
+		expect((await started({ product, productGuessed: true }))?.productId).toBeUndefined();
 	});
 
 	it("prepares orderless events five weeks before and queues each Slack notice only once, without emailing", async () => {

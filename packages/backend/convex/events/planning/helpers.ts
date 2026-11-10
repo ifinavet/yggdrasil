@@ -20,6 +20,7 @@ import { sanitizeRichText } from "../../jobListingOrders/sanitize";
 import { validEmailToken } from "../../lib/emailConfirmation";
 import { hashLinkToken } from "../../lib/tokens";
 import { trackedEmail } from "../../lib/trackedEmail";
+import { productForType, productOf } from "../../products/helpers";
 import { getOrganizerEmails, getOrganizers } from "../queries";
 
 export const eventArgsError = "Arrangementet er avsluttet eller utilgjengelig.";
@@ -111,6 +112,7 @@ export async function initialPlanning(ctx: QueryCtx, event: Doc<"events">) {
 		event.foodItem ? ctx.db.get(event.foodItem) : null,
 	]);
 	const product = event.product ? await ctx.db.get(event.product.productId) : null;
+	const ownProduct = event.productGuessed || !product?.eventType ? null : product;
 	const known = (value: string) => (value === "Mer info kommer" ? "" : value);
 	let venue: PlanningAnswers["venue"] = "unsure";
 	if (order?.wantsToUseEscape === "yes") venue = "escape";
@@ -141,7 +143,8 @@ export async function initialPlanning(ctx: QueryCtx, event: Doc<"events">) {
 		contactName: order?.contact.name ?? "",
 		contactEmail: order?.contact.email ?? "",
 		signature: sender.signature,
-		eventType: order?.eventType ?? (event.productGuessed ? undefined : product?.eventType),
+		eventType: order?.eventType ?? ownProduct?.eventType,
+		productId: (order ? await productOf(ctx, order) : ownProduct)?._id,
 	};
 }
 export async function ensurePlanning(ctx: MutationCtx, event: Doc<"events">) {
@@ -189,6 +192,9 @@ export async function parseAnswers(
 	}
 	return {
 		...parsed.data,
+		requestedProductId:
+			parsed.data.requestedEventType &&
+			(await productForType(ctx, parsed.data.requestedEventType))?._id,
 		ageRestriction: AGE_BY_ALCOHOL[parsed.data.alcohol],
 		description: sanitizeRichText(parsed.data.description),
 	};
