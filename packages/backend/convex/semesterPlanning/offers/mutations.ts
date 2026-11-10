@@ -3,7 +3,7 @@ import { ConvexError, v } from "convex/values";
 import { internal } from "../../_generated/api";
 import { mutation } from "../../_generated/server";
 import { generateLinkToken } from "../../lib/tokens";
-import { applicationProduct, orFirstActive } from "../../products/references";
+import { applicationProduct, known } from "../../products/references";
 import { requireEditorActor, transitionApplicationStatus } from "../applicationLifecycle";
 import { requireApplication } from "../applications/helper";
 import { rateLimiter } from "../rateLimits";
@@ -45,11 +45,7 @@ export const sendOffer = mutation({
 		if (latest?.status === "pending") return { offerId: latest._id, linkToken: latest.linkToken };
 
 		const linkToken = generateLinkToken();
-		const product = await orFirstActive(
-			ctx,
-			await applicationProduct(ctx, application),
-			application.eventType,
-		);
+		const product = known(await applicationProduct(ctx, application));
 		const offerId = await ctx.db.insert("companyApplicationOffers", {
 			applicationId,
 			date: application.assignedDate,

@@ -107,6 +107,14 @@ describe("send", () => {
 		expect((await offersOf(t, applicationId))[0]?.productId).toBe(taggedId);
 	});
 
+	it("leaves the offer without a product when several active products have the type", async () => {
+		const { t, applicationId, editor } = await offerSetup();
+		await insertEventProduct(t, "standard_presentation");
+		await insertEventProduct(t, "standard_presentation", "Ordinær nummer to");
+		await editor.mutation(offers.mutations.sendOffer, { applicationId });
+		expect((await offersOf(t, applicationId))[0]?.productId).toBeUndefined();
+	});
+
 	it("carries the application's own product, also when it is archived", async () => {
 		const { t, editor, semesterId } = await offerSetup();
 		const archivedId = await insertEventProduct(t, "standard_presentation", "Utgått ordinær");

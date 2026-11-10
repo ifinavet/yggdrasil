@@ -13,7 +13,44 @@ import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { BACKFILL } from "./references";
 
-const report = internal.products.references.report;
+const TABLES = [
+	"companyApplications",
+	"pendingCompanyApplications",
+	"companyApplicationOffers",
+	"eventPlanning",
+	"eventPlanningSubmissions",
+] as const;
+
+async function tableReport(t: TestBackend, table: (typeof TABLES)[number]) {
+	const result = { rows: 0, missing: [] as { id: string; reason: string }[] };
+	let cursor: string | null = null;
+	for (;;) {
+		const page: {
+			rows: number;
+			missing: { id: string; reason: string }[];
+			isDone: boolean;
+			continueCursor: string;
+		} = await t.query(internal.products.references.report, { table, cursor, numItems: 2 });
+		result.rows += page.rows;
+		result.missing.push(...page.missing);
+		if (page.isDone) return result;
+		cursor = page.continueCursor;
+	}
+}
+
+async function report(t: TestBackend) {
+	const tables = await Promise.all(TABLES.map((table) => tableReport(t, table)));
+	return {
+		typesWithoutOneActiveProduct: await t.query(
+			internal.products.references.typesWithoutOneActiveProduct,
+			{},
+		),
+		tables: Object.fromEntries(TABLES.map((table, index) => [table, tables[index]])) as Record<
+			(typeof TABLES)[number],
+			Awaited<ReturnType<typeof tableReport>>
+		>,
+	};
+}
 
 const ANSWERS: Doc<"eventPlanning">["answers"] = {
 	title: "Bli kjent med oss",
@@ -208,7 +245,7 @@ describe("backfill of product references", () => {
 			expect((await applicationById(t, id)).productId).toBeUndefined();
 		expect((await applicationById(t, fine)).productId).toBe(workshopId);
 
-		const result = await t.query(report, {});
+		const result = await report(t);
 		expect(result.typesWithoutOneActiveProduct).toEqual([
 			{ eventType: "standard_presentation", activeProducts: 0 },
 			{ eventType: "large_presentation", activeProducts: 2 },
@@ -216,16 +253,11 @@ describe("backfill of product references", () => {
 		]);
 		expect(result.tables.companyApplications).toEqual({
 			rows: 4,
-			complete: true,
 			missing: [
 				{ id: conflicting, reason: "the event is tagged with a product of another type" },
 				{ id: twoProducts, reason: "several active products have this type" },
 				{ id: archivedOnly, reason: "no active product has this type" },
 			],
-		});
-		expect((await t.query(report, { limit: 3 })).tables.companyApplications).toMatchObject({
-			rows: 3,
-			complete: false,
 		});
 	});
 
@@ -277,9 +309,9 @@ describe("backfill of product references", () => {
 		expect((await get(otherOrderType))?.productId).toBe(taggedId);
 		expect((await get(guessed))?.productId).toBe(standardId);
 		expect((await get(untyped))?.productId).toBeUndefined();
-		const { tables } = await t.query(report, {});
-		expect(tables.eventPlanning).toEqual({ rows: 5, complete: true, missing: [] });
-		expect(tables.companyApplicationOffers).toEqual({ rows: 4, complete: true, missing: [] });
+		const { tables } = await report(t);
+		expect(tables.eventPlanning).toEqual({ rows: 5, missing: [] });
+		expect(tables.companyApplicationOffers).toEqual({ rows: 4, missing: [] });
 	});
 
 	it("fills the pending form and each copy of a company's planning answers on its own", async () => {
@@ -316,15 +348,13 @@ describe("backfill of product references", () => {
 			draft: ANSWERS,
 		});
 
-		const { tables } = await t.query(report, {});
+		const { tables } = await report(t);
 		expect(tables.pendingCompanyApplications).toEqual({
 			rows: 3,
-			complete: true,
 			missing: [{ id: socialPending, reason: "no active product has this type" }],
 		});
 		expect(tables.eventPlanningSubmissions).toEqual({
 			rows: 3,
-			complete: true,
 			missing: [
 				{ id: socialSubmission, reason: "requested type: no active product has this type" },
 				{
@@ -349,7 +379,7 @@ describe("backfill of product references", () => {
 
 		await backfill(t);
 
-		const { tables } = await t.query(report, {});
+		const { tables } = await report(t);
 		expect(tables.companyApplications.missing.map((row) => row.id)).toEqual([social]);
 		expect(tables.companyApplicationOffers.missing.map((row) => row.id)).toEqual([socialOffer]);
 		expect(tables.eventPlanning.missing).toEqual([
@@ -368,7 +398,7 @@ describe("backfill of product references", () => {
 		await insertEventProduct(t, "standard_presentation");
 		const applicationId = await insertApplication(t, semesterId);
 
-		expect((await t.query(report, {})).tables.companyApplications.missing).toEqual([
+		expect((await report(t)).tables.companyApplications.missing).toEqual([
 			{ id: applicationId, reason: "not filled in yet" },
 		]);
 	});

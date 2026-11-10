@@ -20,8 +20,7 @@ import { sanitizeRichText } from "../../jobListingOrders/sanitize";
 import { validEmailToken } from "../../lib/emailConfirmation";
 import { hashLinkToken } from "../../lib/tokens";
 import { trackedEmail } from "../../lib/trackedEmail";
-import { productForType } from "../../products/helpers";
-import { orFirstActive, planningProduct } from "../../products/references";
+import { known, onlyActiveProduct, planningProduct } from "../../products/references";
 import { getOrganizerEmails, getOrganizers } from "../queries";
 
 export const eventArgsError = "Arrangementet er avsluttet eller utilgjengelig.";
@@ -155,7 +154,7 @@ export async function agreedProduct(
 	eventType: Doc<"eventPlanning">["eventType"],
 ) {
 	if (!eventType) return null;
-	return await orFirstActive(ctx, await planningProduct(ctx, eventId, eventType), eventType);
+	return known(await planningProduct(ctx, eventId, eventType));
 }
 export async function ensurePlanning(ctx: MutationCtx, event: Doc<"events">) {
 	const existing = await planningForEvent(ctx, event._id);
@@ -204,7 +203,7 @@ export async function parseAnswers(
 		...parsed.data,
 		requestedProductId:
 			parsed.data.requestedEventType &&
-			(await productForType(ctx, parsed.data.requestedEventType))?._id,
+			known(await onlyActiveProduct(ctx, parsed.data.requestedEventType))?._id,
 		ageRestriction: AGE_BY_ALCOHOL[parsed.data.alcohol],
 		description: sanitizeRichText(parsed.data.description),
 	};
