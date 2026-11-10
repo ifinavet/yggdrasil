@@ -29,11 +29,10 @@ export function ProductsTable() {
 	const reorder = useMutation(api.products.mutations.reorder);
 	const setup = useMutation(api.products.mutations.setup);
 	const [reordering, setReordering] = useState(false);
-	const isEmpty = products?.length === 0;
 
 	useEffect(() => {
-		if (isEmpty) void setup({});
-	}, [isEmpty, setup]);
+		void setup({});
+	}, [setup]);
 
 	if (!products) return null;
 
