@@ -4,11 +4,9 @@ import { INFO_EMAIL } from "@workspace/shared/constants/contact";
 import {
 	AGE_BY_ALCOHOL,
 	type PlanningAnswers,
-	planningCapacityLimit,
 	planningFormSchema,
 	validContactEmail,
 } from "@workspace/shared/events/planning";
-import { EVENT_TYPE_LABELS } from "@workspace/shared/semester/labels";
 import { formatOsloDate, osloDateTimeToEpoch, osloToday } from "@workspace/shared/time";
 import { ConvexError } from "convex/values";
 import type { Doc, Id } from "../../_generated/dataModel";
@@ -20,6 +18,7 @@ import { sanitizeRichText } from "../../jobListingOrders/sanitize";
 import { validEmailToken } from "../../lib/emailConfirmation";
 import { hashLinkToken } from "../../lib/tokens";
 import { trackedEmail } from "../../lib/trackedEmail";
+import { productOf } from "../../products/helpers";
 import { getOrganizerEmails, getOrganizers } from "../queries";
 
 export const eventArgsError = "Arrangementet er avsluttet eller utilgjengelig.";
@@ -110,7 +109,10 @@ export async function initialPlanning(ctx: QueryCtx, event: Doc<"events">) {
 		senderFor(ctx, event._id),
 		event.foodItem ? ctx.db.get(event.foodItem) : null,
 	]);
-	const product = event.product ? await ctx.db.get(event.product.productId) : null;
+	const own =
+		event.product && !event.productGuessed ? await ctx.db.get(event.product.productId) : null;
+	const ownEvent = own?.category === "event" ? own : null;
+	const product = order ? await productOf(ctx, order) : ownEvent;
 	const known = (value: string) => (value === "Mer info kommer" ? "" : value);
 	let venue: PlanningAnswers["venue"] = "unsure";
 	if (order?.wantsToUseEscape === "yes") venue = "escape";
@@ -118,7 +120,7 @@ export async function initialPlanning(ctx: QueryCtx, event: Doc<"events">) {
 	else if (order?.venue === "own_premises") venue = "own";
 	let foodAndDrinks: PlanningAnswers["foodAndDrinks"] = "unsure";
 	if (order) foodAndDrinks = order.foodAndDrinks ? "yes" : "no";
-	const answers: PlanningAnswers = {
+	const answers: Omit<PlanningAnswers, "requestedProductId"> = {
 		title: known(event.title),
 		teaser: known(event.teaser),
 		description: known(event.description) || order?.description || "",
@@ -141,7 +143,7 @@ export async function initialPlanning(ctx: QueryCtx, event: Doc<"events">) {
 		contactName: order?.contact.name ?? "",
 		contactEmail: order?.contact.email ?? "",
 		signature: sender.signature,
-		eventType: order?.eventType ?? (event.productGuessed ? undefined : product?.eventType),
+		productId: product?._id,
 	};
 }
 export async function ensurePlanning(ctx: MutationCtx, event: Doc<"events">) {
@@ -162,24 +164,27 @@ export async function ensurePlanning(ctx: MutationCtx, event: Doc<"events">) {
 }
 export async function capacityLimit(
 	ctx: QueryCtx,
-	planning: Pick<Doc<"eventPlanning">, "eventType">,
-	event: Doc<"events">,
+	planning: Pick<Doc<"eventPlanning">, "productId" | "eventType">,
 ) {
-	if (!planning.eventType) return 1000;
-	const product =
-		event.product && !event.productGuessed ? await ctx.db.get(event.product.productId) : null;
-	return Math.min(
-		planningCapacityLimit(planning.eventType),
-		product?.eventType === planning.eventType ? (product.maxStudents ?? 1000) : 1000,
-	);
+	return (await productOf(ctx, planning))?.maxStudents ?? 1000;
+}
+type Answers = Doc<"eventPlanning">["answers"];
+export async function withRequestedProduct(ctx: QueryCtx, answers: Answers): Promise<Answers> {
+	const { requestedEventType, ...rest } = answers;
+	const product = await productOf(ctx, {
+		productId: answers.requestedProductId,
+		eventType: requestedEventType,
+	});
+	return product ? { ...rest, requestedProductId: product._id } : answers;
 }
 export async function parseAnswers(
 	ctx: QueryCtx,
-	planning: Pick<Doc<"eventPlanning">, "eventType">,
+	planning: Pick<Doc<"eventPlanning">, "productId" | "eventType">,
 	event: Doc<"events">,
-	input: PlanningAnswers,
+	input: Answers,
 ) {
-	const parsed = planningFormSchema(await capacityLimit(ctx, planning, event)).safeParse(input);
+	const answers = await withRequestedProduct(ctx, input);
+	const parsed = planningFormSchema(await capacityLimit(ctx, planning)).safeParse(answers);
 	if (!parsed.success)
 		throw new ConvexError(parsed.error.issues[0]?.message ?? "Kontroller opplysningene.");
 	try {
@@ -189,6 +194,8 @@ export async function parseAnswers(
 	}
 	return {
 		...parsed.data,
+		requestedProductId: parsed.data.requestedProductId as Id<"products"> | undefined,
+		requestedEventType: answers.requestedEventType,
 		ageRestriction: AGE_BY_ALCOHOL[parsed.data.alcohol],
 		description: sanitizeRichText(parsed.data.description),
 	};
@@ -217,7 +224,7 @@ export async function invitationPreview(
 			? ["Velg hovedansvarlig og medhjelper med gyldige e-postadresser på arrangementet."]
 			: []),
 		...(!planning.signature.trim() ? ["Fyll inn arrangørens signatur."] : []),
-		...(!planning.eventType ? ["Bekreft avtalt arrangementstype."] : []),
+		...(!planning.productId && !planning.eventType ? ["Bekreft avtalt arrangementstype."] : []),
 		...(planning.companyId !== event.hostingCompany
 			? ["Bedriften er endret. Klargjør opplysningene på nytt."]
 			: []),
@@ -260,13 +267,12 @@ export async function planningByToken(ctx: QueryCtx, token: string) {
 }
 export async function companyView(
 	ctx: QueryCtx,
-	planning: Pick<Doc<"eventPlanning">, "companyId" | "eventType">,
+	planning: Pick<Doc<"eventPlanning">, "companyId" | "productId" | "eventType">,
 ) {
 	const company = await ctx.db.get(planning.companyId);
 	return {
 		companyName: company?.name ?? "",
-		eventType: planning.eventType,
+		productId: (await productOf(ctx, planning))?._id,
 		logoUrl: company ? await findCompanyLogoUrl(ctx, company._id) : null,
-		packageName: planning.eventType ? EVENT_TYPE_LABELS[planning.eventType] : "Bedriftsarrangement",
 	};
 }

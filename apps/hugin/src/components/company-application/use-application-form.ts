@@ -3,6 +3,7 @@ import type { ApplicationForm } from "@workspace/shared/semester/application";
 import {
 	type ApplicationDraft,
 	applicationSubmissionSchema,
+	type OfferedProduct,
 	validateApplicationDraft,
 } from "@/lib/company-application";
 
@@ -13,17 +14,19 @@ import {
  */
 export function useApplicationForm({
 	defaultValues,
+	products,
 	onSubmit,
 	onSubmitInvalid,
 }: {
 	defaultValues: ApplicationDraft;
+	products?: readonly OfferedProduct[];
 	onSubmit: (application: ApplicationForm, draft: ApplicationDraft) => Promise<void>;
 	onSubmitInvalid: (draft: ApplicationDraft) => void;
 }) {
 	return useForm({
 		defaultValues,
 		validationLogic: revalidateLogic({ mode: "submit", modeAfterSubmission: "change" }),
-		validators: { onDynamic: validateApplicationDraft },
+		validators: { onDynamic: (draft) => validateApplicationDraft(draft, products) },
 		onSubmit: ({ value }) => onSubmit(applicationSubmissionSchema.parse(value), value),
 		onSubmitInvalid: ({ value }) => onSubmitInvalid(value),
 	});

@@ -1,8 +1,8 @@
-import { EVENT_TYPE_SHORT_LABELS } from "@workspace/shared/semester/labels";
 import { formatOrgNumber } from "@workspace/shared/semester/orgNumber";
 import { CompanyLogo } from "@workspace/ui/components/company-logo";
 import { cn } from "@workspace/ui/lib/utils";
 import { Lock } from "lucide-react";
+import { EventTypeName } from "@/components/products/event-type-name";
 import type { PlanDay } from "./plan-days";
 import {
 	CompanyName,
@@ -89,7 +89,7 @@ export function PlanCards({
 								<CompanyName row={row} linkApplication={showContactDetails} stretched />
 							</div>
 							<div className="mt-0.5 text-[12.5px] text-muted-foreground">
-								{EVENT_TYPE_SHORT_LABELS[row.eventType]}
+								<EventTypeName row={row} />
 								{details && ` · ${formatOrgNumber(details.orgNumber)}`}
 							</div>
 							<div className="mt-1.5">

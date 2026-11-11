@@ -2,6 +2,7 @@ import { DEFAULT_VAT_RATE } from "@workspace/shared/products";
 import { osloToday } from "@workspace/shared/time";
 import type { Doc } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
+import { productOf } from "../products/helpers";
 import type { InvoiceDetails } from "./schema";
 
 export type InvoiceResolution =
@@ -51,12 +52,7 @@ export async function resolveInvoice(
 	if (application?.status !== "confirmed" || !event) return { kind: "cancel" };
 	const product = event.product
 		? await ctx.db.get(event.product.productId)
-		: await ctx.db
-				.query("products")
-				.withIndex("by_eventType_and_active", (q) =>
-					q.eq("eventType", application.eventType).eq("active", true),
-				)
-				.first();
+		: await productOf(ctx, application);
 	const unitPrice = event.product?.unitPriceOre ?? product?.unitPriceOre;
 	if (!product || unitPrice === undefined) {
 		return { kind: "fail", error: "Arrangementet mangler et produkt med pris." };

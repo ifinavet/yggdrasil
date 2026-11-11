@@ -2,11 +2,12 @@
 
 import { useStore } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
+import type { Id } from "@workspace/backend/convex/dataModel";
 import { semesterName } from "@workspace/shared/semester/labels";
 import { osloToday, termOfDay } from "@workspace/shared/time";
 import { Note } from "@workspace/ui/components/note";
 import { cn } from "@workspace/ui/lib/utils";
-import { useAction } from "convex/react";
+import { useAction, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { CalendarClock } from "lucide-react";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
@@ -71,8 +72,14 @@ export function ApplicationForm({
 	const running = termOfDay(today);
 	const isRunningSemester = running.year === semester.year && running.term === semester.term;
 
+	const eventProducts = useQuery(api.products.queries.listEvent);
+	const products = useMemo(
+		() => eventProducts?.filter((product) => product.active && product.unitPriceOre !== undefined),
+		[eventProducts],
+	);
 	const form = useApplicationForm({
 		defaultValues: initial.values,
+		products,
 		onSubmit: async (application, draft) => {
 			const fail = (message: string) => {
 				setSubmitError(message);
@@ -85,7 +92,7 @@ export function ApplicationForm({
 			try {
 				await submit({
 					semesterId: semester._id,
-					form: application,
+					form: { ...application, productId: application.productId as Id<"products"> },
 					submissionId: initial.submissionId,
 					website: honeypot.current?.value || undefined,
 				});
@@ -99,7 +106,7 @@ export function ApplicationForm({
 		},
 		onSubmitInvalid: (draft) => {
 			setSubmitError(null);
-			const first = firstInvalidQuestion(draftErrors(draft));
+			const first = firstInvalidQuestion(draftErrors(draft, products));
 			if (first) focusQuestion(formElement.current, first);
 		},
 	});
@@ -108,7 +115,7 @@ export function ApplicationForm({
 	const isSubmitting = useStore(form.store, (state) => state.isSubmitting);
 	const attempted = useStore(form.store, (state) => state.submissionAttempts > 0);
 
-	const answered = useMemo(() => answeredCount(draftErrors(values)), [values]);
+	const answered = useMemo(() => answeredCount(draftErrors(values, products)), [values, products]);
 	const missing = REQUIRED_QUESTIONS.length - answered;
 	const showMissing = attempted && missing > 0;
 
@@ -181,7 +188,7 @@ export function ApplicationForm({
 					</div>
 
 					<CompanyQuestions form={form} />
-					<EventQuestions form={form} />
+					<EventQuestions form={form} products={products ?? []} />
 					<DateQuestions form={form} dates={semester.dates} />
 					<PracticalQuestions form={form} />
 					<BillingQuestions form={form} termsUrl={semester.termsUrl} />

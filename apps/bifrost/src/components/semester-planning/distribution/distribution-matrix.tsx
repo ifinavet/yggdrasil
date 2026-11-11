@@ -1,13 +1,14 @@
 "use client";
 
 import type { Doc, Id } from "@workspace/backend/convex/dataModel";
-import { closedDateLabel, EVENT_TYPE_SHORT_LABELS } from "@workspace/shared/semester/labels";
+import { closedDateLabel } from "@workspace/shared/semester/labels";
 import { formatSemesterDay } from "@workspace/shared/time";
 import { capitalize } from "@workspace/shared/utils";
 import { cn } from "@workspace/ui/lib/utils";
 import { MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { type CSSProperties, memo, useMemo, useState } from "react";
+import { EventTypeName } from "@/components/products/event-type-name";
 import { RemoveApplicationButton } from "../application/remove-application-button";
 import { dayOfMonth, monthLabel, shortDayTitle, studentRange } from "../format";
 import { isActiveStatus } from "../status";
@@ -238,7 +239,7 @@ const MatrixRow = memo(function MatrixRow({
 							{application.registry.name}
 						</Link>
 						<div className="mt-0.5 truncate text-[12px] text-muted-foreground tabular-nums">
-							{EVENT_TYPE_SHORT_LABELS[application.eventType]} ·{" "}
+							<EventTypeName row={application} /> ·{" "}
 							{studentRange(application.minStudents, application.maxStudents)}
 							{industry && ` · ${industry}`}
 						</div>

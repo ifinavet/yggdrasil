@@ -83,13 +83,14 @@ describe("applicationSheetRow", () => {
 		const application = await t.run((ctx) => ctx.db.get(applicationId));
 		if (!application) throw new Error("Expected the application.");
 
-		const row = applicationSheetRow(application);
+		const row = applicationSheetRow(application, "Ordinær bedpres");
 
 		expect(row).toHaveLength(SHEET_HEADER.length);
 		expect(
 			Object.fromEntries(SHEET_HEADER.map((label, index) => [label, row[index]])),
 		).toMatchObject({
 			Bedrift: "FJORDKODE AS",
+			Type: "Ordinær bedpres",
 			"Org.nr.": "924773189",
 			"E-post": "ingrid@fjordkode.no",
 			Studenter: "30",
@@ -109,7 +110,7 @@ describe("applicationSheetRow", () => {
 		const application = await t.run((ctx) => ctx.db.get(applicationId));
 		if (!application) throw new Error("Expected the application.");
 
-		const row = applicationSheetRow(application);
+		const row = applicationSheetRow(application, "Ordinær bedpres");
 
 		expect(row[SHEET_HEADER.indexOf("Studenter")]).toBe("25–40");
 		expect(row[SHEET_HEADER.indexOf("Mat og drikke")]).toBe("Ja");

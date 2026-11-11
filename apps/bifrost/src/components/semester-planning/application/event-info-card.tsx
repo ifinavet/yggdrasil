@@ -1,11 +1,11 @@
 import {
 	ESCAPE_LABELS,
-	EVENT_TYPE_LABELS,
 	FOOD_PURCHASER_LABELS,
 	VENUE_LABELS,
 } from "@workspace/shared/semester/labels";
 import { Panel, PanelBody } from "@workspace/ui/components/products/panel";
 import type { ReactNode } from "react";
+import { EventTypeName } from "@/components/products/event-type-name";
 import { studentRange } from "../format";
 import { EditEventInfo } from "./edit-details";
 import type { Application } from "./model";
@@ -19,7 +19,7 @@ export function EventInfoCard({ application }: Readonly<{ application: Applicati
 	const audience = [...application.targetDegrees, ...application.targetStudyPrograms];
 
 	const items: [string, ReactNode][] = [
-		["Type", EVENT_TYPE_LABELS[application.eventType]],
+		["Type", <EventTypeName key="type" row={application} />],
 		["Studenter", studentRange(application.minStudents, application.maxStudents)],
 		["Sted", VENUE_LABELS[application.venue]],
 		["Escape", ESCAPE_LABELS[application.wantsToUseEscape]],

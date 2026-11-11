@@ -6,7 +6,7 @@ import {
 	type PlanningAnswers,
 	VENUE_CHOICES,
 } from "@workspace/shared/events/planning";
-import { EVENT_TYPE_LABELS, FOOD_PURCHASER_LABELS } from "@workspace/shared/semester/labels";
+import { FOOD_PURCHASER_LABELS } from "@workspace/shared/semester/labels";
 import { SYSTEM_ALERTS_CHANNEL } from "@workspace/shared/slack/channels";
 import type { Doc, Id } from "../../_generated/dataModel";
 import type { MutationCtx } from "../../_generated/server";
@@ -52,7 +52,11 @@ export async function notifyInvitationSent(
 	);
 }
 
-export function planningResponseSummary(companyName: string, answers: PlanningAnswers) {
+export function planningResponseSummary(
+	companyName: string,
+	answers: PlanningAnswers,
+	requestedTypeName?: string,
+) {
 	const short = (value: string) => {
 		const text = value.replace(/\s+/g, " ").trim();
 		return escapeSlack(text.length > 180 ? `${text.slice(0, 180)}…` : text || "Ikke oppgitt");
@@ -72,8 +76,7 @@ export function planningResponseSummary(companyName: string, answers: PlanningAn
 		`Stand: ${ANSWER_CHOICES[answers.stand]}`,
 		`Språk: ${short(answers.language)}`,
 	];
-	if (answers.requestedEventType)
-		lines.push(`Ønsket arrangementstype: ${EVENT_TYPE_LABELS[answers.requestedEventType]}`);
+	if (requestedTypeName) lines.push(`Ønsket arrangementstype: ${short(requestedTypeName)}`);
 	if (answers.foodAndDrinks === "yes") {
 		lines.push(
 			`Servering: ${short(answers.food)}`,

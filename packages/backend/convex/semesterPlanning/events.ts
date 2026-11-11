@@ -9,6 +9,7 @@ import { internalRoles, userHasRole } from "../auth/accessRights";
 import { insertEventWithOrganizers, setEventOrganizers } from "../events/helper";
 import { syncFeedbackCampaign } from "../feedback/delivery/campaigns";
 import { cancelInvoice, scheduleInvoice } from "../invoicing/schedule";
+import { productOf } from "../products/helpers";
 import { snapshotOf } from "../products/sales";
 import { type Actor, logApplicationActivity, requireAssignableDate } from "./applicationLifecycle";
 import {
@@ -133,12 +134,7 @@ export async function ensureDraftEvent(
 	const helperUserIds = application.helperUserIds ?? [];
 	await requireValidHelpers(ctx, helperUserIds);
 
-	const product = await ctx.db
-		.query("products")
-		.withIndex("by_eventType_and_active", (q) =>
-			q.eq("eventType", application.eventType).eq("active", true),
-		)
-		.first();
+	const product = await productOf(ctx, application);
 	const eventId = await insertEventWithOrganizers(
 		ctx,
 		{

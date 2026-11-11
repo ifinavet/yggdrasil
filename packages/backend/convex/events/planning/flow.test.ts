@@ -9,6 +9,7 @@ import {
 	insertOrganizer,
 	insertUser,
 	present,
+	productIdOf,
 	setup,
 } from "../../../test/fixtures";
 import { api, internal } from "../../_generated/api";
@@ -36,7 +37,7 @@ async function fixture() {
 		...initial.initial,
 		contactName: "Bedrift",
 		contactEmail: "contact@example.com",
-		eventType: "standard_presentation" as const,
+		productId: await productIdOf(t, "standard_presentation"),
 		answers: {
 			...initial.initial.answers,
 			title: "Bli kjent med oss",
@@ -95,6 +96,32 @@ afterEach(() => {
 });
 
 describe("company event planning", () => {
+	it("shows a request stored as an event type as its product, and keeps it on save", async () => {
+		const f = await invited();
+		const requestedProductId = await productIdOf(f.t, "large_presentation");
+		await f.t.run(async (ctx) => {
+			const planning = present(await ctx.db.query("eventPlanning").first());
+			await ctx.db.patch(planning._id, {
+				answers: { ...planning.answers, requestedEventType: "large_presentation" },
+			});
+		});
+
+		const form = present(await f.t.mutation(api.events.planning.public.get, { token: f.token }));
+		expect(form.answers.requestedProductId).toBe(requestedProductId);
+		expect(form.answers).not.toHaveProperty("requestedEventType");
+		const admin = await f.editor.query(api.events.planning.admin.get, { eventId: f.eventId });
+		expect(admin.initial.answers.requestedProductId).toBe(requestedProductId);
+
+		await f.t.mutation(api.events.planning.public.submit, {
+			token: f.token,
+			submissionId: crypto.randomUUID(),
+			revision: form.revision,
+			answers: form.answers,
+		});
+		const submission = await f.t.run((ctx) => ctx.db.query("eventPlanningSubmissions").first());
+		expect(submission?.answers.requestedProductId).toBe(requestedProductId);
+	});
+
 	it("does not tag organizers in system planning notices", async () => {
 		const f = await fixture();
 		await f.t.run(async (ctx) => {
@@ -144,16 +171,39 @@ describe("company event planning", () => {
 		).rejects.toThrow();
 		expect(await f.t.run((ctx) => ctx.db.query("slackSystemDeliveries").collect())).toHaveLength(1);
 	});
+	it("keeps a request stored as an event type while that type has no product", async () => {
+		const f = await invited();
+		await f.t.run(async (ctx) => {
+			const planning = present(await ctx.db.query("eventPlanning").first());
+			await ctx.db.patch(planning._id, {
+				answers: { ...planning.answers, requestedEventType: "social" },
+			});
+			for (const product of await ctx.db.query("products").collect()) {
+				if (product.eventType === "social") await ctx.db.delete(product._id);
+			}
+		});
+
+		const form = present(await f.t.mutation(api.events.planning.public.get, { token: f.token }));
+		await f.t.mutation(api.events.planning.public.submit, {
+			token: f.token,
+			submissionId: crypto.randomUUID(),
+			revision: form.revision,
+			answers: form.answers,
+		});
+		const submission = await f.t.run((ctx) => ctx.db.query("eventPlanningSubmissions").first());
+		expect(submission?.answers.requestedEventType).toBe("social");
+	});
 	it("keeps a requested package change for review without increasing the agreed capacity", async () => {
 		const f = await invited();
 		const before = await f.t.run((ctx) => ctx.db.get(f.eventId));
+		const requestedProductId = await productIdOf(f.t, "large_presentation");
 		const input = {
 			token: f.token,
 			submissionId: crypto.randomUUID(),
 			revision: f.form.revision,
 			answers: {
 				...f.form.answers,
-				requestedEventType: "large_presentation" as const,
+				requestedProductId,
 				capacity: 80,
 			},
 		};
@@ -163,8 +213,8 @@ describe("company event planning", () => {
 			answers: { ...input.answers, capacity: 40 },
 		});
 		const submission = await f.t.run((ctx) => ctx.db.query("eventPlanningSubmissions").first());
-		expect(submission?.answers.requestedEventType).toBe("large_presentation");
-		expect(submission?.draft.requestedEventType).toBe("large_presentation");
+		expect(submission?.answers.requestedProductId).toBe(requestedProductId);
+		expect(submission?.draft.requestedProductId).toBe(requestedProductId);
 		expect(
 			(await f.t.mutation(api.events.planning.public.get, { token: f.token }))?.capacityLimit,
 		).toBe(40);
@@ -324,24 +374,27 @@ describe("company event planning", () => {
 	});
 	it("summarizes practical answers safely and keeps lengthy answers bounded", async () => {
 		const f = await fixture();
-		const text = planningResponseSummary("Bedrift <@everyone>", {
-			...f.preparation.answers,
-			foodAndDrinks: "yes",
-			food: "Pizza",
-			foodPurchasedBy: "company",
-			stand: "yes",
-			standDetails: "Kaffe kl. 12",
-			requestedEventType: "large_presentation",
-			notes: "a".repeat(2000),
-			description: "<p></p>",
-			language: "",
-		});
+		const text = planningResponseSummary(
+			"Bedrift <@everyone>",
+			{
+				...f.preparation.answers,
+				foodAndDrinks: "yes",
+				food: "Pizza",
+				foodPurchasedBy: "company",
+				stand: "yes",
+				standDetails: "Kaffe kl. 12",
+				notes: "a".repeat(2000),
+				description: "<p></p>",
+				language: "",
+			},
+			"Stor <!channel>",
+		);
 		expect(text).toContain("Bedrift &lt;@everyone&gt; har svart");
 		expect(text).not.toContain("<@everyone>");
 		expect(text).toContain("Servering: Pizza");
 		expect(text).toContain("Hvem ordner serveringen: Bedriften");
 		expect(text).toContain("Ønsker for stand: Kaffe kl. 12");
-		expect(text).toContain("Ønsket arrangementstype:");
+		expect(text).toContain("Ønsket arrangementstype: Stor &lt;!channel&gt;");
 		expect(text).toContain("Beskrivelse: Ikke oppgitt");
 		expect(text).toContain("Språk: Ikke oppgitt");
 		expect(text).not.toContain("a".repeat(181));
@@ -531,6 +584,23 @@ describe("company event planning", () => {
 		expect(
 			await f.t.mutation(api.events.planning.public.confirm, { token: f.confirmationToken }),
 		).toEqual({ state: "expired" });
+	});
+	it("keeps the invitation link when a row stored as an event type is saved with its product", async () => {
+		const f = await invited();
+		await f.t.run(async (ctx) => {
+			const planning = present(await ctx.db.query("eventPlanning").first());
+			await ctx.db.patch(planning._id, {
+				productId: undefined,
+				eventType: "standard_presentation",
+			});
+		});
+		const data = await f.editor.query(api.events.planning.admin.get, { eventId: f.eventId });
+		await f.editor.mutation(api.events.planning.admin.savePreparation, {
+			eventId: f.eventId,
+			revision: present(data.planning).revision,
+			...f.preparation,
+		});
+		expect(await f.t.mutation(api.events.planning.public.get, { token: f.token })).not.toBeNull();
 	});
 	it("expires confirmation links and invalidates old links on recipient correction", async () => {
 		const f = await submitted();

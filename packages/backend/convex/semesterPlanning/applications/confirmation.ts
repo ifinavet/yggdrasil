@@ -2,9 +2,10 @@ import { BIFROST_URL } from "@workspace/shared/constants";
 import {
 	type ApplicationForm,
 	applicationFormSchema,
+	MISSING_PRODUCT,
+	studentCapIssue,
 } from "@workspace/shared/semester/application";
 import { confirmEmailFor } from "@workspace/shared/semester/confirm-email";
-import { EVENT_TITLE_PREFIX } from "@workspace/shared/semester/labels";
 import { formatOrderAlert } from "@workspace/shared/slack/alerts";
 import { SYSTEM_ALERTS_CHANNEL } from "@workspace/shared/slack/channels";
 import { osloToday } from "@workspace/shared/time";
@@ -25,6 +26,7 @@ import {
 	validEmailToken,
 } from "../../lib/emailConfirmation";
 import { hashLinkToken } from "../../lib/tokens";
+import { productOf } from "../../products/helpers";
 import { logApplicationActivity } from "../applicationLifecycle";
 import { CONSENT_VERSION, FORM_VERSION } from "../rules";
 import {
@@ -147,7 +149,19 @@ export const savePending = internalMutation({
 		);
 		if (reason) throw new ConvexError(reason);
 
-		const answers = { semesterId, form: parsed, registry, submittedAt: now };
+		const product = form.productId ? await ctx.db.get(form.productId) : null;
+		if (!product?.active || product.category !== "event" || product.unitPriceOre === undefined) {
+			throw new ConvexError(MISSING_PRODUCT);
+		}
+		const capIssue = studentCapIssue(product, parsed.maxStudents);
+		if (capIssue) throw new ConvexError(capIssue);
+
+		const answers = {
+			semesterId,
+			form: { ...parsed, productId: product._id },
+			registry,
+			submittedAt: now,
+		};
 		let pendingId: Id<"pendingCompanyApplications">;
 		if (already) {
 			if (already.form.contact.email !== parsed.contact.email) {
@@ -217,7 +231,8 @@ async function openLink(ctx: QueryCtx, token: string, now: number) {
 
 const receipt = v.object({
 	company: v.object({ name: v.string(), orgNumber: v.string() }),
-	eventType: presentationEventType,
+	eventType: v.optional(presentationEventType),
+	productId: v.optional(v.id("products")),
 	minStudents: v.number(),
 	maxStudents: v.number(),
 	availableDates: v.array(v.string()),
@@ -241,6 +256,7 @@ async function receiptFor(
 	return {
 		company: { name: pending.registry.name, orgNumber: form.orgNumber },
 		eventType: form.eventType,
+		productId: form.productId,
 		minStudents: form.minStudents,
 		maxStudents: form.maxStudents,
 		availableDates: form.availableDates,
@@ -319,20 +335,16 @@ async function receiveApplication(
 	});
 
 	await logApplicationActivity(ctx, applicationId, "submitted", { type: "company" });
-	const product = await ctx.db
-		.query("products")
-		.withIndex("by_eventType_and_active", (q) =>
-			q.eq("eventType", answers.eventType).eq("active", true),
-		)
-		.first();
+	const product = await productOf(ctx, answers);
+	const productName = product?.name ?? "Bedriftsarrangement";
 	const companyName = pending.registry.name;
 	await ctx.scheduler.runAfter(0, internal.iam.notifications.sendMessage, {
 		channel: SYSTEM_ALERTS_CHANNEL,
 		clientMsgId: `bedpres-order-${applicationId}`,
 		text: formatOrderAlert({
 			company: companyName,
-			type: "Bedriftspresentasjon",
-			title: `${EVENT_TITLE_PREFIX[answers.eventType]} ${companyName}`,
+			type: productName,
+			title: `${productName} med ${companyName}`,
 			additionalNotes: [answers.description.trim(), answers.additionalInfo?.trim()]
 				.filter(Boolean)
 				.join("\n"),

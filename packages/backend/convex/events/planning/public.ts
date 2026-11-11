@@ -13,6 +13,7 @@ import {
 	validEmailToken,
 } from "../../lib/emailConfirmation";
 import { generateLinkToken, hashLinkToken } from "../../lib/tokens";
+import { productOf } from "../../products/helpers";
 import { queueEmail } from "./delivery";
 import {
 	capacityLimit,
@@ -22,6 +23,7 @@ import {
 	planningByToken,
 	publicUrl,
 	senderFor,
+	withRequestedProduct,
 } from "./helpers";
 import { notifyPlanning, planningResponseSummary } from "./notifications";
 import { answers } from "./schema";
@@ -44,8 +46,11 @@ export const get = mutation({
 			...(await companyView(ctx, planning)),
 			eventDate: osloToday(event.eventStart),
 			eventStart: event.eventStart,
-			answers: latest?.status === "ready" ? latest.answers : planning.answers,
-			capacityLimit: await capacityLimit(ctx, planning, event),
+			answers: await withRequestedProduct(
+				ctx,
+				latest?.status === "ready" ? latest.answers : planning.answers,
+			),
+			capacityLimit: await capacityLimit(ctx, planning),
 			revision: planning.revision,
 			contactEmail: planning.contactEmail,
 			organizerEmail: sender.mainEmail,
@@ -192,7 +197,16 @@ export const confirm = mutation({
 			ctx,
 			event,
 			`review:${submission._id}`,
-			planningResponseSummary(company?.name ?? "Bedriften", submission.answers),
+			planningResponseSummary(
+				company?.name ?? "Bedriften",
+				submission.answers,
+				(
+					await productOf(ctx, {
+						productId: submission.answers.requestedProductId,
+						eventType: submission.answers.requestedEventType,
+					})
+				)?.name,
+			),
 			"review",
 		);
 		return { state: "confirmed" };

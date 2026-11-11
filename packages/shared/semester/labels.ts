@@ -10,37 +10,6 @@ export const EVENT_TYPES = [
 ] as const;
 export type EventType = (typeof EVENT_TYPES)[number];
 
-/** The event types a company can apply for. Older applications may still be «social». */
-export const APPLICATION_EVENT_TYPES = [
-	"standard_presentation",
-	"large_presentation",
-	"workshop",
-] as const satisfies readonly EventType[];
-export type ApplicationEventType = (typeof APPLICATION_EVENT_TYPES)[number];
-
-export const EVENT_TYPE_LABELS: Record<EventType, string> = {
-	standard_presentation: "Ordinær bedriftspresentasjon",
-	large_presentation: "Stor bedriftspresentasjon",
-	workshop: "Faglig arrangement, workshop eller kurs",
-	social: "Sosialt arrangement",
-};
-
-/** Short event type names for dense tables, where the full labels do not fit. */
-export const EVENT_TYPE_SHORT_LABELS: Record<EventType, string> = {
-	standard_presentation: "Ordinær",
-	large_presentation: "Stor",
-	workshop: "Faglig",
-	social: "Sosialt",
-};
-
-/** The start of an event's title, before the company name, e.g. «Workshop med Fjordkode». */
-export const EVENT_TITLE_PREFIX: Record<EventType, string> = {
-	standard_presentation: "Bedriftspresentasjon med",
-	large_presentation: "Bedriftspresentasjon med",
-	workshop: "Workshop med",
-	social: "Sosialt arrangement med",
-};
-
 export const VENUES = ["campus", "own_premises", "undecided"] as const;
 /** Every venue an application can have: what Hugin offers, and Escape, which only Navet sets. */
 export const APPLICATION_VENUES = [...VENUES, "escape"] as const;

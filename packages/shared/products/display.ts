@@ -40,3 +40,14 @@ export function productParagraphs(longDescription: string): string[] {
 		.map((paragraph) => paragraph.trim())
 		.filter((paragraph) => paragraph !== "");
 }
+
+export function productOfRow<P extends { _id: string; eventType?: string }>(
+	products: readonly P[],
+	row: { productId?: string; eventType?: string },
+): P | undefined {
+	if (row.productId) return products.find((product) => product._id === row.productId);
+	const matches = products.filter(
+		(product) => row.eventType !== undefined && product.eventType === row.eventType,
+	);
+	return matches.length === 1 ? matches[0] : undefined;
+}

@@ -254,7 +254,7 @@ describe("manual invoice queue", () => {
 
 		await f.t.run((ctx) => ctx.db.patch(productId, { active: false }));
 		expect((await f.admin.query(api.invoicing.admin.get, { invoiceId }))?.preview).toMatchObject({
-			kind: "fail",
+			kind: "ready",
 		});
 		await f.t.run((ctx) =>
 			ctx.db.patch(eventId, { product: { productId, name: "Ordinær bedriftspresentasjon" } }),

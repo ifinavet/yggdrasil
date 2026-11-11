@@ -1,11 +1,9 @@
-import { applicationFormSchema, STUDENT_CAP } from "@workspace/shared/semester/application";
 import {
-	APPLICATION_EVENT_TYPES,
-	ESCAPE_ANSWERS,
-	EVENT_TYPE_LABELS,
-	FOOD_PURCHASERS,
-	VENUES,
-} from "@workspace/shared/semester/labels";
+	applicationFormSchema,
+	MISSING_PRODUCT,
+	studentCapIssue,
+} from "@workspace/shared/semester/application";
+import { ESCAPE_ANSWERS, FOOD_PURCHASERS, VENUES } from "@workspace/shared/semester/labels";
 import { z } from "zod";
 import { COMPANY_APPLICATION_COPY } from "./company-application-questions";
 
@@ -44,7 +42,7 @@ export const applicationDraftSchema = z.object({
 	contact: z
 		.object({ name: answer, email: answer, phone: answer })
 		.catch(() => ({ name: "", email: "", phone: "" })),
-	eventType: choice(APPLICATION_EVENT_TYPES),
+	productId: answer,
 	/** The number of students as the company writes it: «30», or a range like «20–40». */
 	students: answer,
 	description: answer,
@@ -72,7 +70,7 @@ export function emptyDraft(): ApplicationDraft {
 export const QUESTION_KEYS = [
 	"company",
 	"contact",
-	"eventType",
+	"productId",
 	"students",
 	"description",
 	"availableDates",
@@ -139,7 +137,7 @@ export function toSubmission(draft: ApplicationDraft): SubmissionCandidate {
 			email: draft.contact.email.trim(),
 			phone: draft.contact.phone,
 		},
-		eventType: answered(draft.eventType),
+		productId: draft.productId,
 		minStudents: students?.min,
 		maxStudents: students?.max,
 		description: draft.description,
@@ -194,19 +192,20 @@ const FIELD_OF_SUBMISSION_KEY: Partial<Record<PropertyKey, DraftField>> = {
 // answer, only once every other answer is valid. The company should see them straight away, so
 // they are checked here as well until the shared schema runs them on their own.
 
-function studentCountIssue(draft: ApplicationDraft): string | undefined {
+export type OfferedProduct = { _id: string; name: string; maxStudents?: number };
+
+function studentCountIssue(
+	draft: ApplicationDraft,
+	products: readonly OfferedProduct[],
+): string | undefined {
 	if (draft.students.trim() === "") return undefined;
 	const range = parseStudentCount(draft.students);
 	if (!range) return COMPANY_APPLICATION_COPY.students.unreadable;
 	const { min, max } = range;
 	if (min > max) return "Minste antall kan ikke være større enn høyeste antall.";
 
-	if (draft.eventType === "") return undefined;
-	const cap = STUDENT_CAP[draft.eventType];
-	if (cap !== null && max > cap) {
-		return `${EVENT_TYPE_LABELS[draft.eventType]} har plass til ${cap}. Velg «Stor bedriftspresentasjon» for flere.`;
-	}
-	return undefined;
+	const product = products.find(({ _id }) => _id === draft.productId);
+	return product && studentCapIssue(product, max);
 }
 
 const MISSING_BILLING = "Skriv en e-post for faktura, eller hvordan dere vil ha fakturaen.";
@@ -214,7 +213,10 @@ const MISSING_BILLING = "Skriv en e-post for faktura, eller hvordan dere vil ha 
 /** The first message per form field, from the shared schema and the checks above. */
 export type DraftErrors = Partial<Record<DraftField, string>>;
 
-export function draftErrors(draft: ApplicationDraft): DraftErrors {
+export function draftErrors(
+	draft: ApplicationDraft,
+	products?: readonly OfferedProduct[],
+): DraftErrors {
 	const errors: DraftErrors = {};
 	const result = applicationSubmissionSchema.safeParse(draft);
 
@@ -230,7 +232,9 @@ export function draftErrors(draft: ApplicationDraft): DraftErrors {
 	}
 
 	// The student count's own message is more precise than the schema's, so it wins.
-	const studentIssue = studentCountIssue(draft);
+	if (products && !products.some(({ _id }) => _id === draft.productId))
+		errors.productId ??= MISSING_PRODUCT;
+	const studentIssue = studentCountIssue(draft, products ?? []);
 	if (studentIssue) errors.students = studentIssue;
 	if (!optional(draft.billing.email) && !optional(draft.billing.details)) {
 		errors.billing ??= MISSING_BILLING;
@@ -258,7 +262,10 @@ export function answeredCount(errors: DraftErrors): number {
  * The form-level validator: every message attached to its field, or nothing when the draft is
  * valid. TanStack Form shows each message on the field with the same name.
  */
-export function validateApplicationDraft({ value }: { value: ApplicationDraft }) {
-	const errors = draftErrors(value);
+export function validateApplicationDraft(
+	{ value }: { value: ApplicationDraft },
+	products?: readonly OfferedProduct[],
+) {
+	const errors = draftErrors(value, products);
 	return Object.keys(errors).length > 0 ? { fields: errors } : undefined;
 }

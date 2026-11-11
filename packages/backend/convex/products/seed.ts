@@ -63,7 +63,10 @@ export const SEED_PRODUCTS: readonly SeedProduct[] = [
 		],
 		{ maxStudents: 40, eventType: "workshop" },
 	),
-	eventProduct(SEED_PRODUCT_NAMES.socialEvent, "event", undefined, [], { eventType: "social" }),
+	eventProduct(SEED_PRODUCT_NAMES.socialEvent, "event", undefined, [], {
+		maxStudents: 40,
+		eventType: "social",
+	}),
 	eventProduct(SEED_PRODUCT_NAMES.externalEvent, "external_event", 15_000, [
 		'Eksterne arrangementer er aktiviteter gjennomført og organisert av bedriften uavhengig av Navet. Promotering vil skje via ifinavet.no under fanen "Eksterne arrangementer" og på Instagram hvor dere vil få to storyer.',
 		"Det at arrangementet er uavhengig av Navet betyr at Navet kun stiller med promotering av arrangementet. Navet deltar ikke i organiseringen eller påmelding av arrangementet, aktiviteten skal ikke ta plass på IFI, det kan ikke foregå på tirsdager og torsdager og arrangementet kan ikke etterligne det en bedriftspresentasjon tilbyr for studenter.",

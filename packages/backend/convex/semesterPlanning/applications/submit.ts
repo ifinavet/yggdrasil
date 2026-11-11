@@ -126,7 +126,7 @@ export const submit = action({
 			internal.semesterPlanning.applications.confirmation.savePending,
 			{
 				semesterId,
-				form: parsed,
+				form: { ...parsed, productId: form.productId },
 				submissionId,
 				registry: lookup.snapshot,
 				token,

@@ -220,38 +220,22 @@ describe("products", () => {
 		).toBe("Maksimalt antall produkter er nådd.");
 	});
 
-	it("prices each application event type from its active product", async () => {
+	it("lists event products in their order, archived ones included", async () => {
 		const { t, admin } = await fixture();
-		expect(await t.query(api.products.queries.eventTypePrices, {})).toEqual({});
-
 		await t.mutation(internal.products.seed.seedProducts, {});
-		expect(await t.query(api.products.queries.eventTypePrices, {})).toEqual({
-			standard_presentation: 3_000_000,
-			large_presentation: 4_000_000,
-			workshop: 2_000_000,
+		const [large] = await t.query(api.products.queries.listEvent, {});
+		await admin.mutation(api.products.mutations.setActive, {
+			id: expectDefined(large)._id,
+			active: false,
 		});
 
-		const products = await t.query(api.products.queries.listActive, {});
-		const large = expectDefined(
-			products.find((product) => product.eventType === "large_presentation"),
-		);
-		await admin.mutation(api.products.mutations.update, {
-			id: large._id,
-			name: large.name,
-			shortDescription: large.shortDescription,
-			longDescription: large.longDescription,
-			category: large.category,
-			vatRate: large.vatRate,
-			unitPriceOre: 4_500_000,
-		});
-		expect(await t.query(api.products.queries.eventTypePrices, {})).toMatchObject({
-			large_presentation: 4_500_000,
-		});
-
-		await admin.mutation(api.products.mutations.setActive, { id: large._id, active: false });
-		expect(await t.query(api.products.queries.eventTypePrices, {})).not.toHaveProperty(
-			"large_presentation",
-		);
+		const products = await t.query(api.products.queries.listEvent, {});
+		expect(products.map((product) => [product.name, product.active])).toEqual([
+			["Stor bedriftspresentasjon", false],
+			["Ordinær bedriftspresentasjon", true],
+			["Bedriftspresentasjon med fokus på faglig innhold", true],
+			["Sosialt arrangement", true],
+		]);
 	});
 
 	it("lets an admin seed the products once from Bifrost", async () => {

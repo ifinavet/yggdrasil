@@ -2,14 +2,14 @@
 
 import { useForm } from "@tanstack/react-form";
 import { api } from "@workspace/backend/convex/api";
+import type { Id } from "@workspace/backend/convex/dataModel";
 import { DEGREE_TYPES, STUDY_PROGRAMS } from "@workspace/shared/constants";
+import { productOfRow } from "@workspace/shared/products";
 import { applicationFormSchema } from "@workspace/shared/semester/application";
 import {
-	APPLICATION_EVENT_TYPES,
 	APPLICATION_VENUES,
 	ESCAPE_ANSWERS,
 	ESCAPE_LABELS,
-	EVENT_TYPE_LABELS,
 	FOOD_PURCHASER_LABELS,
 	FOOD_PURCHASERS,
 	VENUE_LABELS,
@@ -40,6 +40,7 @@ import type { FunctionArgs } from "convex/server";
 import { Pencil } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { toast } from "sonner";
+import { useEventProducts } from "@/components/products/event-type-name";
 import type { Application } from "./model";
 
 type Details = FunctionArgs<
@@ -65,12 +66,18 @@ function EditDialog({
 	const [open, setOpen] = useState(false);
 	const [error, setError] = useState<string>();
 	const [pending, setPending] = useState(false);
+	const products = useEventProducts();
 
 	const save = async () => {
 		setError(undefined);
 		const details = toDetails();
 		// The same rules as the Hugin form and the backend, on the application as it will be saved.
-		const checked = applicationFormSchema.safeParse({ ...application, ...details, consent: true });
+		const checked = applicationFormSchema.safeParse({
+			...application,
+			...details,
+			productId: details.productId ?? productOfRow(products, application)?._id,
+			consent: true,
+		});
 		if (!checked.success) return setError(checked.error.issues[0]?.message);
 		setPending(true);
 		try {
@@ -142,7 +149,7 @@ function Choice<T extends string>({
 	label: string;
 	value: T;
 	options: readonly T[];
-	labels: Record<T, string>;
+	labels: Partial<Record<T, string>>;
 	onChange: (value: T) => void;
 }>) {
 	return (
@@ -193,8 +200,9 @@ function TextField({
 
 /** «Rediger» on «Søknaden»: the event the company asked for. */
 export function EditEventInfo({ application }: Readonly<{ application: Application }>) {
+	const products = useEventProducts();
 	const defaultValues = {
-		eventType: application.eventType,
+		productId: application.productId,
 		minStudents: String(application.minStudents),
 		maxStudents: String(application.maxStudents),
 		venue: application.venue,
@@ -224,17 +232,24 @@ export function EditEventInfo({ application }: Readonly<{ application: Applicati
 			toDetails={toDetails}
 			reset={() => form.reset(defaultValues)}
 		>
-			<form.Field name="eventType">
-				{(field) => (
-					<Choice
-						id="edit-event-type"
-						label="Type"
-						value={field.state.value}
-						options={APPLICATION_EVENT_TYPES}
-						labels={EVENT_TYPE_LABELS}
-						onChange={field.handleChange}
-					/>
-				)}
+			<form.Field name="productId">
+				{(field) => {
+					const value = field.state.value ?? productOfRow(products, application)?._id;
+					const offered = products.filter(
+						(product) =>
+							(product.active && product.unitPriceOre !== undefined) || product._id === value,
+					);
+					return (
+						<Choice
+							id="edit-event-type"
+							label="Type"
+							value={value ?? ""}
+							options={offered.map((product) => product._id)}
+							labels={Object.fromEntries(offered.map((product) => [product._id, product.name]))}
+							onChange={(next) => field.handleChange(next as Id<"products">)}
+						/>
+					);
+				}}
 			</form.Field>
 			<div className="grid grid-cols-2 gap-3">
 				<form.Field name="minStudents">

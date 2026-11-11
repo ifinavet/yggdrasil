@@ -9,6 +9,7 @@ import {
 	insertInternal,
 	insertSemester,
 	insertUser,
+	productIdOf,
 	refusalMessageFrom,
 	setup,
 	type TestBackend,
@@ -38,6 +39,7 @@ async function offerSetup() {
 		}
 	});
 	const applicationId = await insertApplication(t, semesterId, { assignedDate: "2027-02-09" });
+	await productIdOf(t, "standard_presentation");
 	return { t, semesterId, applicationId, editorUser, editor: asUser(t, editorUser) };
 }
 
@@ -67,8 +69,23 @@ async function offersOf(t: TestBackend, applicationId: Id<"companyApplications">
 }
 
 describe("send", () => {
+	it("refuses when the application's event type has no product", async () => {
+		const { t, applicationId, editor } = await offerSetup();
+		await t.run(async (ctx) => {
+			for (const product of await ctx.db.query("products").collect()) {
+				await ctx.db.delete(product._id);
+			}
+		});
+
+		expect(
+			await refusalMessageFrom(editor.mutation(offers.mutations.sendOffer, { applicationId })),
+		).toBe("Velg hva slags arrangement dere ønsker.");
+		expect(await offersOf(t, applicationId)).toEqual([]);
+	});
+
 	it("makes an offer and emails its link to the company", async () => {
 		const { t, applicationId, editor, editorUser } = await offerSetup();
+		const productId = await productIdOf(t, "standard_presentation");
 
 		const { offerId, linkToken: token } = await editor.mutation(offers.mutations.sendOffer, {
 			applicationId,
@@ -77,7 +94,7 @@ describe("send", () => {
 		const [offer] = await offersOf(t, applicationId);
 		expect(offer).toMatchObject({
 			date: "2027-02-09",
-			eventType: "standard_presentation",
+			productId,
 			maxStudents: 40,
 			status: "pending",
 			sentBy: editorUser._id,

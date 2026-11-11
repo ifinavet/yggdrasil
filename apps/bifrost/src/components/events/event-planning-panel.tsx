@@ -2,13 +2,9 @@
 
 import { api } from "@workspace/backend/convex/api";
 import type { Id } from "@workspace/backend/convex/dataModel";
-import {
-	AGE_CHOICES,
-	DELIVERY_LABELS,
-	planningCapacityLimit,
-} from "@workspace/shared/events/planning";
+import { AGE_CHOICES, DELIVERY_LABELS } from "@workspace/shared/events/planning";
 import { splitPlanningEmail } from "@workspace/shared/events/planning-email";
-import { EVENT_TYPE_LABELS, type EventType } from "@workspace/shared/semester/labels";
+import { productOfRow } from "@workspace/shared/products";
 import { formatOsloDate, osloDateTimeToEpoch } from "@workspace/shared/time";
 import { convexErrorMessage } from "@workspace/shared/utils";
 import { Button } from "@workspace/ui/components/button";
@@ -30,6 +26,7 @@ import type { FunctionReturnType } from "convex/server";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useEventProducts } from "@/components/products/event-type-name";
 import { FoodItemSelect } from "./food/food-item-select";
 
 type PlanningData = FunctionReturnType<typeof api.events.planning.admin.get>;
@@ -146,16 +143,15 @@ function Preparation({ data, onSaved }: Readonly<{ data: PlanningData; onSaved: 
 	const [contactName, setContactName] = useState(data.initial.contactName);
 	const [contactEmail, setContactEmail] = useState(data.initial.contactEmail);
 	const [signature, setSignature] = useState(data.initial.signature);
-	const [eventType, setEventType] = useState<EventType | undefined>(data.initial.eventType);
+	const [productId, setProductId] = useState(data.initial.productId);
+	const products = useEventProducts();
 	return (
 		<EventPlanningForm
 			searchAddresses={searchAddresses}
 			initial={data.initial.answers}
-			eventType={eventType}
-			capacityLimit={Math.min(
-				eventType ? planningCapacityLimit(eventType) : 1000,
-				eventType === data.initial.eventType ? data.capacityLimit : 1000,
-			)}
+			productId={productId}
+			products={products}
+			capacityLimit={products.find((product) => product._id === productId)?.maxStudents ?? 1000}
 			submitLabel="Lagre og se over e-posten"
 			onSubmit={async (answers) => {
 				await save({
@@ -164,7 +160,7 @@ function Preparation({ data, onSaved }: Readonly<{ data: PlanningData; onSaved: 
 					contactName,
 					contactEmail,
 					signature,
-					eventType,
+					productId,
 					answers,
 				});
 				onSaved();
@@ -205,17 +201,19 @@ function Preparation({ data, onSaved }: Readonly<{ data: PlanningData; onSaved: 
 						<select
 							id="planning-package"
 							className="h-10 rounded-md border bg-background px-3"
-							value={eventType ?? ""}
+							value={productId ?? ""}
 							onChange={(e) =>
-								setEventType(e.target.value ? (e.target.value as EventType) : undefined)
+								setProductId(products.find((product) => product._id === e.target.value)?._id)
 							}
 						>
 							<option value="">Velg arrangementstype</option>
-							{Object.entries(EVENT_TYPE_LABELS).map(([value, label]) => (
-								<option key={value} value={value}>
-									{label}
-								</option>
-							))}
+							{products
+								.filter((product) => product.active || product._id === productId)
+								.map((product) => (
+									<option key={product._id} value={product._id}>
+										{product.name}
+									</option>
+								))}
 						</select>
 					</Field>
 					<Field>
@@ -327,6 +325,7 @@ function Invitation({
 }
 
 function Review({ data, onDone }: Readonly<{ data: PlanningData; onDone: () => void }>) {
+	const products = useEventProducts();
 	const searchAddresses = useAction(api.jobListingOrders.addressSearch.searchAddresses);
 	const save = useMutation(api.events.planning.admin.saveReview);
 	const approve = useMutation(api.events.planning.admin.approve);
@@ -368,7 +367,8 @@ function Review({ data, onDone }: Readonly<{ data: PlanningData; onDone: () => v
 					searchAddresses={searchAddresses}
 					key={submission.revision}
 					initial={submission.draft}
-					eventType={data.initial.eventType}
+					productId={data.initial.productId}
+					products={products}
 					capacityLimit={data.capacityLimit}
 					submitLabel="Lagre og forhåndsvis"
 					onSubmit={async (answers) => {
@@ -393,12 +393,14 @@ function Review({ data, onDone }: Readonly<{ data: PlanningData; onDone: () => v
 							<span>{AGE_CHOICES[submission.draft.ageRestriction]}</span>
 						</div>
 					</article>
-					{submission.draft.requestedEventType &&
-						submission.draft.requestedEventType !== data.initial.eventType && (
+					{submission.draft.requestedProductId &&
+						submission.draft.requestedProductId !== data.initial.productId && (
 							<p className="text-sm">
 								Bedriften ønsker{" "}
-								{EVENT_TYPE_LABELS[submission.draft.requestedEventType].toLowerCase()}. Avklar
-								endringen med bedriften. Publisering endrer ikke den avtalte pakken.
+								{productOfRow(products, {
+									productId: submission.draft.requestedProductId,
+								})?.name.toLowerCase()}
+								. Avklar endringen med bedriften. Publisering endrer ikke den avtalte pakken.
 							</p>
 						)}
 					<Field>

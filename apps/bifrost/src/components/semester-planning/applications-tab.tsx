@@ -3,7 +3,6 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { api } from "@workspace/backend/convex/api";
 import type { Doc, Id } from "@workspace/backend/convex/dataModel";
-import { EVENT_TYPE_SHORT_LABELS } from "@workspace/shared/semester/labels";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { useQuery } from "convex/react";
 import Link from "next/link";
@@ -11,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 import { LIST_HEAD } from "@/components/common/table-classes";
 import BaseDataTable, { type DataTableFeatures } from "@/components/common/tables/data-table";
+import { EventTypeName } from "@/components/products/event-type-name";
 import { RemoveApplicationButton } from "./application/remove-application-button";
 import { shortDayTitle, studentRange } from "./format";
 import { isActiveStatus } from "./status";
@@ -45,7 +45,7 @@ const columns: ColumnDef<DataTableFeatures, Row>[] = [
 			);
 		},
 	},
-	{ header: "Type", cell: ({ row }) => EVENT_TYPE_SHORT_LABELS[row.original.eventType] },
+	{ header: "Type", cell: ({ row }) => <EventTypeName row={row.original} /> },
 	{
 		header: "Studenter",
 		cell: ({ row }) => {

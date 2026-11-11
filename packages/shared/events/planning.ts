@@ -1,6 +1,5 @@
 import { z } from "zod";
-import { STUDENT_CAP } from "../semester/application";
-import { EVENT_TYPES, type EventType, FOOD_PURCHASERS } from "../semester/labels";
+import { FOOD_PURCHASERS } from "../semester/labels";
 
 export const PLANNING_PATH = "/event-planning";
 export const PLANNING_CONFIRM_PATH = `${PLANNING_PATH}/confirm`;
@@ -88,7 +87,7 @@ export const PLANNING_FIELDS = {
 } as const;
 const answer = z.enum(["yes", "no", "unsure"]);
 export const planningAnswersSchema = z.object({
-	requestedEventType: z.enum(EVENT_TYPES).optional(),
+	requestedProductId: z.string().optional(),
 	title: z.string().trim().max(200),
 	teaser: z.string().trim().max(250),
 	description: z.string().trim().max(15000),
@@ -107,9 +106,6 @@ export const planningAnswersSchema = z.object({
 	language: z.string().trim().max(100),
 });
 export type PlanningAnswers = z.infer<typeof planningAnswersSchema>;
-export function planningCapacityLimit(eventType: EventType) {
-	return STUDENT_CAP[eventType] ?? 1000;
-}
 export function planningFormSchema(capacityLimit: number) {
 	return planningAnswersSchema.refine((v) => v.capacity <= capacityLimit, {
 		path: ["capacity"],

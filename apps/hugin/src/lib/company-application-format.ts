@@ -1,6 +1,4 @@
 import { oreToKroner } from "@workspace/shared/products";
-import { STUDENT_CAP } from "@workspace/shared/semester/application";
-import type { EventType } from "@workspace/shared/semester/labels";
 import { formatNok } from "@workspace/shared/semester/prices";
 import { capitalize } from "@workspace/shared/utils";
 import { differenceInCalendarMonths, format, parse, startOfMonth } from "date-fns";
@@ -89,9 +87,14 @@ export function billingLines(billing: {
 	].filter((line): line is string => Boolean(line));
 }
 
-export function eventTypeDescription(type: EventType, priceOre: number | undefined): string {
-	const cap = STUDENT_CAP[type];
-	const size = cap === null ? COPY.eventType.uncapped : COPY.eventType.capped(cap);
-	if (priceOre === undefined) return size;
-	return `${size} · ${COPY.eventType.price(formatNok(oreToKroner(priceOre)))}`;
+export function eventTypeDescription(product: {
+	maxStudents?: number;
+	unitPriceOre?: number;
+}): string {
+	const size =
+		product.maxStudents === undefined
+			? COPY.eventType.uncapped
+			: COPY.eventType.capped(product.maxStudents);
+	if (product.unitPriceOre === undefined) return size;
+	return `${size} · ${COPY.eventType.price(formatNok(oreToKroner(product.unitPriceOre)))}`;
 }
