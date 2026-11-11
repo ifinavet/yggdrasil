@@ -341,6 +341,29 @@ describe("seedAndBackfillProducts", () => {
 		vi.useRealTimers();
 	});
 
+	it("stores no product when several products share the event type", async () => {
+		vi.useFakeTimers();
+		const { t } = await setup();
+		await seedProducts(t);
+		await t.run(async (ctx) => {
+			const products = await ctx.db.query("products").collect();
+			const workshop = products.find((product) => product.eventType === "workshop");
+			if (!workshop) throw new Error("Expected the workshop product.");
+			const { _id, _creationTime, ...copy } = workshop;
+			await ctx.db.insert("products", { ...copy, name: "Workshop 2027", sortOrder: 99 });
+		});
+		const semesterId = await insertSemester(t);
+		const applicationId = await insertApplication(t, semesterId, { eventType: "workshop" });
+
+		await t.run((ctx) => seedAndBackfillProducts(ctx));
+		await t.finishAllScheduledFunctions(vi.runAllTimers);
+
+		const application = await t.run((ctx) => ctx.db.get(applicationId));
+		expect(application).toMatchObject({ eventType: "workshop" });
+		expect(application).not.toHaveProperty("productId");
+		vi.useRealTimers();
+	});
+
 	it("gives a social event without a student cap the cap it had as an event type", async () => {
 		vi.useFakeTimers();
 		const { t } = await setup();

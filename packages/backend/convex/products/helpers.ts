@@ -62,8 +62,7 @@ export async function productOf(
 	return await ctx.db
 		.query("products")
 		.withIndex("by_eventType_and_active", (q) => q.eq("eventType", eventType))
-		.order("desc")
-		.first();
+		.unique();
 }
 
 export async function requireUniqueName(
