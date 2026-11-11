@@ -45,9 +45,9 @@ export function productOfRow<P extends { _id: string; eventType?: string }>(
 	products: readonly P[],
 	row: { productId?: string; eventType?: string },
 ): P | undefined {
-	return products.find((product) =>
-		row.productId
-			? product._id === row.productId
-			: row.eventType !== undefined && product.eventType === row.eventType,
+	if (row.productId) return products.find((product) => product._id === row.productId);
+	const matches = products.filter(
+		(product) => row.eventType !== undefined && product.eventType === row.eventType,
 	);
+	return matches.length === 1 ? matches[0] : undefined;
 }
