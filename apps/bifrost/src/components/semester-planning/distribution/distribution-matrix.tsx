@@ -8,7 +8,7 @@ import { cn } from "@workspace/ui/lib/utils";
 import { MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { type CSSProperties, memo, useMemo, useState } from "react";
-import { EventTypeName } from "@/components/products/event-type-name";
+import { ProductName } from "@/components/products/product-name";
 import { RemoveApplicationButton } from "../application/remove-application-button";
 import { dayOfMonth, monthLabel, shortDayTitle, studentRange } from "../format";
 import { isActiveStatus } from "../status";
@@ -113,7 +113,7 @@ export function DistributionMatrix({
 								colSpan={month.span}
 								scope="colgroup"
 								title={month.label}
-								className="h-8 overflow-hidden text-ellipsis whitespace-nowrap border-l pl-2 text-left font-semibold text-[13px] text-foreground"
+								className="text-foreground h-8 overflow-hidden border-l pl-2 text-left text-[13px] font-semibold text-ellipsis whitespace-nowrap"
 							>
 								{month.span <= SHORT_MONTH_SPAN ? month.shortLabel : month.label}
 							</th>
@@ -133,7 +133,7 @@ export function DistributionMatrix({
 								scope="col"
 								title={closedLabel === undefined ? undefined : closedDateLabel(closedLabel)}
 								className={cn(
-									"h-12 border-b pb-2 text-center align-bottom font-medium text-[12px] leading-tight",
+									"h-12 border-b pb-2 text-center align-bottom text-[12px] leading-tight font-medium",
 									closedLabel !== undefined && CLOSED_COLUMN,
 									starts.has(date) && "border-l",
 								)}
@@ -141,7 +141,7 @@ export function DistributionMatrix({
 								{formatSemesterDay(date, "weekdayMin")}
 								<b
 									className={cn(
-										"block font-semibold text-[14px]",
+										"block text-[14px] font-semibold",
 										closedLabel !== undefined
 											? "text-muted-foreground line-through"
 											: "text-foreground",
@@ -234,18 +234,18 @@ const MatrixRow = memo(function MatrixRow({
 					<div className={cn("min-w-0 flex-1", !active && "opacity-55")}>
 						<Link
 							href={`/semesterplan/soknad/${application._id}`}
-							className="block truncate font-semibold text-[13.5px] hover:underline"
+							className="block truncate text-[13.5px] font-semibold hover:underline"
 						>
 							{application.registry.name}
 						</Link>
-						<div className="mt-0.5 truncate text-[12px] text-muted-foreground tabular-nums">
-							<EventTypeName row={application} /> ·{" "}
+						<div className="text-muted-foreground mt-0.5 truncate text-[12px] tabular-nums">
+							<ProductName row={application} /> ·{" "}
 							{studentRange(application.minStudents, application.maxStudents)}
 							{industry && ` · ${industry}`}
 						</div>
 						{application.datePreferences && (
 							<div
-								className="mt-[3px] inline-flex max-w-full items-center gap-1 text-[12px] text-attention"
+								className="text-attention mt-[3px] inline-flex max-w-full items-center gap-1 text-[12px]"
 								title={application.datePreferences}
 							>
 								<MessageCircle className="size-[13px] shrink-0" aria-hidden />
@@ -303,7 +303,7 @@ const MatrixRow = memo(function MatrixRow({
 			<td className={cn(STICKY_END, "border-b px-3 align-middle")}>
 				<div className={cn(!active && "opacity-55")}>
 					<StatusBadge status={application.status} className="gap-[7px] text-[13px]" />
-					<div className="mt-0.5 text-[12px] text-muted-foreground tabular-nums">
+					<div className="text-muted-foreground mt-0.5 text-[12px] tabular-nums">
 						{active && application.assignedDate
 							? shortDayTitle(application.assignedDate)
 							: "Ingen dato"}

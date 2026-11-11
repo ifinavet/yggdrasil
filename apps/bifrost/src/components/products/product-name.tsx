@@ -8,8 +8,6 @@ export function useEventProducts() {
 	return useQuery(api.products.queries.listEvent) ?? [];
 }
 
-export function EventTypeName({
-	row,
-}: Readonly<{ row: { productId?: string; eventType?: string } }>) {
+export function ProductName({ row }: Readonly<{ row: { productId?: string } }>) {
 	return productOfRow(useEventProducts(), row)?.name;
 }

@@ -7,15 +7,15 @@ import resendTest from "@convex-dev/resend/test";
 import workflowTest from "@convex-dev/workflow/test";
 import workpoolTest from "@convex-dev/workpool/test";
 import type { FoodItem } from "@workspace/shared/events/food";
-import type { EventType } from "@workspace/shared/semester/labels";
 import type { WithoutSystemFields } from "convex/server";
 import { ConvexError } from "convex/values";
 import { convexTest } from "convex-test";
 import { vi } from "vitest";
 import type { Doc, Id } from "../convex/_generated/dataModel";
+import type { MutationCtx } from "../convex/_generated/server";
 import type { AccessRole } from "../convex/auth/accessRights";
 import { builtInFoodItemId } from "../convex/events/food";
-import { seedProductsIfEmpty } from "../convex/products/seed";
+import { SEED_PRODUCT_NAMES, seedProductsIfEmpty } from "../convex/products/seed";
 import schema from "../convex/schema";
 import { CONSENT_VERSION, FORM_VERSION } from "../convex/semesterPlanning/rules";
 
@@ -353,12 +353,20 @@ export async function insertSemester(
 	);
 }
 
-export async function productIdOf(t: TestBackend, eventType: EventType) {
-	return await t.run(async (ctx) => {
-		await seedProductsIfEmpty(ctx);
-		const products = await ctx.db.query("products").collect();
-		return products.find((product) => product.eventType === eventType)?._id;
-	});
+type SeedProductKey = keyof typeof SEED_PRODUCT_NAMES;
+
+export async function seededProductId(ctx: MutationCtx, key: SeedProductKey) {
+	await seedProductsIfEmpty(ctx);
+	const product = await ctx.db
+		.query("products")
+		.withIndex("by_name", (q) => q.eq("name", SEED_PRODUCT_NAMES[key]))
+		.unique();
+	if (!product) throw new Error(`Expected the seeded product ${key}.`);
+	return product._id;
+}
+
+export async function productIdOf(t: TestBackend, key: SeedProductKey) {
+	return await t.run((ctx) => seededProductId(ctx, key));
 }
 
 export async function insertApplication(
@@ -366,7 +374,7 @@ export async function insertApplication(
 	semesterId: Id<"semesters">,
 	overrides: ApplicationOverrides = {},
 ): Promise<Id<"companyApplications">> {
-	return await t.run((ctx) =>
+	return await t.run(async (ctx) =>
 		ctx.db.insert("companyApplications", {
 			semesterId,
 			formVersion: FORM_VERSION,
@@ -377,7 +385,7 @@ export async function insertApplication(
 				fetchedAt: Date.now(),
 			},
 			contact: { name: "Ingrid Solberg", email: "ingrid@fjordkode.no", phone: "+4741234567" },
-			eventType: "standard_presentation",
+			productId: overrides.productId ?? (await seededProductId(ctx, "regularEvent")),
 			minStudents: 25,
 			maxStudents: 40,
 			description: "Presentasjon og kodeoppgave.",

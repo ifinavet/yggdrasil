@@ -64,7 +64,6 @@ export const productsSchema = {
 		active: v.boolean(),
 	})
 		.index("by_active_and_sortOrder", ["active", "sortOrder"])
-		.index("by_eventType_and_active", ["eventType", "active"])
 		.index("by_sortOrder", ["sortOrder"])
 		.index("by_category", ["category"])
 		.index("by_name", ["name"]),

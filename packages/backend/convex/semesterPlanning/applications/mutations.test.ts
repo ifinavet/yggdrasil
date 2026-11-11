@@ -13,6 +13,7 @@ import {
 	insertUser,
 	productIdOf,
 	refusalMessageFrom,
+	seededProductId,
 	setup,
 	type TestBackend,
 } from "../../../test/fixtures";
@@ -28,7 +29,7 @@ async function planningSetup() {
 	await grantRole(t, editorUser._id, "editor");
 	await insertInternal(t, editorUser._id, "Bedriftskontakt");
 	const semesterId = await insertSemester(t, { status: "open" });
-	await productIdOf(t, "standard_presentation");
+	await productIdOf(t, "regularEvent");
 	await t.run(async (ctx) => {
 		await ctx.db.insert("semesterDates", {
 			semesterId,
@@ -48,11 +49,11 @@ async function insertOffer(
 	sentBy: Id<"users">,
 	status: "pending" | "accepted" = "pending",
 ) {
-	return t.run((ctx) =>
+	return t.run(async (ctx) =>
 		ctx.db.insert("companyApplicationOffers", {
 			applicationId,
 			date: "2027-02-09",
-			eventType: "standard_presentation",
+			productId: await seededProductId(ctx, "regularEvent"),
 			maxStudents: 40,
 			linkToken: `token-${Math.random()}`,
 			sentAt: Date.now(),
@@ -704,7 +705,7 @@ describe("updateDetails", () => {
 	it("saves the changed details, keeps the rest and writes the history", async () => {
 		const { t, semesterId, editor } = await planningSetup();
 		const applicationId = await insertApplication(t, semesterId);
-		const productId = await productIdOf(t, "large_presentation");
+		const productId = await productIdOf(t, "largeEvent");
 
 		await editor.mutation(mutations.updateDetails, {
 			applicationId,

@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 import { LIST_HEAD } from "@/components/common/table-classes";
 import BaseDataTable, { type DataTableFeatures } from "@/components/common/tables/data-table";
-import { EventTypeName } from "@/components/products/event-type-name";
+import { ProductName } from "@/components/products/product-name";
 import { RemoveApplicationButton } from "./application/remove-application-button";
 import { shortDayTitle, studentRange } from "./format";
 import { isActiveStatus } from "./status";
@@ -45,7 +45,7 @@ const columns: ColumnDef<DataTableFeatures, Row>[] = [
 			);
 		},
 	},
-	{ header: "Type", cell: ({ row }) => <EventTypeName row={row.original} /> },
+	{ header: "Type", cell: ({ row }) => <ProductName row={row.original} /> },
 	{
 		header: "Studenter",
 		cell: ({ row }) => {
@@ -93,7 +93,7 @@ export function ApplicationsTab({ semester }: Readonly<{ semester: Doc<"semester
 
 	if (!rows) {
 		return (
-			<div className="grid gap-2 rounded-lg border bg-card p-4">
+			<div className="bg-card grid gap-2 rounded-lg border p-4">
 				{[0, 1, 2, 3].map((index) => (
 					<Skeleton key={index} className="h-9" />
 				))}

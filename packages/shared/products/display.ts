@@ -41,13 +41,9 @@ export function productParagraphs(longDescription: string): string[] {
 		.filter((paragraph) => paragraph !== "");
 }
 
-export function productOfRow<P extends { _id: string; eventType?: string }>(
+export function productOfRow<P extends { _id: string }>(
 	products: readonly P[],
-	row: { productId?: string; eventType?: string },
+	row: { productId?: string },
 ): P | undefined {
-	if (row.productId) return products.find((product) => product._id === row.productId);
-	const matches = products.filter(
-		(product) => row.eventType !== undefined && product.eventType === row.eventType,
-	);
-	return matches.length === 1 ? matches[0] : undefined;
+	return products.find((product) => product._id === row.productId);
 }
