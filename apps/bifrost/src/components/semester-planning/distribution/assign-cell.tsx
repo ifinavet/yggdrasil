@@ -13,7 +13,7 @@ import { useMutation } from "convex/react";
 import { TriangleAlert } from "lucide-react";
 import { type DragEvent, useState } from "react";
 import { toast } from "sonner";
-import { useEventProducts } from "@/components/products/event-type-name";
+import { useEventProducts } from "@/components/products/product-name";
 import { clearConsequence, moveConsequence } from "../application/model";
 import { dayOfMonth, longDay, shortDay, studentRange } from "../format";
 import { STATUS_CHIP_CLASSES } from "../status";
@@ -199,7 +199,7 @@ export function AssignCell({
 					}}
 					onDrop={drop}
 					className={cn(
-						"group block w-full rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring",
+						"group focus-visible:ring-ring block w-full rounded-lg outline-none focus-visible:ring-2",
 						draggable ? "cursor-grab active:cursor-grabbing" : "cursor-pointer",
 					)}
 				>
@@ -213,15 +213,15 @@ export function AssignCell({
 				</button>
 			</PopoverTrigger>
 			<PopoverContent className="w-[268px] rounded-[10px] px-3.5 py-3" align="center">
-				<p className="font-semibold text-sm">{isOwn ? `Fjerne ${day}?` : `Velge ${day}?`}</p>
-				<p className="mt-1 text-[12.5px] text-muted-foreground leading-[1.45]">
+				<p className="text-sm font-semibold">{isOwn ? `Fjerne ${day}?` : `Velge ${day}?`}</p>
+				<p className="text-muted-foreground mt-1 text-[12.5px] leading-[1.45]">
 					{name} · {productOfRow(products, application)?.name.toLowerCase()},{" "}
 					{studentRange(application.minStudents, application.maxStudents)}. {!warning && note}
 					{moveFrom}
 				</p>
 				{warning && (
-					<p className="mt-1.5 flex gap-1.5 font-medium text-[12.5px] text-foreground leading-[1.45]">
-						<TriangleAlert className="mt-0.5 size-3.5 shrink-0 text-status-new-date" aria-hidden />
+					<p className="text-foreground mt-1.5 flex gap-1.5 text-[12.5px] leading-[1.45] font-medium">
+						<TriangleAlert className="text-status-new-date mt-0.5 size-3.5 shrink-0" aria-hidden />
 						{note}
 					</p>
 				)}

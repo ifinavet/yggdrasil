@@ -23,7 +23,6 @@ import {
 	planningByToken,
 	publicUrl,
 	senderFor,
-	withRequestedProduct,
 } from "./helpers";
 import { notifyPlanning, planningResponseSummary } from "./notifications";
 import { answers } from "./schema";
@@ -46,10 +45,7 @@ export const get = mutation({
 			...(await companyView(ctx, planning)),
 			eventDate: osloToday(event.eventStart),
 			eventStart: event.eventStart,
-			answers: await withRequestedProduct(
-				ctx,
-				latest?.status === "ready" ? latest.answers : planning.answers,
-			),
+			answers: latest?.status === "ready" ? latest.answers : planning.answers,
 			capacityLimit: await capacityLimit(ctx, planning),
 			revision: planning.revision,
 			contactEmail: planning.contactEmail,
@@ -200,12 +196,7 @@ export const confirm = mutation({
 			planningResponseSummary(
 				company?.name ?? "Bedriften",
 				submission.answers,
-				(
-					await productOf(ctx, {
-						productId: submission.answers.requestedProductId,
-						eventType: submission.answers.requestedEventType,
-					})
-				)?.name,
+				(await productOf(ctx, { productId: submission.answers.requestedProductId }))?.name,
 			),
 			"review",
 		);

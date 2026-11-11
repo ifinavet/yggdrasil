@@ -139,7 +139,6 @@ describe("manual invoice queue", () => {
 				category: "event",
 				unitPriceOre: 3_000_000,
 				vatRate: 25,
-				eventType: "standard_presentation",
 				sortOrder: 2,
 				active: true,
 			}),
@@ -152,6 +151,7 @@ describe("manual invoice queue", () => {
 		const applicationId = await insertApplication(f.t, semesterId, {
 			status: "confirmed",
 			eventId,
+			productId: eventProductId,
 		});
 		await f.t.run((ctx) =>
 			scheduleInvoice(ctx, { kind: "companyApplication", applicationId }, Date.now() - 86_400_000),
@@ -231,7 +231,6 @@ describe("manual invoice queue", () => {
 				category: "event",
 				unitPriceOre: 3_000_000,
 				vatRate: 25,
-				eventType: "standard_presentation",
 				sortOrder: 2,
 				active: true,
 			}),
@@ -241,6 +240,7 @@ describe("manual invoice queue", () => {
 		const applicationId = await insertApplication(f.t, semesterId, {
 			status: "confirmed",
 			eventId,
+			productId,
 		});
 		await f.t.run((ctx) =>
 			scheduleInvoice(ctx, { kind: "companyApplication", applicationId }, Date.now() - 86_400_000),

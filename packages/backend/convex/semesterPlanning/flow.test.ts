@@ -59,7 +59,7 @@ describe("the whole journey", () => {
 			form: {
 				orgNumber: VALID_ORG_NUMBER,
 				contact: { name: "Ingrid Solberg", email: "ingrid@fjordkode.no", phone: "+47 412 34 567" },
-				productId: await productIdOf(t, "standard_presentation"),
+				productId: await productIdOf(t, "regularEvent"),
 				minStudents: 25,
 				maxStudents: 40,
 				description: "Presentasjon og kodeoppgave.",

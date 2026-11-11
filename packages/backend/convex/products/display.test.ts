@@ -12,21 +12,10 @@ import {
 import { describe, expect, it } from "vitest";
 
 describe("productOfRow", () => {
-	const products = [
-		{ _id: "workshop", eventType: "workshop" },
-		{ _id: "social", eventType: "social" },
-		{ _id: "social-2027", eventType: "social" },
-	];
-
-	it("finds the product by id, then by an event type only one product has", () => {
-		expect(productOfRow(products, { productId: "social", eventType: "workshop" })?._id).toBe(
-			"social",
-		);
-		expect(productOfRow(products, { eventType: "workshop" })?._id).toBe("workshop");
-	});
-
-	it("finds no product when several products share the event type", () => {
-		expect(productOfRow(products, { eventType: "social" })).toBeUndefined();
+	it("finds the product by id", () => {
+		const products = [{ _id: "workshop" }, { _id: "social" }];
+		expect(productOfRow(products, { productId: "social" })?._id).toBe("social");
+		expect(productOfRow(products, {})).toBeUndefined();
 	});
 });
 
