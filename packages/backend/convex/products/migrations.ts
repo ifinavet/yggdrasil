@@ -44,14 +44,8 @@ const BACKFILLS = [
 	internal.products.migrations.backfillJobListingProducts,
 ];
 
-export const clearProductEventTypes = migrations.define({
-	table: "products",
-	migrateOne: (_ctx, product) => (product.eventType ? { eventType: undefined } : {}),
-});
-
 export async function seedAndBackfillProducts(ctx: MutationCtx) {
 	const seeded = await seedProductsIfEmpty(ctx);
 	if (seeded.length > 0) await migrations.runSerially(ctx, BACKFILLS);
-	await migrations.runSerially(ctx, [internal.products.migrations.clearProductEventTypes]);
 	return seeded;
 }

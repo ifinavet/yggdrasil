@@ -1,12 +1,9 @@
 import { PRODUCT_CATEGORIES } from "@workspace/shared/products";
-import { EVENT_TYPES } from "@workspace/shared/semester/labels";
 import { defineTable } from "convex/server";
 import { type Infer, v } from "convex/values";
 import { oneOf } from "../lib/validators";
 
 export const productCategory = oneOf(PRODUCT_CATEGORIES);
-
-export const applicationEventType = oneOf(EVENT_TYPES);
 
 export const volumeTier = v.object({
 	quantity: v.number(),
@@ -59,7 +56,6 @@ export type ProductFieldChange = Infer<typeof productFieldChange>;
 export const productsSchema = {
 	products: defineTable({
 		...productFields,
-		eventType: v.optional(applicationEventType),
 		sortOrder: v.number(),
 		active: v.boolean(),
 	})
