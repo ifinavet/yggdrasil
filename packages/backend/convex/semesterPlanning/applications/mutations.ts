@@ -4,6 +4,7 @@ import { ConvexError, v } from "convex/values";
 import type { Doc, Id } from "../../_generated/dataModel";
 import { type MutationCtx, mutation } from "../../_generated/server";
 import { invoiceFor } from "../../invoicing/schedule";
+import { eventProductFields } from "../../products/sales";
 import {
 	type Actor,
 	logApplicationActivity,
@@ -388,6 +389,8 @@ export const updateDetails = mutation({
 			targetStudyPrograms: form.targetStudyPrograms,
 			additionalInfo: form.additionalInfo,
 		});
+		const event = application.eventId ? await ctx.db.get(application.eventId) : null;
+		if (event) await ctx.db.patch(event._id, await eventProductFields(ctx, product._id, event));
 		await logApplicationActivity(ctx, applicationId, "details_changed", actor);
 		return null;
 	},
