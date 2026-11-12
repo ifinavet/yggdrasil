@@ -11,6 +11,7 @@ import {
 	insertOrganizer,
 	insertSemester,
 	insertUser,
+	productIdOf,
 	refusalMessageFrom,
 	setup,
 	type TestBackend,
@@ -98,6 +99,7 @@ async function saveEvent(
 	changes: {
 		eventStart: number;
 		organizers: { userId: Id<"users">; role: "hovedansvarlig" | "medhjelper" }[];
+		productId?: Id<"products">;
 	},
 ) {
 	const { t, companyId, eventId, editor } = booked;
@@ -187,7 +189,7 @@ describe("moving the date", () => {
 					saveEvent(booked, { eventStart: Date.parse(`${day}T15:15:00Z`), organizers }),
 				),
 			).toBe(
-				`Arrangementet er bedriftspresentasjonen til FJORDKODE AS i semesterplanen, og datoen må passe der. ${reason}`,
+				`Arrangementet hører til søknaden fra FJORDKODE AS i semesterplanen, og datoen må passe der. ${reason}`,
 			);
 		}
 		expect((await t.run((ctx) => ctx.db.get(eventId)))?.eventStart).toBe(FEB_9);
@@ -274,5 +276,37 @@ describe("changing the team", () => {
 				}),
 			),
 		).toBe("Kontaktpersonen fra Navet må være et internt medlem.");
+	});
+});
+
+describe("changing the product", () => {
+	it("in the plan gives the event a snapshot of the new product", async () => {
+		const { t, eventId, applicationId, editor } = await bookedSetup();
+		const productId = await productIdOf(t, "largeEvent");
+
+		await editor.mutation(api.semesterPlanning.applications.mutations.updateDetails, {
+			applicationId,
+			details: { productId },
+		});
+
+		const event = await t.run((ctx) => ctx.db.get(eventId));
+		expect(event?.product).toMatchObject({ productId, name: "Stor bedriftspresentasjon" });
+	});
+
+	it("in the event editor shows on the application", async () => {
+		const booked = await bookedSetup();
+		const { t, applicationId, lead, helper } = booked;
+		const productId = await productIdOf(t, "largeEvent");
+
+		await saveEvent(booked, {
+			eventStart: FEB_9,
+			organizers: [
+				{ userId: lead, role: "hovedansvarlig" },
+				{ userId: helper, role: "medhjelper" },
+			],
+			productId,
+		});
+
+		expect((await applicationById(t, applicationId)).productId).toBe(productId);
 	});
 });
