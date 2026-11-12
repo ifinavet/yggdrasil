@@ -4,7 +4,7 @@ import { ConvexError, v } from "convex/values";
 import type { Doc, Id } from "../../_generated/dataModel";
 import { type MutationCtx, mutation } from "../../_generated/server";
 import { invoiceFor } from "../../invoicing/schedule";
-import { productOf } from "../../products/helpers";
+import { eventProductFields } from "../../products/sales";
 import {
 	type Actor,
 	logApplicationActivity,
@@ -360,9 +360,7 @@ export const updateDetails = mutation({
 		const actor = await requireEditorActor(ctx);
 		const application = await requireApplication(ctx, applicationId);
 
-		const product = details.productId
-			? await ctx.db.get(details.productId)
-			: await productOf(ctx, application);
+		const product = await ctx.db.get(details.productId ?? application.productId);
 		if (product?.category !== "event") throw new ConvexError(MISSING_PRODUCT);
 		const { consent: _, ...form } = parseApplicationForm({
 			...application,
@@ -378,7 +376,6 @@ export const updateDetails = mutation({
 		if (capIssue) throw new ConvexError(capIssue);
 		await ctx.db.patch(applicationId, {
 			contact: form.contact,
-			eventType: undefined,
 			productId: product._id,
 			minStudents: form.minStudents,
 			maxStudents: form.maxStudents,
@@ -392,6 +389,8 @@ export const updateDetails = mutation({
 			targetStudyPrograms: form.targetStudyPrograms,
 			additionalInfo: form.additionalInfo,
 		});
+		const event = application.eventId ? await ctx.db.get(application.eventId) : null;
+		if (event) await ctx.db.patch(event._id, await eventProductFields(ctx, product._id, event));
 		await logApplicationActivity(ctx, applicationId, "details_changed", actor);
 		return null;
 	},

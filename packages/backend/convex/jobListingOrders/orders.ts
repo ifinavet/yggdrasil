@@ -371,7 +371,7 @@ export const confirm = mutation({
 				clientMsgId: `job-listing-order-${order._id}`,
 				text: formatOrderAlert({
 					company: await orderCompanyName(ctx, order),
-					type: "Stillingsannonse",
+					type: order.productName,
 					title: (await listOrderItems(ctx, order._id)).map((item) => item.title),
 					additionalNotes: order.note,
 					estimatedRevenueOre: order.priceOre,

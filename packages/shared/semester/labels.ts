@@ -2,14 +2,6 @@ import type { SemesterTerm } from "../time";
 
 // Norwegian labels for the stored semester planning values, shared by the apps and the backend.
 
-export const EVENT_TYPES = [
-	"standard_presentation",
-	"large_presentation",
-	"workshop",
-	"social",
-] as const;
-export type EventType = (typeof EVENT_TYPES)[number];
-
 export const VENUES = ["campus", "own_premises", "undecided"] as const;
 /** Every venue an application can have: what Hugin offers, and Escape, which only Navet sets. */
 export const APPLICATION_VENUES = [...VENUES, "escape"] as const;

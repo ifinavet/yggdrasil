@@ -26,7 +26,7 @@ import type { FunctionReturnType } from "convex/server";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
-import { useEventProducts } from "@/components/products/event-type-name";
+import { useEventProducts } from "@/components/products/product-name";
 import { FoodItemSelect } from "./food/food-item-select";
 
 type PlanningData = FunctionReturnType<typeof api.events.planning.admin.get>;
@@ -84,7 +84,7 @@ export function EventPlanningPanel({ eventId }: Readonly<{ eventId: Id<"events">
 					{errors.length > 0 && (
 						<div
 							role="alert"
-							className="rounded-md border border-destructive p-3 text-destructive text-sm"
+							className="border-destructive text-destructive rounded-md border p-3 text-sm"
 						>
 							<p className="font-semibold">Oppfølging nødvendig</p>
 							<ul className="list-inside list-disc">
@@ -200,7 +200,7 @@ function Preparation({ data, onSaved }: Readonly<{ data: PlanningData; onSaved: 
 						<FieldLabel htmlFor="planning-package">Avtalt arrangementstype</FieldLabel>
 						<select
 							id="planning-package"
-							className="h-10 rounded-md border bg-background px-3"
+							className="bg-background h-10 rounded-md border px-3"
 							value={productId ?? ""}
 							onChange={(e) =>
 								setProductId(products.find((product) => product._id === e.target.value)?._id)
@@ -290,16 +290,16 @@ function Invitation({
 				))}
 			</dl>
 			<div className="rounded-lg border p-5">
-				<p className="whitespace-pre-line text-sm leading-relaxed">{body}</p>
-				<div className="mt-5 inline-block rounded-md bg-primary px-4 py-2 text-primary-foreground">
+				<p className="text-sm leading-relaxed whitespace-pre-line">{body}</p>
+				<div className="bg-primary text-primary-foreground mt-5 inline-block rounded-md px-4 py-2">
 					Planlegg bedriftspresentasjon
 				</div>
 				{signature && (
-					<p className="mt-5 whitespace-pre-line text-sm leading-relaxed">{signature}</p>
+					<p className="mt-5 text-sm leading-relaxed whitespace-pre-line">{signature}</p>
 				)}
 			</div>
 			{blockers.length > 0 && (
-				<ul role="alert" className="list-inside list-disc text-destructive text-sm">
+				<ul role="alert" className="text-destructive list-inside list-disc text-sm">
 					{blockers.map((blocker) => (
 						<li key={blocker}>{blocker}</li>
 					))}
@@ -379,7 +379,7 @@ function Review({ data, onDone }: Readonly<{ data: PlanningData; onDone: () => v
 			) : (
 				<>
 					<article className="space-y-4 rounded-lg border p-5">
-						<h2 className="font-bold text-2xl">{submission.draft.title}</h2>
+						<h2 className="text-2xl font-bold">{submission.draft.title}</h2>
 						<p className="font-medium">{submission.draft.teaser}</p>
 						<SafeHtml
 							html={submission.draft.description}

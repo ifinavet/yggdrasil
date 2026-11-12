@@ -2,11 +2,9 @@ import { defineTable } from "convex/server";
 import { v } from "convex/values";
 import { EMAIL_DELIVERY_STATUSES } from "../../lib/emailDelivery";
 import { oneOf } from "../../lib/validators";
-import { presentationEventType } from "../../semesterPlanning/schema";
 
 const answer = oneOf(["yes", "no", "unsure"]);
 export const answers = v.object({
-	requestedEventType: v.optional(presentationEventType),
 	requestedProductId: v.optional(v.id("products")),
 	title: v.string(),
 	teaser: v.string(),
@@ -29,7 +27,6 @@ export const preparation = {
 	contactName: v.string(),
 	contactEmail: v.string(),
 	signature: v.string(),
-	eventType: v.optional(presentationEventType),
 	productId: v.optional(v.id("products")),
 	answers,
 };

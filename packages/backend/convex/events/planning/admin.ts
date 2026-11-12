@@ -14,7 +14,6 @@ import { internalRoles, requireRole } from "../../auth/accessRights";
 import { isLocalDevelopment } from "../../auth/local";
 import { previousCompanyReport } from "../../companies/history";
 import { generateLinkToken, hashLinkToken } from "../../lib/tokens";
-import { productOf } from "../../products/helpers";
 import { countRegistrationsWithStatus } from "../helper";
 import { getOrganizers } from "../queries";
 import { queueEmail } from "./delivery";
@@ -30,7 +29,6 @@ import {
 	planningForEvent,
 	publicUrl,
 	requireEvent,
-	withRequestedProduct,
 } from "./helpers";
 import { notifyInvitationApproved, notifyPlanning } from "./notifications";
 import { answers, preparation } from "./schema";
@@ -102,19 +100,12 @@ export const get = query({
 			.take(20);
 		return {
 			planning,
-			initial: {
-				...initial,
-				productId: (await productOf(ctx, initial))?._id,
-				answers: await withRequestedProduct(ctx, initial.answers),
-			},
+			initial,
 			awaitingConfirmation:
 				planning?.status === "invited" &&
 				latestAnswer?.generation === planning.generation &&
 				latestAnswer?.status === "awaiting_email",
-			submission: submission && {
-				...submission,
-				draft: await withRequestedProduct(ctx, submission.draft),
-			},
+			submission,
 			event,
 			snapshot: eventSnapshot(event),
 			previousReport: await previousCompanyReport(ctx, event, event.eventStart),
@@ -154,10 +145,9 @@ export const savePreparation = mutation({
 		const changedContact =
 			planning.contactEmail !== fields.contactEmail.trim().toLowerCase() ||
 			planning.companyId !== event.hostingCompany ||
-			(await productOf(ctx, planning))?._id !== fields.productId;
+			planning.productId !== fields.productId;
 		await ctx.db.patch(planning._id, {
 			...fields,
-			eventType: undefined,
 			contactName: fields.contactName.trim(),
 			contactEmail: fields.contactEmail.trim().toLowerCase(),
 			answers: parsed,

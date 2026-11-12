@@ -9,6 +9,7 @@ import {
 	insertSemester,
 	insertUser,
 	refusalMessageFrom,
+	seededProductId,
 	setup,
 } from "../../../test/fixtures";
 import { api } from "../../_generated/api";
@@ -178,7 +179,7 @@ describe("listForSemester", () => {
 			const offer = {
 				applicationId: waiting,
 				date: "2027-02-09",
-				eventType: "standard_presentation" as const,
+				productId: await seededProductId(ctx, "regularEvent"),
 				maxStudents: 40,
 				sentBy: editor._id,
 			};
