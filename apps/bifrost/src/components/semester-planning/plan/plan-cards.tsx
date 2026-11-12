@@ -2,7 +2,7 @@ import { formatOrgNumber } from "@workspace/shared/semester/orgNumber";
 import { CompanyLogo } from "@workspace/ui/components/company-logo";
 import { cn } from "@workspace/ui/lib/utils";
 import { Lock } from "lucide-react";
-import { EventTypeName } from "@/components/products/event-type-name";
+import { ProductName } from "@/components/products/product-name";
 import type { PlanDay } from "./plan-days";
 import {
 	CompanyName,
@@ -35,7 +35,7 @@ export function PlanCards({
 									<CompanyLogo name={event.companyName} url={event.logoUrl ?? null} />
 									<EventTitle event={event} />
 								</div>
-								<div className="mt-0.5 text-[12.5px] text-muted-foreground">
+								<div className="text-muted-foreground mt-0.5 text-[12.5px]">
 									{event.companyName}
 								</div>
 								<div className="mt-1.5">
@@ -58,7 +58,7 @@ export function PlanCards({
 
 				if (day.kind !== "assigned") {
 					return (
-						<li key={day.date} className="flex items-center gap-3 px-4 py-2 text-muted-foreground">
+						<li key={day.date} className="text-muted-foreground flex items-center gap-3 px-4 py-2">
 							<DateTile date={day.date} muted />
 							{day.kind === "closed" ? (
 								<span className="inline-flex items-center gap-1.5">
@@ -88,8 +88,8 @@ export function PlanCards({
 								<CompanyLogo name={row.companyName} url={row.logoUrl ?? null} />
 								<CompanyName row={row} linkApplication={showContactDetails} stretched />
 							</div>
-							<div className="mt-0.5 text-[12.5px] text-muted-foreground">
-								<EventTypeName row={row} />
+							<div className="text-muted-foreground mt-0.5 text-[12.5px]">
+								<ProductName row={row} />
 								{details && ` · ${formatOrgNumber(details.orgNumber)}`}
 							</div>
 							<div className="mt-1.5">

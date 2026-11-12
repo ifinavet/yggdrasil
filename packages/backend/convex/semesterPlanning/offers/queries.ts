@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { internalQuery, query } from "../../_generated/server";
 import { isActiveApplicationStatus } from "../rules";
-import { presentationEventType, venue } from "../schema";
+import { venue } from "../schema";
 import { requireSemester } from "../semesters/helper";
 import { findOfferByToken, requestableDates } from "./helper";
 
@@ -30,8 +30,7 @@ export const getByToken = query({
 			),
 			companyName: v.string(),
 			date: v.string(),
-			eventType: v.optional(presentationEventType),
-			productId: v.optional(v.id("products")),
+			productId: v.id("products"),
 			maxStudents: v.number(),
 			venue,
 			termsUrl: v.optional(v.string()),
@@ -62,7 +61,6 @@ export const getByToken = query({
 			state,
 			companyName: application.registry.name,
 			date: offer.date,
-			eventType: offer.eventType,
 			productId: offer.productId,
 			maxStudents: offer.maxStudents,
 			venue: application.venue,
