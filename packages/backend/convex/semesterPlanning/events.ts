@@ -332,8 +332,8 @@ export async function setApplicationTeam(
 
 /**
  * Brings the application an event was made from in line with the event after the event editor
- * saved it: the day the event starts, with the invoice, and its organizers. Nothing happens for an
- * event without a live application.
+ * saved it: the day the event starts, with the invoice, its organizers and its product.
+ * Nothing happens for an event without a live application.
  *
  * @param {MutationCtx} ctx - The Convex mutation context.
  * @param {Id<"events">} eventId - The event just saved.
@@ -358,7 +358,7 @@ export async function syncApplicationWithEvent(
 		} catch (error) {
 			if (!(error instanceof ConvexError)) throw error;
 			throw new ConvexError(
-				`Arrangementet er bedriftspresentasjonen til ${application.registry.name} i semesterplanen, og datoen må passe der. ${error.data}`,
+				`Arrangementet hører til søknaden fra ${application.registry.name} i semesterplanen, og datoen må passe der. ${error.data}`,
 			);
 		}
 		await recordNewEventDate(ctx, application, event.eventStart, actor);
@@ -369,6 +369,7 @@ export async function syncApplicationWithEvent(
 		application.responsibleUserId,
 	);
 	await ctx.db.patch(application._id, {
+		productId: event.product?.productId ?? application.productId,
 		responsibleUserId: team.responsibleUserId,
 		orgResponsibleUserId: team.orgResponsibleUserId,
 		helperUserIds: team.helperUserIds.length ? team.helperUserIds : undefined,

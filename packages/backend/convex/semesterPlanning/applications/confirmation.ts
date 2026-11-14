@@ -26,7 +26,7 @@ import {
 	validEmailToken,
 } from "../../lib/emailConfirmation";
 import { hashLinkToken } from "../../lib/tokens";
-import { productOf } from "../../products/helpers";
+import { getProductOrThrow } from "../../products/helpers";
 import { logApplicationActivity } from "../applicationLifecycle";
 import { CONSENT_VERSION, FORM_VERSION } from "../rules";
 import { applicationForm, brregSnapshotAtSubmission, venue, wantsToUseEscape } from "../schema";
@@ -327,20 +327,19 @@ async function receiveApplication(
 	});
 
 	await logApplicationActivity(ctx, applicationId, "submitted", { type: "company" });
-	const product = await productOf(ctx, answers);
-	const productName = product?.name ?? "Bedriftsarrangement";
+	const product = await getProductOrThrow(ctx, answers.productId);
 	const companyName = pending.registry.name;
 	await ctx.scheduler.runAfter(0, internal.iam.notifications.sendMessage, {
 		channel: SYSTEM_ALERTS_CHANNEL,
 		clientMsgId: `bedpres-order-${applicationId}`,
 		text: formatOrderAlert({
 			company: companyName,
-			type: productName,
-			title: `${productName} med ${companyName}`,
+			type: product.name,
+			title: `${product.name} med ${companyName}`,
 			additionalNotes: [answers.description.trim(), answers.additionalInfo?.trim()]
 				.filter(Boolean)
 				.join("\n"),
-			estimatedRevenueOre: product?.unitPriceOre,
+			estimatedRevenueOre: product.unitPriceOre,
 			url: `${BIFROST_URL}/semesterplan/soknad/${applicationId}`,
 		}),
 	});

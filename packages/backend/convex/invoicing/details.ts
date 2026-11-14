@@ -35,7 +35,7 @@ export async function resolveInvoice(
 					billingDetails: order.billing?.address ?? company.billing?.address,
 					ehfInvoice: order.ehfInvoice,
 				},
-				invoiceText: `Stillingsannonser, bestilling ${order.reference}`,
+				invoiceText: `${order.productName}, bestilling ${order.reference}`,
 				yourReference: order.billing?.reference || company.billing?.reference,
 				comment: order.note?.trim() || undefined,
 				line: {
