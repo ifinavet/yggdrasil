@@ -4,7 +4,7 @@ import { ConvexError, type Infer, v } from "convex/values";
 import type { Doc, Id } from "../../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../../_generated/server";
 import { internalRoles, userHasRole } from "../../auth/accessRights";
-import { applicationStatus, presentationEventType } from "../schema";
+import { applicationStatus } from "../schema";
 
 /**
  * Reads an application or throws a Norwegian not-found error.
@@ -52,8 +52,7 @@ export const planRowValidator = v.object({
 	assignedDate: v.optional(v.string()),
 	companyName: v.string(),
 	logoUrl: v.optional(v.string()),
-	eventType: v.optional(presentationEventType),
-	productId: v.optional(v.id("products")),
+	productId: v.id("products"),
 	maxStudents: v.number(),
 	responsibleUserId: v.optional(v.id("users")),
 	responsibleName: v.optional(v.string()),
@@ -257,7 +256,6 @@ export function toPlanRow(
 		...(application.assignedDate ? { assignedDate: application.assignedDate } : {}),
 		companyName: application.registry.name,
 		...(logoUrl ? { logoUrl } : {}),
-		eventType: application.eventType,
 		productId: application.productId,
 		maxStudents: application.maxStudents,
 		...(responsible

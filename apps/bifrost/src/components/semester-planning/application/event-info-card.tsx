@@ -5,7 +5,7 @@ import {
 } from "@workspace/shared/semester/labels";
 import { Panel, PanelBody } from "@workspace/ui/components/products/panel";
 import type { ReactNode } from "react";
-import { EventTypeName } from "@/components/products/event-type-name";
+import { ProductName } from "@/components/products/product-name";
 import { studentRange } from "../format";
 import { EditEventInfo } from "./edit-details";
 import type { Application } from "./model";
@@ -19,7 +19,7 @@ export function EventInfoCard({ application }: Readonly<{ application: Applicati
 	const audience = [...application.targetDegrees, ...application.targetStudyPrograms];
 
 	const items: [string, ReactNode][] = [
-		["Type", <EventTypeName key="type" row={application} />],
+		["Type", <ProductName key="type" row={application} />],
 		["Studenter", studentRange(application.minStudents, application.maxStudents)],
 		["Sted", VENUE_LABELS[application.venue]],
 		["Escape", ESCAPE_LABELS[application.wantsToUseEscape]],
@@ -34,7 +34,7 @@ export function EventInfoCard({ application }: Readonly<{ application: Applicati
 	return (
 		<Panel title="Søknaden" aside={<EditEventInfo application={application} />}>
 			<PanelBody>
-				<p className="whitespace-pre-line break-words text-[15px] leading-relaxed">
+				<p className="text-[15px] leading-relaxed break-words whitespace-pre-line">
 					{application.description}
 				</p>
 				<div className="mt-4 border-t pt-4">
@@ -43,7 +43,7 @@ export function EventInfoCard({ application }: Readonly<{ application: Applicati
 				{application.additionalInfo && (
 					<div className="mt-3 text-[13.5px]">
 						<p className="font-medium">Annet fra bedriften</p>
-						<p className="mt-1 whitespace-pre-line break-words text-muted-foreground">
+						<p className="text-muted-foreground mt-1 break-words whitespace-pre-line">
 							{application.additionalInfo}
 						</p>
 					</div>

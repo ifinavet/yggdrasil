@@ -13,6 +13,7 @@ import {
 	insertSemester,
 	insertUser,
 	refusalMessageFrom,
+	seededProductId,
 	setup,
 	type TestBackend,
 } from "../../../test/fixtures";
@@ -772,7 +773,7 @@ describe("deleteSemester", () => {
 			await ctx.db.insert("companyApplicationOffers", {
 				applicationId,
 				date: "2027-02-09",
-				eventType: "standard_presentation",
+				productId: await seededProductId(ctx, "regularEvent"),
 				maxStudents: 40,
 				linkToken: "offer-token",
 				sentAt: Date.now(),
@@ -790,7 +791,7 @@ describe("deleteSemester", () => {
 				form: {
 					orgNumber: "924773189",
 					contact: { name: "Ingrid Solberg", email: "ingrid@fjordkode.no", phone: "+4741234567" },
-					eventType: "standard_presentation",
+					productId: await seededProductId(ctx, "regularEvent"),
 					minStudents: 25,
 					maxStudents: 40,
 					description: "Presentasjon og kodeoppgave.",

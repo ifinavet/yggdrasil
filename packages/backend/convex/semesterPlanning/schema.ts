@@ -2,7 +2,6 @@ import {
 	APPLICATION_STATUSES,
 	APPLICATION_VENUES,
 	ESCAPE_ANSWERS,
-	EVENT_TYPES,
 	FOOD_PURCHASERS,
 } from "@workspace/shared/semester/labels";
 import { SEMESTER_TERMS } from "@workspace/shared/time";
@@ -25,8 +24,6 @@ export const applicationPeriodStatus = v.union(
 );
 
 export const applicationStatus = oneOf(APPLICATION_STATUSES);
-
-export const presentationEventType = oneOf(EVENT_TYPES);
 
 export const venue = oneOf(APPLICATION_VENUES);
 
@@ -108,8 +105,7 @@ export const applicationBilling = v.object({
 export const applicationForm = v.object({
 	orgNumber: v.string(),
 	contact: applicationContact,
-	eventType: v.optional(presentationEventType),
-	productId: v.optional(v.id("products")),
+	productId: v.id("products"),
 	minStudents: v.number(),
 	maxStudents: v.number(),
 	description: v.string(),
@@ -176,8 +172,7 @@ export const semesterPlanningSchema = {
 		orgNumber: v.string(),
 		registry: brregSnapshotAtSubmission,
 		contact: applicationContact,
-		eventType: v.optional(presentationEventType),
-		productId: v.optional(v.id("products")),
+		productId: v.id("products"),
 		minStudents: v.number(),
 		maxStudents: v.number(),
 		description: v.string(),
@@ -218,8 +213,7 @@ export const semesterPlanningSchema = {
 	companyApplicationOffers: defineTable({
 		applicationId: v.id("companyApplications"),
 		date: v.string(),
-		eventType: v.optional(presentationEventType),
-		productId: v.optional(v.id("products")),
+		productId: v.id("products"),
 		maxStudents: v.number(),
 		// The token in the offer link that is emailed to the company; only editors can read it.
 		linkToken: v.string(),

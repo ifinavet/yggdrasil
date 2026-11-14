@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { insertApplication, insertSemester, insertUser, setup } from "../../../test/fixtures";
+import {
+	insertApplication,
+	insertSemester,
+	insertUser,
+	productIdOf,
+	setup,
+} from "../../../test/fixtures";
 import { supersedePendingOffers } from "./helper";
 
 describe("supersedePendingOffers", () => {
@@ -12,7 +18,7 @@ describe("supersedePendingOffers", () => {
 		const offerFields = {
 			applicationId,
 			date: "2027-02-09",
-			eventType: "standard_presentation" as const,
+			productId: await productIdOf(t, "regularEvent"),
 			maxStudents: 40,
 			sentAt: Date.now(),
 			sentBy: editor._id,

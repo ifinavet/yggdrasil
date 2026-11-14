@@ -39,7 +39,7 @@ async function offerSetup() {
 		}
 	});
 	const applicationId = await insertApplication(t, semesterId, { assignedDate: "2027-02-09" });
-	await productIdOf(t, "standard_presentation");
+	await productIdOf(t, "regularEvent");
 	return { t, semesterId, applicationId, editorUser, editor: asUser(t, editorUser) };
 }
 
@@ -85,7 +85,7 @@ describe("send", () => {
 
 	it("makes an offer and emails its link to the company", async () => {
 		const { t, applicationId, editor, editorUser } = await offerSetup();
-		const productId = await productIdOf(t, "standard_presentation");
+		const productId = await productIdOf(t, "regularEvent");
 
 		const { offerId, linkToken: token } = await editor.mutation(offers.mutations.sendOffer, {
 			applicationId,

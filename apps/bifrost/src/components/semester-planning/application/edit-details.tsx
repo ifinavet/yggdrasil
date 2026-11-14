@@ -40,7 +40,7 @@ import type { FunctionArgs } from "convex/server";
 import { Pencil } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { toast } from "sonner";
-import { useEventProducts } from "@/components/products/event-type-name";
+import { useEventProducts } from "@/components/products/product-name";
 import type { Application } from "./model";
 
 type Details = FunctionArgs<

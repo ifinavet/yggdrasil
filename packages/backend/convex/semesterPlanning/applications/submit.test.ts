@@ -1,6 +1,5 @@
 import { HUGIN_URL } from "@workspace/shared/constants";
 import { formatNokFromOre } from "@workspace/shared/products";
-import type { EventType } from "@workspace/shared/semester/labels";
 import { SYSTEM_ALERTS_CHANNEL } from "@workspace/shared/slack/channels";
 import { osloToday } from "@workspace/shared/time";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -29,11 +28,13 @@ const confirmation = api.semesterPlanning.applications.confirmation;
 
 type Form = Parameters<TestBackend["action"]>[1] extends infer _ ? Record<string, unknown> : never;
 
+type ProductKey = Parameters<typeof productIdOf>[1];
+
 function validForm(overrides: Record<string, unknown> = {}) {
 	return {
 		orgNumber: VALID_ORG_NUMBER,
 		contact: { name: "Ingrid Solberg", email: "ingrid@fjordkode.no", phone: "+47 412 34 567" },
-		eventType: "standard_presentation" as const,
+		product: "regularEvent",
 		minStudents: 25,
 		maxStudents: 40,
 		description: "Presentasjon og kodeoppgave i grupper.",
@@ -116,11 +117,11 @@ async function submitWith(
 ) {
 	stubRegistries(stubs);
 	const spy = sentEmails();
-	const { eventType, ...answers } = form;
+	const { product, ...answers } = form;
 	const result = await t.action(submit, {
 		semesterId: semesterId ?? (await chosenSemesterId(t)),
 		// biome-ignore lint/suspicious/noExplicitAny: the refusal cases deliberately send invalid forms.
-		form: { ...answers, productId: await productIdOf(t, eventType as EventType) } as any,
+		form: { ...answers, productId: await productIdOf(t, product as ProductKey) } as any,
 		submissionId,
 		...(website !== undefined ? { website } : {}),
 	});
@@ -147,7 +148,6 @@ describe("submit", () => {
 				shortDescription: "",
 				longDescription: "",
 				category: "event",
-				eventType: "standard_presentation",
 				unitPriceOre: 3_000_000,
 				vatRate: 25,
 				sortOrder: 0,
@@ -308,7 +308,7 @@ describe("submit", () => {
 		await withOpenSemester(t);
 
 		await submitWith(t);
-		await submitWith(t, { form: validForm({ eventType: "workshop", maxStudents: 30 }) });
+		await submitWith(t, { form: validForm({ product: "academicEvent", maxStudents: 30 }) });
 
 		expect(await applications(t)).toHaveLength(2);
 	});
@@ -317,11 +317,12 @@ describe("submit", () => {
 		const { t } = await setup();
 		await withOpenSemester(t);
 		const calls = stubRegistries();
+		const { product: _, ...honeypotForm } = validForm();
 
 		expect(
 			await t.action(submit, {
 				semesterId: await chosenSemesterId(t),
-				form: validForm(),
+				form: { ...honeypotForm, productId: await productIdOf(t, "regularEvent") },
 				submissionId: nextSubmissionId(),
 				website: "http://spam",
 			}),
@@ -545,7 +546,7 @@ describe("confirmation by email", () => {
 			state: "confirmed",
 			receipt: {
 				company: { name: "FJORDKODE AS", orgNumber: VALID_ORG_NUMBER },
-				productId: await productIdOf(t, "standard_presentation"),
+				productId: await productIdOf(t, "regularEvent"),
 				minStudents: 25,
 				maxStudents: 40,
 				availableDates: ["2027-02-09", "2027-02-16"],

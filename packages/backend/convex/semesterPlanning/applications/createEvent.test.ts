@@ -144,7 +144,6 @@ it("freezes the product price and VAT when a semester application creates its ev
 		ctx.db.insert("products", {
 			name: "Presentation",
 			category: "event",
-			eventType: "standard_presentation",
 			shortDescription: "",
 			longDescription: "",
 			unitPriceOre: 300000,
@@ -153,6 +152,7 @@ it("freezes the product price and VAT when a semester application creates its ev
 			sortOrder: 0,
 		}),
 	);
+	await t.run((ctx) => ctx.db.patch(applicationId, { productId }));
 	const eventId = await editor.mutation(createEvent, { applicationId });
 	expect((await eventById(t, eventId))?.product).toMatchObject({
 		productId,

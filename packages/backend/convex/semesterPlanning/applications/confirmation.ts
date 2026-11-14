@@ -29,13 +29,7 @@ import { hashLinkToken } from "../../lib/tokens";
 import { productOf } from "../../products/helpers";
 import { logApplicationActivity } from "../applicationLifecycle";
 import { CONSENT_VERSION, FORM_VERSION } from "../rules";
-import {
-	applicationForm,
-	brregSnapshotAtSubmission,
-	presentationEventType,
-	venue,
-	wantsToUseEscape,
-} from "../schema";
+import { applicationForm, brregSnapshotAtSubmission, venue, wantsToUseEscape } from "../schema";
 import { acceptsApplications, listSemesterDates } from "../semesters/helper";
 
 // An application from Hugin is only received once the contact person confirms it from the email:
@@ -231,8 +225,7 @@ async function openLink(ctx: QueryCtx, token: string, now: number) {
 
 const receipt = v.object({
 	company: v.object({ name: v.string(), orgNumber: v.string() }),
-	eventType: v.optional(presentationEventType),
-	productId: v.optional(v.id("products")),
+	productId: v.id("products"),
 	minStudents: v.number(),
 	maxStudents: v.number(),
 	availableDates: v.array(v.string()),
@@ -255,7 +248,6 @@ async function receiptFor(
 	const deadline = semester?.applicationDeadline;
 	return {
 		company: { name: pending.registry.name, orgNumber: form.orgNumber },
-		eventType: form.eventType,
 		productId: form.productId,
 		minStudents: form.minStudents,
 		maxStudents: form.maxStudents,

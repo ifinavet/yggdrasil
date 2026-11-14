@@ -1,5 +1,4 @@
 import { productInputSchema, type ValidProductInput } from "@workspace/shared/products";
-import type { EventType } from "@workspace/shared/semester/labels";
 import { ConvexError } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
@@ -54,15 +53,9 @@ export async function getProductOrThrow(
 
 export async function productOf(
 	ctx: QueryCtx,
-	row: { productId?: Id<"products">; eventType?: EventType },
+	row: { productId?: Id<"products"> },
 ): Promise<Doc<"products"> | null> {
-	if (row.productId) return await ctx.db.get(row.productId);
-	const { eventType } = row;
-	if (!eventType) return null;
-	return await ctx.db
-		.query("products")
-		.withIndex("by_eventType_and_active", (q) => q.eq("eventType", eventType))
-		.unique();
+	return row.productId ? await ctx.db.get(row.productId) : null;
 }
 
 export async function requireUniqueName(

@@ -164,26 +164,16 @@ export async function ensurePlanning(ctx: MutationCtx, event: Doc<"events">) {
 }
 export async function capacityLimit(
 	ctx: QueryCtx,
-	planning: Pick<Doc<"eventPlanning">, "productId" | "eventType">,
+	planning: Pick<Doc<"eventPlanning">, "productId">,
 ) {
 	return (await productOf(ctx, planning))?.maxStudents ?? 1000;
 }
-type Answers = Doc<"eventPlanning">["answers"];
-export async function withRequestedProduct(ctx: QueryCtx, answers: Answers): Promise<Answers> {
-	const { requestedEventType, ...rest } = answers;
-	const product = await productOf(ctx, {
-		productId: answers.requestedProductId,
-		eventType: requestedEventType,
-	});
-	return product ? { ...rest, requestedProductId: product._id } : answers;
-}
 export async function parseAnswers(
 	ctx: QueryCtx,
-	planning: Pick<Doc<"eventPlanning">, "productId" | "eventType">,
+	planning: Pick<Doc<"eventPlanning">, "productId">,
 	event: Doc<"events">,
-	input: Answers,
+	answers: Doc<"eventPlanning">["answers"],
 ) {
-	const answers = await withRequestedProduct(ctx, input);
 	const parsed = planningFormSchema(await capacityLimit(ctx, planning)).safeParse(answers);
 	if (!parsed.success)
 		throw new ConvexError(parsed.error.issues[0]?.message ?? "Kontroller opplysningene.");
@@ -195,7 +185,6 @@ export async function parseAnswers(
 	return {
 		...parsed.data,
 		requestedProductId: parsed.data.requestedProductId as Id<"products"> | undefined,
-		requestedEventType: answers.requestedEventType,
 		ageRestriction: AGE_BY_ALCOHOL[parsed.data.alcohol],
 		description: sanitizeRichText(parsed.data.description),
 	};
@@ -224,7 +213,7 @@ export async function invitationPreview(
 			? ["Velg hovedansvarlig og medhjelper med gyldige e-postadresser på arrangementet."]
 			: []),
 		...(!planning.signature.trim() ? ["Fyll inn arrangørens signatur."] : []),
-		...(!planning.productId && !planning.eventType ? ["Bekreft avtalt arrangementstype."] : []),
+		...(!planning.productId ? ["Bekreft avtalt arrangementstype."] : []),
 		...(planning.companyId !== event.hostingCompany
 			? ["Bedriften er endret. Klargjør opplysningene på nytt."]
 			: []),
@@ -267,12 +256,12 @@ export async function planningByToken(ctx: QueryCtx, token: string) {
 }
 export async function companyView(
 	ctx: QueryCtx,
-	planning: Pick<Doc<"eventPlanning">, "companyId" | "productId" | "eventType">,
+	planning: Pick<Doc<"eventPlanning">, "companyId" | "productId">,
 ) {
 	const company = await ctx.db.get(planning.companyId);
 	return {
 		companyName: company?.name ?? "",
-		productId: (await productOf(ctx, planning))?._id,
+		productId: planning.productId,
 		logoUrl: company ? await findCompanyLogoUrl(ctx, company._id) : null,
 	};
 }

@@ -283,7 +283,6 @@ describe("company application saved draft", () => {
 							description: "Presentasjon",
 							availableDates: "2027-01-28",
 							company: { name: "Uten org.nr." },
-							eventType: "picnic",
 							contact: { name: "Ingrid", email: 42 },
 							minStudents: "20",
 						},
@@ -337,12 +336,6 @@ describe("company application prices", () => {
 		expect(
 			eventTypeDescription({ maxStudents: 40, unitPriceOre: 3_000_000 }).replace(/\s/g, " "),
 		).toBe("Inntil 40 studenter · 30 000 kr eks. mva.");
-	});
-
-	it("drops the event type of an old draft, so the company picks a product", () => {
-		const draft = applicationDraftSchema.parse({ eventType: "workshop" });
-		expect(draft).not.toHaveProperty("eventType");
-		expect(draftErrors(draft).productId).toBe("Velg hva slags arrangement dere ønsker.");
 	});
 
 	it("asks again when the chosen product is no longer offered", () => {

@@ -17,7 +17,7 @@ function row(id: string, overrides: Partial<PlanRow> = {}): PlanRow {
 		_id: id as Id<"companyApplications">,
 		status: "applied",
 		companyName: `Bedrift ${id}`,
-		eventType: "standard_presentation",
+		productId: "product" as Id<"products">,
 		maxStudents: 40,
 		helpers: [],
 		...overrides,

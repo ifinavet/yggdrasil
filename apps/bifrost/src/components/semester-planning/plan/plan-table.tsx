@@ -4,7 +4,7 @@ import { cn } from "@workspace/ui/lib/utils";
 import { Lock } from "lucide-react";
 import { Fragment } from "react";
 import { LIST_HEAD } from "@/components/common/table-classes";
-import { EventTypeName } from "@/components/products/event-type-name";
+import { ProductName } from "@/components/products/product-name";
 import { monthLabel } from "../format";
 import type { PlanDay } from "./plan-days";
 import {
@@ -56,7 +56,7 @@ export function PlanTable({
 							<th
 								colSpan={columns}
 								scope="colgroup"
-								className="border-t bg-muted/50 px-4 py-1.5 text-left font-semibold text-[12px] text-muted-foreground uppercase tracking-wide"
+								className="bg-muted/50 text-muted-foreground border-t px-4 py-1.5 text-left text-[12px] font-semibold tracking-wide uppercase"
 							>
 								{month}
 							</th>
@@ -77,7 +77,7 @@ export function PlanTable({
 											<CompanyLogo name={event.companyName} url={event.logoUrl ?? null} />
 											<div className="min-w-0">
 												<EventTitle event={event} />
-												<div className="mt-0.5 text-[12.5px] text-muted-foreground">
+												<div className="text-muted-foreground mt-0.5 text-[12.5px]">
 													{event.companyName}
 												</div>
 											</div>
@@ -141,7 +141,7 @@ export function PlanTable({
 					return (
 						<Fragment key={day.date}>
 							{monthRow}
-							<tr onClick={open} className={cn(open && "cursor-pointer hover:bg-muted/50")}>
+							<tr onClick={open} className={cn(open && "hover:bg-muted/50 cursor-pointer")}>
 								<td className="border-t py-3 pl-4">
 									<DateTile date={day.date} />
 								</td>
@@ -150,8 +150,8 @@ export function PlanTable({
 										<CompanyLogo name={row.companyName} url={row.logoUrl ?? null} />
 										<div className="min-w-0">
 											<CompanyName row={row} linkApplication={showContactDetails} />
-											<div className="mt-0.5 text-[12.5px] text-muted-foreground">
-												<EventTypeName row={row} />
+											<div className="text-muted-foreground mt-0.5 text-[12.5px]">
+												<ProductName row={row} />
 												{details && ` · ${formatOrgNumber(details.orgNumber)}`}
 											</div>
 										</div>
@@ -165,7 +165,7 @@ export function PlanTable({
 										{details && (
 											<>
 												{details.contact.name}
-												<div className="text-[12.5px] text-muted-foreground">
+												<div className="text-muted-foreground text-[12.5px]">
 													{details.contact.email}
 												</div>
 											</>
