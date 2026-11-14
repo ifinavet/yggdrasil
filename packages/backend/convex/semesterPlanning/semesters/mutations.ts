@@ -1,6 +1,10 @@
 import { CONFIRM_EMAIL_LIMITS } from "@workspace/shared/semester/confirm-email";
 import { semesterName } from "@workspace/shared/semester/labels";
-import { MAX_SEMESTER_YEAR, MIN_SEMESTER_YEAR } from "@workspace/shared/semester/limits";
+import {
+	MAX_SEMESTER_YEAR,
+	MAX_TERMS_FILE_BYTES,
+	MIN_SEMESTER_YEAR,
+} from "@workspace/shared/semester/limits";
 import {
 	isClockTime,
 	isIsoDate,
@@ -518,5 +522,53 @@ export const rolloverSemesters = internalMutation({
 		await Promise.all(finished.map((semester) => ctx.db.patch(semester._id, { status: "closed" })));
 
 		return { createdSemesterIds, closedSemesters: finished.length };
+	},
+});
+
+/**
+ * Where Bifrost uploads a semester's standard terms PDF before saving it with `setTermsFile`.
+ *
+ * @throws - An error if the caller is not an editor.
+ * @returns {string} - A one-time upload address.
+ */
+export const generateTermsUploadUrl = mutation({
+	args: {},
+	returns: v.string(),
+	handler: async (ctx) => {
+		await requireRole(ctx, editorRoles);
+		return await ctx.storage.generateUploadUrl();
+	},
+});
+
+/**
+ * Sets the semester's standard terms to an uploaded PDF, shown to companies in Hugin, or removes
+ * them with null. The previous file is kept, since a newer semester may have inherited it.
+ *
+ * @param {Id<"semesters">} semesterId - The semester.
+ * @param {Id<"_storage"> | null} fileId - The uploaded PDF, or null.
+ *
+ * @throws - An error if the caller is not an editor, the semester is closed, or the file is not a
+ * PDF within the size limit.
+ * @returns {null} - Returns null when the terms are saved.
+ */
+export const setTermsFile = mutation({
+	args: { semesterId: v.id("semesters"), fileId: v.union(v.id("_storage"), v.null()) },
+	returns: v.null(),
+	handler: async (ctx, { semesterId, fileId }) => {
+		await requireRole(ctx, editorRoles);
+		const semester = await requireSemester(ctx, semesterId);
+		refuseIfSemesterClosed(semester);
+
+		if (fileId) {
+			const file = await ctx.db.system.get(fileId);
+			const notPdf = file?.contentType !== undefined && file.contentType !== "application/pdf";
+			if (!file || notPdf || file.size > MAX_TERMS_FILE_BYTES) {
+				throw new ConvexError(
+					`Standardvilkårene må være en PDF på høyst ${MAX_TERMS_FILE_BYTES / 1024 / 1024} MB.`,
+				);
+			}
+		}
+		await ctx.db.patch(semesterId, { termsFileId: fileId ?? undefined });
+		return null;
 	},
 });

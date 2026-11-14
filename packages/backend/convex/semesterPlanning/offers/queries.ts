@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { internalQuery, query } from "../../_generated/server";
 import { isActiveApplicationStatus } from "../rules";
 import { presentationEventType, venue } from "../schema";
-import { requireSemester } from "../semesters/helper";
+import { requireSemester, termsLink } from "../semesters/helper";
 import { findOfferByToken, requestableDates } from "./helper";
 
 /**
@@ -66,7 +66,7 @@ export const getByToken = query({
 			productId: offer.productId,
 			maxStudents: offer.maxStudents,
 			venue: application.venue,
-			...(semester.termsUrl ? { termsUrl: semester.termsUrl } : {}),
+			...(termsLink(semester) ? { termsUrl: termsLink(semester) } : {}),
 			...(offer.respondedAt ? { respondedAt: offer.respondedAt } : {}),
 			...(offer.requestedDates ? { requestedDates: offer.requestedDates } : {}),
 			...(openDates ? { openDates } : {}),

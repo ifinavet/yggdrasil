@@ -937,6 +937,7 @@ describe("queries", () => {
 	it("listOpenForApplications returns only open dates and needs no login", async () => {
 		const { t } = await setup();
 		const semesterId = await insertSemester(t, { status: "open", infoText: "Hei" });
+		// The information text is no longer shown to companies, so it is left out.
 		await t.run(async (ctx) => {
 			await ctx.db.insert("semesterDates", {
 				semesterId,
@@ -954,7 +955,6 @@ describe("queries", () => {
 			year: 2027,
 			term: "spring",
 			applicationDeadline: "2026-12-04",
-			infoText: "Hei",
 			dates: ["2027-01-21"],
 		});
 	});
@@ -1058,5 +1058,55 @@ describe("queries", () => {
 			"autumn 2026",
 			"spring 2026",
 		]);
+	});
+});
+
+describe("setTermsFile", () => {
+	async function storeFile(t: TestBackend, type: string) {
+		return await t.run((ctx) => ctx.storage.store(new Blob(["%PDF-1.7"], { type })));
+	}
+
+	it("shows an uploaded PDF in Hugin instead of the old link, and a new semester inherits it", async () => {
+		const { t } = await setup();
+		const semesterId = await insertSemester(t, {
+			year: 2027,
+			term: "spring",
+			status: "open",
+			applicationDeadline: "2099-01-01",
+			termsUrl: `${MIDGARD_URL}/vilkar`,
+		});
+		const fileId = await storeFile(t, "application/pdf");
+		const editor = await editorOf(t);
+
+		await editor.mutation(mutations.setTermsFile, { semesterId, fileId });
+
+		const [open] = await t.query(queries.listOpenForApplications, {});
+		expect(open?.termsUrl).toMatch(new RegExp(`/bestill-bedpres/vilkar/${semesterId}$`));
+		expect(await t.query(queries.terms, { semesterId })).toMatchObject({ name: "Våren 2027" });
+
+		const nextId = await editor.mutation(mutations.create, { year: 2027, term: "autumn" });
+		expect((await semesterById(t, nextId)).termsFileId).toBe(fileId);
+
+		await editor.mutation(mutations.setTermsFile, { semesterId, fileId: null });
+		expect(await t.query(queries.terms, { semesterId })).toBeNull();
+		const [withLink] = await t.query(queries.listOpenForApplications, {});
+		expect(withLink?.termsUrl).toBe(`${MIDGARD_URL}/vilkar`);
+	});
+
+	it("refuses a file over the size limit", async () => {
+		const { t } = await setup();
+		const semesterId = await insertSemester(t, { status: "draft" });
+		const fileId = await t.run((ctx) =>
+			ctx.storage.store(
+				new Blob([new Uint8Array(10 * 1024 * 1024 + 1)], { type: "application/pdf" }),
+			),
+		);
+
+		expect(
+			await refusalMessageFrom(
+				(await editorOf(t)).mutation(mutations.setTermsFile, { semesterId, fileId }),
+			),
+		).toBe("Standardvilkårene må være en PDF på høyst 10 MB.");
+		expect((await semesterById(t, semesterId)).termsFileId).toBeUndefined();
 	});
 });
