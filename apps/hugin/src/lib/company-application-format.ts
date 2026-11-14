@@ -87,14 +87,14 @@ export function billingLines(billing: {
 	].filter((line): line is string => Boolean(line));
 }
 
-export function eventTypeDescription(product: {
+export function productDescription(product: {
 	maxStudents?: number;
 	unitPriceOre?: number;
 }): string {
 	const size =
 		product.maxStudents === undefined
-			? COPY.eventType.uncapped
-			: COPY.eventType.capped(product.maxStudents);
+			? COPY.product.uncapped
+			: COPY.product.capped(product.maxStudents);
 	if (product.unitPriceOre === undefined) return size;
-	return `${size} · ${COPY.eventType.price(formatNok(oreToKroner(product.unitPriceOre)))}`;
+	return `${size} · ${COPY.product.price(formatNok(oreToKroner(product.unitPriceOre)))}`;
 }

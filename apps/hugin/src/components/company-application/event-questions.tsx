@@ -2,7 +2,7 @@ import { CharacterCount } from "@workspace/ui/components/character-count";
 import { ChoiceGroup } from "@workspace/ui/components/choice-group";
 import { fieldErrorText, questionIds } from "@/components/input-cards/question-block";
 import { TEXT_LIMITS } from "@/lib/company-application";
-import { eventTypeDescription } from "@/lib/company-application-format";
+import { productDescription } from "@/lib/company-application-format";
 import { COMPANY_APPLICATION_COPY as COPY } from "@/lib/company-application-questions";
 import {
 	ApplicationQuestion,
@@ -13,7 +13,7 @@ import {
 } from "./application-question";
 import type { ApplicationFormApi } from "./use-application-form";
 
-/** «Arrangementet»: the event type, the number of students and the description. */
+/** «Arrangementet»: the product, the number of students and the description. */
 export function EventQuestions({
 	form,
 	products,
@@ -29,13 +29,13 @@ export function EventQuestions({
 				{(field) => {
 					const error = fieldErrorText(field);
 					return (
-						<ApplicationQuestion name="productId" label={COPY.eventType.label} error={error}>
+						<ApplicationQuestion name="productId" label={COPY.product.label} error={error}>
 							<ChoiceGroup
 								name="productId"
 								options={products.map((product) => ({
 									value: product._id,
 									label: product.name,
-									description: eventTypeDescription(product),
+									description: productDescription(product),
 								}))}
 								value={field.state.value}
 								onChange={field.handleChange}
