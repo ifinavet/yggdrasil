@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
 	asUser,
 	grantRole,
@@ -245,6 +245,27 @@ describe("products", () => {
 			SEED_PRODUCTS.map((product) => product.name),
 		);
 		expect(await admin.mutation(api.products.mutations.setup, {})).toEqual([]);
+	});
+
+	it("clears the old event type the first time an admin opens the products page", async () => {
+		vi.useFakeTimers();
+		const { t, admin } = await fixture();
+		await t.mutation(internal.products.seed.seedProducts, {});
+		await t.run(async (ctx) => {
+			for (const product of await ctx.db.query("products").collect()) {
+				await ctx.db.patch(product._id, { eventType: "workshop" });
+			}
+		});
+
+		expect(await admin.mutation(api.products.mutations.setup, {})).toEqual([]);
+		await t.finishAllScheduledFunctions(vi.runAllTimers);
+		expect(await admin.mutation(api.products.mutations.setup, {})).toEqual([]);
+		await t.finishAllScheduledFunctions(vi.runAllTimers);
+		vi.useRealTimers();
+
+		const products = await t.run((ctx) => ctx.db.query("products").collect());
+		expect(products).toHaveLength(SEED_PRODUCTS.length);
+		expect(products.filter((product) => product.eventType !== undefined)).toEqual([]);
 	});
 
 	it("seeds the offer page products once", async () => {
