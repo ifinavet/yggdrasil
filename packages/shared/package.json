@@ -9,7 +9,7 @@
 		"convex": "catalog:",
 		"date-fns": "catalog:",
 		"marked": "catalog:",
-		"papaparse": "5.7.0",
+		"papaparse": "5.7.1",
 		"zod": "catalog:"
 	},
 	"devDependencies": {
