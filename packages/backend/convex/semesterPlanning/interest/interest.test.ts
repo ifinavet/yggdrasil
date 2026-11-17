@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { refusalMessageFrom, setup, type TestBackend } from "../../../test/fixtures";
-import { api } from "../../_generated/api";
+import {
+	asUser,
+	grantRole,
+	insertSemester,
+	insertUser,
+	refusalMessageFrom,
+	setup,
+	type TestBackend,
+} from "../../../test/fixtures";
+import { api, internal } from "../../_generated/api";
 
 const register = api.semesterPlanning.interest.mutations.register;
 
@@ -55,5 +63,59 @@ describe("register", () => {
 			await refusalMessageFrom(t.mutation(register, { ...answers, email: "ingrid@fjordkode.no" })),
 		).toBe("Det har kommet mange henvendelser på kort tid. Vent litt, og prøv igjen om en stund.");
 		expect(await scheduledEmails(t)).toHaveLength(3);
+	});
+});
+
+describe("telling companies when applications open", () => {
+	async function interested(t: TestBackend) {
+		return await t.run((ctx) => ctx.db.query("companyInterest").collect());
+	}
+
+	it("keeps one row per email address, with the latest name", async () => {
+		const { t } = await setup();
+
+		await t.mutation(register, { companyName: "Fjordkode", email: "Ingrid@Fjordkode.no" });
+		await t.mutation(register, { companyName: "Fjordkode AS", email: "ingrid@fjordkode.no" });
+
+		expect(await interested(t)).toMatchObject([
+			{ companyName: "Fjordkode AS", email: "ingrid@fjordkode.no" },
+		]);
+	});
+
+	it("schedules the email when a semester opens, and only then", async () => {
+		const { t } = await setup();
+		const editor = await insertUser(t, "kari@ifinavet.no");
+		await grantRole(t, editor._id, "editor");
+		const semesterId = await insertSemester(t, { status: "draft", lastDate: "2099-05-13" });
+		await t.run((ctx) => ctx.db.insert("semesterDates", { semesterId, date: "2027-01-21" }));
+		const setStatus = api.semesterPlanning.semesters.mutations.setStatus;
+
+		await asUser(t, editor).mutation(setStatus, { semesterId, status: "open" });
+		await asUser(t, editor).mutation(setStatus, { semesterId, status: "open" });
+
+		const scheduled = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
+		expect(
+			scheduled.filter(({ name }) => name.includes("notifyApplicationsOpen")).map((s) => s.args),
+		).toEqual([[{ semesterId }]]);
+	});
+
+	it("lists the companies only while the semester is open, and forgets them afterwards", async () => {
+		const { t } = await setup();
+		await t.mutation(register, { companyName: "Fjordkode AS", email: "ingrid@fjordkode.no" });
+		const openId = await insertSemester(t, { status: "open" });
+		const draftId = await insertSemester(t, { status: "draft", year: 2028 });
+		const interest = internal.semesterPlanning.interest.mutations;
+
+		expect(await t.query(interest.forOpening, { semesterId: draftId })).toBeNull();
+		const opening = await t.query(interest.forOpening, { semesterId: openId });
+		expect(opening).toMatchObject({
+			term: "spring",
+			year: 2027,
+			applicationDeadline: "2026-12-04",
+			companies: [{ companyName: "Fjordkode AS", email: "ingrid@fjordkode.no" }],
+		});
+
+		await t.mutation(interest.forget, { ids: opening?.companies.map(({ _id }) => _id) ?? [] });
+		expect(await interested(t)).toEqual([]);
 	});
 });
