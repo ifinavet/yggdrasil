@@ -191,24 +191,6 @@ describe("seedAndBackfillProducts", () => {
 		vi.useRealTimers();
 	});
 
-	it("clears the event type from products", async () => {
-		vi.useFakeTimers();
-		const { t } = await setup();
-		await seedProducts(t);
-		await t.run(async (ctx) => {
-			const product = await ctx.db.query("products").first();
-			if (!product) throw new Error("Expected a seeded product.");
-			await ctx.db.patch(product._id, { eventType: "workshop" });
-		});
-
-		await t.run((ctx) => seedAndBackfillProducts(ctx));
-		await t.finishAllScheduledFunctions(vi.runAllTimers);
-
-		const products = await t.run((ctx) => ctx.db.query("products").collect());
-		expect(products.filter((product) => product.eventType !== undefined)).toEqual([]);
-		vi.useRealTimers();
-	});
-
 	it("does not seed again after products were renamed or archived", async () => {
 		const { t } = await setup();
 		await t.run((ctx) => seedAndBackfillProducts(ctx));

@@ -16,8 +16,8 @@ import {
 	billingLines,
 	calendarMonths,
 	compactDateList,
-	eventTypeDescription,
 	fullDate,
+	productDescription,
 } from "./company-application-format";
 import { loadDraft, saveDraft, storedDraftSemesterId } from "./company-application-storage";
 
@@ -332,9 +332,9 @@ describe("company application prices", () => {
 		expect(formatNok(30_000).replace(/\s/g, " ")).toBe("30 000");
 	});
 
-	it("describes an event type with its product price in kroner", () => {
+	it("describes a product with its price in kroner", () => {
 		expect(
-			eventTypeDescription({ maxStudents: 40, unitPriceOre: 3_000_000 }).replace(/\s/g, " "),
+			productDescription({ maxStudents: 40, unitPriceOre: 3_000_000 }).replace(/\s/g, " "),
 		).toBe("Inntil 40 studenter · 30 000 kr eks. mva.");
 	});
 
@@ -348,7 +348,7 @@ describe("company application prices", () => {
 	});
 
 	it("leaves the price out when the event type has no priced product", () => {
-		expect(eventTypeDescription({ maxStudents: 40 })).toBe("Inntil 40 studenter");
-		expect(eventTypeDescription({})).toBe("Over 40 studenter");
+		expect(productDescription({ maxStudents: 40 })).toBe("Inntil 40 studenter");
+		expect(productDescription({})).toBe("Over 40 studenter");
 	});
 });

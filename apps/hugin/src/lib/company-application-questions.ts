@@ -36,7 +36,7 @@ export const COMPANY_APPLICATION_COPY = {
 		email: "E-post",
 		phone: "Telefon",
 	},
-	eventType: {
+	product: {
 		label: "Hva slags arrangement?",
 		capped: (cap: number) => `Inntil ${cap} studenter`,
 		uncapped: "Over 40 studenter",
