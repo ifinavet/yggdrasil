@@ -38,8 +38,8 @@ const FEEDBACK_BADGE: Record<FeedbackStatus, { variant: "default" | "secondary";
 		scheduled: CAMPAIGN_STATUS_BADGES.scheduled,
 	};
 
-function Registrations({ event, now }: Readonly<{ event: OverviewEvent; now: number }>) {
-	const summary = registrations(event, now);
+function Registrations({ event }: Readonly<{ event: OverviewEvent }>) {
+	const summary = registrations(event);
 	if (summary.kind === "note") {
 		return <span className="text-muted-foreground">{summary.text}</span>;
 	}
@@ -151,7 +151,7 @@ export function EventsTable({
 								</TableCell>
 								<TableCell className={LIST_CELL}>{event.leadName}</TableCell>
 								<TableCell className={LIST_CELL}>
-									<Registrations event={event} now={now} />
+									<Registrations event={event} />
 								</TableCell>
 								{withFeedback ? (
 									<TableCell className={LIST_CELL}>

@@ -164,6 +164,7 @@ export const getAll = query({
 					title: event.title,
 					eventStart: event.eventStart,
 					registrationOpens: event.registrationOpens,
+					registrationPhase: event.registrationPhase,
 					participationLimit: event.participationLimit,
 					externalEvent: event.externalEvent,
 					published: event.published,

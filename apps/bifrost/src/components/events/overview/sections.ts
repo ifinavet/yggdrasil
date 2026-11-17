@@ -71,10 +71,10 @@ export function groupByMonth(events: OverviewEvent[]): MonthGroup[] {
 	return groups;
 }
 
-export function registrations(event: OverviewEvent, now: number): Registrations {
+export function registrations(event: OverviewEvent): Registrations {
 	if (!event.published) return { kind: "note", text: "Upublisert" };
 	if (event.externalEvent) return { kind: "note", text: "Ekstern påmelding" };
-	if (event.registrationOpens > now) {
+	if (event.registrationPhase === "upcoming") {
 		return {
 			kind: "note",
 			text: `Åpner ${formatOsloDate(event.registrationOpens, DATE_PATTERNS.shortDate)}`,

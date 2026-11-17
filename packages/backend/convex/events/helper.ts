@@ -6,10 +6,12 @@ import {
 	termOfDay,
 } from "@workspace/shared/time";
 import { ConvexError } from "convex/values";
+import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { internalRoles, userHasRole } from "../auth/accessRights";
 import { hasTooManyPoints } from "../points/queries";
+import type { RegistrationPhase } from "./schema";
 
 export function leadingRole(roles: readonly OrganizerRole[]): OrganizerRole | null {
 	return roles.includes("hovedansvarlig") ? "hovedansvarlig" : (roles[0] ?? null);
@@ -61,12 +63,82 @@ export async function getEventByIdentifier(
 }
 
 export function validateRegistrationTime(event: Doc<"events">) {
-	const now = Date.now();
-	if (now < event.registrationOpens) {
+	const phase = registrationPhaseAt(event, Date.now());
+	if (phase === "upcoming") {
 		throw new ConvexError(`Påmelding til arrangementet "${event.title}" har ikke åpnet ennå.`);
 	}
-	if (now >= event.eventStart) {
+	if (phase === "closed") {
 		throw new ConvexError(`Påmelding til arrangementet "${event.title}" er stengt.`);
+	}
+}
+
+/**
+ * The registration phase of an event at a given time: upcoming before registration opens, open
+ * until the event starts, closed after.
+ *
+ * @param {{ registrationOpens: number, eventStart: number }} event - The event's times.
+ * @param {number} now - The time to check, in epoch milliseconds.
+ *
+ * @returns {RegistrationPhase} - The phase at that time.
+ */
+export function registrationPhaseAt(
+	event: Pick<Doc<"events">, "registrationOpens" | "eventStart">,
+	now: number,
+): RegistrationPhase {
+	if (now < event.registrationOpens) return "upcoming";
+	if (now < event.eventStart) return "open";
+	return "closed";
+}
+
+/**
+ * Saves the registration phase an event has now, writing only if it has changed. The phase
+ * depends on the times alone; whether the event is published or external is its own field.
+ *
+ * @param {MutationCtx} ctx - The Convex mutation context.
+ * @param {Doc<"events">} event - The event as stored.
+ * @param {number} now - The current time, in epoch milliseconds.
+ *
+ * @returns {Promise<void>} - Resolves when the phase is saved.
+ */
+export async function saveRegistrationPhase(
+	ctx: MutationCtx,
+	event: Doc<"events">,
+	now: number,
+): Promise<void> {
+	const phase = registrationPhaseAt(event, now);
+	if (event.registrationPhase !== phase) {
+		await ctx.db.patch(event._id, { registrationPhase: phase });
+	}
+}
+
+/**
+ * Stores an event's current registration phase and schedules a sync at each future boundary.
+ * Jobs carry the times they were scheduled for, so jobs from before a change do nothing.
+ *
+ * @param {MutationCtx} ctx - The Convex mutation context.
+ * @param {Id<"events">} eventId - The event, with its times already saved.
+ *
+ * @returns {Promise<void>} - Resolves when the phase is saved and the jobs are scheduled.
+ */
+export async function scheduleRegistrationPhase(
+	ctx: MutationCtx,
+	eventId: Id<"events">,
+): Promise<void> {
+	const event = await ctx.db.get(eventId);
+	if (!event) return;
+
+	const now = Date.now();
+	await saveRegistrationPhase(ctx, event, now);
+
+	const { registrationOpens, eventStart } = event;
+	for (const boundary of new Set([registrationOpens, eventStart])) {
+		if (boundary > now) {
+			await ctx.scheduler.runAt(boundary, internal.events.mutations.syncRegistrationPhase, {
+				eventId,
+				registrationOpens,
+				eventStart,
+			});
+		}
 	}
 }
 
@@ -170,6 +242,7 @@ export async function insertEventWithOrganizers(
 			ctx.db.insert("eventOrganizers", { eventId, userId, role }),
 		),
 	);
+	await scheduleRegistrationPhase(ctx, eventId);
 
 	return eventId;
 }

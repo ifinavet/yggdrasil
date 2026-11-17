@@ -11,6 +11,14 @@ export const registrationStatusValidator = v.union(
 	...REGISTRATION_STATUSES.map((status) => v.literal(status)),
 );
 
+/**
+ * Where an event's registration stands in time, for every event, published or external or not.
+ * Kept on the event by scheduled jobs. Only events saved before the field existed lack it, and
+ * those have passed, so a missing value means "closed".
+ */
+export const REGISTRATION_PHASES = ["upcoming", "open", "closed"] as const;
+export type RegistrationPhase = (typeof REGISTRATION_PHASES)[number];
+
 export const editableEventFields = {
 	title: v.string(),
 	teaser: v.string(),
@@ -39,6 +47,7 @@ export const eventsSchema = {
 		feedbackFormId: v.optional(v.id("feedbackForms")),
 		slug: v.optional(v.string()),
 		formId: v.optional(v.string()),
+		registrationPhase: v.optional(oneOf(REGISTRATION_PHASES)),
 		...soldProductFields,
 	})
 		.index("by_eventStart", ["eventStart"])

@@ -112,7 +112,7 @@ export function EventActionButton({
 		);
 	}
 
-	if (hasMounted && event.registrationOpens > Date.now()) {
+	if (event.registrationPhase === "upcoming") {
 		return (
 			<Button
 				type="button"
