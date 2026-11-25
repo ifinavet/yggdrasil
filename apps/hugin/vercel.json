@@ -1,5 +1,6 @@
 {
 	"$schema": "https://openapi.vercel.sh/vercel.json",
+	"buildCommand": "rm -rf .next/node_modules && turbo run build",
 	"git": {
 		"deploymentEnabled": false
 	}
