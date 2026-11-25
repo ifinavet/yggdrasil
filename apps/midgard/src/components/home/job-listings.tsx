@@ -10,6 +10,7 @@ import ResponsiveCenterContainer from "@workspace/ui/components/responsive-cente
 import { fetchQuery } from "convex/nextjs";
 import { cacheLife } from "next/cache";
 import Link from "next/link";
+import { hasJobListingsCarouselControls } from "@/lib/job-listings-carousel-controls";
 import JobListingCard from "../job-listings/job-listing-card";
 import JobListingsCarousel from "./job-listings-carousel";
 
@@ -36,7 +37,7 @@ export default async function JobListings() {
 								{jobListings.map((listing) => (
 									<CarouselItem
 										key={listing._id}
-										className="flex justify-center md:basis-1/2 lg:basis-1/3"
+										className="flex justify-center py-3 md:basis-1/2 lg:basis-1/3"
 									>
 										<JobListingCard
 											title={listing.title}
@@ -49,8 +50,12 @@ export default async function JobListings() {
 									</CarouselItem>
 								))}
 							</CarouselContent>
-							<CarouselPrevious />
-							<CarouselNext />
+							{hasJobListingsCarouselControls(jobListings.length) && (
+								<>
+									<CarouselPrevious />
+									<CarouselNext />
+								</>
+							)}
 						</JobListingsCarousel>
 						<div className="flex justify-center">
 							<Button
