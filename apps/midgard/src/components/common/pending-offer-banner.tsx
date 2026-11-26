@@ -1,6 +1,6 @@
 "use client";
 
-import { Authenticated } from "@workspace/auth/convex";
+import { Authenticated, Unauthenticated } from "@workspace/auth/convex";
 import { api } from "@workspace/backend/convex/api";
 import { huginUrl } from "@workspace/shared/constants/hugin-url";
 import { DATE_PATTERNS, formatOsloDate } from "@workspace/shared/time";
@@ -13,17 +13,23 @@ import { useEffect, useState } from "react";
 
 export default function PendingOfferBanner() {
 	return (
-		<Authenticated>
-			<AdmissionsBanner />
-			<PendingOffers />
-		</Authenticated>
+		<>
+			<Unauthenticated>
+				<PublicAdmissionsBanner />
+			</Unauthenticated>
+			<Authenticated>
+				<AdmissionsBanner />
+				<PendingOffers />
+			</Authenticated>
+		</>
 	);
 }
 
-function AdmissionsBanner() {
-	const [now, setNow] = useState(() => Date.now());
-	const context = useQuery(api.admissions.queries.applicationContext, { now });
-	const period = context?.period;
+function useAdmissionsRefresh(
+	period: { applicationStartAt: number; applicationEndAt: number } | null | undefined,
+	now: number,
+	setNow: (value: number) => void,
+) {
 	useEffect(() => {
 		if (!period) return;
 		const boundary =
@@ -34,9 +40,28 @@ function AdmissionsBanner() {
 			Math.min(boundary - now, 2_147_483_647),
 		);
 		return () => window.clearTimeout(timer);
-	}, [now, period]);
+	}, [now, period, setNow]);
+}
+
+function PublicAdmissionsBanner() {
+	const [now, setNow] = useState(() => Date.now());
+	const applicationWindow = useQuery(api.admissions.queries.openApplicationWindow, { now });
+	useAdmissionsRefresh(applicationWindow, now, setNow);
+	if (!applicationWindow) return null;
+	return <AdmissionsNote />;
+}
+
+function AdmissionsBanner() {
+	const [now, setNow] = useState(() => Date.now());
+	const context = useQuery(api.admissions.queries.applicationContext, { now });
+	const period = context?.period;
+	useAdmissionsRefresh(period, now, setNow);
 	if (!period || period.hidden || !context?.isOpen || context.application?.status === "submitted")
 		return null;
+	return <AdmissionsNote />;
+}
+
+function AdmissionsNote() {
 	return (
 		<div className="mx-4 mb-6 flex max-w-6xl flex-col gap-3 sm:mx-auto sm:w-full sm:px-6">
 			<Note

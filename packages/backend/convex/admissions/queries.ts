@@ -100,6 +100,21 @@ export const applicationContext = query({
 	},
 });
 
+export const openApplicationWindow = query({
+	args: { now: v.number() },
+	handler: async (ctx, { now }) => {
+		const period = await ctx.db.query("admissionPeriods").first();
+		if (
+			period?.hidden !== false ||
+			period.status !== "open" ||
+			now < period.applicationStartAt ||
+			now > period.applicationEndAt
+		)
+			return null;
+		return pick(period, ["applicationStartAt", "applicationEndAt"]);
+	},
+});
+
 export const availableGroups = query({
 	args: {},
 	handler: async (ctx) => {

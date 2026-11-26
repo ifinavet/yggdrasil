@@ -611,3 +611,45 @@ it("returns a safe reactive applicant context across the application lifecycle",
 	await t.run((ctx) => ctx.db.delete(periodId));
 	expect(await student.query(api.admissions.queries.applicationContext, { now })).toBeNull();
 });
+
+async function setPeriod(
+	t: Awaited<ReturnType<typeof setup>>["t"],
+	periodId: Id<"admissionPeriods">,
+	patch: Partial<{
+		hidden: boolean;
+		status: "open" | "closing";
+		applicationStartAt: number;
+		applicationEndAt: number;
+	}>,
+) {
+	await t.run((ctx) => ctx.db.patch(periodId, patch));
+}
+
+it("shows only the application window of a visible open period to logged-out visitors", async () => {
+	const { t } = await setup();
+	const { admin, boardId, secondBoardId } = await users(t);
+	const now = Date.now();
+	const query = () => t.query(api.admissions.queries.openApplicationWindow, { now });
+	await expect(query()).resolves.toBeNull();
+
+	const periodId = await openPeriod(admin, boardId, secondBoardId);
+	await expect(query()).resolves.toBeNull();
+
+	await setPeriod(t, periodId, { hidden: false });
+	await expect(query()).resolves.toEqual({
+		applicationStartAt: now - DAY,
+		applicationEndAt: now + DAY,
+	});
+
+	await setPeriod(t, periodId, { hidden: true });
+	await expect(query()).resolves.toBeNull();
+
+	await setPeriod(t, periodId, { hidden: false, status: "closing" });
+	await expect(query()).resolves.toBeNull();
+
+	await setPeriod(t, periodId, { status: "open", applicationStartAt: now + 1 });
+	await expect(query()).resolves.toBeNull();
+
+	await setPeriod(t, periodId, { applicationStartAt: now - DAY, applicationEndAt: now - 1 });
+	await expect(query()).resolves.toBeNull();
+});
