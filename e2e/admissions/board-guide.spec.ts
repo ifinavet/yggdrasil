@@ -14,7 +14,7 @@ test.describe("admissions guide", () => {
 		await page.goto(`${bifrostUrl}/admissions`);
 		await clearCookieNotice(page);
 		await expect(page.getByRole("button", { name: "Start opptak" })).toBeVisible();
-		await expect(page.locator("[data-tour]")).toHaveCount(0);
+		await expect(page.getByRole("dialog")).toHaveCount(0);
 		await expect(page.getByRole("button", { name: "Vis veiledningen igjen" })).toHaveCount(0);
 	});
 

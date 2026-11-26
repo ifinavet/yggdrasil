@@ -1,5 +1,5 @@
 "use client";
-import { localWindow } from "@workspace/shared/time";
+import { localWindow, OSLO_TIME_ZONE } from "@workspace/shared/time";
 import { Avatar, AvatarFallback, AvatarImage } from "@workspace/ui/components/avatar";
 import { Button } from "@workspace/ui/components/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@workspace/ui/components/dialog";
@@ -41,7 +41,7 @@ export function InterviewCalendar({
 }: Readonly<{
 	candidates: Candidate[];
 	interviews: Interview[];
-	settings: Settings;
+	settings: Settings | null;
 	approved: boolean;
 	onApprove: () => void;
 	days: string[];
@@ -68,6 +68,7 @@ export function InterviewCalendar({
 		(candidate) => !interviews.some((interview) => interview.applicationId === candidate._id),
 	);
 	const visibleDays = day ? [day] : currentWeek;
+	const timezone = settings?.timezone ?? OSLO_TIME_ZONE;
 	const selectCandidate = (id: string) => {
 		if (!selectingRooms) {
 			onOpenCandidate(id);
@@ -124,6 +125,7 @@ export function InterviewCalendar({
 				<div className="admissions-actions flex flex-wrap items-center gap-3">
 					<Button
 						variant={selectingRooms ? "secondary" : "outline"}
+						disabled={!settings}
 						onClick={() => {
 							setSelectingRooms(!selectingRooms);
 							setRoomSelection([]);
@@ -133,13 +135,13 @@ export function InterviewCalendar({
 						{selectingRooms ? "Avslutt romvalg" : "Sett rom"}
 					</Button>
 					<GuideHint step="calendars">
-						<Button variant="outline" onClick={() => onOpenCalendars()}>
+						<Button variant="outline" disabled={!settings} onClick={() => onOpenCalendars()}>
 							<CalendarDays />
 							Kalendere
 						</Button>
 					</GuideHint>
 					<GuideHint step="generate">
-						<Button variant="outline" onClick={onGenerateSchedule}>
+						<Button variant="outline" disabled={!settings} onClick={onGenerateSchedule}>
 							<WandSparkles />
 							Finn tider
 						</Button>
@@ -171,9 +173,7 @@ export function InterviewCalendar({
 							onClick={() =>
 								setRoomSelection(
 									interviews
-										.filter((i) =>
-											visibleDays.includes(localWindow(i.startAt, 0, settings.timezone).day),
-										)
+										.filter((i) => visibleDays.includes(localWindow(i.startAt, 0, timezone).day))
 										.map((i) => i.applicationId),
 								)
 							}
@@ -244,7 +244,7 @@ export function InterviewCalendar({
 			>
 				{visibleDays.map((date) => {
 					const dayInterviews = interviews
-						.filter((i) => localWindow(i.startAt, 0, settings.timezone).day === date)
+						.filter((i) => localWindow(i.startAt, 0, timezone).day === date)
 						.sort((a, b) => a.startAt - b.startAt);
 					return (
 						<div key={date} className="admissions-day min-w-0 overflow-hidden rounded-xl bg-muted">
@@ -259,11 +259,7 @@ export function InterviewCalendar({
 								{dayInterviews.map((i) => {
 									const c = candidates.find((c) => c._id === i.applicationId);
 									if (!c) return null;
-									const slot = localWindow(
-										i.startAt,
-										(i.endAt - i.startAt) / 60_000,
-										settings.timezone,
-									);
+									const slot = localWindow(i.startAt, (i.endAt - i.startAt) / 60_000, timezone);
 									return (
 										<button
 											type="button"
@@ -291,7 +287,7 @@ export function InterviewCalendar({
 										</button>
 									);
 								})}
-								{settings.lunch && (
+								{settings?.lunch && (
 									<div
 										className="admissions-break flex items-center justify-center gap-1.5 px-1 py-3 text-muted-foreground text-xs"
 										style={{ order: 720 }}

@@ -16,7 +16,8 @@ test("creates a period and exposes calendar provider configuration errors", asyn
 	await resetAdmissions("empty");
 	await page.goto(`${bifrostUrl}/admissions`);
 	await clearCookieNotice(page);
-	await expect(page.getByRole("heading", { name: "Ingen aktive opptak" })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Start opptak" })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Kalendere", exact: true })).toBeDisabled();
 	await captureScreenshot(
 		page,
 		"board",
