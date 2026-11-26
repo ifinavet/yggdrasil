@@ -48,7 +48,7 @@ export default function AdmissionsDashboard() {
 	const publish = useMutation(api.admissions.mutations.publish);
 	const setHidden = useMutation(api.admissions.board.setHidden);
 	const generate = useAction(api.admissions.interviews.calendar.generateSchedule);
-	const [view, setView] = useState<"calendar" | "candidates" | "selection">("calendar");
+	const [view, setView] = useState<AdmissionsView>("calendar");
 	const [selected, setSelected] = useState<string | null>(null);
 	const [query, setQuery] = useState("");
 	const [program, setProgram] = useState("");
@@ -63,53 +63,7 @@ export default function AdmissionsDashboard() {
 	const perform = (action: () => Promise<unknown>, message: string) =>
 		run(action, () => toast.success(message), "Handlingen mislyktes. Prøv igjen.");
 	if (overview === undefined) return <output>Laster opptaket…</output>;
-	if (!overview)
-		return (
-			<section
-				className={`admissions flex min-w-0 flex-col gap-6 pb-8 ${fullscreen ? "admissions-fullscreen fixed inset-0 z-40 overflow-auto bg-background p-4 md:px-8 md:py-6" : ""}`}
-			>
-				<div className="admissions-title flex items-center justify-between gap-4 [&_h1]:font-semibold [&_h1]:text-3xl [&_h1]:tracking-tight">
-					<h1>Opptak</h1>
-				</div>
-				<div className="admissions-empty flex flex-col items-center gap-5 px-2 py-12 sm:px-6 sm:py-20">
-					<Users size={36} />
-					<h2>Ingen aktive opptak</h2>
-					<div className="grid max-w-prose gap-3 text-muted-foreground">
-						<p>
-							Start opptak åpner et skjema med søknadsperiode, intervjudager, intervjuere,
-							intervjulengde og rom. Etterpå går opptaket slik:
-						</p>
-						<ol className="grid list-decimal gap-1 pl-5">
-							<li>
-								Studentene søker i Hugin, via lenker fra ifinavet.no, Instagram og andre kanaler,
-								mens søknadsperioden er åpen.
-							</li>
-							<li>
-								Dere velger Google-kalenderne til intervjuernes @ifinavet.no-kontoer og får et
-								forslag til intervjutider som passer alle. Hver intervjuer kobler sine egne
-								kalendere til ifinavet-kalenderen sin, eller blokkerer tidene der de ikke vil
-								intervjue manuelt.
-							</li>
-							<li>Når dere godkjenner forslaget, får kandidatene tiden sin på e-post.</li>
-							<li>
-								Etter intervjuene vurderer dere kandidatene i runder. I hver runde går noen
-								kandidater videre, og resten blir slått ut.
-							</li>
-							<li>Dere sender tilbud og avslag herfra, og kandidatene svarer på tilbudet.</li>
-						</ol>
-					</div>
-					<Button onClick={() => setConfigure(true)}>
-						<Plus />
-						Start opptak
-					</Button>
-				</div>
-				<SettingsDialog
-					open={configure}
-					onOpenChange={setConfigure}
-					onSaved={() => toast.success("Opptaket er opprettet")}
-				/>
-			</section>
-		);
+	if (!overview) return <EmptyDashboard />;
 	const { period } = overview;
 	const { candidates, interviewers: team, interviews } = overview;
 	const days = [
@@ -239,37 +193,7 @@ export default function AdmissionsDashboard() {
 					</Callout>
 				)}
 				<DeliveryStatus jobs={overview.jobs} closing={period.status === "closing"} />
-				<nav
-					className="admissions-tabs flex flex-wrap items-center gap-1"
-					aria-label="Opptaksvisninger"
-				>
-					{(
-						[
-							["calendar", CalendarDays, "Intervjuer"],
-							["candidates", Users, `Kandidater (${candidates.length})`],
-							["selection", Columns3, "Utvelgelse"],
-						] as const
-					).map(([key, Icon, label]) => {
-						const tab = (
-							<Button
-								key={key}
-								variant={view === key ? "secondary" : "ghost"}
-								aria-pressed={view === key}
-								onClick={() => setView(key)}
-							>
-								<Icon />
-								{label}
-							</Button>
-						);
-						return key === "calendar" ? (
-							tab
-						) : (
-							<GuideHint key={key} step={key}>
-								{tab}
-							</GuideHint>
-						);
-					})}
-				</nav>
+				<AdmissionsTabs view={view} onViewChange={setView} candidateCount={candidates.length} />
 				{view === "calendar" ? (
 					<InterviewCalendar
 						candidates={candidates}
@@ -410,6 +334,111 @@ export default function AdmissionsDashboard() {
 				/>
 			</section>
 		</GuideProvider>
+	);
+}
+
+type AdmissionsView = "calendar" | "candidates" | "selection";
+
+function AdmissionsTabs({
+	view,
+	onViewChange,
+	candidateCount,
+}: Readonly<{
+	view: AdmissionsView;
+	onViewChange: (view: AdmissionsView) => void;
+	candidateCount: number;
+}>) {
+	return (
+		<nav
+			className="admissions-tabs flex flex-wrap items-center gap-1"
+			aria-label="Opptaksvisninger"
+		>
+			{(
+				[
+					["calendar", CalendarDays, "Intervjuer"],
+					["candidates", Users, `Kandidater (${candidateCount})`],
+					["selection", Columns3, "Utvelgelse"],
+				] as const
+			).map(([key, Icon, label]) => {
+				const tab = (
+					<Button
+						key={key}
+						variant={view === key ? "secondary" : "ghost"}
+						aria-pressed={view === key}
+						onClick={() => onViewChange(key)}
+					>
+						<Icon />
+						{label}
+					</Button>
+				);
+				return key === "calendar" ? (
+					tab
+				) : (
+					<GuideHint key={key} step={key}>
+						{tab}
+					</GuideHint>
+				);
+			})}
+		</nav>
+	);
+}
+
+function EmptyDashboard() {
+	const [view, setView] = useState<AdmissionsView>("calendar");
+	const [configure, setConfigure] = useState(false);
+	const [query, setQuery] = useState("");
+	const [program, setProgram] = useState("");
+	const [year, setYear] = useState("");
+	const ignore = () => {};
+	return (
+		<section className="admissions flex min-w-0 flex-col gap-6 pb-8">
+			<div className="admissions-title flex flex-wrap items-center justify-between gap-4 [&_h1]:font-semibold [&_h1]:text-3xl [&_h1]:tracking-tight">
+				<h1>Opptak</h1>
+				<Button onClick={() => setConfigure(true)}>
+					<Plus />
+					Start opptak
+				</Button>
+			</div>
+			<AdmissionsTabs view={view} onViewChange={setView} candidateCount={0} />
+			{view === "calendar" ? (
+				<InterviewCalendar
+					candidates={[]}
+					interviews={[]}
+					settings={null}
+					days={[]}
+					team={[]}
+					approved={false}
+					onOpenCandidate={ignore}
+					onOpenCalendars={ignore}
+					onGenerateSchedule={ignore}
+					onApprove={ignore}
+					onAssignRoom={() => false}
+				/>
+			) : (
+				<>
+					<div className="admissions-toolbar flex flex-wrap items-center justify-between gap-4">
+						<CandidateFilters
+							query={query}
+							setQuery={setQuery}
+							program={program}
+							setProgram={setProgram}
+							year={year}
+							setYear={setYear}
+						/>
+					</div>
+					{view === "selection" ? (
+						<SelectionBoard candidates={[]} onSelect={ignore} onDecisionChange={ignore} />
+					) : (
+						<DataTable data={[]} columns={candidateColumns(ignore)} />
+					)}
+				</>
+			)}
+			<SettingsDialog
+				open={configure}
+				onOpenChange={setConfigure}
+				onSaved={() => toast.success("Opptaket er opprettet")}
+			/>
+		</section>
 	);
 }
 
